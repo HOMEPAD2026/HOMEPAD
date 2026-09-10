@@ -3,58 +3,50 @@
 // FACTORY_ADDRESS is set to a real deployed contract — the $HOME stats
 // panel above it works independently of that.
 const CONFIG = {
-  CHAIN_ID_HEX: "0xB636", // 46630 (Robinhood Chain testnet) in hex. Mainnet is 4663 = 0x1237.
-  CHAIN_ID_DECIMAL: 46630,
-  CHAIN_NAME: "Robinhood Chain Testnet",
-  RPC_URL: "https://rpc.testnet.chain.robinhood.com",
-  BLOCK_EXPLORER: "https://explorer.testnet.chain.robinhood.com",
+  CHAIN_ID_HEX: "0x1237", // 4663 (Robinhood Chain mainnet) in hex.
+  CHAIN_ID_DECIMAL: 4663,
+  CHAIN_NAME: "Robinhood Chain",
+  RPC_URL: "https://rpc.mainnet.chain.robinhood.com",
+  BLOCK_EXPLORER: "https://robinhoodchain.blockscout.com",
   NATIVE_CURRENCY: { name: "ETH", symbol: "ETH", decimals: 18 },
 
-  FACTORY_ADDRESS: "0x154f77D9CEE487E97553330028ED1425a238085d", // HomepadFactoryV4 — graduation threshold 3 ETH
+  FACTORY_ADDRESS: "", // Bonding Curve — deferred for mainnet launch (V2 router on Robinhood Chain unconfirmed). Shows as "soon".
   // --- Stock pair (paired hybrid: same single-sided v4 pool as Hybrid, but
   // priced in an ERC-20 quote token — Robinhood Stock Tokens; $HOME later).
   // Deploy with contracts/scripts/deploy-paired.js and paste here. Leave
   // blank to keep "Stock" as a preview tab in the launch form.
-  PAIRED_FACTORY_ADDRESS: "0x7750339Eb5b5E11d934c6FA3e0f6e9f23df0Aa4f",
-  PAIRED_HOOK_ADDRESS: "0xA4BA24582a4718Ef67aCEB6fe0112B23a79A0044",
-  PAIRED_SWAP_ROUTER_ADDRESS: "0x7e8cBDA25f077cEc163765223e53a5C554Af2328",
+  PAIRED_FACTORY_ADDRESS: "", // Stock Pair — deferred for mainnet launch. Shows as "soon".
+  PAIRED_HOOK_ADDRESS: "",
+  PAIRED_SWAP_ROUTER_ADDRESS: "",
   LEGACY_PAIRED_FACTORIES: [], // [{ factory, router }] — same idea as LEGACY_HYBRID_FACTORIES
   // Quote tokens offered in the Stock tab. `defaultVirtualQuote` is the
   // suggested starting price, in the convention every HOMEPAD mode uses:
   // "this many of the quote buys the entire 1B supply". On testnet these
   // are the mock tokens deploy-paired.js prints with DEPLOY_MOCK_STOCKS=1;
   // on mainnet, the real Robinhood Stock Token addresses.
-  QUOTE_TOKENS: [
-    { symbol: "TSLA", name: "Tesla (mock)",  address: "0x45165CfA06b4BbF8a26DFa73c835aF012A025Be3", decimals: 18, defaultVirtualQuote: "48" },
-    { symbol: "NVDA", name: "NVIDIA (mock)", address: "0x426657CA5C70Cdaf85ba7bD9f48437537AA27A28", decimals: 18, defaultVirtualQuote: "80" },
-    { symbol: "AAPL", name: "Apple (mock)",  address: "0x8668639530b9F5B80577a134E283710E96376CC7", decimals: 18, defaultVirtualQuote: "50" },
-  ],
+  QUOTE_TOKENS: [], // cleared for mainnet — testnet mock addresses must never be used here. Repopulate with real Robinhood Stock Token addresses when Stock Pair goes live.
   DEFAULT_SUPPLY: "1000000000", // matches HomepadFactory.DEFAULT_SUPPLY (display only)
 
   // --- Instant Liquidity mode (HomepadFactoryInstant + HomepadHook + HomepadSwapRouter) ---
   // No bonding curve — launch creates a real, immediately swappable
   // Uniswap v4 pool. Leave INSTANT_FACTORY_ADDRESS blank to hide this
   // launch type in the UI. See scripts/deploy-instant.js.
-  INSTANT_FACTORY_ADDRESS: "0xcfF2c7FFbd867CcaE3c253Baaf10d58d5eC1ba17",
+  INSTANT_FACTORY_ADDRESS: "0x4e66058A0AA148aa86D5B9701af7205cfFa99419", // mainnet
   // Earlier Instant deployments, kept (factory + its own matching router)
   // so tokens launched on them still show up in Explore — testnet only,
   // so old ones just accumulate here instead of getting cleaned up.
-  LEGACY_INSTANT_FACTORIES: [
-    { factory: "0xf2fC8678b00F714A08aAAC22490DD1f9c00b593B", router: "0xc9786Ab69b5dC9521FA7ECf797EE10de99Ab47F3" },
-  ],
-  SWAP_ROUTER_ADDRESS: "0x917F2f7A7E4607937c3562E96b2E02325264B813",
-  HOOK_ADDRESS: "0xf9f5105d59AF2B2538D0AcD961D10b61C4CcC044", // HomepadHook — takes the live fee cut on every Instant Liquidity swap
+  LEGACY_INSTANT_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
+  SWAP_ROUTER_ADDRESS: "0xF7324bB4D1A44FA0BE78f60A3edB5046bfF88a54", // mainnet
+  HOOK_ADDRESS: "0x3ec13E96c018A7f0C662291bbAd235f210Ea0044", // mainnet HomepadHook — takes the live fee cut on every Instant Liquidity swap
 
   // Hybrid mode (the default launch type) — real pool from block one,
   // single-sided liquidity for curve-like price impact. See
   // HomepadFactoryHybrid / HomepadHybridHook in the contracts repo.
-  HYBRID_FACTORY_ADDRESS: "0x403DE4697e1d3A7E837e5778532E1247B9C87b99",
+  HYBRID_FACTORY_ADDRESS: "0x59b49eb9985095cC83B4AC125f8D0DD6CDE362a9", // mainnet
   // Same idea as LEGACY_INSTANT_FACTORIES above.
-  LEGACY_HYBRID_FACTORIES: [
-    { factory: "0x8EB532d862838f3A84710736aBaF62970F801317", router: "0x0E7ee82dCDF53581B5Fc4c454C58945Bba151a19" },
-  ],
-  HYBRID_HOOK_ADDRESS: "0x002dDC296285D92CdB3c4c40a1b510ce67774044",
-  HYBRID_SWAP_ROUTER_ADDRESS: "0xF40F33D6E3240d29a6E04339b07b927053d74cF1",
+  LEGACY_HYBRID_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
+  HYBRID_HOOK_ADDRESS: "0x7219f713b92C428789ECa85C20E540f40217C044", // mainnet
+  HYBRID_SWAP_ROUTER_ADDRESS: "0x0E74050b07A5D17af89C01e54e685Cbf1F543dd0", // mainnet
   INSTANT_HOME_ALLOCATION_BPS: 800, // 8% of supply to $HOME treasury at launch (display only, matches the contract constant)
 
   // --- $HOME token (already live — on MAINNET, unlike the rest of this
@@ -75,10 +67,10 @@ const CONFIG = {
   DEXSCREENER_CHAIN_SLUG: "robinhood",
   DEXSCREENER_PAIR_ADDRESS: "0x177e26bc396d8a264542033533d71a94957375027bf4b47a7467cc444233bdfa",
 
-  // Blockscout: the TESTNET explorer, for everything else on this site
-  // (HOMEPAD's own launches, all testnet). Free v2 REST API, no key
-  // needed for basic token/holder lookups.
-  BLOCKSCOUT_API_BASE: "https://explorer.testnet.chain.robinhood.com",
+  // Blockscout: the MAINNET explorer, for everything else on this site
+  // (HOMEPAD's own launches). Free v2 REST API, no key needed for basic
+  // token/holder lookups.
+  BLOCKSCOUT_API_BASE: "https://robinhoodchain.blockscout.com",
 
   // Reown AppKit (wallet-connect modal, "UX by reown" — same one kekfun.xyz
   // uses). Get a free project ID at https://dashboard.reown.com and paste
