@@ -181,8 +181,6 @@ async function computeRentDashboard() {
     try {
       const hookAddr = await source.factory.hook();
       const hook = new ethers.Contract(hookAddr, HYBRID_HOOK_ABI, readProvider());
-      const feeEvents = await hook.queryFilter(hook.filters.FeeRouted());
-      if (!feeEvents.length) continue;
 
       const sourceEntries = launches.filter((e) => e.type === "paired" && sameAddr(e.factoryAddress, source.factory.target));
       const poolIdToEntry = new Map();
@@ -191,6 +189,13 @@ async function computeRentDashboard() {
         const [c0, c1] = quoteIs0 ? [entry.quoteToken, entry.token] : [entry.token, entry.quoteToken];
         poolIdToEntry.set(rentPoolId(c0, c1, 0, 60, hookAddr), entry);
       }
+      const poolIds = [...poolIdToEntry.keys()];
+
+      // Same fix as the Hybrid/Instant loop above: filter by poolId (indexed
+      // on FeeRouted) instead of scanning every FeeRouted this hook has ever
+      // emitted — the unfiltered form timed out against the public RPC.
+      const feeEvents = poolIds.length ? await hook.queryFilter(hook.filters.FeeRouted(poolIds)) : [];
+      if (!feeEvents.length) continue;
 
       const blockTime = await blockTimestamps(feeEvents);
       for (const e of feeEvents) {
