@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789074298">
+<link rel="stylesheet" href="style.css?v=1789074702">
 </head>
 <body>
 
@@ -55,35 +55,40 @@
     <p class="lede">Every launch sends <strong>8% of its supply</strong> to the $HOME treasury. Until the lock contract ships, the treasury burns it — read live from the burn address below, with the transaction for every burn.</p>
   </div>
 
-  <!-- Hero: the burn -->
-  <section id="burn-hero" class="burn-hero" aria-live="polite">
-    <div class="burn-hero-card">
-      <div class="rent-hero-label" id="burn-hero-label">Burned so far</div>
-      <div class="rent-hero-value" id="burn-hero-value"><span class="sk sk-line w40"></span></div>
-      <div class="burn-share" id="burn-hero-share">···</div>
-      <div class="burn-bar" aria-hidden="true"><div class="burn-bar-fill" id="burn-hero-bar" style="width:0%"></div><div class="burn-bar-mark" title="8% launch allocation"></div></div>
-      <div class="rent-hero-subs" id="burn-hero-subs"></div>
-      <div class="burn-hero-links" id="burn-hero-links"></div>
+  <!-- Hero: burned (left) + platform volume (right) -->
+  <section class="rent-cols" aria-live="polite">
+    <div class="rent-col rent-col-burn">
+      <div class="burn-hero-card">
+        <div class="rent-hero-label" id="burn-hero-label">Total burned</div>
+        <div class="rent-hero-value" id="burn-hero-value"><span class="sk sk-line w40"></span></div>
+        <div class="burn-share" id="burn-hero-share">···</div>
+        <div class="rent-hero-subs" id="burn-hero-subs"></div>
+        <div class="burn-hero-links" id="burn-hero-links"></div>
+      </div>
+      <!-- More featured tokens, if any -->
+      <div class="burn-more" id="burn-more" style="display:none"></div>
+
+      <div class="rent-section-head" style="margin-top:22px">
+        <h3>Proof of burn</h3>
+        <span class="rent-section-count" id="burn-ledger-count"></span>
+      </div>
+      <div class="rent-events" id="burn-ledger"><div class="empty-state">Loading burns…</div></div>
+    </div>
+
+    <div class="rent-col rent-col-volume">
+      <div class="volume-hero-card">
+        <div class="rent-hero-label">Total volume through HOMEPAD</div>
+        <div class="rent-hero-value" id="volume-hero-value"><span class="sk sk-line w40"></span></div>
+        <div class="burn-share">ETH traded across every launch, any route — dev buys and third-party swaps included</div>
+      </div>
     </div>
   </section>
-
-  <!-- More featured tokens, if any -->
-  <section class="burn-more" id="burn-more" style="display:none"></section>
 
   <!-- Roadmap -->
   <section class="burn-roadmap">
     <div class="burn-step"><span class="burn-step-k pixel">now</span><span class="burn-step-v">Manual burn — every allocation the treasury receives is sent to the burn address by hand.</span></div>
     <div class="burn-step"><span class="burn-step-k pixel">next</span><span class="burn-step-v">Automated, contract-locked — the allocation held on-chain instead of by a wallet.</span></div>
     <div class="burn-step"><span class="burn-step-k pixel">goal</span><span class="burn-step-v">Continuous liquidity support for launches, managed by transparent on-chain automation.</span></div>
-  </section>
-
-  <!-- Proof of burn -->
-  <section class="rent-home-leg">
-    <div class="rent-section-head">
-      <h3>Proof of burn</h3>
-      <span class="rent-section-count" id="burn-ledger-count"></span>
-    </div>
-    <div class="rent-events" id="burn-ledger"><div class="empty-state">Loading burns…</div></div>
   </section>
 
   <!-- How rent gets home -->
@@ -114,13 +119,13 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789074298"></script>
-<script src="abis.js?v=1789074298"></script>
-<script src="app.js?v=1789074298"></script>
-<script src="wallet-appkit.js?v=1789074298"></script>
-<script src="launch-modal.js?v=1789074298"></script>
-<script src="rent.js?v=1789074298"></script>
-<script src="footer.js?v=1789074298"></script>
+<script src="config.js?v=1789074702"></script>
+<script src="abis.js?v=1789074702"></script>
+<script src="app.js?v=1789074702"></script>
+<script src="wallet-appkit.js?v=1789074702"></script>
+<script src="launch-modal.js?v=1789074702"></script>
+<script src="rent.js?v=1789074702"></script>
+<script src="footer.js?v=1789074702"></script>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -154,8 +159,6 @@ function renderBurnHero(b) {
   $("burn-hero-label").textContent = `$${primary.symbol} burned`;
   $("burn-hero-value").innerHTML = `${tk(primary.burned)} <span class="rent-hero-unit">$${primary.symbol}</span>`;
   $("burn-hero-share").innerHTML = `<b>${share}%</b> of the 1,000,000,000 supply is gone for good`;
-  // bar is drawn on a 0–10% scale so the 8% allocation mark sits at 80% width
-  $("burn-hero-bar").style.width = Math.min(100, primary.sharePct * 10).toFixed(2) + "%";
   $("burn-hero-subs").innerHTML = subs;
   $("burn-hero-links").innerHTML = links;
 
@@ -168,7 +171,6 @@ function renderBurnHero(b) {
       return `<div class="stat-card burn-card">
         <div class="stat-label">$${t.symbol} burned</div>
         <div class="stat-value">${tk(t.burned)} <span class="rent-hero-unit">$${t.symbol}</span></div>
-        <div class="burn-bar small" aria-hidden="true"><div class="burn-bar-fill" style="width:${Math.min(100, t.sharePct * 10).toFixed(2)}%"></div><div class="burn-bar-mark"></div></div>
         <div class="rent-hero-subs left">${c.subs}</div>
         <div class="burn-hero-links">${c.links}</div>
       </div>`;
@@ -202,14 +204,21 @@ async function renderRentPage() {
   $("rent-burn-addr-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}`;
   try {
     const launches = await fetchAllLaunches({ skipHistory: true });
-    const b = await computeBurns(launches);
+    const [b, volumeEth] = await Promise.all([
+      computeBurns(launches),
+      computePlatformVolume(launches).catch((err) => { console.error("volume failed", err); return null; }),
+    ]);
     renderBurnHero(b);
     renderBurnLedger(b);
+    $("volume-hero-value").innerHTML = volumeEth == null
+      ? `— <span class="rent-hero-unit"></span>`
+      : `${fmtEth(Number(ethers.formatEther(volumeEth)))} <span class="rent-hero-unit">ETH</span>`;
   } catch (err) {
     console.error("rent page failed", err);
     $("burn-hero-value").innerHTML = `— <span class="rent-hero-unit"></span>`;
     $("burn-hero-share").textContent = "Couldn't reach the chain right now — try again in a moment.";
     $("burn-ledger").innerHTML = `<div class="empty-state">Couldn't load burns.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 160)}</div></div>`;
+    $("volume-hero-value").innerHTML = `— <span class="rent-hero-unit"></span>`;
   }
 }
 renderRentPage();

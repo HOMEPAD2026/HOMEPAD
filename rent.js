@@ -47,7 +47,7 @@ const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 // Bumped whenever this file's data path changes, and printed with every
 // rent log line — after a day of cache-busting mishaps, a screenshot of a
 // stale build needs to be recognisable as stale.
-const RENT_JS_VERSION = "r8";
+const RENT_JS_VERSION = "r9";
 
 /// A non-event row for Recent Rent Events that explains a load failure in
 /// plain words instead of the page silently showing 0 for everything.
@@ -142,6 +142,29 @@ async function computeTreasuryRent(launches) {
 /// burn address (balanceOf(0x…dEaD) per launched token) and from each
 /// token's own Transfer events into it. Both are tiny, bounded reads; no
 /// PoolManager or hook logs involved.
+/// Total ETH that has ever moved through a HOMEPAD pool — every Hybrid and
+/// Instant launch, any route (our router, a dev buy, a third-party swap).
+/// Pure activity, no fee split and no per-trade detail — the volume side of
+/// what this page shows, next to the burn side.
+async function computePlatformVolume(launches) {
+  let totalVolumeEth = 0n;
+  for (const [sourcesFn, type] of [[hybridFactorySources, "hybrid"], [instantFactorySources, "instant"]]) {
+    for (const source of sourcesFn()) {
+      try {
+        const hookAddr = await source.router.hook();
+        const hook = new ethers.Contract(hookAddr, HYBRID_HOOK_ABI, readProvider());
+        const entries = launches.filter((e) => e.type === type && sameAddr(e.routerAddress, source.router.target));
+        const poolIds = entries.map((e) => rentPoolId(ethers.ZeroAddress, e.token, 0, 60, hookAddr));
+        const swaps = await poolManagerSwapsFor(hook, poolIds);
+        for (const s of swaps) totalVolumeEth += absBig(s.args.amount0);
+      } catch (err) {
+        console.warn(`platform volume: ${type} source failed`, source.router.target, err);
+      }
+    }
+  }
+  return totalVolumeEth;
+}
+
 async function computeBurns(launches) {
   const treasury = CONFIG.HOME_TREASURY_ADDRESS;
   const featured = new Set((CONFIG.RENT_FEATURED_TOKENS || []).map((a) => a.toLowerCase()));
