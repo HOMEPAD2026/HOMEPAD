@@ -1048,6 +1048,12 @@ function computePoolId(currency0, currency1, fee, tickSpacing, hooks) {
 // execution price (|amount0| / |amount1|) — still a figure from that exact
 // transaction, not an oracle or an estimate.
 
+// Where a launch's 8% $HOME allocation goes when it's burned. LaunchToken
+// has no burn(), so "burn" means a transfer here — checking balanceOf(dead)
+// against the allocation is how the site tells burned from still-held.
+const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
+const LAUNCH_ALLOCATION = (1_000_000_000n * 10n ** 18n) * 800n / 10000n; // HOME_ALLOCATION_BPS = 800
+
 const POOL_MANAGER_SWAP_ABI = [
   "event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)",
 ];
@@ -1214,7 +1220,7 @@ async function renderProfile() {
     <div id="profile-stats" class="stat-grid profile-stat-grid" style="margin-top:20px">
       <div class="stat-card"><div class="stat-label">Launches</div><div class="stat-value" id="profile-stat-launches">…</div></div>
       <div class="stat-card"><div class="stat-label">Portfolio Value</div><div class="stat-value" id="profile-stat-value">…</div></div>
-      <div class="stat-card"><div class="stat-label">Creator Fees</div><div class="stat-value" id="profile-stat-fees">…</div></div>
+      <div class="stat-card"><div class="stat-label">Creator Fees</div><div class="stat-value" id="profile-stat-fees">…</div><div class="stat-sub">buys pay you in your token, sells in ETH — valued in ETH at each trade's price</div></div>
       <div class="stat-card"><div class="stat-label">Tokens Held</div><div class="stat-value" id="profile-stat-held">…</div></div>
     </div>
 
@@ -1793,8 +1799,8 @@ async function renderCreate(targetId) {
       tab.classList.add("active");
       launchType = tab.dataset.type;
       const hints = {
-        hybrid: "Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. 8% of supply goes to the $HOME treasury at launch; the other 92% is the pool's single-sided liquidity, which gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.",
-        instant: "Creates a real, immediately tradeable Uniswap pool — visible on Dexscreener right away. 8% of supply goes to the $HOME treasury; the rest is locked as liquidity with whatever ETH you seed it with.",
+        hybrid: "Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. 8% of supply goes to the $HOME treasury at launch (burned by hand until the lock contract ships); the other 92% is the pool's single-sided liquidity, which gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.",
+        instant: "Creates a real, immediately tradeable Uniswap pool — visible on Dexscreener right away. 8% of supply goes to the $HOME treasury (burned by hand until the lock contract ships); the rest is locked as liquidity with whatever ETH you seed it with.",
         curve: "Coming soon — trades on a bonding curve until a threshold is met, then graduates to a real DEX pool.",
       };
       document.getElementById("launch-type-hint").textContent = hints[launchType] || hints.curve;
@@ -1888,6 +1894,7 @@ async function renderCreate(targetId) {
         <div class="fee-preview-row sub"><span>→ you (100%)</span><span>${pct(extraBps)}</span></div>
       ` : ""}
       <div class="fee-preview-row highlight"><span>You earn per trade</span><span>${pct(creatorTotalBps)}</span></div>
+      <div class="hint" style="margin-top:8px">Paid to your wallet on every trade, in whatever the trade pays out: on a buy you receive it as your token, on a sell as ETH. Same for the $HOME share.</div>
     `;
   };
   feeSlider.addEventListener("input", renderFeePreview);
@@ -2180,6 +2187,9 @@ async function loadTokenData(ctx) {
     token.name(), token.symbol(), token.totalSupply(), token.balanceOf(treasury),
     me ? token.balanceOf(me) : null,
     me ? readProvider().getBalance(me) : null,
+    // The 8% launch allocation is burned to the dead address by hand until
+    // the lock contract ships — this is how the page knows whether it has been.
+    token.balanceOf(BURN_ADDRESS).catch(() => 0n),
   ]);
 
   const d = { curve: null, price: null, priceSource: null, marketCapEth: null, quote: null };
@@ -2260,8 +2270,8 @@ async function loadTokenData(ctx) {
     d.startPrice = null;
   }
 
-  const [name, symbol, totalSupply, homeBalance, userBalance, userEth] = d.base;
-  Object.assign(d, { name, symbol, totalSupply, homeBalance, userBalance, userEth });
+  const [name, symbol, totalSupply, homeBalance, userBalance, userEth, burnedBalance] = d.base;
+  Object.assign(d, { name, symbol, totalSupply, homeBalance, userBalance, userEth, burnedBalance });
   const supplyTokens = Number(ethers.formatEther(totalSupply));
   if (ctx.type === "paired") {
     d.marketCapQuote = d.price != null ? d.price * supplyTokens : null;
@@ -2453,7 +2463,8 @@ async function renderTokenDetail(tokenAddr) {
               ${d.quote ? `<div class="dt">Priced in</div><div class="dd">${d.quote.symbol} · <a class="mono-link" href="${explorerToken(d.quote.address)}" target="_blank">${d.quote.address}</a></div>` : ""}
               <div class="dt">${ctx.type === "curve" ? "Curve" : "Pool"}</div><div class="dd">${ctx.type === "curve" ? `<a class="mono-link" href="${explorerAddr(ctx.curveAddr)}" target="_blank">${ctx.curveAddr}</a>` : `Uniswap v4${ctx.hookAddress ? ` · <a class="mono-link" href="${explorerAddr(ctx.hookAddress)}" target="_blank">hook ${short(ctx.hookAddress)}</a>` : ""} · <a class="mono-link" href="${explorerAddr(ctx.routerAddress)}" target="_blank">router ${short(ctx.routerAddress)}</a>`}</div>
               <div class="dt">Liquidity</div><div class="dd">${ctx.type === "curve" ? (d.curve.graduated ? "burned in the v4 pool" : `${Number(ethers.formatEther(d.curve.curveEth)).toFixed(4)} ETH in the curve`) : "permanently locked — no withdraw function"}</div>
-              <div class="dt">$HOME treasury holds</div><div class="dd">${fmtTokens(d.homeBalance)} $${sym}</div>
+              <div class="dt">$HOME treasury holds</div><div class="dd">${fmtTokens(d.homeBalance)} $${sym}${ctx.type === "hybrid" || ctx.type === "instant" ? ` <span class="muted">· from buy-side rent</span>` : ""}</div>
+              ${ctx.type === "hybrid" || ctx.type === "instant" ? `<div class="dt">8% launch allocation</div><div class="dd">${(d.burnedBalance || 0n) >= LAUNCH_ALLOCATION ? `burned ✓ <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}" target="_blank">${fmtTokens(d.burnedBalance)} $${sym} at 0x…dEaD</a>` : `held by the treasury, to be burned by hand until the lock contract ships`}</div>` : ""}
             </div>
           </div>
 

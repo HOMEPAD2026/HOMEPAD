@@ -47,7 +47,7 @@ const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 // Bumped whenever this file's data path changes, and printed with every
 // rent log line — after a day of cache-busting mishaps, a screenshot of a
 // stale build needs to be recognisable as stale.
-const RENT_JS_VERSION = "r6";
+const RENT_JS_VERSION = "r7";
 
 /// A non-event row for Recent Rent Events that explains a load failure in
 /// plain words instead of the page silently showing 0 for everything.
@@ -89,9 +89,10 @@ async function computeTreasuryRent(launches) {
   const provider = readProvider();
   const entries = launches.filter((e) => (e.type === "hybrid" || e.type === "instant") && e.token);
 
-  const [ethBalance, balances, dex] = await Promise.all([
+  const [ethBalance, balances, burned, dex] = await Promise.all([
     withRetry(() => provider.getBalance(treasury)),
     Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(treasury)).catch(() => null))),
+    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(BURN_ADDRESS)).catch(() => 0n))),
     entries.length ? fetchDexscreenerStats(entries.map((e) => e.token)).catch(() => new Map()) : new Map(),
   ]);
 
@@ -117,7 +118,10 @@ async function computeTreasuryRent(launches) {
     if (bal == null) return;
     const bps = allocByFactory.get((e.factoryAddress || "").toLowerCase()) ?? 800n;
     const allocation = (DEFAULT_SUPPLY * bps) / 10000n;
-    const feeTokens = bal > allocation ? bal - allocation : 0n;
+    // Once the allocation has been burned (dead address holds >= it), the
+    // treasury's whole balance is rent; until then, subtract the allocation.
+    const allocationStillHeld = (burned[i] || 0n) >= allocation ? 0n : allocation;
+    const feeTokens = bal > allocationStillHeld ? bal - allocationStillHeld : 0n;
     if (feeTokens === 0n) return;
     const stats = dex.get(e.token.toLowerCase());
     let ethValue = null;
@@ -132,6 +136,59 @@ async function computeTreasuryRent(launches) {
   });
 
   return { ethBalance, tokens, tokensEthValue, totalEth: ethBalance + tokensEthValue, unvalued };
+}
+
+/// The 8% launch allocation, and what's been done with it — read from the
+/// burn address (balanceOf(0x…dEaD) per launched token) and from each
+/// token's own Transfer events into it. Both are tiny, bounded reads; no
+/// PoolManager or hook logs involved.
+async function computeBurns(launches) {
+  const treasury = CONFIG.HOME_TREASURY_ADDRESS;
+  const entries = launches.filter((e) => (e.type === "hybrid" || e.type === "instant") && e.token);
+  const SUPPLY = 1_000_000_000n * 10n ** 18n;
+
+  const [burnedBals, treasuryBals] = await Promise.all([
+    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(BURN_ADDRESS)).catch(() => 0n))),
+    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(treasury)).catch(() => 0n))),
+  ]);
+
+  const tokens = [];
+  let totalBurned = 0n, rentBurned = 0n, pending = 0n, shareSum = 0;
+  entries.forEach((e, i) => {
+    const burned = burnedBals[i], held = treasuryBals[i];
+    const allocationBurned = burned >= LAUNCH_ALLOCATION;
+    const tokenRentBurned = burned > LAUNCH_ALLOCATION ? burned - LAUNCH_ALLOCATION : 0n;
+    // What's still sitting in the treasury from the allocation (as opposed to
+    // fee tokens that arrived since): only meaningful until it's burned.
+    const tokenPending = allocationBurned ? 0n : (held < LAUNCH_ALLOCATION ? held : LAUNCH_ALLOCATION);
+    const sharePct = Number((burned * 10000n) / SUPPLY) / 100;
+    tokens.push({ symbol: e.symbol, token: e.token, burned, allocationBurned, rentBurned: tokenRentBurned, pending: tokenPending, sharePct });
+    totalBurned += burned; rentBurned += tokenRentBurned; pending += tokenPending; shareSum += sharePct;
+  });
+
+  // Ledger: every Transfer into the burn address, per token, bounded to
+  // since-HOMEPAD-went-live. A token contract's own logs are a handful of
+  // entries — nothing like the PoolManager scan that used to time out.
+  let ledger = [], ledgerError = null;
+  try {
+    const fromBlock = await firstHomepadBlock();
+    const lists = await Promise.all(entries.map((e) => {
+      const t = tokenRead(e.token);
+      return withRetry(() => t.queryFilter(t.filters.Transfer(null, BURN_ADDRESS), fromBlock, "latest"))
+        .then((evs) => evs.map((ev) => ({ symbol: e.symbol, token: e.token, amount: ev.args.value, txHash: ev.transactionHash, blockNumber: ev.blockNumber })));
+    }));
+    ledger = lists.flat();
+    if (ledger.length) {
+      const blockTime = await blockTimestamps(ledger);
+      for (const l of ledger) l.ts = blockTime.get(l.blockNumber);
+      ledger.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    }
+  } catch (err) {
+    console.warn("burn ledger unavailable", err);
+    ledgerError = shortErr(err);
+  }
+
+  return { tokens, totalBurned, rentBurned, pending, avgSharePct: tokens.length ? shareSum / tokens.length : 0, ledger, ledgerError };
 }
 
 async function computeRentDashboard(launches) {

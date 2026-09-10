@@ -70,7 +70,9 @@ All four share the same fee structure and the same **Dev Buy** option (`launchAn
 - Creators can add **up to 2% extra** at launch — that part is 100% theirs.
 - Total per launch: 1–3%.
 - **Fee currency**: the hook takes its cut from the swap's output side (`feeCurrency = zeroForOne ? currency1 : currency0`). A buy pays the fee in the launched token; a sell pays it in ETH. Creator and `$HOME` receive whichever it was — Proof of Rent values token-denominated rent in ETH at the pair's own price.
-- **Launch allocation (not a fee)**: every Hybrid and Instant launch transfers 8% of the 1,000,000,000 supply to the `$HOME` treasury at creation (`HOME_ALLOCATION_BPS = 800`, a factory constant); the remaining 92% goes into the pool. Shown on every token page as "$HOME treasury holds".
+- **Creators receive fees the same way**: 70% of every trade, paid to the creator's wallet inside the trade itself — as the launched token on buys, as ETH on sells. Nothing to claim.
+- **Launch allocation (not a fee)**: every Hybrid and Instant launch transfers 8% of the 1,000,000,000 supply to the `$HOME` treasury at creation (`HOME_ALLOCATION_BPS = 800`, a factory constant); the remaining 92% goes into the pool. Same idea as Pons V2's allocation. Goal: an on-chain lock. Until that contract ships, every allocation is burned by hand (to `0x…dEaD`) and each token page shows whether it has been.
+- **Why both currencies**: buys give the treasury tokens, sells give it ETH — both halves of a pair. A contract is in development to turn that into permanent liquidity for the launches; until then Proof of Rent shows what the treasury holds.
 - **Launching itself is free** — `launch()` isn't payable and requires no ETH. Only `launchAndBuy()` takes ETH (or, for Stock Pair, the quote token), and that amount becomes the creator's own dev-buy or Instant-mode liquidity — it's never a fee.
 - The split is **immutable once a factory is deployed** — there is no function anywhere that changes it after the fact.
 
@@ -208,6 +210,7 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 
 - [x] Hybrid and Instant Liquidity deployed live on mainnet; Bonding Curve and Stock Pair deferred (need a confirmed mainnet V2 router / a corporate-action decision, respectively) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
 - [x] Per-token live Dexscreener chart on every launch's detail page
+- [x] Proof of Rent reads the treasury and burn address directly (balances, no PoolManager logs), shows the 8% allocation's burn status per launch with a proof-of-burn tx ledger. First burn 2026-09-11: 82,452,560 `$HOMEPAD` (the full allocation plus accrued buy-side rent) — [tx](https://rh-scan.com/tx/0x5f89c4790f4aae434269afd8908469d246347a5b1bf656cdf57e75a5d4fa1c24)
 - [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard
 - [x] Mobile and desktop passes
 - [x] Slippage protection on every trade (Hybrid/Instant/Paired use a static-call quote + tolerance for minOut, matching Bonding Curve)
