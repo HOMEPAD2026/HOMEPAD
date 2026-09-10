@@ -28,6 +28,37 @@ let appKitReady = false;
 let wagmiConfigRef = null;
 let WagmiCoreRef = null;
 
+// wagmi v2 persists its connection state in a single 'wagmi.*'-prefixed
+// localStorage blob; WalletConnect/Reown add their own 'wc@2:' and
+// '@appkit'/'@w3m' keys for relay sessions and UI state. A stale entry
+// here — most often an expired WalletConnect relay session that wagmi
+// still optimistically flags as connected — is exactly what produces
+// "the button says Connect, but I'm secretly still connected" bugs that
+// only clearing site data used to fix: wagmi reports isConnected on every
+// load, syncFromWagmi() below tries to actually use that session, fails,
+// and nothing ever cleans up the flag that caused it to try again next
+// time. Any place that detects a broken session calls this directly
+// instead of asking the person to clear their cache.
+const WALLET_STORAGE_PREFIXES = ["wagmi.", "wc@2:", "@w3m", "@appkit", "WCM_VERSION", "-walletlink"];
+function clearStaleWalletStorage() {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (WALLET_STORAGE_PREFIXES.some((p) => key.startsWith(p))) localStorage.removeItem(key);
+    }
+  } catch (e) { /* storage blocked (private mode etc.) — nothing to clear anyway */ }
+}
+
+/// Races a promise against a plain timeout so a hung reconnect attempt
+/// (dead WalletConnect relay, a wallet extension that never responds)
+/// resolves into "treat as disconnected" instead of leaving the header in
+/// limbo indefinitely with no visible next step.
+function withTimeout(promise, ms) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve("timeout"), ms);
+    promise.then((v) => { clearTimeout(timer); resolve(v); }, () => { clearTimeout(timer); resolve("timeout"); });
+  });
+}
+
 // Bridges a connected viem/wagmi client into an ethers v6 Signer. Standard
 // wagmi<->ethers adapter pattern — the viem WalletClient's transport is an
 // EIP-1193-compatible provider, which is exactly what ethers.BrowserProvider
@@ -82,7 +113,22 @@ async function syncFromWagmi() {
       return false;
     }
   } catch (err) {
-    console.warn("syncFromWagmi failed", err);
+    // wagmi said isConnected, but actually using that session threw —
+    // an expired WalletConnect relay or a revoked permission are the
+    // usual causes. Left alone, wagmi's own persisted flag keeps saying
+    // "connected" on every future load and this same failure repeats
+    // forever (the exact "stuck" bug this file exists to prevent).
+    // Force-disconnect and sweep storage so the NEXT check starts from a
+    // state that's actually true, and reflect that in the header now
+    // instead of leaving it on whatever it last showed.
+    console.warn("syncFromWagmi failed — clearing the stale session so it doesn't repeat.", err);
+    try { if (WagmiCoreRef && wagmiConfigRef) await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* already broken; storage sweep below covers it */ }
+    clearStaleWalletStorage();
+    if (state.account) {
+      state.account = null;
+      state.signer = null;
+      if (typeof renderHeader === "function") renderHeader();
+    }
     return false;
   }
 }
@@ -137,7 +183,16 @@ async function initAppKit() {
       appKitModal.subscribeState && appKitModal.subscribeState((s) => { if (!s.open) syncFromWagmi(); });
     } catch (e) { console.warn("subscribeState unavailable", e); }
 
-    await syncFromWagmi(); // in case a session is already restored on load
+    // In case a session is already restored on load. Timeout-guarded
+    // separately from syncFromWagmi's own error handling above, since a
+    // HUNG reconnect (relay never responds, rather than responding with
+    // an error) wouldn't hit that catch block at all.
+    const restored = await withTimeout(syncFromWagmi(), 8000);
+    if (restored === "timeout") {
+      console.warn("Wallet session restore timed out — treating as disconnected and clearing it.");
+      try { await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* storage sweep below covers it */ }
+      clearStaleWalletStorage();
+    }
     appKitReady = true;
   } catch (err) {
     console.warn("Reown AppKit failed to load — falling back to the basic wallet connect button.", err);

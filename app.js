@@ -413,6 +413,13 @@ async function disconnectWallet() {
   } catch (err) {
     console.warn("Wallet disconnect (AppKit side) failed — clearing local state anyway.", err);
   }
+  // Belt-and-suspenders: a session already in a broken state (expired
+  // WalletConnect relay, etc.) can survive the call above and quietly
+  // reappear as "already connected" the next time Connect wallet is
+  // opened — the exact bug this button exists to prevent. Sweeping the
+  // known wagmi/WalletConnect/Reown storage keys directly (see
+  // wallet-appkit.js) makes sure Disconnect actually means disconnected.
+  if (typeof clearStaleWalletStorage === "function") clearStaleWalletStorage();
   state.account = null;
   state.signer = null;
   renderHeader();
