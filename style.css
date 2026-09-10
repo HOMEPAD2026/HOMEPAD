@@ -598,6 +598,7 @@ nav a{display:inline-flex;align-items:center;}
   margin-bottom:6px;
 }
 .pair-tab{
+  position:relative;
   flex:1;
   display:flex;align-items:center;justify-content:center;gap:6px;
   padding:10px 6px;
@@ -611,9 +612,26 @@ nav a{display:inline-flex;align-items:center;}
 }
 .pair-tab:hover{color:var(--ink);}
 .pair-tab.active{background:var(--green);color:#08150c;}
-.pair-tab-disabled{cursor:not-allowed;opacity:.5;}
-.pair-tab-disabled:hover{color:var(--ink-dim);}
-.pair-tab-disabled.active{background:transparent;color:var(--ink-dim);}
+
+/* Deferred launch type: kept in the row so the layout stays a steady
+   three-way split (and so it's obvious the mode exists and is coming),
+   but muted and unclickable. The "soon" marker is a tiny corner ribbon
+   positioned *outside* the flow — it costs zero horizontal room, so the
+   three segments stay equal width instead of this one growing to fit an
+   inline pill. Same muted tone as the footer's "soon" contract links. */
+.pair-tab-disabled{cursor:not-allowed;color:#5a6a56;}
+.pair-tab-disabled:hover{color:#5a6a56;}
+.pair-tab-disabled.active{background:transparent;color:#5a6a56;}
+.tab-soon{
+  position:absolute;top:-7px;right:-3px;
+  font-family:'Silkscreen';font-size:.42rem;letter-spacing:.04em;line-height:1.4;
+  color:var(--amber);
+  background:var(--void);
+  border:1px solid rgba(255,182,72,.45);
+  border-radius:100px;
+  padding:1px 5px;
+  pointer-events:none;
+}
 
 .quote-select{
   width:100%;background:var(--void);border:1px solid var(--line);border-radius:8px;

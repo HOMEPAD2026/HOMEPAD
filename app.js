@@ -1364,7 +1364,7 @@ async function renderCreate(targetId) {
         <label>Launch type</label>
         <div class="pair-tabs" id="launch-type-tabs">
           <div class="pair-tab active" data-type="hybrid">Hybrid</div>
-          <div class="pair-tab" data-type="curve" id="curve-tab">Bonding Curve <span class="soon-tag">soon</span></div>
+          <div class="pair-tab" data-type="curve" id="curve-tab">Bonding Curve<span class="tab-soon">soon</span></div>
           <div class="pair-tab" data-type="instant">Instant Liquidity</div>
         </div>
         <div class="hint" id="launch-type-hint">Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.</div>
