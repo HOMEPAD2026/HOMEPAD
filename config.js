@@ -26,9 +26,14 @@ const CONFIG = {
   // priced in an ERC-20 quote token — Robinhood Stock Tokens; $HOME later).
   // Deploy with contracts/scripts/deploy-paired.js and paste here. Leave
   // blank to keep "Stock" as a preview tab in the launch form.
-  PAIRED_FACTORY_ADDRESS: "", // Stock Pair — deferred for mainnet launch. Shows as "soon".
-  PAIRED_HOOK_ADDRESS: "",
-  PAIRED_SWAP_ROUTER_ADDRESS: "",
+  // Deployed for the $HOMEPAD pair (see HOMEPAD_QUOTE above). Stock Pair
+  // proper (real Robinhood Stock Token quotes) is a separate decision —
+  // this factory instance works for any ERC-20 quote, Stock's own
+  // corporate-action question just hasn't been resolved yet, so
+  // QUOTE_TOKENS stays empty until it is.
+  PAIRED_FACTORY_ADDRESS: "0x917F2f7A7E4607937c3562E96b2E02325264B813", // mainnet
+  PAIRED_HOOK_ADDRESS: "0xB85aA5549848e2805F9c1c30d86f59c9F32F8044", // mainnet
+  PAIRED_SWAP_ROUTER_ADDRESS: "0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592", // mainnet
   LEGACY_PAIRED_FACTORIES: [], // [{ factory, router }] — same idea as LEGACY_HYBRID_FACTORIES
   // Quote tokens offered in the Stock tab. `defaultVirtualQuote` is the
   // suggested starting price, in the convention every HOMEPAD mode uses:

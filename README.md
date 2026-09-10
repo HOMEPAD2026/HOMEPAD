@@ -174,7 +174,9 @@ Network: Robinhood Chain mainnet · chain ID `4663` · RPC `https://rpc.mainnet.
 | Uniswap v4 PoolManager (mainnet) | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
 | Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 | Bonding Curve Factory | *not yet deployed — deferred, see Status* |
-| Stock Pair Factory / Hook / Swap Router | *not yet deployed — deferred, see Status* |
+| Paired Factory | `0x917F2f7A7E4607937c3562E96b2E02325264B813` |
+| Paired Hook | `0xB85aA5549848e2805F9c1c30d86f59c9F32F8044` |
+| Paired Swap Router | `0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592` |
 
 `$HOME`: `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` · [Dexscreener](https://dexscreener.com/robinhood/0x177e26bc396d8a264542033533d71a94957375027bf4b47a7467cc444233bdfa) · [rh-scan](https://rh-scan.com/token/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f)
 
@@ -209,7 +211,7 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 
 ## Status
 
-- [x] Hybrid and Instant Liquidity deployed live on mainnet; Bonding Curve and Stock Pair deferred (need a confirmed mainnet V2 router / a corporate-action decision, respectively) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
+- [x] Hybrid, Instant Liquidity, and Paired deployed live on mainnet. The Paired factory currently powers the $HOMEPAD pair (`CONFIG.HOMEPAD_QUOTE`, a single fixed quote token — needs no allow-list, `HomepadFactoryPaired` accepts any ERC-20); real Robinhood Stock Token quotes are a separate decision, still deferred on the corporate-action question (`QUOTE_TOKENS` stays empty until resolved). Bonding Curve is deferred (needs a confirmed mainnet V2 router) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
 - [x] Per-token live Dexscreener chart on every launch's detail page
 - [x] Proof of Rent reads the treasury and burn address directly (balances, no PoolManager logs), shows the 8% allocation's burn status per launch with a proof-of-burn tx ledger. First burn 2026-09-11: 82,452,560 `$HOMEPAD` (the full allocation plus accrued buy-side rent) — [tx](https://rh-scan.com/tx/0x5f89c4790f4aae434269afd8908469d246347a5b1bf656cdf57e75a5d4fa1c24)
 - [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard
