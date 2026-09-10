@@ -36,6 +36,15 @@ const CONFIG = {
   // are the mock tokens deploy-paired.js prints with DEPLOY_MOCK_STOCKS=1;
   // on mainnet, the real Robinhood Stock Token addresses.
   QUOTE_TOKENS: [], // cleared for mainnet — testnet mock addresses must never be used here. Repopulate with real Robinhood Stock Token addresses when Stock Pair goes live.
+
+  // The dedicated "$HOMEPAD" pair tab (was originally slated for $HOME —
+  // redirected here instead). Unlike QUOTE_TOKENS (a dropdown of several
+  // stock tickers), this is a single fixed quote token, so the launch form
+  // shows no picker for it. Leave the address blank to keep the tab as
+  // "soon"; fill it in once the paired factory (below) is deployed.
+  // defaultVirtualQuote is only a starting-price suggestion shown as a
+  // placeholder — creators can type any value in the Starting Price field.
+  HOMEPAD_QUOTE: { symbol: "HOMEPAD", name: "HOMEPAD", address: "0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5", decimals: 18, defaultVirtualQuote: "1000000" },
   DEFAULT_SUPPLY: "1000000000", // matches HomepadFactory.DEFAULT_SUPPLY (display only)
 
   // --- Instant Liquidity mode (HomepadFactoryInstant + HomepadHook + HomepadSwapRouter) ---

@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789074970">
+<link rel="stylesheet" href="style.css?v=1789076882">
 </head>
 <body>
 
@@ -105,7 +105,7 @@
     <p class="stat-sub">Deferred for now — real Robinhood Stock Tokens can change price on corporate actions (stock splits, dividends), and the contracts don't yet account for that. Everything below describes how it'll work once that's resolved.</p>
     <p>Robinhood Stock Tokens (AAPL, TSLA, NVDA, and others) are ERC-20s on Robinhood Chain, so a launch can be priced in one of them instead of ETH. Stock pair is <strong>Hybrid mode with an ERC-20 quote</strong>: the same single-sided Uniswap v4 pool from block one, the same fee routing, no quote token needed from the creator to launch — it just measures price in, say, TSLA rather than ETH. The starting price uses the same convention as every other mode: "this many TSLA would buy the entire supply."</p>
     <p>Two mechanical differences follow from the quote being an ERC-20. First, v4 orders a pool's two currencies by address, and a stock token can sort on either side of a freshly-created token, so the factory records which side it landed on and places the single-sided range accordingly (below the price when the token is currency1, above it when the token is currency0). Second, a stock token can't ride along as <code>msg.value</code>, so buys — including the launch-time dev buy — pull the quote with <code>transferFrom</code>, which means a one-time <code>approve</code> the first time you buy.</p>
-    <p>Fees are taken in whichever currency comes out of the swap (the token on a buy, the stock on a sell) and routed live to the creator and the $HOME treasury, same split as everywhere else. The same factory will price launches in $HOME once it ships on mainnet — a $HOME pair is just a Stock pair with $HOME as the quote.</p>
+    <p>Fees are taken in whichever currency comes out of the swap (the token on a buy, the stock on a sell) and routed live to the creator and the $HOME treasury, same split as everywhere else. The same factory prices launches in $HOMEPAD too — a $HOMEPAD pair is just this mode with $HOMEPAD as the quote instead of a stock ticker, and it isn't blocked by the corporate-action issue above since $HOMEPAD is a plain fixed-supply token.</p>
   </section>
 
   <section class="doc-section">
@@ -126,11 +126,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789074970"></script>
-<script src="abis.js?v=1789074970"></script>
-<script src="app.js?v=1789074970"></script>
-<script src="wallet-appkit.js?v=1789074970"></script>
-<script src="launch-modal.js?v=1789074970"></script>
-<script src="footer.js?v=1789074970"></script>
+<script src="config.js?v=1789076882"></script>
+<script src="abis.js?v=1789076882"></script>
+<script src="app.js?v=1789076882"></script>
+<script src="wallet-appkit.js?v=1789076882"></script>
+<script src="launch-modal.js?v=1789076882"></script>
+<script src="footer.js?v=1789076882"></script>
 </body>
 </html>

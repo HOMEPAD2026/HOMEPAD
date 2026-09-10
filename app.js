@@ -1597,11 +1597,11 @@ async function renderCreate(targetId) {
         <label>Pair against</label>
         <div class="pair-tabs" id="pair-tabs">
           <div class="pair-tab active" data-quote="eth">ETH</div>
-          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
+          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
           <div class="pair-tab" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
         </div>
         <div id="stock-quote-select" style="display:none;margin-top:10px"></div>
-        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOME and Stock pairing are coming next.</div>
+        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOMEPAD and Stock pairing are coming next.</div>
       </div>
 
       <div class="field" id="launch-type-field" style="display:none">
@@ -1770,11 +1770,9 @@ async function renderCreate(targetId) {
   else if (!hybridIsLive && !instantIsLive && curveIsLive) launchType = "curve";
   const curveTabEl = document.getElementById("curve-tab");
   if (curveTabEl && !curveIsLive) curveTabEl.classList.add("pair-tab-disabled");
-  // $HOME pairing rides on the paired-hybrid factory but also needs its own
-  // launch path wired in this file — it isn't yet, so it's explicitly held
-  // off regardless of whether the paired factory is deployed. Flip this to
-  // true once the $HOME-quote launch branch below actually exists.
-  const homePairIsLive = false;
+  // The $HOMEPAD pair rides on the paired-hybrid factory, same as Stock —
+  // live once that's deployed and the quote token is configured.
+  const homePairIsLive = pairedFactoryConfigured() && !!(CONFIG.HOMEPAD_QUOTE && CONFIG.HOMEPAD_QUOTE.address);
   const homeTabEl = document.getElementById("home-pair-tab");
   if (homeTabEl && !homePairIsLive) homeTabEl.classList.add("pair-tab-disabled");
   const stockTabEl = document.getElementById("stock-pair-tab");
@@ -1824,29 +1822,39 @@ async function renderCreate(targetId) {
       devbuyField.style.display = "block";
       document.getElementById("f-devbuy").placeholder = "0.0 ETH";
       stockField.style.display = "none";
-      pairHint.textContent = "New token trades against ETH — the standard setup. $HOME and Stock pairing are coming next.";
+      pairHint.textContent = "New token trades against ETH — the standard setup. $HOMEPAD and Stock pairing are coming next.";
       selectedQuote = { mode: "eth" };
       if (hybridIsLive || instantIsLive) launchTypeField.style.display = "block";
       applyLaunchTypeUI();
       return;
     }
 
-    // $HOME and Stock both go through the paired-hybrid factory (an ERC-20
+    // $HOMEPAD and Stock both go through the paired-hybrid factory (an ERC-20
     // quote instead of ETH). Launch type is fixed to hybrid there, so the
     // type tabs hide; the dev buy is in quote units and needs an approval.
     instantLiquidityField.style.display = "none";
     stockField.style.display = "block";
-    selectEl.style.display = "block";
     launchTypeField.style.display = "none";
     launchType = "paired";
 
     if (quote === "home") {
-      // Unreachable while homePairIsLive is false (the tab is disabled
-      // above). Left as the hook point for the $HOME-quote launch path.
+      // Single fixed quote token — no dropdown needed, unlike Stock's list.
+      selectEl.style.display = "none";
+      const q = CONFIG.HOMEPAD_QUOTE;
+      pairHint.textContent = `New token is priced in $${q.symbol} instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no $${q.symbol} needed from you to launch.`;
+      selectedQuote = { mode: "stock", address: q.address, symbol: q.symbol, decimals: q.decimals };
+      document.getElementById("f-openprice").placeholder = q.defaultVirtualQuote;
+      document.getElementById("stock-openprice-label").textContent = `Starting price (${q.symbol})`;
+      document.getElementById("stock-openprice-hint").textContent = `How many ${q.symbol} would buy the entire 1B supply at launch. Suggested: ${q.defaultVirtualQuote} ${q.symbol}. Lower = cheaper start.`;
+      devbuyField.style.display = "block";
+      devbuyLabel.innerHTML = `Dev buy (${q.symbol}) <span class="optional">optional</span>`;
+      document.getElementById("f-devbuy").placeholder = `0.0 ${q.symbol}`;
+      devbuyHint.textContent = `Buy your own tokens with ${q.symbol} in the launch transaction (one approval first). Leave at 0 to skip.`;
       return;
     }
 
     // quote === "stock" — only reachable when stockIsLive (tab is disabled otherwise)
+    selectEl.style.display = "block";
     {
       const options = quoteTokenOptions();
       pairHint.textContent = "New token is priced in a Robinhood Stock Token instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no stock needed from you to launch.";
