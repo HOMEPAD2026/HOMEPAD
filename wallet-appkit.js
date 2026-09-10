@@ -96,9 +96,11 @@ async function syncFromWagmi() {
       if (changed) {
         if (typeof renderHeader === "function") renderHeader();
         // Wallet auto-reconnect finishes AFTER the page's initial route()
-        // call, so a view that depends on state.account (Profile) would
-        // otherwise sit on its "not connected" state forever.
-        if (location.hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
+        // call, so a view that depends on state.account (Profile, a token
+        // page's Balance) would otherwise sit on stale data — Profile's
+        // "not connected" state forever, or a token page silently keeping
+        // whichever account's numbers it had before this account switch.
+        if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
       } else if (typeof updateNetworkBadge === "function") {
         updateNetworkBadge(); // chain may still have changed
       }
@@ -108,7 +110,7 @@ async function syncFromWagmi() {
         state.account = null;
         state.signer = null;
         if (typeof renderHeader === "function") renderHeader();
-        if (location.hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
+        if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
       }
       return false;
     }

@@ -383,6 +383,7 @@ function attachBasicWalletListeners() {
   basicListenersAttached = true;
 
   window.ethereum.on("accountsChanged", async (accounts) => {
+    const prevAccount = state.account;
     if (accounts.length === 0) {
       state.account = null;
       state.signer = null;
@@ -392,6 +393,7 @@ function attachBasicWalletListeners() {
       state.signer = await browserProvider.getSigner();
     }
     renderHeader();
+    if (state.account !== prevAccount) refreshAccountDependentViews();
   });
 
   window.ethereum.on("chainChanged", () => {
@@ -451,6 +453,20 @@ async function ensureNetwork() {
 
 function short(addr) {
   return addr ? addr.slice(0, 6) + "…" + addr.slice(-4) : "";
+}
+
+/// Called after state.account changes for a reason OTHER than the user's
+/// own trade on this page (switching accounts in the wallet itself, or a
+/// session restoring to a different account than before) — re-renders
+/// whichever account-dependent view is currently open so it reflects the
+/// NEW account, not stale numbers fetched for whichever account was
+/// connected when the page first loaded. A completed trade already
+/// triggers its own refresh (see the trade button's `done()`); this
+/// covers the case that didn't.
+function refreshAccountDependentViews() {
+  const hash = location.hash;
+  if (hash.startsWith("#/token/")) renderTokenDetail(hash.split("/")[2]);
+  else if (hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
 }
 
 // No indexer yet — same tradeoff as Explore's launch list (see README).
