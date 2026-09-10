@@ -861,7 +861,7 @@ async function fetchAllLaunches(opts) {
     try {
       if (entry.type === "paired") {
         const launchPrice = entry.marketCapQuote / 1_000_000_000; // set from initialVirtualQuote above
-        const history = await buildPairedTradeHistory(entry.token, entry._router, entry.quoteDecimals);
+        const history = await buildPairedTradeHistory(entry.token, entry._router, entry.quoteDecimals, entry._factory);
         if (history.prices.length) entry.marketCapQuote = history.prices.at(-1) * 1_000_000_000;
         applyPriceChange(entry, history.trades, launchPrice);
         return;
@@ -966,6 +966,45 @@ async function poolManagerSwapsFor(hook, poolIds) {
   const pmAddr = await hook.poolManager();
   const pm = new ethers.Contract(pmAddr, POOL_MANAGER_SWAP_ABI, readProvider());
   return pm.queryFilter(pm.filters.Swap(poolIds));
+}
+
+const HOOK_POOLMANAGER_ABI = ["function poolManager() view returns (address)"];
+
+/// Same idea as poolManagerSwapsFor, but takes a bare hook address instead
+/// of a live Contract — the trade-history builders below only know the
+/// address (from a router's hook() getter, or a factory's poolKeyOf()),
+/// not a Contract wired up with the right ABI for anything else.
+async function poolManagerSwapsForToken(hookAddr, poolId) {
+  if (!hookAddr) return [];
+  const hook = new ethers.Contract(hookAddr, HOOK_POOLMANAGER_ABI, readProvider());
+  return poolManagerSwapsFor(hook, [poolId]);
+}
+
+/// PoolManager's own Swap event is emitted for every swap in a pool
+/// whatever initiated it, but its only address is `sender` — the
+/// immediate caller of swap() (our router, or the factory itself for a
+/// launchAndBuy dev buy), never the actual end-user wallet for a
+/// router-mediated trade. This recovers the real trader for trades that
+/// DID go through a HOMEPAD router, by matching each PoolManager swap to
+/// the router's own Swap event in the same tx (zipped in log order, same
+/// pattern as Proof of Rent's FeeRouted matching). Falls back to
+/// PoolManager's `sender` — always a real, valid address — for anything
+/// that didn't (dev buys, third-party trades straight through Uniswap).
+function matchRouterTrader(pmSwaps, routerSwaps) {
+  const byTx = new Map();
+  for (const e of [...routerSwaps].sort(logOrder)) {
+    if (!byTx.has(e.transactionHash)) byTx.set(e.transactionHash, []);
+    byTx.get(e.transactionHash).push(e);
+  }
+  const seen = new Map();
+  const out = new Map();
+  for (const s of [...pmSwaps].sort(logOrder)) {
+    const idx = seen.get(s.transactionHash) || 0;
+    seen.set(s.transactionHash, idx + 1);
+    const match = (byTx.get(s.transactionHash) || [])[idx];
+    out.set(s, match ? match.args.trader : s.args.sender);
+  }
+  return out;
 }
 
 /// Pairs each FeeRouted with its swap (same tx, same pool, zipped in log
@@ -2054,7 +2093,7 @@ async function loadTokenData(ctx) {
     const router = new ethers.Contract(ctx.routerAddress, PAIRED_SWAP_ROUTER_ABI, readProvider());
     const [base, history, userQuote, feeCfg] = await Promise.all([
       basePromise,
-      buildPairedTradeHistory(ctx.tokenAddr, router, ctx.quoteDecimals),
+      buildPairedTradeHistory(ctx.tokenAddr, router, ctx.quoteDecimals, ctx.factory),
       me ? quote.balanceOf(me) : null,
       ctx.factory ? Promise.all([ctx.factory.baseFeeBps(), ctx.factory.creatorShareBps()]).catch(() => null) : null,
     ]);
@@ -2637,27 +2676,43 @@ function wireTradeCard(ctx, d) {
 /// side the quote sorted to. Amounts are in the quote token's own units;
 /// `ethAmount` is kept as the field name so buildTradesTable can render
 /// these unchanged, but it means "quote amount" here.
-async function buildPairedTradeHistory(tokenAddr, router, quoteDecimals) {
-  const events = await router.queryFilter(router.filters.Swap(null, tokenAddr));
-  if (events.length === 0) {
+async function buildPairedTradeHistory(tokenAddr, router, quoteDecimals, factory) {
+  // poolKeyOf gives the exact currency0/currency1/fee/tickSpacing/hooks the
+  // pool was created with — no need to re-derive the quote/token ordering
+  // by comparing addresses ourselves.
+  const key = await factory.poolKeyOf(tokenAddr);
+  const quoteIsCurrency0 = key.currency0.toLowerCase() !== tokenAddr.toLowerCase();
+  const poolId = computePoolId(key.currency0, key.currency1, Number(key.fee), Number(key.tickSpacing), key.hooks);
+
+  const [pmSwaps, routerSwaps] = await Promise.all([
+    poolManagerSwapsForToken(key.hooks, poolId),
+    router.queryFilter(router.filters.Swap(null, tokenAddr)),
+  ]);
+  if (pmSwaps.length === 0) {
     return { prices: [], trades: [], volumeEth: 0n, count: 0, volume24hEth: 0n, count24h: 0 };
   }
-  const uniqueBlocks = [...new Set(events.map((e) => e.blockNumber))];
+
+  const traderFor = matchRouterTrader(pmSwaps, routerSwaps);
+  const sorted = [...pmSwaps].sort(logOrder);
+  const uniqueBlocks = [...new Set(sorted.map((e) => e.blockNumber))];
   const blocks = await Promise.all(uniqueBlocks.map((bn) => readProvider().getBlock(bn)));
   const blockTime = new Map(uniqueBlocks.map((bn, i) => [bn, Number(blocks[i].timestamp)]));
-  const sorted = [...events].sort((a, b) => a.blockNumber - b.blockNumber || a.index - b.index);
+
   const scale = 10 ** (18 - Number(quoteDecimals ?? 18)); // price = quote-per-token in human units
   const prices = [], trades = [];
   let volumeEth = 0n, volume24hEth = 0n, count24h = 0;
   const nowSec = Math.floor(Date.now() / 1000);
   for (const e of sorted) {
-    const { trader, isBuy, amountIn, amountOut } = e.args;
+    const { amount0, amount1 } = e.args;
+    const quoteDelta = quoteIsCurrency0 ? amount0 : amount1;
+    const tokenDelta = quoteIsCurrency0 ? amount1 : amount0;
+    const isBuy = quoteDelta < 0n; // swapper paid the quote token, received the launched token
+    const quoteAmount = absBig(quoteDelta);
+    const tokenAmount = absBig(tokenDelta);
     const ts = blockTime.get(e.blockNumber);
-    const quoteAmount = isBuy ? amountIn : amountOut;
-    const tokenAmount = isBuy ? amountOut : amountIn;
     const price = tokenAmount > 0n ? (Number(quoteAmount) / Number(tokenAmount)) * scale : 0;
     prices.push(price);
-    trades.push({ kind: isBuy ? "buy" : "sell", address: trader, ethAmount: quoteAmount, tokenAmount, ts, txHash: e.transactionHash, priceAfter: price });
+    trades.push({ kind: isBuy ? "buy" : "sell", address: traderFor.get(e), ethAmount: quoteAmount, tokenAmount, ts, txHash: e.transactionHash, priceAfter: price });
     volumeEth += quoteAmount;
     if (nowSec - ts <= 86400) { volume24hEth += quoteAmount; count24h++; }
   }
@@ -2667,17 +2722,24 @@ async function buildPairedTradeHistory(tokenAddr, router, quoteDecimals) {
 
 async function buildInstantTradeHistory(tokenAddr, router) {
   router = router || swapRouterRead();
-  const events = await router.queryFilter(router.filters.Swap(null, tokenAddr));
+  const [hookAddr, tickSpacing] = await Promise.all([router.hook(), router.tickSpacing()]);
+  const poolId = computePoolId(ethers.ZeroAddress, tokenAddr, 0, Number(tickSpacing), hookAddr);
 
-  if (events.length === 0) {
+  const [pmSwaps, routerSwaps] = await Promise.all([
+    poolManagerSwapsForToken(hookAddr, poolId),
+    router.queryFilter(router.filters.Swap(null, tokenAddr)),
+  ]);
+
+  if (pmSwaps.length === 0) {
     return { prices: [], trades: [], volumeEth: 0n, count: 0, volume24hEth: 0n, count24h: 0 };
   }
 
-  const uniqueBlocks = [...new Set(events.map((e) => e.blockNumber))];
+  const traderFor = matchRouterTrader(pmSwaps, routerSwaps);
+  const sorted = [...pmSwaps].sort(logOrder);
+  const uniqueBlocks = [...new Set(sorted.map((e) => e.blockNumber))];
   const blocks = await Promise.all(uniqueBlocks.map((bn) => readProvider().getBlock(bn)));
   const blockTime = new Map(uniqueBlocks.map((bn, i) => [bn, Number(blocks[i].timestamp)]));
 
-  const sorted = [...events].sort((a, b) => a.blockNumber - b.blockNumber || a.index - b.index);
   const prices = [];
   const trades = [];
   let volumeEth = 0n;
@@ -2686,18 +2748,16 @@ async function buildInstantTradeHistory(tokenAddr, router) {
   const nowSec = Math.floor(Date.now() / 1000);
 
   for (const e of sorted) {
-    const { trader, zeroForOne, amountIn, amountOut } = e.args;
+    const { amount0, amount1 } = e.args; // currency0 is always ETH (address zero sorts first)
+    const isBuy = amount0 < 0n; // swapper paid ETH, received the token
+    const ethAmount = absBig(amount0);
+    const tokenAmount = absBig(amount1);
     const ts = blockTime.get(e.blockNumber);
     const isRecent = nowSec - ts <= 86400;
-    const kind = zeroForOne ? "buy" : "sell"; // zeroForOne = paid ETH, got token = a buy
-    const ethAmount = zeroForOne ? amountIn : amountOut;
-    const tokenAmount = zeroForOne ? amountOut : amountIn;
-    const price = zeroForOne
-      ? Number(amountIn) / Number(amountOut)   // ETH per token, buy side
-      : Number(amountOut) / Number(amountIn);  // ETH per token, sell side
+    const price = tokenAmount > 0n ? Number(ethAmount) / Number(tokenAmount) : 0; // ETH per token
 
     prices.push(price);
-    trades.push({ kind, address: trader, ethAmount, tokenAmount, ts, txHash: e.transactionHash, priceAfter: price });
+    trades.push({ kind: isBuy ? "buy" : "sell", address: traderFor.get(e), ethAmount, tokenAmount, ts, txHash: e.transactionHash, priceAfter: price });
     volumeEth += ethAmount;
     if (isRecent) { volume24hEth += ethAmount; count24h++; }
   }
