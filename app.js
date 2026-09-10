@@ -424,6 +424,26 @@ function stockModeLive() {
   return pairedFactoryConfigured() && quoteTokenOptions().length > 0;
 }
 
+/// How many $HOMEPAD should buy the full 1B supply so a new $HOMEPAD-paired
+/// launch opens at the same USD starting market cap Hybrid launches open at
+/// right now. Hybrid's own starting cap is defined as initialVirtualEth
+/// (that many ETH buys the whole supply) — convert it through both assets'
+/// current USD price: same idea, different quote currency.
+async function computeHomepadEquivalentStartPrice(q) {
+  const [virtualEthWei, ethUsd, dex] = await Promise.all([
+    hybridFactoryRead().initialVirtualEth(),
+    getEthUsdPrice(),
+    fetchDexscreenerStats([q.address]),
+  ]);
+  const homepadUsd = dex.get(q.address.toLowerCase())?.priceUsd;
+  if (ethUsd == null || !homepadUsd) throw new Error("missing ETH or HOMEPAD price");
+  const virtualEth = Number(ethers.formatEther(virtualEthWei));
+  const startCapUsd = virtualEth * ethUsd;
+  const quoteAmount = startCapUsd / homepadUsd;
+  // Round to something a creator would actually type, not a 14-decimal float.
+  return quoteAmount >= 1000 ? String(Math.round(quoteAmount)) : quoteAmount.toPrecision(4);
+}
+
 // Preview tickers shown in the Stock tab before the paired factory is deployed.
 const STOCK_PREVIEW_TICKERS = ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "GOOGL", "META", "AMD"];
 
@@ -1841,15 +1861,34 @@ async function renderCreate(targetId) {
       // Single fixed quote token — no dropdown needed, unlike Stock's list.
       selectEl.style.display = "none";
       const q = CONFIG.HOMEPAD_QUOTE;
+      const priceField = document.getElementById("f-openprice");
+      const priceHint = document.getElementById("stock-openprice-hint");
       pairHint.textContent = `New token is priced in $${q.symbol} instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no $${q.symbol} needed from you to launch.`;
       selectedQuote = { mode: "stock", address: q.address, symbol: q.symbol, decimals: q.decimals };
-      document.getElementById("f-openprice").placeholder = q.defaultVirtualQuote;
       document.getElementById("stock-openprice-label").textContent = `Starting price (${q.symbol})`;
-      document.getElementById("stock-openprice-hint").textContent = `How many ${q.symbol} would buy the entire 1B supply at launch. Suggested: ${q.defaultVirtualQuote} ${q.symbol}. Lower = cheaper start.`;
+      priceField.placeholder = "…";
+      priceField.value = "";
+      priceHint.textContent = `Matching Hybrid's current starting valuation in $${q.symbol} — figuring that out now…`;
       devbuyField.style.display = "block";
       devbuyLabel.innerHTML = `Dev buy (${q.symbol}) <span class="optional">optional</span>`;
       document.getElementById("f-devbuy").placeholder = `0.0 ${q.symbol}`;
       devbuyHint.textContent = `Buy your own tokens with ${q.symbol} in the launch transaction (one approval first). Leave at 0 to skip.`;
+
+      // Auto-fill so a creator never has to guess a number here: same
+      // starting market cap Hybrid launches open at right now, just
+      // converted into $HOMEPAD instead of ETH. Runs once per tab click —
+      // if it fails (rare: RPC hiccup, no HOMEPAD price yet), the field
+      // stays editable and the hint says so instead of silently guessing.
+      computeHomepadEquivalentStartPrice(q).then((suggested) => {
+        if (launchType !== "paired" || selectedQuote.address !== q.address) return; // tab changed while this was in flight
+        q.defaultVirtualQuote = suggested;
+        priceField.placeholder = suggested;
+        priceHint.textContent = `Auto-filled to match Hybrid's current starting valuation: ${fmtCompact(Number(suggested))} $${q.symbol} buys the full 1B supply. Change it if you want a different start — lower = cheaper.`;
+      }).catch((err) => {
+        console.warn("couldn't compute HOMEPAD-equivalent start price", err);
+        priceField.placeholder = q.defaultVirtualQuote;
+        priceHint.textContent = `Couldn't fetch a live suggestion — enter how many $${q.symbol} should buy the entire 1B supply at launch. Lower = cheaper start.`;
+      });
       return;
     }
 
