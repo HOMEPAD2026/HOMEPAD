@@ -417,6 +417,15 @@ function quoteTokenOptions() {
 }
 function quoteTokenInfo(address) {
   const a = (address || "").toLowerCase();
+  // HOMEPAD_QUOTE is a single fixed quote, not part of the QUOTE_TOKENS
+  // dropdown list — but every OTHER paired-mode code path (submit,
+  // card/token-page display, launch-list rendering) looks up quote info
+  // by address through this one function regardless of which UI tab it
+  // came from, so it has to recognize both sources or those paths 404 on
+  // a null lookup for anything launched against $HOMEPAD. quoteTokenOptions()
+  // deliberately stays QUOTE_TOKENS-only — this doesn't add $HOMEPAD to
+  // the Stock dropdown, just makes address lookups find it.
+  if (CONFIG.HOMEPAD_QUOTE && (CONFIG.HOMEPAD_QUOTE.address || "").toLowerCase() === a) return CONFIG.HOMEPAD_QUOTE;
   return (CONFIG.QUOTE_TOKENS || []).find((q) => (q.address || "").toLowerCase() === a) || null;
 }
 /// Stock mode is "live" once the paired factory is deployed AND at least one quote token is configured.
