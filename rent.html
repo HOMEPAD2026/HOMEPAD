@@ -170,8 +170,8 @@ async function renderRentDashboard() {
             <span class="rent-event-time">${timeAgo(e.ts)}</span>
           </div>
           <div class="rent-event-bottom">
-            <span class="rent-event-amt">→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent${e.ethValue != null ? ` <span class="rent-event-eq">≈ ${fmtEth(Number(ethers.formatEther(e.ethValue)))} ETH</span>` : ""}</span>
-            <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>
+            <span class="rent-event-amt">${e.txHash ? `→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent${e.ethValue != null ? ` <span class="rent-event-eq">≈ ${fmtEth(Number(ethers.formatEther(e.ethValue)))} ETH</span>` : ""}` : e.unit}</span>
+            ${e.txHash ? `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>` : ""}
           </div>
         </div>
       `).join("");

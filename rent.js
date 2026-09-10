@@ -122,27 +122,44 @@ async function computeRentDashboard() {
         // third-party swaps alike.
         for (const s of pmSwaps) totalVolumeEth += absBig(s.args.amount0);
 
+        console.log(`rent: ${type} @ ${source.router.target} — hook ${hookAddr}, poolIds ${poolIds.length}, pmSwaps ${pmSwaps.length}, feeEvents ${feeEvents.length}`);
+
         if (feeEvents.length) {
-          const valued = valueFeeRoutedEvents(feeEvents, pmSwaps);
-          const blockTime = await blockTimestamps(valued.map((v) => v.event));
-          for (const v of valued) {
-            const ts = blockTime.get(v.event.blockNumber);
-            const entry = poolIdToEntry.get(v.poolId);
-            totalRentEth += v.ethValue;
-            creatorPaidEth += v.ethToCreator;
-            if (nowSec - ts <= 86400) rent24hEth += v.ethValue;
-            if (v.total > 0n) {
-              rentEvents.push({
-                symbol: entry ? entry.symbol : "?", token: entry ? entry.token : null, typeLabel: type,
-                amount: v.total, decimals: 18,
-                unit: v.isTokenFee ? (entry ? `$${entry.symbol}` : "tokens") : "ETH",
-                ethValue: v.isTokenFee ? v.ethValue : null, // rendered as "≈ X ETH" beside a token-denominated amount
-                txHash: v.event.transactionHash, ts,
-              });
+          try {
+            const valued = valueFeeRoutedEvents(feeEvents, pmSwaps);
+            const blockTime = await blockTimestamps(valued.map((v) => v.event));
+            for (const v of valued) {
+              const ts = blockTime.get(v.event.blockNumber);
+              const entry = poolIdToEntry.get(v.poolId);
+              totalRentEth += v.ethValue;
+              creatorPaidEth += v.ethToCreator;
+              if (nowSec - ts <= 86400) rent24hEth += v.ethValue;
+              if (v.total > 0n) {
+                rentEvents.push({
+                  symbol: entry ? entry.symbol : "?", token: entry ? entry.token : null, typeLabel: type,
+                  amount: v.total, decimals: 18,
+                  unit: v.isTokenFee ? (entry ? `$${entry.symbol}` : "tokens") : "ETH",
+                  ethValue: v.isTokenFee ? v.ethValue : null, // rendered as "≈ X ETH" beside a token-denominated amount
+                  txHash: v.event.transactionHash, ts,
+                });
+              }
             }
+          } catch (innerErr) {
+            // Separated from the outer catch on purpose: volume (above) is
+            // already accumulated by the time anything here could throw, so
+            // an error in fee-valuation alone shouldn't look identical to a
+            // total query failure. Surfaced on-page (not just console) since
+            // that's the only way to see it on mobile.
+            console.error(`rent: ${type} fee-valuation failed`, source.router.target, innerErr);
+            rentEvents.push({ symbol: "⚠", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: "DEBUG: " + String(innerErr && innerErr.message || innerErr).slice(0, 120), ethValue: null, txHash: null, ts: nowSec });
           }
+        } else {
+          rentEvents.push({ symbol: "ℹ", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: `DEBUG: 0 FeeRouted found (hook ${hookAddr.slice(0,10)}…, ${pmSwaps.length} real swaps seen)`, ethValue: null, txHash: null, ts: nowSec });
         }
-      } catch (err) { console.error(`rent: ${type} source failed`, source.router.target, err); }
+      } catch (err) {
+        console.error(`rent: ${type} source failed`, source.router.target, err);
+        rentEvents.push({ symbol: "⚠", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: "DEBUG: " + String(err && err.message || err).slice(0, 120), ethValue: null, txHash: null, ts: nowSec });
+      }
     }
   }
 
