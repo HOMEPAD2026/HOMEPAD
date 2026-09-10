@@ -21,9 +21,31 @@ function readProvider() {
 // to scan all of it and it times out — "could not coalesce error ... log
 // query timed out (-32000)", seen live on Proof of Rent. Nothing HOMEPAD
 // ever emitted predates CONFIG.CONTRACTS_LIVE_SINCE, so every log query in
-// this file (and rent.js) starts there instead. The timestamp -> block
-// lookup is a ~25-step binary search over getBlock, done once and then
-// remembered for the session and in localStorage (the answer never changes).
+// this file (and rent.js) starts there instead.
+//
+// The timestamp -> block lookup: two getBlock calls give the chain's real
+// block rate, which puts the estimate within a few thousand blocks of the
+// answer; a short binary search on that window finishes it (~6-8 calls
+// total instead of ~25 for a blind search over the whole chain). Done once
+// per page and remembered in localStorage — the answer never changes.
+
+// The public RPC is free and rate-limited; a burst of page-load calls can
+// get a 429, which the browser surfaces as a bare "Failed to fetch". These
+// are transient — retry them, briefly, before giving up.
+const TRANSIENT_RPC = /failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET/i;
+async function withRetry(fn, { tries = 3, delayMs = 900 } = {}) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (err) {
+      lastErr = err;
+      if (!TRANSIENT_RPC.test(String(err && (err.shortMessage || err.message) || err))) throw err;
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 let firstBlockPromise = null;
 async function firstHomepadBlock() {
   if (firstBlockPromise) return firstBlockPromise;
@@ -32,11 +54,32 @@ async function firstHomepadBlock() {
     const cacheKey = `homepad.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${target}`;
     try { const c = localStorage.getItem(cacheKey); if (c) return Number(c); } catch { /* storage blocked */ }
     const provider = readProvider();
-    let lo = 0, hi = await provider.getBlockNumber();
-    while (lo < hi) {
+    const blockAt = (n) => withRetry(() => provider.getBlock(n));
+
+    const latest = await blockAt("latest");
+    if (Number(latest.timestamp) < target) return latest.number; // config timestamp is in the future?? just use latest
+    // Measure the real block rate over a recent window, then extrapolate.
+    const probeN = Math.max(0, latest.number - 500_000);
+    const probe = await blockAt(probeN);
+    const secPerBlock = Math.max(0.01, (Number(latest.timestamp) - Number(probe.timestamp)) / Math.max(1, latest.number - probeN));
+    let guess = Math.round(latest.number - (Number(latest.timestamp) - target) / secPerBlock);
+    guess = Math.min(Math.max(0, guess), latest.number);
+    // Widen a window around the guess until it brackets the target, then bisect.
+    let span = 8_000, lo, hi;
+    for (;;) {
+      lo = Math.max(0, guess - span); hi = Math.min(latest.number, guess + span);
+      const [bLo, bHi] = await Promise.all([blockAt(lo), blockAt(hi)]);
+      const loBefore = Number(bLo.timestamp) < target, hiAfter = Number(bHi.timestamp) >= target;
+      if ((loBefore || lo === 0) && (hiAfter || hi === latest.number)) break;
+      span *= 4;
+    }
+    // `lo` is always a block from BEFORE the target — an exact boundary isn't
+    // needed, only a safe starting point — so stop once the window is a
+    // couple thousand blocks wide instead of bisecting all the way down.
+    while (hi - lo > 2048) {
       const mid = Math.floor((lo + hi) / 2);
-      const b = await provider.getBlock(mid);
-      if (Number(b.timestamp) < target) lo = mid + 1; else hi = mid;
+      const b = await blockAt(mid);
+      if (Number(b.timestamp) < target) lo = mid; else hi = mid;
     }
     try { localStorage.setItem(cacheKey, String(lo)); } catch { /* fine */ }
     return lo;
@@ -1018,7 +1061,7 @@ async function poolManagerSwapsFor(hook, poolIds) {
   if (!poolIds.length) return [];
   const [pmAddr, fromBlock] = await Promise.all([hook.poolManager(), firstHomepadBlock()]);
   const pm = new ethers.Contract(pmAddr, POOL_MANAGER_SWAP_ABI, readProvider());
-  return pm.queryFilter(pm.filters.Swap(poolIds), fromBlock, "latest");
+  return withRetry(() => pm.queryFilter(pm.filters.Swap(poolIds), fromBlock, "latest"));
 }
 
 const HOOK_POOLMANAGER_ABI = ["function poolManager() view returns (address)"];

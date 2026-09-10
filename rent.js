@@ -47,7 +47,7 @@ const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 // Bumped whenever this file's data path changes, and printed with every
 // rent log line — after a day of cache-busting mishaps, a screenshot of a
 // stale build needs to be recognisable as stale.
-const RENT_JS_VERSION = "r4";
+const RENT_JS_VERSION = "r5";
 
 /// A non-event row for Recent Rent Events that explains a load failure in
 /// plain words instead of the page silently showing 0 for everything.
@@ -74,7 +74,12 @@ async function blockTimestamps(events) {
 }
 
 async function computeRentDashboard() {
-  const launches = await fetchAllLaunches();
+  // skipHistory: this page only needs the launch list (type, token, symbol,
+  // which router/factory). The full path also rebuilds every token's 24h
+  // price history — dozens of extra log/getBlock calls that the rate-limited
+  // public RPC was answering with 429 ("Failed to fetch") before this page's
+  // own queries even started.
+  const launches = await fetchAllLaunches({ skipHistory: true });
   const nowSec = Math.floor(Date.now() / 1000);
 
   let totalRentEth = 0n, rent24hEth = 0n, creatorPaidEth = 0n, totalVolumeEth = 0n;
@@ -133,7 +138,7 @@ async function computeRentDashboard() {
         // (see app.js) — the unbounded version scanned the whole chain and
         // the public RPC timed out on it. Volume is counted before touching
         // fees so a fee-side failure can never zero it out again.
-        const pmSwaps = await poolManagerSwapsFor(hook, poolIds); // every swap in these pools, any route
+        const pmSwaps = await poolManagerSwapsFor(hook, poolIds); // every swap in these pools, any route (retries inside)
         for (const s of pmSwaps) totalVolumeEth += absBig(s.args.amount0);
 
         // FeeRouted is emitted by the hook inside the same transaction as
@@ -143,7 +148,7 @@ async function computeRentDashboard() {
         let feeEvents = [];
         if (pmSwaps.length) {
           const fromBlock = pmSwaps.reduce((m, s) => Math.min(m, s.blockNumber), Infinity);
-          feeEvents = await hook.queryFilter(hook.filters.FeeRouted(poolIds), fromBlock, "latest");
+          feeEvents = await withRetry(() => hook.queryFilter(hook.filters.FeeRouted(poolIds), fromBlock, "latest"));
         }
 
         console.log(`rent ${RENT_JS_VERSION}: ${type} @ ${source.router.target} — hook ${hookAddr}, poolIds ${poolIds.length}, pmSwaps ${pmSwaps.length}, feeEvents ${feeEvents.length}`);
