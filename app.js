@@ -1795,6 +1795,10 @@ async function renderCreate(targetId) {
   const homePairIsLive = pairedFactoryConfigured() && !!(CONFIG.HOMEPAD_QUOTE && CONFIG.HOMEPAD_QUOTE.address);
   const homeTabEl = document.getElementById("home-pair-tab");
   if (homeTabEl && !homePairIsLive) homeTabEl.classList.add("pair-tab-disabled");
+  // Static "soon" ribbon in the markup, same as curve/stock — remove it
+  // once this one's actually live instead of leaving a stale label on a
+  // working tab.
+  else if (homeTabEl) homeTabEl.querySelector(".tab-soon")?.remove();
   const stockTabEl = document.getElementById("stock-pair-tab");
   if (stockTabEl && !stockIsLive) stockTabEl.classList.add("pair-tab-disabled");
 
