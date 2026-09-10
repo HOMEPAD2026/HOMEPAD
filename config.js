@@ -7,6 +7,13 @@ const CONFIG = {
   CHAIN_ID_DECIMAL: 4663,
   CHAIN_NAME: "Robinhood Chain",
   RPC_URL: "https://rpc.mainnet.chain.robinhood.com",
+  // No HOMEPAD mainnet contract existed before this moment (first deploy
+  // was ~08:50 UTC on 2026-09-10). Every eth_getLogs the site makes starts
+  // from the block at this timestamp instead of block 0 — the chain has
+  // tens of millions of blocks before it, and the public RPC times out
+  // scanning them ("log query timed out", -32000). Keep this BEFORE the
+  // earliest deploy; later is wrong, earlier is only slower.
+  CONTRACTS_LIVE_SINCE: "2026-09-10T00:00:00Z",
   // User-facing link-out explorer (rh-scan, community Robinhood mainnet
   // explorer — /token/{addr} for ERC-20s, /address/{addr} otherwise, /tx/{hash}).
   // Data fetches use BLOCKSCOUT_API_BASE / HOME_BLOCKSCOUT_API_BASE below,

@@ -14,6 +14,36 @@ function readProvider() {
   return state.provider;
 }
 
+// ---- Bounding every eth_getLogs to "since HOMEPAD went live" ----
+// Robinhood Chain has had tens of millions of blocks since July, and the
+// PoolManager address in particular carries every Uniswap v4 swap on the
+// chain. An unbounded queryFilter (block 0 -> latest) asks the public RPC
+// to scan all of it and it times out — "could not coalesce error ... log
+// query timed out (-32000)", seen live on Proof of Rent. Nothing HOMEPAD
+// ever emitted predates CONFIG.CONTRACTS_LIVE_SINCE, so every log query in
+// this file (and rent.js) starts there instead. The timestamp -> block
+// lookup is a ~25-step binary search over getBlock, done once and then
+// remembered for the session and in localStorage (the answer never changes).
+let firstBlockPromise = null;
+async function firstHomepadBlock() {
+  if (firstBlockPromise) return firstBlockPromise;
+  firstBlockPromise = (async () => {
+    const target = Math.floor(Date.parse(CONFIG.CONTRACTS_LIVE_SINCE) / 1000);
+    const cacheKey = `homepad.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${target}`;
+    try { const c = localStorage.getItem(cacheKey); if (c) return Number(c); } catch { /* storage blocked */ }
+    const provider = readProvider();
+    let lo = 0, hi = await provider.getBlockNumber();
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      const b = await provider.getBlock(mid);
+      if (Number(b.timestamp) < target) lo = mid + 1; else hi = mid;
+    }
+    try { localStorage.setItem(cacheKey, String(lo)); } catch { /* fine */ }
+    return lo;
+  })().catch((err) => { firstBlockPromise = null; throw err; });
+  return firstBlockPromise;
+}
+
 // Multicall3 is deployed at this exact same address on 250+ EVM chains
 // (a well-known, permissionlessly-redeployable CREATE2 contract) — batches
 // many read-only contract calls into a single RPC round trip instead of
@@ -986,9 +1016,9 @@ const logOrder = (x, y) => (x.blockNumber - y.blockNumber) || (x.index - y.index
 /// rather than trusting a config value that could drift from what's deployed.
 async function poolManagerSwapsFor(hook, poolIds) {
   if (!poolIds.length) return [];
-  const pmAddr = await hook.poolManager();
+  const [pmAddr, fromBlock] = await Promise.all([hook.poolManager(), firstHomepadBlock()]);
   const pm = new ethers.Contract(pmAddr, POOL_MANAGER_SWAP_ABI, readProvider());
-  return pm.queryFilter(pm.filters.Swap(poolIds));
+  return pm.queryFilter(pm.filters.Swap(poolIds), fromBlock, "latest");
 }
 
 const HOOK_POOLMANAGER_ABI = ["function poolManager() view returns (address)"];
@@ -1071,8 +1101,8 @@ async function computeCreatorFeesEth(entry) {
     const curve = curveRead(entry.curve);
     const [baseFeeBps, extraFeeBps, creatorShareBps, buyEvents, sellEvents] = await Promise.all([
       curve.baseFeeBps(), curve.extraFeeBps(), curve.creatorShareBps(),
-      curve.queryFilter(curve.filters.Buy()),
-      curve.queryFilter(curve.filters.Sell()),
+      curve.queryFilter(curve.filters.Buy(), await firstHomepadBlock(), "latest"),
+      curve.queryFilter(curve.filters.Sell(), await firstHomepadBlock(), "latest"),
     ]);
     const total = Number(baseFeeBps) + Number(extraFeeBps);
     let sum = 0n;
@@ -1103,8 +1133,9 @@ async function computeCreatorFeesEth(entry) {
     [c0, c1] = BigInt(q) < BigInt(entry.token) ? [q, entry.token] : [entry.token, q];
   }
   const poolId = computePoolId(c0, c1, 0, 60, hookAddress);
+  const fromBlock = await firstHomepadBlock();
   const [events, swaps] = await Promise.all([
-    hook.queryFilter(hook.filters.FeeRouted(poolId)),
+    hook.queryFilter(hook.filters.FeeRouted(poolId), fromBlock, "latest"),
     poolManagerSwapsFor(hook, [poolId]),
   ]);
   // Buy-side rent is paid to the creator in the token, not ETH — value it at
@@ -2711,7 +2742,7 @@ async function buildPairedTradeHistory(tokenAddr, router, quoteDecimals, factory
 
   const [pmSwaps, routerSwaps] = await Promise.all([
     poolManagerSwapsForToken(key.hooks, poolId),
-    router.queryFilter(router.filters.Swap(null, tokenAddr)),
+    router.queryFilter(router.filters.Swap(null, tokenAddr), await firstHomepadBlock(), "latest"),
   ]);
   if (pmSwaps.length === 0) {
     return { prices: [], trades: [], volumeEth: 0n, count: 0, volume24hEth: 0n, count24h: 0 };
@@ -2755,7 +2786,7 @@ async function buildInstantTradeHistory(tokenAddr, router) {
 
   const [pmSwaps, routerSwaps] = await Promise.all([
     poolManagerSwapsForToken(hookAddr, poolId),
-    router.queryFilter(router.filters.Swap(null, tokenAddr)),
+    router.queryFilter(router.filters.Swap(null, tokenAddr), await firstHomepadBlock(), "latest"),
   ]);
 
   if (pmSwaps.length === 0) {
@@ -2801,8 +2832,8 @@ async function buildInstantTradeHistory(tokenAddr, router) {
 async function buildTradeHistory(curveAddr, initialVirtualEth, totalSupply) {
   const curve = curveRead(curveAddr);
   const [buyEvents, sellEvents] = await Promise.all([
-    curve.queryFilter(curve.filters.Buy()),
-    curve.queryFilter(curve.filters.Sell()),
+    curve.queryFilter(curve.filters.Buy(), await firstHomepadBlock(), "latest"),
+    curve.queryFilter(curve.filters.Sell(), await firstHomepadBlock(), "latest"),
   ]);
   const all = [...buyEvents.map((e) => ({ e, kind: "buy" })), ...sellEvents.map((e) => ({ e, kind: "sell" }))]
     .sort((a, b) => a.e.blockNumber - b.e.blockNumber || a.e.index - b.e.index);

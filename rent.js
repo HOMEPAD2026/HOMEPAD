@@ -43,6 +43,23 @@ function rentPoolId(currency0, currency1, fee, tickSpacing, hooks) {
 }
 
 const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+// Bumped whenever this file's data path changes, and printed with every
+// rent log line — after a day of cache-busting mishaps, a screenshot of a
+// stale build needs to be recognisable as stale.
+const RENT_JS_VERSION = "r4";
+
+/// A non-event row for Recent Rent Events that explains a load failure in
+/// plain words instead of the page silently showing 0 for everything.
+function statusRow(typeLabel, text, ts) {
+  return { symbol: "⚠", token: null, typeLabel, amount: 0n, decimals: 18, unit: text, ethValue: null, txHash: null, ts };
+}
+function shortErr(err) {
+  const m = String((err && (err.shortMessage || err.message)) || err);
+  // ethers wraps RPC failures as "could not coalesce error (error={ ...message... })" — pull the RPC's own words out
+  const inner = /"message":\s*"([^"]+)"/.exec(m);
+  return (inner ? inner[1] : m).slice(0, 80) + ` · ${RENT_JS_VERSION}`;
+}
 // Fee-currency handling (poolManagerSwapsFor / valueFeeRoutedEvents /
 // absBig) lives in app.js so Profile's creator-fee total uses the exact
 // same logic as this page.
@@ -71,8 +88,8 @@ async function computeRentDashboard() {
       const curve = curveRead(entry.curve);
       const [baseFeeBps, extraFeeBps, creatorShareBps, buys, sells] = await Promise.all([
         curve.baseFeeBps(), curve.extraFeeBps(), curve.creatorShareBps(),
-        curve.queryFilter(curve.filters.Buy()),
-        curve.queryFilter(curve.filters.Sell()),
+        curve.queryFilter(curve.filters.Buy(), await firstHomepadBlock(), "latest"),
+        curve.queryFilter(curve.filters.Sell(), await firstHomepadBlock(), "latest"),
       ]);
       const totalBps = Number(baseFeeBps) + Number(extraFeeBps);
       const all = [...buys.map((e) => ({ e, isBuy: true })), ...sells.map((e) => ({ e, isBuy: false }))];
@@ -112,24 +129,24 @@ async function computeRentDashboard() {
         }
         const poolIds = [...poolIdToEntry.keys()];
 
-        // FeeRouted's poolId is indexed — filtering by our known poolIds
-        // (same narrowing poolManagerSwapsFor already uses for the
-        // PoolManager's Swap event) turns this into a fast indexed lookup.
-        // The unfiltered form (every FeeRouted this hook has ever emitted,
-        // across every pool, no topic to narrow by) timed out against the
-        // public RPC ("log query timed out", -32000) — confirmed live via
-        // the on-page DEBUG rows this file adds below.
-        const [feeEvents, pmSwaps] = await Promise.all([
-          poolIds.length ? hook.queryFilter(hook.filters.FeeRouted(poolIds)) : Promise.resolve([]),
-          poolManagerSwapsFor(hook, poolIds), // every swap in these pools, any route
-        ]);
-
-        // Volume: |amount0| is the ETH side of every swap in these pools,
-        // whoever made it — router trades, launch-time dev buys, and
-        // third-party swaps alike.
+        // Swaps first. poolManagerSwapsFor is bounded to firstHomepadBlock()
+        // (see app.js) — the unbounded version scanned the whole chain and
+        // the public RPC timed out on it. Volume is counted before touching
+        // fees so a fee-side failure can never zero it out again.
+        const pmSwaps = await poolManagerSwapsFor(hook, poolIds); // every swap in these pools, any route
         for (const s of pmSwaps) totalVolumeEth += absBig(s.args.amount0);
 
-        console.log(`rent: ${type} @ ${source.router.target} — hook ${hookAddr}, poolIds ${poolIds.length}, pmSwaps ${pmSwaps.length}, feeEvents ${feeEvents.length}`);
+        // FeeRouted is emitted by the hook inside the same transaction as
+        // its swap, so every fee event for these pools lives in a block
+        // between the first swap seen and now. That plus the indexed poolId
+        // filter makes this a tiny, cheap query instead of a chain-wide scan.
+        let feeEvents = [];
+        if (pmSwaps.length) {
+          const fromBlock = pmSwaps.reduce((m, s) => Math.min(m, s.blockNumber), Infinity);
+          feeEvents = await hook.queryFilter(hook.filters.FeeRouted(poolIds), fromBlock, "latest");
+        }
+
+        console.log(`rent ${RENT_JS_VERSION}: ${type} @ ${source.router.target} — hook ${hookAddr}, poolIds ${poolIds.length}, pmSwaps ${pmSwaps.length}, feeEvents ${feeEvents.length}`);
 
         if (feeEvents.length) {
           try {
@@ -153,19 +170,17 @@ async function computeRentDashboard() {
             }
           } catch (innerErr) {
             // Separated from the outer catch on purpose: volume (above) is
-            // already accumulated by the time anything here could throw, so
-            // an error in fee-valuation alone shouldn't look identical to a
-            // total query failure. Surfaced on-page (not just console) since
-            // that's the only way to see it on mobile.
-            console.error(`rent: ${type} fee-valuation failed`, source.router.target, innerErr);
-            rentEvents.push({ symbol: "⚠", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: "DEBUG: " + String(innerErr && innerErr.message || innerErr).slice(0, 120), ethValue: null, txHash: null, ts: nowSec });
+            // already counted by the time anything here could throw, so a
+            // fee-valuation error shouldn't look identical to a query failure.
+            // Surfaced on-page (not only console) — on mobile that's the only
+            // way anyone sees it.
+            console.error(`rent ${RENT_JS_VERSION}: ${type} fee-valuation failed`, source.router.target, innerErr);
+            rentEvents.push(statusRow(type, `Couldn't value ${type} rent events (${shortErr(innerErr)})`, nowSec));
           }
-        } else {
-          rentEvents.push({ symbol: "ℹ", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: `DEBUG: 0 FeeRouted found (hook ${hookAddr.slice(0,10)}…, ${pmSwaps.length} real swaps seen)`, ethValue: null, txHash: null, ts: nowSec });
         }
       } catch (err) {
-        console.error(`rent: ${type} source failed`, source.router.target, err);
-        rentEvents.push({ symbol: "⚠", token: null, typeLabel: type, amount: 0n, decimals: 18, unit: "DEBUG: " + String(err && err.message || err).slice(0, 120), ethValue: null, txHash: null, ts: nowSec });
+        console.error(`rent ${RENT_JS_VERSION}: ${type} source failed`, source.router.target, err);
+        rentEvents.push(statusRow(type, `Couldn't load ${type} rent events (${shortErr(err)})`, nowSec));
       }
     }
   }
@@ -194,7 +209,7 @@ async function computeRentDashboard() {
       // Same fix as the Hybrid/Instant loop above: filter by poolId (indexed
       // on FeeRouted) instead of scanning every FeeRouted this hook has ever
       // emitted — the unfiltered form timed out against the public RPC.
-      const feeEvents = poolIds.length ? await hook.queryFilter(hook.filters.FeeRouted(poolIds)) : [];
+      const feeEvents = poolIds.length ? await hook.queryFilter(hook.filters.FeeRouted(poolIds), await firstHomepadBlock(), "latest") : [];
       if (!feeEvents.length) continue;
 
       const blockTime = await blockTimestamps(feeEvents);
