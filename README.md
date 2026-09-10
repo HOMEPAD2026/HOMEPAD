@@ -179,17 +179,21 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 - Explore, the home carousel, and Profile batch every read through **Multicall3** (2 RPC round-trips for the whole list), falling back to individual calls if it's unavailable.
 - 24h price change is reconstructed from each token's own trade events; the home carousel skips that step (`fetchAllLaunches({ skipHistory: true })`) so the first paint stays fast.
 - Profile creator fees and Proof of Rent are both exact, not estimated: Instant/Hybrid/Paired sum the hook's `FeeRouted` events (one query per hook, not per token — poolId attributes each event back to a token locally), Bonding Curve replays the curve's own split math over its `Buy`/`Sell` events.
+- Every deferred factory address (`FACTORY_ADDRESS`, `PAIRED_FACTORY_ADDRESS`) is guarded with a `*Configured()` check before any contract call — Explore, token pages, and the launch form all skip a deferred mode cleanly instead of throwing on an empty address. `curveFactoryConfigured()` in particular exists because that guard was originally missing and took down Explore + every token page, not just curve ones, until it was added.
+- Explorer link-outs (`CONFIG.BLOCK_EXPLORER`) point at **rh-scan**, a community Robinhood-mainnet explorer — `/token/{addr}` for ERC-20s, `/address/{addr}` for everything else. Data reads (holder counts, source verification) stay on the official **Blockscout** instance (`BLOCKSCOUT_API_BASE` / `HOME_BLOCKSCOUT_API_BASE`) — rh-scan is links only, never an RPC/data source.
+- Every token detail page embeds a full-width Dexscreener chart (`dexscreener.com/robinhood/{tokenAddr}`) above the trade/details grid, same for all four modes — in addition to the always-available on-chain price chart built from trade events, which works even before Dexscreener has indexed a brand-new pair.
 
 ## Status
 
-- [x] Hybrid and Instant Liquidity deployed live on mainnet; Bonding Curve and Stock Pair deferred (need a confirmed mainnet V2 router / a corporate-action decision, respectively)
+- [x] Hybrid and Instant Liquidity deployed live on mainnet; Bonding Curve and Stock Pair deferred (need a confirmed mainnet V2 router / a corporate-action decision, respectively) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
+- [x] Per-token live Dexscreener chart on every launch's detail page
 - [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard
 - [x] Mobile and desktop passes
 - [x] Slippage protection on every trade (Hybrid/Instant/Paired use a static-call quote + tolerance for minOut, matching Bonding Curve)
 - [x] Automatic source verification on deploy (Blockscout)
 - [x] Contract-level review pass: fixed-supply vanilla ERC-20, no owner/pause/blacklist anywhere, hooks hold only afterSwap+afterSwapReturnDelta permissions (no ability to block a sale or liquidity removal), fee split immutable per factory, Slither static analysis run with no real findings on the active contracts (findings were either false positives — reentrancy guards/try-catch patterns Slither doesn't fully model — or scoped to superseded pre-v4 contracts), HookScan (Uniswap v4 hook-specific analyzer) run against both hooks with zero findings on all 4 detectors
 - [x] Confirmed dead code removed (`HomepadHybridSwapRouter.sol` — Hybrid and Instant both actually deploy the generic `HomepadSwapRouter`)
-- [x] `website` field added to `LaunchMeta`/`Launch` across all four active factories — contract-side only; frontend intentionally not wired up until the next real redeploy, so it doesn't break against the currently-live mainnet contracts
+- [x] `website` field on `LaunchMeta`/`Launch` (contract-side, all four factories) is now fully wired end-to-end — launch form input, on-chain meta, and the token page's "Website ↗" link
 - [ ] Anti-snipe wallet caps for Hybrid launches
 - [ ] RENT model automation (buyback + POL — see Proof of Rent and the Flywheel page)
 - [ ] Stock Pair corporate-action handling (see the warning above) — needed before Stock Pair uses real Stock Tokens

@@ -50,18 +50,20 @@
   <p class="lede">What actually happens when you launch, buy, sell, or graduate on HOMEPAD — no marketing, just the math and the contract calls.</p>
 
   <section class="doc-section">
-    <h2>Three launch modes</h2>
-    <p>A creator picks one of three ways for a token to get its starting liquidity. All three share the same fee structure (see Fees below) — they differ in where the price comes from and whether there's a real pool from the first block.</p>
+    <h2>Four launch modes</h2>
+    <p>A creator picks one of four ways for a token to get its starting liquidity. All four share the same fee structure (see Fees below) — they differ in where the price comes from and whether there's a real pool from the first block.</p>
+    <p class="stat-sub">Hybrid and Instant liquidity are live on mainnet today. Bonding curve and Stock pair are still deferred — each has its own open item below — and show as "soon" in the launch form rather than being removed, since both ship later.</p>
     <ul class="doc-list">
-      <li><strong>Hybrid</strong> (default) — a real Uniswap v4 pool from block one, single-sided, no ETH required from the creator.</li>
-      <li><strong>Bonding curve</strong> — a standalone curve contract, graduating into a locked v4 pool once it raises enough.</li>
-      <li><strong>Instant liquidity</strong> — a real two-sided v4 pool, seeded with ETH the creator provides at launch.</li>
-      <li><strong>Stock pair</strong> — Hybrid, but priced in a Robinhood Stock Token instead of ETH (see below).</li>
+      <li><strong>Hybrid</strong> (default, live) — a real Uniswap v4 pool from block one, single-sided, no ETH required from the creator.</li>
+      <li><strong>Bonding curve</strong> <em>(deferred)</em> — a standalone curve contract, graduating into a locked v4 pool once it raises enough.</li>
+      <li><strong>Instant liquidity</strong> (live) — a real two-sided v4 pool, seeded with ETH the creator provides at launch.</li>
+      <li><strong>Stock pair</strong> <em>(deferred)</em> — Hybrid, but priced in a Robinhood Stock Token instead of ETH (see below).</li>
     </ul>
   </section>
 
   <section class="doc-section">
-    <h2>Bonding curve mode</h2>
+    <h2>Bonding curve mode <span class="soon-tag">soon</span></h2>
+    <p class="stat-sub">Deferred for now — graduation goes through a Uniswap V2 pool, and this mode needs a confirmed Uniswap V2 router address on Robinhood Chain mainnet before it deploys. Everything below describes how it'll work once that's resolved.</p>
     <p>Every bonding curve launch gets its own curve contract holding the token's entire fixed supply (1,000,000,000). Price is set by a constant-product formula — the same invariant Uniswap itself uses, just applied to a pair of "virtual" reserves instead of a real pool:</p>
     <div class="code-block">k = virtualReserve × virtualTokenReserve</div>
     <p>Every buy pushes the virtual reserve up and the virtual token reserve down (and vice versa for sells), so price rises as more of the supply gets bought — smoothly, with no fixed steps or tiers. There's no real Uniswap pool, and no external trade, until graduation.</p>
@@ -96,7 +98,8 @@
   </section>
 
   <section class="doc-section">
-    <h2>Stock-paired mode</h2>
+    <h2>Stock-paired mode <span class="soon-tag">soon</span></h2>
+    <p class="stat-sub">Deferred for now — real Robinhood Stock Tokens can change price on corporate actions (stock splits, dividends), and the contracts don't yet account for that. Everything below describes how it'll work once that's resolved.</p>
     <p>Robinhood Stock Tokens (AAPL, TSLA, NVDA, and others) are ERC-20s on Robinhood Chain, so a launch can be priced in one of them instead of ETH. Stock pair is <strong>Hybrid mode with an ERC-20 quote</strong>: the same single-sided Uniswap v4 pool from block one, the same fee routing, no quote token needed from the creator to launch — it just measures price in, say, TSLA rather than ETH. The starting price uses the same convention as every other mode: "this many TSLA would buy the entire supply."</p>
     <p>Two mechanical differences follow from the quote being an ERC-20. First, v4 orders a pool's two currencies by address, and a stock token can sort on either side of a freshly-created token, so the factory records which side it landed on and places the single-sided range accordingly (below the price when the token is currency1, above it when the token is currency0). Second, a stock token can't ride along as <code>msg.value</code>, so buys — including the launch-time dev buy — pull the quote with <code>transferFrom</code>, which means a one-time <code>approve</code> the first time you buy.</p>
     <p>Fees are taken in whichever currency comes out of the swap (the token on a buy, the stock on a sell) and routed live to the creator and the $HOME treasury, same split as everywhere else. The same factory will price launches in $HOME once it ships on mainnet — a $HOME pair is just a Stock pair with $HOME as the quote.</p>

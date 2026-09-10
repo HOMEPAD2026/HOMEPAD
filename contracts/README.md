@@ -287,10 +287,12 @@ npx hardhat run scripts/deploy-v4.js --network robinhoodTestnet
 Requires `POOL_MANAGER_ADDRESS` — Robinhood Chain's live Uniswap v4
 `PoolManager` address, looked up fresh at deploy time, same rule as every
 other external contract address in this project. **Confirmed testnet
-address as of this session:** `0x552815eF68E6eb418A3d65D0AA1043d93204F612`
-— see `.env.example` for the full set of testnet V4 addresses Robinhood
-published (PositionManager, Universal Router, Permit2), none of which
-this project currently uses besides PoolManager itself.
+address:** `0x552815eF68E6eb418A3d65D0AA1043d93204F612` (**confirmed
+mainnet address:** `0x8366a39CC670B4001A1121B8F6A443A643e40951` — see
+`.env.example`'s warning before using either one against the wrong
+network) — see `.env.example` for the full set of testnet V4 addresses
+Robinhood published (PositionManager, Universal Router, Permit2), none of
+which this project currently uses besides PoolManager itself.
 
 One current limitation worth knowing: `@uniswap/v4-periphery`'s
 `PositionManager` (the NFT-position wrapper most frontends use) depends on
