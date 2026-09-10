@@ -611,6 +611,9 @@ nav a{display:inline-flex;align-items:center;}
 }
 .pair-tab:hover{color:var(--ink);}
 .pair-tab.active{background:var(--green);color:#08150c;}
+.pair-tab-disabled{cursor:not-allowed;opacity:.5;}
+.pair-tab-disabled:hover{color:var(--ink-dim);}
+.pair-tab-disabled.active{background:transparent;color:var(--ink-dim);}
 
 .quote-select{
   width:100%;background:var(--void);border:1px solid var(--line);border-radius:8px;

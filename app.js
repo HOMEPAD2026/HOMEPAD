@@ -188,6 +188,9 @@ async function getTxOverrides(gasLimit) {  // chainId is already known staticall
   return overrides;
 }
 
+function curveFactoryConfigured() {
+  return !!(CONFIG.FACTORY_ADDRESS && CONFIG.FACTORY_ADDRESS.length === 42);
+}
 function factoryRead() {
   return new ethers.Contract(CONFIG.FACTORY_ADDRESS, HOMEPAD_FACTORY_ABI, readProvider());
 }
@@ -1361,7 +1364,7 @@ async function renderCreate(targetId) {
         <label>Launch type</label>
         <div class="pair-tabs" id="launch-type-tabs">
           <div class="pair-tab active" data-type="hybrid">Hybrid</div>
-          <div class="pair-tab" data-type="curve">Bonding Curve</div>
+          <div class="pair-tab" data-type="curve" id="curve-tab">Bonding Curve <span class="soon-tag">soon</span></div>
           <div class="pair-tab" data-type="instant">Instant Liquidity</div>
         </div>
         <div class="hint" id="launch-type-hint">Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.</div>
@@ -1453,14 +1456,18 @@ async function renderCreate(targetId) {
   const stockIsLive = stockModeLive();
   const instantIsLive = instantFactoryConfigured();
   const hybridIsLive = hybridFactoryConfigured();
+  const curveIsLive = curveFactoryConfigured();
   const launchTypeField = document.getElementById("launch-type-field");
   const devbuyLabel = document.getElementById("devbuy-label");
   const devbuyHint = document.getElementById("devbuy-hint");
   if (hybridIsLive || instantIsLive) launchTypeField.style.display = "block"; // default pair tab is ETH
   // Hybrid needs the tab to exist and be selectable even if it's the only
-  // live type — default to whichever's actually configured.
+  // live type — default to whichever's actually configured. Never default
+  // into Bonding Curve while it's deferred, even as a last resort.
   if (!hybridIsLive && instantIsLive) launchType = "instant";
-  else if (!hybridIsLive && !instantIsLive) launchType = "curve";
+  else if (!hybridIsLive && !instantIsLive && curveIsLive) launchType = "curve";
+  const curveTabEl = document.getElementById("curve-tab");
+  if (curveTabEl && !curveIsLive) curveTabEl.classList.add("pair-tab-disabled");
 
   function applyLaunchTypeUI() {
     // Dev buy now applies the same way to all three types — always
@@ -1476,13 +1483,14 @@ async function renderCreate(targetId) {
     document.getElementById("launch-type-tabs").addEventListener("click", (e) => {
       const tab = e.target.closest(".pair-tab");
       if (!tab) return;
+      if (tab.dataset.type === "curve" && !curveIsLive) return; // deferred — see config.js
       document.querySelectorAll("#launch-type-tabs .pair-tab").forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
       launchType = tab.dataset.type;
       const hints = {
         hybrid: "Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.",
         instant: "Creates a real, immediately tradeable Uniswap pool — visible on Dexscreener right away. 8% of supply goes to the $HOME treasury; the rest is locked as liquidity with whatever ETH you seed it with.",
-        curve: "Trades on a bonding curve until a threshold is met, then graduates to a real DEX pool.",
+        curve: "Coming soon — trades on a bonding curve until a threshold is met, then graduates to a real DEX pool.",
       };
       document.getElementById("launch-type-hint").textContent = hints[launchType] || hints.curve;
       applyLaunchTypeUI();
@@ -1617,6 +1625,10 @@ async function renderCreate(targetId) {
     }
     if (selectedQuote.mode === "stock-preview") {
       statusEl.innerHTML = `<div class="status error">Stock pairing isn't live yet — switch to ETH to launch right now.</div>`;
+      return;
+    }
+    if (launchType === "curve" && !curveFactoryConfigured()) {
+      statusEl.innerHTML = `<div class="status error">Bonding Curve isn't live yet — pick Hybrid or Instant Liquidity to launch right now.</div>`;
       return;
     }
     // Belt-and-suspenders: catches a huge base64 string pasted directly
