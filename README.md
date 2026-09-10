@@ -28,6 +28,23 @@
 
 ---
 
+## 🏡 Welcome
+
+Welcome to everyone new to HOMEPAD & `$HOME`.
+
+We've only just begun. After building and testing on testnet, HOMEPAD officially went live on mainnet on **September 10, 2026**. We're a brand-new launchpad on Robinhood Chain, and this is only the beginning.
+
+**Every launch pays rent. Every trade creates rent. And rent goes home to `$HOME`.** 🏡
+
+If you're new here, take a look through [the website](https://homepad.fun) and our recent posts on [X](https://x.com/HOMEonRobinhood) to learn what we're building.
+
+| Token | Contract |
+|---|---|
+| `$HOME` | `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` |
+| `$HOMEPAD` | `0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5` |
+
+Welcome, `$HOME`. 🏡💚
+
 > **Live on mainnet.** Hybrid and Instant Liquidity are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve and Stock Pair are deferred for now (see below) — shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
 
 ## What it does
