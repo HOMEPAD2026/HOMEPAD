@@ -33,8 +33,8 @@ const CONFIG = {
   // launch type in the UI. See scripts/deploy-instant.js.
   INSTANT_FACTORY_ADDRESS: "0x4e66058A0AA148aa86D5B9701af7205cfFa99419", // mainnet
   // Earlier Instant deployments, kept (factory + its own matching router)
-  // so tokens launched on them still show up in Explore — testnet only,
-  // so old ones just accumulate here instead of getting cleaned up.
+  // so tokens launched on them still show up in Explore — old ones just
+  // accumulate here instead of getting cleaned up.
   LEGACY_INSTANT_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
   SWAP_ROUTER_ADDRESS: "0xF7324bB4D1A44FA0BE78f60A3edB5046bfF88a54", // mainnet
   HOOK_ADDRESS: "0x3ec13E96c018A7f0C662291bbAd235f210Ea0044", // mainnet HomepadHook — takes the live fee cut on every Instant Liquidity swap
@@ -49,17 +49,16 @@ const CONFIG = {
   HYBRID_SWAP_ROUTER_ADDRESS: "0x0E74050b07A5D17af89C01e54e685Cbf1F543dd0", // mainnet
   INSTANT_HOME_ALLOCATION_BPS: 800, // 8% of supply to $HOME treasury at launch (display only, matches the contract constant)
 
-  // --- $HOME token (already live — on MAINNET, unlike the rest of this
-  // site's contracts, which are all testnet while HOMEPAD itself is
-  // still being tested) ---
+  // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
+  // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the
+  // only pieces still not deployed) ---
   HOME_TOKEN_ADDRESS: "0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f",
   HOME_TREASURY_ADDRESS: "0x0106BA97a34BFDf8a7AB68A9434Cb08E0E2991d9",
   HOME_BLOCKSCOUT_API_BASE: "https://robinhoodchain.blockscout.com", // mainnet DATA source — the live Holders stat fetch on the homepage reads from here
   // mainnet LINK-OUT for anything the user clicks (footer, docs) — a
   // nicer/faster community explorer than the Blockscout instance above.
-  // Mainnet-only, same as HOME_BLOCKSCOUT_API_BASE: don't reuse this for
-  // any of HOMEPAD's own (testnet) contracts. Once HOMEPAD itself moves
-  // to mainnet, switch BLOCK_EXPLORER to this too.
+  // Kept separate from BLOCK_EXPLORER/HOME_BLOCKSCOUT_API_BASE (both now
+  // mainnet too) since this one is specifically for user-facing links.
   HOME_EXPLORER_LINK: "https://rh-scan.com",
 
   // Dexscreener: public API, no key needed. Pair address is the LP pool,

@@ -231,8 +231,8 @@ main{padding:38px 0 80px;}
 /* badge sits BESIDE the pill, not stacked above it — the stack made the
    header two rows tall on desktop for one small label */
 .wallet-info{display:flex;flex-direction:row;align-items:center;gap:8px;}
-.network-badge{font-family:'Silkscreen';font-size:.6rem;letter-spacing:.02em;color:var(--amber);padding:3px 9px 3px 7px;border-radius:100px;background:rgba(255,182,72,.1);border:1px solid rgba(255,182,72,.35);display:inline-flex;align-items:center;gap:5px;}
-.network-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px rgba(255,182,72,.7);flex-shrink:0;}
+.network-badge{font-family:'Silkscreen';font-size:.6rem;letter-spacing:.02em;color:var(--green);padding:3px 9px 3px 7px;border-radius:100px;background:rgba(57,255,136,.1);border:1px solid rgba(57,255,136,.35);display:inline-flex;align-items:center;gap:5px;}
+.network-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(57,255,136,.7);flex-shrink:0;}
 .network-badge.network-bad{color:var(--red);background:rgba(255,107,107,.1);border-color:rgba(255,107,107,.35);}
 .network-badge.network-bad::before{background:var(--red);box-shadow:0 0 6px rgba(255,107,107,.7);}
 
@@ -1059,8 +1059,9 @@ nav a{display:inline-flex;align-items:center;}
   .nav-icon{width:18px;height:18px;border-width:1.5px;margin-right:5px;vertical-align:-3px;}
   .btn-icon{width:21px;height:21px;border-width:1.5px;margin-right:6px;vertical-align:-4px;}
   /* network badge collapses to just its status dot on phones
-     (amber = testnet, red = wrong network) — the word "TESTNET" didn't
-     earn the space; the readable status lives in the wallet dropdown */
+     (green = correct network / mainnet, red = wrong network) — the word
+     "MAINNET" didn't earn the space; the readable status lives in the
+     wallet dropdown */
   .wallet-info{gap:6px;}
   .network-badge{font-size:0;letter-spacing:0;padding:0;width:14px;height:14px;justify-content:center;gap:0;}
   .wallet-pill{font-size:.72rem;padding:6px 10px;}
@@ -1267,7 +1268,7 @@ nav a{display:inline-flex;align-items:center;}
   .ft-contracts-grid{grid-template-columns:1fr;gap:0;}
   .ft-bottom{flex-direction:column;gap:8px;padding-top:14px;}
   .ft-line{font-size:.74rem;}
-  /* keep the word 'Testnet' readable here even though the header badge
+  /* keep the word 'Mainnet' readable here even though the header badge
      collapses to a dot on phones */
   .ft-contracts .network-badge{font-size:.6rem;width:auto;height:auto;padding:3px 9px 3px 7px;gap:5px;}
 

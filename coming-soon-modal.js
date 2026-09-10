@@ -25,7 +25,7 @@
             <a class="btn btn-cute" href="https://x.com/HOMEonRobinhood" target="_blank"><img class="btn-icon" src="images/gallery-cubist.jpg" alt="">Follow the countdown</a>
             <a class="btn btn-cute" href="https://t.me/HOMEonRobin" target="_blank"><img class="btn-icon" src="images/gallery-floral-mug.jpg" alt="">Join the Telegram</a>
           </div>
-          <button class="soon-dismiss" onclick="closeSoonModal()">Keep exploring on testnet →</button>
+          <button class="soon-dismiss" onclick="closeSoonModal()">Keep exploring →</button>
         </div>
       </div>
     </div>

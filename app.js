@@ -463,8 +463,8 @@ async function updateNetworkBadge() {
     const network = await state.signer.provider.getNetwork();
     const chainId = Number(network.chainId);
     const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL;
-    const label = isCorrect ? "Testnet" : `Wrong network (chain ${chainId}) — switch to Robinhood Chain testnet`;
-    badge.textContent = isCorrect ? "Testnet" : `⚠ wrong network (${chainId})`;
+    const label = isCorrect ? "Mainnet" : `Wrong network (chain ${chainId}) — switch to Robinhood Chain`;
+    badge.textContent = isCorrect ? "Mainnet" : `⚠ wrong network (${chainId})`;
     badge.title = label;
     badge.classList.toggle("network-bad", !isCorrect);
     // On phones the badge collapses to just its dot, so the readable
@@ -1284,9 +1284,6 @@ document.addEventListener("keydown", (e) => {
 async function renderCreate(targetId) {
   const main = document.getElementById(targetId || "app");
   main.innerHTML = `
-    <div class="testing-banner">
-      🧪 <strong>Testnet only.</strong> ETH launches work for real here — but this is Robinhood Chain testnet, not mainnet. $HOME and Stock pairing aren't live yet.
-    </div>
     <h1>launch a token.</h1>
     <p style="max-width:52ch">Fixed supply, no admin key, no allowlist. Once it's live you can't change the name, symbol, or supply — get it right the first time.</p>
     <div class="form-card">
@@ -1524,11 +1521,11 @@ async function renderCreate(targetId) {
     launchType = "paired";
 
     if (quote === "home") {
-      // $HOME lives on mainnet; the launchpad is still testnet-only, so this
-      // stays a preview until the paired factory ships on mainnet.
+      // $HOME lives on mainnet; the paired-hybrid factory itself isn't
+      // deployed yet, so this stays a preview until it ships.
       devbuyField.style.display = "none";
       stockField.style.display = "none";
-      pairHint.innerHTML = `<strong style="color:var(--amber)">$HOME pairing isn't live yet.</strong> It uses the same paired-hybrid factory as Stock — it switches on with the mainnet deployment.`;
+      pairHint.innerHTML = `<strong style="color:var(--amber)">$HOME pairing isn't live yet.</strong> It uses the same paired-hybrid factory as Stock — it switches on once that's deployed.`;
       selectEl.innerHTML = `<div class="hint">Pairing directly against <strong style="color:var(--green)">$HOME</strong> — no selection needed. <span class="soon-tag">soon</span></div>`;
       selectedQuote = { mode: "stock-preview" };
       return;
@@ -1800,7 +1797,7 @@ async function renderCreate(targetId) {
       console.error(err);
       const msg = err.shortMessage || err.message || "Transaction failed.";
       const hint = /missing revert data/i.test(msg)
-        ? `<br><span style="font-size:.8rem;opacity:.85">This usually means your wallet isn't actually on Robinhood Chain (testnet, chain ID 46630) — double-check the network shown in your wallet.</span>`
+        ? `<br><span style="font-size:.8rem;opacity:.85">This usually means your wallet isn't actually on Robinhood Chain (mainnet, chain ID 4663) — double-check the network shown in your wallet.</span>`
         : /could not coalesce/i.test(msg)
         ? `<br><span style="font-size:.8rem;opacity:.85">Your wallet's connection didn't respond properly. Try disconnecting and reconnecting, or switch to a different wallet app.</span>`
         : "";

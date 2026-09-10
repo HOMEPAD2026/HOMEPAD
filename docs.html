@@ -45,7 +45,7 @@
 </header>
 
 <main class="wrap doc-main">
-  <span class="pixel eyebrow-chip testing">🧪 currently testing — Robinhood Chain testnet</span>
+  <span class="pixel eyebrow-chip testing">🟢 live on Robinhood Chain mainnet</span>
   <h1>docs.</h1>
   <p class="lede">Everything you need to actually use HOMEPAD, kept short. For the technical deep dive, see <a href="mechanism.html" style="color:var(--green)">the mechanism page</a>.</p>
 
@@ -105,7 +105,7 @@
     </div>
     <div class="faq-item">
       <h3>Is HOMEPAD live yet?</h3>
-      <p>Not yet — still in testing on Robinhood Chain testnet. Watch <a href="https://x.com/HOMEonRobinhood" target="_blank" style="color:var(--green)">@HOMEonRobinhood</a> for the official open.</p>
+      <p>Yes — HOMEPAD is live on Robinhood Chain mainnet. Hybrid and Instant Liquidity launches are real; Bonding Curve and Stock Pair are still coming soon.</p>
     </div>
   </section>
 
@@ -125,7 +125,7 @@
 <script src="coming-soon-modal.js?v=1789028069"></script>
 <script>
   const DEAD = "0x0000000000000000000000000000000000dead";
-  // $HOME is on mainnet — needs its own explorer base, not CONFIG.BLOCK_EXPLORER (testnet).
+  // $HOME uses its own explorer base (same mainnet explorer CONFIG.BLOCK_EXPLORER now points to too).
   document.getElementById("doc-home-link").href = homeExplorerUrl();
   document.getElementById("doc-home-link").textContent = CONFIG.HOME_TOKEN_ADDRESS;
 

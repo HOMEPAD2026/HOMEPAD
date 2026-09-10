@@ -19,8 +19,8 @@
 </p>
 
 <p align="center">
-  <img alt="status" src="https://img.shields.io/badge/status-testnet-ffb648?style=flat-square">
-  <img alt="chain" src="https://img.shields.io/badge/chain-Robinhood%20Chain%20testnet%20(46630)-39ff88?style=flat-square">
+  <img alt="status" src="https://img.shields.io/badge/status-live%20on%20mainnet-39ff88?style=flat-square">
+  <img alt="chain" src="https://img.shields.io/badge/chain-Robinhood%20Chain%20mainnet%20(4663)-39ff88?style=flat-square">
   <img alt="uniswap" src="https://img.shields.io/badge/liquidity-Uniswap%20v4-4d9fff?style=flat-square">
   <img alt="tests" src="https://img.shields.io/badge/contract%20tests-37%20passing-39ff88?style=flat-square">
   <img alt="slither" src="https://img.shields.io/badge/slither-clean%20on%20active%20contracts-39ff88?style=flat-square">
@@ -28,7 +28,7 @@
 
 ---
 
-> **Testnet only.** Everything in this repo is deployed to Robinhood Chain **testnet** (chain ID `46630`). Nothing here has been professionally audited yet and nothing here is financial advice. The `$HOME` token itself is live on mainnet and is a separate deployment. See [Status](#status) for exactly what's done and what isn't before mainnet.
+> **Live on mainnet.** Hybrid and Instant Liquidity are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve and Stock Pair are deferred for now (see below) — shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
 
 ## What it does
 
@@ -39,13 +39,13 @@ Anyone can launch a fixed-supply (1,000,000,000) ERC-20 through HOMEPAD, with no
 | Mode | What happens at launch | Price comes from | Creator needs |
 |---|---|---|---|
 | **Hybrid** *(default)* | A real Uniswap v4 pool from block one, **single-sided** (all supply, priced against a virtual ETH reserve) | Curve-like impact, real pool — visible on Dexscreener immediately | Nothing (0 ETH) |
-| **Bonding Curve** | A standalone curve contract holds the supply; graduates into a locked v4 pool once it raises the threshold (3 ETH on testnet) | Constant-product curve on virtual reserves | Nothing (0 ETH) |
+| **Bonding Curve** *(deferred)* | A standalone curve contract holds the supply; graduates into a locked v4 pool once it raises the threshold — graduates via Uniswap V2, whose Robinhood Chain mainnet router address isn't confirmed yet, so this mode is deferred | Constant-product curve on virtual reserves | Nothing (0 ETH) |
 | **Instant Liquidity** | A real Uniswap v4 pool, **two-sided** — creator's ETH seeds actual liquidity | Real pool from block one | ETH for liquidity |
 | **Stock Pair** | Hybrid, priced in an ERC-20 quote (Robinhood Stock Tokens; $HOME later) instead of ETH — single-sided v4 pool, either currency ordering | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
 
 All four share the same fee structure and the same **Dev Buy** option (`launchAndBuy()` — buy your own tokens atomically in the launch transaction). Every trade on every mode gets an exact, on-chain **minOut** — for the three v4-based modes this comes from a static-call simulation of the real swap (there's no on-chain quoter for a v4 pool), not an off-chain estimate.
 
-> ⚠️ **Known open risk (Stock Pair only):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. Testnet uses mock stock tokens, which never trigger this — it only matters once Stock Pair uses real Stock Token addresses.
+> ⚠️ **Known open risk (Stock Pair only, currently deferred):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. This is why Stock Pair isn't deployed to mainnet yet — it needs a decision on handling corporate actions before it goes live with real Stock Token addresses.
 
 ### Fees
 
@@ -89,7 +89,8 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
     │                    HomepadFactoryInstant · HomepadHook · HomepadSwapRouter · HomepadFactoryPaired · HomepadPairedSwapRouter …
     ├── test/            37 tests across all modes
     ├── scripts/         deploy-*.js per mode (incl. deploy-paired.js), distribute-rent.js,
-    │                    verify-testnet.js + lib/verify.js (Blockscout source verification)
+    │                    verify-testnet.js / lib/verify.js (Blockscout source verification,
+    │                    works against either network via --network)
     └── README.md        Contract-level notes
 ```
 
@@ -104,7 +105,7 @@ npx serve .
 # or: python3 -m http.server 8080
 ```
 
-Everything is driven by `config.js`. The site talks to testnet by default; connecting a wallet prompts it to add/switch to Robinhood Chain testnet automatically.
+Everything is driven by `config.js`. The site talks to Robinhood Chain **mainnet** by default; connecting a wallet prompts it to add/switch to Robinhood Chain automatically.
 
 ### Contracts
 
@@ -113,41 +114,63 @@ cd contracts
 npm install
 cp .env.example .env        # fill in a deployer key — never a wallet holding real funds
 npx hardhat test            # 37 tests
+
+# Mainnet (live deployment target):
+npx hardhat run scripts/deploy-hybrid.js  --network robinhoodMainnet
+npx hardhat run scripts/deploy-instant.js --network robinhoodMainnet
+
+# Bonding Curve and Stock Pair are deferred — see Status above. When ready:
+npx hardhat run scripts/deploy.js --network robinhoodMainnet          # Bonding Curve — needs a confirmed UNISWAP_V2_ROUTER first
+npx hardhat run scripts/deploy-paired.js --network robinhoodMainnet   # Stock Pair — never set DEPLOY_MOCK_STOCKS on mainnet
+
+# Testnet (for local dev/testing only):
 npx hardhat run scripts/deploy-hybrid.js  --network robinhoodTestnet
 npx hardhat run scripts/deploy-v4.js      --network robinhoodTestnet
 npx hardhat run scripts/deploy-instant.js --network robinhoodTestnet
-DEPLOY_MOCK_STOCKS=1 npx hardhat run scripts/deploy-paired.js --network robinhoodTestnet   # stock pair (+ mock stocks on testnet)
+DEPLOY_MOCK_STOCKS=1 npx hardhat run scripts/deploy-paired.js --network robinhoodTestnet
 ```
 
-Every `deploy-*.js` script above verifies its own contracts' source on Blockscout automatically right after deploying (both networks' official explorer — Etherscan doesn't support Robinhood Chain at all). To retroactively verify contracts that were already deployed before this was added, `scripts/verify-testnet.js` verifies all of them in one run:
+Every `deploy-*.js` script above verifies its own contracts' source on Blockscout automatically right after deploying (both networks' official explorer — Etherscan doesn't support Robinhood Chain at all). To retroactively verify contracts that were already deployed before this was added, `scripts/verify-testnet.js` verifies all of them in one run (despite the filename, it works against either network via `--network`):
 
 ```bash
-npx hardhat run scripts/verify-testnet.js --network robinhoodTestnet
+npx hardhat run scripts/verify-testnet.js --network robinhoodMainnet
 ```
 
 After deploying, paste the printed addresses into `config.js`. If a factory is ever redeployed, add the previous `{ factory, router }` pair to the matching `LEGACY_*_FACTORIES` list so tokens launched on it keep showing up.
 
-## Deployed contracts (testnet)
+## Deployed contracts (mainnet)
+
+Network: Robinhood Chain mainnet · chain ID `4663` · RPC `https://rpc.mainnet.chain.robinhood.com` · [explorer](https://robinhoodchain.blockscout.com)
+
+| Contract | Address |
+|---|---|
+| Hybrid Factory | `0x59b49eb9985095cC83B4AC125f8D0DD6CDE362a9` |
+| Hybrid Hook | `0x7219f713b92C428789ECa85C20E540f40217C044` |
+| Hybrid Swap Router | `0x0E74050b07A5D17af89C01e54e685Cbf1F543dd0` |
+| Instant Liquidity Factory | `0x4e66058A0AA148aa86D5B9701af7205cfFa99419` |
+| Instant Hook | `0x3ec13E96c018A7f0C662291bbAd235f210Ea0044` |
+| Instant Swap Router | `0xF7324bB4D1A44FA0BE78f60A3edB5046bfF88a54` |
+| Uniswap v4 PoolManager (mainnet) | `0x552815eF68E6eb418A3d65D0AA1043d93204F612` |
+| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
+| Bonding Curve Factory | *not yet deployed — deferred, see Status* |
+| Stock Pair Factory / Hook / Swap Router | *not yet deployed — deferred, see Status* |
+
+`$HOME`: `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` · [Dexscreener](https://dexscreener.com/robinhood/0x177e26bc396d8a264542033533d71a94957375027bf4b47a7467cc444233bdfa) · [rh-scan](https://rh-scan.com/token/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f)
+
+<details>
+<summary>Previous testnet deployment (superseded)</summary>
 
 Network: Robinhood Chain testnet · chain ID `46630` · RPC `https://rpc.testnet.chain.robinhood.com` · [explorer](https://explorer.testnet.chain.robinhood.com)
 
 | Contract | Address |
 |---|---|
 | Hybrid Factory | `0x403DE4697e1d3A7E837e5778532E1247B9C87b99` |
-| Hybrid Hook | `0x002dDC296285D92CdB3c4c40a1b510ce67774044` |
-| Hybrid Swap Router | `0xF40F33D6E3240d29a6E04339b07b927053d74cF1` |
 | Bonding Curve Factory (`HomepadFactoryV4`) | `0x154f77D9CEE487E97553330028ED1425a238085d` |
 | Instant Liquidity Factory | `0xcfF2c7FFbd867CcaE3c253Baaf10d58d5eC1ba17` |
-| Instant Hook | `0xf9f5105d59AF2B2538D0AcD961D10b61C4CcC044` |
-| Instant Swap Router | `0x917F2f7A7E4607937c3562E96b2E02325264B813` |
 | Stock Pair Factory (`HomepadFactoryPaired`) | `0x7750339Eb5b5E11d934c6FA3e0f6e9f23df0Aa4f` |
-| Stock Pair Hook | `0xA4BA24582a4718Ef67aCEB6fe0112B23a79A0044` |
-| Stock Pair Swap Router | `0x7e8cBDA25f077cEc163765223e53a5C554Af2328` |
 | Mock TSLA / NVDA / AAPL (testnet quote tokens) | `0x45165C...25Be3` / `0x426657...27A28` / `0x866863...376CC7` |
-| Uniswap v4 PoolManager (testnet) | `0x552815eF68E6eb418A3d65D0AA1043d93204F612` |
-| Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 
-`$HOME` (mainnet): `0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f` · [Dexscreener](https://dexscreener.com/robinhood/0x177e26bc396d8a264542033533d71a94957375027bf4b47a7467cc444233bdfa) · [rh-scan](https://rh-scan.com/token/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f)
+</details>
 
 Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, chain ID `4663`): Uniswap v4 PoolManager `0x8366a39CC670B4001A1121B8F6A443A643e40951`; Stock Tokens TSLA `0x322F0929c4625eD5bAd873c95208D54E1c003b2d`, NVDA `0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC`, AAPL `0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9` — each cross-checked against multiple independent sources, not just one.
 
@@ -159,14 +182,14 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 
 ## Status
 
-- [x] Four launch modes, deployed and tested on testnet (Stock Pair uses mock TSLA/NVDA/AAPL for now)
+- [x] Hybrid and Instant Liquidity deployed live on mainnet; Bonding Curve and Stock Pair deferred (need a confirmed mainnet V2 router / a corporate-action decision, respectively)
 - [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard
 - [x] Mobile and desktop passes
 - [x] Slippage protection on every trade (Hybrid/Instant/Paired use a static-call quote + tolerance for minOut, matching Bonding Curve)
 - [x] Automatic source verification on deploy (Blockscout)
 - [x] Contract-level review pass: fixed-supply vanilla ERC-20, no owner/pause/blacklist anywhere, hooks hold only afterSwap+afterSwapReturnDelta permissions (no ability to block a sale or liquidity removal), fee split immutable per factory, Slither static analysis run with no real findings on the active contracts (findings were either false positives — reentrancy guards/try-catch patterns Slither doesn't fully model — or scoped to superseded pre-v4 contracts), HookScan (Uniswap v4 hook-specific analyzer) run against both hooks with zero findings on all 4 detectors
 - [x] Confirmed dead code removed (`HomepadHybridSwapRouter.sol` — Hybrid and Instant both actually deploy the generic `HomepadSwapRouter`)
-- [x] `website` field added to `LaunchMeta`/`Launch` across all four active factories — contract-side only; frontend intentionally not wired up until the next real redeploy, so it doesn't break against the currently-live testnet contracts
+- [x] `website` field added to `LaunchMeta`/`Launch` across all four active factories — contract-side only; frontend intentionally not wired up until the next real redeploy, so it doesn't break against the currently-live mainnet contracts
 - [ ] Anti-snipe wallet caps for Hybrid launches
 - [ ] RENT model automation (buyback + POL — see Proof of Rent and the Flywheel page)
 - [ ] Stock Pair corporate-action handling (see the warning above) — needed before Stock Pair uses real Stock Tokens

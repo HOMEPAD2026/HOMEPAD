@@ -8,12 +8,13 @@ deploys to Vercel (or any static host) as-is.
 Everything is wired up, but it's inert until `config.js` points at a real
 deployed factory:
 
-1. Deploy `HomepadFactory` (see the main `homepad/` project's
-   `scripts/deploy.js`).
+1. Deploy `HomepadFactory` (see `contracts/scripts/deploy.js`) — this is
+   the Bonding Curve mode specifically, and is currently deferred (see the
+   main README's Status section).
 2. Open `config.js` and set `FACTORY_ADDRESS` to the deployed address.
-3. Double check `CHAIN_ID_HEX` / `RPC_URL` / `BLOCK_EXPLORER` match whichever
-   network you deployed to (testnet values are filled in by default —
-   switch them when you move to mainnet, chain ID `4663`).
+3. `CHAIN_ID_HEX` / `RPC_URL` / `BLOCK_EXPLORER` default to Robinhood Chain
+   **mainnet** (chain ID `4663`) now that Hybrid and Instant Liquidity are
+   live there. Switch them to testnet values only for local dev/testing.
 
 ## Running it locally
 
@@ -37,9 +38,9 @@ The top of the page is a standalone section that works independently of
 - **Embedded chart** — a Dexscreener iframe embed, driven by
   `DEXSCREENER_CHAIN_SLUG` + `DEXSCREENER_PAIR_ADDRESS` in `config.js`.
 - **Holder count** — pulled live from Robinhood Chain's own block explorer
-  (Blockscout, `robinhoodchain.blockscout.com` on mainnet /
-  `explorer.testnet.chain.robinhood.com` on testnet), via its free v2 REST
-  API. No API key needed for this basic lookup.
+  (Blockscout, `robinhoodchain.blockscout.com` on mainnet —
+  `explorer.testnet.chain.robinhood.com` for local testnet dev), via its
+  free v2 REST API. No API key needed for this basic lookup.
 - **CA copy button** and social/buy links.
 
 All of this logic lives in `home-stats.js`. If a fetch fails (wrong pair

@@ -30,7 +30,8 @@ function renderSiteFooter() {
   const isLive = (addr) => !!(addr && addr.length === 42 && addr.toLowerCase() !== DEAD);
 
   const dexscreenerUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
-  // $HOME lives on mainnet, unlike everything else here (all testnet).
+  // $HOME and the rest of HOMEPAD (Hybrid + Instant) are both live on mainnet now.
+  // Bonding Curve and Stock Pair are still deferred — see config.js.
   const homeContractUrl = homeExplorerUrl();
 
   const contractRow = (label, addr) => isLive(addr)
@@ -99,7 +100,7 @@ function renderSiteFooter() {
 
         <details class="ft-contracts"${contractsOpen}>
           <summary>
-            <span class="ft-contracts-title">Contracts <span class="network-badge">Testnet</span></span>
+            <span class="ft-contracts-title">Contracts <span class="network-badge">Mainnet</span></span>
             <span class="ft-contracts-count">${liveCount} of ${contracts.length} live</span>
           </summary>
           <div class="ft-contracts-grid">
@@ -109,7 +110,7 @@ function renderSiteFooter() {
         </details>
 
         <div class="ft-bottom">
-          <p class="ft-line">HOMEPAD — Robinhood Chain testnet. Permissionless, no admin key: contracts can't stop or reverse a trade, and can't vouch for what anyone launches. Verify the contract address before you buy. Nothing here is financial advice.</p>
+          <p class="ft-line">HOMEPAD — live on Robinhood Chain mainnet. Permissionless, no admin key: contracts can't stop or reverse a trade, and can't vouch for what anyone launches. Verify the contract address before you buy. Nothing here is financial advice.</p>
           <p class="ft-copy">© 2026 HOMEPAD</p>
         </div>
 
