@@ -144,13 +144,13 @@ Network: Robinhood Chain mainnet · chain ID `4663` · RPC `https://rpc.mainnet.
 
 | Contract | Address |
 |---|---|
-| Hybrid Factory | `0x59b49eb9985095cC83B4AC125f8D0DD6CDE362a9` |
-| Hybrid Hook | `0x7219f713b92C428789ECa85C20E540f40217C044` |
-| Hybrid Swap Router | `0x0E74050b07A5D17af89C01e54e685Cbf1F543dd0` |
-| Instant Liquidity Factory | `0x4e66058A0AA148aa86D5B9701af7205cfFa99419` |
-| Instant Hook | `0x3ec13E96c018A7f0C662291bbAd235f210Ea0044` |
-| Instant Swap Router | `0xF7324bB4D1A44FA0BE78f60A3edB5046bfF88a54` |
-| Uniswap v4 PoolManager (mainnet) | `0x552815eF68E6eb418A3d65D0AA1043d93204F612` |
+| Hybrid Factory | `0x73Ee9CF9C0bA0D1f375A7be8D3483Df4F3785F0C` |
+| Hybrid Hook | `0xa42D91Dd900384873CFd907Ab8d1047846b34044` |
+| Hybrid Swap Router | `0xBB001483EB3213Dc79e2Ea0cDfFdb08A5813a85A` |
+| Instant Liquidity Factory | `0x8EB532d862838f3A84710736aBaF62970F801317` |
+| Instant Hook | `0x408BF145843c050A080D6BA6D0C415484BB0C044` |
+| Instant Swap Router | `0x0E7ee82dCDF53581B5Fc4c454C58945Bba151a19` |
+| Uniswap v4 PoolManager (mainnet) | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
 | Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 | Bonding Curve Factory | *not yet deployed — deferred, see Status* |
 | Stock Pair Factory / Hook / Swap Router | *not yet deployed — deferred, see Status* |

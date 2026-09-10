@@ -31,22 +31,22 @@ const CONFIG = {
   // No bonding curve — launch creates a real, immediately swappable
   // Uniswap v4 pool. Leave INSTANT_FACTORY_ADDRESS blank to hide this
   // launch type in the UI. See scripts/deploy-instant.js.
-  INSTANT_FACTORY_ADDRESS: "0x4e66058A0AA148aa86D5B9701af7205cfFa99419", // mainnet
+  INSTANT_FACTORY_ADDRESS: "0x8EB532d862838f3A84710736aBaF62970F801317", // mainnet (redeployed with correct PoolManager)
   // Earlier Instant deployments, kept (factory + its own matching router)
   // so tokens launched on them still show up in Explore — old ones just
   // accumulate here instead of getting cleaned up.
   LEGACY_INSTANT_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
-  SWAP_ROUTER_ADDRESS: "0xF7324bB4D1A44FA0BE78f60A3edB5046bfF88a54", // mainnet
-  HOOK_ADDRESS: "0x3ec13E96c018A7f0C662291bbAd235f210Ea0044", // mainnet HomepadHook — takes the live fee cut on every Instant Liquidity swap
+  SWAP_ROUTER_ADDRESS: "0x0E7ee82dCDF53581B5Fc4c454C58945Bba151a19", // mainnet (redeployed with correct PoolManager)
+  HOOK_ADDRESS: "0x408BF145843c050A080D6BA6D0C415484BB0C044", // mainnet (redeployed with correct PoolManager) HomepadHook — takes the live fee cut on every Instant Liquidity swap
 
   // Hybrid mode (the default launch type) — real pool from block one,
   // single-sided liquidity for curve-like price impact. See
   // HomepadFactoryHybrid / HomepadHybridHook in the contracts repo.
-  HYBRID_FACTORY_ADDRESS: "0x59b49eb9985095cC83B4AC125f8D0DD6CDE362a9", // mainnet
+  HYBRID_FACTORY_ADDRESS: "0x73Ee9CF9C0bA0D1f375A7be8D3483Df4F3785F0C", // mainnet (redeployed with correct PoolManager)
   // Same idea as LEGACY_INSTANT_FACTORIES above.
   LEGACY_HYBRID_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
-  HYBRID_HOOK_ADDRESS: "0x7219f713b92C428789ECa85C20E540f40217C044", // mainnet
-  HYBRID_SWAP_ROUTER_ADDRESS: "0x0E74050b07A5D17af89C01e54e685Cbf1F543dd0", // mainnet
+  HYBRID_HOOK_ADDRESS: "0xa42D91Dd900384873CFd907Ab8d1047846b34044", // mainnet (redeployed with correct PoolManager)
+  HYBRID_SWAP_ROUTER_ADDRESS: "0xBB001483EB3213Dc79e2Ea0cDfFdb08A5813a85A", // mainnet (redeployed with correct PoolManager)
   INSTANT_HOME_ALLOCATION_BPS: 800, // 8% of supply to $HOME treasury at launch (display only, matches the contract constant)
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
