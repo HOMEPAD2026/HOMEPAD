@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789074702">
+<link rel="stylesheet" href="style.css?v=1789074970">
 </head>
 <body>
 
@@ -86,9 +86,9 @@
 
   <!-- Roadmap -->
   <section class="burn-roadmap">
-    <div class="burn-step"><span class="burn-step-k pixel">now</span><span class="burn-step-v">Manual burn — every allocation the treasury receives is sent to the burn address by hand.</span></div>
-    <div class="burn-step"><span class="burn-step-k pixel">next</span><span class="burn-step-v">Automated, contract-locked — the allocation held on-chain instead of by a wallet.</span></div>
-    <div class="burn-step"><span class="burn-step-k pixel">goal</span><span class="burn-step-v">Continuous liquidity support for launches, managed by transparent on-chain automation.</span></div>
+    <div class="burn-step is-current"><span class="burn-step-dot">1</span><span class="burn-step-k pixel">now</span><span class="burn-step-v">Manual burn — every allocation the treasury receives is sent to the burn address by hand.</span></div>
+    <div class="burn-step"><span class="burn-step-dot">2</span><span class="burn-step-k pixel">next</span><span class="burn-step-v">Automated, contract-locked — the allocation held on-chain instead of by a wallet.</span></div>
+    <div class="burn-step is-goal"><span class="burn-step-dot">3</span><span class="burn-step-k pixel">goal</span><span class="burn-step-v">Continuous liquidity support for launches, managed by transparent on-chain automation.</span></div>
   </section>
 
   <!-- How rent gets home -->
@@ -119,13 +119,13 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789074702"></script>
-<script src="abis.js?v=1789074702"></script>
-<script src="app.js?v=1789074702"></script>
-<script src="wallet-appkit.js?v=1789074702"></script>
-<script src="launch-modal.js?v=1789074702"></script>
-<script src="rent.js?v=1789074702"></script>
-<script src="footer.js?v=1789074702"></script>
+<script src="config.js?v=1789074970"></script>
+<script src="abis.js?v=1789074970"></script>
+<script src="app.js?v=1789074970"></script>
+<script src="wallet-appkit.js?v=1789074970"></script>
+<script src="launch-modal.js?v=1789074970"></script>
+<script src="rent.js?v=1789074970"></script>
+<script src="footer.js?v=1789074970"></script>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -133,18 +133,14 @@ const tk = (x) => fmtCompact(Number(ethers.formatEther(x)));
 
 function burnCardHtml(t, latestTx) {
   const share = t.sharePct.toFixed(2);
-  const subs = [
-    `<span><b>${share}%</b> of total supply</span>`,
-    `<span class="rent-hero-sep">·</span>`,
-    t.allocationBurned
-      ? `<span><b>8% allocation</b> burned ✓${t.rentBurned > 0n ? ` <b>+ ${tk(t.rentBurned)}</b> of rent on top` : ""}</span>`
-      : `<span>allocation <b>${tk(t.pending)}</b> waiting in treasury — burn pending</span>`,
-  ].join("");
+  const pill = t.allocationBurned
+    ? `<span class="burn-status-pill done">8% allocation burned ✓${t.rentBurned > 0n ? ` <b>+${tk(t.rentBurned)}</b> rent on top` : ""}</span>`
+    : `<span class="burn-status-pill pending">allocation pending · <b>${tk(t.pending)}</b> waiting in treasury</span>`;
   const links = [
-    latestTx ? `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${latestTx}" target="_blank" rel="noopener">latest burn tx ↗</a>` : "",
+    latestTx ? `<a class="btn-mini btn-mini-primary" href="${CONFIG.BLOCK_EXPLORER}/tx/${latestTx}" target="_blank" rel="noopener">latest burn tx ↗</a>` : "",
     `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/token/${t.token}" target="_blank" rel="noopener">$${t.symbol} on explorer ↗</a>`,
   ].join("");
-  return { subs, links, share };
+  return { pill, links, share };
 }
 
 function renderBurnHero(b) {
@@ -155,11 +151,11 @@ function renderBurnHero(b) {
     return;
   }
   const latest = b.ledger.find((e) => e.token.toLowerCase() === primary.token.toLowerCase());
-  const { subs, links, share } = burnCardHtml(primary, latest && latest.txHash);
+  const { pill, links, share } = burnCardHtml(primary, latest && latest.txHash);
   $("burn-hero-label").textContent = `$${primary.symbol} burned`;
   $("burn-hero-value").innerHTML = `${tk(primary.burned)} <span class="rent-hero-unit">$${primary.symbol}</span>`;
   $("burn-hero-share").innerHTML = `<b>${share}%</b> of the 1,000,000,000 supply is gone for good`;
-  $("burn-hero-subs").innerHTML = subs;
+  $("burn-hero-subs").innerHTML = pill;
   $("burn-hero-links").innerHTML = links;
 
   const rest = b.tokens.slice(1);
@@ -170,8 +166,8 @@ function renderBurnHero(b) {
       const c = burnCardHtml(t, lt && lt.txHash);
       return `<div class="stat-card burn-card">
         <div class="stat-label">$${t.symbol} burned</div>
-        <div class="stat-value">${tk(t.burned)} <span class="rent-hero-unit">$${t.symbol}</span></div>
-        <div class="rent-hero-subs left">${c.subs}</div>
+        <div class="stat-value">${tk(t.burned)} <span class="rent-hero-unit">$${t.symbol}</span> <span class="burn-card-share">${c.share}% of supply</span></div>
+        <div class="rent-hero-subs left">${c.pill}</div>
         <div class="burn-hero-links">${c.links}</div>
       </div>`;
     }).join("");

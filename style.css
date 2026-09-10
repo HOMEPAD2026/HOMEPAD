@@ -886,18 +886,33 @@ nav a{display:inline-flex;align-items:center;}
 .burn-hero-card > *,.volume-hero-card > *{position:relative;}
 .burn-share{margin-top:8px;font-size:.88rem;color:var(--ink-dim);line-height:1.5;}
 .burn-share b{color:var(--ink);font-weight:600;}
-.rent-hero-subs.left{justify-content:flex-start;margin-top:8px;}
-.burn-hero-links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.rent-hero-subs.left{justify-content:flex-start;margin-top:10px;}
+.burn-hero-links{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px;}
 .burn-card .burn-hero-links{justify-content:flex-start;}
 .burn-more{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0;}
+.burn-card-share{font-size:.42em;color:var(--ink-dim);font-weight:400;margin-left:6px;vertical-align:middle;}
+.burn-status-pill{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;padding:5px 12px;border-radius:100px;border:1px solid;line-height:1.4;}
+.burn-status-pill.done{color:var(--green);border-color:rgba(57,255,136,.35);background:rgba(57,255,136,.08);}
+.burn-status-pill.pending{color:var(--amber);border-color:rgba(255,182,72,.35);background:rgba(255,182,72,.08);}
+.burn-status-pill b{font-weight:700;}
+.btn-mini-primary{color:var(--green);border-color:rgba(57,255,136,.4);}
 
 /* roadmap strip */
-.burn-roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 4px;}
-.burn-step{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
-.burn-step-k{font-size:.62rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase;}
-.burn-step:first-child .burn-step-k{color:#ff9a5c;}
-.burn-step:last-child .burn-step-k{color:var(--green);}
+.burn-roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:30px 0 4px;}
+.burn-step{position:relative;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px 14px;transition:border-color .15s ease;}
+.burn-step-dot{position:absolute;top:-12px;left:16px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:'Silkscreen';font-size:.66rem;background:var(--void);border:1px solid var(--line);color:var(--ink-dim);}
+.burn-step-k{font-size:.62rem;color:var(--ink-dim);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
 .burn-step-v{font-size:.84rem;color:var(--ink-dim);line-height:1.5;}
+/* "now" is where things actually stand today — the only step with real
+   visual weight; "next" stays neutral (planned, not started) and "goal"
+   reads as a distinct destination rather than a copy of "next" a shade
+   greener, which is what a plain 1st/2nd/3rd color ramp looked like. */
+.burn-step.is-current{border-color:rgba(255,154,92,.5);background:linear-gradient(180deg,rgba(255,154,92,.07),transparent 65%),var(--panel);}
+.burn-step.is-current .burn-step-dot{border-color:#ff9a5c;color:#ff9a5c;background:#1c130d;}
+.burn-step.is-current .burn-step-k{color:#ff9a5c;}
+.burn-step.is-goal{border-style:dashed;}
+.burn-step.is-goal .burn-step-dot{border-color:var(--green);color:var(--green);}
+.burn-step.is-goal .burn-step-k{color:var(--green);}
 
 /* how it works */
 .burn-how{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
