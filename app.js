@@ -574,8 +574,14 @@ function hybridFactorySources() {
 
 async function fetchAllLaunches(opts) {
   const skipHistory = !!(opts && opts.skipHistory);
-  const factory = factoryRead();
-  const curveCount = Number(await factory.launchCount());
+  // Bonding Curve is deferred (FACTORY_ADDRESS unset) — guard this the same
+  // way instant/hybrid/paired already are below, instead of unconditionally
+  // building a contract on an empty address, which threw synchronously and
+  // took down every OTHER mode's launches with it (nothing showed on
+  // Explore at all, not just curve ones).
+  const curveIsLive = curveFactoryConfigured();
+  const factory = curveIsLive ? factoryRead() : null;
+  const curveCount = curveIsLive ? Number(await factory.launchCount()) : 0;
   const instantSources = instantFactorySources();
   const hybridSources = hybridFactorySources();
   const pairedSources = pairedFactorySources();
@@ -1161,7 +1167,7 @@ async function renderExplorePreview() {
     }
   } catch (err) {
     console.error(err);
-    document.getElementById("launch-list").innerHTML = `<div class="empty-state">Couldn't load launches. Is CONFIG.FACTORY_ADDRESS set to a deployed contract?</div>`;
+    document.getElementById("launch-list").innerHTML = `<div class="empty-state">Couldn't load launches — there may be a network or RPC issue. Try refreshing.</div>`;
   }
 }
 
@@ -1257,7 +1263,7 @@ async function renderExploreFull() {
     applyAndRender();
   } catch (err) {
     console.error(err);
-    document.getElementById("launch-list").innerHTML = `<div class="empty-state">Couldn't load launches. Is CONFIG.FACTORY_ADDRESS set to a deployed contract?</div>`;
+    document.getElementById("launch-list").innerHTML = `<div class="empty-state">Couldn't load launches — there may be a network or RPC issue. Try refreshing.</div>`;
   }
 }
 
@@ -1840,11 +1846,17 @@ const TYPE_INFO = {
 /// Works out what kind of launch an address is and where its data lives —
 /// current and legacy factories alike — so the page never has to care.
 async function resolveTokenContext(tokenAddr) {
-  const factory = factoryRead();
-  const curveAddr = await factory.curveOf(tokenAddr);
-  if (curveAddr !== ethers.ZeroAddress) {
-    const meta = await findLaunchMeta(factory, tokenAddr);
-    return { type: "curve", tokenAddr, curveAddr, meta: meta || {}, factory };
+  // Same guard as fetchAllLaunches — Bonding Curve is deferred
+  // (FACTORY_ADDRESS unset), so skip it entirely rather than letting an
+  // empty-address contract call throw and take every OTHER mode's token
+  // page down with it.
+  if (curveFactoryConfigured()) {
+    const factory = factoryRead();
+    const curveAddr = await factory.curveOf(tokenAddr);
+    if (curveAddr !== ethers.ZeroAddress) {
+      const meta = await findLaunchMeta(factory, tokenAddr);
+      return { type: "curve", tokenAddr, curveAddr, meta: meta || {}, factory };
+    }
   }
   // Hook address is only known for the CURRENT deployments (legacy entries
   // in config only record factory + router), so it's shown only when the
