@@ -47,7 +47,7 @@ const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 // Bumped whenever this file's data path changes, and printed with every
 // rent log line — after a day of cache-busting mishaps, a screenshot of a
 // stale build needs to be recognisable as stale.
-const RENT_JS_VERSION = "r7";
+const RENT_JS_VERSION = "r8";
 
 /// A non-event row for Recent Rent Events that explains a load failure in
 /// plain words instead of the page silently showing 0 for everything.
@@ -144,13 +144,24 @@ async function computeTreasuryRent(launches) {
 /// PoolManager or hook logs involved.
 async function computeBurns(launches) {
   const treasury = CONFIG.HOME_TREASURY_ADDRESS;
-  const entries = launches.filter((e) => (e.type === "hybrid" || e.type === "instant") && e.token);
-  const SUPPLY = 1_000_000_000n * 10n ** 18n;
+  const featured = new Set((CONFIG.RENT_FEATURED_TOKENS || []).map((a) => a.toLowerCase()));
+  const candidates = launches.filter((e) => (e.type === "hybrid" || e.type === "instant") && e.token);
 
-  const [burnedBals, treasuryBals] = await Promise.all([
-    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(BURN_ADDRESS)).catch(() => 0n))),
-    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(treasury)).catch(() => 0n))),
+  const [burnedAll, treasuryAll] = await Promise.all([
+    Promise.all(candidates.map((e) => withRetry(() => tokenRead(e.token).balanceOf(BURN_ADDRESS)).catch(() => 0n))),
+    Promise.all(candidates.map((e) => withRetry(() => tokenRead(e.token).balanceOf(treasury)).catch(() => 0n))),
   ]);
+
+  // Show a launch if it's featured in config, or if its allocation has
+  // actually been burned. Test launches that never will be stay out, and a
+  // future real burn appears without a config edit. Featured first.
+  const keep = candidates.map((e, i) => ({ e, burned: burnedAll[i], held: treasuryAll[i] }))
+    .filter((x) => featured.has(x.e.token.toLowerCase()) || x.burned > 0n)
+    .sort((a, b) => Number(featured.has(b.e.token.toLowerCase())) - Number(featured.has(a.e.token.toLowerCase())) || (b.burned > a.burned ? 1 : -1));
+  const entries = keep.map((x) => x.e);
+  const burnedBals = keep.map((x) => x.burned);
+  const treasuryBals = keep.map((x) => x.held);
+  const SUPPLY = 1_000_000_000n * 10n ** 18n;
 
   const tokens = [];
   let totalBurned = 0n, rentBurned = 0n, pending = 0n, shareSum = 0;

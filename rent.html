@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proof of Rent — HOMEPAD</title>
-<meta name="description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash. No estimates — what isn't automated yet is shown as zero, not guessed at.">
+<meta name="description" content="Rent goes home. Every launch sends 8% of its supply to the $HOME treasury; until the lock contract ships it's burned — read live from the burn address, with the tx for every burn.">
 <!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="HOMEPAD">
 <meta property="og:title" content="Proof of Rent — HOMEPAD">
-<meta property="og:description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash.">
+<meta property="og:description" content="Rent goes home. Treasury burns, read live from the burn address, with the tx for every burn.">
 <meta property="og:url" content="https://homepad.fun/rent.html">
 <meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
 <meta property="og:image:width" content="1200">
@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@HOMEonRobinhood">
 <meta name="twitter:title" content="Proof of Rent — HOMEPAD">
-<meta name="twitter:description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash.">
+<meta name="twitter:description" content="Rent goes home. Treasury burns, read live from the burn address, with the tx for every burn.">
 <meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
 <meta name="theme-color" content="#0d1410">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789073809">
+<link rel="stylesheet" href="style.css?v=1789074298">
 </head>
 <body>
 
@@ -50,249 +50,169 @@
       <img class="sticker fw-s1" src="images/gallery-cap-rings.jpg" alt="">
       <img class="sticker fw-s2" src="images/gallery-gm.jpg" alt="">
     </div>
-    <span class="pixel eyebrow-chip alt">every number traces to a tx</span>
-    <h1 class="pixel">proof of rent.</h1>
-    <p class="lede">Every figure on this page is read live from HOMEPAD's own contracts — nothing estimated, nothing projected.</p>
+    <span class="pixel eyebrow-chip alt">every burn traces to a tx</span>
+    <h1 class="pixel">rent goes home.</h1>
+    <p class="lede">Every launch sends <strong>8% of its supply</strong> to the $HOME treasury. Until the lock contract ships, the treasury burns it — read live from the burn address below, with the transaction for every burn.</p>
   </div>
 
-  <!-- Headline: the one number this page exists for -->
-  <div class="rent-hero-stat" id="rent-hero-stat">
-    <div class="rent-hero-label">Rent held by the $HOME treasury</div>
-    <div class="rent-hero-value" id="rent-total"><span class="sk sk-line w40"></span></div>
-    <div class="rent-hero-subs">
-      <span><b id="rent-24h">···</b> in the last 24h</span>
-      <span class="rent-hero-sep">·</span>
-      <span><b id="rent-rate">···</b> effective rent rate</span>
+  <!-- Hero: the burn -->
+  <section id="burn-hero" class="burn-hero" aria-live="polite">
+    <div class="burn-hero-card">
+      <div class="rent-hero-label" id="burn-hero-label">Burned so far</div>
+      <div class="rent-hero-value" id="burn-hero-value"><span class="sk sk-line w40"></span></div>
+      <div class="burn-share" id="burn-hero-share">···</div>
+      <div class="burn-bar" aria-hidden="true"><div class="burn-bar-fill" id="burn-hero-bar" style="width:0%"></div><div class="burn-bar-mark" title="8% launch allocation"></div></div>
+      <div class="rent-hero-subs" id="burn-hero-subs"></div>
+      <div class="burn-hero-links" id="burn-hero-links"></div>
     </div>
-    <div class="rent-hero-note" id="rent-total-note">Read directly from the treasury wallet, <a href="#" id="rent-treasury-link" target="_blank" rel="noopener" style="color:var(--green)">0x0106…91d9</a>. The hook pays $HOME its share of every swap in that swap's output currency — a sell pays ETH, a buy pays the token being bought — so this is the treasury's ETH plus the fee tokens it holds (the 8% launch allocation each token sends it isn't counted — it's burned by hand until the lock contract ships), valued at each token's current price.</div>
-  </div>
-
-  <!-- Live protocol stats -->
-  <div class="rent-grid">
-    <div class="stat-card">
-      <div class="stat-label">Creator Rewards Paid</div>
-      <div class="stat-value" id="rent-creator">···</div>
-      <div class="stat-sub" id="rent-creator-sub">paid straight to launch creators</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Number of Launches</div>
-      <div class="stat-value" id="rent-launches">···</div>
-      <div class="stat-sub">across every mode</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total Launch Volume</div>
-      <div class="stat-value" id="rent-volume">···</div>
-      <div class="stat-sub">ETH side of every swap in a HOMEPAD pool — any route, dev buys included</div>
-    </div>
-  </div>
-  <div id="rent-paired-note" class="rent-paired-note" style="display:none"></div>
-
-  <!-- Treasury burns: the 8% launch allocation, read live from the burn address -->
-  <section class="rent-home-leg rent-burns">
-    <div class="rent-section-head">
-      <h3>Treasury burns</h3>
-      <span class="pixel eyebrow-chip testing">manual now · locked contract next</span>
-    </div>
-    <p class="rent-section-note">Every Hybrid and Instant launch sends 8% of its supply to the $HOME treasury — the same idea as Pons V2's allocation, meant to support the ecosystem and fund continuous liquidity as HOMEPAD grows. The contract that will hold it locked and automate that is in development. Until it ships, the treasury <b style="color:var(--ink)">burns what it holds by hand</b>, and this section reads the burn address (<a id="rent-burn-addr-link" href="#" target="_blank" rel="noopener">0x…dEaD</a>) directly — live balances, not a promise. <a href="mechanism.html#fees">How the allocation works →</a></p>
-    <div class="rent-grid four" id="rent-burn-stats">
-      <div class="stat-card"><div class="stat-label">Tokens burned</div><div class="stat-value" id="rent-burn-total">···</div><div class="stat-sub" id="rent-burn-total-sub">across all launches, live from 0x…dEaD</div></div>
-      <div class="stat-card"><div class="stat-label">Share of supply burned</div><div class="stat-value" id="rent-burn-share">···</div><div class="stat-sub">average across launches</div></div>
-      <div class="stat-card"><div class="stat-label">Rent burned on top</div><div class="stat-value" id="rent-burn-rent">···</div><div class="stat-sub">buy-side fees burned beyond the 8%</div></div>
-      <div class="stat-card"><div class="stat-label">Waiting in treasury</div><div class="stat-value" id="rent-burn-pending">···</div><div class="stat-sub">launch tokens held, next to burn</div></div>
-    </div>
-    <div class="rent-events-grid" id="rent-burn-list" style="margin-top:12px"></div>
-    <div class="rent-burn-ledger" id="rent-burn-ledger" style="margin-top:14px"></div>
-    <p class="rent-section-note" style="margin-top:14px"><b style="color:var(--ink)">Now:</b> manual burn · <b style="color:var(--ink)">Next:</b> automated, contract-locked · <b style="color:var(--ink)">Goal:</b> continuous liquidity support, managed by transparent on-chain automation instead of by hand.</p>
   </section>
 
-  <!-- The $HOME leg: shown honestly, not faked -->
+  <!-- More featured tokens, if any -->
+  <section class="burn-more" id="burn-more" style="display:none"></section>
+
+  <!-- Roadmap -->
+  <section class="burn-roadmap">
+    <div class="burn-step"><span class="burn-step-k pixel">now</span><span class="burn-step-v">Manual burn — every allocation the treasury receives is sent to the burn address by hand.</span></div>
+    <div class="burn-step"><span class="burn-step-k pixel">next</span><span class="burn-step-v">Automated, contract-locked — the allocation held on-chain instead of by a wallet.</span></div>
+    <div class="burn-step"><span class="burn-step-k pixel">goal</span><span class="burn-step-v">Continuous liquidity support for launches, managed by transparent on-chain automation.</span></div>
+  </section>
+
+  <!-- Proof of burn -->
   <section class="rent-home-leg">
     <div class="rent-section-head">
-      <h3>The $HOME leg</h3>
-      <span class="pixel eyebrow-chip testing">not automated yet</span>
+      <h3>Proof of burn</h3>
+      <span class="rent-section-count" id="burn-ledger-count"></span>
     </div>
-    <p class="rent-section-note">Rent is meant to flow back into $HOME — buyback, protocol-owned liquidity. That leg is still a manual script today, so the rows below read as zero instead of a number that would imply it's already running. <a href="guide-rent.html">How it's designed to work →</a></p>
-    <div class="rent-grid four">
-      <div class="stat-card">
-        <div class="stat-label">HOME Held by Protocol</div>
-        <div class="stat-value" id="rent-home-held">···</div>
-        <div class="stat-sub" id="rent-home-held-sub">$HOME treasury balance, live</div>
+    <div class="rent-events" id="burn-ledger"><div class="empty-state">Loading burns…</div></div>
+  </section>
+
+  <!-- How rent gets home -->
+  <section class="rent-home-leg">
+    <div class="rent-section-head"><h3>How rent gets home</h3></div>
+    <div class="burn-how">
+      <div class="burn-how-item">
+        <span class="burn-how-n pixel">1</span>
+        <div><strong>Every trade pays 1% rent.</strong><p>70% to the coin's creator, 30% to the $HOME treasury — inside the trade itself. A buy pays it in the coin being bought; a sell pays it in ETH. Creators receive theirs the same way.</p></div>
       </div>
-      <div class="stat-card not-automated"><div class="stat-label">HOME Bought Back</div><div class="stat-value">0</div><div class="stat-sub">not automated yet</div></div>
-      <div class="stat-card not-automated"><div class="stat-label">Average Buy Price</div><div class="stat-value">—</div><div class="stat-sub">not automated yet</div></div>
-      <div class="stat-card not-automated"><div class="stat-label">Protocol-Owned Liquidity</div><div class="stat-value">0</div><div class="stat-sub">not automated yet</div></div>
+      <div class="burn-how-item">
+        <span class="burn-how-n pixel">2</span>
+        <div><strong>Every launch sends 8% of supply to the treasury.</strong><p>A one-time allocation baked into the launch — the same idea as Pons V2 — meant to support the ecosystem and fund continuous liquidity as HOMEPAD grows.</p></div>
+      </div>
+      <div class="burn-how-item">
+        <span class="burn-how-n pixel">3</span>
+        <div><strong>The treasury burns it. Then it locks it.</strong><p>Today that's a manual burn, with every tx listed above. The contract that will hold it locked and turn treasury assets into liquidity for launches is in development.</p></div>
+      </div>
     </div>
+    <p class="rent-section-note" style="margin-top:14px">Treasury wallet: <a id="rent-treasury-link" href="#" target="_blank" rel="noopener">0x0106…91d9 ↗</a> · Burn address: <a id="rent-burn-addr-link" href="#" target="_blank" rel="noopener">0x…dEaD ↗</a> · <a href="mechanism.html#fees">Full mechanics →</a></p>
   </section>
 
-  <!-- Recent rent events -->
-  <section class="rent-events-section">
-    <div class="rent-section-head">
-      <h3>Recent Rent Events</h3>
-      <span class="rent-section-count" id="rent-events-count"></span>
-    </div>
-    <div class="rent-events" id="rent-events-list"><div class="empty-state" style="padding:32px 0">Loading on-chain events…</div></div>
-  </section>
-
-  <p class="rent-footnote"><span class="pixel eyebrow-chip testing">🟢 live on Robinhood Chain mainnet</span></p>
+  <div class="rent-foot">
+    <span class="pixel eyebrow-chip testing">🟢 live on Robinhood Chain mainnet</span>
+  </div>
 </main>
 
-<div id="site-footer-slot"></div>
+<div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789073809"></script>
-<script src="abis.js?v=1789073809"></script>
-<script src="app.js?v=1789073809"></script>
-<script src="wallet-appkit.js?v=1789073809"></script>
-<script src="launch-modal.js?v=1789073809"></script>
-<script src="rent.js?v=1789073809"></script>
-<script src="footer.js?v=1789073809"></script>
+<script src="config.js?v=1789074298"></script>
+<script src="abis.js?v=1789074298"></script>
+<script src="app.js?v=1789074298"></script>
+<script src="wallet-appkit.js?v=1789074298"></script>
+<script src="launch-modal.js?v=1789074298"></script>
+<script src="rent.js?v=1789074298"></script>
+<script src="footer.js?v=1789074298"></script>
 
 <script>
-function renderBurns(b) {
-  const $ = (id) => document.getElementById(id);
-  $("rent-burn-addr-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}`;
-  const tk = (x) => fmtCompact(Number(ethers.formatEther(x)));
-  $("rent-burn-total").textContent = tk(b.totalBurned);
-  $("rent-burn-total-sub").textContent = `across ${b.tokens.length} launch${b.tokens.length === 1 ? "" : "es"}, live from 0x…dEaD`;
-  $("rent-burn-share").textContent = b.tokens.length ? (b.avgSharePct).toFixed(2) + "%" : "—";
-  $("rent-burn-rent").textContent = tk(b.rentBurned);
-  $("rent-burn-pending").textContent = tk(b.pending);
+const $ = (id) => document.getElementById(id);
+const tk = (x) => fmtCompact(Number(ethers.formatEther(x)));
 
-  $("rent-burn-list").innerHTML = b.tokens.map((t) => `
-    <div class="rent-event-card">
-      <div class="rent-event-head">
-        <span class="rent-event-sym">$${t.symbol}</span>
-        <span class="pixel eyebrow-chip ${t.allocationBurned ? "" : "testing"}" style="margin:0;padding:3px 9px;font-size:.6rem">${t.allocationBurned ? "8% burned ✓" : "burn pending"}</span>
-        <span class="rent-event-time">${t.sharePct.toFixed(2)}% of supply</span>
-      </div>
-      <div class="rent-event-body">
-        <span class="rent-event-amt">🔥 <b>${tk(t.burned)} $${t.symbol}</b> burned${t.rentBurned > 0n ? ` <span class="rent-event-eq">incl. ${tk(t.rentBurned)} of rent</span>` : ""}${t.pending > 0n ? ` <span class="rent-event-eq">· ${tk(t.pending)} waiting in treasury</span>` : ""}</span>
-        <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/token/${t.token}" target="_blank" rel="noopener">token ↗</a>
-      </div>
-    </div>`).join("") || `<div class="empty-state">No Hybrid or Instant launches yet — the first burn shows up here after the first launch.</div>`;
+function burnCardHtml(t, latestTx) {
+  const share = t.sharePct.toFixed(2);
+  const subs = [
+    `<span><b>${share}%</b> of total supply</span>`,
+    `<span class="rent-hero-sep">·</span>`,
+    t.allocationBurned
+      ? `<span><b>8% allocation</b> burned ✓${t.rentBurned > 0n ? ` <b>+ ${tk(t.rentBurned)}</b> of rent on top` : ""}</span>`
+      : `<span>allocation <b>${tk(t.pending)}</b> waiting in treasury — burn pending</span>`,
+  ].join("");
+  const links = [
+    latestTx ? `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${latestTx}" target="_blank" rel="noopener">latest burn tx ↗</a>` : "",
+    `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/token/${t.token}" target="_blank" rel="noopener">$${t.symbol} on explorer ↗</a>`,
+  ].join("");
+  return { subs, links, share };
+}
 
-  const ledger = $("rent-burn-ledger");
+function renderBurnHero(b) {
+  const primary = b.tokens[0];
+  if (!primary) {
+    $("burn-hero-value").innerHTML = `0 <span class="rent-hero-unit">burned</span>`;
+    $("burn-hero-share").textContent = "No burns yet — the first one shows up here the moment it happens.";
+    return;
+  }
+  const latest = b.ledger.find((e) => e.token.toLowerCase() === primary.token.toLowerCase());
+  const { subs, links, share } = burnCardHtml(primary, latest && latest.txHash);
+  $("burn-hero-label").textContent = `$${primary.symbol} burned`;
+  $("burn-hero-value").innerHTML = `${tk(primary.burned)} <span class="rent-hero-unit">$${primary.symbol}</span>`;
+  $("burn-hero-share").innerHTML = `<b>${share}%</b> of the 1,000,000,000 supply is gone for good`;
+  // bar is drawn on a 0–10% scale so the 8% allocation mark sits at 80% width
+  $("burn-hero-bar").style.width = Math.min(100, primary.sharePct * 10).toFixed(2) + "%";
+  $("burn-hero-subs").innerHTML = subs;
+  $("burn-hero-links").innerHTML = links;
+
+  const rest = b.tokens.slice(1);
+  if (rest.length) {
+    $("burn-more").style.display = "";
+    $("burn-more").innerHTML = rest.map((t) => {
+      const lt = b.ledger.find((e) => e.token.toLowerCase() === t.token.toLowerCase());
+      const c = burnCardHtml(t, lt && lt.txHash);
+      return `<div class="stat-card burn-card">
+        <div class="stat-label">$${t.symbol} burned</div>
+        <div class="stat-value">${tk(t.burned)} <span class="rent-hero-unit">$${t.symbol}</span></div>
+        <div class="burn-bar small" aria-hidden="true"><div class="burn-bar-fill" style="width:${Math.min(100, t.sharePct * 10).toFixed(2)}%"></div><div class="burn-bar-mark"></div></div>
+        <div class="rent-hero-subs left">${c.subs}</div>
+        <div class="burn-hero-links">${c.links}</div>
+      </div>`;
+    }).join("");
+  }
+}
+
+function renderBurnLedger(b) {
+  $("burn-ledger-count").textContent = b.ledger.length ? `${b.ledger.length} burn${b.ledger.length === 1 ? "" : "s"}` : "";
   if (b.ledger.length) {
-    ledger.innerHTML = `<div class="rent-section-head" style="margin-bottom:6px"><h3 style="font-size:.9rem">Proof of burn</h3><span class="rent-section-count">${b.ledger.length} tx</span></div>` +
-      b.ledger.map((e) => `
-        <div class="rent-event-card">
-          <div class="rent-event-head">
-            <span class="rent-event-sym">$${e.symbol}</span>
-            <span class="rent-event-time">${e.ts ? new Date(e.ts * 1000).toLocaleString() : ""}</span>
-          </div>
-          <div class="rent-event-body">
-            <span class="rent-event-amt">🔥 <b>${fmtCompact(Number(ethers.formatEther(e.amount)))} $${e.symbol}</b> → 0x…dEaD</span>
-            <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>
-          </div>
-        </div>`).join("");
-  } else if (b.ledgerError) {
-    ledger.innerHTML = `<p class="rent-section-note">Burn transactions couldn't be listed right now (${b.ledgerError}) — the balances above are still live from the burn address.</p>`;
-  } else {
-    ledger.innerHTML = "";
-  }
-}
-
-async function renderRentDashboard() {
-  const $ = (id) => document.getElementById(id);
-  $("rent-treasury-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.HOME_TREASURY_ADDRESS}`;
-
-  // Headline first, from the treasury wallet itself (balances only, no
-  // event logs) — the one number on this page that can't be taken down by
-  // the RPC's log-query limits.
-  const launches = await fetchAllLaunches({ skipHistory: true });
-  try {
-    const t = await computeTreasuryRent(launches);
-    $("rent-total").innerHTML = `${fmtEth(Number(ethers.formatEther(t.totalEth)))} <span class="rent-hero-unit">ETH</span>`;
-    const parts = [`${fmtEth(Number(ethers.formatEther(t.ethBalance)))} ETH`];
-    for (const tk of t.tokens) {
-      const amt = fmtCompact(Number(ethers.formatEther(tk.feeTokens)));
-      parts.push(tk.ethValue != null ? `${amt} $${tk.symbol} (≈ ${fmtEth(Number(ethers.formatEther(tk.ethValue)))} ETH)` : `${amt} $${tk.symbol} (no price yet)`);
-    }
-    const note = $("rent-total-note");
-    note.innerHTML = `<b style="color:var(--ink)">${parts.join(" + ")}</b><br>` + note.innerHTML;
-  } catch (err) {
-    console.error("treasury rent failed", err);
-    $("rent-total").innerHTML = `— <span class="rent-hero-unit">ETH</span>`;
-  }
-
-  try {
-    renderBurns(await computeBurns(launches));
-  } catch (err) {
-    console.error("burns failed", err);
-    for (const id of ["rent-burn-total", "rent-burn-share", "rent-burn-rent", "rent-burn-pending"]) $(id).textContent = "—";
-  }
-
-  try {
-    const d = await computeRentDashboard(launches);
-    const totalRent = Number(ethers.formatEther(d.totalRentEth));
-    const rent24h = Number(ethers.formatEther(d.rent24hEth));
-    const creator = Number(ethers.formatEther(d.creatorPaidEth));
-    const volume = Number(ethers.formatEther(d.totalVolumeEth));
-
-    $("rent-24h").textContent = fmtEth(rent24h) + " ETH";
-    // Rent as a share of everything traded — a ratio of two live numbers,
-    // so it's exactly as real as the numbers themselves.
-    $("rent-rate").textContent = volume > 0 ? ((totalRent / volume) * 100).toFixed(2) + "%" : "—";
-
-    $("rent-creator").textContent = fmtEth(creator) + " ETH";
-    if (totalRent > 0) $("rent-creator-sub").textContent = `${((creator / totalRent) * 100).toFixed(0)}% of all rent, paid straight to creators`;
-    $("rent-launches").textContent = d.launchCount.toLocaleString();
-    $("rent-volume").textContent = fmtEth(volume) + " ETH";
-
-    if (d.pairedRentByQuote.size > 0) {
-      const parts = [...d.pairedRentByQuote.entries()].map(([sym, v]) => `${fmtEth(Number(ethers.formatUnits(v.amount, v.decimals)))} ${sym}`);
-      const note = $("rent-paired-note");
-      note.style.display = "block";
-      note.textContent = `Stock-pair rent is collected in the stock token, not ETH, so it's kept separate rather than force-converted: ${parts.join(" · ")} so far.`;
-    }
-
-    const listEl = $("rent-events-list");
-    $("rent-events-count").textContent = d.recentEvents.length ? `latest ${d.recentEvents.length}` : "";
-    if (d.recentEvents.length === 0) {
-      listEl.innerHTML = `<div class="empty-state" style="padding:32px 0">No trades yet — rent shows up here the moment the first one happens.</div>`;
-    } else {
-      listEl.innerHTML = d.recentEvents.map((e) => `
-        <div class="rent-event">
-          <div class="rent-event-top">
-            <span class="rent-event-token">${e.token ? `<a href="explore.html#/token/${e.token}">$${e.symbol}</a>` : `$${e.symbol}`}</span>
-            <span class="type-pill tt-${e.typeLabel === "curve" ? "curve" : e.typeLabel === "hybrid" ? "hybrid" : e.typeLabel === "instant" ? "instant" : "paired"}">${e.typeLabel}</span>
-            <span class="rent-event-time">${timeAgo(e.ts)}</span>
-          </div>
-          <div class="rent-event-bottom">
-            <span class="rent-event-amt">${e.txHash ? `→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent${e.ethValue != null ? ` <span class="rent-event-eq">≈ ${fmtEth(Number(ethers.formatEther(e.ethValue)))} ETH</span>` : ""}` : e.unit}</span>
-            ${e.txHash ? `<a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>` : ""}
-          </div>
+    $("burn-ledger").innerHTML = b.ledger.map((e) => `
+      <div class="rent-event">
+        <div class="rent-event-top">
+          <span class="rent-event-token">🔥 $${e.symbol}</span>
+          <span class="rent-event-time">${e.ts ? new Date(e.ts * 1000).toLocaleString() : ""}</span>
         </div>
-      `).join("");
-    }
-  } catch (err) {
-    // The treasury headline above stands on its own; only the event-derived
-    // figures go to "—" here.
-    console.error(err);
-    for (const id of ["rent-24h", "rent-rate", "rent-creator", "rent-volume"]) $(id).textContent = "—";
-    $("rent-events-list").innerHTML = `<div class="empty-state">Couldn't load rent events.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div></div>`;
-  }
-
-  // "HOME held by protocol" is a separate, mainnet-side query ($HOME only
-  // exists on mainnet, independent of everything else on this page) — never
-  // let a hiccup here block the on-chain rent numbers above.
-  try {
-    const base = CONFIG.HOME_BLOCKSCOUT_API_BASE || CONFIG.BLOCKSCOUT_API_BASE;
-    const res = await fetch(`${base}/api/v2/addresses/${CONFIG.HOME_TREASURY_ADDRESS}/token-balances`);
-    const list = await res.json();
-    const entry = Array.isArray(list) ? list.find((t) => t.token && t.token.address && t.token.address.toLowerCase() === CONFIG.HOME_TOKEN_ADDRESS.toLowerCase()) : null;
-    if (entry) {
-      const amt = Number(ethers.formatUnits(entry.value, Number(entry.token.decimals || 18)));
-      $("rent-home-held").textContent = fmtCompact(amt) + " $HOME";
-    } else {
-      $("rent-home-held").textContent = "0 $HOME";
-    }
-  } catch (err) {
-    $("rent-home-held").textContent = "—";
-    $("rent-home-held-sub").textContent = "couldn't load";
+        <div class="rent-event-bottom">
+          <span class="rent-event-amt"><b>${fmtCompact(Number(ethers.formatEther(e.amount)))} $${e.symbol}</b> → 0x…dEaD</span>
+          <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>
+        </div>
+      </div>`).join("");
+  } else if (b.ledgerError) {
+    $("burn-ledger").innerHTML = `<div class="empty-state">Burn transactions couldn't be listed right now (${b.ledgerError}). The balance above is still live from the burn address — <a href="${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}" target="_blank" rel="noopener">see it there ↗</a>.</div>`;
+  } else {
+    $("burn-ledger").innerHTML = `<div class="empty-state">No burns yet.</div>`;
   }
 }
-renderRentDashboard();
+
+async function renderRentPage() {
+  $("rent-treasury-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.HOME_TREASURY_ADDRESS}`;
+  $("rent-burn-addr-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}`;
+  try {
+    const launches = await fetchAllLaunches({ skipHistory: true });
+    const b = await computeBurns(launches);
+    renderBurnHero(b);
+    renderBurnLedger(b);
+  } catch (err) {
+    console.error("rent page failed", err);
+    $("burn-hero-value").innerHTML = `— <span class="rent-hero-unit"></span>`;
+    $("burn-hero-share").textContent = "Couldn't reach the chain right now — try again in a moment.";
+    $("burn-ledger").innerHTML = `<div class="empty-state">Couldn't load burns.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 160)}</div></div>`;
+  }
+}
+renderRentPage();
 </script>
 </body>
 </html>

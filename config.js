@@ -58,6 +58,12 @@ const CONFIG = {
   LEGACY_HYBRID_FACTORIES: [], // fresh mainnet deploy — no legacy launches yet
   HYBRID_HOOK_ADDRESS: "0xa42D91Dd900384873CFd907Ab8d1047846b34044", // mainnet (redeployed with correct PoolManager)
   HYBRID_SWAP_ROUTER_ADDRESS: "0xBB001483EB3213Dc79e2Ea0cDfFdb08A5813a85A", // mainnet (redeployed with correct PoolManager)
+  // Launches whose treasury allocation/burn the Rent page tracks by name.
+  // Test launches stay out; any launch whose allocation has actually been
+  // burned shows up automatically on top of this list.
+  RENT_FEATURED_TOKENS: [
+    "0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5", // $HOMEPAD
+  ],
   INSTANT_HOME_ALLOCATION_BPS: 800, // 8% of supply to $HOME treasury at launch (display only, matches the contract constant)
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
