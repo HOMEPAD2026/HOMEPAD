@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mechanism — HOMEPAD</title>
-<meta name="description" content="How HOMEPAD's three launch modes (hybrid, bonding curve, instant liquidity), fees, graduation, and stock-pairing actually work.">
+<meta name="description" content="How HOMEPAD's four launch modes (hybrid, bonding curve, instant liquidity, stock pair), fees, graduation, and stock-pairing actually work.">
 <!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="HOMEPAD">
 <meta property="og:title" content="Mechanism — HOMEPAD">
-<meta property="og:description" content="How HOMEPAD's three launch modes, fees, graduation, and stock-pairing actually work.">
+<meta property="og:description" content="How HOMEPAD's four launch modes, fees, graduation, and stock-pairing actually work.">
 <meta property="og:url" content="https://homepad.fun/mechanism.html">
 <meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
 <meta property="og:image:width" content="1200">
@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@HOMEonRobinhood">
 <meta name="twitter:title" content="Mechanism — HOMEPAD">
-<meta name="twitter:description" content="How HOMEPAD's three launch modes, fees, graduation, and stock-pairing actually work.">
+<meta name="twitter:description" content="How HOMEPAD's four launch modes, fees, graduation, and stock-pairing actually work.">
 <meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
 <meta name="theme-color" content="#0d1410">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789051164">
+<link rel="stylesheet" href="style.css?v=1789051409">
 </head>
 <body>
 
@@ -83,8 +83,10 @@
 
   <section class="doc-section">
     <h2>Fees</h2>
-    <p>Every trade — on any of the three modes — pays a 1% base fee, fixed protocol-wide. That base fee splits 70% to the token's creator and 30% to the platform side (which further routes to the $HOME treasury). It's taken out immediately on every trade — no contract holds fee money for later.</p>
+    <p>Every trade — on any mode — pays a 1% base fee, fixed protocol-wide. That base fee splits 70% to the token's creator and 30% to the $HOME treasury (the platform wallet's own cut is 0% at the deployed settings). It's taken out immediately on every trade — no contract holds fee money for later.</p>
     <p>On top of that, each creator can choose an extra fee of up to 2% at launch time — entirely their call, and it goes 100% to them. So total fees on any given launch run 1%–3%, and whatever a creator adds beyond the 1% base is theirs alone.</p>
+    <p><strong>Which currency the fee is in.</strong> The hook takes its cut from whatever the swap pays out. On a buy (ETH in, token out) the fee is 1% of the tokens coming out, so the creator and the $HOME treasury receive it as the launched token. On a sell (token in, ETH out) it's 1% of the ETH coming out, received as ETH. Same percentage either way — only the currency differs, and it's whichever side the trader was receiving.</p>
+    <p><strong>Launch allocation (not a fee).</strong> Every Hybrid and Instant launch sends 8% of the fixed 1,000,000,000 supply to the $HOME treasury the moment the token is created (<code>HOME_ALLOCATION_BPS = 800</code>, a constant in the factory); the other 92% goes into the pool. It's a one-time allocation baked into the launch, separate from trade fees, and every token page shows exactly how much the treasury holds.</p>
   </section>
 
   <section class="doc-section">
@@ -123,11 +125,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789051164"></script>
-<script src="abis.js?v=1789051164"></script>
-<script src="app.js?v=1789051164"></script>
-<script src="wallet-appkit.js?v=1789051164"></script>
-<script src="launch-modal.js?v=1789051164"></script>
-<script src="footer.js?v=1789051164"></script>
+<script src="config.js?v=1789051409"></script>
+<script src="abis.js?v=1789051409"></script>
+<script src="app.js?v=1789051409"></script>
+<script src="wallet-appkit.js?v=1789051409"></script>
+<script src="launch-modal.js?v=1789051409"></script>
+<script src="footer.js?v=1789051409"></script>
 </body>
 </html>

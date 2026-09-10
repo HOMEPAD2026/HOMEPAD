@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789051164">
+<link rel="stylesheet" href="style.css?v=1789051409">
 </head>
 <body>
 
@@ -97,7 +97,7 @@
     </div>
     <div class="faq-item">
       <h3>Where do fees go?</h3>
-      <p>Every trade fee is split between the $HOME treasury (for buybacks) and platform operations. See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for the exact split.</p>
+      <p>Every trade pays a 1% fee, split <strong>70% to the token's creator</strong> and <strong>30% to the $HOME treasury</strong> — the platform wallet takes 0% at the deployed settings. A creator can add up to 2% extra at launch, which is all theirs. The fee comes out of whatever the swap pays out: on a buy it's taken in the token being bought, on a sell it's taken in ETH. Separately, 8% of every launch's supply goes to the $HOME treasury at creation (a one-time allocation, not a fee). See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for the details.</p>
     </div>
     <div class="faq-item">
       <h3>Can a launch be paused or rugged by HOMEPAD itself?</h3>
@@ -117,11 +117,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789051164"></script>
-<script src="abis.js?v=1789051164"></script>
-<script src="app.js?v=1789051164"></script>
-<script src="wallet-appkit.js?v=1789051164"></script>
-<script src="launch-modal.js?v=1789051164"></script>
+<script src="config.js?v=1789051409"></script>
+<script src="abis.js?v=1789051409"></script>
+<script src="app.js?v=1789051409"></script>
+<script src="wallet-appkit.js?v=1789051409"></script>
+<script src="launch-modal.js?v=1789051409"></script>
 <script>
   const DEAD = "0x0000000000000000000000000000000000dead";
   // $HOME uses its own explorer base (same mainnet explorer CONFIG.BLOCK_EXPLORER now points to too).
@@ -148,6 +148,6 @@
     ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.PAIRED_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.PAIRED_FACTORY_ADDRESS}</a>`
     : `<span class="soon-tag">soon</span>`;
 </script>
-<script src="footer.js?v=1789051164"></script>
+<script src="footer.js?v=1789051409"></script>
 </body>
 </html>

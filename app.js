@@ -1793,7 +1793,7 @@ async function renderCreate(targetId) {
       tab.classList.add("active");
       launchType = tab.dataset.type;
       const hints = {
-        hybrid: "Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.",
+        hybrid: "Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. 8% of supply goes to the $HOME treasury at launch; the other 92% is the pool's single-sided liquidity, which gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.",
         instant: "Creates a real, immediately tradeable Uniswap pool — visible on Dexscreener right away. 8% of supply goes to the $HOME treasury; the rest is locked as liquidity with whatever ETH you seed it with.",
         curve: "Coming soon — trades on a bonding curve until a threshold is met, then graduates to a real DEX pool.",
       };
@@ -2548,7 +2548,7 @@ function renderTradeCard(ctx, d) {
       </select>
     </div>
     <button class="btn ${buy ? "btn-primary" : "btn-sell"}" id="trade-btn" style="width:100%;justify-content:center">${buy ? `Buy $${sym}` : `Sell $${sym}`}</button>
-    <p class="trade-fee-note">${(d.feeBps / 100).toFixed(d.feeBps % 100 === 0 ? 0 : 2)}% fee on this trade — ${(d.feeCreatorBps / 100).toFixed(2)}% to the creator, ${(d.feeHomeBps / 100).toFixed(2)}% to $HOME.</p>
+    <p class="trade-fee-note">${(d.feeBps / 100).toFixed(d.feeBps % 100 === 0 ? 0 : 2)}% fee on this trade — ${(d.feeCreatorBps / 100).toFixed(2)}% to the creator, ${(d.feeHomeBps / 100).toFixed(2)}% to $HOME. ${buy ? `Taken from the $${sym} you receive.` : `Taken from the ${unit} you receive.`}</p>
     <div id="trade-status"></div>
   `;
 }

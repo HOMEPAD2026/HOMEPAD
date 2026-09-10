@@ -69,6 +69,8 @@ All four share the same fee structure and the same **Dev Buy** option (`launchAn
 - **1% base fee** on every trade, protocol-wide → split **70% creator / 30% `$HOME` treasury** by default (`creatorShareBps=7000`, `homeShareBps=10000` — the platform wallet's own cut is 0% at these defaults, all of the non-creator share currently goes to `$HOME`).
 - Creators can add **up to 2% extra** at launch — that part is 100% theirs.
 - Total per launch: 1–3%.
+- **Fee currency**: the hook takes its cut from the swap's output side (`feeCurrency = zeroForOne ? currency1 : currency0`). A buy pays the fee in the launched token; a sell pays it in ETH. Creator and `$HOME` receive whichever it was — Proof of Rent values token-denominated rent in ETH at the pair's own price.
+- **Launch allocation (not a fee)**: every Hybrid and Instant launch transfers 8% of the 1,000,000,000 supply to the `$HOME` treasury at creation (`HOME_ALLOCATION_BPS = 800`, a factory constant); the remaining 92% goes into the pool. Shown on every token page as "$HOME treasury holds".
 - **Launching itself is free** — `launch()` isn't payable and requires no ETH. Only `launchAndBuy()` takes ETH (or, for Stock Pair, the quote token), and that amount becomes the creator's own dev-buy or Instant-mode liquidity — it's never a fee.
 - The split is **immutable once a factory is deployed** — there is no function anywhere that changes it after the fact.
 
