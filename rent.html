@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789079237">
+<link rel="stylesheet" href="style.css?v=1789082182">
 </head>
 <body>
 
@@ -119,13 +119,13 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789079237"></script>
-<script src="abis.js?v=1789079237"></script>
-<script src="app.js?v=1789079237"></script>
-<script src="wallet-appkit.js?v=1789079237"></script>
-<script src="launch-modal.js?v=1789079237"></script>
-<script src="rent.js?v=1789079237"></script>
-<script src="footer.js?v=1789079237"></script>
+<script src="config.js?v=1789082182"></script>
+<script src="abis.js?v=1789082182"></script>
+<script src="app.js?v=1789082182"></script>
+<script src="wallet-appkit.js?v=1789082182"></script>
+<script src="launch-modal.js?v=1789082182"></script>
+<script src="rent.js?v=1789082182"></script>
+<script src="footer.js?v=1789082182"></script>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -199,7 +199,7 @@ async function renderRentPage() {
   $("rent-treasury-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.HOME_TREASURY_ADDRESS}`;
   $("rent-burn-addr-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${BURN_ADDRESS}`;
   try {
-    const launches = await fetchAllLaunches({ skipHistory: true });
+    const launches = await fetchAllLaunches({ skipHistory: true, skipHomeCard: true }); // Rent has no card to show it in
     const [b, volumeEth] = await Promise.all([
       computeBurns(launches),
       computePlatformVolume(launches).catch((err) => { console.error("volume failed", err); return null; }),

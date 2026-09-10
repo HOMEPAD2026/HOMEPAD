@@ -1020,13 +1020,28 @@ async function fetchAllLaunches(opts) {
     }
   }));
 
+  // $HOME itself — HOMEPAD's own token. Not launched through any factory
+  // here (it predates the platform), so it's not a real "entry" from any
+  // on-chain source above, but the whole platform exists to fund it, so
+  // it gets a card the same way every launch does — sourced entirely from
+  // its own Dexscreener pair, same as the homepage hero. No imageUrl on
+  // purpose: falls back to the standard 🏡 placeholder thumb, which is
+  // already $HOME's own visual motif everywhere else on the site.
+  if (!opts || !opts.skipHomeCard) {
+    entries.push({
+      type: "home", token: CONFIG.HOME_TOKEN_ADDRESS, name: "Home", symbol: "HOME",
+      launchedAt: 0, // predates HOMEPAD — never flagged "NEW", always sorts as the oldest
+      creator: null, twitter: "https://x.com/HOMEonRobinhood", telegram: "https://t.me/HOMEonRobin", discord: null, website: null,
+    });
+  }
+
   // One shared ETH/USD fetch for the whole batch — cards show $ mcap the
   // same way the token detail page does, not a raw ETH figure.
   const ethUsd = await getEthUsdPrice();
   // Dexscreener overlay: one batched call covering every launch's own
-  // token AND every distinct quote token Paired launches use (so a
+  // token, every distinct quote token Paired launches use (so a
   // brand-new pair can still show a real $ mcap via the quote's own
-  // already-indexed price — see applyQuoteUsdFallback below).
+  // already-indexed price — see applyQuoteUsdFallback below), and $HOME.
   const quoteAddrs = [...new Set(entries.filter((e) => e.type === "paired" && e.quoteToken).map((e) => e.quoteToken.toLowerCase()))];
   const dexStats = await fetchDexscreenerStats([...entries.map((e) => e.token), ...quoteAddrs]);
   for (const entry of entries) {
@@ -1323,7 +1338,7 @@ async function renderProfile() {
   });
 
   try {
-    allEntries = await fetchAllLaunches();
+    allEntries = await fetchAllLaunches({ skipHomeCard: true }); // profile page — $HOME has no creator to match against
     if (stale()) return;
     const norm = (a) => { try { return ethers.getAddress(String(a).trim()).toLowerCase(); } catch { return String(a || "").toLowerCase(); } };
     const me = norm(address);
@@ -1443,6 +1458,27 @@ function launchCardHtml(entry) {
     : entry.type === "paired" ? `<span class="paired-tag-group"><span class="paired-tag">paired</span><span class="paired-symbol">${entry.quoteSymbol}</span></span>`
     : '<span class="curve-tag">bonding curve</span>';
 
+  if (entry.type === "home") {
+    // $HOME isn't a HOMEPAD launch and has no token page here (no factory,
+    // no fee split, nothing this site's trade UI applies to) — the card
+    // links straight to its own Dexscreener pair instead of
+    // explore.html#/token/, and opens in a new tab like every other
+    // external link on the site.
+    return `
+      <a class="launch-card card-type-home" href="https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}" target="_blank" rel="noopener">
+        <div class="card-badges">${badges}<span class="card-badge home-pin">🏡 $HOME</span></div>
+        ${thumb}
+        <div class="sym">$${entry.symbol}</div>
+        <div class="name">HOMEPAD's own coin</div>
+        ${mcapLine}
+        <div class="bar" style="visibility:hidden"><div class="bar-fill" style="width:0%"></div></div>
+        ${dexRow}
+        <div class="meta"><span class="home-tag">native</span><span class="card-age">Dexscreener ↗</span></div>
+        ${socials}
+      </a>
+    `;
+  }
+
   if (entry.type === "instant" || entry.type === "hybrid" || entry.type === "paired") {
     return `
       <a class="launch-card card-type-${entry.type}" href="explore.html#/token/${entry.token}">
@@ -1503,7 +1539,11 @@ async function renderExplorePreview() {
     const shown = entries.slice(0, PREVIEW_LIMIT);
     listEl.innerHTML = shown.map(launchCardHtml).join("");
     if (entries.length > PREVIEW_LIMIT) {
-      listEl.insertAdjacentHTML("afterend", `<div style="text-align:center;margin-top:16px"><a href="explore.html" class="btn-mini">View all ${entries.length} launches →</a></div>`);
+      // $HOME's card belongs in the grid (that's the whole point of adding
+      // it) but wasn't itself "launched through HOMEPAD", so it's left out
+      // of this specific count for accuracy.
+      const launchCount = entries.filter((e) => e.type !== "home").length;
+      listEl.insertAdjacentHTML("afterend", `<div style="text-align:center;margin-top:16px"><a href="explore.html" class="btn-mini">View all ${launchCount} launches →</a></div>`);
     }
   } catch (err) {
     console.error(err);

@@ -100,6 +100,10 @@ main{padding:38px 0 80px;}
 .card-badge.new{color:#04140a;background:var(--green);}
 .card-badge.up{color:var(--green);background:rgba(57,255,136,.14);border:1px solid rgba(57,255,136,.35);}
 .card-badge.down{color:var(--red);background:rgba(255,107,107,.14);border:1px solid rgba(255,107,107,.35);}
+.card-badge.home-pin{color:var(--amber);background:rgba(255,182,72,.14);border:1px solid rgba(255,182,72,.4);}
+.launch-card.card-type-home{border-color:rgba(255,182,72,.35);}
+.launch-card.card-type-home:hover{border-color:rgba(255,182,72,.65);}
+.home-tag{font-family:'Silkscreen';font-size:.55rem;color:var(--amber);}
 .card-age{color:var(--ink-dim);flex-shrink:0;white-space:nowrap;}
 .card-socials{display:flex;gap:12px;margin-top:8px;align-items:center;}
 .card-socials span{color:var(--ink-dim);transition:color .15s ease;cursor:pointer;display:inline-flex;}

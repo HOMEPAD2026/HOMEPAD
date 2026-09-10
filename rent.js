@@ -231,7 +231,7 @@ async function computeRentDashboard(launches) {
   // price history — dozens of extra log/getBlock calls that the rate-limited
   // public RPC was answering with 429 ("Failed to fetch") before this page's
   // own queries even started.
-  if (!launches) launches = await fetchAllLaunches({ skipHistory: true });
+  if (!launches) launches = await fetchAllLaunches({ skipHistory: true, skipHomeCard: true }); // Rent has no card to show it in
   const nowSec = Math.floor(Date.now() / 1000);
 
   let totalRentEth = 0n, rent24hEth = 0n, creatorPaidEth = 0n, totalVolumeEth = 0n;
