@@ -249,16 +249,27 @@ async function fetchDexscreenerStats(tokenAddresses) {
 }
 
 /// Overlays Dexscreener numbers onto a launch entry (card data) when the
-/// pair is indexed. Paired (stock-quoted) launches are left alone — their
-/// cards are deliberately shown in the quote token, not USD.
+/// pair is indexed — a Paired launch's own pool gets indexed the same way
+/// any other v4 pool does, so this now applies to every type.
 function applyDexStats(entry, dex) {
-  if (!dex || entry.type === "paired") return;
+  if (!dex) return;
   entry.dex = dex;
   if (dex.marketCapUsd != null) entry.marketCapUsd = dex.marketCapUsd;
   if (dex.change24h != null) entry.change24h = dex.change24h;
   entry.volume24hUsd = dex.volume24hUsd;
   entry.liquidityUsd = dex.liquidityUsd;
   entry.priceUsd = dex.priceUsd;
+}
+
+/// Fallback for a Paired launch Dexscreener hasn't indexed yet (typically
+/// just-launched): value marketCapQuote in USD using the QUOTE token's own
+/// live price — e.g. a brand-new token paired against $HOMEPAD shows a
+/// real $ figure immediately, using $HOMEPAD's already-indexed price,
+/// instead of waiting for its own brand-new pool to get indexed.
+function applyQuoteUsdFallback(entry, quoteDex) {
+  if (entry.marketCapUsd != null || !quoteDex || quoteDex.priceUsd == null) return;
+  entry.marketCapUsd = entry.marketCapQuote * quoteDex.priceUsd;
+  entry.marketCapUsdSource = "quote"; // via the quote token's price, not this pair's own
 }
 
 function fmtUsd(n) {
@@ -1012,12 +1023,16 @@ async function fetchAllLaunches(opts) {
   // One shared ETH/USD fetch for the whole batch — cards show $ mcap the
   // same way the token detail page does, not a raw ETH figure.
   const ethUsd = await getEthUsdPrice();
-  // Dexscreener overlay: one batched call for every launch; entries whose
-  // pair isn't indexed yet just keep the on-chain figures computed above.
-  const dexStats = await fetchDexscreenerStats(entries.map((e) => e.token));
+  // Dexscreener overlay: one batched call covering every launch's own
+  // token AND every distinct quote token Paired launches use (so a
+  // brand-new pair can still show a real $ mcap via the quote's own
+  // already-indexed price — see applyQuoteUsdFallback below).
+  const quoteAddrs = [...new Set(entries.filter((e) => e.type === "paired" && e.quoteToken).map((e) => e.quoteToken.toLowerCase()))];
+  const dexStats = await fetchDexscreenerStats([...entries.map((e) => e.token), ...quoteAddrs]);
   for (const entry of entries) {
     entry.marketCapUsd = entry.marketCapEth != null && ethUsd != null ? entry.marketCapEth * ethUsd : null;
     applyDexStats(entry, dexStats.get(entry.token.toLowerCase()));
+    if (entry.type === "paired") applyQuoteUsdFallback(entry, dexStats.get((entry.quoteToken || "").toLowerCase()));
     // Keep WHICH router/factory each launch came from as plain address
     // strings (Proof of Rent matches hook events back to tokens by source),
     // but drop the live Contract objects — renderers never need those.
@@ -1415,7 +1430,7 @@ function launchCardHtml(entry) {
   // fmtCompact keeps it to a handful of characters so it never wraps the
   // way fmtEth's fixed-3-decimal style did ("48.000" + " TSLA").
   const mcapText = entry.type === "paired"
-    ? (entry.marketCapQuote != null ? `${fmtCompact(entry.marketCapQuote)} ${entry.quoteSymbol}` : "—")
+    ? (entry.marketCapUsd != null ? fmtUsd(entry.marketCapUsd) : (entry.marketCapQuote != null ? `${fmtCompact(entry.marketCapQuote)} ${entry.quoteSymbol}` : "—"))
     : (entry.marketCapUsd != null ? fmtUsd(entry.marketCapUsd) : "—");
   const mcapLine = `<div class="card-mcap"><span class="card-mcap-label">Market Cap</span><span class="card-mcap-value">${mcapText}</span></div>`;
   // Volume / liquidity only exist once Dexscreener has the pair; before
@@ -2345,12 +2360,24 @@ async function loadTokenData(ctx) {
   // Dexscreener overlay (same source as the $HOME hero). Kept alongside the
   // on-chain figures rather than replacing them, so the page can say which
   // is which and still show something for a pair Dexscreener hasn't indexed.
-  if (ctx.type !== "paired") {
-    d.dex = (await fetchDexscreenerStats([ctx.tokenAddr])).get(ctx.tokenAddr.toLowerCase()) || null;
-    if (d.dex) {
-      if (d.dex.marketCapUsd != null) d.marketCapUsd = d.dex.marketCapUsd;
-      if (d.dex.change24h != null) d.change24h = d.dex.change24h;
-      if (d.dex.priceNative != null) { d.price = d.dex.priceNative; d.priceSource = "via Dexscreener"; }
+  // Paired launches get their own pool's stats the same as every other
+  // type, plus the quote token's own address in the same batched call —
+  // a brand-new pair (own pool not indexed yet) can still show a real $
+  // market cap via the quote's already-indexed price (see the fallback
+  // below), instead of a raw "534.14M HOMEPAD" figure.
+  const dexAddrs = ctx.type === "paired" ? [ctx.tokenAddr, ctx.quoteToken] : [ctx.tokenAddr];
+  const dexMap = await fetchDexscreenerStats(dexAddrs);
+  d.dex = dexMap.get(ctx.tokenAddr.toLowerCase()) || null;
+  if (d.dex) {
+    if (d.dex.marketCapUsd != null) d.marketCapUsd = d.dex.marketCapUsd;
+    if (d.dex.change24h != null) d.change24h = d.dex.change24h;
+    if (d.dex.priceNative != null) { d.price = d.dex.priceNative; d.priceSource = "via Dexscreener"; }
+  }
+  if (ctx.type === "paired" && d.marketCapUsd == null) {
+    const quoteDex = dexMap.get((ctx.quoteToken || "").toLowerCase());
+    if (quoteDex && quoteDex.priceUsd != null && d.marketCapQuote != null) {
+      d.marketCapUsd = d.marketCapQuote * quoteDex.priceUsd;
+      d.marketCapUsdSource = "quote"; // via the quote token's price, not this pair's own — see the sub-line above
     }
   }
   return d;
@@ -2453,8 +2480,16 @@ async function renderTokenDetail(tokenAddr) {
       <div class="stat-grid token-stat-grid">
         <div class="stat-card">
           <div class="stat-label">Market Cap</div>
-          <div class="stat-value">${d.quote ? (d.marketCapQuote != null ? fmtCompact(d.marketCapQuote) + " " + unit : "—") : (d.marketCapUsd != null ? fmtUsd(d.marketCapUsd) : "—")}</div>
-          <div class="stat-sub">${d.quote ? (d.priceSource || "no trades yet") : (d.dex ? "via Dexscreener" : (d.marketCapEth != null ? fmtEth(d.marketCapEth) + " ETH · " + d.priceSource : "no trades yet"))}</div>
+          <div class="stat-value">${d.quote
+            ? (d.marketCapUsd != null ? fmtUsd(d.marketCapUsd) : (d.marketCapQuote != null ? fmtCompact(d.marketCapQuote) + " " + unit : "—"))
+            : (d.marketCapUsd != null ? fmtUsd(d.marketCapUsd) : "—")}</div>
+          <div class="stat-sub">${d.quote
+            ? (d.marketCapUsd != null
+                ? (d.marketCapUsdSource === "quote"
+                    ? `via ${unit}'s price` + (d.marketCapQuote != null ? ` · ${fmtCompact(d.marketCapQuote)} ${unit}` : "")
+                    : "via Dexscreener" + (d.marketCapQuote != null ? ` · ${fmtCompact(d.marketCapQuote)} ${unit}` : ""))
+                : (d.priceSource || "no trades yet"))
+            : (d.dex ? "via Dexscreener" : (d.marketCapEth != null ? fmtEth(d.marketCapEth) + " ETH · " + d.priceSource : "no trades yet"))}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Price</div>
