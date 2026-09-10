@@ -1295,11 +1295,21 @@ async function renderCreate(targetId) {
         <label>Pair against</label>
         <div class="pair-tabs" id="pair-tabs">
           <div class="pair-tab active" data-quote="eth">ETH</div>
-          <div class="pair-tab" data-quote="home">$HOME</div>
-          <div class="pair-tab" data-quote="stock">Stock</div>
+          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
+          <div class="pair-tab" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
         </div>
         <div id="stock-quote-select" style="display:none;margin-top:10px"></div>
-        <div class="hint" id="pair-hint">New token trades against ETH on the bonding curve — the standard setup.</div>
+        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOME and Stock pairing are coming next.</div>
+      </div>
+
+      <div class="field" id="launch-type-field" style="display:none">
+        <label>Launch type</label>
+        <div class="pair-tabs" id="launch-type-tabs">
+          <div class="pair-tab active" data-type="hybrid">Hybrid</div>
+          <div class="pair-tab" data-type="curve" id="curve-tab">Bonding Curve<span class="tab-soon">soon</span></div>
+          <div class="pair-tab" data-type="instant">Instant Liquidity</div>
+        </div>
+        <div class="hint" id="launch-type-hint">Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.</div>
       </div>
 
       <div class="field-row">
@@ -1358,16 +1368,6 @@ async function renderCreate(targetId) {
         <label id="devbuy-label">Dev buy <span class="optional">optional</span></label>
         <input id="f-devbuy" type="number" min="0" step="any" placeholder="0.0 ETH">
         <div class="hint" id="devbuy-hint">Buy your own tokens in the same transaction as the launch. Leave at 0 to skip.</div>
-      </div>
-
-      <div class="field" id="launch-type-field" style="display:none">
-        <label>Launch type</label>
-        <div class="pair-tabs" id="launch-type-tabs">
-          <div class="pair-tab active" data-type="hybrid">Hybrid</div>
-          <div class="pair-tab" data-type="curve" id="curve-tab">Bonding Curve<span class="tab-soon">soon</span></div>
-          <div class="pair-tab" data-type="instant">Instant Liquidity</div>
-        </div>
-        <div class="hint" id="launch-type-hint">Real Uniswap pool from the start, visible on Dexscreener immediately — no ETH needed from you. Single-sided liquidity gives it curve-like pricing (large buyers move the price) without a separate bonding-curve contract.</div>
       </div>
 
       <div class="field" id="instant-liquidity-field" style="display:none">
@@ -1468,6 +1468,15 @@ async function renderCreate(targetId) {
   else if (!hybridIsLive && !instantIsLive && curveIsLive) launchType = "curve";
   const curveTabEl = document.getElementById("curve-tab");
   if (curveTabEl && !curveIsLive) curveTabEl.classList.add("pair-tab-disabled");
+  // $HOME pairing rides on the paired-hybrid factory but also needs its own
+  // launch path wired in this file — it isn't yet, so it's explicitly held
+  // off regardless of whether the paired factory is deployed. Flip this to
+  // true once the $HOME-quote launch branch below actually exists.
+  const homePairIsLive = false;
+  const homeTabEl = document.getElementById("home-pair-tab");
+  if (homeTabEl && !homePairIsLive) homeTabEl.classList.add("pair-tab-disabled");
+  const stockTabEl = document.getElementById("stock-pair-tab");
+  if (stockTabEl && !stockIsLive) stockTabEl.classList.add("pair-tab-disabled");
 
   function applyLaunchTypeUI() {
     // Dev buy now applies the same way to all three types — always
@@ -1501,6 +1510,7 @@ async function renderCreate(targetId) {
   document.getElementById("pair-tabs").addEventListener("click", async (e) => {
     const tab = e.target.closest(".pair-tab");
     if (!tab) return;
+    if (tab.classList.contains("pair-tab-disabled")) return; // deferred pair — see config.js
 
     document.querySelectorAll("#pair-tabs .pair-tab").forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
@@ -1512,7 +1522,7 @@ async function renderCreate(targetId) {
       devbuyField.style.display = "block";
       document.getElementById("f-devbuy").placeholder = "0.0 ETH";
       stockField.style.display = "none";
-      pairHint.textContent = "New token trades against ETH on the bonding curve — the standard setup.";
+      pairHint.textContent = "New token trades against ETH — the standard setup. $HOME and Stock pairing are coming next.";
       selectedQuote = { mode: "eth" };
       if (hybridIsLive || instantIsLive) launchTypeField.style.display = "block";
       applyLaunchTypeUI();
@@ -1529,18 +1539,13 @@ async function renderCreate(targetId) {
     launchType = "paired";
 
     if (quote === "home") {
-      // $HOME lives on mainnet; the paired-hybrid factory itself isn't
-      // deployed yet, so this stays a preview until it ships.
-      devbuyField.style.display = "none";
-      stockField.style.display = "none";
-      pairHint.innerHTML = `<strong style="color:var(--amber)">$HOME pairing isn't live yet.</strong> It uses the same paired-hybrid factory as Stock — it switches on once that's deployed.`;
-      selectEl.innerHTML = `<div class="hint">Pairing directly against <strong style="color:var(--green)">$HOME</strong> — no selection needed. <span class="soon-tag">soon</span></div>`;
-      selectedQuote = { mode: "stock-preview" };
+      // Unreachable while homePairIsLive is false (the tab is disabled
+      // above). Left as the hook point for the $HOME-quote launch path.
       return;
     }
 
-    // quote === "stock"
-    if (stockIsLive) {
+    // quote === "stock" — only reachable when stockIsLive (tab is disabled otherwise)
+    {
       const options = quoteTokenOptions();
       pairHint.textContent = "New token is priced in a Robinhood Stock Token instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no stock needed from you to launch.";
       selectEl.innerHTML = `
@@ -1561,17 +1566,6 @@ async function renderCreate(targetId) {
       };
       applyQuote(options[0].address);
       document.getElementById("f-quote-token").addEventListener("change", (ev) => applyQuote(ev.target.value));
-    } else {
-      devbuyField.style.display = "none";
-      stockField.style.display = "none";
-      pairHint.innerHTML = `<strong style="color:var(--amber)">Stock pairing isn't live yet.</strong> Here's a preview of the tickers it'll support.`;
-      selectEl.innerHTML = `
-        <select class="quote-select">
-          ${STOCK_PREVIEW_TICKERS.map((t) => `<option>${t}</option>`).join("")}
-        </select>
-        <div class="hint" style="margin-top:6px">Preview only — selecting one doesn't launch anything yet. <span class="soon-tag">soon</span></div>
-      `;
-      selectedQuote = { mode: "stock-preview" };
     }
   });
 
