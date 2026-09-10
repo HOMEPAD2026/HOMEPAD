@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof of Rent — HOMEPAD</title>
+<meta name="description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash. No estimates — what isn't automated yet is shown as zero, not guessed at.">
+<!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HOMEPAD">
+<meta property="og:title" content="Proof of Rent — HOMEPAD">
+<meta property="og:description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash.">
+<meta property="og:url" content="https://homepad.fun/rent.html">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HOMEPAD — launch a token on Robinhood Chain, every trade fee flows back to $HOME">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@HOMEonRobinhood">
+<meta name="twitter:title" content="Proof of Rent — HOMEPAD">
+<meta name="twitter:description" content="Every dollar of rent HOMEPAD has collected, traced back to a transaction hash.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<meta name="theme-color" content="#0d1410">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789028069">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <a href="rent.html"><img class="nav-icon" src="images/gallery-gm.jpg" alt="">Rent</a>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<main class="wrap doc-main rent-main">
+  <div class="fw-hero rent-hero">
+    <div class="fw-hero-stickers" aria-hidden="true">
+      <img class="sticker fw-s1" src="images/gallery-cap-rings.jpg" alt="">
+      <img class="sticker fw-s2" src="images/gallery-gm.jpg" alt="">
+    </div>
+    <span class="pixel eyebrow-chip alt">every number traces to a tx</span>
+    <h1 class="pixel">proof of rent.</h1>
+    <p class="lede">Every figure on this page is read live from HOMEPAD's own contracts — nothing estimated, nothing projected.</p>
+  </div>
+
+  <!-- Headline: the one number this page exists for -->
+  <div class="rent-hero-stat" id="rent-hero-stat">
+    <div class="rent-hero-label">Total rent collected</div>
+    <div class="rent-hero-value" id="rent-total"><span class="sk sk-line w40"></span></div>
+    <div class="rent-hero-subs">
+      <span><b id="rent-24h">···</b> in the last 24h</span>
+      <span class="rent-hero-sep">·</span>
+      <span><b id="rent-rate">···</b> effective rent rate</span>
+    </div>
+    <div class="rent-hero-note">Sum of every trade fee ever taken across all ETH-paired launches — bonding curve, Hybrid, and Instant.</div>
+  </div>
+
+  <!-- Live protocol stats -->
+  <div class="rent-grid">
+    <div class="stat-card">
+      <div class="stat-label">Creator Rewards Paid</div>
+      <div class="stat-value" id="rent-creator">···</div>
+      <div class="stat-sub" id="rent-creator-sub">paid straight to launch creators</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Number of Launches</div>
+      <div class="stat-value" id="rent-launches">···</div>
+      <div class="stat-sub">across every mode</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Launch Volume</div>
+      <div class="stat-value" id="rent-volume">···</div>
+      <div class="stat-sub">ETH traded through HOMEPAD</div>
+    </div>
+  </div>
+  <div id="rent-paired-note" class="rent-paired-note" style="display:none"></div>
+
+  <!-- The $HOME leg: shown honestly, not faked -->
+  <section class="rent-home-leg">
+    <div class="rent-section-head">
+      <h3>The $HOME leg</h3>
+      <span class="pixel eyebrow-chip testing">not automated yet</span>
+    </div>
+    <p class="rent-section-note">Rent is meant to flow back into $HOME — buyback, protocol-owned liquidity. That leg is still a manual script today, so the rows below read as zero instead of a number that would imply it's already running. <a href="guide-rent.html">How it's designed to work →</a></p>
+    <div class="rent-grid four">
+      <div class="stat-card">
+        <div class="stat-label">HOME Held by Protocol</div>
+        <div class="stat-value" id="rent-home-held">···</div>
+        <div class="stat-sub" id="rent-home-held-sub">$HOME treasury balance, live</div>
+      </div>
+      <div class="stat-card not-automated"><div class="stat-label">HOME Bought Back</div><div class="stat-value">0</div><div class="stat-sub">not automated yet</div></div>
+      <div class="stat-card not-automated"><div class="stat-label">Average Buy Price</div><div class="stat-value">—</div><div class="stat-sub">not automated yet</div></div>
+      <div class="stat-card not-automated"><div class="stat-label">Protocol-Owned Liquidity</div><div class="stat-value">0</div><div class="stat-sub">not automated yet</div></div>
+    </div>
+  </section>
+
+  <!-- Recent rent events -->
+  <section class="rent-events-section">
+    <div class="rent-section-head">
+      <h3>Recent Rent Events</h3>
+      <span class="rent-section-count" id="rent-events-count"></span>
+    </div>
+    <div class="rent-events" id="rent-events-list"><div class="empty-state" style="padding:32px 0">Loading on-chain events…</div></div>
+  </section>
+
+  <p class="rent-footnote"><span class="pixel eyebrow-chip testing">🧪 currently testing — Robinhood Chain testnet</span></p>
+</main>
+
+<div id="site-footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789028069"></script>
+<script src="abis.js?v=1789028069"></script>
+<script src="app.js?v=1789028069"></script>
+<script src="wallet-appkit.js?v=1789028069"></script>
+<script src="launch-modal.js?v=1789028069"></script>
+<script src="coming-soon-modal.js?v=1789028069"></script>
+<script src="rent.js?v=1789028069"></script>
+<script src="footer.js?v=1789028069"></script>
+
+<script>
+async function renderRentDashboard() {
+  const $ = (id) => document.getElementById(id);
+  try {
+    const d = await computeRentDashboard();
+    const totalRent = Number(ethers.formatEther(d.totalRentEth));
+    const rent24h = Number(ethers.formatEther(d.rent24hEth));
+    const creator = Number(ethers.formatEther(d.creatorPaidEth));
+    const volume = Number(ethers.formatEther(d.totalVolumeEth));
+
+    $("rent-total").innerHTML = `${fmtEth(totalRent)} <span class="rent-hero-unit">ETH</span>`;
+    $("rent-24h").textContent = fmtEth(rent24h) + " ETH";
+    // Rent as a share of everything traded — a ratio of two live numbers,
+    // so it's exactly as real as the numbers themselves.
+    $("rent-rate").textContent = volume > 0 ? ((totalRent / volume) * 100).toFixed(2) + "%" : "—";
+
+    $("rent-creator").textContent = fmtEth(creator) + " ETH";
+    if (totalRent > 0) $("rent-creator-sub").textContent = `${((creator / totalRent) * 100).toFixed(0)}% of all rent, paid straight to creators`;
+    $("rent-launches").textContent = d.launchCount.toLocaleString();
+    $("rent-volume").textContent = fmtEth(volume) + " ETH";
+
+    if (d.pairedRentByQuote.size > 0) {
+      const parts = [...d.pairedRentByQuote.entries()].map(([sym, v]) => `${fmtEth(Number(ethers.formatUnits(v.amount, v.decimals)))} ${sym}`);
+      const note = $("rent-paired-note");
+      note.style.display = "block";
+      note.textContent = `Stock-pair rent is collected in the stock token, not ETH, so it's kept separate rather than force-converted: ${parts.join(" · ")} so far.`;
+    }
+
+    const listEl = $("rent-events-list");
+    $("rent-events-count").textContent = d.recentEvents.length ? `latest ${d.recentEvents.length}` : "";
+    if (d.recentEvents.length === 0) {
+      listEl.innerHTML = `<div class="empty-state" style="padding:32px 0">No trades yet — rent shows up here the moment the first one happens.</div>`;
+    } else {
+      listEl.innerHTML = d.recentEvents.map((e) => `
+        <div class="rent-event">
+          <div class="rent-event-top">
+            <span class="rent-event-token">${e.token ? `<a href="explore.html#/token/${e.token}">$${e.symbol}</a>` : `$${e.symbol}`}</span>
+            <span class="type-pill tt-${e.typeLabel === "curve" ? "curve" : e.typeLabel === "hybrid" ? "hybrid" : e.typeLabel === "instant" ? "instant" : "paired"}">${e.typeLabel}</span>
+            <span class="rent-event-time">${timeAgo(e.ts)}</span>
+          </div>
+          <div class="rent-event-bottom">
+            <span class="rent-event-amt">→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent</span>
+            <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>
+          </div>
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error(err);
+    $("rent-total").textContent = "—";
+    $("rent-events-list").innerHTML = `<div class="empty-state">Couldn't load rent data.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div></div>`;
+  }
+
+  // "HOME held by protocol" is a separate, mainnet-side query ($HOME only
+  // exists on mainnet, independent of everything else on this page) — never
+  // let a hiccup here block the on-chain rent numbers above.
+  try {
+    const base = CONFIG.HOME_BLOCKSCOUT_API_BASE || CONFIG.BLOCKSCOUT_API_BASE;
+    const res = await fetch(`${base}/api/v2/addresses/${CONFIG.HOME_TREASURY_ADDRESS}/token-balances`);
+    const list = await res.json();
+    const entry = Array.isArray(list) ? list.find((t) => t.token && t.token.address && t.token.address.toLowerCase() === CONFIG.HOME_TOKEN_ADDRESS.toLowerCase()) : null;
+    if (entry) {
+      const amt = Number(ethers.formatUnits(entry.value, Number(entry.token.decimals || 18)));
+      $("rent-home-held").textContent = fmtCompact(amt) + " $HOME";
+    } else {
+      $("rent-home-held").textContent = "0 $HOME";
+    }
+  } catch (err) {
+    $("rent-home-held").textContent = "—";
+    $("rent-home-held-sub").textContent = "couldn't load";
+  }
+}
+renderRentDashboard();
+</script>
+</body>
+</html>

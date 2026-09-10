@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs — HOMEPAD</title>
+<meta name="description" content="How to use HOMEPAD — launching, trading, contract addresses, and FAQ.">
+<!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HOMEPAD">
+<meta property="og:title" content="Docs — HOMEPAD">
+<meta property="og:description" content="How to use HOMEPAD — launching, trading, contract addresses, and FAQ.">
+<meta property="og:url" content="https://homepad.fun/docs.html">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HOMEPAD — launch a token on Robinhood Chain, every trade fee flows back to $HOME">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@HOMEonRobinhood">
+<meta name="twitter:title" content="Docs — HOMEPAD">
+<meta name="twitter:description" content="How to use HOMEPAD — launching, trading, contract addresses, and FAQ.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<meta name="theme-color" content="#0d1410">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789028069">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <a href="rent.html"><img class="nav-icon" src="images/gallery-gm.jpg" alt="">Rent</a>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<main class="wrap doc-main">
+  <span class="pixel eyebrow-chip testing">🧪 currently testing — Robinhood Chain testnet</span>
+  <h1>docs.</h1>
+  <p class="lede">Everything you need to actually use HOMEPAD, kept short. For the technical deep dive, see <a href="mechanism.html" style="color:var(--green)">the mechanism page</a>.</p>
+
+  <section class="doc-section">
+    <h2>Getting started</h2>
+    <ol class="doc-list numbered">
+      <li>Get an EVM wallet (MetaMask, Rabby, whatever you already trust).</li>
+      <li>Add Robinhood Chain — HOMEPAD's wallet-connect flow will prompt this automatically.</li>
+      <li>Bridge a small amount of ETH over for gas and trading.</li>
+      <li>Browse <a href="explore.html">Explore</a> to trade, or hit <a href="launch.html">Launch</a> to create your own.</li>
+    </ol>
+  </section>
+
+  <section class="doc-section">
+    <h2>Contracts</h2>
+    <div class="contract-table" id="contract-table">
+      <div class="contract-row">
+        <span>$HOME token</span>
+        <a id="doc-home-link" href="#" target="_blank" class="mono-link">…</a>
+      </div>
+      <div class="contract-row">
+        <span>Hybrid Factory (default mode)</span>
+        <span id="doc-hybrid-factory-link">…</span>
+      </div>
+      <div class="contract-row">
+        <span>Instant Liquidity Factory</span>
+        <span id="doc-instant-factory-link">…</span>
+      </div>
+      <div class="contract-row">
+        <span>Bonding Curve Factory (ETH pairs)</span>
+        <span id="doc-factory-link">…</span>
+      </div>
+      <div class="contract-row">
+        <span>Stock Pair Factory (paired hybrid)</span>
+        <span id="doc-stock-factory-link">…</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="doc-section">
+    <h2>FAQ</h2>
+    <div class="faq-item">
+      <h3>Is this affiliated with Robinhood?</h3>
+      <p>No. HOMEPAD is an independent, permissionless application built on Robinhood Chain. Robinhood Markets does not operate, review, or endorse it.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What are the launch modes?</h3>
+      <p>Three ETH-paired modes — Hybrid (default, a real pool from block one, no ETH needed to launch), Bonding curve (graduates into a pool once it raises enough), and Instant liquidity (a real two-sided pool you seed with ETH yourself) — plus Stock pair, which is Hybrid priced in a Robinhood Stock Token instead of ETH. See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for how each actually works.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Where do fees go?</h3>
+      <p>Every trade fee is split between the $HOME treasury (for buybacks) and platform operations. See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for the exact split.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Can a launch be paused or rugged by HOMEPAD itself?</h3>
+      <p>No admin key exists in these contracts. Nobody — including whoever runs HOMEPAD — can pause, drain, or redirect a launch once it's live.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Is HOMEPAD live yet?</h3>
+      <p>Not yet — still in testing on Robinhood Chain testnet. Watch <a href="https://x.com/HOMEonRobinhood" target="_blank" style="color:var(--green)">@HOMEonRobinhood</a> for the official open.</p>
+    </div>
+  </section>
+
+  <div class="doc-cta">
+    <a class="btn btn-cute btn-primary" href="https://t.me/HOMEonRobin" target="_blank">Ask in Telegram</a>
+  </div>
+</main>
+
+<div id="site-footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789028069"></script>
+<script src="abis.js?v=1789028069"></script>
+<script src="app.js?v=1789028069"></script>
+<script src="wallet-appkit.js?v=1789028069"></script>
+<script src="launch-modal.js?v=1789028069"></script>
+<script src="coming-soon-modal.js?v=1789028069"></script>
+<script>
+  const DEAD = "0x0000000000000000000000000000000000dead";
+  // $HOME is on mainnet — needs its own explorer base, not CONFIG.BLOCK_EXPLORER (testnet).
+  document.getElementById("doc-home-link").href = homeExplorerUrl();
+  document.getElementById("doc-home-link").textContent = CONFIG.HOME_TOKEN_ADDRESS;
+
+  const factoryLive = CONFIG.FACTORY_ADDRESS && CONFIG.FACTORY_ADDRESS.toLowerCase() !== DEAD;
+  document.getElementById("doc-factory-link").innerHTML = factoryLive
+    ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.FACTORY_ADDRESS}</a>`
+    : `<span class="soon-tag">soon</span>`;
+
+  const hybridFactoryLive = !!(CONFIG.HYBRID_FACTORY_ADDRESS && CONFIG.HYBRID_FACTORY_ADDRESS.length === 42);
+  document.getElementById("doc-hybrid-factory-link").innerHTML = hybridFactoryLive
+    ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.HYBRID_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.HYBRID_FACTORY_ADDRESS}</a>`
+    : `<span class="soon-tag">soon</span>`;
+
+  const instantFactoryLive = !!(CONFIG.INSTANT_FACTORY_ADDRESS && CONFIG.INSTANT_FACTORY_ADDRESS.length === 42);
+  document.getElementById("doc-instant-factory-link").innerHTML = instantFactoryLive
+    ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.INSTANT_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.INSTANT_FACTORY_ADDRESS}</a>`
+    : `<span class="soon-tag">soon</span>`;
+
+  const stockLive = !!(CONFIG.PAIRED_FACTORY_ADDRESS && CONFIG.PAIRED_FACTORY_ADDRESS.length === 42);
+  document.getElementById("doc-stock-factory-link").innerHTML = stockLive
+    ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.PAIRED_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.PAIRED_FACTORY_ADDRESS}</a>`
+    : `<span class="soon-tag">soon</span>`;
+</script>
+<script src="footer.js?v=1789028069"></script>
+</body>
+</html>

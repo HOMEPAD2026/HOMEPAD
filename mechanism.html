@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mechanism — HOMEPAD</title>
+<meta name="description" content="How HOMEPAD's three launch modes (hybrid, bonding curve, instant liquidity), fees, graduation, and stock-pairing actually work.">
+<!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HOMEPAD">
+<meta property="og:title" content="Mechanism — HOMEPAD">
+<meta property="og:description" content="How HOMEPAD's three launch modes, fees, graduation, and stock-pairing actually work.">
+<meta property="og:url" content="https://homepad.fun/mechanism.html">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HOMEPAD — launch a token on Robinhood Chain, every trade fee flows back to $HOME">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@HOMEonRobinhood">
+<meta name="twitter:title" content="Mechanism — HOMEPAD">
+<meta name="twitter:description" content="How HOMEPAD's three launch modes, fees, graduation, and stock-pairing actually work.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<meta name="theme-color" content="#0d1410">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789028069">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <a href="rent.html"><img class="nav-icon" src="images/gallery-gm.jpg" alt="">Rent</a>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<main class="wrap doc-main">
+  <span class="pixel eyebrow-chip alt">for developers</span>
+  <h1>the mechanism.</h1>
+  <p class="lede">What actually happens when you launch, buy, sell, or graduate on HOMEPAD — no marketing, just the math and the contract calls.</p>
+
+  <section class="doc-section">
+    <h2>Three launch modes</h2>
+    <p>A creator picks one of three ways for a token to get its starting liquidity. All three share the same fee structure (see Fees below) — they differ in where the price comes from and whether there's a real pool from the first block.</p>
+    <ul class="doc-list">
+      <li><strong>Hybrid</strong> (default) — a real Uniswap v4 pool from block one, single-sided, no ETH required from the creator.</li>
+      <li><strong>Bonding curve</strong> — a standalone curve contract, graduating into a locked v4 pool once it raises enough.</li>
+      <li><strong>Instant liquidity</strong> — a real two-sided v4 pool, seeded with ETH the creator provides at launch.</li>
+      <li><strong>Stock pair</strong> — Hybrid, but priced in a Robinhood Stock Token instead of ETH (see below).</li>
+    </ul>
+  </section>
+
+  <section class="doc-section">
+    <h2>Bonding curve mode</h2>
+    <p>Every bonding curve launch gets its own curve contract holding the token's entire fixed supply (1,000,000,000). Price is set by a constant-product formula — the same invariant Uniswap itself uses, just applied to a pair of "virtual" reserves instead of a real pool:</p>
+    <div class="code-block">k = virtualReserve × virtualTokenReserve</div>
+    <p>Every buy pushes the virtual reserve up and the virtual token reserve down (and vice versa for sells), so price rises as more of the supply gets bought — smoothly, with no fixed steps or tiers. There's no real Uniswap pool, and no external trade, until graduation.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Hybrid mode</h2>
+    <p>Hybrid launches straight into a real Uniswap v4 pool — no separate curve contract, and no ETH required from the creator. The pool starts single-sided: all of the token's supply sits in the pool, priced against a virtual ETH reserve (<code>initialVirtualEth</code>) set at launch, the same way a bonding curve's starting price is set. As it trades, it behaves like any other v4 pool — visible on Dexscreener and any other aggregator immediately, since it's a real pool from the first block rather than something that only becomes one after graduating.</p>
+    <p>A dedicated hook (<code>HomepadHybridHook</code>) handles fee routing on every swap, the same split described under Fees below.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Instant liquidity mode</h2>
+    <p>Instant liquidity also launches into a real Uniswap v4 pool, but two-sided: the creator provides ETH alongside the token supply at launch time, seeding actual liquidity on both sides rather than starting from a virtual reserve. This means real slippage characteristics from block one, closer to a typical DEX listing than a curve-style launch.</p>
+    <p>Its own hook (<code>HomepadHook</code>) and swap router handle trading and fee routing, mirroring Hybrid's split.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Fees</h2>
+    <p>Every trade — on any of the three modes — pays a 1% base fee, fixed protocol-wide. That base fee splits 70% to the token's creator and 30% to the platform side (which further routes to the $HOME treasury). It's taken out immediately on every trade — no contract holds fee money for later.</p>
+    <p>On top of that, each creator can choose an extra fee of up to 2% at launch time — entirely their call, and it goes 100% to them. So total fees on any given launch run 1%–3%, and whatever a creator adds beyond the 1% base is theirs alone.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Graduation</h2>
+    <p><em>Bonding curve mode only</em> — Hybrid and Instant liquidity are real pools from the start and have nothing to graduate. Once a curve raises enough (the graduation threshold, 10 ETH by default), trading on the curve stops. <strong>Anyone</strong> can then call <code>graduate()</code> — not just the creator — which pushes the remaining tokens and raised funds into a real Uniswap pool, then sends the LP tokens to a burn address. Nobody, including HOMEPAD itself, can pull that liquidity back out afterward.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Dev buy</h2>
+    <p>A creator can optionally buy their own tokens in the same transaction as the launch, by sending ETH along with the call — <code>launchAndBuy()</code> instead of <code>launch()</code>, available on all three ETH-paired modes (Bonding curve, Hybrid, and Instant liquidity). It's the same "seed your own position atomically" pattern Pons and pump.fun-style pads use. For Instant liquidity, the same call also seeds the pool's own liquidity, so both happen atomically alongside the dev buy.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>Stock-paired mode</h2>
+    <p>Robinhood Stock Tokens (AAPL, TSLA, NVDA, and others) are ERC-20s on Robinhood Chain, so a launch can be priced in one of them instead of ETH. Stock pair is <strong>Hybrid mode with an ERC-20 quote</strong>: the same single-sided Uniswap v4 pool from block one, the same fee routing, no quote token needed from the creator to launch — it just measures price in, say, TSLA rather than ETH. The starting price uses the same convention as every other mode: "this many TSLA would buy the entire supply."</p>
+    <p>Two mechanical differences follow from the quote being an ERC-20. First, v4 orders a pool's two currencies by address, and a stock token can sort on either side of a freshly-created token, so the factory records which side it landed on and places the single-sided range accordingly (below the price when the token is currency1, above it when the token is currency0). Second, a stock token can't ride along as <code>msg.value</code>, so buys — including the launch-time dev buy — pull the quote with <code>transferFrom</code>, which means a one-time <code>approve</code> the first time you buy.</p>
+    <p>Fees are taken in whichever currency comes out of the swap (the token on a buy, the stock on a sell) and routed live to the creator and the $HOME treasury, same split as everywhere else. The same factory will price launches in $HOME once it ships on mainnet — a $HOME pair is just a Stock pair with $HOME as the quote.</p>
+  </section>
+
+  <section class="doc-section">
+    <h2>What can't happen</h2>
+    <ul class="doc-list">
+      <li>No admin key exists anywhere in these contracts — nobody can pause, drain, or redirect a launch after it exists.</li>
+      <li>Token supply is fixed at creation. Nothing can mint more.</li>
+      <li>Graduated liquidity is burned, not locked with a timer or an owner — there's no key to it, ever.</li>
+    </ul>
+    <p class="doc-caveat">None of this protects against a bad <em>token</em> — a creator can still launch something with a misleading name or description. It only protects against the platform itself being the rug.</p>
+  </section>
+
+  <div class="doc-cta">
+    <a class="btn btn-cute btn-primary" href="docs.html">Read the docs</a>
+  </div>
+</main>
+
+<div id="site-footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789028069"></script>
+<script src="abis.js?v=1789028069"></script>
+<script src="app.js?v=1789028069"></script>
+<script src="wallet-appkit.js?v=1789028069"></script>
+<script src="launch-modal.js?v=1789028069"></script>
+<script src="coming-soon-modal.js?v=1789028069"></script>
+<script src="footer.js?v=1789028069"></script>
+</body>
+</html>

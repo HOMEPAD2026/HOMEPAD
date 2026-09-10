@@ -1,0 +1,208 @@
+/* global ethers, CONFIG, state, renderHeader */
+
+// Reown AppKit gives a polished multi-wallet connect modal (the one you see
+// on kekfun.xyz, credited "UX by reown" at the bottom of it) — a list of
+// installed/popular wallets plus a "search 80+ wallets" option, with
+// WalletConnect QR support for mobile wallets baked in.
+//
+// This site has no build step by design, and AppKit's main package expects
+// a bundler (Vite). This uses Reown's own purpose-built CDN bundle,
+// @reown/appkit-cdn, which ships a single pre-bundled ESM file specifically
+// so it can be used directly with no bundler. It exposes createAppKit + a
+// Wagmi adapter (not an Ethers one), so this file bridges the connected
+// wagmi/viem client into an ethers.Signer via ethers.BrowserProvider — the
+// standard pattern for mixing wagmi's wallet layer with ethers-based
+// contract code — so nothing else in app.js has to change.
+//
+// The modal itself is confirmed working. What's NOT fully confirmed is
+// which of this pinned version's account-change events actually fire
+// reliably (the docs for the current npm version describe APIs this older
+// CDN build may not match exactly). Rather than depend on any single event
+// working, this registers every plausible listener defensively AND polls
+// for a short window after the modal opens as a guaranteed fallback — so
+// the header updates even if every event hook above it turns out to be a
+// no-op on this build.
+
+let appKitModal = null;
+let appKitReady = false;
+let wagmiConfigRef = null;
+let WagmiCoreRef = null;
+
+// Bridges a connected viem/wagmi client into an ethers v6 Signer. Standard
+// wagmi<->ethers adapter pattern — the viem WalletClient's transport is an
+// EIP-1193-compatible provider, which is exactly what ethers.BrowserProvider
+// expects. Returns true if a wallet is connected, so the poller below can
+// stop early.
+async function syncFromWagmi() {
+  if (!WagmiCoreRef || !wagmiConfigRef) return false;
+  try {
+    const account = WagmiCoreRef.getAccount(wagmiConfigRef);
+    if (account.isConnected && account.address) {
+      // The basic (non-AppKit) connect flow force-switches to Robinhood
+      // Chain via ensureNetwork() in app.js. This path needs the same
+      // guarantee — otherwise a wallet connected via AppKit while active
+      // on some other chain would silently point every contract call here
+      // at the wrong network.
+      if (account.chainId !== CONFIG.CHAIN_ID_DECIMAL) {
+        try {
+          await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL });
+        } catch (switchErr) {
+          console.warn("Couldn't switch to Robinhood Chain automatically — the wallet may prompt for this on the next transaction instead.", switchErr);
+        }
+      }
+
+      const client = await WagmiCoreRef.getConnectorClient(wagmiConfigRef);
+      const network = { chainId: client.chain.id, name: client.chain.name };
+      const browserProvider = new ethers.BrowserProvider(client.transport, network);
+      const changed = state.account !== account.address;
+      state.account = account.address;
+      state.signer = await browserProvider.getSigner(account.address);
+      // This sync is wired to several triggers (watchAccount, AppKit
+      // subscribeAccount, modal close, initial load) and they often fire
+      // back-to-back for the same account. Only re-render on an ACTUAL
+      // change — re-rendering the Profile page 3-4 times in a row started
+      // overlapping async loads that overwrote each other's results.
+      if (changed) {
+        if (typeof renderHeader === "function") renderHeader();
+        // Wallet auto-reconnect finishes AFTER the page's initial route()
+        // call, so a view that depends on state.account (Profile) would
+        // otherwise sit on its "not connected" state forever.
+        if (location.hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
+      } else if (typeof updateNetworkBadge === "function") {
+        updateNetworkBadge(); // chain may still have changed
+      }
+      return true;
+    } else {
+      if (state.account) {
+        state.account = null;
+        state.signer = null;
+        if (typeof renderHeader === "function") renderHeader();
+        if (location.hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
+      }
+      return false;
+    }
+  } catch (err) {
+    console.warn("syncFromWagmi failed", err);
+    return false;
+  }
+}
+
+async function initAppKit() {
+  if (!CONFIG.REOWN_PROJECT_ID) return; // no project ID configured yet — see config.js
+
+  try {
+    const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.4.1/dist/appkit.min.js");
+    const { createAppKit, WagmiAdapter, WagmiCore } = appkitCdn;
+    WagmiCoreRef = WagmiCore;
+
+    const robinhoodNetwork = {
+      id: CONFIG.CHAIN_ID_DECIMAL,
+      name: CONFIG.CHAIN_NAME,
+      nativeCurrency: CONFIG.NATIVE_CURRENCY,
+      rpcUrls: { default: { http: [CONFIG.RPC_URL] } },
+      blockExplorers: { default: { name: "Explorer", url: CONFIG.BLOCK_EXPLORER } },
+    };
+
+    const wagmiAdapter = new WagmiAdapter({
+      projectId: CONFIG.REOWN_PROJECT_ID,
+      networks: [robinhoodNetwork],
+    });
+    wagmiConfigRef = wagmiAdapter.wagmiConfig;
+
+    appKitModal = createAppKit({
+      adapters: [wagmiAdapter],
+      networks: [robinhoodNetwork],
+      projectId: CONFIG.REOWN_PROJECT_ID,
+      metadata: {
+        name: "HOMEPAD",
+        description: "A permissionless launchpad on Robinhood Chain, built by $HOME.",
+        url: location.origin,
+        icons: [location.origin + "/images/gallery-mark.png"],
+      },
+      // Wallets only — no email/social login. This is a crypto-native
+      // launchpad; an email-created custodial-ish wallet isn't the flow
+      // we want people landing in by default.
+      features: {
+        email: false,
+        socials: false,
+      },
+    });
+
+    // Register every plausible "something changed" hook defensively — if a
+    // given method doesn't exist or throws on this build, that's caught
+    // and the others (plus the poller in tryOpenAppKit) still cover it.
+    try { WagmiCoreRef.watchAccount(wagmiConfigRef, { onChange: syncFromWagmi }); } catch (e) { console.warn("watchAccount unavailable", e); }
+    try { appKitModal.subscribeAccount && appKitModal.subscribeAccount(syncFromWagmi); } catch (e) { console.warn("subscribeAccount unavailable", e); }
+    try {
+      appKitModal.subscribeState && appKitModal.subscribeState((s) => { if (!s.open) syncFromWagmi(); });
+    } catch (e) { console.warn("subscribeState unavailable", e); }
+
+    await syncFromWagmi(); // in case a session is already restored on load
+    appKitReady = true;
+  } catch (err) {
+    console.warn("Reown AppKit failed to load — falling back to the basic wallet connect button.", err);
+    appKitReady = false;
+  }
+}
+
+/// Called by app.js's connect button instead of its own basic flow, when
+/// AppKit is available. Returns true if it handled the click, false if the
+/// caller should fall back to its own logic.
+function tryOpenAppKit() {
+  if (appKitReady && appKitModal) {
+    appKitModal.open();
+
+    // Guaranteed fallback: poll for a connected account for a short window
+    // after the modal opens, independent of whether any event listener
+    // above actually fires on this build. Stops as soon as connected, or
+    // after ~40s (generous — someone might sit on a QR code screen a while).
+    let ticks = 0;
+    const poll = setInterval(async () => {
+      ticks++;
+      const connected = await syncFromWagmi();
+      if (connected || ticks > 30) clearInterval(poll);
+    }, 1300);
+
+    return true;
+  }
+  return false;
+}
+
+/// Sends a contract write DIRECTLY through wagmi's own writeContract
+/// action when AppKit is the active connection, instead of routing it
+/// through ethers.Contract + ethers.BrowserProvider. That extra ethers-side
+/// wrapper does its own internal verification calls (chainId, account)
+/// against whatever it's wrapping, and those calls have not survived being
+/// layered on top of a WalletConnect-relayed session no matter what
+/// transaction fields were pre-supplied ("could not coalesce error",
+/// persistent across multiple attempts to fix it from the ethers side).
+/// Wagmi's own write path talks to that same session the way it was
+/// actually built to be talked to — no extra wrapper in between.
+///
+/// Returns an ethers-compatible tx handle ({ hash, wait() }) so the rest of
+/// the app's code doesn't need to change at all. Returns null if this path
+/// isn't available (AppKit not connected, or this CDN build doesn't
+/// export writeContract), so the caller falls back to the ethers.Contract
+/// approach instead.
+async function tryWagmiWrite({ address, abi, functionName, args, value }) {
+  if (!(appKitReady && WagmiCoreRef && wagmiConfigRef && typeof WagmiCoreRef.writeContract === "function")) {
+    return null;
+  }
+  const hash = await WagmiCoreRef.writeContract(wagmiConfigRef, {
+    address,
+    abi,
+    functionName,
+    args,
+    value,
+  });
+  return {
+    hash,
+    // Waiting for confirmation only needs a plain read-only RPC connection
+    // — it doesn't need to go anywhere near the wallet's own connection,
+    // so this uses app.js's shared readProvider() instead of anything
+    // wagmi/AppKit-related.
+    wait: async () => readProvider().waitForTransaction(hash),
+  };
+}
+
+initAppKit();
