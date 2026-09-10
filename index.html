@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789082391">
+<link rel="stylesheet" href="style.css?v=1789084327">
 </head>
 <body>
 
@@ -65,9 +65,16 @@
 
       <div class="ca-pill-row">
         <span class="ca-pill">
+          <span class="ca-pill-label">$HOME</span>
           <span class="ca-text" id="ca-display">0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f</span>
-          <button class="btn-copy" id="copy-ca-btn" onclick="copyCA()">copy</button>
+          <button class="btn-copy" id="copy-ca-btn" onclick="copyCA(CONFIG.HOME_TOKEN_ADDRESS, 'copy-ca-btn')">copy</button>
           <a class="btn-copy" id="ca-explorer-link" href="#" target="_blank">explorer ↗</a>
+        </span>
+        <span class="ca-pill">
+          <span class="ca-pill-label">$HOMEPAD</span>
+          <span class="ca-text" id="ca-display-homepad">0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5</span>
+          <button class="btn-copy" id="copy-ca-btn-homepad" onclick="copyCA(CONFIG.HOMEPAD_QUOTE.address, 'copy-ca-btn-homepad')">copy</button>
+          <a class="btn-copy" id="ca-explorer-link-homepad" href="#" target="_blank">explorer ↗</a>
         </span>
       </div>
 
@@ -204,18 +211,19 @@
 
 <!-- ============ Launch modal (in-page, wavy blob card) ============ -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789082391"></script>
+<script src="config.js?v=1789084327"></script>
 <script>
   document.getElementById("dexscreener-link").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
   document.getElementById("dexscreener-link-2").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
   document.getElementById("ca-explorer-link").href = homeExplorerUrl();
+  document.getElementById("ca-explorer-link-homepad").href = `${CONFIG.BLOCK_EXPLORER}/token/${CONFIG.HOMEPAD_QUOTE.address}`;
   document.getElementById("plan-chart-link").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
 </script>
-<script src="home-stats.js?v=1789082391"></script>
-<script src="abis.js?v=1789082391"></script>
-<script src="app.js?v=1789082391"></script>
-<script src="wallet-appkit.js?v=1789082391"></script>
-<script src="launch-modal.js?v=1789082391"></script>
-<script src="footer.js?v=1789082391"></script>
+<script src="home-stats.js?v=1789084327"></script>
+<script src="abis.js?v=1789084327"></script>
+<script src="app.js?v=1789084327"></script>
+<script src="wallet-appkit.js?v=1789084327"></script>
+<script src="launch-modal.js?v=1789084327"></script>
+<script src="footer.js?v=1789084327"></script>
 </body>
 </html>

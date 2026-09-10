@@ -281,13 +281,14 @@ footer{border-top:1px solid var(--line);color:var(--ink-dim);font-size:.88rem;}
 }
 .eyebrow-chip.alt{color:var(--green);}
 
-.ca-pill-row{margin:18px 0;}
+.ca-pill-row{margin:18px 0;display:flex;flex-wrap:wrap;gap:10px;}
 .ca-pill{
   display:inline-flex;align-items:center;gap:10px;
   background:var(--panel);border:2px solid var(--line);border-radius:100px;
   padding:8px 8px 8px 18px;font-family:monospace;font-size:.8rem;
   box-shadow:0 4px 0 rgba(0,0,0,.3);
 }
+.ca-pill-label{font-family:'Silkscreen';font-size:.6rem;color:var(--ink-dim);letter-spacing:.03em;flex-shrink:0;}
 .ca-text{color:var(--green);}
 .btn-copy{
   background:var(--green);color:#08150c;border:none;border-radius:100px;
@@ -1217,8 +1218,9 @@ nav a{display:inline-flex;align-items:center;}
   h2{font-size:1.2rem;}
   .lede{font-size:.84rem;line-height:1.45;}
   .home-hero .lede{margin:0 0 4px;}
-  .ca-pill-row{margin:10px 0;}
+  .ca-pill-row{margin:10px 0;flex-direction:column;align-items:flex-start;}
   .ca-pill{padding:4px 4px 4px 12px;font-size:.66rem;max-width:100%;gap:6px;flex-wrap:wrap;row-gap:4px;}
+  .ca-pill-label{font-size:.56rem;}
   .ca-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;display:inline-block;vertical-align:middle;}
   .btn-copy{padding:5px 9px;font-size:.66rem;}
   /* Each CTA sizes to its own label (flex-basis:auto) and only the

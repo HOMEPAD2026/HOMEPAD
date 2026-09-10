@@ -198,9 +198,11 @@ function setStat(id, value, cssClass) {
   if (cssClass) el.classList.add(cssClass);
 }
 
-function copyCA() {
-  navigator.clipboard.writeText(CONFIG.HOME_TOKEN_ADDRESS);
-  const btn = document.getElementById("copy-ca-btn");
+/// Shared by both address pills ($HOME and $HOMEPAD) — copies whichever
+/// address the button belongs to.
+function copyCA(address, btnId) {
+  navigator.clipboard.writeText(address);
+  const btn = document.getElementById(btnId);
   const original = btn.textContent;
   btn.textContent = "copied!";
   setTimeout(() => (btn.textContent = original), 1500);
