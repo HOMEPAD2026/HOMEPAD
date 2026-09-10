@@ -2098,9 +2098,10 @@ async function loadTokenData(ctx) {
     // Everything here is denominated in the quote token, not ETH.
     const quote = tokenRead(ctx.quoteToken);
     const router = new ethers.Contract(ctx.routerAddress, PAIRED_SWAP_ROUTER_ABI, readProvider());
+    const EMPTY_HISTORY = { prices: [], trades: [], volumeEth: 0n, count: 0, volume24hEth: 0n, count24h: 0 };
     const [base, history, userQuote, feeCfg] = await Promise.all([
       basePromise,
-      buildPairedTradeHistory(ctx.tokenAddr, router, ctx.quoteDecimals, ctx.factory),
+      buildPairedTradeHistory(ctx.tokenAddr, router, ctx.quoteDecimals, ctx.factory).catch((err) => { console.warn("paired trade history unavailable", err); return EMPTY_HISTORY; }),
       me ? quote.balanceOf(me) : null,
       ctx.factory ? Promise.all([ctx.factory.baseFeeBps(), ctx.factory.creatorShareBps()]).catch(() => null) : null,
     ]);
@@ -2141,9 +2142,10 @@ async function loadTokenData(ctx) {
     d.startPrice = d.history.startPrice;
   } else {
     const router = new ethers.Contract(ctx.routerAddress, SWAP_ROUTER_ABI, readProvider());
+    const EMPTY_HISTORY = { prices: [], trades: [], volumeEth: 0n, count: 0, volume24hEth: 0n, count24h: 0 };
     const [base, history, ethUsd, hookFee] = await Promise.all([
       basePromise,
-      buildInstantTradeHistory(ctx.tokenAddr, router),
+      buildInstantTradeHistory(ctx.tokenAddr, router).catch((err) => { console.warn("trade history unavailable", err); return EMPTY_HISTORY; }),
       getEthUsdPrice(),
       // fee split lives on the factory that launched it (legacy or current)
       ctx.factory ? Promise.all([ctx.factory.baseFeeBps(), ctx.factory.creatorShareBps()]).catch(() => null) : null,
@@ -2729,8 +2731,11 @@ async function buildPairedTradeHistory(tokenAddr, router, quoteDecimals, factory
 
 async function buildInstantTradeHistory(tokenAddr, router) {
   router = router || swapRouterRead();
-  const [hookAddr, tickSpacing] = await Promise.all([router.hook(), router.tickSpacing()]);
-  const poolId = computePoolId(ethers.ZeroAddress, tokenAddr, 0, Number(tickSpacing), hookAddr);
+  const hookAddr = await router.hook();
+  // Every HOMEPAD deployment (current and legacy) uses tickSpacing 60 — same
+  // constant every other poolId computation in this file/rent.js hardcodes,
+  // not fetched fresh each time.
+  const poolId = computePoolId(ethers.ZeroAddress, tokenAddr, 0, 60, hookAddr);
 
   const [pmSwaps, routerSwaps] = await Promise.all([
     poolManagerSwapsForToken(hookAddr, poolId),
