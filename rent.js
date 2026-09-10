@@ -112,8 +112,15 @@ async function computeRentDashboard() {
         }
         const poolIds = [...poolIdToEntry.keys()];
 
+        // FeeRouted's poolId is indexed — filtering by our known poolIds
+        // (same narrowing poolManagerSwapsFor already uses for the
+        // PoolManager's Swap event) turns this into a fast indexed lookup.
+        // The unfiltered form (every FeeRouted this hook has ever emitted,
+        // across every pool, no topic to narrow by) timed out against the
+        // public RPC ("log query timed out", -32000) — confirmed live via
+        // the on-page DEBUG rows this file adds below.
         const [feeEvents, pmSwaps] = await Promise.all([
-          hook.queryFilter(hook.filters.FeeRouted()),
+          poolIds.length ? hook.queryFilter(hook.filters.FeeRouted(poolIds)) : Promise.resolve([]),
           poolManagerSwapsFor(hook, poolIds), // every swap in these pools, any route
         ]);
 
