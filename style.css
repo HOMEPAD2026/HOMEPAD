@@ -330,6 +330,13 @@ footer{border-top:1px solid var(--line);color:var(--ink-dim);font-size:.88rem;}
 .chart-embed{width:100%;height:420px;border-radius:12px;overflow:hidden;background:var(--void);}
 .chart-mobile-hint{display:none;font-size:.78rem;color:var(--ink-dim);text-align:center;margin-top:8px;}
 .chart-mobile-hint a{color:var(--green);}
+/* Token detail page: the Dexscreener chart sits full-width above the
+   trade/details grid, on every launch type, and gets more height than
+   the homepage's $HOME embed since it's the page's main event. */
+.token-dex-chart{margin-bottom:20px;}
+.chart-embed-lg{height:520px;}
+.chart-note{font-size:.78rem;color:var(--ink-dim);text-align:center;margin:10px 0 0;}
+.chart-note a{color:var(--green);}
 
 .launchpad-section{padding:50px 0 0;}
 .launchpad-heading{max-width:640px;margin-bottom:10px;}
@@ -1167,6 +1174,7 @@ nav a{display:inline-flex;align-items:center;}
 
   /* Stats / chart */
   .chart-embed{height:240px;}
+  .chart-embed-lg{height:380px;}
   .chart-card-head{flex-direction:column;align-items:flex-start;}
   .chart-mobile-hint{display:block;}
 

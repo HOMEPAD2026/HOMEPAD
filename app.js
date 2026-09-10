@@ -2029,6 +2029,12 @@ async function renderTokenDetail(tokenAddr) {
     const launchedAt = Number(meta.launchedAt || 0);
     const launchedDate = launchedAt ? new Date(launchedAt * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—";
     const explorerAddr = (a) => `${CONFIG.BLOCK_EXPLORER}/address/${a}`;
+    // ERC-20s get the explorer's dedicated token page (holders, transfers)
+    // rather than the generic address page — same split homeExplorerUrl()
+    // in config.js makes for $HOME.
+    const explorerToken = (a) => `${CONFIG.BLOCK_EXPLORER}/token/${a}`;
+    const dexUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${tokenAddr}`;
+    const dexEmbedUrl = `${dexUrl}?embed=1&theme=dark&trades=0&info=0`;
     const shareText = `$${sym} on HOMEPAD 🏡 — launch pays rent, rent goes home to $HOME`;
     const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(location.href)}`;
     const up = d.change24h != null && d.change24h >= 0;
@@ -2050,7 +2056,7 @@ async function renderTokenDetail(tokenAddr) {
           <div class="token-ca-row">
             <code title="${tokenAddr}">${short(tokenAddr)}</code>
             <button class="btn-mini" id="td-copy-ca" type="button">Copy CA</button>
-            <a class="btn-mini" href="${explorerAddr(tokenAddr)}" target="_blank">Explorer ↗</a>
+            <a class="btn-mini" href="${explorerToken(tokenAddr)}" target="_blank">Explorer ↗</a>
           </div>
           <div class="token-social-row">
             ${meta.website ? `<a href="${meta.website}" target="_blank" class="btn-mini">Website ↗</a>` : ""}
@@ -2090,6 +2096,17 @@ async function renderTokenDetail(tokenAddr) {
         </div>
       </div>
 
+      <div class="chart-card token-dex-chart">
+        <div class="chart-card-head">
+          <h3>$${sym} / live chart</h3>
+          <a href="${dexUrl}" target="_blank" class="chart-link">Open on Dexscreener ↗</a>
+        </div>
+        <div class="chart-embed chart-embed-lg">
+          <iframe src="${dexEmbedUrl}" style="width:100%;height:100%;border:0;" title="$${sym} price chart" loading="lazy"></iframe>
+        </div>
+        <p class="chart-note">Brand-new pairs can take a few minutes to show up on Dexscreener. Not loading? <a href="${dexUrl}" target="_blank">Open it directly ↗</a> — the on-chain price chart below always works.</p>
+      </div>
+
       <div class="token-layout">
         <div class="token-chart">
           <div class="chart-card">
@@ -2115,13 +2132,13 @@ async function renderTokenDetail(tokenAddr) {
           <div class="details-card">
             <h3>Details</h3>
             <div class="details-grid">
-              <div class="dt">Contract</div><div class="dd"><a class="mono-link" href="${explorerAddr(tokenAddr)}" target="_blank">${tokenAddr}</a></div>
+              <div class="dt">Contract</div><div class="dd"><a class="mono-link" href="${explorerToken(tokenAddr)}" target="_blank">${tokenAddr}</a></div>
               <div class="dt">Creator</div><div class="dd">${meta.creator ? `<a class="mono-link" href="${explorerAddr(meta.creator)}" target="_blank">${meta.creator}</a>` : "—"}</div>
               <div class="dt">Launched</div><div class="dd">${launchedDate}${launchedAt ? ` · ${timeAgo(launchedAt)}` : ""}</div>
               <div class="dt">Launch type</div><div class="dd">${typePill(ctx.type)}</div>
               <div class="dt">Trade fee (rent)</div><div class="dd">${feePct(d.feeBps)}% per trade → ${feePct(d.feeCreatorBps)}% creator · ${feePct(d.feeHomeBps)}% $HOME</div>
               <div class="dt">Total supply</div><div class="dd">${fmtTokens(d.totalSupply)} $${sym} · fixed, no mint</div>
-              ${d.quote ? `<div class="dt">Priced in</div><div class="dd">${d.quote.symbol} · <a class="mono-link" href="${explorerAddr(d.quote.address)}" target="_blank">${d.quote.address}</a></div>` : ""}
+              ${d.quote ? `<div class="dt">Priced in</div><div class="dd">${d.quote.symbol} · <a class="mono-link" href="${explorerToken(d.quote.address)}" target="_blank">${d.quote.address}</a></div>` : ""}
               <div class="dt">${ctx.type === "curve" ? "Curve" : "Pool"}</div><div class="dd">${ctx.type === "curve" ? `<a class="mono-link" href="${explorerAddr(ctx.curveAddr)}" target="_blank">${ctx.curveAddr}</a>` : `Uniswap v4${ctx.hookAddress ? ` · <a class="mono-link" href="${explorerAddr(ctx.hookAddress)}" target="_blank">hook ${short(ctx.hookAddress)}</a>` : ""} · <a class="mono-link" href="${explorerAddr(ctx.routerAddress)}" target="_blank">router ${short(ctx.routerAddress)}</a>`}</div>
               <div class="dt">Liquidity</div><div class="dd">${ctx.type === "curve" ? (d.curve.graduated ? "burned in the v4 pool" : `${Number(ethers.formatEther(d.curve.curveEth)).toFixed(4)} ETH in the curve`) : "permanently locked — no withdraw function"}</div>
               <div class="dt">$HOME treasury holds</div><div class="dd">${fmtTokens(d.homeBalance)} $${sym}</div>
@@ -2182,7 +2199,7 @@ function renderTradeCard(ctx, d) {
   if (ctx.type === "curve" && d.curve.graduated) {
     return `<div class="trade-tabs"><div class="trade-tab active-buy">Graduated</div></div>
       <p class="stat-sub">This curve has graduated. $${sym} now trades on its Uniswap v4 pool.</p>
-      <a class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" href="${CONFIG.BLOCK_EXPLORER}/address/${ctx.tokenAddr}" target="_blank">View on explorer</a>`;
+      <a class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px" href="${CONFIG.BLOCK_EXPLORER}/token/${ctx.tokenAddr}" target="_blank">View on explorer</a>`;
   }
   const buy = tradeMode === "buy";
   const unit = d.quote ? d.quote.symbol : "ETH";

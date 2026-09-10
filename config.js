@@ -7,7 +7,11 @@ const CONFIG = {
   CHAIN_ID_DECIMAL: 4663,
   CHAIN_NAME: "Robinhood Chain",
   RPC_URL: "https://rpc.mainnet.chain.robinhood.com",
-  BLOCK_EXPLORER: "https://robinhoodchain.blockscout.com",
+  // User-facing link-out explorer (rh-scan, community Robinhood mainnet
+  // explorer — /token/{addr} for ERC-20s, /address/{addr} otherwise, /tx/{hash}).
+  // Data fetches use BLOCKSCOUT_API_BASE / HOME_BLOCKSCOUT_API_BASE below,
+  // which stay on the official Blockscout instance — rh-scan is links only.
+  BLOCK_EXPLORER: "https://rh-scan.com",
   NATIVE_CURRENCY: { name: "ETH", symbol: "ETH", decimals: 18 },
 
   FACTORY_ADDRESS: "", // Bonding Curve — deferred for mainnet launch (V2 router on Robinhood Chain unconfirmed). Shows as "soon".
@@ -55,10 +59,8 @@ const CONFIG = {
   HOME_TOKEN_ADDRESS: "0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f",
   HOME_TREASURY_ADDRESS: "0x0106BA97a34BFDf8a7AB68A9434Cb08E0E2991d9",
   HOME_BLOCKSCOUT_API_BASE: "https://robinhoodchain.blockscout.com", // mainnet DATA source — the live Holders stat fetch on the homepage reads from here
-  // mainnet LINK-OUT for anything the user clicks (footer, docs) — a
-  // nicer/faster community explorer than the Blockscout instance above.
-  // Kept separate from BLOCK_EXPLORER/HOME_BLOCKSCOUT_API_BASE (both now
-  // mainnet too) since this one is specifically for user-facing links.
+  // $HOME's own link-out — same rh-scan as BLOCK_EXPLORER now. Kept as its
+  // own key so homeExplorerUrl() can build the /token/ URL for $HOME.
   HOME_EXPLORER_LINK: "https://rh-scan.com",
 
   // Dexscreener: public API, no key needed. Pair address is the LP pool,
