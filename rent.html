@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789050771">
+<link rel="stylesheet" href="style.css?v=1789051164">
 </head>
 <body>
 
@@ -57,14 +57,14 @@
 
   <!-- Headline: the one number this page exists for -->
   <div class="rent-hero-stat" id="rent-hero-stat">
-    <div class="rent-hero-label">Total rent collected</div>
+    <div class="rent-hero-label">Rent held by the $HOME treasury</div>
     <div class="rent-hero-value" id="rent-total"><span class="sk sk-line w40"></span></div>
     <div class="rent-hero-subs">
       <span><b id="rent-24h">···</b> in the last 24h</span>
       <span class="rent-hero-sep">·</span>
       <span><b id="rent-rate">···</b> effective rent rate</span>
     </div>
-    <div class="rent-hero-note">Sum of every trade fee ever taken across all ETH-paired launches — bonding curve, Hybrid, and Instant. On a buy the hook takes its cut in the token being bought, so that rent is valued in ETH at that same trade's own price; on a sell it's collected in ETH directly.</div>
+    <div class="rent-hero-note" id="rent-total-note">Read directly from the treasury wallet, <a href="#" id="rent-treasury-link" target="_blank" rel="noopener" style="color:var(--green)">0x0106…91d9</a>. The hook pays $HOME its share of every swap in that swap's output currency — a sell pays ETH, a buy pays the token being bought — so this is the treasury's ETH plus the fee tokens it holds (the 8% launch allocation each token sends it isn't counted), valued at each token's current price.</div>
   </div>
 
   <!-- Live protocol stats -->
@@ -121,25 +121,45 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789050771"></script>
-<script src="abis.js?v=1789050771"></script>
-<script src="app.js?v=1789050771"></script>
-<script src="wallet-appkit.js?v=1789050771"></script>
-<script src="launch-modal.js?v=1789050771"></script>
-<script src="rent.js?v=1789050771"></script>
-<script src="footer.js?v=1789050771"></script>
+<script src="config.js?v=1789051164"></script>
+<script src="abis.js?v=1789051164"></script>
+<script src="app.js?v=1789051164"></script>
+<script src="wallet-appkit.js?v=1789051164"></script>
+<script src="launch-modal.js?v=1789051164"></script>
+<script src="rent.js?v=1789051164"></script>
+<script src="footer.js?v=1789051164"></script>
 
 <script>
 async function renderRentDashboard() {
   const $ = (id) => document.getElementById(id);
+  $("rent-treasury-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.HOME_TREASURY_ADDRESS}`;
+
+  // Headline first, from the treasury wallet itself (balances only, no
+  // event logs) — the one number on this page that can't be taken down by
+  // the RPC's log-query limits.
+  const launches = await fetchAllLaunches({ skipHistory: true });
   try {
-    const d = await computeRentDashboard();
+    const t = await computeTreasuryRent(launches);
+    $("rent-total").innerHTML = `${fmtEth(Number(ethers.formatEther(t.totalEth)))} <span class="rent-hero-unit">ETH</span>`;
+    const parts = [`${fmtEth(Number(ethers.formatEther(t.ethBalance)))} ETH`];
+    for (const tk of t.tokens) {
+      const amt = fmtCompact(Number(ethers.formatEther(tk.feeTokens)));
+      parts.push(tk.ethValue != null ? `${amt} $${tk.symbol} (≈ ${fmtEth(Number(ethers.formatEther(tk.ethValue)))} ETH)` : `${amt} $${tk.symbol} (no price yet)`);
+    }
+    const note = $("rent-total-note");
+    note.innerHTML = `<b style="color:var(--ink)">${parts.join(" + ")}</b><br>` + note.innerHTML;
+  } catch (err) {
+    console.error("treasury rent failed", err);
+    $("rent-total").innerHTML = `— <span class="rent-hero-unit">ETH</span>`;
+  }
+
+  try {
+    const d = await computeRentDashboard(launches);
     const totalRent = Number(ethers.formatEther(d.totalRentEth));
     const rent24h = Number(ethers.formatEther(d.rent24hEth));
     const creator = Number(ethers.formatEther(d.creatorPaidEth));
     const volume = Number(ethers.formatEther(d.totalVolumeEth));
 
-    $("rent-total").innerHTML = `${fmtEth(totalRent)} <span class="rent-hero-unit">ETH</span>`;
     $("rent-24h").textContent = fmtEth(rent24h) + " ETH";
     // Rent as a share of everything traded — a ratio of two live numbers,
     // so it's exactly as real as the numbers themselves.
@@ -177,9 +197,11 @@ async function renderRentDashboard() {
       `).join("");
     }
   } catch (err) {
+    // The treasury headline above stands on its own; only the event-derived
+    // figures go to "—" here.
     console.error(err);
-    $("rent-total").textContent = "—";
-    $("rent-events-list").innerHTML = `<div class="empty-state">Couldn't load rent data.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div></div>`;
+    for (const id of ["rent-24h", "rent-rate", "rent-creator", "rent-volume"]) $(id).textContent = "—";
+    $("rent-events-list").innerHTML = `<div class="empty-state">Couldn't load rent events.<div class="err-detail">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div></div>`;
   }
 
   // "HOME held by protocol" is a separate, mainnet-side query ($HOME only

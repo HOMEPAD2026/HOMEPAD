@@ -47,7 +47,7 @@ const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 // Bumped whenever this file's data path changes, and printed with every
 // rent log line — after a day of cache-busting mishaps, a screenshot of a
 // stale build needs to be recognisable as stale.
-const RENT_JS_VERSION = "r5";
+const RENT_JS_VERSION = "r6";
 
 /// A non-event row for Recent Rent Events that explains a load failure in
 /// plain words instead of the page silently showing 0 for everything.
@@ -73,13 +73,74 @@ async function blockTimestamps(events) {
   return new Map(uniqueBlocks.map((bn, i) => [bn, Number(blocks[i].timestamp)]));
 }
 
-async function computeRentDashboard() {
+/// What the $HOME treasury actually holds from rent — read straight from
+/// the wallet, no event logs involved, so it can't be knocked out by the
+/// RPC's log-query limits the way the event-based totals below can be.
+///
+/// The hook pays the treasury its cut of every swap in the swap's OUTPUT
+/// currency: a sell pays ETH, a buy pays the launched token. So the
+/// treasury's rent is its ETH balance plus, per launch, its token balance
+/// minus the fixed 8% supply allocation every launch sends it at creation
+/// (HOME_ALLOCATION_BPS — that part isn't rent). Tokens are valued in ETH
+/// at the pair's current Dexscreener price; a token with no price yet is
+/// listed by amount only.
+async function computeTreasuryRent(launches) {
+  const treasury = CONFIG.HOME_TREASURY_ADDRESS;
+  const provider = readProvider();
+  const entries = launches.filter((e) => (e.type === "hybrid" || e.type === "instant") && e.token);
+
+  const [ethBalance, balances, dex] = await Promise.all([
+    withRetry(() => provider.getBalance(treasury)),
+    Promise.all(entries.map((e) => withRetry(() => tokenRead(e.token).balanceOf(treasury)).catch(() => null))),
+    entries.length ? fetchDexscreenerStats(entries.map((e) => e.token)).catch(() => new Map()) : new Map(),
+  ]);
+
+  // Launch-time allocation per factory (a public constant) — read once per
+  // factory, falling back to the value config.js mirrors for display.
+  const allocByFactory = new Map();
+  for (const e of entries) {
+    if (!e.factoryAddress || allocByFactory.has(e.factoryAddress.toLowerCase())) continue;
+    let bps = CONFIG.INSTANT_HOME_ALLOCATION_BPS || 800;
+    try {
+      const f = new ethers.Contract(e.factoryAddress, ["function HOME_ALLOCATION_BPS() view returns (uint16)"], provider);
+      bps = Number(await withRetry(() => f.HOME_ALLOCATION_BPS()));
+    } catch { /* keep the config mirror */ }
+    allocByFactory.set(e.factoryAddress.toLowerCase(), BigInt(bps));
+  }
+  const DEFAULT_SUPPLY = 1_000_000_000n * 10n ** 18n;
+
+  const tokens = [];
+  let tokensEthValue = 0n;
+  let unvalued = 0;
+  entries.forEach((e, i) => {
+    const bal = balances[i];
+    if (bal == null) return;
+    const bps = allocByFactory.get((e.factoryAddress || "").toLowerCase()) ?? 800n;
+    const allocation = (DEFAULT_SUPPLY * bps) / 10000n;
+    const feeTokens = bal > allocation ? bal - allocation : 0n;
+    if (feeTokens === 0n) return;
+    const stats = dex.get(e.token.toLowerCase());
+    let ethValue = null;
+    if (stats && stats.priceNative != null && stats.priceNative > 0) {
+      // priceNative is ETH per token (float); keep it in wei-scale bigint
+      ethValue = (feeTokens * BigInt(Math.round(stats.priceNative * 1e18))) / 10n ** 18n;
+      tokensEthValue += ethValue;
+    } else {
+      unvalued++;
+    }
+    tokens.push({ symbol: e.symbol, token: e.token, feeTokens, ethValue });
+  });
+
+  return { ethBalance, tokens, tokensEthValue, totalEth: ethBalance + tokensEthValue, unvalued };
+}
+
+async function computeRentDashboard(launches) {
   // skipHistory: this page only needs the launch list (type, token, symbol,
   // which router/factory). The full path also rebuilds every token's 24h
   // price history — dozens of extra log/getBlock calls that the rate-limited
   // public RPC was answering with 429 ("Failed to fetch") before this page's
   // own queries even started.
-  const launches = await fetchAllLaunches({ skipHistory: true });
+  if (!launches) launches = await fetchAllLaunches({ skipHistory: true });
   const nowSec = Math.floor(Date.now() / 1000);
 
   let totalRentEth = 0n, rent24hEth = 0n, creatorPaidEth = 0n, totalVolumeEth = 0n;
