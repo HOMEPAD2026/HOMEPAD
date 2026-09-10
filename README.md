@@ -45,7 +45,7 @@ If you're new here, take a look through [the website](https://homepad.fun) and o
 
 Welcome, `$HOME`. 🏡💚
 
-> **Live on mainnet.** Hybrid and Instant Liquidity are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve and Stock Pair are deferred for now (see below) — shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
+> **Live on mainnet.** Hybrid, Instant Liquidity, and Paired (currently the `$HOMEPAD` pair) are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve is deferred, and real Robinhood Stock Token quotes are a separate, still-deferred decision (see below) — both shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
 
 ## What it does
 
@@ -58,11 +58,11 @@ Anyone can launch a fixed-supply (1,000,000,000) ERC-20 through HOMEPAD, with no
 | **Hybrid** *(default)* | A real Uniswap v4 pool from block one, **single-sided** (all supply, priced against a virtual ETH reserve) | Curve-like impact, real pool — visible on Dexscreener immediately | Nothing (0 ETH) |
 | **Bonding Curve** *(deferred)* | A standalone curve contract holds the supply; graduates into a locked v4 pool once it raises the threshold — graduates via Uniswap V2, whose Robinhood Chain mainnet router address isn't confirmed yet, so this mode is deferred | Constant-product curve on virtual reserves | Nothing (0 ETH) |
 | **Instant Liquidity** | A real Uniswap v4 pool, **two-sided** — creator's ETH seeds actual liquidity | Real pool from block one | ETH for liquidity |
-| **Stock Pair** | Hybrid, priced in an ERC-20 quote (Robinhood Stock Tokens; $HOME later) instead of ETH — single-sided v4 pool, either currency ordering | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
+| **Paired** | Hybrid, priced in an ERC-20 quote instead of ETH — single-sided v4 pool, either currency ordering. Live today for the `$HOMEPAD` quote; real Robinhood Stock Token quotes ("Stock Pair") are deferred, see the risk note below | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
 
 All four share the same fee structure and the same **Dev Buy** option (`launchAndBuy()` — buy your own tokens atomically in the launch transaction). Every trade on every mode gets an exact, on-chain **minOut** — for the three v4-based modes this comes from a static-call simulation of the real swap (there's no on-chain quoter for a v4 pool), not an off-chain estimate.
 
-> ⚠️ **Known open risk (Stock Pair only, currently deferred):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. This is why Stock Pair isn't deployed to mainnet yet — it needs a decision on handling corporate actions before it goes live with real Stock Token addresses.
+> ⚠️ **Known open risk (real Stock Token quotes only, not `$HOMEPAD`):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. `$HOMEPAD` is a plain fixed-supply `LaunchToken` with no such multiplier, so this doesn't apply to the pair that's actually deployed — it's why real Stock Token quotes (`CONFIG.QUOTE_TOKENS`, left empty) are still held back separately.
 
 ### Fees
 
@@ -73,7 +73,7 @@ All four share the same fee structure and the same **Dev Buy** option (`launchAn
 - **Creators receive fees the same way**: 70% of every trade, paid to the creator's wallet inside the trade itself — as the launched token on buys, as ETH on sells. Nothing to claim.
 - **Launch allocation (not a fee)**: every Hybrid and Instant launch transfers 8% of the 1,000,000,000 supply to the `$HOME` treasury at creation (`HOME_ALLOCATION_BPS = 800`, a factory constant); the remaining 92% goes into the pool. Same idea as Pons V2's allocation. Goal: an on-chain lock. Until that contract ships, every allocation is burned by hand (to `0x…dEaD`) and each token page shows whether it has been.
 - **Why both currencies**: buys give the treasury tokens, sells give it ETH — both halves of a pair. A contract is in development to turn that into permanent liquidity for the launches; until then Proof of Rent shows what the treasury holds.
-- **Launching itself is free** — `launch()` isn't payable and requires no ETH. Only `launchAndBuy()` takes ETH (or, for Stock Pair, the quote token), and that amount becomes the creator's own dev-buy or Instant-mode liquidity — it's never a fee.
+- **Launching itself is free** — `launch()` isn't payable and requires no ETH. Only `launchAndBuy()` takes ETH (or, for Paired, the quote token), and that amount becomes the creator's own dev-buy or Instant-mode liquidity — it's never a fee.
 - The split is **immutable once a factory is deployed** — there is no function anywhere that changes it after the fact.
 
 ### The rent loop
@@ -139,10 +139,10 @@ npx hardhat test            # 37 tests
 # Mainnet (live deployment target):
 npx hardhat run scripts/deploy-hybrid.js  --network robinhoodMainnet
 npx hardhat run scripts/deploy-instant.js --network robinhoodMainnet
+npx hardhat run scripts/deploy-paired.js  --network robinhoodMainnet  # never set DEPLOY_MOCK_STOCKS on mainnet — powers the $HOMEPAD pair today
 
-# Bonding Curve and Stock Pair are deferred — see Status above. When ready:
-npx hardhat run scripts/deploy.js --network robinhoodMainnet          # Bonding Curve — needs a confirmed UNISWAP_V2_ROUTER first
-npx hardhat run scripts/deploy-paired.js --network robinhoodMainnet   # Stock Pair — never set DEPLOY_MOCK_STOCKS on mainnet
+# Bonding Curve is deferred — see Status above. When ready:
+npx hardhat run scripts/deploy.js --network robinhoodMainnet          # needs a confirmed UNISWAP_V2_ROUTER first
 
 # Testnet (for local dev/testing only):
 npx hardhat run scripts/deploy-hybrid.js  --network robinhoodTestnet
