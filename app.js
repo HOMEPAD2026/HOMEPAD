@@ -1440,7 +1440,7 @@ function launchCardHtml(entry) {
     : `<div class="meta" style="visibility:hidden"><span>—</span><span>—</span></div>`;
   const typeTag = entry.type === "instant" ? '<span class="instant-tag">instant liquidity</span>'
     : entry.type === "hybrid" ? '<span class="hybrid-tag">hybrid</span>'
-    : entry.type === "paired" ? `<span class="paired-tag-group"><span class="paired-tag">stock pair</span><span class="paired-symbol">${entry.quoteSymbol}</span></span>`
+    : entry.type === "paired" ? `<span class="paired-tag-group"><span class="paired-tag">paired</span><span class="paired-symbol">${entry.quoteSymbol}</span></span>`
     : '<span class="curve-tag">bonding curve</span>';
 
   if (entry.type === "instant" || entry.type === "hybrid" || entry.type === "paired") {
@@ -1539,7 +1539,7 @@ async function renderExploreFull() {
         <span class="filter-chip" data-filter="hybrid">Hybrid</span>
         <span class="filter-chip" data-filter="curve">Bonding Curve</span>
         <span class="filter-chip" data-filter="instant">Instant</span>
-        <span class="filter-chip" data-filter="paired">Stock pair</span>
+        <span class="filter-chip" data-filter="paired">Paired</span>
         <span class="filter-chip" data-filter="graduated">Graduated</span>
       </div>
     </div>
@@ -2212,7 +2212,7 @@ const TYPE_INFO = {
   curve:   { label: "bonding curve",     cls: "tt-curve",   how: (s, extra) => `$${s} trades on a bonding curve until ${extra.threshold} ETH is raised, then graduates into a Uniswap v4 pool with the liquidity burned — nobody can withdraw it, ever.` },
   hybrid:  { label: "hybrid",            cls: "tt-hybrid",  how: (s) => `$${s} launched straight into a real Uniswap v4 pool with single-sided liquidity — the whole supply, priced against a virtual ETH reserve, no ETH from the creator. Price moves against large buyers the way a bonding curve does, but it's a real pool from block one and liquidity is permanently locked.` },
   instant: { label: "instant liquidity", cls: "tt-instant", how: (s) => `$${s} has a real two-sided Uniswap v4 pool from the moment it launched — the creator seeded actual ETH liquidity, so there's no curve and no graduation step. Liquidity is permanently locked (no withdraw function exists).` },
-  paired:  { label: "stock pair",        cls: "tt-paired",  how: (s, x) => `$${s} is priced in ${x.quoteSymbol} instead of ETH — a real Uniswap v4 pool from block one, single-sided (the whole supply, no ${x.quoteSymbol} from the creator), so it behaves like a bonding curve against ${x.quoteSymbol}. Buying spends ${x.quoteSymbol} (approve once); selling returns ${x.quoteSymbol}. Liquidity is permanently locked.` },
+  paired:  { label: "paired",             cls: "tt-paired",  how: (s, x) => `$${s} is priced in ${x.quoteSymbol} instead of ETH — a real Uniswap v4 pool from block one, single-sided (the whole supply, no ${x.quoteSymbol} from the creator), so it behaves like a bonding curve against ${x.quoteSymbol}. Buying spends ${x.quoteSymbol} (approve once); selling returns ${x.quoteSymbol}. Liquidity is permanently locked.` },
 };
 
 /// Works out what kind of launch an address is and where its data lives —
