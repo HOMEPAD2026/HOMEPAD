@@ -114,6 +114,80 @@ async function getEthUsdPrice() {
   return ethUsdCache.price; // stale cache (or null) is still better than nothing
 }
 
+// ---- Dexscreener stats for HOMEPAD launches ----
+// Same public, keyless API the $HOME hero uses (home-stats.js), applied to
+// every launch: price, 24h change, 24h volume, liquidity, market cap. It's
+// the indexed, aggregated view of the pool — the on-chain reconstruction
+// (trade events, virtual reserves) stays as the fallback for pairs
+// Dexscreener hasn't picked up yet (a brand-new launch typically takes a
+// few minutes). One batched request per 30 tokens; results cached briefly
+// so the carousel, Explore, and a token page don't each refetch.
+const dexStatsCache = new Map(); // tokenAddrLower -> { stats|null, ts }
+const DEX_STATS_TTL = 45_000;
+
+async function fetchDexscreenerStats(tokenAddresses) {
+  const chain = CONFIG.DEXSCREENER_CHAIN_SLUG;
+  const out = new Map();
+  const need = [];
+  const now = Date.now();
+  for (const addr of tokenAddresses) {
+    const key = addr.toLowerCase();
+    const c = dexStatsCache.get(key);
+    if (c && now - c.ts < DEX_STATS_TTL) { if (c.stats) out.set(key, c.stats); }
+    else need.push(key);
+  }
+  for (let i = 0; i < need.length; i += 30) {
+    const chunk = need.slice(i, i + 30);
+    try {
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${chunk.join(",")}`);
+      if (!res.ok) throw new Error("dexscreener http " + res.status);
+      const data = await res.json();
+      const byToken = new Map();
+      for (const p of data.pairs || []) {
+        if (p.chainId !== chain || !p.baseToken?.address) continue;
+        const key = p.baseToken.address.toLowerCase();
+        if (!chunk.includes(key)) continue;
+        // Several pairs can exist for one token — keep the deepest one.
+        const prev = byToken.get(key);
+        if (!prev || (p.liquidity?.usd || 0) > (prev.liquidity?.usd || 0)) byToken.set(key, p);
+      }
+      for (const key of chunk) {
+        const p = byToken.get(key);
+        const stats = p ? {
+          priceUsd: p.priceUsd != null ? Number(p.priceUsd) : null,
+          priceNative: p.priceNative != null ? Number(p.priceNative) : null, // in the pair's quote (ETH for our pools)
+          change24h: p.priceChange?.h24 != null ? Number(p.priceChange.h24) : null,
+          volume24hUsd: p.volume?.h24 != null ? Number(p.volume.h24) : null,
+          liquidityUsd: p.liquidity?.usd != null ? Number(p.liquidity.usd) : null,
+          marketCapUsd: p.marketCap != null ? Number(p.marketCap) : (p.fdv != null ? Number(p.fdv) : null),
+          txns24h: p.txns?.h24 ? (Number(p.txns.h24.buys || 0) + Number(p.txns.h24.sells || 0)) : null,
+          pairAddress: p.pairAddress || null,
+          url: p.url || null,
+        } : null;
+        dexStatsCache.set(key, { stats, ts: now });
+        if (stats) out.set(key, stats);
+      }
+    } catch (err) {
+      console.warn("Dexscreener stats fetch failed", err);
+      // Leave these uncached so the next render retries; callers fall back to on-chain values.
+    }
+  }
+  return out;
+}
+
+/// Overlays Dexscreener numbers onto a launch entry (card data) when the
+/// pair is indexed. Paired (stock-quoted) launches are left alone — their
+/// cards are deliberately shown in the quote token, not USD.
+function applyDexStats(entry, dex) {
+  if (!dex || entry.type === "paired") return;
+  entry.dex = dex;
+  if (dex.marketCapUsd != null) entry.marketCapUsd = dex.marketCapUsd;
+  if (dex.change24h != null) entry.change24h = dex.change24h;
+  entry.volume24hUsd = dex.volume24hUsd;
+  entry.liquidityUsd = dex.liquidityUsd;
+  entry.priceUsd = dex.priceUsd;
+}
+
 function fmtUsd(n) {
   if (n == null || Number.isNaN(n)) return "—";
   if (n < 1000) return "$" + n.toFixed(2);
@@ -813,8 +887,12 @@ async function fetchAllLaunches(opts) {
   // One shared ETH/USD fetch for the whole batch — cards show $ mcap the
   // same way the token detail page does, not a raw ETH figure.
   const ethUsd = await getEthUsdPrice();
+  // Dexscreener overlay: one batched call for every launch; entries whose
+  // pair isn't indexed yet just keep the on-chain figures computed above.
+  const dexStats = await fetchDexscreenerStats(entries.map((e) => e.token));
   for (const entry of entries) {
     entry.marketCapUsd = entry.marketCapEth != null && ethUsd != null ? entry.marketCapEth * ethUsd : null;
+    applyDexStats(entry, dexStats.get(entry.token.toLowerCase()));
     // Keep WHICH router/factory each launch came from as plain address
     // strings (Proof of Rent matches hook events back to tokens by source),
     // but drop the live Contract objects — renderers never need those.
@@ -1169,6 +1247,11 @@ function launchCardHtml(entry) {
     ? (entry.marketCapQuote != null ? `${fmtCompact(entry.marketCapQuote)} ${entry.quoteSymbol}` : "—")
     : (entry.marketCapUsd != null ? fmtUsd(entry.marketCapUsd) : "—");
   const mcapLine = `<div class="card-mcap"><span class="card-mcap-label">Market Cap</span><span class="card-mcap-value">${mcapText}</span></div>`;
+  // Volume / liquidity only exist once Dexscreener has the pair; before
+  // that the row stays as an invisible placeholder so card heights match.
+  const dexRow = entry.dex && (entry.volume24hUsd != null || entry.liquidityUsd != null)
+    ? `<div class="meta card-dex"><span>Vol 24h <b>${entry.volume24hUsd != null ? fmtUsd(entry.volume24hUsd) : "—"}</b></span><span>Liq <b>${entry.liquidityUsd != null ? fmtUsd(entry.liquidityUsd) : "—"}</b></span></div>`
+    : `<div class="meta" style="visibility:hidden"><span>—</span><span>—</span></div>`;
   const typeTag = entry.type === "instant" ? '<span class="instant-tag">instant liquidity</span>'
     : entry.type === "hybrid" ? '<span class="hybrid-tag">hybrid</span>'
     : entry.type === "paired" ? `<span class="paired-tag-group"><span class="paired-tag">stock pair</span><span class="paired-symbol">${entry.quoteSymbol}</span></span>`
@@ -1183,7 +1266,7 @@ function launchCardHtml(entry) {
         <div class="name">${entry.name}</div>
         ${mcapLine}
         <div class="bar" style="visibility:hidden"><div class="bar-fill" style="width:0%"></div></div>
-        <div class="meta" style="visibility:hidden"><span>—</span><span>—</span></div>
+        ${dexRow}
         <div class="meta">${typeTag}<span class="card-age">${timeAgo(entry.launchedAt)}</span></div>
         ${socials}
       </a>
@@ -2050,6 +2133,18 @@ async function loadTokenData(ctx) {
     d.marketCapUsd = d.marketCapEth != null && d.ethUsd != null ? d.marketCapEth * d.ethUsd : null;
   }
   const tmp = {}; applyPriceChange(tmp, d.history.trades, d.startPrice); d.change24h = tmp.change24h;
+
+  // Dexscreener overlay (same source as the $HOME hero). Kept alongside the
+  // on-chain figures rather than replacing them, so the page can say which
+  // is which and still show something for a pair Dexscreener hasn't indexed.
+  if (ctx.type !== "paired") {
+    d.dex = (await fetchDexscreenerStats([ctx.tokenAddr])).get(ctx.tokenAddr.toLowerCase()) || null;
+    if (d.dex) {
+      if (d.dex.marketCapUsd != null) d.marketCapUsd = d.dex.marketCapUsd;
+      if (d.dex.change24h != null) d.change24h = d.dex.change24h;
+      if (d.dex.priceNative != null) { d.price = d.dex.priceNative; d.priceSource = "via Dexscreener"; }
+    }
+  }
   return d;
 }
 
@@ -2104,7 +2199,10 @@ async function renderTokenDetail(tokenAddr) {
     // rather than the generic address page — same split homeExplorerUrl()
     // in config.js makes for $HOME.
     const explorerToken = (a) => `${CONFIG.BLOCK_EXPLORER}/token/${a}`;
-    const dexUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${tokenAddr}`;
+    // Prefer the exact pair once Dexscreener has indexed it (that's what the
+    // $HOME chart uses); the token-address URL resolves to the same pair but
+    // is a redirect, which is less reliable inside an embed.
+    const dexUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${d.dex && d.dex.pairAddress ? d.dex.pairAddress : tokenAddr}`;
     const dexEmbedUrl = `${dexUrl}?embed=1&theme=dark&trades=0&info=0`;
     const shareText = `$${sym} on HOMEPAD 🏡 — launch pays rent, rent goes home to $HOME`;
     const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(location.href)}`;
@@ -2148,17 +2246,22 @@ async function renderTokenDetail(tokenAddr) {
         <div class="stat-card">
           <div class="stat-label">Market Cap</div>
           <div class="stat-value">${d.quote ? (d.marketCapQuote != null ? fmtCompact(d.marketCapQuote) + " " + unit : "—") : (d.marketCapUsd != null ? fmtUsd(d.marketCapUsd) : "—")}</div>
-          <div class="stat-sub">${d.quote ? (d.priceSource || "no trades yet") : (d.marketCapEth != null ? fmtEth(d.marketCapEth) + " ETH · " + d.priceSource : "no trades yet")}</div>
+          <div class="stat-sub">${d.quote ? (d.priceSource || "no trades yet") : (d.dex ? "via Dexscreener" : (d.marketCapEth != null ? fmtEth(d.marketCapEth) + " ETH · " + d.priceSource : "no trades yet"))}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Price</div>
-          <div class="stat-value">${d.price != null ? d.price.toExponential(3) + " " + unit : "—"}</div>
-          <div class="stat-sub ${d.change24h != null ? (up ? "pos" : "neg") : ""}">${d.change24h != null ? (up ? "+" : "") + d.change24h.toFixed(2) + "% · 24h" : "no 24h data"}</div>
+          <div class="stat-value">${d.dex && d.dex.priceUsd != null ? "$" + d.dex.priceUsd.toPrecision(4) : (d.price != null ? d.price.toExponential(3) + " " + unit : "—")}</div>
+          <div class="stat-sub ${d.change24h != null ? (up ? "pos" : "neg") : ""}">${d.change24h != null ? (up ? "+" : "") + d.change24h.toFixed(2) + "% · 24h" : "no 24h data"}${d.dex && d.dex.priceUsd != null && d.price != null ? ` · ${d.price.toExponential(3)} ${unit}` : ""}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">24H Volume</div>
-          <div class="stat-value">${fmtUnit(d.history.volume24hEth)} ${unit}</div>
-          <div class="stat-sub">${d.history.count24h} trade${d.history.count24h === 1 ? "" : "s"}</div>
+          <div class="stat-value">${d.dex && d.dex.volume24hUsd != null ? fmtUsd(d.dex.volume24hUsd) : fmtUnit(d.history.volume24hEth) + " " + unit}</div>
+          <div class="stat-sub">${d.dex && d.dex.txns24h != null ? `${d.dex.txns24h} trade${d.dex.txns24h === 1 ? "" : "s"} · via Dexscreener` : `${d.history.count24h} trade${d.history.count24h === 1 ? "" : "s"}`}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Liquidity</div>
+          <div class="stat-value">${d.dex && d.dex.liquidityUsd != null ? fmtUsd(d.dex.liquidityUsd) : "—"}</div>
+          <div class="stat-sub">${d.dex && d.dex.liquidityUsd != null ? "via Dexscreener" : (ctx.type === "curve" ? "on the curve" : "pool not indexed yet")}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">All-Time Trades</div>

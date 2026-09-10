@@ -159,7 +159,9 @@ main{padding:38px 0 80px;}
 .token-status.tt-hybrid .bar-fill{background:var(--amber);}
 .token-status.tt-paired .bar-fill{background:var(--purple);}
 .token-status p{margin:8px 0 0;font-size:.76rem;color:var(--ink-dim);}
-.token-stat-grid{grid-template-columns:repeat(4,1fr);margin-bottom:16px;}
+.token-stat-grid{grid-template-columns:repeat(5,1fr);margin-bottom:16px;}
+.card-dex{font-size:.72rem;color:var(--ink-dim);}
+.card-dex b{color:var(--ink);font-weight:600;}
 .stat-sub.pos{color:var(--green);} .stat-sub.neg{color:var(--red);}
 .chart-price{font-family:'Silkscreen';font-size:.85rem;color:var(--ink);}
 .chart-price.pos{color:var(--green);} .chart-price.neg{color:var(--red);}
