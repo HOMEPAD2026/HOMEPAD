@@ -337,6 +337,7 @@ footer{border-top:1px solid var(--line);color:var(--ink-dim);font-size:.88rem;}
 .chart-embed-lg{height:520px;}
 .chart-note{font-size:.78rem;color:var(--ink-dim);text-align:center;margin:10px 0 0;}
 .chart-note a{color:var(--green);}
+.rent-event-eq{color:var(--ink-dim);font-weight:400;font-size:.82em;margin-left:4px;}
 
 .launchpad-section{padding:50px 0 0;}
 .launchpad-heading{max-width:640px;margin-bottom:10px;}

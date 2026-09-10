@@ -815,7 +815,12 @@ async function fetchAllLaunches(opts) {
   const ethUsd = await getEthUsdPrice();
   for (const entry of entries) {
     entry.marketCapUsd = entry.marketCapEth != null && ethUsd != null ? entry.marketCapEth * ethUsd : null;
-    delete entry._router; // internal-only, not needed by any renderer
+    // Keep WHICH router/factory each launch came from as plain address
+    // strings (Proof of Rent matches hook events back to tokens by source),
+    // but drop the live Contract objects — renderers never need those.
+    entry.routerAddress = entry._router ? entry._router.target : null;
+    entry.factoryAddress = entry._factory ? entry._factory.target : null;
+    delete entry._router;
     delete entry._factory;
   }
 
@@ -851,6 +856,67 @@ function computePoolId(currency0, currency1, fee, tickSpacing, hooks) {
       [currency0, currency1, fee, tickSpacing, hooks]
     )
   );
+}
+
+// ---- Valuing hook fees (FeeRouted) in ETH ----
+// FeeRouted(poolId, toCreator, toHome, toPlatform) doesn't say WHICH
+// currency the fee was in. Both hooks take their cut from the swap's
+// OUTPUT side (`feeCurrency = zeroForOne ? currency1 : currency0`), so on
+// a BUY (ETH -> token) the rent is in the launched token, and on a SELL
+// it's in ETH. Reading every amount as ETH is how Proof of Rent once showed
+// "1,350,035 ETH" — that was ~1.35M tokens from a handful of dev buys.
+//
+// So each FeeRouted is joined to the PoolManager's own Swap event in the
+// same transaction and pool. The PoolManager emits that for EVERY swap
+// whatever initiated it (our router, the factory's launchAndBuy dev buy, a
+// third-party trade straight through Uniswap), and its amount0 sign gives
+// the direction. A token-denominated fee is valued at that same swap's
+// execution price (|amount0| / |amount1|) — still a figure from that exact
+// transaction, not an oracle or an estimate.
+
+const POOL_MANAGER_SWAP_ABI = [
+  "event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)",
+];
+const absBig = (x) => (x < 0n ? -x : x);
+const logOrder = (x, y) => (x.blockNumber - y.blockNumber) || (x.index - y.index);
+
+/// Every PoolManager Swap in the given HOMEPAD pools (one query — the
+/// indexed `id` topic accepts a list). Asks the hook for its PoolManager
+/// rather than trusting a config value that could drift from what's deployed.
+async function poolManagerSwapsFor(hook, poolIds) {
+  if (!poolIds.length) return [];
+  const pmAddr = await hook.poolManager();
+  const pm = new ethers.Contract(pmAddr, POOL_MANAGER_SWAP_ABI, readProvider());
+  return pm.queryFilter(pm.filters.Swap(poolIds));
+}
+
+/// Pairs each FeeRouted with its swap (same tx, same pool, zipped in log
+/// order — the hook emits FeeRouted from afterSwap, right after the swap)
+/// and works out the fee's currency and ETH value. Returns one record per
+/// FeeRouted, in log order.
+function valueFeeRoutedEvents(feeEvents, pmSwaps) {
+  const swapsByKey = new Map();
+  for (const s of [...pmSwaps].sort(logOrder)) {
+    const key = `${s.transactionHash}|${s.args.id}`;
+    if (!swapsByKey.has(key)) swapsByKey.set(key, []);
+    swapsByKey.get(key).push(s);
+  }
+  const seen = new Map();
+  return [...feeEvents].sort(logOrder).map((e) => {
+    const { poolId, toCreator, toHome, toPlatform } = e.args;
+    const total = toCreator + toHome + toPlatform;
+    const key = `${e.transactionHash}|${poolId}`;
+    const idx = seen.get(key) || 0;
+    seen.set(key, idx + 1);
+    const swap = (swapsByKey.get(key) || [])[idx] || null;
+    // BUY: amount0 < 0 (swapper paid ETH, received tokens) -> fee is in the
+    // token. SELL or no matching swap (shouldn't happen) -> already ETH.
+    const isTokenFee = !!swap && swap.args.amount0 < 0n;
+    const ethIn = isTokenFee ? absBig(swap.args.amount0) : 0n;
+    const tokensOut = isTokenFee ? absBig(swap.args.amount1) : 0n;
+    const toEth = (x) => (!isTokenFee ? x : (tokensOut > 0n ? (x * ethIn) / tokensOut : 0n));
+    return { event: e, poolId, total, toCreator, isTokenFee, ethValue: toEth(total), ethToCreator: toEth(toCreator) };
+  });
 }
 
 /// Sums exactly what a creator was actually paid, reusing the real
@@ -897,8 +963,13 @@ async function computeCreatorFeesEth(entry) {
     [c0, c1] = BigInt(q) < BigInt(entry.token) ? [q, entry.token] : [entry.token, q];
   }
   const poolId = computePoolId(c0, c1, 0, 60, hookAddress);
-  const events = await hook.queryFilter(hook.filters.FeeRouted(poolId));
-  return events.reduce((sum, e) => sum + e.args.toCreator, 0n);
+  const [events, swaps] = await Promise.all([
+    hook.queryFilter(hook.filters.FeeRouted(poolId)),
+    poolManagerSwapsFor(hook, [poolId]),
+  ]);
+  // Buy-side rent is paid to the creator in the token, not ETH — value it at
+  // each trade's own price so this stays an ETH figure (see the helpers above).
+  return valueFeeRoutedEvents(events, swaps).reduce((sum, r) => sum + r.ethToCreator, 0n);
 }
 
 async function renderProfile() {

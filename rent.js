@@ -6,6 +6,24 @@
 // only carries the poolId, not the token address). Nothing here is
 // estimated or extrapolated.
 //
+// One thing FeeRouted does NOT carry is WHICH currency the fee was taken
+// in. The hooks take their cut from the swap's OUTPUT side
+// (`feeCurrency = zeroForOne ? currency1 : currency0`), so on a BUY
+// (ETH -> token) the rent is collected in the launched token, and on a
+// SELL (token -> ETH) it's collected in ETH. Reading every FeeRouted amount
+// as ETH is how this page once showed "1,350,035 ETH" of rent — that was
+// ~1.35M launched tokens from a few dev buys. So this file joins each
+// FeeRouted to the PoolManager's own Swap event in the same transaction
+// (same poolId), which is emitted for EVERY swap in the pool regardless of
+// who initiated it — our router, the factory's launchAndBuy dev buy, or a
+// third-party trade straight through Uniswap — and whose amount0 sign
+// gives the direction. Token-denominated rent is then valued in ETH at
+// that same swap's own execution price (|amount0| / |amount1|), which is
+// still a number from that exact transaction, not an oracle or an
+// estimate. Each event row shows both the native amount and the ETH value.
+// The same PoolManager Swap events also give total volume, which the old
+// router-only Swap query missed for dev buys and external trades.
+//
 // $HOME buyback / POL are NOT computed here on purpose: the rent-to-$HOME
 // leg (contracts/scripts/distribute-rent.js) is a manual script, not yet
 // wired to run automatically, so there is no on-chain buyback/POL event to
@@ -25,6 +43,9 @@ function rentPoolId(currency0, currency1, fee, tickSpacing, hooks) {
 }
 
 const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+// Fee-currency handling (poolManagerSwapsFor / valueFeeRoutedEvents /
+// absBig) lives in app.js so Profile's creator-fee total uses the exact
+// same logic as this page.
 
 /// Fetches block timestamps for a batch of events, one RPC call per
 /// *unique* block rather than per event — the same optimization every
@@ -74,7 +95,7 @@ async function computeRentDashboard() {
     } catch (err) { console.error("rent: curve entry failed", entry.token, err); }
   }));
 
-  // ---------------- Hybrid + Instant: one hook + router per SOURCE, shared by every token from it ----------------
+  // ---------------- Hybrid + Instant: one hook per SOURCE, shared by every token from it ----------------
   for (const [sourcesFn, type, hookAbi] of [
     [hybridFactorySources, "hybrid", HYBRID_HOOK_ABI],
     [instantFactorySources, "instant", HOMEPAD_HOOK_ABI],
@@ -83,41 +104,55 @@ async function computeRentDashboard() {
       try {
         const hookAddr = await source.router.hook();
         const hook = new ethers.Contract(hookAddr, hookAbi, readProvider());
-        const [feeEvents, swapEvents] = await Promise.all([
-          hook.queryFilter(hook.filters.FeeRouted()),
-          source.router.queryFilter(source.router.filters.Swap()),
-        ]);
 
-        const sourceEntries = launches.filter((e) => e.type === type && e._router && sameAddr(e._router.target, source.router.target));
+        const sourceEntries = launches.filter((e) => e.type === type && sameAddr(e.routerAddress, source.router.target));
         const poolIdToEntry = new Map();
         for (const entry of sourceEntries) {
           poolIdToEntry.set(rentPoolId(ethers.ZeroAddress, entry.token, 0, 60, hookAddr), entry);
         }
+        const poolIds = [...poolIdToEntry.keys()];
+
+        const [feeEvents, pmSwaps] = await Promise.all([
+          hook.queryFilter(hook.filters.FeeRouted()),
+          poolManagerSwapsFor(hook, poolIds), // every swap in these pools, any route
+        ]);
+
+        // Volume: |amount0| is the ETH side of every swap in these pools,
+        // whoever made it — router trades, launch-time dev buys, and
+        // third-party swaps alike.
+        for (const s of pmSwaps) totalVolumeEth += absBig(s.args.amount0);
 
         if (feeEvents.length) {
-          const blockTime = await blockTimestamps(feeEvents);
-          for (const e of feeEvents) {
-            const { poolId, toCreator, toHome, toPlatform } = e.args;
-            const total = toCreator + toHome + toPlatform;
-            const ts = blockTime.get(e.blockNumber);
-            totalRentEth += total;
-            creatorPaidEth += toCreator;
-            if (nowSec - ts <= 86400) rent24hEth += total;
-            if (total > 0n) {
-              const entry = poolIdToEntry.get(poolId);
-              rentEvents.push({ symbol: entry ? entry.symbol : "?", token: entry ? entry.token : null, typeLabel: type, amount: total, unit: "ETH", decimals: 18, txHash: e.transactionHash, ts });
+          const valued = valueFeeRoutedEvents(feeEvents, pmSwaps);
+          const blockTime = await blockTimestamps(valued.map((v) => v.event));
+          for (const v of valued) {
+            const ts = blockTime.get(v.event.blockNumber);
+            const entry = poolIdToEntry.get(v.poolId);
+            totalRentEth += v.ethValue;
+            creatorPaidEth += v.ethToCreator;
+            if (nowSec - ts <= 86400) rent24hEth += v.ethValue;
+            if (v.total > 0n) {
+              rentEvents.push({
+                symbol: entry ? entry.symbol : "?", token: entry ? entry.token : null, typeLabel: type,
+                amount: v.total, decimals: 18,
+                unit: v.isTokenFee ? (entry ? `$${entry.symbol}` : "tokens") : "ETH",
+                ethValue: v.isTokenFee ? v.ethValue : null, // rendered as "≈ X ETH" beside a token-denominated amount
+                txHash: v.event.transactionHash, ts,
+              });
             }
           }
-        }
-        for (const e of swapEvents) {
-          const { zeroForOne, amountIn, amountOut } = e.args;
-          totalVolumeEth += zeroForOne ? amountIn : amountOut;
         }
       } catch (err) { console.error(`rent: ${type} source failed`, source.router.target, err); }
     }
   }
 
   // ---------------- Paired: rent stays in its own quote token, never mixed into the ETH totals ----------------
+  // NOTE (before Stock Pair goes live): the same output-side rule applies
+  // here — a BUY's fee is in the launched token, a SELL's in the quote
+  // token. This block still reads every FeeRouted as quote-denominated.
+  // Wire it through valueFeeRoutedEvents() (direction from the
+  // PoolManager Swap; watch the currency ordering, since an ERC-20 quote
+  // can be currency0 OR currency1) when the paired factory ships.
   for (const source of pairedFactorySources()) {
     try {
       const hookAddr = await source.factory.hook();
@@ -125,7 +160,7 @@ async function computeRentDashboard() {
       const feeEvents = await hook.queryFilter(hook.filters.FeeRouted());
       if (!feeEvents.length) continue;
 
-      const sourceEntries = launches.filter((e) => e.type === "paired" && e._factory && sameAddr(e._factory.target, source.factory.target));
+      const sourceEntries = launches.filter((e) => e.type === "paired" && sameAddr(e.factoryAddress, source.factory.target));
       const poolIdToEntry = new Map();
       for (const entry of sourceEntries) {
         const quoteIs0 = BigInt(entry.quoteToken) < BigInt(entry.token);

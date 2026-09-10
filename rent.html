@@ -64,7 +64,7 @@
       <span class="rent-hero-sep">·</span>
       <span><b id="rent-rate">···</b> effective rent rate</span>
     </div>
-    <div class="rent-hero-note">Sum of every trade fee ever taken across all ETH-paired launches — bonding curve, Hybrid, and Instant.</div>
+    <div class="rent-hero-note">Sum of every trade fee ever taken across all ETH-paired launches — bonding curve, Hybrid, and Instant. On a buy the hook takes its cut in the token being bought, so that rent is valued in ETH at that same trade's own price; on a sell it's collected in ETH directly.</div>
   </div>
 
   <!-- Live protocol stats -->
@@ -82,7 +82,7 @@
     <div class="stat-card">
       <div class="stat-label">Total Launch Volume</div>
       <div class="stat-value" id="rent-volume">···</div>
-      <div class="stat-sub">ETH traded through HOMEPAD</div>
+      <div class="stat-sub">ETH side of every swap in a HOMEPAD pool — any route, dev buys included</div>
     </div>
   </div>
   <div id="rent-paired-note" class="rent-paired-note" style="display:none"></div>
@@ -170,7 +170,7 @@ async function renderRentDashboard() {
             <span class="rent-event-time">${timeAgo(e.ts)}</span>
           </div>
           <div class="rent-event-bottom">
-            <span class="rent-event-amt">→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent</span>
+            <span class="rent-event-amt">→ <b>${fmtEth(Number(ethers.formatUnits(e.amount, e.decimals)))} ${e.unit}</b> rent${e.ethValue != null ? ` <span class="rent-event-eq">≈ ${fmtEth(Number(ethers.formatEther(e.ethValue)))} ETH</span>` : ""}</span>
             <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${e.txHash}" target="_blank" rel="noopener">tx ↗</a>
           </div>
         </div>
