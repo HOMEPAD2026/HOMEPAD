@@ -1024,12 +1024,11 @@ async function fetchAllLaunches(opts) {
   // here (it predates the platform), so it's not a real "entry" from any
   // on-chain source above, but the whole platform exists to fund it, so
   // it gets a card the same way every launch does — sourced entirely from
-  // its own Dexscreener pair, same as the homepage hero. No imageUrl on
-  // purpose: falls back to the standard 🏡 placeholder thumb, which is
-  // already $HOME's own visual motif everywhere else on the site.
+  // its own Dexscreener pair, same as the homepage hero.
   if (!opts || !opts.skipHomeCard) {
     entries.push({
       type: "home", token: CONFIG.HOME_TOKEN_ADDRESS, name: "Home", symbol: "HOME",
+      imageUrl: "images/home-token-logo.jpg",
       launchedAt: 0, // predates HOMEPAD — never flagged "NEW", always sorts as the oldest
       creator: null, twitter: "https://x.com/HOMEonRobinhood", telegram: "https://t.me/HOMEonRobin", discord: null, website: null,
     });
