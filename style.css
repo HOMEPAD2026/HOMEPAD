@@ -649,8 +649,11 @@ nav a{display:inline-flex;align-items:center;}
 .pair-tabs-3col .pair-tab{
   background:rgba(255,255,255,.035);
   border:1px solid rgba(255,255,255,.08);
-  min-width:0;overflow:hidden;text-overflow:ellipsis;
+  min-width:0;
   padding:10px 8px;
+  /* no overflow:hidden here — the "soon" ribbon sits outside the cell's
+     box (top:-7px) and gets clipped by it. The wider middle column +
+     smaller middle font already fit $HOMEPAD without an ellipsis. */
 }
 .pair-tabs-3col .pair-tab:hover{background:rgba(255,255,255,.07);border-color:rgba(57,255,136,.35);}
 .pair-tabs-3col .pair-tab.active{background:var(--green);border-color:var(--green);}
