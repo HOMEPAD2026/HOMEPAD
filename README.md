@@ -45,7 +45,7 @@ If you're new here, take a look through [the website](https://homepad.fun) and o
 
 Welcome, `$HOME`. 🏡💚
 
-> **Live on mainnet.** Hybrid, Instant Liquidity, and Paired (currently the `$HOMEPAD` pair) are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve is deferred, and real Robinhood Stock Token quotes are a separate, still-deferred decision (see below) — both shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
+> **Live on mainnet.** Hybrid, Instant Liquidity, and Paired (currently the `$HOME` and `$HOMEPAD` pairs) are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve is deferred, and real Robinhood Stock Token quotes are a separate, still-deferred decision (see below) — both shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
 
 ## What it does
 
@@ -58,11 +58,11 @@ Anyone can launch a fixed-supply (1,000,000,000) ERC-20 through HOMEPAD, with no
 | **Hybrid** *(default)* | A real Uniswap v4 pool from block one, **single-sided** (all supply, priced against a virtual ETH reserve) | Curve-like impact, real pool — visible on Dexscreener immediately | Nothing (0 ETH) |
 | **Bonding Curve** *(deferred)* | A standalone curve contract holds the supply; graduates into a locked v4 pool once it raises the threshold — graduates via Uniswap V2, whose Robinhood Chain mainnet router address isn't confirmed yet, so this mode is deferred | Constant-product curve on virtual reserves | Nothing (0 ETH) |
 | **Instant Liquidity** | A real Uniswap v4 pool, **two-sided** — creator's ETH seeds actual liquidity | Real pool from block one | ETH for liquidity |
-| **Paired** | Hybrid, priced in an ERC-20 quote instead of ETH — single-sided v4 pool, either currency ordering. Live today for the `$HOMEPAD` quote; real Robinhood Stock Token quotes ("Stock Pair") are deferred, see the risk note below | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
+| **Paired** | Hybrid, priced in an ERC-20 quote instead of ETH — single-sided v4 pool, either currency ordering. Live today for the `$HOME` and `$HOMEPAD` quotes; real Robinhood Stock Token quotes ("Stock Pair") are deferred, see the risk note below | Curve-like, in the quote token | Nothing (buys need a one-time approve) |
 
 All four share the same fee structure and the same **Dev Buy** option (`launchAndBuy()` — buy your own tokens atomically in the launch transaction). Every trade on every mode gets an exact, on-chain **minOut** — for the three v4-based modes this comes from a static-call simulation of the real swap (there's no on-chain quoter for a v4 pool), not an off-chain estimate.
 
-> ⚠️ **Known open risk (real Stock Token quotes only, not `$HOMEPAD`):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. `$HOMEPAD` is a plain fixed-supply `LaunchToken` with no such multiplier, so this doesn't apply to the pair that's actually deployed — it's why real Stock Token quotes (`CONFIG.QUOTE_TOKENS`, left empty) are still held back separately.
+> ⚠️ **Known open risk (real Stock Token quotes only, not `$HOMEPAD`):** real Robinhood Stock Tokens carry a `uiMultiplier()` that changes on corporate actions (splits, dividends — AAPL has already had one). `HomepadFactoryPaired`/`HomepadPairedSwapRouter` don't yet account for this, so a live pool could mis-price if a corporate action lands while it's open. `$HOME` and `$HOMEPAD` are both plain fixed-supply tokens with no such multiplier, so this doesn't apply to either pair that's actually live — it's why real Stock Token quotes (`CONFIG.QUOTE_TOKENS`, left empty) are still held back separately.
 
 ### Fees
 
@@ -139,7 +139,7 @@ npx hardhat test            # 37 tests
 # Mainnet (live deployment target):
 npx hardhat run scripts/deploy-hybrid.js  --network robinhoodMainnet
 npx hardhat run scripts/deploy-instant.js --network robinhoodMainnet
-npx hardhat run scripts/deploy-paired.js  --network robinhoodMainnet  # never set DEPLOY_MOCK_STOCKS on mainnet — powers the $HOMEPAD pair today
+npx hardhat run scripts/deploy-paired.js  --network robinhoodMainnet  # never set DEPLOY_MOCK_STOCKS on mainnet — powers the $HOME and $HOMEPAD pairs today
 
 # Bonding Curve is deferred — see Status above. When ready:
 npx hardhat run scripts/deploy.js --network robinhoodMainnet          # needs a confirmed UNISWAP_V2_ROUTER first
@@ -211,7 +211,7 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 
 ## Status
 
-- [x] Hybrid, Instant Liquidity, and Paired deployed live on mainnet. The Paired factory currently powers the $HOMEPAD pair (`CONFIG.HOMEPAD_QUOTE`, a single fixed quote token — needs no allow-list, `HomepadFactoryPaired` accepts any ERC-20); real Robinhood Stock Token quotes are a separate decision, still deferred on the corporate-action question (`QUOTE_TOKENS` stays empty until resolved). Bonding Curve is deferred (needs a confirmed mainnet V2 router) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
+- [x] Hybrid, Instant Liquidity, and Paired deployed live on mainnet. The Paired factory currently powers the $HOME and $HOMEPAD pairs (`CONFIG.HOME_QUOTE` / `CONFIG.HOMEPAD_QUOTE`, each a single fixed quote token — needs no allow-list, `HomepadFactoryPaired` accepts any ERC-20); real Robinhood Stock Token quotes are a separate decision, still deferred on the corporate-action question (`QUOTE_TOKENS` stays empty until resolved). Bonding Curve is deferred (needs a confirmed mainnet V2 router) — see `.env.example` for both networks' confirmed PoolManager addresses side by side, to avoid redeploying with the wrong one
 - [x] Per-token live Dexscreener chart on every launch's detail page
 - [x] Proof of Rent reads the treasury and burn address directly (balances, no PoolManager logs), shows the 8% allocation's burn status per launch with a proof-of-burn tx ledger. First burn 2026-09-11: 82,452,560 `$HOMEPAD` (the full allocation plus accrued buy-side rent) — [tx](https://rh-scan.com/tx/0x5f89c4790f4aae434269afd8908469d246347a5b1bf656cdf57e75a5d4fa1c24)
 - [x] Explore (search / sort / filter), token pages with charts and trading, Profile (launches / holdings / fees), Proof of Rent dashboard

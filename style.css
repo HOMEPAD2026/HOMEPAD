@@ -599,10 +599,10 @@ nav a{display:inline-flex;align-items:center;}
 
 /* ============ Expanded Create form ============ */
 
-/* Segmented control — equal-width segments so ETH/$HOME/Stock always look
-   like one consistent set, regardless of how long each label is. This
-   replaces the old free-width pill tabs, which rendered ETH as a near-circle
-   next to two differently-shaped rectangles. */
+/* Segmented control — equal-width segments so ETH/$HOME/$HOMEPAD/Stock
+   always look like one consistent set, regardless of how long each label
+   is. This replaces the old free-width pill tabs, which rendered ETH as a
+   near-circle next to differently-shaped rectangles. */
 .pair-tabs{
   display:flex;
   background:var(--void);
@@ -1303,6 +1303,12 @@ nav a{display:inline-flex;align-items:center;}
   .pair-tab{padding:9px 6px;font-size:.78rem;}
   .logo-row{flex-direction:column;align-items:center;text-align:center;}
   .pair-tabs{justify-content:center;}
+  /* "Pair against" now has 4 segments (ETH / $HOME / $HOMEPAD / Stock) —
+     the same font-size that worked for 3 crowds $HOMEPAD's 8 characters
+     at 1/4 width, so this row gets its own smaller, tighter rule rather
+     than sharing the generic .pair-tab mobile size above. */
+  #pair-tabs.pair-tabs{gap:3px;padding:3px;}
+  #pair-tabs .pair-tab{flex:1 1 0;min-width:0;padding:8px 2px;font-size:.66rem;line-height:1.15;white-space:normal;}
 
   /* Token detail / trades */
   /* token header: small thumb beside the title, share/launched row below */

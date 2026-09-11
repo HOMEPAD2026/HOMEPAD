@@ -428,15 +428,18 @@ function quoteTokenOptions() {
 }
 function quoteTokenInfo(address) {
   const a = (address || "").toLowerCase();
-  // HOMEPAD_QUOTE is a single fixed quote, not part of the QUOTE_TOKENS
-  // dropdown list — but every OTHER paired-mode code path (submit,
-  // card/token-page display, launch-list rendering) looks up quote info
-  // by address through this one function regardless of which UI tab it
-  // came from, so it has to recognize both sources or those paths 404 on
-  // a null lookup for anything launched against $HOMEPAD. quoteTokenOptions()
-  // deliberately stays QUOTE_TOKENS-only — this doesn't add $HOMEPAD to
-  // the Stock dropdown, just makes address lookups find it.
-  if (CONFIG.HOMEPAD_QUOTE && (CONFIG.HOMEPAD_QUOTE.address || "").toLowerCase() === a) return CONFIG.HOMEPAD_QUOTE;
+  // HOME_QUOTE/HOMEPAD_QUOTE are single fixed quotes, not part of the
+  // QUOTE_TOKENS dropdown list — but every OTHER paired-mode code path
+  // (submit, card/token-page display, launch-list rendering) looks up
+  // quote info by address through this one function regardless of which
+  // UI tab it came from, so it has to recognize both sources or those
+  // paths 404 on a null lookup for anything launched against them.
+  // quoteTokenOptions() deliberately stays QUOTE_TOKENS-only — this
+  // doesn't add either to the Stock dropdown, just makes address lookups
+  // find them.
+  for (const fixed of [CONFIG.HOME_QUOTE, CONFIG.HOMEPAD_QUOTE]) {
+    if (fixed && (fixed.address || "").toLowerCase() === a) return fixed;
+  }
   return (CONFIG.QUOTE_TOKENS || []).find((q) => (q.address || "").toLowerCase() === a) || null;
 }
 /// Stock mode is "live" once the paired factory is deployed AND at least one quote token is configured.
@@ -444,22 +447,23 @@ function stockModeLive() {
   return pairedFactoryConfigured() && quoteTokenOptions().length > 0;
 }
 
-/// How many $HOMEPAD should buy the full 1B supply so a new $HOMEPAD-paired
-/// launch opens at the same USD starting market cap Hybrid launches open at
-/// right now. Hybrid's own starting cap is defined as initialVirtualEth
-/// (that many ETH buys the whole supply) — convert it through both assets'
-/// current USD price: same idea, different quote currency.
-async function computeHomepadEquivalentStartPrice(q) {
+/// How many of a given fixed quote ($HOME, $HOMEPAD — any q with a live
+/// USD price) should buy the full 1B supply, so a new launch paired
+/// against it opens at the same USD starting market cap Hybrid launches
+/// open at right now. Hybrid's own starting cap is defined as
+/// initialVirtualEth (that many ETH buys the whole supply) — convert it
+/// through both assets' current USD price: same idea, different quote.
+async function computeQuoteEquivalentStartPrice(q) {
   const [virtualEthWei, ethUsd, dex] = await Promise.all([
     hybridFactoryRead().initialVirtualEth(),
     getEthUsdPrice(),
     fetchDexscreenerStats([q.address]),
   ]);
-  const homepadUsd = dex.get(q.address.toLowerCase())?.priceUsd;
-  if (ethUsd == null || !homepadUsd) throw new Error("missing ETH or HOMEPAD price");
+  const quoteUsd = dex.get(q.address.toLowerCase())?.priceUsd;
+  if (ethUsd == null || !quoteUsd) throw new Error(`missing ETH or ${q.symbol} price`);
   const virtualEth = Number(ethers.formatEther(virtualEthWei));
   const startCapUsd = virtualEth * ethUsd;
-  const quoteAmount = startCapUsd / homepadUsd;
+  const quoteAmount = startCapUsd / quoteUsd;
   // Round to something a creator would actually type, not a 14-decimal float.
   return quoteAmount >= 1000 ? String(Math.round(quoteAmount)) : quoteAmount.toPrecision(4);
 }
@@ -1680,11 +1684,12 @@ async function renderCreate(targetId) {
         <label>Pair against</label>
         <div class="pair-tabs" id="pair-tabs">
           <div class="pair-tab active" data-quote="eth">ETH</div>
-          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
+          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
+          <div class="pair-tab" data-quote="homepad" id="homepad-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
           <div class="pair-tab" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
         </div>
         <div id="stock-quote-select" style="display:none;margin-top:10px"></div>
-        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOMEPAD and Stock pairing are coming next.</div>
+        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOME, $HOMEPAD, or Stock pairing are also available.</div>
       </div>
 
       <div class="field" id="launch-type-field" style="display:none">
@@ -1853,15 +1858,22 @@ async function renderCreate(targetId) {
   else if (!hybridIsLive && !instantIsLive && curveIsLive) launchType = "curve";
   const curveTabEl = document.getElementById("curve-tab");
   if (curveTabEl && !curveIsLive) curveTabEl.classList.add("pair-tab-disabled");
-  // The $HOMEPAD pair rides on the paired-hybrid factory, same as Stock —
-  // live once that's deployed and the quote token is configured.
-  const homePairIsLive = pairedFactoryConfigured() && !!(CONFIG.HOMEPAD_QUOTE && CONFIG.HOMEPAD_QUOTE.address);
-  const homeTabEl = document.getElementById("home-pair-tab");
-  if (homeTabEl && !homePairIsLive) homeTabEl.classList.add("pair-tab-disabled");
-  // Static "soon" ribbon in the markup, same as curve/stock — remove it
-  // once this one's actually live instead of leaving a stale label on a
-  // working tab.
-  else if (homeTabEl) homeTabEl.querySelector(".tab-soon")?.remove();
+  // $HOME and $HOMEPAD both ride on the paired-hybrid factory, same as
+  // Stock — each live once that's deployed and its own quote token address
+  // is configured. Shared helper since the two tabs are otherwise identical.
+  function setFixedQuoteTabLive(tabId, quoteCfg) {
+    const isLive = pairedFactoryConfigured() && !!(quoteCfg && quoteCfg.address);
+    const tabEl = document.getElementById(tabId);
+    if (!tabEl) return isLive;
+    if (!isLive) tabEl.classList.add("pair-tab-disabled");
+    // Static "soon" ribbon in the markup, same as curve/stock — remove it
+    // once this one's actually live instead of leaving a stale label on a
+    // working tab.
+    else tabEl.querySelector(".tab-soon")?.remove();
+    return isLive;
+  }
+  const homeIsLive = setFixedQuoteTabLive("home-pair-tab", CONFIG.HOME_QUOTE);
+  const homepadIsLive = setFixedQuoteTabLive("homepad-pair-tab", CONFIG.HOMEPAD_QUOTE);
   const stockTabEl = document.getElementById("stock-pair-tab");
   if (stockTabEl && !stockIsLive) stockTabEl.classList.add("pair-tab-disabled");
 
@@ -1916,18 +1928,20 @@ async function renderCreate(targetId) {
       return;
     }
 
-    // $HOMEPAD and Stock both go through the paired-hybrid factory (an ERC-20
-    // quote instead of ETH). Launch type is fixed to hybrid there, so the
-    // type tabs hide; the dev buy is in quote units and needs an approval.
+    // $HOME, $HOMEPAD, and Stock all go through the paired-hybrid factory
+    // (an ERC-20 quote instead of ETH). Launch type is fixed to hybrid
+    // there, so the type tabs hide; the dev buy is in quote units and
+    // needs an approval.
     instantLiquidityField.style.display = "none";
     stockField.style.display = "block";
     launchTypeField.style.display = "none";
     launchType = "paired";
 
-    if (quote === "home") {
+    if (quote === "home" || quote === "homepad") {
       // Single fixed quote token — no dropdown needed, unlike Stock's list.
+      // $HOME and $HOMEPAD are otherwise identical here, just a different q.
       selectEl.style.display = "none";
-      const q = CONFIG.HOMEPAD_QUOTE;
+      const q = quote === "home" ? CONFIG.HOME_QUOTE : CONFIG.HOMEPAD_QUOTE;
       const priceField = document.getElementById("f-openprice");
       const priceHint = document.getElementById("stock-openprice-hint");
       pairHint.textContent = `New token is priced in $${q.symbol} instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no $${q.symbol} needed from you to launch.`;
@@ -1943,16 +1957,17 @@ async function renderCreate(targetId) {
 
       // Auto-fill so a creator never has to guess a number here: same
       // starting market cap Hybrid launches open at right now, just
-      // converted into $HOMEPAD instead of ETH. Runs once per tab click —
-      // if it fails (rare: RPC hiccup, no HOMEPAD price yet), the field
-      // stays editable and the hint says so instead of silently guessing.
-      computeHomepadEquivalentStartPrice(q).then((suggested) => {
+      // converted into whichever quote this tab is. Runs once per tab
+      // click — if it fails (rare: RPC hiccup, no price yet for this
+      // quote), the field stays editable and the hint says so instead of
+      // silently guessing.
+      computeQuoteEquivalentStartPrice(q).then((suggested) => {
         if (launchType !== "paired" || selectedQuote.address !== q.address) return; // tab changed while this was in flight
         q.defaultVirtualQuote = suggested;
         priceField.placeholder = suggested;
         priceHint.textContent = `Auto-filled to match Hybrid's current starting valuation: ${fmtCompact(Number(suggested))} $${q.symbol} buys the full 1B supply. Change it if you want a different start — lower = cheaper.`;
       }).catch((err) => {
-        console.warn("couldn't compute HOMEPAD-equivalent start price", err);
+        console.warn(`couldn't compute ${q.symbol}-equivalent start price`, err);
         priceField.placeholder = q.defaultVirtualQuote;
         priceHint.textContent = `Couldn't fetch a live suggestion — enter how many $${q.symbol} should buy the entire 1B supply at launch. Lower = cheaper start.`;
       });

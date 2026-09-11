@@ -42,13 +42,16 @@ const CONFIG = {
   // on mainnet, the real Robinhood Stock Token addresses.
   QUOTE_TOKENS: [], // cleared for mainnet — testnet mock addresses must never be used here. Repopulate with real Robinhood Stock Token addresses when Stock Pair goes live.
 
-  // The dedicated "$HOMEPAD" pair tab (was originally slated for $HOME —
-  // redirected here instead). Unlike QUOTE_TOKENS (a dropdown of several
-  // stock tickers), this is a single fixed quote token, so the launch form
-  // shows no picker for it. Leave the address blank to keep the tab as
-  // "soon"; fill it in once the paired factory (below) is deployed.
-  // defaultVirtualQuote is only a starting-price suggestion shown as a
-  // placeholder — creators can type any value in the Starting Price field.
+  // Dedicated single-fixed-quote pair tabs ($HOME, $HOMEPAD) — unlike
+  // QUOTE_TOKENS (a dropdown of several stock tickers), each of these is
+  // exactly one token, so the launch form shows no picker, just the tab.
+  // Leave an address blank to keep that tab "soon"; both need the paired
+  // factory (below) deployed too. defaultVirtualQuote is only a
+  // starting-price suggestion shown as a placeholder — creators can type
+  // any value in the Starting Price field; the launch form also
+  // auto-computes a live suggestion matching Hybrid's current starting
+  // valuation, so this static number is really just a pre-live fallback.
+  HOME_QUOTE: { symbol: "HOME", name: "Home", address: "0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f", decimals: 18, defaultVirtualQuote: "3000" },
   HOMEPAD_QUOTE: { symbol: "HOMEPAD", name: "HOMEPAD", address: "0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5", decimals: 18, defaultVirtualQuote: "1000000" },
   DEFAULT_SUPPLY: "1000000000", // matches HomepadFactory.DEFAULT_SUPPLY (display only)
 
