@@ -632,13 +632,31 @@ nav a{display:inline-flex;align-items:center;}
    of both squeezed into a 4th column — ETH and Stock each span both rows. */
 .pair-tabs-3col{
   display:grid;
-  grid-template-columns:1fr 1fr 1fr;
+  /* middle column holds the two longest labels ($HOME / $HOMEPAD), so it
+     gets a little more width than ETH / Stock */
+  grid-template-columns:1fr 1.35fr 1fr;
   grid-template-rows:1fr 1fr;
+  gap:5px;padding:5px;
 }
 .pair-tabs-3col .pt-eth{grid-column:1;grid-row:1 / span 2;}
 .pair-tabs-3col .pt-home{grid-column:2;grid-row:1;}
 .pair-tabs-3col .pt-homepad{grid-column:2;grid-row:2;}
 .pair-tabs-3col .pt-stock{grid-column:3;grid-row:1 / span 2;}
+/* In a plain row, transparent inactive segments read fine; in this
+   irregular grid they don't — the stacked middle pair just looked like two
+   floating labels next to a green box. Every cell is a visible button now
+   (faint fill + hairline), active stays solid green, disabled goes dashed. */
+.pair-tabs-3col .pair-tab{
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.08);
+  min-width:0;overflow:hidden;text-overflow:ellipsis;
+  padding:10px 8px;
+}
+.pair-tabs-3col .pair-tab:hover{background:rgba(255,255,255,.07);border-color:rgba(57,255,136,.35);}
+.pair-tabs-3col .pair-tab.active{background:var(--green);border-color:var(--green);}
+.pair-tabs-3col .pair-tab-disabled{background:transparent;border-style:dashed;border-color:rgba(255,255,255,.1);}
+.pair-tabs-3col .pair-tab-disabled:hover{background:transparent;border-color:rgba(255,255,255,.1);}
+.pair-tabs-3col .pt-home,.pair-tabs-3col .pt-homepad{padding:8px 6px;}
 .pair-tab:hover{color:var(--ink);}
 .pair-tab.active{background:var(--green);color:#08150c;}
 
@@ -1321,8 +1339,11 @@ nav a{display:inline-flex;align-items:center;}
      Stock) — each cell has as much width as a normal 3-tab row, so it
      just needs slightly tighter padding for the shorter row height, not
      the aggressive font shrink a cramped 4-in-a-row would have needed. */
-  #pair-tabs.pair-tabs{gap:3px;padding:3px;}
-  #pair-tabs .pair-tab{padding:7px 4px;font-size:.74rem;min-width:0;}
+  #pair-tabs.pair-tabs{gap:4px;padding:4px;}
+  #pair-tabs .pair-tab{padding:8px 4px;font-size:.76rem;min-width:0;}
+  /* the two stacked middle cells carry the longest labels — a notch
+     smaller so "$HOMEPAD" fits its cell instead of spilling into ETH's */
+  #pair-tabs .pt-home,#pair-tabs .pt-homepad{padding:7px 4px;font-size:.7rem;letter-spacing:-.01em;}
 
   /* Token detail / trades */
   /* token header: small thumb beside the title, share/launched row below */
