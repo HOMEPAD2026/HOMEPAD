@@ -1682,11 +1682,11 @@ async function renderCreate(targetId) {
 
       <div class="field">
         <label>Pair against</label>
-        <div class="pair-tabs" id="pair-tabs">
-          <div class="pair-tab active" data-quote="eth">ETH</div>
-          <div class="pair-tab" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
-          <div class="pair-tab" data-quote="homepad" id="homepad-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
-          <div class="pair-tab" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
+        <div class="pair-tabs pair-tabs-3col" id="pair-tabs">
+          <div class="pair-tab pt-eth active" data-quote="eth">ETH</div>
+          <div class="pair-tab pt-home" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
+          <div class="pair-tab pt-homepad" data-quote="homepad" id="homepad-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
+          <div class="pair-tab pt-stock" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
         </div>
         <div id="stock-quote-select" style="display:none;margin-top:10px"></div>
         <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOME, $HOMEPAD, or Stock pairing are also available.</div>

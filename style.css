@@ -599,10 +599,11 @@ nav a{display:inline-flex;align-items:center;}
 
 /* ============ Expanded Create form ============ */
 
-/* Segmented control — equal-width segments so ETH/$HOME/$HOMEPAD/Stock
-   always look like one consistent set, regardless of how long each label
-   is. This replaces the old free-width pill tabs, which rendered ETH as a
-   near-circle next to differently-shaped rectangles. */
+/* Segmented control — equal-width segments. The base flex layout below is
+   shared with #launch-type-tabs (3 plain segments); "Pair against"
+   specifically overrides it into a 3-column grid further down
+   (.pair-tabs-3col), since it has 4 tabs but only 3 real "slots" once
+   $HOME and $HOMEPAD share the middle one. */
 .pair-tabs{
   display:flex;
   background:var(--void);
@@ -625,6 +626,19 @@ nav a{display:inline-flex;align-items:center;}
   text-align:center;
   white-space:nowrap;
 }
+
+/* "Pair against" specifically: 3 columns (ETH / quote pair / Stock), with
+   $HOME and $HOMEPAD stacked as two rows sharing the middle column instead
+   of both squeezed into a 4th column — ETH and Stock each span both rows. */
+.pair-tabs-3col{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  grid-template-rows:1fr 1fr;
+}
+.pair-tabs-3col .pt-eth{grid-column:1;grid-row:1 / span 2;}
+.pair-tabs-3col .pt-home{grid-column:2;grid-row:1;}
+.pair-tabs-3col .pt-homepad{grid-column:2;grid-row:2;}
+.pair-tabs-3col .pt-stock{grid-column:3;grid-row:1 / span 2;}
 .pair-tab:hover{color:var(--ink);}
 .pair-tab.active{background:var(--green);color:#08150c;}
 
@@ -1303,12 +1317,12 @@ nav a{display:inline-flex;align-items:center;}
   .pair-tab{padding:9px 6px;font-size:.78rem;}
   .logo-row{flex-direction:column;align-items:center;text-align:center;}
   .pair-tabs{justify-content:center;}
-  /* "Pair against" now has 4 segments (ETH / $HOME / $HOMEPAD / Stock) —
-     the same font-size that worked for 3 crowds $HOMEPAD's 8 characters
-     at 1/4 width, so this row gets its own smaller, tighter rule rather
-     than sharing the generic .pair-tab mobile size above. */
+  /* "Pair against" is a 3-column grid (ETH / $HOME+$HOMEPAD stacked /
+     Stock) — each cell has as much width as a normal 3-tab row, so it
+     just needs slightly tighter padding for the shorter row height, not
+     the aggressive font shrink a cramped 4-in-a-row would have needed. */
   #pair-tabs.pair-tabs{gap:3px;padding:3px;}
-  #pair-tabs .pair-tab{flex:1 1 0;min-width:0;padding:8px 2px;font-size:.66rem;line-height:1.15;white-space:normal;}
+  #pair-tabs .pair-tab{padding:7px 4px;font-size:.74rem;min-width:0;}
 
   /* Token detail / trades */
   /* token header: small thumb beside the title, share/launched row below */
