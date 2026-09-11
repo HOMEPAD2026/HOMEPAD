@@ -1686,10 +1686,10 @@ async function renderCreate(targetId) {
           <div class="pair-tab pt-eth active" data-quote="eth">ETH</div>
           <div class="pair-tab pt-home" data-quote="home" id="home-pair-tab">$HOME<span class="tab-soon">soon</span></div>
           <div class="pair-tab pt-homepad" data-quote="homepad" id="homepad-pair-tab">$HOMEPAD<span class="tab-soon">soon</span></div>
-          <div class="pair-tab pt-stock" data-quote="stock" id="stock-pair-tab">Stock<span class="tab-soon">soon</span></div>
+          <div class="pair-tab pt-stock" data-quote="stock" id="stock-pair-tab">Token<span class="tab-soon">soon</span></div>
         </div>
         <div id="stock-quote-select" style="display:none;margin-top:10px"></div>
-        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. $HOME, $HOMEPAD, or Stock pairing are also available.</div>
+        <div class="hint" id="pair-hint">New token trades against ETH — the standard setup. Or pair it with $HOME, $HOMEPAD, or any token by contract address.</div>
       </div>
 
       <div class="field" id="launch-type-field" style="display:none">
@@ -1843,7 +1843,10 @@ async function renderCreate(targetId) {
   const instantLiquidityField = document.getElementById("instant-liquidity-field");
   const stockField = document.getElementById("stock-openprice-field");
   const pairHint = document.getElementById("pair-hint");
-  const stockIsLive = stockModeLive();
+  // "Token" tab: any ERC-20 by contract address — needs only the paired
+  // factory. (stockModeLive(), which also wants a curated QUOTE_TOKENS
+  // list, is now just for the optional quick-pick chips inside the tab.)
+  const stockIsLive = pairedFactoryConfigured();
   const instantIsLive = instantFactoryConfigured();
   const hybridIsLive = hybridFactoryConfigured();
   const curveIsLive = curveFactoryConfigured();
@@ -1921,7 +1924,7 @@ async function renderCreate(targetId) {
       devbuyField.style.display = "block";
       document.getElementById("f-devbuy").placeholder = "0.0 ETH";
       stockField.style.display = "none";
-      pairHint.textContent = "New token trades against ETH — the standard setup. $HOMEPAD and Stock pairing are coming next.";
+      pairHint.textContent = "New token trades against ETH — the standard setup. Or pair it with $HOME, $HOMEPAD, or any token by contract address.";
       selectedQuote = { mode: "eth" };
       if (hybridIsLive || instantIsLive) launchTypeField.style.display = "block";
       applyLaunchTypeUI();
@@ -1974,29 +1977,82 @@ async function renderCreate(targetId) {
       return;
     }
 
-    // quote === "stock" — only reachable when stockIsLive (tab is disabled otherwise)
+    // quote === "stock" — the "Token" tab: paste any ERC-20's contract
+    // address. HomepadFactoryPaired accepts any non-zero ERC-20 as the
+    // quote, so this is purely a frontend affordance — resolve the token
+    // on-chain (code exists, symbol(), decimals()), then hand it to the
+    // same paired launch path $HOME/$HOMEPAD use.
     selectEl.style.display = "block";
     {
-      const options = quoteTokenOptions();
-      pairHint.textContent = "New token is priced in a Robinhood Stock Token instead of ETH — same single-sided Uniswap v4 pool as Hybrid, no stock needed from you to launch.";
+      const priceField = document.getElementById("f-openprice");
+      const priceHint = document.getElementById("stock-openprice-hint");
+      pairHint.textContent = "New token is priced in another token instead of ETH — same single-sided Uniswap v4 pool as Hybrid, none of that token needed from you to launch.";
+      const picks = quoteTokenOptions();
       selectEl.innerHTML = `
-        <select id="f-quote-token" class="quote-select">
-          ${options.map((o) => `<option value="${o.address}">${o.symbol} — ${o.name}</option>`).join("")}
-        </select>
+        <input id="f-quote-address" class="quote-address" placeholder="0x… contract address of the token to pair with" autocomplete="off" spellcheck="false">
+        ${picks.length ? `<div class="quote-picks">${picks.map((o) => `<button type="button" class="btn-mini quote-pick" data-addr="${o.address}">${o.symbol}</button>`).join("")}</div>` : ""}
+        <div class="quote-resolved" id="quote-resolved"></div>
+        <div class="hint quote-warn">Standard ERC-20 only. Fee-on-transfer, rebasing, or Robinhood Stock Tokens (their <code>uiMultiplier</code> changes on splits/dividends) will misprice the pool — the contract can't tell them apart, so this is on you.</div>
       `;
-      const applyQuote = (addr) => {
-        const q = quoteTokenInfo(addr);
-        selectedQuote = { mode: "stock", address: addr, symbol: q.symbol, decimals: q.decimals };
-        document.getElementById("f-openprice").placeholder = q.defaultVirtualQuote;
-        document.getElementById("stock-openprice-label").textContent = `Starting price (${q.symbol})`;
-        document.getElementById("stock-openprice-hint").textContent = `How many ${q.symbol} would buy the entire 1B supply at launch. Suggested: ${q.defaultVirtualQuote} ${q.symbol}. Lower = cheaper start.`;
-        devbuyField.style.display = "block";
-        devbuyLabel.innerHTML = `Dev buy (${q.symbol}) <span class="optional">optional</span>`;
-        document.getElementById("f-devbuy").placeholder = `0.0 ${q.symbol}`;
-        devbuyHint.textContent = `Buy your own tokens with ${q.symbol} in the launch transaction (one approval first). Leave at 0 to skip.`;
+      selectedQuote = { mode: "stock", address: "", symbol: "", decimals: 18, defaultVirtualQuote: "1000000" };
+      document.getElementById("stock-openprice-label").textContent = "Starting price";
+      priceField.placeholder = "…";
+      priceField.value = "";
+      priceHint.textContent = "Paste a token address above first.";
+      devbuyField.style.display = "none";
+
+      const resolvedEl = document.getElementById("quote-resolved");
+      const addrInput = document.getElementById("f-quote-address");
+      let resolveSeq = 0;
+      const resolve = async (raw) => {
+        const seq = ++resolveSeq;
+        const addr = raw.trim();
+        selectedQuote = { mode: "stock", address: "", symbol: "", decimals: 18, defaultVirtualQuote: "1000000" };
+        devbuyField.style.display = "none";
+        if (!addr) { resolvedEl.innerHTML = ""; priceHint.textContent = "Paste a token address above first."; return; }
+        if (!ethers.isAddress(addr)) { resolvedEl.innerHTML = `<span class="quote-bad">That isn't a valid address.</span>`; return; }
+        if (addr.toLowerCase() === CONFIG.HOME_TOKEN_ADDRESS.toLowerCase() || (CONFIG.HOMEPAD_QUOTE && addr.toLowerCase() === CONFIG.HOMEPAD_QUOTE.address.toLowerCase())) {
+          resolvedEl.innerHTML = `<span class="quote-bad">That one has its own tab above.</span>`; return;
+        }
+        resolvedEl.innerHTML = `<span class="muted">Looking up token…</span>`;
+        try {
+          const provider = readProvider();
+          const code = await provider.getCode(addr);
+          if (seq !== resolveSeq) return;
+          if (!code || code === "0x") { resolvedEl.innerHTML = `<span class="quote-bad">No contract at that address on Robinhood Chain.</span>`; return; }
+          const t = tokenRead(addr);
+          const [symbol, decimals, name] = await Promise.all([t.symbol(), t.decimals().then(Number), t.name().catch(() => "")]);
+          if (seq !== resolveSeq) return;
+          const q = { symbol, decimals, name, address: ethers.getAddress(addr), defaultVirtualQuote: "1000000" };
+          selectedQuote = { mode: "stock", address: q.address, symbol, decimals, defaultVirtualQuote: q.defaultVirtualQuote };
+          resolvedEl.innerHTML = `<span class="quote-ok">✓ $${symbol}</span> <span class="muted">${name ? name + " · " : ""}${decimals} decimals</span>`;
+          document.getElementById("stock-openprice-label").textContent = `Starting price (${symbol})`;
+          devbuyField.style.display = "block";
+          devbuyLabel.innerHTML = `Dev buy (${symbol}) <span class="optional">optional</span>`;
+          document.getElementById("f-devbuy").placeholder = `0.0 ${symbol}`;
+          devbuyHint.textContent = `Buy your own tokens with ${symbol} in the launch transaction (one approval first). Leave at 0 to skip.`;
+          priceHint.textContent = `Matching Hybrid's current starting valuation in $${symbol} — figuring that out now…`;
+          // Same auto-fill as the $HOME/$HOMEPAD tabs; needs a Dexscreener
+          // price for this token, which an obscure one may not have.
+          computeQuoteEquivalentStartPrice(q).then((suggested) => {
+            if (seq !== resolveSeq || selectedQuote.address !== q.address) return;
+            selectedQuote.defaultVirtualQuote = suggested;
+            priceField.placeholder = suggested;
+            priceHint.textContent = `Auto-filled to match Hybrid's current starting valuation: ${fmtCompact(Number(suggested))} $${symbol} buys the full 1B supply. Change it if you want a different start — lower = cheaper.`;
+          }).catch(() => {
+            if (seq !== resolveSeq) return;
+            priceField.placeholder = q.defaultVirtualQuote;
+            priceHint.textContent = `No live price found for $${symbol}, so no auto-suggestion — enter how many $${symbol} should buy the entire 1B supply at launch. Lower = cheaper start.`;
+          });
+        } catch (err) {
+          if (seq !== resolveSeq) return;
+          console.warn("quote token lookup failed", err);
+          resolvedEl.innerHTML = `<span class="quote-bad">Couldn't read that as an ERC-20 (no symbol()/decimals()).</span>`;
+        }
       };
-      applyQuote(options[0].address);
-      document.getElementById("f-quote-token").addEventListener("change", (ev) => applyQuote(ev.target.value));
+      let debounce;
+      addrInput.addEventListener("input", (ev) => { clearTimeout(debounce); debounce = setTimeout(() => resolve(ev.target.value), 350); });
+      selectEl.querySelectorAll(".quote-pick").forEach((b) => b.addEventListener("click", () => { addrInput.value = b.dataset.addr; resolve(b.dataset.addr); }));
     }
   });
 
@@ -2050,7 +2106,7 @@ async function renderCreate(targetId) {
       return;
     }
     if (selectedQuote.mode === "stock-preview") {
-      statusEl.innerHTML = `<div class="status error">Stock pairing isn't live yet — switch to ETH to launch right now.</div>`;
+      statusEl.innerHTML = `<div class="status error">Token pairing isn't live yet — switch to ETH to launch right now.</div>`;
       return;
     }
     if (launchType === "curve" && !curveFactoryConfigured()) {
@@ -2110,10 +2166,12 @@ async function renderCreate(targetId) {
     try {
       if (selectedQuote.mode === "stock") {
         if (!selectedQuote.address) {
-          statusEl.innerHTML = `<div class="status error">Pick a stock to pair against.</div>`;
+          statusEl.innerHTML = `<div class="status error">Paste the contract address of the token to pair with (or pick $HOME / $HOMEPAD above).</div>`;
           return;
         }
-        const q = quoteTokenInfo(selectedQuote.address);
+        // Config entry if it's a known quote ($HOME/$HOMEPAD, or a curated
+        // pick); otherwise the token we just resolved on-chain in the tab.
+        const q = quoteTokenInfo(selectedQuote.address) || selectedQuote;
         const virtualStr = document.getElementById("f-openprice").value.trim() || q.defaultVirtualQuote;
         const initialVirtualQuote = ethers.parseUnits(virtualStr, q.decimals);
         const devBuyStr = document.getElementById("f-devbuy").value.trim();

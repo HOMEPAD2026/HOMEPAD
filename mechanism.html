@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789086785">
+<link rel="stylesheet" href="style.css?v=1789132497">
 </head>
 <body>
 
@@ -52,12 +52,12 @@
   <section class="doc-section">
     <h2>Four launch modes</h2>
     <p>A creator picks one of four ways for a token to get its starting liquidity. All four share the same fee structure (see Fees below) — they differ in where the price comes from and whether there's a real pool from the first block.</p>
-    <p class="stat-sub">Hybrid, Instant liquidity, and Paired (currently the $HOME and $HOMEPAD quotes) are live on mainnet today. Bonding curve is deferred; real Robinhood Stock Token quotes are a separate, still-deferred decision. Both show as "soon" in the launch form rather than being removed, since both ship later.</p>
+    <p class="stat-sub">Hybrid, Instant liquidity, and Paired ($HOME, $HOMEPAD, or any standard ERC-20 by contract address) are live on mainnet today. Bonding curve is deferred and shows as "soon" in the launch form rather than being removed, since it ships later.</p>
     <ul class="doc-list">
       <li><strong>Hybrid</strong> (default, live) — a real Uniswap v4 pool from block one, single-sided, no ETH required from the creator.</li>
       <li><strong>Bonding curve</strong> <em>(deferred)</em> — a standalone curve contract, graduating into a locked v4 pool once it raises enough.</li>
       <li><strong>Instant liquidity</strong> (live) — a real two-sided v4 pool, seeded with ETH the creator provides at launch.</li>
-      <li><strong>Paired</strong> (live for $HOME and $HOMEPAD) — Hybrid, but priced in an ERC-20 quote instead of ETH. Real Stock Token quotes <em>(deferred)</em> are the same mechanism, see below.</li>
+      <li><strong>Paired</strong> (live) — Hybrid, but priced in an ERC-20 quote instead of ETH: $HOME, $HOMEPAD, or any standard token you paste in. See below for the one caveat.</li>
     </ul>
   </section>
 
@@ -102,7 +102,7 @@
 
   <section class="doc-section">
     <h2 id="paired">Paired mode</h2>
-    <p class="stat-sub">Live today for the $HOME and $HOMEPAD quotes (launch form: the "$HOME" and "$HOMEPAD" tabs). Real Robinhood Stock Token quotes specifically <span class="soon-tag">soon</span> — they can change price on corporate actions (stock splits, dividends), and the contracts don't yet account for that; everything below still describes how a stock quote will work once that's resolved.</p>
+    <p class="stat-sub">Live today for $HOME, $HOMEPAD, and any standard ERC-20 you paste into the "Token" tab. One caveat, and it's on the creator: Robinhood Stock Tokens change price on corporate actions (stock splits, dividends — their <code>uiMultiplier</code> moves) and the contracts don't account for that, so a pool quoted in one can misprice. Same for fee-on-transfer or rebasing tokens. The form warns about this; the contract can't tell them apart.</p>
     <p>Paired mode is <strong>Hybrid with an ERC-20 quote instead of ETH</strong>: the same single-sided Uniswap v4 pool from block one, the same fee routing, no quote token needed from the creator to launch — it just measures price in something other than ETH. The starting price uses the same convention as every other mode: "this many «quote» would buy the entire supply," auto-suggested on the $HOME/$HOMEPAD tabs to match Hybrid's current starting valuation. Robinhood Stock Tokens (AAPL, TSLA, NVDA, and others) are also ERC-20s on Robinhood Chain and were the original motivation for this mode — see the corporate-action note above for why those specifically aren't enabled yet.</p>
     <p>Two mechanical differences follow from the quote being an ERC-20. First, v4 orders a pool's two currencies by address, and a stock token can sort on either side of a freshly-created token, so the factory records which side it landed on and places the single-sided range accordingly (below the price when the token is currency1, above it when the token is currency0). Second, a stock token can't ride along as <code>msg.value</code>, so buys — including the launch-time dev buy — pull the quote with <code>transferFrom</code>, which means a one-time <code>approve</code> the first time you buy.</p>
     <p>Fees are taken in whichever currency comes out of the swap (the token on a buy, the stock on a sell) and routed live to the creator and the $HOME treasury, same split as everywhere else. The same factory prices launches in $HOME and $HOMEPAD too — a $HOME or $HOMEPAD pair is just this mode with that token as the quote instead of a stock ticker, and neither is blocked by the corporate-action issue above since both are plain fixed-supply tokens.</p>
@@ -126,11 +126,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789086785"></script>
-<script src="abis.js?v=1789086785"></script>
-<script src="app.js?v=1789086785"></script>
-<script src="wallet-appkit.js?v=1789086785"></script>
-<script src="launch-modal.js?v=1789086785"></script>
-<script src="footer.js?v=1789086785"></script>
+<script src="config.js?v=1789132497"></script>
+<script src="abis.js?v=1789132497"></script>
+<script src="app.js?v=1789132497"></script>
+<script src="wallet-appkit.js?v=1789132497"></script>
+<script src="launch-modal.js?v=1789132497"></script>
+<script src="footer.js?v=1789132497"></script>
 </body>
 </html>

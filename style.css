@@ -688,6 +688,14 @@ nav a{display:inline-flex;align-items:center;}
   color:var(--ink);padding:10px 12px;font-family:'Sora';font-size:.9rem;
 }
 .quote-select:disabled{opacity:.55;cursor:not-allowed;}
+/* "Token" tab: paste-any-contract-address input + on-chain lookup result */
+.quote-address{width:100%;font-family:monospace;font-size:.8rem;letter-spacing:.01em;}
+.quote-picks{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.quote-resolved{margin-top:8px;font-size:.8rem;min-height:1.2em;}
+.quote-ok{color:var(--green);font-weight:700;}
+.quote-bad{color:var(--red);}
+.quote-warn{margin-top:8px;color:var(--amber);opacity:.9;}
+.quote-warn code{font-size:.9em;}
 
 .field-row.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
 

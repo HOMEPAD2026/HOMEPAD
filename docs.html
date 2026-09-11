@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789086785">
+<link rel="stylesheet" href="style.css?v=1789132497">
 </head>
 <body>
 
@@ -79,7 +79,7 @@
         <span id="doc-factory-link">…</span>
       </div>
       <div class="contract-row">
-        <span>Paired Factory ($HOME + $HOMEPAD pairs; real Stock quotes still deferred)</span>
+        <span>Paired Factory ($HOME / $HOMEPAD / any-token pairs)</span>
         <span id="doc-stock-factory-link">…</span>
       </div>
     </div>
@@ -93,7 +93,7 @@
     </div>
     <div class="faq-item">
       <h3>What are the launch modes?</h3>
-      <p>Hybrid (default, live — a real pool from block one, no ETH needed to launch), Instant liquidity (live — a real two-sided pool you seed with ETH yourself), Paired (live for the $HOME and $HOMEPAD quotes — Hybrid priced in one of them instead of ETH), and Bonding curve (soon — graduates into a pool once it raises enough). Real Robinhood Stock Token quotes use the same Paired mechanism but are a separate, still-deferred decision. See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for how each actually works.</p>
+      <p>Hybrid (default, live — a real pool from block one, no ETH needed to launch), Instant liquidity (live — a real two-sided pool you seed with ETH yourself), Paired (live — Hybrid priced in $HOME, $HOMEPAD, or any standard ERC-20 you paste in by contract address, instead of ETH), and Bonding curve (soon — graduates into a pool once it raises enough). Robinhood Stock Tokens technically work as a quote but aren't recommended: their price changes on corporate actions and the pool can't follow it. See <a href="mechanism.html" style="color:var(--green)">the mechanism page</a> for how each actually works.</p>
     </div>
     <div class="faq-item">
       <h3>Where do fees go?</h3>
@@ -109,7 +109,7 @@
     </div>
     <div class="faq-item">
       <h3>Is HOMEPAD live yet?</h3>
-      <p>Yes — HOMEPAD is live on Robinhood Chain mainnet. Hybrid, Instant Liquidity, and Paired ($HOME or $HOMEPAD quotes) launches are real; Bonding Curve is still coming soon, and real Robinhood Stock Token quotes are a separate decision, also still to come.</p>
+      <p>Yes — HOMEPAD is live on Robinhood Chain mainnet. Hybrid, Instant Liquidity, and Paired ($HOME, $HOMEPAD, or any token by address) launches are real; Bonding Curve is still coming soon.</p>
     </div>
   </section>
 
@@ -121,11 +121,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789086785"></script>
-<script src="abis.js?v=1789086785"></script>
-<script src="app.js?v=1789086785"></script>
-<script src="wallet-appkit.js?v=1789086785"></script>
-<script src="launch-modal.js?v=1789086785"></script>
+<script src="config.js?v=1789132497"></script>
+<script src="abis.js?v=1789132497"></script>
+<script src="app.js?v=1789132497"></script>
+<script src="wallet-appkit.js?v=1789132497"></script>
+<script src="launch-modal.js?v=1789132497"></script>
 <script>
   const DEAD = "0x0000000000000000000000000000000000dead";
   // $HOME uses its own explorer base (same mainnet explorer CONFIG.BLOCK_EXPLORER now points to too).
@@ -152,6 +152,6 @@
     ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.PAIRED_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.PAIRED_FACTORY_ADDRESS}</a>`
     : `<span class="soon-tag">soon</span>`;
 </script>
-<script src="footer.js?v=1789086785"></script>
+<script src="footer.js?v=1789132497"></script>
 </body>
 </html>
