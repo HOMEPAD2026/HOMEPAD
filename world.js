@@ -730,13 +730,6 @@ function renderAll() {
     document.getElementById("help-full").style.display = chip.dataset.tab === "full" ? "" : "none";
     document.querySelector(".help-card").scrollTop = 0;
   });
-  // First-time visitors get it opened automatically, once.
-  try {
-    if (!localStorage.getItem("homepad.world.helpSeen")) {
-      openHelp();
-      localStorage.setItem("homepad.world.helpSeen", "1");
-    }
-  } catch { /* storage blocked — just skip the auto-open */ }
   const searchInput = document.getElementById("w-search");
   searchInput.addEventListener("input", (e) => {
     W.query = e.target.value;
