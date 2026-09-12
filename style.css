@@ -1582,6 +1582,58 @@ nav a{display:inline-flex;align-items:center;}
 .claim-actions{display:flex;gap:10px;flex-wrap:wrap;}
 .claim-actions .btn{flex:1 1 auto;text-align:center;}
 .status.success{background:rgba(57,255,136,.08);border:1px solid rgba(57,255,136,.3);color:var(--green);}
+/* ---- World hero: tutorial button ---- */
+.world-hero{position:relative;}
+.world-help-btn{
+  position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;
+  background:var(--panel);border:1px solid var(--line);border-radius:100px;
+  padding:8px 14px 8px 10px;color:var(--ink);font-family:'Sora';font-weight:700;font-size:.8rem;
+  cursor:pointer;transition:border-color .15s,background .15s;
+}
+.world-help-btn:hover{border-color:rgba(57,255,136,.5);background:#182a1f;}
+.world-help-icon{font-size:1rem;}
+
+/* ---- Tutorial modal: a reference document, not a quick-action blob —
+   rectangular, unrotated, independently-scrolling body under a fixed
+   head+tabs, wider than the claim card since it's carrying real prose. ---- */
+.help-card{
+  max-width:660px;border-radius:22px;transform:none;animation:helpPop .2s ease-out;
+  display:flex;flex-direction:column;padding:32px 30px 26px;max-height:86vh;
+}
+@keyframes helpPop{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+.help-head{display:flex;align-items:center;gap:14px;flex:0 0 auto;margin-bottom:16px;}
+.help-head-icon{font-size:2rem;line-height:1;}
+.help-title{margin:0 0 2px;font-size:1.25rem;}
+.help-sub{font-size:.8rem;color:var(--ink-dim);}
+.help-tabs{display:flex;gap:8px;flex:0 0 auto;margin-bottom:16px;}
+.help-scroll{overflow-y:auto;padding-right:6px;}
+.help-pane{animation:helpPop .15s ease-out;}
+
+/* summary tab */
+.help-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.help-sum-card{background:var(--void);border:1px solid var(--line);border-radius:14px;padding:14px;}
+.help-sum-n{font-size:1.3rem;margin-bottom:6px;}
+.help-sum-h{font-weight:700;font-size:.85rem;margin-bottom:4px;}
+.help-sum-t{font-size:.76rem;color:var(--ink-dim);line-height:1.5;}
+.help-cta{text-align:center;font-size:.82rem;color:var(--ink-dim);padding-top:4px;}
+
+/* full guide tab */
+.help-h3{font-size:1rem;margin:22px 0 8px;color:var(--green);}
+.help-h3:first-child{margin-top:0;}
+.help-p{font-size:.86rem;line-height:1.65;color:var(--ink-dim);margin:0 0 10px;}
+.help-p b{color:var(--ink);}
+.help-list{margin:0 0 10px;padding-left:20px;font-size:.86rem;line-height:1.65;color:var(--ink-dim);}
+.help-list li{margin-bottom:6px;}
+.help-list b{color:var(--ink);}
+.help-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:6px;}
+.help-step{display:flex;gap:12px;background:var(--void);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:.84rem;line-height:1.55;color:var(--ink-dim);}
+.help-step b{color:var(--ink);}
+.help-step-n{flex:0 0 auto;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:rgba(57,255,136,.14);color:var(--green);font-family:'Silkscreen';font-size:.62rem;}
+.help-rule-box{display:flex;flex-direction:column;gap:10px;background:var(--void);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:6px;}
+.help-rule-row{display:flex;flex-direction:column;gap:3px;}
+.help-rule-k{font-family:'Silkscreen';font-size:.7rem;color:var(--amber);}
+.help-rule-v{font-size:.82rem;color:var(--ink-dim);line-height:1.5;}
+.help-closing{text-align:center;font-size:.9rem;color:var(--ink);margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);}
 /* Country motto — a short inscription burned in with $NHOOD, shown next
    to the name wherever it appears. Distinct from the name itself so it
    reads as a flourish someone added, not part of the coin's real name. */
@@ -1599,6 +1651,11 @@ nav a{display:inline-flex;align-items:center;}
 .claim-reset-head{font-family:'Silkscreen';font-size:.72rem;color:var(--red);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;}
 @media (max-width:760px){
   .world-stats{grid-template-columns:repeat(2,1fr);}
+  .world-help-btn{padding:7px;}
+  .world-help-label{display:none;}
+  .world-hero{padding-top:38px;}
+  .help-card{padding:22px 18px 18px;max-height:90vh;}
+  .help-summary-grid{grid-template-columns:1fr;}
   .world-list{grid-template-columns:1fr;}
   .claim-grid{grid-template-columns:1fr;}
   .world-map{min-height:180px;}

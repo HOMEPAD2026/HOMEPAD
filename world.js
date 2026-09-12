@@ -714,6 +714,29 @@ function renderAll() {
 (async () => {
   document.getElementById("claim-close").addEventListener("click", closeClaim);
   document.getElementById("claim-modal").addEventListener("click", (e) => { if (e.target.id === "claim-modal") closeClaim(); });
+
+  // Tutorial modal
+  const helpModal = document.getElementById("help-modal");
+  const openHelp = () => { helpModal.style.display = "flex"; };
+  const closeHelp = () => { helpModal.style.display = "none"; };
+  document.getElementById("world-help-btn").addEventListener("click", openHelp);
+  document.getElementById("help-close").addEventListener("click", closeHelp);
+  helpModal.addEventListener("click", (e) => { if (e.target.id === "help-modal") closeHelp(); });
+  document.getElementById("help-tabs").addEventListener("click", (e) => {
+    const chip = e.target.closest(".filter-chip"); if (!chip) return;
+    document.querySelectorAll("#help-tabs .filter-chip").forEach((x) => x.classList.remove("active"));
+    chip.classList.add("active");
+    document.getElementById("help-summary").style.display = chip.dataset.tab === "summary" ? "" : "none";
+    document.getElementById("help-full").style.display = chip.dataset.tab === "full" ? "" : "none";
+    document.querySelector(".help-card").scrollTop = 0;
+  });
+  // First-time visitors get it opened automatically, once.
+  try {
+    if (!localStorage.getItem("homepad.world.helpSeen")) {
+      openHelp();
+      localStorage.setItem("homepad.world.helpSeen", "1");
+    }
+  } catch { /* storage blocked — just skip the auto-open */ }
   const searchInput = document.getElementById("w-search");
   searchInput.addEventListener("input", (e) => {
     W.query = e.target.value;

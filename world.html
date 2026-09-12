@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789221372">
+<link rel="stylesheet" href="style.css?v=1789225352">
 </head>
 <body>
 
@@ -38,6 +38,9 @@
 
 <main class="wrap world-main">
   <div class="world-hero">
+    <button class="world-help-btn" id="world-help-btn" aria-label="How the World game works">
+      <span class="world-help-icon">❓</span><span class="world-help-label">How this works</span>
+    </button>
     <span class="pixel eyebrow-chip alt">one coin per capital</span>
     <h1 class="pixel">the world, one home at a time.</h1>
     <p class="lede">Every capital on the map has exactly one coin. Claim one and it's yours: the country is the name, the capital is the ticker, and the coin is a real HOMEPAD launch — a Uniswap v4 pool from block one, liquidity locked forever, 70% of every trade's rent to you. The map keeps score.</p>
@@ -115,17 +118,133 @@
   </div>
 </div>
 
+<!-- Tutorial / How this works modal -->
+<div class="modal-overlay" id="help-modal" style="display:none">
+  <div class="modal-blob help-card">
+    <button class="modal-close" id="help-close" aria-label="Close">×</button>
+    <div class="help-head">
+      <span class="help-head-icon">🏡</span>
+      <div>
+        <h2 class="help-title">How The World Game works</h2>
+        <div class="help-sub">Everything on this page, explained from scratch.</div>
+      </div>
+    </div>
+
+    <div class="help-tabs" id="help-tabs">
+      <span class="filter-chip active" data-tab="summary">📄 One-page summary</span>
+      <span class="filter-chip" data-tab="full">📖 Full guide</span>
+    </div>
+
+    <div class="help-scroll">
+    <!-- ============ SUMMARY TAB ============ -->
+    <div class="help-pane" id="help-summary">
+      <div class="help-summary-grid">
+        <div class="help-sum-card">
+          <div class="help-sum-n">🗺️</div>
+          <div class="help-sum-h">197 capitals, one coin each</div>
+          <div class="help-sum-t">Every capital city on Earth has exactly one coin. First person to launch it owns it.</div>
+        </div>
+        <div class="help-sum-card">
+          <div class="help-sum-n">👆</div>
+          <div class="help-sum-h">Claim = launch a coin</div>
+          <div class="help-sum-t">Tap an open capital, confirm in your wallet. Name, ticker, and logo are set automatically by the map — you can't change them.</div>
+        </div>
+        <div class="help-sum-card">
+          <div class="help-sum-n">💸</div>
+          <div class="help-sum-h">You get paid automatically</div>
+          <div class="help-sum-t">70% of every trade's fee lands in your wallet instantly. 30% goes to $HOME. No staking, no claiming, no waiting.</div>
+        </div>
+        <div class="help-sum-card">
+          <div class="help-sum-n">🛡️</div>
+          <div class="help-sum-h">Defend it, or lose it</div>
+          <div class="help-sum-t">Stay above $50,000 market cap and it's safe. Fall under that (after a 5-min grace) and anyone can pay 2,000,000 $HOMEPAD to take it from you.</div>
+        </div>
+        <div class="help-sum-card">
+          <div class="help-sum-n">🔥</div>
+          <div class="help-sum-h">$NHOOD mottos (optional)</div>
+          <div class="help-sum-t">Burn $NHOOD to inscribe a short custom line next to your capital's flag — pure flavor, doesn't touch the coin itself.</div>
+        </div>
+        <div class="help-sum-card">
+          <div class="help-sum-n">🔍</div>
+          <div class="help-sum-h">Nothing is trust-based</div>
+          <div class="help-sum-t">No database decides who owns what. Every claim and reset is read straight from the blockchain — verify it yourself, any time.</div>
+        </div>
+      </div>
+      <p class="help-cta">Want the full walkthrough — every rule, every number, every "why"? Tap <b>📖 Full guide</b> above.</p>
+    </div>
+
+    <!-- ============ FULL GUIDE TAB ============ -->
+    <div class="help-pane" id="help-full" style="display:none">
+
+      <h3 class="help-h3">🗺️ What is this, actually?</h3>
+      <p class="help-p">Picture a map of the entire world. On it, every country's <b>capital city</b> — Seoul, Washington D.C., Tokyo, Paris, all 197 of them — has exactly one coin tied to it. Not a coin <i>representing</i> the country in some abstract way — a real, tradeable coin, launched through HOMEPAD's normal launch system, that happens to carry that capital's name.</p>
+      <p class="help-p">There is only ever <b>one</b> coin per capital. Once someone launches "Seoul," there is no second Seoul — ever. The rule is permanent and enforced by the smart contracts themselves, not by anyone's promise.</p>
+
+      <h3 class="help-h3">👆 How to claim a capital, step by step</h3>
+      <div class="help-steps">
+        <div class="help-step"><span class="help-step-n">1</span><div><b>Find an open capital.</b> On the map, capitals with a small grey ring are still unclaimed. The list below the map shows every one, with a search box if you know which country you want.</div></div>
+        <div class="help-step"><span class="help-step-n">2</span><div><b>Tap it.</b> A window pops up showing exactly what you'd be launching: the coin's name (the country), its ticker (the capital), and its logo (that country's own outline map) — all locked in, not editable.</div></div>
+        <div class="help-step"><span class="help-step-n">3</span><div><b>Connect your wallet and confirm.</b> This is one normal transaction — the same kind of transaction as launching any coin on HOMEPAD. No ETH is required to launch; it's paired with $HOMEPAD instead.</div></div>
+        <div class="help-step"><span class="help-step-n">4</span><div><b>Done.</b> You are now the coin's creator, permanently, on-chain. The capital lights up on the map immediately.</div></div>
+      </div>
+      <p class="help-p">Why can't you pick your own name or ticker? Because that's exactly what makes a claim <i>provable</i>. If anyone could type any name, there'd be no way to tell a "real" Seoul from a fake one. Locking it to the map's own rule means anyone, at any time, can independently check whether a claim is legitimate — including you, right now, on the "Recent activity" list further down this page.</p>
+
+      <h3 class="help-h3">💸 What you actually earn</h3>
+      <p class="help-p">Every single trade on your coin — someone buying it, someone selling it — automatically pays a small 1% fee, split two ways the instant the trade happens:</p>
+      <ul class="help-list">
+        <li><b>70% comes straight to your wallet.</b> Not a balance you have to claim later. Not something sitting in a contract waiting for you to withdraw it. It arrives with the trade, in the same transaction.</li>
+        <li><b>30% goes to $HOME</b>, HOMEPAD's own coin — this is what funds the whole platform.</li>
+      </ul>
+      <p class="help-p">You don't need to do anything to receive this. No staking, no dashboard to check in on, no button to press. It just happens, for as long as you hold the capital.</p>
+
+      <h3 class="help-h3">🛡️ Defending your capital</h3>
+      <p class="help-p">Owning a capital isn't a one-time win — it's something you have to keep earning, in a very specific, very fair way: <b>real demand</b>. Here's exactly how that's measured:</p>
+      <div class="help-rule-box">
+        <div class="help-rule-row"><span class="help-rule-k">🌱 First 5 minutes</span><span class="help-rule-v">Completely safe, no matter what. This is just enough time for your own launch transaction to fully settle — nobody can snipe you the instant you claim.</span></div>
+        <div class="help-rule-row"><span class="help-rule-k">🔒 $50,000+ market cap</span><span class="help-rule-v">Fully protected, for as long as you stay above it. A day, a month, a year — doesn't matter. Nobody can touch it.</span></div>
+        <div class="help-rule-row"><span class="help-rule-k">↻ Under $50,000</span><span class="help-rule-v">(after those first 5 minutes) Anyone can take it from you — see below for exactly how.</span></div>
+      </div>
+      <p class="help-p">Think of it like a house that has to stay lived-in. As long as people actually care about your coin enough to trade it up past $50K, it's yours, permanently. If it goes quiet and the value drops, the door is technically unlocked for someone more motivated to move in.</p>
+
+      <h3 class="help-h3">↻ How someone takes a capital from you</h3>
+      <p class="help-p">This isn't a hack, a hidden exploit, or anything sneaky — it's a plain, published rule anyone can use, including you, against someone else's weak capital:</p>
+      <div class="help-steps">
+        <div class="help-step"><span class="help-step-n">1</span><div>Find a capital marked <b>"resettable"</b> (a pulsing red marker on the map, or a red tag in the list).</div></div>
+        <div class="help-step"><span class="help-step-n">2</span><div>Pay <b>2,000,000 $HOMEPAD</b> to the $HOME treasury — a real, verifiable payment, not a promise.</div></div>
+        <div class="help-step"><span class="help-step-n">3</span><div>Launch that capital yourself, right after. You're now the creator — the old coin keeps trading on its own, untouched, but the map, the name, and every future fee now point to you.</div></div>
+      </div>
+      <p class="help-p">The app checks this on-chain before it ever shows a takeover as valid: it looks for your $HOMEPAD payment landing after the previous owner's 5-minute grace period ended, and before your new launch. There's no way to fake this from the outside.</p>
+
+      <h3 class="help-h3">🔥 $NHOOD mottos — giving your capital personality</h3>
+      <p class="help-p">This part is entirely optional and purely cosmetic. If you currently hold a capital, you can burn <b>10,000 $NHOOD</b> (HOMEPAD's companion token for this game, either its Pons or Pairex version) to inscribe a short custom line next to your flag — something like <i>🇰🇷 South Korea『Home of $HOME』</i>. It shows up everywhere your capital's name appears: the list, the activity feed, the map. It never touches the coin's real name, ticker, or contract — it's a flourish, not a feature that changes anything economically.</p>
+
+      <h3 class="help-h3">🔍 Why you don't have to trust anyone here</h3>
+      <p class="help-p">There is no admin panel, no team member, and no database quietly deciding who "really" owns Seoul. Every single claim and every single reset is read directly from the blockchain, live, every time this page loads. The "Recent activity" feed further down shows the actual on-chain events with a link to the real transaction for each one — you can click through and verify every claim on this entire map yourself, using nothing but a public block explorer.</p>
+
+      <h3 class="help-h3">🚀 What's coming next</h3>
+      <ul class="help-list">
+        <li><b>$NHOOD holder rewards</b> — a share of fees for simply holding $NHOOD. No staking. No wallet connection required to earn.</li>
+        <li><b>City unlocks</b> — once a capital's market cap clears a milestone, that country's other major cities open up to claim too.</li>
+        <li><b>A dedicated on-chain registry</b> — to make the reset rule's market-cap check fully verifiable without trusting the app itself, closing the one gap that currently exists.</li>
+      </ul>
+
+      <p class="help-closing">That's the whole game. One coin per capital, real money changing hands automatically, and a map that only ever shows you what's actually true on-chain. Go claim one. 💚</p>
+    </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="config.js?v=1789221372"></script>
-<script src="abis.js?v=1789221372"></script>
-<script src="app.js?v=1789221372"></script>
-<script src="wallet-appkit.js?v=1789221372"></script>
-<script src="launch-modal.js?v=1789221372"></script>
-<script src="footer.js?v=1789221372"></script>
-<script src="firebase-config.js?v=1789221372"></script>
-<script src="world-data.js?v=1789221372"></script>
-<script src="world.js?v=1789221372"></script>
+<script src="config.js?v=1789225352"></script>
+<script src="abis.js?v=1789225352"></script>
+<script src="app.js?v=1789225352"></script>
+<script src="wallet-appkit.js?v=1789225352"></script>
+<script src="launch-modal.js?v=1789225352"></script>
+<script src="footer.js?v=1789225352"></script>
+<script src="firebase-config.js?v=1789225352"></script>
+<script src="world-data.js?v=1789225352"></script>
+<script src="world.js?v=1789225352"></script>
 </body>
 </html>
