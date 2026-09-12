@@ -84,10 +84,12 @@ const CONFIG = {
   INSTANT_HOME_ALLOCATION_BPS: 800,
 
   // World map rules (world.html). Capitals are launched paired with
-  // $HOMEPAD. Purely market-cap gated, no time window: whenever a
-  // capital's current market cap is under WORLD_RESET_MCAP_USD, anyone
-  // can pay WORLD_RESET_FEE_HOMEPAD ($HOMEPAD, sent to the $HOME
-  // treasury) and launch the capital again, taking it over.
+  // $HOMEPAD. Market-cap gated: once a claim is past WORLD_RESET_GRACE_SEC
+  // old (a short sniping-protection window, not a real deadline) AND its
+  // current market cap is under WORLD_RESET_MCAP_USD, anyone can pay
+  // WORLD_RESET_FEE_HOMEPAD ($HOMEPAD, sent to the $HOME treasury) and
+  // launch the capital again, taking it over.
+  WORLD_RESET_GRACE_SEC: 300,
   WORLD_RESET_MCAP_USD: 50000,
   WORLD_RESET_FEE_HOMEPAD: "2000000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 

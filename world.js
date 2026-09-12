@@ -24,6 +24,7 @@ const worldLogoUrl = (c) => `${WORLD_LOGO_BASE}${c.iso2}.svg`;
 const worldDescription = (c) => `HOMETOWN · ${c.name} (${c.iso2}) · capital: ${c.capital}. One coin per capital on the HOMEPAD World map, paired with $HOMEPAD.`;
 const RESET_FEE = () => ethers.parseUnits(String(CONFIG.WORLD_RESET_FEE_HOMEPAD || "2000000"), 18);
 const RESET_MCAP = () => Number(CONFIG.WORLD_RESET_MCAP_USD || 50000);
+const GRACE = () => Number(CONFIG.WORLD_RESET_GRACE_SEC || 300); // short sniping-protection window, not a real deadline
 const quoteCfg = () => CONFIG.HOMEPAD_QUOTE;
 
 const W = {
@@ -45,11 +46,16 @@ async function blockTs(blockNumber) {
   W.tsCache.set(blockNumber, ts);
   return ts;
 }
-// Purely market-cap gated — no time window. A capital is either resettable
-// (under the threshold, right now) or protected (at/above it); there is no
-// third "still within a grace period" state.
-function isResettable(entry) { return entry.marketCapUsd == null || entry.marketCapUsd < RESET_MCAP(); }
+const nowSec = () => Math.floor(Date.now() / 1000);
+function claimAge(entry) { return nowSec() - Number(entry.launchedAt); }
+function isInGrace(entry) { return claimAge(entry) < GRACE(); } // just claimed — can't be reset yet regardless of mcap
+// Resettable requires BOTH: past the short grace window, AND currently
+// under the mcap threshold. "Protected" is everything else (either still
+// fresh, or genuinely above the threshold) — a claim always shows as one
+// or the other, never neither.
+function isResettable(entry) { return !isInGrace(entry) && (entry.marketCapUsd == null || entry.marketCapUsd < RESET_MCAP()); }
 function isProtected(entry) { return !isResettable(entry); }
+function fmtDur(sec) { sec = Math.max(0, Math.floor(sec)); const m = Math.floor(sec / 60), s = sec % 60; return m ? `${m}m ${s}s` : `${s}s`; }
 
 // ---------- Claims (chain-derived, with reset resolution) ----------
 async function loadWorldClaims() {
@@ -73,10 +79,9 @@ async function loadWorldClaims() {
     let holder = list[0];
     const history = [holder];
     for (const cand of list.slice(1)) {
-      // Takes over iff the reset fee was paid sometime after the current
-      // holder's claim and before this candidate's own launch — no minimum
-      // gap required.
-      if (await resetFeePaid(cand.creator, Number(holder.launchedAt), Number(cand.launchedAt))) {
+      // Takes over iff the reset fee was paid after the holder's own grace
+      // window closed and before this candidate's own launch.
+      if (await resetFeePaid(cand.creator, Number(holder.launchedAt) + GRACE(), Number(cand.launchedAt))) {
         holder = cand; history.push(cand);
       }
     }
@@ -262,7 +267,9 @@ function renderWorldList() {
     const cl = W.claims.get(c.iso2); const e = cl && cl.entry;
     let right;
     if (!e) right = `<span class="world-row-open">open</span>`;
-    else if (isProtected(e)) right = `<span class="world-row-mcap">${fmtUsd(e.marketCapUsd)}</span><span class="world-row-sub">🔒 protected · ${timeAgo(e.launchedAt)}</span>`;
+    else if (isProtected(e)) right = isInGrace(e)
+      ? `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub">🌱 just claimed · ${fmtDur(GRACE() - claimAge(e))}</span>`
+      : `<span class="world-row-mcap">${fmtUsd(e.marketCapUsd)}</span><span class="world-row-sub">🔒 protected · ${timeAgo(e.launchedAt)}</span>`;
     else right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub world-row-reset">↻ resettable</span>`;
     return `<button class="world-row ${e ? "is-claimed" : ""} ${e && isResettable(e) ? "is-resettable" : ""}" data-iso="${c.iso2}">
       <img class="world-row-logo" src="world/logos/${c.iso2}.svg" alt="" loading="lazy">
@@ -289,7 +296,9 @@ function openClaim(c) {
   if (cl) {
     const e = cl.entry;
     const prot = isProtected(e), reset = isResettable(e);
-    const stateLabel = prot ? `🔒 Protected — at or above ${fmtUsd(RESET_MCAP())}` : `↻ Resettable — under ${fmtUsd(RESET_MCAP())} right now`;
+    const stateLabel = reset ? `↻ Resettable — under ${fmtUsd(RESET_MCAP())} right now`
+      : isInGrace(e) ? `🌱 Just claimed — resettable in ${fmtDur(GRACE() - claimAge(e))} if still under ${fmtUsd(RESET_MCAP())}`
+      : `🔒 Protected — at or above ${fmtUsd(RESET_MCAP())}`;
     $("claim-body").innerHTML = `
       <div class="claim-grid">
         <div class="stat-card"><div class="stat-label">Market cap</div><div class="stat-value">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</div><div class="stat-sub">${stateLabel}</div></div>
