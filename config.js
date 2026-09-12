@@ -91,7 +91,21 @@ const CONFIG = {
   // launch the capital again, taking it over.
   WORLD_RESET_GRACE_SEC: 300,
   WORLD_RESET_MCAP_USD: 50000,
-  WORLD_RESET_FEE_HOMEPAD: "2000000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
+  WORLD_RESET_FEE_HOMEPAD: "2000000",
+
+  // $NHOOD ("The World Game" companion token) has two separate
+  // deployments — a burn on either counts. A capital's current creator can
+  // burn NHOOD_MOTTO_BURN_AMOUNT (sent to the standard dead address, a real
+  // burn, not a payment to any treasury) to inscribe a short motto next to
+  // their capital's flag. The burn itself is verified on-chain; the motto
+  // TEXT is stored in Firestore (mottos/{iso2}) since arbitrary strings
+  // have nowhere to live on-chain without a dedicated registry contract —
+  // this needs firebase-config.js filled in to actually persist.
+  NHOOD_TOKEN_ADDRESSES: [
+    "0xC71D3b8df5A0a0B0C86C671549b4C99F08F2dD14", // Pons (paired USDG)
+    "0x9aDABf23ed66f01c9EAd70f3FaF5d8849Fd64B2B", // Pairex (priced in KRW)
+  ],
+  NHOOD_MOTTO_BURN_AMOUNT: "10000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
   // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the

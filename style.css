@@ -1576,11 +1576,23 @@ nav a{display:inline-flex;align-items:center;}
 .claim-term .dt{color:var(--ink-dim);flex:0 0 auto;}
 .claim-term .dd{text-align:right;}
 .claim-devbuy{display:block;font-size:.8rem;color:var(--ink-dim);margin-bottom:10px;}
-.claim-devbuy input{display:block;width:100%;margin-top:6px;}
+.claim-devbuy input{display:block;width:100%;margin-top:6px;background:var(--void);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--ink);font-family:'Sora';font-size:.85rem;}
+.claim-devbuy input:focus{outline:none;border-color:var(--green);}
 .claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
 .claim-actions{display:flex;gap:10px;flex-wrap:wrap;}
 .claim-actions .btn{flex:1 1 auto;text-align:center;}
 .status.success{background:rgba(57,255,136,.08);border:1px solid rgba(57,255,136,.3);color:var(--green);}
+/* Country motto — a short inscription burned in with $NHOOD, shown next
+   to the name wherever it appears. Distinct from the name itself so it
+   reads as a flourish someone added, not part of the coin's real name. */
+.motto-tag{color:var(--amber);font-style:italic;font-weight:500;font-size:.92em;}
+.claim-motto{margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,182,72,.3);}
+.claim-motto-head{font-family:'Silkscreen';font-size:.72rem;color:var(--amber);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;}
+.claim-motto input[type="text"],#motto-text{display:block;width:100%;margin-bottom:8px;background:var(--void);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--ink);font-family:'Sora';font-size:.85rem;}
+.claim-motto input:focus,#motto-text:focus{outline:none;border-color:var(--amber);}
+.claim-motto-row{display:flex;gap:8px;}
+.claim-motto-row select{background:var(--void);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:8px;font-family:'Sora';font-size:.8rem;flex:1 1 auto;min-width:0;}
+.claim-motto-row .btn{flex:0 0 auto;}
 .world-row-reset{color:var(--red) !important;}
 .world-row.is-resettable{border-color:rgba(255,107,107,.4);}
 .claim-reset{margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,107,107,.3);}

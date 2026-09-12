@@ -158,7 +158,7 @@ function renderWorldFeed() {
     <button class="world-row world-feed-row ${f.kind === "reset" ? "is-reset-event" : ""}" data-iso="${f.c.iso2}">
       <img class="world-row-logo" src="world/logos/${f.c.iso2}.svg" alt="" loading="lazy">
       <span class="world-row-main">
-        <span class="world-row-name">${f.c.flag} ${f.c.name} <span class="world-feed-badge ${f.kind}">${f.kind === "claim" ? "🏡 claimed" : "↻ reset"}</span></span>
+        <span class="world-row-name">${f.c.flag} ${nameWithMotto(f.c)} <span class="world-feed-badge ${f.kind}">${f.kind === "claim" ? "🏡 claimed" : "↻ reset"}</span></span>
         <span class="world-row-cap">$${f.c.ticker} · by <span class="mono-inline">${short(f.creator)}</span></span>
       </span>
       <span class="world-row-right">
@@ -187,7 +187,7 @@ function renderMyCapitals() {
     const status = isResettable(e) ? `<span class="world-row-sub world-row-reset">↻ at risk — under ${fmtUsd(RESET_MCAP())}</span>` : isInGrace(e) ? `<span class="world-row-sub">🌱 ${fmtDur(GRACE() - claimAge(e))} left in grace</span>` : `<span class="world-row-sub">🔒 protected</span>`;
     return `<button class="world-row is-claimed" data-iso="${iso2}">
       <img class="world-row-logo" src="world/logos/${iso2}.svg" alt="" loading="lazy">
-      <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}</span></span>
+      <span class="world-row-main"><span class="world-row-name">${c.flag} ${nameWithMotto(c)}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}</span></span>
       <span class="world-row-right"><span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span>${status}</span>
     </button>`;
   }).join("");
@@ -349,7 +349,8 @@ function capClass(c) {
 function chipText(c) {
   const cl = W.claims.get(c.iso2); if (!cl) return "";
   const e = cl.entry;
-  return `${c.flag} ${c.capital}${e.marketCapUsd != null ? " · " + fmtUsd(e.marketCapUsd) : ""}`;
+  const motto = mottoFor(c.iso2);
+  return `${c.flag} ${c.capital}${motto ? " 『" + motto + "』" : ""}${e.marketCapUsd != null ? " · " + fmtUsd(e.marketCapUsd) : ""}`;
 }
 function sizeChips(g) {
   g.selectAll(".w-cap").each(function (c) {
@@ -390,7 +391,7 @@ function renderWorldList() {
     else right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub world-row-reset">↻ resettable</span>`;
     return `<button class="world-row ${e ? "is-claimed" : ""} ${e && isResettable(e) ? "is-resettable" : ""}" data-iso="${c.iso2}">
       <img class="world-row-logo" src="world/logos/${c.iso2}.svg" alt="" loading="lazy">
-      <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}${cl && cl.resets ? ` · reset ×${cl.resets}` : ""}</span></span>
+      <span class="world-row-main"><span class="world-row-name">${c.flag} ${nameWithMotto(c)}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}${cl && cl.resets ? ` · reset ×${cl.resets}` : ""}</span></span>
       <span class="world-row-right">${right}</span>
     </button>`;
   }).join("") || `<div class="empty-state">Nothing matches.</div>`;
@@ -398,13 +399,24 @@ function renderWorldList() {
 }
 
 // ---------- Claim modal ----------
+/// Smoothly pans/zooms the map to center on a country's capital — used by
+/// search (unique match, or Enter) so the search bar doubles as "go to".
+function flyToCountry(c) {
+  if (!W.map || !c) return;
+  const { svg, proj, zoom } = W.map;
+  const [px, py] = proj(c.lnglat);
+  const width = 1000, height = 540;
+  const k = 3.5;
+  svg.transition().duration(700).call(zoom.transform, d3.zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k));
+}
+
 function openClaim(c) {
   const modal = document.getElementById("claim-modal");
   const $ = (id) => document.getElementById(id);
   $("claim-logo").src = `world/logos/${c.iso2}.svg`;
   $("claim-flag").textContent = c.flag;
   $("claim-title").textContent = c.capital;
-  $("claim-sub").textContent = `${c.name}${c.nameKo ? " · " + c.nameKo : ""} · ${c.region}`;
+  $("claim-sub").innerHTML = `${nameWithMotto(c)}${c.nameKo ? " · " + c.nameKo : ""} · ${c.region}`;
   $("claim-status").innerHTML = "";
   const cl = W.claims.get(c.iso2);
   const q = quoteCfg();
@@ -431,8 +443,24 @@ function openClaim(c) {
         <p class="hint">${c.capital}'s current coin is under ${fmtUsd(RESET_MCAP())} market cap right now. Pay <b>${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol}</b> (to the $HOME treasury) and ${c.capital} launches again — with you as the creator. The old coin keeps trading; the map moves to the new one.</p>
         <label class="claim-devbuy">Dev buy ($${q.symbol}) <span class="optional">optional</span><input id="claim-devbuy" type="number" min="0" step="1" placeholder="0"></label>
         <div class="claim-actions"><button class="btn btn-primary" id="claim-go">Pay ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol} & reset ${c.capital}</button></div>
+      </div>` : ""}
+      ${state.account && e.creator && e.creator.toLowerCase() === state.account.toLowerCase() ? `
+      <div class="claim-motto">
+        <div class="claim-motto-head">🔥 Inscribe a motto</div>
+        <p class="hint">Burn ${Number(CONFIG.NHOOD_MOTTO_BURN_AMOUNT).toLocaleString()} $NHOOD (either deployment) to set the short line shown next to ${c.capital}'s flag${mottoFor(c.iso2) ? ` — currently 『${escapeHtml(mottoFor(c.iso2))}』` : ""}. Doesn't touch the coin's name or ticker.</p>
+        <input id="motto-text" maxlength="40" placeholder="e.g. Home of $HOME" value="${escapeHtml(mottoFor(c.iso2) || "")}">
+        <div class="claim-motto-row">
+          <select id="motto-token">
+            <option value="${CONFIG.NHOOD_TOKEN_ADDRESSES[0]}">$NHOOD (Pons)</option>
+            <option value="${CONFIG.NHOOD_TOKEN_ADDRESSES[1]}">$NHOOD (Pairex)</option>
+          </select>
+          <button class="btn btn-primary" id="motto-go">Burn & inscribe</button>
+        </div>
+        <div id="motto-status"></div>
       </div>` : ""}`;
     if (reset && live) $("claim-go").addEventListener("click", () => submitClaim(c, { reset: true }));
+    const mottoBtn = $("motto-go");
+    if (mottoBtn) mottoBtn.addEventListener("click", () => submitMotto(c, $("motto-text").value));
   } else {
     $("claim-body").innerHTML = `
       <div class="claim-terms">
@@ -521,7 +549,15 @@ async function submitClaim(c, opts) {
     await loadWorldClaims();
     const e = W.claims.get(c.iso2)?.entry;
     recordClaimInFirebase(c, e, receipt, reset).catch(() => {});
-    status.innerHTML = `<div class="status success">🏡 ${c.capital} is yours. <a href="explore.html#/token/${e ? e.token : ""}">Open $${c.ticker} →</a></div>`;
+    const shareText = reset
+      ? `🏡 I just took ${c.capital} on HOMEPAD's World map.\n\n$${c.ticker} — one coin per capital, verified on-chain.`
+      : `🏡 I just claimed ${c.capital} on HOMEPAD's World map.\n\n$${c.ticker} — one coin per capital, verified on-chain.`;
+    const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent("https://homepad.fun/world")}`;
+    status.innerHTML = `<div class="status success">🏡 ${c.capital} is yours.</div>
+      <div class="claim-actions" style="margin-top:10px">
+        <a class="btn btn-primary" href="explore.html#/token/${e ? e.token : ""}">Open $${c.ticker} →</a>
+        <a class="btn" href="${shareUrl}" target="_blank" rel="noopener">Share on X</a>
+      </div>`;
     renderAll();
     loadWorldFeed().then(renderWorldFeed).catch((err) => console.error("feed refresh failed", err));
   } catch (err) {
@@ -543,9 +579,9 @@ async function sendTokenTransfer(token, to, amount) {
   return tx;
 }
 
-// ---------- Firebase (optional, write-only record) ----------
-async function recordClaimInFirebase(c, e, receipt, reset) {
-  if (!window.FIREBASE_CONFIG || !e) return;
+// ---------- Firebase (optional) ----------
+async function ensureFirebase() {
+  if (!window.FIREBASE_CONFIG) return null;
   if (!window.firebase) {
     await Promise.all([
       "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
@@ -553,13 +589,99 @@ async function recordClaimInFirebase(c, e, receipt, reset) {
     ].map((src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); })));
   }
   if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+  return firebase.firestore();
+}
+
+async function recordClaimInFirebase(c, e, receipt, reset) {
+  const db = await ensureFirebase();
+  if (!db || !e) return;
   const doc = {
     iso2: c.iso2, name: c.name, capital: c.capital, ticker: c.ticker,
     token: e.token, creator: e.creator, txHash: receipt.hash, launchedAt: e.launchedAt,
     reset: !!reset, recordedAt: Date.now(),
   };
-  const db = firebase.firestore();
   await db.collection("claims").doc(c.iso2).set(doc, { merge: false }).catch(() => db.collection("claims").doc(`${c.iso2}-${Date.now()}`).set(doc));
+}
+
+// ---------- $NHOOD mottos ----------
+// A short inscription next to a capital's flag, unlocked by burning NHOOD.
+// The burn is real and checked on-chain at submit time; the motto TEXT is
+// read straight from Firestore after that (not re-verified per read — the
+// same trust boundary the reset mcap check already has, see README).
+W.mottos = new Map(); // iso2 -> { text, owner }
+
+async function loadMottos() {
+  const db = await ensureFirebase();
+  if (!db) { W.mottos = new Map(); return; }
+  try {
+    const snap = await db.collection("mottos").get();
+    const m = new Map();
+    snap.forEach((doc) => { const d = doc.data(); if (d && d.text) m.set(doc.id, d); });
+    W.mottos = m;
+  } catch (err) { console.warn("loadMottos failed", err); }
+}
+
+function mottoFor(iso2) { const m = W.mottos.get(iso2); return m ? m.text : null; }
+
+// Motto text is arbitrary user input stored in Firestore and interpolated
+// into innerHTML in several places (list rows, the claim modal, the
+// motto input's own value attribute) — escaped everywhere it lands, since
+// none of that trusts Firestore content as safe markup.
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+/// Country name + motto, e.g. South Korea『Home of $HOME』 — used
+/// everywhere a country name is shown, so setting one shows up map-wide.
+function nameWithMotto(c) {
+  const m = mottoFor(c.iso2);
+  return m ? `${c.name}<span class="motto-tag">『${escapeHtml(m)}』</span>` : c.name;
+}
+
+/// Verifies a >= NHOOD_MOTTO_BURN_AMOUNT burn (Transfer to the dead
+/// address) from `who`, on either $NHOOD deployment, with a block
+/// timestamp at/after `sinceTs`. Same pattern as the World reset fee.
+async function nhoodBurnPaid(who, sinceTs) {
+  const need = ethers.parseUnits(String(CONFIG.NHOOD_MOTTO_BURN_AMOUNT || "10000"), 18);
+  for (const addr of CONFIG.NHOOD_TOKEN_ADDRESSES || []) {
+    try {
+      const t = tokenRead(addr);
+      const fromBlock = await firstHomepadBlock();
+      const evs = await withRetry(() => t.queryFilter(t.filters.Transfer(who, BURN_ADDRESS), fromBlock, "latest"));
+      for (const ev of evs) {
+        if (ev.args.value < need) continue;
+        const ts = await blockTs(ev.blockNumber);
+        if (ts >= sinceTs) return { ok: true, txHash: ev.transactionHash, tokenAddress: addr };
+      }
+    } catch (err) { console.warn("nhood burn check failed for", addr, err); }
+  }
+  return { ok: false };
+}
+
+async function submitMotto(c, text) {
+  const statusEl = document.getElementById("motto-status");
+  text = text.trim().slice(0, 40);
+  if (!text) { statusEl.innerHTML = `<div class="status error">Type something first.</div>`; return; }
+  if (!window.FIREBASE_CONFIG) { statusEl.innerHTML = `<div class="status error">Mottos aren't set up yet on this deployment (firebase-config.js is empty) — the burn works, but there's nowhere to save the text.</div>`; return; }
+  const tokenAddr = document.getElementById("motto-token").value;
+  try {
+    statusEl.innerHTML = `<div class="status pending">Confirm the ${Number(CONFIG.NHOOD_MOTTO_BURN_AMOUNT).toLocaleString()} $NHOOD burn in your wallet…</div>`;
+    const since = nowSec();
+    const burnTx = await sendTokenTransfer(tokenAddr, BURN_ADDRESS, ethers.parseUnits(String(CONFIG.NHOOD_MOTTO_BURN_AMOUNT || "10000"), 18));
+    statusEl.innerHTML = `<div class="status pending">Burning… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${burnTx.hash}" target="_blank">tx ↗</a></div>`;
+    await burnTx.wait();
+    const db = await ensureFirebase();
+    await db.collection("mottos").doc(c.iso2).set({
+      text, owner: state.account, txHash: burnTx.hash, tokenAddress: tokenAddr, iso2: c.iso2, setAt: Date.now(),
+    });
+    W.mottos.set(c.iso2, { text, owner: state.account });
+    statusEl.innerHTML = `<div class="status success">🏡 Inscribed. <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${burnTx.hash}" target="_blank">tx ↗</a></div>`;
+    renderAll();
+    openClaim(c); // refresh the modal so the new motto shows immediately
+  } catch (err) {
+    console.error(err);
+    statusEl.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div>`;
+  }
 }
 
 // ---------- Boot ----------
@@ -580,14 +702,32 @@ function renderAll() {
 (async () => {
   document.getElementById("claim-close").addEventListener("click", closeClaim);
   document.getElementById("claim-modal").addEventListener("click", (e) => { if (e.target.id === "claim-modal") closeClaim(); });
-  document.getElementById("w-search").addEventListener("input", (e) => { W.query = e.target.value; renderWorldList(); });
+  const searchInput = document.getElementById("w-search");
+  searchInput.addEventListener("input", (e) => {
+    W.query = e.target.value;
+    renderWorldList();
+    // A search that narrows to exactly one country flies the map there —
+    // typing "France" should feel like using the map, not just the list.
+    const q = W.query.trim().toLowerCase();
+    if (q.length < 2) return;
+    const matches = W.countries.filter((c) => `${c.name} ${c.nameKo} ${c.capital} ${c.iso2} ${c.iso3}`.toLowerCase().includes(q));
+    if (matches.length === 1) flyToCountry(matches[0]);
+  });
+  searchInput.addEventListener("keydown", (e) => {
+    // Enter jumps to the top match even with several results still showing.
+    if (e.key !== "Enter") return;
+    const q = W.query.trim().toLowerCase();
+    if (!q) return;
+    const rows = document.querySelectorAll("#w-list .world-row");
+    if (rows.length) flyToCountry(W.byIso.get(rows[0].dataset.iso));
+  });
   document.getElementById("w-filters").addEventListener("click", (e) => {
     const chip = e.target.closest(".filter-chip"); if (!chip) return;
     document.querySelectorAll("#w-filters .filter-chip").forEach((x) => x.classList.remove("active"));
     chip.classList.add("active"); W.filter = chip.dataset.f; renderWorldList();
   });
   renderWorldList();
-  try { await loadWorldClaims(); } catch (err) { console.error("claims failed", err); }
+  try { await Promise.all([loadWorldClaims(), loadMottos()]); } catch (err) { console.error("claims/mottos failed", err); }
   await renderWorldMap();
   renderAll();
   try { await loadWorldFeed(); renderWorldFeed(); } catch (err) { console.error("feed failed", err); }

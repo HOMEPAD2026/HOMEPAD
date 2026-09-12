@@ -57,7 +57,9 @@ The map's source of truth is the chain, not a database: `world.js` re-derives ev
 
 **Firebase is optional.** `firebase-config.js` ships as `null` and the map works without it. Filling it in makes the site record each claim/reset to Firestore (`claims/{iso2}`, create-only per `firestore.rules`) for the features that will need a database: wallet login, governance votes, city unlocks. The map never trusts Firestore over the factory.
 
-Planned: once a capital passes a market-cap milestone, its country's other cities open to claim; a registry contract to make the reset rule fully on-chain-verifiable.
+**$NHOOD mottos.** A capital's current owner can burn `NHOOD_MOTTO_BURN_AMOUNT` $NHOOD (either of its two deployments — Pons and Pairex have separate contracts, `NHOOD_TOKEN_ADDRESSES` lists both) to inscribe a short line shown next to the flag everywhere the name appears — list rows, the activity feed, the claim modal. The burn itself (a real `Transfer` to the standard dead address) is verified on-chain at submit time the same way the reset fee is; the motto *text* is stored in Firestore (`mottos/{iso2}`) rather than re-verified on every read, since arbitrary strings have nowhere to live on-chain without a dedicated contract — the same trust boundary the reset mcap check already has. Needs `firebase-config.js` filled in to actually persist; the burn still happens either way.
+
+Planned: once a capital passes a market-cap milestone, its country's other cities open to claim; a registry contract to make the reset rule (and motto storage) fully on-chain-verifiable.
 
 ## What it does
 
