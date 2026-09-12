@@ -211,11 +211,23 @@ function renderWorldStats() {
 }
 
 // ---------- Map ----------
+const TOPO_CACHE_KEY = "homepad.world.topo.v1"; // bump the suffix if the source URL/version ever changes
+
+async function fetchWorldTopo() {
+  try {
+    const cached = localStorage.getItem(TOPO_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch { /* corrupt cache or storage blocked — just refetch below */ }
+  const topo = await (await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")).json();
+  try { localStorage.setItem(TOPO_CACHE_KEY, JSON.stringify(topo)); } catch { /* quota or private mode — fine, just won't cache */ }
+  return topo;
+}
+
 async function renderWorldMap() {
   const host = document.getElementById("world-map");
   let topo;
   try {
-    topo = await (await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")).json();
+    topo = await fetchWorldTopo();
   } catch (err) {
     host.innerHTML = `<div class="empty-state">Couldn't load the map data. <span class="err-detail">${String(err && err.message || err)}</span></div>`;
     return;
@@ -727,10 +739,15 @@ function renderAll() {
     chip.classList.add("active"); W.filter = chip.dataset.f; renderWorldList();
   });
   renderWorldList();
-  try { await Promise.all([loadWorldClaims(), loadMottos()]); } catch (err) { console.error("claims/mottos failed", err); }
-  await renderWorldMap();
+  const dataLoad = (async () => { try { await Promise.all([loadWorldClaims(), loadMottos()]); } catch (err) { console.error("claims/mottos failed", err); } })();
+  // Map geometry (an external ~150KB fetch, cached after the first visit)
+  // and the claims/mottos RPC calls have no dependency on each other until
+  // the coloring pass right after — run them at the same time instead of
+  // one after the other, which is most of what "Drawing the map…" sat
+  // through before.
+  await Promise.all([renderWorldMap(), dataLoad]);
   renderAll();
-  try { await loadWorldFeed(); renderWorldFeed(); } catch (err) { console.error("feed failed", err); }
+  loadWorldFeed().then(renderWorldFeed).catch((err) => console.error("feed failed", err)); // needs W.claims, not the map — doesn't need to block anything further
   // keep the "left to reach" countdowns and My Capitals status honest without refetching
   setInterval(() => { renderWorldList(); renderMyCapitals(); }, 30000);
 })();
