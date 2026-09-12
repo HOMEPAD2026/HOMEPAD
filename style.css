@@ -1584,6 +1584,20 @@ nav a{display:inline-flex;align-items:center;}
 .status.success{background:rgba(57,255,136,.08);border:1px solid rgba(57,255,136,.3);color:var(--green);}
 /* ---- World hero: tutorial button ---- */
 .world-hero{position:relative;}
+.world-nhood-pill{
+  display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:100px;
+  padding:7px 7px 7px 16px;font-family:monospace;font-size:.76rem;
+}
+.world-nhood-label{font-family:'Silkscreen';font-size:.62rem;color:var(--ink-dim);letter-spacing:.03em;}
+.world-nhood-ca{color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+.world-nhood-burns{margin-top:22px;}
+.nhood-burn-total-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;margin-bottom:10px;}
+.nhood-burn-total-card .stat-value{font-family:'Silkscreen';font-size:1.3rem;color:var(--red);margin:4px 0;}
+.nhood-burn-list{display:flex;flex-direction:column;gap:6px;}
+.nhood-burn-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:'Sora';font-size:.82rem;}
+.nhood-burn-ord{color:var(--ink-dim);flex:0 0 auto;min-width:64px;}
+.nhood-burn-amt{flex:1 1 auto;font-weight:700;color:var(--ink);}
 .world-help-btn{
   position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;
   background:var(--panel);border:1px solid var(--line);border-radius:100px;

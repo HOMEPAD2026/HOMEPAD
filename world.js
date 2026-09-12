@@ -19,6 +19,17 @@
 // contract (planned). Firebase, when configured, records claims/resets
 // with a mcap snapshot for that future step.
 
+/// Shared with the homepage's $HOME/$HOMEPAD pills — world.html doesn't
+/// load home-stats.js (it also drives the price chart/carousel, unrelated
+/// here), so this is a local copy rather than pulling that whole file in.
+function copyCA(address, btnId) {
+  navigator.clipboard.writeText(address);
+  const btn = document.getElementById(btnId);
+  const original = btn.textContent;
+  btn.textContent = "copied!";
+  setTimeout(() => (btn.textContent = original), 1500);
+}
+
 const WORLD_LOGO_BASE = "https://homepad.fun/world/logos/";
 const worldLogoUrl = (c) => `${WORLD_LOGO_BASE}${c.iso2}.svg`;
 const worldDescription = (c) => `HOMETOWN · ${c.name} (${c.iso2}) · capital: ${c.capital}. One coin per capital on the HOMEPAD World map, paired with $HOMEPAD.`;
@@ -106,6 +117,43 @@ async function resetFeePaid(who, fromTs, toTs) {
     }
   } catch (err) { console.warn("resetFeePaid check failed", err); }
   return false;
+}
+
+// ---------- $NHOOD burns (read live from both deployments, not typed in) ----------
+async function loadNhoodBurns() {
+  const rows = [];
+  for (const addr of CONFIG.NHOOD_TOKEN_ADDRESSES || []) {
+    try {
+      const t = tokenRead(addr);
+      const fromBlock = await firstHomepadBlock();
+      const evs = await withRetry(() => t.queryFilter(t.filters.Transfer(null, BURN_ADDRESS), fromBlock, "latest"));
+      for (const ev of evs) rows.push({ amount: ev.args.value, txHash: ev.transactionHash, blockNumber: ev.blockNumber });
+    } catch (err) { console.warn("nhood burn feed failed for", addr, err); }
+  }
+  const blocks = [...new Set(rows.map((r) => r.blockNumber))];
+  const times = await Promise.all(blocks.map((bn) => blockTs(bn)));
+  const timeByBlock = new Map(blocks.map((bn, i) => [bn, times[i]]));
+  for (const r of rows) r.ts = timeByBlock.get(r.blockNumber);
+  rows.sort((a, b) => a.ts - b.ts); // oldest first — "1st burn / 2nd burn / …" reads naturally
+  const total = rows.reduce((s, r) => s + r.amount, 0n);
+  W.nhoodBurns = { total, rows };
+  return W.nhoodBurns;
+}
+
+function renderNhoodBurns() {
+  const section = document.getElementById("w-nhood-burns");
+  const b = W.nhoodBurns;
+  if (!b || !b.rows.length) { section.style.display = "none"; return; }
+  section.style.display = "";
+  document.getElementById("nhood-burn-total").textContent = fmtCompact(Number(ethers.formatUnits(b.total, 18))) + " $NHOOD";
+  document.getElementById("w-nhood-burn-count").textContent = `${b.rows.length} burn${b.rows.length === 1 ? "" : "s"}`;
+  const ordinal = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+  document.getElementById("nhood-burn-list").innerHTML = b.rows.map((r, i) => `
+    <div class="nhood-burn-row">
+      <span class="nhood-burn-ord">${ordinal(i + 1)} burn</span>
+      <span class="nhood-burn-amt">${fmtCompact(Number(ethers.formatUnits(r.amount, 18)))} $NHOOD</span>
+      <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${r.txHash}" target="_blank" rel="noopener">tx</a>
+    </div>`).join("");
 }
 
 // ---------- Recent activity feed (real Launched events, both factories) ----------
@@ -712,6 +760,7 @@ function renderAll() {
 }
 
 (async () => {
+  document.getElementById("nhood-buy-link").href = CONFIG.NHOOD_PAIREX_BUY_URL;
   document.getElementById("claim-close").addEventListener("click", closeClaim);
   document.getElementById("claim-modal").addEventListener("click", (e) => { if (e.target.id === "claim-modal") closeClaim(); });
 
@@ -764,6 +813,7 @@ function renderAll() {
   await Promise.all([renderWorldMap(), dataLoad]);
   renderAll();
   loadWorldFeed().then(renderWorldFeed).catch((err) => console.error("feed failed", err)); // needs W.claims, not the map — doesn't need to block anything further
+  loadNhoodBurns().then(renderNhoodBurns).catch((err) => console.error("nhood burns failed", err));
   // keep the "left to reach" countdowns and My Capitals status honest without refetching
   setInterval(() => { renderWorldList(); renderMyCapitals(); }, 30000);
 })();

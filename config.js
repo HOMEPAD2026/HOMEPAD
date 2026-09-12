@@ -105,7 +105,8 @@ const CONFIG = {
     "0xC71D3b8df5A0a0B0C86C671549b4C99F08F2dD14", // Pons (paired USDG)
     "0x9aDABf23ed66f01c9EAd70f3FaF5d8849Fd64B2B", // Pairex (priced in KRW)
   ],
-  NHOOD_MOTTO_BURN_AMOUNT: "10000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
+  NHOOD_MOTTO_BURN_AMOUNT: "10000",
+  NHOOD_PAIREX_BUY_URL: "https://pairex.market/c/0x9adabf23ed66f01c9ead70f3faf5d8849fd64b2b", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
   // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the

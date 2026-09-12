@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789226034">
+<link rel="stylesheet" href="style.css?v=1789235848">
 </head>
 <body>
 
@@ -44,6 +44,12 @@
     <span class="pixel eyebrow-chip alt">one coin per capital</span>
     <h1 class="pixel">the world, one home at a time.</h1>
     <p class="lede">Every capital on the map has exactly one coin. Claim one and it's yours: the country is the name, the capital is the ticker, and the coin is a real HOMEPAD launch — a Uniswap v4 pool from block one, liquidity locked forever, 70% of every trade's rent to you. The map keeps score.</p>
+    <div class="world-nhood-pill">
+      <span class="world-nhood-label">$NHOOD</span>
+      <span class="world-nhood-ca" id="nhood-ca">0x9aDABf23ed66f01c9EAd70f3FaF5d8849Fd64B2B</span>
+      <button class="btn-copy" id="nhood-copy-btn" onclick="copyCA(CONFIG.NHOOD_TOKEN_ADDRESSES[1], 'nhood-copy-btn')">copy</button>
+      <a class="btn-copy" id="nhood-buy-link" href="#" target="_blank" rel="noopener">buy on Pairex</a>
+    </div>
   </div>
 
   <div class="world-stats" id="world-stats">
@@ -60,6 +66,17 @@
     </div>
     <div class="world-map" id="world-map"><div class="empty-state" id="world-map-loading">Drawing the map…</div></div>
     <p class="world-hint">Tap a capital. Pinch or scroll to zoom, drag to pan.</p>
+  </section>
+
+  <!-- $NHOOD burns — read live from both deployments, hidden if there are none -->
+  <section class="world-nhood-burns" id="w-nhood-burns" style="display:none">
+    <div class="rent-section-head"><h3>$NHOOD burns</h3><span class="rent-section-count" id="w-nhood-burn-count"></span></div>
+    <div class="nhood-burn-total-card">
+      <div class="stat-label">Total burned</div>
+      <div class="stat-value" id="nhood-burn-total">···</div>
+      <div class="stat-sub">Sent on-chain to the dead address, read live from both $NHOOD contracts</div>
+    </div>
+    <div id="nhood-burn-list" class="nhood-burn-list"></div>
   </section>
 
   <!-- My Capitals: only shown once a wallet is connected -->
@@ -237,14 +254,14 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="config.js?v=1789226034"></script>
-<script src="abis.js?v=1789226034"></script>
-<script src="app.js?v=1789226034"></script>
-<script src="wallet-appkit.js?v=1789226034"></script>
-<script src="launch-modal.js?v=1789226034"></script>
-<script src="footer.js?v=1789226034"></script>
-<script src="firebase-config.js?v=1789226034"></script>
-<script src="world-data.js?v=1789226034"></script>
-<script src="world.js?v=1789226034"></script>
+<script src="config.js?v=1789235848"></script>
+<script src="abis.js?v=1789235848"></script>
+<script src="app.js?v=1789235848"></script>
+<script src="wallet-appkit.js?v=1789235848"></script>
+<script src="launch-modal.js?v=1789235848"></script>
+<script src="footer.js?v=1789235848"></script>
+<script src="firebase-config.js?v=1789235848"></script>
+<script src="world-data.js?v=1789235848"></script>
+<script src="world.js?v=1789235848"></script>
 </body>
 </html>
