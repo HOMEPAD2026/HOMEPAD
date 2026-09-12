@@ -220,7 +220,13 @@ async function initAppKit() {
   }
 
   try {
-    const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.4.1/dist/appkit.min.js");
+    // Pinned to a specific version on purpose (never @latest — that can change
+// under us with no warning) but this was stuck on 1.4.1, an ~11-month-old
+// build. allowUnsupportedChain (below) is documented AppKit behavior, but
+// 1.4.1 predates it — or has a bug in it — which is why the "Switch
+// Network" trap kept happening even with the option set correctly. Bumped
+// to a current stable release.
+const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js");
     const { createAppKit, WagmiAdapter, WagmiCore } = appkitCdn;
     WagmiCoreRef = WagmiCore;
 
