@@ -1494,9 +1494,11 @@ nav a{display:inline-flex;align-items:center;}
    fill alone wasn't enough at map scale, so it also gets a visibly
    thicker, glowing border (same filter used on the capital gem) so the
    outline itself lights up regardless of how small the shape is. */
-.w-land.is-claimed{stroke-width:1.6;filter:url(#w-glow);}
-.w-land.is-claimed.is-strong{fill:url(#w-claimed-fill);stroke:#ccff00;}
-.w-land.is-claimed.is-resettable{fill:rgba(255,90,90,.5);stroke:#ff6b6b;}
+/* Claimed territory is always the neon lime accent, regardless of
+   protected/resettable — resettable is signaled by the capital marker
+   (pulsing red gem) instead, so a claim never reads as a "warning"
+   color on the land itself. */
+.w-land.is-claimed{stroke-width:1.6;filter:url(#w-glow);fill:url(#w-claimed-fill);stroke:#ccff00;}
 .w-land.is-claimed:hover{filter:url(#w-glow) brightness(1.15);}
 .w-land.is-none{fill:#182a1f;cursor:default;}
 .w-borders{fill:none;stroke:#05090a;stroke-width:.6;pointer-events:none;}
