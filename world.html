@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World — HOMEPAD</title>
+<meta name="description" content="Every capital on the world map has one coin. Claim yours on HOMEPAD — country as the name, capital as the ticker, a real Uniswap v4 pool from block one.">
+<meta property="og:title" content="World — HOMEPAD">
+<meta property="og:description" content="Every capital on the world map has one coin. Claim yours.">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:url" content="https://homepad.fun/world.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="World — HOMEPAD">
+<meta name="twitter:description" content="Every capital on the world map has one coin. Claim yours.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789182707">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <a href="world.html" class="nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">World</a>
+      <a href="rent.html"><img class="nav-icon" src="images/gallery-gm.jpg" alt="">Rent</a>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<main class="wrap world-main">
+  <div class="world-hero">
+    <span class="pixel eyebrow-chip alt">one coin per capital</span>
+    <h1 class="pixel">the world, one home at a time.</h1>
+    <p class="lede">Every capital on the map has exactly one coin. Claim one and it's yours: the country is the name, the capital is the ticker, and the coin is a real HOMEPAD launch — a Uniswap v4 pool from block one, liquidity locked forever, 70% of every trade's rent to you. The map keeps score.</p>
+  </div>
+
+  <div class="world-stats" id="world-stats">
+    <div class="stat-card"><div class="stat-label">Claimed</div><div class="stat-value" id="w-claimed">···</div><div class="stat-sub" id="w-claimed-sub">of 197 capitals</div></div>
+    <div class="stat-card"><div class="stat-label">World economy</div><div class="stat-value" id="w-economy">···</div><div class="stat-sub">market cap of every claimed capital</div></div>
+    <div class="stat-card"><div class="stat-label">Biggest capital</div><div class="stat-value" id="w-top">···</div><div class="stat-sub" id="w-top-sub">by market cap</div></div>
+    <div class="stat-card"><div class="stat-label">Newest claim</div><div class="stat-value" id="w-newest">···</div><div class="stat-sub" id="w-newest-sub">—</div></div>
+  </div>
+
+  <section class="world-map-wrap">
+    <div class="world-map-tools">
+      <input id="w-search" class="world-search" placeholder="Search a country or capital…" autocomplete="off">
+      <div class="world-legend"><span class="lg lg-claimed">claimed</span><span class="lg lg-open">open</span></div>
+    </div>
+    <div class="world-map" id="world-map"><div class="empty-state" id="world-map-loading">Drawing the map…</div></div>
+    <p class="world-hint">Tap a capital. Pinch or scroll to zoom, drag to pan.</p>
+  </section>
+
+  <section class="world-list-wrap">
+    <div class="rent-section-head"><h3>Capitals</h3><span class="rent-section-count" id="w-list-count"></span></div>
+    <div class="world-filters" id="w-filters">
+      <span class="filter-chip active" data-f="all">All</span>
+      <span class="filter-chip" data-f="claimed">Claimed</span>
+      <span class="filter-chip" data-f="open">Open</span>
+    </div>
+    <div class="world-list" id="w-list"></div>
+  </section>
+
+  <section class="rent-home-leg">
+    <div class="rent-section-head"><h3>How claiming works</h3></div>
+    <div class="burn-how">
+      <div class="burn-how-item"><span class="burn-how-n pixel">1</span><div><strong>Pick an open capital.</strong><p>One coin per capital, first come first served. Once a capital is claimed there is no second Seoul.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">2</span><div><strong>Confirm the launch in your wallet.</strong><p>Name, ticker and logo are fixed by the map — you can't change them, which is what makes a claim provable. It's a normal Hybrid launch: no ETH needed, ~$7.5K starting cap.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">3</span><div><strong>It's on the map, and you're paid.</strong><p>70% of every trade's fee goes to your wallet inside the trade, 30% to $HOME. Liquidity is locked forever; there's no admin key. The map reads the chain, not a database.</p></div></div>
+    </div>
+    <p class="rent-section-note" style="margin-top:14px">Coming next: cities. Once a capital passes a market-cap milestone, its country's other cities open up to claim. <a href="mechanism.html#fees">Fees →</a></p>
+  </section>
+
+  <div class="rent-foot"><span class="pixel eyebrow-chip testing">🟢 live on Robinhood Chain mainnet</span></div>
+</main>
+
+<div id="footer-slot"></div>
+
+<!-- Claim modal -->
+<div class="modal-overlay" id="claim-modal" style="display:none">
+  <div class="modal-blob claim-card">
+    <button class="modal-close" id="claim-close" aria-label="Close">×</button>
+    <div class="claim-head">
+      <img id="claim-logo" class="claim-logo" alt="">
+      <div>
+        <div class="claim-flag" id="claim-flag"></div>
+        <h2 class="claim-title" id="claim-title">—</h2>
+        <div class="claim-sub" id="claim-sub">—</div>
+      </div>
+    </div>
+    <div id="claim-body"></div>
+    <div id="claim-status"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="config.js?v=1789182707"></script>
+<script src="abis.js?v=1789182707"></script>
+<script src="app.js?v=1789182707"></script>
+<script src="wallet-appkit.js?v=1789182707"></script>
+<script src="launch-modal.js?v=1789182707"></script>
+<script src="footer.js?v=1789182707"></script>
+<script src="firebase-config.js?v=1789182707"></script>
+<script src="world-data.js?v=1789182707"></script>
+<script src="world.js?v=1789182707"></script>
+</body>
+</html>

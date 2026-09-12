@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // World map claims: anyone can read; a claim can be created once per
+    // capital and never edited or deleted from the client. The chain is the
+    // source of truth — the site re-derives claims from the factory and only
+    // uses these records for features that need a database.
+    match /claims/{iso2} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['iso2','name','capital','ticker','token','creator','txHash','launchedAt'])
+                    && request.resource.data.iso2 == iso2
+                    && request.resource.data.token is string
+                    && request.resource.data.token.size() == 42;
+      allow update, delete: if false;
+    }
+  }
+}
