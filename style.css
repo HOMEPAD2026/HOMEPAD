@@ -1598,6 +1598,28 @@ nav a{display:inline-flex;align-items:center;}
 .nhood-burn-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:'Sora';font-size:.82rem;}
 .nhood-burn-ord{color:var(--ink-dim);flex:0 0 auto;min-width:64px;}
 .nhood-burn-amt{flex:1 1 auto;font-weight:700;color:var(--ink);}
+/* World Passport */
+.world-passport-wrap{margin-top:22px;}
+.passport-actions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;}
+.passport-bonus{font-size:.8rem;color:var(--amber);margin:6px 0 10px;}
+.passport-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.passport-stamp{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--void);border:1px dashed var(--line);border-radius:12px;padding:14px 8px;text-align:center;opacity:.5;}
+.passport-stamp.is-earned{opacity:1;border-style:solid;border-color:rgba(204,255,0,.5);background:rgba(204,255,0,.06);}
+.passport-stamp-flag{font-size:1.4rem;}
+.passport-stamp-name{font-size:.72rem;font-weight:700;color:var(--ink);}
+.passport-stamp-mark{font-family:'Silkscreen';font-size:.55rem;letter-spacing:.05em;color:var(--ink-dim);}
+.passport-stamp.is-earned .passport-stamp-mark{color:#ccff00;transform:rotate(-8deg);display:inline-block;}
+/* Leaderboard modal */
+.leaderboard-card{max-width:420px;text-align:left;}
+.leaderboard-title{margin:0 0 2px;font-size:1.15rem;}
+.leaderboard-sub{font-size:.78rem;color:var(--ink-dim);margin-bottom:14px;}
+.leaderboard-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;}
+.leaderboard-row{display:flex;align-items:center;gap:10px;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:'Sora';font-size:.82rem;}
+.leaderboard-row.is-bonus{border-color:rgba(204,255,0,.5);}
+.leaderboard-rank{font-family:'Silkscreen';font-size:.68rem;color:var(--ink-dim);flex:0 0 auto;width:28px;}
+.leaderboard-addr{font-family:monospace;flex:0 0 auto;}
+.leaderboard-flags{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.leaderboard-count{font-family:'Silkscreen';font-size:.72rem;color:#ccff00;flex:0 0 auto;}
 .world-help-btn{
   position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;
   background:var(--panel);border:1px solid var(--line);border-radius:100px;

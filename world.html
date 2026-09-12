@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789235848">
+<link rel="stylesheet" href="style.css?v=1789251516">
 </head>
 <body>
 
@@ -79,6 +79,19 @@
     <div id="nhood-burn-list" class="nhood-burn-list"></div>
   </section>
 
+  <!-- World Passport -->
+  <section class="world-passport-wrap">
+    <div class="rent-section-head"><h3>World Passport</h3><span class="rent-section-count" id="passport-count-label"></span></div>
+    <p class="rent-section-note">Hold <b style="color:var(--ink)">1%</b> or more of a claimed capital's coin and earn a permanent stamp for that country — it's yours even if you sell later. Stamps are meant to make you eligible for a future share of that capital's fees, and <b style="color:var(--ink)">5+ stamps</b> qualify for a bonus-reward event we're preparing — neither payout is live yet, this just tracks who qualifies.</p>
+    <div class="passport-actions">
+      <button class="btn btn-primary" id="passport-check-btn">Check my passport</button>
+      <button class="btn" id="leaderboard-btn">View stamp collectors</button>
+    </div>
+    <div id="passport-status"></div>
+    <div class="passport-bonus" id="passport-bonus"></div>
+    <div class="passport-grid" id="passport-grid"><div class="empty-state">Connect your wallet and tap "Check my passport."</div></div>
+  </section>
+
   <!-- My Capitals: only shown once a wallet is connected -->
   <section class="world-mine-wrap" id="w-mine-section" style="display:none">
     <div class="rent-section-head"><h3>My capitals</h3><span class="rent-section-count" id="w-mine-count"></span></div>
@@ -132,6 +145,16 @@
     </div>
     <div id="claim-body"></div>
     <div id="claim-status"></div>
+  </div>
+</div>
+
+<!-- Passport leaderboard -->
+<div class="modal-overlay" id="leaderboard-modal" style="display:none">
+  <div class="modal-blob leaderboard-card">
+    <button class="modal-close" id="leaderboard-close" aria-label="Close">×</button>
+    <h2 class="leaderboard-title">Stamp collectors</h2>
+    <div class="leaderboard-sub">Ranked by number of World Passport stamps.</div>
+    <div class="leaderboard-list" id="leaderboard-list"></div>
   </div>
 </div>
 
@@ -254,14 +277,14 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="config.js?v=1789235848"></script>
-<script src="abis.js?v=1789235848"></script>
-<script src="app.js?v=1789235848"></script>
-<script src="wallet-appkit.js?v=1789235848"></script>
-<script src="launch-modal.js?v=1789235848"></script>
-<script src="footer.js?v=1789235848"></script>
-<script src="firebase-config.js?v=1789235848"></script>
-<script src="world-data.js?v=1789235848"></script>
-<script src="world.js?v=1789235848"></script>
+<script src="config.js?v=1789251516"></script>
+<script src="abis.js?v=1789251516"></script>
+<script src="app.js?v=1789251516"></script>
+<script src="wallet-appkit.js?v=1789251516"></script>
+<script src="launch-modal.js?v=1789251516"></script>
+<script src="footer.js?v=1789251516"></script>
+<script src="firebase-config.js?v=1789251516"></script>
+<script src="world-data.js?v=1789251516"></script>
+<script src="world.js?v=1789251516"></script>
 </body>
 </html>

@@ -13,5 +13,30 @@ service cloud.firestore {
                     && request.resource.data.token.size() == 42;
       allow update, delete: if false;
     }
+
+    // \$NHOOD mottos: anyone can read; the current capital owner can set or
+    // replace their own capital's motto (short text, length-capped here —
+    // the on-chain \$NHOOD burn that's supposed to gate this can't be
+    // re-verified from a security rule, no RPC access here, so this is
+    // enforced by the frontend being honest, not by this rule).
+    match /mottos/{iso2} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasAll(['iso2','text','owner','txHash','tokenAddress'])
+                    && request.resource.data.iso2 == iso2
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() <= 40;
+      allow delete: if false;
+    }
+
+    // World Passport stamps: one doc per (address, iso2), created once and
+    // never edited or deleted — a stamp is permanent once earned. Same
+    // caveat as mottos: the >=1% balance check happens in the frontend,
+    // not in this rule, since a security rule can't call an RPC.
+    match /passportStamps/{stampId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['address','iso2','pct','earnedAt'])
+                    && stampId == request.resource.data.address + '_' + request.resource.data.iso2;
+      allow update, delete: if false;
+    }
   }
 }

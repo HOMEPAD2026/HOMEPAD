@@ -106,7 +106,17 @@ const CONFIG = {
     "0x9aDABf23ed66f01c9EAd70f3FaF5d8849Fd64B2B", // Pairex (priced in KRW)
   ],
   NHOOD_MOTTO_BURN_AMOUNT: "10000",
-  NHOOD_PAIREX_BUY_URL: "https://pairex.market/c/0x9adabf23ed66f01c9ead70f3faf5d8849fd64b2b", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
+  NHOOD_PAIREX_BUY_URL: "https://pairex.market/c/0x9adabf23ed66f01c9ead70f3faf5d8849fd64b2b",
+
+  // World Passport: holding >= PASSPORT_STAMP_PCT% of a claimed capital's
+  // coin supply earns a permanent stamp for that country (recorded once
+  // earned, in Firestore — needs firebase-config.js filled in, same as
+  // mottos). A stamp is meant to make you eligible for a future share of
+  // that capital's fees and, at PASSPORT_BONUS_STAMP_COUNT+ stamps, a
+  // planned bonus reward — neither payout mechanism is built yet; today
+  // this only tracks and displays who qualifies.
+  PASSPORT_STAMP_PCT: 1,
+  PASSPORT_BONUS_STAMP_COUNT: 5, // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
   // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the

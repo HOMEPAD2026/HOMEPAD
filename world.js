@@ -119,6 +119,133 @@ async function resetFeePaid(who, fromTs, toTs) {
   return false;
 }
 
+// ---------- World Passport ----------
+// A stamp for a capital = holding >= PASSPORT_STAMP_PCT% of that coin's
+// fixed 1B supply, at the moment you check. Once earned it's recorded to
+// Firestore and stays yours even if you later sell — same "permanent
+// once earned" idea as a real passport stamp. The live balance check
+// itself needs no Firestore (works on any deployment); only the
+// permanent record and the public leaderboard need firebase-config.js
+// filled in.
+//
+// Trust boundary, stated plainly: the frontend checks the real on-chain
+// balance honestly before writing a stamp, but Firestore's own rules
+// can't independently re-verify a balance (no RPC access from a security
+// rule) — so today this is enforced by this code being honest, not by
+// something unbreakable. That's fine while stamps are just a badge; it
+// needs closing (a server-side check, or a small registry contract)
+// before any real fee-eligibility or bonus reward pays out against it.
+const TOTAL_SUPPLY_WEI = 1_000_000_000n * 10n ** 18n;
+
+async function loadMyStamps(address) {
+  const db = await ensureFirebase();
+  if (!db || !address) return new Set();
+  try {
+    const snap = await db.collection("passportStamps").where("address", "==", address.toLowerCase()).get();
+    return new Set(snap.docs.map((d) => d.data().iso2));
+  } catch (err) { console.warn("loadMyStamps failed", err); return new Set(); }
+}
+
+async function checkMyPassport() {
+  const statusEl = document.getElementById("passport-status");
+  if (!state.account) {
+    statusEl.innerHTML = `<div class="status pending">Connect a wallet first…</div>`;
+    await connectWallet();
+    if (!state.account) { statusEl.innerHTML = `<div class="status error">Connect a wallet to check your passport.</div>`; return; }
+  }
+  statusEl.innerHTML = `<div class="status pending">Checking your balance against every claimed capital…</div>`;
+  try {
+    const claimed = [...W.claims.entries()];
+    const balances = await Promise.all(claimed.map(([, cl]) => withRetry(() => tokenRead(cl.entry.token).balanceOf(state.account)).catch(() => 0n)));
+    const qualifies = [];
+    claimed.forEach(([iso2], i) => {
+      const pct = Number((balances[i] * 10000n) / TOTAL_SUPPLY_WEI) / 100;
+      if (pct >= (CONFIG.PASSPORT_STAMP_PCT || 1)) qualifies.push({ iso2, pct });
+    });
+    const existing = await loadMyStamps(state.account);
+    const fresh = qualifies.filter((q) => !existing.has(q.iso2));
+    const db = await ensureFirebase();
+    if (db && fresh.length) {
+      await Promise.all(fresh.map((q) => db.collection("passportStamps").doc(`${state.account.toLowerCase()}_${q.iso2}`).set({
+        address: state.account.toLowerCase(), iso2: q.iso2, pct: q.pct, earnedAt: Date.now(),
+      }).catch((err) => console.warn("stamp write failed for", q.iso2, err))));
+    } else if (!db && fresh.length) {
+      statusEl.innerHTML = `<div class="status error">Found ${fresh.length} new stamp${fresh.length === 1 ? "" : "s"}, but nowhere to save them yet — firebase-config.js is empty on this deployment.</div>`;
+    }
+    const all = new Set([...existing, ...qualifies.map((q) => q.iso2)]);
+    renderPassport(all);
+    if (!statusEl.innerHTML.includes("nowhere to save")) {
+      statusEl.innerHTML = all.size
+        ? `<div class="status success">${all.size} stamp${all.size === 1 ? "" : "s"} — ${fresh.length ? `${fresh.length} new` : "up to date"}.</div>`
+        : `<div class="status">No stamps yet — hold ${CONFIG.PASSPORT_STAMP_PCT}%+ of a claimed capital's coin and check again.</div>`;
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div>`;
+  }
+}
+
+/// Read-only refresh (no Firestore writes) — used on wallet connect/
+/// disconnect so the grid reflects already-earned stamps without
+/// re-running the full check-and-record flow on every account change.
+async function refreshPassportDisplay() {
+  const grid = document.getElementById("passport-grid");
+  if (!grid) return; // not on this page
+  if (!state.account) { renderPassport(new Set()); document.getElementById("passport-status").innerHTML = ""; return; }
+  renderPassport(await loadMyStamps(state.account));
+}
+
+function renderPassport(stampSet) {
+  const grid = document.getElementById("passport-grid");
+  const claimedCountries = [...W.claims.keys()].map((iso2) => W.byIso.get(iso2));
+  if (!claimedCountries.length) { grid.innerHTML = `<div class="empty-state">No capitals claimed yet — nothing to stamp.</div>`; return; }
+  grid.innerHTML = claimedCountries.map((c) => `
+    <div class="passport-stamp ${stampSet.has(c.iso2) ? "is-earned" : ""}">
+      <span class="passport-stamp-flag">${c.flag}</span>
+      <span class="passport-stamp-name">${c.name}</span>
+      <span class="passport-stamp-mark">${stampSet.has(c.iso2) ? "STAMPED" : "—"}</span>
+    </div>`).join("");
+  const count = stampSet.size;
+  const bonusEl = document.getElementById("passport-bonus");
+  const need = CONFIG.PASSPORT_BONUS_STAMP_COUNT || 5;
+  bonusEl.textContent = count >= need
+    ? `${count} stamps — eligible for the bonus-reward event once it opens.`
+    : `${count} of ${need} stamps toward the bonus-reward event (event details coming — see the announcement).`;
+}
+
+// ---------- Passport leaderboard ----------
+async function loadPassportLeaderboard() {
+  const db = await ensureFirebase();
+  if (!db) return [];
+  try {
+    const snap = await db.collection("passportStamps").get();
+    const byAddr = new Map();
+    snap.forEach((doc) => {
+      const d = doc.data();
+      if (!byAddr.has(d.address)) byAddr.set(d.address, []);
+      byAddr.get(d.address).push(d.iso2);
+    });
+    return [...byAddr.entries()].map(([address, isos]) => ({ address, isos })).sort((a, b) => b.isos.length - a.isos.length);
+  } catch (err) { console.warn("loadPassportLeaderboard failed", err); return []; }
+}
+
+async function openLeaderboard() {
+  const modal = document.getElementById("leaderboard-modal");
+  const list = document.getElementById("leaderboard-list");
+  modal.style.display = "flex";
+  list.innerHTML = `<div class="empty-state">Loading…</div>`;
+  if (!window.FIREBASE_CONFIG) { list.innerHTML = `<div class="empty-state">The leaderboard needs firebase-config.js filled in on this deployment — the passport check itself still works.</div>`; return; }
+  const rows = await loadPassportLeaderboard();
+  if (!rows.length) { list.innerHTML = `<div class="empty-state">No stamps recorded yet — be the first.</div>`; return; }
+  list.innerHTML = rows.map((r, i) => `
+    <div class="leaderboard-row ${r.isos.length >= (CONFIG.PASSPORT_BONUS_STAMP_COUNT || 5) ? "is-bonus" : ""}">
+      <span class="leaderboard-rank">#${i + 1}</span>
+      <span class="leaderboard-addr">${short(r.address)}</span>
+      <span class="leaderboard-flags">${r.isos.map((iso2) => W.byIso.get(iso2)?.flag || "").join(" ")}</span>
+      <span class="leaderboard-count">${r.isos.length}</span>
+    </div>`).join("");
+}
+
 // ---------- $NHOOD burns (read live from both deployments, not typed in) ----------
 async function loadNhoodBurns() {
   const rows = [];
@@ -761,6 +888,10 @@ function renderAll() {
 
 (async () => {
   document.getElementById("nhood-buy-link").href = CONFIG.NHOOD_PAIREX_BUY_URL;
+  document.getElementById("passport-check-btn").addEventListener("click", checkMyPassport);
+  document.getElementById("leaderboard-btn").addEventListener("click", openLeaderboard);
+  document.getElementById("leaderboard-close").addEventListener("click", () => { document.getElementById("leaderboard-modal").style.display = "none"; });
+  document.getElementById("leaderboard-modal").addEventListener("click", (e) => { if (e.target.id === "leaderboard-modal") e.currentTarget.style.display = "none"; });
   document.getElementById("claim-close").addEventListener("click", closeClaim);
   document.getElementById("claim-modal").addEventListener("click", (e) => { if (e.target.id === "claim-modal") closeClaim(); });
 
@@ -814,6 +945,7 @@ function renderAll() {
   renderAll();
   loadWorldFeed().then(renderWorldFeed).catch((err) => console.error("feed failed", err)); // needs W.claims, not the map — doesn't need to block anything further
   loadNhoodBurns().then(renderNhoodBurns).catch((err) => console.error("nhood burns failed", err));
+  refreshPassportDisplay().catch((err) => console.error("passport display failed", err));
   // keep the "left to reach" countdowns and My Capitals status honest without refetching
   setInterval(() => { renderWorldList(); renderMyCapitals(); }, 30000);
 })();
