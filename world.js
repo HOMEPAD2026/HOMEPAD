@@ -196,11 +196,22 @@ async function submitClaim(c) {
     const devStr = (document.getElementById("claim-devbuy").value || "").trim();
     const devBuyEth = devStr && Number(devStr) > 0 ? ethers.parseEther(devStr) : 0n;
     const meta = { imageUrl: worldLogoUrl(c), description: worldDescription(c), twitter: "", telegram: "", discord: "", website: "" };
-    const overrides = await getTxOverrides(6_000_000n);
+    const functionName = devBuyEth > 0n ? "launchAndBuy" : "launch";
+    const args = [c.name, c.ticker, 0, meta];
     status.innerHTML = `<div class="status pending">Confirm the claim in your wallet…</div>`;
-    const tx = devBuyEth > 0n
-      ? await hybridFactoryWrite().launchAndBuy(c.name, c.ticker, 0, meta, { ...overrides, value: devBuyEth })
-      : await hybridFactoryWrite().launch(c.name, c.ticker, 0, meta, overrides);
+    // Same write path as the launch form: wagmi's own writeContract when
+    // AppKit is the session (switches to Robinhood Chain first, pins the
+    // chainId), ethers as the fallback for the basic window.ethereum flow.
+    let tx = typeof tryWagmiWrite === "function"
+      ? await tryWagmiWrite({ address: CONFIG.HYBRID_FACTORY_ADDRESS, abi: HYBRID_FACTORY_ABI, functionName, args, value: devBuyEth })
+      : null;
+    if (!tx) {
+      if (typeof ensureAppKitChain === "function") await ensureAppKitChain();
+      const overrides = await getTxOverrides(6_000_000n);
+      tx = devBuyEth > 0n
+        ? await hybridFactoryWrite().launchAndBuy(c.name, c.ticker, 0, meta, { ...overrides, value: devBuyEth })
+        : await hybridFactoryWrite().launch(c.name, c.ticker, 0, meta, overrides);
+    }
     status.innerHTML = `<div class="status pending">Claiming ${c.capital}… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
     await loadWorldClaims();

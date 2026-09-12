@@ -475,6 +475,7 @@ async function connectWallet() {
   // Prefer the polished Reown AppKit modal (wallet list + WalletConnect QR)
   // when it's available — see wallet-appkit.js. Falls through to the basic
   // window.ethereum flow below if AppKit isn't configured or failed to load.
+  if (typeof setUserDisconnected === "function") setUserDisconnected(false);
   if (typeof tryOpenAppKit === "function" && tryOpenAppKit()) return;
 
   if (!window.ethereum) {
@@ -525,6 +526,12 @@ function attachBasicWalletListeners() {
 /// here means "forget this session on our end," the same as most dapps —
 /// a website can't force a wallet extension to revoke its own permissions.
 async function disconnectWallet() {
+  if (typeof setUserDisconnected === "function") setUserDisconnected(true);
+  try {
+    if (typeof appKitModal !== "undefined" && appKitModal && typeof appKitModal.disconnect === "function") {
+      await appKitModal.disconnect(); // AppKit's own state, not just wagmi's
+    }
+  } catch (err) { console.warn("AppKit disconnect failed — continuing with wagmi disconnect.", err); }
   try {
     if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
       await WagmiCoreRef.disconnect(wagmiConfigRef);
@@ -681,9 +688,16 @@ async function updateNetworkBadge() {
     const chainId = Number(network.chainId);
     const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL;
     const label = isCorrect ? "Mainnet" : `Wrong network (chain ${chainId}) — switch to Robinhood Chain`;
-    badge.textContent = isCorrect ? "Mainnet" : `⚠ wrong network (${chainId})`;
+    badge.textContent = isCorrect ? "Mainnet" : `⚠ wrong network (${chainId}) · tap to switch`;
     badge.title = label;
     badge.classList.toggle("network-bad", !isCorrect);
+    badge.style.cursor = isCorrect ? "" : "pointer";
+    badge.onclick = isCorrect ? null : async () => {
+      try {
+        if (typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function") await ensureAppKitChain();
+        else if (window.ethereum) { await ensureNetwork(); location.reload(); }
+      } catch (err) { alert(String(err && err.message || err)); }
+    };
     // On phones the badge collapses to just its dot, so the readable
     // version of the same status lives inside the wallet dropdown too.
     const line = document.getElementById("wallet-dropdown-network");

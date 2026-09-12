@@ -28,6 +28,25 @@ let appKitReady = false;
 let wagmiConfigRef = null;
 let WagmiCoreRef = null;
 
+// True from the moment the connect modal opens until a session is
+// confirmed or the modal closes without one. While it's set, transient
+// errors from a half-established session (WalletConnect pairing still
+// settling, wallet app not back in the foreground yet) must NOT be treated
+// as "stale session, wipe storage" — that exact cleanup, firing mid-handshake
+// from the poller, is what killed connection attempts and forced people to
+// clear their cache and start over.
+let connectInFlight = false;
+let connectPoll = null;
+
+// "Disconnect" has to survive a reload. The wallet extension still has the
+// site permission (a website can't revoke that), so wagmi's reconnect-on-
+// mount would otherwise quietly bring the session straight back and the
+// header would say "connected" again — the "it never disconnects" report.
+// This flag makes the next load stay disconnected until Connect is clicked.
+const USER_DISCONNECTED_KEY = "homepad.walletDisconnected";
+const userDisconnected = () => { try { return localStorage.getItem(USER_DISCONNECTED_KEY) === "1"; } catch { return false; } };
+function setUserDisconnected(on) { try { on ? localStorage.setItem(USER_DISCONNECTED_KEY, "1") : localStorage.removeItem(USER_DISCONNECTED_KEY); } catch { /* fine */ } }
+
 // wagmi v2 persists its connection state in a single 'wagmi.*'-prefixed
 // localStorage blob; WalletConnect/Reown add their own 'wc@2:' and
 // '@appkit'/'@w3m' keys for relay sessions and UI state. A stale entry
@@ -74,13 +93,14 @@ async function syncFromWagmi() {
       // guarantee — otherwise a wallet connected via AppKit while active
       // on some other chain would silently point every contract call here
       // at the wrong network.
-      if (account.chainId !== CONFIG.CHAIN_ID_DECIMAL) {
-        try {
-          await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL });
-        } catch (switchErr) {
-          console.warn("Couldn't switch to Robinhood Chain automatically — the wallet may prompt for this on the next transaction instead.", switchErr);
-        }
-      }
+      // Don't force a network switch here. This runs on every account
+      // event AND on a 1.3s poll while the modal is open, so switching
+      // from here meant a wallet on another chain got a "switch network?"
+      // prompt over and over, and rejecting it just queued the next one.
+      // The wrong-chain state is shown in the header instead, and the
+      // switch happens exactly once, right before a transaction is sent
+      // (ensureAppKitChain in tryWagmiWrite) or when the badge is tapped.
+      state.chainId = account.chainId;
 
       const client = await WagmiCoreRef.getConnectorClient(wagmiConfigRef);
       const network = { chainId: client.chain.id, name: client.chain.name };
@@ -93,6 +113,8 @@ async function syncFromWagmi() {
       // back-to-back for the same account. Only re-render on an ACTUAL
       // change — re-rendering the Profile page 3-4 times in a row started
       // overlapping async loads that overwrote each other's results.
+      connectInFlight = false;
+      if (connectPoll) { clearInterval(connectPoll); connectPoll = null; }
       if (changed) {
         if (typeof renderHeader === "function") renderHeader();
         // Wallet auto-reconnect finishes AFTER the page's initial route()
@@ -123,6 +145,12 @@ async function syncFromWagmi() {
     // Force-disconnect and sweep storage so the NEXT check starts from a
     // state that's actually true, and reflect that in the header now
     // instead of leaving it on whatever it last showed.
+    if (connectInFlight) {
+      // Mid-handshake — the session may simply not be usable yet. Leave
+      // storage alone; the poller / next event will try again.
+      console.warn("syncFromWagmi: session not usable yet (connect in progress)", err && err.message);
+      return false;
+    }
     console.warn("syncFromWagmi failed — clearing the stale session so it doesn't repeat.", err);
     try { if (WagmiCoreRef && wagmiConfigRef) await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* already broken; storage sweep below covers it */ }
     clearStaleWalletStorage();
@@ -143,12 +171,19 @@ async function initAppKit() {
     const { createAppKit, WagmiAdapter, WagmiCore } = appkitCdn;
     WagmiCoreRef = WagmiCore;
 
+    // Shape AppKit's own defineChain() produces. Without chainNamespace /
+    // caipNetworkId this build treated the wallet's chain as "unsupported"
+    // and showed its Select-network screen with nothing it could switch
+    // to — the "it asks me to pick a chain and then nothing happens" bug.
     const robinhoodNetwork = {
       id: CONFIG.CHAIN_ID_DECIMAL,
       name: CONFIG.CHAIN_NAME,
       nativeCurrency: CONFIG.NATIVE_CURRENCY,
       rpcUrls: { default: { http: [CONFIG.RPC_URL] } },
       blockExplorers: { default: { name: "Explorer", url: CONFIG.BLOCK_EXPLORER } },
+      chainNamespace: "eip155",
+      caipNetworkId: `eip155:${CONFIG.CHAIN_ID_DECIMAL}`,
+      testnet: false,
     };
 
     const wagmiAdapter = new WagmiAdapter({
@@ -160,6 +195,7 @@ async function initAppKit() {
     appKitModal = createAppKit({
       adapters: [wagmiAdapter],
       networks: [robinhoodNetwork],
+      defaultNetwork: robinhoodNetwork,
       projectId: CONFIG.REOWN_PROJECT_ID,
       metadata: {
         name: "HOMEPAD",
@@ -182,14 +218,29 @@ async function initAppKit() {
     try { WagmiCoreRef.watchAccount(wagmiConfigRef, { onChange: syncFromWagmi }); } catch (e) { console.warn("watchAccount unavailable", e); }
     try { appKitModal.subscribeAccount && appKitModal.subscribeAccount(syncFromWagmi); } catch (e) { console.warn("subscribeAccount unavailable", e); }
     try {
-      appKitModal.subscribeState && appKitModal.subscribeState((s) => { if (!s.open) syncFromWagmi(); });
+      appKitModal.subscribeState && appKitModal.subscribeState((s) => {
+        if (s.open) return;
+        // One last check, then stop treating errors as "still connecting".
+        syncFromWagmi().finally(() => {
+          setTimeout(() => {
+            const a = WagmiCoreRef.getAccount(wagmiConfigRef);
+            if (!a.isConnected) { connectInFlight = false; if (connectPoll) { clearInterval(connectPoll); connectPoll = null; } }
+          }, 1500);
+        });
+      });
     } catch (e) { console.warn("subscribeState unavailable", e); }
 
     // In case a session is already restored on load. Timeout-guarded
     // separately from syncFromWagmi's own error handling above, since a
     // HUNG reconnect (relay never responds, rather than responding with
     // an error) wouldn't hit that catch block at all.
-    const restored = await withTimeout(syncFromWagmi(), 8000);
+    if (userDisconnected()) {
+      // They pressed Disconnect last time. Wagmi will have reconnected on
+      // mount anyway (the extension still allows it) — undo that quietly.
+      try { await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* fine */ }
+      clearStaleWalletStorage();
+    }
+    const restored = userDisconnected() ? false : await withTimeout(syncFromWagmi(), 8000);
     if (restored === "timeout") {
       console.warn("Wallet session restore timed out — treating as disconnected and clearing it.");
       try { await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* storage sweep below covers it */ }
@@ -207,22 +258,57 @@ async function initAppKit() {
 /// caller should fall back to its own logic.
 function tryOpenAppKit() {
   if (appKitReady && appKitModal) {
+    setUserDisconnected(false);
+    connectInFlight = true;
     appKitModal.open();
 
     // Guaranteed fallback: poll for a connected account for a short window
     // after the modal opens, independent of whether any event listener
-    // above actually fires on this build. Stops as soon as connected, or
-    // after ~40s (generous — someone might sit on a QR code screen a while).
+    // above actually fires on this build. Stops as soon as connected, when
+    // the modal closes, or after ~40s (someone might sit on a QR a while).
+    if (connectPoll) clearInterval(connectPoll);
     let ticks = 0;
-    const poll = setInterval(async () => {
+    connectPoll = setInterval(async () => {
       ticks++;
       const connected = await syncFromWagmi();
-      if (connected || ticks > 30) clearInterval(poll);
+      if (connected || ticks > 30) { clearInterval(connectPoll); connectPoll = null; if (!connected) connectInFlight = false; }
     }, 1300);
 
     return true;
   }
   return false;
+}
+
+/// Switches the AppKit/wagmi session to Robinhood Chain, adding the chain
+/// to the wallet first if it doesn't have it. Called exactly where a
+/// switch is actually needed: right before a write, or when the person
+/// taps the wrong-network badge. Never from a background sync.
+async function ensureAppKitChain() {
+  if (!(WagmiCoreRef && wagmiConfigRef)) return;
+  const account = WagmiCoreRef.getAccount(wagmiConfigRef);
+  if (!account.isConnected || account.chainId === CONFIG.CHAIN_ID_DECIMAL) return;
+  const addParams = {
+    chainId: CONFIG.CHAIN_ID_HEX,
+    chainName: CONFIG.CHAIN_NAME,
+    rpcUrls: [CONFIG.RPC_URL],
+    blockExplorerUrls: [CONFIG.BLOCK_EXPLORER],
+    nativeCurrency: CONFIG.NATIVE_CURRENCY,
+  };
+  try {
+    await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL, addEthereumChainParameter: addParams });
+  } catch (err) {
+    // Some connectors won't auto-add. Ask the wallet directly, then retry.
+    try {
+      const client = await WagmiCoreRef.getConnectorClient(wagmiConfigRef);
+      await client.transport.request({ method: "wallet_addEthereumChain", params: [addParams] });
+      await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL });
+    } catch (err2) {
+      const e = new Error(`Switch your wallet to ${CONFIG.CHAIN_NAME} (chain ${CONFIG.CHAIN_ID_DECIMAL}) and try again.`);
+      e.cause = err2; throw e;
+    }
+  }
+  state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+  if (typeof updateNetworkBadge === "function") updateNetworkBadge();
 }
 
 /// Sends a contract write DIRECTLY through wagmi's own writeContract
@@ -245,12 +331,16 @@ async function tryWagmiWrite({ address, abi, functionName, args, value }) {
   if (!(appKitReady && WagmiCoreRef && wagmiConfigRef && typeof WagmiCoreRef.writeContract === "function")) {
     return null;
   }
+  await ensureAppKitChain();
   const hash = await WagmiCoreRef.writeContract(wagmiConfigRef, {
     address,
     abi,
     functionName,
     args,
     value,
+    // Pinned: if the wallet somehow isn't on 4663 at this point, wagmi
+    // throws instead of broadcasting the call on whatever chain it's on.
+    chainId: CONFIG.CHAIN_ID_DECIMAL,
   });
   return {
     hash,
