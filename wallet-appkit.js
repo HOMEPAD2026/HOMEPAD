@@ -102,9 +102,14 @@ async function syncFromWagmi() {
       // (ensureAppKitChain in tryWagmiWrite) or when the badge is tapped.
       state.chainId = account.chainId;
 
-      const client = await WagmiCoreRef.getConnectorClient(wagmiConfigRef);
-      const network = { chainId: client.chain.id, name: client.chain.name };
-      const browserProvider = new ethers.BrowserProvider(client.transport, network);
+      // The connector's raw EIP-1193 provider works on any chain. (wagmi's
+      // getConnectorClient is gated to chains in the config, so on a
+      // wrong-chain session it threw — and the header stayed on "Connect
+      // wallet" even though the wallet was connected.)
+      const eip1193 = account.connector && typeof account.connector.getProvider === "function"
+        ? await account.connector.getProvider()
+        : (await WagmiCoreRef.getConnectorClient(wagmiConfigRef)).transport;
+      const browserProvider = new ethers.BrowserProvider(eip1193);
       const changed = state.account !== account.address;
       state.account = account.address;
       state.signer = await browserProvider.getSigner(account.address);
@@ -196,6 +201,15 @@ async function initAppKit() {
       adapters: [wagmiAdapter],
       networks: [robinhoodNetwork],
       defaultNetwork: robinhoodNetwork,
+      // A wallet that connects while on another chain (very common on
+      // mobile — WalletConnect sessions come back on whatever chain the
+      // wallet app is showing) must NOT be trapped in AppKit's own
+      // "Switch Network" screen: on WalletConnect that screen's button
+      // fires a request the wallet app can't see from the browser, so it
+      // looks like it does nothing. Let the session through; the header
+      // shows the wrong-chain state and ensureAppKitChain() handles the
+      // switch (with wallet_addEthereumChain) when it actually matters.
+      allowUnsupportedChain: true,
       projectId: CONFIG.REOWN_PROJECT_ID,
       metadata: {
         name: "HOMEPAD",
@@ -297,13 +311,19 @@ async function ensureAppKitChain() {
   try {
     await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL, addEthereumChainParameter: addParams });
   } catch (err) {
-    // Some connectors won't auto-add. Ask the wallet directly, then retry.
+    // Some connectors won't auto-add. Ask the wallet directly through the
+    // connector's own provider (works for WalletConnect too), then retry.
     try {
-      const client = await WagmiCoreRef.getConnectorClient(wagmiConfigRef);
-      await client.transport.request({ method: "wallet_addEthereumChain", params: [addParams] });
+      const provider = account.connector && typeof account.connector.getProvider === "function"
+        ? await account.connector.getProvider()
+        : (await WagmiCoreRef.getConnectorClient(wagmiConfigRef)).transport;
+      await provider.request({ method: "wallet_addEthereumChain", params: [addParams] });
       await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: CONFIG.CHAIN_ID_DECIMAL });
     } catch (err2) {
-      const e = new Error(`Switch your wallet to ${CONFIG.CHAIN_NAME} (chain ${CONFIG.CHAIN_ID_DECIMAL}) and try again.`);
+      const e = new Error(
+        `Your wallet needs to be on ${CONFIG.CHAIN_NAME}. If it didn't prompt you, open the wallet app and approve the network there — or add it manually: ` +
+        `name ${CONFIG.CHAIN_NAME}, chain ID ${CONFIG.CHAIN_ID_DECIMAL}, RPC ${CONFIG.RPC_URL}, symbol ETH, explorer ${CONFIG.BLOCK_EXPLORER}.`
+      );
       e.cause = err2; throw e;
     }
   }

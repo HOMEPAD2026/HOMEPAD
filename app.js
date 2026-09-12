@@ -693,10 +693,12 @@ async function updateNetworkBadge() {
     badge.classList.toggle("network-bad", !isCorrect);
     badge.style.cursor = isCorrect ? "" : "pointer";
     badge.onclick = isCorrect ? null : async () => {
+      const prev = badge.textContent;
+      badge.textContent = "check your wallet…"; // on mobile the approval appears inside the wallet app, not here
       try {
         if (typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function") await ensureAppKitChain();
         else if (window.ethereum) { await ensureNetwork(); location.reload(); }
-      } catch (err) { alert(String(err && err.message || err)); }
+      } catch (err) { badge.textContent = prev; alert(String(err && err.message || err)); }
     };
     // On phones the badge collapses to just its dot, so the readable
     // version of the same status lives inside the wallet dropdown too.
