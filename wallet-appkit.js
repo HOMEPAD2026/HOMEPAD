@@ -104,8 +104,18 @@ async function syncFromWagmi() {
   if (!WagmiCoreRef || !wagmiConfigRef) return false;
   let connectorType = null;
   try {
-    const account = WagmiCoreRef.getAccount(wagmiConfigRef);
+    let account = WagmiCoreRef.getAccount(wagmiConfigRef);
     connectorType = account.connector && account.connector.type;
+    if (!(account.isConnected && account.address) && appKitModal && typeof appKitModal.getAddress === "function") {
+      // AppKit keeps its own account store; if it has a session wagmi's
+      // store doesn't (seen on some injected builds), trust AppKit.
+      const addr = appKitModal.getAddress && appKitModal.getAddress();
+      const connected = typeof appKitModal.getIsConnectedState === "function" ? appKitModal.getIsConnectedState() : !!addr;
+      if (addr && connected) {
+        const provider = typeof appKitModal.getWalletProvider === "function" ? appKitModal.getWalletProvider() : null;
+        account = { isConnected: true, address: addr, chainId: Number(appKitModal.getChainId && appKitModal.getChainId()) || null, connector: provider ? { type: "appkit", getProvider: async () => provider } : null };
+      }
+    }
     if (account.isConnected && account.address) {
       // The basic (non-AppKit) connect flow force-switches to Robinhood
       // Chain via ensureNetwork() in app.js. This path needs the same
@@ -128,10 +138,15 @@ async function syncFromWagmi() {
       const eip1193 = account.connector && typeof account.connector.getProvider === "function"
         ? await account.connector.getProvider()
         : (await WagmiCoreRef.getConnectorClient(wagmiConfigRef)).transport;
-      const browserProvider = new ethers.BrowserProvider(eip1193);
       const changed = state.account !== account.address;
-      state.account = account.address;
-      state.signer = await browserProvider.getSigner(account.address);
+      state.account = account.address; // header first — a signer failure below must not hide a connected wallet
+      try {
+        const browserProvider = new ethers.BrowserProvider(eip1193);
+        state.signer = await browserProvider.getSigner(account.address);
+      } catch (signerErr) {
+        console.warn("signer unavailable for now (writes still go through wagmi)", signerErr && signerErr.message);
+        state.signer = state.signer || null;
+      }
       // This sync is wired to several triggers (watchAccount, AppKit
       // subscribeAccount, modal close, initial load) and they often fire
       // back-to-back for the same account. Only re-render on an ACTUAL
@@ -189,8 +204,20 @@ async function syncFromWagmi() {
   }
 }
 
+// A wallet app's built-in browser (MetaMask, Robinhood Wallet, Trust, …)
+// injects window.ethereum and is already "the wallet". Putting AppKit +
+// WalletConnect + wagmi's own account store in front of that added three
+// places for the connection state to disagree — which is exactly what
+// showed up: the wallet connected, AppKit showing the account, our header
+// saying Connect. On these browsers the plain injected flow in app.js is
+// used instead: one provider, one state, nothing to get out of sync.
+const IN_APP_WALLET_BROWSER = !!window.ethereum && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
 async function initAppKit() {
-  if (!CONFIG.REOWN_PROJECT_ID) return; // no project ID configured yet — see config.js
+  if (IN_APP_WALLET_BROWSER || !CONFIG.REOWN_PROJECT_ID) {
+    if (typeof restoreBasicWallet === "function") restoreBasicWallet();
+    return;
+  }
 
   try {
     const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.4.1/dist/appkit.min.js");

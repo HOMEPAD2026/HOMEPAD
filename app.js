@@ -482,13 +482,41 @@ async function connectWallet() {
     alert("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");
     return;
   }
-  await ensureNetwork();
+  // Accounts first, network second: a rejected/failed network switch must
+  // not leave the wallet looking disconnected. The wrong-chain state shows
+  // in the header badge (tap to switch) and is enforced before any write.
   const browserProvider = new ethers.BrowserProvider(window.ethereum);
   const accounts = await browserProvider.send("eth_requestAccounts", []);
+  if (!accounts || !accounts.length) return;
   state.account = accounts[0];
   state.signer = await browserProvider.getSigner();
   renderHeader();
   attachBasicWalletListeners();
+  try { await ensureNetwork(); } catch (err) { console.warn("network switch declined/failed — showing wrong-network badge instead", err && err.message); }
+  if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+}
+
+/// Silent restore for the plain injected flow (in-app wallet browsers and
+/// any page where AppKit isn't used): eth_accounts never prompts, so if
+/// the wallet already allows this site the header shows it on load —
+/// unless the person pressed Disconnect, which is honoured until they
+/// press Connect again.
+async function restoreBasicWallet() {
+  if (!window.ethereum) return;
+  try {
+    if (typeof userDisconnected === "function" && userDisconnected()) return;
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (!accounts || !accounts.length) return;
+    const browserProvider = new ethers.BrowserProvider(window.ethereum);
+    state.account = accounts[0];
+    state.signer = await browserProvider.getSigner();
+    renderHeader();
+    attachBasicWalletListeners();
+    if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+    if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+  } catch (err) {
+    console.warn("basic wallet restore failed", err && err.message);
+  }
 }
 
 // The basic (non-AppKit) connect flow never listened for the wallet
