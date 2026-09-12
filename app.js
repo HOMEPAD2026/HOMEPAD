@@ -476,7 +476,7 @@ async function connectWallet() {
   // when it's available — see wallet-appkit.js. Falls through to the basic
   // window.ethereum flow below if AppKit isn't configured or failed to load.
   if (typeof setUserDisconnected === "function") setUserDisconnected(false);
-  if (typeof tryOpenAppKit === "function" && tryOpenAppKit()) return;
+  if (typeof tryOpenAppKit === "function" && await tryOpenAppKit()) return;
 
   if (!window.ethereum) {
     alert("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");
@@ -527,11 +527,7 @@ function attachBasicWalletListeners() {
 /// a website can't force a wallet extension to revoke its own permissions.
 async function disconnectWallet() {
   if (typeof setUserDisconnected === "function") setUserDisconnected(true);
-  try {
-    if (typeof appKitModal !== "undefined" && appKitModal && typeof appKitModal.disconnect === "function") {
-      await appKitModal.disconnect(); // AppKit's own state, not just wagmi's
-    }
-  } catch (err) { console.warn("AppKit disconnect failed — continuing with wagmi disconnect.", err); }
+  if (typeof hardDisconnect === "function") { await hardDisconnect(); return; } // AppKit + wagmi + storage + header, in the right order
   try {
     if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
       await WagmiCoreRef.disconnect(wagmiConfigRef);

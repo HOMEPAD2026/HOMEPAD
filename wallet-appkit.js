@@ -47,6 +47,23 @@ const USER_DISCONNECTED_KEY = "homepad.walletDisconnected";
 const userDisconnected = () => { try { return localStorage.getItem(USER_DISCONNECTED_KEY) === "1"; } catch { return false; } };
 function setUserDisconnected(on) { try { on ? localStorage.setItem(USER_DISCONNECTED_KEY, "1") : localStorage.removeItem(USER_DISCONNECTED_KEY); } catch { /* fine */ } }
 
+/// The one way to end a session. Goes through AppKit's own disconnect
+/// FIRST — AppKit keeps its own account store beside wagmi's, and calling
+/// wagmi's disconnect() underneath it left AppKit still showing the
+/// account (so its own Disconnect button then failed with "Failed to
+/// disconnect", because wagmi had nothing left to disconnect). Then wagmi,
+/// then storage, then our header.
+async function hardDisconnect() {
+  try { if (appKitModal && typeof appKitModal.disconnect === "function") await appKitModal.disconnect(); } catch (e) { console.warn("appkit disconnect", e && e.message); }
+  try {
+    if (WagmiCoreRef && wagmiConfigRef && WagmiCoreRef.getAccount(wagmiConfigRef).isConnected) await WagmiCoreRef.disconnect(wagmiConfigRef);
+  } catch (e) { console.warn("wagmi disconnect", e && e.message); }
+  clearStaleWalletStorage();
+  state.account = null; state.signer = null; state.chainId = null;
+  if (typeof renderHeader === "function") renderHeader();
+  if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+}
+
 // wagmi v2 persists its connection state in a single 'wagmi.*'-prefixed
 // localStorage blob; WalletConnect/Reown add their own 'wc@2:' and
 // '@appkit'/'@w3m' keys for relay sessions and UI state. A stale entry
@@ -85,8 +102,10 @@ function withTimeout(promise, ms) {
 // stop early.
 async function syncFromWagmi() {
   if (!WagmiCoreRef || !wagmiConfigRef) return false;
+  let connectorType = null;
   try {
     const account = WagmiCoreRef.getAccount(wagmiConfigRef);
+    connectorType = account.connector && account.connector.type;
     if (account.isConnected && account.address) {
       // The basic (non-AppKit) connect flow force-switches to Robinhood
       // Chain via ensureNetwork() in app.js. This path needs the same
@@ -156,14 +175,16 @@ async function syncFromWagmi() {
       console.warn("syncFromWagmi: session not usable yet (connect in progress)", err && err.message);
       return false;
     }
-    console.warn("syncFromWagmi failed — clearing the stale session so it doesn't repeat.", err);
-    try { if (WagmiCoreRef && wagmiConfigRef) await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* already broken; storage sweep below covers it */ }
-    clearStaleWalletStorage();
-    if (state.account) {
-      state.account = null;
-      state.signer = null;
-      if (typeof renderHeader === "function") renderHeader();
+    if (connectorType === "injected" || connectorType === "metaMask") {
+      // An in-app browser / extension wallet can't have a "stale relay
+      // session" — it re-authorises itself on every load. A failure here
+      // is transient (provider not ready yet); killing the session for it
+      // is what produced "connected in the wallet, Connect in the header".
+      console.warn("syncFromWagmi: injected provider not ready yet", err && err.message);
+      return false;
     }
+    console.warn("syncFromWagmi failed — clearing the stale session so it doesn't repeat.", err);
+    await hardDisconnect();
     return false;
   }
 }
@@ -249,16 +270,19 @@ async function initAppKit() {
     // HUNG reconnect (relay never responds, rather than responding with
     // an error) wouldn't hit that catch block at all.
     if (userDisconnected()) {
-      // They pressed Disconnect last time. Wagmi will have reconnected on
-      // mount anyway (the extension still allows it) — undo that quietly.
-      try { await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* fine */ }
-      clearStaleWalletStorage();
+      // They pressed Disconnect last time. An in-app / extension wallet
+      // re-authorises on every load regardless, so wagmi will have
+      // reconnected on mount — undo it through AppKit's own API so both
+      // stores agree, and stay disconnected until Connect is pressed.
+      // (Give the auto-reconnect a beat to land first, or there's nothing
+      // to undo yet and it comes back a second later.)
+      await new Promise((r) => setTimeout(r, 600));
+      await hardDisconnect();
     }
     const restored = userDisconnected() ? false : await withTimeout(syncFromWagmi(), 8000);
     if (restored === "timeout") {
       console.warn("Wallet session restore timed out — treating as disconnected and clearing it.");
-      try { await WagmiCoreRef.disconnect(wagmiConfigRef); } catch { /* storage sweep below covers it */ }
-      clearStaleWalletStorage();
+      await hardDisconnect();
     }
     appKitReady = true;
   } catch (err) {
@@ -270,9 +294,14 @@ async function initAppKit() {
 /// Called by app.js's connect button instead of its own basic flow, when
 /// AppKit is available. Returns true if it handled the click, false if the
 /// caller should fall back to its own logic.
-function tryOpenAppKit() {
+async function tryOpenAppKit() {
   if (appKitReady && appKitModal) {
     setUserDisconnected(false);
+    // In-app wallet browsers (MetaMask, Robinhood Wallet, …) auto-connect
+    // their injected provider; if wagmi already has the session, "Connect"
+    // just means "show it" — opening the modal here lands people on
+    // AppKit's Account view with a Disconnect button, which reads as a bug.
+    if (await syncFromWagmi()) return true;
     connectInFlight = true;
     appKitModal.open();
 
