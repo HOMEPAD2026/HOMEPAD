@@ -1526,6 +1526,16 @@ nav a{display:inline-flex;align-items:center;}
 .w-cap.is-claimed .w-chip{opacity:1;}
 .w-chip rect{fill:rgba(6,10,7,.85);stroke:rgba(204,255,0,.25);stroke-width:.6;}
 .w-chip-text{font-family:'Sora';font-size:9.5px;font-weight:700;fill:var(--ink);}
+/* Country names: soft, low-contrast against the land so a fully zoomed-out
+   click target still reads as a country, not a label directory. Halo via
+   paint-order instead of a background box — a box per label at this count
+   is what "지저분" looks like; a stroke halo doesn't. */
+.w-country-label{
+  font-family:'Sora';font-weight:600;fill:rgba(255,255,255,.72);
+  paint-order:stroke;stroke:rgba(5,9,10,.75);stroke-width:2.5px;stroke-linejoin:round;
+  text-anchor:middle;pointer-events:none;user-select:none;
+  transition:opacity .25s;
+}
 .lg-reset::before{background:var(--red) !important;}
 .lg-protected::before{background:#ccff00 !important;}
 .world-hint{font-size:.72rem;color:var(--ink-dim);text-align:center;margin:8px 0 0;}

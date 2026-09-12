@@ -170,6 +170,31 @@ async function renderWorldMap() {
     .on("click", (ev, f) => { const c = W.byNum.get(String(f.id).padStart(3, "0")); if (c) openClaim(c); });
   g.append("path").datum(borders).attr("class", "w-borders").attr("d", path);
 
+  // Country names: labeled at their centroid, only for unclaimed countries
+  // (claimed ones already have a name+mcap chip on their capital, so a
+  // second label would just duplicate it). Bigger countries earn a label
+  // at a lower zoom; small ones only once zoomed in enough to have room —
+  // area-tiered minZoom is what keeps this from turning into label soup
+  // at the default view instead of a flat always-on/always-off toggle.
+  const countryLabels = land.features
+    .map((f) => {
+      const c = W.byNum.get(String(f.id).padStart(3, "0"));
+      if (!c) return null;
+      const area = Math.abs(path.area(f));
+      if (area < 3) return null; // slivers too small to ever sensibly label
+      const centroid = path.centroid(f);
+      if (!Number.isFinite(centroid[0]) || !Number.isFinite(centroid[1])) return null;
+      const minZoom = area > 600 ? 1 : area > 150 ? 1.8 : area > 40 ? 2.8 : 4.2;
+      return { c, centroid, minZoom };
+    })
+    .filter(Boolean);
+  const labelG = g.append("g").attr("class", "w-country-labels");
+  const labels = labelG.selectAll("text").data(countryLabels).join("text")
+    .attr("class", "w-country-label")
+    .attr("x", (d) => d.centroid[0]).attr("y", (d) => d.centroid[1])
+    .text((d) => d.c.name);
+  W.countryLabelData = countryLabels;
+
   // capitals: open = small ring; claimed = glowing pin + label chip
   const caps = g.append("g").attr("class", "w-caps").selectAll("g").data(W.countries).join("g")
     .attr("class", (c) => capClass(c))
@@ -201,6 +226,12 @@ async function renderWorldMap() {
     g.selectAll(".w-gem,.w-shadow").attr("transform", `scale(${1 / Math.sqrt(k)})`);
     g.selectAll(".w-chip").attr("transform", `translate(0,${-16 / Math.sqrt(k)}) scale(${1 / Math.sqrt(k)})`);
     g.selectAll(".w-borders").attr("stroke-width", .6 / k);
+    // Country names: font shrinks with zoom (so they don't balloon at high
+    // k) but never below a floor, and each only turns on past its own
+    // area-based threshold — set once at load, checked here every zoom tick.
+    g.selectAll(".w-country-label")
+      .style("display", (d) => (k >= d.minZoom ? "" : "none"))
+      .attr("font-size", () => Math.max(7, 12 / Math.sqrt(k)));
   });
   svg.call(zoom);
 
@@ -452,6 +483,9 @@ function renderAll() {
     W.map.g.selectAll(".w-land").attr("class", function () { return landClass(d3.select(this).datum()); });
     W.map.g.selectAll(".w-cap").attr("class", (c) => capClass(c));
     sizeChips(W.map.g);
+    // Claimed countries carry their own name+mcap chip on the capital —
+    // hide the plain centroid label so a claim doesn't show its name twice.
+    W.map.g.selectAll(".w-country-label").style("visibility", (d) => (W.claims.has(d.c.iso2) ? "hidden" : ""));
   }
 }
 
