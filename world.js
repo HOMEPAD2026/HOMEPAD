@@ -9,10 +9,10 @@
 // Source of truth is the chain, not a database. For each capital, every
 // matching launch is read from the factory and resolved in launch order:
 //   - the first matching launch holds the capital;
-//   - a later launch takes it over (a "reset") only if the holder was at
-//     least WORLD_RESET_GRACE_SEC old when it launched AND the new creator
-//     had sent WORLD_RESET_FEE_HOMEPAD $HOMEPAD to the $HOME treasury in
-//     between — both verifiable on-chain.
+//   - a later launch takes it over (a "reset") only if the new creator had
+//     sent WORLD_RESET_FEE_HOMEPAD $HOMEPAD to the $HOME treasury sometime
+//     after the current holder's own launch — verifiable on-chain, no time
+//     window required.
 // The market-cap condition (< WORLD_RESET_MCAP_USD) is what the app
 // enforces before it will let someone start a reset; it isn't provable
 // from past chain state alone, so an airtight version needs a registry
@@ -22,9 +22,8 @@
 const WORLD_LOGO_BASE = "https://homepad.fun/world/logos/";
 const worldLogoUrl = (c) => `${WORLD_LOGO_BASE}${c.iso2}.svg`;
 const worldDescription = (c) => `HOMETOWN · ${c.name} (${c.iso2}) · capital: ${c.capital}. One coin per capital on the HOMEPAD World map, paired with $HOMEPAD.`;
-const RESET_FEE = () => ethers.parseUnits(String(CONFIG.WORLD_RESET_FEE_HOMEPAD || "5000"), 18);
-const GRACE = () => Number(CONFIG.WORLD_RESET_GRACE_SEC || 3600);
-const RESET_MCAP = () => Number(CONFIG.WORLD_RESET_MCAP_USD || 30000);
+const RESET_FEE = () => ethers.parseUnits(String(CONFIG.WORLD_RESET_FEE_HOMEPAD || "2000000"), 18);
+const RESET_MCAP = () => Number(CONFIG.WORLD_RESET_MCAP_USD || 50000);
 const quoteCfg = () => CONFIG.HOMEPAD_QUOTE;
 
 const W = {
@@ -46,13 +45,11 @@ async function blockTs(blockNumber) {
   W.tsCache.set(blockNumber, ts);
   return ts;
 }
-const nowSec = () => Math.floor(Date.now() / 1000);
-function claimAge(entry) { return nowSec() - Number(entry.launchedAt); }
-function isResettable(entry) {
-  return claimAge(entry) >= GRACE() && (entry.marketCapUsd == null || entry.marketCapUsd < RESET_MCAP());
-}
-function isProtected(entry) { return entry.marketCapUsd != null && entry.marketCapUsd >= RESET_MCAP(); }
-function fmtDur(sec) { sec = Math.max(0, Math.floor(sec)); const m = Math.floor(sec / 60), s = sec % 60; return m ? `${m}m ${s}s` : `${s}s`; }
+// Purely market-cap gated — no time window. A capital is either resettable
+// (under the threshold, right now) or protected (at/above it); there is no
+// third "still within a grace period" state.
+function isResettable(entry) { return entry.marketCapUsd == null || entry.marketCapUsd < RESET_MCAP(); }
+function isProtected(entry) { return !isResettable(entry); }
 
 // ---------- Claims (chain-derived, with reset resolution) ----------
 async function loadWorldClaims() {
@@ -76,10 +73,10 @@ async function loadWorldClaims() {
     let holder = list[0];
     const history = [holder];
     for (const cand of list.slice(1)) {
-      // A later launch only takes over if the holder was past the grace
-      // window when it launched AND the fee was paid in between.
-      if (Number(cand.launchedAt) - Number(holder.launchedAt) < GRACE()) continue;
-      if (await resetFeePaid(cand.creator, Number(holder.launchedAt) + GRACE(), Number(cand.launchedAt))) {
+      // Takes over iff the reset fee was paid sometime after the current
+      // holder's claim and before this candidate's own launch — no minimum
+      // gap required.
+      if (await resetFeePaid(cand.creator, Number(holder.launchedAt), Number(cand.launchedAt))) {
         holder = cand; history.push(cand);
       }
     }
@@ -218,7 +215,10 @@ function landClass(f) {
   const c = W.byNum.get(String(f.id).padStart(3, "0"));
   if (!c) return "w-land is-none";
   const cl = W.claims.get(c.iso2);
-  return "w-land " + (cl ? (isProtected(cl.entry) ? "is-claimed is-strong" : "is-claimed") : "is-open");
+  if (!cl) return "w-land is-open";
+  // Only two claimed states now (no time window): protected (strong lime
+  // fill) or resettable (a red tint, matching the marker's warning color).
+  return "w-land is-claimed " + (isProtected(cl.entry) ? "is-strong" : "is-resettable");
 }
 function capClass(c) {
   const cl = W.claims.get(c.iso2);
@@ -263,8 +263,7 @@ function renderWorldList() {
     let right;
     if (!e) right = `<span class="world-row-open">open</span>`;
     else if (isProtected(e)) right = `<span class="world-row-mcap">${fmtUsd(e.marketCapUsd)}</span><span class="world-row-sub">🔒 protected · ${timeAgo(e.launchedAt)}</span>`;
-    else if (isResettable(e)) right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub world-row-reset">↻ resettable</span>`;
-    else right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub">⏳ ${fmtDur(GRACE() - claimAge(e))} to reach ${fmtUsd(RESET_MCAP())}</span>`;
+    else right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub world-row-reset">↻ resettable</span>`;
     return `<button class="world-row ${e ? "is-claimed" : ""} ${e && isResettable(e) ? "is-resettable" : ""}" data-iso="${c.iso2}">
       <img class="world-row-logo" src="world/logos/${c.iso2}.svg" alt="" loading="lazy">
       <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}${cl && cl.resets ? ` · reset ×${cl.resets}` : ""}</span></span>
@@ -290,9 +289,7 @@ function openClaim(c) {
   if (cl) {
     const e = cl.entry;
     const prot = isProtected(e), reset = isResettable(e);
-    const stateLabel = prot ? `🔒 Protected — above ${fmtUsd(RESET_MCAP())}`
-      : reset ? `↻ Resettable — under ${fmtUsd(RESET_MCAP())} after the first hour`
-      : `⏳ ${fmtDur(GRACE() - claimAge(e))} left to reach ${fmtUsd(RESET_MCAP())}`;
+    const stateLabel = prot ? `🔒 Protected — at or above ${fmtUsd(RESET_MCAP())}` : `↻ Resettable — under ${fmtUsd(RESET_MCAP())} right now`;
     $("claim-body").innerHTML = `
       <div class="claim-grid">
         <div class="stat-card"><div class="stat-label">Market cap</div><div class="stat-value">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</div><div class="stat-sub">${stateLabel}</div></div>
@@ -305,7 +302,7 @@ function openClaim(c) {
       ${reset && live ? `
       <div class="claim-reset">
         <div class="claim-reset-head">Reset this capital</div>
-        <p class="hint">The current coin didn't reach ${fmtUsd(RESET_MCAP())} in its first hour. Pay <b>${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol}</b> (to the $HOME treasury) and ${c.capital} launches again — with you as the creator. The old coin keeps trading; the map moves to the new one.</p>
+        <p class="hint">${c.capital}'s current coin is under ${fmtUsd(RESET_MCAP())} market cap right now. Pay <b>${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol}</b> (to the $HOME treasury) and ${c.capital} launches again — with you as the creator. The old coin keeps trading; the map moves to the new one.</p>
         <label class="claim-devbuy">Dev buy ($${q.symbol}) <span class="optional">optional</span><input id="claim-devbuy" type="number" min="0" step="1" placeholder="0"></label>
         <div class="claim-actions"><button class="btn btn-primary" id="claim-go">Pay ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol} & reset ${c.capital}</button></div>
       </div>` : ""}`;
@@ -318,7 +315,7 @@ function openClaim(c) {
         <div class="claim-term"><span class="dt">Logo</span><span class="dd">the outline above — fixed</span></div>
         <div class="claim-term"><span class="dt">Paired with</span><span class="dd">$${q ? q.symbol : "HOMEPAD"} · real v4 pool from block one</span></div>
         <div class="claim-term"><span class="dt">Rent</span><span class="dd">1% per trade → 70% to you, 30% to $HOME</span></div>
-        <div class="claim-term"><span class="dt">Keep it</span><span class="dd">reach ${fmtUsd(RESET_MCAP())} within 1h, or anyone can reset it for ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q ? q.symbol : "HOMEPAD"}</span></div>
+        <div class="claim-term"><span class="dt">Keep it</span><span class="dd">stay at or above ${fmtUsd(RESET_MCAP())} market cap — below that, anyone can reset it for ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q ? q.symbol : "HOMEPAD"}, any time</span></div>
       </div>
       <label class="claim-devbuy">Dev buy ($${q ? q.symbol : "HOMEPAD"}) <span class="optional">optional</span>
         <input id="claim-devbuy" type="number" min="0" step="1" placeholder="0">
@@ -350,7 +347,7 @@ async function submitClaim(c, opts) {
     await loadWorldClaims();
     const cl = W.claims.get(c.iso2);
     if (!reset && cl) { status.innerHTML = `<div class="status error">${c.capital} was just claimed by someone else.</div>`; btn.disabled = false; renderAll(); return; }
-    if (reset && !(cl && isResettable(cl.entry))) { status.innerHTML = `<div class="status error">${c.capital} isn't resettable right now.</div>`; btn.disabled = false; renderAll(); return; }
+    if (reset && !(cl && isResettable(cl.entry))) { status.innerHTML = `<div class="status error">${c.capital} is protected now (at or above ${fmtUsd(RESET_MCAP())}) — it can't be reset.</div>`; btn.disabled = false; renderAll(); return; }
 
     const devStr = (document.getElementById("claim-devbuy").value || "").trim();
     const devBuy = devStr && Number(devStr) > 0 ? ethers.parseUnits(devStr, q.decimals) : 0n;

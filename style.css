@@ -1476,7 +1476,6 @@ nav a{display:inline-flex;align-items:center;}
 .world-search{flex:1 1 260px;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);font-family:'Sora';font-size:.85rem;}
 .world-legend{display:flex;gap:12px;font-size:.72rem;color:var(--ink-dim);}
 .world-legend .lg::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle;}
-.world-legend .lg-claimed::before{background:rgba(204,255,0,.4);}
 .world-legend .lg-open::before{background:#3a5c46;}
 .world-map{position:relative;background:#070c09;border-radius:12px;overflow:hidden;min-height:220px;}
 .world-svg{width:100%;height:auto;display:block;cursor:grab;background:#05090a;}
@@ -1488,10 +1487,11 @@ nav a{display:inline-flex;align-items:center;}
    that). */
 .w-land{fill:#243a2c;stroke:rgba(255,255,255,.06);stroke-width:.4;cursor:pointer;transition:fill .2s;}
 .w-land.is-open:hover{fill:#324f3b;}
-/* Claimed-but-still-contestable: a visible lime wash, short of the full
-   fill below, so the map itself hints "not secured yet". */
-.w-land.is-claimed{fill:rgba(204,255,0,.22);stroke:rgba(204,255,0,.4);}
+/* Two claimed states, no time window: protected (strong lime, at/above the
+   reset mcap) or resettable (a red tint, matching the marker's warning
+   color) — the map itself shows which capitals are currently vulnerable. */
 .w-land.is-claimed.is-strong{fill:url(#w-claimed-fill);stroke:rgba(204,255,0,.7);}
+.w-land.is-claimed.is-resettable{fill:rgba(255,107,107,.24);stroke:rgba(255,107,107,.45);}
 .w-land.is-claimed:hover{filter:brightness(1.12);}
 .w-land.is-none{fill:#182a1f;cursor:default;}
 .w-borders{fill:none;stroke:#05090a;stroke-width:.6;pointer-events:none;}

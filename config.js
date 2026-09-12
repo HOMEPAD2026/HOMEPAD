@@ -84,13 +84,12 @@ const CONFIG = {
   INSTANT_HOME_ALLOCATION_BPS: 800,
 
   // World map rules (world.html). Capitals are launched paired with
-  // $HOMEPAD. A claim that hasn't reached WORLD_RESET_MCAP_USD within
-  // WORLD_RESET_GRACE_SEC of launch can be reset by anyone who pays
-  // WORLD_RESET_FEE_HOMEPAD ($HOMEPAD, sent to the $HOME treasury) and
-  // launches the capital again.
-  WORLD_RESET_GRACE_SEC: 3600,
-  WORLD_RESET_MCAP_USD: 30000,
-  WORLD_RESET_FEE_HOMEPAD: "5000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
+  // $HOMEPAD. Purely market-cap gated, no time window: whenever a
+  // capital's current market cap is under WORLD_RESET_MCAP_USD, anyone
+  // can pay WORLD_RESET_FEE_HOMEPAD ($HOMEPAD, sent to the $HOME
+  // treasury) and launch the capital again, taking it over.
+  WORLD_RESET_MCAP_USD: 50000,
+  WORLD_RESET_FEE_HOMEPAD: "2000000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
   // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the
