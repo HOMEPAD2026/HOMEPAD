@@ -142,9 +142,16 @@ async function renderWorldMap() {
   const glow = defs.append("filter").attr("id", "w-glow").attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
   glow.append("feGaussianBlur").attr("stdDeviation", 2.2).attr("result", "b");
   const m = glow.append("feMerge"); m.append("feMergeNode").attr("in", "b"); m.append("feMergeNode").attr("in", "SourceGraphic");
+  // "Claimed and past the reset window" fill — the exact lime from the
+  // brand mark supplied for this (#CCFF00), not the site's general green,
+  // so a secured claim reads as a distinct, deliberate accent on the map.
   const grad = defs.append("linearGradient").attr("id", "w-claimed-fill").attr("x1", "0").attr("y1", "0").attr("x2", "0").attr("y2", "1");
-  grad.append("stop").attr("offset", "0%").attr("stop-color", "#39ff88").attr("stop-opacity", .78);
-  grad.append("stop").attr("offset", "100%").attr("stop-color", "#1d9c56").attr("stop-opacity", .78);
+  grad.append("stop").attr("offset", "0%").attr("stop-color", "#ccff00").attr("stop-opacity", .82);
+  grad.append("stop").attr("offset", "100%").attr("stop-color", "#8fb300").attr("stop-opacity", .82);
+  const gemGrad = defs.append("radialGradient").attr("id", "w-gem-fill").attr("cx", "35%").attr("cy", "30%").attr("r", "75%");
+  gemGrad.append("stop").attr("offset", "0%").attr("stop-color", "#f2ffb0");
+  gemGrad.append("stop").attr("offset", "45%").attr("stop-color", "#ccff00");
+  gemGrad.append("stop").attr("offset", "100%").attr("stop-color", "#7a9900");
   const ocean = defs.append("radialGradient").attr("id", "w-ocean").attr("cx", "50%").attr("cy", "45%").attr("r", "70%");
   ocean.append("stop").attr("offset", "0%").attr("stop-color", "#0b1712");
   ocean.append("stop").attr("offset", "100%").attr("stop-color", "#05090a");
@@ -166,23 +173,45 @@ async function renderWorldMap() {
     .attr("class", (c) => capClass(c))
     .attr("transform", (c) => { const [x, y] = proj(c.lnglat); return `translate(${x},${y})`; })
     .on("click", (ev, c) => { ev.stopPropagation(); openClaim(c); });
+  caps.append("ellipse").attr("class", "w-shadow").attr("rx", 3.2).attr("ry", 1.1).attr("cy", 3.6);
   caps.append("circle").attr("class", "w-halo").attr("r", 9);
-  caps.append("circle").attr("class", "w-dot").attr("r", 2.6);
+  // Open capital: a plain, understated ring — available, nothing claimed.
+  caps.append("circle").attr("class", "w-ring").attr("r", 3.4);
+  // Claimed capital: a small faceted gem on a short pin, standing above the
+  // shadow — the "premium" marker asked for, in place of a flat dot.
+  const gem = caps.append("g").attr("class", "w-gem");
+  gem.append("line").attr("class", "w-pin").attr("x1", 0).attr("y1", -1).attr("x2", 0).attr("y2", 3.4);
+  gem.append("path").attr("class", "w-gem-body").attr("d", "M0,-6.2 L4.4,-1.4 L0,3.2 L-4.4,-1.4 Z");
+  gem.append("path").attr("class", "w-gem-facet").attr("d", "M0,-6.2 L4.4,-1.4 L0,-1.4 Z");
+  gem.append("path").attr("class", "w-gem-shine").attr("d", "M-2.6,-3.4 L-0.6,-4.9 L-1.6,-2.2 Z");
   caps.append("title").text((c) => `${c.capital} · ${c.name}`);
-  const chip = caps.append("g").attr("class", "w-chip").attr("transform", "translate(0,-14)");
+  const chip = caps.append("g").attr("class", "w-chip").attr("transform", "translate(0,-16)");
   chip.append("rect").attr("rx", 6).attr("ry", 6).attr("height", 16).attr("y", -12);
   chip.append("text").attr("class", "w-chip-text").attr("y", 0).attr("text-anchor", "middle");
   sizeChips(g);
 
+
   const zoom = d3.zoom().scaleExtent([1, 9]).on("zoom", (ev) => {
     g.attr("transform", ev.transform);
     const k = ev.transform.k;
-    g.selectAll(".w-dot").attr("r", 2.6 / Math.sqrt(k));
+    g.selectAll(".w-ring").attr("r", 3.4 / Math.sqrt(k));
     g.selectAll(".w-halo").attr("r", 9 / Math.sqrt(k));
-    g.selectAll(".w-chip").attr("transform", `translate(0,${-14 / Math.sqrt(k)}) scale(${1 / Math.sqrt(k)})`);
+    g.selectAll(".w-gem,.w-shadow").attr("transform", `scale(${1 / Math.sqrt(k)})`);
+    g.selectAll(".w-chip").attr("transform", `translate(0,${-16 / Math.sqrt(k)}) scale(${1 / Math.sqrt(k)})`);
     g.selectAll(".w-borders").attr("stroke-width", .6 / k);
   });
   svg.call(zoom);
+
+  // Open somewhere with real cities to claim, at a scale where a capital is
+  // more than a speck — the whole globe at once made every marker tiny.
+  // Zoom/pan are already implemented, so this is just a starting transform.
+  const usdc = W.byIso.get("US");
+  if (usdc) {
+    const [px, py] = proj(usdc.lnglat);
+    const k = 3.2;
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k));
+  }
+
   W.map = { svg, g, proj, zoom };
 }
 function landClass(f) {

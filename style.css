@@ -1476,42 +1476,51 @@ nav a{display:inline-flex;align-items:center;}
 .world-search{flex:1 1 260px;background:var(--void);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);font-family:'Sora';font-size:.85rem;}
 .world-legend{display:flex;gap:12px;font-size:.72rem;color:var(--ink-dim);}
 .world-legend .lg::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle;}
-.world-legend .lg-claimed::before{background:var(--amber);}
-.world-legend .lg-open::before{background:rgba(57,255,136,.55);}
+.world-legend .lg-claimed::before{background:rgba(204,255,0,.4);}
+.world-legend .lg-open::before{background:#3a5c46;}
 .world-map{position:relative;background:#070c09;border-radius:12px;overflow:hidden;min-height:220px;}
 .world-svg{width:100%;height:auto;display:block;cursor:grab;background:#05090a;}
 .world-svg:active{cursor:grabbing;}
-.w-sphere{stroke:rgba(57,255,136,.12);stroke-width:1;}
+.w-sphere{stroke:rgba(204,255,0,.10);stroke-width:1;}
 .w-graticule{fill:none;stroke:rgba(255,255,255,.035);stroke-width:.5;pointer-events:none;}
-.w-land{fill:#16211a;stroke:rgba(255,255,255,.04);stroke-width:.4;cursor:pointer;transition:fill .2s;}
-.w-land.is-open:hover{fill:#223327;}
-/* Claimed territory is filled in — the whole country, not just a dot —
-   with the same green/amber the rest of the site uses for "live"/"paid
-   off" states, so claiming visibly grows the map instead of just adding
-   a marker. is-strong (past the reset-protection mcap) gets the fuller
-   gradient fill; still-vulnerable claims stay a thinner tint so the map
-   itself hints at what's contestable. */
-.w-land.is-claimed{fill:rgba(57,255,136,.16);stroke:rgba(57,255,136,.3);}
-.w-land.is-claimed.is-strong{fill:url(#w-claimed-fill);stroke:rgba(57,255,136,.55);}
-.w-land.is-claimed:hover{filter:brightness(1.15);}
-.w-land.is-none{fill:#0e1712;cursor:default;}
+/* Unclaimed land now reads as land, not a void — a muted sage tone, clearly
+   territory, clearly not yet claimed (the vivid lime below is reserved for
+   that). */
+.w-land{fill:#243a2c;stroke:rgba(255,255,255,.06);stroke-width:.4;cursor:pointer;transition:fill .2s;}
+.w-land.is-open:hover{fill:#324f3b;}
+/* Claimed-but-still-contestable: a visible lime wash, short of the full
+   fill below, so the map itself hints "not secured yet". */
+.w-land.is-claimed{fill:rgba(204,255,0,.22);stroke:rgba(204,255,0,.4);}
+.w-land.is-claimed.is-strong{fill:url(#w-claimed-fill);stroke:rgba(204,255,0,.7);}
+.w-land.is-claimed:hover{filter:brightness(1.12);}
+.w-land.is-none{fill:#182a1f;cursor:default;}
 .w-borders{fill:none;stroke:#05090a;stroke-width:.6;pointer-events:none;}
 .w-cap{cursor:pointer;}
-.w-cap .w-halo{fill:none;stroke:rgba(57,255,136,.35);stroke-width:1;opacity:0;transition:opacity .15s;}
+.w-cap .w-shadow{fill:#000;opacity:.35;}
+.w-cap .w-halo{fill:none;stroke:rgba(204,255,0,.4);stroke-width:1;opacity:0;transition:opacity .15s;}
 .w-cap:hover .w-halo{opacity:1;}
-.w-cap .w-dot{fill:rgba(57,255,136,.65);stroke:#05090a;stroke-width:.8;transition:r .15s,fill .15s;}
-.w-cap:hover .w-dot{fill:var(--green);}
-.w-cap.is-claimed .w-dot{fill:var(--amber);stroke:#0b1510;r:3.4;filter:url(#w-glow);}
-.w-cap.is-claimed .w-halo{stroke:rgba(255,182,72,.4);}
-.w-cap.is-claimed.is-resettable .w-dot{fill:var(--red);animation:w-pulse 1.6s ease-in-out infinite;}
-.w-cap.is-claimed.is-resettable .w-halo{stroke:rgba(255,107,107,.5);opacity:1;}
-@keyframes w-pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+/* Open capital: an understated ring — available, nothing to show off yet. */
+.w-ring{fill:none;stroke:rgba(255,255,255,.5);stroke-width:1;transition:stroke .15s;}
+.w-cap:hover .w-ring{stroke:var(--green);}
+.w-cap.is-claimed .w-ring{display:none;}
+/* Claimed capital: a small faceted gem on a pin — the marker itself carries
+   the same lime accent as a secured territory. */
+.w-gem{display:none;}
+.w-cap.is-claimed .w-gem{display:block;filter:url(#w-glow);}
+.w-pin{stroke:rgba(6,10,7,.9);stroke-width:1;}
+.w-gem-body{fill:url(#w-gem-fill);stroke:#5c7300;stroke-width:.5;}
+.w-gem-facet{fill:#fff;opacity:.22;}
+.w-gem-shine{fill:#fff;opacity:.85;}
+.w-cap.is-claimed.is-resettable .w-gem-body{fill:var(--red);stroke:#7a1f1f;}
+.w-cap.is-claimed.is-resettable .w-gem{animation:w-pulse 1.6s ease-in-out infinite;}
+.w-cap.is-claimed.is-resettable .w-halo{stroke:rgba(255,107,107,.55);opacity:1;}
+@keyframes w-pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
 .w-chip{pointer-events:none;opacity:0;transition:opacity .15s;}
 .w-cap.is-claimed .w-chip{opacity:1;}
-.w-chip rect{fill:rgba(6,10,7,.82);stroke:rgba(255,255,255,.1);stroke-width:.6;}
+.w-chip rect{fill:rgba(6,10,7,.85);stroke:rgba(204,255,0,.25);stroke-width:.6;}
 .w-chip-text{font-family:'Sora';font-size:9.5px;font-weight:700;fill:var(--ink);}
 .lg-reset::before{background:var(--red) !important;}
-.lg-protected::before{background:var(--amber) !important;}
+.lg-protected::before{background:#ccff00 !important;}
 .world-hint{font-size:.72rem;color:var(--ink-dim);text-align:center;margin:8px 0 0;}
 .world-list-wrap{margin-top:22px;}
 .world-filters{display:flex;gap:8px;margin:10px 0;}
