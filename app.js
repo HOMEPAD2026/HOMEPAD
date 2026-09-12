@@ -650,6 +650,7 @@ function refreshAccountDependentViews() {
   const hash = location.hash;
   if (hash.startsWith("#/token/")) renderTokenDetail(hash.split("/")[2]);
   else if (hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
+  if (typeof renderMyCapitals === "function") renderMyCapitals(); // world.html only — no-op elsewhere
 }
 
 // No indexer yet — same tradeoff as Explore's launch list (see README).

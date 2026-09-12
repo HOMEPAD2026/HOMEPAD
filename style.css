@@ -1553,6 +1553,16 @@ nav a{display:inline-flex;align-items:center;}
 .world-row-mcap{font-family:'Silkscreen';font-size:.72rem;color:var(--amber);}
 .world-row-sub{font-size:.66rem;color:var(--ink-dim);}
 .world-row-open{font-family:'Silkscreen';font-size:.6rem;color:var(--green);letter-spacing:.06em;text-transform:uppercase;}
+/* My Capitals + Recent Activity */
+.world-mine-wrap,.world-feed-wrap{margin-top:22px;}
+.world-feed{display:flex;flex-direction:column;gap:8px;}
+.world-feed-row{width:100%;}
+.world-feed-row.is-reset-event{border-color:rgba(255,107,107,.35);}
+.world-feed-badge{font-family:'Silkscreen';font-size:.55rem;padding:2px 7px;border-radius:100px;margin-left:6px;vertical-align:middle;}
+.world-feed-badge.claim{color:#08150c;background:#ccff00;}
+.world-feed-badge.reset{color:var(--red);background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.4);}
+.mono-inline{font-family:monospace;font-size:.85em;}
+.world-row-right .btn-mini{margin-top:4px;}
 .nav-active{color:var(--green) !important;}
 /* claim modal */
 .claim-card{max-width:520px;}

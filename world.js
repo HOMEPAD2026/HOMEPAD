@@ -108,6 +108,92 @@ async function resetFeePaid(who, fromTs, toTs) {
   return false;
 }
 
+// ---------- Recent activity feed (real Launched events, both factories) ----------
+async function loadWorldFeed() {
+  const norm = (s) => String(s || "").trim();
+  const raw = [];
+  if (hybridFactoryConfigured()) {
+    try {
+      const f = hybridFactoryRead();
+      const fromBlock = await firstHomepadBlock();
+      const evs = await withRetry(() => f.queryFilter(f.filters.Launched(), fromBlock, "latest"));
+      for (const ev of evs) raw.push({ ev, name: ev.args.name, symbol: ev.args.symbol, imageUrl: ev.args.imageUrl, token: ev.args.token, creator: ev.args.creator });
+    } catch (err) { console.warn("hybrid Launched feed failed", err); }
+  }
+  const q = quoteCfg();
+  if (pairedFactoryConfigured() && q && q.address) {
+    try {
+      const f = pairedFactoryRead();
+      const fromBlock = await firstHomepadBlock();
+      const evs = await withRetry(() => f.queryFilter(f.filters.Launched(null, null, q.address), fromBlock, "latest"));
+      for (const ev of evs) raw.push({ ev, name: ev.args.name, symbol: ev.args.symbol, imageUrl: ev.args.imageUrl, token: ev.args.token, creator: ev.args.creator });
+    } catch (err) { console.warn("paired Launched feed failed", err); }
+  }
+
+  const matched = raw
+    .map((r) => {
+      const c = W.countries.find((x) => x.name === norm(r.name) && x.ticker === norm(r.symbol));
+      if (!c || norm(r.imageUrl) !== worldLogoUrl(c)) return null;
+      const cl = W.claims.get(c.iso2);
+      const isClaim = !!(cl && cl.history[0] && cl.history[0].token.toLowerCase() === r.token.toLowerCase());
+      return { c, creator: r.creator, token: r.token, txHash: r.ev.transactionHash, blockNumber: r.ev.blockNumber, kind: isClaim ? "claim" : "reset" };
+    })
+    .filter(Boolean);
+
+  const blocks = [...new Set(matched.map((m) => m.blockNumber))];
+  const times = await Promise.all(blocks.map((bn) => blockTs(bn)));
+  const timeByBlock = new Map(blocks.map((bn, i) => [bn, times[i]]));
+  for (const m of matched) m.ts = timeByBlock.get(m.blockNumber);
+
+  matched.sort((a, b) => b.ts - a.ts);
+  W.feed = matched.slice(0, 25);
+  return W.feed;
+}
+
+function renderWorldFeed() {
+  const list = document.getElementById("w-feed");
+  const feed = W.feed || [];
+  document.getElementById("w-feed-count").textContent = feed.length ? `latest ${feed.length}` : "";
+  list.innerHTML = feed.map((f) => `
+    <button class="world-row world-feed-row ${f.kind === "reset" ? "is-reset-event" : ""}" data-iso="${f.c.iso2}">
+      <img class="world-row-logo" src="world/logos/${f.c.iso2}.svg" alt="" loading="lazy">
+      <span class="world-row-main">
+        <span class="world-row-name">${f.c.flag} ${f.c.name} <span class="world-feed-badge ${f.kind}">${f.kind === "claim" ? "🏡 claimed" : "↻ reset"}</span></span>
+        <span class="world-row-cap">$${f.c.ticker} · by <span class="mono-inline">${short(f.creator)}</span></span>
+      </span>
+      <span class="world-row-right">
+        <span class="world-row-sub">${timeAgo(f.ts)}</span>
+        <a class="btn-mini" href="${CONFIG.BLOCK_EXPLORER}/tx/${f.txHash}" target="_blank" rel="noopener" onclick="event.stopPropagation()">tx ↗</a>
+      </span>
+    </button>`).join("") || `<div class="empty-state">No launches yet — the first claim shows up here.</div>`;
+  list.querySelectorAll(".world-feed-row").forEach((b) => b.addEventListener("click", () => openClaim(W.byIso.get(b.dataset.iso))));
+}
+
+// ---------- My Capitals (wallet-gated) ----------
+function renderMyCapitals() {
+  const section = document.getElementById("w-mine-section");
+  if (!section) return; // not on this page
+  if (!state.account) { section.style.display = "none"; return; }
+  const mine = [...W.claims.entries()].filter(([, cl]) => cl.entry.creator && cl.entry.creator.toLowerCase() === state.account.toLowerCase());
+  section.style.display = "";
+  document.getElementById("w-mine-count").textContent = mine.length ? `${mine.length} held` : "none yet";
+  const list = document.getElementById("w-mine-list");
+  if (!mine.length) {
+    list.innerHTML = `<div class="empty-state">You don't hold any capitals yet. Pick an open one on the map above.</div>`;
+    return;
+  }
+  list.innerHTML = mine.map(([iso2, cl]) => {
+    const c = W.byIso.get(iso2), e = cl.entry;
+    const status = isResettable(e) ? `<span class="world-row-sub world-row-reset">↻ at risk — under ${fmtUsd(RESET_MCAP())}</span>` : isInGrace(e) ? `<span class="world-row-sub">🌱 ${fmtDur(GRACE() - claimAge(e))} left in grace</span>` : `<span class="world-row-sub">🔒 protected</span>`;
+    return `<button class="world-row is-claimed" data-iso="${iso2}">
+      <img class="world-row-logo" src="world/logos/${iso2}.svg" alt="" loading="lazy">
+      <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}</span></span>
+      <span class="world-row-right"><span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span>${status}</span>
+    </button>`;
+  }).join("");
+  list.querySelectorAll(".world-row").forEach((b) => b.addEventListener("click", () => openClaim(W.byIso.get(b.dataset.iso))));
+}
+
 // ---------- Stats ----------
 function renderWorldStats() {
   const $ = (id) => document.getElementById(id);
@@ -437,6 +523,7 @@ async function submitClaim(c, opts) {
     recordClaimInFirebase(c, e, receipt, reset).catch(() => {});
     status.innerHTML = `<div class="status success">🏡 ${c.capital} is yours. <a href="explore.html#/token/${e ? e.token : ""}">Open $${c.ticker} →</a></div>`;
     renderAll();
+    loadWorldFeed().then(renderWorldFeed).catch((err) => console.error("feed refresh failed", err));
   } catch (err) {
     console.error(err);
     btn && (btn.disabled = false);
@@ -479,6 +566,7 @@ async function recordClaimInFirebase(c, e, receipt, reset) {
 function renderAll() {
   renderWorldStats();
   renderWorldList();
+  renderMyCapitals();
   if (W.map) {
     W.map.g.selectAll(".w-land").attr("class", function () { return landClass(d3.select(this).datum()); });
     W.map.g.selectAll(".w-cap").attr("class", (c) => capClass(c));
@@ -502,6 +590,7 @@ function renderAll() {
   try { await loadWorldClaims(); } catch (err) { console.error("claims failed", err); }
   await renderWorldMap();
   renderAll();
-  // keep the "left to reach" countdowns honest without refetching
-  setInterval(renderWorldList, 30000);
+  try { await loadWorldFeed(); renderWorldFeed(); } catch (err) { console.error("feed failed", err); }
+  // keep the "left to reach" countdowns and My Capitals status honest without refetching
+  setInterval(() => { renderWorldList(); renderMyCapitals(); }, 30000);
 })();
