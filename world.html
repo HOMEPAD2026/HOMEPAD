@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789184250">
+<link rel="stylesheet" href="style.css?v=1789199608">
 </head>
 <body>
 
@@ -53,7 +53,7 @@
   <section class="world-map-wrap">
     <div class="world-map-tools">
       <input id="w-search" class="world-search" placeholder="Search a country or capital…" autocomplete="off">
-      <div class="world-legend"><span class="lg lg-claimed">claimed</span><span class="lg lg-open">open</span></div>
+      <div class="world-legend"><span class="lg lg-claimed">claimed</span><span class="lg lg-open">open</span><span class="lg lg-reset">resettable</span><span class="lg lg-protected">protected</span></div>
     </div>
     <div class="world-map" id="world-map"><div class="empty-state" id="world-map-loading">Drawing the map…</div></div>
     <p class="world-hint">Tap a capital. Pinch or scroll to zoom, drag to pan.</p>
@@ -65,6 +65,7 @@
       <span class="filter-chip active" data-f="all">All</span>
       <span class="filter-chip" data-f="claimed">Claimed</span>
       <span class="filter-chip" data-f="open">Open</span>
+      <span class="filter-chip" data-f="resettable">↻ Resettable</span>
     </div>
     <div class="world-list" id="w-list"></div>
   </section>
@@ -72,9 +73,10 @@
   <section class="rent-home-leg">
     <div class="rent-section-head"><h3>How claiming works</h3></div>
     <div class="burn-how">
-      <div class="burn-how-item"><span class="burn-how-n pixel">1</span><div><strong>Pick an open capital.</strong><p>One coin per capital, first come first served. Once a capital is claimed there is no second Seoul.</p></div></div>
-      <div class="burn-how-item"><span class="burn-how-n pixel">2</span><div><strong>Confirm the launch in your wallet.</strong><p>Name, ticker and logo are fixed by the map — you can't change them, which is what makes a claim provable. It's a normal Hybrid launch: no ETH needed, ~$7.5K starting cap.</p></div></div>
-      <div class="burn-how-item"><span class="burn-how-n pixel">3</span><div><strong>It's on the map, and you're paid.</strong><p>70% of every trade's fee goes to your wallet inside the trade, 30% to $HOME. Liquidity is locked forever; there's no admin key. The map reads the chain, not a database.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">1</span><div><strong>Pick an open capital.</strong><p>First come, first served — paired with $HOMEPAD, no ETH needed to launch.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">2</span><div><strong>Confirm the launch in your wallet.</strong><p>Name, ticker and logo are fixed by the map — you can't change them, which is what makes a claim provable.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">3</span><div><strong>Defend it in the first hour.</strong><p>Reach $30K market cap within 1 hour and it's locked in. Miss it, and anyone can reset the capital by paying 5,000 $HOMEPAD to the $HOME treasury — then it's theirs to launch.</p></div></div>
+      <div class="burn-how-item"><span class="burn-how-n pixel">4</span><div><strong>You're paid the whole time.</strong><p>70% of every trade's fee goes to your wallet inside the trade, 30% to $HOME. Liquidity is locked forever, no admin key. The map reads the chain, not a database — resets included.</p></div></div>
     </div>
     <p class="rent-section-note" style="margin-top:14px">Coming next: cities. Once a capital passes a market-cap milestone, its country's other cities open up to claim. <a href="mechanism.html#fees">Fees →</a></p>
   </section>
@@ -104,14 +106,14 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="config.js?v=1789184250"></script>
-<script src="abis.js?v=1789184250"></script>
-<script src="app.js?v=1789184250"></script>
-<script src="wallet-appkit.js?v=1789184250"></script>
-<script src="launch-modal.js?v=1789184250"></script>
-<script src="footer.js?v=1789184250"></script>
-<script src="firebase-config.js?v=1789184250"></script>
-<script src="world-data.js?v=1789184250"></script>
-<script src="world.js?v=1789184250"></script>
+<script src="config.js?v=1789199608"></script>
+<script src="abis.js?v=1789199608"></script>
+<script src="app.js?v=1789199608"></script>
+<script src="wallet-appkit.js?v=1789199608"></script>
+<script src="launch-modal.js?v=1789199608"></script>
+<script src="footer.js?v=1789199608"></script>
+<script src="firebase-config.js?v=1789199608"></script>
+<script src="world-data.js?v=1789199608"></script>
+<script src="world.js?v=1789199608"></script>
 </body>
 </html>

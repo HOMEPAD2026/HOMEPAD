@@ -447,6 +447,41 @@ function stockModeLive() {
   return pairedFactoryConfigured() && quoteTokenOptions().length > 0;
 }
 
+/// Resolves once a launch actually landed — either the tx receipt confirms
+/// it, or (fallback, since some wallet apps / RPC combos never deliver a
+/// clean receipt) the factory's own launchCount goes up. Shared by the
+/// launch form and the World claim flow so both get the same resilience.
+async function waitForLaunchTx(factoryContract, countBefore, getTxPromise, statusEl) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finishOk = () => { if (!settled) { settled = true; resolve(); } };
+    const finishErr = (e) => { if (!settled) { settled = true; reject(e); } };
+
+    (async () => {
+      try {
+        const tx = await getTxPromise();
+        if (tx?.hash && statusEl) {
+          statusEl.innerHTML = `<div class="status pending">Deploying… <a href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank" style="color:inherit">view tx</a></div>`;
+        }
+        await tx.wait();
+        finishOk();
+      } catch (e) {
+        finishErr(e);
+      }
+    })();
+
+    (async () => {
+      while (!settled) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const count = Number(await factoryContract.launchCount());
+          if (count > countBefore) { finishOk(); return; }
+        } catch { /* transient read error — keep polling */ }
+      }
+    })();
+  });
+}
+
 /// How many of a given fixed quote ($HOME, $HOMEPAD — any q with a live
 /// USD price) should buy the full 1B supply, so a new launch paired
 /// against it opens at the same USD starting market cap Hybrid launches
@@ -2172,36 +2207,7 @@ async function renderCreate(targetId) {
     // through on-chain. Whichever signal arrives first (a normal
     // tx.wait(), or launchCount() ticking up) wins; the other is just
     // abandoned, which is harmless since it's read-only polling.
-    async function waitForLaunchSuccess(factoryContract, countBefore, getTxPromise) {
-      return new Promise((resolve, reject) => {
-        let settled = false;
-        const finishOk = () => { if (!settled) { settled = true; resolve(); } };
-        const finishErr = (e) => { if (!settled) { settled = true; reject(e); } };
-
-        (async () => {
-          try {
-            const tx = await getTxPromise();
-            if (tx?.hash) {
-              statusEl.innerHTML = `<div class="status pending">Deploying… <a href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank" style="color:inherit">view tx</a></div>`;
-            }
-            await tx.wait();
-            finishOk();
-          } catch (e) {
-            finishErr(e);
-          }
-        })();
-
-        (async () => {
-          while (!settled) {
-            await new Promise((r) => setTimeout(r, 3000));
-            try {
-              const count = Number(await factoryContract.launchCount());
-              if (count > countBefore) { finishOk(); return; }
-            } catch { /* transient read error — keep polling */ }
-          }
-        })();
-      });
-    }
+    const waitForLaunchSuccess = (factoryContract, countBefore, getTxPromise) => waitForLaunchTx(factoryContract, countBefore, getTxPromise, statusEl);
 
     try {
       if (selectedQuote.mode === "stock") {

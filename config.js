@@ -81,7 +81,16 @@ const CONFIG = {
   RENT_FEATURED_TOKENS: [
     "0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5", // $HOMEPAD
   ],
-  INSTANT_HOME_ALLOCATION_BPS: 800, // 8% of supply to $HOME treasury at launch (display only, matches the contract constant)
+  INSTANT_HOME_ALLOCATION_BPS: 800,
+
+  // World map rules (world.html). Capitals are launched paired with
+  // $HOMEPAD. A claim that hasn't reached WORLD_RESET_MCAP_USD within
+  // WORLD_RESET_GRACE_SEC of launch can be reset by anyone who pays
+  // WORLD_RESET_FEE_HOMEPAD ($HOMEPAD, sent to the $HOME treasury) and
+  // launches the capital again.
+  WORLD_RESET_GRACE_SEC: 3600,
+  WORLD_RESET_MCAP_USD: 30000,
+  WORLD_RESET_FEE_HOMEPAD: "5000", // paid to CONFIG.HOME_TREASURY_ADDRESS as a plain ERC-20 transfer
 
   // --- $HOME token (also live on mainnet, same as the rest of HOMEPAD's
   // Hybrid + Instant contracts now — Bonding Curve and Stock Pair are the

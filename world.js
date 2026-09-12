@@ -1,47 +1,115 @@
-// world.js — the World map: one coin per capital, claimed by launching on
-// HOMEPAD's Hybrid factory with name/ticker/logo fixed by the map.
+// world.js — the World map: one coin per capital.
 //
-// Source of truth is the chain, not a database: a capital is "claimed" iff a
-// Hybrid launch exists whose name === country name, symbol === capital ticker,
-// and imageUrl === that country's canonical logo URL. First such launch (by
-// launch time) wins. Firebase, when configured (firebase-config.js), only
-// records claims as they happen for future features (wallet login, votes) —
-// the map never trusts it over the factory.
+// A capital is claimed by launching on HOMEPAD's Paired factory with the
+// quote fixed to $HOMEPAD, and name / ticker / logo fixed by the map:
+//   name     = country name        ("South Korea")
+//   ticker   = capital name        ("SEOUL", or ISO3 when it can't be a symbol)
+//   imageUrl = world/logos/<ISO2>.svg (this site's canonical outline)
+//
+// Source of truth is the chain, not a database. For each capital, every
+// matching launch is read from the factory and resolved in launch order:
+//   - the first matching launch holds the capital;
+//   - a later launch takes it over (a "reset") only if the holder was at
+//     least WORLD_RESET_GRACE_SEC old when it launched AND the new creator
+//     had sent WORLD_RESET_FEE_HOMEPAD $HOMEPAD to the $HOME treasury in
+//     between — both verifiable on-chain.
+// The market-cap condition (< WORLD_RESET_MCAP_USD) is what the app
+// enforces before it will let someone start a reset; it isn't provable
+// from past chain state alone, so an airtight version needs a registry
+// contract (planned). Firebase, when configured, records claims/resets
+// with a mcap snapshot for that future step.
 
 const WORLD_LOGO_BASE = "https://homepad.fun/world/logos/";
 const worldLogoUrl = (c) => `${WORLD_LOGO_BASE}${c.iso2}.svg`;
-const worldDescription = (c) => `HOMETOWN · ${c.name} (${c.iso2}) · capital: ${c.capital}. One coin per capital on the HOMEPAD World map.`;
+const worldDescription = (c) => `HOMETOWN · ${c.name} (${c.iso2}) · capital: ${c.capital}. One coin per capital on the HOMEPAD World map, paired with $HOMEPAD.`;
+const RESET_FEE = () => ethers.parseUnits(String(CONFIG.WORLD_RESET_FEE_HOMEPAD || "5000"), 18);
+const GRACE = () => Number(CONFIG.WORLD_RESET_GRACE_SEC || 3600);
+const RESET_MCAP = () => Number(CONFIG.WORLD_RESET_MCAP_USD || 30000);
+const quoteCfg = () => CONFIG.HOMEPAD_QUOTE;
 
 const W = {
   countries: WORLD_COUNTRIES,
   byIso: new Map(WORLD_COUNTRIES.map((c) => [c.iso2, c])),
   byNum: new Map(WORLD_COUNTRIES.map((c) => [c.ccn3, c])),
-  claims: new Map(),   // iso2 -> launch entry
+  claims: new Map(),   // iso2 -> { entry, history: [entries], resets: n }
   filter: "all",
   query: "",
   map: null,
+  tsCache: new Map(),
 };
 
-// ---------- Claims (chain-derived) ----------
+// ---------- helpers ----------
+async function blockTs(blockNumber) {
+  if (W.tsCache.has(blockNumber)) return W.tsCache.get(blockNumber);
+  const b = await readProvider().getBlock(blockNumber);
+  const ts = Number(b.timestamp);
+  W.tsCache.set(blockNumber, ts);
+  return ts;
+}
+const nowSec = () => Math.floor(Date.now() / 1000);
+function claimAge(entry) { return nowSec() - Number(entry.launchedAt); }
+function isResettable(entry) {
+  return claimAge(entry) >= GRACE() && (entry.marketCapUsd == null || entry.marketCapUsd < RESET_MCAP());
+}
+function isProtected(entry) { return entry.marketCapUsd != null && entry.marketCapUsd >= RESET_MCAP(); }
+function fmtDur(sec) { sec = Math.max(0, Math.floor(sec)); const m = Math.floor(sec / 60), s = sec % 60; return m ? `${m}m ${s}s` : `${s}s`; }
+
+// ---------- Claims (chain-derived, with reset resolution) ----------
 async function loadWorldClaims() {
   const entries = await fetchAllLaunches({ skipHistory: true, skipHomeCard: true });
-  const claims = new Map();
+  const q = quoteCfg();
   const norm = (s) => String(s || "").trim();
-  const sorted = entries.filter((e) => e.type === "hybrid").sort((a, b) => a.launchedAt - b.launchedAt);
-  for (const e of sorted) {
+  const isWorldLaunch = (e) => {
+    if (e.type === "paired") return q && (e.quoteToken || "").toLowerCase() === q.address.toLowerCase();
+    return e.type === "hybrid"; // earlier ETH-paired claims still count
+  };
+  // group matching launches per capital, oldest first
+  const groups = new Map();
+  for (const e of entries.filter(isWorldLaunch).sort((a, b) => a.launchedAt - b.launchedAt)) {
     const c = W.countries.find((x) => x.name === norm(e.name) && x.ticker === norm(e.symbol));
-    if (!c) continue;
-    if (norm(e.imageUrl) !== worldLogoUrl(c)) continue; // right name/ticker but not the map's logo — not a claim
-    if (!claims.has(c.iso2)) claims.set(c.iso2, e);
+    if (!c || norm(e.imageUrl) !== worldLogoUrl(c)) continue;
+    if (!groups.has(c.iso2)) groups.set(c.iso2, []);
+    groups.get(c.iso2).push(e);
+  }
+  const claims = new Map();
+  for (const [iso2, list] of groups) {
+    let holder = list[0];
+    const history = [holder];
+    for (const cand of list.slice(1)) {
+      // A later launch only takes over if the holder was past the grace
+      // window when it launched AND the fee was paid in between.
+      if (Number(cand.launchedAt) - Number(holder.launchedAt) < GRACE()) continue;
+      if (await resetFeePaid(cand.creator, Number(holder.launchedAt) + GRACE(), Number(cand.launchedAt))) {
+        holder = cand; history.push(cand);
+      }
+    }
+    claims.set(iso2, { entry: holder, history, resets: history.length - 1 });
   }
   W.claims = claims;
   return claims;
 }
 
+/// Did `who` send >= RESET_FEE $HOMEPAD to the $HOME treasury with a block
+/// timestamp in [fromTs, toTs]? Token-contract Transfer logs, bounded.
+async function resetFeePaid(who, fromTs, toTs) {
+  try {
+    const q = quoteCfg(); if (!q || !who) return false;
+    const t = tokenRead(q.address);
+    const fromBlock = await firstHomepadBlock();
+    const evs = await t.queryFilter(t.filters.Transfer(who, CONFIG.HOME_TREASURY_ADDRESS), fromBlock, "latest");
+    for (const ev of evs) {
+      if (ev.args.value < RESET_FEE()) continue;
+      const ts = await blockTs(ev.blockNumber);
+      if (ts >= fromTs && ts <= toTs) return true;
+    }
+  } catch (err) { console.warn("resetFeePaid check failed", err); }
+  return false;
+}
+
 // ---------- Stats ----------
 function renderWorldStats() {
   const $ = (id) => document.getElementById(id);
-  const claimed = [...W.claims.entries()];
+  const claimed = [...W.claims.entries()].map(([iso, c]) => [iso, c.entry]);
   $("w-claimed").textContent = String(claimed.length);
   $("w-claimed-sub").textContent = `of ${W.countries.length} capitals · ${(claimed.length / W.countries.length * 100).toFixed(1)}% settled`;
   const econ = claimed.reduce((s, [, e]) => s + (e.marketCapUsd || 0), 0);
@@ -67,40 +135,79 @@ async function renderWorldMap() {
   const land = topojson.feature(topo, topo.objects.countries);
   const borders = topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b);
 
-  const width = 1000, height = 520;
+  const width = 1000, height = 540;
   host.innerHTML = "";
   const svg = d3.select(host).append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("class", "world-svg");
+  const defs = svg.append("defs");
+  const glow = defs.append("filter").attr("id", "w-glow").attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
+  glow.append("feGaussianBlur").attr("stdDeviation", 2.2).attr("result", "b");
+  const m = glow.append("feMerge"); m.append("feMergeNode").attr("in", "b"); m.append("feMergeNode").attr("in", "SourceGraphic");
+  const grad = defs.append("linearGradient").attr("id", "w-claimed-fill").attr("x1", "0").attr("y1", "0").attr("x2", "0").attr("y2", "1");
+  grad.append("stop").attr("offset", "0%").attr("stop-color", "#39ff88").attr("stop-opacity", .78);
+  grad.append("stop").attr("offset", "100%").attr("stop-color", "#1d9c56").attr("stop-opacity", .78);
+  const ocean = defs.append("radialGradient").attr("id", "w-ocean").attr("cx", "50%").attr("cy", "45%").attr("r", "70%");
+  ocean.append("stop").attr("offset", "0%").attr("stop-color", "#0b1712");
+  ocean.append("stop").attr("offset", "100%").attr("stop-color", "#05090a");
+
   const g = svg.append("g");
   const proj = d3.geoNaturalEarth1().fitSize([width, height], { type: "Sphere" });
   const path = d3.geoPath(proj);
 
-  g.append("path").datum({ type: "Sphere" }).attr("class", "w-sphere").attr("d", path);
+  g.append("path").datum({ type: "Sphere" }).attr("class", "w-sphere").attr("d", path).attr("fill", "url(#w-ocean)");
+  g.append("path").datum(d3.geoGraticule10()).attr("class", "w-graticule").attr("d", path);
   g.append("g").selectAll("path").data(land.features).join("path")
-    .attr("class", (f) => {
-      const c = W.byNum.get(String(f.id).padStart(3, "0"));
-      return "w-land" + (c ? (W.claims.has(c.iso2) ? " is-claimed" : " is-open") : " is-none");
-    })
+    .attr("class", (f) => landClass(f))
     .attr("d", path)
     .on("click", (ev, f) => { const c = W.byNum.get(String(f.id).padStart(3, "0")); if (c) openClaim(c); });
   g.append("path").datum(borders).attr("class", "w-borders").attr("d", path);
 
-  // capitals
-  const caps = g.append("g").selectAll("g").data(W.countries).join("g")
-    .attr("class", (c) => "w-cap" + (W.claims.has(c.iso2) ? " is-claimed" : ""))
+  // capitals: open = small ring; claimed = glowing pin + label chip
+  const caps = g.append("g").attr("class", "w-caps").selectAll("g").data(W.countries).join("g")
+    .attr("class", (c) => capClass(c))
     .attr("transform", (c) => { const [x, y] = proj(c.lnglat); return `translate(${x},${y})`; })
     .on("click", (ev, c) => { ev.stopPropagation(); openClaim(c); });
-  caps.append("circle").attr("r", (c) => W.claims.has(c.iso2) ? 4.2 : 2.4);
+  caps.append("circle").attr("class", "w-halo").attr("r", 9);
+  caps.append("circle").attr("class", "w-dot").attr("r", 2.6);
   caps.append("title").text((c) => `${c.capital} · ${c.name}`);
-  caps.filter((c) => W.claims.has(c.iso2)).append("text").attr("class", "w-cap-label").attr("y", -7)
-    .text((c) => { const e = W.claims.get(c.iso2); return `${c.capital}${e.marketCapUsd != null ? " · " + fmtUsd(e.marketCapUsd) : ""}`; });
+  const chip = caps.append("g").attr("class", "w-chip").attr("transform", "translate(0,-14)");
+  chip.append("rect").attr("rx", 6).attr("ry", 6).attr("height", 16).attr("y", -12);
+  chip.append("text").attr("class", "w-chip-text").attr("y", 0).attr("text-anchor", "middle");
+  sizeChips(g);
 
-  const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", (ev) => {
+  const zoom = d3.zoom().scaleExtent([1, 9]).on("zoom", (ev) => {
     g.attr("transform", ev.transform);
-    g.selectAll(".w-cap circle").attr("r", (c) => (W.claims.has(c.iso2) ? 4.2 : 2.4) / Math.sqrt(ev.transform.k));
-    g.selectAll(".w-cap-label").style("font-size", `${10 / Math.sqrt(ev.transform.k)}px`);
+    const k = ev.transform.k;
+    g.selectAll(".w-dot").attr("r", 2.6 / Math.sqrt(k));
+    g.selectAll(".w-halo").attr("r", 9 / Math.sqrt(k));
+    g.selectAll(".w-chip").attr("transform", `translate(0,${-14 / Math.sqrt(k)}) scale(${1 / Math.sqrt(k)})`);
+    g.selectAll(".w-borders").attr("stroke-width", .6 / k);
   });
   svg.call(zoom);
   W.map = { svg, g, proj, zoom };
+}
+function landClass(f) {
+  const c = W.byNum.get(String(f.id).padStart(3, "0"));
+  if (!c) return "w-land is-none";
+  const cl = W.claims.get(c.iso2);
+  return "w-land " + (cl ? (isProtected(cl.entry) ? "is-claimed is-strong" : "is-claimed") : "is-open");
+}
+function capClass(c) {
+  const cl = W.claims.get(c.iso2);
+  return "w-cap" + (cl ? " is-claimed" + (isResettable(cl.entry) ? " is-resettable" : "") : "");
+}
+function chipText(c) {
+  const cl = W.claims.get(c.iso2); if (!cl) return "";
+  const e = cl.entry;
+  return `${c.flag} ${c.capital}${e.marketCapUsd != null ? " · " + fmtUsd(e.marketCapUsd) : ""}`;
+}
+function sizeChips(g) {
+  g.selectAll(".w-cap").each(function (c) {
+    const sel = d3.select(this);
+    const txt = chipText(c);
+    sel.select(".w-chip-text").text(txt);
+    const w = txt ? Math.min(140, txt.length * 5.6 + 14) : 0;
+    sel.select(".w-chip rect").attr("width", w).attr("x", -w / 2);
+  });
 }
 
 // ---------- List ----------
@@ -111,25 +218,28 @@ function renderWorldList() {
     const claimed = W.claims.has(c.iso2);
     if (W.filter === "claimed" && !claimed) return false;
     if (W.filter === "open" && claimed) return false;
+    if (W.filter === "resettable" && !(claimed && isResettable(W.claims.get(c.iso2).entry))) return false;
     if (q && !(`${c.name} ${c.nameKo} ${c.capital} ${c.iso2} ${c.iso3}`.toLowerCase().includes(q))) return false;
     return true;
   });
-  // claimed first (by mcap), then open alphabetically
   rows.sort((a, b) => {
-    const ea = W.claims.get(a.iso2), eb = W.claims.get(b.iso2);
+    const ea = W.claims.get(a.iso2)?.entry, eb = W.claims.get(b.iso2)?.entry;
     if (ea && !eb) return -1; if (!ea && eb) return 1;
     if (ea && eb) return (eb.marketCapUsd || 0) - (ea.marketCapUsd || 0);
     return a.name.localeCompare(b.name);
   });
   document.getElementById("w-list-count").textContent = `${rows.length} shown`;
   list.innerHTML = rows.map((c) => {
-    const e = W.claims.get(c.iso2);
-    return `<button class="world-row ${e ? "is-claimed" : ""}" data-iso="${c.iso2}">
+    const cl = W.claims.get(c.iso2); const e = cl && cl.entry;
+    let right;
+    if (!e) right = `<span class="world-row-open">open</span>`;
+    else if (isProtected(e)) right = `<span class="world-row-mcap">${fmtUsd(e.marketCapUsd)}</span><span class="world-row-sub">🔒 protected · ${timeAgo(e.launchedAt)}</span>`;
+    else if (isResettable(e)) right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub world-row-reset">↻ resettable</span>`;
+    else right = `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub">⏳ ${fmtDur(GRACE() - claimAge(e))} to reach ${fmtUsd(RESET_MCAP())}</span>`;
+    return `<button class="world-row ${e ? "is-claimed" : ""} ${e && isResettable(e) ? "is-resettable" : ""}" data-iso="${c.iso2}">
       <img class="world-row-logo" src="world/logos/${c.iso2}.svg" alt="" loading="lazy">
-      <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}</span></span>
-      <span class="world-row-right">${e
-        ? `<span class="world-row-mcap">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</span><span class="world-row-sub">claimed ${timeAgo(e.launchedAt)}</span>`
-        : `<span class="world-row-open">open</span>`}</span>
+      <span class="world-row-main"><span class="world-row-name">${c.flag} ${c.name}</span><span class="world-row-cap">$${c.ticker} · ${c.capital}${cl && cl.resets ? ` · reset ×${cl.resets}` : ""}</span></span>
+      <span class="world-row-right">${right}</span>
     </button>`;
   }).join("") || `<div class="empty-state">Nothing matches.</div>`;
   list.querySelectorAll(".world-row").forEach((b) => b.addEventListener("click", () => openClaim(W.byIso.get(b.dataset.iso))));
@@ -144,90 +254,144 @@ function openClaim(c) {
   $("claim-title").textContent = c.capital;
   $("claim-sub").textContent = `${c.name}${c.nameKo ? " · " + c.nameKo : ""} · ${c.region}`;
   $("claim-status").innerHTML = "";
-  const e = W.claims.get(c.iso2);
-  if (e) {
+  const cl = W.claims.get(c.iso2);
+  const q = quoteCfg();
+  const live = typeof pairedFactoryConfigured === "function" && pairedFactoryConfigured() && q && q.address;
+
+  if (cl) {
+    const e = cl.entry;
+    const prot = isProtected(e), reset = isResettable(e);
+    const stateLabel = prot ? `🔒 Protected — above ${fmtUsd(RESET_MCAP())}`
+      : reset ? `↻ Resettable — under ${fmtUsd(RESET_MCAP())} after the first hour`
+      : `⏳ ${fmtDur(GRACE() - claimAge(e))} left to reach ${fmtUsd(RESET_MCAP())}`;
     $("claim-body").innerHTML = `
       <div class="claim-grid">
-        <div class="stat-card"><div class="stat-label">Market cap</div><div class="stat-value">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</div></div>
-        <div class="stat-card"><div class="stat-label">Claimed</div><div class="stat-value" style="font-size:.95rem">${timeAgo(e.launchedAt)}</div><div class="stat-sub">by <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${e.creator}" target="_blank">${short(e.creator)}</a></div></div>
+        <div class="stat-card"><div class="stat-label">Market cap</div><div class="stat-value">${e.marketCapUsd != null ? fmtUsd(e.marketCapUsd) : "—"}</div><div class="stat-sub">${stateLabel}</div></div>
+        <div class="stat-card"><div class="stat-label">Claimed</div><div class="stat-value" style="font-size:.95rem">${timeAgo(e.launchedAt)}</div><div class="stat-sub">by <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${e.creator}" target="_blank">${short(e.creator)}</a>${cl.resets ? ` · reset ×${cl.resets}` : ""}</div></div>
       </div>
       <div class="claim-actions">
         <a class="btn btn-primary" href="explore.html#/token/${e.token}">Trade $${c.ticker} →</a>
         <a class="btn" href="${CONFIG.BLOCK_EXPLORER}/token/${e.token}" target="_blank" rel="noopener">explorer ↗</a>
-      </div>`;
+      </div>
+      ${reset && live ? `
+      <div class="claim-reset">
+        <div class="claim-reset-head">Reset this capital</div>
+        <p class="hint">The current coin didn't reach ${fmtUsd(RESET_MCAP())} in its first hour. Pay <b>${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol}</b> (to the $HOME treasury) and ${c.capital} launches again — with you as the creator. The old coin keeps trading; the map moves to the new one.</p>
+        <label class="claim-devbuy">Dev buy ($${q.symbol}) <span class="optional">optional</span><input id="claim-devbuy" type="number" min="0" step="1" placeholder="0"></label>
+        <div class="claim-actions"><button class="btn btn-primary" id="claim-go">Pay ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol} & reset ${c.capital}</button></div>
+      </div>` : ""}`;
+    if (reset && live) $("claim-go").addEventListener("click", () => submitClaim(c, { reset: true }));
   } else {
-    const live = typeof hybridFactoryConfigured === "function" && hybridFactoryConfigured();
     $("claim-body").innerHTML = `
       <div class="claim-terms">
         <div class="claim-term"><span class="dt">Name</span><span class="dd">${c.name}</span></div>
         <div class="claim-term"><span class="dt">Ticker</span><span class="dd">$${c.ticker}</span></div>
         <div class="claim-term"><span class="dt">Logo</span><span class="dd">the outline above — fixed</span></div>
-        <div class="claim-term"><span class="dt">Mode</span><span class="dd">Hybrid · real v4 pool from block one · no ETH needed</span></div>
+        <div class="claim-term"><span class="dt">Paired with</span><span class="dd">$${q ? q.symbol : "HOMEPAD"} · real v4 pool from block one</span></div>
         <div class="claim-term"><span class="dt">Rent</span><span class="dd">1% per trade → 70% to you, 30% to $HOME</span></div>
+        <div class="claim-term"><span class="dt">Keep it</span><span class="dd">reach ${fmtUsd(RESET_MCAP())} within 1h, or anyone can reset it for ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q ? q.symbol : "HOMEPAD"}</span></div>
       </div>
-      <label class="claim-devbuy">Dev buy (ETH) <span class="optional">optional</span>
-        <input id="claim-devbuy" type="number" min="0" step="0.001" placeholder="0.0">
+      <label class="claim-devbuy">Dev buy ($${q ? q.symbol : "HOMEPAD"}) <span class="optional">optional</span>
+        <input id="claim-devbuy" type="number" min="0" step="1" placeholder="0">
       </label>
       <div class="claim-actions">
         <button class="btn btn-primary" id="claim-go" ${live ? "" : "disabled"}>${live ? `Claim ${c.capital}` : "Launchpad offline"}</button>
       </div>
-      <p class="hint">Name, ticker and logo can't be edited — that's what makes the claim provable. One claim per capital, first launch wins. Signed by your wallet; you're the creator on-chain.</p>`;
-    $("claim-go").addEventListener("click", () => submitClaim(c));
+      <p class="hint">Name, ticker and logo can't be edited — that's what makes the claim provable. Signed by your wallet; you're the creator on-chain. No $${q ? q.symbol : "HOMEPAD"} is needed to launch (only for the optional dev buy).</p>`;
+    $("claim-go").addEventListener("click", () => submitClaim(c, { reset: false }));
   }
   modal.style.display = "flex";
 }
 function closeClaim() { document.getElementById("claim-modal").style.display = "none"; }
 
-async function submitClaim(c) {
+async function submitClaim(c, opts) {
+  const reset = !!(opts && opts.reset);
   const status = document.getElementById("claim-status");
   const btn = document.getElementById("claim-go");
+  const q = quoteCfg();
   try {
-    if (!state.signer) {
+    if (!state.signer && !state.account) {
       status.innerHTML = `<div class="status pending">Connect a wallet first…</div>`;
       await connectWallet();
-      if (!state.signer) { status.innerHTML = `<div class="status error">Connect a wallet to claim.</div>`; return; }
+      if (!state.account) { status.innerHTML = `<div class="status error">Connect a wallet to claim.</div>`; return; }
     }
-    // Re-check on chain right before sending: someone may have claimed it
-    // while this modal was open.
-    await loadWorldClaims();
-    if (W.claims.has(c.iso2)) { status.innerHTML = `<div class="status error">${c.capital} was just claimed by someone else.</div>`; renderAll(); return; }
-
     btn.disabled = true;
+    // Re-check on chain right before sending: someone may have claimed /
+    // reset it while this modal was open.
+    await loadWorldClaims();
+    const cl = W.claims.get(c.iso2);
+    if (!reset && cl) { status.innerHTML = `<div class="status error">${c.capital} was just claimed by someone else.</div>`; btn.disabled = false; renderAll(); return; }
+    if (reset && !(cl && isResettable(cl.entry))) { status.innerHTML = `<div class="status error">${c.capital} isn't resettable right now.</div>`; btn.disabled = false; renderAll(); return; }
+
     const devStr = (document.getElementById("claim-devbuy").value || "").trim();
-    const devBuyEth = devStr && Number(devStr) > 0 ? ethers.parseEther(devStr) : 0n;
+    const devBuy = devStr && Number(devStr) > 0 ? ethers.parseUnits(devStr, q.decimals) : 0n;
+    const tok = tokenRead(q.address);
+
+    if (reset) {
+      const bal = await tok.balanceOf(state.account);
+      if (bal < RESET_FEE() + devBuy) { status.innerHTML = `<div class="status error">You need ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol} for the reset fee${devBuy > 0n ? " plus the dev buy" : ""}. You have ${fmtCompact(Number(ethers.formatUnits(bal, q.decimals)))}.</div>`; btn.disabled = false; return; }
+      status.innerHTML = `<div class="status pending">1/2 — Confirm the ${Number(CONFIG.WORLD_RESET_FEE_HOMEPAD).toLocaleString()} $${q.symbol} reset fee in your wallet…</div>`;
+      const feeTx = await sendTokenTransfer(q.address, CONFIG.HOME_TREASURY_ADDRESS, RESET_FEE());
+      status.innerHTML = `<div class="status pending">Fee sent · <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${feeTx.hash}" target="_blank">tx ↗</a> — waiting…</div>`;
+      await feeTx.wait();
+    }
+
+    if (devBuy > 0n) {
+      const allowance = await tok.allowance(state.account, CONFIG.PAIRED_FACTORY_ADDRESS);
+      if (allowance < devBuy) {
+        status.innerHTML = `<div class="status pending">Approve $${q.symbol} for the dev buy…</div>`;
+        const a = await tokenWrite(q.address).approve(CONFIG.PAIRED_FACTORY_ADDRESS, devBuy);
+        await a.wait();
+      }
+    }
+
+    // Starting price: match Hybrid's current starting valuation in $HOMEPAD.
+    let virtualStr = q.defaultVirtualQuote;
+    try { virtualStr = await computeQuoteEquivalentStartPrice(q); } catch (err) { console.warn("using static start price", err && err.message); }
+    const initialVirtualQuote = ethers.parseUnits(String(virtualStr), q.decimals);
     const meta = { imageUrl: worldLogoUrl(c), description: worldDescription(c), twitter: "", telegram: "", discord: "", website: "" };
-    const functionName = devBuyEth > 0n ? "launchAndBuy" : "launch";
-    const args = [c.name, c.ticker, 0, meta];
-    status.innerHTML = `<div class="status pending">Confirm the claim in your wallet…</div>`;
-    // Same write path as the launch form: wagmi's own writeContract when
-    // AppKit is the session (switches to Robinhood Chain first, pins the
-    // chainId), ethers as the fallback for the basic window.ethereum flow.
+    const functionName = devBuy > 0n ? "launchAndBuy" : "launch";
+    const args = devBuy > 0n
+      ? [c.name, c.ticker, q.address, initialVirtualQuote, 0, meta, devBuy]
+      : [c.name, c.ticker, q.address, initialVirtualQuote, 0, meta];
+
+    status.innerHTML = `<div class="status pending">${reset ? "2/2 — " : ""}Confirm the claim in your wallet…</div>`;
     let tx = typeof tryWagmiWrite === "function"
-      ? await tryWagmiWrite({ address: CONFIG.HYBRID_FACTORY_ADDRESS, abi: HYBRID_FACTORY_ABI, functionName, args, value: devBuyEth })
+      ? await tryWagmiWrite({ address: CONFIG.PAIRED_FACTORY_ADDRESS, abi: PAIRED_FACTORY_ABI, functionName, args, value: 0n })
       : null;
     if (!tx) {
       if (typeof ensureAppKitChain === "function") await ensureAppKitChain();
       const overrides = await getTxOverrides(6_000_000n);
-      tx = devBuyEth > 0n
-        ? await hybridFactoryWrite().launchAndBuy(c.name, c.ticker, 0, meta, { ...overrides, value: devBuyEth })
-        : await hybridFactoryWrite().launch(c.name, c.ticker, 0, meta, overrides);
+      tx = await pairedFactoryWrite()[functionName](...args, overrides);
     }
     status.innerHTML = `<div class="status pending">Claiming ${c.capital}… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
     await loadWorldClaims();
-    const e = W.claims.get(c.iso2);
-    recordClaimInFirebase(c, e, receipt).catch(() => {});
+    const e = W.claims.get(c.iso2)?.entry;
+    recordClaimInFirebase(c, e, receipt, reset).catch(() => {});
     status.innerHTML = `<div class="status success">🏡 ${c.capital} is yours. <a href="explore.html#/token/${e ? e.token : ""}">Open $${c.ticker} →</a></div>`;
     renderAll();
   } catch (err) {
     console.error(err);
     btn && (btn.disabled = false);
-    status.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 200)}</div>`;
+    status.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 220)}</div>`;
   }
 }
 
+/// ERC-20 transfer through the same write path launches use.
+async function sendTokenTransfer(token, to, amount) {
+  let tx = typeof tryWagmiWrite === "function"
+    ? await tryWagmiWrite({ address: token, abi: ERC20_ABI, functionName: "transfer", args: [to, amount], value: 0n })
+    : null;
+  if (!tx) {
+    if (typeof ensureAppKitChain === "function") await ensureAppKitChain();
+    tx = await tokenWrite(token).transfer(to, amount);
+  }
+  return tx;
+}
+
 // ---------- Firebase (optional, write-only record) ----------
-async function recordClaimInFirebase(c, e, receipt) {
+async function recordClaimInFirebase(c, e, receipt, reset) {
   if (!window.FIREBASE_CONFIG || !e) return;
   if (!window.firebase) {
     await Promise.all([
@@ -236,24 +400,23 @@ async function recordClaimInFirebase(c, e, receipt) {
     ].map((src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); })));
   }
   if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
-  await firebase.firestore().collection("claims").doc(c.iso2).set({
+  const doc = {
     iso2: c.iso2, name: c.name, capital: c.capital, ticker: c.ticker,
     token: e.token, creator: e.creator, txHash: receipt.hash, launchedAt: e.launchedAt,
-    recordedAt: Date.now(),
-  }, { merge: false });
+    reset: !!reset, recordedAt: Date.now(),
+  };
+  const db = firebase.firestore();
+  await db.collection("claims").doc(c.iso2).set(doc, { merge: false }).catch(() => db.collection("claims").doc(`${c.iso2}-${Date.now()}`).set(doc));
 }
 
 // ---------- Boot ----------
 function renderAll() {
   renderWorldStats();
   renderWorldList();
-  // repaint map classes/labels without refetching topojson
   if (W.map) {
-    W.map.g.selectAll(".w-land").attr("class", function () {
-      const f = d3.select(this).datum(); const c = W.byNum.get(String(f.id).padStart(3, "0"));
-      return "w-land" + (c ? (W.claims.has(c.iso2) ? " is-claimed" : " is-open") : " is-none");
-    });
-    W.map.g.selectAll(".w-cap").attr("class", (c) => "w-cap" + (W.claims.has(c.iso2) ? " is-claimed" : "")).select("circle").attr("r", (c) => W.claims.has(c.iso2) ? 4.2 : 2.4);
+    W.map.g.selectAll(".w-land").attr("class", function () { return landClass(d3.select(this).datum()); });
+    W.map.g.selectAll(".w-cap").attr("class", (c) => capClass(c));
+    sizeChips(W.map.g);
   }
 }
 
@@ -266,8 +429,10 @@ function renderAll() {
     document.querySelectorAll("#w-filters .filter-chip").forEach((x) => x.classList.remove("active"));
     chip.classList.add("active"); W.filter = chip.dataset.f; renderWorldList();
   });
-  renderWorldList(); // instant, before the chain answers
+  renderWorldList();
   try { await loadWorldClaims(); } catch (err) { console.error("claims failed", err); }
   await renderWorldMap();
   renderAll();
+  // keep the "left to reach" countdowns honest without refetching
+  setInterval(renderWorldList, 30000);
 })();
