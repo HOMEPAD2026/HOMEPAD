@@ -1875,6 +1875,14 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
   .cn-hero-split .home-hero-content{max-width:none;}
   .cn-hero-logo{width:150px;height:150px;}
   .cn-hero-split .hero-cta-row{justify-content:center;}
+  /* The site-wide mobile header gives .brand an explicit order:1 (so it
+     stays left of #wallet-slot's order:2, in the two-row phone layout
+     every other page uses). cnPONS nests #wallet-slot inside
+     .cn-header-right instead, which had no order set — defaulting to 0,
+     lower than .brand's 1, so it was rendering BEFORE the logo and
+     pushing it to the right. Give it the order #wallet-slot used to
+     have directly. */
+  .cn-header-right{order:2;}
 }
 .cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
 .cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
