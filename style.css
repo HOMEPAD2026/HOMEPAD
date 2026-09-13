@@ -1863,8 +1863,13 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-mech-address code{font-family:'Silkscreen';font-size:.68rem;background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:6px;}
 /* Header brand for this page: small 橋 logo mark + the character itself,
    in place of the generic 🏡 HOMEPAD text */
-.cn-brand{gap:8px;}
-.cn-brand-logo{width:26px;height:26px;object-fit:contain;border-radius:7px;}
+/* Header brand for this page: 橋 logo mark leftmost, then the character
+   itself in a calligraphy-style font (Ma Shan Zheng handles CJK properly —
+   Silkscreen, used for HOMEPAD's own wordmark elsewhere, is Latin-only and
+   would just fall back to a generic system font on a Chinese character) */
+.cn-brand{gap:10px;flex-direction:row;}
+.cn-brand-logo{width:32px;height:32px;object-fit:contain;border-radius:9px;flex-shrink:0;box-shadow:0 3px 0 rgba(90,10,10,.5);}
+.cn-brand-char{font-family:'Ma Shan Zheng',cursive;font-size:1.7rem;line-height:1;color:#ff5a5a;text-shadow:0 2px 0 rgba(0,0,0,.3);}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}
