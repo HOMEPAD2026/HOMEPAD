@@ -1776,7 +1776,8 @@ nav a{display:inline-flex;align-items:center;}
 .qiao-game-hint kbd{font-family:monospace;background:var(--void);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.72rem;}
 .qiao-footer-note{font-size:.74rem;color:var(--ink-dim);text-align:center;margin-top:40px;font-style:italic;}
 /* cnPONS stock picker */
-.cn-stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+.carousel-track .cn-stock-card{width:150px;flex-shrink:0;}
+#cn-stock-viewport{min-height:140px;}
 .cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
 .cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
 .cn-stock-card.is-picked{border-color:var(--green);background:rgba(57,255,136,.06);}

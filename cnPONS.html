@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789317518">
+<link rel="stylesheet" href="style.css?v=1789318063">
 </head>
 <body>
 
@@ -59,13 +59,25 @@
   </div>
 </section>
 
+<!-- ============ Stock picker carousel — same auto-scroll/drag pattern as the main homepage's launch carousel ============ -->
+<section class="carousel-section">
+  <div class="wrap">
+    <input class="world-search" id="cn-stock-search" placeholder="Search by name or ticker…" autocomplete="off" style="margin-bottom:14px;width:100%;box-sizing:border-box;max-width:420px;">
+    <div class="carousel-viewport" id="cn-stock-viewport">
+      <div class="carousel-track" id="cn-stock-grid">
+        <div class="empty-state">Loading Stock Tokens from Robinhood's registry…</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <main class="wrap adv-main">
   <div class="adv-disclaimer">
     <div class="adv-disclaimer-head">Before you pair against a Stock Token</div>
     <ul class="adv-disclaimer-list">
       <li><b>Stock Tokens are Robinhood's, not HOMEPAD's.</b> They're tokenized debt securities issued by Robinhood Assets (Jersey) Limited — HOMEPAD only reads their public registry and pairs against them the same way it can pair against any ERC-20.</li>
       <li><b>Known, unresolved pricing risk.</b> Every Stock Token carries a <code>currentMultiplier</code> that Robinhood adjusts on real corporate actions (splits, dividends). HOMEPAD's Paired factory does not re-sync a pool's price to that multiplier after launch — a corporate action after your launch could leave the pool mispriced relative to the real stock. This is why Stock Token pairing has stayed off the main launch form's quote list; it's opt-in here, with this stated plainly.</li>
-      <li><b>Addresses are resolved live, every page load</b>, from Robinhood's own asset API — never hardcoded here. If a ticker doesn't appear below, Robinhood's registry doesn't currently list it as tradable on Robinhood Chain.</li>
+      <li><b>Addresses are resolved live, every page load</b>, from Robinhood's own asset API — never hardcoded here. If a ticker doesn't appear in the carousel above, Robinhood's registry doesn't currently list it as tradable on Robinhood Chain.</li>
     </ul>
   </div>
 
@@ -73,12 +85,6 @@
     <div class="stat-card"><div class="stat-label">CN stocks live on-chain</div><div class="stat-value" id="cn-stock-count">···</div></div>
     <div class="stat-card"><div class="stat-label">Launches paired so far</div><div class="stat-value" id="cn-launch-count">···</div></div>
   </div>
-
-  <!-- ============ Stock picker ============ -->
-  <section class="rent-section-head"><h3>Pick a Chinese stock</h3><span class="rent-section-count" id="cn-stock-picker-count"></span></section>
-  <p class="rent-section-note">The stock your market cap is measured in. Trades settle in the stock's own Stock Token on the curve.</p>
-  <input class="world-search" id="cn-stock-search" placeholder="Search by name or ticker…" autocomplete="off" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
-  <div class="cn-stock-grid" id="cn-stock-grid"><div class="empty-state">Loading Stock Tokens from Robinhood's registry…</div></div>
 
   <!-- ============ Explore ============ -->
   <section class="adv-explore-wrap" id="cn-explore">
@@ -108,12 +114,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789317518"></script>
-<script src="abis.js?v=1789317518"></script>
-<script src="app.js?v=1789317518"></script>
-<script src="wallet-appkit.js?v=1789317518"></script>
-<script src="launch-modal.js?v=1789317518"></script>
-<script src="footer.js?v=1789317518"></script>
-<script src="cnPONS.js?v=1789317518"></script>
+<script src="config.js?v=1789318063"></script>
+<script src="abis.js?v=1789318063"></script>
+<script src="app.js?v=1789318063"></script>
+<script src="wallet-appkit.js?v=1789318063"></script>
+<script src="launch-modal.js?v=1789318063"></script>
+<script src="footer.js?v=1789318063"></script>
+<script src="cnPONS.js?v=1789318063"></script>
 </body>
 </html>

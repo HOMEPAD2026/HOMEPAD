@@ -10,7 +10,7 @@
 // corporate-action pricing risk this carries (the same reason QUOTE_TOKENS
 // is empty on the main launch form).
 
-const CN = { stocks: [], picked: null, launches: [] };
+const CN = { stocks: [], picked: null, launches: [], dragDistance: 0 };
 
 async function loadCnStocks() {
   const grid = document.getElementById("cn-stock-grid");
@@ -36,10 +36,15 @@ async function loadCnStocks() {
     return;
   }
   document.getElementById("cn-stock-count").textContent = String(CN.stocks.length);
-  document.getElementById("cn-stock-picker-count").textContent = `${CN.stocks.length} available`;
   renderStockGrid();
 }
 
+/// Renders the stock picker as a carousel track — same seamless-loop
+/// technique as the main homepage's launch carousel (three copies of the
+/// card set back to back, see setupCarouselAutoScroll below). A search
+/// filter rebuilds the track with a narrower set and restarts the loop;
+/// that's an acceptable reset since filtering is an occasional action,
+/// not something happening mid-scroll.
 function renderStockGrid() {
   const grid = document.getElementById("cn-stock-grid");
   const q = (document.getElementById("cn-stock-search").value || "").trim().toLowerCase();
@@ -50,17 +55,27 @@ function renderStockGrid() {
       : `<div class="empty-state">None of the tracked Chinese tickers are currently listed as active Stock Tokens on Robinhood Chain.</div>`;
     return;
   }
-  grid.innerHTML = rows.map((s) => `
+  const cardHtml = (s) => `
     <button type="button" class="cn-stock-card ${CN.picked && CN.picked.address === s.address ? "is-picked" : ""}" data-address="${s.address}">
       <img class="cn-stock-logo" src="${s.logoUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
       <span class="cn-stock-name">${s.name}</span>
       <span class="cn-stock-symbol">${s.symbol}</span>
       ${s.multiplier !== 1 ? `<span class="cn-stock-mult">×${s.multiplier.toFixed(4)} adj.</span>` : ""}
-    </button>`).join("");
-  grid.querySelectorAll(".cn-stock-card").forEach((btn) => btn.addEventListener("click", () => pickStock(btn.dataset.address)));
+    </button>`;
+  const setHtml = rows.map(cardHtml).join("");
+  // Only loop with 3 copies when there's enough content to make a seamless
+  // loop worthwhile — a couple of search-filtered results just render flat.
+  grid.innerHTML = rows.length > 3 ? setHtml + setHtml + setHtml : setHtml;
+  grid.querySelectorAll(".cn-stock-card").forEach((btn) => {
+    btn.addEventListener("click", () => pickStock(btn.dataset.address));
+  });
+  if (rows.length > 3) {
+    setupCarouselAutoScroll(document.getElementById("cn-stock-viewport"), grid, rows.length);
+  }
 }
 
 function pickStock(address) {
+  if (CN.dragDistance > 6) return; // this was a carousel drag, not a tap — see setupCarouselAutoScroll
   CN.picked = CN.stocks.find((s) => s.address === address) || null;
   renderStockGrid();
   const picked = document.getElementById("cn-launch-picked");
@@ -72,6 +87,67 @@ function pickStock(address) {
   submitBtn.disabled = false;
   submitBtn.textContent = `Launch, paired with ${CN.picked.symbol}`;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/// Auto-scrolls the stock carousel right-to-left endlessly, and switches to
+/// following the pointer while actively dragging — same technique as the
+/// main homepage's launch carousel (home-stats.js), copied here rather than
+/// loading that file, since it also boots its own $HOME-specific carousel
+/// that has no place on this page. The one addition: cards here are
+/// clickable (pick a stock), not just decorative links, so this tracks how
+/// far the pointer moved during the gesture — pickStock() ignores a "click"
+/// that followed a real drag.
+function setupCarouselAutoScroll(viewport, track, itemCount) {
+  if (!viewport || !track || itemCount === 0) return;
+
+  const singleSetWidth = track.scrollWidth / 3;
+  let currentScroll = singleSetWidth;
+  viewport.scrollLeft = currentScroll;
+
+  const SPEED = 0.5;
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartScroll = 0;
+
+  function wrap() {
+    if (currentScroll >= singleSetWidth * 2) currentScroll -= singleSetWidth;
+    if (currentScroll < 0) currentScroll += singleSetWidth;
+  }
+
+  function tick() {
+    if (!isDragging) {
+      currentScroll += SPEED;
+      wrap();
+      viewport.scrollLeft = currentScroll;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  viewport.addEventListener("pointerdown", (e) => {
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartScroll = viewport.scrollLeft;
+    CN.dragDistance = 0;
+    viewport.setPointerCapture(e.pointerId);
+    viewport.classList.add("dragging");
+  });
+  viewport.addEventListener("pointermove", (e) => {
+    if (!isDragging) return;
+    CN.dragDistance = Math.abs(e.clientX - dragStartX);
+    viewport.scrollLeft = dragStartScroll - (e.clientX - dragStartX);
+  });
+  function endDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+    viewport.classList.remove("dragging");
+    currentScroll = viewport.scrollLeft;
+    wrap();
+    viewport.scrollLeft = currentScroll;
+  }
+  viewport.addEventListener("pointerup", endDrag);
+  viewport.addEventListener("pointercancel", endDrag);
+  viewport.addEventListener("pointerleave", endDrag);
 }
 
 // ---------- Explore: existing launches paired against any tracked CN stock ----------
