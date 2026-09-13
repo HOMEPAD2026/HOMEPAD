@@ -1809,6 +1809,16 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 }
 .cn-hero-launch-btn:hover{box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 9px 0 rgba(90,10,10,.6);}
 .cn-hero-launch-btn:active{box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 3px 0 rgba(90,10,10,.6);}
+/* Hero logo, desktop: text left, logo right, balanced side by side */
+.cn-hero-split{display:flex;align-items:center;justify-content:space-between;gap:48px;}
+.cn-hero-split .home-hero-content{max-width:560px;flex:1 1 auto;}
+.cn-hero-logo{width:260px;height:260px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 18px 34px rgba(200,20,20,.35));}
+@media (max-width:900px){
+  .cn-hero-split{flex-direction:column-reverse;text-align:center;gap:20px;}
+  .cn-hero-split .home-hero-content{max-width:none;}
+  .cn-hero-logo{width:150px;height:150px;}
+  .cn-hero-split .hero-cta-row{justify-content:center;}
+}
 .cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
 .cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
 .cn-stock-card.is-picked{border-color:var(--green);background:rgba(57,255,136,.06);}
