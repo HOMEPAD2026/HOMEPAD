@@ -86,8 +86,33 @@ function pickStock(address) {
   form.style.display = "";
   submitBtn.disabled = false;
   submitBtn.textContent = `Launch, paired with ${CN.picked.symbol}`;
+  document.getElementById("cn-devbuy").placeholder = `0.0 ${CN.picked.symbol}`;
+  document.getElementById("cn-devbuy-label").innerHTML = `Dev buy <span class="optional">optional — in ${CN.picked.symbol}, not ETH</span>`;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
   suggestCnStartValuation(CN.picked);
+  updateCnDevBuyPreview();
+}
+
+/// Live "how many tokens would this buy" preview for the Dev buy field —
+/// approximate constant-product math against the same virtual reserves
+/// the launch itself will use (Starting valuation as the quote side,
+/// DEFAULT_SUPPLY as the token side), same model every HOMEPAD bonding
+/// curve already uses. Ignores the base trading fee, so the real result
+/// on launch will be slightly lower than this — labeled "approximately"
+/// rather than implying an exact quote.
+function updateCnDevBuyPreview() {
+  const el = document.getElementById("cn-devbuy-preview");
+  const devBuyStr = document.getElementById("cn-devbuy").value.trim();
+  const valuationStr = document.getElementById("cn-start-valuation").value.trim();
+  if (!CN.picked || !devBuyStr || Number(devBuyStr) <= 0 || !valuationStr || Number(valuationStr) <= 0) {
+    el.textContent = "";
+    return;
+  }
+  const virtualQuote = Number(valuationStr);
+  const supply = Number(CONFIG.DEFAULT_SUPPLY);
+  const devBuy = Number(devBuyStr);
+  const tokensOut = supply - (virtualQuote * supply) / (virtualQuote + devBuy);
+  el.textContent = `≈ ${fmtCompact(tokensOut)} tokens (${((tokensOut / supply) * 100).toFixed(2)}% of supply) — approximate, before the trading fee.`;
 }
 
 /// Pre-fills "Starting valuation" from the stock's real current price,
@@ -122,6 +147,7 @@ async function suggestCnStartValuation(stock) {
     const suggested = quoteAmount >= 1000 ? String(Math.round(quoteAmount)) : quoteAmount.toPrecision(4);
     if (input.value.trim()) return; // picked another stock, or typed something, while this was in flight
     input.value = suggested;
+    updateCnDevBuyPreview();
     hint.innerHTML = `Pre-filled from ${stock.symbol}'s current price (~$${midPrice.toFixed(2)}/share) — matches Hybrid's usual starting market cap. Adjust if you want a different valuation.`;
   } catch (err) {
     console.warn("suggestCnStartValuation failed", err);
@@ -383,7 +409,15 @@ async function submitCnLaunch(ev) {
   const name = document.getElementById("cn-name").value.trim();
   const symbol = document.getElementById("cn-symbol").value.trim().toUpperCase();
   const imageUrl = document.getElementById("cn-logo").value.trim();
-  const description = document.getElementById("cn-description").value.trim();
+  const website = document.getElementById("cn-website").value.trim();
+  // No dedicated on-chain field for a website exists in any HOMEPAD launch
+  // contract yet (LaunchMeta is {imageUrl,description,twitter,telegram,
+  // discord} everywhere — 5 fields, no website; ethers only encodes what
+  // the ABI declares, so a separate value here would just be silently
+  // dropped, same as it already is on the main launch form). Folding it
+  // into the description instead means it's actually preserved somewhere.
+  const descriptionRaw = document.getElementById("cn-description").value.trim();
+  const description = website ? `${descriptionRaw}${descriptionRaw ? " · " : ""}Website: ${website}` : descriptionRaw;
   const twitter = document.getElementById("cn-twitter").value.trim();
   const telegram = document.getElementById("cn-telegram").value.trim();
   const discord = document.getElementById("cn-discord").value.trim();
@@ -453,6 +487,8 @@ async function submitCnLaunch(ev) {
 (async () => {
   document.getElementById("cn-stock-search").addEventListener("input", renderStockGrid);
   document.getElementById("cn-launch-form").addEventListener("submit", submitCnLaunch);
+  document.getElementById("cn-devbuy").addEventListener("input", updateCnDevBuyPreview);
+  document.getElementById("cn-start-valuation").addEventListener("input", updateCnDevBuyPreview);
   wireCnImageUpload();
   wireCnFeePreview();
   await loadCnStocks();
