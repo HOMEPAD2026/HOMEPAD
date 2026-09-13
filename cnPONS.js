@@ -1,11 +1,14 @@
 // cnPONS.js — pair a HOMEPAD launch against a real Robinhood Chain Stock
 // Token for a Chinese company. Every stock address here is resolved LIVE
-// from Robinhood's own public asset registry (CONFIG.RH_STOCK_ASSETS_API),
-// filtered to CONFIG.CN_STOCK_TICKERS — nothing is hardcoded, so a wrong or
-// fabricated address is never a risk a visitor is exposed to. See the
-// disclaimer block on the page and the comment above PAIRED_FACTORY_ADDRESS
-// in config.js for the known, unresolved corporate-action pricing risk this
-// carries (the same reason QUOTE_TOKENS is empty on the main launch form).
+// from Robinhood's own public asset registry, proxied through our own
+// /api/rh-stock-assets serverless function (CONFIG.RH_STOCK_ASSETS_API) —
+// a direct browser fetch to api.robinhood.com failed with a CORS rejection,
+// see api/rh-stock-assets.js — filtered to CONFIG.CN_STOCK_TICKERS. Nothing
+// is hardcoded, so a wrong or fabricated address is never a risk a visitor
+// is exposed to. See the disclaimer block on the page and the comment
+// above PAIRED_FACTORY_ADDRESS in config.js for the known, unresolved
+// corporate-action pricing risk this carries (the same reason QUOTE_TOKENS
+// is empty on the main launch form).
 
 const CN = { stocks: [], picked: null, launches: [] };
 

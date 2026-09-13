@@ -68,6 +68,8 @@ This surfaces the **same known, unresolved pricing risk** documented above `QUOT
 
 Explore reads the Paired factory's own `launches()` directly and keeps only entries whose `quoteToken` matches a currently-live CN stock address. The launch form asks for a starting valuation by hand (in the stock's own units) rather than auto-filling one, since a stock that's never been paired before has no Dexscreener price to compute from.
 
+Robinhood's asset API isn't CORS-enabled for arbitrary browser origins — a direct `fetch()` from the page failed outright. `api/rh-stock-assets.js` (a Vercel serverless function, CommonJS since there's no `package.json` declaring ESM) proxies it: the browser calls this same-origin endpoint, the function makes the actual server-to-server call where CORS doesn't apply, and the response is cached at Vercel's edge (`s-maxage=300`) since the full asset list changes rarely. `CONFIG.RH_STOCK_ASSETS_API` points at this proxy path, not Robinhood's URL directly.
+
 ## World map (`world.html`)
 
 One coin per capital, 197 capitals. A capital is claimed by launching on the **Paired factory with the quote fixed to `$HOMEPAD`**, name = country name, ticker = capital (or ISO3 when the capital is too long/non-ASCII), and logo = that country's canonical outline at `https://homepad.fun/world/logos/<ISO2>.svg`. The claim modal locks all four; the user's wallet signs, so the user is the on-chain creator and the existing 70% creator / 30% `$HOME` split applies with no new contracts. (Earlier ETH-paired claims — from before this was switched to `$HOMEPAD` — still count, so nothing already claimed is orphaned.)
@@ -142,6 +144,7 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── adventure.html · adventure.js · pons-abi.js   Adventure — Pons V2 explore (read-only) + a whitelist-gated launch form for their factory
 ├── adventure-cn.html · adventure-cn.js · qiao-game.js   "橋 JUMP" — mascot mini-game, $橋 spotlight, story (filename predates the language switch)
 ├── cnPONS.html · cnPONS.js               Launch/Explore paired with real Robinhood Chain Stock Tokens for Chinese companies, resolved live from Robinhood's own API
+├── api/rh-stock-assets.js                Vercel serverless function — proxies Robinhood's asset API for cnPONS (that API isn't CORS-enabled for a direct browser fetch)
 ├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
 ├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
 ├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)

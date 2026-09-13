@@ -43,7 +43,13 @@ const CONFIG = {
   // HomepadFactoryPaired/Router don't re-sync a pool's price to it after
   // launch — a real corporate action after a cnPONS launch could mis-price
   // that pool. The cnPONS launch flow says so explicitly.
-  RH_STOCK_ASSETS_API: "https://api.robinhood.com/rhj/assets",
+  // Fetched via our own /api/rh-stock-assets proxy, not this URL directly
+  // from the browser — api.robinhood.com isn't CORS-enabled for arbitrary
+  // third-party origins (confirmed: a direct browser fetch failed with
+  // "Failed to fetch", the generic CORS-rejection error), so the proxy
+  // (api/rh-stock-assets.js) makes the actual server-to-server call, where
+  // CORS doesn't apply, and also caches the response at Vercel's edge.
+  RH_STOCK_ASSETS_API: "/api/rh-stock-assets",
   CN_STOCK_TICKERS: [
     "BABA", "PDD", "JD", "BIDU", "NTES", "NIO", "BEKE", "ZTO", "HTHT", "MNSO",
     "IQ", "VIPS", "WB", "ATHM", "LI", "XPEV", "BILI", "TME", "TCOM", "YMM",
