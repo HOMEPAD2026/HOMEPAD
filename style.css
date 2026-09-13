@@ -1833,10 +1833,17 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-liquidity-modal-box p b{color:var(--ink);}
 .cn-liquidity-modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
 .cn-liquidity-modal-actions .btn{flex:1 1 auto;text-align:center;}
-/* Language toggle */
-.cn-lang-toggle{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:3px;}
-.cn-lang-toggle button{border:none;background:transparent;color:var(--ink-dim);font-family:'Sora';font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:100px;cursor:pointer;}
+/* Language toggle, grouped with the wallet button on the right so the
+   headbar stays a clean two-block layout (brand | lang+wallet) instead
+   of three items fighting for space */
+.cn-header-right{display:flex;align-items:center;gap:10px;}
+.cn-lang-toggle{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:3px;flex-shrink:0;}
+.cn-lang-toggle button{border:none;background:transparent;color:var(--ink-dim);font-family:'Sora';font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:100px;cursor:pointer;white-space:nowrap;}
 .cn-lang-toggle button.active{background:var(--green);color:#08150c;}
+@media (max-width:520px){
+  .cn-header-right{gap:6px;}
+  .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}
+}
 @media (max-width:900px){
   .cn-hero-split{flex-direction:column-reverse;text-align:center;gap:20px;}
   .cn-hero-split .home-hero-content{max-width:none;}
