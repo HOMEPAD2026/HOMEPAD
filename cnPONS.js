@@ -252,7 +252,10 @@ async function loadCnExplore() {
     }
   }
 
-  CN.launches.sort((a, b) => b.launchedAt - a.launchedAt);
+  // Market cap descending — marketCapUsd may be missing for a launch
+  // where neither Dexscreener nor the stock's own live price resolved;
+  // those sort to the bottom rather than breaking the sort.
+  CN.launches.sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
   document.getElementById("cn-launch-count").textContent = String(CN.launches.length);
   renderCnExplore();
 }
@@ -279,15 +282,24 @@ async function loadCnStockUsdPrices(symbols) {
 
 function renderCnExplore() {
   const track = document.getElementById("cn-explore-track");
+  const grid = document.getElementById("cn-explore-grid");
   if (!CN.launches.length) {
     track.innerHTML = `<div class="empty-state">No launches paired with a tracked Chinese stock yet — be the first.</div>`;
+    grid.innerHTML = "";
+    document.getElementById("cn-explore-grid-count").textContent = "";
     return;
   }
   const cardsHtml = CN.launches.map(launchCardHtml).join("");
-  track.innerHTML = CN.launches.length > 3 ? cardsHtml + cardsHtml + cardsHtml : cardsHtml;
-  if (CN.launches.length > 3) {
-    setupCarouselAutoScroll(document.getElementById("cn-explore-viewport"), track, CN.launches.length);
-  }
+  // Always loop the carousel, even with very few cards — three copies of
+  // one card still visibly scrolls, which matters more here than a
+  // "why bother looping two cards" purity argument.
+  track.innerHTML = cardsHtml + cardsHtml + cardsHtml;
+  setupCarouselAutoScroll(document.getElementById("cn-explore-viewport"), track, CN.launches.length);
+
+  // Full flat grid at the bottom, same launch-card component, no looping —
+  // same "grid-launches" pattern the main Explore page's own list uses.
+  grid.innerHTML = cardsHtml;
+  document.getElementById("cn-explore-grid-count").textContent = `${CN.launches.length} tracked`;
 }
 
 // ---------- Launch ----------
