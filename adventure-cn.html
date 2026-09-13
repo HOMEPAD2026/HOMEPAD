@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789291736">
+<link rel="stylesheet" href="style.css?v=1789293144">
 </head>
 <body>
 
@@ -59,6 +59,24 @@
     </ul>
   </div>
 
+  <!-- Featured spotlight card: a single manually-set token, red theme -->
+  <div class="adv-spotlight-warning">
+    <b>⚠ 风险提示：</b>以下代币由社区提交并展示，<b>未经 HOMEPAD 或 Pons 官方审核或认证</b>。展示位置不代表任何形式的推荐或背书。交易前请务必自行核实合约地址，并自行承担相应风险。
+  </div>
+  <div class="adv-spotlight-card" id="adv-spotlight-card">
+    <div class="adv-spotlight-badge">精选 · 社区代币</div>
+    <div class="adv-spotlight-main">
+      <div class="adv-spotlight-name" id="spot-name">Chinese PONS</div>
+      <div class="adv-spotlight-symbol" id="spot-symbol">$橋</div>
+      <div class="adv-spotlight-ca" id="spot-ca">0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</div>
+    </div>
+    <div class="adv-spotlight-stats">
+      <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">市值 (MC)</span><span class="adv-spotlight-stat-value" id="spot-mcap">···</span></div>
+      <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">24h 涨跌</span><span class="adv-spotlight-stat-value" id="spot-change">···</span></div>
+    </div>
+    <div class="adv-spotlight-cta">点击查看图表与详情 →</div>
+  </div>
+
   <div class="adv-stats" id="adv-stats">
     <div class="stat-card"><div class="stat-label">追踪的发行数</div><div class="stat-value" id="adv-count">···</div></div>
     <div class="stat-card"><div class="stat-label">曲线交易中</div><div class="stat-value" id="adv-live">···</div></div>
@@ -96,16 +114,38 @@
   </section>
 </main>
 
+<!-- Spotlight token detail modal -->
+<div class="modal-overlay" id="spot-modal" style="display:none">
+  <div class="modal-blob spot-modal-card">
+    <button class="modal-close" id="spot-modal-close" aria-label="Close">×</button>
+    <div class="spot-modal-head">
+      <div>
+        <div class="spot-modal-name" id="spot-modal-name">Chinese PONS</div>
+        <div class="spot-modal-symbol" id="spot-modal-symbol">$橋</div>
+      </div>
+      <a class="btn-mini" id="spot-modal-ca-link" href="#" target="_blank" rel="noopener">查看合约 ↗</a>
+    </div>
+    <div class="spot-modal-stats">
+      <div class="spot-modal-stat"><span class="stat-label">价格 (Price)</span><span class="stat-value" id="spot-modal-price">···</span></div>
+      <div class="spot-modal-stat"><span class="stat-label">市值 (MC)</span><span class="stat-value" id="spot-modal-mcap">···</span></div>
+      <div class="spot-modal-stat"><span class="stat-label">24h 涨跌</span><span class="stat-value" id="spot-modal-change">···</span></div>
+      <div class="spot-modal-stat"><span class="stat-label">流动性 (Liquidity)</span><span class="stat-value" id="spot-modal-liq">···</span></div>
+    </div>
+    <div class="spot-modal-chart" id="spot-modal-chart"><div class="empty-state">正在加载图表…</div></div>
+    <p class="hint">数据来自 Dexscreener，非 HOMEPAD 或 Pons 官方数据源。此代币未经审核，交易风险自负。</p>
+  </div>
+</div>
+
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789291736"></script>
-<script src="abis.js?v=1789291736"></script>
-<script src="pons-abi.js?v=1789291736"></script>
-<script src="app.js?v=1789291736"></script>
-<script src="wallet-appkit.js?v=1789291736"></script>
-<script src="launch-modal.js?v=1789291736"></script>
-<script src="footer.js?v=1789291736"></script>
-<script src="adventure-cn.js?v=1789291736"></script>
+<script src="config.js?v=1789293144"></script>
+<script src="abis.js?v=1789293144"></script>
+<script src="pons-abi.js?v=1789293144"></script>
+<script src="app.js?v=1789293144"></script>
+<script src="wallet-appkit.js?v=1789293144"></script>
+<script src="launch-modal.js?v=1789293144"></script>
+<script src="footer.js?v=1789293144"></script>
+<script src="adventure-cn.js?v=1789293144"></script>
 </body>
 </html>

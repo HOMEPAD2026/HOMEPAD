@@ -202,4 +202,63 @@ async function submitPonsLaunch(ev) {
   renderAdvStats();
   renderPonsExplore();
   refreshAdvLaunchGate();
+  loadSpotlightToken();
 })();
+
+// ---------- Featured spotlight token (manually set in config, not
+// derived from any factory event — see ADV_CN_FEATURED_TOKEN) ----------
+let spotDex = null;
+
+async function loadSpotlightToken() {
+  const t = CONFIG.ADV_CN_FEATURED_TOKEN;
+  if (!t) return;
+  document.getElementById("spot-ca").textContent = t.address;
+  document.getElementById("adv-spotlight-card").addEventListener("click", openSpotlightModal);
+  try {
+    const stats = await fetchDexscreenerStats([t.address]);
+    spotDex = stats.get(t.address.toLowerCase()) || null;
+    document.getElementById("spot-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "暂无数据";
+    const changeEl = document.getElementById("spot-change");
+    if (spotDex && spotDex.change24h != null) {
+      const up = spotDex.change24h >= 0;
+      changeEl.textContent = `${up ? "+" : ""}${spotDex.change24h.toFixed(2)}%`;
+      changeEl.style.color = up ? "var(--green)" : "var(--red)";
+    } else {
+      changeEl.textContent = "暂无数据";
+    }
+  } catch (err) {
+    console.warn("spotlight token stats failed", err);
+    document.getElementById("spot-mcap").textContent = "暂无数据";
+    document.getElementById("spot-change").textContent = "暂无数据";
+  }
+}
+
+function openSpotlightModal() {
+  const t = CONFIG.ADV_CN_FEATURED_TOKEN;
+  const modal = document.getElementById("spot-modal");
+  document.getElementById("spot-modal-ca-link").href = `${CONFIG.BLOCK_EXPLORER}/token/${t.address}`;
+  document.getElementById("spot-modal-price").textContent = spotDex && spotDex.priceUsd != null ? `$${spotDex.priceUsd.toPrecision(6)}` : "暂无数据";
+  document.getElementById("spot-modal-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "暂无数据（市值，以 MC 计）";
+  const changeEl = document.getElementById("spot-modal-change");
+  if (spotDex && spotDex.change24h != null) {
+    const up = spotDex.change24h >= 0;
+    changeEl.textContent = `${up ? "+" : ""}${spotDex.change24h.toFixed(2)}%`;
+    changeEl.style.color = up ? "var(--green)" : "var(--red)";
+  } else {
+    changeEl.textContent = "暂无数据";
+  }
+  document.getElementById("spot-modal-liq").textContent = spotDex && spotDex.liquidityUsd != null ? fmtUsd(spotDex.liquidityUsd) : "暂无数据";
+
+  const chartHost = document.getElementById("spot-modal-chart");
+  const dexUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${spotDex && spotDex.pairAddress ? spotDex.pairAddress : t.address}`;
+  chartHost.innerHTML = spotDex
+    ? `<iframe src="${dexUrl}?embed=1&theme=dark&trades=0&info=0" title="Dexscreener chart" loading="lazy"></iframe>`
+    : `<div class="empty-state">Dexscreener 上暂未找到该代币的交易对，无法显示图表。</div>`;
+  modal.style.display = "flex";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const closeBtn = document.getElementById("spot-modal-close");
+  const modal = document.getElementById("spot-modal");
+  if (closeBtn) closeBtn.addEventListener("click", () => { modal.style.display = "none"; });
+  if (modal) modal.addEventListener("click", (e) => { if (e.target.id === "spot-modal") modal.style.display = "none"; });
+});

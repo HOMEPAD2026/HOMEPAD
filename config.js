@@ -127,6 +127,16 @@ const CONFIG = {
   PONS_V2_DOCS_URL: "https://docs.ponsfamily.com/v2",
   PONS_V2_EXPLORE_URL: "https://www.ponsfamily.com/launchpad",
 
+  // Adventure-CN spotlight card: a single community-submitted token shown
+  // prominently on the Chinese page, separate from the general Pons V2
+  // Explore list — manually set here, not derived from any factory event,
+  // so it's clearly a curated pick rather than "found on-chain".
+  ADV_CN_FEATURED_TOKEN: {
+    name: "Chinese PONS",
+    symbol: "橋",
+    address: "0xbD27A75E225B0170e124fca392eb8c7E767fC6CA",
+  },
+
   // World Passport: holding >= PASSPORT_STAMP_PCT% of a claimed capital's
   // coin supply earns a permanent stamp for that country (recorded once
   // earned, in Firestore — needs firebase-config.js filled in, same as
