@@ -10,7 +10,7 @@
 // corporate-action pricing risk this carries (the same reason QUOTE_TOKENS
 // is empty on the main launch form).
 
-const CN = { stocks: [], picked: null, launches: [], dragDistance: 0 };
+const CN = { stocks: [], picked: null, launches: [] };
 
 async function loadCnStocks() {
   const grid = document.getElementById("cn-stock-grid");
@@ -39,43 +39,31 @@ async function loadCnStocks() {
   renderStockGrid();
 }
 
-/// Renders the stock picker as a carousel track — same seamless-loop
-/// technique as the main homepage's launch carousel (three copies of the
-/// card set back to back, see setupCarouselAutoScroll below). A search
-/// filter rebuilds the track with a narrower set and restarts the loop;
-/// that's an acceptable reset since filtering is an occasional action,
-/// not something happening mid-scroll.
+/// Renders the stock picker as a plain grid — search filters it in place.
 function renderStockGrid() {
   const grid = document.getElementById("cn-stock-grid");
   const q = (document.getElementById("cn-stock-search").value || "").trim().toLowerCase();
   const rows = CN.stocks.filter((s) => !q || s.name.toLowerCase().includes(q) || s.symbol.toLowerCase().includes(q));
+  document.getElementById("cn-stock-picker-count").textContent = `${rows.length} available`;
   if (!rows.length) {
     grid.innerHTML = CN.stocks.length
       ? `<div class="empty-state">No match.</div>`
       : `<div class="empty-state">None of the tracked Chinese tickers are currently listed as active Stock Tokens on Robinhood Chain.</div>`;
     return;
   }
-  const cardHtml = (s) => `
+  grid.innerHTML = rows.map((s) => `
     <button type="button" class="cn-stock-card ${CN.picked && CN.picked.address === s.address ? "is-picked" : ""}" data-address="${s.address}">
       <img class="cn-stock-logo" src="${s.logoUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
       <span class="cn-stock-name">${s.name}</span>
       <span class="cn-stock-symbol">${s.symbol}</span>
       ${s.multiplier !== 1 ? `<span class="cn-stock-mult">×${s.multiplier.toFixed(4)} adj.</span>` : ""}
-    </button>`;
-  const setHtml = rows.map(cardHtml).join("");
-  // Only loop with 3 copies when there's enough content to make a seamless
-  // loop worthwhile — a couple of search-filtered results just render flat.
-  grid.innerHTML = rows.length > 3 ? setHtml + setHtml + setHtml : setHtml;
+    </button>`).join("");
   grid.querySelectorAll(".cn-stock-card").forEach((btn) => {
     btn.addEventListener("click", () => pickStock(btn.dataset.address));
   });
-  if (rows.length > 3) {
-    setupCarouselAutoScroll(document.getElementById("cn-stock-viewport"), grid, rows.length);
-  }
 }
 
 function pickStock(address) {
-  if (CN.dragDistance > 6) return; // this was a carousel drag, not a tap — see setupCarouselAutoScroll
   CN.picked = CN.stocks.find((s) => s.address === address) || null;
   renderStockGrid();
   const picked = document.getElementById("cn-launch-picked");
@@ -129,14 +117,11 @@ async function suggestCnStartValuation(stock) {
   }
 }
 
-/// Auto-scrolls the stock carousel right-to-left endlessly, and switches to
+/// Auto-scrolls a carousel right-to-left endlessly, and switches to
 /// following the pointer while actively dragging — same technique as the
 /// main homepage's launch carousel (home-stats.js), copied here rather than
 /// loading that file, since it also boots its own $HOME-specific carousel
-/// that has no place on this page. The one addition: cards here are
-/// clickable (pick a stock), not just decorative links, so this tracks how
-/// far the pointer moved during the gesture — pickStock() ignores a "click"
-/// that followed a real drag.
+/// that has no place on this page.
 function setupCarouselAutoScroll(viewport, track, itemCount) {
   if (!viewport || !track || itemCount === 0) return;
 
@@ -168,13 +153,11 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
     isDragging = true;
     dragStartX = e.clientX;
     dragStartScroll = viewport.scrollLeft;
-    CN.dragDistance = 0;
     viewport.setPointerCapture(e.pointerId);
     viewport.classList.add("dragging");
   });
   viewport.addEventListener("pointermove", (e) => {
     if (!isDragging) return;
-    CN.dragDistance = Math.abs(e.clientX - dragStartX);
     viewport.scrollLeft = dragStartScroll - (e.clientX - dragStartX);
   });
   function endDrag() {
@@ -190,61 +173,94 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
   viewport.addEventListener("pointerleave", endDrag);
 }
 
-// ---------- Explore: existing launches paired against any tracked CN stock ----------
-// Reads the factory's own Launched event log (bounded by CONTRACTS_LIVE_SINCE,
-// the same bound every other page uses for HOMEPAD's own contracts) instead
-// of looping launches(i) over every index — a single bounded log query is
-// both cheaper and more robust than N individual calls in one Promise.all,
-// where one transient failure among many could silently drop a real launch
-// from the list.
+// ---------- Explore: existing launches paired against any tracked CN stock,
+// rendered with the SAME launch-card component and carousel treatment used
+// on the main homepage ----------
+// Finds candidates via the factory's own Launched event log (bounded by
+// CONTRACTS_LIVE_SINCE, the same bound every other page uses for HOMEPAD's
+// own contracts) — cheaper and more robust than looping launches(i) over
+// every index in the whole factory, and a single bounded log query can't
+// drop one matching launch while keeping its neighbors the way N separate
+// calls in one Promise.all could. Only for the (typically few) matches does
+// this then fetch the full struct (imageUrl/description/socials/launchedAt),
+// since the event itself doesn't carry those.
 async function loadCnExplore() {
   const f = pairedFactoryRead();
   const fromBlock = await blockAtOrAfter(CONFIG.CONTRACTS_LIVE_SINCE, "homepad");
   const events = await withRetry(() => f.queryFilter(f.filters.Launched(), fromBlock, "latest"));
   const stockByAddr = new Map(CN.stocks.map((s) => [s.address.toLowerCase(), s]));
-  const matched = events
-    .filter((ev) => stockByAddr.has(ev.args.quoteToken.toLowerCase()))
-    .map((ev) => ({
-      token: ev.args.token, creator: ev.args.creator, quoteToken: ev.args.quoteToken,
-      blockNumber: ev.blockNumber,
-      stock: stockByAddr.get(ev.args.quoteToken.toLowerCase()),
-    }));
-  const blockTsCache = new Map();
-  const blockTs = async (n) => {
-    if (blockTsCache.has(n)) return blockTsCache.get(n);
-    const ts = Number((await withRetry(() => readProvider().getBlock(n))).timestamp);
-    blockTsCache.set(n, ts);
-    return ts;
-  };
-  CN.launches = await Promise.all(matched.map(async (l) => {
-    const t = tokenRead(l.token);
-    const [name, symbol, launchedAt] = await Promise.all([
-      withRetry(() => t.name()).catch(() => short(l.token)),
-      withRetry(() => t.symbol()).catch(() => "?"),
-      blockTs(l.blockNumber).catch(() => 0),
-    ]);
-    return { ...l, tokenName: name, tokenSymbol: symbol, launchedAt };
+  const candidates = events.filter((ev) => stockByAddr.has(ev.args.quoteToken.toLowerCase()));
+
+  const built = await Promise.all(candidates.map(async (ev) => {
+    const stock = stockByAddr.get(ev.args.quoteToken.toLowerCase());
+    try {
+      const idx = await withRetry(() => f.launchIndexOf(ev.args.token));
+      const l = await withRetry(() => f.launches(idx));
+      return {
+        token: ev.args.token, symbol: ev.args.symbol, name: ev.args.name,
+        creator: l.creator, launchedAt: Number(l.launchedAt), imageUrl: l.imageUrl,
+        twitter: l.twitter, telegram: l.telegram, discord: l.discord,
+        type: "paired", quoteSymbol: stock.symbol,
+        marketCapQuote: Number(ethers.formatUnits(l.initialVirtualQuote, stock.decimals)),
+        stock,
+      };
+    } catch (err) {
+      console.warn("cn explore: couldn't load full launch data for", ev.args.token, err);
+      return null;
+    }
   }));
-  CN.launches.sort((a, b) => b.blockNumber - a.blockNumber);
+  CN.launches = built.filter(Boolean);
+
+  // Overlay real market data where it exists: the pair's own Dexscreener
+  // stats if indexed, else the stock's own live price as a fallback (same
+  // two-step applyDexStats/applyQuoteUsdFallback pattern the main
+  // homepage's cards already use for every other paired launch).
+  if (CN.launches.length) {
+    const dexMap = await fetchDexscreenerStats(CN.launches.map((l) => l.token));
+    const stockPrices = await loadCnStockUsdPrices([...new Set(CN.launches.map((l) => l.stock.symbol))]);
+    for (const l of CN.launches) {
+      applyDexStats(l, dexMap.get(l.token.toLowerCase()));
+      const stockPriceUsd = stockPrices.get(l.stock.symbol);
+      if (stockPriceUsd != null) applyQuoteUsdFallback(l, { priceUsd: stockPriceUsd });
+    }
+  }
+
+  CN.launches.sort((a, b) => b.launchedAt - a.launchedAt);
   document.getElementById("cn-launch-count").textContent = String(CN.launches.length);
   renderCnExplore();
 }
 
+/// Live USD price for a set of stock symbols (mid of bid/ask, multiplier-
+/// adjusted to a per-raw-token value — same conversion as
+/// suggestCnStartValuation) — used only as a fallback for launches whose
+/// own pool Dexscreener hasn't indexed yet. Best-effort: a symbol that
+/// fails to price just isn't in the returned map, and its cards fall back
+/// to showing marketCapQuote in the stock's own units instead of a $ figure.
+async function loadCnStockUsdPrices(symbols) {
+  const out = new Map();
+  await Promise.all(symbols.map(async (sym) => {
+    try {
+      const stock = CN.stocks.find((s) => s.symbol === sym);
+      const res = await fetch(`${CONFIG.RH_STOCK_PRICE_API}?symbol=${encodeURIComponent(sym)}`).then((r) => r.json());
+      const quote = res?.quotes?.[0];
+      const bid = Number(quote?.bid), ask = Number(quote?.ask);
+      if (quote && bid > 0 && ask > 0 && stock) out.set(sym, ((bid + ask) / 2) * stock.multiplier);
+    } catch { /* best-effort */ }
+  }));
+  return out;
+}
+
 function renderCnExplore() {
-  const list = document.getElementById("cn-explore-list");
-  document.getElementById("cn-explore-count").textContent = CN.launches.length ? `${CN.launches.length} tracked` : "";
+  const track = document.getElementById("cn-explore-track");
   if (!CN.launches.length) {
-    list.innerHTML = `<div class="empty-state">No launches paired with a tracked Chinese stock yet — be the first.</div>`;
+    track.innerHTML = `<div class="empty-state">No launches paired with a tracked Chinese stock yet — be the first.</div>`;
     return;
   }
-  list.innerHTML = CN.launches.map((l) => `
-    <a class="adv-launch-row" href="explore.html#/token/${l.token}">
-      <img class="adv-launch-logo" src="${l.stock.logoUrl}" alt="" loading="lazy" onerror="this.style.display='none'">
-      <span class="adv-launch-main">
-        <span class="adv-launch-name">${l.tokenName} <span class="adv-launch-symbol">$${l.tokenSymbol}</span></span>
-        <span class="adv-launch-sub">paired with ${l.stock.symbol} · by ${short(l.creator)} · ${timeAgo(Number(l.launchedAt))}</span>
-      </span>
-    </a>`).join("");
+  const cardsHtml = CN.launches.map(launchCardHtml).join("");
+  track.innerHTML = CN.launches.length > 3 ? cardsHtml + cardsHtml + cardsHtml : cardsHtml;
+  if (CN.launches.length > 3) {
+    setupCarouselAutoScroll(document.getElementById("cn-explore-viewport"), track, CN.launches.length);
+  }
 }
 
 // ---------- Launch ----------
@@ -396,6 +412,6 @@ async function submitCnLaunch(ev) {
   await loadCnStocks();
   try { await loadCnExplore(); } catch (err) {
     console.error("loadCnExplore failed", err);
-    document.getElementById("cn-explore-list").innerHTML = `<div class="empty-state">Couldn't load launches. <span class="err-detail">${String(err && err.message || err)}</span></div>`;
+    document.getElementById("cn-explore-track").innerHTML = `<div class="empty-state">Couldn't load launches. <span class="err-detail">${String(err && err.message || err)}</span></div>`;
   }
 })();
