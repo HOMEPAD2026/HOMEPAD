@@ -1,12 +1,13 @@
-// adventure-cn.js — 中文版，与 adventure.js 逻辑完全相同，仅界面文案翻译为中文。
-// 直接读写 Pons V2 在 Robinhood Chain 上的合约（见 pons-abi.js 与 config.js
-// 中的地址与来源说明）。这是一个第三方、目前尚未经过审计、目前仅限白名单
-// 的协议 —— 这里的一切都不是 HOMEPAD 自己的合约。每一次写入操作都会实时
-// 检查链上状态（canLaunch、previewLaunchEconomics），而不是假设昨天的结
-// 果今天依然成立。
+// adventure-cn.js — the "Pons · 橋" page. Same integration and logic as
+// adventure.js — talks directly to Pons V2's own contracts on Robinhood
+// Chain (see pons-abi.js and config.js for addresses/provenance). This is
+// a third-party, currently-unaudited, currently whitelist-gated protocol
+// — nothing here is HOMEPAD's own contract. Every write path checks live
+// on-chain state (canLaunch, previewLaunchEconomics) rather than assuming
+// yesterday's answer still holds.
 //
-// 维护说明：这是 adventure.js 的中文翻译版本，逻辑保持一致；对 adventure.js
-// 的任何逻辑修复都应同步到这个文件。
+// This page additionally features a single spotlight token ($橋) not
+// shown on the plain adventure.html — see the spotlight section below.
 
 const ADV = { launches: [], sort: "newest", period: "all", tsCache: new Map() };
 
@@ -31,7 +32,7 @@ async function advBlockTs(blockNumber) {
   return ts;
 }
 
-// ---------- 探索（只读，对所有访客开放） ----------
+// ---------- Explore (read-only, works for every visitor) ----------
 async function loadPonsLaunches() {
   const f = ponsFactoryRead();
   const fromBlock = await blockAtOrAfter(CONFIG.PONS_V2_LIVE_SINCE, "pons");
@@ -51,16 +52,17 @@ async function loadPonsLaunches() {
         withRetry(() => c.sellableTokens()).catch(() => 0n),
         withRetry(() => c.graduated()).catch(() => false),
         withRetry(() => t.totalSupply()).catch(() => 0n),
-        // getTokenInfo() 是代币自己的链上元数据，由其发行者本人在发行时设置——
-        // 这与 name/symbol 属于同一类数据，并非借用 Pons 自身站点或界面的内容。
+        // getTokenInfo() is the token's OWN on-chain metadata, set by its
+        // own deployer at launch — same category of data as name/symbol,
+        // not something borrowed from Pons' own site or UI.
         withRetry(() => t.getTokenInfo()).catch(() => null),
         advBlockTs(ev.blockNumber).catch(() => 0),
       ]);
       const isNativeQuote = pairToken === ethers.ZeroAddress;
       const progress = graduationThreshold > 0n ? Number((realRaised * 10000n) / graduationThreshold) / 100 : 0;
       const price = reserves[1] > 0n ? Number(reserves[0]) / Number(reserves[1]) : 0;
-      // 完全稀释市值（美元）——目前仅对以原生 ETH 计价的发行项目计算，因为
-      // 自定义配对代币自身的美元价格未在此查询。
+      // Fully-diluted mcap in USD — only computable for native-ETH pairs
+      // here, since a custom pair token's own USD price isn't looked up.
       const mcapUsd = isNativeQuote && ethUsd != null && totalSupply > 0n
         ? price * Number(ethers.formatUnits(totalSupply, 18)) * ethUsd
         : null;
@@ -94,9 +96,9 @@ function renderPonsExplore() {
   let rows = ADV.launches.filter((l) => !periodSec || now - l.launchedAt <= periodSec);
   rows = rows.slice().sort((a, b) => ADV.sort === "mcap" ? (b.mcapUsd || -1) - (a.mcapUsd || -1) : b.blockNumber - a.blockNumber);
 
-  document.getElementById("adv-explore-count").textContent = rows.length ? `已追踪 ${rows.length} 个` : "";
+  document.getElementById("adv-explore-count").textContent = rows.length ? `${rows.length} tracked` : "";
   if (!rows.length) {
-    list.innerHTML = `<div class="empty-state">该筛选条件下暂未发现 Pons V2 发行项目。</div>`;
+    list.innerHTML = `<div class="empty-state">No Pons V2 launches found for this filter.</div>`;
     return;
   }
   list.innerHTML = rows.map((l) => `
@@ -104,35 +106,35 @@ function renderPonsExplore() {
       ${l.logo ? `<img class="adv-launch-logo" src="${l.logo}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="adv-launch-logo adv-launch-logo-blank"></span>`}
       <span class="adv-launch-main">
         <span class="adv-launch-name">${l.name} <span class="adv-launch-symbol">$${l.symbol}</span></span>
-        <span class="adv-launch-sub">${l.mcapUsd != null ? fmtUsd(l.mcapUsd) + " 市值 · " : ""}${l.isNativeQuote ? "ETH" : short(l.pairToken)} 计价 · 发行者 ${short(l.deployer)}</span>
+        <span class="adv-launch-sub">${l.mcapUsd != null ? fmtUsd(l.mcapUsd) + " MC · " : ""}${l.isNativeQuote ? "ETH" : short(l.pairToken)} paired · by ${short(l.deployer)}</span>
       </span>
       <span class="adv-launch-right">
         ${l.graduated
-          ? `<span class="adv-launch-badge is-grad">已毕业</span>`
-          : `<span class="adv-launch-progress"><span class="adv-launch-progress-bar" style="width:${l.progress}%"></span></span><span class="adv-launch-pct">距毕业还需 ${l.progress.toFixed(1)}%</span>`}
+          ? `<span class="adv-launch-badge is-grad">graduated</span>`
+          : `<span class="adv-launch-progress"><span class="adv-launch-progress-bar" style="width:${l.progress}%"></span></span><span class="adv-launch-pct">${l.progress.toFixed(1)}% to graduation</span>`}
       </span>
     </a>`).join("");
 }
 
-// ---------- 发行（需通过实时 canLaunch() 检测） ----------
+// ---------- Launch (gated on a live canLaunch() check) ----------
 async function refreshAdvLaunchGate() {
   const gate = document.getElementById("adv-launch-gate");
   const form = document.getElementById("adv-launch-form");
-  if (!gate) return; // 不在此页面上
+  if (!gate) return; // not on this page
   if (!state.account) {
-    gate.style.display = ""; gate.innerHTML = `<div class="empty-state">请连接钱包以检查发行资格。</div>`;
+    gate.style.display = ""; gate.innerHTML = `<div class="empty-state">Connect your wallet to check eligibility.</div>`;
     form.style.display = "none";
     return;
   }
-  gate.style.display = ""; gate.innerHTML = `<div class="empty-state">正在检查资格…</div>`;
+  gate.style.display = ""; gate.innerHTML = `<div class="empty-state">Checking eligibility…</div>`;
   form.style.display = "none";
   try {
     const eligible = await withRetry(() => ponsFactoryRead().canLaunch(state.account));
     if (!eligible) {
       gate.innerHTML = `<div class="adv-gate-closed">
-        <div class="adv-gate-closed-head">发行功能目前仅限受邀用户</div>
-        <p class="hint">Pons V2 尚未开放公开发行 —— 你的钱包（${short(state.account)}）目前不在白名单中。此检测是实时对照合约进行的，一旦资格发生变化会立即更新。</p>
-        <a class="btn" href="${CONFIG.PONS_V2_DOCS_URL}" target="_blank" rel="noopener">阅读 Pons V2 官方文档 ↗</a>
+        <div class="adv-gate-closed-head">Launching is invite-only right now</div>
+        <p class="hint">Pons V2 hasn't opened public launches yet — your wallet (${short(state.account)}) isn't on the current whitelist. This is checked live against the contract, so it updates the moment that changes.</p>
+        <a class="btn" href="${CONFIG.PONS_V2_DOCS_URL}" target="_blank" rel="noopener">Read the Pons V2 docs ↗</a>
       </div>`;
       return;
     }
@@ -141,23 +143,23 @@ async function refreshAdvLaunchGate() {
     await loadLaunchConfigs();
   } catch (err) {
     console.error(err);
-    gate.innerHTML = `<div class="status error">无法检查资格：${String(err && err.message || err).slice(0, 160)}</div>`;
+    gate.innerHTML = `<div class="status error">Couldn't check eligibility: ${String(err && err.message || err).slice(0, 160)}</div>`;
   }
 }
 
 async function loadLaunchConfigs() {
   const select = document.getElementById("adv-config");
-  select.innerHTML = `<option>加载中…</option>`;
+  select.innerHTML = `<option>Loading…</option>`;
   try {
     const f = ponsFactoryRead();
     const count = Number(await withRetry(() => f.launchConfigCount()));
     const configs = await Promise.all(Array.from({ length: count }, (_, id) => withRetry(() => f.getLaunchConfig(id)).then((c) => ({ id, ...c }))));
     const open = configs.filter((c) => c.enabled);
-    if (!open.length) { select.innerHTML = `<option value="">暂无可用的发行配置</option>`; return; }
-    select.innerHTML = open.map((c) => `<option value="${c.id}">#${c.id} — 供应量 ${fmtCompact(Number(ethers.formatUnits(c.supply, 18)))}，毕业门槛 ${ethers.formatEther(c.graduationThreshold)} ETH</option>`).join("");
+    if (!open.length) { select.innerHTML = `<option value="">No open configs</option>`; return; }
+    select.innerHTML = open.map((c) => `<option value="${c.id}">#${c.id} — supply ${fmtCompact(Number(ethers.formatUnits(c.supply, 18)))}, graduates at ${ethers.formatEther(c.graduationThreshold)} ETH</option>`).join("");
   } catch (err) {
     console.error(err);
-    select.innerHTML = `<option value="">无法加载发行配置</option>`;
+    select.innerHTML = `<option value="">Couldn't load configs</option>`;
   }
 }
 
@@ -172,30 +174,30 @@ async function submitPonsLaunch(ev) {
   const launchConfigId = BigInt(document.getElementById("adv-config").value || "0");
   const creatorTaxBps = Number(document.getElementById("adv-tax").value || "0");
   const buybackEnabled = document.getElementById("adv-buyback").checked;
-  if (!name || !symbol) { statusEl.innerHTML = `<div class="status error">名称和代号为必填项。</div>`; return; }
+  if (!name || !symbol) { statusEl.innerHTML = `<div class="status error">Name and symbol are required.</div>`; return; }
 
   btn.disabled = true;
   try {
     const f = ponsFactoryRead();
-    const pairToken = ethers.ZeroAddress; // 目前仅支持 ETH 计价，见表单说明
-    statusEl.innerHTML = `<div class="status pending">正在锁定当前发行条款…</div>`;
+    const pairToken = ethers.ZeroAddress; // native ETH only, see form note
+    statusEl.innerHTML = `<div class="status pending">Pinning current launch terms…</div>`;
     const [expectedEconomics, launchFee, maxTax] = await Promise.all([
       withRetry(() => f.previewLaunchEconomics(launchConfigId, pairToken)),
       withRetry(() => f.launchFee()),
       withRetry(() => f.maxCreatorTaxBps()),
     ]);
     if (creatorTaxBps > Number(maxTax)) {
-      statusEl.innerHTML = `<div class="status error">创作者税率超过 Pons 上限（最高 ${maxTax} bps）。</div>`;
+      statusEl.innerHTML = `<div class="status error">Creator tax exceeds Pons' cap (${maxTax} bps max).</div>`;
       btn.disabled = false; return;
     }
     const params = {
       name, symbol, logo, description,
       socials: { twitter: "", telegram: "", discord: "", website: "https://homepad.fun/adventure-cn", farcaster: "" },
-      creatorFeeRecipient: ethers.ZeroAddress, // 默认设为调用者本人
+      creatorFeeRecipient: ethers.ZeroAddress, // defaults to the caller
       creatorTaxBps, buybackEnabled, expectedEconomics,
       salt: ethers.hexlify(ethers.randomBytes(32)),
     };
-    statusEl.innerHTML = `<div class="status pending">请在钱包中确认发行交易…</div>`;
+    statusEl.innerHTML = `<div class="status pending">Confirm the launch in your wallet…</div>`;
     const fnSig = "launchToken((string,string,string,string,(string,string,string,string,string),address,uint16,bool,bytes32,bytes32),uint256,address)";
     let tx = typeof tryWagmiWrite === "function"
       ? await tryWagmiWrite({ address: CONFIG.PONS_V2_FACTORY_ADDRESS, abi: PONS_FACTORY_ABI, functionName: fnSig, args: [params, launchConfigId, pairToken], value: launchFee })
@@ -204,9 +206,9 @@ async function submitPonsLaunch(ev) {
       if (typeof ensureAppKitChain === "function") await ensureAppKitChain();
       tx = await ponsFactoryWrite()[fnSig](params, launchConfigId, pairToken, { value: launchFee });
     }
-    statusEl.innerHTML = `<div class="status pending">发行中… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">交易 ↗</a></div>`;
+    statusEl.innerHTML = `<div class="status pending">Launching… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
-    statusEl.innerHTML = `<div class="status success">发行成功。<a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">交易 ↗</a></div>`;
+    statusEl.innerHTML = `<div class="status success">Launched. <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("adv-launch-form").reset();
     loadPonsLaunches().then(() => { renderAdvStats(); renderPonsExplore(); });
   } catch (err) {
@@ -233,7 +235,7 @@ async function submitPonsLaunch(ev) {
     await loadPonsLaunches();
   } catch (err) {
     console.error("loadPonsLaunches failed", err);
-    document.getElementById("adv-explore-list").innerHTML = `<div class="empty-state">无法加载 Pons V2 发行项目。<span class="err-detail">${String(err && err.message || err)}</span></div>`;
+    document.getElementById("adv-explore-list").innerHTML = `<div class="empty-state">Couldn't load Pons V2 launches.<span class="err-detail">${String(err && err.message || err)}</span></div>`;
   }
   renderAdvStats();
   renderPonsExplore();
@@ -254,23 +256,23 @@ async function loadSpotlightToken() {
   try {
     const stats = await fetchDexscreenerStats([t.address]);
     spotDex = stats.get(t.address.toLowerCase()) || null;
-    document.getElementById("spot-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "暂无数据";
+    document.getElementById("spot-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "No data";
     const changeEl = document.getElementById("spot-change");
     if (spotDex && spotDex.change24h != null) {
       const up = spotDex.change24h >= 0;
       changeEl.textContent = `${up ? "+" : ""}${spotDex.change24h.toFixed(2)}%`;
       changeEl.style.color = up ? "var(--green)" : "var(--red)";
     } else {
-      changeEl.textContent = "暂无数据";
+      changeEl.textContent = "No data";
     }
   } catch (err) {
     console.warn("spotlight token stats failed", err);
-    document.getElementById("spot-mcap").textContent = "暂无数据";
-    document.getElementById("spot-change").textContent = "暂无数据";
+    document.getElementById("spot-mcap").textContent = "No data";
+    document.getElementById("spot-change").textContent = "No data";
   }
   loadSpotlightBurn(t.address).catch((err) => {
     console.warn("spotlight burn read failed", err);
-    document.getElementById("spot-burn").textContent = "暂无数据";
+    document.getElementById("spot-burn").textContent = "No data";
   });
 }
 
@@ -297,23 +299,23 @@ function openSpotlightModal() {
   const t = CONFIG.ADV_CN_FEATURED_TOKEN;
   const modal = document.getElementById("spot-modal");
   document.getElementById("spot-modal-ca-link").href = `${CONFIG.BLOCK_EXPLORER}/token/${t.address}`;
-  document.getElementById("spot-modal-price").textContent = spotDex && spotDex.priceUsd != null ? `$${spotDex.priceUsd.toPrecision(6)}` : "暂无数据";
-  document.getElementById("spot-modal-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "暂无数据（市值，以 MC 计）";
+  document.getElementById("spot-modal-price").textContent = spotDex && spotDex.priceUsd != null ? `$${spotDex.priceUsd.toPrecision(6)}` : "No data";
+  document.getElementById("spot-modal-mcap").textContent = spotDex && spotDex.marketCapUsd != null ? fmtUsd(spotDex.marketCapUsd) : "No data";
   const changeEl = document.getElementById("spot-modal-change");
   if (spotDex && spotDex.change24h != null) {
     const up = spotDex.change24h >= 0;
     changeEl.textContent = `${up ? "+" : ""}${spotDex.change24h.toFixed(2)}%`;
     changeEl.style.color = up ? "var(--green)" : "var(--red)";
   } else {
-    changeEl.textContent = "暂无数据";
+    changeEl.textContent = "No data";
   }
-  document.getElementById("spot-modal-liq").textContent = spotDex && spotDex.liquidityUsd != null ? fmtUsd(spotDex.liquidityUsd) : "暂无数据";
+  document.getElementById("spot-modal-liq").textContent = spotDex && spotDex.liquidityUsd != null ? fmtUsd(spotDex.liquidityUsd) : "No data";
 
   const chartHost = document.getElementById("spot-modal-chart");
   const dexUrl = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${spotDex && spotDex.pairAddress ? spotDex.pairAddress : t.address}`;
   chartHost.innerHTML = spotDex
     ? `<iframe src="${dexUrl}?embed=1&theme=dark&trades=0&info=0" title="Dexscreener chart" loading="lazy"></iframe>`
-    : `<div class="empty-state">Dexscreener 上暂未找到该代币的交易对，无法显示图表。</div>`;
+    : `<div class="empty-state">No pair indexed on Dexscreener yet for this token — chart unavailable.</div>`;
   modal.style.display = "flex";
 }
 document.addEventListener("DOMContentLoaded", () => {

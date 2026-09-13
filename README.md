@@ -58,7 +58,7 @@ As of integration time, Pons' own docs state two things this page is built aroun
 - **Launch checks `canLaunch(connectedAddress)` live** before showing the form. Not eligible gets a plain "invite-only right now" message linking to Pons' docs; eligible gets the real launch form. This is asked fresh every time rather than cached, so the page opens up the moment Pons does, with no code change needed here.
 - The launch form is **native-ETH only for this first pass** (no custom pair-token quote yet) and pins `previewLaunchEconomics` immediately before signing — the same pattern Pons' own docs recommend — so a changed launch config reverts the transaction instead of settling on different terms.
 
-**Chinese version** (`adventure-cn.html` / `adventure-cn.js`): identical integration and behavior, translated UI. Deliberately does **not** copy Pons' own site design or use their logo — a text badge ("Pons V2 · 第三方协议") makes the third-party relationship explicit instead, since reusing their branding on a HOMEPAD-hosted page would risk implying an affiliation that doesn't exist. `adventure-cn.js` is a maintained duplicate of `adventure.js`, not a shared i18n layer — a logic fix to one should be mirrored in the other.
+**`adventure-cn.html` / `adventure-cn.js`** (despite the filename, now English — see history): identical Pons V2 integration and behavior to `adventure.html`, plus one thing the plain page doesn't have — a spotlight card for **$橋 (Chinese PONS)**, a community-submitted token (`ADV_CN_FEATURED_TOKEN` in `config.js`) paired with CNY on Pairex, with its own live market cap/24h change (Dexscreener), a live burn read (`Transfer`-to-dead-address events on the token's own contract, not a typed-in number), a copy-able CA, a buy link, and the creator's own posted story. `adventure-cn.js` is a maintained duplicate of `adventure.js`, not a shared i18n layer — a logic fix to one should be mirrored in the other. Deliberately does **not** copy Pons' own site design or use their logo for the general Pons V2 integration — the spotlight section uses the token's own supplied artwork (`images/qiao-logo.png`), which is different from borrowing another *platform's* UI/branding.
 
 ## World map (`world.html`)
 
@@ -132,7 +132,7 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── footer.js · launch-modal.js
 ├── world.html · world.js                        World map game — claim/defend a capital, mottos, passport, leaderboard
 ├── adventure.html · adventure.js · pons-abi.js   Adventure — Pons V2 explore (read-only) + a whitelist-gated launch form for their factory
-├── adventure-cn.html · adventure-cn.js           Chinese version of Adventure — same integration, translated UI, HOMEPAD's own styling (no Pons branding)
+├── adventure-cn.html · adventure-cn.js           English page featuring the $橋 spotlight (filename predates the language switch)
 ├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
 ├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
 ├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)
