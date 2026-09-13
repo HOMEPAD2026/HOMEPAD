@@ -215,8 +215,16 @@ async function loadCnExplore() {
     const stock = stockByAddr.get(ev.args.quoteToken.toLowerCase());
     const base = { token: ev.args.token, symbol: ev.args.symbol, name: ev.args.name, creator: ev.args.creator, type: "paired", quoteSymbol: stock.symbol, stock };
     try {
+      // launchIndexOf returns realIndex + 1 (0 is the "not found" sentinel,
+      // since Solidity mappings default to 0) — confirmed against app.js's
+      // own findPairedLaunchMeta(), which does the same idx-1n subtraction.
+      // Without it, this called launches(idx) one past the real slot —
+      // harmless for an old launch (just reads a neighbor's data), but for
+      // a RECENT launch idx can equal launchCount() itself, an
+      // out-of-bounds read that reverts — which is exactly why newer
+      // launches were silently falling back to the placeholder thumbnail.
       const idx = await withRetry(() => f.launchIndexOf(ev.args.token));
-      const l = await withRetry(() => f.launches(idx));
+      const l = await withRetry(() => f.launches(idx - 1n));
       return {
         ...base, launchedAt: Number(l.launchedAt), imageUrl: l.imageUrl,
         twitter: l.twitter, telegram: l.telegram, discord: l.discord,
