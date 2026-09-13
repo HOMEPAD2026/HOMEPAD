@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789322999">
+<link rel="stylesheet" href="style.css?v=1789323143">
 </head>
 <body class="cnpons-page">
 
@@ -71,15 +71,6 @@
 </section>
 
 <main class="wrap adv-main">
-  <div class="adv-disclaimer">
-    <div class="adv-disclaimer-head">Before you pair against a Stock Token</div>
-    <ul class="adv-disclaimer-list">
-      <li><b>Stock Tokens are Robinhood's, not HOMEPAD's.</b> They're tokenized debt securities issued by Robinhood Assets (Jersey) Limited — HOMEPAD only reads their public registry and pairs against them the same way it can pair against any ERC-20.</li>
-      <li><b>Known, unresolved pricing risk.</b> Every Stock Token carries a <code>currentMultiplier</code> that Robinhood adjusts on real corporate actions (splits, dividends). HOMEPAD's Paired factory does not re-sync a pool's price to that multiplier after launch — a corporate action after your launch could leave the pool mispriced relative to the real stock. This is why Stock Token pairing has stayed off the main launch form's quote list; it's opt-in here, with this stated plainly.</li>
-      <li><b>Addresses are resolved live, every page load</b>, from Robinhood's own asset API — never hardcoded here. If a ticker doesn't appear in the list below, Robinhood's registry doesn't currently list it as tradable on Robinhood Chain.</li>
-    </ul>
-  </div>
-
   <div class="adv-stats" id="cn-stats">
     <div class="stat-card"><div class="stat-label">CN stocks live on-chain</div><div class="stat-value" id="cn-stock-count">···</div></div>
     <div class="stat-card"><div class="stat-label">Launches paired so far</div><div class="stat-value" id="cn-launch-count">···</div></div>
@@ -94,6 +85,7 @@
   <!-- ============ Launch ============ -->
   <section class="adv-launch-wrap" id="cn-launch">
     <div class="rent-section-head"><h3>Launch, paired with your picked stock</h3></div>
+    <p class="hint">Stock Tokens are Robinhood's, not HOMEPAD's — and they carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions, which the pool's price won't automatically follow after launch.</p>
     <div id="cn-launch-picked" class="empty-state">Pick a stock above first.</div>
     <form id="cn-launch-form" class="adv-launch-form" style="display:none">
       <label>Name<input id="cn-name" maxlength="40" placeholder="e.g. Example Token" required></label>
@@ -149,12 +141,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789322999"></script>
-<script src="abis.js?v=1789322999"></script>
-<script src="app.js?v=1789322999"></script>
-<script src="wallet-appkit.js?v=1789322999"></script>
-<script src="launch-modal.js?v=1789322999"></script>
-<script src="footer.js?v=1789322999"></script>
-<script src="cnPONS.js?v=1789322999"></script>
+<script src="config.js?v=1789323143"></script>
+<script src="abis.js?v=1789323143"></script>
+<script src="app.js?v=1789323143"></script>
+<script src="wallet-appkit.js?v=1789323143"></script>
+<script src="launch-modal.js?v=1789323143"></script>
+<script src="footer.js?v=1789323143"></script>
+<script src="cnPONS.js?v=1789323143"></script>
 </body>
 </html>
