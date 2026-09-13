@@ -1,4 +1,4 @@
-// adventure.js — 모험. Talks directly to Pons V2's own contracts on
+// adventure.js — Adventure. Talks directly to Pons V2's own contracts on
 // Robinhood Chain (see pons-abi.js and config.js for addresses/provenance).
 // This is a third-party, currently-unaudited, currently whitelist-gated
 // protocol — nothing here is HOMEPAD's own contract. Every write path

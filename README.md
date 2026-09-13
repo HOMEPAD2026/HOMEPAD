@@ -48,6 +48,16 @@ Welcome, `$HOME`. 🏡💚
 
 > **Live on mainnet.** Hybrid, Instant Liquidity, and Paired (`$HOME`, `$HOMEPAD`, or any standard ERC-20 by contract address) are deployed and live on Robinhood Chain **mainnet** (chain ID `4663`). Bonding Curve is deferred — shown as "soon" in the app. Nothing here has been professionally audited yet and nothing here is financial advice.
 
+## Adventure (`adventure.html`)
+
+Reads and writes **Pons V2's own contracts** on Robinhood Chain directly — a third-party bonding-curve launchpad, not HOMEPAD's, integrated rather than reimplemented. Addresses (`PONS_V2_*` in `config.js`) and the ABIs (`pons-abi.js`) are transcribed from [Pons' own integration docs](https://docs.ponsfamily.com/v2), not guessed, and the ABI set was parse- and encode-tested against ethers v6 in a scratch environment before shipping (ethers v6's human-readable parser doesn't support named `struct` declarations the way viem's `parseAbi` does, so structs are written as inline `tuple(...)` types).
+
+As of integration time, Pons' own docs state two things this page is built around rather than past: **v2 is unaudited** (three independent reviews in progress, none closed), and **public launching is closed** — only wallets Pons has whitelisted can launch today (`canLaunch(address)`). So:
+
+- **Explore is fully read-only and works for everyone**, whitelist or not: `TokenLaunched` events (bounded by a generic `blockAtOrAfter(isoTimestamp, namespace)` helper, refactored out of the existing `firstHomepadBlock()` binary search so Pons gets its own independent bound/cache without touching HOMEPAD's — same technique, separate namespace) joined with each launch's curve reserves/graduation progress and token metadata, linking out to Pons' own launchpad to trade.
+- **Launch checks `canLaunch(connectedAddress)` live** before showing the form. Not eligible gets a plain "invite-only right now" message linking to Pons' docs; eligible gets the real launch form. This is asked fresh every time rather than cached, so the page opens up the moment Pons does, with no code change needed here.
+- The launch form is **native-ETH only for this first pass** (no custom pair-token quote yet) and pins `previewLaunchEconomics` immediately before signing — the same pattern Pons' own docs recommend — so a changed launch config reverts the transaction instead of settling on different terms.
+
 ## World map (`world.html`)
 
 One coin per capital, 197 capitals. A capital is claimed by launching on the **Paired factory with the quote fixed to `$HOMEPAD`**, name = country name, ticker = capital (or ISO3 when the capital is too long/non-ASCII), and logo = that country's canonical outline at `https://homepad.fun/world/logos/<ISO2>.svg`. The claim modal locks all four; the user's wallet signs, so the user is the on-chain creator and the existing 70% creator / 30% `$HOME` split applies with no new contracts. (Earlier ETH-paired claims — from before this was switched to `$HOMEPAD` — still count, so nothing already claimed is orphaned.)
@@ -119,6 +129,7 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── wallet-appkit.js     Wallet connection (Reown AppKit / wagmi)
 ├── footer.js · launch-modal.js
 ├── world.html · world.js                        World map game — claim/defend a capital, mottos, passport, leaderboard
+├── adventure.html · adventure.js · pons-abi.js   Adventure — Pons V2 explore (read-only) + a whitelist-gated launch form for their factory
 ├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
 ├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
 ├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)
