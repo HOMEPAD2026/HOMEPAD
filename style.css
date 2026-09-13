@@ -1861,6 +1861,10 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-mech-card-risk .cn-mech-title{color:var(--amber);}
 .cn-mech-address{font-size:.74rem;color:var(--ink-dim);text-align:center;}
 .cn-mech-address code{font-family:'Silkscreen';font-size:.68rem;background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:6px;}
+/* Header brand for this page: small 橋 logo mark + the character itself,
+   in place of the generic 🏡 HOMEPAD text */
+.cn-brand{gap:8px;}
+.cn-brand-logo{width:26px;height:26px;object-fit:contain;border-radius:7px;}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}
