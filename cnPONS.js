@@ -87,7 +87,7 @@ function pickStock(address) {
   submitBtn.disabled = false;
   submitBtn.textContent = `Launch, paired with ${CN.picked.symbol}`;
   document.getElementById("cn-devbuy").placeholder = `0.0 ${CN.picked.symbol}`;
-  document.getElementById("cn-devbuy-label").innerHTML = `Dev buy <span class="optional">optional — in ${CN.picked.symbol}, not ETH</span>`;
+  document.getElementById("cn-devbuy-currency-note").textContent = `optional — in ${CN.picked.symbol}, not ETH`;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
   suggestCnStartValuation(CN.picked);
   updateCnDevBuyPreview();
