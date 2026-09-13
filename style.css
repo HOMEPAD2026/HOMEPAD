@@ -1786,6 +1786,9 @@ nav a{display:inline-flex;align-items:center;}
    scoped override right below since the variable swap alone won't
    reach them. */
 body.cnpons-page{--green:#ff4d4d;--green-dim:#a31f1f;}
+/* Hide the Home/Explore/Launch/More nav on this page only — brand logo
+   and wallet slot stay. */
+body.cnpons-page header nav{display:none;}
 body.cnpons-page .home-hero{background:
     radial-gradient(700px 380px at 20% 0%, rgba(255,77,77,.16), transparent 60%),
     radial-gradient(600px 380px at 90% 20%, rgba(255,182,72,.12), transparent 55%);}
