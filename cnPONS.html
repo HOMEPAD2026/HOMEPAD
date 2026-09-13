@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789327902">
+<link rel="stylesheet" href="style.css?v=1789328213">
 </head>
 <body class="cnpons-page">
 
@@ -126,8 +126,11 @@
       </label>
       <div class="fee-preview" id="cn-fee-preview"></div>
 
-      <label id="cn-devbuy-label">Dev buy <span class="optional" id="cn-devbuy-currency-note">optional — in the picked stock's own token, not ETH</span>
-        <input id="cn-devbuy" type="number" min="0" step="any" placeholder="0.0">
+      <label id="cn-devbuy-label">Dev buy <span class="optional">optional</span>
+        <div class="cn-input-suffix-wrap">
+          <input id="cn-devbuy" type="number" min="0" step="any" placeholder="0.0">
+          <span class="cn-input-suffix" id="cn-devbuy-suffix">—</span>
+        </div>
       </label>
       <p class="hint" id="cn-devbuy-hint">Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.</p>
       <p class="hint" id="cn-devbuy-preview"></p>
@@ -145,12 +148,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789327902"></script>
-<script src="abis.js?v=1789327902"></script>
-<script src="app.js?v=1789327902"></script>
-<script src="wallet-appkit.js?v=1789327902"></script>
-<script src="launch-modal.js?v=1789327902"></script>
-<script src="footer.js?v=1789327902"></script>
-<script src="cnPONS.js?v=1789327902"></script>
+<script src="config.js?v=1789328213"></script>
+<script src="abis.js?v=1789328213"></script>
+<script src="app.js?v=1789328213"></script>
+<script src="wallet-appkit.js?v=1789328213"></script>
+<script src="launch-modal.js?v=1789328213"></script>
+<script src="footer.js?v=1789328213"></script>
+<script src="cnPONS.js?v=1789328213"></script>
 </body>
 </html>

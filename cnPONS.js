@@ -86,8 +86,8 @@ function pickStock(address) {
   form.style.display = "";
   submitBtn.disabled = false;
   submitBtn.textContent = `Launch, paired with ${CN.picked.symbol}`;
-  document.getElementById("cn-devbuy").placeholder = `0.0 ${CN.picked.symbol}`;
-  document.getElementById("cn-devbuy-currency-note").textContent = `optional — in ${CN.picked.symbol}, not ETH`;
+  document.getElementById("cn-devbuy").placeholder = "0.0"; // symbol now shown by the persistent suffix instead
+  document.getElementById("cn-devbuy-suffix").textContent = CN.picked.symbol;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
   suggestCnStartValuation(CN.picked);
   updateCnDevBuyPreview();
