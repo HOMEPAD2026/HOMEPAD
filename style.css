@@ -1798,6 +1798,17 @@ body.cnpons-page .adv-disclaimer-head{color:#ff9b9b;}
    overall red-tone accent swap — a green --> red override would make a
    positive change badge show red text on a green-tinted background. */
 body.cnpons-page .card-badge.up{color:#39ff88;}
+/* Hero CTA: bigger, glossier — this is the one thing on the page you're
+   most likely here to do */
+.cn-hero-launch-btn{
+  font-size:1.15rem;padding:18px 40px;border-radius:16px;
+  background:linear-gradient(155deg,#ff6b6b 0%,#e02e2e 55%,#a30f0f 100%);
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 7px 0 rgba(90,10,10,.6);
+  border:2px solid rgba(255,180,180,.4);
+}
+.cn-hero-launch-btn:hover{box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 9px 0 rgba(90,10,10,.6);}
+.cn-hero-launch-btn:active{box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 3px 0 rgba(90,10,10,.6);}
 .cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
 .cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
 .cn-stock-card.is-picked{border-color:var(--green);background:rgba(57,255,136,.06);}
