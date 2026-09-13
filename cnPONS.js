@@ -12,6 +12,13 @@
 
 const CN = { stocks: [], picked: null, launches: [] };
 
+// Robinhood's own logoUrl 404s for at least these two tickers (confirmed —
+// broken image on the stock picker card). Locally-hosted fallback logos,
+// used only as an override for tickers actually confirmed broken — every
+// other ticker still uses Robinhood's own live logoUrl untouched. Extend
+// this map if the same turns out to be true for others.
+const CN_LOGO_OVERRIDES = { FUTU: "images/logo-futu.jpg", BABA: "images/logo-baba.jpg" };
+
 async function loadCnStocks() {
   const grid = document.getElementById("cn-stock-grid");
   try {
@@ -29,7 +36,7 @@ async function loadCnStocks() {
         symbol: a.tokenSymbol,
         name: (a.tokenName || "").replace(/\s*•\s*Robinhood Token$/i, ""),
         address: a.deployments?.find((d) => d.chainId === CONFIG.CHAIN_ID_DECIMAL)?.contractAddress || a.deployments?.[0]?.contractAddress,
-        logoUrl: a.logoUrl,
+        logoUrl: CN_LOGO_OVERRIDES[a.tokenSymbol] || a.logoUrl,
         decimals: a.tokenDecimals || 18,
         multiplier: Number(a.currentMultiplier || 1),
       }))
