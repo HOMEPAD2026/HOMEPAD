@@ -1823,6 +1823,16 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-input-suffix-wrap{position:relative;display:flex;align-items:center;}
 .cn-input-suffix-wrap input{width:100%;padding-right:56px;}
 .cn-input-suffix{position:absolute;right:12px;font-family:'Silkscreen';font-size:.7rem;color:var(--ink-dim);pointer-events:none;}
+/* Liquidity warning popup */
+.cn-liquidity-modal-box{
+  width:100%;max-width:440px;background:var(--panel);border:2px solid rgba(255,182,72,.5);
+  border-radius:20px;padding:28px;box-shadow:0 12px 0 rgba(0,0,0,.35);
+}
+.cn-liquidity-modal-head{font-family:'Silkscreen';font-size:1rem;color:var(--amber);margin-bottom:14px;}
+.cn-liquidity-modal-box p{font-size:.88rem;color:var(--ink-dim);line-height:1.5;margin:0 0 14px;}
+.cn-liquidity-modal-box p b{color:var(--ink);}
+.cn-liquidity-modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.cn-liquidity-modal-actions .btn{flex:1 1 auto;text-align:center;}
 @media (max-width:900px){
   .cn-hero-split{flex-direction:column-reverse;text-align:center;gap:20px;}
   .cn-hero-split .home-hero-content{max-width:none;}

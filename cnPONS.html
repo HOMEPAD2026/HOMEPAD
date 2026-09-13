@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789328213">
+<link rel="stylesheet" href="style.css?v=1789336985">
 </head>
 <body class="cnpons-page">
 
@@ -145,15 +145,28 @@
   <div id="cn-explore-grid" class="grid-launches"></div>
 </main>
 
+<!-- ============ Liquidity warning popup — shown when a non-BABA stock is picked ============ -->
+<div id="cn-liquidity-modal" class="modal-overlay hidden">
+  <div class="cn-liquidity-modal-box">
+    <div class="cn-liquidity-modal-head">⚠️ Low liquidity — trading may be difficult</div>
+    <p><b id="cn-liquidity-modal-symbol">This stock</b> has very little real trading activity on Robinhood Chain right now. A coin paired against it may be hard to trade on either side — including buying the stock token itself if you want a dev buy.</p>
+    <p><b>$BABA (Alibaba)</b> currently has the most real liquidity of any tracked Chinese stock, making it the more usable pair for now. This changes as adoption grows — it's a "for now" recommendation, not a permanent limit.</p>
+    <div class="cn-liquidity-modal-actions">
+      <button type="button" class="btn btn-cute btn-primary" id="cn-liquidity-modal-baba">Use $BABA instead</button>
+      <button type="button" class="btn btn-cute" id="cn-liquidity-modal-continue">Continue anyway</button>
+    </div>
+  </div>
+</div>
+
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789328213"></script>
-<script src="abis.js?v=1789328213"></script>
-<script src="app.js?v=1789328213"></script>
-<script src="wallet-appkit.js?v=1789328213"></script>
-<script src="launch-modal.js?v=1789328213"></script>
-<script src="footer.js?v=1789328213"></script>
-<script src="cnPONS.js?v=1789328213"></script>
+<script src="config.js?v=1789336985"></script>
+<script src="abis.js?v=1789336985"></script>
+<script src="app.js?v=1789336985"></script>
+<script src="wallet-appkit.js?v=1789336985"></script>
+<script src="launch-modal.js?v=1789336985"></script>
+<script src="footer.js?v=1789336985"></script>
+<script src="cnPONS.js?v=1789336985"></script>
 </body>
 </html>

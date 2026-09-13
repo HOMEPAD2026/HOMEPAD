@@ -90,7 +90,17 @@ function pickStock(address) {
   document.getElementById("cn-devbuy-suffix").textContent = CN.picked.symbol;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
   suggestCnStartValuation(CN.picked);
+  if (CN.picked.symbol !== "BABA") showCnLiquidityWarning(CN.picked);
   updateCnDevBuyPreview();
+}
+
+/// Warns when a non-BABA stock is picked — BABA is currently the only
+/// tracked Chinese stock with real trading activity on Robinhood Chain;
+/// the rest have little to no real circulation, which can make both
+/// dev-buying in and later trading the launched coin difficult.
+function showCnLiquidityWarning(stock) {
+  document.getElementById("cn-liquidity-modal-symbol").textContent = `$${stock.symbol}`;
+  document.getElementById("cn-liquidity-modal").classList.remove("hidden");
 }
 
 /// Live "how many tokens would this buy" preview for the Dev buy field —
@@ -488,6 +498,14 @@ async function submitCnLaunch(ev) {
   document.getElementById("cn-stock-search").addEventListener("input", renderStockGrid);
   document.getElementById("cn-launch-form").addEventListener("submit", submitCnLaunch);
   document.getElementById("cn-devbuy").addEventListener("input", updateCnDevBuyPreview);
+  document.getElementById("cn-liquidity-modal-continue").addEventListener("click", () => {
+    document.getElementById("cn-liquidity-modal").classList.add("hidden");
+  });
+  document.getElementById("cn-liquidity-modal-baba").addEventListener("click", () => {
+    document.getElementById("cn-liquidity-modal").classList.add("hidden");
+    const baba = CN.stocks.find((s) => s.symbol === "BABA");
+    if (baba) pickStock(baba.address);
+  });
   document.getElementById("cn-start-valuation").addEventListener("input", updateCnDevBuyPreview);
   wireCnImageUpload();
   wireCnFeePreview();
