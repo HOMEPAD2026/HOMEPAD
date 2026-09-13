@@ -15,8 +15,13 @@ const CN = { stocks: [], picked: null, launches: [] };
 async function loadCnStocks() {
   const grid = document.getElementById("cn-stock-grid");
   try {
-    const res = await fetch(CONFIG.RH_STOCK_ASSETS_API);
-    const data = await res.json();
+    // withRetry (app.js) already treats "failed to fetch"/network errors as
+    // transient and retries — this fetch was failing intermittently with no
+    // retry before, which meant CN.stocks could end up empty for an
+    // unlucky page load, and loadCnExplore() would then show a false
+    // "no launches yet" instead of the real list (nothing in CN.stocks to
+    // match a real launch's quoteToken against).
+    const data = await withRetry(() => fetch(CONFIG.RH_STOCK_ASSETS_API).then((r) => r.json()));
     const wanted = new Set((CONFIG.CN_STOCK_TICKERS || []).map((s) => s.toUpperCase()));
     CN.stocks = (data.assets || [])
       .filter((a) => wanted.has((a.tokenSymbol || "").toUpperCase()) && a.status === "ASSET_STATUS_ACTIVE")
@@ -185,31 +190,45 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
 // this then fetch the full struct (imageUrl/description/socials/launchedAt),
 // since the event itself doesn't carry those.
 async function loadCnExplore() {
+  if (!CN.stocks.length) {
+    // Nothing to match a launch's quoteToken against — almost always means
+    // loadCnStocks() itself failed (see its own error message above), not
+    // that there are genuinely zero launches. Say so plainly instead of
+    // rendering a false "no launches yet".
+    document.getElementById("cn-explore-track").innerHTML = `<div class="empty-state">Couldn't check for launches — Chinese stock data didn't load (see above). Try refreshing.</div>`;
+    return;
+  }
   const f = pairedFactoryRead();
   const fromBlock = await blockAtOrAfter(CONFIG.CONTRACTS_LIVE_SINCE, "homepad");
   const events = await withRetry(() => f.queryFilter(f.filters.Launched(), fromBlock, "latest"));
   const stockByAddr = new Map(CN.stocks.map((s) => [s.address.toLowerCase(), s]));
   const candidates = events.filter((ev) => stockByAddr.has(ev.args.quoteToken.toLowerCase()));
 
+  // Never drop a matched candidate outright on an enrichment failure —
+  // that's the same all-or-nothing failure mode the earlier index-looping
+  // approach had, just moved to a different call. If launchIndexOf/
+  // launches(idx) fails for any reason, fall back to what the Launched
+  // event itself already carries (token/name/symbol/creator/quoteToken)
+  // plus the block's own timestamp — the card just shows with less detail
+  // (no image/socials) instead of vanishing.
   const built = await Promise.all(candidates.map(async (ev) => {
     const stock = stockByAddr.get(ev.args.quoteToken.toLowerCase());
+    const base = { token: ev.args.token, symbol: ev.args.symbol, name: ev.args.name, creator: ev.args.creator, type: "paired", quoteSymbol: stock.symbol, stock };
     try {
       const idx = await withRetry(() => f.launchIndexOf(ev.args.token));
       const l = await withRetry(() => f.launches(idx));
       return {
-        token: ev.args.token, symbol: ev.args.symbol, name: ev.args.name,
-        creator: l.creator, launchedAt: Number(l.launchedAt), imageUrl: l.imageUrl,
+        ...base, launchedAt: Number(l.launchedAt), imageUrl: l.imageUrl,
         twitter: l.twitter, telegram: l.telegram, discord: l.discord,
-        type: "paired", quoteSymbol: stock.symbol,
         marketCapQuote: Number(ethers.formatUnits(l.initialVirtualQuote, stock.decimals)),
-        stock,
       };
     } catch (err) {
-      console.warn("cn explore: couldn't load full launch data for", ev.args.token, err);
-      return null;
+      console.warn("cn explore: full launch data failed for", ev.args.token, "— showing with reduced detail", err);
+      const launchedAt = await withRetry(() => readProvider().getBlock(ev.blockNumber)).then((b) => Number(b.timestamp)).catch(() => 0);
+      return { ...base, launchedAt, imageUrl: "", twitter: "", telegram: "", discord: "", marketCapQuote: null };
     }
   }));
-  CN.launches = built.filter(Boolean);
+  CN.launches = built;
 
   // Overlay real market data where it exists: the pair's own Dexscreener
   // stats if indexed, else the stock's own live price as a fallback (same
