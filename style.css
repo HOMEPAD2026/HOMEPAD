@@ -1840,6 +1840,27 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-lang-toggle{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:3px;flex-shrink:0;}
 .cn-lang-toggle button{border:none;background:transparent;color:var(--ink-dim);font-family:'Sora';font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:100px;cursor:pointer;white-space:nowrap;}
 .cn-lang-toggle button.active{background:var(--green);color:#08150c;}
+/* Explore grid toolbar: search + sort */
+.cn-explore-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.cn-explore-toolbar .world-search{flex:1 1 260px;margin-bottom:0;}
+.cn-sort-group{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:100px;padding:3px;flex-shrink:0;}
+.cn-sort-group button{border:none;background:transparent;color:var(--ink-dim);font-family:'Sora';font-size:.78rem;font-weight:700;padding:7px 14px;border-radius:100px;cursor:pointer;white-space:nowrap;}
+.cn-sort-group button.active{background:var(--green);color:#08150c;}
+@media (max-width:600px){
+  .cn-sort-group{width:100%;justify-content:space-between;}
+  .cn-sort-group button{flex:1;padding:7px 6px;font-size:.7rem;}
+}
+/* "How a launch actually works" — technical spec grid */
+.cn-mechanics{margin-top:48px;padding-top:32px;border-top:1px solid var(--line);}
+.cn-mechanics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:20px 0 24px;}
+.cn-mech-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;}
+.cn-mech-card p{font-size:.84rem;color:var(--ink-dim);line-height:1.55;margin:0;}
+.cn-mech-card p code{background:var(--void);padding:1px 5px;border-radius:5px;font-size:.8em;}
+.cn-mech-title{font-family:'Silkscreen';font-size:.82rem;color:var(--ink);margin-bottom:10px;}
+.cn-mech-card-risk{background:rgba(255,182,72,.06);border-color:rgba(255,182,72,.35);grid-column:1 / -1;}
+.cn-mech-card-risk .cn-mech-title{color:var(--amber);}
+.cn-mech-address{font-size:.74rem;color:var(--ink-dim);text-align:center;}
+.cn-mech-address code{font-family:'Silkscreen';font-size:.68rem;background:var(--panel);border:1px solid var(--line);padding:3px 8px;border-radius:6px;}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}

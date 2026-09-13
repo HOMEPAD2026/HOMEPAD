@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789340515">
+<link rel="stylesheet" href="style.css?v=1789342138">
 </head>
 <body class="cnpons-page">
 
@@ -148,7 +148,50 @@
 
   <!-- ============ Full Explore grid — same launch-card component, plain grid instead of a carousel ============ -->
   <section class="rent-section-head"><h3 data-i18n="allLaunchesHead">All CN-paired launches</h3><span class="rent-section-count" id="cn-explore-grid-count"></span></section>
+  <div class="cn-explore-toolbar">
+    <input class="world-search" id="cn-explore-search" data-i18n-placeholder="exploreSearchPh" placeholder="Search launches by name or symbol…" autocomplete="off">
+    <div class="cn-sort-group" id="cn-sort-group">
+      <button type="button" data-sort="mcap" class="active" data-i18n="sortMcap">Market Cap</button>
+      <button type="button" data-sort="name" data-i18n="sortName">Name (A–Z)</button>
+      <button type="button" data-sort="new" data-i18n="sortNew">Newest</button>
+    </div>
+  </div>
   <div id="cn-explore-grid" class="grid-launches"></div>
+
+  <!-- ============ How a launch actually works — technical spec, not marketing copy ============ -->
+  <section class="cn-mechanics">
+    <div class="rent-section-head"><h3 data-i18n="mechHead">How a launch actually works</h3></div>
+    <p class="rent-section-note" data-i18n="mechIntro">The real mechanics behind the button — every figure here is a constant read straight from the deployed contract, not a description written to sound good.</p>
+
+    <div class="cn-mechanics-grid">
+      <div class="cn-mech-card">
+        <div class="cn-mech-title" data-i18n="mechPoolTitle">🌊 The pool</div>
+        <p data-i18n="mechPoolBody">A real Uniswap v4 pool is created the instant you launch — not a bonding-curve contract that "graduates" into a pool later. It's single-sided: the coin's full supply goes straight into the pool at creation, priced against a virtual reserve of your picked Stock Token. Same underlying mechanism as HOMEPAD's own Hybrid mode, just quoted in a Stock Token instead of ETH. Tradeable on Dexscreener from block one, once indexed.</p>
+      </div>
+      <div class="cn-mech-card">
+        <div class="cn-mech-title" data-i18n="mechPriceTitle">📈 Pricing</div>
+        <p data-i18n="mechPriceBody">Constant-product curve math against that virtual reserve — the more of the Stock Token buyers put in, the higher the price climbs, the same shape as any bonding curve. The difference is it's a real, immediately swappable v4 pool the whole time, not a separate holding contract.</p>
+      </div>
+      <div class="cn-mech-card">
+        <div class="cn-mech-title" data-i18n="mechFeeTitle">💸 Fees</div>
+        <p data-i18n="mechFeeBody">1% base fee on every trade, protocol-wide — 70% to you, 30% to the $HOME treasury. You can add up to 2% more at launch, 100% of which is yours. Total: 1–3% per trade, taken from whichever side of the trade is the output — a buy pays the fee in the launched coin, a sell pays it in the Stock Token.</p>
+      </div>
+      <div class="cn-mech-card">
+        <div class="cn-mech-title" data-i18n="mechSupplyTitle">🪙 Supply &amp; allocation</div>
+        <p data-i18n="mechSupplyBody">Fixed at 1,000,000,000 tokens, every launch, no exceptions. Unlike Hybrid/Instant launches — which send 8% of supply to the $HOME treasury at creation — a Stock-paired launch puts the full 100% straight into the pool. No treasury cut here.</p>
+      </div>
+      <div class="cn-mech-card">
+        <div class="cn-mech-title" data-i18n="mechDevbuyTitle">🎯 Dev buy</div>
+        <p data-i18n="mechDevbuyBody">Optional. If set, your purchase executes atomically inside the same launch transaction (<code>launchAndBuy()</code>) — paid in the Stock Token, landing in the same block as creation, before anyone else can buy in ahead of you.</p>
+      </div>
+      <div class="cn-mech-card cn-mech-card-risk">
+        <div class="cn-mech-title" data-i18n="mechRiskTitle">⚠️ The one real risk</div>
+        <p data-i18n="mechRiskBody">Stock Tokens carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions (splits, dividends). This pool's price doesn't automatically re-sync to that adjustment after launch — a corporate action later could leave it mispriced relative to the real stock. This is the one thing here that isn't just "how it works" but a genuine open risk worth knowing before you launch or trade.</p>
+      </div>
+    </div>
+
+    <p class="cn-mech-address" data-i18n-html="mechAddress">Factory contract (Robinhood Chain mainnet): <code>0x917F2f7A7E4607937c3562E96b2E02325264B813</code></p>
+  </section>
 </main>
 
 <!-- ============ Liquidity warning popup — shown when a non-BABA stock is picked ============ -->
@@ -167,12 +210,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789340515"></script>
-<script src="abis.js?v=1789340515"></script>
-<script src="app.js?v=1789340515"></script>
-<script src="wallet-appkit.js?v=1789340515"></script>
-<script src="launch-modal.js?v=1789340515"></script>
-<script src="footer.js?v=1789340515"></script>
-<script src="cnPONS.js?v=1789340515"></script>
+<script src="config.js?v=1789342138"></script>
+<script src="abis.js?v=1789342138"></script>
+<script src="app.js?v=1789342138"></script>
+<script src="wallet-appkit.js?v=1789342138"></script>
+<script src="launch-modal.js?v=1789342138"></script>
+<script src="footer.js?v=1789342138"></script>
+<script src="cnPONS.js?v=1789342138"></script>
 </body>
 </html>

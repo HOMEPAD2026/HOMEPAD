@@ -49,10 +49,27 @@ const CN_I18N = {
     devbuyHint: "Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.",
     pickStockFirstBtn: "Pick a stock first",
     allLaunchesHead: "All CN-paired launches",
+    exploreSearchPh: "Search launches by name or symbol…",
+    sortMcap: "Market Cap", sortName: "Name (A–Z)", sortNew: "Newest",
     modalHead: "⚠️ Low liquidity — trading may be difficult",
     modalP1: "has very little real trading activity on Robinhood Chain right now. A coin paired against it may be hard to trade on either side — including buying the stock token itself if you want a dev buy.",
     modalP2: `<b>$BABA (Alibaba)</b> currently has the most real liquidity of any tracked Chinese stock, making it the more usable pair for now. This changes as adoption grows — it's a "for now" recommendation, not a permanent limit.`,
     modalBabaBtn: "Use $BABA instead", modalContinueBtn: "Continue anyway",
+    mechHead: "How a launch actually works",
+    mechIntro: "The real mechanics behind the button — every figure here is a constant read straight from the deployed contract, not a description written to sound good.",
+    mechPoolTitle: "🌊 The pool",
+    mechPoolBody: `A real Uniswap v4 pool is created the instant you launch — not a bonding-curve contract that "graduates" into a pool later. It's single-sided: the coin's full supply goes straight into the pool at creation, priced against a virtual reserve of your picked Stock Token. Same underlying mechanism as HOMEPAD's own Hybrid mode, just quoted in a Stock Token instead of ETH. Tradeable on Dexscreener from block one, once indexed.`,
+    mechPriceTitle: "📈 Pricing",
+    mechPriceBody: "Constant-product curve math against that virtual reserve — the more of the Stock Token buyers put in, the higher the price climbs, the same shape as any bonding curve. The difference is it's a real, immediately swappable v4 pool the whole time, not a separate holding contract.",
+    mechFeeTitle: "💸 Fees",
+    mechFeeBody: "1% base fee on every trade, protocol-wide — 70% to you, 30% to the $HOME treasury. You can add up to 2% more at launch, 100% of which is yours. Total: 1–3% per trade, taken from whichever side of the trade is the output — a buy pays the fee in the launched coin, a sell pays it in the Stock Token.",
+    mechSupplyTitle: "🪙 Supply & allocation",
+    mechSupplyBody: "Fixed at 1,000,000,000 tokens, every launch, no exceptions. Unlike Hybrid/Instant launches — which send 8% of supply to the $HOME treasury at creation — a Stock-paired launch puts the full 100% straight into the pool. No treasury cut here.",
+    mechDevbuyTitle: "🎯 Dev buy",
+    mechDevbuyBody: `Optional. If set, your purchase executes atomically inside the same launch transaction (<code>launchAndBuy()</code>) — paid in the Stock Token, landing in the same block as creation, before anyone else can buy in ahead of you.`,
+    mechRiskTitle: "⚠️ The one real risk",
+    mechRiskBody: `Stock Tokens carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions (splits, dividends). This pool's price doesn't automatically re-sync to that adjustment after launch — a corporate action later could leave it mispriced relative to the real stock. This is the one thing here that isn't just "how it works" but a genuine open risk worth knowing before you launch or trade.`,
+    mechAddress: `Factory contract (Robinhood Chain mainnet): <code>0x917F2f7A7E4607937c3562E96b2E02325264B813</code>`,
   },
   zh: {
     eyebrow: "真实的 Robinhood 股票代币，实时验证 🇨🇳",
@@ -87,10 +104,27 @@ const CN_I18N = {
     devbuyHint: "在发行的同一笔交易中购买自己的代币，以所选股票自身的代币支付。留空即跳过。",
     pickStockFirstBtn: "请先选择股票",
     allLaunchesHead: "所有与中国股票配对的发行",
+    exploreSearchPh: "按名称或代码搜索发行代币…",
+    sortMcap: "市值", sortName: "名称（A–Z）", sortNew: "最新",
     modalHead: "⚠️ 流动性不足——交易可能较为困难",
     modalP1: "目前在 Robinhood Chain 上几乎没有真实交易活跃度。与其配对的代币在买卖两端都可能难以交易——包括如果你想做开发者购买，也很难买到该股票代币本身。",
     modalP2: `<b>$BABA（阿里巴巴）</b>目前是所有已追踪中国股票中流动性最好的，因此现阶段是更实用的配对选择。随着采用度提高，这个情况会改变——这只是"目前"的建议，并非永久限制。`,
     modalBabaBtn: "改用 $BABA", modalContinueBtn: "仍然继续",
+    mechHead: "发行的真实运作原理",
+    mechIntro: "按钮背后的真实机制——这里的每一个数字都是直接从已部署合约读取的常量，不是为了好听而写的描述。",
+    mechPoolTitle: "🌊 资金池",
+    mechPoolBody: `你点击发行的那一刻，就会创建一个真实的 Uniswap v4 资金池——而不是先进入一个曲线合约、之后再"毕业"进入资金池。它是单边的：代币的全部供应量在创建时就直接进入资金池，价格相对于你所选股票代币的虚拟储备计算。这与 HOMEPAD 自身的 Hybrid 模式底层机制相同，只是计价单位换成了股票代币而非 ETH。一旦被收录，从第一个区块起就可以在 Dexscreener 上交易。`,
+    mechPriceTitle: "📈 定价",
+    mechPriceBody: "基于该虚拟储备的恒定乘积曲线数学模型——买家投入的股票代币越多，价格上涨得越高，形态与任何 bonding curve 相同。不同之处在于，它自始至终都是一个真实的、可立即交易的 v4 资金池，而不是一个单独的持有合约。",
+    mechFeeTitle: "💸 手续费",
+    mechFeeBody: "每笔交易统一收取 1% 的基础手续费——70% 归你，30% 进入 $HOME 金库。发行时你还可以额外加收最多 2%，这部分 100% 归你所有。总计每笔交易 1–3%，从交易的输出一方扣除——买入时以发行的代币收取，卖出时以股票代币收取。",
+    mechSupplyTitle: "🪙 供应量与分配",
+    mechSupplyBody: "每次发行固定为 10 亿枚代币，没有例外。与 Hybrid/Instant 发行不同（那些会在创建时把 8% 的供应量发送给 $HOME 金库），与股票配对的发行会把全部 100% 直接投入资金池，这里没有金库抽成。",
+    mechDevbuyTitle: "🎯 开发者购买",
+    mechDevbuyBody: `可选。如果设置了，你的购买会在同一笔发行交易内原子化执行（<code>launchAndBuy()</code>），以股票代币支付，与创建处于同一个区块，抢在其他任何人之前完成买入。`,
+    mechRiskTitle: "⚠️ 唯一的真实风险",
+    mechRiskBody: `股票代币带有一个 <code>currentMultiplier</code>，Robinhood 会根据真实的公司行为（如拆股、分红）进行调整。发行后，资金池的价格不会自动跟随这一调整重新同步——之后若发生公司行为，可能导致池子相对真实股票出现价格偏差。这是本页唯一不只是"运作原理"、而是真正需要在发行或交易前了解的公开风险。`,
+    mechAddress: `工厂合约地址（Robinhood Chain 主网）：<code>0x917F2f7A7E4607937c3562E96b2E02325264B813</code>`,
   },
 };
 
@@ -426,6 +460,8 @@ async function loadCnStockUsdPrices(symbols) {
   return out;
 }
 
+let cnExploreSort = "mcap";
+
 function renderCnExplore() {
   const track = document.getElementById("cn-explore-track");
   const grid = document.getElementById("cn-explore-grid");
@@ -438,14 +474,32 @@ function renderCnExplore() {
   const cardsHtml = CN.launches.map(launchCardHtml).join("");
   // Always loop the carousel, even with very few cards — three copies of
   // one card still visibly scrolls, which matters more here than a
-  // "why bother looping two cards" purity argument.
+  // "why bother looping two cards" purity argument. Carousel always stays
+  // in market-cap order regardless of the grid's own sort/search below —
+  // it's a highlight reel, not something meant to be filtered.
   track.innerHTML = cardsHtml + cardsHtml + cardsHtml;
   setupCarouselAutoScroll(document.getElementById("cn-explore-viewport"), track, CN.launches.length);
 
-  // Full flat grid at the bottom, same launch-card component, no looping —
-  // same "grid-launches" pattern the main Explore page's own list uses.
-  grid.innerHTML = cardsHtml;
-  document.getElementById("cn-explore-grid-count").textContent = `${CN.launches.length} tracked`;
+  renderCnExploreGrid();
+}
+
+/// The bottom grid has its own independent search + sort, separate from
+/// the carousel above (which always stays market-cap-ordered as a
+/// highlight reel). Re-derives its list from CN.launches every call
+/// rather than storing separate state, so it can never drift out of sync
+/// with what loadCnExplore() actually found.
+function renderCnExploreGrid() {
+  const grid = document.getElementById("cn-explore-grid");
+  const q = (document.getElementById("cn-explore-search").value || "").trim().toLowerCase();
+  let rows = CN.launches.filter((l) => !q || l.name.toLowerCase().includes(q) || l.symbol.toLowerCase().includes(q));
+  if (cnExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
+  else if (cnExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
+  else rows = [...rows].sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
+
+  grid.innerHTML = rows.length
+    ? rows.map(launchCardHtml).join("")
+    : `<div class="empty-state">No launches match "${q}".</div>`;
+  document.getElementById("cn-explore-grid-count").textContent = `${rows.length} tracked`;
 }
 
 // ---------- Launch ----------
@@ -607,6 +661,14 @@ async function submitCnLaunch(ev) {
   document.getElementById("cn-stock-search").addEventListener("input", renderStockGrid);
   document.getElementById("cn-launch-form").addEventListener("submit", submitCnLaunch);
   document.getElementById("cn-devbuy").addEventListener("input", updateCnDevBuyPreview);
+  document.getElementById("cn-explore-search").addEventListener("input", renderCnExploreGrid);
+  document.querySelectorAll("#cn-sort-group button").forEach((b) => {
+    b.addEventListener("click", () => {
+      cnExploreSort = b.dataset.sort;
+      document.querySelectorAll("#cn-sort-group button").forEach((x) => x.classList.toggle("active", x === b));
+      renderCnExploreGrid();
+    });
+  });
   document.getElementById("cn-liquidity-modal-continue").addEventListener("click", () => {
     document.getElementById("cn-liquidity-modal").classList.add("hidden");
   });
