@@ -1669,6 +1669,10 @@ nav a{display:inline-flex;align-items:center;}
 .adv-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .adv-checkbox{flex-direction:row !important;align-items:center;gap:8px !important;}
 .adv-checkbox input{width:auto;}
+/* Chinese Adventure page: Noto Sans SC for CJK glyphs, English font-family elsewhere untouched */
+.adv-cn{font-family:'Noto Sans SC','Sora',sans-serif;}
+.adv-cn .adv-cn-title{letter-spacing:.08em;}
+.adv-cn .lede, .adv-cn .adv-disclaimer-list, .adv-cn .hint, .adv-cn .adv-launch-form label{font-family:'Noto Sans SC','Sora',sans-serif;}
 .world-help-btn{
   position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;
   background:var(--panel);border:1px solid var(--line);border-radius:100px;

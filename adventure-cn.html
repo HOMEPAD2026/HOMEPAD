@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pons 中文 — HOMEPAD</title>
+<meta name="description" content="在 Robinhood Chain 上浏览并发行 Pons V2 代币 —— 只读的探索功能对所有人开放，发行功能需要钱包获得白名单资格。">
+<meta property="og:title" content="Pons 中文 — HOMEPAD">
+<meta property="og:description" content="浏览 Robinhood Chain 上的 Pons V2 发行项目，符合资格后即可发行你自己的代币。">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:url" content="https://homepad.fun/adventure-cn.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pons 中文 — HOMEPAD">
+<meta name="twitter:description" content="浏览 Robinhood Chain 上的 Pons V2 发行项目，符合资格后即可发行你自己的代币。">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789291736">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <div class="nav-dropdown" id="nav-more">
+        <button type="button" class="nav-more-trigger nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">More <span class="nav-caret">▾</span></button>
+        <div class="nav-more-menu">
+          <a href="world.html">World</a>
+          <a href="rent.html">Rent</a>
+          <a href="adventure.html">Adventure</a>
+          <a href="adventure-cn.html" class="nav-active">Pons 中文</a>
+        </div>
+      </div>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<main class="wrap adv-main adv-cn" lang="zh">
+  <div class="world-hero">
+    <span class="pixel eyebrow-chip alt">Pons V2 · 第三方协议</span>
+    <h1 class="pixel adv-cn-title">中文版</h1>
+    <p class="lede">浏览 <a href="https://www.ponsfamily.com/launchpad" target="_blank" rel="noopener">Pons V2</a> 上的实时发行项目 —— Robinhood Chain 上的一个联合曲线（bonding curve）发行平台，钱包符合资格后即可发行你自己的代币。</p>
+  </div>
+
+  <div class="adv-disclaimer">
+    <div class="adv-disclaimer-head">使用前请阅读</div>
+    <ul class="adv-disclaimer-list">
+      <li><b>Pons V2 不是 HOMEPAD 的产品。</b>本页面直接读取并写入 Pons 自己在 Robinhood Chain 上的合约 —— HOMEPAD 不运营、不托管、也不为其背书。</li>
+      <li><b>Pons V2 目前尚未经过审计。</b>根据 <a href="https://docs.ponsfamily.com/v2#audits" target="_blank" rel="noopener">Pons 官方文档</a>，三项独立审计正在进行中，尚未有一项完成。</li>
+      <li><b>公开发行目前处于关闭状态。</b>目前只有被 Pons 加入白名单的钱包才能发行代币 —— 本页面会实时检测你连接的钱包并如实告知你是否符合资格。浏览和查看已有的发行项目对所有人开放。</li>
+    </ul>
+  </div>
+
+  <div class="adv-stats" id="adv-stats">
+    <div class="stat-card"><div class="stat-label">追踪的发行数</div><div class="stat-value" id="adv-count">···</div></div>
+    <div class="stat-card"><div class="stat-label">曲线交易中</div><div class="stat-value" id="adv-live">···</div></div>
+    <div class="stat-card"><div class="stat-label">已毕业</div><div class="stat-value" id="adv-graduated">···</div></div>
+  </div>
+
+  <!-- Explore: read-only, works for everyone regardless of whitelist -->
+  <section class="adv-explore-wrap">
+    <div class="rent-section-head"><h3>探索 Pons V2</h3><span class="rent-section-count" id="adv-explore-count"></span></div>
+    <div class="adv-explore-list" id="adv-explore-list"><div class="empty-state">正在加载发行项目…</div></div>
+  </section>
+
+  <!-- Launch: gated on a live canLaunch() check -->
+  <section class="adv-launch-wrap">
+    <div class="rent-section-head"><h3>在 Pons V2 上发行</h3></div>
+    <div id="adv-launch-gate"><div class="empty-state">请连接钱包以检查发行资格。</div></div>
+    <form id="adv-launch-form" class="adv-launch-form" style="display:none">
+      <label>名称<input id="adv-name" maxlength="40" placeholder="例如 Example Token" required></label>
+      <label>代号<input id="adv-symbol" maxlength="10" placeholder="例如 EXMPL" required></label>
+      <label>Logo 链接<input id="adv-logo" placeholder="https:// 或 ipfs://"></label>
+      <label>描述<textarea id="adv-description" maxlength="280" rows="3" placeholder="这是什么项目？"></textarea></label>
+      <div class="adv-form-row">
+        <label>发行配置
+          <select id="adv-config"></select>
+        </label>
+        <label>创作者税率（bps）
+          <input id="adv-tax" type="number" min="0" step="1" value="0">
+        </label>
+      </div>
+      <label class="adv-checkbox"><input type="checkbox" id="adv-buyback"> 启用回购（由你自己的手续费份额支付）</label>
+      <p class="hint">目前此表单仅支持以 ETH 为计价的发行 —— 暂不支持自定义配对代币。费用条款会在你签名前通过 <code>previewLaunchEconomics</code> 实时锁定，如果条款发生变化，交易会直接失败而不会以不同条款成交。</p>
+      <div id="adv-launch-status"></div>
+      <button type="submit" class="btn btn-primary" id="adv-launch-submit">在 Pons V2 上发行</button>
+    </form>
+  </section>
+</main>
+
+<div id="footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789291736"></script>
+<script src="abis.js?v=1789291736"></script>
+<script src="pons-abi.js?v=1789291736"></script>
+<script src="app.js?v=1789291736"></script>
+<script src="wallet-appkit.js?v=1789291736"></script>
+<script src="launch-modal.js?v=1789291736"></script>
+<script src="footer.js?v=1789291736"></script>
+<script src="adventure-cn.js?v=1789291736"></script>
+</body>
+</html>

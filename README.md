@@ -58,6 +58,8 @@ As of integration time, Pons' own docs state two things this page is built aroun
 - **Launch checks `canLaunch(connectedAddress)` live** before showing the form. Not eligible gets a plain "invite-only right now" message linking to Pons' docs; eligible gets the real launch form. This is asked fresh every time rather than cached, so the page opens up the moment Pons does, with no code change needed here.
 - The launch form is **native-ETH only for this first pass** (no custom pair-token quote yet) and pins `previewLaunchEconomics` immediately before signing — the same pattern Pons' own docs recommend — so a changed launch config reverts the transaction instead of settling on different terms.
 
+**Chinese version** (`adventure-cn.html` / `adventure-cn.js`): identical integration and behavior, translated UI. Deliberately does **not** copy Pons' own site design or use their logo — a text badge ("Pons V2 · 第三方协议") makes the third-party relationship explicit instead, since reusing their branding on a HOMEPAD-hosted page would risk implying an affiliation that doesn't exist. `adventure-cn.js` is a maintained duplicate of `adventure.js`, not a shared i18n layer — a logic fix to one should be mirrored in the other.
+
 ## World map (`world.html`)
 
 One coin per capital, 197 capitals. A capital is claimed by launching on the **Paired factory with the quote fixed to `$HOMEPAD`**, name = country name, ticker = capital (or ISO3 when the capital is too long/non-ASCII), and logo = that country's canonical outline at `https://homepad.fun/world/logos/<ISO2>.svg`. The claim modal locks all four; the user's wallet signs, so the user is the on-chain creator and the existing 70% creator / 30% `$HOME` split applies with no new contracts. (Earlier ETH-paired claims — from before this was switched to `$HOMEPAD` — still count, so nothing already claimed is orphaned.)
@@ -130,6 +132,7 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── footer.js · launch-modal.js
 ├── world.html · world.js                        World map game — claim/defend a capital, mottos, passport, leaderboard
 ├── adventure.html · adventure.js · pons-abi.js   Adventure — Pons V2 explore (read-only) + a whitelist-gated launch form for their factory
+├── adventure-cn.html · adventure-cn.js           Chinese version of Adventure — same integration, translated UI, HOMEPAD's own styling (no Pons branding)
 ├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
 ├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
 ├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)
