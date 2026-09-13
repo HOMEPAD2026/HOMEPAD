@@ -69,6 +69,10 @@ const CONFIG = {
     // Smaller-cap Nasdaq-listed Chinese names
     "PONY", "WRD", "LOT", "NIU", "KNDI", "CAAS", "UCAR", "NAAS", "EH", "CBAT",
     "BGNE", "DQ", "CAN", "API", "MLCO", "NOAH", "CANG", "UXIN", "RERE",
+    // Taiwan-related (semiconductors + a broad Taiwan-market ETF) — added
+    // on request; grouped separately since Taiwan is its own distinct
+    // market/ticker category, not mainland China
+    "TSM", "UMC", "SIMO", "EWT",
   ],
   PAIRED_HOOK_ADDRESS: "0xB85aA5549848e2805F9c1c30d86f59c9F32F8044", // mainnet
   PAIRED_SWAP_ROUTER_ADDRESS: "0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592", // mainnet
