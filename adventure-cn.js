@@ -8,7 +8,7 @@
 // 维护说明：这是 adventure.js 的中文翻译版本，逻辑保持一致；对 adventure.js
 // 的任何逻辑修复都应同步到这个文件。
 
-const ADV = { launches: [] };
+const ADV = { launches: [], sort: "newest", period: "all", tsCache: new Map() };
 
 function ponsFactoryRead() {
   return new ethers.Contract(CONFIG.PONS_V2_FACTORY_ADDRESS, PONS_FACTORY_ABI, readProvider());
@@ -23,32 +23,52 @@ function ponsTokenRead(address) {
   return new ethers.Contract(address, PONS_TOKEN_ABI, readProvider());
 }
 
+async function advBlockTs(blockNumber) {
+  if (ADV.tsCache.has(blockNumber)) return ADV.tsCache.get(blockNumber);
+  const b = await readProvider().getBlock(blockNumber);
+  const ts = Number(b.timestamp);
+  ADV.tsCache.set(blockNumber, ts);
+  return ts;
+}
+
 // ---------- 探索（只读，对所有访客开放） ----------
 async function loadPonsLaunches() {
   const f = ponsFactoryRead();
   const fromBlock = await blockAtOrAfter(CONFIG.PONS_V2_LIVE_SINCE, "pons");
   const events = await withRetry(() => f.queryFilter(f.filters.TokenLaunched(), fromBlock, "latest"));
+  const ethUsd = await getEthUsdPrice().catch(() => null);
 
   const launches = await Promise.all(events.map(async (ev) => {
     const { token, curve, deployer, pairToken, graduationThreshold } = ev.args;
     try {
       const t = ponsTokenRead(token);
       const c = ponsCurveRead(curve);
-      const [name, symbol, reserves, realRaised, sellable, graduated] = await Promise.all([
+      const [name, symbol, reserves, realRaised, sellable, graduated, totalSupply, info, ts] = await Promise.all([
         withRetry(() => t.name()).catch(() => "?"),
         withRetry(() => t.symbol()).catch(() => "?"),
         withRetry(() => c.getReserves()).catch(() => [0n, 0n]),
         withRetry(() => c.realQuoteReserve()).catch(() => 0n),
         withRetry(() => c.sellableTokens()).catch(() => 0n),
         withRetry(() => c.graduated()).catch(() => false),
+        withRetry(() => t.totalSupply()).catch(() => 0n),
+        // getTokenInfo() 是代币自己的链上元数据，由其发行者本人在发行时设置——
+        // 这与 name/symbol 属于同一类数据，并非借用 Pons 自身站点或界面的内容。
+        withRetry(() => t.getTokenInfo()).catch(() => null),
+        advBlockTs(ev.blockNumber).catch(() => 0),
       ]);
       const isNativeQuote = pairToken === ethers.ZeroAddress;
       const progress = graduationThreshold > 0n ? Number((realRaised * 10000n) / graduationThreshold) / 100 : 0;
       const price = reserves[1] > 0n ? Number(reserves[0]) / Number(reserves[1]) : 0;
+      // 完全稀释市值（美元）——目前仅对以原生 ETH 计价的发行项目计算，因为
+      // 自定义配对代币自身的美元价格未在此查询。
+      const mcapUsd = isNativeQuote && ethUsd != null && totalSupply > 0n
+        ? price * Number(ethers.formatUnits(totalSupply, 18)) * ethUsd
+        : null;
       return {
         token, curve, deployer, pairToken, isNativeQuote, name, symbol,
-        graduated, sellable, progress: Math.min(100, progress), price,
-        blockNumber: ev.blockNumber, txHash: ev.transactionHash,
+        graduated, sellable, progress: Math.min(100, progress), price, mcapUsd,
+        logo: info ? info.tokenLogo : "", blockNumber: ev.blockNumber, txHash: ev.transactionHash,
+        launchedAt: ts,
       };
     } catch (err) {
       console.warn("pons launch read failed for", token, err);
@@ -69,16 +89,22 @@ function renderAdvStats() {
 
 function renderPonsExplore() {
   const list = document.getElementById("adv-explore-list");
-  document.getElementById("adv-explore-count").textContent = ADV.launches.length ? `已追踪 ${ADV.launches.length} 个` : "";
-  if (!ADV.launches.length) {
-    list.innerHTML = `<div class="empty-state">追踪窗口内暂未发现 Pons V2 发行项目。</div>`;
+  const now = Math.floor(Date.now() / 1000);
+  const periodSec = ADV.period === "24h" ? 86400 : ADV.period === "7d" ? 604800 : null;
+  let rows = ADV.launches.filter((l) => !periodSec || now - l.launchedAt <= periodSec);
+  rows = rows.slice().sort((a, b) => ADV.sort === "mcap" ? (b.mcapUsd || -1) - (a.mcapUsd || -1) : b.blockNumber - a.blockNumber);
+
+  document.getElementById("adv-explore-count").textContent = rows.length ? `已追踪 ${rows.length} 个` : "";
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty-state">该筛选条件下暂未发现 Pons V2 发行项目。</div>`;
     return;
   }
-  list.innerHTML = ADV.launches.map((l) => `
+  list.innerHTML = rows.map((l) => `
     <a class="adv-launch-row ${l.graduated ? "is-graduated" : ""}" href="https://www.ponsfamily.com/launchpad/${l.token}" target="_blank" rel="noopener">
+      ${l.logo ? `<img class="adv-launch-logo" src="${l.logo}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="adv-launch-logo adv-launch-logo-blank"></span>`}
       <span class="adv-launch-main">
         <span class="adv-launch-name">${l.name} <span class="adv-launch-symbol">$${l.symbol}</span></span>
-        <span class="adv-launch-sub">${l.isNativeQuote ? "ETH" : short(l.pairToken)} 计价 · 发行者 ${short(l.deployer)}</span>
+        <span class="adv-launch-sub">${l.mcapUsd != null ? fmtUsd(l.mcapUsd) + " 市值 · " : ""}${l.isNativeQuote ? "ETH" : short(l.pairToken)} 计价 · 发行者 ${short(l.deployer)}</span>
       </span>
       <span class="adv-launch-right">
         ${l.graduated
@@ -193,6 +219,16 @@ async function submitPonsLaunch(ev) {
 
 (async () => {
   document.getElementById("adv-launch-form").addEventListener("submit", submitPonsLaunch);
+  document.getElementById("adv-sort-group").addEventListener("click", (e) => {
+    const chip = e.target.closest(".filter-chip"); if (!chip) return;
+    document.querySelectorAll("#adv-sort-group .filter-chip").forEach((x) => x.classList.remove("active"));
+    chip.classList.add("active"); ADV.sort = chip.dataset.sort; renderPonsExplore();
+  });
+  document.getElementById("adv-period-group").addEventListener("click", (e) => {
+    const chip = e.target.closest(".filter-chip"); if (!chip) return;
+    document.querySelectorAll("#adv-period-group .filter-chip").forEach((x) => x.classList.remove("active"));
+    chip.classList.add("active"); ADV.period = chip.dataset.period; renderPonsExplore();
+  });
   try {
     await loadPonsLaunches();
   } catch (err) {

@@ -1646,6 +1646,13 @@ nav a{display:inline-flex;align-items:center;}
 .adv-explore-wrap, .adv-launch-wrap{margin-top:22px;}
 .adv-explore-list{display:flex;flex-direction:column;gap:8px;}
 .adv-launch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;}
+.adv-explore-controls{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:10px 0 14px;}
+.adv-sort-group,.adv-period-group{display:flex;gap:6px;}
+.adv-launch-logo{width:36px;height:36px;border-radius:9px;flex:0 0 auto;object-fit:cover;background:var(--void);}
+.adv-launch-logo-blank{display:inline-block;background:var(--void);border:1px dashed var(--line);}
+/* On the Chinese page, the active filter-chip picks up the red accent
+   instead of the site's default green, matching the spotlight theme. */
+.adv-cn .filter-chip.active{background:rgba(255,90,90,.16);border-color:rgba(255,90,90,.5);color:#ff9b9b;}
 .adv-launch-row:hover{border-color:rgba(57,255,136,.45);}
 .adv-launch-row.is-graduated{border-color:rgba(204,255,0,.4);}
 .adv-launch-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
