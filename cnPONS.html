@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789318442">
+<link rel="stylesheet" href="style.css?v=1789319053">
 </head>
 <body class="cnpons-page">
 
@@ -125,7 +125,7 @@
       <label>Starting valuation (in the stock's own units) <span class="optional">how many of the stock token it'd take to buy the whole 1B supply at launch</span>
         <input id="cn-start-valuation" type="number" min="0" step="any" placeholder="e.g. 1000" required>
       </label>
-      <p class="hint">No live price feed for a stock that's never been paired before, so this is entered by hand rather than auto-filled — check the stock's real price before picking a number, or the starting valuation won't reflect it.</p>
+      <p class="hint" id="cn-valuation-hint">Pick a stock above to pre-fill this from its current price. You can always change it.</p>
 
       <label>Your fee (rent) <span class="optional">optional add-on, 0–2%</span>
         <input id="cn-extrafee" type="range" min="0" max="200" step="10" value="0" class="fee-slider">
@@ -146,12 +146,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789318442"></script>
-<script src="abis.js?v=1789318442"></script>
-<script src="app.js?v=1789318442"></script>
-<script src="wallet-appkit.js?v=1789318442"></script>
-<script src="launch-modal.js?v=1789318442"></script>
-<script src="footer.js?v=1789318442"></script>
-<script src="cnPONS.js?v=1789318442"></script>
+<script src="config.js?v=1789319053"></script>
+<script src="abis.js?v=1789319053"></script>
+<script src="app.js?v=1789319053"></script>
+<script src="wallet-appkit.js?v=1789319053"></script>
+<script src="launch-modal.js?v=1789319053"></script>
+<script src="footer.js?v=1789319053"></script>
+<script src="cnPONS.js?v=1789319053"></script>
 </body>
 </html>

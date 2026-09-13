@@ -87,6 +87,46 @@ function pickStock(address) {
   submitBtn.disabled = false;
   submitBtn.textContent = `Launch, paired with ${CN.picked.symbol}`;
   document.getElementById("cn-launch").scrollIntoView({ behavior: "smooth", block: "start" });
+  suggestCnStartValuation(CN.picked);
+}
+
+/// Pre-fills "Starting valuation" from the stock's real current price,
+/// matching Hybrid's own starting USD market cap — same convention as
+/// computeQuoteEquivalentStartPrice() in app.js, just sourced from
+/// Robinhood's live price API instead of Dexscreener (a stock that's never
+/// been paired has no Dexscreener data to read). Never blocks the form —
+/// on any failure this just leaves the field for manual entry, same as
+/// before this existed.
+async function suggestCnStartValuation(stock) {
+  const input = document.getElementById("cn-start-valuation");
+  const hint = document.getElementById("cn-valuation-hint");
+  if (input.value.trim()) return; // don't clobber something the person already typed
+  hint.textContent = `Looking up ${stock.symbol}'s current price…`;
+  try {
+    const [priceRes, virtualEthWei, ethUsd] = await Promise.all([
+      fetch(`${CONFIG.RH_STOCK_PRICE_API}?symbol=${encodeURIComponent(stock.symbol)}`).then((r) => r.json()),
+      hybridFactoryRead().initialVirtualEth(),
+      getEthUsdPrice(),
+    ]);
+    const quote = priceRes?.quotes?.[0];
+    const bid = Number(quote?.bid), ask = Number(quote?.ask);
+    if (!quote || !(bid > 0) || !(ask > 0) || ethUsd == null) throw new Error("no live price available");
+    const midPrice = (bid + ask) / 2;
+    // currentMultiplier is "shares-per-token" — the raw per-share price
+    // times that ratio gives the USD value of one raw on-chain token,
+    // per Robinhood's own docs on mixing /prices with /assets.
+    const tokenUsdValue = midPrice * stock.multiplier;
+    const virtualEth = Number(ethers.formatEther(virtualEthWei));
+    const startCapUsd = virtualEth * ethUsd;
+    const quoteAmount = startCapUsd / tokenUsdValue;
+    const suggested = quoteAmount >= 1000 ? String(Math.round(quoteAmount)) : quoteAmount.toPrecision(4);
+    if (input.value.trim()) return; // picked another stock, or typed something, while this was in flight
+    input.value = suggested;
+    hint.innerHTML = `Pre-filled from ${stock.symbol}'s current price (~$${midPrice.toFixed(2)}/share) — matches Hybrid's usual starting market cap. Adjust if you want a different valuation.`;
+  } catch (err) {
+    console.warn("suggestCnStartValuation failed", err);
+    hint.textContent = `Couldn't look up a live price for ${stock.symbol} — enter a starting valuation by hand.`;
+  }
 }
 
 /// Auto-scrolls the stock carousel right-to-left endlessly, and switches to
@@ -151,24 +191,41 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
 }
 
 // ---------- Explore: existing launches paired against any tracked CN stock ----------
+// Reads the factory's own Launched event log (bounded by CONTRACTS_LIVE_SINCE,
+// the same bound every other page uses for HOMEPAD's own contracts) instead
+// of looping launches(i) over every index — a single bounded log query is
+// both cheaper and more robust than N individual calls in one Promise.all,
+// where one transient failure among many could silently drop a real launch
+// from the list.
 async function loadCnExplore() {
   const f = pairedFactoryRead();
-  const count = Number(await withRetry(() => f.launchCount()));
+  const fromBlock = await blockAtOrAfter(CONFIG.CONTRACTS_LIVE_SINCE, "homepad");
+  const events = await withRetry(() => f.queryFilter(f.filters.Launched(), fromBlock, "latest"));
   const stockByAddr = new Map(CN.stocks.map((s) => [s.address.toLowerCase(), s]));
-  const all = await Promise.all(Array.from({ length: count }, (_, i) => withRetry(() => f.launches(i)).catch(() => null)));
-  const matched = all
-    .map((l, i) => (l ? { ...l, index: i } : null))
-    .filter((l) => l && stockByAddr.has(l.quoteToken.toLowerCase()))
-    .map((l) => ({ ...l, stock: stockByAddr.get(l.quoteToken.toLowerCase()) }));
+  const matched = events
+    .filter((ev) => stockByAddr.has(ev.args.quoteToken.toLowerCase()))
+    .map((ev) => ({
+      token: ev.args.token, creator: ev.args.creator, quoteToken: ev.args.quoteToken,
+      blockNumber: ev.blockNumber,
+      stock: stockByAddr.get(ev.args.quoteToken.toLowerCase()),
+    }));
+  const blockTsCache = new Map();
+  const blockTs = async (n) => {
+    if (blockTsCache.has(n)) return blockTsCache.get(n);
+    const ts = Number((await withRetry(() => readProvider().getBlock(n))).timestamp);
+    blockTsCache.set(n, ts);
+    return ts;
+  };
   CN.launches = await Promise.all(matched.map(async (l) => {
     const t = tokenRead(l.token);
-    const [name, symbol] = await Promise.all([
+    const [name, symbol, launchedAt] = await Promise.all([
       withRetry(() => t.name()).catch(() => short(l.token)),
       withRetry(() => t.symbol()).catch(() => "?"),
+      blockTs(l.blockNumber).catch(() => 0),
     ]);
-    return { ...l, tokenName: name, tokenSymbol: symbol };
+    return { ...l, tokenName: name, tokenSymbol: symbol, launchedAt };
   }));
-  CN.launches.sort((a, b) => Number(b.launchedAt) - Number(a.launchedAt));
+  CN.launches.sort((a, b) => b.blockNumber - a.blockNumber);
   document.getElementById("cn-launch-count").textContent = String(CN.launches.length);
   renderCnExplore();
 }

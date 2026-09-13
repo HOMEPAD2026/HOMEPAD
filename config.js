@@ -50,6 +50,10 @@ const CONFIG = {
   // (api/rh-stock-assets.js) makes the actual server-to-server call, where
   // CORS doesn't apply, and also caches the response at Vercel's edge.
   RH_STOCK_ASSETS_API: "/api/rh-stock-assets",
+  // Live per-symbol price proxy (api/rh-stock-price.js) — used to suggest a
+  // starting valuation for the launch form based on the stock's real
+  // current price, matching Hybrid's own starting USD market cap.
+  RH_STOCK_PRICE_API: "/api/rh-stock-price",
   CN_STOCK_TICKERS: [
     // Major Nasdaq/NYSE-listed Chinese ADRs
     "BABA", "PDD", "JD", "BIDU", "NTES", "NIO", "BEKE", "ZTO", "HTHT", "MNSO",
