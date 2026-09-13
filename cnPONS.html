@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>橋 🅿️ONS 🇨🇳 — HOMEPAD</title>
+<meta name="description" content="Launch a HOMEPAD coin paired with a real Robinhood Chain Stock Token for a Chinese company — Alibaba, PDD, Tencent Music, and more. Addresses resolved live from Robinhood's own registry.">
+<meta property="og:title" content="橋 🅿️ONS 🇨🇳 — HOMEPAD">
+<meta property="og:description" content="Pair your launch with a real Chinese-stock Stock Token on Robinhood Chain.">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:url" content="https://homepad.fun/cnPONS.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="橋 🅿️ONS 🇨🇳 — HOMEPAD">
+<meta name="twitter:description" content="Pair your launch with a real Chinese-stock Stock Token on Robinhood Chain.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789316691">
+</head>
+<body>
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <div class="nav-dropdown" id="nav-more">
+        <button type="button" class="nav-more-trigger nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">More <span class="nav-caret">▾</span></button>
+        <div class="nav-more-menu">
+          <a href="world.html">World</a>
+          <a href="rent.html">Rent</a>
+          <a href="adventure.html">Adventure</a>
+          <a href="adventure-cn.html">Pons · 橋</a>
+          <a href="cnPONS.html" class="nav-active">橋 🅿️ONS 🇨🇳</a>
+        </div>
+      </div>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<!-- ============ Hero — styled like the main $HOME homepage hero ============ -->
+<section class="home-hero" id="top">
+  <div class="wrap home-hero-inner">
+    <div class="home-hero-content">
+      <span class="pixel eyebrow-chip">real Robinhood Stock Tokens, resolved live 🇨🇳</span>
+      <h1>橋 🅿️ONS.</h1>
+      <p class="lede">Launch a HOMEPAD coin paired with a real Chinese-company Stock Token on Robinhood Chain — Alibaba, PDD, Tencent Music, and more. Every address on this page is read live from <a href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener">Robinhood's own public registry</a>, never typed in by hand.</p>
+      <div class="hero-cta-row">
+        <a class="btn btn-cute btn-primary" href="#cn-launch"><img class="btn-icon" src="images/gallery-throne.jpg" alt="">Launch paired with a CN stock</a>
+        <a class="btn btn-cute" href="#cn-explore"><img class="btn-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="wrap adv-main">
+  <div class="adv-disclaimer">
+    <div class="adv-disclaimer-head">Before you pair against a Stock Token</div>
+    <ul class="adv-disclaimer-list">
+      <li><b>Stock Tokens are Robinhood's, not HOMEPAD's.</b> They're tokenized debt securities issued by Robinhood Assets (Jersey) Limited — HOMEPAD only reads their public registry and pairs against them the same way it can pair against any ERC-20.</li>
+      <li><b>Known, unresolved pricing risk.</b> Every Stock Token carries a <code>currentMultiplier</code> that Robinhood adjusts on real corporate actions (splits, dividends). HOMEPAD's Paired factory does not re-sync a pool's price to that multiplier after launch — a corporate action after your launch could leave the pool mispriced relative to the real stock. This is why Stock Token pairing has stayed off the main launch form's quote list; it's opt-in here, with this stated plainly.</li>
+      <li><b>Addresses are resolved live, every page load</b>, from Robinhood's own asset API — never hardcoded here. If a ticker doesn't appear below, Robinhood's registry doesn't currently list it as tradable on Robinhood Chain.</li>
+    </ul>
+  </div>
+
+  <div class="adv-stats" id="cn-stats">
+    <div class="stat-card"><div class="stat-label">CN stocks live on-chain</div><div class="stat-value" id="cn-stock-count">···</div></div>
+    <div class="stat-card"><div class="stat-label">Launches paired so far</div><div class="stat-value" id="cn-launch-count">···</div></div>
+  </div>
+
+  <!-- ============ Stock picker ============ -->
+  <section class="rent-section-head"><h3>Pick a Chinese stock</h3><span class="rent-section-count" id="cn-stock-picker-count"></span></section>
+  <p class="rent-section-note">The stock your market cap is measured in. Trades settle in the stock's own Stock Token on the curve.</p>
+  <input class="world-search" id="cn-stock-search" placeholder="Search by name or ticker…" autocomplete="off" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
+  <div class="cn-stock-grid" id="cn-stock-grid"><div class="empty-state">Loading Stock Tokens from Robinhood's registry…</div></div>
+
+  <!-- ============ Explore ============ -->
+  <section class="adv-explore-wrap" id="cn-explore">
+    <div class="rent-section-head"><h3>Explore</h3><span class="rent-section-count" id="cn-explore-count"></span></div>
+    <div class="adv-explore-list" id="cn-explore-list"><div class="empty-state">Loading launches…</div></div>
+  </section>
+
+  <!-- ============ Launch ============ -->
+  <section class="adv-launch-wrap" id="cn-launch">
+    <div class="rent-section-head"><h3>Launch, paired with your picked stock</h3></div>
+    <div id="cn-launch-picked" class="empty-state">Pick a stock above first.</div>
+    <form id="cn-launch-form" class="adv-launch-form" style="display:none">
+      <label>Name<input id="cn-name" maxlength="40" placeholder="e.g. Example Token" required></label>
+      <label>Symbol<input id="cn-symbol" maxlength="10" placeholder="e.g. EXMPL" required></label>
+      <label>Logo URL<input id="cn-logo" placeholder="https:// or ipfs://"></label>
+      <label>Description<textarea id="cn-description" maxlength="280" rows="3" placeholder="What is it?"></textarea></label>
+      <label>Starting valuation (in the stock's own units) <span class="optional">how many of the stock token it'd take to buy the whole 1B supply at launch</span>
+        <input id="cn-start-valuation" type="number" min="0" step="any" placeholder="e.g. 1000" required>
+      </label>
+      <p class="hint">No live price feed for a stock that's never been paired before, so this is entered by hand rather than auto-filled — check the stock's real price before picking a number, or the starting valuation won't reflect it. Fee terms otherwise match every other HOMEPAD Paired launch: 70% to you, 30% to $HOME.</p>
+      <div id="cn-launch-status"></div>
+      <button type="submit" class="btn btn-primary" id="cn-launch-submit" disabled>Pick a stock first</button>
+    </form>
+  </section>
+</main>
+
+<div id="footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789316691"></script>
+<script src="abis.js?v=1789316691"></script>
+<script src="app.js?v=1789316691"></script>
+<script src="wallet-appkit.js?v=1789316691"></script>
+<script src="launch-modal.js?v=1789316691"></script>
+<script src="footer.js?v=1789316691"></script>
+<script src="cnPONS.js?v=1789316691"></script>
+</body>
+</html>

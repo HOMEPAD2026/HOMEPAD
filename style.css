@@ -1775,6 +1775,15 @@ nav a{display:inline-flex;align-items:center;}
 .qiao-game-hint{font-size:.76rem;color:var(--ink-dim);text-align:center;margin:10px 0 0;}
 .qiao-game-hint kbd{font-family:monospace;background:var(--void);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.72rem;}
 .qiao-footer-note{font-size:.74rem;color:var(--ink-dim);text-align:center;margin-top:40px;font-style:italic;}
+/* cnPONS stock picker */
+.cn-stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+.cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
+.cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
+.cn-stock-card.is-picked{border-color:var(--green);background:rgba(57,255,136,.06);}
+.cn-stock-logo{width:40px;height:40px;border-radius:9px;object-fit:contain;background:#fff;padding:4px;box-sizing:border-box;}
+.cn-stock-name{font-size:.76rem;font-weight:700;text-align:center;line-height:1.25;}
+.cn-stock-symbol{font-family:'Silkscreen';font-size:.62rem;color:var(--ink-dim);}
+.cn-stock-mult{font-size:.6rem;color:var(--amber);}
 @media (max-width:760px){
   .qiao-hero{flex-direction:column;text-align:center;gap:22px;padding-top:12px;}
   .qiao-hero-art{width:200px;height:200px;}

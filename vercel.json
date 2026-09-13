@@ -7,6 +7,10 @@
     {
       "source": "/world",
       "destination": "/world.html"
+    },
+    {
+      "source": "/cnPONS",
+      "destination": "/cnPONS.html"
     }
   ]
 }

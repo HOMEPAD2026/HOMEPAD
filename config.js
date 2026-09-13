@@ -31,7 +31,25 @@ const CONFIG = {
   // this factory instance works for any ERC-20 quote, Stock's own
   // corporate-action question just hasn't been resolved yet, so
   // QUOTE_TOKENS stays empty until it is.
+  // cnPONS: a curated picker for launching HOMEPAD Paired-mode tokens
   PAIRED_FACTORY_ADDRESS: "0x917F2f7A7E4607937c3562E96b2E02325264B813", // mainnet
+  // cnPONS quote-token discovery: resolved live from Robinhood's own public
+  // asset registry by matching this symbol allowlist — addresses are NEVER
+  // hardcoded here, so a wrong/fabricated address is never a risk. A symbol
+  // not currently in Robinhood's live registry just doesn't appear.
+  //
+  // Known open risk (same one QUOTE_TOKENS below is empty for): each Stock
+  // Token carries a currentMultiplier that moves on corporate actions, and
+  // HomepadFactoryPaired/Router don't re-sync a pool's price to it after
+  // launch — a real corporate action after a cnPONS launch could mis-price
+  // that pool. The cnPONS launch flow says so explicitly.
+  RH_STOCK_ASSETS_API: "https://api.robinhood.com/rhj/assets",
+  CN_STOCK_TICKERS: [
+    "BABA", "PDD", "JD", "BIDU", "NTES", "NIO", "BEKE", "ZTO", "HTHT", "MNSO",
+    "IQ", "VIPS", "WB", "ATHM", "LI", "XPEV", "BILI", "TME", "TCOM", "YMM",
+    "KC", "GDS", "ATAT", "EDU", "TAL", "JKS", "FUTU", "TIGR", "YUMC", "ZLAB",
+    "HUYA", "DOYU", "QFIN", "LX", "TUYA", "DADA", "RLX", "GOTU", "MOMO",
+  ],
   PAIRED_HOOK_ADDRESS: "0xB85aA5549848e2805F9c1c30d86f59c9F32F8044", // mainnet
   PAIRED_SWAP_ROUTER_ADDRESS: "0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592", // mainnet
   LEGACY_PAIRED_FACTORIES: [], // [{ factory, router }] — same idea as LEGACY_HYBRID_FACTORIES
