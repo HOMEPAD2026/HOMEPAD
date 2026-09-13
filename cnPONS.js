@@ -191,17 +191,91 @@ function renderCnExplore() {
 }
 
 // ---------- Launch ----------
+// ---------- Logo: URL field + file upload, same resize-to-256px pattern
+// as the main launch form (app.js renderCreate) ----------
+function wireCnImageUpload() {
+  const imgInput = document.getElementById("cn-logo");
+  const imgPreview = document.getElementById("cn-image-preview");
+  const updatePreview = (url) => {
+    imgPreview.innerHTML = url ? `<img src="${url}" onerror="this.parentElement.innerHTML='🏡'">` : "🏡";
+  };
+  imgInput.addEventListener("input", (e) => updatePreview(e.target.value.trim()));
+  document.getElementById("cn-logo-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const hintEl = document.getElementById("cn-image-hint");
+    const originalKb = Math.round(file.size / 1024);
+    hintEl.innerHTML = "Resizing…";
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 256;
+        let { width, height } = img;
+        if (width > height && width > MAX_DIM) { height = Math.round(height * (MAX_DIM / width)); width = MAX_DIM; }
+        else if (height > MAX_DIM) { width = Math.round(width * (MAX_DIM / height)); height = MAX_DIM; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const resized = canvas.toDataURL("image/jpeg", 0.85);
+        const resizedKb = Math.round((resized.length * 0.75) / 1024);
+        imgInput.value = resized;
+        updatePreview(resized);
+        hintEl.innerHTML = `Resized from ${originalKb}KB to ~${resizedKb}KB (${width}×${height}) — safe to launch with.`;
+      };
+      img.onerror = () => { hintEl.innerHTML = `<strong style="color:var(--red)">Couldn't read that file as an image.</strong>`; };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Fee slider: same preview numbers as the main launch form
+// (app.js renderCreate) — illustrative base-fee split, not fetched live
+// per-factory, matching how the main form already presents it ----------
+function wireCnFeePreview() {
+  const BASE_FEE_BPS = 100, CREATOR_SHARE_BPS = 7000;
+  const slider = document.getElementById("cn-extrafee");
+  const preview = document.getElementById("cn-fee-preview");
+  const render = () => {
+    const extraBps = Number(slider.value);
+    const totalBps = BASE_FEE_BPS + extraBps;
+    const baseCreatorBps = (BASE_FEE_BPS * CREATOR_SHARE_BPS) / 10000;
+    const basePlatformBps = BASE_FEE_BPS - baseCreatorBps;
+    const creatorTotalBps = baseCreatorBps + extraBps;
+    const pct = (bps) => (bps / 100).toFixed(2) + "%";
+    preview.innerHTML = `
+      <div class="fee-preview-total">Total fee (rent): <strong>${pct(totalBps)}</strong></div>
+      <div class="fee-preview-row"><span>Base fee (rent)</span><span>${pct(BASE_FEE_BPS)}</span></div>
+      <div class="fee-preview-row sub"><span>→ you (70%)</span><span>${pct(baseCreatorBps)}</span></div>
+      <div class="fee-preview-row sub"><span>→ $HOME / platform (30%)</span><span>${pct(basePlatformBps)}</span></div>
+      ${extraBps > 0 ? `<div class="fee-preview-row"><span>Your extra fee (rent)</span><span>${pct(extraBps)}</span></div><div class="fee-preview-row sub"><span>→ you (100%)</span><span>${pct(extraBps)}</span></div>` : ""}
+      <div class="fee-preview-row highlight"><span>You earn per trade</span><span>${pct(creatorTotalBps)}</span></div>`;
+  };
+  slider.addEventListener("input", render);
+  render();
+}
+
 async function submitCnLaunch(ev) {
   ev.preventDefault();
   const statusEl = document.getElementById("cn-launch-status");
   const btn = document.getElementById("cn-launch-submit");
   if (!CN.picked) { statusEl.innerHTML = `<div class="status error">Pick a stock first.</div>`; return; }
   const name = document.getElementById("cn-name").value.trim();
-  const symbol = document.getElementById("cn-symbol").value.trim();
+  const symbol = document.getElementById("cn-symbol").value.trim().toUpperCase();
   const imageUrl = document.getElementById("cn-logo").value.trim();
   const description = document.getElementById("cn-description").value.trim();
+  const twitter = document.getElementById("cn-twitter").value.trim();
+  const telegram = document.getElementById("cn-telegram").value.trim();
+  const discord = document.getElementById("cn-discord").value.trim();
   const startValuation = document.getElementById("cn-start-valuation").value.trim();
+  const extraFeeBps = Number(document.getElementById("cn-extrafee").value);
+  const devBuyStr = document.getElementById("cn-devbuy").value.trim();
   if (!name || !symbol || !startValuation) { statusEl.innerHTML = `<div class="status error">Name, symbol, and starting valuation are required.</div>`; return; }
+  if (imageUrl.startsWith("data:") && imageUrl.length > 280_000) {
+    statusEl.innerHTML = `<div class="status error">That embedded image is too large and will likely make the transaction fail — please use a hosted image URL instead, or a smaller file.</div>`;
+    return;
+  }
 
   if (!state.account) {
     statusEl.innerHTML = `<div class="status pending">Connect a wallet first…</div>`;
@@ -212,20 +286,42 @@ async function submitCnLaunch(ev) {
   btn.disabled = true;
   try {
     const initialVirtualQuote = ethers.parseUnits(startValuation, CN.picked.decimals);
-    const meta = { imageUrl, description, twitter: "", telegram: "", discord: "" };
+    const devBuyQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, CN.picked.decimals) : 0n;
+    const meta = { imageUrl, description, twitter, telegram, discord };
+
+    if (devBuyQuote > 0n) {
+      // Dev buy is pulled with transferFrom in launchAndBuy — approve the
+      // factory for the stock token first, same pattern the main launch
+      // form's Token-pair mode already uses.
+      const allowance = await tokenRead(CN.picked.address).allowance(state.account, CONFIG.PAIRED_FACTORY_ADDRESS);
+      if (allowance < devBuyQuote) {
+        statusEl.innerHTML = `<div class="status pending">Approve ${CN.picked.symbol} for the dev buy in your wallet…</div>`;
+        const approveTx = typeof tryWagmiWrite === "function"
+          ? await tryWagmiWrite({ address: CN.picked.address, abi: ERC20_ABI, functionName: "approve", args: [CONFIG.PAIRED_FACTORY_ADDRESS, devBuyQuote] })
+          : null;
+        if (approveTx) await approveTx.wait();
+        else await (await tokenWrite(CN.picked.address).approve(CONFIG.PAIRED_FACTORY_ADDRESS, devBuyQuote)).wait();
+      }
+    }
+
     statusEl.innerHTML = `<div class="status pending">Confirm the launch in your wallet…</div>`;
+    const functionName = devBuyQuote > 0n ? "launchAndBuy" : "launch";
+    const args = devBuyQuote > 0n
+      ? [name, symbol, CN.picked.address, initialVirtualQuote, extraFeeBps, meta, devBuyQuote]
+      : [name, symbol, CN.picked.address, initialVirtualQuote, extraFeeBps, meta];
     let tx = typeof tryWagmiWrite === "function"
-      ? await tryWagmiWrite({ address: CONFIG.PAIRED_FACTORY_ADDRESS, abi: PAIRED_FACTORY_ABI, functionName: "launch", args: [name, symbol, CN.picked.address, initialVirtualQuote, 0, meta], value: 0n })
+      ? await tryWagmiWrite({ address: CONFIG.PAIRED_FACTORY_ADDRESS, abi: PAIRED_FACTORY_ABI, functionName, args, value: 0n })
       : null;
     if (!tx) {
       if (typeof ensureAppKitChain === "function") await ensureAppKitChain();
       const overrides = await getTxOverrides(6_000_000n);
-      tx = await pairedFactoryWrite().launch(name, symbol, CN.picked.address, initialVirtualQuote, 0, meta, overrides);
+      tx = await pairedFactoryWrite()[functionName](...args, overrides);
     }
     statusEl.innerHTML = `<div class="status pending">Launching… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
     statusEl.innerHTML = `<div class="status success">Launched, paired with ${CN.picked.symbol}. <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("cn-launch-form").reset();
+    document.getElementById("cn-image-preview").innerHTML = "🏡";
     loadCnExplore().catch((err) => console.error(err));
   } catch (err) {
     console.error(err);
@@ -238,6 +334,8 @@ async function submitCnLaunch(ev) {
 (async () => {
   document.getElementById("cn-stock-search").addEventListener("input", renderStockGrid);
   document.getElementById("cn-launch-form").addEventListener("submit", submitCnLaunch);
+  wireCnImageUpload();
+  wireCnFeePreview();
   await loadCnStocks();
   try { await loadCnExplore(); } catch (err) {
     console.error("loadCnExplore failed", err);

@@ -18,9 +18,9 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789318063">
+<link rel="stylesheet" href="style.css?v=1789318442">
 </head>
-<body>
+<body class="cnpons-page">
 
 <header>
   <div class="headbar">
@@ -98,13 +98,45 @@
     <div id="cn-launch-picked" class="empty-state">Pick a stock above first.</div>
     <form id="cn-launch-form" class="adv-launch-form" style="display:none">
       <label>Name<input id="cn-name" maxlength="40" placeholder="e.g. Example Token" required></label>
-      <label>Symbol<input id="cn-symbol" maxlength="10" placeholder="e.g. EXMPL" required></label>
-      <label>Logo URL<input id="cn-logo" placeholder="https:// or ipfs://"></label>
-      <label>Description<textarea id="cn-description" maxlength="280" rows="3" placeholder="What is it?"></textarea></label>
+      <label>Symbol<input id="cn-symbol" maxlength="10" placeholder="e.g. EXMPL" required style="text-transform:uppercase"></label>
+
+      <label>Logo <span class="optional">optional</span></label>
+      <div class="logo-row">
+        <div class="logo-preview" id="cn-image-preview">🏡</div>
+        <div style="flex:1">
+          <input id="cn-logo" placeholder="paste an image URL, or upload a file below" maxlength="60000">
+          <label class="file-btn">
+            📎 Upload a file
+            <input type="file" id="cn-logo-file" accept="image/*" style="display:none">
+          </label>
+          <div class="hint" id="cn-image-hint">A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but it's stored on-chain as text, so bigger files cost noticeably more gas to launch.</div>
+        </div>
+      </div>
+
+      <label>Description <span class="optional">optional</span><input id="cn-description" maxlength="280" placeholder="What's this coin about?"></label>
+
+      <label>Socials <span class="optional">optional</span></label>
+      <div class="field-row three">
+        <input id="cn-twitter" placeholder="X / Twitter URL" maxlength="200">
+        <input id="cn-telegram" placeholder="Telegram URL" maxlength="200">
+        <input id="cn-discord" placeholder="Discord URL" maxlength="200">
+      </div>
+
       <label>Starting valuation (in the stock's own units) <span class="optional">how many of the stock token it'd take to buy the whole 1B supply at launch</span>
         <input id="cn-start-valuation" type="number" min="0" step="any" placeholder="e.g. 1000" required>
       </label>
-      <p class="hint">No live price feed for a stock that's never been paired before, so this is entered by hand rather than auto-filled — check the stock's real price before picking a number, or the starting valuation won't reflect it. Fee terms otherwise match every other HOMEPAD Paired launch: 70% to you, 30% to $HOME.</p>
+      <p class="hint">No live price feed for a stock that's never been paired before, so this is entered by hand rather than auto-filled — check the stock's real price before picking a number, or the starting valuation won't reflect it.</p>
+
+      <label>Your fee (rent) <span class="optional">optional add-on, 0–2%</span>
+        <input id="cn-extrafee" type="range" min="0" max="200" step="10" value="0" class="fee-slider">
+      </label>
+      <div class="fee-preview" id="cn-fee-preview"></div>
+
+      <label>Dev buy <span class="optional">optional</span>
+        <input id="cn-devbuy" type="number" min="0" step="any" placeholder="0.0">
+      </label>
+      <p class="hint" id="cn-devbuy-hint">Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.</p>
+
       <div id="cn-launch-status"></div>
       <button type="submit" class="btn btn-primary" id="cn-launch-submit" disabled>Pick a stock first</button>
     </form>
@@ -114,12 +146,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789318063"></script>
-<script src="abis.js?v=1789318063"></script>
-<script src="app.js?v=1789318063"></script>
-<script src="wallet-appkit.js?v=1789318063"></script>
-<script src="launch-modal.js?v=1789318063"></script>
-<script src="footer.js?v=1789318063"></script>
-<script src="cnPONS.js?v=1789318063"></script>
+<script src="config.js?v=1789318442"></script>
+<script src="abis.js?v=1789318442"></script>
+<script src="app.js?v=1789318442"></script>
+<script src="wallet-appkit.js?v=1789318442"></script>
+<script src="launch-modal.js?v=1789318442"></script>
+<script src="footer.js?v=1789318442"></script>
+<script src="cnPONS.js?v=1789318442"></script>
 </body>
 </html>

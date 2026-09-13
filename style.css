@@ -1778,6 +1778,23 @@ nav a{display:inline-flex;align-items:center;}
 /* cnPONS stock picker */
 .carousel-track .cn-stock-card{width:150px;flex-shrink:0;}
 #cn-stock-viewport{min-height:140px;}
+/* cnPONS: overall red/Chinese-toned theme. --green cascades to most
+   buttons/links/highlights site-wide via var(--green) — overriding it
+   scoped to this page retints all of that in one place. A handful of
+   components hardcode the green as a raw rgba() instead of the variable
+   (hero background glow, card hover backgrounds) — those get their own
+   scoped override right below since the variable swap alone won't
+   reach them. */
+body.cnpons-page{--green:#ff4d4d;--green-dim:#a31f1f;}
+body.cnpons-page .home-hero{background:
+    radial-gradient(700px 380px at 20% 0%, rgba(255,77,77,.16), transparent 60%),
+    radial-gradient(600px 380px at 90% 20%, rgba(255,182,72,.12), transparent 55%);}
+body.cnpons-page .btn-copy:hover{background:#ff7a7a;}
+body.cnpons-page .cn-stock-card:hover{border-color:rgba(255,77,77,.45);}
+body.cnpons-page .cn-stock-card.is-picked{background:rgba(255,77,77,.08);}
+body.cnpons-page .adv-launch-row:hover{border-color:rgba(255,77,77,.45);}
+body.cnpons-page .adv-disclaimer{background:rgba(255,77,77,.06);border-color:rgba(255,77,77,.3);}
+body.cnpons-page .adv-disclaimer-head{color:#ff9b9b;}
 .cn-stock-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px 10px;cursor:pointer;font-family:'Sora';color:var(--ink);transition:border-color .15s,transform .15s;}
 .cn-stock-card:hover{border-color:rgba(57,255,136,.4);transform:translateY(-2px);}
 .cn-stock-card.is-picked{border-color:var(--green);background:rgba(57,255,136,.06);}
