@@ -46,12 +46,21 @@ async function withRetry(fn, { tries = 3, delayMs = 900 } = {}) {
   throw lastErr;
 }
 
-let firstBlockPromise = null;
-async function firstHomepadBlock() {
-  if (firstBlockPromise) return firstBlockPromise;
-  firstBlockPromise = (async () => {
-    const target = Math.floor(Date.parse(CONFIG.CONTRACTS_LIVE_SINCE) / 1000);
-    const cacheKey = `homepad.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${target}`;
+// Generic version of the block-timestamp binary search, keyed by a
+// namespace so unrelated contracts (HOMEPAD's own launches, Pons V2) can
+// each have their own "live since" bound without colliding — same
+// technique, independent caches. firstHomepadBlock() below is now a thin
+// wrapper over this for its own namespace, with its original cache key
+// preserved exactly so existing users' warm localStorage cache still hits.
+const _blockAtOrAfterPromises = new Map();
+function blockAtOrAfter(isoTimestamp, namespace) {
+  const memoKey = `${namespace}:${isoTimestamp}`;
+  if (_blockAtOrAfterPromises.has(memoKey)) return _blockAtOrAfterPromises.get(memoKey);
+  const p = (async () => {
+    const target = Math.floor(Date.parse(isoTimestamp) / 1000);
+    const cacheKey = namespace === "homepad"
+      ? `homepad.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${target}`
+      : `homepad.firstBlock.${CONFIG.CHAIN_ID_DECIMAL}.${namespace}.${target}`;
     try { const c = localStorage.getItem(cacheKey); if (c) return Number(c); } catch { /* storage blocked */ }
     const provider = readProvider();
     const blockAt = (n) => withRetry(() => provider.getBlock(n));
@@ -83,8 +92,13 @@ async function firstHomepadBlock() {
     }
     try { localStorage.setItem(cacheKey, String(lo)); } catch { /* fine */ }
     return lo;
-  })().catch((err) => { firstBlockPromise = null; throw err; });
-  return firstBlockPromise;
+  })().catch((err) => { _blockAtOrAfterPromises.delete(memoKey); throw err; });
+  _blockAtOrAfterPromises.set(memoKey, p);
+  return p;
+}
+
+async function firstHomepadBlock() {
+  return blockAtOrAfter(CONFIG.CONTRACTS_LIVE_SINCE, "homepad");
 }
 
 // Multicall3 is deployed at this exact same address on 250+ EVM chains
@@ -652,6 +666,7 @@ function refreshAccountDependentViews() {
   else if (hash.startsWith("#/profile") && typeof renderProfile === "function") renderProfile();
   if (typeof renderMyCapitals === "function") renderMyCapitals(); // world.html only — no-op elsewhere
   if (typeof refreshPassportDisplay === "function") refreshPassportDisplay(); // world.html only — no-op elsewhere
+  if (typeof refreshAdvLaunchGate === "function") refreshAdvLaunchGate(); // adventure.html only — no-op elsewhere
 }
 
 // No indexer yet — same tradeoff as Explore's launch list (see README).

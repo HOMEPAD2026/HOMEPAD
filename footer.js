@@ -119,4 +119,34 @@ function renderSiteFooter() {
   `;
 }
 
+/// The dropdown menu is positioned with `position:fixed`, computed here on
+/// open, rather than plain CSS `position:absolute` — the shared <nav> has
+/// `overflow-x:auto` for horizontal scroll on mobile, which also clips the
+/// Y axis per the CSS spec, so an absolutely-positioned child would be cut
+/// off. Fixed positioning escapes that since it's relative to the
+/// viewport, not the scrolling ancestor.
+function wireNavDropdown() {
+  const dd = document.getElementById("nav-more");
+  if (!dd) return;
+  const trigger = dd.querySelector(".nav-more-trigger");
+  const menu = dd.querySelector(".nav-more-menu");
+  function positionMenu() {
+    const r = trigger.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${r.bottom + 8}px`;
+    menu.style.left = `${r.left}px`;
+  }
+  function open() { positionMenu(); dd.classList.add("is-open"); }
+  function close() { dd.classList.remove("is-open"); }
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dd.classList.contains("is-open") ? close() : open();
+  });
+  document.addEventListener("click", (e) => { if (!dd.contains(e.target)) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  window.addEventListener("resize", () => { if (dd.classList.contains("is-open")) positionMenu(); });
+  window.addEventListener("scroll", () => { if (dd.classList.contains("is-open")) close(); }, { passive: true, capture: true });
+}
+
 document.addEventListener("DOMContentLoaded", renderSiteFooter);
+document.addEventListener("DOMContentLoaded", wireNavDropdown);

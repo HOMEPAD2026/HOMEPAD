@@ -1620,6 +1620,55 @@ nav a{display:inline-flex;align-items:center;}
 .leaderboard-addr{font-family:monospace;flex:0 0 auto;}
 .leaderboard-flags{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .leaderboard-count{font-family:'Silkscreen';font-size:.72rem;color:#ccff00;flex:0 0 auto;}
+/* Nav "More" dropdown (World / Rent / 모험) */
+.nav-dropdown{position:relative;display:inline-flex;}
+.nav-more-trigger{
+  padding:8px 14px;border-radius:100px;border:2px solid transparent;background:transparent;
+  transition:all .15s ease;font-weight:600;display:inline-flex;align-items:center;
+  color:var(--ink-dim);font-family:'Sora';font-size:.88rem;cursor:pointer;white-space:nowrap;
+}
+.nav-more-trigger:hover{background:var(--panel-hi);border-color:var(--green);color:var(--green);transform:translateY(-1px);}
+.nav-more-trigger.nav-active{color:var(--green);}
+.nav-caret{margin-left:5px;font-size:.7em;transition:transform .15s;}
+.nav-dropdown.is-open .nav-caret{transform:rotate(180deg);}
+.nav-more-menu{display:none;min-width:160px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:210;}
+.nav-dropdown.is-open .nav-more-menu{display:block;}
+.nav-more-menu a{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600;font-size:.85rem;font-family:'Sora';}
+.nav-more-menu a:hover{background:var(--panel-hi);color:var(--green);}
+.nav-more-menu a.nav-active{color:var(--green);}
+/* Adventure (모험) page */
+.adv-disclaimer{background:rgba(255,182,72,.06);border:1px solid rgba(255,182,72,.35);border-radius:16px;padding:16px 18px;margin-bottom:18px;}
+.adv-disclaimer-head{font-family:'Silkscreen';font-size:.72rem;color:var(--amber);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;}
+.adv-disclaimer-list{margin:0;padding-left:20px;font-size:.82rem;line-height:1.6;color:var(--ink-dim);}
+.adv-disclaimer-list li{margin-bottom:6px;}
+.adv-disclaimer-list b{color:var(--ink);}
+.adv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+.adv-explore-wrap, .adv-launch-wrap{margin-top:22px;}
+.adv-explore-list{display:flex;flex-direction:column;gap:8px;}
+.adv-launch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;}
+.adv-launch-row:hover{border-color:rgba(57,255,136,.45);}
+.adv-launch-row.is-graduated{border-color:rgba(204,255,0,.4);}
+.adv-launch-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.adv-launch-name{font-weight:700;font-size:.9rem;}
+.adv-launch-symbol{color:var(--ink-dim);font-weight:500;}
+.adv-launch-sub{font-size:.74rem;color:var(--ink-dim);}
+.adv-launch-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:0 0 auto;}
+.adv-launch-badge.is-grad{font-family:'Silkscreen';font-size:.6rem;color:#ccff00;background:rgba(204,255,0,.12);border:1px solid rgba(204,255,0,.4);padding:3px 9px;border-radius:100px;}
+.adv-launch-progress{width:100px;height:6px;background:var(--void);border-radius:100px;overflow:hidden;}
+.adv-launch-progress-bar{display:block;height:100%;background:var(--green);}
+.adv-launch-pct{font-size:.68rem;color:var(--ink-dim);}
+.adv-gate-closed{background:var(--void);border:1px solid var(--line);border-radius:14px;padding:16px;}
+.adv-gate-closed-head{font-weight:700;margin-bottom:6px;}
+.adv-launch-form{display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;}
+.adv-launch-form label{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--ink-dim);font-weight:600;}
+.adv-launch-form input, .adv-launch-form textarea, .adv-launch-form select{
+  background:var(--void);border:1px solid var(--line);border-radius:8px;padding:9px 12px;
+  color:var(--ink);font-family:'Sora';font-size:.85rem;font-weight:400;
+}
+.adv-launch-form input:focus, .adv-launch-form textarea:focus, .adv-launch-form select:focus{outline:none;border-color:var(--green);}
+.adv-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.adv-checkbox{flex-direction:row !important;align-items:center;gap:8px !important;}
+.adv-checkbox input{width:auto;}
 .world-help-btn{
   position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;
   background:var(--panel);border:1px solid var(--line);border-radius:100px;
@@ -1688,6 +1737,8 @@ nav a{display:inline-flex;align-items:center;}
 @media (max-width:760px){
   .world-stats{grid-template-columns:repeat(2,1fr);}
   .world-help-btn{padding:7px;}
+  .adv-stats{grid-template-columns:1fr;}
+  .adv-form-row{grid-template-columns:1fr;}
   .world-help-label{display:none;}
   .world-hero{padding-top:38px;}
   .help-card{padding:22px 18px 18px;max-height:90vh;}

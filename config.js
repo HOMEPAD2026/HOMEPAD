@@ -108,6 +108,25 @@ const CONFIG = {
   NHOOD_MOTTO_BURN_AMOUNT: "10000",
   NHOOD_PAIREX_BUY_URL: "https://pairex.market/c/0x9adabf23ed66f01c9ead70f3faf5d8849fd64b2b",
 
+  // Adventure page: browse + launch through Pons V2's own factory on
+  // Robinhood Chain — a third-party protocol, not HOMEPAD's. Addresses are
+  // Pons' official V2 deployment (cross-checked against docs.ponsfamily.com/v2
+  // directly, not just a supplied address). As of this deployment's docs:
+  // public launches are CLOSED (whitelist-only via canLaunch()) and v2 is
+  // UNAUDITED (three reviews in progress) — the launch panel checks
+  // canLaunch() live and gates on it rather than assuming it's open.
+  PONS_V2_FACTORY_ADDRESS: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e",
+  PONS_V2_MEME_HOOK_ADDRESS: "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044",
+  PONS_V2_FEE_ESCROW_ADDRESS: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+  PONS_V2_BUYBACK_VAULT_ADDRESS: "0x42df2a798f82289E177311362e8f5ccC45c1219c",
+  PONS_V2_LAUNCH_LOCKER_ADDRESS: "0x267444D099b10fB5Ed7c3Cc7B7c767AdcA574952",
+  PONS_V2_LAUNCH_AND_BUY_ADDRESS: "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948",
+  // Conservative bound for bounding TokenLaunched log queries — adjust
+  // earlier if launches from before this date are known to exist.
+  PONS_V2_LIVE_SINCE: "2026-08-01T00:00:00Z",
+  PONS_V2_DOCS_URL: "https://docs.ponsfamily.com/v2",
+  PONS_V2_EXPLORE_URL: "https://www.ponsfamily.com/launchpad",
+
   // World Passport: holding >= PASSPORT_STAMP_PCT% of a claimed capital's
   // coin supply earns a permanent stamp for that country (recorded once
   // earned, in Firestore — needs firebase-config.js filled in, same as

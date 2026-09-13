@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789251516">
+<link rel="stylesheet" href="style.css?v=1789289948">
 </head>
 <body>
 
@@ -29,8 +29,14 @@
       <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
       <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
       <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
-      <a href="world.html" class="nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">World</a>
-      <a href="rent.html"><img class="nav-icon" src="images/gallery-gm.jpg" alt="">Rent</a>
+      <div class="nav-dropdown" id="nav-more">
+        <button type="button" class="nav-more-trigger nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">More <span class="nav-caret">▾</span></button>
+        <div class="nav-more-menu">
+          <a href="world.html" class="nav-active">World</a>
+          <a href="rent.html">Rent</a>
+          <a href="adventure.html">모험</a>
+        </div>
+      </div>
     </nav>
     <div id="wallet-slot"></div>
   </div>
@@ -277,14 +283,14 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="config.js?v=1789251516"></script>
-<script src="abis.js?v=1789251516"></script>
-<script src="app.js?v=1789251516"></script>
-<script src="wallet-appkit.js?v=1789251516"></script>
-<script src="launch-modal.js?v=1789251516"></script>
-<script src="footer.js?v=1789251516"></script>
-<script src="firebase-config.js?v=1789251516"></script>
-<script src="world-data.js?v=1789251516"></script>
-<script src="world.js?v=1789251516"></script>
+<script src="config.js?v=1789289948"></script>
+<script src="abis.js?v=1789289948"></script>
+<script src="app.js?v=1789289948"></script>
+<script src="wallet-appkit.js?v=1789289948"></script>
+<script src="launch-modal.js?v=1789289948"></script>
+<script src="footer.js?v=1789289948"></script>
+<script src="firebase-config.js?v=1789289948"></script>
+<script src="world-data.js?v=1789289948"></script>
+<script src="world.js?v=1789289948"></script>
 </body>
 </html>
