@@ -83,14 +83,17 @@ async function loadPonsLaunches() {
 }
 
 function renderAdvStats() {
+  const countEl = document.getElementById("adv-count");
+  if (!countEl) return; // Pons V2 explore section isn't on this page anymore
   const l = ADV.launches;
-  document.getElementById("adv-count").textContent = String(l.length);
+  countEl.textContent = String(l.length);
   document.getElementById("adv-live").textContent = String(l.filter((x) => !x.graduated).length);
   document.getElementById("adv-graduated").textContent = String(l.filter((x) => x.graduated).length);
 }
 
 function renderPonsExplore() {
   const list = document.getElementById("adv-explore-list");
+  if (!list) return; // Pons V2 explore section isn't on this page anymore
   const now = Math.floor(Date.now() / 1000);
   const periodSec = ADV.period === "24h" ? 86400 : ADV.period === "7d" ? 604800 : null;
   let rows = ADV.launches.filter((l) => !periodSec || now - l.launchedAt <= periodSec);
@@ -220,26 +223,10 @@ async function submitPonsLaunch(ev) {
 }
 
 (async () => {
-  document.getElementById("adv-launch-form").addEventListener("submit", submitPonsLaunch);
-  document.getElementById("adv-sort-group").addEventListener("click", (e) => {
-    const chip = e.target.closest(".filter-chip"); if (!chip) return;
-    document.querySelectorAll("#adv-sort-group .filter-chip").forEach((x) => x.classList.remove("active"));
-    chip.classList.add("active"); ADV.sort = chip.dataset.sort; renderPonsExplore();
-  });
-  document.getElementById("adv-period-group").addEventListener("click", (e) => {
-    const chip = e.target.closest(".filter-chip"); if (!chip) return;
-    document.querySelectorAll("#adv-period-group .filter-chip").forEach((x) => x.classList.remove("active"));
-    chip.classList.add("active"); ADV.period = chip.dataset.period; renderPonsExplore();
-  });
-  try {
-    await loadPonsLaunches();
-  } catch (err) {
-    console.error("loadPonsLaunches failed", err);
-    document.getElementById("adv-explore-list").innerHTML = `<div class="empty-state">Couldn't load Pons V2 launches.<span class="err-detail">${String(err && err.message || err)}</span></div>`;
-  }
-  renderAdvStats();
-  renderPonsExplore();
-  refreshAdvLaunchGate();
+  // Pons V2's generic Explore/Launch sections were removed from this page
+  // (it's now just the $橋 spotlight + game + story) — only the spotlight
+  // token needs loading here. adventure.js still owns the full
+  // Explore/Launch flow for anyone who wants it.
   loadSpotlightToken();
 })();
 

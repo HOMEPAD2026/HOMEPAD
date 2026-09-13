@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789310278">
+<link rel="stylesheet" href="style.css?v=1789310561">
 </head>
 <body class="qiao-body">
 
@@ -102,8 +102,8 @@
         </div>
 
         <div class="adv-spotlight-actions">
-          <a class="btn btn-primary" id="spot-buy-link" href="#" target="_blank" rel="noopener">🅿️🇨🇳 buy $橋</a>
-          <button class="btn" id="adv-spotlight-card-chart">chart 📈</button>
+          <a class="btn qiao-buy-btn" id="spot-buy-link" href="#" target="_blank" rel="noopener">Buy $橋</a>
+          <button class="btn qiao-chart-btn" id="adv-spotlight-card-chart">View Chart</button>
         </div>
       </div>
     </div>
@@ -137,62 +137,6 @@
     </div>
   </section>
 
-  <!-- ===== PONS V2 (the rest of the neighborhood) ===== -->
-  <section class="qiao-section qiao-section-muted">
-    <div class="qiao-section-head">
-      <h2 class="pixel">other bridges</h2>
-      <span class="qiao-section-sub">everything else launching on Pons V2 right now, read live from the chain.</span>
-    </div>
-
-    <div class="adv-stats" id="adv-stats">
-      <div class="stat-card"><div class="stat-label">Launches tracked</div><div class="stat-value" id="adv-count">···</div></div>
-      <div class="stat-card"><div class="stat-label">On the curve</div><div class="stat-value" id="adv-live">···</div></div>
-      <div class="stat-card"><div class="stat-label">Graduated</div><div class="stat-value" id="adv-graduated">···</div></div>
-    </div>
-
-    <div class="adv-explore-wrap">
-      <div class="adv-explore-controls">
-        <div class="adv-sort-group" id="adv-sort-group">
-          <span class="filter-chip active" data-sort="newest">Newest</span>
-          <span class="filter-chip" data-sort="mcap">Market cap</span>
-        </div>
-        <div class="adv-period-group" id="adv-period-group">
-          <span class="filter-chip active" data-period="all">All</span>
-          <span class="filter-chip" data-period="24h">24h</span>
-          <span class="filter-chip" data-period="7d">7d</span>
-        </div>
-        <span class="rent-section-count" id="adv-explore-count"></span>
-      </div>
-      <div class="adv-explore-list" id="adv-explore-list"><div class="empty-state">Loading launches…</div></div>
-    </div>
-  </section>
-
-  <section class="qiao-section qiao-section-muted">
-    <div class="qiao-section-head">
-      <h2 class="pixel">build your own bridge</h2>
-      <span class="qiao-section-sub">launch on Pons V2 — if your wallet's on the list.</span>
-    </div>
-    <div id="adv-launch-gate"><div class="empty-state">Connect your wallet to check eligibility.</div></div>
-    <form id="adv-launch-form" class="adv-launch-form" style="display:none">
-      <label>Name<input id="adv-name" maxlength="40" placeholder="e.g. Example Token" required></label>
-      <label>Symbol<input id="adv-symbol" maxlength="10" placeholder="e.g. EXMPL" required></label>
-      <label>Logo URL<input id="adv-logo" placeholder="https:// or ipfs://"></label>
-      <label>Description<textarea id="adv-description" maxlength="280" rows="3" placeholder="What is it?"></textarea></label>
-      <div class="adv-form-row">
-        <label>Launch config
-          <select id="adv-config"></select>
-        </label>
-        <label>Creator tax (bps)
-          <input id="adv-tax" type="number" min="0" step="1" value="0">
-        </label>
-      </div>
-      <label class="adv-checkbox"><input type="checkbox" id="adv-buyback"> Enable buyback (funded from your own fee share)</label>
-      <p class="hint">Launches here are native-ETH only for now — a custom pair-token quote isn't supported by this form yet. Fee terms are pinned live via <code>previewLaunchEconomics</code> immediately before you sign, so the transaction reverts instead of settling on different terms if anything changed.</p>
-      <div id="adv-launch-status"></div>
-      <button type="submit" class="btn btn-primary" id="adv-launch-submit">Launch on Pons V2</button>
-    </form>
-  </section>
-
   <p class="qiao-footer-note">橋 is a community meme paired with CNY on Pairex. Pons V2 is a third-party protocol, not HOMEPAD's. None of this is financial advice — it's a plush toy in a hat.</p>
 </main>
 
@@ -221,14 +165,14 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789310278"></script>
-<script src="abis.js?v=1789310278"></script>
-<script src="pons-abi.js?v=1789310278"></script>
-<script src="app.js?v=1789310278"></script>
-<script src="wallet-appkit.js?v=1789310278"></script>
-<script src="launch-modal.js?v=1789310278"></script>
-<script src="footer.js?v=1789310278"></script>
-<script src="adventure-cn.js?v=1789310278"></script>
-<script src="qiao-game.js?v=1789310278"></script>
+<script src="config.js?v=1789310561"></script>
+<script src="abis.js?v=1789310561"></script>
+<script src="pons-abi.js?v=1789310561"></script>
+<script src="app.js?v=1789310561"></script>
+<script src="wallet-appkit.js?v=1789310561"></script>
+<script src="launch-modal.js?v=1789310561"></script>
+<script src="footer.js?v=1789310561"></script>
+<script src="adventure-cn.js?v=1789310561"></script>
+<script src="qiao-game.js?v=1789310561"></script>
 </body>
 </html>
