@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789336985">
+<link rel="stylesheet" href="style.css?v=1789340166">
 </head>
 <body class="cnpons-page">
 
@@ -40,6 +40,10 @@
         </div>
       </div>
     </nav>
+    <div class="cn-lang-toggle" id="cn-lang-toggle">
+      <button type="button" data-lang="en" class="active">EN</button>
+      <button type="button" data-lang="zh">中文</button>
+    </div>
     <div id="wallet-slot"></div>
   </div>
 </header>
@@ -48,11 +52,11 @@
 <section class="home-hero" id="top">
   <div class="wrap home-hero-inner cn-hero-split">
     <div class="home-hero-content">
-      <span class="pixel eyebrow-chip">real Robinhood Stock Tokens, resolved live 🇨🇳</span>
+      <span class="pixel eyebrow-chip" data-i18n="eyebrow">real Robinhood Stock Tokens, resolved live 🇨🇳</span>
       <h1>橋 🅿️ONS.</h1>
-      <p class="lede">Launch a coin paired with a real Chinese-company Stock Token on Robinhood Chain — Alibaba, PDD, Tencent Music, and more. Every address on this page is read live from <a href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener">Robinhood's own public registry</a>, never typed in by hand.</p>
+      <p class="lede" data-i18n-html="lede">Launch a coin paired with a real Chinese-company Stock Token on Robinhood Chain — Alibaba, PDD, Tencent Music, and more. Every address on this page is read live from <a href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener">Robinhood's own public registry</a>, never typed in by hand.</p>
       <div class="hero-cta-row">
-        <a class="btn btn-cute btn-primary cn-hero-launch-btn" href="#cn-pick-stock">Launch</a>
+        <a class="btn btn-cute btn-primary cn-hero-launch-btn" href="#cn-pick-stock" data-i18n="launchBtn">Launch</a>
       </div>
     </div>
     <img class="cn-hero-logo" src="images/qiao-logo.png" alt="橋 logo">
@@ -72,88 +76,88 @@
 
 <main class="wrap adv-main">
   <div class="adv-stats" id="cn-stats">
-    <div class="stat-card"><div class="stat-label">CN stocks live on-chain</div><div class="stat-value" id="cn-stock-count">···</div></div>
-    <div class="stat-card"><div class="stat-label">Launches paired so far</div><div class="stat-value" id="cn-launch-count">···</div></div>
+    <div class="stat-card"><div class="stat-label" data-i18n="statLive">CN stocks live on-chain</div><div class="stat-value" id="cn-stock-count">···</div></div>
+    <div class="stat-card"><div class="stat-label" data-i18n="statLaunches">Launches paired so far</div><div class="stat-value" id="cn-launch-count">···</div></div>
   </div>
 
   <!-- ============ Stock picker ============ -->
-  <section class="rent-section-head" id="cn-pick-stock"><h3>Pick a Chinese stock</h3><span class="rent-section-count" id="cn-stock-picker-count"></span></section>
-  <p class="rent-section-note">The stock your market cap is measured in. Trades settle in the stock's own Stock Token on the curve.</p>
-  <input class="world-search" id="cn-stock-search" placeholder="Search by name or ticker…" autocomplete="off" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
-  <div class="cn-stock-grid" id="cn-stock-grid"><div class="empty-state">Loading Stock Tokens from Robinhood's registry…</div></div>
+  <section class="rent-section-head" id="cn-pick-stock"><h3 data-i18n="pickHead">Pick a Chinese stock</h3><span class="rent-section-count" id="cn-stock-picker-count"></span></section>
+  <p class="rent-section-note" data-i18n="pickNote">The stock your market cap is measured in. Trades settle in the stock's own Stock Token on the curve.</p>
+  <input class="world-search" id="cn-stock-search" data-i18n-placeholder="searchPh" placeholder="Search by name or ticker…" autocomplete="off" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
+  <div class="cn-stock-grid" id="cn-stock-grid"><div class="empty-state" data-i18n="loadingStocks">Loading Stock Tokens from Robinhood's registry…</div></div>
 
   <!-- ============ Launch ============ -->
   <section class="adv-launch-wrap" id="cn-launch">
-    <div class="rent-section-head"><h3>Launch, paired with your picked stock</h3></div>
-    <p class="hint">Stock Tokens are Robinhood's, not HOMEPAD's — and they carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions, which the pool's price won't automatically follow after launch.</p>
-    <div id="cn-launch-picked" class="empty-state">Pick a stock above first.</div>
+    <div class="rent-section-head"><h3 data-i18n="launchHead">Launch, paired with your picked stock</h3></div>
+    <p class="hint" data-i18n-html="multiplierHint">Stock Tokens are Robinhood's, not HOMEPAD's — and they carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions, which the pool's price won't automatically follow after launch.</p>
+    <div id="cn-launch-picked" class="empty-state" data-i18n="pickFirst">Pick a stock above first.</div>
     <form id="cn-launch-form" class="adv-launch-form" style="display:none">
-      <label>Name<input id="cn-name" maxlength="40" placeholder="e.g. Example Token" required></label>
-      <label>Symbol<input id="cn-symbol" maxlength="10" placeholder="e.g. EXMPL" required style="text-transform:uppercase"></label>
+      <label><span data-i18n="nameLabel">Name</span><input id="cn-name" maxlength="40" data-i18n-placeholder="namePh" placeholder="e.g. Example Token" required></label>
+      <label><span data-i18n="symbolLabel">Symbol</span><input id="cn-symbol" maxlength="10" data-i18n-placeholder="symbolPh" placeholder="e.g. EXMPL" required style="text-transform:uppercase"></label>
 
-      <label>Logo <span class="optional">optional</span></label>
+      <label><span data-i18n="logoLabel">Logo</span> <span class="optional" data-i18n="optional">optional</span></label>
       <div class="logo-row">
         <div class="logo-preview" id="cn-image-preview">🏡</div>
         <div style="flex:1">
-          <input id="cn-logo" placeholder="paste an image URL, or upload a file below" maxlength="60000">
+          <input id="cn-logo" data-i18n-placeholder="logoPh" placeholder="paste an image URL, or upload a file below" maxlength="60000">
           <label class="file-btn">
-            📎 Upload a file
+            <span data-i18n="uploadBtn">📎 Upload a file</span>
             <input type="file" id="cn-logo-file" accept="image/*" style="display:none">
           </label>
-          <div class="hint" id="cn-image-hint">A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but it's stored on-chain as text, so bigger files cost noticeably more gas to launch.</div>
+          <div class="hint" id="cn-image-hint" data-i18n="imageHint">A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but it's stored on-chain as text, so bigger files cost noticeably more gas to launch.</div>
         </div>
       </div>
 
-      <label>Description <span class="optional">optional</span><input id="cn-description" maxlength="280" placeholder="What's this coin about?"></label>
+      <label><span data-i18n="descLabel">Description</span> <span class="optional" data-i18n="optional">optional</span><input id="cn-description" maxlength="280" data-i18n-placeholder="descPh" placeholder="What's this coin about?"></label>
 
-      <label>Website <span class="optional">optional</span><input id="cn-website" placeholder="https://yourproject.com" maxlength="200"></label>
-      <p class="hint">No dedicated on-chain field for this exists in any HOMEPAD launch contract yet (same on the main launch form) — so this gets folded into the description instead of silently going nowhere.</p>
+      <label><span data-i18n="websiteLabel">Website</span> <span class="optional" data-i18n="optional">optional</span><input id="cn-website" placeholder="https://yourproject.com" maxlength="200"></label>
+      <p class="hint" data-i18n="websiteHint">No dedicated on-chain field for this exists in any HOMEPAD launch contract yet (same on the main launch form) — so this gets folded into the description instead of silently going nowhere.</p>
 
-      <label>Socials <span class="optional">optional</span></label>
+      <label><span data-i18n="socialsLabel">Socials</span> <span class="optional" data-i18n="optional">optional</span></label>
       <div class="field-row three">
-        <input id="cn-twitter" placeholder="X / Twitter URL" maxlength="200">
-        <input id="cn-telegram" placeholder="Telegram URL" maxlength="200">
-        <input id="cn-discord" placeholder="Discord URL" maxlength="200">
+        <input id="cn-twitter" data-i18n-placeholder="twitterPh" placeholder="X / Twitter URL" maxlength="200">
+        <input id="cn-telegram" data-i18n-placeholder="telegramPh" placeholder="Telegram URL" maxlength="200">
+        <input id="cn-discord" data-i18n-placeholder="discordPh" placeholder="Discord URL" maxlength="200">
       </div>
 
-      <label>Starting valuation (in the stock's own units) <span class="optional">how many of the stock token it'd take to buy the whole 1B supply at launch</span>
-        <input id="cn-start-valuation" type="number" min="0" step="any" placeholder="e.g. 1000" required>
+      <label><span data-i18n="valuationLabel">Starting valuation (in the stock's own units)</span> <span class="optional" data-i18n="valuationSub">how many of the stock token it'd take to buy the whole 1B supply at launch</span>
+        <input id="cn-start-valuation" type="number" min="0" step="any" data-i18n-placeholder="numPh" placeholder="e.g. 1000" required>
       </label>
-      <p class="hint" id="cn-valuation-hint">Pick a stock above to pre-fill this from its current price. You can always change it.</p>
+      <p class="hint" id="cn-valuation-hint" data-i18n="valuationHint">Pick a stock above to pre-fill this from its current price. You can always change it.</p>
 
-      <label>Your fee (rent) <span class="optional">optional add-on, 0–2%</span>
+      <label><span data-i18n="feeLabel">Your fee (rent)</span> <span class="optional" data-i18n="feeSub">optional add-on, 0–2%</span>
         <input id="cn-extrafee" type="range" min="0" max="200" step="10" value="0" class="fee-slider">
       </label>
       <div class="fee-preview" id="cn-fee-preview"></div>
 
-      <label id="cn-devbuy-label">Dev buy <span class="optional">optional</span>
+      <label id="cn-devbuy-label"><span data-i18n="devbuyLabel">Dev buy</span> <span class="optional" data-i18n="optional">optional</span>
         <div class="cn-input-suffix-wrap">
           <input id="cn-devbuy" type="number" min="0" step="any" placeholder="0.0">
           <span class="cn-input-suffix" id="cn-devbuy-suffix">—</span>
         </div>
       </label>
-      <p class="hint" id="cn-devbuy-hint">Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.</p>
+      <p class="hint" id="cn-devbuy-hint" data-i18n="devbuyHint">Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.</p>
       <p class="hint" id="cn-devbuy-preview"></p>
 
       <div id="cn-launch-status"></div>
-      <button type="submit" class="btn btn-primary" id="cn-launch-submit" disabled>Pick a stock first</button>
+      <button type="submit" class="btn btn-primary" id="cn-launch-submit" disabled data-i18n="pickStockFirstBtn">Pick a stock first</button>
     </form>
   </section>
 
   <!-- ============ Full Explore grid — same launch-card component, plain grid instead of a carousel ============ -->
-  <section class="rent-section-head"><h3>All CN-paired launches</h3><span class="rent-section-count" id="cn-explore-grid-count"></span></section>
+  <section class="rent-section-head"><h3 data-i18n="allLaunchesHead">All CN-paired launches</h3><span class="rent-section-count" id="cn-explore-grid-count"></span></section>
   <div id="cn-explore-grid" class="grid-launches"></div>
 </main>
 
 <!-- ============ Liquidity warning popup — shown when a non-BABA stock is picked ============ -->
 <div id="cn-liquidity-modal" class="modal-overlay hidden">
   <div class="cn-liquidity-modal-box">
-    <div class="cn-liquidity-modal-head">⚠️ Low liquidity — trading may be difficult</div>
-    <p><b id="cn-liquidity-modal-symbol">This stock</b> has very little real trading activity on Robinhood Chain right now. A coin paired against it may be hard to trade on either side — including buying the stock token itself if you want a dev buy.</p>
-    <p><b>$BABA (Alibaba)</b> currently has the most real liquidity of any tracked Chinese stock, making it the more usable pair for now. This changes as adoption grows — it's a "for now" recommendation, not a permanent limit.</p>
+    <div class="cn-liquidity-modal-head" data-i18n="modalHead">⚠️ Low liquidity — trading may be difficult</div>
+    <p><b id="cn-liquidity-modal-symbol">This stock</b> <span data-i18n="modalP1">has very little real trading activity on Robinhood Chain right now. A coin paired against it may be hard to trade on either side — including buying the stock token itself if you want a dev buy.</span></p>
+    <p data-i18n-html="modalP2"><b>$BABA (Alibaba)</b> currently has the most real liquidity of any tracked Chinese stock, making it the more usable pair for now. This changes as adoption grows — it's a "for now" recommendation, not a permanent limit.</p>
     <div class="cn-liquidity-modal-actions">
-      <button type="button" class="btn btn-cute btn-primary" id="cn-liquidity-modal-baba">Use $BABA instead</button>
-      <button type="button" class="btn btn-cute" id="cn-liquidity-modal-continue">Continue anyway</button>
+      <button type="button" class="btn btn-cute btn-primary" id="cn-liquidity-modal-baba" data-i18n="modalBabaBtn">Use $BABA instead</button>
+      <button type="button" class="btn btn-cute" id="cn-liquidity-modal-continue" data-i18n="modalContinueBtn">Continue anyway</button>
     </div>
   </div>
 </div>
@@ -161,12 +165,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789336985"></script>
-<script src="abis.js?v=1789336985"></script>
-<script src="app.js?v=1789336985"></script>
-<script src="wallet-appkit.js?v=1789336985"></script>
-<script src="launch-modal.js?v=1789336985"></script>
-<script src="footer.js?v=1789336985"></script>
-<script src="cnPONS.js?v=1789336985"></script>
+<script src="config.js?v=1789340166"></script>
+<script src="abis.js?v=1789340166"></script>
+<script src="app.js?v=1789340166"></script>
+<script src="wallet-appkit.js?v=1789340166"></script>
+<script src="launch-modal.js?v=1789340166"></script>
+<script src="footer.js?v=1789340166"></script>
+<script src="cnPONS.js?v=1789340166"></script>
 </body>
 </html>

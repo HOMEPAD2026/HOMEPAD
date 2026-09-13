@@ -12,6 +12,109 @@
 
 const CN = { stocks: [], picked: null, launches: [] };
 
+// ---------- Language toggle (EN / 中文) — static UI copy only. Company
+// names/tickers come live from Robinhood's own registry and stay as-is
+// regardless of language, same as any other proper noun. ----------
+const CN_I18N = {
+  en: {
+    eyebrow: "real Robinhood Stock Tokens, resolved live 🇨🇳",
+    lede: `Launch a coin paired with a real Chinese-company Stock Token on Robinhood Chain — Alibaba, PDD, Tencent Music, and more. Every address on this page is read live from <a href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener">Robinhood's own public registry</a>, never typed in by hand.`,
+    launchBtn: "Launch",
+    statLive: "CN stocks live on-chain",
+    statLaunches: "Launches paired so far",
+    pickHead: "Pick a Chinese stock",
+    pickNote: "The stock your market cap is measured in. Trades settle in the stock's own Stock Token on the curve.",
+    searchPh: "Search by name or ticker…",
+    loadingStocks: "Loading Stock Tokens from Robinhood's registry…",
+    launchHead: "Launch, paired with your picked stock",
+    multiplierHint: `Stock Tokens are Robinhood's, not HOMEPAD's — and they carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions, which the pool's price won't automatically follow after launch.`,
+    pickFirst: "Pick a stock above first.",
+    nameLabel: "Name", namePh: "e.g. Example Token",
+    symbolLabel: "Symbol", symbolPh: "e.g. EXMPL",
+    logoLabel: "Logo", optional: "optional",
+    logoPh: "paste an image URL, or upload a file below",
+    uploadBtn: "📎 Upload a file",
+    imageHint: "A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but it's stored on-chain as text, so bigger files cost noticeably more gas to launch.",
+    descLabel: "Description", descPh: "What's this coin about?",
+    websiteLabel: "Website",
+    websiteHint: "No dedicated on-chain field for this exists in any HOMEPAD launch contract yet (same on the main launch form) — so this gets folded into the description instead of silently going nowhere.",
+    socialsLabel: "Socials",
+    twitterPh: "X / Twitter URL", telegramPh: "Telegram URL", discordPh: "Discord URL",
+    valuationLabel: "Starting valuation (in the stock's own units)",
+    valuationSub: "how many of the stock token it'd take to buy the whole 1B supply at launch",
+    numPh: "e.g. 1000",
+    valuationHint: "Pick a stock above to pre-fill this from its current price. You can always change it.",
+    feeLabel: "Your fee (rent)", feeSub: "optional add-on, 0–2%",
+    devbuyLabel: "Dev buy",
+    devbuyHint: "Buy your own tokens in the same transaction as the launch, paid in the picked stock's own token. Leave blank to skip.",
+    pickStockFirstBtn: "Pick a stock first",
+    allLaunchesHead: "All CN-paired launches",
+    modalHead: "⚠️ Low liquidity — trading may be difficult",
+    modalP1: "has very little real trading activity on Robinhood Chain right now. A coin paired against it may be hard to trade on either side — including buying the stock token itself if you want a dev buy.",
+    modalP2: `<b>$BABA (Alibaba)</b> currently has the most real liquidity of any tracked Chinese stock, making it the more usable pair for now. This changes as adoption grows — it's a "for now" recommendation, not a permanent limit.`,
+    modalBabaBtn: "Use $BABA instead", modalContinueBtn: "Continue anyway",
+  },
+  zh: {
+    eyebrow: "真实的 Robinhood 股票代币，实时验证 🇨🇳",
+    lede: `在 Robinhood Chain 上发行与真实中国公司股票代币配对的代币——阿里巴巴、拼多多、腾讯音乐等。本页面上的每个地址都是从 <a href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener">Robinhood 官方公开注册表</a>实时读取的，绝不手动输入。`,
+    launchBtn: "发行",
+    statLive: "链上可用的中国股票",
+    statLaunches: "已配对发行数量",
+    pickHead: "选择一支中国股票",
+    pickNote: "你的市值将以该股票计价，交易也以该股票代币在曲线上结算。",
+    searchPh: "按名称或代码搜索…",
+    loadingStocks: "正在从 Robinhood 注册表加载股票代币…",
+    launchHead: "发行，与你选择的股票配对",
+    multiplierHint: `股票代币归属于 Robinhood，而非 HOMEPAD——它们带有一个 <code>currentMultiplier</code>，Robinhood 会根据真实的公司行为（如拆股、分红）进行调整，而发行后资金池的价格不会自动跟随这一调整。`,
+    pickFirst: "请先在上方选择一支股票。",
+    nameLabel: "名称", namePh: "例如 Example Token",
+    symbolLabel: "代码", symbolPh: "例如 EXMPL",
+    logoLabel: "图标", optional: "可选",
+    logoPh: "粘贴图片链接，或在下方上传文件",
+    uploadBtn: "📎 上传文件",
+    imageHint: "使用托管链接最理想。上传文件会将图片直接嵌入为数据——小图标没问题，但会以文本形式存储在链上，文件越大，发行所需的 gas 费越高。",
+    descLabel: "简介", descPh: "这个代币是关于什么的？",
+    websiteLabel: "网站",
+    websiteHint: "目前所有 HOMEPAD 发行合约都还没有专门存储网站的字段（主发行页面也是如此）——所以这项内容会并入简介中保存，而不是被默默丢弃。",
+    socialsLabel: "社交媒体",
+    twitterPh: "X / Twitter 链接", telegramPh: "Telegram 链接", discordPh: "Discord 链接",
+    valuationLabel: "起始估值（以该股票自身单位计）",
+    valuationSub: "发行时买下全部 10 亿枚供应量所需的股票代币数量",
+    numPh: "例如 1000",
+    valuationHint: "在上方选择股票后会根据当前价格自动填入，你也可以随时修改。",
+    feeLabel: "你的手续费（租金）", feeSub: "可选加成，0–2%",
+    devbuyLabel: "开发者购买",
+    devbuyHint: "在发行的同一笔交易中购买自己的代币，以所选股票自身的代币支付。留空即跳过。",
+    pickStockFirstBtn: "请先选择股票",
+    allLaunchesHead: "所有与中国股票配对的发行",
+    modalHead: "⚠️ 流动性不足——交易可能较为困难",
+    modalP1: "目前在 Robinhood Chain 上几乎没有真实交易活跃度。与其配对的代币在买卖两端都可能难以交易——包括如果你想做开发者购买，也很难买到该股票代币本身。",
+    modalP2: `<b>$BABA（阿里巴巴）</b>目前是所有已追踪中国股票中流动性最好的，因此现阶段是更实用的配对选择。随着采用度提高，这个情况会改变——这只是"目前"的建议，并非永久限制。`,
+    modalBabaBtn: "改用 $BABA", modalContinueBtn: "仍然继续",
+  },
+};
+
+function applyCnLang(lang) {
+  const dict = CN_I18N[lang] || CN_I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key] != null) el.textContent = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-html");
+    if (dict[key] != null) el.innerHTML = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (dict[key] != null) el.placeholder = dict[key];
+  });
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  document.querySelectorAll("#cn-lang-toggle button").forEach((b) => {
+    b.classList.toggle("active", b.dataset.lang === lang);
+  });
+  try { localStorage.setItem("homepad.cnLang", lang); } catch { /* private mode etc — just won't persist */ }
+}
+
 // Robinhood's own logoUrl 404s for at least these two tickers (confirmed —
 // broken image on the stock picker card). Locally-hosted fallback logos,
 // used only as an override for tickers actually confirmed broken — every
@@ -495,6 +598,12 @@ async function submitCnLaunch(ev) {
 }
 
 (async () => {
+  let savedLang = "en";
+  try { savedLang = localStorage.getItem("homepad.cnLang") || "en"; } catch { /* private mode etc */ }
+  applyCnLang(savedLang);
+  document.querySelectorAll("#cn-lang-toggle button").forEach((b) => {
+    b.addEventListener("click", () => applyCnLang(b.dataset.lang));
+  });
   document.getElementById("cn-stock-search").addEventListener("input", renderStockGrid);
   document.getElementById("cn-launch-form").addEventListener("submit", submitCnLaunch);
   document.getElementById("cn-devbuy").addEventListener("input", updateCnDevBuyPreview);
