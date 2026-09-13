@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://homepad.fun">Live site</a> ·
+  <a href="https://homepad.fun/world">World map</a> ·
   <a href="https://homepad.fun/rent">Proof of Rent</a> ·
   <a href="https://x.com/HOMEonRobinhood">X</a> ·
   <a href="https://t.me/HOMEonRobin">Telegram</a> ·
@@ -60,6 +61,8 @@ The map's source of truth is the chain, not a database: `world.js` re-derives ev
 **$NHOOD mottos.** A capital's current owner can burn `NHOOD_MOTTO_BURN_AMOUNT` $NHOOD (either of its two deployments — Pons and Pairex have separate contracts, `NHOOD_TOKEN_ADDRESSES` lists both) to inscribe a short line shown next to the flag everywhere the name appears — list rows, the activity feed, the claim modal. The burn itself (a real `Transfer` to the standard dead address) is verified on-chain at submit time the same way the reset fee is; the motto *text* is stored in Firestore (`mottos/{iso2}`) rather than re-verified on every read, since arbitrary strings have nowhere to live on-chain without a dedicated contract — the same trust boundary the reset mcap check already has. Needs `firebase-config.js` filled in to actually persist; the burn still happens either way.
 
 **World Passport.** Holding >= `PASSPORT_STAMP_PCT`% (1%) of a claimed capital's coin supply earns a permanent stamp for that country, recorded to Firestore (`passportStamps/{address}_{iso2}`, create-only) the first time "Check my passport" finds it — stays earned even if the balance later drops. A public leaderboard reads the same collection. Stamps are meant to make a holder eligible for a future share of that capital's fees, and `PASSPORT_BONUS_STAMP_COUNT`+ (5) stamps for a planned bonus-reward event — **neither payout mechanism exists yet**; today this only tracks and displays qualification. Same trust boundary as mottos: the frontend checks the real on-chain balance honestly before writing a stamp, but Firestore's rules can't independently re-verify a balance (no RPC access from a rule) — fine while stamps are a badge, needs closing (a server-side check or a registry contract) before any real payout uses this.
+
+**On the page today:** a live "Recent activity" feed (real `Launched` events off both factories, claim/reset labeled, tx-linked — not a database log); a wallet-gated "My Capitals" panel with each held capital's live protected/grace/at-risk status; a "❓ How this works" button opening a two-tab guide (one-page summary + a full walkthrough of every rule); Share-on-X on a successful claim/reset; a search box that flies the map to a unique match; and a `$NHOOD` panel in the hero (CA, copy button, Pairex buy link) plus a "$NHOOD burns" section that reads `Transfer`-to-dead-address events on both deployments live — a burn shows up the moment it happens, nothing here is typed in.
 
 Planned: once a capital passes a market-cap milestone, its country's other cities open to claim; a registry contract to make the reset rule (and motto/passport storage) fully on-chain-verifiable; the actual fee-sharing and bonus-reward mechanisms behind World Passport.
 
@@ -115,11 +118,17 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── home-stats.js        $HOME live stats (Dexscreener + Blockscout) and the home carousel
 ├── wallet-appkit.js     Wallet connection (Reown AppKit / wagmi)
 ├── footer.js · launch-modal.js
+├── world.html · world.js                        World map game — claim/defend a capital, mottos, passport, leaderboard
+├── world-data.js · world/logos/*.svg            197 capitals (name/ticker/coords) and each country's outline logo — generated, see worldgen/
+├── worldgen/            Generator for world-data.js + world/logos/ (mledoze/countries + world-atlas + d3-geo)
+├── firebase-config.js   Optional Firestore project config for World (ships null — claims/resets work without it; mottos/passport/leaderboard need it)
+├── firestore.rules      Firestore security rules for claims/mottos/passportStamps
 ├── config.js            Every address, RPC, and URL in one place
 ├── abis.js              Contract ABIs
 ├── style.css            Single stylesheet; all responsive rules live in one section at the end
-├── vercel.json           Clean-URL rewrite (/rent -> rent.html)
-├── images/              Stickers, favicons, Open Graph card
+├── bump-cache.sh        Rotates the shared ?v= cache-buster on every script/style tag — run after any .js/.css change
+├── vercel.json           Clean-URL rewrite (/rent -> rent.html, /world -> world.html)
+├── images/              Stickers, favicons, Open Graph card, generated map logos
 ├── FRONTEND.md          Frontend notes
 └── contracts/           Hardhat project
     ├── contracts/       HomepadFactoryHybrid · HomepadHybridHook · HomepadFactoryV4 · BondingCurveV4 ·
@@ -237,6 +246,9 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 - [x] Contract-level review pass: fixed-supply vanilla ERC-20, no owner/pause/blacklist anywhere, hooks hold only afterSwap+afterSwapReturnDelta permissions (no ability to block a sale or liquidity removal), fee split immutable per factory, Slither static analysis run with no real findings on the active contracts (findings were either false positives — reentrancy guards/try-catch patterns Slither doesn't fully model — or scoped to superseded pre-v4 contracts), HookScan (Uniswap v4 hook-specific analyzer) run against both hooks with zero findings on all 4 detectors
 - [x] Confirmed dead code removed (`HomepadHybridSwapRouter.sol` — Hybrid and Instant both actually deploy the generic `HomepadSwapRouter`)
 - [x] `website` field on `LaunchMeta`/`Launch` (contract-side, all four factories) is now fully wired end-to-end — launch form input, on-chain meta, and the token page's "Website ↗" link
+- [x] World map: 197 capitals, chain-derived claim/reset resolution, live activity feed, My Capitals, World Passport, $NHOOD mottos and burn tracking — all read live, no database as the source of truth for anything on-chain
+- [ ] World: registry contract for a fully on-chain-verifiable reset/passport mcap check (currently app-enforced)
+- [ ] World Passport: the actual fee-sharing and bonus-reward payout mechanisms (stamps only track/display eligibility today)
 - [ ] Anti-snipe wallet caps for Hybrid launches
 - [ ] RENT model automation (buyback + POL — see Proof of Rent and the Flywheel page)
 - [ ] Stock Pair corporate-action handling (see the warning above) — needed before Stock Pair uses real Stock Tokens
