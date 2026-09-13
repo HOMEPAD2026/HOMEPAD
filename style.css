@@ -1643,6 +1643,7 @@ nav a{display:inline-flex;align-items:center;}
 .adv-disclaimer-list li{margin-bottom:6px;}
 .adv-disclaimer-list b{color:var(--ink);}
 .adv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+#cn-stats{margin-top:32px;}
 .adv-explore-wrap, .adv-launch-wrap{margin-top:22px;}
 .adv-explore-list{display:flex;flex-direction:column;gap:8px;}
 .adv-launch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;}
