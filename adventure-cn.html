@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789306283">
+<link rel="stylesheet" href="style.css?v=1789308490">
 </head>
 <body>
 
@@ -63,18 +63,52 @@
   <div class="adv-spotlight-warning">
     <b>⚠ 风险提示：</b>以下代币由社区提交并展示，<b>未经 HOMEPAD 或 Pons 官方审核或认证</b>。展示位置不代表任何形式的推荐或背书。交易前请务必自行核实合约地址，并自行承担相应风险。
   </div>
-  <div class="adv-spotlight-card" id="adv-spotlight-card">
-    <div class="adv-spotlight-badge">精选 · 社区代币</div>
-    <div class="adv-spotlight-main">
-      <div class="adv-spotlight-name" id="spot-name">Chinese PONS</div>
-      <div class="adv-spotlight-symbol" id="spot-symbol">$橋</div>
-      <div class="adv-spotlight-ca" id="spot-ca">0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</div>
+  <div class="adv-spotlight-card">
+    <img class="adv-spotlight-img" src="images/qiao-mascot.jpg" alt="橋 mascot">
+    <div class="adv-spotlight-body">
+      <div class="adv-spotlight-badge">精选 · 社区代币 · 纯属爱好项目</div>
+      <div class="adv-spotlight-name">Chinese PONS <span class="adv-spotlight-symbol">$橋</span></div>
+      <div class="adv-spotlight-tagline">PONS = 拉丁语「桥」，橋 = 中文「桥」—— 同一个意思，配对 CNY（人民币）。</div>
+
+      <div class="adv-spotlight-ca-row">
+        <span class="adv-spotlight-ca" id="spot-ca">0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</span>
+        <button class="btn-copy" id="spot-copy-btn" onclick="copyCA(CONFIG.ADV_CN_FEATURED_TOKEN.address, 'spot-copy-btn')">复制</button>
+      </div>
+
+      <div class="adv-spotlight-stats">
+        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">市值 (MC)</span><span class="adv-spotlight-stat-value" id="spot-mcap">···</span></div>
+        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">24h 涨跌</span><span class="adv-spotlight-stat-value" id="spot-change">···</span></div>
+        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">已销毁 (Burned)</span><span class="adv-spotlight-stat-value" id="spot-burn">···</span></div>
+      </div>
+
+      <div class="adv-spotlight-actions">
+        <a class="btn btn-primary" id="spot-buy-link" href="#" target="_blank" rel="noopener">🅿️🇨🇳 购买 $橋</a>
+        <button class="btn" id="adv-spotlight-card-chart">查看图表 →</button>
+      </div>
     </div>
-    <div class="adv-spotlight-stats">
-      <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">市值 (MC)</span><span class="adv-spotlight-stat-value" id="spot-mcap">···</span></div>
-      <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">24h 涨跌</span><span class="adv-spotlight-stat-value" id="spot-change">···</span></div>
-    </div>
-    <div class="adv-spotlight-cta">点击查看图表与详情 →</div>
+  </div>
+
+  <!-- Story / lore, as posted by the creator -->
+  <div class="adv-spotlight-story">
+    <div class="adv-spotlight-story-head">关于 $橋</div>
+    <p>🇨🇳 Chinese crypto versions are trending everywhere right now.</p>
+    <p>So one thing surprised me: Where is the Chinese version of PONS?</p>
+    <p>Then I found <a href="https://pairex.market" target="_blank" rel="noopener">Pairex</a> (@pairexmarket), a new launchpad built around real-world currency pairs. You can launch a coin paired with currencies from around the world — including Chinese Yuan (CNY ¥).</p>
+    <p>That gave me a simple idea: What if there was a Chinese PONS, paired with CNY?</p>
+    <p>So, purely out of curiosity and for fun, I created: <b>橋 — Chinese PONS</b></p>
+    <p><b>Why 橋?</b> PONS comes from the Latin word for "bridge." 橋 (Qiáo) means "bridge" in Chinese. Same meaning. Different language. Different side of the world. PONS → Bridge → 橋</p>
+    <p>And pairing $橋 with CNY makes the concept even more interesting — a Chinese interpretation of PONS, denominated in Chinese currency. No complicated narrative. No need to force one.</p>
+    <p>It started with a simple question: "Why isn't there a Chinese PONS yet?" So I made one. 橋</p>
+    <p class="adv-spotlight-disclaimer-line">Unofficial. Not affiliated with Pons. Created for fun and experimentation.</p>
+    <hr>
+    <div class="adv-spotlight-story-head">🅿️🇨🇳 Let's build $橋 together.</div>
+    <p>Instead of fighting among ourselves, I think we should think bigger.</p>
+    <p>橋 (Chinese PONS) is paired with CNY — the Chinese Yuan. Let's push this unique concept together and introduce it to a much larger global audience.</p>
+    <p>The idea is simple: PONS = Bridge in Latin. 橋 = Bridge in Chinese. And now that bridge is paired with Chinese currency.</p>
+    <p>From my side as the dev, I want to make one commitment clear: the original ETH held by the dev wallet and the fees it receives will be used to buy $橋, and those purchased tokens will continue to be burned.</p>
+    <p>No hidden words. Everything can be verified onchain.</p>
+    <p>Let's stop thinking small and build the bridge together. I believe the global community will understand and love this concept once they discover it.</p>
+    <p><b>Let's take $橋 beyond China. Let's take it global. I'll do my part. I promise. 🅿️🇨🇳</b></p>
   </div>
 
   <div class="adv-stats" id="adv-stats">
@@ -150,13 +184,13 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789306283"></script>
-<script src="abis.js?v=1789306283"></script>
-<script src="pons-abi.js?v=1789306283"></script>
-<script src="app.js?v=1789306283"></script>
-<script src="wallet-appkit.js?v=1789306283"></script>
-<script src="launch-modal.js?v=1789306283"></script>
-<script src="footer.js?v=1789306283"></script>
-<script src="adventure-cn.js?v=1789306283"></script>
+<script src="config.js?v=1789308490"></script>
+<script src="abis.js?v=1789308490"></script>
+<script src="pons-abi.js?v=1789308490"></script>
+<script src="app.js?v=1789308490"></script>
+<script src="wallet-appkit.js?v=1789308490"></script>
+<script src="launch-modal.js?v=1789308490"></script>
+<script src="footer.js?v=1789308490"></script>
+<script src="adventure-cn.js?v=1789308490"></script>
 </body>
 </html>

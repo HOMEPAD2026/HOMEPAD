@@ -249,7 +249,8 @@ async function loadSpotlightToken() {
   const t = CONFIG.ADV_CN_FEATURED_TOKEN;
   if (!t) return;
   document.getElementById("spot-ca").textContent = t.address;
-  document.getElementById("adv-spotlight-card").addEventListener("click", openSpotlightModal);
+  document.getElementById("spot-buy-link").href = `https://pairex.market/c/${t.address.toLowerCase()}`;
+  document.getElementById("adv-spotlight-card-chart").addEventListener("click", openSpotlightModal);
   try {
     const stats = await fetchDexscreenerStats([t.address]);
     spotDex = stats.get(t.address.toLowerCase()) || null;
@@ -267,6 +268,29 @@ async function loadSpotlightToken() {
     document.getElementById("spot-mcap").textContent = "暂无数据";
     document.getElementById("spot-change").textContent = "暂无数据";
   }
+  loadSpotlightBurn(t.address).catch((err) => {
+    console.warn("spotlight burn read failed", err);
+    document.getElementById("spot-burn").textContent = "暂无数据";
+  });
+}
+
+/// Live burn read for the spotlight token — Transfer events into the
+/// standard dead address, summed against totalSupply. Not hardcoded: the
+/// creator's own post claims an ongoing buy-and-burn commitment
+/// ("everything can be verified onchain"), so this reads the real number
+/// instead of a snapshot someone typed in, and it stays accurate as more
+/// burns happen.
+async function loadSpotlightBurn(address) {
+  const el = document.getElementById("spot-burn");
+  const tok = tokenRead(address);
+  const fromBlock = await blockAtOrAfter(CONFIG.PONS_V2_LIVE_SINCE, "pons");
+  const [totalSupply, burnEvents] = await Promise.all([
+    withRetry(() => tok.totalSupply()),
+    withRetry(() => tok.queryFilter(tok.filters.Transfer(null, BURN_ADDRESS), fromBlock, "latest")),
+  ]);
+  const burned = burnEvents.reduce((sum, ev) => sum + ev.args.value, 0n);
+  const pct = totalSupply > 0n ? Number((burned * 1000000n) / totalSupply) / 10000 : 0;
+  el.textContent = `${fmtCompact(Number(ethers.formatUnits(burned, 18)))} (${pct.toFixed(4)}%)`;
 }
 
 function openSpotlightModal() {
