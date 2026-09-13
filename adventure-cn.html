@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pons · 橋 — HOMEPAD</title>
-<meta name="description" content="Browse live launches on Pons V2 on Robinhood Chain, and check out 橋 (Chinese PONS), a community-submitted token paired with CNY.">
-<meta property="og:title" content="Pons · 橋 — HOMEPAD">
-<meta property="og:description" content="Browse Pons V2 launches on Robinhood Chain, and launch your own once you're eligible.">
-<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<title>橋 — Chinese PONS — HOMEPAD</title>
+<meta name="description" content="橋 (Chinese PONS): the bridge that jumps. A CNY-paired meme with a tiny jumping game, live stats, and a burn counter — plus everything else being built on Pons V2.">
+<meta property="og:title" content="橋 — the bridge that jumps">
+<meta property="og:description" content="Chinese PONS, paired with CNY. Play 橋 Jump, check the burn, grab the CA.">
+<meta property="og:image" content="https://homepad.fun/images/qiao-hero.jpg">
 <meta property="og:url" content="https://homepad.fun/adventure-cn.html">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pons · 橋 — HOMEPAD">
-<meta name="twitter:description" content="Browse Pons V2 launches on Robinhood Chain, and launch your own once you're eligible.">
-<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<meta name="twitter:title" content="橋 — the bridge that jumps">
+<meta name="twitter:description" content="Chinese PONS, paired with CNY. Play 橋 Jump, check the burn, grab the CA.">
+<meta name="twitter:image" content="https://homepad.fun/images/qiao-hero.jpg">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789309293">
+<link rel="stylesheet" href="style.css?v=1789310278">
 </head>
-<body>
+<body class="qiao-body">
 
 <header>
   <div class="headbar">
@@ -43,88 +43,135 @@
   </div>
 </header>
 
-<main class="wrap adv-main adv-cn">
-  <div class="world-hero">
-    <span class="pixel eyebrow-chip alt">Pons V2 · third-party protocol</span>
-    <h1 class="pixel">pons · 橋.</h1>
-    <p class="lede">Browse live launches on <a href="https://www.ponsfamily.com/launchpad" target="_blank" rel="noopener">Pons V2</a> — a bonding-curve launchpad on Robinhood Chain — and launch your own once your wallet is eligible.</p>
-  </div>
+<main class="wrap adv-main adv-cn qiao-main">
 
-  <!-- Featured spotlight card: a single manually-set token, red theme -->
-  <div class="adv-spotlight-card">
-    <img class="adv-spotlight-img" src="images/qiao-logo.png" alt="橋 logo">
-    <div class="adv-spotlight-body">
-      <div class="adv-spotlight-badge">Featured · community token · just for fun</div>
-      <div class="adv-spotlight-name">Chinese PONS <span class="adv-spotlight-symbol">$橋</span></div>
-      <div class="adv-spotlight-tagline">PONS = Latin for "bridge." 橋 = Chinese for "bridge." Same meaning, paired with CNY.</div>
-
-      <div class="adv-spotlight-ca-row">
-        <span class="adv-spotlight-ca" id="spot-ca">0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</span>
-        <button class="btn-copy" id="spot-copy-btn" onclick="copyCA(CONFIG.ADV_CN_FEATURED_TOKEN.address, 'spot-copy-btn')">Copy</button>
-      </div>
-
-      <div class="adv-spotlight-stats">
-        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">Market cap</span><span class="adv-spotlight-stat-value" id="spot-mcap">···</span></div>
-        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">24h change</span><span class="adv-spotlight-stat-value" id="spot-change">···</span></div>
-        <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">Burned</span><span class="adv-spotlight-stat-value" id="spot-burn">···</span></div>
-      </div>
-
-      <div class="adv-spotlight-actions">
-        <a class="btn btn-primary" id="spot-buy-link" href="#" target="_blank" rel="noopener">🅿️🇨🇳 Buy $橋</a>
-        <button class="btn" id="adv-spotlight-card-chart">View chart →</button>
+  <!-- ===== HERO ===== -->
+  <div class="qiao-hero">
+    <div class="qiao-hero-art">
+      <img class="qiao-hero-img" src="images/qiao-hero.jpg" alt="橋">
+      <span class="qiao-float qiao-float-1">🏮</span>
+      <span class="qiao-float qiao-float-2">🧧</span>
+      <span class="qiao-float qiao-float-3">🐉</span>
+    </div>
+    <div class="qiao-hero-text">
+      <span class="pixel eyebrow-chip alt qiao-wobble">🅿️🇨🇳 unofficial · just for fun</span>
+      <h1 class="pixel qiao-title">橋.</h1>
+      <p class="qiao-sub">the bridge that jumps.</p>
+      <p class="lede">PONS means "bridge" in Latin. 橋 means "bridge" in Chinese. So we made a Chinese PONS, paired with CNY, and gave it glasses. That's the whole plan. There is no roadmap. There is a jumping game.</p>
+      <div class="qiao-hero-cta">
+        <a class="btn btn-primary qiao-btn-red" href="#qiao-play">🎮 play 橋 jump</a>
+        <a class="btn" href="#qiao-token">grab the CA ↓</a>
       </div>
     </div>
   </div>
 
-  <!-- Story / lore, as posted by the creator -->
-  <div class="adv-spotlight-story">
-    <div class="adv-spotlight-story-head">About $橋</div>
-    <p>🇨🇳 Chinese crypto versions are trending everywhere right now.</p>
-    <p>So one thing surprised me: Where is the Chinese version of PONS?</p>
-    <p>Then I found <a href="https://pairex.market" target="_blank" rel="noopener">Pairex</a> (@pairexmarket), a new launchpad built around real-world currency pairs. You can launch a coin paired with currencies from around the world — including Chinese Yuan (CNY ¥).</p>
-    <p>That gave me a simple idea: What if there was a Chinese PONS, paired with CNY?</p>
-    <p>So, purely out of curiosity and for fun, I created: <b>橋 — Chinese PONS</b></p>
-    <p><b>Why 橋?</b> PONS comes from the Latin word for "bridge." 橋 (Qiáo) means "bridge" in Chinese. Same meaning. Different language. Different side of the world. PONS → Bridge → 橋</p>
-    <p>And pairing $橋 with CNY makes the concept even more interesting — a Chinese interpretation of PONS, denominated in Chinese currency. No complicated narrative. No need to force one.</p>
-    <p>It started with a simple question: "Why isn't there a Chinese PONS yet?" So I made one. 橋</p>
-    <p class="adv-spotlight-disclaimer-line">Unofficial. Not affiliated with Pons. Created for fun and experimentation.</p>
-    <hr>
-    <div class="adv-spotlight-story-head">🅿️🇨🇳 Let's build $橋 together.</div>
-    <p>Instead of fighting among ourselves, I think we should think bigger.</p>
-    <p>橋 (Chinese PONS) is paired with CNY — the Chinese Yuan. Let's push this unique concept together and introduce it to a much larger global audience.</p>
-    <p>The idea is simple: PONS = Bridge in Latin. 橋 = Bridge in Chinese. And now that bridge is paired with Chinese currency.</p>
-    <p>From my side as the dev, I want to make one commitment clear: the original ETH held by the dev wallet and the fees it receives will be used to buy $橋, and those purchased tokens will continue to be burned.</p>
-    <p>No hidden words. Everything can be verified onchain.</p>
-    <p>Let's stop thinking small and build the bridge together. I believe the global community will understand and love this concept once they discover it.</p>
-    <p><b>Let's take $橋 beyond China. Let's take it global. I'll do my part. I promise. 🅿️🇨🇳</b></p>
-  </div>
-
-  <div class="adv-stats" id="adv-stats">
-    <div class="stat-card"><div class="stat-label">Launches tracked</div><div class="stat-value" id="adv-count">···</div></div>
-    <div class="stat-card"><div class="stat-label">On the curve</div><div class="stat-value" id="adv-live">···</div></div>
-    <div class="stat-card"><div class="stat-label">Graduated</div><div class="stat-value" id="adv-graduated">···</div></div>
-  </div>
-
-  <!-- Explore: read-only, works for everyone regardless of whitelist -->
-  <section class="adv-explore-wrap">
-    <div class="rent-section-head"><h3>Explore Pons V2</h3><span class="rent-section-count" id="adv-explore-count"></span></div>
-    <div class="adv-explore-controls">
-      <div class="adv-sort-group" id="adv-sort-group">
-        <span class="filter-chip active" data-sort="newest">Newest</span>
-        <span class="filter-chip" data-sort="mcap">Market cap</span>
-      </div>
-      <div class="adv-period-group" id="adv-period-group">
-        <span class="filter-chip active" data-period="all">All</span>
-        <span class="filter-chip" data-period="24h">24h</span>
-        <span class="filter-chip" data-period="7d">7d</span>
-      </div>
+  <!-- ===== GAME ===== -->
+  <section class="qiao-section" id="qiao-play">
+    <div class="qiao-section-head">
+      <h2 class="pixel">橋 JUMP</h2>
+      <span class="qiao-section-sub">cross the bridge. don't drop a 🧧.</span>
     </div>
-    <div class="adv-explore-list" id="adv-explore-list"><div class="empty-state">Loading launches…</div></div>
+    <div class="qiao-game-wrap">
+      <canvas id="qiao-game" width="720" height="260"></canvas>
+    </div>
+    <p class="qiao-game-hint">tap / click / <kbd>space</kbd> to jump · it gets faster · your high score sticks around</p>
   </section>
 
-  <!-- Launch: gated on a live canLaunch() check -->
-  <section class="adv-launch-wrap">
-    <div class="rent-section-head"><h3>Launch on Pons V2</h3></div>
+  <!-- ===== TOKEN CARD ===== -->
+  <section class="qiao-section" id="qiao-token">
+    <div class="qiao-section-head">
+      <h2 class="pixel">the coin</h2>
+      <span class="qiao-section-sub">CA, chart, burn. the boring important stuff, made less boring.</span>
+    </div>
+    <div class="adv-spotlight-card">
+      <img class="adv-spotlight-img" src="images/qiao-logo.png" alt="橋 logo">
+      <div class="adv-spotlight-body">
+        <div class="adv-spotlight-badge">community token · paired with CNY ¥</div>
+        <div class="adv-spotlight-name">Chinese PONS <span class="adv-spotlight-symbol">$橋</span></div>
+        <div class="adv-spotlight-tagline">a bridge, denominated in yuan. same word, other side of the world.</div>
+
+        <div class="adv-spotlight-ca-row">
+          <span class="adv-spotlight-ca" id="spot-ca">0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</span>
+          <button class="btn-copy" id="spot-copy-btn" onclick="copyCA(CONFIG.ADV_CN_FEATURED_TOKEN.address, 'spot-copy-btn')">copy</button>
+        </div>
+
+        <div class="adv-spotlight-stats">
+          <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">market cap</span><span class="adv-spotlight-stat-value" id="spot-mcap">···</span></div>
+          <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">24h</span><span class="adv-spotlight-stat-value" id="spot-change">···</span></div>
+          <div class="adv-spotlight-stat"><span class="adv-spotlight-stat-label">🔥 burned</span><span class="adv-spotlight-stat-value" id="spot-burn">···</span></div>
+        </div>
+
+        <div class="adv-spotlight-actions">
+          <a class="btn btn-primary" id="spot-buy-link" href="#" target="_blank" rel="noopener">🅿️🇨🇳 buy $橋</a>
+          <button class="btn" id="adv-spotlight-card-chart">chart 📈</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STORY ===== -->
+  <section class="qiao-section">
+    <div class="qiao-section-head">
+      <h2 class="pixel">why though</h2>
+      <span class="qiao-section-sub">the creator's own words, unedited.</span>
+    </div>
+    <div class="adv-spotlight-story">
+      <p>🇨🇳 Chinese crypto versions are trending everywhere right now.</p>
+      <p>So one thing surprised me: Where is the Chinese version of PONS?</p>
+      <p>Then I found <a href="https://pairex.market" target="_blank" rel="noopener">Pairex</a> (@pairexmarket), a new launchpad built around real-world currency pairs. You can launch a coin paired with currencies from around the world — including Chinese Yuan (CNY ¥).</p>
+      <p>That gave me a simple idea: What if there was a Chinese PONS, paired with CNY?</p>
+      <p>So, purely out of curiosity and for fun, I created: <b>橋 — Chinese PONS</b></p>
+      <p><b>Why 橋?</b> PONS comes from the Latin word for "bridge." 橋 (Qiáo) means "bridge" in Chinese. Same meaning. Different language. Different side of the world. PONS → Bridge → 橋</p>
+      <p>And pairing $橋 with CNY makes the concept even more interesting — a Chinese interpretation of PONS, denominated in Chinese currency. No complicated narrative. No need to force one.</p>
+      <p>It started with a simple question: "Why isn't there a Chinese PONS yet?" So I made one. 橋</p>
+      <p class="adv-spotlight-disclaimer-line">Unofficial. Not affiliated with Pons. Created for fun and experimentation.</p>
+      <hr>
+      <div class="adv-spotlight-story-head">🅿️🇨🇳 Let's build $橋 together.</div>
+      <p>Instead of fighting among ourselves, I think we should think bigger.</p>
+      <p>橋 (Chinese PONS) is paired with CNY — the Chinese Yuan. Let's push this unique concept together and introduce it to a much larger global audience.</p>
+      <p>The idea is simple: PONS = Bridge in Latin. 橋 = Bridge in Chinese. And now that bridge is paired with Chinese currency.</p>
+      <p>From my side as the dev, I want to make one commitment clear: the original ETH held by the dev wallet and the fees it receives will be used to buy $橋, and those purchased tokens will continue to be burned.</p>
+      <p>No hidden words. Everything can be verified onchain.</p>
+      <p>Let's stop thinking small and build the bridge together. I believe the global community will understand and love this concept once they discover it.</p>
+      <p><b>Let's take $橋 beyond China. Let's take it global. I'll do my part. I promise. 🅿️🇨🇳</b></p>
+    </div>
+  </section>
+
+  <!-- ===== PONS V2 (the rest of the neighborhood) ===== -->
+  <section class="qiao-section qiao-section-muted">
+    <div class="qiao-section-head">
+      <h2 class="pixel">other bridges</h2>
+      <span class="qiao-section-sub">everything else launching on Pons V2 right now, read live from the chain.</span>
+    </div>
+
+    <div class="adv-stats" id="adv-stats">
+      <div class="stat-card"><div class="stat-label">Launches tracked</div><div class="stat-value" id="adv-count">···</div></div>
+      <div class="stat-card"><div class="stat-label">On the curve</div><div class="stat-value" id="adv-live">···</div></div>
+      <div class="stat-card"><div class="stat-label">Graduated</div><div class="stat-value" id="adv-graduated">···</div></div>
+    </div>
+
+    <div class="adv-explore-wrap">
+      <div class="adv-explore-controls">
+        <div class="adv-sort-group" id="adv-sort-group">
+          <span class="filter-chip active" data-sort="newest">Newest</span>
+          <span class="filter-chip" data-sort="mcap">Market cap</span>
+        </div>
+        <div class="adv-period-group" id="adv-period-group">
+          <span class="filter-chip active" data-period="all">All</span>
+          <span class="filter-chip" data-period="24h">24h</span>
+          <span class="filter-chip" data-period="7d">7d</span>
+        </div>
+        <span class="rent-section-count" id="adv-explore-count"></span>
+      </div>
+      <div class="adv-explore-list" id="adv-explore-list"><div class="empty-state">Loading launches…</div></div>
+    </div>
+  </section>
+
+  <section class="qiao-section qiao-section-muted">
+    <div class="qiao-section-head">
+      <h2 class="pixel">build your own bridge</h2>
+      <span class="qiao-section-sub">launch on Pons V2 — if your wallet's on the list.</span>
+    </div>
     <div id="adv-launch-gate"><div class="empty-state">Connect your wallet to check eligibility.</div></div>
     <form id="adv-launch-form" class="adv-launch-form" style="display:none">
       <label>Name<input id="adv-name" maxlength="40" placeholder="e.g. Example Token" required></label>
@@ -145,6 +192,8 @@
       <button type="submit" class="btn btn-primary" id="adv-launch-submit">Launch on Pons V2</button>
     </form>
   </section>
+
+  <p class="qiao-footer-note">橋 is a community meme paired with CNY on Pairex. Pons V2 is a third-party protocol, not HOMEPAD's. None of this is financial advice — it's a plush toy in a hat.</p>
 </main>
 
 <!-- Spotlight token detail modal -->
@@ -156,7 +205,7 @@
         <div class="spot-modal-name" id="spot-modal-name">Chinese PONS</div>
         <div class="spot-modal-symbol" id="spot-modal-symbol">$橋</div>
       </div>
-      <a class="btn-mini" id="spot-modal-ca-link" href="#" target="_blank" rel="noopener">View contract ↗</a>
+      <a class="btn-mini" id="spot-modal-ca-link" href="#" target="_blank" rel="noopener">contract ↗</a>
     </div>
     <div class="spot-modal-stats">
       <div class="spot-modal-stat"><span class="stat-label">Price</span><span class="stat-value" id="spot-modal-price">···</span></div>
@@ -172,13 +221,14 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789309293"></script>
-<script src="abis.js?v=1789309293"></script>
-<script src="pons-abi.js?v=1789309293"></script>
-<script src="app.js?v=1789309293"></script>
-<script src="wallet-appkit.js?v=1789309293"></script>
-<script src="launch-modal.js?v=1789309293"></script>
-<script src="footer.js?v=1789309293"></script>
-<script src="adventure-cn.js?v=1789309293"></script>
+<script src="config.js?v=1789310278"></script>
+<script src="abis.js?v=1789310278"></script>
+<script src="pons-abi.js?v=1789310278"></script>
+<script src="app.js?v=1789310278"></script>
+<script src="wallet-appkit.js?v=1789310278"></script>
+<script src="launch-modal.js?v=1789310278"></script>
+<script src="footer.js?v=1789310278"></script>
+<script src="adventure-cn.js?v=1789310278"></script>
+<script src="qiao-game.js?v=1789310278"></script>
 </body>
 </html>
