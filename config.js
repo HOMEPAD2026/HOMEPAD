@@ -51,10 +51,20 @@ const CONFIG = {
   // CORS doesn't apply, and also caches the response at Vercel's edge.
   RH_STOCK_ASSETS_API: "/api/rh-stock-assets",
   CN_STOCK_TICKERS: [
+    // Major Nasdaq/NYSE-listed Chinese ADRs
     "BABA", "PDD", "JD", "BIDU", "NTES", "NIO", "BEKE", "ZTO", "HTHT", "MNSO",
     "IQ", "VIPS", "WB", "ATHM", "LI", "XPEV", "BILI", "TME", "TCOM", "YMM",
     "KC", "GDS", "ATAT", "EDU", "TAL", "JKS", "FUTU", "TIGR", "YUMC", "ZLAB",
     "HUYA", "DOYU", "QFIN", "LX", "TUYA", "DADA", "RLX", "GOTU", "MOMO",
+    // OTC-traded Chinese ADRs (5-letter "Y" tickers) — added after a
+    // competing site (chinapad.fun) showed these as tradable; every one
+    // is still just a candidate checked against Robinhood's live registry
+    // like the rest of this list, none of it assumed present
+    "TCEHY", "DIDIY", "KUASF", "LNVGY", "PNGAY", "IDCBY", "CICHY", "ACGBY",
+    "BACHY", "CIHKY", "PCCYF", "YZCAY", "ANPDY", "WUXAY", "WXXWY",
+    // Smaller-cap Nasdaq-listed Chinese names
+    "PONY", "WRD", "LOT", "NIU", "KNDI", "CAAS", "UCAR", "NAAS", "EH", "CBAT",
+    "BGNE", "DQ", "CAN", "API", "MLCO", "NOAH", "CANG", "UXIN", "RERE",
   ],
   PAIRED_HOOK_ADDRESS: "0xB85aA5549848e2805F9c1c30d86f59c9F32F8044", // mainnet
   PAIRED_SWAP_ROUTER_ADDRESS: "0x1fB52768E4DDD54E18327d13E87E4E2cf5F8d592", // mainnet
