@@ -15,6 +15,10 @@
     {
       "source": "/cnPONS/analytics",
       "destination": "/cnPONS-analytics.html"
+    },
+    {
+      "source": "/bigpad",
+      "destination": "/bigpad.html"
     }
   ]
 }

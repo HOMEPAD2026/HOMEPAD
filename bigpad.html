@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BigPad — HOMEPAD</title>
+<meta name="description" content="BigPad: crowdfund a coin together. Bid ETH, the top bidder leads, every bidder votes on the coin's identity, funds vest over 5 days with an automatic clawback if the project is abandoned.">
+<meta property="og:title" content="BigPad — HOMEPAD">
+<meta property="og:description" content="Crowdfund a coin together. Bid, vote, launch — built to survive being abandoned.">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:url" content="https://homepad.fun/bigpad.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BigPad — HOMEPAD">
+<meta name="twitter:description" content="Crowdfund a coin together. Bid, vote, launch — built to survive being abandoned.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789378580">
+</head>
+<body class="bigpad-page">
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">🏡 HOMEPAD <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <div class="nav-dropdown" id="nav-more">
+        <button type="button" class="nav-more-trigger nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">More <span class="nav-caret">▾</span></button>
+        <div class="nav-more-menu">
+          <a href="world.html">World</a>
+          <a href="rent.html">Rent</a>
+          <a href="adventure.html">Adventure</a>
+          <a href="adventure-cn.html">Pons · 橋</a>
+          <a href="cnPONS.html">橋 🅿️ONS 🇨🇳</a>
+          <a href="bigpad.html" class="nav-active">BigPad</a>
+        </div>
+      </div>
+    </nav>
+    <div id="wallet-slot"></div>
+  </div>
+</header>
+
+<div class="bp-shell">
+  <!-- ============ Left sidebar ============ -->
+  <nav class="bp-sidebar" id="bp-sidebar">
+    <div class="bp-sidebar-head">
+      <div class="bp-logo">BigPad</div>
+      <div class="bp-tagline">One project. Everyone's money. Nobody's rug.</div>
+    </div>
+    <button type="button" class="bp-nav-item active" data-tab="overview">Overview</button>
+    <button type="button" class="bp-nav-item" data-tab="how">How it works</button>
+    <button type="button" class="bp-nav-item" data-tab="economics">Economics</button>
+    <button type="button" class="bp-nav-item" data-tab="safety">Safety design</button>
+    <button type="button" class="bp-nav-item" data-tab="faq">FAQ</button>
+    <div class="bp-sidebar-status">
+      <span class="bp-status-dot"></span> Not live yet — fund-pooling contract is in design/review
+    </div>
+  </nav>
+
+  <!-- ============ Right content ============ -->
+  <main class="bp-content">
+
+    <section class="bp-panel active" id="bp-panel-overview">
+      <h1>Crowdfund a coin together.</h1>
+      <p class="bp-lede">One project. A 3-day ETH raise decides who leads it and how it's split. Every contributor votes on what it becomes. Built specifically to survive the thing that kills most crowdfunded launches: the leader walking away.</p>
+
+      <div class="bp-preview-card">
+        <div class="bp-preview-head">
+          <span class="bp-preview-badge">PREVIEW — not a live round</span>
+          <span class="bp-preview-timer">2d 14h 22m left</span>
+        </div>
+        <div class="bp-preview-body">
+          <div class="bp-preview-stat"><span>Total raised</span><strong>—</strong></div>
+          <div class="bp-preview-stat"><span>Bidders</span><strong>—</strong></div>
+          <div class="bp-preview-stat"><span>Current leader bid</span><strong>—</strong></div>
+        </div>
+        <p class="bp-preview-note">This is what a round will look like once the fund-pooling contract is live. No round is open yet.</p>
+      </div>
+
+      <div class="bp-flow">
+        <div class="bp-flow-step"><span class="bp-flow-n">1</span><div><strong>Bid</strong><p>Send ETH during the 3-day raise. Your share of the pool is tracked exactly.</p></div></div>
+        <div class="bp-flow-step"><span class="bp-flow-n">2</span><div><strong>Lead or vote</strong><p>Highest bidder leads. Every bidder votes on name, ticker, logo, roadmap, launch date.</p></div></div>
+        <div class="bp-flow-step"><span class="bp-flow-n">3</span><div><strong>Launch</strong><p>Raise ends: 80% of ETH becomes LP liquidity immediately — no snipers, no bots racing an empty pool.</p></div></div>
+        <div class="bp-flow-step"><span class="bp-flow-n">4</span><div><strong>Deliver or lose it</strong><p>Leader has 12h to publish the essentials. Miss it, and leadership — and the payout — passes to the next-highest bidder.</p></div></div>
+      </div>
+    </section>
+
+    <section class="bp-panel" id="bp-panel-how">
+      <h1>How it works</h1>
+
+      <h3>The raise</h3>
+      <p>A single project raises ETH for 3 days. Every bid is recorded with the bidder's address and amount — this is what determines both voting weight and the final payout split.</p>
+
+      <h3>Leadership</h3>
+      <p>Whoever bid the most becomes the project lead. Every bidder — not just the lead — gets a vote, weighted by their share of the total raise, on the project's actual identity: coin name, ticker, logo, roadmap, and launch date.</p>
+
+      <h3>Launch</h3>
+      <p>When the raise ends, the pooled ETH splits three ways: <strong>80%</strong> becomes real LP liquidity immediately (not a bonding curve that snipers can race from zero), <strong>5%</strong> goes to the BigPad platform, and <strong>15%</strong> is reserved for the confirmed lead. Dexscreener listing and a 100x boost are paid for by the platform, not the lead.</p>
+
+      <h3>The 12-hour checkpoint</h3>
+      <p>The lead has 12 hours after the raise ends to publish the project's confirmed details plus an official X account and at least one more community channel (X Community, Telegram, or Discord — a website is optional but encouraged). Miss it, and leadership passes to the second-highest bidder, who gets the same 12 hours.</p>
+
+      <h3>Getting paid</h3>
+      <p>The confirmed lead's 15% doesn't land all at once. It vests <strong>3% per day over 5 days</strong>. If the lead stops running the project, whatever hasn't vested yet returns to the original bidders, split proportionally to what they put in.</p>
+    </section>
+
+    <section class="bp-panel" id="bp-panel-economics">
+      <h1>Economics</h1>
+      <div class="bp-split-bars">
+        <div class="bp-split-row"><span>LP liquidity</span><div class="bp-split-track"><div class="bp-split-fill" style="width:80%"></div></div><strong>80%</strong></div>
+        <div class="bp-split-row"><span>Lead's payout (vested)</span><div class="bp-split-track"><div class="bp-split-fill alt" style="width:15%"></div></div><strong>15%</strong></div>
+        <div class="bp-split-row"><span>BigPad platform</span><div class="bp-split-track"><div class="bp-split-fill alt2" style="width:5%"></div></div><strong>5%</strong></div>
+      </div>
+      <p class="bp-mech-note">The platform's 5%, plus BigPad's own trading fees once projects are live, fund BigPad's own buyback-and-burn and promotion — the same loop, project after project, rather than a one-off.</p>
+      <p class="bp-mech-note">Holder benefits: participation in a project with real liquidity from block one (not a race against bots on an empty curve), plus a planned $HOME synergy — existing HOMEPAD holders get an advantage in BigPad, details to come.</p>
+    </section>
+
+    <section class="bp-panel" id="bp-panel-safety">
+      <h1>Safety design</h1>
+      <p class="bp-lede">This page is honest about what's still being worked out. Two things had to change before this was safe to build at all.</p>
+
+      <h3>Problem: instant lump-sum payout</h3>
+      <p>The original version paid 15% of the entire raise to the lead's wallet the moment the 12-hour checklist was met — an X account and one social channel. That's a low bar for a large, immediate payout: someone could self-fund a majority bid, clear the checklist in minutes, and walk away with most of their own contribution back plus a share of everyone else's.</p>
+      <p><strong>Fix:</strong> the 15% vests 3% per day over 5 days instead of paying out immediately.</p>
+
+      <h3>Problem: what happens if the lead vests some, then disappears?</h3>
+      <p>Vesting alone doesn't fully close the gap — someone could still collect a few days' worth of tranches and stop. The remaining, unvested amount needs a defined, automatic path back to bidders rather than sitting stuck or depending on a human deciding "this looks abandoned."</p>
+      <p><strong>Current proposal:</strong> the lead must check in on-chain periodically (roughly every 48 hours). Miss a check-in, and the project is automatically marked abandoned — no admin, no vote, no judgment call — and everything left unvested returns to the original bidders, split proportionally to what they put in.</p>
+
+      <h3>What's still not built</h3>
+      <p>The fund-pooling, auction, voting, vesting, and clawback logic described on this page is a brand-new smart contract — not a reuse of HOMEPAD's existing, already-deployed factories the way most of this site works. Code that pools money from multiple people carries real risk if it has a bug. It is not going live with real funds without a real security review first.</p>
+    </section>
+
+    <section class="bp-panel" id="bp-panel-faq">
+      <h1>FAQ</h1>
+      <div class="bp-faq-item"><h4>Is this live yet?</h4><p>No. Everything on this page describes the design. No round is open and no contract is deployed with real funds yet.</p></div>
+      <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — every bidder gets a vote on the project's identity, and if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
+      <div class="bp-faq-item"><h4>Can the lead just take the money and never build anything?</h4><p>That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.</p></div>
+      <div class="bp-faq-item"><h4>Why ETH and not a Stock Token or $HOME?</h4><p>Not decided yet. ETH is the starting design; other quote assets may follow once the core mechanism is live and tested.</p></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789378580"></script>
+<script src="abis.js?v=1789378580"></script>
+<script src="app.js?v=1789378580"></script>
+<script src="wallet-appkit.js?v=1789378580"></script>
+<script src="launch-modal.js?v=1789378580"></script>
+<script src="footer.js?v=1789378580"></script>
+<script src="bigpad.js?v=1789378580"></script>
+</body>
+</html>
