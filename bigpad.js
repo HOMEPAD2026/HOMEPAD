@@ -168,7 +168,7 @@ async function refreshBigpadStats() {
   }
 
   const lengthEl = document.getElementById("bp-stat-length");
-  if (lengthEl) lengthEl.textContent = new Date(_bigpadDeadline * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (lengthEl) lengthEl.textContent = new Date(_bigpadDeadline * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const btn = document.getElementById("bp-contribute-btn");
   const row = document.getElementById("bp-contribute-row");
