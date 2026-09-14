@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789349277">
+<link rel="stylesheet" href="style.css?v=1789351154">
 </head>
 <body class="cnpons-page">
 
@@ -53,9 +53,9 @@
 <!-- ============ Sub-nav: Explore / Forum / Analytics ============ -->
 <div class="cn-subnav-wrap">
   <div class="wrap cn-subnav">
-    <a href="cnPONS.html">Explore</a>
-    <button type="button" id="cn-subnav-forum">Forum <span class="cn-soon-tag">soon</span></button>
-    <a href="cnPONS-analytics.html" class="active">Analytics</a>
+    <a href="cnPONS.html" data-i18n="subnavExplore">Explore</a>
+    <button type="button" id="cn-subnav-forum"><span data-i18n="subnavForum">Forum</span> <span class="cn-soon-tag" data-i18n="soonTag">soon</span></button>
+    <a href="cnPONS-analytics.html" class="active" data-i18n="subnavAnalytics">Analytics</a>
   </div>
 </div>
 
@@ -63,34 +63,34 @@
 <div id="cn-soon-modal" class="modal-overlay hidden">
   <div class="cn-liquidity-modal-box">
     <div class="cn-liquidity-modal-head" id="cn-soon-modal-head">Coming soon</div>
-    <p>This isn't live yet — still being built. Check back soon.</p>
+    <p data-i18n="soonBody">This isn't live yet — still being built. Check back soon.</p>
     <div class="cn-liquidity-modal-actions">
-      <button type="button" class="btn btn-cute btn-primary" id="cn-soon-modal-close">Got it</button>
+      <button type="button" class="btn btn-cute btn-primary" id="cn-soon-modal-close" data-i18n="soonClose">Got it</button>
     </div>
   </div>
 </div>
 
 <main class="wrap adv-main cn-analytics-main">
   <div class="cn-analytics-head">
-    <h1>Analytics</h1>
-    <p class="lede">Onchain numbers behind $橋 and the cnPONS Chinese-stock launchpad — read directly from Robinhood Chain and Robinhood's own live registry, not typed in by hand.</p>
+    <h1 data-i18n="pageTitle">Analytics</h1>
+    <p class="lede" data-i18n-html="pageLede">Onchain numbers behind $橋 and the cnPONS Chinese-stock launchpad — read directly from Robinhood Chain and Robinhood's own live registry, not typed in by hand.</p>
   </div>
 
   <!-- ============ $橋 section ============ -->
   <section class="cn-analytics-section">
-    <div class="rent-section-head"><h3>🏮 $橋 (Chinese PONS)</h3></div>
+    <div class="rent-section-head"><h3 data-i18n="qiaoSectionHead">🏮 $橋 (Chinese PONS)</h3></div>
 
     <div class="cn-analytics-grid">
       <div class="cn-mech-card">
-        <div class="cn-mech-title">🔥 Burn history</div>
-        <div id="qiao-burn-summary" class="cn-analytics-summary">Loading…</div>
+        <div class="cn-mech-title" data-i18n="burnTitle">🔥 Burn history</div>
+        <div id="qiao-burn-summary" class="cn-analytics-summary" data-i18n="loading">Loading…</div>
         <div id="qiao-burn-chart" class="cn-bar-chart"></div>
         <div class="cn-chart-legend" id="qiao-burn-legend"></div>
       </div>
 
       <div class="cn-mech-card">
-        <div class="cn-mech-title">👥 Holder concentration</div>
-        <div id="qiao-holder-summary" class="cn-analytics-summary">Loading…</div>
+        <div class="cn-mech-title" data-i18n="holderTitle">👥 Holder concentration</div>
+        <div id="qiao-holder-summary" class="cn-analytics-summary" data-i18n="loading">Loading…</div>
         <div id="qiao-holder-list" class="cn-holder-list"></div>
       </div>
     </div>
@@ -98,36 +98,36 @@
 
   <!-- ============ Launchpad-wide section ============ -->
   <section class="cn-analytics-section">
-    <div class="rent-section-head"><h3>📊 cnPONS launchpad</h3></div>
-    <p class="rent-section-note">Aggregated across every launch this page has found paired against a tracked Chinese stock.</p>
+    <div class="rent-section-head"><h3 data-i18n="launchpadSectionHead">📊 cnPONS launchpad</h3></div>
+    <p class="rent-section-note" data-i18n="launchpadNote">Aggregated across every launch this page has found paired against a tracked Chinese stock.</p>
 
     <div class="cn-analytics-grid">
       <div class="cn-mech-card">
-        <div class="cn-mech-title">🏆 Stock pairing leaderboard</div>
-        <div id="cn-stock-leaderboard" class="cn-leaderboard">Loading…</div>
+        <div class="cn-mech-title" data-i18n="leaderboardTitle">🏆 Stock pairing leaderboard</div>
+        <div id="cn-stock-leaderboard" class="cn-leaderboard" data-i18n="loading">Loading…</div>
       </div>
 
       <div class="cn-mech-card">
-        <div class="cn-mech-title">⚖️ Paired coins vs. the Stock Token itself</div>
-        <p class="cn-mech-note">Combined market cap of coins launched against a stock, compared to that Stock Token's own market cap on Robinhood Chain.</p>
-        <div id="cn-mcap-compare" class="cn-leaderboard">Loading…</div>
+        <div class="cn-mech-title" data-i18n="compareTitle">⚖️ Paired coins vs. the Stock Token itself</div>
+        <p class="cn-mech-note" data-i18n="compareNote">Combined market cap of coins launched against a stock, compared to that Stock Token's own market cap on Robinhood Chain.</p>
+        <div id="cn-mcap-compare" class="cn-leaderboard" data-i18n="loading">Loading…</div>
       </div>
 
       <div class="cn-mech-card">
-        <div class="cn-mech-title">💧 Liquidity health by stock</div>
-        <p class="cn-mech-note">From the same check behind the low-liquidity warning on the launch form — not a separate opinion.</p>
-        <div id="cn-liquidity-health" class="cn-leaderboard">Loading…</div>
+        <div class="cn-mech-title" data-i18n="liquidityTitle">💧 Liquidity health by stock</div>
+        <p class="cn-mech-note" data-i18n="liquidityNote">From the same check behind the low-liquidity warning on the launch form — not a separate opinion.</p>
+        <div id="cn-liquidity-health" class="cn-leaderboard" data-i18n="loading">Loading…</div>
       </div>
 
       <div class="cn-mech-card">
-        <div class="cn-mech-title">⚠️ Stocks with an active price adjustment</div>
-        <p class="cn-mech-note">Stocks currently carrying a non-1.0 <code>currentMultiplier</code> — meaning a real corporate action has already happened at least once. No history of when, only that one is in effect now.</p>
-        <div id="cn-multiplier-flags" class="cn-leaderboard">Loading…</div>
+        <div class="cn-mech-title" data-i18n="multiplierTitle">⚠️ Stocks with an active price adjustment</div>
+        <p class="cn-mech-note" data-i18n-html="multiplierNote">Stocks currently carrying a non-1.0 <code>currentMultiplier</code> — meaning a real corporate action has already happened at least once. No history of when, only that one is in effect now.</p>
+        <div id="cn-multiplier-flags" class="cn-leaderboard" data-i18n="loading">Loading…</div>
       </div>
 
       <div class="cn-mech-card">
-        <div class="cn-mech-title">🔁 Repeat launchers</div>
-        <div id="cn-repeat-launchers" class="cn-analytics-summary">Loading…</div>
+        <div class="cn-mech-title" data-i18n="repeatTitle">🔁 Repeat launchers</div>
+        <div id="cn-repeat-launchers" class="cn-analytics-summary" data-i18n="loading">Loading…</div>
       </div>
     </div>
   </section>
@@ -136,12 +136,12 @@
 <div id="footer-slot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789349277"></script>
-<script src="abis.js?v=1789349277"></script>
-<script src="app.js?v=1789349277"></script>
-<script src="wallet-appkit.js?v=1789349277"></script>
-<script src="launch-modal.js?v=1789349277"></script>
-<script src="footer.js?v=1789349277"></script>
-<script src="cnPONS-analytics.js?v=1789349277"></script>
+<script src="config.js?v=1789351154"></script>
+<script src="abis.js?v=1789351154"></script>
+<script src="app.js?v=1789351154"></script>
+<script src="wallet-appkit.js?v=1789351154"></script>
+<script src="launch-modal.js?v=1789351154"></script>
+<script src="footer.js?v=1789351154"></script>
+<script src="cnPONS-analytics.js?v=1789351154"></script>
 </body>
 </html>

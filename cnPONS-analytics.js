@@ -12,23 +12,124 @@
 // generic helpers from app.js (withRetry, blockAtOrAfter, tokenRead,
 // fetchDexscreenerStats, fmtCompact, short).
 //
-// Scope note: this page is English-only for now — the language toggle in
-// the header just switches its own active state, it doesn't translate
-// anything yet. Getting the analytics logic itself right took priority;
-// happy to add full i18n here the same way cnPONS.html has it, on request.
+// Scope note: bilingual (EN/中文), same data-i18n pattern as cnPONS.js —
+// including the dynamic summary sentences below, not just static markup,
+// since the set here is small and fixed-shape enough to be worth it.
+// Shares its language preference with cnPONS.html via the same
+// localStorage key (homepad.cnLang).
 
 const QIAO_ADDRESS = CONFIG.ADV_CN_FEATURED_TOKEN.address;
 const HOLDER_DISPLAY_COUNT = 10;
 const MAX_TRANSFER_EVENTS = 20000; // safety cap — see loadQiaoHolders()
 
-document.addEventListener("DOMContentLoaded", () => {
+// ============================================================
+// EN / 中文 — static copy + the dynamic summary sentences below (unlike
+// cnPONS.html, which left dynamic strings English-only, this page
+// translates those too since the set here is small and fixed-shape).
+// Subnav/modal keys match cnPONS.js's own dictionary values for
+// consistency — duplicated rather than shared, since these are two
+// separate JS files with no module system between them.
+// ============================================================
+const CN_A_I18N = {
+  en: {
+    subnavExplore: "Explore", subnavForum: "Forum", subnavAnalytics: "Analytics", soonTag: "soon",
+    soonBody: "This isn't live yet — still being built. Check back soon.", soonClose: "Got it",
+    pageTitle: "Analytics",
+    pageLede: `Onchain numbers behind $橋 and the cnPONS Chinese-stock launchpad — read directly from Robinhood Chain and Robinhood's own live registry, not typed in by hand.`,
+    qiaoSectionHead: "🏮 $橋 (Chinese PONS)",
+    burnTitle: "🔥 Burn history", holderTitle: "👥 Holder concentration",
+    loading: "Loading…",
+    launchpadSectionHead: "📊 cnPONS launchpad",
+    launchpadNote: "Aggregated across every launch this page has found paired against a tracked Chinese stock.",
+    leaderboardTitle: "🏆 Stock pairing leaderboard",
+    compareTitle: "⚖️ Paired coins vs. the Stock Token itself",
+    compareNote: "Combined market cap of coins launched against a stock, compared to that Stock Token's own market cap on Robinhood Chain.",
+    liquidityTitle: "💧 Liquidity health by stock",
+    liquidityNote: "From the same check behind the low-liquidity warning on the launch form — not a separate opinion.",
+    multiplierTitle: "⚠️ Stocks with an active price adjustment",
+    multiplierNote: `Stocks currently carrying a non-1.0 <code>currentMultiplier</code> — meaning a real corporate action has already happened at least once. No history of when, only that one is in effect now.`,
+    repeatTitle: "🔁 Repeat launchers",
+    noBurns: "No burns yet.", noLaunches: "No launches yet.",
+    weekly: "weekly buckets", daily: "daily buckets",
+    burnedTotal: (amt, pct, n) => `<strong>${amt}</strong> burned total (${pct}% of supply) across ${n} burn transaction${n === 1 ? "" : "s"}.`,
+    burnedZero: (n) => `<strong>${n}</strong> burned so far.`,
+    holderSummary: (n, top, pct) => `<strong>${n}</strong> current holders. Top ${top} hold <strong>${pct}%</strong> of supply.`,
+    holderTooMany: (total, cap) => `This token has ${total} transfers — too many to reconstruct holder balances reliably client-side (capped at ${cap}).`,
+    noDexData: "No Dexscreener data for either side yet.",
+    coinsVsStock: (coins, stock) => `coins: ${coins} · stock token itself: ${stock}`,
+    notIndexed: "not indexed",
+    healthHigh: "Real liquidity", healthLow: "Thin / intermittent", healthNone: "No real trading found",
+    noAdjustments: "None of the tracked stocks currently show an adjustment.",
+    nothingYet: "Nothing to show yet.",
+    repeatSummary: (unique, repeatN, repeatLaunches, total, pct) =>
+      `<strong>${unique}</strong> unique launcher${unique === 1 ? "" : "s"} so far. <strong>${repeatN}</strong> of them launched more than once, accounting for <strong>${repeatLaunches}</strong> of ${total} total launches (${pct}%).`,
+    launch: "launch", launches: "launches",
+  },
+  zh: {
+    subnavExplore: "探索", subnavForum: "论坛", subnavAnalytics: "数据分析", soonTag: "即将上线",
+    soonBody: "还没上线，仍在开发中，敬请期待。", soonClose: "知道了",
+    pageTitle: "数据分析",
+    pageLede: `$橋 与 cnPONS 中国股票发行平台背后的链上数据——直接从 Robinhood Chain 和 Robinhood 官方实时注册表读取，绝不手动输入。`,
+    qiaoSectionHead: "🏮 $橋（Chinese PONS）",
+    burnTitle: "🔥 销毁历史", holderTitle: "👥 持有集中度",
+    loading: "加载中…",
+    launchpadSectionHead: "📊 cnPONS 发行平台",
+    launchpadNote: "汇总了本页面发现的所有与已追踪中国股票配对的发行。",
+    leaderboardTitle: "🏆 股票配对排行榜",
+    compareTitle: "⚖️ 配对代币 vs. 股票代币本身",
+    compareNote: "与某股票配对发行的代币的合计市值，对比该股票代币自身在 Robinhood Chain 上的市值。",
+    liquidityTitle: "💧 各股票的流动性状况",
+    liquidityNote: "与发行表单上流动性不足警告所用的检测完全相同——不是另一套单独的判断标准。",
+    multiplierTitle: "⚠️ 当前存在价格调整的股票",
+    multiplierNote: `目前带有非 1.0 <code>currentMultiplier</code> 的股票——意味着至少发生过一次真实的公司行为。这里不显示发生时间的历史记录，只显示当前是否生效。`,
+    repeatTitle: "🔁 重复发行者",
+    noBurns: "目前还没有销毁记录。", noLaunches: "目前还没有发行。",
+    weekly: "按周统计", daily: "按日统计",
+    burnedTotal: (amt, pct, n) => `累计销毁 <strong>${amt}</strong>（占供应量 ${pct}%），共 ${n} 笔销毁交易。`,
+    burnedZero: (n) => `目前累计销毁 <strong>${n}</strong>。`,
+    holderSummary: (n, top, pct) => `目前共有 <strong>${n}</strong> 位持有者。前 ${top} 名持有 <strong>${pct}%</strong> 的供应量。`,
+    holderTooMany: (total, cap) => `该代币共有 ${total} 笔转账——数量过多，无法在客户端可靠地重建持有者余额（上限为 ${cap}）。`,
+    noDexData: "双方目前都没有 Dexscreener 数据。",
+    coinsVsStock: (coins, stock) => `配对代币：${coins} · 股票代币本身：${stock}`,
+    notIndexed: "尚未被收录",
+    healthHigh: "有真实流动性", healthLow: "流动性稀薄/间歇性", healthNone: "未发现真实交易",
+    noAdjustments: "目前被追踪的股票中没有出现价格调整。",
+    nothingYet: "目前暂无内容可显示。",
+    repeatSummary: (unique, repeatN, repeatLaunches, total, pct) =>
+      `目前共有 <strong>${unique}</strong> 位独立发行者。其中 <strong>${repeatN}</strong> 位发行超过一次，占全部 ${total} 次发行中的 <strong>${repeatLaunches}</strong> 次（${pct}%）。`,
+    launch: "次发行", launches: "次发行",
+  },
+};
+
+let cnALang = "en";
+function applyCnALang(lang) {
+  cnALang = lang;
+  const dict = CN_A_I18N[lang] || CN_A_I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (typeof dict[key] === "string") el.textContent = dict[key];
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-html");
+    if (typeof dict[key] === "string") el.innerHTML = dict[key];
+  });
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   document.querySelectorAll("#cn-lang-toggle button").forEach((b) => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll("#cn-lang-toggle button").forEach((x) => x.classList.toggle("active", x === b));
-    });
+    b.classList.toggle("active", b.dataset.lang === lang);
+  });
+  try { localStorage.setItem("homepad.cnLang", lang); } catch { /* private mode etc */ }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  let savedLang = "en";
+  try { savedLang = localStorage.getItem("homepad.cnLang") || "en"; } catch { /* private mode etc */ }
+  applyCnALang(savedLang);
+  document.querySelectorAll("#cn-lang-toggle button").forEach((b) => {
+    b.addEventListener("click", () => applyCnALang(b.dataset.lang));
   });
   document.getElementById("cn-subnav-forum").addEventListener("click", () => {
-    document.getElementById("cn-soon-modal-head").textContent = "Forum — coming soon";
+    const dict = CN_A_I18N[cnALang] || CN_A_I18N.en;
+    document.getElementById("cn-soon-modal-head").textContent = `${dict.subnavForum} — ${cnALang === "zh" ? "即将上线" : "coming soon"}`;
     document.getElementById("cn-soon-modal").classList.remove("hidden");
   });
   document.getElementById("cn-soon-modal-close").addEventListener("click", () => {
@@ -43,6 +144,7 @@ async function loadQiaoBurns() {
   const summaryEl = document.getElementById("qiao-burn-summary");
   const chartEl = document.getElementById("qiao-burn-chart");
   const legendEl = document.getElementById("qiao-burn-legend");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   try {
     const tok = tokenRead(QIAO_ADDRESS);
     const fromBlock = await blockAtOrAfter(CONFIG.PONS_V2_LIVE_SINCE, "pons");
@@ -54,8 +156,8 @@ async function loadQiaoBurns() {
     const pct = totalSupply > 0n ? Number((burnedTotal * 1000000n) / totalSupply) / 10000 : 0;
 
     if (!burnEvents.length) {
-      summaryEl.innerHTML = `<strong>0</strong> burned so far.`;
-      chartEl.innerHTML = `<div class="empty-state">No burns yet.</div>`;
+      summaryEl.innerHTML = dict().burnedZero("0");
+      chartEl.innerHTML = `<div class="empty-state">${dict().noBurns}</div>`;
       legendEl.innerHTML = "";
       return;
     }
@@ -85,8 +187,8 @@ async function loadQiaoBurns() {
       const label = new Date(start * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" });
       return `<div class="cn-bar" style="height:${heightPct}%" data-tip="${label}: ${fmtCompact(amtNum)}"></div>`;
     }).join("");
-    legendEl.innerHTML = `<span>${new Date(sortedBuckets[0][0] * 1000).toLocaleDateString()}</span><span>${bucketDays === 7 ? "weekly" : "daily"} buckets</span><span>${new Date().toLocaleDateString()}</span>`;
-    summaryEl.innerHTML = `<strong>${fmtCompact(Number(ethers.formatUnits(burnedTotal, 18)))}</strong> burned total (${pct.toFixed(4)}% of supply) across ${burnEvents.length} burn transaction${burnEvents.length === 1 ? "" : "s"}.`;
+    legendEl.innerHTML = `<span>${new Date(sortedBuckets[0][0] * 1000).toLocaleDateString()}</span><span>${bucketDays === 7 ? dict().weekly : dict().daily}</span><span>${new Date().toLocaleDateString()}</span>`;
+    summaryEl.innerHTML = dict().burnedTotal(fmtCompact(Number(ethers.formatUnits(burnedTotal, 18))), pct.toFixed(4), burnEvents.length);
   } catch (err) {
     console.error("loadQiaoBurns failed", err);
     summaryEl.innerHTML = `<span class="err-detail">Couldn't load burn history: ${String(err && err.message || err)}</span>`;
@@ -107,6 +209,7 @@ async function loadQiaoBurns() {
 async function loadQiaoHolders() {
   const summaryEl = document.getElementById("qiao-holder-summary");
   const listEl = document.getElementById("qiao-holder-list");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   try {
     const tok = tokenRead(QIAO_ADDRESS);
     const fromBlock = await blockAtOrAfter(CONFIG.PONS_V2_LIVE_SINCE, "pons");
@@ -115,14 +218,13 @@ async function loadQiaoHolders() {
       withRetry(() => tok.queryFilter(tok.filters.Transfer(), fromBlock, "latest")),
     ]);
 
-    let truncatedNote = "";
     let events = transfers;
     if (events.length > MAX_TRANSFER_EVENTS) {
       // A partial slice of the log can't give correct running balances —
       // missing early transfers corrupts the sum for every address that
       // was ever involved in one, not just recent activity. Honest "can't
       // compute this" beats a partial number that looks precise but isn't.
-      summaryEl.innerHTML = `This token has ${transfers.length.toLocaleString()} transfers — too many to reconstruct holder balances reliably client-side (capped at ${MAX_TRANSFER_EVENTS.toLocaleString()}).`;
+      summaryEl.innerHTML = dict().holderTooMany(transfers.length.toLocaleString(), MAX_TRANSFER_EVENTS.toLocaleString());
       listEl.innerHTML = "";
       return;
     }
@@ -142,7 +244,7 @@ async function loadQiaoHolders() {
     const topSum = top.reduce((s, [, bal]) => s + bal, 0n);
     const topPct = totalSupply > 0n ? (Number(topSum * 10000n / totalSupply) / 100) : 0;
 
-    summaryEl.innerHTML = `<strong>${holders.length.toLocaleString()}</strong> current holders. Top ${top.length} hold <strong>${topPct.toFixed(2)}%</strong> of supply.`;
+    summaryEl.innerHTML = dict().holderSummary(holders.length.toLocaleString(), top.length, topPct.toFixed(2));
     listEl.innerHTML = top.map(([addr, bal]) => {
       const pct = totalSupply > 0n ? Number(bal * 10000n / totalSupply) / 100 : 0;
       return `
@@ -209,6 +311,7 @@ async function loadCnAnalyticsData() {
 // ============================================================
 function renderStockLeaderboard(stocks, launches) {
   const el = document.getElementById("cn-stock-leaderboard");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   const bySymbol = new Map();
   for (const l of launches) {
     const key = l.stock.symbol;
@@ -218,11 +321,11 @@ function renderStockLeaderboard(stocks, launches) {
     bySymbol.set(key, cur);
   }
   const rows = [...bySymbol.values()].sort((a, b) => b.mcapUsd - a.mcapUsd);
-  if (!rows.length) { el.innerHTML = `<div class="empty-state">No launches yet.</div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div class="empty-state">${dict().noLaunches}</div>`; return; }
   const maxMcap = Math.max(...rows.map((r) => r.mcapUsd), 1);
   el.innerHTML = rows.map((r) => `
     <div class="cn-lb-row">
-      <div class="cn-lb-row-top"><span class="name">${r.symbol} — ${r.count} launch${r.count === 1 ? "" : "es"}</span><span class="val">${r.mcapUsd > 0 ? fmtUsd(r.mcapUsd) : "—"}</span></div>
+      <div class="cn-lb-row-top"><span class="name">${r.symbol} — ${r.count} ${r.count === 1 ? dict().launch : dict().launches}</span><span class="val">${r.mcapUsd > 0 ? fmtUsd(r.mcapUsd) : "—"}</span></div>
       <div class="cn-lb-bar-track"><div class="cn-lb-bar-fill" style="width:${Math.max(2, (r.mcapUsd / maxMcap) * 100)}%"></div></div>
     </div>`).join("");
 }
@@ -232,8 +335,9 @@ function renderStockLeaderboard(stocks, launches) {
 // ============================================================
 async function renderMcapCompare(stocks, launches) {
   const el = document.getElementById("cn-mcap-compare");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   const symbolsWithLaunches = [...new Set(launches.map((l) => l.stock.symbol))];
-  if (!symbolsWithLaunches.length) { el.innerHTML = `<div class="empty-state">No launches yet.</div>`; return; }
+  if (!symbolsWithLaunches.length) { el.innerHTML = `<div class="empty-state">${dict().noLaunches}</div>`; return; }
 
   const stockAddrs = symbolsWithLaunches.map((sym) => stocks.find((s) => s.symbol === sym)?.address).filter(Boolean);
   const dexMap = await fetchDexscreenerStats(stockAddrs);
@@ -245,13 +349,13 @@ async function renderMcapCompare(stocks, launches) {
     return { sym, stockMcap, coinsMcap };
   }).filter((r) => r.stockMcap != null || r.coinsMcap > 0);
 
-  if (!rows.length) { el.innerHTML = `<div class="empty-state">No Dexscreener data for either side yet.</div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div class="empty-state">${dict().noDexData}</div>`; return; }
   el.innerHTML = rows.map((r) => {
     const ratio = r.stockMcap ? r.coinsMcap / r.stockMcap : null;
     return `
       <div class="cn-lb-row">
         <div class="cn-lb-row-top"><span class="name">${r.sym}</span><span class="val">${ratio != null ? `${(ratio * 100).toFixed(1)}%` : "—"}</span></div>
-        <div class="cn-mech-note" style="margin:0">coins: ${r.coinsMcap > 0 ? fmtUsd(r.coinsMcap) : "—"} · stock token itself: ${r.stockMcap != null ? fmtUsd(r.stockMcap) : "not indexed"}</div>
+        <div class="cn-mech-note" style="margin:0">${dict().coinsVsStock(r.coinsMcap > 0 ? fmtUsd(r.coinsMcap) : "—", r.stockMcap != null ? fmtUsd(r.stockMcap) : dict().notIndexed)}</div>
       </div>`;
   }).join("");
 }
@@ -261,18 +365,19 @@ async function renderMcapCompare(stocks, launches) {
 // ============================================================
 async function renderLiquidityHealth(stocks, launches) {
   const el = document.getElementById("cn-liquidity-health");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   const symbolsWithLaunches = [...new Set(launches.map((l) => l.stock.symbol))];
   const relevantStocks = symbolsWithLaunches.length
     ? stocks.filter((s) => symbolsWithLaunches.includes(s.symbol))
     : stocks.filter((s) => s.symbol === "BABA"); // before any launches exist, at least show the one stock the warning already names
-  if (!relevantStocks.length) { el.innerHTML = `<div class="empty-state">Nothing to show yet.</div>`; return; }
+  if (!relevantStocks.length) { el.innerHTML = `<div class="empty-state">${dict().nothingYet}</div>`; return; }
 
   const dexMap = await fetchDexscreenerStats(relevantStocks.map((s) => s.address));
   el.innerHTML = relevantStocks.map((s) => {
     const stats = dexMap.get(s.address.toLowerCase());
-    let level = "none", label = "No real trading found";
-    if (stats && stats.liquidityUsd > 20000) { level = "high"; label = "Real liquidity"; }
-    else if (stats && (stats.liquidityUsd > 0 || stats.volume24hUsd > 0)) { level = "low"; label = "Thin / intermittent"; }
+    let level = "none", label = dict().healthNone;
+    if (stats && stats.liquidityUsd > 20000) { level = "high"; label = dict().healthHigh; }
+    else if (stats && (stats.liquidityUsd > 0 || stats.volume24hUsd > 0)) { level = "low"; label = dict().healthLow; }
     return `<div class="cn-flag-row"><span>${s.symbol} — ${s.name}</span><span class="cn-health-pill ${level}">${label}</span></div>`;
   }).join("");
 }
@@ -282,8 +387,9 @@ async function renderLiquidityHealth(stocks, launches) {
 // ============================================================
 function renderMultiplierFlags(stocks) {
   const el = document.getElementById("cn-multiplier-flags");
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
   const flagged = stocks.filter((s) => s.multiplier !== 1);
-  if (!flagged.length) { el.innerHTML = `<div class="empty-state">None of the tracked stocks currently show an adjustment.</div>`; return; }
+  if (!flagged.length) { el.innerHTML = `<div class="empty-state">${dict().noAdjustments}</div>`; return; }
   el.innerHTML = flagged.map((s) => `<div class="cn-flag-row"><span>${s.symbol} — ${s.name}</span><span class="mult">×${s.multiplier.toFixed(4)}</span></div>`).join("");
 }
 
@@ -292,12 +398,13 @@ function renderMultiplierFlags(stocks) {
 // ============================================================
 function renderRepeatLaunchers(launches) {
   const el = document.getElementById("cn-repeat-launchers");
-  if (!launches.length) { el.innerHTML = `No launches yet.`; return; }
+  const dict = () => CN_A_I18N[cnALang] || CN_A_I18N.en;
+  if (!launches.length) { el.innerHTML = dict().noLaunches; return; }
   const byCreator = new Map();
   for (const l of launches) byCreator.set(l.creator, (byCreator.get(l.creator) || 0) + 1);
   const repeatCreators = [...byCreator.values()].filter((n) => n > 1).length;
   const launchesFromRepeats = [...byCreator.values()].filter((n) => n > 1).reduce((s, n) => s + n, 0);
-  el.innerHTML = `<strong>${byCreator.size}</strong> unique launcher${byCreator.size === 1 ? "" : "s"} so far. <strong>${repeatCreators}</strong> of them launched more than once, accounting for <strong>${launchesFromRepeats}</strong> of ${launches.length} total launches (${((launchesFromRepeats / launches.length) * 100).toFixed(0)}%).`;
+  el.innerHTML = dict().repeatSummary(byCreator.size, repeatCreators, launchesFromRepeats, launches.length, ((launchesFromRepeats / launches.length) * 100).toFixed(0));
 }
 
 (async () => {
