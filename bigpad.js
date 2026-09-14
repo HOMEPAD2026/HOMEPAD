@@ -79,7 +79,6 @@ let _bigpadPollTimer = null;
 async function initBigpadRound() {
   if (!bigpadEscrowConfigured()) return;
 
-  document.querySelectorAll(".bp-featured-badge").forEach((el) => { el.textContent = "LIVE"; el.classList.add("bp-live"); });
   const lengthLabel = document.getElementById("bp-stat-length-label");
   if (lengthLabel) lengthLabel.textContent = "Ends";
   const payoutLabel = document.getElementById("bp-stat-payout-label");
@@ -167,6 +166,14 @@ async function refreshBigpadStats() {
     else if (capReached) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Cap reached — raise closed`;
     else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
   }
+
+  // Badge only turns green/"LIVE" once the recipient has actually called
+  // start() — deployed-but-not-started stays "READY" so nobody mistakes
+  // this for an open raise before it is one.
+  document.querySelectorAll(".bp-featured-badge").forEach((el) => {
+    if (started) { el.textContent = "LIVE"; el.classList.add("bp-live"); }
+    else { el.textContent = "READY"; el.classList.remove("bp-live"); }
+  });
 
   const progressBarEl = document.getElementById("bp-round-progress-fill")?.parentElement;
   const fillEl = document.getElementById("bp-round-progress-fill");
