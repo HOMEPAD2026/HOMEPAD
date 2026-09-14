@@ -2222,6 +2222,9 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 .bp-lb-addr{flex:1;min-width:0;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .bp-lb-amount{flex-shrink:0;color:#fff;font-weight:700;}
 .bp-lb-pct{flex-shrink:0;width:52px;text-align:right;color:var(--ink-dim);}
+.bp-lb-ext{flex-shrink:0;display:inline-flex;align-items:center;color:var(--ink-dim);opacity:.7;transition:opacity .15s,color .15s;}
+.bp-lb-ext:hover{opacity:1;color:#fff;}
+.bp-lb-ext svg{width:13px;height:13px;}
 .bp-lb-mini{display:flex;flex-direction:column;gap:2px;}
 .bp-lb-mini .bp-lb-row{padding:6px 0;font-size:.78rem;}
 .bp-lb-more{font-size:.74rem;color:var(--ink-dim);text-align:center;padding-top:8px;}

@@ -225,6 +225,7 @@ function bigpadLbRowHtml(r, i, pctFn) {
     <span class="bp-lb-addr">${short(r.address)}</span>
     <span class="bp-lb-amount">${fmtEth(r.amount)} ETH</span>
     <span class="bp-lb-pct">${pctFn(r.amount)}%</span>
+    <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${r.address}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
   </div>`;
 }
 
@@ -289,6 +290,7 @@ async function refreshBigpadLeaderboard() {
           <span class="bp-activity-addr">${short(e.args.contributor)}</span>
           <span class="bp-activity-amount">${fmtEth(e.args.amount)} ETH</span>
           <span class="bp-activity-time">${timeAgo(blockTime.get(e.blockNumber))}</span>
+          <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${e.args.contributor}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
         </div>`).join("");
     }
   }
