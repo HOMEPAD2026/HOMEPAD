@@ -11,6 +11,10 @@
     {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
+    },
+    {
+      "source": "/cnPONS/analytics",
+      "destination": "/cnPONS-analytics.html"
     }
   ]
 }

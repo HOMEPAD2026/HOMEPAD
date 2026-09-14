@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — 橋 🅿️ONS 🇨🇳 — HOMEPAD</title>
+<meta name="description" content="Onchain analytics for $橋 (Chinese PONS) and the cnPONS Chinese-stock launchpad on HOMEPAD — burns, holder distribution, stock pairing leaderboard, and more.">
+<meta property="og:title" content="Analytics — 橋 🅿️ONS 🇨🇳 — HOMEPAD">
+<meta property="og:description" content="Onchain analytics for $橋 and the cnPONS Chinese-stock launchpad.">
+<meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
+<meta property="og:url" content="https://homepad.fun/cnPONS-analytics.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Analytics — 橋 🅿️ONS 🇨🇳 — HOMEPAD">
+<meta name="twitter:description" content="Onchain analytics for $橋 and the cnPONS Chinese-stock launchpad.">
+<meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789349277">
+</head>
+<body class="cnpons-page">
+
+<header>
+  <div class="headbar">
+    <a class="brand cn-brand" href="cnPONS.html"><img class="cn-brand-logo" src="images/qiao-logo.png" alt="橋"> <span class="tag">by $HOME</span></a>
+    <nav>
+      <a href="index.html"><img class="nav-icon" src="images/gallery-cap-rings.jpg" alt="">Home</a>
+      <a href="explore.html"><img class="nav-icon" src="images/gallery-sunrise-mug.jpg" alt="">Explore</a>
+      <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;"><img class="nav-icon" src="images/gallery-throne.jpg" alt="">Launch</a>
+      <div class="nav-dropdown" id="nav-more">
+        <button type="button" class="nav-more-trigger nav-active"><img class="nav-icon" src="images/gallery-knight.jpg" alt="">More <span class="nav-caret">▾</span></button>
+        <div class="nav-more-menu">
+          <a href="world.html">World</a>
+          <a href="rent.html">Rent</a>
+          <a href="adventure.html">Adventure</a>
+          <a href="adventure-cn.html">Pons · 橋</a>
+          <a href="cnPONS.html" class="nav-active">橋 🅿️ONS 🇨🇳</a>
+        </div>
+      </div>
+    </nav>
+    <div class="cn-header-right">
+      <div class="cn-lang-toggle" id="cn-lang-toggle">
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="zh">中文</button>
+      </div>
+      <div id="wallet-slot"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ Sub-nav: Explore / Forum / Analytics ============ -->
+<div class="cn-subnav-wrap">
+  <div class="wrap cn-subnav">
+    <a href="cnPONS.html">Explore</a>
+    <button type="button" id="cn-subnav-forum">Forum <span class="cn-soon-tag">soon</span></button>
+    <a href="cnPONS-analytics.html" class="active">Analytics</a>
+  </div>
+</div>
+
+<!-- ============ "coming soon" popup (Forum) ============ -->
+<div id="cn-soon-modal" class="modal-overlay hidden">
+  <div class="cn-liquidity-modal-box">
+    <div class="cn-liquidity-modal-head" id="cn-soon-modal-head">Coming soon</div>
+    <p>This isn't live yet — still being built. Check back soon.</p>
+    <div class="cn-liquidity-modal-actions">
+      <button type="button" class="btn btn-cute btn-primary" id="cn-soon-modal-close">Got it</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap adv-main cn-analytics-main">
+  <div class="cn-analytics-head">
+    <h1>Analytics</h1>
+    <p class="lede">Onchain numbers behind $橋 and the cnPONS Chinese-stock launchpad — read directly from Robinhood Chain and Robinhood's own live registry, not typed in by hand.</p>
+  </div>
+
+  <!-- ============ $橋 section ============ -->
+  <section class="cn-analytics-section">
+    <div class="rent-section-head"><h3>🏮 $橋 (Chinese PONS)</h3></div>
+
+    <div class="cn-analytics-grid">
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">🔥 Burn history</div>
+        <div id="qiao-burn-summary" class="cn-analytics-summary">Loading…</div>
+        <div id="qiao-burn-chart" class="cn-bar-chart"></div>
+        <div class="cn-chart-legend" id="qiao-burn-legend"></div>
+      </div>
+
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">👥 Holder concentration</div>
+        <div id="qiao-holder-summary" class="cn-analytics-summary">Loading…</div>
+        <div id="qiao-holder-list" class="cn-holder-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Launchpad-wide section ============ -->
+  <section class="cn-analytics-section">
+    <div class="rent-section-head"><h3>📊 cnPONS launchpad</h3></div>
+    <p class="rent-section-note">Aggregated across every launch this page has found paired against a tracked Chinese stock.</p>
+
+    <div class="cn-analytics-grid">
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">🏆 Stock pairing leaderboard</div>
+        <div id="cn-stock-leaderboard" class="cn-leaderboard">Loading…</div>
+      </div>
+
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">⚖️ Paired coins vs. the Stock Token itself</div>
+        <p class="cn-mech-note">Combined market cap of coins launched against a stock, compared to that Stock Token's own market cap on Robinhood Chain.</p>
+        <div id="cn-mcap-compare" class="cn-leaderboard">Loading…</div>
+      </div>
+
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">💧 Liquidity health by stock</div>
+        <p class="cn-mech-note">From the same check behind the low-liquidity warning on the launch form — not a separate opinion.</p>
+        <div id="cn-liquidity-health" class="cn-leaderboard">Loading…</div>
+      </div>
+
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">⚠️ Stocks with an active price adjustment</div>
+        <p class="cn-mech-note">Stocks currently carrying a non-1.0 <code>currentMultiplier</code> — meaning a real corporate action has already happened at least once. No history of when, only that one is in effect now.</p>
+        <div id="cn-multiplier-flags" class="cn-leaderboard">Loading…</div>
+      </div>
+
+      <div class="cn-mech-card">
+        <div class="cn-mech-title">🔁 Repeat launchers</div>
+        <div id="cn-repeat-launchers" class="cn-analytics-summary">Loading…</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="footer-slot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config.js?v=1789349277"></script>
+<script src="abis.js?v=1789349277"></script>
+<script src="app.js?v=1789349277"></script>
+<script src="wallet-appkit.js?v=1789349277"></script>
+<script src="launch-modal.js?v=1789349277"></script>
+<script src="footer.js?v=1789349277"></script>
+<script src="cnPONS-analytics.js?v=1789349277"></script>
+</body>
+</html>

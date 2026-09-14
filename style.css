@@ -1877,6 +1877,43 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-subnav a.active{background:var(--panel);color:var(--ink);}
 .cn-subnav button:hover{color:var(--ink);}
 .cn-soon-tag{font-family:'Silkscreen';font-size:.55rem;color:var(--amber);background:rgba(255,182,72,.12);border:1px solid rgba(255,182,72,.35);padding:1px 6px;border-radius:100px;}
+/* Analytics page */
+.cn-analytics-head{margin-bottom:8px;}
+.cn-analytics-head h1{font-family:'Silkscreen';font-size:1.6rem;margin-bottom:8px;}
+.cn-analytics-section{margin-top:36px;}
+.cn-analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:16px;}
+.cn-mech-note{font-size:.78rem;color:var(--ink-dim);margin:0 0 12px;line-height:1.5;}
+.cn-mech-note code{background:var(--void);padding:1px 5px;border-radius:5px;font-size:.9em;}
+.cn-analytics-summary{font-size:.86rem;color:var(--ink-dim);margin-bottom:14px;line-height:1.5;}
+.cn-analytics-summary strong{color:var(--ink);font-family:'Silkscreen';font-size:.95em;}
+
+/* Simple flexbox bar chart — no charting library, matches the site's
+   general no-extra-dependency approach (ethers.js is the one exception) */
+.cn-bar-chart{display:flex;align-items:flex-end;gap:4px;height:120px;margin-bottom:8px;}
+.cn-bar-chart .cn-bar{flex:1;background:linear-gradient(180deg,#ff6b6b,#a30f0f);border-radius:4px 4px 0 0;min-height:2px;position:relative;}
+.cn-bar-chart .cn-bar:hover::after{
+  content:attr(data-tip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  background:var(--void);border:1px solid var(--line);padding:4px 8px;border-radius:6px;
+  font-size:.68rem;white-space:nowrap;margin-bottom:4px;color:var(--ink);z-index:5;
+}
+.cn-chart-legend{display:flex;justify-content:space-between;font-size:.65rem;color:var(--ink-dim);}
+
+/* Holder / leaderboard bar-rows */
+.cn-holder-list,.cn-leaderboard{display:flex;flex-direction:column;gap:10px;}
+.cn-holder-row,.cn-lb-row{display:flex;flex-direction:column;gap:4px;}
+.cn-holder-row-top,.cn-lb-row-top{display:flex;justify-content:space-between;font-size:.8rem;gap:8px;}
+.cn-holder-row-top .addr,.cn-lb-row-top .name{color:var(--ink-dim);font-family:'Silkscreen';font-size:.7rem;}
+.cn-holder-row-top .pct,.cn-lb-row-top .val{color:var(--ink);font-weight:700;white-space:nowrap;}
+.cn-holder-bar-track,.cn-lb-bar-track{height:8px;background:var(--void);border-radius:100px;overflow:hidden;}
+.cn-holder-bar-fill{height:100%;background:linear-gradient(90deg,#ff6b6b,#ff3b3b);border-radius:100px;}
+.cn-lb-bar-fill{height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green));border-radius:100px;}
+.cn-flag-row{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;padding:6px 0;border-bottom:1px solid var(--line);}
+.cn-flag-row:last-child{border-bottom:none;}
+.cn-flag-row .mult{font-family:'Silkscreen';font-size:.7rem;color:var(--amber);}
+.cn-health-pill{font-family:'Silkscreen';font-size:.62rem;padding:2px 8px;border-radius:100px;}
+.cn-health-pill.high{background:rgba(57,255,136,.14);color:#39ff88;}
+.cn-health-pill.low{background:rgba(255,182,72,.14);color:var(--amber);}
+.cn-health-pill.none{background:rgba(255,107,107,.14);color:var(--red);}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}

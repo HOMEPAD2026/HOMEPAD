@@ -685,7 +685,6 @@ async function submitCnLaunch(ev) {
     document.getElementById("cn-soon-modal").classList.remove("hidden");
   }
   document.getElementById("cn-subnav-forum").addEventListener("click", () => showCnSoon("subnavForum"));
-  document.getElementById("cn-subnav-analytics").addEventListener("click", () => showCnSoon("subnavAnalytics"));
   document.getElementById("cn-soon-modal-close").addEventListener("click", () => {
     document.getElementById("cn-soon-modal").classList.add("hidden");
   });
