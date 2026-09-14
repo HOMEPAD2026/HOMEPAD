@@ -172,6 +172,7 @@ async function refreshBigpadStats() {
 
   const btn = document.getElementById("bp-contribute-btn");
   const row = document.getElementById("bp-contribute-row");
+  const balanceRow = document.getElementById("bp-balance-row");
   if (btn && row) {
     if (isOpen) {
       row.style.display = "flex";
@@ -181,10 +182,29 @@ async function refreshBigpadStats() {
       row.style.display = "none";
       btn.disabled = true;
       btn.textContent = capReached ? "Cap reached — closed" : "Raise ended";
+      if (balanceRow) balanceRow.style.display = "none";
     }
   }
+  if (isOpen) refreshBigpadWalletBalance();
 
   updateBigpadCountdown();
+}
+
+// Shows the connected wallet's ETH balance right above the contribute
+// input, so someone can see what they have before typing an amount.
+// Only shown while the raise is actually open (same as the input itself).
+async function refreshBigpadWalletBalance() {
+  const row = document.getElementById("bp-balance-row");
+  const valEl = document.getElementById("bp-wallet-balance");
+  if (!row || !valEl) return;
+  if (!state.account) { row.style.display = "none"; return; }
+  try {
+    const balance = await readProvider().getBalance(state.account);
+    valEl.textContent = fmtEth(balance) + " ETH";
+    row.style.display = "block";
+  } catch (err) {
+    console.error("BigPad: failed to load wallet balance", err);
+  }
 }
 
 function updateBigpadCountdown() {
@@ -295,6 +315,7 @@ function refreshBigpadMyPosition() {
     if (mineStat) mineStat.textContent = "—";
     if (shareStat) shareStat.textContent = "—";
     refreshBigpadWithdraw();
+    refreshBigpadWalletBalance();
     return;
   }
 
@@ -318,6 +339,7 @@ function refreshBigpadMyPosition() {
     .catch((err) => console.error("BigPad: failed to load your position", err));
 
   refreshBigpadWithdraw();
+  refreshBigpadWalletBalance();
 }
 
 // Shows a "Withdraw" button only to the recipient wallet itself, and only

@@ -2204,6 +2204,8 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 
 .bp-round-countdown{font-size:.78rem;color:var(--ink-dim);text-align:center;font-variant-numeric:tabular-nums;}
 .bp-round-countdown strong{color:#fff;}
+.bp-balance-row{font-size:.72rem;color:var(--ink-dim);text-align:right;}
+.bp-balance-row strong{color:#fff;font-weight:700;}
 .bp-contribute-row{display:flex;gap:8px;}
 .bp-contribute-input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:#fff;font:inherit;font-size:.86rem;}
 .bp-contribute-input::placeholder{color:#5c5c62;}
