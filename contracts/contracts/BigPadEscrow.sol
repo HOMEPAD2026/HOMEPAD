@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @notice Minimal ETH crowdraise escrow for BigPad's first round.
 ///
-/// Deliberately narrow scope: a hard cap, a fixed deadline, and funds held
-/// in this contract — not a raw wallet — until the raise closes. It does
-/// NOT implement the leader/voting/vesting mechanism described on the
-/// BigPad docs page; that is a separate, larger contract still in design
-/// and review (see Docs > Safety design). This contract exists so the
-/// very first round doesn't have to wait for that one. It upgrades
-/// "ETH sent straight to an EOA" to "ETH locked in an auditable, capped,
+/// Deliberately narrow scope: an optional hard cap, a fixed deadline, and
+/// funds held in this contract — not a raw wallet — until the raise
+/// closes. It does NOT implement the leader/voting/vesting mechanism
+/// described on the BigPad docs page; that is a separate, larger contract
+/// still in design and review (see Docs > Safety design). This contract
+/// exists so the very first round doesn't have to wait for that one. It
+/// upgrades "ETH sent straight to an EOA" to "ETH locked in an auditable,
 /// time-boxed contract" — nothing more, nothing less.
 ///
 /// Known limitation, by design, in this version: if the raise ends with
@@ -25,7 +25,8 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
     /// itself, never an address supplied at call time.
     address public immutable recipient;
 
-    /// @notice Hard cap on total ETH this contract will ever accept, in wei.
+    /// @notice Hard cap on total ETH this contract will ever accept, in
+    /// wei. Zero means uncapped — the raise is bounded by `deadline` only.
     uint256 public immutable cap;
 
     /// @notice Unix timestamp after which contribute() stops accepting ETH.
@@ -52,20 +53,19 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
 
     constructor(address recipient_, uint256 cap_, uint256 deadline_) Ownable(recipient_) {
         require(recipient_ != address(0), "recipient is zero address");
-        require(cap_ > 0, "cap must be > 0");
         require(deadline_ > block.timestamp, "deadline must be in the future");
         recipient = recipient_;
-        cap = cap_;
+        cap = cap_; // 0 is a deliberate sentinel for "uncapped" — see contribute()/isOpen()/withdraw()
         deadline = deadline_;
     }
 
     /// @notice Contribute ETH to the raise. Reverts past the deadline, or
-    /// if this contribution would push totalRaised over the cap — check
-    /// remainingCap() first and send at most that much.
+    /// — if a cap is set — if this contribution would push totalRaised
+    /// over it. Check remainingCap() first and send at most that much.
     function contribute() external payable nonReentrant {
         if (block.timestamp >= deadline) revert RaiseEnded();
         if (msg.value == 0) revert ZeroContribution();
-        if (totalRaised + msg.value > cap) revert CapExceeded();
+        if (cap > 0 && totalRaised + msg.value > cap) revert CapExceeded();
 
         contributions[msg.sender] += msg.value;
         totalRaised += msg.value;
@@ -75,10 +75,12 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
 
     /// @notice Releases the escrowed ETH to `recipient`. Callable only by
     /// `recipient` itself, and only once the raise has actually closed —
-    /// the deadline has passed, or the cap was reached. One-shot: pays out
+    /// the deadline has passed, or (if a cap is set) the cap was reached.
+    /// An uncapped raise can only close by deadline. One-shot: pays out
     /// the full balance, once.
     function withdraw() external onlyOwner nonReentrant {
-        if (block.timestamp < deadline && totalRaised < cap) revert RaiseStillOpen();
+        bool capReached = cap > 0 && totalRaised >= cap;
+        if (block.timestamp < deadline && !capReached) revert RaiseStillOpen();
         if (withdrawn) revert AlreadyWithdrawn();
         uint256 balance = address(this).balance;
         if (balance == 0) revert NothingToWithdraw();
@@ -91,12 +93,15 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
     }
 
     /// @notice How much more ETH the raise can accept before hitting cap.
+    /// Returns type(uint256).max for an uncapped raise.
     function remainingCap() external view returns (uint256) {
+        if (cap == 0) return type(uint256).max;
         return totalRaised >= cap ? 0 : cap - totalRaised;
     }
 
     /// @notice Whether contribute() would currently accept a nonzero amount.
     function isOpen() external view returns (bool) {
-        return block.timestamp < deadline && totalRaised < cap;
+        bool capReached = cap > 0 && totalRaised >= cap;
+        return block.timestamp < deadline && !capReached;
     }
 }

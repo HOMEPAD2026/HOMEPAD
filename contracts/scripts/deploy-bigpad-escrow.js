@@ -6,8 +6,12 @@
 //
 // Required env vars:
 //   BIGPAD_RECIPIENT_ADDRESS — wallet that can withdraw once the raise closes
-//   BIGPAD_CAP_ETH           — hard cap on the raise, in ETH (e.g. "10")
 // Optional:
+//   BIGPAD_CAP_ETH           — hard cap on the raise, in ETH (e.g. "10").
+//                              Leave unset or "0" for an UNCAPPED raise —
+//                              contribute() then never reverts on amount,
+//                              only on the deadline. withdraw() still
+//                              waits for the deadline either way.
 //   BIGPAD_DURATION_HOURS (72 — matches BigPad's documented 3-day raise)
 //
 // Run on testnet FIRST, confirm contribute()/withdraw() behave as expected
@@ -21,8 +25,9 @@ const hre = require("hardhat");
 
 async function main() {
   const recipient = requireEnv("BIGPAD_RECIPIENT_ADDRESS");
-  const capEth = requireEnv("BIGPAD_CAP_ETH");
+  const capEth = process.env.BIGPAD_CAP_ETH || "0";
   const durationHours = Number(process.env.BIGPAD_DURATION_HOURS || 72);
+  const uncapped = Number(capEth) === 0;
 
   const cap = ethers.parseEther(capEth);
   const latestBlock = await ethers.provider.getBlock("latest");
@@ -30,7 +35,7 @@ async function main() {
 
   console.log("Deploying BigPadEscrow on", hre.network.name, "...");
   console.log("  recipient:", recipient);
-  console.log("  cap:", capEth, "ETH");
+  console.log("  cap:", uncapped ? "UNCAPPED (no limit — deadline is the only close condition)" : capEth + " ETH");
   console.log("  duration:", durationHours, "hours");
   console.log("  deadline (unix):", deadline, "-", new Date(deadline * 1000).toISOString());
 
@@ -57,7 +62,7 @@ async function main() {
     )
   );
   console.log("\nOn testnet: run through a full round yourself (contribute from a couple of");
-  console.log("test accounts, confirm the cap/deadline reverts fire, call withdraw()) before");
+  console.log("test accounts, confirm the deadline revert fires" + (uncapped ? "" : ", confirm the cap revert fires") + ", call withdraw()) before");
   console.log("touching mainnet. Verify the contract on the explorer before announcing either way.");
 }
 

@@ -114,7 +114,7 @@ describe("BigPadEscrow", function () {
     await expect(escrow.connect(recipient).withdraw()).to.be.revertedWithCustomError(escrow, "NothingToWithdraw");
   });
 
-  it("rejects a zero recipient, zero cap, or past deadline at construction", async function () {
+  it("rejects a zero recipient or a past deadline at construction, but allows a zero cap (uncapped)", async function () {
     const [, recipient] = await ethers.getSigners();
     const Escrow = await ethers.getContractFactory("BigPadEscrow");
     const future = (await time.latest()) + 1000;
@@ -122,7 +122,44 @@ describe("BigPadEscrow", function () {
     // Ownable's own base constructor runs before BigPadEscrow's require()s and
     // already refuses a zero-address owner, via its own custom error.
     await expect(Escrow.deploy(ethers.ZeroAddress, ethers.parseEther("1"), future)).to.be.revertedWithCustomError(Escrow, "OwnableInvalidOwner");
-    await expect(Escrow.deploy(recipient.address, 0, future)).to.be.revertedWith("cap must be > 0");
     await expect(Escrow.deploy(recipient.address, ethers.parseEther("1"), (await time.latest()) - 1)).to.be.revertedWith("deadline must be in the future");
+    // cap = 0 is a deliberate "uncapped" sentinel, not an error.
+    await expect(Escrow.deploy(recipient.address, 0, future)).to.not.be.reverted;
+  });
+
+  describe("uncapped raises (cap = 0)", function () {
+    it("accepts contributions of any size with no cap check", async function () {
+      const { escrow, alice, bob } = await deploy({ capEth: "0" });
+      await expect(escrow.connect(alice).contribute({ value: ethers.parseEther("500") })).to.not.be.reverted;
+      await expect(escrow.connect(bob).contribute({ value: ethers.parseEther("1000") })).to.not.be.reverted;
+      expect(await escrow.totalRaised()).to.equal(ethers.parseEther("1500"));
+    });
+
+    it("reports remainingCap() as max uint and isOpen() as true regardless of amount raised", async function () {
+      const { escrow, alice } = await deploy({ capEth: "0" });
+      await escrow.connect(alice).contribute({ value: ethers.parseEther("100") });
+      expect(await escrow.remainingCap()).to.equal(ethers.MaxUint256);
+      expect(await escrow.isOpen()).to.equal(true);
+    });
+
+    it("still blocks withdraw() before the deadline, since there is no cap to reach early", async function () {
+      const { escrow, recipient, alice } = await deploy({ capEth: "0" });
+      await escrow.connect(alice).contribute({ value: ethers.parseEther("10") });
+      await expect(escrow.connect(recipient).withdraw()).to.be.revertedWithCustomError(escrow, "RaiseStillOpen");
+    });
+
+    it("still rejects contributions after the deadline", async function () {
+      const { escrow, alice, deadline } = await deploy({ capEth: "0" });
+      await time.increaseTo(deadline + 1);
+      await expect(escrow.connect(alice).contribute({ value: ethers.parseEther("1") })).to.be.revertedWithCustomError(escrow, "RaiseEnded");
+    });
+
+    it("lets recipient withdraw everything once the deadline passes", async function () {
+      const { escrow, recipient, alice, deadline } = await deploy({ capEth: "0" });
+      await escrow.connect(alice).contribute({ value: ethers.parseEther("42") });
+      await time.increaseTo(deadline + 1);
+      await expect(escrow.connect(recipient).withdraw()).to.not.be.reverted;
+      expect(await ethers.provider.getBalance(await escrow.getAddress())).to.equal(0n);
+    });
   });
 });

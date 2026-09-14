@@ -144,7 +144,8 @@ async function refreshBigpadStats() {
     escrow.cap(), escrow.deadline(), escrow.totalRaised(), escrow.isOpen(),
   ]);
   _bigpadDeadline = Number(deadline);
-  const capReached = totalRaised >= cap;
+  const capUncapped = cap === 0n;
+  const capReached = !capUncapped && totalRaised >= cap;
 
   const statusEl = document.getElementById("bp-round-status");
   if (statusEl) {
@@ -153,11 +154,18 @@ async function refreshBigpadStats() {
     else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
   }
 
-  const pct = cap > 0n ? Math.min(100, Number((totalRaised * 10000n) / cap) / 100) : 0;
+  const progressBarEl = document.getElementById("bp-round-progress-fill")?.parentElement;
   const fillEl = document.getElementById("bp-round-progress-fill");
-  if (fillEl) fillEl.style.width = pct + "%";
   const labelEl = document.getElementById("bp-round-progress-label");
-  if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(totalRaised)} ETH</strong> raised of <strong>${fmtEth(cap)} ETH</strong> goal`;
+  if (capUncapped) {
+    if (progressBarEl) progressBarEl.style.display = "none";
+    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(totalRaised)} ETH</strong> raised so far — uncapped`;
+  } else {
+    const pct = cap > 0n ? Math.min(100, Number((totalRaised * 10000n) / cap) / 100) : 0;
+    if (progressBarEl) progressBarEl.style.display = "";
+    if (fillEl) fillEl.style.width = pct + "%";
+    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(totalRaised)} ETH</strong> raised of <strong>${fmtEth(cap)} ETH</strong> goal`;
+  }
 
   const lengthEl = document.getElementById("bp-stat-length");
   if (lengthEl) lengthEl.textContent = new Date(_bigpadDeadline * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
