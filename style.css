@@ -1914,6 +1914,30 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-health-pill.high{background:rgba(57,255,136,.14);color:#39ff88;}
 .cn-health-pill.low{background:rgba(255,182,72,.14);color:var(--amber);}
 .cn-health-pill.none{background:rgba(255,107,107,.14);color:var(--red);}
+/* Bottom nav — icon-over-label, matches the app-style bottom bar pattern.
+   Sits below the footer; a persistent icon strip for the page's main
+   sections rather than the top subnav's tab-row style. */
+.cn-bottom-nav{
+  display:flex;justify-content:center;gap:2px;
+  max-width:var(--maxw);margin:24px auto 40px;padding:10px 12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:20px;
+}
+.cn-bn-item{
+  flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 4px;border-radius:14px;border:none;background:transparent;cursor:pointer;
+  color:var(--ink-dim);font-family:'Sora';font-size:.68rem;font-weight:700;
+  transition:color .15s,background .15s;
+}
+.cn-bn-item svg{width:20px;height:20px;}
+.cn-bn-item:hover{color:var(--ink);background:var(--panel-hi);}
+.cn-bn-item.active{color:var(--ink);}
+.cn-bn-item.active svg{color:var(--green);}
+.cn-bn-item.cn-bn-primary svg{color:var(--green);}
+@media (max-width:640px){
+  .cn-bottom-nav{gap:0;padding:8px 4px;border-radius:16px;}
+  .cn-bn-item{font-size:.6rem;padding:8px 2px;}
+  .cn-bn-item svg{width:18px;height:18px;}
+}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}
