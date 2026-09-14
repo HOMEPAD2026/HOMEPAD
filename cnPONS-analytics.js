@@ -34,7 +34,7 @@ const CN_A_I18N = {
   en: {
     subnavExplore: "Explore", subnavForum: "Forum", subnavAnalytics: "Analytics", soonTag: "soon",
     soonBody: "This isn't live yet — still being built. Check back soon.", soonClose: "Got it",
-    bnExplore: "Explore", bnStocks: "Stocks!", bnCommodities: "Commodities", bnLaunch: "Launch", bnRewards: "Rewards", bnAnalytics: "Analytics", bnDocs: "Docs",
+    bnExplore: "Explore", bnStocks: "Stocks", bnCommodities: "Commodities", bnLaunch: "Launch", bnRewards: "Rewards", bnAnalytics: "Analytics", bnDocs: "Docs",
     pageTitle: "Analytics",
     pageLede: `Onchain numbers behind $橋 and the cnPONS Chinese-stock launchpad — read directly from Robinhood Chain and Robinhood's own live registry, not typed in by hand.`,
     qiaoSectionHead: "🏮 $橋 (Chinese PONS)",
@@ -69,7 +69,7 @@ const CN_A_I18N = {
   zh: {
     subnavExplore: "探索", subnavForum: "论坛", subnavAnalytics: "数据分析", soonTag: "即将上线",
     soonBody: "还没上线，仍在开发中，敬请期待。", soonClose: "知道了",
-    bnExplore: "探索", bnStocks: "股票！", bnCommodities: "大宗商品", bnLaunch: "发行", bnRewards: "奖励", bnAnalytics: "数据分析", bnDocs: "文档",
+    bnExplore: "探索", bnStocks: "股票", bnCommodities: "大宗商品", bnLaunch: "发行", bnRewards: "奖励", bnAnalytics: "数据分析", bnDocs: "文档",
     pageTitle: "数据分析",
     pageLede: `$橋 与 cnPONS 中国股票发行平台背后的链上数据——直接从 Robinhood Chain 和 Robinhood 官方实时注册表读取，绝不手动输入。`,
     qiaoSectionHead: "🏮 $橋（Chinese PONS）",

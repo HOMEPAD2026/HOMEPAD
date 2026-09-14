@@ -1914,29 +1914,34 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
 .cn-health-pill.high{background:rgba(57,255,136,.14);color:#39ff88;}
 .cn-health-pill.low{background:rgba(255,182,72,.14);color:var(--amber);}
 .cn-health-pill.none{background:rgba(255,107,107,.14);color:var(--red);}
-/* Bottom nav — icon-over-label, matches the app-style bottom bar pattern.
-   Sits below the footer; a persistent icon strip for the page's main
-   sections rather than the top subnav's tab-row style. */
+/* Bottom nav — icon-over-label, always docked to the bottom of the
+   viewport (desktop and mobile alike), matching an app-style persistent
+   bar rather than a scroll-away page section. z-index stays below
+   .modal-overlay's 200 so popups always render above it. Page content
+   gets bottom padding (below, on body.cnpons-page) equal to the bar's
+   real height so the last section is never hidden underneath it. */
 .cn-bottom-nav{
-  display:flex;justify-content:center;gap:2px;
-  max-width:var(--maxw);margin:24px auto 40px;padding:10px 12px;
-  background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  display:flex;justify-content:center;
+  background:rgba(13,20,16,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  padding:8px max(12px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right));
 }
 .cn-bn-item{
-  flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:5px;
-  padding:10px 4px;border-radius:14px;border:none;background:transparent;cursor:pointer;
-  color:var(--ink-dim);font-family:'Sora';font-size:.68rem;font-weight:700;
+  flex:1 1 0;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 4px;border-radius:14px;border:none;background:transparent;cursor:pointer;
+  color:var(--ink-dim);font-family:'Sora';font-size:.66rem;font-weight:700;
   transition:color .15s,background .15s;
 }
-.cn-bn-item svg{width:20px;height:20px;}
+.cn-bn-item svg{width:21px;height:21px;}
 .cn-bn-item:hover{color:var(--ink);background:var(--panel-hi);}
 .cn-bn-item.active{color:var(--ink);}
 .cn-bn-item.active svg{color:var(--green);}
-.cn-bn-item.cn-bn-primary svg{color:var(--green);}
-@media (max-width:640px){
-  .cn-bottom-nav{gap:0;padding:8px 4px;border-radius:16px;}
-  .cn-bn-item{font-size:.6rem;padding:8px 2px;}
-  .cn-bn-item svg{width:18px;height:18px;}
+body.cnpons-page{padding-bottom:64px;}
+@media (max-width:520px){
+  .cn-bn-item{font-size:.58rem;padding:7px 2px;gap:3px;}
+  .cn-bn-item svg{width:19px;height:19px;}
+  body.cnpons-page{padding-bottom:58px;}
 }
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
