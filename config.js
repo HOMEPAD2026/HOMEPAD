@@ -231,7 +231,7 @@ const CONFIG = {
   // refund() + 3-way split) is deployed and tested — the OLD single-
   // recipient contract at 0xb4344041dd51404a19409C42Dfc7f384429C7d12 uses
   // a different interface and must not be wired in here.
-  BIGPAD_ESCROW_ADDRESS: "",
+  BIGPAD_ESCROW_ADDRESS: "0x98D71970C32Fc50A23f1D373859faE257a4BDd35", // mainnet — Round 1, deployed 2026-09-14, uncapped, start()-triggered
   // Wallet that calls start()/withdraw() and gets 80% of the final balance.
   BIGPAD_RECIPIENT_ADDRESS: "0x6D4D057eB9431E1DB6eB6cD3bB6597A304C566b4",
   // Gets 5% of the final balance.
@@ -243,7 +243,7 @@ const CONFIG = {
   // blockAtOrAfter in app.js) — set this to the escrow's actual deploy
   // time once deployed, otherwise the scan falls back to
   // CONTRACTS_LIVE_SINCE (correct, just a wider/slower range).
-  BIGPAD_LIVE_SINCE: "",
+  BIGPAD_LIVE_SINCE: "2026-09-14T00:00:00Z",
 };
 
 // $HOME's link-out explorer URL. rh-scan uses /token/{address} for ERC-20s
