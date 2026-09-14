@@ -148,6 +148,9 @@
             </div>
             <div class="bp-featured-side" id="bp-round-panel">
               <div class="bp-status-row" id="bp-round-status"><span class="bp-status-dot amber"></span>Preview — no round open</div>
+              <div class="bp-start-row" id="bp-start-row" style="display:none">
+                <button type="button" class="bp-btn-primary bp-btn-block" id="bp-start-btn">Start the 72h raise</button>
+              </div>
               <div class="bp-progress"><div class="bp-progress-fill" id="bp-round-progress-fill" style="width:0%"></div></div>
               <div class="bp-progress-label" id="bp-round-progress-label"><strong>—</strong> raised of <strong>—</strong> goal</div>
               <div class="bp-round-countdown" id="bp-round-countdown"></div>
@@ -158,8 +161,11 @@
               </div>
               <button type="button" class="bp-btn-primary bp-btn-block" id="bp-contribute-btn" disabled>Contribute ETH — not open</button>
               <div class="bp-my-position" id="bp-my-position"></div>
+              <div class="bp-refund-row" id="bp-refund-row" style="display:none">
+                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-refund-btn">Withdraw my contribution</button>
+              </div>
               <div class="bp-withdraw-row" id="bp-withdraw-row" style="display:none">
-                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-withdraw-btn">Withdraw to recipient wallet</button>
+                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-withdraw-btn">Withdraw &amp; split 80/5/15</button>
               </div>
             </div>
           </div>
@@ -198,8 +204,8 @@
         </div>
 
         <div class="bp-nextcard">
-          <h3>What's next</h3>
-          <p>The fund-pooling, voting and vesting contract described above is still in design and review — it hasn't gone live with real funds. This page switches from preview to a real round the moment one opens.</p>
+          <h3 id="bp-nextcard-title">What's next</h3>
+          <p id="bp-nextcard-body">The fund-pooling, voting and vesting contract described above is still in design and review — it hasn't gone live with real funds. This page switches from preview to a real round the moment one opens.</p>
           <button type="button" class="bp-card-link" data-tab-link="docs">Read the full design →</button>
         </div>
 
@@ -278,6 +284,7 @@
 
         <div class="bp-doc-panel active" id="bp-doc-how">
           <h1>How it works</h1>
+          <p class="bp-mech-note"><strong>First round, actually built:</strong> the recipient wallet starts a 72-hour timer. Anyone can contribute ETH while it's open, and withdraw their own contribution back any time before it closes — no lock-in. When it closes, the balance splits 80% recipient / 5% platform / 15% treasury automatically. None of the bidding, leadership, or voting described below is on-chain yet in this round — see Safety design.</p>
           <p class="bp-lede">One project. A 3-day ETH raise decides who leads it and how it's split. Every contributor votes on what it becomes.</p>
 
           <h3>The raise</h3>
@@ -298,6 +305,7 @@
 
         <div class="bp-doc-panel" id="bp-doc-economics">
           <h1>Economics</h1>
+          <p class="bp-mech-note"><strong>First round, actually built:</strong> 80% recipient wallet / 5% platform wallet / 15% treasury wallet, paid directly — no LP liquidity or vesting yet. The split below is the longer-term vision this round doesn't implement.</p>
           <div class="bp-split-bars">
             <div class="bp-split-row"><span>LP liquidity</span><div class="bp-split-track"><div class="bp-split-fill" style="width:80%"></div></div><strong>80%</strong></div>
             <div class="bp-split-row"><span>Lead's payout (vested)</span><div class="bp-split-track"><div class="bp-split-fill alt" style="width:15%"></div></div><strong>15%</strong></div>

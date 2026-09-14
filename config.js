@@ -222,15 +222,28 @@ const CONFIG = {
   // to keep bigpad.html showing its "PREVIEW — no round open" card;
   // filling it in switches that card to live on-chain data. Deploy with
   // contracts/scripts/deploy-bigpad-escrow.js — testnet first, always.
-  BIGPAD_ESCROW_ADDRESS: "0xb4344041dd51404a19409C42Dfc7f384429C7d12", // mainnet — Round 1, deployed 2026-09-14, uncapped, 72h
-  // Wallet the raise pays out to once it closes — must match the
-  // `recipient` the escrow contract was actually deployed with.
+  // BigPadEscrow (contracts/BigPadEscrow.sol) — a minimal escrow: no cap
+  // required, a start()-triggered 72h window, contributor-initiated
+  // refunds any time while open, and an 80/5/15 payout split on close.
+  // NOT the full leader/vote/vesting mechanism described on the BigPad
+  // Docs page — that's a separate, larger contract still in design and
+  // review. Address is blank until the redesigned contract (start() +
+  // refund() + 3-way split) is deployed and tested — the OLD single-
+  // recipient contract at 0xb4344041dd51404a19409C42Dfc7f384429C7d12 uses
+  // a different interface and must not be wired in here.
+  BIGPAD_ESCROW_ADDRESS: "",
+  // Wallet that calls start()/withdraw() and gets 80% of the final balance.
   BIGPAD_RECIPIENT_ADDRESS: "0x6D4D057eB9431E1DB6eB6cD3bB6597A304C566b4",
-  // Bounds every Contributed-event query the same way CONTRACTS_LIVE_SINCE
-  // does for the rest of the site (see blockAtOrAfter in app.js) — set this
-  // to the escrow's actual deploy time once deployed, otherwise the scan
-  // falls back to CONTRACTS_LIVE_SINCE (correct, just a wider/slower range).
-  BIGPAD_LIVE_SINCE: "2026-09-14T00:00:00Z",
+  // Gets 5% of the final balance.
+  BIGPAD_PLATFORM_ADDRESS: "0x0A376879b958F8729334341A520f830Db5ec79CC",
+  // Gets 15% of the final balance — same wallet as HOME_TREASURY_ADDRESS below.
+  BIGPAD_TREASURY_ADDRESS: "0x0106BA97a34BFDf8a7AB68A9434Cb08E0E2991d9",
+  // Bounds every Contributed/Refunded-event query the same way
+  // CONTRACTS_LIVE_SINCE does for the rest of the site (see
+  // blockAtOrAfter in app.js) — set this to the escrow's actual deploy
+  // time once deployed, otherwise the scan falls back to
+  // CONTRACTS_LIVE_SINCE (correct, just a wider/slower range).
+  BIGPAD_LIVE_SINCE: "",
 };
 
 // $HOME's link-out explorer URL. rh-scan uses /token/{address} for ERC-20s

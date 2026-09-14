@@ -2238,6 +2238,7 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 .bp-activity-item:last-child{border-bottom:none;}
 .bp-activity-addr{flex:1;min-width:0;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .bp-activity-amount{flex-shrink:0;color:#fff;font-weight:700;}
+.bp-activity-out .bp-activity-amount{color:var(--red);}
 .bp-activity-time{flex-shrink:0;color:var(--ink-dim);font-size:.72rem;width:64px;text-align:right;}
 
 .bp-mini-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}

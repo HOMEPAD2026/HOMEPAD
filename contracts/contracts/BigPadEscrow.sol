@@ -6,63 +6,95 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @notice Minimal ETH crowdraise escrow for BigPad's first round.
 ///
-/// Deliberately narrow scope: an optional hard cap, a fixed deadline, and
-/// funds held in this contract — not a raw wallet — until the raise
-/// closes. It does NOT implement the leader/voting/vesting mechanism
-/// described on the BigPad docs page; that is a separate, larger contract
-/// still in design and review (see Docs > Safety design). This contract
-/// exists so the very first round doesn't have to wait for that one. It
-/// upgrades "ETH sent straight to an EOA" to "ETH locked in an auditable,
-/// time-boxed contract" — nothing more, nothing less.
+/// Deliberately narrow scope: funds are held in this contract — not a raw
+/// wallet — until the raise closes. It does NOT implement the leader/
+/// voting/vesting mechanism described on the BigPad docs page; that is a
+/// separate, larger contract still in design and review (see Docs >
+/// Safety design).
 ///
-/// Known limitation, by design, in this version: if the raise ends with
-/// little raised, contributors have no on-chain refund path — `recipient`
-/// can withdraw whatever came in once the deadline passes (or the cap is
-/// hit). This is disclosed on-site, not hidden.
+/// Lifecycle:
+///  1. Deploy. Nothing is open yet.
+///  2. `recipient` calls start() — this is the only thing that begins the
+///     72-hour funding window (nothing happens automatically on deploy).
+///  3. While open, anyone can contribute() ETH, and any contributor can
+///     refund() some or all of their own contribution back, any time,
+///     for any reason — no lock-in.
+///  4. Once the 72 hours are up, `recipient` calls withdraw() once, which
+///     splits whatever is left 80/5/15 between `recipient`, `platformWallet`,
+///     and `treasuryWallet`. `recipient` cannot withdraw a single wei
+///     before the window closes — there is no early-exit path for them,
+///     capped raise or not.
 contract BigPadEscrow is Ownable, ReentrancyGuard {
-    /// @notice Where funds go once the raise closes. Also the Ownable
-    /// owner — only this wallet can call withdraw(), and it always pays
-    /// itself, never an address supplied at call time.
-    address public immutable recipient;
+    uint256 public constant FUNDING_DURATION = 72 hours;
+    uint16 public constant RECIPIENT_BPS = 8000; // 80%
+    uint16 public constant PLATFORM_BPS = 500; // 5%
+    uint16 public constant TREASURY_BPS = 1500; // 15%
 
+    /// @notice Deploy/lead wallet. Also the Ownable owner — only this
+    /// wallet can call start() or withdraw(). Gets 80% of the final balance.
+    address public immutable recipient;
+    /// @notice Gets 5% of the final balance.
+    address public immutable platformWallet;
+    /// @notice Gets 15% of the final balance.
+    address public immutable treasuryWallet;
     /// @notice Hard cap on total ETH this contract will ever accept, in
-    /// wei. Zero means uncapped — the raise is bounded by `deadline` only.
+    /// wei. Zero means uncapped — the raise is bounded by time only.
     uint256 public immutable cap;
 
-    /// @notice Unix timestamp after which contribute() stops accepting ETH.
-    uint256 public immutable deadline;
+    /// @notice True once `recipient` has called start().
+    bool public started;
+    /// @notice Unix timestamp the funding window closes at. Zero until
+    /// start() is called.
+    uint256 public deadline;
 
-    /// @notice Total ETH accepted so far, in wei.
+    /// @notice Total ETH currently held for contributors (i.e. net of any
+    /// refunds already paid out), in wei.
     uint256 public totalRaised;
-
-    /// @notice Per-address running total contributed, in wei.
+    /// @notice Per-address contribution currently outstanding, in wei.
     mapping(address => uint256) public contributions;
+    /// @notice True once withdraw() has split the final balance out.
+    bool public distributed;
 
-    /// @notice True once withdraw() has moved the funds out.
-    bool public withdrawn;
-
+    event Started(uint256 deadline);
     event Contributed(address indexed contributor, uint256 amount, uint256 totalRaised);
-    event Withdrawn(address indexed to, uint256 amount);
+    event Refunded(address indexed contributor, uint256 amount, uint256 totalRaised);
+    event Distributed(uint256 toRecipient, uint256 toPlatform, uint256 toTreasury);
 
+    error AlreadyStarted();
+    error NotStarted();
     error RaiseEnded();
+    error RaiseStillOpen();
     error CapExceeded();
     error ZeroContribution();
-    error RaiseStillOpen();
-    error AlreadyWithdrawn();
-    error NothingToWithdraw();
+    error ZeroRefundAmount();
+    error InsufficientContribution();
+    error AlreadyDistributed();
+    error NothingToDistribute();
 
-    constructor(address recipient_, uint256 cap_, uint256 deadline_) Ownable(recipient_) {
+    constructor(address recipient_, address platformWallet_, address treasuryWallet_, uint256 cap_) Ownable(recipient_) {
         require(recipient_ != address(0), "recipient is zero address");
-        require(deadline_ > block.timestamp, "deadline must be in the future");
+        require(platformWallet_ != address(0), "platform wallet is zero address");
+        require(treasuryWallet_ != address(0), "treasury wallet is zero address");
         recipient = recipient_;
-        cap = cap_; // 0 is a deliberate sentinel for "uncapped" — see contribute()/isOpen()/withdraw()
-        deadline = deadline_;
+        platformWallet = platformWallet_;
+        treasuryWallet = treasuryWallet_;
+        cap = cap_; // 0 is a deliberate sentinel for "uncapped"
     }
 
-    /// @notice Contribute ETH to the raise. Reverts past the deadline, or
-    /// — if a cap is set — if this contribution would push totalRaised
-    /// over it. Check remainingCap() first and send at most that much.
+    /// @notice Starts the 72-hour funding window. Only `recipient` can
+    /// call this, and only once — there is no way to restart or extend it.
+    function start() external onlyOwner {
+        if (started) revert AlreadyStarted();
+        started = true;
+        deadline = block.timestamp + FUNDING_DURATION;
+        emit Started(deadline);
+    }
+
+    /// @notice Contribute ETH to the raise. Reverts before start(), past
+    /// the deadline, or — if a cap is set — if this would push totalRaised
+    /// over it.
     function contribute() external payable nonReentrant {
+        if (!started) revert NotStarted();
         if (block.timestamp >= deadline) revert RaiseEnded();
         if (msg.value == 0) revert ZeroContribution();
         if (cap > 0 && totalRaised + msg.value > cap) revert CapExceeded();
@@ -73,23 +105,48 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
         emit Contributed(msg.sender, msg.value, totalRaised);
     }
 
-    /// @notice Releases the escrowed ETH to `recipient`. Callable only by
-    /// `recipient` itself, and only once the raise has actually closed —
-    /// the deadline has passed, or (if a cap is set) the cap was reached.
-    /// An uncapped raise can only close by deadline. One-shot: pays out
-    /// the full balance, once.
-    function withdraw() external onlyOwner nonReentrant {
-        bool capReached = cap > 0 && totalRaised >= cap;
-        if (block.timestamp < deadline && !capReached) revert RaiseStillOpen();
-        if (withdrawn) revert AlreadyWithdrawn();
-        uint256 balance = address(this).balance;
-        if (balance == 0) revert NothingToWithdraw();
+    /// @notice Lets a contributor pull back some or all of their own
+    /// contribution, any time while the raise is still open — no lock-in,
+    /// no reason required. Reverts once the window has closed.
+    function refund(uint256 amount) external nonReentrant {
+        if (!started || block.timestamp >= deadline) revert RaiseEnded();
+        if (amount == 0) revert ZeroRefundAmount();
+        uint256 bal = contributions[msg.sender];
+        if (amount > bal) revert InsufficientContribution();
 
-        withdrawn = true;
-        emit Withdrawn(recipient, balance);
+        contributions[msg.sender] = bal - amount;
+        totalRaised -= amount;
 
-        (bool ok, ) = recipient.call{value: balance}("");
+        emit Refunded(msg.sender, amount, totalRaised);
+
+        (bool ok, ) = msg.sender.call{value: amount}("");
         require(ok, "ETH transfer failed");
+    }
+
+    /// @notice Splits the final balance 80/5/15 between recipient/
+    /// platform/treasury. Only `recipient` can call this, and only once
+    /// the funding window has actually closed — there is no early exit
+    /// for `recipient`, regardless of how much has been raised. One-shot.
+    function withdraw() external onlyOwner nonReentrant {
+        if (!started || block.timestamp < deadline) revert RaiseStillOpen();
+        if (distributed) revert AlreadyDistributed();
+        uint256 balance = address(this).balance;
+        if (balance == 0) revert NothingToDistribute();
+
+        distributed = true;
+
+        uint256 toPlatform = (balance * PLATFORM_BPS) / 10000;
+        uint256 toTreasury = (balance * TREASURY_BPS) / 10000;
+        uint256 toRecipient = balance - toPlatform - toTreasury; // remainder — avoids rounding dust getting stuck
+
+        emit Distributed(toRecipient, toPlatform, toTreasury);
+
+        (bool ok1, ) = recipient.call{value: toRecipient}("");
+        require(ok1, "recipient transfer failed");
+        (bool ok2, ) = platformWallet.call{value: toPlatform}("");
+        require(ok2, "platform transfer failed");
+        (bool ok3, ) = treasuryWallet.call{value: toTreasury}("");
+        require(ok3, "treasury transfer failed");
     }
 
     /// @notice How much more ETH the raise can accept before hitting cap.
@@ -102,6 +159,6 @@ contract BigPadEscrow is Ownable, ReentrancyGuard {
     /// @notice Whether contribute() would currently accept a nonzero amount.
     function isOpen() external view returns (bool) {
         bool capReached = cap > 0 && totalRaised >= cap;
-        return block.timestamp < deadline && !capReached;
+        return started && block.timestamp < deadline && !capReached;
     }
 }
