@@ -1866,6 +1866,17 @@ body.cnpons-page .card-badge.up{color:#39ff88;}
    as clutter at this small a size) */
 .cn-brand{gap:8px;}
 .cn-brand-logo{width:34px;height:34px;object-fit:contain;border-radius:9px;flex-shrink:0;display:block;}
+/* Sub-nav: Explore / Forum / Analytics */
+.cn-subnav-wrap{border-bottom:1px solid var(--line);background:rgba(0,0,0,.15);}
+.cn-subnav{display:flex;gap:4px;padding:10px 24px;max-width:var(--maxw);margin:0 auto;}
+.cn-subnav a,.cn-subnav button{
+  font-family:'Sora';font-size:.82rem;font-weight:700;color:var(--ink-dim);
+  background:transparent;border:none;padding:7px 14px;border-radius:100px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.cn-subnav a.active{background:var(--panel);color:var(--ink);}
+.cn-subnav button:hover{color:var(--ink);}
+.cn-soon-tag{font-family:'Silkscreen';font-size:.55rem;color:var(--amber);background:rgba(255,182,72,.12);border:1px solid rgba(255,182,72,.35);padding:1px 6px;border-radius:100px;}
 @media (max-width:520px){
   .cn-header-right{gap:6px;}
   .cn-lang-toggle button{padding:5px 8px;font-size:.68rem;}

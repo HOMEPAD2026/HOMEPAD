@@ -71,6 +71,9 @@ const CN_I18N = {
     mechRiskBody: `Stock Tokens carry a <code>currentMultiplier</code> Robinhood adjusts on real corporate actions (splits, dividends). This pool's price doesn't automatically re-sync to that adjustment after launch — a corporate action later could leave it mispriced relative to the real stock. This is the one thing here that isn't just "how it works" but a genuine open risk worth knowing before you launch or trade.`,
     mechAddress: `Factory contract (Robinhood Chain mainnet): <code>0x917F2f7A7E4607937c3562E96b2E02325264B813</code>`,
     mechQiaoAddress: `$橋 (Chinese PONS) contract: <code>0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</code>`,
+    subnavExplore: "Explore", subnavForum: "Forum", subnavAnalytics: "Analytics", soonTag: "soon",
+    soonBody: "This isn't live yet — still being built. Check back soon.",
+    soonClose: "Got it",
   },
   zh: {
     eyebrow: "真实的 Robinhood 股票代币，实时验证 🇨🇳",
@@ -127,10 +130,15 @@ const CN_I18N = {
     mechRiskBody: `股票代币带有一个 <code>currentMultiplier</code>，Robinhood 会根据真实的公司行为（如拆股、分红）进行调整。发行后，资金池的价格不会自动跟随这一调整重新同步——之后若发生公司行为，可能导致池子相对真实股票出现价格偏差。这是本页唯一不只是"运作原理"、而是真正需要在发行或交易前了解的公开风险。`,
     mechAddress: `工厂合约地址（Robinhood Chain 主网）：<code>0x917F2f7A7E4607937c3562E96b2E02325264B813</code>`,
     mechQiaoAddress: `$橋（Chinese PONS）合约地址：<code>0xbD27A75E225B0170e124fca392eb8c7E767fC6CA</code>`,
+    subnavExplore: "探索", subnavForum: "论坛", subnavAnalytics: "数据分析", soonTag: "即将上线",
+    soonBody: "还没上线，仍在开发中，敬请期待。",
+    soonClose: "知道了",
   },
 };
 
+let cnCurrentLang = "en";
 function applyCnLang(lang) {
+  cnCurrentLang = lang;
   const dict = CN_I18N[lang] || CN_I18N.en;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
@@ -670,6 +678,16 @@ async function submitCnLaunch(ev) {
       document.querySelectorAll("#cn-sort-group button").forEach((x) => x.classList.toggle("active", x === b));
       renderCnExploreGrid();
     });
+  });
+  function showCnSoon(labelKey) {
+    const dict = CN_I18N[cnCurrentLang] || CN_I18N.en;
+    document.getElementById("cn-soon-modal-head").textContent = `${dict[labelKey]} — ${cnCurrentLang === "zh" ? "即将上线" : "coming soon"}`;
+    document.getElementById("cn-soon-modal").classList.remove("hidden");
+  }
+  document.getElementById("cn-subnav-forum").addEventListener("click", () => showCnSoon("subnavForum"));
+  document.getElementById("cn-subnav-analytics").addEventListener("click", () => showCnSoon("subnavAnalytics"));
+  document.getElementById("cn-soon-modal-close").addEventListener("click", () => {
+    document.getElementById("cn-soon-modal").classList.add("hidden");
   });
   document.getElementById("cn-liquidity-modal-continue").addEventListener("click", () => {
     document.getElementById("cn-liquidity-modal").classList.add("hidden");
