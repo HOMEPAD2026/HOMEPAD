@@ -138,22 +138,31 @@
               <span class="bp-featured-badge">PREVIEW</span>
               <h2>First BigPad round <span class="bp-ticker">$TBD</span></h2>
               <div class="bp-tags"><span>Community-led</span><span>ETH raise</span><span>Robinhood Chain</span></div>
-              <p>Name, ticker, logo and roadmap are all decided by contributors' votes once a raise closes. This card shows the shape of a round — it isn't a real one yet.</p>
+              <p id="bp-featured-desc">Name, ticker, logo and roadmap are all decided by contributors' votes once a raise closes. This card shows the shape of a round — it isn't a real one yet.</p>
             </div>
-            <div class="bp-featured-side">
-              <div class="bp-status-row"><span class="bp-status-dot amber"></span>Preview — no round open</div>
-              <div class="bp-progress"><div class="bp-progress-fill" style="width:0%"></div></div>
-              <div class="bp-progress-label"><strong>—</strong> raised of <strong>—</strong> goal</div>
-              <button type="button" class="bp-btn-primary bp-btn-block" disabled>Contribute ETH — not open</button>
+            <div class="bp-featured-side" id="bp-round-panel">
+              <div class="bp-status-row" id="bp-round-status"><span class="bp-status-dot amber"></span>Preview — no round open</div>
+              <div class="bp-progress"><div class="bp-progress-fill" id="bp-round-progress-fill" style="width:0%"></div></div>
+              <div class="bp-progress-label" id="bp-round-progress-label"><strong>—</strong> raised of <strong>—</strong> goal</div>
+              <div class="bp-round-countdown" id="bp-round-countdown"></div>
+              <div class="bp-contribute-row" id="bp-contribute-row" style="display:none">
+                <input type="number" min="0" step="0.001" class="bp-contribute-input" id="bp-contribute-amount" placeholder="ETH amount">
+                <button type="button" class="bp-btn-ghost bp-contribute-max" id="bp-contribute-max">Max</button>
+              </div>
+              <button type="button" class="bp-btn-primary bp-btn-block" id="bp-contribute-btn" disabled>Contribute ETH — not open</button>
+              <div class="bp-my-position" id="bp-my-position"></div>
+              <div class="bp-withdraw-row" id="bp-withdraw-row" style="display:none">
+                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-withdraw-btn">Withdraw to recipient wallet</button>
+              </div>
             </div>
           </div>
           <div class="bp-mini-stats">
-            <div class="bp-mini-stat"><svg><use href="#i-clock" xlink:href="#i-clock"/></svg><span>Raise length</span><strong>3 days</strong></div>
-            <div class="bp-mini-stat"><svg><use href="#i-users" xlink:href="#i-users"/></svg><span>Contributors</span><strong>—</strong></div>
-            <div class="bp-mini-stat"><svg><use href="#i-crown" xlink:href="#i-crown"/></svg><span>Current lead</span><strong>—</strong></div>
-            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Your contribution</span><strong>—</strong></div>
-            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Est. allocation</span><strong>—</strong></div>
-            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Lead payout</span><strong>15%, vested</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-clock" xlink:href="#i-clock"/></svg><span id="bp-stat-length-label">Raise length</span><strong id="bp-stat-length">3 days</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-users" xlink:href="#i-users"/></svg><span>Contributors</span><strong id="bp-stat-contributors">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-crown" xlink:href="#i-crown"/></svg><span>Top contributor</span><strong id="bp-stat-lead">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Your contribution</span><strong id="bp-stat-mine">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Your share</span><strong id="bp-stat-myshare">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span id="bp-stat-payout-label">Lead payout</span><strong id="bp-stat-payout">15%, vested</strong></div>
           </div>
         </div>
 
@@ -163,11 +172,11 @@
             <ul class="bp-vote-list">
               <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
             </ul>
-            <p class="bp-card-note">Every contributor gets a vote, weighted by their share of the raise.</p>
+            <p class="bp-card-note" id="bp-gov-note">Every contributor gets a vote, weighted by their share of the raise.</p>
           </div>
           <div class="bp-card">
             <div class="bp-card-head">Leaderboard <button type="button" class="bp-card-link" data-tab-link="leaderboard">View all →</button></div>
-            <div class="bp-empty">No contributors yet. The leaderboard fills in once a raise opens.</div>
+            <div class="bp-empty" id="bp-home-leaderboard">No contributors yet. The leaderboard fills in once a raise opens.</div>
           </div>
           <div class="bp-card">
             <div class="bp-card-head">Launch process</div>
@@ -207,7 +216,7 @@
             <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
           </ul>
           <p>Voting runs alongside the 3-day funding window and closes when the raise does.</p>
-          <div class="bp-empty">No round is open, so there's nothing to vote on yet.</div>
+          <div class="bp-empty" id="bp-gov-panel-note">No round is open, so there's nothing to vote on yet.</div>
         </div>
       </section>
 
@@ -215,8 +224,8 @@
       <section class="bp-panel" id="bp-panel-position">
         <div class="bp-simple">
           <h1>My Position</h1>
-          <p>Once a round is live, connecting your wallet here will show what you've contributed, your voting weight, your estimated token allocation, and — if you become the confirmed lead — your vesting schedule.</p>
-          <div class="bp-empty">Connect your wallet once a round is open to see your position.</div>
+          <p>Once a round is live, connecting your wallet here will show what you've contributed and your share of the raise so far.</p>
+          <div class="bp-empty" id="bp-position-body">Connect your wallet once a round is open to see your position.</div>
         </div>
       </section>
 
@@ -224,8 +233,9 @@
       <section class="bp-panel" id="bp-panel-leaderboard">
         <div class="bp-simple">
           <h1>Leaderboard</h1>
-          <p>Ranks every contributor in the current raise by ETH committed. The top contributor leads the project unless they miss the 12-hour setup checkpoint, in which case the next-highest bidder gets the same window.</p>
-          <div class="bp-empty">No contributors yet. The leaderboard fills in once a raise opens.</div>
+          <p>Ranks every contributor in the current raise by ETH committed, with each one's share of the total.</p>
+          <div class="bp-empty" id="bp-full-leaderboard">No contributors yet. The leaderboard fills in once a raise opens.</div>
+          <div id="bp-recent-activity"></div>
         </div>
       </section>
 

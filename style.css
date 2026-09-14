@@ -2202,6 +2202,36 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 .bp-progress-label{font-size:.78rem;color:var(--ink-dim);}
 .bp-progress-label strong{color:#fff;font-weight:700;}
 
+.bp-round-countdown{font-size:.78rem;color:var(--ink-dim);text-align:center;font-variant-numeric:tabular-nums;}
+.bp-round-countdown strong{color:#fff;}
+.bp-contribute-row{display:flex;gap:8px;}
+.bp-contribute-input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:#fff;font:inherit;font-size:.86rem;}
+.bp-contribute-input::placeholder{color:#5c5c62;}
+.bp-contribute-input:focus{outline:none;border-color:#4c4c52;}
+.bp-contribute-max{flex-shrink:0;padding:11px 16px;font-size:.8rem;}
+.bp-my-position{font-size:.78rem;color:var(--ink-dim);text-align:center;padding-top:2px;}
+.bp-my-position strong{color:#fff;}
+.bp-featured-badge.bp-live{background:var(--green);}
+.bp-status-dot.bp-live{background:var(--green);box-shadow:0 0 6px rgba(255,255,255,.5);}
+
+.bp-lb-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.82rem;}
+.bp-lb-row:last-child{border-bottom:none;}
+.bp-lb-rank{width:18px;flex-shrink:0;color:var(--ink-dim);font-weight:700;}
+.bp-lb-addr{flex:1;min-width:0;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bp-lb-amount{flex-shrink:0;color:#fff;font-weight:700;}
+.bp-lb-pct{flex-shrink:0;width:52px;text-align:right;color:var(--ink-dim);}
+.bp-lb-mini{display:flex;flex-direction:column;gap:2px;}
+.bp-lb-mini .bp-lb-row{padding:6px 0;font-size:.78rem;}
+.bp-lb-more{font-size:.74rem;color:var(--ink-dim);text-align:center;padding-top:8px;}
+
+#bp-recent-activity{margin-top:18px;}
+#bp-recent-activity h4{font-size:.85rem;font-weight:700;color:#fff;margin:0 0 10px;}
+.bp-activity-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.8rem;}
+.bp-activity-item:last-child{border-bottom:none;}
+.bp-activity-addr{flex:1;min-width:0;color:#fff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bp-activity-amount{flex-shrink:0;color:#fff;font-weight:700;}
+.bp-activity-time{flex-shrink:0;color:var(--ink-dim);font-size:.72rem;width:64px;text-align:right;}
+
 .bp-mini-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
 .bp-mini-stat{background:var(--panel-hi);border:1px solid var(--line);border-radius:12px;padding:14px 12px;}
 .bp-mini-stat svg{width:16px;height:16px;color:var(--ink-dim);margin-bottom:9px;}
