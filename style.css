@@ -2314,19 +2314,33 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 @media (max-width:900px){
   .bp-app{flex-direction:column;}
   .bp-sidebar{
-    width:100%;flex:0 0 auto;position:sticky;top:0;z-index:10;background:var(--void);height:auto;
-    flex-direction:row;align-items:center;gap:10px;padding:12px 14px;overflow-x:auto;
+    width:100%;flex:0 0 auto;position:sticky;top:0;z-index:20;background:var(--void);height:auto;
+    flex-direction:column;align-items:stretch;gap:0;padding:0;
     border-right:none;border-bottom:1px solid var(--line);
   }
-  .bp-side-brand,.bp-side-foot,.bp-side-section-label{display:none;}
-  .bp-side-nav{flex-direction:row;flex:0 0 auto;}
-  .bp-nav-item{white-space:nowrap;padding:8px 13px;font-size:.79rem;flex:0 0 auto;}
+  .bp-side-brand,.bp-side-foot{display:none;}
+  .bp-mobile-menu-trigger{
+    display:flex;align-items:center;justify-content:space-between;width:100%;
+    background:none;border:none;color:#fff;font-family:inherit;font-size:.92rem;font-weight:700;
+    padding:14px 18px;cursor:pointer;
+  }
+  .bp-mobile-menu-caret{width:15px;height:15px;color:var(--ink-dim);transition:transform .15s;flex-shrink:0;}
+  .bp-sidebar.bp-menu-open .bp-mobile-menu-caret{transform:rotate(180deg);}
+  .bp-side-section-label{display:none;margin:10px 18px 6px;}
+  .bp-side-nav{display:none;flex-direction:column;padding:0 10px;}
+  .bp-sidebar.bp-menu-open{border-bottom-color:var(--line);box-shadow:0 12px 24px rgba(0,0,0,.4);}
+  .bp-sidebar.bp-menu-open .bp-side-nav{display:flex;}
+  .bp-sidebar.bp-menu-open .bp-side-section-label{display:block;}
+  .bp-sidebar.bp-menu-open .bp-side-nav:last-of-type{padding-bottom:10px;}
   .bp-nav-item .bp-nav-ext{display:none;}
   .bp-topbar{padding:16px 20px;flex-wrap:wrap;}
   .bp-scroll{padding:0 20px 60px;}
   .bp-hero{padding:40px 26px;min-height:280px;}
   .bp-hero-copy h1{font-size:1.9rem;}
   .bp-row3{grid-template-columns:1fr;}
+}
+@media (min-width:901px){
+  .bp-mobile-menu-trigger{display:none;}
 }
 @media (max-width:640px){
   .bp-featured-main{grid-template-columns:1fr;}

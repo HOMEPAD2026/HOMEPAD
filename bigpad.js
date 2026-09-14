@@ -8,16 +8,41 @@
   // ---- Main sidebar tabs (Home / Projects / Governance / ...) ----
   const navItems = document.querySelectorAll(".bp-nav-item[data-tab]");
   const panels = document.querySelectorAll(".bp-panel");
+  const sidebar = document.getElementById("bp-sidebar");
+  const mobileMenuLabel = document.getElementById("bp-mobile-menu-label");
 
   function showTab(tab) {
     navItems.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     panels.forEach((p) => p.classList.toggle("active", p.id === `bp-panel-${tab}`));
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (mobileMenuLabel) {
+      const activeBtn = [...navItems].find((b) => b.dataset.tab === tab);
+      if (activeBtn) mobileMenuLabel.textContent = activeBtn.textContent.trim();
+    }
+    if (sidebar) sidebar.classList.remove("bp-menu-open");
   }
 
   navItems.forEach((btn) => {
     btn.addEventListener("click", () => showTab(btn.dataset.tab));
   });
+
+  // ---- Mobile-only dropdown: the sidebar nav is hidden by default on
+  // narrow screens (see the max-width:900px block in style.css) and
+  // opens as a dropdown from this trigger instead of the old horizontal
+  // scroller. Desktop never shows the trigger, so the full vertical
+  // sidebar there is untouched by any of this.
+  const menuTrigger = document.getElementById("bp-mobile-menu-trigger");
+  if (menuTrigger && sidebar) {
+    menuTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("bp-menu-open");
+    });
+    document.addEventListener("click", (e) => {
+      if (sidebar.classList.contains("bp-menu-open") && !sidebar.contains(e.target)) {
+        sidebar.classList.remove("bp-menu-open");
+      }
+    });
+  }
 
   // Small "Learn more →" / "How it works" links inside cards jump to
   // another sidebar tab, same as clicking the sidebar item itself.
