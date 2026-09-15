@@ -436,21 +436,10 @@ async function initBigpadRound() {
   }, 15000);
 }
 
-function bigpadLbRowHtml(r, i, pctFn) {
-  return `<div class="bp-lb-row">
-    <span class="bp-lb-rank">#${i + 1}</span>
-    <span class="bp-lb-addr">${short(r.address)}</span>
-    <span class="bp-lb-amount">${fmtEth(r.amount)} ETH</span>
-    <span class="bp-lb-pct">${pctFn(r.amount)}%</span>
-    <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${r.address}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
-  </div>`;
-}
-
-// Full Leaderboard panel only (the Home teaser stays compact — see
-// bigpadLbRowHtml above): adds a deposited/withdrawn breakdown line, but
-// only for addresses that have actually withdrawn something. Someone who
-// only ever contributed sees exactly the same simple row as before —
-// "deposited: X, withdrew: 0" would just be repeating the net amount.
+// Full Leaderboard panel AND the Home teaser both use this — adds a
+// deposited/withdrawn breakdown line, but only for addresses that have
+// actually withdrawn something. Someone who only ever contributed sees
+// a plain row — "deposited: X, withdrew: 0" would just repeat the net.
 function bigpadLbRowDetailedHtml(r, i, pctFn) {
   const flows = r.withdrawnTotal > 0n
     ? `<div class="bp-lb-flows">↓ ${fmtEth(r.depositedTotal)} ETH in · ↑ ${fmtEth(r.withdrawnTotal)} ETH out</div>`
@@ -560,7 +549,7 @@ async function refreshBigpadLeaderboard() {
       homeEl.textContent = "No contributors yet. The leaderboard fills in once a raise opens.";
     } else {
       homeEl.className = "bp-lb-mini";
-      homeEl.innerHTML = rows.slice(0, 3).map((r, i) => bigpadLbRowHtml(r, i, pctOf)).join("")
+      homeEl.innerHTML = rows.slice(0, 3).map((r, i) => bigpadLbRowDetailedHtml(r, i, pctOf)).join("")
         + (rows.length > 3 ? `<div class="bp-lb-more">+${rows.length - 3} more</div>` : "");
     }
   }
