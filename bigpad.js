@@ -428,7 +428,14 @@ async function initBigpadRound() {
     const now = Math.floor(Date.now() / 1000);
     const capReached = cachedState.cap > 0n && cachedState.totalRaised >= cachedState.cap;
     const isOpen = cachedState.started && now < Number(cachedState.deadline) && !capReached;
-    applyBigpadState({ ...cachedState, isOpen, myContribution: 0n, myWalletBalance: null }, { accountUnknown: true });
+    const painted = { ...cachedState, isOpen, myContribution: 0n, myWalletBalance: null };
+    applyBigpadState(painted, { accountUnknown: true });
+    // Also seed the in-memory snapshot fetchBigpadState() falls back to on
+    // a failed read — otherwise the first real fetch of the session has
+    // no "previous" to recover to, and a single flaky started()/isOpen()
+    // call would default to false and flip an actually-live round back
+    // to READY right after the correct cached value was just shown.
+    _bigpadState = painted;
   }
   const cachedLb = bigpadLoadCache("leaderboard");
   if (cachedLb && Array.isArray(cachedLb.rows) && Array.isArray(cachedLb.activity)) {
