@@ -821,3 +821,187 @@ function wireBigpadContribute() {
 }
 
 initBigpadRound();
+initBigpadGovernance();
+
+// ---- Governance / voting (contracts/BigPadVote.sol) ----
+// Entirely separate from the escrow above — reads weight live from it
+// but holds no funds and isn't part of that contract. No-op (fallback
+// copy in the HTML stays as-is) until CONFIG.BIGPAD_VOTE_ADDRESS is
+// filled in after deploy.
+
+const BIGPAD_VOTE_CATEGORIES = [
+  { id: 0, label: "Coin name" },
+  { id: 1, label: "Ticker" },
+  { id: 2, label: "Logo" },
+  { id: 3, label: "Roadmap" },
+  { id: 4, label: "Launch date" },
+];
+
+let _bigpadGovPollTimer = null;
+
+function bigpadVoteConfigured() {
+  return typeof CONFIG !== "undefined" && !!CONFIG.BIGPAD_VOTE_ADDRESS && CONFIG.BIGPAD_VOTE_ADDRESS.length === 42;
+}
+function bigpadVoteRead() {
+  return new ethers.Contract(CONFIG.BIGPAD_VOTE_ADDRESS, BIGPAD_VOTE_ABI, readProvider());
+}
+function bigpadVoteWrite() {
+  return new ethers.Contract(CONFIG.BIGPAD_VOTE_ADDRESS, BIGPAD_VOTE_ABI, state.signer);
+}
+
+async function initBigpadGovernance() {
+  if (!bigpadVoteConfigured()) return; // fallback copy in the HTML stays put
+  const fallback = document.getElementById("bp-gov-fallback");
+  const live = document.getElementById("bp-gov-live");
+  if (fallback) fallback.style.display = "none";
+  if (live) live.style.display = "block";
+
+  // The escrow-only copy elsewhere on the page assumed voting wasn't
+  // enforced anywhere on-chain — now that it is (via this separate
+  // contract), say so instead of leaving the older disclaimer standing.
+  const govNote = document.getElementById("bp-gov-note");
+  if (govNote) govNote.textContent = "Voting is live — cast yours →";
+  const desc = document.getElementById("bp-featured-desc");
+  if (desc) desc.textContent = "This round is contribution-only on-chain: ETH sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap runs in a separate contract — see the Governance tab.";
+
+  await refreshBigpadGovernance();
+  if (_bigpadGovPollTimer) clearInterval(_bigpadGovPollTimer);
+  _bigpadGovPollTimer = setInterval(refreshBigpadGovernance, 15000);
+}
+
+// Three small batched rounds rather than one call per category/option:
+// round 1 finds which categories have options published, round 2 fetches
+// those categories' option lists (now that their lengths are known),
+// round 3 fetches every option's weight plus the caller's own vote per
+// category — all through multicallRead (see app.js), same pattern as
+// the round/leaderboard fetches above.
+async function fetchBigpadGovernanceState() {
+  const vote = bigpadVoteRead();
+
+  const round1 = [
+    { contract: vote, method: "votingOpen" },
+    { contract: vote, method: "votingEnds" },
+    ...BIGPAD_VOTE_CATEGORIES.map((c) => ({ contract: vote, method: "optionsSet", args: [c.id] })),
+  ];
+  const r1 = await multicallRead(round1);
+  const votingOpen = !!r1[0];
+  const votingEnds = r1[1] ?? 0n;
+  const setFlags = BIGPAD_VOTE_CATEGORIES.map((_c, i) => !!r1[2 + i]);
+  const setCats = BIGPAD_VOTE_CATEGORIES.filter((_c, i) => setFlags[i]);
+
+  const round2 = setCats.map((c) => ({ contract: vote, method: "options", args: [c.id] }));
+  const r2 = setCats.length > 0 ? await multicallRead(round2) : [];
+  const optionsByCategory = new Map(setCats.map((c, i) => [c.id, r2[i] || []]));
+
+  const round3 = [];
+  const round3Meta = [];
+  for (const c of setCats) {
+    const opts = optionsByCategory.get(c.id) || [];
+    for (let j = 0; j < opts.length; j++) {
+      round3.push({ contract: vote, method: "optionWeight", args: [c.id, j] });
+      round3Meta.push({ type: "weight", category: c.id, option: j });
+    }
+    if (state.account) {
+      round3.push({ contract: vote, method: "myVote", args: [c.id, state.account] });
+      round3Meta.push({ type: "myVote", category: c.id });
+    }
+  }
+  const r3 = round3.length > 0 ? await multicallRead(round3) : [];
+
+  const weightsByCategory = new Map();
+  const myVoteByCategory = new Map();
+  round3Meta.forEach((meta, i) => {
+    if (meta.type === "weight") {
+      if (!weightsByCategory.has(meta.category)) weightsByCategory.set(meta.category, []);
+      weightsByCategory.get(meta.category)[meta.option] = r3[i] ?? 0n;
+    } else {
+      myVoteByCategory.set(meta.category, r3[i]);
+    }
+  });
+
+  const categories = BIGPAD_VOTE_CATEGORIES.map((c, i) => {
+    const opts = optionsByCategory.get(c.id) || [];
+    const weights = weightsByCategory.get(c.id) || [];
+    const myVote = myVoteByCategory.get(c.id);
+    return {
+      id: c.id,
+      label: c.label,
+      set: setFlags[i],
+      options: opts.map((text, j) => ({ text, weight: weights[j] ?? 0n })),
+      myVoteIndex: myVote && myVote[0] ? Number(myVote[1]) : null,
+    };
+  });
+
+  return { votingOpen, votingEnds, categories };
+}
+
+function renderBigpadGovernance(g) {
+  const statusEl = document.getElementById("bp-gov-live-status");
+  if (statusEl) {
+    const now = Math.floor(Date.now() / 1000);
+    if (g.votingOpen) {
+      const hoursLeft = Math.max(0, Math.ceil((Number(g.votingEnds) - now) / 3600));
+      statusEl.textContent = `Voting is open — closes in about ${hoursLeft}h.`;
+    } else if (Number(g.votingEnds) > 0 && now >= Number(g.votingEnds)) {
+      statusEl.textContent = "Voting has closed.";
+    } else {
+      statusEl.textContent = "Voting opens once the raise closes.";
+    }
+  }
+
+  const wrap = document.getElementById("bp-gov-categories");
+  if (!wrap) return;
+
+  wrap.innerHTML = g.categories.map((c) => {
+    if (!c.set) {
+      return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-empty">Options not published yet.</div></div>`;
+    }
+    const total = c.options.reduce((sum, o) => sum + o.weight, 0n);
+    const pctOf = (w) => (total > 0n ? (Number((w * 10000n) / total) / 100).toFixed(1) : "0.0");
+    const optionsHtml = c.options.map((o, i) => {
+      const pct = pctOf(o.weight);
+      const mine = c.myVoteIndex === i;
+      const label = mine ? "Voted" : c.myVoteIndex !== null ? "Change vote" : "Vote";
+      return `
+        <div class="bp-gov-option${mine ? " bp-gov-option-mine" : ""}">
+          <div class="bp-gov-option-row">
+            <span class="bp-gov-option-text">${o.text}${mine ? '<span class="bp-gov-mine-tag">your vote</span>' : ""}</span>
+            <span class="bp-gov-option-pct">${pct}%</span>
+          </div>
+          <div class="bp-gov-option-bar"><div class="bp-gov-option-fill" style="width:${pct}%"></div></div>
+          <button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${mine || !g.votingOpen ? "disabled" : ""}>${label}</button>
+        </div>`;
+    }).join("");
+    return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-gov-options">${optionsHtml}</div></div>`;
+  }).join("");
+
+  wrap.querySelectorAll(".bp-gov-vote-btn").forEach((btn) => {
+    btn.addEventListener("click", () => castBigpadVote(Number(btn.dataset.category), Number(btn.dataset.option)));
+  });
+}
+
+async function refreshBigpadGovernance() {
+  if (!bigpadVoteConfigured()) return;
+  renderBigpadGovernance(await fetchBigpadGovernanceState());
+}
+
+async function castBigpadVote(category, optionIndex) {
+  if (!state.account) {
+    if (typeof connectWallet === "function") await connectWallet();
+    if (!state.account) return;
+  }
+  const btn = document.querySelector(`.bp-gov-vote-btn[data-category="${category}"][data-option="${optionIndex}"]`);
+  const original = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
+  try {
+    const vote = bigpadVoteWrite();
+    const tx = await vote.vote(category, optionIndex);
+    if (btn) btn.textContent = "Confirming…";
+    await tx.wait();
+    await refreshBigpadGovernance();
+  } catch (err) {
+    console.error("BigPad: vote failed", err);
+    alert(err?.reason || err?.shortMessage || "Vote failed or was rejected.");
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+  }
+}

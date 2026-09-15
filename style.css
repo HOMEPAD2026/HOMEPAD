@@ -2300,6 +2300,23 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
 .bp-simple .bp-empty{text-align:left;margin-top:8px;}
 
 /* ---------- Docs panel (reuses the pre-redesign copy, restyled) ---------- */
+/* ---------- Governance / voting (contracts/BigPadVote.sol) ---------- */
+.bp-gov-cat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
+.bp-gov-cat-head{margin-bottom:12px;}
+.bp-gov-cat-title{font-size:.95rem;font-weight:700;color:#fff;}
+.bp-gov-options{display:flex;flex-direction:column;gap:12px;}
+.bp-gov-option{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-hi);}
+.bp-gov-option.bp-gov-option-mine{border-color:#fff;}
+.bp-gov-option-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.bp-gov-option-text{font-size:.85rem;font-weight:600;color:#fff;}
+.bp-gov-mine-tag{font-size:.63rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#0a0a0a;background:#fff;padding:2px 7px;border-radius:100px;margin-left:6px;}
+.bp-gov-option-pct{font-size:.78rem;color:var(--ink-dim);font-weight:600;flex-shrink:0;}
+.bp-gov-option-bar{height:6px;background:#232323;border-radius:100px;overflow:hidden;margin-bottom:10px;}
+.bp-gov-option-fill{height:100%;background:#fff;border-radius:100px;}
+.bp-gov-vote-btn{width:100%;background:none;border:1px solid var(--line);color:var(--ink-dim);font-size:.78rem;font-weight:600;padding:8px;border-radius:8px;cursor:pointer;font-family:inherit;transition:color .15s,border-color .15s;}
+.bp-gov-vote-btn:hover:not(:disabled){color:#fff;border-color:#4c4c52;}
+.bp-gov-vote-btn:disabled{cursor:default;opacity:.5;}
+
 .bp-doc-tabs{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;}
 .bp-doc-tab{background:var(--panel);border:1px solid var(--line);color:var(--ink-dim);font-size:.79rem;font-weight:600;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;}
 .bp-doc-tab:hover{color:#fff;}

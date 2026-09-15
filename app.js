@@ -668,6 +668,7 @@ function refreshAccountDependentViews() {
   if (typeof refreshPassportDisplay === "function") refreshPassportDisplay(); // world.html only — no-op elsewhere
   if (typeof refreshAdvLaunchGate === "function") refreshAdvLaunchGate(); // adventure.html only — no-op elsewhere
   if (typeof refreshBigpadMyPosition === "function") refreshBigpadMyPosition(); // bigpad.html only — no-op elsewhere
+  if (typeof refreshBigpadGovernance === "function") refreshBigpadGovernance(); // bigpad.html only — no-op elsewhere
 }
 
 // No indexer yet — same tradeoff as Explore's launch list (see README).
