@@ -381,8 +381,11 @@ async function initBigpadRound() {
     console.error("BigPad: failed to load recipient/platform/treasury", err);
   }
 
-  await refreshBigpadCore();
-  await refreshBigpadLeaderboard();
+  // Independent of each other — no reason to wait for one before starting
+  // the other, and the leaderboard's first-ever fetch (binary-searching
+  // for the round's starting block, see blockAtOrAfter in app.js) is the
+  // slower of the two on a fresh browser with nothing cached yet.
+  await Promise.all([refreshBigpadCore(), refreshBigpadLeaderboard()]);
   wireBigpadContribute();
   wireBigpadWithdraw();
   wireBigpadStart();
@@ -411,24 +414,55 @@ function bigpadLbRowHtml(r, i, pctFn) {
   </div>`;
 }
 
+let _bigpadLeaderboardLoadedOnce = false;
+
 async function refreshBigpadLeaderboard() {
   if (!bigpadEscrowConfigured()) return;
   const escrow = bigpadEscrowRead();
   const sinceIso = CONFIG.BIGPAD_LIVE_SINCE || CONFIG.CONTRACTS_LIVE_SINCE;
 
+  // The very first fetch has to binary-search for the round's starting
+  // block (see blockAtOrAfter in app.js) — a handful of sequential RPC
+  // round trips on a browser with nothing cached yet, easily a couple of
+  // seconds. Say so instead of leaving the static "No contributors yet"
+  // text sitting there looking like a real (and possibly wrong) answer.
+  if (!_bigpadLeaderboardLoadedOnce) {
+    const homeElInit = document.getElementById("bp-home-leaderboard");
+    if (homeElInit) { homeElInit.className = "bp-empty"; homeElInit.textContent = "Loading…"; }
+    const fullElInit = document.getElementById("bp-full-leaderboard");
+    if (fullElInit) fullElInit.textContent = "Loading…";
+  }
+
   let fromBlock = 0;
   try { fromBlock = await blockAtOrAfter(sinceIso, "bigpad"); } catch { /* falls back to scanning from genesis */ }
 
   let events = [], refundEvents = [];
-  try {
-    [events, refundEvents] = await Promise.all([
-      escrow.queryFilter(escrow.filters.Contributed(), fromBlock, "latest"),
-      escrow.queryFilter(escrow.filters.Refunded(), fromBlock, "latest"),
-    ]);
-  } catch (err) {
-    console.error("BigPad: failed to load Contributed/Refunded events", err);
+  let loaded = false;
+  for (let attempt = 0; attempt < 3 && !loaded; attempt++) {
+    try {
+      [events, refundEvents] = await Promise.all([
+        escrow.queryFilter(escrow.filters.Contributed(), fromBlock, "latest"),
+        escrow.queryFilter(escrow.filters.Refunded(), fromBlock, "latest"),
+      ]);
+      loaded = true;
+    } catch (err) {
+      console.error(`BigPad: failed to load Contributed/Refunded events (attempt ${attempt + 1})`, err);
+      if (attempt < 2) await new Promise((res) => setTimeout(res, 600));
+    }
+  }
+  if (!loaded) {
+    // Only show this if we've never once loaded successfully — a poll
+    // that fails after an earlier success just leaves the last good data
+    // up rather than replacing it with an error.
+    if (!_bigpadLeaderboardLoadedOnce) {
+      const homeEl = document.getElementById("bp-home-leaderboard");
+      if (homeEl) { homeEl.className = "bp-empty"; homeEl.textContent = "Couldn't load the leaderboard — retrying shortly."; }
+      const fullEl = document.getElementById("bp-full-leaderboard");
+      if (fullEl) fullEl.textContent = "Couldn't load the leaderboard — retrying shortly.";
+    }
     return;
   }
+  _bigpadLeaderboardLoadedOnce = true;
 
   // Per-address totals read straight from the contract (authoritative)
   // rather than summed from events, so this can never double-count and
