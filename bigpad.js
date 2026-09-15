@@ -456,7 +456,18 @@ async function refreshBigpadLeaderboard() {
   }
 
   let fromBlock = 0;
-  try { fromBlock = await blockAtOrAfter(sinceIso, "bigpad"); } catch { /* falls back to scanning from genesis */ }
+  try {
+    // Cache key changed (was "bigpad") to force a fresh binary search —
+    // ruling out a stale/incorrect cached block number as the cause of
+    // real contributions not showing up. Also backed off by a fixed
+    // safety margin: the binary search's own precision is already within
+    // ~2000 blocks of the target, so this is pure defense-in-depth against
+    // silently searching from a point that's too late and missing real
+    // events (queryFilter has no way to warn "you started the range too
+    // late" — it just returns fewer results than actually exist).
+    const resolved = await blockAtOrAfter(sinceIso, "bigpad-v2");
+    fromBlock = Math.max(0, resolved - 50_000);
+  } catch { /* falls back to scanning from genesis */ }
 
   let events = [], refundEvents = [];
   let loaded = false;
