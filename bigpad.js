@@ -290,12 +290,12 @@ function applyBigpadState(s, { accountUnknown = false } = {}) {
   const labelEl = document.getElementById("bp-round-progress-label");
   if (capUncapped) {
     if (progressBarEl) progressBarEl.style.display = "none";
-    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(s.totalRaised)} ETH</strong> raised so far — uncapped`;
+    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} ETH</span><span class="bp-raised-suffix">raised so far — uncapped</span>`;
   } else {
     const pct = s.cap > 0n ? Math.min(100, Number((s.totalRaised * 10000n) / s.cap) / 100) : 0;
     if (progressBarEl) progressBarEl.style.display = "";
     if (fillEl) fillEl.style.width = pct + "%";
-    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(s.totalRaised)} ETH</strong> raised of <strong>${fmtEth(s.cap)} ETH</strong> goal`;
+    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} ETH</span><span class="bp-raised-suffix">of <strong>${fmtEth(s.cap)} ETH</strong> goal</span>`;
   }
 
   const lengthEl = document.getElementById("bp-stat-length");
