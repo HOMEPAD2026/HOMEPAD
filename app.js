@@ -1597,7 +1597,7 @@ function launchCardHtml(entry) {
         <div class="card-badges">${badges}<span class="card-badge home-pin">🏡 supported</span></div>
         ${thumb}
         <div class="sym">$${entry.symbol}</div>
-        <div class="name">${entry.name} — not launched via HOMEPAD</div>
+        <div class="name">Not launched via HOMEPAD</div>
         ${mcapLine}
         <div class="bar" style="visibility:hidden"><div class="bar-fill" style="width:0%"></div></div>
         ${dexRow}
@@ -1663,7 +1663,14 @@ async function renderExplorePreview() {
       listEl.innerHTML = `<div class="empty-state">No launches yet. <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;" style="color:var(--green)">Be the first.</a></div>`;
       return;
     }
-    entries.sort((a, b) => (b.marketCapEth ?? -1) - (a.marketCapEth ?? -1));
+    // marketCapUsd, not marketCapEth: the latter is only ever set for
+    // factory launches (computed from their own on-chain reserves) — for
+    // "home"/"external" entries (no factory, no reserves) it's never
+    // populated even after Dexscreener stats land, only marketCapUsd is.
+    // Sorting by marketCapEth silently ranked every one of those below
+    // literally any factory launch, however tiny, regardless of its real
+    // market cap.
+    entries.sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
     const shown = entries.slice(0, PREVIEW_LIMIT);
     listEl.innerHTML = shown.map(launchCardHtml).join("");
     if (entries.length > PREVIEW_LIMIT) {
@@ -1736,8 +1743,10 @@ async function renderExploreFull() {
     filtered.sort((a, b) => {
       switch (sortMode) {
         case "date-asc": return a.launchedAt - b.launchedAt;
-        case "mcap-desc": return (b.marketCapEth ?? -1) - (a.marketCapEth ?? -1);
-        case "mcap-asc": return (a.marketCapEth ?? Infinity) - (b.marketCapEth ?? Infinity);
+        // marketCapUsd — see the comment on the homepage preview's sort
+        // above for why marketCapEth silently excludes home/external entries.
+        case "mcap-desc": return (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1);
+        case "mcap-asc": return (a.marketCapUsd ?? Infinity) - (b.marketCapUsd ?? Infinity);
         case "name-asc": return a.name.localeCompare(b.name);
         case "change-desc": return (b.change24h ?? -Infinity) - (a.change24h ?? -Infinity);
         case "date-desc":
