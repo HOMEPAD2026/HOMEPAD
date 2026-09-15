@@ -1131,6 +1131,18 @@ async function fetchAllLaunches(opts) {
     });
   }
 
+  // Tokens HOMEPAD publicly supports/lists without having launched them —
+  // see CONFIG.EXPLORE_SUPPORTED_TICKERS. Same treatment as the $HOME
+  // card above: no factory, no HOMEPAD token page, links straight to
+  // Dexscreener instead of explore.html#/token/.
+  for (const t of CONFIG.EXPLORE_SUPPORTED_TICKERS || []) {
+    entries.push({
+      type: "external", token: t.address, name: t.name, symbol: t.symbol,
+      imageUrl: t.imageUrl, dexscreenerUrl: t.dexscreenerUrl,
+      launchedAt: 0, creator: null, twitter: t.twitter || null, telegram: t.telegram || null, discord: t.discord || null, website: t.website || null,
+    });
+  }
+
   // One shared ETH/USD fetch for the whole batch — cards show $ mcap the
   // same way the token detail page does, not a raw ETH figure.
   const ethUsd = await getEthUsdPrice();
@@ -1575,6 +1587,26 @@ function launchCardHtml(entry) {
     `;
   }
 
+  if (entry.type === "external") {
+    // Publicly supported/listed by HOMEPAD, but not launched through any
+    // HOMEPAD factory — same reasoning as the $HOME card above: no
+    // factory here means no HOMEPAD token page, so this links straight
+    // out to Dexscreener instead.
+    return `
+      <a class="launch-card card-type-home" href="${entry.dexscreenerUrl}" target="_blank" rel="noopener">
+        <div class="card-badges">${badges}<span class="card-badge home-pin">🏡 supported</span></div>
+        ${thumb}
+        <div class="sym">$${entry.symbol}</div>
+        <div class="name">${entry.name} — not launched via HOMEPAD</div>
+        ${mcapLine}
+        <div class="bar" style="visibility:hidden"><div class="bar-fill" style="width:0%"></div></div>
+        ${dexRow}
+        <div class="meta"><span class="home-tag">external</span><span class="card-age">Dexscreener ↗</span></div>
+        ${socials}
+      </a>
+    `;
+  }
+
   if (entry.type === "instant" || entry.type === "hybrid" || entry.type === "paired") {
     return `
       <a class="launch-card card-type-${entry.type}" href="explore.html#/token/${entry.token}">
@@ -1638,7 +1670,7 @@ async function renderExplorePreview() {
       // $HOME's card belongs in the grid (that's the whole point of adding
       // it) but wasn't itself "launched through HOMEPAD", so it's left out
       // of this specific count for accuracy.
-      const launchCount = entries.filter((e) => e.type !== "home").length;
+      const launchCount = entries.filter((e) => e.type !== "home" && e.type !== "external").length;
       listEl.insertAdjacentHTML("afterend", `<div style="text-align:center;margin-top:16px"><a href="explore.html" class="btn-mini">View all ${launchCount} launches →</a></div>`);
     }
   } catch (err) {

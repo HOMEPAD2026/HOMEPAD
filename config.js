@@ -199,6 +199,21 @@ const CONFIG = {
   // own key so homeExplorerUrl() can build the /token/ URL for $HOME.
   HOME_EXPLORER_LINK: "https://rh-scan.com",
 
+  // Tokens HOMEPAD has chosen to publicly support/list on Explore despite
+  // not being launched through any HOMEPAD factory — a deliberate,
+  // manually-curated call (like ADV_CN_FEATURED_TOKEN above), not
+  // something derived from on-chain launch events. Cards for these link
+  // out to Dexscreener, same as $HOME's card, since there's no HOMEPAD
+  // token page (no factory, no fee split) for something HOMEPAD didn't launch.
+  EXPLORE_SUPPORTED_TICKERS: [
+    {
+      name: "Tally", symbol: "TALLY",
+      address: "0xEC77AbFF3722Db66A568C32C2A21F9D171C845a6",
+      imageUrl: "images/tally-token-logo.jpg",
+      dexscreenerUrl: "https://dexscreener.com/search?q=0xEC77AbFF3722Db66A568C32C2A21F9D171C845a6",
+    },
+  ],
+
   // Dexscreener: public API, no key needed. Pair address is the LP pool,
   // not the token — grab it from the dexscreener URL you're already using.
   DEXSCREENER_CHAIN_SLUG: "robinhood",
