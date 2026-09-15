@@ -1641,8 +1641,8 @@ function launchCardHtml(entry) {
 }
 
 /// The homepage's default bottom section — same simple grid this has
-/// always shown, capped to the most recent launches, with a link through
-/// to the full page for search/sort/filter.
+/// always shown, capped to the highest-market-cap launches, with a link
+/// through to the full page for search/sort/filter.
 async function renderExplorePreview() {
   const main = document.getElementById("app");
   const PREVIEW_LIMIT = 9;
@@ -1663,7 +1663,7 @@ async function renderExplorePreview() {
       listEl.innerHTML = `<div class="empty-state">No launches yet. <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;" style="color:var(--green)">Be the first.</a></div>`;
       return;
     }
-    entries.sort((a, b) => b.launchedAt - a.launchedAt);
+    entries.sort((a, b) => (b.marketCapEth ?? -1) - (a.marketCapEth ?? -1));
     const shown = entries.slice(0, PREVIEW_LIMIT);
     listEl.innerHTML = shown.map(launchCardHtml).join("");
     if (entries.length > PREVIEW_LIMIT) {
