@@ -115,10 +115,218 @@ function bigpadEscrowWrite() {
   return new ethers.Contract(CONFIG.BIGPAD_ESCROW_ADDRESS, BIGPAD_ESCROW_ABI, state.signer);
 }
 
+let _bigpadState = null; // cached snapshot from the last fetchBigpadState() call
 let _bigpadDeadline = null; // cached unix seconds, null until started
 let _bigpadStarted = false;
 let _bigpadCountdownTimer = null;
 let _bigpadPollTimer = null;
+
+// A small Multicall3 handle just for getEthBalance — MULTICALL3_ADDRESS and
+// multicallRead() itself come from app.js (shared top-level scope, same as
+// readProvider/state/short elsewhere in this file).
+function bigpadMcBalance() {
+  return new ethers.Contract(MULTICALL3_ADDRESS, ["function getEthBalance(address) view returns (uint256)"], readProvider());
+}
+
+// Every poll used to be a dozen-plus separate eth_calls spread across five
+// different refresh functions — several of them re-fetching the exact same
+// field more than once per cycle (isOpen(), started(), recipient(),
+// totalRaised() were each read 2-3x). This batches all of it into one
+// Multicall3 round trip (falls back to one request per call if Multicall3
+// isn't deployed on the chain — see multicallRead in app.js).
+async function fetchBigpadState() {
+  if (!bigpadEscrowConfigured()) return null;
+  const escrow = bigpadEscrowRead();
+  const mcBal = bigpadMcBalance();
+
+  const calls = [
+    { contract: escrow, method: "cap" },
+    { contract: escrow, method: "started" },
+    { contract: escrow, method: "deadline" },
+    { contract: escrow, method: "totalRaised" },
+    { contract: escrow, method: "isOpen" },
+    { contract: escrow, method: "recipient" },
+    { contract: escrow, method: "distributed" },
+    { contract: mcBal, method: "getEthBalance", args: [CONFIG.BIGPAD_ESCROW_ADDRESS] },
+  ];
+  let meIdx = -1, myBalIdx = -1;
+  if (state.account) {
+    meIdx = calls.push({ contract: escrow, method: "contributions", args: [state.account] }) - 1;
+    myBalIdx = calls.push({ contract: mcBal, method: "getEthBalance", args: [state.account] }) - 1;
+  }
+
+  const r = await multicallRead(calls);
+  _bigpadState = {
+    cap: r[0] ?? 0n,
+    started: !!r[1],
+    deadline: r[2] ?? 0n,
+    totalRaised: r[3] ?? 0n,
+    isOpen: !!r[4],
+    recipient: r[5] || ethers.ZeroAddress,
+    distributed: !!r[6],
+    balance: r[7] ?? 0n,
+    myContribution: meIdx >= 0 ? (r[meIdx] ?? 0n) : 0n,
+    myWalletBalance: myBalIdx >= 0 ? (r[myBalIdx] ?? 0n) : null,
+  };
+  return _bigpadState;
+}
+
+function fmtEth(wei, maxDecimals = 4) {
+  const n = Number(ethers.formatEther(wei));
+  return isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: maxDecimals }) : "—";
+}
+
+function timeAgo(unixSec) {
+  if (!unixSec) return "";
+  const diff = Math.floor(Date.now() / 1000) - unixSec;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+// Single DOM-update pass from one fetchBigpadState() snapshot — status/
+// badge, progress bar, countdown, contribute/start/refund/withdraw
+// buttons, wallet balance, and the My Position panel all come from the
+// same batch instead of each re-querying the chain independently.
+function applyBigpadState(s) {
+  if (!s) return;
+  _bigpadStarted = s.started;
+  _bigpadDeadline = s.started ? Number(s.deadline) : null;
+  const capUncapped = s.cap === 0n;
+  const capReached = !capUncapped && s.totalRaised >= s.cap;
+  const isRecipient = !!(state.account && s.recipient && state.account.toLowerCase() === s.recipient.toLowerCase());
+
+  const statusEl = document.getElementById("bp-round-status");
+  if (statusEl) {
+    if (!s.started) statusEl.innerHTML = `<span class="bp-status-dot amber"></span>Not started — waiting on BigPad`;
+    else if (s.isOpen) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Live — raise open`;
+    else if (capReached) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Cap reached — raise closed`;
+    else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
+  }
+
+  // Badge only turns green/"LIVE" once the recipient has actually called
+  // start() — deployed-but-not-started stays "READY" so nobody mistakes
+  // this for an open raise before it is one.
+  document.querySelectorAll(".bp-featured-badge").forEach((el) => {
+    if (s.started) { el.textContent = "LIVE"; el.classList.add("bp-live"); }
+    else { el.textContent = "READY"; el.classList.remove("bp-live"); }
+  });
+
+  const progressBarEl = document.getElementById("bp-round-progress-fill")?.parentElement;
+  const fillEl = document.getElementById("bp-round-progress-fill");
+  const labelEl = document.getElementById("bp-round-progress-label");
+  if (capUncapped) {
+    if (progressBarEl) progressBarEl.style.display = "none";
+    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(s.totalRaised)} ETH</strong> raised so far — uncapped`;
+  } else {
+    const pct = s.cap > 0n ? Math.min(100, Number((s.totalRaised * 10000n) / s.cap) / 100) : 0;
+    if (progressBarEl) progressBarEl.style.display = "";
+    if (fillEl) fillEl.style.width = pct + "%";
+    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(s.totalRaised)} ETH</strong> raised of <strong>${fmtEth(s.cap)} ETH</strong> goal`;
+  }
+
+  const lengthEl = document.getElementById("bp-stat-length");
+  if (lengthEl) lengthEl.textContent = s.started ? new Date(_bigpadDeadline * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Not started";
+
+  const btn = document.getElementById("bp-contribute-btn");
+  const row = document.getElementById("bp-contribute-row");
+  const balanceRow = document.getElementById("bp-balance-row");
+  const balanceVal = document.getElementById("bp-wallet-balance");
+  if (btn && row) {
+    if (s.isOpen) {
+      row.style.display = "flex";
+      btn.disabled = false;
+      btn.textContent = "Contribute ETH";
+      if (state.account && balanceRow && balanceVal) {
+        balanceVal.textContent = fmtEth(s.myWalletBalance ?? 0n) + " ETH";
+        balanceRow.style.display = "block";
+      } else if (balanceRow) {
+        balanceRow.style.display = "none";
+      }
+    } else {
+      row.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = !s.started ? "Not started yet" : capReached ? "Cap reached — closed" : "Raise ended";
+      if (balanceRow) balanceRow.style.display = "none";
+    }
+  }
+
+  // Start button: recipient only, only before start().
+  const startRow = document.getElementById("bp-start-row");
+  if (startRow) startRow.style.display = state.account && isRecipient && !s.started ? "block" : "none";
+
+  // Refund button: any contributor with an outstanding balance, any time
+  // the raise is open — no lock-in.
+  const refundRow = document.getElementById("bp-refund-row");
+  const refundBtn = document.getElementById("bp-refund-btn");
+  if (refundRow && refundBtn) {
+    if (state.account && s.isOpen && s.myContribution > 0n) {
+      refundRow.style.display = "block";
+      if (!refundBtn.dataset.busy) refundBtn.textContent = `Withdraw my ${fmtEth(s.myContribution)} ETH`;
+    } else {
+      refundRow.style.display = "none";
+    }
+  }
+
+  // Withdraw & split button: recipient only, only once closed and
+  // undistributed with a nonzero balance.
+  const withdrawRow = document.getElementById("bp-withdraw-row");
+  const withdrawBtn = document.getElementById("bp-withdraw-btn");
+  if (withdrawRow && withdrawBtn) {
+    if (state.account && isRecipient && !s.isOpen && !s.distributed && s.balance > 0n) {
+      withdrawRow.style.display = "block";
+      if (!withdrawBtn.dataset.busy) withdrawBtn.textContent = `Withdraw ${fmtEth(s.balance)} ETH — split 80/5/15`;
+    } else {
+      withdrawRow.style.display = "none";
+    }
+  }
+
+  // My Position panel + featured-side line + mini-stats.
+  const positionEl = document.getElementById("bp-position-body");
+  const sideEl = document.getElementById("bp-my-position");
+  const mineStat = document.getElementById("bp-stat-mine");
+  const shareStat = document.getElementById("bp-stat-myshare");
+  if (!state.account) {
+    if (positionEl) { positionEl.className = "bp-empty"; positionEl.textContent = "Connect your wallet to see your position."; }
+    if (sideEl) sideEl.textContent = "";
+    if (mineStat) mineStat.textContent = "—";
+    if (shareStat) shareStat.textContent = "—";
+  } else {
+    const mine = s.myContribution;
+    const pct = s.totalRaised > 0n ? (Number((mine * 10000n) / s.totalRaised) / 100).toFixed(2) : "0.00";
+    if (mine === 0n) {
+      if (positionEl) { positionEl.className = "bp-empty"; positionEl.textContent = "No contribution yet from this wallet."; }
+      if (sideEl) sideEl.textContent = "";
+      if (mineStat) mineStat.textContent = "0 ETH";
+      if (shareStat) shareStat.textContent = "0%";
+    } else {
+      if (positionEl) { positionEl.className = ""; positionEl.innerHTML = `You've contributed <strong>${fmtEth(mine)} ETH</strong> — <strong>${pct}%</strong> of the raise so far.`; }
+      if (sideEl) sideEl.innerHTML = `Your contribution: <strong>${fmtEth(mine)} ETH</strong> (${pct}%)`;
+      if (mineStat) mineStat.textContent = fmtEth(mine) + " ETH";
+      if (shareStat) shareStat.textContent = pct + "%";
+    }
+  }
+
+  updateBigpadCountdown();
+}
+
+async function refreshBigpadCore() {
+  applyBigpadState(await fetchBigpadState());
+}
+
+function updateBigpadCountdown() {
+  const el = document.getElementById("bp-round-countdown");
+  if (!el) return;
+  if (!_bigpadStarted || _bigpadDeadline === null) { el.innerHTML = ""; return; }
+  const remaining = _bigpadDeadline - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) { el.innerHTML = "Raise ended"; return; }
+  const d = Math.floor(remaining / 86400);
+  const h = Math.floor((remaining % 86400) / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
+  const s = remaining % 60;
+  el.innerHTML = `Ends in <strong>${d}d ${h}h ${m}m ${s}s</strong>`;
+}
 
 async function initBigpadRound() {
   if (!bigpadEscrowConfigured()) return;
@@ -156,9 +364,8 @@ async function initBigpadRound() {
     console.error("BigPad: failed to load recipient/platform/treasury", err);
   }
 
-  await refreshBigpadStats();
+  await refreshBigpadCore();
   await refreshBigpadLeaderboard();
-  refreshBigpadMyPosition();
   wireBigpadContribute();
   wireBigpadWithdraw();
   wireBigpadStart();
@@ -172,119 +379,9 @@ async function initBigpadRound() {
   // already triggers its own immediate refresh (see wireBigpadContribute).
   if (_bigpadPollTimer) clearInterval(_bigpadPollTimer);
   _bigpadPollTimer = setInterval(() => {
-    refreshBigpadStats();
+    refreshBigpadCore();
     refreshBigpadLeaderboard();
-    refreshBigpadMyPosition();
   }, 15000);
-}
-
-function fmtEth(wei, maxDecimals = 4) {
-  const n = Number(ethers.formatEther(wei));
-  return isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: maxDecimals }) : "—";
-}
-
-function timeAgo(unixSec) {
-  if (!unixSec) return "";
-  const diff = Math.floor(Date.now() / 1000) - unixSec;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
-  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
-  return Math.floor(diff / 86400) + "d ago";
-}
-
-async function refreshBigpadStats() {
-  if (!bigpadEscrowConfigured()) return;
-  const escrow = bigpadEscrowRead();
-  const [cap, started, deadline, totalRaised, isOpen] = await Promise.all([
-    escrow.cap(), escrow.started(), escrow.deadline(), escrow.totalRaised(), escrow.isOpen(),
-  ]);
-  _bigpadStarted = started;
-  _bigpadDeadline = started ? Number(deadline) : null;
-  const capUncapped = cap === 0n;
-  const capReached = !capUncapped && totalRaised >= cap;
-
-  const statusEl = document.getElementById("bp-round-status");
-  if (statusEl) {
-    if (!started) statusEl.innerHTML = `<span class="bp-status-dot amber"></span>Not started — waiting on BigPad`;
-    else if (isOpen) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Live — raise open`;
-    else if (capReached) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Cap reached — raise closed`;
-    else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
-  }
-
-  // Badge only turns green/"LIVE" once the recipient has actually called
-  // start() — deployed-but-not-started stays "READY" so nobody mistakes
-  // this for an open raise before it is one.
-  document.querySelectorAll(".bp-featured-badge").forEach((el) => {
-    if (started) { el.textContent = "LIVE"; el.classList.add("bp-live"); }
-    else { el.textContent = "READY"; el.classList.remove("bp-live"); }
-  });
-
-  const progressBarEl = document.getElementById("bp-round-progress-fill")?.parentElement;
-  const fillEl = document.getElementById("bp-round-progress-fill");
-  const labelEl = document.getElementById("bp-round-progress-label");
-  if (capUncapped) {
-    if (progressBarEl) progressBarEl.style.display = "none";
-    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(totalRaised)} ETH</strong> raised so far — uncapped`;
-  } else {
-    const pct = cap > 0n ? Math.min(100, Number((totalRaised * 10000n) / cap) / 100) : 0;
-    if (progressBarEl) progressBarEl.style.display = "";
-    if (fillEl) fillEl.style.width = pct + "%";
-    if (labelEl) labelEl.innerHTML = `<strong>${fmtEth(totalRaised)} ETH</strong> raised of <strong>${fmtEth(cap)} ETH</strong> goal`;
-  }
-
-  const lengthEl = document.getElementById("bp-stat-length");
-  if (lengthEl) lengthEl.textContent = started ? new Date(_bigpadDeadline * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Not started";
-
-  const btn = document.getElementById("bp-contribute-btn");
-  const row = document.getElementById("bp-contribute-row");
-  const balanceRow = document.getElementById("bp-balance-row");
-  if (btn && row) {
-    if (isOpen) {
-      row.style.display = "flex";
-      btn.disabled = false;
-      btn.textContent = "Contribute ETH";
-    } else {
-      row.style.display = "none";
-      btn.disabled = true;
-      btn.textContent = !started ? "Not started yet" : capReached ? "Cap reached — closed" : "Raise ended";
-      if (balanceRow) balanceRow.style.display = "none";
-    }
-  }
-  if (isOpen) refreshBigpadWalletBalance();
-
-  refreshBigpadStartButton();
-  refreshBigpadRefund();
-  updateBigpadCountdown();
-}
-
-// Shows the connected wallet's ETH balance right above the contribute
-// input, so someone can see what they have before typing an amount.
-// Only shown while the raise is actually open (same as the input itself).
-async function refreshBigpadWalletBalance() {
-  const row = document.getElementById("bp-balance-row");
-  const valEl = document.getElementById("bp-wallet-balance");
-  if (!row || !valEl) return;
-  if (!state.account) { row.style.display = "none"; return; }
-  try {
-    const balance = await readProvider().getBalance(state.account);
-    valEl.textContent = fmtEth(balance) + " ETH";
-    row.style.display = "block";
-  } catch (err) {
-    console.error("BigPad: failed to load wallet balance", err);
-  }
-}
-
-function updateBigpadCountdown() {
-  const el = document.getElementById("bp-round-countdown");
-  if (!el) return;
-  if (!_bigpadStarted || _bigpadDeadline === null) { el.innerHTML = ""; return; }
-  const remaining = _bigpadDeadline - Math.floor(Date.now() / 1000);
-  if (remaining <= 0) { el.innerHTML = "Raise ended"; return; }
-  const d = Math.floor(remaining / 86400);
-  const h = Math.floor((remaining % 86400) / 3600);
-  const m = Math.floor((remaining % 3600) / 60);
-  const s = remaining % 60;
-  el.innerHTML = `Ends in <strong>${d}d ${h}h ${m}m ${s}s</strong>`;
 }
 
 function bigpadLbRowHtml(r, i, pctFn) {
@@ -318,11 +415,14 @@ async function refreshBigpadLeaderboard() {
 
   // Per-address totals read straight from the contract (authoritative)
   // rather than summed from events, so this can never double-count and
-  // automatically reflects any refunds already paid out.
+  // automatically reflects any refunds already paid out. Batched through
+  // Multicall3 — one round trip instead of one eth_call per contributor.
   const uniqueAddrs = [...new Set(events.map((e) => e.args.contributor))];
-  const amounts = await Promise.all(uniqueAddrs.map((a) => escrow.contributions(a)));
+  const amounts = uniqueAddrs.length > 0
+    ? await multicallRead(uniqueAddrs.map((a) => ({ contract: escrow, method: "contributions", args: [a] })))
+    : [];
   const rows = uniqueAddrs
-    .map((address, i) => ({ address, amount: amounts[i] }))
+    .map((address, i) => ({ address, amount: amounts[i] ?? 0n }))
     .filter((r) => r.amount > 0n)
     .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
 
@@ -385,65 +485,7 @@ async function refreshBigpadLeaderboard() {
 // and adventure.html plug into. No-op if the round isn't configured yet.
 function refreshBigpadMyPosition() {
   if (!bigpadEscrowConfigured()) return;
-  const positionEl = document.getElementById("bp-position-body");
-  const sideEl = document.getElementById("bp-my-position");
-  const mineStat = document.getElementById("bp-stat-mine");
-  const shareStat = document.getElementById("bp-stat-myshare");
-
-  if (!state.account) {
-    if (positionEl) { positionEl.className = "bp-empty"; positionEl.textContent = "Connect your wallet to see your position."; }
-    if (sideEl) sideEl.textContent = "";
-    if (mineStat) mineStat.textContent = "—";
-    if (shareStat) shareStat.textContent = "—";
-    refreshBigpadWithdraw();
-    refreshBigpadWalletBalance();
-    refreshBigpadStartButton();
-    refreshBigpadRefund();
-    return;
-  }
-
-  const escrow = bigpadEscrowRead();
-  const myAddress = state.account;
-  Promise.all([escrow.contributions(myAddress), escrow.totalRaised()])
-    .then(([mine, total]) => {
-      const pct = total > 0n ? (Number((mine * 10000n) / total) / 100).toFixed(2) : "0.00";
-      if (mine === 0n) {
-        if (positionEl) { positionEl.className = "bp-empty"; positionEl.textContent = "No contribution yet from this wallet."; }
-        if (sideEl) sideEl.textContent = "";
-        if (mineStat) mineStat.textContent = "0 ETH";
-        if (shareStat) shareStat.textContent = "0%";
-      } else {
-        if (positionEl) { positionEl.className = ""; positionEl.innerHTML = `You've contributed <strong>${fmtEth(mine)} ETH</strong> — <strong>${pct}%</strong> of the raise so far.`; }
-        if (sideEl) sideEl.innerHTML = `Your contribution: <strong>${fmtEth(mine)} ETH</strong> (${pct}%)`;
-        if (mineStat) mineStat.textContent = fmtEth(mine) + " ETH";
-        if (shareStat) shareStat.textContent = pct + "%";
-      }
-    })
-    .catch((err) => console.error("BigPad: failed to load your position", err));
-
-  refreshBigpadWithdraw();
-  refreshBigpadWalletBalance();
-  refreshBigpadStartButton();
-  refreshBigpadRefund();
-}
-
-// Shows a "Start" button only to the recipient wallet itself, and only
-// before the raise has been started — this is the only thing that begins
-// the 72h window, so nobody else can trigger it and it can't be redone.
-async function refreshBigpadStartButton() {
-  if (!bigpadEscrowConfigured()) return;
-  const row = document.getElementById("bp-start-row");
-  if (!row) return;
-  if (!state.account) { row.style.display = "none"; return; }
-
-  try {
-    const escrow = bigpadEscrowRead();
-    const [recipient, started] = await Promise.all([escrow.recipient(), escrow.started()]);
-    const isRecipient = state.account.toLowerCase() === recipient.toLowerCase();
-    row.style.display = isRecipient && !started ? "block" : "none";
-  } catch (err) {
-    console.error("BigPad: failed to check start eligibility", err);
-  }
+  refreshBigpadCore();
 }
 
 function wireBigpadStart() {
@@ -461,7 +503,7 @@ function wireBigpadStart() {
       const tx = await escrow.start();
       btn.textContent = "Confirming…";
       await tx.wait();
-      await refreshBigpadStats();
+      await refreshBigpadCore();
     } catch (err) {
       console.error("BigPad: start failed", err);
       alert(err?.reason || err?.shortMessage || "Start failed or was rejected.");
@@ -469,30 +511,6 @@ function wireBigpadStart() {
       btn.textContent = original;
     }
   });
-}
-
-// Shows a "Withdraw my contribution" button to any connected wallet that
-// currently has a nonzero contribution, any time the raise is open — no
-// lock-in. Disappears once the window closes (refund() itself would revert).
-async function refreshBigpadRefund() {
-  if (!bigpadEscrowConfigured()) return;
-  const row = document.getElementById("bp-refund-row");
-  const btn = document.getElementById("bp-refund-btn");
-  if (!row || !btn) return;
-  if (!state.account) { row.style.display = "none"; return; }
-
-  try {
-    const escrow = bigpadEscrowRead();
-    const [mine, isOpen] = await Promise.all([escrow.contributions(state.account), escrow.isOpen()]);
-    if (isOpen && mine > 0n) {
-      row.style.display = "block";
-      if (!btn.dataset.busy) btn.textContent = `Withdraw my ${fmtEth(mine)} ETH`;
-    } else {
-      row.style.display = "none";
-    }
-  } catch (err) {
-    console.error("BigPad: failed to check refund eligibility", err);
-  }
 }
 
 function wireBigpadRefund() {
@@ -512,8 +530,7 @@ function wireBigpadRefund() {
       btn.textContent = "Confirming…";
       await tx.wait();
       delete btn.dataset.busy;
-      await Promise.all([refreshBigpadStats(), refreshBigpadLeaderboard()]);
-      refreshBigpadMyPosition();
+      await Promise.all([refreshBigpadCore(), refreshBigpadLeaderboard()]);
     } catch (err) {
       console.error("BigPad: refund failed", err);
       alert(err?.reason || err?.shortMessage || "Withdraw failed or was rejected.");
@@ -522,34 +539,6 @@ function wireBigpadRefund() {
       btn.textContent = original;
     }
   });
-}
-
-// Shows a "Withdraw & split" button only to the recipient wallet itself,
-// and only once the round has actually closed (deadline passed or cap
-// reached) and there's an undistributed balance — everyone else never sees it.
-async function refreshBigpadWithdraw() {
-  if (!bigpadEscrowConfigured()) return;
-  const row = document.getElementById("bp-withdraw-row");
-  const btn = document.getElementById("bp-withdraw-btn");
-  if (!row || !btn) return;
-
-  if (!state.account) { row.style.display = "none"; return; }
-
-  try {
-    const escrow = bigpadEscrowRead();
-    const [recipient, isOpen, distributed, balance] = await Promise.all([
-      escrow.recipient(), escrow.isOpen(), escrow.distributed(), readProvider().getBalance(CONFIG.BIGPAD_ESCROW_ADDRESS),
-    ]);
-    const isRecipient = state.account.toLowerCase() === recipient.toLowerCase();
-    if (isRecipient && !isOpen && !distributed && balance > 0n) {
-      row.style.display = "block";
-      if (!btn.dataset.busy) btn.textContent = `Withdraw ${fmtEth(balance)} ETH — split 80/5/15`;
-    } else {
-      row.style.display = "none";
-    }
-  } catch (err) {
-    console.error("BigPad: failed to check withdraw eligibility", err);
-  }
 }
 
 function wireBigpadWithdraw() {
@@ -569,7 +558,7 @@ function wireBigpadWithdraw() {
       btn.textContent = "Confirming…";
       await tx.wait();
       delete btn.dataset.busy;
-      await Promise.all([refreshBigpadStats(), refreshBigpadWithdraw()]);
+      await refreshBigpadCore();
     } catch (err) {
       console.error("BigPad: withdraw failed", err);
       alert(err?.reason || err?.shortMessage || "Withdraw failed or was rejected.");
@@ -624,14 +613,13 @@ function wireBigpadContribute() {
       btn.textContent = "Confirming…";
       await tx.wait();
       input.value = "";
-      await Promise.all([refreshBigpadStats(), refreshBigpadLeaderboard()]);
-      refreshBigpadMyPosition();
+      await Promise.all([refreshBigpadCore(), refreshBigpadLeaderboard()]);
     } catch (err) {
       console.error("BigPad: contribution failed", err);
       alert(err?.reason || err?.shortMessage || "Transaction failed or was rejected.");
       btn.disabled = false;
       btn.textContent = originalText;
-      refreshBigpadStats(); // re-applies the correct disabled/label state
+      refreshBigpadCore(); // re-applies the correct disabled/label state
     }
   });
 }
