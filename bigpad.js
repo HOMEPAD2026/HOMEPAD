@@ -222,6 +222,28 @@ function applyBigpadState(s) {
     else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
   }
 
+  // Sidebar footer note + hero button both assumed "nothing is built yet"
+  // — once the escrow is actually deployed that stops being true, so both
+  // need to track the same real lifecycle the status row does.
+  const footDot = document.getElementById("bp-side-status-dot");
+  const footText = document.getElementById("bp-side-foot-text");
+  const previewBtn = document.getElementById("bp-see-preview");
+  if (footText) {
+    if (!s.started) {
+      footText.textContent = "Escrow is deployed — waiting for BigPad to start the raise.";
+      if (footDot) footDot.className = "bp-side-status-dot";
+    } else if (s.isOpen) {
+      footText.textContent = "Live — the raise is open for contributions.";
+      if (footDot) footDot.className = "bp-side-status-dot bp-live";
+    } else {
+      footText.textContent = "Raise closed — funds pending distribution.";
+      if (footDot) footDot.className = "bp-side-status-dot" + (capReached ? " bp-live" : "");
+    }
+  }
+  if (previewBtn) {
+    previewBtn.textContent = !s.started ? "See the round" : s.isOpen ? "Join the round" : "See the results";
+  }
+
   // Badge only turns green/"LIVE" once the recipient has actually called
   // start() — deployed-but-not-started stays "READY" so nobody mistakes
   // this for an open raise before it is one.

@@ -2129,6 +2129,7 @@ body.bigpad-page .btn-cute.btn-primary:hover{background:#e2e2e2;}
   border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-start;
 }
 .bp-side-status-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0;margin-top:5px;}
+.bp-side-status-dot.bp-live{background:var(--green);}
 
 .bp-main{flex:1;min-width:0;}
 
