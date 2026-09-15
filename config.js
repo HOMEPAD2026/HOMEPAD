@@ -259,6 +259,11 @@ const CONFIG = {
   // time once deployed, otherwise the scan falls back to
   // CONTRACTS_LIVE_SINCE (correct, just a wider/slower range).
   BIGPAD_LIVE_SINCE: "2026-09-14T00:00:00Z",
+  // Standalone identity vote (contracts/BigPadVote.sol) — reads weight
+  // live from the escrow above rather than holding funds or its own
+  // snapshot. Blank until deployed (needs the escrow already started —
+  // see contracts/scripts/deploy-bigpad-vote.js) and a voting UI exists.
+  BIGPAD_VOTE_ADDRESS: "",
 };
 
 // $HOME's link-out explorer URL. rh-scan uses /token/{address} for ERC-20s
