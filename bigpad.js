@@ -370,6 +370,16 @@ function updateBigpadCountdown() {
 async function initBigpadRound() {
   if (!bigpadEscrowConfigured()) return;
 
+  // One-time diagnostic: if Multicall3 isn't actually deployed on this
+  // chain, every "batched" read below silently falls back to one request
+  // per call (see multicallRead in app.js) — same correctness, much
+  // slower. Logged once so a slow-loading report can be told apart from
+  // "Multicall3 isn't there" vs. "something else is wrong."
+  const t0 = performance.now();
+  isMulticallAvailable().then((ok) => {
+    console.log(`BigPad: Multicall3 ${ok ? "available" : "NOT available — falling back to one request per call"} (checked in ${Math.round(performance.now() - t0)}ms)`);
+  });
+
   const lengthLabel = document.getElementById("bp-stat-length-label");
   if (lengthLabel) lengthLabel.textContent = "Ends";
   const payoutLabel = document.getElementById("bp-stat-payout-label");
@@ -430,6 +440,27 @@ function bigpadLbRowHtml(r, i, pctFn) {
   return `<div class="bp-lb-row">
     <span class="bp-lb-rank">#${i + 1}</span>
     <span class="bp-lb-addr">${short(r.address)}</span>
+    <span class="bp-lb-amount">${fmtEth(r.amount)} ETH</span>
+    <span class="bp-lb-pct">${pctFn(r.amount)}%</span>
+    <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${r.address}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+  </div>`;
+}
+
+// Full Leaderboard panel only (the Home teaser stays compact — see
+// bigpadLbRowHtml above): adds a deposited/withdrawn breakdown line, but
+// only for addresses that have actually withdrawn something. Someone who
+// only ever contributed sees exactly the same simple row as before —
+// "deposited: X, withdrew: 0" would just be repeating the net amount.
+function bigpadLbRowDetailedHtml(r, i, pctFn) {
+  const flows = r.withdrawnTotal > 0n
+    ? `<div class="bp-lb-flows">↓ ${fmtEth(r.depositedTotal)} ETH in · ↑ ${fmtEth(r.withdrawnTotal)} ETH out</div>`
+    : "";
+  return `<div class="bp-lb-row bp-lb-row-detailed">
+    <span class="bp-lb-rank">#${i + 1}</span>
+    <div class="bp-lb-addr-block">
+      <span class="bp-lb-addr">${short(r.address)}</span>
+      ${flows}
+    </div>
     <span class="bp-lb-amount">${fmtEth(r.amount)} ETH</span>
     <span class="bp-lb-pct">${pctFn(r.amount)}%</span>
     <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${r.address}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
@@ -505,8 +536,17 @@ async function refreshBigpadLeaderboard() {
   const amounts = uniqueAddrs.length > 0
     ? await multicallRead(uniqueAddrs.map((a) => ({ contract: escrow, method: "contributions", args: [a] })))
     : [];
+
+  // Deposited/withdrawn totals ARE summed from the events themselves —
+  // there's no single contract getter for "lifetime total in" or "lifetime
+  // total out" (only the current net contributions() balance), so this is
+  // the one place events are the right source, purely for display.
+  const inByAddr = new Map(), outByAddr = new Map();
+  for (const e of events) inByAddr.set(e.args.contributor, (inByAddr.get(e.args.contributor) ?? 0n) + e.args.amount);
+  for (const e of refundEvents) outByAddr.set(e.args.contributor, (outByAddr.get(e.args.contributor) ?? 0n) + e.args.amount);
+
   const rows = uniqueAddrs
-    .map((address, i) => ({ address, amount: amounts[i] ?? 0n }))
+    .map((address, i) => ({ address, amount: amounts[i] ?? 0n, depositedTotal: inByAddr.get(address) ?? 0n, withdrawnTotal: outByAddr.get(address) ?? 0n }))
     .filter((r) => r.amount > 0n)
     .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
 
@@ -529,7 +569,7 @@ async function refreshBigpadLeaderboard() {
   if (fullEl) {
     fullEl.innerHTML = rows.length === 0
       ? "No contributors yet. The leaderboard fills in once a raise opens."
-      : rows.map((r, i) => bigpadLbRowHtml(r, i, pctOf)).join("");
+      : rows.map((r, i) => bigpadLbRowDetailedHtml(r, i, pctOf)).join("");
   }
 
   // Recent activity merges contributions (+) and refunds (−) in one feed,
