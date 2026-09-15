@@ -155,19 +155,36 @@ async function fetchBigpadState() {
     myBalIdx = calls.push({ contract: mcBal, method: "getEthBalance", args: [state.account] }) - 1;
   }
 
-  const r = await multicallRead(calls);
+  // multicallRead resolves a failed individual call to null rather than
+  // rejecting the whole batch (see app.js) — right for most pages, but
+  // silently treating a failed started()/isOpen()/distributed() read as
+  // false would be actively wrong: a transient RPC hiccup could make an
+  // already-live round flash back to "not started". Retry the whole
+  // batch a couple times if any of those three come back null before
+  // falling back to the last known-good value (or false, only if this is
+  // the very first load and there's nothing to fall back to).
+  let r = await multicallRead(calls);
+  for (let attempt = 0; attempt < 2 && (r[1] === null || r[4] === null || r[6] === null); attempt++) {
+    await new Promise((res) => setTimeout(res, 400));
+    r = await multicallRead(calls);
+  }
+
+  const prev = _bigpadState || {};
   _bigpadState = {
-    cap: r[0] ?? 0n,
-    started: !!r[1],
-    deadline: r[2] ?? 0n,
-    totalRaised: r[3] ?? 0n,
-    isOpen: !!r[4],
-    recipient: r[5] || ethers.ZeroAddress,
-    distributed: !!r[6],
-    balance: r[7] ?? 0n,
-    myContribution: meIdx >= 0 ? (r[meIdx] ?? 0n) : 0n,
-    myWalletBalance: myBalIdx >= 0 ? (r[myBalIdx] ?? 0n) : null,
+    cap: r[0] ?? prev.cap ?? 0n,
+    started: r[1] === null ? (prev.started ?? false) : !!r[1],
+    deadline: r[2] ?? prev.deadline ?? 0n,
+    totalRaised: r[3] ?? prev.totalRaised ?? 0n,
+    isOpen: r[4] === null ? (prev.isOpen ?? false) : !!r[4],
+    recipient: r[5] || prev.recipient || ethers.ZeroAddress,
+    distributed: r[6] === null ? (prev.distributed ?? false) : !!r[6],
+    balance: r[7] ?? prev.balance ?? 0n,
+    myContribution: meIdx >= 0 ? (r[meIdx] ?? prev.myContribution ?? 0n) : 0n,
+    myWalletBalance: myBalIdx >= 0 ? (r[myBalIdx] ?? prev.myWalletBalance ?? 0n) : null,
   };
+  if (r[1] === null || r[4] === null || r[6] === null) {
+    console.warn("BigPad: started/isOpen/distributed still unreadable after retries — showing last known state.");
+  }
   return _bigpadState;
 }
 
