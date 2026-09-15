@@ -128,6 +128,31 @@ function bigpadMcBalance() {
   return new ethers.Contract(MULTICALL3_ADDRESS, ["function getEthBalance(address) view returns (uint256)"], readProvider());
 }
 
+// ---- Stale-while-revalidate cache ----
+// The first paint used to sit on the static "PREVIEW" markup until every
+// RPC round trip finished — on a public node that's easily a couple of
+// seconds of a live round looking like it isn't one. Now the last known
+// state and leaderboard are kept in localStorage (keyed by the escrow
+// address, so a future round at a new address starts clean) and applied
+// synchronously on load, then the real fetch overwrites them as soon as
+// it lands. BigInts are serialized as tagged strings since JSON can't
+// carry them natively.
+function bigpadCacheKey(kind) {
+  return `bigpad.${kind}.${CONFIG.BIGPAD_ESCROW_ADDRESS}`;
+}
+function bigpadSaveCache(kind, obj) {
+  try {
+    localStorage.setItem(bigpadCacheKey(kind), JSON.stringify(obj, (_k, v) => (typeof v === "bigint" ? { __big: v.toString() } : v)));
+  } catch { /* private mode / quota — cache is best-effort only */ }
+}
+function bigpadLoadCache(kind) {
+  try {
+    const raw = localStorage.getItem(bigpadCacheKey(kind));
+    if (!raw) return null;
+    return JSON.parse(raw, (_k, v) => (v && typeof v === "object" && "__big" in v ? BigInt(v.__big) : v));
+  } catch { return null; }
+}
+
 // Every poll used to be a dozen-plus separate eth_calls spread across five
 // different refresh functions — several of them re-fetching the exact same
 // field more than once per cycle (isOpen(), started(), recipient(),
@@ -184,6 +209,11 @@ async function fetchBigpadState() {
   };
   if (r[1] === null || r[4] === null || r[6] === null) {
     console.warn("BigPad: started/isOpen/distributed still unreadable after retries — showing last known state.");
+  } else {
+    // Only the account-independent fields — a different wallet may load
+    // this next time, and its own contribution/balance is fetched fresh.
+    const { cap, started, deadline, totalRaised, isOpen, recipient, distributed, balance } = _bigpadState;
+    bigpadSaveCache("state", { cap, started, deadline, totalRaised, isOpen, recipient, distributed, balance, savedAt: Date.now() });
   }
   return _bigpadState;
 }
@@ -206,7 +236,10 @@ function timeAgo(unixSec) {
 // badge, progress bar, countdown, contribute/start/refund/withdraw
 // buttons, wallet balance, and the My Position panel all come from the
 // same batch instead of each re-querying the chain independently.
-function applyBigpadState(s) {
+// `accountUnknown: true` (used when painting from the localStorage cache
+// before the real fetch lands) skips everything that depends on the
+// connected wallet, since the cache deliberately doesn't hold that.
+function applyBigpadState(s, { accountUnknown = false } = {}) {
   if (!s) return;
   _bigpadStarted = s.started;
   _bigpadDeadline = s.started ? Number(s.deadline) : null;
@@ -277,7 +310,9 @@ function applyBigpadState(s) {
       row.style.display = "flex";
       btn.disabled = false;
       btn.textContent = "Contribute ETH";
-      if (state.account && balanceRow && balanceVal) {
+      if (accountUnknown) {
+        // leave the balance row exactly as it was — real fetch fills it in
+      } else if (state.account && balanceRow && balanceVal) {
         balanceVal.textContent = fmtEth(s.myWalletBalance ?? 0n) + " ETH";
         balanceRow.style.display = "block";
       } else if (balanceRow) {
@@ -290,6 +325,9 @@ function applyBigpadState(s) {
       if (balanceRow) balanceRow.style.display = "none";
     }
   }
+
+  updateBigpadCountdown();
+  if (accountUnknown) return;
 
   // Start button: recipient only, only before start().
   const startRow = document.getElementById("bp-start-row");
@@ -346,8 +384,6 @@ function applyBigpadState(s) {
       if (shareStat) shareStat.textContent = pct + "%";
     }
   }
-
-  updateBigpadCountdown();
 }
 
 async function refreshBigpadCore() {
@@ -368,7 +404,37 @@ function updateBigpadCountdown() {
 }
 
 async function initBigpadRound() {
-  if (!bigpadEscrowConfigured()) return;
+  if (!bigpadEscrowConfigured()) {
+    // No escrow wired in: the markup's neutral "Loading…" defaults would
+    // otherwise sit there forever. Paint the honest pre-deploy state.
+    document.querySelectorAll(".bp-featured-badge").forEach((el) => { el.textContent = "PREVIEW"; el.classList.remove("bp-live"); });
+    const st = document.getElementById("bp-round-status");
+    if (st) st.innerHTML = `<span class="bp-status-dot amber"></span>Preview — no round open`;
+    const cb = document.getElementById("bp-contribute-btn");
+    if (cb) { cb.disabled = true; cb.textContent = "Contribute ETH — not open"; }
+    const ft = document.getElementById("bp-side-foot-text");
+    if (ft) ft.textContent = "Not live yet — the fund-pooling contract is in design and review.";
+    return;
+  }
+
+  // Paint from the last visit's cache first — synchronous, no RPC — so a
+  // returning visitor sees the live round and leaderboard immediately
+  // instead of a "PREVIEW"/"Loading…" flash. isOpen is recomputed against
+  // the clock rather than trusted from the cache, since the deadline may
+  // have passed since it was saved. The real fetch below overwrites all
+  // of this as soon as it lands.
+  const cachedState = bigpadLoadCache("state");
+  if (cachedState && typeof cachedState.started === "boolean") {
+    const now = Math.floor(Date.now() / 1000);
+    const capReached = cachedState.cap > 0n && cachedState.totalRaised >= cachedState.cap;
+    const isOpen = cachedState.started && now < Number(cachedState.deadline) && !capReached;
+    applyBigpadState({ ...cachedState, isOpen, myContribution: 0n, myWalletBalance: null }, { accountUnknown: true });
+  }
+  const cachedLb = bigpadLoadCache("leaderboard");
+  if (cachedLb && Array.isArray(cachedLb.rows) && Array.isArray(cachedLb.activity)) {
+    renderBigpadLeaderboard(cachedLb.rows, cachedLb.activity);
+    _bigpadLeaderboardLoadedOnce = true; // don't replace this with "Loading…" or an error
+  }
 
   // One-time diagnostic: if Multicall3 isn't actually deployed on this
   // chain, every "batched" read below silently falls back to one request
@@ -539,6 +605,31 @@ async function refreshBigpadLeaderboard() {
     .filter((r) => r.amount > 0n)
     .sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
 
+  // Recent activity merges contributions (+) and refunds (−) in one feed,
+  // newest first, so it's an honest picture of money moving both ways —
+  // not just inflows. Block timestamps are resolved here (once, cached per
+  // block) so the rendered list — and its cached copy — carries plain
+  // unix seconds rather than needing another RPC to display "3m ago".
+  const merged = [
+    ...events.map((e) => ({ e, kind: "in" })),
+    ...refundEvents.map((e) => ({ e, kind: "out" })),
+  ].sort((a, b) => (a.e.blockNumber - b.e.blockNumber) || ((a.e.index || 0) - (b.e.index || 0)));
+  const recent = merged.slice(-15).reverse();
+  const blockNumbers = [...new Set(recent.map((item) => item.e.blockNumber))];
+  const blocks = blockNumbers.length > 0 ? await Promise.all(blockNumbers.map((n) => readProvider().getBlock(n))) : [];
+  const blockTime = new Map(blockNumbers.map((n, i) => [n, Number(blocks[i]?.timestamp ?? 0)]));
+  const activity = recent.map(({ e, kind }) => ({
+    contributor: e.args.contributor, amount: e.args.amount, kind, ts: blockTime.get(e.blockNumber) || 0,
+  }));
+
+  renderBigpadLeaderboard(rows, activity);
+  bigpadSaveCache("leaderboard", { rows, activity, savedAt: Date.now() });
+}
+
+// Pure DOM render — called with fresh data from the chain, and on load with
+// whatever the last visit cached, so the leaderboard is on screen instantly
+// instead of after the block search + log queries finish.
+function renderBigpadLeaderboard(rows, activity) {
   const total = rows.reduce((sum, r) => sum + r.amount, 0n);
   const pctOf = (amount) => (total > 0n ? (Number((amount * 10000n) / total) / 100).toFixed(2) : "0.00");
 
@@ -561,30 +652,15 @@ async function refreshBigpadLeaderboard() {
       : rows.map((r, i) => bigpadLbRowDetailedHtml(r, i, pctOf)).join("");
   }
 
-  // Recent activity merges contributions (+) and refunds (−) in one feed,
-  // newest first, so it's an honest picture of money moving both ways —
-  // not just inflows.
   const activityEl = document.getElementById("bp-recent-activity");
   if (activityEl) {
-    const merged = [
-      ...events.map((e) => ({ e, kind: "in" })),
-      ...refundEvents.map((e) => ({ e, kind: "out" })),
-    ].sort((a, b) => (a.e.blockNumber - b.e.blockNumber) || ((a.e.index || 0) - (b.e.index || 0)));
-    const recent = merged.slice(-15).reverse();
-    if (recent.length === 0) {
-      activityEl.innerHTML = "";
-    } else {
-      const blockNumbers = [...new Set(recent.map((item) => item.e.blockNumber))];
-      const blocks = await Promise.all(blockNumbers.map((n) => readProvider().getBlock(n)));
-      const blockTime = new Map(blockNumbers.map((n, i) => [n, Number(blocks[i].timestamp)]));
-      activityEl.innerHTML = `<h4>Recent activity</h4>` + recent.map(({ e, kind }) => `
-        <div class="bp-activity-item${kind === "out" ? " bp-activity-out" : ""}">
-          <span class="bp-activity-addr">${short(e.args.contributor)}</span>
-          <span class="bp-activity-amount">${kind === "out" ? "−" : "+"}${fmtEth(e.args.amount)} ETH</span>
-          <span class="bp-activity-time">${timeAgo(blockTime.get(e.blockNumber))}</span>
-          <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${e.args.contributor}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+    activityEl.innerHTML = activity.length === 0 ? "" : `<h4>Recent activity</h4>` + activity.map((a) => `
+        <div class="bp-activity-item${a.kind === "out" ? " bp-activity-out" : ""}">
+          <span class="bp-activity-addr">${short(a.contributor)}</span>
+          <span class="bp-activity-amount">${a.kind === "out" ? "−" : "+"}${fmtEth(a.amount)} ETH</span>
+          <span class="bp-activity-time">${timeAgo(a.ts)}</span>
+          <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${a.contributor}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
         </div>`).join("");
-    }
   }
 
   const contributorsEl = document.getElementById("bp-stat-contributors");
