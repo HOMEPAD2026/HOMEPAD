@@ -76,25 +76,6 @@
   if (chainNameEl && typeof CONFIG !== "undefined" && CONFIG.CHAIN_NAME) {
     chainNameEl.textContent = CONFIG.CHAIN_NAME;
   }
-
-  // $BIGPAD token banner: copy the CA to clipboard.
-  const tokenCopyBtn = document.getElementById("bp-token-copy-btn");
-  const tokenCaEl = document.getElementById("bp-token-ca");
-  if (tokenCopyBtn && tokenCaEl) {
-    tokenCopyBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(tokenCaEl.textContent.trim());
-        tokenCopyBtn.textContent = "Copied!";
-        tokenCopyBtn.classList.add("bp-copied");
-        setTimeout(() => {
-          tokenCopyBtn.textContent = "Copy";
-          tokenCopyBtn.classList.remove("bp-copied");
-        }, 1800);
-      } catch (err) {
-        console.error("BigPad: failed to copy CA", err);
-      }
-    });
-  }
 })();
 
 // ---- BigPad first-round escrow (contracts/BigPadEscrow.sol) ----
