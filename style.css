@@ -101,6 +101,7 @@ main{padding:38px 0 80px;}
 .card-badge.up{color:var(--green);background:rgba(57,255,136,.14);border:1px solid rgba(57,255,136,.35);}
 .card-badge.down{color:var(--red);background:rgba(255,107,107,.14);border:1px solid rgba(255,107,107,.35);}
 .card-badge.home-pin{color:var(--amber);background:rgba(255,182,72,.14);border:1px solid rgba(255,182,72,.4);}
+.home-v1-tag{display:inline-block;vertical-align:middle;margin-left:6px;font-family:'Silkscreen';font-size:.5rem;color:var(--amber);border:1px solid rgba(255,182,72,.5);border-radius:6px;padding:2px 6px;letter-spacing:.04em;}
 .launch-card.card-type-home{border-color:rgba(255,182,72,.35);}
 .launch-card.card-type-home:hover{border-color:rgba(255,182,72,.65);}
 .home-tag{font-family:'Silkscreen';font-size:.55rem;color:var(--amber);}
@@ -298,6 +299,20 @@ footer{border-top:1px solid var(--line);color:var(--ink-dim);font-size:.88rem;}
 .btn-copy:hover{background:#5dffa2;}
 
 .hero-cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;}
+
+/* ============ HOMEPAD V2 transition notice (homepage hero) ============ */
+.home-hero-content .lede + .lede{margin-top:-4px;}
+.v2-notice{
+  margin:22px 0 16px;padding:18px 20px;border-radius:20px;
+  background:linear-gradient(90deg, rgba(57,255,136,.1), rgba(255,182,72,.08));
+  border:1px dashed var(--green);
+}
+.v2-notice-title{margin-bottom:12px;}
+.v2-notice-title .pixel{font-size:.62rem;color:var(--green);letter-spacing:.04em;}
+.v2-notice-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px;font-size:.88rem;color:var(--ink-dim);line-height:1.55;}
+.v2-notice-list strong{color:var(--ink);}
+.v2-notice-tagline{margin-top:14px;font-family:'Silkscreen';font-size:.72rem;color:var(--amber);letter-spacing:.03em;}
+.v2-notice-more{font-size:.85rem;color:var(--ink-dim);margin:0 0 4px;}
 .btn-cute{
   border-radius:14px;padding:12px 20px;font-weight:700;
   border:2px solid var(--void);box-shadow:0 5px 0 rgba(0,0,0,.4);

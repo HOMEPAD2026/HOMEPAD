@@ -1,22 +1,31 @@
 /* global CONFIG */
 
 async function loadHomeStats() {
-  const statsEl = document.getElementById("home-stats");
   const chartEl = document.getElementById("home-chart");
+  const hasStats = !!document.getElementById("stat-price");
 
-  // Chart embed doesn't need JS — just point the iframe at Dexscreener.
-  chartEl.innerHTML = `
-    <iframe
-      src="https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}?embed=1&theme=dark&trades=0&info=0"
-      style="width:100%;height:100%;border:0;"
-      title="$HOME price chart">
-    </iframe>
-  `;
+  // The $HOME stats/chart block was removed from the homepage for the V2
+  // transition notice — guard each piece so this whole function (and the
+  // launch carousel it also starts, further down) keeps working if any of
+  // it is absent. chartEl.innerHTML on a missing element would otherwise
+  // throw here and silently take the carousel down with it.
+  if (chartEl) {
+    // Chart embed doesn't need JS — just point the iframe at Dexscreener.
+    chartEl.innerHTML = `
+      <iframe
+        src="https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}?embed=1&theme=dark&trades=0&info=0"
+        style="width:100%;height:100%;border:0;"
+        title="$HOME price chart">
+      </iframe>
+    `;
+  }
 
-  // Dexscreener: price / liquidity / volume / market cap
-  fetchDexscreener().catch((err) => console.error("dexscreener fetch failed", err));
-  // Blockscout: holder count + total supply, straight from the chain's own explorer
-  fetchHolderStats().catch((err) => console.error("blockscout fetch failed", err));
+  if (hasStats) {
+    // Dexscreener: price / liquidity / volume / market cap
+    fetchDexscreener().catch((err) => console.error("dexscreener fetch failed", err));
+    // Blockscout: holder count + total supply, straight from the chain's own explorer
+    fetchHolderStats().catch((err) => console.error("blockscout fetch failed", err));
+  }
   // HOMEPAD's own launches, biggest market cap first, auto-scrolling carousel
   // Deferred slightly (idle callback, or a short timeout where that API
   // isn't available) so this doesn't compete with the page's first paint

@@ -1572,17 +1572,19 @@ function launchCardHtml(entry) {
     // no fee split, nothing this site's trade UI applies to) — the card
     // links straight to its own Dexscreener pair instead of
     // explore.html#/token/, and opens in a new tab like every other
-    // external link on the site.
+    // external link on the site. Marked V1: HOMEPAD is transitioning to a
+    // newly issued V2 token (see the homepage notice) — this card is the
+    // one place on the site the V1 CA/chart still lives.
     return `
       <a class="launch-card card-type-home" href="https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}" target="_blank" rel="noopener">
-        <div class="card-badges">${badges}<span class="card-badge home-pin">🏡 $HOME</span></div>
+        <div class="card-badges">${badges}<span class="card-badge home-pin">🏡 $HOME V1</span></div>
         ${thumb}
-        <div class="sym">$${entry.symbol}</div>
-        <div class="name">HOMEPAD's own coin</div>
+        <div class="sym">$${entry.symbol} <span class="home-v1-tag">V1</span></div>
+        <div class="name">V1 — V2 migration coming</div>
         ${mcapLine}
         <div class="bar" style="visibility:hidden"><div class="bar-fill" style="width:0%"></div></div>
         ${dexRow}
-        <div class="meta"><span class="home-tag">native</span><span class="card-age">Dexscreener ↗</span></div>
+        <div class="meta"><span class="home-tag">v1</span><span class="card-age">Dexscreener ↗</span></div>
         ${socials}
       </a>
     `;

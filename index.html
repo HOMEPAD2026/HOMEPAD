@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HOMEPAD — launch on Robinhood Chain, fund $HOME</title>
-<meta name="description" content="A permissionless token launchpad on Robinhood Chain. Every trade fee goes to the $HOME treasury.">
+<title>HOMEPAD — token launchpad on Robinhood Chain · V2 coming</title>
+<meta name="description" content="A permissionless token launchpad on Robinhood Chain. HOMEPAD V2 is coming — V1 holders receive V2 based on the snapshot.">
 <!-- Link previews (X/Twitter, Telegram, Discord, iMessage…) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="HOMEPAD">
-<meta property="og:title" content="HOMEPAD — launch on Robinhood Chain, fund $HOME">
-<meta property="og:description" content="A permissionless token launchpad on Robinhood Chain. Every trade fee flows back to $HOME.">
+<meta property="og:title" content="HOMEPAD — token launchpad on Robinhood Chain · V2 coming">
+<meta property="og:description" content="A permissionless token launchpad on Robinhood Chain. HOMEPAD V2 is coming — hold V1, receive V2.">
 <meta property="og:url" content="https://homepad.fun/">
 <meta property="og:image" content="https://homepad.fun/images/og-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="HOMEPAD — launch a token on Robinhood Chain, every trade fee flows back to $HOME">
+<meta property="og:image:alt" content="HOMEPAD — token launchpad on Robinhood Chain, V2 coming">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@HOMEonRobinhood">
-<meta name="twitter:title" content="HOMEPAD — launch on Robinhood Chain, fund $HOME">
-<meta name="twitter:description" content="A permissionless token launchpad on Robinhood Chain. Every trade fee flows back to $HOME.">
+<meta name="twitter:title" content="HOMEPAD — token launchpad on Robinhood Chain · V2 coming">
+<meta name="twitter:description" content="A permissionless token launchpad on Robinhood Chain. HOMEPAD V2 is coming — hold V1, receive V2.">
 <meta name="twitter:image" content="https://homepad.fun/images/og-card.jpg">
 <meta name="theme-color" content="#0d1410">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789462500">
+<link rel="stylesheet" href="style.css?v=1789478000">
 </head>
 <body>
 
@@ -54,7 +54,7 @@
   </div>
 </header>
 
-<!-- ============ $HOME hero + live stats ============ -->
+<!-- ============ V2 notice hero ============ -->
 <section class="home-hero" id="top">
   <div class="wrap home-hero-inner">
     <div class="sticker-field" aria-hidden="true">
@@ -69,27 +69,24 @@
     </div>
 
     <div class="home-hero-content">
-      <span class="pixel eyebrow-chip">every launch pays rent to $HOME 🏡</span>
-      <h1>$HOME headquarters.</h1>
-      <p class="lede">This is HOMEPAD's home base — live $HOME price, the chart, holder count straight from the chain, and the launchpad that funds it all.</p>
+      <span class="pixel eyebrow-chip">🏡 important notice</span>
+      <h1>$HOMEPAD V2 coming.</h1>
+      <p class="lede">HOMEPAD will soon transition to V2 with a newly issued token. Existing holders will receive the corresponding amount of HOMEPAD V2 based on the value of their V1 holdings at the snapshot.</p>
+      <p class="lede">The purpose of V2 is bigger than simply issuing a new token. The core launchpad infrastructure is being rebuilt around PONS, with the goal of a more established and security-focused foundation for the next stage of HOMEPAD.</p>
 
-      <div class="ca-pill-row">
-        <span class="ca-pill">
-          <span class="ca-pill-label">$HOME</span>
-          <span class="ca-text" id="ca-display">0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f</span>
-          <button class="btn-copy" id="copy-ca-btn" onclick="copyCA(CONFIG.HOME_TOKEN_ADDRESS, 'copy-ca-btn')">copy</button>
-          <a class="btn-copy" id="ca-explorer-link" href="#" target="_blank">explorer ↗</a>
-        </span>
-        <span class="ca-pill">
-          <span class="ca-pill-label">$HOMEPAD</span>
-          <span class="ca-text" id="ca-display-homepad">0x90D1D926e843f85b99d0B378dcdF6C4f684d57F5</span>
-          <button class="btn-copy" id="copy-ca-btn-homepad" onclick="copyCA(CONFIG.HOMEPAD_QUOTE.address, 'copy-ca-btn-homepad')">copy</button>
-          <a class="btn-copy" id="ca-explorer-link-homepad" href="#" target="_blank">explorer ↗</a>
-        </span>
+      <div class="v2-notice">
+        <div class="v2-notice-title"><span class="pixel">Important for V1 holders</span></div>
+        <ul class="v2-notice-list">
+          <li><strong>Keep holding your V1 tokens.</strong> If you sell after the snapshot, you will not be eligible for the V2 distribution.</li>
+          <li><strong>The snapshot has already been taken.</strong> V1 purchases made after the snapshot will not increase your V2 allocation.</li>
+          <li><strong>Your V2 allocation is based solely on your holdings recorded at the snapshot.</strong></li>
+        </ul>
+        <div class="v2-notice-tagline">Hold V1 → Receive V2. 🏡</div>
       </div>
 
+      <p class="v2-notice-more">Details on V2, the migration process, and the new launchpad structure will be announced separately. More coming soon.</p>
+
       <div class="hero-cta-row">
-        <a class="btn btn-cute btn-primary" href="https://www.ponsfamily.com/launchpad/0xE9aB3214a9b77BAEbFdE2B6D17dEc4823599ff6f" target="_blank"><img class="btn-icon" src="images/gallery-gm.jpg" alt="">Buy $HOME</a>
         <a class="btn btn-cute" href="https://t.me/HOMEonRobin" target="_blank"><img class="btn-icon" src="images/gallery-floral-mug.jpg" alt="">Telegram</a>
         <a class="btn btn-cute" href="https://x.com/HOMEonRobinhood" target="_blank"><img class="btn-icon" src="images/gallery-cubist.jpg" alt="">X</a>
       </div>
@@ -109,107 +106,14 @@
   </div>
 </section>
 
-<section class="stats-section">
-  <div class="wrap">
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">Price</div>
-        <div class="stat-value" id="stat-price">…</div>
-        <div class="stat-sub" id="stat-change">…</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Market cap</div>
-        <div class="stat-value" id="stat-mcap">…</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Liquidity</div>
-        <div class="stat-value" id="stat-liquidity">…</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">24h volume</div>
-        <div class="stat-value" id="stat-volume">…</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Holders</div>
-        <div class="stat-value" id="stat-holders">…</div>
-        <div class="stat-sub" data-stat-sub="stat-holders">via Blockscout</div>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="chart-card-head">
-        <h3>$HOME / live chart</h3>
-        <a href="https://dexscreener.com/${CONFIG_PLACEHOLDER}" id="dexscreener-link" target="_blank" class="chart-link">Open on Dexscreener ↗</a>
-      </div>
-      <div id="home-chart" class="chart-embed"></div>
-      <p class="chart-mobile-hint">Chart not showing? <a href="https://dexscreener.com/${CONFIG_PLACEHOLDER}" id="dexscreener-link-2" target="_blank">open it directly on Dexscreener ↗</a></p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ Story ============ -->
-<section class="story-section" id="story">
-  <div class="wrap story-inner">
-    <div class="story-art">
-      <img src="images/gallery-knight.jpg" alt="A Pepe knight guarding a castle gate.">
-    </div>
-    <div>
-      <span class="pixel eyebrow-chip">the story</span>
-      <h2 class="pixel">from $BOME to $HOME.</h2>
-      <p>Book of Meme kept memes somewhere permanent on Solana. $HOME borrows that instinct and points it at Robinhood Chain — a spin-off born in the same universe @RobinhoodCrypto itself follows on X, now with its own address, its own chart, and its own community holding it up.</p>
-      <p>No quick pump-and-dump — just a home base for whoever shows up and decides to stay.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ Plan ============ -->
-<section class="plan-section" id="plan">
-  <div class="wrap">
-    <span class="pixel eyebrow-chip alt">the plan</span>
-    <h2 class="pixel">where this goes.</h2>
-    <p class="plan-lede">A direction, not a promise — written down so everyone's working off the same page.</p>
-
-    <div class="plan-grid">
-      <div class="plan-card">
-        <div class="plan-num">1</div>
-        <h3>Grow the room</h3>
-        <p>Not chasing numbers — finding people who actually get it. Share a meme, bring a friend.</p>
-      </div>
-      <div class="plan-card">
-        <div class="plan-num">2</div>
-        <h3>Keep the feed loud</h3>
-        <p>Memes on X every few hours, real updates in between. The best community posts become the face of $HOME.</p>
-      </div>
-      <div class="plan-card">
-        <div class="plan-num">3</div>
-        <h3>Listings &amp; partners</h3>
-        <p>CoinGecko/CMC applications, Robinhood Chain collabs, nods to the $BOME line, and a trending push once volume builds.</p>
-      </div>
-    </div>
-
-    <div class="fw-teaser">
-      <span class="pixel">RENT = FEE.</span> Every launch on HOMEPAD pays rent, and rent goes home. <a href="flywheel.html">See the flywheel →</a>
-    </div>
-
-    <div class="plan-links">
-      <a class="btn btn-cute" href="https://t.me/HOMEonRobin" target="_blank"><img class="btn-icon" src="images/gallery-floral-mug.jpg" alt="">Join the Telegram</a>
-      <a class="btn btn-cute" href="https://x.com/HOMEonRobinhood" target="_blank"><img class="btn-icon" src="images/gallery-cubist.jpg" alt="">Follow on X</a>
-      <a class="btn btn-cute" id="plan-chart-link" href="#" target="_blank"><img class="btn-icon" src="images/gallery-sunrise-back.jpg" alt="">View the chart</a>
-    </div>
-  </div>
-</section>
-
 <!-- ============ Launchpad app ============ -->
 <section class="launchpad-section">
   <div class="wrap">
-    <div class="official-banner">
-      🏡 <strong>$HOME</strong> is the only official coin of HOMEPAD. A portion of every trade fee on this platform is used to buy back <strong>$HOME</strong> from the market.
-    </div>
     <div class="launchpad-heading">
       <span class="pixel eyebrow-chip alt">the launchpad 🚀</span>
       <span class="pixel eyebrow-chip testing">🟢 live on Robinhood Chain mainnet</span>
       <h2 class="pixel">launch something. rent goes home.</h2>
-      <p>Fixed supply, no admin key, permissionless. Every trade fee on every launch routes straight to the $HOME treasury.</p>
+      <p>Fixed supply, no admin key, permissionless.</p>
     </div>
     <main>
       <div id="app"><p>Loading…</p></div>
@@ -221,19 +125,12 @@
 
 <!-- ============ Launch modal (in-page, wavy blob card) ============ -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789462500"></script>
-<script>
-  document.getElementById("dexscreener-link").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
-  document.getElementById("dexscreener-link-2").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
-  document.getElementById("ca-explorer-link").href = homeExplorerUrl();
-  document.getElementById("ca-explorer-link-homepad").href = `${CONFIG.BLOCK_EXPLORER}/token/${CONFIG.HOMEPAD_QUOTE.address}`;
-  document.getElementById("plan-chart-link").href = `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`;
-</script>
-<script src="home-stats.js?v=1789462500"></script>
-<script src="abis.js?v=1789462500"></script>
-<script src="app.js?v=1789462500"></script>
-<script src="wallet-appkit.js?v=1789462500"></script>
-<script src="launch-modal.js?v=1789462500"></script>
-<script src="footer.js?v=1789462500"></script>
+<script src="config.js?v=1789478000"></script>
+<script src="home-stats.js?v=1789478000"></script>
+<script src="abis.js?v=1789478000"></script>
+<script src="app.js?v=1789478000"></script>
+<script src="wallet-appkit.js?v=1789478000"></script>
+<script src="launch-modal.js?v=1789478000"></script>
+<script src="footer.js?v=1789478000"></script>
 </body>
 </html>
