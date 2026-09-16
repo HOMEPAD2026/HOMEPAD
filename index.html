@@ -27,9 +27,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789482000">
+<link rel="stylesheet" href="style.css?v=1789484000">
 </head>
 <body>
+
+<!-- ============ Two ways to launch (full-screen entry gate) ============ -->
+<div class="launch-gate" id="launch-gate">
+  <img class="lg-bg" src="images/launch-choice-hero.jpg" alt="Two ways to launch: HOMEPAD on the left, BigPad on the right.">
+  <button type="button" class="lg-hit lg-hit-left" id="lg-enter-homepad" aria-label="Enter HOMEPAD"></button>
+  <a class="lg-hit lg-hit-right" href="bigpad.html" aria-label="Enter BigPad"></a>
+</div>
+<script>
+  // Full-screen once per browser tab — a returning visit within the same
+  // session goes straight to the page instead of gating it again.
+  if (sessionStorage.getItem("homepadGateSeen")) {
+    document.getElementById("launch-gate").style.display = "none";
+  } else {
+    document.getElementById("lg-enter-homepad").addEventListener("click", () => {
+      document.getElementById("launch-gate").style.display = "none";
+      sessionStorage.setItem("homepadGateSeen", "1");
+    });
+  }
+</script>
 
 <header>
   <div class="headbar">
@@ -53,13 +72,6 @@
     <div id="wallet-slot"></div>
   </div>
 </header>
-
-<!-- ============ Two ways to launch (entry choice) ============ -->
-<section class="launch-choice" id="launch-choice">
-  <img class="lc-bg" src="images/launch-choice-hero.jpg" alt="Two ways to launch: HOMEPAD on the left, BigPad on the right.">
-  <a class="lc-hit lc-hit-left" href="#top" aria-label="Enter HOMEPAD"></a>
-  <a class="lc-hit lc-hit-right" href="bigpad.html" aria-label="Enter BigPad"></a>
-</section>
 
 <!-- ============ V2 notice hero ============ -->
 <section class="home-hero" id="top">
@@ -132,12 +144,12 @@
 
 <!-- ============ Launch modal (in-page, wavy blob card) ============ -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config.js?v=1789482000"></script>
-<script src="home-stats.js?v=1789482000"></script>
-<script src="abis.js?v=1789482000"></script>
-<script src="app.js?v=1789482000"></script>
-<script src="wallet-appkit.js?v=1789482000"></script>
-<script src="launch-modal.js?v=1789482000"></script>
-<script src="footer.js?v=1789482000"></script>
+<script src="config.js?v=1789484000"></script>
+<script src="home-stats.js?v=1789484000"></script>
+<script src="abis.js?v=1789484000"></script>
+<script src="app.js?v=1789484000"></script>
+<script src="wallet-appkit.js?v=1789484000"></script>
+<script src="launch-modal.js?v=1789484000"></script>
+<script src="footer.js?v=1789484000"></script>
 </body>
 </html>
