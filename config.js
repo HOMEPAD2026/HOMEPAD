@@ -263,7 +263,7 @@ const CONFIG = {
   // live from the escrow above rather than holding funds or its own
   // snapshot. Blank until deployed (needs the escrow already started —
   // see contracts/scripts/deploy-bigpad-vote.js) and a voting UI exists.
-  BIGPAD_VOTE_ADDRESS: "",
+  BIGPAD_VOTE_ADDRESS: "0xDc6880112CF4e20Bd7b19a91F0746d1BE6854adc",
 };
 
 // $HOME's link-out explorer URL. rh-scan uses /token/{address} for ERC-20s
