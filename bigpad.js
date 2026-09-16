@@ -980,9 +980,36 @@ function renderBigpadGovernance(g) {
   });
 }
 
+let _bigpadGovLoadedOnce = false;
+
 async function refreshBigpadGovernance() {
   if (!bigpadVoteConfigured()) return;
-  renderBigpadGovernance(await fetchBigpadGovernanceState());
+  const statusEl = document.getElementById("bp-gov-live-status");
+  if (!_bigpadGovLoadedOnce && statusEl) statusEl.textContent = "Loading…";
+
+  let g = null;
+  for (let attempt = 0; attempt < 3 && !g; attempt++) {
+    try {
+      // A hung RPC call (rather than an outright error) would otherwise
+      // leave this on "Loading…" forever with no console trace at all —
+      // races it against a timeout so a stall surfaces the same as any
+      // other failure, and always logs what actually went wrong.
+      g = await Promise.race([
+        fetchBigpadGovernanceState(),
+        new Promise((_res, rej) => setTimeout(() => rej(new Error("timed out after 10s")), 10000)),
+      ]);
+    } catch (err) {
+      console.error(`BigPad: failed to load governance data (attempt ${attempt + 1})`, err);
+      if (attempt < 2) await new Promise((res) => setTimeout(res, 600));
+    }
+  }
+
+  if (!g) {
+    if (!_bigpadGovLoadedOnce && statusEl) statusEl.textContent = "Couldn't load governance data — retrying shortly. Check the browser console for details.";
+    return;
+  }
+  _bigpadGovLoadedOnce = true;
+  renderBigpadGovernance(g);
 }
 
 async function castBigpadVote(category, optionIndex) {
