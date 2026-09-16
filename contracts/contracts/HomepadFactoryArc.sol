@@ -56,6 +56,20 @@ contract HomepadFactoryArc is IUnlockCallback {
     uint16 public immutable platformShareBps;
     uint16 public constant MAX_EXTRA_FEE_BPS = 200;
 
+    /// @notice Flat per-launch fee, paid natively (msg.value) — on Arc the
+    ///         native asset is USDC itself, not ETH, and its native
+    ///         representation uses 18 decimals same as ETH does (the
+    ///         ERC-20 USDC interface elsewhere uses 6 — see the block
+    ///         comment above). `1 ether` here is exactly "1 USDC, native
+    ///         units", not a mistaken ETH reference. Sent as msg.value,
+    ///         not pulled via transferFrom — no separate approval step,
+    ///         matching how every native-currency fee already works on
+    ///         Arc (and how the ETH-based Homepad factories charge fees
+    ///         on Robinhood Chain).
+    uint256 public constant LAUNCH_FEE = 1 ether;
+
+    event LaunchFeeCollected(address indexed payer, uint256 amount);
+
     struct Launch {
         address token;
         address quoteToken;          // the ERC-20 this token is priced in
@@ -124,6 +138,8 @@ contract HomepadFactoryArc is IUnlockCallback {
     /// @param initialVirtualQuote_ starting price, expressed as "this many
     ///        quote tokens (raw units) buys the entire 1B supply" — the
     ///        same convention as initialVirtualEth on the ETH factories.
+    /// @dev Payable: must send at least LAUNCH_FEE (1 USDC, native units).
+    ///      Any excess above the fee is refunded to the caller.
     function launch(
         string calldata name_,
         string calldata symbol_,
@@ -131,7 +147,8 @@ contract HomepadFactoryArc is IUnlockCallback {
         uint256 initialVirtualQuote_,
         uint16 extraFeeBps_,
         LaunchMeta calldata meta_
-    ) external returns (address tokenAddr) {
+    ) external payable returns (address tokenAddr) {
+        _collectLaunchFee();
         return _launch(name_, symbol_, quoteToken_, initialVirtualQuote_, extraFeeBps_, meta_, 0);
     }
 
@@ -140,6 +157,14 @@ contract HomepadFactoryArc is IUnlockCallback {
     ///         tokens from the caller (must be approved first). If the
     ///         quote token takes a cut on transfer-in, the dev buy uses
     ///         whatever actually arrived rather than the pre-fee amount.
+    /// @dev Payable: msg.value covers ONLY the LAUNCH_FEE (native USDC) —
+    ///      it is entirely separate from devBuyQuote, which is pulled via
+    ///      transferFrom in the quote token's own ERC-20 interface (6
+    ///      decimals), even on the rare launch where the quote token
+    ///      happens to be USDC itself. Native and ERC-20 USDC share one
+    ///      balance on Arc, so paying the fee natively and having the dev
+    ///      buy pulled via transferFrom in the same transaction is safe —
+    ///      just don't confuse the two amounts or their decimal scales.
     function launchAndBuy(
         string calldata name_,
         string calldata symbol_,
@@ -148,10 +173,26 @@ contract HomepadFactoryArc is IUnlockCallback {
         uint16 extraFeeBps_,
         LaunchMeta calldata meta_,
         uint256 devBuyQuote
-    ) external returns (address tokenAddr) {
+    ) external payable returns (address tokenAddr) {
+        _collectLaunchFee();
         require(devBuyQuote > 0, "devBuyQuote = 0, use launch() instead");
         uint256 received = _pullQuote(quoteToken_, msg.sender, devBuyQuote);
         return _launch(name_, symbol_, quoteToken_, initialVirtualQuote_, extraFeeBps_, meta_, received);
+    }
+
+    /// @dev Takes exactly LAUNCH_FEE from msg.value and forwards it to the
+    ///      platform treasury; refunds anything sent above that. Reverts
+    ///      if msg.value is short.
+    function _collectLaunchFee() internal {
+        require(msg.value >= LAUNCH_FEE, "launch fee: send at least 1 USDC (native)");
+        (bool sent, ) = platformTreasury.call{value: LAUNCH_FEE}("");
+        require(sent, "launch fee transfer failed");
+        uint256 excess = msg.value - LAUNCH_FEE;
+        if (excess > 0) {
+            (bool refunded, ) = msg.sender.call{value: excess}("");
+            require(refunded, "launch fee refund failed");
+        }
+        emit LaunchFeeCollected(msg.sender, LAUNCH_FEE);
     }
 
     /// @dev Pulls `amount` of `quoteToken_` from `from` into this contract

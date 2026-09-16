@@ -30,6 +30,9 @@ function mineAddressSalt(deployerAddress, initCodeHash, wantLow, maxTries = 200_
 describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", function () {
   const meta = { imageUrl: "", description: "", twitter: "", telegram: "", discord: "", website: "" };
   const VIRTUAL_QUOTE = ethers.parseEther("48");
+  // 1 USDC in Arc's NATIVE (18-decimal) representation — see the constant's
+  // own comment in the contract for why this isn't a stray ETH reference.
+  const LAUNCH_FEE = ethers.parseEther("1");
 
   async function deployBase() {
     const [deployer, platformTreasury, platformWallet, alice, bob] = await ethers.getSigners();
@@ -79,7 +82,7 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
   }
 
   async function launchWith(factory, creator, quote, extraFee = 0) {
-    const tx = await factory.connect(creator).launch("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, extraFee, meta);
+    const tx = await factory.connect(creator).launch("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, extraFee, meta, { value: LAUNCH_FEE });
     const receipt = await tx.wait();
     const ev = receipt.logs.map((l) => { try { return factory.interface.parseLog(l); } catch { return null; } }).find((e) => e && e.name === "Launched");
     return ev.args.token;
@@ -112,7 +115,7 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
       await (await quote.transfer(ctx.alice.address, ethers.parseEther("10"))).wait();
       await (await quote.connect(ctx.alice).approve(await ctx.factory.getAddress(), ethers.parseEther("10"))).wait();
 
-      const tx = await ctx.factory.connect(ctx.alice).launchAndBuy("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("10"));
+      const tx = await ctx.factory.connect(ctx.alice).launchAndBuy("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("10"), { value: LAUNCH_FEE });
       const receipt = await tx.wait();
       const ev = receipt.logs.map((l) => { try { return ctx.factory.interface.parseLog(l); } catch { return null; } }).find((e) => e && e.name === "Launched");
       const token = await ethers.getContractAt("LaunchToken", ev.args.token);
@@ -134,7 +137,7 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
       // have tried to forward the full nominal 10 downstream and reverted
       // on insufficient balance. This one should succeed, using 9.9.
       await expect(
-        ctx.factory.connect(ctx.alice).launchAndBuy("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("10"))
+        ctx.factory.connect(ctx.alice).launchAndBuy("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("10"), { value: LAUNCH_FEE })
       ).to.not.be.reverted;
 
       // Confirm nothing is stuck in the factory and the buyer actually got tokens.
@@ -150,7 +153,7 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
       // since spending N nominal costs the sender N total: net + burn).
       await (await taxedQuote.transfer(ctxTaxed.alice.address, ethers.parseEther("200"))).wait();
       await (await taxedQuote.connect(ctxTaxed.alice).approve(await ctxTaxed.factory.getAddress(), ethers.parseEther("100"))).wait();
-      const taxedTx = await ctxTaxed.factory.connect(ctxTaxed.alice).launchAndBuy("Arc Coin", "ARCC", await taxedQuote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("100"));
+      const taxedTx = await ctxTaxed.factory.connect(ctxTaxed.alice).launchAndBuy("Arc Coin", "ARCC", await taxedQuote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("100"), { value: LAUNCH_FEE });
       const taxedReceipt = await taxedTx.wait();
       const taxedEv = taxedReceipt.logs.map((l) => { try { return ctxTaxed.factory.interface.parseLog(l); } catch { return null; } }).find((e) => e && e.name === "Launched");
       const taxedToken = await ethers.getContractAt("LaunchToken", taxedEv.args.token);
@@ -166,7 +169,7 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
       const plainQuote = await deployTaxedQuote(0, true, ctxPlain); // 0% tax — same contract shape, apples-to-apples
       await (await plainQuote.transfer(ctxPlain.alice.address, ethers.parseEther("100"))).wait();
       await (await plainQuote.connect(ctxPlain.alice).approve(await ctxPlain.factory.getAddress(), ethers.parseEther("81"))).wait();
-      const plainTx = await ctxPlain.factory.connect(ctxPlain.alice).launchAndBuy("Arc Coin", "ARCC", await plainQuote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("81"));
+      const plainTx = await ctxPlain.factory.connect(ctxPlain.alice).launchAndBuy("Arc Coin", "ARCC", await plainQuote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("81"), { value: LAUNCH_FEE });
       const plainReceipt = await plainTx.wait();
       const plainEv = plainReceipt.logs.map((l) => { try { return ctxPlain.factory.interface.parseLog(l); } catch { return null; } }).find((e) => e && e.name === "Launched");
       const plainToken = await ethers.getContractAt("LaunchToken", plainEv.args.token);
@@ -183,6 +186,69 @@ describe("HomepadFactoryArc — Uniswap v4 paired factory adapted for Arc", func
       const ctx = await deployBase();
       const quote = await deployTaxedQuote(100, true, ctx);
       await expect(launchWith(ctx.factory, ctx.alice, quote)).to.not.be.rejected;
+    });
+  });
+
+  describe("launch fee (1 USDC, native, per launch)", function () {
+    it("reverts if msg.value is under the fee", async function () {
+      const ctx = await deployBase();
+      const quote = await deployPlainQuote(true, ctx);
+      await expect(
+        ctx.factory.connect(ctx.alice).launch("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, { value: LAUNCH_FEE - 1n })
+      ).to.be.revertedWith("launch fee: send at least 1 USDC (native)");
+    });
+
+    it("reverts on launchAndBuy too if msg.value is under the fee, even with the quote token approved", async function () {
+      const ctx = await deployBase();
+      const quote = await deployPlainQuote(true, ctx);
+      await (await quote.transfer(ctx.alice.address, ethers.parseEther("10"))).wait();
+      await (await quote.connect(ctx.alice).approve(await ctx.factory.getAddress(), ethers.parseEther("10"))).wait();
+      await expect(
+        ctx.factory.connect(ctx.alice).launchAndBuy("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("10"), { value: 0 })
+      ).to.be.revertedWith("launch fee: send at least 1 USDC (native)");
+    });
+
+    it("forwards exactly the fee to the platform treasury and emits LaunchFeeCollected", async function () {
+      const ctx = await deployBase();
+      const quote = await deployPlainQuote(true, ctx);
+      const before = await ethers.provider.getBalance(ctx.platformTreasury.address);
+      const tx = await ctx.factory.connect(ctx.alice).launch("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, { value: LAUNCH_FEE });
+      await expect(tx).to.emit(ctx.factory, "LaunchFeeCollected").withArgs(ctx.alice.address, LAUNCH_FEE);
+      const after = await ethers.provider.getBalance(ctx.platformTreasury.address);
+      expect(after - before).to.equal(LAUNCH_FEE);
+    });
+
+    it("refunds anything sent above the fee", async function () {
+      const ctx = await deployBase();
+      const quote = await deployPlainQuote(true, ctx);
+      const overpay = LAUNCH_FEE + ethers.parseEther("2");
+      const balBefore = await ethers.provider.getBalance(ctx.alice.address);
+
+      const tx = await ctx.factory.connect(ctx.alice).launch("Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, { value: overpay });
+      const receipt = await tx.wait();
+      const gasCost = receipt.gasUsed * receipt.gasPrice;
+
+      const balAfter = await ethers.provider.getBalance(ctx.alice.address);
+      // Alice should be down by exactly the fee + gas — the extra 2 "USDC" she sent comes back.
+      expect(balBefore - balAfter).to.equal(LAUNCH_FEE + gasCost);
+    });
+
+    it("is independent of the quote-token dev-buy amount, including when the quote token is itself the fee asset", async function () {
+      // Stand-in for launching paired against USDC's own ERC-20 interface:
+      // the native fee and the ERC-20 dev-buy pull are separate transfers
+      // of the same underlying Arc balance, and neither should short the other.
+      const ctx = await deployBase();
+      const quote = await deployPlainQuote(true, ctx); // shape doesn't matter here, only that it's a distinct ERC-20 pull
+      await (await quote.transfer(ctx.alice.address, ethers.parseEther("5"))).wait();
+      await (await quote.connect(ctx.alice).approve(await ctx.factory.getAddress(), ethers.parseEther("5"))).wait();
+
+      const treasuryBefore = await ethers.provider.getBalance(ctx.platformTreasury.address);
+      await (await ctx.factory.connect(ctx.alice).launchAndBuy(
+        "Arc Coin", "ARCC", await quote.getAddress(), VIRTUAL_QUOTE, 0, meta, ethers.parseEther("5"), { value: LAUNCH_FEE }
+      )).wait();
+
+      expect(await ethers.provider.getBalance(ctx.platformTreasury.address) - treasuryBefore).to.equal(LAUNCH_FEE);
+      expect(await quote.balanceOf(ctx.alice.address)).to.equal(0); // full 5 quote pulled for the dev buy, separate from the fee
     });
   });
 });
