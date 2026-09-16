@@ -138,7 +138,10 @@ function bigpadMcBalance() {
 // it lands. BigInts are serialized as tagged strings since JSON can't
 // carry them natively.
 function bigpadCacheKey(kind) {
-  return `bigpad.${kind}.${CONFIG.BIGPAD_ESCROW_ADDRESS}`;
+  // Governance state is keyed by the vote contract, everything else by
+  // the escrow — so redeploying either one starts its own cache clean.
+  const addr = kind === "gov" ? CONFIG.BIGPAD_VOTE_ADDRESS : CONFIG.BIGPAD_ESCROW_ADDRESS;
+  return `bigpad.${kind}.${addr}`;
 }
 function bigpadSaveCache(kind, obj) {
   try {
@@ -820,8 +823,13 @@ function wireBigpadContribute() {
   });
 }
 
-initBigpadRound();
-initBigpadGovernance();
+// NOTE: initBigpadRound() / initBigpadGovernance() are called at the very
+// bottom of this file, after every const/let they depend on has been
+// declared. Calling them from up here — before BIGPAD_VOTE_CATEGORIES,
+// _bigpadGovLoadedOnce etc. exist — throws a ReferenceError (temporal
+// dead zone) synchronously, before any try/catch, and left the Governance
+// tab stuck on its static "Loading…" text with the failure only visible
+// in the console.
 
 // ---- Governance / voting (contracts/BigPadVote.sol) ----
 // Entirely separate from the escrow above — reads weight live from it
@@ -864,6 +872,7 @@ async function initBigpadGovernance() {
   const desc = document.getElementById("bp-featured-desc");
   if (desc) desc.textContent = "This round is contribution-only on-chain: ETH sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap runs in a separate contract — see the Governance tab.";
 
+  paintBigpadGovernanceFromCache(); // instant on a return visit; real fetch overwrites it below
   await refreshBigpadGovernance();
   if (_bigpadGovPollTimer) clearInterval(_bigpadGovPollTimer);
   _bigpadGovPollTimer = setInterval(refreshBigpadGovernance, 15000);
@@ -1010,6 +1019,31 @@ async function refreshBigpadGovernance() {
   }
   _bigpadGovLoadedOnce = true;
   renderBigpadGovernance(g);
+  // Same stale-while-revalidate cache the round state and leaderboard use
+  // (see bigpadSaveCache) — keyed by the vote contract's address so a
+  // future vote contract starts clean. myVoteIndex is wallet-specific and
+  // deliberately dropped: whoever loads next may be a different wallet.
+  bigpadSaveCache("gov", {
+    votingOpen: g.votingOpen,
+    votingEnds: g.votingEnds,
+    categories: g.categories.map((c) => ({ ...c, myVoteIndex: null })),
+    savedAt: Date.now(),
+  });
+}
+
+// Paints the Governance tab from the last visit's cache — synchronous, no
+// RPC — so it's on screen immediately; refreshBigpadGovernance() then
+// overwrites it as soon as the real fetch lands.
+function paintBigpadGovernanceFromCache() {
+  const cached = bigpadLoadCache("gov");
+  if (!cached || !Array.isArray(cached.categories)) return false;
+  const now = Math.floor(Date.now() / 1000);
+  const votingEnds = cached.votingEnds ?? 0n;
+  // Never trust a cached "open" past the cached close time.
+  const votingOpen = !!cached.votingOpen && now < Number(votingEnds);
+  renderBigpadGovernance({ votingOpen, votingEnds, categories: cached.categories });
+  _bigpadGovLoadedOnce = true; // don't replace the cached paint with "Loading…"
+  return true;
 }
 
 async function castBigpadVote(category, optionIndex) {
@@ -1032,3 +1066,9 @@ async function castBigpadVote(category, optionIndex) {
     if (btn) { btn.disabled = false; btn.textContent = original; }
   }
 }
+
+// Boot — deliberately the last lines in the file, after every const/let
+// above has been initialized (see the note near the middle of the file
+// for why calling these any earlier breaks the Governance tab).
+initBigpadRound();
+initBigpadGovernance();
