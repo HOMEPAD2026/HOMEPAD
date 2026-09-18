@@ -33,15 +33,34 @@ module.exports = {
         ? [process.env.TREASURY_PRIVATE_KEY]
         : [],
     },
+    // Circle's Arc — separate chain, separate contracts (HomepadFactoryArc),
+    // nothing here touches Robinhood Chain. Chain ID 5042 is MAINNET —
+    // Arc's testnet is 5042002, a different, unrelated network; several
+    // early third-party docs listed the wrong ID for one or the other, so
+    // this is confirmed straight from Circle's own chain_ids.rs source and
+    // cross-checked against arc.etherscan.io's own listed contracts (see
+    // deploy-homepad-factory-arc.js for the full paper trail). Gas is paid
+    // in USDC, but its NATIVE representation is 18 decimals same as ETH —
+    // do not confuse that with the 6-decimal ERC-20 USDC interface.
+    arcMainnet: {
+      url: process.env.ARC_MAINNET_RPC || "https://rpc.mainnet.arc.io",
+      chainId: 5042,
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
+    },
   },
-  // Source verification — both networks' official explorer is Blockscout
-  // (Etherscan doesn't support Robinhood Chain at all), which doesn't
-  // check the apiKey value, just requires the field to be a non-empty
-  // string. Network names here must match the `networks` block above.
+  // Source verification — Robinhood Chain's explorer is Blockscout
+  // (Etherscan doesn't support it at all, so the apiKey value there is
+  // never actually checked, just required to be a non-empty string). Arc
+  // is different: arc.etherscan.io is a real Etherscan-family explorer, so
+  // ARC_ETHERSCAN_API_KEY needs to be an actual key from https://etherscan.io
+  // (their v2 API is unified across chains under one key) — leaving it
+  // blank will make verification fail with an auth error, not silently
+  // skip. Network names here must match the `networks` block above.
   etherscan: {
     apiKey: {
       robinhoodTestnet: "blockscout",
       robinhoodMainnet: "blockscout",
+      arcMainnet: process.env.ARC_ETHERSCAN_API_KEY || "",
     },
     customChains: [
       {
@@ -58,6 +77,14 @@ module.exports = {
         urls: {
           apiURL: "https://robinhoodchain.blockscout.com/api",
           browserURL: "https://robinhoodchain.blockscout.com",
+        },
+      },
+      {
+        network: "arcMainnet",
+        chainId: 5042,
+        urls: {
+          apiURL: "https://arc.etherscan.io/api",
+          browserURL: "https://arc.etherscan.io",
         },
       },
     ],
