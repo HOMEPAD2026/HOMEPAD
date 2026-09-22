@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CirclePad — ARCIRCLE PAD</title>
+<meta name="description" content="CirclePad: crowdfund a coin together on Circle's Arc chain. Bid USDC, the top bidder leads, every bidder votes on the coin's identity, funds vest over 5 days with an automatic clawback if the project is abandoned.">
+<meta property="og:title" content="CirclePad — ARCIRCLE PAD">
+<meta property="og:description" content="Crowdfund a coin together on Arc. Bid, vote, launch — built to survive being abandoned.">
+<meta property="og:url" content="https://homepad.fun/circlepad">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CirclePad — ARCIRCLE PAD">
+<meta name="twitter:description" content="Crowdfund a coin together on Arc. Bid, vote, launch — built to survive being abandoned.">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789488200">
+</head>
+<body class="bigpad-page circlepad-page">
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">ARCIRCLE <span class="tag">PAD</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="arcpad.html">ArcPad</a>
+      <a href="circlepad.html" class="nav-active">CirclePad</a>
+    </nav>
+    <div id="wallet-slot-unused"></div>
+  </div>
+</header>
+
+<!-- Icon sprite: simple line icons, currentColor, reused via <use> -->
+<svg style="display:none" aria-hidden="true">
+<defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h4.5V14h4v5.5h4.5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></g></symbol>
+<symbol id="i-bars" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V13"/><path d="M12 20V7"/><path d="M19 20V10"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7.5 7.5-7.5s7.5 3.4 7.5 7.5"/></g></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4h9v4.2a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 4.8H5a2.6 2.6 0 0 0 2.7 2.6M16.5 4.8H19a2.6 2.6 0 0 1-2.7 2.6"/><path d="M12 12.7V16M9.3 20h5.4M9.8 16.2h4.4l.5 3.8h-5.4z"/></g></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="1"/><path d="M4 10h16M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></g></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 12 4l8 6"/><path d="M5 10v9M9.3 10v9M14.7 10v9M19 10v9"/><path d="M3 21h18"/></g></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8.5 8.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></g></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h8L18.5 6v15h-12z"/><path d="M14.5 3v3h4"/></g></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></g></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.2 13.2 5A4 4 0 1 1 19 10.8L16.8 13"/><path d="M13 16.8 10.8 19A4 4 0 1 1 5 13.2L7.2 11"/></g></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3.2 2"/></g></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.3" r="3.2"/><path d="M2.8 19.5c0-3.4 2.8-6.2 6.2-6.2s6.2 2.8 6.2 6.2"/><path d="M15.5 6.3a3.1 3.1 0 0 1 0 6.1M18.8 19.5c0-2.7-1.8-5-4.3-5.8"/></g></symbol>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 18.5h16l-1.2-9-4 3.8-2.8-5.6-2.8 5.6-4-3.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-coin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.3v9.4"/><path d="M9.4 9.6c0-1.3 1.2-2.3 2.6-2.3s2.6.9 2.6 2c0 2.6-5.2 1.3-5.2 3.9 0 1.1 1.2 2 2.6 2s2.6-.9 2.6-2.1"/></g></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs>
+</svg>
+
+<div class="bp-app">
+
+  <!-- ============ Left sidebar ============ -->
+  <aside class="bp-sidebar" id="bp-sidebar">
+    <div class="bp-side-brand">
+      <div class="bp-side-logo-row">
+        <svg width="26" height="26" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="cpGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#4d9fff"/>
+              <stop offset="1" stop-color="#39ff88"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="70" stroke="url(#cpGrad)" stroke-width="16"/>
+          <circle cx="100" cy="100" r="28" fill="url(#cpGrad)" opacity=".85"/>
+        </svg>
+        <div class="bp-side-logo">Circle<span>Pad</span></div>
+      </div>
+      <div class="bp-side-tag">One project. Everyone's USDC. Nobody's rug.</div>
+    </div>
+
+    <button type="button" class="bp-mobile-menu-trigger" id="bp-mobile-menu-trigger">
+      <span id="bp-mobile-menu-label">Home</span>
+      <svg class="bp-mobile-menu-caret"><use href="#i-chevron" xlink:href="#i-chevron"/></svg>
+    </button>
+
+    <nav class="bp-side-nav">
+      <button type="button" class="bp-nav-item active" data-tab="home"><svg><use href="#i-home" xlink:href="#i-home"/></svg>Home</button>
+      <button type="button" class="bp-nav-item" data-tab="projects"><svg><use href="#i-grid" xlink:href="#i-grid"/></svg>Projects</button>
+      <button type="button" class="bp-nav-item" data-tab="governance"><svg><use href="#i-bars" xlink:href="#i-bars"/></svg>Governance</button>
+      <button type="button" class="bp-nav-item" data-tab="position"><svg><use href="#i-user" xlink:href="#i-user"/></svg>My Position</button>
+      <button type="button" class="bp-nav-item" data-tab="leaderboard"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Leaderboard</button>
+    </nav>
+
+    <div class="bp-side-section-label">CirclePad</div>
+    <nav class="bp-side-nav">
+      <button type="button" class="bp-nav-item" data-tab="airdrop"><svg><use href="#i-gift" xlink:href="#i-gift"/></svg>Airdrop</button>
+      <button type="button" class="bp-nav-item" data-tab="treasury"><svg><use href="#i-bank" xlink:href="#i-bank"/></svg>Treasury</button>
+      <a class="bp-nav-item" href="arcpad.html"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg>ArcPad<svg class="bp-nav-ext"><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+      <a class="bp-nav-item" href="index.html"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg>ARCIRCLE PAD<svg class="bp-nav-ext"><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+      <button type="button" class="bp-nav-item" data-tab="docs"><svg><use href="#i-doc" xlink:href="#i-doc"/></svg>Docs</button>
+    </nav>
+
+    <div class="bp-side-foot">
+      <span class="bp-side-status-dot" id="bp-side-status-dot"></span>
+      <span id="bp-side-foot-text">Loading round status…</span>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <div class="bp-main">
+
+    <div class="bp-topbar">
+      <div class="bp-search">
+        <svg><use href="#i-search" xlink:href="#i-search"/></svg>
+        <input type="text" placeholder="Search projects — coming soon" disabled>
+      </div>
+      <div class="bp-topbar-right">
+        <div class="bp-chain-pill"><svg><use href="#i-link" xlink:href="#i-link"/></svg><span id="bp-chain-name">Arc</span></div>
+        <div id="wallet-slot"></div>
+      </div>
+    </div>
+
+    <div class="bp-scroll">
+
+      <!-- ============ HOME ============ -->
+      <section class="bp-panel active" id="bp-panel-home">
+
+        <div class="bp-token-banner">
+          <div class="bp-token-info">
+            <span class="bp-token-label bp-token-label-soon">$CIRCLEPAD token</span>
+            <span class="bp-token-soon-text">— Coming soon</span>
+          </div>
+        </div>
+
+        <div class="bp-hero">
+          <div class="bp-hero-art" aria-hidden="true"></div>
+          <div class="bp-hero-copy">
+            <span class="bp-hero-eyebrow">On Arc — gas paid in USDC</span>
+            <h1><span>Fund together.</span><span>Decide together.</span><span class="bp-hero-big">Launch bigger.</span></h1>
+            <p>One project at a time. A 3-day USDC raise decides who leads it — and everyone who contributed gets a vote on what it becomes.</p>
+            <div class="bp-hero-cta">
+              <button type="button" class="bp-btn-primary" id="bp-see-preview">See the preview</button>
+              <button type="button" class="bp-btn-ghost" data-tab-link="docs">How it works</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bp-featured" id="bp-featured">
+          <div class="bp-featured-main">
+            <div class="bp-featured-media">
+              <svg width="72" height="72" viewBox="0 0 200 200" fill="none" class="bp-featured-mark" aria-hidden="true">
+                <circle cx="100" cy="100" r="70" stroke="url(#cpGrad)" stroke-width="16"/>
+                <circle cx="100" cy="100" r="28" fill="url(#cpGrad)" opacity=".85"/>
+              </svg>
+              <span>Identity voted on after the raise</span>
+            </div>
+            <div class="bp-featured-info">
+              <span class="bp-featured-badge">LOADING</span>
+              <h2>First CirclePad round <span class="bp-ticker">$TBD</span></h2>
+              <div class="bp-tags"><span>Community-led</span><span>USDC raise</span><span>Arc</span></div>
+              <p id="bp-featured-desc">Name, ticker, logo and roadmap are all decided by contributors' votes once a raise closes. This card shows the shape of a round — it isn't a real one yet.</p>
+            </div>
+            <div class="bp-featured-side" id="bp-round-panel">
+              <div class="bp-status-row" id="bp-round-status"><span class="bp-status-dot amber"></span>Loading round…</div>
+              <div class="bp-start-row" id="bp-start-row" style="display:none">
+                <button type="button" class="bp-btn-primary bp-btn-block" id="bp-start-btn">Start the 72h raise</button>
+              </div>
+              <div class="bp-raised-block" id="bp-round-progress-label"><span class="bp-raised-big">—</span><span class="bp-raised-suffix">raised of <strong>—</strong> goal</span></div>
+              <div class="bp-progress"><div class="bp-progress-fill" id="bp-round-progress-fill" style="width:0%"></div></div>
+              <div class="bp-round-countdown" id="bp-round-countdown"></div>
+              <div class="bp-balance-row" id="bp-balance-row" style="display:none">Balance: <strong id="bp-wallet-balance">—</strong></div>
+              <div class="bp-contribute-row" id="bp-contribute-row" style="display:none">
+                <input type="number" min="0" step="0.001" class="bp-contribute-input" id="bp-contribute-amount" placeholder="USDC amount">
+                <button type="button" class="bp-btn-ghost bp-contribute-max" id="bp-contribute-max">Max</button>
+              </div>
+              <button type="button" class="bp-btn-primary bp-btn-block" id="bp-contribute-btn" disabled>Loading…</button>
+              <div class="bp-my-position" id="bp-my-position"></div>
+              <div class="bp-refund-row" id="bp-refund-row" style="display:none">
+                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-refund-btn">Withdraw my contribution</button>
+              </div>
+              <div class="bp-withdraw-row" id="bp-withdraw-row" style="display:none">
+                <button type="button" class="bp-btn-ghost bp-btn-block" id="bp-withdraw-btn">Withdraw &amp; split 80/5/15</button>
+              </div>
+            </div>
+          </div>
+          <div class="bp-mini-stats">
+            <div class="bp-mini-stat"><svg><use href="#i-clock" xlink:href="#i-clock"/></svg><span id="bp-stat-length-label">Raise length</span><strong id="bp-stat-length">3 days</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-users" xlink:href="#i-users"/></svg><span>Contributors</span><strong id="bp-stat-contributors">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-crown" xlink:href="#i-crown"/></svg><span>Top contributor</span><strong id="bp-stat-lead">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Your contribution</span><strong id="bp-stat-mine">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span>Your share</span><strong id="bp-stat-myshare">—</strong></div>
+            <div class="bp-mini-stat"><svg><use href="#i-coin" xlink:href="#i-coin"/></svg><span id="bp-stat-payout-label">Lead payout</span><strong id="bp-stat-payout">15%, vested</strong></div>
+          </div>
+        </div>
+
+        <div class="bp-row3">
+          <div class="bp-card">
+            <div class="bp-card-head">Governance <button type="button" class="bp-card-link" data-tab-link="governance">Learn more →</button></div>
+            <ul class="bp-vote-list">
+              <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
+            </ul>
+            <p class="bp-card-note" id="bp-gov-note">Every contributor gets a vote, weighted by their share of the raise.</p>
+          </div>
+          <div class="bp-card">
+            <div class="bp-card-head">Leaderboard <button type="button" class="bp-card-link" data-tab-link="leaderboard">View all →</button></div>
+            <div class="bp-empty" id="bp-home-leaderboard">No contributors yet. The leaderboard fills in once a raise opens.</div>
+          </div>
+          <div class="bp-card">
+            <div class="bp-card-head">Launch process</div>
+            <ol class="bp-steps">
+              <li><span class="bp-step-n">1</span><div><strong>72h funding</strong><p>Contributors send USDC for 3 days.</p></div><span class="bp-step-when">Day 1–3</span></li>
+              <li><span class="bp-step-n">2</span><div><strong>Governance</strong><p>Everyone votes on name, ticker, logo, roadmap, date.</p></div><span class="bp-step-when">Day 1–3</span></li>
+              <li><span class="bp-step-n">3</span><div><strong>Lead preparation</strong><p>Confirmed lead has 12h to publish the essentials.</p></div><span class="bp-step-when">Day 3, +12h</span></li>
+              <li><span class="bp-step-n">4</span><div><strong>Launch</strong><p>80% of USDC becomes LP liquidity immediately.</p></div><span class="bp-step-when">Day 3</span></li>
+              <li><span class="bp-step-n">5</span><div><strong>Grow together</strong><p>Lead's 15% vests 3%/day; CirclePad's 5% funds buyback.</p></div><span class="bp-step-when">Day 3–8</span></li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="bp-nextcard">
+          <h3 id="bp-nextcard-title">What's next</h3>
+          <p id="bp-nextcard-body">The fund-pooling, voting and vesting contract described above is still in design and review — it hasn't gone live with real funds. This page switches from preview to a real round the moment one opens.</p>
+          <button type="button" class="bp-card-link" data-tab-link="docs">Read the full design →</button>
+        </div>
+
+      </section>
+
+      <!-- ============ PROJECTS ============ -->
+      <section class="bp-panel" id="bp-panel-projects">
+        <div class="bp-simple">
+          <h1>Projects</h1>
+          <p>CirclePad runs one project at a time, so there's a single round to watch rather than a list to sift through. When a round is announced, it'll show up here and on Home.</p>
+          <div class="bp-empty">No project has launched through CirclePad yet.</div>
+        </div>
+      </section>
+
+      <!-- ============ GOVERNANCE ============ -->
+      <section class="bp-panel" id="bp-panel-governance">
+        <div class="bp-simple" id="bp-gov-fallback">
+          <h1>Governance</h1>
+          <p>Every bidder in a raise — not just the top bidder — gets a vote on the project's identity, weighted by their share of the total raise. Five things get decided this way:</p>
+          <ul class="bp-vote-list">
+            <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
+          </ul>
+          <p>Voting runs alongside the 3-day funding window and closes when the raise does.</p>
+          <div class="bp-empty" id="bp-gov-panel-note">No round is open, so there's nothing to vote on yet.</div>
+        </div>
+
+        <div id="bp-gov-live" style="display:none">
+          <h1>Governance</h1>
+          <p class="bp-lede" id="bp-gov-live-status">Loading…</p>
+          <div id="bp-gov-categories"></div>
+        </div>
+      </section>
+
+      <!-- ============ MY POSITION ============ -->
+      <section class="bp-panel" id="bp-panel-position">
+        <div class="bp-simple">
+          <h1>My Position</h1>
+          <p>Once a round is live, connecting your wallet here will show what you've contributed and your share of the raise so far.</p>
+          <div class="bp-empty" id="bp-position-body">Connect your wallet once a round is open to see your position.</div>
+        </div>
+      </section>
+
+      <!-- ============ LEADERBOARD ============ -->
+      <section class="bp-panel" id="bp-panel-leaderboard">
+        <div class="bp-simple">
+          <h1>Leaderboard</h1>
+          <p>Ranks every contributor in the current raise by USDC committed, with each one's share of the total.</p>
+          <div class="bp-empty" id="bp-full-leaderboard">No contributors yet. The leaderboard fills in once a raise opens.</div>
+          <div id="bp-recent-activity"></div>
+        </div>
+      </section>
+
+      <!-- ============ AIRDROP ============ -->
+      <section class="bp-panel" id="bp-panel-airdrop">
+        <div class="bp-simple">
+          <h1>Airdrop</h1>
+          <p>Two holder benefits are planned, both still being worked out in detail:</p>
+          <p><strong>ArcPad synergy</strong> — existing ArcPad launch participants are planned to get an advantage when a CirclePad round opens.</p>
+          <p><strong>CirclePad airdrop</strong> — a separate airdrop for CirclePad participants is also planned.</p>
+          <div class="bp-empty">Neither benefit is live. Specifics — eligibility, size, timing — will land here once decided.</div>
+        </div>
+      </section>
+
+      <!-- ============ TREASURY ============ -->
+      <section class="bp-panel" id="bp-panel-treasury">
+        <div class="bp-simple">
+          <h1>Treasury</h1>
+          <p>Every round splits its raised USDC three ways: 80% becomes LP liquidity immediately, 15% goes to the confirmed lead (vested), and 5% goes to CirclePad's own treasury.</p>
+          <p>That 5%, together with CirclePad's own trading fees once projects are live, is meant to fund CirclePad's own buyback-and-burn and promotion — the same loop repeating project after project rather than a one-off.</p>
+          <div class="bp-empty">No round has run yet, so the treasury currently holds nothing.</div>
+        </div>
+      </section>
+
+      <!-- ============ DOCS ============ -->
+      <section class="bp-panel" id="bp-panel-docs">
+        <div class="bp-doc-tabs">
+          <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
+          <button type="button" class="bp-doc-tab" data-doc="economics">Economics</button>
+          <button type="button" class="bp-doc-tab" data-doc="safety">Safety design</button>
+          <button type="button" class="bp-doc-tab" data-doc="faq">FAQ</button>
+        </div>
+
+        <div class="bp-doc-panel active" id="bp-doc-how">
+          <h1>How it works</h1>
+          <p class="bp-mech-note"><strong>First round, actually built:</strong> the recipient wallet starts a 72-hour timer. Anyone can contribute USDC while it's open, and withdraw their own contribution back any time before it closes — no lock-in. When it closes, the balance splits 80% recipient / 5% platform / 15% treasury automatically. None of the bidding, leadership, or voting described below is on-chain yet in this round — see Safety design.</p>
+          <p class="bp-lede">One project. A 3-day USDC raise decides who leads it and how it's split. Every contributor votes on what it becomes.</p>
+
+          <h3>The raise</h3>
+          <p>A single project raises USDC for 3 days on Arc. Every bid is recorded with the bidder's address and amount — this is what determines both voting weight and the final payout split.</p>
+
+          <h3>Leadership</h3>
+          <p>Whoever bid the most becomes the project lead. Every bidder — not just the lead — gets a vote, weighted by their share of the total raise, on the project's actual identity: coin name, ticker, logo, roadmap, and launch date.</p>
+
+          <h3>Launch</h3>
+          <p>When the raise ends, the pooled USDC splits three ways: <strong>80%</strong> becomes real LP liquidity immediately (not a bonding curve that snipers can race from zero), <strong>5%</strong> goes to the CirclePad platform, and <strong>15%</strong> is reserved for the confirmed lead. Dexscreener listing and a 100x boost are paid for by the platform, not the lead.</p>
+
+          <h3>The 12-hour checkpoint</h3>
+          <p>The lead has 12 hours after the raise ends to publish the project's confirmed details plus an official X account and at least one more community channel (X Community, Telegram, or Discord — a website is optional but encouraged). Miss it, and leadership passes to the second-highest bidder, who gets the same 12 hours.</p>
+
+          <h3>Getting paid</h3>
+          <p>The confirmed lead's 15% doesn't land all at once. It vests <strong>3% per day over 5 days</strong>. If the lead stops running the project, whatever hasn't vested yet returns to the original bidders, split proportionally to what they put in.</p>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-economics">
+          <h1>Economics</h1>
+          <p class="bp-mech-note"><strong>First round, actually built:</strong> 80% recipient wallet / 5% platform wallet / 15% treasury wallet, paid directly — no LP liquidity or vesting yet. The split below is the longer-term vision this round doesn't implement.</p>
+          <div class="bp-split-bars">
+            <div class="bp-split-row"><span>LP liquidity</span><div class="bp-split-track"><div class="bp-split-fill" style="width:80%"></div></div><strong>80%</strong></div>
+            <div class="bp-split-row"><span>Lead's payout (vested)</span><div class="bp-split-track"><div class="bp-split-fill alt" style="width:15%"></div></div><strong>15%</strong></div>
+            <div class="bp-split-row"><span>CirclePad platform</span><div class="bp-split-track"><div class="bp-split-fill alt2" style="width:5%"></div></div><strong>5%</strong></div>
+          </div>
+          <p class="bp-mech-note">The platform's 5%, plus CirclePad's own trading fees once projects are live, fund CirclePad's own buyback-and-burn and promotion — the same loop, project after project, rather than a one-off.</p>
+          <p class="bp-mech-note">Holder benefits: participation in a project with real liquidity from block one (not a race against bots on an empty curve), plus a planned ArcPad synergy — details to come.</p>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-safety">
+          <h1>Safety design</h1>
+          <p class="bp-lede">This page is honest about what's still being worked out. Two things had to change before this was safe to build at all.</p>
+
+          <h3>Problem: instant lump-sum payout</h3>
+          <p>The original version paid 15% of the entire raise to the lead's wallet the moment the 12-hour checklist was met — an X account and one social channel. That's a low bar for a large, immediate payout: someone could self-fund a majority bid, clear the checklist in minutes, and walk away with most of their own contribution back plus a share of everyone else's.</p>
+          <p><strong>Fix:</strong> the 15% vests 3% per day over 5 days instead of paying out immediately.</p>
+
+          <h3>Problem: what happens if the lead vests some, then disappears?</h3>
+          <p>Vesting alone doesn't fully close the gap — someone could still collect a few days' worth of tranches and stop. The remaining, unvested amount needs a defined, automatic path back to bidders rather than sitting stuck or depending on a human deciding "this looks abandoned."</p>
+          <p><strong>Current proposal:</strong> the lead must check in on-chain periodically (roughly every 48 hours). Miss a check-in, and the project is automatically marked abandoned — no admin, no vote, no judgment call — and everything left unvested returns to the original bidders, split proportionally to what they put in.</p>
+
+          <h3>What's still not built</h3>
+          <p>The fund-pooling, auction, voting, vesting, and clawback logic described on this page is a brand-new smart contract — not a reuse of ArcPad's existing, already-deployed factory the way most of that side of the site works. Code that pools money from multiple people carries real risk if it has a bug. It is not going live with real funds without a real security review first.</p>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-faq">
+          <h1>FAQ</h1>
+          <div class="bp-faq-item"><h4>Is this live yet?</h4><p>No. Everything on this page describes the design. No round is open and no contract is deployed with real funds yet.</p></div>
+          <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — every bidder gets a vote on the project's identity, and if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
+          <div class="bp-faq-item"><h4>Can the lead just take the money and never build anything?</h4><p>That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.</p></div>
+          <div class="bp-faq-item"><h4>Why USDC and not $HOME or an ArcPad token?</h4><p>USDC is Arc's own native gas token, so it's the natural first quote asset — no bridging, no extra approval step. Other quote assets may follow once the core mechanism is live and tested.</p></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<footer class="ah-footer">
+  <div class="wrap ah-footer-inner">
+    <div class="ah-footer-brand pixel">ARCIRCLE PAD</div>
+    <div class="ah-footer-links">
+      <a href="arcpad.html">ArcPad</a>
+      <a href="circlepad.html">CirclePad</a>
+      <a href="home-legacy.html">$HOME (V1)</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config-arc.js?v=1789488200"></script>
+<script src="abis.js?v=1789488200"></script>
+<script src="arc-shared.js?v=1789488200"></script>
+<script src="wallet-appkit.js?v=1789488200"></script>
+<script src="circlepad.js?v=1789488200"></script>
+</body>
+</html>

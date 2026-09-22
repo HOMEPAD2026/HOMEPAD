@@ -1,15 +1,24 @@
-// Deploys the Arc launch system: HomepadHybridHook (CREATE2-mined address,
-// fresh instance — completely separate from the one already live on
-// Robinhood Chain) + HomepadFactoryArc, wired together.
+// Deploys the Arc launch system ("ARCPAD"): HomepadHybridHook (CREATE2-mined
+// address, fresh instance — completely separate from the one already live
+// on Robinhood Chain) + HomepadFactoryArc + HomepadArcSwapRouter, wired
+// together.
 //
 // Does NOT touch Robinhood Chain, $HOME, or any existing HOMEPAD contract —
 // this is a new chain, a new hook instance, a new factory.
 //
 // Chain facts this script relies on (see hardhat.config.js's arcMainnet
 // entry for the full paper trail): chain ID 5042 is Arc MAINNET (5042002 is
-// testnet, a different network), and the Uniswap v4 PoolManager address
-// below comes from long.supply's own published integration docs, confirmed
-// independently against Bitquery's indexed Arc data.
+// testnet, a different network). The Uniswap v4 PoolManager address below
+// was cross-checked directly against Circle's own Arc docs
+// (docs.arc.io/arc/references/contract-addresses) and Uniswap's own
+// UniswapX playbook (github.com/Uniswap/UniswapX/blob/main/playbook/chains/arc.md)
+// in addition to the long.supply/Bitquery cross-check already on file —
+// both independently agree on 0x8366a39CC670B4001A1121B8F6A443A643e40951.
+// Arc's native-USDC ERC-20 predeploy (6 decimals) is
+// 0x3600000000000000000000000000000000000000, per the same two sources —
+// pass that as `quoteToken_` on launch()/launchAndBuy() for a USDC-quoted
+// ARCPAD launch. Native currency (msg.value, 18 decimals) IS USDC on Arc,
+// which is what LAUNCH_FEE in HomepadFactoryArc is denominated in.
 //
 // Required env vars:
 //   PLATFORM_TREASURY_ADDRESS
@@ -23,13 +32,11 @@
 //   BASE_FEE_BPS (default 100), CREATOR_SHARE_BPS (default 7000),
 //   PLATFORM_SHARE_BPS (default 10000)
 //
-// NOT deployed here: a swap router. HomepadSwapRouter (used on Robinhood
-// Chain) is hardcoded for native-ETH quote tokens (payable/msg.value) and
-// does not fit HomepadFactoryArc, where the quote token is an arbitrary
-// ERC-20 chosen per launch. Trading against these pools needs either a new
-// generic-ERC20-quote router (not yet built) or direct use of Uniswap's v4
-// Quoter — public routers don't route through hooked pools at all, same as
-// long.supply's own docs note for their pools.
+// Also deploys HomepadArcSwapRouter (step 5/5) — HomepadPairedSwapRouter's
+// exact mechanics retargeted at HomepadFactoryArc, since HomepadSwapRouter
+// (Robinhood Chain, native-ETH quote) doesn't fit a generic-ERC20-quote
+// factory. This closes the gap this file used to flag ("no swap router —
+// trading needs the v4 Quoter directly").
 
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
@@ -73,14 +80,14 @@ async function main() {
   const pmCode = await ethers.provider.getCode(poolManagerAddr);
   if (pmCode === "0x") throw new Error(`No contract code at PoolManager address ${poolManagerAddr} — double check POOL_MANAGER_ADDRESS.`);
 
-  console.log("1/4 — Deploying Create2Deployer...");
+  console.log("1/5 — Deploying Create2Deployer...");
   const Create2Deployer = await ethers.getContractFactory("Create2Deployer");
   const create2Deployer = await Create2Deployer.deploy();
   await create2Deployer.waitForDeployment();
   const create2Addr = await create2Deployer.getAddress();
   console.log("     Create2Deployer:", create2Addr);
 
-  console.log("2/4 — Mining a salt for HomepadHybridHook's address...");
+  console.log("2/5 — Mining a salt for HomepadHybridHook's address...");
   const HookFactory = await ethers.getContractFactory("HomepadHybridHook");
   const deployTx = await HookFactory.getDeployTransaction(poolManagerAddr, deployerSigner.address);
   const hookInitCode = deployTx.data;
@@ -88,7 +95,7 @@ async function main() {
   const { salt, address: predictedHookAddr } = mineSalt(create2Addr, initCodeHash);
   console.log("     Found salt. Hook will deploy to:", predictedHookAddr);
 
-  console.log("3/4 — Deploying HomepadHybridHook via CREATE2...");
+  console.log("3/5 — Deploying HomepadHybridHook via CREATE2...");
   const deployHookTx = await create2Deployer.deploy(salt, hookInitCode);
   await deployHookTx.wait();
   const hook = await ethers.getContractAt("HomepadHybridHook", predictedHookAddr);
@@ -96,7 +103,7 @@ async function main() {
   if (deployedCode === "0x") throw new Error("Hook deployment silently failed — no code at predicted address");
   console.log("     HomepadHybridHook deployed to:", predictedHookAddr);
 
-  console.log("4/4 — Deploying HomepadFactoryArc and wiring it to the hook...");
+  console.log("4/5 — Deploying HomepadFactoryArc and wiring it to the hook...");
   const Factory = await ethers.getContractFactory("HomepadFactoryArc");
   const factory = await Factory.deploy(
     platformTreasury,
@@ -114,6 +121,13 @@ async function main() {
   const setFactoryTx = await hook.setFactory(factoryAddr);
   await setFactoryTx.wait();
 
+  console.log("5/5 — Deploying HomepadArcSwapRouter (buy/sell against these launches)...");
+  const Router = await ethers.getContractFactory("HomepadArcSwapRouter");
+  const router = await Router.deploy(poolManagerAddr, factoryAddr);
+  await router.waitForDeployment();
+  const routerAddr = await router.getAddress();
+  console.log("     HomepadArcSwapRouter deployed to:", routerAddr);
+
   console.log("\nVerifying source on arc.etherscan.io...");
   await verifyIfPossible(hre, { name: "Arc Hybrid Hook", address: predictedHookAddr, contract: "contracts/HomepadHybridHook.sol:HomepadHybridHook", constructorArgs: [poolManagerAddr, deployerSigner.address] });
   await verifyIfPossible(hre, {
@@ -122,12 +136,15 @@ async function main() {
     contract: "contracts/HomepadFactoryArc.sol:HomepadFactoryArc",
     constructorArgs: [platformTreasury, platformWallet, poolManagerAddr, predictedHookAddr, tickSpacing, baseFeeBps, creatorShareBps, platformShareBps],
   });
+  await verifyIfPossible(hre, {
+    name: "HomepadArcSwapRouter",
+    address: routerAddr,
+    contract: "contracts/HomepadArcSwapRouter.sol:HomepadArcSwapRouter",
+    constructorArgs: [poolManagerAddr, factoryAddr],
+  });
 
   console.log("\nDone.");
-  console.log({ hook: predictedHookAddr, factory: factoryAddr, poolManager: poolManagerAddr });
-  console.log("\nReminder: no swap router was deployed. Trading against these pools needs a");
-  console.log("generic-ERC20-quote router (not yet built) or direct use of Uniswap's v4 Quoter —");
-  console.log("public routers don't route through hooked pools.");
+  console.log({ hook: predictedHookAddr, factory: factoryAddr, router: routerAddr, poolManager: poolManagerAddr });
 }
 
 function requireEnv(name) {
