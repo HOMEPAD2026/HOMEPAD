@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789488400">
+<link rel="stylesheet" href="style.css?v=1790114979">
 </head>
 <body class="bigpad-page circlepad-page">
 
@@ -297,6 +297,7 @@
           <button type="button" class="bp-doc-tab" data-doc="economics">Economics</button>
           <button type="button" class="bp-doc-tab" data-doc="safety">Safety design</button>
           <button type="button" class="bp-doc-tab" data-doc="faq">FAQ</button>
+          <button type="button" class="bp-doc-tab" data-doc="contracts">Contracts</button>
         </div>
 
         <div class="bp-doc-panel active" id="bp-doc-how">
@@ -350,10 +351,16 @@
 
         <div class="bp-doc-panel" id="bp-doc-faq">
           <h1>FAQ</h1>
-          <div class="bp-faq-item"><h4>Is this live yet?</h4><p>No. Everything on this page describes the design. No round is open and no contract is deployed with real funds yet.</p></div>
+          <div class="bp-faq-item"><h4>Is this live yet?</h4><p>Partly. The first-round escrow contract is deployed on Arc mainnet (see Contracts below) — once the recipient starts the clock, the 72-hour USDC raise is real and the Home panel switches from preview to live numbers. The bigger lead/vote/vesting mechanism described here is a separate contract that is still in design and review.</p></div>
           <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — every bidder gets a vote on the project's identity, and if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
           <div class="bp-faq-item"><h4>Can the lead just take the money and never build anything?</h4><p>That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.</p></div>
           <div class="bp-faq-item"><h4>Why USDC and not $HOME or an ArcPad token?</h4><p>USDC is Arc's own native gas token, so it's the natural first quote asset — no bridging, no extra approval step. Other quote assets may follow once the core mechanism is live and tested.</p></div>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-contracts">
+          <h1>Contracts</h1>
+          <p class="bp-lede">Every CirclePad contract on Arc mainnet, read straight from this site's config so this list can't drift from what's deployed. Verify anything here on the explorer before you contribute.</p>
+          <div id="cp-contracts"><div class="empty-state">Loading…</div></div>
         </div>
       </section>
 
@@ -373,10 +380,10 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1789488200"></script>
-<script src="abis.js?v=1789488200"></script>
-<script src="arc-shared.js?v=1789488200"></script>
-<script src="wallet-appkit.js?v=1789488200"></script>
-<script src="circlepad.js?v=1789488400"></script>
+<script src="config-arc.js?v=1790114979"></script>
+<script src="abis.js?v=1790114979"></script>
+<script src="arc-shared.js?v=1790114979"></script>
+<script src="wallet-appkit.js?v=1790114979"></script>
+<script src="circlepad.js?v=1790114979"></script>
 </body>
 </html>

@@ -60,6 +60,22 @@
     });
   }
 
+  // Hero art (the ArCircle Pad teaser image) opens a small coming-soon
+  // popup on click — same hidden-class toggle every other "soon" popup on
+  // this site uses (see cnPONS.js's showCnSoon), closable via its own
+  // button or by clicking the dark backdrop outside the box.
+  const arcircleBtn = document.getElementById("bp-hero-art-btn");
+  const arcircleModal = document.getElementById("bp-arcircle-modal");
+  if (arcircleBtn && arcircleModal) {
+    const closeArcircleModal = () => arcircleModal.classList.add("hidden");
+    arcircleBtn.addEventListener("click", () => arcircleModal.classList.remove("hidden"));
+    document.getElementById("bp-arcircle-modal-close").addEventListener("click", closeArcircleModal);
+    document.getElementById("bp-arcircle-modal-ok").addEventListener("click", closeArcircleModal);
+    arcircleModal.addEventListener("click", (e) => {
+      if (e.target === arcircleModal) closeArcircleModal();
+    });
+  }
+
   // ---- Docs sub-tabs (How it works / Economics / Safety / FAQ) ----
   const docTabs = document.querySelectorAll(".bp-doc-tab");
   const docPanels = document.querySelectorAll(".bp-doc-panel");

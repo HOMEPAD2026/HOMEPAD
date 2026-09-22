@@ -384,7 +384,7 @@ async function ensureAppKitChain() {
     } catch (err2) {
       const e = new Error(
         `Your wallet needs to be on ${CONFIG.CHAIN_NAME}. If it didn't prompt you, open the wallet app and approve the network there — or add it manually: ` +
-        `name ${CONFIG.CHAIN_NAME}, chain ID ${CONFIG.CHAIN_ID_DECIMAL}, RPC ${CONFIG.RPC_URL}, symbol ETH, explorer ${CONFIG.BLOCK_EXPLORER}.`
+        `name ${CONFIG.CHAIN_NAME}, chain ID ${CONFIG.CHAIN_ID_DECIMAL}, RPC ${CONFIG.RPC_URL}, symbol ${(CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.symbol) || "ETH"}, explorer ${CONFIG.BLOCK_EXPLORER}.`
       );
       e.cause = err2; throw e;
     }

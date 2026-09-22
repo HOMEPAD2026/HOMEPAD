@@ -169,15 +169,43 @@ function launchCardHtml(l) {
 
 function renderArcpadHome() {
   const track = document.getElementById("ap-home-track");
+  const viewport = document.getElementById("ap-home-viewport");
   if (!ARC.launches.length) {
-    track.innerHTML = `<div class="empty-state">No launches yet — be the first.</div>`;
+    // .carousel-viewport reserves ~300px for a row of cards; with nothing to
+    // show that's just a hole in the page, so collapse it (see .is-empty).
+    viewport.classList.add("is-empty");
+    track.innerHTML = `<div class="empty-state">No launches yet — be the first. <button type="button" class="bp-card-link" data-tab-link="launch">Launch a coin →</button></div>`;
+    track.querySelector("[data-tab-link]").addEventListener("click", () => document.querySelector(".bp-nav-item[data-tab='launch']").click());
     return;
   }
+  viewport.classList.remove("is-empty");
   const newest = [...ARC.launches].sort((a, b) => b.launchedAt - a.launchedAt).slice(0, 12);
   const cardsHtml = newest.map(launchCardHtml).join("");
   track.innerHTML = cardsHtml + cardsHtml + cardsHtml;
   wireLaunchCardClicks(track);
-  setupCarouselAutoScroll(document.getElementById("ap-home-viewport"), track, newest.length);
+  setupCarouselAutoScroll(viewport, track, newest.length);
+}
+
+/// Shown when the factory read itself fails (RPC down, wrong network on a
+/// read-only provider, etc.) — every surface that said "Loading…" flips to
+/// the same honest error instead of spinning forever.
+function renderArcpadLoadError(err) {
+  const msg = String(err && (err.shortMessage || err.message) || err);
+  const viewport = document.getElementById("ap-home-viewport");
+  if (viewport) viewport.classList.add("is-empty");
+  const html = `<div class="empty-state">Couldn't reach Arc to load launches — check your connection and refresh. <span class="err-detail">${msg.slice(0, 160)}</span></div>`;
+  const track = document.getElementById("ap-home-track");
+  if (track) track.innerHTML = html;
+  const grid = document.getElementById("ap-explore-grid");
+  if (grid) grid.innerHTML = html;
+  const foot = document.getElementById("bp-side-foot-text");
+  if (foot) foot.textContent = "Couldn't reach Arc RPC";
+  const dot = document.getElementById("bp-side-status-dot");
+  if (dot) dot.classList.add("bp-bad");
+  for (const id of ["ap-stat-count", "ap-home-count"]) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "—";
+  }
 }
 
 let arcExploreSort = "mcap";
@@ -368,7 +396,11 @@ async function submitArcpadLaunch(ev) {
     statusEl.innerHTML = `<div class="status success">Launched! <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("ap-launch-form").reset();
     document.getElementById("ap-image-preview").innerHTML = "🅰️";
-    document.getElementById("ap-fee-preview").dispatchEvent; // no-op, slider re-renders on its own default value
+    document.getElementById("ap-image-hint").textContent = "A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but bigger files cost noticeably more gas to launch.";
+    // reset() puts the slider back to 0 but fires no input event, so the fee
+    // breakdown and dev-buy preview have to be re-rendered by hand.
+    document.getElementById("ap-extrafee").dispatchEvent(new Event("input"));
+    updateArcpadDevBuyPreview();
     loadArcpadLaunches().catch((err) => console.error(err));
   } catch (err) {
     console.error(err);
@@ -471,8 +503,21 @@ async function submitTrade() {
         const tx = await tokenWrite(CONFIG.USDC_ADDRESS).approve(CONFIG.ARCPAD_ROUTER_ADDRESS, quoteAmount);
         await tx.wait();
       }
-      const estTokensOut = l.priceUsdc ? (Number(amountStr) / l.priceUsdc) : 0;
-      const minTokensOut = ethers.parseUnits((estTokensOut * 0.95).toFixed(18), ARC_TOKEN_DECIMALS);
+      // Simulate the exact swap first (eth_call of the real buy) so the
+      // slippage floor is 5% under what the pool would ACTUALLY return right
+      // now — price impact included — rather than 5% under the spot price,
+      // which made any buy big enough to move the price >5% revert with
+      // "slippage". Falls back to the spot estimate only if the simulation
+      // itself can't run.
+      let minTokensOut = 0n;
+      try {
+        const simOut = await router.buy.staticCall(l.token, quoteAmount, 0n);
+        minTokensOut = (simOut * 95n) / 100n;
+      } catch (simErr) {
+        console.warn("buy simulation failed — falling back to spot estimate", simErr);
+        const estTokensOut = l.priceUsdc ? (Number(amountStr) / l.priceUsdc) : 0;
+        minTokensOut = ethers.parseUnits((estTokensOut * 0.95).toFixed(18), ARC_TOKEN_DECIMALS);
+      }
       statusEl.innerHTML = `<div class="status pending">Confirm the buy in your wallet…</div>`;
       const tx = await router.buy(l.token, quoteAmount, minTokensOut > 0n ? minTokensOut : 0n);
       statusEl.innerHTML = `<div class="status pending">Buying… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
@@ -486,8 +531,15 @@ async function submitTrade() {
         const tx = await tokenWrite(l.token).approve(CONFIG.ARCPAD_ROUTER_ADDRESS, tokenAmount);
         await tx.wait();
       }
-      const estUsdcOut = l.priceUsdc ? Number(amountStr) * l.priceUsdc : 0;
-      const minQuoteOut = ethers.parseUnits((estUsdcOut * 0.95).toFixed(6), ARC_QUOTE_DECIMALS);
+      let minQuoteOut = 0n;
+      try {
+        const simOut = await router.sell.staticCall(l.token, tokenAmount, 0n);
+        minQuoteOut = (simOut * 95n) / 100n;
+      } catch (simErr) {
+        console.warn("sell simulation failed — falling back to spot estimate", simErr);
+        const estUsdcOut = l.priceUsdc ? Number(amountStr) * l.priceUsdc : 0;
+        minQuoteOut = ethers.parseUnits((estUsdcOut * 0.95).toFixed(6), ARC_QUOTE_DECIMALS);
+      }
       statusEl.innerHTML = `<div class="status pending">Confirm the sell in your wallet…</div>`;
       const tx = await router.sell(l.token, tokenAmount, minQuoteOut > 0n ? minQuoteOut : 0n);
       statusEl.innerHTML = `<div class="status pending">Selling… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
@@ -587,8 +639,36 @@ function refreshAccountDependentViews() {
     updateTradePreview();
   });
 
+  // Deep links: arcpad.html#launch / #explore / #docs open that tab directly
+  // (the splash page's EXPLORE / LAUNCH nav uses these). Falls back to Home
+  // for any hash that isn't a tab.
+  const openTabFromHash = () => {
+    const tab = (location.hash || "").replace(/^#\/?/, "");
+    if (tab && document.getElementById(`bp-panel-${tab}`)) showTab(tab);
+  };
+  openTabFromHash();
+  window.addEventListener("hashchange", openTabFromHash);
+
+  renderArcpadContracts();
+
   loadArcpadLaunches().catch((err) => {
     console.error("loadArcpadLaunches failed", err);
-    document.getElementById("ap-explore-grid").innerHTML = `<div class="empty-state">Couldn't load launches. <span class="err-detail">${String(err && err.message || err)}</span></div>`;
+    renderArcpadLoadError(err);
   });
 })();
+
+/// Docs → "Contracts": every live address, read straight from config-arc.js
+/// so the page can never drift from what's actually deployed. Empty entries
+/// (e.g. a not-yet-deployed contract) render as "not deployed yet".
+function renderArcpadContracts() {
+  const el = document.getElementById("ap-contracts");
+  if (!el) return;
+  const rows = [
+    ["HomepadFactoryArc", CONFIG.ARCPAD_FACTORY_ADDRESS, "Launches, seeds the pool, collects the 1 USDC fee"],
+    ["HomepadHybridHook", CONFIG.ARCPAD_HOOK_ADDRESS, "Uniswap v4 hook — routes trade fees to creator / platform"],
+    ["HomepadArcSwapRouter", CONFIG.ARCPAD_ROUTER_ADDRESS, "Buy / sell against the pool from this page"],
+    ["Uniswap v4 PoolManager", CONFIG.POOL_MANAGER_ADDRESS, "Uniswap's own core on Arc — every pool lives here"],
+    ["USDC (ERC-20, 6 decimals)", CONFIG.USDC_ADDRESS, "Arc's native USDC predeploy — the quote token"],
+  ];
+  el.innerHTML = renderContractRows(rows);
+}

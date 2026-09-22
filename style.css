@@ -2222,21 +2222,83 @@ body.bigpad-page.arcpad-page{
 .bp-token-soon-text{font-size:.85rem;color:var(--ink-dim);}
 
 .bp-hero{position:relative;overflow:hidden;border-radius:20px;margin:28px 0 30px;padding:60px 42px;min-height:360px;display:flex;align-items:center;isolation:isolate;}
-.bp-hero-art{position:absolute;inset:0;z-index:-1;background:
-  radial-gradient(ellipse 640px 640px at 80% 62%, rgba(255,255,255,.05), transparent 60%),
-  linear-gradient(180deg,#000 0%,#050505 100%);
+/* Base hero art (ArcPad / CirclePad, and any page that doesn't opt in):
+   the abstract planet-glow placeholder. The dashboard shell is shared by
+   three pages, so the artwork variant below is a separate modifier class
+   rather than a change to this base rule. The glow picks up each page's
+   own accent via --green so ArcPad reads blue and CirclePad reads green. */
+.bp-hero-art{
+  position:absolute;inset:0;z-index:-1;border:0;padding:0;
+  background:
+    radial-gradient(ellipse 640px 640px at 80% 62%, color-mix(in srgb, var(--green) 14%, transparent), transparent 60%),
+    linear-gradient(180deg,#000 0%,#050505 100%);
 }
 .bp-hero-art::before{
   content:"";position:absolute;right:4%;top:34%;width:480px;height:480px;border-radius:50%;
   background:
-    radial-gradient(circle at 30% 28%, rgba(255,255,255,.85), rgba(255,255,255,.04) 42%, transparent 62%),
+    radial-gradient(circle at 30% 28%, color-mix(in srgb, var(--green) 85%, #fff), color-mix(in srgb, var(--green) 6%, transparent) 42%, transparent 62%),
     radial-gradient(circle at 65% 70%, transparent 55%, rgba(0,0,0,.5) 78%);
-  opacity:.55;filter:blur(1px);
+  opacity:.5;filter:blur(1px);
 }
 .bp-hero-art::after{
   content:"";position:absolute;right:-6%;top:52%;width:620px;height:620px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.06);opacity:.6;
+  border:1px solid color-mix(in srgb, var(--green) 22%, transparent);opacity:.6;
 }
+/* Artwork variant (bigpad.html only): the ArCircle Pad teaser as a real
+   image, kept as a <button> so the whole panel is one click target for the
+   coming-soon popup, with a dark gradient layered on top (via ::before)
+   purely for bp-hero-copy text legibility. */
+.bp-hero-art.bp-hero-art-arcircle{
+  cursor:pointer;
+  background-image:url('images/arcircle-art.jpg');
+  background-size:cover;background-position:center;
+  display:flex;align-items:flex-end;justify-content:flex-end;
+}
+.bp-hero-art.bp-hero-art-arcircle::before{
+  right:auto;top:auto;width:auto;height:auto;border-radius:0;opacity:1;filter:none;
+  inset:0;
+  background:linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.55) 32%, rgba(0,0,0,.15) 58%, transparent 78%),
+    linear-gradient(0deg, rgba(0,0,0,.35), transparent 40%);
+}
+.bp-hero-art.bp-hero-art-arcircle::after{display:none;}
+.bp-hero-art.bp-hero-art-arcircle:hover::before{background:linear-gradient(90deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.5) 32%, rgba(0,0,0,.12) 58%, transparent 78%),
+    linear-gradient(0deg, rgba(0,0,0,.3), transparent 40%);}
+.bp-hero-art-badge{
+  position:relative;margin:0 22px 20px 0;
+  display:inline-flex;align-items:baseline;gap:6px;
+  font-family:'Sora';font-size:.78rem;font-weight:700;color:#fff;
+  background:rgba(10,12,20,.62);border:1px solid rgba(140,170,255,.4);
+  border-radius:100px;padding:8px 16px;
+  box-shadow:0 0 18px rgba(90,140,255,.35);
+  backdrop-filter:blur(6px);
+  transition:box-shadow .15s ease,border-color .15s ease;
+}
+.bp-hero-art:hover .bp-hero-art-badge{border-color:rgba(160,190,255,.7);box-shadow:0 0 24px rgba(110,160,255,.5);}
+.bp-hero-art-badge-soon{font-weight:600;color:#aebbff;}
+
+/* ArCircle Pad popup — the one spot on this black/white BigPad page allowed
+   to borrow the teaser image's own blue/purple/green space palette, since
+   it's presenting that same artwork; everything else on the page is
+   untouched. Reuses the site-wide .modal-overlay shell for the backdrop. */
+.bp-arcircle-modal-box{
+  position:relative;width:100%;max-width:440px;text-align:center;
+  background:radial-gradient(ellipse 420px 260px at 50% -10%, rgba(90,140,255,.22), transparent 60%),
+    linear-gradient(160deg,#0a0d1a 0%,#05060c 100%);
+  border:1px solid rgba(140,170,255,.35);
+  border-radius:22px;
+  padding:38px 30px 30px;
+  box-shadow:0 0 40px rgba(70,110,255,.18), 0 20px 50px rgba(0,0,0,.5);
+  animation:blobPop .22s cubic-bezier(.34,1.56,.64,1);
+}
+.bp-arcircle-modal-eyebrow{font-family:'Sora';font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9db3ff;margin-bottom:14px;}
+.bp-arcircle-modal-title{
+  font-family:'Sora';font-size:1.5rem;font-weight:800;margin:0 0 14px;letter-spacing:-.01em;
+  background:linear-gradient(90deg,#8fb8ff 0%,#b79bff 45%,#7de3c0 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.bp-arcircle-modal-body{font-family:'Sora';font-size:.9rem;line-height:1.65;color:#b8bdd6;margin:0 0 22px;}
+.bp-arcircle-modal-box .bp-btn-primary{max-width:220px;margin:0 auto;}
+.bp-arcircle-modal-box .modal-close{background:rgba(20,22,36,.9);color:#cfd6ff;border-color:rgba(140,170,255,.4);}
 .bp-hero-copy{position:relative;max-width:560px;}
 .bp-hero-eyebrow{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--line);border-radius:100px;padding:5px 13px;margin-bottom:20px;}
 .bp-hero-copy h1{font-size:2.5rem;font-weight:800;line-height:1.14;letter-spacing:-.02em;color:#fff;margin:0 0 18px;text-transform:uppercase;}
@@ -2446,6 +2508,7 @@ body.bigpad-page.arcpad-page{
   .bp-scroll{padding:0 20px 60px;}
   .bp-hero{padding:40px 26px;min-height:280px;}
   .bp-hero-copy h1{font-size:1.9rem;}
+  .bp-hero-art-badge{margin:0 14px 14px 0;font-size:.7rem;padding:7px 13px;}
   .bp-row3{grid-template-columns:1fr;}
 }
 @media (min-width:901px){
@@ -2595,3 +2658,274 @@ body.bigpad-page.arcpad-page{
 .ah-footer-brand{font-size:.85rem;color:var(--ink-dim);}
 .ah-footer-links{display:flex;gap:18px;font-size:.85rem;}
 .ah-footer-links a:hover{color:var(--green);}
+
+/* ============================================================
+   Explore page redesign — "luxury blue", pump.fun-style card grid.
+   Scoped entirely under .explore-luxe (a wrapper div renderExploreFull()
+   writes around its own markup) so nothing else on the site is
+   affected — the homepage's Explore preview, the profile page and the
+   token detail page all use the original green-accent .launch-card
+   styles untouched.
+   ============================================================ */
+.explore-luxe{
+  --xl-void:#050b18;
+  --xl-panel:#0d1930;
+  --xl-panel-hi:#15224a;
+  --xl-line:rgba(150,195,255,.16);
+  --xl-line-hi:rgba(160,205,255,.38);
+  --xl-ink:#eef3ff;
+  --xl-ink-dim:#8ea1c9;
+  --xl-blue:#4f9dff;
+  --xl-blue-soft:#8fc7ff;
+  --xl-blue-deep:#1c4fc4;
+  --xl-up:#4fe0b0;
+  --xl-down:#ff7a8a;
+  position:relative;
+  background:
+    radial-gradient(900px 460px at 18% -12%, rgba(79,157,255,.22), transparent 62%),
+    radial-gradient(760px 420px at 105% 6%, rgba(140,190,255,.12), transparent 58%),
+    linear-gradient(180deg,#0a1428 0%,#071022 55%,var(--xl-void) 100%);
+  border:1px solid var(--xl-line);
+  border-radius:26px;
+  padding:30px clamp(14px,4vw,38px) 40px;
+  box-shadow:0 30px 80px -34px rgba(15,55,140,.55), inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;
+}
+.explore-luxe::before{
+  content:"";position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(170,210,255,.85),transparent);
+  pointer-events:none;
+}
+
+/* ----- Hero / heading ----- */
+.explore-luxe .xl-hero{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px;position:relative;z-index:1;}
+.explore-luxe .xl-hero-text{min-width:0;}
+.explore-luxe .xl-title{
+  font-family:'Sora';font-weight:700;font-size:2.15rem;letter-spacing:-.01em;margin:0 0 6px;
+  background:linear-gradient(135deg,#f3f8ff 8%,#a9d0ff 55%,#5ea8ff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.explore-luxe .xl-sub{margin:0;color:var(--xl-ink-dim);font-size:.92rem;max-width:560px;line-height:1.5;}
+.explore-luxe .xl-launch-btn{
+  display:inline-flex;align-items:center;gap:8px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--xl-blue),var(--xl-blue-deep));
+  color:#04101f;font-weight:700;font-family:'Sora';font-size:.9rem;
+  padding:12px 20px;border-radius:100px;text-decoration:none;
+  box-shadow:0 12px 28px -10px rgba(79,157,255,.55);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.explore-luxe .xl-launch-btn:hover{transform:translateY(-1px);box-shadow:0 16px 34px -10px rgba(79,157,255,.7);}
+.explore-luxe .xl-launch-icon{font-size:1.1rem;line-height:1;}
+
+/* ----- Toolbar: search + sort ----- */
+.explore-luxe .xl-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;position:relative;z-index:1;}
+.explore-luxe .xl-search-wrap{position:relative;flex:1 1 300px;min-width:220px;}
+.explore-luxe .xl-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--xl-ink-dim);pointer-events:none;}
+.explore-luxe .xl-search-input{
+  width:100%;background:rgba(255,255,255,.03);border:1px solid var(--xl-line);border-radius:12px;
+  padding:11px 14px 11px 38px;color:var(--xl-ink);font-family:'Sora';font-size:.88rem;
+}
+.explore-luxe .xl-search-input::placeholder{color:var(--xl-ink-dim);}
+.explore-luxe .xl-search-input:focus{outline:none;border-color:var(--xl-blue);box-shadow:0 0 0 3px rgba(79,157,255,.16);}
+.explore-luxe .xl-sort-select{
+  flex:0 0 auto;background:rgba(255,255,255,.03);border:1px solid var(--xl-line);border-radius:12px;
+  padding:11px 14px;color:var(--xl-ink);font-family:'Sora';font-size:.85rem;cursor:pointer;
+}
+.explore-luxe .xl-sort-select:focus{outline:none;border-color:var(--xl-blue);}
+
+/* ----- Filter chip row (reuses the shared .filter-chip class so the
+   existing click handler in app.js keeps working unmodified) ----- */
+.explore-luxe .xl-filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;position:relative;z-index:1;}
+.explore-luxe .filter-chip{
+  font-family:'Sora';font-weight:600;font-size:.76rem;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--xl-line);color:var(--xl-ink-dim);cursor:pointer;transition:all .15s ease;white-space:nowrap;
+}
+.explore-luxe .filter-chip:hover{border-color:var(--xl-blue-soft);color:var(--xl-blue-soft);}
+.explore-luxe .filter-chip.active{
+  background:linear-gradient(135deg,var(--xl-blue),var(--xl-blue-deep));
+  border-color:transparent;color:#04101f;
+}
+
+/* ----- Card grid ----- */
+.explore-luxe .xl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:18px;position:relative;z-index:1;}
+
+.explore-luxe .xl-card{
+  display:flex;flex-direction:column;background:var(--xl-panel);border:1px solid var(--xl-line);
+  border-radius:18px;overflow:hidden;text-decoration:none;color:var(--xl-ink);min-width:0;
+  transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.explore-luxe .xl-card:hover{
+  border-color:var(--xl-line-hi);transform:translateY(-3px);
+  box-shadow:0 20px 40px -20px rgba(79,157,255,.45);
+}
+.explore-luxe .xl-card-media{position:relative;aspect-ratio:1/1;background:var(--xl-panel-hi);}
+.explore-luxe .xl-card-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.4rem;}
+.explore-luxe .xl-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.explore-luxe .xl-badges-tl{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
+.explore-luxe .xl-badges-tr{position:absolute;top:10px;right:10px;}
+.explore-luxe .xl-badge{
+  font-family:'Sora';font-weight:700;font-size:.6rem;letter-spacing:.03em;text-transform:uppercase;
+  padding:3px 9px;border-radius:999px;backdrop-filter:blur(6px);
+}
+.explore-luxe .xl-badge-new{color:#04101f;background:var(--xl-blue-soft);}
+.explore-luxe .xl-badge-grad{color:#04101f;background:#e4d38a;}
+.explore-luxe .xl-badge-chg{text-transform:none;letter-spacing:0;}
+.explore-luxe .xl-badge-chg.up{color:var(--xl-up);background:rgba(79,224,176,.15);border:1px solid rgba(79,224,176,.4);}
+.explore-luxe .xl-badge-chg.down{color:var(--xl-down);background:rgba(255,122,138,.15);border:1px solid rgba(255,122,138,.4);}
+
+.explore-luxe .xl-card-body{padding:14px;display:flex;flex-direction:column;gap:3px;min-width:0;}
+.explore-luxe .xl-card-name{font-family:'Sora';font-weight:700;font-size:.94rem;color:var(--xl-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.explore-luxe .xl-card-sym{font-family:'Sora';font-weight:500;font-size:.78rem;color:var(--xl-blue-soft);margin-bottom:4px;}
+.explore-luxe .xl-mcap-row{display:flex;align-items:baseline;gap:6px;margin:2px 0 8px;}
+.explore-luxe .xl-mcap-value{font-family:'Sora';font-weight:700;font-size:1.02rem;color:var(--xl-ink);}
+.explore-luxe .xl-mcap-label{font-size:.66rem;color:var(--xl-ink-dim);text-transform:uppercase;letter-spacing:.03em;}
+
+.explore-luxe .xl-progress{height:5px;border-radius:99px;background:var(--xl-panel-hi);overflow:hidden;margin-bottom:6px;}
+.explore-luxe .xl-progress-fill{height:100%;background:linear-gradient(90deg,var(--xl-blue-deep),var(--xl-blue));}
+.explore-luxe .xl-progress-label{display:flex;justify-content:space-between;font-size:.64rem;color:var(--xl-ink-dim);margin-bottom:8px;}
+
+.explore-luxe .xl-byline{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--xl-ink-dim);margin-bottom:10px;min-width:0;}
+.explore-luxe .xl-creator{font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.explore-luxe .xl-dot{opacity:.6;}
+.explore-luxe .xl-age{white-space:nowrap;flex-shrink:0;}
+
+.explore-luxe .xl-footer-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;}
+.explore-luxe .xl-type-pill{
+  font-family:'Sora';font-weight:600;font-size:.64rem;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--xl-line);color:var(--xl-ink-dim);white-space:nowrap;
+}
+.explore-luxe .xl-type-curve{color:var(--xl-blue-soft);border-color:rgba(79,157,255,.4);background:rgba(79,157,255,.08);}
+.explore-luxe .xl-type-instant{color:var(--xl-up);border-color:rgba(79,224,176,.4);background:rgba(79,224,176,.08);}
+.explore-luxe .xl-type-hybrid{color:#c7b8ff;border-color:rgba(180,140,255,.4);background:rgba(180,140,255,.08);}
+.explore-luxe .xl-type-paired{color:var(--xl-blue-soft);border-color:rgba(79,157,255,.4);background:rgba(79,157,255,.08);}
+.explore-luxe .xl-socials{display:flex;gap:9px;align-items:center;flex-shrink:0;}
+.explore-luxe .xl-socials span{color:var(--xl-ink-dim);cursor:pointer;display:inline-flex;transition:color .15s ease;}
+.explore-luxe .xl-socials span:hover{color:var(--xl-blue-soft);}
+.explore-luxe .xl-socials svg{width:15px;height:15px;}
+
+/* ----- Loading skeleton ----- */
+.explore-luxe .xl-skel-thumb{width:100%;height:100%;border-radius:0;}
+.explore-luxe .xl-skeleton-card .xl-card-body{gap:8px;}
+.explore-luxe .sk{background:linear-gradient(90deg,var(--xl-panel-hi) 25%,rgba(255,255,255,.06) 50%,var(--xl-panel-hi) 75%);background-size:200% 100%;animation:sk-shimmer 1.4s ease-in-out infinite;border-radius:8px;}
+
+.explore-luxe .empty-state{color:var(--xl-ink-dim);}
+
+@media (max-width:640px){
+  .explore-luxe{padding:20px 14px 28px;border-radius:20px;}
+  .explore-luxe .xl-title{font-size:1.6rem;}
+  .explore-luxe .xl-sub{font-size:.8rem;}
+  .explore-luxe .xl-launch-btn{padding:10px 16px;font-size:.82rem;}
+  .explore-luxe .xl-toolbar{flex-direction:column;align-items:stretch;}
+  .explore-luxe .xl-search-wrap{flex:none;width:100%;}
+  .explore-luxe .xl-sort-select{width:100%;}
+  .explore-luxe .xl-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .explore-luxe .xl-card{border-radius:14px;}
+  .explore-luxe .xl-card-body{padding:9px;gap:2px;}
+  .explore-luxe .xl-card-name{font-size:.8rem;}
+  .explore-luxe .xl-card-sym{font-size:.68rem;margin-bottom:2px;}
+  .explore-luxe .xl-mcap-value{font-size:.86rem;}
+  .explore-luxe .xl-mcap-label{font-size:.58rem;}
+  .explore-luxe .xl-byline{font-size:.62rem;margin-bottom:6px;}
+  .explore-luxe .xl-type-pill{font-size:.56rem;padding:2px 7px;}
+  .explore-luxe .xl-socials{gap:7px;}
+  .explore-luxe .xl-socials svg{width:13px;height:13px;}
+  .explore-luxe .xl-badge{font-size:.52rem;padding:2px 7px;}
+  .explore-luxe .xl-badges-tl{top:7px;left:7px;}
+  .explore-luxe .xl-badges-tr{top:7px;right:7px;}
+}
+
+
+/* ============================================================
+   ARCIRCLE audit pass — gate artwork backdrop, hub header CTA,
+   ArcPad/CirclePad "Contracts" table, launch-form hint sizing,
+   empty-carousel collapse. All additive; scoped to the Arc pages.
+   ============================================================ */
+/* The generated ARCIRCLE artwork (images/arcircle-art.jpg) as an ambient
+   backdrop behind the gate: blurred + darkened so its baked-in text and
+   logos dissolve into colour and light (the crisp, responsive HTML layer
+   on top carries the real copy), scaled slightly so blur never shows a
+   hard edge. Works at every aspect ratio because nothing depends on
+   where the artwork's own elements land. */
+.arcircle-gate .ag-art{
+  position:absolute;inset:-4%;pointer-events:none;
+  background:url('images/arcircle-art.jpg') center/cover no-repeat;
+  filter:blur(14px) brightness(.62) saturate(1.15);
+  transform:scale(1.06);
+}
+.arcircle-gate .ag-art::after{
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(60% 55% at 50% 45%, rgba(5,7,10,.18), rgba(5,7,10,.62) 100%),
+    linear-gradient(180deg, rgba(5,7,10,.55) 0%, rgba(5,7,10,.15) 30%, rgba(5,7,10,.15) 70%, rgba(5,7,10,.7) 100%);
+}
+/* With real artwork underneath, the flat CSS planets read as stickers —
+   keep them only as soft colour halos. */
+.arcircle-gate .ag-planet{opacity:.32;filter:blur(38px);}
+.arcircle-gate .ag-stars{opacity:.8;}
+.ag-emblem{filter:drop-shadow(0 0 30px rgba(120,180,255,.45)) drop-shadow(0 0 60px rgba(57,255,136,.18));}
+.ag-enter{box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(57,255,136,.18), 0 0 40px rgba(77,159,255,.22);}
+.ag-hit:hover{background:rgba(255,255,255,.06);backdrop-filter:blur(2px);}
+@media (max-width:860px){
+  .arcircle-gate .ag-topbar .ag-corner{display:none;}
+  .arcircle-gate .ag-bottom{padding:12px 16px 26px;}
+  .arcircle-gate .ag-scene{padding-bottom:6vh;}
+}
+
+/* Hub header: a real CTA where the (scriptless) wallet slot used to sit. */
+.ah-head-cta{margin-left:auto;white-space:nowrap;}
+@media (max-width:640px){ .ah-head-cta{display:none;} }
+
+/* Docs → Contracts table (ArcPad + CirclePad), rendered by
+   renderContractRows() in arc-shared.js. */
+.ac-contracts{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+.ac-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.ac-row-main{min-width:0;flex:1 1 260px;}
+.ac-label{font-weight:700;color:var(--ink);font-size:.92rem;}
+.ac-role{font-size:.78rem;color:var(--ink-dim);margin-top:3px;line-height:1.45;}
+.ac-addr{display:flex;align-items:center;gap:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;}
+.ac-addr .mono-link{color:var(--green);text-decoration:none;word-break:break-all;max-width:none;overflow:visible;text-overflow:clip;white-space:normal;display:inline;}
+.ac-addr .mono-link:hover{text-decoration:underline;}
+.ac-addr-short{display:none;}
+.ac-addr-pending{color:var(--amber);font-family:'Sora';font-size:.78rem;font-style:italic;}
+.ac-copy{background:var(--panel-hi);border:1px solid var(--line);color:var(--ink-dim);border-radius:7px;padding:5px 10px;font-family:'Sora';font-size:.72rem;font-weight:600;cursor:pointer;}
+.ac-copy:hover{color:var(--ink);border-color:var(--green);}
+.ac-foot{font-size:.74rem;color:var(--ink-dim);padding:6px 2px 0;line-height:1.6;}
+.ac-foot code{font-size:.72rem;background:var(--panel-hi);padding:1px 6px;border-radius:5px;}
+.ac-foot .mono-link{color:var(--green);text-decoration:none;}
+@media (max-width:640px){
+  .ac-addr-full{display:none;}
+  .ac-addr-short{display:inline;}
+}
+
+/* ArcPad launch form: .hint/.optional were only ever styled under the
+   Robinhood launch page's .field wrapper, so here they inherited the
+   label's size and colour. Keep the label header ("Logo optional") on one
+   line and the inputs on the next. */
+body.arcpad-page .adv-launch-form label{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 8px;}
+body.arcpad-page .adv-launch-form label > input,
+body.arcpad-page .adv-launch-form label > .cn-input-suffix-wrap{flex:1 0 100%;margin-top:2px;}
+body.arcpad-page .adv-launch-form label > input[type="range"]{margin-top:8px;}
+body.arcpad-page .adv-launch-form .optional{font-size:.7rem;font-weight:400;color:var(--ink-dim);}
+body.arcpad-page .adv-launch-form .hint{font-size:.76rem;color:var(--ink-dim);line-height:1.5;margin:-4px 0 0;font-weight:400;}
+body.arcpad-page .adv-launch-form .hint:empty{display:none;}
+body.arcpad-page .adv-launch-form .logo-row .hint{margin-top:6px;}
+body.arcpad-page .adv-launch-form .file-btn{margin-top:8px;}
+body.arcpad-page .adv-launch-form .btn-primary{margin-top:6px;}
+
+/* Empty / errored carousel shouldn't reserve a 300px hole. */
+.carousel-viewport.is-empty{min-height:0;cursor:default;}
+.carousel-viewport.is-empty .carousel-track{width:100%;}
+.carousel-viewport.is-empty .empty-state{width:100%;}
+.bp-side-status-dot.bp-bad{background:var(--red);box-shadow:0 0 8px var(--red);}
+/* Docs/Explore/Launch panels start flush under the sticky topbar; give
+   every non-home panel the same breathing room the hero already has. */
+.bp-panel:not(#bp-panel-home) > h1:first-child,
+.bp-panel:not(#bp-panel-home) > .bp-doc-tabs:first-child,
+.bp-panel:not(#bp-panel-home) > .bp-simple:first-child{margin-top:26px;}
+#ap-home-stats{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:12px 36px;}
+@media (max-width:640px){
+  #ap-home-stats{grid-template-columns:repeat(3,1fr);gap:10px;}
+  #ap-home-stats div{font-size:.7rem;}
+  #ap-home-stats strong{font-size:.95rem;}
+}

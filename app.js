@@ -1521,6 +1521,15 @@ function skeletonCardsHtml(n) {
     </div>`).join("");
 }
 
+// Shared social-row icons — used by launchCardHtml and luxeCardHtml.
+// Using <span onclick> instead of nested <a> tags on purpose — the whole
+// card is already an <a>, and an <a> inside an <a> is invalid HTML that
+// makes the browser silently close the outer one early, which is exactly
+// what broke the card layout before this fix.
+const ICON_X = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+const ICON_TELEGRAM = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.05 2.5 2.6 10.13c-1.33.53-1.32 1.27-.24 1.6l4.98 1.55 11.5-7.25c.54-.33 1.04-.15.63.22L10.7 14.3l-.36 5.16c.52 0 .75-.24 1.03-.52l2.48-2.4 5.15 3.8c.95.52 1.63.25 1.87-.88l3.38-15.9c.36-1.39-.53-2.02-1.9-1.06z"/></svg>';
+const ICON_DISCORD = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.32 5.37a17.9 17.9 0 0 0-4.43-1.37 13.4 13.4 0 0 0-.6 1.23 16.6 16.6 0 0 0-4.98 0 13.4 13.4 0 0 0-.6-1.23 17.9 17.9 0 0 0-4.44 1.37C1.9 9.14 1.13 12.8 1.5 16.4a18 18 0 0 0 5.48 2.77c.44-.6.84-1.24 1.18-1.92-.65-.24-1.27-.55-1.86-.9.16-.11.31-.23.46-.35a12.9 12.9 0 0 0 10.48 0c.15.12.3.24.46.35-.59.35-1.21.66-1.86.9.34.68.74 1.32 1.18 1.92a18 18 0 0 0 5.48-2.77c.44-4.16-.66-7.79-2.5-11.03zM8.68 14.1c-.83 0-1.5-.77-1.5-1.72 0-.94.66-1.71 1.5-1.71.85 0 1.53.78 1.5 1.71 0 .95-.66 1.72-1.5 1.72zm6.64 0c-.83 0-1.5-.77-1.5-1.72 0-.94.66-1.71 1.5-1.71.85 0 1.53.78 1.5 1.71 0 .95-.65 1.72-1.5 1.72z"/></svg>';
+
 function launchCardHtml(entry) {
   const thumb = entry.imageUrl
     ? `<img class="launch-thumb" src="${entry.imageUrl}" onerror="this.style.display='none'">`
@@ -1531,13 +1540,6 @@ function launchCardHtml(entry) {
     ${isNew ? '<span class="card-badge new">NEW</span>' : ""}
     ${entry.change24h != null ? `<span class="card-badge ${entry.change24h >= 0 ? "up" : "down"}">${entry.change24h >= 0 ? "▲" : "▼"} ${Math.abs(entry.change24h).toFixed(1)}%</span>` : ""}
   `;
-  // Using <span onclick> instead of nested <a> tags here on purpose — the
-  // whole card is already an <a>, and an <a> inside an <a> is invalid
-  // HTML that makes the browser silently close the outer one early,
-  // which is exactly what broke the card layout before this fix.
-  const ICON_X = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
-  const ICON_TELEGRAM = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.05 2.5 2.6 10.13c-1.33.53-1.32 1.27-.24 1.6l4.98 1.55 11.5-7.25c.54-.33 1.04-.15.63.22L10.7 14.3l-.36 5.16c.52 0 .75-.24 1.03-.52l2.48-2.4 5.15 3.8c.95.52 1.63.25 1.87-.88l3.38-15.9c.36-1.39-.53-2.02-1.9-1.06z"/></svg>';
-  const ICON_DISCORD = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.32 5.37a17.9 17.9 0 0 0-4.43-1.37 13.4 13.4 0 0 0-.6 1.23 16.6 16.6 0 0 0-4.98 0 13.4 13.4 0 0 0-.6-1.23 17.9 17.9 0 0 0-4.44 1.37C1.9 9.14 1.13 12.8 1.5 16.4a18 18 0 0 0 5.48 2.77c.44-.6.84-1.24 1.18-1.92-.65-.24-1.27-.55-1.86-.9.16-.11.31-.23.46-.35a12.9 12.9 0 0 0 10.48 0c.15.12.3.24.46.35-.59.35-1.21.66-1.86.9.34.68.74 1.32 1.18 1.92a18 18 0 0 0 5.48-2.77c.44-4.16-.66-7.79-2.5-11.03zM8.68 14.1c-.83 0-1.5-.77-1.5-1.72 0-.94.66-1.71 1.5-1.71.85 0 1.53.78 1.5 1.71 0 .95-.66 1.72-1.5 1.72zm6.64 0c-.83 0-1.5-.77-1.5-1.72 0-.94.66-1.71 1.5-1.71.85 0 1.53.78 1.5 1.71 0 .95-.65 1.72-1.5 1.72z"/></svg>';
 
   const socials = (entry.twitter || entry.telegram || entry.discord)
     ? `<div class="card-socials">
@@ -1643,6 +1645,102 @@ function launchCardHtml(entry) {
   `;
 }
 
+/// Pump.fun-style card for the redesigned Explore full-list page only —
+/// deliberately a separate function from launchCardHtml() (used by the
+/// homepage preview, profile page, etc.) so this redesign can't change
+/// how any card looks anywhere else on the site. Image-forward, with a
+/// creator + relative-time byline row in place of the vol/liq stats row.
+function luxeCardHtml(entry) {
+  // The placeholder sits underneath in normal flow; the real image is
+  // absolutely positioned on top of it (see .xl-card-img in style.css) so
+  // an onerror just has to hide the <img>, revealing the placeholder
+  // behind it — same simple, no-nested-quotes pattern launchCardHtml uses.
+  const media = `<div class="xl-card-placeholder">🏡</div>` +
+    (entry.imageUrl ? `<img class="xl-card-img" src="${entry.imageUrl}" onerror="this.style.display='none'">` : "");
+
+  const isNew = entry.launchedAt > 0 && Date.now() / 1000 - entry.launchedAt < 86400;
+  const badgesTl = `
+    ${isNew ? '<span class="xl-badge xl-badge-new">NEW</span>' : ""}
+    ${entry.graduated ? '<span class="xl-badge xl-badge-grad">GRADUATED</span>' : ""}
+  `;
+  const badgeTr = entry.change24h != null
+    ? `<span class="xl-badge xl-badge-chg ${entry.change24h >= 0 ? "up" : "down"}">${entry.change24h >= 0 ? "▲" : "▼"} ${Math.abs(entry.change24h).toFixed(1)}%</span>`
+    : "";
+
+  const socials = (entry.twitter || entry.telegram || entry.discord)
+    ? `<div class="xl-socials">
+        ${entry.twitter ? `<span onclick="event.stopPropagation();event.preventDefault();window.open('${entry.twitter}','_blank')" title="X">${ICON_X}</span>` : ""}
+        ${entry.telegram ? `<span onclick="event.stopPropagation();event.preventDefault();window.open('${entry.telegram}','_blank')" title="Telegram">${ICON_TELEGRAM}</span>` : ""}
+        ${entry.discord ? `<span onclick="event.stopPropagation();event.preventDefault();window.open('${entry.discord}','_blank')" title="Discord">${ICON_DISCORD}</span>` : ""}
+      </div>`
+    : "";
+
+  const mcapText = entry.type === "paired"
+    ? (entry.marketCapUsd != null ? fmtUsd(entry.marketCapUsd) : (entry.marketCapQuote != null ? `${fmtCompact(entry.marketCapQuote)} ${entry.quoteSymbol}` : "—"))
+    : (entry.marketCapUsd != null ? fmtUsd(entry.marketCapUsd) : "—");
+
+  const typePill = entry.type === "instant" ? '<span class="xl-type-pill xl-type-instant">Instant</span>'
+    : entry.type === "hybrid" ? '<span class="xl-type-pill xl-type-hybrid">Hybrid</span>'
+    : entry.type === "paired" ? `<span class="xl-type-pill xl-type-paired">Paired · ${entry.quoteSymbol}</span>`
+    : entry.type === "curve" ? '<span class="xl-type-pill xl-type-curve">Bonding curve</span>'
+    : "";
+
+  // No creator-authored blurb exists at list-load time (adding one would
+  // mean an extra fetch per card) — the home/external cards get a short,
+  // true line instead; every other type shows the creator + time byline,
+  // matching the reference layout's "handle · time" row.
+  const byline = entry.type === "home"
+    ? `<div class="xl-byline"><span class="xl-creator">🏡 Official</span></div>`
+    : entry.type === "external"
+    ? `<div class="xl-byline"><span class="xl-creator">🔗 Supported, not launched here</span></div>`
+    : `<div class="xl-byline">${entry.creator ? `<span class="xl-creator">${short(entry.creator)}</span><span class="xl-dot">·</span>` : ""}<span class="xl-age">${entry.launchedAt > 0 ? timeAgoCompact(entry.launchedAt) : "—"}</span></div>`;
+
+  const curveBar = entry.type === "curve"
+    ? (() => {
+        const pct = entry.threshold > 0n ? Math.min(100, Number((entry.ethRaised * 100n) / entry.threshold)) : 0;
+        return `<div class="xl-progress"><div class="xl-progress-fill" style="width:${pct}%"></div></div><div class="xl-progress-label"><span>${ethers.formatEther(entry.ethRaised)} / ${ethers.formatEther(entry.threshold)} ETH</span><span>${pct}%</span></div>`;
+      })()
+    : "";
+
+  const href = entry.type === "home" ? `https://dexscreener.com/${CONFIG.DEXSCREENER_CHAIN_SLUG}/${CONFIG.DEXSCREENER_PAIR_ADDRESS}`
+    : entry.type === "external" ? entry.dexscreenerUrl
+    : `explore.html#/token/${entry.token}`;
+  const target = (entry.type === "home" || entry.type === "external") ? ` target="_blank" rel="noopener"` : "";
+
+  return `
+    <a class="xl-card xl-card-type-${entry.type}" href="${href}"${target}>
+      <div class="xl-card-media">
+        ${media}
+        <div class="xl-badges-tl">${badgesTl}</div>
+        ${badgeTr ? `<div class="xl-badges-tr">${badgeTr}</div>` : ""}
+      </div>
+      <div class="xl-card-body">
+        <div class="xl-card-name">${entry.name}</div>
+        <div class="xl-card-sym">$${entry.symbol}</div>
+        <div class="xl-mcap-row"><span class="xl-mcap-value">${mcapText}</span><span class="xl-mcap-label">MC</span></div>
+        ${curveBar}
+        ${byline}
+        <div class="xl-footer-row">${typePill}${socials}</div>
+      </div>
+    </a>
+  `;
+}
+
+/// Same idea as skeletonCardsHtml() but shaped for the redesigned Explore
+/// card (luxeCardHtml) — used only while renderExploreFull() is loading.
+function luxeSkeletonCardsHtml(n) {
+  return Array.from({ length: n }, () => `
+    <div class="xl-card xl-skeleton-card" aria-hidden="true">
+      <div class="xl-card-media"><div class="sk xl-skel-thumb"></div></div>
+      <div class="xl-card-body">
+        <div class="sk sk-line w60"></div>
+        <div class="sk sk-line w40"></div>
+        <div class="sk sk-line w80"></div>
+        <div class="sk sk-line w50"></div>
+      </div>
+    </div>`).join("");
+}
+
 /// The homepage's default bottom section — same simple grid this has
 /// always shown, capped to the highest-market-cap launches, with a link
 /// through to the full page for search/sort/filter.
@@ -1694,25 +1792,39 @@ async function renderExplorePreview() {
 /// list; nothing here needs its own contract calls.
 async function renderExploreFull() {
   const main = document.getElementById("app");
+  // Everything below lives inside the .explore-luxe wrapper — every new
+  // "luxury blue" style in style.css is scoped under that one class, so
+  // this redesign can't leak into any other page (the homepage's own
+  // Explore preview calls renderExplorePreview(), not this function, and
+  // keeps its original look untouched).
   main.innerHTML = `
-    <div class="page-head">
-      <div><h1>explore.</h1><p>Every fixed-supply token launched through HOMEPAD. Trade rent funds creators and $HOME.</p></div>
-      <a class="btn-launch-cta" href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;">
-        <span class="btn-launch-icon">🏡</span><span class="btn-launch-label">Launch a token</span>
-      </a>
-    </div>
+    <div class="explore-luxe">
+      <div class="xl-hero">
+        <div class="xl-hero-text">
+          <h1 class="xl-title">Explore</h1>
+          <p class="xl-sub">Every fixed-supply token launched through HOMEPAD. Trade rent funds creators and $HOME.</p>
+        </div>
+        <a class="xl-launch-btn" href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;">
+          <span class="xl-launch-icon">+</span><span>Launch a token</span>
+        </a>
+      </div>
 
-    <div class="explore-toolbar">
-      <input id="explore-search" type="text" placeholder="Search by name, $symbol, or 0x address…" class="explore-search-input">
-      <select id="explore-sort" class="quote-select">
-        <option value="date-desc">Newest first</option>
-        <option value="date-asc">Oldest first</option>
-        <option value="mcap-desc">Market cap: high to low</option>
-        <option value="mcap-asc">Market cap: low to high</option>
-        <option value="name-asc">Name: A → Z</option>
-        <option value="change-desc">24H Change: high to low</option>
-      </select>
-      <div class="explore-filter-chips" id="explore-filter-chips">
+      <div class="xl-toolbar">
+        <div class="xl-search-wrap">
+          <svg class="xl-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="explore-search" type="text" placeholder="Search by name, $symbol, or 0x address…" class="xl-search-input">
+        </div>
+        <select id="explore-sort" class="xl-sort-select">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="mcap-desc">Market cap: high to low</option>
+          <option value="mcap-asc">Market cap: low to high</option>
+          <option value="name-asc">Name: A → Z</option>
+          <option value="change-desc">24H Change: high to low</option>
+        </select>
+      </div>
+
+      <div class="xl-filter-row" id="explore-filter-chips">
         <span class="filter-chip active" data-filter="all">All</span>
         <span class="filter-chip" data-filter="hybrid">Hybrid</span>
         <span class="filter-chip" data-filter="curve">Bonding Curve</span>
@@ -1720,9 +1832,9 @@ async function renderExploreFull() {
         <span class="filter-chip" data-filter="paired">Paired</span>
         <span class="filter-chip" data-filter="graduated">Graduated</span>
       </div>
-    </div>
 
-    <div id="launch-list" class="grid-launches">${skeletonCardsHtml(8)}</div>
+      <div id="launch-list" class="xl-grid">${luxeSkeletonCardsHtml(8)}</div>
+    </div>
   `;
 
   let allEntries = [];
@@ -1758,14 +1870,14 @@ async function renderExploreFull() {
     });
 
     listEl.innerHTML = filtered.length
-      ? filtered.map(launchCardHtml).join("")
+      ? filtered.map(luxeCardHtml).join("")
       : `<div class="empty-state">No launches match that search/filter.</div>`;
   }
 
   try {
     allEntries = await fetchAllLaunches();
     if (allEntries.length === 0) {
-      document.getElementById("launch-list").innerHTML = `<div class="empty-state">No launches yet. <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;" style="color:var(--green)">Be the first.</a></div>`;
+      document.getElementById("launch-list").innerHTML = `<div class="empty-state">No launches yet. <a href="launch.html" onclick="if (typeof openLaunchModal === 'function') { openLaunchModal(); return false; } return true;" style="color:var(--xl-blue)">Be the first.</a></div>`;
       return;
     }
 
@@ -3298,6 +3410,16 @@ function timeAgo(ts) {
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
+}
+
+/// Same idea as timeAgo() but without the " ago" suffix — the compact
+/// "6m" / "3h" / "2d" style used on the redesigned Explore card's byline.
+function timeAgoCompact(ts) {
+  const s = Math.floor(Date.now() / 1000) - ts;
+  if (s < 60) return `${Math.max(1, s)}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
 }
 
 /// Who bought/sold, when, and how much — reconstructed from the same

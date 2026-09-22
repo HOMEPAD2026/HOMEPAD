@@ -137,6 +137,37 @@ function short(addr) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "";
 }
 
+/// Docs → "Contracts" table shared by ArcPad and CirclePad. `rows` is
+/// [label, address, one-line role]; an empty address renders as a
+/// "not deployed yet" row instead of a broken explorer link. Every address
+/// links to the block explorer from config-arc.js and has a copy button.
+function renderContractRows(rows) {
+  const isAddr = (a) => typeof a === "string" && a.length === 42;
+  return `<div class="ac-contracts">${rows.map(([label, addr, role]) => `
+    <div class="ac-row">
+      <div class="ac-row-main">
+        <div class="ac-label">${label}</div>
+        <div class="ac-role">${role}</div>
+      </div>
+      ${isAddr(addr)
+        ? `<div class="ac-addr">
+            <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/address/${addr}" target="_blank" rel="noopener" title="${addr}"><span class="ac-addr-full">${addr}</span><span class="ac-addr-short">${short(addr)}</span> ↗</a>
+            <button type="button" class="ac-copy" data-copy="${addr}" title="Copy address">Copy</button>
+          </div>`
+        : `<div class="ac-addr ac-addr-pending">not deployed yet</div>`}
+    </div>`).join("")}
+    <div class="ac-foot">Chain: ${CONFIG.CHAIN_NAME} (id ${CONFIG.CHAIN_ID_DECIMAL}) · RPC <code>${CONFIG.RPC_URL}</code> · Explorer <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}" target="_blank" rel="noopener">${CONFIG.BLOCK_EXPLORER.replace(/^https?:\/\//, "")} ↗</a></div>
+  </div>`;
+}
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".ac-copy");
+  if (!btn) return;
+  navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+    const prev = btn.textContent; btn.textContent = "Copied";
+    setTimeout(() => { btn.textContent = prev; }, 1200);
+  }).catch(() => {});
+});
+
 // ---------- Wallet connect (copied from app.js lines 523-653 verbatim —
 // already CONFIG-driven/chain-agnostic there, nothing Robinhood-specific).
 // wallet-appkit.js must be loaded on the page too (config-arc.js first) —

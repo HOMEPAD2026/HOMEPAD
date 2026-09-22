@@ -76,6 +76,26 @@
   if (chainNameEl && typeof CONFIG !== "undefined" && CONFIG.CHAIN_NAME) {
     chainNameEl.textContent = CONFIG.CHAIN_NAME;
   }
+
+  // Deep links: circlepad.html#governance / #docs etc. open that tab.
+  const openTabFromHash = () => {
+    const tab = (location.hash || "").replace(/^#\/?/, "");
+    if (tab && document.getElementById(`bp-panel-${tab}`)) showTab(tab);
+  };
+  openTabFromHash();
+  window.addEventListener("hashchange", openTabFromHash);
+
+  // Docs → Contracts: addresses straight from config-arc.js (see
+  // renderContractRows in arc-shared.js). The vote contract deploys only
+  // after start() is called, so it's expected to read "not deployed yet"
+  // until then.
+  const contractsEl = document.getElementById("cp-contracts");
+  if (contractsEl && typeof renderContractRows === "function") {
+    contractsEl.innerHTML = renderContractRows([
+      ["BigPadEscrow (CirclePad round #1)", CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close"],
+      ["BigPadVote (identity voting)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "Name / ticker / logo / roadmap / launch-date votes, weighted by contribution — deploys once the raise has started"],
+    ]);
+  }
 })();
 
 // ---- CirclePad first-round escrow (contracts/CirclePadEscrow.sol) ----

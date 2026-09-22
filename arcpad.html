@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789488300">
+<link rel="stylesheet" href="style.css?v=1790114979">
 </head>
 <body class="bigpad-page arcpad-page">
 
@@ -232,6 +232,7 @@
           <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
           <button type="button" class="bp-doc-tab" data-doc="economics">Economics</button>
           <button type="button" class="bp-doc-tab" data-doc="faq">FAQ</button>
+          <button type="button" class="bp-doc-tab" data-doc="contracts">Contracts</button>
         </div>
 
         <div class="bp-doc-panel active" id="bp-doc-how">
@@ -270,6 +271,12 @@
           <div class="bp-faq-item"><h4>Can I change the starting valuation after launch?</h4><p>No — it's set once, at launch, and determines the pool's starting price. The market decides the price from there.</p></div>
           <div class="bp-faq-item"><h4>Is there a bonding curve?</h4><p>No. Unlike HOMEPAD's original curve mode, ArcPad seeds a real Uniswap v4 pool immediately — there's no separate curve contract and nothing to "graduate."</p></div>
           <div class="bp-faq-item"><h4>Why USDC?</h4><p>USDC is Arc's own native gas token — no bridging, no extra approval step for the launch fee itself (only for dev buys and trades, which pull ERC-20 USDC via transferFrom).</p></div>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-contracts">
+          <h1>Contracts</h1>
+          <p class="bp-lede">Every ArcPad contract on Arc mainnet, read straight from this site's config so this list can't drift from what's deployed. Verify anything here on the explorer before you trade.</p>
+          <div id="ap-contracts"><div class="empty-state">Loading…</div></div>
         </div>
       </section>
 
@@ -320,10 +327,10 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1789488300"></script>
-<script src="abis.js?v=1789488300"></script>
-<script src="arc-shared.js?v=1789488300"></script>
-<script src="wallet-appkit.js?v=1789488300"></script>
-<script src="arcpad.js?v=1789488300"></script>
+<script src="config-arc.js?v=1790114979"></script>
+<script src="abis.js?v=1790114979"></script>
+<script src="arc-shared.js?v=1790114979"></script>
+<script src="wallet-appkit.js?v=1790114979"></script>
+<script src="arcpad.js?v=1790114979"></script>
 </body>
 </html>
