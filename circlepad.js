@@ -881,12 +881,14 @@ async function fetchCirclepadGovernanceState() {
   const round1 = [
     { contract: vote, method: "votingOpen" },
     { contract: vote, method: "votingEnds" },
+    { contract: vote, method: "recipient" },
     ...CIRCLEPAD_VOTE_CATEGORIES.map((c) => ({ contract: vote, method: "optionsSet", args: [c.id] })),
   ];
   const r1 = await multicallRead(round1);
   const votingOpen = !!r1[0];
   const votingEnds = r1[1] ?? 0n;
-  const setFlags = CIRCLEPAD_VOTE_CATEGORIES.map((_c, i) => !!r1[2 + i]);
+  const recipient = r1[2] || ethers.ZeroAddress;
+  const setFlags = CIRCLEPAD_VOTE_CATEGORIES.map((_c, i) => !!r1[3 + i]);
   const setCats = CIRCLEPAD_VOTE_CATEGORIES.filter((_c, i) => setFlags[i]);
 
   const round2 = setCats.map((c) => ({ contract: vote, method: "options", args: [c.id] }));
@@ -932,7 +934,7 @@ async function fetchCirclepadGovernanceState() {
     };
   });
 
-  return { votingOpen, votingEnds, categories };
+  return { votingOpen, votingEnds, recipient, categories };
 }
 
 function renderCirclepadGovernance(g) {
@@ -952,9 +954,18 @@ function renderCirclepadGovernance(g) {
   const wrap = document.getElementById("bp-gov-categories");
   if (!wrap) return;
 
+  const isRecipient = !!(state.account && g.recipient && state.account.toLowerCase() === g.recipient.toLowerCase());
+  const canPropose = isRecipient && Number(g.votingEnds) > Math.floor(Date.now() / 1000);
+
   wrap.innerHTML = g.categories.map((c) => {
     if (!c.set) {
-      return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-empty">Options not published yet.</div></div>`;
+      const proposeHtml = canPropose ? `
+        <div class="bp-gov-propose">
+          <input type="text" class="bp-gov-propose-input" data-category="${c.id}" placeholder="Comma-separated options, e.g. Option A, Option B, Option C">
+          <button type="button" class="bp-gov-propose-btn" data-category="${c.id}">Publish options</button>
+          <span class="bp-gov-propose-hint">Only you (the recipient wallet) can see this — enter at least 2 options, separated by commas.</span>
+        </div>` : "";
+      return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-empty">Options not published yet.</div>${proposeHtml}</div>`;
     }
     const total = c.options.reduce((sum, o) => sum + o.weight, 0n);
     const pctOf = (w) => (total > 0n ? (Number((w * 10000n) / total) / 100).toFixed(1) : "0.0");
@@ -977,6 +988,9 @@ function renderCirclepadGovernance(g) {
 
   wrap.querySelectorAll(".bp-gov-vote-btn").forEach((btn) => {
     btn.addEventListener("click", () => castCirclepadVote(Number(btn.dataset.category), Number(btn.dataset.option)));
+  });
+  wrap.querySelectorAll(".bp-gov-propose-btn").forEach((btn) => {
+    btn.addEventListener("click", () => proposeCirclepadOptions(Number(btn.dataset.category)));
   });
 }
 
@@ -1017,6 +1031,7 @@ async function refreshCirclepadGovernance() {
   circlepadSaveCache("gov", {
     votingOpen: g.votingOpen,
     votingEnds: g.votingEnds,
+    recipient: g.recipient,
     categories: g.categories.map((c) => ({ ...c, myVoteIndex: null })),
     savedAt: Date.now(),
   });
@@ -1032,9 +1047,42 @@ function paintCirclepadGovernanceFromCache() {
   const votingEnds = cached.votingEnds ?? 0n;
   // Never trust a cached "open" past the cached close time.
   const votingOpen = !!cached.votingOpen && now < Number(votingEnds);
-  renderCirclepadGovernance({ votingOpen, votingEnds, categories: cached.categories });
+  renderCirclepadGovernance({ votingOpen, votingEnds, recipient: cached.recipient || ethers.ZeroAddress, categories: cached.categories });
   _circlepadGovLoadedOnce = true; // don't replace the cached paint with "Loading…"
   return true;
+}
+
+// Recipient-only: publishes the candidate options for one category, once.
+// Reverts on-chain (OptionsAlreadySet) if called twice for the same
+// category, or (TooFewOptions) with fewer than 2 entries — both surfaced
+// to the recipient via the same err.reason/shortMessage alert pattern used
+// everywhere else on this page.
+async function proposeCirclepadOptions(category) {
+  if (!state.account) {
+    if (typeof connectWallet === "function") await connectWallet();
+    if (!state.account) return;
+  }
+  const input = document.querySelector(`.bp-gov-propose-input[data-category="${category}"]`);
+  const btn = document.querySelector(`.bp-gov-propose-btn[data-category="${category}"]`);
+  if (!input) return;
+  const options = input.value.split(",").map((s) => s.trim()).filter(Boolean);
+  if (options.length < 2) { alert("Enter at least 2 options, separated by commas."); return; }
+
+  const original = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
+  input.disabled = true;
+  try {
+    const vote = circlepadVoteWrite();
+    const tx = await vote.proposeOptions(category, options);
+    if (btn) btn.textContent = "Confirming…";
+    await tx.wait();
+    await refreshCirclepadGovernance();
+  } catch (err) {
+    console.error("CirclePad: proposeOptions failed", err);
+    alert(err?.reason || err?.shortMessage || "Publishing options failed or was rejected.");
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    input.disabled = false;
+  }
 }
 
 async function castCirclepadVote(category, optionIndex) {

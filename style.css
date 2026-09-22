@@ -2375,6 +2375,17 @@ body.bigpad-page.arcpad-page{
 .bp-gov-vote-btn:hover:not(:disabled){color:#fff;border-color:#4c4c52;}
 .bp-gov-vote-btn:disabled{cursor:default;opacity:.5;}
 
+/* Recipient-only "propose options" form — shown under a not-yet-published
+   category instead of the plain "Options not published yet." empty state. */
+.bp-gov-propose{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.bp-gov-propose-input{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;color:#fff;font:inherit;font-size:.8rem;}
+.bp-gov-propose-input::placeholder{color:#5c5c62;}
+.bp-gov-propose-input:focus{outline:none;border-color:#4c4c52;}
+.bp-gov-propose-btn{flex-shrink:0;background:#fff;color:#0a0a0a;border:none;font-size:.78rem;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s;}
+.bp-gov-propose-btn:hover:not(:disabled){background:#e2e2e2;}
+.bp-gov-propose-btn:disabled{cursor:default;opacity:.5;background:#242424;color:#67676c;}
+.bp-gov-propose-hint{width:100%;font-size:.68rem;color:var(--ink-dim);margin-top:2px;}
+
 .bp-doc-tabs{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;}
 .bp-doc-tab{background:var(--panel);border:1px solid var(--line);color:var(--ink-dim);font-size:.79rem;font-weight:600;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;}
 .bp-doc-tab:hover{color:#fff;}
