@@ -22,7 +22,7 @@ const CONFIG = {
   // Set this to the deploy block's timestamp once real (matches how
   // CONTRACTS_LIVE_SINCE/BIGPAD_LIVE_SINCE work in config.js) — until then,
   // leave it recent so any eth_getLogs scan stays cheap.
-  CONTRACTS_LIVE_SINCE: "2026-09-22T00:00:00Z",
+  CONTRACTS_LIVE_SINCE: "2026-09-22T04:00:00Z",
 
   // Arc's native currency IS USDC — its NATIVE representation uses 18
   // decimals (same as ETH); the separate ERC-20 USDC interface below uses
@@ -41,13 +41,17 @@ const CONFIG = {
   // Filled in once scripts/deploy-homepad-factory-arc.js actually runs
   // against --network arcMainnet. Empty here shows as "soon" in the UI,
   // same convention as config.js's own FACTORY_ADDRESS.
-  ARCPAD_FACTORY_ADDRESS: "",
-  ARCPAD_HOOK_ADDRESS: "",
-  ARCPAD_ROUTER_ADDRESS: "",
+  ARCPAD_FACTORY_ADDRESS: "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E",
+  ARCPAD_HOOK_ADDRESS: "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",
+  ARCPAD_ROUTER_ADDRESS: "0xFCA8fD788d44Bb335B1451257366e06D67114785",
 
   // --- CIRCLEPAD (BigPadEscrow + BigPadVote, redeployed fresh on Arc — the
   // contracts are chain-agnostic native-currency contracts, so Arc's own
   // native USDC is what they raise without any code change) ---
-  CIRCLEPAD_ESCROW_ADDRESS: "",
+  CIRCLEPAD_ESCROW_ADDRESS: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
+  // Escrow is deployed but NOT started yet (deploy-bigpad-escrow.js never
+  // calls start() — the recipient does that separately). BigPadVote can only
+  // be deployed AFTER start() is called (it reverts on a zero deadline()), so
+  // this stays empty until that happens and deploy-bigpad-vote.js runs.
   CIRCLEPAD_VOTE_ADDRESS: "",
 };

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcPad — ARCIRCLE PAD</title>
+<meta name="description" content="ArcPad: instant permissionless token launches on Circle's Arc chain, paired against USDC. Real Uniswap v4 pool from block one — no bonding curve, no graduation.">
+<meta property="og:title" content="ArcPad — ARCIRCLE PAD">
+<meta property="og:description" content="Launch a coin on Arc, paired against USDC, with a real Uniswap v4 pool from the first block.">
+<meta property="og:url" content="https://homepad.fun/arcpad">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ArcPad — ARCIRCLE PAD">
+<meta name="twitter:description" content="Launch a coin on Arc, paired against USDC, with a real Uniswap v4 pool from the first block.">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1789488300">
+</head>
+<body class="bigpad-page arcpad-page">
+
+<header>
+  <div class="headbar">
+    <a class="brand" href="index.html">ARCIRCLE <span class="tag">PAD</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="arcpad.html" class="nav-active">ArcPad</a>
+      <a href="circlepad.html">CirclePad</a>
+    </nav>
+    <div id="wallet-slot-unused"></div>
+  </div>
+</header>
+
+<!-- Icon sprite: simple line icons, currentColor, reused via <use> -->
+<svg style="display:none" aria-hidden="true">
+<defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h4.5V14h4v5.5h4.5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></g></symbol>
+<symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3M9.5 19.5 12 22l2.5-2.5"/></g></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h8L18.5 6v15h-12z"/><path d="M14.5 3v3h4"/></g></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></g></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.2 13.2 5A4 4 0 1 1 19 10.8L16.8 13"/><path d="M13 16.8 10.8 19A4 4 0 1 1 5 13.2L7.2 11"/></g></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8.5 8.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></g></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-coin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.3v9.4"/><path d="M9.4 9.6c0-1.3 1.2-2.3 2.6-2.3s2.6.9 2.6 2c0 2.6-5.2 1.3-5.2 3.9 0 1.1 1.2 2 2.6 2s2.6-.9 2.6-2.1"/></g></symbol>
+</defs>
+</svg>
+
+<div class="bp-app">
+
+  <!-- ============ Left sidebar ============ -->
+  <aside class="bp-sidebar" id="bp-sidebar">
+    <div class="bp-side-brand">
+      <div class="bp-side-logo-row">
+        <svg width="26" height="26" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="apGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#4d9fff"/>
+              <stop offset="1" stop-color="#8cc2ff"/>
+            </linearGradient>
+          </defs>
+          <path d="M100 25 L170 165 L30 165 Z" fill="none" stroke="url(#apGrad)" stroke-width="16" stroke-linejoin="round"/>
+        </svg>
+        <div class="bp-side-logo">Arc<span>Pad</span></div>
+      </div>
+      <div class="bp-side-tag">Instant launches. Real pool from block one. Paired in USDC.</div>
+    </div>
+
+    <button type="button" class="bp-mobile-menu-trigger" id="bp-mobile-menu-trigger">
+      <span id="bp-mobile-menu-label">Home</span>
+      <svg class="bp-mobile-menu-caret"><use href="#i-chevron" xlink:href="#i-chevron"/></svg>
+    </button>
+
+    <nav class="bp-side-nav">
+      <button type="button" class="bp-nav-item active" data-tab="home"><svg><use href="#i-home" xlink:href="#i-home"/></svg>Home</button>
+      <button type="button" class="bp-nav-item" data-tab="explore"><svg><use href="#i-grid" xlink:href="#i-grid"/></svg>Explore</button>
+      <button type="button" class="bp-nav-item" data-tab="launch"><svg><use href="#i-rocket" xlink:href="#i-rocket"/></svg>Launch</button>
+    </nav>
+
+    <div class="bp-side-section-label">ArcPad</div>
+    <nav class="bp-side-nav">
+      <button type="button" class="bp-nav-item" data-tab="docs"><svg><use href="#i-doc" xlink:href="#i-doc"/></svg>Docs</button>
+      <a class="bp-nav-item" href="circlepad.html"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg>CirclePad<svg class="bp-nav-ext"><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+      <a class="bp-nav-item" href="index.html"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg>ARCIRCLE PAD<svg class="bp-nav-ext"><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
+    </nav>
+
+    <div class="bp-side-foot">
+      <span class="bp-side-status-dot" id="bp-side-status-dot"></span>
+      <span id="bp-side-foot-text">Loading launches…</span>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <div class="bp-main">
+
+    <div class="bp-topbar">
+      <div class="bp-search">
+        <svg><use href="#i-search" xlink:href="#i-search"/></svg>
+        <input type="text" id="ap-topbar-search" placeholder="Search launches…">
+      </div>
+      <div class="bp-topbar-right">
+        <div class="bp-chain-pill"><svg><use href="#i-link" xlink:href="#i-link"/></svg><span id="bp-chain-name">Arc</span></div>
+        <div id="wallet-slot"></div>
+      </div>
+    </div>
+
+    <div class="bp-scroll">
+
+      <!-- ============ HOME ============ -->
+      <section class="bp-panel active" id="bp-panel-home">
+
+        <div class="bp-hero">
+          <div class="bp-hero-art" aria-hidden="true"></div>
+          <div class="bp-hero-copy">
+            <span class="bp-hero-eyebrow">On Arc — gas paid in USDC</span>
+            <h1><span>Launch instantly.</span><span>Trade instantly.</span><span class="bp-hero-big">No curve, no wait.</span></h1>
+            <p>A real Uniswap v4 pool exists the second you launch — single-sided liquidity, permanently locked, paired against USDC. No bonding curve, no "graduation," tradeable from block one.</p>
+            <div class="bp-hero-cta">
+              <button type="button" class="bp-btn-primary" data-tab-link="launch">Launch a coin</button>
+              <button type="button" class="bp-btn-ghost" data-tab-link="explore">Explore launches</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-stat-row" id="ap-home-stats">
+          <div><strong id="ap-stat-count">···</strong>Launches so far</div>
+          <div><strong id="ap-stat-fee">1 USDC</strong>Flat launch fee</div>
+          <div><strong>1–3%</strong>Trade fee (yours: up to 90%)</div>
+        </div>
+
+        <section class="rent-section-head"><h3>Newest launches</h3><span class="rent-section-count" id="ap-home-count"></span></section>
+        <div class="carousel-section" style="padding:0">
+          <div class="carousel-viewport" id="ap-home-viewport">
+            <div class="carousel-track" id="ap-home-track"><div class="empty-state">Loading launches…</div></div>
+          </div>
+        </div>
+
+        <div class="bp-row3">
+          <div class="bp-card">
+            <div class="bp-card-head">The pool</div>
+            <p class="bp-card-note">A real Uniswap v4 pool is created the instant you launch — the coin's full sellable supply goes straight in, priced against a virtual USDC reserve. Tradeable on Dexscreener from block one, once indexed.</p>
+          </div>
+          <div class="bp-card">
+            <div class="bp-card-head">Fees</div>
+            <p class="bp-card-note">1% base fee on every trade — most of it back to you as the creator, the rest to the platform. Add up to 2% more at launch, 100% yours. See Docs → Economics for the exact split.</p>
+          </div>
+          <div class="bp-card">
+            <div class="bp-card-head">Supply</div>
+            <p class="bp-card-note">Fixed at 1,000,000,000 tokens every launch. 8% goes to the platform treasury at creation; the remaining 92% is what's actually in the pool and what your starting valuation prices.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============ EXPLORE ============ -->
+      <section class="bp-panel" id="bp-panel-explore">
+        <h1>Explore</h1>
+        <p class="bp-lede">Every coin launched through ArcPad, read live from the factory contract.</p>
+        <div class="cn-explore-toolbar">
+          <input class="world-search" id="ap-explore-search" placeholder="Search launches by name or symbol…" autocomplete="off">
+          <div class="cn-sort-group" id="ap-sort-group">
+            <button type="button" data-sort="mcap" class="active">Market Cap</button>
+            <button type="button" data-sort="name">Name (A–Z)</button>
+            <button type="button" data-sort="new">Newest</button>
+          </div>
+        </div>
+        <div id="ap-explore-grid" class="grid-launches"><div class="empty-state">Loading launches…</div></div>
+      </section>
+
+      <!-- ============ LAUNCH ============ -->
+      <section class="bp-panel" id="bp-panel-launch">
+        <h1>Launch on ArcPad</h1>
+        <p class="bp-lede">Every launch is paired against USDC — Arc's own native currency — with a real Uniswap v4 pool created in the same transaction.</p>
+        <div class="ap-launch-fee-note">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
+
+        <form id="ap-launch-form" class="adv-launch-form">
+          <label><span>Name</span><input id="ap-name" maxlength="40" placeholder="e.g. Example Token" required></label>
+          <label><span>Symbol</span><input id="ap-symbol" maxlength="10" placeholder="e.g. EXMPL" required style="text-transform:uppercase"></label>
+
+          <label><span>Logo</span> <span class="optional">optional</span></label>
+          <div class="logo-row">
+            <div class="logo-preview" id="ap-image-preview">🅰️</div>
+            <div style="flex:1">
+              <input id="ap-logo" placeholder="paste an image URL, or upload a file below" maxlength="60000">
+              <label class="file-btn">
+                <span>📎 Upload a file</span>
+                <input type="file" id="ap-logo-file" accept="image/*" style="display:none">
+              </label>
+              <div class="hint" id="ap-image-hint">A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but bigger files cost noticeably more gas to launch.</div>
+            </div>
+          </div>
+
+          <label><span>Description</span> <span class="optional">optional</span><input id="ap-description" maxlength="280" placeholder="What's this coin about?"></label>
+
+          <label><span>Website</span> <span class="optional">optional</span><input id="ap-website" placeholder="https://yourproject.com" maxlength="200"></label>
+
+          <label><span>Socials</span> <span class="optional">optional</span></label>
+          <div class="field-row three">
+            <input id="ap-twitter" placeholder="X / Twitter URL" maxlength="200">
+            <input id="ap-telegram" placeholder="Telegram URL" maxlength="200">
+            <input id="ap-discord" placeholder="Discord URL" maxlength="200">
+          </div>
+
+          <label><span>Starting valuation (USDC)</span> <span class="optional">how much USDC it'd take to buy the entire sellable supply (920M tokens, after the platform's 8%) at launch</span>
+            <input id="ap-start-valuation" type="number" min="0" step="any" placeholder="e.g. 4000" required>
+          </label>
+          <p class="hint">A typical starting valuation is a few thousand USDC — set higher, buyers get more tokens per dollar early; set lower, price climbs faster on smaller buys.</p>
+
+          <label><span>Your fee</span> <span class="optional">optional add-on, 0–2%, 100% yours</span>
+            <input id="ap-extrafee" type="range" min="0" max="200" step="10" value="0" class="fee-slider">
+          </label>
+          <div class="fee-preview" id="ap-fee-preview"></div>
+
+          <label><span>Dev buy</span> <span class="optional">optional</span>
+            <div class="cn-input-suffix-wrap">
+              <input id="ap-devbuy" type="number" min="0" step="any" placeholder="0.0">
+              <span class="cn-input-suffix">USDC</span>
+            </div>
+          </label>
+          <p class="hint">Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.</p>
+          <p class="hint" id="ap-devbuy-preview"></p>
+
+          <div id="ap-launch-status"></div>
+          <button type="submit" class="btn btn-primary" id="ap-launch-submit">Launch</button>
+        </form>
+      </section>
+
+      <!-- ============ DOCS ============ -->
+      <section class="bp-panel" id="bp-panel-docs">
+        <div class="bp-doc-tabs">
+          <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
+          <button type="button" class="bp-doc-tab" data-doc="economics">Economics</button>
+          <button type="button" class="bp-doc-tab" data-doc="faq">FAQ</button>
+        </div>
+
+        <div class="bp-doc-panel active" id="bp-doc-how">
+          <h1>How it works</h1>
+          <p class="bp-lede">A real Uniswap v4 pool is created the instant you launch — not a bonding-curve contract that "graduates" into a pool later.</p>
+
+          <h3>The pool</h3>
+          <p>It's single-sided: the coin's full sellable supply (92% of 1B — see Supply below) goes straight into the pool at creation, priced against a virtual reserve of USDC. Tradeable on Dexscreener from block one, once indexed.</p>
+
+          <h3>Pricing</h3>
+          <p>Constant-product curve math against that virtual reserve — the more USDC buyers put in, the higher the price climbs. It's a real, immediately swappable v4 pool the whole time, not a separate holding contract.</p>
+
+          <h3>Supply &amp; allocation</h3>
+          <p>Fixed at 1,000,000,000 tokens, every launch, no exceptions. 8% goes to the platform treasury at creation; the remaining 92% is placed in the pool and is what your starting valuation prices.</p>
+
+          <h3>Dev buy</h3>
+          <p>Optional. If set, your purchase executes atomically inside the same launch transaction (<code>launchAndBuy()</code>) — paid in USDC, landing in the same block as creation, before anyone else can buy in ahead of you. Requires approving USDC for the factory first.</p>
+
+          <h3>Trading</h3>
+          <p>Buy and sell directly from the Explore grid — trades route through ArcPad's own swap router against the same v4 pool. Buying needs USDC approved for the router; selling needs the coin itself approved for the router. Both are one-time approvals per token.</p>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-economics">
+          <h1>Economics</h1>
+          <div class="bp-split-bars">
+            <div class="bp-split-row"><span>Into the pool</span><div class="bp-split-track"><div class="bp-split-fill" style="width:92%"></div></div><strong>92%</strong></div>
+            <div class="bp-split-row"><span>Platform treasury</span><div class="bp-split-track"><div class="bp-split-fill alt2" style="width:8%"></div></div><strong>8%</strong></div>
+          </div>
+          <p class="bp-mech-note">Trade fee: 1% base, protocol-wide — most of it back to you as the creator, the rest to the platform. You can add up to 2% more at launch, 100% of which is yours. Total per trade: 1–3%, taken from whichever side of the trade is the output.</p>
+          <p class="bp-mech-note">Launch fee: a flat 1 USDC per launch, paid to the platform treasury — separate from the pool allocation above and from any dev buy.</p>
+        </div>
+
+        <div class="bp-doc-panel" id="bp-doc-faq">
+          <h1>FAQ</h1>
+          <div class="bp-faq-item"><h4>What do I need to launch?</h4><p>A connected wallet on Arc, at least 1 USDC (native) for the launch fee, and — if you want a dev buy — USDC approved for the factory.</p></div>
+          <div class="bp-faq-item"><h4>Can I change the starting valuation after launch?</h4><p>No — it's set once, at launch, and determines the pool's starting price. The market decides the price from there.</p></div>
+          <div class="bp-faq-item"><h4>Is there a bonding curve?</h4><p>No. Unlike HOMEPAD's original curve mode, ArcPad seeds a real Uniswap v4 pool immediately — there's no separate curve contract and nothing to "graduate."</p></div>
+          <div class="bp-faq-item"><h4>Why USDC?</h4><p>USDC is Arc's own native gas token — no bridging, no extra approval step for the launch fee itself (only for dev buys and trades, which pull ERC-20 USDC via transferFrom).</p></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ Trade modal (Buy/Sell) ============ -->
+<div id="ap-trade-modal" class="modal-overlay hidden">
+  <div class="ap-modal-box">
+    <button type="button" class="ap-modal-close" id="ap-trade-modal-close">×</button>
+    <div class="ap-token-header">
+      <img id="ap-trade-img" src="" alt="" onerror="this.style.display='none'">
+      <div>
+        <div class="ap-token-name" id="ap-trade-name">—</div>
+        <div class="ap-token-sym" id="ap-trade-sym">—</div>
+      </div>
+    </div>
+    <div class="ap-stat-row">
+      <div><strong id="ap-trade-price">—</strong>Price</div>
+      <div><strong id="ap-trade-mcap">—</strong>Market cap</div>
+    </div>
+    <div class="ap-trade-tabs">
+      <button type="button" class="ap-trade-tab active" id="ap-tab-buy">Buy</button>
+      <button type="button" class="ap-trade-tab sell" id="ap-tab-sell">Sell</button>
+    </div>
+    <div class="ap-trade-balance">
+      <span id="ap-trade-balance-label">Balance: —</span>
+      <button type="button" id="ap-trade-max">Max</button>
+    </div>
+    <input type="number" min="0" step="any" class="bp-contribute-input" id="ap-trade-amount" placeholder="0.0" style="width:100%;box-sizing:border-box;">
+    <div class="ap-trade-preview" id="ap-trade-preview"></div>
+    <div id="ap-trade-status"></div>
+    <button type="button" class="btn btn-primary" id="ap-trade-submit" style="width:100%;margin-top:6px">Connect wallet</button>
+    <p class="hint" style="margin-top:10px"><a id="ap-trade-explorer-link" href="#" target="_blank">View token on Explorer ↗</a></p>
+  </div>
+</div>
+
+<footer class="ah-footer">
+  <div class="wrap ah-footer-inner">
+    <div class="ah-footer-brand pixel">ARCIRCLE PAD</div>
+    <div class="ah-footer-links">
+      <a href="arcpad.html">ArcPad</a>
+      <a href="circlepad.html">CirclePad</a>
+      <a href="home-legacy.html">$HOME (V1)</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="config-arc.js?v=1789488300"></script>
+<script src="abis.js?v=1789488300"></script>
+<script src="arc-shared.js?v=1789488300"></script>
+<script src="wallet-appkit.js?v=1789488300"></script>
+<script src="arcpad.js?v=1789488300"></script>
+</body>
+</html>

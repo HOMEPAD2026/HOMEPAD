@@ -2128,6 +2128,34 @@ body.bigpad-page.circlepad-page{
   --green:#39ff88; --green-dim:#2bc46a;
 }
 
+/* ArcPad (arcpad.html) reuses the same dashboard shell, re-tinted to Arc's
+   own blue (--blue, already defined at :root) instead of circle-green, so
+   the two Arc-chain products read as siblings, not clones of each other. */
+body.bigpad-page.arcpad-page{
+  --green:#4d9fff; --green-dim:#3a7dd6;
+}
+
+/* ---------- ArcPad launch/trade widgets — new components this page needs
+   beyond what BigPad/CirclePad's shell already provides ---------- */
+.ap-trade-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.ap-trade-tab{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--panel-hi);color:var(--ink-dim);font-family:'Sora';font-weight:600;cursor:pointer;transition:all .15s;}
+.ap-trade-tab.active{background:var(--green);color:#08150c;border-color:transparent;}
+.ap-trade-tab.sell.active{background:var(--red);color:#fff;}
+.ap-trade-balance{display:flex;justify-content:space-between;font-size:.78rem;color:var(--ink-dim);margin:2px 0 8px;}
+.ap-trade-balance button{background:none;border:none;color:var(--green);cursor:pointer;font-size:.78rem;padding:0;}
+.ap-trade-preview{font-size:.78rem;color:var(--ink-dim);margin:8px 0;min-height:1.2em;}
+.ap-token-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.ap-token-header img{width:48px;height:48px;border-radius:12px;object-fit:cover;background:var(--panel-hi);}
+.ap-token-header .ap-token-name{font-size:1.1rem;font-weight:700;}
+.ap-token-header .ap-token-sym{font-family:'Silkscreen';font-size:.85rem;color:var(--ink-dim);}
+.ap-stat-row{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 18px;}
+.ap-stat-row div{font-size:.78rem;color:var(--ink-dim);}
+.ap-stat-row strong{display:block;color:var(--ink);font-size:1rem;}
+.ap-modal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:420px;width:92%;margin:8vh auto;max-height:82vh;overflow-y:auto;}
+.ap-modal-close{float:right;background:none;border:none;color:var(--ink-dim);font-size:1.3rem;cursor:pointer;line-height:1;}
+.ap-launch-fee-note{font-size:.78rem;color:var(--ink-dim);background:var(--panel-hi);border-radius:8px;padding:10px 12px;margin:10px 0;}
+.ap-card-trade-btn{width:100%;margin-top:10px;padding:8px;font-size:.8rem;}
+
 /* ---------- App shell: sticky sidebar + fluid content ---------- */
 .bp-app{display:flex;align-items:flex-start;width:100%;}
 .bp-sidebar{
