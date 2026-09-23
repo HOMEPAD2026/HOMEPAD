@@ -83,13 +83,73 @@ async function hardDisconnect() {
 // time. Any place that detects a broken session calls this directly
 // instead of asking the person to clear their cache.
 const WALLET_STORAGE_PREFIXES = ["wagmi.", "wc@2:", "@w3m", "@appkit", "WCM_VERSION", "-walletlink"];
-function clearStaleWalletStorage() {
+function clearLocalWalletKeys() {
   try {
     for (const key of Object.keys(localStorage)) {
       if (WALLET_STORAGE_PREFIXES.some((p) => key.startsWith(p))) localStorage.removeItem(key);
     }
   } catch (e) { /* storage blocked (private mode etc.) — nothing to clear anyway */ }
 }
+function clearStaleWalletStorage() {
+  clearLocalWalletKeys();
+  // WalletConnect keeps its sessions / pairings / provider namespaces in
+  // IndexedDB, not localStorage. Clearing only localStorage left the two
+  // halves disagreeing, and the next connect died inside AppKit with
+  // "Cannot read properties of undefined (reading 'setDefaultChain')".
+  // IndexedDB can't be deleted while WalletConnect has it open, so the
+  // full wipe happens at the start of the next page load (see initAppKit).
+  try { localStorage.setItem(WALLET_RESET_FLAG, "1"); } catch { /* fine */ }
+}
+
+// ---- WalletConnect storage self-repair ----
+const WC_IDB_NAME = "WALLET_CONNECT_V2_INDEXED_DB";
+const WALLET_RESET_FLAG = "wallet.resetPending";
+// Bump to force every browser to start from a clean WalletConnect store
+// once (v2: clears the half-wiped state older builds could leave behind).
+const WALLET_STORE_VERSION_KEY = "wallet.storeVersion";
+const WALLET_STORE_VERSION = "2";
+const BROKEN_WC_SESSION = /setDefaultChain|Please call connect\(\)|No matching key|session topic doesn't exist|Record was recently deleted|Missing or invalid\. (?:pairing|session)/i;
+
+function deleteWalletConnectDb() {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(WC_IDB_NAME);
+      req.onsuccess = req.onerror = req.onblocked = () => resolve();
+      setTimeout(resolve, 1500);
+    } catch { resolve(); }
+  });
+}
+
+/// Runs before AppKit loads (so nothing has the database open yet).
+async function repairWalletStorageIfNeeded() {
+  let need = false;
+  try { need = localStorage.getItem(WALLET_RESET_FLAG) === "1" || localStorage.getItem(WALLET_STORE_VERSION_KEY) !== WALLET_STORE_VERSION; } catch { return; }
+  if (!need) return;
+  clearLocalWalletKeys();
+  await deleteWalletConnectDb();
+  try { localStorage.removeItem(WALLET_RESET_FLAG); localStorage.setItem(WALLET_STORE_VERSION_KEY, WALLET_STORE_VERSION); } catch { /* fine */ }
+}
+
+/// A corrupted WalletConnect store surfaces as one of a handful of AppKit
+/// errors. Instead of leaving the person stuck on it, wipe the store and
+/// reload, then reopen the connect window so they can just pick the wallet
+/// again.
+let healingWallet = false;
+function healBrokenWalletConnect(reason) {
+  if (healingWallet) return;
+  healingWallet = true;
+  console.warn("WalletConnect store is inconsistent — resetting it and reloading.", reason);
+  try { localStorage.setItem(WALLET_RESET_FLAG, "1"); sessionStorage.setItem("wallet.reopenModal", "1"); } catch { /* fine */ }
+  setTimeout(() => location.reload(), 250);
+}
+window.addEventListener("unhandledrejection", (e) => {
+  const m = String(e && e.reason && (e.reason.message || e.reason) || "");
+  if (BROKEN_WC_SESSION.test(m)) healBrokenWalletConnect(m);
+});
+window.addEventListener("error", (e) => {
+  const m = String(e && (e.message || (e.error && e.error.message)) || "");
+  if (BROKEN_WC_SESSION.test(m)) healBrokenWalletConnect(m);
+});
 
 /// Races a promise against a plain timeout so a hung reconnect attempt
 /// (dead WalletConnect relay, a wallet extension that never responds)
@@ -272,6 +332,7 @@ async function initAppKit() {
     return;
   }
 
+  await repairWalletStorageIfNeeded();
   try {
     // Pinned to a specific version on purpose (never @latest — that can change
 // under us with no warning) but this was stuck on 1.4.1, an ~11-month-old
@@ -335,6 +396,17 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       },
     });
 
+    // AppKit reports connect failures as events (the red banner in its
+    // modal). The ones that mean "the stored WalletConnect state is broken"
+    // get repaired automatically instead of shown forever.
+    try {
+      appKitModal.subscribeEvents && appKitModal.subscribeEvents((ev) => {
+        const d = ev && ev.data;
+        const msg = d && d.properties && d.properties.message;
+        if (d && /ERROR/.test(String(d.event)) && BROKEN_WC_SESSION.test(String(msg || ""))) healBrokenWalletConnect(msg);
+      });
+    } catch (e) { console.warn("subscribeEvents unavailable", e); }
+
     // Register every plausible "something changed" hook defensively — if a
     // given method doesn't exist or throws on this build, that's caught
     // and the others (plus the poller in tryOpenAppKit) still cover it.
@@ -376,6 +448,9 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       scheduleSyncRetry();
     }
     appKitReady = true;
+    let reopen = false;
+    try { reopen = sessionStorage.getItem("wallet.reopenModal") === "1"; sessionStorage.removeItem("wallet.reopenModal"); } catch { /* fine */ }
+    if (reopen && !state.account) setTimeout(() => { tryOpenAppKit(); }, 400);
   } catch (err) {
     console.warn("Reown AppKit failed to load — falling back to the basic wallet connect button.", err);
     appKitReady = false;
