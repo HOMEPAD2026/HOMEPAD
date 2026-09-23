@@ -296,18 +296,40 @@ function wireArcpadImageUpload() {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const MAX_DIM = 256;
-        let { width, height } = img;
-        if (width > height && width > MAX_DIM) { height = Math.round(height * (MAX_DIM / width)); width = MAX_DIM; }
-        else if (height > MAX_DIM) { width = Math.round(width * (MAX_DIM / height)); height = MAX_DIM; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        const resized = canvas.toDataURL("image/jpeg", 0.85);
-        const resizedKb = Math.round((resized.length * 0.75) / 1024);
+        // The image is stored on-chain inside the launch transaction, so
+        // every byte costs gas (~740 gas per character of the data URL) and
+        // Arc caps a single transaction's gas — a normal 256px JPEG was big
+        // enough to make the launch impossible ("missing revert data").
+        // Shrink until it fits comfortably: 128px first, then smaller.
+        const encode = (dim, q) => {
+          let { width, height } = img;
+          const scale = Math.min(1, dim / Math.max(width, height));
+          width = Math.max(1, Math.round(width * scale)); height = Math.max(1, Math.round(height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#000"; ctx.fillRect(0, 0, width, height); // JPEG has no alpha
+          ctx.drawImage(img, 0, 0, width, height);
+          let url = canvas.toDataURL("image/webp", q);
+          if (!url.startsWith("data:image/webp")) url = canvas.toDataURL("image/jpeg", q);
+          return { url, width, height };
+        };
+        let best = null;
+        outer: for (const dim of [128, 112, 96, 80, 64]) {
+          for (const q of [0.82, 0.7, 0.58, 0.45]) {
+            const r = encode(dim, q);
+            if (!best || r.url.length < best.url.length) best = r;
+            if (r.url.length <= ARC_IMAGE_TARGET_CHARS) { best = r; break outer; }
+          }
+        }
+        const resized = best.url;
+        const resizedKb = (resized.length * 0.75 / 1024).toFixed(1);
         imgInput.value = resized;
         updatePreview(resized);
-        hintEl.innerHTML = `Resized from ${originalKb}KB to ~${resizedKb}KB (${width}×${height}) — safe to launch with.`;
+        const gasUsdc = arcImageGasUsdcHint(resized.length);
+        hintEl.innerHTML = resized.length <= ARC_IMAGE_MAX_CHARS
+          ? `Resized from ${originalKb}KB to ~${resizedKb}KB (${best.width}×${best.height}) — stored on-chain, adds ≈ ${gasUsdc} USDC of gas.`
+          : `<strong style="color:var(--red)">This image is still too large to store on-chain. Use a simpler image or paste a hosted image URL.</strong>`;
       };
       img.onerror = () => { hintEl.innerHTML = `<strong style="color:var(--red)">Couldn't read that file as an image.</strong>`; };
       img.src = reader.result;
@@ -360,19 +382,36 @@ function updateArcpadDevBuyPreview() {
 // Without a check, an underfunded wallet only got ethers' raw
 // "missing revert data" from gas estimation.
 const ARC_LAUNCH_FEE_FALLBACK = 10n ** 18n; // 1 USDC (native, 18 dp)
+// Measured on Arc mainnet: a launch costs ≈1.05M gas plus ≈740 gas per
+// character of metadata (the logo data URL dominates); one transaction may
+// use at most ~16.7M gas. Keep embedded logos well under that.
+const ARC_LAUNCH_BASE_GAS = 1_150_000n;
+const ARC_GAS_PER_META_CHAR = 740n;
+const ARC_IMAGE_TARGET_CHARS = 6_000;
+const ARC_IMAGE_MAX_CHARS = 14_000;
+let arcGasPriceCache = null;
+function arcImageGasUsdcHint(chars) {
+  const gp = arcGasPriceCache || 21_000_000_000n;
+  return Number(ethers.formatEther(ARC_GAS_PER_META_CHAR * BigInt(chars) * gp)).toFixed(3);
+}
+function arcpadMetaChars() {
+  return ["ap-logo", "ap-description", "ap-website", "ap-twitter", "ap-telegram", "ap-discord", "ap-name", "ap-symbol"]
+    .reduce((n, id) => n + ((document.getElementById(id) || {}).value || "").trim().length, 0);
+}
 let arcLaunchFeeCache = null;
 async function arcpadLaunchCost(devBuyStr) {
   if (arcLaunchFeeCache == null) {
     try { arcLaunchFeeCache = await withRetry(() => arcpadFactoryRead().LAUNCH_FEE()); } catch { arcLaunchFeeCache = ARC_LAUNCH_FEE_FALLBACK; }
   }
   const dev = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) * 10n ** 12n : 0n;
-  let gas = ethers.parseEther("0.06");
+  const gasUnits = (ARC_LAUNCH_BASE_GAS + ARC_GAS_PER_META_CHAR * BigInt(arcpadMetaChars()) + (dev > 0n ? 500_000n : 0n)) * 12n / 10n;
+  let gas = gasUnits * 21_000_000_000n;
   try {
     const fd = await readProvider().getFeeData();
     const gp = fd.gasPrice || fd.maxFeePerGas;
-    if (gp) gas = gp * (dev > 0n ? 1_900_000n : 1_400_000n); // launch ≈1.07M gas (+ approve for a dev buy), with headroom
+    if (gp) { arcGasPriceCache = gp; gas = gp * gasUnits; }
   } catch { /* keep the flat estimate */ }
-  return { fee: arcLaunchFeeCache, dev, gas, total: arcLaunchFeeCache + dev + gas };
+  return { fee: arcLaunchFeeCache, dev, gas, gasUnits, total: arcLaunchFeeCache + dev + gas };
 }
 const fmtUsdc18 = (v) => Number(ethers.formatEther(v)).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 
@@ -416,8 +455,8 @@ async function submitArcpadLaunch(ev) {
   const devBuyStr = document.getElementById("ap-devbuy").value.trim();
 
   if (!name || !symbol) { statusEl.innerHTML = `<div class="status error">Name and symbol are required.</div>`; return; }
-  if (imageUrl.startsWith("data:") && imageUrl.length > 280_000) {
-    statusEl.innerHTML = `<div class="status error">That embedded image is too large and will likely make the transaction fail — use a hosted image URL or a smaller file.</div>`;
+  if (imageUrl.startsWith("data:") && imageUrl.length > ARC_IMAGE_MAX_CHARS) {
+    statusEl.innerHTML = `<div class="status error">That logo is too large to store on-chain (${Math.round(imageUrl.length / 1000)}K characters; max ≈ ${ARC_IMAGE_MAX_CHARS / 1000}K). Upload it again — it's shrunk automatically — or paste a hosted image URL.</div>`;
     return;
   }
   if (!arcpadFactoryConfigured()) { statusEl.innerHTML = `<div class="status error">ArcPad's factory isn't configured yet.</div>`; return; }
@@ -436,6 +475,30 @@ async function submitArcpadLaunch(ev) {
       return;
     }
   } catch (err) { console.warn("launch balance check skipped", err && err.message); }
+
+  // Dry run the plain launch (a dev buy needs its USDC approval first, so it
+  // can't be simulated yet) — turns a would-fail launch into a clear reason
+  // before the wallet is ever asked.
+  if (!(devBuyStr && Number(devBuyStr) > 0)) {
+    try {
+      const f = arcpadFactoryRead();
+      const fee = arcLaunchFeeCache || await f.LAUNCH_FEE();
+      const meta = { imageUrl, description, twitter, telegram, discord, website };
+      await readProvider().estimateGas({
+        from: state.account, to: CONFIG.ARCPAD_FACTORY_ADDRESS, value: fee,
+        data: f.interface.encodeFunctionData("launch", [name, symbol, CONFIG.USDC_ADDRESS, ethers.parseUnits(ARC_START_VALUATION_USDC, ARC_QUOTE_DECIMALS), extraFeeBps, meta]),
+      });
+    } catch (err) {
+      const raw = String(err && (err.shortMessage || err.reason || err.message) || err);
+      const reason = err && err.reason;
+      let msg;
+      if (reason) msg = `The launch would fail: ${reason}`;
+      else if (imageUrl.length > ARC_IMAGE_TARGET_CHARS) msg = "The launch would fail — most likely the logo is too large to store on-chain. Upload a smaller image (it's shrunk automatically) or paste a hosted image URL.";
+      else msg = `The launch would fail: ${raw.slice(0, 180)}`;
+      statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+      return;
+    }
+  }
 
   btn.disabled = true;
   btn.classList.add("is-busy");
@@ -467,7 +530,7 @@ async function submitArcpadLaunch(ev) {
     statusEl.innerHTML = `<div class="status success">Launched! <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("ap-launch-form").reset();
     document.getElementById("ap-image-preview").innerHTML = "🅰️";
-    document.getElementById("ap-image-hint").textContent = "A hosted URL is best. Uploading a file embeds the image directly as data — fine for a small icon, but bigger files cost noticeably more gas to launch.";
+    document.getElementById("ap-image-hint").textContent = "A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.";
     // reset() puts the slider back to 0 but fires no input event, so the fee
     // breakdown and dev-buy preview have to be re-rendered by hand.
     document.getElementById("ap-extrafee").dispatchEvent(new Event("input"));
@@ -709,7 +772,9 @@ function refreshAccountDependentViews() {
   // Launch form
   document.getElementById("ap-launch-form").addEventListener("submit", submitArcpadLaunch);
   document.getElementById("ap-devbuy").addEventListener("input", updateArcpadDevBuyPreview);
-  let balT; document.getElementById("ap-devbuy").addEventListener("input", () => { clearTimeout(balT); balT = setTimeout(updateArcpadLaunchBalance, 350); });
+  let balT; const queueBal = () => { clearTimeout(balT); balT = setTimeout(updateArcpadLaunchBalance, 350); };
+  ["ap-devbuy", "ap-logo", "ap-description"].forEach((id) => document.getElementById(id).addEventListener("input", queueBal));
+  document.getElementById("ap-logo-file").addEventListener("change", () => setTimeout(queueBal, 600));
   wireArcpadImageUpload();
   wireArcpadFeePreview();
 
