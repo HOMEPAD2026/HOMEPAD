@@ -117,7 +117,9 @@
     if (!t || !t.closest) return;
     if (t.closest("[data-reward]")) { e.preventDefault(); openReward(); return; }
     if (t.closest("[data-close]")) { closeReward(); return; }
-    var copyBtn = t.closest("[data-copy]");
+    // Only this file's own .ax-copy buttons — arc-shared.js already handles
+    // the .ac-copy[data-copy] buttons in the ArcPad/CirclePad Contracts tab.
+    var copyBtn = t.closest(".ax-copy[data-copy]");
     if (copyBtn) handleCopy(copyBtn);
   });
 

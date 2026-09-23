@@ -2937,7 +2937,7 @@ body.arcpad-page .adv-launch-form .btn-primary{margin-top:6px;}
    scoped under body.ax-page so the ArcPad / CirclePad shells and
    the legacy HOMEPAD pages are untouched.
    ============================================================ */
-body.ax-page{
+body.ax-page,body.ax-dock-host{
   --ax-bg:#04060a;
   --ax-ink:#eef3f7;
   --ax-dim:rgba(222,233,244,.64);
@@ -2949,6 +2949,8 @@ body.ax-page{
   --ax-green:#39ff88;
   --ax-gold:#ffc861;
   --ax-grad:linear-gradient(90deg,#3f9bff 0%,#35d8d0 50%,#39ff88 100%);
+}
+body.ax-page{
   background:var(--ax-bg);background-image:none;color:var(--ax-ink);
   min-height:100vh;min-height:100svh;overflow-x:hidden;
 }
@@ -2998,7 +3000,7 @@ body.ax-page{
 .ax-sub{font-size:clamp(1rem,1.6vw,1.16rem);line-height:1.6;max-width:520px;margin:0 auto;}
 
 /* ---- Floating dock ---- */
-.ax-page nav.ax-dock{position:fixed;z-index:40;left:50%;bottom:max(22px,calc(env(safe-area-inset-bottom) + 12px));transform:translateX(-50%);
+:is(.ax-page,.ax-dock-host) nav.ax-dock{position:fixed;z-index:40;left:50%;bottom:max(22px,calc(env(safe-area-inset-bottom) + 12px));transform:translateX(-50%);
   display:flex;gap:6px;padding:8px;border-radius:24px;font-size:inherit;color:inherit;
   background:var(--ax-glass);border:1px solid rgba(255,255,255,.1);
   backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
@@ -3006,8 +3008,8 @@ body.ax-page{
 /* The site-wide mobile header <nav> is a full-bleed scrolling tab row
    (width:calc(100% + 32px), negative margins, auto margins on the first/last
    link) — none of that should reach the dock, which is also a <nav>. */
-.ax-page nav.ax-dock{width:auto;margin:0;overflow:visible;order:0;flex-wrap:nowrap;flex-shrink:0;min-width:0;justify-content:flex-start;}
-.ax-page .ax-dock > .ax-dock-item{margin:0;flex:0 0 auto;}
+:is(.ax-page,.ax-dock-host) nav.ax-dock{width:auto;margin:0;overflow:visible;order:0;flex-wrap:nowrap;flex-shrink:0;min-width:0;justify-content:flex-start;}
+:is(.ax-page,.ax-dock-host) .ax-dock > .ax-dock-item{margin:0;flex:0 0 auto;}
 .ax-dock-item{--acc:#fff;position:relative;display:flex;align-items:center;gap:11px;padding:9px 16px 9px 9px;border-radius:17px;
   background:none;border:none;color:var(--ax-ink);font:inherit;cursor:pointer;text-align:left;white-space:nowrap;
   transition:background .18s ease,transform .18s ease;}
@@ -3016,7 +3018,7 @@ body.ax-page{
 .ax-dock-item[data-accent="reward"]{--acc:var(--ax-gold);}
 .ax-dock-item[data-accent="token"]{--acc:var(--ax-cyan);}
 .ax-dock-item:hover{background:rgba(255,255,255,.06);transform:translateY(-2px);}
-.ax-page .ax-dock a:hover{color:var(--ax-ink);}
+:is(.ax-page,.ax-dock-host) .ax-dock a:hover{color:var(--ax-ink);}
 .ax-dock-item[aria-current="page"]{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
 .ax-dock-ico{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;color:var(--acc);
   background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);
@@ -3171,7 +3173,7 @@ body.ax-modal-open{overflow:hidden;}
   .ax-fly-svg{max-width:400px;}
 }
 @media (max-width:640px){
-  .ax-page nav.ax-dock{left:10px;right:10px;transform:none;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-radius:22px;}
+  :is(.ax-page,.ax-dock-host) nav.ax-dock{left:10px;right:10px;transform:none;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-radius:22px;}
   .ax-dock-sep{display:none;}
   .ax-dock-item{flex-direction:column;gap:5px;padding:7px 2px 6px;border-radius:15px;text-align:center;}
   .ax-dock-item:hover{transform:none;}
@@ -3197,4 +3199,18 @@ body.ax-modal-open{overflow:hidden;}
 }
 @media (max-width:380px){
   .ax-brand span{display:none;}
+}
+
+/* ---- Dock + Reward popup hosted on ArcPad / CirclePad (body.ax-dock-host) ----
+   Those pages keep their own sidebar shell; the dock just floats over it.
+   body.bigpad-page forces Inter on nav/h2/h3 with !important, so the dock
+   items and popup headings set their own font explicitly. */
+.ax-dock-item{font-family:'Sora',sans-serif;}
+.ax-modal-card{color:var(--ax-ink);font-family:'Sora',sans-serif;}
+.ax-modal .ax-modal-card h2,.ax-modal .ax-modal-card h3{font-family:'Sora',sans-serif !important;color:var(--ax-ink);letter-spacing:-.02em;}
+.ax-modal .ax-modal-card p{color:var(--ax-dim);}
+body.ax-dock-host{padding-bottom:108px;}
+@media (min-width:901px){
+  /* centre over the content column, not the whole window (sidebar is 236px) */
+  body.ax-dock-host nav.ax-dock{left:calc(50% + 118px);}
 }
