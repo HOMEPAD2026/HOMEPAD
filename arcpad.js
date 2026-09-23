@@ -239,7 +239,10 @@ function renderArcpadExploreGrid() {
 
 function wireLaunchCardClicks(root) {
   root.querySelectorAll(".ap-launch-card").forEach((card) => {
-    card.addEventListener("click", () => openTradeModal(card.dataset.token));
+    card.addEventListener("click", () => {
+      if (typeof openArcCoin === "function") openArcCoin(card.dataset.token);
+      else openTradeModal(card.dataset.token);
+    });
   });
 }
 
@@ -527,7 +530,8 @@ async function submitArcpadLaunch(ev) {
       : await factory.launch(name, symbol, CONFIG.USDC_ADDRESS, initialVirtualQuote, extraFeeBps, meta, { value: launchFee });
     statusEl.innerHTML = `<div class="status pending">Launching… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
-    statusEl.innerHTML = `<div class="status success">Launched! <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
+    const newToken = typeof arcLaunchedTokenFromReceipt === "function" ? arcLaunchedTokenFromReceipt(receipt) : null;
+    statusEl.innerHTML = `<div class="status success">Launched!${newToken ? " Opening your coin's page…" : ""} <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("ap-launch-form").reset();
     document.getElementById("ap-image-preview").innerHTML = "🅰️";
     document.getElementById("ap-image-hint").textContent = "A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.";
@@ -535,7 +539,13 @@ async function submitArcpadLaunch(ev) {
     // breakdown and dev-buy preview have to be re-rendered by hand.
     document.getElementById("ap-extrafee").dispatchEvent(new Event("input"));
     updateArcpadDevBuyPreview();
-    loadArcpadLaunches().catch((err) => console.error(err));
+    const reload = loadArcpadLaunches().catch((err) => console.error(err));
+    if (newToken && typeof openArcCoin === "function") {
+      // Straight to the new coin's page (it reads from chain, so it doesn't
+      // need the launch list to finish reloading first).
+      setTimeout(() => { openArcCoin(newToken); statusEl.innerHTML = ""; }, 900);
+      reload.then(() => { if (typeof APC !== "undefined" && APC.token && APC.token.toLowerCase() === newToken.toLowerCase()) apcRefresh(); });
+    }
   } catch (err) {
     console.error(err);
     statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;
@@ -685,7 +695,13 @@ async function submitTrade() {
     }
     document.getElementById("ap-trade-amount").value = "";
     refreshTradeBalance();
-    loadArcpadLaunches().catch((err) => console.error(err));
+    const reload = loadArcpadLaunches().catch((err) => console.error(err));
+    if (newToken && typeof openArcCoin === "function") {
+      // Straight to the new coin's page (it reads from chain, so it doesn't
+      // need the launch list to finish reloading first).
+      setTimeout(() => { openArcCoin(newToken); statusEl.innerHTML = ""; }, 900);
+      reload.then(() => { if (typeof APC !== "undefined" && APC.token && APC.token.toLowerCase() === newToken.toLowerCase()) apcRefresh(); });
+    }
   } catch (err) {
     console.error(err);
     statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;
@@ -722,7 +738,7 @@ function refreshAccountDependentViews() {
     if (sidebar) sidebar.classList.remove("bp-menu-open");
     // Keep the URL shareable (/arc#launch, /arc#explore, …) without adding
     // history entries, and let the floating quick bar highlight its item.
-    if (history.replaceState) {
+    if (tab !== "coin" && history.replaceState) { // the coin page writes its own #coin/<address>
       const want = tab === "home" ? "" : `#${tab}`;
       if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
     }
@@ -732,6 +748,7 @@ function refreshAccountDependentViews() {
   window.arcpadShowTab = showTab;
   const tabFromHash = () => {
     const t = location.hash.slice(1);
+    if (t === "coin" || t.startsWith("coin/")) return null; // handled by arcpad-coin.js
     return t && document.getElementById(`bp-panel-${t}`) ? t : null;
   };
   window.addEventListener("hashchange", () => { const t = tabFromHash(); if (t) showTab(t); });

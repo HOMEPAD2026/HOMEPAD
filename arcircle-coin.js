@@ -640,7 +640,7 @@ function ac2CurrentQuote() {
 
 function ac2RenderSwap() {
   const buy = AC2.side === "buy";
-  document.querySelectorAll(".ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === AC2.side));
+  document.querySelectorAll("#bp-panel-arcircle .ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === AC2.side));
   ac2$("ac2-swap").classList.toggle("is-sell", !buy);
   ac2$("ac2-in-label").textContent = buy ? "You pay" : "You sell";
   ac2$("ac2-in-unit").textContent = buy ? "USDC" : "$ARCIRCLE";
@@ -800,7 +800,7 @@ async function ac2Refresh() {
 }
 
 function ac2Wire() {
-  document.querySelectorAll(".ac2-swap-tabs button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("#bp-panel-arcircle .ac2-swap-tabs button").forEach((b) => b.addEventListener("click", () => {
     if (AC2.side === b.dataset.side) return;
     AC2.side = b.dataset.side;
     ac2$("ac2-amount").value = "";
@@ -831,9 +831,9 @@ function ac2Wire() {
     ac2RenderTrades();
   });
   ac2$("ac2-more").addEventListener("click", () => { AC2.shown += 25; ac2RenderTrades(); });
-  document.querySelectorAll(".ac2-tabs [data-ac2tab]").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll(".ac2-tabs [data-ac2tab]").forEach((x) => x.classList.toggle("active", x === b));
-    document.querySelectorAll("[data-ac2panel]").forEach((p) => { p.hidden = p.dataset.ac2panel !== b.dataset.ac2tab; });
+  document.querySelectorAll("#bp-panel-arcircle .ac2-tabs [data-ac2tab]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("#bp-panel-arcircle .ac2-tabs [data-ac2tab]").forEach((x) => x.classList.toggle("active", x === b));
+    document.querySelectorAll("#bp-panel-arcircle [data-ac2panel]").forEach((p) => { p.hidden = p.dataset.ac2panel !== b.dataset.ac2tab; });
   }));
   ac2$("ac2-copy-ca").addEventListener("click", async (e) => {
     const b = e.currentTarget;

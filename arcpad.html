@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790146665">
+<link rel="stylesheet" href="style.css?v=1790147542">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -203,6 +203,168 @@
           <span class="ac2-feature-cta">Trade →</span>
         </button>
         <div id="ap-explore-grid" class="grid-launches"><div class="empty-state">Loading launches…</div></div>
+      </section>
+
+      <!-- ============ ArcPad coin page (any launch — /arc#coin/<address>) ============ -->
+      <section class="bp-panel" id="bp-panel-coin">
+        <div class="ac2 apc">
+          <button type="button" class="ac2-back" data-tab-link="explore">← Explore</button>
+
+          <div class="ac2-head">
+            <div class="apc-logo-wrap"><img class="ac2-logo" id="apc-logo" src="" alt="" hidden><span class="apc-logo-fallback" id="apc-logo-fallback">?</span></div>
+            <div class="ac2-title">
+              <div class="ac2-name-row">
+                <h1 id="apc-name">—</h1>
+                <span class="ac2-sym" id="apc-sym"></span>
+                <span class="ac2-badge ac2-badge-live">Live on Uniswap v4</span>
+              </div>
+              <div class="ac2-ca-row">
+                <span class="ac2-ca-label">CA</span>
+                <code class="ac2-ca-full" id="apc-ca-full">—</code>
+                <code class="ac2-ca-short" id="apc-ca-short">—</code>
+                <button type="button" class="ac2-chip-btn" id="apc-copy-ca">Copy</button>
+                <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
+              </div>
+            </div>
+            <div class="ac2-head-price">
+              <div class="ac2-price" id="apc-price">—</div>
+              <div class="ac2-change" id="apc-change">&nbsp;</div>
+            </div>
+          </div>
+
+          <div class="ac2-stats">
+            <div class="ac2-stat"><small>Market cap</small><strong id="apc-mcap">—</strong></div>
+            <div class="ac2-stat"><small>Liquidity</small><strong id="apc-liq">—</strong></div>
+            <div class="ac2-stat"><small>24h volume</small><strong id="apc-vol">—</strong></div>
+            <div class="ac2-stat"><small>24h trades</small><strong id="apc-txns">—</strong></div>
+            <div class="ac2-stat"><small>Holders</small><strong id="apc-holders-count">—</strong></div>
+            <div class="ac2-stat"><small>Launched</small><strong id="apc-age">—</strong></div>
+          </div>
+
+          <div class="ac2-grad">
+            <div class="ac2-grad-top">
+              <span>Sold from the pool</span>
+              <strong id="apc-sold-text">—</strong>
+            </div>
+            <div class="ac2-grad-bar"><span id="apc-sold-fill"></span></div>
+            <p id="apc-desc" class="apc-desc" hidden></p>
+          </div>
+
+          <div class="ac2-grid">
+            <div class="ac2-main">
+              <div class="ac2-card ac2-chart-card">
+                <div class="ac2-card-head">
+                  <h3>Price <span class="ac2-muted" id="apc-chart-src-label">· on-chain</span></h3>
+                  <div class="ac2-card-tools">
+                    <div class="ac2-seg" id="apc-src" hidden>
+                      <button type="button" data-src="onchain" class="active">On-chain</button>
+                      <button type="button" data-src="dex">Dexscreener</button>
+                    </div>
+                    <div class="ac2-seg" id="apc-range">
+                      <button type="button" data-range="3600">1H</button>
+                      <button type="button" data-range="86400">24H</button>
+                      <button type="button" data-range="604800">7D</button>
+                      <button type="button" data-range="0" class="active">All</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ac2-chart" id="apc-chart"><div class="ac2-empty">Loading…</div></div>
+                <div class="ac2-dex" id="apc-dex" hidden></div>
+                <p class="ac2-note" id="apc-chart-note">Drawn from every swap in this coin's Uniswap v4 pool on Arc. If Dexscreener lists the pool, you can switch to its chart here.</p>
+              </div>
+
+              <div class="ac2-card">
+                <div class="ac2-tabs" role="tablist">
+                  <button type="button" data-apctab="trades" class="active" role="tab">Trades</button>
+                  <button type="button" data-apctab="holders" role="tab">Holders</button>
+                  <button type="button" data-apctab="about" role="tab">About</button>
+                  <span class="ac2-scan" id="apc-scan"></span>
+                </div>
+
+                <div class="ac2-tabpanel" data-apcpanel="trades">
+                  <div class="ac2-filter" id="apc-filter">
+                    <button type="button" data-filter="all" class="active">All</button>
+                    <button type="button" data-filter="buy">Buys</button>
+                    <button type="button" data-filter="sell">Sells</button>
+                    <button type="button" data-filter="mine">Mine</button>
+                  </div>
+                  <div class="ac2-table-wrap">
+                    <table class="ac2-table">
+                      <thead><tr><th>Time</th><th>Type</th><th class="r">USDC</th><th class="r" id="apc-th-sym">Tokens</th><th class="r">Price</th><th>Trader</th><th class="r">Tx</th></tr></thead>
+                      <tbody id="apc-trades"><tr><td colspan="7" class="ac2-empty">Loading trades…</td></tr></tbody>
+                    </table>
+                  </div>
+                  <button type="button" class="ac2-more" id="apc-more" hidden>Show more</button>
+                </div>
+
+                <div class="ac2-tabpanel" data-apcpanel="holders" hidden>
+                  <div id="apc-holders"><div class="ac2-empty">Loading holders…</div></div>
+                </div>
+
+                <div class="ac2-tabpanel" data-apcpanel="about" hidden>
+                  <p class="ac2-about-lede" id="apc-about-lede"></p>
+                  <dl class="ac2-dl">
+                    <div><dt>Token</dt><dd id="apc-about-token">—</dd></div>
+                    <div><dt>Creator</dt><dd id="apc-about-creator">—</dd></div>
+                    <div><dt>Total supply</dt><dd>1,000,000,000</dd></div>
+                    <div><dt>Pool supply</dt><dd>920,000,000 (92%)</dd></div>
+                    <div><dt>Trade fee</dt><dd id="apc-about-fee">—</dd></div>
+                    <div><dt>Quote asset</dt><dd>USDC</dd></div>
+                    <div><dt>Pool</dt><dd id="apc-about-pool">—</dd></div>
+                    <div><dt>Launched</dt><dd id="apc-about-launched">—</dd></div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+
+            <aside class="ac2-side">
+              <div class="ac2-card ac2-swap" id="apc-swap">
+                <div class="ac2-swap-tabs">
+                  <button type="button" data-side="buy" class="active">Buy</button>
+                  <button type="button" data-side="sell">Sell</button>
+                </div>
+                <div class="ac2-field">
+                  <div class="ac2-field-top"><span id="apc-in-label">You pay</span><button type="button" class="ac2-bal" id="apc-bal">Balance —</button></div>
+                  <div class="ac2-field-row">
+                    <input id="apc-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount">
+                    <span class="ac2-unit" id="apc-in-unit">USDC</span>
+                  </div>
+                  <div class="ac2-quick" id="apc-quick"></div>
+                </div>
+                <div class="ac2-arrow" aria-hidden="true">↓</div>
+                <div class="ac2-field ac2-field-out">
+                  <div class="ac2-field-top"><span>You receive <span class="ac2-muted">(est.)</span></span></div>
+                  <div class="ac2-field-row">
+                    <output id="apc-out">0</output>
+                    <span class="ac2-unit" id="apc-out-unit">—</span>
+                  </div>
+                </div>
+                <dl class="ac2-quote">
+                  <div><dt>Price impact</dt><dd id="apc-q-impact">—</dd></div>
+                  <div><dt>Fee <span class="ac2-muted" id="apc-q-fee-label"></span></dt><dd id="apc-q-fee">—</dd></div>
+                  <div><dt>Minimum received</dt><dd id="apc-q-min">—</dd></div>
+                  <div><dt>Route</dt><dd>ArcPad router · Uniswap v4</dd></div>
+                </dl>
+                <div class="ac2-slip">
+                  <span>Slippage</span>
+                  <div class="ac2-seg ac2-seg-sm" id="apc-slip">
+                    <button type="button" data-slip="0.5">0.5%</button>
+                    <button type="button" data-slip="1">1%</button>
+                    <button type="button" data-slip="2" class="active">2%</button>
+                    <button type="button" data-slip="5">5%</button>
+                  </div>
+                </div>
+                <button type="button" class="ac2-submit" id="apc-submit">Connect wallet</button>
+                <div class="ac2-status" id="apc-status" aria-live="polite"></div>
+                <p class="ac2-fine">Trades go straight to ArcPad's router and the coin's own Uniswap v4 pool on Arc — nothing is held by the site. Gas is paid in USDC.</p>
+              </div>
+
+              <div class="ac2-card ac2-links" id="apc-links">
+                <h3>Links</h3>
+              </div>
+            </aside>
+          </div>
+        </div>
       </section>
 
       <!-- ============ $ARCIRCLE (featured coin, traded on its foci curve) ============ -->
@@ -567,12 +729,13 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1790146665"></script>
-<script src="abis.js?v=1790146665"></script>
-<script src="arc-shared.js?v=1790146665"></script>
-<script src="wallet-appkit.js?v=1790146665"></script>
-<script src="arcpad.js?v=1790146665"></script>
-<script src="arcircle-coin.js?v=1790146665"></script>
-<script src="arcircle-hub.js?v=1790146665"></script>
+<script src="config-arc.js?v=1790147542"></script>
+<script src="abis.js?v=1790147542"></script>
+<script src="arc-shared.js?v=1790147542"></script>
+<script src="wallet-appkit.js?v=1790147542"></script>
+<script src="arcpad.js?v=1790147542"></script>
+<script src="arcpad-coin.js?v=1790147542"></script>
+<script src="arcircle-coin.js?v=1790147542"></script>
+<script src="arcircle-hub.js?v=1790147542"></script>
 </body>
 </html>

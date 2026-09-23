@@ -3600,3 +3600,15 @@ button.wallet-dropdown-item{width:100%;text-align:left;background:none;border:0;
 .ap-launch-balance:empty{display:none;}
 .ap-launch-balance.ok{color:var(--ink-dim);}
 .ap-launch-balance.short{color:var(--red);background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.3);border-radius:10px;padding:8px 12px;}
+
+/* ArcPad coin page (arcpad-coin.js) — reuses the $ARCIRCLE page's .ac2-* styles */
+.apc-logo-wrap{position:relative;width:72px;height:72px;flex-shrink:0;}
+.apc .ac2-logo{object-fit:cover;padding:0;}
+.apc-logo-fallback{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;font-family:'Sora',sans-serif;font-weight:800;font-size:1.6rem;color:#03130c;
+  background:linear-gradient(135deg,#3f9bff,#35d8d0 55%,#39ff88);}
+.apc-logo-fallback[hidden]{display:none;}
+.apc-desc{font-size:.8rem !important;color:#cfd6de !important;margin-top:10px !important;white-space:pre-line;word-break:break-word;}
+.apc-desc[hidden]{display:none;}
+@media (max-width:640px){
+  .apc-logo-wrap,.apc-logo-fallback{width:56px;height:56px;border-radius:14px;}
+}
