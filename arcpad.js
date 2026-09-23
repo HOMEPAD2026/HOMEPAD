@@ -176,10 +176,10 @@ function arcEscHtml(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, (
 function launchCardHtml(l) {
   const safe = /^https?:\/\//i.test(l.imageUrl || "") || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(l.imageUrl || "");
   const img = safe
-    ? `<img src="${arcEscHtml(l.imageUrl)}" alt="" style="width:36px;height:36px;border-radius:9px;object-fit:cover;margin-bottom:8px" onerror="this.style.display='none'">`
-    : "";
+    ? `<img class="ap-card-logo" src="${arcEscHtml(l.imageUrl)}" alt="" onerror="this.style.visibility='hidden'">`
+    : `<span class="ap-card-logo ph">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
   return `
-    <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;width:100%;border:1px solid var(--line);font:inherit;">
+    <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
       ${img}
       <div class="sym">$${arcEscHtml(l.symbol)}${l.quoteIsUsdc === false ? ` <span class="ap-pair-tag">/ ${arcEscHtml(l.quoteSymbol)}</span>` : ""}</div>
       <div class="name">${arcEscHtml(l.name)}</div>
