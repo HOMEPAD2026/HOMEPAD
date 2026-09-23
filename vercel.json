@@ -39,6 +39,10 @@
     {
       "source": "/arcircle",
       "destination": "/arcircle.html"
+    },
+    {
+      "source": "/whitepaper",
+      "destination": "/whitepaper.html"
     }
   ]
 }

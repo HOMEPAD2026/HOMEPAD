@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$ARCIRCLE Whitepaper — ARCIRCLE PAD</title>
+<meta name="description" content="The $ARCIRCLE whitepaper: ArcPad, CirclePad and the core coin that ties them together on Circle's Arc — mechanics, economics, flywheel, security and roadmap.">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="$ARCIRCLE Whitepaper">
+<meta property="og:description" content="Two launchpads, one core coin. How ArcPad, CirclePad and $ARCIRCLE work on Circle's Arc — and where they're going.">
+<meta property="og:url" content="https://arcirclepad.vercel.app/whitepaper">
+<meta property="og:image" content="https://arcirclepad.vercel.app/images/og/og-arcircle.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="$ARCIRCLE Whitepaper">
+<meta name="twitter:description" content="Two launchpads, one core coin. How ArcPad, CirclePad and $ARCIRCLE work on Circle's Arc — and where they're going.">
+<meta name="twitter:image" content="https://arcirclepad.vercel.app/images/og/og-arcircle.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400&family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04060a; --sheet:#070a10; --panel:#0c1119; --panel-hi:#111826; --line:rgba(255,255,255,.09); --line-hi:rgba(255,255,255,.16);
+  --ink:#eef3f7; --ink-2:#c9d3de; --dim:#8c98a6; --faint:#5d6875;
+  --blue:#3f9bff; --cyan:#35d8d0; --green:#39ff88; --gold:#ffc861; --red:#ff6b6b;
+  --grad:linear-gradient(90deg,#3f9bff 0%,#35d8d0 50%,#39ff88 100%);
+  --sheet-w:210mm; --sheet-h:297mm;
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:9.4pt;line-height:1.52;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+a{color:var(--cyan);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.86em;}
+
+/* ---------- reader chrome (screen only) ---------- */
+.wp-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:12px 22px;
+  background:rgba(4,6,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
+.wp-bar-brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-family:Silkscreen,monospace;font-size:.82rem;letter-spacing:.1em;text-decoration:none !important;}
+.wp-bar-brand img{width:30px;}
+.wp-bar-brand em{font-style:normal;color:var(--dim);}
+.wp-bar-title{color:var(--dim);font-size:.8rem;}
+.wp-bar-actions{margin-left:auto;display:flex;gap:8px;}
+.wp-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--line-hi);background:rgba(255,255,255,.04);
+  color:var(--ink);font:600 .8rem Sora,sans-serif;cursor:pointer;text-decoration:none !important;}
+.wp-btn:hover{background:rgba(255,255,255,.08);}
+.wp-btn.primary{background:var(--grad);color:#03130c;border:0;}
+.wp-doc{padding:36px 0 80px;display:flex;flex-direction:column;align-items:center;gap:28px;}
+
+/* ---------- sheets ---------- */
+.page{position:relative;width:var(--sheet-w);min-height:var(--sheet-h);height:var(--sheet-h);overflow:hidden;background:var(--sheet);
+  border:1px solid var(--line);border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.55);padding:15mm 16mm 20mm;display:flex;flex-direction:column;}
+.page::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad);opacity:.85;}
+.pg-head{display:flex;justify-content:space-between;align-items:center;font:600 7.4pt Sora,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6mm;}
+.pg-head b{color:var(--dim);font-weight:600;}
+.pg-foot{position:absolute;left:16mm;right:16mm;bottom:8mm;display:flex;justify-content:space-between;font:500 7.4pt Inter,sans-serif;color:var(--faint);border-top:1px solid var(--line);padding-top:3mm;}
+.pg-foot .n{font-family:Sora,sans-serif;font-weight:700;color:var(--dim);}
+.pg-body{flex:1;min-height:0;}
+
+h1,h2,h3,h4{font-family:Sora,sans-serif;letter-spacing:-.02em;margin:0;color:var(--ink);}
+.kicker{font:700 7.8pt Sora,sans-serif;letter-spacing:.18em;text-transform:uppercase;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:3mm;display:inline-block;}
+h2.sec{font-size:19pt;line-height:1.12;font-weight:800;margin-bottom:3.5mm;}
+h2.sec .num{color:var(--faint);font-weight:700;margin-right:3mm;}
+h3{font-size:11pt;font-weight:700;margin:4.2mm 0 1.6mm;}
+h4{font-size:9.4pt;font-weight:700;margin:3mm 0 1.2mm;color:var(--ink-2);}
+p{margin:0 0 2.4mm;color:var(--ink-2);}
+p.lede{font-size:10.6pt;line-height:1.5;color:var(--ink);margin-bottom:3.6mm;}
+ul,ol{margin:0 0 2.6mm;padding-left:5mm;color:var(--ink-2);}
+li{margin:0 0 1mm;}
+li::marker{color:var(--cyan);}
+strong{color:var(--ink);font-weight:600;}
+.muted{color:var(--dim);}
+.small{font-size:8.2pt;line-height:1.45;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:3.5mm;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3.4mm 4mm;}
+.card h4{margin-top:0;}
+.card p:last-child,.card ul:last-child{margin-bottom:0;}
+.card.accent{border-color:rgba(53,216,208,.35);background:linear-gradient(180deg,rgba(53,216,208,.07),rgba(53,216,208,.01)),var(--panel);}
+.card.warn{border-color:rgba(255,200,97,.35);background:linear-gradient(180deg,rgba(255,200,97,.07),transparent),var(--panel);}
+.tag{display:inline-block;font:700 6.8pt Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:1mm 2.4mm;border-radius:99px;border:1px solid var(--line-hi);color:var(--dim);}
+.tag.live{color:var(--green);border-color:rgba(57,255,136,.4);background:rgba(57,255,136,.08);}
+.tag.soon{color:var(--gold);border-color:rgba(255,200,97,.4);background:rgba(255,200,97,.08);}
+.tag.plan{color:#9cc8ff;border-color:rgba(63,155,255,.4);background:rgba(63,155,255,.08);}
+.stat{display:flex;flex-direction:column;gap:1mm;}
+.stat b{font:800 14pt Sora,sans-serif;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.stat span{font-size:8.2pt;color:var(--dim);}
+.callout{border-left:3px solid var(--cyan);padding:1.5mm 0 1.5mm 4mm;margin:3mm 0;color:var(--ink);font-size:9.8pt;}
+.formula{font-family:"JetBrains Mono",monospace;font-size:8.4pt;line-height:1.5;background:#05080d;border:1px solid var(--line);border-radius:8px;padding:2.6mm 4mm;margin:2mm 0 3mm;color:#dfe9f5;white-space:pre-wrap;}
+
+table{width:100%;border-collapse:collapse;font-size:8.4pt;margin:1.5mm 0 3mm;}
+th{font:700 6.8pt Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:1.5mm 2.2mm;border-bottom:1px solid var(--line-hi);}
+td{padding:1.5mm 2.2mm;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top;}
+td.r,th.r{text-align:right;}
+td code{color:#dfe9f5;word-break:break-all;}
+
+figure{margin:2mm 0 3mm;}
+figure svg{display:block;width:100%;height:auto;}
+figcaption{font-size:8pt;color:var(--dim);margin-top:2mm;text-align:center;}
+svg text{font-family:Inter,sans-serif;}
+
+/* cover */
+.cover{padding:0;justify-content:space-between;}
+.cover::before{height:0;}
+.cover-art{position:absolute;inset:0;background:url(images/arcircle-art.jpg) center/cover no-repeat;filter:blur(18px) brightness(.32) saturate(1.3);transform:scale(1.1);}
+.cover-glow{position:absolute;inset:0;background:radial-gradient(70% 45% at 50% 40%,rgba(53,216,208,.18),transparent 70%),radial-gradient(60% 40% at 10% 0%,rgba(63,155,255,.2),transparent 70%),radial-gradient(60% 40% at 100% 100%,rgba(57,255,136,.14),transparent 70%);}
+.cover-in{position:relative;height:100%;display:flex;flex-direction:column;padding:22mm 20mm 20mm;}
+.cover-brand{display:flex;align-items:center;gap:12px;font:400 11pt Silkscreen,monospace;letter-spacing:.12em;}
+.cover-brand img{width:46px;}
+.cover-brand em{font-style:normal;color:var(--dim);}
+.cover-mark{width:122mm;margin:24mm auto 10mm;filter:drop-shadow(0 0 40px rgba(63,155,255,.35)) drop-shadow(0 0 70px rgba(57,255,136,.18));}
+.cover h1{font-size:46pt;line-height:1;font-weight:800;text-align:center;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.cover .sub{font:500 15pt Sora,sans-serif;text-align:center;color:var(--ink);margin-top:5mm;letter-spacing:-.01em;}
+.cover .sub2{text-align:center;color:var(--dim);margin-top:3mm;font-size:10.5pt;}
+.cover-meta{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line-hi);padding-top:5mm;font-size:8.6pt;color:var(--dim);}
+.cover-meta b{display:block;color:var(--ink);font:600 9.4pt Sora,sans-serif;}
+
+/* toc */
+.toc{list-style:none;padding:0;margin:0;}
+.toc li{display:flex;align-items:baseline;gap:3mm;padding:1.25mm 0;border-bottom:1px dashed var(--line);margin:0;}
+.toc li .t{color:var(--ink);font-weight:600;}
+.toc li .d{flex:1;border-bottom:1px dotted rgba(255,255,255,.12);transform:translateY(-1mm);}
+.toc li .p{font:700 9pt Sora,sans-serif;color:var(--dim);}
+.toc li.part{border:0;padding-top:2.6mm;}
+.toc li.part .t{font:700 7.6pt Sora,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);}
+.toc a{color:inherit;text-decoration:none;}
+
+/* roadmap */
+.phase{position:relative;padding:0 0 3.4mm 9mm;border-left:2px solid var(--line-hi);margin-left:3mm;}
+.phase:last-child{padding-bottom:0;}
+.phase::before{content:"";position:absolute;left:-7px;top:1mm;width:12px;height:12px;border-radius:50%;background:var(--sheet);border:2px solid var(--dim);}
+.phase.done::before{background:var(--green);border-color:var(--green);box-shadow:0 0 12px rgba(57,255,136,.6);}
+.phase.now::before{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 12px rgba(53,216,208,.6);}
+.phase-head{display:flex;align-items:center;gap:3mm;flex-wrap:wrap;}
+.phase-head h3{margin:0;font-size:11.5pt;}
+.phase-when{font:700 7.8pt Sora,sans-serif;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;}
+.checks{list-style:none;padding:0;margin:2mm 0 0;}
+.checks li{position:relative;padding-left:6mm;margin-bottom:.9mm;}
+.checks li::before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;height:3mm;border-radius:3px;border:1.5px solid var(--dim);}
+.checks li.ok::before{background:var(--green);border-color:var(--green);}
+.checks li.ok::after{content:"";position:absolute;left:1.05mm;top:2.05mm;width:.9mm;height:1.6mm;border:solid #03130c;border-width:0 1.6px 1.6px 0;transform:rotate(45deg);}
+
+/* screen: responsive */
+@media screen and (max-width:860px){
+  .wp-doc{padding:16px 10px 60px;gap:16px;}
+  .page{width:100%;height:auto;min-height:0;padding:28px 20px 56px;border-radius:12px;}
+  .cover{min-height:88vh;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .pg-foot{left:20px;right:20px;bottom:16px;}
+  .wp-bar-title{display:none;}
+  body{font-size:15px;}
+  h2.sec{font-size:26px;}
+  .cover h1{font-size:40px;}
+  .cover-mark{width:78%;margin:36px auto 18px;}
+}
+@media print{
+  @page{size:A4;margin:0;}
+  html,body{background:var(--sheet);}
+  .wp-bar{display:none !important;}
+  .wp-doc{padding:0;gap:0;display:block;}
+  .page{border:0;border-radius:0;box-shadow:none;margin:0;page-break-after:always;break-after:page;}
+  .page:last-child{page-break-after:auto;break-after:auto;}
+}
+</style>
+</head>
+<body>
+<header class="wp-bar">
+  <a class="wp-bar-brand" href="/"><img src="images/arcircle-mark-sm.png" alt=""><span>ARCIRCLE <em>PAD</em></span></a>
+  <span class="wp-bar-title">$ARCIRCLE Whitepaper · v1.0</span>
+  <div class="wp-bar-actions">
+    <a class="wp-btn" href="/arcircle">$ARCIRCLE</a>
+    <button type="button" class="wp-btn primary" onclick="window.print()">Save as PDF</button>
+  </div>
+</header>
+<main class="wp-doc">
+<!-- PAGE: cover -->
+<section class="page cover" data-sec="">
+  <div class="cover-art"></div><div class="cover-glow"></div>
+  <div class="cover-in">
+    <div class="cover-brand"><img src="images/arcircle-mark-sm.png" alt=""><span>ARCIRCLE <em>PAD</em></span></div>
+    <img class="cover-mark" src="images/arcircle-mark.png" alt="$ARCIRCLE mark">
+    <h1>$ARCIRCLE</h1>
+    <div class="sub">Two launchpads. One core coin.</div>
+    <div class="sub2">ArcPad, CirclePad and the coin at the centre of them — on Circle's Arc</div>
+    <div class="cover-meta">
+      <div><b>Whitepaper · Version 1.0</b>September 2026</div>
+      <div style="text-align:right"><b>arcirclepad.vercel.app</b>CA 0x933a94b475fa9d8ef94fa564e38dda400a595aa1</div>
+    </div>
+  </div>
+</section>
+
+<!-- PAGE: notice -->
+<section class="page" data-sec="Notice">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>Notice</b></div>
+  <div class="pg-body">
+  <span class="kicker">Before you read</span>
+  <h2 class="sec">Important notice</h2>
+  <p class="lede">This document describes how ARCIRCLE PAD and the $ARCIRCLE coin work today, and what the project intends to build next. It is an explanation, not an offer.</p>
+  <div class="card warn">
+    <h4>Not financial advice</h4>
+    <p>$ARCIRCLE is a community memecoin on Circle's Arc network. Nothing in this whitepaper is financial, investment, legal or tax advice, and nothing in it is a promise of profit, price, return or listing. Crypto assets are volatile and can lose all of their value. Only use what you can afford to lose, and do your own research.</p>
+  </div>
+  <h3>How to read this document</h3>
+  <ul>
+    <li><strong>Live</strong> <span class="tag live">Live</span> means the feature is deployed on Arc mainnet and anyone can use or verify it on-chain today.</li>
+    <li><strong>In progress</strong> <span class="tag soon">Soon</span> means part of it exists (for example a deployed contract that hasn't been started) and the rest is being built.</li>
+    <li><strong>Planned</strong> <span class="tag plan">Planned</span> means an intention. Plans can change, slip or be dropped as the project learns what works.</li>
+  </ul>
+  <p>Every number marked <em>"at the time of writing"</em> was read directly from Arc mainnet on 23 September 2026 and will have moved since. Where this document and the chain disagree, <strong>the chain is right</strong> — every contract referenced here is listed with its address in Section 9 so it can be checked independently on ArcScan.</p>
+  <h3>Forward-looking statements</h3>
+  <p>Sections on the flywheel, rewards, CirclePad v2 and the roadmap describe future work. They reflect current intent, not commitments. Revenue splits, reward formulas and timelines will be published on the website before anything goes live, and may differ from what is sketched here.</p>
+  <h3>Impostors</h3>
+  <p>The only official $ARCIRCLE contract is <code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code>. Other tokens with similar names already exist on Arc — including one called "ARCircle" with its own pair on Dexscreener. ARCIRCLE PAD will never identify $ARCIRCLE by name or ticker alone; always check the contract address.</p>
+  <div class="grid3" style="margin-top:5mm">
+    <div class="card"><h4>Document</h4><p class="small">$ARCIRCLE Whitepaper v1.0<br>Published September 2026</p></div>
+    <div class="card"><h4>Network</h4><p class="small">Arc mainnet<br>Chain ID 5042 · gas in USDC</p></div>
+    <div class="card"><h4>Website</h4><p class="small">arcirclepad.vercel.app<br>/arc · /circle · /arcircle</p></div>
+  </div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">02 / 30</span></div>
+</section>
+
+<!-- PAGE: contents -->
+<section class="page" data-sec="Contents">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>Contents</b></div>
+  <div class="pg-body">
+  <span class="kicker">Contents</span>
+  <h2 class="sec">What's inside</h2>
+  <ul class="toc">
+    <li class="part"><span class="t">Overview</span></li>
+    <li><a class="t" href="#p-abstract">Abstract</a><span class="d"></span><span class="p">4</span></li>
+    <li><a class="t" href="#p-facts">$ARCIRCLE at a glance</a><span class="d"></span><span class="p">5</span></li>
+    <li><a class="t" href="#p-intro">1 · Why Arc</a><span class="d"></span><span class="p">6</span></li>
+    <li><a class="t" href="#p-problem">2 · The problem with launchpads</a><span class="d"></span><span class="p">7</span></li>
+    <li><a class="t" href="#p-design">3 · ARCIRCLE PAD: two launchpads, one coin</a><span class="d"></span><span class="p">8</span></li>
+    <li class="part"><span class="t">The products</span></li>
+    <li><a class="t" href="#p-arcpad">4 · ArcPad — instant launches</a><span class="d"></span><span class="p">9</span></li>
+    <li><a class="t" href="#p-arcpad-math">4.2 · Pricing and the fixed starting point</a><span class="d"></span><span class="p">10</span></li>
+    <li><a class="t" href="#p-arcpad-fees">4.3 · Fees and allocations</a><span class="d"></span><span class="p">11</span></li>
+    <li><a class="t" href="#p-arcpad-pairs">4.4 · Pair tokens</a><span class="d"></span><span class="p">12</span></li>
+    <li><a class="t" href="#p-arcpad-trade">4.5 · Trading and coin pages</a><span class="d"></span><span class="p">13</span></li>
+    <li><a class="t" href="#p-circle">5 · CirclePad — launch together</a><span class="d"></span><span class="p">14</span></li>
+    <li><a class="t" href="#p-circle-round">5.2 · A round, step by step</a><span class="d"></span><span class="p">15</span></li>
+    <li><a class="t" href="#p-circle-v2">5.3 · CirclePad v2: leads, votes and vesting</a><span class="d"></span><span class="p">16</span></li>
+    <li class="part"><span class="t">The coin</span></li>
+    <li><a class="t" href="#p-coin">6 · $ARCIRCLE — the core coin</a><span class="d"></span><span class="p">17</span></li>
+    <li><a class="t" href="#p-curve">6.2 · The bonding curve</a><span class="d"></span><span class="p">18</span></li>
+    <li><a class="t" href="#p-dist">6.3 · Supply, distribution and graduation</a><span class="d"></span><span class="p">19</span></li>
+    <li><a class="t" href="#p-utility">6.4 · What $ARCIRCLE is for</a><span class="d"></span><span class="p">20</span></li>
+    <li><a class="t" href="#p-fly">7 · The flywheel</a><span class="d"></span><span class="p">21</span></li>
+    <li><a class="t" href="#p-fly2">7.2 · Revenue in, value out</a><span class="d"></span><span class="p">22</span></li>
+    <li><a class="t" href="#p-rewards">8 · Rewards for holders and creators</a><span class="d"></span><span class="p">23</span></li>
+    <li class="part"><span class="t">Trust &amp; future</span></li>
+    <li><a class="t" href="#p-arch">9 · Architecture and contracts</a><span class="d"></span><span class="p">24</span></li>
+    <li><a class="t" href="#p-sec">10 · Security and transparency</a><span class="d"></span><span class="p">25</span></li>
+    <li><a class="t" href="#p-gov">11 · Community and governance</a><span class="d"></span><span class="p">26</span></li>
+    <li><a class="t" href="#p-road">12 · Roadmap</a><span class="d"></span><span class="p">27</span></li>
+    <li><a class="t" href="#p-risk">13 · Risk factors</a><span class="d"></span><span class="p">29</span></li>
+    <li><a class="t" href="#p-gloss">Glossary and links</a><span class="d"></span><span class="p">30</span></li>
+  </ul>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">03 / 30</span></div>
+</section>
+
+<!-- PAGE: abstract -->
+<section class="page" id="p-abstract" data-sec="Abstract">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>Abstract</b></div>
+  <div class="pg-body">
+  <span class="kicker">Abstract</span>
+  <h2 class="sec">One ecosystem, pointed at one coin</h2>
+  <p class="lede">ARCIRCLE PAD is a launch ecosystem on Circle's Arc network, the chain where USDC is the native currency. It offers two different ways to bring a new coin to market — and one coin, $ARCIRCLE, that the whole ecosystem is designed to feed.</p>
+  <p><strong>ArcPad</strong> is for instant, permissionless launches. Anyone can create a coin in a single transaction for a flat 1 USDC fee. The coin's sellable supply goes straight into a real Uniswap v4 pool from its first block, so there is no bonding curve to "graduate" from and no migration to wait for. Every coin opens at the same fair starting point — about $4,350 of market value — whether it is paired with USDC, with $ARCIRCLE, or with any other token on Arc.</p>
+  <p><strong>CirclePad</strong> is for launching together. Instead of one creator and a crowd of snipers, a project raises USDC from its community over a fixed 72-hour window. Contributors can withdraw at any time while the window is open. In its full design, the biggest backer becomes the project's lead, every contributor votes on what the project becomes, and the lead's payout vests slowly and can be clawed back if they walk away.</p>
+  <p><strong>$ARCIRCLE</strong> is the coin between them. It launched on foci's bonding curve on Arc on 22 September 2026, with all one billion tokens minted directly into the curve — no pre-mint to any wallet and no team allocation. The ecosystem is designed so that what ArcPad and CirclePad earn, together with $ARCIRCLE's own 2% creator tax, flows back into $ARCIRCLE through buybacks, liquidity support and — once built — rewards for holders and creators.</p>
+  <div class="grid3" style="margin:5mm 0">
+    <div class="card accent stat"><b>1 USDC</b><span>to launch a coin on ArcPad</span></div>
+    <div class="card accent stat"><b>≈ $4,350</b><span>starting market cap for every ArcPad launch</span></div>
+    <div class="card accent stat"><b>72 h</b><span>per CirclePad raise, withdrawable while open</span></div>
+  </div>
+  <p>This paper explains each piece in turn: how ArcPad prices and trades coins (Section 4), how CirclePad rounds work today and where they are going (Section 5), how $ARCIRCLE itself works and what it is for (Section 6), how revenue is meant to turn the flywheel (Sections 7–8), how the system is built and secured (Sections 9–10), and the roadmap ahead (Section 12).</p>
+  <div class="callout">The design goal in one line: <strong>every launch on ARCIRCLE PAD should make $ARCIRCLE a little stronger</strong> — and a stronger $ARCIRCLE should bring in the next wave of creators.</div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">04 / 30</span></div>
+</section>
+
+<!-- PAGE: facts -->
+<section class="page" id="p-facts" data-sec="At a glance">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>At a glance</b></div>
+  <div class="pg-body">
+  <span class="kicker">At a glance</span>
+  <h2 class="sec">$ARCIRCLE in numbers</h2>
+  <table>
+    <tbody>
+      <tr><td style="width:36%"><strong>Name / ticker</strong></td><td>arcircle / $ARCIRCLE</td></tr>
+      <tr><td><strong>Contract (CA)</strong></td><td><code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code></td></tr>
+      <tr><td><strong>Network</strong></td><td>Arc mainnet (chain ID 5042) — gas is paid in USDC</td></tr>
+      <tr><td><strong>Standard / decimals</strong></td><td>ERC-20 · 18 decimals</td></tr>
+      <tr><td><strong>Total supply</strong></td><td>1,000,000,000 $ARCIRCLE — fixed</td></tr>
+      <tr><td><strong>Launched</strong></td><td>22 September 2026, 06:14 UTC, on foci.family</td></tr>
+      <tr><td><strong>Where it trades</strong></td><td>foci bonding curve <code>0xa37A96C43e2335553BD79171DE6dB2806414AC64</code> (source-verified), quoted in USDC; also tradable from the $ARCIRCLE page on ArcPad</td></tr>
+      <tr><td><strong>Initial distribution</strong></td><td>100% minted into the bonding curve at launch — no wallet pre-mint, no team or insider allocation</td></tr>
+      <tr><td><strong>Trading costs on the curve</strong></td><td>1% foci fee + 2% creator tax per trade</td></tr>
+      <tr><td><strong>Graduation</strong></td><td>When the curve holds its graduation threshold in real USDC (≈ 11,130 USDC at the time of writing), trading moves to a DEX pool</td></tr>
+      <tr><td><strong>Role</strong></td><td>Core coin of ARCIRCLE PAD · selectable pair token for ArcPad launches · target of the revenue flywheel</td></tr>
+    </tbody>
+  </table>
+  <h3>The ecosystem</h3>
+  <div class="grid2">
+    <div class="card"><h4>ArcPad <span class="tag live">Live</span></h4>
+      <ul class="small"><li>Instant launch, 1 USDC flat fee</li><li>Real Uniswap v4 pool from block one</li><li>Fixed supply 1B; 92% into the pool, 8% platform allocation</li><li>1% base trade fee (70% to the creator) + optional 0–2% creator add-on</li><li>Pair with USDC, $ARCIRCLE or any Arc token</li></ul></div>
+    <div class="card"><h4>CirclePad <span class="tag soon">Soon</span></h4>
+      <ul class="small"><li>One project at a time, 72-hour USDC raise</li><li>Contributions withdrawable until the raise closes</li><li>First-round escrow deployed on Arc mainnet</li><li>Lead selection, voting and vesting planned for v2</li><li>Platform share feeds the same flywheel</li></ul></div>
+  </div>
+  <p class="small muted" style="margin-top:4mm">Market figures (price, market cap, holders) change every block. The live numbers are always on the $ARCIRCLE page at arcirclepad.vercel.app/arc#arcircle, read straight from the chain.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">05 / 30</span></div>
+</section>
+
+<!-- PAGE: intro -->
+<section class="page" id="p-intro" data-sec="1 · Why Arc">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>1 · Why Arc</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 1</span>
+  <h2 class="sec"><span class="num">1</span>Why Arc</h2>
+  <p class="lede">Arc is Circle's own layer-1 blockchain. Its defining choice is simple and unusual: the native currency — the thing you pay gas in — is USDC, not a volatile token.</p>
+  <p>On most chains, launching or trading a small coin means holding two volatile assets: the coin itself, and the chain's gas token. A new user has to buy ETH, SOL or BNB first, keep some aside for fees, and watch both move. On Arc, the dollar is the base layer. A wallet funded with USDC can pay for gas, pay a launch fee and buy a coin with the same balance.</p>
+  <h3>What this means for a launchpad</h3>
+  <div class="grid2">
+    <div class="card"><h4>Prices people understand</h4><p class="small">Coins on ArcPad are priced against USDC by default, so "$0.0000043 per token" and "$4,350 market cap" mean exactly what they say — no conversion through a gas token.</p></div>
+    <div class="card"><h4>Predictable costs</h4><p class="small">Gas is priced in USDC. A standard ArcPad launch uses about one million gas — around two cents at the time of writing — and a launch never costs more than the 1 USDC fee plus that gas.</p></div>
+    <div class="card"><h4>One balance, one approval</h4><p class="small">Arc exposes USDC both as the native currency and as an ERC-20 at <code>0x3600…0000</code>. They are the same money, so the launch fee can be paid as native value while trades use the ERC-20 interface.</p></div>
+    <div class="card"><h4>A familiar toolchain</h4><p class="small">Arc is EVM-compatible. Uniswap v4's PoolManager is deployed there, standard wallets connect over WalletConnect, and the canonical Multicall3 contract is available for efficient reads.</p></div>
+  </div>
+  <h3>Why build early</h3>
+  <p>New chains are won by the projects that make them useful first. Arc gives creators stable-value accounting and low, predictable fees, but a new network also starts with little tooling for ordinary users who just want to launch or buy a coin. ARCIRCLE PAD sets out to be that tooling: a place where a coin can go from idea to live, tradable Uniswap pool in one transaction, and where community raises can happen with rules enforced by contracts instead of promises.</p>
+  <div class="callout">Arc makes the dollar the unit of account. ARCIRCLE PAD makes that dollar easy to launch with.</div>
+  <p class="small muted">Arc network details in this paper (chain ID 5042, USDC gas, the USDC predeploy address and the Uniswap v4 PoolManager address) are taken from the live configuration the ARCIRCLE PAD site runs against.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">06 / 30</span></div>
+</section>
+
+<!-- PAGE: problem -->
+<section class="page" id="p-problem" data-sec="2 · The problem">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>2 · The problem</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 2</span>
+  <h2 class="sec"><span class="num">2</span>The problem with launchpads</h2>
+  <p class="lede">Memecoin launchpads made it trivial to create a token. They did not make it fair to launch one, safe to buy one, or rewarding to build a community around one.</p>
+  <h3>Four recurring failures</h3>
+  <div class="grid2">
+    <div class="card"><h4>1 · Snipers win the first block</h4><p class="small">Launches that start on an empty bonding curve reward whoever gets in first. Bots buy in the same block as the launch and sell into the first real buyers. The community arrives to a chart that has already been harvested.</p></div>
+    <div class="card"><h4>2 · The graduation cliff</h4><p class="small">Curve-based launchpads trade on a private curve until a threshold is hit, then migrate liquidity to a DEX. Price discovery happens twice, liquidity moves mid-life, and many coins die just below the line.</p></div>
+    <div class="card"><h4>3 · Rugs and walkaways</h4><p class="small">When a creator or a "raise lead" receives funds up front with no conditions, the cheapest strategy is often to take the money and leave. Contributors have no recourse, and every rug makes the next launch harder.</p></div>
+    <div class="card"><h4>4 · Value that goes nowhere</h4><p class="small">Launchpads earn fees on every launch and trade, but that value rarely comes back to the community that created the activity. There is no shared asset that gets stronger as the platform grows.</p></div>
+  </div>
+  <h3>What ARCIRCLE PAD changes</h3>
+  <table>
+    <thead><tr><th style="width:30%">Problem</th><th>ARCIRCLE PAD's answer</th></tr></thead>
+    <tbody>
+      <tr><td>Sniping an empty curve</td><td>ArcPad coins open at a fixed, non-trivial valuation (≈ $4,350) in a real pool; CirclePad pools real USDC before trading starts, so the first price is set by the community, not a bot.</td></tr>
+      <tr><td>Graduation cliff</td><td>ArcPad has no curve to graduate from: the Uniswap v4 pool <em>is</em> the market from block one.</td></tr>
+      <tr><td>Rugs and walkaways</td><td>Contracts, not people, hold the money. CirclePad refunds are always open during a raise, and v2 vests the lead's share with an automatic clawback.</td></tr>
+      <tr><td>Value that goes nowhere</td><td>Launch fees, platform allocations, trading fees and raise shares are designed to flow into one coin — $ARCIRCLE.</td></tr>
+    </tbody>
+  </table>
+  <p>None of this removes risk. Memecoins remain speculative, and a fair launch can still go to zero. The goal is narrower and achievable: make the rules visible, enforce them on-chain, and make sure the ecosystem's growth has somewhere to go.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">07 / 30</span></div>
+</section>
+
+<!-- PAGE: design -->
+<section class="page" id="p-design" data-sec="3 · Design">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>3 · Design</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 3</span>
+  <h2 class="sec"><span class="num">3</span>Two launchpads, one coin</h2>
+  <p class="lede">The name says it: <strong>Arc</strong> for ArcPad, <strong>Circle</strong> for CirclePad — two ways to launch, joined into one circle by $ARCIRCLE.</p>
+  <figure>
+    <svg viewBox="0 0 640 250" role="img" aria-label="ArcPad and CirclePad both feed $ARCIRCLE">
+      <defs>
+        <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#3f9bff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient>
+        <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#35d8d0"/></marker>
+      </defs>
+      <rect x="20" y="30" width="190" height="120" rx="14" fill="#0c1119" stroke="#3f9bff" stroke-opacity=".6"/>
+      <text x="115" y="68" text-anchor="middle" fill="#eef3f7" font-size="18" font-weight="700" font-family="Sora">ArcPad</text>
+      <text x="115" y="92" text-anchor="middle" fill="#8c98a6" font-size="11.5">Instant, permissionless</text>
+      <text x="115" y="110" text-anchor="middle" fill="#8c98a6" font-size="11.5">Uniswap v4 pool at launch</text>
+      <text x="115" y="130" text-anchor="middle" fill="#3f9bff" font-size="11" font-weight="600">1 USDC · fixed start</text>
+      <rect x="430" y="30" width="190" height="120" rx="14" fill="#0c1119" stroke="#39ff88" stroke-opacity=".6"/>
+      <text x="525" y="68" text-anchor="middle" fill="#eef3f7" font-size="18" font-weight="700" font-family="Sora">CirclePad</text>
+      <text x="525" y="92" text-anchor="middle" fill="#8c98a6" font-size="11.5">Community raise</text>
+      <text x="525" y="110" text-anchor="middle" fill="#8c98a6" font-size="11.5">72 h · refundable while open</text>
+      <text x="525" y="130" text-anchor="middle" fill="#39ff88" font-size="11" font-weight="600">One project at a time</text>
+      <circle cx="320" cy="170" r="58" fill="#070a10" stroke="url(#g1)" stroke-width="3"/>
+      <text x="320" y="166" text-anchor="middle" fill="#eef3f7" font-size="16" font-weight="800" font-family="Sora">$ARCIRCLE</text>
+      <text x="320" y="186" text-anchor="middle" fill="#8c98a6" font-size="11">core coin</text>
+      <path d="M210 110 C 250 120, 262 140, 268 152" fill="none" stroke="#35d8d0" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M430 110 C 390 120, 378 140, 372 152" fill="none" stroke="#35d8d0" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="115" y="172" fill="#c9d3de" font-size="10.5" text-anchor="middle">fees · allocation →</text>
+      <text x="525" y="172" fill="#c9d3de" font-size="10.5" text-anchor="middle">← raise share</text>
+      <text x="320" y="246" text-anchor="middle" fill="#5d6875" font-size="10.5">+ $ARCIRCLE's own 2% creator tax</text>
+    </svg>
+    <figcaption>Figure 1 — Both launchpads route part of what they earn toward the same core coin.</figcaption>
+  </figure>
+  <h3>Design principles</h3>
+  <ol>
+    <li><strong>Contracts hold the money.</strong> Launch fees, pools, raises and refunds live in contracts on Arc. The website is only an interface to them.</li>
+    <li><strong>Fair first price.</strong> No launch should start at a price a bot can take for free.</li>
+    <li><strong>Real liquidity early.</strong> ArcPad coins trade in a Uniswap v4 pool from their first block; CirclePad is designed to turn most of a raise into pool liquidity at launch.</li>
+    <li><strong>Everything is readable.</strong> Every price, trade, holder list and chart on the site is computed from on-chain data in the visitor's own browser. There is no private database to trust.</li>
+    <li><strong>One direction for value.</strong> Revenue has one destination: $ARCIRCLE and the people who hold and build with it.</li>
+  </ol>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">08 / 30</span></div>
+</section>
+
+<!-- PAGE: arcpad -->
+<section class="page" id="p-arcpad" data-sec="4 · ArcPad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>4 · ArcPad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 4 <span class="tag live" style="margin-left:2mm">Live</span></span>
+  <h2 class="sec"><span class="num">4</span>ArcPad — instant launches</h2>
+  <p class="lede">ArcPad turns a name, a ticker and an optional logo into a live, tradable coin in one transaction. There is no waiting list, no curve and no migration: the market exists from the moment the transaction confirms.</p>
+  <h3>What happens in the launch transaction</h3>
+  <figure>
+    <svg viewBox="0 0 640 150" role="img" aria-label="ArcPad launch steps in one transaction">
+      <g font-family="Inter" font-size="11">
+        <rect x="6" y="20" width="140" height="92" rx="12" fill="#0c1119" stroke="rgba(255,255,255,.14)"/>
+        <text x="76" y="46" text-anchor="middle" fill="#3f9bff" font-weight="700" font-size="12">1 · Fee</text>
+        <text x="76" y="68" text-anchor="middle" fill="#c9d3de">1 USDC (native)</text>
+        <text x="76" y="86" text-anchor="middle" fill="#8c98a6">to the platform</text>
+        <text x="76" y="102" text-anchor="middle" fill="#8c98a6">treasury</text>
+        <rect x="166" y="20" width="140" height="92" rx="12" fill="#0c1119" stroke="rgba(255,255,255,.14)"/>
+        <text x="236" y="46" text-anchor="middle" fill="#35d8d0" font-weight="700" font-size="12">2 · Mint</text>
+        <text x="236" y="68" text-anchor="middle" fill="#c9d3de">1,000,000,000</text>
+        <text x="236" y="86" text-anchor="middle" fill="#8c98a6">new ERC-20 coin,</text>
+        <text x="236" y="102" text-anchor="middle" fill="#8c98a6">18 decimals</text>
+        <rect x="326" y="20" width="140" height="92" rx="12" fill="#0c1119" stroke="rgba(255,255,255,.14)"/>
+        <text x="396" y="46" text-anchor="middle" fill="#35d8d0" font-weight="700" font-size="12">3 · Split</text>
+        <text x="396" y="68" text-anchor="middle" fill="#c9d3de">8% → treasury</text>
+        <text x="396" y="86" text-anchor="middle" fill="#c9d3de">92% → pool</text>
+        <text x="396" y="102" text-anchor="middle" fill="#8c98a6">(sellable supply)</text>
+        <rect x="486" y="20" width="148" height="92" rx="12" fill="#0c1119" stroke="#39ff88" stroke-opacity=".55"/>
+        <text x="560" y="46" text-anchor="middle" fill="#39ff88" font-weight="700" font-size="12">4 · Pool live</text>
+        <text x="560" y="68" text-anchor="middle" fill="#c9d3de">Uniswap v4 pool</text>
+        <text x="560" y="86" text-anchor="middle" fill="#8c98a6">+ fee hook, opens</text>
+        <text x="560" y="102" text-anchor="middle" fill="#8c98a6">at ≈ $4,350 mcap</text>
+        <path d="M146 66 H164 M306 66 H324 M466 66 H484" stroke="#35d8d0" stroke-width="2"/>
+        <text x="320" y="140" text-anchor="middle" fill="#5d6875" font-size="10.5">Optional in the same transaction: a dev buy, so the creator buys first at the opening price.</text>
+      </g>
+    </svg>
+    <figcaption>Figure 2 — A launch is a single atomic transaction: either every step happens, or none do.</figcaption>
+  </figure>
+  <h3>The launch form</h3>
+  <ul>
+    <li><strong>Name and symbol</strong> — required. Every coin has exactly 1,000,000,000 supply; there is no mint function afterwards.</li>
+    <li><strong>Logo, description, website and socials</strong> — optional, stored on-chain with the launch record so any interface can display them. Uploaded logos are shrunk automatically to a small icon, because every byte stored costs gas.</li>
+    <li><strong>Pair token</strong> — USDC by default, or $ARCIRCLE, or any Arc token with a known price (Section 4.4).</li>
+    <li><strong>Creator fee add-on</strong> — 0% to 2% on top of the base fee, 100% paid to the creator (Section 4.3).</li>
+    <li><strong>Dev buy</strong> — an optional first buy executed inside the launch transaction, before anyone else can trade.</li>
+  </ul>
+  <p>Before anything is sent to the wallet, the site checks that the wallet can afford the launch (fee + gas + dev buy) and dry-runs the transaction, so a launch that would fail shows a plain reason instead of a cryptic error. After it confirms, the site opens the new coin's page automatically.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">09 / 30</span></div>
+</section>
+<!-- PAGE: arcpad math -->
+<section class="page" id="p-arcpad-math" data-sec="4 · ArcPad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>4 · ArcPad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 4.2</span>
+  <h2 class="sec">Pricing and the fixed starting point</h2>
+  <p class="lede">An ArcPad pool is a standard Uniswap v4 pool holding one single-sided liquidity position. Inside that position, it behaves exactly like the classic constant-product market <em>x · y = k</em>.</p>
+  <h3>A virtual reserve instead of a curve</h3>
+  <p>At launch the pool holds only the new coin — the 920,000,000 sellable tokens — and no pair token at all. The position starts at a price chosen so that the pool behaves as if it also held a <strong>virtual reserve</strong> worth $4,000 of the pair token. The virtual reserve never exists as real money and cannot be withdrawn; it simply sets where the price curve begins.</p>
+  <div class="formula">S  = 920,000,000 sellable tokens in the pool
+V  = virtual reserve worth $4,000 of the pair token
+P₀ = V / S ≈ $0.00000435 per token
+Market cap at open = P₀ × 1,000,000,000 ≈ $4,350</div>
+  <p>As buyers add real pair tokens to the pool and take coins out, the product of the two sides stays constant. After buyers have added a total of <em>q</em> (in dollar terms), the price is:</p>
+  <div class="formula">P(q) = (V + q)² / (V · S)          → price grows with the square of what's been put in
+Tokens received for a buy of q = S − V·S / (V + q)</div>
+  <figure>
+    <svg viewBox="0 0 640 210" role="img" aria-label="Market cap as a function of USDC bought in">
+      <defs><linearGradient id="g2" x1="0" x2="1"><stop offset="0" stop-color="#3f9bff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>
+      <g stroke="rgba(255,255,255,.08)"><line x1="60" x2="620" y1="30" y2="30"/><line x1="60" x2="620" y1="75" y2="75"/><line x1="60" x2="620" y1="120" y2="120"/><line x1="60" x2="620" y1="165" y2="165"/></g>
+      <line x1="60" x2="620" y1="180" y2="180" stroke="rgba(255,255,255,.25)"/>
+      <path d="M60,176.7 L116,172.7 L172,167.0 L228,159.6 L284,150.7 L340,140.1 L396,127.8 L452,114.0 L508,98.5 L564,81.4 L620,62.6" fill="none" stroke="url(#g2)" stroke-width="3"/>
+      <g font-size="10.5" fill="#8c98a6">
+        <text x="54" y="183" text-anchor="end">$0</text><text x="54" y="168" text-anchor="end">$20k</text><text x="54" y="123" text-anchor="end">$80k</text><text x="54" y="78" text-anchor="end">$140k</text><text x="54" y="33" text-anchor="end">$200k</text>
+        <text x="60" y="198">0</text><text x="340" y="198" text-anchor="middle">$10,000 bought in</text><text x="620" y="198" text-anchor="end">$20,000</text>
+      </g>
+      <g font-size="10.5">
+        <circle cx="116" cy="172.7" r="3.5" fill="#35d8d0"/><text x="104" y="147" fill="#c9d3de">$2k in → mcap ≈ $9.8k</text>
+        <circle cx="340" cy="140.1" r="3.5" fill="#35d8d0"/><text x="330" y="118" fill="#c9d3de" text-anchor="end">$10k in → ≈ $53k</text>
+        <circle cx="620" cy="62.6" r="3.5" fill="#39ff88"/><text x="612" y="50" fill="#c9d3de" text-anchor="end">$20k in → ≈ $157k</text>
+      </g>
+    </svg>
+    <figcaption>Figure 3 — Market cap versus net USD bought in (before fees), for any ArcPad launch. Same curve for every coin.</figcaption>
+  </figure>
+  <h3>Worked examples (fees ignored)</h3>
+  <table>
+    <thead><tr><th>First buy</th><th class="r">Tokens received</th><th class="r">Share of pool</th><th class="r">Price after</th></tr></thead>
+    <tbody>
+      <tr><td>$10</td><td class="r">≈ 2.29 M</td><td class="r">0.25%</td><td class="r">+0.50%</td></tr>
+      <tr><td>$100</td><td class="r">≈ 22.4 M</td><td class="r">2.4%</td><td class="r">+5.1%</td></tr>
+      <tr><td>$1,000</td><td class="r">≈ 184 M</td><td class="r">20%</td><td class="r">+56%</td></tr>
+      <tr><td>$4,000</td><td class="r">460 M</td><td class="r">50%</td><td class="r">×4</td></tr>
+    </tbody>
+  </table>
+  <p class="small">The pool is initialised on the nearest usable tick (spacing 200, about 2% per step), so a coin's real opening price can sit up to ~2% away from the ideal P₀. The coin page always shows the exact on-chain price.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">10 / 30</span></div>
+</section>
+
+<!-- PAGE: arcpad fees -->
+<section class="page" id="p-arcpad-fees" data-sec="4 · ArcPad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>4 · ArcPad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 4.3</span>
+  <h2 class="sec">Fees and allocations</h2>
+  <p class="lede">ArcPad earns in three ways, all enforced by the factory and the pool's fee hook: a flat launch fee, a fixed token allocation, and a share of every trade.</p>
+  <table>
+    <thead><tr><th style="width:26%">Item</th><th style="width:20%">Amount</th><th>Where it goes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Launch fee</strong></td><td>1 USDC, flat</td><td>Paid as native value with the launch transaction and forwarded to the platform treasury. Anything sent above 1 USDC is refunded in the same transaction.</td></tr>
+      <tr><td><strong>Platform allocation</strong></td><td>8% of supply (80,000,000 tokens)</td><td>Sent to the platform treasury at launch. The remaining 92% goes into the pool as sellable supply.</td></tr>
+      <tr><td><strong>Base trade fee</strong></td><td>1% of each swap's output</td><td>Split by the hook on every trade: <strong>70% to the coin's creator</strong>, 30% to the platform.</td></tr>
+      <tr><td><strong>Creator add-on</strong></td><td>0% – 2%, set at launch</td><td>Optional extra fee chosen by the creator, <strong>100% to the creator</strong>. Capped at 2% by the factory.</td></tr>
+    </tbody>
+  </table>
+  <h3>How the trade fee is taken</h3>
+  <p>ArcPad pools have no Uniswap LP fee (the pool's own fee is set to zero). Instead, the <strong>HomepadHybridHook</strong> runs after every swap and takes its fee from the swap's <em>output</em>: in the coin when someone buys, in the pair token when someone sells. It then pays the creator and the platform immediately, in the same transaction. Nothing accrues in a contract waiting to be claimed.</p>
+  <div class="grid3">
+    <div class="card stat"><b>1–3%</b><span>total fee per trade, depending on the creator's add-on</span></div>
+    <div class="card stat"><b>0.7–2.7%</b><span>of each trade paid straight to the creator</span></div>
+    <div class="card stat"><b>0.3%</b><span>of each trade to the platform, whatever the add-on</span></div>
+  </div>
+  <h3>Worked example</h3>
+  <p>A coin launched with a 1% creator add-on (2% total). Someone sells tokens for 500 USDC of pool output:</p>
+  <div class="formula">Total fee      2% × 500 = 10.00 USDC  → seller receives 490.00 USDC
+  Base 1%      5.00 USDC → creator 3.50 · platform 1.50
+  Add-on 1%    5.00 USDC → creator 5.00
+Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
+  <h3>Why creators are paid per trade</h3>
+  <p>Paying the creator a share of volume, not a lump sum, aligns them with the coin's long-term activity. A creator who keeps building keeps earning; a creator who abandons the coin stops earning with it. The platform's share — together with the launch fee and the 8% allocation — is the revenue that feeds the $ARCIRCLE flywheel described in Section 7.</p>
+  <p class="small muted">Fee parameters (base 1%, 70/30 split, 0–2% add-on, 1 USDC fee, 8% allocation) match the deployed factory and hook, and are shown in the launch form's live fee preview.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">11 / 30</span></div>
+</section>
+
+<!-- PAGE: pairs -->
+<section class="page" id="p-arcpad-pairs" data-sec="4 · ArcPad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>4 · ArcPad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 4.4 <span class="tag live" style="margin-left:2mm">Live</span></span>
+  <h2 class="sec">Pair tokens</h2>
+  <p class="lede">Every ArcPad coin is paired with one other token — the token buyers pay with and sellers receive. USDC is the default, but the factory accepts any ERC-20, so a creator can pair with $ARCIRCLE or with any token on Arc.</p>
+  <div class="grid3">
+    <div class="card"><h4>USDC <span class="tag">Default</span></h4><p class="small">Arc's own currency. Prices, volume and liquidity are in dollars with no conversion. Best for most launches.</p></div>
+    <div class="card accent"><h4>$ARCIRCLE</h4><p class="small">Every buy of the new coin first needs $ARCIRCLE, and the pool's liquidity is held in $ARCIRCLE. A direct link between new launches and the core coin.</p></div>
+    <div class="card"><h4>Any Arc token</h4><p class="small">Paste a contract address. Useful for community coins that want their own ecosystem of launches around them.</p></div>
+  </div>
+  <h3>Same starting point for every pair</h3>
+  <p>To keep launches fair across pairs, the virtual reserve is always sized to <strong>$4,000 of the pair token</strong> at its current price. If $ARCIRCLE trades at $0.0000048, the reserve is about 826 million $ARCIRCLE; if the pair is USDC, it is exactly 4,000 USDC. Either way the coin opens at ≈ $0.0000043 and ≈ $4,350 market cap.</p>
+  <h3>How the pair token is checked</h3>
+  <ol>
+    <li><strong>It must be a real ERC-20 on Arc</strong> — the site confirms there is contract code at the address and that it answers <code>decimals()</code>, <code>totalSupply()</code> and <code>balanceOf()</code>.</li>
+    <li><strong>It must have a known USD price</strong>, taken from the best available source: USDC itself; the $ARCIRCLE bonding curve; an ArcPad pool (for coins launched here, priced through their own pair); or Dexscreener. A token with no price can't set a fair starting point, so the launch is refused.</li>
+    <li><strong>Custom tokens carry a warning.</strong> Tokens that tax transfers, rebase, or can freeze wallets can break a pool and trap funds. The site can't detect every such behaviour, so creators should only pair with tokens they trust.</li>
+  </ol>
+  <h3>What changes with a non-USDC pair</h3>
+  <ul>
+    <li>Dev buys, approvals and balance checks use the pair token.</li>
+    <li>The coin's USD price moves with both its own market <em>and</em> the pair token's price.</li>
+    <li>Sell-side fees are paid in the pair token — for a $ARCIRCLE pair, the creator and the platform earn $ARCIRCLE.</li>
+    <li>Coin pages show amounts in the pair token alongside USD values, and the chart is plotted in USD.</li>
+  </ul>
+  <div class="callout">Pairing with $ARCIRCLE turns every new launch into a reason to hold the core coin — the simplest form of the flywheel.</div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">12 / 30</span></div>
+</section>
+
+<!-- PAGE: trading -->
+<section class="page" id="p-arcpad-trade" data-sec="4 · ArcPad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>4 · ArcPad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 4.5 <span class="tag live" style="margin-left:2mm">Live</span></span>
+  <h2 class="sec">Trading and coin pages</h2>
+  <p class="lede">Every ArcPad coin gets its own page — a live chart, trade history, holders, links and a buy/sell box — built entirely from on-chain data in the visitor's browser.</p>
+  <h3>Buying and selling</h3>
+  <p>Trades go through the <strong>HomepadArcSwapRouter</strong>, which settles against the coin's Uniswap v4 pool in a single call. Each trade has a minimum-output floor: if the price moves past the chosen slippage (0.5–5%) before the trade lands, it reverts instead of filling at a worse price.</p>
+  <ol>
+    <li><strong>Quote.</strong> The page reads the pool's live price and liquidity and computes the exact constant-product output, minus the hook's fee.</li>
+    <li><strong>Approve.</strong> The first trade in each direction asks the wallet to approve exactly the amount being traded — never an unlimited allowance.</li>
+    <li><strong>Dry run.</strong> The exact trade is simulated before the wallet is asked to sign, so a trade that would fail says why.</li>
+    <li><strong>Trade.</strong> One transaction; the wallet receives the output directly from the pool.</li>
+  </ol>
+  <h3>What a coin page shows</h3>
+  <div class="grid2">
+    <div class="card"><h4>Market</h4><ul class="small"><li>Price and change since launch / 24 h</li><li>Market cap and real pair-token liquidity</li><li>24 h volume and trade count</li><li>How much of the 920 M pool supply has been sold</li></ul></div>
+    <div class="card"><h4>History</h4><ul class="small"><li>Price chart (1H / 24H / 7D / All) from every swap</li><li>Trades with the real wallet behind each one</li><li>Holders, with the pool, creator and treasury tagged</li><li>Dexscreener chart when the pool is indexed</li></ul></div>
+  </div>
+  <h3>No backend, by design</h3>
+  <p>The site has no database of trades and no indexer server. Prices come from the pool's state via the PoolManager's <code>extsload</code> (the same method Uniswap's own StateLibrary uses); trades come from the PoolManager's <code>Swap</code> events for that pool; holders are rebuilt from the coin's <code>Transfer</code> events. History is cached in the visitor's browser so return visits only read new blocks.</p>
+  <p>The practical consequence: <strong>anyone can verify every number</strong>. If the site went away tomorrow, every coin, pool and balance would still be on Arc, tradable through any interface that speaks Uniswap v4.</p>
+  <div class="card warn"><h4>Deep links</h4><p class="small">Each coin page has a permanent link — <code>/arc#coin/&lt;contract address&gt;</code> — that can be shared or bookmarked. After a launch, the site opens the new coin's page automatically.</p></div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">13 / 30</span></div>
+</section>
+
+<!-- PAGE: circlepad -->
+<section class="page" id="p-circle" data-sec="5 · CirclePad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>5 · CirclePad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 5 <span class="tag soon" style="margin-left:2mm">In progress</span></span>
+  <h2 class="sec"><span class="num">5</span>CirclePad — launch together</h2>
+  <p class="lede">"One project. Everyone's USDC. Nobody's rug." CirclePad is built for launches that are bigger than one person: a community pools USDC first, and the project launches with that money already behind it.</p>
+  <h3>Why raise before launching</h3>
+  <p>On an instant launchpad the first price is set by whoever is fastest. On CirclePad, the first price is set by everyone who contributed during the raise — and most of what they contributed is designed to become real pool liquidity the moment the project launches. There is no empty curve to snipe and no race at block one.</p>
+  <div class="grid2">
+    <div class="card"><h4>One project at a time</h4><p class="small">CirclePad runs a single round at a time, so attention, liquidity and contributors are concentrated on one project rather than spread across hundreds.</p></div>
+    <div class="card"><h4>A fixed 72-hour window</h4><p class="small">Every raise lasts exactly three days, enforced by the contract's deadline. When the window closes, it closes — no extensions, no quiet reopening.</p></div>
+    <div class="card"><h4>Always withdrawable while open</h4><p class="small">Contributors can take their own USDC back at any moment before the deadline. There is no lock-in until the raise actually closes.</p></div>
+    <div class="card"><h4>Everyone gets a say</h4><p class="small">In the full design, every contributor — not only the biggest — votes on the project's name, ticker, logo, roadmap and launch date, weighted by their share.</p></div>
+  </div>
+  <h3>Where CirclePad is today</h3>
+  <p>The first-round escrow contract (<strong>BigPadEscrow</strong>) is deployed on Arc mainnet. It is deliberately simple: the recipient wallet starts a 72-hour timer; anyone can contribute native USDC while it runs and withdraw their own contribution before it closes; when it closes, the balance is split automatically between the recipient, the platform and the treasury. The escrow has been deployed but <strong>not yet started</strong> — no funds are at risk until a round is announced and opened.</p>
+  <p>A companion voting contract (<strong>BigPadVote</strong>) lets contributors vote on options published by the recipient during the round. It is deployed once a round starts, because it reads the round's deadline.</p>
+  <p>The larger mechanism — competitive leadership, the 12-hour checkpoint, vesting and clawback — is a separate contract still in design. It will not hold real funds before an independent security review (Section 10).</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">14 / 30</span></div>
+</section>
+
+<!-- PAGE: circle round -->
+<section class="page" id="p-circle-round" data-sec="5 · CirclePad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>5 · CirclePad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 5.2</span>
+  <h2 class="sec">A round, step by step</h2>
+  <p class="lede">A CirclePad round has five stages. The first round implements the raise and the automatic split; the later stages describe the full design.</p>
+  <figure>
+    <svg viewBox="0 0 640 170" role="img" aria-label="CirclePad round timeline">
+      <line x1="30" x2="610" y1="70" y2="70" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+      <rect x="30" y="64" width="300" height="12" rx="6" fill="#39ff88" opacity=".35"/>
+      <g font-family="Inter" font-size="10.5">
+        <circle cx="30" cy="70" r="8" fill="#39ff88"/><text x="30" y="46" fill="#eef3f7" font-weight="700" text-anchor="start">1 · Raise opens</text><text x="30" y="100" fill="#8c98a6">Day 0</text>
+        <circle cx="180" cy="70" r="8" fill="#35d8d0"/><text x="180" y="46" fill="#eef3f7" font-weight="700" text-anchor="middle">2 · Vote</text><text x="180" y="100" fill="#8c98a6" text-anchor="middle">Days 1–3</text>
+        <circle cx="330" cy="70" r="8" fill="#3f9bff"/><text x="330" y="46" fill="#eef3f7" font-weight="700" text-anchor="middle">3 · Close &amp; checkpoint</text><text x="330" y="100" fill="#8c98a6" text-anchor="middle">Day 3 · +12 h</text>
+        <circle cx="460" cy="70" r="8" fill="#ffc861"/><text x="460" y="46" fill="#eef3f7" font-weight="700" text-anchor="middle">4 · Launch</text><text x="460" y="100" fill="#8c98a6" text-anchor="middle">Day 3</text>
+        <circle cx="610" cy="70" r="8" fill="#c9d3de"/><text x="610" y="46" fill="#eef3f7" font-weight="700" text-anchor="end">5 · Grow</text><text x="610" y="100" fill="#8c98a6" text-anchor="end">Days 3–8</text>
+        <text x="180" y="128" fill="#c9d3de" text-anchor="middle">contribute · withdraw anytime</text>
+        <text x="460" y="128" fill="#c9d3de" text-anchor="middle">80% → pool liquidity</text>
+        <text x="610" y="146" fill="#c9d3de" text-anchor="end">lead's 15% vests 3%/day</text>
+      </g>
+    </svg>
+    <figcaption>Figure 4 — The 72-hour raise is live in the first-round escrow; checkpoint, LP creation and vesting belong to CirclePad v2.</figcaption>
+  </figure>
+  <h3>1 · The raise <span class="tag live">Round 1</span></h3>
+  <p>The recipient wallet calls <code>start()</code>, which sets a deadline exactly 72 hours ahead. Anyone can contribute USDC; each contribution is recorded against the contributor's address. A live leaderboard ranks contributors by amount and share.</p>
+  <h3>2 · Governance <span class="tag live">Round 1</span></h3>
+  <p>While the raise runs, contributors vote on the options published for the round. Votes are weighted by each wallet's share of the raise, so influence follows commitment — but every contributor has a voice, not just the largest.</p>
+  <h3>3 · Close and split <span class="tag live">Round 1</span></h3>
+  <p>When the deadline passes, contributions stop and withdrawals end. In the first round, the escrow splits the balance directly: <strong>80% to the recipient</strong> (for the project's launch liquidity), <strong>5% to the platform</strong> and <strong>15% to the treasury</strong>.</p>
+  <h3>4 · Launch <span class="tag plan">v2</span></h3>
+  <p>In the full design, 80% of the raise becomes real liquidity in the project's pool immediately, so the coin opens with deep liquidity instead of an empty curve. Dexscreener listing and promotion are paid by the platform, not by the lead.</p>
+  <h3>5 · Grow together <span class="tag plan">v2</span></h3>
+  <p>The lead's 15% is released gradually — 3% per day over five days — while CirclePad's 5% funds buybacks and promotion for the ecosystem.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">15 / 30</span></div>
+</section>
+
+<!-- PAGE: circle v2 -->
+<section class="page" id="p-circle-v2" data-sec="5 · CirclePad">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>5 · CirclePad</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 5.3 <span class="tag plan" style="margin-left:2mm">Planned</span></span>
+  <h2 class="sec">CirclePad v2: leads, votes and vesting</h2>
+  <p class="lede">The full CirclePad design answers one question: how can a community fund a project lead without handing a stranger a lump sum?</p>
+  <h3>Leadership is earned by commitment</h3>
+  <p>The largest contributor to a raise becomes the project's lead. Putting the most money in is the clearest signal of commitment — and the lead's own contribution is at stake alongside everyone else's.</p>
+  <h3>The 12-hour checkpoint</h3>
+  <p>When the raise ends, the confirmed lead has 12 hours to publish the project's confirmed details, an official X account, and at least one community channel (an X Community, Telegram or Discord; a website is encouraged). If they miss the checkpoint, leadership passes to the second-largest contributor, who gets the same 12 hours.</p>
+  <h3>Vesting instead of a lump sum</h3>
+  <p>An earlier draft paid the lead's 15% the moment the checklist was met. That was too easy to exploit: someone could self-fund a majority bid, clear the checklist in minutes and leave with a share of everyone else's money. In v2 the lead's share <strong>vests at 3% per day over five days</strong>.</p>
+  <h3>Automatic clawback</h3>
+  <p>Vesting alone doesn't stop a lead from collecting a few days and disappearing. So the lead must check in on-chain periodically — roughly every 48 hours. A missed check-in marks the project abandoned <strong>automatically</strong> — no admin, no vote, no judgment call — and everything not yet vested returns to the original contributors, pro rata to what they put in.</p>
+  <table>
+    <thead><tr><th>Share of a raise</th><th>Round 1 (live)</th><th>v2 (planned)</th></tr></thead>
+    <tbody>
+      <tr><td>Largest part</td><td>80% to the recipient</td><td>80% into pool liquidity at launch</td></tr>
+      <tr><td>Project lead</td><td>—</td><td>15%, vested 3%/day, clawback if abandoned</td></tr>
+      <tr><td>Platform</td><td>5%</td><td>5% — buybacks and promotion</td></tr>
+      <tr><td>Treasury</td><td>15%</td><td>—</td></tr>
+      <tr><td>Refunds</td><td>Any time before the deadline</td><td>Any time before the deadline</td></tr>
+    </tbody>
+  </table>
+  <h3>Holder benefits</h3>
+  <ul>
+    <li><strong>Real liquidity from block one</strong> — participants join a project that launches with a pool, not a race against bots on an empty curve.</li>
+    <li><strong>ArcPad synergy</strong> <span class="tag plan">Planned</span> — existing ArcPad participants are planned to get an advantage when a CirclePad round opens.</li>
+    <li><strong>CirclePad airdrop</strong> <span class="tag plan">Planned</span> — a separate airdrop for CirclePad participants is planned. Eligibility, size and timing will be published before anything goes live.</li>
+  </ul>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">16 / 30</span></div>
+</section>
+
+<!-- PAGE: coin -->
+<section class="page" id="p-coin" data-sec="6 · $ARCIRCLE">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>6 · $ARCIRCLE</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 6</span>
+  <h2 class="sec"><span class="num">6</span>$ARCIRCLE — the core coin</h2>
+  <p class="lede">ArcPad and CirclePad are two different ways to launch. $ARCIRCLE is the one coin that sits between them — the place where the ecosystem's growth is meant to come back together.</p>
+  <h3>Identity</h3>
+  <div class="grid2">
+    <div class="card"><h4>What it is</h4><p class="small">A community memecoin on Arc, launched publicly on foci.family on 22 September 2026. It has no team allocation, no vesting schedule and no special permissions — it is a plain ERC-20 whose entire supply started in a public bonding curve.</p></div>
+    <div class="card"><h4>What it is for</h4><p class="small">It is the asset ARCIRCLE PAD's flywheel points at. Launch fees, platform allocations, trading fees and raise shares are designed to flow back into $ARCIRCLE through buybacks, liquidity support and rewards.</p></div>
+  </div>
+  <h3>Why a memecoin, and why this one</h3>
+  <p>Launchpads live on attention, and attention gathers around symbols. A launch ecosystem needs one coin that everyone in it recognises and has a reason to hold: the thing the community rallies behind when a new launch goes well, and the thing that benefits from every launch that happens.</p>
+  <p>$ARCIRCLE fills that role without asking anyone to trust an insider allocation. Because its whole supply began in a public curve, every holder — including the project's own treasury — acquires $ARCIRCLE the same way: by buying it at the market price.</p>
+  <h3>Where to get it</h3>
+  <ol>
+    <li><strong>On foci</strong>, the launchpad where it was created: <code>foci.family/token/0x933a…5aa1</code>.</li>
+    <li><strong>On ArcPad's $ARCIRCLE page</strong> (<code>/arc#arcircle</code>), which trades directly against the same verified foci curve contract, with live price, chart, trade history and holders.</li>
+    <li><strong>After graduation</strong>, on the DEX pool the curve migrates to. ArcPad's page detects the pool on Dexscreener by exact contract address and switches its chart automatically.</li>
+  </ol>
+  <div class="card warn"><h4>Check the contract, every time</h4><p class="small">The only official $ARCIRCLE is <code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code>. A different token called "ARCircle" already has a Dexscreener pair on Arc. ARCIRCLE PAD's pages only ever match $ARCIRCLE by its contract address — never by name or ticker.</p></div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">17 / 30</span></div>
+</section>
+<!-- PAGE: curve -->
+<section class="page" id="p-curve" data-sec="6 · $ARCIRCLE">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>6 · $ARCIRCLE</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 6.2</span>
+  <h2 class="sec">The bonding curve</h2>
+  <p class="lede">Until it graduates, $ARCIRCLE trades against foci's <strong>FociBondingCurve</strong> contract — source-verified on ArcScan at <code>0xa37A96C43e2335553BD79171DE6dB2806414AC64</code> — priced in USDC.</p>
+  <h3>How the price works</h3>
+  <p>The curve is a constant-product market between the $ARCIRCLE it still holds and a USDC reserve. The USDC side includes a <strong>virtual ("phantom") reserve</strong>, so the very first token already has a non-zero price — the same idea ArcPad uses with its virtual reserve. As people buy, real USDC accumulates on top of the phantom amount and the price rises; as they sell, it falls.</p>
+  <div class="formula">Q = USDC reserve (phantom + real, excluding fees awaiting payout)
+T = $ARCIRCLE held by the curve
+
+Buy with q USDC:   fee = 1% · q,  tax = 2% · q,  net = q − fee − tax
+                   tokens out = net · T / (Q + net)
+
+Sell n tokens:     gross = n · Q / (T + n)
+                   USDC out = gross − 1% fee − 2% tax</div>
+  <p>These formulas were checked against real $ARCIRCLE trades on mainnet and reproduce them to the last unit, which is why ArcPad's $ARCIRCLE page can quote trades exactly before they are sent.</p>
+  <h3>Costs per trade</h3>
+  <div class="grid2">
+    <div class="card"><h4>1% foci fee</h4><p class="small">Charged by the foci platform on every buy and sell.</p></div>
+    <div class="card accent"><h4>2% creator tax</h4><p class="small">Charged on every buy and sell and paid to $ARCIRCLE's creator side. It is one of the flywheel's revenue sources (Section 7).</p></div>
+  </div>
+  <p>On a buy, both are taken from the USDC going in; on a sell, both are taken from the USDC coming out. The effective round-trip cost of buying and immediately selling is therefore about 6%, before price impact — one reason $ARCIRCLE is better suited to holding than to rapid trading while on the curve.</p>
+  <h3>Protection built into the curve</h3>
+  <ul>
+    <li><strong>Slippage floors.</strong> Buys and sells carry a minimum output. If the price moves past it before the trade lands, the trade reverts (<code>SlippageExceeded</code>) rather than filling at a worse price.</li>
+    <li><strong>Partial fills at the top.</strong> If a buy would take more than the curve has left to sell, it fills what it can and refunds the unused USDC in the same transaction.</li>
+    <li><strong>Frozen at graduation.</strong> Once the curve is graduating or graduated, it stops accepting trades so liquidity can move cleanly to the DEX pool.</li>
+  </ul>
+  <p class="small muted">ARCIRCLE PAD does not operate the foci curve. Its $ARCIRCLE page calls the same public contract any foci user does; foci's own terms and fees apply.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">18 / 30</span></div>
+</section>
+
+<!-- PAGE: distribution -->
+<section class="page" id="p-dist" data-sec="6 · $ARCIRCLE">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>6 · $ARCIRCLE</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 6.3</span>
+  <h2 class="sec">Supply, distribution and graduation</h2>
+  <p class="lede">All 1,000,000,000 $ARCIRCLE were minted in a single transfer from the zero address to the bonding curve at launch. No wallet — including the project's — received tokens any other way.</p>
+  <figure>
+    <svg viewBox="0 0 640 120" role="img" aria-label="Supply split inside the bonding curve at launch">
+      <rect x="20" y="30" width="600" height="36" rx="8" fill="#0c1119" stroke="rgba(255,255,255,.1)"/>
+      <rect x="20" y="30" width="428.6" height="36" rx="8" fill="url(#g1)"/>
+      <rect x="448.6" y="30" width="171.4" height="36" rx="0" fill="#3f9bff" opacity=".28"/>
+      <text x="234" y="53" text-anchor="middle" fill="#03130c" font-size="12.5" font-weight="700">≈ 71% sellable on the curve</text>
+      <text x="534" y="53" text-anchor="middle" fill="#dfe9f5" font-size="12" font-weight="600">≈ 29% held for DEX liquidity</text>
+      <text x="20" y="92" fill="#8c98a6" font-size="11">≈ 714 M $ARCIRCLE</text>
+      <text x="620" y="92" fill="#8c98a6" font-size="11" text-anchor="end">≈ 286 M $ARCIRCLE</text>
+      <text x="320" y="114" fill="#5d6875" font-size="10.5" text-anchor="middle">Team / insider allocation: 0 · Pre-mint to wallets: 0</text>
+    </svg>
+    <figcaption>Figure 5 — How the curve divides the supply, derived from the curve's own <code>sellableTokens()</code> and token-reserve reads at the time of writing.</figcaption>
+  </figure>
+  <h3>Two parts of one supply</h3>
+  <p>The curve divides the supply it holds into a <strong>sellable</strong> part, which buyers can take from the curve, and a <strong>reserved</strong> part, which the curve keeps back to seed the DEX pool when $ARCIRCLE graduates. At the time of writing, the reads imply roughly 714 million sellable and 286 million reserved, of which about 41 million had been bought.</p>
+  <h3>Graduation</h3>
+  <p>The curve tracks the real USDC it has taken in. When that reaches the <strong>graduation threshold</strong> — about 11,130 USDC at the time of writing — the curve is marked ready to graduate and stops trading. The accumulated USDC and the reserved $ARCIRCLE are then used to open a DEX pool, and $ARCIRCLE trades there from then on.</p>
+  <div class="grid3">
+    <div class="card stat"><b>1,000,000,000</b><span>total supply, fixed, 18 decimals</span></div>
+    <div class="card stat"><b>≈ 11,130</b><span>USDC of real reserve to graduate (at time of writing)</span></div>
+    <div class="card stat"><b>0</b><span>tokens allocated to the team at launch</span></div>
+  </div>
+  <h3>After graduation</h3>
+  <ul>
+    <li>ArcPad's $ARCIRCLE page watches Dexscreener for a pair whose base token is <em>exactly</em> the $ARCIRCLE contract. When one appears, the Dexscreener chart and link switch on automatically.</li>
+    <li>ArcPad launches paired with $ARCIRCLE keep working unchanged — their pools hold $ARCIRCLE itself, wherever it trades.</li>
+    <li>Treasury buybacks (Section 7) move to the DEX pool.</li>
+  </ul>
+  <p class="small muted">Graduation depends entirely on market demand. It may happen quickly, slowly, or not at all; no one can schedule it.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">19 / 30</span></div>
+</section>
+
+<!-- PAGE: utility -->
+<section class="page" id="p-utility" data-sec="6 · $ARCIRCLE">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>6 · $ARCIRCLE</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 6.4</span>
+  <h2 class="sec">What $ARCIRCLE is for</h2>
+  <p class="lede">$ARCIRCLE has no protocol-level powers — it can't mint, vote on contracts or unlock features by itself. Its utility comes from the roles the ecosystem gives it, some live today and some planned.</p>
+  <table>
+    <thead><tr><th style="width:28%">Role</th><th>What it means</th><th style="width:16%">Status</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Core coin</strong></td><td>The coin that represents ARCIRCLE PAD as a whole: featured on ArcPad's Home and Explore, with its own full trading page.</td><td><span class="tag live">Live</span></td></tr>
+      <tr><td><strong>Pair token</strong></td><td>Creators can launch ArcPad coins paired with $ARCIRCLE, so buying those coins requires $ARCIRCLE and their pools hold it as liquidity.</td><td><span class="tag live">Live</span></td></tr>
+      <tr><td><strong>Flywheel target</strong></td><td>Platform revenue is designed to buy back $ARCIRCLE and support its liquidity.</td><td><span class="tag soon">Soon</span></td></tr>
+      <tr><td><strong>Holder rewards</strong></td><td>A reward program for $ARCIRCLE holders, funded by ecosystem revenue.</td><td><span class="tag plan">Planned</span></td></tr>
+      <tr><td><strong>Creator rewards</strong></td><td>Rewards for creators who launch on ArcPad or raise on CirclePad and bring real activity — with a likely emphasis on $ARCIRCLE-paired launches.</td><td><span class="tag plan">Planned</span></td></tr>
+      <tr><td><strong>Community voice</strong></td><td>Signalling on ecosystem parameters (reward splits, featured launches) weighted by $ARCIRCLE held.</td><td><span class="tag plan">Planned</span></td></tr>
+    </tbody>
+  </table>
+  <h3>The $ARCIRCLE pair, in practice</h3>
+  <p>When a coin is launched paired with $ARCIRCLE, three things happen that don't happen with a USDC pair:</p>
+  <ol>
+    <li><strong>Demand.</strong> Every buyer of the new coin needs $ARCIRCLE first — either buying it or already holding it.</li>
+    <li><strong>Liquidity.</strong> The new coin's pool accumulates real $ARCIRCLE as it grows, taking that $ARCIRCLE out of circulation for as long as the pool holds it.</li>
+    <li><strong>Fees in $ARCIRCLE.</strong> The sell-side fees of that coin are paid in $ARCIRCLE, so its creator and the platform earn the core coin directly.</li>
+  </ol>
+  <div class="callout">The more launches pair with $ARCIRCLE, the more of the ecosystem's everyday activity runs through it — without any change to $ARCIRCLE's own contract.</div>
+  <h3>What $ARCIRCLE is not</h3>
+  <p>It is not a share, a claim on revenue, or a security. Holding it gives no legal right to any payment. Buybacks and rewards are intentions of the project, funded from revenue when and if there is revenue, on terms that will be published before they start.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">20 / 30</span></div>
+</section>
+
+<!-- PAGE: flywheel -->
+<section class="page" id="p-fly" data-sec="7 · Flywheel">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>7 · Flywheel</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 7</span>
+  <h2 class="sec"><span class="num">7</span>The flywheel</h2>
+  <p class="lede">Every launch turns the wheel. The wheel turns for $ARCIRCLE.</p>
+  <figure>
+    <svg viewBox="0 0 640 300" role="img" aria-label="Four-step flywheel around $ARCIRCLE" style="max-width:82%;margin:0 auto">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#35d8d0"/></marker></defs>
+      <circle cx="320" cy="150" r="112" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="18"/>
+      <path d="M 354 43 A 112 112 0 0 1 427 116" fill="none" stroke="#3f9bff" stroke-width="4" marker-end="url(#ar2)"/>
+      <path d="M 427 184 A 112 112 0 0 1 354 257" fill="none" stroke="#35d8d0" stroke-width="4" marker-end="url(#ar2)"/>
+      <path d="M 286 257 A 112 112 0 0 1 213 184" fill="none" stroke="#39ff88" stroke-width="4" marker-end="url(#ar2)"/>
+      <path d="M 213 116 A 112 112 0 0 1 286 43" fill="none" stroke="#ffc861" stroke-width="4" marker-end="url(#ar2)"/>
+      <circle cx="320" cy="150" r="52" fill="#070a10" stroke="url(#g1)" stroke-width="3"/>
+      <text x="320" y="147" text-anchor="middle" fill="#eef3f7" font-family="Sora" font-weight="800" font-size="15">$ARCIRCLE</text>
+      <text x="320" y="166" text-anchor="middle" fill="#8c98a6" font-size="10.5">core coin</text>
+      <g font-family="Sora" font-weight="700" font-size="14">
+        <text x="320" y="24" text-anchor="middle" fill="#3f9bff">1 · Launch</text>
+        <text x="456" y="155" fill="#35d8d0">2 · Earn</text>
+        <text x="320" y="292" text-anchor="middle" fill="#39ff88">3 · Buy back</text>
+        <text x="184" y="155" text-anchor="end" fill="#ffc861">4 · Grow</text>
+      </g>
+      <g font-size="10.5" fill="#8c98a6">
+        <text x="456" y="172">fees · allocations · shares</text>
+        <text x="184" y="172" text-anchor="end">rewards · new creators</text>
+      </g>
+    </svg>
+    <figcaption>Figure 6 — The loop: launches create revenue, revenue supports $ARCIRCLE, a stronger $ARCIRCLE draws more launches.</figcaption>
+  </figure>
+  <div class="grid2">
+    <div class="card"><h4>1 · Launch</h4><p class="small">Creators launch coins on ArcPad and raise together on CirclePad. Every launch brings new people and new volume to Arc.</p></div>
+    <div class="card"><h4>2 · Earn</h4><p class="small">Launch fees, ArcPad's platform allocation and trading-fee share, CirclePad's raise share and $ARCIRCLE's own 2% creator tax flow in.</p></div>
+    <div class="card"><h4>3 · Buy back</h4><p class="small">That revenue goes back into $ARCIRCLE — buybacks and liquidity support that work for its value.</p></div>
+    <div class="card"><h4>4 · Grow</h4><p class="small">A stronger $ARCIRCLE funds holder and creator rewards and draws in more creators, so the next round of launches is bigger.</p></div>
+  </div>
+  <p style="margin-top:4mm">The flywheel does not rely on new token emissions. $ARCIRCLE's supply is fixed; everything that feeds the loop comes from real use of the ecosystem — people launching, trading and raising.</p>
+  <h3>An illustration, not a forecast</h3>
+  <p>To show how the pieces add up, imagine a month in which 100 coins launch on ArcPad and trade a combined $500,000 of volume, one CirclePad round raises $50,000, and $ARCIRCLE itself trades $100,000 on its curve:</p>
+  <table>
+    <thead><tr><th>Source</th><th>Calculation</th><th class="r">Revenue</th></tr></thead>
+    <tbody>
+      <tr><td>Launch fees</td><td>100 × 1 USDC</td><td class="r">$100</td></tr>
+      <tr><td>ArcPad fee share</td><td>0.3% × $500,000</td><td class="r">$1,500</td></tr>
+      <tr><td>CirclePad raise share</td><td>5% × $50,000</td><td class="r">$2,500</td></tr>
+      <tr><td>$ARCIRCLE creator tax</td><td>2% × $100,000</td><td class="r">$2,000</td></tr>
+      <tr><td><strong>Total, before allocations</strong></td><td>plus 8% of each launched coin's supply</td><td class="r"><strong>$6,100</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">These figures are hypothetical, chosen only to show the arithmetic. Actual activity may be far lower or higher.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">21 / 30</span></div>
+</section>
+
+<!-- PAGE: flywheel 2 -->
+<section class="page" id="p-fly2" data-sec="7 · Flywheel">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>7 · Flywheel</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 7.2</span>
+  <h2 class="sec">Revenue in, value out</h2>
+  <h3>Where revenue comes from</h3>
+  <table>
+    <thead><tr><th>Source</th><th>Product</th><th>Size</th><th>Paid in</th></tr></thead>
+    <tbody>
+      <tr><td>Launch fee</td><td>ArcPad</td><td>1 USDC per launch</td><td>USDC</td></tr>
+      <tr><td>Platform allocation</td><td>ArcPad</td><td>8% of every coin's supply</td><td>The launched coin</td></tr>
+      <tr><td>Trading-fee share</td><td>ArcPad</td><td>30% of the 1% base fee on every trade</td><td>Coin (buys) · pair token (sells)</td></tr>
+      <tr><td>Raise share</td><td>CirclePad</td><td>5% of each raise at close</td><td>USDC</td></tr>
+      <tr><td>Creator tax</td><td>$ARCIRCLE</td><td>2% of every $ARCIRCLE trade on the curve</td><td>USDC</td></tr>
+    </tbody>
+  </table>
+  <h3>Where it is meant to go</h3>
+  <div class="grid3">
+    <div class="card accent"><h4>Buybacks</h4><p class="small">Buying $ARCIRCLE on the open market — on the curve before graduation, in the DEX pool after.</p></div>
+    <div class="card accent"><h4>Liquidity support</h4><p class="small">Adding depth to $ARCIRCLE's market after graduation so trades move the price less.</p></div>
+    <div class="card"><h4>Rewards <span class="tag soon">Soon</span></h4><p class="small">Funding the holder and creator reward programs described in Section 8.</p></div>
+  </div>
+  <h3>Commitments</h3>
+  <ol>
+    <li><strong>Publish before acting.</strong> The exact split between buybacks, liquidity and rewards will be published on the $ARCIRCLE page before any of it goes live.</li>
+    <li><strong>Known wallets.</strong> Treasury and platform wallets are public (Section 9). Anyone can follow what comes in and what goes out on ArcScan.</li>
+    <li><strong>Report the results.</strong> Buybacks will be posted with their transaction links so the community can verify amounts and timing.</li>
+    <li><strong>No surprise supply.</strong> $ARCIRCLE's supply is fixed at one billion. The flywheel never mints new $ARCIRCLE.</li>
+  </ol>
+  <h3>Handling launched-coin allocations</h3>
+  <p>The 8% allocation from each ArcPad launch is paid in that launch's own coin, which may be illiquid. The treasury will manage these allocations case by case — holding, supporting the coin's liquidity, or converting gradually when a coin has a real market — with the principle that the treasury should never be the reason a small community coin crashes. The approach will be documented alongside the revenue split.</p>
+  <div class="card warn"><h4>Honest limits</h4><p class="small">Revenue depends on usage. In quiet periods the flywheel turns slowly, and buybacks cannot guarantee any price. The flywheel describes how revenue is intended to be used, not a promise about $ARCIRCLE's value.</p></div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">22 / 30</span></div>
+</section>
+
+<!-- PAGE: rewards -->
+<section class="page" id="p-rewards" data-sec="8 · Rewards">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>8 · Rewards</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 8 <span class="tag soon" style="margin-left:2mm">Coming soon</span></span>
+  <h2 class="sec"><span class="num">8</span>Rewards for holders and creators</h2>
+  <p class="lede">The reward system is how the flywheel gives back to the people who grow ARCIRCLE PAD — the ones who hold $ARCIRCLE and the ones who launch. It is being designed now and is not live.</p>
+  <div class="grid2">
+    <div class="card accent"><h4>Holder rewards</h4><p class="small">For $ARCIRCLE holders, funded by what ArcPad and CirclePad earn. The aim is to reward holding through time, not just a balance on one day.</p></div>
+    <div class="card accent"><h4>Creator rewards</h4><p class="small">For creators who launch on ArcPad or raise on CirclePad and bring real activity to Arc — measured by genuine trading and holders, not by launch count.</p></div>
+  </div>
+  <h3>Design principles</h3>
+  <ol>
+    <li><strong>Funded by revenue, never by emissions.</strong> Rewards come out of real ecosystem income. No new $ARCIRCLE is created to pay them.</li>
+    <li><strong>Hard to farm.</strong> Snapshots taken at unannounced times, minimum holding periods, and activity measured over windows make it expensive to game the program with short-term balances or wash trading.</li>
+    <li><strong>Verifiable.</strong> Eligibility rules are published, and results can be recomputed by anyone from public chain data.</li>
+    <li><strong>Simple to claim.</strong> One place to see eligibility and claim, on the ARCIRCLE PAD site.</li>
+  </ol>
+  <h3>What the next update will define</h3>
+  <table>
+    <thead><tr><th>Question</th><th>To be published</th></tr></thead>
+    <tbody>
+      <tr><td>Who qualifies</td><td>Holder thresholds and holding periods; creator activity criteria</td></tr>
+      <tr><td>How it's funded</td><td>The share of revenue set aside for each program, visible on-chain</td></tr>
+      <tr><td>How it's paid</td><td>Asset (USDC, $ARCIRCLE or both), cadence and claim window</td></tr>
+      <tr><td>Where to claim</td><td>The Reward section of the site (today a "coming soon" panel)</td></tr>
+    </tbody>
+  </table>
+  <h3>Candidate mechanics under study</h3>
+  <ul>
+    <li><strong>Time-weighted holder snapshots</strong> — average balance over an epoch rather than a single-block balance.</li>
+    <li><strong>Creator score</strong> — combining a coin's organic volume, unique buyers and holder retention, with a boost for $ARCIRCLE-paired launches.</li>
+    <li><strong>Referral share</strong> — a slice of fees for wallets and communities that bring in launches, once referral support is added to the routers.</li>
+  </ul>
+  <p class="small muted">Everything on this page is design intent. The final program may differ, and it will only go live once its rules are published on the site.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">23 / 30</span></div>
+</section>
+
+<!-- PAGE: architecture -->
+<section class="page" id="p-arch" data-sec="9 · Architecture">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>9 · Architecture</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 9</span>
+  <h2 class="sec"><span class="num">9</span>Architecture and contracts</h2>
+  <p class="lede">ARCIRCLE PAD is a set of contracts on Arc mainnet and a static website that talks to them. There is no server holding user funds or data.</p>
+  <table>
+    <thead><tr><th style="width:30%">Contract</th><th>Address (Arc mainnet)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>$ARCIRCLE token</strong></td><td><code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code></td></tr>
+      <tr><td>$ARCIRCLE bonding curve (foci)</td><td><code>0xa37A96C43e2335553BD79171DE6dB2806414AC64</code></td></tr>
+      <tr><td><strong>ArcPad factory</strong> (HomepadFactoryArc)</td><td><code>0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E</code></td></tr>
+      <tr><td>ArcPad fee hook (HomepadHybridHook)</td><td><code>0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044</code></td></tr>
+      <tr><td>ArcPad router (HomepadArcSwapRouter)</td><td><code>0xFCA8fD788d44Bb335B1451257366e06D67114785</code></td></tr>
+      <tr><td><strong>CirclePad escrow</strong> (BigPadEscrow)</td><td><code>0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703</code></td></tr>
+      <tr><td>Platform treasury</td><td><code>0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8</code></td></tr>
+      <tr><td>Uniswap v4 PoolManager</td><td><code>0x8366a39CC670B4001A1121B8F6A443A643e40951</code></td></tr>
+      <tr><td>USDC (ERC-20 interface, 6 dp)</td><td><code>0x3600000000000000000000000000000000000000</code></td></tr>
+      <tr><td>Multicall3</td><td><code>0xcA11bde05977b3631167028862bE2a173976CA11</code></td></tr>
+    </tbody>
+  </table>
+  <h3>How the pieces fit</h3>
+  <ul>
+    <li><strong>Factory</strong> — creates each coin, collects the launch fee, sends the 8% allocation, initialises the Uniswap v4 pool, adds the single-sided liquidity, registers the fee hook and records the launch metadata. It also executes optional dev buys.</li>
+    <li><strong>Hook</strong> — runs after every swap in an ArcPad pool, takes the fee from the output and pays the creator and platform immediately. It only acts on pools the factory registered.</li>
+    <li><strong>Router</strong> — the buy/sell entry point for users: pulls the input, swaps through the PoolManager, enforces the minimum output and returns any unspent input.</li>
+    <li><strong>Escrow</strong> — holds CirclePad contributions, enforces the 72-hour deadline, refunds on request while open and splits the balance at close.</li>
+  </ul>
+  <h3>The website</h3>
+  <p>The site at arcirclepad.vercel.app is static HTML and JavaScript. It reads the chain through Arc's public RPC, connects wallets through Reown AppKit / WalletConnect or an injected wallet, and sends transactions only when the user signs them. Before any transaction it switches the wallet to Arc if needed, and it dry-runs launches and trades so failures are explained before signing.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">24 / 30</span></div>
+</section>
+
+<!-- PAGE: security -->
+<section class="page" id="p-sec" data-sec="10 · Security">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>10 · Security</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 10</span>
+  <h2 class="sec"><span class="num">10</span>Security and transparency</h2>
+  <p class="lede">The safest money is money a website never touches. ARCIRCLE PAD is built so that users sign every transaction themselves and every rule is enforced by contracts anyone can read.</p>
+  <h3>Safeguards in place</h3>
+  <div class="grid2">
+    <div class="card"><h4>Exact approvals</h4><p class="small">The site approves exactly the amount being traded or dev-bought, never an unlimited allowance.</p></div>
+    <div class="card"><h4>Slippage floors</h4><p class="small">Every trade carries a minimum output; price moves beyond it revert the trade instead of filling badly.</p></div>
+    <div class="card"><h4>Dry runs</h4><p class="small">Launches and trades are simulated before signing, with plain-language reasons when they would fail.</p></div>
+    <div class="card"><h4>Chain checks</h4><p class="small">The wallet is switched to Arc before any write, so nothing is ever sent on the wrong network.</p></div>
+    <div class="card"><h4>Address-only identity</h4><p class="small">Coins are identified by contract address, never by name — defeating look-alike tokens.</p></div>
+    <div class="card"><h4>Sanitised metadata</h4><p class="small">Names, symbols and logos from arbitrary contracts are cleaned before display, so a malicious token can't inject content into the page.</p></div>
+  </div>
+  <h3>Contract review status</h3>
+  <table>
+    <thead><tr><th>Component</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>ArcPad factory, hook, router</td><td>Deployed on mainnet; the launch flow has been exercised on-chain. Built on top of Uniswap v4 core. No third-party audit of the ArcPad contracts yet.</td></tr>
+      <tr><td>CirclePad first-round escrow</td><td>Deployed, not started. Deliberately minimal (deadline, contribute, refund, split).</td></tr>
+      <tr><td>CirclePad v2 (leads, vesting, clawback)</td><td>In design. <strong>Will not hold real funds before an independent security review.</strong></td></tr>
+      <tr><td>$ARCIRCLE curve</td><td>Operated by foci; source verified on ArcScan.</td></tr>
+    </tbody>
+  </table>
+  <h3>Known risks we design around</h3>
+  <ul>
+    <li><strong>Hostile pair tokens</strong> — fee-on-transfer, rebasing or freezable tokens can break a pool; the site warns on custom pairs and requires a known price.</li>
+    <li><strong>Relay and wallet issues</strong> — WalletConnect sessions are restored carefully and repaired automatically if storage gets out of sync, instead of forcing users to clear their cache.</li>
+    <li><strong>Public RPC limits</strong> — history is read in small, rate-limited chunks and cached locally.</li>
+  </ul>
+  <p>Security findings can be reported privately to the team through the official channels listed on the site. Planned: a public bug-bounty scope once CirclePad v2 enters review.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">25 / 30</span></div>
+</section>
+
+<!-- PAGE: governance -->
+<section class="page" id="p-gov" data-sec="11 · Community">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>11 · Community</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 11</span>
+  <h2 class="sec"><span class="num">11</span>Community and governance</h2>
+  <p class="lede">ARCIRCLE PAD starts with a small team making fast decisions, and moves toward the community deciding more as the system proves itself.</p>
+  <h3>Today</h3>
+  <p>Contract deployments, fee parameters, treasury management and the website are run by the core team. Many parameters are fixed in contracts and cannot be changed by anyone — ArcPad's fee cap, the 8% allocation, the fixed supply of every launch. Where the team does make choices (revenue splits, reward rules, featured launches), the commitment is to publish them before acting.</p>
+  <h3>CirclePad: governance by contributors</h3>
+  <p>CirclePad already puts decisions in contributors' hands. Every contributor to a round votes on the project's identity — name, ticker, logo, roadmap and launch date — weighted by their share of the raise. This is the first place real on-chain governance appears in the ecosystem.</p>
+  <h3>Where it goes next <span class="tag plan">Planned</span></h3>
+  <table>
+    <thead><tr><th style="width:34%">Area</th><th>Direction</th></tr></thead>
+    <tbody>
+      <tr><td>Revenue split</td><td>Community signalling, weighted by $ARCIRCLE held over time, on the split between buybacks, liquidity and rewards.</td></tr>
+      <tr><td>Featured launches</td><td>Holders help choose which ArcPad coins and CirclePad rounds get featured.</td></tr>
+      <tr><td>New pair tokens</td><td>Community input on which tokens get one-tap presets in the launch form beyond USDC and $ARCIRCLE.</td></tr>
+      <tr><td>Treasury reports</td><td>Regular public reports on treasury inflows, buybacks and allocations, with transaction links.</td></tr>
+    </tbody>
+  </table>
+  <h3>How to take part</h3>
+  <ul>
+    <li><strong>Launch</strong> a coin on ArcPad — and consider pairing it with $ARCIRCLE.</li>
+    <li><strong>Contribute</strong> to CirclePad rounds and vote on what the project becomes.</li>
+    <li><strong>Hold</strong> $ARCIRCLE — the coin the whole ecosystem points at.</li>
+    <li><strong>Build</strong> — every contract is public; wallets, bots and dashboards can integrate ArcPad pools directly through Uniswap v4.</li>
+  </ul>
+  <div class="callout">The long-term goal is that the people who make ARCIRCLE PAD busy are the people who decide where it goes.</div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">26 / 30</span></div>
+</section>
+
+<!-- PAGE: roadmap 1 -->
+<section class="page" id="p-road" data-sec="12 · Roadmap">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>12 · Roadmap</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 12</span>
+  <h2 class="sec"><span class="num">12</span>Roadmap</h2>
+  <p class="lede">Five phases, from what is already live to where the ecosystem is headed. Dates are targets, not promises; items can move between phases as the project learns.</p>
+  <div class="phase done">
+    <div class="phase-head"><h3>Phase 0 — Foundation</h3><span class="phase-when">Q3 2026 · Done</span><span class="tag live">Live</span></div>
+    <ul class="checks">
+      <li class="ok">$ARCIRCLE launched on foci's bonding curve (22 Sep 2026), 100% of supply in the curve</li>
+      <li class="ok">ArcPad factory, fee hook and router deployed on Arc mainnet</li>
+      <li class="ok">ARCIRCLE PAD website: ArcPad, CirclePad and $ARCIRCLE hubs with wallet connect</li>
+      <li class="ok">Fixed, fair starting point for every launch (≈ $4,350 market cap)</li>
+      <li class="ok">First coin launched on ArcPad</li>
+      <li class="ok">Full coin pages: on-chain chart, trades, holders, buy/sell; automatic redirect after launch</li>
+      <li class="ok">$ARCIRCLE trading page inside ArcPad, trading directly against the verified curve</li>
+      <li class="ok">Pair tokens: USDC, $ARCIRCLE or any priced Arc token</li>
+      <li class="ok">CirclePad first-round escrow deployed on mainnet</li>
+    </ul>
+  </div>
+  <div class="phase now">
+    <div class="phase-head"><h3>Phase 1 — First rounds</h3><span class="phase-when">Q4 2026</span><span class="tag soon">In progress</span></div>
+    <ul class="checks">
+      <li>Open the first CirclePad round: 72-hour USDC raise with a live leaderboard</li>
+      <li>Deploy the round's voting contract and run the first contributor vote</li>
+      <li>Publish the flywheel revenue split on the $ARCIRCLE page</li>
+      <li>First treasury buybacks of $ARCIRCLE, posted with transaction links</li>
+      <li>Launch analytics on ArcPad: top gainers, volume leaders, newest $ARCIRCLE-paired coins</li>
+      <li>Community channels and regular ecosystem updates</li>
+    </ul>
+  </div>
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 2 — Rewards</h3><span class="phase-when">Q4 2026 – Q1 2027</span><span class="tag plan">Planned</span></div>
+    <ul class="checks">
+      <li>Holder rewards v1 — time-weighted snapshots, funded by revenue</li>
+      <li>Creator rewards v1 — based on organic volume, buyers and retention</li>
+      <li>Rewards dashboard and claim page in the Reward section</li>
+      <li>Referral support in the routers, with a fee share for referrers</li>
+    </ul>
+  </div>
+  <figure style="margin-top:6mm">
+    <svg viewBox="0 0 640 96" role="img" aria-label="Roadmap phases on a timeline">
+      <line x1="30" x2="610" y1="40" y2="40" stroke="rgba(255,255,255,.14)" stroke-width="6" stroke-linecap="round"/>
+      <line x1="30" x2="175" y1="40" y2="40" stroke="#39ff88" stroke-width="6" stroke-linecap="round"/>
+      <line x1="175" x2="235" y1="40" y2="40" stroke="#35d8d0" stroke-width="6"/>
+      <g font-family="Sora" font-size="11" font-weight="700" text-anchor="middle">
+        <circle cx="30" cy="40" r="9" fill="#39ff88"/><text x="30" y="20" fill="#39ff88">Phase 0</text><text x="30" y="68" fill="#8c98a6" font-weight="500" font-family="Inter" font-size="10">Q3 2026</text>
+        <circle cx="175" cy="40" r="9" fill="#35d8d0"/><text x="175" y="20" fill="#35d8d0">Phase 1</text><text x="175" y="68" fill="#8c98a6" font-weight="500" font-family="Inter" font-size="10">Q4 2026</text>
+        <circle cx="320" cy="40" r="9" fill="#070a10" stroke="#3f9bff" stroke-width="2.5"/><text x="320" y="20" fill="#9cc8ff">Phase 2</text><text x="320" y="68" fill="#8c98a6" font-weight="500" font-family="Inter" font-size="10">Q4 2026 – Q1 2027</text>
+        <circle cx="465" cy="40" r="9" fill="#070a10" stroke="#3f9bff" stroke-width="2.5"/><text x="465" y="20" fill="#9cc8ff">Phase 3</text><text x="465" y="68" fill="#8c98a6" font-weight="500" font-family="Inter" font-size="10">Q1 – Q2 2027</text>
+        <circle cx="610" cy="40" r="9" fill="#070a10" stroke="#3f9bff" stroke-width="2.5"/><text x="610" y="20" fill="#9cc8ff" text-anchor="end">Phase 4</text><text x="610" y="68" fill="#8c98a6" font-weight="500" font-family="Inter" font-size="10" text-anchor="end">2027 +</text>
+      </g>
+      <g font-family="Inter" font-size="10" fill="#c9d3de" text-anchor="middle"><text x="30" y="86" text-anchor="start">Foundation</text><text x="175" y="86">First rounds</text><text x="320" y="86">Rewards</text><text x="465" y="86">CirclePad v2</text><text x="610" y="86" text-anchor="end">Ecosystem</text></g>
+    </svg>
+    <figcaption>Figure 7 — The five phases at a glance. Phase 0 is complete; Phase 1 is under way.</figcaption>
+  </figure>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">27 / 30</span></div>
+</section>
+
+<!-- PAGE: roadmap 2 -->
+<section class="page" id="p-road2" data-sec="12 · Roadmap">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>12 · Roadmap</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 12 · continued</span>
+  <h2 class="sec">Roadmap, continued</h2>
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 3 — CirclePad v2</h3><span class="phase-when">Q1 – Q2 2027</span><span class="tag plan">Planned</span></div>
+    <ul class="checks">
+      <li>Lead selection by largest contribution, with the 12-hour checkpoint and fallback to the next contributor</li>
+      <li>80% of each raise into pool liquidity at launch</li>
+      <li>Lead payout vesting at 3% per day, with on-chain check-ins and automatic clawback to contributors</li>
+      <li>Independent security review before any real funds; public bug bounty</li>
+      <li>ArcPad synergy for CirclePad rounds and the CirclePad participant airdrop</li>
+    </ul>
+  </div>
+  <div class="phase">
+    <div class="phase-head"><h3>Phase 4 — Ecosystem</h3><span class="phase-when">2027 and beyond</span><span class="tag plan">Planned</span></div>
+    <ul class="checks">
+      <li>More one-tap pair presets (for example other Circle stablecoins on Arc) chosen with community input</li>
+      <li>Creator toolkit: post-launch profile editing, announcements, holder insights</li>
+      <li>Public data API and SDK so wallets, bots and dashboards can build on ArcPad</li>
+      <li>Community governance over revenue splits, featured launches and reward parameters</li>
+      <li>Partnerships with projects building on Arc</li>
+    </ul>
+  </div>
+  <h3>How progress will be reported</h3>
+  <ul>
+    <li>Each shipped item is announced with a link a user can try, or a contract a user can read.</li>
+    <li>The roadmap page on the site is updated as items move, including items that are dropped or delayed, with the reason.</li>
+    <li>Treasury and buyback activity is reported with on-chain transaction links.</li>
+  </ul>
+  <h3>What will not change</h3>
+  <div class="grid2">
+    <div class="card"><h4>Fixed supply</h4><p class="small">$ARCIRCLE stays at 1,000,000,000 tokens. No roadmap item mints more.</p></div>
+    <div class="card"><h4>Contracts hold the money</h4><p class="small">New products follow the same rule: user funds sit in contracts with public rules, not with people.</p></div>
+    <div class="card"><h4>Fair starts</h4><p class="small">Every ArcPad launch opens at the same fixed point, whatever it is paired with.</p></div>
+    <div class="card"><h4>Publish first</h4><p class="small">Revenue splits, rewards and parameters are published before they go live.</p></div>
+  </div>
+  <p class="small muted" style="margin-top:4mm">Roadmap items after Phase 0 are plans. Timelines depend on security reviews, market conditions and community feedback, and may change.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">28 / 30</span></div>
+</section>
+
+<!-- PAGE: risks -->
+<section class="page" id="p-risk" data-sec="13 · Risks">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>13 · Risks</b></div>
+  <div class="pg-body">
+  <span class="kicker">Section 13</span>
+  <h2 class="sec"><span class="num">13</span>Risk factors</h2>
+  <p class="lede">Anyone using ARCIRCLE PAD or holding $ARCIRCLE should understand the risks. This list is not exhaustive.</p>
+  <div class="grid2">
+    <div class="card"><h4>Market risk</h4><p class="small">$ARCIRCLE and coins launched on ArcPad are speculative, highly volatile and can lose all of their value. Liquidity can be thin; large trades move prices significantly.</p></div>
+    <div class="card"><h4>Smart-contract risk</h4><p class="small">Contracts can contain bugs. The ArcPad contracts have not had a third-party audit; CirclePad v2 is unreleased. The foci curve is operated by a third party.</p></div>
+    <div class="card"><h4>Pair-token risk</h4><p class="small">Coins paired with tokens other than USDC inherit those tokens' risks, including price moves, transfer restrictions or contract changes.</p></div>
+    <div class="card"><h4>Network risk</h4><p class="small">Arc is a young network. Outages, congestion, RPC limits, or changes to the network or to USDC's behaviour on it could affect every product described here.</p></div>
+    <div class="card"><h4>Stablecoin risk</h4><p class="small">Arc uses USDC as its native currency. Events affecting USDC — de-pegs, freezes, regulatory actions — would affect gas, fees, pools and raises.</p></div>
+    <div class="card"><h4>Impersonation risk</h4><p class="small">Look-alike tokens, websites and social accounts exist. Always verify the contract address and use the official site.</p></div>
+    <div class="card"><h4>Execution risk</h4><p class="small">Planned features — rewards, buybacks, CirclePad v2 — may be delayed, changed or never delivered. Revenue may be too small to fund them meaningfully.</p></div>
+    <div class="card"><h4>Regulatory risk</h4><p class="small">Laws on digital assets differ between countries and are changing. Some features may be restricted in some places, and users are responsible for their own compliance.</p></div>
+  </div>
+  <h3>Your responsibility</h3>
+  <ul>
+    <li>Keep your seed phrase private. ARCIRCLE PAD will never ask for it.</li>
+    <li>Check every transaction in your wallet before signing it — amount, contract and network.</li>
+    <li>Only pair with, buy or contribute to things you understand and trust.</li>
+  </ul>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">29 / 30</span></div>
+</section>
+
+<!-- PAGE: glossary -->
+<section class="page" id="p-gloss" data-sec="Glossary">
+  <div class="pg-head"><span>$ARCIRCLE Whitepaper</span><b>Glossary</b></div>
+  <div class="pg-body">
+  <span class="kicker">Reference</span>
+  <h2 class="sec">Glossary and links</h2>
+  <table>
+    <tbody>
+      <tr><td style="width:26%"><strong>Arc</strong></td><td>Circle's EVM-compatible layer-1 blockchain, where USDC is the native currency used for gas.</td></tr>
+      <tr><td><strong>Bonding curve</strong></td><td>A contract that sells a token along a pricing formula; $ARCIRCLE trades on foci's curve until graduation.</td></tr>
+      <tr><td><strong>Graduation</strong></td><td>The moment a curve has raised its threshold and moves its liquidity to a DEX pool.</td></tr>
+      <tr><td><strong>Virtual reserve</strong></td><td>A reserve that exists only in the price formula, setting a non-zero starting price without real money behind it.</td></tr>
+      <tr><td><strong>Uniswap v4 hook</strong></td><td>A contract a v4 pool calls around swaps; ArcPad's hook takes and pays out the trade fee.</td></tr>
+      <tr><td><strong>Pair token</strong></td><td>The token an ArcPad coin trades against: USDC by default, $ARCIRCLE, or another Arc token.</td></tr>
+      <tr><td><strong>Dev buy</strong></td><td>A creator's own purchase executed inside the launch transaction.</td></tr>
+      <tr><td><strong>Slippage</strong></td><td>How far the price may move before a trade reverts instead of filling.</td></tr>
+      <tr><td><strong>Flywheel</strong></td><td>The loop by which ecosystem revenue supports $ARCIRCLE and a stronger $ARCIRCLE attracts more activity.</td></tr>
+      <tr><td><strong>Clawback</strong></td><td>In CirclePad v2, the automatic return of an absent lead's unvested share to contributors.</td></tr>
+    </tbody>
+  </table>
+  <h3>Official links</h3>
+  <div class="grid2">
+    <div class="card"><h4>ARCIRCLE PAD</h4><p class="small">arcirclepad.vercel.app<br>ArcPad: /arc · CirclePad: /circle<br>$ARCIRCLE: /arcircle · Trade: /arc#arcircle</p></div>
+    <div class="card"><h4>$ARCIRCLE</h4><p class="small">CA <code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code><br>foci.family/token/0x933a…5aa1<br>arc.etherscan.io/token/0x933a…5aa1</p></div>
+  </div>
+  <div class="card accent" style="margin-top:6mm;text-align:center;padding:7mm 6mm">
+    <h3 style="margin:0 0 2mm;font-size:15pt">Every launch turns the wheel.</h3>
+    <p style="margin:0">ArcPad for instant launches. CirclePad for launching together. $ARCIRCLE at the centre of both.</p>
+  </div>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">30 / 30</span></div>
+</section>
+
+</main>
+</body>
+</html>
