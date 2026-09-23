@@ -28,6 +28,7 @@ const APC_PM_ABI = ["function extsload(bytes32) view returns (bytes32)"];
 
 const APC = {
   token: null, l: null, poolId: null, stateSlot: null, key: null, tokenIs0: true, feeBps: 100n,
+  q: { address: CONFIG.USDC_ADDRESS, symbol: "USDC", decimals: 6, isUsdc: true, usd: 1 }, // the pair token
   s: null, user: null, logs: null, ts: {}, anchor: null, trades: [], holders: null,
   side: "buy", slipPct: 2, range: 0, filter: "all", shown: 25, chartSrc: "onchain", dexPair: null,
   busy: false, scanning: false, wired: false, pollTimer: null, loadSeq: 0,
@@ -36,7 +37,9 @@ const APC = {
 const apc$ = (id) => document.getElementById(id);
 const apcEsc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const apcShort = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
-const apcUsdc = (raw) => Number(ethers.formatUnits(raw, 6));
+// Amounts of the pair ("quote") token — USDC unless the coin was paired with something else.
+const apcUsdc = (raw) => Number(ethers.formatUnits(raw, APC.q.decimals));
+const apcToUsd = (qAmt) => (qAmt == null || APC.q.usd == null ? null : qAmt * APC.q.usd);
 const apcTok = (raw) => Number(ethers.formatUnits(raw, 18));
 const apcExplorer = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
 // Shared number formatting with the $ARCIRCLE page (defined in arcircle-coin.js, loaded after this file).
@@ -44,6 +47,25 @@ const apcFmtPrice = (p) => (typeof ac2FmtPrice === "function" ? ac2FmtPrice(p) :
 const apcFmtUsd = (n, o) => (typeof ac2FmtUsd === "function" ? ac2FmtUsd(n, o) : (n == null ? "—" : "$" + n.toFixed(2)));
 const apcFmtNum = (n, d) => (typeof ac2FmtNum === "function" ? ac2FmtNum(n, d) : (n == null ? "—" : n.toLocaleString("en-US")));
 const apcAgo = (ts) => (typeof ac2Ago === "function" ? ac2Ago(ts) : "—");
+/// A per-token price given in pair-token units → shown in USD when the pair's price is known.
+function apcFmtUnitPrice(pQuote) {
+  if (pQuote == null) return "—";
+  if (APC.q.usd != null) return apcFmtPrice(pQuote * APC.q.usd);
+  return `${apcFmtPrice(pQuote).replace("$", "")} ${APC.q.symbol}`;
+}
+/// An amount of the pair token → "$12.30" for USDC, "1.2M ARCIRCLE" otherwise.
+function apcFmtQuoteAmt(qAmt, { usdHint = false } = {}) {
+  if (qAmt == null) return "—";
+  if (APC.q.isUsdc) return apcFmtUsd(qAmt, { exact: qAmt < 1000 });
+  const base = `${apcFmtNum(qAmt)} ${APC.q.symbol}`;
+  const usd = apcToUsd(qAmt);
+  return usdHint && usd != null ? `${base} <span class="apc-usd">≈ ${apcFmtUsd(usd)}</span>` : base;
+}
+/// A USD value if the pair's price is known, else the pair-token amount.
+function apcFmtValue(qAmt) {
+  const usd = apcToUsd(qAmt);
+  return usd != null ? apcFmtUsd(usd) : apcFmtQuoteAmt(qAmt);
+}
 function apcSafeUrl(u) {
   const s = String(u || "").trim();
   if (/^https?:\/\//i.test(s) || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(s)) return s;
@@ -76,10 +98,8 @@ function apcReserves(sqrtX96, L) {
   return { tokenRes, quoteRes, realQuote, sold, startPrice: apcPriceFromSqrt(sqrt0) };
 }
 function apcPriceFromSqrt(sqrtX96) {
-  const sp = Number(sqrtX96) / 2 ** 96;
-  const raw = sp * sp; // currency1 raw per currency0 raw
-  const p = APC.tokenIs0 ? raw * 1e12 : 1e12 / raw;
-  return Number.isFinite(p) && p > 0 ? p : null;
+  // pair-token units per launched token
+  return arcPriceInQuote(sqrtX96, !APC.tokenIs0, APC.q.decimals);
 }
 function apcSpot() { return APC.s && APC.s.r ? apcUsdc(APC.s.r.quoteRes) / apcTok(APC.s.r.tokenRes) : null; }
 function apcQuoteBuy(quoteIn) {
@@ -107,7 +127,7 @@ async function apcLoadLaunch(token) {
     const t = new ethers.Contract(rec.token, ERC20_ABI, readProvider());
     const [name, symbol] = await Promise.all([t.name().catch(() => ""), t.symbol().catch(() => "")]);
     l = {
-      token: rec.token, name, symbol, creator: rec.creator, quoteIsCurrency0: rec.quoteIsCurrency0,
+      token: rec.token, name, symbol, creator: rec.creator, quoteToken: rec.quoteToken, quoteIsCurrency0: rec.quoteIsCurrency0,
       extraFeeBps: Number(rec.extraFeeBps), imageUrl: rec.imageUrl, description: rec.description, launchedAt: Number(rec.launchedAt),
       twitter: rec.twitter, telegram: rec.telegram, discord: rec.discord, website: rec.website,
     };
@@ -119,7 +139,9 @@ async function apcLoadLaunch(token) {
   const poolId = ethers.keccak256(coder.encode(["address", "address", "uint24", "int24", "address"],
     [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks]));
   const stateSlot = BigInt(ethers.keccak256(ethers.concat([poolId, ethers.toBeHex(6, 32)])));
-  return { l, key, poolId, stateSlot, feeBps: BigInt(base + (l.extraFeeBps || 0)) };
+  const qMeta = await arcQuoteMeta(l.quoteToken || CONFIG.USDC_ADDRESS);
+  const qPx = await arcQuotePriceUsd(qMeta.address).catch(() => ({ price: null }));
+  return { l, key, poolId, stateSlot, feeBps: BigInt(base + (l.extraFeeBps || 0)), q: { ...qMeta, usd: qPx.price } };
 }
 
 async function apcFetchState() {
@@ -131,7 +153,7 @@ async function apcFetchState() {
   ];
   let ui = -1;
   if (state.account) {
-    const usdc = new ethers.Contract(CONFIG.USDC_ADDRESS, ERC20_ABI, readProvider());
+    const usdc = new ethers.Contract(APC.q.address, ERC20_ABI, readProvider());
     const tok = new ethers.Contract(APC.token, ERC20_ABI, readProvider());
     ui = calls.length;
     calls.push(
@@ -322,7 +344,11 @@ function apcRenderHeader() {
   const desc = apc$("apc-desc");
   if (l.description) { desc.textContent = l.description; desc.hidden = false; } else desc.hidden = true;
   apc$("apc-th-sym").textContent = sym || "Tokens";
-  apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on ArcPad and trades in its own Uniswap v4 pool on Arc, paired with USDC. ${l.description ? "" : ""}`.trim();
+  apc$("apc-th-quote").textContent = APC.q.symbol;
+  const pb = apc$("apc-pair-badge");
+  pb.hidden = APC.q.isUsdc; pb.textContent = `Paired with ${APC.q.symbol}`;
+  apc$("apc-about-quote").innerHTML = `<a href="${apcExplorer("token", APC.q.address)}" target="_blank" rel="noopener">${apcEsc(APC.q.symbol)} ↗</a>${APC.q.usd != null && !APC.q.isUsdc ? ` <span class="ac2-muted">≈ ${apcFmtPrice(APC.q.usd)}</span>` : ""}`;
+  apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on ArcPad and trades in its own Uniswap v4 pool on Arc, paired with ${APC.q.isUsdc ? "USDC" : APC.q.symbol}.${APC.q.isUsdc ? "" : ` Prices in USD are converted at ${APC.q.symbol}'s current price.`}`;
   apc$("apc-about-token").innerHTML = `<a href="${apcExplorer("token", l.token)}" target="_blank" rel="noopener">${apcShort(l.token)} ↗</a>`;
   apc$("apc-about-creator").innerHTML = l.creator ? `<a href="${apcExplorer("address", l.creator)}" target="_blank" rel="noopener">${apcShort(l.creator)} ↗</a>` : "—";
   apc$("apc-about-fee").textContent = `${Number(APC.feeBps) / 100}% per trade${l.extraFeeBps ? ` (incl. ${l.extraFeeBps / 100}% creator add-on)` : ""}`;
@@ -352,9 +378,15 @@ function apcRenderHeader() {
 function apcRenderState() {
   const r = APC.s && APC.s.r; if (!r) return;
   const spot = apcSpot();
-  apc$("apc-price").innerHTML = apcFmtPrice(spot);
-  apc$("apc-mcap").textContent = apcFmtUsd(spot != null ? spot * APC_SUPPLY : null);
-  apc$("apc-liq").textContent = apcFmtUsd(apcUsdc(r.realQuote), { exact: apcUsdc(r.realQuote) < 1000 });
+  apc$("apc-price").innerHTML = apcFmtUnitPrice(spot);
+  const pq = apc$("apc-price-quote");
+  pq.hidden = APC.q.isUsdc || APC.q.usd == null;
+  if (!pq.hidden) pq.textContent = `${apcFmtPrice(spot).replace("$", "")} ${APC.q.symbol}`;
+  apc$("apc-mcap").textContent = spot != null ? apcFmtValue(spot * APC_SUPPLY) : "—";
+  const liqQ = apcUsdc(r.realQuote), liqUsd = apcToUsd(liqQ);
+  apc$("apc-liq").innerHTML = APC.q.isUsdc || liqUsd == null
+    ? apcFmtQuoteAmt(liqQ)
+    : `${apcFmtUsd(liqUsd, { exact: liqUsd < 1000 })}<span class="apc-sub">${apcFmtNum(liqQ)} ${APC.q.symbol}</span>`;
   const soldPct = (apcTok(r.sold) / 920_000_000) * 100;
   apc$("apc-sold-text").textContent = `${apcFmtNum(apcTok(r.sold))} of 920M · ${soldPct.toFixed(soldPct < 10 ? 2 : 1)}%`;
   apc$("apc-sold-fill").style.width = `${Math.max(soldPct, 0.6)}%`;
@@ -366,7 +398,7 @@ function apcRenderData() { apcRenderStats(); apcRenderTrades(); apcRenderHolders
 function apcRenderStats() {
   const now = Math.floor(Date.now() / 1000);
   const day = APC.trades.filter((t) => { const ts = apcTsOf(t.b); return ts && now - ts <= 86400; });
-  apc$("apc-vol").textContent = APC.logs ? apcFmtUsd(day.reduce((s, t) => s + t.usdc, 0)) : "—";
+  apc$("apc-vol").textContent = APC.logs ? apcFmtValue(day.reduce((s, t) => s + t.usdc, 0)) : "—";
   const b = day.filter((t) => t.side === "buy").length;
   apc$("apc-txns").innerHTML = APC.logs ? `${day.length} <span class="ac2-bs"><em class="b">${b}B</em> <em class="s">${day.length - b}S</em></span>` : "—";
   const skip = new Set([CONFIG.POOL_MANAGER_ADDRESS.toLowerCase()]);
@@ -407,9 +439,9 @@ function apcRenderTrades() {
     return `<tr class="${t.side}">
       <td title="${ts ? new Date(ts * 1000).toLocaleString() : ""}">${apcAgo(ts)}</td>
       <td><span class="ac2-type ${t.side}">${t.side === "buy" ? "Buy" : "Sell"}</span></td>
-      <td class="r">${apcFmtUsd(t.usdc, { exact: t.usdc < 1000 })}</td>
+      <td class="r">${APC.q.isUsdc ? apcFmtUsd(t.usdc, { exact: t.usdc < 1000 }) : apcFmtNum(t.usdc)}</td>
       <td class="r">${apcFmtNum(t.tok)}</td>
-      <td class="r">${apcFmtPrice(t.price)}</td>
+      <td class="r">${apcFmtUnitPrice(t.price)}</td>
       <td>${t.trader ? `<a href="${apcExplorer("address", t.trader)}" target="_blank" rel="noopener" class="ac2-addr">${apcShort(t.trader)}</a>` : "—"}${mine ? ' <span class="ac2-you">you</span>' : ""}</td>
       <td class="r"><a href="${apcExplorer("tx", t.h)}" target="_blank" rel="noopener" class="ac2-tx" aria-label="View transaction">↗</a></td>
     </tr>`;
@@ -443,6 +475,12 @@ function apcRenderHolders() {
 }
 
 function apcChartPoints() {
+  const k = APC.q.usd != null ? APC.q.usd : 1; // plot in USD when the pair's price is known
+  const pts = apcChartPointsQuote().map((x) => ({ ...x, p: x.p * k }));
+  return pts;
+}
+function apcFmtAxis(v) { return APC.q.usd != null ? apcFmtPrice(v) : `${apcFmtPrice(v).replace("$", "")} ${APC.q.symbol}`; }
+function apcChartPointsQuote() {
   const pts = [];
   const r = APC.s && APC.s.r;
   if (APC.l && r && r.startPrice) pts.push({ ts: APC.l.launchedAt, p: r.startPrice, side: "start" });
@@ -504,7 +542,7 @@ function apcRenderChart() {
     g.querySelector("line").setAttribute("x1", cx); g.querySelector("line").setAttribute("x2", cx);
     g.querySelector("circle").setAttribute("cx", cx); g.querySelector("circle").setAttribute("cy", cy);
     tip.hidden = false;
-    tip.innerHTML = `<strong>${apcFmtPrice(cur.p)}</strong><span>${new Date(Math.min(ts, t1) * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>`;
+    tip.innerHTML = `<strong>${apcFmtAxis(cur.p)}</strong><span>${new Date(Math.min(ts, t1) * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>`;
     tip.style.left = `${Math.min(Math.max((cx / W) * rc.width - 60, 4), rc.width - 128)}px`;
   };
   const leave = () => { g.style.display = "none"; tip.hidden = true; };
@@ -548,7 +586,7 @@ function apcSetChartSrc(src) {
 function apcParseAmount() {
   const raw = (apc$("apc-amount").value || "").trim().replace(/,/g, "");
   if (!raw || !/^\d*\.?\d*$/.test(raw) || Number(raw) <= 0) return null;
-  const dec = APC.side === "buy" ? 6 : 18;
+  const dec = APC.side === "buy" ? APC.q.decimals : 18;
   const [w, f = ""] = raw.split(".");
   try { return ethers.parseUnits(`${w || "0"}.${f.slice(0, dec) || "0"}`, dec); } catch { return null; }
 }
@@ -575,24 +613,28 @@ function apcRenderSwap() {
   document.querySelectorAll("#bp-panel-coin .ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === APC.side));
   apc$("apc-swap").classList.toggle("is-sell", !buy);
   apc$("apc-in-label").textContent = buy ? "You pay" : "You sell";
-  apc$("apc-in-unit").textContent = buy ? "USDC" : sym;
-  apc$("apc-out-unit").textContent = buy ? sym : "USDC";
+  const qs = APC.q.symbol;
+  apc$("apc-in-unit").textContent = buy ? qs : sym;
+  apc$("apc-out-unit").textContent = buy ? sym : qs;
   const bal = apc$("apc-bal");
-  bal.textContent = APC.user ? (buy ? `Balance ${apcFmtNum(apcUsdc(APC.user.usdc), 4)} USDC` : `Balance ${apcFmtNum(apcTok(APC.user.tok))} ${APC.l.symbol || ""}`) : "Balance —";
+  bal.textContent = APC.user ? (buy ? `Balance ${apcFmtNum(apcUsdc(APC.user.usdc), 4)} ${qs}` : `Balance ${apcFmtNum(apcTok(APC.user.tok))} ${APC.l.symbol || ""}`) : "Balance —";
   const quick = apc$("apc-quick");
-  if (quick.dataset.side !== APC.side) {
-    quick.dataset.side = APC.side;
-    quick.innerHTML = buy
+  const qkey = `${APC.side}:${APC.q.isUsdc ? "usd" : "pct"}`;
+  if (quick.dataset.side !== qkey) {
+    quick.dataset.side = qkey;
+    quick.innerHTML = buy && APC.q.isUsdc
       ? ["1", "5", "10", "50"].map((v) => `<button type="button" data-q="${v}" title="${v} USDC">$${v}</button>`).join("") + `<button type="button" data-q="max">Max</button>`
+      : buy
+      ? ["25", "50", "75"].map((v) => `<button type="button" data-q="${v}%">${v}%</button>`).join("") + `<button type="button" data-q="max">Max</button>`
       : ["25", "50", "75"].map((v) => `<button type="button" data-q="${v}%">${v}%</button>`).join("") + `<button type="button" data-q="100%">Max</button>`;
   }
   const q = apcCurrentQuote();
-  const fmtOut = (raw) => (buy ? apcTok(raw).toLocaleString("en-US", { maximumFractionDigits: apcTok(raw) >= 1000 ? 0 : 2 }) : apcUsdc(raw).toLocaleString("en-US", { maximumFractionDigits: 4 }));
+  const fmtOut = (raw) => (buy ? apcTok(raw).toLocaleString("en-US", { maximumFractionDigits: apcTok(raw) >= 1000 ? 0 : 2 }) : apcUsdc(raw).toLocaleString("en-US", { maximumFractionDigits: apcUsdc(raw) >= 1000 ? 2 : 4 }));
   apc$("apc-out").textContent = q ? fmtOut(q.out) : "0";
   const imp = apc$("apc-q-impact");
   if (q && q.impact != null) { imp.textContent = `${(q.impact * 100).toFixed(2)}%`; imp.className = q.impact > 0.05 ? "warn" : ""; } else imp.textContent = "—";
-  apc$("apc-q-fee").textContent = q ? (buy ? `${apcFmtNum(apcTok(q.fee))} ${APC.l.symbol || ""}` : `${apcUsdc(q.fee).toLocaleString("en-US", { maximumFractionDigits: 4 })} USDC`) : "—";
-  apc$("apc-q-min").textContent = q ? `${fmtOut(q.min)} ${buy ? APC.l.symbol || "" : "USDC"}` : "—";
+  apc$("apc-q-fee").textContent = q ? (buy ? `${apcFmtNum(apcTok(q.fee))} ${APC.l.symbol || ""}` : `${apcUsdc(q.fee).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${qs}`) : "—";
+  apc$("apc-q-min").textContent = q ? `${fmtOut(q.min)} ${buy ? APC.l.symbol || "" : qs}` : "—";
   const btn = apc$("apc-submit");
   let label = "Enter an amount", disabled = true, warn = "";
   if (!state.account) { label = "Connect wallet"; disabled = false; }
@@ -600,8 +642,8 @@ function apcRenderSwap() {
   else if (q) {
     const have = buy ? (APC.user ? APC.user.usdc : 0n) : (APC.user ? APC.user.tok : 0n);
     const allow = buy ? (APC.user ? APC.user.allowUsdc : 0n) : (APC.user ? APC.user.allowTok : 0n);
-    if (q.amt > have) label = `Not enough ${buy ? "USDC" : sym}`;
-    else if (allow < q.amt) { label = `Approve ${buy ? "USDC" : sym}`; disabled = false; }
+    if (q.amt > have) label = `Not enough ${buy ? qs : sym}`;
+    else if (allow < q.amt) { label = `Approve ${buy ? qs : sym}`; disabled = false; }
     else { label = buy ? `Buy ${sym}` : `Sell ${sym}`; disabled = false; }
     if (q.impact != null && q.impact > 0.05) warn = `High price impact (${(q.impact * 100).toFixed(1)}%).`;
   }
@@ -620,7 +662,7 @@ function apcErrText(err) {
   if (err && (err.code === "ACTION_REJECTED" || err.code === 4001)) return "You rejected the request in your wallet.";
   const m = String(err && (err.reason || err.shortMessage || err.message) || err);
   if (/slippage/i.test(m)) return "Price moved past your slippage limit — try again or raise slippage.";
-  if (/insufficient funds|missing revert data|exceeds balance/i.test(m)) return "Not enough USDC on Arc for this amount plus gas.";
+  if (/insufficient funds|missing revert data|exceeds balance/i.test(m)) return "The trade can't go through — usually not enough balance for the amount, or not enough USDC left for gas.";
   return m.slice(0, 200);
 }
 
@@ -631,7 +673,7 @@ async function apcSubmit() {
   APC.busy = true; btn.disabled = true;
   const buy = APC.side === "buy";
   const sym = APC.l.symbol ? `$${APC.l.symbol}` : "tokens";
-  const unit = buy ? "USDC" : sym;
+  const unit = buy ? APC.q.symbol : sym;
   try {
     await ensureArcForWrite();
     if (!state.signer) throw new Error("Wallet isn't ready — reconnect and try again.");
@@ -639,7 +681,7 @@ async function apcSubmit() {
     const q = apcCurrentQuote();
     if (!q) throw new Error("Enter an amount.");
     if (q.amt > (buy ? APC.user.usdc : APC.user.tok)) throw new Error(`Not enough ${unit}.`);
-    const asset = buy ? CONFIG.USDC_ADDRESS : APC.token;
+    const asset = buy ? APC.q.address : APC.token;
     if ((buy ? APC.user.allowUsdc : APC.user.allowTok) < q.amt) {
       btn.textContent = `Approve ${unit} in wallet…`;
       apcStatus("pending", `Step 1 of 2 — approve ${apcEsc(unit)} for the ArcPad router.`);
@@ -676,10 +718,13 @@ function apcQuick(v) {
   const input = apc$("apc-amount");
   apc$("apc-status").dataset.kind = "";
   if (APC.side === "buy") {
-    if (v === "max") {
+    if (v === "max" || /%$/.test(v)) {
       if (!APC.user) return;
-      const reserve = ethers.parseUnits("0.05", 6);
-      input.value = ethers.formatUnits(APC.user.usdc > reserve ? APC.user.usdc - reserve : 0n, 6).replace(/\.0$/, "");
+      // USDC is also Arc's gas token: "Max" leaves a little for fees.
+      const reserve = APC.q.isUsdc && v === "max" ? ethers.parseUnits("0.05", 6) : 0n;
+      const pct = v === "max" ? 100n : BigInt(parseInt(v, 10));
+      const avail = APC.user.usdc > reserve ? APC.user.usdc - reserve : 0n;
+      input.value = ethers.formatUnits((avail * pct) / 100n, APC.q.decimals).replace(/\.0$/, "");
     } else input.value = v;
   } else {
     if (!APC.user) return;
@@ -739,6 +784,7 @@ function apcWire() {
 }
 
 function apcResetView() {
+  APC.q = { address: CONFIG.USDC_ADDRESS, symbol: "USDC", decimals: 6, isUsdc: true, usd: 1 };
   APC.s = null; APC.user = null; APC.trades = []; APC.holders = null; APC.dexPair = null; APC.chartSrc = "onchain";
   APC.side = "buy"; APC.filter = "all"; APC.shown = 25; APC.range = 0;
   apc$("apc-amount").value = ""; apc$("apc-status").innerHTML = ""; apc$("apc-status").dataset.kind = "";
@@ -774,7 +820,7 @@ async function openArcCoin(token) {
     if (!same || !APC.l) {
       const info = await apcLoadLaunch(APC.token);
       if (seq !== APC.loadSeq) return;
-      Object.assign(APC, { l: info.l, key: info.key, poolId: info.poolId, stateSlot: info.stateSlot, feeBps: info.feeBps, tokenIs0: !info.l.quoteIsCurrency0 });
+      Object.assign(APC, { l: info.l, key: info.key, poolId: info.poolId, stateSlot: info.stateSlot, feeBps: info.feeBps, tokenIs0: !info.l.quoteIsCurrency0, q: info.q });
       apcRenderHeader();
       apcLoadCache();
       apcDerive();

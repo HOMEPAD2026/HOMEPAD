@@ -82,16 +82,14 @@ async function getPoolSlot0(poolKey) {
 /// USDC per whole token, from a live pool read. Returns null if the pool
 /// can't be read (e.g. RPC hiccup) — callers fall back to the launch's own
 /// starting valuation instead of showing a broken price.
-async function getLivePriceUsdc(token, quoteToken, quoteIsCurrency0) {
+async function getLivePriceUsdc(token, quoteToken, quoteIsCurrency0, quoteDecimals = ARC_QUOTE_DECIMALS) {
+  // Quote tokens per launched token — "Usdc" in the name is historical: for a
+  // launch paired with something else this is in that token's units.
   try {
     const key = await arcpadFactoryRead().poolKeyOf(token);
     const { sqrtPriceX96 } = await getPoolSlot0(key);
     if (sqrtPriceX96 === 0n) return null;
-    const sqrtPrice = Number(sqrtPriceX96) / 2 ** 96;
-    const rawPrice = sqrtPrice * sqrtPrice; // currency1 raw per currency0 raw
-    const decDiff = ARC_TOKEN_DECIMALS - ARC_QUOTE_DECIMALS; // 12
-    const price = quoteIsCurrency0 ? Math.pow(10, decDiff) / rawPrice : rawPrice * Math.pow(10, decDiff);
-    return Number.isFinite(price) && price > 0 ? price : null;
+    return arcPriceInQuote(sqrtPriceX96, quoteIsCurrency0, quoteDecimals);
   } catch (err) {
     console.warn("getLivePriceUsdc failed for", token, err);
     return null;
@@ -135,7 +133,7 @@ async function loadArcpadLaunches() {
         imageUrl: l.imageUrl, description: l.description, launchedAt: Number(l.launchedAt),
         twitter: l.twitter, telegram: l.telegram, discord: l.discord, website: l.website,
         quoteIsCurrency0: l.quoteIsCurrency0,
-        initialVirtualQuote: Number(ethers.formatUnits(l.initialVirtualQuote, ARC_QUOTE_DECIMALS)),
+        initialVirtualQuoteRaw: l.initialVirtualQuote,
       });
     });
     if (valid.length < idxs.length) console.warn(`arcpad explore: ${idxs.length - valid.length} launch record(s) in batch ${start} failed to read`);
@@ -143,10 +141,23 @@ async function loadArcpadLaunches() {
 
   // Live price per launch — starting valuation is the fallback for a launch
   // whose pool read fails (RPC hiccup) rather than showing a broken "—".
+  // Each launch can be paired with a different token: read every distinct
+  // pair token's decimals / symbol and USD price once, then price launches
+  // in their pair token and convert to USD.
+  const quotes = {};
+  await Promise.all([...new Set(built.map((l) => l.quoteToken.toLowerCase()))].map(async (q) => {
+    const meta = await arcQuoteMeta(q).catch(() => ({ address: q, symbol: "?", decimals: ARC_QUOTE_DECIMALS, isUsdc: arcIsUsdc(q) }));
+    const px = await arcQuotePriceUsd(meta.address).catch(() => ({ price: null }));
+    quotes[q] = { ...meta, usd: px.price };
+  }));
   await Promise.all(built.map(async (l) => {
+    const q = quotes[l.quoteToken.toLowerCase()];
+    l.quoteSymbol = q.symbol; l.quoteDecimals = q.decimals; l.quoteIsUsdc = !!q.isUsdc; l.quoteUsd = q.usd;
+    l.initialVirtualQuote = Number(ethers.formatUnits(l.initialVirtualQuoteRaw, q.decimals));
     if (l.quoteIsCurrency0 == null) { l.priceUsdc = null; l.marketCapUsd = null; return; }
-    const live = await getLivePriceUsdc(l.token, l.quoteToken, l.quoteIsCurrency0);
-    l.priceUsdc = live ?? (l.initialVirtualQuote != null ? l.initialVirtualQuote / ARC_SELLABLE_SUPPLY : null);
+    const live = await getLivePriceUsdc(l.token, l.quoteToken, l.quoteIsCurrency0, q.decimals);
+    l.priceInQuote = live ?? (l.initialVirtualQuote / ARC_SELLABLE_SUPPLY);
+    l.priceUsdc = q.usd != null ? l.priceInQuote * q.usd : null;
     l.marketCapUsd = l.priceUsdc != null ? l.priceUsdc * ARC_DEFAULT_SUPPLY : null;
     l.isLivePrice = live != null;
   }));
@@ -161,18 +172,20 @@ async function loadArcpadLaunches() {
   renderArcpadExplore();
 }
 
+function arcEscHtml(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function launchCardHtml(l) {
-  const img = l.imageUrl
-    ? `<img src="${l.imageUrl}" alt="" style="width:36px;height:36px;border-radius:9px;object-fit:cover;margin-bottom:8px" onerror="this.style.display='none'">`
+  const safe = /^https?:\/\//i.test(l.imageUrl || "") || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(l.imageUrl || "");
+  const img = safe
+    ? `<img src="${arcEscHtml(l.imageUrl)}" alt="" style="width:36px;height:36px;border-radius:9px;object-fit:cover;margin-bottom:8px" onerror="this.style.display='none'">`
     : "";
   return `
     <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;width:100%;border:1px solid var(--line);font:inherit;">
       ${img}
-      <div class="sym">$${l.symbol}</div>
-      <div class="name">${l.name}</div>
+      <div class="sym">$${arcEscHtml(l.symbol)}${l.quoteIsUsdc === false ? ` <span class="ap-pair-tag">/ ${arcEscHtml(l.quoteSymbol)}</span>` : ""}</div>
+      <div class="name">${arcEscHtml(l.name)}</div>
       <div class="meta">
-        <span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—"} mcap</span>
-        <span>${l.priceUsdc != null ? "$" + l.priceUsdc.toPrecision(4) : "—"}</span>
+        <span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : l.priceInQuote != null ? `${fmtCompact(l.priceInQuote * ARC_DEFAULT_SUPPLY)} ${arcEscHtml(l.quoteSymbol)}` : "—"} mcap</span>
+        <span>${l.priceUsdc != null ? "$" + l.priceUsdc.toPrecision(4) : l.priceInQuote != null ? `${l.priceInQuote.toPrecision(4)} ${arcEscHtml(l.quoteSymbol)}` : "—"}</span>
       </div>
     </button>`;
 }
@@ -373,10 +386,95 @@ function updateArcpadDevBuyPreview() {
   const el = document.getElementById("ap-devbuy-preview");
   const devBuyStr = document.getElementById("ap-devbuy").value.trim();
   if (!devBuyStr || Number(devBuyStr) <= 0) { el.textContent = ""; return; }
-  const virtualQuote = Number(ARC_START_VALUATION_USDC);
+  const pr = ARC.pair;
+  if (!pr || !pr.reserveRaw) { el.textContent = ""; return; }
+  const virtualQuote = Number(ethers.formatUnits(pr.reserveRaw, pr.meta.decimals));
   const devBuy = Number(devBuyStr);
   const tokensOut = ARC_SELLABLE_SUPPLY - (virtualQuote * ARC_SELLABLE_SUPPLY) / (virtualQuote + devBuy);
   el.textContent = `≈ ${fmtCompact(tokensOut)} tokens (${((tokensOut / ARC_SELLABLE_SUPPLY) * 100).toFixed(2)}% of the sellable supply) — approximate, before the trading fee.`;
+}
+
+// ---------- Pair token (USDC by default, $ARCIRCLE, or any token CA) ----------
+ARC.pair = null;
+let arcPairSeq = 0;
+function arcFmtAmount(n) {
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1e6) return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+  return n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 2 : 6 });
+}
+function arcFmtUsdPrice(p) {
+  if (typeof ac2FmtPrice === "function") return ac2FmtPrice(p);
+  return p == null ? "—" : "$" + p.toPrecision(4);
+}
+async function arcpadSelectPair(key) {
+  const seq = ++arcPairSeq;
+  const seg = document.getElementById("ap-pair-seg");
+  seg.querySelectorAll("button").forEach((b) => { const on = b.dataset.pair === key; b.classList.toggle("active", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
+  const caInput = document.getElementById("ap-pair-ca");
+  caInput.hidden = key !== "custom";
+  const info = document.getElementById("ap-pair-info");
+  const setInfo = (html, kind) => { info.className = "ap-pair-info" + (kind ? " " + kind : ""); info.innerHTML = html; };
+  let addr = null;
+  if (key === "custom") {
+    addr = caInput.value.trim();
+    if (!addr) { ARC.pair = { key, error: "Paste the contract address of the token to pair with." }; setInfo("Paste the contract address of the token to pair with.", "muted"); arcpadRenderPair(); return; }
+  } else addr = (ARC_QUOTE_PRESETS.find((p) => p.key === key) || ARC_QUOTE_PRESETS[0]).address;
+  ARC.pair = { key, loading: true };
+  setInfo("Checking the token and its price…", "muted");
+  arcpadRenderPair();
+  try {
+    const meta = await arcQuoteMeta(addr);
+    if (seq !== arcPairSeq) return;
+    const px = await arcQuotePriceUsd(meta.address);
+    if (seq !== arcPairSeq) return;
+    if (px.price == null) {
+      ARC.pair = { key, meta, error: `Couldn't find a USD price for ${meta.symbol} on Arc (checked the $ARCIRCLE curve, ArcPad pools and Dexscreener), so the starting market cap can't be set. Pick USDC, $ARCIRCLE or a token with a live market.` };
+    } else {
+      const reserveRaw = arcStartReserveRaw(px.price, meta.decimals);
+      ARC.pair = reserveRaw ? { key, meta, usd: px.price, source: px.source, reserveRaw, at: Date.now() }
+        : { key, meta, error: `${meta.symbol}'s price is out of range for a launch.` };
+    }
+    const m = ARC.pair.meta;
+    if (ARC.pair.error) setInfo(arcEscHtml(ARC.pair.error), "bad");
+    else {
+      const warn = key === "custom" ? `<span class="ap-pair-warn">Only pair with a token you trust — tokens that tax transfers, rebase, or can freeze wallets can break the pool and trap funds.</span>` : "";
+      setInfo(`<span class="ap-pair-ok">${arcEscHtml(m.name)} <b>${arcEscHtml(m.symbol)}</b> · <a href="${CONFIG.BLOCK_EXPLORER}/token/${m.address}" target="_blank" rel="noopener">${m.address.slice(0, 6)}…${m.address.slice(-4)} ↗</a> · 1 ${arcEscHtml(m.symbol)} ≈ ${arcFmtUsdPrice(ARC.pair.usd)} <span class="ap-pair-src">(${arcEscHtml(ARC.pair.source)})</span></span>${warn}`, "ok");
+    }
+  } catch (err) {
+    if (seq !== arcPairSeq) return;
+    ARC.pair = { key, error: String(err && err.message || err) };
+    setInfo(arcEscHtml(ARC.pair.error), "bad");
+  }
+  arcpadRenderPair();
+}
+function arcpadRenderPair() {
+  const pr = ARC.pair || {};
+  const m = pr.meta;
+  const sym = m ? m.symbol : "USDC";
+  document.getElementById("ap-devbuy-unit").textContent = sym;
+  document.getElementById("ap-devbuy-hint").textContent = `Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time ${sym} approval first. Leave blank to skip.`;
+  const hint = document.getElementById("ap-start-hint");
+  if (pr.reserveRaw) {
+    const amt = Number(ethers.formatUnits(pr.reserveRaw, m.decimals));
+    hint.textContent = m.isUsdc
+      ? "Every ArcPad coin opens at the same price — the pool starts with a 4,000 USDC virtual reserve against the 920M sellable tokens, so there's nothing to set here."
+      : `Every ArcPad coin opens at the same price — here the pool starts with a virtual reserve of ${arcFmtAmount(amt)} ${sym} (≈ $4,000 at today's ${sym} price) against the 920M sellable tokens. After launch the price moves with ${sym}'s own price too.`;
+  } else if (pr.loading) hint.textContent = "Working out the opening reserve for this pair…";
+  else if (pr.error) hint.textContent = "Choose a pair token with a known price to set the opening reserve.";
+  const btnLabel = document.querySelector("#ap-launch-submit .ap-launch-btn-label");
+  if (btnLabel && !document.getElementById("ap-launch-submit").classList.contains("is-busy")) btnLabel.textContent = m && !m.isUsdc && pr.reserveRaw ? `Launch coin / ${sym}` : "Launch coin";
+  updateArcpadDevBuyPreview();
+  updateArcpadLaunchBalance();
+}
+function wireArcpadPair() {
+  document.getElementById("ap-pair-seg").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pair]"); if (!b) return;
+    arcpadSelectPair(b.dataset.pair);
+    if (b.dataset.pair === "custom") setTimeout(() => document.getElementById("ap-pair-ca").focus(), 0);
+  });
+  let t;
+  document.getElementById("ap-pair-ca").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => arcpadSelectPair("custom"), 450); });
+  arcpadSelectPair("usdc");
 }
 
 // ---------- Can this wallet afford the launch? ----------
@@ -406,7 +504,11 @@ async function arcpadLaunchCost(devBuyStr) {
   if (arcLaunchFeeCache == null) {
     try { arcLaunchFeeCache = await withRetry(() => arcpadFactoryRead().LAUNCH_FEE()); } catch { arcLaunchFeeCache = ARC_LAUNCH_FEE_FALLBACK; }
   }
-  const dev = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) * 10n ** 12n : 0n;
+  const pr = ARC.pair && ARC.pair.meta ? ARC.pair.meta : { decimals: ARC_QUOTE_DECIMALS, isUsdc: true, symbol: "USDC" };
+  let devQuote = 0n;
+  try { devQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, pr.decimals) : 0n; } catch { devQuote = 0n; }
+  // On Arc, USDC's ERC-20 and native balances are the same money (6 vs 18 dp).
+  const dev = pr.isUsdc ? devQuote * 10n ** 12n : 0n;
   const gasUnits = (ARC_LAUNCH_BASE_GAS + ARC_GAS_PER_META_CHAR * BigInt(arcpadMetaChars()) + (dev > 0n ? 500_000n : 0n)) * 12n / 10n;
   let gas = gasUnits * 21_000_000_000n;
   try {
@@ -414,7 +516,7 @@ async function arcpadLaunchCost(devBuyStr) {
     const gp = fd.gasPrice || fd.maxFeePerGas;
     if (gp) { arcGasPriceCache = gp; gas = gp * gasUnits; }
   } catch { /* keep the flat estimate */ }
-  return { fee: arcLaunchFeeCache, dev, gas, gasUnits, total: arcLaunchFeeCache + dev + gas };
+  return { fee: arcLaunchFeeCache, dev, gas, gasUnits, total: arcLaunchFeeCache + dev + gas, devQuote, pairMeta: pr };
 }
 const fmtUsdc18 = (v) => Number(ethers.formatEther(v)).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 
@@ -425,11 +527,18 @@ async function updateArcpadLaunchBalance() {
   try {
     const devBuyStr = document.getElementById("ap-devbuy").value.trim();
     const [bal, cost] = await Promise.all([withRetry(() => readProvider().getBalance(state.account)), arcpadLaunchCost(devBuyStr)]);
-    const ok = bal >= cost.total;
-    el.className = "ap-launch-balance " + (ok ? "ok" : "short");
-    el.textContent = ok
+    let ok = bal >= cost.total;
+    let text = ok
       ? `Wallet: ${fmtUsdc18(bal)} USDC · this launch needs ≈ ${fmtUsdc18(cost.total)} USDC`
       : `Not enough USDC — this launch needs ≈ ${fmtUsdc18(cost.total)} USDC (1 USDC fee${cost.dev > 0n ? " + dev buy" : ""} + gas), this wallet has ${fmtUsdc18(bal)} USDC on Arc.`;
+    if (!cost.pairMeta.isUsdc && cost.devQuote > 0n) {
+      const qb = await tokenRead(cost.pairMeta.address).balanceOf(state.account);
+      const fmtQ = (v) => Number(ethers.formatUnits(v, cost.pairMeta.decimals)).toLocaleString("en-US", { maximumFractionDigits: 4 });
+      if (qb < cost.devQuote) { ok = false; text = `Not enough ${cost.pairMeta.symbol} for the dev buy — needs ${fmtQ(cost.devQuote)}, this wallet has ${fmtQ(qb)}.`; }
+      else if (ok) text += ` · dev buy ${fmtQ(cost.devQuote)} ${cost.pairMeta.symbol} (you have ${fmtQ(qb)})`;
+    }
+    el.className = "ap-launch-balance " + (ok ? "ok" : "short");
+    el.textContent = text;
   } catch { el.textContent = ""; }
 }
 
@@ -453,7 +562,6 @@ async function submitArcpadLaunch(ev) {
   const twitter = document.getElementById("ap-twitter").value.trim();
   const telegram = document.getElementById("ap-telegram").value.trim();
   const discord = document.getElementById("ap-discord").value.trim();
-  const startValuation = ARC_START_VALUATION_USDC;
   const extraFeeBps = Number(document.getElementById("ap-extrafee").value);
   const devBuyStr = document.getElementById("ap-devbuy").value.trim();
 
@@ -463,6 +571,17 @@ async function submitArcpadLaunch(ev) {
     return;
   }
   if (!arcpadFactoryConfigured()) { statusEl.innerHTML = `<div class="status error">ArcPad's factory isn't configured yet.</div>`; return; }
+
+  // Pair token: must be resolved with a price; refresh a stale price so the
+  // opening reserve still means ≈ $4,000.
+  if (ARC.pair && ARC.pair.meta && !ARC.pair.error && Date.now() - (ARC.pair.at || 0) > 90_000) await arcpadSelectPair(ARC.pair.key);
+  const pair = ARC.pair;
+  if (!pair || pair.loading) { statusEl.innerHTML = `<div class="status error">Still checking the pair token — try again in a moment.</div>`; return; }
+  if (pair.error || !pair.reserveRaw) { statusEl.innerHTML = `<div class="status error">${arcEscHtml(pair.error || "Choose a pair token first.")}</div>`; return; }
+  const quoteAddr = pair.meta.address, quoteSym = pair.meta.symbol, quoteDec = pair.meta.decimals;
+  let devBuyQuote = 0n;
+  try { devBuyQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, quoteDec) : 0n; }
+  catch { statusEl.innerHTML = `<div class="status error">That dev-buy amount has too many decimals for ${arcEscHtml(quoteSym)}.</div>`; return; }
 
   if (!state.account) {
     statusEl.innerHTML = `<div class="status pending">Connect a wallet first…</div>`;
@@ -477,6 +596,13 @@ async function submitArcpadLaunch(ev) {
       updateArcpadLaunchBalance();
       return;
     }
+    if (!pair.meta.isUsdc && devBuyQuote > 0n) {
+      const qb = await tokenRead(quoteAddr).balanceOf(state.account);
+      if (qb < devBuyQuote) {
+        statusEl.innerHTML = `<div class="status error">Not enough ${arcEscHtml(quoteSym)} for the dev buy — this wallet has ${ethers.formatUnits(qb, quoteDec)} ${arcEscHtml(quoteSym)}.</div>`;
+        return;
+      }
+    }
   } catch (err) { console.warn("launch balance check skipped", err && err.message); }
 
   // Dry run the plain launch (a dev buy needs its USDC approval first, so it
@@ -489,7 +615,7 @@ async function submitArcpadLaunch(ev) {
       const meta = { imageUrl, description, twitter, telegram, discord, website };
       await readProvider().estimateGas({
         from: state.account, to: CONFIG.ARCPAD_FACTORY_ADDRESS, value: fee,
-        data: f.interface.encodeFunctionData("launch", [name, symbol, CONFIG.USDC_ADDRESS, ethers.parseUnits(ARC_START_VALUATION_USDC, ARC_QUOTE_DECIMALS), extraFeeBps, meta]),
+        data: f.interface.encodeFunctionData("launch", [name, symbol, quoteAddr, pair.reserveRaw, extraFeeBps, meta]),
       });
     } catch (err) {
       const raw = String(err && (err.shortMessage || err.reason || err.message) || err);
@@ -508,26 +634,25 @@ async function submitArcpadLaunch(ev) {
   const btnLabel = btn.querySelector(".ap-launch-btn-label");
   if (btnLabel) btnLabel.textContent = "Launching…";
   try {
-    const initialVirtualQuote = ethers.parseUnits(startValuation, ARC_QUOTE_DECIMALS);
-    const devBuyQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) : 0n;
+    const initialVirtualQuote = pair.reserveRaw;
     const meta = { imageUrl, description, twitter, telegram, discord, website };
     await ensureArcForWrite();
     const factory = arcpadFactoryWrite();
     const launchFee = await withRetry(() => factory.LAUNCH_FEE());
 
     if (devBuyQuote > 0n) {
-      const allowance = await tokenRead(CONFIG.USDC_ADDRESS).allowance(state.account, CONFIG.ARCPAD_FACTORY_ADDRESS);
+      const allowance = await tokenRead(quoteAddr).allowance(state.account, CONFIG.ARCPAD_FACTORY_ADDRESS);
       if (allowance < devBuyQuote) {
-        statusEl.innerHTML = `<div class="status pending">Approve USDC for the dev buy in your wallet…</div>`;
-        const tx = await tokenWrite(CONFIG.USDC_ADDRESS).approve(CONFIG.ARCPAD_FACTORY_ADDRESS, devBuyQuote);
+        statusEl.innerHTML = `<div class="status pending">Approve ${arcEscHtml(quoteSym)} for the dev buy in your wallet…</div>`;
+        const tx = await tokenWrite(quoteAddr).approve(CONFIG.ARCPAD_FACTORY_ADDRESS, devBuyQuote);
         await tx.wait();
       }
     }
 
     statusEl.innerHTML = `<div class="status pending">Confirm the launch in your wallet…</div>`;
     const tx = devBuyQuote > 0n
-      ? await factory.launchAndBuy(name, symbol, CONFIG.USDC_ADDRESS, initialVirtualQuote, extraFeeBps, meta, devBuyQuote, { value: launchFee })
-      : await factory.launch(name, symbol, CONFIG.USDC_ADDRESS, initialVirtualQuote, extraFeeBps, meta, { value: launchFee });
+      ? await factory.launchAndBuy(name, symbol, quoteAddr, initialVirtualQuote, extraFeeBps, meta, devBuyQuote, { value: launchFee })
+      : await factory.launch(name, symbol, quoteAddr, initialVirtualQuote, extraFeeBps, meta, { value: launchFee });
     statusEl.innerHTML = `<div class="status pending">Launching… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
     const receipt = await tx.wait();
     const newToken = typeof arcLaunchedTokenFromReceipt === "function" ? arcLaunchedTokenFromReceipt(receipt) : null;
@@ -538,7 +663,7 @@ async function submitArcpadLaunch(ev) {
     // reset() puts the slider back to 0 but fires no input event, so the fee
     // breakdown and dev-buy preview have to be re-rendered by hand.
     document.getElementById("ap-extrafee").dispatchEvent(new Event("input"));
-    updateArcpadDevBuyPreview();
+    arcpadSelectPair("usdc");
     const reload = loadArcpadLaunches().catch((err) => console.error(err));
     if (newToken && typeof openArcCoin === "function") {
       // Straight to the new coin's page (it reads from chain, so it doesn't
@@ -553,6 +678,7 @@ async function submitArcpadLaunch(ev) {
     btn.disabled = false;
     btn.classList.remove("is-busy");
     if (btnLabel) btnLabel.textContent = "Launch coin";
+    arcpadRenderPair();
   }
 }
 
@@ -793,6 +919,7 @@ function refreshAccountDependentViews() {
   ["ap-devbuy", "ap-logo", "ap-description"].forEach((id) => document.getElementById(id).addEventListener("input", queueBal));
   document.getElementById("ap-logo-file").addEventListener("change", () => setTimeout(queueBal, 600));
   wireArcpadImageUpload();
+  wireArcpadPair();
   wireArcpadFeePreview();
 
   // Trade modal

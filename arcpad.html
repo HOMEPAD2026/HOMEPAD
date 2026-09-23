@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790147542">
+<link rel="stylesheet" href="style.css?v=1790148450">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -73,7 +73,7 @@
         </svg>
         <div class="bp-side-logo">Arc<span>Pad</span></div>
       </div>
-      <div class="bp-side-tag">Instant launches. Real pool from block one. Paired in USDC.</div>
+      <div class="bp-side-tag">Instant launches. Real pool from block one. Paired in USDC — or any Arc token.</div>
     </div>
 
     <button type="button" class="bp-mobile-menu-trigger" id="bp-mobile-menu-trigger">
@@ -163,7 +163,7 @@
         <div class="bp-row3">
           <div class="bp-card">
             <div class="bp-card-head">The pool</div>
-            <p class="bp-card-note">A real Uniswap v4 pool is created the instant you launch — the coin's full sellable supply goes straight in, priced against a virtual USDC reserve. Tradeable on Dexscreener from block one, once indexed.</p>
+            <p class="bp-card-note">A real Uniswap v4 pool is created the instant you launch — the coin's full sellable supply goes straight in, priced against a virtual reserve of the pair token (USDC by default, or $ARCIRCLE / any Arc token you pick). Tradeable on Dexscreener from block one, once indexed.</p>
           </div>
           <div class="bp-card">
             <div class="bp-card-head">Fees</div>
@@ -217,6 +217,7 @@
                 <h1 id="apc-name">—</h1>
                 <span class="ac2-sym" id="apc-sym"></span>
                 <span class="ac2-badge ac2-badge-live">Live on Uniswap v4</span>
+                <span class="ac2-badge ac2-badge-core" id="apc-pair-badge" hidden></span>
               </div>
               <div class="ac2-ca-row">
                 <span class="ac2-ca-label">CA</span>
@@ -228,6 +229,7 @@
             </div>
             <div class="ac2-head-price">
               <div class="ac2-price" id="apc-price">—</div>
+              <div class="apc-price-quote" id="apc-price-quote" hidden></div>
               <div class="ac2-change" id="apc-change">&nbsp;</div>
             </div>
           </div>
@@ -290,7 +292,7 @@
                   </div>
                   <div class="ac2-table-wrap">
                     <table class="ac2-table">
-                      <thead><tr><th>Time</th><th>Type</th><th class="r">USDC</th><th class="r" id="apc-th-sym">Tokens</th><th class="r">Price</th><th>Trader</th><th class="r">Tx</th></tr></thead>
+                      <thead><tr><th>Time</th><th>Type</th><th class="r" id="apc-th-quote">USDC</th><th class="r" id="apc-th-sym">Tokens</th><th class="r">Price</th><th>Trader</th><th class="r">Tx</th></tr></thead>
                       <tbody id="apc-trades"><tr><td colspan="7" class="ac2-empty">Loading trades…</td></tr></tbody>
                     </table>
                   </div>
@@ -309,7 +311,7 @@
                     <div><dt>Total supply</dt><dd>1,000,000,000</dd></div>
                     <div><dt>Pool supply</dt><dd>920,000,000 (92%)</dd></div>
                     <div><dt>Trade fee</dt><dd id="apc-about-fee">—</dd></div>
-                    <div><dt>Quote asset</dt><dd>USDC</dd></div>
+                    <div><dt>Paired with</dt><dd id="apc-about-quote">USDC</dd></div>
                     <div><dt>Pool</dt><dd id="apc-about-pool">—</dd></div>
                     <div><dt>Launched</dt><dd id="apc-about-launched">—</dd></div>
                   </dl>
@@ -544,7 +546,7 @@
       <!-- ============ LAUNCH ============ -->
       <section class="bp-panel" id="bp-panel-launch">
         <h1>Launch on ArcPad</h1>
-        <p class="bp-lede">Every launch is paired against USDC — Arc's own native currency — with a real Uniswap v4 pool created in the same transaction.</p>
+        <p class="bp-lede">Every launch gets a real Uniswap v4 pool in the same transaction — paired with USDC, Arc's own native currency, or with $ARCIRCLE or any Arc token you choose.</p>
         <div class="ap-launch-fee-note">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
 
         <form id="ap-launch-form" class="adv-launch-form">
@@ -575,13 +577,24 @@
             <input id="ap-discord" placeholder="Discord URL" maxlength="200">
           </div>
 
+          <label><span>Pair with</span> <span class="optional">the token people buy your coin with — USDC unless you pick another</span></label>
+          <div class="ap-pair">
+            <div class="ap-pair-seg" id="ap-pair-seg" role="radiogroup" aria-label="Pair token">
+              <button type="button" data-pair="usdc" class="active" role="radio" aria-checked="true"><span class="ap-pair-dot usdc"></span>USDC</button>
+              <button type="button" data-pair="arcircle" role="radio" aria-checked="false"><img src="images/arcircle-mark-sm.png" alt="" width="18" height="12">$ARCIRCLE</button>
+              <button type="button" data-pair="custom" role="radio" aria-checked="false">Other token (CA)</button>
+            </div>
+            <input id="ap-pair-ca" class="ap-pair-ca" placeholder="Paste the token's contract address on Arc (0x…)" autocomplete="off" spellcheck="false" hidden>
+            <div class="ap-pair-info" id="ap-pair-info" aria-live="polite"></div>
+          </div>
+
           <div class="ap-start-fixed">
             <div class="ap-start-fixed-head"><span>Starting point</span><span class="ap-start-fixed-tag">Same for every launch</span></div>
             <div class="ap-start-fixed-row">
-              <div><small>Starting price</small><strong>≈ $0.0000043</strong></div>
-              <div><small>Market cap</small><strong>≈ $4,350</strong></div>
+              <div><small>Starting price</small><strong id="ap-start-price">≈ $0.0000043</strong></div>
+              <div><small>Market cap</small><strong id="ap-start-mcap">≈ $4,350</strong></div>
             </div>
-            <p class="hint">Every ArcPad coin opens at the same price — the pool starts with a 4,000 USDC virtual reserve against the 920M sellable tokens, so there's nothing to set here.</p>
+            <p class="hint" id="ap-start-hint">Every ArcPad coin opens at the same price — the pool starts with a 4,000 USDC virtual reserve against the 920M sellable tokens, so there's nothing to set here.</p>
           </div>
 
           <label><span>Your fee</span> <span class="optional">optional add-on, 0–2%, 100% yours</span>
@@ -592,10 +605,10 @@
           <label><span>Dev buy</span> <span class="optional">optional</span>
             <div class="cn-input-suffix-wrap">
               <input id="ap-devbuy" type="number" min="0" step="any" placeholder="0.0">
-              <span class="cn-input-suffix">USDC</span>
+              <span class="cn-input-suffix" id="ap-devbuy-unit">USDC</span>
             </div>
           </label>
-          <p class="hint">Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.</p>
+          <p class="hint" id="ap-devbuy-hint">Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.</p>
           <p class="hint" id="ap-devbuy-preview"></p>
 
           <div id="ap-launch-status"></div>
@@ -623,7 +636,7 @@
           <p class="bp-lede">A real Uniswap v4 pool is created the instant you launch — not a bonding-curve contract that "graduates" into a pool later.</p>
 
           <h3>The pool</h3>
-          <p>It's single-sided: the coin's full sellable supply (92% of 1B — see Supply below) goes straight into the pool at creation, priced against a virtual reserve of USDC. Tradeable on Dexscreener from block one, once indexed.</p>
+          <p>It's single-sided: the coin's full sellable supply (92% of 1B — see Supply below) goes straight into the pool at creation, priced against a virtual reserve of the pair token — USDC by default, or $ARCIRCLE or any Arc token you pick, sized so every launch opens at ≈ $4,350. Tradeable on Dexscreener from block one, once indexed.</p>
 
           <h3>Pricing</h3>
           <p>Constant-product curve math against that virtual reserve — the more USDC buyers put in, the higher the price climbs. It's a real, immediately swappable v4 pool the whole time, not a separate holding contract.</p>
@@ -729,13 +742,14 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1790147542"></script>
-<script src="abis.js?v=1790147542"></script>
-<script src="arc-shared.js?v=1790147542"></script>
-<script src="wallet-appkit.js?v=1790147542"></script>
-<script src="arcpad.js?v=1790147542"></script>
-<script src="arcpad-coin.js?v=1790147542"></script>
-<script src="arcircle-coin.js?v=1790147542"></script>
-<script src="arcircle-hub.js?v=1790147542"></script>
+<script src="config-arc.js?v=1790148450"></script>
+<script src="abis.js?v=1790148450"></script>
+<script src="arc-shared.js?v=1790148450"></script>
+<script src="wallet-appkit.js?v=1790148450"></script>
+<script src="arc-quote.js?v=1790148450"></script>
+<script src="arcpad.js?v=1790148450"></script>
+<script src="arcpad-coin.js?v=1790148450"></script>
+<script src="arcircle-coin.js?v=1790148450"></script>
+<script src="arcircle-hub.js?v=1790148450"></script>
 </body>
 </html>
