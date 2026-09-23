@@ -76,6 +76,49 @@ function blockAtOrAfter(isoTimestamp, namespace) {
   return p;
 }
 
+// Arc's public RPC rejects any eth_getLogs spanning more than ~10,000 blocks
+// ("requested range too large", -32012; measured cap 9,960) and Arc makes a
+// block every ~0.5s — ~170k blocks a day — so a single "since deploy" log
+// query stops working within hours. This splits [fromBlock, toBlock] into
+// ranges the RPC accepts. `filter` is anything contract.queryFilter takes
+// (an event filter, an event name, or "*").
+// The public RPC also rate-limits eth_getLogs (-32005 "rate limit
+// exceeded"). Measured on mainnet: one request at a time with exponential
+// backoff on a rate-limit hit is FASTER than running in parallel (10 chunks
+// in ~2.7s sequential vs ~5s with 2 in flight), so concurrency defaults to 1.
+const LOG_CHUNK_BLOCKS = 9_000;
+const RATE_LIMITED = /rate limit|429|-32005|too many requests/i;
+// onChunk(events, [from, to]) fires as each range completes — with the
+// default concurrency of 1 that's strictly in block order, so a caller can
+// checkpoint progress and resume after a failure instead of starting over.
+async function queryFilterChunked(contract, filter, fromBlock, toBlock, { chunk = LOG_CHUNK_BLOCKS, concurrency = 1, onChunk = null } = {}) {
+  if (toBlock == null || toBlock === "latest") toBlock = await withRetry(() => readProvider().getBlockNumber());
+  if (fromBlock > toBlock) return [];
+  const ranges = [];
+  for (let a = fromBlock; a <= toBlock; a += chunk) ranges.push([a, Math.min(toBlock, a + chunk - 1)]);
+  const fetchRange = async ([a, b]) => {
+    for (let attempt = 0; ; attempt++) {
+      try { return await contract.queryFilter(filter, a, b); }
+      catch (err) {
+        const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
+        const retryable = RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text);
+        if (!retryable || attempt >= 9) throw err;
+        await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
+      }
+    }
+  };
+  const out = new Array(ranges.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, ranges.length) }, async () => {
+    while (next < ranges.length) {
+      const i = next++;
+      out[i] = await fetchRange(ranges[i]);
+      if (onChunk) onChunk(out[i], ranges[i], i + 1, ranges.length);
+    }
+  }));
+  return out.flat();
+}
+
 // Multicall3 — same canonical cross-chain address, confirmed present on Arc
 // mainnet too (Circle's own docs list it at this exact address).
 const MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11";

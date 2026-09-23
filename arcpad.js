@@ -106,30 +106,36 @@ async function loadArcpadLaunches() {
   if (ARC.baseFeeBps == null) {
     try { ARC.baseFeeBps = Number(await f.baseFeeBps()); } catch { ARC.baseFeeBps = 100; }
   }
-  const fromBlock = await blockAtOrAfter(CONFIG.CONTRACTS_LIVE_SINCE, "arcpad");
-  const events = await withRetry(() => f.queryFilter(f.filters.Launched(), fromBlock, "latest"));
-
-  const built = await Promise.all(events.map(async (ev) => {
-    const base = {
-      token: ev.args.token, symbol: ev.args.symbol, name: ev.args.name,
-      creator: ev.args.creator, quoteToken: ev.args.quoteToken,
-      extraFeeBps: Number(ev.args.extraFeeBps),
-      imageUrl: ev.args.imageUrl, description: ev.args.description,
-    };
-    try {
-      const idx = await withRetry(() => f.launchIndexOf(ev.args.token));
-      const l = await withRetry(() => f.launches(idx - 1n));
-      return {
-        ...base, launchedAt: Number(l.launchedAt), twitter: l.twitter, telegram: l.telegram,
-        discord: l.discord, website: l.website, quoteIsCurrency0: l.quoteIsCurrency0,
+  // Every launch is read straight from the factory's own storage
+  // (launchCount + launches(i)), plus name/symbol from the token itself —
+  // no event-log scan at all. Arc's RPC caps eth_getLogs at ~10k blocks
+  // (~84 minutes of chain), so the old "all Launched events since deploy"
+  // query failed outright within hours of going live. This costs the same
+  // few multicalls however old the factory gets. Batched so a page of
+  // launches with embedded data-URI logos stays within eth_call limits.
+  const count = Number(await withRetry(() => f.launchCount()));
+  const BATCH = 20;
+  const built = [];
+  for (let start = 0; start < count; start += BATCH) {
+    const idxs = Array.from({ length: Math.min(BATCH, count - start) }, (_, k) => start + k);
+    const rows = await withRetry(() => multicallRead(idxs.map((i) => ({ contract: f, method: "launches", args: [i] }))));
+    const valid = rows.filter(Boolean);
+    const names = await multicallRead(valid.flatMap((l) => {
+      const t = tokenRead(l.token);
+      return [{ contract: t, method: "name" }, { contract: t, method: "symbol" }];
+    }));
+    valid.forEach((l, k) => {
+      built.push({
+        token: l.token, name: names[2 * k] ?? "", symbol: names[2 * k + 1] ?? "",
+        creator: l.creator, quoteToken: l.quoteToken, extraFeeBps: Number(l.extraFeeBps),
+        imageUrl: l.imageUrl, description: l.description, launchedAt: Number(l.launchedAt),
+        twitter: l.twitter, telegram: l.telegram, discord: l.discord, website: l.website,
+        quoteIsCurrency0: l.quoteIsCurrency0,
         initialVirtualQuote: Number(ethers.formatUnits(l.initialVirtualQuote, ARC_QUOTE_DECIMALS)),
-      };
-    } catch (err) {
-      console.warn("arcpad explore: full launch data failed for", ev.args.token, err);
-      const launchedAt = await withRetry(() => readProvider().getBlock(ev.blockNumber)).then((b) => Number(b.timestamp)).catch(() => 0);
-      return { ...base, launchedAt, twitter: "", telegram: "", discord: "", website: "", quoteIsCurrency0: null, initialVirtualQuote: null };
-    }
-  }));
+      });
+    });
+    if (valid.length < idxs.length) console.warn(`arcpad explore: ${idxs.length - valid.length} launch record(s) in batch ${start} failed to read`);
+  }
 
   // Live price per launch — starting valuation is the fallback for a launch
   // whose pool read fails (RPC hiccup) rather than showing a broken "—".
@@ -219,7 +225,11 @@ function renderArcpadExploreGrid() {
   if (arcExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
   else if (arcExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
   else rows = [...rows].sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
-  grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">No launches match "${q}".</div>`;
+  const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const empty = ARC.launches.length === 0
+    ? "No coins have launched on ArcPad yet — the Launch tab is where the first one starts."
+    : `No launches match “${esc(q)}”.`;
+  grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty}</div>`;
   wireLaunchCardClicks(grid);
 }
 
@@ -635,7 +645,15 @@ function refreshAccountDependentViews() {
     const raw = label.dataset.raw;
     if (!raw) return;
     const dec = ARC.tradeSide === "buy" ? ARC_QUOTE_DECIMALS : ARC_TOKEN_DECIMALS;
-    document.getElementById("ap-trade-amount").value = ethers.formatUnits(raw, dec);
+    let amount = BigInt(raw);
+    // On Arc the USDC you spend IS the gas token, so "Max" on a buy has to
+    // leave room for the approve + swap gas (~0.01 USDC at today's fees) or
+    // the transaction fails for insufficient funds. 0.05 USDC is ample.
+    if (ARC.tradeSide === "buy") {
+      const reserve = ethers.parseUnits("0.05", ARC_QUOTE_DECIMALS);
+      amount = amount > reserve ? amount - reserve : 0n;
+    }
+    document.getElementById("ap-trade-amount").value = ethers.formatUnits(amount, dec);
     updateTradePreview();
   });
 

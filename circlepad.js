@@ -534,71 +534,116 @@ function circlepadLbRowDetailedHtml(r, i, pctFn) {
 }
 
 let _circlepadLeaderboardLoadedOnce = false;
+let _circlepadLbBusy = false;
+let _circlepadLog = null;
+
+// Contributed/Refunded events scanned so far, kept in memory and in
+// localStorage (keyed by escrow address) so every refresh — and every
+// return visit — only reads the blocks added since the last scan.
+// Amounts are stored as strings since JSON can't carry BigInt.
+function circlepadLogCache() {
+  if (_circlepadLog) return _circlepadLog;
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem(circlepadCacheKey("logs.v1")) || "null"); } catch { /* storage blocked */ }
+  _circlepadLog = (c && Array.isArray(c.contributed) && Array.isArray(c.refunded))
+    ? c : { from: null, scannedTo: null, endBlock: null, contributed: [], refunded: [] };
+  return _circlepadLog;
+}
+function circlepadSaveLogCache(log) {
+  try { localStorage.setItem(circlepadCacheKey("logs.v1"), JSON.stringify(log)); } catch { /* quota — memory copy still works */ }
+}
+
+function showCirclepadLeaderboardText(text) {
+  const homeEl = document.getElementById("bp-home-leaderboard");
+  if (homeEl) { homeEl.className = "bp-empty"; homeEl.textContent = text; }
+  const fullEl = document.getElementById("bp-full-leaderboard");
+  if (fullEl) fullEl.textContent = text;
+}
 
 async function refreshCirclepadLeaderboard() {
   if (!circlepadEscrowConfigured()) return;
+  if (_circlepadLbBusy) return; // a long first scan must not overlap the next 15s poll
+  _circlepadLbBusy = true;
+  try { await refreshCirclepadLeaderboardInner(); } finally { _circlepadLbBusy = false; }
+}
+
+async function refreshCirclepadLeaderboardInner() {
   const escrow = circlepadEscrowRead();
-  const sinceIso = CONFIG.CIRCLEPAD_LIVE_SINCE || CONFIG.CONTRACTS_LIVE_SINCE;
+  if (!_circlepadLeaderboardLoadedOnce) showCirclepadLeaderboardText("Loading…");
 
-  // The very first fetch has to binary-search for the round's starting
-  // block (see blockAtOrAfter in app.js) — a handful of sequential RPC
-  // round trips on a browser with nothing cached yet, easily a couple of
-  // seconds. Say so instead of leaving the static "No contributors yet"
-  // text sitting there looking like a real (and possibly wrong) answer.
-  if (!_circlepadLeaderboardLoadedOnce) {
-    const homeElInit = document.getElementById("bp-home-leaderboard");
-    if (homeElInit) { homeElInit.className = "bp-empty"; homeElInit.textContent = "Loading…"; }
-    const fullElInit = document.getElementById("bp-full-leaderboard");
-    if (fullElInit) fullElInit.textContent = "Loading…";
-  }
-
-  let fromBlock = 0;
+  // contribute() and refund() only succeed while the raise is open —
+  // between start() and the deadline — so that window is the only place
+  // these events can exist: nothing to scan before start(), nothing after
+  // the deadline. Arc's RPC rejects eth_getLogs over ~10k blocks, so the
+  // window is read in chunks (queryFilterChunked in arc-shared.js).
+  let started, deadline, duration;
   try {
-    // Cache key changed (was "circlepad") to force a fresh binary search —
-    // ruling out a stale/incorrect cached block number as the cause of
-    // real contributions not showing up. Also backed off by a fixed
-    // safety margin: the binary search's own precision is already within
-    // ~2000 blocks of the target, so this is pure defense-in-depth against
-    // silently searching from a point that's too late and missing real
-    // events (queryFilter has no way to warn "you started the range too
-    // late" — it just returns fewer results than actually exist).
-    const resolved = await blockAtOrAfter(sinceIso, "circlepad-v2");
-    fromBlock = Math.max(0, resolved - 50_000);
-  } catch { /* falls back to scanning from genesis */ }
-
-  let events = [], refundEvents = [];
-  let loaded = false;
-  for (let attempt = 0; attempt < 3 && !loaded; attempt++) {
-    try {
-      [events, refundEvents] = await Promise.all([
-        escrow.queryFilter(escrow.filters.Contributed(), fromBlock, "latest"),
-        escrow.queryFilter(escrow.filters.Refunded(), fromBlock, "latest"),
-      ]);
-      loaded = true;
-    } catch (err) {
-      console.error(`CirclePad: failed to load Contributed/Refunded events (attempt ${attempt + 1})`, err);
-      if (attempt < 2) await new Promise((res) => setTimeout(res, 600));
-    }
+    [started, deadline, duration] = await Promise.all([
+      withRetry(() => escrow.started()), withRetry(() => escrow.deadline()), withRetry(() => escrow.FUNDING_DURATION()),
+    ]);
+  } catch (err) {
+    console.error("CirclePad: failed to read round state for the leaderboard", err);
+    if (!_circlepadLeaderboardLoadedOnce) showCirclepadLeaderboardText("Couldn't load the leaderboard — retrying shortly.");
+    return;
   }
-  if (!loaded) {
-    // Only show this if we've never once loaded successfully — a poll
-    // that fails after an earlier success just leaves the last good data
-    // up rather than replacing it with an error.
-    if (!_circlepadLeaderboardLoadedOnce) {
-      const homeEl = document.getElementById("bp-home-leaderboard");
-      if (homeEl) { homeEl.className = "bp-empty"; homeEl.textContent = "Couldn't load the leaderboard — retrying shortly."; }
-      const fullEl = document.getElementById("bp-full-leaderboard");
-      if (fullEl) fullEl.textContent = "Couldn't load the leaderboard — retrying shortly.";
+  if (!started) {
+    _circlepadLeaderboardLoadedOnce = true;
+    renderCirclepadLeaderboard([], []);
+    return;
+  }
+
+  const log = circlepadLogCache();
+  try {
+    if (log.from == null) {
+      // blockAtOrAfter returns a block at or just BEFORE the target time,
+      // so starting there can never skip the start() block itself.
+      log.from = await blockAtOrAfter(new Date(Number(deadline - duration) * 1000).toISOString(), "circlepad-start");
+      log.scannedTo = log.from - 1;
     }
+    const latest = await withRetry(() => readProvider().getBlockNumber());
+    let to = latest;
+    if (Math.floor(Date.now() / 1000) > Number(deadline) + 60) {
+      // Raise is over: cap the window at the deadline so a visit weeks later
+      // doesn't scan weeks of empty blocks. blockAtOrAfter's answer is within
+      // 2,048 blocks before the deadline, so +2,100 always covers it.
+      if (log.endBlock == null) {
+        log.endBlock = (await blockAtOrAfter(new Date(Number(deadline) * 1000).toISOString(), "circlepad-end")) + 2100;
+      }
+      to = Math.min(latest, log.endBlock);
+    }
+    if (to > log.scannedTo) {
+      const plain = (e) => ({ contributor: e.args.contributor, amount: e.args.amount.toString(), blockNumber: e.blockNumber, index: e.index ?? 0 });
+      // Checkpoint after every chunk (they complete in block order), so a
+      // rate-limit failure halfway through resumes from there next poll.
+      await queryFilterChunked(escrow, "*", log.scannedTo + 1, to, {
+        onChunk: (found, [, chunkTo], done, total) => {
+          for (const e of found) {
+            if (e.eventName === "Contributed") log.contributed.push(plain(e));
+            else if (e.eventName === "Refunded") log.refunded.push(plain(e));
+          }
+          log.scannedTo = chunkTo;
+          if (done === total || done % 5 === 0) circlepadSaveLogCache(log);
+          if (!_circlepadLeaderboardLoadedOnce && total > 3) showCirclepadLeaderboardText(`Loading contributions… ${Math.round((done / total) * 100)}%`);
+        },
+      });
+    }
+  } catch (err) {
+    circlepadSaveLogCache(log); // keep whatever chunks did complete
+    console.error("CirclePad: failed to load Contributed/Refunded events", err);
+    // A poll that fails after an earlier success leaves the last good data up.
+    if (!_circlepadLeaderboardLoadedOnce) showCirclepadLeaderboardText("Couldn't load the leaderboard — retrying shortly.");
     return;
   }
   _circlepadLeaderboardLoadedOnce = true;
+
+  const events = log.contributed.map((e) => ({ ...e, amount: BigInt(e.amount) }));
+  const refundEvents = log.refunded.map((e) => ({ ...e, amount: BigInt(e.amount) }));
 
   // Per-address totals read straight from the contract (authoritative)
   // rather than summed from events, so this can never double-count and
   // automatically reflects any refunds already paid out. Batched through
   // Multicall3 — one round trip instead of one eth_call per contributor.
-  const uniqueAddrs = [...new Set(events.map((e) => e.args.contributor))];
+  const uniqueAddrs = [...new Set(events.map((e) => e.contributor))];
   const amounts = uniqueAddrs.length > 0
     ? await multicallRead(uniqueAddrs.map((a) => ({ contract: escrow, method: "contributions", args: [a] })))
     : [];
@@ -608,8 +653,8 @@ async function refreshCirclepadLeaderboard() {
   // total out" (only the current net contributions() balance), so this is
   // the one place events are the right source, purely for display.
   const inByAddr = new Map(), outByAddr = new Map();
-  for (const e of events) inByAddr.set(e.args.contributor, (inByAddr.get(e.args.contributor) ?? 0n) + e.args.amount);
-  for (const e of refundEvents) outByAddr.set(e.args.contributor, (outByAddr.get(e.args.contributor) ?? 0n) + e.args.amount);
+  for (const e of events) inByAddr.set(e.contributor, (inByAddr.get(e.contributor) ?? 0n) + e.amount);
+  for (const e of refundEvents) outByAddr.set(e.contributor, (outByAddr.get(e.contributor) ?? 0n) + e.amount);
 
   const rows = uniqueAddrs
     .map((address, i) => ({ address, amount: amounts[i] ?? 0n, depositedTotal: inByAddr.get(address) ?? 0n, withdrawnTotal: outByAddr.get(address) ?? 0n }))
@@ -630,7 +675,7 @@ async function refreshCirclepadLeaderboard() {
   const blocks = blockNumbers.length > 0 ? await Promise.all(blockNumbers.map((n) => readProvider().getBlock(n))) : [];
   const blockTime = new Map(blockNumbers.map((n, i) => [n, Number(blocks[i]?.timestamp ?? 0)]));
   const activity = recent.map(({ e, kind }) => ({
-    contributor: e.args.contributor, amount: e.args.amount, kind, ts: blockTime.get(e.blockNumber) || 0,
+    contributor: e.contributor, amount: e.amount, kind, ts: blockTime.get(e.blockNumber) || 0,
   }));
 
   renderCirclepadLeaderboard(rows, activity);
