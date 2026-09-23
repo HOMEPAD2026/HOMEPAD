@@ -3502,3 +3502,12 @@ body.ax-dock-host{padding-bottom:160px;}
   .ac2-feature-kind{display:none;}
 }
 .ac2-dl > div:last-child:nth-child(odd){grid-column:1 / -1;}
+
+/* ArcPad launch form: fixed starting point (no longer an input) */
+.ap-start-fixed{background:var(--panel-hi);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 4px;}
+.ap-start-fixed-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.82rem;font-weight:600;color:#fff;margin-bottom:10px;}
+.ap-start-fixed-tag{font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green);border:1px solid color-mix(in srgb,var(--green) 40%,transparent);border-radius:99px;padding:3px 9px;white-space:nowrap;}
+.ap-start-fixed-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ap-start-fixed-row small{display:block;font-size:.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.ap-start-fixed-row strong{font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.ap-start-fixed p.hint.hint{font-size:.75rem;color:var(--ink-dim);margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);line-height:1.5;}

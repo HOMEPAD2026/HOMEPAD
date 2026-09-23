@@ -13,6 +13,10 @@ const ARC_QUOTE_DECIMALS = 6;
 const ARC_DEFAULT_SUPPLY = 1_000_000_000;
 const ARC_PLATFORM_ALLOC_BPS = 800; // 8% to platform treasury, every launch — see HomepadFactoryArc.sol
 const ARC_SELLABLE_SUPPLY = ARC_DEFAULT_SUPPLY * (10000 - ARC_PLATFORM_ALLOC_BPS) / 10000; // 920,000,000
+// Every launch opens at the same point: a 4,000 USDC virtual reserve against
+// the 920M sellable tokens → ≈ $0.0000043 per token, ≈ $4,350 market cap.
+// Not user-editable (it confused people and there's no reason to vary it).
+const ARC_START_VALUATION_USDC = "4000";
 
 // ---------- Contract accessors ----------
 function arcpadFactoryConfigured() {
@@ -343,9 +347,8 @@ function wireArcpadFeePreview() {
 function updateArcpadDevBuyPreview() {
   const el = document.getElementById("ap-devbuy-preview");
   const devBuyStr = document.getElementById("ap-devbuy").value.trim();
-  const valuationStr = document.getElementById("ap-start-valuation").value.trim();
-  if (!devBuyStr || Number(devBuyStr) <= 0 || !valuationStr || Number(valuationStr) <= 0) { el.textContent = ""; return; }
-  const virtualQuote = Number(valuationStr);
+  if (!devBuyStr || Number(devBuyStr) <= 0) { el.textContent = ""; return; }
+  const virtualQuote = Number(ARC_START_VALUATION_USDC);
   const devBuy = Number(devBuyStr);
   const tokensOut = ARC_SELLABLE_SUPPLY - (virtualQuote * ARC_SELLABLE_SUPPLY) / (virtualQuote + devBuy);
   el.textContent = `≈ ${fmtCompact(tokensOut)} tokens (${((tokensOut / ARC_SELLABLE_SUPPLY) * 100).toFixed(2)}% of the sellable supply) — approximate, before the trading fee.`;
@@ -363,11 +366,11 @@ async function submitArcpadLaunch(ev) {
   const twitter = document.getElementById("ap-twitter").value.trim();
   const telegram = document.getElementById("ap-telegram").value.trim();
   const discord = document.getElementById("ap-discord").value.trim();
-  const startValuation = document.getElementById("ap-start-valuation").value.trim();
+  const startValuation = ARC_START_VALUATION_USDC;
   const extraFeeBps = Number(document.getElementById("ap-extrafee").value);
   const devBuyStr = document.getElementById("ap-devbuy").value.trim();
 
-  if (!name || !symbol || !startValuation) { statusEl.innerHTML = `<div class="status error">Name, symbol, and starting valuation are required.</div>`; return; }
+  if (!name || !symbol) { statusEl.innerHTML = `<div class="status error">Name and symbol are required.</div>`; return; }
   if (imageUrl.startsWith("data:") && imageUrl.length > 280_000) {
     statusEl.innerHTML = `<div class="status error">That embedded image is too large and will likely make the transaction fail — use a hosted image URL or a smaller file.</div>`;
     return;
@@ -643,7 +646,6 @@ function refreshAccountDependentViews() {
   // Launch form
   document.getElementById("ap-launch-form").addEventListener("submit", submitArcpadLaunch);
   document.getElementById("ap-devbuy").addEventListener("input", updateArcpadDevBuyPreview);
-  document.getElementById("ap-start-valuation").addEventListener("input", updateArcpadDevBuyPreview);
   wireArcpadImageUpload();
   wireArcpadFeePreview();
 
