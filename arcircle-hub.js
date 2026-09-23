@@ -147,8 +147,8 @@
     bar.className = "ax-quick";
     bar.setAttribute("aria-label", "Quick actions");
     bar.innerHTML =
-      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch">' + ICON_ROCKET + '<span>Launch</span></a>' +
-      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore">' + ICON_GRID + '<span>Explore</span></a>';
+      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
+      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>';
     dock.parentNode.insertBefore(bar, dock);
 
     // Sit exactly one gap above the dock, whatever height it renders at.

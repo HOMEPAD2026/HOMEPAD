@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790143018">
+<link rel="stylesheet" href="style.css?v=1790143387">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -437,7 +437,12 @@
           <p class="hint" id="ap-devbuy-preview"></p>
 
           <div id="ap-launch-status"></div>
-          <button type="submit" class="btn btn-primary" id="ap-launch-submit">Launch</button>
+          <button type="submit" class="ap-launch-btn" id="ap-launch-submit">
+            <span class="ap-launch-btn-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg></span>
+            <span class="ap-launch-btn-label">Launch coin</span>
+            <span class="ap-launch-btn-fee">1 USDC fee</span>
+          </button>
+          <p class="ap-launch-btn-note">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
         </form>
       </section>
 
@@ -561,12 +566,12 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1790143018"></script>
-<script src="abis.js?v=1790143018"></script>
-<script src="arc-shared.js?v=1790143018"></script>
-<script src="wallet-appkit.js?v=1790143018"></script>
-<script src="arcpad.js?v=1790143018"></script>
-<script src="arcircle-coin.js?v=1790143018"></script>
-<script src="arcircle-hub.js?v=1790143018"></script>
+<script src="config-arc.js?v=1790143387"></script>
+<script src="abis.js?v=1790143387"></script>
+<script src="arc-shared.js?v=1790143387"></script>
+<script src="wallet-appkit.js?v=1790143387"></script>
+<script src="arcpad.js?v=1790143387"></script>
+<script src="arcircle-coin.js?v=1790143387"></script>
+<script src="arcircle-hub.js?v=1790143387"></script>
 </body>
 </html>

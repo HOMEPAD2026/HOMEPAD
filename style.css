@@ -3210,19 +3210,42 @@ body.ax-modal-open{overflow:hidden;}
   backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
   box-shadow:0 14px 36px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);}
 :is(.ax-page,.ax-dock-host) .ax-quick > .ax-quick-item{margin:0;}
-.ax-quick-item{display:flex;align-items:center;gap:7px;padding:7px 16px 7px 13px;border-radius:999px;
+.ax-quick-item{position:relative;display:flex;align-items:center;gap:8px;padding:5px 16px 5px 5px;border-radius:999px;
   font-family:'Sora',sans-serif;font-size:.8rem;font-weight:700;line-height:1.2;letter-spacing:-.01em;
-  color:var(--ax-ink);text-decoration:none;white-space:nowrap;transition:background .15s,filter .15s,transform .15s;}
-.ax-quick-item svg{width:15px;height:15px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  color:var(--ax-ink);text-decoration:none;white-space:nowrap;isolation:isolate;overflow:hidden;
+  transition:background .2s,box-shadow .2s,transform .2s,filter .2s;}
+.ax-quick-ico{width:26px;height:26px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;
+  background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
+.ax-quick-item svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
 :is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-item:hover{color:var(--ax-ink);background:rgba(255,255,255,.07);}
+.ax-quick-item[aria-current="page"]:not(.ax-quick-launch){background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);}
+
+/* Launch: the one primary action — layered gradient, glass highlight, glow,
+   and a slow light sweep so it reads as "the button" without shouting. */
 :is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch,
-:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch:hover{background:var(--ax-grad);color:#03110a;}
-.ax-quick-launch:hover{filter:brightness(1.08);}
-.ax-quick-item[aria-current="page"]:not(.ax-quick-launch){background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);}
-.ax-quick-launch[aria-current="page"]{box-shadow:0 0 0 2px rgba(255,255,255,.55);}
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch:hover{
+  color:#03130c;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,.35), transparent 55%),
+    linear-gradient(100deg,#3f9bff 0%,#35d8d0 52%,#39ff88 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(0,0,0,.18),
+    0 6px 18px rgba(53,216,208,.28),0 0 0 1px rgba(120,230,220,.35);}
+.ax-quick-launch .ax-quick-ico{background:rgba(3,19,12,.16);box-shadow:inset 0 0 0 1px rgba(3,19,12,.14);}
+.ax-quick-launch::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 48%,transparent 66%);
+  transform:translateX(-120%);animation:axQuickSweep 4.8s ease-in-out 1.2s infinite;}
+@keyframes axQuickSweep{0%,62%{transform:translateX(-120%);}86%,100%{transform:translateX(120%);}}
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch:hover{transform:translateY(-1px);filter:brightness(1.06) saturate(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.18),
+    0 10px 26px rgba(53,216,208,.4),0 0 0 1px rgba(150,240,230,.5);}
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch[aria-current="page"]{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.18),
+    0 0 22px rgba(57,255,136,.45),0 0 0 1px rgba(180,255,220,.6);}
+.ax-quick-item:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){.ax-quick-launch::after{animation:none;display:none;}}
 @media (max-width:640px){
   :is(.ax-page,.ax-dock-host) nav.ax-quick{bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 12px)) + var(--ax-dock-h,84px) + 8px);}
-  .ax-quick-item{padding:7px 15px 7px 12px;font-size:.78rem;}
+  .ax-quick-item{padding:5px 15px 5px 5px;font-size:.78rem;}
 }
 
 /* ---- Dock + Reward popup hosted on ArcPad / CirclePad (body.ax-dock-host) ----
@@ -3511,3 +3534,43 @@ body.ax-dock-host{padding-bottom:160px;}
 .ap-start-fixed-row small{display:block;font-size:.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
 .ap-start-fixed-row strong{font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums;}
 .ap-start-fixed p.hint.hint{font-size:.75rem;color:var(--ink-dim);margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);line-height:1.5;}
+
+/* ArcPad launch form — the submit button. Same visual language as the
+   floating quick-bar Launch pill: layered Arc→Circle gradient, glass top
+   highlight, soft glow, slow light sweep; spinner while launching. */
+.ap-launch-btn{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:12px;
+  width:100%;min-height:58px;margin-top:14px;padding:10px 14px 10px 10px;border:0;border-radius:16px;cursor:pointer;
+  font-family:'Sora',sans-serif;font-size:1rem;font-weight:800;letter-spacing:-.01em;color:#03130c;
+  background:
+    radial-gradient(90% 160% at 0% 0%, rgba(255,255,255,.34), transparent 55%),
+    linear-gradient(100deg,#3f9bff 0%,#35d8d0 52%,#39ff88 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.14),
+    0 12px 30px rgba(53,216,208,.22),0 0 0 1px rgba(120,230,220,.3);
+  transition:transform .18s,box-shadow .18s,filter .18s,opacity .18s;}
+.ap-launch-btn::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);
+  transform:translateX(-120%);animation:axQuickSweep 5.5s ease-in-out 1s infinite;}
+.ap-launch-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05) saturate(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.14),
+    0 16px 38px rgba(53,216,208,.34),0 0 0 1px rgba(150,240,230,.5);}
+.ap-launch-btn:active:not(:disabled){transform:translateY(0) scale(.99);}
+.ap-launch-btn:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+.ap-launch-btn:disabled{cursor:not-allowed;opacity:.72;}
+.ap-launch-btn-ico{width:38px;height:38px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;
+  background:rgba(3,19,12,.14);box-shadow:inset 0 0 0 1px rgba(3,19,12,.12);}
+.ap-launch-btn-ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.ap-launch-btn-label{flex:1;text-align:left;}
+.ap-launch-btn-fee{flex-shrink:0;font-size:.72rem;font-weight:700;padding:6px 10px;border-radius:99px;
+  background:rgba(3,19,12,.14);box-shadow:inset 0 0 0 1px rgba(3,19,12,.1);}
+.ap-launch-btn.is-busy .ap-launch-btn-ico svg{display:none;}
+.ap-launch-btn.is-busy .ap-launch-btn-ico::before{content:"";width:17px;height:17px;border-radius:50%;
+  border:2px solid rgba(3,19,12,.25);border-top-color:#03130c;animation:apSpin .8s linear infinite;}
+.ap-launch-btn.is-busy::after{animation-duration:1.6s;animation-delay:0s;}
+@keyframes apSpin{to{transform:rotate(360deg);}}
+.ap-launch-btn-note{font-size:.72rem;color:var(--ink-dim);text-align:center;margin:10px 0 0;}
+@media (prefers-reduced-motion:reduce){.ap-launch-btn::after{animation:none;display:none;}}
+@media (min-width:641px){
+  .ap-launch-btn{padding:10px 130px;}
+  .ap-launch-btn-label{flex:0 0 auto;text-align:center;}
+  .ap-launch-btn-fee{position:absolute;right:14px;top:50%;transform:translateY(-50%);}
+}

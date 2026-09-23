@@ -384,6 +384,9 @@ async function submitArcpadLaunch(ev) {
   }
 
   btn.disabled = true;
+  btn.classList.add("is-busy");
+  const btnLabel = btn.querySelector(".ap-launch-btn-label");
+  if (btnLabel) btnLabel.textContent = "Launching…";
   try {
     const initialVirtualQuote = ethers.parseUnits(startValuation, ARC_QUOTE_DECIMALS);
     const devBuyQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) : 0n;
@@ -420,6 +423,8 @@ async function submitArcpadLaunch(ev) {
     statusEl.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 220)}</div>`;
   } finally {
     btn.disabled = false;
+    btn.classList.remove("is-busy");
+    if (btnLabel) btnLabel.textContent = "Launch coin";
   }
 }
 
