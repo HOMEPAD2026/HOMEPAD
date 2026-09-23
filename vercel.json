@@ -51,6 +51,10 @@
     {
       "source": "/c/:addr",
       "destination": "/api/c?addr=:addr"
+    },
+    {
+      "source": "/whitepaper/ko",
+      "destination": "/whitepaper-ko.html"
     }
   ],
   "redirects": [

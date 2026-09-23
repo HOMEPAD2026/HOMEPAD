@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>$ARCIRCLE Whitepaper — ARCIRCLE PAD</title>
 <meta name="description" content="The $ARCIRCLE whitepaper: ArcPad, CirclePad and the core coin that ties them together on Circle's Arc — mechanics, economics, flywheel, security and roadmap.">
+<link rel="alternate" hreflang="en" href="https://www.arcircle.app/whitepaper">
+<link rel="alternate" hreflang="ko" href="https://www.arcircle.app/whitepaper/ko">
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <meta property="og:type" content="article">
@@ -21,7 +23,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790207372"></script>
+<script src="arc-log.js?v=1790207995"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -169,6 +171,9 @@ svg text{font-family:Inter,sans-serif;}
   .page{border:0;border-radius:0;box-shadow:none;margin:0;page-break-after:always;break-after:page;}
   .page:last-child{page-break-after:auto;break-after:auto;}
 }
+@media (max-width:640px){.wp-bar-actions a[href="/arcircle"]{display:none;}.wp-bar-actions .wp-btn{padding:7px 11px;font-size:.76rem;}}
+@media (max-width:640px){.cover-meta{flex-wrap:wrap;gap:10px;}.cover-meta > div{min-width:0;}}
+@media (max-width:640px){.cover h1{font-size:clamp(2.1rem,12.5vw,3.4rem);white-space:nowrap;overflow-wrap:normal;}}
 </style>
 </head>
 <body>
@@ -176,6 +181,7 @@ svg text{font-family:Inter,sans-serif;}
   <a class="wp-bar-brand" href="/"><img src="images/arcircle-mark-sm.png" alt=""><span>ARCIRCLE <em>PAD</em></span></a>
   <span class="wp-bar-title">$ARCIRCLE Whitepaper · v1.0</span>
   <div class="wp-bar-actions">
+    <a class="wp-btn wp-lang" href="/whitepaper/ko" hreflang="ko" lang="ko" data-wp-lang="ko">한국어</a>
     <a class="wp-btn" href="/arcircle">$ARCIRCLE</a>
     <button type="button" class="wp-btn primary" onclick="window.print()">Save as PDF</button>
   </div>
@@ -1246,5 +1252,13 @@ Sell n tokens:     gross = n · Q / (T + n)
 </section>
 
 </main>
+<script>
+// Visitors who chose Korean on the site get the Korean edition (add ?en to stay).
+try { if (localStorage.getItem("arcircle.lang") === "ko" && !/[?&]en\b/.test(location.search)) location.replace("/whitepaper/ko" + location.hash); } catch (e) {}
+// EN/KO: remember the choice for the rest of the site (same key as i18n.js).
+document.querySelectorAll("[data-wp-lang]").forEach(function (a) {
+  a.addEventListener("click", function () { try { localStorage.setItem("arcircle.lang", a.getAttribute("data-wp-lang")); } catch (e) {} });
+});
+</script>
 </body>
 </html>
