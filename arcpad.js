@@ -245,6 +245,7 @@ function renderArcpadExploreGrid() {
   const grid = document.getElementById("ap-explore-grid");
   const q = (document.getElementById("ap-explore-search").value || "").trim().toLowerCase();
   let rows = ARC.launches.filter((l) => !q || l.name.toLowerCase().includes(q) || l.symbol.toLowerCase().includes(q));
+  if (arcExploreSort === "watch") rows = rows.filter((l) => typeof arcIsWatched === "function" && arcIsWatched(l.token));
   const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || null;
   if (arcExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
   else if (arcExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
@@ -255,6 +256,7 @@ function renderArcpadExploreGrid() {
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const empty = ARC.launches.length === 0
     ? "No coins have launched on ArcPad yet — the Launch tab is where the first one starts."
+    : arcExploreSort === "watch" && !q ? "Your watchlist is empty. Tap the star on any coin to keep it here."
     : `No launches match “${esc(q)}”.`;
   grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty}</div>`;
   wireLaunchCardClicks(grid);
@@ -293,18 +295,30 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
   }
   requestAnimationFrame(tick);
   viewport._carousel = { remeasure() { singleSetWidth = track.scrollWidth / 3; currentScroll = singleSetWidth; viewport.scrollLeft = currentScroll; } };
+  // Pointer capture only once the pointer has actually moved: capturing on
+  // pointerdown makes Chrome deliver the click to the viewport instead of
+  // the card, so a plain tap on a card (or its ★) did nothing.
+  let pressed = false, moved = false, pid = null;
   viewport.addEventListener("pointerdown", (e) => {
+    pressed = true; moved = false; pid = e.pointerId;
     isDragging = true; dragStartX = e.clientX; dragStartScroll = viewport.scrollLeft;
-    viewport.setPointerCapture(e.pointerId); viewport.classList.add("dragging");
   });
   viewport.addEventListener("pointermove", (e) => {
-    if (!isDragging) return;
-    viewport.scrollLeft = dragStartScroll - (e.clientX - dragStartX);
+    if (!pressed) return;
+    if (!moved && Math.abs(e.clientX - dragStartX) > 6) {
+      moved = true;
+      try { viewport.setPointerCapture(pid); } catch { /* pointer already gone */ }
+      viewport.classList.add("dragging");
+    }
+    if (moved) viewport.scrollLeft = dragStartScroll - (e.clientX - dragStartX);
   });
+  // A drag ends with a click on whatever is under the pointer — swallow it.
+  viewport.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
   function endDrag() {
-    if (!isDragging) return;
-    isDragging = false; viewport.classList.remove("dragging");
+    if (!pressed) return;
+    pressed = false; isDragging = false; viewport.classList.remove("dragging");
     currentScroll = viewport.scrollLeft; wrap(); viewport.scrollLeft = currentScroll;
+    if (moved) setTimeout(() => { moved = false; }, 0);
   }
   viewport.addEventListener("pointerup", endDrag);
   viewport.addEventListener("pointercancel", endDrag);

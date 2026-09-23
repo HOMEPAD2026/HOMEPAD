@@ -33,7 +33,7 @@
     "A real Uniswap v4 pool exists the second you launch — single-sided liquidity, permanently locked, paired against USDC. No bonding curve, no \"graduation,\" tradeable from block one.":
       "런치하는 순간 진짜 Uniswap v4 풀이 생깁니다 — 단방향 유동성, 영구 잠금, USDC 페어. 본딩 커브도 \"졸업\"도 없이 첫 블록부터 거래됩니다.",
     "Launch a coin": "코인 런치하기", "Explore launches": "런치 둘러보기", "Launches so far": "지금까지 런치", "Flat launch fee": "고정 런치 수수료",
-    "Trade fee (yours: up to 90%)": "거래 수수료 (최대 90%가 내 몫)", "Newest launches": "최신 런치", "Core coin": "코어 코인",
+    "Trade fee (yours: up to 90%)": "거래 수수료 (최대 90%가 내 몫)", "Newest launches": "최신 런치",
     "foci bonding curve · Arc": "foci 본딩 커브 · Arc", "foci bonding curve": "foci 본딩 커브", "Trade →": "거래 →", "Price": "가격", "Market cap": "시가총액",
     "Graduation progress": "졸업 진행률", "The pool": "풀", "Fees": "수수료", "Pricing": "가격 책정",
     "A real Uniswap v4 pool is created the instant you launch — the coin's full sellable supply goes straight in, priced against a virtual reserve of the pair token (USDC by default, or $ARCIRCLE / any Arc token you pick). Tradeable on Dexscreener from block one, once indexed.":
@@ -375,6 +375,42 @@
       "하나의 프로젝트. 3일간의 USDC 모금이 리더와 분배를 정하고, 모든 기여자가 프로젝트의 모습에 투표합니다.",
     "No trades here yet.": "아직 거래가 없습니다.", "Not enough trades in this range yet.": "이 구간에는 아직 거래가 충분하지 않습니다.",
     "Flywheel & rewards": "플라이휠 & 리워드",
+
+    // ---- watchlist / HOT / top coin ----
+    "Portfolio": "포트폴리오", "Watchlist": "관심 목록", "Watch": "관심", "Watching": "관심 중",
+    "Added to watchlist": "관심 목록에 추가했습니다", "Removed from watchlist": "관심 목록에서 뺐습니다",
+    "Your watchlist is empty. Tap the star on any coin to keep it here.": "관심 목록이 비어 있습니다. 코인의 별을 누르면 여기에 모입니다.",
+    "Among the most-traded coins in the last hour": "지난 1시간 동안 가장 많이 거래된 코인 중 하나",
+    "Most traded · 24h": "24시간 최다 거래", "Volume": "거래량", "Since launch": "런치 대비",
+    // ---- safety check ----
+    "Safety check": "안전 점검", "Read live from Arc": "Arc에서 실시간으로 읽음",
+    "Liquidity locked": "유동성 잠김", "The pool position is held by the factory, which has no function to remove it.": "풀 포지션은 팩토리가 보유하며, 팩토리에는 이를 빼는 함수가 없습니다.",
+    "Fixed supply": "고정 공급량", "Unusual supply": "비정상 공급량",
+    "1,000,000,000 minted once at launch. The token has no mint function and no owner.": "런치 때 10억 개를 한 번만 발행. 토큰에 추가 발행 함수도, 소유자도 없습니다.",
+    "Small or no creator bag.": "크리에이터 보유량이 적거나 없습니다.", "A sizeable creator bag — watch for sells.": "크리에이터 보유량이 꽤 큽니다 — 매도에 주의하세요.",
+    "The creator holds a large share of supply.": "크리에이터가 공급량의 큰 몫을 보유하고 있습니다.",
+    "Creator holdings": "크리에이터 보유량", "Top 10 holders": "상위 10 홀더", "Indexing transfers…": "전송 기록 인덱싱 중…",
+    "Excludes the pool, the fee hook and the 8% platform allocation.": "풀, 수수료 훅, 8% 플랫폼 할당분은 제외.",
+    "1% base — 70% of it goes to the creator.": "기본 1% — 그중 70%가 크리에이터에게.",
+    "This is the first one launched.": "이 코인이 가장 먼저 런치되었습니다.",
+    "This is not the first — check the contract address before you buy.": "가장 먼저 나온 코인이 아닙니다 — 매수 전에 컨트랙트 주소를 확인하세요.",
+    "Others:": "다른 코인:", "$ARCIRCLE (core coin)": "$ARCIRCLE (코어 코인)",
+    // ---- portfolio ----
+    "Every ArcPad coin and $ARCIRCLE in your wallet, and the coins you launched — read live from Arc.": "지갑에 있는 모든 ArcPad 코인과 $ARCIRCLE, 그리고 내가 런치한 코인 — Arc에서 실시간으로 읽습니다.",
+    "Connect a wallet to see your portfolio": "지갑을 연결하면 포트폴리오를 볼 수 있습니다",
+    "Your ArcPad coins, $ARCIRCLE and the coins you launched, read straight from Arc.": "내 ArcPad 코인, $ARCIRCLE, 내가 런치한 코인을 Arc에서 바로 읽어옵니다.",
+    "Holdings value": "보유 자산 가치", "USDC (gas)": "USDC (가스)", "Coins held": "보유 코인", "Coins launched": "런치한 코인",
+    "Creator fees 24h": "24h 크리에이터 수수료", "Holdings": "보유 자산", "Coin": "코인", "Value": "가치",
+    "Your launches": "내 런치", "Trades 24h": "24h 거래", "Your fees 24h": "24h 내 수수료",
+    "Fees are an estimate from the last 24h of trades: 70% of the 1% base fee plus your add-on. They are paid out by the fee hook as trades happen.": "수수료는 최근 24시간 거래 기준 추정치입니다: 기본 1% 수수료의 70%와 추가 수수료. 거래가 일어날 때마다 수수료 훅이 지급합니다.",
+    "No ArcPad coins in this wallet yet.": "이 지갑에는 아직 ArcPad 코인이 없습니다.", "Explore coins →": "코인 둘러보기 →",
+    "You haven't launched a coin from this wallet.": "이 지갑으로 런치한 코인이 없습니다.",
+    "Couldn't read your balances from Arc — try again in a moment.": "Arc에서 잔액을 읽지 못했습니다 — 잠시 후 다시 시도하세요.",
+    // ---- trade sheet / toasts ----
+    "Trade": "거래", "Close": "닫기", "Your coin is live": "코인이 라이브되었습니다", "Trade confirmed": "거래 완료",
+    // ---- launch form ----
+    "$ARCIRCLE is the platform's core coin — pick another ticker so buyers aren't misled.": "$ARCIRCLE은 플랫폼의 코어 코인입니다 — 구매자가 헷갈리지 않도록 다른 티커를 고르세요.",
+    "None": "없음", "Preview": "미리보기", "Your coin name": "코인 이름", "now": "방금", "new": "신규",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -405,6 +441,17 @@
     [/^Graduation progress (.+)$/, "졸업 진행률 $1"],
     [/^Indexing history… (\d+)%$/, "기록 인덱싱 중… $1%"],
     [/^Not enough USDC on Arc\. This launch needs about (.+)$/, "Arc에 USDC가 부족합니다. 이 런치에는 약 $1"],
+    [/^Same ticker ×(\d+)$/, "같은 티커 ×$1"],
+    [/^(\d+) coins use \$(.+) — check the contract address$/, "코인 $1개가 $$$2 사용 중 — 컨트랙트 주소를 확인하세요"],
+    [/^(\d+) coins use \$(.+)\.$/, "코인 $1개가 $$$2 티커를 사용합니다."],
+    [/^Creator holds (.+)%$/, "크리에이터 보유 $1%"],
+    [/^Top 10 hold (.+)%$/, "상위 10명 보유 $1%"],
+    [/^Trade fee (.+)%$/, "거래 수수료 $1%"],
+    [/^1% base \+ (.+)% creator add-on\.$/, "기본 1% + 크리에이터 추가 $1%."],
+    [/^Total supply reads (.+)\.$/, "총 공급량 $1."],
+    [/^Fee (.+)% · (.+)% to you$/, "수수료 $1% · 나에게 $2%"],
+    [/^Fee (.+)%$/, "수수료 $1%"],
+    [/^\$(.+) is already used by (\d+) coins? on ArcPad\. You can still launch, but buyers may mix them up\.$/, "$$$1 티커는 ArcPad에서 이미 코인 $2개가 사용 중입니다. 런치는 가능하지만 구매자가 헷갈릴 수 있습니다."],
   ];
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -200,6 +200,7 @@ function actDerive() {
   const stats = new Map();
   const trades = [];
   const sorted = ACT.recs.slice().sort((a, b) => (a.b - b.b) || (a.i - b.i));
+  const now = Date.now() / 1000;
   for (const r of sorted) {
     const l = ACT.pools.get(r.p);
     if (!l) continue;
@@ -212,8 +213,10 @@ function actDerive() {
     const price = arcPriceInQuote(BigInt(r.sq), l.quoteIsCurrency0, l.quoteDecimals ?? 6);
     const key = l.token.toLowerCase();
     let s = stats.get(key);
-    if (!s) { s = { vol: 0, trades: 0, lastB: 0, spark: [] }; stats.set(key, s); }
+    if (!s) { s = { vol: 0, trades: 0, lastB: 0, spark: [], vol1h: 0, trades1h: 0 }; stats.set(key, s); }
     s.vol += usd || 0; s.trades++; s.lastB = r.b;
+    const ts = actTs(r.b);
+    if (ts != null && now - ts <= 3600) { s.vol1h += usd || 0; s.trades1h++; }
     if (price) s.spark.push(price);
     trades.push({ b: r.b, i: r.i, h: r.h, buy, usd, sym: l.symbol, token: l.token, img: l.imageUrl });
   }

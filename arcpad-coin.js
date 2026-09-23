@@ -610,7 +610,7 @@ function apcRenderSwap() {
   if (!APC.l) return;
   const buy = APC.side === "buy";
   const sym = APC.l.symbol ? `$${APC.l.symbol}` : "tokens";
-  document.querySelectorAll("#bp-panel-coin .ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === APC.side));
+  document.querySelectorAll("#apc-swap .ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === APC.side));
   apc$("apc-swap").classList.toggle("is-sell", !buy);
   apc$("apc-in-label").textContent = buy ? "You pay" : "You sell";
   const qs = APC.q.symbol;
@@ -740,7 +740,7 @@ async function apcRefresh() {
 function apcWire() {
   if (APC.wired) return;
   APC.wired = true;
-  document.querySelectorAll("#bp-panel-coin .ac2-swap-tabs button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("#apc-swap .ac2-swap-tabs button").forEach((b) => b.addEventListener("click", () => {
     if (APC.side === b.dataset.side) return;
     APC.side = b.dataset.side;
     apc$("apc-amount").value = ""; apc$("apc-status").dataset.kind = "";
