@@ -409,6 +409,22 @@ async function switchToArcNetwork() {
   }
 }
 
+/// Called right before every transaction on ArcPad / CirclePad: if the
+/// wallet is on another chain, switch it to Arc first (and pick up a
+/// signer for the new chain), so a write never goes out on the wrong
+/// network or fails with a confusing chain-mismatch error.
+async function ensureArcForWrite() {
+  const id = await currentChainId().catch(() => null);
+  if (id === CONFIG.CHAIN_ID_DECIMAL) return;
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function" && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  if (usingAppKit) { await ensureAppKitChain(); return; }
+  if (!window.ethereum) throw new Error(`Switch your wallet to ${CONFIG.CHAIN_NAME} and try again.`);
+  await ensureNetwork();
+  state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+  state.signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+  if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+}
+
 async function currentChainId() {
   if (state.chainId != null && Number.isFinite(Number(state.chainId))) return Number(state.chainId);
   if (state.signer && state.signer.provider) return Number((await state.signer.provider.getNetwork()).chainId);

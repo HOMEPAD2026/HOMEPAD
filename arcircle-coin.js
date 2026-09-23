@@ -704,17 +704,7 @@ function ac2Status(kind, html) {
 }
 
 async function ac2EnsureChain() {
-  if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
-    const acct = WagmiCoreRef.getAccount(wagmiConfigRef);
-    if (acct && acct.isConnected) {
-      if (acct.chainId !== CONFIG.CHAIN_ID_DECIMAL && typeof ensureAppKitChain === "function") await ensureAppKitChain();
-      return;
-    }
-  }
-  if (state.signer && state.signer.provider) {
-    const net = await state.signer.provider.getNetwork();
-    if (Number(net.chainId) !== CONFIG.CHAIN_ID_DECIMAL && typeof ensureNetwork === "function") await ensureNetwork();
-  }
+  if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
 }
 
 function ac2ErrText(err) {

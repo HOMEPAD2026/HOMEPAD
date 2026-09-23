@@ -391,6 +391,7 @@ async function submitArcpadLaunch(ev) {
     const initialVirtualQuote = ethers.parseUnits(startValuation, ARC_QUOTE_DECIMALS);
     const devBuyQuote = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) : 0n;
     const meta = { imageUrl, description, twitter, telegram, discord, website };
+    await ensureArcForWrite();
     const factory = arcpadFactoryWrite();
     const launchFee = await withRetry(() => factory.LAUNCH_FEE());
 
@@ -512,6 +513,7 @@ async function submitTrade() {
 
   btn.disabled = true;
   try {
+    await ensureArcForWrite();
     const router = arcpadRouterWrite();
     if (ARC.tradeSide === "buy") {
       const quoteAmount = ethers.parseUnits(amountStr, ARC_QUOTE_DECIMALS);

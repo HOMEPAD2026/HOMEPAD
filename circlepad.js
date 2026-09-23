@@ -754,6 +754,7 @@ function wireCirclepadStart() {
     const original = btn.textContent;
     btn.textContent = "Confirm in wallet…";
     try {
+      await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
       const tx = await escrow.start();
       btn.textContent = "Confirming…";
@@ -779,6 +780,7 @@ function wireCirclepadRefund() {
     const original = btn.textContent;
     btn.textContent = "Confirm in wallet…";
     try {
+      await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
       const mine = await escrow.contributions(state.account);
       const tx = await escrow.refund(mine);
@@ -808,6 +810,7 @@ function wireCirclepadWithdraw() {
     const original = btn.textContent;
     btn.textContent = "Confirm in wallet…";
     try {
+      await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
       const tx = await escrow.withdraw();
       btn.textContent = "Confirming…";
@@ -863,6 +866,7 @@ function wireCirclepadContribute() {
     const originalText = btn.textContent;
     btn.textContent = "Confirm in wallet…";
     try {
+      await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
       const tx = await escrow.contribute({ value: amount });
       btn.textContent = "Confirming…";
@@ -1137,6 +1141,7 @@ async function proposeCirclepadOptions(category) {
   if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
   input.disabled = true;
   try {
+    await ensureArcForWrite();
     const vote = circlepadVoteWrite();
     const tx = await vote.proposeOptions(category, options);
     if (btn) btn.textContent = "Confirming…";
@@ -1159,6 +1164,7 @@ async function castCirclepadVote(category, optionIndex) {
   const original = btn ? btn.textContent : "";
   if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
   try {
+    await ensureArcForWrite();
     const vote = circlepadVoteWrite();
     const tx = await vote.vote(category, optionIndex);
     if (btn) btn.textContent = "Confirming…";

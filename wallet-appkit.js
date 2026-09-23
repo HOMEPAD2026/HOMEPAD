@@ -111,6 +111,14 @@ function withTimeout(promise, ms) {
 // right after a wallet connects on another chain — enough to land people on
 // the right network by default, without the repeated prompts a switch on
 // every sync used to cause.
+let syncFailures = 0;
+let syncRetryTimer = null;
+function scheduleSyncRetry() {
+  syncFailures++;
+  if (syncRetryTimer) return;
+  syncRetryTimer = setTimeout(() => { syncRetryTimer = null; syncFromWagmi(); }, Math.min(6000, 800 * syncFailures));
+}
+
 const autoSwitchTried = {
   has(a) { try { return sessionStorage.getItem("wallet.autoSwitch." + a) === "1"; } catch { return false; } },
   add(a) { try { sessionStorage.setItem("wallet.autoSwitch." + a, "1"); } catch { /* fine */ } },
@@ -184,6 +192,7 @@ async function syncFromWagmi() {
       // change — re-rendering the Profile page 3-4 times in a row started
       // overlapping async loads that overwrote each other's results.
       connectInFlight = false;
+      syncFailures = 0;
       if (connectPoll) { clearInterval(connectPoll); connectPoll = null; }
       if (changed) {
         if (typeof renderHeader === "function") renderHeader();
@@ -227,9 +236,22 @@ async function syncFromWagmi() {
       // is transient (provider not ready yet); killing the session for it
       // is what produced "connected in the wallet, Connect in the header".
       console.warn("syncFromWagmi: injected provider not ready yet", err && err.message);
+      scheduleSyncRetry();
       return false;
     }
-    console.warn("syncFromWagmi failed — clearing the stale session so it doesn't repeat.", err);
+    // Right after a page load (e.g. going from /arc to /circle) wagmi is
+    // still re-hydrating the WalletConnect session, and touching it throws
+    // things like "connector.getChainId is not a function" for a moment.
+    // Treating that as a dead session and disconnecting is what logged
+    // people out every time they changed pages. Retry for a while first;
+    // only a session that keeps failing is cleared as stale.
+    if (syncFailures < 6) {
+      console.warn("syncFromWagmi: session not ready yet — retrying", err && err.message);
+      scheduleSyncRetry();
+      return false;
+    }
+    console.warn("syncFromWagmi kept failing — clearing the stale session so it doesn't repeat.", err);
+    syncFailures = 0;
     await hardDisconnect();
     return false;
   }
@@ -347,8 +369,11 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
     }
     const restored = userDisconnected() ? false : await withTimeout(syncFromWagmi(), 8000);
     if (restored === "timeout") {
-      console.warn("Wallet session restore timed out — treating as disconnected and clearing it.");
-      await hardDisconnect();
+      // A WalletConnect relay on a phone can take longer than this to come
+      // back. Don't destroy the session for being slow — keep listening
+      // (watchAccount / subscribeAccount) and check again shortly.
+      console.warn("Wallet session restore is slow — will keep checking.");
+      scheduleSyncRetry();
     }
     appKitReady = true;
   } catch (err) {
