@@ -13,6 +13,10 @@ const CONFIG = {
   CHAIN_ID_HEX: "0x13b2", // 5042 (Arc mainnet) in hex. 5042002 is Arc TESTNET — do not confuse them.
   CHAIN_ID_DECIMAL: 5042,
   CHAIN_NAME: "Arc",
+  // What wallets show on their connect / approve screens (WalletConnect).
+  APP_NAME: "ARCIRCLE PAD",
+  APP_DESCRIPTION: "ArcPad and CirclePad — launch coins on Circle's Arc, paired in USDC.",
+  APP_ICON: "/images/apple-touch-icon.png",
   RPC_URL: "https://rpc.mainnet.arc.io",
   // Same WalletConnect/Reown project as the rest of the site (a project ID
   // isn't chain-restricted for basic RPC/wallet-connect use) — see

@@ -27,6 +27,7 @@ let appKitModal = null;
 let appKitReady = false;
 let wagmiConfigRef = null;
 let WagmiCoreRef = null;
+let appKitNetwork = null;
 
 // True from the moment the connect modal opens until a session is
 // confirmed or the modal closes without one. While it's set, transient
@@ -54,14 +55,20 @@ function setUserDisconnected(on) { try { on ? localStorage.setItem(USER_DISCONNE
 /// disconnect", because wagmi had nothing left to disconnect). Then wagmi,
 /// then storage, then our header.
 async function hardDisconnect() {
-  try { if (appKitModal && typeof appKitModal.disconnect === "function") await appKitModal.disconnect(); } catch (e) { console.warn("appkit disconnect", e && e.message); }
-  try {
-    if (WagmiCoreRef && wagmiConfigRef && WagmiCoreRef.getAccount(wagmiConfigRef).isConnected) await WagmiCoreRef.disconnect(wagmiConfigRef);
-  } catch (e) { console.warn("wagmi disconnect", e && e.message); }
-  clearStaleWalletStorage();
-  state.account = null; state.signer = null; state.chainId = null;
+  // Local state first, so the header flips to "Connect wallet" immediately
+  // even if the wallet side never answers (a WalletConnect relay waiting on
+  // a phone wallet that's in the background can hang the disconnect call
+  // indefinitely — which looked like "Disconnect does nothing").
+  state.account = null; state.signer = null; state.chainId = null; state.walletProvider = null;
   if (typeof renderHeader === "function") renderHeader();
   if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
+  if (connectPoll) { clearInterval(connectPoll); connectPoll = null; }
+  connectInFlight = false;
+  try { if (appKitModal && typeof appKitModal.disconnect === "function") await withTimeout(appKitModal.disconnect(), 4000); } catch (e) { console.warn("appkit disconnect", e && e.message); }
+  try {
+    if (WagmiCoreRef && wagmiConfigRef && WagmiCoreRef.getAccount(wagmiConfigRef).isConnected) await withTimeout(WagmiCoreRef.disconnect(wagmiConfigRef), 3000);
+  } catch (e) { console.warn("wagmi disconnect", e && e.message); }
+  clearStaleWalletStorage();
 }
 
 // wagmi v2 persists its connection state in a single 'wagmi.*'-prefixed
@@ -100,8 +107,27 @@ function withTimeout(promise, ms) {
 // EIP-1193-compatible provider, which is exactly what ethers.BrowserProvider
 // expects. Returns true if a wallet is connected, so the poller below can
 // stop early.
+// One automatic "switch to <chain>" request per address per browser tab session,
+// right after a wallet connects on another chain — enough to land people on
+// the right network by default, without the repeated prompts a switch on
+// every sync used to cause.
+const autoSwitchTried = {
+  has(a) { try { return sessionStorage.getItem("wallet.autoSwitch." + a) === "1"; } catch { return false; } },
+  add(a) { try { sessionStorage.setItem("wallet.autoSwitch." + a, "1"); } catch { /* fine */ } },
+};
+
 async function syncFromWagmi() {
   if (!WagmiCoreRef || !wagmiConfigRef) return false;
+  // After Disconnect, AppKit's own account store can still report the old
+  // address for a while (its disconnect goes over the relay). Don't let that
+  // bring the session back until Connect is pressed again.
+  if (userDisconnected() && !connectInFlight) {
+    if (state.account) {
+      state.account = null; state.signer = null; state.chainId = null;
+      if (typeof renderHeader === "function") renderHeader();
+    }
+    return false;
+  }
   let connectorType = null;
   try {
     let account = WagmiCoreRef.getAccount(wagmiConfigRef);
@@ -140,6 +166,11 @@ async function syncFromWagmi() {
         : (await WagmiCoreRef.getConnectorClient(wagmiConfigRef)).transport;
       const changed = state.account !== account.address;
       state.account = account.address; // header first — a signer failure below must not hide a connected wallet
+      state.walletProvider = eip1193;
+      if (Number(account.chainId) !== CONFIG.CHAIN_ID_DECIMAL && !autoSwitchTried.has(account.address)) {
+        autoSwitchTried.add(account.address);
+        setTimeout(() => { ensureAppKitChain().catch((e) => console.warn("auto network switch declined/failed", e && e.message)); }, 400);
+      }
       try {
         const browserProvider = new ethers.BrowserProvider(eip1193);
         state.signer = await browserProvider.getSigner(account.address);
@@ -245,6 +276,7 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       testnet: false,
     };
 
+    appKitNetwork = robinhoodNetwork;
     const wagmiAdapter = new WagmiAdapter({
       projectId: CONFIG.REOWN_PROJECT_ID,
       networks: [robinhoodNetwork],
@@ -265,11 +297,12 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       // switch (with wallet_addEthereumChain) when it actually matters.
       allowUnsupportedChain: true,
       projectId: CONFIG.REOWN_PROJECT_ID,
+      // Shown by the wallet on its connect / approve screens.
       metadata: {
-        name: "HOMEPAD",
-        description: "A permissionless launchpad on Robinhood Chain, built by $HOME.",
+        name: CONFIG.APP_NAME || "HOMEPAD",
+        description: CONFIG.APP_DESCRIPTION || "A permissionless launchpad on Robinhood Chain, built by $HOME.",
         url: location.origin,
-        icons: [location.origin + "/images/gallery-mark.png"],
+        icons: [location.origin + (CONFIG.APP_ICON || "/images/gallery-mark.png")],
       },
       // Wallets only — no email/social login. This is a crypto-native
       // launchpad; an email-created custodial-ish wallet isn't the flow
@@ -362,7 +395,17 @@ async function tryOpenAppKit() {
 async function ensureAppKitChain() {
   if (!(WagmiCoreRef && wagmiConfigRef)) return;
   const account = WagmiCoreRef.getAccount(wagmiConfigRef);
-  if (!account.isConnected || account.chainId === CONFIG.CHAIN_ID_DECIMAL) return;
+  if (!account.isConnected) {
+    // Session lives only in AppKit's store (see syncFromWagmi) — let AppKit
+    // do the switch itself.
+    if (appKitModal && typeof appKitModal.switchNetwork === "function" && appKitNetwork && Number(state.chainId) !== CONFIG.CHAIN_ID_DECIMAL) {
+      await appKitModal.switchNetwork(appKitNetwork);
+      state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+      if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+    }
+    return;
+  }
+  if (account.chainId === CONFIG.CHAIN_ID_DECIMAL) return;
   const addParams = {
     chainId: CONFIG.CHAIN_ID_HEX,
     chainName: CONFIG.CHAIN_NAME,
@@ -390,7 +433,24 @@ async function ensureAppKitChain() {
     }
   }
   state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+  await syncFromWagmi().catch(() => {}); // fresh signer on the new chain
   if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+}
+
+/// On a phone connected through WalletConnect, a switch/approve request is
+/// only visible inside the wallet app. Bring it to the front using the
+/// deep link the wallet published in its own session metadata. Must run
+/// synchronously inside a tap handler, or the browser blocks the jump.
+function openConnectedWalletApp() {
+  try {
+    if (!/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return false;
+    const p = state.walletProvider;
+    const meta = p && p.session && p.session.peer && p.session.peer.metadata;
+    const link = meta && meta.redirect && (meta.redirect.native || meta.redirect.universal);
+    if (!link) return false;
+    window.location.href = link;
+    return true;
+  } catch { return false; }
 }
 
 /// Sends a contract write DIRECTLY through wagmi's own writeContract

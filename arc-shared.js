@@ -337,8 +337,10 @@ function renderHeader() {
               <span class="btn-mini" id="wallet-dropdown-copy" style="cursor:pointer">Copy</span>
             </div>
             <div class="wallet-dropdown-network" id="wallet-dropdown-network">…</div>
+            <button type="button" class="wallet-dropdown-switch" id="wallet-dropdown-switch" hidden>Switch to ${CONFIG.CHAIN_NAME}</button>
+            <div class="wallet-dropdown-note" id="wallet-dropdown-note" hidden></div>
             <a class="wallet-dropdown-item" href="${CONFIG.BLOCK_EXPLORER}/address/${state.account}" target="_blank">View on Explorer ↗</a>
-            <div class="wallet-dropdown-item wallet-dropdown-disconnect" id="wallet-dropdown-disconnect">Disconnect</div>
+            <button type="button" class="wallet-dropdown-item wallet-dropdown-disconnect" id="wallet-dropdown-disconnect">Disconnect</button>
           </div>
         </div>
       </div>
@@ -352,10 +354,20 @@ function renderHeader() {
       e.stopPropagation();
       navigator.clipboard.writeText(state.account);
     };
-    document.getElementById("wallet-dropdown-disconnect").onclick = () => {
+    document.getElementById("wallet-dropdown-disconnect").onclick = (e) => {
+      e.stopPropagation();
       dropdown.classList.remove("open");
       disconnectWallet();
     };
+    document.getElementById("wallet-dropdown-switch").onclick = (e) => { e.stopPropagation(); switchToArcNetwork(); };
+    dropdown.onclick = (e) => e.stopPropagation();
+    if (!renderHeader._outsideClose) {
+      renderHeader._outsideClose = true;
+      document.addEventListener("click", () => {
+        const d = document.getElementById("wallet-dropdown");
+        if (d) d.classList.remove("open");
+      });
+    }
     updateNetworkBadge();
   } else {
     el.innerHTML = `<button class="btn btn-primary" id="connect-btn">Connect wallet</button>`;
@@ -363,35 +375,71 @@ function renderHeader() {
   }
 }
 
+let switchingNetwork = false;
+/// The one "put my wallet on Arc" action — used by the header badge and
+/// the dropdown's Switch button. On a phone connected over WalletConnect
+/// the approval only appears inside the wallet app, so this also brings
+/// that app to the front (openConnectedWalletApp — must stay synchronous
+/// inside the tap, before any await).
+async function switchToArcNetwork() {
+  if (switchingNetwork) return;
+  switchingNetwork = true;
+  const note = document.getElementById("wallet-dropdown-note");
+  const btn = document.getElementById("wallet-dropdown-switch");
+  const badge = document.getElementById("network-badge");
+  const setNote = (text, bad) => { if (note) { note.hidden = !text; note.textContent = text || ""; note.classList.toggle("bad", !!bad); } };
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function" && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  const request = usingAppKit ? ensureAppKitChain() : (window.ethereum ? ensureNetwork() : Promise.reject(new Error("No wallet connected.")));
+  const jumped = usingAppKit && typeof openConnectedWalletApp === "function" && openConnectedWalletApp();
+  if (btn) { btn.disabled = true; btn.textContent = "Waiting for your wallet…"; }
+  if (badge) badge.classList.add("network-busy");
+  setNote(jumped ? `Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet app, then come back here.` : `Approve the switch to ${CONFIG.CHAIN_NAME} in your wallet.`);
+  try {
+    await request;
+    setNote("");
+    if (!usingAppKit) state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+  } catch (err) {
+    const msg = String(err && (err.shortMessage || err.message) || err);
+    setNote(/reject|denied|cancel/i.test(msg) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
+  } finally {
+    switchingNetwork = false;
+    if (btn) { btn.disabled = false; btn.textContent = `Switch to ${CONFIG.CHAIN_NAME}`; }
+    if (badge) badge.classList.remove("network-busy");
+    updateNetworkBadge();
+  }
+}
+
+async function currentChainId() {
+  if (state.chainId != null && Number.isFinite(Number(state.chainId))) return Number(state.chainId);
+  if (state.signer && state.signer.provider) return Number((await state.signer.provider.getNetwork()).chainId);
+  if (window.ethereum) return Number.parseInt(await window.ethereum.request({ method: "eth_chainId" }), 16);
+  return null;
+}
+
 async function updateNetworkBadge() {
   const badge = document.getElementById("network-badge");
-  if (!badge || !state.signer) return;
+  if (!badge || !state.account) return;
+  const line = document.getElementById("wallet-dropdown-network");
+  const btn = document.getElementById("wallet-dropdown-switch");
   try {
-    const network = await state.signer.provider.getNetwork();
-    const chainId = Number(network.chainId);
+    const chainId = await currentChainId();
+    if (chainId == null) throw new Error("unknown");
     const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL;
-    const label = isCorrect ? CONFIG.CHAIN_NAME : `Wrong network (chain ${chainId}) — switch to ${CONFIG.CHAIN_NAME}`;
-    badge.textContent = isCorrect ? CONFIG.CHAIN_NAME : `⚠ wrong network (${chainId}) · tap to switch`;
-    badge.title = label;
+    badge.textContent = isCorrect ? CONFIG.CHAIN_NAME : `Switch to ${CONFIG.CHAIN_NAME}`;
+    badge.title = isCorrect ? `Connected to ${CONFIG.CHAIN_NAME}` : `Your wallet is on chain ${chainId} — tap to switch to ${CONFIG.CHAIN_NAME}`;
     badge.classList.toggle("network-bad", !isCorrect);
     badge.style.cursor = isCorrect ? "" : "pointer";
-    badge.onclick = isCorrect ? null : async () => {
-      const prev = badge.textContent;
-      badge.textContent = "check your wallet…";
-      try {
-        if (typeof appKitReady !== "undefined" && appKitReady && typeof ensureAppKitChain === "function") await ensureAppKitChain();
-        else if (window.ethereum) { await ensureNetwork(); location.reload(); }
-      } catch (err) { badge.textContent = prev; alert(String(err && err.message || err)); }
-    };
-    const line = document.getElementById("wallet-dropdown-network");
+    badge.onclick = isCorrect ? null : (e) => { e.stopPropagation(); switchToArcNetwork(); };
     if (line) {
-      line.textContent = label;
+      line.textContent = isCorrect ? `Connected to ${CONFIG.CHAIN_NAME}` : `Wallet is on another network (chain ${chainId})`;
       line.classList.toggle("network-bad", !isCorrect);
+      line.classList.toggle("network-ok", isCorrect);
     }
+    if (btn) btn.hidden = isCorrect;
   } catch (err) {
-    badge.textContent = "network unknown";
-    const line = document.getElementById("wallet-dropdown-network");
+    badge.textContent = "Network?";
     if (line) line.textContent = "Network unknown";
+    if (btn) btn.hidden = false;
   }
 }
 
