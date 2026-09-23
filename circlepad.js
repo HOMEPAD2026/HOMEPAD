@@ -1182,3 +1182,65 @@ async function castCirclepadVote(category, optionIndex) {
 // for why calling these any earlier breaks the Governance tab).
 initCirclepadRound();
 initCirclepadGovernance();
+
+// ---- Round alerts: "alert me when it opens" + a calendar reminder for the close ----
+// Browser-only: the alert fires while a CirclePad tab is open (the page
+// already polls the escrow every 15s); nothing is sent to any server.
+(() => {
+  const countdown = document.getElementById("bp-round-countdown");
+  if (!countdown || typeof applyCirclepadState !== "function") return;
+  const KEY = "circlepad.notify.v1";
+  const escrow = () => (typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ESCROW_ADDRESS || "").toLowerCase();
+  const armed = () => { try { return localStorage.getItem(KEY) === escrow(); } catch { return false; } };
+  const arm = (on) => { try { if (on) localStorage.setItem(KEY, escrow()); else localStorage.removeItem(KEY); } catch { /* storage blocked */ } };
+  const box = document.createElement("div");
+  box.className = "bp-notify";
+  countdown.insertAdjacentElement("afterend", box);
+  let last = null;
+  function ping(title, body) {
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body, icon: "/images/favicon-32.png" }); } catch { /* not supported */ }
+    if (navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch { /* fine */ } }
+    const t = document.title; let n = 0;
+    const iv = setInterval(() => { document.title = n++ % 2 ? t : `● ${title}`; if (n > 12) { clearInterval(iv); document.title = t; } }, 900);
+  }
+  function icsFor(deadline) {
+    const d = (x) => new Date(x * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//CirclePad//EN", "BEGIN:VEVENT",
+      `UID:circlepad-${escrow()}-${deadline}@arcircle.app`, `DTSTAMP:${d(Math.floor(Date.now() / 1000))}`,
+      `DTSTART:${d(deadline - 3600)}`, `DTEND:${d(deadline)}`,
+      "SUMMARY:CirclePad raise closes", "DESCRIPTION:The 72-hour CirclePad raise closes at the end of this event. https://www.arcircle.app/circle",
+      "URL:https://www.arcircle.app/circle", "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:CirclePad raise closes soon", "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    a.download = "circlepad-raise-close.ics";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  function paint() {
+    if (!last) return;
+    if (!last.started) {
+      box.innerHTML = armed()
+        ? `<div class="bp-notify-on"><span class="bp-status-dot bp-live"></span>Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.</div><button type="button" class="bp-notify-link" data-notify="off">Cancel alert</button>`
+        : `<button type="button" class="bp-btn-ghost bp-btn-block bp-notify-btn" data-notify="on">Alert me when the raise opens</button>`;
+    } else if (last.isOpen) {
+      if (armed()) { arm(false); ping("The CirclePad raise is open", "Contributions are live for 72 hours."); }
+      box.innerHTML = `<button type="button" class="bp-notify-link" data-notify="ics">Add the close to my calendar</button>`;
+    } else box.innerHTML = "";
+  }
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-notify]");
+    if (!b) return;
+    const k = b.dataset.notify;
+    if (k === "on") {
+      arm(true);
+      // Ask for OS notifications too, but don't wait on the prompt.
+      try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch { /* fine */ }
+    } else if (k === "off") arm(false);
+    else if (k === "ics" && last && last.deadline) icsFor(Number(last.deadline));
+    paint();
+  });
+  const orig = applyCirclepadState;
+  // eslint-disable-next-line no-global-assign
+  applyCirclepadState = function (s, opts) { orig(s, opts); if (s && !(opts && opts.accountUnknown && last)) { last = s; try { paint(); } catch (err) { console.warn(err); } } };
+})();

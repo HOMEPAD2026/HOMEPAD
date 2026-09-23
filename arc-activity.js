@@ -305,7 +305,8 @@ function arcShareText(kind) {
   if (kind === "arcircle") {
     const price = (document.querySelector('#bp-panel-arcircle [data-ac2="price"]') || {}).textContent || "";
     const mcap = (document.querySelector('#bp-panel-arcircle [data-ac2="mcap"]') || {}).textContent || "";
-    return { text: `$ARCIRCLE — the core coin of ARCIRCLE PAD on Circle's Arc 💚\n${price && price !== "—" ? `Price ${price} · MC ${mcap}\n` : ""}`, url: `${ARC_SITE}/arcircle` };
+    const me = typeof state !== "undefined" && state.account ? `?ref=${state.account.toLowerCase()}` : "";
+    return { text: `$ARCIRCLE — the core coin of ARCIRCLE PAD on Circle's Arc 💚\n${price && price !== "—" ? `Price ${price} · MC ${mcap}\n` : ""}`, url: `${ARC_SITE}/arcircle${me}` };
   }
   const sym = ((document.getElementById("apc-sym") || {}).textContent || "").trim();
   const name = ((document.getElementById("apc-name") || {}).textContent || "").trim();
@@ -315,8 +316,15 @@ function arcShareText(kind) {
   const tag = sym ? (sym.startsWith("$") ? sym : `$${sym}`) : name;
   return {
     text: `${tag}${name && sym ? ` (${name})` : ""} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚\n${price && price !== "—" ? `Price ${price} · MC ${mcap}\n` : ""}`,
-    url: `${ARC_SITE}/arc#coin/${token}`,
+    url: arcCoinShareUrl(token),
   };
+}
+/// Per-coin share link: /c/<address> has its own preview card (title, market
+/// cap, generated image) on X / Telegram / Discord, then opens the coin page.
+/// A connected wallet is added as ?ref= so invites can be credited later.
+function arcCoinShareUrl(token) {
+  const me = typeof state !== "undefined" && state.account ? `?ref=${state.account.toLowerCase()}` : "";
+  return `${ARC_SITE}/c/${token}${me}`;
 }
 function arcOpenShare(kind) {
   const s = arcShareText(kind);
@@ -332,6 +340,10 @@ document.addEventListener("click", (e) => {
 
 function arcCelebrateLaunch(token) {
   if (typeof window.arcConfetti === "function") window.arcConfetti();
+  // Announce it on the project's Telegram channel (no-op unless the site
+  // owner configured a bot — see api/tg-launch.mjs). The server re-checks the
+  // launch on-chain, so this can't be used to post anything else.
+  try { fetch("/api/tg-launch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }), keepalive: true }).catch(() => {}); } catch { /* offline */ }
   const host = document.querySelector("#bp-panel-coin .ac2");
   if (!host) return;
   const old = document.getElementById("apc-celebrate");
@@ -356,7 +368,7 @@ function arcCelebrateLaunch(token) {
   el.querySelector(".apc-cel-x").addEventListener("click", () => el.remove());
   el.querySelector("#apc-cel-copy").addEventListener("click", (ev) => {
     const btn = ev.currentTarget;
-    const url = `${ARC_SITE}/arc#coin/${token}`;
+    const url = arcCoinShareUrl(token);
     (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(url) : Promise.reject()).then(
       () => { btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy link"; }, 1600); },
       () => { btn.textContent = url; });

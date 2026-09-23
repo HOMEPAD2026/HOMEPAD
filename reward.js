@@ -98,6 +98,7 @@
           return '<a class="rw-chip" href="/arc#coin/' + esc(r.token) + '">' + esc(sym) + "</a>";
         }).join("") + (mine.length > 24 ? '<span class="rw-chip rw-chip-more">+' + (mine.length - 24) + " more</span>" : "");
       }
+      renderInvite(addr);
       out.hidden = false;
       try { history.replaceState(null, "", "#check=" + addr); } catch (e) { /* fine */ }
     } catch (e) {
@@ -108,8 +109,44 @@
     }
   }
 
+  // ---- Invite link (referral share is a candidate mechanic, not live) ----
+  function renderInvite(addr) {
+    var out = $("rw-result");
+    var box = $("rw-invite");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "rw-invite"; box.className = "rw-invite";
+      out.appendChild(box);
+    }
+    var link = "https://www.arcircle.app/?ref=" + addr.toLowerCase();
+    box.innerHTML = '<div class="rw-invite-top"><span>Invite link</span><code data-no-i18n>' + esc(link) + '</code><button type="button" class="ax-btn ax-btn-ghost rw-invite-copy">Copy</button></div>'
+      + "<small>Anyone who opens ARCIRCLE PAD through this link is remembered as your invite in their browser for 30 days. Referral share is a candidate mechanic in the whitepaper — nothing is paid for invites yet.</small>";
+    box.querySelector(".rw-invite-copy").addEventListener("click", function (e) {
+      var b = e.currentTarget;
+      (navigator.clipboard && window.isSecureContext ? navigator.clipboard.writeText(link) : Promise.reject()).then(
+        function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500); },
+        function () { b.textContent = "Copy failed"; });
+    });
+  }
+
+  // ---- Treasury: $ARCIRCLE it holds (buybacks land here) ----
+  async function showTreasury() {
+    var live = document.querySelector(".rw-live");
+    if (!live) return;
+    var item = document.createElement("div");
+    item.className = "rw-live-item";
+    item.innerHTML = '<span>Treasury $ARCIRCLE</span><strong id="rw-treasury">—</strong><a class="rw-link rw-live-link" href="/arc#arcircle">Buyback history →</a>';
+    live.insertBefore(item, live.querySelector(".rw-live-wide"));
+    try {
+      var tok = new ethers.Contract(ARCIRCLE_TOKEN, ERC20, readProvider());
+      var bal = Number(ethers.formatUnits(await withRetry(function () { return tok.balanceOf(CONFIG.ARCPAD_PLATFORM_TREASURY || "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8"); }), 18));
+      $("rw-treasury").textContent = fmtTok(bal);
+    } catch (e) { /* stays — */ }
+  }
+
   function init() {
     showLaunchCount();
+    showTreasury();
     var form = $("rw-check-form");
     if (form) form.addEventListener("submit", function (e) {
       e.preventDefault();

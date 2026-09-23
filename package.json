@@ -1,0 +1,9 @@
+{
+  "name": "arcircle-pad",
+  "private": true,
+  "description": "Static site + a few Vercel functions (api/). No build step.",
+  "dependencies": {
+    "@noble/hashes": "^2.0.0",
+    "@vercel/og": "0.8.6"
+  }
+}

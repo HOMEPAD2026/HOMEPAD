@@ -5,6 +5,25 @@
 (function () {
   "use strict";
 
+  // Invite links: ?ref=<wallet>. The first one a visitor arrives with is kept
+  // for 30 days (this browser only) so a future referral program can credit
+  // it; the parameter is then dropped from the address bar.
+  (function captureRef() {
+    try {
+      var u = new URL(location.href);
+      var ref = (u.searchParams.get("ref") || "").trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(ref)) return;
+      var KEY = "arcircle.ref.v1";
+      var cur = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!cur || !cur.at || Date.now() - cur.at > 30 * 864e5) localStorage.setItem(KEY, JSON.stringify({ ref: ref.toLowerCase(), at: Date.now(), page: u.pathname }));
+      u.searchParams.delete("ref");
+      if (history.replaceState) history.replaceState(history.state, "", u.pathname + (u.search || "") + u.hash);
+    } catch (e) { /* storage blocked or old browser */ }
+  })();
+  window.arcRef = function () {
+    try { var c = JSON.parse(localStorage.getItem("arcircle.ref.v1") || "null"); return c && Date.now() - c.at < 30 * 864e5 ? c.ref : null; } catch (e) { return null; }
+  };
+
   // Rewards used to be a "coming soon" popup; they now have their own page
   // (/reward). Old links — index.html#rewards, arcircle.html#rewards, any
   // leftover [data-reward] button — are sent there.

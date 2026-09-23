@@ -411,6 +411,27 @@
     // ---- launch form ----
     "$ARCIRCLE is the platform's core coin — pick another ticker so buyers aren't misled.": "$ARCIRCLE은 플랫폼의 코어 코인입니다 — 구매자가 헷갈리지 않도록 다른 티커를 고르세요.",
     "None": "없음", "Preview": "미리보기", "Your coin name": "코인 이름", "now": "방금", "new": "신규",
+    // ---- creators leaderboard ----
+    "A preview leaderboard of ArcPad creators, from the last 24 hours of on-chain trading in their coins.": "ArcPad 크리에이터 리더보드 미리보기 — 각 크리에이터 코인의 최근 24시간 온체인 거래 기준.",
+    "Preview score": "미리보기 점수",
+    "= 24h volume (USD) + 5 × 24h trades, summed over a creator's coins · ×1.25 for coins paired with $ARCIRCLE": "= 24h 거래량(USD) + 5 × 24h 거래 수, 크리에이터의 모든 코인 합산 · $ARCIRCLE 페어 코인은 ×1.25",
+    "Coins": "코인", "Score": "점수",
+    "The whitepaper's creator score is planned to combine organic volume, unique buyers and holder retention, with a boost for $ARCIRCLE-paired launches. This preview uses what can be read live today. No rewards are paid from it.": "백서의 크리에이터 점수는 자연 거래량, 고유 매수자, 홀더 유지율을 합치고 $ARCIRCLE 페어 런치에 가산점을 주는 방식으로 계획되어 있습니다. 이 미리보기는 지금 실시간으로 읽을 수 있는 값만 씁니다. 이 점수로 지급되는 리워드는 없습니다.",
+    "$ARCIRCLE-paired boost": "$ARCIRCLE 페어 가산점",
+    // ---- treasury buybacks ----
+    "Treasury buybacks": "트레저리 바이백", "Indexing the curve's history…": "커브 기록 인덱싱 중…",
+    "Every $ARCIRCLE buy by the platform's wallets, read from the curve": "플랫폼 지갑의 모든 $ARCIRCLE 매수 — 커브에서 직접 읽음",
+    "Buybacks": "바이백", "USDC spent": "사용한 USDC", "$ARCIRCLE bought": "매수한 $ARCIRCLE", "Treasury holds": "트레저리 보유량",
+    "Checking every trade since launch…": "런치 이후 모든 거래 확인 중…",
+    "No buybacks yet. The whitepaper roadmap puts the first treasury buybacks in Phase 1 (Q4 2026) — each one will appear here automatically.": "아직 바이백이 없습니다. 백서 로드맵상 첫 트레저리 바이백은 1단계(2026년 4분기)이며, 실행되면 여기에 자동으로 표시됩니다.",
+    "Tracked: Treasury": "추적 지갑: 트레저리", "· Platform wallet": "· 플랫폼 지갑",
+    // ---- reward: invite + treasury ----
+    "Invite link": "초대 링크", "Treasury $ARCIRCLE": "트레저리 $ARCIRCLE", "Buyback history →": "바이백 기록 →",
+    "Anyone who opens ARCIRCLE PAD through this link is remembered as your invite in their browser for 30 days. Referral share is a candidate mechanic in the whitepaper — nothing is paid for invites yet.": "이 링크로 ARCIRCLE PAD에 들어온 사람은 30일 동안 그 브라우저에 내 초대로 기록됩니다. 추천 보상은 백서의 후보 메커니즘이며, 아직 초대에 대해 지급되는 것은 없습니다.",
+    // ---- CirclePad alerts ----
+    "Alert me when the raise opens": "모금이 열리면 알려주기",
+    "Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.": "알림 설정됨 — CirclePad 탭을 열어 두면 모금이 열리는 순간 이 브라우저가 알려줍니다.",
+    "Cancel alert": "알림 취소", "Add the close to my calendar": "마감 시각을 캘린더에 추가",
   };
 
   // Strings with live numbers — [pattern, replacement]

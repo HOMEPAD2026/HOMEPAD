@@ -47,6 +47,10 @@
     {
       "source": "/reward",
       "destination": "/reward.html"
+    },
+    {
+      "source": "/c/:addr",
+      "destination": "/api/c?addr=:addr"
     }
   ],
   "redirects": [
