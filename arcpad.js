@@ -7,6 +7,7 @@
 // exception: it's paid as msg.value (native, 18-decimal representation of
 // the same USDC), not pulled from the ERC-20 balance.
 
+const ARC_LOGO_PH = '<svg class="logo-ph-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4.5 17.5l5-5 3.5 3.5 2.5-2.5 4 4"/></svg>';
 const ARC = { launches: [], baseFeeBps: null, tradeToken: null, tradeSide: "buy" };
 const ARC_TOKEN_DECIMALS = 18;
 const ARC_QUOTE_DECIMALS = 6;
@@ -87,6 +88,7 @@ async function getLivePriceUsdc(token, quoteToken, quoteIsCurrency0, quoteDecima
   // launch paired with something else this is in that token's units.
   try {
     const key = await arcpadFactoryRead().poolKeyOf(token);
+    (ARC.poolKeys || (ARC.poolKeys = {}))[token.toLowerCase()] = key; // reused by arc-activity.js
     const { sqrtPriceX96 } = await getPoolSlot0(key);
     if (sqrtPriceX96 === 0n) return null;
     return arcPriceInQuote(sqrtPriceX96, quoteIsCurrency0, quoteDecimals);
@@ -170,6 +172,7 @@ async function loadArcpadLaunches() {
   if (foot) foot.textContent = `${built.length} launch${built.length === 1 ? "" : "es"} live`;
   renderArcpadHome();
   renderArcpadExplore();
+  if (typeof arcActivityStart === "function") arcActivityStart();
 }
 
 function arcEscHtml(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -180,13 +183,15 @@ function launchCardHtml(l) {
     : `<span class="ap-card-logo ph">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
   return `
     <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
-      ${img}
+      <div class="ap-card-top">${img}<span class="ap-card-age" data-act="age">${typeof arcLaunchAge === "function" ? arcLaunchAge(l) : ""}</span></div>
       <div class="sym">$${arcEscHtml(l.symbol)}${l.quoteIsUsdc === false ? ` <span class="ap-pair-tag">/ ${arcEscHtml(l.quoteSymbol)}</span>` : ""}</div>
       <div class="name">${arcEscHtml(l.name)}</div>
+      <svg class="ap-spark" data-act="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="meta">
         <span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : l.priceInQuote != null ? `${fmtCompact(l.priceInQuote * ARC_DEFAULT_SUPPLY)} ${arcEscHtml(l.quoteSymbol)}` : "—"} mcap</span>
-        <span>${l.priceUsdc != null ? "$" + l.priceUsdc.toPrecision(4) : l.priceInQuote != null ? `${l.priceInQuote.toPrecision(4)} ${arcEscHtml(l.quoteSymbol)}` : "—"}</span>
+        <span class="ap-chg" data-act="chg">—</span>
       </div>
+      <div class="ap-card-vol" data-act="vol">Vol 24h …</div>
     </button>`;
 }
 
@@ -206,6 +211,7 @@ function renderArcpadHome() {
   const cardsHtml = newest.map(launchCardHtml).join("");
   track.innerHTML = cardsHtml + cardsHtml + cardsHtml;
   wireLaunchCardClicks(track);
+  if (typeof arcPaintCard === "function") track.querySelectorAll(".ap-launch-card").forEach(arcPaintCard);
   setupCarouselAutoScroll(viewport, track, newest.length);
 }
 
@@ -239,8 +245,12 @@ function renderArcpadExploreGrid() {
   const grid = document.getElementById("ap-explore-grid");
   const q = (document.getElementById("ap-explore-search").value || "").trim().toLowerCase();
   let rows = ARC.launches.filter((l) => !q || l.name.toLowerCase().includes(q) || l.symbol.toLowerCase().includes(q));
+  const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || null;
   if (arcExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
   else if (arcExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
+  else if (arcExploreSort === "vol") rows = [...rows].sort((a, b) => ((st(b) || {}).vol || 0) - ((st(a) || {}).vol || 0) || b.launchedAt - a.launchedAt);
+  else if (arcExploreSort === "last") rows = [...rows].sort((a, b) => ((st(b) || {}).lastB || 0) - ((st(a) || {}).lastB || 0) || b.launchedAt - a.launchedAt);
+  else if (arcExploreSort === "gainers") rows = [...rows].sort((a, b) => ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(b) : 0) ?? -1) - ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(a) : 0) ?? -1));
   else rows = [...rows].sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const empty = ARC.launches.length === 0
@@ -248,6 +258,7 @@ function renderArcpadExploreGrid() {
     : `No launches match “${esc(q)}”.`;
   grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty}</div>`;
   wireLaunchCardClicks(grid);
+  if (typeof arcPaintCard === "function") grid.querySelectorAll(".ap-launch-card").forEach(arcPaintCard);
 }
 
 function wireLaunchCardClicks(root) {
@@ -264,7 +275,10 @@ function wireLaunchCardClicks(root) {
 // arc-shared.js is loaded by CirclePad too, which has no carousel at all.
 function setupCarouselAutoScroll(viewport, track, itemCount) {
   if (!viewport || !track || itemCount === 0) return;
-  const singleSetWidth = track.scrollWidth / 3;
+  // Re-rendering the track (a reload after a launch) must not start a second
+  // animation loop on the same viewport — just re-measure.
+  if (viewport._carousel) { viewport._carousel.remeasure(); return; }
+  let singleSetWidth = track.scrollWidth / 3;
   let currentScroll = singleSetWidth;
   viewport.scrollLeft = currentScroll;
   const SPEED = 0.5;
@@ -278,6 +292,7 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
+  viewport._carousel = { remeasure() { singleSetWidth = track.scrollWidth / 3; currentScroll = singleSetWidth; viewport.scrollLeft = currentScroll; } };
   viewport.addEventListener("pointerdown", (e) => {
     isDragging = true; dragStartX = e.clientX; dragStartScroll = viewport.scrollLeft;
     viewport.setPointerCapture(e.pointerId); viewport.classList.add("dragging");
@@ -300,7 +315,7 @@ function setupCarouselAutoScroll(viewport, track, itemCount) {
 function wireArcpadImageUpload() {
   const imgInput = document.getElementById("ap-logo");
   const imgPreview = document.getElementById("ap-image-preview");
-  const updatePreview = (url) => { imgPreview.innerHTML = url ? `<img src="${url}" onerror="this.parentElement.innerHTML='🅰️'">` : "🅰️"; };
+  const updatePreview = (url) => { imgPreview.innerHTML = url ? `<img src="${url}" onerror="this.parentElement.innerHTML=ARC_LOGO_PH">` : ARC_LOGO_PH; };
   imgInput.addEventListener("input", (e) => updatePreview(e.target.value.trim()));
   document.getElementById("ap-logo-file").addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -658,7 +673,7 @@ async function submitArcpadLaunch(ev) {
     const newToken = typeof arcLaunchedTokenFromReceipt === "function" ? arcLaunchedTokenFromReceipt(receipt) : null;
     statusEl.innerHTML = `<div class="status success">Launched!${newToken ? " Opening your coin's page…" : ""} <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("ap-launch-form").reset();
-    document.getElementById("ap-image-preview").innerHTML = "🅰️";
+    document.getElementById("ap-image-preview").innerHTML = ARC_LOGO_PH;
     document.getElementById("ap-image-hint").textContent = "A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.";
     // reset() puts the slider back to 0 but fires no input event, so the fee
     // breakdown and dev-buy preview have to be re-rendered by hand.
@@ -668,7 +683,10 @@ async function submitArcpadLaunch(ev) {
     if (newToken && typeof openArcCoin === "function") {
       // Straight to the new coin's page (it reads from chain, so it doesn't
       // need the launch list to finish reloading first).
-      setTimeout(() => { openArcCoin(newToken); statusEl.innerHTML = ""; }, 900);
+      setTimeout(() => {
+        openArcCoin(newToken); statusEl.innerHTML = "";
+        if (typeof arcCelebrateLaunch === "function") arcCelebrateLaunch(newToken);
+      }, 900);
       reload.then(() => { if (typeof APC !== "undefined" && APC.token && APC.token.toLowerCase() === newToken.toLowerCase()) apcRefresh(); });
     }
   } catch (err) {
@@ -821,13 +839,7 @@ async function submitTrade() {
     }
     document.getElementById("ap-trade-amount").value = "";
     refreshTradeBalance();
-    const reload = loadArcpadLaunches().catch((err) => console.error(err));
-    if (newToken && typeof openArcCoin === "function") {
-      // Straight to the new coin's page (it reads from chain, so it doesn't
-      // need the launch list to finish reloading first).
-      setTimeout(() => { openArcCoin(newToken); statusEl.innerHTML = ""; }, 900);
-      reload.then(() => { if (typeof APC !== "undefined" && APC.token && APC.token.toLowerCase() === newToken.toLowerCase()) apcRefresh(); });
-    }
+    loadArcpadLaunches().catch((err) => console.error(err));
   } catch (err) {
     console.error(err);
     statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;

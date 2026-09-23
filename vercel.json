@@ -48,5 +48,18 @@
       "source": "/reward",
       "destination": "/reward.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "arcirclepad.vercel.app"
+        }
+      ],
+      "destination": "https://www.arcircle.app/:path*",
+      "permanent": false
+    }
   ]
 }

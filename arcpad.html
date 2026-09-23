@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790196051">
+<link rel="stylesheet" href="style.css?v=1790202045">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -117,6 +117,12 @@
 
     <div class="bp-scroll">
 
+      <!-- Live trades across every ArcPad pool + $ARCIRCLE (arc-activity.js) -->
+      <div class="ap-ticker" id="ap-ticker" hidden aria-label="Live trades">
+        <span class="tk-live"><i></i>Live</span>
+        <div class="tk-viewport"><div class="tk-track"></div></div>
+      </div>
+
       <!-- ============ HOME ============ -->
       <section class="bp-panel active" id="bp-panel-home">
 
@@ -184,8 +190,10 @@
         <div class="cn-explore-toolbar">
           <input class="world-search" id="ap-explore-search" placeholder="Search launches by name or symbol…" autocomplete="off">
           <div class="cn-sort-group" id="ap-sort-group">
-            <button type="button" data-sort="mcap" class="active">Market Cap</button>
-            <button type="button" data-sort="name">Name (A–Z)</button>
+            <button type="button" data-sort="mcap" class="active">Market cap</button>
+            <button type="button" data-sort="vol">Volume 24h</button>
+            <button type="button" data-sort="gainers">Gainers</button>
+            <button type="button" data-sort="last">Last trade</button>
             <button type="button" data-sort="new">Newest</button>
           </div>
         </div>
@@ -225,6 +233,7 @@
                 <code class="ac2-ca-short" id="apc-ca-short">—</code>
                 <button type="button" class="ac2-chip-btn" id="apc-copy-ca">Copy</button>
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
+                <button type="button" class="ac2-chip-btn ac2-share-btn" data-share="coin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>Share</button>
               </div>
             </div>
             <div class="ac2-head-price">
@@ -389,6 +398,7 @@
                 <code class="ac2-ca-short">0x933a…5aa1</code>
                 <button type="button" class="ac2-chip-btn" id="ac2-copy-ca">Copy</button>
                 <a class="ac2-chip-btn" href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">ArcScan ↗</a>
+                <button type="button" class="ac2-chip-btn ac2-share-btn" data-share="arcircle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>Share</button>
               </div>
             </div>
             <div class="ac2-head-price">
@@ -555,11 +565,11 @@
 
           <label><span>Logo</span> <span class="optional">optional</span></label>
           <div class="logo-row">
-            <div class="logo-preview" id="ap-image-preview">🅰️</div>
+            <div class="logo-preview" id="ap-image-preview"><svg class="logo-ph-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4.5 17.5l5-5 3.5 3.5 2.5-2.5 4 4"/></svg></div>
             <div style="flex:1">
               <input id="ap-logo" placeholder="paste an image URL, or upload a file below" maxlength="60000">
               <label class="file-btn">
-                <span>📎 Upload a file</span>
+                <span>Upload a file</span>
                 <input type="file" id="ap-logo-file" accept="image/*" style="display:none">
               </label>
               <div class="hint" id="ap-image-hint">A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.</div>
@@ -742,14 +752,17 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1790196051"></script>
-<script src="abis.js?v=1790196051"></script>
-<script src="arc-shared.js?v=1790196051"></script>
-<script src="wallet-appkit.js?v=1790196051"></script>
-<script src="arc-quote.js?v=1790196051"></script>
-<script src="arcpad.js?v=1790196051"></script>
-<script src="arcpad-coin.js?v=1790196051"></script>
-<script src="arcircle-coin.js?v=1790196051"></script>
-<script src="arcircle-hub.js?v=1790196051"></script>
+<script src="config-arc.js?v=1790202045"></script>
+<script src="abis.js?v=1790202045"></script>
+<script src="arc-shared.js?v=1790202045"></script>
+<script src="wallet-appkit.js?v=1790202045"></script>
+<script src="arc-quote.js?v=1790202045"></script>
+<script src="arcpad.js?v=1790202045"></script>
+<script src="arcpad-coin.js?v=1790202045"></script>
+<script src="arc-fx.js?v=1790202045"></script>
+<script src="arc-activity.js?v=1790202045"></script>
+<script src="arcircle-coin.js?v=1790202045"></script>
+<script src="arcircle-hub.js?v=1790202045"></script>
+<script src="i18n.js?v=1790202045"></script>
 </body>
 </html>

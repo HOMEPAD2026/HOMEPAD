@@ -3759,3 +3759,139 @@ a.rw-chip:hover{border-color:rgba(255,200,97,.5);color:var(--ax-ink);}
   .rw-check{flex-direction:column;}
   .rw-program{padding:20px;}
 }
+
+/* ---- Mobile header: one row instead of three ----------------------------
+   The tab dropdown (sidebar) and the topbar (search + chain + wallet) used to
+   stack into two full-width rows above the content, on top of the floating
+   quick bar and dock at the bottom. On phones the topbar now floats into the
+   right-hand end of the dropdown row: "Home ▾ ........ [wallet]". Explore
+   keeps its own search box, so the topbar copy is dropped there. */
+@media (max-width:900px){
+  .bp-sidebar{min-height:58px;}
+  .bp-mobile-menu-trigger{width:auto;max-width:calc(100% - 250px);justify-content:flex-start;gap:8px;min-height:58px;padding:0 18px;}
+  .bp-mobile-menu-trigger span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bp-topbar{position:fixed;top:0;right:0;z-index:25;height:58px;padding:0 14px;border-bottom:none;background:none;
+    flex-wrap:nowrap;justify-content:flex-end;pointer-events:none;}
+  .bp-topbar > *{pointer-events:auto;}
+  .bp-topbar .bp-search,.bp-topbar .bp-chain-pill{display:none;}
+  .bp-topbar-right{margin-left:0;gap:8px;}
+  .bp-topbar .wallet-info{gap:6px;}
+  .bp-topbar .connect-btn,.bp-topbar .wallet-pill{padding:8px 14px;font-size:.82rem;}
+  .bp-scroll{padding-top:18px;}
+}
+/* Desktop: on Explore the page has its own search box — hide the topbar copy there. */
+.bp-app:has(#bp-panel-explore.active) .bp-topbar .bp-search{visibility:hidden;}
+
+/* ================= Live activity: ticker, cards, flashes ================= */
+.ap-ticker{position:relative;display:flex;align-items:center;gap:0;margin:18px 0 4px;height:42px;border-radius:12px;
+  border:1px solid var(--line);background:linear-gradient(90deg,rgba(77,159,255,.07),rgba(57,255,136,.05));overflow:hidden;}
+.ap-ticker[hidden]{display:none;}
+.bp-app:not(:has(#bp-panel-home.active, #bp-panel-explore.active)) .ap-ticker{display:none;}
+.tk-live{flex:none;display:flex;align-items:center;gap:7px;height:100%;padding:0 14px;font:700 .64rem 'Sora',sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:#39ff88;background:rgba(4,6,10,.85);border-right:1px solid var(--line);z-index:1;}
+.tk-live i{width:7px;height:7px;border-radius:50%;background:#39ff88;box-shadow:0 0 10px #39ff88;animation:ac2pulse 1.6s ease-in-out infinite;}
+.tk-viewport{flex:1;min-width:0;overflow:hidden;height:100%;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);}
+.tk-track{display:flex;align-items:center;height:100%;width:max-content;animation:tk-scroll var(--tk-dur,60s) linear infinite;}
+.ap-ticker:hover .tk-track{animation-play-state:paused;}
+@keyframes tk-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.tk-item{display:flex;align-items:center;gap:7px;height:30px;margin:0 4px;padding:0 11px 0 6px;border-radius:999px;white-space:nowrap;
+  font-size:.78rem;color:var(--ink);text-decoration:none;border:1px solid transparent;transition:background .15s;}
+.tk-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.tk-item img,.tk-ph{width:20px;height:20px;border-radius:6px;object-fit:cover;flex:none;}
+.tk-ph{display:grid;place-items:center;background:var(--panel-hi);font:700 .62rem 'Sora',sans-serif;color:var(--ink-dim);}
+.tk-item b{font-weight:700;}
+.tk-side{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:5px;}
+.tk-buy .tk-side{color:#39d98a;background:rgba(57,217,138,.12);}
+.tk-sell .tk-side{color:#ff6b6b;background:rgba(255,107,107,.12);}
+.tk-item strong{font-variant-numeric:tabular-nums;}
+.tk-item time{color:var(--ink-dim);font-size:.7rem;}
+.tk-new{animation:tk-new 1.8s ease-out;}
+@keyframes tk-new{0%{background:rgba(57,255,136,.28);border-color:rgba(57,255,136,.6);}100%{background:transparent;border-color:transparent;}}
+.tk-sell.tk-new{animation-name:tk-new-sell;}
+@keyframes tk-new-sell{0%{background:rgba(255,107,107,.26);border-color:rgba(255,107,107,.55);}100%{background:transparent;border-color:transparent;}}
+
+.ap-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.ap-card-age{font:600 .66rem 'Sora',sans-serif;color:var(--ink-dim);padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.05);white-space:nowrap;}
+.ap-card-age:empty{display:none;}
+.ap-spark{display:block;width:100%;height:24px;margin:2px 0 8px;overflow:visible;}
+.ap-spark path{fill:none;stroke:#39d98a;stroke-width:1.6;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round;}
+.ap-spark.down path{stroke:#ff6b6b;}
+.ap-spark path.flat{stroke:rgba(255,255,255,.14);stroke-dasharray:3 3;}
+.ap-chg{font-weight:700;font-variant-numeric:tabular-nums;}
+.ap-chg.up{color:#39d98a;}
+.ap-chg.down{color:#ff6b6b;}
+.ap-chg.flat{color:var(--ink-dim);}
+.ap-card-vol{font:500 .66rem 'Sora',sans-serif;color:var(--ink-dim);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ap-launch-card{transition:border-color .15s ease,transform .18s ease,box-shadow .18s ease;}
+@media (hover:hover){
+  .ap-launch-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.45),0 0 0 1px rgba(57,255,136,.25);}
+}
+/* Explore sort chips: five options — scroll sideways on phones */
+#ap-sort-group{overflow-x:auto;scrollbar-width:none;}
+#ap-sort-group::-webkit-scrollbar{display:none;}
+#ap-sort-group button{white-space:nowrap;flex:none;}
+@media (max-width:640px){
+  #ap-sort-group{justify-content:flex-start;}
+  .ap-ticker{margin:14px 0 2px;height:38px;}
+  .tk-live{padding:0 10px;}
+  .tk-item{font-size:.74rem;}
+}
+
+/* Price flash (arc-fx.js) */
+.fx-up{animation:fx-up 1.2s ease-out;}
+.fx-down{animation:fx-down 1.2s ease-out;}
+@keyframes fx-up{0%{color:#39ff88;text-shadow:0 0 14px rgba(57,255,136,.8);}100%{text-shadow:none;}}
+@keyframes fx-down{0%{color:#ff6b6b;text-shadow:0 0 14px rgba(255,107,107,.8);}100%{text-shadow:none;}}
+.fx-confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:200;}
+
+@media (prefers-reduced-motion:reduce){
+  .tk-track{animation:none;}
+  .tk-viewport{overflow-x:auto;}
+  .tk-new,.tk-sell.tk-new,.fx-up,.fx-down{animation:none;}
+  .ap-launch-card:hover{transform:none;}
+}
+
+/* Share button + launch celebration banner */
+.ac2-share-btn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.ac2-share-btn svg{width:12px;height:12px;fill:currentColor;}
+.apc-celebrate{position:relative;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:6px 0 18px;padding:18px 20px;border-radius:16px;overflow:hidden;
+  border:1px solid rgba(57,255,136,.45);background:linear-gradient(120deg,rgba(63,155,255,.16),rgba(57,255,136,.14));
+  animation:apc-cel-in .5s cubic-bezier(.2,.9,.2,1.2);}
+.apc-cel-glow{position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent,rgba(57,255,136,.18),transparent 30%);animation:apc-cel-spin 6s linear infinite;pointer-events:none;}
+.apc-cel-copy{position:relative;flex:1;min-width:220px;}
+.apc-cel-copy strong{display:block;font:800 1.15rem 'Sora',sans-serif;color:#fff;margin-bottom:3px;}
+.apc-cel-copy span{font-size:.86rem;color:var(--ink-dim);}
+.apc-cel-actions{position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.apc-cel-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:11px;border:1px solid var(--line-hi, rgba(255,255,255,.16));
+  background:rgba(255,255,255,.06);color:#fff;font:700 .84rem 'Sora',sans-serif;cursor:pointer;}
+.apc-cel-btn svg{width:14px;height:14px;fill:currentColor;}
+.apc-cel-primary{background:#fff;color:#050505;border-color:#fff;}
+.apc-cel-x{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:none;color:var(--ink-dim);font-size:1.2rem;cursor:pointer;}
+@keyframes apc-cel-in{from{opacity:0;transform:translateY(-8px) scale(.97);}to{opacity:1;transform:none;}}
+@keyframes apc-cel-spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.apc-celebrate,.apc-cel-glow{animation:none;}}
+
+/* ================= Language toggle (i18n.js) ================= */
+.lang-toggle{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.04);cursor:pointer;font:700 .72rem 'Sora',system-ui,sans-serif;color:var(--ink-dim,#8c98a6);flex:none;}
+.lang-toggle span{display:grid;place-items:center;min-width:28px;height:24px;padding:0 7px;border-radius:999px;transition:background .15s,color .15s;}
+.lang-toggle span.on{background:#fff;color:#050505;}
+.lang-toggle:hover{border-color:rgba(255,255,255,.3);}
+.ax-top-right{display:flex;align-items:center;gap:10px;}
+/* Korean: the pixel / wide-tracked labels need much less letter-spacing */
+.lang-ko .ax-kicker,.lang-ko .ax-eyebrow,.lang-ko .ax-fact span,.lang-ko .ax-tag,.lang-ko .ax-badge,.lang-ko .ax-dock-txt small,
+.lang-ko .rw-live-item > span,.lang-ko .rw-dl dt,.lang-ko .rw-soon,.lang-ko .rw-def-s,.lang-ko .rw-tag-study,.lang-ko .rw-t-head span,
+.lang-ko .rw-result-card span,.lang-ko .ax-next-title,.lang-ko .ax-ca-label,.lang-ko .tk-live,.lang-ko .ac2-badge,
+.lang-ko .bp-hero-eyebrow,.lang-ko .ac2-feature-stats small,.lang-ko .ac2-stat small{letter-spacing:.03em;}
+.lang-ko body,.lang-ko button,.lang-ko input{word-break:keep-all;}
+@media (max-width:640px){
+  .lang-toggle span{min-width:24px;height:22px;padding:0 6px;}
+  .ax-top-right{gap:6px;}
+}
+.logo-ph-ico{width:26px;height:26px;fill:none;stroke:var(--ink-dim);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+/* Hub header on phones: logo only, so the language toggle and CTA fit on one line */
+.ax-top-cta,.ax-brand{white-space:nowrap;}
+@media (max-width:480px){
+  header.ax-top .ax-brand span{display:none;}
+}
