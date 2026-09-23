@@ -354,6 +354,51 @@ function updateArcpadDevBuyPreview() {
   el.textContent = `≈ ${fmtCompact(tokensOut)} tokens (${((tokensOut / ARC_SELLABLE_SUPPLY) * 100).toFixed(2)}% of the sellable supply) — approximate, before the trading fee.`;
 }
 
+// ---------- Can this wallet afford the launch? ----------
+// On Arc, gas and the launch fee are both paid in native USDC, and the
+// ERC-20 USDC used for a dev buy is the SAME balance (just 6 decimals).
+// Without a check, an underfunded wallet only got ethers' raw
+// "missing revert data" from gas estimation.
+const ARC_LAUNCH_FEE_FALLBACK = 10n ** 18n; // 1 USDC (native, 18 dp)
+let arcLaunchFeeCache = null;
+async function arcpadLaunchCost(devBuyStr) {
+  if (arcLaunchFeeCache == null) {
+    try { arcLaunchFeeCache = await withRetry(() => arcpadFactoryRead().LAUNCH_FEE()); } catch { arcLaunchFeeCache = ARC_LAUNCH_FEE_FALLBACK; }
+  }
+  const dev = devBuyStr && Number(devBuyStr) > 0 ? ethers.parseUnits(devBuyStr, ARC_QUOTE_DECIMALS) * 10n ** 12n : 0n;
+  let gas = ethers.parseEther("0.06");
+  try {
+    const fd = await readProvider().getFeeData();
+    const gp = fd.gasPrice || fd.maxFeePerGas;
+    if (gp) gas = gp * (dev > 0n ? 1_900_000n : 1_400_000n); // launch ≈1.07M gas (+ approve for a dev buy), with headroom
+  } catch { /* keep the flat estimate */ }
+  return { fee: arcLaunchFeeCache, dev, gas, total: arcLaunchFeeCache + dev + gas };
+}
+const fmtUsdc18 = (v) => Number(ethers.formatEther(v)).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+
+async function updateArcpadLaunchBalance() {
+  const el = document.getElementById("ap-launch-balance");
+  if (!el) return;
+  if (!state.account) { el.textContent = ""; el.className = "ap-launch-balance"; return; }
+  try {
+    const devBuyStr = document.getElementById("ap-devbuy").value.trim();
+    const [bal, cost] = await Promise.all([withRetry(() => readProvider().getBalance(state.account)), arcpadLaunchCost(devBuyStr)]);
+    const ok = bal >= cost.total;
+    el.className = "ap-launch-balance " + (ok ? "ok" : "short");
+    el.textContent = ok
+      ? `Wallet: ${fmtUsdc18(bal)} USDC · this launch needs ≈ ${fmtUsdc18(cost.total)} USDC`
+      : `Not enough USDC — this launch needs ≈ ${fmtUsdc18(cost.total)} USDC (1 USDC fee${cost.dev > 0n ? " + dev buy" : ""} + gas), this wallet has ${fmtUsdc18(bal)} USDC on Arc.`;
+  } catch { el.textContent = ""; }
+}
+
+/// Plain-language version of the errors wallets / ethers throw.
+function arcpadTxErrorText(err) {
+  const raw = String(err && (err.shortMessage || err.reason || err.message) || err);
+  if (/user rejected|user denied|rejected the request|ACTION_REJECTED|4001/i.test(raw)) return "Cancelled in your wallet.";
+  if (/insufficient funds|exceeds balance|missing revert data/i.test(raw)) return "The transaction can't go through — most often the wallet doesn't have enough USDC on Arc for the amount plus gas. Top up and try again.";
+  return raw.slice(0, 220);
+}
+
 async function submitArcpadLaunch(ev) {
   ev.preventDefault();
   const statusEl = document.getElementById("ap-launch-status");
@@ -382,6 +427,15 @@ async function submitArcpadLaunch(ev) {
     await connectWallet();
     if (!state.account) { statusEl.innerHTML = `<div class="status error">Connect a wallet to launch.</div>`; return; }
   }
+
+  try {
+    const [bal, cost] = await Promise.all([withRetry(() => readProvider().getBalance(state.account)), arcpadLaunchCost(devBuyStr)]);
+    if (bal < cost.total) {
+      statusEl.innerHTML = `<div class="status error">Not enough USDC on Arc. This launch needs about <b>${fmtUsdc18(cost.total)} USDC</b> (1 USDC fee${cost.dev > 0n ? ` + ${fmtUsdc18(cost.dev)} USDC dev buy` : ""} + ≈${fmtUsdc18(cost.gas)} gas) — this wallet has <b>${fmtUsdc18(bal)} USDC</b>.</div>`;
+      updateArcpadLaunchBalance();
+      return;
+    }
+  } catch (err) { console.warn("launch balance check skipped", err && err.message); }
 
   btn.disabled = true;
   btn.classList.add("is-busy");
@@ -421,7 +475,7 @@ async function submitArcpadLaunch(ev) {
     loadArcpadLaunches().catch((err) => console.error(err));
   } catch (err) {
     console.error(err);
-    statusEl.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 220)}</div>`;
+    statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;
   } finally {
     btn.disabled = false;
     btn.classList.remove("is-busy");
@@ -571,7 +625,7 @@ async function submitTrade() {
     loadArcpadLaunches().catch((err) => console.error(err));
   } catch (err) {
     console.error(err);
-    statusEl.innerHTML = `<div class="status error">${String(err && (err.shortMessage || err.message) || err).slice(0, 220)}</div>`;
+    statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;
   } finally {
     btn.disabled = false;
   }
@@ -581,6 +635,7 @@ async function submitTrade() {
 // — arc-shared.js is a shared library across ARCPAD and CIRCLEPAD, so it
 // doesn't know which page-specific refresh functions exist.
 function refreshAccountDependentViews() {
+  updateArcpadLaunchBalance();
   updateTradeSubmitLabel();
   if (ARC.tradeToken) refreshTradeBalance();
 }
@@ -609,6 +664,7 @@ function refreshAccountDependentViews() {
       if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
     }
     document.dispatchEvent(new CustomEvent("arcpad:tab", { detail: { tab } }));
+    if (tab === "launch") updateArcpadLaunchBalance();
   }
   window.arcpadShowTab = showTab;
   const tabFromHash = () => {
@@ -653,6 +709,7 @@ function refreshAccountDependentViews() {
   // Launch form
   document.getElementById("ap-launch-form").addEventListener("submit", submitArcpadLaunch);
   document.getElementById("ap-devbuy").addEventListener("input", updateArcpadDevBuyPreview);
+  let balT; document.getElementById("ap-devbuy").addEventListener("input", () => { clearTimeout(balT); balT = setTimeout(updateArcpadLaunchBalance, 350); });
   wireArcpadImageUpload();
   wireArcpadFeePreview();
 

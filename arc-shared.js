@@ -235,6 +235,7 @@ async function connectWallet() {
   attachBasicWalletListeners();
   try { await ensureNetwork(); } catch (err) { console.warn("network switch declined/failed — showing wrong-network badge instead", err && err.message); }
   if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+  if (typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
 }
 
 async function restoreBasicWallet() {

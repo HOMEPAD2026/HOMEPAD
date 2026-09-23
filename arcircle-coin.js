@@ -714,7 +714,7 @@ function ac2ErrText(err) {
   if (r && r.name) return `Rejected by the curve: ${r.name}`;
   if (err && (err.code === "ACTION_REJECTED" || err.code === 4001)) return "You rejected the request in your wallet.";
   const m = String(err && (err.shortMessage || err.reason || err.message) || err);
-  if (/insufficient funds/i.test(m)) return "Not enough USDC left for gas.";
+  if (/insufficient funds|missing revert data/i.test(m)) return "Not enough USDC on Arc for this amount plus gas.";
   return m.slice(0, 200);
 }
 
