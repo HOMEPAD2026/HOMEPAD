@@ -134,6 +134,49 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
+  // ---- Quick bar: a slim second floating row just above the dock with the
+  // two things people come to do — launch a coin and browse launches. Both
+  // go to ArcPad; on ArcPad itself they switch tabs in place.
+  var ICON_ROCKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>';
+  var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>';
+
+  function mountQuickBar() {
+    var dock = document.querySelector("nav.ax-dock");
+    if (!dock || document.querySelector("nav.ax-quick")) return;
+    var bar = document.createElement("nav");
+    bar.className = "ax-quick";
+    bar.setAttribute("aria-label", "Quick actions");
+    bar.innerHTML =
+      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch">' + ICON_ROCKET + '<span>Launch</span></a>' +
+      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore">' + ICON_GRID + '<span>Explore</span></a>';
+    dock.parentNode.insertBefore(bar, dock);
+
+    // Sit exactly one gap above the dock, whatever height it renders at.
+    var root = document.documentElement;
+    var sync = function () { root.style.setProperty("--ax-dock-h", Math.round(dock.getBoundingClientRect().height) + "px"); };
+    sync();
+    if (window.ResizeObserver) new ResizeObserver(sync).observe(dock);
+    else window.addEventListener("resize", sync);
+
+    bar.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("[data-arc-tab]");
+      if (!a || typeof window.arcpadShowTab !== "function") return; // other pages: normal navigation
+      e.preventDefault();
+      window.arcpadShowTab(a.getAttribute("data-arc-tab"));
+    });
+
+    var mark = function (tab) {
+      Array.prototype.forEach.call(bar.querySelectorAll("[data-arc-tab]"), function (a) {
+        if (a.getAttribute("data-arc-tab") === tab) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+    };
+    document.addEventListener("arcpad:tab", function (e) { mark(e.detail && e.detail.tab); });
+    var active = document.querySelector(".bp-panel.active");
+    if (active && typeof window.arcpadShowTab === "function") mark(active.id.replace("bp-panel-", ""));
+  }
+  mountQuickBar();
+
   if (location.hash === "#rewards") openReward();
   window.addEventListener("hashchange", function () { if (location.hash === "#rewards") openReward(); });
 })();

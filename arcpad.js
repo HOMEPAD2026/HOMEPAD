@@ -592,7 +592,20 @@ function refreshAccountDependentViews() {
       if (activeBtn) mobileMenuLabel.textContent = activeBtn.textContent.trim();
     }
     if (sidebar) sidebar.classList.remove("bp-menu-open");
+    // Keep the URL shareable (/arc#launch, /arc#explore, …) without adding
+    // history entries, and let the floating quick bar highlight its item.
+    if (history.replaceState) {
+      const want = tab === "home" ? "" : `#${tab}`;
+      if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
+    }
+    document.dispatchEvent(new CustomEvent("arcpad:tab", { detail: { tab } }));
   }
+  window.arcpadShowTab = showTab;
+  const tabFromHash = () => {
+    const t = location.hash.slice(1);
+    return t && document.getElementById(`bp-panel-${t}`) ? t : null;
+  };
+  window.addEventListener("hashchange", () => { const t = tabFromHash(); if (t) showTab(t); });
   navItems.forEach((btn) => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
   const menuTrigger = document.getElementById("bp-mobile-menu-trigger");
   if (menuTrigger && sidebar) {
@@ -602,6 +615,7 @@ function refreshAccountDependentViews() {
     });
   }
   document.querySelectorAll("[data-tab-link]").forEach((el) => el.addEventListener("click", () => showTab(el.dataset.tabLink)));
+  { const t = tabFromHash(); if (t && t !== "home") showTab(t); }
 
   // Docs sub-tabs
   document.querySelectorAll(".bp-doc-tab").forEach((tab) => {

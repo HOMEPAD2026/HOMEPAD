@@ -3201,6 +3201,30 @@ body.ax-modal-open{overflow:hidden;}
   .ax-brand span{display:none;}
 }
 
+/* ---- Quick bar: slim Launch / Explore pill floating just above the dock
+   (built by arcircle-hub.js, which also measures the dock into --ax-dock-h) */
+:is(.ax-page,.ax-dock-host) nav.ax-quick{position:fixed;z-index:40;left:50%;transform:translateX(-50%);
+  bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 12px)) + var(--ax-dock-h,78px) + 10px);
+  display:flex;gap:4px;padding:4px;border-radius:999px;width:auto;margin:0;overflow:visible;flex-wrap:nowrap;min-width:0;
+  background:var(--ax-glass);border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:0 14px 36px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);}
+:is(.ax-page,.ax-dock-host) .ax-quick > .ax-quick-item{margin:0;}
+.ax-quick-item{display:flex;align-items:center;gap:7px;padding:7px 16px 7px 13px;border-radius:999px;
+  font-family:'Sora',sans-serif;font-size:.8rem;font-weight:700;line-height:1.2;letter-spacing:-.01em;
+  color:var(--ax-ink);text-decoration:none;white-space:nowrap;transition:background .15s,filter .15s,transform .15s;}
+.ax-quick-item svg{width:15px;height:15px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-item:hover{color:var(--ax-ink);background:rgba(255,255,255,.07);}
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch,
+:is(.ax-page,.ax-dock-host) .ax-quick a.ax-quick-launch:hover{background:var(--ax-grad);color:#03110a;}
+.ax-quick-launch:hover{filter:brightness(1.08);}
+.ax-quick-item[aria-current="page"]:not(.ax-quick-launch){background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);}
+.ax-quick-launch[aria-current="page"]{box-shadow:0 0 0 2px rgba(255,255,255,.55);}
+@media (max-width:640px){
+  :is(.ax-page,.ax-dock-host) nav.ax-quick{bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 12px)) + var(--ax-dock-h,84px) + 8px);}
+  .ax-quick-item{padding:7px 15px 7px 12px;font-size:.78rem;}
+}
+
 /* ---- Dock + Reward popup hosted on ArcPad / CirclePad (body.ax-dock-host) ----
    Those pages keep their own sidebar shell; the dock just floats over it.
    body.bigpad-page forces Inter on nav/h2/h3 with !important, so the dock
@@ -3209,10 +3233,10 @@ body.ax-modal-open{overflow:hidden;}
 .ax-modal-card{color:var(--ax-ink);font-family:'Sora',sans-serif;}
 .ax-modal .ax-modal-card h2,.ax-modal .ax-modal-card h3{font-family:'Sora',sans-serif !important;color:var(--ax-ink);letter-spacing:-.02em;}
 .ax-modal .ax-modal-card p{color:var(--ax-dim);}
-body.ax-dock-host{padding-bottom:108px;}
+body.ax-dock-host{padding-bottom:160px;}
 @media (min-width:901px){
   /* centre over the content column, not the whole window (sidebar is 236px) */
-  body.ax-dock-host nav.ax-dock{left:calc(50% + 118px);}
+  body.ax-dock-host nav.ax-dock,body.ax-dock-host nav.ax-quick{left:calc(50% + 118px);}
 }
 
 /* ============================================================
