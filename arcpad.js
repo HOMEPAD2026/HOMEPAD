@@ -182,7 +182,7 @@ function launchCardHtml(l) {
   const safe = /^https?:\/\//i.test(l.imageUrl || "") || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(l.imageUrl || "");
   const img = safe
     ? `<img class="ap-card-logo" src="${arcEscHtml(l.imageUrl)}" alt="" onerror="this.style.visibility='hidden'">`
-    : `<span class="ap-card-logo ph">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
+    : `<span class="ap-card-logo ph" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(l.token) : ""}">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
   return `
     <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
       <div class="ap-card-top">${img}<span class="ap-card-age" data-act="age">${typeof arcLaunchAge === "function" ? arcLaunchAge(l) : ""}</span></div>

@@ -285,6 +285,8 @@
   }
   async function refreshSafety() {
     if (typeof APC === "undefined" || !APC.l) return;
+    const fb = $("apc-logo-fallback");
+    if (fb) fb.style.background = avatarBg(APC.token).replace(/^background:/, "");
     const token = APC.token;
     renderSafety(); renderDupNotice(); paintWatchState();
     await loadSafety(token, APC.l.creator);

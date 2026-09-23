@@ -432,6 +432,8 @@
     "Alert me when the raise opens": "모금이 열리면 알려주기",
     "Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.": "알림 설정됨 — CirclePad 탭을 열어 두면 모금이 열리는 순간 이 브라우저가 알려줍니다.",
     "Cancel alert": "알림 취소", "Add the close to my calendar": "마감 시각을 캘린더에 추가",
+    // ---- wallet menu ----
+    "gas": "가스", "Add $ARCIRCLE to wallet": "지갑에 $ARCIRCLE 추가", "Added — check your wallet": "추가됨 — 지갑을 확인하세요", "Your wallet didn't accept it": "지갑이 추가를 받지 않았습니다",
   };
 
   // Strings with live numbers — [pattern, replacement]

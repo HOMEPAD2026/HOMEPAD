@@ -295,7 +295,7 @@ function actPaintTicker() {
     const href = t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
     const safeImg = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "") || /^https?:\/\//i.test(t.img || "") || /^images\//.test(t.img || "");
     return `<a class="tk-item ${t.buy ? "tk-buy" : "tk-sell"}${fresh.has(id) ? " tk-new" : ""}" href="${href}">`
-      + (safeImg ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
+      + (safeImg ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
       + `<b>$${actEsc(t.sym)}</b><span class="tk-side">${t.buy ? "buy" : "sell"}</span>`
       + `<strong>${actUsd(t.usd)}</strong><time>${actAgo(actTs(t.b))}</time></a>`;
   }).join("");
