@@ -19,6 +19,26 @@
     {
       "source": "/bigpad",
       "destination": "/bigpad.html"
+    },
+    {
+      "source": "/arc",
+      "destination": "/arcpad.html"
+    },
+    {
+      "source": "/arcpad",
+      "destination": "/arcpad.html"
+    },
+    {
+      "source": "/circle",
+      "destination": "/circlepad.html"
+    },
+    {
+      "source": "/circlepad",
+      "destination": "/circlepad.html"
+    },
+    {
+      "source": "/arcircle",
+      "destination": "/arcircle.html"
     }
   ]
 }

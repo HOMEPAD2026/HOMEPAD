@@ -33,7 +33,7 @@
         '</ul>' +
       '</div>' +
       '<div class="ax-modal-actions">' +
-        '<a class="ax-btn ax-btn-grad" href="arcircle.html#flywheel">How $ARCIRCLE is funded</a>' +
+        '<a class="ax-btn ax-btn-grad" href="/arcircle#flywheel">How $ARCIRCLE is funded</a>' +
         '<button type="button" class="ax-btn ax-btn-ghost" data-close>Close</button>' +
       '</div>' +
     '</div>';
