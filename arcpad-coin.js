@@ -207,6 +207,7 @@ async function apcGetLogs(params) {
     try { return await readProvider().send("eth_getLogs", [params]); } catch (err) {
       const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
       if (!(RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text)) || attempt >= 9) throw err;
+      if (typeof rpcNoteFailure === "function") { const sw = rpcNoteFailure(); if (sw) await sw; }
       await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
     }
   }
@@ -218,6 +219,23 @@ async function apcFetchRange(from, to) {
   return swaps.concat(transfers).map(apcCompact).filter(Boolean).sort((a, b) => (a.b - b.b) || (a.i - b.i));
 }
 
+async function apcSeedFromServer(token, latest) {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    const r = await fetch(`/api/holders?token=${token}`, { signal: ctl.signal }).finally(() => clearTimeout(t));
+    if (!r.ok) return false;
+    const d = await r.json();
+    if (!d || d.v !== 1 || d.token !== token.toLowerCase() || !Array.isArray(d.recs) || !(d.lo <= d.launchBlock)) return false;
+    if (!(d.hi >= latest - 4 * APC_CHUNK) || d.hi > latest + 50) return false;
+    const hi = Math.min(d.hi, latest);
+    const mine = APC.logs ? APC.logs.recs.filter((x) => x.b > hi) : [];
+    APC.logs = { launchBlock: d.launchBlock, lo: d.lo, hi: Math.max(hi, APC.logs ? APC.logs.hi : hi), recs: d.recs.filter((x) => x.b <= hi).concat(mine) };
+    apcSaveCache();
+    return true;
+  } catch { return false; }
+}
+
 async function apcScan() {
   if (APC.scanning || !APC.token) return;
   APC.scanning = true;
@@ -227,6 +245,13 @@ async function apcScan() {
     const latestBlock = await withRetry(() => p.getBlock("latest"));
     const latest = latestBlock.number;
     APC.anchor = { block: latest, ts: Number(latestBlock.timestamp) };
+    // First visit (or history not finished): one edge-cached request for the
+    // whole history (api/holders.mjs), then only scan forward from its end.
+    if (!APC.logs || APC.logs.lo > APC.logs.launchBlock) {
+      const seeded = await apcSeedFromServer(token, latest);
+      if (token !== APC.token) return;
+      if (seeded) { apcDerive(); apcRenderData(); }
+    }
     if (!APC.logs) {
       const launchBlock = await blockAtOrAfter(new Date(APC.l.launchedAt * 1000).toISOString(), "arcpad-coin");
       APC.logs = { launchBlock, lo: latest + 1, hi: latest, recs: [] };

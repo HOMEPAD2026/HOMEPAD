@@ -227,6 +227,7 @@ async function ac2FetchRange(from, to) {
     } catch (err) {
       const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
       if (!(RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text)) || attempt >= 9) throw err;
+      if (typeof rpcNoteFailure === "function") { const sw = rpcNoteFailure(); if (sw) await sw; }
       await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
     }
   }

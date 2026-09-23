@@ -14,11 +14,65 @@ const state = {
   provider: null, // read-only, always available
 };
 
+// Read RPC with failover: CONFIG.RPC_URL first; if it keeps failing with
+// network / rate-limit errors, the next CONFIG.RPC_FALLBACKS endpoint that
+// passes a health check (eth_chainId === CONFIG.CHAIN_ID_DECIMAL) takes
+// over for the rest of this browser session, and the primary is re-tried
+// every 10 minutes. Wallet writes never go through this — they use the
+// wallet's own provider.
+const RPC_STATE = { urls: null, idx: 0, fails: 0, firstFailAt: 0, switching: null, since: 0 };
+function rpcUrls() {
+  if (!RPC_STATE.urls) {
+    RPC_STATE.urls = [CONFIG.RPC_URL].concat(Array.isArray(CONFIG.RPC_FALLBACKS) ? CONFIG.RPC_FALLBACKS : []);
+    try { const i = Number(sessionStorage.getItem("arc.rpc.idx")); if (i > 0 && i < RPC_STATE.urls.length) { RPC_STATE.idx = i; RPC_STATE.since = Date.now(); } } catch { /* storage blocked */ }
+  }
+  return RPC_STATE.urls;
+}
 function readProvider() {
+  const urls = rpcUrls();
+  if (RPC_STATE.idx > 0 && Date.now() - RPC_STATE.since > 10 * 60_000 && !RPC_STATE.switching) rpcProbe(0);
   if (!state.provider) {
-    state.provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+    const net = ethers.Network.from(CONFIG.CHAIN_ID_DECIMAL);
+    state.provider = new ethers.JsonRpcProvider(urls[RPC_STATE.idx], net, { staticNetwork: net });
   }
   return state.provider;
+}
+async function rpcHealthy(url) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }), signal: ctl.signal });
+    const j = await r.json();
+    return j && parseInt(j.result, 16) === CONFIG.CHAIN_ID_DECIMAL;
+  } catch { return false; } finally { clearTimeout(t); }
+}
+function rpcUse(i) {
+  if (i === RPC_STATE.idx) return;
+  RPC_STATE.idx = i; RPC_STATE.since = Date.now(); RPC_STATE.fails = 0;
+  state.provider = null;
+  try { sessionStorage.setItem("arc.rpc.idx", String(i)); } catch { /* fine */ }
+  console.warn("Arc RPC: switched to", rpcUrls()[i]);
+  // Contracts built before the switch still hold the old provider — let the
+  // page re-run whatever failed to load.
+  try { window.dispatchEvent(new CustomEvent("arc:rpc-switched", { detail: { url: rpcUrls()[i] } })); } catch { /* old browser */ }
+}
+/// Try endpoints starting at `start` (default: the one after the current).
+function rpcProbe(start) {
+  if (RPC_STATE.switching) return RPC_STATE.switching;
+  const urls = rpcUrls();
+  RPC_STATE.switching = (async () => {
+    const order = start === 0 ? [0] : urls.map((_, k) => (RPC_STATE.idx + 1 + k) % urls.length).filter((k) => k !== RPC_STATE.idx);
+    for (const k of order) { if (await rpcHealthy(urls[k])) { rpcUse(k); return true; } }
+    if (start === 0) RPC_STATE.since = Date.now(); // primary still down — check again in 10 min
+    return false;
+  })().finally(() => { RPC_STATE.switching = null; });
+  return RPC_STATE.switching;
+}
+function rpcNoteFailure() {
+  const now = Date.now();
+  if (now - RPC_STATE.firstFailAt > 30_000) { RPC_STATE.firstFailAt = now; RPC_STATE.fails = 0; }
+  if (++RPC_STATE.fails >= 3) { RPC_STATE.fails = 0; return rpcProbe(); }
+  return null;
 }
 
 const TRANSIENT_RPC = /failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET/i;
@@ -29,6 +83,8 @@ async function withRetry(fn, { tries = 3, delayMs = 900 } = {}) {
     catch (err) {
       lastErr = err;
       if (!TRANSIENT_RPC.test(String(err && (err.shortMessage || err.message) || err))) throw err;
+      const sw = rpcNoteFailure();
+      if (sw) await sw;
       await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
     }
   }
@@ -103,6 +159,7 @@ async function queryFilterChunked(contract, filter, fromBlock, toBlock, { chunk 
         const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
         const retryable = RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text);
         if (!retryable || attempt >= 9) throw err;
+        { const sw = rpcNoteFailure(); if (sw) await sw; }
         await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
       }
     }

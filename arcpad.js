@@ -170,6 +170,8 @@ async function loadArcpadLaunches() {
   document.getElementById("ap-home-count").textContent = String(built.length);
   const foot = document.getElementById("bp-side-foot-text");
   if (foot) foot.textContent = `${built.length} launch${built.length === 1 ? "" : "es"} live`;
+  const okDot = document.getElementById("bp-side-status-dot");
+  if (okDot) okDot.classList.remove("bp-bad");
   renderArcpadHome();
   renderArcpadExplore();
   if (typeof arcActivityStart === "function") arcActivityStart();
@@ -984,9 +986,20 @@ function refreshAccountDependentViews() {
 
   renderArcpadContracts();
 
-  loadArcpadLaunches().catch((err) => {
-    console.error("loadArcpadLaunches failed", err);
-    renderArcpadLoadError(err);
+  let loadingLaunches = null;
+  const loadLaunches = () => {
+    if (loadingLaunches) return loadingLaunches;
+    loadingLaunches = loadArcpadLaunches().catch((err) => {
+      console.error("loadArcpadLaunches failed", err);
+      if (!ARC.launches.length) renderArcpadLoadError(err);
+    }).finally(() => { loadingLaunches = null; });
+    return loadingLaunches;
+  };
+  loadLaunches();
+  // Reads switched to a fallback RPC: load again if the first try failed.
+  window.addEventListener("arc:rpc-switched", () => {
+    Promise.resolve(loadingLaunches).then(() => { if (!ARC.launches.length) loadLaunches(); });
+    if (typeof APC !== "undefined" && APC.token && !APC.l && typeof openArcCoin === "function") setTimeout(() => openArcCoin(APC.token), 400);
   });
 })();
 

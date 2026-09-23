@@ -51,6 +51,7 @@ async function actGetLogs(params) {
     try { return await readProvider().send("eth_getLogs", [params]); } catch (err) {
       const text = JSON.stringify(err && err.error || "") + String(err && (err.shortMessage || err.message) || err);
       if (!(RATE_LIMITED.test(text) || TRANSIENT_RPC.test(text)) || attempt >= 6) throw err;
+      if (typeof rpcNoteFailure === "function") { const sw = rpcNoteFailure(); if (sw) await sw; }
       await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** attempt)));
     }
   }
@@ -136,6 +137,24 @@ async function actFetchCurve(from, to) {
   });
 }
 
+async function actSeedFromServer(latestNumber) {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 9000);
+    const r = await fetch("/api/activity", { signal: ctl.signal }).finally(() => clearTimeout(t));
+    if (!r.ok) return false;
+    const d = await r.json();
+    if (!d || d.v !== 1 || !Array.isArray(d.recs) || !Array.isArray(d.pools)) return false;
+    const have = new Set(d.pools.map((x) => String(x).toLowerCase()));
+    if ([...ACT.pools.keys()].some((id) => !have.has(id))) return false; // a launch newer than the edge copy
+    if (!(d.hi >= latestNumber - 4 * ACT_CHUNK) || d.hi > latestNumber + 50) return false;
+    ACT.recs = d.recs.filter((x) => ACT.pools.has(x.p));
+    ACT.lo = d.lo; ACT.hi = Math.min(d.hi, latestNumber);
+    if (ACT.curveHi == null && Array.isArray(d.curve)) { ACT.curve = d.curve; ACT.curveHi = Math.min(d.curveHi || d.hi, latestNumber); }
+    return true;
+  } catch { return false; }
+}
+
 async function actScan() {
   if (ACT.busy) return;
   ACT.busy = true;
@@ -157,7 +176,11 @@ async function actScan() {
 
     // A new launch since the cache was written: its pool isn't in the cached
     // filter, so start over rather than miss its trades.
-    if (ACT.hi == null || ACT.hi < windowStart || (newIds && ACT._scannedOnce)) { ACT.recs = []; ACT.lo = latest.number + 1; ACT.hi = latest.number; }
+    if (ACT.hi == null || ACT.hi < windowStart || (newIds && ACT._scannedOnce)) {
+      // Nothing usable cached: take the last 24h in one edge-cached request
+      // (api/activity.mjs) and only scan forward from there ourselves.
+      if (!(await actSeedFromServer(latest.number))) { ACT.recs = []; ACT.lo = latest.number + 1; ACT.hi = latest.number; }
+    }
     ACT._scannedOnce = true;
 
     // 1) forward: everything since the last visit / poll

@@ -18,6 +18,15 @@ const CONFIG = {
   APP_DESCRIPTION: "ArcPad and CirclePad — launch coins on Circle's Arc, paired in USDC.",
   APP_ICON: "/images/apple-touch-icon.png",
   RPC_URL: "https://rpc.mainnet.arc.io",
+  // Read-only fallbacks, used only when RPC_URL stops answering. These are
+  // the keyless mainnet endpoints listed in Arc's own docs
+  // (docs.arc.io → References → RPC endpoints). Each is health-checked
+  // (eth_chainId must be 5042) before the page switches to it.
+  RPC_FALLBACKS: [
+    "https://rpc.blockdaemon.mainnet.arc.io",
+    "https://rpc.drpc.mainnet.arc.io",
+    "https://rpc.quicknode.mainnet.arc.io",
+  ],
   // Same WalletConnect/Reown project as the rest of the site (a project ID
   // isn't chain-restricted for basic RPC/wallet-connect use) — see
   // config.js's own REOWN_PROJECT_ID.

@@ -5,7 +5,73 @@
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
 export const SITE = "https://www.arcircle.app";
-const RPC = (typeof process !== "undefined" && process.env && process.env.ARC_RPC_URL) || "https://rpc.mainnet.arc.io";
+// Circle's own endpoint first, then the keyless provider endpoints listed in
+// Arc's docs (docs.arc.io → RPC endpoints). ARC_RPC_URL overrides the first.
+const RPCS = [
+  (typeof process !== "undefined" && process.env && process.env.ARC_RPC_URL) || "https://rpc.mainnet.arc.io",
+  "https://rpc.blockdaemon.mainnet.arc.io",
+  "https://rpc.drpc.mainnet.arc.io",
+  "https://rpc.quicknode.mainnet.arc.io",
+];
+let rpcIdx = 0;
+export const PM_ADDRESS = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
+export const FACTORY_ADDRESS = "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E";
+export const TOPIC = {
+  swap: "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
+  transfer: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  curveBuy: "0xec36bf571f136799e8dc0b0b8bea4b04d8bd3d43de838aab0d5fc21d4cbfc455", curveSell: "0x8113d738abdcb6b38357e9d53a54a7157861a09031b453651f0fe7fe151f59df",
+};
+/// Raw JSON-RPC (single or batch) with failover to the next endpoint when one
+/// is unreachable, rate-limited or answers garbage.
+export async function rpc(body, { timeoutMs = 8000 } = {}) {
+  let lastErr;
+  for (let k = 0; k < RPCS.length; k++) {
+    const url = RPCS[(rpcIdx + k) % RPCS.length];
+    const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined });
+      if (r.status === 429 || r.status >= 500) throw new Error(`rpc ${r.status}`);
+      const out = await r.json();
+      const single = Array.isArray(out) ? null : out;
+      if (single && single.error && /rate|limit|too many|timeout/i.test(String(single.error.message))) throw new Error(single.error.message);
+      rpcIdx = (rpcIdx + k) % RPCS.length;
+      return out;
+    } catch (err) { lastErr = err; } finally { if (t) clearTimeout(t); }
+  }
+  throw lastErr || new Error("no rpc");
+}
+export async function rpcCall(method, params) {
+  const out = await rpc({ jsonrpc: "2.0", id: 1, method, params });
+  if (out.error) throw new Error(out.error.message || "rpc error");
+  return out.result;
+}
+export async function getLogs(filter, tries = 4) {
+  for (let i = 0; ; i++) {
+    try { return await rpcCall("eth_getLogs", [filter]); } catch (err) {
+      if (i >= tries - 1) throw err;
+      await new Promise((r) => setTimeout(r, 300 * 2 ** i));
+    }
+  }
+}
+export const toQty = (n) => "0x" + Number(n).toString(16);
+export async function latestBlock() {
+  const b = await rpcCall("eth_getBlockByNumber", ["latest", false]);
+  return { number: parseInt(b.number, 16), ts: parseInt(b.timestamp, 16) };
+}
+export async function blockTs(n) {
+  const b = await rpcCall("eth_getBlockByNumber", [toQty(n), false]);
+  return b ? parseInt(b.timestamp, 16) : null;
+}
+/// Run async tasks with a concurrency limit, preserving order.
+export async function pool(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const k = next++; out[k] = await fn(items[k], k); }
+  }));
+  return out;
+}
 const FACTORY = "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E";
 const POOL_MANAGER = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
 const USDC = "0x3600000000000000000000000000000000000000";
@@ -37,16 +103,30 @@ const keccakHex = (h) => "0x" + Array.from(keccak_256(hexToBytes(h)), (b) => b.t
 
 /// One JSON-RPC batch of eth_calls → array of hex results (null on error).
 export async function ethCalls(calls, { timeoutMs = 6000 } = {}) {
+  if (!calls.length) return [];
   const body = calls.map((c, id) => ({ jsonrpc: "2.0", id, method: "eth_call", params: [{ to: c.to, data: c.data }, "latest"] }));
-  const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const t = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
-  try {
-    const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined });
-    const out = await r.json();
-    const arr = Array.isArray(out) ? out : [out];
-    const byId = new Map(arr.map((x) => [x.id, x]));
-    return calls.map((_, i) => { const x = byId.get(i); return x && x.result && x.result !== "0x" ? x.result : null; });
-  } finally { if (t) clearTimeout(t); }
+  const out = await rpc(body, { timeoutMs });
+  const arr = Array.isArray(out) ? out : [out];
+  const byId = new Map(arr.map((x) => [x.id, x]));
+  return calls.map((_, i) => { const x = byId.get(i); return x && x.result && x.result !== "0x" ? x.result : null; });
+}
+export { keccakHex, pad, strip, wAddr, wBig };
+/// Pool id of every ArcPad launch (keccak of its PoolKey), plus the launch.
+export async function allPools() {
+  const [cntHex] = await ethCalls([{ to: FACTORY, data: SEL.launchCount }]);
+  const n = cntHex ? Number(BigInt(cntHex)) : 0;
+  const out = [];
+  for (let s = 0; s < n; s += 50) {
+    const idx = Array.from({ length: Math.min(50, n - s) }, (_, k) => s + k);
+    const recs = await ethCalls(idx.map((i) => ({ to: FACTORY, data: SEL.launches + pad(i.toString(16)) })));
+    const toks = recs.map((r) => (r ? wAddr(r, 0) : null));
+    const keys = await ethCalls(toks.map((t) => ({ to: FACTORY, data: SEL.poolKeyOf + pad(t || "0x0") })));
+    toks.forEach((t, k) => {
+      if (!t || !keys[k]) return;
+      out.push({ token: t, launchedAt: Number(wBig(recs[k], 5)), poolId: keccakHex(strip(keys[k]).slice(0, 5 * 64)) });
+    });
+  }
+  return out;
 }
 
 function priceInQuote(sqrt, quoteIsCurrency0, dec) {
