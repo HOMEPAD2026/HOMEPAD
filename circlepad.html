@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790194576">
+<link rel="stylesheet" href="style.css?v=1790196051">
 </head>
 <body class="bigpad-page circlepad-page ax-dock-host">
 
@@ -131,12 +131,21 @@
       <!-- ============ HOME ============ -->
       <section class="bp-panel active" id="bp-panel-home">
 
-        <div class="bp-token-banner">
-          <div class="bp-token-info">
-            <span class="bp-token-label bp-token-label-soon">$CIRCLEPAD token</span>
-            <span class="bp-token-soon-text">— Coming soon</span>
-          </div>
-        </div>
+        <!-- CirclePad has no token of its own: its platform share feeds
+             $ARCIRCLE, the core coin of ARCIRCLE PAD (see /whitepaper §5, §7). -->
+        <a class="ac2-feature cp-core-coin" href="/arc#arcircle">
+          <span class="ac2-feature-logo"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
+          <span class="ac2-feature-main">
+            <span class="ac2-feature-top"><strong>$ARCIRCLE</strong><span class="ac2-badge ac2-badge-core">Core coin</span><span class="ac2-feature-kind">CirclePad's share of every raise feeds it</span></span>
+            <span class="ac2-feature-bar"><span data-arl="progress-fill"></span></span>
+            <span class="ac2-feature-sub"><span data-arl="progress-text">Loading live $ARCIRCLE data…</span></span>
+          </span>
+          <span class="ac2-feature-stats">
+            <span><small>Price</small><strong data-arl="price">—</strong></span>
+            <span><small>Market cap</small><strong data-arl="mcap">—</strong></span>
+          </span>
+          <span class="ac2-feature-cta">Trade →</span>
+        </a>
 
         <div class="bp-hero">
           <div class="bp-hero-art" aria-hidden="true"></div>
@@ -396,10 +405,10 @@
     <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg></span>
     <span class="ax-dock-txt"><strong>Circle</strong><small>CirclePad</small></span>
   </a>
-  <button type="button" class="ax-dock-item" data-accent="reward" data-reward aria-haspopup="dialog">
+  <a class="ax-dock-item" data-accent="reward" href="/reward">
     <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 10h18M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></span>
     <span class="ax-dock-txt"><strong>Reward</strong><small>Coming soon</small></span>
-  </button>
+  </a>
   <span class="ax-dock-sep" aria-hidden="true"></span>
   <a class="ax-dock-item" data-accent="token" href="/arcircle">
     <span class="ax-dock-ico"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
@@ -408,11 +417,12 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
-<script src="config-arc.js?v=1790194576"></script>
-<script src="abis.js?v=1790194576"></script>
-<script src="arc-shared.js?v=1790194576"></script>
-<script src="wallet-appkit.js?v=1790194576"></script>
-<script src="circlepad.js?v=1790194576"></script>
-<script src="arcircle-hub.js?v=1790194576"></script>
+<script src="config-arc.js?v=1790196051"></script>
+<script src="abis.js?v=1790196051"></script>
+<script src="arc-shared.js?v=1790196051"></script>
+<script src="wallet-appkit.js?v=1790196051"></script>
+<script src="circlepad.js?v=1790196051"></script>
+<script src="arcircle-live.js?v=1790196051"></script>
+<script src="arcircle-hub.js?v=1790196051"></script>
 </body>
 </html>

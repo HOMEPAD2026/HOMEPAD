@@ -43,6 +43,10 @@
     {
       "source": "/whitepaper",
       "destination": "/whitepaper.html"
+    },
+    {
+      "source": "/reward",
+      "destination": "/reward.html"
     }
   ]
 }
