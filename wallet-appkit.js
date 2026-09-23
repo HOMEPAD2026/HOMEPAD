@@ -39,6 +39,26 @@ let appKitNetwork = null;
 let connectInFlight = false;
 let connectPoll = null;
 
+// On a phone, "Connect" hands off to the wallet app (MetaMask, …) and the
+// browser tab goes to the background — Chrome may freeze its timers, drop the
+// WalletConnect socket, or even reload the tab before the person comes back.
+// The fact that a connect is under way therefore has to outlive the tab's JS
+// state: it's kept in sessionStorage for a few minutes, and while it's set,
+// nothing may treat the half-finished session as "stale" and wipe it.
+const CONNECT_PENDING_KEY = "wallet.connectPending";
+const CONNECT_PENDING_MS = 5 * 60 * 1000;
+let lastResumeAt = 0;
+function markConnectPending() { try { sessionStorage.setItem(CONNECT_PENDING_KEY, String(Date.now())); } catch { /* fine */ } }
+function clearConnectPending() { try { sessionStorage.removeItem(CONNECT_PENDING_KEY); } catch { /* fine */ } }
+function connectPending() {
+  try { const t = Number(sessionStorage.getItem(CONNECT_PENDING_KEY)); return t > 0 && Date.now() - t < CONNECT_PENDING_MS; } catch { return false; }
+}
+/// True while a connect is being set up here or in the wallet app, or just
+/// after the tab came back to the foreground (WalletConnect replays queued
+/// relay messages then, and some of them throw harmless "No matching key"
+/// errors while it catches up).
+function connectBusy() { return connectInFlight || connectPending() || Date.now() - lastResumeAt < 30000; }
+
 // "Disconnect" has to survive a reload. The wallet extension still has the
 // site permission (a website can't revoke that), so wagmi's reconnect-on-
 // mount would otherwise quietly bring the session straight back and the
@@ -137,6 +157,13 @@ async function repairWalletStorageIfNeeded() {
 let healingWallet = false;
 function healBrokenWalletConnect(reason) {
   if (healingWallet) return;
+  if (connectBusy() || document.visibilityState === "hidden") {
+    // Mid-handshake or just back from the wallet app: this is WalletConnect
+    // catching up, not a broken store. Wiping + reloading here is exactly
+    // what erased a connection the person had just approved in MetaMask.
+    console.warn("WalletConnect error during connect — not resetting.", reason);
+    return;
+  }
   healingWallet = true;
   console.warn("WalletConnect store is inconsistent — resetting it and reloading.", reason);
   try { localStorage.setItem(WALLET_RESET_FLAG, "1"); sessionStorage.setItem("wallet.reopenModal", "1"); } catch { /* fine */ }
@@ -189,7 +216,7 @@ async function syncFromWagmi() {
   // After Disconnect, AppKit's own account store can still report the old
   // address for a while (its disconnect goes over the relay). Don't let that
   // bring the session back until Connect is pressed again.
-  if (userDisconnected() && !connectInFlight) {
+  if (userDisconnected() && !connectBusy()) {
     if (state.account) {
       state.account = null; state.signer = null; state.chainId = null;
       if (typeof renderHeader === "function") renderHeader();
@@ -252,6 +279,7 @@ async function syncFromWagmi() {
       // change — re-rendering the Profile page 3-4 times in a row started
       // overlapping async loads that overwrote each other's results.
       connectInFlight = false;
+      clearConnectPending();
       syncFailures = 0;
       if (connectPoll) { clearInterval(connectPoll); connectPoll = null; }
       if (changed) {
@@ -284,7 +312,7 @@ async function syncFromWagmi() {
     // Force-disconnect and sweep storage so the NEXT check starts from a
     // state that's actually true, and reflect that in the header now
     // instead of leaving it on whatever it last showed.
-    if (connectInFlight) {
+    if (connectBusy()) {
       // Mid-handshake — the session may simply not be usable yet. Leave
       // storage alone; the poller / next event will try again.
       console.warn("syncFromWagmi: session not usable yet (connect in progress)", err && err.message);
@@ -415,16 +443,27 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
     try {
       appKitModal.subscribeState && appKitModal.subscribeState((s) => {
         if (s.open) return;
+        // Closed while the page is in front and not right after coming back
+        // from the wallet app = the person dismissed it.
+        if (document.visibilityState === "visible" && Date.now() - lastResumeAt > 4000) clearConnectPending();
         // One last check, then stop treating errors as "still connecting".
         syncFromWagmi().finally(() => {
           setTimeout(() => {
             const a = WagmiCoreRef.getAccount(wagmiConfigRef);
-            if (!a.isConnected) { connectInFlight = false; if (connectPoll) { clearInterval(connectPoll); connectPoll = null; } }
+            if (!a.isConnected && !connectPending()) { connectInFlight = false; if (connectPoll) { clearInterval(connectPoll); connectPoll = null; } }
           }, 1500);
         });
       });
     } catch (e) { console.warn("subscribeState unavailable", e); }
 
+    if (connectPending()) {
+      // The tab was reloaded (or restored) in the middle of a connect — most
+      // often Chrome discarding it while MetaMask was in front. Keep waiting
+      // for the approved session instead of starting from "disconnected".
+      connectInFlight = true;
+      lastResumeAt = Date.now();
+      setUserDisconnected(false);
+    }
     // In case a session is already restored on load. Timeout-guarded
     // separately from syncFromWagmi's own error handling above, since a
     // HUNG reconnect (relay never responds, rather than responding with
@@ -440,6 +479,7 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       await hardDisconnect();
     }
     const restored = userDisconnected() ? false : await withTimeout(syncFromWagmi(), 8000);
+    if (restored !== true && connectPending()) startConnectPoll(90);
     if (restored === "timeout") {
       // A WalletConnect relay on a phone can take longer than this to come
       // back. Don't destroy the session for being slow — keep listening
@@ -457,6 +497,43 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
   }
 }
 
+/// Guaranteed fallback: poll for a connected account, independent of whether
+/// any event listener fires on this build. Only time the tab is in front
+/// counts toward the limit — on a phone the person is in the wallet app for
+/// most of the connect, with this tab frozen in the background.
+function startConnectPoll(visibleSeconds) {
+  if (connectPoll) clearInterval(connectPoll);
+  let ticks = 0;
+  const maxTicks = Math.ceil((visibleSeconds * 1000) / 1300);
+  connectPoll = setInterval(async () => {
+    if (document.visibilityState === "hidden") return;
+    ticks++;
+    const connected = await syncFromWagmi();
+    if (connected || ticks > maxTicks) {
+      clearInterval(connectPoll); connectPoll = null;
+      if (!connected) { connectInFlight = false; clearConnectPending(); }
+    }
+  }, 1300);
+}
+
+/// Back from the wallet app: wake WalletConnect up (its socket is usually
+/// gone after the tab was in the background) and look for the session the
+/// person just approved.
+async function onWalletResume() {
+  if (!appKitReady || !WagmiCoreRef || !wagmiConfigRef) return;
+  if (!(connectInFlight || connectPending())) {
+    // Not connecting — just make sure an existing session is still reflected.
+    syncFromWagmi().catch(() => {});
+    return;
+  }
+  lastResumeAt = Date.now();
+  connectInFlight = true;
+  try { if (typeof WagmiCoreRef.reconnect === "function") await withTimeout(WagmiCoreRef.reconnect(wagmiConfigRef), 6000); } catch { /* the poll below covers it */ }
+  if (!(await syncFromWagmi())) startConnectPoll(90);
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") onWalletResume(); });
+window.addEventListener("pageshow", (e) => { if (e.persisted) onWalletResume(); });
+
 /// Called by app.js's connect button instead of its own basic flow, when
 /// AppKit is available. Returns true if it handled the click, false if the
 /// caller should fall back to its own logic.
@@ -469,20 +546,9 @@ async function tryOpenAppKit() {
     // AppKit's Account view with a Disconnect button, which reads as a bug.
     if (await syncFromWagmi()) return true;
     connectInFlight = true;
+    markConnectPending();
     appKitModal.open();
-
-    // Guaranteed fallback: poll for a connected account for a short window
-    // after the modal opens, independent of whether any event listener
-    // above actually fires on this build. Stops as soon as connected, when
-    // the modal closes, or after ~40s (someone might sit on a QR a while).
-    if (connectPoll) clearInterval(connectPoll);
-    let ticks = 0;
-    connectPoll = setInterval(async () => {
-      ticks++;
-      const connected = await syncFromWagmi();
-      if (connected || ticks > 30) { clearInterval(connectPoll); connectPoll = null; if (!connected) connectInFlight = false; }
-    }, 1300);
-
+    startConnectPoll(120);
     return true;
   }
   return false;
