@@ -2,153 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ARCIRCLE PAD — ArcPad + CirclePad on Circle's Arc chain</title>
-<meta name="description" content="ARCIRCLE PAD: ArcPad, instant permissionless token launches, and CirclePad, community-funded launches — both on Circle's Arc chain, gas paid in USDC.">
+<meta name="description" content="ARCIRCLE PAD: ArcPad for instant permissionless launches, CirclePad for community-funded launches, and $ARCIRCLE at the center — all on Circle's Arc chain, gas paid in USDC.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ARCIRCLE PAD">
 <meta property="og:title" content="ARCIRCLE PAD — ArcPad + CirclePad on Circle's Arc chain">
-<meta property="og:description" content="One community, two ways to launch — ArcPad for instant permissionless launches, CirclePad for community-funded ones. Both on Arc, gas paid in USDC.">
+<meta property="og:description" content="One community, two ways to launch, one coin at the center. ArcPad, CirclePad and $ARCIRCLE on Circle's Arc chain.">
 <meta property="og:url" content="https://homepad.fun/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#05070a">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+<meta name="theme-color" content="#04060a">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790137105">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790137105">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790137105">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790114979">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1790137105">
 </head>
-<body>
+<body class="ax-page ax-home">
 
-<!-- ============ ARCIRCLE gate (full-screen entry) ============ -->
-<div class="arcircle-gate" id="arcircle-gate">
-  <div class="ag-art" aria-hidden="true"></div>
-  <div class="ag-stars" aria-hidden="true"></div>
-  <div class="ag-planet ag-planet-arc" aria-hidden="true"></div>
-  <div class="ag-planet ag-planet-circle" aria-hidden="true"></div>
-
-  <div class="ag-topbar">
-    <div class="ag-corner pixel">TWO WORLDS<br>ONE COMMUNITY</div>
-    <div class="ag-tagline-top pixel">SAME COMMUNITY · BIGGER POSSIBILITIES</div>
-    <nav class="ag-nav pixel">
-      <a href="arcpad.html#explore">EXPLORE</a>
-      <a href="arcpad.html#launch">LAUNCH</a>
-      <a href="#arcircle-hub" id="ag-about-link">ABOUT</a>
-    </nav>
-  </div>
-
-  <div class="ag-scene">
-    <a class="ag-hit ag-hit-left" href="arcpad.html" aria-label="Enter ARCPAD">
-      <div class="ag-logo ag-logo-arc pixel"><span class="ag-mark">◠</span>ArcPad</div>
-      <div class="ag-tagline">SIMPLE · FAST · OPEN</div>
-      <p>Launch your token instantly on Arc.<br>Open to everyone.</p>
-      <div class="ag-hit-foot">ANYONE CAN LAUNCH</div>
-    </a>
-
-    <div class="ag-center">
-      <button type="button" class="ag-emblem-btn" id="ag-enter-hub-emblem" aria-label="Enter ARCIRCLE PAD">
-        <div class="ag-emblem" aria-hidden="true">
-          <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="agGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
-                <stop offset="0" stop-color="#4d9fff"/>
-                <stop offset="1" stop-color="#39ff88"/>
-              </linearGradient>
-            </defs>
-            <path d="M40 150 A60 60 0 0 1 160 150" stroke="url(#agGrad)" stroke-width="14" stroke-linecap="round"/>
-            <circle cx="100" cy="108" r="46" stroke="url(#agGrad)" stroke-width="10"/>
-            <circle cx="100" cy="108" r="18" fill="url(#agGrad)" opacity=".85"/>
-          </svg>
-        </div>
-      </button>
-      <div class="ag-center-title pixel">ARCIRCLE PAD</div>
-      <div class="ag-center-sub">ONE COMMUNITY. INFINITE LAUNCHES.</div>
-      <button type="button" class="ag-enter" id="ag-enter-hub">ENTER ARCIRCLE PAD →</button>
-    </div>
-
-    <a class="ag-hit ag-hit-right" href="circlepad.html" aria-label="Enter CIRCLEPAD">
-      <div class="ag-logo ag-logo-circle pixel">CirclePad<span class="ag-mark">◎</span></div>
-      <div class="ag-tagline">FUND · DECIDE · LAUNCH</div>
-      <p>Community funds. Community decides.<br>Launch bigger, together.</p>
-      <div class="ag-hit-foot">BUILT TOGETHER, BIGGER</div>
-    </a>
-  </div>
-
-  <div class="ag-bottom pixel">MORE CREATORS · MORE IDEAS · A BIGGER TOMORROW</div>
+<div class="ax-bg" aria-hidden="true">
+  <div class="ax-bg-art"></div>
+  <div class="ax-bg-glow"></div>
+  <div class="ax-stars"></div>
 </div>
-<script>
-  // Full-screen once per browser tab — a returning visit within the same
-  // session goes straight past it (same one-per-tab pattern the old
-  // HOMEPAD/BigPad gate used).
-  (function () {
-    var gate = document.getElementById("arcircle-gate");
-    function dismiss() {
-      gate.style.display = "none";
-      sessionStorage.setItem("arcircleGateSeen", "1");
-      document.getElementById("arcircle-hub").scrollIntoView({ behavior: "instant" in window ? "instant" : "auto" });
-    }
-    if (sessionStorage.getItem("arcircleGateSeen")) {
-      gate.style.display = "none";
-    } else {
-      document.getElementById("ag-enter-hub").addEventListener("click", dismiss);
-      document.getElementById("ag-enter-hub-emblem").addEventListener("click", dismiss);
-      document.getElementById("ag-about-link").addEventListener("click", function (e) {
-        e.preventDefault();
-        dismiss();
-      });
-    }
-  })();
-</script>
 
-<header>
-  <div class="headbar">
-    <a class="brand" href="#arcircle-hub">ARCIRCLE <span class="tag">PAD</span></a>
-    <nav>
-      <a href="#arcircle-hub" class="nav-home">Home</a>
-      <a href="arcpad.html">ArcPad</a>
-      <a href="circlepad.html">CirclePad</a>
-    </nav>
-    <a class="btn btn-primary ah-head-cta" href="arcpad.html#launch">Launch a coin</a>
-  </div>
+<header class="ax-top">
+  <a class="ax-brand" href="index.html" aria-label="ARCIRCLE PAD home">
+    <img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">
+    <span>ARCIRCLE <em>PAD</em></span>
+  </a>
+  <a class="ax-top-cta" href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">
+    <span class="ax-dot" aria-hidden="true"></span>Buy $ARCIRCLE <span aria-hidden="true">↗</span>
+  </a>
 </header>
 
-<!-- ============ ARCIRCLE hub (revealed once the gate is dismissed) ============ -->
-<section class="ah-hero" id="arcircle-hub">
-  <div class="wrap">
-    <span class="pixel eyebrow-chip alt">🌐 one community, two ways to launch</span>
-    <h1 class="pixel">ARCIRCLE PAD</h1>
-    <p class="lede">Built on Circle's Arc chain — gas paid in USDC. Pick <strong>ArcPad</strong> for an instant, permissionless launch, or <strong>CirclePad</strong> to raise from the community first and launch bigger, together.</p>
-  </div>
-</section>
+<main class="ax-hero">
+  <div class="ax-eyebrow">On Circle's Arc · gas paid in USDC</div>
+  <picture class="ax-mark">
+    <source srcset="images/arcircle-mark.webp" type="image/webp">
+    <img src="images/arcircle-mark.png" alt="ARCIRCLE PAD emblem — two interlocking rings, blue and green" width="600" height="415">
+  </picture>
+  <h1 class="ax-title">ARCIRCLE PAD</h1>
+  <p class="ax-sub">One community. Two ways to launch.<br>One coin at the center of it all.</p>
+</main>
 
-<section class="ah-cards">
-  <div class="wrap ah-cards-grid">
-    <a class="ah-card ah-card-arc" href="arcpad.html">
-      <div class="ah-card-badge pixel">ArcPad</div>
-      <h2 class="pixel">Simple. Fast. Open.</h2>
-      <p>Launch your token instantly against USDC on Arc. Fixed supply, no admin key, permissionless — same mechanics as HOMEPAD, now on Arc.</p>
-      <span class="btn btn-primary ah-card-cta">Enter ArcPad →</span>
-    </a>
-    <a class="ah-card ah-card-circle" href="circlepad.html">
-      <div class="ah-card-badge pixel">CirclePad</div>
-      <h2 class="pixel">Fund. Decide. Launch.</h2>
-      <p>Raise USDC from the community first, let contributors vote on direction, then launch bigger together — CirclePad is BigPad's model, funded on Arc.</p>
-      <span class="btn btn-primary ah-card-cta">Enter CirclePad →</span>
-    </a>
-  </div>
-</section>
+<nav class="ax-dock" aria-label="Main">
+  <a class="ax-dock-item" data-accent="arc" href="arcpad.html">
+    <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-7a7 7 0 0 1 14 0v7"/><path d="M9 20v-6a3 3 0 0 1 6 0v6"/></svg></span>
+    <span class="ax-dock-txt"><strong>Arc</strong><small>ArcPad</small></span>
+  </a>
+  <a class="ax-dock-item" data-accent="circle" href="circlepad.html">
+    <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg></span>
+    <span class="ax-dock-txt"><strong>Circle</strong><small>CirclePad</small></span>
+  </a>
+  <button type="button" class="ax-dock-item" data-accent="reward" data-reward aria-haspopup="dialog">
+    <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 10h18M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></span>
+    <span class="ax-dock-txt"><strong>Reward</strong><small>Coming soon</small></span>
+  </button>
+  <span class="ax-dock-sep" aria-hidden="true"></span>
+  <a class="ax-dock-item" data-accent="token" href="arcircle.html">
+    <span class="ax-dock-ico"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
+    <span class="ax-dock-txt"><strong>$ARCIRCLE</strong><small>The core coin</small></span>
+  </a>
+</nav>
 
-<footer class="ah-footer">
-  <div class="wrap ah-footer-inner">
-    <div class="ah-footer-brand pixel">ARCIRCLE PAD</div>
-    <div class="ah-footer-links">
-      <a href="arcpad.html">ArcPad</a>
-      <a href="circlepad.html">CirclePad</a>
-    </div>
-  </div>
-</footer>
-
+<script src="arcircle-hub.js?v=1790137105"></script>
 </body>
 </html>
