@@ -24,6 +24,29 @@ const _arcQuotePriceCache = new Map();
 
 const arcIsUsdc = (addr) => !!addr && addr.toLowerCase() === CONFIG.USDC_ADDRESS.toLowerCase();
 
+// Pair tokens whose basics never change — no chain read needed, so a busy or
+// rate-limited RPC can never turn them into "?" with the wrong decimals.
+const ARC_KNOWN_QUOTES = {
+  [CONFIG.USDC_ADDRESS.toLowerCase()]: { symbol: "USDC", name: "USD Coin", decimals: 6 },
+  "0x933a94b475fa9d8ef94fa564e38dda400a595aa1": { symbol: "ARCIRCLE", name: "arcircle", decimals: 18 },
+};
+
+/// Pair-token basics for a coin that is ALREADY launched. The factory accepted
+/// this token when the coin launched, so a failure here can only be the RPC
+/// (busy, rate-limited, dropped) — retry with backoff instead of giving up
+/// and pricing the coin with wrong decimals.
+async function arcQuoteMetaFor(addr, { tries = 4 } = {}) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await arcQuoteMeta(addr); } catch (err) {
+      lastErr = err;
+      if (/valid contract address|zero address/.test(String(err && err.message))) throw err;
+      await new Promise((r) => setTimeout(r, 700 * 2 ** i));
+    }
+  }
+  throw lastErr;
+}
+
 /// Validates that `addr` is an ERC-20 we can pair with and reads its basics.
 /// Throws an Error with a plain-language message otherwise.
 function arcQuoteMeta(addr) {
@@ -31,6 +54,11 @@ function arcQuoteMeta(addr) {
   const a = ethers.getAddress(String(addr).trim());
   const k = a.toLowerCase();
   if (_arcQuoteMetaCache.has(k)) return _arcQuoteMetaCache.get(k);
+  if (ARC_KNOWN_QUOTES[k]) {
+    const known = Promise.resolve({ address: a, ...ARC_KNOWN_QUOTES[k], isUsdc: arcIsUsdc(a) });
+    _arcQuoteMetaCache.set(k, known);
+    return known;
+  }
   const p = (async () => {
     if (a === ethers.ZeroAddress) throw new Error("That's the zero address.");
     const code = await withRetry(() => readProvider().getCode(a));
@@ -40,14 +68,19 @@ function arcQuoteMeta(addr) {
       "function name() view returns (string)", "function totalSupply() view returns (uint256)",
       "function balanceOf(address) view returns (uint256)",
     ], readProvider());
-    let decimals;
-    try { decimals = Number(await t.decimals()); } catch { throw new Error("That contract doesn't look like an ERC-20 token (no decimals())."); }
+    const netErr = (err) => /failed to fetch|internal error|upstream|unavailable|-32603|timeout|timed out|rate|limit|429|coalesce|network|missing response|bad response|server|503|502|ECONN|NETWORK_ERROR|SERVER_ERROR|TIMEOUT/i
+      .test(String(err && (err.code || "")) + " " + String(err && (err.shortMessage || err.message) || err));
+    const read = (fn, notErc20) => withRetry(fn, { tries: 4 }).catch((err) => {
+      if (netErr(err)) throw new Error("Couldn't reach Arc to read that token — try again in a moment.");
+      throw new Error(notErc20);
+    });
+    const decimals = Number(await read(() => t.decimals(), "That contract doesn't look like an ERC-20 token (no decimals())."));
     if (!(decimals >= 0 && decimals <= 36)) throw new Error("That token reports unusual decimals — not supported.");
-    let supply;
-    try { supply = await t.totalSupply(); await t.balanceOf(ethers.ZeroAddress); } catch { throw new Error("That contract doesn't look like an ERC-20 token."); }
+    const supply = await read(() => t.totalSupply(), "That contract doesn't look like an ERC-20 token.");
+    await read(() => t.balanceOf(ethers.ZeroAddress), "That contract doesn't look like an ERC-20 token.");
     if (supply === 0n) throw new Error("That token has zero supply.");
-    const symbol = await t.symbol().catch(() => "TOKEN");
-    const name = await t.name().catch(() => symbol);
+    const symbol = await withRetry(() => t.symbol(), { tries: 3 }).catch(() => "TOKEN");
+    const name = await withRetry(() => t.name(), { tries: 3 }).catch(() => symbol);
     // Symbol / name come from an arbitrary contract: keep them to plain
     // characters so they're safe wherever they're shown.
     const cleanSym = String(symbol).replace(/[^A-Za-z0-9$._-]/g, "").slice(0, 16) || "TOKEN";
@@ -100,7 +133,7 @@ async function arcQuotePriceUsd(addr, depth = 0) {
       const idx = Number(await f.launchIndexOf(a).catch(() => 0n));
       if (idx > 0) {
         const l = await f.launches(idx - 1);
-        const [qm, qp, sqrt] = await Promise.all([arcQuoteMeta(l.quoteToken), arcQuotePriceUsd(l.quoteToken, depth + 1), _arcPoolSqrt(a)]);
+        const [qm, qp, sqrt] = await Promise.all([arcQuoteMetaFor(l.quoteToken), arcQuotePriceUsd(l.quoteToken, depth + 1), _arcPoolSqrt(a)]);
         const inQuote = arcPriceInQuote(sqrt, l.quoteIsCurrency0, qm.decimals);
         if (inQuote != null && qp.price != null) out = { price: inQuote * qp.price, source: "ArcPad pool" };
       }

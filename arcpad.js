@@ -54,7 +54,8 @@ function fmtUsd(n) {
   if (n < 1000) return "$" + n.toFixed(n < 1 ? 4 : 2);
   if (n < 1_000_000) return "$" + (n / 1000).toFixed(2) + "K";
   if (n < 1_000_000_000) return "$" + (n / 1_000_000).toFixed(2) + "M";
-  return "$" + (n / 1_000_000_000).toFixed(2) + "B";
+  if (n < 1e12) return "$" + (n / 1_000_000_000).toFixed(2) + "B";
+  return "—";
 }
 
 // ---------- Live pool price, read directly from PoolManager's storage via
@@ -147,22 +148,41 @@ async function loadArcpadLaunches() {
   // pair token's decimals / symbol and USD price once, then price launches
   // in their pair token and convert to USD.
   const quotes = {};
+  // A pair token whose decimals couldn't be read is left unpriced ("—") and
+  // re-tried shortly — never priced with a guessed decimals value, which is
+  // what turned $ARCIRCLE / FOCI pairs into "$3,352,337B" market caps.
+  let unresolved = 0;
   await Promise.all([...new Set(built.map((l) => l.quoteToken.toLowerCase()))].map(async (q) => {
-    const meta = await arcQuoteMeta(q).catch(() => ({ address: q, symbol: "?", decimals: ARC_QUOTE_DECIMALS, isUsdc: arcIsUsdc(q) }));
-    const px = await arcQuotePriceUsd(meta.address).catch(() => ({ price: null }));
+    const meta = await arcQuoteMetaFor(q).catch((err) => {
+      console.warn("pair token read failed", q, err);
+      unresolved++;
+      return { address: q, symbol: "…", decimals: null, isUsdc: arcIsUsdc(q), unresolved: true };
+    });
+    const px = meta.unresolved ? { price: null } : await arcQuotePriceUsd(meta.address).catch(() => ({ price: null }));
     quotes[q] = { ...meta, usd: px.price };
   }));
   await Promise.all(built.map(async (l) => {
     const q = quotes[l.quoteToken.toLowerCase()];
     l.quoteSymbol = q.symbol; l.quoteDecimals = q.decimals; l.quoteIsUsdc = !!q.isUsdc; l.quoteUsd = q.usd;
+    l.priceInQuote = null; l.priceUsdc = null; l.marketCapUsd = null; l.isLivePrice = false;
+    if (q.unresolved || l.quoteIsCurrency0 == null) { l.initialVirtualQuote = null; return; }
     l.initialVirtualQuote = Number(ethers.formatUnits(l.initialVirtualQuoteRaw, q.decimals));
-    if (l.quoteIsCurrency0 == null) { l.priceUsdc = null; l.marketCapUsd = null; return; }
     const live = await getLivePriceUsdc(l.token, l.quoteToken, l.quoteIsCurrency0, q.decimals);
     l.priceInQuote = live ?? (l.initialVirtualQuote / ARC_SELLABLE_SUPPLY);
     l.priceUsdc = q.usd != null ? l.priceInQuote * q.usd : null;
     l.marketCapUsd = l.priceUsdc != null ? l.priceUsdc * ARC_DEFAULT_SUPPLY : null;
+    // Every coin opens at ≈ $4,350; a reading billions of times off is a bad
+    // read (or a broken pair price), not a market cap — don't show it.
+    if (l.marketCapUsd != null && !(l.marketCapUsd < 1e11)) {
+      console.warn("implausible market cap ignored", l.symbol, l.marketCapUsd);
+      l.priceUsdc = null; l.marketCapUsd = null;
+    }
     l.isLivePrice = live != null;
   }));
+  if (unresolved && (ARC._quoteRetries || 0) < 3) {
+    ARC._quoteRetries = (ARC._quoteRetries || 0) + 1;
+    setTimeout(() => { loadArcpadLaunches().catch((err) => console.warn("launch reload failed", err)); }, 6000 * ARC._quoteRetries);
+  } else if (!unresolved) ARC._quoteRetries = 0;
 
   built.sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
   ARC.launches = built;
@@ -190,7 +210,7 @@ function launchCardHtml(l) {
       <div class="name">${arcEscHtml(l.name)}</div>
       <svg class="ap-spark" data-act="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="meta">
-        <span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : l.priceInQuote != null ? `${fmtCompact(l.priceInQuote * ARC_DEFAULT_SUPPLY)} ${arcEscHtml(l.quoteSymbol)}` : "—"} mcap</span>
+        <span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : l.priceInQuote != null && l.quoteDecimals != null && l.priceInQuote * ARC_DEFAULT_SUPPLY < 1e15 ? `${fmtCompact(l.priceInQuote * ARC_DEFAULT_SUPPLY)} ${arcEscHtml(l.quoteSymbol)}` : "—"} mcap</span>
         <span class="ap-chg" data-act="chg">—</span>
       </div>
       <div class="ap-card-vol" data-act="vol">Vol 24h …</div>

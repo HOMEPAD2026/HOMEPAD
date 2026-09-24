@@ -61,7 +61,7 @@ async function actGetLogs(params) {
 /// mirrors HomepadFactoryArc: price = virtualQuote / sellable, converted to
 /// a tick (floor), truncated toward zero to the 200-tick spacing.
 function arcStartPrice(l) {
-  if (!l || l.initialVirtualQuoteRaw == null || l.quoteIsCurrency0 == null) return null;
+  if (!l || l.initialVirtualQuoteRaw == null || l.quoteIsCurrency0 == null || l.quoteDecimals == null) return null;
   const sellableRaw = ARC_SELLABLE_SUPPLY * 1e18;
   const q = Number(l.initialVirtualQuoteRaw);
   if (!(q > 0)) return null;
@@ -226,7 +226,7 @@ function actDerive() {
   const now = Date.now() / 1000;
   for (const r of sorted) {
     const l = ACT.pools.get(r.p);
-    if (!l) continue;
+    if (!l || l.quoteDecimals == null) continue; // pair token not read yet
     const tokenIs0 = !l.quoteIsCurrency0;
     const a0 = BigInt(r.a0), a1 = BigInt(r.a1);
     const tokD = tokenIs0 ? a0 : a1, quoteD = tokenIs0 ? a1 : a0;

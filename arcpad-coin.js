@@ -139,7 +139,7 @@ async function apcLoadLaunch(token) {
   const poolId = ethers.keccak256(coder.encode(["address", "address", "uint24", "int24", "address"],
     [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks]));
   const stateSlot = BigInt(ethers.keccak256(ethers.concat([poolId, ethers.toBeHex(6, 32)])));
-  const qMeta = await arcQuoteMeta(l.quoteToken || CONFIG.USDC_ADDRESS);
+  const qMeta = await arcQuoteMetaFor(l.quoteToken || CONFIG.USDC_ADDRESS);
   const qPx = await arcQuotePriceUsd(qMeta.address).catch(() => ({ price: null }));
   return { l, key, poolId, stateSlot, feeBps: BigInt(base + (l.extraFeeBps || 0)), q: { ...qMeta, usd: qPx.price } };
 }
