@@ -201,3 +201,21 @@ export function fmtUsd(n, { plain = false } = {}) {
   return `$0.0${sub}${sig}`;
 }
 export const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/// Just the factory record for an ArcPad launch (creator, metadata) — two
+/// calls, no pool reads. null when the address isn't an ArcPad launch.
+export async function launchRecord(addr) {
+  if (!isAddr(addr)) return null;
+  const [idxHex] = await ethCalls([{ to: FACTORY, data: SEL.launchIndexOf + pad(addr) }]);
+  const idx = idxHex ? Number(BigInt(idxHex)) : 0;
+  if (!idx) return null;
+  const [rec] = await ethCalls([{ to: FACTORY, data: SEL.launches + pad((idx - 1).toString(16)) }]);
+  if (!rec) return null;
+  return { token: wAddr(rec, 0), creator: wAddr(rec, 4), launchedAt: Number(wBig(rec, 5)) };
+}
+/// ERC-20 balance (raw units) — 0n when unreadable.
+export async function tokenBalance(token, owner) {
+  if (!isAddr(token) || !isAddr(owner)) return 0n;
+  const [b] = await ethCalls([{ to: token, data: "0x70a08231" + pad(owner) }]);
+  return b ? BigInt(b) : 0n;
+}

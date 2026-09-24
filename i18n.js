@@ -1,7 +1,7 @@
-// i18n.js — English / Korean toggle for every ARCIRCLE PAD page.
+// i18n.js — English / Korean / Simplified Chinese for every ARCIRCLE PAD page.
 //
 // The pages are written in English; this file swaps visible text for Korean
-// in place, and swaps it back. It works on text nodes and a few attributes
+// or Chinese in place, and swaps it back. It works on text nodes and a few attributes
 // (placeholder / title / aria-label), matching the exact English string or a
 // pattern for strings with live numbers in them. A MutationObserver catches
 // everything the page scripts render later (statuses, cards, tickers), so no
@@ -452,6 +452,77 @@
     "Your launch is announced automatically in": "런치하면 이 채널에 자동으로 공지됩니다:",
     // ---- wallet menu ----
     "gas": "가스", "Add $ARCIRCLE to wallet": "지갑에 $ARCIRCLE 추가", "Added — check your wallet": "추가됨 — 지갑을 확인하세요", "Your wallet didn't accept it": "지갑이 추가를 받지 않았습니다",
+    // ---- community: profiles, X verification, sentiment ----
+    "Creator verified on X": "X 인증된 크리에이터",
+    "Profile updated by the creator": "크리에이터가 정보를 수정함",
+    "Edit coin info": "코인 정보 수정",
+    "Core coin": "코어 코인",
+    "Community sentiment": "커뮤니티 심리",
+    "Today (UTC)": "오늘 (UTC 기준)",
+    "Bullish": "상승",
+    "Bearish": "하락",
+    "bullish": "상승",
+    "votes": "표",
+    "vote": "표",
+    "7 days": "7일",
+    "No votes yet today — be the first.": "오늘은 아직 투표가 없어요 — 첫 투표를 해보세요.",
+    "One vote per wallet per coin each day. You sign a message — free, no transaction.": "지갑당 코인별로 하루 한 번 투표할 수 있어요. 메시지 서명만 하면 되고 무료이며 트랜잭션이 없어요.",
+    "No votes yet today": "오늘은 아직 투표가 없어요",
+    "You already voted on this coin today": "오늘 이 코인에 이미 투표했어요",
+    "Voted Bullish — thanks!": "상승에 투표했어요 — 감사합니다!",
+    "Voted Bearish — thanks!": "하락에 투표했어요 — 감사합니다!",
+    "Signature cancelled": "서명이 취소됐어요",
+    "Signature cancelled.": "서명이 취소됐어요.",
+    "Vote failed": "투표에 실패했어요",
+    "Edit": "수정",
+    "Changes show on the coin page right away. Only the wallet that launched this coin can save.": "변경 사항은 코인 페이지에 바로 반영돼요. 이 코인을 런치한 지갑만 저장할 수 있어요.",
+    "Coin info": "코인 정보",
+    "Verify X": "X 인증",
+    "Banner · 1500 × 500": "배너 · 1500 × 500",
+    "Upload banner": "배너 업로드",
+    "Remove": "삭제",
+    "What is this coin about?": "어떤 코인인지 소개해 주세요",
+    "@handle or x.com/…": "@핸들 또는 x.com/…",
+    "@group or t.me/…": "@그룹 또는 t.me/…",
+    "Free — you sign a message, no transaction.": "무료 — 메시지 서명만 하면 되고 트랜잭션은 없어요.",
+    "Sign & save": "서명하고 저장",
+    "That isn't an image.": "이미지 파일이 아니에요.",
+    "That image is too detailed — try a simpler one.": "이미지가 너무 복잡해요 — 더 단순한 이미지를 써주세요.",
+    "Couldn't read that image.": "이미지를 읽을 수 없어요.",
+    "Connect the wallet that launched this coin.": "이 코인을 런치한 지갑을 연결하세요.",
+    "Confirm the signature in your wallet…": "지갑에서 서명을 확인하세요…",
+    "Saving…": "저장 중…",
+    "Saved — the coin page is updated.": "저장됐어요 — 코인 페이지에 반영했어요.",
+    "Coin info updated": "코인 정보가 수정됐어요",
+    "Save failed.": "저장에 실패했어요.",
+    "Verified as": "인증된 계정:",
+    "The badge shows on every coin this wallet launches.": "이 지갑이 런치한 모든 코인에 배지가 표시돼요.",
+    "View post ↗": "게시물 보기 ↗",
+    "Linked a different account? Verify again to replace it.": "다른 계정으로 바꾸려면 다시 인증하세요.",
+    "Link your X account to this creator wallet. Buyers see a verified badge next to your coins.": "X 계정을 이 크리에이터 지갑에 연결하세요. 구매자에게 내 코인 옆에 인증 배지가 보여요.",
+    "Sign with your wallet": "지갑으로 서명",
+    "Sign again": "다시 서명",
+    "Sign": "서명",
+    "Post the code on X": "X에 코드 게시",
+    "Post on X": "X에 게시",
+    "Copy text": "문구 복사",
+    "Your one-time code appears here after signing.": "서명하면 일회용 코드가 여기에 나타나요.",
+    "Paste the link to your post": "게시물 링크 붙여넣기",
+    "Verify": "인증",
+    "Enter your X handle, like @arcircle.": "X 핸들을 입력하세요 (예: @arcircle).",
+    "Signing failed.": "서명에 실패했어요.",
+    "Paste the link to your post (x.com/…/status/…).": "게시물 링크를 붙여넣으세요 (x.com/…/status/…).",
+    "Checking your post on X…": "X에서 게시물을 확인하는 중…",
+    "X account verified": "X 계정이 인증됐어요",
+    "Verification failed.": "인증에 실패했어요.",
+    "only the wallet that launched this coin can edit it": "이 코인을 런치한 지갑만 수정할 수 있어요",
+    "signature expired — sign again": "서명이 만료됐어요 — 다시 서명하세요",
+    "this code expired — start again": "코드가 만료됐어요 — 처음부터 다시 해주세요",
+    "you already voted on this coin today": "오늘 이 코인에 이미 투표했어요",
+    "X didn't return that post — make sure it's public, then try again in a minute": "X에서 게시물을 찾지 못했어요 — 공개 게시물인지 확인하고 잠시 후 다시 시도하세요",
+    "community features aren't switched on yet": "커뮤니티 기능이 아직 켜지지 않았어요",
+    "that vote is for another day — refresh and vote again": "다른 날짜의 투표예요 — 새로고침 후 다시 투표하세요",
+    "a newer edit is already saved": "더 최신 수정 내용이 이미 저장돼 있어요",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -495,35 +566,419 @@
     [/^Fee (.+)% · (.+)% to you$/, "수수료 $1% · 나에게 $2%"],
     [/^Fee (.+)%$/, "수수료 $1%"],
     [/^\$(.+) is already used by (\d+) coins? on ArcPad\. You can still launch, but buyers may mix them up\.$/, "$$$1 티커는 ArcPad에서 이미 코인 $2개가 사용 중입니다. 런치는 가능하지만 구매자가 헷갈릴 수 있습니다."],
+    [/^(\d+)% bullish of (\d+) votes today$/, "오늘 $2표 중 $1% 상승"],
+    [/^the post doesn't contain the code (ARC-[0-9A-F]+)$/, "게시물에 코드 $1이(가) 없어요"],
+    [/^that post is from @(\w+), not @(\w+)$/, "@$2가 아니라 @$1의 게시물이에요"],
   ];
+
+  var ZH_PATTERNS = [
+    [/^Vol 24h (.+) · (\d+) trades?$/, "24h 交易量 $1 · $2 笔"],
+    [/^Vol 24h …$/, "24h 交易量 …"],
+    [/^(.+) mcap$/, "市值 $1"],
+    [/^(\d+)([smhd]) ago$/, function (_, n, u) { return n + { s: " 秒", m: " 分钟", h: " 小时", d: " 天" }[u] + "前"; }],
+    [/^(.+) \/ (.+) USDC to graduate · (.+)$/, "距毕业 $1 / $2 USDC · $3"],
+    [/^([▲▼]) ?(.+) since launch$/, "$1 $2（较发射）"],
+    [/^(\d+) launch(?:es)? live$/, "$1 个发射进行中"],
+    [/^(.+) of 920M · (.+)$/, "9.2 亿中 $1 · $2"],
+    [/^(.+) USDC in the curve$/, "曲线中 $1 USDC"],
+    [/^(\d+(?:\.\d+)?)% per trade \(foci\)$/, "每笔 $1%（foci）"],
+    [/^(\d+(?:\.\d+)?)% per trade$/, "每笔 $1%"],
+    [/^\((\d+(?:\.\d+)?)% \+ (\d+(?:\.\d+)?)% creator tax\)$/, "（$1% + 创建者税 $2%）"],
+    [/^Balance: (.+)$/, "余额：$1"],
+    [/^Buy \$(.+)$/, "买入 $$$1"],
+    [/^Sell \$(.+)$/, "卖出 $$$1"],
+    [/^Approve (.+) in wallet…$/, "请在钱包中授权 $1…"],
+    [/^Approve (.+) for the router…$/, "为路由合约授权 $1…"],
+    [/^Switch to (.+)$/, "切换到 $1"],
+    [/^Withdraw my (.+) USDC$/, "取回我的 $1 USDC"],
+    [/^Withdraw (.+) USDC — split 80\/5\/15$/, "提取 $1 USDC — 按 80/5/15 分配"],
+    [/^Voting is open — closes in about (\d+)h\.$/, "投票进行中 — 约 $1 小时后截止。"],
+    [/^Paired with (.+)$/, "与 $1 配对"],
+    [/^(.+)% of total supply$/, "占总供应量 $1%"],
+    [/^Graduation progress (.+)$/, "毕业进度 $1"],
+    [/^Indexing history… (\d+)%$/, "正在索引历史… $1%"],
+    [/^Not enough USDC on Arc\. This launch needs about (.+)$/, "Arc 上的 USDC 不足。本次发射约需 $1"],
+    [/^Same ticker ×(\d+)$/, "同代码 ×$1"],
+    [/^· (\d+) ms$/, "· $1 ms"],
+    [/^\$(.+) just crossed (.+) market cap$/, "$$$1 市值突破 $2"],
+    [/^(\d+) coins use \$(.+) — check the contract address$/, "$1 个代币使用 $$$2 — 请核对合约地址"],
+    [/^(\d+) coins use \$(.+)\.$/, "$1 个代币使用 $$$2 代码。"],
+    [/^Creator holds (.+)%$/, "创建者持有 $1%"],
+    [/^Top 10 hold (.+)%$/, "前 10 名持有 $1%"],
+    [/^Trade fee (.+)%$/, "交易手续费 $1%"],
+    [/^1% base \+ (.+)% creator add-on\.$/, "基础 1% + 创建者附加 $1%。"],
+    [/^Total supply reads (.+)\.$/, "总供应量为 $1。"],
+    [/^Fee (.+)% · (.+)% to you$/, "手续费 $1% · 归你 $2%"],
+    [/^Fee (.+)%$/, "手续费 $1%"],
+    [/^\$(.+) is already used by (\d+) coins? on ArcPad\. You can still launch, but buyers may mix them up\.$/, "$$$1 在 ArcPad 上已被 $2 个代币使用。你仍可发射，但买家可能会混淆。"],
+    [/^(\d+)% bullish of (\d+) votes today$/, "今日 $2 票中 $1% 看涨"],
+    [/^the post doesn't contain the code (ARC-[0-9A-F]+)$/, "帖子中没有验证码 $1"],
+    [/^that post is from @(\w+), not @(\w+)$/, "该帖子来自 @$1，而不是 @$2"],
+  ];
+
+  // Simplified Chinese — same keys as KO (the English source strings).
+  var ZH = {
+    "Home": "首页", "Explore": "探索", "Launch": "发射",
+    "Docs": "文档", "Reward": "奖励", "Projects": "项目",
+    "Governance": "治理", "My Position": "我的仓位", "Leaderboard": "排行榜",
+    "Airdrop": "空投", "Treasury": "金库", "Main": "主页",
+    "Quick actions": "快捷操作", "Coming soon": "即将推出", "The core coin": "核心代币",
+    "Connect wallet": "连接钱包", "ARCIRCLE PAD home": "ARCIRCLE PAD 首页", "Whitepaper": "白皮书",
+    "Whitepaper §8": "白皮书 §8", "Contracts": "合约", "FAQ": "常见问题",
+    "← Explore": "← 探索", "View all →": "查看全部 →", "Learn more →": "了解更多 →",
+    "Show more": "显示更多", "Loading…": "加载中…", "Copy": "复制",
+    "Copied": "已复制", "Copy failed": "复制失败", "Copy address": "复制地址",
+    "Share": "分享", "Live": "实时", "Live trades": "实时交易",
+    "Search launches…": "搜索发射…", "Search launches by name or symbol…": "按名称或代码搜索发射…", "Search projects — coming soon": "搜索项目 — 即将推出",
+    "Wallet address": "钱包地址", "Dismiss": "关闭", "Instant launches. Real pool from block one. Paired in USDC — or any Arc token.": "即时发射。首个区块起即有真实池子。以 USDC 配对 — 或任意 Arc 代币。",
+    "One project. Everyone's USDC. Nobody's rug.": "一个项目。大家的 USDC。没人能跑路。", "Network unknown": "网络未知", "Network?": "网络？",
+    "Checking…": "检查中…", "Resizing…": "调整大小中…", "On Arc — gas paid in USDC": "在 Arc 上 — Gas 以 USDC 支付",
+    "Launch instantly.": "即时发射。", "Trade instantly.": "即时交易。", "No curve, no wait.": "没有曲线，无需等待。",
+    "A real Uniswap v4 pool exists the second you launch — single-sided liquidity, permanently locked, paired against USDC. No bonding curve, no \"graduation,\" tradeable from block one.": "发射那一刻，真实的 Uniswap v4 池子即已存在 — 单边流动性，永久锁定，与 USDC 配对。没有联合曲线，没有\"毕业\"，首个区块起即可交易。", "Launch a coin": "发射代币", "Explore launches": "探索发射",
+    "Launches so far": "累计发射", "Flat launch fee": "固定发射手续费", "Trade fee (yours: up to 90%)": "交易手续费（你最多可得 90%）",
+    "Newest launches": "最新发射", "foci bonding curve · Arc": "foci 联合曲线 · Arc", "foci bonding curve": "foci 联合曲线",
+    "Trade →": "交易 →", "Price": "价格", "Market cap": "市值",
+    "Graduation progress": "毕业进度", "The pool": "池子", "Fees": "手续费",
+    "Pricing": "定价", "A real Uniswap v4 pool is created the instant you launch — the coin's full sellable supply goes straight in, priced against a virtual reserve of the pair token (USDC by default, or $ARCIRCLE / any Arc token you pick). Tradeable on Dexscreener from block one, once indexed.": "发射那一刻即创建真实的 Uniswap v4 池子 — 代币的全部可售供应量直接注入，并以计价代币（默认 USDC，或 $ARCIRCLE / 你选择的任意 Arc 代币）的虚拟储备定价。被索引后，首个区块起即可在 Dexscreener 上交易。", "1% base fee on every trade — most of it back to you as the creator, the rest to the platform. Add up to 2% more at launch, 100% yours. See Docs → Economics for the exact split.": "每笔交易收取 1% 基础手续费 — 大部分返还给作为创建者的你，其余归平台。发射时可额外添加最多 2%，100% 归你。具体分配见 文档 → 经济模型。",
+    "Every ArcPad coin opens at the same price — the pool starts with a 4,000 USDC virtual reserve against the 920M sellable tokens, so there's nothing to set here.": "每个 ArcPad 代币都以相同价格开盘 — 池子以 4,000 USDC 虚拟储备对应 9.2 亿可售代币启动，因此这里无需设置。", "No launches yet — be the first.": "还没有发射 — 来做第一个吧。", "Launch a coin →": "发射代币 →",
+    "Couldn't reach Arc to load launches — check your connection and refresh.": "无法连接 Arc 加载发射列表 — 请检查网络连接并刷新。", "Couldn't reach Arc RPC": "无法连接 Arc RPC", "Loading launches…": "正在加载发射…",
+    "Every coin launched through ArcPad, read live from the factory contract.": "所有通过 ArcPad 发射的代币，实时读取自工厂合约。", "Volume 24h": "24h 交易量", "Gainers": "涨幅榜",
+    "Last trade": "最近交易", "Newest": "最新", "Name (A–Z)": "名称（A–Z）",
+    "No coins have launched on ArcPad yet — the Launch tab is where the first one starts.": "ArcPad 上还没有代币发射 — 在“发射”标签页开启第一个。", "Change since launch": "发射以来涨跌", "buy": "买入",
+    "sell": "卖出", "Launch on ArcPad": "在 ArcPad 发射", "Coin name": "代币名称",
+    "Symbol": "代码", "Ticker": "代码", "Logo": "Logo",
+    "Description": "描述", "Socials": "社交媒体", "Website": "网站",
+    "X / Twitter URL": "X / Twitter URL", "Telegram URL": "Telegram URL", "Discord URL": "Discord URL",
+    "e.g. Example Token": "例如 Example Token", "e.g. EXMPL": "例如 EXMPL", "https://yourproject.com": "https://yourproject.com",
+    "paste an image URL, or upload a file below": "粘贴图片 URL，或在下方上传文件", "📎 Upload a file": "📎 上传文件", "Upload a file": "上传文件",
+    "A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.": "最好使用托管的 URL。上传的文件会被压缩为小图标（约 128px）并存储在链上 — 文件越大，发射所需 Gas 越多。", "Pair with": "配对", "Pair token": "计价代币",
+    "Other token (CA)": "其他代币（CA）", "the token people buy your coin with — USDC unless you pick another": "用户买入你的代币时使用的代币 — 未选择则默认为 USDC", "Paste the token's contract address on Arc (0x…)": "粘贴该代币在 Arc 上的合约地址（0x…）",
+    "Starting price": "起始价格", "Starting point": "起点", "Same for every launch": "所有发射相同",
+    "Trade fee": "交易手续费", "Base fee": "基础手续费", "Your fee": "你的手续费",
+    "optional add-on, 0–2%, 100% yours": "可选附加手续费，0–2%，100% 归你", "Total trade fee:": "总交易手续费：", "You earn per trade": "你每笔交易的收益",
+    "→ you (70%)": "→ 你（70%）", "→ platform (30%)": "→ 平台（30%）", "Dev buy": "开发者买入",
+    "optional": "可选", "USDC amount": "USDC 金额", "(USDC)": "（USDC）",
+    "Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.": "在发射的同一笔交易中抢先买入你自己的代币。首次需要一次性授权 USDC。留空则跳过。", "Launching costs a flat": "发射需支付固定的", "1 USDC fee": "1 USDC 手续费",
+    "platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.": "作为平台费，以网络原生币值自动支付（无需单独授权）。多付的部分将退还。", "Launch coin": "发射代币", "Launching…": "发射中…",
+    "Launched!": "发射成功！", "Opening your coin's page…": "正在打开你的代币页面…", "Your coin goes live in a real Uniswap v4 pool the moment this confirms.": "交易确认后，你的代币即在真实的 Uniswap v4 池子中上线。",
+    "Confirm the launch in your wallet…": "请在钱包中确认发射…", "Connect a wallet to launch.": "连接钱包以发射。", "Name and symbol are required.": "名称和代码为必填项。",
+    "Still checking the pair token — try again in a moment.": "仍在检查计价代币 — 请稍后再试。", "Choose a pair token with a known price to set the opening reserve.": "请选择一个价格已知的计价代币来设定初始储备。", "Working out the opening reserve for this pair…": "正在计算该交易对的初始储备…",
+    "Waiting for your wallet…": "等待钱包响应…", "Confirm in wallet…": "请在钱包中确认…", "Confirming…": "确认中…",
+    "Approving…": "授权中…", "Live on Uniswap v4": "已在 Uniswap v4 上线", "Paired with USDC": "与 USDC 配对",
+    "CA": "CA", "ArcScan ↗": "ArcScan ↗", "Liquidity": "流动性",
+    "24h volume": "24h 交易量", "24h trades": "24h 交易笔数", "Holders": "持有人",
+    "Launched": "发射时间", "Sold from the pool": "已从池子售出", "Price chart": "价格图表",
+    "Pool chart": "池子图表", "Dexscreener": "Dexscreener", "All": "全部",
+    "Mine": "我的", "Trades": "交易", "Token & holders": "代币与持有人",
+    "About": "简介", "Links": "链接", "Time": "时间",
+    "Type": "类型", "Trader": "交易者", "Tokens": "代币",
+    "Tx": "Tx", "Buy": "买入", "Sell": "卖出",
+    "Buys": "买入", "Sells": "卖出", "Amount": "数量",
+    "Max": "最大", "You pay": "支付", "You receive": "获得",
+    "Minimum received": "最少获得", "Price impact": "价格影响", "Slippage": "滑点",
+    "Fee": "手续费", "Route": "路由", "Balance —": "余额 —",
+    "Balance: —": "余额：—", "Balance:": "余额：", "Loading trades…": "正在加载交易…",
+    "Loading holders…": "正在加载持有人…", "Pool": "池子", "Creator": "创建者",
+    "Token": "代币", "Pool supply": "池子供应量", "Quote asset": "计价资产",
+    "Paired with": "配对", "What's this coin about?": "这个代币是做什么的？", "Balances rebuilt from every transfer since launch. \"Pool\" is the unsold supply still in the Uniswap v4 pool.": "余额由发射以来的每一笔转账重新计算得出。\"池子\"指仍留在 Uniswap v4 池子中的未售出供应量。",
+    "Drawn from every swap in this coin's Uniswap v4 pool on Arc. If Dexscreener lists the pool, you can switch to its chart here.": "根据该代币在 Arc 上 Uniswap v4 池子的每笔兑换绘制。若 Dexscreener 已收录该池子，可在此切换到其图表。", "Trades go straight to ArcPad's router and the coin's own Uniswap v4 pool on Arc — nothing is held by the site. Gas is paid in USDC.": "交易直接发送至 ArcPad 路由合约及该代币在 Arc 上的 Uniswap v4 池子 — 网站不托管任何资产。Gas 以 USDC 支付。", "ArcPad router · Uniswap v4": "ArcPad 路由 · Uniswap v4",
+    "Buy / sell against the pool from this page": "在本页直接与池子买入 / 卖出", "Confirm the buy in your wallet…": "请在钱包中确认买入…", "Confirm the sell in your wallet…": "请在钱包中确认卖出…",
+    "Buying…": "买入中…", "Selling…": "卖出中…", "Bought!": "买入成功！",
+    "Sold!": "卖出成功！", "Enter an amount.": "请输入数量。", "Approve USDC for the router…": "请为路由合约授权 USDC…",
+    "Connect a wallet first…": "请先连接钱包…", "Connect a wallet to see your balance": "连接钱包以查看余额", "Couldn't load this coin": "无法加载该代币",
+    "Couldn't reach Arc to load trades — retrying shortly.": "无法连接 Arc 加载交易 — 即将重试。", "View transaction": "查看交易", "View token on Explorer ↗": "在区块浏览器中查看代币 ↗",
+    "Your coin is live.": "你的代币已上线。", "The pool is open and trading on Uniswap v4. Tell people where to find it.": "池子已开放，正在 Uniswap v4 上交易。告诉大家去哪里找到它。", "Share on X": "分享到 X",
+    "Copy link": "复制链接", "arcircle": "arcircle", "Bonding curve": "联合曲线",
+    "Graduates at": "毕业门槛", "Creator tax": "创建者税", "Trades on": "交易平台",
+    "Total supply": "总供应量", "Chain": "链", "DEX pair": "DEX 交易对",
+    "$ARCIRCLE is the core coin of ARCIRCLE PAD. It launched on foci and trades on foci's bonding curve until it graduates — everything ArcPad and CirclePad earn is meant to flow back into it.": "$ARCIRCLE 是 ARCIRCLE PAD 的核心代币。它在 foci 上发射，毕业前在 foci 的联合曲线上交易 — ArcPad 和 CirclePad 的所有收益都将回流至它。", "Drawn straight from the curve's own trades on Arc. Dexscreener doesn't index foci bonding curves — it picks $ARCIRCLE up once it graduates to a DEX pool, and this chart switches over automatically.": "直接根据 Arc 上该曲线自身的交易绘制。Dexscreener 不索引 foci 联合曲线 — $ARCIRCLE 毕业进入 DEX 池子后才会被收录，届时此图表将自动切换。", "Drawn straight from the curve's own trades on Arc.": "直接根据 Arc 上该曲线自身的交易绘制。",
+    "When the curve's USDC reaches the graduation threshold, $ARCIRCLE moves to a DEX pool — that's when it shows up on Dexscreener.": "当曲线中的 USDC 达到毕业门槛时，$ARCIRCLE 将迁移至 DEX 池子 — 届时会出现在 Dexscreener 上。", "$ARCIRCLE has graduated from its bonding curve — trading continues on its DEX pool.": "$ARCIRCLE 已从联合曲线毕业 — 交易将在其 DEX 池子中继续。", "Your trade goes straight to foci's verified bonding-curve contract on Arc — ARCIRCLE PAD never holds your funds. Gas is paid in USDC.": "你的交易直接发送至 Arc 上 foci 经验证的联合曲线合约 — ARCIRCLE PAD 从不托管你的资金。Gas 以 USDC 支付。",
+    "Live chart from Dexscreener for $ARCIRCLE's DEX pair.": "来自 Dexscreener 的 $ARCIRCLE DEX 交易对实时图表。", "(est.)": "（估算）", "verified": "已验证",
+    "· on-chain": "· 链上", "· Dexscreener": "· Dexscreener", "· Explorer": "· 区块浏览器",
+    "How it all works": "运作原理", "Economics": "经济模型", "Supply & allocation": "供应与分配",
+    "Launch process": "发射流程", "Trading": "交易", "Is there a bonding curve?": "有联合曲线吗？",
+    "Can I choose the starting price?": "我可以自定义起始价格吗？", "What do I need to launch?": "发射需要准备什么？", "Why USDC?": "为什么是 USDC？",
+    "Supply": "供应量", "No. Unlike HOMEPAD's original curve mode, ArcPad seeds a real Uniswap v4 pool immediately — there's no separate curve contract and nothing to \"graduate.\"": "没有。与 HOMEPAD 原先的曲线模式不同，ArcPad 会立即注入一个真实的 Uniswap v4 池子——没有单独的曲线合约，也不存在需要“毕业”的环节。", "No — every ArcPad launch opens at the same point: a 4,000 USDC virtual reserve, ≈ $0.0000043 per token, ≈ $4,350 market cap. The market decides the price from there.": "不能——每个 ArcPad 发射都从同一起点开盘：4,000 USDC 虚拟储备，每枚代币 ≈ $0.0000043，市值 ≈ $4,350。此后价格由市场决定。",
+    "A connected wallet on Arc, at least 1 USDC (native) for the launch fee, and — if you want a dev buy — USDC approved for the factory.": "一个已连接到 Arc 的钱包、至少 1 USDC（原生）用于支付发射手续费；如需开发者买入，还需为工厂合约授权 USDC。", "USDC is Arc's own native gas token — no bridging, no extra approval step for the launch fee itself (only for dev buys and trades, which pull ERC-20 USDC via transferFrom).": "USDC 是 Arc 自身的原生 Gas 代币——无需跨链，发射手续费本身也无需额外授权（只有开发者买入和交易需要，因为它们通过 transferFrom 划转 ERC-20 USDC）。", "A real Uniswap v4 pool is created the instant you launch — not a bonding-curve contract that \"graduates\" into a pool later.": "发射的瞬间即创建真实的 Uniswap v4 池子——而不是先部署联合曲线合约、日后再“毕业”进入池子。",
+    "It's single-sided: the coin's full sellable supply (92% of 1B — see Supply below) goes straight into the pool at creation, priced against a virtual reserve of the pair token — USDC by default, or $ARCIRCLE or any Arc token you pick, sized so every launch opens at ≈ $4,350. Tradeable on Dexscreener from block one, once indexed.": "采用单边注入：代币的全部可售供应量（10 亿的 92%——见下方“供应量”）在创建时直接进入池子，并以计价代币的虚拟储备定价——默认为 USDC，也可选择 $ARCIRCLE 或任意 Arc 代币，储备规模确保每次发射都以 ≈ $4,350 开盘。一经索引，从第一个区块起即可在 Dexscreener 上交易。", "Constant-product curve math against that virtual reserve — the more USDC buyers put in, the higher the price climbs. It's a real, immediately swappable v4 pool the whole time, not a separate holding contract.": "基于该虚拟储备的恒定乘积曲线计算——买家投入的 USDC 越多，价格涨得越高。自始至终它都是一个可即时兑换的真实 v4 池子，而不是单独的托管合约。", "Fixed at 1,000,000,000 tokens, every launch, no exceptions. 8% goes to the platform treasury at creation; the remaining 92% is placed in the pool against a 4,000 USDC virtual reserve — every launch opens at ≈ $0.0000043 per token (≈ $4,350 market cap).": "每次发射固定为 1,000,000,000 枚代币，无一例外。创建时 8% 划入平台金库；其余 92% 以 4,000 USDC 虚拟储备注入池子——每次发射都以每枚 ≈ $0.0000043 开盘（市值 ≈ $4,350）。",
+    "Fixed at 1,000,000,000 tokens every launch. 8% goes to the platform treasury at creation; the remaining 92% is what's actually in the pool, opening at a ≈ $4,350 market cap.": "每次发射固定为 1,000,000,000 枚代币。创建时 8% 划入平台金库；其余 92% 即池中实际数量，开盘市值 ≈ $4,350。", "Trade fee: 1% base, protocol-wide — most of it back to you as the creator, the rest to the platform. You can add up to 2% more at launch, 100% of which is yours. Total per trade: 1–3%, taken from whichever side of the trade is the output.": "交易手续费：全协议统一基础费率 1%——大部分作为创建者返还给你，其余归平台。你可在发射时额外增加最多 2%，这部分 100% 归你。每笔交易合计 1–3%，从交易的输出方扣取。", "Launch fee: a flat 1 USDC per launch, paid to the platform treasury — separate from the pool allocation above and from any dev buy.": "发射手续费：每次发射固定 1 USDC，支付给平台金库——与上述池子分配及任何开发者买入相互独立。",
+    "Optional. If set, your purchase executes atomically inside the same launch transaction (": "可选。若设置，你的买入将在同一笔发射交易中原子执行 (", ") — paid in USDC, landing in the same block as creation, before anyone else can buy in ahead of you. Requires approving USDC for the factory first.": ")——以 USDC 支付，与创建落在同一区块，抢在任何人之前买入。需先为工厂合约授权 USDC。", "Buy and sell directly from the Explore grid — trades route through ArcPad's own swap router against the same v4 pool. Buying needs USDC approved for the router; selling needs the coin itself approved for the router. Both are one-time approvals per token.": "可直接在探索网格中买入和卖出——交易通过 ArcPad 自有的兑换路由在同一个 v4 池子中完成。买入需为路由授权 USDC；卖出需为路由授权该代币本身。每个代币均只需授权一次。",
+    "Every ArcPad contract on Arc mainnet, read straight from this site's config so this list can't drift from what's deployed. Verify anything here on the explorer before you trade.": "Arc 主网上的全部 ArcPad 合约，直接读取自本站配置，因此列表不会与实际部署不一致。交易前请在浏览器上核实此处任何信息。", "Launches, seeds the pool, collects the 1 USDC fee": "发射代币、注入池子、收取 1 USDC 手续费", "Uniswap v4 hook — routes trade fees to creator / platform": "Uniswap v4 Hook——将交易手续费分配给创建者 / 平台",
+    "Uniswap's own core on Arc — every pool lives here": "Uniswap 在 Arc 上的官方核心合约——所有池子都在这里", "Arc's native USDC predeploy — the quote token": "Arc 原生 USDC 预部署合约——计价代币", "USDC (ERC-20, 6 decimals)": "USDC（ERC-20，6 位小数）",
+    "Platform treasury": "平台金库", "Uniswap v4 PoolManager": "Uniswap v4 PoolManager", "not deployed yet": "尚未部署",
+    "Chain: Arc (id 5042) · RPC": "链：Arc（id 5042）· RPC", "arc.etherscan.io ↗": "arc.etherscan.io ↗", "ArcPad's factory isn't configured yet.": "ArcPad 的工厂合约尚未配置。",
+    "Fund together.": "一起出资。", "Decide together.": "一起决策。", "Launch bigger.": "做更大的发射。",
+    "One project at a time. A 3-day USDC raise decides who leads it — and everyone who contributed gets a vote on what it becomes.": "每次只做一个项目。为期 3 天的 USDC 募集决定由谁主导——每位认购者都能投票决定项目的走向。", "See the round": "查看轮次", "How it works": "运作方式",
+    "First CirclePad round": "首个 CirclePad 轮次", "Community-led": "社区主导", "USDC raise": "USDC 募集",
+    "Identity voted on after the raise": "募集结束后投票决定项目身份", "$TBD": "$TBD", "Name, ticker, logo and roadmap are all decided by contributors' votes once a raise closes. This card shows the shape of a round — it isn't a real one yet.": "名称、代码、Logo 和路线图均在募集结束后由认购者投票决定。此卡片仅展示轮次的形式——目前还不是真实轮次。",
+    "CirclePad's share of every raise feeds it": "由 CirclePad 在每次募集中的分成注入", "Loading live $ARCIRCLE data…": "正在加载 $ARCIRCLE 实时数据…", "Loading round…": "正在加载轮次…",
+    "Start the 72h raise": "开启 72 小时募集", "raised so far — uncapped": "已募集 — 无上限", "Contribute USDC": "认购 USDC",
+    "Contribute USDC — not open": "认购 USDC — 未开放", "Withdraw my contribution": "撤回我的认购", "Not started": "未开始",
+    "Not started yet": "尚未开始", "Not started — waiting on CirclePad": "未开始 — 等待 CirclePad 开启", "Ends": "结束于",
+    "Raise ended": "募集已结束", "Raise closed — funds pending distribution.": "募集已结束——资金待分配。", "Live — the raise is open for contributions.": "实时——募集正在开放认购。",
+    "Escrow is deployed — waiting for CirclePad to start the raise.": "托管合约已部署——等待 CirclePad 开启募集。", "Not live yet — the fund-pooling contract is in design and review.": "尚未上线——资金池合约正在设计与审查中。", "PREVIEW": "预览",
+    "READY": "就绪", "LIVE": "实时", "Top contributor": "最大认购者",
+    "Contributors": "认购者", "Your contribution": "你的认购", "Your share": "你的占比",
+    "Payout wallet": "收款钱包", "72h funding": "72 小时募资", "Lead preparation": "负责人准备",
+    "Grow together": "共同成长", "Getting paid": "获得收益", "Day 1–3": "第 1–3 天",
+    "Day 3": "第 3 天", "Day 3, +12h": "第 3 天 +12 小时", "Day 3–8": "第 3–8 天",
+    "Contributors send USDC for 3 days.": "认购者在 3 天内投入 USDC。", "Confirmed lead has 12h to publish the essentials.": "确认后的负责人有 12 小时发布核心信息。", "80% of USDC becomes LP liquidity immediately.": "80% 的 USDC 立即成为 LP 流动性。",
+    "Lead's 15% vests 3%/day; CirclePad's 5% funds buyback.": "负责人的 15% 按每天 3% 释放；CirclePad 的 5% 用于回购。", "Everyone votes on name, ticker, logo, roadmap, date.": "所有人投票决定名称、代码、Logo、路线图和日期。", "No project has launched through CirclePad yet.": "目前还没有项目通过 CirclePad 发射。",
+    "CirclePad runs one project at a time, so there's a single round to watch rather than a list to sift through. When a round is announced, it'll show up here and on Home.": "CirclePad 每次只运行一个项目，所以你只需关注一个轮次，而不必在列表中筛选。轮次公布后，会显示在这里和首页。", "No contributors yet. The leaderboard fills in once a raise opens.": "暂无认购者。募集开启后排行榜将开始更新。", "Ranks every contributor in the current raise by USDC committed, with each one's share of the total.": "按认购的 USDC 金额对当前募集的所有认购者排名，并显示各自占总额的比例。",
+    "Connect your wallet to see your position.": "连接钱包以查看你的仓位。", "No contribution yet from this wallet.": "该钱包尚无认购。", "Once a round is live, connecting your wallet here will show what you've contributed and your share of the raise so far.": "轮次上线后，在此连接钱包即可查看你目前的认购金额及在募集中的占比。",
+    "No round has run yet, so the treasury currently holds nothing.": "尚未进行过任何轮次，因此金库目前为空。", "Current proposal:": "当前提案：", "Voting has closed.": "投票已结束。",
+    "Voting is live — cast yours →": "投票进行中——去投票 →", "Voting opens once the raise closes.": "募集结束后开放投票。", "Voting runs alongside the 3-day funding window and closes when the raise does.": "投票与 3 天募资窗口同步进行，并随募集结束而关闭。",
+    "Couldn't load governance data — retrying shortly. Check the browser console for details.": "无法加载治理数据——稍后将自动重试。详情请查看浏览器控制台。", "Not enforced on-chain in this round — see Docs > Safety design for why.": "本轮未在链上强制执行——原因见 文档 > 安全设计。", "Two holder benefits are planned, both still being worked out in detail:": "计划中的持有人权益有两项，细节仍在完善：",
+    "ArcPad synergy": "ArcPad 联动", "CirclePad airdrop": "CirclePad 空投", "— existing ArcPad launch participants are planned to get an advantage when a CirclePad round opens.": "——现有 ArcPad 发射参与者计划在 CirclePad 轮次开启时获得优势。",
+    "— a separate airdrop for CirclePad participants is also planned.": "——另外也计划为 CirclePad 参与者单独空投。", "Neither benefit is live. Specifics — eligibility, size, timing — will land here once decided.": "两项权益均未上线。资格、规模、时间等细节确定后将在此公布。", "Holder benefits: participation in a project with real liquidity from block one (not a race against bots on an empty curve), plus a planned ArcPad synergy — details to come.": "持有人权益：从第一个区块起就参与拥有真实流动性的项目（而不是在空曲线上与机器人赛跑），另有计划中的 ArcPad 联动——详情敬请期待。",
+    "The raise": "募集", "Leadership": "负责人", "The 12-hour checkpoint": "12 小时检查点",
+    "Safety design": "安全设计", "What's still not built": "尚未完成的部分", "How this round actually closes": "本轮实际如何结束",
+    "First round, actually built:": "首轮，已实际上线：", "When the raise ends, the pooled USDC splits three ways:": "募集结束后，汇集的 USDC 分为三部分：", "LP liquidity": "LP 流动性",
+    "Lead's payout (vested)": "负责人收益（按期释放）", "CirclePad platform": "CirclePad 平台", "Is this live yet?": "现在上线了吗？",
+    "Can the lead just take the money and never build anything?": "负责人会不会卷款跑路、什么都不做？", "What if I'm not the top bidder — do I get anything back?": "如果我不是最高出价者——能拿回什么吗？", "Why USDC and not $HOME or an ArcPad token?": "为什么用 USDC，而不是 $HOME 或 ArcPad 代币？",
+    "Problem: instant lump-sum payout": "问题：一次性全额支付", "Problem: what happens if the lead vests some, then disappears?": "问题：如果负责人领取部分释放后消失怎么办？", "Fix:": "解决方案：",
+    "Withdraw & split 80/5/15": "提取并按 80/5/15 分配", "recipient wallet": "接收钱包", "platform wallet": "平台钱包",
+    "treasury wallet": "金库钱包", "Read the full design →": "阅读完整设计 →", "How the flywheel works →": "飞轮如何运作 →",
+    "A single project raises USDC for 3 days on Arc. Every bid is recorded with the bidder's address and amount — this is what determines both voting weight and the final payout split.": "单个项目在 Arc 上进行为期 3 天的 USDC 募集。每笔出价都会记录出价者地址和金额——这决定了投票权重和最终分配比例。", "Whoever bid the most becomes the project lead. Every bidder — not just the lead — gets a vote, weighted by their share of the total raise, on the project's actual identity: coin name, ticker, logo, roadmap, and launch date.": "出价最高者成为项目负责人。每位出价者（不只是负责人）都拥有投票权，权重按其在募集总额中的占比计算，用于决定项目的实际身份：代币名称、代码、Logo、路线图和发射日期。", "The lead has 12 hours after the raise ends to publish the project's confirmed details plus an official X account and at least one more community channel (X Community, Telegram, or Discord — a website is optional but encouraged). Miss it, and leadership passes to the second-highest bidder, who gets the same 12 hours.": "募集结束后，负责人有 12 小时发布项目的确认信息，以及官方 X 账号和至少一个其他社区渠道（X Community、Telegram 或 Discord——网站可选但建议提供）。若未按时完成，负责人身份将转交给第二高出价者，同样给予 12 小时。",
+    "Every round splits its raised USDC three ways: 80% becomes LP liquidity immediately, 15% goes to the confirmed lead (vested), and 5% goes to CirclePad's own treasury.": "每轮募集的 USDC 分为三部分：80% 立即成为 LP 流动性，15% 归确认后的负责人（按期释放），5% 归 CirclePad 自有金库。", "Every bidder in a raise — not just the top bidder — gets a vote on the project's identity, weighted by their share of the total raise. Five things get decided this way:": "募集中的每位出价者（不只是最高出价者）都能对项目身份投票，权重按其在募集总额中的占比计算。以下五项由此决定：", "Name": "名称",
+    "Launch date": "发射日期", "Roadmap": "路线图", "That 5%, together with CirclePad's own trading fees once projects are live, is meant to fund CirclePad's own buyback-and-burn and promotion — the same loop repeating project after project rather than a one-off.": "这 5%，连同项目上线后 CirclePad 自身的交易手续费，将用于 CirclePad 自己的回购销毁和推广——让同一循环在一个又一个项目中持续运转，而非一次性。",
+    "The platform's 5%, plus CirclePad's own trading fees once projects are live, fund CirclePad's own buyback-and-burn and promotion — the same loop, project after project, rather than a one-off.": "平台的 5%，加上项目上线后 CirclePad 自身的交易手续费，用于 CirclePad 自己的回购销毁和推广——同一循环在一个又一个项目中持续运转，而非一次性。", "This page is honest about what's still being worked out. Two things had to change before this was safe to build at all.": "本页如实说明仍在完善中的内容。在能够安全构建之前，有两处必须改动。", "The original version paid 15% of the entire raise to the lead's wallet the moment the 12-hour checklist was met — an X account and one social channel. That's a low bar for a large, immediate payout: someone could self-fund a majority bid, clear the checklist in minutes, and walk away with most of their own contribution back plus a share of everyone else's.": "原始版本在满足 12 小时检查清单（一个 X 账号加一个社交渠道）的那一刻，就把整个募集的 15% 打入负责人钱包。对于一笔大额即时支付来说门槛太低：有人可以自己出资拿下最高出价，几分钟内完成清单，然后带着自己大部分认购款外加其他人的一部分资金离场。",
+    "The confirmed lead's 15% doesn't land all at once. It vests": "确认后负责人的 15% 不会一次性到账，而是", "3% per day over 5 days": "在 5 天内每天释放 3%", ". If the lead stops running the project, whatever hasn't vested yet returns to the original bidders, split proportionally to what they put in.": "。若负责人停止运营项目，尚未释放的部分将按原始出价者的投入比例退还给他们。",
+    "the 15% vests 3% per day over 5 days instead of paying out immediately.": "这 15% 改为在 5 天内每天释放 3%，而非立即全额支付。", "Vesting alone doesn't fully close the gap — someone could still collect a few days' worth of tranches and stop. The remaining, unvested amount needs a defined, automatic path back to bidders rather than sitting stuck or depending on a human deciding \"this looks abandoned.\"": "仅靠按期释放并不能完全堵住漏洞——有人仍可能领取几天的份额后停止。剩余未释放的金额需要一条明确、自动的路径退回给出价者，而不是一直卡住，或依赖人为判断“看起来已被放弃”。", "the lead must check in on-chain periodically (roughly every 48 hours). Miss a check-in, and the project is automatically marked abandoned — no admin, no vote, no judgment call — and everything left unvested returns to the original bidders, split proportionally to what they put in.": "负责人必须定期（大约每 48 小时）在链上签到。一旦错过签到，项目将被自动标记为已放弃——无需管理员、无需投票、无需人为判断——所有未释放的资金按原始出价者的投入比例退还给他们。",
+    "That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.": "这正是该设计要防范的失败场景——见“安全设计”。初期支付金额小且缓慢（每天 3%），并在未签到时自动停止。", "Yes — every bidder gets a vote on the project's identity, and if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.": "能——每位出价者都能对项目身份投票；如果负责人被标记为已放弃，未释放的资金将按比例退还给所有原始出价者，而不仅仅是负责人。", "USDC is Arc's own native gas token, so it's the natural first quote asset — no bridging, no extra approval step. Other quote assets may follow once the core mechanism is live and tested.": "USDC 是 Arc 自身的原生 Gas 代币，因此自然成为首个计价资产——无需跨链，也无需额外授权。核心机制上线并经过测试后，可能会支持其他计价资产。",
+    "The fund-pooling, auction, voting, vesting, and clawback logic described on this page is a brand-new smart contract — not a reuse of ArcPad's existing, already-deployed factory the way most of that side of the site works. Code that pools money from multiple people carries real risk if it has a bug. It is not going live with real funds without a real security review first.": "本页描述的资金池、竞价、投票、按期释放和追回逻辑是一份全新的智能合约——并不像站内大部分功能那样复用 ArcPad 已部署的现有工厂合约。汇集多人资金的代码一旦存在漏洞，风险是真实的。在完成正式安全审计之前，它不会接入真实资金上线。", "Partly. The first-round escrow contract is deployed on Arc mainnet (see Contracts below) — once the recipient starts the clock, the 72-hour USDC raise is real and the Home panel switches from preview to live numbers. The bigger lead/vote/vesting mechanism described here is a separate contract that is still in design and review.": "部分上线。首轮托管合约已部署在 Arc 主网上（见下方“合约”）——接收方启动计时后，72 小时 USDC 募集即为真实募集，首页面板也会从预览切换为实时数据。此处描述的更完整的负责人/投票/释放机制是另一份独立合约，仍在设计与审查中。", "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.": "本轮在链上仅支持认购：USDC 存放在托管合约中，在 72 小时窗口结束前你可随时撤回自己的认购。名称、代码、Logo 和路线图的投票不由该合约强制执行——见 文档 > 安全设计。",
+    "This round's contract only handles contributions. Voting on name, ticker, logo, roadmap, and launch date is not enforced by smart contract here — how that gets decided will be announced separately.": "本轮合约仅处理认购。名称、代码、Logo、路线图和发射日期的投票在此不由智能合约强制执行——具体决定方式将另行公布。", "Once the recipient starts the clock, the raise runs for 72 hours. Contributors can withdraw their own USDC any time before it closes, no lock-in. When it closes, the balance splits automatically: 80% to the": "接收方启动计时后，募集将持续 72 小时。认购者可在结束前随时撤回自己的 USDC，无锁定期。结束时，余额自动分配：80% 归", ", 5% to the": "，5% 归",
+    ", and 15% to the": "，15% 归", ". The bigger vote/lead/vesting mechanism described above this card is a separate contract, still in design and review.": "。此卡片上方描述的更完整的投票/负责人/释放机制是另一份独立合约，仍在设计与审查中。", "the recipient wallet starts a 72-hour timer. Anyone can contribute USDC while it's open, and withdraw their own contribution back any time before it closes — no lock-in. When it closes, the balance splits 80% recipient / 5% platform / 15% treasury automatically. None of the bidding, leadership, or voting described below is on-chain yet in this round — see Safety design.": "由接收钱包启动 72 小时计时。开放期间任何人都可认购 USDC，并可在结束前随时撤回自己的认购——无锁定期。结束时，余额自动按 接收方 80% / 平台 5% / 金库 15% 分配。下文描述的竞价、负责人和投票机制在本轮均尚未上链——见“安全设计”。",
+    "80% recipient wallet / 5% platform wallet / 15% treasury wallet, paid directly — no LP liquidity or vesting yet. The split below is the longer-term vision this round doesn't implement.": "接收钱包 80% / 平台钱包 5% / 金库钱包 15%，直接支付——暂无 LP 流动性或按期释放。下方的分配是本轮尚未实现的长期愿景。", "becomes real LP liquidity immediately (not a bonding curve that snipers can race from zero),": "立即成为真实的 LP 流动性（而不是狙击者可以从零抢跑的联合曲线），", "goes to the CirclePad platform, and": "归 CirclePad 平台，",
+    "is reserved for the confirmed lead. Dexscreener listing and a 100x boost are paid for by the platform, not the lead.": "留给确认后的负责人。Dexscreener 上架和 100x Boost 费用由平台承担，而非负责人。", "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close": "托管 72 小时 USDC 募集；结束前可随时撤回；结束时按 80/5/15 分配", "Name / ticker / logo / roadmap / launch-date votes, weighted by contribution — deploys once the raise has started": "名称 / 代码 / Logo / 路线图 / 发射日期投票，按认购额加权——募集开始后部署",
+    "Every CirclePad contract on Arc mainnet, read straight from this site's config so this list can't drift from what's deployed. Verify anything here on the explorer before you contribute.": "Arc 主网上的全部 CirclePad 合约，直接读取自本站配置，因此列表不会与实际部署不一致。认购前请在浏览器上核实此处任何信息。", "One community. Two ways to launch.": "一个社区，两种发射方式。", "On Circle's Arc · gas paid in USDC": "基于 Circle 的 Arc · 以 USDC 支付 Gas",
+    "One coin at the center of it all.": "一个代币，居于一切中心。", "Buy $ARCIRCLE": "买入 $ARCIRCLE", "The core coin of ARCIRCLE PAD": "ARCIRCLE PAD 的核心代币",
+    "ArcPad and CirclePad are two different ways to launch on Arc. $ARCIRCLE is the one coin that sits between them — and what both launchpads earn, together with $ARCIRCLE's own trading fees, is put to work for it.": "ArcPad 和 CirclePad 是在 Arc 上发射的两种不同方式。$ARCIRCLE 是连接两者的唯一代币——两个发射台的收入，连同 $ARCIRCLE 自身的交易手续费，都将为它所用。", "Contract · Arc": "合约 · Arc", "Buy on foci ↗": "在 foci 上买入 ↗",
+    "Trade on ArcPad →": "在 ArcPad 上交易 →", "What $ARCIRCLE is": "$ARCIRCLE 是什么", "One coin at the center of two launchpads.": "一个代币，连接两个发射台。",
+    "Every coin launched on ArcPad and every raise on CirclePad happens inside one ecosystem. $ARCIRCLE is how that ecosystem's growth comes back to one place.": "ArcPad 上发射的每个代币、CirclePad 上的每次募集，都发生在同一个生态中。$ARCIRCLE 让这个生态的增长回流到同一处。", "Two launchpads, one coin": "两个发射台，一个代币", "ArcPad for instant, permissionless launches. CirclePad for community-funded ones. Both point back to $ARCIRCLE.": "ArcPad 用于即时、无许可的发射；CirclePad 用于社区众筹的发射。两者最终都指向 $ARCIRCLE。",
+    "Fed by real activity": "由真实活动驱动", "Launch fees, trading fees, raise shares and $ARCIRCLE's own creator tax all flow into the same flywheel.": "发射手续费、交易手续费、募集分成以及 $ARCIRCLE 自身的创建者税，全部流入同一个飞轮。", "Rewards on the way": "奖励即将到来",
+    "A reward system for $ARCIRCLE holders and for creators is being built.": "面向 $ARCIRCLE 持有人和创建者的奖励系统正在开发中。", "See what's coming →": "看看即将推出什么 →", "The flywheel": "飞轮",
+    "Every launch turns the wheel. The wheel turns for $ARCIRCLE.": "每次发射都在推动飞轮，而飞轮为 $ARCIRCLE 转动。", "More launches mean more revenue. More revenue means more going back into $ARCIRCLE. A stronger $ARCIRCLE brings in more creators — and the loop starts again.": "发射越多，收入越多。收入越多，回流 $ARCIRCLE 的就越多。更强的 $ARCIRCLE 吸引更多创建者——循环再次开始。", "$ARCIRCLE flywheel": "$ARCIRCLE 飞轮",
+    "A loop of four steps around $ARCIRCLE: 1 Launch, 2 Earn, 3 Buy back, 4 Grow, then back to Launch.": "围绕 $ARCIRCLE 的四步循环：1 发射、2 收益、3 回购、4 增长，然后回到发射。", "Earn": "收益", "Buy back": "回购",
+    "Grow": "增长", "Creators launch coins on ArcPad and raise together on CirclePad. Every launch brings new people and new volume to Arc.": "创建者在 ArcPad 上发射代币，在 CirclePad 上共同募集。每次发射都为 Arc 带来新用户和新交易量。", "Launch fees, ArcPad's platform allocation and trading fees, CirclePad's raise share, and $ARCIRCLE's own 2% creator tax flow in.": "发射手续费、ArcPad 的平台分配和交易手续费、CirclePad 的募集分成，以及 $ARCIRCLE 自身 2% 的创建者税持续流入。",
+    "That revenue goes back into $ARCIRCLE — buybacks and liquidity support that work for its value.": "这些收入回流 $ARCIRCLE——通过回购和流动性支持提升其价值。", "A stronger $ARCIRCLE funds holder and creator rewards (coming soon) and draws in more creators — so the next round of launches is bigger.": "更强的 $ARCIRCLE 为持有人和创建者奖励（即将推出）提供资金，并吸引更多创建者——让下一轮发射规模更大。", "What feeds it": "资金来源",
+    "Where the revenue comes from.": "收入从哪里来。", "Five sources, all coming from actual use of the ecosystem — not from new token emissions.": "五个来源，全部来自生态的真实使用——而非新增代币排放。", "Direct fee on every $ARCIRCLE trade on foci": "foci 上每笔 $ARCIRCLE 交易的直接手续费",
+    "Launch fee": "发射手续费", "Paid for every coin launched on ArcPad": "ArcPad 上每发射一个代币需支付", "Platform allocation": "平台分配",
+    "Of every ArcPad coin's supply, set aside at launch": "每个 ArcPad 代币的供应量中，发射时预留的部分", "Trading fees": "交易手续费", "The platform's share of fees on ArcPad trades": "平台在 ArcPad 交易手续费中的分成",
+    "Raise share": "募集分成", "The platform's cut of every CirclePad raise when it closes": "每次 CirclePad 募集结束时平台的分成", "Where it goes": "资金去向",
+    "$ARCIRCLE buybacks": "$ARCIRCLE 回购", "Liquidity support": "流动性支持", "Holder & creator rewards": "持有人和创建者奖励",
+    "Soon": "即将推出", "The exact split between these will be published here before it goes live.": "各项的具体分配比例将在上线前于此公布。", "Get $ARCIRCLE": "获取 $ARCIRCLE",
+    "How to buy.": "如何买入。", "$ARCIRCLE trades on foci, on Arc. Arc uses USDC for gas, so USDC is all you need.": "$ARCIRCLE 在 Arc 上的 foci 交易。Arc 使用 USDC 作为 Gas，所以你只需要 USDC。", "Get USDC on Arc": "在 Arc 上获取 USDC",
+    "Fund a wallet on Arc with USDC. It covers both the purchase and the gas.": "向 Arc 上的钱包充值 USDC，它同时用于购买和支付 Gas。", "Open $ARCIRCLE on foci": "在 foci 上打开 $ARCIRCLE", "Go to": "前往",
+    "and check the contract matches the one above.": "并核对合约与上方一致。", "Connect and buy": "连接并买入", "Connect your wallet on foci, enter an amount in USDC and confirm the swap.": "在 foci 上连接钱包，输入 USDC 数量并确认兑换。",
+    "$ARCIRCLE is a community memecoin on Circle's Arc chain. Nothing on this page is financial advice or a promise of returns. The flywheel describes how ARCIRCLE PAD intends to use its revenue; details are published here as each part goes live. Crypto is volatile — only use what you can afford to lose.": "$ARCIRCLE 是 Circle 旗下 Arc 链上的社区 Meme 币。本页任何内容均不构成投资建议或收益承诺。飞轮描述的是 ARCIRCLE PAD 计划如何使用其收入；各部分上线时将在此公布细节。加密货币波动剧烈——请仅投入你能承受损失的资金。", "2% per trade": "每笔交易 2%", "Coming soon · In design": "即将推出 · 设计中",
+    "Rewards for the people who": "奖励那些", "grow ARCIRCLE PAD.": "助力 ARCIRCLE PAD 成长的人。", "The reward system is how the flywheel gives back — to the ones who hold $ARCIRCLE and the ones who launch. It is funded by what ArcPad and CirclePad earn, never by new tokens, and it goes live only once its rules are published here.": "奖励系统是飞轮回馈的方式——回馈持有 $ARCIRCLE 的人和发射代币的人。它的资金来自 ArcPad 和 CirclePad 的收入，绝不来自新增代币，并且只有在规则于此公布后才会上线。",
+    "See the programs": "查看计划", "How it's funded": "资金来源", "Check a wallet": "查询钱包",
+    "Status": "状态", "In design": "设计中", "Funded by": "资金来自",
+    "Ecosystem revenue": "生态收入", "New $ARCIRCLE minted": "新铸造的 $ARCIRCLE", "0 — ever": "0 — 永远",
+    "Target": "目标时间", "Q4 2026 – Q1 2027": "2026 年第四季度 – 2027 年第一季度", "Two programs": "两项计划",
+    "One for holders. One for creators.": "一个面向持有人，一个面向创建者。", "Both are paid from the same place — the revenue the ecosystem actually earns — and both are designed to reward staying and building, not showing up for one snapshot.": "两者的资金来源相同——生态系统实际赚取的收入——并且都旨在奖励长期持有和持续建设，而不是只为某一次快照出现。", "Holder rewards": "持有人奖励",
+    "Creator rewards": "创建者奖励", "Planned": "计划中", "For $ARCIRCLE holders, funded by what ArcPad and CirclePad earn. The aim is to reward holding": "面向 $ARCIRCLE 持有人，资金来自 ArcPad 和 CirclePad 的收入。目标是奖励",
+    "through time": "长期持续的", ", not just a balance on one day.": "持有，而不只是某一天的余额。", "For creators who launch on ArcPad or raise on CirclePad and bring": "面向在 ArcPad 发射代币或在 CirclePad 募资、并为 Arc 带来",
+    "real activity": "真实活跃度", "to Arc — measured by genuine trading and holders, not by how many coins someone launches.": "的创建者——以真实交易和持有人衡量，而不是看发射了多少个代币。", "Measured by": "衡量标准",
+    "Snapshots": "快照", "Guard": "防护", "Boost": "加成",
+    "Average $ARCIRCLE held over an epoch": "一个周期内的平均 $ARCIRCLE 持仓", "Taken at unannounced times": "在未公布的时间进行", "Minimum holding period": "最短持有期",
+    "Organic volume, unique buyers, holder retention": "自然交易量、独立买家、持有人留存率", "Launches paired with $ARCIRCLE": "与 $ARCIRCLE 配对的发射", "Activity windows, wash-trading filters": "活跃度时间窗口、刷量交易过滤",
+    "Paid from revenue — never from emissions.": "从收入中支付——绝不来自增发。", "$ARCIRCLE's supply is fixed at one billion. Rewards come out of real ecosystem income: the same five sources that turn the $ARCIRCLE flywheel.": "$ARCIRCLE 的供应量固定为 10 亿。奖励来自真实的生态收入：正是驱动 $ARCIRCLE 飞轮的五个来源。", "Flat fee on every coin launched": "每个发射的代币收取固定手续费",
+    "Of every ArcPad coin's supply, paid in that coin": "占每个 ArcPad 代币供应量的比例，以该代币支付", "Trading-fee share": "交易手续费分成", "30% of the 1% base fee on every ArcPad trade": "每笔 ArcPad 交易 1% 基础手续费中的 30%",
+    "Of each CirclePad raise when it closes": "每轮 CirclePad 募资结束时的比例", "On every $ARCIRCLE trade on its curve": "其联合曲线上的每笔 $ARCIRCLE 交易", "The split between these is published on the $ARCIRCLE page before any of it goes live. Treasury wallet:": "这些来源之间的分配比例会在任何部分上线前于 $ARCIRCLE 页面公布。金库钱包：",
+    "$ARCIRCLE price": "$ARCIRCLE 价格", "$ARCIRCLE market cap": "$ARCIRCLE 市值", "Coins launched on ArcPad": "在 ArcPad 发射的代币",
+    "$ARCIRCLE graduation": "$ARCIRCLE 毕业", "Design principles": "设计原则", "Four rules the program is built on.": "本计划的四条规则。",
+    "Funded by revenue": "由收入提供资金", "Rewards come out of real ecosystem income. No new $ARCIRCLE is ever created to pay them.": "奖励来自真实的生态收入。绝不会为支付奖励而新增任何 $ARCIRCLE。", "Hard to farm": "难以薅羊毛",
+    "Unannounced snapshots, minimum holding periods and activity measured over windows make short-term balances and wash trading expensive.": "未公布的快照、最短持有期以及按时间窗口衡量的活跃度，让短期持仓和刷量交易的成本变高。", "Verifiable": "可验证", "Eligibility rules are published, and anyone can recompute the results from public chain data.": "资格规则公开透明，任何人都可以根据公开链上数据重新计算结果。",
+    "Simple to claim": "领取简单", "One place to see eligibility and claim — this page, once the program is live.": "在一个地方查看资格并领取——计划上线后就在本页面。", "Under study": "研究中",
+    "Candidate mechanics.": "候选机制。", "These are the designs being evaluated now. The final program may use some, all or none of them.": "这些是目前正在评估的设计。最终计划可能采用其中部分、全部，或都不采用。", "Creators": "创建者",
+    "Everyone": "所有人", "Time-weighted snapshots": "时间加权快照", "Your average balance over an epoch counts — not the balance in a single block. Buying just before a snapshot doesn't help.": "计算的是你在一个周期内的平均余额，而不是某个区块的余额。在快照前突击买入没有用。",
+    "Creator score": "创建者评分", "Combines a coin's organic volume, unique buyers and holder retention, with a boost for launches paired with $ARCIRCLE.": "综合代币的自然交易量、独立买家和持有人留存率，并对与 $ARCIRCLE 配对的发射给予加成。", "Referral share": "推荐分成",
+    "A slice of fees for wallets and communities that bring in launches, once referral support is added to the routers.": "路由合约支持推荐功能后，为带来发射的钱包和社区分配一部分手续费。", "Before launch": "上线前", "What the next update will define.": "下一次更新将明确的内容。",
+    "Nothing goes live until each of these is published on this page.": "以下各项在本页面公布之前，任何内容都不会上线。", "Who qualifies": "谁有资格", "Holder thresholds and holding periods; creator activity criteria": "持有人的持仓门槛和持有期；创建者的活跃度标准",
+    "The share of revenue set aside for each program, visible on-chain": "每项计划分配的收入比例，可在链上查看", "How it's paid": "如何发放", "Asset (USDC, $ARCIRCLE or both), cadence and claim window": "发放资产（USDC、$ARCIRCLE 或两者）、频率和领取窗口",
+    "Where to claim": "在哪里领取", "Right here, on the Reward page": "就在这里，奖励页面", "To be published": "待公布",
+    "Your wallet": "你的钱包", "Check a wallet.": "查询钱包。", "See the on-chain activity the programs are designed around — read live from Arc. This is a preview, not an eligibility check: no rewards are live yet and nothing here promises any.": "查看这些计划所依据的链上活动——从 Arc 实时读取。这只是预览，并非资格检查：目前没有任何奖励上线，这里的内容也不构成任何承诺。",
+    "Paste a wallet address (0x…)": "粘贴钱包地址 (0x…)", "Check": "查询", "$ARCIRCLE held": "持有的 $ARCIRCLE",
+    "Not holding $ARCIRCLE right now": "当前未持有 $ARCIRCLE", "Creator activity is what creator rewards are designed to measure": "创建者奖励旨在衡量的正是创建者活跃度", "No ArcPad launches from this address yet": "该地址尚未在 ArcPad 发射代币",
+    "That doesn't look like a wallet address — it should start with 0x and be 42 characters long.": "这看起来不是钱包地址——应以 0x 开头，长度为 42 个字符。", "Couldn't reach Arc to read this wallet — check your connection and try again.": "无法连接 Arc 读取该钱包——请检查网络连接后重试。", "Where rewards sit on the roadmap.": "奖励在路线图中的位置。",
+    "Phase 0 — Foundation": "阶段 0 — 基础", "Phase 1 — First rounds": "阶段 1 — 首批轮次", "Phase 2 — Rewards": "阶段 2 — 奖励",
+    "Phase 3 — CirclePad v2": "阶段 3 — CirclePad v2", "Q3 2026 · Done": "2026 年第三季度 · 已完成", "Q4 2026 · In progress": "2026 年第四季度 · 进行中",
+    "Q4 2026 – Q1 2027 · Planned": "2026 年第四季度 – 2027 年第一季度 · 计划中", "Q1 – Q2 2027 · Planned": "2027 年第一至第二季度 · 计划中", "$ARCIRCLE launched with 100% of supply in its public curve. ArcPad live on Arc mainnet. CirclePad escrow deployed.": "$ARCIRCLE 已发射，100% 供应量进入公开联合曲线。ArcPad 已在 Arc 主网上线。CirclePad 托管合约已部署。",
+    "Publish the flywheel revenue split. First treasury buybacks of $ARCIRCLE, posted with transaction links. First CirclePad round.": "公布飞轮收入分配比例。首次金库回购 $ARCIRCLE，并附交易链接公示。首个 CirclePad 轮次。", "Holder rewards v1 — time-weighted snapshots, funded by revenue": "持有人奖励 v1 — 时间加权快照，由收入提供资金", "Creator rewards v1 — based on organic volume, buyers and retention": "创建者奖励 v1 — 基于自然交易量、买家数和留存率",
+    "Rewards dashboard and claim on this page": "本页面的奖励面板与领取功能", "Referral support in the routers, with a fee share for referrers": "路由合约支持推荐功能，推荐人可获手续费分成", "Lead vesting with automatic clawback, and the CirclePad participant airdrop — eligibility published before anything goes live.": "带自动收回机制的牵头人线性解锁，以及 CirclePad 参与者空投——资格规则在任何内容上线前公布。",
+    "Commitments": "承诺", "What you can hold us to.": "你可以监督我们做到的事。", "Publish before acting": "先公布，后执行",
+    "Revenue splits and reward rules are published here before they start.": "收入分配和奖励规则会在开始前于此处公布。", "Known wallets": "公开钱包", "Treasury and platform wallets are public — follow every inflow and outflow on ArcScan.": "金库和平台钱包均公开——可在 ArcScan 上追踪每一笔流入和流出。",
+    "Report the results": "公示结果", "Buybacks and reward payouts are posted with their transaction links.": "回购和奖励发放都会附上交易链接公示。", "No surprise supply": "不会意外增发",
+    "$ARCIRCLE stays at 1,000,000,000. Nothing in the program mints more.": "$ARCIRCLE 始终保持 1,000,000,000 枚。本计划中没有任何机制会增发。", "Everything on this page is design intent. The reward program is not live, and its final form may differ from what is described here; it will only go live once its rules are published on this page. $ARCIRCLE is a community memecoin — holding it is not a share, a claim on revenue or a right to any payment. Nothing here is financial advice or a promise of returns. Full details:": "本页面所有内容均为设计意向。奖励计划尚未上线，最终形式可能与此处描述不同；只有在规则于本页面公布后才会上线。$ARCIRCLE 是社区 meme 币——持有它不代表股份、收入索取权或获得任何付款的权利。此处内容均不构成投资建议或收益承诺。完整详情：", "whitepaper, Section 8": "白皮书第 8 节",
+    "Balances rebuilt from every $ARCIRCLE transfer since launch. Tokens still in the bonding curve are the unsold supply.": "余额根据自发射以来的每一笔 $ARCIRCLE 转账重建。仍在联合曲线中的代币为未售出的供应量。", "Every launch gets a real Uniswap v4 pool in the same transaction — paired with USDC, Arc's own native currency, or with $ARCIRCLE or any Arc token you choose.": "每次发射都会在同一笔交易中获得一个真正的 Uniswap v4 池子——可与 Arc 的原生货币 USDC 配对，也可与 $ARCIRCLE 或你选择的任意 Arc 代币配对。", "Into the pool": "注入池子",
+    "Launch page": "发射页面", "On-chain": "链上", "One project. A 3-day USDC raise decides who leads it and how it's split. Every contributor votes on what it becomes.": "一个项目。为期 3 天的 USDC 募资决定由谁牵头以及如何分配。每位认购者都可以投票决定项目的走向。",
+    "No trades here yet.": "这里还没有交易。", "Not enough trades in this range yet.": "该时间范围内的交易还不够多。", "Flywheel & rewards": "飞轮与奖励",
+    "Portfolio": "资产", "Watchlist": "自选", "Watch": "加自选",
+    "Watching": "已自选", "Added to watchlist": "已加入自选", "Removed from watchlist": "已移出自选",
+    "Your watchlist is empty. Tap the star on any coin to keep it here.": "你的自选为空。点击任意代币上的星标即可收藏到这里。", "Among the most-traded coins in the last hour": "过去 1 小时交易最活跃的代币之一", "Most traded · 24h": "交易最多 · 24h",
+    "Volume": "交易量", "Since launch": "自发射以来", "Safety check": "安全检查",
+    "Read live from Arc": "从 Arc 实时读取", "Liquidity locked": "流动性已锁定", "The pool position is held by the factory, which has no function to remove it.": "池子仓位由工厂合约持有，而该合约没有任何移除仓位的函数。",
+    "Fixed supply": "固定供应量", "Unusual supply": "供应量异常", "1,000,000,000 minted once at launch. The token has no mint function and no owner.": "发射时一次性铸造 1,000,000,000 枚。该代币没有铸造函数，也没有所有者。",
+    "Small or no creator bag.": "创建者持仓很少或没有。", "A sizeable creator bag — watch for sells.": "创建者持仓较大——注意抛售风险。", "The creator holds a large share of supply.": "创建者持有很大比例的供应量。",
+    "Creator holdings": "创建者持仓", "Top 10 holders": "前 10 大持有人", "Indexing transfers…": "正在索引转账记录…",
+    "Excludes the pool, the fee hook and the 8% platform allocation.": "不含池子、手续费 Hook 和 8% 平台分配。", "1% base — 70% of it goes to the creator.": "基础 1% — 其中 70% 归创建者。", "This is the first one launched.": "这是最早发射的一个。",
+    "This is not the first — check the contract address before you buy.": "这不是最早发射的——买入前请核对合约地址。", "Others:": "其他：", "$ARCIRCLE (core coin)": "$ARCIRCLE（核心代币）",
+    "Every ArcPad coin and $ARCIRCLE in your wallet, and the coins you launched — read live from Arc.": "你钱包中的所有 ArcPad 代币和 $ARCIRCLE，以及你发射的代币——从 Arc 实时读取。", "Connect a wallet to see your portfolio": "连接钱包以查看你的资产", "Your ArcPad coins, $ARCIRCLE and the coins you launched, read straight from Arc.": "你的 ArcPad 代币、$ARCIRCLE 以及你发射的代币，直接从 Arc 读取。",
+    "Holdings value": "持仓价值", "USDC (gas)": "USDC (Gas)", "Coins held": "持有代币",
+    "Coins launched": "已发射代币", "Creator fees 24h": "创建者手续费 24h", "Holdings": "持仓",
+    "Coin": "代币", "Value": "价值", "Your launches": "你的发射",
+    "Trades 24h": "交易笔数 24h", "Your fees 24h": "你的手续费 24h", "Fees are an estimate from the last 24h of trades: 70% of the 1% base fee plus your add-on. They are paid out by the fee hook as trades happen.": "手续费为根据最近 24 小时交易估算的数值：1% 基础手续费的 70% 加上你的附加手续费。手续费 Hook 会在交易发生时实时支付。",
+    "No ArcPad coins in this wallet yet.": "该钱包中还没有 ArcPad 代币。", "Explore coins →": "探索代币 →", "You haven't launched a coin from this wallet.": "你还没有用该钱包发射过代币。",
+    "Couldn't read your balances from Arc — try again in a moment.": "无法从 Arc 读取你的余额——请稍后重试。", "Trade": "交易", "Close": "关闭",
+    "Your coin is live": "你的代币已上线", "Trade confirmed": "交易已确认", "$ARCIRCLE is the platform's core coin — pick another ticker so buyers aren't misled.": "$ARCIRCLE 是平台的核心代币——请换一个代码，以免误导买家。",
+    "None": "无", "Preview": "预览", "Your coin name": "你的代币名称",
+    "now": "刚刚", "new": "新", "A preview leaderboard of ArcPad creators, from the last 24 hours of on-chain trading in their coins.": "ArcPad 创建者排行榜预览，基于其代币最近 24 小时的链上交易。",
+    "Preview score": "预览评分", "= 24h volume (USD) + 5 × 24h trades, summed over a creator's coins · ×1.25 for coins paired with $ARCIRCLE": "= 24h 交易量 (USD) + 5 × 24h 交易笔数，按创建者所有代币汇总 · 与 $ARCIRCLE 配对的代币 ×1.25", "Coins": "代币",
+    "Score": "评分", "The whitepaper's creator score is planned to combine organic volume, unique buyers and holder retention, with a boost for $ARCIRCLE-paired launches. This preview uses what can be read live today. No rewards are paid from it.": "白皮书中的创建者评分计划综合自然交易量、独立买家和持有人留存率，并对与 $ARCIRCLE 配对的发射给予加成。此预览仅使用目前可实时读取的数据，不会据此发放任何奖励。", "$ARCIRCLE-paired boost": "$ARCIRCLE 配对加成",
+    "Treasury buybacks": "金库回购", "Indexing the curve's history…": "正在索引联合曲线历史…", "Every $ARCIRCLE buy by the platform's wallets, read from the curve": "平台钱包的每一笔 $ARCIRCLE 买入，从联合曲线读取",
+    "Buybacks": "回购", "USDC spent": "已花费 USDC", "$ARCIRCLE bought": "已买入 $ARCIRCLE",
+    "Treasury holds": "金库持有", "Checking every trade since launch…": "正在检查自发射以来的每笔交易…", "No buybacks yet. The whitepaper roadmap puts the first treasury buybacks in Phase 1 (Q4 2026) — each one will appear here automatically.": "暂无回购。按白皮书路线图，首次金库回购安排在阶段 1（2026 年第四季度）——每一笔都会自动显示在这里。",
+    "Tracked: Treasury": "追踪：金库", "· Platform wallet": "· 平台钱包", "Invite link": "邀请链接",
+    "Treasury $ARCIRCLE": "金库 $ARCIRCLE", "Buyback history →": "回购记录 →", "Anyone who opens ARCIRCLE PAD through this link is remembered as your invite in their browser for 30 days. Referral share is a candidate mechanic in the whitepaper — nothing is paid for invites yet.": "通过此链接打开 ARCIRCLE PAD 的用户，将在其浏览器中被记录为你的邀请，有效期 30 天。推荐分成是白皮书中的候选机制——目前邀请不会获得任何奖励。",
+    "Alert me when the raise opens": "募资开启时提醒我", "Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.": "提醒已设置——保持 CirclePad 标签页打开，募资开启时此浏览器会立即通知你。", "Cancel alert": "取消提醒",
+    "Add the close to my calendar": "将截止时间添加到日历", "Products": "产品", "Resources": "资源",
+    "ArcPad docs": "ArcPad 文档", "CirclePad docs": "CirclePad 文档", "ArcPad factory": "ArcPad 工厂合约",
+    "Swap router": "兑换路由", "Fee hook": "手续费 Hook", "$ARCIRCLE curve": "$ARCIRCLE 联合曲线",
+    "CirclePad escrow": "CirclePad 托管", "Two launchpads and one core coin on Circle's Arc. Every number on this site is read live from the chain.": "Circle 的 Arc 链上的两个发射台和一个核心代币。本站所有数据均从链上实时读取。", "Arc mainnet · checking…": "Arc 主网 · 检查中…",
+    "Arc mainnet · block": "Arc 主网 · 区块", "Arc RPC not reachable right now": "暂时无法连接 Arc RPC", "Nothing on this site is financial advice. Crypto assets can lose all of their value.": "本站任何内容均不构成投资建议。加密资产可能损失全部价值。",
+    "Sound on": "声音开", "Sound off": "声音关", "is live on ArcPad": "已在 ArcPad 上线",
+    "Search coins or paste a contract address…": "搜索代币或粘贴合约地址…", "Search by name, ticker or contract address…": "按名称、代码或合约地址搜索…", "Recently viewed": "最近浏览",
+    "Clear": "清除", "Contract address": "合约地址", "ArcPad coin": "ArcPad 代币",
+    "Checking this address on ArcPad…": "正在 ArcPad 上检查该地址…", "No coins match — paste a contract address to open one directly.": "没有匹配的代币——粘贴合约地址即可直接打开。", "Not an ArcPad coin.": "不是 ArcPad 代币。",
+    "Open on ArcScan ↗": "在 ArcScan 上打开 ↗", "gas": "Gas", "Add $ARCIRCLE to wallet": "将 $ARCIRCLE 添加到钱包",
+    "Added — check your wallet": "已添加——请查看钱包", "Your wallet didn't accept it": "你的钱包未接受添加",
+    // ---- community: profiles, X verification, sentiment ----
+    "Community": "社区",
+    "Community chat": "社区群聊",
+    "Launch alerts": "发射提醒",
+    "Telegram": "Telegram",
+    "ARCIRCLE PAD on X": "ARCIRCLE PAD 官方 X",
+    "ARCIRCLE PAD on Telegram": "ARCIRCLE PAD 官方 Telegram",
+    "Never miss a launch": "不错过任何发射",
+    "Join channel": "加入频道",
+    "Every new ArcPad coin is posted to our Telegram channel the moment it goes live — logo, market cap and a trade button.": "每个新的 ArcPad 代币一上线，就会立即发布到我们的 Telegram 频道 — 附带 Logo、市值和交易按钮。",
+    "Your launch is announced automatically in": "你的发射会自动公告在",
+    "Creator verified on X": "创建者已通过 X 认证",
+    "Profile updated by the creator": "创建者已更新资料",
+    "Edit coin info": "编辑代币信息",
+    "Core coin": "核心代币",
+    "Community sentiment": "社区情绪",
+    "Today (UTC)": "今日（UTC）",
+    "Bullish": "看涨",
+    "Bearish": "看跌",
+    "bullish": "看涨",
+    "votes": "票",
+    "vote": "票",
+    "7 days": "7 天",
+    "No votes yet today — be the first.": "今天还没有人投票 — 来投第一票吧。",
+    "One vote per wallet per coin each day. You sign a message — free, no transaction.": "每个钱包每天可对每个代币投一票。只需签名一条消息 — 免费，无需交易。",
+    "No votes yet today": "今天还没有投票",
+    "You already voted on this coin today": "你今天已为该代币投过票",
+    "Voted Bullish — thanks!": "已投看涨 — 谢谢！",
+    "Voted Bearish — thanks!": "已投看跌 — 谢谢！",
+    "Signature cancelled": "已取消签名",
+    "Signature cancelled.": "已取消签名。",
+    "Vote failed": "投票失败",
+    "Edit": "编辑",
+    "Changes show on the coin page right away. Only the wallet that launched this coin can save.": "修改会立即显示在代币页面。只有发射该代币的钱包才能保存。",
+    "Coin info": "代币信息",
+    "Verify X": "X 认证",
+    "Banner · 1500 × 500": "横幅 · 1500 × 500",
+    "Upload banner": "上传横幅",
+    "Remove": "移除",
+    "What is this coin about?": "介绍一下这个代币",
+    "@handle or x.com/…": "@用户名 或 x.com/…",
+    "@group or t.me/…": "@群组 或 t.me/…",
+    "Free — you sign a message, no transaction.": "免费 — 只需签名消息，无需交易。",
+    "Sign & save": "签名并保存",
+    "That isn't an image.": "这不是图片。",
+    "That image is too detailed — try a simpler one.": "图片过于复杂 — 请换一张简单些的。",
+    "Couldn't read that image.": "无法读取该图片。",
+    "Connect the wallet that launched this coin.": "请连接发射该代币的钱包。",
+    "Confirm the signature in your wallet…": "请在钱包中确认签名…",
+    "Saving…": "保存中…",
+    "Saved — the coin page is updated.": "已保存 — 代币页面已更新。",
+    "Coin info updated": "代币信息已更新",
+    "Save failed.": "保存失败。",
+    "Verified as": "已认证为",
+    "The badge shows on every coin this wallet launches.": "该钱包发射的所有代币都会显示此徽章。",
+    "View post ↗": "查看帖子 ↗",
+    "Linked a different account? Verify again to replace it.": "想换一个账号？重新认证即可替换。",
+    "Link your X account to this creator wallet. Buyers see a verified badge next to your coins.": "将你的 X 账号关联到此创建者钱包。买家会在你的代币旁看到认证徽章。",
+    "Sign with your wallet": "用钱包签名",
+    "Sign again": "重新签名",
+    "Sign": "签名",
+    "Post the code on X": "在 X 上发布验证码",
+    "Post on X": "发布到 X",
+    "Copy text": "复制文字",
+    "Your one-time code appears here after signing.": "签名后，一次性验证码会显示在这里。",
+    "Paste the link to your post": "粘贴帖子链接",
+    "Verify": "认证",
+    "Enter your X handle, like @arcircle.": "请输入你的 X 用户名，例如 @arcircle。",
+    "Signing failed.": "签名失败。",
+    "Paste the link to your post (x.com/…/status/…).": "请粘贴帖子链接（x.com/…/status/…）。",
+    "Checking your post on X…": "正在 X 上核对你的帖子…",
+    "X account verified": "X 账号已认证",
+    "Verification failed.": "认证失败。",
+    "only the wallet that launched this coin can edit it": "只有发射该代币的钱包才能编辑",
+    "signature expired — sign again": "签名已过期 — 请重新签名",
+    "this code expired — start again": "验证码已过期 — 请重新开始",
+    "you already voted on this coin today": "你今天已为该代币投过票",
+    "X didn't return that post — make sure it's public, then try again in a minute": "X 没有返回该帖子 — 请确认帖子公开，稍后再试",
+    "community features aren't switched on yet": "社区功能尚未开启",
+    "that vote is for another day — refresh and vote again": "这是其他日期的投票 — 请刷新后重新投票",
+    "a newer edit is already saved": "已保存了更新的修改",
+  };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
   var SKIP = "script,style,noscript,code,textarea,[data-no-i18n],.ac2-ca-full,.ac2-ca-short";
   var KEY = "arcircle.lang";
+  var DICT = { ko: KO, zh: ZH };
+  var PAT = { ko: PATTERNS, zh: ZH_PATTERNS };
+  var LANGS = ["en", "ko", "zh"];
+  var LABEL = { en: "EN", ko: "한", zh: "中" };
+  var ARIA = { en: "English", ko: "한국어", zh: "简体中文" };
+  // The whitepaper has its own English and Korean editions — no Chinese one.
+  var noZh = /^\/whitepaper/.test(location.pathname);
   var lang = "en";
-  try { lang = localStorage.getItem(KEY) || ((navigator.language || "").toLowerCase().indexOf("ko") === 0 ? "ko" : "en"); } catch (e) { /* default en */ }
+  try {
+    var nav = (navigator.language || "").toLowerCase();
+    lang = localStorage.getItem(KEY) || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : "en");
+  } catch (e) { /* default en */ }
+  if (LANGS.indexOf(lang) < 0 || (noZh && lang === "zh")) lang = "en";
 
-  function translate(en) {
+  function translate(en, l) {
+    l = l || lang;
+    var d = DICT[l], pats = PAT[l];
+    if (!d) return null;
     var t = en.replace(/\s+/g, " ").trim();
     if (!t) return null;
-    if (Object.prototype.hasOwnProperty.call(KO, t)) return KO[t];
-    for (var i = 0; i < PATTERNS.length; i++) if (PATTERNS[i][0].test(t)) return t.replace(PATTERNS[i][0], PATTERNS[i][1]);
+    if (Object.prototype.hasOwnProperty.call(d, t)) return d[t];
+    for (var i = 0; i < pats.length; i++) if (pats[i][0].test(t)) return t.replace(pats[i][0], pats[i][1]);
     return null;
   }
   function skip(el) { return !el || (el.closest && el.closest(SKIP)); }
 
+  // Each text node remembers its English source (__en) and what we last put
+  // there (__tr); anything else in it is fresh English from a page script.
   function doText(n) {
     if (skip(n.parentElement)) return;
     var cur = n.nodeValue;
-    if (n.__ko != null && cur === n.__ko) { if (lang === "en") { n.nodeValue = n.__en; } return; }
-    // new text from the page (English)
-    n.__en = cur; n.__ko = null;
-    if (lang !== "ko") return;
-    var ko = translate(cur);
-    if (ko == null) return;
+    if (n.__tr != null && cur === n.__tr) return;
+    n.__en = cur; n.__tr = null;
+    if (lang === "en") return;
+    var tr = translate(cur);
+    if (tr == null) return;
     var lead = cur.match(/^\s*/)[0], trail = cur.match(/\s*$/)[0];
-    n.__ko = lead + ko + trail;
-    n.nodeValue = n.__ko;
+    n.__tr = lead + tr + trail;
+    n.nodeValue = n.__tr;
   }
   function doAttrs(el) {
     if (skip(el)) return;
@@ -531,12 +986,11 @@
     ATTRS.forEach(function (a) {
       if (!el.hasAttribute(a)) return;
       var v = el.getAttribute(a), s = store[a];
-      if (s && v === s.ko) { if (lang === "en") el.setAttribute(a, s.en); return; }
-      if (s && lang === "en" && v === s.en) return;
-      store[a] = { en: v, ko: null };
-      if (lang !== "ko") return;
-      var ko = translate(v);
-      if (ko != null) { store[a].ko = ko; el.setAttribute(a, ko); }
+      if (s && s.tr != null && v === s.tr) return;
+      store[a] = { en: v, tr: null };
+      if (lang === "en") return;
+      var tr = translate(v);
+      if (tr != null) { store[a].tr = tr; el.setAttribute(a, tr); }
     });
   }
   function walk(root) {
@@ -555,17 +1009,17 @@
     var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
     var n;
     while ((n = w.nextNode())) {
-      if (n.nodeType === 3) { if (n.__ko != null && n.nodeValue === n.__ko) n.nodeValue = n.__en; n.__ko = null; }
+      if (n.nodeType === 3) { if (n.__tr != null && n.nodeValue === n.__tr) n.nodeValue = n.__en; n.__tr = null; }
       else if (n.__i18nAttr) {
         var st = n.__i18nAttr;
-        Object.keys(st).forEach(function (a) { if (st[a].ko != null && n.getAttribute(a) === st[a].ko) n.setAttribute(a, st[a].en); st[a].ko = null; });
+        Object.keys(st).forEach(function (a) { if (st[a].tr != null && n.getAttribute(a) === st[a].tr) n.setAttribute(a, st[a].en); st[a].tr = null; });
       }
     }
   }
 
   var paused = false;
   var observer = new MutationObserver(function (muts) {
-    if (paused || lang !== "ko") return;
+    if (paused || lang === "en") return;
     paused = true;
     try {
       muts.forEach(function (m) {
@@ -577,35 +1031,46 @@
   });
 
   function setLang(next, save) {
-    lang = next === "ko" ? "ko" : "en";
+    lang = LANGS.indexOf(next) >= 0 && !(noZh && next === "zh") ? next : "en";
     if (save) { try { localStorage.setItem(KEY, lang); } catch (e) { /* fine */ } }
-    document.documentElement.lang = lang;
-    document.documentElement.classList.toggle("lang-ko", lang === "ko");
+    var de = document.documentElement;
+    de.lang = lang === "zh" ? "zh-CN" : lang;
+    de.classList.toggle("lang-ko", lang === "ko");
+    de.classList.toggle("lang-zh", lang === "zh");
     paused = true;
-    if (lang === "ko") walk(document.body); else restoreAll();
+    restoreAll();
+    if (lang !== "en") walk(document.body);
     paused = false;
-    document.querySelectorAll(".lang-toggle").forEach(function (b) {
-      b.setAttribute("aria-label", lang === "ko" ? "Switch to English" : "한국어로 보기");
-      b.querySelectorAll("span").forEach(function (s) { s.classList.toggle("on", s.dataset.l === lang); });
+    document.querySelectorAll(".lang-toggle [data-l]").forEach(function (b) {
+      var on = b.getAttribute("data-l") === lang;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    try { document.dispatchEvent(new CustomEvent("arc:lang", { detail: { lang: lang } })); } catch (e) { /* old browser */ }
   }
 
   function mountToggle() {
     var host = document.querySelector(".bp-topbar-right") || document.querySelector("header.ax-top");
     if (!host || host.querySelector(".lang-toggle")) return;
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = "lang-toggle";
-    b.setAttribute("data-no-i18n", "");
-    b.innerHTML = '<span data-l="en">EN</span><span data-l="ko">한</span>';
-    b.addEventListener("click", function () { setLang(lang === "ko" ? "en" : "ko", true); });
-    if (host.matches(".bp-topbar-right")) host.insertBefore(b, host.firstChild);
+    var g = document.createElement("div");
+    g.className = "lang-toggle";
+    g.setAttribute("role", "group");
+    g.setAttribute("aria-label", "Language");
+    g.setAttribute("data-no-i18n", "");
+    g.innerHTML = LANGS.filter(function (l) { return !(noZh && l === "zh"); }).map(function (l) {
+      return '<button type="button" data-l="' + l + '" lang="' + (l === "zh" ? "zh-CN" : l) + '" aria-label="' + ARIA[l] + '" title="' + ARIA[l] + '">' + LABEL[l] + "</button>";
+    }).join("");
+    g.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-l]");
+      if (b) setLang(b.getAttribute("data-l"), true);
+    });
+    if (host.matches(".bp-topbar-right")) host.insertBefore(g, host.firstChild);
     else {
       var cta = host.querySelector(".ax-top-cta");
       var wrap = document.createElement("div");
       wrap.className = "ax-top-right";
       host.insertBefore(wrap, cta || null);
-      wrap.appendChild(b);
+      wrap.appendChild(g);
       if (cta) wrap.appendChild(cta);
     }
   }
@@ -615,7 +1080,7 @@
     setLang(lang, false);
     observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
   }
-  window.arcI18n = { set: function (l) { setLang(l, true); }, get: function () { return lang; }, translate: translate };
+  window.arcI18n = { set: function (l) { setLang(l, true); }, get: function () { return lang; }, translate: function (s, l) { return translate(s, l); } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })();
