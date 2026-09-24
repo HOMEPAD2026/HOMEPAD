@@ -432,6 +432,11 @@
     "Alert me when the raise opens": "모금이 열리면 알려주기",
     "Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.": "알림 설정됨 — CirclePad 탭을 열어 두면 모금이 열리는 순간 이 브라우저가 알려줍니다.",
     "Cancel alert": "알림 취소", "Add the close to my calendar": "마감 시각을 캘린더에 추가",
+    // ---- search ----
+    "Search coins or paste a contract address…": "코인 검색 또는 컨트랙트 주소 붙여넣기…", "Search by name, ticker or contract address…": "이름, 티커 또는 컨트랙트 주소로 검색…",
+    "Recently viewed": "최근 본 코인", "Clear": "지우기", "Contract address": "컨트랙트 주소", "ArcPad coin": "ArcPad 코인",
+    "Checking this address on ArcPad…": "ArcPad에서 이 주소를 확인하는 중…", "No coins match — paste a contract address to open one directly.": "일치하는 코인이 없습니다 — 컨트랙트 주소를 붙여넣으면 바로 열립니다.",
+    "Not an ArcPad coin.": "ArcPad 코인이 아닙니다.", "Open on ArcScan ↗": "ArcScan에서 열기 ↗",
     // ---- wallet menu ----
     "gas": "가스", "Add $ARCIRCLE to wallet": "지갑에 $ARCIRCLE 추가", "Added — check your wallet": "추가됨 — 지갑을 확인하세요", "Your wallet didn't accept it": "지갑이 추가를 받지 않았습니다",
   };

@@ -170,7 +170,9 @@ export async function getCoin(addr) {
     if (q === ARCIRCLE) calls.push({ to: ARCIRCLE_CURVE, data: SEL.getReserves });
     const r = await ethCalls(calls);
     if (r[0]) sqrt = BigInt(r[0]) & ((1n << 160n) - 1n);
-    l.quoteDecimals = l.quoteIsUsdc ? 6 : r[1] ? Number(BigInt(r[1])) : 18;
+    // Never guess decimals: an unread value would misprice the coin by
+    // orders of magnitude, so leave the price blank instead.
+    l.quoteDecimals = l.quoteIsUsdc ? 6 : q === ARCIRCLE ? 18 : r[1] ? Number(BigInt(r[1])) : null;
     if (!l.quoteIsUsdc && r[2]) l.quoteSymbol = decodeString(r[2]) || l.quoteSymbol;
     if (q === ARCIRCLE && r[3]) {
       const qr = Number(wBig(r[3], 0)) / 1e6, tr = Number(wBig(r[3], 1)) / 1e18;
@@ -178,9 +180,10 @@ export async function getCoin(addr) {
     }
   }
   if (l.quoteIsUsdc) l.quoteUsd = 1;
-  l.priceInQuote = priceInQuote(sqrt, l.quoteIsCurrency0, l.quoteDecimals ?? 6);
+  l.priceInQuote = l.quoteDecimals == null ? null : priceInQuote(sqrt, l.quoteIsCurrency0, l.quoteDecimals);
   l.priceUsd = l.priceInQuote != null && l.quoteUsd != null ? l.priceInQuote * l.quoteUsd : null;
   l.mcapUsd = l.priceUsd != null ? l.priceUsd * 1e9 : null;
+  if (l.mcapUsd != null && !(l.mcapUsd < 1e11)) { l.priceUsd = null; l.mcapUsd = null; } // a bad read, not a market cap
   return l;
 }
 

@@ -65,6 +65,7 @@ function pill(text, color) {
 export default async function handler(req) {
   const url = new URL(req.url);
   const addr = url.searchParams.get("addr") || "";
+  const justLaunched = url.searchParams.get("kind") === "launch"; // Telegram launch announcements
   const markP = fetchImage(`${SITE}/images/arcircle-mark-sm.png`);
   const fontsP = Promise.all([400, 700, 800].map(async (weight) => {
     try {
@@ -94,7 +95,7 @@ export default async function handler(req) {
       h("div", { fontSize: 22, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
       h("div", { fontSize: 42, fontWeight: 800, color }, value));
     body = frame([
-      brandRow(mark, pill("LIVE ON UNISWAP V4", "#39ff88")),
+      brandRow(mark, justLaunched ? pill("JUST LAUNCHED", "#ffd166") : pill("LIVE ON UNISWAP V4", "#39ff88")),
       h("div", { alignItems: "center", gap: 44 },
         logoEl,
         h("div", { flexDirection: "column", gap: 10, maxWidth: 820 },

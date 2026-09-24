@@ -88,12 +88,39 @@
       '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>';
     dock.parentNode.insertBefore(bar, dock);
 
-    // Sit exactly one gap above the dock, whatever height it renders at.
+    // Sit exactly one gap above the dock, whatever height it renders at, and
+    // reserve exactly that much room at the bottom of the page (dock + bar +
+    // gaps) so the last cards are never hidden behind them.
     var root = document.documentElement;
-    var sync = function () { root.style.setProperty("--ax-dock-h", Math.round(dock.getBoundingClientRect().height) + "px"); };
+    var sync = function () {
+      var d = dock.getBoundingClientRect(), q = bar.getBoundingClientRect();
+      root.style.setProperty("--ax-dock-h", Math.round(d.height) + "px");
+      var dockBottom = Math.max(0, window.innerHeight - d.bottom);
+      root.style.setProperty("--ax-float-space", Math.round(dockBottom + d.height + 10 + q.height + 20) + "px");
+    };
     sync();
-    if (window.ResizeObserver) new ResizeObserver(sync).observe(dock);
-    else window.addEventListener("resize", sync);
+    if (window.ResizeObserver) { var ro = new ResizeObserver(sync); ro.observe(dock); ro.observe(bar); }
+    window.addEventListener("resize", sync);
+
+    // Out of the way while reading: hide on scroll down, back on scroll up
+    // (and always shown near the top and at the very bottom of the page).
+    var lastY = window.scrollY, acc = 0, ticking = false;
+    var setHidden = function (h) { bar.classList.toggle("ax-quick-hidden", h); };
+    window.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var y = window.scrollY, dy = y - lastY;
+        lastY = y;
+        var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
+        if (y < 80 || atBottom) { acc = 0; setHidden(false); return; }
+        acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
+        if (acc > 24) setHidden(true);
+        else if (acc < -16) setHidden(false);
+      });
+    }, { passive: true });
+    document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); });
 
     bar.addEventListener("click", function (e) {
       var a = e.target.closest && e.target.closest("[data-arc-tab]");

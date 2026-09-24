@@ -270,7 +270,8 @@ function renderArcpadExplore() {
 function renderArcpadExploreGrid() {
   const grid = document.getElementById("ap-explore-grid");
   const q = (document.getElementById("ap-explore-search").value || "").trim().toLowerCase();
-  let rows = ARC.launches.filter((l) => !q || l.name.toLowerCase().includes(q) || l.symbol.toLowerCase().includes(q));
+  const qs = q.replace(/^\$/, "");
+  let rows = ARC.launches.filter((l) => !qs || l.name.toLowerCase().includes(qs) || l.symbol.toLowerCase().includes(qs) || (qs.startsWith("0x") && l.token.toLowerCase().startsWith(qs)));
   if (arcExploreSort === "watch") rows = rows.filter((l) => typeof arcIsWatched === "function" && arcIsWatched(l.token));
   const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || null;
   if (arcExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
