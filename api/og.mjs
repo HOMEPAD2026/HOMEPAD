@@ -5,7 +5,9 @@
 import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
 
-export const config = { runtime: "edge" };
+// Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
+// renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
+// ("Wasm code generation disallowed by embedder") — every image came out empty.
 
 const W = 1200, H = 630;
 function h(type, style, ...children) {
@@ -62,7 +64,7 @@ function pill(text, color) {
   return h("div", { fontSize: 22, fontWeight: 700, color, padding: "8px 18px", borderRadius: 999, border: `2px solid ${color}`, alignItems: "center" }, text);
 }
 
-export default async function handler(req) {
+export async function GET(req) {
   const url = new URL(req.url);
   const addr = url.searchParams.get("addr") || "";
   const justLaunched = url.searchParams.get("kind") === "launch"; // Telegram launch announcements
