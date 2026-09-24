@@ -432,6 +432,13 @@
     "Alert me when the raise opens": "모금이 열리면 알려주기",
     "Alert set — keep a CirclePad tab open and this browser will ping you the moment the raise opens.": "알림 설정됨 — CirclePad 탭을 열어 두면 모금이 열리는 순간 이 브라우저가 알려줍니다.",
     "Cancel alert": "알림 취소", "Add the close to my calendar": "마감 시각을 캘린더에 추가",
+    // ---- footer / polish ----
+    "Products": "제품", "Resources": "자료", "ArcPad docs": "ArcPad 문서", "CirclePad docs": "CirclePad 문서",
+    "ArcPad factory": "ArcPad 팩토리", "Swap router": "스왑 라우터", "Fee hook": "수수료 훅", "$ARCIRCLE curve": "$ARCIRCLE 커브", "CirclePad escrow": "CirclePad 에스크로",
+    "Two launchpads and one core coin on Circle's Arc. Every number on this site is read live from the chain.": "Circle의 Arc 위 두 개의 런치패드와 하나의 코어 코인. 이 사이트의 모든 숫자는 체인에서 실시간으로 읽습니다.",
+    "Arc mainnet · checking…": "Arc 메인넷 · 확인 중…", "Arc mainnet · block": "Arc 메인넷 · 블록", "Arc RPC not reachable right now": "지금 Arc RPC에 연결할 수 없습니다",
+    "Nothing on this site is financial advice. Crypto assets can lose all of their value.": "이 사이트의 어떤 내용도 투자 조언이 아닙니다. 암호화폐는 가치를 모두 잃을 수 있습니다.",
+    "Sound on": "사운드 켜짐", "Sound off": "사운드 꺼짐", "is live on ArcPad": "ArcPad에 라이브되었습니다",
     // ---- search ----
     "Search coins or paste a contract address…": "코인 검색 또는 컨트랙트 주소 붙여넣기…", "Search by name, ticker or contract address…": "이름, 티커 또는 컨트랙트 주소로 검색…",
     "Recently viewed": "최근 본 코인", "Clear": "지우기", "Contract address": "컨트랙트 주소", "ArcPad coin": "ArcPad 코인",
@@ -470,6 +477,8 @@
     [/^Indexing history… (\d+)%$/, "기록 인덱싱 중… $1%"],
     [/^Not enough USDC on Arc\. This launch needs about (.+)$/, "Arc에 USDC가 부족합니다. 이 런치에는 약 $1"],
     [/^Same ticker ×(\d+)$/, "같은 티커 ×$1"],
+    [/^· (\d+) ms$/, "· $1ms"],
+    [/^\$(.+) just crossed (.+) market cap$/, "$$$1 시가총액 $2 돌파"],
     [/^(\d+) coins use \$(.+) — check the contract address$/, "코인 $1개가 $$$2 사용 중 — 컨트랙트 주소를 확인하세요"],
     [/^(\d+) coins use \$(.+)\.$/, "코인 $1개가 $$$2 티커를 사용합니다."],
     [/^Creator holds (.+)%$/, "크리에이터 보유 $1%"],

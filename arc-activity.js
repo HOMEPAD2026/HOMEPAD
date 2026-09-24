@@ -301,7 +301,16 @@ function actPaintTicker() {
   }).join("");
   const track = host.querySelector(".tk-track");
   track.innerHTML = html + html; // doubled for a seamless loop
-  track.style.setProperty("--tk-dur", `${Math.max(20, items.length * 4)}s`);
+  // Speed follows the market: ~40px/s when quiet, up to 2.5× with a busy
+  // last hour. Only re-set when it changes enough to notice (a new duration
+  // makes the strip jump).
+  let hour = 0;
+  ACT.stats.forEach((st) => { hour += st.trades1h || 0; });
+  const pxPerSec = 40 * (1 + Math.min(1.5, hour / 20));
+  const dur = Math.max(12, Math.round((track.scrollWidth / 2) / pxPerSec));
+  const cur = parseFloat(track.style.getPropertyValue("--tk-dur")) || 0;
+  if (!cur || Math.abs(dur - cur) / cur > 0.2) track.style.setProperty("--tk-dur", `${dur}s`);
+  host.classList.toggle("tk-busy", hour >= 10);
 }
 function actPaint() {
   document.querySelectorAll(".ap-launch-card[data-token]").forEach(arcPaintCard);

@@ -42,11 +42,12 @@
     host.appendChild(el);
     requestAnimationFrame(() => el.classList.add("in"));
     setTimeout(() => { el.classList.remove("in"); setTimeout(() => el.remove(), 350); }, 3200);
-    if (kind === "ok" && navigator.vibrate) { try { navigator.vibrate(30); } catch { /* not allowed */ } }
   }
   window.arcToast = toast;
   // Success messages already rendered by the page scripts → toast.
-  const watchStatus = (id, sel, label) => {
+  // Sound / vibration per action comes from arc-footer.js (arcFeedback);
+  // the launch's own feedback fires from arc-polish.js with its animation.
+  const watchStatus = (id, sel, label, kind) => {
     const el = $(id);
     if (!el) return;
     new MutationObserver(() => {
@@ -54,12 +55,14 @@
       if (!m || m.__toasted) return;
       m.__toasted = true;
       toast(typeof label === "function" ? label(m) : label);
+      const k = typeof kind === "function" ? kind() : kind;
+      if (k && typeof window.arcFeedback === "function") window.arcFeedback(k);
     }).observe(el, { childList: true, subtree: true });
   };
-  watchStatus("ap-launch-status", ".status.success", "Your coin is live");
-  watchStatus("apc-status", ".ac2-msg.success", "Trade confirmed");
-  watchStatus("ac2-status", ".ac2-msg.success", "Trade confirmed");
-  watchStatus("ap-trade-status", ".status.success", "Trade confirmed");
+  watchStatus("ap-launch-status", ".status.success", "Your coin is live", null);
+  watchStatus("apc-status", ".ac2-msg.success", "Trade confirmed", () => (typeof APC !== "undefined" && APC.side === "sell" ? "sell" : "buy"));
+  watchStatus("ac2-status", ".ac2-msg.success", "Trade confirmed", () => (typeof AC2 !== "undefined" && AC2.side === "sell" ? "sell" : "buy"));
+  watchStatus("ap-trade-status", ".status.success", "Trade confirmed", () => (ARC.tradeSide === "sell" ? "sell" : "buy"));
 
   // ================= watchlist =================
   const WL_KEY = "arcpad.watchlist.v1";
