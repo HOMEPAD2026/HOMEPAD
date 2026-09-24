@@ -26,21 +26,42 @@ function toBase64(buf) {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
-async function fetchImage(url, ms = 3500) {
+async function fetchBytes(url, ms = 3500) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
     const r = await fetch(url, { signal: ctl.signal });
     const type = (r.headers.get("content-type") || "").split(";")[0].trim();
-    if (!r.ok || !/^image\/(png|jpe?g|gif|svg\+xml)$/.test(type)) return null;
+    if (!r.ok || !/^image\//.test(type)) return null;
     const buf = await r.arrayBuffer();
-    if (buf.byteLength > 2_500_000) return null;
-    return `data:${type};base64,${toBase64(buf)}`;
+    if (buf.byteLength > 4_000_000) return null;
+    return { type, buf: Buffer.from(buf) };
   } catch { return null; } finally { clearTimeout(t); }
 }
+async function fetchImage(url, ms) {
+  const got = await fetchBytes(url, ms);
+  if (!got || !/^image\/(png|jpe?g|gif|svg\+xml)$/.test(got.type)) return null;
+  return `data:${got.type};base64,${got.buf.toString("base64")}`;
+}
+/// Coin logos are usually WebP data URIs (the launch form shrinks uploads to
+/// WebP), which the image renderer can't draw — convert anything that isn't
+/// SVG to a 256px PNG first.
+async function toPng(buf) {
+  try {
+    const sharp = (await import("sharp")).default;
+    const png = await sharp(buf, { animated: false }).resize(256, 256, { fit: "cover" }).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
+  } catch (err) { console.warn("logo convert failed", String(err && err.message || err)); return null; }
+}
 async function coinLogo(u) {
-  if (/^data:image\/(png|jpe?g|gif|svg\+xml);base64,/i.test(u || "")) return u;
-  if (/^https:\/\//i.test(u || "")) return fetchImage(u);
+  u = String(u || "");
+  const m = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(u);
+  if (m) return /svg/i.test(m[1]) ? u : toPng(Buffer.from(m[2], "base64"));
+  if (/^https:\/\//i.test(u)) {
+    const got = await fetchBytes(u);
+    if (!got) return null;
+    return /svg/i.test(got.type) ? `data:${got.type};base64,${got.buf.toString("base64")}` : toPng(got.buf);
+  }
   return null;
 }
 const clip = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
