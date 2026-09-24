@@ -1,6 +1,6 @@
 # ArcScan 소스 검증 가이드 (Arc mainnet)
 
-이 스크립트는 ARCIRCLE PAD 컨트랙트(팩토리, 훅, 라우터, CirclePad 에스크로)와 ArcPad에서 런치된 **모든 코인(LaunchToken)** 의 소스를
+이 스크립트는 ARCIRCLE PAD 컨트랙트(팩토리, 훅, 라우터, CirclePad 에스크로, 크리에이터 락업 ArcLock)와 ArcPad에서 런치된 **모든 코인(LaunchToken)** 의 소스를
 ArcScan(arc.etherscan.io)에 검증합니다. 검증이 끝나면 ArcScan의 Contract 탭에 소스 코드와 "Read/Write Contract"가 표시됩니다.
 그러면 누구나 "민트 함수 없음"과 "유동성 회수 함수 없음"을 직접 확인할 수 있습니다.
 
@@ -22,7 +22,7 @@ ARC_ETHERSCAN_API_KEY=여기에키 node scripts/verify-arc.js --dry-run
 ARC_ETHERSCAN_API_KEY=여기에키 node scripts/verify-arc.js
 ```
 
-일부만 검증하려면 `--only=` 뒤에 `factory,hook,router,escrow,tokens` 중 원하는 항목만 쉼표로 적으세요.
+일부만 검증하려면 `--only=` 뒤에 `factory,hook,router,escrow,lock,tokens` 중 원하는 항목만 쉼표로 적으세요.
 
 ## 결과 읽는 법
 

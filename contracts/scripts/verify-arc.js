@@ -10,7 +10,7 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,tokens
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,lock,tokens
 //
 // Get a free key at https://etherscan.io/myapikey (one key covers every chain
 // on Etherscan's v2 API, Arc included). Optional: ARC_MAINNET_RPC to read the
@@ -39,6 +39,7 @@ const ADDR = {
   hook: "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",
   router: "0xFCA8fD788d44Bb335B1451257366e06D67114785",
   escrow: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
+  lock: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 };
 const ART = path.join(__dirname, "..", "artifacts");
 
@@ -137,6 +138,10 @@ async function main() {
     const esc = new ethers.Contract(ADDR.escrow, eArt.abi, provider);
     const args = [await esc.recipient(), await esc.platformWallet(), await esc.treasuryWallet(), await esc.cap()];
     results.push(await verify(provider, { label: "BigPadEscrow (CirclePad round #1)", address: ADDR.escrow, art: eArt, args }));
+  }
+  if (want("lock")) {
+    const lArt = artifact("ArcLock.sol", "ArcLock");
+    results.push(await verify(provider, { label: "ArcLock (creator locks)", address: ADDR.lock, art: lArt, args: [] }));
   }
   if (want("tokens")) {
     const tArt = artifact("LaunchToken.sol", "LaunchToken");
