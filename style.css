@@ -4375,3 +4375,145 @@ body.mtb-on nav.ax-quick{transform:translate(-50%,calc(100% + 24px));opacity:0;p
   body.bigpad-page .bp-sidebar{position:fixed;left:0;right:0;top:0;z-index:24;max-height:100vh;overflow-y:auto;}
   body.bigpad-page .bp-app{padding-top:58px;}
 }
+
+/* ================= Community links (arc-social.js) =================
+   Official X, Telegram community and the launch-alerts channel. Brand
+   colours only on the icon discs; everything else stays in the site's glass. */
+.soc-fill{fill:currentColor;}
+.soc-line{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.soc-live{position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#39ff88;border:2px solid #07100c;animation:socPing 2.2s ease-out infinite;}
+@keyframes socPing{0%{box-shadow:0 0 0 0 rgba(57,255,136,.6);}70%,100%{box-shadow:0 0 0 8px rgba(57,255,136,0);}}
+@keyframes socFly{0%{transform:translate(-1px,0);opacity:1;}42%{transform:translate(9px,-9px);opacity:0;}43%{transform:translate(-10px,10px);opacity:0;}100%{transform:translate(-1px,0);opacity:1;}}
+@keyframes socIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+/* brand discs */
+.ax-soc-x .ax-soc-ico,.bp-soc-x .bp-soc-ico,.axf-soc-x .axf-soc-ico{background:#f4f6f8;color:#050607;}
+.ax-soc-tg .ax-soc-ico,.bp-soc-tg .bp-soc-ico,.axf-soc-tg .axf-soc-ico{background:linear-gradient(160deg,#3cbcf7,#1c93d4);color:#fff;}
+.ax-soc-alerts .ax-soc-ico,.bp-soc-alerts .bp-soc-ico,.axf-soc-alerts .axf-soc-ico{background:linear-gradient(135deg,#3f9bff,#35d8d0 55%,#39ff88);color:#03130c;}
+
+/* hub row */
+.ax-social{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:26px;animation:socIn .7s cubic-bezier(.2,.8,.2,1) .45s both;}
+.ax-soc{display:inline-flex;align-items:center;gap:10px;padding:6px 18px 6px 6px;border-radius:999px;text-decoration:none;color:var(--ax-ink,#eef3f7);
+  background:rgba(12,17,24,.5);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s,box-shadow .22s,background .22s;}
+.ax-soc-ico{position:relative;flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;}
+.ax-soc-ico svg{width:15px;height:15px;}
+.ax-soc-txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;}
+.ax-soc-txt strong{font-family:'Sora',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:-.01em;}
+.ax-soc-txt small{font-size:.66rem;color:var(--ax-dim,rgba(222,233,244,.64));}
+.ax-soc:hover{transform:translateY(-2px);background:rgba(18,24,33,.66);}
+.ax-soc-x:hover{border-color:rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(255,255,255,.08);}
+.ax-soc-tg:hover{border-color:rgba(60,188,247,.55);box-shadow:0 10px 26px rgba(34,158,217,.25);}
+.ax-soc-alerts:hover{border-color:rgba(57,255,136,.45);box-shadow:0 10px 26px rgba(53,216,208,.22);}
+.ax-soc-tg:hover .ax-soc-ico svg,.ax-soc-alerts:hover .ax-soc-ico svg{animation:socFly .6s ease;}
+@media (max-width:560px){
+  .ax-social{gap:7px;margin-top:20px;}
+  .ax-soc{gap:7px;padding:5px 13px 5px 5px;}
+  .ax-soc-ico{width:28px;height:28px;}
+  .ax-soc-ico svg{width:13px;height:13px;}
+  .ax-soc-txt small{display:none;}
+  .ax-soc-txt strong{font-size:.76rem;}
+}
+@media (max-height:700px) and (max-width:560px){.ax-social{margin-top:14px;}}
+
+/* header icon buttons */
+.soc-head{display:inline-flex;align-items:center;gap:6px;}
+.soc-head-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;color:rgba(255,255,255,.78);text-decoration:none;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);transition:color .18s,background .18s,border-color .18s,transform .18s;}
+.soc-head-btn svg{width:14px;height:14px;}
+.soc-head-btn:hover{transform:translateY(-1px);}
+.soc-head-btn.soc-x:hover{background:#f4f6f8;border-color:#f4f6f8;color:#050607;}
+.soc-head-btn.soc-tg:hover{background:#229ed9;border-color:#229ed9;color:#fff;}
+@media (max-width:900px){.soc-head{display:none;}}
+
+/* ArcPad / CirclePad sidebar */
+.bp-side-social{margin-top:auto;padding-top:10px;}
+.bp-side-social .bp-side-section-label{margin-top:0;}
+.bp-side-social + .bp-side-foot{margin-top:12px;}
+.bp-soc-list{display:flex;flex-direction:column;gap:2px;}
+.bp-soc{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;text-decoration:none;color:var(--ink-dim);transition:background .15s,color .15s;}
+.bp-soc:hover{background:rgba(255,255,255,.05);color:var(--ink);}
+.bp-soc-ico{position:relative;flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;}
+.bp-soc-ico svg{width:13px;height:13px;}
+.bp-soc-ico .soc-live{width:9px;height:9px;top:-3px;right:-3px;}
+.bp-soc-txt{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
+.bp-soc-txt strong{font-size:.8rem;font-weight:600;color:var(--ink);}
+.bp-soc-txt small{font-size:.66rem;color:var(--ink-dim);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bp-soc-ext{margin-left:auto;display:grid;opacity:0;transform:translate(-3px,3px);transition:opacity .15s,transform .15s;}
+.bp-soc-ext svg{width:13px;height:13px;}
+.bp-soc:hover .bp-soc-ext{opacity:.6;transform:none;}
+@media (max-width:900px){
+  .bp-side-social{display:none;margin-top:0;padding:4px 10px 12px;}
+  .bp-sidebar.bp-menu-open .bp-side-social{display:block;}
+  .bp-side-social .bp-side-section-label{margin:6px 8px 8px;}
+  .bp-soc-list{flex-direction:row;gap:6px;}
+  .bp-soc{flex:1;justify-content:center;gap:8px;padding:9px 8px;background:rgba(255,255,255,.04);border:1px solid var(--line);}
+  .bp-soc-txt small,.bp-soc-ext{display:none;}
+  .bp-soc-txt strong{font-size:.76rem;white-space:nowrap;}
+}
+
+/* footer chips */
+.axf-social{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;}
+.axf-soc{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:999px;text-decoration:none;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:var(--ax-dim,rgba(222,233,244,.72));font-size:.72rem;font-weight:600;
+  transition:color .15s,border-color .15s,background .15s;}
+.axf-soc:hover{color:#fff;border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.06);}
+.axf-soc-ico{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;}
+.axf-soc-ico svg{width:11px;height:11px;}
+
+/* ArcPad: never-miss-a-launch card */
+.ap-alerts{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;margin:18px 0 4px;padding:16px 18px;border-radius:16px;
+  text-decoration:none;color:var(--ink);isolation:isolate;
+  background:linear-gradient(100deg,rgba(34,158,217,.16),rgba(53,216,208,.06) 55%,rgba(57,255,136,.07));
+  border:1px solid rgba(80,190,240,.24);transition:border-color .2s,transform .2s,box-shadow .2s;}
+.ap-alerts::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(360px 120px at 0% 50%,rgba(34,158,217,.2),transparent 70%);}
+.ap-alerts:hover{border-color:rgba(80,190,240,.5);transform:translateY(-1px);box-shadow:0 12px 30px rgba(34,158,217,.14);}
+.ap-alerts-ico{position:relative;flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;overflow:visible;
+  background:linear-gradient(160deg,#3cbcf7,#1c93d4);color:#fff;box-shadow:0 8px 20px rgba(34,158,217,.35),inset 0 1px 0 rgba(255,255,255,.3);}
+.ap-alerts-ico svg{width:22px;height:22px;transform:translateX(-1px);}
+.ap-alerts:hover .ap-alerts-ico svg{animation:socFly .6s ease;}
+.ap-alerts-ping{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#39ff88;border:2px solid #0b1210;animation:socPing 2.2s ease-out infinite;}
+.ap-alerts-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.ap-alerts-txt strong{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em;}
+.ap-alerts-txt small{font-size:.78rem;line-height:1.45;color:var(--ink-dim);}
+.ap-alerts-cta{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.ap-alerts-handle{font-family:ui-monospace,Menlo,monospace;font-size:.7rem;color:#7fd3ff;}
+.ap-alerts-cta b{padding:8px 16px;border-radius:999px;background:#229ed9;color:#fff;font-size:.78rem;font-weight:700;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);transition:filter .15s;}
+.ap-alerts:hover .ap-alerts-cta b{filter:brightness(1.12);}
+@media (max-width:640px){
+  .ap-alerts{flex-wrap:wrap;gap:12px;padding:14px;}
+  .ap-alerts-ico{width:40px;height:40px;border-radius:12px;}
+  .ap-alerts-txt{flex-basis:calc(100% - 56px);}
+  .ap-alerts-cta{width:100%;flex-direction:row;align-items:center;justify-content:space-between;}
+}
+
+/* ArcPad launch form: alerts note under the Launch button */
+.ap-launch-announce{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:12px;text-decoration:none;
+  border:1px dashed rgba(80,190,240,.32);background:rgba(34,158,217,.06);color:var(--ink-dim);font-size:.78rem;line-height:1.4;transition:border-color .15s,background .15s;}
+.ap-launch-announce b{color:#7fd3ff;font-weight:600;}
+.ap-launch-announce:hover{border-style:solid;border-color:rgba(80,190,240,.55);background:rgba(34,158,217,.1);}
+.ap-launch-announce-ico{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(160deg,#3cbcf7,#1c93d4);color:#fff;}
+.ap-launch-announce-ico svg{width:12px;height:12px;transform:translateX(-.5px);}
+.ap-launch-announce-go{margin-left:auto;display:grid;opacity:.55;}
+.ap-launch-announce-go svg{width:13px;height:13px;}
+
+@media (prefers-reduced-motion:reduce){
+  .soc-live,.ap-alerts-ping{animation:none;}
+  .ax-social{animation:none;}
+  .ax-soc:hover .ax-soc-ico svg,.ap-alerts:hover .ap-alerts-ico svg{animation:none;}
+}
+/* short phones (iPhone SE class): keep the hero + community row clear of the
+   floating quick bar and dock */
+@media (max-width:560px) and (max-height:760px){
+  .ax-hero{padding-top:78px;padding-bottom:calc(var(--ax-float-space,170px) + 6px);justify-content:flex-start;}
+  .ax-hero .ax-eyebrow{letter-spacing:.12em;font-size:.6rem;padding:6px 12px;white-space:nowrap;}
+  .ax-hero .ax-mark{width:min(64vw,250px);margin:14px auto 2px;}
+  .ax-hero .ax-sub{font-size:.95rem;}
+}
+/* The legacy HOMEPAD header styles bare <nav> elements on phones (order:3,
+   full-bleed width, centred first/last links). The ArcPad/CirclePad sidebar
+   menus are <nav>s too, so on phones the "ArcPad" label jumped above the menu
+   and the external links drifted to the centre. Scope them back. */
+@media (max-width:900px){
+  .bp-sidebar nav.bp-side-nav{order:0;width:auto;margin:0;padding:0 10px;overflow:visible;flex-wrap:nowrap;flex-shrink:0;gap:2px;font-size:inherit;}
+  .bp-sidebar nav.bp-side-nav > a,.bp-sidebar nav.bp-side-nav > button{flex:none;margin:0;justify-content:flex-start;padding:9px 12px;font-size:.85rem;white-space:normal;}
+}

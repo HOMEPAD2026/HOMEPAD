@@ -360,7 +360,7 @@ function arcCoinShareUrl(token) {
 }
 function arcOpenShare(kind) {
   const s = arcShareText(kind);
-  const u = `https://x.com/intent/post?text=${encodeURIComponent(s.text)}&url=${encodeURIComponent(s.url)}`;
+  const u = `https://x.com/intent/post?text=${encodeURIComponent(s.text)}&url=${encodeURIComponent(s.url)}&via=HOMEonRobinhood`;
   window.open(u, "_blank", "noopener,width=600,height=560");
 }
 document.addEventListener("click", (e) => {

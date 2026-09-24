@@ -444,6 +444,12 @@
     "Recently viewed": "최근 본 코인", "Clear": "지우기", "Contract address": "컨트랙트 주소", "ArcPad coin": "ArcPad 코인",
     "Checking this address on ArcPad…": "ArcPad에서 이 주소를 확인하는 중…", "No coins match — paste a contract address to open one directly.": "일치하는 코인이 없습니다 — 컨트랙트 주소를 붙여넣으면 바로 열립니다.",
     "Not an ArcPad coin.": "ArcPad 코인이 아닙니다.", "Open on ArcScan ↗": "ArcScan에서 열기 ↗",
+    // ---- community links ----
+    "Community": "커뮤니티", "Community chat": "커뮤니티 채팅", "Launch alerts": "런치 알림", "Telegram": "텔레그램",
+    "ARCIRCLE PAD on X": "ARCIRCLE PAD 공식 X", "ARCIRCLE PAD on Telegram": "ARCIRCLE PAD 공식 텔레그램",
+    "Never miss a launch": "새 런치를 놓치지 마세요", "Join channel": "채널 참여",
+    "Every new ArcPad coin is posted to our Telegram channel the moment it goes live — logo, market cap and a trade button.": "ArcPad에 새 코인이 라이브되는 즉시 텔레그램 채널에 올라갑니다 — 로고, 시가총액, 거래 버튼까지.",
+    "Your launch is announced automatically in": "런치하면 이 채널에 자동으로 공지됩니다:",
     // ---- wallet menu ----
     "gas": "가스", "Add $ARCIRCLE to wallet": "지갑에 $ARCIRCLE 추가", "Added — check your wallet": "추가됨 — 지갑을 확인하세요", "Your wallet didn't accept it": "지갑이 추가를 받지 않았습니다",
   };
