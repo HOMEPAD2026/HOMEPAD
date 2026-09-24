@@ -39,7 +39,9 @@ async function accessToken() {
   tok = j.access_token; tokExp = now + (j.expires_in || 3600);
   return tok;
 }
-const root = () => `projects/${account().project}/databases/(default)/documents`;
+// FIRESTORE_DATABASE: only if the database was created with a name other than "(default)".
+const dbId = () => (process.env.FIRESTORE_DATABASE || "(default)").trim();
+const root = () => `projects/${account().project}/databases/${dbId()}/documents`;
 const api = (p) => `https://firestore.googleapis.com/v1/${p}`;
 export const docName = (path) => `${root()}/${path}`;
 
@@ -47,6 +49,35 @@ async function call(method, url, body) {
   const r = await fetch(url, { method, headers: { authorization: `Bearer ${await accessToken()}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, j };
+}
+/// Google's own reason (e.g. "Cloud Firestore API has not been used in project … or it is disabled").
+export class StoreError extends Error {
+  constructor(op, status, j) {
+    const e = (Array.isArray(j) ? j[0] : j) || {};
+    const g = e.error || {};
+    super(`${op} ${status} ${g.status || ""} ${g.message || ""}`.trim());
+    this.status = status; this.gStatus = g.status || ""; this.gMessage = g.message || "";
+  }
+}
+function hintFor(err) {
+  const m = `${err.gStatus} ${err.gMessage}`.toLowerCase();
+  if (/has not been used|is disabled|service_disabled|api.*not.*enabled/.test(m)) return "Enable the Cloud Firestore API for this Google Cloud project (console.cloud.google.com → APIs & Services → Cloud Firestore API → Enable), or create the Firestore database in the Firebase console, which enables it.";
+  if (/datastore mode/.test(m)) return "The database is in Datastore mode. Firestore needs a database in Native mode.";
+  if (/does not exist|not_found|database.*not found/.test(m)) return "No Firestore database yet: Firebase console → Firestore Database → Create database (Native mode). If you named it, set FIRESTORE_DATABASE to that name.";
+  if (/permission|insufficient|iam|caller does not have/.test(m)) return "The service account can't read Firestore. Use the key from Firebase console → Project settings → Service accounts (Firebase Admin SDK), or give this account the Cloud Datastore User role.";
+  return null;
+}
+/// Read-only probe for /api/social?health=1 — never throws.
+export async function storeHealth() {
+  const sa = account();
+  const out = { configured: !!sa, keyError: saErr || null, project: sa ? sa.project : null, database: dbId() };
+  if (!sa) return out;
+  try { await accessToken(); out.auth = "ok"; } catch (err) { out.auth = String(err.message || err); return out; }
+  try { await getDocs(["health/ping"]); out.firestore = "ok"; } catch (err) {
+    out.firestore = { status: err.status || null, reason: err.gStatus || null, message: err.gMessage || String(err.message || err) };
+    out.hint = hintFor(err);
+  }
+  return out;
 }
 
 // ---- value encoding ----
@@ -77,7 +108,7 @@ export function decFields(f) { const o = {}; for (const [k, v] of Object.entries
 export async function getDocs(paths) {
   if (!paths.length) return {};
   const { ok, status, j } = await call("POST", api(`${root()}:batchGet`), { documents: paths.map(docName) });
-  if (!ok) throw new Error(`batchGet ${status}`);
+  if (!ok) throw new StoreError("batchGet", status, j);
   const out = Object.fromEntries(paths.map((p) => [p, null]));
   const pre = `${root()}/`;
   for (const r of Array.isArray(j) ? j : []) if (r.found) out[r.found.name.slice(pre.length)] = decFields(r.found.fields);
@@ -86,7 +117,7 @@ export async function getDocs(paths) {
 /// Replace a document with `data`.
 export async function setDoc(path, data) {
   const { ok, status, j } = await call("PATCH", api(docName(path)), { fields: encFields(data) });
-  if (!ok) throw new Error(`set ${status} ${j.error && j.error.message || ""}`);
+  if (!ok) throw new StoreError("set", status, j);
 }
 /// Atomic batch. writes: [{ create: path, data } | { set: path, data } | { inc: path, fields: {name: n} }]
 /// Returns { ok, conflict } — conflict when a `create` target already existed.
@@ -103,5 +134,5 @@ export async function commit(writes) {
   if (ok) return { ok: true };
   const st = j.error && j.error.status;
   if (status === 409 || st === "ALREADY_EXISTS" || st === "FAILED_PRECONDITION") return { ok: false, conflict: true };
-  throw new Error(`commit ${status} ${j.error && j.error.message || ""}`);
+  throw new StoreError("commit", status, j);
 }

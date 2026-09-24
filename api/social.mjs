@@ -13,7 +13,7 @@
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
-import { storeEnabled, getDocs, setDoc, commit } from "./_store.mjs";
+import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -118,6 +118,7 @@ export async function readTweet(id, handleHint) {
 // ================= GET =================
 export async function GET(req) {
   const url = new URL(req.url);
+  if (url.searchParams.has("health")) return json(200, await storeHealth());
   if (!storeEnabled()) return json(200, { enabled: false }, "public, max-age=60, s-maxage=300");
   try {
     const creators = url.searchParams.get("creators");
@@ -152,8 +153,8 @@ export async function GET(req) {
       myVote: mine ? mine.side : null,
     }, isAddr(wallet) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
   } catch (err) {
-    console.error("social GET", err);
-    return json(502, { enabled: true, error: "couldn't read community data right now" });
+    console.error("social GET", err && err.message || err);
+    return json(502, { enabled: true, error: "couldn't read community data right now", reason: err && err.gStatus || undefined });
   }
 }
 
@@ -168,7 +169,7 @@ export async function POST(req) {
     if (b.action === "vote") return await vote(b);
     return json(400, { error: "unknown action" });
   } catch (err) {
-    console.error("social POST", b && b.action, err);
+    console.error("social POST", b && b.action, err && err.message || err);
     return json(500, { error: "something went wrong — try again" });
   }
 }
