@@ -56,6 +56,7 @@
     ["$ARCIRCLE", "0x933a94b475fa9d8ef94fa564e38dda400a595aa1"],
     ["$ARCIRCLE curve", "0xa37A96C43e2335553BD79171DE6dB2806414AC64"],
     ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703"],
+    ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
   ];
   var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
   function build() {

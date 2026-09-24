@@ -71,5 +71,5 @@ const CONFIG = {
   // --- ArcLock: creator time locks ("Locked" badge on ArcPad coins) ---
   // Empty until contracts/scripts/deploy-arc-lock.js runs on arcMainnet;
   // the lock button and badge stay hidden while it's empty.
-  ARCLOCK_ADDRESS: "",
+  ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 };
