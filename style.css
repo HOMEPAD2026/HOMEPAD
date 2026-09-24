@@ -3233,6 +3233,9 @@ body.ax-modal-open{overflow:hidden;}
   background:
     radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,.35), transparent 55%),
     linear-gradient(100deg,#3f9bff 0%,#35d8d0 52%,#39ff88 100%);
+  /* an inherited 2px transparent border would otherwise show the gradient
+     tiling around the ends (green sliver on the left, blue on the right) */
+  background-origin:border-box;background-repeat:no-repeat;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(0,0,0,.18),
     0 6px 18px rgba(53,216,208,.28),0 0 0 1px rgba(120,230,220,.35);}
 .ax-quick-launch .ax-quick-ico{background:rgba(3,19,12,.16);box-shadow:inset 0 0 0 1px rgba(3,19,12,.14);}
