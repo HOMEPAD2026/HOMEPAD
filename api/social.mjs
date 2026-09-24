@@ -3,7 +3,8 @@
 //
 //   GET  /api/social?coin=0x…[&wallet=0x…]   profile + creator's X + sentiment (+ my vote)
 //   GET  /api/social?creators=0x…,0x…         { x: { creator: handle } } for badges
-//   POST /api/social  { action: "profile" | "x-verify" | "vote", … }
+//   POST /api/social  { action: "profile" | "x-verify" | "vote" | "logo", … }
+//   GET  /logo/<sha256>.webp  (→ /api/social?logo=…)  hosted coin logos
 //
 // Every write carries a wallet signature over a human-readable message that
 // the server rebuilds from the request itself; the signer must be the coin's
@@ -12,6 +13,7 @@
 // env var the endpoint answers { enabled: false } and the UI stays hidden.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
+import { createHash } from "node:crypto";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 
@@ -119,6 +121,7 @@ export async function readTweet(id, handleHint) {
 export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
+  if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
   if (!storeEnabled()) return json(200, { enabled: false }, "public, max-age=60, s-maxage=300");
   try {
     const creators = url.searchParams.get("creators");
@@ -167,6 +170,7 @@ export async function POST(req) {
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
     if (b.action === "vote") return await vote(b);
+    if (b.action === "logo") return await saveLogo(b, req);
     return json(400, { error: "unknown action" });
   } catch (err) {
     console.error("social POST", b && b.action, err && err.message || err);
@@ -237,4 +241,56 @@ async function vote(b) {
   if (r.conflict) return json(409, { error: "you already voted on this coin today", already: true });
   const s = (await getDocs([`sentiment/${coin}_${b.day}`]))[`sentiment/${coin}_${b.day}`] || {};
   return json(200, { ok: true, side, holder, today: { bull: s.bull || 0, bear: s.bear || 0, hbull: s.hbull || 0, hbear: s.hbear || 0 } });
+}
+
+// ================= hosted logos =================
+// A logo stored inside the launch transaction costs ~740 gas per character,
+// so on-chain logos had to be squeezed to ~128px. Hosting it here and putting
+// only the URL on-chain makes the launch cheaper and the logo sharper: every
+// upload is decoded and re-encoded server-side to a 500×500 WebP (which also
+// strips anything that isn't pixels), then stored under its own SHA-256, so
+// the URL can never point at different bytes and is cached forever.
+const LOGO_ID = /^[0-9a-f]{64}$/;
+const LOGO_PX = 500;
+const LOGOS_PER_HOUR = 30;
+async function serveLogo(id) {
+  id = String(id || "").toLowerCase().replace(/\.webp$/, "");
+  if (!LOGO_ID.test(id)) return new Response("bad id", { status: 400 });
+  if (!storeEnabled()) return new Response("not found", { status: 404 });
+  try {
+    const d = (await getDocs([`logos/${id}`]))[`logos/${id}`];
+    if (!d || !d.data) return new Response("not found", { status: 404, headers: { "cache-control": "public, max-age=60" } });
+    return new Response(Buffer.from(d.data, "base64"), { headers: {
+      "content-type": d.mime || "image/webp", "cache-control": "public, max-age=31536000, s-maxage=31536000, immutable",
+      "access-control-allow-origin": "*", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'",
+    } });
+  } catch (err) { console.error("logo GET", err && err.message || err); return new Response("unavailable", { status: 503 }); }
+}
+async function saveLogo(b, req) {
+  const m = /^data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image || ""));
+  if (!m) return json(400, { error: "upload a PNG, JPEG, WebP or GIF image" });
+  const input = Buffer.from(m[2], "base64");
+  if (input.length > 4_000_000) return json(413, { error: "image is larger than 4 MB" });
+  // light per-IP limit so the bucket can't be filled from one place
+  const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+  const hour = new Date().toISOString().slice(0, 13).replace(/\D/g, "");
+  const rk = `rate/logo_${createHash("sha256").update(ip).digest("hex").slice(0, 16)}_${hour}`;
+  const rate = (await getDocs([rk]))[rk];
+  if (rate && rate.n >= LOGOS_PER_HOUR) return json(429, { error: "too many uploads — try again later" });
+  let out;
+  try {
+    const sharp = (await import("sharp")).default;
+    for (const q of [86, 76, 64, 52]) {
+      out = await sharp(input, { animated: false, limitInputPixels: 40_000_000 })
+        .rotate().resize(LOGO_PX, LOGO_PX, { fit: "cover", position: "attention" }).webp({ quality: q, effort: 4 }).toBuffer();
+      if (out.length <= 160_000) break;
+    }
+  } catch { return json(400, { error: "that file couldn't be read as an image" }); }
+  if (!out || out.length > 300_000) return json(413, { error: "that image is too detailed — try a simpler one" });
+  const id = createHash("sha256").update(out).digest("hex");
+  await commit([
+    { set: `logos/${id}`, data: { data: out.toString("base64"), mime: "image/webp", size: out.length, px: LOGO_PX, at: Date.now() } },
+    { inc: rk, fields: { n: 1 } },
+  ]);
+  return json(200, { ok: true, id, url: `https://www.arcircle.app/logo/${id}.webp`, bytes: out.length, px: LOGO_PX });
 }

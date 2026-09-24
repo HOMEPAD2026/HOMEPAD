@@ -55,6 +55,18 @@
     {
       "source": "/whitepaper/ko",
       "destination": "/whitepaper-ko.html"
+    },
+    {
+      "source": "/logo/:id",
+      "destination": "/api/social?logo=:id"
+    },
+    {
+      "source": "/coin/:addr",
+      "destination": "/api/c?addr=:addr&view=page"
+    },
+    {
+      "source": "/sitemap-coins.xml",
+      "destination": "/api/c?view=sitemap"
     }
   ],
   "redirects": [

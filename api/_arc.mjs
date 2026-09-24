@@ -157,6 +157,8 @@ export async function getCoin(addr) {
     imageUrl: wString(rec, 7), description: wString(rec, 8),
     name: decodeString(nameHex), symbol: decodeString(symHex),
   };
+  // socials follow the description in the launch record: twitter, telegram, discord, website
+  for (const [k, i] of [["twitter", 9], ["telegram", 10], ["discord", 11], ["website", 12]]) { try { l[k] = wString(rec, i); } catch { l[k] = ""; } }
   const q = l.quoteToken.toLowerCase();
   l.quoteIsUsdc = q === USDC.toLowerCase();
   l.quoteSymbol = l.quoteIsUsdc ? "USDC" : q === ARCIRCLE ? "ARCIRCLE" : "";

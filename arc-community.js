@@ -1,4 +1,4 @@
-/* global APC, state, ethers, connectWallet, apcRenderHeader, refreshAccountDependentViews */
+/* global APC, CONFIG, state, ethers, connectWallet, apcRenderHeader, refreshAccountDependentViews */
 // arc-community.js — ArcPad coin page: creator-edited profile (description,
 // links, banner), the creator's verified X account, and the daily
 // Bullish / Bearish vote. Everything is signed by the wallet (free, no
@@ -121,6 +121,78 @@
       eb.hidden = false;
     } else if (eb) eb.hidden = true;
     sentiment(on ? d : null);
+    checklist(on ? d : null);
+  }
+
+  // ---------------- creator onboarding checklist ----------------
+  // Shown to the creator only, right under the coin header, until every step
+  // is done or they close it: banner → X → share the launch → first votes
+  // (→ lock part of the supply, when the lock contract is live).
+  const ckKey = (coin, k) => `arcircle.ck.${lc(coin)}.${k}`;
+  const ckGet = (coin, k) => { try { return localStorage.getItem(ckKey(coin, k)) === "1"; } catch (e) { return false; } };
+  const ckSet = (coin, k) => { try { localStorage.setItem(ckKey(coin, k), "1"); } catch (e) { /* ignore */ } };
+  const CK_ICON = {
+    banner: ICON.image, x: ICON.x,
+    share: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg>',
+    vote: ICON.up,
+    lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
+  };
+  let ckLockState = { coin: null, locked: false };
+  function checklist(d) {
+    const panel = $("bp-panel-coin");
+    let card = $("apc-checklist");
+    const coin = APC.l && APC.l.token;
+    if (!d || !coin || !isCreator() || ckGet(coin, "closed")) { if (card) card.remove(); return; }
+    const s = d.sentiment || { today: { bull: 0, bear: 0 }, week: { bull: 0, bear: 0 } };
+    const lockOn = typeof CONFIG !== "undefined" && CONFIG.ARCLOCK_ADDRESS && window.arcLock;
+    if (lockOn && ckLockState.coin !== lc(coin)) {
+      ckLockState = { coin: lc(coin), locked: false };
+      window.arcLock.locksOf(coin).then((locks) => { ckLockState.locked = window.arcLock.activeByCreator(locks, APC.l.creator).total > 0n; checklist(curData()); }).catch(() => {});
+    }
+    const steps = [
+      { k: "banner", t: "Add a banner", s: "Give your coin page a face.", done: !!(d.profile && d.profile.banner), act: "Add banner" },
+      { k: "x", t: "Verify your X account", s: "A blue check next to every coin you launch.", done: !!d.creatorX, act: "Verify" },
+      { k: "share", t: "Share your launch", s: "It's already posted in @arcircle_launch — pass it on.", done: ckGet(coin, "share"), act: "Share" },
+      { k: "vote", t: "Ask for the first votes", s: "Invite holders to vote Bullish or Bearish today.", done: s.week.bull + s.week.bear + s.today.bull + s.today.bear > 0, act: "Ask" },
+    ];
+    if (lockOn) steps.push({ k: "lock", t: "Lock part of your supply", s: "The strongest trust signal a creator can give.", done: ckLockState.locked, act: "Lock" });
+    const done = steps.filter((x) => x.done).length;
+    if (done === steps.length) {
+      if (card && !card.classList.contains("ck-complete")) { card.classList.add("ck-complete"); setTimeout(() => { if (card) card.remove(); ckSet(coin, "closed"); }, 2600); }
+      else if (!card) ckSet(coin, "closed");
+      if (card) card.querySelector(".ck-title").textContent = tr("All set — your coin is ready for the spotlight.");
+      return;
+    }
+    if (!card) {
+      card = document.createElement("section");
+      card.id = "apc-checklist"; card.className = "ck";
+      const head = panel.querySelector(".ac2-head");
+      head.insertAdjacentElement("afterend", card);
+      card.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-ck]");
+        if (e.target.closest("[data-ck-close]")) { ckSet(APC.l.token, "closed"); card.remove(); return; }
+        if (!b) return;
+        const k = b.dataset.ck, sym = APC.l.symbol || "";
+        if (k === "banner") openEditor("info");
+        else if (k === "x") openEditor("x");
+        else if (k === "lock") { const lb = $("apc-lockbtn"); if (lb) lb.click(); }
+        else if (k === "share") {
+          ckSet(APC.l.token, "share");
+          const url = `https://www.arcircle.app/c/${APC.l.token}`;
+          window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚`)}&url=${encodeURIComponent(url)}&via=HOMEonRobinhood`, "_blank", "noopener,width=600,height=560");
+          checklist(curData());
+        } else if (k === "vote") {
+          const url = `https://www.arcircle.app/c/${APC.l.token}`;
+          window.open(`https://x.com/intent/post?text=${encodeURIComponent(`Bullish or bearish on $${sym}? Cast today's vote on ArcPad 💚`)}&url=${encodeURIComponent(url)}`, "_blank", "noopener,width=600,height=560");
+        }
+      });
+    }
+    const pct = Math.round((done / steps.length) * 100);
+    card.innerHTML = `<div class="ck-head"><div class="ck-ring" style="--ck-p:${pct}%"><span data-no-i18n>${done}/${steps.length}</span></div>
+        <div><h3 class="ck-title">Get your coin ready</h3><p>Each step takes under a minute and helps buyers trust your coin.</p></div>
+        <button type="button" class="ck-x" data-ck-close aria-label="Close">${ICON.close}</button></div>
+      <ol class="ck-steps">${steps.map((x) => `<li class="${x.done ? "done" : ""}"><span class="ck-ico">${x.done ? ICON.check : CK_ICON[x.k]}</span>
+        <span class="ck-txt"><strong>${x.t}</strong><small>${x.s}</small></span>${x.done ? "" : `<button type="button" class="cm-btn" data-ck="${x.k}">${x.act}</button>`}</li>`).join("")}</ol>`;
   }
 
   // ---------------- sentiment card ----------------
@@ -444,6 +516,7 @@
     applyProfile(APC.l, d.profile);
     if (JSON.stringify(LINKS.map((k) => APC.l[k])) !== before && typeof apcRenderHeader === "function") apcRenderHeader();
     else decorate();
+    try { document.dispatchEvent(new CustomEvent("arc:community", { detail: { coin } })); } catch (e) { /* old browser */ }
   }
   if (typeof apcRenderHeader === "function") {
     const orig = apcRenderHeader;
@@ -467,5 +540,5 @@
   const cr = $("cr-body");
   if (cr) new MutationObserver(() => { badgeCreators(); }).observe(cr, { childList: true });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal) closeEditor(); });
-  window.arcCommunity = { open: openEditor, refresh: () => refresh(true) };
+  window.arcCommunity = { open: openEditor, refresh: () => refresh(true), data: () => curData() };
 })();

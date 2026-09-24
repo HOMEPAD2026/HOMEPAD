@@ -273,6 +273,7 @@ function renderArcpadExploreGrid() {
   const qs = q.replace(/^\$/, "");
   let rows = ARC.launches.filter((l) => !qs || l.name.toLowerCase().includes(qs) || l.symbol.toLowerCase().includes(qs) || (qs.startsWith("0x") && l.token.toLowerCase().startsWith(qs)));
   if (arcExploreSort === "watch") rows = rows.filter((l) => typeof arcIsWatched === "function" && arcIsWatched(l.token));
+  if (typeof arcFilterPass === "function") rows = rows.filter(arcFilterPass);
   const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || null;
   if (arcExploreSort === "name") rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
   else if (arcExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
@@ -284,6 +285,7 @@ function renderArcpadExploreGrid() {
   const empty = ARC.launches.length === 0
     ? "No coins have launched on ArcPad yet — the Launch tab is where the first one starts."
     : arcExploreSort === "watch" && !q ? "Your watchlist is empty. Tap the star on any coin to keep it here."
+    : !q && typeof arcFiltersActive === "function" && arcFiltersActive() ? "No coins match these filters."
     : `No launches match “${esc(q)}”.`;
   grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty}</div>`;
   wireLaunchCardClicks(grid);
@@ -368,46 +370,74 @@ function wireArcpadImageUpload() {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        // The image is stored on-chain inside the launch transaction, so
-        // every byte costs gas (~740 gas per character of the data URL) and
-        // Arc caps a single transaction's gas — a normal 256px JPEG was big
-        // enough to make the launch impossible ("missing revert data").
-        // Shrink until it fits comfortably: 128px first, then smaller.
-        const encode = (dim, q) => {
+        const encode = (dim, q, square) => {
           let { width, height } = img;
+          let sx = 0, sy = 0, sw = width, sh = height;
+          if (square) { const m = Math.min(width, height); sx = (width - m) / 2; sy = (height - m) / 2; sw = sh = m; width = height = m; }
           const scale = Math.min(1, dim / Math.max(width, height));
           width = Math.max(1, Math.round(width * scale)); height = Math.max(1, Math.round(height * scale));
           const canvas = document.createElement("canvas");
           canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext("2d");
           ctx.fillStyle = "#000"; ctx.fillRect(0, 0, width, height); // JPEG has no alpha
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
           let url = canvas.toDataURL("image/webp", q);
           if (!url.startsWith("data:image/webp")) url = canvas.toDataURL("image/jpeg", q);
           return { url, width, height };
         };
-        let best = null;
-        outer: for (const dim of [128, 112, 96, 80, 64]) {
-          for (const q of [0.82, 0.7, 0.58, 0.45]) {
-            const r = encode(dim, q);
-            if (!best || r.url.length < best.url.length) best = r;
-            if (r.url.length <= ARC_IMAGE_TARGET_CHARS) { best = r; break outer; }
+        // Fallback: store the logo inside the launch transaction. Every byte
+        // costs gas (~740 gas per character of the data URL) and Arc caps a
+        // single transaction's gas, so it has to shrink to a small icon.
+        const onchain = (why) => {
+          let best = null;
+          outer: for (const dim of [128, 112, 96, 80, 64]) {
+            for (const q of [0.82, 0.7, 0.58, 0.45]) {
+              const r = encode(dim, q);
+              if (!best || r.url.length < best.url.length) best = r;
+              if (r.url.length <= ARC_IMAGE_TARGET_CHARS) { best = r; break outer; }
+            }
           }
-        }
-        const resized = best.url;
-        const resizedKb = (resized.length * 0.75 / 1024).toFixed(1);
-        imgInput.value = resized;
-        updatePreview(resized);
-        const gasUsdc = arcImageGasUsdcHint(resized.length);
-        hintEl.innerHTML = resized.length <= ARC_IMAGE_MAX_CHARS
-          ? `Resized from ${originalKb}KB to ~${resizedKb}KB (${best.width}×${best.height}) — stored on-chain, adds ≈ ${gasUsdc} USDC of gas.`
-          : `<strong style="color:var(--red)">This image is still too large to store on-chain. Use a simpler image or paste a hosted image URL.</strong>`;
+          const resized = best.url;
+          const resizedKb = (resized.length * 0.75 / 1024).toFixed(1);
+          imgInput.value = resized;
+          updatePreview(resized);
+          imgInput.dispatchEvent(new Event("input"));
+          const gasUsdc = arcImageGasUsdcHint(resized.length);
+          hintEl.innerHTML = resized.length <= ARC_IMAGE_MAX_CHARS
+            ? `${why ? `${arcEscHtml(why)} ` : ""}Resized from ${originalKb}KB to ~${resizedKb}KB (${best.width}×${best.height}) — stored on-chain, adds ≈ ${gasUsdc} USDC of gas.`
+            : `<strong style="color:var(--red)">This image is still too large to store on-chain. Use a simpler image or paste a hosted image URL.</strong>`;
+        };
+        // Preferred: host it as a 500×500 WebP and put only the link on-chain.
+        hintEl.textContent = "Uploading…";
+        const square = encode(1000, 0.92, true).url;
+        arcHostLogo(square).then((r) => {
+          imgInput.value = r.url;
+          updatePreview(r.url);
+          imgInput.dispatchEvent(new Event("input"));
+          const saved = arcImageGasUsdcHint(ARC_IMAGE_TARGET_CHARS), now = arcImageGasUsdcHint(r.url.length);
+          hintEl.innerHTML = `Hosted as a sharp 500×500 WebP — only the link goes on-chain (≈ ${now} USDC of gas instead of ≈ ${saved}).`;
+        }).catch(() => onchain("Couldn't host the logo right now, so it goes on-chain instead."));
       };
       img.onerror = () => { hintEl.innerHTML = `<strong style="color:var(--red)">Couldn't read that file as an image.</strong>`; };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+/// Upload a logo to ARCIRCLE PAD's image host (api/social.mjs → /logo/<sha256>.webp).
+async function arcHostLogo(dataUrl) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "logo", image: dataUrl }), signal: ctl.signal });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.url) throw new Error(j.error || `HTTP ${r.status}`);
+    // make sure it's actually served before the URL goes on-chain for good
+    const probe = await fetch(j.url, { cache: "no-store", signal: ctl.signal });
+    if (!probe.ok) throw new Error("logo not reachable");
+    return j;
+  } finally { clearTimeout(t); }
 }
 
 function wireArcpadFeePreview() {
@@ -715,7 +745,7 @@ async function submitArcpadLaunch(ev) {
     statusEl.innerHTML = `<div class="status success">Launched!${newToken ? " Opening your coin's page…" : ""} <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
     document.getElementById("ap-launch-form").reset();
     document.getElementById("ap-image-preview").innerHTML = ARC_LOGO_PH;
-    document.getElementById("ap-image-hint").textContent = "A hosted URL is best. An uploaded file is shrunk to a small icon (~128px) and stored on-chain — the bigger it is, the more gas the launch costs.";
+    document.getElementById("ap-image-hint").textContent = "Upload a logo — it's hosted as a 500×500 WebP and only its link goes on-chain, so it adds almost no gas. You can also paste an image URL.";
     // reset() puts the slider back to 0 but fires no input event, so the fee
     // breakdown and dev-buy preview have to be re-rendered by hand.
     document.getElementById("ap-extrafee").dispatchEvent(new Event("input"));

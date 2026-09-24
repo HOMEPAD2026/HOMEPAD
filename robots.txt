@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://www.arcircle.app/sitemap.xml
+Sitemap: https://www.arcircle.app/sitemap-coins.xml

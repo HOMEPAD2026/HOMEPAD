@@ -208,11 +208,22 @@
     // eslint-disable-next-line no-global-assign
     actPaint = function () { orig(); try { paintTopCoin(); paintWatchState(); if (portfolioActive()) renderPortfolio({ quiet: true }); } catch (e) { console.warn(e); } };
   }
-  // A deterministic two-colour gradient from an address, for coins with no logo.
+  // Coins with no logo get two interlocking rings — the ARCIRCLE motif — in
+  // colours derived from the contract address, so every coin looks different
+  // but the same coin always looks the same. Returned as an inline style
+  // (callers put it on the placeholder element); the initial letter inside
+  // stays in the DOM for screen readers but is hidden visually.
+  const ringCache = new Map();
   function avatarBg(addr) {
-    const h = parseInt(lc(addr).slice(2, 8) || "0", 16);
-    const a = h % 360, b = (a + 40 + (h >> 9) % 80) % 360;
-    return `background:linear-gradient(135deg,hsl(${a} 70% 52%),hsl(${b} 75% 40%))`;
+    const k = lc(addr);
+    if (ringCache.has(k)) return ringCache.get(k);
+    const h = parseInt(k.slice(2, 8) || "0", 16), h2 = parseInt(k.slice(8, 12) || "0", 16);
+    const a = h % 360, b = (a + 70 + (h >> 9) % 110) % 360, bg = (a + 200) % 360;
+    const rot = h2 % 60 - 30;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='g' cx='50%' cy='40%' r='75%'><stop offset='0' stop-color='hsl(${bg} 45% 16%)'/><stop offset='1' stop-color='hsl(${bg} 35% 7%)'/></radialGradient></defs><rect width='64' height='64' fill='url(%23g)'/><g transform='rotate(${rot} 32 32)' fill='none' stroke-width='5.5'><circle cx='24.5' cy='32' r='12' stroke='hsl(${a} 88% 62%)'/><circle cx='39.5' cy='32' r='12' stroke='hsl(${b} 82% 56%)'/><path d='M24.5 20a12 12 0 0 1 8.2 3.3' stroke='hsl(${a} 88% 62%)'/></g></svg>`;
+    const out = `background:url(&quot;data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g, "%27")}&quot;) center/cover no-repeat,hsl(${bg} 35% 9%);color:transparent;text-shadow:none`;
+    ringCache.set(k, out);
+    return out;
   }
   window.arcAvatarBg = avatarBg;
 
@@ -289,7 +300,7 @@
   async function refreshSafety() {
     if (typeof APC === "undefined" || !APC.l) return;
     const fb = $("apc-logo-fallback");
-    if (fb) fb.style.background = avatarBg(APC.token).replace(/^background:/, "");
+    if (fb) fb.setAttribute("style", avatarBg(APC.token).replace(/&quot;/g, '"'));
     const token = APC.token;
     renderSafety(); renderDupNotice(); paintWatchState();
     await loadSafety(token, APC.l.creator);

@@ -67,4 +67,9 @@ const CONFIG = {
   // be deployed AFTER start() is called (it reverts on a zero deadline()), so
   // this stays empty until that happens and deploy-bigpad-vote.js runs.
   CIRCLEPAD_VOTE_ADDRESS: "",
+
+  // --- ArcLock: creator time locks ("Locked" badge on ArcPad coins) ---
+  // Empty until contracts/scripts/deploy-arc-lock.js runs on arcMainnet;
+  // the lock button and badge stay hidden while it's empty.
+  ARCLOCK_ADDRESS: "",
 };
