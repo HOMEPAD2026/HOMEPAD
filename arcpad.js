@@ -153,7 +153,11 @@ async function loadArcpadLaunches() {
   // what turned $ARCIRCLE / FOCI pairs into "$3,352,337B" market caps.
   let unresolved = 0;
   await Promise.all([...new Set(built.map((l) => l.quoteToken.toLowerCase()))].map(async (q) => {
-    const meta = await arcQuoteMetaFor(q).catch((err) => {
+    // Bounded: one slow pair token must not hold up the whole list.
+    const meta = await Promise.race([
+      arcQuoteMetaFor(q, { tries: 2 }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("pair token read timed out")), 7000)),
+    ]).catch((err) => {
       console.warn("pair token read failed", q, err);
       unresolved++;
       return { address: q, symbol: "…", decimals: null, isUsdc: arcIsUsdc(q), unresolved: true };

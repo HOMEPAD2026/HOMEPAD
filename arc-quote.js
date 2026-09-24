@@ -70,10 +70,18 @@ function arcQuoteMeta(addr) {
     ], readProvider());
     const netErr = (err) => /failed to fetch|internal error|upstream|unavailable|-32603|timeout|timed out|rate|limit|429|coalesce|network|missing response|bad response|server|503|502|ECONN|NETWORK_ERROR|SERVER_ERROR|TIMEOUT/i
       .test(String(err && (err.code || "")) + " " + String(err && (err.shortMessage || err.message) || err));
-    const read = (fn, notErc20) => withRetry(fn, { tries: 4 }).catch((err) => {
-      if (netErr(err)) throw new Error("Couldn't reach Arc to read that token — try again in a moment.");
+    // Busy RPCs sometimes answer a perfectly good call with an error that
+    // looks like a revert ("missing revert data", -32603). Reads are free and
+    // idempotent, so ask up to 3 times before calling a contract "not an
+    // ERC-20" — a real non-token fails every time.
+    const read = async (fn, notErc20) => {
+      let last;
+      for (let i = 0; i < 3; i++) {
+        try { return await withRetry(fn, { tries: 3 }); } catch (err) { last = err; await new Promise((r) => setTimeout(r, 400 * 2 ** i)); }
+      }
+      if (netErr(last)) throw new Error("Couldn't reach Arc to read that token — try again in a moment.");
       throw new Error(notErc20);
-    });
+    };
     const decimals = Number(await read(() => t.decimals(), "That contract doesn't look like an ERC-20 token (no decimals())."));
     if (!(decimals >= 0 && decimals <= 36)) throw new Error("That token reports unusual decimals — not supported.");
     const supply = await read(() => t.totalSupply(), "That contract doesn't look like an ERC-20 token.");
