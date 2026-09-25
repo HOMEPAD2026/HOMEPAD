@@ -287,7 +287,14 @@ function renderArcpadExploreGrid() {
     : arcExploreSort === "watch" && !q ? "Your watchlist is empty. Tap the star on any coin to keep it here."
     : !q && typeof arcFiltersActive === "function" && arcFiltersActive() ? "No coins match these filters."
     : `No launches match “${esc(q)}”.`;
-  grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty}</div>`;
+  // empty states point somewhere useful
+  const emptyGo = ARC.launches.length === 0 ? `<button type="button" class="bp-card-link" data-empty-go="launch">Launch a coin →</button>`
+    : arcExploreSort === "watch" && !q ? `<button type="button" class="bp-card-link" data-empty-sort="mcap">See all coins →</button>` : "";
+  grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty} ${emptyGo}</div>`;
+  const eg = grid.querySelector("[data-empty-go]");
+  if (eg) eg.addEventListener("click", (e) => { e.stopPropagation(); if (typeof window.arcpadShowTab === "function") window.arcpadShowTab(eg.dataset.emptyGo); });
+  const es = grid.querySelector("[data-empty-sort]");
+  if (es) es.addEventListener("click", (e) => { e.stopPropagation(); const b = document.querySelector(`#ap-sort-group [data-sort="${es.dataset.emptySort}"]`); if (b) b.click(); });
   wireLaunchCardClicks(grid);
   if (typeof arcPaintCard === "function") grid.querySelectorAll(".ap-launch-card").forEach(arcPaintCard);
 }

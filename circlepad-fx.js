@@ -1,4 +1,4 @@
-/* global applyCirclepadState, renderCirclepadLeaderboard, renderCirclepadGovernance, updateCirclepadCountdown, _circlepadDeadline, _circlepadStarted, _circlepadState, ethers, state */
+/* global connectWallet, circlepadLoadCache, circlepadEscrowConfigured, CONFIG, applyCirclepadState, renderCirclepadLeaderboard, renderCirclepadGovernance, updateCirclepadCountdown, _circlepadDeadline, _circlepadStarted, _circlepadState, ethers, state */
 // circlepad-fx.js — CirclePad's round card, layout and motion layer.
 // circlepad.js stays the source of truth for the escrow (it reads the chain
 // and writes the plain numbers); this file wraps its render functions and
@@ -108,7 +108,25 @@
     subEl.textContent = sub;
     if (metaEl.__html !== meta) { metaEl.innerHTML = meta; metaEl.__html = meta; }
     countTo(!s.started && pledged > 0 ? pledged : raised);
+    // Someone else moved money while you watch: the ring surges (or dips
+    // for a withdrawal) and the difference floats up out of it.
+    if (ringLive && S && S.started && s.started) {
+      const d = raised - toNum(S.totalRaised);
+      if (Math.abs(d) > 1e-9) delta(d);
+    }
     paintTop(s, raised);
+  }
+  let ringLive = false; // true after the first real (not cached) paint
+  function delta(d) {
+    if (!ring || reduce) return;
+    ring.classList.remove("cp-surge", "cp-dip"); void ring.offsetWidth;
+    ring.classList.add(d > 0 ? "cp-surge" : "cp-dip");
+    const chip = document.createElement("span");
+    chip.className = "cp-delta " + (d > 0 ? "up" : "down");
+    chip.setAttribute("data-no-i18n", "");
+    chip.textContent = `${d > 0 ? "+" : "−"}${fmt(Math.abs(d))} USDC`;
+    ring.appendChild(chip);
+    setTimeout(() => chip.remove(), 2200);
   }
   // Before the raise opens the ring shows what has been pledged
   // (circlepad-community.js reports it).
@@ -262,6 +280,20 @@
   function ignite() {
     if (!ring) return;
     ring.classList.remove("cp-ignite"); void ring.offsetWidth; ring.classList.add("cp-ignite");
+    // "Not started" → "LIVE": rings of light spread out from the circle, and
+    // the status line and badge pop as they switch over.
+    if (!reduce) {
+      for (let i = 0; i < 3; i++) {
+        const w = document.createElement("i");
+        w.className = "cp-wave"; w.style.setProperty("--d", `${i * 0.38}s`);
+        ring.appendChild(w);
+        setTimeout(() => w.remove(), 2600);
+      }
+      [$("bp-round-status"), ...document.querySelectorAll(".bp-featured-badge")].forEach((el) => {
+        if (!el) return;
+        el.classList.remove("cp-pop-live"); void el.offsetWidth; el.classList.add("cp-pop-live");
+      });
+    }
     if (orbit) orbit.classList.add("cp-to-green");
     setTimeout(() => { if (orbit) orbit.classList.remove("cp-to-green"); paintContributors(lastRows); }, 1400);
     flash(tr("The raise is open"), "cp-flash-open");
@@ -410,6 +442,8 @@
     const prev = S;
     S = S || s;
     try { paintRing(s); checkJoin(s, opts); paintStage(s); paintSplit(s); paintTopTime(); } catch (e) { console.warn("circlepad-fx", e); }
+    if (!(opts && opts.accountUnknown)) { ringLive = true; try { positionCta(s); } catch (e) { /* cosmetic */ } }
+    if (flowCard) flowCard.hidden = !s.started;
     if (prev && !(opts && opts.accountUnknown)) {
       if (!prev.started && s.started) setTimeout(ignite, 50);
       else if (prev.isOpen && s.started && !s.isOpen) setTimeout(finalize, 50);
@@ -455,10 +489,10 @@
       return m;
     };
     // eslint-disable-next-line no-global-assign
-    renderCirclepadLeaderboard = function (rows, activity) {
+    renderCirclepadLeaderboard = function (rows, activity, flow) {
       const before = reduce ? null : snap();
-      origLb(rows, activity);
-      try { paintContributors(rows || []); paintTicker(activity); paintPodium(rows || []); emptyCta(); } catch (e) { console.warn("circlepad-fx", e); }
+      origLb(rows, activity, flow);
+      try { paintContributors(rows || []); paintTicker(activity); paintPodium(rows || []); emptyCta(); paintFlow(rows || [], activity || [], flow || null); } catch (e) { console.warn("circlepad-fx", e); }
       setTimeout(() => document.dispatchEvent(new CustomEvent("circlepad:lb")), 0);
       document.querySelectorAll("#bp-full-leaderboard .bp-lb-row, #bp-home-leaderboard .bp-lb-row").forEach((r, i) => {
         const k = keyOf(r);
@@ -478,14 +512,19 @@
     };
   }
 
-  // ================= governance: bars grow, your vote gets a check =================
+  // ================= governance: bars grow and re-sort, the leader is lit =================
   if (typeof renderCirclepadGovernance === "function") {
     const origGov = renderCirclepadGovernance;
-    const prevW = new Map(), prevMine = new Map();
+    const prevW = new Map(), prevMine = new Map(), prevLead = new Map();
+    const optKey = (opt) => { const b = opt.querySelector(".bp-gov-vote-btn"); return b ? `${b.dataset.category}:${b.dataset.option}` : null; };
+    let govPainted = false;
     // eslint-disable-next-line no-global-assign
     renderCirclepadGovernance = function (g) {
-      origGov(g);
       const wrap = $("bp-gov-categories");
+      // where every option sat before this render, for the slide to its new rank
+      const before = new Map();
+      if (wrap && !reduce) wrap.querySelectorAll(".bp-gov-option").forEach((o) => { const k = optKey(o); if (k) before.set(k, o.getBoundingClientRect().top); });
+      origGov(g);
       if (!wrap) return;
       wrap.querySelectorAll(".bp-gov-cat").forEach((cat, ci) => {
         cat.querySelectorAll(".bp-gov-option").forEach((opt, oi) => {
@@ -499,8 +538,150 @@
           if (isMine && prevMine.get(ci) !== oi) opt.classList.add("cp-voted-pop");
           if (isMine) prevMine.set(ci, oi);
         });
+        // Most-backed option first; ties keep the order they were proposed in.
+        const box = cat.querySelector(".bp-gov-options");
+        if (!box) return;
+        const opts = [...box.querySelectorAll(".bp-gov-option")].map((el, i) => ({ el, i, w: parseFloat((el.querySelector(".bp-gov-option-pct") || {}).textContent) || 0 }));
+        opts.sort((a, b) => b.w - a.w || a.i - b.i).forEach((o, rank) => {
+          box.appendChild(o.el);
+          o.el.style.setProperty("--rank", rank);
+          const r = document.createElement("span");
+          r.className = "cp-gov-rank"; r.setAttribute("data-no-i18n", ""); r.textContent = String(rank + 1);
+          const row = o.el.querySelector(".bp-gov-option-row");
+          if (row) row.insertBefore(r, row.firstChild);
+        });
+        const top = opts[0];
+        const title = (cat.querySelector(".bp-gov-cat-title") || {}).textContent || "";
+        if (top && top.w > 0) {
+          top.el.classList.add("cp-gov-lead");
+          const k = optKey(top.el), was = prevLead.get(title);
+          if (govPainted && was && k && was !== k && !reduce) {
+            top.el.classList.add("cp-gov-newlead");
+            const txt = (top.el.querySelector(".bp-gov-option-text") || {}).firstChild;
+            if (typeof window.arcToast === "function") window.arcToast(`${tr("New leader")} · ${tr(title)}: ${txt ? txt.textContent : ""}`);
+          }
+          if (k) prevLead.set(title, k);
+        }
       });
+      // FLIP: start each option where it was, then let it glide to its new rank
+      if (before.size && !reduce) {
+        wrap.querySelectorAll(".bp-gov-option").forEach((o) => {
+          const k = optKey(o); if (!k || !before.has(k)) return;
+          const dy = before.get(k) - o.getBoundingClientRect().top;
+          if (Math.abs(dy) < 2) return;
+          o.style.transition = "none"; o.style.transform = `translateY(${dy}px)`;
+          requestAnimationFrame(() => requestAnimationFrame(() => { o.style.transition = "transform .6s cubic-bezier(.2,.8,.2,1)"; o.style.transform = ""; }));
+        });
+      }
+      govPainted = true;
     };
+  }
+
+  // ================= My Position: an empty state that points somewhere =================
+  function positionCta(s) {
+    const el = $("bp-position-body");
+    if (!el || !el.classList.contains("bp-empty") || el.querySelector(".cp-empty-cta")) return;
+    const connected = !!(state && state.account);
+    if (connected && !s.isOpen) return;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cp-empty-cta";
+    b.textContent = tr(connected ? "Contribute to the round" : "Connect wallet");
+    b.addEventListener("click", async () => {
+      if (!connected) { if (typeof connectWallet === "function") try { await connectWallet(); } catch (e) { /* cancelled */ } return; }
+      clickTab("home");
+      document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: "round" }));
+    });
+    el.appendChild(document.createElement("br")); el.appendChild(b);
+  }
+
+  // ================= money in & out: net raised + every move, both ways =================
+  // Contributors can withdraw any time before the close, so the honest
+  // number is the net — and the feed shows withdrawals as plainly as
+  // contributions. Data comes from the same leaderboard fetch (flow totals
+  // from /api/social?circle=lb, or the in-browser event scan).
+  let flowCard = null, flowFilter = "all", flowSeen = null, flowLast = null;
+  if (featured) {
+    flowCard = document.createElement("section");
+    flowCard.className = "cp-flowcard"; flowCard.id = "cp-flowcard"; flowCard.hidden = true;
+    flowCard.innerHTML = `<div class="cp-fc-head"><div><h3>${tr("Money in & out")} <span class="cp-fc-live"><i></i>${tr("Live")}</span></h3>
+        <p>${tr("Refunds stay open until the close, so this shows every move both ways — read straight from the escrow's events.")}</p></div></div>
+      <div class="cp-fc-stats">
+        <div class="cp-fc-stat cp-fc-net"><small>${tr("Net raised")}</small><b class="cp-num" data-k="net" data-no-i18n>—</b><span>${tr("held for contributors right now")}</span></div>
+        <div class="cp-fc-stat cp-fc-in"><small>${tr("Contributed")}</small><b class="cp-num" data-k="in" data-no-i18n>—</b><span data-k="nin"></span></div>
+        <div class="cp-fc-stat cp-fc-out"><small>${tr("Withdrawn")}</small><b class="cp-num" data-k="out" data-no-i18n>—</b><span data-k="nout"></span></div>
+        <div class="cp-fc-stat cp-fc-keep"><small>${tr("Stayed in")}</small><b class="cp-num" data-k="keep" data-no-i18n>—</b><span>${tr("of every USDC put in")}</span></div>
+      </div>
+      <div class="cp-fc-bar" aria-hidden="true"><i class="cp-fc-bar-net"></i><i class="cp-fc-bar-out"></i></div>
+      <div class="cp-fc-feedhead"><h4>${tr("Latest moves")}</h4>
+        <div class="cp-fc-filter" role="radiogroup" aria-label="${tr("Show")}">
+          <button type="button" role="radio" aria-checked="true" data-f="all">${tr("All")}</button><button type="button" role="radio" aria-checked="false" data-f="in">${tr("In")}</button><button type="button" role="radio" aria-checked="false" data-f="out">${tr("Out")}</button>
+        </div></div>
+      <ol class="cp-fc-feed" aria-live="polite"></ol>`;
+    featured.insertAdjacentElement("afterend", flowCard);
+    flowCard.querySelector(".cp-fc-filter").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-f]"); if (!b) return;
+      flowFilter = b.dataset.f;
+      flowCard.querySelectorAll(".cp-fc-filter button").forEach((x) => x.setAttribute("aria-checked", x === b ? "true" : "false"));
+      if (flowLast) paintFlow(...flowLast);
+    });
+  }
+  const numAnim = new WeakMap();
+  function rollTo(el, to, fmtFn) {
+    const from = numAnim.has(el) ? numAnim.get(el) : null;
+    numAnim.set(el, to);
+    if (reduce || from == null || from === to) { el.textContent = fmtFn(to); return; }
+    const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmtFn(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    el.classList.remove("cp-tick"); void el.offsetWidth; el.classList.add("cp-tick");
+  }
+  function paintFlow(rows, activity, flow) {
+    if (!flowCard) return;
+    flowLast = [rows, activity, flow];
+    // older cached data has no totals: rebuild them from the rows
+    const f = flow || {
+      in: rows.reduce((t, r) => t + (r.depositedTotal || 0n), 0n), out: rows.reduce((t, r) => t + (r.withdrawnTotal || 0n), 0n),
+      nIn: null, nOut: null, wallets: rows.length, refunders: rows.filter((r) => r.withdrawnTotal > 0n).length,
+    };
+    const fin = toNum(f.in), fout = toNum(f.out), net = Math.max(0, fin - fout);
+    const q = (k) => flowCard.querySelector(`[data-k="${k}"]`);
+    const usd = (n) => `${fmt(n)} USDC`;
+    rollTo(q("net"), net, usd);
+    rollTo(q("in"), fin, (n) => `+${fmt(n)}`);
+    rollTo(q("out"), fout, (n) => `${n > 0 ? "−" : ""}${fmt(n)}`);
+    rollTo(q("keep"), fin > 0 ? (net / fin) * 100 : 100, (n) => `${n.toFixed(n >= 99.95 ? 0 : 1)}%`);
+    const plural = (n, one, many) => `${n} ${tr(n === 1 ? one : many)}`;
+    q("nin").textContent = f.nIn != null ? `${plural(f.nIn, "contribution", "contributions")} · ${plural(f.wallets || 0, "wallet", "wallets")}` : plural(f.wallets || 0, "wallet", "wallets");
+    q("nout").textContent = f.nOut != null ? `${plural(f.nOut, "withdrawal", "withdrawals")} · ${plural(f.refunders || 0, "wallet", "wallets")}` : plural(f.refunders || 0, "wallet", "wallets");
+    flowCard.style.setProperty("--net", fin > 0 ? (net / fin).toFixed(4) : 0);
+    flowCard.style.setProperty("--out", fin > 0 ? (fout / fin).toFixed(4) : 0);
+    flowCard.classList.toggle("cp-fc-empty", !(fin > 0));
+    const list = flowCard.querySelector(".cp-fc-feed");
+    const items = activity.filter((a) => flowFilter === "all" || a.kind === flowFilter);
+    const keyOf = (a) => `${a.tx || ""}:${a.kind}:${String(a.contributor).toLowerCase()}:${a.amount}:${a.ts}`;
+    const ago = (ts) => { if (!ts) return ""; const d = Math.max(1, Math.floor(Date.now() / 1000) - ts); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h` : `${Math.floor(d / 86400)}d`; };
+    const ex = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "";
+    const html = items.length ? items.map((a) => {
+      const k = keyOf(a), fresh = flowSeen && !flowSeen.has(k), addr = String(a.contributor);
+      const link = a.tx ? `${ex}/tx/${a.tx}` : `${ex}/address/${addr}`;
+      return `<li class="cp-fc-row ${a.kind === "out" ? "out" : "in"}${fresh ? " is-new" : ""}">
+        <i class="cp-fc-av" style="--h:${(parseInt(addr.slice(2, 8), 16) || 0) % 360}"></i>
+        <span class="cp-fc-who"><b data-no-i18n>${addr.slice(0, 6)}…${addr.slice(-4)}</b><small>${tr(a.kind === "out" ? "Withdrew" : "Contributed")}</small></span>
+        <b class="cp-fc-amt" data-no-i18n>${a.kind === "out" ? "−" : "+"}${fmt(toNum(a.amount))} USDC</b>
+        <time data-no-i18n>${ago(a.ts)}</time>
+        <a href="${link}" target="_blank" rel="noopener" aria-label="${tr("View on explorer")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M10 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg></a></li>`;
+    }).join("") : `<li class="cp-fc-none">${tr(flowFilter === "out" ? "No withdrawals so far." : flowFilter === "in" ? "No contributions yet." : "No moves yet — the first contribution shows up here within seconds.")}${flowFilter !== "out" && S && S.isOpen ? ` <button type="button" class="cp-empty-cta" data-cta>${tr("Be the first to contribute")}</button>` : ""}</li>`;
+    if (list.__html !== html) {
+      list.innerHTML = html; list.__html = html;
+      const cta = list.querySelector("[data-cta]");
+      if (cta) cta.addEventListener("click", () => document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: "round" })));
+    }
+    flowSeen = flowSeen || new Set();
+    activity.forEach((a) => flowSeen.add(keyOf(a)));
   }
 
   // ================= close split: 80 / 5 / 15 =================
@@ -653,4 +834,8 @@
   // before this file loads).
   // eslint-disable-next-line no-undef
   try { if (typeof _circlepadState !== "undefined" && _circlepadState) applyCirclepadState(_circlepadState, { accountUnknown: true }); } catch (e) { /* ignore */ }
+  try {
+    const c = typeof circlepadLoadCache === "function" && circlepadEscrowConfigured() ? circlepadLoadCache("leaderboard") : null;
+    if (c && Array.isArray(c.rows)) paintFlow(c.rows, c.activity || [], c.flow || null);
+  } catch (e) { /* ignore */ }
 })();

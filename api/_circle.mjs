@@ -233,24 +233,33 @@ export async function leaderboard(wallet) {
     const a = L.scannedTo + 1, b = Math.min(to, a + CHUNK - 1);
     const logs = await getLogs({ address: ESCROW, fromBlock: toQty(a), toBlock: toQty(b), topics: [[CONTRIBUTED, REFUNDED]] });
     // stored as "kind|wallet|amount|block|logIndex" strings (Firestore can't nest arrays)
-    for (const l of logs) L.ev.push([lc(l.topics[0]) === CONTRIBUTED ? 1 : 0, "0x" + String(l.topics[1]).slice(26).toLowerCase(), BigInt("0x" + String(l.data).slice(2, 66)).toString(), parseInt(l.blockNumber, 16), parseInt(l.logIndex, 16)].join("|"));
+    // stored as "kind|wallet|amount|block|logIndex|txHash" (older entries have no hash)
+    for (const l of logs) L.ev.push([lc(l.topics[0]) === CONTRIBUTED ? 1 : 0, "0x" + String(l.topics[1]).slice(26).toLowerCase(), BigInt("0x" + String(l.data).slice(2, 66)).toString(), parseInt(l.blockNumber, 16), parseInt(l.logIndex, 16), lc(l.transactionHash || "")].join("|"));
     L.scannedTo = b; chunks++;
   }
   const complete = L.scannedTo >= to;
-  const EV = L.ev.map((x) => { const [k, w, amt, n, i] = String(x).split("|"); return [Number(k), w, amt, Number(n), Number(i)]; });
+  const EV = L.ev.map((x) => { const [k, w, amt, n, i, h] = String(x).split("|"); return [Number(k), w, amt, Number(n), Number(i), h || null]; });
   const net = new Map(), inn = new Map(), out = new Map();
+  // Money both ways, for the "in & out" card: every contribution and every
+  // withdrawal ever made in this round, not just the current net balances.
+  const totals = { in: 0n, out: 0n, nIn: 0, nOut: 0 };
   for (const [k, w, amt] of EV) {
     const v = BigInt(amt);
     net.set(w, (net.get(w) || 0n) + (k ? v : -v));
     (k ? inn : out).set(w, ((k ? inn : out).get(w) || 0n) + v);
+    if (k) { totals.in += v; totals.nIn++; } else { totals.out += v; totals.nOut++; }
   }
   const rows = [...net.entries()].filter(([, v]) => v > 0n).sort((x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0))
     .map(([address, v]) => ({ address, amount: v.toString(), depositedTotal: (inn.get(address) || 0n).toString(), withdrawnTotal: (out.get(address) || 0n).toString() }));
-  const recent = [...EV].sort((x, y) => x[3] - y[3] || x[4] - y[4]).slice(-15).reverse();
+  const recent = [...EV].sort((x, y) => x[3] - y[3] || x[4] - y[4]).slice(-30).reverse();
   const tsOf = new Map();
   await Promise.all([...new Set(recent.map((e) => e[3]))].map(async (n) => { tsOf.set(n, (await blockTs(n)) || 0); }));
-  const activity = recent.map(([k, w, amt, n]) => ({ contributor: w, amount: amt, kind: k ? "in" : "out", ts: tsOf.get(n) || 0 }));
-  const outv = { started: true, rows, activity, complete, scannedTo: L.scannedTo };
+  const activity = recent.map(([k, w, amt, n, , h]) => ({ contributor: w, amount: amt, kind: k ? "in" : "out", ts: tsOf.get(n) || 0, tx: h || null }));
+  const flow = {
+    in: totals.in.toString(), out: totals.out.toString(), net: (totals.in - totals.out).toString(), nIn: totals.nIn, nOut: totals.nOut,
+    wallets: inn.size, refunders: out.size, holding: rows.length,
+  };
+  const outv = { started: true, rows, activity, flow, complete, scannedTo: L.scannedTo };
   lbMem = { at: Date.now(), L, out: outv, EV };
   if (storeEnabled() && chunks) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
   return withMine(outv, EV, wallet);

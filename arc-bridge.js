@@ -85,15 +85,74 @@
     const out = await rpc(chain, "eth_call", [{ to: chain.usdc, data: "0x70a08231" + padAddr(who) }, "latest"]);
     return BigInt(out && out !== "0x" ? out : "0x0");
   }
+  // ---------- Circle's attestation service (Iris): every call goes through here ----------
+  // so the page can tell people when Circle itself is slow or down, instead
+  // of leaving them staring at "Waiting for Circle's signature".
+  const IRIS_SLOW = 6000;
+  const iris = { fails: 0, slow: 0, lastOk: 0 };
+  async function irisGet(url) {
+    const t0 = performance.now();
+    let r, j;
+    try {
+      r = await fetch(url);
+      j = await r.json().catch(() => null);
+    } catch (e) { iris.fails++; paintIris(); throw e; }
+    const ms = performance.now() - t0;
+    if (!r.ok || !j) { iris.fails++; paintIris(); throw new Error((j && j.error) || "Circle didn't answer"); }
+    iris.fails = 0; iris.lastOk = Date.now();
+    iris.slow = ms > IRIS_SLOW ? iris.slow + 1 : 0;
+    paintIris();
+    return j;
+  }
+  let banner = null;
+  function paintIris() {
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.className = "abr-banner"; banner.id = "abr-banner"; banner.hidden = true;
+      banner.setAttribute("role", "status");
+      const grid = panel.querySelector(".abr-grid");
+      if (grid) grid.parentNode.insertBefore(banner, grid);
+    }
+    const down = iris.fails >= 2, slow = !down && iris.slow >= 1;
+    const pending = all().some((r) => { const st = stageOf(r); return st === "burning" || st === "burned"; });
+    const html = down
+      ? `<span class="abr-banner-ico" aria-hidden="true"></span><div><b>${esc(tr("Circle's signing service isn't answering right now."))}</b><span>${esc(tr(pending ? "Transfers you've already sent are safe — they carry on automatically once it's back." : "Quotes and new transfers may fail for a moment. Nothing you've sent is at risk."))}</span></div>`
+      : slow ? `<span class="abr-banner-ico" aria-hidden="true"></span><div><b>${esc(tr("Circle's signing service is slow right now."))}</b><span>${esc(tr("Signatures may take longer than usual. You don't need to do anything."))}</span></div>` : "";
+    banner.className = "abr-banner" + (down ? " down" : slow ? " slow" : "");
+    banner.hidden = !html;
+    if (banner.__html !== html) { banner.innerHTML = html; banner.__html = html; }
+  }
   const feeCache = new Map();
   async function fees(s, d) {
     const k = s.domain + ":" + d.domain, hit = feeCache.get(k);
     if (hit && Date.now() - hit.at < 60000) return hit.v;
-    const r = await fetch(`/api/social?cctp=fees&src=${s.domain}&dst=${d.domain}`);
-    const j = await r.json();
-    if (!r.ok || !j.fees) throw new Error(j.error || "no fee quote");
+    const j = await irisGet(`/api/social?cctp=fees&src=${s.domain}&dst=${d.domain}`);
+    if (!j.fees) throw new Error(j.error || "no fee quote");
     feeCache.set(k, { at: Date.now(), v: j.fees });
     return j.fees;
+  }
+
+  // ---------- gas on the other chain (only needed to finish a transfer yourself) ----------
+  const gasCache = new Map();
+  /// → { have, need, ok } in the chain's native units (wei), or null if unknown
+  async function gasCheck(chain, who) {
+    const k = chain.key + ":" + lc(who), hit = gasCache.get(k);
+    if (hit && Date.now() - hit.at < 30000) return hit.v;
+    try {
+      const [bal, price] = await Promise.all([rpc(chain, "eth_getBalance", [who, "latest"]), rpc(chain, "eth_gasPrice", [])]);
+      const have = BigInt(bal || "0x0"), need = BigInt(price || "0x0") * 260000n; // receiveMessage ≈ 150–220k gas
+      const v = { have, need, ok: have >= need };
+      gasCache.set(k, { at: Date.now(), v });
+      return v;
+    } catch { return null; }
+  }
+  const nat = (c, wei) => `${Number(ethers.formatUnits(wei, (c.native && c.native.decimals) || 18)).toLocaleString("en-US", { maximumSignificantDigits: 2 })} ${(c.native && c.native.symbol) || ""}`.trim();
+  function gasLine(c, g) {
+    if (!g || g.ok) return "";
+    const sym = (c.native && c.native.symbol) || "gas";
+    return g.have === 0n
+      ? tr(`You have no ${sym} on ${c.name} to pay for this. Add about ${nat(c, g.need)} first.`)
+      : tr(`You may not have enough ${sym} on ${c.name} for this — about ${nat(c, g.need)} is needed, you have ${nat(c, g.have)}.`);
   }
 
   // ---------- quote ----------
@@ -165,6 +224,7 @@
     $("abr-q-max").textContent = q ? `${fmtFee(q.maxFee)} USDC` : "—";
     $("abr-q-eta").textContent = speed === "fast" ? tr("About a minute") : tr(STD_ETA[s.key] || "15–20 min");
     $("abr-recv").textContent = q && q.recvMin > 0n ? `${fmt(q.recvMin)} USDC` : "—";
+    paintRouteGas(q, d);
     if (busy) return;
     if (!state.account) return setGo("Connect wallet", true);
     if ($("abr-recip-on").checked && !recipient()) return setGo("Enter a valid recipient", false);
@@ -174,6 +234,21 @@
     if (q.recvMin <= 0n) return setGo(`Minimum is about ${fmt(q.maxFee + 100000n)} USDC`, false);
     if (bal.src != null && amount > bal.src) return setGo(`Not enough USDC on ${s.name}`, false);
     setGo(`Bridge ${fmt(amount)} USDC to ${d.name}`, true);
+  }
+
+  // No delivery on this route → the person finishes on the other chain
+  // themselves and needs a little of its gas token there. Say so up front.
+  let gasSeq = 0;
+  async function paintRouteGas(q, d) {
+    const box = $("abr-gaswarn");
+    if (!box) return;
+    const my = ++gasSeq;
+    if (!q || q.forward || !state.account) { box.hidden = true; return; }
+    const g = await gasCheck(d, state.account);
+    if (my !== gasSeq) return;
+    const line = gasLine(d, g);
+    box.hidden = !line;
+    box.innerHTML = line ? `<b>${esc(tr(`Circle can't deliver on ${d.name} right now`))}</b><span>${esc(tr(`You'll finish this transfer on ${d.name} yourself.`))}</span> <span>${esc(line)}</span>` : "";
   }
 
   // ---------- wallet ----------
@@ -282,7 +357,7 @@
       save(rec);
       done.push("burn");
       steps(null, done);
-      status(rec.stage === "failed" ? esc(tr("The burn transaction failed — your USDC didn't move.")) : `${esc(tr("Burned. Circle is on it — follow it under Your transfers."))}`, rec.stage === "failed" ? "err" : "ok");
+      status(rec.stage === "failed" ? esc(tr("The burn transaction failed — your USDC didn't move.")) : `${esc(tr("Burned. Circle is on it — follow it under Your transfers."))}${alertOffer()}`, rec.stage === "failed" ? "err" : "ok");
       $("abr-amount").value = "";
       burst();
       track();
@@ -315,7 +390,11 @@
   function renderList() {
     const list = all();
     const box = $("abr-list");
-    if (!list.length) { box.innerHTML = `<p class="abr-empty">${esc(tr("No transfers yet."))}</p>`; return; }
+    if (!list.length) {
+      box.innerHTML = `<div class="abr-empty"><p>${esc(tr("No transfers yet."))}</p><span>${esc(tr("Your transfers show up here step by step — burn, Circle's signature, arrival."))}</span><button type="button" class="abr-empty-cta" data-start>${esc(tr(dir === "in" ? "Bring USDC to Arc" : "Send USDC from Arc"))} →</button></div>`;
+      paintBell();
+      return;
+    }
     box.innerHTML = list.map((r) => {
       const s = byKey(r.src), d = byKey(r.dst);
       if (!s || !d) return "";
@@ -332,10 +411,72 @@
           ${step(st === "attested", !!r.delivered, r.delivered ? (recv ? "Received " + recv + " on " + d.name : "Delivered on " + d.name) : r.forward ? "Delivering on " + d.name : "Ready to claim on " + d.name,
             r.dstTx ? `<a href="${d.explorer}/tx/${r.dstTx}" target="_blank" rel="noopener">tx ↗</a>` : r.delivered ? `<a href="${d.explorer}/address/${r.recipient}" target="_blank" rel="noopener">${esc(short(r.recipient))} ↗</a>` : "")}
         </ol>
-        ${canClaim ? `<button type="button" class="abr-claim" data-claim="${esc(r.id)}">${esc(tr("Finish on " + d.name))}</button><p class="abr-claim-note">${esc(tr(r.forward ? "Delivery is taking longer than usual. You can mint it yourself — it needs a little gas on " + d.name + "." : "Mint it on " + d.name + " — it needs a little gas there."))}</p>` : ""}
+        ${canClaim ? `<button type="button" class="abr-claim" data-claim="${esc(r.id)}">${esc(tr("Finish on " + d.name))}</button><p class="abr-claim-note">${esc(tr(r.forward ? "Delivery is taking longer than usual. You can mint it yourself — it needs a little gas on " + d.name + "." : "Mint it on " + d.name + " — it needs a little gas there."))}</p><p class="abr-gasline" data-gas="${esc(r.id)}" hidden></p>` : ""}
         ${st === "delivered" || st === "failed" ? `<button type="button" class="abr-x" data-remove="${esc(r.id)}" aria-label="${esc(tr("Remove"))}">×</button>` : ""}
       </div>`;
     }).join("");
+    // gas check for every transfer waiting to be finished by hand
+    list.forEach((r) => {
+      const el = box.querySelector(`[data-gas="${CSS.escape(r.id)}"]`);
+      const d = byKey(r.dst);
+      if (!el || !d || !(state.account || r.recipient)) return;
+      gasCheck(d, state.account || r.recipient).then((g) => { const line = gasLine(d, g); el.hidden = !line; el.textContent = line; });
+    });
+    paintBell();
+  }
+
+  // ---------- alerts: tab title + browser notification when a transfer moves on ----------
+  const canNotify = () => "Notification" in window;
+  function paintBell() {
+    const head = panel.querySelector(".abr-hist-head");
+    if (!head) return;
+    let b = head.querySelector(".abr-bell");
+    if (!canNotify()) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("button"); b.type = "button"; b.className = "abr-bell"; head.appendChild(b); b.addEventListener("click", askAlerts); }
+    const p = Notification.permission;
+    b.dataset.state = p;
+    b.disabled = p !== "default";
+    const label = p === "granted" ? tr("Alerts on") : p === "denied" ? tr("Alerts blocked in this browser") : tr("Notify me");
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg><span>${esc(label)}</span>`;
+  }
+  function askAlerts() {
+    if (!canNotify() || Notification.permission !== "default") return;
+    try { Notification.requestPermission().then(() => { paintBell(); const o = panel.querySelector(".abr-alert-offer"); if (o) o.remove(); }).catch(() => {}); } catch { /* old Safari */ }
+  }
+  function alertOffer() {
+    if (!canNotify() || Notification.permission !== "default") return "";
+    return ` <button type="button" class="abr-alert-offer" data-alerts>${esc(tr("Notify me when it lands"))}</button>`;
+  }
+  const baseTitle = document.title;
+  let flashT = 0;
+  function flashTitle(text) {
+    clearInterval(flashT);
+    if (!document.hidden) return;
+    let n = 0;
+    flashT = setInterval(() => {
+      if (!document.hidden || n > 40) { clearInterval(flashT); document.title = baseTitle; return; }
+      document.title = n++ % 2 ? baseTitle : `● ${text}`;
+    }, 1000);
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { clearInterval(flashT); document.title = baseTitle; } });
+  function notify(title, body, tag) {
+    flashTitle(title);
+    try { if (canNotify() && Notification.permission === "granted" && document.hidden) new Notification(title, { body, tag, icon: "/images/favicon-32.png" }); } catch { /* mobile browsers without the constructor */ }
+    if (typeof window.arcHaptic === "function") window.arcHaptic("milestone");
+  }
+  // one alert per step per transfer, remembered with the transfer itself
+  function announce(r) {
+    const d = byKey(r.dst);
+    if (!d) return;
+    const amt = `${fmt(BigInt(r.amount))} USDC`;
+    if (r.delivered && !r.nD) {
+      r.nD = 1; r.nA = 1; save(r);
+      notify(tr(`Arrived on ${d.name}`), tr(`${r.received ? fmt(BigInt(r.received)) + " USDC" : amt} is in your wallet on ${d.name}.`), "abr-" + r.id);
+    } else if (r.attested && !r.nA) {
+      r.nA = 1; save(r);
+      if (r.forward) notify(tr("Signed by Circle"), tr(`${amt} is on its way to ${d.name}.`), "abr-" + r.id);
+      else notify(tr(`Ready to claim on ${d.name}`), tr(`Circle signed your ${amt} transfer — finish it on ${d.name}.`), "abr-" + r.id);
+    }
   }
   let trackT = 0, trackBusy = false;
   async function track() {
@@ -354,7 +495,7 @@
         let changed = false;
         if (!r.attested || (r.forward && !r.dstTx && !r.delivered)) {
           try {
-            const j = await (await fetch(`/api/social?cctp=msg&src=${s.domain}&tx=${r.tx}`)).json();
+            const j = await irisGet(`/api/social?cctp=msg&src=${s.domain}&tx=${r.tx}`);
             const m = j && j.messages && j.messages[0];
             if (m) {
               if (m.delayReason !== (r.delay || null)) { r.delay = m.delayReason || null; changed = true; }
@@ -377,7 +518,7 @@
             }
           } catch { if (r.dstTx) { r.delivered = true; changed = true; } }
         }
-        if (changed) save(r);
+        if (changed) { save(r); announce(r); }
         const age = Date.now() - r.at;
         soonest = Math.min(soonest, age < 5 * 60000 ? 5000 : 20000);
       }
@@ -391,6 +532,8 @@
     const btn = panel.querySelector(`[data-claim="${CSS.escape(id)}"]`);
     if (btn) { btn.disabled = true; btn.textContent = tr("Confirm in your wallet…"); }
     try {
+      const g = await gasCheck(d, state.account || r.recipient);
+      if (g && g.have === 0n) throw new Error(gasLine(d, g));
       await switchTo(d);
       const signer = await signerOn(d);
       const mt = new ethers.Contract(B.MESSAGE_TRANSMITTER, MT_ABI, signer);
@@ -442,7 +585,13 @@
   $("abr-recip-on").addEventListener("change", (e) => { $("abr-recip").hidden = !e.target.checked; refresh(); });
   $("abr-recip").addEventListener("input", () => refresh());
   $("abr-go").addEventListener("click", go);
+  $("abr-status").addEventListener("click", (e) => { if (e.target.closest && e.target.closest("[data-alerts]")) askAlerts(); });
   $("abr-list").addEventListener("click", (e) => {
+    if (e.target.closest && e.target.closest("[data-start]")) {
+      $("abr-form").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+      setTimeout(() => $("abr-amount").focus({ preventScroll: true }), reduce ? 0 : 350);
+      return;
+    }
     const c = e.target.closest && e.target.closest("[data-claim]");
     if (c) { claim(c.getAttribute("data-claim")); return; }
     const x = e.target.closest && e.target.closest("[data-remove]");
@@ -468,5 +617,6 @@
   if (panel.classList.contains("active")) refresh();
   track();
   setInterval(renderList, 30000); // "…ago" labels
-  window.arcBridge = { quoteFor, byKey, all };
+  paintBell();
+  window.arcBridge = { quoteFor, byKey, all, iris, gasCheck, announce };
 })();

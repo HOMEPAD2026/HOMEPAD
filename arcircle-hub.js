@@ -132,7 +132,7 @@
   var UTILS = [
     { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "Live", acc: "#35d8d0", href: "/arc#locker",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>' },
-    { id: "scanner", name: "Token Scanner", sub: "Check any Arc token before you buy", status: "Soon", acc: "#4d9fff", soon: true,
+    { id: "scanner", name: "Token Scanner", sub: "Check any Arc token before you buy", status: "v1", acc: "#4d9fff", href: "/arc#scanner",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></svg>' },
     { id: "multisender", name: "Multisender", sub: "Send a token to many wallets in one go", status: "Soon", acc: "#39ff88", soon: true,
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></svg>' },
@@ -342,8 +342,32 @@
     if (window.ResizeObserver) new ResizeObserver(re).observe(dock);
   }
 
+  // Loading skeletons: a live number that hasn't arrived yet shows a soft
+  // shimmering bar instead of a bare "—". Only fields that are filled from
+  // the network (not ones that stay "—" by design, like a disconnected
+  // wallet's balance), and never longer than a few seconds — if the data
+  // still isn't there the "—" comes back.
+  function mountSkeletons() {
+    var SEL = "[data-tk],[data-arl],[data-ac2],[data-lb],#ap-stat-vol,#ac2-liq,#rw-launches,#lkr-count,#apc-price,#apc-mcap,#apc-liq,#apc-vol,#apc-txns,#apc-holders-count,#apc-age";
+    var els = [].slice.call(document.querySelectorAll(SEL)).filter(function (el) {
+      return !el.children.length && el.textContent.trim() === "\u2014" && !el.closest("[data-no-skel]");
+    });
+    if (!els.length) return;
+    els.forEach(function (el) {
+      el.classList.add("arc-skel");
+      if (getComputedStyle(el).display === "inline") el.classList.add("arc-skel-i");
+      var mo = new MutationObserver(function () {
+        if (el.textContent.trim() !== "\u2014") { el.classList.remove("arc-skel", "arc-skel-i"); mo.disconnect(); }
+      });
+      mo.observe(el, { childList: true, characterData: true, subtree: true });
+      el.__skelMo = mo;
+    });
+    setTimeout(function () { els.forEach(function (el) { el.classList.remove("arc-skel", "arc-skel-i"); if (el.__skelMo) el.__skelMo.disconnect(); }); }, 8000);
+  }
+
   mountQuickBar();
   mountGlider();
+  mountSkeletons();
 
   if (location.hash === "#rewards") location.replace("/reward");
   window.addEventListener("hashchange", function () { if (location.hash === "#rewards") openReward(); });

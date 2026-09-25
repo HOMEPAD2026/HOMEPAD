@@ -302,7 +302,12 @@
     if (my !== mineSeq || lc(state.account) !== acct) return;
     const t = now();
     const locks = mineCache.locks.slice().sort((a, b) => (a.withdrawn - b.withdrawn) || (a.unlockAt - b.unlockAt));
-    if (!locks.length) { box.innerHTML = `<p class="lkr-empty">${esc(tr("You haven't locked anything yet."))}</p>`; return; }
+    if (!locks.length) {
+      box.innerHTML = `<div class="lkr-empty-cta"><span>${LOCK_ICO}</span><p>${esc(tr("You haven't locked anything yet."))}</p><button type="button" class="lkr-btn ghost" data-lkr-new>${esc(tr("Lock a token"))}</button></div>`;
+      const b = box.querySelector("[data-lkr-new]");
+      if (b) b.addEventListener("click", () => { const n = document.querySelector(".lkr-new"); if (n) n.scrollIntoView({ behavior: "smooth", block: "start" }); setTimeout(() => { const i = $("lkr-addr"); if (i) i.focus({ preventScroll: true }); }, 400); });
+      return;
+    }
     box.innerHTML = `<div class="lkr-rows">` + locks.map((l, i) => {
       const info = mineCache.info.get(lc(l.token));
       const dec = info ? info.decimals : 18, sym = info ? "$" + info.symbol : short(l.token);

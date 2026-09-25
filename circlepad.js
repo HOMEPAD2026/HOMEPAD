@@ -503,7 +503,7 @@ async function initCirclepadRound() {
   }
   const cachedLb = circlepadLoadCache("leaderboard");
   if (cachedLb && Array.isArray(cachedLb.rows) && Array.isArray(cachedLb.activity)) {
-    renderCirclepadLeaderboard(cachedLb.rows, cachedLb.activity);
+    renderCirclepadLeaderboard(cachedLb.rows, cachedLb.activity, cachedLb.flow || null);
     _circlepadLeaderboardLoadedOnce = true; // don't replace this with "Loading…" or an error
   }
 
@@ -643,10 +643,11 @@ async function refreshCirclepadLeaderboardInner() {
     if (j && Array.isArray(j.rows) && Array.isArray(j.activity) && (j.complete || j.rows.length || !j.started)) {
       const B = (v) => BigInt(v || 0);
       const rows = j.rows.map((x) => ({ address: ethers.getAddress(x.address), amount: B(x.amount), depositedTotal: B(x.depositedTotal), withdrawnTotal: B(x.withdrawnTotal) }));
-      const activity = j.activity.map((a) => ({ contributor: ethers.getAddress(a.contributor), amount: B(a.amount), kind: a.kind, ts: a.ts }));
+      const activity = j.activity.map((a) => ({ contributor: ethers.getAddress(a.contributor), amount: B(a.amount), kind: a.kind, ts: a.ts, tx: a.tx || null }));
+      const flow = j.flow ? { ...j.flow, in: B(j.flow.in), out: B(j.flow.out), net: B(j.flow.net) } : null;
       _circlepadLeaderboardLoadedOnce = true;
-      renderCirclepadLeaderboard(rows, activity);
-      circlepadSaveCache("leaderboard", { rows, activity, savedAt: Date.now() });
+      renderCirclepadLeaderboard(rows, activity, flow);
+      circlepadSaveCache("leaderboard", { rows, activity, flow, savedAt: Date.now() });
       return;
     }
   } catch (err) { console.warn("CirclePad: server leaderboard unavailable, scanning in the browser", err); }
@@ -692,7 +693,7 @@ async function refreshCirclepadLeaderboardInner() {
       to = Math.min(latest, log.endBlock);
     }
     if (to > log.scannedTo) {
-      const plain = (e) => ({ contributor: e.args.contributor, amount: e.args.amount.toString(), blockNumber: e.blockNumber, index: e.index ?? 0 });
+      const plain = (e) => ({ contributor: e.args.contributor, amount: e.args.amount.toString(), blockNumber: e.blockNumber, index: e.index ?? 0, tx: e.transactionHash || null });
       // Checkpoint after every chunk (they complete in block order), so a
       // rate-limit failure halfway through resumes from there next poll.
       await queryFilterChunked(escrow, "*", log.scannedTo + 1, to, {
@@ -750,22 +751,30 @@ async function refreshCirclepadLeaderboardInner() {
     ...events.map((e) => ({ e, kind: "in" })),
     ...refundEvents.map((e) => ({ e, kind: "out" })),
   ].sort((a, b) => (a.e.blockNumber - b.e.blockNumber) || ((a.e.index || 0) - (b.e.index || 0)));
-  const recent = merged.slice(-15).reverse();
+  const recent = merged.slice(-30).reverse();
   const blockNumbers = [...new Set(recent.map((item) => item.e.blockNumber))];
   const blocks = blockNumbers.length > 0 ? await Promise.all(blockNumbers.map((n) => readProvider().getBlock(n))) : [];
   const blockTime = new Map(blockNumbers.map((n, i) => [n, Number(blocks[i]?.timestamp ?? 0)]));
   const activity = recent.map(({ e, kind }) => ({
-    contributor: e.contributor, amount: e.amount, kind, ts: blockTime.get(e.blockNumber) || 0,
+    contributor: e.contributor, amount: e.amount, kind, ts: blockTime.get(e.blockNumber) || 0, tx: e.tx || null,
   }));
+  // Every contribution and every withdrawal, both ways (the "in & out" card).
+  const sum = (list) => list.reduce((t, e) => t + e.amount, 0n);
+  const fin = sum(events), fout = sum(refundEvents);
+  const flow = {
+    in: fin, out: fout, net: fin - fout, nIn: events.length, nOut: refundEvents.length,
+    wallets: uniqueAddrs.length, refunders: new Set(refundEvents.map((e) => e.contributor)).size, holding: rows.length,
+  };
 
-  renderCirclepadLeaderboard(rows, activity);
-  circlepadSaveCache("leaderboard", { rows, activity, savedAt: Date.now() });
+  renderCirclepadLeaderboard(rows, activity, flow);
+  circlepadSaveCache("leaderboard", { rows, activity, flow, savedAt: Date.now() });
 }
 
 // Pure DOM render — called with fresh data from the chain, and on load with
 // whatever the last visit cached, so the leaderboard is on screen instantly
 // instead of after the block search + log queries finish.
-function renderCirclepadLeaderboard(rows, activity) {
+// `flow` (optional): lifetime totals in and out — see refreshCirclepadLeaderboardInner.
+function renderCirclepadLeaderboard(rows, activity, flow) { // eslint-disable-line no-unused-vars
   const total = rows.reduce((sum, r) => sum + r.amount, 0n);
   const pctOf = (amount) => (total > 0n ? (Number((amount * 10000n) / total) / 100).toFixed(2) : "0.00");
 

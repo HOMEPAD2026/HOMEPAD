@@ -102,6 +102,11 @@
       "source": "/bridge",
       "destination": "/arc#bridge",
       "permanent": false
+    },
+    {
+      "source": "/scanner",
+      "destination": "/arc#scanner",
+      "permanent": false
     }
   ],
   "headers": [
