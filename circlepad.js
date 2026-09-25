@@ -251,6 +251,12 @@ async function fetchCirclepadState() {
     r = await multicallRead(calls);
   }
 
+  // Native balances come through Multicall3's getEthBalance; if that one
+  // read fails, ask the node directly — the recipient's "Withdraw & split"
+  // button depends on the escrow's balance, so it must never read as 0 by mistake.
+  if (r[7] == null) r[7] = await readProvider().getBalance(CONFIG.CIRCLEPAD_ESCROW_ADDRESS).catch(() => null);
+  if (myBalIdx >= 0 && r[myBalIdx] == null) r[myBalIdx] = await readProvider().getBalance(state.account).catch(() => null);
+
   const prev = _circlepadState || {};
   _circlepadState = {
     cap: r[0] ?? prev.cap ?? 0n,
@@ -308,6 +314,7 @@ function applyCirclepadState(s, { accountUnknown = false } = {}) {
   if (statusEl) {
     if (!s.started) statusEl.innerHTML = `<span class="bp-status-dot amber"></span>Not started — waiting on CirclePad`;
     else if (s.isOpen) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Live — raise open`;
+    else if (s.distributed) statusEl.innerHTML = `<span class="bp-status-dot"></span>Closed — split 80/5/15 done`;
     else if (capReached) statusEl.innerHTML = `<span class="bp-status-dot bp-live"></span>Cap reached — raise closed`;
     else statusEl.innerHTML = `<span class="bp-status-dot"></span>Raise closed`;
   }
@@ -935,7 +942,7 @@ function wireCirclepadContribute() {
       const escrow = circlepadEscrowRead();
       let amount = await escrow.remainingCap();
       const balance = await readProvider().getBalance(state.account);
-      const gasBuffer = ethers.parseEther("0.005"); // leave a little headroom for gas
+      const gasBuffer = ethers.parseEther("0.05"); // leave headroom for gas (paid in USDC on Arc)
       const spendable = balance > gasBuffer ? balance - gasBuffer : 0n;
       if (spendable < amount) amount = spendable;
       // two decimals is plenty for a USDC amount

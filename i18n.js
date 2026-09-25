@@ -1052,6 +1052,7 @@
     "Waiting for Circle's signature": "Circle 서명 대기 중",
     "Confirm in your wallet…": "지갑에서 확인하세요…",
     "Move USDC between Arc and 8 chains": "Arc와 8개 체인 사이에서 USDC 이동",
+    "Closed — split 80/5/15 done": "마감 — 80/5/15 분배 완료",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -2071,6 +2072,7 @@
     "Waiting for Circle's signature": "等待 Circle 签名",
     "Confirm in your wallet…": "请在钱包中确认…",
     "Move USDC between Arc and 8 chains": "在 Arc 与 8 条链之间转移 USDC",
+    "Closed — split 80/5/15 done": "已结束——已按 80/5/15 分配",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
