@@ -37,6 +37,7 @@
     const liq = d.liquidity != null ? F.usd(d.liquidity) : "—";
     setAll('#bp-panel-arcircle [data-tk="liq-usd"]', liq);
     setAll('#bp-panel-arcircle [data-tk="argus-tax"]', F.tax(d));
+    if (d.burned && d.burned.tokens > 0) setAll('#bp-panel-arcircle [data-tk="burned-pct"]', d.burned.pct.toFixed(2) + "%");
     setAll('[data-tk="banner-sub"]', d.liquidity != null ? `Liquidity ${liq} · locked on Argus` : "Trading on Argus · liquidity locked");
     const indexing = d.complete === false;
     setAll('#bp-panel-arcircle [data-tk="vol"]', indexing ? "…" : F.usd(d.vol24h));
@@ -59,7 +60,11 @@
     if (bb && d.buybacks && !indexing) {
       const b = d.buybacks;
       const head = `<div class="ac2p-bb-stats"><div><small>${F.esc(tr("Buybacks"))}</small><strong>${b.n}</strong></div><div><small>${F.esc(tr("USDC spent"))}</small><strong>${F.usd(b.usdc)}</strong></div><div><small>${F.esc(tr("$ARCIRCLE bought"))}</small><strong>${F.num(b.tokens)}</strong></div></div>`;
-      const list = b.list.length ? b.list.slice(0, 6).map((x) => `<a class="ac2p-row" href="${F.explorer("tx", x.tx)}" target="_blank" rel="noopener"><span class="ac2p-s buy">${F.esc(tr("Buy"))}</span><b>${F.usd(x.usdc)}</b><span class="ac2p-tok" data-no-i18n>${F.num(x.tokens)}</span><span></span><time>${F.ago(x.ts)}</time></a>`).join("")
+      // buybacks and burns together, newest first
+      const rows = b.list.map((x) => ({ ts: x.ts || 0, html: `<a class="ac2p-row" href="${F.explorer("tx", x.tx)}" target="_blank" rel="noopener"><span class="ac2p-s buy">${F.esc(tr("Buy"))}</span><b>${F.usd(x.usdc)}</b><span class="ac2p-tok" data-no-i18n>${F.num(x.tokens)}</span><span></span><time>${F.ago(x.ts)}</time></a>` }))
+        .concat(((d.burned && d.burned.list) || []).map((x) => ({ ts: x.ts || 0, html: `<a class="ac2p-row" href="${F.explorer("tx", x.tx)}" target="_blank" rel="noopener"><span class="ac2p-s burn">${F.esc(tr("Burn"))}</span><b data-no-i18n>${F.num(x.tokens)}</b><span class="ac2p-tok">${x.pct.toFixed(2)}%</span><span></span><time>${F.ago(x.ts)}</time></a>` })))
+        .sort((p, q) => q.ts - p.ts);
+      const list = rows.length ? rows.slice(0, 8).map((r) => r.html).join("")
         : `<p class="ac2p-empty">${F.esc(tr("No buybacks yet — each one will appear here with its transaction."))}</p>`;
       const html = head + list;
       if (bb.__html !== html) { bb.innerHTML = html; bb.__html = html; }

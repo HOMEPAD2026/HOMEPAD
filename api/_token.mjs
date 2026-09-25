@@ -32,8 +32,11 @@ export const TREASURY = "0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8";
 const LAUNCHED_AT = ARCIRCLE_LAUNCHED_AT;
 const SUPPLY = 1e9;
 const ZERO = "0x0000000000000000000000000000000000000000";
+// tokens sent here are gone for good (no one holds a key): counted as burned, never as a holder
+const DEAD = "0x000000000000000000000000000000000000dead";
+const BURN_SINKS = new Set([DEAD, ZERO]);
 const CHUNK = 9000, PARALLEL = 4, MAX_CHUNKS = 40, KEEP = 8 * 86400;
-const DOC = "tokenStats/arcircle_" + (ARCIRCLE ? ARCIRCLE.slice(2, 10) : "none") + "_v3"; // new coin → fresh state
+const DOC = "tokenStats/arcircle_" + (ARCIRCLE ? ARCIRCLE.slice(2, 10) : "none") + "_v4"; // new coin / new fields → fresh state
 const lc = (a) => String(a || "").toLowerCase();
 const sel = (sig) => kec(sig).slice(0, 10);
 const T = {
@@ -56,13 +59,14 @@ export async function treasuryWallets() {
 
 // ---- scan state: stored as strings (Firestore can't nest arrays) ----
 function load(doc) {
-  const W = { from: null, scannedTo: null, anchors: [], hold: new Map(), trades: [], bb: [], recent: [], p0: null, agg: { vol: 0, n: 0, tax: 0, fee: 0, buyVol: 0, sellVol: 0 } };
+  const W = { from: null, scannedTo: null, anchors: [], hold: new Map(), trades: [], bb: [], recent: [], burns: [], p0: null, agg: { vol: 0, n: 0, tax: 0, fee: 0, buyVol: 0, sellVol: 0 } };
   if (!doc) return W;
   W.from = doc.from; W.scannedTo = doc.scannedTo; W.p0 = doc.p0 == null ? null : doc.p0;
   W.anchors = (doc.anchors || []).map((s) => String(s).split("|").map(Number));
   for (const s of doc.hold || []) { const [a, bal, first, since] = String(s).split("|"); W.hold.set(a, { bal: BigInt(bal), first: Number(first), since: Number(since) }); }
   W.trades = (doc.trades || []).map((s) => { const [b, k, usd, price] = String(s).split("|"); return { b: Number(b), buy: k === "1", usd: Number(usd), price: Number(price) }; });
   W.bb = (doc.bb || []).map((s) => { const [b, usd, tok, h, w] = String(s).split("|"); return { b: Number(b), usd: Number(usd), tok: Number(tok), h, w }; });
+  W.burns = (doc.burns || []).map((s) => { const [b, tok, h, fr] = String(s).split("|"); return { b: Number(b), tok: Number(tok), h, fr }; });
   W.recent = (doc.recent || []).map((s) => { const [b, k, usd, tok, tr, h] = String(s).split("|"); return { b: Number(b), buy: k === "1", usd: Number(usd), tok: Number(tok), trader: tr, h }; });
   if (doc.agg) W.agg = { vol: doc.agg.vol || 0, n: doc.agg.n || 0, tax: doc.agg.tax || 0, fee: doc.agg.fee || 0, buyVol: doc.agg.buyVol || 0, sellVol: doc.agg.sellVol || 0 };
   return W;
@@ -74,6 +78,7 @@ function save(W) {
     hold: [...W.hold.entries()].map(([a, h]) => [a, h.bal.toString(), h.first, h.since].join("|")),
     trades: W.trades.map((t) => [t.b, t.buy ? 1 : 0, +t.usd.toFixed(6), +t.price.toPrecision(8)].join("|")),
     bb: W.bb.map((x) => [x.b, +x.usd.toFixed(6), +x.tok.toFixed(4), x.h, x.w].join("|")),
+    burns: W.burns.map((x) => [x.b, +x.tok.toFixed(6), x.h, x.fr].join("|")),
     recent: W.recent.map((x) => [x.b, x.buy ? 1 : 0, +x.usd.toFixed(6), +x.tok.toFixed(2), x.trader, x.h].join("|")),
   };
 }
@@ -115,6 +120,8 @@ export function apply(W, logs, bbSet) {
     if (lc(l.address) === ARCIRCLE && t0 === TOPIC.transfer) {
       const v = BigInt(l.data), fr = lc("0x" + l.topics[1].slice(26)), to = lc("0x" + l.topics[2].slice(26));
       move(W, fr, -v, b); move(W, to, v, b);
+      // a transfer into a burn sink (not the mint, which comes from zero)
+      if (BURN_SINKS.has(to) && fr !== ZERO) W.burns.push({ b, tok: Number(v) / 1e18, h: l.transactionHash, fr });
       continue;
     }
     if (POOL && lc(l.address) === PM && t0 === TOPIC.swap && lc(l.topics[1]) === POOL) { applySwap(W, l, byTx.get(l.transactionHash) || [], bbSet, b); continue; }
@@ -390,13 +397,15 @@ export async function tokenStats(wallet) {
   const tset = new Set(wl.map((w) => w.addr));
   // the pool's tokens sit in the v4 PoolManager (or, for a curve, in the curve)
   const HOME = POOL ? PM : CURVE;
-  const rows = [...W.hold.entries()].filter(([a, h]) => h.bal > 0n && a !== HOME && !VENUE.has(a)).sort((x, y) => (y[1].bal > x[1].bal ? 1 : y[1].bal < x[1].bal ? -1 : 0));
+  const rows = [...W.hold.entries()].filter(([a, h]) => h.bal > 0n && a !== HOME && !VENUE.has(a) && !BURN_SINKS.has(a)).sort((x, y) => (y[1].bal > x[1].bal ? 1 : y[1].bal < x[1].bal ? -1 : 0));
   const tokOf = (h) => Number(h.bal) / 1e18;
   const curveTok = W.hold.get(HOME) ? tokOf(W.hold.get(HOME)) : 0;
   const treasTok = wl.reduce((s, w) => s + (W.hold.get(w.addr) ? tokOf(W.hold.get(w.addr)) : 0), 0);
   const others = rows.filter(([a]) => !tset.has(a));
   const top10 = others.slice(0, 10).reduce((s, [, h]) => s + tokOf(h), 0);
-  const rest = Math.max(0, SUPPLY - curveTok - treasTok - top10);
+  // burned: what sits at the dead address (zero-address burns shrink the supply instead)
+  const burnedTok = W.hold.get(DEAD) ? tokOf(W.hold.get(DEAD)) : 0;
+  const rest = Math.max(0, SUPPLY - curveTok - treasTok - top10 - burnedTok);
   const bbSpent = W.bb.reduce((s, x) => s + x.usd, 0), bbTok = W.bb.reduce((s, x) => s + x.tok, 0);
   const L = live.launch || null;
   const out = {
@@ -411,7 +420,11 @@ export async function tokenStats(wallet) {
     buys24h: day.filter((t) => t.buy).length, sells24h: day.filter((t) => !t.buy).length,
     spark, sparkStep: 4 * 3600,
     holders: rows.length,
-    split: { curve: Math.round(curveTok), treasury: Math.round(treasTok), top10: Math.round(top10), others: Math.round(rest) },
+    split: { curve: Math.round(curveTok), treasury: Math.round(treasTok), top10: Math.round(top10), others: Math.round(rest), burned: Math.round(burnedTok) },
+    burned: {
+      tokens: r2(burnedTok, 2), pct: r2((burnedTok / SUPPLY) * 100, 3), circulating: Math.round(SUPPLY - burnedTok),
+      list: W.burns.slice(-20).reverse().map((x) => ({ tokens: r2(x.tok, 2), pct: r2((x.tok / SUPPLY) * 100, 3), tx: x.h, from: x.fr, ts: tsAt(W, x.b) })),
+    },
     top: others.slice(0, 10).map(([a, h]) => ({ address: a, pct: r2((tokOf(h) / SUPPLY) * 100, 3) })),
     buybacks: {
       n: W.bb.length, usdc: r2(bbSpent), tokens: Math.round(bbTok),

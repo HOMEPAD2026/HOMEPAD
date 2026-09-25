@@ -22,15 +22,15 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta name="twitter:image:alt" content="$ARCIRCLE — the core coin of ARCIRCLE PAD">
 <meta name="theme-color" content="#04060a">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790350006">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790350006">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790350006">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790352440">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790352440">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790352440">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790350006"></script>
+<script src="arc-log.js?v=1790352440"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790350006">
+<link rel="stylesheet" href="style.css?v=1790352440">
 </head>
 <body class="ax-page ax-token">
 
@@ -72,6 +72,7 @@
           <span class="ax-ca-label">Contract · Arc</span>
           <span class="ax-ca-soon">Announced at launch</span>
         </div>
+        <a class="ax-burn-pill arc-live-only" href="https://arc.etherscan.io/tx/0x0c90f51ad42b74f9fd3c3e0660319cb2609af76107db65ef2c25847aa55299ae" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.6 3.2 4.8 5.4 4.8 10a4.8 4.8 0 0 1-9.6 0c0-2.2 1.2-3.6 2.4-4.6.1 1.5.8 2.6 2 3.1-.6-2.8-.3-5.9.4-8.5Z"/></svg><span><b data-tk="burned-pct">11.68%</b> of the supply burned forever</span><i aria-hidden="true">↗</i></a>
         <div class="ax-actions arc-live-only">
           <a class="ax-btn ax-btn-grad" href="https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7" data-arc-href="buy" target="_blank" rel="noopener">Buy on Argus ↗</a>
           <a class="ax-btn ax-btn-ghost" href="#" data-arc-href="chart" target="_blank" rel="noopener">Chart ↗</a>
@@ -80,7 +81,7 @@
           <a class="ax-btn ax-btn-grad" href="https://t.me/arcircle_launch" target="_blank" rel="noopener">Get the launch alert ↗</a>
           <a class="ax-btn ax-btn-ghost" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">Follow <span data-no-i18n>@ARCIRCLEonArc</span> ↗</a>
         </div>
-        <p class="ax-sublinks"><a href="/whitepaper">Whitepaper</a><span aria-hidden="true" class="arc-live-only">·</span><a href="#buybacks" class="arc-live-only">Buybacks</a><span aria-hidden="true">·</span><a href="#faq">FAQ</a></p>
+        <p class="ax-sublinks"><a href="/whitepaper">Whitepaper</a><span aria-hidden="true" class="arc-live-only">·</span><a href="#buybacks" class="arc-live-only">Buybacks</a><span aria-hidden="true" class="arc-live-only">·</span><a href="#burn" class="arc-live-only">Burn</a><span aria-hidden="true">·</span><a href="#faq">FAQ</a></p>
       </div>
       <div class="ax-coin" aria-hidden="true" data-tilt>
         <span class="ax-coin-rim"></span>
@@ -103,6 +104,7 @@
       <div class="ax-fact"><span>Holders</span><strong data-tk="holders">—</strong><em data-tk="holders-sub"></em></div>
       <div class="ax-fact ax-fact-grad arc-curve-only"><span>To graduation</span><strong data-tk="togo">—</strong><div class="ax-mini-bar"><i data-tk="bar"></i></div></div>
       <div class="ax-fact arc-pool-only"><span>Liquidity</span><strong data-tk="liq-usd">—</strong><em>Locked · Uniswap v4</em></div>
+      <div class="ax-fact ax-fact-burn"><span>Burned</span><strong data-tk="burned-pct">11.68%</strong><em data-tk="burned-short">116.77M $ARCIRCLE</em></div>
     </div>
 
     <!-- ============ What it is ============ -->
@@ -318,8 +320,20 @@
     <!-- ============ Buybacks + supply ============ -->
     <section class="ax-section arc-live-only" id="buybacks">
       <div class="ax-kicker">Proof, on-chain</div>
-      <h2>Buybacks and who holds $ARCIRCLE.</h2>
-      <p class="ax-section-lede">Every $ARCIRCLE buy by the platform's wallets shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.</p>
+      <h2>Buybacks, burns and who holds $ARCIRCLE.</h2>
+      <p class="ax-section-lede">Every $ARCIRCLE buy by the platform's wallets and every burn shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.</p>
+      <div class="ax-card ax-burn" id="burn">
+        <div class="ax-burn-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.6 3.2 4.8 5.4 4.8 10a4.8 4.8 0 0 1-9.6 0c0-2.2 1.2-3.6 2.4-4.6.1 1.5.8 2.6 2 3.1-.6-2.8-.3-5.9.4-8.5Z"/></svg></div>
+        <div class="ax-burn-main">
+          <small>Burned forever</small>
+          <strong><span data-tk="burned-full">116,772,290.56</span> $ARCIRCLE</strong>
+          <div class="ax-burn-meter" role="img" aria-label="Share of the total supply burned"><i data-tk="burned-bar" style="width:11.68%"></i></div>
+          <p><b data-tk="burned-pct">11.68%</b> of the 1,000,000,000 supply was sent to the dead address <code data-no-i18n>0x…dEaD</code>, which no one controls — those tokens can never move again. Circulating supply: <b data-tk="circulating">883,227,709</b>.</p>
+        </div>
+        <div class="ax-burn-list" data-tk="burn-list">
+          <a href="https://arc.etherscan.io/tx/0x0c90f51ad42b74f9fd3c3e0660319cb2609af76107db65ef2c25847aa55299ae" target="_blank" rel="noopener"><span class="ax-burn-tag">Burn</span><b data-no-i18n>116.77M</b><span>11.68%</span><time>25 Sep 2026</time><span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
       <div class="ax-proof">
         <div class="ax-card ax-bb">
           <div class="ax-bb-stats">
@@ -337,6 +351,7 @@
             <li style="--c:#39ff88"><span>Treasury</span><b>—</b></li>
             <li style="--c:#4d9fff"><span>Top 10 holders</span><b>—</b></li>
             <li style="--c:#ffc861"><span>Everyone else</span><b>—</b></li>
+            <li style="--c:#ff7a45"><span>Burned</span><b>—</b></li>
           </ul>
         </div>
       </div>
@@ -372,6 +387,7 @@
         <details class="arc-nl-only" open><summary>What is the contract address?</summary><p>There isn't one yet — $ARCIRCLE is relaunching. The new contract address will be posted on this page and by <span data-no-i18n>@ARCIRCLEonArc</span> when it goes live. Don't trust addresses from anywhere else.</p></details>
         <details class="arc-nl-only"><summary>Where can I buy it?</summary><p>Not yet. Join the launch alerts on Telegram (<span data-no-i18n>@arcircle_launch</span>) to hear the moment it goes live.</p></details>
         <details class="arc-live-only"><summary>Where can I buy it?</summary><p>On Argus, where it launched. It trades in a Uniswap v4 pool on Arc, so it also shows up on Dexscreener and other trackers that index Arc — always check the contract address first.</p></details>
+        <details class="arc-live-only"><summary>Has any $ARCIRCLE been burned?</summary><p>Yes. On 25 September 2026, 116,772,290.56 $ARCIRCLE — 11.68% of the total supply — was sent to the dead address <code data-no-i18n>0x000…dEaD</code>, which no one controls. Those tokens can never move again; the live total is shown above. <a href="https://arc.etherscan.io/tx/0x0c90f51ad42b74f9fd3c3e0660319cb2609af76107db65ef2c25847aa55299ae" target="_blank" rel="noopener">See the transaction ↗</a></p></details>
         <details class="arc-pool-only"><summary>Is the liquidity locked?</summary><p>Yes. Argus puts the whole supply into a single Uniswap v4 position when the pool is created and hands it to a locker contract that has no withdraw function — nobody, Argus included, can pull that liquidity.</p></details>
         <details class="arc-curve-only"><summary>What happens at graduation?</summary><p>When the real USDC in the curve reaches its graduation threshold, trading moves from the curve to a DEX pool with that liquidity. The progress above is read live from the curve.</p></details>
         <details class="arc-pool-only"><summary>Is there a team allocation?</summary><p>No. Argus put all 1,000,000,000 $ARCIRCLE into the pool's liquidity position at launch; there is no separate team allocation. The supply split above shows where it sits today.</p></details>
@@ -407,6 +423,6 @@
 </nav>
 
 <!-- One file built from several scripts by tools/build-bundles.mjs (see BUNDLES there) -->
-<script src="arcircle.bundle.js?v=1790350006"></script>
+<script src="arcircle.bundle.js?v=1790352440"></script>
 </body>
 </html>

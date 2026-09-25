@@ -58,9 +58,27 @@
     if (lastPrice != null && d.price != null && d.price !== lastPrice) pulseCoin(d.price > lastPrice ? "up" : "down");
     lastPrice = d.price;
     if (d.partial || indexing) return; // only the curve fallback answered / history still loading
+    paintBurn(d);
     paintSpark(d);
     paintBuybacks(d);
     paintSupply(d);
+  }
+  // burned supply (dead address) — the page ships the known burn, the API keeps it current
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dateText(ts) { var t = new Date(ts * 1000); return t.getUTCDate() + " " + MON[t.getUTCMonth()] + " " + t.getUTCFullYear(); }
+  function paintBurn(d) {
+    var b = d.burned;
+    if (!b || !(b.tokens > 0)) return;
+    var pct = b.pct.toFixed(2) + "%";
+    setText("burned-pct", pct);
+    setText("burned-short", F.num(b.tokens) + " $ARCIRCLE");
+    setText("burned-full", b.tokens.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setText("circulating", b.circulating.toLocaleString("en-US"));
+    Array.prototype.forEach.call(all("burned-bar"), function (el) { el.style.width = Math.min(100, b.pct) + "%"; });
+    if (b.list && b.list.length) setHtml("burn-list", b.list.slice(0, 6).map(function (x) {
+      return '<a href="' + F.explorer("tx", x.tx) + '" target="_blank" rel="noopener"><span class="ax-burn-tag">Burn</span><b data-no-i18n>' + F.num(x.tokens) + "</b><span>" + x.pct.toFixed(2) + "%</span><time>" +
+        (x.ts ? dateText(x.ts) : "") + '</time><span aria-hidden="true">↗</span></a>';
+    }).join(""));
   }
   function paintSpark(d) {
     var box = document.querySelector('[data-tk="spark"]');
@@ -93,7 +111,7 @@
       return F.esc(x.label) + ' <a href="' + F.explorer("address", x.address) + '" target="_blank" rel="noopener" data-no-i18n>' + F.short(x.address) + " ↗</a>";
     }).join(" · ") : "");
   }
-  var SPLIT = [["curve", "Bonding curve", "#35d8d0"], ["treasury", "Treasury", "#39ff88"], ["top10", "Top 10 holders", "#4d9fff"], ["others", "Everyone else", "#ffc861"]];
+  var SPLIT = [["curve", "Bonding curve", "#35d8d0"], ["treasury", "Treasury", "#39ff88"], ["top10", "Top 10 holders", "#4d9fff"], ["others", "Everyone else", "#ffc861"], ["burned", "Burned", "#ff7a45"]];
   function paintSupply(d) {
     if (!d.split) return;
     SPLIT[0][1] = d.venue === "pool" ? "In the pool" : "Bonding curve";
@@ -108,7 +126,7 @@
     }
     setHtml("legend", SPLIT.map(function (s) {
       var v = d.split[s[0]] || 0;
-      return '<li style="--c:' + s[2] + '"><span>' + s[1] + "</span><b>" + (v / 1e7).toFixed(v / 1e7 < 10 ? 2 : 1) + "%</b></li>";
+      return '<li style="--c:' + s[2] + '"><span>' + s[1] + "</span><b>" + (v / 1e7).toFixed(v / 1e7 < 10 || s[0] === "burned" ? 2 : 1) + "%</b></li>";
     }).join(""));
   }
   function fillRing(pct) {

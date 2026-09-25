@@ -25,7 +25,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="/arc-log.js?v=1790350006"></script>
+<script src="/arc-log.js?v=1790352440"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -311,6 +311,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
       <tr><td><strong>네트워크</strong></td><td>Arc 메인넷 (체인 ID 5042) — 가스는 USDC로 지불</td></tr>
       <tr><td><strong>표준 / 소수점 자릿수</strong></td><td>ERC-20 · 소수점 18자리</td></tr>
       <tr><td><strong>총 공급량</strong></td><td>1,000,000,000 $ARCIRCLE — 고정</td></tr>
+      <tr><td><strong>소각</strong></td><td>116,772,290.56 $ARCIRCLE(공급량의 11.68%)을 2026년 9월 25일 소각 주소 <code>0x…dEaD</code>로 전송 — tx <code>0x0c90…99ae</code>. 유통량: 883,227,709</td></tr>
       <tr><td><strong>런치</strong></td><td>2026년 9월 25일 14:09 UTC, Argus(argus.world)에서 재런칭 — foci.family의 첫 번째 런칭(2026년 9월 22일)은 종료</td></tr>
       <tr><td><strong>거래처</strong></td><td>Argus · USDC와 페어된 Uniswap v4 풀(풀 수수료 1%, 틱 간격 200), 유동성은 Argus가 잠금</td></tr>
       <tr><td><strong>초기 분배</strong></td><td>10억 개 전량을 Argus가 시작 가격 위의 Uniswap v4 유동성 포지션 하나에 곧바로 발행 — 팀 또는 내부자 배정 없음</td></tr>
@@ -1060,7 +1061,8 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   <div class="phase done">
     <div class="phase-head"><h3>0단계 — 기반 구축</h3><span class="phase-when">2026년 3분기 · 완료</span><span class="tag live">가동 중</span></div>
     <ul class="checks">
-      <li class="ok">foci의 본딩 커브에서 $ARCIRCLE 런치(2026년 9월 22일), 공급량 100%를 커브에 투입</li>
+      <li class="ok">Argus에서 $ARCIRCLE 재런칭(2026년 9월 25일), 전체 공급량을 잠긴 Uniswap v4 포지션 하나에 투입</li>
+      <li class="ok">$ARCIRCLE 공급량의 11.68%(116,772,290.56개)를 소각 주소로 소각</li>
       <li class="ok">Arc 메인넷에 ArcPad 팩토리, 수수료 훅 및 라우터 배포</li>
       <li class="ok">ARCIRCLE PAD 웹사이트: 지갑 연결을 지원하는 ArcPad, CirclePad, $ARCIRCLE 허브</li>
       <li class="ok">모든 런치에 동일하게 적용되는 고정된 공정한 시작점(시가총액 ≈ $4,350)</li>
