@@ -2217,7 +2217,13 @@ body.ax-dock-host{padding-bottom:160px;}
   .ac2-main > .ac2-card:not(.ac2-chart-card){order:3;}
   .ac2-links{order:4;}
   .ac2-feature{grid-template-columns:auto 1fr auto;}
-  .ac2-feature-stats{display:none;}
+  /* price + market cap stay visible: a compact row under the name */
+  .ac2-feature{row-gap:10px;}
+  .ac2-feature-logo{grid-column:1;grid-row:1 / span 2;align-self:start;}
+  .ac2-feature-main{grid-column:2;grid-row:1;}
+  .ac2-feature-stats{grid-column:2;grid-row:2;gap:18px;}
+  .ac2-feature-stats small{white-space:nowrap;}
+  .ac2-feature-cta{grid-column:3;grid-row:1 / span 2;align-self:center;}
 }
 @media (max-width:640px){
   .ac2{padding-top:16px;}
@@ -2242,6 +2248,9 @@ body.ax-dock-host{padding-bottom:160px;}
   .ac2-feature-logo img{width:38px;}
   .ac2-feature-cta{display:none;}
   .ac2-feature-kind{display:none;}
+  .ac2-feature-stats{gap:16px;}
+  .ac2-feature-stats strong{font-size:.92rem;}
+  .ac2-feature-stats small{font-size:.6rem;margin-bottom:2px;}
 }
 .ac2-dl > div:last-child:nth-child(odd){grid-column:1 / -1;}
 
