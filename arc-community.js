@@ -1,4 +1,4 @@
-/* global APC, CONFIG, state, ethers, connectWallet, apcRenderHeader, refreshAccountDependentViews */
+/* global APC, CONFIG, state, ethers, connectWallet, apcRenderHeader, refreshAccountDependentViews, arcCelebrateLaunch */
 // arc-community.js — ArcPad coin page: creator-edited profile (description,
 // links, banner), the creator's verified X account, and the daily
 // Bullish / Bearish vote. Everything is signed by the wallet (free, no
@@ -78,6 +78,8 @@
       if (ban.dataset.src !== bsrc.slice(-40)) { ban.innerHTML = `<img src="${bsrc}" alt="">`; ban.dataset.src = bsrc.slice(-40); }
       ban.hidden = false;
     } else if (ban) ban.hidden = true;
+    const shell = panel.querySelector(".apc");
+    if (shell) shell.classList.toggle("has-banner", !!bsrc);
     // verified X badge (name row + about)
     const x = on && d.creatorX ? d.creatorX : null;
     const row = panel.querySelector(".ac2-name-row");
@@ -137,62 +139,128 @@
     vote: ICON.up,
     lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>',
   };
-  let ckLockState = { coin: null, locked: false };
+  let ckLockState = { coin: null, locked: false, total: 0n };
+  // A coin launched in this tab opens with its checklist, even if a checklist
+  // for it was closed on this device before.
+  let freshCoin = null;
+  const reduceMotion = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lockPct = (raw) => { const p = Number((raw * 10000n) / 10n ** 27n) / 100; return p >= 10 ? p.toFixed(0) : p.toFixed(p >= 1 ? 1 : 2); };
+  function ckClicks(card) {
+    card.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-ck]");
+      if (e.target.closest("[data-ck-close]")) { ckSet(APC.l.token, card.classList.contains("ck-sum") ? "sumclosed" : "closed"); card.remove(); return; }
+      if (!b) return;
+      const k = b.dataset.ck, sym = APC.l.symbol || "";
+      if (k === "banner") openEditor("info");
+      else if (k === "x") openEditor("x");
+      else if (k === "lock") { const lb = $("apc-lockbtn"); if (lb) lb.click(); }
+      else if (k === "share") {
+        ckSet(APC.l.token, "share");
+        const url = `https://www.arcircle.app/c/${APC.l.token}`;
+        window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚`)}&url=${encodeURIComponent(url)}&via=HOMEonRobinhood`, "_blank", "noopener,width=600,height=560");
+        checklist(curData());
+      } else if (k === "vote") {
+        const url = `https://www.arcircle.app/c/${APC.l.token}`;
+        window.open(`https://x.com/intent/post?text=${encodeURIComponent(`Bullish or bearish on $${sym}? Cast today's vote on ArcPad 💚`)}&url=${encodeURIComponent(url)}`, "_blank", "noopener,width=600,height=560");
+      } else if (k === "brag") {
+        const d = curData(), bits = [];
+        if (d && d.creatorX) bits.push(`✔ creator verified on X`);
+        if (ckLockState.total > 0n) bits.push(`🔒 ${lockPct(ckLockState.total)}% of supply locked`);
+        const url = `https://www.arcircle.app/c/${APC.l.token}`;
+        window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} on ArcPad\n${bits.join("\n")}\n\nVote Bullish or Bearish today 💚`)}&url=${encodeURIComponent(url)}`, "_blank", "noopener,width=600,height=560");
+      }
+    });
+  }
   function checklist(d) {
     const panel = $("bp-panel-coin");
     let card = $("apc-checklist");
     const coin = APC.l && APC.l.token;
-    if (!d || !coin || !isCreator() || ckGet(coin, "closed")) { if (card) card.remove(); return; }
+    if (!d || !coin || !isCreator()) { if (card) card.remove(); return; }
     const s = d.sentiment || { today: { bull: 0, bear: 0 }, week: { bull: 0, bear: 0 } };
     const lockOn = typeof CONFIG !== "undefined" && CONFIG.ARCLOCK_ADDRESS && window.arcLock;
     if (lockOn && ckLockState.coin !== lc(coin)) {
-      ckLockState = { coin: lc(coin), locked: false };
-      window.arcLock.locksOf(coin).then((locks) => { ckLockState.locked = window.arcLock.activeByCreator(locks, APC.l.creator).total > 0n; checklist(curData()); }).catch(() => {});
+      ckLockState = { coin: lc(coin), locked: false, total: 0n };
+      window.arcLock.locksOf(coin).then((locks) => { const a = window.arcLock.activeByCreator(locks, APC.l.creator); ckLockState.locked = a.total > 0n; ckLockState.total = a.total; checklist(curData()); }).catch(() => {});
     }
+    const votes = Math.max(s.week.bull + s.week.bear, s.today.bull + s.today.bear);
     const steps = [
       { k: "banner", t: "Add a banner", s: "Give your coin page a face.", done: !!(d.profile && d.profile.banner), act: "Add banner" },
       { k: "x", t: "Verify your X account", s: "A blue check next to every coin you launch.", done: !!d.creatorX, act: "Verify" },
       { k: "share", t: "Share your launch", s: "It's already posted in @arcircle_launch — pass it on.", done: ckGet(coin, "share"), act: "Share" },
-      { k: "vote", t: "Ask for the first votes", s: "Invite holders to vote Bullish or Bearish today.", done: s.week.bull + s.week.bear + s.today.bull + s.today.bear > 0, act: "Ask" },
+      { k: "vote", t: "Ask for the first votes", s: "Invite holders to vote Bullish or Bearish today.", done: votes > 0, act: "Ask" },
     ];
     if (lockOn) steps.push({ k: "lock", t: "Lock part of your supply", s: "The strongest trust signal a creator can give.", done: ckLockState.locked, act: "Lock" });
     const done = steps.filter((x) => x.done).length;
+    const head = panel.querySelector(".ac2-head");
+    const place = () => { card = document.createElement("section"); card.id = "apc-checklist"; card.className = "ck"; head.insertAdjacentElement("afterend", card); ckClicks(card); };
+
     if (done === steps.length) {
-      if (card && !card.classList.contains("ck-complete")) { card.classList.add("ck-complete"); setTimeout(() => { if (card) card.remove(); ckSet(coin, "closed"); }, 2600); }
-      else if (!card) ckSet(coin, "closed");
-      if (card) card.querySelector(".ck-title").textContent = tr("All set — your coin is ready for the spotlight.");
+      // Just finished while watching: fill the ring, a small burst of
+      // confetti, then the card turns into a one-line summary.
+      if (card && !card.classList.contains("ck-sum") && !card.classList.contains("ck-complete")) {
+        card.classList.add("ck-complete");
+        const ring = card.querySelector(".ck-ring");
+        if (ring) { ring.style.setProperty("--ck-p", "100%"); ring.innerHTML = `<span class="ck-ring-ok">${ICON.check}</span>`; }
+        const t = card.querySelector(".ck-title"); if (t) t.textContent = tr("All set — your coin is ready for the spotlight.");
+        const p = card.querySelector(".ck-head p"); if (p) p.textContent = tr("Every step done. Buyers can see it on your coin.");
+        if (!reduceMotion() && typeof window.arcConfetti === "function") window.arcConfetti({ count: 70 });
+        if (typeof window.arcFeedback === "function") window.arcFeedback("milestone");
+        setTimeout(() => { const c = $("apc-checklist"); if (c === card) { card.classList.remove("ck-complete"); summary(card, d, votes); } }, 2600);
+        return;
+      }
+      if (card && card.classList.contains("ck-complete")) return;
+      if (ckGet(coin, "sumclosed")) { if (card) card.remove(); return; }
+      if (!card) place();
+      summary(card, d, votes);
       return;
     }
-    if (!card) {
-      card = document.createElement("section");
-      card.id = "apc-checklist"; card.className = "ck";
-      const head = panel.querySelector(".ac2-head");
-      head.insertAdjacentElement("afterend", card);
-      card.addEventListener("click", (e) => {
-        const b = e.target.closest("[data-ck]");
-        if (e.target.closest("[data-ck-close]")) { ckSet(APC.l.token, "closed"); card.remove(); return; }
-        if (!b) return;
-        const k = b.dataset.ck, sym = APC.l.symbol || "";
-        if (k === "banner") openEditor("info");
-        else if (k === "x") openEditor("x");
-        else if (k === "lock") { const lb = $("apc-lockbtn"); if (lb) lb.click(); }
-        else if (k === "share") {
-          ckSet(APC.l.token, "share");
-          const url = `https://www.arcircle.app/c/${APC.l.token}`;
-          window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚`)}&url=${encodeURIComponent(url)}&via=HOMEonRobinhood`, "_blank", "noopener,width=600,height=560");
-          checklist(curData());
-        } else if (k === "vote") {
-          const url = `https://www.arcircle.app/c/${APC.l.token}`;
-          window.open(`https://x.com/intent/post?text=${encodeURIComponent(`Bullish or bearish on $${sym}? Cast today's vote on ArcPad 💚`)}&url=${encodeURIComponent(url)}`, "_blank", "noopener,width=600,height=560");
-        }
-      });
-    }
+    if (ckGet(coin, "closed") && freshCoin !== lc(coin)) { if (card) card.remove(); return; }
+    if (!card) place();
+    card.classList.remove("ck-sum");
     const pct = Math.round((done / steps.length) * 100);
-    card.innerHTML = `<div class="ck-head"><div class="ck-ring" style="--ck-p:${pct}%"><span data-no-i18n>${done}/${steps.length}</span></div>
+    const html = `<div class="ck-head"><div class="ck-ring" style="--ck-p:${pct}%"><span data-no-i18n>${done}/${steps.length}</span></div>
         <div><h3 class="ck-title">Get your coin ready</h3><p>Each step takes under a minute and helps buyers trust your coin.</p></div>
         <button type="button" class="ck-x" data-ck-close aria-label="Close">${ICON.close}</button></div>
       <ol class="ck-steps">${steps.map((x) => `<li class="${x.done ? "done" : ""}"><span class="ck-ico">${x.done ? ICON.check : CK_ICON[x.k]}</span>
         <span class="ck-txt"><strong>${x.t}</strong><small>${x.s}</small></span>${x.done ? "" : `<button type="button" class="cm-btn" data-ck="${x.k}">${x.act}</button>`}</li>`).join("")}</ol>`;
+    if (card.__html !== html) {
+      // Keep the ring's old value for one frame so the fill animates.
+      const oldRing = card.querySelector(".ck-ring");
+      const was = oldRing ? oldRing.style.getPropertyValue("--ck-p") : "0%";
+      card.innerHTML = html; card.__html = html;
+      const ring = card.querySelector(".ck-ring");
+      if (ring && was && was !== `${pct}%`) { ring.style.setProperty("--ck-p", was); requestAnimationFrame(() => requestAnimationFrame(() => ring.style.setProperty("--ck-p", `${pct}%`))); }
+    }
+    if (freshCoin === lc(coin) && !card.__shown) { card.__shown = true; card.classList.add("ck-fresh"); }
+  }
+  // "Verified · Locked 5% · 12 votes" — what buyers now see, in one line.
+  function summary(card, d, votes) {
+    const chips = [];
+    if (d.creatorX) chips.push(`<span class="ck-chip ck-chip-x">${ICON.check}<span>Verified</span> <b data-no-i18n>@${esc(d.creatorX.handle)}</b></span>`);
+    if (ckLockState.total > 0n) chips.push(`<span class="ck-chip ck-chip-lock">${CK_ICON.lock}<span>Locked</span> <b data-no-i18n>${lockPct(ckLockState.total)}%</b></span>`);
+    chips.push(`<span class="ck-chip ck-chip-vote">${ICON.up}<span>Votes</span> <b data-no-i18n class="ck-votes">0</b></span>`);
+    card.className = "ck ck-sum";
+    card.__html = "";
+    card.innerHTML = `<div class="ck-sum-ring">${ICON.check}</div>
+      <div class="ck-sum-main"><b class="ck-sum-title">Your coin is ready</b><div class="ck-chips">${chips.join('<span class="ck-sep">·</span>')}</div></div>
+      <button type="button" class="cm-btn ck-sum-share" data-ck="brag">${ICON.x}<span>Share</span></button>
+      <button type="button" class="ck-x" data-ck-close aria-label="Close">${ICON.close}</button>`;
+    countUp(card.querySelector(".ck-votes"), votes);
+  }
+  // Numbers roll up to their new value instead of jumping.
+  function countUp(el, to, suffix = "") {
+    if (!el) return;
+    const from = el.__v == null ? 0 : el.__v;
+    el.__v = to;
+    if (from === to || reduceMotion()) { el.textContent = to + suffix; return; }
+    const t0 = performance.now(), dur = Math.min(900, 300 + Math.abs(to - from) * 40);
+    cancelAnimationFrame(el.__raf);
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(from + (to - from) * e) + suffix;
+      if (k < 1) el.__raf = requestAnimationFrame(step);
+    };
+    el.__raf = requestAnimationFrame(step);
   }
 
   // ---------------- sentiment card ----------------
@@ -220,9 +288,9 @@
     card.querySelector(".cm-bull").style.width = (n ? bullPct : 50) + "%";
     card.querySelector(".cm-bear").style.width = (n ? 100 - bullPct : 50) + "%";
     card.querySelector(".cm-sent-bar").setAttribute("aria-label", n ? `${bullPct}% bullish of ${n} votes today` : "No votes yet today");
-    card.querySelector(".cm-l-bull b").textContent = n ? bullPct + "%" : "—";
-    card.querySelector(".cm-l-bear b").textContent = n ? 100 - bullPct + "%" : "—";
-    card.querySelector(".cm-l-n b").textContent = n;
+    const lb = card.querySelector(".cm-l-bull b"), lr = card.querySelector(".cm-l-bear b");
+    if (n) { countUp(lb, bullPct, "%"); countUp(lr, 100 - bullPct, "%"); } else { lb.__v = lr.__v = null; lb.textContent = lr.textContent = "—"; }
+    countUp(card.querySelector(".cm-l-n b"), n);
     card.querySelector(".cm-l-n span").textContent = n === 1 ? "vote" : "votes";
     const hn = t.hbull + t.hbear, w = d.sentiment.week, wn = w.bull + w.bear;
     const sub = [];
@@ -540,5 +608,13 @@
   const cr = $("cr-body");
   if (cr) new MutationObserver(() => { badgeCreators(); }).observe(cr, { childList: true });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal) closeEditor(); });
+  if (typeof arcCelebrateLaunch === "function") {
+    const origCel = arcCelebrateLaunch;
+    // eslint-disable-next-line no-global-assign
+    arcCelebrateLaunch = function (token) {
+      freshCoin = lc(token);
+      try { return origCel.apply(this, arguments); } finally { setTimeout(() => { try { checklist(curData()); } catch (e) { /* ignore */ } }, 60); }
+    };
+  }
   window.arcCommunity = { open: openEditor, refresh: () => refresh(true), data: () => curData() };
 })();

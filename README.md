@@ -151,8 +151,11 @@ launch a token → trading happens → rent (fees) collected → $HOME bought ba
 ├── firestore.rules      Firestore security rules for claims/mottos/passportStamps
 ├── config.js            Every address, RPC, and URL in one place
 ├── abis.js              Contract ABIs
-├── style.css            Single stylesheet; all responsive rules live in one section at the end
-├── bump-cache.sh        Rotates the shared ?v= cache-buster on every script/style tag — run after any .js/.css change
+├── style.css            Stylesheet for the ARCIRCLE PAD pages (/, /arc, /circle, /arcircle, /reward)
+├── legacy.css           Frozen stylesheet for the original HOMEPAD pages (World, Rent, cnPONS, guides, …)
+├── *.bundle.js          ArcPad / CirclePad / Reward scripts joined + minified by tools/build-bundles.mjs — never edit by hand
+├── tools/build-bundles.mjs  Which source files go into each bundle, in load order
+├── bump-cache.sh        Rebuilds the bundles, then rotates the shared ?v= cache-buster — run after any .js/.css change
 ├── vercel.json           Clean-URL rewrite (/rent -> rent.html, /world -> world.html)
 ├── images/              Stickers, favicons, Open Graph card, generated map logos
 ├── FRONTEND.md          Frontend notes
@@ -255,6 +258,7 @@ Confirmed mainnet addresses for the eventual mainnet deploy (Robinhood Chain, ch
 - Profile creator fees are exact, not estimated: Instant/Hybrid/Paired sum the hook's `FeeRouted` events for that token's poolId, valuing buy-side (token-denominated) fees in ETH at each trade's own price; Bonding Curve replays the curve's own split math over its `Buy`/`Sell` events.
 - **Proof of Rent** (`rent.html`) is about the treasury allocation and its burns, not fee revenue: per featured launch it reads `balanceOf(0x…dEaD)` against the 8% allocation (burned ✓ / pending, share of supply, rent burned on top) and lists every `Transfer` into the burn address as the proof-of-burn ledger — balances and a handful of token-contract logs, no PoolManager scan. `CONFIG.RENT_FEATURED_TOKENS` names the launches shown; any launch whose allocation has actually been burned appears on its own. Platform-wide volume and fee totals are deliberately not published there.
 - Every `eth_getLogs` the site makes is bounded to start at `CONFIG.CONTRACTS_LIVE_SINCE` (the block found by a one-time timestamp binary search, cached in localStorage) rather than block 0. The chain has tens of millions of blocks before HOMEPAD existed and the PoolManager address carries every v4 swap on the chain — an unbounded query made the public RPC time out (`log query timed out`, -32000), which is what showed Proof of Rent at 0 ETH on launch day despite real fees. FeeRouted is additionally bounded to the block range of the swaps just fetched, since the hook emits it in the same transaction.
+- **ArcPad, CirclePad and Reward load one `*.bundle.js` each**, built from the source files listed in `tools/build-bundles.mjs`. Edit the sources; `sh bump-cache.sh` rebuilds the bundles (minified when `esbuild` is installed, plain-joined otherwise). A new script for those pages goes into that list, not into the HTML.
 - **After changing any `.js` or `.css`, run `sh bump-cache.sh` before committing.** Every script/style tag shares one `?v=` cache-buster; the CDN and browsers key on the full URL, so a change shipped under the same `?v=` is invisible to anyone who already has the old file cached.
 - Every deferred factory address (`FACTORY_ADDRESS`, `PAIRED_FACTORY_ADDRESS`) is guarded with a `*Configured()` check before any contract call — Explore, token pages, and the launch form all skip a deferred mode cleanly instead of throwing on an empty address. `curveFactoryConfigured()` in particular exists because that guard was originally missing and took down Explore + every token page, not just curve ones, until it was added.
 - Explorer link-outs (`CONFIG.BLOCK_EXPLORER`) point at **rh-scan**, a community Robinhood-mainnet explorer — `/token/{addr}` for ERC-20s, `/address/{addr}` for everything else. Data reads (holder counts, source verification) stay on the official **Blockscout** instance (`BLOCKSCOUT_API_BASE` / `HOME_BLOCKSCOUT_API_BASE`) — rh-scan is links only, never an RPC/data source.

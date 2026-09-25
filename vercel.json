@@ -65,6 +65,14 @@
       "destination": "/api/c?addr=:addr&view=page"
     },
     {
+      "source": "/ko/coin/:addr",
+      "destination": "/api/c?addr=:addr&view=page&lang=ko"
+    },
+    {
+      "source": "/zh/coin/:addr",
+      "destination": "/api/c?addr=:addr&view=page&lang=zh"
+    },
+    {
       "source": "/sitemap-coins.xml",
       "destination": "/api/c?view=sitemap"
     }
@@ -80,6 +88,29 @@
       ],
       "destination": "https://www.arcircle.app/:path*",
       "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), browsing-topics=()"
+        }
+      ]
     }
   ]
 }

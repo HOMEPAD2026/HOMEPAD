@@ -949,14 +949,15 @@ function refreshAccountDependentViews() {
     // history entries, and let the floating quick bar highlight its item.
     if (tab !== "coin" && history.replaceState) { // the coin page writes its own #coin/<address>
       const want = tab === "home" ? "" : `#${tab}`;
-      if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
+      // "#explore?pair=…" keeps its filter query (arc-filters.js).
+      if (location.hash.split("?")[0] !== want) history.replaceState(null, "", location.pathname + location.search + want);
     }
     document.dispatchEvent(new CustomEvent("arcpad:tab", { detail: { tab } }));
     if (tab === "launch") updateArcpadLaunchBalance();
   }
   window.arcpadShowTab = showTab;
   const tabFromHash = () => {
-    const t = location.hash.slice(1);
+    const t = location.hash.slice(1).split("?")[0];
     if (t === "coin" || t.startsWith("coin/")) return null; // handled by arcpad-coin.js
     return t && document.getElementById(`bp-panel-${t}`) ? t : null;
   };
@@ -1033,7 +1034,7 @@ function refreshAccountDependentViews() {
   // (the splash page's EXPLORE / LAUNCH nav uses these). Falls back to Home
   // for any hash that isn't a tab.
   const openTabFromHash = () => {
-    const tab = (location.hash || "").replace(/^#\/?/, "");
+    const tab = (location.hash || "").replace(/^#\/?/, "").split("?")[0];
     if (tab && document.getElementById(`bp-panel-${tab}`)) showTab(tab);
   };
   openTabFromHash();

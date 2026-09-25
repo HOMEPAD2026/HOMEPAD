@@ -571,6 +571,21 @@
     "Add banner": "배너 추가",
     "Ask": "요청",
     "All set — your coin is ready for the spotlight.": "준비 완료 — 이제 코인을 알릴 차례예요.",
+    "View on ArcScan": "ArcScan에서 보기",
+    "More": "더보기",
+    "Push the unlock date 30 days later": "해제일을 30일 뒤로 미루기",
+    "Confirm the new unlock date in your wallet…": "지갑에서 새 해제일을 확인해 주세요…",
+    "Extended — now unlocks on": "연장 완료 — 새 해제일",
+    "Extend failed": "연장 실패",
+    "Ready to withdraw": "출금 가능",
+    "Unlocks": "해제",
+    "Of supply": "공급 대비",
+    "Unlocks in": "해제까지",
+    "Locked with ArcLock. Open a coin to extend a lock by 30 days or withdraw once it unlocks.": "ArcLock으로 락업된 물량이에요. 코인 페이지에서 30일 연장하거나, 해제 후 출금할 수 있어요.",
+    "Every step done. Buyers can see it on your coin.": "모든 단계를 마쳤어요. 구매자도 코인 페이지에서 확인할 수 있어요.",
+    "Your coin is ready": "코인 준비 완료",
+    "Verified": "인증됨",
+    "Votes": "투표",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -1037,6 +1052,21 @@
     "Add banner": "添加横幅",
     "Ask": "邀请",
     "All set — your coin is ready for the spotlight.": "全部完成 — 你的代币已准备好闪亮登场。",
+    "View on ArcScan": "在 ArcScan 查看",
+    "More": "更多",
+    "Push the unlock date 30 days later": "将解锁日期延后 30 天",
+    "Confirm the new unlock date in your wallet…": "请在钱包中确认新的解锁日期…",
+    "Extended — now unlocks on": "已延长 — 新的解锁日期",
+    "Extend failed": "延长失败",
+    "Ready to withdraw": "可提取",
+    "Unlocks": "解锁",
+    "Of supply": "占供应量",
+    "Unlocks in": "距解锁",
+    "Locked with ArcLock. Open a coin to extend a lock by 30 days or withdraw once it unlocks.": "通过 ArcLock 锁仓。打开代币页面可将锁仓延长 30 天，或在解锁后提取。",
+    "Every step done. Buyers can see it on your coin.": "所有步骤已完成，买家可以在代币页面看到。",
+    "Your coin is ready": "你的代币已准备就绪",
+    "Verified": "已验证",
+    "Votes": "投票",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
@@ -1054,6 +1084,10 @@
     var nav = (navigator.language || "").toLowerCase();
     lang = localStorage.getItem(KEY) || (nav.indexOf("ko") === 0 ? "ko" : nav.indexOf("zh") === 0 ? "zh" : "en");
   } catch (e) { /* default en */ }
+  // ?lang=ko|zh|en in the address (used by the /ko/coin/ and /zh/coin/
+  // pages' "Trade" links) picks the language and remembers it.
+  var qLang = /[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search);
+  if (qLang) { lang = qLang[1]; try { localStorage.setItem(KEY, lang); } catch (e) { /* fine */ } }
   if (LANGS.indexOf(lang) < 0 || (noZh && lang === "zh")) lang = "en";
 
   function translate(en, l) {

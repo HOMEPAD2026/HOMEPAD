@@ -4,6 +4,8 @@
 //   /coin/<address>     indexable coin page: server-rendered HTML with the
 //                        coin's facts, links and structured data, so a search
 //                        for "$TICKER arc" can land on it
+//   /ko/coin/<address>  the same page in Korean, /zh/coin/<address> in
+//                        Simplified Chinese — linked to each other with hreflang
 //   /sitemap-coins.xml  every ArcPad coin's /coin/ page, for search engines
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 
@@ -20,7 +22,8 @@ export default async function handler(req) {
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
-  if (view === "page") return coinPage(coin, addr);
+  const lang = LANGS.includes(url.searchParams.get("lang")) ? url.searchParams.get("lang") : "en";
+  if (view === "page") return coinPage(coin, addr, lang);
   return sharePage(url, coin);
 }
 
@@ -64,7 +67,78 @@ function sharePage(url, coin) {
 </body></html>`, "public, max-age=0, s-maxage=120, stale-while-revalidate=600");
 }
 
-// ---------------- /coin/<address> ----------------
+// ---------------- /coin/<address> (+ /ko/, /zh/) ----------------
+const LANGS = ["en", "ko", "zh"];
+const HREFLANG = { en: "en", ko: "ko", zh: "zh-Hans" };
+const pagePath = (l, token) => `${l === "en" ? "" : `/${l}`}/coin/${token}`;
+// Every visible string on the coin page, per language. Functions take the
+// bits that are spliced in (ticker, name, pair, …) — already HTML-escaped.
+const T = {
+  en: {
+    title: (s, n) => `$${s} (${n}) price, chart & market cap — ArcPad on Arc`,
+    meta: (s, n, q) => `${n} ($${s}) is an ArcPad coin on Circle's Arc network, trading in a Uniswap v4 pool paired with ${q}.`,
+    mcap: (v) => ` Market cap ${v}.`,
+    og: (s, n) => `$${s} — ${n} on ArcPad`,
+    explore: "Explore", sub: "ArcPad coin on Circle's Arc", verified: "Creator verified on X",
+    price: "Price", marketCap: "Market cap", pair: "Pair", fee: "Trade fee",
+    trade: (s) => `Trade $${s} on ArcPad →`, about: (n) => `About ${n}`,
+    ca: "Contract address", caWarn: "Always check this address before buying — other tokens can use the same name or ticker.",
+    links: "Links", details: "Details", network: "Network", networkV: "Arc mainnet (chain 5042)",
+    pool: "Pool", poolV: (q) => `Uniswap v4, paired with ${q}`, supply: "Total supply", fixed: "(fixed)",
+    creator: "Creator", launched: "Launched",
+    howTo: (s) => `How to buy $${s}`,
+    step1: "Get USDC on Circle's Arc network — Arc uses USDC for gas too.",
+    step2: (a) => `Open ${a} and connect your wallet.`, step2link: (s) => `$${s} on ArcPad`,
+    step3: "Enter an amount, check the quote and slippage, and confirm the swap.",
+    what: "What is ArcPad?",
+    whatP: (home, tg) => `ArcPad is the instant launchpad of ${home}. Every coin gets a real Uniswap v4 pool from block one, starts from the same fair price and pays most of its trading fee to its creator. New launches are posted live to ${tg}.`,
+    newest: "Newest ArcPad coins",
+    fine: "Figures are read live from Arc and cached for a few minutes. Nothing here is financial advice; crypto assets can lose all of their value.",
+  },
+  ko: {
+    title: (s, n) => `$${s} (${n}) 시세·차트·시가총액 — Arc의 ArcPad`,
+    meta: (s, n, q) => `ArcPad 코인 ${n}($${s}) — Circle의 Arc 네트워크에서 ${q} 페어 Uniswap v4 풀로 거래됩니다.`,
+    mcap: (v) => ` 시가총액 ${v}.`,
+    og: (s, n) => `$${s} — ArcPad의 ${n}`,
+    explore: "탐색", sub: "Circle Arc의 ArcPad 코인", verified: "X 인증 크리에이터",
+    price: "가격", marketCap: "시가총액", pair: "페어", fee: "거래 수수료",
+    trade: (s) => `ArcPad에서 $${s} 거래 →`, about: (n) => `${n} 소개`,
+    ca: "컨트랙트 주소", caWarn: "구매 전에 반드시 이 주소를 확인하세요 — 다른 토큰이 같은 이름이나 티커를 쓸 수 있습니다.",
+    links: "링크", details: "상세 정보", network: "네트워크", networkV: "Arc 메인넷 (체인 5042)",
+    pool: "풀", poolV: (q) => `Uniswap v4, ${q} 페어`, supply: "총 발행량", fixed: "(고정)",
+    creator: "크리에이터", launched: "출시",
+    howTo: (s) => `$${s} 구매 방법`,
+    step1: "Circle의 Arc 네트워크에서 USDC를 준비하세요 — Arc는 가스비도 USDC로 냅니다.",
+    step2: (a) => `${a} 페이지를 열고 지갑을 연결하세요.`, step2link: (s) => `ArcPad의 $${s}`,
+    step3: "수량을 입력하고 견적과 슬리피지를 확인한 뒤 스왑을 확정하세요.",
+    what: "ArcPad란?",
+    whatP: (home, tg) => `ArcPad는 ${home}의 즉시 런치패드입니다. 모든 코인은 첫 블록부터 실제 Uniswap v4 풀을 갖고, 같은 공정한 가격에서 시작하며, 거래 수수료의 대부분이 크리에이터에게 돌아갑니다. 새 런치는 ${tg}에 실시간으로 올라옵니다.`,
+    newest: "최신 ArcPad 코인",
+    fine: "수치는 Arc에서 실시간으로 읽어 몇 분간 캐시됩니다. 이 페이지는 투자 조언이 아니며, 암호화폐는 가치를 모두 잃을 수 있습니다.",
+  },
+  zh: {
+    title: (s, n) => `$${s}（${n}）价格、图表与市值 — Arc 上的 ArcPad`,
+    meta: (s, n, q) => `${n}（$${s}）是 Circle Arc 网络上的 ArcPad 代币，在与 ${q} 配对的 Uniswap v4 池中交易。`,
+    mcap: (v) => `市值 ${v}。`,
+    og: (s, n) => `$${s} — ArcPad 上的 ${n}`,
+    explore: "探索", sub: "Circle Arc 上的 ArcPad 代币", verified: "创作者已通过 X 验证",
+    price: "价格", marketCap: "市值", pair: "交易对", fee: "交易费",
+    trade: (s) => `在 ArcPad 交易 $${s} →`, about: (n) => `关于 ${n}`,
+    ca: "合约地址", caWarn: "购买前请务必核对此地址——其他代币可能使用相同的名称或代码。",
+    links: "链接", details: "详情", network: "网络", networkV: "Arc 主网（链 ID 5042）",
+    pool: "资金池", poolV: (q) => `Uniswap v4，与 ${q} 配对`, supply: "总供应量", fixed: "（固定）",
+    creator: "创作者", launched: "上线时间",
+    howTo: (s) => `如何购买 $${s}`,
+    step1: "在 Circle 的 Arc 网络上准备 USDC——Arc 的 Gas 费也用 USDC 支付。",
+    step2: (a) => `打开${a}并连接钱包。`, step2link: (s) => `ArcPad 上的 $${s}`,
+    step3: "输入数量，确认报价和滑点后完成兑换。",
+    what: "什么是 ArcPad？",
+    whatP: (home, tg) => `ArcPad 是 ${home} 的即时发射台。每个代币从第一个区块起就拥有真实的 Uniswap v4 池，以相同的公平价格起步，大部分交易手续费归创作者所有。新上线的代币会实时发布到 ${tg}。`,
+    newest: "最新 ArcPad 代币",
+    fine: "数据实时读取自 Arc，并缓存数分钟。本页内容不构成投资建议；加密资产可能损失全部价值。",
+  },
+};
+const LANG_NAME = { en: "English", ko: "한국어", zh: "简体中文" };
 const safeImg = (u) => /^https:\/\//i.test(u || "") || /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(u || "");
 function link(u, base) {
   u = String(u || "").trim();
@@ -95,7 +169,8 @@ async function newest(except) {
     return pools.map((p, i) => ({ token: p.token, symbol: res[i * 2] ? str(res[i * 2]) : "", name: res[i * 2 + 1] ? str(res[i * 2 + 1]) : "" })).filter((c) => c.symbol);
   } catch { return []; }
 }
-async function coinPage(coin, addr) {
+async function coinPage(coin, addr, lang = "en") {
+  const t = T[lang] || T.en;
   if (!coin) {
     return new Response(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Not an ArcPad coin</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif;text-align:center}a{color:#39ff88}</style></head><body><div><h1>Not an ArcPad coin</h1><p>${esc(addr)}</p><p><a href="/arc#explore">Explore ArcPad coins →</a></p></div></body></html>`,
       { status: 404, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } });
@@ -110,17 +185,21 @@ async function coinPage(coin, addr) {
     ["Telegram", link(pick("telegram"), "https://t.me/")], ["Discord", link(pick("discord"))],
   ].filter(([, u]) => u);
   const x = social && social.creatorX ? social.creatorX.handle : "";
-  const tradeUrl = `${SITE}/arc#coin/${coin.token}`;
-  const canonical = `${SITE}/coin/${coin.token}`;
+  const lq = lang === "en" ? "" : `?lang=${lang}`;
+  const tradeUrl = `${SITE}/arc${lq}#coin/${coin.token}`;
+  const canonical = `${SITE}${pagePath(lang, coin.token)}`;
+  const alternates = LANGS.map((l) => `<link rel="alternate" hreflang="${HREFLANG[l]}" href="${SITE}${pagePath(l, coin.token)}">`).join("\n")
+    + `\n<link rel="alternate" hreflang="x-default" href="${SITE}${pagePath("en", coin.token)}">`;
+  const switcher = LANGS.map((l) => (l === lang ? `<b>${LANG_NAME[l]}</b>` : `<a href="${pagePath(l, coin.token)}" hreflang="${HREFLANG[l]}" lang="${HREFLANG[l]}">${LANG_NAME[l]}</a>`)).join('<span aria-hidden="true">·</span>');
   const launched = coin.launchedAt ? new Date(coin.launchedAt * 1000) : null;
   const fee = 1 + (coin.extraFeeBps || 0) / 100;
-  const title = `$${sym} (${name}) price, chart & market cap — ArcPad on Arc`;
-  const metaDesc = `${name} ($${sym}) is an ArcPad coin on Circle's Arc network, trading in a Uniswap v4 pool paired with ${coin.quoteSymbol || "USDC"}.${coin.mcapUsd != null ? ` Market cap ${fmtUsd(coin.mcapUsd)}.` : ""}${desc ? " " + desc.slice(0, 120) : ""}`;
+  const title = t.title(sym, name);
+  const metaDesc = `${t.meta(sym, name, coin.quoteSymbol || "USDC")}${coin.mcapUsd != null ? t.mcap(fmtUsd(coin.mcapUsd)) : ""}${desc ? " " + desc.slice(0, 120) : ""}`;
   const logo = safeImg(coin.imageUrl) ? `<img src="${esc(coin.imageUrl)}" alt="${esc(name)} logo" width="88" height="88">` : avatar(coin.token, sym);
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "WebPage", "@id": canonical, url: canonical, name: title, description: metaDesc, inLanguage: "en",
+      { "@type": "WebPage", "@id": canonical, url: canonical, name: title, description: metaDesc, inLanguage: HREFLANG[lang],
         isPartOf: { "@type": "WebSite", name: "ARCIRCLE PAD", url: SITE },
         about: { "@type": "Thing", name: `${name} ($${sym})`, identifier: coin.token, url: `${EXPLORER}/token/${coin.token}` },
         ...(launched ? { datePublished: launched.toISOString() } : {}) },
@@ -133,15 +212,17 @@ async function coinPage(coin, addr) {
   };
   const stat = (k, v) => `<div class="st"><span>${k}</span><b>${esc(v)}</b></div>`;
   const body = `<!doctype html>
-<html lang="en"><head>
+<html lang="${HREFLANG[lang]}"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(metaDesc)}">
 <link rel="canonical" href="${esc(canonical)}">
+${alternates}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ARCIRCLE PAD">
-<meta property="og:title" content="${esc(`$${sym} — ${name} on ArcPad`)}">
+<meta property="og:locale" content="${lang === "ko" ? "ko_KR" : lang === "zh" ? "zh_CN" : "en_US"}">
+<meta property="og:title" content="${esc(t.og(sym, name))}">
 <meta property="og:description" content="${esc(metaDesc)}">
 <meta property="og:url" content="${esc(canonical)}">
 <meta property="og:image" content="${SITE}/api/og?addr=${coin.token}">
@@ -185,33 +266,35 @@ dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0;font
 ol{margin:0;padding-left:20px;color:#cfdac9}
 .more{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}.more a{padding:10px 12px;border:1px solid var(--line);border-radius:12px;color:var(--ink)}.more small{display:block;color:var(--dim)}
 .fine{margin-top:30px;font-size:.74rem;color:var(--dim)}
+.langs{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:-18px 0 22px;font-size:.76rem;color:var(--dim)}.langs b{color:var(--ink);font-weight:700}.langs a{color:var(--dim)}
 </style>
 </head><body><div class="w">
 <header class="top"><a class="brand" href="/"><img src="/images/arcircle-mark-sm.png" alt="" width="36" height="25">ARCIRCLE PAD</a>
-<nav class="crumb"><a href="/arc">ArcPad</a> / <a href="/arc#explore">Explore</a> / $${esc(sym)}</nav></header>
+<nav class="crumb"><a href="/arc${lq}">ArcPad</a> / <a href="/arc${lq}#explore">${t.explore}</a> / $${esc(sym)}</nav></header>
+<nav class="langs" aria-label="Language">${switcher}</nav>
 <main>
-<section class="hero">${logo}<div><h1>$${esc(sym)}<small>${esc(name)} · ArcPad coin on Circle's Arc</small></h1>
-${x ? `<a class="badge" href="https://x.com/${encodeURIComponent(x)}" rel="nofollow noopener" target="_blank">Creator verified on X · @${esc(x)}</a>` : ""}</div></section>
-<div class="stats">${stat("Price", fmtUsd(coin.priceUsd, { plain: true }))}${stat("Market cap", fmtUsd(coin.mcapUsd))}${stat("Pair", coin.quoteSymbol || "—")}${stat("Trade fee", `${fee}%`)}</div>
-<div class="cta"><a class="btn p" href="${esc(tradeUrl)}">Trade $${esc(sym)} on ArcPad →</a><a class="btn" href="${EXPLORER}/token/${coin.token}" rel="nofollow noopener" target="_blank">ArcScan ↗</a></div>
-${desc ? `<section class="card"><h2>About ${esc(name)}</h2><p>${esc(desc)}</p></section>` : ""}
-<section class="card"><h2>Contract address</h2><div class="ca">${coin.token}</div>
-<p style="margin-top:10px;font-size:.84rem">Always check this address before buying — other tokens can use the same name or ticker.</p></section>
-${links.length ? `<section class="card"><h2>Links</h2><div class="links">${links.map(([k, u]) => `<a href="${esc(u)}" rel="nofollow noopener ugc" target="_blank">${k}</a>`).join("")}</div></section>` : ""}
-<section class="card"><h2>Details</h2><dl>
-<dt>Network</dt><dd>Arc mainnet (chain 5042)</dd>
-<dt>Pool</dt><dd>Uniswap v4, paired with ${esc(coin.quoteSymbol || "USDC")}</dd>
-<dt>Total supply</dt><dd>1,000,000,000 $${esc(sym)} (fixed)</dd>
-<dt>Creator</dt><dd><a href="${EXPLORER}/address/${coin.creator}" rel="nofollow noopener" target="_blank">${coin.creator.slice(0, 6)}…${coin.creator.slice(-4)}</a></dd>
-${launched ? `<dt>Launched</dt><dd><time datetime="${launched.toISOString()}">${launched.toUTCString().replace(" GMT", " UTC")}</time></dd>` : ""}
+<section class="hero">${logo}<div><h1>$${esc(sym)}<small>${esc(name)} · ${t.sub}</small></h1>
+${x ? `<a class="badge" href="https://x.com/${encodeURIComponent(x)}" rel="nofollow noopener" target="_blank">${t.verified} · @${esc(x)}</a>` : ""}</div></section>
+<div class="stats">${stat(t.price, fmtUsd(coin.priceUsd, { plain: true }))}${stat(t.marketCap, fmtUsd(coin.mcapUsd))}${stat(t.pair, coin.quoteSymbol || "—")}${stat(t.fee, `${fee}%`)}</div>
+<div class="cta"><a class="btn p" href="${esc(tradeUrl)}">${t.trade(esc(sym))}</a><a class="btn" href="${EXPLORER}/token/${coin.token}" rel="nofollow noopener" target="_blank">ArcScan ↗</a></div>
+${desc ? `<section class="card"><h2>${t.about(esc(name))}</h2><p>${esc(desc)}</p></section>` : ""}
+<section class="card"><h2>${t.ca}</h2><div class="ca">${coin.token}</div>
+<p style="margin-top:10px;font-size:.84rem">${t.caWarn}</p></section>
+${links.length ? `<section class="card"><h2>${t.links}</h2><div class="links">${links.map(([k, u]) => `<a href="${esc(u)}" rel="nofollow noopener ugc" target="_blank">${k}</a>`).join("")}</div></section>` : ""}
+<section class="card"><h2>${t.details}</h2><dl>
+<dt>${t.network}</dt><dd>${t.networkV}</dd>
+<dt>${t.pool}</dt><dd>${t.poolV(esc(coin.quoteSymbol || "USDC"))}</dd>
+<dt>${t.supply}</dt><dd>1,000,000,000 $${esc(sym)} ${t.fixed}</dd>
+<dt>${t.creator}</dt><dd><a href="${EXPLORER}/address/${coin.creator}" rel="nofollow noopener" target="_blank">${coin.creator.slice(0, 6)}…${coin.creator.slice(-4)}</a></dd>
+${launched ? `<dt>${t.launched}</dt><dd><time datetime="${launched.toISOString()}">${launched.toUTCString().replace(" GMT", " UTC")}</time></dd>` : ""}
 </dl></section>
-<section class="card"><h2>How to buy $${esc(sym)}</h2><ol>
-<li>Get USDC on Circle's Arc network — Arc uses USDC for gas too.</li>
-<li>Open <a href="${esc(tradeUrl)}">$${esc(sym)} on ArcPad</a> and connect your wallet.</li>
-<li>Enter an amount, check the quote and slippage, and confirm the swap.</li></ol></section>
-<section class="card"><h2>What is ArcPad?</h2><p>ArcPad is the instant launchpad of <a href="/">ARCIRCLE PAD</a>. Every coin gets a real Uniswap v4 pool from block one, starts from the same fair price and pays most of its trading fee to its creator. New launches are posted live to <a href="https://t.me/arcircle_launch" rel="noopener">@arcircle_launch</a>.</p></section>
-${more.length ? `<section class="card"><h2>Newest ArcPad coins</h2><div class="more">${more.map((c) => `<a href="/coin/${c.token}">$${esc(c.symbol)}<small>${esc(c.name)}</small></a>`).join("")}</div></section>` : ""}
-<p class="fine">Figures are read live from Arc and cached for a few minutes. Nothing here is financial advice; crypto assets can lose all of their value.</p>
+<section class="card"><h2>${t.howTo(esc(sym))}</h2><ol>
+<li>${t.step1}</li>
+<li>${t.step2(`<a href="${esc(tradeUrl)}">${t.step2link(esc(sym))}</a>`)}</li>
+<li>${t.step3}</li></ol></section>
+<section class="card"><h2>${t.what}</h2><p>${t.whatP('<a href="/">ARCIRCLE PAD</a>', '<a href="https://t.me/arcircle_launch" rel="noopener">@arcircle_launch</a>')}</p></section>
+${more.length ? `<section class="card"><h2>${t.newest}</h2><div class="more">${more.map((c) => `<a href="${pagePath(lang, c.token)}">$${esc(c.symbol)}<small>${esc(c.name)}</small></a>`).join("")}</div></section>` : ""}
+<p class="fine">${t.fine}</p>
 </main></div></body></html>`;
   return html(body);
 }
@@ -221,8 +304,13 @@ async function sitemap() {
   let pools = [];
   try { pools = await allPools(); } catch { pools = []; }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pools.map((p) => `  <url><loc>${SITE}/coin/${p.token}</loc>${p.launchedAt ? `<lastmod>${new Date(p.launchedAt * 1000).toISOString().slice(0, 10)}</lastmod>` : ""}<changefreq>daily</changefreq><priority>0.6</priority></url>`).join("\n")}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${pools.map((p) => {
+    const alt = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${HREFLANG[l]}" href="${SITE}${pagePath(l, p.token)}"/>`).join("")
+      + `<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}${pagePath("en", p.token)}"/>`;
+    const mod = p.launchedAt ? `<lastmod>${new Date(p.launchedAt * 1000).toISOString().slice(0, 10)}</lastmod>` : "";
+    return LANGS.map((l) => `  <url><loc>${SITE}${pagePath(l, p.token)}</loc>${mod}<changefreq>daily</changefreq><priority>${l === "en" ? "0.6" : "0.5"}</priority>${alt}</url>`).join("\n");
+  }).join("\n")}
 </urlset>`;
   return new Response(xml, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=1800, stale-while-revalidate=3600" } });
 }

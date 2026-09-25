@@ -12,6 +12,9 @@
 # carrying config.js?v=, and silently corrupted every URL once it didn't.
 set -e
 cd "$(dirname "$0")"
+# ArcPad / CirclePad / Reward load one bundle each (tools/build-bundles.mjs);
+# rebuild them from the source files first so they never go stale.
+if command -v node >/dev/null 2>&1; then node tools/build-bundles.mjs; else echo "WARNING: node not found - bundles NOT rebuilt"; fi
 NEW=$(date +%s)
 for f in *.html; do sed -i -E "s/\?v=[0-9]+/?v=$NEW/g" "$f"; done
 echo "cache version -> $NEW ($(grep -l "?v=$NEW" *.html | wc -l) pages, $(grep -oh '?v=[0-9]*' *.html | sort -u | wc -l) distinct value(s) remaining)"

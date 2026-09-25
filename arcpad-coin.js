@@ -801,8 +801,9 @@ function apcWire() {
   }));
   apc$("apc-copy-ca").addEventListener("click", async (e) => {
     const b = e.currentTarget;
-    try { await navigator.clipboard.writeText(APC.token); b.textContent = "Copied"; } catch { b.textContent = "Copy failed"; }
-    setTimeout(() => { b.textContent = "Copy"; }, 1400);
+    const sp = b.querySelector("span") || b;
+    try { await navigator.clipboard.writeText(APC.token); sp.textContent = "Copied"; b.classList.add("copied"); } catch { sp.textContent = "Copy failed"; }
+    setTimeout(() => { sp.textContent = "Copy"; b.classList.remove("copied"); }, 1400);
   });
   let rt;
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(apcRenderChart, 150); });
