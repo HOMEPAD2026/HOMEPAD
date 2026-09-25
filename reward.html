@@ -20,15 +20,15 @@
 <meta name="twitter:description" content="Funded by what ArcPad and CirclePad earn, never by new $ARCIRCLE. Hard to farm, verifiable on-chain, simple to claim.">
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta name="theme-color" content="#04060a">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790313401">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790313401">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790313401">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790317654">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790317654">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790317654">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790313401"></script>
+<script src="arc-log.js?v=1790317654"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790313401">
+<link rel="stylesheet" href="style.css?v=1790317654">
 </head>
 <body class="ax-page ax-token ax-reward-page">
 
@@ -60,6 +60,13 @@
         <a class="ax-btn ax-btn-grad" href="#programs">See the programs</a>
         <a class="ax-btn ax-btn-ghost" href="#funding">How it's funded</a>
         <a class="ax-btn ax-btn-ghost" href="#check">Check a wallet</a>
+      </div>
+      <div class="rw-zero" id="rw-zero">
+        <strong class="rw-zero-n" aria-hidden="true">0</strong>
+        <div class="rw-zero-txt">
+          <span>New $ARCIRCLE minted to pay rewards — ever.</span>
+          <small>Supply fixed at <b class="rw-zero-supply" data-no-i18n>1,000,000,000</b></small>
+        </div>
       </div>
     </section>
 
@@ -108,43 +115,51 @@
       <div class="ax-kicker">How it's funded</div>
       <h2>Paid from revenue — never from emissions.</h2>
       <p class="ax-section-lede">$ARCIRCLE's supply is fixed at one billion. Rewards come out of real ecosystem income: the same five sources that turn the $ARCIRCLE flywheel.</p>
-      <div class="ax-rev">
-        <div class="ax-rev-list">
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+      <div class="ax-rev" data-flow>
+        <div class="ax-rev-list" data-rev-list>
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="launch">
             <span class="ax-tag">ArcPad</span>
-            <div class="ax-rev-name"><strong>Launch fee</strong><small>Flat fee on every coin launched</small></div>
+            <div class="ax-rev-name"><strong>Launch fee</strong><small>Flat fee on every coin launched on ArcPad</small></div>
             <div class="ax-rev-amt">1 USDC</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="alloc">
             <span class="ax-tag">ArcPad</span>
-            <div class="ax-rev-name"><strong>Platform allocation</strong><small>Of every ArcPad coin's supply, paid in that coin</small></div>
+            <div class="ax-rev-name"><strong>Platform allocation</strong><small>Of every ArcPad coin's supply, set aside at launch</small></div>
             <div class="ax-rev-amt">8%</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="fees">
             <span class="ax-tag">ArcPad</span>
             <div class="ax-rev-name"><strong>Trading-fee share</strong><small>30% of the 1% base fee on every ArcPad trade</small></div>
             <div class="ax-rev-amt">0.3%</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#39ff88">
+          <div class="ax-rev-row" style="--acc:#39ff88" data-rev="raise">
             <span class="ax-tag">CirclePad</span>
             <div class="ax-rev-name"><strong>Raise share</strong><small>Of each CirclePad raise when it closes</small></div>
             <div class="ax-rev-amt">5%</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#35d8d0">
+          <div class="ax-rev-row" style="--acc:#35d8d0" data-rev="tax">
             <span class="ax-tag">$ARCIRCLE</span>
             <div class="ax-rev-name"><strong>Creator tax</strong><small>On every $ARCIRCLE trade on its curve</small></div>
             <div class="ax-rev-amt">2%</div>
           </div>
         </div>
-        <div class="ax-rev-dest">
-          <h3>Where it goes</h3>
-          <ul>
-            <li>$ARCIRCLE buybacks</li>
-            <li>Liquidity support</li>
-            <li>Holder &amp; creator rewards <em>Soon</em></li>
-          </ul>
-          <p>The split between these is published on the $ARCIRCLE page before any of it goes live. Treasury wallet: <a class="rw-link" href="https://arc.etherscan.io/address/0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8" target="_blank" rel="noopener">0xa066…02F8 ↗</a></p>
+        <div class="ax-rev-dest rw-treasury">
+          <h3>Into the treasury</h3>
+          <dl class="rw-tre">
+            <div><dt>USDC</dt><dd data-tk="tre-usdc">—</dd></div>
+            <div><dt>$ARCIRCLE</dt><dd data-tk="tre-arc">—</dd></div>
+            <div><dt>Buybacks</dt><dd data-tk="bb-n">—</dd></div>
+          </dl>
+          <p>Wallet: <a class="rw-link" href="https://arc.etherscan.io/address/0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8" target="_blank" rel="noopener" data-no-i18n>0xa066…02F8 ↗</a></p>
+          <a class="ax-dest-live" href="/arcircle#where"><span>Where it goes</span> <b aria-hidden="true">→</b></a>
         </div>
+      </div>
+
+      <div class="rw-dash" id="rw-dash">
+        <div class="rw-dash-card" style="--acc:#39ff88"><span>Earned so far</span><strong data-tk="earned">—</strong><small>Launch fees + $ARCIRCLE creator tax, in USDC</small></div>
+        <div class="rw-dash-card" style="--acc:#4d9fff"><span>Launch fees</span><strong data-tk="fees">—</strong><small data-tk="fees-sub">1 USDC × every ArcPad launch</small></div>
+        <div class="rw-dash-card" style="--acc:#35d8d0"><span>Creator tax</span><strong data-tk="tax">—</strong><small data-tk="tax-sub">2% of every $ARCIRCLE trade</small></div>
+        <div class="rw-dash-card" style="--acc:#ffc861"><span>CirclePad share</span><strong data-tk="raise">—</strong><small data-tk="raise-sub">5% of round #1 when it closes</small></div>
       </div>
 
       <div class="rw-live">
@@ -198,23 +213,36 @@
       <div class="ax-kicker">Under study</div>
       <h2>Candidate mechanics.</h2>
       <p class="ax-section-lede">These are the designs being evaluated now. The final program may use some, all or none of them.</p>
-      <div class="ax-cards3">
+      <div class="ax-cards3 rw-poll" id="rw-poll">
         <div class="ax-card rw-mech" style="--acc:#35d8d0">
           <span class="rw-tag-study">Holders</span>
           <h3>Time-weighted snapshots</h3>
           <p>Your average balance over an epoch counts — not the balance in a single block. Buying just before a snapshot doesn't help.</p>
+          <div class="rw-vote" data-mech="twa">
+            <div class="rw-vote-bar"><i></i></div>
+            <div class="rw-vote-row"><span class="rw-vote-n"><b>0</b> <small>supporters</small></span><button type="button" class="rw-vote-btn">Support</button></div>
+          </div>
         </div>
         <div class="ax-card rw-mech" style="--acc:#ffc861">
           <span class="rw-tag-study">Creators</span>
           <h3>Creator score</h3>
           <p>Combines a coin's organic volume, unique buyers and holder retention, with a boost for launches paired with $ARCIRCLE.</p>
+          <div class="rw-vote" data-mech="score">
+            <div class="rw-vote-bar"><i></i></div>
+            <div class="rw-vote-row"><span class="rw-vote-n"><b>0</b> <small>supporters</small></span><button type="button" class="rw-vote-btn">Support</button></div>
+          </div>
         </div>
         <div class="ax-card rw-mech" style="--acc:#4d9fff">
           <span class="rw-tag-study">Everyone</span>
           <h3>Referral share</h3>
           <p>A slice of fees for wallets and communities that bring in launches, once referral support is added to the routers.</p>
+          <div class="rw-vote" data-mech="ref">
+            <div class="rw-vote-bar"><i></i></div>
+            <div class="rw-vote-row"><span class="rw-vote-n"><b>0</b> <small>supporters</small></span><button type="button" class="rw-vote-btn">Support</button></div>
+          </div>
         </div>
       </div>
+      <p class="rw-poll-note" id="rw-poll-note" hidden></p>
     </section>
 
     <!-- ============ Next update ============ -->
@@ -238,6 +266,7 @@
       <form class="rw-check" id="rw-check-form" autocomplete="off">
         <input type="text" id="rw-addr" placeholder="Paste a wallet address (0x…)" spellcheck="false" aria-label="Wallet address">
         <button type="submit" class="ax-btn ax-btn-grad">Check</button>
+        <button type="button" class="ax-btn ax-btn-ghost rw-usemine" id="rw-usemine">Use my wallet</button>
       </form>
       <div class="rw-result" id="rw-result" hidden>
         <div class="rw-result-grid">
@@ -246,10 +275,21 @@
             <strong id="rw-bal">—</strong>
             <small id="rw-bal-sub">—</small>
           </div>
+          <div class="rw-result-card" style="--acc:#39ff88">
+            <span>Holding for</span>
+            <strong id="rw-held">—</strong>
+            <div class="rw-hold-bar"><i id="rw-held-bar"></i></div>
+            <small id="rw-held-sub">—</small>
+          </div>
           <div class="rw-result-card" style="--acc:#ffc861">
             <span>Coins launched on ArcPad</span>
             <strong id="rw-created">—</strong>
             <small id="rw-created-sub">—</small>
+          </div>
+          <div class="rw-result-card" style="--acc:#4d9fff">
+            <span>CirclePad</span>
+            <strong id="rw-circle">—</strong>
+            <small id="rw-circle-sub">—</small>
           </div>
         </div>
         <div class="rw-created-list" id="rw-created-list"></div>
@@ -261,12 +301,13 @@
     <section class="ax-section" id="timeline">
       <div class="ax-kicker">Roadmap</div>
       <h2>Where rewards sit on the roadmap.</h2>
-      <ol class="rw-time">
+      <ol class="rw-time" id="rw-time">
         <li class="rw-t done">
           <div class="rw-t-head"><h3>Phase 0 — Foundation</h3><span>Q3 2026 · Done</span></div>
           <p>$ARCIRCLE launched with 100% of supply in its public curve. ArcPad live on Arc mainnet. CirclePad escrow deployed.</p>
         </li>
         <li class="rw-t now">
+          <span class="rw-here">We are here</span>
           <div class="rw-t-head"><h3>Phase 1 — First rounds</h3><span>Q4 2026 · In progress</span></div>
           <p>Publish the flywheel revenue split. First treasury buybacks of $ARCIRCLE, posted with transaction links. First CirclePad round.</p>
         </li>
@@ -286,15 +327,48 @@
       </ol>
     </section>
 
+    <!-- ============ Alerts ============ -->
+    <section class="ax-section" id="alerts">
+      <div class="ax-kicker">Hear it first</div>
+      <h2>Be there when the rules are published.</h2>
+      <p class="ax-section-lede">Reward rules, the revenue split and every buyback are announced on these two channels first.</p>
+      <div class="rw-alerts">
+        <a class="rw-alert" href="https://t.me/arcircle_launch" target="_blank" rel="noopener" data-soc="alerts" style="--acc:#35d8d0">
+          <span class="rw-alert-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
+          <span class="rw-alert-txt"><strong>Launch alerts on Telegram</strong><small data-no-i18n>@arcircle_launch</small></span>
+          <span class="rw-alert-go" aria-hidden="true">↗</span>
+        </a>
+        <a class="rw-alert" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener" data-soc="x" style="--acc:#eef3f7">
+          <span class="rw-alert-ico"><svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
+          <span class="rw-alert-txt"><strong>Follow on X</strong><small data-no-i18n>@ARCIRCLEonArc</small></span>
+          <span class="rw-alert-go" aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="ax-section" id="faq">
+      <div class="ax-kicker">FAQ</div>
+      <h2>Questions about rewards.</h2>
+      <div class="ax-faq">
+        <details><summary>Are rewards live?</summary><p>Not yet. The program is in design, and it only goes live once its rules are published on this page.</p></details>
+        <details><summary>Do I need to do anything now?</summary><p>No. There is nothing to register or claim today. The wallet check above only shows the on-chain activity the programs are designed around.</p></details>
+        <details><summary>Will buying just before a snapshot help?</summary><p>The candidate design uses time-weighted balances and unannounced snapshots, so a balance held for a moment counts for very little.</p></details>
+        <details><summary>Where does the money come from?</summary><p>From what the ecosystem earns: the five revenue sources above. No new $ARCIRCLE is ever minted to pay rewards.</p></details>
+        <details><summary>Does my vote in the poll decide the design?</summary><p>It is a signal, not a binding vote. It shows which mechanics the community cares about while the rules are being written.</p></details>
+        <details><summary>Is holding $ARCIRCLE a claim on revenue?</summary><p>No. $ARCIRCLE is a community memecoin — holding it is not a share, a claim on revenue or a right to any payment.</p></details>
+      </div>
+    </section>
+
     <!-- ============ Commitments ============ -->
     <section class="ax-section" id="commitments">
       <div class="ax-kicker">Commitments</div>
       <h2>What you can hold us to.</h2>
       <div class="rw-grid4 rw-commit">
-        <div class="ax-card"><h3>Publish before acting</h3><p>Revenue splits and reward rules are published here before they start.</p></div>
-        <div class="ax-card"><h3>Known wallets</h3><p>Treasury and platform wallets are public — follow every inflow and outflow on ArcScan.</p></div>
-        <div class="ax-card"><h3>Report the results</h3><p>Buybacks and reward payouts are posted with their transaction links.</p></div>
-        <div class="ax-card"><h3>No surprise supply</h3><p>$ARCIRCLE stays at 1,000,000,000. Nothing in the program mints more.</p></div>
+        <div class="ax-card"><h3>Publish before acting</h3><p>Revenue splits and reward rules are published here before they start.</p><a class="rw-proof" href="/whitepaper#p-rewards">Whitepaper §8 →</a></div>
+        <div class="ax-card"><h3>Known wallets</h3><p>Treasury and platform wallets are public — follow every inflow and outflow on ArcScan.</p><a class="rw-proof" href="https://arc.etherscan.io/address/0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8" target="_blank" rel="noopener">Treasury on ArcScan ↗</a></div>
+        <div class="ax-card"><h3>Report the results</h3><p>Buybacks and reward payouts are posted with their transaction links.</p><a class="rw-proof" href="/arcircle#buybacks">Buyback tracker →</a></div>
+        <div class="ax-card"><h3>No surprise supply</h3><p>$ARCIRCLE stays at 1,000,000,000. Nothing in the program mints more.</p><a class="rw-proof" href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">Total supply on ArcScan ↗</a></div>
       </div>
     </section>
 
@@ -324,7 +398,7 @@
 </nav>
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
-<!-- One file built from 12 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, arc-fx.js, arcircle-live.js, reward.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-a11y.js, i18n.js) -->
-<script src="reward.bundle.js?v=1790313401"></script>
+<!-- One file built from 13 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, arc-fx.js, arcircle-live.js, arc-token.js, reward.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-a11y.js, i18n.js) -->
+<script src="reward.bundle.js?v=1790317654"></script>
 </body>
 </html>

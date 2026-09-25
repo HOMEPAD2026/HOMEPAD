@@ -26,7 +26,7 @@ export const hideMessage = (wallet, kind, id, issued) => `ARCIRCLE PAD — Circl
 
 // ---- chain reads ----
 let creatorsCache = null;
-async function creatorCounts() {
+export async function creatorCounts() {
   if (creatorsCache && Date.now() - creatorsCache.at < 10 * 60e3) return creatorsCache.m;
   const [n] = await ethCalls([{ to: FACTORY, data: S.launchCount }]);
   const count = Number(big(n)), m = new Map();
@@ -209,7 +209,7 @@ export async function refReport(b, json) {
 const REFUNDED = kec("Refunded(address,uint256,uint256)");
 const CHUNK = 9000, MAX_CHUNKS = 24, FUNDING = 72 * 3600;
 let lbMem = null;
-async function blockAtOrBefore(ts, hi) {
+export async function blockAtOrBefore(ts, hi) {
   let lo = Math.max(0, hi.number - Math.ceil((hi.ts - ts) * 2.2) - 5000), loTs = await blockTs(lo);
   while (loTs != null && loTs > ts && lo > 0) { lo = Math.max(0, lo - 200000); loTs = await blockTs(lo); }
   let top = hi.number;

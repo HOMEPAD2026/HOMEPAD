@@ -36,7 +36,13 @@ export const BUNDLES = {
     "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
   ],
   "reward.bundle.js": [
-    ...COMMON_HEAD, "arc-fx.js", "arcircle-live.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    ...COMMON_HEAD, "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    "arc-social.js", "arc-a11y.js", "i18n.js",
+  ],
+  // The $ARCIRCLE page needs no wallet and no ethers: its numbers come from
+  // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
+  "arcircle.bundle.js": [
+    "arc-fx.js", "arc-token.js", "arcircle-page.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
     "arc-social.js", "arc-a11y.js", "i18n.js",
   ],
 };

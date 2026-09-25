@@ -8,6 +8,8 @@
 //   GET  /api/social?circle=1[&wallet=0x…]      CirclePad pledges, Q&A, proposals, referrals
 //   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
+//   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
+//   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
 //
 // Every write carries a wallet signature over a human-readable message that
 // the server rebuilds from the request itself; the signer must be the coin's
@@ -20,6 +22,7 @@ import { createHash } from "node:crypto";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 import * as circle from "./_circle.mjs";
+import * as token from "./_token.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -134,12 +137,23 @@ export async function GET(req) {
     }
     catch (err) { console.error("circle lb", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
   }
+  if (url.searchParams.get("token") === "arcircle") {
+    try {
+      const w = lc(url.searchParams.get("wallet"));
+      const out = await token.tokenStats(isAddr(w) ? w : null);
+      return json(200, out, !isAddr(w) && out.complete ? "public, max-age=15, s-maxage=20, stale-while-revalidate=120" : "no-store");
+    } catch (err) { console.error("token stats", err && err.message || err); return json(502, { error: "couldn't read $ARCIRCLE right now" }); }
+  }
   if (url.searchParams.get("circle") === "badges") {
     try { return json(200, { badges: await circle.badges(String(url.searchParams.get("addrs") || "").split(",")) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900"); }
     catch (err) { console.error("circle badges", err && err.message || err); return json(502, { error: "couldn't read badges" }); }
   }
   if (!storeEnabled()) return json(200, { enabled: false }, "public, max-age=60, s-maxage=300");
   try {
+    if (url.searchParams.get("poll") === "rewards") {
+      const w = lc(url.searchParams.get("wallet"));
+      return json(200, await token.pollData(w), isAddr(w) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
+    }
     if (url.searchParams.has("circle")) {
       const w = lc(url.searchParams.get("wallet"));
       return json(200, await circle.circleData(w), isAddr(w) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
@@ -197,6 +211,7 @@ export async function POST(req) {
     if (b.action === "cprop-up") return await circle.propUp(b, recoverSigner, json);
     if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
+    if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
     return json(400, { error: "unknown action" });
   } catch (err) {
     console.error("social POST", b && b.action, err && err.message || err);

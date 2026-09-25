@@ -22,15 +22,15 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta name="twitter:image:alt" content="$ARCIRCLE — the core coin of ARCIRCLE PAD">
 <meta name="theme-color" content="#04060a">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790313401">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790313401">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790313401">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790317654">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790317654">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790317654">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790313401"></script>
+<script src="arc-log.js?v=1790317654"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790313401">
+<link rel="stylesheet" href="style.css?v=1790317654">
 </head>
 <body class="ax-page ax-token">
 
@@ -45,8 +45,8 @@
     <img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">
     <span>ARCIRCLE <em>PAD</em></span>
   </a>
-  <a class="ax-top-cta" href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">
-    <span class="ax-dot" aria-hidden="true"></span>Buy $ARCIRCLE <span aria-hidden="true">↗</span>
+  <a class="ax-top-cta" href="/arc#arcircle">
+    <span class="ax-dot" aria-hidden="true"></span>Buy $ARCIRCLE <span aria-hidden="true">→</span>
   </a>
 </header>
 
@@ -61,17 +61,18 @@
         <p class="ax-lede">ArcPad and CirclePad are two different ways to launch on Arc. $ARCIRCLE is the one coin that sits between them — and what both launchpads earn, together with $ARCIRCLE's own trading fees, is put to work for it.</p>
         <div class="ax-ca">
           <span class="ax-ca-label">Contract · Arc</span>
-          <code>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code>
-          <button type="button" class="ax-copy" data-copy="0x933a94b475fa9d8ef94fa564e38dda400a595aa1">Copy</button>
+          <code title="0x933a94b475fa9d8ef94fa564e38dda400a595aa1" data-no-i18n>0x933a…5aa1</code>
+          <button type="button" class="ax-copy" data-copy="0x933a94b475fa9d8ef94fa564e38dda400a595aa1" aria-label="Copy contract address">Copy</button>
+          <a class="ax-ca-scan" href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener" aria-label="View $ARCIRCLE on ArcScan">ArcScan ↗</a>
         </div>
         <div class="ax-actions">
-          <a class="ax-btn ax-btn-grad" href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">Buy on foci ↗</a>
-          <a class="ax-btn ax-btn-ghost" href="/arc#arcircle">Trade on ArcPad →</a>
-          <a class="ax-btn ax-btn-ghost" href="/whitepaper">Whitepaper</a>
-          <a class="ax-btn ax-btn-ghost" href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">ArcScan ↗</a>
+          <a class="ax-btn ax-btn-grad" href="/arc#arcircle">Trade on ArcPad →</a>
+          <a class="ax-btn ax-btn-ghost" href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">Buy on foci ↗</a>
         </div>
+        <p class="ax-sublinks"><a href="/whitepaper">Whitepaper</a><span aria-hidden="true">·</span><a href="#buybacks">Buybacks</a><span aria-hidden="true">·</span><a href="#faq">FAQ</a></p>
       </div>
-      <div class="ax-coin" aria-hidden="true">
+      <div class="ax-coin" aria-hidden="true" data-tilt>
+        <span class="ax-coin-rim"></span>
         <picture>
           <source srcset="images/arcircle-mark.webp" type="image/webp">
           <img src="images/arcircle-mark.png" alt="" width="600" height="415">
@@ -79,11 +80,12 @@
       </div>
     </section>
 
-    <div class="ax-facts">
-      <div class="ax-fact"><span>Chain</span><strong>Arc</strong></div>
-      <div class="ax-fact"><span>Total supply</span><strong>1,000,000,000</strong></div>
-      <div class="ax-fact"><span>Trades on</span><strong>foci.family</strong></div>
-      <div class="ax-fact"><span>Creator tax</span><strong>2% per trade</strong></div>
+    <div class="ax-facts ax-live" id="live">
+      <div class="ax-fact"><span>Price</span><strong data-tk="price">—</strong><em class="ax-chg" data-tk="change"></em></div>
+      <div class="ax-fact"><span>Market cap</span><strong data-tk="mcap">—</strong></div>
+      <div class="ax-fact"><span>24h volume</span><strong data-tk="vol">—</strong><em data-tk="trades"></em></div>
+      <div class="ax-fact"><span>Holders</span><strong data-tk="holders">—</strong><em data-tk="holders-sub"></em></div>
+      <div class="ax-fact ax-fact-grad"><span>To graduation</span><strong data-tk="togo">—</strong><div class="ax-mini-bar"><i data-tk="bar"></i></div></div>
     </div>
 
     <!-- ============ What it is ============ -->
@@ -144,48 +146,93 @@
           <!-- center -->
           <image href="images/arcircle-mark.webp" x="125" y="142" width="150" height="104"/>
           <text x="200" y="272" text-anchor="middle" font-size="15" font-weight="800" fill="#eef3f7" letter-spacing=".5">$ARCIRCLE</text>
+          <!-- particles running clockwise along the ring -->
+          <g class="ax-fly-orbit" aria-hidden="true">
+            <circle cx="200" cy="60" r="4.5" fill="#eef3f7"/><circle cx="200" cy="60" r="3.5" fill="#35d8d0"/><circle cx="200" cy="60" r="3" fill="#39ff88"/><circle cx="200" cy="60" r="3.5" fill="#4d9fff"/>
+          </g>
           <!-- steps -->
           <g font-size="15" font-weight="700" text-anchor="middle" style="paint-order:stroke" stroke="#04060a" stroke-width="6" stroke-linejoin="round">
-            <circle cx="200" cy="60" r="40" fill="#4d9fff" opacity=".12" stroke="none"/>
-            <circle cx="200" cy="60" r="29" fill="#0b0f16" stroke="#4d9fff" stroke-width="2"/>
-            <text x="200" y="66" fill="#4d9fff" stroke="none" font-size="17" font-weight="800">1</text>
-            <text x="200" y="112" fill="#eef3f7">Launch</text>
-
-            <circle cx="340" cy="200" r="40" fill="#35d8d0" opacity=".12" stroke="none"/>
-            <circle cx="340" cy="200" r="29" fill="#0b0f16" stroke="#35d8d0" stroke-width="2"/>
-            <text x="340" y="206" fill="#35d8d0" stroke="none" font-size="17" font-weight="800">2</text>
-            <text x="340" y="252" fill="#eef3f7">Earn</text>
-
-            <circle cx="200" cy="340" r="40" fill="#39ff88" opacity=".12" stroke="none"/>
-            <circle cx="200" cy="340" r="29" fill="#0b0f16" stroke="#39ff88" stroke-width="2"/>
-            <text x="200" y="346" fill="#39ff88" stroke="none" font-size="17" font-weight="800">3</text>
-            <text x="200" y="398" fill="#eef3f7">Buy back</text>
-
-            <circle cx="60" cy="200" r="40" fill="#ffc861" opacity=".12" stroke="none"/>
-            <circle cx="60" cy="200" r="29" fill="#0b0f16" stroke="#ffc861" stroke-width="2"/>
-            <text x="60" y="206" fill="#ffc861" stroke="none" font-size="17" font-weight="800">4</text>
-            <text x="60" y="252" fill="#eef3f7">Grow</text>
+            <g class="ax-fly-node" data-step="1" style="--acc:#4d9fff">
+              <circle class="ax-fly-halo" cx="200" cy="60" r="40" fill="#4d9fff" opacity=".12" stroke="none"/>
+              <circle class="ax-fly-dot" cx="200" cy="60" r="29" fill="#0b0f16" stroke="#4d9fff" stroke-width="2"/>
+              <text x="200" y="66" fill="#4d9fff" stroke="none" font-size="17" font-weight="800">1</text>
+              <text x="200" y="112" fill="#eef3f7">Launch</text>
+            </g>
+            <g class="ax-fly-node" data-step="2" style="--acc:#35d8d0">
+              <circle class="ax-fly-halo" cx="340" cy="200" r="40" fill="#35d8d0" opacity=".12" stroke="none"/>
+              <circle class="ax-fly-dot" cx="340" cy="200" r="29" fill="#0b0f16" stroke="#35d8d0" stroke-width="2"/>
+              <text x="340" y="206" fill="#35d8d0" stroke="none" font-size="17" font-weight="800">2</text>
+              <text x="340" y="252" fill="#eef3f7">Earn</text>
+            </g>
+            <g class="ax-fly-node" data-step="3" style="--acc:#39ff88">
+              <circle class="ax-fly-halo" cx="200" cy="340" r="40" fill="#39ff88" opacity=".12" stroke="none"/>
+              <circle class="ax-fly-dot" cx="200" cy="340" r="29" fill="#0b0f16" stroke="#39ff88" stroke-width="2"/>
+              <text x="200" y="346" fill="#39ff88" stroke="none" font-size="17" font-weight="800">3</text>
+              <text x="200" y="398" fill="#eef3f7">Buy back</text>
+            </g>
+            <g class="ax-fly-node" data-step="4" style="--acc:#ffc861">
+              <circle class="ax-fly-halo" cx="60" cy="200" r="40" fill="#ffc861" opacity=".12" stroke="none"/>
+              <circle class="ax-fly-dot" cx="60" cy="200" r="29" fill="#0b0f16" stroke="#ffc861" stroke-width="2"/>
+              <text x="60" y="206" fill="#ffc861" stroke="none" font-size="17" font-weight="800">4</text>
+              <text x="60" y="252" fill="#eef3f7">Grow</text>
+            </g>
           </g>
         </svg>
 
         <ol class="ax-steps">
-          <li class="ax-step" style="--acc:#4d9fff">
+          <li class="ax-step" data-step="1" style="--acc:#4d9fff">
             <span class="ax-step-n">1</span>
             <div><h3>Launch</h3><p>Creators launch coins on ArcPad and raise together on CirclePad. Every launch brings new people and new volume to Arc.</p></div>
           </li>
-          <li class="ax-step" style="--acc:#35d8d0">
+          <li class="ax-step" data-step="2" style="--acc:#35d8d0">
             <span class="ax-step-n">2</span>
             <div><h3>Earn</h3><p>Launch fees, ArcPad's platform allocation and trading fees, CirclePad's raise share, and $ARCIRCLE's own 2% creator tax flow in.</p></div>
           </li>
-          <li class="ax-step" style="--acc:#39ff88">
+          <li class="ax-step" data-step="3" style="--acc:#39ff88">
             <span class="ax-step-n">3</span>
             <div><h3>Buy back</h3><p>That revenue goes back into $ARCIRCLE — buybacks and liquidity support that work for its value.</p></div>
           </li>
-          <li class="ax-step" style="--acc:#ffc861">
+          <li class="ax-step" data-step="4" style="--acc:#ffc861">
             <span class="ax-step-n">4</span>
             <div><h3>Grow</h3><p>A stronger $ARCIRCLE funds holder and creator rewards (coming soon) and draws in more creators — so the next round of launches is bigger.</p></div>
           </li>
         </ol>
+      </div>
+    </section>
+
+    <!-- ============ Market ============ -->
+    <section class="ax-section" id="market">
+      <div class="ax-kicker">Live on Arc</div>
+      <h2>The market, read straight from the curve.</h2>
+      <p class="ax-section-lede">$ARCIRCLE trades on a bonding curve until it graduates. Every number here comes from the chain — refreshed every 30 seconds.</p>
+      <div class="ax-market">
+        <div class="ax-card ax-spark-card">
+          <div class="ax-spark-head">
+            <div><small>$ARCIRCLE · 7 days</small><strong data-tk="price">—</strong><em class="ax-chg" data-tk="change"></em></div>
+            <a class="ax-mini-link" href="/arc#arcircle">Full chart on ArcPad →</a>
+          </div>
+          <div class="ax-spark-box" data-tk="spark"><div class="ax-skel"></div></div>
+          <div class="ax-spark-foot"><span>7d ago</span><span data-tk="trades7">&nbsp;</span><span>Now</span></div>
+        </div>
+        <div class="ax-card ax-grad-card" id="graduation">
+          <div class="ax-grad-ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+              <circle class="ax-grad-arc" cx="60" cy="60" r="50" fill="none" stroke="url(#axGradRing)" stroke-width="10" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 60 60)"/>
+              <defs><linearGradient id="axGradRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f9bff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>
+            </svg>
+            <div class="ax-grad-mid"><strong data-tk="pct">—</strong><small>to graduation</small></div>
+          </div>
+          <div class="ax-grad-text">
+            <h3>What graduation means</h3>
+            <p>Every buy adds USDC to the curve. When the real USDC in it reaches the graduation threshold, trading moves from the curve to a DEX pool with that liquidity.</p>
+            <dl class="ax-grad-dl">
+              <div><dt>In the curve</dt><dd data-tk="liq">—</dd></div>
+              <div><dt>Threshold</dt><dd data-tk="thr">—</dd></div>
+              <div><dt>Still to go</dt><dd data-tk="togo">—</dd></div>
+            </dl>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -194,35 +241,35 @@
       <div class="ax-kicker">What feeds it</div>
       <h2>Where the revenue comes from.</h2>
       <p class="ax-section-lede">Five sources, all coming from actual use of the ecosystem — not from new token emissions.</p>
-      <div class="ax-rev">
-        <div class="ax-rev-list">
-          <div class="ax-rev-row" style="--acc:#35d8d0">
-            <span class="ax-tag">$ARCIRCLE</span>
-            <div class="ax-rev-name"><strong>Creator tax</strong><small>Direct fee on every $ARCIRCLE trade on foci</small></div>
-            <div class="ax-rev-amt">2%</div>
-          </div>
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+      <div class="ax-rev" data-flow>
+        <div class="ax-rev-list" data-rev-list>
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="launch">
             <span class="ax-tag">ArcPad</span>
-            <div class="ax-rev-name"><strong>Launch fee</strong><small>Paid for every coin launched on ArcPad</small></div>
+            <div class="ax-rev-name"><strong>Launch fee</strong><small>Flat fee on every coin launched on ArcPad</small></div>
             <div class="ax-rev-amt">1 USDC</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="alloc">
             <span class="ax-tag">ArcPad</span>
             <div class="ax-rev-name"><strong>Platform allocation</strong><small>Of every ArcPad coin's supply, set aside at launch</small></div>
             <div class="ax-rev-amt">8%</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#4d9fff">
+          <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="fees">
             <span class="ax-tag">ArcPad</span>
-            <div class="ax-rev-name"><strong>Trading fees</strong><small>The platform's share of fees on ArcPad trades</small></div>
-            <div class="ax-rev-amt">Share</div>
+            <div class="ax-rev-name"><strong>Trading-fee share</strong><small>30% of the 1% base fee on every ArcPad trade</small></div>
+            <div class="ax-rev-amt">0.3%</div>
           </div>
-          <div class="ax-rev-row" style="--acc:#39ff88">
+          <div class="ax-rev-row" style="--acc:#39ff88" data-rev="raise">
             <span class="ax-tag">CirclePad</span>
-            <div class="ax-rev-name"><strong>Raise share</strong><small>The platform's cut of every CirclePad raise when it closes</small></div>
-            <div class="ax-rev-amt">Share</div>
+            <div class="ax-rev-name"><strong>Raise share</strong><small>Of each CirclePad raise when it closes</small></div>
+            <div class="ax-rev-amt">5%</div>
+          </div>
+          <div class="ax-rev-row" style="--acc:#35d8d0" data-rev="tax">
+            <span class="ax-tag">$ARCIRCLE</span>
+            <div class="ax-rev-name"><strong>Creator tax</strong><small>On every $ARCIRCLE trade on its curve</small></div>
+            <div class="ax-rev-amt">2%</div>
           </div>
         </div>
-        <div class="ax-rev-dest">
+        <div class="ax-rev-dest" id="where">
           <h3>Where it goes</h3>
           <ul>
             <li>$ARCIRCLE buybacks</li>
@@ -230,6 +277,34 @@
             <li>Holder &amp; creator rewards <em>Soon</em></li>
           </ul>
           <p>The exact split between these will be published here before it goes live.</p>
+          <a class="ax-dest-live" href="#buybacks"><span>Buybacks so far</span> <span data-tk="bb-n">—</span> <b aria-hidden="true">→</b></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Buybacks + supply ============ -->
+    <section class="ax-section" id="buybacks">
+      <div class="ax-kicker">Proof, on-chain</div>
+      <h2>Buybacks and who holds $ARCIRCLE.</h2>
+      <p class="ax-section-lede">Every $ARCIRCLE buy by the platform's wallets shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.</p>
+      <div class="ax-proof">
+        <div class="ax-card ax-bb">
+          <div class="ax-bb-stats">
+            <div><small>Buybacks</small><strong data-tk="bb-n">—</strong></div>
+            <div><small>USDC spent</small><strong data-tk="bb-usdc">—</strong></div>
+            <div><small>$ARCIRCLE bought</small><strong data-tk="bb-tok">—</strong></div>
+          </div>
+          <div class="ax-bb-list" data-tk="bb-list"><p class="ax-bb-empty">Loading…</p></div>
+          <p class="ax-bb-wallets" data-tk="bb-wallets"></p>
+        </div>
+        <div class="ax-card ax-supply">
+          <div class="ax-supply-chart" data-tk="donut"><div class="ax-skel ax-skel-round"></div></div>
+          <ul class="ax-supply-legend" data-tk="legend">
+            <li style="--c:#35d8d0"><span>Bonding curve</span><b>—</b></li>
+            <li style="--c:#39ff88"><span>Treasury</span><b>—</b></li>
+            <li style="--c:#4d9fff"><span>Top 10 holders</span><b>—</b></li>
+            <li style="--c:#ffc861"><span>Everyone else</span><b>—</b></li>
+          </ul>
         </div>
       </div>
     </section>
@@ -238,20 +313,34 @@
     <section class="ax-section" id="buy">
       <div class="ax-kicker">Get $ARCIRCLE</div>
       <h2>How to buy.</h2>
-      <p class="ax-section-lede">$ARCIRCLE trades on foci, on Arc. Arc uses USDC for gas, so USDC is all you need.</p>
+      <p class="ax-section-lede">ArcPad's $ARCIRCLE tab and foci trade the same on-chain curve, so the price is the same on both. Arc uses USDC for gas, so USDC is all you need.</p>
       <div class="ax-buy">
         <div class="ax-buy-step">
           <h3>Get USDC on Arc</h3>
           <p>Fund a wallet on Arc with USDC. It covers both the purchase and the gas.</p>
         </div>
         <div class="ax-buy-step">
-          <h3>Open $ARCIRCLE on foci</h3>
-          <p>Go to <a href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">foci.family/token/0x933a…5aa1</a> and check the contract matches the one above.</p>
+          <h3>Open $ARCIRCLE on ArcPad</h3>
+          <p>Go to <a href="/arc#arcircle">ArcPad → $ARCIRCLE</a>. Prefer foci? The same curve is at <a href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">foci.family ↗</a> — check the contract matches the one above.</p>
         </div>
         <div class="ax-buy-step">
           <h3>Connect and buy</h3>
-          <p>Connect your wallet on foci, enter an amount in USDC and confirm the swap.</p>
+          <p>Connect your wallet, enter an amount in USDC and confirm the trade.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="ax-section" id="faq">
+      <div class="ax-kicker">FAQ</div>
+      <h2>Questions people ask.</h2>
+      <div class="ax-faq">
+        <details><summary>What is the contract address?</summary><p><code class="ax-faq-ca" data-no-i18n>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code> on Arc (chain 5042). Always check it on <a href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">ArcScan ↗</a> before you trade.</p></details>
+        <details><summary>Where can I buy it?</summary><p>On ArcPad's $ARCIRCLE tab or on foci. Both trade the same bonding curve, so the price and the liquidity are the same.</p></details>
+        <details><summary>What happens at graduation?</summary><p>When the real USDC in the curve reaches its graduation threshold, trading moves from the curve to a DEX pool with that liquidity. The progress above is read live from the curve.</p></details>
+        <details><summary>Is there a team allocation?</summary><p>No. $ARCIRCLE launched with 100% of its 1,000,000,000 supply in the public curve. The supply split above shows where it sits today.</p></details>
+        <details><summary>What is the 2% creator tax?</summary><p>A fee on every $ARCIRCLE trade on its curve. It is one of the five revenue sources that feed the flywheel.</p></details>
+        <details><summary>Do holders get rewards?</summary><p>A reward program for holders and creators is in design, funded by ecosystem revenue — never by new tokens. Nothing is promised until its rules are published on the <a href="/reward">Reward page</a>.</p></details>
       </div>
     </section>
 
@@ -280,9 +369,7 @@
   </a>
 </nav>
 
-<script src="arc-footer.js?v=1790313401"></script>
-<script src="arcircle-hub.js?v=1790313401"></script>
-<script src="arc-social.js?v=1790313401"></script>
-<script src="i18n.js?v=1790313401"></script>
+<!-- One file built from several scripts by tools/build-bundles.mjs (see BUNDLES there) -->
+<script src="arcircle.bundle.js?v=1790317654"></script>
 </body>
 </html>
