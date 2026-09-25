@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   var S = {
-    x: { url: "https://x.com/HOMEonRobinhood", handle: "@HOMEonRobinhood", name: "X", sub: "@HOMEonRobinhood" },
+    x: { url: "https://x.com/ARCIRCLEonArc", handle: "@ARCIRCLEonArc", name: "X", sub: "@ARCIRCLEonArc" },
     tg: { url: "https://t.me/ARCIRCLEonarc", handle: "@ARCIRCLEonarc", name: "Telegram", sub: "Community chat" },
     alerts: { url: "https://t.me/arcircle_launch", handle: "@arcircle_launch", name: "Launch alerts", sub: "@arcircle_launch" },
   };

@@ -157,7 +157,7 @@
       else if (k === "share") {
         ckSet(APC.l.token, "share");
         const url = `https://www.arcircle.app/c/${APC.l.token}`;
-        window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚`)}&url=${encodeURIComponent(url)}&via=HOMEonRobinhood`, "_blank", "noopener,width=600,height=560");
+        window.open(`https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚`)}&url=${encodeURIComponent(url)}&via=ARCIRCLEonArc`, "_blank", "noopener,width=600,height=560");
         checklist(curData());
       } else if (k === "vote") {
         const url = `https://www.arcircle.app/c/${APC.l.token}`;

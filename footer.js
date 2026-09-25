@@ -67,7 +67,7 @@ function renderSiteFooter() {
             </div>
             <p class="ft-desc">Permissionless token launchpad on Robinhood Chain. Every launch pays rent, and rent goes home — a share of every trade fee buys back $HOME.</p>
             <div class="ft-social">
-              <a href="https://x.com/HOMEonRobinhood" target="_blank" title="X">${FT_ICONS.x}</a>
+              <a href="https://x.com/ARCIRCLEonArc" target="_blank" title="X">${FT_ICONS.x}</a>
               <a href="https://t.me/HOMEonRobin" target="_blank" title="Telegram">${FT_ICONS.telegram}</a>
               <a href="${dexscreenerUrl}" target="_blank" title="Dexscreener">${FT_ICONS.chart}</a>
               <a href="https://github.com/HOMEPAD2026/HOMEPAD" target="_blank" title="GitHub">${FT_ICONS.github}</a>

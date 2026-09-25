@@ -54,7 +54,7 @@ function sharePage(url, coin) {
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@HOMEonRobinhood">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
 <meta name="twitter:image" content="${esc(image)}">
@@ -227,7 +227,7 @@ ${alternates}
 <meta property="og:url" content="${esc(canonical)}">
 <meta property="og:image" content="${SITE}/api/og?addr=${coin.token}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@HOMEonRobinhood">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="theme-color" content="#050805">
 <link rel="icon" href="/images/favicon-32.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>

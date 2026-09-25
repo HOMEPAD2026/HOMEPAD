@@ -48,11 +48,11 @@ export function buildPost(coin) {
       [{ text: `Trade $${sym} on ArcPad`, url: link }],
       [
         { text: "ArcScan", url: `${EXPLORER}/token/${coin.token}` },
-        { text: "Share on X", url: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(link)}&via=HOMEonRobinhood` },
+        { text: "Share on X", url: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(link)}&via=ARCIRCLEonArc` },
       ],
       [
         { text: "Community chat", url: "https://t.me/ARCIRCLEonarc" },
-        { text: "Follow on X", url: "https://x.com/HOMEonRobinhood" },
+        { text: "Follow on X", url: "https://x.com/ARCIRCLEonArc" },
       ],
     ],
   };

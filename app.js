@@ -1128,7 +1128,7 @@ async function fetchAllLaunches(opts) {
       type: "home", token: CONFIG.HOME_TOKEN_ADDRESS, name: "Home", symbol: "HOME",
       imageUrl: "images/home-token-logo.jpg",
       launchedAt: 0, // predates HOMEPAD — never flagged "NEW", always sorts as the oldest
-      creator: null, twitter: "https://x.com/HOMEonRobinhood", telegram: "https://t.me/HOMEonRobin", discord: null, website: null,
+      creator: null, twitter: "https://x.com/ARCIRCLEonArc", telegram: "https://t.me/HOMEonRobin", discord: null, website: null,
     });
   }
 

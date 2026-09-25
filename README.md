@@ -13,7 +13,7 @@
   <a href="https://homepad.fun">Live site</a> ·
   <a href="https://homepad.fun/world">World map</a> ·
   <a href="https://homepad.fun/rent">Proof of Rent</a> ·
-  <a href="https://x.com/HOMEonRobinhood">X</a> ·
+  <a href="https://x.com/ARCIRCLEonArc">X</a> ·
   <a href="https://t.me/HOMEonRobin">Telegram</a> ·
   <a href="https://homepad.fun/mechanism.html">How it works</a> ·
   <a href="https://homepad.fun/docs.html">Docs</a>
@@ -37,7 +37,7 @@ We've only just begun. After building and testing on testnet, HOMEPAD officially
 
 **Every launch pays rent. Every trade creates rent. And rent goes home to `$HOME`.** 🏡
 
-If you're new here, take a look through [the website](https://homepad.fun) and our recent posts on [X](https://x.com/HOMEonRobinhood) to learn what we're building.
+If you're new here, take a look through [the website](https://homepad.fun) and our recent posts on [X](https://x.com/ARCIRCLEonArc) to learn what we're building.
 
 | Token | Contract |
 |---|---|
