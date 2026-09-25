@@ -166,18 +166,19 @@
   }, { passive: true });
 
   // ================= wallet menu =================
-  const ARCIRCLE_TOKEN = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+  const ARCIRCLE_TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""; // "" while not live
   async function fillBalances(box) {
     if (!state.account || !box) return;
     const acct = state.account;
     try {
       const p = readProvider();
-      const tok = new ethers.Contract(ARCIRCLE_TOKEN, ERC20_ABI, p);
-      const [nat, arc] = await Promise.all([p.getBalance(acct).catch(() => null), tok.balanceOf(acct).catch(() => null)]);
+      const tok = ARCIRCLE_TOKEN ? new ethers.Contract(ARCIRCLE_TOKEN, ERC20_ABI, p) : null;
+      const [nat, arc] = await Promise.all([p.getBalance(acct).catch(() => null), tok ? tok.balanceOf(acct).catch(() => null) : null]);
       if (state.account !== acct) return;
       const f = (v, d) => v == null ? "—" : Number(ethers.formatUnits(v, d)).toLocaleString("en-US", { maximumFractionDigits: 2 });
       box.querySelector("[data-wb=usdc]").textContent = f(nat, 18);
-      box.querySelector("[data-wb=arc]").textContent = f(arc, 18);
+      const ab = box.querySelector("[data-wb=arc]");
+      if (ab) ab.textContent = f(arc, 18);
     } catch { /* leave dashes */ }
   }
   function enhanceWallet() {
@@ -187,7 +188,7 @@
     const addr = dd.querySelector(".wallet-dropdown-address");
     const bal = document.createElement("div");
     bal.className = "wd-bal";
-    bal.innerHTML = `<div><span>USDC <small>gas</small></span><b data-wb="usdc">…</b></div><div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>`;
+    bal.innerHTML = `<div><span>USDC <small>gas</small></span><b data-wb="usdc">…</b></div>` + (ARCIRCLE_TOKEN ? `<div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>` : "");
     if (addr) addr.insertAdjacentElement("afterend", bal);
     const copy = $("wallet-dropdown-copy");
     if (copy) copy.onclick = (e) => {
@@ -204,20 +205,22 @@
       pf.onclick = (e) => { e.stopPropagation(); dd.classList.remove("open"); if (window.arcpadShowTab) window.arcpadShowTab("portfolio"); };
       frag.appendChild(pf);
     }
-    const add = document.createElement("button");
-    add.type = "button"; add.className = "wallet-dropdown-item"; add.textContent = "Add $ARCIRCLE to wallet";
-    add.onclick = async (e) => {
-      e.stopPropagation();
-      const params = { type: "ERC20", options: { address: ARCIRCLE_TOKEN, symbol: "ARCIRCLE", decimals: 18, image: "https://www.arcircle.app/images/arcircle-mark-sm.png" } };
-      try {
-        if (state.signer && state.signer.provider && state.signer.provider.send) await state.signer.provider.send("wallet_watchAsset", params);
-        else if (window.ethereum) await window.ethereum.request({ method: "wallet_watchAsset", params });
-        else throw new Error("no wallet");
-        add.textContent = "Added — check your wallet";
-      } catch { add.textContent = "Your wallet didn't accept it"; }
-      setTimeout(() => { add.textContent = "Add $ARCIRCLE to wallet"; }, 2600);
-    };
-    frag.appendChild(add);
+    if (ARCIRCLE_TOKEN) {
+      const add = document.createElement("button");
+      add.type = "button"; add.className = "wallet-dropdown-item"; add.textContent = "Add $ARCIRCLE to wallet";
+      add.onclick = async (e) => {
+        e.stopPropagation();
+        const params = { type: "ERC20", options: { address: ARCIRCLE_TOKEN, symbol: "ARCIRCLE", decimals: 18, image: "https://www.arcircle.app/images/arcircle-mark-sm.png" } };
+        try {
+          if (state.signer && state.signer.provider && state.signer.provider.send) await state.signer.provider.send("wallet_watchAsset", params);
+          else if (window.ethereum) await window.ethereum.request({ method: "wallet_watchAsset", params });
+          else throw new Error("no wallet");
+          add.textContent = "Added — check your wallet";
+        } catch { add.textContent = "Your wallet didn't accept it"; }
+        setTimeout(() => { add.textContent = "Add $ARCIRCLE to wallet"; }, 2600);
+      };
+      frag.appendChild(add);
+    }
     if (explorer) explorer.parentNode.insertBefore(frag, explorer); else dd.appendChild(frag);
     const pill = $("wallet-pill-btn");
     if (pill) pill.addEventListener("click", () => fillBalances(bal));

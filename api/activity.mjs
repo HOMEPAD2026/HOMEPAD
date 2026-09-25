@@ -9,7 +9,8 @@ import { allPools, getLogs, latestBlock, blockTs, pool, toQty, PM_ADDRESS, TOPIC
 export const config = { runtime: "edge" };
 const CHUNK = 9000;
 const WINDOW = 24 * 3600;
-const CURVE = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+import { ARCIRCLE_CURVE } from "./_arcircle.mjs";
+const CURVE = ARCIRCLE_CURVE; // "" while $ARCIRCLE is not live
 const signed = (hex) => { const v = BigInt(hex); return v >= (1n << 255n) ? v - (1n << 256n) : v; };
 
 export default async function handler() {
@@ -34,7 +35,7 @@ export default async function handler() {
           a0: signed(w(0)).toString(), a1: signed(w(1)).toString(), sq: BigInt(w(2)).toString() };
       }) : [];
     const curveFrom = latest.number - CHUNK + 1;
-    const curve = (await getLogs({ address: CURVE, topics: [[TOPIC.curveBuy, TOPIC.curveSell]], fromBlock: toQty(curveFrom), toBlock: toQty(latest.number) }).catch(() => []))
+    const curve = !CURVE ? [] : (await getLogs({ address: CURVE, topics: [[TOPIC.curveBuy, TOPIC.curveSell]], fromBlock: toQty(curveFrom), toBlock: toQty(latest.number) }).catch(() => []))
       .map((log) => {
         const d = log.data.slice(2);
         const w = (k) => BigInt("0x" + d.slice(k * 64, (k + 1) * 64));

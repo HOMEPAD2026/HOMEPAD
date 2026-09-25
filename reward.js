@@ -12,7 +12,8 @@
 //   • roadmap: the line fills to the current phase, "We are here" pulses
 (function () {
   "use strict";
-  var ARCIRCLE_TOKEN = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+  // From config-arc.js; "" while $ARCIRCLE is not live (relaunching).
+  var ARCIRCLE_TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "";
   var SUPPLY = 1000000000;
   var ERC20 = [
     "function balanceOf(address) view returns (uint256)",
@@ -92,7 +93,7 @@
     var rv = d.revenue || {};
     var tre = d.treasury || {};
     each("tre-usdc", function (el) { countTo(el, tre.usdc || 0, function (v) { return usd(v); }); });
-    each("tre-arc", function (el) { countTo(el, tre.arcircle || 0, fmtTok); });
+    if (tre.arcircle != null) each("tre-arc", function (el) { countTo(el, tre.arcircle || 0, fmtTok); });
     setText("bb-n", String(d.buybacks ? d.buybacks.n : 0));
     var dash = $("rw-dash");
     if (!dash) return;
@@ -104,7 +105,7 @@
       each("raise", function (el) { countTo(el, c ? c.share || 0 : 0, function (v) { return usd(v); }); });
     };
     setText("fees-sub", rv.launches != null ? rv.launches + " launches × 1 USDC" : "1 USDC × every ArcPad launch");
-    setText("tax-sub", rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : "2% of every $ARCIRCLE trade");
+    setText("tax-sub", rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : d.live === false ? "Starts when $ARCIRCLE is live" : "2% of every $ARCIRCLE trade");
     var c = rv.circle;
     setText("raise-sub", !c ? "5% of round #1 when it closes" : !c.started ? "Round #1 opens soon" : usd(c.raised) + " raised in round #1 so far");
     if (dash.__seen) go();
@@ -124,24 +125,28 @@
     var run = ++checking;
     btn.disabled = true; btn.textContent = "Checking…";
     try {
-      var tok = new ethers.Contract(ARCIRCLE_TOKEN, ERC20, readProvider());
+      var tok = ARCIRCLE_TOKEN ? new ethers.Contract(ARCIRCLE_TOKEN, ERC20, readProvider()) : null;
       var res = await Promise.all([
-        withRetry(function () { return tok.balanceOf(addr); }),
+        tok ? withRetry(function () { return tok.balanceOf(addr); }) : Promise.resolve(null),
         loadLaunches(),
         T() ? T().load(addr.toLowerCase()).catch(function () { return null; }) : Promise.resolve(null),
       ]);
       if (run !== checking) return;
       var ws = res[2] && res[2].wallet ? res[2].wallet : null;
-      var bal = Number(ethers.formatUnits(res[0], 18));
-      $("rw-bal").textContent = fmtTok(bal) + " $ARCIRCLE";
-      $("rw-bal-sub").textContent = bal > 0
+      var bal = res[0] == null ? 0 : Number(ethers.formatUnits(res[0], 18));
+      $("rw-bal").textContent = !tok ? "Not live" : fmtTok(bal) + " $ARCIRCLE";
+      $("rw-bal-sub").textContent = !tok ? "$ARCIRCLE is relaunching — nothing to hold yet"
+        : bal > 0
         ? (bal / SUPPLY * 100).toPrecision(3).replace(/\.?0+$/, "") + "% of total supply" + (ws && ws.rank ? " · holder #" + ws.rank + " of " + ws.of : "")
         : "Not holding $ARCIRCLE right now";
 
       // holding period
       var bar = $("rw-held-bar");
       bar.style.width = "0%";
-      if (!ws) {
+      if (!tok) {
+        $("rw-held").textContent = "—";
+        $("rw-held-sub").textContent = "Starts counting when $ARCIRCLE is live";
+      } else if (!ws) {
         $("rw-held").textContent = "—";
         $("rw-held-sub").textContent = "Couldn't read the holding history right now";
       } else if (bal <= 0 || !ws.holdingSince) {

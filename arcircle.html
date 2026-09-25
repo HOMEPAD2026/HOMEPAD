@@ -22,15 +22,15 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta name="twitter:image:alt" content="$ARCIRCLE — the core coin of ARCIRCLE PAD">
 <meta name="theme-color" content="#04060a">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790330016">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790330016">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790330016">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790334239">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790334239">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790334239">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790330016"></script>
+<script src="arc-log.js?v=1790334239"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790330016">
+<link rel="stylesheet" href="style.css?v=1790334239">
 </head>
 <body class="ax-page ax-token">
 
@@ -45,8 +45,11 @@
     <img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">
     <span>ARCIRCLE <em>PAD</em></span>
   </a>
-  <a class="ax-top-cta" href="/arc#arcircle">
+  <a class="ax-top-cta arc-live-only" href="/arc#arcircle" data-arc-href="buy">
     <span class="ax-dot" aria-hidden="true"></span>Buy $ARCIRCLE <span aria-hidden="true">→</span>
+  </a>
+  <a class="ax-top-cta ax-top-nl arc-nl-only" href="https://t.me/arcircle_launch" target="_blank" rel="noopener">
+    <span class="ax-dot" aria-hidden="true"></span>Launch alert <span aria-hidden="true">↗</span>
   </a>
 </header>
 
@@ -56,20 +59,28 @@
     <!-- ============ Hero ============ -->
     <section class="ax-token-hero">
       <div>
-        <span class="ax-eyebrow">The core coin of ARCIRCLE PAD</span>
+        <span class="ax-eyebrow">The core coin of ARCIRCLE PAD</span> <span class="arc-nl-badge arc-nl-only">Not live</span>
         <h1><span>$ARCIRCLE</span></h1>
         <p class="ax-lede">ArcPad and CirclePad are two different ways to launch on Arc. $ARCIRCLE is the one coin that sits between them — and what both launchpads earn, together with $ARCIRCLE's own trading fees, is put to work for it.</p>
-        <div class="ax-ca">
+        <div class="ax-ca arc-live-only">
           <span class="ax-ca-label">Contract · Arc</span>
-          <code title="0x933a94b475fa9d8ef94fa564e38dda400a595aa1" data-no-i18n>0x933a…5aa1</code>
-          <button type="button" class="ax-copy" data-copy="0x933a94b475fa9d8ef94fa564e38dda400a595aa1" aria-label="Copy contract address">Copy</button>
-          <a class="ax-ca-scan" href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener" aria-label="View $ARCIRCLE on ArcScan">ArcScan ↗</a>
+          <code data-arc-ca="short" data-no-i18n>—</code>
+          <button type="button" class="ax-copy" data-copy-arc data-copy="" aria-label="Copy contract address">Copy</button>
+          <a class="ax-ca-scan" href="#" data-arc-href="scan" target="_blank" rel="noopener" aria-label="View $ARCIRCLE on ArcScan">ArcScan ↗</a>
         </div>
-        <div class="ax-actions">
+        <div class="ax-ca ax-ca-nl arc-nl-only">
+          <span class="ax-ca-label">Contract · Arc</span>
+          <span class="ax-ca-soon">Announced at launch</span>
+        </div>
+        <div class="ax-actions arc-live-only">
           <a class="ax-btn ax-btn-grad" href="/arc#arcircle">Trade on ArcPad →</a>
-          <a class="ax-btn ax-btn-ghost" href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">Buy on foci ↗</a>
+          <a class="ax-btn ax-btn-ghost" href="#" data-arc-href="buy" target="_blank" rel="noopener">Buy on foci ↗</a>
         </div>
-        <p class="ax-sublinks"><a href="/whitepaper">Whitepaper</a><span aria-hidden="true">·</span><a href="#buybacks">Buybacks</a><span aria-hidden="true">·</span><a href="#faq">FAQ</a></p>
+        <div class="ax-actions arc-nl-only">
+          <a class="ax-btn ax-btn-grad" href="https://t.me/arcircle_launch" target="_blank" rel="noopener">Get the launch alert ↗</a>
+          <a class="ax-btn ax-btn-ghost" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">Follow <span data-no-i18n>@ARCIRCLEonArc</span> ↗</a>
+        </div>
+        <p class="ax-sublinks"><a href="/whitepaper">Whitepaper</a><span aria-hidden="true" class="arc-live-only">·</span><a href="#buybacks" class="arc-live-only">Buybacks</a><span aria-hidden="true">·</span><a href="#faq">FAQ</a></p>
       </div>
       <div class="ax-coin" aria-hidden="true" data-tilt>
         <span class="ax-coin-rim"></span>
@@ -80,7 +91,12 @@
       </div>
     </section>
 
-    <div class="ax-facts ax-live" id="live">
+    <div class="ax-relaunch arc-nl-only" id="relaunch">
+      <span class="arc-nl-badge">Not live</span>
+      <div><strong>$ARCIRCLE is relaunching.</strong>
+        <p>There is no official contract, price or chart until the new launch goes live. The contract address will be posted on this page and by <a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener" data-no-i18n>@ARCIRCLEonArc</a> — only trust the address published there.</p></div>
+    </div>
+    <div class="ax-facts ax-live arc-live-only" id="live">
       <div class="ax-fact"><span>Price</span><strong data-tk="price">—</strong><em class="ax-chg" data-tk="change"></em></div>
       <div class="ax-fact"><span>Market cap</span><strong data-tk="mcap">—</strong></div>
       <div class="ax-fact"><span>24h volume</span><strong data-tk="vol">—</strong><em data-tk="trades"></em></div>
@@ -201,7 +217,7 @@
     </section>
 
     <!-- ============ Market ============ -->
-    <section class="ax-section" id="market">
+    <section class="ax-section arc-live-only" id="market">
       <div class="ax-kicker">Live on Arc</div>
       <h2>The market, read straight from the curve.</h2>
       <p class="ax-section-lede">$ARCIRCLE trades on a bonding curve until it graduates. Every number here comes from the chain — refreshed every 30 seconds.</p>
@@ -277,13 +293,13 @@
             <li>Holder &amp; creator rewards <em>Soon</em></li>
           </ul>
           <p>The exact split between these will be published here before it goes live.</p>
-          <a class="ax-dest-live" href="#buybacks"><span>Buybacks so far</span> <span data-tk="bb-n">—</span> <b aria-hidden="true">→</b></a>
+          <a class="ax-dest-live arc-live-only" href="#buybacks"><span>Buybacks so far</span> <span data-tk="bb-n">—</span> <b aria-hidden="true">→</b></a>
         </div>
       </div>
     </section>
 
     <!-- ============ Buybacks + supply ============ -->
-    <section class="ax-section" id="buybacks">
+    <section class="ax-section arc-live-only" id="buybacks">
       <div class="ax-kicker">Proof, on-chain</div>
       <h2>Buybacks and who holds $ARCIRCLE.</h2>
       <p class="ax-section-lede">Every $ARCIRCLE buy by the platform's wallets shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.</p>
@@ -310,7 +326,7 @@
     </section>
 
     <!-- ============ How to buy ============ -->
-    <section class="ax-section" id="buy">
+    <section class="ax-section arc-live-only" id="buy">
       <div class="ax-kicker">Get $ARCIRCLE</div>
       <h2>How to buy.</h2>
       <p class="ax-section-lede">ArcPad's $ARCIRCLE tab and foci trade the same on-chain curve, so the price is the same on both. Arc uses USDC for gas, so USDC is all you need.</p>
@@ -321,7 +337,7 @@
         </div>
         <div class="ax-buy-step">
           <h3>Open $ARCIRCLE on ArcPad</h3>
-          <p>Go to <a href="/arc#arcircle">ArcPad → $ARCIRCLE</a>. Prefer foci? The same curve is at <a href="https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">foci.family ↗</a> — check the contract matches the one above.</p>
+          <p>Go to <a href="/arc#arcircle">ArcPad → $ARCIRCLE</a>. Prefer foci? The same curve is at <a href="#" data-arc-href="buy" target="_blank" rel="noopener">foci.family ↗</a> — check the contract matches the one above.</p>
         </div>
         <div class="ax-buy-step">
           <h3>Connect and buy</h3>
@@ -335,10 +351,12 @@
       <div class="ax-kicker">FAQ</div>
       <h2>Questions people ask.</h2>
       <div class="ax-faq">
-        <details><summary>What is the contract address?</summary><p><code class="ax-faq-ca" data-no-i18n>0x933a94b475fa9d8ef94fa564e38dda400a595aa1</code> on Arc (chain 5042). Always check it on <a href="https://arc.etherscan.io/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1" target="_blank" rel="noopener">ArcScan ↗</a> before you trade.</p></details>
-        <details><summary>Where can I buy it?</summary><p>On ArcPad's $ARCIRCLE tab or on foci. Both trade the same bonding curve, so the price and the liquidity are the same.</p></details>
-        <details><summary>What happens at graduation?</summary><p>When the real USDC in the curve reaches its graduation threshold, trading moves from the curve to a DEX pool with that liquidity. The progress above is read live from the curve.</p></details>
-        <details><summary>Is there a team allocation?</summary><p>No. $ARCIRCLE launched with 100% of its 1,000,000,000 supply in the public curve. The supply split above shows where it sits today.</p></details>
+        <details class="arc-live-only"><summary>What is the contract address?</summary><p><code class="ax-faq-ca" data-arc-ca="full" data-no-i18n>—</code> on Arc (chain 5042). Always check it on <a href="#" data-arc-href="scan" target="_blank" rel="noopener">ArcScan ↗</a> before you trade.</p></details>
+        <details class="arc-nl-only" open><summary>What is the contract address?</summary><p>There isn't one yet — $ARCIRCLE is relaunching. The new contract address will be posted on this page and by <span data-no-i18n>@ARCIRCLEonArc</span> when it goes live. Don't trust addresses from anywhere else.</p></details>
+        <details class="arc-nl-only"><summary>Where can I buy it?</summary><p>Not yet. Join the launch alerts on Telegram (<span data-no-i18n>@arcircle_launch</span>) to hear the moment it goes live.</p></details>
+        <details class="arc-live-only"><summary>Where can I buy it?</summary><p>On ArcPad's $ARCIRCLE tab or on foci. Both trade the same bonding curve, so the price and the liquidity are the same.</p></details>
+        <details class="arc-live-only"><summary>What happens at graduation?</summary><p>When the real USDC in the curve reaches its graduation threshold, trading moves from the curve to a DEX pool with that liquidity. The progress above is read live from the curve.</p></details>
+        <details class="arc-live-only"><summary>Is there a team allocation?</summary><p>No. $ARCIRCLE launched with 100% of its 1,000,000,000 supply in the public curve. The supply split above shows where it sits today.</p></details>
         <details><summary>What is the 2% creator tax?</summary><p>A fee on every $ARCIRCLE trade on its curve. It is one of the five revenue sources that feed the flywheel.</p></details>
         <details><summary>Do holders get rewards?</summary><p>A reward program for holders and creators is in design, funded by ecosystem revenue — never by new tokens. Nothing is promised until its rules are published on the <a href="/reward">Reward page</a>.</p></details>
       </div>
@@ -370,6 +388,6 @@
 </nav>
 
 <!-- One file built from several scripts by tools/build-bundles.mjs (see BUNDLES there) -->
-<script src="arcircle.bundle.js?v=1790330016"></script>
+<script src="arcircle.bundle.js?v=1790334239"></script>
 </body>
 </html>

@@ -11,8 +11,9 @@
 (function () {
   "use strict";
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var TOKEN = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
-  var CURVE = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+  // From config-arc.js; both "" while $ARCIRCLE is not live (relaunching).
+  var TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "";
+  var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
   var RPC = (typeof CONFIG !== "undefined" && CONFIG.RPC_URL) || "https://rpc.mainnet.arc.io";
   var EXPLORER = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
 
@@ -84,6 +85,7 @@
       return j;
     }).catch(function (err) {
       if (wallet) throw err;
+      if (!CURVE) return { live: false, partial: true, price: null };
       return readCurve();
     });
     if (!wallet) { memo = { at: Date.now(), p: p }; p.catch(function () { memo = null; }); }
@@ -152,7 +154,7 @@
       if (!c.started) return "Round #1 opens soon";
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
-    if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : "";
+    if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live" : "";
     return "";
   }
   function mountRevenue(list) {
@@ -301,6 +303,6 @@
   window.arcToken = {
     load: load, subscribe: subscribe, mountRevenue: mountRevenue, mountFlow: mountFlow, spark: spark, donut: donut,
     onVisible: onVisible, countTo: countTo, fmt: { price: price, usd: usd, num: num, ago: ago, short: short, esc: esc, explorer: explorer },
-    TOKEN: TOKEN, CURVE: CURVE, reduce: reduce,
+    TOKEN: TOKEN, CURVE: CURVE, live: !!TOKEN, reduce: reduce,
   };
 })();

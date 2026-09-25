@@ -24,6 +24,41 @@
     try { var c = JSON.parse(localStorage.getItem("arcircle.ref.v1") || "null"); return c && Date.now() - c.at < 30 * 864e5 ? c.ref : null; } catch (e) { return null; }
   };
 
+  // ---- $ARCIRCLE: live or not ----
+  // The contract lives in one place (config-arc.js → CONFIG.ARCIRCLE_TOKEN).
+  // Until it's set, <html> gets .arc-notlive: anything marked .arc-live-only
+  // stays hidden and .arc-nl-only ("Not live") shows — which is also what a
+  // page looks like before any script runs. Once set, addresses and links
+  // are filled in from the config:
+  //   [data-arc-ca="full|short|curve-short"]  text
+  //   [data-arc-href="scan|curve|buy"]         href
+  //   .ax-copy[data-copy-arc]                  copies the contract
+  (function arcircleState() {
+    var C = typeof CONFIG !== "undefined" ? CONFIG : {};
+    var tok = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_TOKEN || "") ? C.ARCIRCLE_TOKEN : "";
+    var curve = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_CURVE || "") ? C.ARCIRCLE_CURVE : "";
+    var root = document.documentElement;
+    root.classList.toggle("arc-live", !!tok);
+    root.classList.toggle("arc-notlive", !tok);
+    window.arcircleToken = function () { return tok; };
+    if (!tok) return;
+    var ex = C.BLOCK_EXPLORER || "https://arc.etherscan.io";
+    var sh = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
+    var fill = function () {
+      document.querySelectorAll("[data-arc-ca]").forEach(function (el) {
+        var k = el.getAttribute("data-arc-ca");
+        el.textContent = k === "full" ? tok : k === "curve-short" ? (curve ? sh(curve) : "—") : sh(tok);
+        if (k !== "curve-short") el.title = tok;
+      });
+      document.querySelectorAll("[data-arc-href]").forEach(function (el) {
+        var k = el.getAttribute("data-arc-href");
+        el.href = k === "scan" ? ex + "/token/" + tok : k === "curve" ? (curve ? ex + "/address/" + curve + "#code" : ex + "/token/" + tok) : (C.ARCIRCLE_BUY_URL || "/arc#arcircle");
+      });
+      document.querySelectorAll("[data-copy-arc]").forEach(function (el) { el.setAttribute("data-copy", tok); });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill); else fill();
+  })();
+
   // Rewards used to be a "coming soon" popup; they now have their own page
   // (/reward). Old links — index.html#rewards, arcircle.html#rewards, any
   // leftover [data-reward] button — are sent there.

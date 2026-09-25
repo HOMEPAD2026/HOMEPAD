@@ -493,6 +493,7 @@ function arcFmtUsdPrice(p) {
   return p == null ? "—" : "$" + p.toPrecision(4);
 }
 async function arcpadSelectPair(key) {
+  if (key === "arcircle" && typeof ARCIRCLE_LIVE !== "undefined" && !ARCIRCLE_LIVE) key = "usdc"; // $ARCIRCLE isn't live yet
   const seq = ++arcPairSeq;
   const seg = document.getElementById("ap-pair-seg");
   seg.querySelectorAll("button").forEach((b) => { const on = b.dataset.pair === key; b.classList.toggle("active", on); b.setAttribute("aria-checked", on ? "true" : "false"); });

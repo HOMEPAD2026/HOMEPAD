@@ -54,6 +54,17 @@ const CONFIG = {
   // Filled in once scripts/deploy-homepad-factory-arc.js actually runs
   // against --network arcMainnet. Empty here shows as "soon" in the UI,
   // same convention as config.js's own FACTORY_ADDRESS.
+  // --- $ARCIRCLE, the core coin ---
+  // Empty = NOT LIVE. $ARCIRCLE is being relaunched: until these are set,
+  // every page shows "Not live" instead of a contract address, price, chart
+  // or buy button. At launch set ARCIRCLE_TOKEN (and ARCIRCLE_CURVE if it
+  // trades on a bonding curve), the page people buy it on, and the same two
+  // addresses in api/_arcircle.mjs.
+  ARCIRCLE_TOKEN: "",
+  ARCIRCLE_CURVE: "",
+  ARCIRCLE_BUY_URL: "",
+  ARCIRCLE_LAUNCHED_AT: 0, // unix seconds the curve went live
+
   ARCPAD_FACTORY_ADDRESS: "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E",
   ARCPAD_HOOK_ADDRESS: "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",
   ARCPAD_ROUTER_ADDRESS: "0xFCA8fD788d44Bb335B1451257366e06D67114785",
@@ -73,3 +84,6 @@ const CONFIG = {
   // the lock button and badge stay hidden while it's empty.
   ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 };
+
+// true once $ARCIRCLE is live (its contract address is set above)
+const ARCIRCLE_LIVE = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");

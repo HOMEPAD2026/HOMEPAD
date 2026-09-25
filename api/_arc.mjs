@@ -75,8 +75,10 @@ export async function pool(items, limit, fn) {
 const FACTORY = "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E";
 const POOL_MANAGER = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
 const USDC = "0x3600000000000000000000000000000000000000";
-const ARCIRCLE = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
-const ARCIRCLE_CURVE = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+import { ARCIRCLE_TOKEN, ARCIRCLE_CURVE as ARC_CURVE_CFG } from "./_arcircle.mjs";
+// "" while $ARCIRCLE is not live — then no pair token ever matches it
+const ARCIRCLE = ARCIRCLE_TOKEN.toLowerCase();
+const ARCIRCLE_CURVE = ARC_CURVE_CFG;
 const SEL = {
   launchIndexOf: "0x08b74625", launches: "0x7b443a76", poolKeyOf: "0x8652edf9", launchCount: "0x27cca59f",
   name: "0x06fdde03", symbol: "0x95d89b41", decimals: "0x313ce567", extsload: "0x1e2eaeaf", getReserves: "0x0902f1ac",
@@ -161,7 +163,7 @@ export async function getCoin(addr) {
   for (const [k, i] of [["twitter", 9], ["telegram", 10], ["discord", 11], ["website", 12]]) { try { l[k] = wString(rec, i); } catch { l[k] = ""; } }
   const q = l.quoteToken.toLowerCase();
   l.quoteIsUsdc = q === USDC.toLowerCase();
-  l.quoteSymbol = l.quoteIsUsdc ? "USDC" : q === ARCIRCLE ? "ARCIRCLE" : "";
+  l.quoteSymbol = l.quoteIsUsdc ? "USDC" : ARCIRCLE && q === ARCIRCLE ? "ARCIRCLE" : "";
   // pool state: sqrtPriceX96 from the PoolManager's storage
   let sqrt = null;
   if (keyHex) {
@@ -169,14 +171,14 @@ export async function getCoin(addr) {
     const slot = keccakHex(strip(poolId) + pad("6"));
     const calls = [{ to: POOL_MANAGER, data: SEL.extsload + strip(slot) }];
     if (!l.quoteIsUsdc) calls.push({ to: l.quoteToken, data: SEL.decimals }, { to: l.quoteToken, data: SEL.symbol });
-    if (q === ARCIRCLE) calls.push({ to: ARCIRCLE_CURVE, data: SEL.getReserves });
+    if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE) calls.push({ to: ARCIRCLE_CURVE, data: SEL.getReserves });
     const r = await ethCalls(calls);
     if (r[0]) sqrt = BigInt(r[0]) & ((1n << 160n) - 1n);
     // Never guess decimals: an unread value would misprice the coin by
     // orders of magnitude, so leave the price blank instead.
-    l.quoteDecimals = l.quoteIsUsdc ? 6 : q === ARCIRCLE ? 18 : r[1] ? Number(BigInt(r[1])) : null;
+    l.quoteDecimals = l.quoteIsUsdc ? 6 : ARCIRCLE && q === ARCIRCLE ? 18 : r[1] ? Number(BigInt(r[1])) : null;
     if (!l.quoteIsUsdc && r[2]) l.quoteSymbol = decodeString(r[2]) || l.quoteSymbol;
-    if (q === ARCIRCLE && r[3]) {
+    if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE && r[3]) {
       const qr = Number(wBig(r[3], 0)) / 1e6, tr = Number(wBig(r[3], 1)) / 1e18;
       l.quoteUsd = tr > 0 ? qr / tr : null;
     }

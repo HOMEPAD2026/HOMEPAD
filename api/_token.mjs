@@ -16,12 +16,13 @@
 // trades, buybacks — is what gets stored, not the raw logs.
 import { ethCalls, rpcCall, getLogs, latestBlock, blockTs, toQty, pad, wAddr, isAddr, TOPIC } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
-import { ARCIRCLE, FACTORY, kec, S, big, roundState, contributionOf } from "./_round.mjs";
+import { ARCIRCLE, ARCIRCLE_LIVE, FACTORY, kec, S, big, roundState, contributionOf } from "./_round.mjs";
+import { ARCIRCLE_CURVE, ARCIRCLE_LAUNCHED_AT } from "./_arcircle.mjs";
 import { creatorCounts, blockAtOrBefore } from "./_circle.mjs";
 
-export const CURVE = "0xa37a96c43e2335553bd79171de6db2806414ac64";
+export const CURVE = ARCIRCLE_CURVE.toLowerCase(); // "" while $ARCIRCLE is not live
 export const TREASURY = "0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8";
-const LAUNCHED_AT = 1790057692; // $ARCIRCLE's curve went live (same constant as arcircle-coin.js)
+const LAUNCHED_AT = ARCIRCLE_LAUNCHED_AT;
 const SUPPLY = 1e9;
 const ZERO = "0x0000000000000000000000000000000000000000";
 const CHUNK = 9000, PARALLEL = 4, MAX_CHUNKS = 40, KEEP = 8 * 86400;
@@ -205,8 +206,46 @@ function priceAt(W, ts) {
   return p;
 }
 
+/// While $ARCIRCLE is not live (relaunching): no price, curve or holders —
+/// just what doesn't depend on it (launch fees, CirclePad, treasury USDC, and
+/// a wallet's CirclePad contribution / launches / referrals).
+async function notLiveStats(wallet) {
+  const wl = await treasuryWallets();
+  const [r, natives, round] = await Promise.all([
+    ethCalls([{ to: FACTORY, data: S.launchCount }]),
+    Promise.all(wl.map((w) => rpcCall("eth_getBalance", [w.addr, "latest"]).then((h) => Number(BigInt(h)) / 1e18).catch(() => null))),
+    roundState().catch(() => null),
+  ]);
+  const launches = Number(big(r[0]));
+  const out = {
+    v: 1, live: false, complete: true, price: null, mcap: null,
+    buybacks: { n: 0, usdc: 0, tokens: 0, list: [] },
+    treasury: { wallets: wl.map((w, i) => ({ address: w.addr, label: w.label, arcircle: null, usdc: r2(natives[i]) })), arcircle: null,
+      usdc: r2(natives.reduce((s, v) => s + (v || 0), 0)) },
+    revenue: {
+      launches, launchFees: launches, allocationCoins: launches, creatorTax: null,
+      circle: round ? { started: round.started, raised: r2(Number(round.totalRaised) / 1e18), share: r2((Number(round.totalRaised) / 1e18) * 0.05), open: round.isOpen, deadline: round.deadline } : null,
+    },
+  };
+  if (isAddr(wallet)) {
+    const w = lc(wallet);
+    const [contrib, creators, refs] = await Promise.all([
+      contributionOf(w).catch(() => null), creatorCounts().catch(() => null),
+      storeEnabled() ? queryDocs("circleRefs", "ref", w).catch(() => null) : Promise.resolve(null),
+    ]);
+    out.wallet = {
+      address: w, balance: null, holdingSince: null, heldDays: 0, rank: null, indexed: true,
+      circle: contrib == null ? null : r2(Number(contrib) / 1e18, 4),
+      launches: creators ? creators.get(w) || 0 : null,
+      referrals: refs ? { n: refs.length, usdc: r2(refs.reduce((s, x) => s + (x.amount || 0), 0), 4) } : null,
+    };
+  }
+  return out;
+}
+
 /// GET /api/social?token=arcircle
 export async function tokenStats(wallet) {
+  if (!ARCIRCLE_LIVE || !CURVE) return notLiveStats(wallet);
   const wl = await treasuryWallets();
   const [st, live] = await Promise.all([scanState(), liveReads(wl)]);
   const { W, head } = st;
@@ -237,7 +276,7 @@ export async function tokenStats(wallet) {
   const rest = Math.max(0, SUPPLY - curveTok - treasTok - top10);
   const bbSpent = W.bb.reduce((s, x) => s + x.usd, 0), bbTok = W.bb.reduce((s, x) => s + x.tok, 0);
   const out = {
-    v: 1, complete: st.complete, scannedTo: W.scannedTo, head: head.number, ts: now,
+    v: 1, live: true, complete: st.complete, scannedTo: W.scannedTo, head: head.number, ts: now,
     price, mcap: price != null ? price * SUPPLY : null, change24h: p24 && price ? r2(((price - p24) / p24) * 100) : null,
     liquidity: r2(live.real), threshold: r2(live.threshold), graduated: live.graduated,
     progress: live.graduated ? 100 : live.threshold > 0 ? r2(Math.min(100, (live.real / live.threshold) * 100), 3) : 0,
@@ -310,7 +349,7 @@ export async function pollVote(b, recoverSigner, json) {
   let signer;
   try { signer = recoverSigner(pollMessage(mech, w), b.signature); } catch { return json(400, { error: "invalid signature" }); }
   if (signer !== w) return json(403, { error: "signature doesn't match the wallet" });
-  const [bal] = await ethCalls([{ to: ARCIRCLE, data: S.balanceOf + pad(w) }]).catch(() => [null]);
+  const [bal] = ARCIRCLE_LIVE ? await ethCalls([{ to: ARCIRCLE, data: S.balanceOf + pad(w) }]).catch(() => [null]) : [null];
   const holder = big(bal) > 0n;
   const r = await commit([
     { create: `rewardVotes/${mech}_${w}`, data: { mech, wallet: w, holder, at: Date.now() } },

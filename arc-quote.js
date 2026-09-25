@@ -12,12 +12,12 @@
 
 const ARC_QUOTE_PRESETS = [
   { key: "usdc", address: CONFIG.USDC_ADDRESS, label: "USDC" },
-  { key: "arcircle", address: "0x933a94b475fa9d8ef94fa564e38dda400a595aa1", label: "$ARCIRCLE" },
+  { key: "arcircle", address: CONFIG.ARCIRCLE_TOKEN || "", label: "$ARCIRCLE" }, // "" while $ARCIRCLE is not live
 ];
 // 4,000 USD of virtual quote against the 920M sellable tokens → ≈ $0.0000043 a token,
 // ≈ $4,350 fully-diluted on the 1B supply. Same opening point for every pair.
 const ARC_START_RESERVE_USD = 4000;
-const ARCIRCLE_CURVE_ADDR = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+const ARCIRCLE_CURVE_ADDR = CONFIG.ARCIRCLE_CURVE || "";
 
 const _arcQuoteMetaCache = new Map();
 const _arcQuotePriceCache = new Map();
@@ -28,8 +28,8 @@ const arcIsUsdc = (addr) => !!addr && addr.toLowerCase() === CONFIG.USDC_ADDRESS
 // rate-limited RPC can never turn them into "?" with the wrong decimals.
 const ARC_KNOWN_QUOTES = {
   [CONFIG.USDC_ADDRESS.toLowerCase()]: { symbol: "USDC", name: "USD Coin", decimals: 6 },
-  "0x933a94b475fa9d8ef94fa564e38dda400a595aa1": { symbol: "ARCIRCLE", name: "arcircle", decimals: 18 },
 };
+if (CONFIG.ARCIRCLE_TOKEN) ARC_KNOWN_QUOTES[CONFIG.ARCIRCLE_TOKEN.toLowerCase()] = { symbol: "ARCIRCLE", name: "arcircle", decimals: 18 };
 
 /// Pair-token basics for a coin that is ALREADY launched. The factory accepted
 /// this token when the coin launched, so a failure here can only be the RPC
@@ -131,7 +131,7 @@ async function arcQuotePriceUsd(addr, depth = 0) {
   let out = { price: null, source: null };
   try {
     if (arcIsUsdc(a)) out = { price: 1, source: "USDC" };
-    else if (k === ARC_QUOTE_PRESETS[1].address.toLowerCase()) {
+    else if (ARC_QUOTE_PRESETS[1].address && ARCIRCLE_CURVE_ADDR && k === ARC_QUOTE_PRESETS[1].address.toLowerCase()) {
       const c = new ethers.Contract(ARCIRCLE_CURVE_ADDR, ["function getReserves() view returns (uint256,uint256)", "function graduated() view returns (bool)"], readProvider());
       const [grad, res] = await Promise.all([c.graduated().catch(() => false), withRetry(() => c.getReserves())]);
       if (!grad && res[1] > 0n) out = { price: Number(ethers.formatUnits(res[0], 6)) / Number(ethers.formatUnits(res[1], 18)), source: "foci curve" };

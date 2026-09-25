@@ -4470,3 +4470,37 @@ a.ax-util-tile:hover{border-color:color-mix(in srgb,var(--acc) 55%,transparent);
 @media (prefers-reduced-motion:reduce){.lkr-emblem .lkr-shackle,.lkr-emblem.snap,.lkr-row,.lkr-steps i{animation:none;}}
 .lkr-card h2{color:#eef3f7;}
 .lk-pf-more{display:inline-block;color:#35d8d0;font-weight:700;}
+
+/* ---- $ARCIRCLE live / not live (arcircle-hub.js sets html.arc-live) ---- */
+html:not(.arc-live) .arc-live-only{display:none!important;}
+html.arc-live .arc-nl-only{display:none!important;}
+.arc-nl-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:'Silkscreen',monospace;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;
+  color:#ffc861;background:rgba(255,200,97,.1);border:1px solid rgba(255,200,97,.35);}
+.arc-nl-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#ffc861;box-shadow:0 0 8px #ffc861;animation:arc-nl-blink 1.8s ease-in-out infinite;}
+@keyframes arc-nl-blink{50%{opacity:.35;}}
+@media (prefers-reduced-motion:reduce){.arc-nl-badge::before{animation:none;}}
+.axf-nl{font-style:normal;font-size:.72rem;font-weight:700;color:#ffc861;}
+.ax-top-cta.ax-top-nl .ax-dot{background:#ffc861;box-shadow:0 0 8px #ffc861;}
+/* ArcPad $ARCIRCLE tab while not live */
+.ac2-notlive{max-width:640px;margin:40px auto;text-align:center;padding:36px 28px;border-radius:24px;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(255,200,97,.09),rgba(255,255,255,.02));border:1px solid rgba(255,200,97,.25);}
+.ac2-nl-logo{width:150px;height:auto;margin:0 auto 14px;display:block;filter:grayscale(.35) drop-shadow(0 0 30px rgba(53,216,208,.25));opacity:.9;animation:ax-float 7s ease-in-out infinite;}
+.ac2-notlive h1{margin:14px 0 10px;font-size:clamp(1.5rem,4vw,2rem);}
+.ac2-notlive p{margin:0 auto 10px;max-width:520px;line-height:1.6;color:rgba(222,233,244,.72);font-size:.93rem;}
+.ac2-notlive p a{color:#35d8d0;}
+.ac2-nl-warn{font-size:.82rem!important;color:#ffc861!important;}
+.ac2-nl-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+.ac2-nl-btn{padding:12px 18px;border-radius:14px;font-weight:800;font-size:.9rem;color:#03130c;background:linear-gradient(90deg,#4d9fff,#35d8d0,#39ff88);}
+.ac2-nl-btn.ghost{color:#eef3f7;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);}
+.ac2-feature .arc-nl-badge{margin-left:6px;}
+/* $ARCIRCLE page while not live */
+.ax-ca-nl{border-style:dashed;border-color:rgba(255,200,97,.3);}
+.ax-ca-soon{flex:1;font-size:.88rem;font-weight:700;color:#ffc861;}
+.ax-eyebrow + .arc-nl-badge{vertical-align:middle;margin-left:6px;}
+.ax-relaunch{display:flex;gap:16px;align-items:flex-start;padding:18px 22px;margin-bottom:84px;border-radius:18px;
+  background:linear-gradient(120deg,rgba(255,200,97,.08),rgba(255,255,255,.02));border:1px solid rgba(255,200,97,.28);}
+.ax-relaunch strong{display:block;font-size:1rem;margin-bottom:4px;}
+.ax-relaunch p{margin:0;font-size:.88rem;line-height:1.6;color:var(--ax-dim);}
+.ax-relaunch a{color:#35d8d0;}
+@media (max-width:640px){.ax-relaunch{flex-direction:column;gap:10px;margin-bottom:64px;}}
+.arc-nl-badge{white-space:nowrap;flex-shrink:0;}

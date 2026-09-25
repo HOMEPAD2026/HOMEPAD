@@ -14,7 +14,7 @@
 const ACT_SWAP = ethers.id("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)");
 const ACT_CURVE_BUY = ethers.id("CurveBuy(address,address,uint256,uint256,uint256,uint256)");
 const ACT_CURVE_SELL = ethers.id("CurveSell(address,address,uint256,uint256,uint256,uint256)");
-const ACT_CURVE = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+const ACT_CURVE = CONFIG.ARCIRCLE_CURVE || ""; // "" while $ARCIRCLE is not live
 const ACT_CHUNK = 9_000;
 const ACT_WINDOW_SEC = 24 * 3600;
 const ACT_CACHE_KEY = `arcpad.activity.v1.${CONFIG.CHAIN_ID_DECIMAL}`;
@@ -125,7 +125,7 @@ async function actFetchSwaps(from, to) {
   return logs.map(actCompact);
 }
 async function actFetchCurve(from, to) {
-  if (from > to) return [];
+  if (from > to || !ACT_CURVE) return [];
   const logs = await actGetLogs({ address: ACT_CURVE, topics: [[ACT_CURVE_BUY, ACT_CURVE_SELL]],
     fromBlock: ethers.toQuantity(from), toBlock: ethers.toQuantity(to) });
   return logs.map((log) => {

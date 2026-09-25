@@ -21,6 +21,7 @@
   var lastPrice = null, ringShown = false, lastData = null;
   function paint(d) {
     lastData = d;
+    if (d.live === false || !T.live) return; // not live (relaunching): the page shows its "Not live" markup
     var indexing = d.complete === false;
     setText("price", F.price(d.price));
     setText("mcap", F.usd(d.mcap));

@@ -121,7 +121,7 @@
   let symMemo = { n: -1, m: null };
   function symCounts() {
     if (symMemo.n === ARC.launches.length && symMemo.m) return symMemo.m;
-    const m = new Map([["ARCIRCLE", [{ token: ARCIRCLE_TOKEN(), launchedAt: 0, core: true }]]]);
+    const m = new Map(ARCIRCLE_TOKEN() ? [["ARCIRCLE", [{ token: ARCIRCLE_TOKEN(), launchedAt: 0, core: true }]]] : []);
     for (const l of ARC.launches) {
       const k = String(l.symbol || "").trim().toUpperCase();
       if (!k) continue;
@@ -131,7 +131,8 @@
     symMemo = { n: ARC.launches.length, m };
     return m;
   }
-  function ARCIRCLE_TOKEN() { return typeof ARCIRCLE !== "undefined" ? ARCIRCLE.token : "0x933a94b475fa9d8ef94fa564e38dda400a595aa1"; }
+  // "" while $ARCIRCLE is not live (config-arc.js)
+  function ARCIRCLE_TOKEN() { return (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""; }
   const sameTicker = (sym) => symCounts().get(String(sym || "").trim().toUpperCase()) || [];
 
   // ================= HOT (most traded in the last hour) =================
@@ -329,20 +330,23 @@
     const p = readProvider();
     const launches = ARC.launches.slice();
     const tokens = launches.map((l) => new ethers.Contract(l.token, ERC20_ABI, p));
-    const arcTok = new ethers.Contract(ARCIRCLE_TOKEN(), ERC20_ABI, p);
-    const curve = new ethers.Contract("0xa37A96C43e2335553BD79171DE6dB2806414AC64", ["function getReserves() view returns (uint256,uint256)"], p);
     const calls = tokens.map((c) => ({ contract: c, method: "balanceOf", args: [account] }));
-    calls.push({ contract: arcTok, method: "balanceOf", args: [account] }, { contract: curve, method: "getReserves" });
+    // $ARCIRCLE (and its curve price) only once it's live
+    const arcLive = !!ARCIRCLE_TOKEN();
+    if (arcLive) {
+      calls.push({ contract: new ethers.Contract(ARCIRCLE_TOKEN(), ERC20_ABI, p), method: "balanceOf", args: [account] });
+      if (CONFIG.ARCIRCLE_CURVE) calls.push({ contract: new ethers.Contract(CONFIG.ARCIRCLE_CURVE, ["function getReserves() view returns (uint256,uint256)"], p), method: "getReserves" });
+    }
     const r = await withRetry(() => multicallRead(calls));
     const native = await p.getBalance(account).catch(() => null);
     const n = launches.length;
-    const res = r[n + 1];
+    const res = arcLive && CONFIG.ARCIRCLE_CURVE ? r[n + 1] : null;
     const arcPrice = res ? Number(ethers.formatUnits(res[0], 6)) / Number(ethers.formatUnits(res[1], 18)) : null;
     const rows = launches.map((l, i) => {
       const amt = r[i] != null ? Number(ethers.formatUnits(r[i], 18)) : 0;
       return { l, amt, value: l.priceUsdc != null ? amt * l.priceUsdc : null };
     }).filter((x) => x.amt > 0);
-    const arcAmt = r[n] != null ? Number(ethers.formatUnits(r[n], 18)) : 0;
+    const arcAmt = arcLive && r[n] != null ? Number(ethers.formatUnits(r[n], 18)) : 0;
     if (arcAmt > 0) rows.push({ core: true, amt: arcAmt, value: arcPrice != null ? arcAmt * arcPrice : null });
     rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
     return { rows, usdc: native != null ? Number(ethers.formatEther(native)) : null, at: Date.now() };

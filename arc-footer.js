@@ -53,8 +53,8 @@
     ["ArcPad factory", "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E"],
     ["Swap router", "0xFCA8fD788d44Bb335B1451257366e06D67114785"],
     ["Fee hook", "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044"],
-    ["$ARCIRCLE", "0x933a94b475fa9d8ef94fa564e38dda400a595aa1"],
-    ["$ARCIRCLE curve", "0xa37A96C43e2335553BD79171DE6dB2806414AC64"],
+    // $ARCIRCLE comes from config-arc.js; "" (not live, relaunching) shows "Not live"
+    ["$ARCIRCLE", (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""],
     ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703"],
     ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
   ];
@@ -72,6 +72,7 @@
         '<div class="axf-col"><h4>Products</h4><a href="/arc">ArcPad</a><a href="/circle">CirclePad</a><a href="/arcircle">$ARCIRCLE</a><a href="/reward">Reward</a></div>' +
         '<div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a></div>' +
         '<div class="axf-col axf-contracts"><h4>Contracts</h4>' + CONTRACTS.map(function (c) {
+          if (!c[1]) return '<div class="axf-ca"><span>' + c[0] + '</span><em class="axf-nl">Not live</em></div>';
           return '<div class="axf-ca"><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
             '<button type="button" class="axf-copy" data-copy-ca="' + c[1] + '" aria-label="Copy address">Copy</button></div>';
         }).join("") + '</div>' +

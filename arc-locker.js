@@ -28,7 +28,7 @@
     "function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)",
   ];
   const DAY = 86400, MIN_S = DAY, MAX_S = 3650 * DAY;
-  const ARCIRCLE = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+  const ARCIRCLE = String(CONFIG.ARCIRCLE_TOKEN || "").toLowerCase(); // "" while not live
   const $ = (id) => document.getElementById(id);
   const lc = (a) => String(a || "").toLowerCase();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -76,7 +76,7 @@
       const supply = await withRetry(() => new ethers.Contract(m.address, TOK_ABI, readProvider()).totalSupply()).catch(() => 0n);
       const l = launchOf(m.address);
       const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl
-        : k === ARCIRCLE ? "images/arcircle-mark-sm.png" : "";
+        : ARCIRCLE && k === ARCIRCLE ? "images/arcircle-mark-sm.png" : "";
       return { ...m, supply, logo, creator: l ? lc(l.creator) : null, arcpad: !!l };
     })();
     p.catch(() => metaCache.delete(k));
@@ -100,7 +100,7 @@
   function renderChips() {
     const box = $("lkr-quick");
     if (!box) return;
-    const chips = [{ a: ARCIRCLE, s: "$ARCIRCLE" }, { a: CONFIG.USDC_ADDRESS, s: "USDC" }];
+    const chips = (ARCIRCLE ? [{ a: ARCIRCLE, s: "$ARCIRCLE" }] : []).concat([{ a: CONFIG.USDC_ADDRESS, s: "USDC" }]);
     if (state.account) {
       ((typeof ARC !== "undefined" && ARC.launches) || []).filter((l) => lc(l.creator) === lc(state.account)).slice(0, 6)
         .forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol, mine: true }));

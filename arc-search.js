@@ -11,7 +11,7 @@
   const $ = (id) => document.getElementById(id);
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const lc = (a) => String(a || "").toLowerCase();
-  const ARCIRCLE = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+  const ARCIRCLE = String((typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "").toLowerCase(); // "" while not live
   const KEY = "arcpad.recent.v1";
   const isAddr = (s) => /^0x[0-9a-fA-F]{40}$/.test(s);
   const safeImg = (u) => /^https?:\/\//i.test(u || "") || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u || "");

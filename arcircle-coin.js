@@ -18,14 +18,17 @@
 // on a buy and off the OUTPUT on a sell, around a constant-product curve
 // whose quote side includes a virtual ("phantom") USDC reserve.
 
+// Addresses come from config-arc.js; both are "" while $ARCIRCLE is not live
+// (relaunching) — the panel and banners then show "Not live" and nothing
+// here reads the chain.
 const ARCIRCLE = {
-  token: "0x933a94b475fa9d8ef94fa564e38dda400a595aa1",
-  curve: "0xa37A96C43e2335553BD79171DE6dB2806414AC64",
+  token: CONFIG.ARCIRCLE_TOKEN || "",
+  curve: CONFIG.ARCIRCLE_CURVE || "",
   symbol: "ARCIRCLE",
   decimals: 18,
   quoteDecimals: 6,
   supply: 1_000_000_000,
-  fociUrl: "https://foci.family/token/0x933a94b475fa9d8ef94fa564e38dda400a595aa1",
+  fociUrl: CONFIG.ARCIRCLE_BUY_URL || "",
   gasReserveUsdc: "0.05", // USDC is Arc's gas token — "Max" leaves this much for fees
 };
 
@@ -243,7 +246,7 @@ async function ac2Scan() {
     const latest = latestBlock.number;
     AC2.anchor = { block: latest, ts: Number(latestBlock.timestamp) };
     if (!AC2.logs) {
-      const launchedAt = AC2.s && AC2.s.launchedAt ? AC2.s.launchedAt : 1790057692;
+      const launchedAt = AC2.s && AC2.s.launchedAt ? AC2.s.launchedAt : (CONFIG.ARCIRCLE_LAUNCHED_AT || Math.floor(Date.now() / 1000) - 7 * 86400);
       // blockAtOrAfter lands at or just BEFORE the target, so the launch
       // block (and the token's mint) can't be skipped.
       const launchBlock = await blockAtOrAfter(new Date(launchedAt * 1000).toISOString(), "arcircle-coin");
@@ -872,6 +875,9 @@ function ac2Activate() {
 (() => {
   const panel = ac2$("bp-panel-arcircle");
   if (!panel) return;
+  // Not live (relaunching): the "Not live" card and banners are plain markup
+  // (.arc-nl-only), so there is nothing to read or poll.
+  if (typeof ARCIRCLE_LIVE !== "undefined" && !ARCIRCLE_LIVE) return;
 
   // Banners on Home / Explore: one cheap state read on page load.
   ac2FetchState().then(ac2RenderState).catch((err) => console.warn("$ARCIRCLE banner: state read failed", err));

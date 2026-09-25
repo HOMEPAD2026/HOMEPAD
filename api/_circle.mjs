@@ -11,7 +11,7 @@ import { ethCalls, rpcCall, isAddr, pad, wAddr, getLogs, latestBlock, blockTs, t
 import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
-import { ESCROW, ARCIRCLE, FACTORY, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
+import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
 export { ESCROW, roundState, contributionOf };
 const lc = (a) => String(a || "").toLowerCase();
 const usd = (wei) => Number(wei) / 1e18; // native USDC on Arc: 18 decimals
@@ -41,7 +41,7 @@ export async function creatorCounts() {
 export async function badges(addrs) {
   const list = [...new Set(addrs.map(lc).filter(isAddr))].slice(0, 60);
   if (!list.length) return {};
-  const [bals, creators] = await Promise.all([ethCalls(list.map((a) => ({ to: ARCIRCLE, data: S.balanceOf + pad(a) }))), creatorCounts().catch(() => new Map())]);
+  const [bals, creators] = await Promise.all([(ARCIRCLE_LIVE ? ethCalls(list.map((a) => ({ to: ARCIRCLE, data: S.balanceOf + pad(a) }))) : Promise.resolve(list.map(() => null))), creatorCounts().catch(() => new Map())]);
   const out = {};
   list.forEach((a, i) => { out[a] = { arcircle: big(bals[i]) > 0n, launches: creators.get(a) || 0 }; });
   return out;
@@ -119,7 +119,7 @@ export async function qaPost(b, recover, json) {
     // Contributors, pledgers and $ARCIRCLE holders can post — enough to keep
     // drive-by spam out without closing the room to newcomers.
     const [contrib, pl, bal] = await Promise.all([
-      contributionOf(wallet), getDocs([`circlePledges/${ESCROW}_${wallet}`]), ethCalls([{ to: ARCIRCLE, data: S.balanceOf + pad(wallet) }]),
+      contributionOf(wallet), getDocs([`circlePledges/${ESCROW}_${wallet}`]), (ARCIRCLE_LIVE ? ethCalls([{ to: ARCIRCLE, data: S.balanceOf + pad(wallet) }]) : Promise.resolve([null])),
     ]);
     const pledged = pl[`circlePledges/${ESCROW}_${wallet}`];
     if (!(contrib > 0n || (pledged && pledged.amount > 0) || big(bal[0]) > 0n)) return json(403, { error: "pledge, contribute or hold $ARCIRCLE to post in the round Q&A" });

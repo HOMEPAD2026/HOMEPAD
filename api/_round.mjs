@@ -4,7 +4,10 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { ethCalls, pad, wAddr } from "./_arc.mjs";
 
 export const ESCROW = "0xc5998d7ce728fdd6f77217fde775aab90ec61703";
-export const ARCIRCLE = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+import { ARCIRCLE_TOKEN, ARCIRCLE_LIVE } from "./_arcircle.mjs";
+// "" while $ARCIRCLE is not live (see _arcircle.mjs)
+export const ARCIRCLE = ARCIRCLE_TOKEN.toLowerCase();
+export { ARCIRCLE_LIVE };
 export const FACTORY = "0x0ebd6df354056ff469f17f8fd14dc0d2c87bd65e";
 const te = new TextEncoder();
 export const kec = (s) => "0x" + Array.from(keccak_256(te.encode(String(s))), (b) => b.toString(16).padStart(2, "0")).join("");

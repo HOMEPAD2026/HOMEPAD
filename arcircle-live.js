@@ -6,7 +6,8 @@
 // liq|holders-note". Needs ethers + arc-shared.js (readProvider, withRetry).
 (function () {
   "use strict";
-  var CURVE = "0xa37A96C43e2335553BD79171DE6dB2806414AC64";
+  // From config-arc.js; "" while $ARCIRCLE is not live (relaunching).
+  var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
   var SUPPLY = 1000000000;
   var ABI = [
     "function getReserves() view returns (uint256 quoteReserve_, uint256 tokenReserve_)",
@@ -37,6 +38,14 @@
 
   async function refresh() {
     if (!document.querySelector("[data-arl]")) return;
+    if (!CURVE) {
+      setAll("price", "Not live");
+      setAll("mcap", "—");
+      setAll("liq", "—");
+      setAll("progress-text", "Not live yet — $ARCIRCLE is relaunching");
+      document.querySelectorAll('[data-arl="progress-fill"]').forEach(function (el) { el.style.width = "0%"; });
+      return;
+    }
     try {
       var c = new ethers.Contract(CURVE, ABI, readProvider());
       var r = await Promise.all([
@@ -65,5 +74,5 @@
   window.arcircleLive = { refresh: refresh, fmtUsd: fmtUsd, fmtPrice: fmtPrice };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refresh);
   else refresh();
-  setInterval(function () { if (!document.hidden) refresh(); }, 30000);
+  if (CURVE) setInterval(function () { if (!document.hidden) refresh(); }, 30000);
 })();

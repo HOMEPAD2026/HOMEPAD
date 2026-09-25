@@ -5,7 +5,7 @@
 (function () {
   "use strict";
   const KEY = "arcpad.filters.v1";
-  const ARCIRCLE = "0x933a94b475fa9d8ef94fa564e38dda400a595aa1";
+  const ARCIRCLE = String((typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "").toLowerCase(); // "" while not live
   const USDC = String((typeof CONFIG !== "undefined" && CONFIG.USDC_ADDRESS) || "0x3600000000000000000000000000000000000000").toLowerCase();
   const DEF = { pair: "all", age: "all", mcap: "all" };
   const MCAP = { lt10k: [0, 1e4], "10k": [1e4, 1e5], "100k": [1e5, 1e6], gt1m: [1e6, Infinity] };
@@ -39,7 +39,7 @@
     const q = String(l.quoteToken || "").toLowerCase();
     if (F.pair === "usdc" && q !== USDC) return false;
     if (F.pair === "arcircle" && q !== ARCIRCLE) return false;
-    if (F.pair === "other" && (q === USDC || q === ARCIRCLE)) return false;
+    if (F.pair === "other" && (q === USDC || (ARCIRCLE && q === ARCIRCLE))) return false;
     if (F.age !== "all" && !(l.launchedAt && Date.now() / 1000 - l.launchedAt <= AGE[F.age])) return false;
     if (F.mcap !== "all") {
       const m = l.marketCapUsd, r = MCAP[F.mcap];
@@ -49,7 +49,7 @@
   };
 
   const GROUPS = [
-    ["pair", "Pair", [["all", "All"], ["usdc", "USDC"], ["arcircle", "$ARCIRCLE"], ["other", "Other"]]],
+    ["pair", "Pair", [["all", "All"], ["usdc", "USDC"]].concat(ARCIRCLE ? [["arcircle", "$ARCIRCLE"]] : []).concat([["other", "Other"]])],
     ["age", "Launched", [["all", "Any time"], ["1h", "1h"], ["24h", "24h"], ["7d", "7d"]]],
     ["mcap", "Market cap", [["all", "Any"], ["lt10k", "< $10K"], ["10k", "$10K–100K"], ["100k", "$100K–1M"], ["gt1m", "> $1M"]]],
   ];
