@@ -10,6 +10,7 @@
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
+//   GET  /api/social?cctp=fees|msg&src=…        Bridge: Circle CCTP fee quotes / transfer status (api/_cctp.mjs)
 //
 // Every write carries a wallet signature over a human-readable message that
 // the server rebuilds from the request itself; the signer must be the coin's
@@ -23,6 +24,7 @@ import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 import * as circle from "./_circle.mjs";
 import * as token from "./_token.mjs";
+import { cctp } from "./_cctp.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -143,6 +145,10 @@ export async function GET(req) {
       const out = await token.tokenStats(isAddr(w) ? w : null);
       return json(200, out, !isAddr(w) && out.complete ? "public, max-age=15, s-maxage=20, stale-while-revalidate=120" : "no-store");
     } catch (err) { console.error("token stats", err && err.message || err); return json(502, { error: "couldn't read $ARCIRCLE right now" }); }
+  }
+  if (url.searchParams.has("cctp")) {
+    try { const [st, body, cc] = await cctp(url.searchParams); return json(st, body, cc); }
+    catch (err) { console.error("cctp", err && err.message || err); return json(502, { error: "couldn't reach Circle right now" }); }
   }
   if (url.searchParams.get("circle") === "badges") {
     try { return json(200, { badges: await circle.badges(String(url.searchParams.get("addrs") || "").split(",")) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900"); }

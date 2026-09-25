@@ -97,6 +97,11 @@
       "source": "/locker",
       "destination": "/arc#locker",
       "permanent": false
+    },
+    {
+      "source": "/bridge",
+      "destination": "/arc#bridge",
+      "permanent": false
     }
   ],
   "headers": [

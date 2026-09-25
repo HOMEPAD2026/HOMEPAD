@@ -388,15 +388,25 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
     };
 
     appKitNetwork = robinhoodNetwork;
+    // The Bridge utility (arc-bridge.js) moves USDC to and from these chains:
+    // listing them lets the wallet switch to them over WalletConnect too.
+    // The site's own chain stays the default and the one every write checks.
+    const bridgeNetworks = ((CONFIG.BRIDGE && CONFIG.BRIDGE.CHAINS) || []).map((c) => ({
+      id: c.chainId, name: c.name, nativeCurrency: c.native,
+      rpcUrls: { default: { http: [c.rpc] } },
+      blockExplorers: { default: { name: "Explorer", url: c.explorer } },
+      chainNamespace: "eip155", caipNetworkId: `eip155:${c.chainId}`, testnet: false,
+    }));
+    const allNetworks = [robinhoodNetwork].concat(bridgeNetworks);
     const wagmiAdapter = new WagmiAdapter({
       projectId: CONFIG.REOWN_PROJECT_ID,
-      networks: [robinhoodNetwork],
+      networks: allNetworks,
     });
     wagmiConfigRef = wagmiAdapter.wagmiConfig;
 
     appKitModal = createAppKit({
       adapters: [wagmiAdapter],
-      networks: [robinhoodNetwork],
+      networks: allNetworks,
       defaultNetwork: robinhoodNetwork,
       // A wallet that connects while on another chain (very common on
       // mobile — WalletConnect sessions come back on whatever chain the
