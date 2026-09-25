@@ -2125,6 +2125,86 @@ body.ax-dock-host{padding-bottom:160px;}
 .ac2-links a:hover{background:var(--panel-hi);}
 .ac2-links small{color:var(--ink-dim);font-weight:500;font-size:.72rem;}
 
+/* $ARCIRCLE tab — Hopium / Uniswap v4 pool (arcircle-tab.js) */
+.ac2p{--ac2-buy:#39d98a;--ac2-sell:#ff6b6b;padding-top:22px;}
+.ac2p-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.ac2p-title{flex:1;min-width:0;}
+.ac2p-venue{color:#e7d4ff;border-color:rgba(190,140,255,.4);background:rgba(190,140,255,.1);}
+.ac2p-price{margin-left:auto;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.ac2p-price strong{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.ac2p-price strong sub{font-size:.55em;vertical-align:-.25em;}
+.ac2p-price .ax-chg{font-style:normal;font-size:.84rem;font-weight:700;color:var(--ink-dim);}
+.ac2p-price .ax-chg.up{color:var(--ac2-buy);}
+.ac2p-price .ax-chg.down{color:var(--ac2-sell);}
+.ac2p-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;margin:22px 0 16px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.ac2p-stats > div{background:var(--panel);padding:13px 15px;min-width:0;}
+.ac2p-stats small{display:block;font-size:.66rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.ac2p-stats strong{display:block;font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac2p-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;}
+.ac2p-side{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.ac2p-grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start;}
+.ac2p-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.ac2p-card-head small{font-size:.72rem;color:var(--ink-dim);}
+.ac2p-mini{font-size:.74rem;font-weight:600;color:var(--ink-dim);text-decoration:none;}
+.ac2p-mini:hover{color:#fff;}
+.ac2p-frame{position:relative;height:440px;border-radius:12px;overflow:hidden;background:#05080d;border:1px solid var(--line);}
+.ac2p-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.ac2p-frame-ph{position:absolute;inset:0;display:grid;place-items:center;font-size:.82rem;color:var(--ink-dim);}
+.ac2p-trade p{font-size:.8rem;color:var(--ink-dim);line-height:1.55;margin:8px 0 14px;}
+.ac2p-buy{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 16px;border-radius:12px;font-weight:800;font-size:.92rem;text-decoration:none;color:#04140a;
+  background:linear-gradient(90deg,#3f9bff,#35d8d0,#39ff88);box-shadow:0 6px 22px rgba(57,217,138,.18);transition:transform .15s ease,box-shadow .15s ease;}
+.ac2p-buy:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(57,217,138,.28);}
+.ac2p-buy:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.ac2p-facts{margin:14px 0 0;display:flex;flex-direction:column;border-top:1px solid var(--line);}
+.ac2p-facts div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.8rem;}
+.ac2p-facts dt{color:var(--ink-dim);}
+.ac2p-facts dd{margin:0;font-weight:600;text-align:right;}
+.ac2p-facts a{color:#fff;text-decoration:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;}
+.ac2p-facts a:hover{text-decoration:underline;}
+.ac2p-row{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) 92px 56px;align-items:center;gap:10px;padding:9px 8px;border-radius:9px;text-decoration:none;color:#fff;font-size:.8rem;font-variant-numeric:tabular-nums;}
+.ac2p-row + .ac2p-row{border-top:1px solid rgba(255,255,255,.04);}
+.ac2p-row:hover{background:var(--panel-hi);}
+.ac2p-row b{font-weight:700;}
+.ac2p-tok,.ac2p-who{color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac2p-who{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.74rem;}
+.ac2p-row time{color:var(--ink-dim);font-size:.74rem;text-align:right;}
+.ac2p-s{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;}
+.ac2p-s.buy{color:var(--ac2-buy);}
+.ac2p-s.sell{color:var(--ac2-sell);}
+.ac2p-bb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.ac2p-bb-stats div{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0;}
+.ac2p-bb-stats small{display:block;font-size:.64rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.ac2p-bb-stats strong{font-size:.92rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.ac2p-bb .ac2p-row{grid-template-columns:44px minmax(0,1fr) minmax(0,1fr) 0 56px;}
+.ac2p-empty{padding:26px 10px;text-align:center;color:var(--ink-dim);font-size:.82rem;line-height:1.5;margin:0;}
+@media (max-width:1100px){
+  .ac2p-grid{grid-template-columns:minmax(0,1fr) 300px;}
+  .ac2p-stats{grid-template-columns:repeat(3,1fr);}
+}
+@media (max-width:900px){
+  .ac2p-grid,.ac2p-grid2{grid-template-columns:minmax(0,1fr);}
+  .ac2p-side{display:contents;}
+  .ac2p-trade{order:-1;}
+  .ac2p-frame{height:380px;}
+}
+@media (max-width:640px){
+  .ac2p{padding-top:16px;}
+  .ac2p .ac2-logo{width:56px;height:56px;border-radius:14px;padding:6px;}
+  .ac2p .ac2-name-row h1{font-size:1.35rem;}
+  .ac2p .ac2-ca-full{display:none;}
+  .ac2p .ac2-ca-short{display:inline;}
+  .ac2p-head{align-items:flex-start;}
+  .ac2p-price{margin-left:0;width:100%;flex-direction:row;align-items:baseline;gap:10px;text-align:left;}
+  .ac2p-price strong{font-size:1.6rem;}
+  .ac2p-stats{grid-template-columns:repeat(2,1fr);}
+  .ac2p-stats > div{padding:11px 12px;}
+  .ac2p-frame{height:340px;}
+  .ac2p-row{grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 46px;gap:8px;}
+  .ac2p-who{display:none;}
+  .ac2p-bb .ac2p-row{grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 46px;}
+  .ac2p-bb .ac2p-row > span:empty{display:none;}
+}
+
 @media (max-width:1100px){
   .ac2-grid{grid-template-columns:minmax(0,1fr) 310px;}
   .ac2-stats{grid-template-columns:repeat(3,1fr);}
@@ -4504,3 +4584,15 @@ html.arc-live .arc-nl-only{display:none!important;}
 .ax-relaunch a{color:#35d8d0;}
 @media (max-width:640px){.ax-relaunch{flex-direction:column;gap:10px;margin-bottom:64px;}}
 .arc-nl-badge{white-space:nowrap;flex-shrink:0;}
+/* how $ARCIRCLE trades: html.arc-pool (Uniswap v4 via Hopium) or html.arc-curve */
+html:not(.arc-curve) .arc-curve-only{display:none!important;}
+html:not(.arc-pool) .arc-pool-only{display:none!important;}
+html.arc-pool .arc-no-pool{display:none!important;}
+/* $ARCIRCLE page: where it trades (Hopium v4 pool) */
+.ax-pool-card h3{margin-bottom:12px;}
+.ax-pool-dl{margin:0;display:flex;flex-direction:column;border-top:1px solid var(--ax-line);}
+.ax-pool-dl div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--ax-line);}
+.ax-pool-dl dt{font-family:'Silkscreen',monospace;font-size:.54rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ax-faint);}
+.ax-pool-dl dd{margin:0;font-size:.86rem;font-weight:700;text-align:right;}
+.ax-pool-dl a{color:#35d8d0;}
+.ax-pool-note{margin:12px 0 0;font-size:.8rem!important;line-height:1.55;color:var(--ax-dim);}

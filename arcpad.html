@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790334239"></script>
+<script src="arc-log.js?v=1790346296"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790334239">
+<link rel="stylesheet" href="style.css?v=1790346296">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -160,9 +160,10 @@
         <button type="button" class="ac2-feature" data-tab-link="arcircle" data-ac2-feature="home">
           <span class="ac2-feature-logo"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
           <span class="ac2-feature-main">
-            <span class="ac2-feature-top"><strong>$ARCIRCLE</strong><span class="ac2-badge ac2-badge-core">Core coin</span><span class="ac2-feature-kind arc-live-only">foci bonding curve · Arc</span><span class="arc-nl-badge arc-nl-only">Not live</span></span>
-            <span class="ac2-feature-bar arc-live-only"><span data-ac2="progress-fill"></span></span>
-            <span class="ac2-feature-sub arc-live-only"><span data-ac2="progress-text">Graduation progress —</span></span>
+            <span class="ac2-feature-top"><strong>$ARCIRCLE</strong><span class="ac2-badge ac2-badge-core">Core coin</span><span class="ac2-feature-kind arc-curve-only">foci bonding curve · Arc</span><span class="ac2-feature-kind arc-pool-only">Argus · Uniswap v4</span><span class="arc-nl-badge arc-nl-only">Not live</span></span>
+            <span class="ac2-feature-bar arc-curve-only"><span data-ac2="progress-fill"></span></span>
+            <span class="ac2-feature-sub arc-curve-only"><span data-ac2="progress-text">Graduation progress —</span></span>
+            <span class="ac2-feature-sub arc-pool-only"><span data-tk="banner-sub">Trading on Argus · liquidity locked</span></span>
             <span class="ac2-feature-sub arc-nl-only">Relaunching soon — the new contract will be announced here</span>
           </span>
           <span class="ac2-feature-stats arc-live-only">
@@ -215,9 +216,10 @@
         <button type="button" class="ac2-feature" data-tab-link="arcircle" data-ac2-feature="explore">
           <span class="ac2-feature-logo"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
           <span class="ac2-feature-main">
-            <span class="ac2-feature-top"><strong>$ARCIRCLE</strong><span class="ac2-badge ac2-badge-core">Core coin</span><span class="ac2-feature-kind arc-live-only">foci bonding curve · Arc</span><span class="arc-nl-badge arc-nl-only">Not live</span></span>
-            <span class="ac2-feature-bar arc-live-only"><span data-ac2="progress-fill"></span></span>
-            <span class="ac2-feature-sub arc-live-only"><span data-ac2="progress-text">Graduation progress —</span></span>
+            <span class="ac2-feature-top"><strong>$ARCIRCLE</strong><span class="ac2-badge ac2-badge-core">Core coin</span><span class="ac2-feature-kind arc-curve-only">foci bonding curve · Arc</span><span class="ac2-feature-kind arc-pool-only">Argus · Uniswap v4</span><span class="arc-nl-badge arc-nl-only">Not live</span></span>
+            <span class="ac2-feature-bar arc-curve-only"><span data-ac2="progress-fill"></span></span>
+            <span class="ac2-feature-sub arc-curve-only"><span data-ac2="progress-text">Graduation progress —</span></span>
+            <span class="ac2-feature-sub arc-pool-only"><span data-tk="banner-sub">Trading on Argus · liquidity locked</span></span>
             <span class="ac2-feature-sub arc-nl-only">Relaunching soon — the new contract will be announced here</span>
           </span>
           <span class="ac2-feature-stats arc-live-only">
@@ -395,7 +397,7 @@
         </div>
       </section>
 
-      <!-- ============ $ARCIRCLE (featured coin, traded on its foci curve) ============ -->
+      <!-- ============ $ARCIRCLE (core coin: Argus Uniswap v4 pool; the curve UI is kept for a curve launch) ============ -->
       <section class="bp-panel" id="bp-panel-arcircle">
         <div class="ac2-notlive arc-nl-only">
           <img class="ac2-nl-logo" src="images/arcircle-mark.webp" alt="" width="600" height="415">
@@ -408,7 +410,71 @@
             <a class="ac2-nl-btn ghost" href="/arcircle">About $ARCIRCLE</a>
           </div>
         </div>
-        <div class="ac2 arc-live-only">
+        <!-- Argus / Uniswap v4 pool (arcircle-tab.js) -->
+        <div class="ac2p arc-pool-only">
+          <button type="button" class="ac2-back" data-tab-link="explore">← Explore</button>
+          <div class="ac2p-head">
+            <img class="ac2-logo" src="images/arcircle-mark-sm.png" alt="" width="160" height="111">
+            <div class="ac2p-title">
+              <div class="ac2-name-row">
+                <h1>arcircle</h1>
+                <span class="ac2-sym">$ARCIRCLE</span>
+                <span class="ac2-badge ac2-badge-core">Core coin</span>
+                <span class="ac2-badge ac2p-venue">Argus · Uniswap v4</span>
+              </div>
+              <div class="ac2-ca-row">
+                <span class="ac2-ca-label">CA</span>
+                <code class="ac2-ca-full" data-arc-ca="full">—</code>
+                <code class="ac2-ca-short" data-arc-ca="short">—</code>
+                <button type="button" class="ac2-chip-btn" id="ac2p-copy">Copy</button>
+                <a class="ac2-chip-btn" href="#" data-arc-href="scan" target="_blank" rel="noopener">ArcScan ↗</a>
+                <button type="button" class="ac2-chip-btn ac2-share-btn" data-share="arcircle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>Share</button>
+              </div>
+            </div>
+            <div class="ac2p-price"><strong data-ac2="price" data-tk="price">—</strong><em class="ax-chg" data-tk="change"></em></div>
+          </div>
+          <div class="ac2p-stats">
+            <div><small>Market cap</small><strong data-ac2="mcap" data-tk="mcap">—</strong></div>
+            <div><small>Liquidity</small><strong data-tk="liq-usd">—</strong></div>
+            <div><small>24h volume</small><strong data-tk="vol">—</strong></div>
+            <div><small>24h trades</small><strong data-tk="trades24">—</strong></div>
+            <div><small>Holders</small><strong data-tk="holders">—</strong></div>
+            <div><small>Launched</small><strong data-tk="age">—</strong></div>
+          </div>
+          <div class="ac2p-grid">
+            <div class="ac2-card ac2p-chart">
+              <div class="ac2p-card-head"><h3>Chart</h3><a class="ac2p-mini" href="#" data-arc-href="chart" target="_blank" rel="noopener">Dexscreener ↗</a></div>
+              <div class="ac2p-frame" id="ac2p-frame"><div class="ac2p-frame-ph">Loading chart…</div></div>
+            </div>
+            <aside class="ac2p-side">
+              <div class="ac2-card ac2p-trade">
+                <h3>Trade $ARCIRCLE</h3>
+                <p>$ARCIRCLE trades on Argus, in a Uniswap v4 pool paired with USDC. Trades settle there, in your own wallet — ArcPad never holds your funds.</p>
+                <a class="ac2p-buy" href="https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7" data-arc-href="buy" target="_blank" rel="noopener">Buy on Argus ↗</a>
+                <dl class="ac2p-facts">
+                  <div><dt>Pair</dt><dd>USDC</dd></div>
+                  <div><dt>Trading tax</dt><dd data-tk="argus-tax">—</dd></div>
+                  <div><dt>Liquidity</dt><dd>Locked by Argus</dd></div>
+                  <div><dt>Pool</dt><dd><a href="#" data-arc-href="chart" target="_blank" rel="noopener"><span data-arc-ca="pool-short" data-no-i18n>—</span> ↗</a></dd></div>
+                </dl>
+              </div>
+              <div class="ac2-card ac2-links">
+                <h3>Links</h3>
+                <a href="https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7" data-arc-href="buy" target="_blank" rel="noopener"><span>Argus</span><small>Launch &amp; trade</small></a>
+                <a href="#" data-arc-href="chart" target="_blank" rel="noopener"><span>Dexscreener</span><small>Chart &amp; pool</small></a>
+                <a href="#" data-arc-href="scan" target="_blank" rel="noopener"><span>ArcScan</span><small>Token &amp; holders</small></a>
+                <a href="/arcircle"><span>$ARCIRCLE</span><small>Flywheel &amp; rewards</small></a>
+              </div>
+            </aside>
+          </div>
+          <div class="ac2p-grid2">
+            <div class="ac2-card ac2p-trades"><div class="ac2p-card-head"><h3>Recent trades</h3><small id="ac2p-scan"></small></div><div id="ac2p-trades"><p class="ac2p-empty">Loading…</p></div></div>
+            <div class="ac2-card ac2p-bb"><div class="ac2p-card-head"><h3>Treasury buybacks</h3></div><div id="ac2p-bb"><p class="ac2p-empty">Loading…</p></div></div>
+          </div>
+        </div>
+
+        <!-- foci-style bonding curve (arcircle-coin.js) — only for a curve launch -->
+        <div class="ac2 arc-curve-only">
           <button type="button" class="ac2-back" data-tab-link="explore">← Explore</button>
 
           <div class="ac2-head">
@@ -867,6 +933,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790334239"></script>
+<script src="arcpad.bundle.js?v=1790346296"></script>
 </body>
 </html>

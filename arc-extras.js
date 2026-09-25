@@ -481,7 +481,8 @@
   function activeTradePanel() {
     const coin = $("bp-panel-coin"), arc = $("bp-panel-arcircle");
     if (coin && coin.classList.contains("active")) return { kind: "coin", card: $("apc-swap"), sym: ($("apc-sym") || {}).textContent, price: ($("apc-price") || {}).textContent };
-    if (arc && arc.classList.contains("active")) {
+    // in-app $ARCIRCLE trading only exists for a curve launch (Argus trades on its own site)
+    if (arc && arc.classList.contains("active") && typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) {
       const pr = arc.querySelector('[data-ac2="price"]');
       return { kind: "arcircle", card: $("ac2-swap"), sym: "$ARCIRCLE", price: pr ? pr.textContent : "" };
     }

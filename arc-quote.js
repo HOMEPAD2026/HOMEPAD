@@ -131,7 +131,12 @@ async function arcQuotePriceUsd(addr, depth = 0) {
   let out = { price: null, source: null };
   try {
     if (arcIsUsdc(a)) out = { price: 1, source: "USDC" };
-    else if (ARC_QUOTE_PRESETS[1].address && ARCIRCLE_CURVE_ADDR && k === ARC_QUOTE_PRESETS[1].address.toLowerCase()) {
+    else if (ARC_QUOTE_PRESETS[1].address && CONFIG.ARCIRCLE_POOL_SLOT && !ARCIRCLE_CURVE_ADDR && k === ARC_QUOTE_PRESETS[1].address.toLowerCase()) {
+      // $ARCIRCLE's Uniswap v4 pool (Argus), priced by config-arc.js
+      const pm = new ethers.Contract(CONFIG.POOL_MANAGER_ADDRESS, ["function extsload(bytes32) view returns (bytes32)"], readProvider());
+      const p = arcircleUsdFromSqrt(BigInt(await withRetry(() => pm.extsload(CONFIG.ARCIRCLE_POOL_SLOT))) & ((1n << 160n) - 1n));
+      if (p > 0) out = { price: p, source: "Uniswap v4 pool" };
+    } else if (ARC_QUOTE_PRESETS[1].address && ARCIRCLE_CURVE_ADDR && k === ARC_QUOTE_PRESETS[1].address.toLowerCase()) {
       const c = new ethers.Contract(ARCIRCLE_CURVE_ADDR, ["function getReserves() view returns (uint256,uint256)", "function graduated() view returns (bool)"], readProvider());
       const [grad, res] = await Promise.all([c.graduated().catch(() => false), withRetry(() => c.getReserves())]);
       if (!grad && res[1] > 0n) out = { price: Number(ethers.formatUnits(res[0], 6)) / Number(ethers.formatUnits(res[1], 18)), source: "foci curve" };

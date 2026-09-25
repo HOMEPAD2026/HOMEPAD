@@ -100,12 +100,14 @@
     var go = function () {
       each("earned", function (el) { countTo(el, (rv.launchFees || 0) + (rv.creatorTax || 0), function (v) { return usd(v); }); });
       each("fees", function (el) { countTo(el, rv.launchFees || 0, function (v) { return usd(v); }); });
-      each("tax", function (el) { countTo(el, rv.creatorTax || 0, function (v) { return usd(v); }); });
+      each("tax", function (el) { if (rv.creatorTax == null && d.venue === "pool") el.textContent = "—"; else countTo(el, rv.creatorTax || 0, function (v) { return usd(v); }); });
       var c = rv.circle;
       each("raise", function (el) { countTo(el, c ? c.share || 0 : 0, function (v) { return usd(v); }); });
     };
     setText("fees-sub", rv.launches != null ? rv.launches + " launches × 1 USDC" : "1 USDC × every ArcPad launch");
-    setText("tax-sub", rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : d.live === false ? "Starts when $ARCIRCLE is live" : "2% of every $ARCIRCLE trade");
+    setText("tax-sub", d.live === false ? "Starts when $ARCIRCLE is live"
+      : d.venue === "pool" ? (rv.curveVolume != null ? "90% of the tax on " + usd(rv.curveVolume) + " traded" : "90% of the tax on every $ARCIRCLE trade")
+      : rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : "2% of every $ARCIRCLE trade");
     var c = rv.circle;
     setText("raise-sub", !c ? "5% of round #1 when it closes" : !c.started ? "Round #1 opens soon" : usd(c.raised) + " raised in round #1 so far");
     if (dash.__seen) go();

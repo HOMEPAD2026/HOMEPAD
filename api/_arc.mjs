@@ -75,7 +75,7 @@ export async function pool(items, limit, fn) {
 const FACTORY = "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E";
 const POOL_MANAGER = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
 const USDC = "0x3600000000000000000000000000000000000000";
-import { ARCIRCLE_TOKEN, ARCIRCLE_CURVE as ARC_CURVE_CFG } from "./_arcircle.mjs";
+import { ARCIRCLE_TOKEN, ARCIRCLE_CURVE as ARC_CURVE_CFG, ARCIRCLE_POOL_ID, arcircleUsd } from "./_arcircle.mjs";
 // "" while $ARCIRCLE is not live — then no pair token ever matches it
 const ARCIRCLE = ARCIRCLE_TOKEN.toLowerCase();
 const ARCIRCLE_CURVE = ARC_CURVE_CFG;
@@ -171,14 +171,19 @@ export async function getCoin(addr) {
     const slot = keccakHex(strip(poolId) + pad("6"));
     const calls = [{ to: POOL_MANAGER, data: SEL.extsload + strip(slot) }];
     if (!l.quoteIsUsdc) calls.push({ to: l.quoteToken, data: SEL.decimals }, { to: l.quoteToken, data: SEL.symbol });
-    if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE) calls.push({ to: ARCIRCLE_CURVE, data: SEL.getReserves });
+    // $ARCIRCLE's USD price: its Uniswap v4 pool (Argus) or, for a curve launch, the curve
+    const arcPool = ARCIRCLE && ARCIRCLE_POOL_ID && q === ARCIRCLE;
+    if (arcPool) calls.push({ to: POOL_MANAGER, data: SEL.extsload + strip(keccakHex(strip(ARCIRCLE_POOL_ID) + pad("6"))) });
+    else if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE) calls.push({ to: ARCIRCLE_CURVE, data: SEL.getReserves });
     const r = await ethCalls(calls);
     if (r[0]) sqrt = BigInt(r[0]) & ((1n << 160n) - 1n);
     // Never guess decimals: an unread value would misprice the coin by
     // orders of magnitude, so leave the price blank instead.
     l.quoteDecimals = l.quoteIsUsdc ? 6 : ARCIRCLE && q === ARCIRCLE ? 18 : r[1] ? Number(BigInt(r[1])) : null;
     if (!l.quoteIsUsdc && r[2]) l.quoteSymbol = decodeString(r[2]) || l.quoteSymbol;
-    if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE && r[3]) {
+    if (arcPool && r[3]) {
+      l.quoteUsd = arcircleUsd(BigInt(r[3]) & ((1n << 160n) - 1n));
+    } else if (ARCIRCLE && ARCIRCLE_CURVE && q === ARCIRCLE && r[3]) {
       const qr = Number(wBig(r[3], 0)) / 1e6, tr = Number(wBig(r[3], 1)) / 1e18;
       l.quoteUsd = tr > 0 ? qr / tr : null;
     }

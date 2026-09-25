@@ -24,7 +24,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790334239"></script>
+<script src="arc-log.js?v=1790346296"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -199,7 +199,7 @@ svg text{font-family:Inter,sans-serif;}
     <div class="sub2">ArcPad, CirclePad and the coin at the centre of them — on Circle's Arc</div>
     <div class="cover-meta">
       <div><b>Whitepaper · Version 1.0</b>September 2026</div>
-      <div style="text-align:right"><b>arcircle.app</b>$ARCIRCLE · Not live (relaunching)</div>
+      <div style="text-align:right"><b>arcircle.app</b>$ARCIRCLE · Live on Argus</div>
     </div>
   </div>
 </section>
@@ -225,8 +225,8 @@ svg text{font-family:Inter,sans-serif;}
   <h3>Forward-looking statements</h3>
   <p>Sections on the flywheel, rewards, CirclePad v2 and the roadmap describe future work. They reflect current intent, not commitments. Revenue splits, reward formulas and timelines will be published on the website before anything goes live, and may differ from what is sketched here.</p>
   <h3>Impostors</h3>
-  <p>$ARCIRCLE is being relaunched, so there is no official contract right now. The new address will be published on arcircle.app and by @ARCIRCLEonArc when it goes live. Other tokens with similar names already exist on Arc — including one called "ARCircle" with its own pair on Dexscreener. ARCIRCLE PAD will never identify $ARCIRCLE by name or ticker alone; always check the contract address.</p>
-  <div class="card warn"><h4>Relaunch notice</h4><p class="small">$ARCIRCLE is being relaunched. Parts of this document describe its first launch (foci, 22 September 2026); the new contract address, launch venue and parameters will be published on arcircle.app and by @ARCIRCLEonArc, and this paper will be updated. Until then, treat any contract offered as "$ARCIRCLE" with suspicion.</p></div>
+  <p>The only official $ARCIRCLE contract is <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>, launched on Argus on 25 September 2026. It is published on arcircle.app and by @ARCIRCLEonArc. Other tokens with similar names already exist on Arc — including one called "ARCircle" with its own pair on Dexscreener. ARCIRCLE PAD will never identify $ARCIRCLE by name or ticker alone; always check the contract address.</p>
+  <div class="card warn"><h4>Relaunch notice</h4><p class="small">$ARCIRCLE was relaunched on Argus (argus.world) on 25 September 2026 and now trades in a Uniswap v4 pool paired with USDC, with its whole supply in one liquidity position locked by Argus. New contract: <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>. The first launch (foci, 22 September 2026) is retired. Sections that describe the foci bonding curve and graduation cover that first launch only; the rest of the paper applies to the relaunched coin.</p></div>
   <div class="grid3" style="margin-top:5mm">
     <div class="card"><h4>Document</h4><p class="small">$ARCIRCLE Whitepaper v1.0<br>Published September 2026</p></div>
     <div class="card"><h4>Network</h4><p class="small">Arc mainnet<br>Chain ID 5042 · gas in USDC</p></div>
@@ -287,7 +287,7 @@ svg text{font-family:Inter,sans-serif;}
   <p class="lede">ARCIRCLE PAD is a launch ecosystem on Circle's Arc network, the chain where USDC is the native currency. It offers two different ways to bring a new coin to market — and one coin, $ARCIRCLE, that the whole ecosystem is designed to feed.</p>
   <p><strong>ArcPad</strong> is for instant, permissionless launches. Anyone can create a coin in a single transaction for a flat 1 USDC fee. The coin's sellable supply goes straight into a real Uniswap v4 pool from its first block, so there is no bonding curve to "graduate" from and no migration to wait for. Every coin opens at the same fair starting point — about $4,350 of market value — whether it is paired with USDC, with $ARCIRCLE, or with any other token on Arc.</p>
   <p><strong>CirclePad</strong> is for launching together. Instead of one creator and a crowd of snipers, a project raises USDC from its community over a fixed 72-hour window. Contributors can withdraw at any time while the window is open. In its full design, the biggest backer becomes the project's lead, every contributor votes on what the project becomes, and the lead's payout vests slowly and can be clawed back if they walk away.</p>
-  <p><strong>$ARCIRCLE</strong> is the coin between them. It launched on foci's bonding curve on Arc on 22 September 2026, with all one billion tokens minted directly into the curve — no pre-mint to any wallet and no team allocation. The ecosystem is designed so that what ArcPad and CirclePad earn, together with $ARCIRCLE's own 2% creator tax, flows back into $ARCIRCLE through buybacks, liquidity support and — once built — rewards for holders and creators.</p>
+  <p><strong>$ARCIRCLE</strong> is the coin between them. It was relaunched on Argus on 25 September 2026 and trades in a Uniswap v4 pool paired with USDC, with its whole supply in one locked liquidity position and no team allocation. The ecosystem is designed so that what ArcPad and CirclePad earn, together with the creator's 90% of $ARCIRCLE's trading tax, flows back into $ARCIRCLE through buybacks, liquidity support and — once built — rewards for holders and creators.</p>
   <div class="grid3" style="margin:5mm 0">
     <div class="card accent stat"><b>1 USDC</b><span>to launch a coin on ArcPad</span></div>
     <div class="card accent stat"><b>≈ $4,350</b><span>starting market cap for every ArcPad launch</span></div>
@@ -308,15 +308,15 @@ svg text{font-family:Inter,sans-serif;}
   <table>
     <tbody>
       <tr><td style="width:36%"><strong>Name / ticker</strong></td><td>arcircle / $ARCIRCLE</td></tr>
-      <tr><td><strong>Contract (CA)</strong></td><td><code>Not live — announced at relaunch</code></td></tr>
+      <tr><td><strong>Contract (CA)</strong></td><td><code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code></td></tr>
       <tr><td><strong>Network</strong></td><td>Arc mainnet (chain ID 5042) — gas is paid in USDC</td></tr>
       <tr><td><strong>Standard / decimals</strong></td><td>ERC-20 · 18 decimals</td></tr>
       <tr><td><strong>Total supply</strong></td><td>1,000,000,000 $ARCIRCLE — fixed</td></tr>
-      <tr><td><strong>Launched</strong></td><td>22 September 2026, 06:14 UTC, on foci.family</td></tr>
-      <tr><td><strong>Where it trades</strong></td><td>Not live — the relaunch venue will be announced</td></tr>
-      <tr><td><strong>Initial distribution</strong></td><td>100% minted into the bonding curve at launch — no wallet pre-mint, no team or insider allocation</td></tr>
-      <tr><td><strong>Trading costs on the curve</strong></td><td>1% foci fee + 2% creator tax per trade</td></tr>
-      <tr><td><strong>Graduation</strong></td><td>When the curve holds its graduation threshold in real USDC (≈ 11,130 USDC at the time of writing), trading moves to a DEX pool</td></tr>
+      <tr><td><strong>Launched</strong></td><td>25 September 2026, 14:09 UTC, on Argus (argus.world) — relaunch; the first launch on foci.family (22 September 2026) is retired</td></tr>
+      <tr><td><strong>Where it trades</strong></td><td>Argus · Uniswap v4 pool paired with USDC (pool fee 1%, tick spacing 200), liquidity locked by Argus</td></tr>
+      <tr><td><strong>Initial distribution</strong></td><td>All 1,000,000,000 minted by Argus straight into one Uniswap v4 liquidity position above the opening price — no team or insider allocation</td></tr>
+      <tr><td><strong>Trading costs</strong></td><td>1% pool fee + the launch's buy / sell tax (1–10% per side, fixed forever at launch), charged on the USDC leg. Argus keeps 10% of the tax; 90% goes to the creator's allocation. Wallet-to-wallet transfers pay nothing.</td></tr>
+      <tr><td><strong>Graduation</strong></td><td>None needed — $ARCIRCLE has traded in its Uniswap v4 pool from the first block</td></tr>
       <tr><td><strong>Role</strong></td><td>Core coin of ARCIRCLE PAD · selectable pair token for ArcPad launches · target of the revenue flywheel</td></tr>
     </tbody>
   </table>
@@ -414,7 +414,7 @@ svg text{font-family:Inter,sans-serif;}
       <path d="M430 110 C 390 120, 378 140, 372 152" fill="none" stroke="#35d8d0" stroke-width="2" marker-end="url(#ar)"/>
       <text x="115" y="172" fill="#c9d3de" font-size="10.5" text-anchor="middle">fees · allocation →</text>
       <text x="525" y="172" fill="#c9d3de" font-size="10.5" text-anchor="middle">← raise share</text>
-      <text x="320" y="246" text-anchor="middle" fill="#5d6875" font-size="10.5">+ $ARCIRCLE's own 2% creator tax</text>
+      <text x="320" y="246" text-anchor="middle" fill="#5d6875" font-size="10.5">+ $ARCIRCLE's creator fee</text>
     </svg>
     <figcaption>Figure 1 — Both launchpads route part of what they earn toward the same core coin.</figcaption>
   </figure>
@@ -726,23 +726,22 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   <div class="pg-body">
   <span class="kicker">Section 6</span>
   <h2 class="sec"><span class="num">6</span>$ARCIRCLE — the core coin</h2>
-  <div class="card warn"><h4>Not live — relaunching</h4><p class="small">The details in this section describe the first launch. The relaunched $ARCIRCLE's contract, venue and parameters will be published on arcircle.app before it goes live.</p></div>
+  <div class="card warn"><h4>Relaunched on Argus</h4><p class="small">$ARCIRCLE was relaunched on Argus on 25 September 2026 (contract <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>) and trades in a Uniswap v4 pool paired with USDC. The bonding-curve details in 6.2 describe the first launch on foci.</p></div>
   <p class="lede">ArcPad and CirclePad are two different ways to launch. $ARCIRCLE is the one coin that sits between them — the place where the ecosystem's growth is meant to come back together.</p>
   <h3>Identity</h3>
   <div class="grid2">
-    <div class="card"><h4>What it is</h4><p class="small">A community memecoin on Arc, launched publicly on foci.family on 22 September 2026. It has no team allocation, no vesting schedule and no special permissions — it is a plain ERC-20 whose entire supply started in a public bonding curve.</p></div>
+    <div class="card"><h4>What it is</h4><p class="small">A community memecoin on Arc, relaunched publicly on Argus on 25 September 2026. It has no team allocation, no vesting schedule and no special permissions — it is a plain ERC-20 that trades in a public Uniswap v4 pool.</p></div>
     <div class="card"><h4>What it is for</h4><p class="small">It is the asset ARCIRCLE PAD's flywheel points at. Launch fees, platform allocations, trading fees and raise shares are designed to flow back into $ARCIRCLE through buybacks, liquidity support and rewards.</p></div>
   </div>
   <h3>Why a memecoin, and why this one</h3>
   <p>Launchpads live on attention, and attention gathers around symbols. A launch ecosystem needs one coin that everyone in it recognises and has a reason to hold: the thing the community rallies behind when a new launch goes well, and the thing that benefits from every launch that happens.</p>
-  <p>$ARCIRCLE fills that role without asking anyone to trust an insider allocation. Because its whole supply began in a public curve, every holder — including the project's own treasury — acquires $ARCIRCLE the same way: by buying it at the market price.</p>
+  <p>$ARCIRCLE fills that role without asking anyone to trust an insider allocation. Because its supply went straight into a public market, every holder — including the project's own treasury — acquires $ARCIRCLE the same way: by buying it at the market price.</p>
   <h3>Where to get it</h3>
   <ol>
-    <li><strong>On foci</strong>, the launchpad where it was first created (the relaunch venue will be announced).</li>
-    <li><strong>On ArcPad's $ARCIRCLE page</strong> (<code>/arc#arcircle</code>), which trades directly against the same verified foci curve contract, with live price, chart, trade history and holders.</li>
-    <li><strong>After graduation</strong>, on the DEX pool the curve migrates to. ArcPad's page detects the pool on Dexscreener by exact contract address and switches its chart automatically.</li>
+    <li><strong>On Argus</strong> (argus.world), where it was relaunched — trades settle in its Uniswap v4 pool, in your own wallet.</li>
+    <li><strong>On ArcPad's $ARCIRCLE page</strong> (<code>/arc#arcircle</code>), which shows the live price, chart, recent trades, holders and buybacks read straight from the pool, and links to Argus to trade.</li>
   </ol>
-  <div class="card warn"><h4>Check the contract, every time</h4><p class="small">$ARCIRCLE has no official contract until its relaunch; the address will be published on arcircle.app. A different token called "ARCircle" already has a Dexscreener pair on Arc. ARCIRCLE PAD's pages only ever match $ARCIRCLE by its contract address — never by name or ticker.</p></div>
+  <div class="card warn"><h4>Check the contract, every time</h4><p class="small">The official $ARCIRCLE contract is <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>. A different token called "ARCircle" already has a Dexscreener pair on Arc. ARCIRCLE PAD's pages only ever match $ARCIRCLE by its contract address — never by name or ticker.</p></div>
   </div>
   <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">17 / 30</span></div>
 </section>
@@ -752,7 +751,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   <div class="pg-body">
   <span class="kicker">Section 6.2</span>
   <h2 class="sec">The bonding curve</h2>
-  <p class="lede">Until it graduates, $ARCIRCLE trades against foci's <strong>FociBondingCurve</strong> contract — priced in USDC. (First launch; the relaunch contract will be published at launch.)</p>
+  <p class="lede">Until it graduates, $ARCIRCLE traded against foci's <strong>FociBondingCurve</strong> contract — priced in USDC. (This describes the first launch; the relaunched $ARCIRCLE trades in a Uniswap v4 pool on Argus instead.)</p>
   <h3>How the price works</h3>
   <p>The curve is a constant-product market between the $ARCIRCLE it still holds and a USDC reserve. The USDC side includes a <strong>virtual ("phantom") reserve</strong>, so the very first token already has a non-zero price — the same idea ArcPad uses with its virtual reserve. As people buy, real USDC accumulates on top of the phantom amount and the price rises; as they sell, it falls.</p>
   <div class="formula">Q = USDC reserve (phantom + real, excluding fees awaiting payout)
@@ -886,7 +885,7 @@ Sell n tokens:     gross = n · Q / (T + n)
   </figure>
   <div class="grid2">
     <div class="card"><h4>1 · Launch</h4><p class="small">Creators launch coins on ArcPad and raise together on CirclePad. Every launch brings new people and new volume to Arc.</p></div>
-    <div class="card"><h4>2 · Earn</h4><p class="small">Launch fees, ArcPad's platform allocation and trading-fee share, CirclePad's raise share and $ARCIRCLE's own 2% creator tax flow in.</p></div>
+    <div class="card"><h4>2 · Earn</h4><p class="small">Launch fees, ArcPad's platform allocation and trading-fee share, CirclePad's raise share and the creator's share of $ARCIRCLE's trading fee flow in.</p></div>
     <div class="card"><h4>3 · Buy back</h4><p class="small">That revenue goes back into $ARCIRCLE — buybacks and liquidity support that work for its value.</p></div>
     <div class="card"><h4>4 · Grow</h4><p class="small">A stronger $ARCIRCLE funds holder and creator rewards and draws in more creators, so the next round of launches is bigger.</p></div>
   </div>
@@ -899,7 +898,7 @@ Sell n tokens:     gross = n · Q / (T + n)
       <tr><td>Launch fees</td><td>100 × 1 USDC</td><td class="r">$100</td></tr>
       <tr><td>ArcPad fee share</td><td>0.3% × $500,000</td><td class="r">$1,500</td></tr>
       <tr><td>CirclePad raise share</td><td>5% × $50,000</td><td class="r">$2,500</td></tr>
-      <tr><td>$ARCIRCLE creator tax</td><td>2% × $100,000</td><td class="r">$2,000</td></tr>
+      <tr><td>$ARCIRCLE creator fee (example: 2%)</td><td>2% × $100,000</td><td class="r">$2,000</td></tr>
       <tr><td><strong>Total, before allocations</strong></td><td>plus 8% of each launched coin's supply</td><td class="r"><strong>$6,100</strong></td></tr>
     </tbody>
   </table>
@@ -922,7 +921,7 @@ Sell n tokens:     gross = n · Q / (T + n)
       <tr><td>Platform allocation</td><td>ArcPad</td><td>8% of every coin's supply</td><td>The launched coin</td></tr>
       <tr><td>Trading-fee share</td><td>ArcPad</td><td>30% of the 1% base fee on every trade</td><td>Coin (buys) · pair token (sells)</td></tr>
       <tr><td>Raise share</td><td>CirclePad</td><td>5% of each raise at close</td><td>USDC</td></tr>
-      <tr><td>Creator tax</td><td>$ARCIRCLE</td><td>2% of every $ARCIRCLE trade on the curve</td><td>USDC</td></tr>
+      <tr><td>Creator fee</td><td>$ARCIRCLE</td><td>90% of the Argus buy / sell tax on every $ARCIRCLE trade (the creator's allocation)</td><td>USDC</td></tr>
     </tbody>
   </table>
   <h3>Where it is meant to go</h3>
@@ -994,8 +993,8 @@ Sell n tokens:     gross = n · Q / (T + n)
   <table>
     <thead><tr><th style="width:30%">Contract</th><th>Address (Arc mainnet)</th></tr></thead>
     <tbody>
-      <tr><td><strong>$ARCIRCLE token</strong></td><td><code>Not live — announced at relaunch</code></td></tr>
-      <tr><td>$ARCIRCLE bonding curve (foci)</td><td><code>Not live — announced at relaunch</code></td></tr>
+      <tr><td><strong>$ARCIRCLE token</strong></td><td><code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code></td></tr>
+      <tr><td>$ARCIRCLE pool (Uniswap v4, pool ID)</td><td><code style="word-break:break-all">0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba</code></td></tr>
       <tr><td><strong>ArcPad factory</strong> (HomepadFactoryArc)</td><td><code>0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E</code></td></tr>
       <tr><td>ArcPad fee hook (HomepadHybridHook)</td><td><code>0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044</code></td></tr>
       <tr><td>ArcPad router (HomepadArcSwapRouter)</td><td><code>0xFCA8fD788d44Bb335B1451257366e06D67114785</code></td></tr>
@@ -1244,7 +1243,7 @@ Sell n tokens:     gross = n · Q / (T + n)
   <h3>Official links</h3>
   <div class="grid2">
     <div class="card"><h4>ARCIRCLE PAD</h4><p class="small">arcircle.app<br>ArcPad: /arc · CirclePad: /circle<br>$ARCIRCLE: /arcircle · Trade: /arc#arcircle</p></div>
-    <div class="card"><h4>$ARCIRCLE</h4><p class="small">Not live — relaunching<br>New contract announced at launch<br>arcircle.app/arcircle</p></div>
+    <div class="card"><h4>$ARCIRCLE</h4><p class="small">Live on Argus · Uniswap v4<br><code style="word-break:break-all">0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code><br>arcircle.app/arcircle</p></div>
   </div>
   <div class="card accent" style="margin-top:6mm;text-align:center;padding:7mm 6mm">
     <h3 style="margin:0 0 2mm;font-size:15pt">Every launch turns the wheel.</h3>

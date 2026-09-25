@@ -8,6 +8,10 @@
   "use strict";
   // From config-arc.js; "" while $ARCIRCLE is not live (relaunching).
   var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
+  // Launched on Argus: a Uniswap v4 pool — price from the PoolManager's slot0.
+  var POOL_SLOT = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_POOL_SLOT) || "";
+  var PM = (typeof CONFIG !== "undefined" && CONFIG.POOL_MANAGER_ADDRESS) || "";
+  var VENUE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_VENUE) || "";
   var SUPPLY = 1000000000;
   var ABI = [
     "function getReserves() view returns (uint256 quoteReserve_, uint256 tokenReserve_)",
@@ -38,6 +42,17 @@
 
   async function refresh() {
     if (!document.querySelector("[data-arl]")) return;
+    if (!CURVE && POOL_SLOT && PM) {
+      try {
+        var raw = await withRetry(function () { return readProvider().call({ to: PM, data: "0x1e2eaeaf" + POOL_SLOT.replace(/^0x/, "") }); });
+        var p = arcircleUsdFromSqrt(BigInt(raw) & ((1n << 160n) - 1n));
+        setAll("price", fmtPrice(p));
+        setAll("mcap", fmtUsd(p != null ? p * SUPPLY : null));
+        setAll("progress-text", "Trading on " + (VENUE || "a DEX") + " · Uniswap v4 pool");
+      } catch (e) { setAll("progress-text", "Live $ARCIRCLE data unavailable right now"); }
+      document.querySelectorAll('[data-arl="progress-fill"]').forEach(function (el) { el.style.width = "100%"; });
+      return;
+    }
     if (!CURVE) {
       setAll("price", "Not live");
       setAll("mcap", "—");
@@ -74,5 +89,5 @@
   window.arcircleLive = { refresh: refresh, fmtUsd: fmtUsd, fmtPrice: fmtPrice };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refresh);
   else refresh();
-  if (CURVE) setInterval(function () { if (!document.hidden) refresh(); }, 30000);
+  if (CURVE || POOL_SLOT) setInterval(function () { if (!document.hidden) refresh(); }, 30000);
 })();

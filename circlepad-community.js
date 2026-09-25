@@ -50,6 +50,8 @@
       const r = await fetch(`${API}?circle=1${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
       const j = await r.json();
       D = j && j.enabled ? j : null;
+      // a partial answer (the store briefly unreachable) must not break the page
+      if (D) { D.pledges = D.pledges || { total: 0, count: 0, top: [] }; D.pledges.top = D.pledges.top || []; D.refs = D.refs || []; }
     } catch (e) { /* keep last */ }
     render();
   }

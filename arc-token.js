@@ -14,6 +14,9 @@
   // From config-arc.js; both "" while $ARCIRCLE is not live (relaunching).
   var TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "";
   var CURVE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_CURVE) || "";
+  // Uniswap v4 pool (Argus): price from the PoolManager's slot0 for the pool
+  var POOL_SLOT = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_POOL_SLOT) || "";
+  var PM = (typeof CONFIG !== "undefined" && CONFIG.POOL_MANAGER_ADDRESS) || "0x8366a39CC670B4001A1121B8F6A443A643e40951";
   var RPC = (typeof CONFIG !== "undefined" && CONFIG.RPC_URL) || "https://rpc.mainnet.arc.io";
   var EXPLORER = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
 
@@ -47,6 +50,19 @@
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
   }
+  // Argus launch tax ("3% buy · 5% sell") and bonding milestone, from d.argus
+  function pct(bps) { return (Math.round(bps) / 100).toFixed(2).replace(/\.?0+$/, "") + "%"; }
+  function taxText(d) {
+    var a = d && d.argus;
+    if (!a || a.buyTaxBps == null) return "Fixed at launch (1–10%)";
+    return a.buyTaxBps === a.sellTaxBps ? pct(a.buyTaxBps) + " buy / sell" : pct(a.buyTaxBps) + " buy · " + pct(a.sellTaxBps) + " sell";
+  }
+  function bondText(d) {
+    var a = d && d.argus;
+    if (!a || !a.verified) return "—";
+    if (a.bonded) return "Reached";
+    return a.bondProgress == null ? "—" : a.bondProgress.toFixed(a.bondProgress < 10 ? 2 : 1) + "%";
+  }
   function explorer(kind, x) { return EXPLORER + "/" + kind + "/" + x; }
 
   // ---------- data ----------
@@ -77,6 +93,17 @@
           progress: grad ? 100 : thr > 0 ? Math.min(100, (real / thr) * 100) : 0, toGraduate: grad ? 0 : Math.max(0, thr - real) };
       });
   }
+  // Fallback for a pool: slot0 → sqrtPriceX96 → USDC per $ARCIRCLE (config-arc.js)
+  function readPool() {
+    var body = { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: PM, data: "0x1e2eaeaf" + POOL_SLOT.replace(/^0x/, "") }, "latest"] };
+    return fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (out) {
+        var p = arcircleUsdFromSqrt(BigInt(out && out.result && out.result !== "0x" ? out.result : "0x0") & ((1n << 160n) - 1n));
+        if (!(p > 0)) throw new Error("pool unreadable");
+        return { live: true, partial: true, venue: "pool", price: p, mcap: p * 1e9 };
+      });
+  }
   function load(wallet, fresh) {
     if (!wallet && !fresh && memo && Date.now() - memo.at < 20000) return memo.p;
     var url = "/api/social?token=arcircle" + (wallet ? "&wallet=" + encodeURIComponent(wallet) : "");
@@ -85,6 +112,7 @@
       return j;
     }).catch(function (err) {
       if (wallet) throw err;
+      if (POOL_SLOT && !CURVE) return readPool();
       if (!CURVE) return { live: false, partial: true, price: null };
       return readCurve();
     });
@@ -131,7 +159,7 @@
     { id: "alloc", tag: "ArcPad", acc: "#4d9fff", name: "Platform allocation", sub: "Of every ArcPad coin's supply, set aside at launch", amt: "8%" },
     { id: "fees", tag: "ArcPad", acc: "#4d9fff", name: "Trading-fee share", sub: "30% of the 1% base fee on every ArcPad trade", amt: "0.3%" },
     { id: "raise", tag: "CirclePad", acc: "#39ff88", name: "Raise share", sub: "Of each CirclePad raise when it closes", amt: "5%" },
-    { id: "tax", tag: "$ARCIRCLE", acc: "#35d8d0", name: "Creator tax", sub: "On every $ARCIRCLE trade on its curve", amt: "2%" },
+    { id: "tax", tag: "$ARCIRCLE", acc: "#35d8d0", name: "Creator fee", sub: "90% of the buy / sell tax on every $ARCIRCLE trade", amt: "90% of tax" },
   ];
   window.ARC_REVENUE = REVENUE;
   function revenueRows() {
@@ -154,7 +182,8 @@
       if (!c.started) return "Round #1 opens soon";
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
-    if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live" : "";
+    if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live"
+      : rv.curveVolume != null ? usd(rv.curveVolume) + " traded since launch" : "";
     return "";
   }
   function mountRevenue(list) {
@@ -302,7 +331,7 @@
 
   window.arcToken = {
     load: load, subscribe: subscribe, mountRevenue: mountRevenue, mountFlow: mountFlow, spark: spark, donut: donut,
-    onVisible: onVisible, countTo: countTo, fmt: { price: price, usd: usd, num: num, ago: ago, short: short, esc: esc, explorer: explorer },
+    onVisible: onVisible, countTo: countTo, fmt: { price: price, usd: usd, num: num, ago: ago, short: short, esc: esc, explorer: explorer, tax: taxText, bond: bondText },
     TOKEN: TOKEN, CURVE: CURVE, live: !!TOKEN, reduce: reduce,
   };
 })();

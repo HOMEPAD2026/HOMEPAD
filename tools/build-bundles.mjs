@@ -27,7 +27,7 @@ const COMMON_HEAD = ["config-arc.js", "abis.js", "arc-shared.js"];
 export const BUNDLES = {
   "arcpad.bundle.js": [
     ...COMMON_HEAD, "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
-    "arc-extras.js", "arcircle-coin.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
+    "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
     "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-locker.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
     "arc-social.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
   ],

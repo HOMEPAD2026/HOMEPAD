@@ -41,6 +41,12 @@
       Array.prototype.forEach.call(all("holders"), function (el) { T.countTo(el, d.holders, function (v) { return Math.round(v).toLocaleString("en-US"); }); });
       setText("holders-sub", "On-chain");
     }
+    if (d.venue === "pool") {
+      setText("liq-usd", d.liquidity != null ? F.usd(d.liquidity) : "—");
+      if (d.launchedAt) setText("since", new Date(d.launchedAt * 1000).toISOString().slice(0, 10));
+      setText("argus-tax", F.tax(d));
+      setText("argus-bond", F.bond(d));
+    }
     setText("togo", d.graduated ? "Graduated" : F.usd(d.toGraduate, true));
     setText("liq", F.usd(d.liquidity, true) + " USDC");
     setText("thr", F.usd(d.threshold, true) + " USDC");
@@ -90,6 +96,7 @@
   var SPLIT = [["curve", "Bonding curve", "#35d8d0"], ["treasury", "Treasury", "#39ff88"], ["top10", "Top 10 holders", "#4d9fff"], ["others", "Everyone else", "#ffc861"]];
   function paintSupply(d) {
     if (!d.split) return;
+    SPLIT[0][1] = d.venue === "pool" ? "In the pool" : "Bonding curve";
     var parts = SPLIT.map(function (s) { return { v: d.split[s[0]] || 0, label: s[1], color: s[2] }; });
     var svg = T.donut(parts, { center: "1B", sub: "total supply", label: "Where the $ARCIRCLE supply sits" });
     var box = document.querySelector('[data-tk="donut"]');

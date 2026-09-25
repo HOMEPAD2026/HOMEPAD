@@ -55,15 +55,22 @@ const CONFIG = {
   // against --network arcMainnet. Empty here shows as "soon" in the UI,
   // same convention as config.js's own FACTORY_ADDRESS.
   // --- $ARCIRCLE, the core coin ---
-  // Empty = NOT LIVE. $ARCIRCLE is being relaunched: until these are set,
-  // every page shows "Not live" instead of a contract address, price, chart
-  // or buy button. At launch set ARCIRCLE_TOKEN (and ARCIRCLE_CURVE if it
-  // trades on a bonding curve), the page people buy it on, and the same two
-  // addresses in api/_arcircle.mjs.
-  ARCIRCLE_TOKEN: "",
-  ARCIRCLE_CURVE: "",
-  ARCIRCLE_BUY_URL: "",
-  ARCIRCLE_LAUNCHED_AT: 0, // unix seconds the curve went live
+  // Launched on Argus (argus.world) on 25 Sep 2026: a Uniswap v4 pool on
+  // Arc's PoolManager, paired with USDC's ERC-20 interface (6 decimals), with
+  // the whole supply in one locked position (no virtual curve, no migration).
+  // Keep api/_arcircle.mjs in step. An empty ARCIRCLE_TOKEN switches every
+  // page to "Not live".
+  ARCIRCLE_TOKEN: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",
+  ARCIRCLE_POOL_ID: "0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",
+  // keccak256(poolId ‖ uint256(6)) — where the PoolManager keeps this pool's slot0
+  // (read with extsload; lets pages without ethers read the price)
+  ARCIRCLE_POOL_SLOT: "0xad85d721d91ab50f533ac7d86b01e50798b891ac2a1502187e974fabc0cf854b",
+  ARCIRCLE_QUOTE_DECIMALS: 6, // USDC (ERC-20 interface, 0x3600…)
+  ARCIRCLE_CURVE: "", // only for a foci-style bonding-curve launch (the first launch was one)
+  ARCIRCLE_VENUE: "Argus",
+  ARCIRCLE_BUY_URL: "https://argus.world/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",
+  ARCIRCLE_CHART_URL: "https://dexscreener.com/arc/0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba",
+  ARCIRCLE_LAUNCHED_AT: 1790345391, // unix seconds the pool was created
 
   ARCPAD_FACTORY_ADDRESS: "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E",
   ARCPAD_HOOK_ADDRESS: "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044",
@@ -87,3 +94,14 @@ const CONFIG = {
 
 // true once $ARCIRCLE is live (its contract address is set above)
 const ARCIRCLE_LIVE = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
+/// USD per $ARCIRCLE from its pool's sqrtPriceX96 (a Number or BigInt).
+/// v4 sorts currencies by address; r = sqrtP² / 2^192 is raw currency1 per raw
+/// currency0; $ARCIRCLE has 18 decimals, the USDC quote CONFIG.ARCIRCLE_QUOTE_DECIMALS.
+function arcircleUsdFromSqrt(sqrtX96) {
+  var sp = Number(sqrtX96);
+  if (!(sp > 0) || !ARCIRCLE_LIVE) return null;
+  var r = Math.pow(sp / Math.pow(2, 96), 2);
+  var isToken0 = BigInt(CONFIG.ARCIRCLE_TOKEN) < 0x3600000000000000000000000000000000000000n;
+  var p = (isToken0 ? r : 1 / r) * Math.pow(10, 18 - (CONFIG.ARCIRCLE_QUOTE_DECIMALS || 6));
+  return isFinite(p) && p > 0 ? p : null;
+}

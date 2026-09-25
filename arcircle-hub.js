@@ -37,9 +37,13 @@
     var C = typeof CONFIG !== "undefined" ? CONFIG : {};
     var tok = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_TOKEN || "") ? C.ARCIRCLE_TOKEN : "";
     var curve = /^0x[0-9a-fA-F]{40}$/.test(C.ARCIRCLE_CURVE || "") ? C.ARCIRCLE_CURVE : "";
+    var pool = /^0x[0-9a-fA-F]{64}$/.test(C.ARCIRCLE_POOL_ID || "") ? C.ARCIRCLE_POOL_ID : "";
     var root = document.documentElement;
     root.classList.toggle("arc-live", !!tok);
     root.classList.toggle("arc-notlive", !tok);
+    // how it trades: a Uniswap v4 pool (Argus) or a bonding curve
+    root.classList.toggle("arc-pool", !!tok && !!pool && !curve);
+    root.classList.toggle("arc-curve", !!tok && !!curve);
     window.arcircleToken = function () { return tok; };
     if (!tok) return;
     var ex = C.BLOCK_EXPLORER || "https://arc.etherscan.io";
@@ -47,12 +51,13 @@
     var fill = function () {
       document.querySelectorAll("[data-arc-ca]").forEach(function (el) {
         var k = el.getAttribute("data-arc-ca");
-        el.textContent = k === "full" ? tok : k === "curve-short" ? (curve ? sh(curve) : "—") : sh(tok);
+        el.textContent = k === "full" ? tok : k === "curve-short" ? (curve ? sh(curve) : "—") : k === "pool-short" ? (pool ? sh(pool) : "—") : sh(tok);
         if (k !== "curve-short") el.title = tok;
       });
       document.querySelectorAll("[data-arc-href]").forEach(function (el) {
         var k = el.getAttribute("data-arc-href");
-        el.href = k === "scan" ? ex + "/token/" + tok : k === "curve" ? (curve ? ex + "/address/" + curve + "#code" : ex + "/token/" + tok) : (C.ARCIRCLE_BUY_URL || "/arc#arcircle");
+        el.href = k === "scan" ? ex + "/token/" + tok : k === "curve" ? (curve ? ex + "/address/" + curve + "#code" : ex + "/token/" + tok)
+          : k === "chart" ? (C.ARCIRCLE_CHART_URL || ex + "/token/" + tok) : (C.ARCIRCLE_BUY_URL || "/arc#arcircle");
       });
       document.querySelectorAll("[data-copy-arc]").forEach(function (el) { el.setAttribute("data-copy", tok); });
     };

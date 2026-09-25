@@ -878,6 +878,8 @@ function ac2Activate() {
   // Not live (relaunching): the "Not live" card and banners are plain markup
   // (.arc-nl-only), so there is nothing to read or poll.
   if (typeof ARCIRCLE_LIVE !== "undefined" && !ARCIRCLE_LIVE) return;
+  // A Uniswap v4 pool launch (Argus) has no curve to read: arcircle-tab.js runs the tab.
+  if (!ARCIRCLE.curve) return;
 
   // Banners on Home / Explore: one cheap state read on page load.
   ac2FetchState().then(ac2RenderState).catch((err) => console.warn("$ARCIRCLE banner: state read failed", err));
