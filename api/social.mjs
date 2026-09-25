@@ -5,6 +5,9 @@
 //   GET  /api/social?creators=0x…,0x…         { x: { creator: handle } } for badges
 //   POST /api/social  { action: "profile" | "x-verify" | "vote" | "logo", … }
 //   GET  /logo/<sha256>.webp  (→ /api/social?logo=…)  hosted coin logos
+//   GET  /api/social?circle=1[&wallet=0x…]      CirclePad pledges, Q&A, proposals, referrals
+//   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
+//   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //
 // Every write carries a wallet signature over a human-readable message that
 // the server rebuilds from the request itself; the signer must be the coin's
@@ -16,6 +19,7 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { createHash } from "node:crypto";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
+import * as circle from "./_circle.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -122,8 +126,16 @@ export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
   if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
+  if (url.searchParams.get("circle") === "badges") {
+    try { return json(200, { badges: await circle.badges(String(url.searchParams.get("addrs") || "").split(",")) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900"); }
+    catch (err) { console.error("circle badges", err && err.message || err); return json(502, { error: "couldn't read badges" }); }
+  }
   if (!storeEnabled()) return json(200, { enabled: false }, "public, max-age=60, s-maxage=300");
   try {
+    if (url.searchParams.has("circle")) {
+      const w = lc(url.searchParams.get("wallet"));
+      return json(200, await circle.circleData(w), isAddr(w) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
+    }
     const creators = url.searchParams.get("creators");
     if (creators != null) {
       const list = [...new Set(creators.split(",").map(lc).filter(isAddr))].slice(0, 60);
@@ -171,6 +183,12 @@ export async function POST(req) {
     if (b.action === "x-verify") return await verifyX(b);
     if (b.action === "vote") return await vote(b);
     if (b.action === "logo") return await saveLogo(b, req);
+    if (b.action === "pledge") return await circle.pledge(b, recoverSigner, json);
+    if (b.action === "cqa") return await circle.qaPost(b, recoverSigner, json);
+    if (b.action === "cprop") return await circle.propPost(b, recoverSigner, json);
+    if (b.action === "cprop-up") return await circle.propUp(b, recoverSigner, json);
+    if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
+    if (b.action === "cref") return await circle.refReport(b, json);
     return json(400, { error: "unknown action" });
   } catch (err) {
     console.error("social POST", b && b.action, err && err.message || err);

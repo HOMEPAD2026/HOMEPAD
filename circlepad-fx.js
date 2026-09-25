@@ -26,7 +26,7 @@
   let S = null; // last state painted
 
   // ================= sidebar: group the not-yet-live tabs =================
-  const SOON = ["projects", "airdrop", "treasury"];
+  const SOON = ["airdrop", "treasury"];
   (function sidebar() {
     const btns = SOON.map((t) => document.querySelector(`.bp-side-nav .bp-nav-item[data-tab="${t}"]`)).filter(Boolean);
     if (!btns.length) return;
@@ -86,7 +86,7 @@
     const raised = toNum(s.totalRaised), cap = toNum(s.cap);
     let pct, sub, meta;
     if (!s.started) {
-      pct = 0; sub = tr("opens soon");
+      pct = 0; sub = tr(pledged > 0 ? "pledged so far" : "opens soon");
       meta = `<span class="cp-meta-note">${tr("No cap — withdraw your own USDC any time before the raise closes.")}</span>`;
     } else if (cap > 0) {
       pct = Math.min(1, raised / cap); sub = `${tr("Goal")} ${fmt(cap)}`;
@@ -107,8 +107,126 @@
     ring.style.setProperty("--cp-p", pct.toFixed(4));
     subEl.textContent = sub;
     if (metaEl.__html !== meta) { metaEl.innerHTML = meta; metaEl.__html = meta; }
-    countTo(raised);
+    countTo(!s.started && pledged > 0 ? pledged : raised);
+    paintTop(s, raised);
   }
+  // Before the raise opens the ring shows what has been pledged
+  // (circlepad-community.js reports it).
+  let pledged = 0;
+  window.circlepadFx = {
+    setPledged(total) { const t = Number(total) || 0; if (t !== pledged) { pledged = t; if (S) paintRing(S); } },
+    mine: () => (S && S.myContribution ? toNum(S.myContribution) : 0),
+  };
+
+  // ================= top bar pill + tab title =================
+  const baseTitle = document.title;
+  let pill = null;
+  (function topPill() {
+    const bar = document.querySelector(".bp-topbar");
+    if (!bar) return;
+    pill = document.createElement("button");
+    pill.type = "button"; pill.className = "cp-top-pill"; pill.hidden = true;
+    pill.innerHTML = `<span class="cp-tp-dot"></span><span class="cp-tp-state"></span><b class="cp-tp-amt" data-no-i18n></b><span class="cp-tp-time" data-no-i18n></span>`;
+    pill.addEventListener("click", () => document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: "round" })));
+    bar.insertBefore(pill, bar.firstChild);
+  })();
+  let topShown = -1;
+  function paintTop(s, raised) {
+    if (s.started) document.title = `${fmt(raised)} USDC ${s.isOpen ? "raised" : "final"} · CirclePad`;
+    else document.title = baseTitle;
+    if (!pill) return;
+    pill.hidden = !s.started && !(pledged > 0);
+    pill.dataset.state = !s.started ? "idle" : s.isOpen ? "live" : "closed";
+    pill.querySelector(".cp-tp-state").textContent = tr(!s.started ? "Pledged" : s.isOpen ? "LIVE" : "Closed");
+    const v = !s.started ? pledged : raised;
+    if (v !== topShown) {
+      const el = pill.querySelector(".cp-tp-amt");
+      el.textContent = `${fmt(v)} USDC`;
+      if (topShown >= 0 && v > topShown && !reduce) { el.classList.remove("cp-tick"); void el.offsetWidth; el.classList.add("cp-tick"); }
+      topShown = v;
+    }
+  }
+  function paintTopTime() {
+    if (!pill || pill.hidden) return;
+    const t = pill.querySelector(".cp-tp-time");
+    if (!_circlepadStarted || !_circlepadDeadline) { t.textContent = ""; return; }
+    const rem = _circlepadDeadline - Math.floor(Date.now() / 1000);
+    t.textContent = rem <= 0 ? "" : rem >= 86400 ? `${Math.floor(rem / 86400)}d ${Math.floor((rem % 86400) / 3600)}h` : `${Math.floor(rem / 3600)}h ${Math.floor((rem % 3600) / 60)}m`;
+  }
+  setInterval(paintTopTime, 15e3);
+
+  // ================= contributors: orbit around the ring + media box =================
+  let orbit = null;
+  if (ring) {
+    orbit = document.createElement("div");
+    orbit.className = "cp-orbit";
+    orbit.setAttribute("aria-hidden", "true");
+    ring.appendChild(orbit);
+  }
+  const media = document.querySelector("#bp-featured .bp-featured-media");
+  if (media) {
+    media.classList.add("cp-media");
+    media.innerHTML = `<span class="cp-media-round">Round</span><b class="cp-media-n" data-no-i18n>#1</b><span class="cp-media-stack" id="cp-media-stack"></span><span class="cp-media-count" id="cp-media-count">No contributors yet</span>`;
+  }
+  const seenDots = new Set();
+  function paintContributors(rows) {
+    const total = rows.reduce((t, r) => t + toNum(r.amount), 0);
+    if (orbit) {
+      const top = rows.slice(0, 24);
+      orbit.innerHTML = top.map((r, i) => {
+        const a = String(r.address).toLowerCase(), share = total ? toNum(r.amount) / total : 0;
+        const size = Math.round(8 + Math.sqrt(share) * 26), ang = (360 / Math.max(top.length, 1)) * i;
+        const isNew = seenDots.size && !seenDots.has(a);
+        return `<i class="cp-odot${isNew ? " is-new" : ""}" style="--a:${ang}deg;--z:${size}px;--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></i>`;
+      }).join("");
+      top.forEach((r) => seenDots.add(String(r.address).toLowerCase()));
+    }
+    const stack = $("cp-media-stack"), count = $("cp-media-count");
+    if (stack) stack.innerHTML = rows.slice(0, 5).map((r) => `<i style="--h:${(parseInt(String(r.address).slice(2, 8), 16) || 0) % 360}"></i>`).join("");
+    if (count) count.textContent = rows.length ? `${rows.length} ${tr(rows.length === 1 ? "contributor" : "contributors")}` : tr("No contributors yet");
+  }
+
+  // ================= recent activity ticker =================
+  let ticker = null;
+  const featured = $("bp-featured");
+  if (featured) {
+    ticker = document.createElement("div");
+    ticker.className = "cp-ticker"; ticker.hidden = true;
+    ticker.setAttribute("aria-label", "Recent activity");
+    featured.insertBefore(ticker, featured.firstChild);
+  }
+  function paintTicker(activity) {
+    if (!ticker) return;
+    const items = (activity || []).slice(0, 12);
+    ticker.hidden = !items.length;
+    if (!items.length) return;
+    const ago = (ts) => { const d = Math.max(1, Math.floor(Date.now() / 1000) - ts); return d < 60 ? "just now" : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h` : `${Math.floor(d / 86400)}d`; };
+    const one = items.map((a) => `<span class="cp-tk-item cp-tk-${a.kind}"><i style="--h:${(parseInt(String(a.contributor).slice(2, 8), 16) || 0) % 360}"></i><b data-no-i18n>${String(a.contributor).slice(0, 6)}…${String(a.contributor).slice(-4)}</b><span data-no-i18n>${a.kind === "out" ? "−" : "+"}${fmt(toNum(a.amount))} USDC</span><em data-no-i18n>${ago(a.ts)}</em></span>`).join("");
+    const html = `<div class="cp-tk-track${items.length > 2 && !reduce ? " run" : ""}" style="--n:${items.length}">${one}${items.length > 2 && !reduce ? one : ""}</div>`;
+    if (ticker.__html !== html) { ticker.innerHTML = html; ticker.__html = html; }
+  }
+
+  // ================= leaderboard tab: podium + share bars =================
+  function paintPodium(rows) {
+    const full = $("bp-full-leaderboard");
+    if (!full) return;
+    let pod = $("cp-podium");
+    if (rows.length < 1) { if (pod) pod.remove(); return; }
+    if (!pod) { pod = document.createElement("div"); pod.id = "cp-podium"; pod.className = "cp-podium"; full.parentNode.insertBefore(pod, full); }
+    const total = rows.reduce((t, r) => t + toNum(r.amount), 0);
+    const top = rows.slice(0, 3);
+    const order = top.length === 3 ? [1, 0, 2] : top.map((_, i) => i);
+    const html = order.map((i) => { const r = top[i], a = String(r.address).toLowerCase(), pct = total ? (toNum(r.amount) / total) * 100 : 0;
+      return `<div class="cp-pod cp-pod-${i + 1}" style="--d:${i * 0.12}s"><span class="cp-pod-av" style="--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></span><b data-no-i18n>${a.slice(0, 6)}…${a.slice(-4)}</b><span data-no-i18n>${fmt(toNum(r.amount))} USDC</span><em data-no-i18n>${pct.toFixed(pct >= 10 ? 0 : 1)}%</em><div class="cp-pod-step" data-no-i18n>${i + 1}</div></div>`; }).join("");
+    if (pod.__html !== html) { pod.innerHTML = html; pod.__html = html; pod.classList.remove("in"); void pod.offsetWidth; pod.classList.add("in"); }
+    full.querySelectorAll(".bp-lb-row").forEach((row) => {
+      const pctEl = row.querySelector(".bp-lb-pct");
+      const pct = pctEl ? parseFloat(pctEl.textContent) || 0 : 0;
+      row.style.setProperty("--cp-share", `${Math.min(100, pct)}%`);
+      row.classList.add("cp-shared");
+    });
+  }
+
   function milestone(m) {
     if (!ring) return;
     ring.classList.remove("cp-milestone"); void ring.offsetWidth; ring.classList.add("cp-milestone");
@@ -149,7 +267,7 @@
     if (opts && opts.accountUnknown) return;
     const acct = state && state.account ? String(state.account).toLowerCase() : null;
     const v = s.myContribution || 0n;
-    if (acct && mine.acct === acct && mine.v != null && v > mine.v) joinCircle(acct);
+    if (acct && mine.acct === acct && mine.v != null && v > mine.v) { joinCircle(acct); if (typeof window.arcFeedback === "function") window.arcFeedback("buy"); }
     mine = { acct, v: acct ? v : null };
   }
 
@@ -231,8 +349,10 @@
   applyCirclepadState = function (s, opts) {
     origApply(s, opts);
     if (!s) return;
-    try { paintRing(s); checkJoin(s, opts); paintStage(s); paintSplit(s); } catch (e) { console.warn("circlepad-fx", e); }
+    S = S || s;
+    try { paintRing(s); checkJoin(s, opts); paintStage(s); paintSplit(s); paintTopTime(); } catch (e) { console.warn("circlepad-fx", e); }
     S = s;
+    document.dispatchEvent(new CustomEvent("circlepad:state"));
   };
 
   // ================= countdown: flip digits, urgent last hour =================
@@ -275,6 +395,8 @@
     renderCirclepadLeaderboard = function (rows, activity) {
       const before = reduce ? null : snap();
       origLb(rows, activity);
+      try { paintContributors(rows || []); paintTicker(activity); paintPodium(rows || []); emptyCta(); } catch (e) { console.warn("circlepad-fx", e); }
+      setTimeout(() => document.dispatchEvent(new CustomEvent("circlepad:lb")), 0);
       document.querySelectorAll("#bp-full-leaderboard .bp-lb-row, #bp-home-leaderboard .bp-lb-row").forEach((r, i) => {
         const k = keyOf(r);
         const rank = Number((r.querySelector(".bp-lb-rank") || {}).textContent.replace("#", "")) || i + 1;
@@ -329,7 +451,7 @@
     split = document.createElement("div");
     split.className = "cp-split";
     const ROWS = [["Recipient", 80, "cp-s-a"], ["Treasury", 15, "cp-s-c"], ["Platform", 5, "cp-s-b"]];
-    split.innerHTML = `<div class="cp-split-head"><span>${tr("At close")}</span><b class="cp-split-total" data-no-i18n></b></div>`
+    split.innerHTML = `<div class="cp-split-head"><span>${tr("At close")}</span><b class="cp-split-total" data-no-i18n></b></div><div class="cp-proof" hidden></div>`
       + ROWS.map(([k, p, c]) => `<div class="cp-split-row ${c}"><div class="cp-split-top"><span>${k}</span><b data-no-i18n>${p}%</b></div><div class="cp-split-bar"><i style="--w:${p}%"></i></div><small class="cp-split-amt" data-p="${p}" data-no-i18n></small></div>`).join("");
     next.appendChild(split);
     next.classList.add("cp-nextgrid");
@@ -342,7 +464,57 @@
     split.querySelector(".cp-split-total").textContent = total > 0 ? `${fmt(total)} USDC` : "";
     split.querySelectorAll(".cp-split-amt").forEach((el) => { el.textContent = total > 0 ? `≈ ${fmt((total * Number(el.dataset.p)) / 100)} USDC` : ""; });
     split.classList.toggle("cp-flowing", !!(s.started && !s.isOpen));
+    // Proof the money is where the page says: the escrow's own USDC balance
+    // next to the contributions it has recorded.
+    const proof = split.querySelector(".cp-proof");
+    const bal = toNum(s.balance);
+    if (s.started && !s.distributed && (bal > 0 || total > 0)) {
+      const ok = Math.abs(bal - total) < 0.000001 || bal >= total;
+      proof.hidden = false;
+      proof.className = "cp-proof" + (ok ? " ok" : " warn");
+      proof.innerHTML = `<span>${tr("Held by the contract")}</span> <b data-no-i18n>${fmt(bal)} USDC</b> <span class="cp-proof-mark">${ok ? tr("matches contributions") : tr("differs from contributions")}</span> <a href="${(typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || ""}/address/${(typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ESCROW_ADDRESS) || ""}" target="_blank" rel="noopener">${tr("Check")} ↗</a>`;
+    } else proof.hidden = true;
   }
+
+  // ================= empty states, skeleton, docs flow =================
+  function emptyCta() {
+    const home = $("bp-home-leaderboard");
+    if (!home || !home.classList.contains("bp-empty") || home.querySelector(".cp-empty-cta")) return;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cp-empty-cta";
+    b.textContent = tr(S && S.isOpen ? "Be the first to contribute" : "Pledge to be first in line");
+    b.addEventListener("click", () => document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: "round" })));
+    home.appendChild(document.createElement("br")); home.appendChild(b);
+  }
+  if (typeof showCirclepadLeaderboardText === "function") {
+    const origTxt = showCirclepadLeaderboardText;
+    const skel = '<div class="cp-skel" aria-hidden="true"><i></i><i></i><i></i></div>';
+    // eslint-disable-next-line no-global-assign
+    showCirclepadLeaderboardText = function (text) {
+      origTxt(text);
+      if (!/^Loading/.test(String(text))) return;
+      ["bp-home-leaderboard", "bp-full-leaderboard"].forEach((id) => { const el = $(id); if (el) el.insertAdjacentHTML("beforeend", skel); });
+    };
+  }
+  (function docsFlow() {
+    const how = $("bp-doc-how");
+    if (!how) return;
+    const lede = how.querySelector(".bp-lede") || how.querySelector("h1");
+    const flow = document.createElement("ol");
+    flow.className = "cp-flow";
+    const STEPS = [
+      ["Pledge", "Say what you'll put in before it opens — a signature, no money moves.", '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>'],
+      ["Contribute", "72 hours to send USDC. Withdraw any of it until the close.", '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'],
+      ["Vote", "Contributors decide the name, ticker, logo, roadmap and date.", '<path d="M5 12l4 4 10-10"/>'],
+      ["Launch", "At the close the raise splits 80 / 15 / 5 and the project goes live.", '<path d="M12 3c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/>'],
+    ];
+    flow.innerHTML = STEPS.map(([t, d, ico], i) => `<li style="--i:${i}"><span class="cp-flow-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg></span><b>${t}</b><p>${d}</p></li>`).join("");
+    lede.insertAdjacentElement("afterend", flow);
+    if ("IntersectionObserver" in window && !reduce) {
+      const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { flow.classList.add("in"); io.disconnect(); } }), { threshold: 0.3 });
+      io.observe(flow);
+    } else flow.classList.add("in");
+  })();
 
   // ================= hero parallax =================
   const art = document.querySelector("#bp-panel-home .bp-hero-art");

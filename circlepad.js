@@ -98,6 +98,59 @@
   }
 })();
 
+// ---- In-page messages instead of the browser's alert()/confirm() ----
+// cpToast(text, kind) shows a short note; cpConfirm({ title, body, ok })
+// resolves true/false from a small modal (arc-a11y.js gives it focus
+// handling and Escape). cpErrText(err) turns a revert or wallet error into
+// a sentence.
+function cpToast(msg, kind) {
+  let host = document.getElementById("cp-toasts");
+  if (!host) { host = document.createElement("div"); host.id = "cp-toasts"; host.className = "cp-toasts"; host.setAttribute("aria-live", "polite"); document.body.appendChild(host); }
+  const t = document.createElement("div");
+  t.className = "cp-toast" + (kind ? " cp-toast-" + kind : "");
+  t.textContent = msg;
+  host.appendChild(t);
+  requestAnimationFrame(() => t.classList.add("in"));
+  setTimeout(() => { t.classList.remove("in"); setTimeout(() => t.remove(), 300); }, kind === "bad" ? 6000 : 3600);
+}
+if (typeof window.arcToast !== "function") window.arcToast = (m, k) => cpToast(m, k === "warn" ? "bad" : k);
+function cpConfirm({ title, body, ok = "Continue", cancel = "Cancel", danger = false }) {
+  return new Promise((resolve) => {
+    const m = document.createElement("div");
+    m.className = "cm-modal cp-confirm";
+    const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    m.innerHTML = `<div class="cm-backdrop" data-close></div><div class="cm-dialog" role="dialog" aria-modal="true" aria-labelledby="cp-cf-t">
+      <div class="cm-dhead"><div><h2 id="cp-cf-t">${esc(title)}</h2><p>${esc(body)}</p></div>
+      <button type="button" class="cm-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="cm-foot"><button type="button" class="cm-btn" data-close>${esc(cancel)}</button><button type="button" class="cm-btn cm-btn-primary${danger ? " cp-danger" : ""}" data-ok>${esc(ok)}</button></div></div>`;
+    const done = (v) => { m.classList.remove("in"); setTimeout(() => m.remove(), 200); resolve(v); };
+    m.addEventListener("click", (e) => { if (e.target.closest("[data-ok]")) done(true); else if (e.target.closest("[data-close]")) done(false); });
+    document.body.appendChild(m);
+    requestAnimationFrame(() => m.classList.add("in"));
+  });
+}
+const CP_ERRORS = {
+  NotStarted: "The raise hasn't started yet.",
+  RaiseEnded: "The raise has already closed.",
+  ZeroContribution: "Enter an amount above zero.",
+  CapExceeded: "That would go over the round's cap — try a smaller amount.",
+  ZeroRefundAmount: "Enter an amount above zero to withdraw.",
+  InsufficientContribution: "That's more than you've put in.",
+  AlreadyStarted: "The raise has already been started.",
+  NotOpen: "The raise isn't open.",
+  AlreadyDistributed: "The funds have already been split.",
+  OwnableUnauthorizedAccount: "Only the round's recipient wallet can do that.",
+};
+function cpErrText(err, fallback = "Something went wrong — try again.") {
+  if (!err) return fallback;
+  if (err.code === "ACTION_REJECTED" || err.code === 4001 || /user (rejected|denied)|rejected the request/i.test(err.message || "")) return "Cancelled in your wallet.";
+  if (err.code === "INSUFFICIENT_FUNDS" || /insufficient funds/i.test(err.message || "")) return "Not enough USDC in this wallet for the amount plus gas.";
+  const name = (err.revert && err.revert.name) || (/reverted with custom error '(\w+)/.exec(err.message || "") || [])[1] || (/error="?(\w+)\(/.exec(err.message || "") || [])[1];
+  if (name && CP_ERRORS[name]) return CP_ERRORS[name];
+  for (const k of Object.keys(CP_ERRORS)) if ((err.message || "").includes(k) || (err.data && String(err.data).includes(k))) return CP_ERRORS[k];
+  return err.reason || err.shortMessage || fallback;
+}
+
 // ---- CirclePad first-round escrow (contracts/CirclePadEscrow.sol) ----
 // Everything below stays a no-op — the markup keeps showing its static
 // "PREVIEW" state — until CONFIG.CIRCLEPAD_ESCROW_ADDRESS is filled in after
@@ -753,7 +806,7 @@ function wireCirclepadStart() {
   btn.dataset.wired = "1";
 
   btn.addEventListener("click", async () => {
-    if (!confirm("This starts the 72-hour funding window right now — it can't be undone or redone. Continue?")) return;
+    if (!(await cpConfirm({ title: "Start the 72-hour raise?", body: "The funding window opens right now and closes 72 hours later. This can't be undone or redone.", ok: "Start the raise" }))) return;
     btn.disabled = true;
     const original = btn.textContent;
     btn.textContent = "Confirm in wallet…";
@@ -766,7 +819,7 @@ function wireCirclepadStart() {
       await refreshCirclepadCore();
     } catch (err) {
       console.error("CirclePad: start failed", err);
-      alert(err?.reason || err?.shortMessage || "Start failed or was rejected.");
+      cpToast(cpErrText(err, "Start failed or was rejected."), "bad");
       btn.disabled = false;
       btn.textContent = original;
     }
@@ -778,7 +831,20 @@ function wireCirclepadRefund() {
   if (!btn || btn.dataset.wired) return;
   btn.dataset.wired = "1";
 
+  // Partial withdrawals: the contract's refund(amount) takes any amount up to
+  // what this wallet put in; leaving the box empty withdraws all of it.
+  const amt = document.createElement("div");
+  amt.className = "bp-contribute-row cp-refund-amt";
+  amt.innerHTML = `<input type="number" min="0" step="0.01" class="bp-contribute-input" id="bp-refund-amount" placeholder="Amount (empty = all)"><button type="button" class="bp-btn-ghost bp-contribute-max" id="bp-refund-all">Max</button>`;
+  btn.parentNode.insertBefore(amt, btn);
+  const refIn = amt.querySelector("#bp-refund-amount");
+  amt.querySelector("#bp-refund-all").addEventListener("click", () => { refIn.value = ""; refIn.focus(); });
   btn.addEventListener("click", async () => {
+    let want = null;
+    if (refIn.value.trim()) {
+      try { want = ethers.parseEther(refIn.value.trim()); } catch { cpToast("That doesn't look like a valid USDC amount.", "bad"); return; }
+      if (want <= 0n) { cpToast(CP_ERRORS.ZeroRefundAmount, "bad"); return; }
+    }
     btn.disabled = true;
     btn.dataset.busy = "1";
     const original = btn.textContent;
@@ -787,14 +853,17 @@ function wireCirclepadRefund() {
       await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
       const mine = await escrow.contributions(state.account);
-      const tx = await escrow.refund(mine);
+      if (want !== null && want > mine) throw Object.assign(new Error("InsufficientContribution"), { revert: { name: "InsufficientContribution" } });
+      const tx = await escrow.refund(want === null ? mine : want);
       btn.textContent = "Confirming…";
       await tx.wait();
       delete btn.dataset.busy;
+      refIn.value = "";
+      cpToast("Withdrawn to your wallet.", "ok");
       await Promise.all([refreshCirclepadCore(), refreshCirclepadLeaderboard()]);
     } catch (err) {
       console.error("CirclePad: refund failed", err);
-      alert(err?.reason || err?.shortMessage || "Withdraw failed or was rejected.");
+      cpToast(cpErrText(err, "Withdraw failed or was rejected."), "bad");
       delete btn.dataset.busy;
       btn.disabled = false;
       btn.textContent = original;
@@ -808,7 +877,7 @@ function wireCirclepadWithdraw() {
   btn.dataset.wired = "1";
 
   btn.addEventListener("click", async () => {
-    if (!confirm("This splits the full balance 80% to the recipient wallet, 5% to the platform wallet, and 15% to the treasury wallet. Continue?")) return;
+    if (!(await cpConfirm({ title: "Split the raise now?", body: "The full balance goes out in one transaction: 80% to the recipient wallet, 15% to the treasury wallet and 5% to the platform wallet.", ok: "Split 80 / 15 / 5" }))) return;
     btn.disabled = true;
     btn.dataset.busy = "1";
     const original = btn.textContent;
@@ -823,7 +892,7 @@ function wireCirclepadWithdraw() {
       await refreshCirclepadCore();
     } catch (err) {
       console.error("CirclePad: withdraw failed", err);
-      alert(err?.reason || err?.shortMessage || "Withdraw failed or was rejected.");
+      cpToast(cpErrText(err, "Withdraw failed or was rejected."), "bad");
       delete btn.dataset.busy;
       btn.disabled = false;
       btn.textContent = original;
@@ -840,15 +909,21 @@ function wireCirclepadContribute() {
 
   maxBtn.addEventListener("click", async () => {
     try {
+      // "Max" is what this wallet can spend (less a little for gas), capped by
+      // what's left of the round's cap. An uncapped round reports "unlimited"
+      // room, so without a wallet there is no max to show — connect first.
+      if (!state.account) {
+        if (typeof connectWallet === "function") await connectWallet();
+        if (!state.account) return;
+      }
       const escrow = circlepadEscrowRead();
       let amount = await escrow.remainingCap();
-      if (state.account) {
-        const balance = await readProvider().getBalance(state.account);
-        const gasBuffer = ethers.parseEther("0.005"); // leave a little headroom for gas
-        const spendable = balance > gasBuffer ? balance - gasBuffer : 0n;
-        if (spendable < amount) amount = spendable;
-      }
-      input.value = amount > 0n ? ethers.formatEther(amount) : "0";
+      const balance = await readProvider().getBalance(state.account);
+      const gasBuffer = ethers.parseEther("0.005"); // leave a little headroom for gas
+      const spendable = balance > gasBuffer ? balance - gasBuffer : 0n;
+      if (spendable < amount) amount = spendable;
+      // two decimals is plenty for a USDC amount
+      input.value = amount > 0n ? String(Math.floor(Number(ethers.formatEther(amount)) * 100) / 100) : "0";
     } catch (err) {
       console.error("CirclePad: failed to compute max contribution", err);
     }
@@ -860,11 +935,11 @@ function wireCirclepadContribute() {
       if (!state.account) return;
     }
     const amountStr = input.value;
-    if (!amountStr || Number(amountStr) <= 0) { alert("Enter an USDC amount to contribute."); return; }
+    if (!amountStr || Number(amountStr) <= 0) { cpToast("Enter a USDC amount to contribute.", "bad"); input.focus(); return; }
 
     let amount;
     try { amount = ethers.parseEther(amountStr); }
-    catch { alert("That doesn't look like a valid USDC amount."); return; }
+    catch { cpToast("That doesn't look like a valid USDC amount.", "bad"); return; }
 
     btn.disabled = true;
     const originalText = btn.textContent;
@@ -872,14 +947,22 @@ function wireCirclepadContribute() {
     try {
       await ensureArcForWrite();
       const escrow = circlepadEscrowWrite();
-      const tx = await escrow.contribute({ value: amount });
+      // Referral links (?ref=0x…) append the referrer's address after the
+      // contribute() selector. The contract ignores the extra bytes; the site
+      // reads them back from the transaction to credit the referrer.
+      const ref = typeof circlepadReferrer === "function" ? circlepadReferrer() : null;
+      const tx = ref
+        ? await state.signer.sendTransaction({ to: CONFIG.CIRCLEPAD_ESCROW_ADDRESS, value: amount, data: escrow.interface.encodeFunctionData("contribute") + ref.slice(2).toLowerCase() })
+        : await escrow.contribute({ value: amount });
       btn.textContent = "Confirming…";
       await tx.wait();
       input.value = "";
+      cpToast("Contribution confirmed.", "ok");
+      if (ref) { try { fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "cref", tx: tx.hash }), keepalive: true }).catch(() => {}); } catch { /* best effort */ } }
       await Promise.all([refreshCirclepadCore(), refreshCirclepadLeaderboard()]);
     } catch (err) {
       console.error("CirclePad: contribution failed", err);
-      alert(err?.reason || err?.shortMessage || "Transaction failed or was rejected.");
+      cpToast(cpErrText(err, "Transaction failed or was rejected."), "bad");
       btn.disabled = false;
       btn.textContent = originalText;
       refreshCirclepadCore(); // re-applies the correct disabled/label state
@@ -1139,7 +1222,7 @@ async function proposeCirclepadOptions(category) {
   const btn = document.querySelector(`.bp-gov-propose-btn[data-category="${category}"]`);
   if (!input) return;
   const options = input.value.split(",").map((s) => s.trim()).filter(Boolean);
-  if (options.length < 2) { alert("Enter at least 2 options, separated by commas."); return; }
+  if (options.length < 2) { cpToast("Enter at least 2 options, separated by commas.", "bad"); return; }
 
   const original = btn ? btn.textContent : "";
   if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
@@ -1153,7 +1236,7 @@ async function proposeCirclepadOptions(category) {
     await refreshCirclepadGovernance();
   } catch (err) {
     console.error("CirclePad: proposeOptions failed", err);
-    alert(err?.reason || err?.shortMessage || "Publishing options failed or was rejected.");
+    cpToast(cpErrText(err, "Publishing options failed or was rejected."), "bad");
     if (btn) { btn.disabled = false; btn.textContent = original; }
     input.disabled = false;
   }
@@ -1176,7 +1259,7 @@ async function castCirclepadVote(category, optionIndex) {
     await refreshCirclepadGovernance();
   } catch (err) {
     console.error("CirclePad: vote failed", err);
-    alert(err?.reason || err?.shortMessage || "Vote failed or was rejected.");
+    cpToast(cpErrText(err, "Vote failed or was rejected."), "bad");
     if (btn) { btn.disabled = false; btn.textContent = original; }
   }
 }

@@ -1,9 +1,11 @@
 // api/og.mjs — 1200×630 share image for an ArcPad coin: logo, ticker, live
 // price and market cap, read from Arc at request time (edge-cached 5 min).
 //   GET /api/og?addr=0x…   → PNG
+//   GET /api/og?round=1[&w=0x…]  → CirclePad round card (optionally "0x… is in")
 // Used as og:image / twitter:image by the /c/<address> share page.
 import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
+import { roundState, contributionOf } from "./_round.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -73,12 +75,12 @@ function frame(children) {
     backgroundImage: "radial-gradient(circle at 12% 0%, rgba(63,155,255,0.28), transparent 45%), radial-gradient(circle at 100% 100%, rgba(57,255,136,0.22), transparent 50%)",
   }, children);
 }
-function brandRow(mark, right) {
+function brandRow(mark, right, sub = "ArcPad · Circle's Arc") {
   return h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
     h("div", { alignItems: "center", gap: 16 },
       mark ? img(mark, { width: 58, height: 40 }) : null,
       h("div", { fontSize: 30, fontWeight: 700, letterSpacing: 1 }, "ARCIRCLE PAD"),
-      h("div", { fontSize: 22, color: "#9fb098", marginLeft: 6 }, "ArcPad · Circle's Arc")),
+      h("div", { fontSize: 22, color: "#9fb098", marginLeft: 6 }, sub)),
     right);
 }
 function pill(text, color) {
@@ -96,6 +98,13 @@ export async function GET(req) {
       return r.ok ? { name: "Sora", data: await r.arrayBuffer(), weight, style: "normal" } : null;
     } catch { return null; }
   }));
+  if (url.searchParams.has("round")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await roundCard(await markP, url.searchParams.get("w")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600" },
+    });
+  }
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
   const mark = await markP;
@@ -138,4 +147,38 @@ export async function GET(req) {
     ...(fonts.length ? { fonts } : {}),
     headers: { "cache-control": "public, max-age=60, s-maxage=300, stale-while-revalidate=900" },
   });
+}
+
+// ---------------- CirclePad round card ----------------
+const num = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 100 ? 0 : 2 });
+async function roundCard(mark, w) {
+  let st = null, mine = 0n;
+  try { st = await roundState(); } catch { st = null; }
+  if (st && isAddr(w)) { try { mine = await contributionOf(w); } catch { mine = 0n; } }
+  const raised = st ? Number(st.totalRaised) / 1e18 : 0;
+  const left = st && st.started ? st.deadline - Math.floor(Date.now() / 1000) : 0;
+  const status = !st ? "CIRCLEPAD" : !st.started ? "OPENS SOON" : st.isOpen ? "LIVE" : "CLOSED";
+  const timeLeft = left > 0 ? `${Math.floor(left / 86400) ? Math.floor(left / 86400) + "d " : ""}${Math.floor((left % 86400) / 3600)}h left` : st && st.started ? "Raise closed" : "72h USDC raise";
+  const pct = raised > 0 && mine > 0n ? ((Number(mine) / 1e18 / raised) * 100) : 0;
+  const ring = h("div", { width: 300, height: 300, borderRadius: 999, alignItems: "center", justifyContent: "center", flexDirection: "column",
+    border: "22px solid #39ff88", boxShadow: "0 0 60px rgba(57,255,136,0.35)", backgroundColor: "rgba(0,0,0,0.35)" },
+    h("div", { fontSize: 64, fontWeight: 800, letterSpacing: -2 }, num(raised)),
+    h("div", { fontSize: 24, fontWeight: 700, color: "#8dffc0", letterSpacing: 4 }, "USDC"),
+    h("div", { fontSize: 20, color: "#9fb098", marginTop: 6 }, "raised"));
+  const who = mine > 0n
+    ? [h("div", { fontSize: 34, color: "#b9c8b3" }, `${w.slice(0, 6)}…${w.slice(-4)} is in the circle`),
+       h("div", { fontSize: 76, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }, `${num(Number(mine) / 1e18)} USDC`),
+       h("div", { fontSize: 30, color: "#39ff88" }, `${pct >= 10 ? pct.toFixed(0) : pct.toFixed(1)}% of the round`)]
+    : [h("div", { fontSize: 84, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }, "Fund together."),
+       h("div", { fontSize: 84, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2, color: "#8dffc0" }, "Launch bigger."),
+       h("div", { fontSize: 30, color: "#b9c8b3", marginTop: 8 }, "One project, one 72-hour USDC raise on Arc.")];
+  return frame([
+    brandRow(mark, pill(status, status === "LIVE" ? "#39ff88" : status === "CLOSED" ? "#9fb098" : "#ffd166"), "CirclePad · Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 10, maxWidth: 720 }, who),
+      ring),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 26, color: "#9fb098" },
+      h("div", {}, "CirclePad round #1 · withdraw any time before close"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, timeLeft)),
+  ]);
 }

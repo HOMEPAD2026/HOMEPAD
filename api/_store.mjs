@@ -136,3 +136,15 @@ export async function commit(writes) {
   if (status === 409 || st === "ALREADY_EXISTS" || st === "FAILED_PRECONDITION") return { ok: false, conflict: true };
   throw new StoreError("commit", status, j);
 }
+/// Every document in `collection` whose `field` equals `value` (up to `limit`),
+/// as [{ id, ...data }]. Equality on one field only, so Firestore's automatic
+/// single-field index covers it — no composite index to create by hand.
+/// Sort in the caller.
+export async function queryDocs(collection, field, value, limit = 500) {
+  const { ok, status, j } = await call("POST", api(`${root()}:runQuery`), {
+    structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: enc(value) } }, limit },
+  });
+  if (!ok) throw new StoreError("query", status, j);
+  const pre = `${root()}/${collection}/`;
+  return (Array.isArray(j) ? j : []).filter((r) => r.document).map((r) => ({ id: r.document.name.slice(pre.length), ...decFields(r.document.fields) }));
+}

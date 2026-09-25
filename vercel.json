@@ -75,6 +75,10 @@
     {
       "source": "/sitemap-coins.xml",
       "destination": "/api/c?view=sitemap"
+    },
+    {
+      "source": "/round",
+      "destination": "/api/c?view=round"
     }
   ],
   "redirects": [

@@ -8,6 +8,7 @@
 //                        Simplified Chinese — linked to each other with hreflang
 //   /sitemap-coins.xml  every ArcPad coin's /coin/ page, for search engines
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
+import { roundState, contributionOf } from "./_round.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -19,6 +20,7 @@ export default async function handler(req) {
   const url = new URL(req.url);
   const view = url.searchParams.get("view");
   if (view === "sitemap") return sitemap();
+  if (view === "round") return roundPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -313,4 +315,49 @@ ${pools.map((p) => {
   }).join("\n")}
 </urlset>`;
   return new Response(xml, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=1800, stale-while-revalidate=3600" } });
+}
+
+// ---------------- /round[?w=0x…] — CirclePad share link ----------------
+// Open Graph card for the round (or for one contributor's place in it), then
+// straight on to /circle, carrying the sharer as the referrer.
+async function roundPage(url) {
+  const w = String(url.searchParams.get("w") || "").toLowerCase();
+  let st = null, mine = 0n;
+  try { st = await roundState(); } catch { st = null; }
+  if (st && isAddr(w)) { try { mine = await contributionOf(w); } catch { mine = 0n; } }
+  const raised = st ? Number(st.totalRaised) / 1e18 : 0;
+  const n = (x) => x.toLocaleString("en-US", { maximumFractionDigits: x >= 100 ? 0 : 2 });
+  const title = mine > 0n ? `${w.slice(0, 6)}…${w.slice(-4)} is in the CirclePad round with ${n(Number(mine) / 1e18)} USDC`
+    : !st || !st.started ? "CirclePad round #1 — opening soon on Arc" : st.isOpen ? `CirclePad round #1 — ${n(raised)} USDC raised, live now` : `CirclePad round #1 closed at ${n(raised)} USDC`;
+  const desc = "One project, one 72-hour USDC raise on Circle's Arc. Withdraw your own USDC any time before it closes; everyone who joins votes on what the project becomes.";
+  const target = `/circle${isAddr(w) ? `?ref=${w}` : ""}`;
+  const image = `${SITE}/api/og?round=1${isAddr(w) ? `&w=${w}` : ""}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="${SITE}/circle">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/round${isAddr(w) ? `?w=${w}` : ""}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
+</head><body>
+<p>Opening <a href="${esc(target)}">CirclePad</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
 }
