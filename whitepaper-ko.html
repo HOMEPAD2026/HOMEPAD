@@ -25,7 +25,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="/arc-log.js?v=1790352440"></script>
+<script src="/arc-log.js?v=1790354191"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -179,6 +179,7 @@ html[lang="ko"] body{word-break:keep-all;overflow-wrap:break-word;}
 html[lang="ko"] body,html[lang="ko"] p,html[lang="ko"] li,html[lang="ko"] td{font-family:Inter,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",system-ui,sans-serif;}
 html[lang="ko"] h1,html[lang="ko"] h2,html[lang="ko"] h3,html[lang="ko"] h4,html[lang="ko"] .kicker,html[lang="ko"] .sub,html[lang="ko"] .sub2{font-family:Sora,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;letter-spacing:-.01em;}
 html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
+.wp-dl{display:inline-flex;align-items:center;gap:6px;text-decoration:none;}.wp-dl svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 @media (max-width:640px){.wp-bar-actions a[href="/arcircle"]{display:none;}.wp-bar-actions .wp-btn{padding:7px 11px;font-size:.76rem;}}
 @media (max-width:640px){.cover-meta{flex-wrap:wrap;gap:10px;}.cover-meta > div{min-width:0;}}
 @media (max-width:640px){.cover h1{font-size:clamp(2.1rem,12.5vw,3.4rem);white-space:nowrap;overflow-wrap:normal;}}
@@ -191,7 +192,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   <div class="wp-bar-actions">
     <a class="wp-btn wp-lang" href="/whitepaper" hreflang="en" lang="en" data-wp-lang="en">English</a>
     <a class="wp-btn" href="/arcircle">$ARCIRCLE</a>
-    <button type="button" class="wp-btn primary" onclick="window.print()">PDF로 저장</button>
+    <a class="wp-btn primary wp-dl" href="/pdf/ARCIRCLE-PAD-Whitepaper-KO.pdf" download="ARCIRCLE-PAD-Whitepaper-KO.pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/></svg>PDF 다운로드</a>
   </div>
 </header>
 <main class="wp-doc">
@@ -238,7 +239,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
     <div class="card"><h4>웹사이트</h4><p class="small">arcircle.app<br>/arc · /circle · /arcircle</p></div>
   </div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">02 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">02 / 32</span></div>
 </section>
 <section class="page" data-sec="목차">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>목차</b></div>
@@ -263,8 +264,8 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
     <li><a class="t" href="#p-circle-v2">5.3 · CirclePad v2: 리드, 투표, 베스팅</a><span class="d"></span><span class="p">16</span></li>
     <li class="part"><span class="t">코인</span></li>
     <li><a class="t" href="#p-coin">6 · $ARCIRCLE — 코어 코인</a><span class="d"></span><span class="p">17</span></li>
-    <li><a class="t" href="#p-curve">6.2 · 본딩 커브</a><span class="d"></span><span class="p">18</span></li>
-    <li><a class="t" href="#p-dist">6.3 · 공급량, 분배 및 졸업</a><span class="d"></span><span class="p">19</span></li>
+    <li><a class="t" href="#p-market">6.2 · $ARCIRCLE이 거래되는 방식</a><span class="d"></span><span class="p">18</span></li>
+    <li><a class="t" href="#p-supply">6.3 · 공급량, 소각, 유통량</a><span class="d"></span><span class="p">19</span></li>
     <li><a class="t" href="#p-utility">6.4 · $ARCIRCLE의 용도</a><span class="d"></span><span class="p">20</span></li>
     <li><a class="t" href="#p-fly">7 · 플라이휠</a><span class="d"></span><span class="p">21</span></li>
     <li><a class="t" href="#p-fly2">7.2 · 수익의 유입과 가치의 환원</a><span class="d"></span><span class="p">22</span></li>
@@ -276,9 +277,11 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
     <li><a class="t" href="#p-road">12 · 로드맵</a><span class="d"></span><span class="p">27</span></li>
     <li><a class="t" href="#p-risk">13 · 위험 요소</a><span class="d"></span><span class="p">29</span></li>
     <li><a class="t" href="#p-gloss">용어집 및 링크</a><span class="d"></span><span class="p">30</span></li>
+    <li class="part"><span class="t">부록</span></li>
+    <li><a class="t" href="#p-curve">A · 첫 번째 런칭 기록: foci 본딩 커브</a><span class="d"></span><span class="p">31</span></li>
   </ul>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">03 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">03 / 32</span></div>
 </section>
 <section class="page" id="p-abstract" data-sec="개요">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>개요</b></div>
@@ -297,7 +300,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   <p>본 백서는 각 구성 요소를 차례로 설명합니다. ArcPad가 코인의 가격을 결정하고 거래하는 방식(섹션 4), CirclePad 라운드의 현재 작동 방식과 향후 방향(섹션 5), $ARCIRCLE 자체의 작동 방식과 용도(섹션 6), 수익이 플라이휠을 돌리는 방식(섹션 7–8), 시스템의 구축 및 보안 방식(섹션 9–10), 그리고 향후 로드맵(섹션 12)을 다룹니다.</p>
   <div class="callout">설계 목표를 한 줄로 요약하면 다음과 같습니다. <strong>ARCIRCLE PAD에서의 모든 런치는 $ARCIRCLE을 조금씩 더 강하게 만들어야 합니다</strong> — 그리고 더 강해진 $ARCIRCLE은 다음 크리에이터의 물결을 불러와야 합니다.</div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">04 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">04 / 32</span></div>
 </section>
 <section class="page" id="p-facts" data-sec="한눈에 보기">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>한눈에 보기</b></div>
@@ -329,7 +332,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   </div>
   <p class="small muted" style="margin-top:4mm">시장 수치(가격, 시가총액, 홀더)는 블록마다 변합니다. 실시간 수치는 항상 arcircle.app/arc#arcircle의 $ARCIRCLE 페이지에서 확인할 수 있으며, 체인에서 직접 조회됩니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">05 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">05 / 32</span></div>
 </section>
 
 <section class="page" id="p-intro" data-sec="1 · 왜 Arc인가">
@@ -351,7 +354,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   <div class="callout">Arc는 달러를 계산 단위로 만듭니다. ARCIRCLE PAD는 그 달러로 손쉽게 런치할 수 있게 합니다.</div>
   <p class="small muted">본 백서에 기재된 Arc 네트워크 세부 정보(체인 ID 5042, USDC 가스, USDC 사전 배포 주소 및 Uniswap v4 PoolManager 주소)는 ARCIRCLE PAD 사이트가 실제로 연결되어 동작하는 라이브 구성에서 가져온 것입니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">06 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">06 / 32</span></div>
 </section>
 <section class="page" id="p-problem" data-sec="2 · 문제">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>2 · 문제</b></div>
@@ -378,7 +381,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   </table>
   <p>이 중 어느 것도 위험을 없애지는 못합니다. 밈코인은 여전히 투기적이며, 공정하게 런치된 코인도 가치가 0이 될 수 있습니다. 목표는 그보다 좁고 달성 가능한 것입니다. 규칙을 투명하게 드러내고, 이를 온체인에서 강제하며, 생태계의 성장이 향할 곳을 분명히 마련하는 것입니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">07 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">07 / 32</span></div>
 </section>
 <section class="page" id="p-design" data-sec="3 · 설계">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>3 · 설계</b></div>
@@ -422,7 +425,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
     <li><strong>가치의 방향은 하나.</strong> 수익의 목적지는 하나입니다. 바로 $ARCIRCLE, 그리고 이를 보유하고 함께 구축하는 사람들입니다.</li>
   </ol>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">08 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">08 / 32</span></div>
 </section>
 <section class="page" id="p-arcpad" data-sec="4 · ArcPad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>4 · ArcPad</b></div>
@@ -470,7 +473,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
   </ul>
   <p>지갑에 트랜잭션을 보내기 전에, 사이트는 지갑이 런치 비용(수수료 + 가스 + 데브 바이)을 감당할 수 있는지 확인하고 트랜잭션을 사전 시뮬레이션합니다. 따라서 실패할 런치는 난해한 오류 대신 명확한 사유를 표시합니다. 트랜잭션이 확정되면 사이트는 새 코인의 페이지를 자동으로 엽니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">09 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">09 / 32</span></div>
 </section>
 <section class="page" id="p-arcpad-math" data-sec="4 · ArcPad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>4 · ArcPad</b></div>
@@ -517,7 +520,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   </table>
   <p class="small">풀은 가장 가까운 사용 가능한 틱(간격 200, 단계당 약 2%)에서 초기화되므로, 코인의 실제 시작 가격은 이상적인 P₀와 최대 ~2%까지 차이가 날 수 있습니다. 코인 페이지에는 항상 정확한 온체인 가격이 표시됩니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">10 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">10 / 32</span></div>
 </section>
 
 <section class="page" id="p-arcpad-fees" data-sec="4 · ArcPad">
@@ -552,7 +555,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   <p>크리에이터에게 일시금이 아니라 거래량의 일부를 지급하면, 크리에이터의 이해관계가 코인의 장기적인 활동과 일치하게 됩니다. 계속해서 프로젝트를 구축하는 크리에이터는 계속 수익을 얻고, 코인을 방치한 크리에이터는 그와 함께 수익도 멈춥니다. 플랫폼 몫은 런치 수수료 및 8% 배분과 함께 섹션 7에서 설명하는 $ARCIRCLE 플라이휠을 움직이는 수익원입니다.</p>
   <p class="small muted">수수료 파라미터(기본 1%, 70/30 분배, 0–2% 추가 수수료, 1 USDC 수수료, 8% 배분)는 배포된 팩토리 및 훅과 일치하며, 런치 양식의 실시간 수수료 미리보기에 표시됩니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">11 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">11 / 32</span></div>
 </section>
 <section class="page" id="p-arcpad-pairs" data-sec="4 · ArcPad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>4 · ArcPad</b></div>
@@ -582,7 +585,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   </ul>
   <div class="callout">$ARCIRCLE과 페어를 구성하면 모든 새로운 런치가 코어 코인을 보유할 이유가 됩니다. 이것이 가장 단순한 형태의 플라이휠입니다.</div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">12 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">12 / 32</span></div>
 </section>
 <section class="page" id="p-arcpad-trade" data-sec="4 · ArcPad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>4 · ArcPad</b></div>
@@ -608,7 +611,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   <p>그 실질적인 결과로, <strong>누구나 모든 수치를 검증할 수 있습니다</strong>. 사이트가 내일 사라지더라도 모든 코인, 풀, 잔액은 여전히 Arc 상에 남아 있으며, Uniswap v4를 지원하는 어떤 인터페이스에서도 거래할 수 있습니다.</p>
   <div class="card warn"><h4>딥 링크</h4><p class="small">각 코인 페이지에는 공유하거나 북마크할 수 있는 영구 링크 <code>/arc#coin/&lt;컨트랙트 주소&gt;</code>가 있습니다. 런치 후에는 사이트가 새 코인의 페이지를 자동으로 엽니다.</p></div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">13 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">13 / 32</span></div>
 </section>
 <section class="page" id="p-circle" data-sec="5 · CirclePad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>5 · CirclePad</b></div>
@@ -629,7 +632,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   <p>동반 투표 컨트랙트(<strong>BigPadVote</strong>)는 라운드 중 수령인이 게시한 선택지에 기여자가 투표할 수 있게 합니다. 이 컨트랙트는 라운드의 마감 시한을 읽어야 하므로 라운드가 시작될 때 배포됩니다.</p>
   <p>보다 큰 메커니즘, 즉 경쟁적 리드 선정, 12시간 체크포인트, 베스팅 및 클로백은 아직 설계 중인 별도의 컨트랙트입니다. 이 컨트랙트는 독립적인 보안 검토(섹션 10)를 거치기 전에는 실제 자금을 보관하지 않습니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">14 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">14 / 32</span></div>
 </section>
 <section class="page" id="p-circle-round" data-sec="5 · CirclePad">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>5 · CirclePad</b></div>
@@ -665,7 +668,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   <h3>5 · 함께 성장 <span class="tag plan">v2</span></h3>
   <p>리드의 15%는 5일에 걸쳐 하루 3%씩 점진적으로 지급되며, CirclePad의 5%는 생태계를 위한 바이백과 프로모션 자금으로 쓰입니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">15 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">15 / 32</span></div>
 </section>
 
 <section class="page" id="p-circle-v2" data-sec="5 · CirclePad">
@@ -699,14 +702,14 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
     <li><strong>CirclePad 에어드롭</strong> <span class="tag plan">예정</span> — CirclePad 참여자를 위한 별도의 에어드롭이 계획되어 있습니다. 자격 요건, 규모, 일정은 시행 전에 공개됩니다.</li>
   </ul>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">16 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">16 / 32</span></div>
 </section>
 <section class="page" id="p-coin" data-sec="6 · $ARCIRCLE">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>6 · $ARCIRCLE</b></div>
   <div class="pg-body">
   <span class="kicker">섹션 6</span>
   <h2 class="sec"><span class="num">6</span>$ARCIRCLE — 코어 코인</h2>
-  <div class="card warn"><h4>Argus에서 재런칭</h4><p class="small">$ARCIRCLE은 2026년 9월 25일 Argus에서 재런칭되었으며(컨트랙트 <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>), USDC와 페어된 Uniswap v4 풀에서 거래됩니다. 6.2의 본딩 커브 내용은 foci에서의 첫 번째 런칭을 설명합니다.</p></div>
+  <div class="card warn"><h4>Argus에서 재런칭</h4><p class="small">$ARCIRCLE은 2026년 9월 25일 Argus에서 재런칭되었으며(컨트랙트 <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>), USDC와 페어된 Uniswap v4 풀에서 거래됩니다. foci 본딩 커브에서의 첫 번째 런칭은 부록 A에 기록으로 남겨 두었습니다.</p></div>
   <p class="lede">ArcPad와 CirclePad는 서로 다른 두 가지 런치 방식입니다. $ARCIRCLE은 그 둘 사이에 놓인 단 하나의 코인이며, 생태계의 성장이 다시 한곳으로 모이도록 설계된 지점입니다.</p>
   <h3>정체성</h3>
   <div class="grid2">
@@ -723,79 +726,63 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   </ol>
   <div class="card warn"><h4>매번 컨트랙트를 확인하십시오</h4><p class="small">$ARCIRCLE의 공식 컨트랙트는 <code>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>입니다. "ARCircle"이라는 이름의 다른 토큰이 이미 Arc에서 Dexscreener 페어를 보유하고 있습니다. ARCIRCLE PAD의 페이지는 오직 컨트랙트 주소로만 $ARCIRCLE을 식별하며, 이름이나 티커로는 절대 식별하지 않습니다.</p></div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">17 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">17 / 32</span></div>
 </section>
-<section class="page" id="p-curve" data-sec="6 · $ARCIRCLE">
+<!-- PAGE: market -->
+<section class="page" id="p-market" data-sec="6 · $ARCIRCLE">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>6 · $ARCIRCLE</b></div>
   <div class="pg-body">
   <span class="kicker">섹션 6.2</span>
-  <h2 class="sec">본딩 커브</h2>
-  <p class="lede">졸업하기 전까지 $ARCIRCLE은 foci의 <strong>FociBondingCurve</strong> 컨트랙트를 상대로 USDC 가격 기준으로 거래되었습니다. (첫 번째 런칭 기준이며, 재런칭된 $ARCIRCLE은 Argus의 Uniswap v4 풀에서 거래됩니다.)</p>
-  <h3>가격 결정 방식</h3>
-  <p>커브는 커브가 아직 보유한 $ARCIRCLE과 USDC 준비금 사이의 상수곱(constant-product) 시장입니다. USDC 측에는 <strong>가상("팬텀") 준비금</strong>이 포함되어 있어, 첫 번째 토큰부터 0이 아닌 가격을 갖습니다. 이는 ArcPad가 가상 준비금을 사용하는 방식과 같은 개념입니다. 사람들이 매수하면 팬텀 금액 위에 실제 USDC가 쌓이며 가격이 오르고, 매도하면 가격이 내려갑니다.</p>
-  <div class="formula">Q = USDC 준비금 (팬텀 + 실제, 지급 대기 중인 수수료 제외)
-T = 커브가 보유한 $ARCIRCLE
-
-q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수수료 − 택스
-                  수령 토큰 = 순액 · T / (Q + 순액)
-
-토큰 n개 매도:    총액 = n · Q / (T + n)
-                  수령 USDC = 총액 − 1% 수수료 − 2% 택스</div>
-  <p>이 공식은 메인넷의 실제 $ARCIRCLE 거래와 대조하여 검증되었으며 최소 단위까지 정확히 재현합니다. 이 덕분에 ArcPad의 $ARCIRCLE 페이지는 거래를 전송하기 전에 정확한 견적을 제시할 수 있습니다.</p>
-  <h3>거래당 비용</h3>
+  <h2 class="sec">$ARCIRCLE이 거래되는 방식</h2>
+  <p class="lede">$ARCIRCLE은 Uniswap v4 훅 위에 만들어진 Arc의 무허가형 런치패드 <strong>Argus</strong>에서 거래됩니다. 가상 커브도, 졸업 단계도 없습니다. 런칭 때 전체 공급량이 실제 Uniswap v4 유동성 포지션 하나에 들어갔고, 그 포지션은 영구히 잠겨 있습니다.</p>
+  <table>
+    <tbody>
+      <tr><td style="width:34%"><strong>런치패드</strong></td><td>Argus (argus.world) — 2026년 9월 25일 14:09 UTC 런칭</td></tr>
+      <tr><td><strong>풀</strong></td><td>Uniswap v4 · $ARCIRCLE / USDC · 풀 수수료 1% · 틱 간격 200</td></tr>
+      <tr><td><strong>풀 ID</strong></td><td><code style="word-break:break-all">0xfd282cf8bbc57813724e7c6cb1bda6bdf5d2caf02b3bce60cc6aac38ed26ebba</code></td></tr>
+      <tr><td><strong>PoolManager</strong></td><td><code>0x8366a39CC670B4001A1121B8F6A443A643e40951</code> (Arc의 모든 v4 풀이 공유)</td></tr>
+      <tr><td><strong>유동성</strong></td><td>이 런칭 전용 Locker 컨트랙트가 보관하며, 인출 기능이 없어 Argus를 포함해 누구도 뺄 수 없습니다</td></tr>
+    </tbody>
+  </table>
+  <h3>거래 비용</h3>
+  <p>모든 스왑은 1% 풀 수수료에 더해, 런칭 때 한 번 정해져 풀이 존재하는 동안 고정되는 매수 또는 매도세(한쪽당 1–10%)를 냅니다. 세금은 거래의 USDC 쪽에서 부과되며, 지갑 간 전송에는 세금이 없습니다.</p>
+  <h3>세금의 행방</h3>
   <div class="grid2">
-    <div class="card"><h4>1% foci 수수료</h4><p class="small">모든 매수와 매도에 대해 foci 플랫폼이 부과합니다.</p></div>
-    <div class="card accent"><h4>2% 크리에이터 세금</h4><p class="small">모든 매수와 매도에 부과되며 $ARCIRCLE의 크리에이터 측에 지급됩니다. 플라이휠의 수익원 중 하나입니다(섹션 7).</p></div>
+    <div class="card"><h4>10%는 Argus로</h4><p class="small">런치패드가 거두는 모든 세금 중 Argus의 몫으로, Argus 트레저리로 보내집니다.</p></div>
+    <div class="card accent"><h4>90%는 크리에이터 배분으로</h4><p class="small">런칭 때 크리에이터 자금, 바이백·소각, 홀더 배당, 유동성으로 나뉘며 USDC로 지급됩니다. $ARCIRCLE에게는 플라이휠의 수익원 중 하나입니다(섹션 7).</p></div>
   </div>
-  <p>매수 시에는 두 비용 모두 투입되는 USDC에서 차감되고, 매도 시에는 두 비용 모두 지급되는 USDC에서 차감됩니다. 따라서 매수 직후 곧바로 매도할 때의 실질 왕복 비용은 가격 영향을 제외하고 약 6%입니다. 이는 커브 단계에 있는 동안 $ARCIRCLE이 빈번한 거래보다 보유에 더 적합한 이유 중 하나입니다.</p>
-  <h3>커브에 내장된 보호 장치</h3>
-  <ul>
-    <li><strong>슬리피지 하한.</strong> 매수와 매도에는 최소 수령량이 설정됩니다. 거래가 체결되기 전에 가격이 이 기준을 넘어 움직이면, 더 불리한 가격으로 체결되는 대신 거래가 되돌려집니다(<code>SlippageExceeded</code>).</li>
-    <li><strong>상단에서의 부분 체결.</strong> 매수 요청량이 커브에 남은 판매 가능 수량을 초과하면, 가능한 만큼만 체결하고 사용되지 않은 USDC를 같은 트랜잭션 안에서 환불합니다.</li>
-    <li><strong>졸업 시 동결.</strong> 커브가 졸업 중이거나 졸업을 마치면, 유동성이 DEX 풀로 깔끔하게 이전될 수 있도록 거래 접수를 중단합니다.</li>
-  </ul>
-  <p class="small muted">ARCIRCLE PAD는 foci 커브를 운영하지 않습니다. ARCIRCLE PAD의 $ARCIRCLE 페이지는 일반 foci 사용자와 동일한 공개 컨트랙트를 호출하며, foci 자체의 약관과 수수료가 적용됩니다.</p>
+  <h3>본딩 마일스톤</h3>
+  <p>Argus는 가격이 런칭 때 정한 기준을 넘으면 해당 런칭을 본딩 완료로 표시합니다. 이는 이정표일 뿐, 풀이 옮겨지지 않고 유동성은 같은 잠긴 포지션에 남으며 거래도 멈추지 않습니다. 진행률은 ArcPad의 $ARCIRCLE 페이지에서 실시간으로 볼 수 있습니다.</p>
+  <div class="card warn"><h4>이름이 아니라 풀을 확인하십시오</h4><p class="small">ARCIRCLE PAD는 PoolManager의 이 풀 ID에서만 $ARCIRCLE의 가격, 거래, 유동성을 읽습니다. ID가 다른 풀은 공식 시장이 아닙니다.</p></div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">18 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">18 / 32</span></div>
 </section>
-<section class="page" id="p-dist" data-sec="6 · $ARCIRCLE">
+
+<!-- PAGE: supply -->
+<section class="page" id="p-supply" data-sec="6 · $ARCIRCLE">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>6 · $ARCIRCLE</b></div>
   <div class="pg-body">
   <span class="kicker">섹션 6.3</span>
-  <h2 class="sec">공급량, 분배, 졸업</h2>
-  <p class="lede">$ARCIRCLE 1,000,000,000개 전량은 런치 시점에 제로 주소에서 본딩 커브로의 단일 전송으로 발행되었습니다. 프로젝트 지갑을 포함하여 어떤 지갑도 다른 방식으로 토큰을 받지 않았습니다.</p>
-  <figure>
-    <svg viewBox="0 0 640 120" role="img" aria-label="런치 시점 본딩 커브 내 공급량 구성">
-      <rect x="20" y="30" width="600" height="36" rx="8" fill="#0c1119" stroke="rgba(255,255,255,.1)"/>
-      <rect x="20" y="30" width="428.6" height="36" rx="8" fill="url(#g1)"/>
-      <rect x="448.6" y="30" width="171.4" height="36" rx="0" fill="#3f9bff" opacity=".28"/>
-      <text x="234" y="53" text-anchor="middle" fill="#03130c" font-size="12.5" font-weight="700">≈ 71% 커브에서 판매 가능</text>
-      <text x="534" y="53" text-anchor="middle" fill="#dfe9f5" font-size="12" font-weight="600">≈ 29% DEX 유동성용 보유</text>
-      <text x="20" y="92" fill="#8c98a6" font-size="11">≈ 714 M $ARCIRCLE</text>
-      <text x="620" y="92" fill="#8c98a6" font-size="11" text-anchor="end">≈ 286 M $ARCIRCLE</text>
-      <text x="320" y="114" fill="#5d6875" font-size="10.5" text-anchor="middle">팀 / 내부자 할당: 0 · 지갑 사전 발행: 0</text>
-    </svg>
-    <figcaption>그림 5 — 커브가 공급량을 나누는 방식. 작성 시점에 커브 자체의 <code>sellableTokens()</code> 및 토큰 준비금 조회 값에서 도출했습니다.</figcaption>
-  </figure>
-  <h3>하나의 공급량, 두 부분</h3>
-  <p>커브는 보유한 공급량을 구매자가 커브에서 가져갈 수 있는 <strong>판매 가능</strong> 부분과, $ARCIRCLE이 졸업할 때 DEX 풀을 조성하기 위해 커브가 보관하는 <strong>예비</strong> 부분으로 나눕니다. 작성 시점의 조회 값에 따르면 약 7억 1,400만 개가 판매 가능, 2억 8,600만 개가 예비분이며, 이 중 약 4,100만 개가 매수되었습니다.</p>
-  <h3>졸업</h3>
-  <p>커브는 유입된 실제 USDC를 추적합니다. 이 금액이 <strong>졸업 기준치</strong>(작성 시점 기준 약 11,130 USDC)에 도달하면 커브는 졸업 준비 완료로 표시되고 거래를 중단합니다. 이후 누적된 USDC와 예비 $ARCIRCLE로 DEX 풀이 개설되며, 그때부터 $ARCIRCLE은 해당 풀에서 거래됩니다.</p>
+  <h2 class="sec">공급량, 소각, 유통량</h2>
+  <p class="lede">런칭 때 Argus는 전체 공급량을 한 번에 발행해 시작 가격 위의 풀 유동성 포지션에 모두 넣었습니다. 매수자는 매수할 때 그 포지션에서 토큰을 가져갑니다. 어떤 지갑에도 사전 발행은 없었고, 팀 배정도 없습니다.</p>
   <div class="grid3">
     <div class="card stat"><b>1,000,000,000</b><span>총 공급량, 고정, 소수점 18자리</span></div>
-    <div class="card stat"><b>≈ 11,130</b><span>졸업에 필요한 실제 준비금 USDC (작성 시점 기준)</span></div>
-    <div class="card stat"><b>0</b><span>런치 시 팀에 할당된 토큰</span></div>
+    <div class="card stat"><b>116,772,290.56</b><span>소각 — 공급량의 11.68%</span></div>
+    <div class="card stat"><b>883,227,709</b><span>소각 후 유통량</span></div>
   </div>
-  <h3>졸업 이후</h3>
+  <h3>소각</h3>
+  <p>2026년 9월 25일, 116,772,290.56개의 $ARCIRCLE(총 공급량의 11.68%)이 소각 주소 <code>0x000000000000000000000000000000000000dEaD</code>로 보내졌습니다(트랜잭션 <code>0x0c90…99ae</code>). 이 주소의 키는 아무도 갖고 있지 않으므로 해당 토큰은 다시는 움직일 수 없습니다. 이후 소각을 포함한 실시간 합계는 arcircle.app/arcircle에서 확인할 수 있습니다.</p>
+  <h3>숫자 읽는 법</h3>
   <ul>
-    <li>ArcPad의 $ARCIRCLE 페이지는 기본 토큰이 <em>정확히</em> $ARCIRCLE 컨트랙트인 페어를 Dexscreener에서 감시합니다. 해당 페어가 나타나면 Dexscreener 차트와 링크가 자동으로 활성화됩니다.</li>
-    <li>$ARCIRCLE과 페어링된 ArcPad 런치는 변경 없이 계속 작동합니다. 해당 풀들은 $ARCIRCLE이 어디에서 거래되든 $ARCIRCLE 자체를 보유하기 때문입니다.</li>
-    <li>트레저리 바이백(섹션 7)은 DEX 풀로 옮겨집니다.</li>
+    <li><strong>시가총액</strong>은 ARCIRCLE PAD와 Dexscreener 모두 가격 × 1,000,000,000(총 공급량)입니다.</li>
+    <li><strong>유통량</strong>은 총 공급량에서 소각된 토큰을 뺀 값입니다.</li>
+    <li><strong>홀더 수와 공급 분포</strong>는 풀, 소각 주소, Argus 자체 컨트랙트를 제외하므로 실제 지갑만 셉니다.</li>
   </ul>
-  <p class="small muted">졸업 여부는 전적으로 시장 수요에 달려 있습니다. 빠르게 이루어질 수도, 느리게 이루어질 수도, 아예 이루어지지 않을 수도 있으며, 누구도 그 시점을 정할 수 없습니다.</p>
+  <div class="card"><h4>첫 번째 런칭</h4><p class="small">$ARCIRCLE은 2026년 9월 22일 foci의 본딩 커브에서 처음 런칭되었습니다. 그 런칭은 종료되었으며, 커브 구조와 분배 내용은 부록 A에 기록으로 남겨 두었습니다.</p></div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">19 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">19 / 32</span></div>
 </section>
+
 <section class="page" id="p-utility" data-sec="6 · $ARCIRCLE">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>6 · $ARCIRCLE</b></div>
   <div class="pg-body">
@@ -824,7 +811,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   <h3>$ARCIRCLE이 아닌 것</h3>
   <p>$ARCIRCLE은 지분, 수익에 대한 청구권, 증권이 아닙니다. 보유한다고 해서 어떠한 지급에 대한 법적 권리도 발생하지 않습니다. 바이백과 리워드는 프로젝트의 의도일 뿐이며, 수익이 발생하는 경우 그리고 발생하는 시점에 수익으로 재원을 마련하고, 시작 전에 공개될 조건에 따라 시행됩니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">20 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">20 / 32</span></div>
 </section>
 
 <section class="page" id="p-fly" data-sec="7 · 플라이휠">
@@ -855,7 +842,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
         <text x="184" y="172" text-anchor="end">리워드 · 신규 크리에이터</text>
       </g>
     </svg>
-    <figcaption>그림 6 — 순환 구조: 런치가 수익을 만들고, 수익이 $ARCIRCLE을 뒷받침하며, 더 강해진 $ARCIRCLE이 더 많은 런치를 끌어들입니다.</figcaption>
+    <figcaption>그림 5 — 순환 구조: 런치가 수익을 만들고, 수익이 $ARCIRCLE을 뒷받침하며, 더 강해진 $ARCIRCLE이 더 많은 런치를 끌어들입니다.</figcaption>
   </figure>
   <div class="grid2">
     <div class="card"><h4>1 · 런치</h4><p class="small">크리에이터는 ArcPad에서 코인을 런치하고 CirclePad에서 함께 모금합니다. 모든 런치는 Arc에 새로운 사용자와 새로운 거래량을 가져옵니다.</p></div>
@@ -878,7 +865,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   </table>
   <p class="small muted">이 수치는 가정에 따른 것으로, 계산 방식을 보여주기 위해서만 선택되었습니다. 실제 활동은 이보다 훨씬 적거나 많을 수 있습니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">21 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">21 / 32</span></div>
 </section>
 <section class="page" id="p-fly2" data-sec="7 · 플라이휠">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>7 · 플라이휠</b></div>
@@ -913,7 +900,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   <p>각 ArcPad 런치에서 발생하는 8% 할당분은 해당 런치의 코인으로 지급되며, 이 코인은 유동성이 낮을 수 있습니다. 트레저리는 이러한 할당분을 사안별로 관리합니다. 보유하거나, 해당 코인의 유동성을 지원하거나, 코인에 실질적인 시장이 형성된 경우 점진적으로 전환하는 방식이며, 트레저리가 소규모 커뮤니티 코인 폭락의 원인이 되어서는 안 된다는 원칙을 따릅니다. 이 방식은 수익 배분 비율과 함께 문서화될 예정입니다.</p>
   <div class="card warn"><h4>솔직한 한계</h4><p class="small">수익은 사용량에 달려 있습니다. 활동이 적은 시기에는 플라이휠이 느리게 돌아가며, 바이백은 어떠한 가격도 보장할 수 없습니다. 플라이휠은 수익이 어떻게 사용될 예정인지를 설명하는 것이며, $ARCIRCLE의 가치에 대한 약속이 아닙니다.</p></div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">22 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">22 / 32</span></div>
 </section>
 <section class="page" id="p-rewards" data-sec="8 · 리워드">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>8 · 리워드</b></div>
@@ -950,7 +937,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   </ul>
   <p class="small muted">이 페이지의 모든 내용은 설계 의도입니다. 최종 프로그램은 달라질 수 있으며, 그 규칙이 사이트에 공개된 이후에만 시행됩니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">23 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">23 / 32</span></div>
 </section>
 <section class="page" id="p-arch" data-sec="9 · 아키텍처">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>9 · 아키텍처</b></div>
@@ -983,7 +970,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   <h3>웹사이트</h3>
   <p>arcircle.app 사이트는 정적 HTML과 JavaScript로 구성됩니다. Arc의 공개 RPC를 통해 체인 데이터를 읽고, Reown AppKit / WalletConnect 또는 인젝티드 지갑을 통해 지갑을 연결하며, 사용자가 서명한 경우에만 트랜잭션을 전송합니다. 모든 트랜잭션에 앞서 필요하면 지갑을 Arc로 전환하고, 런치와 거래를 사전 시뮬레이션하여 실패 사유를 서명 전에 설명합니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">24 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">24 / 32</span></div>
 </section>
 <section class="page" id="p-sec" data-sec="10 · 보안">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>10 · 보안</b></div>
@@ -1018,7 +1005,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   </ul>
   <p>보안 관련 발견 사항은 사이트에 게시된 공식 채널을 통해 팀에 비공개로 제보할 수 있습니다. 계획 사항: CirclePad v2가 검토 단계에 들어가면 공개 버그 바운티 범위를 마련할 예정입니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">25 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">25 / 32</span></div>
 </section>
 
 <section class="page" id="p-gov" data-sec="11 · 커뮤니티">
@@ -1050,7 +1037,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   </ul>
   <div class="callout">장기적인 목표는 ARCIRCLE PAD를 활발하게 만드는 사람들이 그 방향을 결정하는 것입니다.</div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">26 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">26 / 32</span></div>
 </section>
 <section class="page" id="p-road" data-sec="12 · 로드맵">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>12 · 로드맵</b></div>
@@ -1107,10 +1094,10 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
       </g>
       <g font-family="Inter" font-size="10" fill="#c9d3de" text-anchor="middle"><text x="30" y="86" text-anchor="start">기반 구축</text><text x="175" y="86">첫 라운드</text><text x="320" y="86">리워드</text><text x="465" y="86">CirclePad v2</text><text x="610" y="86" text-anchor="end">생태계</text></g>
     </svg>
-    <figcaption>그림 7 — 다섯 단계 한눈에 보기. 0단계는 완료되었으며, 1단계가 진행 중입니다.</figcaption>
+    <figcaption>그림 6 — 다섯 단계 한눈에 보기. 0단계는 완료되었으며, 1단계가 진행 중입니다.</figcaption>
   </figure>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">27 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">27 / 32</span></div>
 </section>
 <section class="page" id="p-road2" data-sec="12 · 로드맵">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>12 · 로드맵</b></div>
@@ -1152,7 +1139,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
   </div>
   <p class="small muted" style="margin-top:4mm">0단계 이후의 로드맵 항목은 계획입니다. 일정은 보안 검토, 시장 상황 및 커뮤니티 피드백에 따라 달라지며 변경될 수 있습니다.</p>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">28 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">28 / 32</span></div>
 </section>
 <section class="page" id="p-risk" data-sec="13 · 위험">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>13 · 위험</b></div>
@@ -1177,7 +1164,7 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
     <li>이해하고 신뢰하는 대상과만 페어링하거나, 매수하거나, 기여하십시오.</li>
   </ul>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">29 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">29 / 32</span></div>
 </section>
 <section class="page" id="p-gloss" data-sec="용어집">
   <div class="pg-head"><span>$ARCIRCLE 백서</span><b>용어집</b></div>
@@ -1208,7 +1195,80 @@ q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수
     <p style="margin:0">즉시 런치는 ArcPad에서. 함께하는 런치는 CirclePad에서. 그리고 그 중심에는 $ARCIRCLE이 있습니다.</p>
   </div>
   </div>
-  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">30 / 30</span></div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">30 / 32</span></div>
+</section>
+
+<section class="page" id="p-curve" data-sec="부록">
+  <div class="pg-head"><span>$ARCIRCLE 백서</span><b>부록 A</b></div>
+  <div class="pg-body">
+  <span class="kicker">부록 A.1</span>
+  <h2 class="sec">본딩 커브</h2>
+  <div class="card warn"><h4>부록 A — 첫 번째 런칭 기록</h4><p class="small">$ARCIRCLE은 2026년 9월 22일 foci의 본딩 커브에서 처음 런칭되었습니다. 이 런칭은 $ARCIRCLE이 Argus에서 재런칭되면서 종료되었습니다(섹션 6.2). 이 두 페이지는 기록으로 남겨 둔 것이며, 현재 $ARCIRCLE의 거래 방식을 설명하지 않습니다.</p></div>
+  <p class="lede">첫 번째 런칭에서 $ARCIRCLE은 졸업 전까지 foci의 <strong>FociBondingCurve</strong> 컨트랙트를 상대로 USDC 가격 기준으로 거래되었습니다.</p>
+  <h3>가격 결정 방식</h3>
+  <p>커브는 커브가 아직 보유한 $ARCIRCLE과 USDC 준비금 사이의 상수곱(constant-product) 시장입니다. USDC 측에는 <strong>가상("팬텀") 준비금</strong>이 포함되어 있어, 첫 번째 토큰부터 0이 아닌 가격을 갖습니다. 이는 ArcPad가 가상 준비금을 사용하는 방식과 같은 개념입니다. 사람들이 매수하면 팬텀 금액 위에 실제 USDC가 쌓이며 가격이 오르고, 매도하면 가격이 내려갑니다.</p>
+  <div class="formula">Q = USDC 준비금 (팬텀 + 실제, 지급 대기 중인 수수료 제외)
+T = 커브가 보유한 $ARCIRCLE
+
+q USDC로 매수:    수수료 = 1% · q,  택스 = 2% · q,  순액 = q − 수수료 − 택스
+                  수령 토큰 = 순액 · T / (Q + 순액)
+
+토큰 n개 매도:    총액 = n · Q / (T + n)
+                  수령 USDC = 총액 − 1% 수수료 − 2% 택스</div>
+  <p>이 공식은 메인넷의 실제 $ARCIRCLE 거래와 대조하여 검증되었으며 최소 단위까지 정확히 재현합니다. 이 덕분에 ArcPad의 $ARCIRCLE 페이지는 거래를 전송하기 전에 정확한 견적을 제시할 수 있습니다.</p>
+  <h3>거래당 비용</h3>
+  <div class="grid2">
+    <div class="card"><h4>1% foci 수수료</h4><p class="small">모든 매수와 매도에 대해 foci 플랫폼이 부과합니다.</p></div>
+    <div class="card accent"><h4>2% 크리에이터 세금</h4><p class="small">모든 매수와 매도에 부과되며 $ARCIRCLE의 크리에이터 측에 지급됩니다. 플라이휠의 수익원 중 하나입니다(섹션 7).</p></div>
+  </div>
+  <p>매수 시에는 두 비용 모두 투입되는 USDC에서 차감되고, 매도 시에는 두 비용 모두 지급되는 USDC에서 차감됩니다. 따라서 매수 직후 곧바로 매도할 때의 실질 왕복 비용은 가격 영향을 제외하고 약 6%입니다. 이는 커브 단계에 있는 동안 $ARCIRCLE이 빈번한 거래보다 보유에 더 적합한 이유 중 하나입니다.</p>
+  <h3>커브에 내장된 보호 장치</h3>
+  <ul>
+    <li><strong>슬리피지 하한.</strong> 매수와 매도에는 최소 수령량이 설정됩니다. 거래가 체결되기 전에 가격이 이 기준을 넘어 움직이면, 더 불리한 가격으로 체결되는 대신 거래가 되돌려집니다(<code>SlippageExceeded</code>).</li>
+    <li><strong>상단에서의 부분 체결.</strong> 매수 요청량이 커브에 남은 판매 가능 수량을 초과하면, 가능한 만큼만 체결하고 사용되지 않은 USDC를 같은 트랜잭션 안에서 환불합니다.</li>
+    <li><strong>졸업 시 동결.</strong> 커브가 졸업 중이거나 졸업을 마치면, 유동성이 DEX 풀로 깔끔하게 이전될 수 있도록 거래 접수를 중단합니다.</li>
+  </ul>
+  <p class="small muted">ARCIRCLE PAD는 foci 커브를 운영하지 않습니다. ARCIRCLE PAD의 $ARCIRCLE 페이지는 일반 foci 사용자와 동일한 공개 컨트랙트를 호출하며, foci 자체의 약관과 수수료가 적용됩니다.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">31 / 32</span></div>
+</section>
+<section class="page" id="p-dist" data-sec="부록">
+  <div class="pg-head"><span>$ARCIRCLE 백서</span><b>부록 A</b></div>
+  <div class="pg-body">
+  <span class="kicker">부록 A.2</span>
+  <h2 class="sec">공급량, 분배, 졸업</h2>
+  <p class="lede">$ARCIRCLE 1,000,000,000개 전량은 런치 시점에 제로 주소에서 본딩 커브로의 단일 전송으로 발행되었습니다. 프로젝트 지갑을 포함하여 어떤 지갑도 다른 방식으로 토큰을 받지 않았습니다.</p>
+  <figure>
+    <svg viewBox="0 0 640 120" role="img" aria-label="런치 시점 본딩 커브 내 공급량 구성">
+      <rect x="20" y="30" width="600" height="36" rx="8" fill="#0c1119" stroke="rgba(255,255,255,.1)"/>
+      <rect x="20" y="30" width="428.6" height="36" rx="8" fill="url(#g1)"/>
+      <rect x="448.6" y="30" width="171.4" height="36" rx="0" fill="#3f9bff" opacity=".28"/>
+      <text x="234" y="53" text-anchor="middle" fill="#03130c" font-size="12.5" font-weight="700">≈ 71% 커브에서 판매 가능</text>
+      <text x="534" y="53" text-anchor="middle" fill="#dfe9f5" font-size="12" font-weight="600">≈ 29% DEX 유동성용 보유</text>
+      <text x="20" y="92" fill="#8c98a6" font-size="11">≈ 714 M $ARCIRCLE</text>
+      <text x="620" y="92" fill="#8c98a6" font-size="11" text-anchor="end">≈ 286 M $ARCIRCLE</text>
+      <text x="320" y="114" fill="#5d6875" font-size="10.5" text-anchor="middle">팀 / 내부자 할당: 0 · 지갑 사전 발행: 0</text>
+    </svg>
+    <figcaption>그림 A1 — 커브가 공급량을 나누는 방식. 작성 시점에 커브 자체의 <code>sellableTokens()</code> 및 토큰 준비금 조회 값에서 도출했습니다.</figcaption>
+  </figure>
+  <h3>하나의 공급량, 두 부분</h3>
+  <p>커브는 보유한 공급량을 구매자가 커브에서 가져갈 수 있는 <strong>판매 가능</strong> 부분과, $ARCIRCLE이 졸업할 때 DEX 풀을 조성하기 위해 커브가 보관하는 <strong>예비</strong> 부분으로 나눕니다. 작성 시점의 조회 값에 따르면 약 7억 1,400만 개가 판매 가능, 2억 8,600만 개가 예비분이며, 이 중 약 4,100만 개가 매수되었습니다.</p>
+  <h3>졸업</h3>
+  <p>커브는 유입된 실제 USDC를 추적합니다. 이 금액이 <strong>졸업 기준치</strong>(작성 시점 기준 약 11,130 USDC)에 도달하면 커브는 졸업 준비 완료로 표시되고 거래를 중단합니다. 이후 누적된 USDC와 예비 $ARCIRCLE로 DEX 풀이 개설되며, 그때부터 $ARCIRCLE은 해당 풀에서 거래됩니다.</p>
+  <div class="grid3">
+    <div class="card stat"><b>1,000,000,000</b><span>총 공급량, 고정, 소수점 18자리</span></div>
+    <div class="card stat"><b>≈ 11,130</b><span>졸업에 필요한 실제 준비금 USDC (작성 시점 기준)</span></div>
+    <div class="card stat"><b>0</b><span>런치 시 팀에 할당된 토큰</span></div>
+  </div>
+  <h3>졸업 이후</h3>
+  <ul>
+    <li>ArcPad의 $ARCIRCLE 페이지는 기본 토큰이 <em>정확히</em> $ARCIRCLE 컨트랙트인 페어를 Dexscreener에서 감시합니다. 해당 페어가 나타나면 Dexscreener 차트와 링크가 자동으로 활성화됩니다.</li>
+    <li>$ARCIRCLE과 페어링된 ArcPad 런치는 변경 없이 계속 작동합니다. 해당 풀들은 $ARCIRCLE이 어디에서 거래되든 $ARCIRCLE 자체를 보유하기 때문입니다.</li>
+    <li>트레저리 바이백(섹션 7)은 DEX 풀로 옮겨집니다.</li>
+  </ul>
+  <p class="small muted">졸업 여부는 전적으로 시장 수요에 달려 있습니다. 빠르게 이루어질 수도, 느리게 이루어질 수도, 아예 이루어지지 않을 수도 있으며, 누구도 그 시점을 정할 수 없습니다.</p>
+  </div>
+  <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">32 / 32</span></div>
 </section>
 
 

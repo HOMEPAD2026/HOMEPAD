@@ -996,6 +996,13 @@
     "of supply ↗": "공급량 ↗",
     "of the 1,000,000,000 supply was sent to the dead address": "— 총 공급량 1,000,000,000개 중 이만큼이 소각 주소",
     "of the supply burned forever": "공급량 영구 소각",
+    "launches on ArcPad": "ArcPad 런칭",
+    "market cap": "시가총액",
+    "raised": "모금",
+    "Opening soon": "곧 오픈",
+    "Programs": "프로그램",
+    "Funding": "재원",
+    "My wallet": "내 지갑",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -1933,6 +1940,13 @@
     "of supply ↗": "的供应量 ↗",
     "of the 1,000,000,000 supply was sent to the dead address": "的 1,000,000,000 总供应量被发送到销毁地址",
     "of the supply burned forever": "的供应量已永久销毁",
+    "launches on ArcPad": "个 ArcPad 发射",
+    "market cap": "市值",
+    "raised": "已募集",
+    "Opening soon": "即将开启",
+    "Programs": "计划",
+    "Funding": "资金来源",
+    "My wallet": "我的钱包",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -156,12 +156,21 @@
     // Sit exactly one gap above the dock, whatever height it renders at, and
     // reserve exactly that much room at the bottom of the page (dock + bar +
     // gaps) so the last cards are never hidden behind them.
-    var root = document.documentElement;
+    // On a wide screen the two sit side by side in one row, centred as a pair
+    // (html.ax-float-row), so they cover half the height.
+    var root = document.documentElement, GAP = 12;
     var sync = function () {
       var d = dock.getBoundingClientRect(), q = bar.getBoundingClientRect();
       root.style.setProperty("--ax-dock-h", Math.round(d.height) + "px");
       var dockBottom = Math.max(0, window.innerHeight - d.bottom);
-      root.style.setProperty("--ax-float-space", Math.round(dockBottom + d.height + 10 + q.height + 20) + "px");
+      var row = window.innerWidth >= 901 && q.width + GAP + d.width + 48 <= window.innerWidth;
+      root.classList.toggle("ax-float-row", row);
+      if (row) {
+        root.style.setProperty("--ax-q-shift", -Math.round((GAP + d.width) / 2) + "px");
+        root.style.setProperty("--ax-d-shift", Math.round((q.width + GAP) / 2) + "px");
+        root.style.setProperty("--ax-q-lift", Math.round((d.height - q.height) / 2) + "px");
+        root.style.setProperty("--ax-float-space", Math.round(dockBottom + Math.max(d.height, q.height) + 20) + "px");
+      } else root.style.setProperty("--ax-float-space", Math.round(dockBottom + d.height + 10 + q.height + 20) + "px");
     };
     sync();
     if (window.ResizeObserver) { var ro = new ResizeObserver(sync); ro.observe(dock); ro.observe(bar); }
@@ -179,7 +188,7 @@
         var y = window.scrollY, dy = y - lastY;
         lastY = y;
         var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
-        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; setHidden(false); return; }
+        if (y < 80 || atBottom || root.classList.contains("ax-float-row") || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; setHidden(false); return; }
         acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
         if (acc > 24) setHidden(true);
         else if (acc < -16) setHidden(false);
@@ -296,7 +305,45 @@
     window.arcUtilities = { open: show, close: hide, list: UTILS };
   }
 
+  // ---- Dock: the "you are here" highlight slides from the page you came
+  // from to this one (the item you clicked is remembered for one hop).
+  function mountGlider() {
+    var dock = document.querySelector("nav.ax-dock");
+    if (!dock || dock.querySelector(".ax-dock-glider")) return;
+    var items = [].slice.call(dock.querySelectorAll(".ax-dock-item"));
+    var cur = items.findIndex(function (a) { return a.getAttribute("aria-current") === "page"; });
+    var KEY = "ax-dock-from";
+    dock.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest(".ax-dock-item");
+      if (!a || cur < 0 || items.indexOf(a) === cur) return;
+      try { sessionStorage.setItem(KEY, String(cur)); } catch (err) { /* private mode */ }
+    });
+    if (cur < 0) return;
+    var g = document.createElement("span");
+    g.className = "ax-dock-glider";
+    g.setAttribute("aria-hidden", "true");
+    dock.insertBefore(g, dock.firstChild);
+    dock.classList.add("has-glider");
+    var put = function (i) {
+      var it = items[i];
+      g.style.left = it.offsetLeft + "px"; g.style.top = it.offsetTop + "px";
+      g.style.width = it.offsetWidth + "px"; g.style.height = it.offsetHeight + "px";
+    };
+    var from = null;
+    try { from = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (err) { from = null; }
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var fi = from == null ? -1 : Number(from);
+    if (!reduce && fi >= 0 && fi < items.length && fi !== cur) {
+      put(fi);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.add("glide"); put(cur); }); });
+    } else { put(cur); requestAnimationFrame(function () { g.classList.add("glide"); }); }
+    var re = function () { put(cur); };
+    window.addEventListener("resize", re);
+    if (window.ResizeObserver) new ResizeObserver(re).observe(dock);
+  }
+
   mountQuickBar();
+  mountGlider();
 
   if (location.hash === "#rewards") location.replace("/reward");
   window.addEventListener("hashchange", function () { if (location.hash === "#rewards") openReward(); });

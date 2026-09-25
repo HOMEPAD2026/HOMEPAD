@@ -222,18 +222,19 @@
       paths = Array.prototype.map.call(rows, function (row, i) {
         var r = row.getBoundingClientRect();
         var acc = getComputedStyle(row).getPropertyValue("--acc").trim() || "#35d8d0";
+        var id = row.getAttribute("data-rev") || "";
         if (wide) {
           // from the row's right edge into the box's left edge, fanned out over its height
           var x0 = L.right - R.left - 2, y0 = r.top + r.height / 2 - R.top;
           var x1 = D.left - R.left + 2, y1 = D.top - R.top + 30 + ((D.height - 60) * i) / Math.max(1, rows.length - 1);
           var mx = (x1 - x0) * 0.55;
-          return { acc: acc, p: [x0, y0, x0 + mx, y0, x1 - mx, y1, x1, y1] };
+          return { id: id, acc: acc, p: [x0, y0, x0 + mx, y0, x1 - mx, y1, x1, y1] };
         }
         // stacked: from under the list down into the top of the box
         var sx = L.left - R.left + (L.width * (i + 1)) / (rows.length + 1), sy = L.bottom - R.top - 2;
         var ex = D.left - R.left + D.width / 2 + (i - (rows.length - 1) / 2) * 10, ey = D.top - R.top + 2;
         var my = (ey - sy) / 2;
-        return { acc: acc, p: [sx, sy, sx, sy + my, ex, ey - my, ex, ey] };
+        return { id: id, acc: acc, p: [sx, sy, sx, sy + my, ex, ey - my, ex, ey] };
       });
     }
     function bez(p, t) {
@@ -258,12 +259,58 @@
         ctx.beginPath(); ctx.arc(xy[0], xy[1], 2.2, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
       });
+      // amount chips: what each source has actually brought in, riding its path
+      chips.forEach(function (c) {
+        var q = paths[c.k]; if (!q) return;
+        var xy = bez(q.p, c.t), a = Math.min(1, Math.sin(Math.PI * c.t) * 1.6);
+        ctx.font = "700 11px Sora, sans-serif";
+        var w = ctx.measureText(c.txt).width + 14, h = 19, x = xy[0] - w / 2, y = xy[1] - h / 2;
+        ctx.globalAlpha = a * 0.92;
+        ctx.fillStyle = "rgba(6,10,16,.92)"; ctx.strokeStyle = q.acc; ctx.lineWidth = 1;
+        ctx.shadowColor = q.acc; ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, w, h, 9.5); else ctx.rect(x, y, w, h);
+        ctx.fill(); ctx.shadowBlur = 0; ctx.stroke();
+        ctx.fillStyle = q.acc; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(c.txt, xy[0], xy[1] + 0.5);
+      });
       ctx.globalAlpha = 1;
+    }
+    // sources weighted by what they have earned so far (every one still flows a little)
+    var weights = [], amounts = {}, chips = [], nextChip = 1200;
+    function pick() {
+      var tot = 0, i;
+      for (i = 0; i < paths.length; i++) tot += weights[i] == null ? 1 : weights[i];
+      var r = Math.random() * tot;
+      for (i = 0; i < paths.length; i++) { r -= weights[i] == null ? 1 : weights[i]; if (r <= 0) return i; }
+      return Math.floor(Math.random() * paths.length);
+    }
+    function reweigh(d) {
+      var rv = (d && d.revenue) || {};
+      amounts = { launch: rv.launchFees, raise: rv.circle && rv.circle.share, tax: rv.creatorTax };
+      var max = 0;
+      paths.forEach(function (q) { var v = amounts[q.id]; if (v > max) max = v; });
+      weights = paths.map(function (q) { var v = amounts[q.id]; return 0.35 + (max > 0 && v > 0 ? (v / max) * 2.4 : 0); });
+    }
+    function spawnChip() {
+      var ks = paths.map(function (q, i) { return amounts[q.id] > 0 ? i : -1; }).filter(function (i) { return i >= 0; });
+      if (!ks.length || chips.length >= 2) return;
+      var k = ks[Math.floor(Math.random() * ks.length)], v = amounts[paths[k].id];
+      chips.push({ k: k, t: 0, v: 0.00016, txt: "+" + usd(v) });
     }
     var lastT = 0;
     function frame(t) {
       var dt = lastT ? Math.min(50, t - lastT) : 16; lastT = t;
-      parts.forEach(function (pt) { pt.t += dt * pt.v; if (pt.t >= 1) { pt.t = 0; pt.k = Math.floor(Math.random() * paths.length); } });
+      parts.forEach(function (pt) { pt.t += dt * pt.v; if (pt.t >= 1) { pt.t = 0; pt.k = pick(); } });
+      nextChip -= dt;
+      if (nextChip <= 0) { spawnChip(); nextChip = 2600 + Math.random() * 1800; }
+      for (var c = chips.length - 1; c >= 0; c--) {
+        chips[c].t += dt * chips[c].v;
+        if (chips[c].t >= 1) {
+          chips.splice(c, 1);
+          dest.classList.remove("ax-rev-hit"); void dest.offsetWidth; dest.classList.add("ax-rev-hit");
+        }
+      }
       draw();
       if (running) raf = requestAnimationFrame(frame);
     }
@@ -286,7 +333,7 @@
       }, { threshold: 0.05 }).observe(rev);
     }
     // the live lines change row heights
-    subscribe(function () { setTimeout(relayout, 60); });
+    subscribe(function (d) { setTimeout(function () { relayout(); reweigh(d); }, 60); });
   }
 
   // ---------- SVG builders ----------
