@@ -126,6 +126,14 @@ export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
   if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
+  if (url.searchParams.get("circle") === "lb") {
+    try {
+      const w = url.searchParams.get("wallet");
+      const lb = await circle.leaderboard(w);
+      return json(200, lb, lb.complete && !w ? "public, max-age=10, s-maxage=15, stale-while-revalidate=60" : "no-store");
+    }
+    catch (err) { console.error("circle lb", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
+  }
   if (url.searchParams.get("circle") === "badges") {
     try { return json(200, { badges: await circle.badges(String(url.searchParams.get("addrs") || "").split(",")) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900"); }
     catch (err) { console.error("circle badges", err && err.message || err); return json(502, { error: "couldn't read badges" }); }

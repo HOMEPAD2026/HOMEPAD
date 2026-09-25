@@ -65,10 +65,31 @@ function checkDuplicates(files) {
   if (dupes.length) throw new Error("top-level name declared in two files:\n  " + dupes.join("\n  "));
 }
 
+// abis.js holds every ABI the site has ever used (~100 KB). A bundle only
+// keeps the ABI constants that another file in the same bundle names.
+// Constants that other kept constants refer to (CIRCLEPAD_ESCROW_ABI =
+// BIGPAD_ESCROW_ABI) are kept too.
+function shakeAbis(src, files) {
+  const others = files.filter((f) => f !== "abis.js").map((f) => fs.readFileSync(path.join(ROOT, f), "utf8")).join("\n");
+  const lines = src.split("\n");
+  const decl = lines.map((l) => (/^const ([A-Z0-9_]+) =/.exec(l) || [])[1] || null);
+  const uses = (text, name) => new RegExp(`\\b${name}\\b`).test(text);
+  const keep = new Set(decl.filter((n) => n && uses(others, n)));
+  for (let grew = true; grew;) {
+    grew = false;
+    const kept = lines.filter((_, i) => decl[i] && keep.has(decl[i])).join("\n");
+    for (const n of decl) if (n && !keep.has(n) && uses(kept.replace(new RegExp(`^const ${n} =`, "m"), ""), n)) { keep.add(n); grew = true; }
+  }
+  return lines.filter((_, i) => !decl[i] || keep.has(decl[i])).join("\n");
+}
 function join(files) {
   // Each file ends with a newline and a ";" so a file that ends without one
   // can't run into the next (ASI across file boundaries).
-  return files.map((f) => `/* ---- ${f} ---- */\n${fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\s*$/, "")}\n;\n`).join("");
+  return files.map((f) => {
+    let src = fs.readFileSync(path.join(ROOT, f), "utf8");
+    if (f === "abis.js") src = shakeAbis(src, files);
+    return `/* ---- ${f} ---- */\n${src.replace(/\s*$/, "")}\n;\n`;
+  }).join("");
 }
 
 export async function build({ check = false, force = false } = {}) {

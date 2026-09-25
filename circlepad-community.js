@@ -66,7 +66,7 @@
     if (!r.ok) throw Object.assign(new Error(j.error || `HTTP ${r.status}`), { api: true, j });
     return j;
   }
-  const errMsg = (e) => (e && e.api ? e.message : typeof cpErrText === "function" ? cpErrText(e) : (e && e.message) || "Failed");
+  const errMsg = (e) => (e && e.api ? tr(e.message.charAt(0).toUpperCase() + e.message.slice(1).replace(/([^.!?])$/, "$1.")) : typeof cpErrText === "function" ? cpErrText(e) : (e && e.message) || "Failed");
 
   // ================= pledges (before the raise opens) =================
   function renderPledge() {
@@ -74,7 +74,9 @@
     if (!panel) return;
     let box = $("cp-pledge");
     const show = !!D && !started();
-    if (window.circlepadFx) window.circlepadFx.setPledged(show ? D.pledges.total : null, show ? D.pledges.count : 0);
+    if (window.circlepadFx) { window.circlepadFx.setPledged(show ? D.pledges.total : null, show ? D.pledges.count : 0); window.circlepadFx.setPledgers(show ? D.pledges.top : []); }
+    paintPreStats(show);
+    paintConvert();
     if (!show) { if (box) box.remove(); return; }
     if (!box) {
       box = document.createElement("div");
@@ -91,6 +93,58 @@
       <div class="cp-pl-form"${mine ? " hidden" : ""}><input type="number" min="0" step="0.01" inputmode="decimal" id="cp-pl-amt" class="bp-contribute-input" placeholder="${esc(tr("USDC you plan to put in"))}"><button type="button" class="bp-btn-primary" data-pl-go>Pledge</button></div>
       <small class="cp-pl-note">A pledge is a signed note, not a payment — nothing leaves your wallet. Change or cancel it until the raise opens.</small>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+  }
+  // Before the raise: the six round tiles show the pledges instead of a row
+  // of "—". circlepad.js repaints them with the round's numbers once it opens.
+  function paintPreStats(pre) {
+    const set = (valId, label, value) => {
+      const v = $(valId); if (!v) return;
+      const tile = v.closest(".bp-mini-stat"), lab = tile && tile.querySelector("span");
+      if (lab && lab.textContent !== tr(label)) lab.textContent = tr(label);
+      if (v.__target !== value) { v.__target = value; v.textContent = value; }
+      tile.classList.add("cp-pre");
+    };
+    if (!pre) {
+      document.querySelectorAll(".bp-mini-stat.cp-pre").forEach((t) => {
+        t.classList.remove("cp-pre");
+        const lab = t.querySelector("span"), v = t.querySelector("strong");
+        const orig = { "bp-stat-length": "Ends", "bp-stat-contributors": "Contributors", "bp-stat-lead": "Top contributor", "bp-stat-mine": "Your contribution", "bp-stat-myshare": "Your share" }[v && v.id];
+        if (orig && lab) lab.textContent = tr(orig);
+        if (v) v.__target = null;
+      });
+      return;
+    }
+    const p = D.pledges, mine = D.myPledge || 0;
+    set("bp-stat-length", "Pledged so far", `${num(p.total)} USDC`);
+    set("bp-stat-contributors", "Pledgers", p.count ? String(p.count) : "—");
+    set("bp-stat-lead", "Top pledge", p.top.length ? `${num(p.top[0].amount)} USDC` : "—");
+    set("bp-stat-mine", "Your pledge", mine ? `${num(mine)} USDC` : "—");
+    set("bp-stat-myshare", "Your share of pledges", mine && p.total ? `${((mine / p.total) * 100).toFixed(1)}%` : "—");
+  }
+  // The raise is open and this wallet pledged but hasn't contributed yet:
+  // one banner, amount pre-filled.
+  function paintConvert() {
+    let bar = $("cp-convert");
+    const mineC = window.circlepadFx ? window.circlepadFx.mine() : 0;
+    const pledgedAmt = D && D.myPledge ? D.myPledge : 0;
+    const open = document.body.classList.contains("cp-open");
+    if (!(open && pledgedAmt > 0 && mineC < pledgedAmt)) { if (bar) bar.remove(); return; }
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "cp-convert"; bar.className = "cp-convert";
+      const featured = $("bp-featured");
+      if (featured) featured.parentNode.insertBefore(bar, featured);
+      bar.addEventListener("click", (e) => {
+        if (!e.target.closest("[data-convert]")) return;
+        const input = $("bp-contribute-amount");
+        const left = Math.max(0, pledgedAmt - mineC);
+        if (input) input.value = String(Math.round(left * 100) / 100);
+        document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: "round" }));
+      });
+    }
+    const left = Math.max(0, pledgedAmt - mineC);
+    const html = `<span class="cp-cv-ico" aria-hidden="true"></span><div class="cp-cv-txt"><b>The raise is open.</b> <span>You pledged</span> <b data-no-i18n>${num(pledgedAmt)} USDC</b>${mineC > 0 ? ` <span>— </span><b data-no-i18n>${num(left)} USDC</b> <span>to go</span>` : ""}</div><button type="button" class="bp-btn-primary" data-convert>Contribute now</button>`;
+    if (bar.__html !== html) { bar.innerHTML = html; bar.__html = html; }
   }
   async function onPledgeClick(e) {
     const t = e.target;
@@ -112,6 +166,7 @@
       if (!r) return;
       toast(cancel ? "Pledge cancelled." : "Pledged — you'll be first in line when the raise opens.", "ok");
       if (!cancel && typeof window.arcFeedback === "function") window.arcFeedback("milestone");
+      if (!cancel && window.circlepadFx) window.circlepadFx.coinDrop(t.closest("[data-pl-go]"));
       await load();
     } catch (err) { toast(errMsg(err), "bad"); } finally { busy = false; }
   }
@@ -202,29 +257,53 @@
       if (empty) empty.remove();
       board = document.createElement("div");
       board.id = "cp-props"; board.className = "cp-props";
-      board.innerHTML = `<div class="cp-prop-form bp-card"><div class="bp-card-head">Propose a project</div>
+      wrap.classList.add("cp-props-wrap");
+      board.innerHTML = `<div class="cp-prop-side"><div class="cp-prop-form bp-card"><div class="bp-card-head">Propose a project</div>
           <input id="cp-prop-title" class="bp-contribute-input" maxlength="80" placeholder="${esc(tr("Project name"))}">
           <textarea id="cp-prop-pitch" class="bp-contribute-input" maxlength="400" rows="3" placeholder="${esc(tr("What is it, and why should the circle fund it? (10–400 characters)"))}"></textarea>
           <input id="cp-prop-link" class="bp-contribute-input" maxlength="200" placeholder="${esc(tr("Link (optional) — https://…"))}">
-          <div class="cp-qa-foot"><small>Signed with your wallet. Three a day per wallet.</small><button type="button" class="bp-btn-primary" id="cp-prop-go">Submit</button></div></div>
-        <div class="cp-prop-list" id="cp-prop-list"></div>`;
+          <div class="cp-qa-foot"><small>Signed with your wallet. Three a day per wallet.</small><button type="button" class="bp-btn-primary" id="cp-prop-go">Submit</button></div></div></div>
+        <div class="cp-prop-main-col"><div class="cp-tabs" role="tablist"><button type="button" role="tab" data-sort="top" class="on">Most backed</button><button type="button" role="tab" data-sort="new">Newest</button></div>
+        <div class="cp-prop-list" id="cp-prop-list"></div></div>`;
       wrap.appendChild(board);
       board.addEventListener("click", onPropClick);
     }
     const isTeam = me() && me() === lc(D.recipient);
     const mineUp = new Set(D.myUpvotes || []);
-    const html = D.proposals.length ? D.proposals.map((p, i) => `<article class="cp-prop${i < 3 ? " is-top" : ""}" data-id="${p.id}">
+    const byTop = [...D.proposals].sort((a, b) => b.up - a.up || b.at - a.at);
+    const rankOf = new Map(byTop.map((p, i) => [p.id, i]));
+    const list0 = propSort === "new" ? [...D.proposals].sort((a, b) => b.at - a.at) : byTop;
+    const maxUp = Math.max(1, ...D.proposals.map((p) => p.up));
+    const MEDAL = ["cp-gold", "cp-silver", "cp-bronze"];
+    const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
+    const html = list0.length ? list0.map((p) => { const i = rankOf.get(p.id); return `<article class="cp-prop${i < 3 && p.up > 0 ? " is-top " + MEDAL[i] : ""}" data-id="${p.id}" style="--cp-upw:${Math.round((p.up / maxUp) * 100)}%">
         <button type="button" class="cp-up${mineUp.has(p.id) ? " on" : ""}" data-up="${p.id}" aria-pressed="${mineUp.has(p.id)}" aria-label="Back this project"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg><b data-no-i18n>${p.up}</b></button>
         <div class="cp-prop-main"><h3 data-no-i18n>${esc(p.title)}</h3><p data-no-i18n>${esc(p.pitch)}</p>
           <div class="cp-qa-meta">${dot(p.wallet, 16)}<span data-no-i18n>${short(p.wallet)}</span><span class="cp-ago" data-no-i18n>${ago(p.at)}</span>
-          ${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="nofollow noopener ugc" data-no-i18n>${esc(p.link.replace(/^https:\/\//, "").slice(0, 40))} ↗</a>` : ""}
-          ${isTeam ? `<button type="button" class="cp-link cp-muted" data-hide="prop:${p.id}">Hide</button>` : ""}</div></div></article>`).join("")
+          ${p.link ? `<a class="cp-domain" href="${esc(p.link)}" target="_blank" rel="nofollow noopener ugc" data-no-i18n>${esc(host(p.link))} ↗</a>` : ""}
+          ${isTeam ? `<button type="button" class="cp-link cp-muted" data-hide="prop:${p.id}">Hide</button>` : ""}</div><i class="cp-upbar" aria-hidden="true"></i></div>${i < 3 && p.up > 0 ? `<span class="cp-medal" aria-hidden="true" data-no-i18n>${i + 1}</span>` : ""}</article>`; }).join("")
       : `<div class="bp-empty">No proposals yet — the first idea sets the bar.</div>`;
     const list = $("cp-prop-list");
-    if (list.__html !== html) { list.innerHTML = html; list.__html = html; }
+    if (list.__html !== html) {
+      // cards slide to their new place when the order changes
+      const before = new Map([...list.querySelectorAll(".cp-prop")].map((el) => [el.dataset.id, el.getBoundingClientRect().top]));
+      list.innerHTML = html; list.__html = html;
+      if (before.size && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+        list.querySelectorAll(".cp-prop").forEach((el) => {
+          const was = before.get(el.dataset.id); if (was == null) return;
+          const dy = was - el.getBoundingClientRect().top; if (Math.abs(dy) < 2) return;
+          el.style.transform = `translateY(${dy}px)`; el.style.transition = "none";
+          requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transition = "transform .5s cubic-bezier(.2,.8,.2,1)"; el.style.transform = ""; }));
+        });
+      }
+    }
+    board.querySelectorAll("[data-sort]").forEach((b) => b.classList.toggle("on", b.dataset.sort === propSort));
   }
+  let propSort = "top";
   async function onPropClick(e) {
     const t = e.target;
+    const so = t.closest("[data-sort]");
+    if (so) { propSort = so.dataset.sort; renderProps(); return; }
     const hid = t.closest("[data-hide]");
     if (hid) return hideItem(hid.dataset.hide);
     const up = t.closest("[data-up]");
@@ -288,7 +367,7 @@
       box.innerHTML = `<h4>Top inviters</h4>` + D.refs.slice(0, 5).map((x, i) => `<div class="cp-inv-row"><span class="bp-lb-rank" data-no-i18n>#${i + 1}</span>${dot(x.ref, 18)}<span class="bp-lb-addr" data-no-i18n>${short(x.ref)}</span><span class="cp-inv-amt" data-no-i18n>${num(x.amount)} USDC · ${x.n}</span></div>`).join("");
     }
   }
-  document.addEventListener("circlepad:lb", () => { decorateLeaderboard(); });
+  document.addEventListener("circlepad:lb", () => { decorateLeaderboard(); if (D) paintPreStats(!started()); });
 
   // ================= invite + share card + history =================
   let hist = { key: null, html: "" };
@@ -309,10 +388,19 @@
     if (!panel || !w) { const h = $("cp-history"); if (h) h.remove(); return; }
     let box = $("cp-history");
     if (!box) { box = document.createElement("div"); box.id = "cp-history"; box.className = "cp-history"; (pos || panel.lastElementChild).insertAdjacentElement("afterend", box); box.addEventListener("click", onShare); }
+    // Server history first (aggregated once for everyone), the in-browser
+    // event log as a fallback.
+    let evs = null;
+    if (started()) {
+      try {
+        const j = await (await fetch(`${API}?circle=lb&wallet=${w}`, { cache: "no-store" })).json();
+        if (j && Array.isArray(j.mine)) evs = j.mine.map((e, i) => { const n = -1 - i; blockTs.set(n, e.ts * 1000); return { kind: e.kind, amount: e.amount, blockNumber: n }; });
+      } catch (e) { evs = null; }
+    }
     let log = null;
-    try { log = typeof circlepadLogCache === "function" ? circlepadLogCache() : null; } catch (e) { log = null; }
-    const evs = log ? [...log.contributed.map((e) => ({ ...e, kind: "in" })), ...log.refunded.map((e) => ({ ...e, kind: "out" }))].filter((e) => lc(e.contributor) === w).sort((a, b) => b.blockNumber - a.blockNumber || (b.index || 0) - (a.index || 0)).slice(0, 25) : [];
-    const missing = [...new Set(evs.map((e) => e.blockNumber))].filter((n) => !blockTs.has(n)).slice(0, 25);
+    if (!evs) try { log = typeof circlepadLogCache === "function" ? circlepadLogCache() : null; } catch (e) { log = null; }
+    if (!evs) evs = log ? [...log.contributed.map((e) => ({ ...e, kind: "in" })), ...log.refunded.map((e) => ({ ...e, kind: "out" }))].filter((e) => lc(e.contributor) === w).sort((a, b) => b.blockNumber - a.blockNumber || (b.index || 0) - (a.index || 0)).slice(0, 25) : [];
+    const missing = [...new Set(evs.map((e) => e.blockNumber))].filter((n) => n >= 0 && !blockTs.has(n)).slice(0, 25);
     if (missing.length && typeof readProvider === "function") {
       try { const bs = await Promise.all(missing.map((n) => readProvider().getBlock(n))); missing.forEach((n, i) => blockTs.set(n, bs[i] ? Number(bs[i].timestamp) * 1000 : 0)); } catch (e) { /* times are optional */ }
     }
@@ -342,7 +430,7 @@
     // eslint-disable-next-line no-global-assign
     refreshAccountDependentViews = function () { orig.apply(this, arguments); load(); };
   }
-  document.addEventListener("circlepad:state", () => { renderPledge(); renderMine(); });
+  document.addEventListener("circlepad:state", () => { if (D) renderPledge(); renderMine(); });
   document.addEventListener("arc:lang", render);
   load();
   setInterval(() => { if (!document.hidden) load(); }, 30e3);

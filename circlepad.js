@@ -628,6 +628,22 @@ async function refreshCirclepadLeaderboardInner() {
   const escrow = circlepadEscrowRead();
   if (!_circlepadLeaderboardLoadedOnce) showCirclepadLeaderboardText("Loading…");
 
+  // The server aggregates the round's events once for everyone
+  // (/api/social?circle=lb); the in-browser scan below is only the fallback.
+  try {
+    const r = await fetch("/api/social?circle=lb", { cache: "no-store" });
+    const j = r.ok ? await r.json() : null;
+    if (j && Array.isArray(j.rows) && Array.isArray(j.activity) && (j.complete || j.rows.length || !j.started)) {
+      const B = (v) => BigInt(v || 0);
+      const rows = j.rows.map((x) => ({ address: ethers.getAddress(x.address), amount: B(x.amount), depositedTotal: B(x.depositedTotal), withdrawnTotal: B(x.withdrawnTotal) }));
+      const activity = j.activity.map((a) => ({ contributor: ethers.getAddress(a.contributor), amount: B(a.amount), kind: a.kind, ts: a.ts }));
+      _circlepadLeaderboardLoadedOnce = true;
+      renderCirclepadLeaderboard(rows, activity);
+      circlepadSaveCache("leaderboard", { rows, activity, savedAt: Date.now() });
+      return;
+    }
+  } catch (err) { console.warn("CirclePad: server leaderboard unavailable, scanning in the browser", err); }
+
   // contribute() and refund() only succeed while the raise is open —
   // between start() and the deadline — so that window is the only place
   // these events can exist: nothing to scan before start(), nothing after

@@ -116,7 +116,22 @@
   window.circlepadFx = {
     setPledged(total) { const t = Number(total) || 0; if (t !== pledged) { pledged = t; if (S) paintRing(S); } },
     mine: () => (S && S.myContribution ? toNum(S.myContribution) : 0),
+    setPledgers(list) { pledgers = Array.isArray(list) ? list : []; if (!(S && S.started)) paintContributors(lastRows); },
+    coinDrop(fromEl) { flyTo(fromEl, "cp-coin", () => { if (ring) { ring.classList.remove("cp-bump"); void ring.offsetWidth; ring.classList.add("cp-bump"); } }); },
   };
+  // A small token flying from a button into the ring (pledge coin, join ring).
+  function flyTo(fromEl, cls, done) {
+    if (!ring || reduce) { if (done) done(); return; }
+    const from = (fromEl || ring).getBoundingClientRect(), to = ring.getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = cls;
+    el.style.left = `${from.left + from.width / 2}px`; el.style.top = `${from.top + from.height / 2}px`;
+    el.style.setProperty("--dx", `${to.left + to.width / 2 - (from.left + from.width / 2)}px`);
+    el.style.setProperty("--dy", `${to.top + to.height / 2 - (from.top + from.height / 2)}px`);
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("go"));
+    setTimeout(() => { el.remove(); if (done) done(); }, 760);
+  }
 
   // ================= top bar pill + tab title =================
   const baseTitle = document.title;
@@ -169,18 +184,26 @@
     media.innerHTML = `<span class="cp-media-round">Round</span><b class="cp-media-n" data-no-i18n>#1</b><span class="cp-media-stack" id="cp-media-stack"></span><span class="cp-media-count" id="cp-media-count">No contributors yet</span>`;
   }
   const seenDots = new Set();
+  // Before the raise the orbit shows pledgers (gold); once it opens, the
+  // contributors (each in their wallet's colour), sized by share.
+  let pledgers = [], lastRows = [];
+  function paintOrbit(list, gold) {
+    if (!orbit) return;
+    const total = list.reduce((t, x) => t + x.v, 0);
+    const top = list.slice(0, 24);
+    orbit.classList.toggle("cp-orbit-gold", !!gold);
+    orbit.innerHTML = top.map((x, i) => {
+      const a = String(x.a).toLowerCase(), share = total ? x.v / total : 0;
+      const size = Math.round(8 + Math.sqrt(share) * 26), ang = (360 / Math.max(top.length, 1)) * i;
+      const isNew = seenDots.size && !seenDots.has((gold ? "g" : "c") + a);
+      return `<i class="cp-odot${isNew ? " is-new" : ""}" style="--a:${ang}deg;--z:${size}px;--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></i>`;
+    }).join("");
+    top.forEach((x) => seenDots.add((gold ? "g" : "c") + String(x.a).toLowerCase()));
+  }
   function paintContributors(rows) {
-    const total = rows.reduce((t, r) => t + toNum(r.amount), 0);
-    if (orbit) {
-      const top = rows.slice(0, 24);
-      orbit.innerHTML = top.map((r, i) => {
-        const a = String(r.address).toLowerCase(), share = total ? toNum(r.amount) / total : 0;
-        const size = Math.round(8 + Math.sqrt(share) * 26), ang = (360 / Math.max(top.length, 1)) * i;
-        const isNew = seenDots.size && !seenDots.has(a);
-        return `<i class="cp-odot${isNew ? " is-new" : ""}" style="--a:${ang}deg;--z:${size}px;--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></i>`;
-      }).join("");
-      top.forEach((r) => seenDots.add(String(r.address).toLowerCase()));
-    }
+    lastRows = rows;
+    if (S && S.started) paintOrbit(rows.map((r) => ({ a: r.address, v: toNum(r.amount) })), false);
+    else paintOrbit(pledgers.map((p) => ({ a: p.wallet, v: Number(p.amount) || 0 })), true);
     const stack = $("cp-media-stack"), count = $("cp-media-count");
     if (stack) stack.innerHTML = rows.slice(0, 5).map((r) => `<i style="--h:${(parseInt(String(r.address).slice(2, 8), 16) || 0) % 360}"></i>`).join("");
     if (count) count.textContent = rows.length ? `${rows.length} ${tr(rows.length === 1 ? "contributor" : "contributors")}` : tr("No contributors yet");
@@ -225,6 +248,36 @@
       row.style.setProperty("--cp-share", `${Math.min(100, pct)}%`);
       row.classList.add("cp-shared");
     });
+  }
+
+  // ---- the two big moments, when they happen while someone is watching ----
+  function flash(text, cls) {
+    if (!ring) return;
+    const f = document.createElement("div");
+    f.className = "cp-ring-flash " + (cls || "");
+    f.innerHTML = `<b>${text}</b>`;
+    ring.appendChild(f);
+    setTimeout(() => f.remove(), 2600);
+  }
+  function ignite() {
+    if (!ring) return;
+    ring.classList.remove("cp-ignite"); void ring.offsetWidth; ring.classList.add("cp-ignite");
+    if (orbit) orbit.classList.add("cp-to-green");
+    setTimeout(() => { if (orbit) orbit.classList.remove("cp-to-green"); paintContributors(lastRows); }, 1400);
+    flash(tr("The raise is open"), "cp-flash-open");
+    if (!reduce && typeof window.arcConfetti === "function") window.arcConfetti({ count: 90 });
+    if (typeof window.arcFeedback === "function") window.arcFeedback("milestone");
+    if (typeof window.arcToast === "function") window.arcToast(tr("The raise is open — 72 hours starting now."));
+  }
+  let finalized = false;
+  function finalize() {
+    if (!ring || finalized) return;
+    finalized = true;
+    ring.classList.add("cp-final");
+    const st = document.createElement("div");
+    st.className = "cp-stamp"; st.textContent = tr("FINAL");
+    ring.appendChild(st);
+    if (typeof window.arcFeedback === "function") window.arcFeedback("milestone");
   }
 
   function milestone(m) {
@@ -281,8 +334,12 @@
     timeline = document.createElement("section");
     timeline.className = "cp-timeline";
     const head = card.querySelector(".bp-card-head");
-    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"}</h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
+    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"} <span class="cp-tl-tag">Full design</span></h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
     timeline.appendChild(steps);
+    const note = document.createElement("p");
+    note.className = "cp-tl-note";
+    note.textContent = "Round #1's contract runs the 72-hour raise and the 80 / 15 / 5 split at the close. Lead preparation, the LP step and vesting are the full CirclePad design, still in review.";
+    timeline.appendChild(note);
     row.parentNode.insertBefore(timeline, row);
     card.remove();
     row.classList.add("cp-row2");
@@ -349,8 +406,13 @@
   applyCirclepadState = function (s, opts) {
     origApply(s, opts);
     if (!s) return;
+    const prev = S;
     S = S || s;
     try { paintRing(s); checkJoin(s, opts); paintStage(s); paintSplit(s); paintTopTime(); } catch (e) { console.warn("circlepad-fx", e); }
+    if (prev && !(opts && opts.accountUnknown)) {
+      if (!prev.started && s.started) setTimeout(ignite, 50);
+      else if (prev.isOpen && s.started && !s.isOpen) setTimeout(finalize, 50);
+    }
     S = s;
     document.dispatchEvent(new CustomEvent("circlepad:state"));
   };
@@ -365,7 +427,7 @@
       origCd();
       if (!cd || !_circlepadStarted || _circlepadDeadline == null) { last = {}; return; }
       const rem = _circlepadDeadline - Math.floor(Date.now() / 1000);
-      if (rem <= 0) { last = {}; cd.classList.remove("cp-cd-urgent"); return; }
+      if (rem <= 0) { last = {}; cd.classList.remove("cp-cd-urgent"); if (S && S.isOpen && S.started) finalize(); return; }
       const parts = [["d", Math.floor(rem / 86400)], ["h", Math.floor((rem % 86400) / 3600)], ["m", Math.floor((rem % 3600) / 60)], ["s", rem % 60]].filter(([u, v]) => u !== "d" || v > 0);
       const flip = rem < 86400 && !reduce;
       cd.innerHTML = `<span class="cp-cd-label">${tr("Ends in")}</span><span class="cp-cd">${parts.map(([u, v]) => {
@@ -475,6 +537,59 @@
       proof.innerHTML = `<span>${tr("Held by the contract")}</span> <b data-no-i18n>${fmt(bal)} USDC</b> <span class="cp-proof-mark">${ok ? tr("matches contributions") : tr("differs from contributions")}</span> <a href="${(typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || ""}/address/${(typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ESCROW_ADDRESS) || ""}" target="_blank" rel="noopener">${tr("Check")} ↗</a>`;
     } else proof.hidden = true;
   }
+
+  // ================= round tiles: numbers roll to their new value =================
+  (function tileCountUp() {
+    if (reduce) return;
+    const RE = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/;
+    document.querySelectorAll("#bp-featured .bp-mini-stat strong").forEach((el) => {
+      // Our own frame writes are remembered in el.__w so the observer (which
+      // fires asynchronously) can tell them apart from real updates.
+      let shown = el.textContent, raf = 0;
+      const write = (t) => { el.__w = t; el.textContent = t; };
+      new MutationObserver(() => {
+        const now = el.textContent;
+        if (now === el.__w) return;
+        const a = RE.exec(shown), b = RE.exec(now);
+        const from = a ? parseFloat(a[2].replace(/,/g, "")) : NaN, to = b ? parseFloat(b[2].replace(/,/g, "")) : NaN;
+        cancelAnimationFrame(raf);
+        if (!a || !b || a[1] !== b[1] || a[3] !== b[3] || !isFinite(from) || !isFinite(to) || from === to) { shown = now; el.__w = now; return; }
+        const dec = (b[2].split(".")[1] || "").length, t0 = performance.now();
+        const step = (t) => {
+          const k = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - k, 3);
+          if (k < 1) { write(b[1] + (from + (to - from) * e).toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + b[3]); raf = requestAnimationFrame(step); }
+          else { write(now); shown = now; }
+        };
+        raf = requestAnimationFrame(step);
+      }).observe(el, { childList: true, characterData: true, subtree: true });
+    });
+  })();
+
+  // ================= Home: section dots on wide screens =================
+  (function sectionDots() {
+    const home = $("bp-panel-home");
+    if (!home || !("IntersectionObserver" in window)) return;
+    const SECS = [["#bp-featured", "The round"], [".cp-timeline", "Launch process"], [".bp-row3", "Governance & leaderboard"], ["#cp-qa", "Round Q&A"], [".bp-nextcard", "At close"]];
+    const nav = document.createElement("nav");
+    nav.className = "cp-dots"; nav.setAttribute("aria-label", "Sections");
+    document.body.appendChild(nav);
+    let io = null;
+    const build = () => {
+      const items = SECS.map(([sel, label]) => [home.querySelector(sel), label]).filter(([el]) => el);
+      nav.innerHTML = items.map(([, label], i) => `<button type="button" data-i="${i}" aria-label="${tr(label)}"><i></i><span>${tr(label)}</span></button>`).join("");
+      nav.onclick = (e) => { const b = e.target.closest("[data-i]"); if (b) items[+b.dataset.i][0].scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); };
+      if (io) io.disconnect();
+      io = new IntersectionObserver((es) => es.forEach((en) => {
+        const i = items.findIndex(([el]) => el === en.target);
+        if (en.isIntersecting && i >= 0) nav.querySelectorAll("button").forEach((b, k) => b.classList.toggle("on", k === i));
+      }), { rootMargin: "-45% 0px -50% 0px" });
+      items.forEach(([el]) => io.observe(el));
+    };
+    const sync = () => nav.classList.toggle("on", home.classList.contains("active"));
+    new MutationObserver(sync).observe(home, { attributes: true, attributeFilter: ["class"] });
+    setTimeout(() => { build(); sync(); }, 1500); // after the Q&A card has mounted
+    document.addEventListener("arc:lang", build);
+  })();
 
   // ================= empty states, skeleton, docs flow =================
   function emptyCta() {

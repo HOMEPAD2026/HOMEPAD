@@ -3885,3 +3885,94 @@ body.circlepad-page .bp-empty{position:relative;}
 /* phones, raise open: the ring panel comes before the description */
 @media (max-width:760px){body.circlepad-page.cp-open #bp-featured .bp-featured-main.cp-main{grid-template-areas:"side" "info" "stats" "media";}
   body.circlepad-page.cp-open .cp-main > .bp-featured-media{display:none;}}
+
+/* ================= CirclePad round 3 ================= */
+/* toasts: under the top bar on desktop (right), above the dock on phones, with an icon */
+.cp-toasts{left:auto;right:24px;top:84px;transform:none;align-items:flex-end;}
+.cp-toast{display:flex;align-items:center;gap:9px;text-align:left;transform:translateX(24px);}
+.cp-toast.in{transform:none;}
+.cp-toast::before{content:"";flex:none;width:18px;height:18px;border-radius:50%;background:rgba(57,255,136,.18) center/11px no-repeat;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2339ff88' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 7v6M12 17h.01'/%3E%3C/svg%3E");}
+.cp-toast-ok::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2339ff88' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E");}
+.cp-toast-bad::before{background-color:rgba(255,120,90,.18);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff8a6b' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7 7 17'/%3E%3C/svg%3E");}
+@media (max-width:900px){.cp-toasts{right:auto;left:50%;top:auto;bottom:calc(var(--ax-float-space,170px) + 4px);transform:translateX(-50%);align-items:center;}
+  .cp-toast{transform:translateY(10px);} .cp-toast.in{transform:none;}}
+
+/* before the raise: no disabled "Not started yet" button under the pledge form */
+body.circlepad-page:not(.cp-started) #bp-contribute-btn{display:none;}
+.bp-mini-stat.cp-pre strong{color:#ffe3a3;}
+
+/* pledgers orbit in gold before the raise; they turn green when it opens */
+.cp-orbit.cp-orbit-gold .cp-odot{--h:43 !important;border-color:#ffc861;background:rgba(255,200,97,.22);box-shadow:0 0 10px rgba(255,200,97,.55);}
+.cp-orbit.cp-to-green .cp-odot{transition:border-color 1.2s,background 1.2s,box-shadow 1.2s;border-color:#39ff88;background:rgba(57,255,136,.25);box-shadow:0 0 12px rgba(57,255,136,.6);}
+.cp-coin{position:fixed;z-index:120;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#ffc861 55%,#b8862a);box-shadow:0 0 16px rgba(255,200,97,.8);
+  transition:transform .75s cubic-bezier(.5,-.35,.4,1),opacity .75s ease-in;}
+.cp-coin.go{transform:translate(var(--dx),var(--dy)) scale(.5) rotateY(540deg);opacity:.4;}
+
+/* the raise opens / closes while you watch */
+.cp-ring.cp-ignite .cp-ring-fill{animation:cpIgnite 1.6s cubic-bezier(.2,.8,.2,1);}
+.cp-ring.cp-ignite{animation:cpIgniteGlow 1.8s ease-out;}
+@keyframes cpIgnite{from{stroke-dashoffset:var(--cp-c);opacity:.2;}}
+@keyframes cpIgniteGlow{0%{filter:none;}30%{filter:drop-shadow(0 0 28px rgba(57,255,136,.8));}100%{filter:none;}}
+.cp-ring-flash{position:absolute;inset:18%;display:grid;place-items:center;text-align:center;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(4,12,8,.92) 55%,rgba(4,12,8,0) 72%);animation:cpFlash 2.6s ease both;}
+.cp-ring-flash b{font-size:1rem;font-weight:800;color:#b8ffd6;line-height:1.25;padding:0 10px;}
+@keyframes cpFlash{0%{opacity:0;transform:scale(.8);}15%,80%{opacity:1;transform:none;}100%{opacity:0;}}
+.cp-ring.cp-final .cp-ring-fill{stroke:#cfd8d1;filter:none;transition:stroke 1s;}
+.cp-stamp{position:absolute;right:-6%;top:6%;padding:6px 12px;border:3px solid #ffd166;border-radius:10px;color:#ffd166;font-weight:900;font-size:1rem;letter-spacing:.14em;
+  transform:rotate(12deg);background:rgba(10,10,6,.8);animation:cpStamp .55s cubic-bezier(.3,1.6,.5,1) both;pointer-events:none;}
+@keyframes cpStamp{from{transform:rotate(12deg) scale(2.4);opacity:0;}}
+
+/* timeline: labelled as the full design */
+.cp-tl-tag{display:inline-block;margin-left:8px;vertical-align:2px;font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9fd0ff;
+  padding:3px 8px;border-radius:999px;border:1px solid rgba(63,155,255,.4);background:rgba(63,155,255,.08);}
+.cp-tl-note{margin:14px 0 0;font-size:.74rem;color:var(--ink-dim);line-height:1.5;}
+
+/* pledged but not in yet: one banner */
+.cp-convert{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border-radius:16px;
+  border:1px solid rgba(255,200,97,.45);background:linear-gradient(100deg,rgba(255,200,97,.14),rgba(57,255,136,.08));}
+.cp-convert::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.12) 50%,transparent 65%);
+  transform:translateX(-100%);animation:cpSheen 3.2s ease-in-out infinite;pointer-events:none;}
+@keyframes cpSheen{60%,100%{transform:translateX(100%);}}
+.cp-cv-ico{flex:none;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#ffc861 55%,#b8862a);box-shadow:0 0 16px rgba(255,200,97,.55);}
+.cp-cv-txt{flex:1;min-width:0;font-size:.86rem;color:#f1ead6;}
+.cp-cv-txt b{color:#fff;}
+.cp-convert .bp-btn-primary{flex:none;position:relative;z-index:1;}
+@media (max-width:640px){.cp-convert{flex-wrap:wrap;} .cp-convert .bp-btn-primary{width:100%;}}
+
+/* Projects: list left, form right (sticky) on desktop; medals, backing bars, sort tabs */
+@media (min-width:1100px){
+  .bp-simple.cp-props-wrap{max-width:none;}
+  .cp-props{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start;}
+  .cp-prop-side{order:2;position:sticky;top:96px;}
+  .cp-prop-main-col{order:1;}
+}
+.cp-tabs{display:inline-flex;gap:4px;padding:4px;margin-bottom:12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);}
+.cp-tabs button{border:0;background:none;padding:6px 14px;border-radius:999px;color:var(--ink-dim);font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;}
+.cp-tabs button.on{background:#fff;color:#07100b;}
+.cp-prop{position:relative;}
+.cp-upbar{display:block;height:3px;margin-top:10px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;position:relative;}
+.cp-upbar::after{content:"";position:absolute;inset:0;width:var(--cp-upw,0%);background:linear-gradient(90deg,#2bc46a,#39ff88);transition:width .8s cubic-bezier(.2,.8,.2,1);}
+.cp-medal{position:absolute;top:-9px;right:14px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:900;color:#1a1200;box-shadow:0 4px 12px rgba(0,0,0,.4);}
+.cp-gold .cp-medal{background:linear-gradient(135deg,#fff1b8,#ffc861);} .cp-gold{border-color:rgba(255,200,97,.45) !important;}
+.cp-silver .cp-medal{background:linear-gradient(135deg,#f4f7f9,#aab6c0);}
+.cp-bronze .cp-medal{background:linear-gradient(135deg,#ffd3b0,#c47a45);}
+.cp-domain{display:inline-flex;padding:2px 8px;border-radius:999px;border:1px solid rgba(57,255,136,.3);font-size:.68rem;}
+
+/* Home: section dots (wide screens) */
+.cp-dots{position:fixed;right:18px;top:50%;z-index:30;display:none;flex-direction:column;gap:12px;transform:translateY(-50%);}
+@media (min-width:1280px){.cp-dots.on{display:flex;}}
+.cp-dots button{position:relative;display:flex;align-items:center;justify-content:flex-end;width:14px;height:14px;padding:0;border:0;background:none;cursor:pointer;}
+.cp-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.22);transition:all .25s;}
+.cp-dots button.on i{width:10px;height:10px;background:#39ff88;box-shadow:0 0 10px rgba(57,255,136,.7);}
+.cp-dots span{position:absolute;right:20px;white-space:nowrap;font-size:.7rem;font-weight:700;color:#dfe8e1;padding:4px 9px;border-radius:8px;background:rgba(10,14,11,.92);border:1px solid var(--line);opacity:0;transform:translateX(6px);transition:all .2s;pointer-events:none;}
+.cp-dots button:hover span,.cp-dots button:focus-visible span{opacity:1;transform:none;}
+
+/* docs flow: one column on small phones */
+@media (max-width:480px){.cp-flow{grid-template-columns:1fr;}}
+
+/* podium: avatars tilt and glow on hover */
+.cp-pod-av{transition:transform .3s cubic-bezier(.3,1.6,.5,1),box-shadow .3s;}
+.cp-pod:hover .cp-pod-av{transform:rotate(-8deg) scale(1.08);box-shadow:0 0 26px hsl(var(--h) 82% 60% / .75);}
+@media (prefers-reduced-motion:reduce){.cp-convert::after,.cp-ring.cp-ignite,.cp-ring.cp-ignite .cp-ring-fill,.cp-ring-flash,.cp-stamp{animation:none !important;}}

@@ -7,7 +7,8 @@
 // for, the round's state (started, recipient, contributions) is read from the
 // escrow contract itself, and referrals are taken from the contribution
 // transaction's own calldata, so none of it can be claimed for someone else.
-import { ethCalls, rpcCall, isAddr, pad, wAddr } from "./_arc.mjs";
+import { ethCalls, rpcCall, isAddr, pad, wAddr, getLogs, latestBlock, blockTs, toQty } from "./_arc.mjs";
+import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
 import { ESCROW, ARCIRCLE, FACTORY, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
@@ -197,4 +198,68 @@ export async function refReport(b, json) {
   const amount = usd(BigInt("0x" + String(log.data).slice(2, 66)));
   const r = await commit([{ create: `circleRefs/${tx}`, data: { round: ESCROW, ref, from, amount, at: Date.now() } }]);
   return json(200, { ok: true, ref, amount, already: !!r.conflict });
+}
+
+// ---- leaderboard, aggregated once on the server ----
+// Every visitor used to rebuild the leaderboard in the browser: a block
+// search for the round's start, then up to ~60 eth_getLogs chunks. The
+// server does it once, keeps the scanned events (memory, and Firestore when
+// configured, so a cold function resumes where the last one stopped), reads
+// at most MAX_CHUNKS new chunks per request, and serves the result to all.
+const REFUNDED = kec("Refunded(address,uint256,uint256)");
+const CHUNK = 9000, MAX_CHUNKS = 24, FUNDING = 72 * 3600;
+let lbMem = null;
+async function blockAtOrBefore(ts, hi) {
+  let lo = Math.max(0, hi.number - Math.ceil((hi.ts - ts) * 2.2) - 5000), loTs = await blockTs(lo);
+  while (loTs != null && loTs > ts && lo > 0) { lo = Math.max(0, lo - 200000); loTs = await blockTs(lo); }
+  let top = hi.number;
+  while (top - lo > 1) { const mid = Math.floor((lo + top) / 2), t = await blockTs(mid); if (t != null && t <= ts) lo = mid; else top = mid; }
+  return lo;
+}
+export async function leaderboard(wallet) {
+  const st = await roundState();
+  if (!st.started) return { started: false, rows: [], activity: [], complete: true };
+  if (lbMem && Date.now() - lbMem.at < 12e3) return withMine(lbMem.out, lbMem.EV, wallet);
+  const key = `circleLb/${ESCROW}`;
+  let L = lbMem ? lbMem.L : null;
+  if (!L && storeEnabled()) { try { L = (await getDocs([key]))[key]; } catch { L = null; } }
+  if (!L || L.deadline !== st.deadline) L = { deadline: st.deadline, from: null, scannedTo: null, end: null, ev: [] };
+  const head = await latestBlock();
+  if (L.from == null) { L.from = await blockAtOrBefore(st.deadline - FUNDING, head); L.scannedTo = L.from - 1; }
+  let to = head.number;
+  if (head.ts > st.deadline + 60) { if (L.end == null) L.end = (await blockAtOrBefore(st.deadline, head)) + 50; to = Math.min(to, L.end); }
+  let chunks = 0;
+  while (L.scannedTo < to && chunks < MAX_CHUNKS) {
+    const a = L.scannedTo + 1, b = Math.min(to, a + CHUNK - 1);
+    const logs = await getLogs({ address: ESCROW, fromBlock: toQty(a), toBlock: toQty(b), topics: [[CONTRIBUTED, REFUNDED]] });
+    // stored as "kind|wallet|amount|block|logIndex" strings (Firestore can't nest arrays)
+    for (const l of logs) L.ev.push([lc(l.topics[0]) === CONTRIBUTED ? 1 : 0, "0x" + String(l.topics[1]).slice(26).toLowerCase(), BigInt("0x" + String(l.data).slice(2, 66)).toString(), parseInt(l.blockNumber, 16), parseInt(l.logIndex, 16)].join("|"));
+    L.scannedTo = b; chunks++;
+  }
+  const complete = L.scannedTo >= to;
+  const EV = L.ev.map((x) => { const [k, w, amt, n, i] = String(x).split("|"); return [Number(k), w, amt, Number(n), Number(i)]; });
+  const net = new Map(), inn = new Map(), out = new Map();
+  for (const [k, w, amt] of EV) {
+    const v = BigInt(amt);
+    net.set(w, (net.get(w) || 0n) + (k ? v : -v));
+    (k ? inn : out).set(w, ((k ? inn : out).get(w) || 0n) + v);
+  }
+  const rows = [...net.entries()].filter(([, v]) => v > 0n).sort((x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0))
+    .map(([address, v]) => ({ address, amount: v.toString(), depositedTotal: (inn.get(address) || 0n).toString(), withdrawnTotal: (out.get(address) || 0n).toString() }));
+  const recent = [...EV].sort((x, y) => x[3] - y[3] || x[4] - y[4]).slice(-15).reverse();
+  const tsOf = new Map();
+  await Promise.all([...new Set(recent.map((e) => e[3]))].map(async (n) => { tsOf.set(n, (await blockTs(n)) || 0); }));
+  const activity = recent.map(([k, w, amt, n]) => ({ contributor: w, amount: amt, kind: k ? "in" : "out", ts: tsOf.get(n) || 0 }));
+  const outv = { started: true, rows, activity, complete, scannedTo: L.scannedTo };
+  lbMem = { at: Date.now(), L, out: outv, EV };
+  if (storeEnabled() && chunks) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
+  return withMine(outv, EV, wallet);
+}
+async function withMine(outv, EV, wallet) {
+  wallet = lc(wallet);
+  if (!isAddr(wallet)) return outv;
+  const mine = EV.filter((e) => e[1] === wallet).sort((x, y) => y[3] - x[3] || y[4] - x[4]).slice(0, 25);
+  const ts = new Map();
+  await Promise.all([...new Set(mine.map((e) => e[3]))].map(async (n) => { ts.set(n, (await blockTs(n)) || 0); }));
+  return { ...outv, mine: mine.map(([k, , amt, n]) => ({ kind: k ? "in" : "out", amount: amt, ts: ts.get(n) || 0 })) };
 }
