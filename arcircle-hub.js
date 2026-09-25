@@ -72,16 +72,32 @@
     if (copyBtn) handleCopy(copyBtn);
   });
 
-  // ---- Quick bar: a slim second floating row just above the dock with the
-  // two things people come to do — launch a coin and browse launches. Both
-  // go to ArcPad; on ArcPad itself they switch tabs in place.
+  // ---- Quick bar: a slim second floating row just above the dock, the same
+  // on every page (hub, ArcPad, CirclePad, Reward, $ARCIRCLE): Launch,
+  // Explore, and the utilities button (infinity + plus) that opens the
+  // utilities panel upwards. Launch / Explore go to ArcPad; on ArcPad itself
+  // they switch tabs in place.
   var ICON_ROCKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>';
   var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>';
+  // A drawn lemniscate (not the emoji): gradient stroke with a light that
+  // travels round the loop, and a small plus that turns into a close mark.
+  var ICON_INFINITY = '<svg class="ax-inf" viewBox="0 0 40 20" aria-hidden="true">' +
+    '<defs><linearGradient id="axInfGrad" x1="0" y1="0" x2="40" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>' +
+    '<path class="ax-inf-base" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/>' +
+    '<path class="ax-inf-shine" pathLength="100" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/></svg>';
+  var ICON_PLUS = '<svg class="ax-plus" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 
-  var ICON_COIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9"/><path d="M9.5 9.6c0-1.2 1.1-2.1 2.5-2.1s2.5.8 2.5 1.9c0 2.5-5 1.2-5 3.7 0 1.1 1.1 1.9 2.5 1.9s2.5-.8 2.5-2"/></svg>';
-  var ICON_CHART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 19.5h17"/><path d="M5 15l4.5-4.5 3.5 3 6-6.5"/><path d="M15 7h4v4"/></svg>';
-  var ICON_WALLET = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 9.5h17"/><circle cx="16.5" cy="14" r="1.2"/><path d="M6 6l9-2.5 1 2.5"/></svg>';
-  var ICON_ROAD = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.5 18.5h7a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7h7"/></svg>';
+  // The four utilities. Locker is next to build (ArcLock is already live on
+  // Arc and takes any token); the other three are placeholders until they are
+  // picked. Set href on an entry when its page exists.
+  var UTILS = [
+    { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "Next up", acc: "#35d8d0",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>' },
+    { id: "u2", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#4d9fff", soon: true },
+    { id: "u3", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#39ff88", soon: true },
+    { id: "u4", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#ffc861", soon: true },
+  ];
+  var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
   function mountQuickBar() {
     var dock = document.querySelector("nav.ax-dock");
@@ -89,22 +105,10 @@
     var bar = document.createElement("nav");
     bar.className = "ax-quick";
     bar.setAttribute("aria-label", "Quick actions");
-    // CirclePad gets its own two: the round (Contribute while it's open —
-    // circlepad-fx.js relabels it) and the leaderboard.
-    // The $ARCIRCLE page and the Reward page get theirs too.
-    var cp = document.body.classList.contains("circlepad-page");
-    var rw = document.body.classList.contains("ax-reward-page");
-    var tk = !rw && document.body.classList.contains("ax-token");
-    var item = function (cls, href, ico, label, extra) {
-      return '<a class="ax-quick-item' + (cls ? " " + cls : "") + '" href="' + href + '"' + (extra || "") + '><span class="ax-quick-ico">' + ico + "</span><span>" + label + "</span></a>";
-    };
-    bar.innerHTML = cp
-      ? '<a class="ax-quick-item ax-quick-launch" href="#" data-cp="round"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>The round</span></a>' +
-        '<a class="ax-quick-item" href="#leaderboard" data-cp="leaderboard"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Leaderboard</span></a>'
-      : tk ? item("ax-quick-launch", "/arc#arcircle", ICON_COIN, "Buy $ARCIRCLE") + item("", "#market", ICON_CHART, "Chart", ' data-scroll="market"')
-      : rw ? item("ax-quick-launch", "#check", ICON_WALLET, "Check my wallet", ' data-scroll="check"') + item("", "#timeline", ICON_ROAD, "Roadmap", ' data-scroll="timeline"')
-      : '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
-        '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>';
+    bar.innerHTML =
+      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
+      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>' +
+      '<button type="button" class="ax-quick-util" aria-haspopup="dialog" aria-expanded="false" aria-controls="ax-util" aria-label="Utilities" title="Utilities">' + ICON_INFINITY + '<span class="ax-plus-wrap">' + ICON_PLUS + "</span></button>";
     dock.parentNode.insertBefore(bar, dock);
 
     // Sit exactly one gap above the dock, whatever height it renders at, and
@@ -125,20 +129,6 @@
     // (and always shown near the top and at the very bottom of the page).
     var lastY = window.scrollY, acc = 0, ticking = false;
     var setHidden = function (h) { bar.classList.toggle("ax-quick-hidden", h); };
-    // $ARCIRCLE / Reward: the hero already has these buttons, so the bar
-    // only comes in once the hero's own actions have scrolled away — it never
-    // sits on top of the first screen.
-    var gate = (tk || rw) ? document.querySelector("main .ax-actions") : null;
-    var gateOpen = !gate;
-    if (gate && "IntersectionObserver" in window) {
-      setHidden(true);
-      new IntersectionObserver(function (ents) {
-        var e = ents[ents.length - 1];
-        gateOpen = !e.isIntersecting && e.boundingClientRect.top < 0;
-        acc = 0;
-        setHidden(!gateOpen);
-      }).observe(gate);
-    } else gateOpen = true;
     window.addEventListener("scroll", function () {
       if (ticking) return;
       ticking = true;
@@ -147,8 +137,7 @@
         var y = window.scrollY, dy = y - lastY;
         lastY = y;
         var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
-        if (!gateOpen) { acc = 0; setHidden(true); return; }
-        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned")) { acc = 0; setHidden(false); return; }
+        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; setHidden(false); return; }
         acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
         if (acc > 24) setHidden(true);
         else if (acc < -16) setHidden(false);
@@ -156,20 +145,9 @@
     }, { passive: true });
     document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); });
 
+    mountUtilities(bar);
+
     bar.addEventListener("click", function (e) {
-      var sc = e.target.closest && e.target.closest("[data-scroll]");
-      if (sc) {
-        var target = document.getElementById(sc.getAttribute("data-scroll"));
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-          try { history.replaceState(history.state, "", "#" + target.id); } catch (err) { /* fine */ }
-          document.dispatchEvent(new CustomEvent("ax:quick", { detail: target.id }));
-        }
-        return;
-      }
-      var c = e.target.closest && e.target.closest("[data-cp]");
-      if (c) { e.preventDefault(); document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: c.getAttribute("data-cp") })); return; }
       var a = e.target.closest && e.target.closest("[data-arc-tab]");
       if (!a || typeof window.arcpadShowTab !== "function") return; // other pages: normal navigation
       e.preventDefault();
@@ -186,6 +164,95 @@
     var active = document.querySelector(".bp-panel.active");
     if (active && typeof window.arcpadShowTab === "function") mark(active.id.replace("bp-panel-", ""));
   }
+  // ---- Utilities panel: opens upwards from the infinity button, on phones
+  // and desktop alike. Escape, the scrim or the button close it.
+  function mountUtilities(bar) {
+    var btn = bar.querySelector(".ax-quick-util");
+    if (!btn) return;
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var scrim = document.createElement("div");
+    scrim.className = "ax-util-scrim";
+    scrim.hidden = true;
+    var panel = document.createElement("div");
+    panel.className = "ax-util";
+    panel.id = "ax-util";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Utilities");
+    panel.setAttribute("tabindex", "-1");
+    panel.hidden = true;
+    panel.innerHTML =
+      '<div class="ax-util-head"><span class="ax-util-mark">' + ICON_INFINITY + '</span><div><strong>Utilities</strong><small>Tools for everyone on Arc</small></div>' +
+      '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
+      '<div class="ax-util-grid">' + UTILS.map(function (u, i) {
+        var tag = u.href ? "a" : "div";
+        return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
+          (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
+          '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" +
+          '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
+          '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
+      }).join("") + "</div>";
+    document.body.appendChild(scrim);
+    document.body.appendChild(panel);
+
+    var open = false, closeT = 0;
+    function place() {
+      var r = bar.getBoundingClientRect();
+      var w = Math.min(440, window.innerWidth - 24);
+      var cx = r.left + r.width / 2;
+      var left = Math.max(12, Math.min(window.innerWidth - w - 12, cx - w / 2));
+      panel.style.width = w + "px";
+      panel.style.left = left + "px";
+      panel.style.bottom = Math.round(window.innerHeight - r.top + 10) + "px";
+      // the panel grows out of the button
+      var b = btn.getBoundingClientRect();
+      panel.style.setProperty("--ox", Math.round(b.left + b.width / 2 - left) + "px");
+    }
+    function show() {
+      if (open) return;
+      open = true;
+      clearTimeout(closeT);
+      bar.classList.remove("ax-quick-hidden");
+      bar.classList.add("util-open");
+      btn.setAttribute("aria-expanded", "true");
+      scrim.hidden = false; panel.hidden = false;
+      place();
+      void panel.offsetWidth;
+      panel.classList.add("in"); scrim.classList.add("in");
+      // focus moves into the panel itself (keyboard users Tab on from there)
+      setTimeout(function () { if (open) panel.focus({ preventScroll: true }); }, reduce ? 0 : 180);
+      if (typeof window.arcHaptic === "function") window.arcHaptic("tap");
+    }
+    function hide(back) {
+      if (!open) return;
+      open = false;
+      bar.classList.remove("util-open");
+      btn.setAttribute("aria-expanded", "false");
+      panel.classList.remove("in"); scrim.classList.remove("in");
+      closeT = setTimeout(function () { panel.hidden = true; scrim.hidden = true; }, reduce ? 0 : 260);
+      if (back) btn.focus({ preventScroll: true });
+    }
+    btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); if (open) hide(true); else show(); });
+    scrim.addEventListener("click", function () { hide(false); });
+    panel.querySelector(".ax-util-x").addEventListener("click", function () { hide(true); });
+    panel.addEventListener("click", function (e) {
+      var t = e.target.closest && e.target.closest(".ax-util-tile.is-off");
+      if (!t) return;
+      t.classList.remove("nudge"); void t.offsetWidth; t.classList.add("nudge");
+    });
+    document.addEventListener("keydown", function (e) {
+      if (!open) return;
+      if (e.key === "Escape") { e.preventDefault(); hide(true); return; }
+      if (e.key !== "Tab") return;
+      var f = [].slice.call(panel.querySelectorAll("a[href], button")).concat([btn]);
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    });
+    window.addEventListener("resize", function () { if (open) place(); });
+    document.addEventListener("arcpad:tab", function () { hide(false); });
+    window.arcUtilities = { open: show, close: hide, list: UTILS };
+  }
+
   mountQuickBar();
 
   if (location.hash === "#rewards") location.replace("/reward");

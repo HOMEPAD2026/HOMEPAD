@@ -363,7 +363,8 @@
     paintQuick(s);
   }
 
-  // Quick bar (arcircle-hub.js builds it): the round's own actions.
+  // Quick bar: it is now the same Launch / Explore / Utilities bar on every
+  // page, so these only act if a [data-cp] item is ever put back in it.
   const RING_ICO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg>';
   function paintQuick(s) {
     const q = document.querySelector('nav.ax-quick [data-cp="round"]');

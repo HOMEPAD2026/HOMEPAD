@@ -843,6 +843,12 @@
     "Treasury on ArcScan ↗": "ArcScan에서 트레저리 보기 ↗",
     "Buyback tracker →": "바이백 트래커 →",
     "Total supply on ArcScan ↗": "ArcScan에서 총 공급량 보기 ↗",
+    "Utilities": "유틸리티",
+    "Tools for everyone on Arc": "Arc의 모두를 위한 도구",
+    "Locker": "라커",
+    "Lock any Arc token until a date you pick": "원하는 날짜까지 Arc 토큰을 잠급니다",
+    "Next up": "다음 오픈",
+    "New utility": "새 유틸리티",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -1613,6 +1619,12 @@
     "Treasury on ArcScan ↗": "在 ArcScan 查看金库 ↗",
     "Buyback tracker →": "回购追踪 →",
     "Total supply on ArcScan ↗": "在 ArcScan 查看总供应 ↗",
+    "Utilities": "工具",
+    "Tools for everyone on Arc": "给 Arc 上每个人的工具",
+    "Locker": "锁仓",
+    "Lock any Arc token until a date you pick": "将任意 Arc 代币锁定到你选择的日期",
+    "Next up": "即将上线",
+    "New utility": "新工具",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

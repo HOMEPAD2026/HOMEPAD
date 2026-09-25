@@ -341,9 +341,6 @@
     });
     var mineBtn = $("rw-usemine");
     if (mineBtn) mineBtn.addEventListener("click", useMine);
-    document.addEventListener("ax:quick", function (e) {
-      if (e.detail === "check") setTimeout(function () { var i = $("rw-addr"); if (i && !i.value) i.focus({ preventScroll: true }); }, 500);
-    });
     var m = /^#check=(0x[0-9a-fA-F]{40})$/.exec(location.hash);
     if (m) {
       $("rw-addr").value = m[1];
