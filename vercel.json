@@ -92,6 +92,11 @@
       ],
       "destination": "https://www.arcircle.app/:path*",
       "permanent": false
+    },
+    {
+      "source": "/locker",
+      "destination": "/arc#locker",
+      "permanent": false
     }
   ],
   "headers": [

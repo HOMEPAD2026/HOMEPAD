@@ -87,15 +87,17 @@
     '<path class="ax-inf-shine" pathLength="100" d="M20 10C16.6 5.4 13.8 3.2 10.4 3.2a6.8 6.8 0 0 0 0 13.6c3.4 0 6.2-2.2 9.6-6.8s6.2-6.8 9.6-6.8a6.8 6.8 0 0 1 0 13.6c-3.4 0-6.2-2.2-9.6-6.8z"/></svg>';
   var ICON_PLUS = '<svg class="ax-plus" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 
-  // The four utilities. Locker is next to build (ArcLock is already live on
-  // Arc and takes any token); the other three are placeholders until they are
-  // picked. Set href on an entry when its page exists.
+  // The four utilities. A tile with an href is live; the others show "Soon"
+  // until their page exists.
   var UTILS = [
-    { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "Next up", acc: "#35d8d0",
+    { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "Live", acc: "#35d8d0", href: "/arc#locker",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>' },
-    { id: "u2", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#4d9fff", soon: true },
-    { id: "u3", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#39ff88", soon: true },
-    { id: "u4", name: "New utility", sub: "Coming soon", status: "Soon", acc: "#ffc861", soon: true },
+    { id: "scanner", name: "Token Scanner", sub: "Check any Arc token before you buy", status: "Soon", acc: "#4d9fff", soon: true,
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></svg>' },
+    { id: "multisender", name: "Multisender", sub: "Send a token to many wallets in one go", status: "Soon", acc: "#39ff88", soon: true,
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></svg>' },
+    { id: "bridge", name: "Bridge", sub: "Bring USDC to Arc from other chains", status: "Soon", acc: "#ffc861", soon: true,
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></svg>' },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
@@ -235,6 +237,7 @@
     scrim.addEventListener("click", function () { hide(false); });
     panel.querySelector(".ax-util-x").addEventListener("click", function () { hide(true); });
     panel.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("a.ax-util-tile")) { hide(false); return; }
       var t = e.target.closest && e.target.closest(".ax-util-tile.is-off");
       if (!t) return;
       t.classList.remove("nudge"); void t.offsetWidth; t.classList.add("nudge");

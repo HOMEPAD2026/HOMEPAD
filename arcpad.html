@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790328338"></script>
+<script src="arc-log.js?v=1790330016"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790328338">
+<link rel="stylesheet" href="style.css?v=1790330016">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -57,6 +57,7 @@
 <symbol id="i-ext" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8.5 8.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></g></symbol>
 <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></g></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.3"/></g></symbol>
 <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/></g></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z" fill="currentColor"/></symbol>
 <symbol id="i-coin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.3v9.4"/><path d="M9.4 9.6c0-1.3 1.2-2.3 2.6-2.3s2.6.9 2.6 2c0 2.6-5.2 1.3-5.2 3.9 0 1.1 1.2 2 2.6 2s2.6-.9 2.6-2.1"/></g></symbol>
@@ -94,6 +95,7 @@
       <button type="button" class="bp-nav-item" data-tab="launch"><svg><use href="#i-rocket" xlink:href="#i-rocket"/></svg>Launch</button>
       <button type="button" class="bp-nav-item" data-tab="portfolio"><svg><use href="#i-wallet" xlink:href="#i-wallet"/></svg>Portfolio</button>
       <button type="button" class="bp-nav-item" data-tab="creators"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Creators</button>
+      <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
 
@@ -665,6 +667,73 @@
         <p class="cr-note">The whitepaper's creator score is planned to combine organic volume, unique buyers and holder retention, with a boost for $ARCIRCLE-paired launches. This preview uses what can be read live today. No rewards are paid from it.</p>
       </section>
 
+      <!-- ============ LOCKER (arc-locker.js) — the first ARCIRCLE PAD utility ============ -->
+      <section class="bp-panel" id="bp-panel-locker">
+        <div class="lkr-hero">
+          <div class="lkr-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><defs><linearGradient id="lkrGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>
+              <path class="lkr-shackle" d="M21 29V21a11 11 0 0 1 22 0v8"/><rect class="lkr-body" x="13" y="28" width="38" height="28" rx="8"/><circle class="lkr-key" cx="32" cy="41" r="4"/><path class="lkr-key" d="M32 45v4"/></svg>
+          </div>
+          <div class="lkr-hero-txt">
+            <span class="lkr-kicker">Utility</span>
+            <h1>Locker</h1>
+            <p class="bp-lede">Lock any Arc token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.</p>
+          </div>
+          <div class="lkr-stats">
+            <div><small>Locks created</small><b id="lkr-count">—</b></div>
+            <div><small>Shortest</small><b>1 day</b></div>
+            <div><small>Longest</small><b>10 years</b></div>
+            <div><small>Fee</small><b>None</b></div>
+          </div>
+        </div>
+
+        <div class="lkr-grid">
+          <div class="lkr-card lkr-new">
+            <h2>New lock</h2>
+            <div class="lkr-field">
+              <label for="lkr-addr">Token</label>
+              <input id="lkr-addr" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a token contract address (0x…)">
+              <div class="lkr-chips" id="lkr-quick"></div>
+            </div>
+            <div class="lkr-tokcard" id="lkr-token" hidden></div>
+            <div class="lkr-field">
+              <label for="lkr-amt">Amount</label>
+              <input id="lkr-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0">
+              <div class="lkr-chips" id="lkr-pcts"></div>
+            </div>
+            <div class="lkr-field">
+              <label>Lock for</label>
+              <div class="lkr-chips" id="lkr-durs"></div>
+              <div class="lkr-timeline"><span>Today</span><div class="lkr-bar" id="lkr-bar"><i></i></div><span><b id="lkr-until">—</b> · <em id="lkr-days">—</em></span></div>
+            </div>
+            <div class="lkr-summary" id="lkr-summary"></div>
+            <ol class="lkr-steps" id="lkr-steps" data-step="0">
+              <li><i>1</i><span>Approve</span></li><li><i>2</i><span>Lock</span></li><li><i>3</i><span>Done</span></li>
+            </ol>
+            <button type="button" class="lkr-btn" id="lkr-go">Approve &amp; lock</button>
+            <div class="lkr-status" id="lkr-status" aria-live="polite"></div>
+          </div>
+
+          <div class="lkr-card lkr-find" id="lkr-find">
+            <h2>Look up a token</h2>
+            <p class="lkr-sub">See every lock ever made for a token — how much is locked, by whom, and when it unlocks.</p>
+            <form class="lkr-findform" id="lkr-find-form" autocomplete="off">
+              <input id="lkr-find-addr" type="text" spellcheck="false" placeholder="Token contract address (0x…)" aria-label="Token contract address">
+              <button type="submit" class="lkr-btn ghost">Check</button>
+            </form>
+            <div id="lkr-find-out"><p class="lkr-empty">Paste a token address, or pick one of your locks below.</p></div>
+          </div>
+        </div>
+
+        <div class="lkr-card lkr-minecard">
+          <h2>Your locks</h2>
+          <div id="lkr-mine"></div>
+          <div class="lkr-status" id="lkr-mine-status" aria-live="polite"></div>
+        </div>
+
+        <p class="lkr-foot">Runs on ArcLock <a id="lkr-contract" href="#" target="_blank" rel="noopener" data-no-i18n>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. You pay only Arc gas. Tokens that take a fee on transfer are recorded at the amount that actually arrives.</p>
+      </section>
+
       <section class="bp-panel" id="bp-panel-docs">
         <div class="bp-doc-tabs">
           <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
@@ -785,6 +854,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790328338"></script>
+<script src="arcpad.bundle.js?v=1790330016"></script>
 </body>
 </html>

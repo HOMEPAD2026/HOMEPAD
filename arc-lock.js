@@ -267,7 +267,7 @@
     }).join("");
     const html = `<h3 class="pf-h lk-pf-h">${ICON}<span>Your locks</span></h3>
       <div class="pf-table"><div class="pf-row pf-head"><span></span><span>Coin</span><span class="pf-amt">Amount</span><span class="pf-val">Of supply</span><span class="pf-chg">Unlocks in</span></div>${rows}</div>
-      <p class="pf-note">Locked with ArcLock. Open a coin to extend a lock by 30 days or withdraw once it unlocks.</p>`;
+      <a class="pf-note lk-pf-more" href="/arc#locker">Manage, extend or withdraw your locks in Locker →</a>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "portfolio") renderPf(); });
