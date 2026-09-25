@@ -83,9 +83,14 @@
     var bar = document.createElement("nav");
     bar.className = "ax-quick";
     bar.setAttribute("aria-label", "Quick actions");
-    bar.innerHTML =
-      '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
-      '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>';
+    // CirclePad gets its own two: the round (Contribute while it's open —
+    // circlepad-fx.js relabels it) and the leaderboard.
+    var cp = document.body.classList.contains("circlepad-page");
+    bar.innerHTML = cp
+      ? '<a class="ax-quick-item ax-quick-launch" href="#" data-cp="round"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>The round</span></a>' +
+        '<a class="ax-quick-item" href="#leaderboard" data-cp="leaderboard"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Leaderboard</span></a>'
+      : '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
+        '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>';
     dock.parentNode.insertBefore(bar, dock);
 
     // Sit exactly one gap above the dock, whatever height it renders at, and
@@ -114,7 +119,7 @@
         var y = window.scrollY, dy = y - lastY;
         lastY = y;
         var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
-        if (y < 80 || atBottom) { acc = 0; setHidden(false); return; }
+        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned")) { acc = 0; setHidden(false); return; }
         acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
         if (acc > 24) setHidden(true);
         else if (acc < -16) setHidden(false);
@@ -123,6 +128,8 @@
     document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); });
 
     bar.addEventListener("click", function (e) {
+      var c = e.target.closest && e.target.closest("[data-cp]");
+      if (c) { e.preventDefault(); document.dispatchEvent(new CustomEvent("circlepad:quick", { detail: c.getAttribute("data-cp") })); return; }
       var a = e.target.closest && e.target.closest("[data-arc-tab]");
       if (!a || typeof window.arcpadShowTab !== "function") return; // other pages: normal navigation
       e.preventDefault();

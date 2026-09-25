@@ -478,7 +478,11 @@ async function initCirclepadRound() {
       escrow.recipient(), escrow.platformWallet(), escrow.treasuryWallet(),
     ]);
     const payoutEl = document.getElementById("bp-stat-payout");
-    if (payoutEl) payoutEl.innerHTML = `<a href="${CONFIG.BLOCK_EXPLORER}/address/${recipient}" target="_blank" rel="noopener">${short(recipient)}</a>`;
+    // A zero recipient (or a failed read) would print "0x0000…0000", which
+    // reads like a bug — say what it means instead.
+    if (payoutEl) payoutEl.innerHTML = recipient && recipient !== ethers.ZeroAddress
+      ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${recipient}" target="_blank" rel="noopener">${short(recipient)}</a>`
+      : "Set when the round starts";
 
     const nextTitle = document.getElementById("bp-nextcard-title");
     const nextBody = document.getElementById("bp-nextcard-body");
