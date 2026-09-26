@@ -141,9 +141,12 @@
     { id: "bridge", name: "Bridge", sub: "Move USDC between Arc and 8 chains", status: "Live", acc: "#ffc861", href: "/arc#bridge",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></svg>' },
   ];
-  // Page 2: the next utilities, not announced yet — placeholders until each is decided.
+  // Page 2: Snapshot, then the next utilities — placeholders until each is decided.
+  var UTILS2 = [
+    { id: "snapshot", name: "Snapshot", sub: "Every holder of a token at one moment", status: "New", acc: "#b58bff", href: "/arc#snapshot",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></svg>' },
+  ];
   var NEXT = [
-    { id: "next-5", sub: "In the works" },
     { id: "next-6", sub: "Being designed" },
     { id: "next-7", sub: "On the drawing board" },
     { id: "next-8", sub: "Details soon" },
@@ -260,7 +263,7 @@
       '<div class="ax-util-pages" aria-roledescription="carousel">' +
         '<div class="ax-util-track">' +
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 2" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 2" data-page="1">' + NEXT.map(next).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 2" data-page="1">' + UTILS2.map(tile).join("") + NEXT.map(function (u, i) { return next(u, i + UTILS2.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
@@ -341,7 +344,11 @@
       bar.classList.add("util-open");
       btn.setAttribute("aria-expanded", "true");
       scrim.hidden = false; panel.hidden = false;
-      goPage(0, true);
+      // open on the page that holds the utility you're on
+      var act = document.querySelector(".bp-panel.active"), here = act && /^\/arc(?:pad\.html)?\/?$/.test(location.pathname) ? act.id.replace("bp-panel-", "") : "";
+      var cur = here ? panel.querySelector('.ax-util-tile[href="/arc#' + here + '"]') : null;
+      Array.prototype.forEach.call(panel.querySelectorAll(".ax-util-tile[href]"), function (a) { if (a === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+      goPage(cur ? Number(cur.parentNode.getAttribute("data-page")) || 0 : 0, true);
       place();
       void panel.offsetWidth;
       panel.classList.add("in"); scrim.classList.add("in");
@@ -379,7 +386,7 @@
     });
     window.addEventListener("resize", function () { if (open) place(); });
     document.addEventListener("arcpad:tab", function () { hide(false); });
-    window.arcUtilities = { open: show, close: hide, list: UTILS, page: function (n) { if (n == null) return page; goPage(n); } };
+    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2), page: function (n) { if (n == null) return page; goPage(n); } };
   }
 
   // ---- Dock: the "you are here" highlight slides from the page you came

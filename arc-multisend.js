@@ -1546,5 +1546,14 @@
       if (state.account && !$("ams-look").value) $("ams-look").value = state.account;
     }
   }, 1500);
-  window.arcMultisend = { parseList, mergeDuplicates, buildTree, splitEven, CHUNK: MAX_CHUNK, state: F };
+  // A list from another utility (Snapshot): opens the list step with it.
+  function load(text, am, note) {
+    if (!booted) { booted = true; init(); }
+    if (F.mode !== "token") { const b = $("ams-modes").querySelector('[data-mode="token"]'); if (b) b.click(); }
+    F.am = am || "line"; renderAm();
+    setList(String(text || ""), note || "");
+    const el = $("ams-step-list");
+    if (el) el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+  window.arcMultisend = { parseList, mergeDuplicates, buildTree, splitEven, CHUNK: MAX_CHUNK, state: F, load };
 })();

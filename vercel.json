@@ -135,6 +135,11 @@
       "permanent": false
     },
     {
+      "source": "/snapshot",
+      "destination": "/arc#snapshot",
+      "permanent": false
+    },
+    {
       "source": "/claim/:id",
       "destination": "/arc#multisend?claim=:id",
       "permanent": false

@@ -223,7 +223,7 @@ export async function GET(req) {
     const t = String(url.searchParams.get("holdersnap") || "");
     if (!isAddr(t)) return json(400, { error: "token must be an address" });
     if (scanner.limited(`hs:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
-    try { const out = await scanner.holderSnapshot(t, { store: scanStore() }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
+    try { const out = await scanner.holderSnapshot(t, { store: scanStore(), limit: url.searchParams.get("limit") }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.get("drops") === "recent") {

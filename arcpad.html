@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790406100"></script>
+<script src="arc-log.js?v=1790409680"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790406100">
+<link rel="stylesheet" href="style.css?v=1790409680">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -59,6 +59,7 @@
 <symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></g></symbol>
 <symbol id="i-scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></g></symbol>
 <symbol id="i-bridge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></g></symbol>
+<symbol id="i-snap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></g></symbol>
 <symbol id="i-fan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></g></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.3"/></g></symbol>
 <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/></g></symbol>
@@ -102,6 +103,7 @@
       <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge</button>
       <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner</button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender</button>
+      <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
 
@@ -1128,6 +1130,97 @@
         <p class="ams-foot">Runs on ArcMultiSend <a id="ams-contract" href="#" target="_blank" rel="noopener" data-no-i18n hidden>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. Up to 200 wallets per transaction. Tokens that take a fee on transfer arrive minus that fee.</p>
       </section>
 
+      <!-- ============ HOLDER SNAPSHOT (arc-snapshot.js) — every holder of a token at one block ============ -->
+      <section class="bp-panel" id="bp-panel-snapshot">
+        <div class="ams-hero asn-hero">
+          <div class="asn-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><defs><linearGradient id="asnGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7c9cff"/><stop offset=".55" stop-color="#b58bff"/><stop offset="1" stop-color="#ff8bd8"/></linearGradient></defs>
+              <path class="asn-frame" d="M10 22v-7a5 5 0 0 1 5-5h7M42 10h7a5 5 0 0 1 5 5v7M54 42v7a5 5 0 0 1-5 5h-7M22 54h-7a5 5 0 0 1-5-5v-7"/>
+              <g class="asn-dots"><circle cx="22" cy="26" r="3.2"/><circle cx="32" cy="22" r="3.2"/><circle cx="42" cy="27" r="3.2"/><circle cx="26" cy="39" r="3.2"/><circle cx="38" cy="40" r="3.2"/><circle cx="32" cy="31" r="2.2"/></g>
+              <rect class="asn-scan" x="12" y="30" width="40" height="3" rx="1.5"/></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Utility · Holder snapshot</span>
+            <h1>Snapshot <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>
+            <p class="bp-lede">Every holder of an Arc token at one moment — now, or any time in the last 30 days. Filter out pools and small wallets, download the CSV, share a link that rebuilds the same list, or send an airdrop to it in two taps.</p>
+          </div>
+        </div>
+
+        <div class="ams-grid asn-grid">
+          <div class="ams-main">
+            <div class="ams-card">
+              <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
+              <form id="asn-form" class="asn-form" autocomplete="off">
+                <input id="asn-addr" type="text" spellcheck="false" aria-label="Token contract address">
+                <button type="submit" class="ams-mini">Load</button>
+              </form>
+              <div class="ams-chips asn-chips" id="asn-chips"></div>
+              <div class="asn-tok" id="asn-tok" hidden></div>
+            </div>
+
+            <div class="ams-card">
+              <div class="ams-card-head"><span class="ams-num">2</span><h2>When</h2></div>
+              <div class="asn-seg" role="radiogroup" aria-label="When">
+                <button type="button" role="radio" data-when="now" aria-checked="true"><b>Now</b><span>The latest block</span></button>
+                <button type="button" role="radio" data-when="past" aria-checked="false"><b>Earlier</b><span>Up to 30 days back</span></button>
+              </div>
+              <div class="asn-past" id="asn-past" hidden>
+                <input id="asn-at" type="datetime-local" aria-label="Date and time">
+                <div class="asn-agos"><button type="button" class="ams-mini" data-ago="1">1h ago</button><button type="button" class="ams-mini" data-ago="24">24h ago</button><button type="button" class="ams-mini" data-ago="72">3 days ago</button><button type="button" class="ams-mini" data-ago="168">7 days ago</button></div>
+                <p class="asn-note">Balances at the last block before this time, in your time zone. Going further back takes longer — about a few seconds per day.</p>
+              </div>
+              <p class="asn-left warn" id="asn-lite" hidden>This token has too many holders to rebuild an earlier moment — only "Now" works for it.</p>
+            </div>
+
+            <div class="ams-card">
+              <div class="ams-card-head"><span class="ams-num">3</span><h2>Filters</h2></div>
+              <div class="asn-filters">
+                <label>Minimum holding<span class="asn-in"><input id="asn-min" type="text" inputmode="decimal" placeholder="0"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-min" hidden>Not a number</small></label>
+                <label>Maximum holding<span class="asn-in"><input id="asn-max" type="text" inputmode="decimal" placeholder="No limit"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-max" hidden>Not a number</small></label>
+                <label>Top wallets only<span class="asn-in"><input id="asn-top" type="text" inputmode="numeric" placeholder="All"></span></label>
+              </div>
+              <label class="asn-check"><input type="checkbox" id="asn-noc" checked> <span>Leave out contracts <small>(pools, lockers, vaults)</small></span></label>
+              <div class="asn-hold" id="asn-hold-row" hidden>
+                <span>Since the snapshot</span>
+                <div class="asn-seg sm" role="radiogroup" aria-label="Since the snapshot">
+                  <button type="button" role="radio" data-hold="any" aria-checked="true">Anyone</button>
+                  <button type="button" role="radio" data-hold="some" aria-checked="false">Still holds some</button>
+                  <button type="button" role="radio" data-hold="all" aria-checked="false">Didn't sell</button>
+                </div>
+              </div>
+              <button type="button" class="ams-mini asn-skipbtn" data-act="skip-toggle" aria-expanded="false">Leave out wallets…</button>
+              <div class="asn-skipbox" id="asn-skipbox" hidden><textarea id="asn-skip" rows="3" spellcheck="false" placeholder="0x… one per line — team, exchanges, anyone else" aria-label="Wallets to leave out"></textarea></div>
+              <button type="button" class="bp-btn-primary asn-go" id="asn-go"><span>Take snapshot</span></button>
+              <div class="asn-status" id="asn-status" role="status" hidden></div>
+            </div>
+          </div>
+
+          <div class="ams-side">
+            <div class="ams-card asn-result">
+              <div class="asn-empty" id="asn-empty">
+                <b>No snapshot yet</b>
+                <span>Pick a token and a moment. The list is read from the token's own transfer history on Arc — nothing to sign, nothing to pay.</span>
+                <ul><li>Airdrops and rewards for holders</li><li>Allowlists for a mint or a round</li><li>Proof of who held before an announcement</li></ul>
+              </div>
+              <div class="asn-out" id="asn-out" hidden>
+                <div id="asn-sum"></div>
+                <div class="asn-acts" id="asn-acts" hidden>
+                  <button type="button" class="ams-btn sm asn-primary" data-act="ms-same">Airdrop: same amount each</button>
+                  <button type="button" class="ams-btn sm asn-primary" data-act="ms-weight">Airdrop: by holding</button>
+                  <button type="button" class="ams-mini" data-act="csv">Download CSV</button>
+                  <button type="button" class="ams-mini" data-act="addrs">Copy addresses</button>
+                  <button type="button" class="ams-mini" data-act="link">Copy link</button>
+                </div>
+                <input id="asn-q" class="asn-q" type="text" spellcheck="false" placeholder="Find a wallet (0x…)" aria-label="Find a wallet">
+                <div class="asn-table" id="asn-table"></div>
+              </div>
+              <div class="ams-toast asn-toast" id="asn-toast" role="status" hidden></div>
+            </div>
+          </div>
+        </div>
+        <p class="asc-foot">Balances come from the token's Transfer events on Arc, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.</p>
+      </section>
+
       <section class="bp-panel" id="bp-panel-docs">
         <div class="bp-doc-tabs">
           <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
@@ -1248,6 +1341,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790406100"></script>
+<script src="arcpad.bundle.js?v=1790409680"></script>
 </body>
 </html>

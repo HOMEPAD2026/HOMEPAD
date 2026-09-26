@@ -198,6 +198,7 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
 /// again). Tokens with more than MAX_KEEP wallets only have their largest
 /// holders (lite: true). The biggest 1,000 are flagged when they're contracts.
 export async function holderSnapshot(token, { store = null, budgetMs = 7000, limit = 5000 } = {}) {
+  limit = Math.max(1, Math.min(MAX_KEEP, Number(limit) || 5000));
   const out = await holderScan(token, { store, budgetMs });
   const t = lc(token);
   let S = mem.get(t) || null;
@@ -217,8 +218,12 @@ export async function holderSnapshot(token, { store = null, budgetMs = 7000, lim
       part.forEach((a, k) => { const c = byId.get(k); if (c && c !== "0x") flags.set(a, 1); });
     } catch { /* unflagged */ }
   }
+  // Which block the balances are for: the scanned-up-to block for the
+  // event-log sheet, "now" for the balanceOf reads of a very wide token.
+  const exact = S && S.complete && !S.lite;
   return {
     token: t, decimals: out.decimals, supply: out.supply, complete: out.complete && !lite, more: out.more, lite,
+    block: exact ? out.toBlock : null, ts: out.nowTs || null,
     holderCount: out.holderCount, checkedContracts: head.length,
     holders: list.map(([a, v]) => (flags.has(a) ? [a, v.toString(), 1] : [a, v.toString()])),
   };
