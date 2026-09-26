@@ -2135,6 +2135,7 @@
     "Finding your positions on Arc…": "Arc에서 내 포지션을 찾는 중…",
     "No liquidity positions in this wallet yet.": "이 지갑에는 아직 유동성 포지션이 없습니다.",
     "Couldn't list your positions right now.": "지금은 포지션 목록을 불러오지 못했습니다.",
+    "pool": "풀",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4629,6 +4630,7 @@
     "Finding your positions on Arc…": "正在 Arc 上查找你的仓位…",
     "No liquidity positions in this wallet yet.": "这个钱包还没有流动性仓位。",
     "Couldn't list your positions right now.": "暂时无法列出你的仓位。",
+    "pool": "池",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -91,6 +91,9 @@
   // ---- state ----
   let D = null, busyLoad = false, tokenAddr = "", pollT = null;
   let skew = 0; // the chain's clock minus this device's (locks end on chain time)
+  // pools created from this browser, so a brand-new one shows before Dexscreener lists it
+  const myPools = (t) => { try { return JSON.parse(localStorage.getItem("arcircle.liq.pools." + t) || "[]").filter((x) => /^0x[0-9a-f]{64}$/.test(x)).slice(-6); } catch { return []; } };
+  const addMyPool = (t, id) => { try { localStorage.setItem("arcircle.liq.pools." + t, JSON.stringify([...new Set([...myPools(t), id])].slice(-6))); } catch { /* this visit only */ } };
   const cnow = () => now() + skew;
   const prevStats = new Map(); // pool id → last shown stats, to flash what changed
   const prevCounts = new Map(); // count-up start values
@@ -129,8 +132,9 @@
     if (!quiet) { status(`<span class="alq-spin"></span>${T("Reading pools and positions…")}`); if (!D || D.token.address !== addr) $("alq-out").innerHTML = skeleton(); }
     try {
       for (let i = 0; i < 40; i++) {
-        const r = await fetch(`${API}?liq=${addr}${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
+        const r = await fetch(`${API}?liq=${addr}${me() ? `&wallet=${me()}` : ""}${myPools(addr).length ? `&pools=${myPools(addr).join(",")}` : ""}`, { cache: "no-store" });
         const j = await r.json().catch(() => ({}));
+        if (r.status === 503 && i < 39) { await new Promise((res) => setTimeout(res, 1500)); continue; } // Arc's RPC was busy: ask again
         if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
         if (j.done) { D = j; if (j.at) skew = Math.abs(j.at - now()) > 90 ? j.at - now() : 0; break; }
         if (!quiet) status(`<span class="alq-spin"></span>${T("Indexing liquidity positions…")} <b data-no-i18n>${Math.round((j.progress || 0) * 100)}%</b><small>${T("The first look at a token reads every position on Arc — later visits are instant.")}</small>`);
@@ -372,8 +376,10 @@
     for (const p of D.pools) for (const q of p.positions) { byId.set(q.id, [p, q]); if (q.lock) byLock.set(q.lock.lockId, [p, q]); }
     const tsOf = (b) => F.anchor.ts - (F.anchor.block - b) * F.spb;
     const ago = (b) => { const s2 = Math.max(0, Date.now() / 1000 + skew - tsOf(b)); return s2 < 90 ? tr("just now") : s2 < 5400 ? `${Math.round(s2 / 60)}${tr("m ago")}` : `${Math.round(s2 / 3600)}${tr("h ago")}`; };
-    let pulled = 0;
+    const flow = new Map(); // pool id → { rem, add } liquidity at today's price
     const rows = [];
+    const multi = D.pools.filter((x) => x.key).length > 1;
+    const poolTag = (p) => (multi ? ` · <span data-no-i18n>${p.feePct != null ? `${p.feePct}%` : esc(tr("Dynamic fee"))}</span> ${T("pool")}` : "");
     for (const e of F.events) {
       if (e.k === "add" || e.k === "remove") {
         const p = D.pools.find((x) => x.id === e.pool);
@@ -384,11 +390,11 @@
         // share of the pool's liquidity at today's price (for a removal: of what was there before it)
         const share = inR && act > 0n ? Number((B(e.liq) * 10000n) / (e.k === "remove" ? act + B(e.liq) : act)) / 100 : 0;
         const big = e.k === "remove" && share >= 20;
-        if (e.k === "remove") pulled += share;
+        if (inR) { const f = flow.get(p.id) || { rem: 0n, add: 0n }; f[e.k === "remove" ? "rem" : "add"] += B(e.liq); flow.set(p.id, f); }
         const who = e.id != null ? (byId.has(e.id) && byId.get(e.id)[1].mine ? tr("You") : `#${e.id}`) : e.sender && lc(e.sender) === lc(Lq.LIQ_ADDR.arcpadFactory) ? tr("ArcPad launch") : short(e.sender);
         rows.push(`<li class="${e.k}${big ? " big" : ""}"><i class="alq-fi" aria-hidden="true">${e.k === "add" ? "+" : "−"}</i>
           <div><b>${T(e.k === "add" ? "Added" : "Removed")}</b> <span data-no-i18n>${fmtRaw(tokAmt, D.token.decimals)} ${esc(D.token.symbol)} + ${fmtRaw(qAmt, p.quote.decimals)} ${esc(p.quote.symbol)}</span>${big ? ` <span class="alq-chip warn">${T("Large removal")}</span>` : ""}
-          <small><span data-no-i18n>${esc(who)}</span>${share ? ` · <span data-no-i18n>${share < 0.1 ? "<0.1" : share.toFixed(1)}%</span> ${T("of the pool")}` : ""} · ${T("≈ at today's price")}</small></div>
+          <small><span data-no-i18n>${esc(who)}</span>${poolTag(p)}${share ? ` · <span data-no-i18n>${share < 0.1 ? "<0.1" : share.toFixed(1)}%</span> ${T("of the pool")}` : ""} · ${T("≈ at today's price")}</small></div>
           <a href="${explorer("tx", e.h)}" target="_blank" rel="noopener" data-no-i18n>${esc(ago(e.b))} ↗</a></li>`);
       } else {
         const hit = e.id != null ? byId.get(e.id) : byLock.get(e.lockId);
@@ -402,6 +408,20 @@
     }
     const many = rows.length > 8;
     box.querySelector(".alq-feed-body").innerHTML = rows.length ? `<ul class="alq-feed-list${feedAll ? " all" : ""}">${rows.slice(0, 30).join("")}</ul>${many ? `<button type="button" class="alq-more-btn" data-feed-all>${feedAll ? T("Show fewer") : `${T("Show all")} <b data-no-i18n>${Math.min(30, rows.length)}</b>`}</button>` : ""}` : `<p class="alq-muted">${T("No liquidity was added or removed in the last 24 hours.")}</p>`;
+    // a "liquidity was pulled" banner: more came out than went in over the day, 20%+ of what was
+    // there, in a pool that holds a real part of the token's liquidity (not a side pool)
+    const totalUsd = D.pools.reduce((a, p) => a + ((p.dex && p.dex.liqUsd) || 0), 0);
+    const main = D.pools.filter((p) => p.key).sort((a, b) => (B(b.liquidity) > B(a.liquidity) ? 1 : -1))[0];
+    let pulled = 0, pulledPool = null;
+    for (const [id, f] of flow) {
+      const p = D.pools.find((x) => x.id === id), net = f.rem - f.add;
+      if (!p || net <= 0n) continue;
+      const matters = totalUsd > 0 && p.dex && p.dex.liqUsd != null ? p.dex.liqUsd / totalUsd >= 0.2 || (p.dex.liqUsd === 0 && p === main) : p === main;
+      if (!matters) continue;
+      const pct = Number((net * 10000n) / (B(p.liquidity) + net)) / 100;
+      if (pct > pulled) { pulled = pct; pulledPool = p; }
+    }
+    void pulledPool;
     const al = $("alq-alert");
     if (al) al.innerHTML = pulled >= 20 ? `<div class="alq-rug" role="alert"><b>${T("Liquidity was pulled")}</b><span><span data-no-i18n>${Math.min(100, pulled).toFixed(0)}%</span> ${T("of a pool's liquidity was removed in the last 24 hours.")}</span><button type="button" class="alq-link" data-jump-feed>${T("See activity")}</button></div>` : "";
   }
@@ -725,6 +745,7 @@
         btn.textContent = tr("Confirming…");
         await tx.wait();
         close();
+        if (p.create) addMyPool(D.token.address, p.id);
         const had = new Set(mineIds());
         toast(p.create ? "Pool created — your position is below." : pos ? "Added to your position." : "Liquidity added — your position is below.", "ok");
         await load(tokenAddr, { quiet: true });

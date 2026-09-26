@@ -24,13 +24,15 @@ export const ARCIRCLE_LAUNCHED_AT = 1790345391;
 // that created it. _token.mjs reads the record once and only trusts it when
 // the hook it names hashes to ARCIRCLE_POOL_ID (so a wrong layout can't leak in).
 export const ARGUS_PORTALS = [
-  "0xb021be536808f551b31789422fd28a6c9c6e97da", // #7 (current)
+  "0xeed7559b8a6abf64427dc41cb5cc6400109c5d93", // V5 — launched $ARCIRCLE (tx 0x2fad1fcd…4548)
+  "0xb021be536808f551b31789422fd28a6c9c6e97da", // #7
   "0xa5628a11c412596e1f63b75a2c0284f843c549d6", // #6
   "0x07a688a001f416cc433c68ff56aa26bc5131cc6e", // #5
   "0xa36c443a797771df82533b8b4a86f0affd970862", // #4
   "0x7a17ab0106c46c0be30623f3eb7f299cc0058338", // #3
 ];
-export const ARGUS_POOL_FEE = 10000, ARGUS_TICK_SPACING = 200;
+// V5 pools carry the dynamic-fee flag (0x800000) — the hook sets the fee; older ones 1%.
+export const ARGUS_POOL_FEE = 10000, ARGUS_POOL_FEE_DYNAMIC = 0x800000, ARGUS_TICK_SPACING = 200;
 // Argus keeps 10% of the tax it collects; 90% goes to the creator's allocation
 // (creator funds / buyback & burn / holder dividends / liquidity).
 export const ARGUS_SHARE_BPS = 1000;

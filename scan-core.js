@@ -40,7 +40,7 @@
     if (k === ADDR.arcpadFactory || k === ADDR.arcpadHook || k === ADDR.arcpadRouter) return { name: "ArcPad", kind: "infra" };
     if (k === ADDR.circleEscrow) return { name: "CirclePad escrow", kind: "infra" };
     if (k === ADDR.uniRouter) return { name: "Uniswap router", kind: "infra" };
-    if (ADDR.argusPortals.includes(k)) return { name: "Argus", kind: "infra" };
+    if (ADDR.argusPortals.includes(k) || k === "0xeed7559b8a6abf64427dc41cb5cc6400109c5d93") return { name: "Argus", kind: "infra" };
     if (extra && extra[k]) return extra[k];
     return null;
   }

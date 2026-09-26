@@ -243,7 +243,7 @@ export async function GET(req) {
   if (url.searchParams.has("liq")) {
     if (scanner.limited(`lq:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
     try {
-      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000 });
+      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000, extra: String(url.searchParams.get("pools") || "").split(",").filter(Boolean).slice(0, 6) });
       return json(200, out, "no-store");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }

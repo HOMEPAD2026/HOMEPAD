@@ -18,7 +18,7 @@ import { ethCalls, rpcCall, getLogs, latestBlock, blockTs, toQty, pad, wAddr, is
 import { storeEnabled, getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 import { ARCIRCLE, ARCIRCLE_LIVE, FACTORY, kec, S, big, roundState, contributionOf } from "./_round.mjs";
 import { ARCIRCLE_CURVE, ARCIRCLE_POOL_ID, ARCIRCLE_LAUNCHED_AT, ARCIRCLE_VENUE_CONTRACTS, ARCIRCLE_QUOTE, ARCIRCLE_QUOTE_DECIMALS,
-  ARCIRCLE_IS_CURRENCY0, ARGUS_PORTALS, ARGUS_POOL_FEE, ARGUS_TICK_SPACING, ARGUS_SHARE_BPS, arcircleUsd } from "./_arcircle.mjs";
+  ARCIRCLE_IS_CURRENCY0, ARGUS_PORTALS, ARGUS_POOL_FEE, ARGUS_POOL_FEE_DYNAMIC, ARGUS_TICK_SPACING, ARGUS_SHARE_BPS, arcircleUsd } from "./_arcircle.mjs";
 import { PM_ADDRESS, keccakHex } from "./_arc.mjs";
 import { creatorCounts, blockAtOrBefore } from "./_circle.mjs";
 
@@ -189,10 +189,10 @@ export function argusRecord(hex) {
   if (/^0x0{40}$/.test(rec.creator) || /^0x0{40}$/.test(rec.hook) || rec.buyTaxBps > 1000 || rec.sellTaxBps > 1000) return null;
   return rec;
 }
-export function argusPoolId(token, quote, hook) {
+export function argusPoolId(token, quote, hook, fee = ARGUS_POOL_FEE) {
   const [c0, c1] = BigInt(token) < BigInt(quote) ? [token, quote] : [quote, token];
   return keccakHex([c0, c1].map((a) => strip0(a).toLowerCase().padStart(64, "0")).join("") +
-    ARGUS_POOL_FEE.toString(16).padStart(64, "0") + ARGUS_TICK_SPACING.toString(16).padStart(64, "0") + strip0(hook).toLowerCase().padStart(64, "0")).toLowerCase();
+    fee.toString(16).padStart(64, "0") + ARGUS_TICK_SPACING.toString(16).padStart(64, "0") + strip0(hook).toLowerCase().padStart(64, "0")).toLowerCase();
 }
 async function argusLaunch() {
   if (!POOL) return null;
@@ -202,7 +202,7 @@ async function argusLaunch() {
     const r = await ethCalls(ARGUS_PORTALS.map((p) => ({ to: p, data: ARGUS_SEL.launches + pad(ARCIRCLE) })));
     for (let i = 0; i < r.length && !v; i++) {
       const rec = argusRecord(r[i]);
-      if (rec && argusPoolId(ARCIRCLE, rec.quote, rec.hook) === POOL) v = { ...rec, portal: ARGUS_PORTALS[i] };
+      if (rec && [ARGUS_POOL_FEE, ARGUS_POOL_FEE_DYNAMIC].some((f) => argusPoolId(ARCIRCLE, rec.quote, rec.hook, f) === POOL)) v = { ...rec, portal: ARGUS_PORTALS[i] };
     }
   } catch { v = null; }
   if (v) for (const a of [v.hook, v.locker, v.splitter]) VENUE.add(a);
