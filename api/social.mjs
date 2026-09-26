@@ -7,6 +7,8 @@
 //   GET  /logo/<sha256>.webp  (→ /api/social?logo=…)  hosted coin logos
 //   GET  /api/social?circle=1[&wallet=0x…]      CirclePad pledges, Q&A, proposals, referrals
 //   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
+//   GET  /api/social?scan=0x…[&sym=X]           Token Scanner holders + history (api/_scan.mjs)
+//   GET  /api/social?scans=top                   most scanned tokens this week
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -25,6 +27,7 @@ import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs
 import * as circle from "./_circle.mjs";
 import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
+import * as scanner from "./_scan.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -145,6 +148,21 @@ export async function GET(req) {
       const out = await token.tokenStats(isAddr(w) ? w : null);
       return json(200, out, !isAddr(w) && out.complete ? "public, max-age=15, s-maxage=20, stale-while-revalidate=120" : "no-store");
     } catch (err) { console.error("token stats", err && err.message || err); return json(502, { error: "couldn't read $ARCIRCLE right now" }); }
+  }
+  // Token Scanner: holders + history of any Arc token, kept in the store so
+  // each scan only reads new blocks (and reaches further back until complete).
+  if (url.searchParams.has("scan")) {
+    const t = String(url.searchParams.get("scan") || "");
+    const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+    try {
+      const out = await scanner.holderScan(t, { store: st, budgetMs: 6500 });
+      scanner.bumpScan(st, out.token, url.searchParams.get("sym")).catch(() => {});
+      return json(200, out, out.more ? "no-store" : "public, max-age=20, s-maxage=60, stale-while-revalidate=300");
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 200) }); }
+  }
+  if (url.searchParams.get("scans") === "top") {
+    const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+    return json(200, { top: await scanner.scanTop(st) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
   }
   if (url.searchParams.has("cctp")) {
     try { const [st, body, cc] = await cctp(url.searchParams); return json(st, body, cc); }

@@ -366,6 +366,7 @@ function apcRenderHeader() {
   apc$("apc-ca-full").textContent = l.token;
   apc$("apc-ca-short").textContent = apcShort(l.token);
   apc$("apc-scan-link").href = apcExplorer("token", l.token);
+  if (apc$("apc-safety")) apc$("apc-safety").href = `#scanner?t=${l.token}`;
   const desc = apc$("apc-desc");
   if (l.description) { desc.textContent = l.description; desc.hidden = false; } else desc.hidden = true;
   apc$("apc-th-sym").textContent = sym || "Tokens";

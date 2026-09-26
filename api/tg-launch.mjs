@@ -9,11 +9,22 @@
 //   curl -X POST https://www.arcircle.app/api/tg-launch \
 //     -H 'content-type: application/json' -d '{"token":"0x…","key":"<TG_TEST_KEY>"}'
 //
+// /scan in Telegram (optional): with TG_WEBHOOK_SECRET also set, point the
+// bot's webhook here and anyone can send "/scan 0x…" to the bot (or in a group
+// it's in) and get the Token Scanner's score back. One-time setup, run by the
+// owner in their own terminal (never paste the bot token anywhere else):
+//   curl "https://api.telegram.org/bot<TG_BOT_TOKEN>/setWebhook" \
+//     -d url=https://www.arcircle.app/api/tg-launch -d secret_token=<TG_WEBHOOK_SECRET> \
+//     -d 'allowed_updates=["message"]'
+// Telegram then sends every message with that secret in a header; anything
+// without it is treated as a launch announcement request, as before.
+//
 // The launch page calls POST /api/tg-launch {"token":"0x…"} after a launch
 // confirms. The token is checked on-chain (must be an ArcPad launch from the
 // last 15 minutes) and announced once per server instance, so the endpoint
 // can't be used to post arbitrary text or old coins.
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
+import { scanToken } from "./_scan.mjs";
 
 export const config = { runtime: "edge" };
 const sent = new Set();
@@ -59,8 +70,58 @@ export function buildPost(coin) {
   return { caption, reply_markup, photo: `${SITE}/api/og?addr=${coin.token}&kind=launch&t=${coin.launchedAt}`, link };
 }
 
+// ---- /scan: the Token Scanner in Telegram ----
+const lastScan = new Map(); // chat → time, a little breathing room between scans
+const VERDICT_MARK = { ok: "▲", care: "■", risk: "▼" };
+async function onUpdate(req, bot) {
+  let u = {};
+  try { u = (await req.json()) || {}; } catch { return json(200, { ok: true }); }
+  const msg = u.message || u.edited_message;
+  const text = String((msg && msg.text) || "").trim();
+  const m = /^\/scan(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
+  if (!msg || !m) return json(200, { ok: true });
+  const chat = msg.chat && msg.chat.id;
+  const say = (payload) => fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true }, ...payload }),
+  }).catch(() => null);
+  const addr = String(m[1] || "");
+  if (!isAddr(addr)) { await say({ text: "Send <code>/scan</code> followed by a token's contract address on Arc, e.g.\n<code>/scan 0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code>" }); return json(200, { ok: true }); }
+  const last = lastScan.get(chat) || 0;
+  if (Date.now() - last < 8000) return json(200, { ok: true });
+  lastScan.set(chat, Date.now());
+  let out = null;
+  try { out = await scanToken(addr, { budgetMs: 7000 }); } catch { out = null; }
+  const res = out && out.res, c = out && out.c;
+  if (!res) { await say({ text: "Couldn't read that address from Arc right now — try again in a minute." }); return json(200, { ok: true }); }
+  if (res.notToken) { await say({ text: `<b>${h(res.rows[0].title)}</b>\n${h(res.rows[0].detail)}` }); return json(200, { ok: true }); }
+  const link = `${SITE}/s/${addr.toLowerCase()}`;
+  const lines = res.reasons.map((r) => `${r.status === "risk" ? "✕" : r.status === "warn" ? "!" : "✓"}  ${h(r.title)}`).join("\n");
+  const counts = ["risk", "warn"].map((k) => res.rows.filter((r) => r.status === k).length);
+  const textOut = [
+    `<b>$${h(c.symbol || "?")}</b>  ·  Token Scanner`,
+    `${VERDICT_MARK[res.verdict.k]} <b>${res.score}/100 — ${h(res.verdict.t)}</b>\n${counts[0]} risk${counts[0] === 1 ? "" : "s"} · ${counts[1]} warning${counts[1] === 1 ? "" : "s"}`,
+    lines,
+    `<code>${h(addr)}</code>`,
+    `<i>An automated read of the chain, not advice.</i>`,
+  ].join("\n\n");
+  await say({
+    text: textOut,
+    link_preview_options: { url: link, prefer_large_media: true, show_above_text: false },
+    reply_markup: { inline_keyboard: [[{ text: "Full scan", url: link }, { text: "ArcScan", url: `${EXPLORER}/token/${addr}` }]] },
+  });
+  return json(200, { ok: true });
+}
+
 export default async function handler(req) {
   const bot = process.env.TG_BOT_TOKEN, chat = process.env.TG_CHAT_ID, testKey = process.env.TG_TEST_KEY;
+  const hook = process.env.TG_WEBHOOK_SECRET;
+  const sig = req.headers.get("x-telegram-bot-api-secret-token");
+  if (sig != null) {
+    // only Telegram knows the secret; a wrong or missing one is ignored quietly
+    if (!bot || !hook || sig !== hook) return json(200, { ok: false });
+    return onUpdate(req, bot);
+  }
   if (!bot || !chat) return json(200, { ok: false, enabled: false });
   if (req.method !== "POST") return json(405, { ok: false, error: "POST only" });
   let body = {};

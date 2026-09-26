@@ -992,6 +992,10 @@ function refreshAccountDependentViews() {
   // Explore toolbar
   document.getElementById("ap-explore-search").addEventListener("input", renderArcpadExploreGrid);
   document.getElementById("ap-topbar-search").addEventListener("input", (e) => {
+    // A pasted contract address is handled where it was typed (arc-search.js:
+    // open the coin, or offer a Safety scan) — switching to Explore would hide
+    // this box (and its suggestions) mid-paste.
+    if (/^0x[0-9a-fA-F]{40}$/.test(e.target.value.trim())) return;
     document.getElementById("ap-explore-search").value = e.target.value;
     showTab("explore");
     renderArcpadExploreGrid();

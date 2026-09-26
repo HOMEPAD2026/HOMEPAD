@@ -45,6 +45,8 @@
     if (await isLaunch(addr)) { done(input); openArcCoin(addr); return true; }
     return false;
   }
+  // any address can be checked with the Token Scanner
+  const scanBtn = (q) => `<button type="button" class="srch-scan" data-scan="${esc(q)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan this token</span><em>→</em></button>`;
   function done(input) {
     input.value = "";
     input.blur();
@@ -93,7 +95,7 @@
     }
     if (isAddr(q)) {
       const it = itemFor(q);
-      show(input, it.core || it.l ? { head: "Contract address", list: [it] } : { list: [], note: "Checking this address on ArcPad…" });
+      show(input, it.core || it.l ? { head: "Contract address", list: [it], note: scanBtn(q) } : { list: [], note: "Checking this address on ArcPad…" + scanBtn(q) });
       return;
     }
     if (input.id === "ap-explore-search") { hide(); return; } // the grid below already filters
@@ -114,6 +116,8 @@
   pop.addEventListener("mousedown", (e) => e.preventDefault()); // keep focus in the input
   pop.addEventListener("click", (e) => {
     if (e.target.closest(".srch-clear")) { try { localStorage.removeItem(KEY); } catch { /* fine */ } if (owner) update(owner); return; }
+    const sc = e.target.closest(".srch-scan");
+    if (sc) { const input = owner; if (input) done(input); location.hash = `#scanner?t=${sc.dataset.scan}`; return; }
     const b = e.target.closest(".srch-item");
     if (b) choose(Number(b.dataset.k));
   });
@@ -130,7 +134,7 @@
         const my = ++pending;
         const ok = await goAddress(q, input);
         if (!ok && my === pending && input.value.trim() === q) {
-          show(input, { list: [], note: `Not an ArcPad coin. <a href="${CONFIG.BLOCK_EXPLORER}/address/${esc(q)}" target="_blank" rel="noopener">Open on ArcScan ↗</a>` });
+          show(input, { list: [], note: `Not an ArcPad coin. <a href="${CONFIG.BLOCK_EXPLORER}/address/${esc(q)}" target="_blank" rel="noopener">Open on ArcScan ↗</a>` + scanBtn(q) });
         }
       }
     };

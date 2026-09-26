@@ -7,6 +7,7 @@
 //   /ko/coin/<address>  the same page in Korean, /zh/coin/<address> in
 //                        Simplified Chinese — linked to each other with hreflang
 //   /sitemap-coins.xml  every ArcPad coin's /coin/ page, for search engines
+//   /s/<address>        Token Scanner share link: the result card for X, then the scanner
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 
@@ -21,6 +22,7 @@ export default async function handler(req) {
   const view = url.searchParams.get("view");
   if (view === "sitemap") return sitemap();
   if (view === "round") return roundPage(url);
+  if (view === "scan") return scanPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -360,4 +362,50 @@ async function roundPage(url) {
 <p>Opening <a href="${esc(target)}">CirclePad</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+}
+
+// /s/<address> — a Token Scanner result to share. The card image runs the scan
+// itself (/api/og?scan=), so nobody can post a score the chain didn't give.
+async function scanPage(url) {
+  const addr = String(url.searchParams.get("addr") || "").toLowerCase();
+  if (!isAddr(addr)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#scanner">`, "public, max-age=300");
+  let sym = "";
+  try {
+    const [h] = await ethCalls([{ to: addr, data: "0x95d89b41" }]);
+    const x = String(h || "").replace(/^0x/, "");
+    if (x.length >= 192) { const len = parseInt(x.slice(64, 128), 16); sym = decodeURIComponent(x.slice(128, 128 + len * 2).replace(/(..)/g, "%$1")); }
+  } catch { sym = ""; }
+  sym = sym.replace(/[^\w$.-]/g, "").slice(0, 16);
+  const title = `${sym ? "$" + sym : "Token"} — Token Scanner result on ARCIRCLE PAD`;
+  const desc = "Contract, owner powers, a dry-run sell, liquidity and holders, read from Circle's Arc and summed up in one score. An automated check, not advice.";
+  const target = `/arc#scanner?t=${addr}`;
+  const image = `${SITE}/api/og?scan=${addr}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="${SITE}/arc#scanner">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/s/${addr}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#4d9fff}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">Token Scanner</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=300, stale-while-revalidate=900");
 }

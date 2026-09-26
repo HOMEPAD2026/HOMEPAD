@@ -2,10 +2,13 @@
 // price and market cap, read from Arc at request time (edge-cached 5 min).
 //   GET /api/og?addr=0x…   → PNG
 //   GET /api/og?round=1[&w=0x…]  → CirclePad round card (optionally "0x… is in")
+//   GET /api/og?scan=0x…   → Token Scanner result card (score, verdict, main reasons)
 // Used as og:image / twitter:image by the /c/<address> share page.
 import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
+import { scanToken } from "./_scan.mjs";
+import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -105,6 +108,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600" },
     });
   }
+  if (url.searchParams.has("scan")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await scanCard(await markP, url.searchParams.get("scan")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" },
+    });
+  }
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
   const mark = await markP;
@@ -180,5 +190,47 @@ async function roundCard(mark, w) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 26, color: "#9fb098" },
       h("div", {}, "CirclePad round #1 · withdraw any time before close"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, timeLeft)),
+  ]);
+}
+
+// ---------------- Token Scanner result card ----------------
+// The same engine as the page (api/_scan-core.mjs), run here, so the picture
+// an X post shows is the chain's answer — not a number anyone typed in.
+async function scanCard(mark, addr) {
+  let out = null;
+  if (isAddr(addr)) {
+    const store = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+    try { out = await scanToken(addr, { store, budgetMs: 4500 }); } catch { out = null; }
+  }
+  const res = out && out.res, c = out && out.c;
+  if (!res || res.notToken || !c) {
+    return frame([
+      brandRow(mark, pill("TOKEN SCANNER", "#4d9fff"), "Token Scanner · Circle's Arc"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "Check any Arc token."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Contract, owner powers, a dry-run sell, liquidity and holders — in one score.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/scanner"),
+    ]);
+  }
+  const col = res.verdict.k === "ok" ? "#39ff88" : res.verdict.k === "care" ? "#ffc861" : "#ff6e5a";
+  const sym = clip(c.symbol || "TOKEN", 12);
+  const reasons = res.reasons.slice(0, 3).map((r) => h("div", { alignItems: "center", gap: 16, fontSize: 32, color: "#eaf2e6" },
+    h("div", { width: 18, height: 18, borderRadius: 99, backgroundColor: r.status === "risk" ? "#ff6e5a" : r.status === "warn" ? "#ffc861" : "#39ff88" }),
+    h("div", {}, clip(r.title, 34))));
+  const ring = h("div", { width: 300, height: 300, borderRadius: 999, alignItems: "center", justifyContent: "center", flexDirection: "column",
+    border: `22px solid ${col}`, boxShadow: `0 0 60px ${col}55`, backgroundColor: "rgba(0,0,0,0.35)" },
+    h("div", { fontSize: 110, fontWeight: 800, letterSpacing: -3, lineHeight: 1 }, String(res.score)),
+    h("div", { fontSize: 26, color: "#9fb098" }, "/ 100"));
+  return frame([
+    brandRow(mark, pill(res.verdict.t.toUpperCase(), col), "Token Scanner · Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 14, maxWidth: 700 },
+        h("div", { fontSize: sym.length > 8 ? 84 : 100, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `$${sym}`),
+        h("div", { fontSize: 30, color: "#b9c8b3", marginBottom: 14 }, clip(c.name || "", 34)),
+        reasons),
+      ring),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · automated check, not advice`),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 10))),
   ]);
 }

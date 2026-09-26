@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790375766"></script>
+<script src="arc-log.js?v=1790385309"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790375766">
+<link rel="stylesheet" href="style.css?v=1790385309">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -255,6 +255,7 @@
                 <code class="ac2-ca-short" id="apc-ca-short">—</code>
                 <button type="button" class="ac2-chip-btn apc-ic" id="apc-copy-ca" aria-label="Copy address"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.4"/><path d="M15.5 8.5V6.9A2.4 2.4 0 0 0 13.1 4.5H6.9A2.4 2.4 0 0 0 4.5 6.9v6.2a2.4 2.4 0 0 0 2.4 2.4h1.6"/></svg><span>Copy</span></button>
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
+                <a class="ac2-chip-btn ac2-safety" id="apc-safety" href="#scanner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
                 <button type="button" class="ac2-chip-btn ap-star-btn apc-ic" id="apc-star" aria-pressed="false" aria-label="Watch"><svg><use href="#i-star" xlink:href="#i-star"/></svg><span>Watch</span></button>
                 <button type="button" class="ac2-chip-btn ac2-share-btn apc-ic" data-share="coin" aria-label="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg><span>Share</span></button>
               </div>
@@ -430,6 +431,7 @@
                 <span class="ac2-ca-label">CA</span>
                 <code class="ac2-ca-full" data-arc-ca="full">—</code>
                 <code class="ac2-ca-short" data-arc-ca="short">—</code>
+                <a class="ac2-chip-btn ac2-safety" href="#scanner?t=0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
                 <button type="button" class="ac2-chip-btn" id="ac2p-copy">Copy</button>
                 <a class="ac2-chip-btn" href="#" data-arc-href="scan" target="_blank" rel="noopener">ArcScan ↗</a>
                 <button type="button" class="ac2-chip-btn ac2-share-btn" data-share="arcircle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>Share</button>
@@ -495,6 +497,7 @@
                 <span class="ac2-ca-label">CA</span>
                 <code class="ac2-ca-full" data-arc-ca="full">—</code>
                 <code class="ac2-ca-short" data-arc-ca="short">—</code>
+                <a class="ac2-chip-btn ac2-safety" href="#scanner?t=0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
                 <button type="button" class="ac2-chip-btn" id="ac2-copy-ca">Copy</button>
                 <a class="ac2-chip-btn" href="#" data-arc-href="scan" target="_blank" rel="noopener">ArcScan ↗</a>
                 <button type="button" class="ac2-chip-btn ac2-share-btn" data-share="arcircle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>Share</button>
@@ -922,26 +925,29 @@
         <div id="asc-out"></div>
 
         <div class="asc-intro" id="asc-intro">
+          <div class="asc-shelf" id="asc-shelf" hidden></div>
           <div class="asc-card">
             <h2>What it checks</h2>
             <ul class="asc-what">
-              <li><b>Contract</b><span>Is it a standard token? Can its code be swapped out (proxy)? Was it launched on ArcPad?</span></li>
+              <li><b>Contract</b><span>Is it a standard token? Can its code be swapped out? Was it launched on ArcPad or Argus?</span></li>
               <li><b>Control</b><span>Who owns it — and can they still mint, pause, block wallets or change fees?</span></li>
-              <li><b>Market</b><span>Where it trades, how deep the pool is, how old it is, and whether people can actually sell.</span></li>
-              <li><b>Holders</b><span>How spread out the supply is, leaving out the pool, burned and locked tokens.</span></li>
+              <li><b>Trading</b><span>A dry-run buy, sell and transfer — does it go through, and how much tax is taken?</span></li>
+              <li><b>Market</b><span>Where it trades, how deep the pool is, how old it is, and whether people actually sell.</span></li>
+              <li><b>Holders</b><span>How spread out the supply is, who deployed it and what they still hold.</span></li>
+              <li><b>History</b><span>Mints after launch, ownership changes, pauses and big moves — from the token's own log.</span></li>
             </ul>
           </div>
           <div class="asc-card asc-next">
             <h2>Coming next <span class="asc-ver sm">v2</span></h2>
             <ul>
-              <li>Buy and sell simulation — the real tax, and whether selling works</li>
               <li>Verified source code check</li>
-              <li>Deployer history — their other tokens</li>
-              <li>Shareable scan cards for X</li>
+              <li>Holder growth over time</li>
+              <li>Watch alerts on Telegram</li>
+              <li>A public scan API for other Arc apps</li>
             </ul>
           </div>
         </div>
-        <p class="asc-foot">Reads Arc directly, plus Dexscreener for market data. An automated check, not advice — a clean scan can't rule out every risk, and a warning doesn't always mean a scam.</p>
+        <p class="asc-foot">Reads Arc directly — the buy and sell checks are dry runs, nothing is signed or spent — plus Dexscreener for market data. An automated check, not advice: a clean scan can't rule out every risk, and a warning doesn't always mean a scam.</p>
       </section>
 
       <section class="bp-panel" id="bp-panel-docs">
@@ -1064,6 +1070,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790375766"></script>
+<script src="arcpad.bundle.js?v=1790385309"></script>
 </body>
 </html>

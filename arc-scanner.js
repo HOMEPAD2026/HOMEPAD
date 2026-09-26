@@ -1,525 +1,692 @@
-/* global ethers, CONFIG, ARC, readProvider, withRetry */
-// arc-scanner.js — Token Scanner v1, an ARCIRCLE PAD utility (arcpad.html#scanner).
-// Paste any Arc token; four reads run side by side and each lands as it's done:
-//   1. Contract  bytecode, ERC-20 basics, proxy slots, owner(), and which
-//                privileged functions (mint / pause / blacklist / fees / …) the
-//                code exposes — found from the selectors in its dispatcher
-//   2. Market    Dexscreener pairs (liquidity, market cap, age, buys vs sells)
-//   3. Holders   /api/holders?scan=0x… (Transfer history + real balanceOf)
-//   4. Extras    ArcPad launch record, ArcLock locks for the token
-// Every check becomes a row (pass / warn / risk / info) and the rows add up to
-// a 0–100 score with a three-level verdict. It reads the chain; it can't
-// prove a token is safe, and says so on the page.
-// Deep link: /arc#scanner?t=0x…   Recent scans: localStorage (this browser only).
+/* global ethers, CONFIG, ARC, readProvider */
+// arc-scanner.js — Token Scanner, an ARCIRCLE PAD utility (arcpad.html#scanner).
+// The checks and the score live in scan-core.js (generated from
+// api/_scan-core.mjs, the same engine the server uses for Telegram /scan and
+// the X share card). This file runs the reads in the browser and draws them:
+//   • every part lands on screen the moment it's read (contract first, then
+//     launchpad records, market, holders + history, then the dry-run trades);
+//     the score and verdict appear once everything is in
+//   • the three main reasons up top, problems first, "?" on every check
+//   • holders as a donut, the token's own history as a timeline, the deployer
+//   • paste a wallet instead and it lists the ArcPad coins it holds
+//   • compare two tokens, watch one (alerts while ArcPad is open), share a card
+// Deep link: /arc#scanner?t=0x…   Recent scans and watches: this browser only.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-scanner");
-  if (!panel || typeof ethers === "undefined" || typeof CONFIG === "undefined") return;
+  const K = window.ArcScanCore;
+  if (!panel || !K || typeof ethers === "undefined" || typeof CONFIG === "undefined") return;
 
   const $ = (id) => document.getElementById(id);
   const lc = (a) => String(a || "").toLowerCase();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
-  const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
   const ex = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
-  const retry = (fn) => (typeof withRetry === "function" ? withRetry(fn) : fn());
-  const STORE = "arcircle.scanner.v1";
+  const short = K.short;
+  const hueOf = (a) => (parseInt(String(a).slice(2, 8), 16) || 0) % 360;
+  const haptic = (k) => { if (typeof window.arcHaptic === "function") window.arcHaptic(k); };
+  const toast = (m) => { if (typeof window.arcToast === "function") window.arcToast(m); };
   const ARCIRCLE = lc(CONFIG.ARCIRCLE_TOKEN);
+  const RECENT = "arcircle.scanner.v1", WATCH = "arcircle.scanner.watch.v1";
+  const launches = () => (typeof ARC !== "undefined" && ARC.launches) || [];
+  const launchOf = (a) => launches().find((l) => lc(l.token) === lc(a)) || null;
 
-  // ---------- number formatting ----------
-  const compact = (n) => {
-    if (n == null || !isFinite(n)) return "—";
-    const a = Math.abs(n);
-    if (a >= 1e9) return (n / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
-    if (a >= 1e6) return (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
-    if (a >= 1e4) return (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-    return n.toLocaleString("en-US", { maximumFractionDigits: a < 1 ? 6 : 2 });
-  };
-  const usd = (n) => {
-    if (n == null || !isFinite(n)) return "—";
-    if (n >= 1) return "$" + compact(n);
-    if (n === 0) return "$0";
-    return "$" + Number(n.toPrecision(3)).toString().replace(/^0/, "0");
-  };
-  const pct = (p) => (p == null || !isFinite(p) ? "—" : `${p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(p >= 0.01 ? 3 : 4)}%`.replace(/\.?0+%$/, "%"));
-  const ageText = (sec) => {
-    if (sec == null || !isFinite(sec)) return "—";
-    const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
-    return d >= 1 ? `${d}d ${h}h` : h >= 1 ? `${h}h ${m}m` : `${Math.max(1, m)}m`;
-  };
-
-  // ---------- known addresses (left out of "concentration") ----------
-  const DEAD = new Set(["0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead", "0xdead000000000000000042069420694206942069"]);
-  const LABELS = {};
-  const label = (a, name, kind) => { if (a) LABELS[lc(a)] = { name, kind }; };
-  label(CONFIG.POOL_MANAGER_ADDRESS, "Uniswap v4 pools", "pool");
-  label(CONFIG.ARCLOCK_ADDRESS, "ArcLock (locked)", "lock");
-  label(CONFIG.ARCPAD_FACTORY_ADDRESS, "ArcPad factory", "infra");
-  label(CONFIG.ARCPAD_HOOK_ADDRESS, "ArcPad hook", "infra");
-  label(CONFIG.ARCPAD_ROUTER_ADDRESS, "ArcPad router", "infra");
-  label(CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "CirclePad escrow", "infra");
-  ["0xb021be536808f551b31789422fd28a6c9c6e97da", "0xa5628a11c412596e1f63b75a2c0284f843c549d6", "0x07a688a001f416cc433c68ff56aa26bc5131cc6e",
-    "0xa36c443a797771df82533b8b4a86f0affd970862", "0x7a17ab0106c46c0be30623f3eb7f299cc0058338"].forEach((a) => label(a, "Argus", "infra"));
-  label("0x4fca4a51ab4f23a7447b3284fbd7d73289a89fb1", "Uniswap router", "infra");
-  label("0x6049c9a0e26405c0985f9e3685c87d0ae917f82b", "Uniswap positions", "pool");
-  DEAD.forEach((a) => label(a, "Burned", "burn"));
-
-  // ---------- privileged functions, found by selector in the bytecode ----------
-  // sev: how bad it is while someone still controls the contract.
-  const POWERS = [
-    { key: "mint", sev: "high", title: "Can mint new tokens", why: "More supply can be created at any time, diluting every holder.",
-      sigs: ["mint(address,uint256)", "mint(uint256)", "mintTo(address,uint256)", "issue(uint256)", "mint(address,uint256,bytes)"] },
-    { key: "pause", sev: "high", title: "Can pause transfers", why: "Trading and transfers can be frozen.",
-      sigs: ["pause()", "setPaused(bool)", "freeze()", "setPause(bool)"] },
-    { key: "block", sev: "high", title: "Can block wallets", why: "Specific wallets can be stopped from selling or moving tokens.",
-      sigs: ["blacklist(address)", "addToBlacklist(address)", "setBlacklist(address,bool)", "blacklistAddress(address,bool)", "addBlacklist(address)",
-        "setBot(address,bool)", "setBots(address[],bool)", "addBots(address[])", "blockBots(address[])", "setBlacklisted(address,bool)", "updateBlacklist(address,bool)", "freezeAccount(address)"] },
-    { key: "upgrade", sev: "high", title: "Code can be upgraded", why: "The contract's logic can be replaced with different code.",
-      sigs: ["upgradeTo(address)", "upgradeToAndCall(address,bytes)", "changeImplementation(address)"] },
-    { key: "fees", sev: "med", title: "Can change buy/sell fees", why: "The tax on trades can be raised after you buy.",
-      sigs: ["setFee(uint256)", "setFees(uint256,uint256)", "setTaxes(uint256,uint256)", "setBuyFee(uint256)", "setSellFee(uint256)", "setTaxFee(uint256)",
-        "updateFees(uint256,uint256)", "setBuyTax(uint256)", "setSellTax(uint256)", "setSwapFees(uint256,uint256)", "setFees(uint256,uint256,uint256)",
-        "updateBuyFees(uint256,uint256,uint256)", "updateSellFees(uint256,uint256,uint256)", "setTax(uint256)", "setFeePercent(uint256)"] },
-    { key: "limits", sev: "med", title: "Can cap trade or wallet size", why: "Limits can be set so that larger sells don't go through.",
-      sigs: ["setMaxTxAmount(uint256)", "setMaxWalletSize(uint256)", "setMaxWallet(uint256)", "setMaxTransactionAmount(uint256)", "setMaxTxPercent(uint256)",
-        "updateMaxTxnAmount(uint256)", "updateMaxWalletAmount(uint256)", "setMaxSellAmount(uint256)"] },
-    { key: "trading", sev: "med", title: "Trading can be switched off", why: "The owner controls whether the token can be traded.",
-      sigs: ["setTradingEnabled(bool)", "setTrading(bool)", "tradingStatus(bool)", "setTradingOpen(bool)", "enableTrading(bool)", "toggleTrading()"] },
-    { key: "rescue", sev: "low", title: "Can pull tokens out of the contract", why: "Tokens or USDC held by the contract itself can be withdrawn by the owner.",
-      sigs: ["withdrawStuckTokens(address)", "rescueTokens(address,uint256)", "clearStuckBalance()", "recoverERC20(address,uint256)", "withdrawToken(address,uint256)", "rescueERC20(address,uint256)"] },
-  ];
-  const SEL = (sig) => ethers.id(sig).slice(2, 10);
-  let powerSels = null;
-  const powers = () => powerSels || (powerSels = POWERS.map((p) => ({ ...p, sels: p.sigs.map(SEL) })));
-  const OWNER_SELS = ["owner()", "getOwner()"].map(SEL);
-  const ROLE_SEL = SEL("hasRole(bytes32,address)");
-  /// every PUSH4 constant in the code — the dispatcher's function selectors
-  function selectorsOf(code) {
-    const out = new Set();
-    const h = String(code || "").replace(/^0x/, "");
-    for (let i = 0; i < h.length; i += 2) {
-      const op = parseInt(h.substr(i, 2), 16);
-      if (op === 0x63) { out.add(h.substr(i + 2, 8)); i += 8; }
-      else if (op >= 0x60 && op <= 0x7f) i += (op - 0x5f) * 2; // skip other PUSH data
-    }
-    return out;
+  // ---------- reads (same engine as the server) ----------
+  async function fetchJson(url, ms = 9000) {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+    try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); }
   }
-  const SLOT_IMPL = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
-  const SLOT_ADMIN = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
-  const SLOT_BEACON = "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50";
-  const slotAddr = (v) => { const x = String(v || "").replace(/^0x/, "").padStart(64, "0").slice(24); return /^0{40}$/.test(x) ? null : "0x" + x; };
-
-  // =====================================================================
-  // reads
-  // =====================================================================
-  const P = () => readProvider();
-  async function readContract(addr) {
-    const code = await retry(() => P().getCode(addr));
-    if (!code || code === "0x") return { contract: false };
-    const t = new ethers.Contract(addr, [
-      "function name() view returns (string)", "function symbol() view returns (string)", "function decimals() view returns (uint8)", "function totalSupply() view returns (uint256)",
-      "function owner() view returns (address)", "function getOwner() view returns (address)",
-    ], P());
-    const safe = (p) => p.then((v) => v, () => null);
-    const [name, symbol, decimals, supply, owner, owner2, impl, admin, beacon] = await Promise.all([
-      safe(retry(() => t.name())), safe(retry(() => t.symbol())), safe(retry(() => t.decimals())), safe(retry(() => t.totalSupply())),
-      safe(t.owner()), safe(t.getOwner()),
-      safe(P().getStorage(addr, SLOT_IMPL)), safe(P().getStorage(addr, SLOT_ADMIN)), safe(P().getStorage(addr, SLOT_BEACON)),
-    ]);
-    const minimal = /^0x363d3d373d3d3d363d73([0-9a-f]{40})/i.exec(code);
-    const implAddr = slotAddr(impl) || (minimal ? "0x" + minimal[1] : null);
-    let implCode = null;
-    if (implAddr) implCode = await safe(retry(() => P().getCode(implAddr)));
-    const sels = selectorsOf(code);
-    if (implCode) selectorsOf(implCode).forEach((x) => sels.add(x));
-    const ownerOf = owner != null ? owner : owner2;
-    let ownerIsContract = false;
-    if (ownerOf && !DEAD.has(lc(ownerOf))) {
-      const oc = await safe(retry(() => P().getCode(ownerOf)));
-      ownerIsContract = !!(oc && oc !== "0x");
-    }
-    return {
-      contract: true, codeSize: (code.length - 2) / 2,
-      token: name != null && symbol != null && decimals != null && supply != null,
-      name, symbol, decimals: decimals != null ? Number(decimals) : null, supply,
-      owner: ownerOf, hasOwnerFn: OWNER_SELS.some((s) => sels.has(s)) || ownerOf != null, ownerIsContract,
-      roles: sels.has(ROLE_SEL),
-      proxy: implAddr ? { impl: implAddr, admin: slotAddr(admin), minimal: !!minimal } : slotAddr(beacon) ? { beacon: slotAddr(beacon) } : null,
-      powers: powers().filter((p) => p.sels.some((s) => sels.has(s))).map((p) => p.key),
-    };
+  const io = { rpc: (m, p) => readProvider().send(m, p), fetchJson, keccak: (h) => ethers.keccak256(String(h).startsWith("0x") ? h : "0x" + h) };
+  async function fetchHolders(addr, sym) {
+    const a = await fetchJson(`/api/social?scan=${addr}${sym ? `&sym=${encodeURIComponent(sym)}` : ""}`, 20000);
+    if (a && Array.isArray(a.top)) return a;
+    const b = await fetchJson(`/api/holders?scan=${addr}`, 28000);
+    if (b && Array.isArray(b.top)) return b;
+    throw new Error("holder scan failed");
   }
-  async function readMarket(addr) {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 9000);
-    try {
-      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${addr}`, { signal: ctl.signal });
-      if (!r.ok) throw new Error("dexscreener " + r.status);
-      const j = await r.json();
-      const pairs = (j.pairs || []).filter((p) => p && p.chainId === "arc").sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0));
-      return { pairs };
-    } finally { clearTimeout(t); }
-  }
-  async function readHolders(addr) {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 28000);
-    try {
-      const r = await fetch(`/api/holders?scan=${addr}`, { signal: ctl.signal });
-      const j = await r.json().catch(() => null);
-      if (!r.ok || !j || !Array.isArray(j.top)) throw new Error((j && j.error) || "holder scan failed");
-      return j;
-    } finally { clearTimeout(t); }
-  }
-  async function readExtras(addr) {
-    const out = { arcpad: null, locked: 0n, lockCount: 0 };
-    const jobs = [];
-    const launch = ((typeof ARC !== "undefined" && ARC.launches) || []).find((l) => lc(l.token) === lc(addr));
-    if (launch) out.arcpad = launch;
-    else if (CONFIG.ARCPAD_FACTORY_ADDRESS) {
-      jobs.push(retry(() => P().call({ to: CONFIG.ARCPAD_FACTORY_ADDRESS, data: "0x08b74625" + addr.slice(2).toLowerCase().padStart(64, "0") }))
-        .then((h) => { if (h && h !== "0x" && BigInt(h) > 0n) out.arcpad = out.arcpad || { token: addr }; }).catch(() => {}));
+  async function marketFallback(addr, x) {
+    if (x.arcpad) {
+      const l = launchOf(addr);
+      const links = [["Website", (x.arcpad && x.arcpad.website) || (l && l.website)], ["Twitter", (x.arcpad && x.arcpad.twitter) || (l && l.twitter)], ["Telegram", (x.arcpad && x.arcpad.telegram) || (l && l.telegram)]]
+        .filter(([, u]) => /^https:\/\//.test(u || "")).map(([t, u]) => ({ t, u }));
+      return { source: "arcpad", pairs: [], price: l ? l.priceUsdc : null, mcap: l ? l.marketCapUsd : null, created: x.arcpad.launchedAt || (l && l.launchedAt) || null, links };
     }
-    if (CONFIG.ARCLOCK_ADDRESS) {
-      const lk = new ethers.Contract(CONFIG.ARCLOCK_ADDRESS, ["function locksOfToken(address token) view returns (uint256[] ids, tuple(address token, address owner, uint128 amount, uint64 lockedAt, uint64 unlockAt, bool withdrawn)[] out)"], P());
-      jobs.push(retry(() => lk.locksOfToken(addr)).then((r) => {
-        const now = Math.floor(Date.now() / 1000);
-        for (const l of r[1] || []) if (!l.withdrawn && Number(l.unlockAt) > now) { out.locked += BigInt(l.amount); out.lockCount++; }
-      }).catch(() => {}));
-    }
-    await Promise.all(jobs);
-    return out;
+    if (x.argus) return { source: "argus", pairs: [] };
+    return null;
   }
 
   // =====================================================================
-  // checks → score
+  // scan state
   // =====================================================================
-  const WEIGHT = { risk: 26, warn: 10, pass: 0, info: 0 };
-  function evaluate(addr, c, m, h, x) {
-    const rows = [];
-    const add = (group, status, title, detail) => rows.push({ group, status, title, detail });
-    let cap = 100;
+  let seq = 0, cur = null, compareBase = null;
+  const PARTS = ["contract", "extras", "market", "holders", "trade"];
+  const STEPS = [["contract", "Reading the contract"], ["extras", "Checking who controls it"], ["market", "Looking for trading pools"], ["holders", "Counting holders"], ["trade", "Dry-run buy and sell"]];
 
-    // ---- contract ----
-    if (!c || !c.contract) { add("contract", "risk", "No contract at this address", "Nothing is deployed here on Arc — it isn't a token."); return { rows, score: 0, notToken: true }; }
-    if (!c.token) { add("contract", "risk", "Not a standard token", "It doesn't answer the basic ERC-20 calls (name, symbol, decimals, supply)."); return { rows, score: 0, notToken: true }; }
-    add("contract", "pass", "Standard ERC-20 token", `${esc(c.name)} ($${esc(c.symbol)}) · ${c.decimals} decimals · ${compact(Number(ethers.formatUnits(c.supply, c.decimals)))} supply`);
-    if (c.proxy) {
-      add("contract", "warn", "Upgradeable proxy", c.proxy.beacon ? "Its code lives behind a beacon and can be switched to new code." : `Its code lives at ${short(c.proxy.impl)} and can be pointed at new code${c.proxy.admin ? " by the proxy admin" : ""}.`);
-    } else add("contract", "pass", "Fixed code", "Not a proxy — the code you see can't be swapped out.");
-    if (lc(addr) === ARCIRCLE) add("contract", "pass", "ARCIRCLE PAD core coin", "$ARCIRCLE, launched on Argus — one pool, supply in a single locked position.");
-    else if (x && x.arcpad) add("contract", "pass", "Launched on ArcPad", "The standard ArcPad token, launched through the ArcPad factory with its pool created in the same transaction.");
-    else add("contract", "info", "Not an ArcPad launch", "Launched somewhere else, so every check below is the generic one.");
+  async function scan(input) {
+    const raw = String(input || "").trim();
+    if (!isAddr(raw)) { message("That isn't a token address — it should start with 0x and be 42 characters long."); return; }
+    const addr = ethers.getAddress(raw);
+    const my = ++seq;
+    const prev = recent().find((r) => lc(r.a) === lc(addr));
+    cur = { addr, my, done: {}, c: null, x: {}, m: null, h: null, sim: null, res: null, prevScore: prev ? prev.sc : null, t0: performance.now() };
+    $("asc-addr").value = addr;
+    if (history.replaceState) history.replaceState(null, "", `${location.pathname}${location.search}#scanner?t=${addr}`);
+    $("asc-go").disabled = true;
+    $("asc-intro").hidden = true;
+    progress(true);
+    shell();
+    const alive = () => my === seq;
+    const mark = (part, ok) => { if (!alive()) return; cur.done[part] = true; stepDone(part, ok); paint(); };
 
-    // ---- control ----
-    const renounced = c.owner != null && DEAD.has(lc(c.owner));
-    const controlled = (c.owner != null && !renounced) || c.roles;
-    if (!c.hasOwnerFn && !c.roles) add("control", "pass", "No owner", "The contract has no owner function — there's no admin wallet to call anything.");
-    else if (renounced) add("control", "pass", "Ownership renounced", "The owner is the zero/dead address, so owner-only functions can't be called.");
-    else if (c.owner != null) add("control", c.ownerIsContract ? "info" : "warn", c.ownerIsContract ? "Owned by a contract" : "Owned by a wallet",
-      `<span>Owner:</span> <a href="${ex("address", c.owner)}" target="_blank" rel="noopener" data-no-i18n>${short(c.owner)} ↗</a> <span>${c.ownerIsContract ? "Often a multisig or timelock — check who controls it." : "One wallet can still call owner-only functions."}</span>`);
-    if (c.roles) add("control", "warn", "Role-based permissions", "Access is managed with roles (AccessControl) — admins may hold mint or pause rights.");
-    const found = powers().filter((p) => c.powers.includes(p.key));
-    if (!found.length) add("control", "pass", "No dangerous switches found", "No mint, pause, blacklist, fee or trading switches in its code.");
-    found.forEach((p) => {
-      if (!controlled) add("control", "info", p.title, `<span>${p.why}</span> <span>Nobody holds the keys any more, so it can't be used.</span>`);
-      else add("control", p.sev === "high" ? "risk" : p.sev === "med" ? "warn" : "info", p.title, p.why);
+    // 1. contract (everything else needs to know it's a token)
+    try { cur.c = await K.readContract(io, addr); } catch (e) { console.warn("scanner", e); if (alive()) { progress(false); $("asc-go").disabled = false; message("Couldn't read that address from Arc right now — try again in a moment."); } return; }
+    if (!alive()) return;
+    if (!cur.c.contract) { progress(false); $("asc-go").disabled = false; walletMode(addr); return; }
+    mark("contract", true);
+    if (!cur.c.token) { PARTS.forEach((p) => { cur.done[p] = true; }); return finish(); }
+
+    // 2. the rest side by side; each paints as it lands
+    const xP = Promise.all([K.readArcPad(io, addr).catch(() => null), K.readArgus(io, addr).catch(() => null), K.readLocks(io, addr).catch(() => null)])
+      .then(([arcpad, argus, locks]) => { if (!alive()) return; cur.x = { arcpad, argus, locks }; mark("extras", true); });
+    const mP = K.readMarket(io, addr).catch(() => null).then(async (m) => {
+      await xP;
+      if (!alive()) return;
+      if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus)) m = (await marketFallback(addr, cur.x)) || m;
+      cur.m = m; mark("market", !!m);
     });
-    if (controlled && found.some((p) => p.key === "mint")) cap = Math.min(cap, 55);
-
-    // ---- market ----
-    const pair = m && m.pairs && m.pairs[0];
-    let market = null;
-    if (!m) add("market", "info", "Market data unavailable", "Dexscreener didn't answer — try the scan again in a moment.");
-    else if (!pair) { add("market", "risk", "No trading pool found", "Dexscreener doesn't list a pool for it on Arc, so there may be no way to buy or sell."); cap = Math.min(cap, 40); }
-    else {
-      const liq = (pair.liquidity && pair.liquidity.usd) || 0;
-      const mcap = pair.marketCap || pair.fdv || 0;
-      const age = pair.pairCreatedAt ? Date.now() / 1000 - pair.pairCreatedAt / 1000 : null;
-      const tx = (pair.txns && pair.txns.h24) || { buys: 0, sells: 0 };
-      market = { pair, liq, mcap, age, tx, price: Number(pair.priceUsd), vol: (pair.volume && pair.volume.h24) || 0, change: pair.priceChange && pair.priceChange.h24, count: m.pairs.length };
-      add("market", "pass", `Trades on ${esc(dexName(pair))}`, `${m.pairs.length > 1 ? `${m.pairs.length} pools; the deepest is ` : ""}${esc(pair.baseToken && pair.baseToken.symbol)}/${esc(pair.quoteToken && pair.quoteToken.symbol)} <a href="${esc(pair.url)}" target="_blank" rel="noopener">Dexscreener ↗</a>`);
-      if (liq < 1000) { add("market", "risk", "Very little liquidity", `${usd(liq)} in the pool — even small sells will move the price a lot.`); cap = Math.min(cap, 50); }
-      else if (liq < 10000) add("market", "warn", "Thin liquidity", `${usd(liq)} in the pool — larger trades will move the price noticeably.`);
-      else add("market", "pass", "Healthy liquidity", `${usd(liq)} in the pool.`);
-      if (mcap > 0 && liq > 0 && liq / mcap < 0.02) add("market", "warn", "Small pool for its size", `Liquidity is only ${pct((liq / mcap) * 100)} of the market cap.`);
-      if (age != null) {
-        if (age < 86400) add("market", "warn", "Brand new pool", `Created ${ageText(age)} ago — there's little history to judge it by.`);
-        else if (age < 7 * 86400) add("market", "info", "Young pool", `Created ${ageText(age)} ago.`);
-        else add("market", "pass", "Established pool", `Trading for ${ageText(age)}.`);
+    const hP = fetchHolders(addr, cur.c.symbol).then((h) => { if (alive()) { cur.h = h; mark("holders", true); } }, (e) => { console.warn("scanner holders", e); if (alive()) mark("holders", false); });
+    await Promise.all([xP, hP]);
+    if (!alive()) return;
+    // 3. dry-run trades need a holder to act as
+    cur.sim = await K.simulateFor(io, addr, cur.c, cur.h).catch(() => null);
+    if (!alive()) return;
+    mark("trade", !!cur.sim);
+    await mP;
+    if (!alive()) return;
+    finish();
+    // 4. an old token's history keeps filling in (the server keeps its place)
+    let more = cur.h && cur.h.more, tries = 0;
+    while (more && tries++ < 4 && alive()) {
+      const h = await fetchHolders(addr, cur.c.symbol).catch(() => null);
+      if (!alive() || !h) break;
+      cur.h = h; more = h.more;
+      paint(true);
+      // older history can move the score: update the verdict in place
+      if (cur.res && cur.shown != null && cur.res.score !== cur.shown) {
+        cur.shown = cur.res.score; head(); gaugeAt(cur.res.score);
+        const st = panel.querySelector(".asc-stamp"); if (st) { st.className = "asc-stamp v-" + cur.res.verdict.k; st.textContent = tr(cur.res.verdict.t); }
+        remember(cur.addr, cur.c.symbol, cur.res.score); shelf();
       }
-      const b = tx.buys || 0, s = tx.sells || 0;
-      if (b >= 15 && s === 0) { add("market", "risk", "Buys but no sells", `${b} buys and no sells in 24h — people may not be able to sell.`); cap = Math.min(cap, 25); }
-      else if (b > 30 && s / Math.max(1, b) < 0.12) add("market", "warn", "Very few sells", `${b} buys vs ${s} sells in 24h — worth a closer look before buying.`);
-      else if (b + s > 0) add("market", "pass", "People buy and sell", `${b} buys · ${s} sells in the last 24h.`);
-      else add("market", "info", "No trades in 24h", "Nobody has traded it in the last day.");
-      const info = pair.info || {};
-      const links = [...(info.websites || []).map((w) => ({ u: w.url, t: w.label || "Website" })), ...(info.socials || []).map((x2) => ({ u: x2.url, t: x2.type }))]
-        .filter((l) => /^https:\/\//.test(String(l.u || "")));
-      market.links = links.slice(0, 4);
-      if (links.length) add("market", "pass", "Website and socials listed", links.slice(0, 4).map((l) => `<a href="${esc(l.u)}" target="_blank" rel="noopener nofollow" data-no-i18n>${esc(cap1(l.t))} ↗</a>`).join(" · "));
-      else add("market", "info", "No website or socials listed", "Its Dexscreener page lists no website or social accounts.");
     }
-
-    // ---- holders ----
-    let dist = null;
-    const noSupply = !c.supply || c.supply === 0n;
-    if (noSupply) { add("holders", "warn", "No supply yet", "Its total supply is zero — nothing has been minted."); cap = Math.min(cap, 50); }
-    else if (!h) add("holders", "info", "Holder data unavailable", "The holder scan didn't finish — try again in a moment.");
-    else {
-      const dec = c.decimals || 18, supply = BigInt(h.supply || c.supply || 0);
-      const n = (v) => Number(ethers.formatUnits(v, dec));
-      const S = n(supply) || 1;
-      let inPool = 0, burned = 0, locked = x ? n(x.locked) : 0, infra = 0;
-      const people = [];
-      for (const [a, v] of h.top) {
-        const k = LABELS[lc(a)], amt = n(BigInt(v));
-        if (k && k.kind === "pool") inPool += amt;
-        else if (k && k.kind === "burn") burned += amt;
-        else if (k && k.kind === "lock") { /* counted from ArcLock itself */ }
-        else if (k) infra += amt;
-        else people.push([a, amt]);
-      }
-      if (!x || !x.lockCount) { const lk = h.top.find(([a]) => LABELS[lc(a)] && LABELS[lc(a)].kind === "lock"); if (lk) locked = n(BigInt(lk[1])); }
-      const top10 = people.slice(0, 10).reduce((t, [, v]) => t + v, 0);
-      const biggest = people[0] ? people[0][1] : 0;
-      dist = { S, inPool, burned, locked, infra, top10, people, holders: h.holderCount, exact: h.holderCountExact, complete: h.complete, fromTs: h.fromTs, nowTs: h.nowTs, firstMint: h.firstMint, dec };
-      const cnt = h.holderCount || 0;
-      const cntTxt = `${h.holderCountExact ? "" : "at least "}${cnt.toLocaleString("en-US")}`;
-      if (cnt < 25) add("holders", "warn", "Few holders", `${cntTxt} wallets hold it.`);
-      else add("holders", "pass", "Holder count", `${cntTxt} wallets hold it.`);
-      const t10 = (top10 / S) * 100, big = (biggest / S) * 100;
-      if (t10 > 50) { add("holders", "risk", "Top 10 wallets hold most of it", `${pct(t10)} of the supply sits in 10 wallets (pool, burned and locked tokens left out).`); cap = Math.min(cap, 55); }
-      else if (t10 > 30) add("holders", "warn", "Top 10 wallets hold a lot", `${pct(t10)} of the supply sits in 10 wallets (pool, burned and locked left out).`);
-      else add("holders", "pass", "Supply is spread out", `The top 10 wallets hold ${pct(t10)} (pool, burned and locked left out).`);
-      if (biggest > 0) {
-        const who = `<a href="${ex("address", people[0][0])}" target="_blank" rel="noopener" data-no-i18n>${short(people[0][0])} ↗</a>`;
-        if (big > 20) add("holders", "risk", "One wallet holds a big share", `${who} holds ${pct(big)} of the supply.`);
-        else if (big > 10) add("holders", "warn", "Largest wallet over 10%", `${who} holds ${pct(big)} of the supply.`);
-        else add("holders", "pass", "No whale over 10%", `${who} holds ${pct(big)} — the largest single wallet.`);
-      }
-      if (burned > 0) add("holders", "pass", "Tokens burned", `${pct((burned / S) * 100)} of the supply sits in burn addresses.`);
-      if (locked > 0) add("holders", "pass", "Tokens locked", `${pct((locked / S) * 100)} is locked in ArcLock${x && x.lockCount ? ` (${x.lockCount} lock${x.lockCount === 1 ? "" : "s"})` : ""}. <a href="/arc#locker?token=${esc(addr)}">See locks →</a>`);
-      if (inPool > 0) add("holders", "info", "In the trading pool", `${pct((inPool / S) * 100)} of the supply is liquidity in Uniswap v4 pools.`);
-      if (!h.complete) add("holders", "info", "Partial history", `The holder list covers transfers since ${h.fromTs ? new Date(h.fromTs * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "recently"}; balances shown are live.`);
-    }
-
-    let score = 100;
-    rows.forEach((r) => { score -= WEIGHT[r.status] || 0; });
-    score = Math.max(0, Math.min(cap, score));
-    return { rows, score, market, dist };
+    if (alive() && cur.h) { const el = panel.querySelector(".asc-more-hist"); if (el) el.remove(); }
   }
-  const cap1 = (s) => String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
-  const dexName = (p) => { const id = String(p.dexId || ""); const v = (p.labels || []).join(" "); return (id === "uniswap" ? "Uniswap" : cap1(id)) + (v ? " " + v : ""); };
-  const verdictOf = (score) => (score >= 75 ? { k: "ok", t: "Looks OK" } : score >= 45 ? { k: "care", t: "Be careful" } : { k: "risk", t: "High risk" });
+  function finish() {
+    if (!cur) return;
+    const wait = Math.max(0, (reduce ? 0 : 700) - (performance.now() - cur.t0));
+    const my = cur.my;
+    setTimeout(() => {
+      if (!cur || cur.my !== my) return;
+      progress(false);
+      $("asc-go").disabled = false;
+      cur.final = true;
+      paint();
+      reveal();
+      if (cur.res && !cur.res.notToken) { remember(cur.addr, cur.c.symbol, cur.res.score); shelf(); renderChips(); compareMaybe(); }
+      haptic(cur.res && cur.res.score >= 75 ? "milestone" : "tap");
+    }, wait);
+  }
 
   // =====================================================================
-  // UI
+  // progress
   // =====================================================================
-  const STEPS = [["contract", "Reading the contract"], ["control", "Checking who controls it"], ["market", "Looking for trading pools"], ["holders", "Counting holders"]];
   function progress(on) {
     const box = $("asc-progress");
     box.hidden = !on;
     panel.classList.toggle("asc-scanning", !!on);
-    if (on) $("asc-steps").innerHTML = STEPS.map(([k, t]) => `<li data-s="${k}"><i aria-hidden="true"></i><span>${esc(tr(t))}</span></li>`).join("");
+    if (on) {
+      $("asc-steps").innerHTML = STEPS.map(([k, t]) => `<li data-s="${k}" class="on"><i aria-hidden="true"></i><span>${esc(tr(t))}</span></li>`).join("");
+      box.querySelectorAll(".asc-radar .blip").forEach((b) => b.remove());
+    }
   }
-  const stepDone = (k, ok) => { const li = panel.querySelector(`#asc-steps [data-s="${k}"]`); if (li) li.className = ok === false ? "skip" : "done"; };
-  const stepOn = (k) => { const li = panel.querySelector(`#asc-steps [data-s="${k}"]`); if (li && !li.className) li.className = "on"; };
+  function stepDone(k, ok) {
+    const li = panel.querySelector(`#asc-steps [data-s="${k}"]`);
+    if (li) li.className = ok === false ? "skip" : "done";
+    // every finished step leaves a blip on the radar
+    const radar = panel.querySelector(".asc-radar");
+    if (radar && !reduce) {
+      const b = document.createElement("b"); b.className = "blip" + (ok === false ? " off" : "");
+      const ang = Math.random() * Math.PI * 2, r = 18 + Math.random() * 40;
+      b.style.left = `${50 + Math.cos(ang) * r}%`; b.style.top = `${50 + Math.sin(ang) * r}%`;
+      radar.appendChild(b);
+    }
+  }
+  function message(msg) {
+    $("asc-out").innerHTML = `<div class="asc-card asc-msg">${esc(tr(msg))}</div>`;
+    $("asc-intro").hidden = true;
+  }
 
+  // =====================================================================
+  // drawing
+  // =====================================================================
   const ICON = {
     pass: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9"/></svg>',
     warn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.5v6M12 17h.01"/></svg>',
     risk: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l8 8M16 8l-8 8"/></svg>',
     info: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11v6M12 7.5h.01"/></svg>',
   };
-  const GROUPS = [["contract", "Contract"], ["control", "Who controls it"], ["market", "Market"], ["holders", "Holders"]];
-  const STATUS_LABEL = { pass: "OK", warn: "Warning", risk: "Risk", info: "Note" };
+  const GROUPS = [["contract", "Contract", ["contract", "extras"]], ["control", "Who controls it", ["contract", "extras"]], ["trade", "Trading", ["trade", "extras"]],
+    ["market", "Market", ["market"]], ["holders", "Holders", ["holders"]], ["history", "History", ["holders"]]];
+  const SHIELD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/></svg>';
 
-  function render(addr, c, res, meta) {
+  function shell() {
     const out = $("asc-out");
-    $("asc-intro").hidden = true;
-    if (res.notToken) {
-      out.innerHTML = `<div class="asc-card asc-nottoken"><span class="asc-bad">${ICON.risk}</span><div><h2>${esc(tr(res.rows[0].title))}</h2><p>${esc(tr(res.rows[0].detail))}</p><a href="${ex("address", addr)}" target="_blank" rel="noopener">${esc(tr("Open on the explorer"))} ↗</a></div></div>`;
-      return;
-    }
-    const v = verdictOf(res.score);
-    const counts = { pass: 0, warn: 0, risk: 0, info: 0 };
-    res.rows.forEach((r) => { counts[r.status]++; });
-    const m = res.market, d = res.dist;
-    const logo = (m && m.pair && m.pair.info && /^https:\/\//.test(m.pair.info.imageUrl || "") && m.pair.info.imageUrl)
-      || (meta.arcpad && typeof meta.arcpad.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(meta.arcpad.imageUrl) && meta.arcpad.imageUrl)
-      || (lc(addr) === ARCIRCLE ? "images/arcircle-mark-sm.png" : "");
-    const hue = (parseInt(addr.slice(2, 8), 16) || 0) % 360;
-    const trade = lc(addr) === ARCIRCLE ? `<a class="asc-act" href="/arc#arcircle">${esc(tr("Trade $ARCIRCLE"))} →</a>`
-      : meta.arcpad ? `<a class="asc-act" href="/arc#coin/${esc(addr)}">${esc(tr("Open on ArcPad"))} →</a>` : "";
-    const R = 52, C = 2 * Math.PI * R;
-    const tiles = m ? [
-      ["Price", usd(m.price)], ["Market cap", usd(m.mcap)], ["Liquidity", usd(m.liq)], ["24h volume", usd(m.vol)],
-      ["24h trades", `<span class="asc-b">${m.tx.buys || 0}</span> / <span class="asc-s">${m.tx.sells || 0}</span>`], ["Pool age", ageText(m.age)],
-    ] : [];
-    const chg = m && m.change != null && isFinite(m.change) ? `<em class="${m.change >= 0 ? "up" : "down"}">${m.change >= 0 ? "+" : ""}${Number(m.change).toFixed(1)}%</em>` : "";
-
+    out.classList.remove("in");
     out.innerHTML = `
-      <div class="asc-card asc-head asc-v-${v.k}">
-        <div class="asc-id">
-          ${logo ? `<img class="asc-logo" src="${esc(logo)}" alt="">` : `<span class="asc-logo ph" style="--h:${hue}">${esc(String(c.symbol || "?").charAt(0).toUpperCase())}</span>`}
-          <div class="asc-id-txt">
-            <h2 data-no-i18n>${esc(c.name)} <span>$${esc(c.symbol)}</span></h2>
-            <button type="button" class="asc-ca" data-copy="${esc(addr)}" title="${esc(tr("Copy address"))}" data-no-i18n>${short(addr)}<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/></svg></button>
-            <div class="asc-links">
-              <a href="${ex("token", addr)}" target="_blank" rel="noopener">${esc(tr("Explorer"))} ↗</a>
-              ${m && m.pair ? `<a href="${esc(m.pair.url)}" target="_blank" rel="noopener">Dexscreener ↗</a>` : ""}
-              ${trade}
-            </div>
-          </div>
-        </div>
-        <div class="asc-verdict">
-          <div class="asc-gauge" style="--c:${C.toFixed(1)};--p:${(res.score / 100).toFixed(3)}">
-            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="asc-g-track" cx="60" cy="60" r="${R}"/><circle class="asc-g-fill" cx="60" cy="60" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg>
-            <div class="asc-g-mid"><b class="asc-score" data-no-i18n>0</b><small>/ 100</small></div>
-          </div>
-          <div class="asc-v-txt">
-            <strong>${esc(tr(v.t))}</strong>
-            <div class="asc-counts">
-              <span class="c-pass">${counts.pass} ${esc(tr("OK"))}</span><span class="c-warn">${counts.warn} ${esc(tr(counts.warn === 1 ? "warning" : "warnings"))}</span><span class="c-risk">${counts.risk} ${esc(tr(counts.risk === 1 ? "risk" : "risks"))}</span>
-            </div>
-            <div class="asc-meta"><span>${esc(tr("Scanned"))} <time data-no-i18n>${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</time></span>
-              <button type="button" data-rescan>${esc(tr("Scan again"))}</button><button type="button" data-share>${esc(tr("Copy link"))}</button></div>
-          </div>
-        </div>
+      <div class="asc-card asc-head is-loading" id="asc-head">
+        <div class="asc-scanline" aria-hidden="true"></div>
+        <div class="asc-id"><span class="asc-logo ph skel"></span><div class="asc-id-txt"><h2><span class="skel-line w60"></span></h2><span class="skel-line w40"></span></div></div>
+        <div class="asc-verdict"><div class="asc-gauge"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="asc-g-track" cx="60" cy="60" r="52"/><circle class="asc-g-fill" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg><div class="asc-g-mid"><b class="asc-score" data-no-i18n>…</b><small>/ 100</small></div></div>
+          <div class="asc-v-txt"><strong class="asc-vtitle">${esc(tr("Scanning…"))}</strong><div class="asc-reasons"></div><div class="asc-counts"></div></div></div>
+        <div class="asc-actions" hidden></div>
       </div>
-      ${tiles.length ? `<div class="asc-tiles">${tiles.map(([k, val], i) => `<div style="--i:${i}"><small>${esc(tr(k))}</small><b data-no-i18n>${val}</b>${k === "Price" ? chg : ""}</div>`).join("")}</div>` : ""}
+      <div class="asc-compare" id="asc-compare" hidden></div>
+      <div class="asc-tiles" id="asc-tiles"></div>
       <div class="asc-grid">
-        <div class="asc-checks">
-          ${GROUPS.map(([g, t]) => {
-            const rs = res.rows.filter((r) => r.group === g);
-            if (!rs.length) return "";
-            const worst = rs.some((r) => r.status === "risk") ? "risk" : rs.some((r) => r.status === "warn") ? "warn" : "pass";
-            return `<section class="asc-card asc-group g-${worst}"><h3><span>${esc(tr(t))}</span><em class="st-${worst}">${esc(tr(worst === "pass" ? "All good" : worst === "warn" ? "Worth a look" : "Risk found"))}</em></h3>
-              <ul>${rs.map((r, i) => `<li class="asc-row st-${r.status}" style="--i:${i}"><span class="asc-ico" title="${esc(tr(STATUS_LABEL[r.status]))}">${ICON[r.status]}</span><div><b>${esc(tr(r.title))}</b><p>${r.detail}</p></div></li>`).join("")}</ul></section>`;
-          }).join("")}
+        <div class="asc-checks problems" id="asc-checks">
+          <div class="asc-checks-bar"><span>${esc(tr("Checks"))}</span><div class="asc-toggle" role="radiogroup"><button type="button" role="radio" aria-checked="true" data-show="problems">${esc(tr("Problems first"))}</button><button type="button" role="radio" aria-checked="false" data-show="all">${esc(tr("Show everything"))}</button></div></div>
+          ${GROUPS.map(([g, t]) => `<section class="asc-card asc-group is-pending" data-g="${g}"><h3><span>${esc(tr(t))}</span><em class="st-wait">${esc(tr("Checking…"))}</em></h3><div class="asc-group-body"><div class="asc-skel-rows"><i></i><i></i></div></div></section>`).join("")}
         </div>
-        <aside class="asc-side">${d ? holdersCard(d) : ""}
-          <div class="asc-card asc-notes"><h3>${esc(tr("How to read this"))}</h3>
-            <p>${esc(tr("The score starts at 100 and drops for every warning and risk; a serious risk caps it. Notes don't count against it."))}</p>
-            <p>${esc(tr("Owner powers only matter while someone holds them — after ownership is renounced they show as notes."))}</p></div>
+        <aside class="asc-side" id="asc-side">
+          <div class="asc-card asc-holders is-pending" id="asc-holders"><h3>${esc(tr("Holders"))}</h3><div class="asc-donut-skel"></div></div>
         </aside>
       </div>`;
-    // gauge + score count-up
-    const g = out.querySelector(".asc-gauge"), sc = out.querySelector(".asc-score");
-    requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add("in")));
-    if (reduce) sc.textContent = res.score;
-    else {
-      const t0 = performance.now();
-      const step = (t) => { const k = Math.min(1, (t - t0) / 1100), e = 1 - Math.pow(1 - k, 3); sc.textContent = Math.round(res.score * e); if (k < 1) requestAnimationFrame(step); };
-      requestAnimationFrame(step);
-    }
-    out.classList.remove("in"); void out.offsetWidth; out.classList.add("in");
-  }
-  function holdersCard(d) {
-    const S = d.S;
-    const top10pct = (d.top10 / S) * 100, pool = (d.inPool / S) * 100, burn = (d.burned / S) * 100, lock = (d.locked / S) * 100;
-    const rest = Math.max(0, 100 - top10pct - pool - burn - lock - (d.infra / S) * 100);
-    const segs = [["pool", "In pool", pool], ["burn", "Burned", burn], ["lock", "Locked", lock], ["top", "Top 10 wallets", top10pct], ["rest", "Everyone else", rest]].filter(([, , v]) => v > 0.005);
-    const list = d.people.slice(0, 10);
-    return `<div class="asc-card asc-holders"><h3>${esc(tr("Holders"))} <small data-no-i18n>${d.exact ? "" : "≥ "}${(d.holders || 0).toLocaleString("en-US")}</small></h3>
-      <div class="asc-dist" aria-hidden="true">${segs.map(([k, , v], i) => `<i class="d-${k}" style="--w:${v.toFixed(3)}%;--i:${i}"></i>`).join("")}</div>
-      <ul class="asc-legend">${segs.map(([k, t, v]) => `<li class="d-${k}"><i></i><span>${esc(tr(t))}</span><b data-no-i18n>${pct(v)}</b></li>`).join("")}</ul>
-      <h4>${esc(tr("Largest wallets"))}</h4>
-      <ol class="asc-top">${list.map(([a, v], i) => {
-        const p = (v / S) * 100;
-        return `<li style="--w:${Math.min(100, p * 2).toFixed(2)}%"><span class="n" data-no-i18n>${i + 1}</span><a href="${ex("address", a)}" target="_blank" rel="noopener" data-no-i18n>${short(a)}</a><b data-no-i18n>${pct(p)}</b></li>`;
-      }).join("") || `<li class="none">${esc(tr("No wallets besides the pool, burned and locked tokens."))}</li>`}</ol>
-      <p class="asc-hnote">${esc(tr(d.complete ? "From the token's full transfer history; balances read live." : "From recent transfer history; balances read live."))}</p></div>`;
   }
 
-  // ---------- recent scans + quick chips ----------
-  function recent() { try { return JSON.parse(localStorage.getItem(STORE) || "[]"); } catch { return []; } }
+  function paint(historyOnly) {
+    if (!cur || !cur.c) return;
+    const d = cur.done;
+    cur.res = K.evaluate(cur.addr, { c: cur.c, x: cur.x, m: cur.m, h: cur.h, sim: cur.sim });
+    const res = cur.res;
+    if (res.notToken) { renderNotToken(res); return; }
+    if (!historyOnly) head();
+    // groups
+    GROUPS.forEach(([g, , needs]) => {
+      const sec = panel.querySelector(`.asc-group[data-g="${g}"]`);
+      if (!sec) return;
+      const ready = needs.every((p) => d[p]);
+      if (!ready) return;
+      const rows = res.rows.filter((r) => r.group === g);
+      if (!rows.length) { sec.hidden = true; return; }
+      sec.hidden = false;
+      const worst = rows.some((r) => r.status === "risk") ? "risk" : rows.some((r) => r.status === "warn") ? "warn" : "pass";
+      const ok = rows.filter((r) => r.status === "pass" || r.status === "info").length;
+      const html = `<h3><span>${esc(tr(GROUPS.find((x) => x[0] === g)[1]))}</span><em class="st-${worst}">${esc(tr(worst === "pass" ? "All good" : worst === "warn" ? "Worth a look" : "Risk found"))}</em></h3>
+        <ul>${rows.map((r, i) => rowHtml(r, i)).join("")}</ul>
+        ${ok ? `<button type="button" class="asc-more" data-more data-label="${esc(tr(worst === "pass" ? (ok === 1 ? "Show 1 check" : `Show ${ok} checks`) : `Show ${ok} more`))}">${esc(tr(worst === "pass" ? (ok === 1 ? "Show 1 check" : `Show ${ok} checks`) : `Show ${ok} more`))}</button>` : ""}`;
+      if (sec.__html !== html) {
+        const wasPending = sec.classList.contains("is-pending");
+        sec.innerHTML = html; sec.__html = html;
+        sec.classList.remove("is-pending");
+        sec.classList.toggle("all-pass", worst === "pass");
+        sec.dataset.worst = worst;
+        if (wasPending && !reduce) { sec.classList.remove("land"); void sec.offsetWidth; sec.classList.add("land"); }
+      }
+    });
+    if (d.market) tiles(res.market);
+    if (d.holders) { holdersCard(res.dist); timelineCard(res.timeline, res.dist); deployerCard(res.dist); }
+    if (cur.final) {
+      // problems first: groups with risks, then warnings, then the rest
+      const rank = { risk: 0, warn: 1, pass: 2 };
+      panel.querySelectorAll(".asc-group").forEach((s, i) => { s.style.order = String((rank[s.dataset.worst] ?? 2) * 10 + i); });
+    }
+  }
+  function rowHtml(r, i) {
+    const help = K.HELP[r.id] || "";
+    const addr = r.addr ? `<a class="asc-addr" href="${ex("address", r.addr)}" target="_blank" rel="noopener" data-no-i18n style="--h:${hueOf(r.addr)}"><i></i>${short(r.addr)}</a>` : "";
+    const links = (r.links || []).map((l) => `<a href="${esc(l.href)}"${l.internal ? "" : ' target="_blank" rel="noopener nofollow"'} class="asc-link"${l.internal ? "" : " data-no-i18n"}>${esc(l.internal ? tr(l.label) : l.label)}${l.internal ? " →" : " ↗"}</a>`).join("");
+    const code = r.code ? `<a href="${ex("address", cur.addr)}#code" target="_blank" rel="noopener" class="asc-link">${esc(tr(r.code.label))} ↗</a>` : "";
+    return `<li class="asc-row st-${r.status}" style="--i:${i}">
+      <span class="asc-ico" title="${esc(tr({ pass: "OK", warn: "Warning", risk: "Risk", info: "Note" }[r.status]))}">${ICON[r.status]}</span>
+      <div class="asc-row-main">
+        <div class="asc-row-top"><b>${esc(tr(r.title))}</b>${r.pts ? `<em class="asc-pts" data-no-i18n>−${r.pts}</em>` : ""}${r.est ? `<em class="asc-est">${esc(tr("From the code"))}</em>` : ""}${help ? `<button type="button" class="asc-q" aria-expanded="false" aria-label="${esc(tr("What does this mean?"))}">?</button>` : ""}</div>
+        ${r.pre || addr || r.detail || r.note || links || code ? `<p>${r.pre ? `<span>${esc(tr(r.pre))}</span> ` : ""}${addr}${r.detail ? ` <span>${esc(tr(r.detail))}</span>` : ""}${r.note ? ` <span class="asc-note">${esc(tr(r.note))}</span>` : ""}${links || code ? ` <span class="asc-links-in">${links}${code}</span>` : ""}</p>` : ""}
+        ${help ? `<p class="asc-help" hidden>${esc(tr(help))}</p>` : ""}
+      </div></li>`;
+  }
+
+  function head() {
+    const h = $("asc-head");
+    if (!h) return;
+    const c = cur.c, res = cur.res, m = res.market;
+    const logo = (m && m.image) || (cur.x.arcpad && /^(https:\/\/|data:image\/)/.test(cur.x.arcpad.imageUrl || "") && cur.x.arcpad.imageUrl)
+      || (launchOf(cur.addr) && /^(https:\/\/|data:image\/)/.test(launchOf(cur.addr).imageUrl || "") && launchOf(cur.addr).imageUrl)
+      || (lc(cur.addr) === ARCIRCLE ? "images/arcircle-mark-sm.png" : "");
+    const idHtml = `${logo ? `<img class="asc-logo" src="${esc(logo)}" alt="">` : `<span class="asc-logo ph" style="--h:${hueOf(cur.addr)}">${esc(String(c.symbol || "?").charAt(0).toUpperCase())}</span>`}
+      <div class="asc-id-txt">
+        <h2 data-no-i18n>${esc(c.name || "Unnamed")} <span>$${esc(c.symbol || "?")}</span></h2>
+        <button type="button" class="asc-ca" data-copy="${esc(cur.addr)}" title="${esc(tr("Copy address"))}" data-no-i18n>${short(cur.addr)}<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/></svg></button>
+        <div class="asc-links">
+          <a href="${ex("token", cur.addr)}" target="_blank" rel="noopener">${esc(tr("Explorer"))} ↗</a>
+          ${m && m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Dexscreener ↗</a>` : ""}
+          ${lc(cur.addr) === ARCIRCLE ? `<a class="asc-act" href="/arc#arcircle">${esc(tr("Trade $ARCIRCLE"))} →</a>` : cur.x.arcpad ? `<a class="asc-act" href="/arc#coin/${esc(cur.addr)}">${esc(tr("Open on ArcPad"))} →</a>` : ""}
+        </div>
+      </div>`;
+    const id = h.querySelector(".asc-id");
+    if (id.__html !== idHtml) { id.innerHTML = idHtml; id.__html = idHtml; h.classList.remove("is-loading"); }
+    if (!cur.final) return;
+    const v = res.verdict;
+    h.className = `asc-card asc-head asc-v-${v.k}${res.score >= 90 ? " asc-glow" : ""}`;
+    const counts = { pass: 0, warn: 0, risk: 0 };
+    res.rows.forEach((r) => { if (counts[r.status] != null) counts[r.status]++; });
+    h.querySelector(".asc-vtitle").textContent = tr(v.t);
+    h.querySelector(".asc-reasons").innerHTML = res.reasons.map((r, i) => `<span class="asc-reason st-${r.status}" style="--i:${i}">${ICON[r.status]}${esc(tr(r.title))}</span>`).join("");
+    h.querySelector(".asc-counts").innerHTML = `<span class="c-pass">${counts.pass} ${esc(tr("OK"))}</span><span class="c-warn">${counts.warn} ${esc(tr(counts.warn === 1 ? "warning" : "warnings"))}</span><span class="c-risk">${counts.risk} ${esc(tr(counts.risk === 1 ? "risk" : "risks"))}</span>`
+      + `<span class="asc-when">${esc(tr("Scanned"))} <time data-no-i18n>${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</time></span>`;
+    const watching = watched().some((w) => lc(w.a) === lc(cur.addr));
+    const acts = h.querySelector(".asc-actions");
+    acts.hidden = false;
+    acts.innerHTML = `
+      <button type="button" data-act="rescan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>${esc(tr("Scan again"))}</button>
+      <button type="button" data-act="x"><svg viewBox="0 0 24 24" aria-hidden="true" class="fill"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg>${esc(tr("Share on X"))}</button>
+      <button type="button" data-act="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m3.5 15 5-4.5 4 3.5 3-2.5 5 4"/></svg>${esc(tr("Save card"))}</button>
+      <button type="button" data-act="link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>${esc(tr("Copy link"))}</button>
+      <button type="button" data-act="watch" aria-pressed="${watching}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>${esc(tr(watching ? "Watching" : "Watch"))}</button>
+      <button type="button" data-act="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>${esc(tr(compareBase && lc(compareBase.addr) !== lc(cur.addr) ? "Compare" : "Compare with…"))}</button>`;
+  }
+  // the ring fills while its colour runs red → amber → green to where the score lands
+  function gaugeAt(s) {
+    const h = $("asc-head");
+    if (!h) return;
+    const sc = h.querySelector(".asc-score"), fill = h.querySelector(".asc-g-fill"), C = 326.7, hue = Math.round(4 + (s / 100) * 136);
+    fill.style.strokeDashoffset = String(C * (1 - Math.max(0.02, s / 100)));
+    fill.style.stroke = `hsl(${hue} 90% 58%)`; fill.style.filter = `drop-shadow(0 0 8px hsl(${hue} 90% 58% / .6))`;
+    sc.textContent = String(Math.round(s));
+  }
+  function reveal() {
+    const h = $("asc-head");
+    if (!h || !cur || !cur.res) return;
+    const res = cur.res;
+    const g = h.querySelector(".asc-gauge");
+    const to = res.score, setAt = gaugeAt;
+    cur.shown = to;
+    if (reduce) setAt(to);
+    else {
+      const t0 = performance.now();
+      const step = (t) => { const k = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - k, 3); setAt(to * e); if (k < 1) requestAnimationFrame(step); else stamp(); };
+      setAt(0); requestAnimationFrame(step);
+    }
+    g.classList.add("in");
+    // change since the last time this browser scanned it
+    if (cur.prevScore != null && cur.prevScore !== to) {
+      const d = to - cur.prevScore, chip = document.createElement("span");
+      chip.className = "asc-delta " + (d > 0 ? "up" : "down"); chip.setAttribute("data-no-i18n", "");
+      chip.textContent = `${d > 0 ? "+" : "−"}${Math.abs(d)}`;
+      chip.title = tr("Change since your last scan");
+      g.appendChild(chip);
+    }
+    if (reduce) stamp();
+    $("asc-out").classList.add("in");
+    sticky();
+  }
+  function stamp() {
+    const h = $("asc-head");
+    if (!h || !cur || !cur.res || h.querySelector(".asc-stamp")) return;
+    const s = document.createElement("div");
+    s.className = "asc-stamp v-" + cur.res.verdict.k; s.setAttribute("aria-hidden", "true");
+    s.textContent = tr(cur.res.verdict.t);
+    h.appendChild(s);
+    if (cur.res.verdict.k === "risk") haptic("sell");
+  }
+  function renderNotToken(res) {
+    progress(false);
+    $("asc-out").innerHTML = `<div class="asc-card asc-nottoken"><span class="asc-bad">${ICON.risk}</span><div><h2>${esc(tr(res.rows[0].title))}</h2><p>${esc(tr(res.rows[0].detail))}</p><a href="${ex("address", cur.addr)}" target="_blank" rel="noopener">${esc(tr("Open on the explorer"))} ↗</a></div></div>`;
+  }
+
+  function tiles(m) {
+    const box = $("asc-tiles");
+    if (!box) return;
+    if (!m) { box.innerHTML = ""; return; }
+    const now = Date.now() / 1000;
+    const list = [
+      ["Price", K.usd(m.price), m.change != null && isFinite(m.change) ? `<em class="${m.change >= 0 ? "up" : "down"}">${m.change >= 0 ? "+" : ""}${Number(m.change).toFixed(1)}%</em>` : ""],
+      ["Market cap", K.usd(m.mcap)], ["Liquidity", m.liq != null ? K.usd(m.liq) : "—"], ["24h volume", m.vol != null ? K.usd(m.vol) : "—"],
+      ["24h trades", m.buys != null ? `<span class="asc-b">${m.buys}</span> / <span class="asc-s">${m.sells}</span>` : "—"], ["Pool age", m.created ? K.ageText(now - m.created) : "—"],
+    ];
+    const html = list.map(([k, v, extra], i) => `<div style="--i:${i}"><small>${esc(tr(k))}</small><b data-no-i18n>${v}</b>${extra || ""}</div>`).join("");
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+  }
+
+  // ---- holders: donut + largest wallets ----
+  function holdersCard(d) {
+    const box = $("asc-holders");
+    if (!box) return;
+    if (!d) { box.classList.remove("is-pending"); box.innerHTML = `<h3>${esc(tr("Holders"))}</h3><p class="asc-hnote">${esc(tr("The holder scan didn't finish — try again in a moment."))}</p>`; return; }
+    const S = d.S;
+    const segs = [["pool", "In pool", d.inPool], ["burn", "Burned", d.burned], ["lock", "Locked", d.locked], ["top", "Top 10 wallets", d.top10]]
+      .map(([k, t, v]) => [k, t, (v / S) * 100]);
+    const used = segs.reduce((t, s) => t + s[2], 0) + (d.infra / S) * 100;
+    segs.push(["rest", "Everyone else", Math.max(0, 100 - used)]);
+    const vis = segs.filter((s) => s[2] > 0.005);
+    const R = 44, C = 2 * Math.PI * R;
+    let acc = 0;
+    const arcs = vis.map(([k, , p], i) => { const len = (p / 100) * C, gap = vis.length > 1 ? Math.min(2, len / 3) : 0; const el = `<circle class="d-${k}" cx="60" cy="60" r="${R}" stroke-dasharray="${Math.max(0, len - gap).toFixed(2)} ${(C - Math.max(0, len - gap)).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" style="--i:${i}"/>`; acc += len; return el; }).join("");
+    const more = cur && cur.h && cur.h.more;
+    const people = d.people.map((p, i) => {
+      const pc = (p.v / S) * 100;
+      const tags = [p.deployer ? `<em class="t-dep">${esc(tr("Deployer"))}</em>` : "", p.contract ? `<em class="t-con">${esc(tr("Contract"))}</em>` : ""].join("");
+      return `<li style="--w:${Math.min(100, pc * 2).toFixed(2)}%"><span class="n" data-no-i18n>${i + 1}</span><a href="${ex("address", p.a)}" target="_blank" rel="noopener" data-no-i18n>${short(p.a)}</a>${tags}<b data-no-i18n>${K.pct(pc)}</b></li>`;
+    }).join("") || `<li class="none">${esc(tr("No wallets besides the pool, burned and locked tokens."))}</li>`;
+    const html = `<h3>${esc(tr("Holders"))}</h3>
+      <div class="asc-donut-wrap"><svg class="asc-donut" viewBox="0 0 120 120" aria-hidden="true"><circle class="d-track" cx="60" cy="60" r="${R}"/>${arcs}</svg>
+        <div class="asc-donut-mid"><b data-no-i18n>${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}</b><small>${esc(tr("holders"))}</small></div>
+        <ul class="asc-legend">${vis.map(([k, t, v]) => `<li class="d-${k}"><i></i><span>${esc(tr(t))}</span><b data-no-i18n>${K.pct(v)}</b></li>`).join("")}</ul></div>
+      <h4>${esc(tr("Largest wallets"))}</h4><ol class="asc-top">${people}</ol>
+      ${more ? `<p class="asc-more-hist"><i></i>${esc(tr("Reading older history…"))}</p>` : ""}
+      <p class="asc-hnote">${esc(tr(d.complete ? "From the token's full transfer history; balances read live." : "From recent transfer history; balances read live."))}</p>`;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; box.classList.remove("is-pending"); }
+  }
+  // ---- history timeline ----
+  function timelineCard(events, d) {
+    const side = $("asc-side");
+    if (!side || !cur) return;
+    let box = $("asc-timeline");
+    const dec = cur.c.decimals, S = d ? d.S : 0;
+    const amt = (v) => K.compact(K.units(v, dec));
+    const first = d && d.firstMint;
+    // the events that matter all stay; large transfers and burns only the latest few
+    const all = (events || []).slice().sort((a, b) => b.b - a.b);
+    const key = all.filter((e) => e.k !== "big" && e.k !== "burn");
+    const moves = all.filter((e) => e.k === "big" || e.k === "burn").slice(0, 4);
+    const pick = [...key.slice(0, 10), ...moves].sort((a, b) => b.b - a.b);
+    const items = pick.map((e) => {
+      let t, k = e.k;
+      if (e.k === "mint") { const isFirst = first && e.b === first.block; t = isFirst ? `Created — ${amt(e.v)} minted` : `Minted ${amt(e.v)} more`; k = isFirst ? "create" : "mint"; }
+      else if (e.k === "owner") t = /^0x0{40}$/.test(e.from) ? `Owner set to ${short(e.to)}` : K.BURN.includes(lc(e.to)) ? "Ownership renounced" : `Ownership moved to ${short(e.to)}`;
+      else if (e.k === "pause") t = "Transfers paused";
+      else if (e.k === "unpause") t = "Transfers resumed";
+      else if (e.k === "upgrade") t = `Code upgraded to ${short(e.impl)}`;
+      else if (e.k === "burn") t = `${amt(e.v)} burned`;
+      else if (e.k === "big") t = `${amt(e.v)} moved (${K.pct(S ? (K.units(e.v, dec) / S) * 100 : 0)})`;
+      else return "";
+      const when = e.ts ? new Date(e.ts * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : `#${e.b}`;
+      return `<li class="k-${k}"><i aria-hidden="true"></i><div><b>${esc(tr(t))}</b><small data-no-i18n>${esc(when)}${e.tx ? ` · <a href="${ex("tx", e.tx)}" target="_blank" rel="noopener">tx ↗</a>` : ""}</small></div></li>`;
+    }).filter(Boolean);
+    if (!items.length) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("div"); box.className = "asc-card asc-timeline"; box.id = "asc-timeline"; side.appendChild(box); }
+    const html = `<h3>${esc(tr("History"))}</h3><ol>${items.join("")}</ol>${d && !d.complete ? `<p class="asc-hnote">${esc(tr("Recent history only — older events fill in on later scans."))}</p>` : ""}`;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+  }
+  // ---- deployer ----
+  function deployerCard(d) {
+    const side = $("asc-side");
+    if (!side || !cur) return;
+    const creator = (cur.x.arcpad && cur.x.arcpad.creator) || (cur.x.argus && cur.x.argus.creator) || null;
+    const dep = (d && d.deployer) || creator;
+    let box = $("asc-deployer");
+    if (!dep) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("div"); box.className = "asc-card asc-deployer"; box.id = "asc-deployer"; const tl = $("asc-timeline"); side.insertBefore(box, tl || null); }
+    const held = d ? d.people.find((p) => p.deployer) : null;
+    const others = launches().filter((l) => (lc(l.creator) === lc(dep) || (creator && lc(l.creator) === lc(creator))) && lc(l.token) !== lc(cur.addr)).slice(0, 6);
+    const when = d && d.firstMint && d.firstMint.ts ? new Date(d.firstMint.ts * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null;
+    const html = `<h3>${esc(tr(creator && lc(creator) !== lc(dep) ? "Creator" : "Deployer"))}</h3>
+      <a class="asc-addr big" href="${ex("address", dep)}" target="_blank" rel="noopener" data-no-i18n style="--h:${hueOf(dep)}"><i></i>${short(dep)} ↗</a>
+      <dl class="asc-dl">
+        <div><dt>${esc(tr("Still holds"))}</dt><dd data-no-i18n>${d ? (held ? K.pct((held.v / d.S) * 100) : "0%") : "—"}</dd></div>
+        ${when ? `<div><dt>${esc(tr("Created"))}</dt><dd data-no-i18n>${esc(when)}</dd></div>` : ""}
+        <div><dt>${esc(tr("Other ArcPad coins"))}</dt><dd data-no-i18n>${others.length}</dd></div>
+      </dl>
+      ${others.length ? `<div class="asc-chips-in">${others.map((l) => `<button type="button" class="asc-chip" data-t="${esc(l.token)}" data-no-i18n>$${esc(l.symbol)}</button>`).join("")}</div>` : ""}`;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+  }
+
+  // ---- mobile: score stays in view while you scroll the checks ----
+  let stickyEl = null, stickyIo = null;
+  function sticky() {
+    if (!cur || !cur.res || cur.res.notToken) return;
+    if (!stickyEl) {
+      stickyEl = document.createElement("button");
+      stickyEl.type = "button"; stickyEl.className = "asc-sticky"; stickyEl.hidden = true;
+      stickyEl.addEventListener("click", () => { const h = $("asc-head"); if (h) h.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); });
+      document.body.appendChild(stickyEl);
+    }
+    const v = cur.res.verdict;
+    stickyEl.className = `asc-sticky v-${v.k}`;
+    stickyEl.innerHTML = `<b data-no-i18n>$${esc(cur.c.symbol)}</b><span class="sc" data-no-i18n>${cur.res.score}</span><span>${esc(tr(v.t))}</span>`;
+    if (stickyIo) stickyIo.disconnect();
+    if ("IntersectionObserver" in window) {
+      stickyIo = new IntersectionObserver((es) => es.forEach((e) => { stickyEl.hidden = e.isIntersecting || !panel.classList.contains("active") || window.innerWidth > 900; }), { rootMargin: "-60px 0px 0px 0px" });
+      stickyIo.observe($("asc-head"));
+    }
+  }
+  document.addEventListener("arcpad:tab", (e) => { if (stickyEl && !(e.detail && e.detail.tab === "scanner")) stickyEl.hidden = true; });
+
+  // =====================================================================
+  // wallet mode: a wallet address lists the ArcPad coins it holds
+  // =====================================================================
+  async function walletMode(addr) {
+    const out = $("asc-out");
+    out.innerHTML = `<div class="asc-card asc-wallet"><div class="asc-wallet-head"><span class="asc-addr big" style="--h:${hueOf(addr)}" data-no-i18n><i></i>${short(addr)}</span><div><h2>${esc(tr("This is a wallet, not a token"))}</h2><p>${esc(tr("Here are the ArcPad coins and $ARCIRCLE it holds — scan any of them."))}</p></div></div><div class="asc-wallet-list"><div class="asc-skel-rows"><i></i><i></i><i></i></div></div></div>`;
+    const toks = [...new Set([ARCIRCLE, ...launches().map((l) => lc(l.token))].filter(Boolean))];
+    const bal = new Map();
+    for (let i = 0; i < toks.length; i += 25) {
+      const part = toks.slice(i, i + 25);
+      const r = await Promise.all(part.map((t) => io.rpc("eth_call", [{ to: t, data: "0x70a08231" + addr.slice(2).toLowerCase().padStart(64, "0") }, "latest"]).catch(() => null)));
+      part.forEach((t, k) => { const v = r[k] && r[k] !== "0x" ? BigInt(r[k]) : 0n; if (v > 0n) bal.set(t, v); });
+    }
+    const list = [...bal.entries()].map(([t, v]) => {
+      const l = launchOf(t);
+      const sym = t === ARCIRCLE ? "$ARCIRCLE" : l ? "$" + l.symbol : short(t);
+      const units = Number(ethers.formatUnits(v, 18));
+      const usdV = l && l.priceUsdc ? units * l.priceUsdc : null;
+      return { t, sym, units, usdV };
+    }).sort((a, b) => (b.usdV || 0) - (a.usdV || 0));
+    const box = out.querySelector(".asc-wallet-list");
+    box.innerHTML = list.length ? `<ul>${list.map((x) => `<li><b data-no-i18n>${esc(x.sym)}</b><span data-no-i18n>${K.compact(x.units)}${x.usdV != null ? ` · ${K.usd(x.usdV)}` : ""}</span><button type="button" class="asc-chip" data-t="${esc(x.t)}">${esc(tr("Scan"))} →</button></li>`).join("")}</ul>`
+      : `<p class="asc-hnote">${esc(tr("No ArcPad coins or $ARCIRCLE in this wallet."))}</p>`;
+  }
+
+  // =====================================================================
+  // compare, watch, share
+  // =====================================================================
+  function snapshot() {
+    if (!cur || !cur.res) return null;
+    const r = cur.res, d = r.dist, m = r.market;
+    const ownerRow = r.rows.find((x) => x.id === "owner");
+    const sell = r.rows.find((x) => x.id === "sim" && /sell|Selling/i.test(x.title));
+    return {
+      addr: cur.addr, sym: cur.c.symbol, score: r.score, verdict: r.verdict,
+      rows: [
+        ["Score", `${r.score} / 100`], ["Verdict", tr(r.verdict.t)], ["Owner", ownerRow ? tr(ownerRow.title) : "—"], ["Selling", sell ? tr(sell.title) : "—"],
+        ["Liquidity", m && m.liq != null ? K.usd(m.liq) : "—"], ["Market cap", m ? K.usd(m.mcap) : "—"],
+        ["Holders", d ? `${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}` : "—"], ["Top 10 wallets", d ? K.pct((d.top10 / d.S) * 100) : "—"],
+        ["Pool age", m && m.created ? K.ageText(Date.now() / 1000 - m.created) : "—"], ["Risks", String(r.rows.filter((x) => x.status === "risk").length)],
+      ],
+    };
+  }
+  function compareMaybe() {
+    const box = $("asc-compare");
+    if (!box) return;
+    if (!compareBase || lc(compareBase.addr) === lc(cur.addr)) { box.hidden = true; return; }
+    const b = snapshot();
+    const better = (i) => (i === 0 ? (b.score > compareBase.score ? "b" : b.score < compareBase.score ? "a" : "") : "");
+    box.hidden = false;
+    box.innerHTML = `<div class="asc-card"><div class="asc-cmp-head"><h3>${esc(tr("Side by side"))}</h3><button type="button" data-act="uncompare">${esc(tr("Clear"))}</button></div>
+      <table class="asc-cmp"><thead><tr><th></th><th data-no-i18n>$${esc(compareBase.sym)}</th><th data-no-i18n>$${esc(b.sym)}</th></tr></thead>
+      <tbody>${b.rows.map(([k, v], i) => `<tr><th>${esc(tr(k))}</th><td class="${better(i) === "a" ? "win" : ""}" data-no-i18n>${esc(compareBase.rows[i][1])}</td><td class="${better(i) === "b" ? "win" : ""}" data-no-i18n>${esc(v)}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+  function watched() { try { return JSON.parse(localStorage.getItem(WATCH) || "[]"); } catch { return []; } }
+  function saveWatched(list) { try { localStorage.setItem(WATCH, JSON.stringify(list.slice(0, 8))); } catch { /* private mode */ } }
+  async function watchSnap(a) {
+    const c = await K.readContract(io, a);
+    const m = await K.readMarket(io, a).catch(() => null);
+    const p = m && m.pairs && m.pairs[0];
+    return { owner: c.owner || null, supply: c.supply, liq: p ? p.liq : null };
+  }
+  async function toggleWatch() {
+    if (!cur || !cur.c) return;
+    let list = watched();
+    const on = list.some((w) => lc(w.a) === lc(cur.addr));
+    if (on) list = list.filter((w) => lc(w.a) !== lc(cur.addr));
+    else {
+      const m = cur.res && cur.res.market;
+      list.unshift({ a: cur.addr, s: cur.c.symbol, snap: { owner: cur.c.owner || null, supply: cur.c.supply, liq: m && m.liq != null ? m.liq : null }, at: Date.now() });
+      try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch { /* fine */ }
+      toast(tr("Watching — you'll get an alert here if the owner, supply or liquidity changes."));
+    }
+    saveWatched(list);
+    head(); shelf();
+  }
+  // Every few minutes while ArcPad is open: owner, supply and liquidity of each watched token.
+  async function watchTick() {
+    if (document.hidden) return;
+    const list = watched();
+    let changed = false;
+    for (const w of list.slice(0, 5)) {
+      let s;
+      try { s = await watchSnap(w.a); } catch { continue; }
+      const old = w.snap || {};
+      const alerts = [];
+      if (lc(s.owner) !== lc(old.owner)) alerts.push(K.BURN.includes(lc(s.owner)) ? "ownership was renounced" : "the owner changed");
+      if (old.supply && s.supply !== old.supply) alerts.push(BigInt(s.supply) > BigInt(old.supply) ? "new tokens were minted" : "supply went down");
+      if (old.liq && s.liq != null && s.liq < old.liq * 0.7) alerts.push(`liquidity fell ${Math.round((1 - s.liq / old.liq) * 100)}%`);
+      if (alerts.length) {
+        const msg = `$${w.s}: ${alerts.join(", ")}`;
+        toast(msg);
+        try { if ("Notification" in window && Notification.permission === "granted") new Notification(tr("Token Scanner alert"), { body: msg, tag: "asc-" + w.a, icon: "/images/favicon-32.png" }); } catch { /* fine */ }
+        w.alert = { msg, at: Date.now() };
+      }
+      w.snap = s; changed = true;
+    }
+    if (changed) { saveWatched(list); shelf(); }
+  }
+  setInterval(watchTick, 180000);
+
+  function shareX() {
+    if (!cur || !cur.res) return;
+    const r = cur.res;
+    const text = `$${cur.c.symbol} on the ARCIRCLE PAD Token Scanner: ${r.score}/100 · ${r.verdict.t}\n${r.reasons.map((x) => (x.status === "pass" ? "✓ " : "• ") + x.title).join("\n")}`;
+    const url = `${location.origin}/s/${cur.addr}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
+  }
+  // A 1200×630 picture of the result, drawn here — for posts that need an image.
+  async function saveCard() {
+    if (!cur || !cur.res) return;
+    const r = cur.res, W = 1200, H = 630;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const g = cv.getContext("2d");
+    const col = r.verdict.k === "ok" ? "#39ff88" : r.verdict.k === "care" ? "#ffc861" : "#ff6e5a";
+    const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#07101c"); bg.addColorStop(1, "#0b1a14");
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    const glow = g.createRadialGradient(930, 300, 20, 930, 300, 420); glow.addColorStop(0, col + "33"); glow.addColorStop(1, "transparent");
+    g.fillStyle = glow; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#9fc6ff"; g.font = "700 26px Sora, system-ui, sans-serif"; g.fillText("TOKEN SCANNER · ARCIRCLE PAD", 70, 90);
+    g.fillStyle = "#ffffff"; g.font = "800 68px Sora, system-ui, sans-serif";
+    const title = `$${cur.c.symbol}`.slice(0, 14); g.fillText(title, 70, 190);
+    g.fillStyle = "rgba(222,233,244,.6)"; g.font = "500 28px Sora, system-ui, sans-serif"; g.fillText(String(cur.c.name || "").slice(0, 34), 70, 236);
+    g.font = "500 22px ui-monospace, Menlo, monospace"; g.fillText(cur.addr, 70, 276);
+    g.font = "700 30px Sora, system-ui, sans-serif";
+    r.reasons.forEach((x, i) => {
+      const y = 360 + i * 62, c2 = x.status === "risk" ? "#ff6e5a" : x.status === "warn" ? "#ffc861" : "#39ff88";
+      g.fillStyle = c2; g.beginPath(); g.arc(88, y - 10, 10, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#eef3f7"; g.fillText(tr(x.title).slice(0, 38), 116, y);
+    });
+    g.lineWidth = 26; g.strokeStyle = "rgba(255,255,255,.08)"; g.beginPath(); g.arc(930, 300, 150, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = col; g.lineCap = "round"; g.beginPath(); g.arc(930, 300, 150, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, r.score / 100)); g.stroke();
+    g.fillStyle = "#fff"; g.textAlign = "center"; g.font = "800 110px Sora, system-ui, sans-serif"; g.fillText(String(r.score), 930, 330);
+    g.fillStyle = "rgba(222,233,244,.55)"; g.font = "600 26px Sora, system-ui, sans-serif"; g.fillText("/ 100", 930, 372);
+    g.fillStyle = col; g.font = "800 40px Sora, system-ui, sans-serif"; g.fillText(tr(r.verdict.t), 930, 520);
+    g.textAlign = "left"; g.fillStyle = "rgba(222,233,244,.45)"; g.font = "500 22px Sora, system-ui, sans-serif";
+    g.fillText(`arcircle.app/scanner · ${new Date().toISOString().slice(0, 10)} · not financial advice`, 70, 580);
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = `scan-${cur.c.symbol || "token"}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }, "image/png");
+  }
+
+  // =====================================================================
+  // shelf: recent scans, most scanned, watching
+  // =====================================================================
+  function recent() { try { return JSON.parse(localStorage.getItem(RECENT) || "[]"); } catch { return []; } }
   function remember(addr, sym, score) {
     const list = recent().filter((r) => lc(r.a) !== lc(addr));
     list.unshift({ a: addr, s: sym, sc: score, at: Date.now() });
-    try { localStorage.setItem(STORE, JSON.stringify(list.slice(0, 8))); } catch { /* private mode */ }
+    try { localStorage.setItem(RECENT, JSON.stringify(list.slice(0, 8))); } catch { /* private mode */ }
+  }
+  let topList = [];
+  function miniRing(score) {
+    const v = K.verdictOf(score || 0), C = 2 * Math.PI * 15;
+    return `<span class="asc-mini v-${v.k}"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15"/><circle class="f" cx="18" cy="18" r="15" stroke-dasharray="${(C * Math.max(0.03, score / 100)).toFixed(1)} ${C.toFixed(1)}"/></svg><b data-no-i18n>${score}</b></span>`;
+  }
+  function shelf() {
+    const box = $("asc-shelf");
+    if (!box) return;
+    const rec = recent().slice(0, 4), w = watched().slice(0, 6);
+    const card = (r) => `<button type="button" class="asc-scard" data-t="${esc(r.a)}">${miniRing(r.sc || 0)}<span><b data-no-i18n>$${esc(r.s || "?")}</b><small>${esc(tr(K.verdictOf(r.sc || 0).t))}</small></span></button>`;
+    const html = (rec.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Your recent scans"))}</h3><div class="asc-scards">${rec.map(card).join("")}</div></div>` : "")
+      + (topList.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Most scanned this week"))}</h3><div class="asc-chips-in">${topList.slice(0, 8).map((t) => `<button type="button" class="asc-chip" data-t="${esc(t.token)}" data-no-i18n>${t.symbol ? "$" + esc(t.symbol) : short(t.token)} <i>${t.scans}</i></button>`).join("")}</div></div>` : "")
+      + (w.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Watching"))}</h3><div class="asc-chips-in">${w.map((x) => `<button type="button" class="asc-chip watch${x.alert && Date.now() - x.alert.at < 86400e3 ? " alert" : ""}" data-t="${esc(x.a)}" data-no-i18n title="${esc(x.alert ? x.alert.msg : "")}"><i class="dot"></i>$${esc(x.s)}</button>`).join("")}</div></div>` : "");
+    box.hidden = !html;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
   function renderChips() {
     const box = $("asc-chips");
     const chips = [];
     if (ARCIRCLE) chips.push({ a: CONFIG.ARCIRCLE_TOKEN, s: "$ARCIRCLE" });
-    ((typeof ARC !== "undefined" && ARC.launches) || []).slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0)).slice(0, 4)
-      .forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol }));
-    const rec = recent().filter((r) => !chips.some((c) => lc(c.a) === lc(r.a))).slice(0, 4);
-    const chip = (c, kind) => `<button type="button" class="asc-chip${kind ? " " + kind : ""}" data-t="${esc(c.a)}" data-no-i18n>${kind === "rec" ? `<i class="v-${verdictOf(c.sc || 0).k}"></i>` : ""}${esc(c.s)}</button>`;
-    const html = (chips.length ? `<span class="asc-chips-l">${esc(tr("Try"))}</span>${chips.map((c) => chip(c)).join("")}` : "")
-      + (rec.length ? `<span class="asc-chips-l">${esc(tr("Recent"))}</span>${rec.map((r) => chip({ a: r.a, s: r.s ? "$" + r.s : short(r.a), sc: r.sc }, "rec")).join("")}` : "");
+    launches().slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0)).slice(0, 4).forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol }));
+    const html = chips.length ? `<span class="asc-chips-l">${esc(tr("Try"))}</span>${chips.map((c) => `<button type="button" class="asc-chip" data-t="${esc(c.a)}" data-no-i18n>${esc(c.s)}</button>`).join("")}` : "";
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
 
-  // ---------- scan ----------
-  let seq = 0, last = null;
-  async function scan(input) {
-    const raw = String(input || "").trim();
-    const status = (msg) => { $("asc-out").innerHTML = `<div class="asc-card asc-msg">${esc(tr(msg))}</div>`; $("asc-intro").hidden = true; };
-    if (!isAddr(raw)) { status("That isn't a token address — it should start with 0x and be 42 characters long."); return; }
-    const addr = ethers.getAddress(raw);
-    const my = ++seq;
-    $("asc-addr").value = addr;
-    if (history.replaceState) history.replaceState(null, "", `${location.pathname}${location.search}#scanner?t=${addr}`);
-    $("asc-go").disabled = true;
-    $("asc-out").innerHTML = "";
-    $("asc-intro").hidden = true;
-    progress(true);
-    STEPS.forEach(([k]) => stepOn(k));
-    const t0 = performance.now();
-    const cP = readContract(addr).then((v) => { if (my === seq) { stepDone("contract", true); stepDone("control", !!(v && v.token)); } return v; }, (e) => { console.warn("scanner contract", e); if (my === seq) { stepDone("contract", false); stepDone("control", false); } return null; });
-    const mP = readMarket(addr).then((v) => { if (my === seq) stepDone("market", true); return v; }, (e) => { console.warn("scanner market", e); if (my === seq) stepDone("market", false); return null; });
-    const hP = readHolders(addr).then((v) => { if (my === seq) stepDone("holders", true); return v; }, (e) => { console.warn("scanner holders", e); if (my === seq) stepDone("holders", false); return null; });
-    const xP = readExtras(addr).catch(() => null);
-    const c = await cP;
-    if (my !== seq) return;
-    if (!c) { progress(false); $("asc-go").disabled = false; status("Couldn't read that address from Arc right now — try again in a moment."); return; }
-    // not a token: no need to wait for the rest
-    const [m, h, x] = c.token ? await Promise.all([mP, hP, xP]) : [null, null, null];
-    if (my !== seq) return;
-    // let the radar finish its sweep so a cached scan doesn't just flash
-    const wait = Math.max(0, (reduce ? 0 : 900) - (performance.now() - t0));
-    if (wait) await new Promise((r) => setTimeout(r, wait));
-    if (my !== seq) return;
-    const res = evaluate(addr, c, m, h, x);
-    progress(false);
-    $("asc-go").disabled = false;
-    last = { addr, c, res };
-    render(addr, c, res, { arcpad: x && x.arcpad });
-    if (!res.notToken) { remember(addr, c.symbol, res.score); renderChips(); }
-    if (typeof window.arcHaptic === "function") window.arcHaptic(res.score >= 75 ? "milestone" : "tap");
-  }
-
-  // ---------- wiring ----------
+  // =====================================================================
+  // wiring
+  // =====================================================================
   $("asc-form").addEventListener("submit", (e) => { e.preventDefault(); scan($("asc-addr").value); });
   $("asc-addr").addEventListener("paste", () => setTimeout(() => { if (isAddr($("asc-addr").value.trim())) scan($("asc-addr").value); }, 0));
   $("asc-paste").addEventListener("click", async () => {
-    try { const t = await navigator.clipboard.readText(); if (t) { $("asc-addr").value = t.trim(); if (isAddr(t.trim())) scan(t); } }
-    catch { $("asc-addr").focus(); }
+    try { const t = await navigator.clipboard.readText(); if (t) { $("asc-addr").value = t.trim(); if (isAddr(t.trim())) scan(t); } } catch { $("asc-addr").focus(); }
   });
-  $("asc-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) scan(b.dataset.t); });
-  $("asc-out").addEventListener("click", async (e) => {
+  panel.addEventListener("click", async (e) => {
+    const t = e.target.closest("[data-t]");
+    if (t && !t.closest("#asc-form")) { window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); scan(t.dataset.t); return; }
+    const q = e.target.closest(".asc-q");
+    if (q) { const help = q.closest(".asc-row").querySelector(".asc-help"); const open = help.hidden; help.hidden = !open; q.setAttribute("aria-expanded", String(open)); q.classList.toggle("on", open); return; }
+    const more = e.target.closest("[data-more]");
+    if (more) { const g = more.closest(".asc-group"); g.classList.toggle("open"); more.textContent = g.classList.contains("open") ? tr("Show less") : more.dataset.label; return; }
+    const sh = e.target.closest("[data-show]");
+    if (sh) { const box = $("asc-checks"); box.classList.toggle("problems", sh.dataset.show === "problems"); box.querySelectorAll("[data-show]").forEach((b) => b.setAttribute("aria-checked", String(b === sh))); return; }
     const cp = e.target.closest("[data-copy]");
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); cp.classList.add("ok"); setTimeout(() => cp.classList.remove("ok"), 1200); } catch { /* denied */ } return; }
-    if (e.target.closest("[data-rescan]") && last) { scan(last.addr); return; }
-    const sh = e.target.closest("[data-share]");
-    if (sh && last) {
-      const url = `${location.origin}/arc#scanner?t=${last.addr}`;
-      try { await navigator.clipboard.writeText(url); sh.textContent = tr("Link copied"); setTimeout(() => { sh.textContent = tr("Copy link"); }, 1400); } catch { /* denied */ }
-    }
+    const act = e.target.closest("[data-act]");
+    if (!act || !cur) return;
+    const a = act.dataset.act;
+    if (a === "rescan") scan(cur.addr);
+    else if (a === "x") shareX();
+    else if (a === "card") saveCard();
+    else if (a === "link") { try { await navigator.clipboard.writeText(`${location.origin}/s/${cur.addr}`); act.classList.add("ok"); toast(tr("Link copied")); } catch { /* denied */ } }
+    else if (a === "watch") toggleWatch();
+    else if (a === "compare") {
+      if (compareBase && lc(compareBase.addr) !== lc(cur.addr)) { compareMaybe(); $("asc-compare").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); return; }
+      compareBase = snapshot();
+      toast(tr("Now scan a second token to compare them side by side."));
+      $("asc-addr").value = ""; $("asc-addr").focus();
+    } else if (a === "uncompare") { compareBase = null; $("asc-compare").hidden = true; head(); }
   });
   function fromHash() {
     const m = /^#scanner\?(?:t|token)=(0x[0-9a-fA-F]{40})/.exec(location.hash);
-    if (m && (!last || lc(last.addr) !== lc(m[1]))) scan(m[1]);
+    if (m && (!cur || lc(cur.addr) !== lc(m[1]))) scan(m[1]);
   }
   window.addEventListener("hashchange", fromHash);
-  document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "scanner") { renderChips(); setTimeout(() => { if (!last && !reduce) $("asc-addr").focus({ preventScroll: true }); }, 250); } });
-  renderChips();
-  fromHash();
-  // ArcPad launches arrive after load — refresh the quick picks when they do
+  document.addEventListener("arcpad:tab", (e) => {
+    if (e.detail && e.detail.tab === "scanner") { renderChips(); shelf(); setTimeout(() => { if (!cur && !reduce) $("asc-addr").focus({ preventScroll: true }); }, 250); }
+  });
+  fetchJson("/api/social?scans=top", 6000).then((j) => { if (j && Array.isArray(j.top)) { topList = j.top; shelf(); } });
+  renderChips(); shelf(); fromHash();
   let tries = 0;
-  const chipT = setInterval(() => { renderChips(); if (++tries > 10 || (typeof ARC !== "undefined" && ARC.launches && ARC.launches.length)) clearInterval(chipT); }, 1500);
-  window.arcScanner = { scan, evaluate, selectorsOf };
+  const chipT = setInterval(() => { renderChips(); if (++tries > 10 || launches().length) clearInterval(chipT); }, 1500);
+  window.arcScanner = { scan, get state() { return cur; } };
 })();

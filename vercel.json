@@ -79,6 +79,10 @@
     {
       "source": "/round",
       "destination": "/api/c?view=round"
+    },
+    {
+      "source": "/s/:addr",
+      "destination": "/api/c?view=scan&addr=:addr"
     }
   ],
   "redirects": [
