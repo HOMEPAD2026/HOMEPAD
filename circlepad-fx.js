@@ -381,20 +381,24 @@
     card.remove();
     row.classList.add("cp-row2");
   })();
+  let govPhaseNow = null, lastStage = null;
+  document.addEventListener("circlepad:gov", (e) => { govPhaseNow = e.detail && e.detail.phase; if (lastStage) try { paintStage(lastStage); } catch (err) { /* cosmetic */ } });
   function paintStage(s) {
+    lastStage = s;
     const st = stageOf(s);
     document.body.classList.toggle("cp-started", !!(s && s.started));
     document.body.classList.toggle("cp-open", !!(s && s.isOpen));
     if (timeline) {
       const lis = [...timeline.querySelectorAll(".bp-steps > li")];
-      // live: funding + governance run side by side (steps 1 and 2)
+      // the vote runs in the 48 hours after the close (step 2)
+      const voting = st >= 3 && govPhaseNow === "voting";
+      const at = voting ? 1 : st;
       lis.forEach((li, i) => {
-        const now = st === 0 ? i <= 1 : st === i;
-        li.classList.toggle("is-now", now);
-        li.classList.toggle("is-done", st >= 0 && (st === 0 ? false : i < st));
+        li.classList.toggle("is-now", at === i);
+        li.classList.toggle("is-done", at > 0 && i < at);
       });
       const label = $("cp-tl-now");
-      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? tr("Live — raise open") : st === 3 ? tr("Raise closed") : tr("Distributed");
+      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? tr("Live — raise open") : voting ? tr("Raise closed — voting open") : st === 3 ? tr("Raise closed") : tr("Distributed");
       timeline.style.setProperty("--cp-tl", st < 0 ? 0 : st === 0 ? 0.25 : Math.min(1, (st + 0.5) / 5));
     }
     paintQuick(s);
@@ -521,7 +525,7 @@
   if (typeof renderCirclepadGovernance === "function") {
     const origGov = renderCirclepadGovernance;
     const prevW = new Map(), prevMine = new Map(), prevLead = new Map();
-    const optKey = (opt) => { const b = opt.querySelector(".bp-gov-vote-btn"); return b ? `${b.dataset.category}:${b.dataset.option}` : null; };
+    const optKey = (opt) => (opt.dataset.category != null ? `${opt.dataset.category}:${opt.dataset.option}` : null);
     let govPainted = false;
     // eslint-disable-next-line no-global-assign
     renderCirclepadGovernance = function (g) {

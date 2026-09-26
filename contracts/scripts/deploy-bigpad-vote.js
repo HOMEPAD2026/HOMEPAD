@@ -14,19 +14,18 @@
 // raise to end first. Voting itself only opens once the escrow's own
 // deadline passes, and stays open for 48 hours after that.
 //
-// Run on testnet FIRST — deploy against a testnet BigPadEscrow, propose
-// options, have a couple of test accounts vote (including changing their
-// vote), confirm leading() updates correctly — and only then run again
-// with --network robinhoodMainnet:
-//   npx hardhat run scripts/deploy-bigpad-vote.js --network robinhoodTestnet
-//   npx hardhat run scripts/deploy-bigpad-vote.js --network robinhoodMainnet
+// CirclePad on Arc mainnet (the live Round #1 escrow):
+//   BIGPAD_ESCROW_ADDRESS=0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703 \
+//     npx hardhat run scripts/deploy-bigpad-vote.js --network arcMainnet
+// Deploy BEFORE the escrow's deadline so the recipient has time to publish
+// candidates on /circle#governance — voting opens the moment the raise closes.
 
 const { ethers } = require("hardhat");
 const { verifyIfPossible } = require("./lib/verify");
 const hre = require("hardhat");
 
 async function main() {
-  const escrowAddress = requireEnv("BIGPAD_ESCROW_ADDRESS");
+  const escrowAddress = process.env.BIGPAD_ESCROW_ADDRESS || process.env.CIRCLEPAD_ESCROW_ADDRESS || requireEnv("BIGPAD_ESCROW_ADDRESS");
 
   console.log("Deploying BigPadVote on", hre.network.name, "...");
   console.log("  escrow:", escrowAddress);
@@ -37,6 +36,9 @@ async function main() {
     throw new Error("This escrow hasn't been started yet (deadline() is 0) — call start() first, then deploy this.");
   }
   console.log("  escrow deadline:", deadline.toString(), "-", new Date(Number(deadline) * 1000).toISOString());
+  const now = (await ethers.provider.getBlock("latest")).timestamp;
+  if (BigInt(now) >= deadline) console.warn("  NOTE: the raise has already closed — voting is open from the moment this deploys, for whatever is left of the 48 hours.");
+  else console.log("  raise closes in", ((Number(deadline) - now) / 3600).toFixed(1), "hours");
 
   const Vote = await ethers.getContractFactory("BigPadVote");
   const vote = await Vote.deploy(escrowAddress);
@@ -56,11 +58,11 @@ async function main() {
     constructorArgs: [escrowAddress],
   });
 
-  console.log("\nDone. Paste into frontend config.js:");
-  console.log(JSON.stringify({ BIGPAD_VOTE_ADDRESS: address }, null, 2));
-  console.log("\nNext: recipient calls proposeOptions() for each category (0-4) — from the");
-  console.log("explorer's Write Contract tab until the site has a UI for it. Voting opens");
-  console.log("automatically once the escrow's own deadline passes.");
+  console.log("\nDone. Put this in config-arc.js (CirclePad on Arc) or config.js (Robinhood):");
+  console.log(`  CIRCLEPAD_VOTE_ADDRESS: "${address}",`);
+  console.log("\nNext: connect the recipient wallet on /circle#governance and publish the");
+  console.log("candidates for each of the 5 categories (once each, can't be edited). Voting");
+  console.log("opens automatically once the escrow's own deadline passes.");
 }
 
 function requireEnv(name) {

@@ -525,12 +525,15 @@ async function initCirclepadRound() {
   // This contract only escrows USDC — it does not enforce the vote/lead/
   // vesting mechanism the rest of this page documents, so the copy that
   // assumed that mechanism was live needs to say so plainly instead.
-  const desc = document.getElementById("bp-featured-desc");
-  if (desc) desc.textContent = "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.";
-  const govNote = document.getElementById("bp-gov-note");
-  if (govNote) govNote.textContent = "Not enforced on-chain in this round — see Docs > Safety design for why.";
-  const govPanelNote = document.getElementById("bp-gov-panel-note");
-  if (govPanelNote) govPanelNote.textContent = "This round's contract only handles contributions. Voting on name, ticker, logo, roadmap, and launch date is not enforced by smart contract here — how that gets decided will be announced separately.";
+  // Once the separate vote contract is configured, the governance code owns these lines.
+  if (!circlepadVoteConfigured()) {
+    const desc = document.getElementById("bp-featured-desc");
+    if (desc) desc.textContent = "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.";
+    const govNote = document.getElementById("bp-gov-note");
+    if (govNote) govNote.textContent = "Voting opens at the close — the vote contract is being set up.";
+    const govPanelNote = document.getElementById("bp-gov-panel-note");
+    if (govPanelNote) govPanelNote.textContent = "The vote contract for this round is being set up. Candidates will appear here, and voting opens the moment the raise closes.";
+  }
 
   try {
     const escrow = circlepadEscrowRead();
@@ -1019,15 +1022,27 @@ function wireCirclepadContribute() {
 // copy in the HTML stays as-is) until CONFIG.CIRCLEPAD_VOTE_ADDRESS is
 // filled in after deploy.
 
+// Five categories, each with its own kind of candidate: plain text for the
+// name, a ticker, an image link for the logo, a short plan for the roadmap
+// and a moment in time for the launch date. The contract only stores
+// strings, so the kind decides how a candidate is typed in and shown.
 const CIRCLEPAD_VOTE_CATEGORIES = [
-  { id: 0, label: "Coin name" },
-  { id: 1, label: "Ticker" },
-  { id: 2, label: "Logo" },
-  { id: 3, label: "Roadmap" },
-  { id: 4, label: "Launch date" },
+  { id: 0, label: "Coin name", kind: "name", max: 32 },
+  { id: 1, label: "Ticker", kind: "ticker", max: 10 },
+  { id: 2, label: "Logo", kind: "logo", max: 300 },
+  { id: 3, label: "Roadmap", kind: "roadmap", max: 400 },
+  { id: 4, label: "Launch date", kind: "date", max: 40 },
 ];
+const GOV_MAX_OPTIONS = 8;
 
 let _circlepadGovPollTimer = null;
+let _govClockTimer = null;
+let _govSkew = 0; // chain time minus this device's clock, seconds
+let _govLast = null; // last rendered state
+const _govDrafts = new Map(); // category → option drafts, survive the 15s refresh
+
+const govEsc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const govNow = () => Math.floor(Date.now() / 1000) + _govSkew;
 
 function circlepadVoteConfigured() {
   return typeof CONFIG !== "undefined" && !!CONFIG.CIRCLEPAD_VOTE_ADDRESS && CONFIG.CIRCLEPAD_VOTE_ADDRESS.length === 42;
@@ -1039,6 +1054,46 @@ function circlepadVoteWrite() {
   return new ethers.Contract(CONFIG.CIRCLEPAD_VOTE_ADDRESS, CIRCLEPAD_VOTE_ABI, state.signer);
 }
 
+// ---- how a candidate looks ----
+function govLogoUrl(t) {
+  let s = String(t || "").trim();
+  if (/^ipfs:\/\/[A-Za-z0-9./_-]+$/.test(s)) s = "https://ipfs.io/ipfs/" + s.slice(7);
+  if (!/^https:\/\/[^\s"'<>`]+$/i.test(s)) return null;
+  try { const u = new URL(s); return u.protocol === "https:" ? u.href : null; } catch { return null; }
+}
+function govDate(t) {
+  const s = String(t || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?Z$/.test(s)) return null;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function govFmtDate(d) {
+  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function govLeft(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (d) return `${d}d ${h}h ${m}m`;
+  if (h) return `${h}h ${m}m ${s}s`;
+  return `${m}m ${s}s`;
+}
+function govOptionHtml(kind, text) {
+  if (kind === "ticker") return `<span class="gv-o gv-o-ticker">$${govEsc(String(text).replace(/^\$/, ""))}</span>`;
+  if (kind === "logo") {
+    const u = govLogoUrl(text);
+    if (u) {
+      let host = ""; try { host = new URL(u).host; } catch { /* shown without */ }
+      return `<span class="gv-o gv-o-logo"><img src="${govEsc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('bad')"><small>${govEsc(host)}</small></span>`;
+    }
+  }
+  if (kind === "date") {
+    const d = govDate(text);
+    if (d) return `<span class="gv-o gv-o-date"><b>${govEsc(govFmtDate(d))}</b><small>${govEsc(d.toISOString().slice(0, 16).replace("T", " "))} UTC</small></span>`;
+  }
+  if (kind === "roadmap") return `<span class="gv-o gv-o-road">${govEsc(text).replace(/\n/g, "<br>")}</span>`;
+  return `<span class="gv-o">${govEsc(text)}</span>`;
+}
+
 async function initCirclepadGovernance() {
   if (!circlepadVoteConfigured()) return; // fallback copy in the HTML stays put
   const fallback = document.getElementById("bp-gov-fallback");
@@ -1046,40 +1101,46 @@ async function initCirclepadGovernance() {
   if (fallback) fallback.style.display = "none";
   if (live) live.style.display = "block";
 
-  // The escrow-only copy elsewhere on the page assumed voting wasn't
-  // enforced anywhere on-chain — now that it is (via this separate
-  // contract), say so instead of leaving the older disclaimer standing.
-  const govNote = document.getElementById("bp-gov-note");
-  if (govNote) govNote.textContent = "Voting is live — cast yours →";
   const desc = document.getElementById("bp-featured-desc");
   if (desc) desc.textContent = "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap runs in a separate contract — see the Governance tab.";
+
+  const wrap = document.getElementById("bp-gov-live");
+  if (wrap && !wrap.dataset.wired) {
+    wrap.dataset.wired = "1";
+    wireCirclepadGovernance(wrap);
+  }
 
   paintCirclepadGovernanceFromCache(); // instant on a return visit; real fetch overwrites it below
   await refreshCirclepadGovernance();
   if (_circlepadGovPollTimer) clearInterval(_circlepadGovPollTimer);
   _circlepadGovPollTimer = setInterval(refreshCirclepadGovernance, 15000);
+  if (!_govClockTimer) _govClockTimer = setInterval(tickGovClocks, 1000);
 }
 
 // Three small batched rounds rather than one call per category/option:
 // round 1 finds which categories have options published, round 2 fetches
 // those categories' option lists (now that their lengths are known),
 // round 3 fetches every option's weight plus the caller's own vote per
-// category — all through multicallRead (see app.js), same pattern as
-// the round/leaderboard fetches above.
+// category — all through multicallRead (see app.js).
 async function fetchCirclepadGovernanceState() {
   const vote = circlepadVoteRead();
-
   const round1 = [
     { contract: vote, method: "votingOpen" },
     { contract: vote, method: "votingEnds" },
     { contract: vote, method: "recipient" },
     ...CIRCLEPAD_VOTE_CATEGORIES.map((c) => ({ contract: vote, method: "optionsSet", args: [c.id] })),
   ];
-  const r1 = await multicallRead(round1);
+  if (circlepadEscrowConfigured()) round1.push({ contract: circlepadEscrowRead(), method: "deadline" });
+  const [r1, head] = await Promise.all([
+    multicallRead(round1),
+    readProvider().getBlock("latest").catch(() => null),
+  ]);
+  if (head && head.timestamp) _govSkew = Number(head.timestamp) - Math.floor(Date.now() / 1000);
   const votingOpen = !!r1[0];
   const votingEnds = r1[1] ?? 0n;
   const recipient = r1[2] || ethers.ZeroAddress;
   const setFlags = CIRCLEPAD_VOTE_CATEGORIES.map((_c, i) => !!r1[3 + i]);
+  const deadline = circlepadEscrowConfigured() ? (r1[3 + CIRCLEPAD_VOTE_CATEGORIES.length] ?? 0n) : 0n;
   const setCats = CIRCLEPAD_VOTE_CATEGORIES.filter((_c, i) => setFlags[i]);
 
   const round2 = setCats.map((c) => ({ contract: vote, method: "options", args: [c.id] }));
@@ -1125,63 +1186,255 @@ async function fetchCirclepadGovernanceState() {
     };
   });
 
-  return { votingOpen, votingEnds, recipient, categories };
+  return { votingOpen, votingEnds, recipient, deadline, categories };
+}
+
+// raise → voting → closed, on the chain's clock
+function govPhase(g) {
+  const now = govNow(), ends = Number(g.votingEnds || 0), dl = Number(g.deadline || 0);
+  if (g.votingOpen) return "voting";
+  if (ends && now >= ends) return "closed";
+  if (dl && now >= dl) return "voting"; // the chain says it opens any second
+  return "raise";
+}
+function govLeader(c) {
+  if (!c.set || !c.options.length) return null;
+  let best = -1, bw = 0n;
+  c.options.forEach((o, i) => { if (o.weight > bw) { bw = o.weight; best = i; } });
+  return best < 0 ? null : { i: best, text: c.options[best].text, weight: bw };
 }
 
 function renderCirclepadGovernance(g) {
+  const wrap = document.getElementById("bp-gov-categories");
+  _govLast = g;
+  window.circlepadGov = g;
+
+  const s = (typeof _circlepadState !== "undefined" && _circlepadState) || {};
+  const phase = govPhase(g);
+  const total = s.totalRaised || 0n;
+  const mine = state.account ? (s.myContribution || 0n) : 0n;
+  const isRecipient = !!(state.account && g.recipient && state.account.toLowerCase() === g.recipient.toLowerCase());
+  const published = g.categories.filter((c) => c.set).length;
+  const votedIn = g.categories.filter((c) => c.myVoteIndex !== null).length;
+
   const statusEl = document.getElementById("bp-gov-live-status");
   if (statusEl) {
-    const now = Math.floor(Date.now() / 1000);
-    if (g.votingOpen) {
-      const hoursLeft = Math.max(0, Math.ceil((Number(g.votingEnds) - now) / 3600));
-      statusEl.textContent = `Voting is open — closes in about ${hoursLeft}h.`;
-    } else if (Number(g.votingEnds) > 0 && now >= Number(g.votingEnds)) {
-      statusEl.textContent = "Voting has closed.";
+    statusEl.textContent = phase === "raise"
+      ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours."
+      : phase === "voting" ? "Voting is open. Every contributor has a say, weighted by the USDC they put in."
+        : "Voting has closed — these results are final.";
+  }
+  const note = document.getElementById("bp-gov-note");
+  if (note) note.textContent = phase === "raise" ? "Candidates are up — voting opens at the close." : phase === "voting" ? "Voting is open — cast yours." : "Voting has closed — see the result.";
+
+  // ---- phases, clock, the coin so far, your weight ----
+  const top = document.getElementById("bp-gov-top");
+  if (top) {
+    const ph = (key, title, sub, st) => `<div class="gv-ph ${st}" data-ph="${key}"><i></i><b>${title}</b><small>${sub}</small></div>`;
+    const dl = Number(g.deadline || 0), ends = Number(g.votingEnds || 0);
+    const clock = phase === "raise" && dl
+      ? `<span>Voting opens in</span><b data-no-i18n data-gv-to="${dl}">${govLeft(dl - govNow())}</b>`
+      : phase === "voting" && ends
+        ? `<span>Voting closes in</span><b data-no-i18n data-gv-to="${ends}">${govLeft(ends - govNow())}</b>`
+        : ends ? `<span>Closed</span><b data-no-i18n>${govEsc(govFmtDate(new Date(ends * 1000)))}</b>` : "";
+
+    const lead = Object.fromEntries(g.categories.map((c) => [c.id, govLeader(c)]));
+    const logo = lead[2] && govLogoUrl(lead[2].text);
+    const nameL = lead[0] ? lead[0].text : "", tickL = lead[1] ? String(lead[1].text).replace(/^\$/, "") : "";
+    const dateL = lead[4] ? (govDate(lead[4].text) ? govFmtDate(govDate(lead[4].text)) : lead[4].text) : "";
+    const roadL = lead[3] ? String(lead[3].text).split("\n")[0] : "";
+    const anyLead = Object.values(lead).some(Boolean);
+    const shareText = phase === "closed" && nameL && tickL
+      ? `CirclePad Round #1 is decided: $${tickL} — ${nameL}${dateL ? `, launching ${dateL}` : ""}. Chosen by every contributor, weighted by the USDC they put in.`
+      : "";
+
+    let meHtml;
+    if (!state.account) {
+      meHtml = `<p>Connect your wallet to see your vote weight.</p><button type="button" class="bp-btn-primary gv-me-btn" data-gv="connect">Connect wallet</button>`;
+    } else if (mine > 0n) {
+      const pct = total > 0n ? (Number((mine * 10000n) / total) / 100).toFixed(2) : "0.00";
+      const dots = CIRCLEPAD_VOTE_CATEGORIES.map((c) => `<i class="${g.categories[c.id].myVoteIndex !== null ? "on" : ""}" title="${govEsc(c.label)}"></i>`).join("");
+      meHtml = `<div class="gv-me-w"><b data-no-i18n>${fmtEth(mine)} USDC</b><span data-no-i18n>${pct}%</span></div><small>${phase === "raise" ? "Your weight locks in when the raise closes." : phase === "voting" ? "You can change a vote until voting closes." : "Thanks for voting."}</small>
+        <div class="gv-me-dots">${dots}<span><span data-no-i18n>${votedIn}/5</span> <span>voted</span></span></div>`;
+    } else if (phase === "raise") {
+      meHtml = `<p>Contribute to get a vote — your weight is the USDC you put in.</p><button type="button" class="bp-btn-primary gv-me-btn" data-gv="contribute">Contribute</button>`;
     } else {
-      statusEl.textContent = "Voting opens once the raise closes.";
+      meHtml = `<p>Only wallets that contributed to the raise can vote.</p>`;
     }
+
+    top.innerHTML = `
+      <div class="gv-bar">
+        <div class="gv-phases">
+          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 || phase !== "raise" ? "done" : "now")}
+          ${ph("vote", "Voting", "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
+          ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
+        </div>
+        ${clock ? `<div class="gv-clock">${clock}</div>` : ""}
+      </div>
+      <div class="gv-grid">
+        <div class="gv-coin${phase === "closed" ? " final" : ""}">
+          <small class="gv-k">${phase === "closed" ? "The result" : "Leading now"}</small>
+          <div class="gv-coin-row">
+            <span class="gv-coin-logo">${logo ? `<img src="${govEsc(logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${govEsc(nameL.slice(0, 1).toUpperCase())}</em>`}</span>
+            <div class="gv-coin-id"><b data-no-i18n>${govEsc(nameL || "—")}</b><span data-no-i18n>${tickL ? "$" + govEsc(tickL) : "—"}</span></div>
+          </div>
+          <dl>
+            <div><dt>Launch date</dt><dd data-no-i18n>${govEsc(dateL || "—")}</dd></div>
+            <div><dt>Roadmap</dt><dd data-no-i18n>${govEsc(roadL || "—")}</dd></div>
+          </dl>
+          ${anyLead ? "" : `<p class="gv-coin-empty">${phase === "raise" ? "Fills in as votes come in once voting opens." : "No votes yet."}</p>`}
+          ${shareText ? `<a class="bp-btn-ghost gv-share" href="https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent("https://www.arcircle.app/circle#governance")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">Share the result</a>` : ""}
+        </div>
+        <div class="gv-me">
+          <small class="gv-k">Your vote</small>
+          ${meHtml}
+        </div>
+      </div>`;
   }
 
-  const wrap = document.getElementById("bp-gov-categories");
   if (!wrap) return;
+  const canPropose = isRecipient && phase !== "closed";
+  const canVote = phase === "voting" && mine > 0n;
 
-  const isRecipient = !!(state.account && g.recipient && state.account.toLowerCase() === g.recipient.toLowerCase());
-  const canPropose = isRecipient && Number(g.votingEnds) > Math.floor(Date.now() / 1000);
-
-  wrap.innerHTML = g.categories.map((c) => {
+  const cards = g.categories.map((c) => {
+    const def = CIRCLEPAD_VOTE_CATEGORIES[c.id];
     if (!c.set) {
-      const proposeHtml = canPropose ? `
-        <div class="bp-gov-propose">
-          <input type="text" class="bp-gov-propose-input" data-category="${c.id}" placeholder="Comma-separated options, e.g. Option A, Option B, Option C">
-          <button type="button" class="bp-gov-propose-btn" data-category="${c.id}">Publish options</button>
-          <span class="bp-gov-propose-hint">Only you (the recipient wallet) can see this — enter at least 2 options, separated by commas.</span>
-        </div>` : "";
-      return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-empty">Options not published yet.</div>${proposeHtml}</div>`;
+      // An open editor is left exactly as it is (focus, caret, typed rows) — the
+      // 15-second refresh only replaces the cards around it.
+      if (canPropose) return { keep: "editor", html: `<div class="bp-gov-cat gv-unset" id="gv-cat-${c.id}" data-kind="${def.kind}" data-keep="editor"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span></div>${govEditorHtml(def)}</div>` };
+      return `<div class="bp-gov-cat gv-unset" id="gv-cat-${c.id}" data-kind="${def.kind}"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span></div><div class="bp-empty">Candidates not published yet.</div></div>`;
     }
-    const total = c.options.reduce((sum, o) => sum + o.weight, 0n);
-    const pctOf = (w) => (total > 0n ? (Number((w * 10000n) / total) / 100).toFixed(1) : "0.0");
+    const sum = c.options.reduce((a, o) => a + o.weight, 0n);
+    const pctOf = (w) => (sum > 0n ? (Number((w * 10000n) / sum) / 100).toFixed(1) : "0.0");
+    const turnout = total > 0n ? Math.min(100, Number((sum * 1000n) / total) / 10) : 0;
+    const lead = govLeader(c);
     const optionsHtml = c.options.map((o, i) => {
       const pct = pctOf(o.weight);
-      const mine = c.myVoteIndex === i;
-      const label = mine ? "Voted" : c.myVoteIndex !== null ? "Change vote" : "Vote";
+      const isMine = c.myVoteIndex === i;
+      const label = isMine ? "Voted" : c.myVoteIndex !== null ? "Change vote" : "Vote";
+      const btn = canVote ? `<button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${isMine ? "disabled" : ""}>${label}</button>` : "";
       return `
-        <div class="bp-gov-option${mine ? " bp-gov-option-mine" : ""}">
+        <div class="bp-gov-option${isMine ? " bp-gov-option-mine" : ""}${phase === "closed" && lead && lead.i === i ? " gv-win" : ""}" data-category="${c.id}" data-option="${i}">
           <div class="bp-gov-option-row">
-            <span class="bp-gov-option-text">${o.text}${mine ? '<span class="bp-gov-mine-tag">your vote</span>' : ""}</span>
-            <span class="bp-gov-option-pct">${pct}%</span>
+            <span class="bp-gov-option-text" data-no-i18n>${govOptionHtml(def.kind, o.text)}</span>${isMine ? '<span class="bp-gov-mine-tag">your vote</span>' : ""}
+            <span class="gv-pw"><span class="bp-gov-option-pct" data-no-i18n>${pct}%</span><small data-no-i18n>${fmtEth(o.weight, 2)} USDC</small></span>
           </div>
           <div class="bp-gov-option-bar"><div class="bp-gov-option-fill" style="width:${pct}%"></div></div>
-          <button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${mine || !g.votingOpen ? "disabled" : ""}>${label}</button>
+          ${btn}
         </div>`;
     }).join("");
-    return `<div class="bp-gov-cat"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${c.label}</span></div><div class="bp-gov-options">${optionsHtml}</div></div>`;
-  }).join("");
-
-  wrap.querySelectorAll(".bp-gov-vote-btn").forEach((btn) => {
-    btn.addEventListener("click", () => castCirclepadVote(Number(btn.dataset.category), Number(btn.dataset.option)));
+    const head = `<div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span>
+      ${phase !== "raise" && total > 0n ? `<span class="gv-turnout"><b data-no-i18n>${turnout.toFixed(turnout < 10 ? 1 : 0)}%</b> <span>of the raise has voted</span></span>` : `<span class="gv-turnout"><b data-no-i18n>${c.options.length}</b> <span>candidates</span></span>`}
+      ${c.myVoteIndex !== null ? `<span class="gv-done">Voted</span>` : ""}</div>`;
+    return `<div class="bp-gov-cat" id="gv-cat-${c.id}" data-kind="${def.kind}">${head}<div class="bp-gov-options">${optionsHtml}</div></div>`;
   });
-  wrap.querySelectorAll(".bp-gov-propose-btn").forEach((btn) => {
-    btn.addEventListener("click", () => proposeCirclepadOptions(Number(btn.dataset.category)));
+  if (wrap.children.length !== cards.length || [...wrap.children].some((el, i) => el.id !== `gv-cat-${i}`)) {
+    wrap.innerHTML = cards.map((x) => (typeof x === "string" ? x : x.html)).join("");
+    return;
+  }
+  cards.forEach((x, i) => {
+    const el = wrap.children[i];
+    if (typeof x !== "string" && el.dataset.keep === x.keep) return;
+    el.outerHTML = typeof x === "string" ? x : x.html;
+  });
+}
+
+// ---- the recipient's editor: typed rows instead of one comma list ----
+function govEditorHtml(def) {
+  const drafts = _govDrafts.get(def.id) || ["", ""];
+  _govDrafts.set(def.id, drafts);
+  const row = (v, i) => {
+    let input;
+    if (def.kind === "roadmap") input = `<textarea rows="3" maxlength="${def.max}" data-i="${i}" placeholder="Phase 1 — what gets built first">${govEsc(v)}</textarea>`;
+    else if (def.kind === "date") input = `<input type="datetime-local" data-i="${i}" value="${govEsc(v)}">`;
+    else if (def.kind === "logo") input = `<input type="url" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="https://… or ipfs://… (square image)"><span class="gv-ed-prev">${govLogoUrl(v) ? `<img src="${govEsc(govLogoUrl(v))}" alt="" referrerpolicy="no-referrer">` : ""}</span>`;
+    else input = `<input type="text" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="${def.kind === "ticker" ? "TICKER" : "Coin name"}"${def.kind === "ticker" ? ' autocapitalize="characters" spellcheck="false"' : ""}>`;
+    return `<div class="gv-ed-row"><span class="gv-ed-n" data-no-i18n>${i + 1}</span>${input}${drafts.length > 2 ? `<button type="button" class="gv-ed-x" data-gv="del" data-i="${i}" aria-label="Remove">×</button>` : ""}</div>`;
+  };
+  return `<div class="gv-ed" data-category="${def.id}">
+    <div class="gv-ed-rows">${drafts.map(row).join("")}</div>
+    ${drafts.length < GOV_MAX_OPTIONS ? `<button type="button" class="gv-ed-add" data-gv="add">+ Add an option</button>` : ""}
+    <div class="gv-ed-foot"><span class="gv-ed-hint">Only you (the recipient wallet) see this. Candidates go on-chain once and can't be edited afterwards.</span>
+      <button type="button" class="bp-gov-propose-btn" data-gv="publish" data-category="${def.id}">Publish candidates</button></div>
+  </div>`;
+}
+function govReRenderEditor(cat) {
+  if (!_govLast) return;
+  const el = document.getElementById(`gv-cat-${cat}`);
+  const def = CIRCLEPAD_VOTE_CATEGORIES[cat];
+  const ed = el && el.querySelector(".gv-ed");
+  if (ed) ed.outerHTML = govEditorHtml(def);
+}
+// datetime-local gives local wall-clock time; the chain gets UTC.
+function govDraftToOption(def, v) {
+  const s = String(v || "").trim();
+  if (!s) return "";
+  if (def.kind === "ticker") return s.replace(/^\$/, "").toUpperCase();
+  if (def.kind === "date") { const d = new Date(s); return isNaN(d) ? "" : d.toISOString().replace(/\.\d{3}Z$/, "Z"); }
+  return s;
+}
+function govValidate(def, opts) {
+  if (opts.length < 2) return "Enter at least 2 candidates.";
+  const seen = new Set();
+  for (const o of opts) {
+    const k = o.toLowerCase();
+    if (seen.has(k)) return "Two candidates are the same.";
+    seen.add(k);
+    if (o.length > def.max) return "One candidate is too long.";
+    if (def.kind === "ticker" && !/^[A-Z0-9]{1,10}$/.test(o)) return "Tickers use letters and numbers only, up to 10.";
+    if (def.kind === "logo" && !govLogoUrl(o)) return "Each logo needs an https:// or ipfs:// image link.";
+    if (def.kind === "date") { const d = govDate(o); if (!d) return "Pick a date and time for each candidate."; if (d.getTime() / 1000 < govNow()) return "Launch dates need to be in the future."; }
+  }
+  return null;
+}
+
+function wireCirclepadGovernance(root) {
+  root.addEventListener("input", (e) => {
+    const ed = e.target.closest(".gv-ed");
+    if (!ed || e.target.dataset.i == null) return;
+    const cat = Number(ed.dataset.category), i = Number(e.target.dataset.i);
+    const drafts = _govDrafts.get(cat) || [];
+    let v = e.target.value;
+    if (CIRCLEPAD_VOTE_CATEGORIES[cat].kind === "ticker") { v = v.toUpperCase().replace(/[^A-Z0-9$]/g, ""); if (e.target.value !== v) e.target.value = v; }
+    drafts[i] = v;
+    _govDrafts.set(cat, drafts);
+    if (CIRCLEPAD_VOTE_CATEGORIES[cat].kind === "logo") {
+      const prev = e.target.parentNode.querySelector(".gv-ed-prev");
+      const u = govLogoUrl(v);
+      if (prev) prev.innerHTML = u ? `<img src="${govEsc(u)}" alt="" referrerpolicy="no-referrer">` : "";
+    }
+  });
+  root.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-gv], .bp-gov-vote-btn");
+    if (!b) return;
+    if (b.classList.contains("bp-gov-vote-btn")) { castCirclepadVote(Number(b.dataset.category), Number(b.dataset.option)); return; }
+    const what = b.dataset.gv;
+    if (what === "connect") { if (typeof connectWallet === "function") await connectWallet(); return; }
+    if (what === "contribute") {
+      const nav = document.querySelector('.bp-nav-item[data-tab="home"]');
+      if (nav) nav.click();
+      setTimeout(() => {
+        if (window.matchMedia("(max-width: 900px)").matches && window.circlepadPlus && window.circlepadPlus.openSheet) { window.circlepadPlus.openSheet(); return; }
+        const inp = document.getElementById("bp-contribute-amount");
+        if (inp) { inp.scrollIntoView({ behavior: "smooth", block: "center" }); inp.focus({ preventScroll: true }); }
+      }, 250);
+      return;
+    }
+    const ed = b.closest(".gv-ed");
+    if (!ed) return;
+    const cat = Number(ed.dataset.category);
+    const drafts = _govDrafts.get(cat) || ["", ""];
+    if (what === "add" && drafts.length < GOV_MAX_OPTIONS) { drafts.push(""); _govDrafts.set(cat, drafts); govReRenderEditor(cat); const ins = document.querySelectorAll(`#gv-cat-${cat} .gv-ed [data-i]`); const last = [...ins].filter((x) => x.tagName !== "BUTTON").pop(); if (last) last.focus(); return; }
+    if (what === "del") { drafts.splice(Number(b.dataset.i), 1); while (drafts.length < 2) drafts.push(""); _govDrafts.set(cat, drafts); govReRenderEditor(cat); return; }
+    if (what === "publish") proposeCirclepadOptions(cat);
+  });
+}
+
+function tickGovClocks() {
+  document.querySelectorAll("[data-gv-to]").forEach((el) => {
+    const left = Number(el.dataset.gvTo) - govNow();
+    el.textContent = govLeft(left);
+    if (left <= 0 && !el.dataset.fired) { el.dataset.fired = "1"; setTimeout(refreshCirclepadGovernance, 1500); }
   });
 }
 
@@ -1195,10 +1448,8 @@ async function refreshCirclepadGovernance() {
   let g = null;
   for (let attempt = 0; attempt < 3 && !g; attempt++) {
     try {
-      // A hung RPC call (rather than an outright error) would otherwise
-      // leave this on "Loading…" forever with no console trace at all —
-      // races it against a timeout so a stall surfaces the same as any
-      // other failure, and always logs what actually went wrong.
+      // A hung RPC call would otherwise leave this on "Loading…" forever —
+      // race it against a timeout so a stall surfaces like any other failure.
       g = await Promise.race([
         fetchCirclepadGovernanceState(),
         new Promise((_res, rej) => setTimeout(() => rej(new Error("timed out after 10s")), 10000)),
@@ -1210,18 +1461,18 @@ async function refreshCirclepadGovernance() {
   }
 
   if (!g) {
-    if (!_circlepadGovLoadedOnce && statusEl) statusEl.textContent = "Couldn't load governance data — retrying shortly. Check the browser console for details.";
+    if (!_circlepadGovLoadedOnce && statusEl) statusEl.textContent = "Couldn't load governance data — retrying shortly.";
     return;
   }
   _circlepadGovLoadedOnce = true;
   renderCirclepadGovernance(g);
-  // Same stale-while-revalidate cache the round state and leaderboard use
-  // (see circlepadSaveCache) — keyed by the vote contract's address so a
-  // future vote contract starts clean. myVoteIndex is wallet-specific and
-  // deliberately dropped: whoever loads next may be a different wallet.
+  document.dispatchEvent(new CustomEvent("circlepad:gov", { detail: { phase: govPhase(g) } }));
+  // Same stale-while-revalidate cache the round state and leaderboard use,
+  // keyed by the vote contract. myVoteIndex is wallet-specific and dropped.
   circlepadSaveCache("gov", {
     votingOpen: g.votingOpen,
     votingEnds: g.votingEnds,
+    deadline: g.deadline,
     recipient: g.recipient,
     categories: g.categories.map((c) => ({ ...c, myVoteIndex: null })),
     savedAt: Date.now(),
@@ -1229,51 +1480,48 @@ async function refreshCirclepadGovernance() {
 }
 
 // Paints the Governance tab from the last visit's cache — synchronous, no
-// RPC — so it's on screen immediately; refreshCirclepadGovernance() then
-// overwrites it as soon as the real fetch lands.
+// RPC — so it's on screen immediately; the real fetch then overwrites it.
 function paintCirclepadGovernanceFromCache() {
   const cached = circlepadLoadCache("gov");
   if (!cached || !Array.isArray(cached.categories)) return false;
-  const now = Math.floor(Date.now() / 1000);
   const votingEnds = cached.votingEnds ?? 0n;
   // Never trust a cached "open" past the cached close time.
-  const votingOpen = !!cached.votingOpen && now < Number(votingEnds);
-  renderCirclepadGovernance({ votingOpen, votingEnds, recipient: cached.recipient || ethers.ZeroAddress, categories: cached.categories });
+  const votingOpen = !!cached.votingOpen && govNow() < Number(votingEnds);
+  renderCirclepadGovernance({ votingOpen, votingEnds, deadline: cached.deadline ?? 0n, recipient: cached.recipient || ethers.ZeroAddress, categories: cached.categories });
   _circlepadGovLoadedOnce = true; // don't replace the cached paint with "Loading…"
   return true;
 }
 
-// Recipient-only: publishes the candidate options for one category, once.
-// Reverts on-chain (OptionsAlreadySet) if called twice for the same
-// category, or (TooFewOptions) with fewer than 2 entries — both surfaced
-// to the recipient via the same err.reason/shortMessage alert pattern used
-// everywhere else on this page.
+// Recipient-only: publishes the candidates for one category, once.
 async function proposeCirclepadOptions(category) {
   if (!state.account) {
     if (typeof connectWallet === "function") await connectWallet();
     if (!state.account) return;
   }
-  const input = document.querySelector(`.bp-gov-propose-input[data-category="${category}"]`);
-  const btn = document.querySelector(`.bp-gov-propose-btn[data-category="${category}"]`);
-  if (!input) return;
-  const options = input.value.split(",").map((s) => s.trim()).filter(Boolean);
-  if (options.length < 2) { cpToast("Enter at least 2 options, separated by commas.", "bad"); return; }
+  const def = CIRCLEPAD_VOTE_CATEGORIES[category];
+  const options = (_govDrafts.get(category) || []).map((v) => govDraftToOption(def, v)).filter(Boolean);
+  const bad = govValidate(def, options);
+  if (bad) { cpToast(bad, "bad"); return; }
+  const shown = options.map((o) => (def.kind === "date" && govDate(o) ? govFmtDate(govDate(o)) : o)).join("  ·  ");
+  const ok = await cpConfirm({ title: "Publish these candidates? They can't be edited later.", body: shown, ok: "Publish" });
+  if (!ok) return;
 
+  const btn = document.querySelector(`#gv-cat-${category} [data-gv="publish"]`);
   const original = btn ? btn.textContent : "";
   if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
-  input.disabled = true;
   try {
     await ensureArcForWrite();
     const vote = circlepadVoteWrite();
     const tx = await vote.proposeOptions(category, options);
     if (btn) btn.textContent = "Confirming…";
     await tx.wait();
+    _govDrafts.delete(category);
+    cpToast("Candidates published.", "ok");
     await refreshCirclepadGovernance();
   } catch (err) {
     console.error("CirclePad: proposeOptions failed", err);
-    cpToast(cpErrText(err, "Publishing options failed or was rejected."), "bad");
+    cpToast(cpErrText(err, "Publishing failed or was rejected."), "bad");
     if (btn) { btn.disabled = false; btn.textContent = original; }
-    input.disabled = false;
   }
 }
 
@@ -1292,6 +1540,12 @@ async function castCirclepadVote(category, optionIndex) {
     if (btn) btn.textContent = "Confirming…";
     await tx.wait();
     await refreshCirclepadGovernance();
+    // on to the next category still waiting for this wallet's vote
+    const g = _govLast;
+    const next = g && g.categories.find((c) => c.set && c.myVoteIndex === null);
+    const el = next && document.getElementById(`gv-cat-${next.id}`);
+    if (el) { cpToast("Vote recorded — next one.", "ok"); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    else cpToast("Vote recorded.", "ok");
   } catch (err) {
     console.error("CirclePad: vote failed", err);
     cpToast(cpErrText(err, "Vote failed or was rejected."), "bad");
