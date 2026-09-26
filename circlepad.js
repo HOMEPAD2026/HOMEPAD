@@ -646,6 +646,8 @@ async function refreshCirclepadLeaderboardInner() {
       const activity = j.activity.map((a) => ({ contributor: ethers.getAddress(a.contributor), amount: B(a.amount), kind: a.kind, ts: a.ts, tx: a.tx || null }));
       const flow = j.flow ? { ...j.flow, in: B(j.flow.in), out: B(j.flow.out), net: B(j.flow.net) } : null;
       _circlepadLeaderboardLoadedOnce = true;
+      // join order + the hourly net-raised series (circlepad-plus.js)
+      window.circlepadLbExtra = { joinOrder: Array.isArray(j.joinOrder) ? j.joinOrder : null, series: Array.isArray(j.series) ? j.series : null, startTs: j.startTs || null };
       renderCirclepadLeaderboard(rows, activity, flow);
       circlepadSaveCache("leaderboard", { rows, activity, flow, savedAt: Date.now() });
       return;
@@ -766,6 +768,7 @@ async function refreshCirclepadLeaderboardInner() {
     wallets: uniqueAddrs.length, refunders: new Set(refundEvents.map((e) => e.contributor)).size, holding: rows.length,
   };
 
+  window.circlepadLbExtra = null; // circlepad-plus.js rebuilds join order + series from the event log
   renderCirclepadLeaderboard(rows, activity, flow);
   circlepadSaveCache("leaderboard", { rows, activity, flow, savedAt: Date.now() });
 }

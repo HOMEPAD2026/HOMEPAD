@@ -259,7 +259,19 @@ export async function leaderboard(wallet) {
     in: totals.in.toString(), out: totals.out.toString(), net: (totals.in - totals.out).toString(), nIn: totals.nIn, nOut: totals.nOut,
     wallets: inn.size, refunders: out.size, holding: rows.length,
   };
-  const outv = { started: true, rows, activity, flow, complete, scannedTo: L.scannedTo };
+  // Join order (first contribution per wallet) for "#n in the circle", and
+  // the net raised over time, hour by hour, for the transparency chart. Block
+  // times are interpolated between the round's first block and the head —
+  // Arc's block time is steady enough for an hourly chart.
+  const ordered = [...EV].sort((x, y) => x[3] - y[3] || x[4] - y[4]);
+  const joinOrder = [];
+  { const seen = new Set(); for (const [k, w] of ordered) if (k && !seen.has(w)) { seen.add(w); joinOrder.push(w); } }
+  const t0 = st.deadline - FUNDING, tEnd = Math.min(head.ts, st.deadline);
+  const spb = head.number > L.from ? Math.max(0.05, (head.ts - t0) / (head.number - L.from)) : 0.5;
+  const tsAt = (n) => Math.round(t0 + (n - L.from) * spb);
+  const series = [];
+  { let run = 0n, i = 0; for (let t = t0 + 3600; ; t += 3600) { const cut = Math.min(t, tEnd); while (i < ordered.length && tsAt(ordered[i][3]) <= cut) { const [k, , amt] = ordered[i]; run += k ? BigInt(amt) : -BigInt(amt); i++; } series.push([cut, run.toString()]); if (cut >= tEnd || series.length > 100) break; } }
+  const outv = { started: true, rows, activity, flow, complete, scannedTo: L.scannedTo, joinOrder, series, startTs: t0 };
   lbMem = { at: Date.now(), L, out: outv, EV };
   if (storeEnabled() && chunks) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
   return withMine(outv, EV, wallet);

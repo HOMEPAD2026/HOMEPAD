@@ -99,7 +99,7 @@
         : `<span class="cp-meta-note">${tr("Final total — the raise has closed.")}</span>`;
       // Crossing a milestone while watching: a quick flash of the full ring.
       const prevRaised = S ? toNum(S.totalRaised) : raised;
-      const crossed = MILESTONES.find((m) => prevRaised < m && raised >= m);
+      const crossed = MILESTONES.filter((m) => prevRaised < m && raised >= m).pop(); // the biggest one passed
       if (crossed && S && S.started) milestone(crossed);
     }
     const urgent = s.isOpen && _circlepadDeadline && _circlepadDeadline - Date.now() / 1000 < 3600;
@@ -208,13 +208,14 @@
   function paintOrbit(list, gold) {
     if (!orbit) return;
     const total = list.reduce((t, x) => t + x.v, 0);
-    const top = list.slice(0, 24);
+    const top = list.slice(0, 36);
+    const me = state && state.account ? String(state.account).toLowerCase() : "";
     orbit.classList.toggle("cp-orbit-gold", !!gold);
     orbit.innerHTML = top.map((x, i) => {
       const a = String(x.a).toLowerCase(), share = total ? x.v / total : 0;
       const size = Math.round(8 + Math.sqrt(share) * 26), ang = (360 / Math.max(top.length, 1)) * i;
       const isNew = seenDots.size && !seenDots.has((gold ? "g" : "c") + a);
-      return `<i class="cp-odot${isNew ? " is-new" : ""}" style="--a:${ang}deg;--z:${size}px;--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></i>`;
+      return `<i class="cp-odot${isNew ? " is-new" : ""}${a === me ? " is-me" : ""}" data-a="${a}" title="${a.slice(0, 6)}…${a.slice(-4)} · ${fmt(x.v)} USDC" style="--a:${ang}deg;--z:${size}px;--h:${(parseInt(a.slice(2, 8), 16) || 0) % 360}"></i>`;
     }).join("");
     top.forEach((x) => seenDots.add((gold ? "g" : "c") + String(x.a).toLowerCase()));
   }
@@ -316,7 +317,11 @@
     if (!ring) return;
     ring.classList.remove("cp-milestone"); void ring.offsetWidth; ring.classList.add("cp-milestone");
     if (typeof window.arcToast === "function") window.arcToast(`${tr("The raise just passed")} $${short$(m)}`);
-    if (!reduce && typeof window.arcConfetti === "function") window.arcConfetti({ count: 60 });
+    // the big ones (10K, 50K, 100K and up) get the ring lit up and a real burst
+    const big = m >= 1e4 && [1e4, 5e4, 1e5, 25e4, 5e5, 1e6].includes(m);
+    if (big) { flash(`$${short$(m)}`, "cp-flash-ms"); ring.classList.remove("cp-ms-big"); void ring.offsetWidth; ring.classList.add("cp-ms-big"); }
+    if (!reduce && typeof window.arcConfetti === "function") window.arcConfetti({ count: big ? 150 : 60 });
+    document.dispatchEvent(new CustomEvent("circlepad:milestone", { detail: m }));
   }
 
   // The round stats sit under the description on wide screens (instead of

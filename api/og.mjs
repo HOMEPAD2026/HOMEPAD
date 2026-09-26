@@ -7,6 +7,7 @@
 import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
+import { leaderboard as circleBoard } from "./_circle.mjs";
 import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -179,7 +180,9 @@ const num = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 100 ?
 async function roundCard(mark, w) {
   let st = null, mine = 0n;
   try { st = await roundState(); } catch { st = null; }
+  let member = 0;
   if (st && isAddr(w)) { try { mine = await contributionOf(w); } catch { mine = 0n; } }
+  if (mine > 0n) { try { const lb = await circleBoard(); member = (lb.joinOrder || []).indexOf(String(w).toLowerCase()) + 1; } catch { member = 0; } }
   const raised = st ? Number(st.totalRaised) / 1e18 : 0;
   const left = st && st.started ? st.deadline - Math.floor(Date.now() / 1000) : 0;
   const status = !st ? "CIRCLEPAD" : !st.started ? "OPENS SOON" : st.isOpen ? "LIVE" : "CLOSED";
@@ -191,7 +194,7 @@ async function roundCard(mark, w) {
     h("div", { fontSize: 24, fontWeight: 700, color: "#8dffc0", letterSpacing: 4 }, "USDC"),
     h("div", { fontSize: 20, color: "#9fb098", marginTop: 6 }, "raised"));
   const who = mine > 0n
-    ? [h("div", { fontSize: 34, color: "#b9c8b3" }, `${w.slice(0, 6)}…${w.slice(-4)} is in the circle`),
+    ? [h("div", { fontSize: 34, color: "#b9c8b3" }, member ? `${w.slice(0, 6)}…${w.slice(-4)} · member #${member} of the circle` : `${w.slice(0, 6)}…${w.slice(-4)} is in the circle`),
        h("div", { fontSize: 76, fontWeight: 800, lineHeight: 1.05, letterSpacing: -2 }, `${num(Number(mine) / 1e18)} USDC`),
        h("div", { fontSize: 30, color: "#39ff88" }, `${pct >= 10 ? pct.toFixed(0) : pct.toFixed(1)}% of the round`)]
     : [h("div", { fontSize: 84, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }, "Fund together."),

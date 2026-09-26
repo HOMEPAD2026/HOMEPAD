@@ -85,6 +85,15 @@ const CONFIG = {
   // be deployed AFTER start() is called (it reverts on a zero deadline()), so
   // this stays empty until that happens and deploy-bigpad-vote.js runs.
   CIRCLEPAD_VOTE_ADDRESS: "",
+  // Optional, shown on /circle (circlepad-plus.js):
+  //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
+  //     "opens in" countdown and a calendar file before start(); 0 = not announced
+  //   CIRCLEPAD_ESCROW_VERIFIED — true once the escrow's source is verified on the explorer
+  //   CIRCLEPAD_ALLOCATION_NOTE — how the new coin is shared with contributors
+  //     (shown in the "after the close" questions; empty = "not decided yet")
+  CIRCLEPAD_OPENS_AT: 0,
+  CIRCLEPAD_ESCROW_VERIFIED: false,
+  CIRCLEPAD_ALLOCATION_NOTE: "",
 
   // --- Bridge (arc-bridge.js): Circle's CCTP V2, native USDC burned on one
   // chain and minted on the other. Same TokenMessengerV2 / MessageTransmitterV2
