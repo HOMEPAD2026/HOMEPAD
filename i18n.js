@@ -1596,6 +1596,15 @@
     "Address copied.": "주소를 복사했습니다.",
     "That contract isn't an ERC-721 or ERC-1155 collection.": "ERC-721이나 ERC-1155 컬렉션 컨트랙트가 아닙니다.",
     "That contract doesn't look like an ERC-20 token (no decimals()).": "ERC-20 토큰 컨트랙트가 아닌 것 같습니다 (decimals() 없음).",
+    "In the works": "개발 진행 중",
+    "Being designed": "설계 중",
+    "On the drawing board": "구상 중",
+    "Details soon": "곧 공개",
+    "Pages": "페이지",
+    "Page 1": "1페이지",
+    "Page 2": "2페이지",
+    "Utilities 1 of 2": "유틸리티 1/2",
+    "Utilities 2 of 2": "유틸리티 2/2",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -3469,6 +3478,15 @@
     "Address copied.": "地址已复制。",
     "That contract isn't an ERC-721 or ERC-1155 collection.": "该合约不是 ERC-721 或 ERC-1155 合集。",
     "That contract doesn't look like an ERC-20 token (no decimals()).": "该合约看起来不是 ERC-20 代币（没有 decimals()）。",
+    "In the works": "开发中",
+    "Being designed": "设计中",
+    "On the drawing board": "构思中",
+    "Details soon": "即将公布",
+    "Pages": "页面",
+    "Page 1": "第 1 页",
+    "Page 2": "第 2 页",
+    "Utilities 1 of 2": "工具 1/2",
+    "Utilities 2 of 2": "工具 2/2",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

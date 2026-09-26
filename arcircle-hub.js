@@ -141,6 +141,13 @@
     { id: "bridge", name: "Bridge", sub: "Move USDC between Arc and 8 chains", status: "Live", acc: "#ffc861", href: "/arc#bridge",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></svg>' },
   ];
+  // Page 2: the next utilities, not announced yet — placeholders until each is decided.
+  var NEXT = [
+    { id: "next-5", sub: "In the works" },
+    { id: "next-6", sub: "Being designed" },
+    { id: "next-7", sub: "On the drawing board" },
+    { id: "next-8", sub: "Details soon" },
+  ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
   function mountQuickBar() {
@@ -233,19 +240,85 @@
     panel.setAttribute("aria-label", "Utilities");
     panel.setAttribute("tabindex", "-1");
     panel.hidden = true;
+    var tile = function (u, i) {
+      var tag = u.href ? "a" : "div";
+      return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
+        (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
+        '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" +
+        '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
+        '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
+    };
+    var next = function (u, i) {
+      return '<div class="ax-util-tile is-soon is-off is-next" data-util="' + u.id + '" style="--acc:#8c98a6;--i:' + i + '" aria-disabled="true">' +
+        '<span class="ax-util-ico ax-util-q" aria-hidden="true"><b>?</b></span>' +
+        '<span class="ax-util-txt"><strong>Coming soon</strong><small>' + u.sub + "</small></span>" +
+        '<em class="ax-util-st">Soon</em><i class="ax-util-no" aria-hidden="true">0' + (i + 5) + "</i></div>";
+    };
     panel.innerHTML =
       '<div class="ax-util-head"><span class="ax-util-mark">' + ICON_INFINITY + '</span><div><strong>Utilities</strong><small>Tools for everyone on Arc</small></div>' +
       '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
-      '<div class="ax-util-grid">' + UTILS.map(function (u, i) {
-        var tag = u.href ? "a" : "div";
-        return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
-          (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
-          '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" +
-          '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
-          '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
-      }).join("") + "</div>";
+      '<div class="ax-util-pages" aria-roledescription="carousel">' +
+        '<div class="ax-util-track">' +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 2" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 2" data-page="1">' + NEXT.map(next).join("") + "</div>" +
+        "</div></div>" +
+      '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
+        '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
+        '<button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button>' +
+      "</div>";
     document.body.appendChild(scrim);
     document.body.appendChild(panel);
+
+    // ---- two pages: the numbers below, a swipe / drag, arrow keys or a sideways trackpad scroll ----
+    var track = panel.querySelector(".ax-util-track"), pages = [].slice.call(panel.querySelectorAll(".ax-util-grid"));
+    var page = 0, dragX = null, dragDx = 0, dragT = 0, moved = false;
+    function goPage(n, instant) {
+      page = Math.max(0, Math.min(pages.length - 1, n));
+      track.classList.toggle("instant", !!instant || reduce);
+      track.style.transform = "translateX(" + (-100 * page) + "%)";
+      pages.forEach(function (g, i) { if (i === page) g.removeAttribute("inert"); else g.setAttribute("inert", ""); g.classList.toggle("on", i === page); });
+      panel.querySelectorAll("[data-go-page]").forEach(function (b) { b.setAttribute("aria-selected", String(Number(b.getAttribute("data-go-page")) === page)); });
+      panel.classList.toggle("on-p2", page === 1);
+    }
+    goPage(0, true);
+    panel.querySelector(".ax-util-pager").addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("[data-go-page]");
+      if (b) goPage(Number(b.getAttribute("data-go-page")));
+    });
+    var vp = panel.querySelector(".ax-util-pages");
+    vp.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      dragX = e.clientX; dragDx = 0; dragT = Date.now(); moved = false;
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (dragX == null) return;
+      dragDx = e.clientX - dragX;
+      if (!moved && Math.abs(dragDx) > 6) { moved = true; track.classList.add("instant"); try { vp.setPointerCapture(e.pointerId); } catch (err) { /* ok */ } }
+      if (!moved) return;
+      var edge = (page === 0 && dragDx > 0) || (page === pages.length - 1 && dragDx < 0);
+      track.style.transform = "translateX(calc(" + (-100 * page) + "% + " + (edge ? dragDx / 3 : dragDx) + "px))";
+    });
+    var endDrag = function () {
+      if (dragX == null) return;
+      var dx = dragDx, fast = Math.abs(dx) / Math.max(1, Date.now() - dragT) > 0.4;
+      dragX = null;
+      if (!moved) return;
+      var w = vp.clientWidth || 1;
+      if ((Math.abs(dx) > w * 0.22 || (fast && Math.abs(dx) > 24)) && ((dx < 0 && page < pages.length - 1) || (dx > 0 && page > 0))) goPage(page + (dx < 0 ? 1 : -1));
+      else goPage(page);
+    };
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    // a drag isn't a tap on the tile underneath
+    vp.addEventListener("click", function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    var wheelT = 0;
+    vp.addEventListener("wheel", function (e) {
+      if (Math.abs(e.deltaX) < 12 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (Date.now() - wheelT < 450) return;
+      wheelT = Date.now();
+      goPage(page + (e.deltaX > 0 ? 1 : -1));
+    }, { passive: false });
 
     var open = false, closeT = 0;
     function place() {
@@ -268,6 +341,7 @@
       bar.classList.add("util-open");
       btn.setAttribute("aria-expanded", "true");
       scrim.hidden = false; panel.hidden = false;
+      goPage(0, true);
       place();
       void panel.offsetWidth;
       panel.classList.add("in"); scrim.classList.add("in");
@@ -296,15 +370,16 @@
     document.addEventListener("keydown", function (e) {
       if (!open) return;
       if (e.key === "Escape") { e.preventDefault(); hide(true); return; }
+      if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && panel.contains(document.activeElement)) { e.preventDefault(); goPage(page + (e.key === "ArrowRight" ? 1 : -1)); return; }
       if (e.key !== "Tab") return;
-      var f = [].slice.call(panel.querySelectorAll("a[href], button")).concat([btn]);
+      var f = [].slice.call(panel.querySelectorAll("a[href], button")).filter(function (el) { return !el.closest("[inert]"); }).concat([btn]);
       var i = f.indexOf(document.activeElement);
       if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
       else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
     });
     window.addEventListener("resize", function () { if (open) place(); });
     document.addEventListener("arcpad:tab", function () { hide(false); });
-    window.arcUtilities = { open: show, close: hide, list: UTILS };
+    window.arcUtilities = { open: show, close: hide, list: UTILS, page: function (n) { if (n == null) return page; goPage(n); } };
   }
 
   // ---- Dock: the "you are here" highlight slides from the page you came

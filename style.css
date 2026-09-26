@@ -4447,6 +4447,32 @@ a.ax-util-tile:hover{border-color:color-mix(in srgb,var(--acc) 55%,transparent);
   .ax-util,.ax-util-tile,.ax-plus-wrap{transition:none;}
 }
 .ax-util:focus{outline:none;}
+/* two pages of utilities: a sliding track, page numbers below */
+.ax-util-pages{position:relative;overflow:hidden;margin:0 -6px;padding:0;touch-action:pan-y;cursor:grab;}
+.ax-util-pages:active{cursor:grabbing;}
+.ax-util-track{display:flex;transition:transform .42s cubic-bezier(.2,.8,.2,1);will-change:transform;}
+.ax-util-track.instant{transition:none;}
+.ax-util-track>.ax-util-grid{flex:0 0 100%;min-width:0;box-sizing:border-box;padding:2px 6px 4px;user-select:none;-webkit-user-select:none;}
+.ax-util-track a,.ax-util-track img{-webkit-user-drag:none;}
+.ax-util-grid[inert]{pointer-events:none;}
+.ax-util-grid[inert] .ax-util-tile{opacity:.55;}
+.ax-util.in .ax-util-grid.on[data-page="1"] .ax-util-tile{animation:ax-util-in .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 60ms);}
+@keyframes ax-util-in{from{opacity:0;transform:translateY(10px) scale(.97);}}
+.ax-util-pager{position:relative;display:flex;justify-content:center;gap:6px;margin-top:12px;}
+.ax-util-pager button{min-width:30px;height:26px;padding:0 10px;border-radius:99px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);
+  color:var(--ax-faint);font-family:'Sora',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;transition:background .2s,color .2s,border-color .2s,min-width .3s cubic-bezier(.2,.8,.2,1);}
+.ax-util-pager button:hover{color:var(--ax-ink);}
+.ax-util-pager button[aria-selected="true"]{min-width:44px;color:#04140a;border-color:transparent;background:linear-gradient(90deg,#35d8d0,#39ff88);box-shadow:0 0 14px rgba(57,255,136,.3);}
+/* page 2: next utilities, not decided yet */
+.ax-util-tile.is-next{overflow:hidden;}
+.ax-util-tile.is-next::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.06) 48%,transparent 66%);background-size:250% 100%;animation:ax-util-sheen 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * .35s);pointer-events:none;}
+@keyframes ax-util-sheen{0%{background-position:120% 0;}60%,100%{background-position:-120% 0;}}
+.ax-util-q b{font-family:'Sora',sans-serif;font-size:1rem;font-weight:800;color:var(--ax-faint);animation:ax-util-q 2.6s ease-in-out infinite;animation-delay:calc(var(--i) * .3s);}
+@keyframes ax-util-q{50%{opacity:.35;}}
+.ax-util-tile.is-next .ax-util-txt strong{color:var(--ax-dim);}
+.ax-util-tile.is-next .ax-util-st{color:var(--ax-faint);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);}
+.ax-util-no{position:absolute;right:12px;bottom:10px;font-style:normal;font-family:'Silkscreen',monospace;font-size:.62rem;letter-spacing:.1em;color:rgba(255,255,255,.14);}
+@media (prefers-reduced-motion:reduce){.ax-util-track{transition:none;}.ax-util-tile.is-next::after,.ax-util-q b,.ax-util.in .ax-util-grid.on[data-page="1"] .ax-util-tile{animation:none;}}
 
 /* =====================================================================
    Locker (arcpad.html#locker, arc-locker.js)
