@@ -1,0 +1,26 @@
+# Token Scanner watch alerts for Telegram ("/watch 0x…" in the bot).
+# Every 15 minutes this asks the site to compare each watched token with its
+# last snapshot; changes are sent to the chats that watch it.
+# Needs one repository secret: TG_WEBHOOK_SECRET (the same value as the
+# Vercel environment variable). Without it the job does nothing.
+#
+# Kept here rather than in .github/workflows/ because pushing workflow files
+# needs a token with the "workflow" permission. To switch it on, in GitHub:
+# Actions → New workflow → set up a workflow yourself → paste this file →
+# commit it as .github/workflows/scan-watch.yml.
+name: scan-watch
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check watched tokens
+        env:
+          KEY: ${{ secrets.TG_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$KEY" ]; then echo "TG_WEBHOOK_SECRET not set — skipping"; exit 0; fi
+          curl -fsS --max-time 60 -H "x-watch-key: $KEY" "https://www.arcircle.app/api/social?watchtick=1"

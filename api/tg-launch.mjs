@@ -16,6 +16,8 @@
 //   curl "https://api.telegram.org/bot<TG_BOT_TOKEN>/setWebhook" \
 //     -d url=https://www.arcircle.app/api/tg-launch -d secret_token=<TG_WEBHOOK_SECRET> \
 //     -d 'allowed_updates=["message"]'
+// "/watch 0x…" alerts also need the repo secret TG_WEBHOOK_SECRET (same
+// value) for the 15-minute check in tools/scan-watch.workflow.yml.
 // Telegram then sends every message with that secret in a header; anything
 // without it is treated as a launch announcement request, as before.
 //
@@ -79,8 +81,10 @@ async function onUpdate(req, bot) {
   const msg = u.message || u.edited_message;
   const text = String((msg && msg.text) || "").trim();
   const m = /^\/scan(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
-  if (!msg || !m) return json(200, { ok: true });
+  const w = /^\/(watch|unwatch|watching)(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
+  if (!msg || (!m && !w)) return json(200, { ok: true });
   const chat = msg.chat && msg.chat.id;
+  if (w) return onWatch(msg, chat, w[1].toLowerCase(), String(w[2] || ""), bot);
   const say = (payload) => fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true }, ...payload }),
@@ -110,6 +114,28 @@ async function onUpdate(req, bot) {
     link_preview_options: { url: link, prefer_large_media: true, show_above_text: false },
     reply_markup: { inline_keyboard: [[{ text: "Full scan", url: link }, { text: "ArcScan", url: `${EXPLORER}/token/${addr}` }]] },
   });
+  return json(200, { ok: true });
+}
+
+// "/watch 0x…" · "/unwatch 0x…" · "/watching": the list lives in the store,
+// which only the Node function (/api/social) can reach, so it's forwarded
+// there with the webhook secret. A GitHub Actions job (tools/scan-watch.workflow.yml) checks the
+// list every 15 minutes and the alerts come back through this bot.
+async function onWatch(msg, chat, cmd, addr, bot) {
+  const say = (text) => fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", text, reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true } }),
+  }).catch(() => null);
+  if (cmd !== "watching" && !isAddr(addr)) { await say(`Send <code>/${cmd}</code> followed by a token address on Arc.`); return json(200, { ok: true }); }
+  let r = null;
+  try {
+    r = await (await fetch(`${SITE}/api/social`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "tgwatch", key: process.env.TG_WEBHOOK_SECRET, chat: String(chat), token: cmd === "watching" ? "0x0000000000000000000000000000000000000000" : addr, op: cmd === "watching" ? "list" : cmd }) })).json();
+  } catch { r = null; }
+  if (!r || !r.ok) { await say(r && r.error ? h(r.error) : "Couldn't update the watch list right now — try again in a minute."); return json(200, { ok: true }); }
+  const list = (r.mine || []).map((t) => `<code>${t}</code>`).join("\n");
+  await say(cmd === "watch" ? `Watching <code>${h(addr)}</code>. You'll hear here if its owner, supply or liquidity changes (checked every 15 minutes).`
+    : cmd === "unwatch" ? `Stopped watching <code>${h(addr)}</code>.` : list ? `Watching:\n${list}` : "Nothing watched yet — send <code>/watch 0x…</code>.");
   return json(200, { ok: true });
 }
 

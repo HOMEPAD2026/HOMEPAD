@@ -9,7 +9,7 @@
 //        server: Telegram /scan and the X share card use it.
 //   scanTop / bumpScan            "most scanned this week" (needs the store)
 // Works on the edge (no store) and in Node functions (store passed in).
-import { rpc, rpcCall, getLogs, latestBlock, blockTs, pool, toQty, ethCalls, isAddr, pad, keccakHex, getCoin } from "./_arc.mjs";
+import { rpc, rpcCall, getLogs, latestBlock, blockTs, pool, toQty, ethCalls, isAddr, pad, keccakHex, getCoin, RPCS } from "./_arc.mjs";
 import * as core from "./_scan-core.mjs";
 
 const lc = (a) => String(a || "").toLowerCase();
@@ -18,7 +18,22 @@ async function fetchJson(url, ms = 8000) {
   try { const r = await fetch(url, { signal: ctl.signal, headers: { accept: "application/json" } }); return r.ok ? await r.json() : null; }
   catch { return null; } finally { clearTimeout(t); }
 }
-export const io = { rpc: rpcCall, fetchJson, keccak: (h) => keccakHex(h) };
+/// The dry-run trades need eth_call's state-override argument; try each Arc
+/// endpoint until one accepts it.
+async function rpcSim(method, params) {
+  let last;
+  for (const url of RPCS) {
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: ctl.signal }).finally(() => clearTimeout(t));
+      const j = await r.json();
+      if (j.error) { last = new Error(j.error.message || "rpc error"); if (/override|unsupported|invalid.*param|not supported|too many arguments|expected 2|unknown field/i.test(last.message)) continue; throw last; }
+      return j.result;
+    } catch (e) { last = e; }
+  }
+  throw last || new Error("no rpc");
+}
+export const io = { rpc: rpcCall, rpcSim, fetchJson, keccak: (h) => keccakHex(h) };
 
 const TOPIC = {
   transfer: "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -35,13 +50,19 @@ function fresh() { return { v: 2, hi: null, lo: null, complete: false, net: new 
 function load(doc) {
   if (!doc || doc.v !== 2) return null;
   const toMap = (arr) => new Map((arr || []).map((s) => { const i = String(s).indexOf(":"); return [s.slice(0, i), BigInt(s.slice(i + 1))]; }));
-  return { ...doc, net: toMap(doc.net), got: toMap(doc.got), mints: BigInt(doc.mints || 0), burns: BigInt(doc.burns || 0), events: doc.events || [] };
+  return { ...doc, net: toMap(doc.net), got: toMap(doc.got), mints: BigInt(doc.mints || 0), burns: BigInt(doc.burns || 0), events: doc.events || [], hist: doc.hist || [], cand: doc.cand || [] };
 }
+/// Tokens with more wallets than MAX_KEEP are kept "lite": no full balance
+/// sheet, just the place in the chain, the counters, the events and the
+/// wallets worth re-reading — so they still only scan new blocks.
 function save(S) {
-  if (S.net.size + (S.complete ? 0 : S.got.size) > MAX_KEEP) return null; // too big to keep: rescan next time
   const arr = (m) => [...m.entries()].filter(([, v]) => v !== 0n).map(([a, v]) => `${a}:${v}`);
-  return { v: 2, hi: S.hi, lo: S.lo, complete: S.complete, net: arr(S.net), got: S.complete ? [] : arr(S.got), mints: S.mints.toString(), burns: S.burns.toString(),
-    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, at: Date.now() };
+  const base = { v: 2, hi: S.hi, lo: S.lo, complete: S.complete, mints: S.mints.toString(), burns: S.burns.toString(),
+    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, hist: (S.hist || []).slice(-90), at: Date.now() };
+  if (S.lite || S.net.size + (S.complete ? 0 : S.got.size) > MAX_KEEP) {
+    return { ...base, lite: true, net: [], got: [], cand: (S.cand || []).slice(0, 300), count: S.count || 0 };
+  }
+  return { ...base, net: arr(S.net), got: S.complete ? [] : arr(S.got) };
 }
 function take(S, logs, supply) {
   const big = supply > 0n ? supply / 100n : 0n; // 1% of supply = a "large transfer"
@@ -121,7 +142,9 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
   trimEvents(S);
   // Candidates → real balances (fee-on-transfer / rebasing tokens stay right).
   const byDesc = (x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0);
-  const cand = S.complete
+  const cand = S.lite
+    ? [...new Set([...(S.cand || []), ...[...S.got.entries()].sort(byDesc).slice(0, 100).map(([a]) => a)])].slice(0, 250)
+    : S.complete
     ? [...S.net.entries()].filter(([, v]) => v > 0n).sort(byDesc).slice(0, 150).map(([a]) => a)
     : [...new Set([
       ...[...S.got.entries()].sort(byDesc).slice(0, 120).map(([a]) => a),
@@ -148,7 +171,13 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
   const need = S.events.filter((e) => e.ts == null).slice(-16);
   await Promise.all(need.map(async (e) => { e.ts = await blockTs(e.b).catch(() => null); }));
   const firstTs = S.first ? (S.events.find((e) => e.k === "mint" && e.b === S.first.block) || {}).ts || null : null;
-  const holderCount = S.complete ? [...S.net.values()].filter((v) => v > 0n).length : top.length;
+  let holderCount = S.complete && !S.lite ? [...S.net.values()].filter((v) => v > 0n).length : top.length;
+  if (S.lite) holderCount = Math.max(S.count || 0, top.length);
+  if (!S.lite && S.net.size + (S.complete ? 0 : S.got.size) > MAX_KEEP) { S.lite = true; S.count = holderCount; }
+  if (S.lite) { S.cand = bals.filter(([, v]) => v > 0n).sort(byDesc).slice(0, 300).map(([a]) => a); S.count = holderCount; S.net = new Map(); S.got = new Map(); }
+  // one holder count per day, for the growth chart
+  const day = new Date().toISOString().slice(0, 10);
+  S.hist = (S.hist || []).filter((x) => x.d !== day).concat([{ d: day, n: holderCount }]).slice(-90);
   mem.set(token, S);
   if (mem.size > 300) mem.delete(mem.keys().next().value);
   if (store) { const doc = save(S); if (doc) { try { await store.set(key, doc); } catch { /* memory copy still works */ } } }
@@ -157,7 +186,7 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
     v: 2, token, supply: supply.toString(), decimals, complete: S.complete, more: !S.complete && S.lo > 0 && !!store,
     transfers: S.transfers, fromBlock: S.lo, toBlock: S.hi, fromTs, nowTs: latest.ts,
     firstMint: S.complete && S.first ? { block: S.first.block, ts: firstTs, tx: S.first.tx, to: S.first.to } : null,
-    deployer: S.deployer, holderCount, holderCountExact: S.complete,
+    deployer: S.deployer, holderCount, holderCountExact: S.complete && !S.lite, hist: S.hist,
     top: top.map(([a, v], i) => (codes[i] ? [a, v.toString(), { c: 1 }] : [a, v.toString()])),
     events: S.events.map((e) => ({ ...e })),
   };
@@ -206,4 +235,105 @@ export async function scanTop(store) {
     return ((doc && doc.items) || []).map((s) => { const [t, sym, n, at] = String(s).split("|"); return { token: t, symbol: sym, scans: Number(n) || 0, at: Number(at) || 0 }; })
       .filter((x) => x.at > week && isAddr(x.token)).slice(0, 12);
   } catch { return []; }
+}
+
+// ---- cached server scores: Explore badges, the embeddable badge, the public API ----
+const scoreMem = new Map();
+/// → { score, k, t (verdict), sym, at } — from the store when fresh, else a new server scan.
+export async function scoreOf(token, { store = null, maxAgeMs = 30 * 60e3, compute = true } = {}) {
+  token = lc(token);
+  const key = `scanScore/${token}`;
+  let hit = scoreMem.get(token) || null;
+  if (!hit && store) { try { hit = await store.get(key); } catch { hit = null; } }
+  if (hit && Date.now() - (hit.at || 0) < maxAgeMs && hit.v === core.CORE_VERSION) { scoreMem.set(token, hit); return hit; }
+  if (!compute) return hit || null;
+  const out = await scanToken(token, { store, budgetMs: 5000 });
+  const r = out.res;
+  const doc = r.notToken ? { v: core.CORE_VERSION, notToken: true, at: Date.now() }
+    : { v: core.CORE_VERSION, score: r.score, k: r.verdict.k, t: r.verdict.t, sym: (out.c && out.c.symbol) || "", reasons: r.reasons.map((x) => `${x.status}|${x.title}`), at: Date.now() };
+  scoreMem.set(token, doc);
+  if (store) { try { await store.set(key, doc); } catch { /* memory copy */ } }
+  return doc;
+}
+/// The public JSON shape (GET /api/v1/scan/<address>).
+export async function apiResult(token, { store = null } = {}) {
+  const out = await scanToken(token, { store, budgetMs: 5500 });
+  const r = out.res, c = out.c || {};
+  if (r.notToken) return { token: lc(token), token_standard: null, verdict: null, checks: r.rows.map(({ group, status, title, detail }) => ({ group, status, title, detail })) };
+  const d = r.dist, m = r.market;
+  return {
+    token: lc(token), name: c.name, symbol: c.symbol, decimals: c.decimals, supply: c.supply,
+    score: r.score, verdict: r.verdict.t, reasons: r.reasons,
+    checks: r.rows.map(({ group, status, title, detail, pts, addr }) => ({ group, status, title, detail, points: pts || 0, ...(addr ? { address: addr } : {}) })),
+    market: m ? { source: m.source, price_usd: m.price ?? null, market_cap_usd: m.mcap ?? null, liquidity_usd: m.liq ?? null, pool_created: m.created ?? null } : null,
+    holders: d ? { count: d.holders, exact: d.exact, top10_pct: d.S ? (d.top10 / d.S) * 100 : null, deployer: d.deployer } : null,
+    engine: core.CORE_VERSION, scanned_at: new Date().toISOString(), page: `https://www.arcircle.app/s/${lc(token)}`,
+  };
+}
+/// A small shields-style SVG: "ARCIRCLE PAD scan | 82 · Looks OK".
+export function badgeSvg(doc) {
+  const esc = (x) => String(x).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const left = "ARCIRCLE PAD scan";
+  const right = !doc ? "not scanned" : doc.notToken ? "not a token" : `${doc.score} · ${doc.t}`;
+  const col = !doc || doc.notToken ? "#5b6472" : doc.k === "ok" ? "#1f9d57" : doc.k === "care" ? "#c98a12" : "#d0473a";
+  const w = (t) => Math.round(t.length * 6.4 + 16);
+  const lw = w(left) + 14, rw = w(right), W = lw + rw;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="22" role="img" aria-label="${esc(left)}: ${esc(right)}"><title>${esc(left)}: ${esc(right)}</title>
+<linearGradient id="g" x2="0" y2="100%"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+<clipPath id="r"><rect width="${W}" height="22" rx="4"/></clipPath>
+<g clip-path="url(#r)"><rect width="${lw}" height="22" fill="#0b1320"/><rect x="${lw}" width="${rw}" height="22" fill="${col}"/><rect width="${W}" height="22" fill="url(#g)"/></g>
+<g fill="none" stroke="#35d8d0" stroke-width="1.6"><path d="M11 4.5l5 2.1v3.8c0 3.1-2.1 5.8-5 6.7-2.9-.9-5-3.6-5-6.7V6.6z"/></g>
+<g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11"><text x="${(lw + 14) / 2}" y="15">${esc(left)}</text><text x="${lw + rw / 2}" y="15" font-weight="bold">${esc(right)}</text></g></svg>`;
+}
+
+// ---- Telegram watch list: "/watch 0x…" in the bot, checked every 15 min ----
+const WATCH_KEY = "tgWatch/v1";
+export async function tgWatchOp(store, { chat, token, op }) {
+  const doc = (await store.get(WATCH_KEY)) || { items: [], snaps: {} };
+  let items = (doc.items || []).map((s) => { const [c, t] = String(s).split("|"); return { c, t }; });
+  chat = String(chat); token = lc(token);
+  if (op === "watch") {
+    if (!items.some((x) => x.c === chat && x.t === token)) items.push({ c: chat, t: token });
+    if (items.filter((x) => x.c === chat).length > 10) return { ok: false, error: "up to 10 tokens per chat" };
+    if (items.length > 300) return { ok: false, error: "the watch list is full" };
+  } else if (op === "unwatch") items = items.filter((x) => !(x.c === chat && x.t === token));
+  const mine = items.filter((x) => x.c === chat).map((x) => x.t);
+  await store.set(WATCH_KEY, { items: items.map((x) => `${x.c}|${x.t}`), snaps: doc.snaps || {} });
+  return { ok: true, mine };
+}
+/// Compares each watched token with its last snapshot; returns the alerts to send.
+export async function tgWatchTick(store) {
+  const doc = (await store.get(WATCH_KEY)) || { items: [], snaps: {} };
+  const items = (doc.items || []).map((s) => { const [c, t] = String(s).split("|"); return { c, t }; });
+  const snaps = doc.snaps || {};
+  const tokens = [...new Set(items.map((x) => x.t))].slice(0, 40);
+  const alerts = [];
+  await pool(tokens, 5, async (t) => {
+    let c, m;
+    try { c = await core.readContract(io, t); m = await core.readMarket(io, t).catch(() => null); } catch { return; }
+    const p = m && m.pairs && m.pairs[0];
+    const now = { owner: c.owner || "", supply: c.supply || "0", liq: p ? Math.round(p.liq) : null, sym: c.symbol || "" };
+    const old = snaps[t];
+    if (old) {
+      const msgs = [];
+      if (lc(old.owner) !== lc(now.owner)) msgs.push(core.BURN.includes(lc(now.owner)) ? "ownership was renounced" : `the owner changed to ${core.short(now.owner)}`);
+      if (old.supply !== now.supply) msgs.push(BigInt(now.supply) > BigInt(old.supply || 0) ? "new tokens were minted" : "the supply went down");
+      if (old.liq && now.liq != null && now.liq < old.liq * 0.7) msgs.push(`liquidity fell ${Math.round((1 - now.liq / old.liq) * 100)}% (to ${core.usd(now.liq)})`);
+      if (msgs.length) items.filter((x) => x.t === t).forEach((x) => alerts.push({ chat: x.c, token: t, sym: now.sym, text: msgs.join(", ") }));
+    }
+    snaps[t] = now;
+  });
+  for (const k of Object.keys(snaps)) if (!tokens.includes(k)) delete snaps[k];
+  await store.set(WATCH_KEY, { items: doc.items || [], snaps });
+  return alerts;
+}
+
+// ---- simple per-instance rate limits ----
+const hits = new Map();
+export function limited(key, max, windowMs) {
+  const now = Date.now(), arr = (hits.get(key) || []).filter((t) => now - t < windowMs);
+  if (arr.length >= max) { hits.set(key, arr); return true; }
+  arr.push(now); hits.set(key, arr);
+  if (hits.size > 5000) hits.delete(hits.keys().next().value);
+  return false;
 }

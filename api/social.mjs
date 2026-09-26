@@ -9,6 +9,11 @@
 //   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
 //   GET  /api/social?scan=0x…[&sym=X]           Token Scanner holders + history (api/_scan.mjs)
 //   GET  /api/social?scans=top                   most scanned tokens this week
+//   GET  /api/social?scores=0x…,0x…              cached Token Scanner scores (Explore badges)
+//   GET  /api/social?badge=0x…                   embeddable SVG badge   (/badge/<address>)
+//   GET  /api/social?scanapi=0x…                 public scan JSON       (/api/v1/scan/<address>)
+//   GET  /api/social?watchtick=1                 Telegram watch check (x-watch-key header)
+//   POST /api/social  { action: "scanreport" | "tgwatch", … }
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -151,9 +156,12 @@ export async function GET(req) {
   }
   // Token Scanner: holders + history of any Arc token, kept in the store so
   // each scan only reads new blocks (and reaches further back until complete).
+  const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+  const scanStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
   if (url.searchParams.has("scan")) {
     const t = String(url.searchParams.get("scan") || "");
-    const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+    const st = scanStore();
+    if (scanner.limited(`scan:${ip}`, 20, 60e3)) return json(429, { error: "too many scans — wait a minute" });
     try {
       const out = await scanner.holderScan(t, { store: st, budgetMs: 6500 });
       scanner.bumpScan(st, out.token, url.searchParams.get("sym")).catch(() => {});
@@ -161,8 +169,48 @@ export async function GET(req) {
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 200) }); }
   }
   if (url.searchParams.get("scans") === "top") {
-    const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
-    return json(200, { top: await scanner.scanTop(st) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
+    return json(200, { top: await scanner.scanTop(scanStore()) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
+  }
+  // Explore badges: cached server scores for up to 24 tokens; at most two
+  // missing ones are scanned per request, the rest fill in on later visits.
+  if (url.searchParams.has("scores")) {
+    const list = [...new Set(String(url.searchParams.get("scores") || "").split(",").map(lc).filter(isAddr))].slice(0, 24);
+    const st = scanStore();
+    if (scanner.limited(`scores:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+    const out = {};
+    let fresh = 0;
+    for (const t of list) {
+      let d = await scanner.scoreOf(t, { store: st, compute: false }).catch(() => null);
+      if ((!d || Date.now() - d.at > 6 * 3600e3) && fresh < 2) { fresh++; d = await scanner.scoreOf(t, { store: st }).catch(() => d); }
+      if (d && !d.notToken && d.score != null) out[t] = { score: d.score, k: d.k, t: d.t };
+    }
+    return json(200, { scores: out }, fresh ? "no-store" : "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
+  }
+  // Embeddable badge: /badge/<address> → SVG
+  if (url.searchParams.has("badge")) {
+    const t = lc(url.searchParams.get("badge"));
+    let d = null;
+    if (isAddr(t) && !scanner.limited(`badge:${ip}`, 60, 60e3)) d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3 }).catch(() => null);
+    return new Response(scanner.badgeSvg(d), { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400", "access-control-allow-origin": "*" } });
+  }
+  // Public JSON: /api/v1/scan/<address>
+  if (url.searchParams.has("scanapi")) {
+    const t = lc(url.searchParams.get("scanapi"));
+    if (!isAddr(t)) return json(400, { error: "token must be an address" });
+    if (scanner.limited(`api:${ip}`, 30, 60e3)) return json(429, { error: "rate limit: 30 scans a minute" });
+    try { return json(200, await scanner.apiResult(t, { store: scanStore() }), "public, max-age=120, s-maxage=600, stale-while-revalidate=1800"); }
+    catch (err) { return json(502, { error: "couldn't scan right now", detail: String(err && err.message || err).slice(0, 120) }); }
+  }
+  // Telegram watch list check — called every 15 minutes by the GitHub Actions job in tools/scan-watch.workflow.yml
+  if (url.searchParams.has("watchtick")) {
+    const key = process.env.TG_WEBHOOK_SECRET, bot = process.env.TG_BOT_TOKEN;
+    if (!key || req.headers.get("x-watch-key") !== key || !bot || !storeEnabled()) return json(403, { ok: false });
+    const alerts = await scanner.tgWatchTick(scanStore());
+    for (const a of alerts) {
+      await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ chat_id: a.chat, parse_mode: "HTML", text: `<b>Watch alert · $${a.sym.replace(/[<>&]/g, "")}</b>\n${a.text}\n\n<a href="https://www.arcircle.app/s/${a.token}">Scan it again</a>` }) }).catch(() => null);
+    }
+    return json(200, { ok: true, alerts: alerts.length });
   }
   if (url.searchParams.has("cctp")) {
     try { const [st, body, cc] = await cctp(url.searchParams); return json(st, body, cc); }
@@ -236,11 +284,27 @@ export async function POST(req) {
     if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
+    if (b.action === "scanreport") return await scanReport(b, req);
+    if (b.action === "tgwatch") {
+      if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });
+      return json(200, await scanner.tgWatchOp({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, { chat: b.chat, token: b.token, op: b.op }));
+    }
     return json(400, { error: "unknown action" });
   } catch (err) {
     console.error("social POST", b && b.action, err && err.message || err);
     return json(500, { error: "something went wrong — try again" });
   }
+}
+
+// "Is this wrong?" on a Token Scanner check — kept for review, nothing public.
+async function scanReport(b, req) {
+  const t = lc(b.token), title = String(b.title || "").slice(0, 120), note = String(b.note || "").replace(/\s+/g, " ").trim().slice(0, 400);
+  if (!isAddr(t) || !title) return json(400, { error: "token and check are required" });
+  const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+  if (scanner.limited(`report:${ip}`, 8, 3600e3)) return json(429, { error: "thanks — that's enough reports for this hour" });
+  const id = `${t}_${Date.now()}_${createHash("sha256").update(ip + title).digest("hex").slice(0, 8)}`;
+  await setDoc(`scanReports/${id}`, { token: t, title, note, status: String(b.status || "").slice(0, 8), engine: Number(b.engine) || 0, at: Date.now() });
+  return json(200, { ok: true });
 }
 
 async function saveProfile(b) {

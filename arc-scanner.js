@@ -38,7 +38,21 @@
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
     try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); }
   }
-  const io = { rpc: (m, p) => readProvider().send(m, p), fetchJson, keccak: (h) => ethers.keccak256(String(h).startsWith("0x") ? h : "0x" + h) };
+  // The dry-run trades need eth_call's state-override argument: try each Arc endpoint until one takes it.
+  async function rpcSim(method, params) {
+    let last;
+    for (const url of [CONFIG.RPC_URL, ...(CONFIG.RPC_FALLBACKS || [])].filter(Boolean)) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+        const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: ctl.signal }).finally(() => clearTimeout(t));
+        const j = await r.json();
+        if (j.error) { last = new Error(j.error.message || "rpc error"); if (/override|unsupported|invalid.*param|not supported|too many arguments|expected 2|unknown field/i.test(last.message)) continue; throw last; }
+        return j.result;
+      } catch (e) { last = e; }
+    }
+    throw last || new Error("no rpc");
+  }
+  const io = { rpc: (m, p) => readProvider().send(m, p), rpcSim, fetchJson, keccak: (h) => ethers.keccak256(String(h).startsWith("0x") ? h : "0x" + h) };
   async function fetchHolders(addr, sym) {
     const a = await fetchJson(`/api/social?scan=${addr}${sym ? `&sym=${encodeURIComponent(sym)}` : ""}`, 20000);
     if (a && Array.isArray(a.top)) return a;
@@ -183,6 +197,7 @@
   function shell() {
     const out = $("asc-out");
     out.classList.remove("in");
+    out.dataset.tab = "checks";
     out.innerHTML = `
       <div class="asc-card asc-head is-loading" id="asc-head">
         <div class="asc-scanline" aria-hidden="true"></div>
@@ -191,6 +206,9 @@
           <div class="asc-v-txt"><strong class="asc-vtitle">${esc(tr("Scanning…"))}</strong><div class="asc-reasons"></div><div class="asc-counts"></div></div></div>
         <div class="asc-actions" hidden></div>
       </div>
+      <nav class="asc-tabs" role="tablist" aria-label="${esc(tr("Result sections"))}">
+        ${[["checks", "Checks"], ["market", "Market"], ["holders", "Holders"], ["history", "History"]].map(([k, t], i) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${i === 0}">${esc(tr(t))}</button>`).join("")}
+      </nav>
       <div class="asc-compare" id="asc-compare" hidden></div>
       <div class="asc-tiles" id="asc-tiles"></div>
       <div class="asc-grid">
@@ -253,6 +271,7 @@
         <div class="asc-row-top"><b>${esc(tr(r.title))}</b>${r.pts ? `<em class="asc-pts" data-no-i18n>−${r.pts}</em>` : ""}${r.est ? `<em class="asc-est">${esc(tr("From the code"))}</em>` : ""}${help ? `<button type="button" class="asc-q" aria-expanded="false" aria-label="${esc(tr("What does this mean?"))}">?</button>` : ""}</div>
         ${r.pre || addr || r.detail || r.note || links || code ? `<p>${r.pre ? `<span>${esc(tr(r.pre))}</span> ` : ""}${addr}${r.detail ? ` <span>${esc(tr(r.detail))}</span>` : ""}${r.note ? ` <span class="asc-note">${esc(tr(r.note))}</span>` : ""}${links || code ? ` <span class="asc-links-in">${links}${code}</span>` : ""}</p>` : ""}
         ${help ? `<p class="asc-help" hidden>${esc(tr(help))}</p>` : ""}
+        ${r.status === "risk" || r.status === "warn" ? `<button type="button" class="asc-report" data-report="${esc(r.title)}" data-st="${r.status}">${esc(tr("Is this wrong?"))}</button>` : ""}
       </div></li>`;
   }
 
@@ -293,6 +312,7 @@
       <button type="button" data-act="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m3.5 15 5-4.5 4 3.5 3-2.5 5 4"/></svg>${esc(tr("Save card"))}</button>
       <button type="button" data-act="link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>${esc(tr("Copy link"))}</button>
       <button type="button" data-act="watch" aria-pressed="${watching}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>${esc(tr(watching ? "Watching" : "Watch"))}</button>
+      <button type="button" data-act="embed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>${esc(tr("Embed badge"))}</button>
       <button type="button" data-act="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>${esc(tr(compareBase && lc(compareBase.addr) !== lc(cur.addr) ? "Compare" : "Compare with…"))}</button>`;
   }
   // the ring fills while its colour runs red → amber → green to where the score lands
@@ -371,7 +391,7 @@
     const vis = segs.filter((s) => s[2] > 0.005);
     const R = 44, C = 2 * Math.PI * R;
     let acc = 0;
-    const arcs = vis.map(([k, , p], i) => { const len = (p / 100) * C, gap = vis.length > 1 ? Math.min(2, len / 3) : 0; const el = `<circle class="d-${k}" cx="60" cy="60" r="${R}" stroke-dasharray="${Math.max(0, len - gap).toFixed(2)} ${(C - Math.max(0, len - gap)).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" style="--i:${i}"/>`; acc += len; return el; }).join("");
+    const arcs = vis.map(([k, , p], i) => { const len = (p / 100) * C, gap = vis.length > 1 ? Math.min(2, len / 3) : 0; const el = `<circle class="d-${k}" data-seg="${k}" cx="60" cy="60" r="${R}" stroke-dasharray="${Math.max(0, len - gap).toFixed(2)} ${(C - Math.max(0, len - gap)).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}" style="--i:${i}"/>`; acc += len; return el; }).join("");
     const more = cur && cur.h && cur.h.more;
     const people = d.people.map((p, i) => {
       const pc = (p.v / S) * 100;
@@ -381,12 +401,24 @@
     const html = `<h3>${esc(tr("Holders"))}</h3>
       <div class="asc-donut-wrap"><svg class="asc-donut" viewBox="0 0 120 120" aria-hidden="true"><circle class="d-track" cx="60" cy="60" r="${R}"/>${arcs}</svg>
         <div class="asc-donut-mid"><b data-no-i18n>${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}</b><small>${esc(tr("holders"))}</small></div>
-        <ul class="asc-legend">${vis.map(([k, t, v]) => `<li class="d-${k}"><i></i><span>${esc(tr(t))}</span><b data-no-i18n>${K.pct(v)}</b></li>`).join("")}</ul></div>
+        <ul class="asc-legend">${vis.map(([k, t, v]) => `<li class="d-${k}" data-seg="${k}" tabindex="0"><i></i><span>${esc(tr(t))}</span><b data-no-i18n>${K.pct(v)}</b></li>`).join("")}</ul></div>
+      ${growth()}
       <h4>${esc(tr("Largest wallets"))}</h4><ol class="asc-top">${people}</ol>
       ${more ? `<p class="asc-more-hist"><i></i>${esc(tr("Reading older history…"))}</p>` : ""}
       <p class="asc-hnote">${esc(tr(d.complete ? "From the token's full transfer history; balances read live." : "From recent transfer history; balances read live."))}</p>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; box.classList.remove("is-pending"); }
   }
+  // holder count per day (kept by the server each time the token is scanned)
+  function growth() {
+    const hist = (cur && cur.h && cur.h.hist) || [];
+    if (hist.length < 2) return "";
+    const pts = hist.slice(-30), ns = pts.map((x) => x.n), lo = Math.min(...ns), hi = Math.max(...ns), W = 220, H = 40;
+    const xy = pts.map((x, i) => `${((i / (pts.length - 1)) * W).toFixed(1)},${(H - 4 - ((x.n - lo) / Math.max(1, hi - lo)) * (H - 8)).toFixed(1)}`).join(" ");
+    const d = ns[ns.length - 1] - ns[0];
+    return `<div class="asc-growth"><div><small>${esc(tr("Holders over time"))}</small><b class="${d >= 0 ? "up" : "down"}" data-no-i18n>${d >= 0 ? "+" : "−"}${Math.abs(d).toLocaleString("en-US")}</b><small data-no-i18n>${esc(pts[0].d.slice(5))} → ${esc(pts[pts.length - 1].d.slice(5))}</small></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${xy}"/></svg></div>`;
+  }
+
   // ---- history timeline ----
   function timelineCard(events, d) {
     const side = $("asc-side");
@@ -416,7 +448,14 @@
     if (!items.length) { if (box) box.remove(); return; }
     if (!box) { box = document.createElement("div"); box.className = "asc-card asc-timeline"; box.id = "asc-timeline"; side.appendChild(box); }
     const html = `<h3>${esc(tr("History"))}</h3><ol>${items.join("")}</ol>${d && !d.complete ? `<p class="asc-hnote">${esc(tr("Recent history only — older events fill in on later scans."))}</p>` : ""}`;
-    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+    if (box.__html !== html) {
+      box.innerHTML = html; box.__html = html;
+      // events appear one by one as the card scrolls into view
+      if (!reduce && "IntersectionObserver" in window) {
+        const io2 = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { box.classList.add("in"); io2.disconnect(); } }), { threshold: 0.15 });
+        io2.observe(box);
+      } else box.classList.add("in");
+    }
   }
   // ---- deployer ----
   function deployerCard(d) {
@@ -642,6 +681,92 @@
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
 
+  // ---- donut: pointing at a slice (or its legend line) lights it up ----
+  function highlight(k, sticky) {
+    const wrap = panel.querySelector(".asc-donut-wrap");
+    if (!wrap) return;
+    const on = sticky && wrap.dataset.hl === k ? "" : k;
+    wrap.dataset.hl = on || "";
+    const top = panel.querySelector(".asc-top");
+    if (top) top.classList.toggle("lit", on === "top");
+  }
+  panel.addEventListener("pointerover", (e) => { const seg = e.target.closest && e.target.closest("[data-seg]"); if (seg && e.pointerType === "mouse") highlight(seg.dataset.seg); });
+  panel.addEventListener("pointerout", (e) => { const seg = e.target.closest && e.target.closest("[data-seg]"); if (seg && e.pointerType === "mouse" && !(e.relatedTarget && seg.contains(e.relatedTarget))) { const w = panel.querySelector(".asc-donut-wrap"); if (w) w.dataset.hl = ""; const t = panel.querySelector(".asc-top"); if (t) t.classList.remove("lit"); } });
+
+  // ---- "Is this wrong?" on a warning or risk ----
+  function reportForm(btn) {
+    const row = btn.closest(".asc-row");
+    if (row.querySelector(".asc-report-form")) { row.querySelector(".asc-report-form").remove(); return; }
+    const f = document.createElement("div");
+    f.className = "asc-report-form";
+    f.innerHTML = `<textarea maxlength="400" rows="2" placeholder="${esc(tr("What's wrong with this check? (optional)"))}"></textarea><button type="button" data-send-report="${esc(btn.dataset.report)}" data-st="${esc(btn.dataset.st)}">${esc(tr("Send"))}</button>`;
+    btn.insertAdjacentElement("afterend", f);
+    f.querySelector("textarea").focus();
+  }
+  async function sendReport(btn) {
+    if (!cur) return;
+    const f = btn.closest(".asc-report-form"), note = f.querySelector("textarea").value;
+    btn.disabled = true;
+    let ok = false;
+    try {
+      const r = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "scanreport", token: cur.addr, title: btn.dataset.sendReport, status: btn.dataset.st, note, engine: K.CORE_VERSION }) });
+      ok = r.ok;
+    } catch { ok = false; }
+    f.innerHTML = `<p class="asc-hnote">${esc(tr(ok ? "Thanks — we'll look at it." : "Couldn't send that right now — try again later."))}</p>`;
+  }
+
+  // ---- embed: a badge any site can show ----
+  function embedBox(btn) {
+    if (!cur) return;
+    const h = $("asc-head");
+    let box = h.querySelector(".asc-embed");
+    if (box) { box.remove(); return; }
+    const url = `${location.origin}/badge/${cur.addr}`, link = `${location.origin}/s/${cur.addr}`;
+    const code = `<a href="${link}" target="_blank" rel="noopener"><img src="${url}" alt="ARCIRCLE PAD scan" height="22"></a>`;
+    box = document.createElement("div");
+    box.className = "asc-embed";
+    box.innerHTML = `<div class="asc-embed-top"><b>${esc(tr("Show this score on your site"))}</b><img src="${esc(url)}" alt="" height="22"></div>
+      <code data-no-i18n>${esc(code)}</code><div class="asc-embed-foot"><button type="button" data-copy="${esc(code)}">${esc(tr("Copy code"))}</button><span>${esc(tr("The badge updates by itself — it re-scans every few hours."))}</span></div>`;
+    h.appendChild(box);
+  }
+
+  // =====================================================================
+  // Explore cards: a small safety score on every coin (cached server scans)
+  // =====================================================================
+  (function exploreBadges() {
+    const grid = document.getElementById("ap-explore-grid");
+    if (!grid) return;
+    const cache = new Map();
+    let t = 0;
+    const paint = (card) => {
+      const a = lc(card.dataset.token), d = cache.get(a);
+      if (!a || !d || card.querySelector(".asc-cardbadge")) return;
+      // the card itself is a button, so the badge is a span that navigates on its own
+      const b = document.createElement("span");
+      b.className = `asc-cardbadge v-${d.k}`; b.setAttribute("role", "link"); b.tabIndex = 0; b.setAttribute("data-no-i18n", "");
+      b.title = tr("Token Scanner score") + ` · ${tr(d.t)}`;
+      b.innerHTML = `${SHIELD}<b>${d.score}</b>`;
+      const go = (e) => { e.stopPropagation(); e.preventDefault(); location.hash = `#scanner?t=${a}`; };
+      b.addEventListener("click", go);
+      b.addEventListener("keydown", (e) => { if (e.key === "Enter") go(e); });
+      (card.querySelector(".ap-card-top") || card).appendChild(b);
+    };
+    const run = async () => {
+      const cards = [...grid.querySelectorAll(".ap-launch-card[data-token]")].slice(0, 24);
+      cards.forEach(paint);
+      const need = cards.map((c) => lc(c.dataset.token)).filter((a) => !cache.has(a));
+      if (!need.length) return;
+      need.forEach((a) => cache.set(a, null));
+      const j = await fetchJson(`/api/social?scores=${need.join(",")}`, 15000);
+      if (j && j.scores) Object.entries(j.scores).forEach(([a, d]) => cache.set(a, d));
+      need.filter((a) => !cache.get(a)).forEach((a) => cache.delete(a)); // try again on a later render
+      grid.querySelectorAll(".ap-launch-card[data-token]").forEach(paint);
+    };
+    new MutationObserver(() => { clearTimeout(t); t = setTimeout(run, 400); }).observe(grid, { childList: true });
+    setTimeout(run, 2500);
+  })();
+
   // =====================================================================
   // wiring
   // =====================================================================
@@ -659,6 +784,14 @@
     if (more) { const g = more.closest(".asc-group"); g.classList.toggle("open"); more.textContent = g.classList.contains("open") ? tr("Show less") : more.dataset.label; return; }
     const sh = e.target.closest("[data-show]");
     if (sh) { const box = $("asc-checks"); box.classList.toggle("problems", sh.dataset.show === "problems"); box.querySelectorAll("[data-show]").forEach((b) => b.setAttribute("aria-checked", String(b === sh))); return; }
+    const tab = e.target.closest(".asc-tabs [data-tab]");
+    if (tab) { $("asc-out").dataset.tab = tab.dataset.tab; panel.querySelectorAll(".asc-tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b === tab))); return; }
+    const seg = e.target.closest("[data-seg]");
+    if (seg) { highlight(seg.dataset.seg, true); return; }
+    const rep = e.target.closest("[data-report]");
+    if (rep) { reportForm(rep); return; }
+    const sendRep = e.target.closest("[data-send-report]");
+    if (sendRep) { sendReport(sendRep); return; }
     const cp = e.target.closest("[data-copy]");
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); cp.classList.add("ok"); setTimeout(() => cp.classList.remove("ok"), 1200); } catch { /* denied */ } return; }
     const act = e.target.closest("[data-act]");
@@ -669,6 +802,7 @@
     else if (a === "card") saveCard();
     else if (a === "link") { try { await navigator.clipboard.writeText(`${location.origin}/s/${cur.addr}`); act.classList.add("ok"); toast(tr("Link copied")); } catch { /* denied */ } }
     else if (a === "watch") toggleWatch();
+    else if (a === "embed") embedBox(act);
     else if (a === "compare") {
       if (compareBase && lc(compareBase.addr) !== lc(cur.addr)) { compareMaybe(); $("asc-compare").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); return; }
       compareBase = snapshot();

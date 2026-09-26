@@ -9,7 +9,7 @@
 //             io.keccak(hex) → 0x-prefixed keccak-256 of the bytes.
 // Amounts travel as decimal strings (BigInt inside), so results are plain JSON.
 
-export const CORE_VERSION = 2;
+export const CORE_VERSION = 3;
 
 // ---------------------------------------------------------------- addresses
 export const ADDR = {
@@ -267,7 +267,10 @@ const FRESH = "0x5ca9000000000000000000000000000000c0ffee";
 async function probeLeg(io, token, from, to, amount) {
   const data = SEL.probe + pad(token) + pad(to) + pad(toBig(amount).toString(16));
   let out;
-  try { out = await io.rpc("eth_call", [{ from, to: from, data, gas: "0x1c9c380" }, "latest", { [from]: { code: PROBE_CODE } }]); }
+  // io.rpcSim (optional) tries each RPC endpoint in turn: not every node
+  // accepts the state-override argument this dry run needs.
+  const send = io.rpcSim || io.rpc;
+  try { out = await send("eth_call", [{ from, to: from, data, gas: "0x1c9c380" }, "latest", { [from]: { code: PROBE_CODE } }]); }
   catch (e) {
     const m = String((e && (e.message || e.shortMessage)) || e);
     if (/override|unsupported|invalid.*param|not supported|too many arguments|expected 2|unknown field/i.test(m)) return { unsupported: true };
@@ -324,6 +327,7 @@ export const HELP = {
   age: "New pools have little history, which is when most rug pulls happen.",
   flow: "A token that is bought a lot but never sold is a classic sign that selling is blocked.",
   links: "Legit projects usually list a website and social accounts on Dexscreener.",
+  impact: "How far one sell of a fixed size would push the price down. Big moves mean you'd get noticeably less than the price you see.",
   holders: "How many wallets hold the token, and whether a few of them could dump on everyone else.",
   mint: "New tokens minted after launch dilute every holder.",
   history: "Events read from the token's own on-chain history.",
@@ -407,6 +411,11 @@ export function evaluate(addr, data) {
     else if (pair.liq < 10000) add("market", "warn", "liq", "Thin liquidity", `${usd(pair.liq)} in the pool — larger trades will move the price noticeably.`);
     else add("market", "pass", "liq", "Healthy liquidity", `${usd(pair.liq)} in the pool.`);
     if (pair.mcap && pair.liq > 0 && pair.liq / pair.mcap < 0.02) add("market", "warn", "liq", "Small pool for its size", `Liquidity is only ${pct((pair.liq / pair.mcap) * 100)} of the market cap.`);
+    if (pair.liq > 0) {
+      // x·y = k estimate from the pool's USD depth: selling $1,000 moves the spot price by 1 − (Q / (Q + 1000))²
+      const Q = pair.liq / 2, move = (1 - Math.pow(Q / (Q + 1000), 2)) * 100;
+      add("market", "info", "impact", `Selling $1,000 moves the price about ${pct(move)}`, "An estimate from the pool's depth on Dexscreener; concentrated pools can differ.");
+    }
     const age = pair.created ? now - pair.created : null;
     if (age != null) {
       if (age < 86400) add("market", "warn", "age", "Brand new pool", `Created ${ageText(age)} ago — there's little history to judge it by.`);

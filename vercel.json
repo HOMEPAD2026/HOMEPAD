@@ -83,6 +83,14 @@
     {
       "source": "/s/:addr",
       "destination": "/api/c?view=scan&addr=:addr"
+    },
+    {
+      "source": "/badge/:addr",
+      "destination": "/api/social?badge=:addr"
+    },
+    {
+      "source": "/api/v1/scan/:addr",
+      "destination": "/api/social?scanapi=:addr"
     }
   ],
   "redirects": [

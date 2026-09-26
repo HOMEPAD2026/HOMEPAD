@@ -7,7 +7,7 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 export const SITE = "https://www.arcircle.app";
 // Circle's own endpoint first, then the keyless provider endpoints listed in
 // Arc's docs (docs.arc.io → RPC endpoints). ARC_RPC_URL overrides the first.
-const RPCS = [
+export const RPCS = [
   (typeof process !== "undefined" && process.env && process.env.ARC_RPC_URL) || "https://rpc.mainnet.arc.io",
   "https://rpc.blockdaemon.mainnet.arc.io",
   "https://rpc.drpc.mainnet.arc.io",

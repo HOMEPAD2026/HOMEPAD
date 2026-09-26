@@ -1324,6 +1324,31 @@
     "How many wallets hold the token, and whether a few of them could dump on everyone else.": "몇 개의 지갑이 보유하고 있는지, 소수가 나머지 모두에게 물량을 던질 수 있는지.",
     "New tokens minted after launch dilute every holder.": "런치 후 발행된 새 토큰은 모든 보유자를 희석시킵니다.",
     "Events read from the token's own on-chain history.": "토큰 자체의 온체인 기록에서 읽은 이벤트입니다.",
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    "Is this wrong?": "판정이 틀렸나요?",
+    "Result sections": "결과 구역",
+    "What's wrong with this check? (optional)": "이 점검의 어디가 틀렸나요? (선택)",
+    "Send": "보내기",
+    "Thanks — we'll look at it.": "감사합니다 — 확인해 보겠습니다.",
+    "Couldn't send that right now — try again later.": "지금은 보내지 못했습니다 — 잠시 후 다시 시도하세요.",
+    "Show this score on your site": "이 점수를 내 사이트에 표시하기",
+    "Copy code": "코드 복사",
+    "The badge updates by itself — it re-scans every few hours.": "배지는 몇 시간마다 다시 스캔해 자동으로 갱신됩니다.",
+    "Embed badge": "배지 삽입",
+    "Token Scanner score": "토큰 스캐너 점수",
+    "Holders over time": "보유자 추이",
+    "An estimate from the pool's depth on Dexscreener; concentrated pools can differ.": "Dexscreener의 풀 깊이로 추정한 값입니다. 집중 유동성 풀은 다를 수 있습니다.",
+    "How far one sell of a fixed size would push the price down. Big moves mean you'd get noticeably less than the price you see.": "정해진 금액을 한 번 팔 때 가격이 얼마나 밀리는지입니다. 크게 밀리면 보이는 가격보다 확실히 적게 받습니다.",
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    "A full swap through the pool in the dry run, so hook taxes show too": "모의 실행에서 풀을 통한 실제 스왑까지 — 훅 세금도 표시",
+    "Unlock schedules from ArcLock inside the scan": "스캔 안에 ArcLock 해제 일정 표시",
+    "Use it anywhere": "어디서든 쓰기",
+    "Badge": "배지",
+    "API": "API",
+    "for a score,": "으로 점수 확인,",
+    "for alerts when the owner, supply or liquidity changes.": "으로 소유자·공급량·유동성 변화 알림.",
+    "Put a live score on any site — open a scan and press \"Embed badge\".": "어느 사이트에나 실시간 점수를 붙이세요 — 스캔 후 \"배지 삽입\"을 누르면 됩니다.",
+    "returns the full result as JSON (30 scans a minute).": "로 전체 결과를 JSON으로 받습니다 (분당 30회).",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -1493,6 +1518,9 @@
     [/^Transfer tax (.+)$/, "전송 세금 $1"],
     [/^(.+) of a dry-run transfer never arrived\.$/, "모의 전송 금액의 $1이(가) 도착하지 않았습니다."],
     [/^A dry-run transfer arrived minus (.+)\.$/, "모의 전송이(가) $1 차감되어 도착했습니다."],
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    [/^Selling \$1,000 moves the price about (.+)$/, "$$1,000 매도 시 가격이 약 $1 밀림"],
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
   ];
 
   var ZH_PATTERNS = [
@@ -1661,6 +1689,9 @@
     [/^Transfer tax (.+)$/, "转账税 $1"],
     [/^(.+) of a dry-run transfer never arrived\.$/, "模拟转账中有 $1 未到账。"],
     [/^A dry-run transfer arrived minus (.+)\.$/, "模拟转账到账时被扣除 $1。"],
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    [/^Selling \$1,000 moves the price about (.+)$/, "卖出 $$1,000 会让价格下跌约 $1"],
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
   ];
 
   // Simplified Chinese — same keys as KO (the English source strings).
@@ -2783,6 +2814,31 @@
     "How many wallets hold the token, and whether a few of them could dump on everyone else.": "有多少钱包持有，以及少数人是否可能对其他人砸盘。",
     "New tokens minted after launch dilute every holder.": "发行后增发的新代币会稀释所有持有人。",
     "Events read from the token's own on-chain history.": "从代币自身链上历史读取的事件。",
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    "Is this wrong?": "判断有误？",
+    "Result sections": "结果分区",
+    "What's wrong with this check? (optional)": "这项检查哪里不对？（可选）",
+    "Send": "发送",
+    "Thanks — we'll look at it.": "谢谢——我们会查看。",
+    "Couldn't send that right now — try again later.": "暂时无法发送——请稍后再试。",
+    "Show this score on your site": "在你的网站上显示这个分数",
+    "Copy code": "复制代码",
+    "The badge updates by itself — it re-scans every few hours.": "徽章会自动更新——每隔几小时重新扫描。",
+    "Embed badge": "嵌入徽章",
+    "Token Scanner score": "代币扫描器分数",
+    "Holders over time": "持有人变化",
+    "An estimate from the pool's depth on Dexscreener; concentrated pools can differ.": "根据 Dexscreener 的池深度估算；集中流动性池可能不同。",
+    "How far one sell of a fixed size would push the price down. Big moves mean you'd get noticeably less than the price you see.": "一次固定金额的卖出会把价格压低多少。压得越多，你实际拿到的就明显低于看到的价格。",
+    // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    "A full swap through the pool in the dry run, so hook taxes show too": "模拟中走完整的池内兑换——钩子税也能显示",
+    "Unlock schedules from ArcLock inside the scan": "在扫描中显示 ArcLock 解锁计划",
+    "Use it anywhere": "随处可用",
+    "Badge": "徽章",
+    "API": "API",
+    "for a score,": "查看分数，",
+    "for alerts when the owner, supply or liquidity changes.": "在所有者、供应量或流动性变化时提醒。",
+    "Put a live score on any site — open a scan and press \"Embed badge\".": "把实时分数放到任何网站——打开扫描结果，点击“嵌入徽章”。",
+    "returns the full result as JSON (30 scans a minute).": "以 JSON 返回完整结果（每分钟 30 次）。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
