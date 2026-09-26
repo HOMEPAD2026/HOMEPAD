@@ -83,6 +83,12 @@ const CONFIG = {
   // Round #1 started; BigPadVote deployed against it on 26 Sep 2026
   // (deploy-bigpad-vote.js). Voting runs from the escrow's deadline for 48h.
   CIRCLEPAD_VOTE_ADDRESS: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",
+  // Voting is burn-to-vote: 1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD, open to
+  // any holder. Candidates stay on BigPadVote above; ArcircleBurnVote counts the
+  // burned votes (deploy-arcircle-burn-vote.js). "" until it's deployed — the
+  // page then explains the rules but can't take votes yet.
+  CIRCLEPAD_VOTE_MODE: "burn",
+  CIRCLEPAD_BURNVOTE_ADDRESS: "",
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
   //     "opens in" countdown and a calendar file before start(); 0 = not announced

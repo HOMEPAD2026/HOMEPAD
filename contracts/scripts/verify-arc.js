@@ -10,7 +10,7 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,lplock,lock,tokens
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens
 //
 // Get a free key at https://etherscan.io/myapikey (one key covers every chain
 // on Etherscan's v2 API, Arc included). Optional: ARC_MAINNET_RPC to read the
@@ -41,6 +41,7 @@ const ADDR = {
   escrow: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
   vote: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",
   lplock: "0x674E7010Dab5cCb519e06df72b1D4c063952f45B",
+  burnvote: process.env.CIRCLEPAD_BURNVOTE_ADDRESS || "", // ArcircleBurnVote, once deployed
   lock: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 };
 const ART = path.join(__dirname, "..", "artifacts");
@@ -150,6 +151,11 @@ async function main() {
     const pArt = artifact("ArcLPLock.sol", "ArcLPLock");
     const lp = new ethers.Contract(ADDR.lplock, pArt.abi, provider);
     results.push(await verify(provider, { label: "ArcLPLock (LP position locks)", address: ADDR.lplock, art: pArt, args: [await lp.positionManager()] }));
+  }
+  if (want("burnvote") && ADDR.burnvote) {
+    const bArt = artifact("ArcircleBurnVote.sol", "ArcircleBurnVote");
+    const bv = new ethers.Contract(ADDR.burnvote, bArt.abi, provider);
+    results.push(await verify(provider, { label: "ArcircleBurnVote (1,000 $ARCIRCLE burned per vote)", address: ADDR.burnvote, art: bArt, args: [await bv.ballot(), await bv.token()] }));
   }
   if (want("lock")) {
     const lArt = artifact("ArcLock.sol", "ArcLock");

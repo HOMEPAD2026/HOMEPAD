@@ -93,7 +93,8 @@
   if (contractsEl && typeof renderContractRows === "function") {
     contractsEl.innerHTML = renderContractRows([
       ["BigPadEscrow (CirclePad round #1)", CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close"],
-      ["BigPadVote (identity voting)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "Name / ticker / logo / roadmap / launch-date votes, weighted by contribution — deploys once the raise has started"],
+      ["BigPadVote (candidates)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "The round's name / ticker / logo / roadmap / launch-date candidates"],
+      ["ArcircleBurnVote (voting)", CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner"],
     ]);
   }
 })();
@@ -1054,6 +1055,34 @@ function circlepadVoteWrite() {
   return new ethers.Contract(CONFIG.CIRCLEPAD_VOTE_ADDRESS, CIRCLEPAD_VOTE_ABI, state.signer);
 }
 
+// ---- burn-to-vote (contracts/ArcircleBurnVote.sol) ----
+// 1 vote = 1,000 $ARCIRCLE, sent to the dead address in the vote transaction.
+// Any holder can vote, as often as they like; the candidates still come from
+// BigPadVote above. Burn mode with no contract address yet = the rules are
+// shown but votes can't be cast.
+const GOV_DEAD = "0x000000000000000000000000000000000000dEaD";
+const GOV_PER_VOTE = 1000n;
+const CIRCLEPAD_BURNVOTE_ABI = [
+  "function vote(uint8 category, uint256 optionIndex, uint256 votes)",
+  "function votingOpen() view returns (bool)",
+  "function votePrice() view returns (uint256)",
+  "function tallies(uint8 category) view returns (uint256[])",
+  "function myVotes(uint8 category, address voter) view returns (uint256[])",
+  "function totalBurned() view returns (uint256)",
+  "function totalVotes() view returns (uint256)",
+  "function voterCount() view returns (uint256)",
+];
+const GOV_ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address, address) view returns (uint256)",
+  "function approve(address, uint256) returns (bool)",
+];
+const govBurnMode = () => typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_VOTE_MODE === "burn";
+const govBurnLive = () => govBurnMode() && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || "") && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
+const govBurnRead = () => new ethers.Contract(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, CIRCLEPAD_BURNVOTE_ABI, readProvider());
+const govTokenRead = () => new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, GOV_ERC20_ABI, readProvider());
+let _govBurn = null; // the open "burn & vote" panel: { cat, opt, n, busy } — survives the 15s refresh
+
 // ---- how a candidate looks ----
 function govLogoUrl(t) {
   let s = String(t || "").trim();
@@ -1149,8 +1178,16 @@ async function fetchCirclepadGovernanceState() {
 
   const round3 = [];
   const round3Meta = [];
+  const burn = govBurnLive();
   for (const c of setCats) {
     const opts = optionsByCategory.get(c.id) || [];
+    if (burn) {
+      round3.push({ contract: govBurnRead(), method: "tallies", args: [c.id] });
+      round3Meta.push({ type: "tallies", category: c.id });
+      if (state.account) { round3.push({ contract: govBurnRead(), method: "myVotes", args: [c.id, state.account] }); round3Meta.push({ type: "myVotes", category: c.id }); }
+      continue;
+    }
+    if (govBurnMode()) continue; // burn voting announced, contract not live yet: no votes to show
     for (let j = 0; j < opts.length; j++) {
       round3.push({ contract: vote, method: "optionWeight", args: [c.id, j] });
       round3Meta.push({ type: "weight", category: c.id, option: j });
@@ -1160,12 +1197,24 @@ async function fetchCirclepadGovernanceState() {
       round3Meta.push({ type: "myVote", category: c.id });
     }
   }
+  if (burn) {
+    for (const m of ["totalBurned", "totalVotes", "voterCount", "votingOpen"]) { round3.push({ contract: govBurnRead(), method: m }); round3Meta.push({ type: "burn", key: m }); }
+    if (state.account) {
+      round3.push({ contract: govTokenRead(), method: "balanceOf", args: [state.account] }); round3Meta.push({ type: "burn", key: "bal" });
+      round3.push({ contract: govTokenRead(), method: "allowance", args: [state.account, CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS] }); round3Meta.push({ type: "burn", key: "allowance" });
+    }
+  }
   const r3 = round3.length > 0 ? await multicallRead(round3) : [];
 
   const weightsByCategory = new Map();
   const myVoteByCategory = new Map();
+  const myVotesByCategory = new Map();
+  const burnInfo = { live: burn };
   round3Meta.forEach((meta, i) => {
-    if (meta.type === "weight") {
+    if (meta.type === "tallies") weightsByCategory.set(meta.category, [...(r3[i] || [])].map((x) => BigInt(x)));
+    else if (meta.type === "myVotes") myVotesByCategory.set(meta.category, [...(r3[i] || [])].map((x) => BigInt(x)));
+    else if (meta.type === "burn") burnInfo[meta.key] = r3[i];
+    else if (meta.type === "weight") {
       if (!weightsByCategory.has(meta.category)) weightsByCategory.set(meta.category, []);
       weightsByCategory.get(meta.category)[meta.option] = r3[i] ?? 0n;
     } else {
@@ -1177,16 +1226,18 @@ async function fetchCirclepadGovernanceState() {
     const opts = optionsByCategory.get(c.id) || [];
     const weights = weightsByCategory.get(c.id) || [];
     const myVote = myVoteByCategory.get(c.id);
+    const mv = myVotesByCategory.get(c.id) || [];
+    let mvBest = null; mv.forEach((v, j) => { if (v > 0n && (mvBest === null || v > mv[mvBest])) mvBest = j; });
     return {
       id: c.id,
       label: c.label,
       set: setFlags[i],
-      options: opts.map((text, j) => ({ text, weight: weights[j] ?? 0n })),
-      myVoteIndex: myVote && myVote[0] ? Number(myVote[1]) : null,
+      options: opts.map((text, j) => ({ text, weight: weights[j] ?? 0n, mine: mv[j] ?? 0n })),
+      myVoteIndex: burn ? mvBest : myVote && myVote[0] ? Number(myVote[1]) : null,
     };
   });
 
-  return { votingOpen, votingEnds, recipient, deadline, categories };
+  return { votingOpen: burn && burnInfo.votingOpen !== undefined ? !!burnInfo.votingOpen : votingOpen, votingEnds, recipient, deadline, categories, burn: burnInfo };
 }
 
 // raise → voting → closed, on the chain's clock
@@ -1216,16 +1267,30 @@ function renderCirclepadGovernance(g) {
   const isRecipient = !!(state.account && g.recipient && state.account.toLowerCase() === g.recipient.toLowerCase());
   const published = g.categories.filter((c) => c.set).length;
   const votedIn = g.categories.filter((c) => c.myVoteIndex !== null).length;
+  // burn-to-vote: what this wallet can still cast, what it has cast, what's burned overall
+  const bm = govBurnMode(), bLive = !!(bm && g.burn && g.burn.live);
+  const unit = GOV_PER_VOTE * 10n ** 18n;
+  const bal = bLive && g.burn.bal != null ? BigInt(g.burn.bal) : 0n;
+  const avail = bal / unit;
+  const myCast = g.categories.reduce((a, c) => a + c.options.reduce((b, o) => b + (o.mine || 0n), 0n), 0n);
+  const burnedAll = bLive && g.burn.totalBurned != null ? BigInt(g.burn.totalBurned) : 0n;
+  const votesAll = bLive && g.burn.totalVotes != null ? BigInt(g.burn.totalVotes) : 0n;
+  const buyUrl = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "";
 
   const statusEl = document.getElementById("bp-gov-live-status");
   if (statusEl) {
-    statusEl.textContent = phase === "raise"
-      ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours."
-      : phase === "voting" ? "Voting is open. Every contributor has a say, weighted by the USDC they put in."
-        : "Voting has closed — these results are final.";
+    statusEl.textContent = bm
+      ? (phase === "raise"
+        ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours: 1 vote = 1,000 $ARCIRCLE, burned for good."
+        : phase === "voting" ? (bLive ? "Voting is open. Anyone holding $ARCIRCLE can vote — every vote burns 1,000 $ARCIRCLE." : "Voting opens as soon as the burn-vote contract is live.")
+          : "Voting has closed — these results are final.")
+      : phase === "raise"
+        ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours."
+        : phase === "voting" ? "Voting is open. Every contributor has a say, weighted by the USDC they put in."
+          : "Voting has closed — these results are final.";
   }
   const note = document.getElementById("bp-gov-note");
-  if (note) note.textContent = phase === "raise" ? "Candidates are up — voting opens at the close." : phase === "voting" ? "Voting is open — cast yours." : "Voting has closed — see the result.";
+  if (note) note.textContent = phase === "raise" ? (bm ? "Candidates are up — voting opens at the close. 1 vote = 1,000 $ARCIRCLE burned." : "Candidates are up — voting opens at the close.") : phase === "voting" ? "Voting is open — cast yours." : "Voting has closed — see the result.";
 
   // ---- phases, clock, the coin so far, your weight ----
   const top = document.getElementById("bp-gov-top");
@@ -1245,11 +1310,20 @@ function renderCirclepadGovernance(g) {
     const roadL = lead[3] ? String(lead[3].text).split("\n")[0] : "";
     const anyLead = Object.values(lead).some(Boolean);
     const shareText = phase === "closed" && nameL && tickL
-      ? `CirclePad Round #1 is decided: $${tickL} — ${nameL}${dateL ? `, launching ${dateL}` : ""}. Chosen by every contributor, weighted by the USDC they put in.`
+      ? (bm ? `CirclePad Round #1 is decided: $${tickL} — ${nameL}${dateL ? `, launching ${dateL}` : ""}. Chosen by $ARCIRCLE holders, who burned ${fmtEth(burnedAll, 0)} $ARCIRCLE to vote.`
+        : `CirclePad Round #1 is decided: $${tickL} — ${nameL}${dateL ? `, launching ${dateL}` : ""}. Chosen by every contributor, weighted by the USDC they put in.`)
       : "";
 
     let meHtml;
-    if (!state.account) {
+    if (bm) {
+      const dots = CIRCLEPAD_VOTE_CATEGORIES.map((c) => `<i class="${g.categories[c.id].myVoteIndex !== null ? "on" : ""}" title="${govEsc(c.label)}"></i>`).join("");
+      if (!state.account) meHtml = `<p>Connect a wallet holding $ARCIRCLE to vote — 1 vote burns 1,000 $ARCIRCLE.</p><button type="button" class="bp-btn-primary gv-me-btn" data-gv="connect">Connect wallet</button>`;
+      else if (!bLive) meHtml = `<p>Hold $ARCIRCLE to vote: every 1,000 is one vote, burned when you cast it.</p>${buyUrl ? `<a class="bp-btn-ghost gv-me-btn" href="${govEsc(buyUrl)}" target="_blank" rel="noopener">Get $ARCIRCLE</a>` : ""}`;
+      else meHtml = `<div class="gv-me-w"><b><span data-no-i18n>${avail.toString()}</span> <span>${avail === 1n ? "vote" : "votes"}</span></b><span data-no-i18n>${fmtEth(bal, 0)} $ARCIRCLE</span></div>
+        <small>${avail > 0n ? "Each vote burns 1,000 $ARCIRCLE — it can't be changed or taken back." : "You need at least 1,000 $ARCIRCLE for one vote."}</small>
+        ${myCast > 0n ? `<div class="gv-me-dots">${dots}<span><span data-no-i18n>${myCast.toString()}</span> <span>votes cast</span> · <span data-no-i18n>${fmtEth(myCast * unit, 0)}</span> <span>burned</span></span></div>` : ""}
+        ${avail === 0n && buyUrl && phase !== "closed" ? `<a class="bp-btn-ghost gv-me-btn" href="${govEsc(buyUrl)}" target="_blank" rel="noopener">Get $ARCIRCLE</a>` : ""}`;
+    } else if (!state.account) {
       meHtml = `<p>Connect your wallet to see your vote weight.</p><button type="button" class="bp-btn-primary gv-me-btn" data-gv="connect">Connect wallet</button>`;
     } else if (mine > 0n) {
       const pct = total > 0n ? (Number((mine * 10000n) / total) / 100).toFixed(2) : "0.00";
@@ -1270,6 +1344,7 @@ function renderCirclepadGovernance(g) {
           ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
         </div>
         ${clock ? `<div class="gv-clock">${clock}</div>` : ""}
+        ${bm ? `<div class="gv-burned"><span>$ARCIRCLE burned</span><b data-no-i18n>${fmtEth(burnedAll, 0)}</b><small><span data-no-i18n>${votesAll.toString()}</span> <span>votes</span> · <span>1 vote = 1,000</span></small></div>` : ""}
       </div>
       <div class="gv-grid">
         <div class="gv-coin${phase === "closed" ? " final" : ""}">
@@ -1294,7 +1369,8 @@ function renderCirclepadGovernance(g) {
 
   if (!wrap) return;
   const canPropose = isRecipient && phase !== "closed";
-  const canVote = phase === "voting" && mine > 0n;
+  const canVote = bm ? phase === "voting" && bLive && !!state.account : phase === "voting" && mine > 0n;
+  if (_govBurn && (!canVote || !g.categories[_govBurn.cat] || !g.categories[_govBurn.cat].options[_govBurn.opt])) _govBurn = null;
 
   const cards = g.categories.map((c) => {
     const def = CIRCLEPAD_VOTE_CATEGORIES[c.id];
@@ -1310,6 +1386,20 @@ function renderCirclepadGovernance(g) {
     const lead = govLeader(c);
     const optionsHtml = c.options.map((o, i) => {
       const pct = pctOf(o.weight);
+      if (bm) {
+        const mineN = o.mine || 0n;
+        const open = _govBurn && _govBurn.cat === c.id && _govBurn.opt === i;
+        const btn = !canVote ? "" : open ? "" : `<button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${avail === 0n ? "disabled" : ""}>${mineN > 0n ? "Add votes" : "Vote"}</button>`;
+        return `
+        <div class="bp-gov-option${mineN > 0n ? " bp-gov-option-mine" : ""}${phase === "closed" && lead && lead.i === i ? " gv-win" : ""}" data-category="${c.id}" data-option="${i}">
+          <div class="bp-gov-option-row">
+            <span class="bp-gov-option-text" data-no-i18n>${govOptionHtml(def.kind, o.text)}</span>${mineN > 0n ? `<span class="bp-gov-mine-tag"><span>yours</span> <span data-no-i18n>${mineN.toString()}</span></span>` : ""}
+            <span class="gv-pw"><span class="bp-gov-option-pct" data-no-i18n>${pct}%</span><small><span data-no-i18n>${o.weight.toString()}</span> <span>${o.weight === 1n ? "vote" : "votes"}</span></small></span>
+          </div>
+          <div class="bp-gov-option-bar"><div class="bp-gov-option-fill" style="width:${pct}%"></div></div>
+          ${btn}${open ? govBurnPanel(_govBurn, avail, g.burn) : ""}
+        </div>`;
+      }
       const isMine = c.myVoteIndex === i;
       const label = isMine ? "Voted" : c.myVoteIndex !== null ? "Change vote" : "Vote";
       const btn = canVote ? `<button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${isMine ? "disabled" : ""}>${label}</button>` : "";
@@ -1323,7 +1413,9 @@ function renderCirclepadGovernance(g) {
           ${btn}
         </div>`;
     }).join("");
-    const head = `<div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span>
+    const head = bm ? `<div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span>
+      <span class="gv-turnout">${sum > 0n ? `<b data-no-i18n>${sum.toString()}</b> <span>votes</span> · <b data-no-i18n>${fmtEth(sum * unit, 0)}</b> <span>$ARCIRCLE burned</span>` : `<b data-no-i18n>${c.options.length}</b> <span>candidates</span>`}</span>
+      ${c.myVoteIndex !== null ? `<span class="gv-done">Voted</span>` : ""}</div>` : `<div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span>
       ${phase !== "raise" && total > 0n ? `<span class="gv-turnout"><b data-no-i18n>${turnout.toFixed(turnout < 10 ? 1 : 0)}%</b> <span>of the raise has voted</span></span>` : `<span class="gv-turnout"><b data-no-i18n>${c.options.length}</b> <span>candidates</span></span>`}
       ${c.myVoteIndex !== null ? `<span class="gv-done">Voted</span>` : ""}</div>`;
     return `<div class="bp-gov-cat" id="gv-cat-${c.id}" data-kind="${def.kind}">${head}<div class="bp-gov-options">${optionsHtml}</div></div>`;
@@ -1337,6 +1429,67 @@ function renderCirclepadGovernance(g) {
     if (typeof x !== "string" && el.dataset.keep === x.keep) return;
     el.outerHTML = typeof x === "string" ? x : x.html;
   });
+}
+
+// ---- burn & vote: how many votes, what it burns ----
+function govBurnPanel(b, avail, info) {
+  const unit = GOV_PER_VOTE * 10n ** 18n;
+  const n = BigInt(Math.max(1, b.n || 1));
+  const cost = n * unit;
+  const needApprove = !info || info.allowance == null || BigInt(info.allowance) < cost;
+  const label = b.busy || (needApprove ? "Approve $ARCIRCLE (1/2)" : "Burn & vote");
+  const quick = [1n, 5n, 10n].filter((x) => x <= avail).concat(avail > 10n ? [avail] : []);
+  return `<div class="gv-bn" role="group">
+    <div class="gv-bn-row">
+      <button type="button" class="gv-bn-step" data-gv="bn-minus" aria-label="One vote fewer" ${n <= 1n || b.busy ? "disabled" : ""}>−</button>
+      <span class="gv-bn-n"><b data-no-i18n>${n.toString()}</b> <span>${n === 1n ? "vote" : "votes"}</span></span>
+      <button type="button" class="gv-bn-step" data-gv="bn-plus" aria-label="One more vote" ${n >= avail || b.busy ? "disabled" : ""}>+</button>
+      <span class="gv-bn-quick">${quick.map((x) => `<button type="button" data-gv="bn-set" data-n="${x.toString()}" ${b.busy ? "disabled" : ""}${x === avail && x > 10n ? "" : ' data-no-i18n'}>${x === avail && x > 10n ? "Max" : x.toString()}</button>`).join("")}</span>
+    </div>
+    <p class="gv-bn-cost"><span>Burns</span> <b data-no-i18n>${fmtEth(cost, 0)} $ARCIRCLE</b> <span>for good — sent to</span> <code data-no-i18n>0x…dEaD</code></p>
+    <div class="gv-bn-acts"><button type="button" class="bp-btn-ghost" data-gv="bn-cancel" ${b.busy ? "disabled" : ""}>Cancel</button><button type="button" class="bp-btn-primary" data-gv="bn-go" ${b.busy ? "disabled" : ""}>${govEsc(label)}</button></div>
+    ${needApprove && !b.busy ? `<small class="gv-bn-note">First, a one-time approval lets the vote contract burn $ARCIRCLE from your wallet — only when you vote.</small>` : ""}
+  </div>`;
+}
+function govRepaint() { if (_govLast) renderCirclepadGovernance(_govLast); }
+async function castBurnVote() {
+  const b = _govBurn, g = _govLast;
+  if (!b || !g) return;
+  if (!state.account) { if (typeof connectWallet === "function") await connectWallet(); if (!state.account) return; }
+  const unit = GOV_PER_VOTE * 10n ** 18n;
+  const n = BigInt(b.n || 1), cost = n * unit;
+  const c = g.categories[b.cat], o = c && c.options[b.opt];
+  if (!o) return;
+  const def = CIRCLEPAD_VOTE_CATEGORIES[b.cat];
+  const shown = def.kind === "date" && govDate(o.text) ? govFmtDate(govDate(o.text)) : def.kind === "ticker" ? "$" + String(o.text).replace(/^\$/, "") : def.kind === "logo" ? "this logo" : String(o.text).split("\n")[0];
+  const ok = await cpConfirm({ title: `Burn ${fmtEth(cost, 0)} $ARCIRCLE for ${n} ${n === 1n ? "vote" : "votes"}?`, body: `${c.label}: ${shown}. The tokens go to the dead address — votes can't be changed or taken back.`, ok: "Burn & vote", danger: true });
+  if (!ok) return;
+  const set = (t) => { b.busy = t; govRepaint(); };
+  try {
+    await ensureArcForWrite();
+    const tok = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, GOV_ERC20_ABI, state.signer);
+    const allow = await tok.allowance(state.account, CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS);
+    if (allow < cost) {
+      set("Approve in wallet…");
+      const tx = await tok.approve(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, ethers.MaxUint256);
+      set("Confirming…");
+      await tx.wait();
+      if (g.burn) g.burn.allowance = ethers.MaxUint256;
+    }
+    set("Confirm the burn in wallet…");
+    const bv = new ethers.Contract(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, CIRCLEPAD_BURNVOTE_ABI, state.signer);
+    const tx = await bv.vote(b.cat, b.opt, n);
+    set("Burning…");
+    await tx.wait();
+    _govBurn = null;
+    cpToast(`${n} ${n === 1n ? "vote" : "votes"} cast — ${fmtEth(cost, 0)} $ARCIRCLE burned.`, "ok");
+    document.dispatchEvent(new CustomEvent("circlepad:burnvote", { detail: { category: b.cat, option: b.opt, votes: Number(n) } }));
+    await refreshCirclepadGovernance();
+  } catch (err) {
+    console.error("CirclePad: burn vote failed", err);
+    cpToast(cpErrText(err, "Vote failed or was rejected."), "bad");
+    if (_govBurn) { _govBurn.busy = null; govRepaint(); }
+  }
 }
 
 // ---- the recipient's editor: typed rows instead of one comma list ----
@@ -1442,8 +1595,22 @@ function wireCirclepadGovernance(root) {
   root.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-gv], .bp-gov-vote-btn");
     if (!b) return;
-    if (b.classList.contains("bp-gov-vote-btn")) { castCirclepadVote(Number(b.dataset.category), Number(b.dataset.option)); return; }
+    if (b.classList.contains("bp-gov-vote-btn")) {
+      if (govBurnMode()) { _govBurn = { cat: Number(b.dataset.category), opt: Number(b.dataset.option), n: 1, busy: null }; govRepaint(); return; }
+      castCirclepadVote(Number(b.dataset.category), Number(b.dataset.option)); return;
+    }
     const what = b.dataset.gv;
+    if (what && what.startsWith("bn-") && _govBurn) {
+      const g = _govLast, unit = GOV_PER_VOTE * 10n ** 18n;
+      const avail = g && g.burn && g.burn.bal != null ? Number(BigInt(g.burn.bal) / unit) : 1;
+      if (what === "bn-minus") _govBurn.n = Math.max(1, (_govBurn.n || 1) - 1);
+      else if (what === "bn-plus") _govBurn.n = Math.min(avail, (_govBurn.n || 1) + 1);
+      else if (what === "bn-set") _govBurn.n = Math.max(1, Math.min(avail, Number(b.dataset.n) || 1));
+      else if (what === "bn-cancel") _govBurn = null;
+      else if (what === "bn-go") { castBurnVote(); return; }
+      govRepaint();
+      return;
+    }
     if (what === "connect") { if (typeof connectWallet === "function") await connectWallet(); return; }
     if (what === "idea") { if (window.circlepadIdeas) window.circlepadIdeas.open(Number(b.dataset.cat)); return; }
     if (what === "contribute") {
@@ -1510,7 +1677,8 @@ async function refreshCirclepadGovernance() {
     votingEnds: g.votingEnds,
     deadline: g.deadline,
     recipient: g.recipient,
-    categories: g.categories.map((c) => ({ ...c, myVoteIndex: null })),
+    categories: g.categories.map((c) => ({ ...c, myVoteIndex: null, options: c.options.map((o) => ({ ...o, mine: 0n })) })),
+    burn: g.burn ? { live: g.burn.live, totalBurned: g.burn.totalBurned ?? 0n, totalVotes: g.burn.totalVotes ?? 0n } : null,
     savedAt: Date.now(),
   });
 }
@@ -1523,7 +1691,10 @@ function paintCirclepadGovernanceFromCache() {
   const votingEnds = cached.votingEnds ?? 0n;
   // Never trust a cached "open" past the cached close time.
   const votingOpen = !!cached.votingOpen && govNow() < Number(votingEnds);
-  renderCirclepadGovernance({ votingOpen, votingEnds, deadline: cached.deadline ?? 0n, recipient: cached.recipient || ethers.ZeroAddress, categories: cached.categories });
+  // a cache from before burn voting (or for another vote contract) isn't reused
+  if (govBurnMode() && !cached.burn) return false;
+  if (govBurnLive() && !cached.burn.live) return false;
+  renderCirclepadGovernance({ votingOpen, votingEnds, deadline: cached.deadline ?? 0n, recipient: cached.recipient || ethers.ZeroAddress, categories: cached.categories, burn: cached.burn || null });
   _circlepadGovLoadedOnce = true; // don't replace the cached paint with "Loading…"
   return true;
 }

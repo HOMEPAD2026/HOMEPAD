@@ -811,7 +811,7 @@
     const STEPS = [
       ["Pledge", "Say what you'll put in before it opens — a signature, no money moves.", '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>'],
       ["Contribute", "72 hours to send USDC. Withdraw any of it until the close.", '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'],
-      ["Vote", "Contributors decide the name, ticker, logo, roadmap and date.", '<path d="M5 12l4 4 10-10"/>'],
+      ["Vote", "$ARCIRCLE holders decide the name, ticker, logo, roadmap and date — 1,000 burned per vote.", '<path d="M5 12l4 4 10-10"/>'],
       ["Launch", "At the close the raise splits 80 / 15 / 5 and the project goes live.", '<path d="M12 3c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/>'],
     ];
     flow.innerHTML = STEPS.map(([t, d, ico], i) => `<li style="--i:${i}"><span class="cp-flow-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg></span><b>${t}</b><p>${d}</p></li>`).join("");

@@ -24,7 +24,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790453626"></script>
+<script src="arc-log.js?v=1790455424"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -289,7 +289,7 @@ svg text{font-family:Inter,sans-serif;}
   <h2 class="sec">One ecosystem, pointed at one coin</h2>
   <p class="lede">ARCIRCLE PAD is a launch ecosystem on Circle's Arc network, the chain where USDC is the native currency. It offers two different ways to bring a new coin to market — and one coin, $ARCIRCLE, that the whole ecosystem is designed to feed.</p>
   <p><strong>ArcPad</strong> is for instant, permissionless launches. Anyone can create a coin in a single transaction for a flat 1 USDC fee. The coin's sellable supply goes straight into a real Uniswap v4 pool from its first block, so there is no bonding curve to "graduate" from and no migration to wait for. Every coin opens at the same fair starting point — about $4,350 of market value — whether it is paired with USDC, with $ARCIRCLE, or with any other token on Arc.</p>
-  <p><strong>CirclePad</strong> is for launching together. Instead of one creator and a crowd of snipers, a project raises USDC from its community over a fixed 72-hour window. Contributors can withdraw at any time while the window is open. In its full design, the biggest backer becomes the project's lead, every contributor votes on what the project becomes, and the lead's payout vests slowly and can be clawed back if they walk away.</p>
+  <p><strong>CirclePad</strong> is for launching together. Instead of one creator and a crowd of snipers, a project raises USDC from its community over a fixed 72-hour window. Contributors can withdraw at any time while the window is open. In its full design, the biggest backer becomes the project's lead, $ARCIRCLE holders vote on what the project becomes (every vote burns 1,000 $ARCIRCLE), and the lead's payout vests slowly and can be clawed back if they walk away.</p>
   <p><strong>$ARCIRCLE</strong> is the coin between them. It was relaunched on Argus on 25 September 2026 and trades in a Uniswap v4 pool paired with USDC, with its whole supply in one locked liquidity position and no team allocation. The ecosystem is designed so that what ArcPad and CirclePad earn, together with the creator's 90% of $ARCIRCLE's trading tax, flows back into $ARCIRCLE through buybacks, liquidity support and — once built — rewards for holders and creators.</p>
   <div class="grid3" style="margin:5mm 0">
     <div class="card accent stat"><b>1 USDC</b><span>to launch a coin on ArcPad</span></div>
@@ -641,11 +641,11 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
     <div class="card"><h4>One project at a time</h4><p class="small">CirclePad runs a single round at a time, so attention, liquidity and contributors are concentrated on one project rather than spread across hundreds.</p></div>
     <div class="card"><h4>A fixed 72-hour window</h4><p class="small">Every raise lasts exactly three days, enforced by the contract's deadline. When the window closes, it closes — no extensions, no quiet reopening.</p></div>
     <div class="card"><h4>Always withdrawable while open</h4><p class="small">Contributors can take their own USDC back at any moment before the deadline. There is no lock-in until the raise actually closes.</p></div>
-    <div class="card"><h4>Everyone gets a say</h4><p class="small">In the full design, every contributor — not only the biggest — votes on the project's name, ticker, logo, roadmap and launch date, weighted by their share.</p></div>
+    <div class="card"><h4>Everyone gets a say</h4><p class="small">Anyone holding $ARCIRCLE votes on the project's name, ticker, logo, roadmap and launch date. Every vote burns 1,000 $ARCIRCLE.</p></div>
   </div>
   <h3>Where CirclePad is today</h3>
   <p>The first-round escrow contract (<strong>BigPadEscrow</strong>) is deployed on Arc mainnet. It is deliberately simple: the recipient wallet starts a 72-hour timer; anyone can contribute native USDC while it runs and withdraw their own contribution before it closes; when it closes, the balance is split automatically between the recipient, the platform and the treasury. The escrow has been deployed but <strong>not yet started</strong> — no funds are at risk until a round is announced and opened.</p>
-  <p>A companion voting contract (<strong>BigPadVote</strong>) lets contributors vote on the candidates the recipient publishes during the round. Voting opens the moment the round closes and runs for 48 hours, weighted by each contributor's USDC, which is frozen at the close. It is deployed once a round starts, because it reads the round's deadline.</p>
+  <p>The round's candidates are published on a companion contract (<strong>BigPadVote</strong>), deployed once a round starts because it reads the round's deadline. Votes are cast through <strong>ArcircleBurnVote</strong>: one vote costs exactly 1,000 $ARCIRCLE, sent from the voter to the dead address (0x…dEaD) inside the vote transaction. Anyone holding $ARCIRCLE can vote, as many times as they like; votes can't be changed or taken back. Voting opens the moment the round closes and runs for 48 hours. The contract has no owner and holds no tokens.</p>
   <p>The larger mechanism — competitive leadership, the 12-hour checkpoint, vesting and clawback — is a separate contract still in design. It will not hold real funds before an independent security review (Section 10).</p>
   </div>
   <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">14 / 32</span></div>
@@ -678,7 +678,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   <h3>1 · The raise <span class="tag live">Round 1</span></h3>
   <p>The recipient wallet calls <code>start()</code>, which sets a deadline exactly 72 hours ahead. Anyone can contribute USDC; each contribution is recorded against the contributor's address. A live leaderboard ranks contributors by amount and share.</p>
   <h3>2 · Governance <span class="tag live">Round 1</span></h3>
-  <p>While the raise runs, contributors vote on the options published for the round. Votes are weighted by each wallet's share of the raise, so influence follows commitment — but every contributor has a voice, not just the largest.</p>
+  <p>Once the raise closes, $ARCIRCLE holders vote on the options published for the round. Every vote burns 1,000 $ARCIRCLE, so influence costs something real — and every vote cast gives $ARCIRCLE a use and shrinks its supply.</p>
   <h3>3 · Close and split <span class="tag live">Round 1</span></h3>
   <p>When the deadline passes, contributions stop and withdrawals end. In the first round, the escrow splits the balance directly: <strong>80% to the recipient</strong> (for the project's launch liquidity), <strong>5% to the platform</strong> and <strong>15% to the treasury</strong>.</p>
   <h3>4 · Launch <span class="tag plan">v2</span></h3>
@@ -1051,7 +1051,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   <h3>Today</h3>
   <p>Contract deployments, fee parameters, treasury management and the website are run by the core team. Many parameters are fixed in contracts and cannot be changed by anyone — ArcPad's fee cap, the 8% allocation, the fixed supply of every launch. Where the team does make choices (revenue splits, reward rules, featured launches), the commitment is to publish them before acting.</p>
   <h3>CirclePad: governance by contributors</h3>
-  <p>CirclePad already puts decisions in contributors' hands. Every contributor to a round votes on the project's identity — name, ticker, logo, roadmap and launch date — weighted by their share of the raise. This is the first place real on-chain governance appears in the ecosystem.</p>
+  <p>CirclePad already puts decisions in the community's hands. $ARCIRCLE holders vote on each round's identity — name, ticker, logo, roadmap and launch date — and every vote burns 1,000 $ARCIRCLE. This is the first place real on-chain governance appears in the ecosystem.</p>
   <h3>Where it goes next <span class="tag plan">Planned</span></h3>
   <table>
     <thead><tr><th style="width:34%">Area</th><th>Direction</th></tr></thead>
@@ -1065,7 +1065,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   <h3>How to take part</h3>
   <ul>
     <li><strong>Launch</strong> a coin on ArcPad — and consider pairing it with $ARCIRCLE.</li>
-    <li><strong>Contribute</strong> to CirclePad rounds and vote on what the project becomes.</li>
+    <li><strong>Contribute</strong> to CirclePad rounds, and burn $ARCIRCLE to vote on what the project becomes.</li>
     <li><strong>Hold</strong> $ARCIRCLE — the coin the whole ecosystem points at.</li>
     <li><strong>Build</strong> — every contract is public; wallets, bots and dashboards can integrate ArcPad pools directly through Uniswap v4.</li>
   </ul>
@@ -1100,7 +1100,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
     <div class="phase-head"><h3>Phase 1 — First rounds</h3><span class="phase-when">Q4 2026</span><span class="tag soon">In progress</span></div>
     <ul class="checks">
       <li>Open the first CirclePad round: 72-hour USDC raise with a live leaderboard</li>
-      <li>Deploy the round's voting contract and run the first contributor vote</li>
+      <li>Deploy the round's voting contracts and run the first burn-to-vote round (1,000 $ARCIRCLE per vote)</li>
       <li>Publish the flywheel revenue split on the $ARCIRCLE page</li>
       <li>First treasury buybacks of $ARCIRCLE, posted with transaction links</li>
       <li>Launch analytics on ArcPad: top gainers, volume leaders, newest $ARCIRCLE-paired coins</li>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CirclePad — ARCIRCLE PAD</title>
-<meta name="description" content="CirclePad: crowdfund a coin together on Circle's Arc chain. Bid USDC, the top bidder leads, every bidder votes on the coin's identity, funds vest over 5 days with an automatic clawback if the project is abandoned.">
+<meta name="description" content="CirclePad: crowdfund a coin together on Circle's Arc chain. Bid USDC, the top bidder leads, $ARCIRCLE holders vote on the coin's identity (every vote burns 1,000 $ARCIRCLE), funds vest over 5 days with an automatic clawback if the project is abandoned.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ARCIRCLE PAD">
 <meta property="og:title" content="CirclePad — ARCIRCLE PAD">
@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790453626"></script>
+<script src="arc-log.js?v=1790455424"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790453626">
+<link rel="stylesheet" href="style.css?v=1790455424">
 </head>
 <body class="bigpad-page circlepad-page ax-dock-host">
 
@@ -137,7 +137,7 @@
           <div class="bp-hero-copy">
             <span class="bp-hero-eyebrow">On Arc — gas paid in USDC</span>
             <h1><span>Fund together.</span><span>Decide together.</span><span class="bp-hero-big">Launch bigger.</span></h1>
-            <p>One project at a time. A 3-day USDC raise decides who leads it — and everyone who contributed gets a vote on what it becomes.</p>
+            <p>One project at a time. A 3-day USDC raise decides who leads it — and $ARCIRCLE holders vote on what it becomes, burning 1,000 $ARCIRCLE per vote.</p>
             <div class="bp-hero-cta">
               <button type="button" class="bp-btn-primary" id="bp-see-preview">See the preview</button>
               <button type="button" class="bp-btn-ghost" data-tab-link="docs">How it works</button>
@@ -158,7 +158,7 @@
               <span class="bp-featured-badge">LOADING</span>
               <h2>First CirclePad round <span class="bp-ticker">$TBD</span></h2>
               <div class="bp-tags"><span>Community-led</span><span>USDC raise</span><span>Arc</span></div>
-              <p id="bp-featured-desc">Name, ticker, logo and roadmap are all decided by contributors' votes once a raise closes. This card shows the shape of a round — it isn't a real one yet.</p>
+              <p id="bp-featured-desc">Name, ticker, logo and roadmap are all decided by $ARCIRCLE holders' votes once a raise closes — every vote burns 1,000 $ARCIRCLE. This card shows the shape of a round — it isn't a real one yet.</p>
             </div>
             <div class="bp-featured-side" id="bp-round-panel">
               <div class="bp-status-row" id="bp-round-status"><span class="bp-status-dot amber"></span>Loading round…</div>
@@ -215,7 +215,7 @@
             <ul class="bp-vote-list">
               <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
             </ul>
-            <p class="bp-card-note" id="bp-gov-note">Every contributor gets a vote, weighted by their share of the raise.</p>
+            <p class="bp-card-note" id="bp-gov-note">Anyone holding $ARCIRCLE can vote — 1 vote = 1,000 $ARCIRCLE, burned.</p>
           </div>
           <div class="bp-card">
             <div class="bp-card-head">Leaderboard <button type="button" class="bp-card-link" data-tab-link="leaderboard">View all →</button></div>
@@ -225,7 +225,7 @@
             <div class="bp-card-head">Launch process</div>
             <ol class="bp-steps">
               <li><span class="bp-step-n">1</span><div><strong>72h funding</strong><p>Contributors send USDC for 3 days.</p></div><span class="bp-step-when">Day 1–3</span></li>
-              <li><span class="bp-step-n">2</span><div><strong>Governance</strong><p>Everyone votes on name, ticker, logo, roadmap, date.</p></div><span class="bp-step-when">Day 3–5</span></li>
+              <li><span class="bp-step-n">2</span><div><strong>Governance</strong><p>$ARCIRCLE holders vote on name, ticker, logo, roadmap, date — every vote burns 1,000 $ARCIRCLE.</p></div><span class="bp-step-when">Day 3–5</span></li>
               <li><span class="bp-step-n">3</span><div><strong>Lead preparation</strong><p>Confirmed lead has 12h to publish the essentials.</p></div><span class="bp-step-when">Day 3, +12h</span></li>
               <li><span class="bp-step-n">4</span><div><strong>Launch</strong><p>80% of USDC becomes LP liquidity immediately.</p></div><span class="bp-step-when">Day 3</span></li>
               <li><span class="bp-step-n">5</span><div><strong>Grow together</strong><p>Lead's 15% vests 3%/day; CirclePad's 5% funds buyback.</p></div><span class="bp-step-when">Day 3–8</span></li>
@@ -254,7 +254,7 @@
       <section class="bp-panel" id="bp-panel-governance">
         <div class="bp-simple" id="bp-gov-fallback">
           <h1>Governance</h1>
-          <p>Every bidder in a raise — not just the top bidder — gets a vote on the project's identity, weighted by their share of the total raise. Five things get decided this way:</p>
+          <p>Anyone holding $ARCIRCLE can vote on the project's identity. Every vote costs 1,000 $ARCIRCLE, sent to the dead address (0x…dEaD) — burned for good, so every vote shrinks the supply. Vote as many times as you like; votes can't be changed or taken back. Five things get decided this way:</p>
           <ul class="bp-vote-list">
             <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
           </ul>
@@ -325,13 +325,13 @@
         <div class="bp-doc-panel active" id="bp-doc-how">
           <h1>How it works</h1>
           <p class="bp-mech-note"><strong>First round, actually built:</strong> the recipient wallet starts a 72-hour timer. Anyone can contribute USDC while it's open, and withdraw their own contribution back any time before it closes — no lock-in. When it closes, the balance splits 80% recipient / 5% platform / 15% treasury automatically. None of the bidding, leadership, or voting described below is on-chain yet in this round — see Safety design.</p>
-          <p class="bp-lede">One project. A 3-day USDC raise decides who leads it and how it's split. Every contributor votes on what it becomes.</p>
+          <p class="bp-lede">One project. A 3-day USDC raise decides who leads it and how it's split. $ARCIRCLE holders vote on what it becomes.</p>
 
           <h3>The raise</h3>
-          <p>A single project raises USDC for 3 days on Arc. Every bid is recorded with the bidder's address and amount — this is what determines both voting weight and the final payout split.</p>
+          <p>A single project raises USDC for 3 days on Arc. Every bid is recorded with the bidder's address and amount — this is what determines the final payout split.</p>
 
           <h3>Leadership</h3>
-          <p>Whoever bid the most becomes the project lead. Every bidder — not just the lead — gets a vote, weighted by their share of the total raise, on the project's actual identity: coin name, ticker, logo, roadmap, and launch date.</p>
+          <p>Whoever bid the most becomes the project lead. The project's actual identity — coin name, ticker, logo, roadmap and launch date — is voted on by $ARCIRCLE holders: every vote burns 1,000 $ARCIRCLE.</p>
 
           <h3>Launch</h3>
           <p>When the raise ends, the pooled USDC splits three ways: <strong>80%</strong> becomes real LP liquidity immediately (not a bonding curve that snipers can race from zero), <strong>5%</strong> goes to the CirclePad platform, and <strong>15%</strong> is reserved for the confirmed lead. Dexscreener listing and a 100x boost are paid for by the platform, not the lead.</p>
@@ -374,7 +374,7 @@
         <div class="bp-doc-panel" id="bp-doc-faq">
           <h1>FAQ</h1>
           <div class="bp-faq-item"><h4>Is this live yet?</h4><p>Partly. The first-round escrow contract is deployed on Arc mainnet (see Contracts below) — once the recipient starts the clock, the 72-hour USDC raise is real and the Home panel switches from preview to live numbers. The bigger lead/vote/vesting mechanism described here is a separate contract that is still in design and review.</p></div>
-          <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — every bidder gets a vote on the project's identity, and if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
+          <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
           <div class="bp-faq-item"><h4>Can the lead just take the money and never build anything?</h4><p>That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.</p></div>
           <div class="bp-faq-item"><h4>Why USDC and not $HOME or an ArcPad token?</h4><p>USDC is Arc's own native gas token, so it's the natural first quote asset — no bridging, no extra approval step. Other quote assets may follow once the core mechanism is live and tested.</p></div>
         </div>
@@ -422,6 +422,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 14 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, circlepad.js, arc-fx.js, arcircle-live.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="circlepad.bundle.js?v=1790453626"></script>
+<script src="circlepad.bundle.js?v=1790455424"></script>
 </body>
 </html>
