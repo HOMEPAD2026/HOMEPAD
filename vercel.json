@@ -95,6 +95,14 @@
     {
       "source": "/api/v1/scan/:addr",
       "destination": "/api/social?scanapi=:addr"
+    },
+    {
+      "source": "/snap/:id",
+      "destination": "/api/c?view=snap&id=:id"
+    },
+    {
+      "source": "/api/v1/snapshot/:addr",
+      "destination": "/api/social?snapapi=:addr"
     }
   ],
   "redirects": [

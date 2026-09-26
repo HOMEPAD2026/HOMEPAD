@@ -82,9 +82,11 @@ async function onUpdate(req, bot) {
   const text = String((msg && msg.text) || "").trim();
   const m = /^\/scan(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
   const w = /^\/(watch|unwatch|watching)(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
-  if (!msg || (!m && !w)) return json(200, { ok: true });
+  const sn = /^\/snapshot(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
+  if (!msg || (!m && !w && !sn)) return json(200, { ok: true });
   const chat = msg.chat && msg.chat.id;
   if (w) return onWatch(msg, chat, w[1].toLowerCase(), String(w[2] || ""), bot);
+  if (sn) return onSnapshot(msg, chat, String(sn[1] || ""), bot);
   const say = (payload) => fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true }, ...payload }),
@@ -113,6 +115,31 @@ async function onUpdate(req, bot) {
     text: textOut,
     link_preview_options: { url: link, prefer_large_media: true, show_above_text: false },
     reply_markup: { inline_keyboard: [[{ text: "Full scan", url: link }, { text: "ArcScan", url: `${EXPLORER}/token/${addr}` }]] },
+  });
+  return json(200, { ok: true });
+}
+
+// "/snapshot 0x…": the Holder Snapshot's summary of a token right now.
+async function onSnapshot(msg, chat, addr, bot) {
+  const say = (payload) => fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", reply_parameters: { message_id: msg.message_id, allow_sending_without_reply: true }, ...payload }),
+  }).catch(() => null);
+  if (!isAddr(addr)) { await say({ text: "Send <code>/snapshot</code> followed by a token's contract address on Arc." }); return json(200, { ok: true }); }
+  const last = lastScan.get("s" + chat) || 0;
+  if (Date.now() - last < 8000) return json(200, { ok: true });
+  lastScan.set("s" + chat, Date.now());
+  let r = null;
+  for (let i = 0; i < 3 && (!r || r.pending); i++) {
+    try { r = await (await fetch(`${SITE}/api/social?snapapi=${addr}`)).json(); } catch { r = null; }
+  }
+  if (!r || r.pending || !Array.isArray(r.holders)) { await say({ text: r && r.error ? h(r.error) : "Couldn't build the snapshot right now — open it on the site instead.", reply_markup: { inline_keyboard: [[{ text: "Open Snapshot", url: `${SITE}/arc#snapshot?t=${addr}` }]] } }); return json(200, { ok: true }); }
+  const fmt = (v) => { const n = Number(v); return n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { maximumFractionDigits: 2 }); };
+  const top = r.holders.slice(0, 5).map((x) => `${x.rank}. <code>${x.address.slice(0, 6)}…${x.address.slice(-4)}</code>  ${fmt(x.balance)}  (${x.percent.toFixed(2)}%)`).join("\n");
+  const top10 = r.holders.slice(0, 10).reduce((s, x) => s + x.percent, 0);
+  await say({
+    text: [`<b>Holder Snapshot</b>  ·  block #${r.block}`, `<b>${r.count.toLocaleString("en-US")}</b> holders (pools, contracts and burns left out) · top 10 hold <b>${top10.toFixed(1)}%</b>`, top, `Fingerprint <code>${r.fingerprint.slice(0, 18)}…</code>`].join("\n\n"),
+    reply_markup: { inline_keyboard: [[{ text: "Full list + CSV", url: `${SITE}/arc#snapshot?t=${addr}&b=${r.block}` }]] },
   });
   return json(200, { ok: true });
 }

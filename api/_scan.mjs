@@ -223,7 +223,7 @@ export async function holderSnapshot(token, { store = null, budgetMs = 7000, lim
   const exact = S && S.complete && !S.lite;
   return {
     token: t, decimals: out.decimals, supply: out.supply, complete: out.complete && !lite, more: out.more, lite,
-    block: exact ? out.toBlock : null, ts: out.nowTs || null,
+    block: exact ? out.toBlock : null, ts: out.nowTs || null, deployer: out.deployer || null, hist: out.hist || [], firstMint: out.firstMint || null,
     holderCount: out.holderCount, checkedContracts: head.length,
     holders: list.map(([a, v]) => (flags.has(a) ? [a, v.toString(), 1] : [a, v.toString()])),
   };

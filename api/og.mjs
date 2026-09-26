@@ -109,6 +109,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600" },
     });
   }
+  if (url.searchParams.has("snap")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await snapCard(await markP, url.searchParams.get("snap")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" },
+    });
+  }
   if (url.searchParams.has("drop")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await dropCard(await markP, url.searchParams.get("drop")), {
@@ -274,4 +281,40 @@ async function dropCard(mark, txs) {
       h("div", {}, "arcircle.app/multisend · verified on-chain"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, r.ts ? new Date(r.ts * 1000).toISOString().slice(0, 10) : "")),
   ]);
+}
+
+// ---------------- Holder Snapshot card (/snap/<id>) ----------------
+async function snapCard(mark, id) {
+  let d = null;
+  if (/^[0-9a-f]{12}$/.test(id || "")) { try { const r = await fetch(`${SITE}/api/social?snapview=${id}`); d = r.ok ? await r.json() : null; } catch { d = null; } }
+  const sym = d && d.symbol ? `$${clip(d.symbol, 10)}` : "Holders";
+  const acc = "#b58bff";
+  if (!d) {
+    return frame([
+      brandRow(mark, pill("SNAPSHOT", acc), "Snapshot · Circle's Arc"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "Every holder, one block."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Fair lists for airdrops on Arc — fingerprinted, anyone can check.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/snapshot"),
+    ]);
+  }
+  const done = d.status === "done";
+  const when = done ? new Date(d.ts * 1000) : new Date(d.at * 1000);
+  const big = done ? `${Number(d.count).toLocaleString("en-US")} holders` : "Scheduled";
+  const line2 = done ? `of ${sym} at block #${Number(d.block).toLocaleString("en-US")}` : `${sym} snapshot at ${when.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  const extras = [d.f && d.f.hold ? `held for ${Math.round(d.f.hold / 3600) >= 48 ? Math.round(d.f.hold / 86400) + " days" : Math.round(d.f.hold / 3600) + "h"}` : "", d.f && d.f.locks ? "locked tokens count" : "", d.by ? `signed by ${d.by.slice(0, 6)}…${d.by.slice(-4)}` : ""].filter(Boolean).join(" · ");
+  const bars = Array.from({ length: 16 }, (_, i) => h("div", { width: 16, height: 30 + Math.round(150 * Math.pow(0.84, i)), borderRadius: 5, backgroundColor: i < 3 ? "#ff8bd8" : i < 9 ? acc : "#7c9cff", opacity: done ? 1 : 0.35 }));
+  return frame([
+    brandRow(mark, pill(done ? "SNAPSHOT" : "SCHEDULED", acc), "Snapshot · Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 12, maxWidth: 660 },
+        d.title ? h("div", { fontSize: 30, color: acc, fontWeight: 700 }, clip(d.title, 40)) : null,
+        h("div", { fontSize: 92, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, big),
+        h("div", { fontSize: 38, color: "#b9c8b3" }, line2),
+        extras ? h("div", { fontSize: 24, color: "#9fb098", marginTop: 6 }, extras) : null),
+      h("div", { alignItems: "flex-end", gap: 6, height: 190 }, bars)),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, done ? `fingerprint ${d.fp.slice(0, 18)}…` : "the list is built from the chain at that moment"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/snap/${d.id}`)),
+  ].filter(Boolean));
 }

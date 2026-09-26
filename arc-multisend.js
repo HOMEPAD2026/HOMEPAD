@@ -1547,9 +1547,11 @@
     }
   }, 1500);
   // A list from another utility (Snapshot): opens the list step with it.
-  function load(text, am, note) {
+  function load(text, am, note, opts) {
     if (!booted) { booted = true; init(); }
-    if (F.mode !== "token") { const b = $("ams-modes").querySelector('[data-mode="token"]'); if (b) b.click(); }
+    const want = opts && opts.mode === "drop" ? "drop" : "token";
+    if (F.mode !== want) { const b = $("ams-modes").querySelector(`[data-mode="${want}"]`); if (b && !b.hidden) b.click(); }
+    if (opts && isAddr(opts.token) && (!F.info || lc(F.info.address) !== lc(opts.token))) { $("ams-token").value = opts.token; pickToken(opts.token); }
     F.am = am || "line"; renderAm();
     setList(String(text || ""), note || "");
     const el = $("ams-step-list");

@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790409680"></script>
+<script src="arc-log.js?v=1790416073"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790409680">
+<link rel="stylesheet" href="style.css?v=1790416073">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1130,93 +1130,130 @@
         <p class="ams-foot">Runs on ArcMultiSend <a id="ams-contract" href="#" target="_blank" rel="noopener" data-no-i18n hidden>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. Up to 200 wallets per transaction. Tokens that take a fee on transfer arrive minus that fee.</p>
       </section>
 
-      <!-- ============ HOLDER SNAPSHOT (arc-snapshot.js) — every holder of a token at one block ============ -->
+      <!-- ============ HOLDER SNAPSHOT (arc-snapshot.js + snap-core.js) — every holder of a token at one block ============ -->
       <section class="bp-panel" id="bp-panel-snapshot">
-        <div class="ams-hero asn-hero">
+        <div class="asn-hero">
           <div class="asn-emblem" aria-hidden="true">
             <svg viewBox="0 0 64 64"><defs><linearGradient id="asnGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7c9cff"/><stop offset=".55" stop-color="#b58bff"/><stop offset="1" stop-color="#ff8bd8"/></linearGradient></defs>
               <path class="asn-frame" d="M10 22v-7a5 5 0 0 1 5-5h7M42 10h7a5 5 0 0 1 5 5v7M54 42v7a5 5 0 0 1-5 5h-7M22 54h-7a5 5 0 0 1-5-5v-7"/>
               <g class="asn-dots"><circle cx="22" cy="26" r="3.2"/><circle cx="32" cy="22" r="3.2"/><circle cx="42" cy="27" r="3.2"/><circle cx="26" cy="39" r="3.2"/><circle cx="38" cy="40" r="3.2"/><circle cx="32" cy="31" r="2.2"/></g>
               <rect class="asn-scan" x="12" y="30" width="40" height="3" rx="1.5"/></svg>
+            <svg class="asn-shutter" viewBox="-50 -50 100 100"><g>
+              <path d="M0-60L52-30L20 0Z"/><path d="M52-30L52 30L10 17Z"/><path d="M52 30L0 60L-10 17Z"/><path d="M0 60L-52 30L-20 0Z"/><path d="M-52 30L-52-30L-10-17Z"/><path d="M-52-30L0-60L10-17Z"/></g></svg>
           </div>
-          <div class="ams-hero-txt">
+          <div class="asn-hero-t">
             <span class="ams-kicker">Utility · Holder snapshot</span>
-            <h1>Snapshot <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>
-            <p class="bp-lede">Every holder of an Arc token at one moment — now, or any time in the last 30 days. Filter out pools and small wallets, download the CSV, share a link that rebuilds the same list, or send an airdrop to it in two taps.</p>
+            <h1>Snapshot <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
           </div>
+          <p class="bp-lede asn-lede">Every holder of an Arc token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps.</p>
         </div>
 
-        <div class="ams-grid asn-grid">
-          <div class="ams-main">
-            <div class="ams-card">
-              <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
-              <form id="asn-form" class="asn-form" autocomplete="off">
-                <input id="asn-addr" type="text" spellcheck="false" aria-label="Token contract address">
-                <button type="submit" class="ams-mini">Load</button>
-              </form>
-              <div class="ams-chips asn-chips" id="asn-chips"></div>
-              <div class="asn-tok" id="asn-tok" hidden></div>
-            </div>
+        <div class="asn-pub" id="asn-pub" hidden></div>
 
-            <div class="ams-card">
-              <div class="ams-card-head"><span class="ams-num">2</span><h2>When</h2></div>
-              <div class="asn-seg" role="radiogroup" aria-label="When">
-                <button type="button" role="radio" data-when="now" aria-checked="true"><b>Now</b><span>The latest block</span></button>
-                <button type="button" role="radio" data-when="past" aria-checked="false"><b>Earlier</b><span>Up to 30 days back</span></button>
+        <div class="asn-grid">
+          <div class="asn-setup" id="asn-setup">
+            <button type="button" class="asn-setup-sum" id="asn-setup-sum" hidden></button>
+            <div class="asn-setup-body">
+              <div class="ams-card">
+                <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
+                <form id="asn-form" class="asn-form" autocomplete="off">
+                  <input id="asn-addr" type="text" spellcheck="false" aria-label="Token contract address">
+                  <button type="submit" class="ams-mini">Load</button>
+                </form>
+                <div class="ams-chips asn-chips" id="asn-chips"></div>
+                <div class="asn-tok" id="asn-tok" hidden></div>
               </div>
-              <div class="asn-past" id="asn-past" hidden>
-                <input id="asn-at" type="datetime-local" aria-label="Date and time">
-                <div class="asn-agos"><button type="button" class="ams-mini" data-ago="1">1h ago</button><button type="button" class="ams-mini" data-ago="24">24h ago</button><button type="button" class="ams-mini" data-ago="72">3 days ago</button><button type="button" class="ams-mini" data-ago="168">7 days ago</button></div>
-                <p class="asn-note">Balances at the last block before this time, in your time zone. Going further back takes longer — about a few seconds per day.</p>
-              </div>
-              <p class="asn-left warn" id="asn-lite" hidden>This token has too many holders to rebuild an earlier moment — only "Now" works for it.</p>
-            </div>
 
-            <div class="ams-card">
-              <div class="ams-card-head"><span class="ams-num">3</span><h2>Filters</h2></div>
-              <div class="asn-filters">
-                <label>Minimum holding<span class="asn-in"><input id="asn-min" type="text" inputmode="decimal" placeholder="0"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-min" hidden>Not a number</small></label>
-                <label>Maximum holding<span class="asn-in"><input id="asn-max" type="text" inputmode="decimal" placeholder="No limit"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-max" hidden>Not a number</small></label>
-                <label>Top wallets only<span class="asn-in"><input id="asn-top" type="text" inputmode="numeric" placeholder="All"></span></label>
+              <div class="ams-card">
+                <div class="ams-card-head"><span class="ams-num">2</span><h2>When</h2></div>
+                <div class="asn-seg" role="radiogroup" aria-label="When">
+                  <button type="button" role="radio" data-when="now" aria-checked="true"><b>Now</b><span>The latest block</span></button>
+                  <button type="button" role="radio" data-when="past" aria-checked="false"><b>Earlier</b><span>Any moment before</span></button>
+                </div>
+                <div class="asn-past" id="asn-past" hidden>
+                  <input id="asn-at" type="datetime-local" aria-label="Date and time">
+                  <p class="asn-utc" id="asn-utc" data-no-i18n></p>
+                  <div class="asn-slide" id="asn-slide">
+                    <svg class="asn-spark" id="asn-spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    <input type="range" id="asn-range" min="0" max="720" step="1" value="696" aria-label="Hours ago">
+                    <div class="asn-slide-l"><span>30 days ago</span><span>Now</span></div>
+                  </div>
+                  <div class="asn-agos"><button type="button" class="ams-mini" data-ago="1">1h ago</button><button type="button" class="ams-mini" data-ago="24">24h ago</button><button type="button" class="ams-mini" data-ago="72">3 days ago</button><button type="button" class="ams-mini" data-ago="168">7 days ago</button></div>
+                  <p class="asn-note">Balances at the last block before this time. The further back, the longer the first build takes — after that the link opens instantly.</p>
+                </div>
+                <div class="asn-holdp">
+                  <span class="asn-lbl">Held throughout <i class="asn-q" tabindex="0" title="Uses each wallet's lowest balance over this period before the snapshot — buying just before it and selling right after doesn't count.">?</i></span>
+                  <div class="asn-seg sm" role="radiogroup" aria-label="Held throughout">
+                    <button type="button" role="radio" data-holdp="0" aria-checked="true">Off</button>
+                    <button type="button" role="radio" data-holdp="86400" aria-checked="false">24h</button>
+                    <button type="button" role="radio" data-holdp="259200" aria-checked="false">3 days</button>
+                    <button type="button" role="radio" data-holdp="604800" aria-checked="false">7 days</button>
+                    <button type="button" role="radio" data-holdp="2592000" aria-checked="false">30 days</button>
+                  </div>
+                </div>
+                <p class="asn-left warn" id="asn-lite" hidden>This token has too many holders to rebuild an earlier moment — only "Now" works for it.</p>
               </div>
-              <label class="asn-check"><input type="checkbox" id="asn-noc" checked> <span>Leave out contracts <small>(pools, lockers, vaults)</small></span></label>
-              <div class="asn-hold" id="asn-hold-row" hidden>
-                <span>Since the snapshot</span>
-                <div class="asn-seg sm" role="radiogroup" aria-label="Since the snapshot">
-                  <button type="button" role="radio" data-hold="any" aria-checked="true">Anyone</button>
-                  <button type="button" role="radio" data-hold="some" aria-checked="false">Still holds some</button>
-                  <button type="button" role="radio" data-hold="all" aria-checked="false">Didn't sell</button>
+
+              <div class="ams-card">
+                <div class="ams-card-head"><span class="ams-num">3</span><h2>What counts</h2></div>
+                <label class="asn-check"><input type="checkbox" id="asn-locks" checked> <span>Locked tokens count for their owners <small>(ArcLock)</small></span></label>
+                <label class="asn-check"><input type="checkbox" id="asn-lp"> <span>LP positions count for their owners <small>(Uniswap v4 — slower)</small></span></label>
+                <label class="asn-check"><input type="checkbox" id="asn-noc" checked> <span>Leave out contracts <small>(pools, lockers, vaults)</small></span></label>
+                <div class="asn-filters">
+                  <label>Minimum holding<span class="asn-in"><input id="asn-min" type="text" inputmode="decimal" placeholder="0"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-min" hidden>Not a number</small></label>
+                  <label>Maximum holding<span class="asn-in"><input id="asn-max" type="text" inputmode="decimal" placeholder="No limit"><em class="asn-unit"></em></span><small class="asn-bad" id="asn-bad-max" hidden>Not a number</small></label>
+                  <label>Top wallets only<span class="asn-in"><input id="asn-top" type="text" inputmode="numeric" placeholder="All"></span></label>
+                </div>
+                <div class="asn-hold" id="asn-since-row" hidden>
+                  <span>Since the snapshot</span>
+                  <div class="asn-seg sm" role="radiogroup" aria-label="Since the snapshot">
+                    <button type="button" role="radio" data-since="any" aria-checked="true">Anyone</button>
+                    <button type="button" role="radio" data-since="some" aria-checked="false">Still holds some</button>
+                    <button type="button" role="radio" data-since="all" aria-checked="false">Didn't sell</button>
+                  </div>
+                </div>
+                <div class="asn-more-f">
+                  <button type="button" class="ams-mini" data-act="skip-toggle" aria-expanded="false">Leave out wallets…</button>
+                  <button type="button" class="ams-mini" data-act="also-toggle" aria-expanded="false">Combine with another list…</button>
+                </div>
+                <div class="asn-skipbox" id="asn-skipbox" hidden><textarea id="asn-skip" rows="3" spellcheck="false"></textarea></div>
+                <div class="asn-also" id="asn-also" hidden>
+                  <div class="asn-seg sm" role="radiogroup" aria-label="Combine">
+                    <button type="button" role="radio" data-also="" aria-checked="true">Off</button>
+                    <button type="button" role="radio" data-also="and" aria-checked="false">Also holds</button>
+                    <button type="button" role="radio" data-also="or" aria-checked="false">Or holds</button>
+                  </div>
+                  <div class="asn-also-row">
+                    <select id="asn-also-kind" aria-label="Other list"><option value="token">Holders of a token</option><option value="circle">CirclePad contributors</option></select>
+                    <input id="asn-also-token" type="text" spellcheck="false" aria-label="Token contract address">
+                    <input id="asn-also-min" type="text" inputmode="decimal" placeholder="Min" aria-label="Minimum holding">
+                    <button type="button" class="ams-mini" data-act="also-load">Load</button>
+                  </div>
+                  <p class="asn-note" id="asn-also-note"></p>
                 </div>
               </div>
-              <button type="button" class="ams-mini asn-skipbtn" data-act="skip-toggle" aria-expanded="false">Leave out wallets…</button>
-              <div class="asn-skipbox" id="asn-skipbox" hidden><textarea id="asn-skip" rows="3" spellcheck="false" placeholder="0x… one per line — team, exchanges, anyone else" aria-label="Wallets to leave out"></textarea></div>
               <button type="button" class="bp-btn-primary asn-go" id="asn-go"><span>Take snapshot</span></button>
               <div class="asn-status" id="asn-status" role="status" hidden></div>
             </div>
           </div>
 
-          <div class="ams-side">
-            <div class="ams-card asn-result">
+          <div class="asn-results">
+            <div class="ams-card asn-result" id="asn-result">
               <div class="asn-empty" id="asn-empty">
+                <div class="asn-demo" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b><b></b><b></b><b></b></div>
                 <b>No snapshot yet</b>
                 <span>Pick a token and a moment. The list is read from the token's own transfer history on Arc — nothing to sign, nothing to pay.</span>
                 <ul><li>Airdrops and rewards for holders</li><li>Allowlists for a mint or a round</li><li>Proof of who held before an announcement</li></ul>
               </div>
-              <div class="asn-out" id="asn-out" hidden>
-                <div id="asn-sum"></div>
-                <div class="asn-acts" id="asn-acts" hidden>
-                  <button type="button" class="ams-btn sm asn-primary" data-act="ms-same">Airdrop: same amount each</button>
-                  <button type="button" class="ams-btn sm asn-primary" data-act="ms-weight">Airdrop: by holding</button>
-                  <button type="button" class="ams-mini" data-act="csv">Download CSV</button>
-                  <button type="button" class="ams-mini" data-act="addrs">Copy addresses</button>
-                  <button type="button" class="ams-mini" data-act="link">Copy link</button>
-                </div>
-                <input id="asn-q" class="asn-q" type="text" spellcheck="false" placeholder="Find a wallet (0x…)" aria-label="Find a wallet">
-                <div class="asn-table" id="asn-table"></div>
-              </div>
+              <div class="asn-out" id="asn-out" hidden></div>
               <div class="ams-toast asn-toast" id="asn-toast" role="status" hidden></div>
             </div>
           </div>
+        </div>
+        <div class="asn-sticky" id="asn-sticky" hidden>
+          <span id="asn-sticky-t"></span>
+          <button type="button" class="ams-mini" data-act="csv">CSV</button>
+          <button type="button" class="ams-btn sm asn-primary" data-go-tab="airdrop">Airdrop</button>
         </div>
         <p class="asc-foot">Balances come from the token's Transfer events on Arc, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.</p>
       </section>
@@ -1341,6 +1378,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790409680"></script>
+<script src="arcpad.bundle.js?v=1790416073"></script>
 </body>
 </html>

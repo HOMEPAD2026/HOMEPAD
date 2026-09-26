@@ -9,6 +9,7 @@
 //   /sitemap-coins.xml  every ArcPad coin's /coin/ page, for search engines
 //   /s/<address>        Token Scanner share link: the result card for X, then the scanner
 //   /drop/<tx>[,<tx>…]  Multisender receipt: the airdrop card for X, then the receipt in the app
+//   /snap/<id>          a published / scheduled Holder Snapshot: its card, then the snapshot in the app
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
@@ -26,6 +27,7 @@ export default async function handler(req) {
   if (view === "round") return roundPage(url);
   if (view === "scan") return scanPage(url);
   if (view === "drop") return dropPage(url);
+  if (view === "snap") return snapPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -453,4 +455,47 @@ async function dropPage(url) {
 <p>Opening the <a href="${esc(target)}">airdrop receipt</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, r ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
+}
+
+// /snap/<id> — a published or scheduled Holder Snapshot (api/_snapshot.mjs).
+async function snapPage(url) {
+  const id = String(url.searchParams.get("id") || "").toLowerCase();
+  if (!/^[0-9a-f]{12}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#snapshot">`, "public, max-age=300");
+  let d = null;
+  try { const r = await fetch(`${SITE}/api/social?snapview=${id}`); d = r.ok ? await r.json() : null; } catch { d = null; }
+  const sym = d && d.symbol ? "$" + d.symbol : "a token";
+  const title = !d ? "Holder Snapshot — ARCIRCLE PAD" : d.status === "done"
+    ? `${d.title ? d.title + " — " : ""}${Number(d.count).toLocaleString("en-US")} holders of ${sym} at block #${d.block}`
+    : `${d.title ? d.title + " — " : ""}${sym} snapshot scheduled for ${new Date(d.at * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  const desc = !d ? "Every holder of an Arc token at one block." : d.status === "done"
+    ? `Fingerprint ${d.fp.slice(0, 18)}… — check whether your wallet is on the list.` : "The list is built from the chain at that moment. Check back to see whether your wallet made it.";
+  const target = `/arc#snapshot?id=${id}`;
+  const image = `${SITE}/api/og?snap=${id}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/snap/${id}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#b58bff}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">snapshot</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, d && d.status === "done" ? "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
 }

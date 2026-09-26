@@ -43,6 +43,7 @@ import { cctp } from "./_cctp.mjs";
 import * as scanner from "./_scan.mjs";
 import * as bridge from "./_bridge.mjs";
 import * as drop from "./_drop.mjs";
+import * as snap from "./_snapshot.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -226,6 +227,34 @@ export async function GET(req) {
     try { const out = await scanner.holderSnapshot(t, { store: scanStore(), limit: url.searchParams.get("limit") }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
+  // Holder Snapshot (arc-snapshot.js, /snap/<id>, /api/v1/snapshot/<token>)
+  if (url.searchParams.has("snaprun")) {
+    if (scanner.limited(`sr:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
+    const q = url.searchParams;
+    try {
+      const out = await snap.run({ token: q.get("snaprun"), block: q.get("b"), at: q.get("at"), hold: q.get("hold"), locks: q.get("locks") !== "0", lp: q.get("lp") === "1" }, { store: scanStore(), budgetMs: 8500 });
+      return json(200, out.done ? { ...out, rows: snap.packRows(out.rows) } : out, "no-store");
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("snapview")) {
+    if (scanner.limited(`sv:${ip}`, 60, 60e3)) return json(429, { error: "slow down" });
+    try { const out = await snap.view(url.searchParams.get("snapview"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "" }); return json(200, out, out.status === "done" && !url.searchParams.get("wallet") ? "public, max-age=60, s-maxage=300" : "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("snapcsv")) {
+    try {
+      const { csv, doc } = await snap.csvOf(url.searchParams.get("snapcsv"), { store: scanStore() });
+      return new Response(csv, { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="snapshot-${doc.id}-${doc.block}.csv"`, "cache-control": "public, max-age=3600, s-maxage=86400", "access-control-allow-origin": "*" } });
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("snapapi")) {
+    if (scanner.limited(`sa:${ip}`, 30, 60e3)) return json(429, { error: "rate limit: 30 requests a minute" });
+    const q = Object.fromEntries(url.searchParams.entries());
+    try {
+      const out = await snap.api({ ...q, token: q.snapapi }, { store: scanStore() });
+      return new Response(JSON.stringify(out), { status: out.pending ? 202 : 200, headers: { "content-type": "application/json; charset=utf-8", "cache-control": out.pending ? "no-store" : "public, max-age=60, s-maxage=300", "access-control-allow-origin": "*", ...(out.pending ? { "retry-after": "3" } : {}) } });
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
   if (url.searchParams.get("drops") === "recent") {
     try { return json(200, await drop.feed(dropStore()), "public, max-age=20, s-maxage=30, stale-while-revalidate=120"); }
     catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
@@ -345,6 +374,13 @@ export async function POST(req) {
       if (scanner.limited(`dsave:${ip}`, 10, 3600e3)) return json(429, { ok: false });
       if (!storeEnabled()) return json(503, { ok: false, error: "claim lists aren't available right now" });
       return json(200, await drop.dropSave({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, b));
+    }
+    if (b.action === "snappublish" || b.action === "snapschedule") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`sp:${ip}`, 40, 3600e3)) return json(429, { error: "slow down" });
+      const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };
+      try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
+      catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
     if (b.action === "tgwatch") {
       if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });
