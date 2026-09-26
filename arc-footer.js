@@ -57,6 +57,7 @@
     ["$ARCIRCLE", (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""],
     ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703"],
     ["CirclePad vote", "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2"],
+    ["CirclePad burn vote", "0x89A5E13a969b42887980d7136B91C05a3849CB70"],
     ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
     ["LP lock", "0x674E7010Dab5cCb519e06df72b1D4c063952f45B"],
   ];

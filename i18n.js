@@ -2174,6 +2174,7 @@
     "ArcircleBurnVote (voting)": "ArcircleBurnVote (투표)",
     "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner": "1표 = $ARCIRCLE 1,000개를 0x…dEaD로 전송; 모든 보유자 참여 가능; 소유자 없음",
     "$ARCIRCLE holders decide the name, ticker, logo, roadmap and date — 1,000 burned per vote.": "$ARCIRCLE 보유자가 이름·티커·로고·로드맵·일정을 정해요 — 1표당 1,000개 소각.",
+    "CirclePad burn vote": "CirclePad 소각 투표",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4713,6 +4714,7 @@
     "ArcircleBurnVote (voting)": "ArcircleBurnVote（投票）",
     "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner": "1 票 = 1,000 枚 $ARCIRCLE 发送至 0x…dEaD；所有持有者可参与；无所有者",
     "$ARCIRCLE holders decide the name, ticker, logo, roadmap and date — 1,000 burned per vote.": "$ARCIRCLE 持有者决定名称、代码、Logo、路线图和日期——每票销毁 1,000 枚。",
+    "CirclePad burn vote": "CirclePad 销毁投票",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

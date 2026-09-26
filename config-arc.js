@@ -88,7 +88,8 @@ const CONFIG = {
   // burned votes (deploy-arcircle-burn-vote.js). "" until it's deployed — the
   // page then explains the rules but can't take votes yet.
   CIRCLEPAD_VOTE_MODE: "burn",
-  CIRCLEPAD_BURNVOTE_ADDRESS: "",
+  // ArcircleBurnVote deployed 27 Sep 2026 (deploy-arcircle-burn-vote.js)
+  CIRCLEPAD_BURNVOTE_ADDRESS: "0x89A5E13a969b42887980d7136B91C05a3849CB70",
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
   //     "opens in" countdown and a calendar file before start(); 0 = not announced
