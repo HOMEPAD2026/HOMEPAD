@@ -23,6 +23,8 @@
 //   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
 //   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
 //   GET  /api/social?circle=ideas[&wallet=0x…]   Round #1 governance ideas (api/_circle.mjs)
+//   GET  /api/social?circle=burns                CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
+//   GET  /api/social?circle=vote&tx=0x…          one burn-vote transaction (/vote/<tx>)
 //   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
@@ -43,6 +45,7 @@ import { createHash } from "node:crypto";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 import * as circle from "./_circle.mjs";
+import * as burnvote from "./_burnvote.mjs";
 import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
 import * as scanner from "./_scan.mjs";
@@ -152,6 +155,7 @@ export async function readTweet(id, handleHint) {
 }
 
 // ================= GET =================
+const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
 export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
@@ -163,6 +167,17 @@ export async function GET(req) {
       return json(200, lb, lb.complete && !w ? "public, max-age=10, s-maxage=15, stale-while-revalidate=60" : "no-store");
     }
     catch (err) { console.error("circle lb", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
+  }
+  // CirclePad burn-to-vote: the feed of Voted events + totals, and one vote tx (/vote/<tx>)
+  if (url.searchParams.get("circle") === "burns") {
+    try { return json(200, await burnvote.burnFeed(scanStoreEarly()), "public, max-age=5, s-maxage=10, stale-while-revalidate=60"); }
+    catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.get("circle") === "vote") {
+    try {
+      const v = await burnvote.voteTx(url.searchParams.get("tx"));
+      return v ? json(200, v, "public, max-age=300, s-maxage=86400") : json(404, { error: "no CirclePad vote in that transaction" }, "public, max-age=30");
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.get("token") === "arcircle") {
     try {

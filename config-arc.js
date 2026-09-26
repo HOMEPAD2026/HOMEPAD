@@ -98,7 +98,17 @@ const CONFIG = {
   //     (shown in the "after the close" questions; empty = "not decided yet")
   CIRCLEPAD_OPENS_AT: 0,
   CIRCLEPAD_ESCROW_VERIFIED: false,
-  CIRCLEPAD_ALLOCATION_NOTE: "",
+  CIRCLEPAD_ALLOCATION_NOTE: "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.",
+  // What happens after the vote (circlepad-round.js "What happens next"). Each
+  // step: status "set" (fixed by a contract), "policy" (the team's stated plan)
+  // or "open" (not decided yet — shown as such).
+  CIRCLEPAD_NEXT: [
+    { id: "close", title: "The raise closes", body: "Contributions and withdrawals stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
+    { id: "vote", title: "Burn-to-vote", body: "48 hours. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" },
+    { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet.", status: "policy" },
+    { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
+    { id: "airdrop", title: "Contributor airdrop", body: "Every contributor gets an airdrop of the new coin. Size and timing: not decided yet.", status: "policy" },
+  ],
 
   // --- Bridge (arc-bridge.js): Circle's CCTP V2, native USDC burned on one
   // chain and minted on the other. Same TokenMessengerV2 / MessageTransmitterV2

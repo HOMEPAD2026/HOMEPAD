@@ -13,6 +13,7 @@
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
+import { voteTx } from "./_burnvote.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -29,6 +30,7 @@ export default async function handler(req) {
   if (view === "drop") return dropPage(url);
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
+  if (view === "vote") return votePage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -541,4 +543,53 @@ async function lplockPage(url) {
 <p>Opening the <a href="${esc(target)}">liquidity lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- CirclePad burn-to-vote share page (/vote/<tx>) ----
+function voteLabel(it) {
+  if (!it) return "";
+  if (it.cat === 1) return "$" + String(it.text || "").replace(/^\$/, "");
+  if (it.cat === 2) return "a logo";
+  if (it.cat === 3) return "a roadmap";
+  if (it.cat === 4) { const d = new Date(it.text); return isNaN(d) ? it.text : d.toISOString().slice(0, 10); }
+  return String(it.text || "");
+}
+async function votePage(url) {
+  const tx = String(url.searchParams.get("tx") || "").toLowerCase();
+  const target = "/circle#governance";
+  if (!/^0x[0-9a-f]{64}$/.test(tx)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=${target}">`, "public, max-age=300");
+  let v = null;
+  try { v = await voteTx(tx); } catch { v = null; }
+  const n = v ? v.votes : 0, burned = (n * 1000).toLocaleString("en-US");
+  const main = v && v.items[0];
+  const title = !v ? "CirclePad vote — ARCIRCLE PAD" : `Burned ${burned} $ARCIRCLE to vote for ${voteLabel(main)}${v.items.length > 1 ? ` (+${v.items.length - 1} more)` : ""}`;
+  const desc = !v ? "CirclePad Round #1: every vote burns 1,000 $ARCIRCLE." : `${n} ${n === 1 ? "vote" : "votes"} in CirclePad Round #1 (${v.items.map((i) => i.category).join(", ")}). Every vote sends 1,000 $ARCIRCLE to the dead address, gone for good.`;
+  const image = `${SITE}/api/og?vote=${tx}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/vote/${tx}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39d0ff}</style>
+</head><body>
+<p>Opening <a href="${esc(target)}">CirclePad governance</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, v ? "public, max-age=0, s-maxage=86400" : "public, max-age=0, s-maxage=60");
 }

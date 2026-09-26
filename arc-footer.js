@@ -44,6 +44,7 @@
   var HAPTICS = { buy: [18], sell: [10, 40, 10], launch: [30, 60, 30, 60, 90], milestone: [20, 40, 60], tap: [8] };
   window.arcHaptic = function (kind) {
     if (reduce || !navigator.vibrate || !HAPTICS[kind]) return;
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // browsers refuse it before the first tap
     try { navigator.vibrate(HAPTICS[kind]); } catch (e) { /* not allowed */ }
   };
   window.arcFeedback = function (kind) { window.arcSound(kind); window.arcHaptic(kind); };

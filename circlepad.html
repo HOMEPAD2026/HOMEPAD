@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790455980"></script>
+<script src="arc-log.js?v=1790459450"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790455980">
+<link rel="stylesheet" href="style.css?v=1790459450">
 </head>
 <body class="bigpad-page circlepad-page ax-dock-host">
 
@@ -224,11 +224,11 @@
           <div class="bp-card">
             <div class="bp-card-head">Launch process</div>
             <ol class="bp-steps">
-              <li><span class="bp-step-n">1</span><div><strong>72h funding</strong><p>Contributors send USDC for 3 days.</p></div><span class="bp-step-when">Day 1–3</span></li>
-              <li><span class="bp-step-n">2</span><div><strong>Governance</strong><p>$ARCIRCLE holders vote on name, ticker, logo, roadmap, date — every vote burns 1,000 $ARCIRCLE.</p></div><span class="bp-step-when">Day 3–5</span></li>
-              <li><span class="bp-step-n">3</span><div><strong>Lead preparation</strong><p>Confirmed lead has 12h to publish the essentials.</p></div><span class="bp-step-when">Day 3, +12h</span></li>
-              <li><span class="bp-step-n">4</span><div><strong>Launch</strong><p>80% of USDC becomes LP liquidity immediately.</p></div><span class="bp-step-when">Day 3</span></li>
-              <li><span class="bp-step-n">5</span><div><strong>Grow together</strong><p>Lead's 15% vests 3%/day; CirclePad's 5% funds buyback.</p></div><span class="bp-step-when">Day 3–8</span></li>
+              <li><span class="bp-step-n">1</span><div><strong>72h raise</strong><p>Anyone sends USDC for 3 days and can withdraw it until the close.</p></div><span class="bp-step-when">Day 1–3</span></li>
+              <li><span class="bp-step-n">2</span><div><strong>Close &amp; split</strong><p>The escrow sends 80% to the recipient, 15% to the treasury, 5% to the platform.</p></div><span class="bp-step-when">Day 3</span></li>
+              <li><span class="bp-step-n">3</span><div><strong>Burn-to-vote</strong><p>$ARCIRCLE holders vote on name, ticker, logo, roadmap, date — every vote burns 1,000 $ARCIRCLE.</p></div><span class="bp-step-when">Day 3–5</span></li>
+              <li><span class="bp-step-n">4</span><div><strong>Top contributor</strong><p>The largest contributor at the close receives the 15%, over 3 days.</p></div><span class="bp-step-when">Day 3–6</span></li>
+              <li><span class="bp-step-n">5</span><div><strong>Launch &amp; airdrop</strong><p>The coin launches on the date the vote picks. Every contributor gets an airdrop.</p></div><span class="bp-step-when">Voted date</span></li>
             </ol>
           </div>
         </div>
@@ -258,7 +258,7 @@
           <ul class="bp-vote-list">
             <li>Coin name</li><li>Ticker</li><li>Logo</li><li>Roadmap</li><li>Launch date</li>
           </ul>
-          <p>Voting opens the moment the raise closes and runs for 48 hours. Your weight is the USDC you put in, locked in at the close.</p>
+          <p>Voting opens the moment the raise closes and runs for 48 hours. Anyone holding $ARCIRCLE can vote, as many times as they like.</p>
           <div class="bp-empty" id="bp-gov-panel-note">No round is open, so there's nothing to vote on yet.</div>
         </div>
 
@@ -294,10 +294,9 @@
       <section class="bp-panel" id="bp-panel-airdrop">
         <div class="bp-simple">
           <h1>Airdrop</h1>
-          <p>Two holder benefits are planned, both still being worked out in detail:</p>
+          <p><strong>CirclePad airdrop</strong> — every wallet that contributes to Round #1 gets an airdrop of the new coin. The contributor list at the close is public on-chain, so anyone can check who was in and how much.</p>
           <p><strong>ArcPad synergy</strong> — existing ArcPad launch participants are planned to get an advantage when a CirclePad round opens.</p>
-          <p><strong>CirclePad airdrop</strong> — a separate airdrop for CirclePad participants is also planned.</p>
-          <div class="bp-empty">Neither benefit is live. Specifics — eligibility, size, timing — will land here once decided.</div>
+          <div class="bp-empty" id="cp-airdrop-note">Size and timing of the airdrop: not decided yet. They'll be announced here.</div>
         </div>
       </section>
 
@@ -305,10 +304,10 @@
       <section class="bp-panel" id="bp-panel-treasury">
         <div class="bp-simple">
           <h1>Treasury</h1>
-          <p>Every round splits its raised USDC three ways: 80% becomes LP liquidity immediately, 15% goes to the confirmed lead (vested), and 5% goes to CirclePad's own treasury.</p>
-          <p>That 5%, together with CirclePad's own trading fees once projects are live, is meant to fund CirclePad's own buyback-and-burn and promotion — the same loop repeating project after project rather than a one-off.</p>
-          <p class="cp-note"><strong>Round #1, as deployed:</strong> the escrow contract splits the raise 80% to the recipient wallet, 15% to the treasury wallet and 5% to the platform wallet, in one transaction at the close (see Docs &gt; Contracts). The LP / lead / vesting split above is the full CirclePad design, still in review — it isn't what round #1's contract does.</p>
-          <div class="bp-empty">No round has run yet, so the treasury currently holds nothing.</div>
+          <p>Round #1 splits the raise in one transaction at the close: 80% to the recipient wallet, 15% to the treasury wallet and 5% to the platform wallet. The wallets are fixed in the escrow contract.</p>
+          <p>The 15% goes to the top contributor — the wallet with the largest contribution at the close — over 3 days. The team sends it from the treasury wallet; the escrow contract itself only sends it to the treasury wallet.</p>
+          <p>The platform's 5% feeds $ARCIRCLE buybacks and promotion — the same loop, round after round.</p>
+          <div id="cp-treasury-live"><div class="bp-empty">Loading the round…</div></div>
         </div>
       </section>
 
@@ -324,10 +323,24 @@
 
         <div class="bp-doc-panel active" id="bp-doc-how">
           <h1>How it works</h1>
-          <p class="bp-mech-note"><strong>First round, actually built:</strong> the recipient wallet starts a 72-hour timer. Anyone can contribute USDC while it's open, and withdraw their own contribution back any time before it closes — no lock-in. When it closes, the balance splits 80% recipient / 5% platform / 15% treasury automatically. None of the bidding, leadership, or voting described below is on-chain yet in this round — see Safety design.</p>
-          <p class="bp-lede">One project. A 3-day USDC raise decides who leads it and how it's split. $ARCIRCLE holders vote on what it becomes.</p>
-
-          <h3>The raise</h3>
+          <p class="bp-lede">Round #1 runs on a simple escrow contract on Arc. This is exactly what it does, and what happens after.</p>
+          <div class="cp-flow" role="img" aria-label="Contributors send USDC to the escrow; at the close it splits 80% recipient, 15% treasury, 5% platform">
+            <div class="cp-flow-node"><b>Contributors</b><small>Send USDC for 72 hours. Withdraw any time before the close.</small></div>
+            <i class="cp-flow-arrow" aria-hidden="true"></i>
+            <div class="cp-flow-node cp-flow-escrow"><b>Escrow contract</b><small>Holds every USDC. Nobody else can move it while the raise is open.</small></div>
+            <i class="cp-flow-arrow" aria-hidden="true"></i>
+            <div class="cp-flow-split">
+              <div class="cp-flow-node cp-f80"><b>80% · Recipient</b><small>The project's funds</small></div>
+              <div class="cp-flow-node cp-f15"><b>15% · Treasury</b><small>To the top contributor, over 3 days</small></div>
+              <div class="cp-flow-node cp-f5"><b>5% · Platform</b><small>$ARCIRCLE buybacks and promotion</small></div>
+            </div>
+          </div>
+          <h3>What happens next</h3>
+          <div class="cp-next" id="cp-next-docs"></div>
+          <details class="cp-v2">
+            <summary>The full CirclePad design (v2, not live yet)</summary>
+            <p class="bp-mech-note">None of this runs in Round #1 — it's the longer-term design, still in review.</p>
+            <h3>The raise</h3>
           <p>A single project raises USDC for 3 days on Arc. Every bid is recorded with the bidder's address and amount — this is what determines the final payout split.</p>
 
           <h3>Leadership</h3>
@@ -341,11 +354,12 @@
 
           <h3>Getting paid</h3>
           <p>The confirmed lead's 15% doesn't land all at once. It vests <strong>3% per day over 5 days</strong>. If the lead stops running the project, whatever hasn't vested yet returns to the original bidders, split proportionally to what they put in.</p>
+          </details>
         </div>
 
         <div class="bp-doc-panel" id="bp-doc-economics">
           <h1>Economics</h1>
-          <p class="bp-mech-note"><strong>First round, actually built:</strong> 80% recipient wallet / 5% platform wallet / 15% treasury wallet, paid directly — no LP liquidity or vesting yet. The split below is the longer-term vision this round doesn't implement.</p>
+          <p class="bp-mech-note"><strong>Round #1, as deployed:</strong> 80% recipient wallet / 15% treasury wallet / 5% platform wallet, paid directly at the close. The 15% goes to the top contributor over 3 days; every contributor gets an airdrop. The split below is the v2 design, not live yet.</p>
           <div class="bp-split-bars">
             <div class="bp-split-row"><span>LP liquidity</span><div class="bp-split-track"><div class="bp-split-fill" style="width:80%"></div></div><strong>80%</strong></div>
             <div class="bp-split-row"><span>Lead's payout (vested)</span><div class="bp-split-track"><div class="bp-split-fill alt" style="width:15%"></div></div><strong>15%</strong></div>
@@ -357,6 +371,7 @@
 
         <div class="bp-doc-panel" id="bp-doc-safety">
           <h1>Safety design</h1>
+          <p class="bp-mech-note"><strong>v2 design, not live yet.</strong> Round #1 is the simple escrow in How it works: contributors can withdraw until the close, and the split is fixed in the contract.</p>
           <p class="bp-lede">This page is honest about what's still being worked out. Two things had to change before this was safe to build at all.</p>
 
           <h3>Problem: instant lump-sum payout</h3>
@@ -373,9 +388,10 @@
 
         <div class="bp-doc-panel" id="bp-doc-faq">
           <h1>FAQ</h1>
-          <div class="bp-faq-item"><h4>Is this live yet?</h4><p>Partly. The first-round escrow contract is deployed on Arc mainnet (see Contracts below) — once the recipient starts the clock, the 72-hour USDC raise is real and the Home panel switches from preview to live numbers. The bigger lead/vote/vesting mechanism described here is a separate contract that is still in design and review.</p></div>
-          <div class="bp-faq-item"><h4>What if I'm not the top bidder — do I get anything back?</h4><p>Yes — if the lead is ever marked abandoned, unvested funds return to all original bidders proportionally, not just the lead.</p></div>
-          <div class="bp-faq-item"><h4>Can the lead just take the money and never build anything?</h4><p>That's exactly the failure mode this is designed against — see Safety design. The payout is small and slow at first (3%/day), and stops automatically without a check-in.</p></div>
+          <div class="bp-faq-item"><h4>Is this live yet?</h4><p>Round #1 is. The escrow and the burn-to-vote contract are deployed on Arc mainnet (see Contracts). The lead, vesting and clawback mechanism in Safety design is the v2 design and isn't live.</p></div>
+          <div class="bp-faq-item"><h4>What do contributors get?</h4><p>Every Round #1 contributor gets an airdrop of the new coin; its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.</p></div>
+          <div class="bp-faq-item"><h4>Who can vote?</h4><p>Anyone holding $ARCIRCLE — contributing isn't required. Every vote burns 1,000 $ARCIRCLE, and votes can't be changed or taken back.</p></div>
+          <div class="bp-faq-item"><h4>Can I get my USDC back?</h4><p>Yes, any amount, any time until the 72 hours are up. After the close the escrow splits everything and there's nothing left to withdraw.</p></div>
           <div class="bp-faq-item"><h4>Why USDC and not $HOME or an ArcPad token?</h4><p>USDC is Arc's own native gas token, so it's the natural first quote asset — no bridging, no extra approval step. Other quote assets may follow once the core mechanism is live and tested.</p></div>
         </div>
 
@@ -422,6 +438,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 14 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, circlepad.js, arc-fx.js, arcircle-live.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="circlepad.bundle.js?v=1790455980"></script>
+<script src="circlepad.bundle.js?v=1790459450"></script>
 </body>
 </html>

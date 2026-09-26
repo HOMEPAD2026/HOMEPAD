@@ -10,6 +10,7 @@ import { roundState, contributionOf } from "./_round.mjs";
 import { leaderboard as circleBoard } from "./_circle.mjs";
 import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
+import { voteTx } from "./_burnvote.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
@@ -115,6 +116,13 @@ export async function GET(req) {
     return new ImageResponse(await snapCard(await markP, url.searchParams.get("snap")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" },
+    });
+  }
+  if (url.searchParams.has("vote")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await voteCard(await markP, url.searchParams.get("vote")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=600, s-maxage=86400, stale-while-revalidate=86400" },
     });
   }
   if (url.searchParams.has("lplock")) {
@@ -374,5 +382,46 @@ async function lplockCard(mark, id) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "ArcLPLock · nobody can move it before the date"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lplock/${d.id}`)),
+  ]);
+}
+
+// ---- CirclePad burn-to-vote card (/vote/<tx>) — a flame drawn with divs, no emoji ----
+async function voteCard(mark, tx) {
+  let v = null;
+  if (/^0x[0-9a-fA-F]{64}$/.test(tx || "")) { try { v = await voteTx(tx); } catch { v = null; } }
+  const acc = "#ff8a4c";
+  const flame = h("div", { width: 170, height: 170, borderRadius: 40, alignItems: "center", justifyContent: "center", backgroundImage: "linear-gradient(160deg, rgba(255,138,76,0.28), rgba(255,209,102,0.12))", border: "3px solid rgba(255,138,76,0.55)" },
+    h("div", { width: 78, height: 104, borderRadius: "50% 50% 46% 46%", backgroundImage: "linear-gradient(180deg, #ffd166, #ff7a45 60%, #e8452c)", alignItems: "flex-end", justifyContent: "center", paddingBottom: 12 },
+      h("div", { width: 34, height: 48, borderRadius: "50% 50% 46% 46%", backgroundColor: "#fff1c9" })));
+  if (!v) {
+    return frame([
+      brandRow(mark, pill("BURN TO VOTE", acc), "CirclePad · Circle's Arc"),
+      h("div", { alignItems: "center", gap: 40 }, flame,
+        h("div", { flexDirection: "column", gap: 14 },
+          h("div", { fontSize: 80, fontWeight: 800, lineHeight: 1.05 }, "1 vote = 1,000 $ARCIRCLE"),
+          h("div", { fontSize: 34, color: "#b9c8b3" }, "Burned for good. Anyone holding $ARCIRCLE can vote."))),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/circle"),
+    ]);
+  }
+  const lab = (it) => it.cat === 1 ? "$" + clip(String(it.text || "").replace(/^\$/, ""), 12) : it.cat === 2 ? "a logo" : it.cat === 3 ? "a roadmap" : it.cat === 4 ? (isNaN(new Date(it.text)) ? clip(it.text, 20) : new Date(it.text).toISOString().slice(0, 10)) : clip(it.text, 24);
+  const main = v.items[0];
+  const burned = (v.votes * 1000).toLocaleString("en-US");
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 38, fontWeight: 800, color }, value));
+  return frame([
+    brandRow(mark, pill("VOTED", acc), "CirclePad Round #1 · Circle's Arc"),
+    h("div", { alignItems: "center", gap: 40, width: "100%" }, flame,
+      h("div", { flexDirection: "column", gap: 10 },
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, `${main.category} · ${v.voter.slice(0, 6)}…${v.voter.slice(-4)}`),
+        h("div", { fontSize: 76, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `${burned} $ARCIRCLE burned`),
+        h("div", { fontSize: 36, color: "#eaf2e6" }, `to vote for ${lab(main)}${v.items.length > 1 ? ` + ${v.items.length - 1} more` : ""}`))),
+    h("div", { gap: 16 },
+      box("Votes", String(v.votes), acc),
+      box("Per vote", "1,000"),
+      box("Sent to", "0x…dEaD")),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "Burn to vote · no refunds, no changes"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, "arcircle.app/circle")),
   ]);
 }

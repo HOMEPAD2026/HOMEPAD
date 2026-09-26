@@ -105,6 +105,10 @@
       "destination": "/api/c?view=lplock&id=:id"
     },
     {
+      "source": "/vote/:tx",
+      "destination": "/api/c?view=vote&tx=:tx"
+    },
+    {
       "source": "/api/v1/snapshot/:addr",
       "destination": "/api/social?snapapi=:addr"
     }

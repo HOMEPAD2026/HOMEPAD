@@ -26,7 +26,8 @@
   let S = null; // last state painted
 
   // ================= sidebar: group the not-yet-live tabs =================
-  const SOON = ["airdrop", "treasury"];
+  // Airdrop and Treasury are live pages now (the policy + the split at today's total)
+  const SOON = [];
   (function sidebar() {
     const btns = SOON.map((t) => document.querySelector(`.bp-side-nav .bp-nav-item[data-tab="${t}"]`)).filter(Boolean);
     if (!btns.length) return;
@@ -371,11 +372,11 @@
     timeline = document.createElement("section");
     timeline.className = "cp-timeline";
     const head = card.querySelector(".bp-card-head");
-    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"} <span class="cp-tl-tag">Full design</span></h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
+    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"} <span class="cp-tl-tag">Round #1</span></h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
     timeline.appendChild(steps);
     const note = document.createElement("p");
     note.className = "cp-tl-note";
-    note.textContent = "Round #1's contract runs the 72-hour raise and the 80 / 15 / 5 split at the close. Lead preparation, the LP step and vesting are the full CirclePad design, still in review.";
+    note.textContent = "The raise and the 80 / 15 / 5 split are enforced by the escrow contract, the vote by the burn-vote contract. The top contributor's 15% (over 3 days) and the airdrop are paid by the team.";
     timeline.appendChild(note);
     row.parentNode.insertBefore(timeline, row);
     card.remove();
@@ -390,16 +391,17 @@
     document.body.classList.toggle("cp-open", !!(s && s.isOpen));
     if (timeline) {
       const lis = [...timeline.querySelectorAll(".bp-steps > li")];
-      // the vote runs in the 48 hours after the close (step 2)
+      // Round #1 steps: raise (0) → close & split (1) → burn-to-vote (2) → top contributor (3) → launch & airdrop (4)
       const voting = st >= 3 && govPhaseNow === "voting";
-      const at = voting ? 1 : st;
+      const at = st < 0 ? -1 : st === 0 ? 0 : voting ? 2 : govPhaseNow === "closed" ? 3 : 1;
       lis.forEach((li, i) => {
         li.classList.toggle("is-now", at === i);
         li.classList.toggle("is-done", at > 0 && i < at);
       });
       const label = $("cp-tl-now");
       if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? tr("Live — raise open") : voting ? tr("Raise closed — voting open") : st === 3 ? tr("Raise closed") : tr("Distributed");
-      timeline.style.setProperty("--cp-tl", st < 0 ? 0 : st === 0 ? 0.25 : Math.min(1, (st + 0.5) / 5));
+      // the fill follows the real clock when circlepad-round.js knows the dates
+      if (!timeline.dataset.clock) timeline.style.setProperty("--cp-tl", at < 0 ? 0 : Math.min(1, (at + 0.5) / 5));
     }
     paintQuick(s);
   }
