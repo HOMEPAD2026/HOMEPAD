@@ -6767,3 +6767,21 @@ input.cpx-pop{animation:cpxPop .35s cubic-bezier(.3,1.6,.5,1);}
 @media (prefers-reduced-motion:reduce){.alq-pool,.alq-bar i,.alq-emblem .alq-wave,.alq-spin,.alq-skel i{animation:none !important;}}
 .lkr-lp-note{margin:8px 0 0;font-size:.78rem;color:#aeb8c2;}
 .lkr-lp-note a{color:#9fe8ff;}
+.alq-fees{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:10px;background:rgba(57,255,136,.06);border:1px solid rgba(57,255,136,.2);}
+.alq-fees small{font-size:.64rem;color:#8c98a6;text-transform:uppercase;letter-spacing:.06em;}
+.alq-fees b{font-size:.8rem;color:#c9ffe0;}
+.alq-act.share{border-color:rgba(57,208,255,.45);color:#bfefff;}
+.alq-focus{outline:2px solid #39d0ff;outline-offset:2px;animation:alqFocus 1.6s ease 2;}
+tr.alq-focus td{background:rgba(57,208,255,.12) !important;}
+@keyframes alqFocus{50%{outline-color:rgba(57,208,255,.2);}}
+.alq-cert{position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(57,255,136,.3);background:#07120c;aspect-ratio:1200/630;}
+.alq-cert img{position:relative;display:block;width:100%;height:100%;object-fit:cover;}
+.alq-cert-lock{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;z-index:2;background:#07120c;}
+.alq-cert.fresh .alq-cert-lock{display:flex;animation:alqCertOut .5s ease 1.3s forwards;}
+.alq-cert-lock i{width:44px;height:40px;border:8px solid #39ff88;border-bottom:0;border-radius:24px 24px 0 0;transform:translateY(-14px);animation:alqShackle .5s cubic-bezier(.3,1.6,.5,1) .35s forwards;}
+.alq-cert-lock b{width:74px;height:54px;border-radius:14px;background:#39ff88;box-shadow:0 0 30px rgba(57,255,136,.5);}
+@keyframes alqShackle{to{transform:translateY(0);}}
+@keyframes alqCertOut{to{opacity:0;visibility:hidden;}}
+.alq-cert-acts{display:flex;gap:8px;flex-wrap:wrap;}
+.alq-cert-acts > *{flex:1;min-width:120px;text-align:center;text-decoration:none;padding:10px 12px;}
+@media (prefers-reduced-motion:reduce){.alq-cert.fresh .alq-cert-lock{display:none;}.alq-focus{animation:none;}}

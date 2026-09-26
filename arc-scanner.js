@@ -110,6 +110,14 @@
       if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus)) m = (await marketFallback(addr, cur.x)) || m;
       cur.m = m; mark("market", !!m);
     });
+    // the Liquidity Manager's read of the pool: how much of its liquidity is locked (lands whenever it's ready)
+    (async () => {
+      for (let i = 0; i < 6 && alive(); i++) {
+        const j = await fetch(`/api/social?liq=${addr}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        if (!j || !alive()) return;
+        if (j.done) { cur.lp = K.lpSummary ? K.lpSummary(j) : null; if (cur.lp && cur.res) paint(); return; }
+      }
+    })();
     const hP = fetchHolders(addr, cur.c.symbol).then((h) => { if (alive()) { cur.h = h; mark("holders", true); } }, (e) => { console.warn("scanner holders", e); if (alive()) mark("holders", false); });
     await Promise.all([xP, hP]);
     if (!alive()) return;
@@ -225,7 +233,7 @@
   function paint(historyOnly) {
     if (!cur || !cur.c) return;
     const d = cur.done;
-    cur.res = K.evaluate(cur.addr, { c: cur.c, x: cur.x, m: cur.m, h: cur.h, sim: cur.sim });
+    cur.res = K.evaluate(cur.addr, { c: cur.c, x: cur.x, m: cur.m, h: cur.h, sim: cur.sim, lp: cur.lp || null });
     const res = cur.res;
     if (res.notToken) { renderNotToken(res); return; }
     if (!historyOnly) head();

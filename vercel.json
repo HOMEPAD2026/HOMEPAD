@@ -101,6 +101,10 @@
       "destination": "/api/c?view=snap&id=:id"
     },
     {
+      "source": "/lplock/:id",
+      "destination": "/api/c?view=lplock&id=:id"
+    },
+    {
       "source": "/api/v1/snapshot/:addr",
       "destination": "/api/social?snapapi=:addr"
     }

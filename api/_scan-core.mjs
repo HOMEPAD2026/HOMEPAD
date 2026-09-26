@@ -331,6 +331,7 @@ export const HELP = {
   holders: "How many wallets hold the token, and whether a few of them could dump on everyone else.",
   mint: "New tokens minted after launch dilute every holder.",
   history: "Events read from the token's own on-chain history.",
+  lplock: "Liquidity that is locked (until a date, or for good) or burned can't be pulled out of the pool. Unlocked liquidity can be removed by whoever holds it — the classic rug pull.",
 };
 /// data: { c: readContract, x: { arcpad, argus, locks }, m: market (readMarket or { source: "arcpad"|"argus", … }), h: holders (api), sim, now }
 export function evaluate(addr, data) {
@@ -444,6 +445,18 @@ export function evaluate(addr, data) {
   } else if (!m) add("market", "info", "pool", "Market data unavailable", "Dexscreener didn't answer — try the scan again in a moment.");
   else { add("market", "risk", "pool", "No trading pool found", "Dexscreener doesn't list a pool for it on Arc, so there may be no way to buy or sell."); capAt(40, "pool"); }
 
+  // ---- liquidity lock (the Liquidity Manager's read of the pool's positions) ----
+  const lp = data.lp || null;
+  if (lp) {
+    const safe = Math.min(100, (lp.locked || 0) + (lp.burned || 0));
+    const link = { links: [{ href: `/arc#liquidity?token=${addr}`, label: "Liquidity Manager" }] };
+    const soonLeft = lp.soonest && !lp.forever ? lp.soonest - now : null;
+    if (safe >= 80 && soonLeft != null && soonLeft < 7 * 86400) add("market", "warn", "lplock", "Liquidity lock ends soon", `${pct(safe)} of the liquidity at the current price is locked or burned, but a lock on it ends in ${ageText(Math.max(60, soonLeft))}.`, link);
+    else if (safe >= 80) add("market", "pass", "lplock", "Liquidity locked", `${pct(safe)} of the liquidity at the current price is locked or burned${soonLeft != null ? ` — the earliest lock ends in ${ageText(soonLeft)}` : ""}.`, link);
+    else if (safe >= 40) add("market", "warn", "lplock", "Liquidity partly locked", `${pct(safe)} of the liquidity at the current price is locked or burned — whoever holds the rest can pull it.`, link);
+    else add("market", "risk", "lplock", "Liquidity can be pulled", `Only ${pct(safe)} of the liquidity at the current price is locked or burned — whoever holds the rest can remove it at any time.`, link);
+  }
+
   // ---- holders ----
   let dist = null;
   const supply = toBig(c.supply);
@@ -514,10 +527,24 @@ export function evaluate(addr, data) {
 }
 export const verdictOf = (score) => (score >= 75 ? { k: "ok", t: "Looks OK" } : score >= 45 ? { k: "care", t: "Be careful" } : { k: "risk", t: "High risk" });
 
+/// The Liquidity Manager's answer (/api/social?liq=) boiled down for evaluate(): the main pool's
+/// locked / burned / free shares, the soonest timed lock and whether any lock is permanent.
+export function lpSummary(liq) {
+  if (!liq || !liq.done || !Array.isArray(liq.pools)) return null;
+  const p = liq.pools.find((x) => toBig(x.liquidity) > 0n);
+  if (!p || !p.share) return null;
+  const timed = (p.positions || []).filter((q) => q.kind === "locked" && q.lock && q.inRange).map((q) => q.lock.unlockAt);
+  return {
+    locked: p.share.locked, burned: p.share.burned, free: p.share.free, venue: p.venue, pools: liq.pools.length,
+    soonest: timed.length ? Math.min(...timed) : null,
+    forever: p.share.launch > 0 || (p.positions || []).some((q) => q.kind === "forever" && q.inRange),
+  };
+}
+
 // ---------------------------------------------------------------- one-call scan (server, Telegram, share card)
 /// Runs every read and the evaluation. holders(addr) is supplied by the caller
 /// (the server's own scan, or a fetch of /api/social?scan= in the browser).
-export async function scanAll(io, addr, { holders, marketFallback } = {}) {
+export async function scanAll(io, addr, { holders, marketFallback, lp = null } = {}) {
   addr = String(addr).toLowerCase();
   if (!isAddr(addr)) throw new Error("not an address");
   const c = await readContract(io, addr);
@@ -529,7 +556,8 @@ export async function scanAll(io, addr, { holders, marketFallback } = {}) {
   let m = dex;
   if ((!m || !m.pairs.length) && marketFallback) m = (await marketFallback(addr, { arcpad, argus }).catch(() => null)) || m;
   const sim = await simulateFor(io, addr, c, h).catch(() => null);
-  return { c, h, res: evaluate(addr, { c, x: { arcpad, argus, locks }, m, h, sim }) };
+  const lpv = lp ? await Promise.resolve(lp).catch(() => null) : null;
+  return { c, h, res: evaluate(addr, { c, x: { arcpad, argus, locks }, m, h, sim, lp: lpv }) };
 }
 /// Picks the holder to act as (largest wallet that isn't a contract or a pool) and runs the dry runs.
 export async function simulateFor(io, addr, c, h) {

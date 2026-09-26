@@ -28,6 +28,7 @@ export default async function handler(req) {
   if (view === "scan") return scanPage(url);
   if (view === "drop") return dropPage(url);
   if (view === "snap") return snapPage(url);
+  if (view === "lplock") return lplockPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -498,4 +499,46 @@ async function snapPage(url) {
 <p>Opening the <a href="${esc(target)}">snapshot</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.status === "done" ? "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
+}
+
+// ---- ArcLPLock certificate (/lplock/<id>) ----
+const fmtAmt = (raw, dec) => { const n = Number(BigInt(raw || 0)) / 10 ** Number(dec || 18); return !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { maximumFractionDigits: 2 }); };
+async function lplockPage(url) {
+  const id = String(url.searchParams.get("id") || "");
+  if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#liquidity">`, "public, max-age=300");
+  let d = null;
+  try { const r = await fetch(`${SITE}/api/social?lplock=${id}`); d = r.ok ? await r.json() : null; } catch { d = null; }
+  const sym = d && d.token ? "$" + d.token.symbol : "a token";
+  const until = d ? new Date(d.unlockAt * 1000).toISOString().slice(0, 10) : "";
+  const title = !d ? "LP lock — ARCIRCLE PAD" : d.active ? `${sym} liquidity locked until ${until}` : d.withdrawn ? `${sym} LP lock #${id} — withdrawn` : `${sym} LP lock #${id} — ended ${until}`;
+  const desc = !d ? "Uniswap v4 liquidity locked on Arc with ArcLPLock." : `${fmtAmt(d.amounts.token, d.token.decimals)} ${d.token.symbol} + ${fmtAmt(d.amounts.quote, d.quote.decimals)} ${d.quote.symbol} in a Uniswap v4 position, locked in ArcLPLock${d.poolShare ? ` — ${d.poolShare}% of the liquidity at the current price` : ""}. Nobody can move it before the date.`;
+  const target = d && d.token ? `/arc#liquidity?token=${d.token.address}&lock=${id}` : "/arc#liquidity";
+  const image = `${SITE}/api/og?lplock=${id}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/lplock/${id}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39d0ff}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">liquidity lock</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
 }

@@ -117,6 +117,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" },
     });
   }
+  if (url.searchParams.has("lplock")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await lplockCard(await markP, url.searchParams.get("lplock")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
+    });
+  }
   if (url.searchParams.has("drop")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await dropCard(await markP, url.searchParams.get("drop")), {
@@ -320,4 +327,52 @@ async function snapCard(mark, id) {
       h("div", {}, done ? `fingerprint ${d.fp.slice(0, 18)}…` : "the list is built from the chain at that moment"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/snap/${d.id}`)),
   ].filter(Boolean));
+}
+
+// ---------------- ArcLPLock certificate ----------------
+const amt = (raw, dec) => { const n = Number(BigInt(raw || 0)) / 10 ** Number(dec || 18); return !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { maximumFractionDigits: 2 }); };
+async function lplockCard(mark, id) {
+  let d = null;
+  if (/^\d{1,9}$/.test(id || "")) { try { const r = await fetch(`${SITE}/api/social?lplock=${id}`); d = r.ok ? await r.json() : null; } catch { d = null; } }
+  const acc = "#39ff88";
+  if (!d) {
+    return frame([
+      brandRow(mark, pill("LP LOCK", acc), "Liquidity Manager · Circle's Arc"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 86, fontWeight: 800, lineHeight: 1.05 }, "Liquidity, locked."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Uniswap v4 positions on Arc, locked until a date nobody can bring forward.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/liquidity"),
+    ]);
+  }
+  const sym = clip(d.token.symbol, 10), qs = clip(d.quote.symbol, 8);
+  const until = new Date(d.unlockAt * 1000).toISOString().slice(0, 10);
+  const days = Math.max(0, Math.ceil((d.unlockAt - d.now) / 86400));
+  const span = Math.max(1, d.unlockAt - d.lockedAt), done = Math.min(1, Math.max(0, (d.now - d.lockedAt) / span));
+  const state = d.withdrawn ? "WITHDRAWN" : d.active ? "LOCKED" : "LOCK ENDED";
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 38, fontWeight: 800, color }, value));
+  return frame([
+    brandRow(mark, pill(state, d.active ? acc : "#ffd166"), "Liquidity Manager · Circle's Arc"),
+    h("div", { alignItems: "center", gap: 40, width: "100%" },
+      h("div", { width: 170, height: 170, borderRadius: 40, flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundImage: "linear-gradient(135deg, rgba(57,208,255,0.25), rgba(57,255,136,0.25))", border: "3px solid rgba(57,255,136,0.5)" },
+        h("div", { width: 56, height: 44, borderTopLeftRadius: 28, borderTopRightRadius: 28, border: "9px solid #39ff88", borderBottomWidth: 0 }),
+        h("div", { width: 92, height: 62, borderRadius: 16, backgroundColor: "#39ff88", alignItems: "center", justifyContent: "center" },
+          h("div", { width: 14, height: 22, borderRadius: 7, backgroundColor: "#0b1413" }))),
+      h("div", { flexDirection: "column", gap: 10 },
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, `$${sym} / ${qs} · Uniswap v4`),
+        h("div", { fontSize: 80, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, d.active ? `Locked until ${until}` : d.withdrawn ? "Withdrawn" : `Ended ${until}`),
+        h("div", { fontSize: 32, color: "#b9c8b3" }, `${amt(d.amounts.token, d.token.decimals)} ${sym} + ${amt(d.amounts.quote, d.quote.decimals)} ${qs}`))),
+    h("div", { flexDirection: "column", gap: 14, width: "100%" },
+      h("div", { width: "100%", height: 14, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.08)" },
+        h("div", { width: `${Math.round(done * 100)}%`, height: 14, borderRadius: 14, backgroundImage: "linear-gradient(90deg, #39ff88, #39d0ff)" })),
+      h("div", { gap: 16 },
+        box("Days left", d.active ? String(days) : "0", acc),
+        box("Pool share", d.poolShare ? `${d.poolShare}%` : "—"),
+        box("Position", `#${d.tokenId}`),
+        box("Lock", `#${d.id}`))),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "ArcLPLock · nobody can move it before the date"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lplock/${d.id}`)),
+  ]);
 }

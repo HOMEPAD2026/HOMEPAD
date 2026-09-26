@@ -231,6 +231,12 @@ export async function GET(req) {
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   // Liquidity Manager (arc-liquidity.js): pools, positions and locks for one token
+  if (url.searchParams.has("lplock")) {
+    try {
+      const v = await liquidity.lockInfo(url.searchParams.get("lplock"));
+      return v ? json(200, v, v.active ? "public, max-age=30, s-maxage=60" : "public, max-age=300, s-maxage=600") : json(404, { error: "no such lock" });
+    } catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
   if (url.searchParams.has("liq")) {
     if (scanner.limited(`lq:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
     try {

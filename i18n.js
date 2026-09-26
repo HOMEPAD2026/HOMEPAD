@@ -2053,10 +2053,24 @@
     "Liquidity & LP locks": "유동성 · LP 잠금",
     "Locking a Uniswap v4 LP position? That's in the": "Uniswap v4 LP 포지션 잠금은 여기서:",
     "LP lock": "LP 잠금",
+    "Liquidity lock ends soon": "유동성 잠금이 곧 끝남",
+    "Liquidity partly locked": "유동성 일부만 잠김",
+    "Liquidity can be pulled": "유동성을 뺄 수 있음",
+    "Liquidity that is locked (until a date, or for good) or burned can't be pulled out of the pool. Unlocked liquidity can be removed by whoever holds it — the classic rug pull.": "잠긴(기한부 또는 영구) 유동성이나 소각된 유동성은 풀에서 뺄 수 없어요. 잠기지 않은 유동성은 보유자가 언제든 뺄 수 있어요 — 전형적인 러그풀 방식이에요.",
+    "Unclaimed fees": "받을 수수료",
+    "Share the lock": "잠금 공유",
+    "Lock certificate": "잠금 인증서",
+    "Anyone can check this lock on-chain.": "누구나 이 잠금을 온체인에서 확인할 수 있어요.",
+    "Liquidity locked.": "유동성을 잠갔어요.",
   };
 
   // Strings with live numbers — [pattern, replacement]
   var PATTERNS = [
+    [/^(.+) of the liquidity at the current price is locked or burned\.$/, "현재 가격에서 거래되는 유동성의 $1이 잠기거나 소각됐습니다."],
+    [/^(.+) of the liquidity at the current price is locked or burned — the earliest lock ends in (.+)\.$/, "현재 가격에서 거래되는 유동성의 $1이 잠기거나 소각됐습니다 — 가장 빠른 잠금 해제까지 $2."],
+    [/^(.+) of the liquidity at the current price is locked or burned, but a lock on it ends in (.+)\.$/, "현재 가격에서 거래되는 유동성의 $1이 잠기거나 소각됐지만, 잠금 하나가 $2 뒤에 풀립니다."],
+    [/^(.+) of the liquidity at the current price is locked or burned — whoever holds the rest can pull it\.$/, "현재 가격에서 거래되는 유동성의 $1만 잠기거나 소각됐습니다 — 나머지는 보유자가 뺄 수 있습니다."],
+    [/^Only (.+) of the liquidity at the current price is locked or burned — whoever holds the rest can remove it at any time\.$/, "현재 가격에서 거래되는 유동성의 $1만 잠기거나 소각됐습니다 — 나머지는 보유자가 언제든 뺄 수 있습니다."],
     [/^(0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4}) joined with (.+) USDC$/, "$1 님이 $2 USDC로 참여"],
     [/^(0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4}) withdrew (.+) USDC$/, "$1 님이 $2 USDC 인출"],
     [/^member #(\d+)$/, "$1번째 멤버"],
@@ -2332,6 +2346,11 @@
   ];
 
   var ZH_PATTERNS = [
+    [/^(.+) of the liquidity at the current price is locked or burned\.$/, "当前价格交易的流动性中有 $1 已锁定或销毁。"],
+    [/^(.+) of the liquidity at the current price is locked or burned — the earliest lock ends in (.+)\.$/, "当前价格交易的流动性中有 $1 已锁定或销毁——最早的锁定将在 $2 后结束。"],
+    [/^(.+) of the liquidity at the current price is locked or burned, but a lock on it ends in (.+)\.$/, "当前价格交易的流动性中有 $1 已锁定或销毁，但其中一个锁定将在 $2 后结束。"],
+    [/^(.+) of the liquidity at the current price is locked or burned — whoever holds the rest can pull it\.$/, "当前价格交易的流动性中只有 $1 已锁定或销毁——其余部分可被持有者撤出。"],
+    [/^Only (.+) of the liquidity at the current price is locked or burned — whoever holds the rest can remove it at any time\.$/, "当前价格交易的流动性中只有 $1 已锁定或销毁——其余部分持有者随时可以撤出。"],
     [/^(0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4}) joined with (.+) USDC$/, "$1 投入了 $2 USDC"],
     [/^(0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4}) withdrew (.+) USDC$/, "$1 取回了 $2 USDC"],
     [/^member #(\d+)$/, "第 $1 号成员"],
@@ -4455,6 +4474,15 @@
     "Liquidity & LP locks": "流动性与 LP 锁定",
     "Locking a Uniswap v4 LP position? That's in the": "锁定 Uniswap v4 LP 仓位请前往",
     "LP lock": "LP 锁定",
+    "Liquidity lock ends soon": "流动性锁定即将结束",
+    "Liquidity partly locked": "流动性部分锁定",
+    "Liquidity can be pulled": "流动性可被撤出",
+    "Liquidity that is locked (until a date, or for good) or burned can't be pulled out of the pool. Unlocked liquidity can be removed by whoever holds it — the classic rug pull.": "已锁定（到期或永久）或已销毁的流动性无法从池中撤出。未锁定的流动性可被持有者随时撤出——这正是典型的跑路方式。",
+    "Unclaimed fees": "未领取手续费",
+    "Share the lock": "分享锁定",
+    "Lock certificate": "锁定证书",
+    "Anyone can check this lock on-chain.": "任何人都可以在链上核验此锁定。",
+    "Liquidity locked.": "流动性已锁定。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

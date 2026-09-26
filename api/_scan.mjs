@@ -242,7 +242,9 @@ export async function marketFallback(addr, { arcpad, argus }) {
 
 /// The whole scan, server side.
 export async function scanToken(addr, { store = null, budgetMs = 6000 } = {}) {
-  return core.scanAll(io, addr, { holders: (a) => holderScan(a, { store, budgetMs }), marketFallback });
+  // the liquidity lock row: only when the position index already knows the token (a short read)
+  const lpP = import("./_liquidity.mjs").then((L) => L.run(addr, { store, budgetMs: 2500 })).then((j) => core.lpSummary(j)).catch(() => null);
+  return core.scanAll(io, addr, { holders: (a) => holderScan(a, { store, budgetMs }), marketFallback, lp: lpP });
 }
 
 // ---- "most scanned this week" ----

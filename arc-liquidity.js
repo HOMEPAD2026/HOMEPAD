@@ -143,7 +143,7 @@
     const sym = esc(D.token.symbol), qs = p.quote ? esc(p.quote.symbol) : "?";
     const zeroFee = p.key && p.key.fee === 0;
     const posRows = p.positions.slice(0, 8).map((q) => `
-      <tr class="${q.mine ? "mine" : ""}">
+      <tr class="${q.mine ? "mine" : ""}" data-pos="${q.id}">
         <td data-no-i18n><a href="${explorer("nft", PM)}/${q.id}" target="_blank" rel="noopener">#${q.id}</a></td>
         <td>${q.mine ? `<b>${T("You")}</b>` : q.label ? T(q.label) : `<a href="${explorer("address", q.owner)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(q.owner))}</a>`}</td>
         <td>${rangeText(p, q)}${q.inRange ? "" : ` <em class="alq-out-range">${T("out of range")}</em>`}</td>
@@ -184,12 +184,14 @@
         (LPLOCK ? `<button type="button" class="alq-act lock" data-lock="${q.id}">${T("Lock")}</button>` : "");
     } else if (locked && q.lock) {
       acts = `<button type="button" class="alq-act" data-lcollect="${q.lock.lockId}">${T("Collect fees")}</button>` +
-        (q.kind === "unlocking" ? `<button type="button" class="alq-act lock" data-lwithdraw="${q.lock.lockId}">${T("Withdraw")}</button>` : `<button type="button" class="alq-act" data-lextend="${q.lock.lockId}" data-at="${q.lock.unlockAt}">${T("Extend +90 days")}</button>`);
+        (q.kind === "unlocking" ? `<button type="button" class="alq-act lock" data-lwithdraw="${q.lock.lockId}">${T("Withdraw")}</button>` : `<button type="button" class="alq-act" data-lextend="${q.lock.lockId}" data-at="${q.lock.unlockAt}">${T("Extend +90 days")}</button>`) +
+        `<button type="button" class="alq-act share" data-lshare="${q.lock.lockId}">${T("Share the lock")}</button>`;
     }
     const left = q.lock ? q.lock.unlockAt - now() : 0;
     return `<div class="alq-mine-card${locked ? " locked" : ""}" data-pos="${q.id}">
       <div class="alq-mine-top"><b data-no-i18n>#${q.id}</b><span data-no-i18n>${sym} / ${qs}</span>${kindChip(q)}</div>
       <div class="alq-mine-amt" data-no-i18n><b>${fmtRaw(q.token, D.token.decimals)} ${sym}</b><span>+ ${fmtRaw(q.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
+      ${q.fees && (B(q.fees.token) > 0n || B(q.fees.quote) > 0n) ? `<div class="alq-fees"><small>${T("Unclaimed fees")}</small><b data-no-i18n>${fmtRaw(q.fees.token, D.token.decimals)} ${sym} + ${fmtRaw(q.fees.quote, p.quote ? p.quote.decimals : 18)} ${qs}</b></div>` : ""}
       <div class="alq-mine-meta">${rangeText(p, q)}${q.inRange ? ` · <span class="alq-earn">${T("earning")}</span>` : ` · <em class="alq-out-range">${T("out of range")}</em>`}</div>
       ${locked && q.lock && left > 0 ? `<div class="alq-mine-lock"><i style="width:${Math.max(3, Math.min(100, 100 - (left / Math.max(1, q.lock.unlockAt - q.lock.lockedAt)) * 100))}%"></i></div>` : ""}
       <div class="alq-mine-acts">${acts}</div>
@@ -214,6 +216,14 @@
       ${D.pools.length ? D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><a class="bp-btn-primary" href="#launch" data-go="launch">${T("Launch a coin")}</a></div>`}
       ${D.external.length ? `<p class="alq-muted">${T("Also trading on")}: ${D.external.map((x) => `<a href="${esc(x.url || "#")}" target="_blank" rel="noopener" data-no-i18n>${esc(x.dex)}</a>`).join(", ")}</p>` : ""}
       ${LPLOCK ? "" : `<p class="alq-muted alq-soon">${T("LP locking opens once the ArcLPLock contract is live. Locks by launchpads and burned positions already show here.")}</p>`}`;
+    if (focusLock != null) {
+      const id = focusLock; focusLock = null;
+      for (const p of D.pools) {
+        const q = p.positions.find((x) => x.lock && x.lock.lockId === id);
+        const row = q && $("alq-out").querySelector(`tr[data-pos="${q.id}"], .alq-mine-card[data-pos="${q.id}"]`);
+        if (row) { row.classList.add("alq-focus"); setTimeout(() => row.scrollIntoView({ behavior: "smooth", block: "center" }), 300); break; }
+      }
+    }
   }
 
   // ================= modal =================
@@ -362,7 +372,7 @@
       <p class="alq-fine">${T("Fees the position has earned come out with it. At 100% the position NFT is burned.")}</p>`);
     let pct = 100;
     const show = () => {
-      $("alq-get").innerHTML = `<small>${T("You receive about")}</small><b data-no-i18n>${fmtRaw((B(q.token) * BigInt(pct)) / 100n, D.token.decimals)} ${sym}</b><b data-no-i18n>${fmtRaw((B(q.quote) * BigInt(pct)) / 100n, p.quote.decimals)} ${qs}</b><small>${T("plus unclaimed fees")}</small>`;
+      $("alq-get").innerHTML = `<small>${T("You receive about")}</small><b data-no-i18n>${fmtRaw((B(q.token) * BigInt(pct)) / 100n, D.token.decimals)} ${sym}</b><b data-no-i18n>${fmtRaw((B(q.quote) * BigInt(pct)) / 100n, p.quote.decimals)} ${qs}</b>${q.fees && (B(q.fees.token) > 0n || B(q.fees.quote) > 0n) ? `<small>${T("Unclaimed fees")}: <span data-no-i18n>${fmtRaw(q.fees.token, D.token.decimals)} ${sym} + ${fmtRaw(q.fees.quote, p.quote.decimals)} ${qs}</span></small>` : `<small>${T("plus unclaimed fees")}</small>`}`;
     };
     m.addEventListener("click", (e) => { const b = e.target.closest("[data-pct]"); if (b) { pct = Number(b.dataset.pct); m.querySelectorAll("[data-pct]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); show(); } });
     $("alq-go").addEventListener("click", async () => {
@@ -407,12 +417,33 @@
       try {
         const tx = await new ethers.Contract(PM, POSM, state.signer).safeTransferFrom(state.account, LPLOCK, q.id, coder().encode(["uint64"], [until]));
         btn.textContent = tr("Confirming…");
-        await tx.wait();
+        const rc = await tx.wait();
+        // the lock id from ArcLPLock's Locked(lockId, owner, tokenId, unlockAt) event
+        const LOCKED = ethers.id("Locked(uint256,address,uint256,uint64)");
+        const log = rc && rc.logs ? rc.logs.find((l) => lc(l.address) === LPLOCK && l.topics[0] === LOCKED) : null;
         close(); toast("Position locked.", "ok");
         await load(tokenAddr, { quiet: true });
+        if (log) openCert(Number(BigInt(log.topics[1])), true);
       } catch (e) { toast(errText(e, "Locking failed or was rejected."), "info"); btn.disabled = false; btn.textContent = tr("Lock position"); }
     });
     show();
+  }
+
+  // ---- the lock's certificate: share card + link (/lplock/<id>) ----
+  function openCert(lockId, fresh) {
+    const link = `https://www.arcircle.app/lplock/${lockId}`;
+    const img = `/api/og?lplock=${lockId}&v=${Date.now() % 1e6}`;
+    const sym = D && D.token ? D.token.symbol : "";
+    const text = `$${sym} liquidity is locked on Arc with ArcLPLock — nobody can pull it before the date. Check it on-chain:`;
+    const m = modal(`${T("Lock certificate")} · <span data-no-i18n>#${lockId}</span>`, `
+      <div class="alq-cert${fresh ? " fresh" : ""}"><div class="alq-cert-lock" aria-hidden="true"><i></i><b></b></div><img src="${esc(img)}" alt="" loading="lazy"></div>
+      <p class="alq-fine">${T("Anyone can check this lock on-chain.")}</p>
+      <div class="alq-cert-acts">
+        <a class="bp-btn-primary" href="https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share on X")}</a>
+        <button type="button" class="bp-btn-ghost" data-certcopy>${T("Copy link")}</button>
+        <a class="bp-btn-ghost" href="${esc(img)}" download="lp-lock-${lockId}.png" target="_blank" rel="noopener">${T("Save the image")}</a>
+      </div>`);
+    m.querySelector("[data-certcopy]").addEventListener("click", async (e) => { try { await navigator.clipboard.writeText(link); e.target.textContent = tr("Copied"); } catch { /* denied */ } });
   }
 
   async function simpleTx(btn, fn, okMsg, failMsg) {
@@ -445,12 +476,17 @@
     if (lc2) { simpleTx(lc2, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).collectFees(Number(lc2.dataset.lcollect)), "Fees collected.", "Collecting fees failed or was rejected."); return; }
     const ext = t.closest("[data-lextend]");
     if (ext) { const at = Math.max(Number(ext.dataset.at), now()) + 90 * DAY; simpleTx(ext, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).extend(Number(ext.dataset.lextend), at), "Lock extended.", "Extending failed or was rejected."); return; }
+    const sh = t.closest("[data-lshare]");
+    if (sh) { openCert(Number(sh.dataset.lshare), false); return; }
     const wd = t.closest("[data-lwithdraw]");
     if (wd) { simpleTx(wd, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).withdraw(Number(wd.dataset.lwithdraw)), "Position withdrawn to your wallet.", "Withdrawing failed or was rejected."); }
   });
 
   // deep links: #liquidity?token=0x…
+  let focusLock = null;
   function fromHash() {
+    const fl = /[?&]lock=(\d+)/.exec(location.hash);
+    focusLock = fl ? Number(fl[1]) : null;
     const m = /^#liquidity\?(?:.*&)?(?:token|t)=(0x[0-9a-fA-F]{40})/.exec(location.hash);
     if (m && lc(m[1]) !== tokenAddr) { $("alq-addr").value = m[1]; load(m[1]); }
   }

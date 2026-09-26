@@ -124,6 +124,45 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
     const res = await io.calls(part.flatMap((p) => [{ to: L.LIQ_ADDR.positions, data: sel("getPositionLiquidity(uint256)") + pad(p.id) }, { to: L.LIQ_ADDR.positions, data: sel("ownerOf(uint256)") + pad(p.id) }]));
     part.forEach((p, j) => { const liq = big(res[2 * j]); const own = res[2 * j + 1]; if (liq > 0n && own) pos.push({ ...p, liquidity: liq, owner: lc(wAddr(own, 0)) }); });
   }
+  // ---- fees each position has earned and not collected yet ----
+  // feeGrowthInside from the pool's globals and the two ticks' "outside"
+  // values, minus what the position last recorded (StateLibrary layout:
+  // pool state slot +1/+2 globals, +4 ticks mapping, +6 positions mapping).
+  const feeBy = new Map();
+  try {
+    const M = (1n << 256n) - 1n, Q128 = 1n << 128n;
+    const sgn = (t) => BigInt.asUintN(256, BigInt(t)).toString(16).padStart(64, "0");
+    const tickSlot = (base, t) => io.keccak("0x" + sgn(t) + strip(L.plusSlot(base, 4)));
+    const posSlot = (base, q) => {
+      const t24 = (t) => (BigInt.asUintN(24, BigInt(t))).toString(16).padStart(6, "0");
+      const key = io.keccak("0x" + strip(L.LIQ_ADDR.positions) + t24(q.tl) + t24(q.tu) + pad(q.id));
+      return io.keccak(key + strip(L.plusSlot(base, 6)));
+    };
+    const calls = [], meta = [];
+    const bases = new Map(pools.map((p) => [p.id, L.poolSlot(p.id, io.keccak)]));
+    for (const p of pools) { const b = bases.get(p.id); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(b, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(b, 2)) }); meta.push(["g", p.id]); }
+    const tickKeys = new Set();
+    for (const q of pos) { const pid = lc(q.poolId); tickKeys.add(pid + "|" + q.tl); tickKeys.add(pid + "|" + q.tu); }
+    const tickList = [...tickKeys];
+    for (const k of tickList) { const [pid, t] = k.split("|"); const ts = tickSlot(bases.get(pid), Number(t)); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ts, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ts, 2)) }); }
+    for (const q of pos) { const ps = posSlot(bases.get(lc(q.poolId)), q); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ps, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ps, 2)) }); }
+    const r = calls.length ? await io.calls(calls) : [];
+    let i = 0;
+    const glob = new Map(); for (const p of pools) { glob.set(p.id, [big(r[i]), big(r[i + 1])]); i += 2; }
+    const outs = new Map(); for (const k of tickList) { outs.set(k, [big(r[i]), big(r[i + 1])]); i += 2; }
+    for (const q of pos) {
+      const pid = lc(q.poolId), p = pools.find((x) => x.id === pid);
+      const last = [big(r[i]), big(r[i + 1])]; i += 2;
+      const g = glob.get(pid), lo = outs.get(pid + "|" + q.tl), hi = outs.get(pid + "|" + q.tu);
+      const f = [0, 1].map((k) => {
+        const below = p.tick >= q.tl ? lo[k] : (g[k] - lo[k]) & M;
+        const above = p.tick < q.tu ? hi[k] : (g[k] - hi[k]) & M;
+        const inside = (g[k] - below - above) & M;
+        return (((inside - last[k]) & M) * q.liquidity) / Q128;
+      });
+      feeBy.set(q.id, f);
+    }
+  } catch (e) { /* fees are a nice-to-have: leave them out */ }
   // locks held in ArcLPLock
   const lockBy = new Map();
   const lp = L.LIQ_ADDR.lplock;
@@ -173,6 +212,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
         id: q.id, owner: q.owner, kind, label, lock, liquidity: q.liquidity.toString(), tl: q.tl, tu: q.tu, inRange, full: !!full,
         token: (tokenIs0 ? a0 : a1).toString(), quote: (tokenIs0 ? a1 : a0).toString(),
         mine: !!wallet && (q.owner === wallet || (lock && lc(lock.owner) === wallet)),
+        fees: feeBy.has(q.id) ? { token: feeBy.get(q.id)[tokenIs0 ? 0 : 1].toString(), quote: feeBy.get(q.id)[tokenIs0 ? 1 : 0].toString() } : null,
       };
     }).sort((a, b) => (big(b.liquidity) > big(a.liquidity) ? 1 : -1));
     const residual = p.liquidity > known ? p.liquidity - known : 0n;
@@ -199,4 +239,55 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
     launch: arcpad ? { venue: "ArcPad", creator: arcpad.creator || null } : argus ? { venue: "Argus", creator: argus.creator || null, locker: argusLocker } : null,
     lplock: lp || null, at: now,
   };
+}
+
+/// One ArcLPLock lock, for its certificate page and share card (/lplock/<id>).
+/// → { id, owner, tokenId, lockedAt, unlockAt, withdrawn, active, pair, token, quote, amounts, poolShare } or null
+export async function lockInfo(lockId, { store = null } = {}) {
+  const lp = L.LIQ_ADDR.lplock;
+  const id = Number(lockId);
+  if (!lp || !Number.isInteger(id) || id < 0) return null;
+  const ck = `lplockinfo/${id}`;
+  const cached = mem.get(ck);
+  if (cached && Date.now() - cached.at < 60e3) return cached.v;
+  const [lh, head] = await Promise.all([
+    io.calls([{ to: lp, data: sel("getLock(uint256)") + pad(id) }]).then((r) => r[0]),
+    io.rpc("eth_getBlockByNumber", ["latest", false]).catch(() => null),
+  ]);
+  if (!lh || strip(lh).length < 320) return null;
+  const owner = lc(wAddr(lh, 0)), tokenId = Number(wBig(lh, 1)), lockedAt = Number(wBig(lh, 2)), unlockAt = Number(wBig(lh, 3)), withdrawn = wBig(lh, 4) !== 0n;
+  const [ph, lqh] = await io.calls([
+    { to: L.LIQ_ADDR.positions, data: sel("getPoolAndPositionInfo(uint256)") + pad(tokenId) },
+    { to: L.LIQ_ADDR.positions, data: sel("getPositionLiquidity(uint256)") + pad(tokenId) },
+  ]);
+  if (!ph || strip(ph).length < 64 * 6) return null;
+  let ts = Number(wBig(ph, 3) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
+  const key = { currency0: lc(wAddr(ph, 0)), currency1: lc(wAddr(ph, 1)), fee: Number(wBig(ph, 2)), tickSpacing: ts, hooks: lc(wAddr(ph, 4)) };
+  const info = wBig(ph, 5);
+  const s24 = (n) => (n & 0x800000 ? n - 0x1000000 : n);
+  const tl = s24(Number((info >> 8n) & 0xffffffn)), tu = s24(Number((info >> 32n) & 0xffffffn));
+  const poolId = L.poolIdOf(key, io.keccak);
+  const slot = L.poolSlot(poolId, io.keccak);
+  const [s0, lq] = await io.calls([{ to: L.LIQ_ADDR.poolManager, data: sel("extsload(bytes32)") + strip(slot) }, { to: L.LIQ_ADDR.poolManager, data: sel("extsload(bytes32)") + strip(L.plusSlot(slot, 3)) }]);
+  const st = L.decodeSlot0(s0);
+  const active = lq ? big(lq) & ((1n << 128n) - 1n) : 0n;
+  const liq = big(lqh);
+  const cur = await meta([key.currency0, key.currency1]);
+  // the "token" is the side that isn't USDC
+  const usdcLike = (a) => a === L.LIQ_ADDR.usdc || a === L.ZERO_ADDR;
+  // the quote is USDC when there is one; otherwise the side with fewer decimals (stablecoins use 6)
+  const m0 = cur.get(key.currency0), m1 = cur.get(key.currency1);
+  const tokenIs0 = usdcLike(key.currency1) ? true : usdcLike(key.currency0) ? false : m1.decimals < m0.decimals ? true : m0.decimals < m1.decimals ? false : true;
+  const [a0, a1] = st.sqrtP ? L.amountsFor(st.sqrtP, tl, tu, liq) : [0n, 0n];
+  const token = tokenIs0 ? m0 : m1, quote = tokenIs0 ? m1 : m0;
+  const now = head && head.timestamp ? Number(BigInt(head.timestamp)) : Math.floor(Date.now() / 1000);
+  const inRange = tl <= st.tick && st.tick < tu;
+  const v = {
+    id, owner, tokenId, lockedAt, unlockAt, withdrawn, active: !withdrawn && unlockAt > now, now,
+    poolId, fee: key.fee, token, quote, full: tl <= L.minUsable(ts) && tu >= L.maxUsable(ts),
+    amounts: { token: (tokenIs0 ? a0 : a1).toString(), quote: (tokenIs0 ? a1 : a0).toString() },
+    poolShare: inRange && active > 0n ? Number((liq * 10000n) / active) / 100 : 0,
+  };
+  memSet(ck, { at: Date.now(), v });
+  return v;
 }
