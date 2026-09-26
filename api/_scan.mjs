@@ -310,20 +310,41 @@ export async function apiResult(token, { store = null } = {}) {
     engine: core.CORE_VERSION, scanned_at: new Date().toISOString(), page: `https://www.arcircle.app/s/${lc(token)}`,
   };
 }
-/// A small shields-style SVG: "ARCIRCLE PAD scan | 82 · Looks OK".
-export function badgeSvg(doc) {
+/// Embeddable badge (/badge/<address>): "Scanned by ARCIRCLE | 82/100 · Looks OK".
+/// style "card" is a bigger tile with a score ring, the ticker and the scan date.
+export function badgeSvg(doc, style = "pill") {
   const esc = (x) => String(x).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
-  const left = "ARCIRCLE PAD scan";
-  const right = !doc ? "not scanned" : doc.notToken ? "not a token" : `${doc.score} · ${doc.t}`;
-  const col = !doc || doc.notToken ? "#5b6472" : doc.k === "ok" ? "#1f9d57" : doc.k === "care" ? "#c98a12" : "#d0473a";
-  const w = (t) => Math.round(t.length * 6.4 + 16);
-  const lw = w(left) + 14, rw = w(right), W = lw + rw;
+  const ok = doc && !doc.notToken && Number.isFinite(doc.score);
+  const col = !ok ? "#5b6472" : doc.k === "ok" ? "#1f9d57" : doc.k === "care" ? "#c98a12" : "#d0473a";
+  const glow = !ok ? "#9aa4b2" : doc.k === "ok" ? "#39ff88" : doc.k === "care" ? "#ffc861" : "#ff6e5a";
+  const verdict = !doc ? "not scanned" : doc.notToken ? "not a token" : doc.t;
+  const mark = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke-width="1.7"><circle cx="5" cy="6" r="4.3" stroke="#35d8d0"/><circle cx="11" cy="6" r="4.3" stroke="#39ff88"/></g>`;
+  const FONT = 'font-family="Verdana,DejaVu Sans,Geneva,sans-serif"';
+  if (style === "card") {
+    const sym = ok && doc.sym ? "$" + String(doc.sym).slice(0, 12) : "Arc token";
+    const score = ok ? doc.score : null;
+    const C = 2 * Math.PI * 22, dash = score == null ? 0 : (C * score) / 100;
+    const date = doc && doc.at ? new Date(doc.at).toISOString().slice(0, 10) : "";
+    const label = `Scanned by ARCIRCLE: ${ok ? `${sym} ${score}/100, ${verdict}` : verdict}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="76" viewBox="0 0 260 76" role="img" aria-label="${esc(label)}"><title>${esc(label)}</title>
+<rect x=".5" y=".5" width="259" height="75" rx="12" fill="#0b1320" stroke="${glow}" stroke-opacity=".55"/>
+<circle cx="38" cy="38" r="22" fill="none" stroke="#1d2a38" stroke-width="6"/>
+${score == null ? "" : `<circle cx="38" cy="38" r="22" fill="none" stroke="${glow}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 38 38)"/>`}
+<text x="38" y="${score == null ? 42 : 43}" text-anchor="middle" ${FONT} font-size="${score == null ? 11 : 15}" font-weight="bold" fill="#fff">${score == null ? "—" : score}</text>
+<text x="74" y="27" ${FONT} font-size="14" font-weight="bold" fill="#fff">${esc(sym)}</text>
+<text x="74" y="44" ${FONT} font-size="11" font-weight="bold" fill="${glow}">${esc(ok ? `${score}/100 · ${verdict}` : verdict)}</text>
+${mark(74, 53, 0.85)}<text x="90" y="63" ${FONT} font-size="9" fill="#9fb0c4">Scanned by ARCIRCLE${date ? ` · ${date}` : ""}</text></svg>`;
+  }
+  const left = "Scanned by ARCIRCLE";
+  const right = ok ? `${doc.score}/100 · ${verdict}` : verdict;
+  const lt = Math.round(left.length * 6.3), rt = Math.round(right.length * 7.1); // Verdana 11px, bold on the right
+  const lw = 24 + lt + 8, rw = rt + 16, W = lw + rw;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="22" role="img" aria-label="${esc(left)}: ${esc(right)}"><title>${esc(left)}: ${esc(right)}</title>
-<linearGradient id="g" x2="0" y2="100%"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-opacity=".1"/></linearGradient>
-<clipPath id="r"><rect width="${W}" height="22" rx="4"/></clipPath>
-<g clip-path="url(#r)"><rect width="${lw}" height="22" fill="#0b1320"/><rect x="${lw}" width="${rw}" height="22" fill="${col}"/><rect width="${W}" height="22" fill="url(#g)"/></g>
-<g fill="none" stroke="#35d8d0" stroke-width="1.6"><path d="M11 4.5l5 2.1v3.8c0 3.1-2.1 5.8-5 6.7-2.9-.9-5-3.6-5-6.7V6.6z"/></g>
-<g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11"><text x="${(lw + 14) / 2}" y="15">${esc(left)}</text><text x="${lw + rw / 2}" y="15" font-weight="bold">${esc(right)}</text></g></svg>`;
+<linearGradient id="arcb-g${W}" x2="0" y2="100%"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+<clipPath id="arcb-r${W}"><rect width="${W}" height="22" rx="4"/></clipPath>
+<g clip-path="url(#arcb-r${W})"><rect width="${lw}" height="22" fill="#0b1320"/><rect x="${lw}" width="${rw}" height="22" fill="${col}"/><rect width="${W}" height="22" fill="url(#arcb-g${W})"/></g>
+${mark(5, 5)}
+<g fill="#fff" ${FONT} font-size="11"><text x="24" y="15" textLength="${lt}" lengthAdjust="spacingAndGlyphs">${esc(left)}</text><text x="${lw + 8}" y="15" font-weight="bold" textLength="${rt}" lengthAdjust="spacingAndGlyphs">${esc(right)}</text></g></svg>`;
 }
 
 // ---- Telegram watch list: "/watch 0x…" in the bot, checked every 15 min ----

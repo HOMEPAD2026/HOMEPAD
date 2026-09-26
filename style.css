@@ -5527,6 +5527,12 @@ nav.ax-dock.has-glider > .ax-dock-item[aria-current="page"]{background:none;box-
 .asc-embed-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.7rem;color:rgba(222,233,244,.5);}
 .asc-embed-foot button{padding:6px 12px;border-radius:9px;border:1px solid rgba(77,159,255,.45);background:rgba(77,159,255,.1);color:#fff;font:inherit;font-size:.74rem;font-weight:700;cursor:pointer;}
 .asc-embed-foot button.ok{border-color:#39ff88;color:#8dffc0;}
+.asc-embed-prev{display:flex;align-items:center;min-height:84px;padding:10px 12px;margin-bottom:10px;border-radius:10px;background:repeating-conic-gradient(rgba(255,255,255,.035) 0 25%,transparent 0 50%) 0 0/16px 16px;}
+.asc-embed-prev img{max-width:100%;height:auto;}
+.asc-embed-opts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.asc-seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);}
+.asc-seg button{padding:5px 10px;border:0;border-radius:7px;background:none;color:rgba(222,233,244,.7);font:inherit;font-size:.72rem;font-weight:600;cursor:pointer;}
+.asc-seg button[aria-pressed="true"]{background:rgba(77,159,255,.2);color:#fff;}
 /* timeline reveal, compare slide-in */
 .asc-timeline li{opacity:1;}
 .asc-timeline:not(.in) li{opacity:0;transform:translateX(-6px);}
@@ -7184,3 +7190,45 @@ body.cp-ph-voting #bp-panel-home .bp-hero,body.cp-ph-result #bp-panel-home .bp-h
 .bp-gov-cat[data-kind="logo"] .gv-pw,.bp-gov-cat[data-kind="ticker"] .gv-pw{margin-left:auto;}
 .cp-wc-empty{grid-template-columns:auto 1fr;}
 .cp-wc-empty p{margin:0;font-size:.82rem;color:#c9d4de;}
+
+/* ---- CirclePad: the race for #1 ---- */
+.cp-race{margin-top:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,209,102,.3);background:linear-gradient(135deg,rgba(255,209,102,.08),rgba(0,0,0,.2));font-size:.82rem;line-height:1.5;color:#e6ece8;text-align:left;}
+.cp-race[hidden]{display:none !important;}
+.cp-race-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cp-race-head p{margin:0;flex:1 1 180px;}
+.cp-race-head b{color:#fff;}
+.cp-race .gv-crown{margin:0;}
+.cp-race-fill{flex:none;padding:6px 12px;border-radius:99px;border:1px solid rgba(255,209,102,.5);background:rgba(255,209,102,.12);color:#ffe3a3;font-weight:600;font-size:.76rem;font-family:inherit;cursor:pointer;}
+.cp-race-fill:hover{background:rgba(255,209,102,.22);}
+.cp-race-preview{margin:8px 0 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.04);color:#c9d4de;}
+.cp-race-preview.win{background:rgba(57,255,136,.08);color:#9dffc7;}
+.cp-race-preview b{color:inherit;}
+.cp-race-note{margin:8px 0 0;font-size:.7rem;color:var(--ink-dim);}
+.cp-lb-crown{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:4px;vertical-align:-2px;color:#ffd166;filter:drop-shadow(0 0 5px rgba(255,209,102,.6));}
+.cp-lb-crown svg{width:14px;height:14px;fill:currentColor;}
+.cp-lb-crown.new{animation:gvCrown .7s cubic-bezier(.3,1.6,.5,1) .6s both;}
+.cp-crown-fly{position:fixed;z-index:130;width:26px;height:26px;margin:-13px 0 0 -13px;color:#ffd166;pointer-events:none;filter:drop-shadow(0 0 10px rgba(255,209,102,.8));animation:cpCrownFly .75s cubic-bezier(.5,-.3,.3,1.3) forwards;}
+.cp-crown-fly svg{width:100%;height:100%;fill:currentColor;}
+@keyframes cpCrownFly{0%{transform:translate(0,0) scale(1) rotate(0);}50%{transform:translate(calc(var(--dx) * .5),calc(var(--dy) * .5 - 40px)) scale(1.5) rotate(-12deg);}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(0);}}
+.bp-mini-stat.cp-lead-new{animation:cpLeadNew 1.4s ease-out;}
+.bp-mini-stat.cp-lead-new svg{animation:gvCrown .7s cubic-bezier(.3,1.6,.5,1) both;color:#ffd166;}
+@keyframes cpLeadNew{0%{box-shadow:0 0 0 0 rgba(255,209,102,.55);border-color:rgba(255,209,102,.7);}100%{box-shadow:0 0 0 14px rgba(255,209,102,0);}}
+@media (prefers-reduced-motion:reduce){.cp-lb-crown.new,.cp-crown-fly,.bp-mini-stat.cp-lead-new,.bp-mini-stat.cp-lead-new svg{animation:none !important;}}
+
+/* ---- page to page: the dock, quick bar and logo carry over (cross-document View Transitions) ---- */
+@view-transition{navigation:auto;}
+nav.ax-dock{view-transition-name:ax-dock;}
+nav.ax-quick{view-transition-name:ax-quick;}
+.ax-brand,.bp-side-logo-row{view-transition-name:site-brand;}
+::view-transition-group(ax-dock),::view-transition-group(ax-quick),::view-transition-group(site-brand){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.8,.2,1);}
+::view-transition-old(ax-dock),::view-transition-new(ax-dock),::view-transition-old(ax-quick),::view-transition-new(ax-quick){animation:none;mix-blend-mode:normal;}
+::view-transition-old(ax-dock){display:none;}
+::view-transition-old(ax-quick){display:none;}
+@keyframes axPageOut{to{opacity:0;transform:translateY(-6px);}}
+@keyframes axPageIn{from{opacity:0;transform:translateY(10px);}}
+::view-transition-old(root){animation:axPageOut .22s ease-in both;}
+::view-transition-new(root){animation:axPageIn .34s cubic-bezier(.2,.8,.2,1) .06s both;}
+@media (prefers-reduced-motion:reduce){
+  @view-transition{navigation:none;}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important;}
+}

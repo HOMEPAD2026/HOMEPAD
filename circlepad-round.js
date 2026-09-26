@@ -374,9 +374,114 @@
     document.addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", k); } });
   }
 
+  // ================= the race for #1 (the top contributor gets the 15%) =================
+  const WEI = 10n ** 18n, CENT = 10n ** 16n;
+  const me = () => (typeof state !== "undefined" && state && state.account ? String(state.account).toLowerCase() : "");
+  const plain = (wei) => { const c = (wei + CENT - 1n) / CENT; return `${c / 100n}.${String(c % 100n).padStart(2, "0")}`; }; // up to the cent, for the input
+  const parseAmt = (s) => { const m = /^\s*(\d*)(?:\.(\d*))?\s*$/.exec(String(s || "")); if (!m || (!m[1] && !m[2])) return 0n; return BigInt(m[1] || "0") * WEI + BigInt(((m[2] || "") + "0".repeat(18)).slice(0, 18)); };
+  const race = document.createElement("div");
+  race.className = "cp-race"; race.id = "cp-race"; race.hidden = true; race.setAttribute("aria-live", "polite");
+  const cbtn = $("bp-contribute-btn");
+  if (cbtn) cbtn.insertAdjacentElement("afterend", race);
+  const input = $("bp-contribute-amount");
+  function rankWith(list, addr, extra) {
+    // rank of `addr` after adding `extra`; equal amounts keep the earlier wallet ahead
+    const mineNow = (list.find((r) => r.address.toLowerCase() === addr) || {}).amount || 0n;
+    const after = mineNow + extra;
+    const ahead = list.filter((r) => r.address.toLowerCase() !== addr && r.amount >= after).length;
+    return { rank: ahead + 1, after };
+  }
+  function paintRace() {
+    const list = rows(), r = R();
+    if (!r || phase() !== "raise" || !list.length) { race.hidden = true; return; }
+    race.hidden = false;
+    const top = list[0], w = me();
+    const mineRow = w ? list.find((x) => x.address.toLowerCase() === w) : null;
+    const myRank = mineRow ? list.indexOf(mineRow) + 1 : 0;
+    let head, fill = 0n;
+    if (mineRow && myRank === 1) {
+      const second = list[1];
+      head = second
+        ? `<b>${T("You're #1")}</b> <span>${T("ahead by")}</span> <b data-no-i18n>${usdc(mineRow.amount - second.amount)} USDC</b>`
+        : `<b>${T("You're #1")}</b> <span>${T("— the only contributor so far.")}</span>`;
+    } else {
+      const gap = top.amount - (mineRow ? mineRow.amount : 0n);
+      fill = gap + 1n;
+      head = mineRow
+        ? `<span>${T("Your rank:")}</span> <b data-no-i18n>#${myRank}</b><span>.</span> <span>${T("Put in more than")}</span> <b data-no-i18n>${usdc(gap)} USDC</b> <span>${T("to take #1.")}</span>`
+        : `<span>${T("#1 right now:")}</span> <b data-no-i18n>${short(top.address)}</b> <b data-no-i18n>(${usdc(top.amount)} USDC)</b><span>.</span> <span>${T("Put in more than that to take #1.")}</span>`;
+    }
+    // what the amount being typed would do
+    let preview = "";
+    const typed = input ? parseAmt(input.value) : 0n;
+    if (typed > 0n) {
+      const who = w || "0x0000000000000000000000000000000000000000";
+      const { rank } = rankWith(list, who, typed);
+      if (rank === 1) {
+        const others = list.filter((x) => x.address.toLowerCase() !== who);
+        const lead = others.length ? rankWith(list, who, typed).after - others[0].amount : 0n;
+        preview = `<p class="cp-race-preview win">${others.length ? `<span>${T("With this you'd be #1, ahead by")}</span> <b data-no-i18n>${usdc(lead)} USDC</b>` : `<span>${T("With this you'd be #1")}</span>`}</p>`;
+      } else preview = `<p class="cp-race-preview"><span>${T("With this you'd be")}</span> <b data-no-i18n>#${rank}</b></p>`;
+    }
+    const fillBtn = fill > 0n && input ? `<button type="button" class="cp-race-fill" data-cp-fill="${plain(fill)}"><span>${T("Use")}</span> <b data-no-i18n>${plain(fill)} USDC</b></button>` : "";
+    const html = `<div class="cp-race-head"><span class="gv-crown" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></span><p>${head}</p>${fillBtn}</div>${preview}
+      <p class="cp-race-note">${T("The top contributor at the close receives the 15%, over 3 days. Contributions can be withdrawn until the close, so #1 can change up to the last second — only the ranking at the close counts.")}</p>`;
+    if (race.__html !== html) { race.innerHTML = html; race.__html = html; }
+  }
+  race.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cp-fill]");
+    if (!b || !input) return;
+    input.value = b.dataset.cpFill;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+  });
+  if (input) input.addEventListener("input", paintRace);
+
+  // ================= #1 changes hands: the crown moves =================
+  let leaderWas = null;
+  const bornAt = Date.now(); // the first renders (cache, then chain) aren't a hand-off
+  function crownHandOff() {
+    const list = rows();
+    const now = list.length ? list[0].address.toLowerCase() : null;
+    const prev = leaderWas;
+    leaderWas = now;
+    // a crown on every #1 row
+    document.querySelectorAll("#bp-full-leaderboard .bp-lb-row, #bp-home-leaderboard .bp-lb-row").forEach((row) => {
+      const isTop = row.classList.contains("cp-top1");
+      let c = row.querySelector(".cp-lb-crown");
+      if (isTop && !c) { c = document.createElement("span"); c.className = "cp-lb-crown"; c.setAttribute("aria-label", tr("Top contributor")); c.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>'; row.querySelector(".bp-lb-rank").appendChild(c); }
+      if (!isTop && c) c.remove();
+    });
+    if (!prev || !now || prev === now || phase() !== "raise" || Date.now() - bornAt < 8000) return;
+    const statEl = $("bp-stat-lead");
+    const card = statEl && statEl.closest(".bp-mini-stat");
+    if (card && !reduce()) { card.classList.remove("cp-lead-new"); void card.offsetWidth; card.classList.add("cp-lead-new"); }
+    const w = me(), row = list[0];
+    const msg = now === w ? tr("You took #1 — the 15% is yours if it holds at the close.")
+      : prev === w ? `${tr("You lost #1 to")} ${short(now)} (${usdc(row.amount)} USDC)`
+      : `${tr("New #1:")} ${short(now)} · ${usdc(row.amount)} USDC`;
+    if (typeof cpToast === "function") cpToast(msg, "ok");
+    if (reduce()) return;
+    // fly a crown from the old leader's row to the new one
+    const find = (a) => [...document.querySelectorAll("#bp-full-leaderboard .bp-lb-row, #bp-home-leaderboard .bp-lb-row")].filter((r) => r.offsetParent && (r.querySelector(".bp-lb-ext") || { getAttribute: () => "" }).getAttribute("href").toLowerCase().endsWith(a));
+    const from = find(prev)[0], to = find(now)[0];
+    const toCrown = to && to.querySelector(".cp-lb-crown");
+    if (toCrown) { toCrown.classList.remove("new"); void toCrown.offsetWidth; toCrown.classList.add("new"); }
+    if (!from || !toCrown) return;
+    const a = from.querySelector(".bp-lb-rank").getBoundingClientRect(), b = toCrown.getBoundingClientRect();
+    const fly = document.createElement("span");
+    fly.className = "cp-crown-fly"; fly.setAttribute("aria-hidden", "true");
+    fly.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
+    fly.style.cssText = `left:${a.left + a.width / 2}px;top:${a.top + a.height / 2}px;--dx:${b.left + b.width / 2 - (a.left + a.width / 2)}px;--dy:${b.top + b.height / 2 - (a.top + a.height / 2)}px`;
+    document.body.appendChild(fly);
+    toCrown.style.opacity = "0";
+    setTimeout(() => { fly.remove(); toCrown.style.opacity = ""; }, 800);
+  }
+  document.addEventListener("circlepad:lb", () => { try { paintRace(); crownHandOff(); } catch (err) { console.warn("circlepad-round race", err); } });
+
   // ================= wiring =================
   function paintAll() {
-    try { paintStrip(); paintHero(); paintNext(); paintTimeline(); paintProjects(); paintTreasury(); paintBallotNav(); } catch (err) { console.warn("circlepad-round", err); }
+    try { paintStrip(); paintHero(); paintNext(); paintTimeline(); paintProjects(); paintTreasury(); paintBallotNav(); paintRace(); } catch (err) { console.warn("circlepad-round", err); }
   }
   document.addEventListener("circlepad:state", paintAll);
   document.addEventListener("circlepad:lb", paintAll);

@@ -614,7 +614,7 @@
   function shareX() {
     if (!cur || !cur.res) return;
     const r = cur.res;
-    const text = `$${cur.c.symbol} on the ARCIRCLE PAD Token Scanner: ${r.score}/100 · ${r.verdict.t}\n${r.reasons.map((x) => (x.status === "pass" ? "✓ " : "• ") + x.title).join("\n")}`;
+    const text = `$${cur.c.symbol} — scanned by ARCIRCLE: ${r.score}/100 · ${r.verdict.t}\n${r.reasons.map((x) => (x.status === "pass" ? "✓ " : "• ") + x.title).join("\n")}`;
     const url = `${location.origin}/s/${cur.addr}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
   }
@@ -731,14 +731,31 @@
     const h = $("asc-head");
     let box = h.querySelector(".asc-embed");
     if (box) { box.remove(); return; }
-    const url = `${location.origin}/badge/${cur.addr}`, link = `${location.origin}/s/${cur.addr}`;
-    const code = `<a href="${link}" target="_blank" rel="noopener"><img src="${url}" alt="ARCIRCLE PAD scan" height="22"></a>`;
     box = document.createElement("div");
     box.className = "asc-embed";
-    box.innerHTML = `<div class="asc-embed-top"><b>${esc(tr("Show this score on your site"))}</b><img src="${esc(url)}" alt="" height="22"></div>
-      <code data-no-i18n>${esc(code)}</code><div class="asc-embed-foot"><button type="button" data-copy="${esc(code)}">${esc(tr("Copy code"))}</button><span>${esc(tr("The badge updates by itself — it re-scans every few hours."))}</span></div>`;
+    box.dataset.style = "pill"; box.dataset.fmt = "html";
     h.appendChild(box);
+    paintEmbed(box);
   }
+  function paintEmbed(box) {
+    const st = box.dataset.style, fmt = box.dataset.fmt;
+    const img = `${location.origin}/badge/${cur.addr}${st === "card" ? "?style=card" : ""}`, link = `${location.origin}/s/${cur.addr}`;
+    const hgt = st === "card" ? 76 : 22, alt = "Scanned by ARCIRCLE";
+    const code = fmt === "md" ? `[![${alt}](${img})](${link})` : fmt === "url" ? img : `<a href="${link}" target="_blank" rel="noopener"><img src="${img}" alt="${alt}" height="${hgt}"></a>`;
+    const seg = (key, cur2, opts) => `<div class="asc-seg" role="group">${opts.map(([v, l]) => `<button type="button" data-embed-${key}="${v}" aria-pressed="${v === cur2}">${esc(tr(l))}</button>`).join("")}</div>`;
+    box.innerHTML = `<div class="asc-embed-top"><b>${esc(tr("Show this score on your site, README or docs"))}</b></div>
+      <div class="asc-embed-prev"><img src="${esc(img)}" alt="" height="${hgt}"></div>
+      <div class="asc-embed-opts">${seg("style", st, [["pill", "Badge"], ["card", "Card"]])}${seg("fmt", fmt, [["html", "HTML"], ["md", "Markdown"], ["url", "Image link"]])}</div>
+      <code data-no-i18n>${esc(code)}</code><div class="asc-embed-foot"><button type="button" data-copy="${esc(code)}">${esc(tr("Copy code"))}</button><span>${esc(tr("It links back to this scan and updates by itself — the token is re-scanned every few hours."))}</span></div>`;
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-embed-style],[data-embed-fmt]");
+    const box = b && b.closest(".asc-embed");
+    if (!box || !cur) return;
+    if (b.dataset.embedStyle) box.dataset.style = b.dataset.embedStyle;
+    if (b.dataset.embedFmt) box.dataset.fmt = b.dataset.embedFmt;
+    paintEmbed(box);
+  });
 
   // =====================================================================
   // Explore cards: a small safety score on every coin (cached server scans)

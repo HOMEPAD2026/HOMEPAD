@@ -10,7 +10,7 @@
 //   GET  /api/social?scan=0x…[&sym=X]           Token Scanner holders + history (api/_scan.mjs)
 //   GET  /api/social?scans=top                   most scanned tokens this week
 //   GET  /api/social?scores=0x…,0x…              cached Token Scanner scores (Explore badges)
-//   GET  /api/social?badge=0x…                   embeddable SVG badge   (/badge/<address>)
+//   GET  /api/social?badge=0x…[&style=card]      embeddable SVG badge   (/badge/<address>[?style=card])
 //   GET  /api/social?scanapi=0x…                 public scan JSON       (/api/v1/scan/<address>)
 //   GET  /api/social?watchtick=1                 Telegram watch check (x-watch-key header)
 //   GET  /api/social?bridgehist=0x…              a wallet's CCTP transfers seen on Arc (api/_bridge.mjs)
@@ -223,7 +223,7 @@ export async function GET(req) {
     const t = lc(url.searchParams.get("badge"));
     let d = null;
     if (isAddr(t) && !scanner.limited(`badge:${ip}`, 60, 60e3)) d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3 }).catch(() => null);
-    return new Response(scanner.badgeSvg(d), { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400", "access-control-allow-origin": "*" } });
+    return new Response(scanner.badgeSvg(d, url.searchParams.get("style") === "card" ? "card" : "pill"), { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400", "access-control-allow-origin": "*" } });
   }
   // Public JSON: /api/v1/scan/<address>
   if (url.searchParams.has("scanapi")) {
