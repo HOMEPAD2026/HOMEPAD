@@ -161,7 +161,7 @@ async function onWatch(msg, chat, cmd, addr, bot) {
   } catch { r = null; }
   if (!r || !r.ok) { await say(r && r.error ? h(r.error) : "Couldn't update the watch list right now — try again in a minute."); return json(200, { ok: true }); }
   const list = (r.mine || []).map((t) => `<code>${t}</code>`).join("\n");
-  await say(cmd === "watch" ? `Watching <code>${h(addr)}</code>. You'll hear here if its owner, supply or liquidity changes (checked every 15 minutes).`
+  await say(cmd === "watch" ? `Watching <code>${h(addr)}</code>. You'll hear here if its owner, supply or liquidity changes, if locked liquidity drops, or when an LP lock is about to end (checked every 15 minutes).`
     : cmd === "unwatch" ? `Stopped watching <code>${h(addr)}</code>.` : list ? `Watching:\n${list}` : "Nothing watched yet — send <code>/watch 0x…</code>.");
   return json(200, { ok: true });
 }

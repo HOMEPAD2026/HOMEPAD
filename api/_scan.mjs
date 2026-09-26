@@ -289,7 +289,8 @@ export async function scoreOf(token, { store = null, maxAgeMs = 30 * 60e3, compu
   const out = await scanToken(token, { store, budgetMs: 5000 });
   const r = out.res;
   const doc = r.notToken ? { v: core.CORE_VERSION, notToken: true, at: Date.now() }
-    : { v: core.CORE_VERSION, score: r.score, k: r.verdict.k, t: r.verdict.t, sym: (out.c && out.c.symbol) || "", reasons: r.reasons.map((x) => `${x.status}|${x.title}`), at: Date.now() };
+    : { v: core.CORE_VERSION, score: r.score, k: r.verdict.k, t: r.verdict.t, sym: (out.c && out.c.symbol) || "", reasons: r.reasons.map((x) => `${x.status}|${x.title}`),
+      trade: r.rows.filter((x) => x.group === "trade").map((x) => `${x.status}|${x.title}`), at: Date.now() };
   scoreMem.set(token, doc);
   if (store) { try { await store.set(key, doc); } catch { /* memory copy */ } }
   return doc;
@@ -353,8 +354,18 @@ export async function tgWatchTick(store) {
     const p = m && m.pairs && m.pairs[0];
     const now = { owner: c.owner || "", supply: c.supply || "0", liq: p ? Math.round(p.liq) : null, sym: c.symbol || "" };
     const old = snaps[t];
+    // LP locks (Liquidity Manager): how much of the liquidity can't be pulled, and the next lock to end
+    let lp = null;
+    try { const Lm = await import("./_liquidity.mjs"); lp = core.lpSummary(await Lm.run(t, { store, budgetMs: 4000 })); } catch { lp = null; }
+    now.lp = lp ? { safe: Math.round((lp.locked + lp.burned) * 10) / 10, soonest: lp.soonest || null, warned: (old && old.lp && old.lp.warned) || null } : (old && old.lp) || null;
     if (old) {
       const msgs = [];
+      if (old.lp && lp && now.lp.safe < old.lp.safe - 15) msgs.push(`locked liquidity fell from ${old.lp.safe}% to ${now.lp.safe}%`);
+      const sec = Date.now() / 1000;
+      if (lp && lp.soonest && lp.soonest > sec && lp.soonest - sec < 86400 && now.lp.warned !== lp.soonest) {
+        msgs.push(`an LP lock ends in under 24 hours (${new Date(lp.soonest * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC)`);
+        now.lp.warned = lp.soonest;
+      }
       if (lc(old.owner) !== lc(now.owner)) msgs.push(core.BURN.includes(lc(now.owner)) ? "ownership was renounced" : `the owner changed to ${core.short(now.owner)}`);
       if (old.supply !== now.supply) msgs.push(BigInt(now.supply) > BigInt(old.supply || 0) ? "new tokens were minted" : "the supply went down");
       if (old.liq && now.liq != null && now.liq < old.liq * 0.7) msgs.push(`liquidity fell ${Math.round((1 - now.liq / old.liq) * 100)}% (to ${core.usd(now.liq)})`);

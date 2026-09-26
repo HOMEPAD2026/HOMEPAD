@@ -9,7 +9,7 @@
 // record, and Dexscreener's pair list. Liquidity that isn't an NFT (an ArcPad
 // launch position sits in the PoolManager under the factory's own name) shows
 // up as the part of the active liquidity no known position accounts for.
-import { isAddr } from "./_arc.mjs";
+import { isAddr, getLogs, latestBlock, blockTs, pool, toQty } from "./_arc.mjs";
 import * as snapCore from "./_snap-core.mjs";
 import * as scanCore from "./_scan-core.mjs";
 import * as L from "./_liq-core.mjs";
@@ -408,4 +408,107 @@ export async function lockInfo(lockId, { store = null } = {}) {
   };
   memSet(ck, { at: Date.now(), v });
   return v;
+}
+
+// ---------------------------------------------------------------- activity feed
+// Liquidity added to / taken out of these pools (PoolManager ModifyLiquidity)
+// and ArcLPLock locks, withdrawals and extensions, over the last `hours`.
+const T_MODIFY = "ModifyLiquidity(bytes32,address,int24,int24,int256,bytes32)";
+const T_LOCKED = "Locked(uint256,address,uint256,uint64)", T_WITHDRAWN = "Withdrawn(uint256,address,uint256)", T_EXTENDED = "Extended(uint256,uint64)";
+const FEED_CHUNK = 9000;
+export async function feed(poolIds, { hours = 24 } = {}) {
+  const ids = [...new Set((poolIds || []).map(lc).filter((x) => /^0x[0-9a-f]{64}$/.test(x)))].slice(0, 12);
+  if (!ids.length) throw Object.assign(new Error("pools must be pool ids"), { status: 400 });
+  hours = Math.max(1, Math.min(72, Number(hours) || 24));
+  const latest = await latestBlock();
+  let spb = 0.5;
+  try {
+    const back = Math.max(0, latest.number - 20000), ts = await blockTs(back);
+    const m = (latest.ts - ts) / Math.max(1, latest.number - back);
+    if (m > 0.05 && m < 20) spb = m;
+  } catch { /* default */ }
+  const lo = Math.max(0, latest.number - Math.ceil((hours * 3600) / spb));
+  const ranges = [];
+  for (let a = lo; a <= latest.number; a += FEED_CHUNK) ranges.push([a, Math.min(latest.number, a + FEED_CHUNK - 1)]);
+  const topic = (s) => io.keccak("0x" + Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join(""));
+  const [tM, tL, tW, tE] = [T_MODIFY, T_LOCKED, T_WITHDRAWN, T_EXTENDED].map(topic);
+  const lp = L.LIQ_ADDR.lplock;
+  const [mods, locks] = await Promise.all([
+    pool(ranges, 8, ([a, b]) => getLogs({ address: L.LIQ_ADDR.poolManager, topics: [tM, ids], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()),
+    lp ? pool(ranges, 8, ([a, b]) => getLogs({ address: lp, topics: [[tL, tW, tE]], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()) : [],
+  ]);
+  const s24 = (h) => { const v = BigInt.asIntN(24, BigInt("0x" + h.slice(-6))); return Number(v); };
+  const pos = lc(L.LIQ_ADDR.positions);
+  const out = [];
+  for (const l of mods) {
+    const d = strip(l.data), w = (k) => d.slice(k * 64, (k + 1) * 64);
+    const delta = BigInt.asIntN(256, BigInt("0x" + w(2)));
+    if (delta === 0n) continue; // a fee collection, not a liquidity change
+    const sender = "0x" + strip(l.topics[2]).slice(24);
+    out.push({ k: delta > 0n ? "add" : "remove", b: parseInt(l.blockNumber, 16), i: parseInt(l.logIndex, 16), h: l.transactionHash, pool: lc(l.topics[1]),
+      sender, tl: s24(w(0)), tu: s24(w(1)), liq: (delta < 0n ? -delta : delta).toString(), id: lc(sender) === pos ? Number(BigInt("0x" + w(3))) : null });
+  }
+  for (const l of locks) {
+    const t0 = l.topics[0], d = strip(l.data);
+    const e = { b: parseInt(l.blockNumber, 16), i: parseInt(l.logIndex, 16), h: l.transactionHash, lockId: Number(BigInt(l.topics[1])) };
+    if (t0 === tL) out.push({ ...e, k: "lock", id: Number(BigInt(l.topics[3])), unlockAt: Number(BigInt("0x" + d.slice(0, 64))) });
+    else if (t0 === tW) out.push({ ...e, k: "withdraw", id: Number(BigInt(l.topics[3])) });
+    else if (t0 === tE) out.push({ ...e, k: "extend", unlockAt: Number(BigInt("0x" + d.slice(0, 64))) });
+  }
+  out.sort((x, y) => (y.b - x.b) || (y.i - x.i));
+  return { pools: ids, hours, lo, hi: latest.number, anchor: { block: latest.number, ts: latest.ts }, spb, events: out.slice(0, 80) };
+}
+
+// ---------------------------------------------------------------- one wallet's positions, every token
+// Owners aren't in the index (they change), so this reads ownerOf for every
+// position — kept for a couple of minutes per instance, resumable across calls.
+const ownerMem = new Map(); // id → [owner, at]
+export async function mine(wallet, { store = null, budgetMs = 8000 } = {}) {
+  const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
+  wallet = lc(wallet);
+  if (!isAddr(wallet)) throw Object.assign(new Error("wallet must be an address"), { status: 400 });
+  const ix = await positionsIndex(store, () => left() < 3000);
+  if (!ix.done) return { done: false, progress: ix.progress * 0.5 };
+  const fresh = Date.now() - 120e3;
+  const need = ix.rows.filter((r) => { const o = ownerMem.get(r.id); return !o || o[1] < fresh; });
+  const selO = sel("ownerOf(uint256)");
+  for (let i = 0; i < need.length && left() > 1500; i += 400) {
+    const part = need.slice(i, i + 400);
+    const res = await io.calls(part.map((r) => ({ to: L.LIQ_ADDR.positions, data: selO + pad(r.id) })));
+    part.forEach((r, j) => ownerMem.set(r.id, [res[j] ? lc(wAddr(res[j], 0)) : "", Date.now()]));
+  }
+  const done = ix.rows.filter((r) => { const o = ownerMem.get(r.id); return o && o[1] >= fresh; }).length;
+  if (done < ix.rows.length) return { done: false, progress: 0.5 + (done / Math.max(1, ix.rows.length)) * 0.5 };
+  // positions sitting in ArcLPLock under this wallet's name
+  const locked = new Map();
+  const lp = L.LIQ_ADDR.lplock;
+  if (lp) {
+    const [h] = await io.calls([{ to: lp, data: sel("locksOfOwner(address)") + pad(wallet) }]);
+    if (h) {
+      const x = strip(h), idsOff = Number(BigInt("0x" + x.slice(0, 64))) * 2, outOff = Number(BigInt("0x" + x.slice(64, 128))) * 2;
+      const n = Number(BigInt("0x" + x.slice(idsOff, idsOff + 64)));
+      for (let k = 0; k < n; k++) {
+        const b = outOff + 64 + k * 5 * 64, w = (m) => x.slice(b + m * 64, b + (m + 1) * 64);
+        if (BigInt("0x" + w(4)) === 0n) locked.set(Number(BigInt("0x" + w(1))), Number(BigInt("0x" + w(3))));
+      }
+    }
+  }
+  const hits = ix.rows.filter((r) => ownerMem.get(r.id)[0] === wallet || locked.has(r.id));
+  const liqs = hits.length ? await io.calls(hits.map((r) => ({ to: L.LIQ_ADDR.positions, data: sel("getPositionLiquidity(uint256)") + pad(r.id) }))) : [];
+  const live = hits.filter((_, j) => big(liqs[j]) > 0n);
+  const cur = await meta(live.flatMap((r) => [r.c0, r.c1]));
+  const QUOTES = [L.ZERO_ADDR, "0x3600000000000000000000000000000000000000"];
+  const byPool = new Map();
+  for (const r of live) {
+    const g = byPool.get(r.poolId) || { poolId: r.poolId, fee: r.key.fee, positions: 0, locked: 0, c0: cur.get(lc(r.c0)), c1: cur.get(lc(r.c1)) };
+    g.positions++; if (locked.has(r.id)) g.locked++;
+    byPool.set(r.poolId, g);
+  }
+  const pools = [...byPool.values()].map((g) => {
+    // the quote is USDC (ERC-20 or native) when there is one, else the side with fewer decimals
+    const tokenSide = QUOTES.includes(lc(g.c0.address)) ? g.c1 : QUOTES.includes(lc(g.c1.address)) ? g.c0 : g.c1.decimals < g.c0.decimals ? g.c0 : g.c1;
+    const quoteSide = tokenSide === g.c0 ? g.c1 : g.c0;
+    return { poolId: g.poolId, feePct: L.feePct(g.fee), positions: g.positions, locked: g.locked, token: tokenSide, quote: quoteSide };
+  }).sort((a, b) => b.positions - a.positions);
+  return { done: true, wallet, pools };
 }

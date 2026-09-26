@@ -36,6 +36,9 @@
     "function modifyLiquidities(bytes unlockData, uint256 deadline) payable",
     "function safeTransferFrom(address from, address to, uint256 id, bytes data)",
     "function nextTokenId() view returns (uint256)",
+    "function multicall(bytes[] data) payable returns (bytes[] results)",
+    "function initializePool(tuple(address,address,uint24,int24,address) key, uint160 sqrtPriceX96) payable returns (int24)",
+    "function permitBatch(address owner, tuple(tuple(address token, uint160 amount, uint48 expiration, uint48 nonce)[] details, address spender, uint256 sigDeadline) _permitBatch, bytes signature) payable returns (bytes err)",
   ];
   const LOCK_ABI = [
     "function collectFees(uint256 lockId)", "function extend(uint256 lockId, uint64 newUnlockAt)", "function withdraw(uint256 lockId)",
@@ -121,6 +124,7 @@
     if (!/^0x[0-9a-f]{40}$/.test(addr)) { status(T("Paste a token contract address (0x…)."), "bad"); return; }
     if (busyLoad) return;
     busyLoad = true; tokenAddr = addr;
+    if (quiet) feedMem.delete(addr); // after a transaction here: the activity list is out of date
     if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#liquidity?token=${addr}`);
     if (!quiet) { status(`<span class="alq-spin"></span>${T("Reading pools and positions…")}`); if (!D || D.token.address !== addr) $("alq-out").innerHTML = skeleton(); }
     try {
@@ -241,16 +245,19 @@
         <div class="alq-token-links">
           <a class="alq-link" href="#scanner?t=${esc(t.address)}" data-go="scanner">${T("Scan this token")}</a>
           <a class="alq-link" href="#locker?token=${esc(t.address)}" data-go="locker">${T("Token locks")}</a>
+          <button type="button" class="alq-link" data-create>${T("New pool")}</button>
           <button type="button" class="alq-link" data-refresh>${T("Refresh")}</button>
         </div>
       </div>
-      ${D.pools.length ? summary() + timeline() : ""}
+      ${D.pools.length ? summary() + `<div id="alq-alert"></div>` + timeline() : ""}
       ${me() ? `<section class="alq-mine"><h3>${T("Your positions")} <b data-no-i18n>${mine.length}</b></h3>${mine.length ? `<div class="alq-mine-grid">${mine.map(([p, q]) => myCard(p, q)).join("")}</div>` : `<p class="alq-empty">${T("This wallet has no liquidity positions in these pools yet.")}</p>`}</section>` : `<p class="alq-connect">${T("Connect a wallet to add liquidity or manage your own positions.")} <button type="button" class="ams-mini" data-connect>${T("Connect wallet")}</button></p>`}
-      ${D.pools.length ? D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><a class="bp-btn-primary" href="#launch" data-go="launch">${T("Launch a coin")}</a></div>`}
+      ${D.pools.length ? D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><div class="alq-none-acts"><button type="button" class="bp-btn-primary" data-create>${T("Create a pool")}</button><a class="bp-btn-ghost" href="#launch" data-go="launch">${T("Launch a coin")}</a></div></div>`}
+      ${D.pools.some((p) => p.key) ? `<section class="alq-feed" id="alq-feed"><div class="alq-feed-h"><b>${T("Liquidity activity")}</b><small>${T("Last 24 hours · adds, removals and LP locks in these pools")}</small></div><div class="alq-feed-body"><span class="alq-spin"></span></div></section>` : ""}
       ${D.external.length ? `<p class="alq-muted">${T("Also trading on")}: ${D.external.map((x) => `<a href="${esc(x.url || "#")}" target="_blank" rel="noopener" data-no-i18n>${esc(x.dex)}</a>`).join(", ")}</p>` : ""}
       ${LPLOCK ? "" : `<p class="alq-muted alq-soon">${T("LP locking opens once the ArcLPLock contract is live. Locks by launchpads and burned positions already show here.")}</p>`}`;
     countUp($("alq-out"));
     tickRings();
+    paintFeed();
     if (focusLock != null) {
       const id = focusLock; focusLock = null;
       for (const p of D.pools) {
@@ -332,6 +339,72 @@
     });
   }
   setInterval(() => { if (D && panel.classList.contains("active")) tickRings(); }, 30000);
+
+  // ================= liquidity activity =================
+  // adds and removals (PoolManager ModifyLiquidity) and ArcLPLock locks in
+  // this token's pools; a removal of 20%+ of a pool's liquidity is flagged.
+  const feedMem = new Map(); // token → { at, data | null, busy }
+  let feedAll = false;
+  function paintFeed() {
+    const box = $("alq-feed");
+    if (!box || !D) return;
+    const t = D.token.address, f = feedMem.get(t);
+    if (!f || (!f.busy && Date.now() - f.at > 30e3)) { loadFeed(t); if (!f || !f.data) return; }
+    if (f.data) drawFeed(f.data); else if (f.err) box.querySelector(".alq-feed-body").innerHTML = `<p class="alq-muted">${T("Couldn't read recent activity right now.")}</p>`;
+  }
+  async function loadFeed(t) {
+    const f = feedMem.get(t) || { at: 0, data: null };
+    if (f.busy) return; f.busy = true; feedMem.set(t, f);
+    try {
+      const ids = D.pools.filter((p) => p.key).map((p) => p.id).join(",");
+      const r = await fetch(`${API}?liqfeed=${ids}&h=24`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || r.status);
+      f.data = j; f.err = null;
+    } catch (e) { f.err = String(e.message || e); }
+    f.busy = false; f.at = Date.now();
+    if (D && D.token.address === t) { if (f.data) drawFeed(f.data); else paintFeed(); }
+  }
+  function drawFeed(F) {
+    const box = $("alq-feed");
+    if (!box) return;
+    const byId = new Map(), byLock = new Map();
+    for (const p of D.pools) for (const q of p.positions) { byId.set(q.id, [p, q]); if (q.lock) byLock.set(q.lock.lockId, [p, q]); }
+    const tsOf = (b) => F.anchor.ts - (F.anchor.block - b) * F.spb;
+    const ago = (b) => { const s2 = Math.max(0, Date.now() / 1000 + skew - tsOf(b)); return s2 < 90 ? tr("just now") : s2 < 5400 ? `${Math.round(s2 / 60)}${tr("m ago")}` : `${Math.round(s2 / 3600)}${tr("h ago")}`; };
+    let pulled = 0;
+    const rows = [];
+    for (const e of F.events) {
+      if (e.k === "add" || e.k === "remove") {
+        const p = D.pools.find((x) => x.id === e.pool);
+        if (!p || !p.key) continue;
+        const [a0, a1] = Lq.amountsFor(B(p.sqrtP), e.tl, e.tu, B(e.liq));
+        const tokAmt = p.tokenIs0 ? a0 : a1, qAmt = p.tokenIs0 ? a1 : a0;
+        const inR = e.tl <= p.tick && p.tick < e.tu, act = B(p.liquidity);
+        // share of the pool's liquidity at today's price (for a removal: of what was there before it)
+        const share = inR && act > 0n ? Number((B(e.liq) * 10000n) / (e.k === "remove" ? act + B(e.liq) : act)) / 100 : 0;
+        const big = e.k === "remove" && share >= 20;
+        if (e.k === "remove") pulled += share;
+        const who = e.id != null ? (byId.has(e.id) && byId.get(e.id)[1].mine ? tr("You") : `#${e.id}`) : e.sender && lc(e.sender) === lc(Lq.LIQ_ADDR.arcpadFactory) ? tr("ArcPad launch") : short(e.sender);
+        rows.push(`<li class="${e.k}${big ? " big" : ""}"><i class="alq-fi" aria-hidden="true">${e.k === "add" ? "+" : "−"}</i>
+          <div><b>${T(e.k === "add" ? "Added" : "Removed")}</b> <span data-no-i18n>${fmtRaw(tokAmt, D.token.decimals)} ${esc(D.token.symbol)} + ${fmtRaw(qAmt, p.quote.decimals)} ${esc(p.quote.symbol)}</span>${big ? ` <span class="alq-chip warn">${T("Large removal")}</span>` : ""}
+          <small><span data-no-i18n>${esc(who)}</span>${share ? ` · <span data-no-i18n>${share < 0.1 ? "<0.1" : share.toFixed(1)}%</span> ${T("of the pool")}` : ""} · ${T("≈ at today's price")}</small></div>
+          <a href="${explorer("tx", e.h)}" target="_blank" rel="noopener" data-no-i18n>${esc(ago(e.b))} ↗</a></li>`);
+      } else {
+        const hit = e.id != null ? byId.get(e.id) : byLock.get(e.lockId);
+        if (!hit) continue;
+        const [, q] = hit;
+        const label = e.k === "lock" ? `${tr("Locked until")} ${date(e.unlockAt)}` : e.k === "extend" ? `${tr("Lock extended to")} ${date(e.unlockAt)}` : tr("Lock withdrawn");
+        rows.push(`<li class="${e.k}"><i class="alq-fi" aria-hidden="true">${e.k === "withdraw" ? "!" : "L"}</i>
+          <div><b data-no-i18n>${esc(label)}</b><small data-no-i18n>#${q.id}${q.mine ? ` · ${esc(tr("You"))}` : ""}</small></div>
+          <a href="${explorer("tx", e.h)}" target="_blank" rel="noopener" data-no-i18n>${esc(ago(e.b))} ↗</a></li>`);
+      }
+    }
+    const many = rows.length > 8;
+    box.querySelector(".alq-feed-body").innerHTML = rows.length ? `<ul class="alq-feed-list${feedAll ? " all" : ""}">${rows.slice(0, 30).join("")}</ul>${many ? `<button type="button" class="alq-more-btn" data-feed-all>${feedAll ? T("Show fewer") : `${T("Show all")} <b data-no-i18n>${Math.min(30, rows.length)}</b>`}</button>` : ""}` : `<p class="alq-muted">${T("No liquidity was added or removed in the last 24 hours.")}</p>`;
+    const al = $("alq-alert");
+    if (al) al.innerHTML = pulled >= 20 ? `<div class="alq-rug" role="alert"><b>${T("Liquidity was pulled")}</b><span><span data-no-i18n>${Math.min(100, pulled).toFixed(0)}%</span> ${T("of a pool's liquidity was removed in the last 24 hours.")}</span><button type="button" class="alq-link" data-jump-feed>${T("See activity")}</button></div>` : "";
+  }
 
   // ================= overview =================
   // one card over all pools: how much can't be pulled, how deep, what unlocks next
@@ -491,24 +564,55 @@
     if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
     return true;
   }
-  const deadline = () => now() + 20 * 60;
+  const deadline = () => cnow() + 20 * 60;
   const erc = (a) => new ethers.Contract(a, ERC20, state.signer);
 
   // ---- add liquidity ----
   const RANGES = [[0, "Full range"], [50, "±50%"], [20, "±20%"], [10, "±10%"]];
+  const USD_LIKE = (q) => q && (lc(q.address) === "0x3600000000000000000000000000000000000000" || /usd/i.test(q.symbol || ""));
+  // the Token Scanner's verdict for this token (taxes, blocked sells), once per token
+  const safeMem = new Map();
+  const safety = (t) => { if (!safeMem.has(t)) safeMem.set(t, fetch(`${API}?liqsafe=${t}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)); return safeMem.get(t); };
+  function warnings(p, startPrice) {
+    const out = [];
+    if (p.key.fee === 0) out.push(T("This pool's LP fee is 0% — ArcPad's hook takes the trading fee, so liquidity added here earns nothing."));
+    if (p.venue === "Uniswap v4 · hook") out.push(`${T("This pool runs a hook contract ARCIRCLE PAD doesn't recognise. A hook can change swaps, fees or withdrawals — only add liquidity if you trust it.")} <a href="${explorer("address", p.key.hooks)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(p.key.hooks))} ↗</a>`);
+    // pool price vs. the market (Dexscreener), when the pool is priced in dollars
+    const mkt = D.pools.map((x) => x.dex && x.dex.price).find((x) => x > 0);
+    const here = startPrice != null ? startPrice : p.price;
+    if (mkt && here > 0 && USD_LIKE(p.quote)) {
+      const dev = Math.abs(here - mkt) / mkt * 100;
+      if (dev >= 5) out.push(`${T(startPrice != null ? "Your starting price is far from the market price" : "This pool's price is far from the market price")}: <b data-no-i18n>${fmtPrice(here)}</b> ${T("vs")} <b data-no-i18n>$${fmtPrice(mkt)}</b> (<span data-no-i18n>${dev.toFixed(1)}%</span>). ${T("Arbitrage bots will trade it back to the market price, at your deposit's expense.")}`);
+    }
+    return out;
+  }
+  async function taxWarning(el) {
+    const d = await safety(D.token.address);
+    if (!d || !el.isConnected) return;
+    const bad = (d.trade || []).map((x) => x.split("|")).filter(([st, t]) => (st === "risk" || st === "warn") && /tax|fail/i.test(t));
+    const lines = [];
+    if (bad.length) lines.push(`${T("The Token Scanner found")}: <b>${bad.map(([, t]) => T(t)).join(" · ")}</b>. ${T("A taxed token loses part of every deposit and withdrawal to the tax, and pool math can break.")}`);
+    else if (d.k && d.k !== "ok" && d.score != null) lines.push(`${T("Token Scanner verdict")}: <b>${T(d.t)}</b> <span data-no-i18n>(${d.score}/100)</span> — <a href="#scanner?t=${esc(D.token.address)}" data-go="scanner">${T("see why")}</a>`);
+    if (lines.length) { el.innerHTML = lines.map((l) => `<p class="alq-warn">${l}</p>`).join(""); el.hidden = false; }
+  }
   // pos: add to an existing position of yours (its range is fixed) instead of minting a new one
+  // p.create: the pool doesn't exist yet — PositionManager.initializePool first, in the same transaction
   function openAdd(p, pos = null) {
     const sym = esc(D.token.symbol), qs = esc(p.quote.symbol);
-    const m = modal(`${pos ? T("Add to position") : T("Add liquidity")} · <span data-no-i18n>${pos ? `#${pos.id}` : `${sym} / ${qs}`}</span>`, `
-      ${p.key.fee === 0 ? `<p class="alq-warn">${T("This pool's LP fee is 0% — ArcPad's hook takes the trading fee, so liquidity added here earns nothing.")}</p>` : ""}
+    const title = p.create ? T("Create pool") : pos ? T("Add to position") : T("Add liquidity");
+    const m = modal(`${title} · <span data-no-i18n>${pos ? `#${pos.id}` : `${sym} / ${qs}`}</span>`, `
+      ${warnings(p, p.create ? p.price : null).map((w) => `<p class="alq-warn">${w}</p>`).join("")}
+      <div id="alq-safety" hidden></div>
+      ${p.create ? `<p class="alq-range">${T("Starting price")}: <b data-no-i18n>1 ${sym} = ${fmtPrice(p.price)} ${qs}</b> · <span data-no-i18n>${p.feePct}%</span></p>` : ""}
       ${pos ? "" : `<div class="alq-seg" role="radiogroup">${RANGES.map(([v, l], i) => `<button type="button" role="radio" aria-checked="${i === 0}" data-range="${v}">${esc(tr(l))}</button>`).join("")}</div>`}
       <p class="alq-range" id="alq-rangetxt"></p>
       <label class="alq-in"><span>${sym}</span><input type="text" inputmode="decimal" id="alq-a-tok" placeholder="0" autocomplete="off"><small id="alq-b-tok"></small></label>
       <label class="alq-in"><span>${qs}</span><input type="text" inputmode="decimal" id="alq-a-q" placeholder="0" autocomplete="off"><small id="alq-b-q"></small></label>
       ${slipHtml()}
       <ol class="alq-steps" id="alq-steps"></ol>
-      <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go">${T("Add liquidity")}</button>
+      <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go">${title}</button>
       <p class="alq-fine">${T("Uses Uniswap's own PositionManager on Arc. If the price moves more than the limit above before your transaction lands, it's cancelled and nothing is spent.")}</p>`);
+    taxWarning($("alq-safety"));
     const s = { range: 0, side: "tok", liq: 0n, a0: 0n, a1: 0n };
     const sqrtP = B(p.sqrtP);
     const ticks = () => (pos ? [pos.tl, pos.tu] : Lq.rangeAround(p.tick, s.range, p.key.tickSpacing));
@@ -521,7 +625,7 @@
       const src = s.side === "tok" ? $("alq-a-tok") : $("alq-a-q");
       const dec = s.side === "tok" ? D.token.decimals : p.quote.decimals;
       const raw = Lq.parseUnits(src.value, dec);
-      if (raw == null || raw <= 0n) { s.liq = 0n; (s.side === "tok" ? $("alq-a-q") : $("alq-a-tok")).value = ""; return; }
+      if (raw == null || raw <= 0n) { s.liq = 0n; (s.side === "tok" ? $("alq-a-q") : $("alq-a-tok")).value = ""; steps(); return; }
       const side01 = (s.side === "tok") === tokIs0 ? 0 : 1;
       const o = Lq.otherSide(sqrtP, tl, tu, side01, raw);
       s.liq = o.liquidity; s.a0 = o.amount0; s.a1 = o.amount1;
@@ -542,28 +646,34 @@
       } catch { /* shown without balances */ }
     }
     const withSlip = (x) => x + (x * BigInt(slipBps)) / 10000n + 1n;
+    // what's missing before the deposit can go through:
+    //   approvals — a one-time ERC-20 approve of Permit2 (a transaction per token, ever)
+    //   permits   — Permit2 → PositionManager allowances, all granted by ONE signature
+    //               that rides along in the deposit transaction (no gas, no extra step)
     async function needs() {
-      // what's missing before the mint can go through: ERC-20 → Permit2, Permit2 → PositionManager
-      const out = [];
+      const out = { approvals: [], permits: [] };
       if (!me()) return out;
       const rp = readProvider(), p2 = new ethers.Contract(PERMIT2, P2, rp);
       for (const [cur, amt] of [[p.key.currency0, withSlip(s.a0)], [p.key.currency1, withSlip(s.a1)]]) {
         if (lc(cur) === NATIVE || amt <= 0n) continue;
         const sym2 = lc(cur) === lc(D.token.address) ? D.token.symbol : p.quote.symbol;
         const [a20, a2] = await Promise.all([new ethers.Contract(cur, ERC20, rp).allowance(me(), PERMIT2), p2.allowance(me(), cur, PM)]);
-        if (a20 < amt) out.push({ kind: "erc20", cur, sym: sym2 });
-        if (B(a2.amount) < amt || Number(a2.expiration) <= now() + 60) out.push({ kind: "permit2", cur, sym: sym2 });
+        if (a20 < amt) out.approvals.push({ cur, sym: sym2 });
+        if (B(a2.amount) < amt || Number(a2.expiration) <= cnow() + 60) out.permits.push({ cur, sym: sym2, nonce: Number(a2.nonce) });
       }
       return out;
     }
-    let pending = [];
+    let pending = { approvals: [], permits: [] };
+    const goLabel = () => (pending.approvals.length ? `${tr("Approve")} ${pending.approvals[0].sym} (1/${pending.approvals.length + (pending.permits.length ? 2 : 1)})` : pending.permits.length ? tr("Sign & add") : tr(p.create ? "Create pool" : pos ? "Add to position" : "Add liquidity"));
     async function steps() {
       const el = $("alq-steps");
       if (!el) return;
-      if (!me() || s.liq <= 0n) { el.innerHTML = ""; $("alq-go").textContent = tr(me() ? "Add liquidity" : "Connect wallet"); return; }
-      pending = await needs().catch(() => []);
-      el.innerHTML = pending.map((n) => `<li><span>${n.kind === "erc20" ? T("Allow Permit2 to use") : T("Allow the PositionManager (via Permit2) to use")}</span> <b data-no-i18n>${esc(n.sym)}</b></li>`).join("") + `<li class="last"><span>${T("Add liquidity")}</span></li>`;
-      $("alq-go").textContent = pending.length ? `${tr("Approve")} ${pending[0].sym} (1/${pending.length + 1})` : tr("Add liquidity");
+      if (!me() || s.liq <= 0n) { el.innerHTML = ""; $("alq-go").textContent = me() ? tr(p.create ? "Create pool" : pos ? "Add to position" : "Add liquidity") : tr("Connect wallet"); return; }
+      pending = await needs().catch(() => ({ approvals: [], permits: [] }));
+      el.innerHTML = pending.approvals.map((n) => `<li><span>${T("Allow Permit2 to use")}</span> <b data-no-i18n>${esc(n.sym)}</b> <small>${T("once per token")}</small></li>`).join("")
+        + (pending.permits.length ? `<li class="sig"><span>${T("Sign one permission for")}</span> <b data-no-i18n>${pending.permits.map((n) => esc(n.sym)).join(" + ")}</b> <small>${T("no gas")}</small></li>` : "")
+        + `<li class="last"><span>${T(p.create ? "Create the pool and add liquidity" : "Add liquidity")}</span></li>`;
+      $("alq-go").textContent = goLabel();
     }
     m.addEventListener("click", (e) => {
       const sl = e.target.closest("[data-slip]");
@@ -583,33 +693,109 @@
         if (bal.tok != null && B(bal.tok) < (tokIs0 ? s.a0 : s.a1)) throw new Error(`${tr("Not enough")} ${D.token.symbol}`);
         if (bal.q != null && B(bal.q) < (tokIs0 ? s.a1 : s.a0)) throw new Error(`${tr("Not enough")} ${p.quote.symbol}`);
         pending = await needs();
-        for (const n of pending) {
+        for (const n of pending.approvals) {
           btn.textContent = `${tr("Confirm in wallet…")} (${n.sym})`;
-          const tx = n.kind === "erc20" ? await erc(n.cur).approve(PERMIT2, ethers.MaxUint256)
-            : await new ethers.Contract(PERMIT2, P2, state.signer).approve(n.cur, PM, (1n << 160n) - 1n, now() + 30 * DAY);
+          const tx = await erc(n.cur).approve(PERMIT2, ethers.MaxUint256);
           btn.textContent = tr("Confirming…");
           await tx.wait();
-          await steps();
         }
-        btn.textContent = tr("Confirm in wallet…");
         const [tl, tu] = ticks();
         const posm = new ethers.Contract(PM, POSM, state.signer);
         const value = lc(p.key.currency0) === NATIVE ? withSlip(s.a0) : 0n;
-        const data = pos ? increaseData(p.key, pos.id, s.liq, withSlip(s.a0), withSlip(s.a1), state.account) : mintData(p.key, tl, tu, s.liq, withSlip(s.a0), withSlip(s.a1), state.account);
-        const tx = await posm.modifyLiquidities(data, deadline(), { value });
+        const body = pos ? increaseData(p.key, pos.id, s.liq, withSlip(s.a0), withSlip(s.a1), state.account) : mintData(p.key, tl, tu, s.liq, withSlip(s.a0), withSlip(s.a1), state.account);
+        const calls = [];
+        if (p.create) calls.push(posm.interface.encodeFunctionData("initializePool", [kt(p.key), sqrtP]));
+        if (pending.permits.length) {
+          btn.textContent = tr("Sign in wallet…");
+          const exp = cnow() + 30 * DAY, sigDeadline = cnow() + 30 * 60;
+          const batch = { details: pending.permits.map((n) => ({ token: n.cur, amount: (1n << 160n) - 1n, expiration: exp, nonce: n.nonce })), spender: PM, sigDeadline };
+          const sig = await state.signer.signTypedData({ name: "Permit2", chainId: 5042, verifyingContract: PERMIT2 }, PERMIT_TYPES, batch);
+          calls.push(posm.interface.encodeFunctionData("permitBatch", [state.account, [batch.details.map((d) => [d.token, d.amount, d.expiration, d.nonce]), batch.spender, batch.sigDeadline], sig]));
+        }
+        btn.textContent = tr("Confirm in wallet…");
+        let tx;
+        if (!calls.length) tx = await posm.modifyLiquidities(body, deadline(), { value });
+        else {
+          calls.push(posm.interface.encodeFunctionData("modifyLiquidities", [body, deadline()]));
+          // an explicit gas limit: initializePool swallows its own failures, so a tight estimate
+          // could leave the pool uninitialised — give the whole batch room
+          const est = await posm.multicall.estimateGas(calls, { value });
+          tx = await posm.multicall(calls, { value, gasLimit: (est * 14n) / 10n + 150000n });
+        }
         btn.textContent = tr("Confirming…");
         await tx.wait();
         close();
         const had = new Set(mineIds());
-        toast(pos ? "Added to your position." : "Liquidity added — your position is below.", "ok");
+        toast(p.create ? "Pool created — your position is below." : pos ? "Added to your position." : "Liquidity added — your position is below.", "ok");
         await load(tokenAddr, { quiet: true });
         celebrate("add", pos ? pos.id : mineIds().find((x) => !had.has(x)));
+        loadMine();
       } catch (e) {
         toast(errText(e, "Adding liquidity failed or was rejected."), "info");
         btn.disabled = false; steps();
       }
     });
     recompute(); balances(); steps();
+  }
+  const PERMIT_TYPES = {
+    PermitBatch: [{ name: "details", type: "PermitDetails[]" }, { name: "spender", type: "address" }, { name: "sigDeadline", type: "uint256" }],
+    PermitDetails: [{ name: "token", type: "address" }, { name: "amount", type: "uint160" }, { name: "expiration", type: "uint48" }, { name: "nonce", type: "uint48" }],
+  };
+
+  // ---- a new pool: pick the pair, fee and first price, then the first deposit ----
+  const TIERS = [[500, 10, "0.05%"], [3000, 60, "0.3%"], [10000, 200, "1%"]];
+  const USDC20 = "0x3600000000000000000000000000000000000000";
+  function openCreate() {
+    const sym = esc(D.token.symbol);
+    const mkt = D.pools.map((x) => x.dex && x.dex.price).find((x) => x > 0);
+    const m = modal(`${T("Create pool")} · <span data-no-i18n>${sym}</span>`, `
+      <p class="alq-range">${T("A new Uniswap v4 pool on Arc, with no hook. You set its first price and make the first deposit.")}</p>
+      <small class="alq-lab">${T("Paired with")}</small>
+      <div class="alq-seg" role="radiogroup"><button type="button" role="radio" aria-checked="true" data-quote="${USDC20}" data-no-i18n>USDC</button><button type="button" role="radio" aria-checked="false" data-quote="custom">${T("Another token")}</button></div>
+      <label class="alq-in" id="alq-cq-wrap" hidden><span>${T("Token")}</span><input type="text" id="alq-cq" placeholder="0x…" autocomplete="off" spellcheck="false"></label>
+      <small class="alq-lab">${T("Fee tier")}</small>
+      <div class="alq-seg" role="radiogroup">${TIERS.map(([f, , l], i) => `<button type="button" role="radio" aria-checked="${i === 1}" data-tier="${f}" data-no-i18n>${l}</button>`).join("")}</div>
+      <label class="alq-in"><span data-no-i18n>1 ${sym} =</span><input type="text" inputmode="decimal" id="alq-cp" placeholder="0" autocomplete="off" value="${mkt ? String(Number(mkt.toPrecision(6))) : ""}"><small id="alq-cp-q" data-no-i18n>USDC</small></label>
+      ${mkt ? `<p class="alq-fine">${T("Market price now")}: <b data-no-i18n>$${fmtPrice(mkt)}</b></p>` : `<p class="alq-warn">${T("There's no market price for this token yet — you're setting it. Get it wrong and arbitrage bots take the difference from your deposit.")}</p>`}
+      <p class="alq-warn" id="alq-cerr" hidden></p>
+      <button type="button" class="bp-btn-primary bp-btn-block" id="alq-cgo">${T("Continue")}</button>`);
+    const st = { quote: USDC20, tier: TIERS[1] };
+    m.addEventListener("click", (e) => {
+      const q = e.target.closest("[data-quote]");
+      if (q) { st.quote = q.dataset.quote; m.querySelectorAll("[data-quote]").forEach((b) => b.setAttribute("aria-checked", String(b === q))); $("alq-cq-wrap").hidden = st.quote !== "custom"; $("alq-cp-q").textContent = st.quote === "custom" ? "" : "USDC"; }
+      const t = e.target.closest("[data-tier]");
+      if (t) { st.tier = TIERS.find((x) => String(x[0]) === t.dataset.tier); m.querySelectorAll("[data-tier]").forEach((b) => b.setAttribute("aria-checked", String(b === t))); }
+    });
+    const fail = (msg) => { const el = $("alq-cerr"); el.textContent = tr(msg); el.hidden = false; };
+    $("alq-cgo").addEventListener("click", async () => {
+      $("alq-cerr").hidden = true;
+      const quoteAddr = lc(st.quote === "custom" ? $("alq-cq").value.trim() : st.quote);
+      if (!/^0x[0-9a-f]{40}$/.test(quoteAddr) || quoteAddr === lc(D.token.address)) return fail("Paste the other token's address (0x…).");
+      const price = Number($("alq-cp").value.replace(/,/g, ""));
+      if (!(price > 0) || !isFinite(price)) return fail("Enter a starting price.");
+      const btn = $("alq-cgo"); btn.disabled = true;
+      try {
+        const rp = readProvider();
+        const qc = new ethers.Contract(quoteAddr, ["function symbol() view returns (string)", "function decimals() view returns (uint8)"], rp);
+        const [qsym, qdec] = await Promise.all([qc.symbol(), qc.decimals()]).catch(() => [null, null]);
+        if (qdec == null) throw new Error(tr("That address isn't a token on Arc."));
+        const tok = lc(D.token.address), [c0, c1] = tok < quoteAddr ? [tok, quoteAddr] : [quoteAddr, tok];
+        const key = { currency0: c0, currency1: c1, fee: st.tier[0], tickSpacing: st.tier[1], hooks: NATIVE };
+        const id = lc(Lq.poolIdOf(key, ethers.keccak256));
+        const [s0] = await Promise.all([new ethers.Contract(Lq.LIQ_ADDR.poolManager, ["function extsload(bytes32) view returns (bytes32)"], rp).extsload(Lq.poolSlot(id, ethers.keccak256))]);
+        if (Lq.decodeSlot0(s0).sqrtP > 0n) {
+          const known = D.pools.find((x) => x.id === id);
+          close();
+          if (known) { toast("That pool already exists — add to it here.", "info"); openAdd(known); } else { toast("That pool already exists — loading it.", "info"); load(tokenAddr); }
+          return;
+        }
+        const tokenIs0 = c0 === tok, quote = { address: quoteAddr, symbol: qsym || "?", decimals: Number(qdec) };
+        const d0 = tokenIs0 ? D.token.decimals : quote.decimals, d1 = tokenIs0 ? quote.decimals : D.token.decimals;
+        const tick = Math.max(Lq.minUsable(key.tickSpacing), Math.min(Lq.maxUsable(key.tickSpacing), Lq.tickForPrice(price, tokenIs0, d0, d1)));
+        const sq = Lq.sqrtAtTick(tick);
+        openAdd({ id, key, tokenIs0, quote, tick, sqrtP: sq.toString(), price: Lq.priceOf(sq, tokenIs0, d0, d1), feePct: Lq.feePct(key.fee), venue: "Uniswap v4", positions: [], dex: null, create: true });
+      } catch (e) { fail(errText(e, "Couldn't read that token.")); btn.disabled = false; }
+    });
   }
 
   // ---- remove ----
@@ -656,10 +842,10 @@
       <ul class="alq-rules"><li>${T("Nobody can move the position before that date — not you, not ARCIRCLE PAD.")}</li><li>${T("You keep collecting the trading fees it earns while it's locked.")}</li><li>${T("You can push the date further out later, never closer.")}</li></ul>
       <label class="alq-agree"><input type="checkbox" id="alq-ok"> <span>${T("I understand I can't withdraw it early.")}</span></label>
       <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go" disabled>${T("Lock position")}</button>`);
-    let until = now() + 90 * DAY;
+    let until = cnow() + 90 * DAY;
     const show = () => { $("alq-until").innerHTML = `${T("Locked until")} <b data-no-i18n>${esc(date(until))}</b>`; };
-    m.addEventListener("click", (e) => { const b = e.target.closest("[data-days]"); if (b) { until = now() + Number(b.dataset.days) * DAY; $("alq-date").value = ""; m.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); show(); } });
-    $("alq-date").addEventListener("change", (e) => { const t = Math.floor(new Date(e.target.value + "T23:59:00").getTime() / 1000); if (t > now() + 3600) { until = t; m.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-checked", "false")); show(); } });
+    m.addEventListener("click", (e) => { const b = e.target.closest("[data-days]"); if (b) { until = cnow() + Number(b.dataset.days) * DAY; $("alq-date").value = ""; m.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); show(); } });
+    $("alq-date").addEventListener("change", (e) => { const t = Math.floor(new Date(e.target.value + "T23:59:00").getTime() / 1000); if (t > cnow() + 3600) { until = t; m.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-checked", "false")); show(); } });
     $("alq-ok").addEventListener("change", (e) => { $("alq-go").disabled = !e.target.checked; });
     $("alq-go").addEventListener("click", async () => {
       const btn = $("alq-go");
@@ -716,6 +902,9 @@
     if (t.closest("[data-refresh]")) { load(tokenAddr); return; }
     const cp = t.closest("[data-copy]");
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); toast("Copied", "ok"); } catch { /* denied */ } return; }
+    if (t.closest("[data-feed-all]")) { feedAll = !feedAll; const f = feedMem.get(D.token.address); if (f && f.data) drawFeed(f.data); return; }
+    if (t.closest("[data-jump-feed]")) { const f = $("alq-feed"); if (f) f.scrollIntoView({ behavior: reduce() ? "auto" : "smooth", block: "start" }); return; }
+    if (t.closest("[data-create]")) { if (!(await needWallet())) return; openCreate(); return; }
     const fp = t.closest("[data-focus-pos]");
     if (fp) {
       const id = fp.dataset.focusPos, out = $("alq-out");
@@ -744,7 +933,7 @@
     const lc2 = t.closest("[data-lcollect]");
     if (lc2) { simpleTx(lc2, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).collectFees(Number(lc2.dataset.lcollect)), "Fees collected.", "Collecting fees failed or was rejected."); return; }
     const ext = t.closest("[data-lextend]");
-    if (ext) { const at = Math.max(Number(ext.dataset.at), now()) + 90 * DAY; simpleTx(ext, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).extend(Number(ext.dataset.lextend), at), "Lock extended.", "Extending failed or was rejected."); return; }
+    if (ext) { const at = Math.max(Number(ext.dataset.at), cnow()) + 90 * DAY; simpleTx(ext, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).extend(Number(ext.dataset.lextend), at), "Lock extended.", "Extending failed or was rejected."); return; }
     const sh = t.closest("[data-lshare]");
     if (sh) { openCert(Number(sh.dataset.lshare), false); return; }
     const wd = t.closest("[data-lwithdraw]");
@@ -762,8 +951,32 @@
   window.addEventListener("hashchange", fromHash);
   fromHash();
   // a wallet connecting mid-visit: its own positions
+  // ---- the connected wallet's positions across every token (/api/social?liqmine=) ----
+  let mineSeq = 0;
+  async function loadMine() {
+    const box = $("alq-minechips"), w = me(), seq = ++mineSeq;
+    if (!box) return;
+    if (!w) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.innerHTML = `<small>${T("Your liquidity")}</small><span class="alq-muted"><span class="alq-spin"></span>${T("Finding your positions on Arc…")}</span>`;
+    try {
+      let j = null;
+      for (let i = 0; i < 30 && seq === mineSeq; i++) {
+        const r = await fetch(`${API}?liqmine=${w}`, { cache: "no-store" });
+        j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || r.status);
+        if (j.done) break;
+      }
+      if (seq !== mineSeq) return;
+      if (!j || !j.done) throw new Error("still indexing");
+      box.innerHTML = `<small>${T("Your liquidity")}</small>` + (j.pools.length ? j.pools.map((g) => `<button type="button" class="ams-chip alq-mc" data-t="${esc(g.token.address)}" data-no-i18n>${esc(g.token.symbol)} / ${esc(g.quote.symbol)}${g.feePct != null ? ` <em>${g.feePct}%</em>` : ""} <b>${g.positions}</b>${g.locked ? ` <i class="alq-mc-lock" title="${T("Locked")}">${g.locked}</i>` : ""}</button>`).join("")
+        : `<span class="alq-muted">${T("No liquidity positions in this wallet yet.")}</span>`);
+    } catch { if (seq === mineSeq) box.innerHTML = `<small>${T("Your liquidity")}</small><span class="alq-muted">${T("Couldn't list your positions right now.")}</span>`; }
+  }
+  if ($("alq-minechips")) $("alq-minechips").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) { $("alq-addr").value = b.dataset.t; load(b.dataset.t); } });
   let lastMe = me();
-  setInterval(() => { if (me() !== lastMe) { lastMe = me(); if (tokenAddr) load(tokenAddr, { quiet: true }); } }, 1500);
+  if (lastMe) loadMine();
+  setInterval(() => { if (me() !== lastMe) { lastMe = me(); loadMine(); if (tokenAddr) load(tokenAddr, { quiet: true }); } }, 1500);
   document.addEventListener("arc:lang", () => render());
   window.arcLiquidity = { load, get data() { return D; } };
 })();
