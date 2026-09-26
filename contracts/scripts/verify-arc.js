@@ -10,7 +10,7 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,lock,tokens
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,lplock,lock,tokens
 //
 // Get a free key at https://etherscan.io/myapikey (one key covers every chain
 // on Etherscan's v2 API, Arc included). Optional: ARC_MAINNET_RPC to read the
@@ -40,6 +40,7 @@ const ADDR = {
   router: "0xFCA8fD788d44Bb335B1451257366e06D67114785",
   escrow: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
   vote: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",
+  lplock: "0x674E7010Dab5cCb519e06df72b1D4c063952f45B",
   lock: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 };
 const ART = path.join(__dirname, "..", "artifacts");
@@ -144,6 +145,11 @@ async function main() {
     const vArt = artifact("BigPadVote.sol", "BigPadVote");
     const v = new ethers.Contract(ADDR.vote, vArt.abi, provider);
     results.push(await verify(provider, { label: "BigPadVote (CirclePad round #1 governance)", address: ADDR.vote, art: vArt, args: [await v.escrow()] }));
+  }
+  if (want("lplock")) {
+    const pArt = artifact("ArcLPLock.sol", "ArcLPLock");
+    const lp = new ethers.Contract(ADDR.lplock, pArt.abi, provider);
+    results.push(await verify(provider, { label: "ArcLPLock (LP position locks)", address: ADDR.lplock, art: pArt, args: [await lp.positionManager()] }));
   }
   if (want("lock")) {
     const lArt = artifact("ArcLock.sol", "ArcLock");

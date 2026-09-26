@@ -118,9 +118,9 @@ const CONFIG = {
   // the lock button and badge stay hidden while it's empty.
   ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
   // ArcLPLock (contracts/ArcLPLock.sol, scripts/deploy-arc-lplock.js): time locks
-  // for Uniswap v4 LP positions, used by the Liquidity Manager. "" until deployed —
+  // for Uniswap v4 LP positions, used by the Liquidity Manager. Deployed 27 Sep 2026 —
   // keep api/_liq-core.mjs LIQ_ADDR.lplock in step.
-  LPLOCK_ADDRESS: "",
+  LPLOCK_ADDRESS: "0x674E7010Dab5cCb519e06df72b1D4c063952f45B",
 
   // --- ArcMultiSend: the Multisender utility (arcpad.html#multisend) ---
   // Deployed with contracts/scripts/deploy-arc-multisend.js (2026-09-26).

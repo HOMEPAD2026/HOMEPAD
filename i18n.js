@@ -2052,6 +2052,7 @@
     "Argus locker": "Argus 잠금 컨트랙트",
     "Liquidity & LP locks": "유동성 · LP 잠금",
     "Locking a Uniswap v4 LP position? That's in the": "Uniswap v4 LP 포지션 잠금은 여기서:",
+    "LP lock": "LP 잠금",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4453,6 +4454,7 @@
     "Argus locker": "Argus 锁仓合约",
     "Liquidity & LP locks": "流动性与 LP 锁定",
     "Locking a Uniswap v4 LP position? That's in the": "锁定 Uniswap v4 LP 仓位请前往",
+    "LP lock": "LP 锁定",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

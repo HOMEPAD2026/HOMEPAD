@@ -14,8 +14,8 @@ export const LIQ_ADDR = {
   usdc: "0x3600000000000000000000000000000000000000",
   arcpadFactory: "0x0ebd6df354056ff469f17f8fd14dc0d2c87bd65e",
   arcpadHook: "0x484d416e73eb44d276ddef04cdbadf2f4907c044",
-  // ArcLPLock (contracts/ArcLPLock.sol) — "" until it's deployed; keep config-arc.js LPLOCK_ADDRESS in step
-  lplock: "",
+  // ArcLPLock (contracts/ArcLPLock.sol); keep config-arc.js LPLOCK_ADDRESS in step
+  lplock: "0x674e7010dab5ccb519e06df72b1d4c063952f45b",
 };
 export const LIQ_BURN = ["0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead", "0xdead000000000000000042069420694206942069"];
 export const MIN_TICK = -887272, MAX_TICK = 887272;
