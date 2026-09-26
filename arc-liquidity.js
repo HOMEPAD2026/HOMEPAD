@@ -87,6 +87,11 @@
 
   // ---- state ----
   let D = null, busyLoad = false, tokenAddr = "", pollT = null;
+  let skew = 0; // the chain's clock minus this device's (locks end on chain time)
+  const cnow = () => now() + skew;
+  const prevStats = new Map(); // pool id → last shown stats, to flash what changed
+  const prevCounts = new Map(); // count-up start values
+  const reduce = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const poolView = new Map(); // pool id → { sort, all }
   // slippage, per viewer (this browser only)
   const SLIPS = [50, 100, 300];
@@ -123,12 +128,17 @@
         const r = await fetch(`${API}?liq=${addr}${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
-        if (j.done) { D = j; break; }
+        if (j.done) { D = j; if (j.at) skew = Math.abs(j.at - now()) > 90 ? j.at - now() : 0; break; }
         if (!quiet) status(`<span class="alq-spin"></span>${T("Indexing liquidity positions…")} <b data-no-i18n>${Math.round((j.progress || 0) * 100)}%</b><small>${T("The first look at a token reads every position on Arc — later visits are instant.")}</small>`);
       }
       if (!D || D.token.address !== addr) throw new Error("the index is still catching up — try again in a minute");
       status("");
+      const fresh = !prevStats.size || [...prevStats.keys()].every((k) => !D.pools.some((p) => p.id === k));
+      if (fresh) { prevStats.clear(); prevCounts.clear(); }
+      $("alq-out").classList.toggle("alq-quiet", !fresh); // a reload of the same token: no entrance replay
       render();
+      if (!fresh) flashChanges();
+      for (const p of D.pools) prevStats.set(p.id, statsOf(p));
     } catch (e) {
       status(`${T("Couldn't read this token's liquidity")} — <span data-no-i18n>${esc(String(e.message || e).slice(0, 140))}</span>`, "bad");
     } finally { busyLoad = false; }
@@ -173,7 +183,7 @@
         <td${L("Status")}>${kindChip(q)}</td>
       </tr>`).join("");
     const sorts = p.positions.length > 1 ? `<div class="alq-sort" role="group">${[["size", "Largest first"], ["locked", "Locked first"], ["mine", "Mine first"]].map(([k, l]) => `<button type="button" data-sort="${k}" data-pool-id="${esc(p.id)}" aria-pressed="${pv.sort === k}">${T(l)}</button>`).join("")}</div>` : "";
-    const more = p.positions.length > 8 ? `<button type="button" class="alq-more-btn" data-all="${esc(p.id)}">${pv.all ? T("Show fewer") : `${T("Show all")} <b data-no-i18n>${p.positionCount}</b>`}</button>` : "";
+    const more = p.positions.length > 8 ? `<button type="button" class="alq-more-btn" data-all="${esc(p.id)}">${pv.all ? T("Show fewer") : `${T("Show all")} <b data-no-i18n>${p.positions.length}</b>`}</button>` : "";
     const notes = [];
     if (p.share.launch > 0) notes.push(T("Includes the ArcPad launch liquidity — held by the factory, which has no way to withdraw it."));
     if (p.share.other > 0) notes.push(T("Part of the liquidity isn't a position NFT (added straight to the pool) — counted as unlocked."));
@@ -185,12 +195,13 @@
           <button type="button" class="alq-id" data-copy="${esc(p.id)}" title="${T("Copy pool id")}" data-no-i18n>${esc(p.id.slice(0, 10))}…</button></div>
       </div>
       <div class="alq-stats">
-        <div><small>${T("Price")}</small><b data-no-i18n>${fmtPrice(p.price)} ${qs}</b><span data-no-i18n>1 ${sym}</span></div>
-        <div><small>${T("Liquidity")}</small><b data-no-i18n>${p.dex ? usd(p.dex.liqUsd) : "—"}</b><span>${p.dex ? T("Dexscreener") : T("not listed yet")}</span></div>
-        <div><small>${T("In LP positions")}</small><b data-no-i18n>${fmtRaw(p.inPositions.token, D.token.decimals)} ${sym}</b><span data-no-i18n>${fmtRaw(p.inPositions.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
-        <div><small>${T("Positions")}</small><b data-no-i18n>${p.positionCount}</b><span>${p.dex && p.dex.vol ? `<span data-no-i18n>${usd(p.dex.vol)}</span> ${T("24h volume")}` : "&nbsp;"}</span></div>
+        <div data-stat="price"><small>${T("Price")}</small><b data-no-i18n>${fmtPrice(p.price)} ${qs}</b><span data-no-i18n>1 ${sym}</span></div>
+        <div data-stat="liq"><small>${T("Liquidity")}</small><b data-no-i18n>${p.dex ? usd(p.dex.liqUsd) : "—"}</b><span>${p.dex ? T("Dexscreener") : T("not listed yet")}</span></div>
+        <div data-stat="held"><small>${T("In LP positions")}</small><b data-no-i18n>${fmtRaw(p.inPositions.token, D.token.decimals)} ${sym}</b><span data-no-i18n>${fmtRaw(p.inPositions.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
+        <div data-stat="count"><small>${T("Positions")}</small><b data-no-i18n>${p.positionCount}</b><span>${p.dex && p.dex.vol ? `<span data-no-i18n>${usd(p.dex.vol)}</span> ${T("24h volume")}` : "&nbsp;"}</span></div>
       </div>
       <div class="alq-lockbox"><div class="alq-lockhead"><b>${T("Who can pull this liquidity")}</b><small>${T("Share of the liquidity trading at the current price")}</small></div>${bar(p.share)}${notes.length ? `<ul class="alq-notes">${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}</div>
+      ${depth(p)}
       ${p.positions.length ? `${sorts}<div class="alq-tablewrap"><table class="alq-table"><thead><tr><th>${T("Position")}</th><th>${T("Owner")}</th><th>${T("Price range")}</th><th>${T("Holds")}</th><th>${T("Status")}</th></tr></thead><tbody>${posRows}</tbody></table>${more}</div>` : `<p class="alq-empty">${T("No position NFTs in this pool yet.")}</p>`}
       <div class="alq-pool-f">
         ${p.manageable ? `<button type="button" class="bp-btn-primary" data-add="${esc(p.id)}">${T("Add liquidity")}</button>` : `<span class="alq-muted">${T("This pool's settings couldn't be read, so it can't be managed here.")}</span>`}
@@ -210,13 +221,11 @@
         (q.kind === "unlocking" ? `<button type="button" class="alq-act lock" data-lwithdraw="${q.lock.lockId}">${T("Withdraw")}</button>` : `<button type="button" class="alq-act" data-lextend="${q.lock.lockId}" data-at="${q.lock.unlockAt}">${T("Extend +90 days")}</button>`) +
         `<button type="button" class="alq-act share" data-lshare="${q.lock.lockId}">${T("Share the lock")}</button>`;
     }
-    const left = q.lock ? q.lock.unlockAt - now() : 0;
     return `<div class="alq-mine-card${locked ? " locked" : ""}" data-pos="${q.id}">
-      <div class="alq-mine-top"><b data-no-i18n>#${q.id}</b><span data-no-i18n>${sym} / ${qs}</span>${kindChip(q)}</div>
+      <div class="alq-mine-top"><b data-no-i18n>#${q.id}</b><span data-no-i18n>${sym} / ${qs}</span>${kindChip(q)}${locked && q.lock ? ring(q.lock) : ""}</div>
       <div class="alq-mine-amt" data-no-i18n><b>${fmtRaw(q.token, D.token.decimals)} ${sym}</b><span>+ ${fmtRaw(q.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
       ${q.fees && (B(q.fees.token) > 0n || B(q.fees.quote) > 0n) ? `<div class="alq-fees"><small>${T("Unclaimed fees")}</small><b data-no-i18n>${fmtRaw(q.fees.token, D.token.decimals)} ${sym} + ${fmtRaw(q.fees.quote, p.quote ? p.quote.decimals : 18)} ${qs}</b></div>` : ""}
       <div class="alq-mine-meta">${rangeText(p, q)}${q.inRange ? ` · <span class="alq-earn">${T("earning")}</span>` : ` · <em class="alq-out-range">${T("out of range")}</em>`}</div>
-      ${locked && q.lock && left > 0 ? `<div class="alq-mine-lock"><i style="width:${Math.max(3, Math.min(100, 100 - (left / Math.max(1, q.lock.unlockAt - q.lock.lockedAt)) * 100))}%"></i></div>` : ""}
       <div class="alq-mine-acts">${acts}</div>
     </div>`;
   }
@@ -235,10 +244,13 @@
           <button type="button" class="alq-link" data-refresh>${T("Refresh")}</button>
         </div>
       </div>
+      ${D.pools.length ? summary() + timeline() : ""}
       ${me() ? `<section class="alq-mine"><h3>${T("Your positions")} <b data-no-i18n>${mine.length}</b></h3>${mine.length ? `<div class="alq-mine-grid">${mine.map(([p, q]) => myCard(p, q)).join("")}</div>` : `<p class="alq-empty">${T("This wallet has no liquidity positions in these pools yet.")}</p>`}</section>` : `<p class="alq-connect">${T("Connect a wallet to add liquidity or manage your own positions.")} <button type="button" class="ams-mini" data-connect>${T("Connect wallet")}</button></p>`}
       ${D.pools.length ? D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><a class="bp-btn-primary" href="#launch" data-go="launch">${T("Launch a coin")}</a></div>`}
       ${D.external.length ? `<p class="alq-muted">${T("Also trading on")}: ${D.external.map((x) => `<a href="${esc(x.url || "#")}" target="_blank" rel="noopener" data-no-i18n>${esc(x.dex)}</a>`).join(", ")}</p>` : ""}
       ${LPLOCK ? "" : `<p class="alq-muted alq-soon">${T("LP locking opens once the ArcLPLock contract is live. Locks by launchpads and burned positions already show here.")}</p>`}`;
+    countUp($("alq-out"));
+    tickRings();
     if (focusLock != null) {
       const id = focusLock; focusLock = null;
       for (const p of D.pools) {
@@ -262,7 +274,202 @@
   }
 
   // ================= moments =================
-  function celebrate(kind) { document.dispatchEvent(new CustomEvent("arc:liquidity", { detail: { kind } })); }
+  const mineIds = () => (D ? D.pools.flatMap((p) => p.positions.filter((q) => q.mine).map((q) => q.id)) : []);
+  // a drop falls into the position that just grew (or a lock clicks shut on it)
+  function celebrate(kind, id) {
+    document.dispatchEvent(new CustomEvent("arc:liquidity", { detail: { kind, id } }));
+    const card = id != null && $("alq-out").querySelector(`.alq-mine-card[data-pos="${id}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: reduce() ? "auto" : "smooth", block: "center" });
+    if (reduce()) return;
+    const cls = kind === "lock" ? "alq-locked-now" : "alq-drop";
+    card.classList.remove(cls); void card.offsetWidth; card.classList.add(cls);
+    if (kind !== "lock") { const d = document.createElement("span"); d.className = "alq-droplet"; d.setAttribute("aria-hidden", "true"); card.appendChild(d); }
+    setTimeout(() => { card.classList.remove(cls); card.querySelectorAll(".alq-droplet").forEach((x) => x.remove()); }, 1800);
+  }
+  // numbers roll up to their value (from what was shown last time)
+  function countUp(root) {
+    root.querySelectorAll("[data-count]").forEach((el) => {
+      const to = Number(el.dataset.count), key = el.dataset.key || "", fmt = el.dataset.fmt;
+      const show = (v) => (fmt === "pct" ? v.toFixed(1) + "%" : fmt === "usd" ? usd(v) : fmtNum(Math.round(v), 0));
+      const from = prevCounts.has(key) ? prevCounts.get(key) : 0;
+      prevCounts.set(key, to);
+      if (reduce() || from === to || !isFinite(to)) { el.textContent = show(to); return; }
+      const t0 = performance.now(), dur = 800;
+      const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = show(from + (to - from) * e); if (k < 1 && el.isConnected) requestAnimationFrame(step); };
+      el.textContent = show(from); requestAnimationFrame(step);
+    });
+  }
+  // pool numbers that moved since the last look glow for a moment
+  const statsOf = (p) => ({ price: String(p.sqrtP), liq: p.dex ? String(p.dex.liqUsd) : "", held: `${p.inPositions.token}|${p.inPositions.quote}`, count: String(p.positionCount) });
+  function flashChanges() {
+    if (reduce()) return;
+    for (const p of D.pools) {
+      const was = prevStats.get(p.id), s2 = statsOf(p);
+      if (!was) continue;
+      const card = [...$("alq-out").querySelectorAll("article.alq-pool")].find((a) => a.dataset.pool === p.id);
+      if (!card) continue;
+      for (const k of Object.keys(s2)) if (was[k] !== s2[k]) { const el = card.querySelector(`[data-stat="${k}"]`); if (el) { el.classList.add("alq-flash"); setTimeout(() => el.classList.remove("alq-flash"), 1600); } }
+    }
+  }
+  // ---- time left on a lock ----
+  const leftText = (sec) => {
+    if (sec <= 0) return tr("ended");
+    const d = Math.floor(sec / DAY), h = Math.floor((sec % DAY) / 3600), m = Math.floor((sec % 3600) / 60);
+    return d >= 1 ? `${d}d ${h}h` : h >= 1 ? `${h}h ${m}m` : `${Math.max(1, m)}m`;
+  };
+  const ringPct = (l) => Math.max(0, Math.min(100, ((cnow() - l.lockedAt) / Math.max(1, l.unlockAt - l.lockedAt)) * 100));
+  function ring(l) {
+    const pc = ringPct(l);
+    return `<span class="alq-ring" data-until="${l.unlockAt}" data-from="${l.lockedAt}" title="${T("Time until it unlocks")}"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9" pathLength="100" stroke-dasharray="${(100 - pc).toFixed(2)} 100"/></svg><b data-no-i18n>${esc(leftText(l.unlockAt - cnow()))}</b></span>`;
+  }
+  function tickRings() {
+    $("alq-out").querySelectorAll("[data-until]").forEach((el) => {
+      const l = { unlockAt: Number(el.dataset.until), lockedAt: Number(el.dataset.from || 0) };
+      const b = el.querySelector("b"), fg = el.querySelector(".fg");
+      if (b) b.textContent = leftText(l.unlockAt - cnow());
+      if (fg && el.dataset.from) fg.setAttribute("stroke-dasharray", `${(100 - ringPct(l)).toFixed(2)} 100`);
+    });
+  }
+  setInterval(() => { if (D && panel.classList.contains("active")) tickRings(); }, 30000);
+
+  // ================= overview =================
+  // one card over all pools: how much can't be pulled, how deep, what unlocks next
+  function summary() {
+    const pools = D.pools.filter((p) => p.key);
+    if (!pools.length) return "";
+    const withUsd = pools.filter((p) => p.dex && p.dex.liqUsd > 0);
+    const w = (p) => (withUsd.length ? (p.dex && p.dex.liqUsd > 0 ? p.dex.liqUsd : 0) : p === pools[0] ? 1 : 0);
+    const W = pools.reduce((a, p) => a + w(p), 0) || 1;
+    const safe = pools.reduce((a, p) => a + w(p) * (p.share.locked + p.share.burned), 0) / W;
+    const liqUsd = withUsd.reduce((a, p) => a + p.dex.liqUsd, 0);
+    const count = pools.reduce((a, p) => a + p.positionCount, 0);
+    const locks = pools.flatMap((p) => p.positions.filter((q) => q.lock && q.lock.unlockAt > cnow()));
+    const next = locks.sort((a, b) => a.lock.unlockAt - b.lock.unlockAt)[0];
+    const tone = safe >= 80 ? "good" : safe >= 40 ? "mid" : "bad";
+    const verdict = safe >= 80 ? "Most of the liquidity can't be pulled" : safe >= 40 ? "Part of the liquidity can be pulled" : "Most of the liquidity can be pulled";
+    const key = D.token.address;
+    return `<section class="alq-sum ${tone}">
+      <div class="alq-gauge" style="--v:${safe.toFixed(2)}"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="${safe.toFixed(2)} 100"/></svg>
+        <div><b data-count="${safe.toFixed(2)}" data-fmt="pct" data-key="${key}:safe" data-no-i18n>${safe.toFixed(1)}%</b><small>${T("locked or burned")}</small></div></div>
+      <div class="alq-sum-body">
+        <b class="alq-sum-verdict">${T(verdict)}</b>
+        <div class="alq-sum-grid">
+          <div><small>${T("Liquidity")}</small><b data-no-i18n ${liqUsd ? `data-count="${liqUsd}" data-fmt="usd" data-key="${key}:usd"` : ""}>${liqUsd ? usd(liqUsd) : "—"}</b></div>
+          <div><small>${T("Pools")}</small><b data-no-i18n>${pools.length}</b></div>
+          <div><small>${T("Positions")}</small><b data-no-i18n data-count="${count}" data-fmt="int" data-key="${key}:count">${count}</b></div>
+          <div><small>${T("Next unlock")}</small>${next ? `<b data-no-i18n data-until="${next.lock.unlockAt}"><b>${esc(leftText(next.lock.unlockAt - cnow()))}</b></b>` : `<b>${T("No time locks")}</b>`}</div>
+        </div>
+      </div>
+    </section>`;
+  }
+  // every lock on one line: when each unlocks, and how much of its pool it holds
+  function timeline() {
+    const items = [], forever = [];
+    for (const p of D.pools) for (const q of p.positions) {
+      const share = q.inRange && B(p.liquidity) > 0n ? Number((B(q.liquidity) * 10000n) / B(p.liquidity)) / 100 : 0;
+      if (q.kind === "forever") forever.push({ q, p, share });
+      else if (q.lock) items.push({ q, p, share, at: q.lock.unlockAt });
+    }
+    if (!items.length && !forever.length) return "";
+    const t0 = cnow();
+    const end = Math.max(t0 + 30 * DAY, ...items.map((x) => x.at)) + 3 * DAY;
+    const x = (t) => Math.max(0, Math.min(100, ((t - t0) / (end - t0)) * 100));
+    const sym = esc(D.token.symbol);
+    const dots = items.map((it) => {
+      const sz = Math.round(10 + Math.min(14, Math.sqrt(it.share) * 2.2));
+      const past = it.at <= t0;
+      return `<button type="button" class="alq-tl-dot${past ? " past" : ""}${it.q.mine ? " mine" : ""}" style="left:${x(it.at).toFixed(2)}%;--s:${sz}px" data-focus-pos="${it.q.id}" title="#${it.q.id} · ${esc(date(it.at))} · ${it.share.toFixed(1)}%" data-no-i18n></button>`;
+    }).join("");
+    const soon = items.filter((it) => it.at > t0).sort((a, b) => a.at - b.at).slice(0, 4);
+    const month = (k) => `<span class="alq-tl-tick" style="left:${x(t0 + k * 30 * DAY).toFixed(2)}%" data-no-i18n>${esc(new Date((t0 + k * 30 * DAY) * 1000).toLocaleDateString(undefined, { month: "short", year: "2-digit" }))}</span>`;
+    const months = []; for (let k = 1; t0 + k * 30 * DAY < end - 10 * DAY && k < 60; k += Math.max(1, Math.ceil((end - t0) / (30 * DAY) / 6))) months.push(month(k));
+    return `<section class="alq-tl">
+      <div class="alq-tl-h"><b>${T("Unlock timeline")}</b><small>${T("Each dot is a locked position — bigger means more of its pool's liquidity.")}</small></div>
+      <div class="alq-tl-track"><span class="alq-tl-now">${T("Now")}</span>${months.join("")}${dots}${forever.length ? `<span class="alq-tl-forever">${T("Forever")} <b data-no-i18n>${forever.length}</b></span>` : ""}</div>
+      ${soon.length ? `<ul class="alq-tl-list">${soon.map((it) => `<li><button type="button" data-focus-pos="${it.q.id}"><b data-no-i18n>${esc(date(it.at))}</b><span data-no-i18n>#${it.q.id} · ${sym} / ${esc(it.p.quote ? it.p.quote.symbol : "?")}</span><em data-no-i18n>${it.share.toFixed(1)}%</em><i data-until="${it.at}"><b data-no-i18n>${esc(leftText(it.at - t0))}</b></i></button></li>`).join("")}</ul>` : ""}
+    </section>`;
+  }
+
+  // ================= depth chart =================
+  // liquidity at every price near the current one: the pool's own curve
+  // (PoolManager ticks), split into what the position NFTs there are —
+  // locked, burned, free — and what isn't an NFT (an ArcPad launch).
+  const charts = new Map(); // pool id → { cols, a, b, flip }
+  function depth(p) {
+    if (!p.key) return "";
+    const ts = p.key.tickSpacing, cur = p.tick, minU = Lq.minUsable(ts), maxU = Lq.maxUsable(ts);
+    const cv = p.curve && p.curve.ticks && p.curve.ticks.length > 1 ? p.curve : null;
+    const edges = cv ? cv.ticks : p.positions.flatMap((q) => [q.tl, q.tu]);
+    const MAXW = 69078, MINW = 13863; // ×1000 and ×4 in price
+    let wd = 0; for (const t of edges) if (t > minU && t < maxU && Math.abs(t - cur) <= MAXW) wd = Math.max(wd, Math.abs(t - cur));
+    wd = Math.min(MAXW, Math.max(MINW, wd * 1.15));
+    const a = cur - wd, b = cur + wd, N = 96;
+    const at = (t) => { if (!cv) return 0; const T = cv.ticks; let lo = 0, hi = T.length - 1; if (t < T[0] || t >= T[hi]) return 0; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (T[m] <= t) lo = m; else hi = m; } return Number(cv.liq[lo] || 0); };
+    const cols = [];
+    for (let k = 0; k < N; k++) {
+      const t = a + ((k + 0.5) * (b - a)) / N;
+      const c = { t, lock: 0, burn: 0, free: 0, mine: 0 };
+      for (const q of p.positions) {
+        if (!(q.tl <= t && t < q.tu)) continue;
+        const L = Number(q.liquidity);
+        if (q.kind === "locked" || q.kind === "forever") c.lock += L; else if (q.kind === "burn") c.burn += L; else c.free += L;
+        if (q.mine) c.mine += L;
+      }
+      const nft = c.lock + c.burn + c.free;
+      c.total = Math.max(at(t), nft); c.rest = c.total - nft;
+      cols.push(c);
+    }
+    const max = Math.max(...cols.map((c) => c.total));
+    if (!(max > 0)) return "";
+    const flip = !p.tokenIs0; // prices rise left → right
+    const X = (t) => { const f = (t - a) / (b - a); return (flip ? 1 - f : f) * 600; };
+    const H = 140, cw = 600 / N;
+    const restCls = p.venue === "ArcPad" ? "launch" : "other";
+    let rects = "";
+    cols.forEach((c, k) => {
+      const x0 = (flip ? N - 1 - k : k) * cw;
+      let y = H;
+      for (const [cls, v] of [["lock", c.lock], ["burn", c.burn], [restCls, c.rest], ["free", c.free]]) {
+        if (v <= 0) continue;
+        const h = Math.max(0.6, (v / max) * (H - 8));
+        y -= h; rects += `<rect class="${cls}" x="${(x0 + 0.5).toFixed(2)}" y="${y.toFixed(2)}" width="${(cw - 1).toFixed(2)}" height="${h.toFixed(2)}"/>`;
+      }
+    });
+    const mineBands = p.positions.filter((q) => q.mine && q.tu > a && q.tl < b).map((q) => {
+      const x1 = X(Math.max(q.tl, a)), x2 = X(Math.min(q.tu, b));
+      return `<rect class="mine" x="${Math.min(x1, x2).toFixed(2)}" y="0" width="${Math.abs(x2 - x1).toFixed(2)}" height="${H}"/>`;
+    }).join("");
+    charts.set(p.id, { cols, a, b, flip, p });
+    const qs = esc(p.quote.symbol);
+    const lo = priceAtTick(p, flip ? b : a), hi = priceAtTick(p, flip ? a : b);
+    const has = (k) => cols.some((c) => c[k] > 0);
+    const leg = [["lock", "Locked"], ["burn", "Burned"], [restCls, restCls === "launch" ? "ArcPad launch" : "Not a position NFT"], ["free", "Unlocked"]].filter(([k]) => has(k === restCls ? "rest" : k));
+    return `<div class="alq-depth" data-depth="${esc(p.id)}">
+      <div class="alq-depth-h"><b>${T("Liquidity by price")}</b><small class="alq-depth-read" data-no-i18n>${esc(tr("Hover the chart for a price"))}</small></div>
+      <svg viewBox="0 0 600 ${H}" preserveAspectRatio="none" role="img" aria-label="${T("Liquidity by price")}"><g class="alq-cols">${rects}</g>${mineBands}<line class="now" x1="${X(cur).toFixed(2)}" x2="${X(cur).toFixed(2)}" y1="0" y2="${H}"/><line class="hover" x1="-10" x2="-10" y1="0" y2="${H}"/></svg>
+      <div class="alq-depth-x" data-no-i18n><span>${fmtPrice(lo)}</span><span class="now" style="left:${(X(cur) / 6).toFixed(2)}%">${fmtPrice(p.price)} ${qs}</span><span>${fmtPrice(hi)}</span></div>
+      <div class="alq-legend alq-depth-leg">${leg.map(([k, l]) => `<span class="${k}"><i></i>${T(l)}</span>`).join("")}${mineBands ? `<span class="mine"><i></i>${T("Your range")}</span>` : ""}</div>
+    </div>`;
+  }
+  function depthHover(e) {
+    const box = e.target.closest(".alq-depth");
+    if (!box) return;
+    const ch = charts.get(box.dataset.depth), svg = box.querySelector("svg");
+    if (!ch || !svg) return;
+    const r = svg.getBoundingClientRect();
+    const f = Math.max(0, Math.min(0.9999, (e.clientX - r.left) / r.width));
+    const k = Math.floor((ch.flip ? 1 - f : f) * ch.cols.length);
+    const c = ch.cols[Math.max(0, Math.min(ch.cols.length - 1, k))];
+    const ln = svg.querySelector("line.hover"); ln.setAttribute("x1", (f * 600).toFixed(1)); ln.setAttribute("x2", (f * 600).toFixed(1));
+    const pr = priceAtTick(ch.p, c.t);
+    const pc = (v) => (c.total > 0 ? ((v / c.total) * 100).toFixed(0) : "0") + "%";
+    box.querySelector(".alq-depth-read").textContent = c.total > 0
+      ? `${fmtPrice(pr)} ${ch.p.quote.symbol} · ${tr("Locked")} ${pc(c.lock + (ch.p.venue === "ArcPad" ? c.rest : 0))} · ${tr("Unlocked")} ${pc(c.free + (ch.p.venue === "ArcPad" ? 0 : c.rest))}${c.burn ? ` · ${tr("Burned")} ${pc(c.burn)}` : ""}`
+      : `${fmtPrice(pr)} ${ch.p.quote.symbol} · ${tr("No liquidity at this price")}`;
+  }
+  $("alq-out").addEventListener("pointermove", depthHover);
+  $("alq-out").addEventListener("pointerdown", depthHover);
 
   // ================= modal =================
   function modal(title, body) {
@@ -393,9 +600,10 @@
         btn.textContent = tr("Confirming…");
         await tx.wait();
         close();
-        celebrate("add");
+        const had = new Set(mineIds());
         toast(pos ? "Added to your position." : "Liquidity added — your position is below.", "ok");
         await load(tokenAddr, { quiet: true });
+        celebrate("add", pos ? pos.id : mineIds().find((x) => !had.has(x)));
       } catch (e) {
         toast(errText(e, "Adding liquidity failed or was rejected."), "info");
         btn.disabled = false; steps();
@@ -466,6 +674,7 @@
         const log = rc && rc.logs ? rc.logs.find((l) => lc(l.address) === LPLOCK && l.topics[0] === LOCKED) : null;
         close(); toast("Position locked.", "ok");
         await load(tokenAddr, { quiet: true });
+        celebrate("lock", q.id);
         if (log) openCert(Number(BigInt(log.topics[1])), true);
       } catch (e) { toast(errText(e, "Locking failed or was rejected."), "info"); btn.disabled = false; btn.textContent = tr("Lock position"); }
     });
@@ -507,6 +716,17 @@
     if (t.closest("[data-refresh]")) { load(tokenAddr); return; }
     const cp = t.closest("[data-copy]");
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); toast("Copied", "ok"); } catch { /* denied */ } return; }
+    const fp = t.closest("[data-focus-pos]");
+    if (fp) {
+      const id = fp.dataset.focusPos, out = $("alq-out");
+      let el = out.querySelector(`.alq-mine-card[data-pos="${id}"]`) || out.querySelector(`tr[data-pos="${id}"]`);
+      if (!el) { // behind "show all"
+        const p = D.pools.find((x) => x.positions.some((q) => String(q.id) === id));
+        if (p) { const v = poolView.get(p.id) || { sort: "size", all: false }; v.all = true; poolView.set(p.id, v); repaintPool(p.id); el = out.querySelector(`tr[data-pos="${id}"]`); }
+      }
+      if (el) { el.classList.remove("alq-focus"); void el.offsetWidth; el.classList.add("alq-focus"); el.scrollIntoView({ behavior: reduce() ? "auto" : "smooth", block: "center" }); setTimeout(() => el.classList.remove("alq-focus"), 3400); }
+      return;
+    }
     const so = t.closest("[data-sort]");
     if (so) { const v = poolView.get(so.dataset.poolId) || { sort: "size", all: false }; v.sort = so.dataset.sort; poolView.set(so.dataset.poolId, v); repaintPool(so.dataset.poolId); return; }
     const al = t.closest("[data-all]");

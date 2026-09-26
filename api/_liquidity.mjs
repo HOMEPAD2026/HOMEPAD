@@ -4,8 +4,8 @@
 // its owner, amounts and lock, and how much of the liquidity at the current
 // price is locked, burned or free to leave.
 //
-// Pools are found three ways: the PositionManager's NFTs (the same resumable
-// index the Holder Snapshot keeps, snaplp/<token>), the token's ArcPad launch
+// Pools are found three ways: the PositionManager's NFTs (one shared index of
+// every position on Arc, lpidx/*), the token's ArcPad launch
 // record, and Dexscreener's pair list. Liquidity that isn't an NFT (an ArcPad
 // launch position sits in the PoolManager under the factory's own name) shows
 // up as the part of the active liquidity no known position accounts for.
@@ -228,6 +228,59 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
       feeBy.set(q.id, f);
     }
   } catch (e) { /* fees are a nice-to-have: leave them out */ }
+  // ---- each pool's whole liquidity curve, read from PoolManager storage ----
+  // The tick bitmap (pool state +5) says which ticks are initialised; each
+  // tick's liquidityNet (+4, high 128 bits) says how the active liquidity
+  // changes when the price crosses it. Anchored at the current liquidity, that
+  // gives the depth at every price — launch liquidity that isn't an NFT included.
+  const curveBy = new Map();
+  try {
+    const sgn = (t) => BigInt.asUintN(256, BigInt(t)).toString(16).padStart(64, "0");
+    const plan = [];
+    for (const p of pools) {
+      if (!p.key) continue;
+      const ts = p.key.tickSpacing, base = L.poolSlot(p.id, io.keccak);
+      const wOf = (t) => Math.floor(Math.floor(t / ts) / 256);
+      let lo = wOf(L.minUsable(ts)), hi = wOf(L.maxUsable(ts)), partial = false;
+      if (hi - lo > 240) { const c = wOf(p.tick); lo = Math.max(lo, c - 120); hi = Math.min(hi, c + 120); partial = true; }
+      const words = []; for (let w = lo; w <= hi; w++) words.push(w);
+      plan.push({ p, ts, base, words, partial });
+    }
+    const wr = plan.length ? await io.calls(plan.flatMap((x) => x.words.map((w) => ({ to: L.LIQ_ADDR.poolManager, data: selX + strip(io.keccak("0x" + sgn(w) + strip(L.plusSlot(x.base, 5)))) })))) : [];
+    let i = 0;
+    for (const x of plan) {
+      const ticks = [];
+      for (const w of x.words) {
+        const v = big(wr[i++]);
+        if (v) for (let b = 0; b < 256; b++) if ((v >> BigInt(b)) & 1n) ticks.push((w * 256 + b) * x.ts);
+      }
+      x.ticks = ticks.sort((a, b) => a - b);
+      if (x.ticks.length > 400) { // keep the ones nearest the price
+        const near = x.ticks.slice().sort((a, b) => Math.abs(a - x.p.tick) - Math.abs(b - x.p.tick)).slice(0, 400);
+        x.ticks = near.sort((a, b) => a - b); x.partial = true;
+      }
+    }
+    const nCalls = plan.reduce((a, x) => a + x.ticks.length, 0);
+    const nr = !nCalls ? [] : await io.calls(plan.flatMap((x) => x.ticks.map((t) => ({ to: L.LIQ_ADDR.poolManager, data: selX + strip(io.keccak("0x" + sgn(t) + strip(L.plusSlot(x.base, 4)))) }))));
+    i = 0;
+    for (const x of plan) {
+      const net = x.ticks.map(() => BigInt.asIntN(128, big(nr[i++]) >> 128n));
+      const T = x.ticks, n = T.length;
+      if (n < 2) continue;
+      // seg[j] = liquidity on [T[j], T[j+1]); the segment holding the price has the pool's liquidity
+      const seg = new Array(n - 1).fill(0n);
+      let c = -1; for (let j = 0; j < n - 1; j++) if (T[j] <= x.p.tick && x.p.tick < T[j + 1]) c = j;
+      if (c < 0) { // price outside every range: build from the lowest tick (exact when the whole bitmap was read)
+        if (x.partial) continue;
+        let acc = 0n; for (let j = 0; j < n - 1; j++) { acc += net[j]; seg[j] = acc; }
+      } else {
+        seg[c] = x.p.liquidity;
+        for (let j = c + 1; j < n - 1; j++) seg[j] = seg[j - 1] + net[j];
+        for (let j = c - 1; j >= 0; j--) seg[j] = seg[j + 1] - net[j + 1];
+      }
+      curveBy.set(x.p.id, { ticks: T, liq: seg.map((v) => (v > 0n ? v : 0n).toString()), partial: x.partial });
+    }
+  } catch (e) { /* the chart falls back to the position NFTs */ }
   // locks held in ArcLPLock
   const lockBy = new Map();
   const lp = L.LIQ_ADDR.lplock;
@@ -291,7 +344,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
       price: k ? L.priceOf(p.sqrtP, tokenIs0, d0, d1) : null,
       liquidity: p.liquidity.toString(),
       share: { locked: pct(shares.locked + shares.launch), burned: pct(shares.burned), free: pct(shares.free + shares.other), launch: pct(shares.launch), other: pct(shares.other) },
-      positions: plist.slice(0, 200), positionCount: plist.length,
+      positions: plist.slice(0, 200), positionCount: plist.length, curve: curveBy.get(p.id) || null,
       inPositions: { token: totals[0].toString(), quote: totals[1].toString() },
       dex: dx ? { liqUsd: dx.liq, vol: dx.vol, url: dx.url, price: dx.price } : null,
       manageable: !!k,
