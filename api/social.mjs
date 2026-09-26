@@ -13,7 +13,9 @@
 //   GET  /api/social?badge=0x…                   embeddable SVG badge   (/badge/<address>)
 //   GET  /api/social?scanapi=0x…                 public scan JSON       (/api/v1/scan/<address>)
 //   GET  /api/social?watchtick=1                 Telegram watch check (x-watch-key header)
-//   POST /api/social  { action: "scanreport" | "tgwatch", … }
+//   GET  /api/social?bridgehist=0x…              a wallet's CCTP transfers seen on Arc (api/_bridge.mjs)
+//   GET  /api/social?bridgestats=1               bridged through ARCIRCLE PAD
+//   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog", … }
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -33,6 +35,7 @@ import * as circle from "./_circle.mjs";
 import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
 import * as scanner from "./_scan.mjs";
+import * as bridge from "./_bridge.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -201,6 +204,13 @@ export async function GET(req) {
     try { return json(200, await scanner.apiResult(t, { store: scanStore() }), "public, max-age=120, s-maxage=600, stale-while-revalidate=1800"); }
     catch (err) { return json(502, { error: "couldn't scan right now", detail: String(err && err.message || err).slice(0, 120) }); }
   }
+  // Bridge: a wallet's CCTP transfers seen on Arc (rebuilds "Your transfers" on any device)
+  if (url.searchParams.has("bridgehist")) {
+    if (scanner.limited(`bh:${ip}`, 12, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await bridge.bridgeHistory(url.searchParams.get("bridgehist"), { store: scanStore() }), "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("bridgestats")) return json(200, await bridge.bridgeStats(scanStore()), "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
   // Telegram watch list check — called every 15 minutes by the GitHub Actions job in tools/scan-watch.workflow.yml
   if (url.searchParams.has("watchtick")) {
     const key = process.env.TG_WEBHOOK_SECRET, bot = process.env.TG_BOT_TOKEN;
@@ -285,6 +295,11 @@ export async function POST(req) {
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
     if (b.action === "scanreport") return await scanReport(b, req);
+    if (b.action === "bridgelog") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`blog:${ip}`, 30, 3600e3)) return json(429, { ok: false });
+      return json(200, await bridge.logBridge({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, { tx: b.tx, src: b.src }));
+    }
     if (b.action === "tgwatch") {
       if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });
       return json(200, await scanner.tgWatchOp({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, { chat: b.chat, token: b.token, op: b.op }));

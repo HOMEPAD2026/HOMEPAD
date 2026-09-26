@@ -1349,6 +1349,30 @@
     "for alerts when the owner, supply or liquidity changes.": "으로 소유자·공급량·유동성 변화 알림.",
     "Put a live score on any site — open a scan and press \"Embed badge\".": "어느 사이트에나 실시간 점수를 붙이세요 — 스캔 후 \"배지 삽입\"을 누르면 됩니다.",
     "returns the full result as JSON (30 scans a minute).": "로 전체 결과를 JSON으로 받습니다 (분당 30회).",
+    "Choose a chain": "체인 선택",
+    "Send from": "보낼 체인",
+    "Send to": "받을 체인",
+    "Connect a wallet to see your USDC on each chain.": "지갑을 연결하면 체인별 USDC 잔액이 보입니다.",
+    "Checking your USDC on every chain…": "모든 체인의 USDC를 확인하는 중…",
+    "No USDC found on these chains yet.": "아직 이 체인들에 USDC가 없습니다.",
+    "Most USDC": "USDC 최다",
+    "saves": "절약",
+    "First time on Arc?": "Arc가 처음이신가요?",
+    "On Arc, USDC is also the gas — the USDC you bring pays for your transactions there, so you don't need another token.": "Arc에서는 USDC가 가스이기도 합니다 — 가져온 USDC로 거래 수수료를 내므로 다른 토큰이 필요 없습니다.",
+    "Add Arc to your wallet": "지갑에 Arc 추가",
+    "Arc is in your wallet": "지갑에 Arc가 추가됐습니다",
+    "Copy link to this route": "이 경로 링크 복사",
+    "Copy failed — the link is in the address bar": "복사 실패 — 링크가 주소창에 있습니다",
+    "Find my transfers": "내 전송 찾기",
+    "Looking on Arc…": "Arc에서 찾는 중…",
+    "Found on Arc": "Arc에서 찾음",
+    "Couldn't look this up on Arc right now — try again in a moment.": "지금은 Arc에서 조회할 수 없습니다 — 잠시 후 다시 시도하세요.",
+    "Your USDC is on Arc. What next?": "USDC가 Arc에 도착했습니다. 다음은?",
+    "Scan a token first": "먼저 토큰 스캔하기",
+    "bridged with ARCIRCLE PAD": "ARCIRCLE PAD로 브릿지됨",
+    "transfer": "건 전송",
+    "transfers": "건 전송",
+    "Arc is a busy chain — press Find my transfers again to look further back.": "Arc는 블록이 많아요 — 내 전송 찾기를 다시 누르면 더 이전까지 찾습니다.",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -1521,6 +1545,13 @@
     // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
     [/^Selling \$1,000 moves the price about (.+)$/, "$$1,000 매도 시 가격이 약 $1 밀림"],
     // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    // ---- Bridge v2 (2026-09-26) ----
+    [/^You have (.+) USDC on (\d+) (?:chain|chains)\.$/, "체인 $2곳에 총 $1 USDC가 있습니다."],
+    [/^Starting from (.+) — that's where your USDC is\.$/, "$1에서 시작합니다 — USDC가 거기 있어요."],
+    [/^saves (.+)$/, "$1 절약"],
+    [/^Found (\d+) (?:transfer|transfers) on Arc from the last (\d+) days\.$/, "최근 $2일 동안 Arc에서 전송 $1건을 찾았습니다."],
+    [/^No other transfers on Arc for this wallet in the last (\d+) days\.$/, "최근 $1일 동안 이 지갑의 다른 Arc 전송은 없습니다."],
+    [/^Found (\d+) (?:transfer|transfers) so far\.$/, "지금까지 전송 $1건을 찾았습니다."],
   ];
 
   var ZH_PATTERNS = [
@@ -1692,6 +1723,13 @@
     // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
     [/^Selling \$1,000 moves the price about (.+)$/, "卖出 $$1,000 会让价格下跌约 $1"],
     // ---- Token Scanner · CirclePad money in & out · Bridge alerts (2026-09-26) ----
+    // ---- Bridge v2 (2026-09-26) ----
+    [/^You have (.+) USDC on (\d+) (?:chain|chains)\.$/, "你在 $2 条链上共有 $1 USDC。"],
+    [/^Starting from (.+) — that's where your USDC is\.$/, "从 $1 开始 —— 你的 USDC 在那里。"],
+    [/^saves (.+)$/, "节省 $1"],
+    [/^Found (\d+) (?:transfer|transfers) on Arc from the last (\d+) days\.$/, "在 Arc 上找到最近 $2 天的 $1 笔转账。"],
+    [/^No other transfers on Arc for this wallet in the last (\d+) days\.$/, "最近 $1 天该钱包在 Arc 上没有其他转账。"],
+    [/^Found (\d+) (?:transfer|transfers) so far\.$/, "目前已找到 $1 笔转账。"],
   ];
 
   // Simplified Chinese — same keys as KO (the English source strings).
@@ -2839,6 +2877,30 @@
     "for alerts when the owner, supply or liquidity changes.": "在所有者、供应量或流动性变化时提醒。",
     "Put a live score on any site — open a scan and press \"Embed badge\".": "把实时分数放到任何网站——打开扫描结果，点击“嵌入徽章”。",
     "returns the full result as JSON (30 scans a minute).": "以 JSON 返回完整结果（每分钟 30 次）。",
+    "Choose a chain": "选择链",
+    "Send from": "从哪条链发送",
+    "Send to": "发送到哪条链",
+    "Connect a wallet to see your USDC on each chain.": "连接钱包即可查看各链上的 USDC。",
+    "Checking your USDC on every chain…": "正在查看各链上的 USDC…",
+    "No USDC found on these chains yet.": "这些链上暂未发现 USDC。",
+    "Most USDC": "USDC 最多",
+    "saves": "节省",
+    "First time on Arc?": "第一次使用 Arc？",
+    "On Arc, USDC is also the gas — the USDC you bring pays for your transactions there, so you don't need another token.": "在 Arc 上，USDC 同时也是 Gas —— 你带来的 USDC 即可支付交易费用，无需其他代币。",
+    "Add Arc to your wallet": "将 Arc 添加到钱包",
+    "Arc is in your wallet": "Arc 已添加到钱包",
+    "Copy link to this route": "复制此路线链接",
+    "Copy failed — the link is in the address bar": "复制失败 —— 链接已在地址栏中",
+    "Find my transfers": "查找我的转账",
+    "Looking on Arc…": "正在 Arc 上查找…",
+    "Found on Arc": "在 Arc 上找到",
+    "Couldn't look this up on Arc right now — try again in a moment.": "暂时无法在 Arc 上查询 —— 请稍后再试。",
+    "Your USDC is on Arc. What next?": "你的 USDC 已到 Arc。接下来？",
+    "Scan a token first": "先扫描代币",
+    "bridged with ARCIRCLE PAD": "通过 ARCIRCLE PAD 跨链",
+    "transfer": "笔转账",
+    "transfers": "笔转账",
+    "Arc is a busy chain — press Find my transfers again to look further back.": "Arc 区块很多 —— 再次点击“查找我的转账”可继续往前查找。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790392218"></script>
+<script src="arc-log.js?v=1790393779"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790392218">
+<link rel="stylesheet" href="style.css?v=1790393779">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -832,6 +832,7 @@
             <span class="abr-kicker">Utility · Circle CCTP</span>
             <h1>Bridge</h1>
             <p class="bp-lede">Move USDC between Arc and other chains. It's Circle's own Cross-Chain Transfer Protocol: native USDC is burned on one side and minted on the other — no wrapped tokens, no pools, and Circle delivers it on the other side so you don't need gas there.</p>
+            <div class="abr-stats" id="abr-stats" hidden></div>
           </div>
         </div>
         <div class="abr-grid">
@@ -860,6 +861,7 @@
               <label class="abr-recip-toggle"><input type="checkbox" id="abr-recip-on"> Send to a different address</label>
               <input type="text" class="abr-recip" id="abr-recip" placeholder="0x… recipient on the destination chain" autocomplete="off" spellcheck="false" hidden>
             </div>
+            <div class="abr-route" id="abr-route" aria-hidden="true"></div>
             <dl class="abr-quote" id="abr-quote">
               <div><dt>Transfer fee</dt><dd id="abr-q-fee">—</dd></div>
               <div><dt>Delivery on <span data-abr="to-name">Arc</span></dt><dd id="abr-q-fwd">—</dd></div>
@@ -867,11 +869,18 @@
               <div><dt>Time</dt><dd id="abr-q-eta">—</dd></div>
             </dl>
             <div class="abr-gaswarn" id="abr-gaswarn" role="status" hidden></div>
+            <div class="abr-onboard" id="abr-onboard" hidden>
+              <span class="abr-onboard-ico" aria-hidden="true"></span>
+              <div><b>First time on Arc?</b><span>On Arc, USDC is also the gas — the USDC you bring pays for your transactions there, so you don't need another token.</span>
+                <button type="button" class="abr-addarc" data-addarc>Add Arc to your wallet</button></div>
+              <button type="button" class="abr-onboard-x" data-onboard-x aria-label="Dismiss">×</button>
+            </div>
             <button type="button" class="abr-go" id="abr-go" disabled>Enter an amount</button>
             <ol class="abr-steps" id="abr-steps" aria-label="Steps">
               <li data-step="switch">Switch network</li><li data-step="approve">Approve USDC</li><li data-step="burn">Bridge</li>
             </ol>
             <div class="abr-status" id="abr-status" aria-live="polite"></div>
+            <button type="button" class="abr-share" id="abr-share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Copy link to this route</span></button>
             <p class="abr-fine">Your USDC goes straight to Circle's CCTP contracts — ARCIRCLE PAD never holds it and takes no fee. Fees are Circle's, deducted from the amount you send; you only pay gas on the chain you send from.</p>
           </div>
           <aside class="abr-side">
@@ -1077,6 +1086,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790392218"></script>
+<script src="arcpad.bundle.js?v=1790393779"></script>
 </body>
 </html>
