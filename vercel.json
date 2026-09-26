@@ -148,6 +148,11 @@
       "permanent": false
     },
     {
+      "source": "/liquidity",
+      "destination": "/arc#liquidity",
+      "permanent": false
+    },
+    {
       "source": "/claim/:id",
       "destination": "/arc#multisend?claim=:id",
       "permanent": false

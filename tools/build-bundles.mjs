@@ -28,7 +28,7 @@ export const BUNDLES = {
   "arcpad.bundle.js": [
     ...COMMON_HEAD, "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
     "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
+    "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "liq-core.js", "arc-liquidity.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
     "arc-social.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
   ],
   "circlepad.bundle.js": [
@@ -105,7 +105,7 @@ function join(files) {
 // one function and handed out as window.ArcScanCore.
 // The Holder Snapshot engine is shared the same way: api/_snap-core.mjs →
 // snap-core.js (window.ArcSnapCore).
-const CORES = [["api/_scan-core.mjs", "scan-core.js", "ArcScanCore"], ["api/_snap-core.mjs", "snap-core.js", "ArcSnapCore"]];
+const CORES = [["api/_scan-core.mjs", "scan-core.js", "ArcScanCore"], ["api/_snap-core.mjs", "snap-core.js", "ArcSnapCore"], ["api/_liq-core.mjs", "liq-core.js", "ArcLiqCore"]];
 function coreScript(CORE_SRC, CORE_OUT, NAME) {
   const src = fs.readFileSync(path.join(ROOT, CORE_SRC), "utf8");
   const names = [...src.matchAll(/^export\s+(?:async\s+)?(?:const|function)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);

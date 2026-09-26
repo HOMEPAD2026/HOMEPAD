@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790431788"></script>
+<script src="arc-log.js?v=1790435620"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790431788">
+<link rel="stylesheet" href="style.css?v=1790435620">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -61,6 +61,7 @@
 <symbol id="i-bridge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></g></symbol>
 <symbol id="i-snap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></g></symbol>
 <symbol id="i-fan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></g></symbol>
+<symbol id="i-drop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/></g></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.3"/></g></symbol>
 <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/></g></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z" fill="currentColor"/></symbol>
@@ -104,6 +105,7 @@
       <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner</button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender</button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot</button>
+      <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
 
@@ -260,6 +262,7 @@
                 <button type="button" class="ac2-chip-btn apc-ic" id="apc-copy-ca" aria-label="Copy address"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.4"/><path d="M15.5 8.5V6.9A2.4 2.4 0 0 0 13.1 4.5H6.9A2.4 2.4 0 0 0 4.5 6.9v6.2a2.4 2.4 0 0 0 2.4 2.4h1.6"/></svg><span>Copy</span></button>
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
                 <a class="ac2-chip-btn ac2-safety" id="apc-safety" href="#scanner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
+                <a class="ac2-chip-btn" id="apc-liqmgr" href="#liquidity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/></svg><span>Liquidity</span></a>
                 <button type="button" class="ac2-chip-btn ap-star-btn apc-ic" id="apc-star" aria-pressed="false" aria-label="Watch"><svg><use href="#i-star" xlink:href="#i-star"/></svg><span>Watch</span></button>
                 <button type="button" class="ac2-chip-btn ac2-share-btn apc-ic" data-share="coin" aria-label="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg><span>Share</span></button>
               </div>
@@ -769,6 +772,7 @@
             <span class="lkr-kicker">Utility</span>
             <h1>Locker</h1>
             <p class="bp-lede">Lock any Arc token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.</p>
+            <p class="lkr-lp-note">Locking a Uniswap v4 LP position? That's in the <a href="#liquidity">Liquidity Manager</a>.</p>
           </div>
           <div class="lkr-stats">
             <div><small>Locks created</small><b id="lkr-count">—</b></div>
@@ -1131,6 +1135,34 @@
       </section>
 
       <!-- ============ HOLDER SNAPSHOT (arc-snapshot.js + snap-core.js) — every holder of a token at one block ============ -->
+      <section class="bp-panel" id="bp-panel-liquidity">
+        <div class="alq-hero">
+          <div class="alq-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><defs><linearGradient id="alqGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#39d0ff"/><stop offset=".6" stop-color="#39ff88"/><stop offset="1" stop-color="#b58bff"/></linearGradient></defs>
+              <path class="alq-drop" d="M32 8c9 10.5 15 19.5 15 27.5a15 15 0 0 1-30 0C17 27.5 23 18.5 32 8z"/>
+              <path class="alq-wave" d="M18 38c4.5-3 9-3 14 0s9.5 3 14 0"/><path class="alq-wave w2" d="M19 45c4.5-3 9-3 13 0s9 3 13 0"/>
+              <rect class="alq-shackle" x="25" y="49" width="14" height="10" rx="3"/></svg>
+          </div>
+          <div class="alq-hero-t">
+            <span class="ams-kicker">Utility · Liquidity</span>
+            <h1>Liquidity Manager <span class="asc-ver">New</span></h1>
+          </div>
+          <p class="bp-lede">Every Uniswap v4 pool an Arc token trades in — price, depth, every LP position and how much of it is locked. Add or remove liquidity and lock your LP without leaving ARCIRCLE PAD.</p>
+          <ol class="alq-flow" aria-label="Launch, liquidity, lock, scan">
+            <li><a href="#launch">Launch</a></li><li class="on"><span>Liquidity</span></li><li><span>Lock</span></li><li><a href="#scanner">Scanner</a></li>
+          </ol>
+        </div>
+        <div class="ams-card alq-search">
+          <form id="alq-form" class="asn-form" autocomplete="off">
+            <input id="alq-addr" type="text" spellcheck="false" placeholder="Token contract address (0x…)" aria-label="Token contract address">
+            <button type="submit" class="ams-mini">Load</button>
+          </form>
+          <div class="ams-chips" id="alq-chips"></div>
+        </div>
+        <div class="alq-status" id="alq-status" hidden></div>
+        <div id="alq-out"></div>
+      </section>
+
       <section class="bp-panel" id="bp-panel-snapshot">
         <div class="asn-hero">
           <div class="asn-emblem" aria-hidden="true">
@@ -1378,6 +1410,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790431788"></script>
+<script src="arcpad.bundle.js?v=1790435620"></script>
 </body>
 </html>

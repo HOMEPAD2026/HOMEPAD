@@ -23,6 +23,7 @@
 //   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
 //   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
 //   GET  /api/social?circle=ideas[&wallet=0x…]   Round #1 governance ideas (api/_circle.mjs)
+//   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -45,6 +46,7 @@ import * as scanner from "./_scan.mjs";
 import * as bridge from "./_bridge.mjs";
 import * as drop from "./_drop.mjs";
 import * as snap from "./_snapshot.mjs";
+import * as liquidity from "./_liquidity.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -227,6 +229,14 @@ export async function GET(req) {
     if (scanner.limited(`hs:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
     try { const out = await scanner.holderSnapshot(t, { store: scanStore(), limit: url.searchParams.get("limit") }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  // Liquidity Manager (arc-liquidity.js): pools, positions and locks for one token
+  if (url.searchParams.has("liq")) {
+    if (scanner.limited(`lq:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
+    try {
+      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000 });
+      return json(200, out, "no-store");
+    } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   // Holder Snapshot (arc-snapshot.js, /snap/<id>, /api/v1/snapshot/<token>)
   if (url.searchParams.has("snaprun")) {
