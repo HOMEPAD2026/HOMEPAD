@@ -25,7 +25,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="/arc-log.js?v=1790460873"></script>
+<script src="/arc-log.js?v=1790462840"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -314,7 +314,7 @@ html[lang="ko"] p,html[lang="ko"] li{line-height:1.72;}
       <tr><td><strong>네트워크</strong></td><td>Arc 메인넷 (체인 ID 5042) — 가스는 USDC로 지불</td></tr>
       <tr><td><strong>표준 / 소수점 자릿수</strong></td><td>ERC-20 · 소수점 18자리</td></tr>
       <tr><td><strong>총 공급량</strong></td><td>1,000,000,000 $ARCIRCLE — 고정</td></tr>
-      <tr><td><strong>소각</strong></td><td>116,772,290.56 $ARCIRCLE(공급량의 11.68%)을 2026년 9월 25일 소각 주소 <code>0x…dEaD</code>로 전송 — tx <code>0x0c90…99ae</code>. 유통량: 883,227,709</td></tr>
+      <tr><td><strong>소각</strong></td><td>소각 주소 <code>0x…dEaD</code>에 126,264,032.66 $ARCIRCLE(공급량의 12.63%): 2026년 9월 25일 116,772,290.56개(tx <code>0x0c90…99ae</code>), 2026년 9월 26일 9,491,742.10개(tx <code>0x5498…6fb2</code>). 유통량: 873,735,967</td></tr>
       <tr><td><strong>런치</strong></td><td>2026년 9월 25일 14:09 UTC, Argus(argus.world)에서 재런칭 — foci.family의 첫 번째 런칭(2026년 9월 22일)은 종료</td></tr>
       <tr><td><strong>거래처</strong></td><td>Argus · USDC와 페어된 Uniswap v4 풀(풀 수수료 1%, 틱 간격 200), 유동성은 Argus가 잠금</td></tr>
       <tr><td><strong>초기 분배</strong></td><td>10억 개 전량을 Argus가 시작 가격 위의 Uniswap v4 유동성 포지션 하나에 곧바로 발행 — 팀 또는 내부자 배정 없음</td></tr>
@@ -767,11 +767,11 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   <p class="lede">런칭 때 Argus는 전체 공급량을 한 번에 발행해 시작 가격 위의 풀 유동성 포지션에 모두 넣었습니다. 매수자는 매수할 때 그 포지션에서 토큰을 가져갑니다. 어떤 지갑에도 사전 발행은 없었고, 팀 배정도 없습니다.</p>
   <div class="grid3">
     <div class="card stat"><b>1,000,000,000</b><span>총 공급량, 고정, 소수점 18자리</span></div>
-    <div class="card stat"><b>116,772,290.56</b><span>소각 — 공급량의 11.68%</span></div>
-    <div class="card stat"><b>883,227,709</b><span>소각 후 유통량</span></div>
+    <div class="card stat"><b>126,264,032.66</b><span>소각 — 공급량의 12.63%</span></div>
+    <div class="card stat"><b>873,735,967</b><span>소각 후 유통량</span></div>
   </div>
   <h3>소각</h3>
-  <p>2026년 9월 25일, 116,772,290.56개의 $ARCIRCLE(총 공급량의 11.68%)이 소각 주소 <code>0x000000000000000000000000000000000000dEaD</code>로 보내졌습니다(트랜잭션 <code>0x0c90…99ae</code>). 이 주소의 키는 아무도 갖고 있지 않으므로 해당 토큰은 다시는 움직일 수 없습니다. 이후 소각을 포함한 실시간 합계는 arcircle.app/arcircle에서 확인할 수 있습니다.</p>
+  <p>2026년 9월 25일, 116,772,290.56개의 $ARCIRCLE(총 공급량의 11.68%)이 소각 주소 <code>0x000000000000000000000000000000000000dEaD</code>로 보내졌습니다(트랜잭션 <code>0x0c90…99ae</code>). 2026년 9월 26일에는 9,491,742.10개가 추가로 소각되어(트랜잭션 <code>0x5498…6fb2</code>) 누적 126,264,032.66개, 공급량의 12.63%가 되었습니다. 이 주소의 키는 아무도 갖고 있지 않으므로 해당 토큰은 다시는 움직일 수 없습니다. 이후 소각을 포함한 실시간 합계는 arcircle.app/arcircle에서 확인할 수 있습니다.</p>
   <h3>숫자 읽는 법</h3>
   <ul>
     <li><strong>시가총액</strong>은 ARCIRCLE PAD와 Dexscreener 모두 가격 × 1,000,000,000(총 공급량)입니다.</li>
@@ -1052,7 +1052,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
     <div class="phase-head"><h3>0단계 — 기반 구축</h3><span class="phase-when">2026년 3분기 · 완료</span><span class="tag live">가동 중</span></div>
     <ul class="checks">
       <li class="ok">Argus에서 $ARCIRCLE 재런칭(2026년 9월 25일), 전체 공급량을 잠긴 Uniswap v4 포지션 하나에 투입</li>
-      <li class="ok">$ARCIRCLE 공급량의 11.68%(116,772,290.56개)를 소각 주소로 소각</li>
+      <li class="ok">$ARCIRCLE 공급량의 12.63%(126,264,032.66개)를 소각 주소로 소각</li>
       <li class="ok">Arc 메인넷에 ArcPad 팩토리, 수수료 훅 및 라우터 배포</li>
       <li class="ok">ARCIRCLE PAD 웹사이트: 지갑 연결을 지원하는 ArcPad, CirclePad, $ARCIRCLE 허브</li>
       <li class="ok">모든 런치에 동일하게 적용되는 고정된 공정한 시작점(시가총액 ≈ $4,350)</li>

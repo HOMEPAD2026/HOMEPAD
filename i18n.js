@@ -980,10 +980,10 @@
     "Trading on Argus · Uniswap v4 pool": "Argus에서 거래 중 · Uniswap v4 풀",
     "Fixed at launch (1–10%)": "런칭 때 고정 (1–10%)",
     "Reached": "달성",
-    "$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and 11.68% of the supply was burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.": "$ARCIRCLE이 Argus에서 전체 공급량을 잠긴 Uniswap v4 포지션 하나에 담아 런칭했고, 공급량의 11.68%를 소각했습니다. ArcPad가 Arc 메인넷에서 가동 중이며, CirclePad 에스크로가 배포되었습니다.",
+    "$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and 12.63% of the supply has been burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.": "$ARCIRCLE이 Argus에서 전체 공급량을 잠긴 Uniswap v4 포지션 하나에 담아 런칭했고, 지금까지 공급량의 12.63%가 소각되었습니다. ArcPad가 Arc 메인넷에서 가동 중이며, CirclePad 에스크로가 배포되었습니다.",
     ", which no one controls — those tokens can never move again. Circulating supply:": "(아무도 통제할 수 없는 주소)로 보내졌습니다. 이 토큰은 다시는 움직일 수 없습니다. 유통량:",
     ", which no one controls. Those tokens can never move again; the live total is shown above.": "(아무도 통제할 수 없는 주소)로 보내졌습니다. 이 토큰은 다시는 움직일 수 없으며, 실시간 합계는 위에 표시됩니다.",
-    "11.68% of it already burned ↗": "이미 11.68% 소각됨 ↗",
+    "12.63% of it already burned ↗": "이미 12.63% 소각됨 ↗",
     "Burn": "소각",
     "Burned": "소각",
     "Burned forever": "영구 소각",
@@ -992,7 +992,7 @@
     "Every $ARCIRCLE buy by the platform's wallets and every burn shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.": "플랫폼 지갑의 모든 $ARCIRCLE 매수와 모든 소각이 거래 내역과 함께 여기에 표시되며, 공급 분포는 런칭 이후 모든 전송으로부터 다시 계산됩니다.",
     "Has any $ARCIRCLE been burned?": "$ARCIRCLE이 소각된 적이 있나요?",
     "See the transaction ↗": "거래 보기 ↗",
-    "Yes. On 25 September 2026, 116,772,290.56 $ARCIRCLE — 11.68% of the total supply — was sent to the dead address": "네. 2026년 9월 25일, 116,772,290.56개의 $ARCIRCLE(총 공급량의 11.68%)이 소각 주소",
+    "Yes, twice so far: 116,772,290.56 $ARCIRCLE on 25 September 2026 and 9,491,742.10 on 26 September 2026 — 126,264,032.66 in total, 12.63% of the supply — sent to the dead address": "네, 지금까지 두 번입니다. 2026년 9월 25일 116,772,290.56개, 2026년 9월 26일 9,491,742.10개 — 합계 126,264,032.66개, 공급량의 12.63%의 $ARCIRCLE이 소각 주소",
     "of supply ↗": "공급량 ↗",
     "of the 1,000,000,000 supply was sent to the dead address": "— 총 공급량 1,000,000,000개 중 이만큼이 소각 주소",
     "of the supply burned forever": "공급량 영구 소각",
@@ -2286,6 +2286,7 @@
     "See the candidates": "후보 보기",
     "burned per vote": "1표당 소각",
     "Burn address": "소각 주소",
+    "See every burn ↗": "모든 소각 보기 ↗",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -3631,10 +3632,10 @@
     "Trading on Argus · Uniswap v4 pool": "在 Argus 交易 · Uniswap v4 池",
     "Fixed at launch (1–10%)": "发射时固定（1–10%）",
     "Reached": "已达成",
-    "$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and 11.68% of the supply was burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.": "$ARCIRCLE 在 Argus 上发射，全部供应量放在一个锁定的 Uniswap v4 仓位中，并已销毁 11.68% 的供应量。ArcPad 已在 Arc 主网上线，CirclePad 托管合约已部署。",
+    "$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and 12.63% of the supply has been burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.": "$ARCIRCLE 在 Argus 上发射，全部供应量放在一个锁定的 Uniswap v4 仓位中，目前已销毁 12.63% 的供应量。ArcPad 已在 Arc 主网上线，CirclePad 托管合约已部署。",
     ", which no one controls — those tokens can never move again. Circulating supply:": "，该地址无人控制——这些代币永远无法再转移。流通量：",
     ", which no one controls. Those tokens can never move again; the live total is shown above.": "，该地址无人控制。这些代币永远无法再转移；实时总量显示在上方。",
-    "11.68% of it already burned ↗": "其中 11.68% 已销毁 ↗",
+    "12.63% of it already burned ↗": "其中 12.63% 已销毁 ↗",
     "Burn": "销毁",
     "Burned": "已销毁",
     "Burned forever": "永久销毁",
@@ -3643,7 +3644,7 @@
     "Every $ARCIRCLE buy by the platform's wallets and every burn shows up here with its transaction, and the supply split is rebuilt from every transfer since launch.": "平台钱包每一次买入 $ARCIRCLE 和每一次销毁都会连同交易显示在这里，供应分布根据发射以来的每笔转账重新计算。",
     "Has any $ARCIRCLE been burned?": "$ARCIRCLE 有被销毁过吗？",
     "See the transaction ↗": "查看交易 ↗",
-    "Yes. On 25 September 2026, 116,772,290.56 $ARCIRCLE — 11.68% of the total supply — was sent to the dead address": "是的。2026 年 9 月 25 日，116,772,290.56 枚 $ARCIRCLE（总供应量的 11.68%）被发送到销毁地址",
+    "Yes, twice so far: 116,772,290.56 $ARCIRCLE on 25 September 2026 and 9,491,742.10 on 26 September 2026 — 126,264,032.66 in total, 12.63% of the supply — sent to the dead address": "是的，目前共两次：2026 年 9 月 25 日 116,772,290.56 枚、2026 年 9 月 26 日 9,491,742.10 枚——合计 126,264,032.66 枚 $ARCIRCLE（供应量的 12.63%）被发送到销毁地址",
     "of supply ↗": "的供应量 ↗",
     "of the 1,000,000,000 supply was sent to the dead address": "的 1,000,000,000 总供应量被发送到销毁地址",
     "of the supply burned forever": "的供应量已永久销毁",
@@ -4937,6 +4938,7 @@
     "See the candidates": "查看候选",
     "burned per vote": "每票燃烧",
     "Burn address": "燃烧地址",
+    "See every burn ↗": "查看全部销毁 ↗",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
