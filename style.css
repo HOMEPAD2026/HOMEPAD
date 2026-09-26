@@ -6982,6 +6982,12 @@ body.cp-ph-voting #bp-panel-home .bp-hero,body.cp-ph-result #bp-panel-home .bp-h
 .cp-phero-burn{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--ink-dim);font-size:.82rem;}
 .cp-phero-burn b{font:800 1.8rem 'Sora',sans-serif;color:#fff;font-variant-numeric:tabular-nums;}
 .cp-phero-cta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.cp-strip[hidden],.cp-phero[hidden],.gv-mybar[hidden]{display:none !important;}
+.cp-phero-lede{margin:-4px 0 16px;font-size:.88rem;line-height:1.6;color:#c9d4de;max-width:52ch;}
+.cp-phero.upcoming .cp-phero-cta .bp-btn-primary{background:linear-gradient(90deg,#ff7a45,#ffb347);color:#1a0d05;border-color:transparent;text-decoration:none;}
+.cp-wc-burn{border-color:rgba(255,138,76,.35);background:rgba(255,120,60,.06);}
+.cp-wc-burn > div b{display:block;font:800 1.15rem 'Sora',sans-serif;color:#ffd0b0;}
+.cp-wc-burn > div span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);}
 .cp-phero-cta .bp-btn-primary{padding:12px 22px;}
 .cp-phero.voting .cp-phero-cta .bp-btn-primary{background:linear-gradient(90deg,#ff7a45,#ffb347);color:#1a0d05;border-color:transparent;}
 .cp-phero-clock{display:flex;flex-direction:column;}

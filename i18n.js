@@ -2280,6 +2280,12 @@
     "No votes yet — the first burn sets the lead.": "아직 투표가 없어요 — 첫 소각이 1위를 정해요.",
     "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. At the close it splits 80 / 15 / 5, $ARCIRCLE holders burn-to-vote on the coin's identity, the top contributor receives the 15% over 3 days and every contributor gets an airdrop.": "USDC는 에스크로 컨트랙트에 보관되고, 72시간이 끝나기 전이면 언제든 내 참여금을 출금할 수 있어요. 마감 때 80 / 15 / 5로 나뉘고, $ARCIRCLE 보유자가 소각 투표로 코인의 정체성을 정하며, 최대 참여자는 15%를 3일에 걸쳐 받고 모든 참여자가 에어드롭을 받아요.",
     "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.": "모든 참여자가 새 코인을 에어드롭으로 받습니다 — 수량과 시기는 아직 미정입니다. 마감 시점 1위 참여자는 15% 몫도 3일에 걸쳐 받습니다.",
+    "Round #1 · next up: burn-to-vote": "Round #1 · 다음 단계: 소각 투표",
+    "When the raise closes, $ARCIRCLE holders vote on the coin.": "모금이 마감되면 $ARCIRCLE 보유자가 코인을 투표로 정합니다.",
+    "1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote, for 48 hours.": "1표 = 1,000 $ARCIRCLE, 0x…dEaD로 보내져 영구 소각됩니다. $ARCIRCLE 보유자라면 누구나 48시간 동안 투표할 수 있습니다.",
+    "See the candidates": "후보 보기",
+    "burned per vote": "1표당 소각",
+    "Burn address": "소각 주소",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4925,6 +4931,12 @@
     "No votes yet — the first burn sets the lead.": "还没有投票——第一笔销毁将决定领先者。",
     "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. At the close it splits 80 / 15 / 5, $ARCIRCLE holders burn-to-vote on the coin's identity, the top contributor receives the 15% over 3 days and every contributor gets an airdrop.": "USDC 存放在托管合约中，72 小时结束前可随时提取自己的参与金。结束时按 80 / 15 / 5 拆分，$ARCIRCLE 持有者通过销毁投票决定代币身份，最大参与者分 3 天获得 15%，每位参与者都会获得空投。",
     "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.": "每位参与者都会获得新币空投——数量与时间尚未决定。截止时排名第一的参与者还将在 3 天内分批获得 15% 份额。",
+    "Round #1 · next up: burn-to-vote": "Round #1 · 下一步：燃烧投票",
+    "When the raise closes, $ARCIRCLE holders vote on the coin.": "募资结束后，$ARCIRCLE 持有者投票决定这枚币。",
+    "1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote, for 48 hours.": "1 票 = 1,000 $ARCIRCLE，永久发送至 0x…dEaD。任何持有 $ARCIRCLE 的人都可以在 48 小时内投票。",
+    "See the candidates": "查看候选",
+    "burned per vote": "每票燃烧",
+    "Burn address": "燃烧地址",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -95,9 +95,25 @@
     const ph = phase();
     document.body.classList.toggle("cp-ph-voting", ph === "voting");
     document.body.classList.toggle("cp-ph-result", ph === "result");
-    if (!burnOn() || (ph !== "voting" && ph !== "result")) { hero.hidden = true; return; }
+    if (!burnOn() || (ph !== "raise" && ph !== "voting" && ph !== "result")) { hero.hidden = true; return; }
     hero.hidden = false;
     const w = winner();
+    if (ph === "raise") {
+      // before the close: say what the burn vote is and when it opens
+      const g = G(), dl = deadline();
+      const published = g && Array.isArray(g.categories) ? g.categories.filter((c) => c.set).length : 0;
+      const buy = String(CONFIG.ARCIRCLE_BUY_URL || "");
+      hero.className = "cp-phero upcoming";
+      hero.innerHTML = `<div class="cp-phero-copy">
+          <span class="cp-phero-eyebrow">${T("Round #1 · next up: burn-to-vote")}</span>
+          <h2>${T("When the raise closes, $ARCIRCLE holders vote on the coin.")}</h2>
+          <p class="cp-phero-lede">${T("1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote, for 48 hours.")}</p>
+          <div class="cp-phero-cta">${buy ? `<a class="bp-btn-primary" href="${esc(buy)}" target="_blank" rel="noopener">${T("Get $ARCIRCLE")}</a>` : ""}<button type="button" class="bp-btn-ghost" data-cp-go="governance">${T("See the candidates")}</button>${dl > nowS() ? `<span class="cp-phero-clock"><small>${T("Voting opens in")}</small><b data-no-i18n data-cp-to="${dl}">${left(dl - nowS())}</b></span>` : ""}</div>
+        </div>
+        <div class="cp-phero-side"><div class="cp-wc cp-wc-burn"><span class="cp-flame" aria-hidden="true"></span><div><b data-no-i18n>1,000 $ARCIRCLE</b><span>${T("burned per vote")}</span></div>
+          <dl><div><dt>${T("Burn address")}</dt><dd data-no-i18n>0x…dEaD</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>${published}/5</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
+      return;
+    }
     if (ph === "voting") {
       hero.className = "cp-phero voting";
       hero.innerHTML = `<div class="cp-phero-copy">
