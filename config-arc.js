@@ -112,9 +112,9 @@ const CONFIG = {
   ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
 
   // --- ArcMultiSend: the Multisender utility (arcpad.html#multisend) ---
-  // Empty until contracts/scripts/deploy-arc-multisend.js runs on arcMainnet;
-  // the page works in preview (load and check a list, no sending) until then.
-  MULTISEND_ADDRESS: "",
+  // Deployed with contracts/scripts/deploy-arc-multisend.js (2026-09-26).
+  // Empty it to put the page back into preview (no sending).
+  MULTISEND_ADDRESS: "0x21733285F844cb2F03a5d692de9974F379889956",
 };
 
 // true once $ARCIRCLE is live (its contract address is set above)
