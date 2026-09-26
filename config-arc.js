@@ -110,6 +110,11 @@ const CONFIG = {
   // Empty until contracts/scripts/deploy-arc-lock.js runs on arcMainnet;
   // the lock button and badge stay hidden while it's empty.
   ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
+
+  // --- ArcMultiSend: the Multisender utility (arcpad.html#multisend) ---
+  // Empty until contracts/scripts/deploy-arc-multisend.js runs on arcMainnet;
+  // the page works in preview (load and check a list, no sending) until then.
+  MULTISEND_ADDRESS: "",
 };
 
 // true once $ARCIRCLE is live (its contract address is set above)

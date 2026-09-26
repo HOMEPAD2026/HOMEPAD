@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790393779"></script>
+<script src="arc-log.js?v=1790395689"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790393779">
+<link rel="stylesheet" href="style.css?v=1790395689">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -59,6 +59,7 @@
 <symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></g></symbol>
 <symbol id="i-scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></g></symbol>
 <symbol id="i-bridge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></g></symbol>
+<symbol id="i-fan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></g></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.3"/></g></symbol>
 <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6M10 17h4"/></g></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z" fill="currentColor"/></symbol>
@@ -100,6 +101,7 @@
       <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker</button>
       <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge</button>
       <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner</button>
+      <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
 
@@ -966,6 +968,88 @@
         <p class="asc-foot">Reads Arc directly — the buy and sell checks are dry runs, nothing is signed or spent — plus Dexscreener for market data. An automated check, not advice: a clean scan can't rule out every risk, and a warning doesn't always mean a scam.</p>
       </section>
 
+      <!-- ============ MULTISENDER (arc-multisend.js) — one token to many wallets ============ -->
+      <section class="bp-panel" id="bp-panel-multisend">
+        <div class="ams-hero">
+          <div class="ams-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><defs><linearGradient id="amsGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".55" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>
+              <path class="ams-ray" d="M18 32H47"/><path class="ams-ray" d="M18 32L47 14"/><path class="ams-ray" d="M18 32L47 50"/>
+              <circle class="ams-pkt" r="2.6"><animateMotion dur="2.4s" repeatCount="indefinite" path="M18 32L47 14"/></circle>
+              <circle class="ams-pkt" r="2.6"><animateMotion dur="2.4s" begin=".8s" repeatCount="indefinite" path="M18 32H47"/></circle>
+              <circle class="ams-pkt" r="2.6"><animateMotion dur="2.4s" begin="1.6s" repeatCount="indefinite" path="M18 32L47 50"/></circle>
+              <circle class="ams-src" cx="16" cy="32" r="7"/><circle class="ams-dst" cx="49" cy="14" r="5"/><circle class="ams-dst" cx="49" cy="32" r="5"/><circle class="ams-dst" cx="49" cy="50" r="5"/></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Utility · Batch transfer</span>
+            <h1>Multisender <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>
+            <p class="bp-lede">Send one Arc token to many wallets at once — an airdrop, rewards, payroll in USDC. Paste a list, check it, approve once, and it goes out in as few transactions as possible, straight from your wallet.</p>
+            <div class="ams-stats" id="ams-stats" hidden></div>
+          </div>
+        </div>
+        <div class="ams-preview" id="ams-preview" hidden>
+          <span class="ams-preview-ico" aria-hidden="true"></span>
+          <div><b>Opening soon</b><span>The Multisender contract isn't live on Arc yet. You can already load and check a list — sending switches on as soon as it's deployed.</span></div>
+        </div>
+        <div class="ams-resume" id="ams-resume" hidden></div>
+
+        <div class="ams-grid">
+          <div class="ams-main">
+            <div class="ams-card" id="ams-step-token">
+              <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
+              <input id="ams-token" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a token contract address (0x…)" aria-label="Token contract address">
+              <div class="ams-chips" id="ams-quick"></div>
+              <div class="ams-tokcard" id="ams-tokcard" hidden></div>
+            </div>
+
+            <div class="ams-card" id="ams-step-list">
+              <div class="ams-card-head"><span class="ams-num">2</span><h2>Recipients</h2>
+                <div class="ams-head-acts">
+                  <button type="button" class="ams-mini" id="ams-example">Example</button>
+                  <label class="ams-mini ams-file">Upload CSV<input type="file" id="ams-file" accept=".csv,.txt,text/csv,text/plain" hidden></label>
+                  <button type="button" class="ams-mini" id="ams-template">Template</button>
+                </div>
+              </div>
+              <label class="ams-same"><input type="checkbox" id="ams-same-on"> <span>Same amount for everyone</span></label>
+              <div class="ams-same-row" id="ams-same-row" hidden>
+                <input id="ams-same" type="text" inputmode="decimal" autocomplete="off" placeholder="Amount per wallet" aria-label="Amount per wallet">
+                <span class="ams-sym" id="ams-same-sym"></span>
+              </div>
+              <div class="ams-editor">
+                <pre class="ams-gutter" id="ams-gutter" aria-hidden="true">1</pre>
+                <textarea id="ams-list" rows="9" spellcheck="false" autocomplete="off" wrap="off" aria-label="Recipients, one per line: address, amount" data-no-i18n></textarea>
+              </div>
+              <div class="ams-issues" id="ams-issues" hidden></div>
+              <div class="ams-table" id="ams-table" hidden></div>
+            </div>
+          </div>
+
+          <aside class="ams-side">
+            <div class="ams-card ams-review" id="ams-review">
+              <div class="ams-card-head"><span class="ams-num">3</span><h2>Review &amp; send</h2></div>
+              <dl class="ams-sum" id="ams-sum">
+                <div><dt>Recipients</dt><dd id="ams-s-n">—</dd></div>
+                <div><dt>Total</dt><dd id="ams-s-total">—</dd></div>
+                <div><dt>Your balance</dt><dd id="ams-s-bal">—</dd></div>
+                <div><dt>Transactions</dt><dd id="ams-s-tx">—</dd></div>
+                <div><dt>Network fee</dt><dd id="ams-s-gas">—</dd></div>
+                <div><dt>Service fee</dt><dd>None</dd></div>
+              </dl>
+              <div class="ams-dots" id="ams-dots" aria-hidden="true"></div>
+              <div class="ams-warn" id="ams-warn" role="status" hidden></div>
+              <button type="button" class="ams-go" id="ams-go" disabled>Pick a token</button>
+              <ol class="ams-steps" id="ams-steps" aria-label="Progress"></ol>
+              <div class="ams-status" id="ams-status" aria-live="polite"></div>
+              <p class="ams-fine">Tokens go straight from your wallet to each recipient. You approve the exact total once; each batch is all-or-nothing, so nobody gets a half-sent batch. No fee — you only pay Arc gas.</p>
+            </div>
+            <div class="ams-card ams-hist">
+              <div class="ams-card-head"><h2>Your sends</h2><small>Saved in this browser</small></div>
+              <div id="ams-hist"></div>
+            </div>
+          </aside>
+        </div>
+        <p class="ams-foot">Runs on ArcMultiSend <a id="ams-contract" href="#" target="_blank" rel="noopener" data-no-i18n hidden>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. Up to 200 wallets per transaction. Tokens that take a fee on transfer arrive minus that fee.</p>
+      </section>
+
       <section class="bp-panel" id="bp-panel-docs">
         <div class="bp-doc-tabs">
           <button type="button" class="bp-doc-tab active" data-doc="how">How it works</button>
@@ -1086,6 +1170,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790393779"></script>
+<script src="arcpad.bundle.js?v=1790395689"></script>
 </body>
 </html>

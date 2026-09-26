@@ -119,6 +119,16 @@
       "source": "/scanner",
       "destination": "/arc#scanner",
       "permanent": false
+    },
+    {
+      "source": "/multisend",
+      "destination": "/arc#multisend",
+      "permanent": false
+    },
+    {
+      "source": "/multisender",
+      "destination": "/arc#multisend",
+      "permanent": false
     }
   ],
   "headers": [
