@@ -33,7 +33,7 @@ export const BUNDLES = {
   ],
   "circlepad.bundle.js": [
     ...COMMON_HEAD, "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
+    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
   ],
   "reward.bundle.js": [
     ...COMMON_HEAD, "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",

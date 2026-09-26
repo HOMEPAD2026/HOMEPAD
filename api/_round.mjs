@@ -9,6 +9,8 @@ import { ARCIRCLE_TOKEN, ARCIRCLE_LIVE } from "./_arcircle.mjs";
 export const ARCIRCLE = ARCIRCLE_TOKEN.toLowerCase();
 export { ARCIRCLE_LIVE };
 export const FACTORY = "0x0ebd6df354056ff469f17f8fd14dc0d2c87bd65e";
+// BigPadVote for Round #1 (config-arc.js CIRCLEPAD_VOTE_ADDRESS) — "" before it's deployed
+export const VOTE = "0x23c376615a58f059fc4bc83a38eb4acdf8d39ff2";
 const te = new TextEncoder();
 export const kec = (s) => "0x" + Array.from(keccak_256(te.encode(String(s))), (b) => b.toString(16).padStart(2, "0")).join("");
 const sel = (sig) => kec(sig).slice(0, 10);
@@ -16,6 +18,7 @@ export const S = {
   started: sel("started()"), deadline: sel("deadline()"), totalRaised: sel("totalRaised()"), cap: sel("cap()"),
   recipient: sel("recipient()"), isOpen: sel("isOpen()"), contributions: sel("contributions(address)"), contribute: sel("contribute()"),
   launches: "0x7b443a76", launchCount: "0x27cca59f", balanceOf: "0x70a08231",
+  optionsSet: sel("optionsSet(uint8)"), votingEnds: sel("votingEnds()"),
 };
 export const CONTRIBUTED = kec("Contributed(address,uint256,uint256)");
 export const big = (h) => (h ? BigInt(h) : 0n);

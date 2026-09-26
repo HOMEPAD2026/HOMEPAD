@@ -22,7 +22,8 @@
 //   GET  /api/social?dropsby=0x…                 a wallet's own Multisender sends
 //   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
 //   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
-//   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
+//   GET  /api/social?circle=ideas[&wallet=0x…]   Round #1 governance ideas (api/_circle.mjs)
+//   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
 //   GET  /api/social?cctp=fees|msg&src=…        Bridge: Circle CCTP fee quotes / transfer status (api/_cctp.mjs)
@@ -305,6 +306,10 @@ export async function GET(req) {
       const w = lc(url.searchParams.get("wallet"));
       return json(200, await token.pollData(w), isAddr(w) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
     }
+    if (url.searchParams.get("circle") === "ideas") {
+      const w = lc(url.searchParams.get("wallet"));
+      return json(200, await circle.ideasData(w), isAddr(w) ? "no-store" : "public, max-age=5, s-maxage=10, stale-while-revalidate=60");
+    }
     if (url.searchParams.has("circle")) {
       const w = lc(url.searchParams.get("wallet"));
       return json(200, await circle.circleData(w), isAddr(w) ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60");
@@ -361,6 +366,8 @@ export async function POST(req) {
     if (b.action === "cprop") return await circle.propPost(b, recoverSigner, json);
     if (b.action === "cprop-up") return await circle.propUp(b, recoverSigner, json);
     if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
+    if (b.action === "cidea") return await circle.ideaPost(b, recoverSigner, json);
+    if (b.action === "cidea-up") return await circle.ideaUp(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
     if (b.action === "scanreport") return await scanReport(b, req);

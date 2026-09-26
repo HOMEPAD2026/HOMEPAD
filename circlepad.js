@@ -1302,7 +1302,7 @@ function renderCirclepadGovernance(g) {
       // An open editor is left exactly as it is (focus, caret, typed rows) — the
       // 15-second refresh only replaces the cards around it.
       if (canPropose) return { keep: "editor", html: `<div class="bp-gov-cat gv-unset" id="gv-cat-${c.id}" data-kind="${def.kind}" data-keep="editor"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span></div>${govEditorHtml(def)}</div>` };
-      return `<div class="bp-gov-cat gv-unset" id="gv-cat-${c.id}" data-kind="${def.kind}"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span></div><div class="bp-empty">Candidates not published yet.</div></div>`;
+      return `<div class="bp-gov-cat gv-unset" id="gv-cat-${c.id}" data-kind="${def.kind}"><div class="bp-gov-cat-head"><span class="bp-gov-cat-title">${govEsc(c.label)}</span></div><div class="bp-empty gv-unset-row"><span>Candidates not published yet.</span>${phase !== "closed" ? `<button type="button" class="gv-suggest" data-gv="idea" data-cat="${c.id}">Suggest one</button>` : ""}</div></div>`;
     }
     const sum = c.options.reduce((a, o) => a + o.weight, 0n);
     const pctOf = (w) => (sum > 0n ? (Number((w * 10000n) / sum) / 100).toFixed(1) : "0.0");
@@ -1347,14 +1347,14 @@ function govEditorHtml(def) {
     let input;
     if (def.kind === "roadmap") input = `<textarea rows="3" maxlength="${def.max}" data-i="${i}" placeholder="Phase 1 — what gets built first">${govEsc(v)}</textarea>`;
     else if (def.kind === "date") input = `<input type="datetime-local" data-i="${i}" value="${govEsc(v)}">`;
-    else if (def.kind === "logo") input = `<input type="url" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="https://… or ipfs://… (square image)"><span class="gv-ed-prev">${govLogoUrl(v) ? `<img src="${govEsc(govLogoUrl(v))}" alt="" referrerpolicy="no-referrer">` : ""}</span>`;
+    else if (def.kind === "logo") input = `<input type="url" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="https://… or ipfs://… (square image)"><label class="gvi-up"><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-gv-up="${i}"><span>Upload</span></label><span class="gv-ed-prev">${govLogoUrl(v) ? `<img src="${govEsc(govLogoUrl(v))}" alt="" referrerpolicy="no-referrer">` : ""}</span>`;
     else input = `<input type="text" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="${def.kind === "ticker" ? "TICKER" : "Coin name"}"${def.kind === "ticker" ? ' autocapitalize="characters" spellcheck="false"' : ""}>`;
     return `<div class="gv-ed-row"><span class="gv-ed-n" data-no-i18n>${i + 1}</span>${input}${drafts.length > 2 ? `<button type="button" class="gv-ed-x" data-gv="del" data-i="${i}" aria-label="Remove">×</button>` : ""}</div>`;
   };
   return `<div class="gv-ed" data-category="${def.id}">
     <div class="gv-ed-rows">${drafts.map(row).join("")}</div>
     ${drafts.length < GOV_MAX_OPTIONS ? `<button type="button" class="gv-ed-add" data-gv="add">+ Add an option</button>` : ""}
-    <div class="gv-ed-foot"><span class="gv-ed-hint">Only you (the recipient wallet) see this. Candidates go on-chain once and can't be edited afterwards.</span>
+    <div class="gv-ed-foot"><span class="gv-ed-hint">Only you (the recipient wallet) see this. Tap "Use" on a community idea above to fill a row. Candidates go on-chain once and can't be edited afterwards.</span>
       <button type="button" class="bp-gov-propose-btn" data-gv="publish" data-category="${def.id}">Publish candidates</button></div>
   </div>`;
 }
@@ -1388,7 +1388,42 @@ function govValidate(def, opts) {
   return null;
 }
 
+// "Use" on a community idea (circlepad-ideas.js): drop it into the recipient's editor.
+window.circlepadGovUseIdea = function (cat, text) {
+  const def = CIRCLEPAD_VOTE_CATEGORIES[cat];
+  if (!def) return;
+  let v = String(text || "");
+  if (def.kind === "date") {
+    const d = govDate(v);
+    if (d) { const z = (n) => String(n).padStart(2, "0"); v = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; }
+  }
+  const drafts = _govDrafts.get(cat) || ["", ""];
+  if (drafts.some((x) => String(x).trim().toLowerCase() === v.trim().toLowerCase())) { cpToast("That one is already in the list.", "bad"); return; }
+  const empty = drafts.findIndex((x) => !String(x).trim());
+  if (empty >= 0) drafts[empty] = v;
+  else if (drafts.length < GOV_MAX_OPTIONS) drafts.push(v);
+  else { cpToast("The list is full — remove one first.", "bad"); return; }
+  _govDrafts.set(cat, drafts);
+  govReRenderEditor(cat);
+  const el = document.getElementById(`gv-cat-${cat}`);
+  if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.remove("gv-flash"); void el.offsetWidth; el.classList.add("gv-flash"); }
+  cpToast("Added to the candidates — publish when the list is ready.", "ok");
+};
+
 function wireCirclepadGovernance(root) {
+  root.addEventListener("change", async (e) => {
+    const f = e.target.closest("[data-gv-up]");
+    if (!f || typeof window.circlepadUploadLogo !== "function") return;
+    const ed = f.closest(".gv-ed");
+    const cat = Number(ed.dataset.category), i = Number(f.dataset.gvUp);
+    const lab = f.closest(".gvi-up"); if (lab) lab.classList.add("busy");
+    const url = await window.circlepadUploadLogo(f.files && f.files[0]).catch(() => null);
+    if (lab) lab.classList.remove("busy");
+    if (!url) return;
+    const drafts = _govDrafts.get(cat) || ["", ""];
+    drafts[i] = url; _govDrafts.set(cat, drafts);
+    govReRenderEditor(cat);
+  });
   root.addEventListener("input", (e) => {
     const ed = e.target.closest(".gv-ed");
     if (!ed || e.target.dataset.i == null) return;
@@ -1410,6 +1445,7 @@ function wireCirclepadGovernance(root) {
     if (b.classList.contains("bp-gov-vote-btn")) { castCirclepadVote(Number(b.dataset.category), Number(b.dataset.option)); return; }
     const what = b.dataset.gv;
     if (what === "connect") { if (typeof connectWallet === "function") await connectWallet(); return; }
+    if (what === "idea") { if (window.circlepadIdeas) window.circlepadIdeas.open(Number(b.dataset.cat)); return; }
     if (what === "contribute") {
       const nav = document.querySelector('.bp-nav-item[data-tab="home"]');
       if (nav) nav.click();

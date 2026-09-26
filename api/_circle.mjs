@@ -11,7 +11,7 @@ import { ethCalls, rpcCall, isAddr, pad, wAddr, getLogs, latestBlock, blockTs, t
 import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
-import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
+import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, VOTE, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
 export { ESCROW, roundState, contributionOf };
 const lc = (a) => String(a || "").toLowerCase();
 const usd = (wei) => Number(wei) / 1e18; // native USDC on Arc: 18 decimals
@@ -22,6 +22,11 @@ export const pledgeMessage = (wallet, amount, issued) => `ARCIRCLE PAD — Circl
 export const qaMessage = (wallet, text, parent, issued) => `ARCIRCLE PAD — CirclePad Q&A\nRound: ${ESCROW}\nWallet: ${lc(wallet)}\nReply to: ${parent || "-"}\nIssued: ${issued}\nText: ${textHash(text)}`;
 export const propMessage = (wallet, p, issued) => `ARCIRCLE PAD — CirclePad proposal\nWallet: ${lc(wallet)}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([p.title, p.pitch, p.link]))}`;
 export const upMessage = (wallet, id) => `ARCIRCLE PAD — upvote CirclePad proposal\nProposal: ${id}\nWallet: ${lc(wallet)}`;
+// Round #1 governance: anyone with a wallet can suggest a candidate for one of
+// the five categories the vote decides; the recipient picks from them.
+export const IDEA_CATS = ["name", "ticker", "logo", "roadmap", "date"];
+export const ideaMessage = (wallet, cat, text, note, issued) => `ARCIRCLE PAD — CirclePad idea\nRound: ${ESCROW}\nWallet: ${lc(wallet)}\nCategory: ${IDEA_CATS[cat]}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([text, note]))}`;
+export const ideaUpMessage = (wallet, id) => `ARCIRCLE PAD — back a CirclePad idea\nIdea: ${id}\nWallet: ${lc(wallet)}`;
 export const hideMessage = (wallet, kind, id, issued) => `ARCIRCLE PAD — CirclePad moderation\nRound: ${ESCROW}\nHide ${kind}: ${id}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
 
 // ---- chain reads ----
@@ -164,14 +169,95 @@ export async function propUp(b, recover, json) {
   return json(200, { ok: true, up: (cur.up || 0) + 1 });
 }
 
-/// The round's recipient wallet can hide a Q&A post or a proposal.
+// ---- governance ideas ----
+const IDEA_MAX = [32, 10, 300, 400, 30];
+const IDEAS_PER_DAY = 5;
+/// Normalises one suggestion for its category, or returns { error }.
+export function ideaText(cat, raw) {
+  let t = String(raw || "").replace(/\r/g, "").trim();
+  if (cat === 3) t = t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  else t = t.replace(/\s+/g, " ");
+  if (!t) return { error: "write your idea first" };
+  if (t.length > IDEA_MAX[cat]) return { error: `keep it under ${IDEA_MAX[cat]} characters` };
+  if (cat === 0 && t.length < 2) return { error: "a name needs at least 2 characters" };
+  if (cat === 1) { t = t.replace(/^\$/, "").toUpperCase(); if (!/^[A-Z0-9]{1,10}$/.test(t)) return { error: "tickers use letters and numbers only, up to 10" }; }
+  if (cat === 2) {
+    if (/^ipfs:\/\/[A-Za-z0-9./_-]+$/.test(t)) return { t };
+    try { const u = new URL(t); if (u.protocol !== "https:" || /["'<>\s`]/.test(t)) throw 0; } catch { return { error: "a logo needs an https:// or ipfs:// image link" }; }
+  }
+  if (cat === 3 && t.length < 10) return { error: "describe the plan in at least 10 characters" };
+  if (cat === 4) {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(t) || !Number.isFinite(Date.parse(t))) return { error: "pick a date and time" };
+    const ms = Date.parse(t);
+    if (ms < Date.now()) return { error: "the launch date needs to be in the future" };
+    if (ms > Date.now() + 365 * 86400e3) return { error: "pick a date within a year" };
+  }
+  return { t };
+}
+async function ballotSet(cat) {
+  if (!VOTE) return false;
+  const [h] = await ethCalls([{ to: VOTE, data: S.optionsSet + cat.toString(16).padStart(64, "0") }]);
+  return big(h) > 0n;
+}
+export async function ideasData(wallet) {
+  wallet = lc(wallet);
+  const docs = await queryDocs("circleIdeas", "round", ESCROW, 600);
+  const live = docs.filter((d) => !d.hidden).sort((a, b) => (b.up || 0) - (a.up || 0) || a.at - b.at);
+  const per = [0, 0, 0, 0, 0];
+  const ideas = live.filter((d) => d.cat >= 0 && d.cat < 5 && per[d.cat]++ < 60)
+    .map((d) => ({ id: d.id, cat: d.cat, wallet: d.wallet, text: d.text, note: d.note || "", up: d.up || 0, at: d.at, team: !!d.team }));
+  const out = { enabled: true, round: ESCROW, ideas, myUps: [] };
+  if (isAddr(wallet) && ideas.length) {
+    const paths = ideas.map((i) => `circleIdeaVotes/${i.id}_${wallet}`);
+    const got = await getDocs(paths);
+    out.myUps = ideas.filter((i) => got[`circleIdeaVotes/${i.id}_${wallet}`]).map((i) => i.id);
+  }
+  return out;
+}
+export async function ideaPost(b, recover, json) {
+  const wallet = lc(b.wallet), cat = Number(b.cat);
+  if (!isAddr(wallet)) return json(400, { error: "wallet must be an address" });
+  if (!Number.isInteger(cat) || cat < 0 || cat > 4) return json(400, { error: "pick a category" });
+  // the signature covers exactly what was typed; the check below works on the tidied form
+  const rawText = String(b.text || ""), rawNote = String(b.note || "");
+  const n = ideaText(cat, rawText);
+  if (n.error) return json(400, { error: n.error });
+  const note = rawNote.replace(/\s+/g, " ").trim();
+  if (note.length > 140) return json(400, { error: "keep the note under 140 characters" });
+  if (!issuedOk(b.issued, 10 * 60e3)) return json(400, { error: "signature expired — sign again" });
+  let signer; try { signer = recover(ideaMessage(wallet, cat, rawText, rawNote, b.issued), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
+  if (await ballotSet(cat)) return json(409, { error: "the candidates for this one are already on the ballot" });
+  const st = await roundState().catch(() => null);
+  const team = !!(st && wallet === st.recipient);
+  const rk = `rate/cidea_${wallet}_${dayKey()}`;
+  if (!team && (await limited(rk, IDEAS_PER_DAY))) return json(429, { error: `${IDEAS_PER_DAY} ideas a day per wallet — try again tomorrow` });
+  // one entry per idea: the same suggestion twice points people at the first one
+  const id = kec(`${ESCROW}|${cat}|${n.t.toLowerCase()}`).slice(2, 18);
+  const r = await commit([{ create: `circleIdeas/${id}`, data: { id, round: ESCROW, cat, wallet, text: n.t, note, up: 0, at: Date.now(), hidden: false, team } }, { inc: rk, fields: { n: 1 } }]);
+  if (r.conflict) return json(409, { error: "someone already suggested this — back it instead", id, dup: true });
+  return json(200, { ok: true, id, text: n.t });
+}
+export async function ideaUp(b, recover, json) {
+  const wallet = lc(b.wallet), id = String(b.id || "");
+  if (!isAddr(wallet) || !/^[0-9a-f]{16}$/.test(id)) return json(400, { error: "bad request" });
+  let signer; try { signer = recover(ideaUpMessage(wallet, id), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
+  const cur = (await getDocs([`circleIdeas/${id}`]))[`circleIdeas/${id}`];
+  if (!cur || cur.hidden) return json(404, { error: "that idea is gone" });
+  const r = await commit([{ create: `circleIdeaVotes/${id}_${wallet}`, data: { id, wallet, at: Date.now() } }, { inc: `circleIdeas/${id}`, fields: { up: 1 } }]);
+  if (r.conflict) return json(409, { error: "you already backed this one", already: true });
+  return json(200, { ok: true, up: (cur.up || 0) + 1 });
+}
+
+/// The round's recipient wallet can hide a Q&A post, a proposal or an idea.
 export async function hide(b, recover, json) {
-  const wallet = lc(b.wallet), kind = b.kind === "prop" ? "prop" : "qa", id = String(b.id || "");
+  const wallet = lc(b.wallet), kind = b.kind === "prop" || b.kind === "idea" ? b.kind : "qa", id = String(b.id || "");
   if (!isAddr(wallet) || !/^[0-9a-f]{16}$/.test(id)) return json(400, { error: "bad request" });
   if (!issuedOk(b.issued, 10 * 60e3)) return json(400, { error: "signature expired — sign again" });
   let signer; try { signer = recover(hideMessage(wallet, kind, id, b.issued), b.signature); } catch { return json(400, { error: "invalid signature" }); }
   if (signer !== wallet || wallet !== (await roundState()).recipient) return json(403, { error: "only the round's recipient wallet can hide posts" });
-  const path = kind === "prop" ? `circleProps/${id}` : `circleQA/${id}`;
+  const path = kind === "prop" ? `circleProps/${id}` : kind === "idea" ? `circleIdeas/${id}` : `circleQA/${id}`;
   const cur = (await getDocs([path]))[path];
   if (!cur) return json(404, { error: "not found" });
   await setDoc(path, { ...cur, hidden: true, hiddenAt: Date.now() });
