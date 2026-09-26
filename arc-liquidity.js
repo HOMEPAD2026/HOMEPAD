@@ -55,6 +55,14 @@
     if (lc(k.currency0) === NATIVE) { acts.push(A.SWEEP); params.push(coder().encode(["address", "address"], [NATIVE, owner])); }
     return pack(acts, params);
   }
+  function increaseData(k, id, liq, m0, m1, owner) {
+    const acts = [A.INCREASE, A.SETTLE_PAIR], params = [
+      coder().encode(["uint256", "uint256", "uint128", "uint128", "bytes"], [id, liq, m0, m1, "0x"]),
+      coder().encode(["address", "address"], [k.currency0, k.currency1]),
+    ];
+    if (lc(k.currency0) === NATIVE) { acts.push(A.SWEEP); params.push(coder().encode(["address", "address"], [NATIVE, owner])); }
+    return pack(acts, params);
+  }
   function decreaseData(k, id, liq, min0, min1, to, burn) {
     const first = burn ? coder().encode(["uint256", "uint128", "uint128", "bytes"], [id, min0, min1, "0x"]) : coder().encode(["uint256", "uint256", "uint128", "uint128", "bytes"], [id, liq, min0, min1, "0x"]);
     return pack([burn ? A.BURN : A.DECREASE, A.TAKE_PAIR], [first, coder().encode(["address", "address", "address"], [k.currency0, k.currency1, to])]);
@@ -79,6 +87,13 @@
 
   // ---- state ----
   let D = null, busyLoad = false, tokenAddr = "", pollT = null;
+  const poolView = new Map(); // pool id → { sort, all }
+  // slippage, per viewer (this browser only)
+  const SLIPS = [50, 100, 300];
+  let slipBps = 100;
+  try { const v = Number(localStorage.getItem("arcircle.liq.slip")); if (SLIPS.includes(v)) slipBps = v; } catch { /* default */ }
+  const setSlip = (v) => { slipBps = v; try { localStorage.setItem("arcircle.liq.slip", String(v)); } catch { /* per session */ } };
+  const slipHtml = () => `<div class="alq-slip"><span>${T("Max price move")}</span>${SLIPS.map((v) => `<button type="button" data-slip="${v}" aria-pressed="${v === slipBps}" data-no-i18n>${v / 100}%</button>`).join("")}</div>`;
   const priceAtTick = (p, t) => Lq.priceOf(Lq.sqrtAtTick(t), p.tokenIs0, p.key ? decimals0(p) : 18, p.key ? decimals1(p) : 18);
   const decimals0 = (p) => (p.tokenIs0 ? D.token.decimals : p.quote.decimals);
   const decimals1 = (p) => (p.tokenIs0 ? p.quote.decimals : D.token.decimals);
@@ -142,15 +157,23 @@
   function poolCard(p, i) {
     const sym = esc(D.token.symbol), qs = p.quote ? esc(p.quote.symbol) : "?";
     const zeroFee = p.key && p.key.fee === 0;
-    const posRows = p.positions.slice(0, 8).map((q) => `
+    // per-pool view: sort + how many rows
+    const pv = poolView.get(p.id) || { sort: "size", all: false };
+    const rank = { locked: 0, forever: 0, burn: 1, unlocking: 2, wallet: 3 };
+    const list = p.positions.slice().sort((a, b) => pv.sort === "locked" ? (rank[a.kind] - rank[b.kind]) || (B(b.liquidity) > B(a.liquidity) ? 1 : -1)
+      : pv.sort === "mine" ? (Number(b.mine) - Number(a.mine)) || (B(b.liquidity) > B(a.liquidity) ? 1 : -1) : 0);
+    const shown = pv.all ? list : list.slice(0, 8);
+    const L = (k) => ` data-l="${T(k)}"`;
+    const posRows = shown.map((q) => `
       <tr class="${q.mine ? "mine" : ""}" data-pos="${q.id}">
-        <td data-no-i18n><a href="${explorer("nft", PM)}/${q.id}" target="_blank" rel="noopener">#${q.id}</a></td>
-        <td>${q.mine ? `<b>${T("You")}</b>` : q.label ? T(q.label) : `<a href="${explorer("address", q.owner)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(q.owner))}</a>`}</td>
-        <td>${rangeText(p, q)}${q.inRange ? "" : ` <em class="alq-out-range">${T("out of range")}</em>`}</td>
-        <td data-no-i18n>${fmtRaw(q.token, D.token.decimals)} ${sym}<br><small>${fmtRaw(q.quote, p.quote ? p.quote.decimals : 18)} ${qs}</small></td>
-        <td>${kindChip(q)}</td>
+        <td${L("Position")} data-no-i18n><a href="${explorer("nft", PM)}/${q.id}" target="_blank" rel="noopener">#${q.id}</a></td>
+        <td${L("Owner")}>${q.mine ? `<b>${T("You")}</b>` : q.label ? T(q.label) : `<a href="${explorer("address", q.owner)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(q.owner))}</a>`}</td>
+        <td${L("Price range")}>${rangeText(p, q)}${q.inRange ? "" : ` <em class="alq-out-range">${T("out of range")}</em>`}</td>
+        <td${L("Holds")} data-no-i18n>${fmtRaw(q.token, D.token.decimals)} ${sym}<br><small>${fmtRaw(q.quote, p.quote ? p.quote.decimals : 18)} ${qs}</small></td>
+        <td${L("Status")}>${kindChip(q)}</td>
       </tr>`).join("");
-    const more = p.positionCount > 8 ? `<p class="alq-more"><span data-no-i18n>${p.positionCount - 8}</span> ${T("more positions")}</p>` : "";
+    const sorts = p.positions.length > 1 ? `<div class="alq-sort" role="group">${[["size", "Largest first"], ["locked", "Locked first"], ["mine", "Mine first"]].map(([k, l]) => `<button type="button" data-sort="${k}" data-pool-id="${esc(p.id)}" aria-pressed="${pv.sort === k}">${T(l)}</button>`).join("")}</div>` : "";
+    const more = p.positions.length > 8 ? `<button type="button" class="alq-more-btn" data-all="${esc(p.id)}">${pv.all ? T("Show fewer") : `${T("Show all")} <b data-no-i18n>${p.positionCount}</b>`}</button>` : "";
     const notes = [];
     if (p.share.launch > 0) notes.push(T("Includes the ArcPad launch liquidity — held by the factory, which has no way to withdraw it."));
     if (p.share.other > 0) notes.push(T("Part of the liquidity isn't a position NFT (added straight to the pool) — counted as unlocked."));
@@ -168,7 +191,7 @@
         <div><small>${T("Positions")}</small><b data-no-i18n>${p.positionCount}</b><span>${p.dex && p.dex.vol ? `<span data-no-i18n>${usd(p.dex.vol)}</span> ${T("24h volume")}` : "&nbsp;"}</span></div>
       </div>
       <div class="alq-lockbox"><div class="alq-lockhead"><b>${T("Who can pull this liquidity")}</b><small>${T("Share of the liquidity trading at the current price")}</small></div>${bar(p.share)}${notes.length ? `<ul class="alq-notes">${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}</div>
-      ${p.positions.length ? `<div class="alq-tablewrap"><table class="alq-table"><thead><tr><th>${T("Position")}</th><th>${T("Owner")}</th><th>${T("Price range")}</th><th>${T("Holds")}</th><th>${T("Status")}</th></tr></thead><tbody>${posRows}</tbody></table>${more}</div>` : `<p class="alq-empty">${T("No position NFTs in this pool yet.")}</p>`}
+      ${p.positions.length ? `${sorts}<div class="alq-tablewrap"><table class="alq-table"><thead><tr><th>${T("Position")}</th><th>${T("Owner")}</th><th>${T("Price range")}</th><th>${T("Holds")}</th><th>${T("Status")}</th></tr></thead><tbody>${posRows}</tbody></table>${more}</div>` : `<p class="alq-empty">${T("No position NFTs in this pool yet.")}</p>`}
       <div class="alq-pool-f">
         ${p.manageable ? `<button type="button" class="bp-btn-primary" data-add="${esc(p.id)}">${T("Add liquidity")}</button>` : `<span class="alq-muted">${T("This pool's settings couldn't be read, so it can't be managed here.")}</span>`}
         ${p.dex && p.dex.url ? `<a class="bp-btn-ghost" href="${esc(p.dex.url)}" target="_blank" rel="noopener">${T("Chart")} ↗</a>` : ""}
@@ -180,7 +203,7 @@
     const locked = q.kind === "locked" || q.kind === "unlocking";
     let acts = "";
     if (!locked && q.kind === "wallet") {
-      acts = `<button type="button" class="alq-act" data-remove="${q.id}">${T("Remove")}</button><button type="button" class="alq-act" data-collect="${q.id}">${T("Collect fees")}</button>` +
+      acts = `<button type="button" class="alq-act" data-increase="${q.id}">${T("Add more")}</button><button type="button" class="alq-act" data-remove="${q.id}">${T("Remove")}</button><button type="button" class="alq-act" data-collect="${q.id}">${T("Collect fees")}</button>` +
         (LPLOCK ? `<button type="button" class="alq-act lock" data-lock="${q.id}">${T("Lock")}</button>` : "");
     } else if (locked && q.lock) {
       acts = `<button type="button" class="alq-act" data-lcollect="${q.lock.lockId}">${T("Collect fees")}</button>` +
@@ -226,6 +249,21 @@
     }
   }
 
+  // re-draw one pool card in place (sort / show all) without replaying the entrance animations
+  function repaintPool(id) {
+    const i = D.pools.findIndex((x) => x.id === id);
+    const el = [...$("alq-out").querySelectorAll("article.alq-pool")].find((a) => a.dataset.pool === id);
+    if (i < 0 || !el) { render(); return; }
+    const tmp = document.createElement("div");
+    tmp.innerHTML = poolCard(D.pools[i], i);
+    const card = tmp.firstElementChild;
+    card.classList.add("alq-still");
+    el.replaceWith(card);
+  }
+
+  // ================= moments =================
+  function celebrate(kind) { document.dispatchEvent(new CustomEvent("arc:liquidity", { detail: { kind } })); }
+
   // ================= modal =================
   function modal(title, body) {
     close();
@@ -251,25 +289,28 @@
 
   // ---- add liquidity ----
   const RANGES = [[0, "Full range"], [50, "±50%"], [20, "±20%"], [10, "±10%"]];
-  function openAdd(p) {
+  // pos: add to an existing position of yours (its range is fixed) instead of minting a new one
+  function openAdd(p, pos = null) {
     const sym = esc(D.token.symbol), qs = esc(p.quote.symbol);
-    const m = modal(`${T("Add liquidity")} · <span data-no-i18n>${sym} / ${qs}</span>`, `
+    const m = modal(`${pos ? T("Add to position") : T("Add liquidity")} · <span data-no-i18n>${pos ? `#${pos.id}` : `${sym} / ${qs}`}</span>`, `
       ${p.key.fee === 0 ? `<p class="alq-warn">${T("This pool's LP fee is 0% — ArcPad's hook takes the trading fee, so liquidity added here earns nothing.")}</p>` : ""}
-      <div class="alq-seg" role="radiogroup">${RANGES.map(([v, l], i) => `<button type="button" role="radio" aria-checked="${i === 0}" data-range="${v}">${esc(tr(l))}</button>`).join("")}</div>
+      ${pos ? "" : `<div class="alq-seg" role="radiogroup">${RANGES.map(([v, l], i) => `<button type="button" role="radio" aria-checked="${i === 0}" data-range="${v}">${esc(tr(l))}</button>`).join("")}</div>`}
       <p class="alq-range" id="alq-rangetxt"></p>
       <label class="alq-in"><span>${sym}</span><input type="text" inputmode="decimal" id="alq-a-tok" placeholder="0" autocomplete="off"><small id="alq-b-tok"></small></label>
       <label class="alq-in"><span>${qs}</span><input type="text" inputmode="decimal" id="alq-a-q" placeholder="0" autocomplete="off"><small id="alq-b-q"></small></label>
+      ${slipHtml()}
       <ol class="alq-steps" id="alq-steps"></ol>
       <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go">${T("Add liquidity")}</button>
-      <p class="alq-fine">${T("Uses Uniswap's own PositionManager on Arc. Amounts can move up to 1% if the price shifts before your transaction lands.")}</p>`);
+      <p class="alq-fine">${T("Uses Uniswap's own PositionManager on Arc. If the price moves more than the limit above before your transaction lands, it's cancelled and nothing is spent.")}</p>`);
     const s = { range: 0, side: "tok", liq: 0n, a0: 0n, a1: 0n };
     const sqrtP = B(p.sqrtP);
-    const ticks = () => Lq.rangeAround(p.tick, s.range, p.key.tickSpacing);
+    const ticks = () => (pos ? [pos.tl, pos.tu] : Lq.rangeAround(p.tick, s.range, p.key.tickSpacing));
     const tokIs0 = p.tokenIs0;
     function recompute() {
       const [tl, tu] = ticks();
       const lo = priceAtTick(p, tl), hi = priceAtTick(p, tu);
-      $("alq-rangetxt").innerHTML = s.range ? `${T("Price range")}: <b data-no-i18n>${fmtPrice(Math.min(lo, hi))} – ${fmtPrice(Math.max(lo, hi))} ${qs}</b>` : T("Earns on every trade at any price, like a classic pool.");
+      $("alq-rangetxt").innerHTML = pos ? `${T("Same range as the position")}: <b data-no-i18n>${pos.full ? esc(tr("Full range")) : `${fmtPrice(Math.min(lo, hi))} – ${fmtPrice(Math.max(lo, hi))} ${qs}`}</b>`
+        : s.range ? `${T("Price range")}: <b data-no-i18n>${fmtPrice(Math.min(lo, hi))} – ${fmtPrice(Math.max(lo, hi))} ${qs}</b>` : T("Earns on every trade at any price, like a classic pool.");
       const src = s.side === "tok" ? $("alq-a-tok") : $("alq-a-q");
       const dec = s.side === "tok" ? D.token.decimals : p.quote.decimals;
       const raw = Lq.parseUnits(src.value, dec);
@@ -293,7 +334,7 @@
         $("alq-b-q").innerHTML = `${T("Balance")} <b data-no-i18n>${fmtRaw(bal.q, p.quote.decimals)}</b>`;
       } catch { /* shown without balances */ }
     }
-    const withSlip = (x) => x + x / 100n + 1n;
+    const withSlip = (x) => x + (x * BigInt(slipBps)) / 10000n + 1n;
     async function needs() {
       // what's missing before the mint can go through: ERC-20 → Permit2, Permit2 → PositionManager
       const out = [];
@@ -318,6 +359,8 @@
       $("alq-go").textContent = pending.length ? `${tr("Approve")} ${pending[0].sym} (1/${pending.length + 1})` : tr("Add liquidity");
     }
     m.addEventListener("click", (e) => {
+      const sl = e.target.closest("[data-slip]");
+      if (sl) { setSlip(Number(sl.dataset.slip)); m.querySelectorAll("[data-slip]").forEach((b) => b.setAttribute("aria-pressed", String(b === sl))); steps(); return; }
       const r = e.target.closest("[data-range]");
       if (r) { s.range = Number(r.dataset.range); m.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-checked", String(b === r))); recompute(); }
     });
@@ -330,11 +373,8 @@
       btn.disabled = true;
       try {
         await balances();
-        const need0 = withSlip(s.a0), need1 = withSlip(s.a1);
-        const [needTok, needQ] = tokIs0 ? [need0, need1] : [need1, need0];
         if (bal.tok != null && B(bal.tok) < (tokIs0 ? s.a0 : s.a1)) throw new Error(`${tr("Not enough")} ${D.token.symbol}`);
         if (bal.q != null && B(bal.q) < (tokIs0 ? s.a1 : s.a0)) throw new Error(`${tr("Not enough")} ${p.quote.symbol}`);
-        void needTok; void needQ;
         pending = await needs();
         for (const n of pending) {
           btn.textContent = `${tr("Confirm in wallet…")} (${n.sym})`;
@@ -348,11 +388,13 @@
         const [tl, tu] = ticks();
         const posm = new ethers.Contract(PM, POSM, state.signer);
         const value = lc(p.key.currency0) === NATIVE ? withSlip(s.a0) : 0n;
-        const tx = await posm.modifyLiquidities(mintData(p.key, tl, tu, s.liq, withSlip(s.a0), withSlip(s.a1), state.account), deadline(), { value });
+        const data = pos ? increaseData(p.key, pos.id, s.liq, withSlip(s.a0), withSlip(s.a1), state.account) : mintData(p.key, tl, tu, s.liq, withSlip(s.a0), withSlip(s.a1), state.account);
+        const tx = await posm.modifyLiquidities(data, deadline(), { value });
         btn.textContent = tr("Confirming…");
         await tx.wait();
         close();
-        toast("Liquidity added — your position is below.", "ok");
+        celebrate("add");
+        toast(pos ? "Added to your position." : "Liquidity added — your position is below.", "ok");
         await load(tokenAddr, { quiet: true });
       } catch (e) {
         toast(errText(e, "Adding liquidity failed or was rejected."), "info");
@@ -368,13 +410,14 @@
     const m = modal(`${T("Remove liquidity")} · <span data-no-i18n>#${q.id}</span>`, `
       <div class="alq-seg" role="radiogroup">${[25, 50, 75, 100].map((v) => `<button type="button" role="radio" aria-checked="${v === 100}" data-pct="${v}" data-no-i18n>${v}%</button>`).join("")}</div>
       <div class="alq-get" id="alq-get"></div>
+      ${slipHtml()}
       <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go">${T("Remove liquidity")}</button>
       <p class="alq-fine">${T("Fees the position has earned come out with it. At 100% the position NFT is burned.")}</p>`);
     let pct = 100;
     const show = () => {
       $("alq-get").innerHTML = `<small>${T("You receive about")}</small><b data-no-i18n>${fmtRaw((B(q.token) * BigInt(pct)) / 100n, D.token.decimals)} ${sym}</b><b data-no-i18n>${fmtRaw((B(q.quote) * BigInt(pct)) / 100n, p.quote.decimals)} ${qs}</b>${q.fees && (B(q.fees.token) > 0n || B(q.fees.quote) > 0n) ? `<small>${T("Unclaimed fees")}: <span data-no-i18n>${fmtRaw(q.fees.token, D.token.decimals)} ${sym} + ${fmtRaw(q.fees.quote, p.quote.decimals)} ${qs}</span></small>` : `<small>${T("plus unclaimed fees")}</small>`}`;
     };
-    m.addEventListener("click", (e) => { const b = e.target.closest("[data-pct]"); if (b) { pct = Number(b.dataset.pct); m.querySelectorAll("[data-pct]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); show(); } });
+    m.addEventListener("click", (e) => { const sl = e.target.closest("[data-slip]"); if (sl) { setSlip(Number(sl.dataset.slip)); m.querySelectorAll("[data-slip]").forEach((x) => x.setAttribute("aria-pressed", String(x === sl))); return; } const b = e.target.closest("[data-pct]"); if (b) { pct = Number(b.dataset.pct); m.querySelectorAll("[data-pct]").forEach((x) => x.setAttribute("aria-checked", String(x === b))); show(); } });
     $("alq-go").addEventListener("click", async () => {
       const btn = $("alq-go");
       if (!(await needWallet())) return;
@@ -382,7 +425,7 @@
       try {
         const liq = (B(q.liquidity) * BigInt(pct)) / 100n;
         const [t0, t1] = p.tokenIs0 ? [B(q.token), B(q.quote)] : [B(q.quote), B(q.token)];
-        const min = (x) => (x * BigInt(pct) * 98n) / 10000n; // 2% slippage on the current amounts
+        const min = (x) => (x * BigInt(pct) * BigInt(10000 - slipBps)) / 1000000n; // the chosen max price move, on today's amounts
         const tx = await new ethers.Contract(PM, POSM, state.signer).modifyLiquidities(decreaseData(p.key, q.id, liq, min(t0), min(t1), state.account, pct === 100), deadline());
         btn.textContent = tr("Confirming…");
         await tx.wait();
@@ -464,6 +507,12 @@
     if (t.closest("[data-refresh]")) { load(tokenAddr); return; }
     const cp = t.closest("[data-copy]");
     if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copy); toast("Copied", "ok"); } catch { /* denied */ } return; }
+    const so = t.closest("[data-sort]");
+    if (so) { const v = poolView.get(so.dataset.poolId) || { sort: "size", all: false }; v.sort = so.dataset.sort; poolView.set(so.dataset.poolId, v); repaintPool(so.dataset.poolId); return; }
+    const al = t.closest("[data-all]");
+    if (al) { const v = poolView.get(al.dataset.all) || { sort: "size", all: false }; v.all = !v.all; poolView.set(al.dataset.all, v); repaintPool(al.dataset.all); return; }
+    const inc = t.closest("[data-increase]");
+    if (inc) { const [p, q] = findPos(inc.dataset.increase); if (p) { if (!(await needWallet())) return; openAdd(p, q); } return; }
     const add = t.closest("[data-add]");
     if (add) { if (!(await needWallet())) return; const p = D.pools.find((x) => x.id === add.dataset.add); if (p) openAdd(p); return; }
     const rm = t.closest("[data-remove]");

@@ -48,6 +48,76 @@ async function meta(addrs) {
   return out;
 }
 
+// ---------------------------------------------------------------- the position index
+// Every PositionManager NFT's pool and range never change once minted, so they
+// are read once for all of Arc and kept in chunks of 500 ids (lpidx/c<k>);
+// full chunks are cached for good. A new token only filters the chunks — no
+// per-token walk through every position.
+const CH = 500;
+const chunkMem = new Map(); // k → { hi, rows: [parsed] }
+const parseRow = (r) => {
+  const [id, c0, c1, fee, ts, hooks, tl, tu] = String(r).split("|");
+  const key = { currency0: "0x" + c0, currency1: "0x" + c1, fee: Number(fee), tickSpacing: Number(ts), hooks: "0x" + hooks };
+  return { id: Number(id), c0: key.currency0, c1: key.currency1, key, tl: Number(tl), tu: Number(tu), raw: r };
+};
+async function loadChunks(store, ks) {
+  const need = ks.filter((k) => { const c = chunkMem.get(k); return !c || c.hi < (k + 1) * CH - 1; });
+  if (need.length && store) {
+    const keys = need.map((k) => `lpidx/c${k}`);
+    for (let i = 0; i < keys.length; i += 40) {
+      const part = keys.slice(i, i + 40);
+      const got = store.getMany ? await store.getMany(part).catch(() => ({})) : Object.fromEntries(await Promise.all(part.map(async (k) => [k, await store.get(k).catch(() => null)])));
+      for (const k of part) { const d = got[k]; if (d && Array.isArray(d.rows)) chunkMem.set(Number(k.slice(7)), { hi: Number(d.hi) || 0, rows: d.rows.map(parseRow) }); }
+    }
+  }
+}
+export async function positionsIndex(store, until = () => false) {
+  const [nxH] = await io.calls([{ to: L.LIQ_ADDR.positions, data: sel("nextTokenId()") }]);
+  const next = nxH ? Number(big(nxH)) : 1;
+  const meta = (store ? await store.get("lpidx/meta").catch(() => null) : null) || mem.get("lpidx/meta") || { next: 1 };
+  let at = Math.max(1, Number(meta.next) || 1);
+  if (at < next) {
+    // read what's missing, a few hundred ids per round, until the budget runs out
+    const selI = sel("getPoolAndPositionInfo(uint256)");
+    const touched = new Set();
+    await loadChunks(store, [Math.floor(at / CH)]);
+    while (at < next && !until()) {
+      const ids = []; for (let x = at; x < Math.min(next, at + 800); x++) ids.push(x);
+      const res = await io.calls(ids.map((x) => ({ to: L.LIQ_ADDR.positions, data: selI + pad(x) })));
+      ids.forEach((x, j) => {
+        const k = Math.floor(x / CH);
+        const c = chunkMem.get(k) || { hi: k * CH - 1, rows: [] };
+        const h = res[j];
+        if (h && strip(h).length >= 64 * 6) {
+          const c0 = word(h, 0).slice(24), c1 = word(h, 1).slice(24);
+          if (!/^0+$/.test(c0 + c1)) {
+            const info = wBig(h, 5);
+            const s24 = (n) => (n & 0x800000 ? n - 0x1000000 : n);
+            let ts = Number(wBig(h, 3) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
+            const tl = s24(Number((info >> 8n) & 0xffffffn)), tu = s24(Number((info >> 32n) & 0xffffffn));
+            const raw = [x, c0, c1, Number(wBig(h, 2)), ts, word(h, 4).slice(24), tl, tu].join("|");
+            if (!c.rows.some((r) => r.id === x)) c.rows.push(parseRow(raw));
+          }
+        }
+        c.hi = Math.max(c.hi, x);
+        chunkMem.set(k, c); touched.add(k);
+      });
+      at = ids[ids.length - 1] + 1;
+    }
+    if (store) await Promise.all([...touched].map((k) => { const c = chunkMem.get(k); return store.set(`lpidx/c${k}`, { hi: c.hi, rows: c.rows.map((r) => r.raw) }).catch(() => null); }));
+    const m2 = { next: at };
+    mem.set("lpidx/meta", m2);
+    if (store) await store.set("lpidx/meta", m2).catch(() => null);
+    if (at < next) return { done: false, progress: Math.min(0.99, at / next) };
+  }
+  const K = Math.floor((next - 1) / CH);
+  const ks = []; for (let k = 0; k <= K; k++) ks.push(k);
+  await loadChunks(store, ks);
+  const rows = [];
+  for (const k of ks) { const c = chunkMem.get(k); if (c) for (const r of c.rows) { if (!r.poolId) r.poolId = lc(L.poolIdOf(r.key, io.keccak)); rows.push(r); } }
+  return { done: true, rows, next };
+}
+
 /// → { done:false, stage, progress } while the position index catches up, then the full picture.
 export async function run(token, { store = null, wallet = "", budgetMs = 8000 } = {}) {
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
@@ -55,15 +125,10 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000 } 
   if (!isAddr(token)) throw Object.assign(new Error("token must be an address"), { status: 400 });
 
   // ---- the position index (shared with the Holder Snapshot) ----
-  const pkey = `snaplp/${token}`;
-  const idx = (await sget(store, pkey)) || { next: 1, ids: [] };
-  const [nxH] = await io.calls([{ to: L.LIQ_ADDR.positions, data: sel("nextTokenId()") }]);
-  const next = nxH ? Number(big(nxH)) : 0;
-  if (next && idx.next < next) {
-    const sc = await snapCore.scanPositions(io, token, idx.next, { until: () => left() < 2500 });
-    if (!sc.unsupported) { idx.next = sc.next; idx.ids = idx.ids.concat(sc.ids); await sset(store, pkey, idx); }
-    if (idx.next < next) return { done: false, stage: "positions", progress: Math.min(0.99, idx.next / next) };
-  }
+  // one index of every position on Arc, shared by every token (see positionsIndex)
+  const ix = await positionsIndex(store, () => left() < 2500);
+  if (!ix.done) return { done: false, stage: "positions", progress: ix.progress };
+  const idx = { ids: ix.rows.filter((r) => r.c0 === token || r.c1 === token).map((r) => ({ id: r.id, poolId: r.poolId, is0: r.c0 === token, tl: r.tl, tu: r.tu })) };
 
   // ---- which pools ----
   const [arcpad, argus, dex] = await Promise.all([

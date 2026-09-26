@@ -171,7 +171,7 @@ export async function GET(req) {
   // Token Scanner: holders + history of any Arc token, kept in the store so
   // each scan only reads new blocks (and reaches further back until complete).
   const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
-  const scanStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
+  const scanStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null);
   if (url.searchParams.has("scan")) {
     const t = String(url.searchParams.get("scan") || "");
     const st = scanStore();

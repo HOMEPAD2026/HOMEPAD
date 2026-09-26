@@ -2062,6 +2062,15 @@
     "Lock certificate": "잠금 인증서",
     "Anyone can check this lock on-chain.": "누구나 이 잠금을 온체인에서 확인할 수 있어요.",
     "Liquidity locked.": "유동성을 잠갔어요.",
+    "Locked first": "잠금 우선",
+    "Mine first": "내 것 우선",
+    "Show fewer": "접기",
+    "Add more": "더 추가",
+    "Add to position": "포지션에 추가",
+    "Same range as the position": "포지션과 같은 범위",
+    "Max price move": "최대 가격 변동",
+    "Added to your position.": "포지션에 추가했습니다.",
+    "Uses Uniswap's own PositionManager on Arc. If the price moves more than the limit above before your transaction lands, it's cancelled and nothing is spent.": "Arc의 Uniswap 공식 PositionManager를 사용합니다. 트랜잭션이 처리되기 전에 가격이 위 한도보다 크게 움직이면 취소되고 아무것도 쓰이지 않습니다.",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4483,6 +4492,15 @@
     "Lock certificate": "锁定证书",
     "Anyone can check this lock on-chain.": "任何人都可以在链上核验此锁定。",
     "Liquidity locked.": "流动性已锁定。",
+    "Locked first": "锁定优先",
+    "Mine first": "我的优先",
+    "Show fewer": "收起",
+    "Add more": "继续添加",
+    "Add to position": "添加到仓位",
+    "Same range as the position": "与仓位相同的区间",
+    "Max price move": "最大价格变动",
+    "Added to your position.": "已添加到你的仓位。",
+    "Uses Uniswap's own PositionManager on Arc. If the price moves more than the limit above before your transaction lands, it's cancelled and nothing is spent.": "使用 Arc 上 Uniswap 官方的 PositionManager。如果交易上链前价格变动超过上面的限制,交易会被取消,不会花费任何资产。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

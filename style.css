@@ -6785,3 +6785,24 @@ tr.alq-focus td{background:rgba(57,208,255,.12) !important;}
 .alq-cert-acts{display:flex;gap:8px;flex-wrap:wrap;}
 .alq-cert-acts > *{flex:1;min-width:120px;text-align:center;text-decoration:none;padding:10px 12px;}
 @media (prefers-reduced-motion:reduce){.alq-cert.fresh .alq-cert-lock{display:none;}.alq-focus{animation:none;}}
+.alq-sort{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px;}
+.alq-sort button,.alq-slip button{padding:5px 11px;border-radius:100px;border:1px solid rgba(255,255,255,.14);background:none;color:#aeb8c2;font:600 .7rem 'Sora',sans-serif;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.alq-sort button:hover,.alq-slip button:hover{border-color:rgba(57,208,255,.5);color:#fff;}
+.alq-sort button[aria-pressed="true"],.alq-slip button[aria-pressed="true"]{background:rgba(57,208,255,.16);border-color:rgba(57,208,255,.6);color:#dff6ff;}
+.alq-more-btn{display:block;width:100%;margin-top:8px;padding:9px;border-radius:12px;border:1px dashed rgba(255,255,255,.16);background:none;color:#c9d4de;font:600 .74rem 'Sora',sans-serif;cursor:pointer;}
+.alq-more-btn:hover{border-color:rgba(57,208,255,.5);color:#fff;}
+.alq-more-btn b{color:#fff;}
+.alq-slip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.72rem;color:#8c98a6;}
+.alq-slip span{margin-right:auto;}
+@media (max-width:700px){
+  .alq-tablewrap{overflow:visible;}
+  .alq-table{min-width:0;}
+  .alq-table thead{display:none;}
+  .alq-table,.alq-table tbody,.alq-table tr,.alq-table td{display:block;width:100%;}
+  .alq-table tr{padding:8px 10px;margin-bottom:8px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);}
+  .alq-table tr.mine{border-color:rgba(57,208,255,.35);background:rgba(57,208,255,.06);}
+  .alq-table tr.mine td{background:none;}
+  .alq-table td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:5px 0;border:0;text-align:right;}
+  .alq-table td::before{content:attr(data-l);flex:none;text-align:left;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:#8c98a6;font-weight:600;padding-top:2px;}
+}
+.alq-pool.alq-still,.alq-pool.alq-still .alq-bar i{animation:none;}
