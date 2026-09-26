@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790398436"></script>
+<script src="arc-log.js?v=1790402946"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790398436">
+<link rel="stylesheet" href="style.css?v=1790402946">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -981,7 +981,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Batch transfer</span>
-            <h1>Multisender <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>
+            <h1>Multisender <span class="asc-ver" title="Version 1.1 — new features are added regularly">v1.1<i>Updated regularly</i></span></h1>
             <p class="bp-lede">Send one Arc token to many wallets at once — an airdrop, rewards, payroll in USDC. Paste a list, check it, approve once, and it goes out in as few transactions as possible, straight from your wallet.</p>
             <div class="ams-stats" id="ams-stats" hidden></div>
           </div>
@@ -991,33 +991,71 @@
           <div><b>Opening soon</b><span>The Multisender contract isn't live on Arc yet. You can already load and check a list — sending switches on as soon as it's deployed.</span></div>
         </div>
         <div class="ams-resume" id="ams-resume" hidden></div>
+        <div class="ams-overlay" id="ams-view" hidden></div>
+
+        <div class="ams-modes" id="ams-modes" role="tablist" aria-label="What to send" hidden>
+          <button type="button" role="tab" data-mode="token" aria-selected="true">Tokens</button>
+          <button type="button" role="tab" data-mode="nft" aria-selected="false" hidden>NFTs</button>
+          <button type="button" role="tab" data-mode="drop" aria-selected="false" hidden>Claim drop</button>
+        </div>
+        <p class="ams-mode-note" id="ams-mode-note" hidden></p>
+
+        <ol class="ams-flow" id="ams-flow" aria-label="Steps">
+          <li data-go="ams-step-token"><i>1</i><span>Token</span></li>
+          <li data-go="ams-step-list"><i>2</i><span>Recipients</span></li>
+          <li data-go="ams-review"><i>3</i><span>Review &amp; send</span></li>
+        </ol>
 
         <div class="ams-grid">
           <div class="ams-main">
             <div class="ams-card" id="ams-step-token">
-              <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
-              <input id="ams-token" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a token contract address (0x…)" aria-label="Token contract address">
-              <div class="ams-chips" id="ams-quick"></div>
+              <div class="ams-card-head"><span class="ams-num">1</span><h2 id="ams-token-h">Token</h2><button type="button" class="ams-mini ams-change" id="ams-change" hidden>Change</button></div>
+              <div class="ams-token-body">
+                <input id="ams-token" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a token contract address (0x…)" aria-label="Token contract address">
+                <div class="ams-chips" id="ams-quick"></div>
+              </div>
               <div class="ams-tokcard" id="ams-tokcard" hidden></div>
             </div>
 
             <div class="ams-card" id="ams-step-list">
               <div class="ams-card-head"><span class="ams-num">2</span><h2>Recipients</h2>
                 <div class="ams-head-acts">
-                  <button type="button" class="ams-mini" id="ams-example">Example</button>
+                  <button type="button" class="ams-mini" data-open="holders">Holders</button>
                   <label class="ams-mini ams-file">Upload CSV<input type="file" id="ams-file" accept=".csv,.txt,text/csv,text/plain" hidden></label>
-                  <button type="button" class="ams-mini" id="ams-template">Template</button>
+                  <button type="button" class="ams-mini" id="ams-lists-btn" aria-haspopup="menu">Saved lists</button>
+                  <button type="button" class="ams-mini" id="ams-undo" hidden>Undo</button>
                 </div>
               </div>
-              <label class="ams-same"><input type="checkbox" id="ams-same-on"> <span>Same amount for everyone</span></label>
+              <div class="ams-starts" id="ams-starts">
+                <button type="button" data-open="holders"><b>Airdrop to holders</b><span>Every holder of a token, with filters and your split</span></button>
+                <button type="button" data-start="csv"><b>Upload a CSV</b><span>From a spreadsheet — address, amount</span></button>
+                <button type="button" data-start="paste"><b>Paste a list</b><span>One wallet per line</span></button>
+                <button type="button" data-open="circle"><b>CirclePad contributors</b><span>Everyone in the current round, by amount</span></button>
+              </div>
+              <div class="ams-amodes" id="ams-amodes" role="radiogroup" aria-label="Amounts">
+                <button type="button" role="radio" data-am="line" aria-checked="true">Per line</button>
+                <button type="button" role="radio" data-am="same" aria-checked="false">Same for all</button>
+                <button type="button" role="radio" data-am="split" aria-checked="false">Split a total</button>
+                <button type="button" role="radio" data-am="weight" aria-checked="false">By weight</button>
+                <button type="button" role="radio" data-am="pct" aria-checked="false">Percent</button>
+              </div>
               <div class="ams-same-row" id="ams-same-row" hidden>
-                <input id="ams-same" type="text" inputmode="decimal" autocomplete="off" placeholder="Amount per wallet" aria-label="Amount per wallet">
+                <input id="ams-same" type="text" inputmode="decimal" autocomplete="off" placeholder="Amount per wallet" aria-label="Amount">
                 <span class="ams-sym" id="ams-same-sym"></span>
               </div>
+              <p class="ams-am-help" id="ams-am-help"></p>
+              <label class="ams-mixed" id="ams-mixed-row" hidden><input type="checkbox" id="ams-mixed"> <span>A different token on some rows <small>(third column: token address)</small></span></label>
               <div class="ams-editor">
                 <pre class="ams-gutter" id="ams-gutter" aria-hidden="true">1</pre>
-                <textarea id="ams-list" rows="9" spellcheck="false" autocomplete="off" wrap="off" aria-label="Recipients, one per line: address, amount" data-no-i18n></textarea>
+                <textarea id="ams-list" rows="9" spellcheck="false" autocomplete="off" wrap="off" data-no-i18n></textarea>
+                <i class="ams-sweep" aria-hidden="true"></i>
               </div>
+              <form class="ams-addrow" id="ams-addrow" autocomplete="off">
+                <input id="ams-add-addr" type="text" spellcheck="false" placeholder="0x… wallet" aria-label="Wallet address">
+                <input id="ams-add-amt" type="text" inputmode="decimal" placeholder="Amount" aria-label="Amount">
+                <button type="submit" class="ams-mini">Add</button>
+              </form>
+              <div class="ams-toast" id="ams-toast" role="status" hidden></div>
               <div class="ams-issues" id="ams-issues" hidden></div>
               <div class="ams-table" id="ams-table" hidden></div>
             </div>
@@ -1032,21 +1070,61 @@
                 <div><dt>Your balance</dt><dd id="ams-s-bal">—</dd></div>
                 <div><dt>Transactions</dt><dd id="ams-s-tx">—</dd></div>
                 <div><dt>Network fee</dt><dd id="ams-s-gas">—</dd></div>
-                <div><dt>Service fee</dt><dd>None</dd></div>
+                <div><dt>Worth</dt><dd id="ams-s-usd">—</dd></div>
               </dl>
+              <div class="ams-drop-opts" id="ams-drop-opts" hidden>
+                <label for="ams-drop-end">Unclaimed tokens</label>
+                <select id="ams-drop-end">
+                  <option value="0">Stay claimable forever</option>
+                  <option value="30">Come back to me after 30 days</option>
+                  <option value="90">Come back to me after 90 days</option>
+                  <option value="180">Come back to me after 180 days</option>
+                </select>
+              </div>
+              <div class="ams-checks" id="ams-checks" hidden></div>
               <div class="ams-dots" id="ams-dots" aria-hidden="true"></div>
               <div class="ams-warn" id="ams-warn" role="status" hidden></div>
-              <button type="button" class="ams-go" id="ams-go" disabled>Pick a token</button>
+              <button type="button" class="ams-go" id="ams-go" disabled><span class="ams-go-fill" aria-hidden="true"></span><span class="ams-go-txt">Pick a token</span></button>
               <ol class="ams-steps" id="ams-steps" aria-label="Progress"></ol>
               <div class="ams-status" id="ams-status" aria-live="polite"></div>
-              <p class="ams-fine">Tokens go straight from your wallet to each recipient. You approve the exact total once; each batch is all-or-nothing, so nobody gets a half-sent batch. No fee — you only pay Arc gas.</p>
+              <ul class="ams-trust">
+                <li>No owner or admin</li><li>No fee</li><li>Never holds your tokens</li><li>All-or-nothing batches</li>
+              </ul>
+            </div>
+            <div class="ams-card ams-lookup">
+              <div class="ams-card-head"><h2>Did I get an airdrop?</h2></div>
+              <form class="ams-lookform" id="ams-lookform" autocomplete="off">
+                <input id="ams-look" type="text" spellcheck="false" placeholder="Wallet address (0x…)" aria-label="Wallet address">
+                <button type="submit" class="ams-mini">Check</button>
+              </form>
+              <div id="ams-look-out"></div>
             </div>
             <div class="ams-card ams-hist">
-              <div class="ams-card-head"><h2>Your sends</h2><small>Saved in this browser</small></div>
+              <div class="ams-card-head"><h2>Your sends</h2><small>This browser and Arc</small></div>
               <div id="ams-hist"></div>
             </div>
           </aside>
         </div>
+
+        <div class="ams-card ams-feed" id="ams-feed" hidden>
+          <div class="ams-card-head"><h2>Recent airdrops</h2>
+            <div class="ams-feed-tabs" role="tablist"><button type="button" role="tab" data-feed="recent" aria-selected="true">Latest</button><button type="button" role="tab" data-feed="biggest" aria-selected="false">Biggest</button></div>
+          </div>
+          <ul class="ams-feed-list" id="ams-feed-list"></ul>
+        </div>
+
+        <div class="ams-sticky" id="ams-sticky" hidden>
+          <div><b id="ams-sticky-t">—</b><small id="ams-sticky-s"></small></div>
+          <button type="button" class="ams-btn" id="ams-sticky-go">Review</button>
+        </div>
+
+        <div class="ams-sheet-wrap" id="ams-sheet" hidden>
+          <div class="ams-sheet" role="dialog" aria-modal="true" aria-labelledby="ams-sheet-h">
+            <div class="ams-sheet-head"><h2 id="ams-sheet-h">Airdrop to holders</h2><button type="button" class="ams-x" data-close aria-label="Close">×</button></div>
+            <div class="ams-sheet-body" id="ams-sheet-body"></div>
+          </div>
+        </div>
+
         <p class="ams-foot">Runs on ArcMultiSend <a id="ams-contract" href="#" target="_blank" rel="noopener" data-no-i18n hidden>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. Up to 200 wallets per transaction. Tokens that take a fee on transfer arrive minus that fee.</p>
       </section>
 
@@ -1170,6 +1248,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790398436"></script>
+<script src="arcpad.bundle.js?v=1790402946"></script>
 </body>
 </html>

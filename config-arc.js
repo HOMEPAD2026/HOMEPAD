@@ -115,6 +115,11 @@ const CONFIG = {
   // Deployed with contracts/scripts/deploy-arc-multisend.js (2026-09-26).
   // Empty it to put the page back into preview (no sending).
   MULTISEND_ADDRESS: "0x21733285F844cb2F03a5d692de9974F379889956",
+  // ArcMultiSendV2 (permit, a token per row, NFTs) and ArcDrop (claim drops):
+  // empty until contracts/scripts/deploy-arc-multisend-v2.js / deploy-arc-drop.js
+  // run — their modes stay hidden until then. Keep api/_drop.mjs in step.
+  MULTISEND_V2_ADDRESS: "",
+  DROP_ADDRESS: "",
 };
 
 // true once $ARCIRCLE is live (its contract address is set above)

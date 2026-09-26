@@ -8,6 +8,7 @@ import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { scanToken } from "./_scan.mjs";
+import { receipt as dropReceipt } from "./_drop.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
@@ -106,6 +107,13 @@ export async function GET(req) {
     return new ImageResponse(await roundCard(await markP, url.searchParams.get("w")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600" },
+    });
+  }
+  if (url.searchParams.has("drop")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await dropCard(await markP, url.searchParams.get("drop")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=3600, s-maxage=86400" },
     });
   }
   if (url.searchParams.has("scan")) {
@@ -232,5 +240,38 @@ async function scanCard(mark, addr) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
       h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · automated check, not advice`),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 10))),
+  ]);
+}
+
+// ---------------- Multisender receipt card ----------------
+// Read from the transactions themselves (api/_drop.mjs), so the numbers on an
+// airdrop post are what the chain shows.
+const compact = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B" : n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1e4 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : n.toLocaleString("en-US", { maximumFractionDigits: 2 }));
+async function dropCard(mark, txs) {
+  let r = null;
+  try { r = await dropReceipt(txs); } catch { r = null; }
+  if (!r) {
+    return frame([
+      brandRow(mark, pill("MULTISENDER", "#39ff88"), "Multisender · Circle's Arc"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "One token, many wallets."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Airdrops on Arc in as few transactions as possible — no fee.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/multisend"),
+    ]);
+  }
+  const amt = r.kind === "token" ? compact(Number(BigInt(r.total)) / 10 ** r.decimals) : r.kind === "nft" ? String(r.total) : "";
+  const what = r.kind === "nft" ? `${amt} NFT${amt === "1" ? "" : "s"}` : r.kind === "multi" ? "Tokens" : `${amt} $${clip(r.symbol, 10)}`;
+  const dots = Array.from({ length: 60 }, (_, i) => h("div", { width: 18, height: 18, borderRadius: 5, backgroundColor: i < Math.min(60, r.wallets) ? "#39ff88" : "rgba(255,255,255,0.12)", boxShadow: i < Math.min(60, r.wallets) ? "0 0 10px rgba(57,255,136,0.55)" : "none" }));
+  return frame([
+    brandRow(mark, pill("AIRDROP", "#39ff88"), "Multisender · Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 12, maxWidth: 640 },
+        h("div", { fontSize: what.length > 14 ? 76 : 96, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, what),
+        h("div", { fontSize: 40, color: "#b9c8b3" }, `sent to ${r.wallets.toLocaleString("en-US")} wallet${r.wallets === 1 ? "" : "s"}`),
+        h("div", { fontSize: 26, color: "#9fb098", marginTop: 8 }, `${r.txs.length} transaction${r.txs.length === 1 ? "" : "s"} · straight from ${r.sender.slice(0, 6)}…${r.sender.slice(-4)}`)),
+      h("div", { width: 330, flexWrap: "wrap", gap: 8 }, dots)),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, "arcircle.app/multisend · verified on-chain"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, r.ts ? new Date(r.ts * 1000).toISOString().slice(0, 10) : "")),
   ]);
 }

@@ -15,7 +15,13 @@
 //   GET  /api/social?watchtick=1                 Telegram watch check (x-watch-key header)
 //   GET  /api/social?bridgehist=0x…              a wallet's CCTP transfers seen on Arc (api/_bridge.mjs)
 //   GET  /api/social?bridgestats=1               bridged through ARCIRCLE PAD
-//   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog", … }
+//   GET  /api/social?holdersnap=0x…              every holder of a token (Multisender airdrop to holders)
+//   GET  /api/social?drops=recent                recent + biggest Multisender sends (api/_drop.mjs)
+//   GET  /api/social?dropreceipt=0x…[,0x…]       what a Multisender send delivered (receipt page)
+//   GET  /api/social?received=0x…                airdrops a wallet got / can claim
+//   GET  /api/social?dropsby=0x…                 a wallet's own Multisender sends
+//   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
+//   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -36,6 +42,7 @@ import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
 import * as scanner from "./_scan.mjs";
 import * as bridge from "./_bridge.mjs";
+import * as drop from "./_drop.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -210,6 +217,39 @@ export async function GET(req) {
     try { return json(200, await bridge.bridgeHistory(url.searchParams.get("bridgehist"), { store: scanStore() }), "no-store"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
+  // Multisender
+  const dropStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d), getMany: (keys) => getDocs(keys) } : null);
+  if (url.searchParams.has("holdersnap")) {
+    const t = String(url.searchParams.get("holdersnap") || "");
+    if (!isAddr(t)) return json(400, { error: "token must be an address" });
+    if (scanner.limited(`hs:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
+    try { const out = await scanner.holderSnapshot(t, { store: scanStore() }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.get("drops") === "recent") {
+    try { return json(200, await drop.feed(dropStore()), "public, max-age=20, s-maxage=30, stale-while-revalidate=120"); }
+    catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("dropreceipt")) {
+    try { const out = await drop.receipt(url.searchParams.get("dropreceipt")); return out ? json(200, out, "public, max-age=300, s-maxage=3600") : json(404, { error: "not a Multisender transaction" }, "public, max-age=30"); }
+    catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("dropsby")) {
+    if (scanner.limited(`dby:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await drop.sentBy(dropStore(), url.searchParams.get("dropsby")), "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("received")) {
+    if (scanner.limited(`rcv:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await drop.received(dropStore(), url.searchParams.get("received")), "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("dropproof")) {
+    const st = dropStore();
+    if (!st) return json(503, { error: "claim lists aren't available right now" });
+    try { return json(200, await drop.dropProof(st, url.searchParams.get("dropproof"), url.searchParams.get("wallet")), "public, max-age=30, s-maxage=60"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
   if (url.searchParams.has("bridgestats")) return json(200, await bridge.bridgeStats(scanStore()), "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
   // Telegram watch list check — called every 15 minutes by the GitHub Actions job in tools/scan-watch.workflow.yml
   if (url.searchParams.has("watchtick")) {
@@ -299,6 +339,12 @@ export async function POST(req) {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`blog:${ip}`, 30, 3600e3)) return json(429, { ok: false });
       return json(200, await bridge.logBridge({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, { tx: b.tx, src: b.src }));
+    }
+    if (b.action === "dropsave") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`dsave:${ip}`, 10, 3600e3)) return json(429, { ok: false });
+      if (!storeEnabled()) return json(503, { ok: false, error: "claim lists aren't available right now" });
+      return json(200, await drop.dropSave({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, b));
     }
     if (b.action === "tgwatch") {
       if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });

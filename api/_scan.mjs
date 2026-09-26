@@ -192,6 +192,38 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
   };
 }
 
+/// Every holder of a token with its balance (Multisender "airdrop to holders").
+/// Runs holderScan to bring the balance sheet up to date first; until the scan
+/// has reached the token's first mint the list is partial (more: true — call
+/// again). Tokens with more than MAX_KEEP wallets only have their largest
+/// holders (lite: true). The biggest 1,000 are flagged when they're contracts.
+export async function holderSnapshot(token, { store = null, budgetMs = 7000, limit = 5000 } = {}) {
+  const out = await holderScan(token, { store, budgetMs });
+  const t = lc(token);
+  let S = mem.get(t) || null;
+  if (!S && store) { try { S = load(await store.get(`scan/${t}`)); } catch { S = null; } }
+  const byDesc = (x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0);
+  let list, lite = false;
+  if (S && S.complete && !S.lite) list = [...S.net.entries()].filter(([, v]) => v > 0n).sort(byDesc);
+  else { lite = !!(S && S.lite); list = out.top.map(([a, v]) => [a, BigInt(v)]); }
+  list = list.slice(0, limit);
+  const flags = new Map();
+  const head = list.slice(0, 1000).map(([a]) => a);
+  for (let i = 0; i < head.length; i += 100) {
+    const part = head.slice(i, i + 100);
+    try {
+      const r = await rpc(part.map((a, id) => ({ jsonrpc: "2.0", id, method: "eth_getCode", params: [a, "latest"] })));
+      const byId = new Map((Array.isArray(r) ? r : [r]).map((x) => [x.id, x.result]));
+      part.forEach((a, k) => { const c = byId.get(k); if (c && c !== "0x") flags.set(a, 1); });
+    } catch { /* unflagged */ }
+  }
+  return {
+    token: t, decimals: out.decimals, supply: out.supply, complete: out.complete && !lite, more: out.more, lite,
+    holderCount: out.holderCount, checkedContracts: head.length,
+    holders: list.map(([a, v]) => (flags.has(a) ? [a, v.toString(), 1] : [a, v.toString()])),
+  };
+}
+
 /// Market for a launchpad token Dexscreener hasn't listed yet, read from the chain.
 export async function marketFallback(addr, { arcpad, argus }) {
   if (arcpad) {

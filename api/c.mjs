@@ -8,8 +8,10 @@
 //                        Simplified Chinese — linked to each other with hreflang
 //   /sitemap-coins.xml  every ArcPad coin's /coin/ page, for search engines
 //   /s/<address>        Token Scanner share link: the result card for X, then the scanner
+//   /drop/<tx>[,<tx>…]  Multisender receipt: the airdrop card for X, then the receipt in the app
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
+import { receipt as dropReceipt } from "./_drop.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -23,6 +25,7 @@ export default async function handler(req) {
   if (view === "sitemap") return sitemap();
   if (view === "round") return roundPage(url);
   if (view === "scan") return scanPage(url);
+  if (view === "drop") return dropPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -408,4 +411,46 @@ async function scanPage(url) {
 <p>Opening the <a href="${esc(target)}">Token Scanner</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, "public, max-age=0, s-maxage=300, stale-while-revalidate=900");
+}
+
+// /drop/<tx>[,<tx>…] — a Multisender send to share. Everything comes from the
+// transactions' receipts (api/_drop.mjs), so nobody can claim an airdrop that didn't happen.
+async function dropPage(url) {
+  const txs = String(url.searchParams.get("tx") || "").split(",").filter((t) => /^0x[0-9a-fA-F]{64}$/.test(t)).slice(0, 25).map((t) => t.toLowerCase());
+  if (!txs.length) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#multisend">`, "public, max-age=300");
+  let r = null;
+  try { r = await dropReceipt(txs.join(",")); } catch { r = null; }
+  const amt = r && r.kind === "token" ? (Number(BigInt(r.total)) / 10 ** r.decimals).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " $" + r.symbol : r && r.kind === "nft" ? `${r.total} NFTs` : "Tokens";
+  const title = r ? `Airdrop: ${amt} to ${r.wallets.toLocaleString("en-US")} wallets on Arc` : "Multisender — ARCIRCLE PAD";
+  const desc = r ? `Sent with the ARCIRCLE PAD Multisender in ${r.txs.length} transaction${r.txs.length === 1 ? "" : "s"}, straight from ${r.sender.slice(0, 6)}…${r.sender.slice(-4)}. Every recipient and amount is on-chain.` : "Send one Arc token to many wallets at once. No fee.";
+  const target = `/arc#multisend?receipt=${txs.join(",")}`;
+  const image = `${SITE}/api/og?drop=${txs.join(",")}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="${SITE}/arc#multisend">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/drop/${txs.join(",")}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">airdrop receipt</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, r ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60");
 }

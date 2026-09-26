@@ -85,6 +85,10 @@
       "destination": "/api/c?view=scan&addr=:addr"
     },
     {
+      "source": "/drop/:tx",
+      "destination": "/api/c?view=drop&tx=:tx"
+    },
+    {
       "source": "/badge/:addr",
       "destination": "/api/social?badge=:addr"
     },
@@ -128,6 +132,11 @@
     {
       "source": "/multisender",
       "destination": "/arc#multisend",
+      "permanent": false
+    },
+    {
+      "source": "/claim/:id",
+      "destination": "/arc#multisend?claim=:id",
       "permanent": false
     }
   ],
