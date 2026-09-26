@@ -1930,6 +1930,7 @@
     "Raise closed — voting open": "모금 마감 — 투표 진행 중",
     "They go on-chain once — nothing can be edited or added afterwards.": "온체인에 한 번만 올라가요 — 이후에는 수정하거나 추가할 수 없어요.",
     "Publish these candidates? They can't be edited later.": "이 후보들을 공개할까요? 이후에는 수정할 수 없어요.",
+    "CirclePad vote": "CirclePad 투표",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4209,6 +4210,7 @@
     "Raise closed — voting open": "募集已结束 —— 投票进行中",
     "They go on-chain once — nothing can be edited or added afterwards.": "只能上链一次 —— 之后无法修改或添加。",
     "Publish these candidates? They can't be edited later.": "公布这些候选项吗？之后无法修改。",
+    "CirclePad vote": "CirclePad 投票",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

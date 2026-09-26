@@ -80,11 +80,9 @@ const CONFIG = {
   // contracts are chain-agnostic native-currency contracts, so Arc's own
   // native USDC is what they raise without any code change) ---
   CIRCLEPAD_ESCROW_ADDRESS: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
-  // Escrow is deployed but NOT started yet (deploy-bigpad-escrow.js never
-  // calls start() — the recipient does that separately). BigPadVote can only
-  // be deployed AFTER start() is called (it reverts on a zero deadline()), so
-  // this stays empty until that happens and deploy-bigpad-vote.js runs.
-  CIRCLEPAD_VOTE_ADDRESS: "",
+  // Round #1 started; BigPadVote deployed against it on 26 Sep 2026
+  // (deploy-bigpad-vote.js). Voting runs from the escrow's deadline for 48h.
+  CIRCLEPAD_VOTE_ADDRESS: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2",
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
   //     "opens in" countdown and a calendar file before start(); 0 = not announced

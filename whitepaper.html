@@ -24,7 +24,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790428383"></script>
+<script src="arc-log.js?v=1790429615"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -645,7 +645,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
   </div>
   <h3>Where CirclePad is today</h3>
   <p>The first-round escrow contract (<strong>BigPadEscrow</strong>) is deployed on Arc mainnet. It is deliberately simple: the recipient wallet starts a 72-hour timer; anyone can contribute native USDC while it runs and withdraw their own contribution before it closes; when it closes, the balance is split automatically between the recipient, the platform and the treasury. The escrow has been deployed but <strong>not yet started</strong> — no funds are at risk until a round is announced and opened.</p>
-  <p>A companion voting contract (<strong>BigPadVote</strong>) lets contributors vote on options published by the recipient during the round. It is deployed once a round starts, because it reads the round's deadline.</p>
+  <p>A companion voting contract (<strong>BigPadVote</strong>) lets contributors vote on the candidates the recipient publishes during the round. Voting opens the moment the round closes and runs for 48 hours, weighted by each contributor's USDC, which is frozen at the close. It is deployed once a round starts, because it reads the round's deadline.</p>
   <p>The larger mechanism — competitive leadership, the 12-hour checkpoint, vesting and clawback — is a separate contract still in design. It will not hold real funds before an independent security review (Section 10).</p>
   </div>
   <div class="pg-foot"><span>$ARCIRCLE Whitepaper · v1.0 · September 2026</span><span class="n">14 / 32</span></div>
@@ -983,6 +983,7 @@ Creator earns  8.50 USDC · Platform earns 1.50 USDC</div>
       <tr><td>ArcPad fee hook (HomepadHybridHook)</td><td><code>0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044</code></td></tr>
       <tr><td>ArcPad router (HomepadArcSwapRouter)</td><td><code>0xFCA8fD788d44Bb335B1451257366e06D67114785</code></td></tr>
       <tr><td><strong>CirclePad escrow</strong> (BigPadEscrow)</td><td><code>0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703</code></td></tr>
+      <tr><td>CirclePad vote (BigPadVote)</td><td><code>0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2</code></td></tr>
       <tr><td>Platform treasury</td><td><code>0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8</code></td></tr>
       <tr><td>Uniswap v4 PoolManager</td><td><code>0x8366a39CC670B4001A1121B8F6A443A643e40951</code></td></tr>
       <tr><td>USDC (ERC-20 interface, 6 dp)</td><td><code>0x3600000000000000000000000000000000000000</code></td></tr>

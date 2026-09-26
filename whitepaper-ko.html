@@ -25,7 +25,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="/arc-log.js?v=1790428383"></script>
+<script src="/arc-log.js?v=1790429615"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -629,7 +629,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
   </div>
   <h3>CirclePad의 현재 상태</h3>
   <p>첫 라운드 에스크로 컨트랙트(<strong>BigPadEscrow</strong>)는 Arc 메인넷에 배포되어 있습니다. 이 컨트랙트는 의도적으로 단순하게 설계되었습니다. 수령 지갑이 72시간 타이머를 시작하면, 타이머가 작동하는 동안 누구나 네이티브 USDC를 기여할 수 있고 종료 전까지 자신의 기여금을 인출할 수 있습니다. 종료되면 잔액이 수령인, 플랫폼, 트레저리 사이에 자동으로 분배됩니다. 에스크로는 배포되었지만 <strong>아직 시작되지 않았습니다</strong>. 라운드가 공지되고 개시되기 전까지는 어떠한 자금도 위험에 노출되지 않습니다.</p>
-  <p>동반 투표 컨트랙트(<strong>BigPadVote</strong>)는 라운드 중 수령인이 게시한 선택지에 기여자가 투표할 수 있게 합니다. 이 컨트랙트는 라운드의 마감 시한을 읽어야 하므로 라운드가 시작될 때 배포됩니다.</p>
+  <p>동반 투표 컨트랙트(<strong>BigPadVote</strong>)는 라운드 중 수령인이 게시한 후보에 기여자가 투표할 수 있게 합니다. 투표는 라운드가 마감되는 순간 열려 48시간 동안 진행되며, 마감 시점에 고정된 각 기여자의 USDC가 투표 비중이 됩니다. 이 컨트랙트는 라운드의 마감 시한을 읽어야 하므로 라운드가 시작될 때 배포됩니다.</p>
   <p>보다 큰 메커니즘, 즉 경쟁적 리드 선정, 12시간 체크포인트, 베스팅 및 클로백은 아직 설계 중인 별도의 컨트랙트입니다. 이 컨트랙트는 독립적인 보안 검토(섹션 10)를 거치기 전에는 실제 자금을 보관하지 않습니다.</p>
   </div>
   <div class="pg-foot"><span>$ARCIRCLE 백서 · v1.0 · 2026년 9월</span><span class="n">14 / 32</span></div>
@@ -954,6 +954,7 @@ q 매수 시 받는 토큰 수 = S − V·S / (V + q)</div>
       <tr><td>ArcPad 수수료 훅(HomepadHybridHook)</td><td><code>0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044</code></td></tr>
       <tr><td>ArcPad 라우터(HomepadArcSwapRouter)</td><td><code>0xFCA8fD788d44Bb335B1451257366e06D67114785</code></td></tr>
       <tr><td><strong>CirclePad 에스크로</strong>(BigPadEscrow)</td><td><code>0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703</code></td></tr>
+      <tr><td>CirclePad 투표 (BigPadVote)</td><td><code>0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2</code></td></tr>
       <tr><td>플랫폼 트레저리</td><td><code>0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8</code></td></tr>
       <tr><td>Uniswap v4 PoolManager</td><td><code>0x8366a39CC670B4001A1121B8F6A443A643e40951</code></td></tr>
       <tr><td>USDC(ERC-20 인터페이스, 소수점 6자리)</td><td><code>0x3600000000000000000000000000000000000000</code></td></tr>
