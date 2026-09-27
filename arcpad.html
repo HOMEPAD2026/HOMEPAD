@@ -26,10 +26,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790484872"></script>
+<script src="arc-log.js?v=1790491746"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790484872">
+<link rel="stylesheet" href="style.css?v=1790491746">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -59,6 +59,7 @@
 <symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.2" fill="currentColor"/></g></symbol>
 <symbol id="i-scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></g></symbol>
 <symbol id="i-bridge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5h18"/><path d="M4.5 15.5V19M19.5 15.5V19"/><path d="M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/><path d="M8.5 15.5v-3.6M12 15.5V7.5M15.5 15.5v-3.6"/></g></symbol>
+<symbol id="i-relay" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></g></symbol>
 <symbol id="i-snap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></g></symbol>
 <symbol id="i-fan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="12" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></g></symbol>
 <symbol id="i-drop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/></g></symbol>
@@ -105,6 +106,7 @@
       <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner</button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender</button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot</button>
+      <button type="button" class="bp-nav-item" data-tab="relay"><svg><use href="#i-relay" xlink:href="#i-relay"/></svg>Relay Launch</button>
       <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
@@ -1135,6 +1137,23 @@
       </section>
 
       <!-- ============ HOLDER SNAPSHOT (arc-snapshot.js + snap-core.js) — every holder of a token at one block ============ -->
+      <!-- ============ RELAY LAUNCH (arc-relay.js) — CirclePad round → Argus launch → relayed to contributors and $ARCIRCLE holders ============ -->
+      <section class="bp-panel" id="bp-panel-relay">
+        <div class="ams-hero arl-hero">
+          <div class="ams-emblem arl-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><defs><linearGradient id="arlGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".55" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>
+              <path class="arl-e-arc" d="M12 32a20 20 0 0 1 40 0"/><path class="arl-e-arc b" d="M52 32a20 20 0 0 1-40 0"/>
+              <circle class="arl-e-dot" cx="12" cy="32" r="5"/><circle class="arl-e-dot" cx="32" cy="12" r="5"/><circle class="arl-e-dot" cx="52" cy="32" r="5"/><circle class="arl-e-dot" cx="32" cy="52" r="5"/>
+              <circle class="arl-e-pkt" r="2.6"><animateMotion dur="3.2s" repeatCount="indefinite" path="M12 32a20 20 0 0 1 40 0a20 20 0 0 1-40 0"/></circle></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Utility · CirclePad → Argus</span>
+            <h1>Relay Launch <span class="asc-ver">New</span></h1>
+            <p class="bp-lede">Every CirclePad round becomes a coin on Argus, and its first buy is relayed — to the round's contributors and to every wallet holding $ARCIRCLE. Keep holding $ARCIRCLE and you receive every relay: N+1, N+2, N+3 and on.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="bp-panel" id="bp-panel-liquidity">
         <div class="alq-hero">
           <div class="alq-emblem" aria-hidden="true">
@@ -1411,6 +1430,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790484872"></script>
+<script src="arcpad.bundle.js?v=1790491746"></script>
 </body>
 </html>

@@ -160,6 +160,11 @@
       "permanent": false
     },
     {
+      "source": "/relay",
+      "destination": "/arc#relay",
+      "permanent": false
+    },
+    {
       "source": "/liquidity",
       "destination": "/arc#liquidity",
       "permanent": false

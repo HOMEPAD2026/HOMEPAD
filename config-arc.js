@@ -155,6 +155,33 @@ const CONFIG = {
   // run — their modes stay hidden until then. Keep api/_drop.mjs in step.
   MULTISEND_V2_ADDRESS: "",
   DROP_ADDRESS: "",
+
+  // --- Relay Launch (arcpad.html#relay, arc-relay.js) ---
+  // After a CirclePad round closes, the round's recipient wallet launches the
+  // coin the vote picked through Argus Portal #7 and relays the dev-buy tokens
+  // to the round's contributors and to $ARCIRCLE holders (Snapshot + Multisender).
+  // Addresses from Argus's published ABI bundle (argus-v4.json, version 3,
+  // sha256 94f7e126…3da1f); the page refuses to launch if the Portal's
+  // implementation pointers no longer match these.
+  ARGUS: {
+    PORTAL: "0xB021Be536808f551b31789422Fd28a6c9c6e97Da",
+    REGISTRY: "0xfA4552DD491acC08051725fe522F4cfEaeC8EDc6",
+    TOKEN_IMPL: "0x1B74922c01DDfD9C77B37D02C0a236611E8Fe500",
+    SPLITTER_IMPL: "0xd9578dd861b2fe59675C2C4B09b026FcB0df37FC",
+    LOCKER_IMPL: "0xb2eD8112Db1bc11F7e7AB7969C2a9d1f819Cfc6A",
+    OLDER_PORTALS: ["0xA5628A11c412596e1f63b75a2C0284F843C549d6", "0x07a688a001f416cC433c68Ff56Aa26bC5131Cc6E"],
+    HOOK_FLAGS: 0x2044,
+  },
+  RELAY: {
+    OPERATOR: "0x1A35a754A4251E46971184046ac57E8AD621672E", // every round's recipient wallet
+    MIN_ARCIRCLE: "100000", // whole $ARCIRCLE a wallet needs at the snapshot
+    // one entry per CirclePad round; `launch` is filled in once that round's relay token is live:
+    // { token: "0x…", tx: "0x…", at: "2026-10-01T11:30:00Z", snapshotBlock: 0, drops: ["0x…"] }
+    ROUNDS: [
+      { n: 1, label: "CirclePad Round #1", escrow: "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703",
+        ballot: "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2", burnvote: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2", launch: null },
+    ],
+  },
 };
 
 // true once $ARCIRCLE is live (its contract address is set above)
