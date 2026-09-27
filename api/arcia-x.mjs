@@ -39,9 +39,11 @@ const json = (status, body) => new Response(JSON.stringify(body, null, 1), { sta
 const env = (k) => String(process.env[k] || "").trim();
 const keys = () => ({ ck: env("X_API_KEY"), cs: env("X_API_SECRET"), at: env("X_ACCESS_TOKEN"), as: env("X_ACCESS_SECRET") });
 const hasKeys = () => { const k = keys(); return !!(k.ck && k.cs && k.at && k.as); };
-const enabled = () => process.env.ARCIA_X_ENABLED === "1";
+const on = (k) => /^(1|true|yes|on)$/i.test(String(process.env[k] || "").trim().replace(/^["']|["']$/g, ""));
+const off = (k) => /^(0|false|no|off)$/i.test(String(process.env[k] || "").trim().replace(/^["']|["']$/g, ""));
+const enabled = () => on("ARCIA_X_ENABLED");
 // news posts (new coins, round alerts, daily check) stay off until ARCIA_X_POSTS=1 — replies don't need it
-const postsOn = () => enabled() && process.env.ARCIA_X_POSTS === "1";
+const postsOn = () => enabled() && on("ARCIA_X_POSTS");
 const now = () => Math.floor(Date.now() / 1000);
 const dayOf = (t) => new Date(t * 1000).toISOString().slice(0, 10);
 
@@ -191,7 +193,7 @@ function prune(st) {
 
 // ---------- replies to mentions ----------
 const REPLIES_PER_RUN = 5, REPLY_DAY_CAP = 25, PER_AUTHOR_DAY = 2;
-const repliesOn = () => enabled() && hasKeys() && !!process.env.ANTHROPIC_API_KEY && process.env.ARCIA_X_REPLIES !== "0";
+const repliesOn = () => enabled() && hasKeys() && !!process.env.ANTHROPIC_API_KEY && !off("ARCIA_X_REPLIES");
 async function mentions(meId, sinceId, max = 20) {
   const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets",
     expansions: "author_id", "user.fields": "username,name" };
@@ -201,8 +203,9 @@ async function mentions(meId, sinceId, max = 20) {
   return (j.data || []).map((t) => ({ id: t.id, text: t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
     rt: (t.referenced_tweets || []).some((r) => r.type === "retweeted") })).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
 }
-const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 220 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying to a fan in the comments — natural, warm, specific to what they said — never like a bot or a help desk.
-If the post is spam, a scam or giveaway bait, abusive, sexual, political, asks you to promote or "check out" another token, asks for money, DMs or keys, or simply doesn't need an answer, output exactly SKIP.`;
+const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
+Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
+Output exactly SKIP only for: spam, scams, giveaway or airdrop bait, abuse, sexual or political content, requests to promote or "check out" another token, requests for money, DMs or keys, and posts by @ARCIRCLEonArc itself (your own team) unless they ask you something directly.`;
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
   if (!clean || m.rt) return { skip: "empty or repost" };
