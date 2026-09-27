@@ -185,6 +185,11 @@
       "permanent": false
     },
     {
+      "source": "/arcia",
+      "destination": "/arc#arcia",
+      "permanent": false
+    },
+    {
       "source": "/liquidity",
       "destination": "/arc#liquidity",
       "permanent": false

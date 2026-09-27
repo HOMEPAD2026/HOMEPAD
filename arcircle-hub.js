@@ -150,8 +150,14 @@
   ];
   UTILS2.push({ id: "relay", name: "Relay Launch", sub: "CirclePad round → Argus coin, relayed to holders", status: "New", acc: "#35d8d0", href: "/arc#relay",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
+  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "New", acc: "#5b8cff", href: "/arc#arcia",
+    ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
+  // Page 3: four more in development — the tiles stay until each one is announced.
   var NEXT = [
-    { id: "next-8", sub: "Details soon" },
+    { id: "next-9", sub: "In development" },
+    { id: "next-10", sub: "In development" },
+    { id: "next-11", sub: "In development" },
+    { id: "next-12", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
@@ -257,22 +263,24 @@
         '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
     };
     var next = function (u, i) {
-      return '<div class="ax-util-tile is-soon is-off is-next" data-util="' + u.id + '" style="--acc:#8c98a6;--i:' + i + '" aria-disabled="true">' +
+      return '<div class="ax-util-tile is-soon is-off is-next" data-util="' + u.id + '" style="--acc:#8c98a6;--i:' + (i % 4) + '" aria-disabled="true">' +
         '<span class="ax-util-ico ax-util-q" aria-hidden="true"><b>?</b></span>' +
         '<span class="ax-util-txt"><strong>Coming soon</strong><small>' + u.sub + "</small></span>" +
-        '<em class="ax-util-st">Soon</em><i class="ax-util-no" aria-hidden="true">0' + (i + 5) + "</i></div>";
+        '<em class="ax-util-st">Soon</em><i class="ax-util-no" aria-hidden="true">' + String(i + 1).padStart(2, "0") + "</i></div>";
     };
     panel.innerHTML =
       '<div class="ax-util-head"><span class="ax-util-mark">' + ICON_INFINITY + '</span><div><strong>Utilities</strong><small>Tools for everyone on Arc</small></div>' +
       '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
       '<div class="ax-util-pages" aria-roledescription="carousel">' +
         '<div class="ax-util-track">' +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 2" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 2" data-page="1">' + UTILS2.map(tile).join("") + NEXT.map(function (u, i) { return next(u, i + UTILS2.length); }).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 3" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 3" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 3" data-page="2">' + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
         '<button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button>' +
+        '<button type="button" role="tab" data-go-page="2" aria-selected="false" aria-label="Page 3">3</button>' +
       "</div>";
     document.body.appendChild(scrim);
     document.body.appendChild(panel);
@@ -286,7 +294,7 @@
       track.style.transform = "translateX(" + (-100 * page) + "%)";
       pages.forEach(function (g, i) { if (i === page) g.removeAttribute("inert"); else g.setAttribute("inert", ""); g.classList.toggle("on", i === page); });
       panel.querySelectorAll("[data-go-page]").forEach(function (b) { b.setAttribute("aria-selected", String(Number(b.getAttribute("data-go-page")) === page)); });
-      panel.classList.toggle("on-p2", page === 1);
+      panel.classList.toggle("on-p2", page >= 1);
     }
     goPage(0, true);
     panel.querySelector(".ax-util-pager").addEventListener("click", function (e) {
