@@ -248,7 +248,7 @@ function renderArcpadLoadError(err) {
   const msg = String(err && (err.shortMessage || err.message) || err);
   const viewport = document.getElementById("ap-home-viewport");
   if (viewport) viewport.classList.add("is-empty");
-  const html = `<div class="empty-state">Couldn't reach Arc to load launches — check your connection and refresh. <span class="err-detail">${msg.slice(0, 160)}</span></div>`;
+  const html = `<div class="empty-state">Couldn't reach Arc to load launches — check your connection and try again. <button type="button" class="ap-retry" onclick="location.reload()">Try again</button> <span class="err-detail">${msg.slice(0, 160)}</span></div>`;
   const track = document.getElementById("ap-home-track");
   if (track) track.innerHTML = html;
   const grid = document.getElementById("ap-explore-grid");
@@ -261,6 +261,20 @@ function renderArcpadLoadError(err) {
     const el = document.getElementById(id);
     if (el) el.textContent = "—";
   }
+  const vol = document.getElementById("ap-stat-vol");
+  if (vol && !/\d/.test(vol.textContent)) vol.textContent = "—";
+  arcpadStatFallback();
+}
+/// The server keeps the last numbers it read: show those instead of blanks, marked as such.
+function arcpadStatFallback() {
+  fetch("/api/social?token=arcircle").then((r) => (r.ok ? r.json() : null)).then((d) => {
+    const n = d && d.revenue && d.revenue.launches;
+    if (n == null) return;
+    for (const id of ["ap-stat-count", "ap-home-count"]) {
+      const el = document.getElementById(id);
+      if (el && !/\d/.test(el.textContent)) { el.textContent = String(n); el.title = "Last count the server read — your browser couldn't reach Arc"; el.classList.add("ap-stale"); }
+    }
+  }).catch(() => {});
 }
 
 let arcExploreSort = "mcap";
@@ -1086,3 +1100,6 @@ function renderArcpadContracts() {
   ];
   el.innerHTML = renderContractRows(rows);
 }
+
+// Still no launch count after a while (a slow or blocked RPC): use the server's last read.
+setTimeout(() => { const c = document.getElementById("ap-stat-count"); if (c && !/\d/.test(c.textContent)) arcpadStatFallback(); }, 9000);

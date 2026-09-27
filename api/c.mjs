@@ -33,6 +33,7 @@ export default async function handler(req) {
   if (view === "lplock") return lplockPage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
+  if (view === "latest") return latestCoins(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -752,4 +753,21 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-si
 })();
 </script>
 </body></html>`, final ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+}
+
+// ---- the newest ArcPad coins, for the landing page (/api/c?view=latest[&n=3]) ----
+async function latestCoins(url) {
+  const n = Math.max(1, Math.min(6, Number(url.searchParams.get("n")) || 3));
+  const hdr = (cache) => ({ "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" });
+  try {
+    const pools = await allPools();
+    const pick = pools.slice().sort((a, b) => b.launchedAt - a.launchedAt).slice(0, n);
+    const coins = (await Promise.all(pick.map((p) => getCoin(p.token).catch(() => null)))).filter(Boolean).map((c) => ({
+      token: c.token, name: c.name, symbol: c.symbol, image: /^https:\/\//.test(c.imageUrl || "") ? c.imageUrl : "", launchedAt: c.launchedAt,
+      mcapUsd: c.mcapUsd != null ? Math.round(c.mcapUsd) : null, quote: c.quoteSymbol || "",
+    }));
+    return new Response(JSON.stringify({ count: pools.length, coins }), { status: 200, headers: hdr("public, max-age=0, s-maxage=60, stale-while-revalidate=300") });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: String((err && err.message) || err).slice(0, 160) }), { status: 502, headers: hdr("no-store") });
+  }
 }

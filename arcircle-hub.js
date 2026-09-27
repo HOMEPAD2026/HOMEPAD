@@ -202,13 +202,16 @@
         var y = window.scrollY, dy = y - lastY;
         lastY = y;
         var atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 4;
-        if (y < 80 || atBottom || root.classList.contains("ax-float-row") || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; setHidden(false); return; }
+        var row = root.classList.contains("ax-float-row");
+        // wide screens: the quick bar and the dock sit side by side and slide away together
+        var hide = function (h) { if (row) { root.classList.toggle("ax-float-away", h); setHidden(false); } else { root.classList.remove("ax-float-away"); setHidden(h); } };
+        if (y < 80 || atBottom || bar.classList.contains("ax-quick-pinned") || bar.classList.contains("util-open")) { acc = 0; hide(false); return; }
         acc = (acc > 0) === (dy > 0) ? acc + dy : dy; // distance travelled in the current direction
-        if (acc > 24) setHidden(true);
-        else if (acc < -16) setHidden(false);
+        if (acc > 24) hide(true);
+        else if (acc < -16) hide(false);
       });
     }, { passive: true });
-    document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); });
+    document.addEventListener("arcpad:tab", function () { acc = 0; setHidden(false); root.classList.remove("ax-float-away"); });
 
     mountUtilities(bar);
 
