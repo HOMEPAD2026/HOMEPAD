@@ -2308,6 +2308,11 @@
     "It links back to this scan and updates by itself — the token is re-scanned every few hours.": "이 스캔 결과로 연결되고 자동으로 갱신됩니다 — 토큰을 몇 시간마다 다시 스캔합니다.",
     "Your rank:": "현재 순위:",
     "With this you'd be #1, ahead by": "이 금액이면 1위, 차이",
+    "Put every idea into the candidate lists below — you check each list and publish it (one wallet signature per category).": "모든 제안을 아래 후보 목록에 채웁니다 — 목록을 확인한 뒤 카테고리마다 게시하세요 (카테고리당 지갑 서명 1번).",
+    "Fill every category from the ideas": "제안으로 모든 카테고리 채우기",
+    "Filled:": "채움:",
+    "launch date left out — it's before the vote ends.": "개의 런칭일 제외 — 투표 종료보다 앞이에요.",
+    "Check each list, then press Publish in each category.": "목록을 확인한 뒤 카테고리마다 게시를 누르세요.",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -4981,6 +4986,11 @@
     "It links back to this scan and updates by itself — the token is re-scanned every few hours.": "它会链接回本次扫描并自动更新——代币每隔几小时重新扫描一次。",
     "Your rank:": "你的排名：",
     "With this you'd be #1, ahead by": "按此金额你将排名第一，领先",
+    "Put every idea into the candidate lists below — you check each list and publish it (one wallet signature per category).": "把所有提案填入下方的候选列表——逐一检查后按类别发布（每个类别签名一次）。",
+    "Fill every category from the ideas": "用提案填满所有类别",
+    "Filled:": "已填入：",
+    "launch date left out — it's before the vote ends.": "个发射日期被排除——早于投票结束时间。",
+    "Check each list, then press Publish in each category.": "检查每个列表，然后在每个类别中点击发布。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

@@ -7232,3 +7232,6 @@ nav.ax-quick{view-transition-name:ax-quick;}
   @view-transition{navigation:none;}
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important;}
 }
+.gvi-fill{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(57,255,136,.4);background:rgba(57,255,136,.07);}
+.gvi-fill > div{display:flex;flex-direction:column;gap:2px;flex:1 1 260px;font-size:.8rem;color:#c9d4de;}
+.gvi-fill b{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#39ff88;}

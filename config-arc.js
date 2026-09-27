@@ -99,6 +99,11 @@ const CONFIG = {
   CIRCLEPAD_OPENS_AT: 0,
   CIRCLEPAD_ESCROW_VERIFIED: false,
   CIRCLEPAD_ALLOCATION_NOTE: "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.",
+  // Team additions to the Round #1 ballot, added by "Fill every category from
+  // the ideas" (circlepad-ideas.js) after the community's ideas. Keyed by
+  // category (0 name, 1 ticker, 2 logo, 3 roadmap, 4 launch date; dates in UTC).
+  // 27 Sep 2026: a second launch date, 2 Oct 20:30 KST, next to the team's 1 Oct 20:30 KST.
+  CIRCLEPAD_EXTRA_CANDIDATES: { 4: ["2026-10-02T11:30:00Z"] },
   // What happens after the vote (circlepad-round.js "What happens next"). Each
   // step: status "set" (fixed by a contract), "policy" (the team's stated plan)
   // or "open" (not decided yet — shown as such).

@@ -1600,6 +1600,30 @@ window.circlepadGovUseIdea = function (cat, text) {
   cpToast("Added to the candidates — publish when the list is ready.", "ok");
 };
 
+// "Fill every category from the ideas" (circlepad-ideas.js): the recipient's
+// editors get the whole list at once, dates in local time for the inputs.
+// Nothing goes on-chain until Publish is pressed in each category.
+window.circlepadGovFill = function (cat, texts) {
+  const def = CIRCLEPAD_VOTE_CATEGORIES[cat];
+  if (!def) return 0;
+  const z = (n) => String(n).padStart(2, "0");
+  const seen = new Set(), out = [];
+  for (const t of texts) {
+    let v = String(t || "").trim();
+    if (!v) continue;
+    if (def.kind === "ticker") v = v.replace(/^\$/, "").toUpperCase();
+    if (def.kind === "date") { const d = govDate(v); if (!d) continue; v = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; }
+    const k = v.toLowerCase();
+    if (seen.has(k) || v.length > def.max) continue;
+    seen.add(k); out.push(v);
+    if (out.length >= GOV_MAX_OPTIONS) break;
+  }
+  while (out.length < 2) out.push("");
+  _govDrafts.set(cat, out);
+  govReRenderEditor(cat);
+  return out.filter(Boolean).length;
+};
+
 function wireCirclepadGovernance(root) {
   root.addEventListener("change", async (e) => {
     const f = e.target.closest("[data-gv-up]");

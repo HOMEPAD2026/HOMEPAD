@@ -146,6 +146,14 @@
     tgl.hidden = !allPublished();
     tgl.innerHTML = `<span data-no-i18n>${total}</span> <span>${folded ? "Show ideas" : "Hide ideas"}</span>`;
     host.querySelector(".gvi-tabs").innerHTML = LABEL.map((l, i) => `<button type="button" role="tab" aria-selected="${i === tab}" class="${i === tab ? "on" : ""}${published(i) ? " set" : ""}" data-tab="${i}"><span>${esc(tr(l))}</span><b data-no-i18n>${counts[i]}</b></button>`).join("");
+    // the recipient: one tap puts every idea into the candidate editors
+    let fill = host.querySelector(".gvi-fill");
+    const openCats = [0, 1, 2, 3, 4].filter((c) => !published(c));
+    if (isRecipient() && loaded && openCats.length && D.ideas.length) {
+      if (!fill) { fill = document.createElement("div"); fill.className = "gvi-fill"; host.querySelector(".gvi-tabs").insertAdjacentElement("beforebegin", fill); }
+      const html = `<div><b>${esc(tr("Recipient"))}</b><span>${esc(tr("Put every idea into the candidate lists below — you check each list and publish it (one wallet signature per category).") )}</span></div><button type="button" class="bp-btn-primary" data-fill-all>${esc(tr("Fill every category from the ideas"))}</button>`;
+      if (fill.__html !== html) { fill.innerHTML = html; fill.__html = html; }
+    } else if (fill) fill.remove();
     const fk = `${tab}|${published(tab)}|${off}|${phaseRaise}`;
     if (fk !== formKey) { formKey = fk; host.querySelector(".gvi-formwrap").innerHTML = formHtml(tab); }
     host.querySelector(".gvi-list").innerHTML = listHtml(tab);
@@ -162,6 +170,30 @@
     return j.url;
   }
   window.circlepadUploadLogo = upload;
+
+  // every unpublished category: its ideas (most backed first), launch dates only
+  // if they come after the vote ends, plus any team additions from the config
+  function fillAll() {
+    if (typeof window.circlepadGovFill !== "function") return;
+    const g = gov();
+    const ends = g ? Number(g.votingEnds || 0) : 0;
+    const extra = (typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_EXTRA_CANDIDATES) || {};
+    const filled = [], skipped = [];
+    [0, 1, 2, 3, 4].filter((c) => !published(c)).forEach((c) => {
+      let list = D.ideas.filter((i) => i.cat === c).sort((a, b) => b.up - a.up || a.at - b.at).map((i) => i.text);
+      if (CATS[c] === "date") {
+        const ok = (t) => { const d = govDate(t); return d && (!ends || d.getTime() / 1000 > ends); };
+        list.filter((t) => !ok(t)).forEach((t) => skipped.push(t));
+        list = list.filter(ok);
+      }
+      list = list.concat(Array.isArray(extra[c]) ? extra[c] : []);
+      const n = window.circlepadGovFill(c, list);
+      filled.push(`${tr(LABEL[c])} ${n}`);
+    });
+    toast(`${tr("Filled:")} ${filled.join(" · ")}. ${skipped.length ? `${skipped.length} ${tr("launch date left out — it's before the vote ends.")} ` : ""}${tr("Check each list, then press Publish in each category.")}`, "ok");
+    const first = document.querySelector(".gv-ed");
+    if (first) first.closest("[id^='gv-cat-']").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   host.addEventListener("click", async (e) => {
     const t = e.target.closest("[data-tab]");
@@ -183,6 +215,7 @@
       finally { busy = false; }
       return;
     }
+    if (e.target.closest("[data-fill-all]")) { fillAll(); return; }
     const use = e.target.closest("[data-use]");
     if (use) {
       const it = D.ideas.find((x) => x.id === use.dataset.use);
