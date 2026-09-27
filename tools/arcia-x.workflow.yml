@@ -1,0 +1,25 @@
+# ARCIA's X feed (@ARCIAonArc): new ArcPad coins and CirclePad round alerts, checked every 30 minutes.
+# The daily $ARCIRCLE check also runs once a day from Vercel's own cron (vercel.json), so this job is
+# only needed for the faster alerts. Posting stays off until ARCIA_X_ENABLED=1 is set in Vercel.
+#
+# Optional repository secret CRON_SECRET: set it only if you also set CRON_SECRET in Vercel (same value).
+#
+# Kept here rather than in .github/workflows/ because pushing workflow files needs a token with the
+# "workflow" permission. To switch it on, in GitHub: Actions → New workflow → set up a workflow
+# yourself → paste this file → commit it as .github/workflows/arcia-x.yml.
+name: arcia-x
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Post what's due
+        env:
+          KEY: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$KEY" ]; then AUTH="Authorization: Bearer $KEY"; else AUTH="X-No-Auth: 1"; fi
+          curl -fsS --max-time 90 -H "$AUTH" "https://www.arcircle.app/api/arcia-x?run=1"

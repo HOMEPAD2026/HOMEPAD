@@ -213,6 +213,16 @@
     if (booted) return;
     booted = true;
     build();
+    fetch("/api/arcia-x?status=lite").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.live) return;
+      var ids = ["coins", "daily", "trends", "round"];
+      panel.querySelectorAll(".aa-feed li").forEach(function (li, i) {
+        var on = j.live[ids[i]], em = li.querySelector("em");
+        if (!em) return;
+        em.textContent = tr(on ? "Live" : "Setting up");
+        li.classList.toggle("on", !!on);
+      });
+    }).catch(function () { /* stays "Setting up" */ });
     fetch("/api/arcia").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (!j) return;
       setMode(j.ai ? "ai" : "guide");

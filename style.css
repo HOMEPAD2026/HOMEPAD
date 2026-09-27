@@ -8333,3 +8333,4 @@ html.ck-open{overflow:hidden;}
   html.aa-chat-on :is(.ax-page,.ax-dock-host) nav.ax-dock,
   html.aa-chat-on :is(.ax-page,.ax-dock-host) nav.ax-quick{transform:translate(-50%,calc(100% + 40px)) !important;opacity:0 !important;pointer-events:none !important;}
 }
+.aa-feed li.on em{color:#7dffb2;background:rgba(57,255,136,.1);border-color:rgba(57,255,136,.35);}
