@@ -428,7 +428,7 @@ function renderHeader() {
     }
     updateNetworkBadge();
   } else {
-    el.innerHTML = `<button class="btn btn-primary" id="connect-btn">Connect wallet</button>`;
+    el.innerHTML = `<button class="btn btn-primary" id="connect-btn" aria-label="Connect wallet"><span class="cw-long">Connect wallet</span><span class="cw-short">Connect</span></button>`;
     document.getElementById("connect-btn").onclick = connectWallet;
   }
 }

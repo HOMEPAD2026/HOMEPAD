@@ -2714,6 +2714,7 @@
     "Nothing new yet.": "아직 새 소식이 없습니다.",
     "Search the whole site": "사이트 전체 검색",
     "You're offline": "오프라인 상태입니다",
+    "Connect": "연결",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5793,6 +5794,7 @@
     "Nothing new yet.": "暂无新消息。",
     "Search the whole site": "搜索全站",
     "You're offline": "你已离线",
+    "Connect": "连接",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
@@ -5922,10 +5924,16 @@
     g.innerHTML = LANGS.filter(function (l) { return !(noZh && l === "zh"); }).map(function (l) {
       return '<button type="button" data-l="' + l + '" lang="' + (l === "zh" ? "zh-CN" : l) + '" aria-label="' + ARIA[l] + '" title="' + ARIA[l] + '">' + LABEL[l] + "</button>";
     }).join("");
+    // On phones the group is compact (only the active language shows): tapping it opens the
+    // other choices below, tapping one of those switches and closes it.
     g.addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("[data-l]");
-      if (b) setLang(b.getAttribute("data-l"), true);
+      if (!b) return;
+      if (b.classList.contains("on")) { g.classList.toggle("open"); return; }
+      g.classList.remove("open");
+      setLang(b.getAttribute("data-l"), true);
     });
+    document.addEventListener("click", function (e) { if (!g.contains(e.target)) g.classList.remove("open"); });
     if (host.matches(".bp-topbar-right")) host.insertBefore(g, host.firstChild);
     else {
       var cta = host.querySelector(".ax-top-cta");

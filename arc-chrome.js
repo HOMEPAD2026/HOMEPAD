@@ -119,12 +119,27 @@
     document.addEventListener("keydown", function (e) { if (open && e.key === "Escape") { toggle(false); btn.focus(); } });
   }
 
+  // One order on every page's top bar: [search] [alerts] [language] [page action / wallet].
+  // On ArcPad / CirclePad phones the bar floats over the "Home ▾" row, so that row is told how
+  // much room the right-hand group takes (--bp-right) and never runs underneath it.
+  function tidy(head) {
+    var lang = head.querySelector(":scope > .lang-toggle");
+    var nb = head.querySelector(":scope > .nb");
+    if (lang && nb) nb.insertAdjacentElement("afterend", lang);
+    if (!head.matches(".bp-topbar-right")) return;
+    var root = document.documentElement;
+    var fit = function () { root.style.setProperty("--bp-right", Math.ceil(head.getBoundingClientRect().width + 26) + "px"); };
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(head);
+    window.addEventListener("resize", fit);
+  }
   function init() {
     var top = document.querySelector("header.ax-top");
     var head = document.querySelector(".bp-topbar-right") || top;
     if (top) switcher(top);
     if (head) {
       bell(head);
+      tidy(head);
       setTimeout(gather, 2500);
       setInterval(function () { if (!document.hidden) gather(); }, 180000);
     }
