@@ -2451,6 +2451,7 @@
     "Live on Argus": "Argus에서 거래 중",
     "relayed": "릴레이됨",
     "more $ARCIRCLE to join the next relay": "$ARCIRCLE을 더 보유하면 다음 릴레이 참여",
+    "CirclePad round → Argus coin, relayed to holders": "CirclePad 라운드 → Argus 코인, 홀더에게 릴레이",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5267,6 +5268,7 @@
     "Live on Argus": "已在 Argus 上线",
     "relayed": "已接力",
     "more $ARCIRCLE to join the next relay": "枚 $ARCIRCLE 即可加入下一次接力",
+    "CirclePad round → Argus coin, relayed to holders": "CirclePad 轮次 → Argus 代币，接力给持有者",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
