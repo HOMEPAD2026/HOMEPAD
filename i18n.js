@@ -2702,6 +2702,18 @@
     "wallets holding $ARCIRCLE": "$ARCIRCLE 보유 지갑",
     "— three steps": "— 세 단계",
     "— what's done, what's next": "— 완료한 것, 다음 할 것",
+    "Alerts": "알림",
+    "New coin on ArcPad": "ArcPad 신규 코인",
+    "Raised so far": "현재 모금액",
+    "CirclePad Round #1 closes within 24 hours": "CirclePad 라운드 #1, 24시간 안에 마감",
+    "CirclePad Round #1 has closed": "CirclePad 라운드 #1 마감",
+    "See the results and the winning coin": "결과와 선정된 코인 보기",
+    "New: My ARCIRCLE, Stats, Roadmap and site search": "신규: 나의 ARCIRCLE, 통계, 로드맵, 사이트 검색",
+    "Look up any wallet, or press Ctrl/⌘K anywhere": "어떤 지갑이든 조회하거나, 어디서나 Ctrl/⌘K",
+    "Relay Launch is in Utilities": "릴레이 런칭이 유틸리티에 추가됐습니다",
+    "Nothing new yet.": "아직 새 소식이 없습니다.",
+    "Search the whole site": "사이트 전체 검색",
+    "You're offline": "오프라인 상태입니다",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5769,6 +5781,18 @@
     "wallets holding $ARCIRCLE": "持有 $ARCIRCLE 的钱包",
     "— three steps": "——三步",
     "— what's done, what's next": "——已完成与下一步",
+    "Alerts": "通知",
+    "New coin on ArcPad": "ArcPad 新代币",
+    "Raised so far": "目前已募集",
+    "CirclePad Round #1 closes within 24 hours": "CirclePad 第 1 轮将在 24 小时内截止",
+    "CirclePad Round #1 has closed": "CirclePad 第 1 轮已截止",
+    "See the results and the winning coin": "查看结果和胜出代币",
+    "New: My ARCIRCLE, Stats, Roadmap and site search": "新功能：我的 ARCIRCLE、数据、路线图和全站搜索",
+    "Look up any wallet, or press Ctrl/⌘K anywhere": "查询任意钱包，或在任意页面按 Ctrl/⌘K",
+    "Relay Launch is in Utilities": "接力发币已加入工具",
+    "Nothing new yet.": "暂无新消息。",
+    "Search the whole site": "搜索全站",
+    "You're offline": "你已离线",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

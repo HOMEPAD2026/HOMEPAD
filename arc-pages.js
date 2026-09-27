@@ -27,6 +27,9 @@
     return "$" + v.toFixed(a >= 100 ? 0 : 2);
   }
   var compact = function (v) { return v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(1) + "K" : nf(v, 0); };
+  var F = window.arcFmt;
+  if (F) { usd = F.usd; compact = F.compact; }
+  var priceTxt = function (v) { return F ? F.price(v) : "$" + (v < 0.001 ? v.toPrecision(3) : v.toFixed(6)); };
   var getJson = function (u) { return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
   var date = function (ts) { return ts ? new Date(ts * 1000).toISOString().slice(0, 10) : "—"; };
   function stagger(scope) { if (reduce || !scope) return; Array.prototype.forEach.call(scope.querySelectorAll(".pg-t,.me-list li"), function (el, i) { el.style.setProperty("--i", i % 12); el.classList.add("pg-in"); }); }
@@ -114,7 +117,7 @@
       st.innerHTML =
         '<section class="ax-section"><div class="ax-kicker">' + T("$ARCIRCLE") + "</div><h2>" + T("The core coin") + "</h2>" +
           '<div class="pg-grid">' +
-            tile("Market cap", usd(d.mcap), d.price ? "$" + (d.price < 0.001 ? d.price.toPrecision(3) : d.price.toFixed(6)) : "") +
+            tile("Market cap", usd(d.mcap), d.price ? priceTxt(d.price) : "") +
             tile("24h change", d.change24h == null ? "—" : (d.change24h >= 0 ? "+" : "") + d.change24h.toFixed(2) + "%", "", d.change24h >= 0 ? "ok" : "warn") +
             tile("24h volume", usd(d.vol24h), nf(d.trades24h, 0) + " " + T("trades")) +
             tile("Holders", nf(d.holders, 0), T("wallets holding $ARCIRCLE")) +
@@ -158,7 +161,7 @@
         '<line class="st-cross" id="st-cross" y1="0" y2="' + H + '" x1="0" x2="0"/>';
       var dot = $("#st-dot");
       if (!dot) { dot = document.createElement("i"); dot.id = "st-dot"; dot.className = "st-dot"; $("#st-chart").appendChild(dot); }
-      var fmtP = function (v) { return "$" + (v < 0.001 ? v.toPrecision(3) : v.toFixed(6)); };
+      var fmtP = priceTxt;
       if (vEl) vEl.textContent = fmtP(vals[vals.length - 1]) + " · " + ((vals[vals.length - 1] / vals[0] - 1) * 100).toFixed(1) + "% 7d";
       var box = $("#st-chart");
       var move = function (e) {

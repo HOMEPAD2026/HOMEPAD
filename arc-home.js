@@ -27,6 +27,9 @@
   var int = function (v) { return Math.round(v).toLocaleString("en-US"); };
   var compact = function (v) { return v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(1) + "K" : int(v); };
   var pct = function (v) { return v.toFixed(2) + "%"; };
+  var F = window.arcFmt;
+  if (F) { usd = F.usd; compact = F.compact; }
+  var priceTxt = function (v) { return F ? F.price(v) : "$" + (v < 0.001 ? v.toPrecision(3) : v.toFixed(6)); };
   var ago = function (ts) { var s = Math.max(1, Date.now() / 1000 - ts); return s < 3600 ? Math.round(s / 60) + "m" : s < 86400 ? Math.round(s / 3600) + "h" : Math.round(s / 86400) + "d"; };
 
   // ================= numbers that roll up once they're seen =================
@@ -83,7 +86,7 @@
     if (!d) return;
     if (d.mcap != null) put("mcap", d.mcap, usd);
     var price = $("[data-hm-price]");
-    if (price && d.price != null) price.textContent = "$" + (d.price < 0.001 ? d.price.toPrecision(3) : d.price.toFixed(6));
+    if (price && d.price != null) price.textContent = priceTxt(d.price);
     var chg = $("[data-hm-chg]");
     if (chg && d.change24h != null) { chg.textContent = (d.change24h >= 0 ? "+" : "") + d.change24h.toFixed(2) + "% 24h"; chg.className = "hm-chg " + (d.change24h >= 0 ? "up" : "down"); }
     var b = d.burned && d.burned.pct;

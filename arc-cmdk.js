@@ -209,7 +209,8 @@
   // the visible trigger in the top bar (every page has either .ax-top or ArcPad/CirclePad's .headbar)
   function addTrigger() {
     if (document.querySelector(".ck-btn")) return;
-    var host = document.querySelector("header.ax-top") || document.querySelector(".headbar");
+    var bar = document.querySelector(".bp-topbar-right");
+    var host = bar || document.querySelector("header.ax-top");
     if (!host) return;
     var b = document.createElement("button");
     b.type = "button";
@@ -217,7 +218,8 @@
     b.setAttribute("aria-label", "Search");
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M20 20l-4.5-4.5"/></svg><span>Search</span><kbd>' + (mac ? "⌘K" : "Ctrl K") + "</kbd>";
     b.addEventListener("click", function () { show(); });
-    var cta = host.querySelector(".ax-top-cta, #wallet-slot-unused");
+    if (bar) { b.classList.add("ck-btn-bar"); b.setAttribute("aria-label", "Search the whole site"); bar.insertBefore(b, bar.querySelector(".bp-chain-pill") || bar.firstChild); return; }
+    var cta = host.querySelector(".ax-top-right, .ax-top-cta");
     if (cta) host.insertBefore(b, cta); else host.appendChild(b);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addTrigger); else addTrigger();
