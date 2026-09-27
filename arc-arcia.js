@@ -196,6 +196,7 @@
               "<li><b>Daily $ARCIRCLE stats</b><span>Price, holders, burns and buybacks</span><em>Setting up</em></li>" +
               "<li><b>User trends</b><span>What the community is launching, trading and voting on</span><em>Setting up</em></li>" +
               "<li><b>Round &amp; relay alerts</b><span>CirclePad rounds and every relay</span><em>Setting up</em></li>" +
+              "<li><b>Replies to fans</b><span>Mention @ARCIAonArc and she answers you herself</span><em>Setting up</em></li>" +
             '</ul><a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON_X + '<span>Follow @ARCIAonArc</span></a></div>' +
             '<div class="aa-card"><h3>What ARCIA has studied</h3><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div>' +
               "<p>She has read every page of arcircle.app — the whitepaper, the docs, every utility and every contract address — and reads live numbers from Arc each time you ask. She keeps learning with every update.</p></div>" +
@@ -233,7 +234,7 @@
     build();
     fetch("/api/arcia-x?status=lite").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (!j || !j.live) return;
-      var ids = ["coins", "daily", "trends", "round"];
+      var ids = ["coins", "daily", "trends", "round", "replies"];
       panel.querySelectorAll(".aa-feed li").forEach(function (li, i) {
         var on = j.live[ids[i]], em = li.querySelector("em");
         if (!em) return;

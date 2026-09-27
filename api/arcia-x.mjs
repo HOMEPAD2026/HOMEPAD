@@ -9,7 +9,11 @@
 //   · new ArcPad coins, as they launch (up to 2 per run)
 //   · CirclePad round alerts: 24 h, 6 h and 1 h before the close, and when it closes
 //   · a daily $ARCIRCLE check from 12:00 UTC: price, market cap, holders, burns, launches, the round
-// At most 12 posts a day (X's free tier allows about 500 a month).
+//   · replies: when someone mentions @ARCIAonArc or replies to her, she answers as herself (Claude,
+//     same mind as the chat on the site) — up to 5 per run, 25 a day, 2 per person a day; spam, scams,
+//     abuse and bait are skipped. Off with ARCIA_X_REPLIES=0. Needs ANTHROPIC_API_KEY.
+// At most 12 posts a day. X bills per use: a post with a link costs far more than one without, so
+// coin posts carry the contract address instead of a link, and replies never include links.
 //
 // Vercel environment variables:
 //   X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET  the @ARCIAonArc app keys (OAuth 1.0a)
@@ -20,6 +24,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
+import { askClaude, live as liveNumbers } from "./_arcia-brain.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 12, COINS_PER_RUN = 2;
@@ -44,9 +49,17 @@ export function authHeader(method, url, query = {}, fixed = {}) {
   o.oauth_signature = createHmac("sha1", `${pct(k.cs)}&${pct(k.as)}`).update(base).digest("base64");
   return "OAuth " + Object.keys(o).sort().map((x) => `${pct(x)}="${pct(o[x])}"`).join(", ");
 }
-async function xPost(text) {
+async function xGet(base, query = {}) {
+  const qs = Object.entries(query).map(([k, v]) => `${pct(k)}=${pct(v)}`).join("&");
+  const r = await fetch(base + (qs ? "?" + qs : ""), { headers: { authorization: authHeader("GET", base, query) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`X ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
+  return j;
+}
+async function xPost(text, replyTo) {
   const url = "https://api.x.com/2/tweets";
-  const r = await fetch(url, { method: "POST", headers: { authorization: authHeader("POST", url), "content-type": "application/json" }, body: JSON.stringify({ text }) });
+  const payload = replyTo ? { text, reply: { in_reply_to_tweet_id: replyTo } } : { text };
+  const r = await fetch(url, { method: "POST", headers: { authorization: authHeader("POST", url), "content-type": "application/json" }, body: JSON.stringify(payload) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`X ${r.status}: ${JSON.stringify(j).slice(0, 200)}`);
   return j.data && j.data.id;
@@ -58,7 +71,7 @@ async function whoami() {
   const r = await fetch(url, { headers: { authorization: authHeader("GET", url) } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return { error: `X ${r.status}` };
-  me = { username: j.data && j.data.username, name: j.data && j.data.name };
+  me = { id: j.data && j.data.id, username: j.data && j.data.username, name: j.data && j.data.name };
   return me;
 }
 
@@ -118,7 +131,7 @@ async function coinPosts(st) {
       `New on ArcPad: $${sym}${name && name.toUpperCase() !== sym.toUpperCase() ? " — " + name : ""}`, "",
       "A real Uniswap v4 pool on Circle's Arc from block one, liquidity locked.",
       c.mcapUsd != null ? `Market cap: ${fmtUsd(c.mcapUsd)}` : null, "",
-      `Scan it first: ${SITE}/s/${p.token}`, `${SITE}/c/${p.token}`, "", "Always DYOR.",
+      `CA: ${p.token}`, "", "Find it on ArcPad and scan it first. Always DYOR.",
     ]) });
   }
   return { out, pending: pools.map((p) => ({ id: "coin:" + p.token.toLowerCase(), at: p.launchedAt })) };
@@ -152,12 +165,83 @@ async function plan(origin, st) {
 
 async function loadState() {
   const doc = (await getDocs([STATE]))[STATE] || {};
-  return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {} };
+  return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {}, mentionSince: doc.mentionSince || "",
+    replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "" };
 }
 function prune(st) {
   const cut = now() - 30 * 86400;
   for (const [k, v] of Object.entries(st.sent)) if (Number(v && v.t || v) < cut) delete st.sent[k];
   for (const k of Object.keys(st.days)) if (k < dayOf(cut)) delete st.days[k];
+  for (const k of Object.keys(st.replyDays || {})) if (k < dayOf(cut)) delete st.replyDays[k];
+}
+
+// ---------- replies to mentions ----------
+const REPLIES_PER_RUN = 5, REPLY_DAY_CAP = 25, PER_AUTHOR_DAY = 2;
+const repliesOn = () => enabled() && hasKeys() && !!process.env.ANTHROPIC_API_KEY && process.env.ARCIA_X_REPLIES !== "0";
+async function mentions(meId, sinceId, max = 20) {
+  const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets",
+    expansions: "author_id", "user.fields": "username,name" };
+  if (sinceId) q.since_id = sinceId;
+  const j = await xGet(`https://api.x.com/2/users/${meId}/mentions`, q);
+  const users = Object.fromEntries(((j.includes && j.includes.users) || []).map((u) => [u.id, u]));
+  return (j.data || []).map((t) => ({ id: t.id, text: t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
+    rt: (t.referenced_tweets || []).some((r) => r.type === "retweeted") })).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+}
+const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 220 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying to a fan in the comments — natural, warm, specific to what they said — never like a bot or a help desk.
+If the post is spam, a scam or giveaway bait, abusive, sexual, political, asks you to promote or "check out" another token, asks for money, DMs or keys, or simply doesn't need an answer, output exactly SKIP.`;
+async function draftReply(m, L) {
+  const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
+  if (!clean || m.rt) return { skip: "empty or repost" };
+  const t = await askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}` }], L, extra: REPLY_BRIEF, maxTokens: 220, timeoutMs: 15000 });
+  if (!t) return { skip: "model unavailable" };
+  let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/\s+\n/g, "\n").trim();
+  if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
+  if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
+  return { text: out };
+}
+async function replyRun(origin, st, { dry = false, preview = false } = {}) {
+  const results = [];
+  const who = await whoami();
+  if (!who || !who.id) return [{ error: "can't read the X account (" + (who && who.error || "no id") + ")" }];
+  const firstTime = !st.mentionSince;
+  let list;
+  try { list = await mentions(who.id, preview ? null : st.mentionSince, preview ? 5 : 20); }
+  catch (e) { st.replyError = String(e.message || e).slice(0, 200); return [{ error: "mentions: " + st.replyError }]; }
+  st.replyError = "";
+  if (!list.length) return results;
+  if (firstTime && !preview) { st.mentionSince = list[list.length - 1].id; return [{ info: "started: replies begin with the next mention" }]; }
+  const day = dayOf(now());
+  st.replyDays = st.replyDays || {}; st.replyAuthors = st.replyAuthors && st.replyAuthors.day === day ? st.replyAuthors : { day, n: {} };
+  const L = await liveNumbers(origin);
+  const todo = list.filter((m) => m.author !== who.id && !st.sent["reply:" + m.id]).slice(0, preview ? 3 : REPLIES_PER_RUN);
+  const drafts = await Promise.all(todo.map((m) => draftReply(m, L).catch(() => ({ skip: "error" }))));
+  for (let k = 0; k < todo.length; k++) {
+    const m = todo[k], d = drafts[k];
+    const row = { mention: m.id, from: "@" + m.username, text: m.text.slice(0, 140) };
+    if (d.skip) { row.skip = d.skip; if (!preview && !dry) st.sent["reply:" + m.id] = { t: now(), x: "skip" }; results.push(row); continue; }
+    row.reply = d.text;
+    if (preview || dry) { row.dry = true; results.push(row); continue; }
+    if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap" }; results.push(row); continue; }
+    if ((st.replyAuthors.n[m.author] || 0) >= PER_AUTHOR_DAY) { row.skip = "enough replies to this person today"; st.sent["reply:" + m.id] = { t: now(), x: "skip" }; results.push(row); continue; }
+    try {
+      row.posted = await xPost(d.text, m.id);
+      st.sent["reply:" + m.id] = { t: now(), x: row.posted || "" };
+      st.replyDays[day] = (st.replyDays[day] || 0) + 1;
+      st.replyAuthors.n[m.author] = (st.replyAuthors.n[m.author] || 0) + 1;
+    } catch (e) {
+      row.error = String(e.message || e).slice(0, 200);
+      if (/duplicate/i.test(row.error)) st.sent["reply:" + m.id] = { t: now(), x: "dup" };
+    }
+    results.push(row);
+  }
+  if (!preview && !dry) {
+    // move the cursor past everything handled; anything not handled yet (per-run limit) is read again next time
+    const handled = list.filter((m) => st.sent["reply:" + m.id] || m.author === who.id);
+    const firstOpen = list.find((m) => !st.sent["reply:" + m.id] && m.author !== who.id);
+    const upto = firstOpen ? list[list.indexOf(firstOpen) - 1] : list[list.length - 1];
+    if (upto && handled.length) st.mentionSince = upto.id;
+  }
+  return results;
 }
 
 export async function GET(req) {
@@ -166,7 +250,7 @@ export async function GET(req) {
   // the ARCIA page asks this to show which feeds are live (cheap: no chain reads, no X call)
   if (url.searchParams.get("status") === "lite") {
     const on = enabled() && hasKeys();
-    return new Response(JSON.stringify({ live: { coins: on, round: on, daily: on, trends: false } }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=300" } });
+    return new Response(JSON.stringify({ live: { coins: on, round: on, daily: on, replies: repliesOn(), trends: false } }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=300" } });
   }
   if (url.searchParams.has("status")) {
     const st = storeEnabled() ? await loadState().catch(() => null) : null;
@@ -177,6 +261,8 @@ export async function GET(req) {
       today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
       firstRun: st ? !st.coinSince : null,
       wouldPost: p.posts.map((x) => ({ id: x.id, chars: xLen(x.text), text: x.text })),
+      replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null,
+        preview: url.searchParams.get("status") === "replies" && hasKeys() && st ? await replyRun(origin, st, { preview: true }).catch((e) => [{ error: String(e.message || e) }]) : "open ?status=replies to draft replies to the latest mentions (reads up to 5 mentions, posts nothing)" },
       live: { coins: true, round: true, daily: true, trends: false },
     });
   }
@@ -207,6 +293,7 @@ export async function GET(req) {
       if (/\b(401|403|429)\b/.test(msg) && !/duplicate/i.test(msg)) break; // keys / rate limit: stop this run
     }
   }
+  const replies = repliesOn() ? await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]) : [];
   if (enabled() && hasKeys()) {
     // new coins: the clock starts at the first run; later it moves up to just before the oldest coin not yet posted
     if (firstRun) st.coinSince = now();
@@ -218,5 +305,5 @@ export async function GET(req) {
     prune(st);
     await setDoc(STATE, st);
   }
-  return json(200, { enabled: enabled(), firstRun, results });
+  return json(200, { enabled: enabled(), firstRun, results, replies });
 }

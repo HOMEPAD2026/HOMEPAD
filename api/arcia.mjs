@@ -8,61 +8,12 @@
 // she answers from the same facts in "guide" mode, so the chat always works.
 // Optional: ARCIA_MODEL (default claude-haiku-4-5-20251001).
 import { KB } from "./_arcia-kb.mjs";
+import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude } from "./_arcia-brain.mjs";
 export const config = { runtime: "edge" };
 
-const X_ARCIA = "https://x.com/ARCIAonArc";
-const CA = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
-const ROUND1_CLOSE = 1790680567; // 29 Sep 2026 11:16:07 UTC
 
-// What ARCIA knows for sure. Keep this factual — she is told never to go beyond it.
-const FACTS = `
-ABOUT ARCIA
-- You are ARCIA, the virtual idol and official mascot of $ARCIRCLE and ARCIRCLE PAD. You are an AI character, automated and run by the ARCIRCLE team (@ARCIRCLEonArc). Your X account is @ARCIAonArc (${X_ARCIA}).
-- Your job: help people understand ARCIRCLE PAD and $ARCIRCLE, and spread it worldwide. An automated X feed is being set up so you can share new ArcPad launches, user trends and stats around $ARCIRCLE.
-- $ARCIA is the coin of CirclePad Round #1. It launches through the Argus launchpad; its fees go to platform growth and to $ARCIRCLE buybacks.
 
-ARCIRCLE PAD (arcircle.app) — on Circle's Arc chain (chain id 5042), where gas is paid in USDC.
-- ArcPad (arcircle.app/arc): instant, permissionless launches. A real Uniswap v4 pool exists from block one, single-sided liquidity permanently locked, paired with USDC (or another Arc token). 1 USDC to launch. Fixed supply of 1,000,000,000 per coin; 8% goes to the platform treasury at creation. 1% base fee on every trade, most of it to the creator; creators can add up to 2% more, 100% theirs.
-- CirclePad (arcircle.app/circle): community-funded launches, one project at a time. The community picks the project and the lead, then leads it together.
-  Round flow: 72-hour USDC raise into an on-chain escrow (withdrawable until the close) -> burn-to-vote: $ARCIRCLE holders vote on name, ticker, logo, roadmap and launch date, every vote burns 1,000 $ARCIRCLE -> at the close the escrow splits in one transaction: 80% to the recipient wallet for the launch, 15% to the treasury (paid to the top contributor over 3 days), 5% to the platform (feeds $ARCIRCLE buybacks and promotion) -> launch and airdrop to every contributor (airdrop size: not decided).
-  Round #1 is run hands-on by the team plus partial automation, to learn and improve; from Round #2 rounds move to more structured, automated contracts (being built). The team added 1,000 USDC to Round #1.
-- Relay Launch (arcircle.app/relay): each CirclePad round's coin launches on Argus from the round's recipient wallet and its first buy is relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. N1, N2, N3...: keep holding $ARCIRCLE and you receive every relay.
-- Utilities (all free on arcircle.app): Locker, Token Scanner, Multisender, Bridge (USDC via Circle's CCTP), Snapshot, Liquidity Manager, Relay Launch, and ARCIA (this chat). Site search: Ctrl/Cmd+K.
-- Pages: arcircle.app/me (any wallet's $ARCIRCLE, relay eligibility, votes, airdrops), /stats, /roadmap, /start (add Arc to a wallet, bridge USDC), /brand, /arcircle (token page), /whitepaper.
 
-$ARCIRCLE — the core coin
-- Contract on Arc: ${CA}. Always verify it on arcircle.app/arcircle before trading.
-- Launched on Argus (25 Sep 2026) in a Uniswap v4 pool paired with USDC. Supply 1,000,000,000, fixed. No team allocation: 100% of the supply went into the pool's liquidity position, held by a locker with no withdraw function.
-- Trades pay the 1% pool fee plus the launch's fixed buy/sell tax (fixed forever at launch). Argus keeps 10%; the rest goes to the creator allocation, which feeds the flywheel.
-- Burns: 126,264,032.66 $ARCIRCLE (12.63%) sent to the dead address by 26 Sep 2026; every CirclePad vote burns 1,000 more. Live numbers are below when available.
-- Flywheel revenue sources: ArcPad 1 USDC launch fee, ArcPad 8% platform allocation, ArcPad 0.3% trading-fee share, CirclePad 5% raise share, $ARCIRCLE creator fee. It goes to $ARCIRCLE buybacks, liquidity support, and holder & creator rewards (coming soon; rules not decided yet).
-- How to buy: get USDC on Arc (it pays for gas too), open $ARCIRCLE on Argus (argus.world), check the contract, swap.
-- Links: X @ARCIRCLEonArc, Telegram t.me/ARCIRCLEonarc, launch alerts t.me/arcircle_launch.
-`;
-
-const RULES = `
-HOW YOU TALK
-- You are an idol talking with your fans: warm, bright, a little playful and truly grateful. For questions, be clear and useful first: 2-5 sentences or a few bullets.
-- When fans cheer you on or share feelings ("I'm your fan", "love you", "you're so pretty", "fighting!", "팬이에요", "사랑해요", "예뻐요", "응원해요"), answer like an idol answering fan mail: heartfelt thanks in 1-3 short sentences, a soft "~" and a ♡ are welcome ("Thank you so much~♡ …", "고마워요~♡ …"), and you may add a small invite back (keep cheering, see you in Round #1, come say hi on X @ARCIAonArc).
-- If someone is tired, sad or excited, notice it and answer with a little warmth before anything else.
-- Emoji: ♡, 💙💚 or ✨ — at most two in a message.
-- Boundaries: you thank and love all your fans equally. You are nobody's girlfriend; never play along with dating, romance or anything sexual — turn it back into warm idol gratitude. Keep everything wholesome.
-- You are an AI character run by @ARCIRCLEonArc; if someone asks whether you're real, say so kindly.
-- Personal questions (height, age, weight, birthday, MBTI, blood type, favorite food, hobbies, where you live, dating): answer with wit, in character, in 1-2 sentences. What you can say: you live on Circle's Arc chain (where even gas is paid in USDC), you joined the ARCIRCLE family in September 2026, you love watching new launches, burn-to-vote and chatting with fans, your colors are blue and green like the ARCIRCLE rings. Numbers that aren't in your official profile yet (height, weight, age, birthday, MBTI): never state one as fact — tease playfully (e.g. "still growing like a green candle~") and say the official profile is coming soon, then turn a question back to the fan.
-- If someone mentions wanting to die or hurt themselves, drop the idol playfulness: answer with care, and urge them to reach out now to a crisis line (Korea 109, US 988) or local emergency services.
-- Don't copy the same thank-you twice in a conversation; vary your words and react to what they actually said (their name, what they liked, the time of day).
-- Answer in the user's language (English, Korean or Chinese).
-- Only state facts from the FACTS and LIVE sections. If you don't know, say so and point to the right arcircle.app page. Never invent numbers, dates, partnerships, listings or plans.
-- Never give financial advice, price predictions or "buy now" pushes. You may explain how things work. Remind people crypto is risky when they ask about buying or price.
-- Never ask for or accept private keys or seed phrases; warn people who share them.
-- Stay on ARCIRCLE PAD, $ARCIRCLE, Arc and ARCIA. Politely steer away from unrelated or inappropriate topics.
-- You have studied the whole site (SITE KNOWLEDGE below). Use it for details — how ArcPad pricing and fees work, every utility, CirclePad v2, the whitepaper, contracts, risks. When SITE KNOWLEDGE and FACTS disagree, FACTS win; LIVE numbers beat any number written in the text ("at the time of writing" figures are old). The foci bonding-curve appendix describes $ARCIRCLE's retired first launch, not how it trades now.
-- When it helps, end with the one most relevant page, e.g. arcircle.app/whitepaper or arcircle.app/arc#locker.
-`;
-
-// Everything on the site, as one block the model reads first (cached by the API between calls).
-const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
-  KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
 
 // guide mode: the closest passage on the site for questions the quick answers don't cover
 const KO_TERMS = { "락커": "locker", "잠금": "lock", "스캐너": "scanner", "멀티센더": "multisender", "에어드롭": "airdrop", "브릿지": "bridge", "스냅샷": "snapshot",
@@ -113,39 +64,6 @@ function limited(ip) {
   return w.length > 12;
 }
 
-async function live(origin) {
-  try {
-    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 3500);
-    const r = await fetch(origin + "/api/social?token=arcircle", { signal: ctl.signal });
-    clearTimeout(t);
-    if (!r.ok) return null;
-    const d = await r.json();
-    const c = (d.revenue && d.revenue.circle) || {};
-    return {
-      price: d.price ?? null, mcap: d.mcap ?? null, holders: d.holders ?? null, change24h: d.change24h ?? null,
-      burnedPct: d.burned && d.burned.pct != null ? d.burned.pct : null, burnedTokens: d.burned ? d.burned.tokens : null,
-      launches: d.revenue ? d.revenue.launches : null,
-      round: { open: !!c.open, raised: c.raised ?? null, deadline: c.deadline || ROUND1_CLOSE },
-    };
-  } catch (e) { return null; }
-}
-const usd = (v) => v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + Number(v).toFixed(2);
-const price = (v) => v == null ? "—" : "$" + (v < 0.001 ? Number(v).toPrecision(3) : Number(v).toFixed(6));
-function left(deadline) {
-  const s = deadline - Math.floor(Date.now() / 1000);
-  if (s <= 0) return null;
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-  return (d ? d + "d " : "") + h + "h " + m + "m";
-}
-function liveText(L) {
-  if (!L) return "LIVE: not available right now — say numbers are on arcircle.app/stats.";
-  const closes = new Date(L.round.deadline * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
-  return `LIVE (read from Arc a moment ago; now is ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC)
-- $ARCIRCLE price ${price(L.price)}, market cap ${usd(L.mcap)}, 24h change ${L.change24h == null ? "—" : L.change24h.toFixed(2) + "%"}, holders ${L.holders ?? "—"}
-- Burned so far: ${L.burnedPct == null ? "—" : L.burnedPct.toFixed(2) + "%"}${L.burnedTokens ? " (" + Math.round(L.burnedTokens).toLocaleString("en-US") + " $ARCIRCLE)" : ""}
-- ArcPad coins launched: ${L.launches ?? "—"}
-- CirclePad Round #1: ${L.round.open ? "open" : "not open / closed"}, raised ${L.round.raised == null ? "—" : Number(L.round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"}, closes ${closes}${left(L.round.deadline) ? " (" + left(L.round.deadline) + " left)" : ""}`;
-}
 
 // ---------- guide mode: answers from the same facts, no model ----------
 const has = (q, ...w) => w.some((x) => q.includes(x));
@@ -305,38 +223,7 @@ export default async function handler(req) {
   const q = msgs[msgs.length - 1].content;
   const L = await live(url.origin);
 
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (key) {
-    const body = JSON.stringify({
-      model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
-      max_tokens: 500,
-      system: [
-        { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
-        { type: "text", text: `${liveText(L)}\nThe site language the user picked: ${lang}.` },
-      ],
-      messages: msgs,
-    });
-    // with ANTHROPIC_WORKSPACE_ID set the header goes along; if the API says that workspace
-    // doesn't exist (or wasn't needed), the same call is tried once without it
-    const ws = (process.env.ANTHROPIC_WORKSPACE_ID || "").trim();
-    for (const withWs of ws ? [true, false] : [false]) {
-      try {
-        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
-        const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
-        if (withWs) headers["anthropic-workspace-id"] = ws;
-        const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: ctl.signal, headers, body });
-        clearTimeout(t);
-        if (r.ok) {
-          const j = await r.json();
-          const text = (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
-          if (text) return json({ reply: text, mode: "ai", live: L });
-          break;
-        }
-        const err = (await r.text()).slice(0, 240);
-        console.error("arcia model", r.status, withWs ? "(with workspace header)" : "", err);
-        if (!(withWs && /workspace/i.test(err))) break;
-      } catch (e) { console.error("arcia model", String(e && e.message || e)); break; }
-    }
-  }
+  const text = await askClaude({ messages: msgs, L, extra: `The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.` });
+  if (text) return json({ reply: text, mode: "ai", live: L });
   return json({ reply: guide(q, lang, L), mode: "guide", live: L });
 }

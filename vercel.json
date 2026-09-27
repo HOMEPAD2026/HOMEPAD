@@ -254,5 +254,10 @@
       "path": "/api/arcia-x",
       "schedule": "5 12 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/arcia-x.mjs": {
+      "maxDuration": 60
+    }
+  }
 }
