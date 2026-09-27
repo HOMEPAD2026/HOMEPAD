@@ -23,11 +23,12 @@ interface IBurnVoteToken {
 /// (0x…dEaD) inside the vote transaction. Anyone holding $ARCIRCLE can
 /// vote, as many times as they like, split across any options.
 ///
-/// The candidates and the voting window come from the round's existing
-/// BigPadVote (the "ballot"): the recipient still publishes candidates there
-/// with proposeOptions, and voting runs from the escrow's deadline (the
-/// raise closing) to ballot.votingEnds(). This contract only counts burned
-/// votes — it holds no tokens and has no owner, admin or withdraw.
+/// The candidates come from the round's existing BigPadVote (the "ballot"):
+/// the recipient publishes them there with proposeOptions. The voting window
+/// is fixed at deploy: by default it opens right away and closes when the
+/// raise closes (the escrow's deadline), so the coin is decided by the time
+/// the raise ends. This contract only counts burned votes — it holds no
+/// tokens and has no owner, admin or withdraw.
 ///
 /// Votes can't be changed or taken back: the tokens behind them are gone.
 contract ArcircleBurnVote {
@@ -39,7 +40,7 @@ contract ArcircleBurnVote {
     IBurnVoteToken public immutable token;
     /// @notice Raw token units burned per vote (1,000 × 10^decimals).
     uint256 public immutable votePrice;
-    /// @notice Voting opens when the raise closes (the escrow's deadline).
+    /// @notice When voting opens and closes (unix seconds), fixed at deploy.
     uint256 public immutable opensAt;
     uint256 public immutable votingEnds;
 
@@ -65,12 +66,14 @@ contract ArcircleBurnVote {
     error LengthMismatch();
     error BurnFailed();
 
-    constructor(address ballot_, address token_) {
+    /// @param opensAt_ when voting opens; 0 = right away (this block)
+    /// @param endsAt_  when voting closes; 0 = when the raise closes (the escrow's deadline)
+    constructor(address ballot_, address token_, uint256 opensAt_, uint256 endsAt_) {
         require(ballot_ != address(0) && token_ != address(0), "zero address");
         IBurnVoteBallot b = IBurnVoteBallot(ballot_);
-        uint256 opens = IBurnVoteEscrow(b.escrow()).deadline();
-        uint256 ends = b.votingEnds();
-        require(opens > 0 && ends > opens, "ballot has no window");
+        uint256 opens = opensAt_ == 0 ? block.timestamp : opensAt_;
+        uint256 ends = endsAt_ == 0 ? IBurnVoteEscrow(b.escrow()).deadline() : endsAt_;
+        require(ends > opens && ends > block.timestamp, "no voting window");
         ballot = b;
         token = IBurnVoteToken(token_);
         votePrice = TOKENS_PER_VOTE * (10 ** uint256(IBurnVoteToken(token_).decimals()));

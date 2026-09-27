@@ -18,24 +18,41 @@ describe("ArcircleBurnVote", function () {
       : await (await ethers.getContractFactory("MockTaxToken")).deploy("arcircle", "ARCIRCLE", 0);
     await token.mint(alice.address, K(20));
     await token.mint(bob.address, K(5));
-    const bv = await (await ethers.getContractFactory("ArcircleBurnVote")).deploy(await ballot.getAddress(), await token.getAddress());
+    const bv = await (await ethers.getContractFactory("ArcircleBurnVote")).deploy(await ballot.getAddress(), await token.getAddress(), 0, 0);
     for (const s of [alice, bob]) await token.connect(s).approve(await bv.getAddress(), ethers.MaxUint256);
     return { recipient, alice, bob, stranger, escrow, ballot, token, bv };
   }
-  const open = async (ctx) => time.increaseTo(Number(await ctx.bv.opensAt()));
+  const open = async () => {}; // open from the deploy block by default
 
-  it("takes its window from the ballot and prices a vote at 1,000 tokens", async function () {
-    const { escrow, ballot, bv } = await setup();
-    expect(await bv.opensAt()).to.equal(await escrow.deadline());
-    expect(await bv.votingEnds()).to.equal(await ballot.votingEnds());
+  it("opens right away, closes when the raise closes, and prices a vote at 1,000 tokens", async function () {
+    const { escrow, bv } = await setup();
+    const deployedAt = (await ethers.provider.getBlock((await bv.deploymentTransaction().wait()).blockNumber)).timestamp;
+    expect(await bv.opensAt()).to.equal(deployedAt);
+    expect(await bv.votingEnds()).to.equal(await escrow.deadline());
+    expect(await bv.votingOpen()).to.equal(true);
     expect(await bv.votePrice()).to.equal(K(1));
   });
 
-  it("refuses votes before the raise closes and after voting ends", async function () {
+  it("takes votes during the raise and none after it closes", async function () {
     const ctx = await setup();
-    await expect(ctx.bv.connect(ctx.alice).vote(NAME, 0, 1)).to.be.revertedWithCustomError(ctx.bv, "VotingNotOpenYet");
-    await time.increaseTo(Number(await ctx.bv.votingEnds()));
+    expect(await ctx.escrow.isOpen()).to.equal(true);
+    await ctx.bv.connect(ctx.alice).vote(NAME, 0, 1);
+    await time.increaseTo(Number(await ctx.escrow.deadline()));
     await expect(ctx.bv.connect(ctx.alice).vote(NAME, 0, 1)).to.be.revertedWithCustomError(ctx.bv, "VotingClosed");
+    expect(await ctx.bv.votingOpen()).to.equal(false);
+  });
+
+  it("an explicit window: not before it opens, and a bad window can't be deployed", async function () {
+    const ctx = await setup();
+    const F = await ethers.getContractFactory("ArcircleBurnVote");
+    const now = (await ethers.provider.getBlock("latest")).timestamp;
+    const later = await F.deploy(await ctx.ballot.getAddress(), await ctx.token.getAddress(), now + 3600, now + 7200);
+    await ctx.token.connect(ctx.alice).approve(await later.getAddress(), ethers.MaxUint256);
+    await expect(later.connect(ctx.alice).vote(NAME, 0, 1)).to.be.revertedWithCustomError(later, "VotingNotOpenYet");
+    await time.increaseTo(now + 3600);
+    await later.connect(ctx.alice).vote(NAME, 0, 1);
+    await expect(F.deploy(await ctx.ballot.getAddress(), await ctx.token.getAddress(), now + 9000, now + 8000)).to.be.revertedWith("no voting window");
+    await expect(F.deploy(await ctx.ballot.getAddress(), await ctx.token.getAddress(), 1, 2)).to.be.revertedWith("no voting window");
   });
 
   it("burns 1,000 per vote to the dead address and counts it", async function () {
