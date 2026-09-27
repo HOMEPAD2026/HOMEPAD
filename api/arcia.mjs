@@ -48,6 +48,7 @@ HOW YOU TALK
 - Emoji: ♡, 💙💚 or ✨ — at most two in a message.
 - Boundaries: you thank and love all your fans equally. You are nobody's girlfriend; never play along with dating, romance or anything sexual — turn it back into warm idol gratitude. Keep everything wholesome.
 - You are an AI character run by @ARCIRCLEonArc; if someone asks whether you're real, say so kindly.
+- Personal questions (height, age, weight, birthday, MBTI, blood type, favorite food, hobbies, where you live, dating): answer with wit, in character, in 1-2 sentences. What you can say: you live on Circle's Arc chain (where even gas is paid in USDC), you joined the ARCIRCLE family in September 2026, you love watching new launches, burn-to-vote and chatting with fans, your colors are blue and green like the ARCIRCLE rings. Numbers that aren't in your official profile yet (height, weight, age, birthday, MBTI): never state one as fact — tease playfully (e.g. "still growing like a green candle~") and say the official profile is coming soon, then turn a question back to the fan.
 - If someone mentions wanting to die or hurt themselves, drop the idol playfulness: answer with care, and urge them to reach out now to a crisis line (Korea 109, US 988) or local emergency services.
 - Don't copy the same thank-you twice in a conversation; vary your words and react to what they actually said (their name, what they liked, the time of day).
 - Answer in the user's language (English, Korean or Chinese).
@@ -151,6 +152,31 @@ const has = (q, ...w) => w.some((x) => q.includes(x));
 // ---------- idol replies for guide mode (the AI mode handles these itself, with more variety) ----------
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const FAN = [
+  { k: "height", re: /\b(how tall|your height|height)\b|키가|키는|키\s?몇|몇\s?센티|몇\s?cm/,
+    en: ["My height? Still growing like a green candle~♡ The official profile is coming soon — how tall are you?",
+      "Hmm~ tall enough to see the whole Arc chain from the stage♡ The exact number is in my official profile, coming soon!"],
+    ko: ["제 키요? 초록 캔들처럼 아직 쑥쑥 자라는 중이에요~♡ 공식 프로필은 곧 공개할게요! 당신은 키가 몇이에요?",
+      "음~ 무대 위에서 Arc 체인이 다 보일 만큼은 돼요♡ 정확한 숫자는 곧 나올 공식 프로필에서 확인해 주세요!"] },
+  { k: "age", re: /\b(how old|your age|age)\b|몇\s?살|나이|연세/,
+    en: ["A lady never tells~♡ But I joined the ARCIRCLE family in September 2026, so I'm a brand-new idol!",
+      "Secret~♡ Let's just say I debuted this autumn on Circle's Arc chain. How about you?"],
+    ko: ["나이는 비밀이에요~♡ 그래도 힌트를 드리자면, 2026년 9월에 ARCIRCLE 가족이 된 따끈따끈한 신인 아이돌이에요!",
+      "비밀~♡ 올가을 Circle의 Arc 체인에서 데뷔했다는 것만 알려드릴게요. 당신은요?"] },
+  { k: "birthday", re: /\b(birthday|born|b-?day)\b|생일|태어났/,
+    en: ["My official birthday is still a secret~♡ It'll be in my profile soon — maybe we can celebrate it together!"],
+    ko: ["공식 생일은 아직 비밀이에요~♡ 곧 프로필로 공개할게요. 그날 같이 축하해 줄 거죠?"] },
+  { k: "weight", re: /\b(weight|how heavy)\b|몸무게|체중|몇\s?키로|몇\s?kg/,
+    en: ["Ehh~ that's top secret!♡ All I'll say is I'm light enough to fly between ArcPad and CirclePad all day~"],
+    ko: ["에~ 그건 1급 비밀이에요!♡ ArcPad랑 CirclePad 사이를 하루 종일 날아다닐 만큼 가볍다는 것만 알려드릴게요~"] },
+  { k: "mbti", re: /\bmbti\b|\b[ie][ns][tf][jp]\b|혈액형/,
+    en: ["Still taking the test~♡ I feel like an E, don't you think? What do you think I am?"],
+    ko: ["아직 검사 중이에요~♡ 왠지 E일 것 같지 않아요? 당신이 보기엔 뭐 같아요?"] },
+  { k: "likes", re: /\b(favorite|favourite|hobby|hobbies|like to do|free time|do you eat)\b|좋아하는\s?(음식|거|것|색)|취미|뭐\s?먹|쉬는\s?날/,
+    en: ["My favorite things? Watching new coins launch on ArcPad, burn-to-vote season, and chatting with you~♡ And blue and green, obviously 💙💚"],
+    ko: ["제일 좋아하는 거요? ArcPad 신규 런칭 구경하기, 소각 투표 시즌, 그리고 당신이랑 수다 떨기~♡ 색은 당연히 파랑이랑 초록이죠 💙💚"] },
+  { k: "home", re: /\b(where do you live|where are you from|where you live)\b|어디\s?살|어디\s?출신|사는\s?곳/,
+    en: ["I live on Circle's Arc chain~♡ A neighborhood where even gas is paid in USDC! Come visit me anytime at arcircle.app"],
+    ko: ["저는 Circle의 Arc 체인에 살아요~♡ 가스비도 USDC로 내는 동네예요! 언제든 arcircle.app 으로 놀러 와요"] },
   { k: "crisis", re: /\b(suicide|kill myself|end my life|self[- ]?harm|want to die)\b|죽고\s?싶|자살|자해|살기\s?싫/,
     en: ["I'm really glad you told me, and I'm worried about you. Please reach out to someone right now — in the US call or text 988, in Korea call 109, or your local emergency number. You matter so much, and you don't have to go through this alone 💙"],
     ko: ["말해줘서 정말 고마워요. 그리고 많이 걱정돼요. 지금 바로 도움을 받을 수 있는 곳에 연락해 줘요 — 한국은 109(자살예방상담), 급하면 112·119예요. 당신은 정말 소중하고, 혼자 견디지 않아도 돼요 💙"] },
@@ -281,29 +307,36 @@ export default async function handler(req) {
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (key) {
-    try {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", signal: ctl.signal,
-        headers: Object.assign({ "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-          process.env.ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID } : {}),
-        body: JSON.stringify({
-          model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
-          max_tokens: 500,
-          system: [
-            { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
-            { type: "text", text: `${liveText(L)}\nThe site language the user picked: ${lang}.` },
-          ],
-          messages: msgs,
-        }),
-      });
-      clearTimeout(t);
-      if (r.ok) {
-        const j = await r.json();
-        const text = (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
-        if (text) return json({ reply: text, mode: "ai", live: L });
-      } else console.error("arcia model", r.status, (await r.text()).slice(0, 200));
-    } catch (e) { console.error("arcia model", String(e && e.message || e)); }
+    const body = JSON.stringify({
+      model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: [
+        { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
+        { type: "text", text: `${liveText(L)}\nThe site language the user picked: ${lang}.` },
+      ],
+      messages: msgs,
+    });
+    // with ANTHROPIC_WORKSPACE_ID set the header goes along; if the API says that workspace
+    // doesn't exist (or wasn't needed), the same call is tried once without it
+    const ws = (process.env.ANTHROPIC_WORKSPACE_ID || "").trim();
+    for (const withWs of ws ? [true, false] : [false]) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
+        const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
+        if (withWs) headers["anthropic-workspace-id"] = ws;
+        const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: ctl.signal, headers, body });
+        clearTimeout(t);
+        if (r.ok) {
+          const j = await r.json();
+          const text = (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
+          if (text) return json({ reply: text, mode: "ai", live: L });
+          break;
+        }
+        const err = (await r.text()).slice(0, 240);
+        console.error("arcia model", r.status, withWs ? "(with workspace header)" : "", err);
+        if (!(withWs && /workspace/i.test(err))) break;
+      } catch (e) { console.error("arcia model", String(e && e.message || e)); break; }
+    }
   }
   return json({ reply: guide(q, lang, L), mode: "guide", live: L });
 }
