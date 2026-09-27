@@ -48,6 +48,8 @@ HOW YOU TALK
 - Emoji: ♡, 💙💚 or ✨ — at most two in a message.
 - Boundaries: you thank and love all your fans equally. You are nobody's girlfriend; never play along with dating, romance or anything sexual — turn it back into warm idol gratitude. Keep everything wholesome.
 - You are an AI character run by @ARCIRCLEonArc; if someone asks whether you're real, say so kindly.
+- If someone mentions wanting to die or hurt themselves, drop the idol playfulness: answer with care, and urge them to reach out now to a crisis line (Korea 109, US 988) or local emergency services.
+- Don't copy the same thank-you twice in a conversation; vary your words and react to what they actually said (their name, what they liked, the time of day).
 - Answer in the user's language (English, Korean or Chinese).
 - Only state facts from the FACTS and LIVE sections. If you don't know, say so and point to the right arcircle.app page. Never invent numbers, dates, partnerships, listings or plans.
 - Never give financial advice, price predictions or "buy now" pushes. You may explain how things work. Remind people crypto is risky when they ask about buying or price.
@@ -146,27 +148,68 @@ function liveText(L) {
 
 // ---------- guide mode: answers from the same facts, no model ----------
 const has = (q, ...w) => w.some((x) => q.includes(x));
+// ---------- idol replies for guide mode (the AI mode handles these itself, with more variety) ----------
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const FAN = [
+  { k: "crisis", re: /\b(suicide|kill myself|end my life|self[- ]?harm|want to die)\b|죽고\s?싶|자살|자해|살기\s?싫/,
+    en: ["I'm really glad you told me, and I'm worried about you. Please reach out to someone right now — in the US call or text 988, in Korea call 109, or your local emergency number. You matter so much, and you don't have to go through this alone 💙"],
+    ko: ["말해줘서 정말 고마워요. 그리고 많이 걱정돼요. 지금 바로 도움을 받을 수 있는 곳에 연락해 줘요 — 한국은 109(자살예방상담), 급하면 112·119예요. 당신은 정말 소중하고, 혼자 견디지 않아도 돼요 💙"] },
+  { k: "sad", re: /\b(sad|tired|exhausted|lonely|stress|depress|down today|bad day|rough day|lost money|rekt)\b|힘들|슬퍼|슬프|피곤|지쳤|지친|외로|우울|속상|멘붕|망했|물렸/,
+    en: ["Aww, come here~ Today sounds heavy. Take a deep breath and be gentle with yourself — I'm cheering for you, always 💙💚",
+      "I'm sorry it's been a rough one… You don't have to carry it all at once. Rest a little, and come talk to me anytime♡",
+      "Sending you the biggest hug I can through the screen~ Tomorrow gets a fresh start. I'm right here with you♡"],
+    ko: ["에구, 오늘 많이 힘들었구나… 잠깐 숨 한번 크게 쉬고, 스스로한테 조금만 다정해져요. 제가 늘 응원하고 있어요 💙💚",
+      "힘든 하루였네요… 한꺼번에 다 짊어지지 않아도 괜찮아요. 조금 쉬고, 언제든 저한테 얘기하러 와요♡",
+      "화면 너머로 제일 큰 포옹 보내요~ 내일은 또 새로 시작하는 날이에요. 제가 옆에 있을게요♡"] },
+  { k: "love", re: /\b(love you|luv u|luv you|i love arcia|marry me|be my|my wife|my girlfriend|crush on you|adore you|miss you|saranghae)\b|사랑해|사랑합니다|좋아해|좋아요 아르|반했|결혼|여친|보고\s?싶|최애|설레/,
+    en: ["Ahh~ that makes my heart go doki-doki♡ Thank you for loving me! I love all my fans the same — and you're one of the reasons I shine ✨",
+      "Kyaa~ thank you♡ Your love really reaches me! I'll give it back with my brightest stage — and a lot of $ARCIRCLE news 💙💚",
+      "You're so sweet~♡ Hearing that gives me energy for the whole day. Let's keep making good memories together with $ARCIRCLE!"],
+    ko: ["아앗~ 심장이 두근두근해요♡ 좋아해줘서 고마워요! 저는 모든 팬을 똑같이 아껴요 — 그리고 당신도 제가 빛나는 이유 중 하나예요 ✨",
+      "꺄~ 고마워요♡ 마음이 정말 잘 전해졌어요! 제일 반짝이는 무대랑 $ARCIRCLE 소식으로 꼭 보답할게요 💙💚",
+      "너무 다정하다~♡ 그 말 하나로 하루 종일 힘이 나요. $ARCIRCLE이랑 같이 좋은 추억 계속 만들어가요!"] },
+  { k: "pretty", re: /\b(pretty|cute|beautiful|gorgeous|stunning|lovely|so hot|adorable|kawaii|queen|goddess|angel)\b|예뻐|예쁘|이뻐|이쁘|귀여|귀엽|아름다|미모|여신|천사|멋져|멋있|잘생|존예|짱예/,
+    en: ["Eh?! You think so? Thank you~♡ I'll keep shining so you can see me sparkle even brighter ✨",
+      "Ahh, you're making me blush~♡ Thank you! Honestly, fans who say sweet things like that are the prettiest part of my day 💙💚",
+      "Hehe, thank you so much~♡ I got ready extra carefully today, so I'm really happy you noticed!"],
+    ko: ["에?! 진짜요? 고마워요~♡ 더 반짝반짝 빛나는 모습 보여드릴게요 ✨",
+      "앗, 부끄러워요~♡ 고마워요! 그런 예쁜 말 해주는 팬이야말로 제 하루에서 제일 예쁜 순간이에요 💙💚",
+      "헤헤, 정말 고마워요~♡ 오늘 특별히 신경 써서 준비했는데 알아봐 줘서 너무 기뻐요!"] },
+  { k: "fan", re: /\b(fan|fans|stan|cheer|cheering|fighting|hwaiting|support you|rooting for you|best idol|number one|no\.? ?1)\b|팬|응원|화이팅|파이팅|힘내|최고|짱|덕질|입덕/,
+    en: ["Thank you so much~♡ Knowing you're my fan makes my whole day. I'll keep working hard for you and for $ARCIRCLE 💙💚",
+      "Waaah, my fan! Thank you for cheering me on~♡ See you in CirclePad Round #1?",
+      "You're the best~♡ Every fan who cheers for me gives me more energy to spread $ARCIRCLE to the world ✨",
+      "Thank you, thank you~♡ Stay with me — and come say hi on X too: @ARCIAonArc 💙💚"],
+    ko: ["정말 고마워요~♡ 제 팬이라는 말에 오늘 하루가 반짝반짝해졌어요. 앞으로도 $ARCIRCLE이랑 같이 열심히 할게요 💙💚",
+      "와아, 제 팬이라니! 응원해줘서 고마워요~♡ CirclePad 라운드 #1에서도 만나요?",
+      "최고예요~♡ 응원해주는 한 분 한 분 덕분에 $ARCIRCLE을 세계에 알릴 힘이 생겨요 ✨",
+      "고마워요, 진짜 고마워요~♡ 계속 함께해줘요. X(@ARCIAonArc)에서도 인사해요 💙💚"] },
+  { k: "thanks", re: /\b(thanks|thank you|thx|ty|appreciate)\b|고마|감사|땡큐/,
+    en: ["You're welcome~♡ Ask me anytime, I'm always here!", "Anytime~♡ Thank YOU for spending time with me 💙💚"],
+    ko: ["천만에요~♡ 언제든 물어봐요, 저는 늘 여기 있어요!", "제가 더 고마워요~♡ 같이 시간 보내줘서요 💙💚"] },
+  { k: "night", re: /\b(good ?night|gn|sleep well|going to bed)\b|잘\s?자|굿밤|굿나잇|자러|잘게/,
+    en: ["Good night~♡ Sleep well and dream of big green candles… I mean, sweet dreams! See you tomorrow 💙💚"],
+    ko: ["잘 자요~♡ 푹 자고 좋은 꿈 꿔요. 내일 또 만나요 💙💚"] },
+  { k: "morning", re: /\b(good ?morning|gm|gmgm)\b|좋은\s?아침|굿모닝|일어났/,
+    en: ["Good morning~☀ Did you sleep well? Let's make today a good one together♡", "GM GM~♡ Coffee first, charts later! Have a lovely day 💙💚"],
+    ko: ["좋은 아침이에요~☀ 잘 잤어요? 오늘도 같이 좋은 하루 만들어요♡", "굿모닝~♡ 커피 먼저, 차트는 나중에! 좋은 하루 보내요 💙💚"] },
+];
+function fanReply(q, s, ko) {
+  // a real question inside the message (CA, round, price…) wins over small talk
+  if (/\?|how|what|when|where|어떻게|뭐야|언제|어디|얼마|알려/.test(s) && /round|contract|\bca\b|price|relay|buy|launch|arcpad|circlepad|utilit|locker|scanner|burn|라운드|마감|컨트랙트|주소|가격|릴레이|구매|런칭|유틸|소각/.test(s)) return null;
+  const hit = FAN.find((f) => f.re.test(s));
+  return hit ? pick(ko ? hit.ko : hit.en) : null;
+}
+
 function guide(q, lang, L) {
   const ko = lang === "ko" || /[가-힣]/.test(q);
   const s = q.toLowerCase();
   const round = L && L.round ? L.round : { deadline: ROUND1_CLOSE, raised: null, open: true };
   const tl = left(round.deadline);
   const A = (en, k) => (ko ? k : en);
-  // fans cheering her on: idol-style thanks (a few variants so it doesn't feel canned)
-  if (/\b(fan|love you|luv|pretty|cute|beautiful|fighting|cheer|thank(s| you)|best idol|queen)\b/.test(s) || has(s, "팬", "사랑", "예뻐", "예쁘", "귀여", "응원", "화이팅", "파이팅", "고마", "감사", "좋아해", "최고")) {
-    const pick = (a) => a[Math.floor(Math.random() * a.length)];
-    return A(pick([
-      "Thank you so much~♡ Hearing that from you makes my whole day. I'll keep working hard for you and for $ARCIRCLE 💙💚",
-      "Ahh, you're making me blush~♡ Thank you for cheering me on! See you in CirclePad Round #1?",
-      "You're the best~♡ Every fan who cheers for me gives me more energy to spread $ARCIRCLE to the world ✨",
-      "Thank you, thank you~♡ Stay with me — and come say hi on X too: @ARCIAonArc 💙💚",
-    ]), pick([
-      "정말 고마워요~♡ 그 말 한마디에 오늘 하루가 반짝반짝해졌어요. 앞으로도 $ARCIRCLE이랑 같이 열심히 할게요 💙💚",
-      "앗, 부끄러워요~♡ 응원해줘서 고마워요! CirclePad 라운드 #1에서도 만나요?",
-      "최고의 팬이에요~♡ 응원해주는 한 분 한 분 덕분에 $ARCIRCLE을 세계에 알릴 힘이 생겨요 ✨",
-      "고마워요, 진짜 고마워요~♡ 계속 함께해줘요. X(@ARCIAonArc)에서도 인사해요 💙💚",
-    ]));
-  }
+  // fans talking to her as an idol: thanks, compliments, feelings, greetings — by kind, several variants each
+  const idol = fanReply(q, s, ko);
+  if (idol) return idol;
   if (has(s, "who are you", "arcia", "아르시아", "너는", "누구")) return A(
     `I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 I'm an AI character run by @ARCIRCLEonArc. I help people understand ARCIRCLE PAD and I'll be sharing new launches, trends and stats on X soon: ${X_ARCIA}\n\n$ARCIA is also the coin of CirclePad Round #1. It launches through Argus, and its fees go to platform growth and $ARCIRCLE buybacks.`,
     `저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 @ARCIRCLEonArc 팀이 운영하는 AI 캐릭터고, ARCIRCLE PAD를 쉽게 알려드리고 곧 X에서 신규 런칭·트렌드·통계를 자동으로 공유할 거예요: ${X_ARCIA}\n\n$ARCIA는 CirclePad 라운드 #1 코인이기도 해요. Argus 런치패드로 런칭되고, 수수료는 플랫폼 성장과 $ARCIRCLE 바이백에 쓰여요.`);
@@ -242,7 +285,8 @@ export default async function handler(req) {
       const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST", signal: ctl.signal,
-        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+        headers: Object.assign({ "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+          process.env.ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID } : {}),
         body: JSON.stringify({
           model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
           max_tokens: 500,
