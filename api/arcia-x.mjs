@@ -2,6 +2,8 @@
 //
 //   GET /api/arcia-x?status=1   what is set up, which account the keys post as, and what the
 //                               next run would post right now (nothing is sent)
+//   GET /api/arcia-x?replies=1  replies only — call it every minute (e.g. cron-job.org) so fans get an
+//                               answer within about a minute; writes to the store only when something changed
 //   GET /api/arcia-x[?run=1]    one run: posts whatever is due (Vercel cron daily + the optional
 //                               15-minute GitHub Actions job in tools/arcia-x.workflow.yml)
 //
@@ -17,7 +19,8 @@
 //
 // Vercel environment variables:
 //   X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET  the @ARCIAonArc app keys (OAuth 1.0a)
-//   ARCIA_X_ENABLED=1   actually post. Without it every run is a dry run (see ?status=1 first)
+//   ARCIA_X_ENABLED=1   switch ARCIA on for X (replies). Without it nothing is posted (see ?status=1 first)
+//   ARCIA_X_POSTS=1     also the news posts (new coins, round alerts, daily check) — off until set
 //   CRON_SECRET         optional; when set, ?run=1 needs "Authorization: Bearer <CRON_SECRET>"
 //                       (Vercel's own cron sends it automatically)
 //   FIREBASE_SERVICE_ACCOUNT  already set — where the record of sent posts is kept
@@ -35,6 +38,8 @@ const json = (status, body) => new Response(JSON.stringify(body, null, 1), { sta
 const keys = () => ({ ck: process.env.X_API_KEY, cs: process.env.X_API_SECRET, at: process.env.X_ACCESS_TOKEN, as: process.env.X_ACCESS_SECRET });
 const hasKeys = () => { const k = keys(); return !!(k.ck && k.cs && k.at && k.as); };
 const enabled = () => process.env.ARCIA_X_ENABLED === "1";
+// news posts (new coins, round alerts, daily check) stay off until ARCIA_X_POSTS=1 — replies don't need it
+const postsOn = () => enabled() && process.env.ARCIA_X_POSTS === "1";
 const now = () => Math.floor(Date.now() / 1000);
 const dayOf = (t) => new Date(t * 1000).toISOString().slice(0, 10);
 
@@ -165,9 +170,10 @@ async function plan(origin, st) {
 
 async function loadState() {
   const doc = (await getDocs([STATE]))[STATE] || {};
-  return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {}, mentionSince: doc.mentionSince || "",
+  return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {}, mentionSince: doc.mentionSince || "", me: doc.me || null,
     replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "" };
 }
+const stripTemp = (st) => { const o = { ...st }; delete o.dirty; return o; };
 function prune(st) {
   const cut = now() - 30 * 86400;
   for (const [k, v] of Object.entries(st.sent)) if (Number(v && v.t || v) < cut) delete st.sent[k];
@@ -201,15 +207,21 @@ async function draftReply(m, L) {
 }
 async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   const results = [];
-  const who = await whoami();
-  if (!who || !who.id) return [{ error: "can't read the X account (" + (who && who.error || "no id") + ")" }];
+  let who = st.me && st.me.id ? st.me : null;
+  if (!who) {
+    who = await whoami();
+    if (!who || !who.id) return [{ error: "can't read the X account (" + (who && who.error || "no id") + ")" }];
+    st.me = { id: who.id, username: who.username || "" };
+    st.dirty = true;
+  }
   const firstTime = !st.mentionSince;
   let list;
   try { list = await mentions(who.id, preview ? null : st.mentionSince, preview ? 5 : 20); }
-  catch (e) { st.replyError = String(e.message || e).slice(0, 200); return [{ error: "mentions: " + st.replyError }]; }
-  st.replyError = "";
+  catch (e) { st.replyError = String(e.message || e).slice(0, 200); st.dirty = true; return [{ error: "mentions: " + st.replyError }]; }
+  if (st.replyError) { st.replyError = ""; st.dirty = true; }
   if (!list.length) return results;
-  if (firstTime && !preview) { st.mentionSince = list[list.length - 1].id; return [{ info: "started: replies begin with the next mention" }]; }
+  if (firstTime && !preview) { st.mentionSince = list[list.length - 1].id; st.dirty = true; return [{ info: "started: replies begin with the next mention" }]; }
+  if (!preview) st.dirty = true;
   const day = dayOf(now());
   st.replyDays = st.replyDays || {}; st.replyAuthors = st.replyAuthors && st.replyAuthors.day === day ? st.replyAuthors : { day, n: {} };
   const L = await liveNumbers(origin);
@@ -249,14 +261,14 @@ export async function GET(req) {
   const origin = url.origin;
   // the ARCIA page asks this to show which feeds are live (cheap: no chain reads, no X call)
   if (url.searchParams.get("status") === "lite") {
-    const on = enabled() && hasKeys();
+    const on = postsOn() && hasKeys();
     return new Response(JSON.stringify({ live: { coins: on, round: on, daily: on, replies: repliesOn(), trends: false } }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=300" } });
   }
   if (url.searchParams.has("status")) {
     const st = storeEnabled() ? await loadState().catch(() => null) : null;
     const p = st ? await plan(origin, st).catch((e) => ({ posts: [], error: String(e.message || e) })) : { posts: [] };
     return json(200, {
-      keys: hasKeys(), enabled: enabled(), store: storeEnabled(), cronSecret: !!process.env.CRON_SECRET,
+      keys: hasKeys(), enabled: enabled(), posts: postsOn(), store: storeEnabled(), cronSecret: !!process.env.CRON_SECRET,
       account: hasKeys() ? await whoami().catch(() => ({ error: "unreachable" })) : null,
       today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
       firstRun: st ? !st.coinSince : null,
@@ -266,6 +278,17 @@ export async function GET(req) {
       live: { coins: true, round: true, daily: true, trends: false },
     });
   }
+  // ?replies=1 — the fast path an every-minute pinger calls: only answers new mentions
+  if (url.searchParams.has("replies")) {
+    const secret = process.env.CRON_SECRET;
+    if (secret && req.headers.get("authorization") !== `Bearer ${secret}` && url.searchParams.get("key") !== secret) return json(401, { error: "unauthorized" });
+    if (!repliesOn()) return json(200, { replies: "off", need: "ARCIA_X_ENABLED=1, the four X keys and ANTHROPIC_API_KEY" });
+    if (!storeEnabled()) return json(503, { error: "no store" });
+    const st = await loadState();
+    const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
+    if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
+    return json(200, { replies });
+  }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) return json(401, { error: "unauthorized" });
@@ -274,12 +297,12 @@ export async function GET(req) {
   const firstRun = !st.coinSince;
   const { posts, pending } = await plan(origin, st);
   // the very first run only starts the clock for new coins, so older launches never flood the feed
-  const due = firstRun ? posts.filter((p) => !p.id.startsWith("coin:")) : posts;
+  const due = !postsOn() ? [] : firstRun ? posts.filter((p) => !p.id.startsWith("coin:")) : posts;
   const day = dayOf(now());
   const results = [];
   for (const p of due) {
     if ((st.days[day] || 0) >= DAY_CAP) { results.push({ id: p.id, skipped: "daily cap" }); continue; }
-    if (!enabled() || !hasKeys()) { results.push({ id: p.id, dry: true, text: p.text }); continue; }
+    if (!hasKeys()) { results.push({ id: p.id, dry: true, text: p.text }); continue; }
     try {
       const id = await xPost(p.text);
       st.sent[p.id] = { t: now(), x: id || "" };
@@ -294,7 +317,7 @@ export async function GET(req) {
     }
   }
   const replies = repliesOn() ? await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]) : [];
-  if (enabled() && hasKeys()) {
+  if (postsOn() && hasKeys()) {
     // new coins: the clock starts at the first run; later it moves up to just before the oldest coin not yet posted
     if (firstRun) st.coinSince = now();
     else {
@@ -302,8 +325,7 @@ export async function GET(req) {
       if (rest.length) st.coinSince = Math.max(st.coinSince, Math.min(...rest.map((p) => p.at)) - 1);
       else if (pending.length) st.coinSince = Math.max(st.coinSince, ...pending.map((p) => p.at));
     }
-    prune(st);
-    await setDoc(STATE, st);
   }
-  return json(200, { enabled: enabled(), firstRun, results, replies });
+  if (enabled() && hasKeys()) { prune(st); await setDoc(STATE, stripTemp(st)); }
+  return json(200, { enabled: enabled(), posts: postsOn(), firstRun, results, replies });
 }
