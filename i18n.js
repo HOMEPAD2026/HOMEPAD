@@ -2331,6 +2331,9 @@
     "Voting ends with the raise. The escrow sends 80% to the recipient, 15% to the treasury, 5% to the platform.": "투표는 모금과 함께 끝납니다. 에스크로가 수령인에게 80%, 트레저리에 15%, 플랫폼에 5%를 보냅니다.",
     "Identity voted on during the raise": "모금 기간 중 정체성 투표",
     "Name, ticker, logo and roadmap are all decided by $ARCIRCLE holders' votes while the raise runs — every vote burns 1,000 $ARCIRCLE. This card shows the shape of a round — it isn't a real one yet.": "이름, 티커, 로고, 로드맵은 모두 모금이 진행되는 동안 $ARCIRCLE 보유자의 투표로 정해집니다 — 1표마다 1,000 $ARCIRCLE이 소각됩니다. 이 카드는 라운드의 형태를 보여줄 뿐, 아직 실제 라운드가 아닙니다.",
+    "The coin being decided": "지금 결정되고 있는 코인",
+    "Decided in": "결정까지",
+    "Takes the lead!": "역전!",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5027,6 +5030,9 @@
     "Voting ends with the raise. The escrow sends 80% to the recipient, 15% to the treasury, 5% to the platform.": "投票随募资结束。托管合约将 80% 发给接收方，15% 发给金库，5% 发给平台。",
     "Identity voted on during the raise": "募资期间投票决定身份",
     "Name, ticker, logo and roadmap are all decided by $ARCIRCLE holders' votes while the raise runs — every vote burns 1,000 $ARCIRCLE. This card shows the shape of a round — it isn't a real one yet.": "名称、代码、标志和路线图都在募资期间由 $ARCIRCLE 持有者投票决定——每票销毁 1,000 $ARCIRCLE。此卡片只展示一轮的形式，还不是真实的一轮。",
+    "The coin being decided": "正在决定的币",
+    "Decided in": "决定倒计时",
+    "Takes the lead!": "反超！",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

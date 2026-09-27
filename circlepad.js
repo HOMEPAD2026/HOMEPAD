@@ -1348,20 +1348,10 @@ function renderCirclepadGovernance(g) {
     }
 
     top.innerHTML = `
-      <div class="gv-bar">
-        <div class="gv-phases">
-          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 || phase !== "raise" ? "done" : "now")}
-          ${ph("vote", "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
-          ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
-        </div>
-        ${clock ? `<div class="gv-clock">${clock}</div>` : ""}
-        ${bm ? `<div class="gv-burned"><span>$ARCIRCLE burned</span><b data-no-i18n>${fmtEth(burnedAll, 0)}</b><small><span data-no-i18n>${votesAll.toString()}</span> <span>votes</span> · <span>1 vote = 1,000</span></small></div>` : ""}
-      </div>
-      <div class="gv-grid">
-        <div class="gv-coin${phase === "closed" ? " final" : ""}">
-          <small class="gv-k">${phase === "closed" ? "The result" : "Leading now"}</small>
+        <div class="gv-coin gv-coin-hero${phase === "closed" ? " final" : ""}" data-coin-key="${govEsc([nameL, tickL, logo || "", dateL].join("|"))}">
+          <div class="gv-coin-top"><small class="gv-k">${phase === "closed" ? "The result" : "The coin being decided"}</small>${phase === "voting" && ends ? `<span class="gv-coin-clock"><span>Decided in</span> <b data-no-i18n data-gv-to="${ends}">${govLeft(ends - govNow())}</b></span>` : ""}</div>
           <div class="gv-coin-row">
-            <span class="gv-coin-logo">${logo ? `<img src="${govEsc(logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${govEsc(nameL.slice(0, 1).toUpperCase())}</em>`}</span>
+            <span class="gv-coin-logo"><em data-no-i18n>${govEsc((nameL || "?").slice(0, 1).toUpperCase())}</em>${logo ? `<img src="${govEsc(logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>
             <div class="gv-coin-id"><b data-no-i18n>${govEsc(nameL || "—")}</b><span data-no-i18n>${tickL ? "$" + govEsc(tickL) : "—"}</span></div>
           </div>
           <dl>
@@ -1371,6 +1361,16 @@ function renderCirclepadGovernance(g) {
           ${anyLead ? "" : `<p class="gv-coin-empty">${phase === "raise" ? "Fills in as votes come in once voting opens." : "No votes yet."}</p>`}
           ${shareText ? `<a class="bp-btn-ghost gv-share" href="https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent("https://www.arcircle.app/circle#governance")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">Share the result</a>` : ""}
         </div>
+      <div class="gv-bar">
+        <div class="gv-phases">
+          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 || phase !== "raise" ? "done" : "now")}
+          ${ph("vote", "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
+          ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
+        </div>
+        ${clock ? `<div class="gv-clock">${clock}</div>` : ""}
+        ${bm ? `<div class="gv-burned"><span>$ARCIRCLE burned</span><b data-no-i18n>${fmtEth(burnedAll, 0)}</b><small><span data-no-i18n>${votesAll.toString()}</span> <span>votes</span> · <span>1 vote = 1,000</span></small></div>` : ""}
+      </div>
+      <div class="gv-grid gv-grid-me">
         <div class="gv-me">
           <small class="gv-k">Your vote</small>
           ${meHtml}
@@ -1420,7 +1420,7 @@ function renderCirclepadGovernance(g) {
         return `
         <div class="bp-gov-option${mineN > 0n ? " bp-gov-option-mine" : ""}${isLead ? " gv-lead" : ""}${phase === "closed" && isLead ? " gv-win" : ""}" data-category="${c.id}" data-option="${i}">
           <div class="bp-gov-option-row">
-            ${crown}<span class="bp-gov-option-text" data-no-i18n>${govOptionHtml(def.kind, o.text)}</span>${mineN > 0n ? `<span class="bp-gov-mine-tag"><span>yours</span> <span data-no-i18n>${mineN.toString()}</span></span>` : ""}
+            ${crown}<span class="bp-gov-option-text" data-no-i18n>${govOptionHtml(def.kind, o.text)}</span>${isLead && newLead ? `<span class="gv-flip" role="status">Takes the lead!</span>` : ""}${mineN > 0n ? `<span class="bp-gov-mine-tag"><span>yours</span> <span data-no-i18n>${mineN.toString()}</span></span>` : ""}
             <span class="gv-pw"><span class="bp-gov-option-pct" data-no-i18n>${pct}%</span><small><span data-no-i18n>${o.weight.toString()}</span> <span>${o.weight === 1n ? "vote" : "votes"}</span></small></span>
           </div>
           <div class="bp-gov-option-bar"><div class="bp-gov-option-fill" style="width:${pct}%"></div></div>

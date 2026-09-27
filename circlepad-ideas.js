@@ -138,6 +138,9 @@
     // once the ballot is set the board folds away — still one tap to read
     const folded = allPublished() && !open;
     host.classList.toggle("folded", folded);
+    // once the ballot is set, the ideas move under the vote
+    const catsEl = document.getElementById("bp-gov-categories");
+    if (allPublished() && catsEl && host.previousElementSibling !== catsEl) catsEl.insertAdjacentElement("afterend", host);
     if (!host.querySelector(".gvi-head")) {
       host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Community ideas</small><h3>Suggest a candidate</h3><p>Anyone can suggest a name, ticker, logo, roadmap or launch date. Back the ones you like — the recipient picks the candidates from here.</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
         <div class="gvi-tabs" role="tablist"></div><div class="gvi-formwrap"></div><div class="gvi-list"></div>`;

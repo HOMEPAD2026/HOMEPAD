@@ -237,6 +237,7 @@
       feed = j; feedT = Date.now();
       paintFeed(fresh);
       document.querySelectorAll("[data-cp-burned]").forEach((el) => bump(el, tok(burnedTotal())));
+      odoAll();
       window.circlepadBurns = j;
     } catch { /* next poll */ }
   }
@@ -478,9 +479,80 @@
   }
   document.addEventListener("circlepad:lb", () => { try { paintRace(); crownHandOff(); } catch (err) { console.warn("circlepad-round race", err); } });
 
+  // ================= the vote, alive: rolling totals, flame gauges, the coin swapping, the last hour =================
+  // numbers roll digit by digit when they go up
+  const odoLast = new Map();
+  function odometer(el, key) {
+    const text = el.textContent, prev = odoLast.get(key);
+    odoLast.set(key, text);
+    if (reduce() || prev == null || prev === text || el.dataset.odo === text) return;
+    const n = (x) => Number(String(x).replace(/[^0-9]/g, "")) || 0;
+    if (n(text) <= n(prev)) return;
+    el.dataset.odo = text;
+    const pad = prev.padStart(text.length, " ");
+    el.innerHTML = [...text].map((ch, i) => {
+      if (!/\d/.test(ch)) return `<span class="odo-s">${esc(ch)}</span>`;
+      const from = /\d/.test(pad[i]) ? Number(pad[i]) : 0, to = Number(ch);
+      const end = to >= from ? to : to + 10;
+      const strip = Array.from({ length: 20 }, (_, k) => `<i>${k % 10}</i>`).join("");
+      return `<span class="odo-c" style="--from:${from};--to:${end};--d:${(text.length - i) * 45}ms"><span class="odo-strip">${strip}</span></span>`;
+    }).join("");
+    el.classList.add("odo");
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("odo-go")));
+    setTimeout(() => { if (el.dataset.odo === text) { el.classList.remove("odo", "odo-go"); el.textContent = text; } }, 1300);
+  }
+  function odoAll() {
+    [["gov", ".gv-burned b"], ["strip", "#cp-strip [data-cp-burned]"], ["hero", "#cp-phase-hero [data-cp-burned]"], ["feed", "#gv-burnfeed .gv-feed-stats b"]].forEach(([k, sel]) => {
+      const el = document.querySelector(sel);
+      if (el) odometer(el, k);
+    });
+  }
+  // how much each category has burned, as a flame gauge under its title
+  const gaugeLast = new Map();
+  function paintGauges() {
+    const g = G();
+    if (!g || !burnOn() || !Array.isArray(g.categories)) return;
+    const sums = g.categories.map((c) => c.options.reduce((a, o) => a + BigInt(o.weight || 0), 0n));
+    const max = sums.reduce((a, b) => (b > a ? b : a), 0n);
+    g.categories.forEach((c, i) => {
+      const card = $(`gv-cat-${i}`);
+      if (!card || !c.set) return;
+      const head = card.querySelector(".bp-gov-cat-head");
+      if (!head) return;
+      let gauge = card.querySelector(".gv-gauge");
+      if (!gauge) { gauge = document.createElement("div"); gauge.className = "gv-gauge"; gauge.setAttribute("aria-hidden", "true"); gauge.innerHTML = `<span class="cp-flame sm"></span><div class="gv-gauge-bar"><i></i></div>`; head.insertAdjacentElement("afterend", gauge); }
+      const pct = max > 0n ? Number((sums[i] * 1000n) / max) / 10 : 0;
+      const bar = gauge.querySelector("i"), was = gaugeLast.has(i) ? gaugeLast.get(i) : 0;
+      gaugeLast.set(i, pct);
+      if (reduce() || was === pct) { bar.style.width = pct + "%"; return; }
+      bar.style.transition = "none"; bar.style.width = was + "%";
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = ""; bar.style.width = pct + "%"; }));
+      gauge.classList.toggle("hot", pct > 0 && sums[i] === max);
+    });
+  }
+  // the big coin card: when the leading name / ticker / logo / date changes, it flips to the new one
+  let coinKey = null;
+  function coinSwap() {
+    const c = document.querySelector(".gv-coin-hero");
+    if (!c) return;
+    const k = c.dataset.coinKey || "";
+    if (coinKey != null && k !== coinKey && !reduce()) { c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); }
+    coinKey = k;
+  }
+  // the last hour: the clocks beat; the last ten minutes: the strip turns red
+  function paintFinal() {
+    const ph = phase(), ends = ph === "voting" ? votingEnds() : ph === "raise" ? deadline() : 0;
+    const rem = ends ? ends - nowS() : Infinity;
+    document.body.classList.toggle("cp-final-hour", rem > 0 && rem <= 3600);
+    document.body.classList.toggle("cp-final-10", rem > 0 && rem <= 600);
+  }
+  function aliveAll() { try { odoAll(); paintGauges(); coinSwap(); paintFinal(); } catch (err) { console.warn("circlepad-round alive", err); } }
+  document.addEventListener("circlepad:govpaint", aliveAll);
+
   // ================= wiring =================
   function paintAll() {
     try { paintStrip(); paintHero(); paintNext(); paintTimeline(); paintProjects(); paintTreasury(); paintBallotNav(); paintRace(); } catch (err) { console.warn("circlepad-round", err); }
+    aliveAll();
   }
   document.addEventListener("circlepad:state", paintAll);
   document.addEventListener("circlepad:lb", paintAll);
@@ -492,6 +564,7 @@
     const gp = $("bp-panel-governance");
     document.body.classList.toggle("cp-gov-tab", !!(gp && gp.classList.contains("active")));
     paintTimeline();
+    paintFinal();
   }, 1000);
   setInterval(() => { if (!document.hidden && (phase() === "voting" || Date.now() - feedT > 60e3)) loadFeed(); }, 15000);
   setInterval(() => { if (!document.hidden) paintAll(); }, 30000);
