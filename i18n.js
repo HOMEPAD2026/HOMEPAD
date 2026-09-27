@@ -2452,6 +2452,11 @@
     "relayed": "릴레이됨",
     "more $ARCIRCLE to join the next relay": "$ARCIRCLE을 더 보유하면 다음 릴레이 참여",
     "CirclePad round → Argus coin, relayed to holders": "CirclePad 라운드 → Argus 코인, 홀더에게 릴레이",
+    "same as $ARCIRCLE's launch": "$ARCIRCLE 런칭과 동일",
+    "Price range not set": "가격 범위 미설정",
+    "Argus's own form fills these in for you. They're set here to match $ARCIRCLE's launch on Argus; change them only if you know why.": "Argus 자체 폼은 이 값을 자동으로 채워요. 여기서는 $ARCIRCLE의 Argus 런칭과 같은 값으로 맞춰 두었으니, 이유가 있을 때만 바꾸세요.",
+    "Couldn't read $ARCIRCLE's launch settings — enter the range yourself.": "$ARCIRCLE 런칭 설정을 읽지 못했어요 — 범위를 직접 입력하세요.",
+    "Advanced": "고급",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5269,6 +5274,11 @@
     "relayed": "已接力",
     "more $ARCIRCLE to join the next relay": "枚 $ARCIRCLE 即可加入下一次接力",
     "CirclePad round → Argus coin, relayed to holders": "CirclePad 轮次 → Argus 代币，接力给持有者",
+    "same as $ARCIRCLE's launch": "与 $ARCIRCLE 发射相同",
+    "Price range not set": "未设置价格区间",
+    "Argus's own form fills these in for you. They're set here to match $ARCIRCLE's launch on Argus; change them only if you know why.": "Argus 自己的表单会自动填写这些值。这里已设为与 $ARCIRCLE 在 Argus 的发射相同；除非有理由，否则请勿更改。",
+    "Couldn't read $ARCIRCLE's launch settings — enter the range yourself.": "无法读取 $ARCIRCLE 的发射设置——请手动输入区间。",
+    "Advanced": "高级",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

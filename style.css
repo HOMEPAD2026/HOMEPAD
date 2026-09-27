@@ -7727,3 +7727,11 @@ body.circlepad-page[data-cp-theme] .cp-home-more h3,body.circlepad-page[data-cp-
 @media (prefers-reduced-motion:reduce){.arl-e-arc,.arl-checks li.wait i{animation:none;}.arl-e-pkt{display:none;}.arl-ab i{transition:none;}}
 #bp-panel-relay [hidden]{display:none !important;}
 .arl-sec .arl-3 .arl-f input{font-size:.8rem;}
+.arl-sec-adv .arl-adv summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0;cursor:pointer;font-size:.86rem;color:#fff;list-style:none;}
+.arl-sec-adv .arl-adv summary::-webkit-details-marker{display:none;}
+.arl-sec-adv .arl-adv summary::before{content:"";width:7px;height:7px;border-right:2px solid #8c98a6;border-bottom:2px solid #8c98a6;transform:rotate(-45deg);align-self:center;transition:transform .2s;}
+.arl-sec-adv .arl-adv[open] summary::before{transform:rotate(45deg);}
+.arl-adv-sum{font-size:.74rem;color:var(--ink-dim,#8c98a6);font-weight:500;}
+.arl-sec-adv .arl-adv[open] > *:not(summary){margin-top:10px;}
+.arl-sec-adv .arl-adv > .ams-mini{margin-bottom:10px;}
+@media (prefers-reduced-motion:reduce){.arl-sec-adv .arl-adv summary::before{transition:none;}}

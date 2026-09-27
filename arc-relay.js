@@ -285,7 +285,7 @@
   const F = {
     name: "", symbol: "", image: "", description: "", website: "", twitter: "", telegram: "",
     buyTax: "3", sellTax: "5", creator: "20", burn: "30", dividend: "30", liquidity: "20",
-    startFdv: "", bondFdv: "", devBuy: "", supply: "1000000000",
+    startFdv: "", bondFdv: "", devBuy: "", supply: "1000000000", fdvSrc: "",
   };
   const PRESETS_TAX = [["Like $ARCIRCLE", "3", "5"], ["Light", "1", "2"], ["Balanced", "3", "3"], ["Heavy", "8", "10"]];
   const PRESETS_ALLOC = [
@@ -310,7 +310,7 @@
       prefilled = !!name;
     }
     paintForm();
-    if (!F.startFdv) matchArcircle(true);
+    if (F.fdvSrc !== "manual") matchArcircle(true);
   }
   // price range from $ARCIRCLE's own Argus launch record (tickStart / tickBond)
   async function matchArcircle(quiet) {
@@ -324,16 +324,16 @@
         const px = (tick) => (token0 ? Math.pow(1.0001, tick) : Math.pow(1.0001, -tick)) * 1e12; // USDC per token
         const f = (tick) => Math.round(px(tick) * 1e9);
         const a = f(tickStart), b = f(tickBond);
-        if (a > 0 && b > a) { F.startFdv = String(a); F.bondFdv = String(b); paintForm(); if (!quiet) toast("Price range set to $ARCIRCLE's launch."); return; }
+        if (a > 0 && b > a) { F.startFdv = String(a); F.bondFdv = String(b); F.fdvSrc = "arcircle"; R.fdvFail = false; save("form", F); paintForm(); if (!quiet) toast("Price range set to $ARCIRCLE's launch."); return; }
       } catch { /* next portal */ }
     }
+    R.fdvFail = true; paintForm();
     if (!quiet) toast("Couldn't read $ARCIRCLE's launch settings — enter the range yourself.");
   }
 
   const fld = (id, label, val, attrs = "", hint = "") => `<label class="arl-f"><span>${T(label)}</span><input id="arl-${id}" data-f="${id}" value="${esc(val)}" ${attrs}>${hint ? `<small>${hint}</small>` : ""}</label>`;
   function paintForm() {
     const s2 = $("arl-s2");
-    const open = s2.querySelector("details[open]") ? [...s2.querySelectorAll("details[open]")].map((d) => d.dataset.k) : null;
     s2.innerHTML = head(2, "Launch on Argus", `<span class="arl-badge">${T("Portal #7")}</span>`) + `
       <div class="arl-form">
         <section class="arl-sec"><h3>${T("Identity")}</h3>
@@ -357,13 +357,19 @@
           <div class="arl-allocbar" id="arl-allocbar"></div>
           <div class="arl-sim" id="arl-sim"></div>
         </section>
-        <section class="arl-sec"><h3>${T("Price range")}<button type="button" class="ams-mini" data-arl-match>${T("Use $ARCIRCLE's launch")}</button></h3>
-          <div class="arl-2">${fld("startFdv", "Start FDV (USDC)", F.startFdv, 'inputmode="decimal"', T("The opening price × supply"))}${fld("bondFdv", "Bonding FDV (USDC)", F.bondFdv, 'inputmode="decimal"', T("The milestone Argus marks as bonded"))}</div>
-          <details class="arl-adv" data-k="adv"${open && open.includes("adv") ? " open" : ""}><summary>${T("Advanced")}</summary>${fld("supply", "Total supply", F.supply, 'inputmode="numeric"', T("Argus launches use 1,000,000,000. Change only if you know why."))}</details>
-        </section>
         <section class="arl-sec"><h3>${T("Dev buy")}<small>${T("In the launch transaction, before anyone else can buy")}</small></h3>
           <div class="arl-devrow">${fld("devBuy", "USDC", F.devBuy, 'inputmode="decimal" placeholder="0"')}<div class="ams-chips arl-chips" id="arl-devchips"></div></div>
           <div class="arl-devprev" id="arl-devprev"></div>
+        </section>
+        <section class="arl-sec arl-sec-adv">
+          <details class="arl-adv" data-k="adv"${R.advUser || R.fdvFail ? " open" : ""}>
+            <summary><b>${T("Advanced")}</b><span class="arl-adv-sum">${F.startFdv && F.bondFdv ? `<span>${T("Price range")}</span> <span data-no-i18n>${nf(F.startFdv, 0)} → ${nf(F.bondFdv, 0)} USDC</span>${F.fdvSrc === "arcircle" ? ` · <span>${T("same as $ARCIRCLE's launch")}</span>` : ""}` : T("Price range not set")}</span></summary>
+            <p class="arl-muted">${T("Argus's own form fills these in for you. They're set here to match $ARCIRCLE's launch on Argus; change them only if you know why.")}</p>
+            ${R.fdvFail ? `<p class="arl-note">${T("Couldn't read $ARCIRCLE's launch settings — enter the range yourself.")}</p>` : ""}
+            <div class="arl-2">${fld("startFdv", "Start FDV (USDC)", F.startFdv, 'inputmode="decimal"', T("The opening price × supply"))}${fld("bondFdv", "Bonding FDV (USDC)", F.bondFdv, 'inputmode="decimal"', T("The milestone Argus marks as bonded"))}</div>
+            <button type="button" class="ams-mini" data-arl-match>${T("Use $ARCIRCLE's launch")}</button>
+            ${fld("supply", "Total supply", F.supply, 'inputmode="numeric"', T("Argus launches use 1,000,000,000. Change only if you know why."))}
+          </details>
         </section>
       </div>
       <div class="arl-launch">
@@ -395,6 +401,8 @@
     el.innerHTML = chips.map(([l, v]) => `<button type="button" data-dev="${esc(v)}">${l}</button>`).join("");
   }
   function paintDerived() {
+    const sumEl = panel.querySelector(".arl-adv-sum");
+    if (sumEl) sumEl.innerHTML = F.startFdv && F.bondFdv ? `<span>${T("Price range")}</span> <span data-no-i18n>${nf(F.startFdv, 0)} → ${nf(F.bondFdv, 0)} USDC</span>${F.fdvSrc === "arcircle" ? ` · <span>${T("same as $ARCIRCLE's launch")}</span>` : ""}` : T("Price range not set");
     const cnt = panel.querySelector("[data-arl-count]");
     if (cnt) cnt.textContent = String(F.description.length);
     const alloc = ["creator", "burn", "dividend", "liquidity"].map((k) => Number(F[k]) || 0);
@@ -445,11 +453,16 @@
     const k = e.target.dataset && e.target.dataset.f;
     if (!k) return;
     F[k] = e.target.value;
+    if (k === "startFdv" || k === "bondFdv") F.fdvSrc = "manual";
     if (k === "symbol") { const v = F.symbol.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10); if (v !== F.symbol) { F.symbol = v; e.target.value = v; } }
     if (k === "image") { const l = $("arl-logo"); if (l) l.innerHTML = /^https:\/\//.test(F.image) ? `<img src="${esc(F.image)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${esc((F.symbol || "?").slice(0, 1))}</em>`; }
     save("form", F);
     R.mined = null; R.checks = {};
     paintDerived(); paintChecks();
+  });
+  panel.addEventListener("click", (e) => {
+    const sm = e.target.closest(".arl-adv > summary");
+    if (sm) R.advUser = !sm.parentElement.open;
   });
   panel.addEventListener("click", (e) => {
     const t = e.target.closest("[data-tax]"), a = e.target.closest("[data-alloc]"), d = e.target.closest("[data-dev]");
