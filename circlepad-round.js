@@ -57,7 +57,11 @@
     const logo = l(2) && govLogoUrl(l(2).text), d = l(4) && govDate(l(4).text);
     return { name: l(0) ? l(0).text : "", ticker: l(1) ? String(l(1).text).replace(/^\$/, "") : "", logo, date: d, road: l(3) ? String(l(3).text).split("\n")[0] : "", any: [0, 1, 2, 3, 4].some((k) => l(k)) };
   }
-  const burnedTotal = () => (feed ? BigInt(feed.totals.burned || 0) : (G() && G().burn && G().burn.totalBurned != null ? BigInt(G().burn.totalBurned) : 0n));
+  const burnedTotal = () => {
+    const g = G(), chain = g && g.burn && g.burn.live && g.burn.totalBurned != null ? BigInt(g.burn.totalBurned) : null;
+    const api = feed ? BigInt(feed.totals.burned || 0) : null;
+    return chain != null && api != null ? (chain > api ? chain : api) : chain != null ? chain : api != null ? api : 0n;
+  };
 
   // ================= strip: raised · contributors · burned · clock =================
   const strip = document.createElement("div");
@@ -321,22 +325,13 @@
     if (!reduce()) { box.classList.remove("in"); void box.offsetWidth; box.classList.add("in"); }
   }
 
-  // ================= phones: category tabs + "my votes" bar =================
+  // ================= phones: category tabs =================
   function paintBallotNav() {
     const cats = $("bp-gov-categories"), g = G();
     if (!cats || !g) return;
     let nav = $("gv-cat-tabs");
     if (!nav) { nav = document.createElement("nav"); nav.id = "gv-cat-tabs"; nav.className = "gv-cat-tabs"; nav.setAttribute("aria-label", tr("Categories")); cats.insertAdjacentElement("beforebegin", nav); }
     nav.innerHTML = g.categories.map((c) => `<button type="button" data-cp-cat="${c.id}" class="${c.myVoteIndex !== null ? "voted" : ""}">${T(c.label)}</button>`).join("");
-    let bar = $("gv-mybar");
-    const unit = 1000n * 10n ** 18n;
-    const live = !!(g.burn && g.burn.live && state && state.account);
-    if (!bar) { bar = document.createElement("div"); bar.id = "gv-mybar"; bar.className = "gv-mybar"; document.body.appendChild(bar); }
-    if (!live || phase() !== "voting") { bar.hidden = true; return; }
-    const mine = g.categories.reduce((a, c) => a + c.options.reduce((b, o) => b + (o.mine || 0n), 0n), 0n);
-    const avail = g.burn.bal != null ? BigInt(g.burn.bal) / unit : 0n;
-    bar.hidden = false;
-    bar.innerHTML = `<span><small>${T("My votes")}</small><b data-no-i18n>${mine.toString()}</b></span><span><small>${T("Votes left")}</small><b data-no-i18n>${avail.toString()}</b></span><span class="gv-mybar-burn"><small>${T("Burned")}</small><b data-no-i18n>${num(Number(mine) * 1000)}</b></span>`;
   }
   document.addEventListener("click", (e) => {
     const c = e.target.closest("[data-cp-cat]");

@@ -59,10 +59,10 @@ export async function ballotOptions() {
 // ---- the feed: every Voted event, kept incrementally (store doc or this instance) ----
 const mem = new Map();
 export async function burnFeed(store) {
-  const key = "cburn/feed";
+  const key = `cburn/feed/${ADDR.burnvote}`; // one feed per vote contract
   let st = mem.get(key) || null;
   if (!st && store) { try { st = await store.get(key); } catch { st = null; } }
-  if (!st || !Array.isArray(st.ev)) st = { hi: ADDR.from - 1, ev: [] };
+  if (!st || !Array.isArray(st.ev) || st.hi < ADDR.from - 1) st = { hi: ADDR.from - 1, ev: [] };
   const latest = await latestBlock();
   let n = 0, moved = false;
   while (st.hi < latest.number && n < MAX_CHUNKS) {

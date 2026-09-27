@@ -137,7 +137,7 @@
     const ch = $("cpx-chips"), cp = $("cpx-chips-p");
     if (ch) ch.hidden = !open;
     if (cp) cp.hidden = !open;
-    bar.hidden = !open;
+    bar.hidden = true; // no floating contribute bar on phones (the page's own panel and the quick bar cover it)
     document.body.classList.toggle("cpx-has-bar", open);
     if (!open) return;
     $("cpx-bar-amt").textContent = `${fmt(toNum(S.totalRaised))} USDC`;
