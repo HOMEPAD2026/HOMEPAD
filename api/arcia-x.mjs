@@ -2,6 +2,7 @@
 //
 //   GET /api/arcia-x?status=1   what is set up, which account the keys post as, and what the
 //                               next run would post right now (nothing is sent)
+//   GET /api/arcia-x?replies=1&redo=<post id>  answer that one post now (e.g. one skipped earlier)
 //   GET /api/arcia-x?replies=1  replies only — call it every minute (e.g. cron-job.org) so fans get an
 //                               answer within about a minute; writes to the store only when something changed
 //   GET /api/arcia-x[?run=1]    one run: posts whatever is due (Vercel cron daily + the optional
@@ -195,17 +196,18 @@ function prune(st) {
 const REPLIES_PER_RUN = 5, REPLY_DAY_CAP = 25, PER_AUTHOR_DAY = 2;
 const repliesOn = () => enabled() && hasKeys() && !!process.env.ANTHROPIC_API_KEY && !off("ARCIA_X_REPLIES");
 async function mentions(meId, sinceId, max = 20) {
-  const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets",
+  const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets,note_tweet",
     expansions: "author_id", "user.fields": "username,name" };
   if (sinceId) q.since_id = sinceId;
   const j = await xGet(`https://api.x.com/2/users/${meId}/mentions`, q);
   const users = Object.fromEntries(((j.includes && j.includes.users) || []).map((u) => [u.id, u]));
-  return (j.data || []).map((t) => ({ id: t.id, text: t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
+  return (j.data || []).map((t) => ({ id: t.id, text: (t.note_tweet && t.note_tweet.text) || t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
     rt: (t.referenced_tweets || []).some((r) => r.type === "retweeted") })).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
 }
 const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
 Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
-Output exactly SKIP only for: spam, scams, giveaway or airdrop bait, abuse, sexual or political content, requests to promote or "check out" another token, requests for money, DMs or keys, and posts by @ARCIRCLEonArc itself (your own team) unless they ask you something directly.`;
+Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Posts by your own team (@ARCIRCLEonArc) announcing you or the project get a short, excited reaction from you as the idol — like an idol reacting to her agency's announcement ("Yay, it's official~ come talk to me!") — never a repeat of the announcement.
+Output exactly SKIP only for: spam, scams, giveaway or airdrop bait, abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
   if (!clean || m.rt) return { skip: "empty or repost" };
@@ -296,6 +298,24 @@ export async function GET(req) {
     if (!repliesOn()) return json(200, { replies: "off", need: "ARCIA_X_ENABLED=1, the four X keys and ANTHROPIC_API_KEY" });
     if (!storeEnabled()) return json(503, { error: "no store" });
     const st = await loadState();
+    // ?redo=<post id>: answer one post again, even if it was skipped or is older than the cursor
+    const redo = String(url.searchParams.get("redo") || "").replace(/\D/g, "");
+    if (redo) {
+      if (st.sent["reply:" + redo] && st.sent["reply:" + redo].x && !/^(skip|cap|dup)$/.test(st.sent["reply:" + redo].x)) return json(200, { redo, already: st.sent["reply:" + redo] });
+      try {
+        const j = await xGet(`https://api.x.com/2/tweets/${redo}`, { "tweet.fields": "author_id,note_tweet,referenced_tweets", expansions: "author_id", "user.fields": "username,name" });
+        const t = j.data || {}, u = ((j.includes && j.includes.users) || [])[0] || {};
+        const m = { id: redo, text: (t.note_tweet && t.note_tweet.text) || t.text || "", author: t.author_id, username: u.username || "", name: u.name || "", rt: false };
+        const d = await draftReply(m, await liveNumbers(origin));
+        if (d.skip) return json(200, { redo, skip: d.skip });
+        const id = await xPost(d.text, redo);
+        const day = dayOf(now());
+        st.sent["reply:" + redo] = { t: now(), x: id || "" };
+        st.replyDays[day] = (st.replyDays[day] || 0) + 1;
+        await setDoc(STATE, stripTemp(st));
+        return json(200, { redo, posted: id, reply: d.text });
+      } catch (e) { return json(502, { redo, error: String(e.message || e).slice(0, 200) }); }
+    }
     const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
     return json(200, { replies });
