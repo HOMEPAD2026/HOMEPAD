@@ -88,8 +88,10 @@ const CONFIG = {
   // burned votes (deploy-arcircle-burn-vote.js). "" until it's deployed — the
   // page then explains the rules but can't take votes yet.
   CIRCLEPAD_VOTE_MODE: "burn",
-  // ArcircleBurnVote deployed 27 Sep 2026 (deploy-arcircle-burn-vote.js)
-  CIRCLEPAD_BURNVOTE_ADDRESS: "0x89A5E13a969b42887980d7136B91C05a3849CB70",
+  // ArcircleBurnVote deployed 27 Sep 2026 00:46 UTC, block 22945226 (deploy-arcircle-burn-vote.js):
+  // voting from then until the raise closes (29 Sep 11:16:07 UTC). Replaces 0x89A5…CB70,
+  // which only opened after the close and never took a vote.
+  CIRCLEPAD_BURNVOTE_ADDRESS: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2",
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
   //     "opens in" countdown and a calendar file before start(); 0 = not announced
@@ -108,8 +110,8 @@ const CONFIG = {
   // step: status "set" (fixed by a contract), "policy" (the team's stated plan)
   // or "open" (not decided yet — shown as such).
   CIRCLEPAD_NEXT: [
-    { id: "close", title: "The raise closes", body: "Contributions and withdrawals stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
-    { id: "vote", title: "Burn-to-vote", body: "48 hours. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" },
+    { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" },
+    { id: "close", title: "The raise closes", body: "Contributions, withdrawals and voting stop; the vote result is final. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
     { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet.", status: "policy" },
     { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
     { id: "airdrop", title: "Contributor airdrop", body: "Every contributor gets an airdrop of the new coin. Size and timing: not decided yet.", status: "policy" },

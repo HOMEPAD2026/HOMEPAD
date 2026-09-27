@@ -6,9 +6,9 @@ import { ethCalls, rpcCall, getLogs, latestBlock, pool, toQty, keccakHex } from 
 
 // mutable only so tests can point it at a local chain
 export const ADDR = {
-  burnvote: "0x89a5e13a969b42887980d7136b91c05a3849cb70",
+  burnvote: "0x54121a7894d90a02ea973ab45eef424c2716eeb2",
   ballot: "0x23c376615a58f059fc4bc83a38eb4acdf8d39ff2",
-  from: 22917543, // the deploy block (tx 0x05c196b9…d646)
+  from: 22945226, // the deploy block (27 Sep 2026; votes from then until the raise closes)
 };
 const CHUNK = 9000, MAX_CHUNKS = 40;
 const lc = (a) => String(a || "").toLowerCase();

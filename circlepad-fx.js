@@ -391,15 +391,15 @@
     document.body.classList.toggle("cp-open", !!(s && s.isOpen));
     if (timeline) {
       const lis = [...timeline.querySelectorAll(".bp-steps > li")];
-      // Round #1 steps: raise (0) → close & split (1) → burn-to-vote (2) → top contributor (3) → launch & airdrop (4)
-      const voting = st >= 3 && govPhaseNow === "voting";
-      const at = st < 0 ? -1 : st === 0 ? 0 : voting ? 2 : govPhaseNow === "closed" ? 3 : 1;
+      // Round #1 steps: raise (0) → burn-to-vote, during the raise (1) → close & split (2) → top contributor (3) → launch & airdrop (4)
+      const voting = govPhaseNow === "voting";
+      const at = st < 0 ? -1 : st === 0 ? (voting ? 1 : 0) : 3;
       lis.forEach((li, i) => {
         li.classList.toggle("is-now", at === i);
         li.classList.toggle("is-done", at > 0 && i < at);
       });
       const label = $("cp-tl-now");
-      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? tr("Live — raise open") : voting ? tr("Raise closed — voting open") : st === 3 ? tr("Raise closed") : tr("Distributed");
+      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? (voting ? tr("Live — raise and voting open") : tr("Live — raise open")) : st === 3 ? tr("Raise closed") : tr("Distributed");
       // the fill follows the real clock when circlepad-round.js knows the dates
       if (!timeline.dataset.clock) timeline.style.setProperty("--cp-tl", at < 0 ? 0 : Math.min(1, (at + 0.5) / 5));
     }
@@ -813,7 +813,7 @@
     const STEPS = [
       ["Pledge", "Say what you'll put in before it opens — a signature, no money moves.", '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>'],
       ["Contribute", "72 hours to send USDC. Withdraw any of it until the close.", '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'],
-      ["Vote", "$ARCIRCLE holders decide the name, ticker, logo, roadmap and date — 1,000 burned per vote.", '<path d="M5 12l4 4 10-10"/>'],
+      ["Vote", "While the raise runs, $ARCIRCLE holders decide the name, ticker, logo, roadmap and date — 1,000 burned per vote.", '<path d="M5 12l4 4 10-10"/>'],
       ["Launch", "At the close the raise splits 80 / 15 / 5 and the project goes live.", '<path d="M12 3c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/>'],
     ];
     flow.innerHTML = STEPS.map(([t, d, ico], i) => `<li style="--i:${i}"><span class="cp-flow-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ico}</svg></span><b>${t}</b><p>${d}</p></li>`).join("");

@@ -1066,6 +1066,8 @@ const GOV_PER_VOTE = 1000n;
 const CIRCLEPAD_BURNVOTE_ABI = [
   "function vote(uint8 category, uint256 optionIndex, uint256 votes)",
   "function votingOpen() view returns (bool)",
+  "function opensAt() view returns (uint256)",
+  "function votingEnds() view returns (uint256)",
   "function votePrice() view returns (uint256)",
   "function tallies(uint8 category) view returns (uint256[])",
   "function myVotes(uint8 category, address voter) view returns (uint256[])",
@@ -1134,7 +1136,7 @@ async function initCirclepadGovernance() {
 
   const desc = document.getElementById("bp-featured-desc");
   if (desc) desc.textContent = govBurnMode()
-    ? "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. At the close it splits 80 / 15 / 5, $ARCIRCLE holders burn-to-vote on the coin's identity, the top contributor receives the 15% over 3 days and every contributor gets an airdrop."
+    ? "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. While the raise runs, $ARCIRCLE holders burn-to-vote on the coin's identity. At the close it splits 80 / 15 / 5, the top contributor receives the 15% over 3 days and every contributor gets an airdrop."
     : "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap runs in a separate contract — see the Governance tab.";
 
   const wrap = document.getElementById("bp-gov-live");
@@ -1203,7 +1205,7 @@ async function fetchCirclepadGovernanceState() {
     }
   }
   if (burn) {
-    for (const m of ["totalBurned", "totalVotes", "voterCount", "votingOpen"]) { round3.push({ contract: govBurnRead(), method: m }); round3Meta.push({ type: "burn", key: m }); }
+    for (const m of ["totalBurned", "totalVotes", "voterCount", "votingOpen", "opensAt", "votingEnds"]) { round3.push({ contract: govBurnRead(), method: m }); round3Meta.push({ type: "burn", key: m }); }
     if (state.account) {
       round3.push({ contract: govTokenRead(), method: "balanceOf", args: [state.account] }); round3Meta.push({ type: "burn", key: "bal" });
       round3.push({ contract: govTokenRead(), method: "allowance", args: [state.account, CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS] }); round3Meta.push({ type: "burn", key: "allowance" });
@@ -1242,7 +1244,10 @@ async function fetchCirclepadGovernanceState() {
     };
   });
 
-  return { votingOpen: burn && burnInfo.votingOpen !== undefined ? !!burnInfo.votingOpen : votingOpen, votingEnds, recipient, deadline, categories, burn: burnInfo };
+  // burn voting keeps its own window (now → the raise's close), not the ballot's
+  const bEnds = burn && burnInfo.votingEnds != null ? BigInt(burnInfo.votingEnds) : 0n;
+  const bOpens = burn && burnInfo.opensAt != null ? BigInt(burnInfo.opensAt) : 0n;
+  return { votingOpen: burn && burnInfo.votingOpen !== undefined ? !!burnInfo.votingOpen : votingOpen, votingEnds: bEnds || votingEnds, opensAt: bOpens || deadline, recipient, deadline, categories, burn: burnInfo };
 }
 
 // raise → voting → closed, on the chain's clock
@@ -1286,8 +1291,8 @@ function renderCirclepadGovernance(g) {
   if (statusEl) {
     statusEl.textContent = bm
       ? (phase === "raise"
-        ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours: 1 vote = 1,000 $ARCIRCLE, burned for good."
-        : phase === "voting" ? (bLive ? "Voting is open. Anyone holding $ARCIRCLE can vote — every vote burns 1,000 $ARCIRCLE." : "Voting opens as soon as the burn-vote contract is live.")
+        ? "Candidates go up first. Voting runs until the raise closes: 1 vote = 1,000 $ARCIRCLE, burned for good."
+        : phase === "voting" ? (bLive ? "Voting is open until the raise closes. Anyone holding $ARCIRCLE can vote — every vote burns 1,000 $ARCIRCLE." : "Voting opens as soon as the burn-vote contract is live.")
           : "Voting has closed — these results are final.")
       : phase === "raise"
         ? "Candidates go up during the raise. Voting opens the moment it closes and runs for 48 hours."
@@ -1295,15 +1300,16 @@ function renderCirclepadGovernance(g) {
           : "Voting has closed — these results are final.";
   }
   const note = document.getElementById("bp-gov-note");
-  if (note) note.textContent = phase === "raise" ? (bm ? "Candidates are up — voting opens at the close. 1 vote = 1,000 $ARCIRCLE burned." : "Candidates are up — voting opens at the close.") : phase === "voting" ? "Voting is open — cast yours." : "Voting has closed — see the result.";
+  if (note) note.textContent = phase === "raise" ? (bm ? "Candidates are up — voting opens soon and runs until the raise closes. 1 vote = 1,000 $ARCIRCLE burned." : "Candidates are up — voting opens at the close.") : phase === "voting" ? "Voting is open — cast yours." : "Voting has closed — see the result.";
 
   // ---- phases, clock, the coin so far, your weight ----
   const top = document.getElementById("bp-gov-top");
   if (top) {
     const ph = (key, title, sub, st) => `<div class="gv-ph ${st}" data-ph="${key}"><i></i><b>${title}</b><small>${sub}</small></div>`;
     const dl = Number(g.deadline || 0), ends = Number(g.votingEnds || 0);
-    const clock = phase === "raise" && dl
-      ? `<span>Voting opens in</span><b data-no-i18n data-gv-to="${dl}">${govLeft(dl - govNow())}</b>`
+    const op = Number(g.opensAt || dl);
+    const clock = phase === "raise" && op
+      ? `<span>Voting opens in</span><b data-no-i18n data-gv-to="${op}">${govLeft(op - govNow())}</b>`
       : phase === "voting" && ends
         ? `<span>Voting closes in</span><b data-no-i18n data-gv-to="${ends}">${govLeft(ends - govNow())}</b>`
         : ends ? `<span>Closed</span><b data-no-i18n>${govEsc(govFmtDate(new Date(ends * 1000)))}</b>` : "";
@@ -1345,7 +1351,7 @@ function renderCirclepadGovernance(g) {
       <div class="gv-bar">
         <div class="gv-phases">
           ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 || phase !== "raise" ? "done" : "now")}
-          ${ph("vote", "Voting", "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
+          ${ph("vote", "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
           ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
         </div>
         ${clock ? `<div class="gv-clock">${clock}</div>` : ""}

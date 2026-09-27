@@ -41,6 +41,7 @@
   function phase() {
     const r = R(), g = G(), t = nowS();
     if (!r || !r.started) return "pre";
+    if (g && g.votingOpen) return "voting"; // burn voting runs during the raise, until it closes
     if (r.isOpen) return "raise";
     const ends = g ? Number(g.votingEnds || 0) : 0;
     if (ends && t < ends) return "voting";
@@ -49,6 +50,7 @@
   }
   const deadline = () => Number((R() && R().deadline) || 0);
   const votingEnds = () => Number((G() && G().votingEnds) || 0);
+  const opensAt = () => Number((G() && G().opensAt) || 0);
   function winner() {
     const g = G(); if (!g) return {};
     const l = (k) => lead(g.categories[k]);
@@ -70,8 +72,9 @@
     const r = R(), ph = phase();
     if (!r || ph === "pre") { strip.hidden = true; return; }
     strip.hidden = false;
-    const clock = ph === "raise" ? ["Raise closes in", deadline()] : ph === "voting" ? ["Voting closes in", votingEnds()] : null;
-    const label = ph === "raise" ? "Raising" : ph === "voting" ? "Voting" : ph === "result" ? "Result" : "Closed";
+    const both = ph === "voting" && r.isOpen && votingEnds() === deadline();
+    const clock = ph === "raise" ? ["Raise closes in", deadline()] : ph === "voting" ? [both ? "Raise & voting close in" : "Voting closes in", votingEnds()] : null;
+    const label = ph === "raise" ? "Raising" : ph === "voting" ? (r.isOpen ? "Raising · voting" : "Voting") : ph === "result" ? "Result" : "Closed";
     strip.innerHTML = `<span class="cp-strip-ph ${ph}"><i></i>${T(label)}</span>
       <span><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span>
       <span><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
@@ -100,14 +103,14 @@
     const w = winner();
     if (ph === "raise") {
       // before the close: say what the burn vote is and when it opens
-      const g = G(), dl = deadline();
+      const g = G(), dl = opensAt();
       const published = g && Array.isArray(g.categories) ? g.categories.filter((c) => c.set).length : 0;
       const buy = String(CONFIG.ARCIRCLE_BUY_URL || "");
       hero.className = "cp-phero upcoming";
       hero.innerHTML = `<div class="cp-phero-copy">
           <span class="cp-phero-eyebrow">${T("Round #1 · next up: burn-to-vote")}</span>
-          <h2>${T("When the raise closes, $ARCIRCLE holders vote on the coin.")}</h2>
-          <p class="cp-phero-lede">${T("1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote, for 48 hours.")}</p>
+          <h2>${T("$ARCIRCLE holders vote on the coin while the raise runs.")}</h2>
+          <p class="cp-phero-lede">${T("1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote until the raise closes.")}</p>
           <div class="cp-phero-cta">${buy ? `<a class="bp-btn-primary" href="${esc(buy)}" target="_blank" rel="noopener">${T("Get $ARCIRCLE")}</a>` : ""}<button type="button" class="bp-btn-ghost" data-cp-go="governance">${T("See the candidates")}</button>${dl > nowS() ? `<span class="cp-phero-clock"><small>${T("Voting opens in")}</small><b data-no-i18n data-cp-to="${dl}">${left(dl - nowS())}</b></span>` : ""}</div>
         </div>
         <div class="cp-phero-side"><div class="cp-wc cp-wc-burn"><span class="cp-flame" aria-hidden="true"></span><div><b data-no-i18n>1,000 $ARCIRCLE</b><span>${T("burned per vote")}</span></div>
@@ -142,7 +145,8 @@
     const steps = Array.isArray(CONFIG.CIRCLEPAD_NEXT) ? CONFIG.CIRCLEPAD_NEXT : [];
     const dl = deadline(), ve = votingEnds(), t = nowS(), w = winner();
     const launchAt = w.date ? Math.floor(w.date.getTime() / 1000) : 0;
-    const when = { close: dl ? [dl, dl] : null, vote: dl && ve ? [dl, ve] : null, top: dl ? [dl, dl + 3 * 86400] : null, launch: launchAt ? [launchAt, launchAt] : null, airdrop: null };
+    const op = opensAt() || dl;
+    const when = { close: dl ? [dl, dl] : null, vote: op && ve ? [op, ve] : null, top: dl ? [dl, dl + 3 * 86400] : null, launch: launchAt ? [launchAt, launchAt] : null, airdrop: null };
     const whenTxt = (id) => {
       const x = when[id];
       if (!x) return id === "launch" ? tr("The date the vote picks") : tr("Not decided yet");
@@ -171,11 +175,11 @@
     const tl = document.querySelector(".cp-timeline");
     if (!tl || !deadline()) return;
     tl.dataset.clock = "1";
-    const t = nowS(), dl = deadline(), start = dl - 72 * 3600, ve = votingEnds() || dl + 48 * 3600;
-    const w = winner(), launchAt = w.date ? Math.floor(w.date.getTime() / 1000) : ve + 5 * 86400;
-    // five steps, each a fifth of the bar: raise, close, vote, top contributor, launch
+    const t = nowS(), dl = deadline(), start = dl - 72 * 3600, op = opensAt() || dl;
+    const w = winner(), launchAt = w.date ? Math.floor(w.date.getTime() / 1000) : dl + 5 * 86400;
+    // five steps, each a fifth of the bar: raise, burn-to-vote (during the raise), close, top contributor, launch
     const seg = (a, b, k) => (t <= a ? k / 5 : t >= b ? (k + 1) / 5 : (k + (t - a) / Math.max(1, b - a)) / 5);
-    const f = t < start ? 0 : t < dl ? seg(start, dl, 0) : t < ve ? seg(dl, ve, 2) : t < dl + 3 * 86400 ? seg(ve, dl + 3 * 86400, 3) : seg(dl + 3 * 86400, launchAt, 4);
+    const f = t < start ? 0 : t < op ? seg(start, op, 0) : t < dl ? seg(op, dl, 1) : t < dl + 3 * 86400 ? seg(dl, dl + 3 * 86400, 3) : seg(dl + 3 * 86400, launchAt, 4);
     tl.style.setProperty("--cp-tl", Math.max(0, Math.min(1, f)).toFixed(4));
   }
 
