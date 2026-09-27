@@ -7311,3 +7311,9 @@ body.cp-final-10 .cp-strip-ph{border-color:#ff6e5a;color:#ff9f8f;}
 @media (max-width:900px){
   .bp-gov-cat[data-kind="ticker"] .bp-gov-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 }
+/* a tile with the burn panel open takes the whole row, so the panel never gets squeezed */
+.bp-gov-cat[data-kind="logo"] .bp-gov-option.gv-open,.bp-gov-cat[data-kind="ticker"] .bp-gov-option.gv-open{grid-column:1 / -1;}
+.bp-gov-cat[data-kind="logo"] .bp-gov-option.gv-open .gv-o-logo img{width:120px;}
+.bp-gov-cat[data-kind="logo"] .bp-gov-options,.bp-gov-cat[data-kind="ticker"] .bp-gov-options{align-items:start;}
+.gv-bn{min-width:0;max-width:100%;box-sizing:border-box;}
+.gv-bn-acts .bp-btn-primary{white-space:normal;}

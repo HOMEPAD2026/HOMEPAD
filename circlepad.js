@@ -1418,7 +1418,7 @@ function renderCirclepadGovernance(g) {
         const open = _govBurn && _govBurn.cat === c.id && _govBurn.opt === i;
         const btn = !canVote ? "" : open ? "" : `<button type="button" class="bp-gov-vote-btn" data-category="${c.id}" data-option="${i}" ${avail === 0n ? "disabled" : ""}>${mineN > 0n ? "Add votes" : "Vote"}</button>`;
         return `
-        <div class="bp-gov-option${mineN > 0n ? " bp-gov-option-mine" : ""}${isLead ? " gv-lead" : ""}${phase === "closed" && isLead ? " gv-win" : ""}" data-category="${c.id}" data-option="${i}">
+        <div class="bp-gov-option${mineN > 0n ? " bp-gov-option-mine" : ""}${isLead ? " gv-lead" : ""}${phase === "closed" && isLead ? " gv-win" : ""}${open ? " gv-open" : ""}" data-category="${c.id}" data-option="${i}">
           <div class="bp-gov-option-row">
             ${crown}<span class="bp-gov-option-text" data-no-i18n>${govOptionHtml(def.kind, o.text)}</span>${isLead && newLead ? `<span class="gv-flip" role="status">Takes the lead!</span>` : ""}${mineN > 0n ? `<span class="bp-gov-mine-tag"><span>yours</span> <span data-no-i18n>${mineN.toString()}</span></span>` : ""}
             <span class="gv-pw"><span class="bp-gov-option-pct" data-no-i18n>${pct}%</span><small><span data-no-i18n>${o.weight.toString()}</span> <span>${o.weight === 1n ? "vote" : "votes"}</span></small></span>
