@@ -1,4 +1,4 @@
-/* global CONFIG, ethers, state, readProvider, circlepadEscrowRead, circlepadEscrowConfigured, govLogoUrl, govDate, govFmtDate, govBurnMode, fmtEth, cpToast, _circlepadState */
+/* global cpFmtTime, CONFIG, ethers, state, readProvider, circlepadEscrowRead, circlepadEscrowConfigured, govLogoUrl, govDate, govFmtDate, govBurnMode, fmtEth, cpToast, _circlepadState */
 // circlepad-round.js — Round #1 as it actually runs, around the rest of /circle:
 //   · a one-line strip over every tab: raised · contributors · burned · clock
 //   · a Home hero that follows the phase (raise → burn-to-vote → result)
@@ -29,7 +29,7 @@
     const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
   };
-  const dt = (ts) => new Date(ts * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const dt = (ts) => (typeof cpFmtTime === "function" ? cpFmtTime(new Date(ts * 1000), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : new Date(ts * 1000).toLocaleString());
 
   // ---- what we know, from the other scripts ----
   const R = () => (typeof _circlepadState !== "undefined" && _circlepadState) || null;
@@ -137,7 +137,7 @@
           <span class="cp-phero-eyebrow">${T("Round #1 · burn-to-vote is open")}</span>
           <h2>${T("Vote on the coin. Every vote burns 1,000 $ARCIRCLE.")}</h2>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned so far")}</span></div>
-          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><button type="button" class="bp-btn-ghost" data-cp-live>${T("Live screen")}</button><span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
+          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><button type="button" class="bp-btn-ghost" data-cp-live>${T("Live screen")}</button><a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a><span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
         </div>
         <div class="cp-phero-side"><small class="cp-k">${T("Leading now")}</small>${w.any ? coinCard(w, false) : `<div class="cp-wc cp-wc-empty"><span class="cp-flame" aria-hidden="true"></span><p>${T("No votes yet — the first burn sets the lead.")}</p></div>`}</div>`;
     } else {
@@ -147,7 +147,7 @@
           <span class="cp-phero-eyebrow">${T("Round #1 · the vote is in")}</span>
           <h2>${T("This is the coin the circle chose.")}</h2>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned to decide it")}</span></div>
-          <div class="cp-phero-cta">${launchAt > nowS() ? `<span class="cp-phero-clock"><small>${T("Launches in")}</small><b data-no-i18n data-cp-to="${launchAt}">${left(launchAt - nowS())}</b></span>` : ""}<button type="button" class="bp-btn-ghost" data-cp-reveal>${T("Replay the reveal")}</button></div>
+          <div class="cp-phero-cta">${launchAt > nowS() ? `<span class="cp-phero-clock"><small>${T("Launches in")}</small><b data-no-i18n data-cp-to="${launchAt}">${left(launchAt - nowS())}</b></span>` : ""}<button type="button" class="bp-btn-ghost" data-cp-reveal>${T("Replay the reveal")}</button><a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a></div>
         </div>
         <div class="cp-phero-side"><small class="cp-k">${T("The result")}</small>${coinCard(w, true)}</div>`;
     }
@@ -182,6 +182,7 @@
     nextHome.innerHTML = `<div class="cp-next-head"><h3>${T("What happens next")}</h3><small>${T("Round #1 — what's fixed, what's planned, what isn't decided")}</small></div>${body}`;
     const docs = $("cp-next-docs");
     if (docs) docs.innerHTML = body;
+    document.dispatchEvent(new CustomEvent("circlepad:nextpaint"));
   }
 
   // ================= clock-driven fill on the launch-process strip =================
@@ -379,7 +380,7 @@
     ov.innerHTML = `<div class="cp-rv-box"><span class="cp-phero-eyebrow">${T("CirclePad Round #1 · the vote is in")}</span>
       <div class="cp-rv-grid">${cards.join("")}</div>
       <div class="cp-rv-final" style="--k:${cards.length}">${coinCard(w, true)}</div>
-      <div class="cp-rv-acts">${w.any ? `<a class="bp-btn-ghost" href="https://x.com/intent/post?text=${encodeURIComponent(`CirclePad Round #1 is decided: ${w.name || ""}${w.ticker ? " ($" + w.ticker + ")" : ""}${w.date ? ", launching " + govFmtDate(w.date) : ""}. Chosen by $ARCIRCLE holders — every vote burned 1,000 $ARCIRCLE.`)}&url=${encodeURIComponent("https://www.arcircle.app/circle")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share the result")}</a>` : ""}<button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div></div>`;
+      <div class="cp-rv-acts">${w.any ? `<a class="bp-btn-ghost" href="https://x.com/intent/post?text=${encodeURIComponent(`CirclePad Round #1 is decided: ${w.name || ""}${w.ticker ? " ($" + w.ticker + ")" : ""}${w.date ? ", launching " + govFmtDate(w.date) : ""}. Chosen by $ARCIRCLE holders — every vote burned 1,000 $ARCIRCLE.`)}&url=${encodeURIComponent("https://www.arcircle.app/circle")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share the result")}</a>` : ""}<a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a><button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div></div>`;
     document.body.appendChild(ov);
     if (reduce()) ov.classList.add("still");
     requestAnimationFrame(() => ov.classList.add("in"));
@@ -608,6 +609,7 @@
   document.addEventListener("circlepad:gov", () => { paintAll(); if (feed) paintFeed(); if (phase() === "result") setTimeout(() => reveal(false), 600); });
   document.addEventListener("circlepad:govpaint", () => { paintBallotNav(); if (feed) paintFeed(); });
   document.addEventListener("arc:lang", paintAll);
+  document.addEventListener("circlepad:tz", paintAll);
   setInterval(() => {
     document.querySelectorAll("[data-cp-to]").forEach((el) => { el.textContent = left(Number(el.dataset.cpTo) - nowS()); });
     const gp = $("bp-panel-governance");

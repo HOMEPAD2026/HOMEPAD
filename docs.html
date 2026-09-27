@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="legacy.css?v=1790482788">
+<link rel="stylesheet" href="legacy.css?v=1790484872">
 </head>
 <body>
 
@@ -131,11 +131,11 @@
 <div id="site-footer-slot"></div>
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
-<script src="config.js?v=1790482788"></script>
-<script src="abis.js?v=1790482788"></script>
-<script src="app.js?v=1790482788"></script>
-<script src="wallet-appkit.js?v=1790482788"></script>
-<script src="launch-modal.js?v=1790482788"></script>
+<script src="config.js?v=1790484872"></script>
+<script src="abis.js?v=1790484872"></script>
+<script src="app.js?v=1790484872"></script>
+<script src="wallet-appkit.js?v=1790484872"></script>
+<script src="launch-modal.js?v=1790484872"></script>
 <script>
   const DEAD = "0x0000000000000000000000000000000000dead";
   // $HOME uses its own explorer base (same mainnet explorer CONFIG.BLOCK_EXPLORER now points to too).
@@ -162,6 +162,21 @@
     ? `<a href="${CONFIG.BLOCK_EXPLORER}/address/${CONFIG.PAIRED_FACTORY_ADDRESS}" target="_blank" class="mono-link">${CONFIG.PAIRED_FACTORY_ADDRESS}</a>`
     : `<span class="soon-tag">soon</span>`;
 </script>
-<script src="footer.js?v=1790482788"></script>
+<script src="footer.js?v=1790484872"></script>
+<script>
+// Reading progress: a thin bar across the top fills as the page scrolls (hidden in print).
+(function () {
+  var bar = document.createElement("div");
+  bar.className = "read-progress"; bar.setAttribute("aria-hidden", "true");
+  bar.style.cssText = "position:fixed;left:0;top:0;height:3px;width:100%;z-index:9999;pointer-events:none;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#4d9fff,#39ff88);box-shadow:0 0 10px rgba(57,255,136,.45)";
+  document.body.appendChild(bar);
+  var st = document.createElement("style"); st.textContent = "@media print{.read-progress{display:none!important}}"; document.head.appendChild(st);
+  var raf = 0;
+  function paint() { raf = 0; var h = document.documentElement.scrollHeight - innerHeight; bar.style.transform = "scaleX(" + (h > 0 ? Math.min(1, Math.max(0, scrollY / h)) : 0).toFixed(4) + ")"; }
+  addEventListener("scroll", function () { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
+  addEventListener("resize", paint, { passive: true });
+  paint();
+})();
+</script>
 </body>
 </html>

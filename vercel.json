@@ -105,6 +105,10 @@
       "destination": "/api/c?view=lplock&id=:id"
     },
     {
+      "source": "/circle/round/:n",
+      "destination": "/api/c?view=report&n=:n"
+    },
+    {
       "source": "/vote/:tx",
       "destination": "/api/c?view=vote&tx=:tx"
     },

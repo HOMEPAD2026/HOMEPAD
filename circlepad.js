@@ -1100,8 +1100,26 @@ function govDate(t) {
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
+// Times on CirclePad: the viewer's own clock, KST or UTC (remembered per browser).
+// Countdowns always follow the chain's clock; only how a moment is written changes.
+const CP_TZ = { local: undefined, kst: "Asia/Seoul", utc: "UTC" };
+function cpTzMode() { try { const m = localStorage.getItem("circlepad.tz"); return CP_TZ.hasOwnProperty(m) ? m : "local"; } catch (e) { return "local"; } }
+function cpSetTz(m) {
+  if (!CP_TZ.hasOwnProperty(m)) return;
+  try { localStorage.setItem("circlepad.tz", m); } catch (e) { /* this page only */ }
+  window.__cpTz = m;
+  if (typeof _govLast !== "undefined" && _govLast && typeof renderCirclepadGovernance === "function") try { renderCirclepadGovernance(_govLast); } catch (e) { /* next paint */ }
+  document.dispatchEvent(new CustomEvent("circlepad:tz", { detail: m }));
+}
+function cpFmtTime(d, opts) {
+  const m = window.__cpTz || cpTzMode();
+  const o = { ...opts };
+  if (m === "local") o.timeZoneName = "short"; else o.timeZone = CP_TZ[m];
+  const s = d.toLocaleString(undefined, o);
+  return m === "local" ? s : `${s} ${m.toUpperCase()}`;
+}
 function govFmtDate(d) {
-  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return cpFmtTime(d, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function govLeft(sec) {
   sec = Math.max(0, Math.floor(sec));
@@ -1121,7 +1139,7 @@ function govOptionHtml(kind, text) {
   }
   if (kind === "date") {
     const d = govDate(text);
-    if (d) return `<span class="gv-o gv-o-date"><b>${govEsc(govFmtDate(d))}</b><small>${govEsc(d.toISOString().slice(0, 16).replace("T", " "))} UTC</small></span>`;
+    if (d) return `<span class="gv-o gv-o-date"><b>${govEsc(govFmtDate(d))}</b><small>${govEsc((window.__cpTz || cpTzMode()) === "utc" ? new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 16).replace("T", " ") + " KST" : d.toISOString().slice(0, 16).replace("T", " ") + " UTC")}</small></span>`;
   }
   if (kind === "roadmap") return `<span class="gv-o gv-o-road">${govEsc(text).replace(/\n/g, "<br>")}</span>`;
   return `<span class="gv-o">${govEsc(text)}</span>`;

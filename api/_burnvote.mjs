@@ -108,3 +108,27 @@ export async function voteTx(tx) {
     items: logs.map((e) => ({ cat: e.cat, category: CATS[e.cat] || "", opt: e.opt, text: opts && opts[e.cat] ? opts[e.cat][e.opt] || "" : "", votes: e.votes })),
   };
 }
+
+/// The whole ballot for the round report: every option with its votes, plus the totals.
+function decodeUints(hex) {
+  const x = strip(hex);
+  if (x.length < 128) return [];
+  try {
+    const off = Number(BigInt("0x" + x.slice(0, 64))) * 2, n = Number(BigInt("0x" + x.slice(off, off + 64)));
+    return Array.from({ length: Math.min(n, 64) }, (_, i) => Number(BigInt("0x" + x.slice(off + 64 + i * 64, off + 128 + i * 64))));
+  } catch { return []; }
+}
+export async function ballotReport() {
+  const opts = await ballotOptions();
+  const calls = [
+    ...CATS.map((_, c) => ({ to: ADDR.burnvote, data: sel("tallies(uint8)") + pad(c) })),
+    ...["totalBurned()", "totalVotes()", "voterCount()", "opensAt()", "votingEnds()"].map((s) => ({ to: ADDR.burnvote, data: sel(s) })),
+  ];
+  const r = await ethCalls(calls);
+  const tallies = CATS.map((_, c) => decodeUints(r[c]));
+  const [tb, tv, vc, op, ve] = r.slice(CATS.length);
+  return {
+    categories: CATS.map((label, c) => ({ id: c, label, options: (opts[c] || []).map((text, i) => ({ text, votes: tallies[c][i] || 0 })) })),
+    burned: big(tb).toString(), votes: Number(big(tv)), voters: Number(big(vc)), opensAt: Number(big(op)), votingEnds: Number(big(ve)),
+  };
+}

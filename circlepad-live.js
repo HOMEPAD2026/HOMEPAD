@@ -154,7 +154,7 @@
       const sum = c.options.reduce((a, o) => a + BigInt(o.weight || 0), 0n);
       votes += sum;
       const top = c.options.map((o, i) => ({ ...o, i })).sort((a, b) => (BigInt(b.weight) > BigInt(a.weight) ? 1 : BigInt(b.weight) < BigInt(a.weight) ? -1 : a.i - b.i)).slice(0, 3);
-      return `<div class="cp-ls-cat k-${KIND[c.id]}"><h4>${T(c.label)}</h4><ol>${top.map((o, k) => {
+      return `<div class="cp-ls-cat k-${KIND[c.id]}"><h4>${window.cpCatIcon ? window.cpCatIcon(c.id) : ""}${T(c.label)}</h4><ol>${top.map((o, k) => {
         const pct = sum > 0n ? Number((BigInt(o.weight) * 1000n) / sum) / 10 : 0;
         return `<li class="${k === 0 && sum > 0n ? "lead" : ""}"><span class="cp-ls-face">${optFace(c.id, o.text, o.i)}</span><span class="cp-ls-bar"><i style="width:${pct}%"></i></span><b data-no-i18n>${pct ? pct.toFixed(pct >= 10 ? 0 : 1) + "%" : "0%"}</b></li>`;
       }).join("")}</ol></div>`;

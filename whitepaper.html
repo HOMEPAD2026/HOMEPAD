@@ -24,7 +24,7 @@
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790482788"></script>
+<script src="arc-log.js?v=1790484872"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
 <style>
@@ -1359,6 +1359,21 @@ document.querySelectorAll("[data-wp-lang]").forEach(function (a) {
   var io = new IntersectionObserver(function (es) { es.forEach(function (x) { if (x.isIntersecting) { run(x.target); io.unobserve(x.target); } }); }, { threshold: 0.5 });
   els.forEach(function (el) { if (el.__final != null) io.observe(el); });
   window.addEventListener("beforeprint", function () { els.forEach(finish); });
+})();
+</script>
+<script>
+// Reading progress: a thin bar across the top fills as the page scrolls (hidden in print).
+(function () {
+  var bar = document.createElement("div");
+  bar.className = "read-progress"; bar.setAttribute("aria-hidden", "true");
+  bar.style.cssText = "position:fixed;left:0;top:0;height:3px;width:100%;z-index:9999;pointer-events:none;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#4d9fff,#39ff88);box-shadow:0 0 10px rgba(57,255,136,.45)";
+  document.body.appendChild(bar);
+  var st = document.createElement("style"); st.textContent = "@media print{.read-progress{display:none!important}}"; document.head.appendChild(st);
+  var raf = 0;
+  function paint() { raf = 0; var h = document.documentElement.scrollHeight - innerHeight; bar.style.transform = "scaleX(" + (h > 0 ? Math.min(1, Math.max(0, scrollY / h)) : 0).toFixed(4) + ")"; }
+  addEventListener("scroll", function () { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
+  addEventListener("resize", paint, { passive: true });
+  paint();
 })();
 </script>
 </body>

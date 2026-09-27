@@ -257,7 +257,7 @@
   }
   function paintTicker(activity) {
     if (!ticker) return;
-    if (activity) lastActivity = activity;
+    if (activity) { lastActivity = activity; window.circlepadActivity = activity; }
     const items = [...(lastActivity || []), ...burnItems()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 14);
     ticker.hidden = !items.length;
     if (!items.length) return;

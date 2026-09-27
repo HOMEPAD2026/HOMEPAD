@@ -10,10 +10,11 @@
 //   /s/<address>        Token Scanner share link: the result card for X, then the scanner
 //   /drop/<tx>[,<tx>…]  Multisender receipt: the airdrop card for X, then the receipt in the app
 //   /snap/<id>          a published / scheduled Holder Snapshot: its card, then the snapshot in the app
+//   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
-import { voteTx } from "./_burnvote.mjs";
+import { voteTx, ballotReport } from "./_burnvote.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -31,6 +32,7 @@ export default async function handler(req) {
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
   if (view === "vote") return votePage(url);
+  if (view === "report") return reportPage(url);
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -592,4 +594,162 @@ async function votePage(url) {
 <p>Opening <a href="${esc(target)}">CirclePad governance</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, v ? "public, max-age=0, s-maxage=86400" : "public, max-age=0, s-maxage=60");
+}
+
+// ---- CirclePad round report (/circle/round/1) ----
+async function reportPage(url) {
+  const n = String(url.searchParams.get("n") || "1");
+  if (n !== "1") return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/circle">`, "public, max-age=300");
+  let st = null, b = null;
+  const [rs, rb] = await Promise.allSettled([roundState(), ballotReport()]);
+  if (rs.status === "fulfilled") st = rs.value;
+  if (rb.status === "fulfilled") b = rb.value;
+  const now = Math.floor(Date.now() / 1000);
+  const ends = b && b.votingEnds ? b.votingEnds : st ? st.deadline : 0;
+  const final = !!(st && st.started && !st.isOpen && ends && now >= ends);
+  const live = !!(st && st.started && !final);
+  const raised = st ? Number(st.totalRaised) / 1e18 : 0;
+  const burned = b ? Number(BigInt(b.burned) / 10n ** 18n) : 0;
+  const num = (x, d = 0) => Number(x || 0).toLocaleString("en-US", { maximumFractionDigits: d });
+  const usd = (x) => num(x, x >= 100 ? 0 : 2);
+  const utc = (ts) => (ts ? new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "—");
+  const kst = (ts) => (ts ? new Date(ts * 1000 + 9 * 3600e3).toISOString().slice(0, 16).replace("T", " ") + " KST" : "");
+  const lead = (c) => { let best = null; c.options.forEach((o, i) => { if (o.votes > 0 && (!best || o.votes > best.votes)) best = { ...o, i }; }); return best; };
+  const cats = b ? b.categories : [];
+  const W = cats.map(lead);
+  const logoUrl = (t) => { const x = String(t || ""); return /^https:\/\/(www\.)?arcircle\.app\/logo\/[0-9a-f]{64}\.(webp|png|jpg)$/.test(x) ? x : /^\/logo\/[0-9a-f]{64}\.(webp|png|jpg)$/.test(x) ? SITE + x : ""; };
+  const dateTxt = (t) => { const d = new Date(t); return isNaN(d) ? String(t) : `${utc(d.getTime() / 1000)} · ${kst(d.getTime() / 1000)}`; };
+  const face = (c, t) => c === 1 ? "$" + String(t).replace(/^\$/, "") : c === 4 ? (isNaN(new Date(t)) ? String(t) : kst(new Date(t).getTime() / 1000)) : c === 3 ? String(t).split("\n")[0] : String(t);
+  const name = W[0] ? W[0].text : "", ticker = W[1] ? String(W[1].text).replace(/^\$/, "") : "", logo = W[2] ? logoUrl(W[2].text) : "";
+  const title = final ? `CirclePad Round #1 — ${name || "result"}${ticker ? ` ($${ticker})` : ""}, decided by ${num(b ? b.votes : 0)} votes` : `CirclePad Round #1 — live: ${usd(raised)} USDC raised, ${num(burned)} $ARCIRCLE burned`;
+  const desc = `${usd(raised)} USDC raised in one 72-hour round on Circle's Arc. ${num(b ? b.votes : 0)} votes from ${num(b ? b.voters : 0)} wallets burned ${num(burned)} $ARCIRCLE to pick the coin's name, ticker, logo, roadmap and launch date.`;
+  const image = `${SITE}/api/og?round=1`;
+  const pageUrl = `${SITE}/circle/round/1`;
+  const shareText = final ? `CirclePad Round #1 is decided: ${name}${ticker ? ` ($${ticker})` : ""}. ${usd(raised)} USDC raised, ${num(burned)} $ARCIRCLE burned by ${num(b ? b.votes : 0)} votes.` : `CirclePad Round #1 is live: ${usd(raised)} USDC raised, ${num(burned)} $ARCIRCLE burned so far. Every vote burns 1,000 $ARCIRCLE.`;
+  const catHtml = cats.map((c, ci) => {
+    const sum = c.options.reduce((a, o) => a + o.votes, 0);
+    const order = c.options.map((o, i) => ({ ...o, i })).sort((x, y) => y.votes - x.votes || x.i - y.i);
+    return `<section class="cat"><h3>${esc(c.label)}<span>${num(sum)} ${sum === 1 ? "vote" : "votes"}</span></h3>${c.options.length ? `<ol>${order.map((o, k) => {
+      const pct = sum ? (o.votes / sum) * 100 : 0, lg = ci === 2 ? logoUrl(o.text) : "";
+      return `<li class="${k === 0 && o.votes > 0 ? "top" : ""}"><div class="o">${lg ? `<img src="${esc(lg)}" alt="" loading="lazy">` : ""}<b>${esc(ci === 2 ? (lg ? "" : o.text) : face(ci, o.text))}</b></div><div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div><span class="v">${pct.toFixed(pct >= 10 || !pct ? 0 : 1)}% · ${num(o.votes)}</span></li>`;
+    }).join("")}</ol>` : `<p class="muted">Candidates not published.</p>`}</section>`;
+  }).join("");
+  const split = [["Recipient wallet", 80, "The project's funds"], ["Treasury wallet", 15, "Paid to the top contributor over 3 days"], ["Platform wallet", 5, "$ARCIRCLE buybacks and promotion"]];
+  const opened = st && st.deadline ? st.deadline - 72 * 3600 : 0;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${pageUrl}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${pageUrl}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<link rel="icon" href="/images/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#040605;--panel:#0c110e;--line:rgba(255,255,255,.1);--ink:#fff;--dim:#8b958e;--g:#39ff88;--o:#ff8a4c;--y:#ffd166}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:radial-gradient(60% 40% at 15% -5%,rgba(57,255,136,.12),transparent 70%),radial-gradient(50% 40% at 100% 0%,rgba(255,138,76,.09),transparent 70%),var(--bg);color:var(--ink);font:15px/1.6 Inter,system-ui,sans-serif;min-height:100vh}
+a{color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 .95rem Sora,sans-serif}
+.brand span{color:var(--dim);font-weight:600}
+.badge{padding:5px 12px;border-radius:99px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid}
+.badge.live{color:#ffb38a;border-color:rgba(255,138,76,.5)}.badge.final{color:var(--y);border-color:rgba(255,209,102,.5)}
+h1{font:800 clamp(1.7rem,4.6vw,2.6rem)/1.15 Sora,sans-serif;margin:0 0 8px;letter-spacing:-.01em}
+.lede{color:var(--dim);margin:0 0 24px;max-width:640px}
+.coin{display:flex;gap:18px;align-items:center;padding:22px;border-radius:20px;border:1px solid rgba(255,209,102,.35);background:linear-gradient(135deg,rgba(255,209,102,.08),rgba(255,255,255,.02));margin-bottom:18px}
+.coin .lg{width:84px;height:84px;border-radius:20px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.06);overflow:hidden;font:800 2rem Sora,sans-serif;color:var(--y)}
+.coin .lg img{width:100%;height:100%;object-fit:cover}
+.coin small{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.coin b{display:block;font:800 1.9rem/1.1 Sora,sans-serif;margin:2px 0}
+.coin .tk{font:700 1rem Sora,sans-serif;color:var(--y)}
+.coin dl{display:flex;flex-wrap:wrap;gap:6px 22px;margin:10px 0 0;font-size:.82rem}.coin dt{color:var(--dim);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase}.coin dd{margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:26px}
+.stat{padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--panel);min-width:0}
+.stat small{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.stat b{display:block;font:800 1.55rem/1.2 Sora,sans-serif;margin:4px 0 2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat span{font-size:.76rem;color:var(--dim)}
+.stat.burn{border-color:rgba(255,138,76,.4);background:rgba(255,120,60,.06)}.stat.burn b{color:#ffd0b0}
+h2{font:700 1.1rem Sora,sans-serif;margin:30px 0 12px}
+.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cat{padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--panel);min-width:0}
+.cat h3{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 12px;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.cat h3 span{letter-spacing:0;text-transform:none;font-size:.76rem}
+.cat ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cat li{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(50px,1fr) auto;gap:10px;align-items:center;font-size:.86rem;color:#c9d4de}
+.cat li .o{display:flex;align-items:center;gap:8px;min-width:0}.cat li .o b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat li .o img{width:34px;height:34px;border-radius:8px;object-fit:cover;flex:none}
+.cat li.top{color:#fff}.cat li.top .o b{font-weight:700}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--o),var(--y))}
+.v{font-size:.76rem;font-variant-numeric:tabular-nums;color:var(--dim);white-space:nowrap}.cat li.top .v{color:var(--y)}
+.split{display:flex;flex-direction:column;gap:10px}
+.split div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--panel)}
+.split b{font-weight:600}.split em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}.split small{grid-column:1/-1;color:var(--dim);font-size:.78rem}
+.tl{list-style:none;margin:0;padding:0;border-left:2px solid var(--line);margin-left:6px}
+.tl li{position:relative;padding:0 0 16px 18px}.tl li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--g)}
+.tl b{display:block}.tl span{color:var(--dim);font-size:.82rem}
+.acts{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:12px;font:600 .9rem Inter,sans-serif;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff}
+.btn.p{background:#fff;color:#050505;border-color:#fff}
+.muted{color:var(--dim)}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:.78rem;color:var(--dim)}
+@media (max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cats{grid-template-columns:1fr}.coin{flex-direction:column;align-items:flex-start}.acts .btn{flex:1 1 auto}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="hd"><a class="brand" href="/circle"><svg width="26" height="26" viewBox="0 0 200 200" fill="none" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs><circle cx="100" cy="100" r="70" stroke="url(#g)" stroke-width="16"/><circle cx="100" cy="100" r="28" fill="url(#g)" opacity=".85"/></svg>CirclePad <span>Round #1 report</span></a>
+  <span class="badge ${final ? "final" : "live"}">${final ? "Final" : live ? "Live" : "Not started"}</span></div>
+  <h1>${final ? "The circle chose its coin." : "Round #1, as it happens."}</h1>
+  <p class="lede">One 72-hour USDC raise on Circle's Arc. $ARCIRCLE holders burned 1,000 $ARCIRCLE per vote to pick the coin's name, ticker, logo, roadmap and launch date. ${final ? "Final numbers, read from the chain." : "Numbers update as the chain moves — reload for the latest."}</p>
+  <div class="coin"><div class="lg">${logo ? `<img src="${esc(logo)}" alt="">` : esc((name || "?").slice(0, 1).toUpperCase())}</div>
+    <div><small>${final ? "The result" : "Leading now"}</small><b>${esc(name || "—")}</b><span class="tk">${ticker ? "$" + esc(ticker) : "—"}</span>
+    <dl><div><dt>Launch date</dt><dd>${W[4] ? esc(dateTxt(W[4].text)) : "—"}</dd></div><div><dt>Roadmap</dt><dd>${W[3] ? esc(String(W[3].text).split("\n")[0]) : "—"}</dd></div></dl></div></div>
+  <div class="stats">
+    <div class="stat"><small>Raised</small><b>${usd(raised)}</b><span>USDC</span></div>
+    <div class="stat"><small>Contributors</small><b id="r-n">—</b><span id="r-top">&nbsp;</span></div>
+    <div class="stat burn"><small>Burned by votes</small><b>${num(burned)}</b><span>$ARCIRCLE, gone for good</span></div>
+    <div class="stat"><small>Votes</small><b>${num(b ? b.votes : 0)}</b><span>1 vote = 1,000 $ARCIRCLE</span></div>
+    <div class="stat"><small>Voters</small><b>${num(b ? b.voters : 0)}</b><span>wallets</span></div>
+    <div class="stat"><small>${final ? "Closed" : "Closes"}</small><b style="font-size:1.05rem">${esc(utc(ends))}</b><span>${esc(kst(ends))}</span></div>
+  </div>
+  <h2>Every category</h2>
+  <div class="cats">${catHtml || `<p class="muted">The ballot couldn't be read right now — reload in a moment.</p>`}</div>
+  <h2>The split${final ? "" : " (at today's total)"}</h2>
+  <div class="split">${split.map(([k, p, note]) => `<div><b>${k}</b><em>${p}% · ≈ ${usd((raised * p) / 100)} USDC</em><small>${note}</small></div>`).join("")}</div>
+  <h2>Timeline</h2>
+  <ol class="tl">
+    <li><b>Raise opened</b><span>${opened ? `${esc(utc(opened))} · ${esc(kst(opened))}` : "—"}</span></li>
+    <li><b>Burn-to-vote opened</b><span>${esc(utc(b && b.opensAt))} · ${esc(kst(b && b.opensAt))}</span></li>
+    <li><b>Raise and voting ${final ? "closed" : "close"}</b><span>${esc(utc(ends))} · ${esc(kst(ends))}</span></li>
+    <li><b>Launch</b><span>${W[4] ? esc(dateTxt(W[4].text)) : "The date the vote picks"}</span></li>
+  </ol>
+  <div class="acts"><a class="btn p" href="/circle">Open CirclePad</a><a class="btn" href="https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(pageUrl)}&via=ARCIRCLEonArc" target="_blank" rel="noopener">Share on X</a><button class="btn" type="button" id="r-copy">Copy link</button></div>
+  <footer>Read from Circle's Arc: the round escrow, the ballot and the burn-to-vote contract. Nothing here is financial advice.</footer>
+</div>
+<script>
+(function () {
+  var c = document.getElementById("r-copy");
+  c.addEventListener("click", function () { try { navigator.clipboard.writeText(${JSON.stringify(pageUrl)}); c.textContent = "Copied"; setTimeout(function () { c.textContent = "Copy link"; }, 1600); } catch (e) {} });
+  fetch("/api/social?circle=lb", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+    var rows = (j && j.rows) || [];
+    document.getElementById("r-n").textContent = rows.length.toLocaleString("en-US");
+    if (rows[0]) { var a = rows[0].address; document.getElementById("r-top").textContent = "Top: " + a.slice(0, 6) + "…" + a.slice(-4) + " · " + (Number(BigInt(rows[0].amount) / 10n ** 16n) / 100).toLocaleString("en-US") + " USDC"; }
+  }).catch(function () {});
+})();
+</script>
+</body></html>`, final ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
 }
