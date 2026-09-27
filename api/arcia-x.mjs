@@ -211,7 +211,7 @@ async function draftReply(m, L) {
   if (!clean || m.rt) return { skip: "empty or repost" };
   const t = await askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}` }], L, extra: REPLY_BRIEF, maxTokens: 220, timeoutMs: 15000 });
   if (!t) return { skip: "model unavailable" };
-  let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/(^|\s)@\w+/g, " ").replace(/\s+\n/g, "\n").trim();
+  let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@ARCIRCLEonArc\b/gi, "ARCIRCLE").replace(/(^|\s)@\w+/g, " ").replace(/ {2,}/g, " ").replace(/\s+\n/g, "\n").trim();
   if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
   return { text: out };
