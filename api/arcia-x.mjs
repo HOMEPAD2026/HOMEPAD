@@ -35,7 +35,9 @@ const ROUND1_CLOSE = 1790680567; // 29 Sep 2026 11:16:07 UTC
 const SITE = "arcircle.app";
 
 const json = (status, body) => new Response(JSON.stringify(body, null, 1), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
-const keys = () => ({ ck: process.env.X_API_KEY, cs: process.env.X_API_SECRET, at: process.env.X_ACCESS_TOKEN, as: process.env.X_ACCESS_SECRET });
+// trimmed: a stray space or line break pasted into Vercel breaks the OAuth signature (X answers 401)
+const env = (k) => String(process.env[k] || "").trim();
+const keys = () => ({ ck: env("X_API_KEY"), cs: env("X_API_SECRET"), at: env("X_ACCESS_TOKEN"), as: env("X_ACCESS_SECRET") });
 const hasKeys = () => { const k = keys(); return !!(k.ck && k.cs && k.at && k.as); };
 const enabled = () => process.env.ARCIA_X_ENABLED === "1";
 // news posts (new coins, round alerts, daily check) stay off until ARCIA_X_POSTS=1 — replies don't need it
@@ -75,7 +77,13 @@ async function whoami() {
   const url = "https://api.x.com/2/users/me";
   const r = await fetch(url, { headers: { authorization: authHeader("GET", url) } });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) return { error: `X ${r.status}` };
+  if (!r.ok) {
+    const k = keys();
+    return { error: `X ${r.status}`, detail: String(j.detail || j.title || JSON.stringify(j)).slice(0, 200),
+      hint: r.status === 401 ? "The four X keys don't sign in: check they are the API Key / API Key Secret and the Access Token / Access Token Secret of the same app, generated for @ARCIAonArc, and not regenerated since" : undefined,
+      // format checks only (no key material): API Key ~25 chars, API Key Secret ~50, Access Token "<user id>-…", Access Token Secret ~45
+      looksRight: { apiKey: k.ck.length >= 20 && k.ck.length <= 30, apiSecret: k.cs.length >= 45, accessToken: /^\d+-[A-Za-z0-9]{20,}$/.test(k.at), accessSecret: k.as.length >= 40 && k.as.length <= 50 } };
+  }
   me = { id: j.data && j.data.id, username: j.data && j.data.username, name: j.data && j.data.name };
   return me;
 }
