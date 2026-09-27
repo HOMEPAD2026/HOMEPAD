@@ -72,6 +72,13 @@
   const topbar = document.querySelector(".bp-topbar");
   const stickTop = () => { if (!topbar) return; const p = getComputedStyle(topbar).position; strip.style.top = (p === "fixed" || p === "sticky") ? Math.round(topbar.getBoundingClientRect().height) + "px" : "0px"; };
   stickTop(); window.addEventListener("resize", stickTop, { passive: true });
+  // phones: one line (phase · raised · clock); tap it for the rest
+  strip.addEventListener("click", (e) => {
+    if (e.target.closest("button, a")) return;
+    if (!matchMedia("(max-width: 900px)").matches) return;
+    strip.classList.toggle("open");
+    strip.setAttribute("aria-expanded", strip.classList.contains("open") ? "true" : "false");
+  });
   function paintStrip() {
     const r = R(), ph = phase();
     if (!r || ph === "pre") { strip.hidden = true; return; }
@@ -80,10 +87,13 @@
     const clock = ph === "raise" ? ["Raise closes in", deadline()] : ph === "voting" ? [both ? "Raise & voting close in" : "Voting closes in", votingEnds()] : null;
     const label = ph === "raise" ? "Raising" : ph === "voting" ? (r.isOpen ? "Raising · voting" : "Voting") : ph === "result" ? "Result" : "Closed";
     strip.innerHTML = `<span class="cp-strip-ph ${ph}"><i></i>${T(label)}</span>
-      <span><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span>
-      <span><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
+      <span class="cp-strip-raised"><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span>
+      <span class="cp-strip-n"><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
       ${burnOn() ? `<span class="cp-strip-burn"><small>${T("Burned by votes")}</small><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b></span>` : ""}
-      ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${left(clock[1] - nowS())}</b></span>` : ""}`;
+      ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${left(clock[1] - nowS())}</b></span>` : ""}
+      ${ph === "raise" || ph === "voting" ? `<button type="button" class="cp-strip-live" data-cp-live>${T("Live screen")}</button>` : ""}
+      <i class="cp-strip-more" aria-hidden="true"></i>`;
+    strip.setAttribute("aria-expanded", strip.classList.contains("open") ? "true" : "false");
   }
 
   // ================= Home hero that follows the phase =================
@@ -127,7 +137,7 @@
           <span class="cp-phero-eyebrow">${T("Round #1 · burn-to-vote is open")}</span>
           <h2>${T("Vote on the coin. Every vote burns 1,000 $ARCIRCLE.")}</h2>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned so far")}</span></div>
-          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
+          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><button type="button" class="bp-btn-ghost" data-cp-live>${T("Live screen")}</button><span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
         </div>
         <div class="cp-phero-side"><small class="cp-k">${T("Leading now")}</small>${w.any ? coinCard(w, false) : `<div class="cp-wc cp-wc-empty"><span class="cp-flame" aria-hidden="true"></span><p>${T("No votes yet — the first burn sets the lead.")}</p></div>`}</div>`;
     } else {
@@ -239,6 +249,7 @@
       document.querySelectorAll("[data-cp-burned]").forEach((el) => bump(el, tok(burnedTotal())));
       odoAll();
       window.circlepadBurns = j;
+      document.dispatchEvent(new CustomEvent("circlepad:burns", { detail: j }));
     } catch { /* next poll */ }
   }
   const catName = (c) => ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"][c] || "";
@@ -347,11 +358,14 @@
 
   // ================= the reveal, once per browser after voting closes =================
   const REVEAL_KEY = "circlepad.reveal." + String(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || CONFIG.CIRCLEPAD_VOTE_ADDRESS || "").toLowerCase();
+  let revealed = false;
   function reveal(force) {
     const g = G();
     if (!g || phase() !== "result") return;
-    let seenIt = false; try { seenIt = localStorage.getItem(REVEAL_KEY) === "1"; } catch { /* show it */ }
+    let seenIt = revealed; try { seenIt = seenIt || localStorage.getItem(REVEAL_KEY) === "1"; } catch { /* show it */ }
     if (seenIt && !force) return;
+    if (document.querySelector(".cp-reveal")) return;
+    revealed = true;
     try { localStorage.setItem(REVEAL_KEY, "1"); } catch { /* fine */ }
     const w = winner();
     const cards = g.categories.filter((c) => c.set).map((c, k) => {
@@ -365,7 +379,7 @@
     ov.innerHTML = `<div class="cp-rv-box"><span class="cp-phero-eyebrow">${T("CirclePad Round #1 · the vote is in")}</span>
       <div class="cp-rv-grid">${cards.join("")}</div>
       <div class="cp-rv-final" style="--k:${cards.length}">${coinCard(w, true)}</div>
-      <button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div>`;
+      <div class="cp-rv-acts">${w.any ? `<a class="bp-btn-ghost" href="https://x.com/intent/post?text=${encodeURIComponent(`CirclePad Round #1 is decided: ${w.name || ""}${w.ticker ? " ($" + w.ticker + ")" : ""}${w.date ? ", launching " + govFmtDate(w.date) : ""}. Chosen by $ARCIRCLE holders — every vote burned 1,000 $ARCIRCLE.`)}&url=${encodeURIComponent("https://www.arcircle.app/circle")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share the result")}</a>` : ""}<button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div></div>`;
     document.body.appendChild(ov);
     if (reduce()) ov.classList.add("still");
     requestAnimationFrame(() => ov.classList.add("in"));
@@ -549,6 +563,41 @@
   function aliveAll() { try { odoAll(); paintGauges(); coinSwap(); paintFinal(); } catch (err) { console.warn("circlepad-round alive", err); } }
   document.addEventListener("circlepad:govpaint", aliveAll);
 
+  // ================= the close: at 0 every open page pulls the result by itself =================
+  let closing = null; // { at, tries }
+  function watchClose() {
+    const ph = phase();
+    if (ph !== "raise" && ph !== "voting") { if (closing && closing.el) { closing.el.remove(); } closing = null; return; }
+    const ends = ph === "voting" ? votingEnds() : deadline();
+    if (!ends || nowS() < ends || closing) return;
+    closing = { tries: 0, el: null };
+    // a short curtain while the chain catches up
+    const el = document.createElement("div");
+    el.className = "cp-closing"; el.setAttribute("role", "status");
+    el.innerHTML = `<div class="cp-closing-box"><span class="cp-flame" aria-hidden="true"></span><b>${T("Voting has closed")}</b><p>${T("Counting the votes on-chain — the result opens in a moment.")}</p></div>`;
+    document.body.appendChild(el); closing.el = el;
+    if (!reduce()) requestAnimationFrame(() => el.classList.add("in")); else el.classList.add("in", "still");
+    const pull = async () => {
+      if (!closing) return;
+      closing.tries++;
+      try {
+        if (typeof refreshCirclepadCore === "function") await refreshCirclepadCore();
+        if (typeof refreshCirclepadGovernance === "function") await refreshCirclepadGovernance();
+      } catch { /* retry */ }
+      const now = phase();
+      if (now === "result" || now === "closed") {
+        const c = closing; closing = { done: true, el: null };
+        if (c && c.el) { c.el.classList.remove("in"); setTimeout(() => c.el.remove(), 300); }
+        paintAll(); loadFeed();
+        if (now === "result") setTimeout(() => reveal(false), 400);
+        return;
+      }
+      if (closing.tries < 40) setTimeout(pull, closing.tries < 8 ? 2500 : 6000);
+      else if (closing.el) { closing.el.remove(); closing.el = null; }
+    };
+    setTimeout(pull, 1200);
+  }
+
   // ================= wiring =================
   function paintAll() {
     try { paintStrip(); paintHero(); paintNext(); paintTimeline(); paintProjects(); paintTreasury(); paintBallotNav(); paintRace(); } catch (err) { console.warn("circlepad-round", err); }
@@ -565,11 +614,12 @@
     document.body.classList.toggle("cp-gov-tab", !!(gp && gp.classList.contains("active")));
     paintTimeline();
     paintFinal();
+    watchClose();
   }, 1000);
   setInterval(() => { if (!document.hidden && (phase() === "voting" || Date.now() - feedT > 60e3)) loadFeed(); }, 15000);
   setInterval(() => { if (!document.hidden) paintAll(); }, 30000);
   loadWallets().then(paintAll);
   loadFeed();
   paintAll();
-  window.circlepadRound = { reveal: () => reveal(true), feed: () => feed, phase };
+  window.circlepadRound = { reveal: () => reveal(true), feed: () => feed, phase, winner, burnedTotal, deadline, votingEnds, left, lead, nowS };
 })();

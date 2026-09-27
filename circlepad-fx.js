@@ -1,4 +1,4 @@
-/* global connectWallet, circlepadLoadCache, circlepadEscrowConfigured, CONFIG, applyCirclepadState, renderCirclepadLeaderboard, renderCirclepadGovernance, updateCirclepadCountdown, _circlepadDeadline, _circlepadStarted, _circlepadState, ethers, state */
+/* global connectWallet, circlepadLoadCache, circlepadEscrowConfigured, CONFIG, applyCirclepadState, renderCirclepadLeaderboard, renderCirclepadGovernance, updateCirclepadCountdown, _circlepadDeadline, _circlepadStarted, _circlepadState, ethers, state, govDate, govFmtDate */
 // circlepad-fx.js — CirclePad's round card, layout and motion layer.
 // circlepad.js stays the source of truth for the escrow (it reads the chain
 // and writes the plain numbers); this file wraps its render functions and
@@ -17,12 +17,13 @@
   if (!document.body.classList.contains("circlepad-page") || typeof applyCirclepadState !== "function") return;
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (id) => document.getElementById(id);
+  const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const toNum = (wei) => { try { return Number(ethers.formatEther(wei || 0n)); } catch (e) { return 0; } };
   const fmt = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 0 : n >= 1 ? 2 : 4 });
   const short$ = (n) => (n >= 1e6 ? `${n / 1e6}M` : n >= 1e3 ? `${n / 1e3}K` : String(n));
   const clickTab = (tab) => { const b = document.querySelector(`.bp-nav-item[data-tab="${tab}"]`); if (b) b.click(); };
-  const MILESTONES = [1e3, 5e3, 1e4, 25e3, 5e4, 1e5, 25e4, 5e5, 1e6, 25e5, 5e6, 1e7];
+  const MILESTONES = [250, 500, 1e3, 5e3, 1e4, 25e3, 5e4, 1e5, 25e4, 5e5, 1e6, 25e5, 5e6, 1e7];
   let S = null; // last state painted
 
   // ================= sidebar: group the not-yet-live tabs =================
@@ -238,16 +239,37 @@
     ticker.setAttribute("aria-label", "Recent activity");
     featured.insertBefore(ticker, featured.firstChild);
   }
+  // contributions (USDC) and burn votes ($ARCIRCLE) in one line, newest first
+  let lastActivity = [];
+  const CATS = ["Name", "Ticker", "Logo", "Roadmap", "Date"];
+  function burnItems() {
+    const f = window.circlepadBurns;
+    if (!f || !Array.isArray(f.events) || !f.anchor) return [];
+    return f.events.slice(0, 12).map((e) => ({ kind: "burn", contributor: e.voter, votes: e.votes, cat: e.cat, text: e.text, ts: Math.round(Number(f.anchor.ts || Date.now() / 1000) - Math.max(0, Number(f.anchor.block) - Number(e.b)) * 0.5) }));
+  }
+  function burnLabel(a) {
+    const t = String(a.text || "");
+    if (a.cat === 1) return "$" + t.replace(/^\$/, "");
+    if (a.cat === 2) return tr("a logo");
+    if (a.cat === 3) return t.split("\n")[0].slice(0, 24);
+    if (a.cat === 4 && typeof govDate === "function" && govDate(t)) return govFmtDate(govDate(t));
+    return t.slice(0, 24);
+  }
   function paintTicker(activity) {
     if (!ticker) return;
-    const items = (activity || []).slice(0, 12);
+    if (activity) lastActivity = activity;
+    const items = [...(lastActivity || []), ...burnItems()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 14);
     ticker.hidden = !items.length;
     if (!items.length) return;
     const ago = (ts) => { const d = Math.max(1, Math.floor(Date.now() / 1000) - ts); return d < 60 ? "just now" : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h` : `${Math.floor(d / 86400)}d`; };
-    const one = items.map((a) => `<span class="cp-tk-item cp-tk-${a.kind}"><i style="--h:${(parseInt(String(a.contributor).slice(2, 8), 16) || 0) % 360}"></i><b data-no-i18n>${String(a.contributor).slice(0, 6)}…${String(a.contributor).slice(-4)}</b><span data-no-i18n>${a.kind === "out" ? "−" : "+"}${fmt(toNum(a.amount))} USDC</span><em data-no-i18n>${ago(a.ts)}</em></span>`).join("");
+    const who = (a) => `<i style="--h:${(parseInt(String(a.contributor).slice(2, 8), 16) || 0) % 360}"></i><b data-no-i18n>${String(a.contributor).slice(0, 6)}…${String(a.contributor).slice(-4)}</b>`;
+    const one = items.map((a) => a.kind === "burn"
+      ? `<span class="cp-tk-item cp-tk-burn"><span class="cp-flame sm" aria-hidden="true"></span>${who(a)}<span data-no-i18n>−${(Number(a.votes || 0) * 1000).toLocaleString("en-US")} $ARCIRCLE</span><small><span>${esc(tr(CATS[a.cat] || ""))}</span> <span data-no-i18n>${esc(burnLabel(a))}</span></small><em data-no-i18n>${ago(a.ts)}</em></span>`
+      : `<span class="cp-tk-item cp-tk-${a.kind}">${who(a)}<span data-no-i18n>${a.kind === "out" ? "−" : "+"}${fmt(toNum(a.amount))} USDC</span><em data-no-i18n>${ago(a.ts)}</em></span>`).join("");
     const html = `<div class="cp-tk-track${items.length > 2 && !reduce ? " run" : ""}" style="--n:${items.length}">${one}${items.length > 2 && !reduce ? one : ""}</div>`;
     if (ticker.__html !== html) { ticker.innerHTML = html; ticker.__html = html; }
   }
+  document.addEventListener("circlepad:burns", () => { try { paintTicker(null); } catch (e) { /* next paint */ } });
 
   // ================= leaderboard tab: podium + share bars =================
   function paintPodium(rows) {
@@ -320,7 +342,9 @@
     if (typeof window.arcToast === "function") window.arcToast(`${tr("The raise just passed")} $${short$(m)}`);
     // the big ones (10K, 50K, 100K and up) get the ring lit up and a real burst
     const big = m >= 1e4 && [1e4, 5e4, 1e5, 25e4, 5e5, 1e6].includes(m);
-    if (big) { flash(`$${short$(m)}`, "cp-flash-ms"); ring.classList.remove("cp-ms-big"); void ring.offsetWidth; ring.classList.add("cp-ms-big"); }
+    // every milestone flashes its number in the ring; the big ones also light it up
+    if (!reduce) flash(`$${short$(m)}`, "cp-flash-ms" + (big ? "" : " sm"));
+    if (big) { ring.classList.remove("cp-ms-big"); void ring.offsetWidth; ring.classList.add("cp-ms-big"); }
     if (!reduce && typeof window.arcConfetti === "function") window.arcConfetti({ count: big ? 150 : 60 });
     document.dispatchEvent(new CustomEvent("circlepad:milestone", { detail: m }));
   }
