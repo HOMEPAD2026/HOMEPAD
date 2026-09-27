@@ -1,6 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/me",
+      "destination": "/me.html"
+    },
+    {
+      "source": "/stats",
+      "destination": "/stats.html"
+    },
+    {
+      "source": "/roadmap",
+      "destination": "/roadmap.html"
+    },
+    {
+      "source": "/brand",
+      "destination": "/brand.html"
+    },
+    {
+      "source": "/start",
+      "destination": "/start.html"
+    },
+    {
       "source": "/rent",
       "destination": "/rent.html"
     },

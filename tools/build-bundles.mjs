@@ -29,22 +29,26 @@ export const BUNDLES = {
     ...COMMON_HEAD, "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
     "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
     "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "liq-core.js", "arc-liquidity.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-a11y.js", "i18n.js",
   ],
   "circlepad.bundle.js": [
     ...COMMON_HEAD, "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-live.js", "circlepad-look.js", "arc-uxfx.js", "arc-a11y.js", "i18n.js",
+    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-live.js", "circlepad-look.js", "arc-uxfx.js", "arc-cmdk.js", "arc-a11y.js", "i18n.js",
   ],
   "reward.bundle.js": [
     ...COMMON_HEAD, "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-a11y.js", "i18n.js",
+    "arc-social.js", "arc-cmdk.js", "arc-a11y.js", "i18n.js",
   ],
   // The $ARCIRCLE page needs no wallet and no ethers (config-arc.js only for
   // the $ARCIRCLE contract / "not live" switch): its numbers come from
   // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
   "arcircle.bundle.js": [
     "config-arc.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-a11y.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-a11y.js", "i18n.js",
+  ],
+  // /me, /stats, /roadmap, /brand, /start — small standalone pages (ethers from vendor/).
+  "pages.bundle.js": [
+    ...COMMON_HEAD, "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-a11y.js", "i18n.js",
   ],
 };
 

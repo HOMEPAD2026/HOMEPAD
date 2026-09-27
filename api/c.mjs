@@ -34,6 +34,7 @@ export default async function handler(req) {
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
   if (view === "latest") return latestCoins(url);
+  if (view === "coins") return allCoins();
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
@@ -756,6 +757,22 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-si
 }
 
 // ---- the newest ArcPad coins, for the landing page (/api/c?view=latest[&n=3]) ----
+// Every ArcPad coin as {t: token, n: name, s: symbol} for the site-wide search (⌘K).
+async function allCoins() {
+  const hdr = (cache) => ({ "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" });
+  try {
+    const pools = (await allPools()).slice().sort((a, b) => b.launchedAt - a.launchedAt).slice(0, 400);
+    const coins = [];
+    for (let i = 0; i < pools.length; i += 25) {
+      const part = await Promise.all(pools.slice(i, i + 25).map((p) => getCoin(p.token).catch(() => null)));
+      for (const c of part) if (c) coins.push({ t: c.token, n: String(c.name || "").slice(0, 48), s: String(c.symbol || "").slice(0, 16) });
+    }
+    return new Response(JSON.stringify({ coins }), { status: 200, headers: hdr("public, max-age=0, s-maxage=300, stale-while-revalidate=900") });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: String((err && err.message) || err).slice(0, 160) }), { status: 502, headers: hdr("no-store") });
+  }
+}
+
 async function latestCoins(url) {
   const n = Math.max(1, Math.min(6, Number(url.searchParams.get("n")) || 3));
   const hdr = (cache) => ({ "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" });
