@@ -8334,3 +8334,8 @@ html.ck-open{overflow:hidden;}
   html.aa-chat-on :is(.ax-page,.ax-dock-host) nav.ax-quick{transform:translate(-50%,calc(100% + 40px)) !important;opacity:0 !important;pointer-events:none !important;}
 }
 .aa-feed li.on em{color:#7dffb2;background:rgba(57,255,136,.1);border-color:rgba(57,255,136,.35);}
+.aa-m{position:relative;}
+.aa-hearts{position:absolute;left:44px;bottom:6px;width:0;height:0;pointer-events:none;}
+.aa-hearts i{position:absolute;left:0;bottom:0;font-style:normal;font-size:18px;opacity:0;animation:aa-heart 1.9s cubic-bezier(.2,.7,.3,1) var(--d) forwards;}
+@keyframes aa-heart{0%{opacity:0;transform:translate(0,0) scale(.4) rotate(0);}15%{opacity:1;}100%{opacity:0;transform:translate(var(--x),-120px) scale(1.15) rotate(var(--r));}}
+@media (prefers-reduced-motion:reduce){.aa-hearts{display:none;}}

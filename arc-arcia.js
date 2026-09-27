@@ -18,14 +18,14 @@
     set: function (v) { try { sessionStorage.setItem(KEY, JSON.stringify(v.slice(-30))); } catch (e) { /* private mode */ } },
   };
   var GREET = {
-    en: "Hi, I'm ARCIA 💙💚 the virtual idol of $ARCIRCLE. Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad — I'll keep it short and honest.",
-    ko: "안녕하세요, $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어봐 주세요. 짧고 정확하게 알려드릴게요.",
+    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad — or just say hi♡",
+    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",
     zh: "你好，我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 关于 $ARCIRCLE、CirclePad 第 1 轮、接力发币或 ArcPad，尽管问我。",
   };
   var SUGG = {
-    en: ["Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?", "What are the risks?"],
-    ko: ["너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?", "위험 요소는 뭐야?"],
-    zh: ["你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？", "有哪些风险？"],
+    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?", "What are the risks?"],
+    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?", "위험 요소는 뭐야?"],
+    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？", "有哪些风险？"],
   };
   var ICON_SEND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>';
   var ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3.5h3l-6.6 7.5 7.8 9.5h-6.1l-4.8-5.9-5.5 5.9H2.3l7.1-8L1.9 3.5h6.2l4.3 5.4zm-1.1 15.3h1.7L7.5 5.1H5.7z"/></svg>';
@@ -65,6 +65,23 @@
     })();
   }
   function scroll() { log.scrollTop = log.scrollHeight; }
+  // a few hearts float up from her reply when she answers a fan
+  function hearts(li) {
+    if (reduce || !li) return;
+    var box = document.createElement("span");
+    box.className = "aa-hearts";
+    box.setAttribute("aria-hidden", "true");
+    for (var i = 0; i < 6; i++) {
+      var h = document.createElement("i");
+      h.textContent = i % 3 === 2 ? "♡" : i % 2 ? "💚" : "💙";
+      h.style.setProperty("--x", (Math.random() * 120 - 20).toFixed(0) + "px");
+      h.style.setProperty("--d", (i * 0.12).toFixed(2) + "s");
+      h.style.setProperty("--r", (Math.random() * 40 - 20).toFixed(0) + "deg");
+      box.appendChild(h);
+    }
+    li.appendChild(box);
+    setTimeout(function () { box.remove(); }, 2600);
+  }
   function typing(on) {
     var t = log.querySelector(".aa-typing");
     if (on && !t) {
@@ -102,7 +119,8 @@
           store.set(msgs);
           setMode(res.j.mode);
           if (res.j.live) paintLive(res.j.live);
-          bubble("assistant", reply, { type: true });
+          var li = bubble("assistant", reply, { type: true });
+          if (/♡|♥|💙|💚|❤/.test(reply)) hearts(li);
         }, wait);
       })
       .catch(function () { typing(false); bubble("assistant", tr("I couldn't reach my server just now. Try again in a moment?")); })
