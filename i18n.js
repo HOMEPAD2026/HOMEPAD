@@ -2752,6 +2752,10 @@
     "Suggested questions": "추천 질문",
     "Conversation": "대화",
     "Utility · AI idol": "유틸리티 · AI 아이돌",
+    "What ARCIA has studied": "ARCIA가 학습한 것",
+    "Every utility": "모든 유틸리티",
+    "Roadmap & rewards": "로드맵·리워드",
+    "She has read every page of arcircle.app — the whitepaper, the docs, every utility and every contract address — and reads live numbers from Arc each time you ask. She keeps learning with every update.": "ARCIA는 arcircle.app의 모든 페이지를 읽었어요. 백서, 문서, 모든 유틸리티와 컨트랙트 주소까지. 물어볼 때마다 Arc에서 실시간 수치도 읽고, 업데이트마다 계속 배워요.",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5869,6 +5873,10 @@
     "Suggested questions": "推荐问题",
     "Conversation": "对话",
     "Utility · AI idol": "工具 · AI 偶像",
+    "What ARCIA has studied": "ARCIA 学过的内容",
+    "Every utility": "所有工具",
+    "Roadmap & rewards": "路线图与奖励",
+    "She has read every page of arcircle.app — the whitepaper, the docs, every utility and every contract address — and reads live numbers from Arc each time you ask. She keeps learning with every update.": "她读过 arcircle.app 的每一页——白皮书、文档、每个工具和每个合约地址——每次提问时还会从 Arc 读取实时数据，并随每次更新继续学习。",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

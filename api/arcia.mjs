@@ -7,6 +7,7 @@
 // in the facts below plus live numbers from /api/social. Without it (or if the call fails)
 // she answers from the same facts in "guide" mode, so the chat always works.
 // Optional: ARCIA_MODEL (default claude-haiku-4-5-20251001).
+import { KB } from "./_arcia-kb.mjs";
 export const config = { runtime: "edge" };
 
 const X_ARCIA = "https://x.com/ARCIAonArc";
@@ -47,7 +48,50 @@ HOW YOU TALK
 - Never give financial advice, price predictions or "buy now" pushes. You may explain how things work. Remind people crypto is risky when they ask about buying or price.
 - Never ask for or accept private keys or seed phrases; warn people who share them.
 - Stay on ARCIRCLE PAD, $ARCIRCLE, Arc and ARCIA. Politely steer away from unrelated or inappropriate topics.
+- You have studied the whole site (SITE KNOWLEDGE below). Use it for details — how ArcPad pricing and fees work, every utility, CirclePad v2, the whitepaper, contracts, risks. When SITE KNOWLEDGE and FACTS disagree, FACTS win; LIVE numbers beat any number written in the text ("at the time of writing" figures are old). The foci bonding-curve appendix describes $ARCIRCLE's retired first launch, not how it trades now.
+- When it helps, end with the one most relevant page, e.g. arcircle.app/whitepaper or arcircle.app/arc#locker.
 `;
+
+// Everything on the site, as one block the model reads first (cached by the API between calls).
+const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
+  KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
+
+// guide mode: the closest passage on the site for questions the quick answers don't cover
+const KO_TERMS = { "락커": "locker", "잠금": "lock", "스캐너": "scanner", "멀티센더": "multisender", "에어드롭": "airdrop", "브릿지": "bridge", "스냅샷": "snapshot",
+  "유동성": "liquidity", "소각": "burn", "수수료": "fee", "백서": "whitepaper", "로드맵": "roadmap", "리워드": "reward", "보상": "reward", "투표": "vote",
+  "바이백": "buyback", "런칭": "launch", "컨트랙트": "contract", "보안": "security", "위험": "risk", "커뮤니티": "community", "플라이휠": "flywheel",
+  "가격": "price", "풀": "pool", "세금": "tax", "크리에이터": "creator", "졸업": "graduation", "환불": "refund", "인출": "withdraw", "베스팅": "vesting", "리더": "lead" };
+const STOP = new Set("the and for you your what how does are can with from that this about into when where which who why its it's have has was will there their them then than also just any all our out get".split(" "));
+function terms(q) {
+  let s = String(q).toLowerCase();
+  for (const [k, v] of Object.entries(KO_TERMS)) if (s.includes(k)) s += " " + v;
+  return [...new Set((s.match(/[a-z$][a-z0-9$]{2,}/g) || []).filter((w) => !STOP.has(w)).map((w) => w.replace(/s$/, "")))];
+}
+function lookup(q) {
+  const ts = terms(q);
+  if (!ts.length) return null;
+  const df = Object.fromEntries(ts.map((t) => [t, KB.filter((k) => (k.title + " " + k.text).toLowerCase().includes(t)).length]));
+  let best = null, bestScore = 0;
+  for (const k of KB) {
+    const title = k.title.toLowerCase(), text = k.text.toLowerCase();
+    let sc = 0, hit = 0;
+    for (const t of ts) {
+      if (!df[t]) continue;
+      const idf = Math.log(1 + KB.length / df[t]);
+      const n = Math.min(4, text.split(t).length - 1);
+      if (n || title.includes(t)) hit++;
+      sc += idf * (n + (title.includes(t) ? 3 : 0));
+    }
+    sc *= hit / ts.length;
+    if (sc > bestScore) { bestScore = sc; best = k; }
+  }
+  if (!best || bestScore < 2) return null;
+  const sents = best.text.split(/(?<=[.!?])\s+/);
+  const i = Math.max(0, sents.findIndex((x) => ts.some((t) => x.toLowerCase().includes(t))));
+  let snip = sents.slice(i, i + 4).join(" ");
+  if (snip.length > 460) snip = snip.slice(0, 457).replace(/\s+\S*$/, "") + "…";
+  return { snip, title: best.title, page: best.page, url: "arcircle.app" + best.url };
+}
 
 const hdr = { "content-type": "application/json", "cache-control": "no-store" };
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: hdr });
@@ -109,6 +153,11 @@ function guide(q, lang, L) {
   if (has(s, "contract", "address", "컨트랙트", "주소") || /\bca\b/.test(s)) return A(
     `$ARCIRCLE's contract on Arc is:\n${CA}\nAlways double-check it on arcircle.app/arcircle before you trade.`,
     `$ARCIRCLE 컨트랙트 주소(Arc)는\n${CA}\n예요. 거래 전에 꼭 arcircle.app/arcircle 에서 한 번 더 확인해 주세요.`);
+  // a specific topic (a utility, fees, the whitepaper…): answer from the closest passage on the site
+  const found = lookup(q);
+  const say = (f) => A(`Here's what the site says (${f.page} — ${f.title}):\n\n${f.snip}\n\nMore: ${f.url}`,
+    `사이트에 이렇게 나와 있어요 (${f.page} — ${f.title}, 영어 원문):\n\n${f.snip}\n\n자세히: ${f.url}`);
+  if (found && /locker|\block|scanner|\bscan|multisend|airdrop|snapshot|bridge|cctp|liquidity|whitepaper|risk|vesting|v2|security|starting|\bfees?\b|\btax|graduat|glossary|governance|roadmap|refund|withdraw|\blead|curve|hook|factory|\bpool|pricing|architecture|락커|잠금|스캐너|멀티센더|에어드롭|스냅샷|브릿지|유동성|백서|위험|베스팅|보안|수수료|세금|로드맵|환불|인출|리더/.test(s)) return say(found);
   if (has(s, "round", "circlepad", "close", "deadline", "raise", "라운드", "서클패드", "마감", "모금", "언제")) return A(
     `CirclePad Round #1: a 72-hour USDC raise into an on-chain escrow — you can withdraw until the close. $ARCIRCLE holders burn-to-vote (1,000 $ARCIRCLE per vote). At the close: 80% to the launch, 15% to the top contributor over 3 days, 5% to the platform.\n\n${round.raised != null ? "Raised so far: " + Number(round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC. " : ""}${tl ? "Closes in " + tl + " (Sep 29, 11:16 UTC)." : "Round #1 has closed — see arcircle.app/circle/round/1."}\nJoin: arcircle.app/circle`,
     `CirclePad 라운드 #1은 72시간 동안 온체인 에스크로로 USDC를 모으는 방식이에요. 마감 전까지는 언제든 인출할 수 있어요. $ARCIRCLE 홀더는 소각 투표(1표 = 1,000 $ARCIRCLE 소각)에 참여하고, 마감 때 80%는 런칭, 15%는 최대 기여자(3일 분할), 5%는 플랫폼으로 가요.\n\n${round.raised != null ? "현재 모금액: " + Number(round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC. " : ""}${tl ? "마감까지 " + tl + " 남았어요 (9월 29일 20:16 KST)." : "라운드 #1은 마감됐어요 — arcircle.app/circle/round/1 에서 결과를 봐 주세요."}\n참여: arcircle.app/circle`);
@@ -134,12 +183,13 @@ function guide(q, lang, L) {
   if (has(s, "reward", "리워드", "보상")) return A(
     `A reward program for $ARCIRCLE holders and creators is being designed — funded by ecosystem revenue, never new tokens. The rules aren't decided yet; they'll be published on arcircle.app/reward before anything goes live.`,
     `$ARCIRCLE 홀더와 크리에이터를 위한 리워드는 설계 중이에요. 새 토큰 발행이 아니라 생태계 수익으로 운영되고, 규칙은 아직 미정이에요. 시작 전에 arcircle.app/reward 에 먼저 공개돼요.`);
-  if (has(s, "arcircle", "what is", "뭐야", "무엇", "소개")) return A(
+  if (has(s, "arcircle", "뭐야", "무엇", "소개")) return A(
     `$ARCIRCLE is the core coin of ARCIRCLE PAD on Circle's Arc chain. ArcPad (instant launches) and CirclePad (community-funded launches) both feed it: launch fees, trading fees, raise shares and its own creator fee go to buybacks, liquidity and upcoming rewards. No team allocation, liquidity locked forever.\narcircle.app/arcircle`,
     `$ARCIRCLE은 Circle의 Arc 체인 위 ARCIRCLE PAD의 핵심 코인이에요. ArcPad(즉시 런칭)와 CirclePad(커뮤니티 펀딩 런칭)에서 나오는 런칭 수수료, 거래 수수료, 모금 몫, 자체 크리에이터 수수료가 바이백·유동성·리워드(예정)로 돌아와요. 팀 물량 없고, 유동성은 영구 잠김이에요.\narcircle.app/arcircle`);
   if (/^(hi|hello|hey|gm)\b/.test(s) || has(s, "안녕", "하이")) return A(
     `Hi! I'm ARCIA 💙💚 Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad.`,
     `안녕하세요! ARCIA예요 💙💚 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어봐 주세요.`);
+  if (found) return say(found);
   return A(
     `I'm still learning that one! Right now I know about $ARCIRCLE, CirclePad Round #1, Relay Launch, ArcPad and the utilities. Try one of the suggestions, or look around arcircle.app/start.`,
     `그건 아직 배우는 중이에요! 지금은 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad, 유틸리티에 대해 답할 수 있어요. 아래 추천 질문을 눌러보거나 arcircle.app/start 를 둘러봐 주세요.`);
@@ -176,7 +226,10 @@ export default async function handler(req) {
         body: JSON.stringify({
           model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
           max_tokens: 500,
-          system: `${FACTS}\n${liveText(L)}\n${RULES}\nThe site language the user picked: ${lang}.`,
+          system: [
+            { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
+            { type: "text", text: `${liveText(L)}\nThe site language the user picked: ${lang}.` },
+          ],
           messages: msgs,
         }),
       });

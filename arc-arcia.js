@@ -23,9 +23,9 @@
     zh: "你好，我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 关于 $ARCIRCLE、CirclePad 第 1 轮、接力发币或 ArcPad，尽管问我。",
   };
   var SUGG = {
-    en: ["Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?"],
-    ko: ["너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘"],
-    zh: ["你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？"],
+    en: ["Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?", "What are the risks?"],
+    ko: ["너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?", "위험 요소는 뭐야?"],
+    zh: ["你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？", "有哪些风险？"],
   };
   var ICON_SEND = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>';
   var ICON_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3.5h3l-6.6 7.5 7.8 9.5h-6.1l-4.8-5.9-5.5 5.9H2.3l7.1-8L1.9 3.5h6.2l4.3 5.4zm-1.1 15.3h1.7L7.5 5.1H5.7z"/></svg>';
@@ -179,8 +179,8 @@
               "<li><b>User trends</b><span>What the community is launching, trading and voting on</span><em>Setting up</em></li>" +
               "<li><b>Round &amp; relay alerts</b><span>CirclePad rounds and every relay</span><em>Setting up</em></li>" +
             '</ul><a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON_X + '<span>Follow @ARCIAonArc</span></a></div>' +
-            '<div class="aa-card"><h3>What ARCIA is learning</h3><div class="aa-tags"><span>$ARCIRCLE</span><span>CirclePad</span><span>Relay Launch</span><span>ArcPad</span><span>Utilities</span><span>Arc &amp; USDC</span></div>' +
-              "<p>She learns from ARCIRCLE PAD's docs and live chain data, and gets sharper with every update.</p></div>" +
+            '<div class="aa-card"><h3>What ARCIA has studied</h3><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div>' +
+              "<p>She has read every page of arcircle.app — the whitepaper, the docs, every utility and every contract address — and reads live numbers from Arc each time you ask. She keeps learning with every update.</p></div>" +
           "</aside>" +
         "</div>" +
       "</div>";
