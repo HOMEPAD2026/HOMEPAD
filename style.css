@@ -8608,3 +8608,12 @@ html.ck-open{overflow:hidden;}
 @keyframes aa-en-av{0%,45%{opacity:0;transform:scale(.4);}68%{opacity:1;transform:scale(1.06);}80%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1);}}
 @keyframes aa-en-name{0%,55%{opacity:0;transform:translateY(8px);}72%{opacity:1;transform:none;}88%{opacity:1;}100%{opacity:0;}}
 @media (prefers-reduced-motion:reduce){.aa-enter{display:none;}.aa-got .aa-pf img,.aa-got .aa-mini-av,.aa-got .aa-id .aa-av-wrap,.aa-urgent .aa-side,.aa-urgent .aa-rc-round,.aa-g-fill::after,.aa-gauge.full .aa-g-fill,.aa-rar-secret .aa-card-img::after{animation:none !important;}}
+/* CirclePad: after the close — is the 80/15/5 split out yet */
+.cp-strip-split{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;white-space:nowrap;}
+.cp-strip-split i,.cp-phero-split i{width:8px;height:8px;border-radius:50%;flex:none;}
+.cp-strip-split.ok,.cp-phero-split.ok{color:#9dffc4;}.cp-strip-split.ok i,.cp-phero-split.ok i{background:#39ff88;box-shadow:0 0 8px #39ff88;}
+.cp-strip-split.wait,.cp-phero-split.wait{color:#ffe2a8;}.cp-strip-split.wait i,.cp-phero-split.wait i{background:#ffd166;animation:cp-split-pulse 1.4s ease-in-out infinite;}
+@keyframes cp-split-pulse{50%{opacity:.3;}}
+.cp-phero-split{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:.86rem;}
+a.cp-strip-live{text-decoration:none;display:inline-flex;align-items:center;}
+@media (prefers-reduced-motion:reduce){.cp-strip-split.wait i,.cp-phero-split.wait i{animation:none;}}

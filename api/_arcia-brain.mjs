@@ -74,7 +74,7 @@ export async function live(origin, wallet) {
       price: d.price ?? null, mcap: d.mcap ?? null, holders: d.holders ?? null, change24h: d.change24h ?? null,
       burnedPct: d.burned && d.burned.pct != null ? d.burned.pct : null, burnedTokens: d.burned ? d.burned.tokens : null,
       launches: d.revenue ? d.revenue.launches : null,
-      round: { open: !!c.open, raised: c.raised ?? null, deadline: c.deadline || ROUND1_CLOSE },
+      round: { open: !!c.open, raised: c.raised ?? null, deadline: c.deadline || ROUND1_CLOSE, distributed: c.distributed ?? null },
       ...(w ? { me: { address: w.address, balance: w.balance ?? 0, rank: w.rank ?? null, of: w.of ?? null, heldDays: w.heldDays ?? 0,
         circle: w.circle ?? null, launches: w.launches ?? null, relay: (w.balance || 0) >= 100000 } } : {}),
     };
@@ -97,7 +97,7 @@ export function liveText(L) {
 - $ARCIRCLE price ${price(L.price)}, market cap ${usd(L.mcap)}, 24h change ${L.change24h == null ? "—" : L.change24h.toFixed(2) + "%"}, holders ${L.holders ?? "—"}
 - Burned so far: ${L.burnedPct == null ? "—" : L.burnedPct.toFixed(2) + "%"}${L.burnedTokens ? " (" + Math.round(L.burnedTokens).toLocaleString("en-US") + " $ARCIRCLE)" : ""}
 - ArcPad coins launched: ${L.launches ?? "—"}
-- CirclePad Round #1: ${L.round.open ? "open" : "not open / closed"}, raised ${L.round.raised == null ? "—" : Number(L.round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"}, closes ${closes}${left(L.round.deadline) ? " (" + left(L.round.deadline) + " left)" : ""}`;
+- CirclePad Round #1: ${L.round.open ? "open" : "not open / closed"}${!L.round.open && L.round.distributed === true ? " — the 80/15/5 split has been sent from the escrow" : !L.round.open && L.round.distributed === false && L.round.deadline <= Date.now() / 1000 ? " — settling: the recipient has not sent the 80/15/5 split from the escrow yet; results are on arcircle.app/circle/round/1" : ""}, raised ${L.round.raised == null ? "—" : Number(L.round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"}, closes ${closes}${left(L.round.deadline) ? " (" + left(L.round.deadline) + " left)" : ""}`;
 }
 
 const reqBody = ({ messages, L, extra, maxTokens, stream }) => JSON.stringify({

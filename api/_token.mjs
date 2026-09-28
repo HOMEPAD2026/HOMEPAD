@@ -268,7 +268,7 @@ async function liveReads(wallets) {
     bonded: launch && r[5 + wallets.length] ? big(r[5 + wallets.length]) > 0n : null,
     launches: Number(big(r[4])),
     wallets: wallets.map((w, i) => ({ ...w, arcircle: Number(big(r[5 + i])) / 1e18, usdc: natives[i] })),
-    round: round ? { started: round.started, raised: Number(round.totalRaised) / 1e18, deadline: round.deadline, isOpen: round.isOpen } : null,
+    round: round ? { started: round.started, raised: Number(round.totalRaised) / 1e18, deadline: round.deadline, isOpen: round.isOpen, distributed: round.distributed ?? null } : null,
   };
   liveCache = { at: Date.now(), v };
   return v;
@@ -352,7 +352,7 @@ async function notLiveStats(wallet) {
       usdc: r2(natives.reduce((s, v) => s + (v || 0), 0)) },
     revenue: {
       launches, launchFees: launches, allocationCoins: launches, creatorTax: null,
-      circle: round ? { started: round.started, raised: r2(Number(round.totalRaised) / 1e18), share: r2((Number(round.totalRaised) / 1e18) * 0.05), open: round.isOpen, deadline: round.deadline } : null,
+      circle: round ? { started: round.started, raised: r2(Number(round.totalRaised) / 1e18), share: r2((Number(round.totalRaised) / 1e18) * 0.05), open: round.isOpen, deadline: round.deadline, distributed: round.distributed ?? null } : null,
     },
   };
   if (isAddr(wallet)) {
@@ -436,7 +436,7 @@ export async function tokenStats(wallet) {
       launches: live.launches, launchFees: live.launches * 1, allocationCoins: live.launches,
       creatorTax: POOL ? (L ? r2((((W.agg.buyVol || 0) * L.buyTaxBps + (W.agg.sellVol || 0) * L.sellTaxBps) / 1e4) * (1 - ARGUS_SHARE_BPS / 1e4)) : null) : r2(W.agg.tax),
       curveVolume: r2(W.agg.vol), curveTrades: W.agg.n,
-      circle: live.round ? { started: live.round.started, raised: r2(live.round.raised), share: r2(live.round.raised * 0.05), open: live.round.isOpen, deadline: live.round.deadline } : null,
+      circle: live.round ? { started: live.round.started, raised: r2(live.round.raised), share: r2(live.round.raised * 0.05), open: live.round.isOpen, deadline: live.round.deadline, distributed: live.round.distributed ?? null } : null,
     },
     launchedAt: LAUNCHED_AT,
     argus: POOL ? argusOut(L, live) : null,

@@ -90,8 +90,8 @@
       <span class="cp-strip-raised"><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span>
       <span class="cp-strip-n"><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
       ${burnOn() ? `<span class="cp-strip-burn"><small>${T("Burned by votes")}</small><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b></span>` : ""}
-      ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${left(clock[1] - nowS())}</b></span>` : ""}
-      ${ph === "raise" || ph === "voting" ? `<button type="button" class="cp-strip-live" data-cp-live>${T("Live screen")}</button>` : ""}
+      ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${clock[1] > nowS() ? left(clock[1] - nowS()) : T("Closing…")}</b></span>` : ""}
+      ${ph === "raise" || ph === "voting" ? `<button type="button" class="cp-strip-live" data-cp-live>${T("Live screen")}</button>` : `<span class="cp-strip-split ${r.distributed ? "ok" : "wait"}"><i></i>${T(r.distributed ? "Split sent" : "Settling the split")}</span><a class="cp-strip-live" href="/circle/round/1">${T("Round report")}</a>`}
       <i class="cp-strip-more" aria-hidden="true"></i>`;
     strip.setAttribute("aria-expanded", strip.classList.contains("open") ? "true" : "false");
   }
@@ -146,6 +146,7 @@
       hero.innerHTML = `<div class="cp-phero-copy">
           <span class="cp-phero-eyebrow">${T("Round #1 · the vote is in")}</span>
           <h2>${T("This is the coin the circle chose.")}</h2>
+          <p class="cp-phero-split ${R() && R().distributed ? "ok" : "wait"}"><i></i>${T(R() && R().distributed ? "Split sent — 80 / 15 / 5 paid out from the escrow." : "Settling — the recipient sends the 80 / 15 / 5 split from the escrow next.")}</p>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned to decide it")}</span></div>
           <div class="cp-phero-cta">${launchAt > nowS() ? `<span class="cp-phero-clock"><small>${T("Launches in")}</small><b data-no-i18n data-cp-to="${launchAt}">${left(launchAt - nowS())}</b></span>` : ""}<button type="button" class="bp-btn-ghost" data-cp-reveal>${T("Replay the reveal")}</button><a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a></div>
         </div>
@@ -575,7 +576,7 @@
     // a short curtain while the chain catches up
     const el = document.createElement("div");
     el.className = "cp-closing"; el.setAttribute("role", "status");
-    el.innerHTML = `<div class="cp-closing-box"><span class="cp-flame" aria-hidden="true"></span><b>${T("Voting has closed")}</b><p>${T("Counting the votes on-chain — the result opens in a moment.")}</p></div>`;
+    el.innerHTML = `<div class="cp-closing-box"><span class="cp-flame" aria-hidden="true"></span><b>${T(R() && R().isOpen === false || deadline() <= nowS() ? "Round #1 has closed" : "Voting has closed")}</b><p>${T("Counting the votes on-chain — the result opens in a moment.")}</p></div>`;
     document.body.appendChild(el); closing.el = el;
     if (!reduce()) requestAnimationFrame(() => el.classList.add("in")); else el.classList.add("in", "still");
     const pull = async () => {
@@ -611,7 +612,11 @@
   document.addEventListener("arc:lang", paintAll);
   document.addEventListener("circlepad:tz", paintAll);
   setInterval(() => {
-    document.querySelectorAll("[data-cp-to]").forEach((el) => { el.textContent = left(Number(el.dataset.cpTo) - nowS()); });
+    document.querySelectorAll("[data-cp-to]").forEach((el) => {
+      const rem = Number(el.dataset.cpTo) - nowS();
+      // a raise / vote clock that hit zero waits for the chain: say so instead of "0m 0s"
+      el.textContent = rem <= 0 && el.closest(".cp-strip-clock, .cp-phero.voting, .cp-phero.upcoming") ? T("Closing…") : left(rem);
+    });
     const gp = $("bp-panel-governance");
     document.body.classList.toggle("cp-gov-tab", !!(gp && gp.classList.contains("active")));
     paintTimeline();

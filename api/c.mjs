@@ -637,6 +637,10 @@ async function reportPage(url) {
     }).join("")}</ol>` : `<p class="muted">Candidates not published.</p>`}</section>`;
   }).join("");
   const split = [["Recipient wallet", 80, "The project's funds"], ["Treasury wallet", 15, "Paid to the top contributor over 3 days"], ["Platform wallet", 5, "$ARCIRCLE buybacks and promotion"]];
+  // after the close the recipient sends the split out of the escrow in one transaction
+  const sent = !!(st && st.distributed === true);
+  const splitNote = !final ? "" : sent ? `<p class="sst ok"><i></i>Split sent — the escrow paid out 80 / 15 / 5 in one transaction.</p>`
+    : `<p class="sst wait"><i></i>Settling — the raise is closed; the round's recipient sends the 80 / 15 / 5 split from the escrow in one transaction. This page updates when it lands.</p>`;
   const opened = st && st.deadline ? st.deadline - 72 * 3600 : 0;
   return html(`<!doctype html>
 <html lang="en"><head>
@@ -708,6 +712,11 @@ h2{font:700 1.1rem Sora,sans-serif;margin:30px 0 12px}
 .btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:12px;font:600 .9rem Inter,sans-serif;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff}
 .btn.p{background:#fff;color:#050505;border-color:#fff}
 .muted{color:var(--dim)}
+.sst{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:14px;font-size:.86rem;border:1px solid}
+.sst i{flex:none;width:9px;height:9px;border-radius:50%}
+.sst.ok{color:#b6ffd5;border-color:rgba(57,255,136,.4);background:rgba(57,255,136,.06)}.sst.ok i{background:var(--g);box-shadow:0 0 8px var(--g)}
+.sst.wait{color:#ffe2a8;border-color:rgba(255,209,102,.4);background:rgba(255,209,102,.06)}.sst.wait i{background:var(--y);animation:pl 1.4s ease-in-out infinite}
+@keyframes pl{50%{opacity:.3}}
 footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:.78rem;color:var(--dim)}
 @media (max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cats{grid-template-columns:1fr}.coin{flex-direction:column;align-items:flex-start}.acts .btn{flex:1 1 auto}}
 </style>
@@ -731,6 +740,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-si
   <h2>Every category</h2>
   <div class="cats">${catHtml || `<p class="muted">The ballot couldn't be read right now — reload in a moment.</p>`}</div>
   <h2>The split${final ? "" : " (at today's total)"}</h2>
+  ${splitNote}
   <div class="split">${split.map(([k, p, note]) => `<div><b>${k}</b><em>${p}% · ≈ ${usd((raised * p) / 100)} USDC</em><small>${note}</small></div>`).join("")}</div>
   <h2>Timeline</h2>
   <ol class="tl">
@@ -753,7 +763,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-si
   }).catch(function () {});
 })();
 </script>
-</body></html>`, final ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
+</body></html>`, final && sent ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" : final ? "public, max-age=0, s-maxage=30, stale-while-revalidate=120" : "public, max-age=0, s-maxage=60, stale-while-revalidate=300");
 }
 
 // ---- the newest ArcPad coins, for the landing page (/api/c?view=latest[&n=3]) ----

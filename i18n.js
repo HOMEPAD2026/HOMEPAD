@@ -2809,6 +2809,13 @@
     "More with ARCIA": "ARCIA와 더 하기",
     "Send ARCIA a heart": "ARCIA에게 하트 보내기",
     "Today's hearts": "오늘의 하트",
+    "Split sent": "분배 완료",
+    "Settling the split": "분배 정산 중",
+    "Split sent — 80 / 15 / 5 paid out from the escrow.": "분배 완료 — 에스크로에서 80 / 15 / 5가 지급됐어요.",
+    "Settling — the recipient sends the 80 / 15 / 5 split from the escrow next.": "정산 중 — 곧 수령 지갑이 에스크로에서 80 / 15 / 5 분배를 실행해요.",
+    "CirclePad · Round #1 closed · see the result": "CirclePad · 라운드 #1 마감 · 결과 보기",
+    "Closing…": "마감 처리 중…",
+    "Round #1 has closed": "라운드 #1이 마감됐어요",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5983,6 +5990,13 @@
     "More with ARCIA": "和 ARCIA 一起",
     "Send ARCIA a heart": "给 ARCIA 送爱心",
     "Today's hearts": "今日爱心",
+    "Split sent": "已完成分配",
+    "Settling the split": "正在结算分配",
+    "Split sent — 80 / 15 / 5 paid out from the escrow.": "分配完成 —— 托管已按 80 / 15 / 5 支付。",
+    "Settling — the recipient sends the 80 / 15 / 5 split from the escrow next.": "结算中 —— 接收钱包接下来会从托管执行 80 / 15 / 5 分配。",
+    "CirclePad · Round #1 closed · see the result": "CirclePad · 第 1 轮已截止 · 查看结果",
+    "Closing…": "正在截止…",
+    "Round #1 has closed": "第 1 轮已截止",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];

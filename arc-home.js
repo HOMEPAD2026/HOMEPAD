@@ -98,8 +98,10 @@
       put("raised", c.raised || 0, function (v) { return v.toLocaleString("en-US", { maximumFractionDigits: v >= 100 ? 0 : 2 }); });
       if (changed("raised", c.raised)) spark();
       var st = $("[data-hm-round-st]");
-      if (st) st.textContent = tr(c.open ? "CirclePad · Round #1 live" : c.started ? "CirclePad · Round #1 closed" : "CirclePad · Round #1");
+      var closed = !c.open && c.started;
+      if (st) st.textContent = tr(c.open ? "CirclePad · Round #1 live" : closed ? "CirclePad · Round #1 closed · see the result" : "CirclePad · Round #1");
       $(".hm-round").classList.toggle("live", !!c.open);
+      $(".hm-round").setAttribute("href", closed ? "/circle/round/1" : "/circle");
       roundTo = c.open && c.deadline ? Number(c.deadline) : 0;
       tickClock();
     }

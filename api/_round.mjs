@@ -16,7 +16,7 @@ export const kec = (s) => "0x" + Array.from(keccak_256(te.encode(String(s))), (b
 const sel = (sig) => kec(sig).slice(0, 10);
 export const S = {
   started: sel("started()"), deadline: sel("deadline()"), totalRaised: sel("totalRaised()"), cap: sel("cap()"),
-  recipient: sel("recipient()"), isOpen: sel("isOpen()"), contributions: sel("contributions(address)"), contribute: sel("contribute()"),
+  recipient: sel("recipient()"), isOpen: sel("isOpen()"), distributed: sel("distributed()"), contributions: sel("contributions(address)"), contribute: sel("contribute()"),
   launches: "0x7b443a76", launchCount: "0x27cca59f", balanceOf: "0x70a08231",
   optionsSet: sel("optionsSet(uint8)"), votingEnds: sel("votingEnds()"),
 };
@@ -27,9 +27,10 @@ const lc = (a) => String(a || "").toLowerCase();
 let roundCache = null;
 export async function roundState() {
   if (roundCache && Date.now() - roundCache.at < 15e3) return roundCache.v;
-  const r = await ethCalls(["started", "deadline", "totalRaised", "cap", "recipient", "isOpen"].map((k) => ({ to: ESCROW, data: S[k] })));
+  const r = await ethCalls(["started", "deadline", "totalRaised", "cap", "recipient", "isOpen", "distributed"].map((k) => ({ to: ESCROW, data: S[k] })));
   if (r[0] == null || r[4] == null) throw new Error("escrow unreadable");
-  const v = { started: big(r[0]) > 0n, deadline: Number(big(r[1])), totalRaised: big(r[2]), cap: big(r[3]), recipient: lc(wAddr(r[4], 0)), isOpen: big(r[5]) > 0n };
+  // distributed: the recipient has sent the 80/15/5 split out of the escrow (null if unreadable this time)
+  const v = { started: big(r[0]) > 0n, deadline: Number(big(r[1])), totalRaised: big(r[2]), cap: big(r[3]), recipient: lc(wAddr(r[4], 0)), isOpen: big(r[5]) > 0n, distributed: r[6] == null ? null : big(r[6]) > 0n };
   roundCache = { at: Date.now(), v };
   return v;
 }
