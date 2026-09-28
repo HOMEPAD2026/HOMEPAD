@@ -3979,6 +3979,8 @@
     "Adds": "增加",
     "The cart is leaving": "矿车出发",
     "Mining": "挖矿",
+    "The Builder Mine contract is on Arc. Mining opens as soon as the server side is switched on — until then, the practice mine is open.": "Builder Mine 合约已部署到 Arc。服务器端开启后即可挖矿——在此之前请使用练习矿场。",
+    "Builder Mine is being switched on — try again in a little while.": "Builder Mine 正在开启——请稍后再试。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

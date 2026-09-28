@@ -804,6 +804,7 @@
   function paintBanner() {
     const el = $("bm-banner");
     if (!el) return;
+    if (S.setup) { el.hidden = false; el.innerHTML = `<b>${T("Setting up")}</b> ${T("The Builder Mine contract is on Arc. Mining opens as soon as the server side is switched on — until then, the practice mine is open.")}`; return; }
     if (!S.live) { el.hidden = false; el.innerHTML = `<b>${T("Practice mine")}</b> ${T("The Builder Mine contract isn't live on Arc yet. Mine here for fun — the game is the same, but nothing is sent, paid or claimed.")}`; return; }
     const rd = S.cfg && S.cfg.ready;
     if (S.cfg && S.cfg.joinsPaused) { el.hidden = false; el.innerHTML = `<b>${T("Paused")}</b> ${T("New mines and joins are paused for a moment. Mining, claims and burns carry on.")}`; return; }
@@ -1393,6 +1394,10 @@
     S.cfg = j && !j.error ? j : null;
     if (S.cfg && S.cfg.game) S.G = { ...DEFAULT_GAME, ...S.cfg.game };
     S.live = !!(S.cfg && S.cfg.live);
+    // deployed but the server side isn't switched on yet (operator key, secret, storage): stay in practice mode
+    const rd = S.cfg && S.cfg.ready;
+    S.setup = S.live && !!rd && !(rd.secret && rd.store && rd.operatorKey && rd.operatorMatches !== false);
+    if (S.setup) S.live = false;
     S.address = S.cfg && S.cfg.address ? S.cfg.address : "";
     S.practice = !S.live;
   }
@@ -1588,7 +1593,7 @@
   // transactions
   // =====================================================================================
   async function withTx(fn) {
-    if (!mineAddr()) { toast("The Builder Mine contract isn't live yet."); return false; }
+    if (!mineAddr() || S.setup) { toast(S.setup ? "Builder Mine is being switched on — try again in a little while." : "The Builder Mine contract isn't live yet."); return false; }
     if (!state.account && typeof connectWallet === "function") await connectWallet();
     if (!state.account) return false;
     try {

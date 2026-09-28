@@ -32,7 +32,7 @@ import { sendTx, addressOfKey } from "./_x402.mjs";
 export const SITE = "https://www.arcircle.app";
 // BuilderMine on Arc mainnet — keep in step with config-arc.js (BUILDER_MINE_ADDRESS). Empty = not deployed:
 // the page runs its practice mine and every write endpoint says so.
-export const MINE_ADDRESS_DEFAULT = "";
+export const MINE_ADDRESS_DEFAULT = "0x1538c76917dE5911D71c5C397ff18cA09d52B019"; // Arc mainnet, block 23279278
 export const mineAddress = () => { const e = String(process.env.BUILDER_MINE_ADDRESS || "").trim(); return isAddr(e) ? e.toLowerCase() : MINE_ADDRESS_DEFAULT.toLowerCase(); };
 export const live = () => isAddr(mineAddress());
 

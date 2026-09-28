@@ -3,3 +3,10 @@ contracts/node_modules/
 contracts/artifacts/
 contracts/cache/
 .env
+
+# editor swap / backup files (nano leaves ..env.swp next to .env — it holds the same secrets)
+*.swp
+*.swo
+*~
+.env.*
+!.env.example

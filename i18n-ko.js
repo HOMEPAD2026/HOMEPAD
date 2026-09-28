@@ -3886,6 +3886,8 @@
     "Adds": "추가",
     "The cart is leaving": "카트 출발",
     "Mining": "채굴",
+    "The Builder Mine contract is on Arc. Mining opens as soon as the server side is switched on — until then, the practice mine is open.": "Builder Mine 컨트랙트가 Arc에 올라갔어요. 서버 설정이 끝나면 바로 채굴이 열려요 — 그때까지는 연습 광산을 이용해 주세요.",
+    "Builder Mine is being switched on — try again in a little while.": "Builder Mine을 켜는 중이에요 — 잠시 후 다시 시도해 주세요.",
   };
 
 

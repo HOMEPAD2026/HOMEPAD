@@ -99,6 +99,7 @@ export async function POST(req) {
     const id = q.shares != null ? q.shares : q.xpost;
     if (!idOk(id) || !isAddr(b.w)) return json({ error: "mine id and wallet required" }, 400);
     if (!M.live()) return json({ error: "Builder Mine isn't deployed yet — this is the practice mine." }, 409);
+    if (!M.operatorAddress()) return json({ error: "Builder Mine is being switched on — mining opens in a little while." }, 409);
     if (!M.session(b.s, b.w)) return json({ error: "Sign in again.", auth: true }, 401);
     if (q.shares != null) {
       const r = await M.submitShares(Number(id), b.w, b.nonces);

@@ -168,7 +168,7 @@ const CONFIG = {
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
   // The server reads BUILDER_MINE_ADDRESS (Vercel env) or api/_mine.mjs — keep them in step.
-  BUILDER_MINE_ADDRESS: "",
+  BUILDER_MINE_ADDRESS: "0x1538c76917dE5911D71c5C397ff18cA09d52B019", // Arc mainnet, block 23279278
 
   // --- Relay Launch (arcpad.html#relay, arc-relay.js) ---
   // After a CirclePad round closes, the round's recipient wallet launches the
