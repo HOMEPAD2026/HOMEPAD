@@ -17,10 +17,31 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (mobileMenuLabel) {
       const activeBtn = [...navItems].find((b) => b.dataset.tab === tab);
-      if (activeBtn) mobileMenuLabel.textContent = activeBtn.textContent.trim();
+      if (activeBtn) {
+        mobileMenuLabel.textContent = activeBtn.textContent.trim();
+        // the tab's icon next to its name, as on ArcPad
+        const ico = document.getElementById("bp-mm-ico"), svg = activeBtn.querySelector("svg");
+        if (ico) ico.innerHTML = svg ? svg.outerHTML : "";
+      }
+      fitMobileMenu();
     }
     if (sidebar) sidebar.classList.remove("bp-menu-open");
   }
+  // phones: the tab name gets the room the wallet and the buttons leave; when it wouldn't fit only
+  // the tab's icon shows (the same as ArcPad)
+  function fitMobileMenu() {
+    const trig = document.getElementById("bp-mobile-menu-trigger"), right = document.querySelector(".bp-topbar-right");
+    if (!trig || !mobileMenuLabel) return;
+    if (innerWidth > 900) { trig.classList.remove("icon-only"); trig.style.maxWidth = ""; return; }
+    const room = innerWidth - (right ? right.getBoundingClientRect().width : 0) - 36;
+    trig.style.maxWidth = Math.max(56, room) + "px";
+    trig.classList.remove("icon-only");
+    if (mobileMenuLabel.scrollWidth > mobileMenuLabel.clientWidth + 1) trig.classList.add("icon-only");
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(fitMobileMenu));
+  if ("ResizeObserver" in window) { const r = document.querySelector(".bp-topbar-right"); if (r) new ResizeObserver(() => requestAnimationFrame(fitMobileMenu)).observe(r); }
+  document.addEventListener("arc:lang", () => setTimeout(fitMobileMenu, 50));
+  setTimeout(fitMobileMenu, 0);
 
   navItems.forEach((btn) => {
     btn.addEventListener("click", () => showTab(btn.dataset.tab));
