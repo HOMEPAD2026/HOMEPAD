@@ -53,7 +53,7 @@ export async function tokenMeta(token) {
   token = lc(token);
   if (metaMem.has(token)) return metaMem.get(token);
   const [s, d] = await ethCalls([{ to: token, data: SEL.symbol }, { to: token, data: SEL.decimals }]).catch(() => [null, null]);
-  const out = { symbol: decodeStr(s).replace(/[^\w$.-]/g, "").slice(0, 16) || "TOKEN", decimals: d ? Number(BigInt(d)) : 18 };
+  const out = { symbol: [...decodeStr(s).replace(/[\u0000-\u001f\u007f<>"'&`\\]/g, "").trim()].slice(0, 16).join("") || "TOKEN", decimals: d ? Number(BigInt(d)) : 18 };
   metaMem.set(token, out); cap(metaMem, 500);
   return out;
 }

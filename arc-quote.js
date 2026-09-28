@@ -89,9 +89,9 @@ function arcQuoteMeta(addr) {
     if (supply === 0n) throw new Error("That token has zero supply.");
     const symbol = await withRetry(() => t.symbol(), { tries: 3 }).catch(() => "TOKEN");
     const name = await withRetry(() => t.name(), { tries: 3 }).catch(() => symbol);
-    // Symbol / name come from an arbitrary contract: keep them to plain
-    // characters so they're safe wherever they're shown.
-    const cleanSym = String(symbol).replace(/[^A-Za-z0-9$._-]/g, "").slice(0, 16) || "TOKEN";
+    // Symbol / name come from an arbitrary contract: no markup characters, quotes, spaces or
+    // control characters, so they're safe wherever they're shown — emoji tickers (♾️) stay.
+    const cleanSym = [...String(symbol).replace(/[\u0000-\u0020\u007f<>"'`&\\]/g, "")].slice(0, 16).join("") || "TOKEN";
     const cleanName = String(name).replace(/[<>"'`&]/g, "").slice(0, 48) || cleanSym;
     return { address: a, symbol: cleanSym, name: cleanName, decimals, isUsdc: arcIsUsdc(a) };
   })();
