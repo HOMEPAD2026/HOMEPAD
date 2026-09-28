@@ -17,16 +17,15 @@ const { verifyIfPossible } = require("./lib/verify");
 const USDC = "0x3600000000000000000000000000000000000000";
 const ARCIRCLE = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
 const E = (n) => ethers.parseEther(String(n));
-// [price in $ARCIRCLE, pickaxe tier, boost kind, seconds] — keep in step with arc-mine.js ITEMS
+// [price in $ARCIRCLE, pickaxe tier, boost kind, seconds] — keep in step with api/_mine.mjs GAME.items
 const ITEMS = [
-  [50_000, 1, 0, 0],        // Stone pickaxe     ×1.2
-  [150_000, 2, 0, 0],       // Iron pickaxe      ×1.5
-  [400_000, 3, 0, 0],       // Gold pickaxe      ×1.8
-  [1_000_000, 4, 0, 0],     // Diamond pickaxe   ×2.2
-  [2_500_000, 5, 0, 0],     // Infinite pickaxe  ×2.6
+  [50_000, 1, 0, 0],        // Stone pickaxe     ×1.25
+  [200_000, 2, 0, 0],       // Iron pickaxe      ×1.6
+  [800_000, 3, 0, 0],       // Diamond pickaxe   ×2.1
+  [2_500_000, 4, 0, 0],     // Arcane pickaxe    ×2.6
   [30_000, 0, 1, 86400],    // Lantern           +15% for 24h
   [20_000, 0, 2, 3600],     // Dynamite          +50% for 1h
-  [40_000, 0, 3, 86400],    // Lucky charm       rare ores ×2 for 24h
+  [40_000, 0, 3, 86400],    // Lucky charm       rare ores twice as often for 24h
   [30_000, 0, 4, 86400],    // Overtime          +50% hourly cap for 24h
 ];
 

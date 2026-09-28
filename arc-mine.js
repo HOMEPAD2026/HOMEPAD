@@ -40,24 +40,42 @@
     "function burnUnclaimed(uint256 id)",
   ];
   const ERC20 = ["function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)", "function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)", "function symbol() view returns (string)", "function name() view returns (string)"];
-  const LAYER_COL = [["#6aa84f", "#4f7d3a"], ["#b98352", "#8a5e38"], ["#8a92a0", "#666e7c"], ["#9a8a5a", "#6f6340"], ["#4d5a74", "#343f55"], ["#8f3b2b", "#5e2419"]];
-  const PICK_COL = ["#a8743f", "#9aa1ab", "#d9dee6", "#ffc861", "#6ff3ff", "url"];
+  // layer colours under the block textures: Grass, Dirt, Stone, Ore, Deep Rock, Bedrock
+  const LAYER_COL = [["#6f8f3f", "#5b4630"], ["#8a5a36", "#5e3b22"], ["#7b808a", "#555a64"], ["#4a4650", "#2e2b33"], ["#5a2630", "#35141b"], ["#3b3e45", "#1f2126"]];
+  const LAYER_TEX = ["grass", "dirt", "stone", "ore", "deep", "bedrock"];
+  const TEX_OF = ["dirt", "dirt", "stone", "ore", "deep", "bedrock"]; // the grass layer is dirt under its green top
+  const ORE_COL = { copper: "#ff9a4d", silver: "#e6ecf5", gold: "#ffd35c", diamond: "#7ff6ff", arc: "#c38bff" };
   const DEFAULT_GAME = {
-    epoch: 3600, shareBits: 21, goldBits: 27, diamondBits: 31, goldPoints: 20, diamondPoints: 100, cap: 600, batchEvery: 12, minGap: 8, maxBatch: 60, bonusCap: 100,
-    layers: ["Topsoil", "Clay", "Stone", "Ore vein", "Deep rock", "Core"], layerParts: [32, 16, 8, 4, 2, 1],
-    pickaxes: [{ tier: 0, name: "Wooden pickaxe", mult: 1 }, { tier: 1, name: "Stone pickaxe", mult: 1.2 }, { tier: 2, name: "Iron pickaxe", mult: 1.5 }, { tier: 3, name: "Gold pickaxe", mult: 1.8 }, { tier: 4, name: "Diamond pickaxe", mult: 2.2 }, { tier: 5, name: "Infinite pickaxe", mult: 2.6 }],
+    epoch: 3600, shareBits: 21, cap: 600, batchEvery: 12, minGap: 8, maxBatch: 60, bonusCap: 100,
+    ores: [{ kind: "copper", name: "Copper", extra: 2, pts: 1 }, { kind: "silver", name: "Silver", extra: 4, pts: 2 }, { kind: "gold", name: "Gold", extra: 6, pts: 10 }, { kind: "diamond", name: "Diamond", extra: 10, pts: 60 }, { kind: "arc", name: "Arc Crystal", extra: 14, pts: 500 }],
+    layers: ["Grass", "Dirt", "Stone", "Ore", "Deep Rock", "Bedrock"], layerParts: [32, 16, 8, 4, 2, 1],
+    pickaxes: [{ tier: 0, id: "wood", name: "Wood pickaxe", mult: 1 }, { tier: 1, id: "stone", name: "Stone pickaxe", mult: 1.25 }, { tier: 2, id: "iron", name: "Iron pickaxe", mult: 1.6 }, { tier: 3, id: "diamond", name: "Diamond pickaxe", mult: 2.1 }, { tier: 4, id: "arcane", name: "Arcane pickaxe", mult: 2.6 }],
+    ranks: [{ id: "apprentice", name: "Apprentice", min: 0, pct: 0 }, { id: "miner", name: "Miner", min: 1000, pct: 2 }, { id: "foreman", name: "Foreman", min: 10000, pct: 4 }, { id: "architect", name: "Architect", min: 50000, pct: 6 }, { id: "legend", name: "Legend", min: 200000, pct: 10 }],
+    characters: [{ id: "apprentice", name: "Apprentice", rank: 0 }, { id: "explorer", name: "Explorer", rank: 0 }, { id: "engineer", name: "Engineer", rank: 1 }, { id: "foreman", name: "Foreman", rank: 2 }, { id: "architect", name: "Architect", rank: 3 }],
+    pets: [{ id: "arccat", name: "Arc Cat", rank: 0 }, { id: "arcia", name: "ARCIA", rank: 1 }, { id: "mole", name: "Mole", rank: 2 }, { id: "picko", name: "Picko", rank: 3 }, { id: "orego", name: "Orego", rank: 4 }],
     boosts: [{ kind: 1, name: "Lantern", effect: "+15% for 24 h", pct: 15 }, { kind: 2, name: "Dynamite", effect: "+50% for 1 h", pct: 50 }, { kind: 3, name: "Lucky charm", effect: "rare ores twice as often for 24 h", pct: 0 }, { kind: 4, name: "Overtime", effect: "+50% hourly cap for 24 h", pct: 0 }],
     holder: [[100000, 10], [1000000, 20], [5000000, 30]], postPct: 5, postMax: 5, refPct: 5, refMax: 5, referredPct: 5, streakPct: 2, streakMax: 10, streakMin: 30,
-    items: [[50000, 1, 0, 0], [150000, 2, 0, 0], [400000, 3, 0, 0], [1000000, 4, 0, 0], [2500000, 5, 0, 0], [30000, 0, 1, 86400], [20000, 0, 2, 3600], [40000, 0, 3, 86400], [30000, 0, 4, 86400]],
+    items: [[50000, 1, 0, 0], [200000, 2, 0, 0], [800000, 3, 0, 0], [2500000, 4, 0, 0], [30000, 0, 1, 86400], [20000, 0, 2, 3600], [40000, 0, 3, 86400], [30000, 0, 4, 86400]],
   };
-
+  // the art (images/mine/, cut from the Builder Mine concept sheet)
+  const ART = "/images/mine/";
+  const IMG = {};
+  const img = (k) => { if (!IMG[k]) { const i = new Image(); i.decoding = "async"; i.src = ART + k + ".webp"; IMG[k] = i; } return IMG[k]; };
+  const ok = (i) => i && i.complete && i.naturalWidth > 0;
+  const src = (k) => ART + k + ".webp";
+  function preload() {
+    ["char-apprentice", "char-explorer", "char-engineer", "char-foreman", "char-architect", "act-1", "act-2", "act-3",
+      "pet-arccat", "pet-arcia", "pet-mole", "pet-picko", "pet-orego", "ore-copper", "ore-silver", "ore-gold", "ore-diamond", "ore-arc",
+      "block-grass", "block-dirt", "block-stone", "block-ore", "block-deep", "block-bedrock", ...TEX_OF.map((t) => "tex-" + t)].forEach(img);
+  }
   const S = {
-    booted: false, cfg: null, G: DEFAULT_GAME, list: [], id: null, view: null, me: null, tab: "rig",
+    booted: false, cfg: null, G: DEFAULT_GAME, list: [], id: null, view: null, me: null, tab: "builder",
     live: false, address: "", practice: false,
     sess: null, mining: false, workers: [], rates: {}, queue: [], work: null, power: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 2) - 1)),
-    local: { shares: 0, gold: 0, diamond: 0, dug: 0 }, subTimer: 0, pollTimer: 0, clock: 0, busy: false, capHit: false,
+    local: { shares: 0, ores: {}, dug: 0 }, subTimer: 0, pollTimer: 0, clock: 0, busy: false, capHit: false,
   };
   const G = () => S.G;
+  try { S.look = JSON.parse(lsGet("bm.look") || "null"); } catch (e) { S.look = null; }
   const mineAddr = () => S.address || ((typeof CONFIG !== "undefined" && isAddr(CONFIG.BUILDER_MINE_ADDRESS)) ? CONFIG.BUILDER_MINE_ADDRESS : "");
   const api = async (q, opt) => { const r = await fetch(`/api/mine?${q}`, { cache: "no-store", ...(opt || {}) }); const j = await r.json().catch(() => ({})); if (!r.ok && !j.error) j.error = `HTTP ${r.status}`; j._status = r.status; return j; };
   const post = (q, body) => api(q, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -67,14 +85,19 @@
   // =====================================================================================
   const Scene = (() => {
     let cv = null, cx = null, W = 0, H = 0, dpr = 1, raf = 0, last = 0, on = false;
-    const LH = 340, SURF = 190;                      // layer height, sky above the surface (world px)
-    let depth = 0.06, targetDepth = 0.06, tier = 0, t = 0, swing = 0, swingV = 0, hit = 0, shake = 0, flash = 0, flashCol = "#fff", crack = 0;
-    let parts = [], floats = [], idle = true, label = "", layerNames = DEFAULT_GAME.layers;
-    let rocks = null;
-    const rnd = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+    const LH = 360, SURF = 190;                      // layer height, sky above the surface (world px)
+    let depth = 0.06, targetDepth = 0.06, t = 0, swingT = 1, hitAt = -9, shake = 0, flash = 0, flashCol = "#fff", crack = 0, petJump = 0, jackpot = 0;
+    let parts = [], floats = [], pops = [], idle = true, label = "", layerNames = DEFAULT_GAME.layers, look = { char: "apprentice", pet: "arccat" };
+    let rocks = null, pats = {};
+    const rnd = (() => { let s = 11; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
     function makeRocks() {
       rocks = [];
-      for (let l = 0; l < 6; l++) for (let i = 0; i < 26; i++) rocks.push({ l, x: rnd(), y: rnd(), r: 5 + rnd() * 16, a: rnd() * 6.28, ore: rnd() < (0.05 + l * 0.035) ? (rnd() < 0.18 + l * 0.05 ? "d" : "g") : "" });
+      const kinds = ["copper", "copper", "silver", "gold", "diamond", "arc"];
+      for (let l = 0; l < 6; l++) for (let i = 0; i < 14; i++) {
+        const deep = l / 5, r = rnd();
+        const ore = r < 0.28 ? kinds[Math.min(5, Math.floor(rnd() * (2 + l * 0.9)))] : "";
+        rocks.push({ l, x: rnd(), y: rnd(), s: 12 + rnd() * 14 + deep * 6, a: rnd() * 6.28, ore, b: rnd() < 0.08 ? LAYER_TEX[l] : "" });
+      }
     }
     function size() {
       if (!cv) return;
@@ -82,10 +105,11 @@
       dpr = Math.min(2, window.devicePixelRatio || 1);
       W = Math.max(280, r.width); H = Math.max(240, r.height);
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.imageSmoothingQuality = "high";
+      pats = {};
     }
-    function mount(c) { cv = c; cx = c.getContext("2d"); if (!rocks) makeRocks(); size(); }
-    const worldY = () => SURF + depth * LH * 6;        // the builder's feet (at 68% of the view)
+    function mount(c) { cv = c; cx = c.getContext("2d"); if (!rocks) makeRocks(); preload(); size(); }
+    const worldY = () => SURF + depth * LH * 6;
     function start() { if (on || !cv) return; on = true; last = performance.now(); raf = requestAnimationFrame(loop); }
     function stop() { on = false; cancelAnimationFrame(raf); }
     function loop(ts) {
@@ -94,166 +118,213 @@
       step(dt); draw();
       raf = requestAnimationFrame(loop);
     }
+    // the builder's spot, size and the rock face in front (screen px)
+    const geo = () => { const mob = W < 520, ch = Math.min(H * 0.42, mob ? 150 : 210), bx = W * (mob ? 0.52 : 0.56), fy = H * (mob ? 0.6 : 0.72); return { mob, ch, bx, fy, fx: bx + ch * 0.42, gh: ch * 1.18 }; };
+    function face() { const g = geo(); return { x: g.fx + 6, y: g.fy - g.ch * 0.45 }; }
     function step(dt) {
       depth += (targetDepth - depth) * Math.min(1, dt * 1.5);
-      // idle swing while mining: a steady rhythm; a found share adds a hard hit
-      if (!idle) { swingV += dt * 1.25; if (swingV >= 1) { swingV -= 1; chips(3, 0.6); crack = Math.min(1, crack + 0.02); } }
-      else swingV = Math.max(0, swingV - dt);
-      const phase = idle ? 0 : swingV;
-      const target = idle ? 0.15 : phase < 0.62 ? -1.25 * (phase / 0.62) : -1.25 + 2.1 * Math.min(1, (phase - 0.62) / 0.18);
-      swing += (target - swing) * Math.min(1, dt * 18);
-      hit = Math.max(0, hit - dt * 3); shake = Math.max(0, shake - dt * 2.4); flash = Math.max(0, flash - dt * 2.2);
+      if (!idle) { swingT += dt * 1.15; if (swingT >= 1) { swingT = 0; } if (swingT > 0.55 && swingT - dt * 1.15 <= 0.55) { chips(4, 0.7); crack = Math.min(1, crack + 0.03); } }
+      shake = Math.max(0, shake - dt * 2.4); flash = Math.max(0, flash - dt * 2); petJump = Math.max(0, petJump - dt * 2.2); jackpot = Math.max(0, jackpot - dt * 0.45);
       for (const p of parts) { p.vy += (p.g == null ? 900 : p.g) * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.rot += p.vr * dt; }
       parts = parts.filter((p) => p.life > 0);
-      for (const f of floats) { f.y -= 42 * dt; f.life -= dt; }
+      for (const f of floats) { f.y -= 40 * dt; f.life -= dt; }
       floats = floats.filter((f) => f.life > 0);
+      for (const o of pops) { o.t += dt; }
+      pops = pops.filter((o) => o.t < o.dur);
     }
-    // the builder's spot, scale and the rock face in front of them (screen px)
-    const geo = () => { const sc = W < 520 ? 1.25 : 1.6, bx = W * (W < 520 ? 0.55 : 0.58), fy = H * 0.68; return { sc, bx, fy, fx: bx + 50 * sc, gh: 74 * sc }; };
-    function face() { const g = geo(); return { x: g.fx, y: g.fy - 40 * g.sc }; }
+    function layerIdx() { return Math.min(5, Math.floor(depth * 6)); }
     function chips(n, force = 1, col) {
       if (reduce) n = Math.min(n, 3);
-      const f = face();
-      for (let i = 0; i < n; i++) parts.push({ x: f.x, y: f.y + (Math.random() - 0.5) * 30, vx: -60 - Math.random() * 220 * force, vy: -120 - Math.random() * 260 * force, life: 0.7 + Math.random() * 0.7, s: 2 + Math.random() * 4 * force, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, col: col || LAYER_COL[Math.min(5, Math.floor(depth * 6))][Math.random() < 0.5 ? 0 : 1] });
+      const f = face(), L = LAYER_COL[layerIdx()];
+      for (let i = 0; i < n; i++) parts.push({ x: f.x, y: f.y + (Math.random() - 0.5) * 40, vx: -40 - Math.random() * 240 * force, vy: -140 - Math.random() * 280 * force, life: 0.7 + Math.random() * 0.7, s: 3 + Math.random() * 5 * force, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, col: col || L[Math.random() < 0.5 ? 0 : 1] });
     }
     function sparkle(n, col) {
       const f = face();
-      for (let i = 0; i < (reduce ? Math.min(n, 6) : n); i++) { const a = Math.random() * 6.28, v = 80 + Math.random() * 260; parts.push({ x: f.x - 10, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: 0.8 + Math.random() * 0.8, s: 2 + Math.random() * 3.5, rot: 0, vr: 0, col, star: true, g: 380 }); }
+      for (let i = 0; i < (reduce ? Math.min(n, 8) : n); i++) { const a = Math.random() * 6.28, v = 80 + Math.random() * 300; parts.push({ x: f.x - 10, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 140, life: 0.8 + Math.random() * 0.9, s: 2 + Math.random() * 3.5, rot: 0, vr: 0, col, star: true, g: 360 }); }
     }
-    function float(text, col, big) { const f = face(), k = floats.filter((x) => x.big).length; floats.push({ x: f.x - 60 + (Math.random() - 0.5) * 50, y: f.y - 50 - (big ? k * 26 : 0), text, col, life: big ? 2.2 : 1.1, big }); }
+    function float(text, col, big) { const f = face(), k = floats.filter((x) => x.big).length; floats.push({ x: f.x - 50 + (Math.random() - 0.5) * 40, y: f.y - 60 - (big ? k * 28 : 0), text, col, life: big ? 2.2 : 1.1, big }); }
+    const ORE_FX = { copper: [4, 0.2, 0.15], silver: [10, 0.3, 0.2], gold: [24, 0.6, 0.35], diamond: [48, 1, 0.6], arc: [90, 1.4, 1] };
     function share(kind) {
-      swingV = 0.62; hit = 1; crack = Math.min(1, crack + 0.12);
-      if (kind === "diamond") { chips(18, 1.3); sparkle(46, "#7ff6ff"); float(tr("DIAMOND") + " +" + G().diamondPoints, "#7ff6ff", true); shake = reduce ? 0 : 1; flash = 1; flashCol = "rgba(127,246,255,.35)"; crack = 0; }
-      else if (kind === "gold") { chips(12, 1.1); sparkle(26, "#ffd35c"); float(tr("GOLD") + " +" + G().goldPoints, "#ffd35c", true); shake = reduce ? 0 : 0.55; flash = 0.6; flashCol = "rgba(255,211,92,.25)"; }
-      else { chips(7, 0.9); float("+1", "#eaf2e6"); if (crack >= 1) { crack = 0; chips(16, 1.2); } }
+      swingT = 0.5; hitAt = t; crack = Math.min(1, crack + 0.1);
+      const o = (G().ores || []).find((x) => x.kind === kind);
+      if (o) {
+        const [n, sh, fl] = ORE_FX[kind] || [8, 0.3, 0.2];
+        chips(8 + n / 4, 1.1); sparkle(n, ORE_COL[kind]);
+        pops.push({ kind, t: 0, dur: kind === "arc" ? 2.6 : 1.5, x0: face().x - 8, y0: face().y });
+        float(`${tr(o.name).toUpperCase()} +${o.pts}`, ORE_COL[kind], kind !== "copper");
+        shake = reduce ? 0 : sh; flash = fl * 0.6; flashCol = ORE_COL[kind]; petJump = kind === "copper" ? 0.4 : 1;
+        if (kind === "arc") { jackpot = 1; flash = 0.9; }
+        if (kind !== "copper" && kind !== "silver") crack = 0;
+      } else { chips(7, 0.9); float("+1", "#eaf2e6"); if (crack >= 1) { crack = 0; chips(16, 1.2); } }
     }
     // ---- drawing ----
     function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+    function pattern(l) {
+      if (pats[l]) return pats[l];
+      const im = img("tex-" + TEX_OF[l]);
+      if (!ok(im)) return null;
+      const c = document.createElement("canvas"); c.width = 64; c.height = 64;
+      const g = c.getContext("2d"); g.drawImage(im, 0, 0, 64, 64);
+      return (pats[l] = cx.createPattern(c, "repeat"));
+    }
+    function drawImg(k, x, y, h, opt = {}) {
+      const im = img(k);
+      if (!ok(im)) return false;
+      const w = (h * im.naturalWidth) / im.naturalHeight;
+      cx.save(); cx.translate(x, y);
+      if (opt.rot) cx.rotate(opt.rot);
+      if (opt.flip) cx.scale(-1, 1);
+      if (opt.sx || opt.sy) cx.scale(opt.sx || 1, opt.sy || 1);
+      if (opt.alpha != null) cx.globalAlpha = opt.alpha;
+      if (opt.glow) { cx.shadowColor = opt.glow; cx.shadowBlur = opt.blur || 18; }
+      cx.drawImage(im, -w * (opt.ax == null ? 0.5 : opt.ax), -h * (opt.ay == null ? 1 : opt.ay), w, h);
+      cx.restore();
+      return true;
+    }
     function draw() {
       if (!cx) return;
-      const sx = shake ? (Math.random() - 0.5) * 14 * shake : 0, sy = shake ? (Math.random() - 0.5) * 10 * shake : 0;
-      const camY = worldY() - H * 0.68;               // world y at the top of the view
+      const sx = shake ? (Math.random() - 0.5) * 16 * shake : 0, sy = shake ? (Math.random() - 0.5) * 12 * shake : 0;
+      const gg = geo(), camY = worldY() - gg.fy;
       cx.save(); cx.clearRect(0, 0, W, H); cx.translate(sx, sy);
-      // sky
+      // night sky over the headframe
       const skyB = SURF - camY;
       if (skyB > 0) {
-        const g = cx.createLinearGradient(0, skyB - SURF, 0, skyB); g.addColorStop(0, "#0a1630"); g.addColorStop(1, "#16335a");
+        const g = cx.createLinearGradient(0, skyB - SURF, 0, skyB); g.addColorStop(0, "#0b1030"); g.addColorStop(0.7, "#241a4a"); g.addColorStop(1, "#3a2a5c");
         cx.fillStyle = g; cx.fillRect(0, 0, W, skyB);
-        cx.fillStyle = "rgba(255,255,255,.55)"; for (let i = 0; i < 24; i++) { const x = (i * 97.3) % W, y = ((i * 53.1) % Math.max(1, skyB - 40)); cx.globalAlpha = 0.3 + 0.3 * Math.sin(t * 1.3 + i); cx.fillRect(x, y, 1.6, 1.6); } cx.globalAlpha = 1;
-        // headframe over the shaft
-        const hx = W * 0.3;
-        cx.strokeStyle = "#8fa3c0"; cx.lineWidth = 3;
-        cx.beginPath(); cx.moveTo(hx - 34, skyB); cx.lineTo(hx, skyB - 92); cx.lineTo(hx + 34, skyB); cx.moveTo(hx - 22, skyB - 34); cx.lineTo(hx + 22, skyB - 34); cx.moveTo(hx - 12, skyB - 64); cx.lineTo(hx + 12, skyB - 64); cx.stroke();
-        cx.fillStyle = "#ffc861"; cx.beginPath(); cx.arc(hx, skyB - 92, 9, 0, 6.28); cx.fill();
-        cx.strokeStyle = "#20262f"; cx.lineWidth = 2; cx.beginPath(); cx.arc(hx, skyB - 92, 5 + 2 * Math.sin(t * 4), 0, 6.28); cx.stroke();
-        cx.fillStyle = "#cfe0f5"; cx.font = "700 13px Sora, Inter, sans-serif"; cx.textAlign = "left"; if (label) cx.fillText(label, hx + 44, skyB - 70);
+        cx.fillStyle = "#fff"; for (let i = 0; i < 30; i++) { const x = (i * 97.3) % W, y = ((i * 53.1) % Math.max(1, skyB - 40)); cx.globalAlpha = 0.25 + 0.35 * Math.sin(t * 1.3 + i); cx.fillRect(x, y, 1.8, 1.8); } cx.globalAlpha = 1;
+        // far crystals glowing on the ridge
+        for (let i = 0; i < 6; i++) { const x = ((i * 211) % W), hgt = 18 + (i * 7) % 20; cx.fillStyle = i % 2 ? "rgba(140,110,255,.55)" : "rgba(80,170,255,.5)"; cx.beginPath(); cx.moveTo(x, skyB); cx.lineTo(x + 6, skyB - hgt); cx.lineTo(x + 12, skyB); cx.fill(); }
+        const hx = W * (gg.mob ? 0.2 : 0.28);
+        cx.strokeStyle = "#8a6a45"; cx.lineWidth = 4;
+        cx.beginPath(); cx.moveTo(hx - 36, skyB); cx.lineTo(hx, skyB - 96); cx.lineTo(hx + 36, skyB); cx.moveTo(hx - 24, skyB - 34); cx.lineTo(hx + 24, skyB - 34); cx.moveTo(hx - 13, skyB - 66); cx.lineTo(hx + 13, skyB - 66); cx.stroke();
+        cx.fillStyle = "#ffc861"; cx.beginPath(); cx.arc(hx, skyB - 96, 10, 0, 6.28); cx.fill();
+        cx.strokeStyle = "rgba(255,200,97,.5)"; cx.lineWidth = 2; cx.beginPath(); cx.arc(hx, skyB - 96, 14 + 3 * Math.sin(t * 3), 0, 6.28); cx.stroke();
+        // lantern posts along the surface
+        for (let i = 0; i < 3; i++) { const lx = W * (0.5 + i * 0.2); cx.fillStyle = "#4a3624"; cx.fillRect(lx, skyB - 42, 4, 42); const lg = cx.createRadialGradient(lx + 2, skyB - 46, 1, lx + 2, skyB - 46, 26); lg.addColorStop(0, `rgba(255,200,110,${0.8 + 0.1 * Math.sin(t * 5 + i)})`); lg.addColorStop(1, "rgba(255,200,110,0)"); cx.fillStyle = lg; cx.fillRect(lx - 24, skyB - 72, 52, 52); }
+        cx.fillStyle = "#fff"; cx.font = "800 14px Sora, Inter, sans-serif"; cx.textAlign = "left"; if (label) { cx.shadowColor = "rgba(0,0,0,.6)"; cx.shadowBlur = 6; cx.fillText(label, hx + 46, skyB - 74); cx.shadowBlur = 0; }
       }
-      // strata
+      // strata: colour + the concept's block texture + embedded ores and blocks
       for (let l = 0; l < 6; l++) {
         const top = SURF + l * LH - camY, bot = top + LH;
         if (bot < 0 || top > H) continue;
         const g = cx.createLinearGradient(0, top, 0, bot); g.addColorStop(0, LAYER_COL[l][0]); g.addColorStop(1, LAYER_COL[l][1]);
         cx.fillStyle = g; cx.fillRect(0, top, W, LH);
-        if (l === 0) { cx.fillStyle = "#79c65a"; cx.fillRect(0, top, W, 8); cx.fillStyle = "#4f8f3a"; for (let x = 0; x < W; x += 9) cx.fillRect(x, top + 6, 5, 4 + ((x * 7) % 5)); }
-        cx.fillStyle = "rgba(0,0,0,.28)"; cx.fillRect(0, top, W, 3);
+        const pt = pattern(l);
+        if (pt) { cx.save(); cx.globalAlpha = 0.42; cx.translate(0, top); cx.fillStyle = pt; cx.fillRect(0, 0, W, LH); cx.restore(); }
+        if (l === 0) { cx.fillStyle = "#86c94f"; cx.fillRect(0, top, W, 12); cx.fillStyle = "#5d9a36"; for (let x = 0; x < W; x += 8) cx.fillRect(x, top + 10, 5, 4 + ((x * 7) % 6)); }
+        cx.fillStyle = "rgba(0,0,0,.35)"; cx.fillRect(0, top, W, 4);
         for (const r of rocks) if (r.l === l) {
-          const x = r.x * W, y = top + 12 + r.y * (LH - 24);
-          if (r.ore) {
-            const glint = 0.55 + 0.45 * Math.sin(t * 2.2 + r.a * 3);
-            cx.fillStyle = r.ore === "d" ? `rgba(127,246,255,${0.55 + 0.4 * glint})` : `rgba(255,211,92,${0.55 + 0.4 * glint})`;
-            cx.save(); cx.translate(x, y); cx.rotate(r.a); cx.fillRect(-r.r * 0.3, -r.r * 0.3, r.r * 0.6, r.r * 0.6); cx.restore();
-          } else { cx.fillStyle = "rgba(0,0,0,.16)"; cx.beginPath(); cx.ellipse(x, y, r.r, r.r * 0.6, r.a, 0, 6.28); cx.fill(); cx.fillStyle = "rgba(255,255,255,.07)"; cx.beginPath(); cx.ellipse(x - 2, y - 2, r.r * 0.6, r.r * 0.3, r.a, 0, 6.28); cx.fill(); }
+          const x = r.x * W, y = top + 26 + r.y * (LH - 52);
+          if (r.b) drawImg("block-" + r.b, x, y, r.s * 1.8, { ay: 0.5, alpha: 0.9 });
+          else if (r.ore) { const gl = 0.5 + 0.5 * Math.sin(t * 2.2 + r.a * 3); drawImg("ore-" + r.ore, x, y, r.s * 1.2, { ay: 0.5, rot: r.a * 0.3 - 0.4, glow: ORE_COL[r.ore], blur: 6 + gl * 12, alpha: 0.75 + 0.25 * gl }); }
         }
-        cx.fillStyle = "rgba(255,255,255,.82)"; cx.font = "700 12px Sora, Inter, sans-serif"; cx.textAlign = "left";
-        cx.fillText(`${l + 1} · ${tr(layerNames[l] || "")}`, 14, top + 24);
-        cx.fillStyle = "rgba(255,255,255,.55)"; cx.font = "600 11px Inter, sans-serif";
-        cx.fillText(`${G().layerParts[l]}/63 ${tr("of the mine")}`, 14, top + 40);
+        cx.save(); cx.font = "800 12px Sora, Inter, sans-serif"; cx.textAlign = "left"; cx.shadowColor = "rgba(0,0,0,.7)"; cx.shadowBlur = 4;
+        drawImg("block-" + LAYER_TEX[l], 26, top + 44, 30, { ay: 0.5 });
+        cx.fillStyle = "#fff"; cx.fillText(`${l + 1} · ${tr(layerNames[l] || "")}`, 46, top + 38);
+        cx.fillStyle = "rgba(255,255,255,.7)"; cx.font = "700 11px Inter, sans-serif"; cx.fillText(`${G().layerParts[l]}/63 ${tr("of the mine")}`, 46, top + 54);
+        cx.restore();
       }
-      // the shaft and the gallery to the face
-      const gg = geo(), fy = gg.fy, sxh = W * (W < 520 ? 0.2 : 0.3), top0 = Math.max(0, SURF - camY), gtop = fy - gg.gh;
-      cx.fillStyle = "rgba(8,10,14,.88)";
-      cx.fillRect(sxh - 22, top0, 44, fy - top0 + 4);
-      roundRect(sxh - 22, gtop, gg.fx - sxh + 24, gg.gh + 4, 18); cx.fill();
-      cx.strokeStyle = "rgba(160,120,70,.7)"; cx.lineWidth = 3;
-      for (let y = top0 + ((camY % 22) + 22) % 22; y < gtop + 4; y += 22) { cx.beginPath(); cx.moveTo(sxh - 12, y); cx.lineTo(sxh + 12, y); cx.stroke(); }
-      cx.beginPath(); cx.moveTo(sxh - 12, top0); cx.lineTo(sxh - 12, gtop + 6); cx.moveTo(sxh + 12, top0); cx.lineTo(sxh + 12, gtop + 6); cx.stroke();
-      // rails and timber props in the gallery
-      cx.strokeStyle = "rgba(150,160,175,.55)"; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(sxh + 20, fy - 3); cx.lineTo(gg.fx - 6, fy - 3); cx.stroke();
-      cx.fillStyle = "#6b4a2b"; for (let x = sxh + 44; x < gg.bx - 34 * gg.sc; x += 64) { cx.fillRect(x, gtop, 7, gg.gh + 4); cx.fillRect(x - 6, gtop - 4, 19, 7); }
-      // a cart of what's been dug
-      const cartX = sxh + 34;
-      if (cartX + 44 < gg.bx - 30 * gg.sc) { cx.fillStyle = "#39414d"; roundRect(cartX, fy - 26, 44, 20, 4); cx.fill(); cx.fillStyle = LAYER_COL[Math.min(5, Math.floor(depth * 6))][0]; cx.beginPath(); cx.ellipse(cartX + 22, fy - 26, 20, 7, 0, Math.PI, 0); cx.fill(); cx.fillStyle = "#15181d"; cx.beginPath(); cx.arc(cartX + 10, fy - 4, 5, 0, 6.28); cx.arc(cartX + 34, fy - 4, 5, 0, 6.28); cx.fill(); }
-      // the rock face with its cracks
-      const f = face();
-      cx.fillStyle = LAYER_COL[Math.min(5, Math.floor(depth * 6))][1]; roundRect(gg.fx - 4, gtop - 4, 44, gg.gh + 8, 10); cx.fill();
-      cx.strokeStyle = `rgba(0,0,0,${0.35 + crack * 0.4})`; cx.lineWidth = 2; cx.beginPath();
-      const n = 1 + Math.floor(crack * 5); for (let i = 0; i < n; i++) { const yy = gtop + 8 + i * (gg.gh / 6); cx.moveTo(f.x + 2, yy); cx.lineTo(f.x + 14, yy + 7); cx.lineTo(f.x + 8, yy + 13); } cx.stroke();
-      // lamp light
-      const lx = gg.bx + 12 * gg.sc, ly = fy - 82 * gg.sc;
-      const lg = cx.createRadialGradient(lx, ly, 4, lx + 30, ly + 10, 170);
-      lg.addColorStop(0, `rgba(255,236,170,${0.42 + 0.05 * Math.sin(t * 9)})`); lg.addColorStop(1, "rgba(255,236,170,0)");
-      cx.fillStyle = lg; cx.beginPath(); cx.moveTo(lx, ly); cx.lineTo(lx + 190, ly - 50); cx.lineTo(lx + 190, ly + 120); cx.closePath(); cx.fill();
-      drawBuilder(gg.bx, fy, gg.sc);
-      // particles & floating text
+      // the shaft, the gallery, rails, props, a cart of what's been dug
+      const fy = gg.fy, sxh = W * (gg.mob ? 0.2 : 0.28), top0 = Math.max(0, SURF - camY), gtop = fy - gg.gh;
+      cx.fillStyle = "rgba(10,10,16,.9)";
+      cx.fillRect(sxh - 24, top0, 48, fy - top0 + 4);
+      roundRect(sxh - 24, gtop, gg.fx - sxh + 28, gg.gh + 6, 22); cx.fill();
+      const inner = cx.createLinearGradient(0, gtop, 0, fy); inner.addColorStop(0, "rgba(60,40,90,.35)"); inner.addColorStop(1, "rgba(0,0,0,0)"); cx.fillStyle = inner; roundRect(sxh - 24, gtop, gg.fx - sxh + 28, gg.gh + 6, 22); cx.fill();
+      cx.strokeStyle = "rgba(170,120,70,.8)"; cx.lineWidth = 3;
+      for (let y = top0 + ((camY % 22) + 22) % 22; y < gtop + 6; y += 22) { cx.beginPath(); cx.moveTo(sxh - 13, y); cx.lineTo(sxh + 13, y); cx.stroke(); }
+      cx.beginPath(); cx.moveTo(sxh - 13, top0); cx.lineTo(sxh - 13, gtop + 8); cx.moveTo(sxh + 13, top0); cx.lineTo(sxh + 13, gtop + 8); cx.stroke();
+      cx.strokeStyle = "rgba(170,180,195,.6)"; cx.lineWidth = 2.5; cx.beginPath(); cx.moveTo(sxh + 22, fy - 2); cx.lineTo(gg.fx - 4, fy - 2); cx.stroke();
+      cx.fillStyle = "#6b4a2b"; for (let x = sxh + 50; x < gg.bx - gg.ch * 0.55; x += 70) { cx.fillRect(x, gtop, 8, gg.gh + 6); cx.fillRect(x - 7, gtop - 4, 22, 8); }
+      for (let x = sxh + 60; x < gg.fx - 30; x += 140) { const lg = cx.createRadialGradient(x, gtop + 16, 1, x, gtop + 16, 40); lg.addColorStop(0, "rgba(255,190,100,.55)"); lg.addColorStop(1, "rgba(255,190,100,0)"); cx.fillStyle = lg; cx.fillRect(x - 40, gtop - 24, 80, 80); cx.fillStyle = "#ffcf7a"; cx.fillRect(x - 3, gtop + 10, 6, 9); }
+      const cartX = sxh + 30, cw = Math.min(70, gg.ch * 0.4);
+      if (cartX + cw < gg.bx - gg.ch * 0.5) {
+        cx.fillStyle = "#5a3d24"; roundRect(cartX, fy - cw * 0.5, cw, cw * 0.36, 5); cx.fill(); cx.strokeStyle = "#8a6a45"; cx.lineWidth = 2; cx.stroke();
+        for (let i = 0; i < 4; i++) drawImg(["ore-copper", "ore-gold", "ore-diamond", "ore-silver"][i], cartX + 10 + i * (cw - 20) / 3, fy - cw * 0.46, cw * 0.32, { ay: 0.7 });
+        cx.fillStyle = "#15181d"; cx.beginPath(); cx.arc(cartX + cw * 0.22, fy - 6, 6, 0, 6.28); cx.arc(cartX + cw * 0.78, fy - 6, 6, 0, 6.28); cx.fill();
+      }
+      // the rock face (its layer's block texture), cracking as it's hit
+      const f = face(), L = layerIdx();
+      cx.save(); roundRect(gg.fx - 2, gtop - 4, 56, gg.gh + 10, 12); cx.clip();
+      cx.fillStyle = LAYER_COL[L][1]; cx.fillRect(gg.fx - 2, gtop - 4, 56, gg.gh + 10);
+      const pt = pattern(L); if (pt) { cx.fillStyle = pt; cx.globalAlpha = 0.9; cx.fillRect(gg.fx - 2, gtop - 4, 56, gg.gh + 10); cx.globalAlpha = 1; }
+      cx.restore();
+      cx.strokeStyle = `rgba(0,0,0,${0.35 + crack * 0.45})`; cx.lineWidth = 2.5; cx.beginPath();
+      const n = 1 + Math.floor(crack * 6); for (let i = 0; i < n; i++) { const yy = gtop + 10 + i * (gg.gh / 7); cx.moveTo(f.x, yy); cx.lineTo(f.x + 14, yy + 8); cx.lineTo(f.x + 6, yy + 15); } cx.stroke();
+      if (t - hitAt < 0.25) { const k = 1 - (t - hitAt) / 0.25; cx.strokeStyle = `rgba(255,240,200,${k})`; cx.lineWidth = 3; cx.beginPath(); cx.arc(f.x, f.y, 10 + 30 * (1 - k), 0, 6.28); cx.stroke(); }
+      // headlamp light cone
+      const lx = gg.bx + gg.ch * 0.12, ly = fy - gg.ch * 0.86;
+      const lg = cx.createRadialGradient(lx, ly, 4, lx + 40, ly + 20, gg.ch * 1.1);
+      lg.addColorStop(0, `rgba(255,236,170,${0.36 + 0.05 * Math.sin(t * 9)})`); lg.addColorStop(1, "rgba(255,236,170,0)");
+      cx.fillStyle = lg; cx.beginPath(); cx.moveTo(lx, ly); cx.lineTo(lx + gg.ch * 1.2, ly - gg.ch * 0.3); cx.lineTo(lx + gg.ch * 1.2, ly + gg.ch * 0.8); cx.closePath(); cx.fill();
+      drawPet(gg); drawBuilder(gg);
+      // ores flying out of the rock
+      for (const o of pops) {
+        const k = o.t / o.dur, e = 1 - Math.pow(1 - Math.min(1, k * 1.6), 3);
+        const x = o.x0 - 60 * e, y = o.y0 - (gg.ch * 0.9) * e + 40 * Math.max(0, k - 0.6);
+        const sz = (o.kind === "arc" ? 90 : o.kind === "diamond" ? 70 : 54) * (0.6 + 0.4 * Math.sin(Math.min(1, k * 3) * 1.57));
+        drawImg("ore-" + o.kind, x, y, sz, { ay: 0.5, glow: ORE_COL[o.kind], blur: 26, alpha: k > 0.8 ? (1 - k) * 5 : 1, rot: Math.sin(t * 6) * 0.1 });
+      }
       for (const p of parts) {
-        cx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6));
-        cx.fillStyle = p.col;
+        cx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6)); cx.fillStyle = p.col;
         if (p.star) { cx.beginPath(); cx.arc(p.x, p.y, p.s, 0, 6.28); cx.fill(); }
         else { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); cx.restore(); }
       }
       cx.globalAlpha = 1;
       for (const fl of floats) {
         cx.globalAlpha = Math.max(0, Math.min(1, fl.life));
-        cx.font = `800 ${fl.big ? 22 : 14}px Sora, Inter, sans-serif`; cx.textAlign = "center";
-        cx.lineWidth = 4; cx.strokeStyle = "rgba(0,0,0,.6)"; cx.strokeText(fl.text, fl.x, fl.y); cx.fillStyle = fl.col; cx.fillText(fl.text, fl.x, fl.y);
+        cx.font = `900 ${fl.big ? 24 : 15}px Sora, Inter, sans-serif`; cx.textAlign = "center";
+        cx.lineWidth = 5; cx.strokeStyle = "rgba(0,0,0,.65)"; cx.strokeText(fl.text, fl.x, fl.y); cx.fillStyle = fl.col; cx.fillText(fl.text, fl.x, fl.y);
       }
       cx.globalAlpha = 1;
       cx.restore();
-      if (flash) { cx.fillStyle = flashCol; cx.globalAlpha = flash; cx.fillRect(0, 0, W, H); cx.globalAlpha = 1; }
-      const v = cx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
-      v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.55)"); cx.fillStyle = v; cx.fillRect(0, 0, W, H);
+      if (flash) { cx.fillStyle = flashCol; cx.globalAlpha = Math.min(0.45, flash); cx.fillRect(0, 0, W, H); cx.globalAlpha = 1; }
+      if (jackpot) {
+        cx.save(); cx.globalAlpha = Math.min(1, jackpot * 1.6);
+        const r = cx.createRadialGradient(W / 2, H * 0.42, 10, W / 2, H * 0.42, Math.max(W, H) * 0.6); r.addColorStop(0, "rgba(195,139,255,.55)"); r.addColorStop(1, "rgba(195,139,255,0)"); cx.fillStyle = r; cx.fillRect(0, 0, W, H);
+        cx.translate(W / 2, H * 0.38); cx.rotate(t * 0.8); cx.fillStyle = "rgba(255,255,255,.12)"; for (let i = 0; i < 12; i++) { cx.rotate(Math.PI / 6); cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(-30, -Math.max(W, H)); cx.lineTo(30, -Math.max(W, H)); cx.fill(); }
+        cx.restore(); cx.save(); cx.globalAlpha = Math.min(1, jackpot * 1.6);
+        drawImg("ore-arc", W / 2, H * 0.38, Math.min(160, H * 0.4), { ay: 0.5, glow: "#c38bff", blur: 40, sx: 1 + 0.05 * Math.sin(t * 8), sy: 1 + 0.05 * Math.sin(t * 8) });
+        cx.font = `900 ${gg.mob ? 26 : 38}px Sora, Inter, sans-serif`; cx.textAlign = "center"; cx.lineWidth = 7; cx.strokeStyle = "rgba(30,0,60,.8)"; cx.strokeText(tr("ARC CRYSTAL JACKPOT"), W / 2, H * 0.62); cx.fillStyle = "#f0e2ff"; cx.fillText(tr("ARC CRYSTAL JACKPOT"), W / 2, H * 0.62);
+        cx.restore();
+      }
+      const v = cx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.38, W / 2, H / 2, Math.max(W, H) * 0.78);
+      v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.5)"); cx.fillStyle = v; cx.fillRect(0, 0, W, H);
     }
-    function pickStroke() {
-      if (tier === 5) { const g = cx.createLinearGradient(-6, -60, 30, -40); g.addColorStop(0, "#4d9fff"); g.addColorStop(0.5, "#35d8d0"); g.addColorStop(1, "#39ff88"); return g; }
-      return PICK_COL[tier] || PICK_COL[0];
+    // the builder: the concept's own swing frames for the Apprentice, a lunge for everyone else
+    function drawBuilder(gg) {
+      const bob = idle ? Math.sin(t * 2.2) * 2 : 0;
+      cx.save(); cx.fillStyle = "rgba(0,0,0,.4)"; cx.beginPath(); cx.ellipse(gg.bx, gg.fy - 2, gg.ch * 0.26, gg.ch * 0.05, 0, 0, 6.28); cx.fill(); cx.restore();
+      const ph = idle ? -1 : swingT;
+      if (look.char === "apprentice" && !idle && ok(img("act-1"))) {
+        const k = ph < 0.45 ? "act-1" : ph < 0.7 ? "act-2" : "act-3";
+        const lean = ph < 0.45 ? -0.04 : ph < 0.7 ? 0.1 : 0.03;
+        drawImg(k, gg.bx, gg.fy, gg.ch * 0.92, { rot: lean });
+        return;
+      }
+      // wind-up (lean back, stretch), strike (lunge forward, squash), recover
+      let rot = 0, sx = 1, sy = 1, dx = 0;
+      if (ph >= 0) {
+        if (ph < 0.45) { const k = ph / 0.45; rot = -0.14 * k; sy = 1 + 0.05 * k; sx = 1 - 0.03 * k; dx = -6 * k; }
+        else if (ph < 0.62) { const k = (ph - 0.45) / 0.17; rot = -0.14 + 0.34 * k; sy = 1.05 - 0.12 * k; sx = 0.97 + 0.08 * k; dx = -6 + 16 * k; }
+        else { const k = (ph - 0.62) / 0.38; rot = 0.2 * (1 - k); sy = 0.93 + 0.07 * k; sx = 1.05 - 0.05 * k; dx = 10 * (1 - k); }
+      }
+      drawImg("char-" + look.char, gg.bx + dx, gg.fy + bob, gg.ch, { rot, sx, sy });
     }
-    function drawBuilder(x, y, sc) {
-      const bob = idle ? Math.sin(t * 2) * 1.2 : Math.sin(swingV * 6.28) * 1.6;
-      cx.save(); cx.translate(x, y + bob); cx.scale(sc, sc);
-      // shadow
-      cx.fillStyle = "rgba(0,0,0,.35)"; cx.beginPath(); cx.ellipse(0, 0, 22, 5, 0, 0, 6.28); cx.fill();
-      // legs & boots
-      cx.fillStyle = "#2b3a55"; cx.fillRect(-11, -30, 9, 26); cx.fillRect(3, -30, 9, 26);
-      cx.fillStyle = "#1a1d22"; cx.fillRect(-13, -6, 13, 6); cx.fillRect(2, -6, 14, 6);
-      // body (overalls + jacket)
-      cx.fillStyle = "#3f6fb5"; roundRect(-14, -62, 28, 36, 7); cx.fill();
-      cx.fillStyle = "#ffc861"; cx.fillRect(-14, -46, 28, 4);
-      cx.fillStyle = "#2f548c"; cx.fillRect(-8, -60, 16, 14);
-      // head
-      cx.fillStyle = "#f0c9a0"; cx.beginPath(); cx.arc(1, -74, 11, 0, 6.28); cx.fill();
-      cx.fillStyle = "#1b1f27"; cx.beginPath(); cx.arc(5, -75, 1.6, 0, 6.28); cx.fill();
-      // helmet + lamp
-      cx.fillStyle = "#ffc861"; cx.beginPath(); cx.arc(1, -78, 12.5, Math.PI, 0); cx.fill(); cx.fillRect(-13, -79, 29, 4);
-      cx.fillStyle = "#fff6cf"; cx.beginPath(); cx.arc(11, -83, 3.6, 0, 6.28); cx.fill();
-      // arm + pickaxe
-      cx.save(); cx.translate(4, -56); cx.rotate(swing);
-      cx.fillStyle = "#3f6fb5"; roundRect(-4, -4, 26, 8, 4); cx.fill();
-      cx.fillStyle = "#f0c9a0"; cx.beginPath(); cx.arc(23, 0, 4.5, 0, 6.28); cx.fill();
-      cx.strokeStyle = "#7a5230"; cx.lineWidth = 4; cx.lineCap = "round"; cx.beginPath(); cx.moveTo(20, 10); cx.lineTo(26, -34); cx.stroke();
-      cx.strokeStyle = pickStroke(); cx.lineWidth = 6; cx.beginPath(); cx.moveTo(8, -30); cx.quadraticCurveTo(26, -44, 46, -28); cx.stroke();
-      if (tier >= 4) { cx.shadowColor = tier === 5 ? "#35d8d0" : "#6ff3ff"; cx.shadowBlur = 14; cx.stroke(); cx.shadowBlur = 0; }
-      cx.restore();
-      cx.restore();
+    function drawPet(gg) {
+      const hop = petJump ? Math.sin(petJump * Math.PI) * 26 : Math.abs(Math.sin(t * 2.6)) * 4;
+      const px = gg.bx - gg.ch * 0.62, ph = gg.ch * 0.5;
+      cx.save(); cx.fillStyle = "rgba(0,0,0,.35)"; cx.beginPath(); cx.ellipse(px, gg.fy - 2, ph * 0.34, ph * 0.08, 0, 0, 6.28); cx.fill(); cx.restore();
+      drawImg("pet-" + look.pet, px, gg.fy - hop, ph, { glow: look.pet === "orego" || look.pet === "arcia" ? "#6fb6ff" : null, blur: 10 });
     }
     return {
       mount, start, stop, size, share, chips,
       set(o) {
         if (o.depth != null) targetDepth = Math.max(0.02, Math.min(0.985, o.depth));
         if (o.jump) depth = targetDepth;
-        if (o.tier != null) tier = o.tier;
-        if (o.idle != null) idle = o.idle;
+        if (o.idle != null) { idle = o.idle; if (!idle && swingT >= 1) swingT = 0; }
         if (o.label != null) label = o.label;
         if (o.layers) layerNames = o.layers;
+        if (o.look) look = { ...look, ...o.look };
       },
     };
   })();
@@ -354,7 +425,7 @@
       leftTxt = tt < v.start ? tr("Opens in") + " " + dur(v.start - tt) : tt >= v.end ? tr("Mine ended") : `${tr("Next layer in")} ${dur(layerEnd - tt)}`;
       sym = v.token ? v.token.symbol : "";
     }
-    Scene.set({ depth: frac, tier: me ? me.pickaxe : 0, label: sym ? `$${sym}` : tr("Practice mine") });
+    Scene.set({ depth: frac, look: myLook(), label: sym ? `$${sym}` : tr("Practice mine") });
     tl.innerHTML = `<b>${T("Layer")} ${layer + 1} · ${T(g.layers[layer])}</b><span>${esc(leftTxt)}</span>`;
     const hr = hashRate();
     const cap = me ? me.cap : g.cap;
@@ -363,10 +434,13 @@
       <span>${T("This hour")} <em data-no-i18n>${fmtN(Math.min(shares, cap))} / ${fmtN(cap)}</em></span>
       <span class="bm-capbar"><i style="width:${Math.min(100, (shares / Math.max(1, cap)) * 100).toFixed(1)}%"></i></span>`;
     const mult = me && me.weight ? me.weight.mult : 1;
-    const pick = g.pickaxes[(me && me.pickaxe) || 0];
-    bl.innerHTML = `<span class="bm-chip pk t${(me && me.pickaxe) || 0}">${T(pick.name)}</span><span class="bm-chip mult" title="${T("Pickaxe × (1 + bonuses)")}">×${mult.toFixed(2)}</span>` +
-      (me && me.hour && me.hour.of ? `<span class="bm-chip">${T("Your share of this hour")} <b data-no-i18n>${((me.hour.points / Math.max(1, me.hour.of)) * 100).toFixed(1)}%</b></span>` : "") +
-      (S.id === "practice" ? `<span class="bm-chip">${T("Gold")} ${S.local.gold} · ${T("Diamond")} ${S.local.diamond}</span>` : "");
+    const pt = Math.min(g.pickaxes.length - 1, (me && me.pickaxe) || 0), pick = g.pickaxes[pt];
+    const rk = g.ranks[myRank()] || g.ranks[0];
+    const ores = S.id === "practice" ? S.local.ores : (me && me.hour && me.hour.ores) || {};
+    bl.innerHTML = `<span class="bm-chip pk t${pt}"><img src="${src("pick-" + pick.id)}" alt="" width="20" height="20">${T(pick.name)}</span><span class="bm-chip mult" title="${T("Pickaxe × (1 + bonuses)")}">×${mult.toFixed(2)}</span>` +
+      `<span class="bm-chip rk"><img src="${src("badge-" + rk.id)}" alt="" width="18" height="18">${T(rk.name)}</span>` +
+      `<span class="bm-chip ores">${(g.ores || []).map((o) => `<i title="${T(o.name)}"><img src="${src("ore-" + o.kind)}" alt="${T(o.name)}" width="16" height="16"><b data-no-i18n>${fmtN(ores[o.kind] || 0)}</b></i>`).join("")}</span>` +
+      (me && me.hour && me.hour.of ? `<span class="bm-chip">${T("Your share of this hour")} <b data-no-i18n>${((me.hour.points / Math.max(1, me.hour.of)) * 100).toFixed(1)}%</b></span>` : "");
     gauge.innerHTML = g.layers.map((n, i) => `<i class="${i < layer ? "past" : i === layer ? "now" : ""}" style="--c:${LAYER_COL[i][0]}"><span>${i + 1}</span></i>`).join("") + `<b style="top:${(frac * 100).toFixed(1)}%"></b>`;
     if (go) {
       const can = S.id === "practice" || (v && me && me.joined && now() >= v.start && now() < v.end);
@@ -377,19 +451,60 @@
   }
 
   // ---------------- tabs ----------------
-  const TABS = [["rig", "Pickaxes"], ["boosts", "Boosts"], ["proof", "Post & invite"], ["board", "Leaderboard"], ["claim", "Claim"], ["how", "How it works"]];
+  const TABS = [["builder", "Your builder"], ["rig", "Pickaxes"], ["boosts", "Boosts"], ["proof", "Post & invite"], ["board", "Leaderboard"], ["claim", "Claim"], ["how", "How it works"]];
   function paintTabs() {
     const el = $("bm-tabs");
     if (!el) return;
     el.innerHTML = TABS.map(([k, n]) => `<button type="button" role="tab" aria-selected="${S.tab === k}" class="${S.tab === k ? "on" : ""}" data-tab="${k}">${T(n)}</button>`).join("");
     const b = $("bm-tabbody");
-    b.innerHTML = S.tab === "rig" ? tabRig() : S.tab === "boosts" ? tabBoosts() : S.tab === "proof" ? tabProof() : S.tab === "board" ? tabBoard() : S.tab === "claim" ? tabClaim() : tabHow();
+    b.innerHTML = S.tab === "builder" ? tabBuilder() : S.tab === "rig" ? tabRig() : S.tab === "boosts" ? tabBoosts() : S.tab === "proof" ? tabProof() : S.tab === "board" ? tabBoard() : S.tab === "claim" ? tabClaim() : tabHow();
   }
   function itemsList() {
     const it = S.cfg && Array.isArray(S.cfg.items) && S.cfg.items.length ? S.cfg.items : G().items.map(([p, tier, boost, d], id) => ({ id, price: (BigInt(p) * 10n ** 18n).toString(), tier, boost, duration: d, active: true }));
     return it;
   }
   const arcAmt = (raw) => compact(units(raw, 18));
+  // ---------------- your builder: character, pet, rank ----------------
+  function myRank() { return (S.me && S.me.rank) || (S.bd && S.bd.rank) || 0; }
+  function myLook() {
+    const g = G(), r = myRank(), saved = S.look || {}, server = (S.me && S.me.look) || {};
+    const c = g.characters.find((x) => x.id === saved.char && x.rank <= r) || g.characters.find((x) => x.id === server.char) || g.characters[0];
+    const p = g.pets.find((x) => x.id === saved.pet && x.rank <= r) || g.pets.find((x) => x.id === server.pet) || g.pets[0];
+    return { char: c.id, pet: p.id };
+  }
+  function lifetime() { return (S.me && S.me.lifetime) || 0; }
+  function tabBuilder() {
+    const g = G(), r = myRank(), lk = myLook(), pts = lifetime();
+    const rk = g.ranks[r], nx = g.ranks[r + 1];
+    const pct = nx ? Math.min(100, ((pts - rk.min) / (nx.min - rk.min)) * 100) : 100;
+    const card = (x, kind, on) => { const lock = x.rank > r; return `<button type="button" class="bm-look ${on ? "on" : ""} ${lock ? "lock" : ""}" data-look="${kind}" data-id="${x.id}" ${lock ? `aria-disabled="true" title="${T("Unlocks at")} ${T(g.ranks[x.rank].name)}"` : ""}>
+      <img src="${src(kind + "-" + x.id)}" alt="" loading="lazy"><b>${T(x.name)}</b>${lock ? `<em><img src="${src("badge-" + g.ranks[x.rank].id)}" alt="" width="14" height="14">${T(g.ranks[x.rank].name)}</em>` : ""}</button>`; };
+    return `<div class="bm-builder">
+      <div class="bm-bstage">
+        <img class="bm-bchar" src="${src("char-" + lk.char)}" alt="${T((g.characters.find((x) => x.id === lk.char) || {}).name || "")}">
+        <img class="bm-bpet" src="${src("pet-" + lk.pet)}" alt="">
+        <div class="bm-brank"><img src="${src("badge-" + rk.id)}" alt="" width="48" height="48"><div><b>${T(rk.name)}</b><span data-no-i18n>${fmtN(pts)} ${T("pts")}${nx ? ` / ${fmtN(nx.min)}` : ""}</span><span class="bm-capbar"><i style="width:${pct.toFixed(1)}%"></i></span>${nx ? `<small>${T("Next")}: ${T(nx.name)} (+${nx.pct}%)</small>` : `<small>${T("Top rank")}</small>`}</div></div>
+      </div>
+      <div class="bm-bpick">
+        <h3>${T("Characters")}</h3><div class="bm-looks">${g.characters.map((x) => card(x, "char", x.id === lk.char)).join("")}</div>
+        <h3>${T("Pets & companions")}</h3><div class="bm-looks pets">${g.pets.map((x) => card(x, "pet", x.id === lk.pet)).join("")}</div>
+        <p class="bm-note">${T("Looks only — they don't change your mining. Rank up with lifetime points to unlock more.")}</p>
+      </div></div>`;
+  }
+  function pickLook(kind, id) {
+    const g = G(), list = kind === "char" ? g.characters : g.pets, x = list.find((y) => y.id === id);
+    if (!x) return;
+    if (x.rank > myRank()) { toast(`${tr("Unlocks at")} ${tr(g.ranks[x.rank].name)} ${tr("rank")}.`); return; }
+    S.look = { ...myLook(), [kind]: id };
+    lsSet("bm.look", JSON.stringify(S.look));
+    Scene.set({ look: S.look });
+    paintTabs();
+    saveLook();
+  }
+  async function saveLook() {
+    if (!S.live || !state.account || !S.sess || !S.look) return;
+    await post("look=1", { w: String(state.account).toLowerCase(), s: S.sess.token, char: S.look.char, pet: S.look.pet }).catch(() => null);
+  }
   function tabRig() {
     const me = S.me || {}, have = me.pickaxe || 0, items = itemsList();
     const priceOf = (tier) => { const x = items.find((i) => i.tier === tier); return x ? BigInt(x.price) : 0n; };
@@ -398,8 +513,8 @@
       const cost = p.tier === 0 ? 0n : priceOf(p.tier) - (have > 0 ? priceOf(have) : 0n);
       const it = items.find((i) => i.tier === p.tier);
       return `<div class="bm-pick t${p.tier} ${owned ? "own" : ""} ${p.tier === have ? "cur" : ""}">
-        <span class="bm-pick-art" aria-hidden="true">${pickSvg(p.tier)}</span>
-        <b>${T(p.name)}</b><span class="bm-pick-x">×${p.mult.toFixed(1)}</span>
+        <span class="bm-pick-art" aria-hidden="true"><img src="${src("pick-" + p.id)}" alt="" width="64" height="64" loading="lazy"></span>
+        <b>${T(p.name)}</b><span class="bm-pick-x">×${p.mult.toFixed(2).replace(/0$/, "")}</span>
         <span class="bm-pick-p">${p.tier === 0 ? T("Everyone starts here") : owned ? T("Owned") : `<em data-no-i18n>${arcAmt(cost)}</em> $ARCIRCLE`}</span>
         ${!owned && it && it.active ? `<button type="button" class="bm-mini ${next ? "hot" : ""}" data-act="buy" data-item="${it.id}">${T(have ? "Upgrade & burn" : "Buy & burn")}</button>` : ""}
       </div>`;
@@ -452,9 +567,10 @@
     if (!v) return `<p class="bm-note">${T("The leaderboard fills as builders mine.")}</p>`;
     const dec = v.token ? v.token.decimals : 18, me = String(state.account || "").toLowerCase();
     const rows = (v.top || []).map((r, i) => `<li class="${r.w === me ? "me" : ""}"><i>${i + 1}</i><span data-no-i18n>${r.x ? "@" + esc(r.x) : short(r.w)}</span><b data-no-i18n>${compact(units(r.amt, dec))}</b><em data-no-i18n>${fmtN(r.pts)} ${T("pts")}</em></li>`).join("");
-    const feed = (v.feed || []).map((f) => `<li class="k-${f.kind}"><i class="bm-ore ${f.kind}" aria-hidden="true"></i><span data-no-i18n>${short(f.w)}</span><b>${T(f.kind === "diamond" ? "found a diamond" : "found gold")}</b><em>${dur(now() - f.t)} ${T("ago")}</em></li>`).join("");
+    const found = { gold: "found gold", diamond: "found a diamond", arc: "found an Arc Crystal" };
+    const feed = (v.feed || []).map((f) => `<li class="k-${f.kind}"><img class="bm-ore" src="${src("ore-" + f.kind)}" alt="" width="22" height="22"><span data-no-i18n>${short(f.w)}</span><b>${T(found[f.kind] || "found an ore")}</b><em>${dur(now() - f.t)} ${T("ago")}</em></li>`).join("");
     return `<div class="bm-board"><div><h3>${T("Top builders")}</h3>${rows ? `<ol class="bm-top">${rows}</ol>` : `<p class="bm-note">${T("Settled every hour — the first results appear after the first hour.")}</p>`}</div>
-      <div><h3>${T("Rare finds")}</h3>${feed ? `<ul class="bm-feed">${feed}</ul>` : `<p class="bm-note">${T("No gold or diamonds yet.")}</p>`}</div></div>`;
+      <div><h3>${T("Rare finds")}</h3>${feed ? `<ul class="bm-feed">${feed}</ul>` : `<p class="bm-note">${T("No gold, diamonds or Arc Crystals yet.")}</p>`}</div></div>`;
   }
   function tabClaim() {
     const v = S.view, me = S.me || {};
@@ -484,13 +600,17 @@
   }
   function tabHow() {
     const g = G();
-    const bars = g.layerParts.map((p, i) => `<div class="bm-hbar" style="--h:${(p / 32) * 100}%;--c:${LAYER_COL[i][0]}"><i></i><span>${i + 1}</span><em>${((p / 63) * 100).toFixed(1)}%</em></div>`).join("");
+    const bars = g.layerParts.map((p, i) => `<div class="bm-hbar" style="--h:${(p / 32) * 100}%;--c:${LAYER_COL[i][0]}"><img src="${src("block-" + LAYER_TEX[i])}" alt="" width="30" height="30" loading="lazy"><i></i><span>${T(g.layers[i])}</span><em>${((p / 63) * 100).toFixed(1)}%</em></div>`).join("");
+    const odds = (g.ores || []).map((o) => `<li><img src="${src("ore-" + o.kind)}" alt="" width="34" height="34" loading="lazy"><div><b>${T(o.name)}</b><span>1 ${T("in")} ${fmtN(2 ** o.extra)} ${T("shares")}</span></div><em>+${fmtN(o.pts)}</em></li>`).join("");
+    const ranks = (g.ranks || []).map((r) => `<li><img src="${src("badge-" + r.id)}" alt="" width="40" height="40" loading="lazy"><div><b>${T(r.name)}</b><span>${fmtN(r.min)}+ ${T("pts")}</span></div><em>${r.pct ? "+" + r.pct + "%" : "—"}</em></li>`).join("");
     return `<div class="bm-how">
       <div><h3>${T("Six layers, each half as rich")}</h3><div class="bm-hbars">${bars}</div><p class="bm-note">${T("A mine runs 3–60 days in six equal layers. The first layer releases half of everything, so the earliest builders dig the richest ground.")}</p></div>
+      <div><h3>${T("Rare ores & the jackpot")}</h3><ul class="bm-odds">${odds}</ul><p class="bm-note">${T("Only the best ore in a share counts. The Lucky charm makes every ore twice as likely.")}</p></div>
+      <div><h3>${T("Ranks & badges")}</h3><ul class="bm-odds bm-ranks">${ranks}</ul><p class="bm-note">${T("Lifetime points across every mine. Each rank adds a bonus and unlocks characters and pets.")}</p></div>
       <div><h3>${T("Your weight each hour")}</h3>
         <p class="bm-formula"><b>${T("points")}</b> × <b>${T("pickaxe")}</b> × (1 + <b>${T("bonuses")}</b>)</p>
         <ul class="bm-rules">
-          <li>${T("Points: every share counts 1 (up to")} ${fmtN(g.cap)} ${T("an hour), gold +")}${g.goldPoints}, ${T("diamond +")}${g.diamondPoints}.</li>
+          <li>${T("Points: every share counts 1, up to")} ${fmtN(g.cap)} ${T("an hour. Rare ores add more (below).")}</li>
           <li>${T("Pickaxes ×1.2 to ×2.6. Bonuses add up to +100% at most:")}</li>
           <li class="sub">${T("$ARCIRCLE held: 100K +10%, 1M +20%, 5M +30%")}</li>
           <li class="sub">${T("Each extra X post on a new day +5% (up to +25%)")}</li>
@@ -505,10 +625,6 @@
         <li>${T("Unmined tokens and unproven shares are burned when the mine ends. Items are paid in $ARCIRCLE and burned.")}</li>
         <li>${T("Every root is capped on-chain by the halving schedule.")}</li>
       </ul></div></div>`;
-  }
-  function pickSvg(tier) {
-    const col = ["#a8743f", "#9aa1ab", "#d9dee6", "#ffc861", "#6ff3ff", "url(#bmInf)"][tier];
-    return `<svg viewBox="0 0 48 48"><defs><linearGradient id="bmInf" x1="0" x2="1"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#35d8d0"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs><path d="M14 40 32 14" stroke="#7a5230" stroke-width="4.5" stroke-linecap="round"/><path d="M12 16c8-7 18-8 26-2-7-1-14 1-19 6z" fill="${col}" stroke="rgba(0,0,0,.35)" stroke-width="1.2"/></svg>`;
   }
   function boostSvg(k) {
     if (k === 1) return `<svg viewBox="0 0 48 48"><rect x="16" y="14" width="16" height="22" rx="4" fill="#3a2f1c" stroke="#ffc861" stroke-width="2"/><circle cx="24" cy="25" r="5" fill="#fff1b8"/><path d="M19 14v-4h10v4M24 10V6" stroke="#ffc861" stroke-width="2" fill="none"/></svg>`;
@@ -568,6 +684,7 @@
     if (j.error) throw new Error(j.error);
     S.sess = { w, token: j.token, exp: j.exp };
     lsSet(sessKey(), JSON.stringify({ token: j.token, exp: j.exp }));
+    saveLook();
     return j.token;
   }
   let workerUrl = null;
@@ -596,16 +713,20 @@
     }
     return true;
   }
+  // the best ore a share is (same rule as the server's oreOf); the lucky charm makes each one bit easier
   function kindOf(z) {
-    const lucky = S.me && S.me.weight && S.me.weight.lucky ? 1 : 0;
-    return z >= G().diamondBits - lucky ? "diamond" : z >= G().goldBits - lucky ? "gold" : "share";
+    const luck = S.me && S.me.weight && S.me.weight.lucky ? 1 : 0, base = (S.work && S.work.bits) || G().shareBits;
+    let best = "share";
+    for (const o of G().ores || []) if (z >= base + o.extra - luck) best = o.kind;
+    return best;
   }
   function onShare(nonce, z) {
     const kind = kindOf(z);
     Scene.share(kind);
-    if (kind !== "share" && typeof window.arcConfetti === "function" && !reduce && kind === "diamond") window.arcConfetti({ count: 90 });
+    if ((kind === "diamond" || kind === "arc") && typeof window.arcConfetti === "function" && !reduce) window.arcConfetti({ count: kind === "arc" ? 220 : 90 });
+    if (kind === "arc") toast("ARC CRYSTAL! The jackpot ore — +500 points.");
     if (S.id === "practice") {
-      S.local.shares++; if (kind === "gold") S.local.gold++; if (kind === "diamond") S.local.diamond++;
+      S.local.shares++; if (kind !== "share") S.local.ores[kind] = (S.local.ores[kind] || 0) + 1;
       S.local.dug = Math.min(1, S.local.dug + 1 / 900);
       if (S.local.shares >= G().cap) { S.capHit = true; stopMining(true); toast("Practice cap reached — in a live mine, Overtime raises it."); }
       return;
@@ -620,7 +741,7 @@
     const j = await post(`shares=${S.id}`, { w: String(state.account).toLowerCase(), s: S.sess && S.sess.token, nonces }).catch(() => ({ error: "offline" }));
     if (j.auth) { S.sess = null; lsSet(sessKey(), null); }
     if (j.error) { if (j._status === 429) S.queue.unshift(...nonces); return; }
-    if (S.me && S.me.hour) { S.me.hour.shares = j.shares; S.me.hour.gold = j.gold; S.me.hour.diamond = j.diamond; S.me.cap = j.cap; }
+    if (S.me && S.me.hour) { S.me.hour.shares = j.shares; S.me.hour.ores = j.ores || S.me.hour.ores; S.me.cap = j.cap; }
     paintHud();
   }
   async function getWork() {
@@ -724,7 +845,7 @@
       if (cost > 0n) await approveIf(ARCIRCLE, cost);
       const tx = await m.buyItem(it.id, it.tier > 0 ? 0 : S.id);
       toast("Burning $ARCIRCLE…"); await tx.wait();
-      Scene.share("gold");
+      Scene.share(it.tier > 0 ? "diamond" : "gold");
       toast(it.tier > 0 ? "New pickaxe! It works in every mine." : "Boost lit.");
     });
   }
@@ -821,11 +942,13 @@
   // =====================================================================================
   function onClick(e) {
     const mc = e.target.closest("[data-mine]");
-    if (mc) { const id = mc.dataset.mine; if (S.mining) stopMining(); S.id = id === "practice" ? "practice" : Number(id); S.local = { shares: 0, gold: 0, diamond: 0, dug: S.local.dug }; setHash(); Scene.set({ jump: true }); refresh(); return; }
+    if (mc) { const id = mc.dataset.mine; if (S.mining) stopMining(); S.id = id === "practice" ? "practice" : Number(id); S.local = { shares: 0, ores: {}, dug: S.local.dug }; setHash(); Scene.set({ jump: true }); refresh(); return; }
     const tb = e.target.closest("#bm-tabs [data-tab]");
     if (tb) { S.tab = tb.dataset.tab; paintTabs(); return; }
     const pw = e.target.closest("[data-power]");
     if (pw) { S.power = Number(pw.dataset.power); paintPower(); if (S.mining) { stopMining(); startMining(); } return; }
+    const lk = e.target.closest("[data-look]");
+    if (lk) { pickLook(lk.dataset.look, lk.dataset.id); return; }
     const a = e.target.closest("[data-act]");
     if (!a) return;
     const act = a.dataset.act;

@@ -7,6 +7,7 @@
 //   GET  /api/mine?work=<n>&w=0x…&s=<token>   this hour's challenge for that wallet
 //   POST /api/mine?shares=<n> {w, s, nonces}  hand in shares
 //   POST /api/mine?xpost=<n>  {w, s, url}     prove an X post (unlocks claiming; more posts add bonus)
+//   POST /api/mine?look=1     {w, s, char, pet} pick a character and a pet (unlocked by rank; looks only)
 //   GET  /api/mine?settle=1&key=<CRON_SECRET> settle finished hours and post roots (arcia-tg's tick does this too)
 import * as M from "./_mine.mjs";
 
@@ -63,6 +64,12 @@ export async function POST(req) {
     if (q.auth) {
       const r = M.signIn(b.w, b.t, b.sig);
       return r.error ? json(r, 400) : json(r);
+    }
+    if (q.look) {
+      if (!isAddr(b.w)) return json({ error: "wallet required" }, 400);
+      if (!M.session(b.s, b.w)) return json({ error: "Sign in again.", auth: true }, 401);
+      const r = await M.setLook(b.w, b.char, b.pet);
+      return r.error ? json(r, 409) : json(r);
     }
     const id = q.shares != null ? q.shares : q.xpost;
     if (!idOk(id) || !isAddr(b.w)) return json({ error: "mine id and wallet required" }, 400);

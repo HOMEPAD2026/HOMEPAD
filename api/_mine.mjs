@@ -40,22 +40,43 @@ export const live = () => isAddr(mineAddress());
 export const GAME = {
   epoch: 3600,              // one settle per hour
   shareBits: 21,            // a share: keccak starts with 21 zero bits (~2.1M hashes)
-  goldBits: 27,             // 1 in 64 shares is also gold
-  diamondBits: 31,          // 1 in 1,024 is a diamond
-  goldPoints: 20, diamondPoints: 100,
+  // rare ores: a share with `extra` more zero bits is also that ore (only the best one counts), worth `pts` more
+  ores: [
+    { kind: "copper", name: "Copper", extra: 2, pts: 1 },        // 1 in 4 shares
+    { kind: "silver", name: "Silver", extra: 4, pts: 2 },        // 1 in 16
+    { kind: "gold", name: "Gold", extra: 6, pts: 10 },           // 1 in 64
+    { kind: "diamond", name: "Diamond", extra: 10, pts: 60 },    // 1 in 1,024
+    { kind: "arc", name: "Arc Crystal", extra: 14, pts: 500 },   // 1 in 16,384 — the jackpot
+  ],
   cap: 600,                 // shares that count per hour (overtime: ×1.5)
   batchEvery: 12,           // seconds between submissions (the server refuses faster than minGap)
   minGap: 8, maxBatch: 60,
   bonusCap: 100,            // bonuses add up to +100% at most
-  layers: ["Topsoil", "Clay", "Stone", "Ore vein", "Deep rock", "Core"],
+  layers: ["Grass", "Dirt", "Stone", "Ore", "Deep Rock", "Bedrock"],
   layerParts: [32, 16, 8, 4, 2, 1],
   pickaxes: [
-    { tier: 0, name: "Wooden pickaxe", mult: 1.0 },
-    { tier: 1, name: "Stone pickaxe", mult: 1.2 },
-    { tier: 2, name: "Iron pickaxe", mult: 1.5 },
-    { tier: 3, name: "Gold pickaxe", mult: 1.8 },
-    { tier: 4, name: "Diamond pickaxe", mult: 2.2 },
-    { tier: 5, name: "Infinite pickaxe", mult: 2.6 },
+    { tier: 0, id: "wood", name: "Wood pickaxe", mult: 1.0 },
+    { tier: 1, id: "stone", name: "Stone pickaxe", mult: 1.25 },
+    { tier: 2, id: "iron", name: "Iron pickaxe", mult: 1.6 },
+    { tier: 3, id: "diamond", name: "Diamond pickaxe", mult: 2.1 },
+    { tier: 4, id: "arcane", name: "Arcane pickaxe", mult: 2.6 },
+  ],
+  // builder ranks, from lifetime points across every mine: a small bonus, and they unlock characters and pets
+  ranks: [
+    { id: "apprentice", name: "Apprentice", min: 0, pct: 0 },
+    { id: "miner", name: "Miner", min: 1_000, pct: 2 },
+    { id: "foreman", name: "Foreman", min: 10_000, pct: 4 },
+    { id: "architect", name: "Architect", min: 50_000, pct: 6 },
+    { id: "legend", name: "Legend", min: 200_000, pct: 10 },
+  ],
+  // looks only — no effect on mining. `rank`: the rank that unlocks it
+  characters: [
+    { id: "apprentice", name: "Apprentice", rank: 0 }, { id: "explorer", name: "Explorer", rank: 0 }, { id: "engineer", name: "Engineer", rank: 1 },
+    { id: "foreman", name: "Foreman", rank: 2 }, { id: "architect", name: "Architect", rank: 3 },
+  ],
+  pets: [
+    { id: "arccat", name: "Arc Cat", rank: 0 }, { id: "arcia", name: "ARCIA", rank: 1 }, { id: "mole", name: "Mole", rank: 2 },
+    { id: "picko", name: "Picko", rank: 3 }, { id: "orego", name: "Orego", rank: 4 },
   ],
   // boosts (BuilderMine boost kinds 1–4)
   boosts: [
@@ -70,7 +91,7 @@ export const GAME = {
   referredPct: 5,             // joining through someone's link
   streakPct: 2, streakMax: 10, streakMin: 30, // a day with ≥30 shares keeps the streak
   // default item list (the contract's getItems() wins once deployed) — [price $ARCIRCLE, tier, boost, seconds]
-  items: [[50_000, 1, 0, 0], [150_000, 2, 0, 0], [400_000, 3, 0, 0], [1_000_000, 4, 0, 0], [2_500_000, 5, 0, 0],
+  items: [[50_000, 1, 0, 0], [200_000, 2, 0, 0], [800_000, 3, 0, 0], [2_500_000, 4, 0, 0],
     [30_000, 0, 1, 86400], [20_000, 0, 2, 3600], [40_000, 0, 3, 86400], [30_000, 0, 4, 86400]],
 };
 
@@ -219,13 +240,16 @@ export function holderPct(arcircleRaw) {
   return p;
 }
 /// Every multiplier for one builder in one hour, itemised (the page shows the same list).
-export function weigh({ rig, user, at }) {
-  const pick = GAME.pickaxes[Math.max(0, Math.min(5, rig ? rig.pickaxe : 0))];
+export const rankOf = (pts) => { let r = 0; GAME.ranks.forEach((x, i) => { if ((pts || 0) >= x.min) r = i; }); return r; };
+export function weigh({ rig, user, at, lifetime = 0 }) {
+  const pick = GAME.pickaxes[Math.max(0, Math.min(GAME.pickaxes.length - 1, rig ? rig.pickaxe : 0))];
   const until = (rig && rig.boosts) || [0, 0, 0, 0];
   const u = user || {};
   const parts = [];
   const add = (label, pct) => { if (pct > 0) parts.push({ label, pct }); };
   add("$ARCIRCLE holder", holderPct(rig ? rig.arcircle : 0n));
+  const rk = GAME.ranks[rankOf(lifetime)];
+  add(`Rank: ${rk.name}`, rk.pct);
   add("X posts", Math.min(GAME.postMax, Math.max(0, (u.posts || []).length - 1)) * GAME.postPct);
   add("Referrals", Math.min(GAME.refMax, (u.refs || []).length) * GAME.refPct);
   add("Joined by referral", rig && isAddr(rig.referrer) && !/^0x0{40}$/.test(rig.referrer) ? GAME.referredPct : 0);
@@ -241,7 +265,7 @@ export const capFor = (w) => Math.round(GAME.cap * (w && w.overtime ? 1.5 : 1));
 const P = {
   mine: (id) => `mines/${id}`, tree: (id) => `minetree/${id}`, feed: (id) => `minefeed/${id}`,
   user: (id, w) => `mineu/${id}_${lc(w)}`, ep: (id, e, w) => `minee/${id}_${e}_${lc(w)}`, epTot: (id, e) => `mineep/${id}_${e}`,
-  handle: (h) => `minex/${lc(h)}`, tweet: (t) => `minetw/${t}`,
+  handle: (h) => `minex/${lc(h)}`, tweet: (t) => `minetw/${t}`, builder: (w) => `minerank/${lc(w)}`,
 };
 
 // ---------------- shares ----------------
@@ -260,11 +284,12 @@ export async function submitShares(id, w, nonces, { m, rig } = {}) {
   if (!rig) { rig = (await rigs(id, [w]))[lc(w)]; if (rig && rig.joined) memo.set(rk, { t: Date.now(), v: rig }); }
   if (!rig || !rig.joined) return { error: "Join this mine first (1 USDC)." };
   const list = [...new Set((Array.isArray(nonces) ? nonces : []).map(String))].slice(0, GAME.maxBatch);
-  const docs = await getDocs([P.ep(id, e, w), P.user(id, w)]);
-  const d = docs[P.ep(id, e, w)] || { k: `${id}_${e}`, id: Number(id), e, w: lc(w), shares: 0, gold: 0, diamond: 0, seen: [], at: 0 };
+  const docs = await getDocs([P.ep(id, e, w), P.user(id, w), P.builder(w)]);
+  const d = docs[P.ep(id, e, w)] || { k: `${id}_${e}`, id: Number(id), e, w: lc(w), shares: 0, ores: {}, seen: [], at: 0 };
+  d.ores = d.ores || {};
   if (Date.now() - (d.at || 0) < GAME.minGap * 1000) return { error: "Too fast — the page sends your shares every few seconds.", retry: GAME.minGap };
-  const wt = weigh({ rig, user: docs[P.user(id, w)], at: t });
-  const cap = capFor(wt), goldBits = GAME.goldBits - (wt.lucky ? 1 : 0), diamondBits = GAME.diamondBits - (wt.lucky ? 1 : 0);
+  const wt = weigh({ rig, user: docs[P.user(id, w)], at: t, lifetime: (docs[P.builder(w)] || {}).pts || 0 });
+  const cap = capFor(wt), luck = wt.lucky ? 1 : 0;
   const ch = challenge(id, e, w), seen = new Set(d.seen || []);
   const finds = [];
   let ok = 0, bad = 0, over = 0;
@@ -274,26 +299,34 @@ export async function submitShares(id, w, nonces, { m, rig } = {}) {
     const z = workOf(ch, n);
     if (z < GAME.shareBits) { bad++; continue; }
     seen.add(k);
-    if (d.shares >= cap) { over++; } else { d.shares++; ok++; }
-    if (z >= diamondBits) { d.diamond++; finds.push({ kind: "diamond", z }); }
-    else if (z >= goldBits) { d.gold++; finds.push({ kind: "gold", z }); }
+    if (d.shares >= cap) { over++; continue; } // past the hourly cap nothing counts — rare ores included
+    d.shares++; ok++;
+    const ore = oreOf(z, luck);
+    if (ore) { d.ores[ore.kind] = (d.ores[ore.kind] || 0) + 1; finds.push({ kind: ore.kind, z }); }
   }
   if (bad > list.length / 2 && bad > 2) return { error: "Those shares don't match this hour's challenge — reload the page.", bad };
   d.seen = [...seen].slice(-4000);
   d.at = Date.now();
-  const pts = ok + finds.reduce((n, f) => n + (f.kind === "diamond" ? GAME.diamondPoints : GAME.goldPoints), 0);
+  const pts = ok + finds.reduce((n, f) => n + (GAME.ores.find((o) => o.kind === f.kind) || { pts: 0 }).pts, 0);
   const writes = [{ set: P.ep(id, e, w), data: d }];
   if (pts) writes.push({ inc: P.epTot(id, e), fields: { points: pts, shares: ok } });
   await commit(writes);
-  if (finds.length) await addFeed(id, finds.map((f) => ({ w: lc(w), kind: f.kind, t, e }))).catch(() => {});
-  return { ok: true, epoch: e, counted: ok, over, bad, shares: d.shares, gold: d.gold, diamond: d.diamond, cap, finds };
+  const big = finds.filter((f) => ["gold", "diamond", "arc"].includes(f.kind));
+  if (big.length) await addFeed(id, big.map((f) => ({ w: lc(w), kind: f.kind, t, e }))).catch(() => {});
+  return { ok: true, epoch: e, counted: ok, over, bad, shares: d.shares, ores: d.ores, cap, finds };
 }
 async function addFeed(id, rows) {
   const cur = (await getDocs([P.feed(id)]))[P.feed(id)] || { items: [] };
   cur.items = [...rows.reverse(), ...(cur.items || [])].slice(0, 40);
   await setDoc(P.feed(id), cur);
 }
-const points = (d) => Math.min(d.shares || 0, 1e9) + (d.gold || 0) * GAME.goldPoints + (d.diamond || 0) * GAME.diamondPoints;
+/// the best ore a share with `z` zero bits is (lucky charm: one bit easier), or null
+export function oreOf(z, luck = 0) {
+  let best = null;
+  for (const o of GAME.ores) if (z >= GAME.shareBits + o.extra - luck) best = o;
+  return best;
+}
+const points = (d) => Math.min(d.shares || 0, 1e9) + GAME.ores.reduce((n, o) => n + ((d.ores || {})[o.kind] || 0) * o.pts, 0);
 
 // ---------------- X posts ----------------
 export const shareLink = (id, w) => `${SITE}/mine/${id}?r=${lc(w)}`;
@@ -363,6 +396,28 @@ export async function verifyPost(id, w, url, { m, rig } = {}) {
   return { ok: true, handle: tw.handle, posts: u.posts.length, first: u.posts.length === 1, bonusPct: Math.min(GAME.postMax, u.posts.length - 1) * GAME.postPct };
 }
 
+// ---------------- looks (character & pet: cosmetic, unlocked by rank) ----------------
+export function lookOf(bd) {
+  const r = rankOf((bd && bd.pts) || 0);
+  const c = GAME.characters.find((x) => x.id === (bd && bd.char) && x.rank <= r) || GAME.characters[0];
+  const p = GAME.pets.find((x) => x.id === (bd && bd.pet) && x.rank <= r) || GAME.pets[0];
+  return { char: c.id, pet: p.id };
+}
+export async function setLook(w, char, pet) {
+  if (!storeEnabled()) return { error: "Storage isn't set up yet." };
+  const bd = (await getDocs([P.builder(w)]))[P.builder(w)] || { pts: 0 };
+  const r = rankOf(bd.pts || 0);
+  const c = GAME.characters.find((x) => x.id === char), p = GAME.pets.find((x) => x.id === pet);
+  if (char && !c) return { error: "Unknown character." };
+  if (pet && !p) return { error: "Unknown pet." };
+  if ((c && c.rank > r) || (p && p.rank > r)) return { error: `Reach ${GAME.ranks[Math.max(c ? c.rank : 0, p ? p.rank : 0)].name} rank to unlock that.` };
+  if (c) bd.char = c.id;
+  if (p) bd.pet = p.id;
+  await commit([{ set: P.builder(w), data: { ...bd, w: lc(w) } }]);
+  return { ok: true, look: lookOf(bd) };
+}
+export async function builderOf(w) { return storeEnabled() ? (await getDocs([P.builder(w)]))[P.builder(w)] || {} : {}; }
+
 // ---------------- Merkle (same tree as the contract test) ----------------
 const leaf = (id, a, v) => kec(kec(hexToBytes(u256(id) + pad(a) + u256(v))));
 const cmp = (a, b) => { for (let i = 0; i < 32; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; };
@@ -389,10 +444,10 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
   for (let e = (doc.settled ?? -1) + 1; e <= last && done < maxEpochs; e++, done++) {
     const rows = (await queryDocs("minee", "k", `${id}_${e}`, 2000)).filter((r) => isAddr(r.w));
     const ws = rows.map((r) => r.w);
-    const [rg, users] = await Promise.all([rigs(id, ws), ws.length ? getDocs(ws.map((w) => P.user(id, w))) : {}]);
+    const [rg, users] = await Promise.all([rigs(id, ws), ws.length ? getDocs([...ws.map((w) => P.user(id, w)), ...ws.map((w) => P.builder(w))]) : {}]);
     const at = m.start + e * GAME.epoch + GAME.epoch / 2;
     const weights = rows.map((r) => {
-      const u = users[P.user(id, r.w)], wt = weigh({ rig: rg[r.w], user: u, at });
+      const u = users[P.user(id, r.w)], wt = weigh({ rig: rg[r.w], user: u, at, lifetime: (users[P.builder(r.w)] || {}).pts || 0 });
       return { w: r.w, r, u, pts: points(r), W: BigInt(Math.round(points(r) * wt.mult * 1e6)) };
     });
     const total = weights.reduce((n, x) => n + x.W, 0n);
@@ -413,6 +468,7 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
         u.lastDay = day;
       }
       userWrites.push({ set: P.user(id, x.w), data: u });
+      if (x.pts > 0) userWrites.push({ inc: P.builder(x.w), fields: { pts: x.pts } }); // lifetime points → rank
     }
     doc.stats = { ...(doc.stats || {}), lastEpoch: e, lastBuilders: rows.length, lastPoints: weights.reduce((n, x) => n + x.pts, 0), lastPot: pot.toString(), lastAllocated: total > 0n ? pot.toString() : "0" };
     doc.settled = e;
@@ -474,9 +530,10 @@ export async function meView(id, w) {
   const m = await mineInfo(id);
   if (!m) return null;
   const t = now(), e = epochAt(m, t);
-  const [rg, docs] = await Promise.all([rigs(id, [w]), storeEnabled() ? getDocs([P.user(id, w), P.ep(id, e, w), P.mine(id), P.tree(id), P.epTot(id, e)]) : {}]);
+  const [rg, docs] = await Promise.all([rigs(id, [w]), storeEnabled() ? getDocs([P.user(id, w), P.ep(id, e, w), P.mine(id), P.tree(id), P.epTot(id, e), P.builder(w)]) : {}]);
   const rig = rg[lc(w)], u = docs[P.user(id, w)] || {}, ep = docs[P.ep(id, e, w)] || {}, md = docs[P.mine(id)] || {}, tr = docs[P.tree(id)] || {}, tot = docs[P.epTot(id, e)] || {};
-  const wt = weigh({ rig, user: u, at: t });
+  const bd = docs[P.builder(w)] || {}, lifetime = bd.pts || 0;
+  const wt = weigh({ rig, user: u, at: t, lifetime });
   const rows = tr.rows || [], k = rows.findIndex(([a]) => a === lc(w));
   const cum = k >= 0 ? rows[k][1] : "0";
   const proof = k >= 0 && md.root && md.root.root === tr.root ? buildTree(Number(id), rows).proof(k) : null;
@@ -485,7 +542,8 @@ export async function meView(id, w) {
     w: lc(w), joined: !!(rig && rig.joined), referrer: rig && !/^0x0{40}$/.test(rig.referrer) ? rig.referrer : null,
     pickaxe: rig ? rig.pickaxe : 0, boosts: rig ? rig.boosts : [0, 0, 0, 0], arcircle: rig ? rig.arcircle.toString() : "0",
     weight: wt, cap: capFor(wt),
-    hour: { epoch: e, shares: ep.shares || 0, gold: ep.gold || 0, diamond: ep.diamond || 0, points: myPts, of: tot.points || 0 },
+    hour: { epoch: e, shares: ep.shares || 0, ores: ep.ores || {}, points: myPts, of: tot.points || 0 },
+    lifetime, rank: rankOf(lifetime), look: lookOf(bd),
     mined: md.alloc ? md.alloc[lc(w)] || "0" : "0", points: md.pts ? md.pts[lc(w)] || 0 : 0,
     claimable: { cumulative: cum, claimed: rig ? rig.claimed.toString() : "0", proof, rootLive: !!proof },
     x: u.x || "", verified: !!u.xv, posts: (u.posts || []).length, refs: (u.refs || []).length, streak: u.streak || 0,

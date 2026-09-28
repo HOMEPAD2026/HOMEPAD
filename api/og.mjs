@@ -619,12 +619,18 @@ async function mineCard(mark, id, w) {
   const rank = me ? (v.top || []).findIndex((t) => t.w === me.w) : -1;
   const pick = me ? (MINE_GAME.pickaxes[me.pickaxe] || MINE_GAME.pickaxes[0]).name.replace(" pickaxe", "") : "";
   const headline = me && BigInt(me.mined || 0) > 0n ? `I mined ${amt(me.mined, dec)} $${sym}` : me ? `I'm mining $${sym}` : `Mine $${sym} on Arc`;
+  // the builder's own character (and rank badge) from the concept art; the strata when there's no builder
+  const rankInfo = me ? MINE_GAME.ranks[me.rank || 0] : null;
+  const [charImg, badgeImg] = me ? await Promise.all([fetchImage(`${SITE}/images/mine/og-char-${(me.look && me.look.char) || "apprentice"}.png`), fetchImage(`${SITE}/images/mine/og-badge-${rankInfo.id}.png`)]) : [null, null];
+  const hero = charImg ? h("div", { width: 250, height: 360, alignItems: "flex-end", justifyContent: "center", borderRadius: 28, backgroundImage: "radial-gradient(circle at 50% 70%, rgba(255,200,97,0.35), rgba(255,200,97,0.04) 70%)", border: "3px solid rgba(255,200,97,0.45)", position: "relative" },
+    img(charImg, { width: 220, height: 330, objectFit: "contain" }),
+    badgeImg ? img(badgeImg, { width: 74, height: 84, objectFit: "contain", position: "absolute", top: 10, left: 10 }) : null) : null;
   const sub = `${ended ? "Mine closed" : `Layer ${v.layer + 1} · ${layerName}`} · ${Number(v.builders).toLocaleString("en-US")} builders`;
   return frame([
     brandRow(mark, pill(ended ? "ENDED" : "BUILDER MINE", acc), "Builder Mine · Circle's Arc"),
-    h("div", { alignItems: "center", gap: 48, width: "100%" }, strata(ended ? 5 : v.layer),
+    h("div", { alignItems: "center", gap: 48, width: "100%" }, hero || strata(ended ? 5 : v.layer),
       h("div", { flexDirection: "column", gap: 12 },
-        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, me && me.x ? `@${clip(me.x, 16)} · builder on Arc` : "Holders open it · builders dig it"),
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, me ? `${me.x ? "@" + clip(me.x, 16) + " · " : ""}${rankInfo.name} builder on Arc` : "Holders open it · builders dig it"),
         h("div", { fontSize: 74, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }, headline),
         h("div", { fontSize: 30, color: "#b9c8b3" }, sub),
         h("div", { gap: 14, marginTop: 10 },
