@@ -1102,7 +1102,7 @@ export const KB = [
 },
 {
 "page": "ArcPad and utilities",
-"title": "Snapshot v2Updated regularly",
+"title": "Snapshot v1Updated regularly",
 "url": "/arc",
 "text": "Every holder of an Arc token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps."
 },

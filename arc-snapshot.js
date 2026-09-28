@@ -68,9 +68,10 @@
     f: { min: "", max: "", top: "", noC: true, since: "any", skip: "" },
     also: { mode: "", kind: "token", token: "", min: "", set: null, label: "" },
     q: "", shown: PAGE, sort: "v", tier: null, tab: "holders",
-    calc: { token: "", meta: null, total: "", method: "prop", cap: "", min: "", tiers: [["", ""], ["", ""], ["", ""]] },
+    calc: { token: "", meta: null, total: "", method: "prop", cap: "", min: "", tiers: [["", ""], ["", ""], ["", ""]], lockX2: false },
     cmp: { ago: 24, at: "", res: null, diff: null, busy: false, run: 0 },
-    pub: { title: "", sign: false, busy: false, last: null, schedAt: "" },
+    pub: { title: "", sign: false, busy: false, last: null, schedAt: "", rep: "once" },
+    cols: null, colsOpen: false,
     view: null, busy: false, run: 0,
   };
 
@@ -254,9 +255,12 @@
     if (j.stage === "history") status("wait", tr(`Reading the history — ${plural(j.holders || 0, "holder", "holders")} so far…`), 0.05);
     else if (j.stage === "positions") status("wait", tr("Valuing LP positions…"), 0.95);
     else if (j.stage === "rewind") {
-      const f = Math.max(0, Math.min(1, j.progress || 0));
-      prog = { f, logs: j.logs || 0 };
-      status("rewind", tr(`Rewinding the transfers — ${Math.round(f * 100)}%`), f);
+      const f = Math.max(0, Math.min(1, j.progress || 0)), t = performance.now();
+      if (!prog || prog.run !== F.run) prog = { run: F.run, t0: t, f0: f };
+      prog.f = f; prog.logs = j.logs || 0;
+      // time left from the pace so far (after a couple of seconds, so it doesn't jump around)
+      const el = (t - prog.t0) / 1000, df = f - prog.f0, eta = df > 0.01 && el > 2.5 && f < 0.99 ? (el * (1 - f)) / df : null;
+      status("rewind", tr(`Rewinding the transfers — ${Math.round(f * 100)}%`) + (eta ? " · " + tr("about {t} left").replace("{t}", eta < 60 ? `${Math.max(5, Math.ceil(eta / 5) * 5)}s` : `${Math.ceil(eta / 60)} min`) : ""), f);
     } else status("wait", tr("Building the snapshot…"), j.progress || 0.1);
   }
   async function take(run, atBlock) {
@@ -264,7 +268,7 @@
     run = run || ++F.run;
     let p;
     try { p = params(atBlock); } catch (err) { status("bad", err.message); return; }
-    F.busy = true; paintBusy(); shutter("close");
+    F.busy = true; prog = null; paintBusy(); shutter("close");
     status("wait", tr("Building the snapshot…"), 0.02);
     try {
       const res = await build(p, () => run === F.run, onProgress);
@@ -369,6 +373,7 @@
     }
     paintAirdrop(true);
   }
+  const c2x = (list) => (F.calc.lockX2 ? list.map((x) => (x.locked > 0n ? { ...x, v: x.v + x.locked, min: x.min + x.locked } : x)) : list);
   function amounts() {
     const m = calcMeta();
     if (!m || !F.res) return null;
@@ -378,7 +383,8 @@
     const tiers = F.calc.tiers.map(([t, a]) => [C.parseUnits(t, F.res.decimals), C.parseUnits(a, m.decimals)]).filter(([t, a]) => t != null && t !== undefined && a);
     if (F.calc.method !== "tiers" && !(total > 0n)) return null;
     if (F.calc.method === "tiers" && !tiers.length) return null;
-    return C.calcAmounts(F.list, { total: total || 0n, method: F.calc.method, cap: cap || null, min: min || null, tiers, hold: F.res.hold > 0 });
+    const list = c2x(F.list);
+    return C.calcAmounts(list, { total: total || 0n, method: F.calc.method, cap: cap || null, min: min || null, tiers, hold: F.res.hold > 0 });
   }
 
   // ---------------- compare ----------------
@@ -439,17 +445,26 @@
     F.pub.busy = true; paintPublish();
     try {
       const f = C.normFilters({ ...normFilters(), hold: F.hold, locks: F.locks, lp: F.lp, since: "any" });
-      const title = String(F.pub.title || "").trim().slice(0, 80), at = Math.floor(tMs / 1000);
-      const body = { action: "snapschedule", token: lc(F.tok.address), at, filters: f, title };
-      if (F.pub.sign) {
-        if (!state.account || !state.signer) throw new Error(tr("Connect a wallet to sign."));
-        body.by = lc(state.account);
-        body.sig = await state.signer.signMessage(C.sigText("schedule", { token: body.token, at, f, title }));
+      const title = String(F.pub.title || "").trim().slice(0, 80), at0 = Math.floor(tMs / 1000);
+      const [, , times, gap] = REPS.find((x) => x[0] === F.pub.rep) || REPS[0];
+      const done = [];
+      for (let k = 0; k < times; k++) {
+        const at = at0 + k * gap * 86400;
+        const body = { action: "snapschedule", token: lc(F.tok.address), at, filters: f, title };
+        if (F.pub.sign) {
+          if (!state.account || !state.signer) throw new Error(tr("Connect a wallet to sign."));
+          body.by = lc(state.account);
+          body.sig = await state.signer.signMessage(C.sigText("schedule", { token: body.token, at, f, title }));
+        }
+        const r = await fetchJson("/api/social", 30000, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+        if (!r.ok || !r.j || !r.j.id) {
+          if (done.length) { toast(tr("Scheduled {n} of them — the rest couldn't be scheduled right now.").replace("{n}", done.length)); break; }
+          throw new Error((r.j && r.j.error) || tr("Couldn't schedule it right now — try again in a moment."));
+        }
+        done.push({ id: r.j.id, url: `${location.origin}/snap/${r.j.id}`, at });
       }
-      const r = await fetchJson("/api/social", 30000, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok || !r.j || !r.j.id) throw new Error((r.j && r.j.error) || tr("Couldn't schedule it right now — try again in a moment."));
-      F.pub.sched = { id: r.j.id, url: `${location.origin}/snap/${r.j.id}`, at };
-      toast(tr("Scheduled"));
+      F.pub.sched = done[0]; F.pub.scheds = done;
+      if (done.length === times) toast(tr(times > 1 ? "Scheduled {n} snapshots" : "Scheduled").replace("{n}", times));
       burst(btn);
     } catch (err) { toast(String(err && (err.shortMessage || err.message) || err).slice(0, 160)); }
     finally { F.pub.busy = false; paintPublish(); }
@@ -531,6 +546,60 @@
   function burst(btn) {
     if (reduce || !btn) return;
     btn.classList.remove("asn-burst"); void btn.offsetWidth; btn.classList.add("asn-burst");
+  }
+
+  // ---------------- v1: your own names, your own columns ----------------
+  // names saved in the Multisender's address book (this browser) show next to wallets
+  const book = () => { try { return JSON.parse(localStorage.getItem("arcircle.ms.book.v1") || "{}") || {}; } catch { return {}; } };
+  const COLS = [["rank", "Rank on the list"], ["address", "Address"], ["name", "Name"], ["balance", "Balance"], ["pct", "% of supply"], ["usd", "USD"], ["now", "Balance now"], ["locked", "Locked"], ["lp", "LP"]];
+  const colsGet = () => {
+    if (F.cols) return F.cols;
+    try { const c = JSON.parse(localStorage.getItem("arcircle.snapshot.cols.v1") || "null"); if (Array.isArray(c) && c.length) return (F.cols = c.filter((k) => COLS.some((x) => x[0] === k))); } catch { /* default */ }
+    return (F.cols = ["rank", "address", "balance", "pct"]);
+  };
+  function customCsv() {
+    const r = F.res, dec = r.decimals, hold = r.hold > 0, px = F.info && F.info.price, bk = book(), cols = colsGet();
+    const q = (x) => (/[",\n]/.test(x) ? `"${String(x).replace(/"/g, '""')}"` : x);
+    const v = (x) => (hold ? x.min : x.v);
+    const cell = { rank: (x, i) => i + 1, address: (x) => cs(x.a), name: (x) => q(bk[x.a] || ""), balance: (x) => C.units(v(x), dec), pct: (x) => C.pctOf(v(x), r.supply).toFixed(6),
+      usd: (x) => (px ? (Number(C.units(v(x), dec)) * px).toFixed(2) : ""), now: (x) => C.units(x.now, dec), locked: (x) => (x.locked ? C.units(x.locked, dec) : "0"), lp: (x) => (x.lp ? C.units(x.lp, dec) : "0") };
+    return [cols.join(","), ...F.list.map((x, i) => cols.map((k) => cell[k](x, i)).join(","))].join("\n") + "\n";
+  }
+  function colsHtml() {
+    const on = new Set(colsGet()), r = F.res;
+    const can = (k) => !(k === "usd" && !(F.info && F.info.price)) && !(k === "now" && !(r.block < r.hi)) && !(k === "locked" && !r.locks) && !(k === "lp" && !r.lp);
+    return `<div class="asn-cols"${F.colsOpen ? "" : " hidden"}><p class="asn-note">${esc(tr("Pick the columns for your own CSV. The fingerprint is for the standard CSV, so use that one when you publish."))}</p>
+      <div class="asn-cols-l">${COLS.filter(([k]) => can(k)).map(([k, l]) => `<label><input type="checkbox" data-col="${k}"${on.has(k) ? " checked" : ""}> <span>${esc(tr(l))}</span></label>`).join("")}</div>
+      <button type="button" class="ams-btn sm" data-act="csv-custom">${esc(tr("Download this CSV"))}</button></div>`;
+  }
+  // airdrop rules in one tap
+  const TPL = [["fair", "Fair split", "Square root, at most 2% each"], ["lockx2", "Lockers get double", "Locked tokens count twice"], ["hold7", "Held 7+ days", "Only wallets that held all week"]];
+  function applyTpl(k) {
+    const c = F.calc;
+    if (k === "fair") {
+      c.method = "sqrt";
+      const m = calcMeta(), tot = m ? C.parseUnits(c.total, m.decimals) : null;
+      if (tot && tot > 0n) c.cap = C.units(tot / 50n, m.decimals);
+      toast(tr("Split by square root, at most 2% of the total per wallet."));
+    } else if (k === "lockx2") {
+      if (!F.res.locks || !F.list.some((x) => x.locked > 0n)) { toast(tr("Nobody in this snapshot has locked tokens.")); return; }
+      c.lockX2 = !c.lockX2;
+      toast(tr(c.lockX2 ? "Locked tokens now count twice." : "Locked tokens count once again."));
+    } else if (k === "hold7") {
+      if (F.res.hold >= 604800) { toast(tr("This snapshot already asks for 7 days or more.")); return; }
+      F.hold = 604800; paintWhen();
+      toast(tr("Taking it again — only wallets that held for the last 7 days."));
+      F.run++; take(F.run);
+      return;
+    }
+    paintAirdrop();
+  }
+  // several scheduled snapshots at once, and a calendar file for them
+  const REPS = [["once", "Just once", 1, 0], ["w4", "Every week × 4", 4, 7], ["b4", "Every 2 weeks × 4", 4, 14], ["m3", "Every 30 days × 3", 3, 30]];
+  function icsOf(list) {
+    const d = (t) => new Date(t * 1000).toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+    const title = (F.pub.title || "Holder snapshot").replace(/[,;\n]/g, " ");
+    return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//Snapshot//EN", ...list.flatMap((x) => ["BEGIN:VEVENT", `UID:snap-${x.id}@arcircle.app`, `DTSTAMP:${d(Math.floor(Date.now() / 1000))}`, `DTSTART:${d(x.at)}`, `DTEND:${d(x.at + 600)}`, `SUMMARY:${title} — ${symOf()}`, `URL:${x.url}`, `DESCRIPTION:${x.url}`, "END:VEVENT"]), "END:VCALENDAR"].join("\r\n");
   }
 
   // ---------------- painting ----------------
@@ -688,6 +757,7 @@
       ${F.info && F.info.lite && !past ? `<p class="asn-left warn">${esc(tr("A very widely held token — only its largest holders are listed."))}</p>` : ""}
       ${left.length ? `<p class="asn-left">${esc(tr("Left out:"))} ${left.map(esc).join(" · ")}</p>` : ""}
       ${F.also.mode && F.also.set ? `<p class="asn-left">${esc(tr(F.also.mode === "and" ? "Only wallets also on:" : "Plus everyone on:"))} <b>${esc(F.also.label)}</b></p>` : ""}
+      ${relayNote(myIdx >= 0 ? val(list[myIdx]) : null)}
       ${me ? `<p class="asn-me${myIdx >= 0 ? " in" : ""}">${myIdx >= 0 ? esc(tr(`Your wallet is #${myIdx + 1} in this snapshot`)) + ` · <b data-no-i18n>${esc(fmt(val(list[myIdx]), dec))} ${esc(symOf())}</b> <button type="button" class="ams-mini" data-act="jump">${esc(tr("Show me"))}</button>` : myRow ? esc(tr("Your wallet held this token but is filtered out.")) : esc(tr("Your wallet isn't in this snapshot."))}</p>` : ""}`;
     if (fresh) { countUp(panel.querySelector(".asn-count"), list.length); if (fp) scramble($("asn-fpc"), fp.slice(0, 18) + "…"); }
     const ex = $("asn-expect");
@@ -698,6 +768,14 @@
       p.innerHTML = `<b>${esc(tr(F.expect === fp ? "Same fingerprint as the published list." : "This differs from the published list."))}</b>`;
       $("asn-sum").querySelector(".asn-head").after(p);
     }
+  }
+  // $ARCIRCLE holders are who Relay Launch pays: say so, and whether this wallet makes the cut
+  function relayNote(mine) {
+    if (!F.tok || lc(F.tok.address) !== ARCIRCLE || !CONFIG.RELAY) return "";
+    const min = C.parseUnits(String(CONFIG.RELAY.MIN_ARCIRCLE || "0"), F.res.decimals) || 0n;
+    const txt = mine == null ? tr("Relay Launch pays $ARCIRCLE holders — this is the kind of list it uses.")
+      : mine >= min ? tr("You hold enough $ARCIRCLE for the next Relay Launch.") : tr("You need {n} more $ARCIRCLE for the next Relay Launch (locked tokens count).").replace("{n}", fmt(min - mine, F.res.decimals));
+    return `<p class="asn-relay${mine != null && mine >= min ? " in" : ""}"><span>${esc(txt)}</span> <a href="#relay" class="ams-mini">${esc(tr("Open Relay Launch"))}</a></p>`;
   }
   function sorted() {
     const r = F.res, hold = r.hold > 0;
@@ -716,6 +794,7 @@
     const px = F.info && F.info.price;
     const anyLock = F.list.some((x) => x.locked > 0n), anyLp = F.list.some((x) => x.lp > 0n);
     const rows = sorted(), vis = rows.slice(0, F.shown);
+    const bk = book();
     const labelOf = (a) => {
       const S = window.ArcScanCore && window.ArcScanCore.labelOf ? window.ArcScanCore.labelOf(a) : null;
       if (S) return S.name;
@@ -736,16 +815,18 @@
         <button type="button" class="ams-btn sm asn-primary" data-act="ms-same">${esc(tr("Airdrop: same amount each"))}</button>
         <button type="button" class="ams-btn sm asn-primary" data-act="ms-weight">${esc(tr("Airdrop: by holding"))}</button>
         <button type="button" class="ams-mini" data-act="csv">${esc(tr("Download CSV"))}</button>
+        <button type="button" class="ams-mini" data-act="cols" aria-expanded="${F.colsOpen}">${esc(tr("Choose columns"))}</button>
         <button type="button" class="ams-mini" data-act="json">JSON</button>
         <button type="button" class="ams-mini" data-act="addrs">${esc(tr("Copy addresses"))}</button>
         <button type="button" class="ams-mini" data-act="link">${esc(tr("Copy link"))}</button>
       </div>
+      ${colsHtml()}
       <div class="asn-find"><input id="asn-q" class="asn-q" type="text" spellcheck="false" value="${esc(F.q)}" placeholder="${esc(tr("Find a wallet (0x…)"))}" aria-label="${esc(tr("Find a wallet"))}">
         ${F.tier ? `<button type="button" class="asn-tierchip t-${F.tier}" data-tier-off>${esc(tr(T.find((t) => t.k === F.tier).label))} ×</button>` : ""}</div>
       <div class="asn-table"><table><thead><tr><th>#</th>${th("", "Wallet")}${th("v", hold ? "Held throughout" : "Balance", "n")}<th class="n">%</th>${px ? `<th class="n">USD</th>` : ""}${past ? th("now", "Now", "n") : ""}${anyLock ? th("locked", "Locked", "n") : ""}${anyLp ? th("lp", "LP", "n") : ""}</tr></thead>
       <tbody>${vis.map((x, k) => { const v = hold ? x.min : x.v, lab = labelOf(x.a); return `<tr class="${x.a === me ? "me" : ""}${fresh && k < 30 && !reduce ? " cas" : ""}" style="--r:${k}" data-tier="${tierOf(v, r.supply).k}" data-a="${x.a}">
         <td class="rk" data-l="#">${x.i + 1}</td>
-        <td class="wal"><a href="${explorer("address", x.a)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(cs(x.a)))}</a>${x.c || r.contracts.has(x.a) ? ` <span class="asn-tag c">${esc(tr("Contract"))}</span>` : ""}${lab ? ` <span class="asn-tag lab">${esc(tr(lab))}</span>` : ""}${x.a === me ? ` <span class="asn-tag me">${esc(tr("You"))}</span>` : ""}${x.added ? ` <span class="asn-tag same">${esc(tr("Other list"))}</span>` : ""}</td>
+        <td class="wal"><a href="${explorer("address", x.a)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(cs(x.a)))}</a>${x.c || r.contracts.has(x.a) ? ` <span class="asn-tag c">${esc(tr("Contract"))}</span>` : ""}${lab ? ` <span class="asn-tag lab">${esc(tr(lab))}</span>` : ""}${bk[x.a] ? ` <span class="asn-tag book" data-no-i18n>${esc(bk[x.a])}</span>` : ""}${x.a === me ? ` <span class="asn-tag me">${esc(tr("You"))}</span>` : ""}${x.added ? ` <span class="asn-tag same">${esc(tr("Other list"))}</span>` : ""}</td>
         <td class="n" data-l="${esc(tr(hold ? "Held throughout" : "Balance"))}"><span data-no-i18n>${esc(fmt(v, dec))}</span>${hold && x.v !== x.min ? `<small data-no-i18n> / ${esc(fmt(x.v, dec))}</small>` : ""}</td>
         <td class="n" data-l="%" data-no-i18n>${esc(pctTxt(C.pctOf(v, r.supply)))}</td>
         ${px ? `<td class="n" data-l="USD" data-no-i18n>${esc(usd(Number(C.units(v, dec)) * px))}</td>` : ""}
@@ -806,6 +887,7 @@
         <div class="asn-calc-row"><span class="asn-lbl">${esc(tr("Send"))}</span>
           <div class="ams-chips">${[["", F.tok ? "$" + F.tok.symbol : "?"], [USDC, "USDC"], ...(ARCIRCLE && (!F.tok || lc(F.tok.address) !== ARCIRCLE) ? [[CONFIG.ARCIRCLE_TOKEN, "$ARCIRCLE"]] : [])].map(([a, l]) => `<button type="button" class="ams-chip${lc(c.token) === lc(a) || (!a && !c.token) ? " on" : ""}" data-calc-tok="${esc(a)}" data-no-i18n>${esc(l)}</button>`).join("")}
             <input id="asn-c-tok" class="asn-c-tok" type="text" spellcheck="false" placeholder="${esc(tr("or a token address"))}" value="${esc(c.token && ![USDC, ARCIRCLE].includes(lc(c.token)) ? c.token : "")}"></div></div>
+        <div class="asn-tpl"><span class="asn-lbl">${esc(tr("Quick rules"))}</span>${TPL.map(([k, l, sub]) => `<button type="button" data-tpl="${k}"${k === "lockx2" ? ` aria-pressed="${!!c.lockX2}"` : k === "hold7" ? ` aria-pressed="${F.res.hold >= 604800}"` : ""}><b>${esc(tr(l))}</b><small>${esc(tr(sub))}</small></button>`).join("")}</div>
         <div class="asn-seg asn-methods" role="radiogroup" aria-label="${esc(tr("How to split"))}">${methods.map(([k, l, s]) => `<button type="button" role="radio" data-method="${k}" aria-checked="${c.method === k}"><b>${esc(tr(l))}</b><span>${esc(tr(s))}</span></button>`).join("")}</div>
         ${c.method === "tiers" ? `<div class="asn-tiered">${c.tiers.map(([t, a], i) => `<div class="asn-tierrow"><span>${esc(tr("Holding at least"))}</span><input type="text" inputmode="decimal" data-tier-t="${i}" value="${esc(t)}" placeholder="0"><em data-no-i18n>${esc(symOf())}</em><span>→</span><input type="text" inputmode="decimal" data-tier-a="${i}" value="${esc(a)}" placeholder="0"><em data-no-i18n>${esc(sym)}</em></div>`).join("")}
           <button type="button" class="ams-mini" data-act="tier-add">${esc(tr("Add a tier"))}</button></div>`
@@ -852,6 +934,8 @@
           <div class="l"><b>−${num(d.left.length)}</b><small>${esc(tr("Left"))}</small></div>
           <div class="u"><b>${num(d.up.length)}</b><small>${esc(tr("Went up"))}</small></div>
           <div class="d"><b>${num(d.down.length)}</b><small>${esc(tr("Went down"))}</small></div></div>
+        <div class="asn-flow" aria-hidden="true"><i class="j" style="flex-grow:${d.joined.length}"></i><i class="u" style="flex-grow:${d.up.length}"></i><i class="d" style="flex-grow:${d.down.length}"></i><i class="l" style="flex-grow:${d.left.length}"></i></div>
+        <p class="asn-cmp-net">${esc(tr(d.joined.length >= d.left.length ? "Net change: {n} more holders" : "Net change: {n} fewer holders").replace("{n}", num(Math.abs(d.joined.length - d.left.length))))}</p>
         <div class="asn-dcols"><div><h4>${esc(tr("Joined"))}</h4>${list(d.joined, "j", "j")}</div><div><h4>${esc(tr("Left"))}</h4>${list(d.left, "l", "l")}</div>
           <div><h4>${esc(tr("Went up"))}</h4>${list(d.up, "u", "u")}</div><div><h4>${esc(tr("Went down"))}</h4>${list(d.down, "d", "d")}</div></div>
         <button type="button" class="ams-mini" data-act="cmp-csv">${esc(tr("Download the changes (CSV)"))}</button>` : ""}`;
@@ -881,10 +965,13 @@
           <h4>${esc(tr("Schedule a snapshot"))}</h4>
           <p>${esc(tr("Announce the moment first; the list is built from the chain at that moment, with the settings on the left. Nobody — including you — can change it afterwards."))}</p>
           <input id="asn-p-at" type="datetime-local" value="${esc(p.schedAt)}" aria-label="${esc(tr("Date and time"))}">
+          <div class="asn-seg sm asn-rep" role="radiogroup" aria-label="${esc(tr("How often"))}">${REPS.map(([k, l]) => `<button type="button" role="radio" data-rep="${k}" aria-checked="${p.rep === k}">${esc(tr(l))}</button>`).join("")}</div>
           <button type="button" class="ams-btn sm" data-act="schedule"${p.busy ? " disabled" : ""}>${esc(tr("Schedule"))}</button>
           ${sc ? `<div class="asn-publink"><a href="${esc(sc.url)}" target="_blank" rel="noopener" data-no-i18n>${esc(sc.url.replace(/^https?:\/\//, ""))}</a>
             <button type="button" class="ams-mini" data-copy="${esc(sc.url)}">${esc(tr("Copy link"))}</button>
-            <a class="ams-mini" href="${esc(x(sc.url, `${F.pub.title || "Holder snapshot"} — scheduled for ${utc(sc.at)}`))}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a></div>` : ""}
+            <a class="ams-mini" href="${esc(x(sc.url, `${F.pub.title || "Holder snapshot"} — scheduled for ${utc(sc.at)}`))}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a>
+            <button type="button" class="ams-mini" data-act="sched-ics">${esc(tr("Add to calendar"))}</button></div>
+            ${p.scheds && p.scheds.length > 1 ? `<ol class="asn-scheds">${p.scheds.map((y) => `<li><span data-no-i18n>${esc(utc(y.at))}</span><a href="${esc(y.url)}" target="_blank" rel="noopener" data-no-i18n>/snap/${esc(y.id)}</a></li>`).join("")}</ol>` : ""}` : ""}
         </div>
         <div class="asn-pubcard">
           <h4>${esc(tr("Check a CSV"))}</h4>
@@ -1051,6 +1138,13 @@
       else if (id === "asn-vfile" && e.target.files && e.target.files[0]) verifyFile(e.target.files[0]);
       else if (id === "asn-p-at") F.pub.schedAt = e.target.value;
       else if (id === "asn-cmp-at") F.cmp.at = e.target.value;
+      else if (e.target.dataset.col) {
+        const on = new Set(colsGet());
+        if (e.target.checked) on.add(e.target.dataset.col); else on.delete(e.target.dataset.col);
+        F.cols = COLS.map((x) => x[0]).filter((k) => on.has(k));
+        if (!F.cols.length) { F.cols = ["address"]; e.target.checked = e.target.dataset.col === "address"; }
+        try { localStorage.setItem("arcircle.snapshot.cols.v1", JSON.stringify(F.cols)); } catch { /* this visit */ }
+      }
     });
     panel.addEventListener("dragover", (e) => { const d = e.target.closest && e.target.closest("#asn-drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
     panel.addEventListener("dragleave", (e) => { const d = e.target.closest && e.target.closest("#asn-drop"); if (d) d.classList.remove("over"); });
@@ -1088,6 +1182,8 @@
     if (t.dataset.tier && t.tagName === "BUTTON") { F.tier = t.dataset.tier; F.tab = "holders"; F.shown = PAGE; paintTabs(); paintHolders(true); return; }
     if (t.hasAttribute("data-tier-off")) { F.tier = null; paintHolders(false); return; }
     if (t.dataset.method) { F.calc.method = t.dataset.method; paintAirdrop(); return; }
+    if (t.dataset.tpl) { applyTpl(t.dataset.tpl); return; }
+    if (t.dataset.rep) { F.pub.rep = t.dataset.rep; panel.querySelectorAll("[data-rep]").forEach((b) => b.setAttribute("aria-checked", String(b === t))); return; }
     if (t.dataset.calcTok != null) { setCalcToken(t.dataset.calcTok); return; }
     if (t.dataset.cmp) { F.cmp.ago = t.dataset.cmp; if (t.dataset.cmp === "custom" && !F.cmp.at) F.cmp.at = localInput((F.res ? F.res.ts * 1000 : Date.now()) - 3 * 86400e3); paintCompare(); return; }
     if (t.hasAttribute("data-cancel")) { F.run++; F.busy = false; paintBusy(); status("", ""); shutter("open"); return; }
@@ -1098,6 +1194,9 @@
     else if (a === "refresh") { F.run++; take(F.run); }
     else if (a === "csv") { if (!F.res) return; download(`${fileBase()}.csv`, csv(), "text/csv"); toast(tr("CSV downloaded")); }
     else if (a === "json") download(`${fileBase()}.json`, jsonOut(), "application/json");
+    else if (a === "cols") { F.colsOpen = !F.colsOpen; const b = panel.querySelector(".asn-cols"); if (b) b.hidden = !F.colsOpen; t.setAttribute("aria-expanded", String(F.colsOpen)); }
+    else if (a === "csv-custom") { if (!F.res) return; download(`${fileBase()}-custom.csv`, customCsv(), "text/csv"); toast(tr("CSV downloaded")); }
+    else if (a === "sched-ics") { const l = F.pub.scheds && F.pub.scheds.length ? F.pub.scheds : F.pub.sched ? [F.pub.sched] : []; if (l.length) download(`snapshot-${(F.tok && F.tok.symbol) || "token"}.ics`, icsOf(l), "text/calendar"); }
     else if (a === "addrs") copy(F.list.map((x) => cs(x.a)).join("\n"), t, tr(`${plural(F.list.length, "address", "addresses")} copied`));
     else if (a === "link") copy(shareUrl(), t, tr("Link copied — it rebuilds this exact snapshot"));
     else if (a === "fp") copy(fingerprint(), t, tr("Fingerprint copied"));
