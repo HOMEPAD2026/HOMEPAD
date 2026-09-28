@@ -93,7 +93,9 @@ const W = {
 };
 const L3 = (lang) => (lang === "ko" ? 1 : lang === "zh" ? 2 : 0);
 const w = (k, lang) => W[k][L3(lang)];
-const langOf = (u) => { const c = lc(u && u.language_code); return c.startsWith("ko") ? "ko" : c.startsWith("zh") ? "zh" : "en"; };
+// The bot speaks English: menus, descriptions and command answers. TG_ARCIA_LANG=auto switches the fixed
+// text to the person's Telegram language (ko / zh). ARCIA's chat replies follow the language of the message.
+const langOf = (u) => { if (lc(env("TG_ARCIA_LANG")) !== "auto") return "en"; const c = lc(u && u.language_code); return c.startsWith("ko") ? "ko" : c.startsWith("zh") ? "zh" : "en"; };
 
 const PUBLIC_CMDS = [["price", "$ARCIRCLE price, market cap, holders", "$ARCIRCLE 가격, 시총, 홀더", "$ARCIRCLE 价格、市值、持有人"], ["scan", "Safety scan: /scan 0x…", "안전 스캔: /scan 0x…", "安全扫描:/scan 0x…"], ["coin", "Coin info: /coin 0x…", "코인 정보: /coin 0x…", "币信息:/coin 0x…"],
   ["round", "CirclePad round: raised, time left", "CirclePad 라운드: 모금액, 남은 시간", "CirclePad 轮次:已募、剩余时间"], ["drops", "Airdrops a wallet got: /drops 0x…", "받은 에어드랍: /drops 0x…", "钱包收到的空投:/drops 0x…"],
@@ -231,7 +233,7 @@ async function chat(S, m, text, lang, group) {
   const who = [m.from.first_name, m.from.username ? "@" + m.from.username : ""].filter(Boolean).join(" ");
   const reply = await askClaude({
     messages, L, maxTokens: 400, timeoutMs: 25000,
-    extra: `You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)` : " in a private chat"}. The person is ${who || "a fan"}. Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Useful bot commands you can mention: /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books.`,
+    extra: `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)` : " in a private chat"}. The person is ${who || "a fan"}. Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Useful bot commands you can mention: /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books.`,
   }).catch(() => null);
   if (!reply) return { text: w("busy", lang), plain: true };
   u[uid] = (u[uid] || 0) + 1;
@@ -381,10 +383,12 @@ async function setup() {
   const hook = await tg("setWebhook", { url: `${SITE}/api/arcia-tg`, secret_token: secret, allowed_updates: ["message", "callback_query", "channel_post", "my_chat_member"], max_connections: 10, drop_pending_updates: true });
   const cmds = await Promise.all([
     tg("setMyCommands", { commands: PUBLIC_CMDS.map((x) => ({ command: x[0], description: x[1] })) }),
-    tg("setMyCommands", { commands: PUBLIC_CMDS.map((x) => ({ command: x[0], description: x[2] })), language_code: "ko" }),
-    tg("setMyCommands", { commands: PUBLIC_CMDS.map((x) => ({ command: x[0], description: x[3] })), language_code: "zh" }),
+    // English everywhere: clear the Korean / Chinese menus and descriptions an earlier setup added
+    tg("deleteMyCommands", { language_code: "ko" }),
+    tg("deleteMyCommands", { language_code: "zh" }),
+    tg("setMyDescription", { description: "", language_code: "ko" }),
+    tg("setMyShortDescription", { short_description: "", language_code: "ko" }),
     tg("setMyDescription", { description: "Hi, I'm ARCIA — the virtual idol of $ARCIRCLE on Circle's Arc 💙💚 Ask me about ARCIRCLE PAD, ArcPad, CirclePad and $ARCIRCLE, or use /price /scan /round. I'm an AI character run by @ARCIRCLEonArc. Not financial advice." }),
-    tg("setMyDescription", { description: "안녕하세요, Circle Arc 위 $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 ARCIRCLE PAD, ArcPad, CirclePad, $ARCIRCLE에 대해 물어보거나 /price /scan /round를 써 보세요. @ARCIRCLEonArc가 운영하는 AI 캐릭터예요. 투자 조언이 아니에요.", language_code: "ko" }),
     tg("setMyShortDescription", { short_description: "ARCIA — the virtual idol of $ARCIRCLE on Arc. Live numbers, scans and chat. arcircle.app" }),
   ]);
   for (const a of S.admins) await tg("setMyCommands", { commands: [...PUBLIC_CMDS.map((x) => ({ command: x[0], description: x[1] })), ...ADMIN_CMDS.map(([command, description]) => ({ command, description }))], scope: { type: "chat", chat_id: a } });
