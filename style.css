@@ -9894,3 +9894,5 @@ html.agl-sh-open{overflow:hidden;}
 @media (max-width:900px){.a4-grid,.a4-grid.b{grid-template-columns:minmax(0,1fr);}}
 @media (max-width:560px){.a4-kpis,.a4-today{grid-template-columns:repeat(2,minmax(0,1fr));}.a4-loop .a4-arrow{display:none;}.a4-step{flex:1 1 calc(33% - 6px);padding:8px 10px;}.a4-step small{white-space:normal;}.a4-feed li{grid-template-columns:26px minmax(0,1fr) auto;}.a4-feed li time{display:none;}}
 @media (prefers-reduced-motion:reduce){.a4-e-ring,.a4-step,.a4-bar i,.a4-feed li,.bp-nav-v.bp-nav-new{animation:none;}}
+/* utilities pages: a shorter page keeps its tiles' height (no stretching to the tallest page) */
+.ax-util-track>.ax-util-grid{align-content:start;}
