@@ -117,6 +117,14 @@
       "destination": "/api/social?scanapi=:addr"
     },
     {
+      "source": "/arcia402",
+      "destination": "/api/arcia402"
+    },
+    {
+      "source": "/arcia402/:svc",
+      "destination": "/api/arcia402?svc=:svc"
+    },
+    {
       "source": "/snap/:id",
       "destination": "/api/c?view=snap&id=:id"
     },
@@ -263,6 +271,10 @@
   ],
   "crons": [
     {
+      "path": "/api/arcia402?hire=1",
+      "schedule": "20 3 * * *"
+    },
+    {
       "path": "/api/arcia-x",
       "schedule": "5 12 * * *"
     }
@@ -273,6 +285,9 @@
     },
     "api/arcia.mjs": {
       "maxDuration": 30
+    },
+    "api/arcia402.mjs": {
+      "maxDuration": 60
     }
   }
 }
