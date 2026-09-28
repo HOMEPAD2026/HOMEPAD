@@ -22,7 +22,8 @@
 // without it is treated as a launch announcement request, as before.
 //
 // The launch page calls POST /api/tg-launch {"token":"0x…"} after a launch
-// confirms. The token is checked on-chain (must be an ArcPad launch from the
+// confirms. Argus launches made through ArcPad are posted by /api/social when they're
+// listed (api/_tg.mjs); a token that isn't on the ArcPad factory is forwarded there. The token is checked on-chain (must be an ArcPad launch from the
 // last 15 minutes) and announced once per server instance, so the endpoint
 // can't be used to post arbitrary text or old coins.
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
@@ -195,7 +196,14 @@ export default async function handler(req) {
   const key = token.toLowerCase();
   if (sent.has(key) && !test) return json(200, { ok: true, duplicate: true });
   const coin = await getCoin(token).catch(() => null);
-  if (!coin) return json(404, { ok: false, error: "not an ArcPad launch" });
+  if (!coin) {
+    // not on the ArcPad factory: maybe launched on Argus through ArcPad — that list lives in the
+    // store, which only the Node function reaches (it checks the 15-minute window and posts once)
+    const r = await fetch(`${SITE}/api/social`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "argustg", token, key: test ? body.key : undefined }) }).then((x) => x.json()).catch(() => null);
+    if (r && (r.ok || r.tg)) return json(200, { ok: !!r.ok, argus: true, tg: r.tg, test });
+    return json(404, { ok: false, error: "not an ArcPad launch" });
+  }
   const age = Date.now() / 1000 - coin.launchedAt;
   if (!test && !(age >= -60 && age <= 15 * 60)) return json(200, { ok: false, error: "only launches from the last 15 minutes are announced" });
   sent.add(key);

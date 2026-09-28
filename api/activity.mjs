@@ -4,7 +4,7 @@
 // visit paints the ticker, card stats and Explore sorts from one request
 // instead of walking the chain itself. The browser keeps scanning forward
 // from `hi` on its own.
-import { allPools, getLogs, latestBlock, blockTs, pool, toQty, PM_ADDRESS, TOPIC } from "./_arc.mjs";
+import { allPools, getLogs, latestBlock, blockTs, pool, toQty, PM_ADDRESS, TOPIC, keccakHex, pad, SITE } from "./_arc.mjs";
 
 export const config = { runtime: "edge" };
 const CHUNK = 9000;
@@ -13,9 +13,25 @@ import { ARCIRCLE_CURVE } from "./_arcircle.mjs";
 const CURVE = ARCIRCLE_CURVE; // "" while $ARCIRCLE is not live
 const signed = (hex) => { const v = BigInt(hex); return v >= (1n << 255n) ? v - (1n << 256n) : v; };
 
+// coins launched on Argus through ArcPad trade on the same PoolManager: their pools join the
+// ticker too (the list from /api/social, edge-cached; pool key = USDC pair, dynamic fee,
+// tick spacing 200, the coin's hook — as in api/_argus-arcpad.mjs)
+const USDC = "0x3600000000000000000000000000000000000000";
+async function argusPools() {
+  try {
+    const r = await fetch(`${SITE}/api/social?argusarc=list`, { signal: AbortSignal.timeout(5000) });
+    const j = r.ok ? await r.json() : null;
+    return ((j && j.items) || []).filter((x) => x && x.active !== false && /^0x[0-9a-fA-F]{40}$/.test(x.token || "") && /^0x[0-9a-fA-F]{40}$/.test(x.hook || "")).map((x) => {
+      const [c0, c1] = BigInt(x.token) < BigInt(USDC) ? [x.token, USDC] : [USDC, x.token];
+      return { token: x.token, poolId: keccakHex(pad(c0) + pad(c1) + pad((0x800000).toString(16)) + pad((200).toString(16)) + pad(x.hook)).toLowerCase() };
+    });
+  } catch { return []; }
+}
+
 export default async function handler() {
   try {
-    const [latest, pools] = await Promise.all([latestBlock(), allPools()]);
+    const [latest, own, argus] = await Promise.all([latestBlock(), allPools(), argusPools()]);
+    const pools = own.concat(argus);
     let spb = 0.5;
     try {
       const back = Math.max(0, latest.number - 20000);

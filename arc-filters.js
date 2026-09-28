@@ -28,6 +28,9 @@
     if (!/^#explore(\?|$)/.test(location.hash) || !history.replaceState) return;
     const q = new URLSearchParams();
     for (const k of Object.keys(DEF)) if (F[k] !== "all") q.set(k, F[k]);
+    // one coin's sheet linked from outside (the Telegram launch card) keeps its coin=
+    const coin = /[?&]coin=(0x[0-9a-fA-F]{40})/.exec(location.hash);
+    if (coin) q.set("coin", coin[1]);
     const want = "#explore" + (q.toString() ? "?" + q.toString() : "");
     if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
   }

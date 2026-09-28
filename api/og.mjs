@@ -14,6 +14,7 @@ import { voteTx } from "./_burnvote.mjs";
 import { lockInfo } from "./_locker.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
+import { coin as argusCoin } from "./_argus-arcpad.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -164,6 +165,14 @@ export async function GET(req) {
   }
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }
+  // a coin launched on Argus through ArcPad (api/_argus-arcpad.mjs)
+  if (!coin && isAddr(addr)) {
+    try {
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+      const a = await argusCoin(addr, { store: st });
+      if (a) coin = { token: a.token, symbol: a.symbol, name: a.name, imageUrl: a.image, priceUsd: a.priceUsd, mcapUsd: a.mcapUsd, quoteSymbol: "USDC", argus: true };
+    } catch { coin = null; }
+  }
   const mark = await markP;
   let body;
   if (!coin) {
@@ -190,12 +199,12 @@ export async function GET(req) {
         h("div", { flexDirection: "column", gap: 10, maxWidth: 820 },
           h("div", { fontSize: sym.length > 8 ? 92 : 112, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `$${sym}`),
           h("div", { fontSize: 40, color: "#b9c8b3" }, clip(coin.name || "", 36)),
-          h("div", { fontSize: 24, color: "#39ff88", marginTop: 6 }, `arcircle.app/c/${coin.token.slice(0, 6)}…${coin.token.slice(-4)}`))),
+          h("div", { fontSize: 24, color: "#39ff88", marginTop: 6 }, coin.argus ? `Argus via ArcPad · ${coin.token.slice(0, 6)}…${coin.token.slice(-4)}` : `arcircle.app/c/${coin.token.slice(0, 6)}…${coin.token.slice(-4)}`))),
       h("div", { gap: 18 },
         stat("Price", fmtUsd(coin.priceUsd, { plain: true })),
         stat("Market cap", fmtUsd(coin.mcapUsd), "#39ff88"),
         stat("Pair", coin.quoteSymbol || "—"),
-        stat("Trade fee", `${1 + (coin.extraFeeBps || 0) / 100}%`)),
+        coin.argus ? stat("Creator fees", "70 / 30") : stat("Trade fee", `${1 + (coin.extraFeeBps || 0) / 100}%`)),
     ]);
   }
   const fonts = (await fontsP).filter(Boolean);

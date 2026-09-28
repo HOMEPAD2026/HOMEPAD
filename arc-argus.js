@@ -477,7 +477,14 @@ self.postMessage({done:true});};`;
     AR.busy = false;
     // only once ArcPad's own launches are in: before that (or if Arc couldn't be read) the grid keeps its skeleton / error
     if (typeof renderArcpadExploreGrid === "function" && document.getElementById("ap-explore-grid") && typeof ARC !== "undefined" && ARC.launchesLoaded) renderArcpadExploreGrid();
+    deepLink();
+    if (typeof window.arcActivityArgus === "function") window.arcActivityArgus(); // the live ticker
     return AR.items;
+  }
+  // a link straight to one coin (the Telegram launch card): #explore?plat=argus&coin=0x…
+  function deepLink() {
+    const dl = /^#explore\b.*[?&]coin=(0x[0-9a-fA-F]{40})/.exec(location.hash);
+    if (dl && AR.opened !== lc(dl[1]) && AR.items.some((x) => x.token === lc(dl[1]))) { AR.opened = lc(dl[1]); openSheet(dl[1]); }
   }
   // market cap on a line from $0 to a bit past $100K: where the coin is now (the label rides the
   // dot), and the $20K / $100K support marks. "card" is the compact one on Explore cards.
@@ -532,6 +539,7 @@ self.postMessage({done:true});};`;
 
   window.arcArgus = { active: () => plat === "argus" && !$("agl-fields").hidden, submit, rows: () => AR.items, load: loadList, openSheet, setPlatform: setPlat, progress: progressHtml };
   wire();
+  window.addEventListener("hashchange", () => { if (/[?&]coin=0x/.test(location.hash)) { if (AR.items.length) deepLink(); else loadList(); } });
   document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { if (/[?&]platform=argus/.test(location.hash)) setPlat("argus"); resumeCard(); } });
   setTimeout(loadList, 1200);
 })();

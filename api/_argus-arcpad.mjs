@@ -12,8 +12,12 @@
 //                         Uniswap v4 pool), the split re-checked each time; coins whose
 //                         split was removed are marked inactive. New PayoutSplitSet events
 //                         are also scanned, so a launch whose report never arrived is found.
+//   coin(token)           one listed coin with its price and market cap (the share image)
+// A new listing from the last 15 minutes is announced once in the Telegram launch channel
+// (api/_tg.mjs), the same as an ArcPad factory launch.
 import { ethCalls, rpcCall, getLogs, latestBlock, blockTs, isAddr, keccakHex, pad, strip, wAddr, wBig } from "./_arc.mjs";
 import { tokenMeta } from "./_locker.mjs";
+import { announceArgus } from "./_tg.mjs";
 
 export const PORTAL = "0xeed7559b8a6abf64427dc41cb5cc6400109c5d93"; // config-arc.js ARGUS_V5.PORTAL
 export const REGISTRY = "0x986b478be2f05b44b47c61e26a0bbcbcc07610ed"; // ARGUS_V5.CREATOR_REGISTRY
@@ -109,6 +113,61 @@ async function complete(rec) {
   return { ...rec, name: meta ? meta.name : "", symbol: meta ? meta.symbol : "", supply: meta ? meta.supply : "1000000000000000000000000000", launchedAt: ts || Math.floor(Date.now() / 1000) };
 }
 
+/// price and market cap of listed coins, from their pools' slot0 (and the split, re-checked)
+async function withPrices(items) {
+  const calls = [];
+  const t0s = items.map((x) => {
+    const { id, tokenIs0 } = poolIdOf(x.token, x.hook);
+    calls.push({ to: REGISTRY, data: SEL.payoutSplit + pad(x.token) }, { to: PM, data: SEL.extsload + strip(keccakHex(strip(id) + pad("6"))) });
+    return tokenIs0;
+  });
+  const out = [];
+  for (let i = 0; i < calls.length; i += 120) out.push(...(await ethCalls(calls.slice(i, i + 120), { timeoutMs: 8000 }).catch(() => calls.slice(i, i + 120).map(() => null))));
+  return items.map((x, k) => {
+    const sp = out[2 * k], s0 = out[2 * k + 1];
+    const share = sp ? platformShare(decodeSplit(sp)) : null;
+    const sqrtP = s0 ? BigInt(s0) & ((1n << 160n) - 1n) : 0n;
+    const price = sqrtP > 0n ? priceFromSqrt(sqrtP, t0s[k]) : null;
+    const supply = Number(BigInt(x.supply || "0")) / 1e18 || 1e9;
+    return { ...x, tokenIs0: t0s[k], active: share == null ? true : share >= PLATFORM_BPS, splitChecked: share != null, priceUsd: price, mcapUsd: price != null ? price * supply : null };
+  });
+}
+
+/// a launch from the last 15 minutes, not announced yet → the Telegram launch channel, once
+const ANNOUNCE_WINDOW = 15 * 60;
+async function maybeAnnounce(item, { force = false } = {}) {
+  if (item.tg && !force) return "already";
+  const age = Date.now() / 1000 - (item.launchedAt || 0);
+  if (!force && !(age >= -60 && age <= ANNOUNCE_WINDOW)) return "too old";
+  const [live] = await withPrices([item]).catch(() => [item]);
+  const r = await announceArgus(live).catch((e) => ({ ok: false, error: String(e && e.message || e) }));
+  if (r && r.ok) item.tg = Math.floor(Date.now() / 1000);
+  return r && r.ok ? "sent" : (r && r.error) || "not sent";
+}
+
+/// one listed coin, with its price (for the share image and a re-post)
+export async function coin(token, { store } = {}) {
+  token = lc(token);
+  if (!isAddr(token)) return null;
+  const items = await readList(store);
+  const x = items.find((i) => i.token === token);
+  if (!x) return null;
+  const [live] = await withPrices([x]);
+  return live;
+}
+
+/// the owner re-posting a listed coin to Telegram (TG_TEST_KEY), or a late launch-page report
+export async function announce({ token, key }, { store } = {}) {
+  token = lc(token);
+  const test = !!(process.env.TG_TEST_KEY && key && String(key) === process.env.TG_TEST_KEY);
+  const items = await readList(store);
+  const i = items.findIndex((x) => x.token === token);
+  if (i < 0) return { status: 404, body: { ok: false, error: "not an Argus launch listed through ArcPad" } };
+  const tg = await maybeAnnounce(items[i], { force: test });
+  if (tg === "sent") await writeList(store, items);
+  return { status: 200, body: { ok: tg === "sent", tg, test } };
+}
+
 /// POST {action:"argusreg", token, tx} → list a launch whose 70/30 split is set
 export async function register({ token, tx }, { store } = {}) {
   token = lc(token); tx = lc(tx);
@@ -122,9 +181,11 @@ export async function register({ token, tx }, { store } = {}) {
   const i = items.findIndex((x) => x.token === token);
   const item = await complete({ ...rec, payout: po ? lc(wAddr(po, 0)) : rec.creator });
   if (i >= 0) items[i] = { ...items[i], ...item }; else items.push(item);
+  const saved = i >= 0 ? items[i] : item;
+  const tg = await maybeAnnounce(saved);
   await writeList(store, items.slice(-2000));
   mem.view = null;
-  return { status: 200, body: { ok: true, item } };
+  return { status: 200, body: { ok: true, item: saved, tg } };
 }
 
 /// PayoutSplitSet events since the last look: launches whose report never arrived
@@ -150,7 +211,9 @@ async function scan(store, items, budgetMs) {
       if (!ls.length) continue;
       const rec = await fromLaunchTx(ls[0].transactionHash, token);
       if (!rec) continue;
-      items.push(await complete({ ...rec, payout: rec.creator }));
+      const item = await complete({ ...rec, payout: rec.creator });
+      await maybeAnnounce(item);
+      items.push(item);
       found++;
     }
     mem.cursor = to;
@@ -166,23 +229,7 @@ export async function list({ store = null, budgetMs = 4000 } = {}) {
   if (mem.view && Date.now() - mem.view.at < 60e3) return mem.view;
   const items = await readList(store);
   await scan(store, items, budgetMs).catch(() => 0);
-  const calls = [];
-  for (const x of items) {
-    const { id, tokenIs0 } = poolIdOf(x.token, x.hook);
-    x._t0 = tokenIs0;
-    calls.push({ to: REGISTRY, data: SEL.payoutSplit + pad(x.token) }, { to: PM, data: SEL.extsload + strip(keccakHex(strip(id) + pad("6"))) });
-  }
-  const out = [];
-  for (let i = 0; i < calls.length; i += 120) out.push(...(await ethCalls(calls.slice(i, i + 120), { timeoutMs: 8000 }).catch(() => calls.slice(i, i + 120).map(() => null))));
-  const view = items.map((x, k) => {
-    const sp = out[2 * k], s0 = out[2 * k + 1];
-    const share = sp ? platformShare(decodeSplit(sp)) : null;
-    const sqrtP = s0 ? BigInt(s0) & ((1n << 160n) - 1n) : 0n;
-    const price = sqrtP > 0n ? priceFromSqrt(sqrtP, x._t0) : null;
-    const supply = Number(BigInt(x.supply || "0")) / 1e18 || 1e9;
-    const { _t0, ...rest } = x;
-    return { ...rest, tokenIs0: _t0, active: share == null ? true : share >= PLATFORM_BPS, splitChecked: share != null, priceUsd: price, mcapUsd: price != null ? price * supply : null };
-  });
+  const view = await withPrices(items);
   mem.view = { items: view, at: Date.now() };
   return mem.view;
 }

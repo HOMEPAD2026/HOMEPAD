@@ -100,7 +100,33 @@ async function actResolvePools() {
       [k.currency0, k.currency1, k.fee, k.tickSpacing, k.hooks])).toLowerCase();
     ACT.pools.set(id, l);
   }
+  actArgusPools();
 }
+/// coins launched on Argus through ArcPad (arc-argus.js): same PoolManager, their own
+/// pool key (USDC pair, dynamic fee, tick spacing 200, the coin's hook)
+const ACT_ARGUS_FEE = 0x800000, ACT_ARGUS_SPACING = 200;
+function actArgusPools() {
+  const rows = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows() : [];
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  const usdc = String(CONFIG.USDC_ADDRESS || "0x3600000000000000000000000000000000000000");
+  let added = 0;
+  for (const r of rows) {
+    if (!r || !r.hook || r.active === false) continue;
+    const tok = String(r.token).toLowerCase(), hook = String(r.hook).toLowerCase(), q = usdc.toLowerCase(); // lower case: no checksum check
+    const quoteIsCurrency0 = BigInt(q) < BigInt(tok);
+    const [c0, c1] = quoteIsCurrency0 ? [q, tok] : [tok, q];
+    let id;
+    try { id = ethers.keccak256(coder.encode(["address", "address", "uint24", "int24", "address"], [c0, c1, ACT_ARGUS_FEE, ACT_ARGUS_SPACING, hook])).toLowerCase(); } catch { continue; }
+    if (!ACT.pools.has(id)) added++;
+    ACT.pools.set(id, { platform: "argus", token: r.token, symbol: r.symbol, imageUrl: r.imageUrl, quoteIsCurrency0, quoteDecimals: 6, quoteUsd: 1 });
+  }
+  return added;
+}
+/// arc-argus.js calls this when its list arrives: new pools join the ticker on the next scan
+function arcActivityArgus() {
+  if (actArgusPools() && ACT.started) actScan();
+}
+window.arcActivityArgus = arcActivityArgus;
 
 // ---------- scanning ----------
 function actLoadCache() {
@@ -242,7 +268,7 @@ function actDerive() {
     const ts = actTs(r.b);
     if (ts != null && now - ts <= 3600) { s.vol1h += usd || 0; s.trades1h++; }
     if (price) s.spark.push(price);
-    trades.push({ b: r.b, i: r.i, h: r.h, buy, usd, sym: l.symbol, token: l.token, img: l.imageUrl });
+    trades.push({ b: r.b, i: r.i, h: r.h, buy, usd, sym: l.symbol, token: l.token, img: l.imageUrl, argus: l.platform === "argus" });
   }
   for (const c of ACT.curve) trades.push({ b: c.b, i: c.i, h: c.h, buy: c.buy, usd: c.usd, sym: "ARCIRCLE", token: null, img: "images/arcircle-mark-sm.png" });
   trades.sort((a, b) => (b.b - a.b) || (b.i - a.i));
@@ -293,7 +319,7 @@ function actPaintTicker() {
   ACT._tickerInit = true;
   const html = items.map((t) => {
     const id = t.h + ":" + t.i;
-    const href = t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
+    const href = t.argus ? `/arc#explore?plat=argus&coin=${t.token}` : t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
     const safeImg = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "") || /^https?:\/\//i.test(t.img || "") || /^images\//.test(t.img || "");
     return `<a class="tk-item ${t.buy ? "tk-buy" : "tk-sell"}${fresh.has(id) ? " tk-new" : ""}" href="${href}">`
       + (safeImg ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
@@ -320,6 +346,7 @@ function actPaint() {
 
 function arcActivityStart() {
   (async () => {
+    if (window.arcArgus && typeof window.arcArgus.load === "function") await Promise.race([window.arcArgus.load(), new Promise((r) => setTimeout(r, 4000))]).catch(() => {});
     await actResolvePools();
     if (!ACT.started) {
       ACT.started = true;

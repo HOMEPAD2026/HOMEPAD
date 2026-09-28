@@ -482,6 +482,16 @@ export async function POST(req) {
       const r = await argusArc.register(b, { store: st });
       return json(r.status, r.body);
     }
+    // an Argus launch listed through ArcPad → the Telegram launch channel (once, within 15 minutes;
+    // with TG_TEST_KEY the owner can re-post any listed coin). api/tg-launch.mjs forwards here.
+    if (b.action === "argustg") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`argustg:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
+      if (!isAddr(b.token)) return json(400, { error: "token must be an address" });
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+      const r = await argusArc.announce(b, { store: st });
+      return json(r.status, r.body);
+    }
     if (b.action === "tgwatch") {
       if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });
       return json(200, await scanner.tgWatchOp({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, { chat: b.chat, token: b.token, op: b.op }));
