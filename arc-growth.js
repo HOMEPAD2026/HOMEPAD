@@ -13,6 +13,7 @@
   const lc = (a) => String(a || "").toLowerCase();
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const usd = (n) => {
+    if (window.arcFmt) return window.arcFmt.usd(n);
     if (n == null || !isFinite(n)) return "—";
     if (n >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
     if (n >= 1) return "$" + n.toFixed(2);

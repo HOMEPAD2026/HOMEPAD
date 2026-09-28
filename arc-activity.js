@@ -40,6 +40,7 @@ function actAgo(sec) {
   return `${Math.floor(s / 86400)}d`;
 }
 function actUsd(n) {
+  if (window.arcFmt) return window.arcFmt.usd(n);
   if (n == null || !isFinite(n)) return "—";
   if (n >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
   if (n >= 1) return "$" + n.toFixed(2);

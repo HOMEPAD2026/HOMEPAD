@@ -19,6 +19,7 @@
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const lc = (a) => String(a || "").toLowerCase();
   const usd = (n) => {
+    if (window.arcFmt) return window.arcFmt.usd(n);
     if (n == null || !isFinite(n)) return "—";
     if (n >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
     if (n >= 1) return "$" + n.toFixed(2);

@@ -26,31 +26,42 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const COMMON_HEAD = ["config-arc.js", "abis.js", "arc-shared.js"];
 export const BUNDLES = {
   "arcpad.bundle.js": [
-    ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-lazy.js", "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
     "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "i18n.js",
+    "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "i18n.js",
+  ],
+  // The utilities (Locker, Bridge, Scanner, Multisender, Snapshot, Relay, ARCIA, Liquidity) are ~half of
+  // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
+  // It runs after arcpad.bundle.js and shares its globals (ethers, CONFIG, state, the ABIs).
+  "arcpad-tools.bundle.js": [
+    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js",
   ],
   "circlepad.bundle.js": [
-    ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-live.js", "circlepad-look.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "i18n.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
+    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-live.js", "circlepad-look.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "i18n.js",
   ],
   "reward.bundle.js": [
-    ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "i18n.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    "arc-social.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "i18n.js",
   ],
   // The $ARCIRCLE page needs no wallet and no ethers (config-arc.js only for
   // the $ARCIRCLE contract / "not live" switch): its numbers come from
   // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
   "arcircle.bundle.js": [
-    "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
     "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "i18n.js",
   ],
   // /me, /stats, /roadmap, /brand, /start — small standalone pages (ethers from vendor/).
   "pages.bundle.js": [
-    ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "i18n.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "i18n.js",
   ],
 };
+
+// A lazy bundle runs on top of its parent: ABI shaking keeps what either needs, and a
+// top-level name may not be declared in both.
+const PARTNERS = { "arcpad.bundle.js": ["arcpad-tools.bundle.js"], "arcpad-tools.bundle.js": ["arcpad.bundle.js"] };
+const partnerFiles = (out) => (PARTNERS[out] || []).flatMap((b) => BUNDLES[b]);
 
 async function loadEsbuild() {
   try { return await import("esbuild"); } catch (e) { /* not installed */ }
@@ -80,8 +91,8 @@ function checkDuplicates(files) {
 // keeps the ABI constants that another file in the same bundle names.
 // Constants that other kept constants refer to (CIRCLEPAD_ESCROW_ABI =
 // BIGPAD_ESCROW_ABI) are kept too.
-function shakeAbis(src, files) {
-  const others = files.filter((f) => f !== "abis.js").map((f) => fs.readFileSync(path.join(ROOT, f), "utf8")).join("\n");
+function shakeAbis(src, files, extra = []) {
+  const others = [...files, ...extra].filter((f) => f !== "abis.js").map((f) => fs.readFileSync(path.join(ROOT, f), "utf8")).join("\n");
   const lines = src.split("\n");
   const decl = lines.map((l) => (/^const ([A-Z0-9_]+) =/.exec(l) || [])[1] || null);
   const uses = (text, name) => new RegExp(`\\b${name}\\b`).test(text);
@@ -93,12 +104,12 @@ function shakeAbis(src, files) {
   }
   return lines.filter((_, i) => !decl[i] || keep.has(decl[i])).join("\n");
 }
-function join(files) {
+function join(files, extra = []) {
   // Each file ends with a newline and a ";" so a file that ends without one
   // can't run into the next (ASI across file boundaries).
   return files.map((f) => {
     let src = fs.readFileSync(path.join(ROOT, f), "utf8");
-    if (f === "abis.js") src = shakeAbis(src, files);
+    if (f === "abis.js") src = shakeAbis(src, files, extra);
     return `/* ---- ${f} ---- */\n${src.replace(/\s*$/, "")}\n;\n`;
   }).join("");
 }
@@ -127,8 +138,8 @@ export async function build({ check = false, force = false } = {}) {
     if (cur !== want) { if (check) stale.push(CORE_OUT); else { fs.writeFileSync(dest, want); console.log(`${CORE_OUT}: regenerated from ${CORE_SRC}`); } }
   }
   for (const [out, files] of Object.entries(BUNDLES)) {
-    checkDuplicates(files);
-    const src = join(files);
+    checkDuplicates([...files, ...partnerFiles(out)]);
+    const src = join(files, partnerFiles(out));
     const hash = crypto.createHash("sha256").update(src).digest("hex").slice(0, 16);
     const banner = `/* ${out} — built by tools/build-bundles.mjs from: ${files.join(", ")}. Do not edit; edit the sources. src:${hash} */\n`;
     let code;

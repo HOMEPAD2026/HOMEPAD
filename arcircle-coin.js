@@ -102,6 +102,7 @@ function ac2SetAll(key, html) { document.querySelectorAll(`[data-ac2="${key}"]`)
 
 // Tiny prices in Dexscreener style: 0.0000048422 → $0.0₅4842
 function ac2FmtPrice(p) {
+  if (window.arcFmt) return window.arcFmt.price(p);
   if (p == null || !isFinite(p)) return "—";
   if (p === 0) return "$0";
   if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 4 });
@@ -114,6 +115,7 @@ function ac2FmtPrice(p) {
   return `$0.0${sub}${digits}`;
 }
 function ac2FmtUsd(n, { exact = false } = {}) {
+  if (window.arcFmt) return window.arcFmt.usd(n, exact);
   if (n == null || !isFinite(n)) return "—";
   if (!exact && Math.abs(n) >= 1000) {
     return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
@@ -122,6 +124,7 @@ function ac2FmtUsd(n, { exact = false } = {}) {
 }
 function ac2FmtNum(n, maxFrac = 2) {
   if (n == null || !isFinite(n)) return "—";
+  if (window.arcFmt && Math.abs(n) >= 1e4) return window.arcFmt.compact(n);
   if (Math.abs(n) >= 10000) return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
   return n.toLocaleString("en-US", { maximumFractionDigits: maxFrac });
 }

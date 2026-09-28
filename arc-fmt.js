@@ -3,6 +3,8 @@
 //   arcFmt.price(0.0000281)  "$0.0₄281"    (zeros after "0." shown as a subscript count)
 //   arcFmt.compact(966e6)    "966M"        arcFmt.num(1402.5, 2) "1,402.5"
 //   arcFmt.pct(4.2, true)    "+4.20%"      arcFmt.ago(ts)      "5m" / "3h" / "2d"
+//   arcFmt.usd(123.456, true) "$123.46"    (exact: cents kept, no K/M — for single trades and balances)
+// Every page's own formatter hands off to these, so a number reads the same everywhere.
 (function () {
   "use strict";
   if (window.arcFmt) return;
@@ -32,9 +34,10 @@
     if (z < 4) return sign + "$0." + s.slice(0, z) + digits;
     return sign + "$0.0" + String(z).split("").map(function (c) { return SUB[+c]; }).join("") + digits;
   }
-  function usd(v) {
+  function usd(v, exact) {
     if (!fin(v)) return "—";
     var a = Math.abs(v);
+    if (exact && a >= 0.01 && a < 1e6) return (v < 0 ? "-$" : "$") + a.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (a > 0 && a < 0.01) return price(v);
     if (a >= 1e4) return (v < 0 ? "-$" : "$") + compact(a);
     return (v < 0 ? "-$" : "$") + num(a, a >= 100 ? 0 : 2);

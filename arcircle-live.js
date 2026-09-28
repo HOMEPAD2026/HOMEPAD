@@ -23,6 +23,7 @@
   function usdc(raw) { return Number(ethers.formatUnits(raw, 6)); }
   function tok(raw) { return Number(ethers.formatUnits(raw, 18)); }
   function fmtPrice(p) {
+    if (window.arcFmt) return window.arcFmt.price(p);
     if (p == null || !isFinite(p)) return "—";
     if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 4 });
     if (p >= 0.001) return "$" + p.toPrecision(4);
@@ -32,6 +33,7 @@
     return "$0.0" + sub + digits;
   }
   function fmtUsd(n, exact) {
+    if (window.arcFmt) return window.arcFmt.usd(n, exact);
     if (n == null || !isFinite(n)) return "—";
     if (!exact && Math.abs(n) >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
     return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

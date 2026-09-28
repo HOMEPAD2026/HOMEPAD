@@ -19,6 +19,7 @@
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var nf = function (n, d) { return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d }); };
   function usd(v) {
+    if (window.arcFmt) return window.arcFmt.usd(v);
     if (v == null || !isFinite(v)) return "—";
     var a = Math.abs(v);
     if (a >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";

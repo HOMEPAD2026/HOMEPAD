@@ -50,7 +50,7 @@
     return n.toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 6 : n < 1000 ? 4 : 2 });
   }
   const pctTxt = (p) => (p === 0 ? "0%" : p < 0.0001 ? "<0.0001%" : p < 0.01 ? p.toFixed(4) + "%" : p < 1 ? p.toFixed(3) + "%" : p.toFixed(2) + "%");
-  const usd = (n) => (n == null || !isFinite(n) ? "—" : "$" + (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 4 : 2 })));
+  const usd = (n) => (window.arcFmt ? window.arcFmt.usd(n) : n == null || !isFinite(n) ? "—" : "$" + (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 4 : 2 })));
   const when = (ts) => (ts ? new Date(ts * 1000).toLocaleString(loc(), { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
   const utc = (ts) => (ts ? new Date(ts * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "");
   const span = (s) => (s >= 86400 ? `${Math.round(s / 86400)} ${Math.round(s / 86400) === 1 ? "day" : "days"}` : s >= 3600 ? `${Math.round(s / 3600)}h` : `${Math.max(1, Math.round(s / 60))} min`);

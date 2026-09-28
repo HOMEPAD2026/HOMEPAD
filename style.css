@@ -1635,7 +1635,7 @@ body.ax-page{
   filter:blur(26px);animation:ax-breathe 6s ease-in-out infinite alternate;}
 .ax-mark::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
   background:linear-gradient(110deg,transparent 38%,rgba(210,245,255,.75) 48%,rgba(190,255,220,.55) 52%,transparent 62%) no-repeat;background-size:260% 100%;
-  -webkit-mask:url(images/arcircle-mark.png) center/contain no-repeat;mask:url(images/arcircle-mark.png) center/contain no-repeat;
+  -webkit-mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;mask:url(images/arcircle-mark-600.webp) center/contain no-repeat;
   animation:ax-sheen 7.5s cubic-bezier(.45,.05,.35,1) infinite;}
 @keyframes ax-breathe{0%{opacity:.55;transform:scale(.96);filter:blur(26px) hue-rotate(0deg);}100%{opacity:1;transform:scale(1.04);filter:blur(30px) hue-rotate(-18deg);}}
 @keyframes ax-sheen{0%,18%{background-position:120% 0;}62%,100%{background-position:-20% 0;}}
@@ -8617,3 +8617,207 @@ html.ck-open{overflow:hidden;}
 .cp-phero-split{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:.86rem;}
 a.cp-strip-live{text-decoration:none;display:inline-flex;align-items:center;}
 @media (prefers-reduced-motion:reduce){.cp-strip-split.wait i,.cp-phero-split.wait i{animation:none;}}
+.aa-banner picture,.aa-pf picture,.aa-av-wrap picture{display:contents;}
+/* Trades tables on phones: each trade is a small card instead of a 600px-wide row to swipe
+   Buy · $12.34 ··········· 2m
+   1.2M ················ price
+   0x12…abcd ················ ↗ */
+@media (max-width:640px){
+  .ac2-table-wrap{overflow:visible;margin:0;}
+  .ac2-table{min-width:0;display:block;}
+  .ac2-table thead{display:none;}
+  .ac2-table tbody{display:flex;flex-direction:column;gap:8px;}
+  .ac2-table tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"type usd time" "tok tok price" "who who tx";gap:4px 10px;align-items:center;
+    padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);}
+  .ac2-table td{padding:0;border:0 !important;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left;}
+  .ac2-table td:nth-child(1){grid-area:time;text-align:right;font-size:.72rem;color:var(--ink-dim);}
+  .ac2-table td:nth-child(2){grid-area:type;}
+  .ac2-table td:nth-child(3){grid-area:usd;font-weight:700;font-size:.9rem;}
+  .ac2-table td:nth-child(4){grid-area:tok;font-size:.74rem;color:var(--ink-dim);}
+  .ac2-table td:nth-child(5){grid-area:price;text-align:right;font-size:.74rem;color:var(--ink-dim);}
+  .ac2-table td:nth-child(6){grid-area:who;font-size:.76rem;}
+  .ac2-table td:nth-child(7){grid-area:tx;text-align:right;}
+  .ac2-table td.r{text-align:inherit;}
+  .ac2-table td:nth-child(1).r,.ac2-table td:nth-child(5),.ac2-table td:nth-child(7){text-align:right;}
+  .ac2-table td.ac2-empty{display:block;grid-column:1 / -1;grid-row:1 / -1;text-align:center;white-space:normal;}
+  .ac2-table tr:has(td.ac2-empty){display:block;background:none;border:0;}
+  .ac2-table tbody tr:hover td{background:none;}
+  .ac2-table tr.buy{border-left:2px solid rgba(57,217,138,.55);}
+  .ac2-table tr.sell{border-left:2px solid rgba(255,107,107,.55);}
+}
+
+/* One line weight for every UI line icon: 1.6 screen pixels whatever the icon's size
+   (they were 1.8–2.2 in a 24-unit box, so 12–21px icons drew anywhere from 0.9 to 1.9px). */
+.aa-acts svg,
+.aa-lt-heart svg,
+.aa-modal-x svg,
+.aa-rc-btn svg,
+.aa-send svg,
+.aa-tool svg,
+.abr-bell svg,
+.abr-chain-pick svg,
+.abr-find svg,
+.abr-flip svg,
+.abr-share svg,
+.ac2-safety svg,
+.ap-launch-btn-ico svg,
+.ap-star svg,
+.ap-star-btn svg,
+.ap-stat-ico svg,
+.ap-watch-chip svg,
+.apc-more-item svg,
+.asc-actions svg,
+.asc-ca svg,
+.asc-cardbadge svg,
+.asc-input svg,
+.ax-card-ico svg,
+.ax-dock-ico svg,
+.ax-quick-item svg,
+.ax-reward-card .ax-rc-ico svg,
+.ax-util-ico svg,
+.axf-sound svg,
+.ck-btn svg,
+.ck-chip svg,
+.ck-ico svg,
+.ck-in svg,
+.ck-x svg,
+.cm-banner-empty svg,
+.cm-btn svg,
+.cm-edit-btn svg,
+.cm-edited svg,
+.cm-vote svg,
+.cm-x svg,
+.cp-fc-row a svg,
+.cp-flow-ico svg,
+.flt-btn svg,
+.flt-copy svg,
+.hm-copy svg,
+.hm-util-ico svg,
+.hm-way-ico svg,
+.lk-badge svg,
+.lk-btn svg,
+.lk-pf-h svg,
+.lk-row-ico svg,
+.lk-until svg,
+.lkr-empty-cta span svg,
+.lkr-row-ico svg,
+.lkr-sum-ico svg,
+.nb-btn svg,
+.pf-empty svg,
+.rw-alert-ico svg,
+.srch-scan svg{stroke-width:1.6px;stroke-linecap:round;stroke-linejoin:round;}
+.aa-acts svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.aa-lt-heart svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.aa-modal-x svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.aa-rc-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.aa-send svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.aa-tool svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.abr-bell svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.abr-chain-pick svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.abr-find svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.abr-flip svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.abr-share svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ac2-safety svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ap-launch-btn-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ap-star svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ap-star-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ap-stat-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ap-watch-chip svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.apc-more-item svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.asc-actions svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.asc-ca svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.asc-cardbadge svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.asc-input svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ax-card-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ax-dock-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ax-quick-item svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ax-reward-card .ax-rc-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ax-util-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.axf-sound svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ck-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ck-chip svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ck-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ck-in svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.ck-x svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-banner-empty svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-edit-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-edited svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-vote svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cm-x svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cp-fc-row a svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.cp-flow-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.flt-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.flt-copy svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.hm-copy svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.hm-util-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.hm-way-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lk-badge svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lk-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lk-pf-h svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lk-row-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lk-until svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lkr-empty-cta span svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lkr-row-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.lkr-sum-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.nb-btn svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.pf-empty svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.rw-alert-ico svg :is(path,line,polyline,polygon,circle,rect,ellipse),
+.srch-scan svg :is(path,line,polyline,polygon,circle,rect,ellipse){vector-effect:non-scaling-stroke;}
+#apc-copy-ca svg{stroke-width:1.6px;}
+#apc-copy-ca svg :is(path,line,polyline,polygon,circle,rect,ellipse){vector-effect:non-scaling-stroke;}
+
+/* ===== tx ring (arc-txring.js): confirm in wallet → submitted → in a block → done ===== */
+.txr-host{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:180;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:min(360px,calc(100vw - 32px));}
+.txr{pointer-events:auto;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:16px;background:rgba(10,15,24,.96);border:1px solid rgba(91,140,255,.35);
+  box-shadow:0 16px 40px rgba(0,0,0,.5);color:#fff;opacity:0;transform:translateY(12px) scale(.98);transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s ease;}
+.txr.in{opacity:1;transform:none;}
+.txr.out{opacity:0;transform:translateY(8px);}
+.txr svg{flex:none;width:40px;height:40px;transform:rotate(-90deg);}
+.txr-track{fill:none;stroke:rgba(255,255,255,.1);stroke-width:3.5;}
+.txr-fill{fill:none;stroke:#4d9fff;stroke-width:3.5;stroke-linecap:round;transition:stroke-dashoffset .7s cubic-bezier(.3,.8,.3,1),stroke .3s ease;}
+.txr.sent .txr-fill{stroke:#35d8d0;}
+.txr:not(.ok):not(.bad):not(.cancel) svg{animation:txr-spin 2.4s linear infinite;}
+@keyframes txr-spin{to{transform:rotate(270deg);}}
+.txr.ok{border-color:rgba(57,255,136,.55);}.txr.ok .txr-fill{stroke:#39ff88;}
+.txr.bad{border-color:rgba(255,107,107,.55);}.txr.bad .txr-fill{stroke:#ff6b6b;}
+.txr.cancel{border-color:rgba(255,255,255,.2);}.txr.cancel .txr-fill{stroke:rgba(255,255,255,.35);}
+.txr-mark{transform:rotate(90deg);transform-origin:20px 20px;}
+.txr-ok,.txr-bad{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24;stroke-dashoffset:24;animation:txr-draw .45s ease forwards .15s;}
+.txr-ok{stroke:#39ff88;}.txr-bad{stroke:#ff8f8f;}
+@keyframes txr-draw{to{stroke-dashoffset:0;}}
+.txr-t{min-width:0;display:flex;flex-direction:column;gap:1px;}
+.txr-t b{font-size:.86rem;}
+.txr-t small{font-size:.74rem;color:rgba(222,233,244,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txr-t a{color:#8fe9ff;text-decoration:none;font-family:'JetBrains Mono',ui-monospace,monospace;}
+.txr-x{margin-left:auto;align-self:flex-start;border:0;background:none;color:rgba(255,255,255,.45);font-size:1.1rem;line-height:1;cursor:pointer;padding:0 2px;}
+.txr-x:hover{color:#fff;}
+@media (max-width:900px){.txr-host{left:12px;right:12px;bottom:auto;top:calc(70px + env(safe-area-inset-top));max-width:none;}}
+
+/* ===== wallet connected: two rings swing in and lock together over the wallet button ===== */
+.wcr{position:fixed;z-index:185;width:0;height:0;pointer-events:none;}
+.wcr i{position:absolute;top:-17px;width:34px;height:34px;margin-left:-17px;border-radius:50%;border:4px solid;opacity:0;}
+.wcr i.l{border-color:#3f7bff;box-shadow:0 0 14px rgba(63,123,255,.8);animation:wcr-l 1.4s cubic-bezier(.2,.8,.2,1) forwards;}
+.wcr i.r{border-color:#39ff88;box-shadow:0 0 14px rgba(57,255,136,.8);animation:wcr-r 1.4s cubic-bezier(.2,.8,.2,1) forwards;}
+.wcr b{position:absolute;top:26px;left:0;transform:translateX(-50%);white-space:nowrap;padding:4px 10px;border-radius:99px;font-size:.72rem;font-weight:700;color:#03110a;
+  background:linear-gradient(90deg,#3f7bff,#35d8d0,#39ff88);opacity:0;animation:wcr-t 1.4s ease forwards;}
+@keyframes wcr-l{0%{opacity:0;transform:translateX(-70px) scale(.6);}35%{opacity:1;transform:translateX(-10px) scale(1);}65%{opacity:1;transform:translateX(-10px) scale(1) rotate(180deg);}100%{opacity:0;transform:translateX(-10px) scale(1.5) rotate(200deg);}}
+@keyframes wcr-r{0%{opacity:0;transform:translateX(70px) scale(.6);}35%{opacity:1;transform:translateX(10px) scale(1);}65%{opacity:1;transform:translateX(10px) scale(1) rotate(-180deg);}100%{opacity:0;transform:translateX(10px) scale(1.5) rotate(-200deg);}}
+@keyframes wcr-t{0%,30%{opacity:0;transform:translate(-50%,-4px);}45%,85%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;}}
+
+/* ===== logo hover: the rings turn a little ===== */
+.ax-brand img,.bp-side-logo-row svg,.ac2-nav img{transition:transform .6s cubic-bezier(.3,1.4,.4,1),filter .3s ease;}
+.ax-brand:hover img{transform:rotate(-16deg) scale(1.06);filter:drop-shadow(0 0 14px rgba(57,255,136,.5));}
+.bp-side-logo-row:hover svg{transform:rotate(120deg);}
+.ac2-nav:hover img{transform:rotate(-16deg);}
+
+/* ===== coin cards: hovering redraws the 24h line ===== */
+.ap-launch-card:hover .ap-spark,.ap-launch-card:focus-visible .ap-spark{animation:ap-draw .9s cubic-bezier(.3,.7,.3,1);color:#39d98a;}
+.ap-launch-card:hover .ap-spark.down{color:#ff6b6b;}
+.ap-launch-card:hover .ap-spark path:not(.flat){filter:drop-shadow(0 0 4px currentColor);}
+@keyframes ap-draw{from{clip-path:inset(-4px 100% -4px 0);}to{clip-path:inset(-4px 0 -4px 0);}}
+
+/* ===== utilities loading on first open (arc-lazy.js) ===== */
+html.arc-tools-loading::before{content:"";position:fixed;top:0;left:0;right:0;height:2px;z-index:300;background:linear-gradient(90deg,transparent,#4d9fff,#39ff88,transparent);background-size:50% 100%;background-repeat:no-repeat;animation:arc-load 1s linear infinite;}
+@keyframes arc-load{from{background-position:-50% 0;}to{background-position:150% 0;}}
+@media (prefers-reduced-motion:reduce){.txr svg,.txr-ok,.txr-bad{animation:none !important;stroke-dashoffset:0;}.wcr{display:none;}.ax-brand:hover img,.bp-side-logo-row:hover svg,.ac2-nav:hover img{transform:none;}.ap-launch-card:hover .ap-spark{animation:none;}html.arc-tools-loading::before{animation:none;}}

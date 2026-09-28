@@ -86,7 +86,7 @@
     return n.toLocaleString("en-US", { maximumFractionDigits: a < 1 ? 6 : max });
   }
   const fmtPrice = (p) => (!isFinite(p) || !p ? "—" : p >= 1 ? fmtNum(p, 4) : p.toPrecision(4));
-  const usd = (n) => (n == null ? "—" : "$" + fmtNum(n, 2));
+  const usd = (n) => (n == null ? "—" : window.arcFmt ? window.arcFmt.usd(n) : "$" + fmtNum(n, 2));
 
   // ---- state ----
   let D = null, busyLoad = false, tokenAddr = "", pollT = null;

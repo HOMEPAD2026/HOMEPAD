@@ -876,9 +876,9 @@
     panel.innerHTML =
       '<div class="aa">' +
         '<div class="aa-hero">' +
-          '<div class="aa-banner"><div class="aa-par"><img src="/images/arcia-banner.jpg" srcset="/images/arcia-banner-900.jpg 900w, /images/arcia-banner.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="523"></div></div>' +
+          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner-900.webp 900w, /images/arcia-banner.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner.jpg" srcset="/images/arcia-banner-900.jpg 900w, /images/arcia-banner.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="523" fetchpriority="high"></picture></div></div>' +
           '<div class="aa-id">' +
-            '<span class="aa-av-wrap"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
+            '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
             '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver">New</span></h1>' +
               '<p class="aa-handle"><a href="' + X + '" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p>' +
               '<div class="aa-badges"></div></div>' +
@@ -888,7 +888,7 @@
         "</div>" +
         '<div class="aa-stage">' +
           '<aside class="aa-portrait" aria-label="ARCIA">' +
-            '<div class="aa-pf"><img src="/images/arcia-portrait.jpg" alt="ARCIA" width="720" height="712" loading="lazy"><i class="aa-pf-halo" aria-hidden="true"></i>' +
+            '<div class="aa-pf"><picture><source type="image/webp" srcset="/images/arcia-portrait-480.webp 480w, /images/arcia-portrait.webp 720w" sizes="250px"><img src="/images/arcia-portrait.jpg" alt="ARCIA" width="720" height="712" loading="lazy"></picture><i class="aa-pf-halo" aria-hidden="true"></i>' +
               '<div class="aa-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
               '<div class="aa-pf-tag"><b>ARCIA</b><span><i></i>Online</span></div></div>' +
             '<div class="aa-cheer"></div>' +

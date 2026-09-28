@@ -10,6 +10,7 @@
   var el = function (k) { return bar.querySelector('[data-lb="' + k + '"]'); };
   var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
   function usd(v) {
+    if (window.arcFmt) return window.arcFmt.usd(v);
     if (v == null || !isFinite(v)) return "—";
     var a = Math.abs(v);
     if (a >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";

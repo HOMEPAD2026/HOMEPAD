@@ -23,6 +23,7 @@
   // ---------- formats ----------
   var SUBS = "₀₁₂₃₄₅₆₇₈₉";
   function price(p) {
+    if (window.arcFmt) return window.arcFmt.price(p);
     if (p == null || !isFinite(p)) return "—";
     if (p >= 1) return "$" + p.toLocaleString("en-US", { maximumFractionDigits: 4 });
     if (p >= 0.001) return "$" + p.toPrecision(4);
@@ -31,6 +32,7 @@
     return "$0.0" + String(zeros).split("").map(function (d) { return SUBS[d]; }).join("") + digits;
   }
   function usd(n, exact) {
+    if (window.arcFmt) return window.arcFmt.usd(n, exact);
     if (n == null || !isFinite(n)) return "—";
     if (!exact && Math.abs(n) >= 1000) return "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
     if (n > 0 && n < 0.01) return "<$0.01";

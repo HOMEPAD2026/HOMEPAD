@@ -44,12 +44,14 @@ function tokenWrite(addr) {
 
 function fmtCompact(n) {
   if (n == null || Number.isNaN(n)) return "—";
+  if (window.arcFmt && n >= 1e4) return window.arcFmt.compact(n);
   if (n < 1000) return n.toFixed(n < 1 ? 4 : n < 10 ? 3 : 1).replace(/\.?0+$/, "");
   if (n < 1_000_000) return (n / 1000).toFixed(2) + "K";
   if (n < 1_000_000_000) return (n / 1_000_000).toFixed(2) + "M";
   return (n / 1_000_000_000).toFixed(2) + "B";
 }
 function fmtUsd(n) {
+  if (window.arcFmt) return window.arcFmt.usd(n);
   if (n == null || Number.isNaN(n)) return "—";
   if (n < 1000) return "$" + n.toFixed(n < 1 ? 4 : 2);
   if (n < 1_000_000) return "$" + (n / 1000).toFixed(2) + "K";

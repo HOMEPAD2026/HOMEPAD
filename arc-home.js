@@ -17,6 +17,7 @@
   var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var EXPL = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://explorer.arc.io";
   function usd(v) {
+    if (window.arcFmt) return window.arcFmt.usd(v);
     if (v == null || !isFinite(v)) return "—";
     var a = Math.abs(v);
     if (a >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
