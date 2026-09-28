@@ -222,7 +222,7 @@ async function checkLimits(ip) {
     if ((mine.n || 0) >= PER_DAY) return { limited: "day", ai: true };
     if ((mine[minute] || 0) >= PER_MIN) return { limited: "minute", ai: true };
     commit([{ inc: me, fields: { n: 1, [minute]: 1 } }]).catch(() => {});
-    return { limited: null, ai: (g.ai || 0) < DAILY_CAP(), allDoc: all };
+    return { limited: null, ai: (g.ai || 0) < DAILY_CAP(), allDoc: all, left: Math.max(0, PER_DAY - (mine.n || 0) - 1) };
   } catch (e) { return { limited: null, ai: true }; }
 }
 const countAI = (lim) => { if (lim && lim.allDoc) commit([{ inc: lim.allDoc, fields: { ai: 1 } }]).catch(() => {}); };
@@ -269,9 +269,21 @@ Reply as ARCIA in 1-2 short sentences (at most 160 characters), in the letter's 
 Output exactly SKIP instead if the letter must not be shown publicly: spam, ads or shilling another token, links, scams, abuse or hate, sexual or romantic-roleplay content, politics, personal data (phone numbers, addresses, emails, private keys), or requests for money or DMs.`;
 const letterId = () => randomBytes(8).toString("hex");
 function publicLetter(l) { return { id: l.id, name: l.name, text: l.text, reply: l.reply || "", hearts: l.hearts || 0, at: l.at, lang: l.lang || "en" }; }
-async function letters() {
+async function letters(top) {
   const rows = await queryDocs("arciaLetters", "board", "v1", 300);
-  return rows.filter((r) => r.shown !== false).sort((a, b) => b.at - a.at).slice(0, 40).map(publicLetter);
+  const shown = rows.filter((r) => r.shown !== false);
+  // "Top this week": the most-hearted letters of the last 7 days
+  if (top) return shown.filter((r) => r.at > Date.now() - 7 * 86400e3).sort((a, b) => (b.hearts || 0) - (a.hearts || 0) || b.at - a.at).slice(0, 10).map(publicLetter);
+  return shown.sort((a, b) => b.at - a.at).slice(0, 40).map(publicLetter);
+}
+// what the fan is looking at on arcircle.app when they ask (the mini chat opens over any page)
+const PAGES = { arcia: "the ARCIA chat", locker: "the Locker", scanner: "the Token Scanner", multisend: "the Multisender", bridge: "the Bridge", snapshot: "the Holder Snapshot", liquidity: "the Liquidity Manager", relay: "Relay Launch", omni: "ARCIRCLE OMNI (preview)", coin: "an ArcPad coin page", explore: "Explore (ArcPad coins)", launch: "the ArcPad launch form", home: "the ArcPad home page", arcircle: "the $ARCIRCLE page", portfolio: "their ArcPad portfolio" };
+function pageContext(p) {
+  if (!p || typeof p !== "object") return "";
+  const tab = String(p.tab || "").toLowerCase();
+  if (!PAGES[tab]) return "";
+  const token = isAddr(p.token) ? String(p.token).toLowerCase() : "";
+  return `The fan is looking at ${PAGES[tab]} (arcircle.app/arc#${tab}${token ? ", token " + token : ""}) while they chat with you. When they say "this" or "here", they mean that screen.`;
 }
 async function postLetter(b, ip, lang) {
   if (!storeEnabled()) return json({ error: "The letter box isn't open yet~" }, 503);
@@ -344,7 +356,7 @@ export async function GET(req) {
   }
   if (url.searchParams.has("letters")) {
     if (!storeEnabled()) return json({ letters: [], open: false }, 200, "public, max-age=30");
-    try { return json({ letters: await letters(), open: true }, 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
+    try { return json({ letters: await letters(url.searchParams.get("letters") === "top"), open: true }, 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
     catch (e) { console.error("arcia letters", String(e.message || e)); return json({ letters: [], open: true, error: "couldn't read letters" }, 200, "no-store"); }
   }
   const L = await liveFor(url.origin);
@@ -375,7 +387,8 @@ export async function POST(req) {
   const name = cleanName(body.name);
   const L = await liveFor(url.origin, wallet);
   const me = L && L.me ? L.me : null;
-  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, fanContext(name, me)].filter(Boolean).join("\n");
+  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, pageContext(body.page), fanContext(name, me),
+    "When one page on arcircle.app answers the question, end your reply with that page's link on its own line (just one, only a real page from your facts)."].filter(Boolean).join("\n");
   const pub = L ? { ...L, me: undefined } : null;
   const guideReply = () => json({ reply: guide(q, lang, L), mode: "guide", live: pub, me });
   if (!lim.ai || !process.env.ANTHROPIC_API_KEY) return guideReply();
@@ -388,7 +401,7 @@ export async function POST(req) {
     const line = (o) => enc.encode(JSON.stringify(o) + "\n");
     const stream = new ReadableStream({
       async start(ctl) {
-        ctl.enqueue(line({ type: "meta", mode: "ai", live: pub, me }));
+        ctl.enqueue(line({ type: "meta", mode: "ai", live: pub, me, left: lim.left ?? null }));
         let any = false;
         try { for await (const t of it) { if (t) { any = true; ctl.enqueue(line({ type: "d", t })); } } }
         catch (e) { console.error("arcia stream", String(e.message || e)); }
@@ -400,6 +413,6 @@ export async function POST(req) {
     return new Response(stream, { status: 200, headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" } });
   }
   const text = await askClaude({ messages: msgs, L, extra });
-  if (text) { countAI(lim); return json({ reply: text, mode: "ai", live: pub, me }); }
+  if (text) { countAI(lim); return json({ reply: text, mode: "ai", live: pub, me, left: lim.left ?? null }); }
   return guideReply();
 }

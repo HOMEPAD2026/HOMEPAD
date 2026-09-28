@@ -3114,6 +3114,10 @@
     "Of the contributors' part": "在贡献者部分中的占比",
     "Of the holders' part": "在持有人部分中的占比",
     "An estimate at the current block. How the relay is split between contributors and holders, and the snapshot block, are set when the round's coin launches — not decided yet.": "这是按当前区块的估算。贡献者与持有人之间的分配比例以及快照区块在本轮代币发行时确定，目前尚未决定。",
+    "Photocard book": "小卡图鉴",
+    "Tap the card button on any of her replies to make one. Your cards are kept in this browser.": "点她任意回复上的小卡按钮即可制作。小卡保存在此浏览器中。",
+    "Make my fan card": "制作我的粉丝卡",
+    "Top this week": "本周最受欢迎",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

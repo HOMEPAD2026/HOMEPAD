@@ -3021,6 +3021,10 @@
     "Of the contributors' part": "기여자 몫 중 내 비율",
     "Of the holders' part": "홀더 몫 중 내 비율",
     "An estimate at the current block. How the relay is split between contributors and holders, and the snapshot block, are set when the round's coin launches — not decided yet.": "현재 블록 기준 추정치입니다. 기여자와 홀더 사이의 분배 비율과 스냅샷 블록은 라운드 코인 런칭 때 정해지며, 아직 결정되지 않았습니다.",
+    "Photocard book": "포토카드 도감",
+    "Tap the card button on any of her replies to make one. Your cards are kept in this browser.": "ARCIA 답장에 있는 카드 버튼을 눌러 만들 수 있어요. 카드는 이 브라우저에 보관됩니다.",
+    "Make my fan card": "내 팬 카드 만들기",
+    "Top this week": "이번 주 인기",
   };
 
 

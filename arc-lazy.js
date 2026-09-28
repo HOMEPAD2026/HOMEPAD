@@ -42,4 +42,23 @@
     });
   }
   window.arcLazy = { load: load, ready: function () { return st === 2; } };
+
+  // ARCIA over any ArcPad page: a small floating button; her chat opens in a drawer
+  // (arc-arcia.js lives in the tools bundle, loaded on the first tap)
+  function arciaFab() {
+    if (!document.getElementById("bp-panel-arcia") || document.querySelector(".aa-fab")) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "aa-fab"; b.setAttribute("aria-label", "Ask ARCIA");
+    b.innerHTML = '<img src="/images/arcia-avatar-96.jpg" alt="" width="48" height="48"><i aria-hidden="true"></i><span>Ask ARCIA</span>';
+    b.addEventListener("click", function () {
+      b.classList.add("busy");
+      load(function () { b.classList.remove("busy"); if (window.arcArcia && window.arcArcia.open) window.arcArcia.open(); });
+    });
+    document.body.appendChild(b);
+    var sync = function () { var t = location.hash.replace(/^#/, "").split(/[?/]/)[0]; b.hidden = t === "arcia"; };
+    document.addEventListener("arcpad:tab", function () { setTimeout(sync, 0); });
+    window.addEventListener("hashchange", sync);
+    sync();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arciaFab); else arciaFab();
 })();
