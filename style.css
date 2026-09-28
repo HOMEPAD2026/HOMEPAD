@@ -8545,3 +8545,66 @@ html.ck-open{overflow:hidden;}
   html.aa-chat-on :is(.ax-page,.ax-dock-host) nav.ax-dock,
   html.aa-chat-on :is(.ax-page,.ax-dock-host) nav.ax-quick{transform:translate(-50%,calc(100% + 40px)) !important;opacity:0 !important;pointer-events:none !important;}
 }
+/* ARCIA: today's hearts gauge */
+.aa-gauge{position:relative;display:flex;align-items:center;gap:10px;padding:9px 14px 10px;border-bottom:1px solid rgba(255,255,255,.06);background:linear-gradient(90deg,rgba(255,143,200,.06),transparent 70%);}
+.aa-cheer-btn{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,143,200,.45);background:rgba(255,143,200,.1);color:#ff8fc8;cursor:pointer;transition:transform .15s ease,background .15s ease;}
+.aa-cheer-btn:hover{background:rgba(255,143,200,.2);transform:scale(1.06);}
+.aa-cheer-btn svg{width:17px;height:17px;fill:currentColor;}
+.aa-cheer-btn.go{animation:aa-beat .45s cubic-bezier(.2,.9,.3,1.4);}
+@keyframes aa-beat{0%{transform:scale(1);}35%{transform:scale(1.28);}100%{transform:scale(1);}}
+.aa-g-main{flex:1;min-width:0;}
+.aa-g-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px;font-size:.72rem;color:var(--ink-dim);}
+.aa-g-num{font-size:.76rem;color:#ffc2e2;font-variant-numeric:tabular-nums;display:inline-block;}
+.aa-g-num.bump{animation:aa-bump .4s ease;}
+@keyframes aa-bump{40%{transform:scale(1.18);color:#fff;}}
+.aa-g-track{position:relative;height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;}
+.aa-g-fill{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:linear-gradient(90deg,#ff8fc8,#b58bff 60%,#4d7dff);transition:width .6s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 10px rgba(255,143,200,.5);}
+.aa-g-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-100%);animation:aa-shine 2.4s ease-in-out infinite;}
+@keyframes aa-shine{60%,100%{transform:translateX(100%);}}
+.aa-gauge.full .aa-g-fill{background:linear-gradient(90deg,#ff8fc8,#ffc861,#39ff88,#35d8d0,#ff8fc8);background-size:200% 100%;animation:aa-holo 3s linear infinite;}
+.aa-gauge.full .aa-g-num{color:#ffe29a;}
+@keyframes aa-holo{to{background-position:200% 0;}}
+.aa-gauge > .aa-fx{left:24px;bottom:22px;}
+
+/* ARCIA: a reply landed — portrait tilts and glows */
+.aa-got .aa-pf img{animation:aa-tilt .9s cubic-bezier(.3,1.4,.4,1);}
+.aa-got .aa-pf-halo{box-shadow:inset 0 0 0 2px rgba(57,255,136,.7),inset 0 0 80px rgba(57,255,136,.35);}
+.aa-got .aa-mini-av,.aa-got .aa-id .aa-av-wrap{animation:aa-nod .9s cubic-bezier(.3,1.4,.4,1);}
+@keyframes aa-tilt{0%{transform:scale(1.02) rotate(0);}35%{transform:scale(1.06) rotate(-2.2deg) translateY(-6px);}100%{transform:scale(1.02) rotate(0);}}
+@keyframes aa-nod{35%{transform:rotate(-8deg) scale(1.08);box-shadow:0 0 0 4px rgba(57,255,136,.25),0 0 24px rgba(57,255,136,.45);}}
+
+/* ARCIA: the last hour before Round #1 closes */
+.aa-urgent .aa-side,.aa-urgent .aa-rc-round{animation:aa-urgent 1.4s ease-in-out infinite;}
+.aa-urgent #aa-p-live .aa-clock{color:#ffb3b3;}
+.aa-urgent .aa-tabs [data-t=live]{position:relative;}
+.aa-urgent .aa-tabs [data-t=live]::after{content:"";position:absolute;top:6px;right:4px;width:7px;height:7px;border-radius:50%;background:#ff6b6b;box-shadow:0 0 8px #ff6b6b;animation:aa-pulse 1s ease-in-out infinite;}
+@keyframes aa-urgent{0%,100%{border-color:rgba(255,107,107,.3);box-shadow:0 0 0 0 rgba(255,107,107,0);}50%{border-color:rgba(255,107,107,.85);box-shadow:0 0 0 3px rgba(255,107,107,.15),0 0 26px rgba(255,107,107,.3);}}
+
+/* ARCIA: photocard rarity */
+.aa-card-img{position:relative;}
+.aa-card-img img{display:block;width:100%;height:auto;border-radius:14px;margin-bottom:12px;}
+.aa-rar{margin:0 0 10px;text-align:center;font-family:'Sora',sans-serif;font-weight:800;font-size:1.05rem;color:#cfe0ff;}
+.aa-rar-rare .aa-rar{color:#ffd98a;text-shadow:0 0 14px rgba(255,200,97,.5);}
+.aa-rar-secret .aa-rar{background:linear-gradient(90deg,#ff8fc8,#b58bff,#4d7dff,#35d8d0,#39ff88,#ffe29a);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.aa-rar-rare .aa-card-img img{box-shadow:0 0 30px rgba(255,200,97,.35);}
+.aa-rar-secret .aa-card-img img{box-shadow:0 0 36px rgba(181,139,255,.45);}
+.aa-rar-secret .aa-card-img::after{content:"";position:absolute;inset:0 0 12px;border-radius:14px;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.28) 45%,transparent 60%);background-size:250% 100%;animation:aa-sheen 2.6s ease-in-out infinite;}
+@keyframes aa-sheen{from{background-position:120% 0;}to{background-position:-120% 0;}}
+.aa-card-img > .aa-fx{left:50%;bottom:50%;}
+.aa-col{text-align:center;}
+.aa-col b{color:#cfe0ff;font-weight:700;}.aa-col b.r{color:#ffd98a;}.aa-col b.s{color:#d6b8ff;}
+
+/* ARCIA: entrance — the two rings meet, she steps out */
+.aa-enter{position:fixed;inset:0;z-index:190;display:grid;place-items:center;pointer-events:none;background:#05080e;animation:aa-en-bg .95s ease forwards;}
+.aa-en-stage{position:relative;width:220px;height:220px;display:grid;place-items:center;}
+.aa-en-ring{position:absolute;top:50%;left:50%;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:9px solid;opacity:0;}
+.aa-en-ring.l{border-color:#3f7bff;box-shadow:0 0 24px rgba(63,123,255,.8),inset 0 0 14px rgba(63,123,255,.6);animation:aa-en-l .95s cubic-bezier(.2,.8,.2,1) forwards;}
+.aa-en-ring.r{border-color:#39ff88;box-shadow:0 0 24px rgba(57,255,136,.8),inset 0 0 14px rgba(57,255,136,.6);animation:aa-en-r .95s cubic-bezier(.2,.8,.2,1) forwards;}
+.aa-en-av{position:relative;width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #05080e;box-shadow:0 0 0 3px #35d8d0,0 0 40px rgba(53,216,208,.6);opacity:0;animation:aa-en-av .95s cubic-bezier(.3,1.4,.4,1) forwards;}
+.aa-en-name{position:absolute;bottom:-6px;left:0;right:0;text-align:center;font-family:'Sora',sans-serif;font-size:1.3rem;letter-spacing:.3em;background:linear-gradient(90deg,#3f7bff,#35d8d0,#39ff88);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:0;animation:aa-en-name .95s ease forwards;}
+@keyframes aa-en-bg{0%{opacity:0;}10%{opacity:.96;}72%{opacity:.96;}100%{opacity:0;}}
+@keyframes aa-en-l{0%{opacity:0;transform:translateX(-90px) scale(.7);}40%{opacity:1;transform:translateX(-26px) scale(1);}55%{opacity:1;transform:translateX(-26px) scale(1);}75%{opacity:0;transform:translateX(0) scale(1.9);}100%{opacity:0;}}
+@keyframes aa-en-r{0%{opacity:0;transform:translateX(90px) scale(.7);}40%{opacity:1;transform:translateX(26px) scale(1);}55%{opacity:1;transform:translateX(26px) scale(1);}75%{opacity:0;transform:translateX(0) scale(1.9);}100%{opacity:0;}}
+@keyframes aa-en-av{0%,45%{opacity:0;transform:scale(.4);}68%{opacity:1;transform:scale(1.06);}80%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1);}}
+@keyframes aa-en-name{0%,55%{opacity:0;transform:translateY(8px);}72%{opacity:1;transform:none;}88%{opacity:1;}100%{opacity:0;}}
+@media (prefers-reduced-motion:reduce){.aa-enter{display:none;}.aa-got .aa-pf img,.aa-got .aa-mini-av,.aa-got .aa-id .aa-av-wrap,.aa-urgent .aa-side,.aa-urgent .aa-rc-round,.aa-g-fill::after,.aa-gauge.full .aa-g-fill,.aa-rar-secret .aa-card-img::after{animation:none !important;}}

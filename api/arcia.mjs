@@ -6,6 +6,8 @@
 //        otherwise / guide mode → JSON { reply, mode: "ai" | "guide", live, me }
 //   POST /api/arcia  { action: "letter", name, text, lang }   leave ARCIA a fan letter (she reads and answers it)
 //   POST /api/arcia  { action: "heart", id }                   heart a letter
+//   POST /api/arcia  { action: "cheer", n }                    send ARCIA hearts (today's gauge; 30 per IP a day)
+//   GET  /api/arcia?hearts=1                                   { today, goal } — the gauge (ARCIA_HEART_GOAL, default 100)
 //   GET  /api/arcia                                            { ok, ai, live, x }
 //   GET  /api/arcia?letters=1                                  the letter board, newest first
 //
@@ -297,14 +299,49 @@ async function heartLetter(b, ip) {
   if (!/^[0-9a-f]{16}$/.test(id)) return json({ error: "bad id" }, 400);
   const d = await getDocs([`arciaLetters/${id}`]);
   if (!d[`arciaLetters/${id}`]) return json({ error: "no such letter" }, 404);
-  const r = await commit([{ create: `arciaHearts/${id}_${ipHash(ip)}`, data: { at: Date.now() } }, { inc: `arciaLetters/${id}`, fields: { hearts: 1 } }]);
+  const r = await commit([{ create: `arciaHearts/${id}_${ipHash(ip)}`, data: { at: Date.now() } }, { inc: `arciaLetters/${id}`, fields: { hearts: 1 } }, { inc: heartsDoc(), fields: { n: 1 } }]);
   const n = (d[`arciaLetters/${id}`].hearts || 0) + (r.conflict ? 0 : 1);
   return json({ ok: true, hearts: n, already: !!r.conflict });
+}
+
+// ---------- today's hearts: one shared gauge ----------
+const HEART_GOAL = () => Math.max(1, Number(process.env.ARCIA_HEART_GOAL) || 100);
+const HEARTS_PER_IP = 30;
+const heartsDoc = () => `arciaRate/${dayKey()}_hearts`;
+let memHearts = { day: "", n: 0 };
+const memToday = () => (memHearts.day === dayKey() ? memHearts.n : 0);
+async function heartsToday() {
+  if (!storeEnabled()) return memToday();
+  const d = await getDocs([heartsDoc()]);
+  return (d[heartsDoc()] || {}).n || 0;
+}
+async function addHearts(n) {
+  if (!storeEnabled()) { memHearts = { day: dayKey(), n: memToday() + n }; return; }
+  await commit([{ inc: heartsDoc(), fields: { n } }]);
+}
+async function cheer(b, ip) {
+  const want = Math.max(1, Math.min(5, Math.floor(Number(b.n) || 1)));
+  let give = want;
+  if (storeEnabled()) {
+    const mine = `arciaRate/${dayKey()}_h_${ipHash(ip)}`;
+    const d = await getDocs([mine, heartsDoc()]);
+    give = Math.max(0, Math.min(want, HEARTS_PER_IP - ((d[mine] || {}).n || 0)));
+    const now = (d[heartsDoc()] || {}).n || 0;
+    if (give) await commit([{ inc: mine, fields: { n: give } }, { inc: heartsDoc(), fields: { n: give } }]);
+    return json({ ok: true, counted: give, today: now + give, goal: HEART_GOAL() });
+  }
+  if (memHit("h:" + ip, 86400000, HEARTS_PER_IP)) give = 0;
+  if (give) await addHearts(give);
+  return json({ ok: true, counted: give, today: memToday(), goal: HEART_GOAL() });
 }
 
 // ---------- routes ----------
 export async function GET(req) {
   const url = new URL(req.url);
+  if (url.searchParams.has("hearts")) {
+    try { return json({ today: await heartsToday(), goal: HEART_GOAL() }, 200, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"); }
+    catch (e) { return json({ today: null, goal: HEART_GOAL() }, 200, "no-store"); }
+  }
   if (url.searchParams.has("letters")) {
     if (!storeEnabled()) return json({ letters: [], open: false }, 200, "public, max-age=30");
     try { return json({ letters: await letters(), open: true }, 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
@@ -321,6 +358,7 @@ export async function POST(req) {
   try { body = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
   const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
   if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
+  if (body && body.action === "cheer") { try { return await cheer(body, ip); } catch (e) { return json({ error: "couldn't send it" }, 502); } }
   if (body && body.action === "heart") { try { return await heartLetter(body, ip); } catch (e) { return json({ error: "couldn't heart it" }, 502); } }
 
   const msgs = (Array.isArray(body && body.messages) ? body.messages : [])

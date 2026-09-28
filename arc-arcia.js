@@ -197,6 +197,9 @@
     } else if (!on && t) t.remove();
   }
   function speaking(on) { root.classList.toggle("aa-speaking", !!on); }
+  // a reply just landed: her portrait tilts and glows for a moment
+  var gotT = 0;
+  function got() { if (reduce) return; root.classList.remove("aa-got"); void root.offsetWidth; root.classList.add("aa-got"); clearTimeout(gotT); gotT = setTimeout(function () { root.classList.remove("aa-got"); }, 1100); }
 
   // name: "my name is …", "call me …", "내 이름은 …", "…라고 불러", "我叫…"
   function sniffName(text) {
@@ -275,6 +278,7 @@
         var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
         ss.set(KEY, msgs.slice(-30));
         var finish = function (el) {
+          got();
           el.setAttribute("data-i", i);
           el._text = reply;
           speaking(false);
@@ -345,14 +349,14 @@
     li.classList.toggle("liked", on);
     var i = li.getAttribute("data-i");
     if (i != null && msgs[i]) { msgs[i].liked = on; ss.set(KEY, msgs.slice(-30)); }
-    if (on) { var p = li.querySelector(".aa-pop"); p.classList.remove("go"); void p.offsetWidth; p.classList.add("go"); if (typeof window.arcHaptic === "function") window.arcHaptic("tap"); }
+    if (on) { var p = li.querySelector(".aa-pop"); p.classList.remove("go"); void p.offsetWidth; p.classList.add("go"); if (typeof window.arcHaptic === "function") window.arcHaptic("tap"); cheer(1); }
   }
 
   // ---------------- cards under her replies ----------------
   function richCard(li, tp) {
     var L = LIVE || {}, R = L.round || {}, html = "";
     if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div></div>';
-    else if (tp === "round") html = '<div class="aa-rc"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>' + (R.raised != null ? Number(R.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button></div></div>";
+    else if (tp === "round") html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>' + (R.raised != null ? Number(R.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button></div></div>";
     else if (tp === "price") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>' + (L.price != null ? (F.price ? F.price(L.price) : "$" + L.price) : "—") + (L.change24h != null ? ' <em class="' + (L.change24h >= 0 ? "up" : "down") + '">' + (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%</em>" : "") + '</div><span class="aa-rc-sub" data-no-i18n>' + (L.holders != null ? Number(L.holders).toLocaleString("en-US") + " holders" : "") + '</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>';
     else if (tp === "buy") html = '<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(BUY) + '" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>';
     else if (tp === "relay") html = '<div class="aa-rc"><span class="aa-rc-k">Relay Launch</span><span class="aa-rc-sub">Hold 100,000+ $ARCIRCLE at the snapshot to receive every relay.</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/relay">Open Relay Launch</a><a class="aa-rc-btn ghost" href="/me">Check my wallet</a></div></div>';
@@ -400,54 +404,93 @@
     if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1].replace(/.{2}$/, "") + "…"; }
     return lines;
   }
+  // photocards come in three rarities: common (75%), rare (20%), secret (5%)
+  var RARITY = {
+    common: { label: { en: "Common card", ko: "일반 카드", zh: "普通卡" }, stops: ["#3f7bff", "#35d8d0", "#39ff88"] },
+    rare: { label: { en: "Rare card!", ko: "레어 카드!", zh: "稀有卡！" }, stops: ["#fff1c1", "#ffc861", "#ff9f3d", "#ffe29a"] },
+    secret: { label: { en: "Secret card!!", ko: "시크릿 카드!!", zh: "隐藏卡！！" }, stops: ["#ff8fc8", "#b58bff", "#4d7dff", "#35d8d0", "#39ff88", "#ffe29a", "#ff8fc8"] },
+  };
+  function star(x, cx, cy, r) {
+    x.beginPath();
+    x.moveTo(cx, cy - r); x.quadraticCurveTo(cx, cy, cx + r, cy); x.quadraticCurveTo(cx, cy, cx, cy + r);
+    x.quadraticCurveTo(cx, cy, cx - r, cy); x.quadraticCurveTo(cx, cy, cx, cy - r); x.fill();
+  }
   function photocard(text) {
+    var roll = Math.random(), rar = roll < 0.05 ? "secret" : roll < 0.25 ? "rare" : "common", R = RARITY[rar];
+    var serial = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
     var img = new Image();
     img.onload = function () {
       var W = 1080, H = 1350, c = document.createElement("canvas");
       c.width = W; c.height = H;
       var x = c.getContext("2d");
+      var grad = function (x0, y0, x1, y1) { var g = x.createLinearGradient(x0, y0, x1, y1); R.stops.forEach(function (col, k) { g.addColorStop(k / (R.stops.length - 1), col); }); return g; };
       x.fillStyle = "#070b12"; x.fillRect(0, 0, W, H);
       var s = W / img.width;
       x.drawImage(img, 0, -30, W, img.height * s);
+      if (rar === "secret") { // holographic sheen over the photo
+        x.save(); x.globalCompositeOperation = "screen"; x.globalAlpha = 0.22; x.fillStyle = grad(0, 0, W, 900); x.fillRect(0, 0, W, 900); x.restore();
+      }
       var g = x.createLinearGradient(0, 560, 0, 900);
       g.addColorStop(0, "rgba(7,11,18,0)"); g.addColorStop(1, "rgba(7,11,18,1)");
       x.fillStyle = g; x.fillRect(0, 540, W, 380);
       x.fillStyle = "#070b12"; x.fillRect(0, 900, W, H - 900);
-      var bar = x.createLinearGradient(0, 0, W, 0);
-      bar.addColorStop(0, "#3f7bff"); bar.addColorStop(0.55, "#35d8d0"); bar.addColorStop(1, "#39ff88");
-      x.fillStyle = bar; x.fillRect(0, 0, W, 10); x.fillRect(0, H - 10, W, 10);
-      x.font = "800 92px Sora, 'Segoe UI', sans-serif"; x.fillStyle = bar; x.fillText("ARCIA", 70, 870);
+      var edge = grad(0, 0, W, H);
+      if (rar === "common") { x.fillStyle = edge; x.fillRect(0, 0, W, 10); x.fillRect(0, H - 10, W, 10); }
+      else {
+        x.strokeStyle = edge; x.lineWidth = rar === "secret" ? 22 : 16;
+        if (x.roundRect) { x.beginPath(); x.roundRect(14, 14, W - 28, H - 28, 34); x.stroke(); } else x.strokeRect(14, 14, W - 28, H - 28);
+        x.fillStyle = rar === "secret" ? "#ffffff" : "#ffe29a";
+        for (var k = 0; k < (rar === "secret" ? 26 : 14); k++) {
+          var side = k % 4, t = Math.random();
+          var px = side === 0 ? t * W : side === 1 ? W - 24 - Math.random() * 30 : side === 2 ? t * W : 24 + Math.random() * 30;
+          var py = side === 0 ? 24 + Math.random() * 30 : side === 1 ? t * H : side === 2 ? H - 24 - Math.random() * 30 : t * H;
+          x.globalAlpha = 0.55 + Math.random() * 0.45; star(x, px, py, 6 + Math.random() * 12);
+        }
+        x.globalAlpha = 1;
+        var tag = rar === "secret" ? "SECRET" : "RARE";
+        x.font = "800 30px Sora, 'Segoe UI', sans-serif";
+        var tw = x.measureText(tag).width + 48;
+        x.fillStyle = edge;
+        if (x.roundRect) { x.beginPath(); x.roundRect(W - 60 - tw, 56, tw, 54, 27); x.fill(); } else x.fillRect(W - 60 - tw, 56, tw, 54);
+        x.fillStyle = "#1a1206"; x.fillText(tag, W - 60 - tw + 24, 94);
+      }
+      x.font = "800 92px Sora, 'Segoe UI', sans-serif"; x.fillStyle = edge; x.fillText("ARCIA", 70, 870);
       x.font = "600 30px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#9fb6d9"; x.fillText("Virtual idol of $ARCIRCLE", 76, 918);
       var clean = String(text).replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim();
       x.font = "500 40px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";
       var lines = wrapLines(x, "“" + clean + "”", W - 160, 6);
-      x.fillStyle = "rgba(255,255,255,.05)"; x.strokeStyle = "rgba(91,140,255,.35)"; x.lineWidth = 2;
+      x.fillStyle = "rgba(255,255,255,.05)"; x.strokeStyle = rar === "common" ? "rgba(91,140,255,.35)" : edge; x.lineWidth = 2;
       var top = 960, bh = lines.length * 56 + 56;
       if (x.roundRect) { x.beginPath(); x.roundRect(56, top, W - 112, bh, 28); x.fill(); x.stroke(); } else x.fillRect(56, top, W - 112, bh);
       x.fillStyle = "#eef3ff";
-      lines.forEach(function (l, k) { x.fillText(l, 84, top + 70 + k * 56); });
+      lines.forEach(function (l, k2) { x.fillText(l, 84, top + 70 + k2 * 56); });
       x.font = "600 28px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#8fb6ff";
-      x.fillText("@ARCIAonArc", 70, H - 48);
+      x.fillText("@ARCIAonArc · No." + serial, 70, H - 52);
       x.fillStyle = "#7d8aa3"; x.textAlign = "right";
-      x.fillText("arcircle.app · " + dayStr(), W - 70, H - 48);
-      c.toBlob(function (blob) { if (blob) showCard(blob, clean); }, "image/png");
+      x.fillText("arcircle.app · " + dayStr(), W - 70, H - 52);
+      var col = ls.get("arcia-cards", { common: 0, rare: 0, secret: 0 });
+      col[rar] = (col[rar] || 0) + 1; ls.set("arcia-cards", col);
+      c.toBlob(function (blob) { if (blob) showCard(blob, clean, rar, col); }, "image/png");
     };
     img.src = "/images/arcia-portrait.jpg";
   }
-  function showCard(blob, text) {
+  function showCard(blob, text, rar, col) {
     var url = URL.createObjectURL(blob);
     var file = null;
-    try { file = new File([blob], "arcia-photocard.png", { type: "image/png" }); } catch (e) { /* old browser */ }
+    try { file = new File([blob], "arcia-photocard-" + rar + ".png", { type: "image/png" }); } catch (e) { /* old browser */ }
     var canShare = file && navigator.canShare && navigator.canShare({ files: [file] });
-    var quote = text.length > 150 ? text.slice(0, 147) + "…" : text;
-    var intent = "https://x.com/intent/post?text=" + encodeURIComponent("“" + quote + "” — ARCIA @ARCIAonArc 💙💚\narcircle.app/arcia");
-    var m = modal('<div class="aa-card-view"><img src="' + url + '" alt="ARCIA photocard"><div class="aa-rc-row">' +
+    var quote = text.length > 140 ? text.slice(0, 137) + "…" : text;
+    var tagTxt = rar === "common" ? "" : " [" + rar.toUpperCase() + " card]";
+    var intent = "https://x.com/intent/post?text=" + encodeURIComponent("“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt + " 💙💚\narcircle.app/arcia");
+    var m = modal('<div class="aa-card-view aa-rar-' + rar + '"><p class="aa-rar" data-no-i18n>' + esc(T(RARITY[rar].label)) + '</p><div class="aa-card-img"><img src="' + url + '" alt="ARCIA photocard"></div><div class="aa-rc-row">' +
       (canShare ? '<button type="button" class="aa-rc-btn" data-share="1"><span>Share</span></button>' : "") +
-      '<a class="aa-rc-btn' + (canShare ? " ghost" : "") + '" href="' + url + '" download="arcia-photocard.png"><span>Save image</span></a>' +
+      '<a class="aa-rc-btn' + (canShare ? " ghost" : "") + '" href="' + url + '" download="arcia-photocard-' + rar + '.png"><span>Save image</span></a>' +
       '<a class="aa-rc-btn ghost" href="' + intent + '" target="_blank" rel="noopener">' + ICON.x + "<span>Post on X</span></a></div>" +
+      '<p class="aa-mini aa-col" data-no-i18n>' + esc(T({ en: "Your collection", ko: "내 컬렉션", zh: "我的收藏" })) + ' · <b>' + esc(T(RARITY.common.label)) + " " + (col.common || 0) + '</b> · <b class="r">' + esc(T(RARITY.rare.label).replace(/!+$/, "")) + " " + (col.rare || 0) + '</b> · <b class="s">' + esc(T(RARITY.secret.label).replace(/!+$/, "")) + " " + (col.secret || 0) + "</b></p>" +
       '<p class="aa-mini">Save the card, then attach it to your post.</p></div>', function () { URL.revokeObjectURL(url); });
     var sb = m.querySelector("[data-share]");
-    if (sb) sb.addEventListener("click", function () { navigator.share({ files: [file], text: "“" + quote + "” — ARCIA @ARCIAonArc" }).catch(function () {}); });
+    if (sb) sb.addEventListener("click", function () { navigator.share({ files: [file], text: "“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt }).catch(function () {}); });
+    if (rar !== "common") { sfx(rar === "secret" ? "launch" : "milestone"); fx(m.querySelector(".aa-card-img"), rar === "secret" ? "confetti" : "sparkle"); }
   }
   function modal(inner, onClose) {
     var m = document.createElement("div");
@@ -502,6 +545,7 @@
   }
   function clock() {
     var s = deadline() - nowS();
+    panel.classList.toggle("aa-urgent", s > 0 && s < 3600);
     panel.querySelectorAll(".aa-clock").forEach(function (el) {
       if (s <= 0) { el.textContent = tr("Closed"); return; }
       var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -617,7 +661,7 @@
     var n = btn.querySelector("span"); n.textContent = Number(n.textContent || 0) + 1;
     hearted.push(id); ls.set("arcia-hearted", hearted.slice(-300));
     fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "heart", id: id }) })
-      .then(function (r) { return r.json(); }).then(function (j) { if (j && j.hearts != null) n.textContent = j.hearts; }).catch(function () {});
+      .then(function (r) { return r.json(); }).then(function (j) { if (j && j.hearts != null) n.textContent = j.hearts; if (j && !j.already) loadHearts(); }).catch(function () {});
   }
 
   // ---------------- quiz ----------------
@@ -669,6 +713,58 @@
     if (!ok) { var r = box.querySelector('[data-ok="1"]'); if (r) r.classList.add("right"); }
     if (ok) { quiz.score++; sfx("tap"); }
     setTimeout(function () { quiz.i++; quizPaint(); }, ok ? 650 : 1200);
+  }
+
+  // ---------------- today's hearts: one gauge every fan fills together ----------------
+  var HEART = { today: null, goal: 100, pending: 0, sending: false, t: 0 };
+  var utcDay = function () { return new Date().toISOString().slice(0, 10); };
+  var GOAL_MSG = {
+    en: "We did it~!! {g} hearts from all of you today♡ Thank you, thank you — my heart is so full I could fly all the way around the Arc chain 💙💚",
+    ko: "해냈어요~!! 오늘 여러분이 보내준 하트가 {g}개를 넘었어요♡ 정말 고마워요 — 마음이 너무 벅차서 Arc 체인 한 바퀴를 날아다닐 수 있을 것 같아요 💙💚",
+    zh: "我们做到了~!! 今天大家送来的爱心超过 {g} 颗♡ 谢谢你们 —— 我开心得能绕 Arc 链飞一圈 💙💚",
+  };
+  function paintGauge(bump) {
+    var g = panel.querySelector(".aa-gauge");
+    if (!g || HEART.today == null) return;
+    var n = HEART.today, goal = HEART.goal, pct = Math.min(100, n / goal * 100);
+    g.querySelector(".aa-g-fill").style.width = pct.toFixed(1) + "%";
+    g.querySelector(".aa-g-num").textContent = n.toLocaleString("en-US") + " / " + goal.toLocaleString("en-US");
+    g.classList.toggle("full", n >= goal);
+    if (bump && !reduce) { var num = g.querySelector(".aa-g-num"); num.classList.remove("bump"); void num.offsetWidth; num.classList.add("bump"); }
+    if (n >= goal && log && ls.get("arcia-goal", "") !== utcDay()) {
+      ls.set("arcia-goal", utcDay());
+      var li = bubble("assistant", T(GOAL_MSG).replace("{g}", goal.toLocaleString("en-US")), { type: true, cls: "sys" });
+      fx(li, "confetti"); sfx("launch");
+    }
+  }
+  function loadHearts() {
+    return fetch("/api/arcia?hearts=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || j.today == null) return;
+      HEART.goal = j.goal || HEART.goal;
+      if (HEART.pending || HEART.sending) return; // our own taps are still on the way
+      var bump = HEART.today != null && j.today > HEART.today;
+      HEART.today = j.today; paintGauge(bump);
+    }).catch(function () {});
+  }
+  function flushHearts() {
+    if (HEART.sending || !HEART.pending) return;
+    var n = Math.min(5, HEART.pending);
+    HEART.pending -= n; HEART.sending = true;
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "cheer", n: n }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.today != null && !HEART.pending) { HEART.today = j.today; HEART.goal = j.goal || HEART.goal; paintGauge(false); } })
+      .catch(function () {})
+      .then(function () { HEART.sending = false; if (HEART.pending) flushHearts(); });
+  }
+  function cheer(n) {
+    var key = "arcia-cheer-" + utcDay(), used = ls.get(key, 0);
+    if (used >= 30) { toast(T({ en: "You sent all 30 of today's hearts~ thank you♡", ko: "오늘 하트 30개를 다 보냈어요~ 고마워요♡", zh: "今天的 30 颗爱心都送出啦~ 谢谢你♡" })); return false; }
+    ls.set(key, used + n);
+    if (HEART.today == null) HEART.today = 0;
+    HEART.today += n; paintGauge(true);
+    HEART.pending += n;
+    clearTimeout(HEART.t); HEART.t = setTimeout(flushHearts, 600);
+    return true;
   }
 
   // ---------------- fan card, badges, streak, profile ----------------
@@ -749,6 +845,18 @@
       '<p class="aa-mini">An AI character, automated and run by the ARCIRCLE team. The rest of her official profile is on the way.</p>';
   }
 
+  // ---------------- entrance: the two rings meet and she steps out (once a day, under a second) ----------------
+  function entrance() {
+    if (reduce || ls.get("arcia-enter", "") === dayStr()) return false;
+    ls.set("arcia-enter", dayStr());
+    var o = document.createElement("div");
+    o.className = "aa-enter"; o.setAttribute("aria-hidden", "true");
+    o.innerHTML = '<div class="aa-en-stage"><i class="aa-en-ring l"></i><i class="aa-en-ring r"></i><img class="aa-en-av" src="/images/arcia-avatar.jpg" alt=""><b class="aa-en-name">ARCIA</b></div>';
+    document.body.appendChild(o);
+    setTimeout(function () { o.remove(); }, 1000);
+    return true;
+  }
+
   // ---------------- first visit ----------------
   function intro() {
     if (ls.get("arcia-intro-v1", false)) return false;
@@ -790,6 +898,8 @@
               '<span class="aa-me" hidden data-no-i18n></span>' +
               ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud">' + ICON.voice + "<span>Voice</span></button>" : "") +
               '<button type="button" class="aa-tool aa-new" title="Start a new chat"><span>New chat</span></button></div>' +
+            '<div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">' + ICON.heart + '</button>' +
+              '<div class="aa-g-main"><div class="aa-g-top"><span>Today\'s hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div>' +
             '<ol class="aa-log" role="log" aria-live="polite" aria-label="Conversation"></ol>' +
             '<div class="aa-sugg" aria-label="Suggested questions"></div>' +
             '<form class="aa-form" autocomplete="off"><textarea rows="1" maxlength="700" placeholder="Talk to ARCIA…" aria-label="Message ARCIA" enterkeyhint="send"></textarea>' +
@@ -828,6 +938,12 @@
     log.addEventListener("scroll", function () { stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60; });
     panel.querySelector(".aa-sugg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) send(b.textContent); });
     panel.querySelector(".aa-new").addEventListener("click", restart);
+    panel.querySelector(".aa-cheer-btn").addEventListener("click", function (e) {
+      if (!cheer(1)) return;
+      var b = e.currentTarget; b.classList.remove("go"); void b.offsetWidth; b.classList.add("go");
+      fx(panel.querySelector(".aa-gauge"), "hearts");
+      if (typeof window.arcHaptic === "function") window.arcHaptic("tap");
+    });
     var vt = panel.querySelector(".aa-voice-t");
     if (vt) {
       var syncV = function () { var on = !!ls.get("arcia-voice", false); vt.setAttribute("aria-pressed", on ? "true" : "false"); vt.classList.toggle("on", on); };
@@ -925,7 +1041,9 @@
     greet();
     msgs.forEach(function (m, i) { bubble(m.role, m.content, { t: m.t, liked: m.liked, i: m.role === "assistant" ? i : null }); });
     paintCheer(); paintFan(); paintRemind(); scheduleRemind();
-    var introShown = intro();
+    var entered = entrance();
+    var introShown = !ls.get("arcia-intro-v1", false);
+    if (introShown) setTimeout(intro, entered ? 950 : 0);
     if (sk.fresh && !sk.first && !introShown) {
       var li = bubble("assistant", T(STREAK_MSG).replace("{n}", sk.st.n).replace("{c}", cheerText()), { type: true, cls: "sys" });
       if ([3, 7, 14, 30, 50, 100].indexOf(sk.st.n) >= 0) fx(li, "confetti"); else fx(li, "sparkle");
@@ -937,6 +1055,8 @@
     booted = true;
     build();
     refreshLive();
+    loadHearts();
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) loadHearts(); }, 20000);
     setTimeout(checkWallet, 1200);
     setInterval(function () { if (panel.classList.contains("active")) checkWallet(); }, 5000);
     setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 60000);

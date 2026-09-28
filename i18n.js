@@ -2807,6 +2807,8 @@
     "Voice on — she'll read her replies aloud.": "음성 켜짐 — 답장을 소리 내어 읽어줘요.",
     "Today's message": "오늘의 메시지",
     "More with ARCIA": "ARCIA와 더 하기",
+    "Send ARCIA a heart": "ARCIA에게 하트 보내기",
+    "Today's hearts": "오늘의 하트",
   };
 
   // Strings with live numbers — [pattern, replacement]
@@ -5979,6 +5981,8 @@
     "Voice on — she'll read her replies aloud.": "语音已开启 —— 她会朗读回复。",
     "Today's message": "今日留言",
     "More with ARCIA": "和 ARCIA 一起",
+    "Send ARCIA a heart": "给 ARCIA 送爱心",
+    "Today's hearts": "今日爱心",
   };
 
   var ATTRS = ["placeholder", "title", "aria-label"];
