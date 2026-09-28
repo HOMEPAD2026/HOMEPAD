@@ -19,6 +19,7 @@ import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
+import { mineView } from "./_mine.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 
 export const config = { runtime: "edge" };
@@ -37,6 +38,7 @@ export default async function handler(req) {
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
   if (view === "lock") return lockPage(url);
+  if (view === "mine") return minePage(url);
   if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
@@ -642,6 +644,48 @@ async function lockPage(url) {
 <p>Opening the <a href="${esc(target)}">lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- Builder Mine share page (/mine/<id>?r=<wallet>) — the builder's card, then the mine in the app ----
+async function minePage(url) {
+  const id = String(url.searchParams.get("id") || "");
+  const r = String(url.searchParams.get("r") || "").toLowerCase();
+  const ref = /^0x[0-9a-f]{40}$/.test(r) ? r : "";
+  if (!/^\d{1,6}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#mine">`, "public, max-age=300");
+  let v = null;
+  try { v = await mineView(Number(id)); } catch { v = null; }
+  const sym = v ? "$" + v.token.symbol : "a coin";
+  const title = v ? `Mine ${sym} on Arc — Builder Mine #${id}` : "Builder Mine — ARCIRCLE PAD";
+  const desc = v ? `${fmtAmt(v.deposited, v.token.decimals)} ${sym} in the mine, ${Number(v.builders).toLocaleString("en-US")} builders. Join with 1 USDC, mine in your browser, claim on Arc. Whatever isn't mined is burned.` : "Holders open a mine, builders dig it. Join with 1 USDC, mine in your browser, claim on Arc.";
+  const target = `/arc#mine?id=${id}${ref ? `&r=${ref}` : ""}`;
+  const image = `${SITE}/api/og?mine=${id}${ref ? `&w=${ref}` : ""}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/mine/${id}${ref ? `?r=${ref}` : ""}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ffc861}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">mine</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=120");
 }
 
 // ---- CirclePad burn-to-vote share page (/vote/<tx>) ----

@@ -919,6 +919,8 @@ async function tick() {
   if (due.length) { sc.list = sc.list.filter((x) => x.at > now); await putDoc(DOC.sched, sc); for (const x of due) out.scheduled = (out.scheduled || 0) + await postToTargets(c, { text: x.text }); }
   T.at = now;
   await putDoc(DOC.tick, T);
+  // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
+  try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }
   return { ok: true, first, ...out };
 }
 

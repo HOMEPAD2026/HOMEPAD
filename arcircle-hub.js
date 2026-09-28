@@ -152,7 +152,7 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
   UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
-  // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, then two more in development.
+  // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, then one more in development.
   // Four tiles a page, always — a fifth would make every page as tall as three rows.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
   var UTILS3 = [
@@ -161,8 +161,9 @@
     { id: "arcia402", name: "ARCIA 402", sub: "ARCIA earns and pays in USDC with x402 on Arc", status: "v1", acc: "#39ff88", href: "/arc#arcia402",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg>' },
   ];
+  UTILS3.push({ id: "mine", name: "Builder Mine", sub: "Open a mine for your token — builders dig it, the rest is burned", status: "v1", acc: "#ffc861", href: "/arc#mine",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
   var NEXT = [
-    { id: "next-11", sub: "In development" },
     { id: "next-12", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';

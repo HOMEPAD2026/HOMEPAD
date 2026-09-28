@@ -80,9 +80,11 @@ export function walletCheck() {
 }
 
 /// Send one transaction from ARCIA's wallet (EIP-1559, chain 5042) and wait for its receipt.
-export async function sendTx({ to, data = "0x", value = 0n }) {
-  const sk = secret();
-  if (!sk) throw new Error("ARCIA's wallet key isn't set");
+export const addressOfKey = (hex) => (/^(0x)?[0-9a-fA-F]{64}$/.test(String(hex || "").trim()) ? addressOf(hexToBytes(String(hex).trim())) : null);
+/// `key` (optional): another wallet's key as hex (Builder Mine's operator) instead of ARCIA's.
+export async function sendTx({ to, data = "0x", value = 0n, key = null }) {
+  const sk = key ? (/^(0x)?[0-9a-fA-F]{64}$/.test(String(key).trim()) ? hexToBytes(String(key).trim()) : null) : secret();
+  if (!sk) throw new Error(key ? "that key isn't a 32-byte hex key" : "ARCIA's wallet key isn't set");
   const from = addressOf(sk);
   const [nonce, gasPrice, gas] = await Promise.all([
     rpcCall("eth_getTransactionCount", [from, "pending"]),

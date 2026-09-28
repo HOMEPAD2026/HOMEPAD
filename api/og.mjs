@@ -15,6 +15,7 @@ import { lockInfo } from "./_locker.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
+import { mineView, meView, GAME as MINE_GAME } from "./_mine.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -133,6 +134,13 @@ export async function GET(req) {
     return new ImageResponse(await bridgeCard(await markP, url.searchParams.get("bridge")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" },
+    });
+  }
+  if (url.searchParams.has("mine")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await mineCard(await markP, url.searchParams.get("mine"), url.searchParams.get("w")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
     });
   }
   if (url.searchParams.has("lock")) {
@@ -579,6 +587,53 @@ async function lockCard(mark, id) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "ArcLock · no owner, no admin, no fee"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lock/${d.id}`)),
+  ]);
+}
+
+// ---- Builder Mine card (/mine/<id>?r=<wallet>) — the mine's strata, and the builder's haul when a wallet is given ----
+const MINE_LAYER_COLORS = ["#5f9e4a", "#b07a4a", "#7d8594", "#c9a24a", "#4a5872", "#e2553b"];
+async function mineCard(mark, id, w) {
+  let v = null, me = null;
+  if (/^\d{1,6}$/.test(id || "")) { try { v = await mineView(Number(id)); } catch { v = null; } }
+  if (v && isAddr(w || "")) { try { me = await meView(Number(id), w); } catch { me = null; } }
+  const acc = "#ffc861";
+  const strata = (layer) => h("div", { width: 230, height: 360, flexDirection: "column", borderRadius: 28, overflow: "hidden", border: "3px solid rgba(255,200,97,0.45)" },
+    ...MINE_LAYER_COLORS.map((c, i) => h("div", { flex: 1, backgroundColor: c, opacity: i <= layer ? 1 : 0.35, alignItems: "center", justifyContent: "center", borderTop: i ? "3px solid rgba(0,0,0,0.25)" : "none" },
+      i === layer ? h("div", { width: 64, height: 64, borderRadius: 32, backgroundColor: "#0b0f14", border: `5px solid ${acc}`, alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 800, color: acc }, String(i + 1)) : null)));
+  if (!v) {
+    return frame([
+      brandRow(mark, pill("BUILDER MINE", acc), "ARCIRCLE PAD · Circle's Arc"),
+      h("div", { alignItems: "center", gap: 48 }, strata(2),
+        h("div", { flexDirection: "column", gap: 16 },
+          h("div", { fontSize: 86, fontWeight: 800, lineHeight: 1.05 }, "Mine on Arc."),
+          h("div", { fontSize: 34, color: "#b9c8b3" }, "Holders open a mine. Builders dig it. The rest is burned."))),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#mine"),
+    ]);
+  }
+  const sym = clip(v.token.symbol, 12), dec = v.token.decimals;
+  const layerName = MINE_GAME.layers[v.layer] || "";
+  const ended = v.now >= v.end;
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "14px 22px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 19, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 34, fontWeight: 800, color }, value));
+  const rank = me ? (v.top || []).findIndex((t) => t.w === me.w) : -1;
+  const pick = me ? (MINE_GAME.pickaxes[me.pickaxe] || MINE_GAME.pickaxes[0]).name.replace(" pickaxe", "") : "";
+  const headline = me && BigInt(me.mined || 0) > 0n ? `I mined ${amt(me.mined, dec)} $${sym}` : me ? `I'm mining $${sym}` : `Mine $${sym} on Arc`;
+  const sub = `${ended ? "Mine closed" : `Layer ${v.layer + 1} · ${layerName}`} · ${Number(v.builders).toLocaleString("en-US")} builders`;
+  return frame([
+    brandRow(mark, pill(ended ? "ENDED" : "BUILDER MINE", acc), "Builder Mine · Circle's Arc"),
+    h("div", { alignItems: "center", gap: 48, width: "100%" }, strata(ended ? 5 : v.layer),
+      h("div", { flexDirection: "column", gap: 12 },
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, me && me.x ? `@${clip(me.x, 16)} · builder on Arc` : "Holders open it · builders dig it"),
+        h("div", { fontSize: 74, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }, headline),
+        h("div", { fontSize: 30, color: "#b9c8b3" }, sub),
+        h("div", { gap: 14, marginTop: 10 },
+          me ? box("Pickaxe", pick, acc) : box("In the mine", `${amt(v.deposited, dec)}`, acc),
+          me ? box("Rank", rank >= 0 ? `#${rank + 1}` : "—") : box("Mined so far", amt(v.emittedNow, dec)),
+          me ? box("Points", Number(me.points || 0).toLocaleString("en-US")) : box("Left: burned", "at the end")))),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "Join with 1 USDC · mine in your browser · claim on Arc"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/mine/${v.id}`)),
   ]);
 }
 

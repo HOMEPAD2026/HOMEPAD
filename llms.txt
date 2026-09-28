@@ -28,6 +28,13 @@ Services (price per call):
 - [ARCIA's public books (JSON)](https://www.arcircle.app/api/arcia402?stats=1)
 - [ARCIA 402 page](https://www.arcircle.app/arc#arcia402)
 
+## Builder Mine — mining on Arc
+
+Holders open a mine with part of a token's supply (3–60 days, six layers that each release half as much as the one above). Builders join a mine for 1 USDC, mine in the browser and claim from hourly Merkle roots; one verified X post unlocks claiming. Items are bought with $ARCIRCLE and burned; whatever isn't mined is burned. The contract isn't deployed yet — the page runs a practice mine.
+
+- [Builder Mine page](https://www.arcircle.app/arc#mine)
+- [Game rules and items (JSON)](https://www.arcircle.app/api/mine?cfg=1)
+
 ## Free APIs
 
 - [Token Scanner API](https://www.arcircle.app/api/v1/scan/0x0000000000000000000000000000000000000000): `GET /api/v1/scan/<token>`

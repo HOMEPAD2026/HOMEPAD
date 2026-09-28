@@ -165,6 +165,11 @@ const CONFIG = {
   MULTISEND_V2_ADDRESS: "",
   DROP_ADDRESS: "",
 
+  // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
+  // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
+  // The server reads BUILDER_MINE_ADDRESS (Vercel env) or api/_mine.mjs — keep them in step.
+  BUILDER_MINE_ADDRESS: "",
+
   // --- Relay Launch (arcpad.html#relay, arc-relay.js) ---
   // After a CirclePad round closes, the round's recipient wallet launches the
   // coin the vote picked through Argus Portal #7 and relays the dev-buy tokens
