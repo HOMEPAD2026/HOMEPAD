@@ -128,8 +128,9 @@
       d.className = "u2-acts";
       d.innerHTML = '<button type="button" data-u2-open><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>' + esc(tr("My activity")) + '</button>' +
         '<button type="button" data-u2-ask="' + k + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H9l-5 4z"/></svg>' + esc(tr("Ask ARCIA")) + "</button>";
-      var h1 = host.querySelector("h1");
-      if (h1 && h1.nextSibling) host.insertBefore(d, h1.nextSibling); else host.appendChild(d);
+      // below the description: title, what it does, then what you can do
+      var after = host.querySelector(".bp-lede") || host.querySelector("h1");
+      if (after && after.nextSibling) host.insertBefore(d, after.nextSibling); else host.appendChild(d);
     });
   }
   document.addEventListener("click", function (e) {

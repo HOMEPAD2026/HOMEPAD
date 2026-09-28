@@ -9220,8 +9220,8 @@ html.arc-tools-loading::before{content:"";position:fixed;top:0;left:0;right:0;he
 .abr-tx-share a:hover,.abr-tx-share button:hover{border-color:rgba(255,200,97,.5);}
 
 /* ---- utilities v2: "My activity" drawer and the header buttons ---- */
-.u2-acts{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px;}
-.u2-acts button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eef3f7;font:inherit;font-size:.74rem;font-weight:700;cursor:pointer;transition:border-color .2s,background .2s,transform .15s;}
+.u2-acts{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;grid-column:1 / -1;min-width:0;}
+.u2-acts button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:7px 13px;border-radius:99px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eef3f7;font:inherit;font-size:.74rem;font-weight:700;cursor:pointer;transition:border-color .2s,background .2s,transform .15s;}
 .u2-acts button:hover{border-color:rgba(53,216,208,.5);background:rgba(53,216,208,.08);transform:translateY(-1px);}
 .u2-acts svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 html.u2-lock{overflow:hidden;}
@@ -9255,3 +9255,11 @@ html.u2-lock{overflow:hidden;}
 .u2-empty{margin:20px 6px;font-size:.84rem;color:rgba(222,233,244,.55);line-height:1.5;}
 .u2-note{margin:0;padding:10px 18px 16px;font-size:.66rem;color:rgba(222,233,244,.4);border-top:1px solid rgba(255,255,255,.06);}
 @media (prefers-reduced-motion:reduce){.u2-sheet,.u2-scrim{transition:none;}.u2-item{animation:none;}}
+
+/* score rings: the number sits in the middle wherever a ring is used (recent scans, creator's coins) */
+.asc-scard .asc-mini,.asc-dep-coins .asc-mini,.asc-mini{display:grid;place-items:center;flex-direction:initial;}
+.asc-mini b{position:relative;display:block;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;text-overflow:clip;}
+.asc-scard .asc-mini b{font-size:.7rem;}
+@media (max-width:640px){.u2-acts{margin-top:12px;}.u2-acts button{font-size:.72rem;padding:7px 12px;}}
+@media (max-width:900px){.asc-intro{grid-template-columns:minmax(0,1fr);}}
+@media (max-width:640px){.asc-what{grid-template-columns:minmax(0,1fr) !important;}}
