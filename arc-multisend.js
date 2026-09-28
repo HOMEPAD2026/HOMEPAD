@@ -14,6 +14,11 @@
 //                a failing wallet is pinpointed, an unfinished send resumes
 //   Afterwards   a public receipt (/drop/<tx>), "did I get an airdrop?",
 //                recent airdrops, claim pages (/claim/<id>)
+// v2: filters on the list (below an amount, your own wallet, a paste of wallets
+// to leave out, keep the top N), an address book (labels, this browser), the
+// full preview in a scrolling window, the batches with their fee before and
+// during a send, "Split by contribution" for CirclePad, claim-drop numbers and
+// a "Sent" stamp.
 // Addresses come from config-arc.js: MULTISEND_ADDRESS (v1),
 // MULTISEND_V2_ADDRESS (permit, a token per row, NFTs), DROP_ADDRESS (claim drops).
 // With none set the page runs as a preview.
@@ -249,6 +254,16 @@
     decs: new Map(), code: new Map(), checks: null, chunk: MAX_CHUNK, undo: [], sort: "list", q: "",
   };
   const ta = () => $("ams-list");
+  // ---------- address book: your own labels for wallets (this browser only) ----------
+  const BOOK = "arcircle.ms.book.v1";
+  let book = null;
+  const bookGet = () => { if (!book) { try { book = JSON.parse(localStorage.getItem(BOOK) || "{}") || {}; } catch { book = {}; } } return book; };
+  const labelOf = (a) => bookGet()[lc(a)] || "";
+  function bookSet(a, label) {
+    const b = bookGet(); label = String(label || "").trim().slice(0, 32);
+    if (label) b[lc(a)] = label; else delete b[lc(a)];
+    try { localStorage.setItem(BOOK, JSON.stringify(b)); } catch { /* private mode */ }
+  }
   const listOpts = () => ({ am: F.am, value: $("ams-same").value, mixed: F.mode === "token" && !!V2() && $("ams-mixed").checked, nft: F.mode === "nft" && F.info ? F.info.kind : null, decs: F.decs, token: F.info && F.info.address });
   const symOf = (info) => { info = info || F.info; return info ? (lc(info.address) === USDC ? "USDC" : info.kind ? info.symbol : "$" + info.symbol) : ""; };
   const decOf = () => (F.info && !F.info.kind ? F.info.decimals : 0);
@@ -425,10 +440,12 @@
     const max = all.reduce((m, r) => (r.amount > m ? r.amount : m), 0n);
     const min = all.reduce((m, r) => (r.amount < m ? r.amount : m), all[0].amount);
     const q = F.q.trim().toLowerCase();
-    if (q) rows = rows.filter((r) => lc(r.addr).includes(q) || String(r.line) === q);
+    if (q) rows = rows.filter((r) => lc(r.addr).includes(q) || String(r.line) === q || lc(labelOf(r.addr)).includes(q));
     if (F.sort === "desc") rows = [...rows].sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0));
     else if (F.sort === "asc") rows = [...rows].sort((a, b) => (a.amount > b.amount ? 1 : a.amount < b.amount ? -1 : 0));
-    const show = rows.slice(0, 60);
+    F.vrows = rows;
+    const virtual = rows.length > 60;
+    const show = virtual ? rows.slice(0, 24) : rows;
     const unit = (r) => (nft ? `#${r.id}${F.info.kind === 1155 ? " × " + r.amount : ""}` : fmt(r.amount, r.token ? F.decs.get(lc(r.token)) ?? dec : dec) + (r.token ? " " + short(r.token) : ""));
     box.hidden = false;
     box.innerHTML = `${nft || (P.byToken && P.byToken.size) ? "" : histogram(all, max)}
@@ -437,11 +454,67 @@
         <input type="search" id="ams-q" placeholder="${esc(tr("Search a wallet or line"))}" value="${esc(F.q)}" autocomplete="off" spellcheck="false">
         ${nft ? "" : `<select id="ams-sort" aria-label="${esc(tr("Sort"))}"><option value="list"${F.sort === "list" ? " selected" : ""}>${esc(tr("List order"))}</option><option value="desc"${F.sort === "desc" ? " selected" : ""}>${esc(tr("Largest first"))}</option><option value="asc"${F.sort === "asc" ? " selected" : ""}>${esc(tr("Smallest first"))}</option></select>`}
       </div>
-      <ol class="ams-rows">${show.map((r, i) => {
-        const w = !nft && max > 0n ? Math.max(2, Number((r.amount * 1000n) / max) / 10) : 0;
-        const flag = r.sys ? "sys" : F.code.get(lc(r.addr)) ? "ctr" : "";
-        return `<li style="--w:${w}%;--i:${Math.min(i, 20)}" class="${flag}"><span class="ams-ln">${r.line}</span><button type="button" class="ams-addr" data-copy-addr="${esc(r.addr)}" title="${esc(r.addr)}" data-no-i18n>${esc(short(r.addr))}${flag ? `<em>${esc(tr(flag === "sys" ? "burn / pool" : "contract"))}</em>` : ""}</button><b data-no-i18n>${esc(unit(r))}</b><button type="button" class="ams-del" data-del="${r.line}" aria-label="${esc(tr("Remove"))}">×</button><i aria-hidden="true"></i></li>`;
-      }).join("")}</ol>${rows.length > show.length ? `<p class="ams-more">${esc(tr(`+ ${(rows.length - show.length).toLocaleString("en-US")} more`))}</p>` : !rows.length ? `<p class="ams-more">${esc(tr("No match."))}</p>` : ""}`;
+      ${nft ? "" : filtersHtml(all)}
+      ${virtual ? `<div class="ams-vlist" id="ams-vlist"><ol class="ams-rows ams-vrows" style="height:${rows.length * VROW}px">${rowsHtml(show, 0, max)}</ol></div><p class="ams-more"><span data-no-i18n>${rows.length.toLocaleString("en-US")}</span> ${esc(tr("wallets — scroll the list"))}</p>`
+        : `<ol class="ams-rows">${rowsHtml(show, -1, max)}</ol>${!rows.length ? `<p class="ams-more">${esc(tr("No match."))}</p>` : ""}`}`;
+    F.vmax = max;
+    const vl = $("ams-vlist");
+    if (vl) vl.addEventListener("scroll", () => { if (!vRaf) vRaf = requestAnimationFrame(paintV); }, { passive: true });
+  }
+  // the preview rows; in a long list only the ones in view are drawn (VROW px each)
+  const VROW = 38;
+  let vRaf = 0;
+  function rowsHtml(list, from, max) {
+    const nft = F.mode === "nft", dec = decOf();
+    const unit = (r) => (nft ? `#${r.id}${F.info.kind === 1155 ? " × " + r.amount : ""}` : fmt(r.amount, r.token ? F.decs.get(lc(r.token)) ?? dec : dec) + (r.token ? " " + short(r.token) : ""));
+    return list.map((r, i) => {
+      const w = !nft && max > 0n ? Math.max(2, Number((r.amount * 1000n) / max) / 10) : 0;
+      const flag = r.sys ? "sys" : F.code.get(lc(r.addr)) ? "ctr" : "";
+      const lbl = labelOf(r.addr);
+      const pos = from >= 0 ? `position:absolute;left:0;right:0;top:${(from + i) * VROW}px;` : "";
+      return `<li style="${pos}--w:${w}%;--i:${from >= 0 ? 0 : Math.min(i, 20)}" class="${flag}"><span class="ams-ln">${r.line}</span><button type="button" class="ams-addr" data-copy-addr="${esc(r.addr)}" title="${esc(r.addr)}" data-no-i18n>${lbl ? `<span class="ams-lbl">${esc(lbl)}</span>` : ""}${esc(short(r.addr))}${flag ? `<em>${esc(tr(flag === "sys" ? "burn / pool" : "contract"))}</em>` : ""}</button><button type="button" class="ams-tag" data-label-addr="${esc(r.addr)}" aria-label="${esc(tr("Label this wallet"))}" title="${esc(tr("Label this wallet"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3-8.7 8.7z"/><circle cx="8" cy="8" r="1.4"/></svg></button><b data-no-i18n>${esc(unit(r))}</b><button type="button" class="ams-del" data-del="${r.line}" aria-label="${esc(tr("Remove"))}">×</button><i aria-hidden="true"></i></li>`;
+    }).join("");
+  }
+  function paintV() {
+    vRaf = 0;
+    const vl = $("ams-vlist"), rows = F.vrows || [];
+    if (!vl) return;
+    const a = Math.max(0, Math.floor(vl.scrollTop / VROW) - 6), b = Math.min(rows.length, a + Math.ceil(vl.clientHeight / VROW) + 12);
+    vl.querySelector("ol").innerHTML = rowsHtml(rows.slice(a, b), a, F.vmax || 0n);
+  }
+  // quick filters on the list: below an amount, your own wallet, keep the top N, leave out a pasted list
+  function filtersHtml(all) {
+    const me = state.account ? all.filter((r) => lc(r.addr) === lc(state.account)).length : 0;
+    return `<div class="ams-filters" role="group" aria-label="${esc(tr("Filters"))}">
+      <span class="ams-f-l">${esc(tr("Filter"))}</span>
+      <span class="ams-f-in"><input id="ams-f-min" type="text" inputmode="decimal" placeholder="${esc(tr("Below…"))}" aria-label="${esc(tr("Remove wallets getting less than"))}"><button type="button" class="ams-mini" data-flt="min">${esc(tr("Remove"))}</button></span>
+      <span class="ams-f-in"><input id="ams-f-top" type="text" inputmode="numeric" placeholder="${esc(tr("Top N"))}" aria-label="${esc(tr("Keep only the largest"))}"><button type="button" class="ams-mini" data-flt="top">${esc(tr("Keep"))}</button></span>
+      ${me ? `<button type="button" class="ams-mini" data-flt="me">${esc(tr("Remove my wallet"))}</button>` : ""}
+      <button type="button" class="ams-mini" data-flt="excl-open">${esc(tr("Leave out wallets…"))}</button>
+      <div class="ams-f-excl" id="ams-f-excl" hidden><textarea id="ams-f-excl-t" rows="3" spellcheck="false" placeholder="${esc(tr("Paste wallets to leave out — one per line, or separated by commas"))}" data-no-i18n></textarea><button type="button" class="ams-mini" data-flt="excl">${esc(tr("Leave these out"))}</button></div>
+    </div>`;
+  }
+  function applyFilter(kind) {
+    const P = F.P;
+    if (!P || !F.info) return;
+    const lines = ta().value.split("\n");
+    let drop = new Set();
+    if (kind === "min") {
+      let m; try { m = ethers.parseUnits(cleanNum($("ams-f-min").value), decOf()); } catch { toast(tr("Enter an amount.")); return; }
+      P.rows.forEach((r) => { if (r.amount != null && r.amount < m) drop.add(r.line); });
+    } else if (kind === "top") {
+      const n = Number($("ams-f-top").value);
+      if (!(n > 0)) { toast(tr("Enter how many wallets to keep.")); return; }
+      const keep = new Set([...P.rows].filter((r) => r.amount != null).sort((a, b) => (b.amount > a.amount ? 1 : b.amount < a.amount ? -1 : 0)).slice(0, n).map((r) => r.line));
+      P.rows.forEach((r) => { if (!keep.has(r.line)) drop.add(r.line); });
+    } else if (kind === "me") P.rows.forEach((r) => { if (lc(r.addr) === lc(state.account)) drop.add(r.line); });
+    else if (kind === "excl") {
+      const out = new Set((String($("ams-f-excl-t").value).match(/0x[0-9a-fA-F]{40}/g) || []).map(lc));
+      if (!out.size) { toast(tr("Paste at least one wallet address.")); return; }
+      P.rows.forEach((r) => { if (out.has(lc(r.addr))) drop.add(r.line); });
+    }
+    if (!drop.size) { toast(tr("Nothing to remove.")); return; }
+    setList(lines.filter((_, i) => !drop.has(i + 1)).join("\n"), tr(`Removed ${plural(drop.size, "line", "lines")}.`));
   }
   // ten bars, log-spaced between the smallest and largest amount, and how
   // much of the total the top tenth of wallets gets
@@ -614,6 +687,26 @@
     el.textContent = usd < 0.01 ? "< 0.01 USDC" : `≈ ${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`;
     warnings();
   }
+  // the batches a send will take — each one's wallets and network fee; live while sending
+  function paintBatches(n, job) {
+    const box = $("ams-batches");
+    if (!box) return;
+    const g = F.gasPrice;
+    const total = job ? job.rows.length : n;
+    if (!total || F.mode === "drop") { box.hidden = true; return; }
+    const size = job ? job.chunk || chunkFor() : chunkFor();
+    const list = [];
+    let at = 0;
+    if (job) job.txs.forEach((h, i) => { const k = Math.min(size, total - at); list.push({ i, a: at, n: k, st: "ok", tx: h }); at += k; });
+    for (let i = list.length; at < total; i++) { const k = Math.min(size, total - at); list.push({ i, a: at, n: k, st: job && job.running && i === job.txs.length ? "on" : "" }); at += k; }
+    if (job && job.sent >= total) list.forEach((b) => { b.st = "ok"; });
+    const fee = (k) => { if (!g) return "—"; const v = Number(ethers.formatUnits((GAS_PER * BigInt(k) + GAS_BASE + 50000n) * g.v, (CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.decimals) || 18)); return v < 0.01 ? "< 0.01" : "≈ " + v.toLocaleString("en-US", { maximumFractionDigits: 3 }); };
+    box.hidden = list.length < 2 && !job;
+    const open = box.open;
+    box.innerHTML = `<summary>${esc(tr(list.length === 1 ? "1 transaction" : `${list.length} batches`))}<small>${esc(tr("wallets · fee in USDC"))}</small></summary>
+      <ol>${list.slice(0, 40).map((b) => `<li class="${b.st}"><span class="ams-tick" aria-hidden="true"></span><b data-no-i18n>${list.length === 1 ? esc(tr("Send")) : "#" + (b.i + 1)}</b><span data-no-i18n>${(b.a + 1).toLocaleString("en-US")}–${(b.a + b.n).toLocaleString("en-US")}</span><em data-no-i18n>${b.tx ? `<a href="${explorer("tx", b.tx)}" target="_blank" rel="noopener">tx ↗</a>` : fee(b.n)}</em></li>`).join("")}${list.length > 40 ? `<li class="more">+${list.length - 40}</li>` : ""}</ol>`;
+    box.open = open || !!job;
+  }
   function warnings() {
     const box = $("ams-warn"), P = F.P;
     const out = [];
@@ -642,6 +735,7 @@
     $("ams-s-tx").textContent = !k ? "—" : F.mode === "drop" ? tr("1 deposit + 1 approval") : tr(k === 1 ? "1 send + 1 approval" : `${k} batches + 1 approval`);
     $("ams-s-usd").textContent = F.price && P && P.total ? money(Number(ethers.formatUnits(P.total, F.info.decimals)) * F.price) : "—";
     paintGas(ok ? rows.length : 0, k);
+    if (!F.busy) paintBatches(ok ? rows.length : 0, null);
     warnings();
     paintFlow(ok);
     paintSticky(ok);
@@ -885,12 +979,14 @@
           const cap = F.gasPrice ? F.gasPrice.limit / 2n : 15000000n;
           if (gas === -1n || (gas != null && gas > cap)) { job.chunk = Math.max(10, Math.floor(part.length / 2)); saveJob(job); continue; }
         }
+        job.running = true; paintBatches(0, job);
         const tx = await call(part, "send");
         if (permit) job.permitUsed = true;
         say("wait", `${esc(tr(k === 1 ? "Sending…" : `Sending batch ${i + 1} of ${k}…`))} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
         const rc = await tx.wait();
         if (rc && rc.status === 0) throw new Error("The batch transaction failed.");
-        job.sent += part.length; job.txs.push(tx.hash); saveJob(job);
+        job.sent += part.length; job.txs.push(tx.hash); job.running = false; saveJob(job);
+        paintBatches(0, job);
         goFill((job.sent / rows.length) * 100);
         goText(tr(`${job.sent.toLocaleString("en-US")} / ${rows.length.toLocaleString("en-US")} wallets`));
         paintDots(job.sent, 0);
@@ -988,7 +1084,7 @@
       ? `Airdrop: ${what} for ${n.toLocaleString("en-US")} wallets on @ARCIRCLEonArc — claim yours:`
       : `Just airdropped ${what} to ${n.toLocaleString("en-US")} wallets on Arc with the @ARCIRCLEonArc Multisender 💚`;
     const head = job.mode === "drop" ? tr(`Drop #${job.dropId} is live — ${what} for ${plural(n, "wallet", "wallets")}.`) : tr(`Sent ${what} to ${plural(n, "wallet", "wallets")}.`);
-    say("ok", `<div class="ams-done"><span class="ams-done-ico" aria-hidden="true"></span><div><b><span class="ams-count" data-n="${n}">0</span> <span>${esc(head)}</span></b>
+    say("ok", `<div class="ams-done"><span class="ams-stamp" aria-hidden="true">${esc(tr(job.mode === "drop" ? "Live" : "Sent"))}</span><span class="ams-done-ico" aria-hidden="true"></span><div><b><span class="ams-count" data-n="${n}">0</span> <span>${esc(head)}</span></b>
       <span>${job.txs.map((h, i) => `<a href="${explorer("tx", h)}" target="_blank" rel="noopener">${esc(job.txs.length === 1 ? "tx" : tr(`batch ${i + 1}`))} ↗</a>`).join(" ")}</span>
       <span>${job.mode === "drop" ? `<a class="ams-mini" href="#multisend?claim=${job.dropId}">${esc(tr("Open the claim page"))}</a>` : `<a class="ams-mini" href="#multisend?receipt=${job.txs.join(",")}">${esc(tr("View receipt"))}</a>`}
         <button type="button" class="ams-mini" data-copy-link="${esc(shareUrl)}">${esc(tr(job.mode === "drop" ? "Copy claim link" : "Copy receipt link"))}</button>
@@ -1185,6 +1281,11 @@
       <h2 data-no-i18n>${fmt(d.total, meta.decimals)} $${esc(meta.symbol)}</h2>
       <p class="ams-rcpt-sub">${esc(tr(`for ${plural(Number(d.recipients), "wallet", "wallets")}`))} · <span data-no-i18n>${esc(tr("from"))} <a href="${explorer("address", d.creator)}" target="_blank" rel="noopener">${esc(short(d.creator))}</a></span> · ${esc(tr(Number(d.endsAt) ? (ended ? "ended" : `open until ${new Date(Number(d.endsAt) * 1000).toLocaleDateString()}`) : "no end date"))}</p>
       <div class="ams-claimbar" style="--p:${pct}%"><i></i><span>${esc(tr(`${Number(d.claims).toLocaleString("en-US")} claimed · ${pct}% of the tokens`))}</span></div>
+      <div class="ams-claimstats">
+        <div><small>${esc(tr("Wallets claimed"))}</small><b data-no-i18n>${Number(d.claims).toLocaleString("en-US")} / ${Number(d.recipients).toLocaleString("en-US")}</b><em data-no-i18n>${Number(d.recipients) ? Math.round((Number(d.claims) / Number(d.recipients)) * 100) : 0}%</em></div>
+        <div><small>${esc(tr("Still to claim"))}</small><b data-no-i18n>${fmt(d.total - d.claimed, meta.decimals)}</b><em data-no-i18n>$${esc(meta.symbol)}</em></div>
+        <div><small>${esc(tr(Number(d.endsAt) ? (ended ? "Ended" : "Time left") : "Deadline"))}</small><b data-no-i18n>${Number(d.endsAt) ? (ended ? esc(new Date(Number(d.endsAt) * 1000).toLocaleDateString()) : esc(ago2(Number(d.endsAt)))) : "—"}</b><em>${esc(tr(Number(d.endsAt) ? (ended ? "unclaimed can go back to the creator" : "then unclaimed goes back") : "claimable forever"))}</em></div>
+      </div>
       <div class="ams-claim-rows">${rowsHtml}</div>
       ${isCreator && Number(d.endsAt) && ended && !d.reclaimed ? `<button type="button" class="ams-mini" data-reclaim="${id}">${esc(tr("Take back what's unclaimed"))}</button>` : ""}
       <div class="ams-rcpt-acts"><button type="button" class="ams-mini" data-copy-link="${esc(`${location.origin}/claim/${id}`)}">${esc(tr("Copy claim link"))}</button><a class="ams-mini" href="${explorer("address", addr)}" target="_blank" rel="noopener">ArcDrop ↗</a></div>
@@ -1219,6 +1320,7 @@
       showClaim(id);
     } catch (err) { btn.disabled = false; $("ams-claim-status").innerHTML = esc(errText(err)); }
   }
+  const ago2 = (ts) => { const s = ts - Date.now() / 1000; if (s <= 0) return "0"; const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600); return d ? `${d}d ${h}h` : `${h}h ${Math.max(1, Math.floor((s % 3600) / 60))}m`; };
   function fromHash() {
     const m = /^#multisend\?(.+)$/.exec(location.hash);
     if (!m) return;
@@ -1231,6 +1333,8 @@
   // ---------- the "airdrop to holders / contributors" sheet ----------
   const S = { src: "holders", token: "", data: null, loading: false, min: "", top: "", noContracts: true, noMe: true, dist: "each", value: "", tiers: [["", ""], ["", ""], ["", ""]] };
   function openSheet(src) {
+    if (src === "circle" && S.src !== "circle") S.dist = "prop";
+    else if (src === "holders" && S.src === "circle" && S.dist === "prop") S.dist = "each";
     S.src = src; S.data = null;
     S.token = src === "holders" ? S.token || (F.info && !F.info.kind ? F.info.address : "") : "";
     $("ams-sheet-h").textContent = tr(src === "holders" ? "Airdrop to holders" : "CirclePad contributors");
@@ -1319,7 +1423,7 @@
         <label class="ams-scheck"><input type="checkbox" id="ams-s-noc"${S.noContracts ? " checked" : ""}> ${esc(tr("Leave out contracts (pools, lockers, exchanges)"))}</label>
         <label class="ams-scheck"><input type="checkbox" id="ams-s-nome"${S.noMe ? " checked" : ""}> ${esc(tr("Leave out my own wallet"))}</label>
         ${!F.info || F.info.kind ? `<p class="ams-warn">${esc(tr("Pick the token you're sending first (step 1)."))}</p>` : `
-        <div class="ams-amodes ams-sdist" role="radiogroup">${[["each", "Same amount each"], ["even", "Split a total evenly"], ["prop", "Split by holding"], ["tiers", "Tiers"]].map(([k, l]) => `<button type="button" role="radio" data-sdist="${k}" aria-checked="${S.dist === k}">${esc(tr(l))}</button>`).join("")}</div>
+        <div class="ams-amodes ams-sdist" role="radiogroup">${[["each", "Same amount each"], ["even", "Split a total evenly"], ["prop", src === "circle" ? "Split by contribution" : "Split by holding"], ["tiers", "Tiers"]].map(([k, l]) => `<button type="button" role="radio" data-sdist="${k}" aria-checked="${S.dist === k}">${esc(tr(l))}</button>`).join("")}</div>
         ${S.dist === "tiers" ? `<div class="ams-tiers">${S.tiers.map(([m, v], i) => `<div><span>${esc(tr("Holding at least"))}</span><input data-tier="${i}" data-k="0" type="text" inputmode="decimal" value="${esc(m)}" placeholder="${esc(d.sym)}"><span>${esc(tr("gets"))}</span><input data-tier="${i}" data-k="1" type="text" inputmode="decimal" value="${esc(v)}" placeholder="${esc(symOf())}"></div>`).join("")}</div>`
           : `<label class="ams-sval">${esc(tr(S.dist === "each" ? "Amount per wallet" : "Total to send"))}<span><input id="ams-s-val" type="text" inputmode="decimal" value="${esc(S.value)}" placeholder="0"><b data-no-i18n>${esc(symOf())}</b></span></label>`}
         <div class="ams-sprev"><b>${esc(tr(plural(kept.length, "wallet", "wallets")))}</b><span data-no-i18n>${kept.length ? `${fmt(total, dec)} ${esc(symOf())}` : "—"}</span></div>
@@ -1475,6 +1579,24 @@
           : kind === "system" ? F.P.rows.filter((r) => r.sys || (F.info && lc(r.addr) === lc(F.info.address))).map((r) => r.line)
           : F.P.rows.filter((r) => !r.sys && F.code.get(lc(r.addr))).map((r) => r.line));
         setList(lines.filter((_, i) => !drop.has(i + 1)).join("\n"), tr(`Removed ${plural(drop.size, "line", "lines")}.`));
+        return;
+      }
+      const fl = t.closest("[data-flt]");
+      if (fl) {
+        if (fl.dataset.flt === "excl-open") { const b = $("ams-f-excl"); b.hidden = !b.hidden; if (!b.hidden) $("ams-f-excl-t").focus(); return; }
+        applyFilter(fl.dataset.flt); return;
+      }
+      const lb = t.closest("[data-label-addr]");
+      if (lb) {
+        const li = lb.closest("li"), a = lb.dataset.labelAddr;
+        if (li.querySelector(".ams-lbl-in")) return;
+        const inp = document.createElement("input");
+        inp.className = "ams-lbl-in"; inp.value = labelOf(a); inp.maxLength = 32; inp.placeholder = tr("Label, e.g. Team wallet");
+        inp.setAttribute("data-no-i18n", "");
+        li.appendChild(inp); inp.focus();
+        const save = () => { bookSet(a, inp.value); inp.remove(); paintTable(); };
+        inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") save(); else if (ev.key === "Escape") inp.remove(); });
+        inp.addEventListener("blur", save);
         return;
       }
       const del = t.closest("[data-del]");

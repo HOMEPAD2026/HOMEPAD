@@ -9127,3 +9127,50 @@ html.arc-tools-loading::before{content:"";position:fixed;top:0;left:0;right:0;he
 @media (max-width:640px){.asc-early-stats{grid-template-columns:repeat(2,minmax(0,1fr));}.asc-server{flex-wrap:wrap;}}
 @media (prefers-reduced-motion:reduce){.asc-break-bar b,.asc-break-bar i,.asc-bmap .b circle,.asc-row.st-risk .asc-ico,.asc-dep-wait{animation:none;}}
 @media (max-width:900px){.asc-tabs{min-width:0;max-width:100%;box-sizing:border-box;}.asc-tabs button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+
+/* ---- Multisender v2: filters, labels, scrolling preview, batches, claim numbers, stamp ---- */
+#ams-table .ams-rows li{grid-template-columns:34px minmax(0,1fr) 22px auto 22px;}
+.ams-tag{width:22px;height:22px;display:grid;place-items:center;border:none;border-radius:6px;background:none;color:rgba(222,233,244,.35);cursor:pointer;opacity:.5;transition:opacity .2s,color .2s,background .2s;}
+.ams-rows li:hover .ams-tag,.ams-tag:focus-visible{opacity:1;}
+.ams-tag:hover{color:#35d8d0;background:rgba(53,216,208,.1);}
+.ams-tag svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;}
+.ams-lbl{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:6px;font-size:.66rem;font-weight:800;background:rgba(53,216,208,.14);color:#6ff0e6;font-family:inherit;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:1px;}
+.ams-lbl-in{position:absolute;left:40px;right:30px;top:50%;transform:translateY(-50%);z-index:2;padding:6px 10px;border-radius:8px;border:1px solid rgba(53,216,208,.7);background:#0b1418;color:#eef3f7;font:inherit;font-size:.76rem;outline:none;box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.ams-vlist{max-height:380px;overflow:auto;border-radius:12px;border:1px solid rgba(255,255,255,.06);overscroll-behavior:contain;}
+.ams-vrows{position:relative;max-height:none;overflow:visible;border:none;border-radius:0;}
+.ams-vrows li{height:34px;box-sizing:border-box;animation:none;}
+.ams-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);}
+.ams-f-l{font-family:'Silkscreen',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(222,233,244,.45);margin-right:2px;}
+.ams-f-in{display:inline-flex;align-items:center;gap:4px;}
+.ams-f-in input{width:74px;padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.25);color:#eef3f7;font:inherit;font-size:.72rem;outline:none;}
+.ams-f-in input:focus{border-color:rgba(53,216,208,.6);}
+.ams-f-excl{flex-basis:100%;display:flex;gap:6px;align-items:flex-start;animation:ams-in .3s both;}
+.ams-f-excl[hidden]{display:none;}
+.ams-f-excl textarea{flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.25);color:#eef3f7;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical;outline:none;}
+.ams-batches{margin:4px 0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.18);}
+.ams-batches[hidden]{display:none;}
+.ams-batches summary{display:flex;align-items:baseline;gap:8px;padding:9px 12px;cursor:pointer;font-size:.78rem;font-weight:700;list-style:none;}
+.ams-batches summary::-webkit-details-marker{display:none;}
+.ams-batches summary small{margin-left:auto;font-size:.64rem;font-weight:600;color:rgba(222,233,244,.45);}
+.ams-batches ol{list-style:none;margin:0;padding:0 8px 8px;display:flex;flex-direction:column;gap:3px;max-height:220px;overflow:auto;}
+.ams-batches li{display:grid;grid-template-columns:16px 34px 1fr auto;gap:8px;align-items:center;padding:5px 6px;border-radius:8px;font-size:.72rem;color:rgba(222,233,244,.7);}
+.ams-batches li .ams-tick{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);}
+.ams-batches li.on{background:rgba(53,216,208,.08);color:#eef3f7;}
+.ams-batches li.on .ams-tick{border-color:#35d8d0;border-top-color:transparent;animation:ax-spin .8s linear infinite;}
+.ams-batches li.ok .ams-tick{border-color:#39ff88;background:#39ff88;box-shadow:inset 0 0 0 2px #08110f;}
+.ams-batches li em{font-style:normal;font-variant-numeric:tabular-nums;color:rgba(222,233,244,.55);}
+.ams-batches li em a{color:#35d8d0;}
+.ams-batches li.more{grid-template-columns:1fr;color:rgba(222,233,244,.4);}
+.ams-claimstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px;}
+.ams-claimstats > div{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.07);min-width:0;}
+.ams-claimstats small{display:block;font-family:'Silkscreen',monospace;font-size:.48rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(222,233,244,.45);margin-bottom:3px;}
+.ams-claimstats b{display:block;font-size:.95rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ams-claimstats em{display:block;font-style:normal;font-size:.64rem;color:rgba(222,233,244,.5);margin-top:2px;}
+.ams-done{position:relative;}
+.ams-stamp{position:absolute;right:4px;top:-6px;padding:4px 12px;border:2.5px solid #39ff88;border-radius:8px;color:#39ff88;font:800 .9rem/1 'Sora',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;transform:rotate(-12deg);opacity:.9;pointer-events:none;animation:ams-stamp .6s cubic-bezier(.3,1.6,.5,1) both .15s;box-shadow:0 0 18px rgba(57,255,136,.25);}
+@keyframes ams-stamp{0%{transform:rotate(-12deg) scale(2.4);opacity:0;}60%{transform:rotate(-12deg) scale(.92);opacity:1;}100%{transform:rotate(-12deg) scale(1);opacity:.9;}}
+@media (max-width:640px){.ams-claimstats{grid-template-columns:1fr 1fr;}.ams-claimstats > div:last-child{grid-column:1 / -1;}.ams-f-in input{width:64px;}}
+@media (prefers-reduced-motion:reduce){.ams-stamp,.ams-batches li.on .ams-tick{animation:none;}}
+.ams-card .ams-filters .ams-f-in input{width:78px;min-width:0;flex:none;padding:5px 8px;border-radius:8px;font-size:.72rem;height:auto;}
+.ams-card .ams-filters .ams-f-excl textarea{padding:8px 10px;font-size:12px;}
+@media (max-width:640px){.ams-card .ams-filters .ams-f-in input{width:66px;}}
