@@ -260,7 +260,8 @@ export async function GET(req) {
       return v ? json(200, v, v.active ? "public, max-age=30, s-maxage=60" : "public, max-age=300, s-maxage=600") : json(404, { error: "no such lock" });
     } catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
-  if (url.searchParams.has("locks")) {
+  // (a snapshot run also carries locks=1/0 — "count locked tokens" — and is handled further down)
+  if (url.searchParams.has("locks") && !url.searchParams.has("snaprun")) {
     const q = String(url.searchParams.get("locks") || "");
     if (scanner.limited(`lk:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
     try {
