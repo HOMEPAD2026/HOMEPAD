@@ -181,6 +181,22 @@ const CONFIG = {
     OLDER_PORTALS: ["0xA5628A11c412596e1f63b75a2C0284F843C549d6", "0x07a688a001f416cC433c68Ff56Aa26bC5131Cc6E"],
     HOOK_FLAGS: 0x2044,
   },
+  // --- Launch on Argus through ArcPad (arc-argus.js, api/_argus-arcpad.mjs) ---
+  // Argus Portal #8 (ArgusV5Portal, verified on ArcScan, deployed by Argus's deployer) takes a
+  // payoutAddress, and its CreatorRegistry lets that payout wallet split the creator fees
+  // (setPayoutSplit). An ArcPad launch sets the payout to the creator's own wallet; the creator
+  // then signs a 70 / 30 split — 70% creator, 30% the ARCIRCLE PAD platform treasury. Argus's
+  // own share (the Portal's treasuryBps) comes off first, exactly as on argus.world.
+  // The Portal's factories (parts, hooks, quote registry) are read from the Portal itself.
+  ARGUS_V5: {
+    PORTAL: "0xeed7559B8A6ABf64427dc41Cb5cc6400109C5D93",
+    CREATOR_REGISTRY: "0x986B478bE2F05b44b47c61E26a0BbcBcC07610eD",
+    HOOK_FLAGS: 0x20cc, // the low 14 bits of every Portal #8 hook address
+    PLATFORM_WALLET: "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8", // whitepaper: Platform treasury
+    PLATFORM_BPS: 3000, // of the creator share
+    MIN_CREATOR_ALLOC_BPS: 5000, // the creator share must be at least half of the allocation
+    SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // ARCIRCLE PAD's own support policy (not on-chain)
+  },
   // ARCIRCLE OMNI — $ARCIRCLE on Arc, Robinhood Chain and Solana through LayerZero V2 (omni/README.md).
   // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses
   // keep the OMNI page in preview for that chain. Keep api/_omni.mjs in step.

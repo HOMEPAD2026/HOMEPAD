@@ -1,5 +1,6 @@
 /* global renderArcpadExploreGrid, CONFIG */
-// arc-filters.js — Explore filters: pair token, launch age and market-cap range.
+// arc-filters.js — Explore filters: platform (All / ArcPad / Argus, always visible), pair token,
+// launch age and market-cap range.
 // Adds a "Filters" button to the Explore toolbar that opens a chip panel;
 // renderArcpadExploreGrid() asks arcFilterPass(l) for every coin.
 (function () {
@@ -7,10 +8,10 @@
   const KEY = "arcpad.filters.v1";
   const ARCIRCLE = String((typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "").toLowerCase(); // "" while not live
   const USDC = String((typeof CONFIG !== "undefined" && CONFIG.USDC_ADDRESS) || "0x3600000000000000000000000000000000000000").toLowerCase();
-  const DEF = { pair: "all", age: "all", mcap: "all" };
+  const DEF = { plat: "all", pair: "all", age: "all", mcap: "all" };
   const MCAP = { lt10k: [0, 1e4], "10k": [1e4, 1e5], "100k": [1e5, 1e6], gt1m: [1e6, Infinity] };
   const AGE = { "1h": 3600, "24h": 86400, "7d": 7 * 86400 };
-  const VALID = { pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
+  const VALID = { plat: ["all", "arcpad", "argus"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
   let F = { ...DEF };
   try { F = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) { /* private mode */ }
   // A shared link — /arc#explore?pair=arcircle&age=24h — wins over the saved
@@ -36,6 +37,8 @@
 
   window.arcFiltersActive = () => count() > 0;
   window.arcFilterPass = function (l) {
+    if (F.plat === "arcpad" && l.platform === "argus") return false;
+    if (F.plat === "argus" && l.platform !== "argus") return false;
     const q = String(l.quoteToken || "").toLowerCase();
     if (F.pair === "usdc" && q !== USDC) return false;
     if (F.pair === "arcircle" && q !== ARCIRCLE) return false;
@@ -67,12 +70,25 @@
     panel.innerHTML = GROUPS.map(([k, label, opts]) => `<div class="flt-group"><span class="flt-label">${label}</span><div class="flt-chips" role="radiogroup" aria-label="${label}">${opts.map(([v, t]) => `<button type="button" role="radio" data-k="${k}" data-v="${v}">${t}</button>`).join("")}</div></div>`).join("")
       + `<button type="button" class="flt-reset flt-copy" data-copylink>${LINK}<span>Copy link</span></button><button type="button" class="flt-reset" data-reset>Reset filters</button>`;
     bar.insertAdjacentElement("afterend", panel);
+    // the platform: its own always-visible chips (launched on the ArcPad factory, or on Argus through ArcPad)
+    const plats = document.createElement("div");
+    plats.className = "flt-plat"; plats.setAttribute("role", "radiogroup"); plats.setAttribute("aria-label", "Platform");
+    plats.innerHTML = [["all", "All"], ["arcpad", "ArcPad"], ["argus", "Argus"]].map(([v, t]) => `<button type="button" role="radio" data-plat-f="${v}">${t}</button>`).join("");
+    bar.insertBefore(plats, btn);
+    plats.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-plat-f]");
+      if (!b) return;
+      F.plat = b.dataset.platF; save(); paint(); toHash();
+      if (F.plat !== "arcpad" && window.arcArgus) window.arcArgus.load();
+      if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
+    });
     const paint = () => {
       const n = count();
       btn.innerHTML = `${ICON}<span>Filters</span>${n ? `<b>${n}</b>` : ""}`;
       btn.classList.toggle("on", n > 0);
       panel.querySelectorAll("[data-k]").forEach((b) => { const on = F[b.dataset.k] === b.dataset.v; b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
       panel.querySelector("[data-reset]").hidden = !n;
+      plats.querySelectorAll("[data-plat-f]").forEach((b) => { const on = F.plat === b.dataset.platF; b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
       panel.querySelector("[data-copylink]").hidden = !n;
     };
     btn.addEventListener("click", () => {
@@ -92,7 +108,7 @@
       }
       const b = e.target.closest("[data-k]");
       if (b) F[b.dataset.k] = b.dataset.v;
-      else if (e.target.closest("[data-reset]")) F = { ...DEF };
+      else if (e.target.closest("[data-reset]")) F = { ...DEF, plat: F.plat };
       else return;
       save(); paint(); toHash();
       if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
@@ -101,7 +117,7 @@
     document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "explore") toHash(); });
     paint(); toHash();
     if (linked && count()) btn.click();
-    if (count() && typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
+    if ((count() || F.plat !== "all") && typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
 })();

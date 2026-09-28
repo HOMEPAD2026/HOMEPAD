@@ -57,6 +57,7 @@ import * as drop from "./_drop.mjs";
 import * as snap from "./_snapshot.mjs";
 import * as liquidity from "./_liquidity.mjs";
 import * as locker from "./_locker.mjs";
+import * as argusArc from "./_argus-arcpad.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -372,6 +373,11 @@ export async function GET(req) {
     }
     return json(200, { ok: true, alerts: alerts.length });
   }
+  // coins launched on Argus through ArcPad (arc-argus.js): the list for Explore
+  if (url.searchParams.get("argusarc") === "list") {
+    try { return json(200, await argusArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
+    catch (err) { console.error("argusarc", err && err.message || err); return json(502, { error: "couldn't read the Argus launches right now" }); }
+  }
   if (url.searchParams.has("cctp")) {
     try { const [st, body, cc] = await cctp(url.searchParams); return json(st, body, cc); }
     catch (err) { console.error("cctp", err && err.message || err); return json(502, { error: "couldn't reach Circle right now" }); }
@@ -468,6 +474,13 @@ export async function POST(req) {
       const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };
       try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+    }
+    if (b.action === "argusreg") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`argusreg:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+      const r = await argusArc.register(b, { store: st });
+      return json(r.status, r.body);
     }
     if (b.action === "tgwatch") {
       if (!process.env.TG_WEBHOOK_SECRET || b.key !== process.env.TG_WEBHOOK_SECRET || !isAddr(b.token) || !b.chat) return json(403, { ok: false });

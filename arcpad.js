@@ -209,6 +209,18 @@ function launchCardHtml(l) {
   const img = safe
     ? `<img class="ap-card-logo" src="${arcEscHtml(l.imageUrl)}" alt="" onerror="this.style.visibility='hidden'">`
     : `<span class="ap-card-logo ph" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(l.token) : ""}">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
+  // a coin launched on Argus through ArcPad (arc-argus.js): same card, its own tag, no ArcPad pool stats
+  if (l.platform === "argus") {
+    return `
+    <button type="button" class="launch-card card-type-curve ap-launch-card is-argus" data-token="${l.token}" data-platform="argus" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
+      <div class="ap-card-top">${img}<span class="ap-plat-tag">Argus</span><span class="ap-card-age">${typeof actAgo === "function" && l.launchedAt ? actAgo(l.launchedAt) : ""}</span></div>
+      <div class="sym">$${arcEscHtml(l.symbol)}</div>
+      <div class="name">${arcEscHtml(l.name)}</div>
+      <div class="ap-argus-line" aria-hidden="true"><i></i></div>
+      <div class="meta"><span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—"} mcap</span><span class="ap-chg flat">USDC</span></div>
+      <div class="ap-card-vol">Argus · via ArcPad</div>
+    </button>`;
+  }
   return `
     <button type="button" class="launch-card card-type-curve ap-launch-card" data-token="${l.token}" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
       <div class="ap-card-top">${img}<span class="ap-card-age" data-act="age">${typeof arcLaunchAge === "function" ? arcLaunchAge(l) : ""}</span></div>
@@ -287,7 +299,9 @@ function renderArcpadExploreGrid() {
   const grid = document.getElementById("ap-explore-grid");
   const q = (document.getElementById("ap-explore-search").value || "").trim().toLowerCase();
   const qs = q.replace(/^\$/, "");
-  let rows = ARC.launches.filter((l) => !qs || l.name.toLowerCase().includes(qs) || l.symbol.toLowerCase().includes(qs) || (qs.startsWith("0x") && l.token.toLowerCase().startsWith(qs)));
+  // ArcPad launches plus coins launched on Argus through ArcPad (arc-argus.js); the platform chips pick
+  const all = ARC.launches.concat(window.arcArgus ? window.arcArgus.rows() : []);
+  let rows = all.filter((l) => !qs || l.name.toLowerCase().includes(qs) || l.symbol.toLowerCase().includes(qs) || (qs.startsWith("0x") && l.token.toLowerCase().startsWith(qs)));
   if (arcExploreSort === "watch") rows = rows.filter((l) => typeof arcIsWatched === "function" && arcIsWatched(l.token));
   if (typeof arcFilterPass === "function") rows = rows.filter(arcFilterPass);
   const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || null;
@@ -298,13 +312,13 @@ function renderArcpadExploreGrid() {
   else if (arcExploreSort === "gainers") rows = [...rows].sort((a, b) => ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(b) : 0) ?? -1) - ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(a) : 0) ?? -1));
   else rows = [...rows].sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const empty = ARC.launches.length === 0
+  const empty = all.length === 0
     ? "No coins have launched on ArcPad yet — the Launch tab is where the first one starts."
     : arcExploreSort === "watch" && !q ? "Your watchlist is empty. Tap the star on any coin to keep it here."
     : !q && typeof arcFiltersActive === "function" && arcFiltersActive() ? "No coins match these filters."
     : `No launches match “${esc(q)}”.`;
   // empty states point somewhere useful
-  const emptyGo = ARC.launches.length === 0 ? `<button type="button" class="bp-card-link" data-empty-go="launch">Launch a coin →</button>`
+  const emptyGo = all.length === 0 ? `<button type="button" class="bp-card-link" data-empty-go="launch">Launch a coin →</button>`
     : arcExploreSort === "watch" && !q ? `<button type="button" class="bp-card-link" data-empty-sort="mcap">See all coins →</button>` : "";
   grid.innerHTML = rows.length ? rows.map(launchCardHtml).join("") : `<div class="empty-state">${empty} ${emptyGo}</div>`;
   const eg = grid.querySelector("[data-empty-go]");
@@ -318,6 +332,7 @@ function renderArcpadExploreGrid() {
 function wireLaunchCardClicks(root) {
   root.querySelectorAll(".ap-launch-card").forEach((card) => {
     card.addEventListener("click", () => {
+      if (card.dataset.platform === "argus" && window.arcArgus) { window.arcArgus.openSheet(card.dataset.token); return; }
       if (typeof openArcCoin === "function") openArcCoin(card.dataset.token);
       else openTradeModal(card.dataset.token);
     });
@@ -572,7 +587,7 @@ function arcpadRenderPair() {
   } else if (pr.loading) hint.textContent = "Working out the opening reserve for this pair…";
   else if (pr.error) hint.textContent = "Choose a pair token with a known price to set the opening reserve.";
   const btnLabel = document.querySelector("#ap-launch-submit .ap-launch-btn-label");
-  if (btnLabel && !document.getElementById("ap-launch-submit").classList.contains("is-busy")) btnLabel.textContent = m && !m.isUsdc && pr.reserveRaw ? `Launch coin / ${sym}` : "Launch coin";
+  if (btnLabel && !document.getElementById("ap-launch-submit").classList.contains("is-busy") && !(window.arcArgus && window.arcArgus.active())) btnLabel.textContent = m && !m.isUsdc && pr.reserveRaw ? `Launch coin / ${sym}` : "Launch coin";
   updateArcpadDevBuyPreview();
   updateArcpadLaunchBalance();
 }
@@ -662,6 +677,8 @@ function arcpadTxErrorText(err) {
 
 async function submitArcpadLaunch(ev) {
   ev.preventDefault();
+  // the platform switch on Argus: arc-argus.js runs the Argus Portal #8 launch
+  if (window.arcArgus && window.arcArgus.active()) return window.arcArgus.submit();
   const statusEl = document.getElementById("ap-launch-status");
   const btn = document.getElementById("ap-launch-submit");
   const name = document.getElementById("ap-name").value.trim();

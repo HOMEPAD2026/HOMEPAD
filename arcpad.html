@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790573472"></script>
+<script src="arc-log.js?v=1790575095"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790573472">
+<link rel="stylesheet" href="style.css?v=1790575095">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -219,7 +219,7 @@
       <!-- ============ EXPLORE ============ -->
       <section class="bp-panel" id="bp-panel-explore">
         <h1>Explore</h1>
-        <p class="bp-lede">Every coin launched through ArcPad, read live from the factory contract.</p>
+        <p class="bp-lede">Every coin launched through ArcPad — on the ArcPad factory or on Argus — read live from Arc.</p>
         <div class="cn-explore-toolbar">
           <input class="world-search" id="ap-explore-search" placeholder="Search launches by name or symbol…" autocomplete="off">
           <div class="cn-sort-group" id="ap-sort-group">
@@ -674,7 +674,12 @@
       <section class="bp-panel" id="bp-panel-launch">
         <h1>Launch on ArcPad</h1>
         <p class="bp-lede">Every launch gets a real Uniswap v4 pool in the same transaction — paired with USDC, Arc's own native currency, or with any Arc token you choose.</p>
-        <div class="ap-launch-fee-note">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
+        <div class="agl-plat" id="agl-plat" role="radiogroup" aria-label="Launch platform">
+          <button type="button" role="radio" aria-checked="true" data-plat="arcpad"><b>ArcPad</b><small>ArcPad pool · 1 USDC fee · your own add-on fee</small></button>
+          <button type="button" role="radio" aria-checked="false" data-plat="argus"><b>Argus</b><small>Argus Portal #8 · buy / sell tax · 70% of creator fees to you</small></button>
+        </div>
+        <div class="agl-resume" id="agl-resume" hidden></div>
+        <div class="ap-launch-fee-note ap-only">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
 
         <form id="ap-launch-form" class="adv-launch-form">
           <label><span>Name</span><input id="ap-name" maxlength="40" placeholder="e.g. Example Token" required></label>
@@ -701,9 +706,10 @@
           <div class="field-row three">
             <input id="ap-twitter" placeholder="X / Twitter URL" maxlength="200">
             <input id="ap-telegram" placeholder="Telegram URL" maxlength="200">
-            <input id="ap-discord" placeholder="Discord URL" maxlength="200">
+            <input id="ap-discord" class="ap-only" placeholder="Discord URL" maxlength="200">
           </div>
 
+          <div class="ap-only-group">
           <label><span>Pair with</span> <span class="optional">the token people buy your coin with — USDC unless you pick another</span></label>
           <div class="ap-pair">
             <div class="ap-pair-seg" id="ap-pair-seg" role="radiogroup" aria-label="Pair token">
@@ -738,16 +744,55 @@
           <p class="hint" id="ap-devbuy-hint">Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.</p>
           <div class="ap-devbuy-quick" id="ap-devbuy-quick"><button type="button" data-v="">None</button><button type="button" data-v="10">10</button><button type="button" data-v="50">50</button><button type="button" data-v="100">100</button><button type="button" data-v="500">500</button></div>
           <p class="hint" id="ap-devbuy-preview"></p>
-          <div class="ap-launch-preview" id="ap-launch-preview"><small>Preview</small><div class="ap-lp-card" id="ap-lp-card"></div></div>
+          </div>
+
+          <!-- Argus (arc-argus.js): shown when the platform switch is on Argus -->
+          <div class="agl-fields" id="agl-fields" hidden>
+            <div class="agl-intro">
+              <b>Launched on Argus, from your own wallet</b>
+              <span>Your coin goes live on Argus Portal #8 with a Uniswap v4 pool and fixed buy / sell taxes, paid in USDC. Argus takes its own share of every fee as usual. Of the creator share, 70% is yours and 30% goes to the ARCIRCLE PAD treasury — set on-chain with Argus's own fee split.</span>
+            </div>
+            <label><span>Trading tax</span> <span class="optional">taken on every trade, fixed forever</span></label>
+            <div class="agl-tax">
+              <label class="agl-num"><span>Buy tax</span><span class="agl-in"><input id="agl-buy" inputmode="decimal" value="3" autocomplete="off"><em>%</em></span></label>
+              <label class="agl-num"><span>Sell tax</span><span class="agl-in"><input id="agl-sell" inputmode="decimal" value="3" autocomplete="off"><em>%</em></span></label>
+            </div>
+            <p class="hint">Each side 0–10%, and not both 0. Argus fixes them at launch — nobody can change them later.</p>
+            <label><span>Where the tax goes</span> <span class="optional">your four shares, after Argus's cut</span></label>
+            <div class="agl-alloc" id="agl-alloc"></div>
+            <div class="agl-flow" id="agl-flow" aria-live="polite"></div>
+            <label><span>Opening buy</span> <span class="optional">Argus requires one — your first tokens, bought in the launch transaction</span></label>
+            <div class="agl-seed">
+              <span class="agl-in"><input id="agl-seed" inputmode="decimal" placeholder="Minimum" autocomplete="off"><em>USDC</em></span>
+              <div class="ap-devbuy-quick" id="agl-seed-quick"><button type="button" data-v="">Minimum buy</button><button type="button" data-v="10">10</button><button type="button" data-v="50">50</button><button type="button" data-v="100">100</button></div>
+            </div>
+            <p class="hint" id="agl-seed-hint">Reading Argus's minimum…</p>
+            <div class="agl-support">
+              <b>ArcPad support for coins launched here</b>
+              <ul>
+                <li><i>$20K</i><span>At a $20K market cap we help update the coin's Dexscreener info — logo, links and description.</span></li>
+                <li><i>$100K</i><span>At a $100K market cap we add marketing support, decided case by case — boosts, calls and promotion.</span></li>
+                <li class="warn"><i>!</i><span>Support may be refused if our Token Scanner finds signs of manipulation — snipers, bundled buys, wash trading or similar — or if the 70 / 30 fee split is removed.</span></li>
+              </ul>
+              <small>This is ARCIRCLE PAD's own support policy, not a contract, and it can change. The coin's fees and taxes are Argus's and follow Argus's rules.</small>
+            </div>
+            <label class="agl-agree"><input type="checkbox" id="agl-agree"> <span>I understand: two signatures (the launch, then the 70 / 30 fee split), taxes fixed forever, and support as described above.</span></label>
+            <ol class="agl-steps" id="agl-steps" hidden></ol>
+          </div>
+
+          <div class="ap-launch-preview ap-only" id="ap-launch-preview"><small>Preview</small><div class="ap-lp-card" id="ap-lp-card"></div></div>
 
           <div id="ap-launch-status"></div>
           <button type="submit" class="ap-launch-btn" id="ap-launch-submit">
             <span class="ap-launch-btn-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg></span>
             <span class="ap-launch-btn-label">Launch coin</span>
-            <span class="ap-launch-btn-fee">1 USDC fee</span>
+            <span class="ap-launch-btn-fee ap-only">1 USDC fee</span>
+            <span class="ap-launch-btn-fee agl-only">70% of fees to you</span>
           </button>
-          <p class="ap-launch-balance" id="ap-launch-balance" aria-live="polite"></p>
-          <p class="ap-launch-btn-note">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
+          <p class="ap-launch-balance ap-only" id="ap-launch-balance" aria-live="polite"></p>
+          <p class="ap-launch-balance agl-only" id="agl-balance" aria-live="polite"></p>
+          <p class="ap-launch-btn-note ap-only">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
+          <p class="ap-launch-btn-note agl-only">Your coin goes live on Argus the moment the launch confirms; the fee split is the second signature.</p>
         </form>
       </section>
 
@@ -1474,6 +1519,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790573472"></script>
+<script src="arcpad.bundle.js?v=1790575095"></script>
 </body>
 </html>
