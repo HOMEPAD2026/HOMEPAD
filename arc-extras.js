@@ -245,21 +245,23 @@
   function renderSafety() {
     const panel = $("bp-panel-coin");
     if (!panel || typeof APC === "undefined" || !APC.l) return;
-    let box = $("apc-safety");
+    let box = $("apc-safety-panel");
     if (!box) {
       const stats = panel.querySelector(".ac2-stats");
       if (!stats) return;
       box = document.createElement("div");
-      box.id = "apc-safety"; box.className = "apc-safety";
+      box.id = "apc-safety-panel"; box.className = "apc-safety";
       stats.parentNode.insertBefore(box, stats.nextSibling);
     }
     const l = APC.l, token = APC.token;
     const sc = safetyCache.get(lc(token));
     const items = [];
-    items.push(["ok", "Liquidity locked", "The pool position is held by the factory, which has no function to remove it."]);
+    const argus = l.platform === "argus";
+    items.push(argus ? ["ok", "Liquidity locked", "Launched on Argus: the pool position sits in Argus's own locker, not with the creator."]
+      : ["ok", "Liquidity locked", "The pool position is held by the factory, which has no function to remove it."]);
     if (sc && sc.supply != null) {
       const fixed = sc.supply === 10n ** 27n;
-      items.push([fixed ? "ok" : "warn", fixed ? "Fixed supply" : "Unusual supply", fixed ? "1,000,000,000 minted once at launch. The token has no mint function and no owner." : `Total supply reads ${num(Number(ethers.formatUnits(sc.supply, 18)))}.`]);
+      items.push([fixed ? "ok" : "warn", fixed ? "Fixed supply" : "Unusual supply", fixed ? (argus ? "1,000,000,000 minted at launch, as every Argus coin." : "1,000,000,000 minted once at launch. The token has no mint function and no owner.") : `Total supply reads ${num(Number(ethers.formatUnits(sc.supply, 18)))}.`]);
     } else items.push(["wait", "Fixed supply", "Checking…"]);
     if (sc && sc.creatorBal != null) {
       const pct = Number(ethers.formatUnits(sc.creatorBal, 18)) / SUPPLY * 100;
@@ -267,13 +269,14 @@
     } else if (!l.creator) items.push(["wait", "Creator holdings", "—"]);
     else items.push(["wait", "Creator holdings", "Checking…"]);
     if (APC.holders) {
-      const skip = new Set([CONFIG.POOL_MANAGER_ADDRESS, CONFIG.ARCPAD_HOOK_ADDRESS, CONFIG.ARCPAD_FACTORY_ADDRESS, TREASURY].map(lc));
+      const skip = new Set([CONFIG.POOL_MANAGER_ADDRESS, CONFIG.ARCPAD_HOOK_ADDRESS, CONFIG.ARCPAD_FACTORY_ADDRESS, TREASURY, l.hook, l.locker, l.escrow].filter(Boolean).map(lc));
       const top = APC.holders.filter(([a]) => !skip.has(lc(a))).slice(0, 10);
       const pct = top.reduce((s, [, raw]) => s + Number(ethers.formatUnits(raw, 18)), 0) / SUPPLY * 100;
-      items.push([pct <= 30 ? "ok" : pct <= 50 ? "warn" : "bad", `Top 10 hold ${pct.toFixed(1)}%`, "Excludes the pool, the fee hook and the 8% platform allocation."]);
+      items.push([pct <= 30 ? "ok" : pct <= 50 ? "warn" : "bad", `Top 10 hold ${pct.toFixed(1)}%`, argus ? "Excludes the pool, its hook, locker and escrow." : "Excludes the pool, the fee hook and the 8% platform allocation."]);
     } else items.push(["wait", "Top 10 holders", "Indexing transfers…"]);
     const fee = Number(APC.feeBps || 100) / 100;
-    items.push(["info", `Trade fee ${fee}%`, l.extraFeeBps ? `1% base + ${l.extraFeeBps / 100}% creator add-on.` : "1% base — 70% of it goes to the creator."]);
+    items.push(argus ? ["info", "Creator fees 70 / 30", "Argus sets the trade fee; the creator's share is split 70% creator, 30% ARCIRCLE PAD."]
+      : ["info", `Trade fee ${fee}%`, l.extraFeeBps ? `1% base + ${l.extraFeeBps / 100}% creator add-on.` : "1% base — 70% of it goes to the creator."]);
     const icon = { ok: "M5 12.5l4.2 4.2L19 7", warn: "M12 7v6M12 16.5v.5", bad: "M7 7l10 10M17 7L7 17", wait: "M12 7v5l3 2", info: "M12 11v6M12 7.5v.5" };
     const html = `<div class="apc-sf-head"><b>Safety check</b><small>Read live from Arc</small></div><div class="apc-sf-grid">`
       + items.map(([k, t, d]) => `<div class="apc-sf ${k}"><span class="apc-sf-ico"><svg viewBox="0 0 24 24"><path d="${icon[k]}"/></svg></span><span class="apc-sf-copy"><b>${esc(t)}</b><small>${esc(d)}</small></span></div>`).join("")
@@ -321,7 +324,7 @@
   if (typeof apcResetView === "function") {
     const orig = apcResetView;
     // eslint-disable-next-line no-global-assign
-    apcResetView = function () { orig(); const b = $("apc-safety"); if (b) { b.innerHTML = ""; b.__html = ""; } const d = $("apc-dup-note"); if (d) d.remove(); };
+    apcResetView = function () { orig(); const b = $("apc-safety-panel"); if (b) { b.innerHTML = ""; b.__html = ""; } const d = $("apc-dup-note"); if (d) d.remove(); };
   }
 
   // ================= Portfolio =================
@@ -329,7 +332,9 @@
   const portfolioActive = () => { const p = $("bp-panel-portfolio"); return !!(p && p.classList.contains("active")); };
   async function loadPortfolio(account) {
     const p = readProvider();
-    const launches = ARC.launches.slice();
+    // ArcPad launches and the coins launched on Argus through ArcPad (arc-argus.js)
+    const argusRows = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows() : [];
+    const launches = ARC.launches.concat(argusRows.filter((a) => !ARC.launches.some((l) => lc(l.token) === lc(a.token))));
     const tokens = launches.map((l) => new ethers.Contract(l.token, ERC20_ABI, p));
     const calls = tokens.map((c) => ({ contract: c, method: "balanceOf", args: [account] }));
     // $ARCIRCLE (and its curve price) only once it's live
@@ -380,7 +385,7 @@
     const stale = !PF.data || PF.account !== lc(acct) || Date.now() - PF.data.at > 25_000;
     if (PF.data && PF.account === lc(acct)) paintPortfolio();
     else if (!opts.quiet) body.innerHTML = `<div class="pf-skel"><i></i><i></i><i></i></div>`;
-    if (stale && !PF.busy && ARC.launches.length) {
+    if (stale && !PF.busy && (ARC.launches.length || ARC.launchesLoaded)) {
       PF.busy = true;
       const seq = ++PF.seq;
       loadPortfolio(acct).then((d) => {
@@ -399,19 +404,21 @@
     if (!body || !d) return;
     const acct = lc(state.account);
     const total = d.rows.reduce((s, x) => s + (x.value || 0), 0);
-    const mine = ARC.launches.filter((l) => lc(l.creator) === acct);
+    const argusMine = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows().filter((l) => lc(l.creator) === acct) : [];
+    const mine = ARC.launches.filter((l) => lc(l.creator) === acct).concat(argusMine);
     const watched = ARC.launches.filter((l) => isWatched(l.token));
     const st = (l) => (typeof arcActStats === "function" && arcActStats(l.token)) || { vol: 0, trades: 0 };
     let feeTotal = 0;
     const mineHtml = mine.map((l) => {
       const s = st(l);
-      const fee = (s.vol || 0) * (0.007 + (l.extraFeeBps || 0) / 10000);
+      const argus = l.platform === "argus";
+      const fee = argus ? 0 : (s.vol || 0) * (0.007 + (l.extraFeeBps || 0) / 10000);
       feeTotal += fee;
       const img = safeImg(l.imageUrl) ? `<img class="pf-logo" src="${esc(l.imageUrl)}" alt="">` : `<span class="pf-logo ph" style="${avatarBg(l.token)}">${esc(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
       return `<a class="pf-launch" href="/arc#coin/${l.token}">
         <div class="pf-launch-top">${img}<span class="pf-who"><b>$${esc(l.symbol)}</b><small>${esc(l.name)}</small></span></div>
         <dl><div><dt>Market cap</dt><dd>${usd(l.marketCapUsd)}</dd></div><div><dt>Volume 24h</dt><dd>${usd(s.vol)}</dd></div>
-        <div><dt>Trades 24h</dt><dd>${s.trades || 0}</dd></div><div><dt>Your fees 24h</dt><dd class="pf-fee">≈ ${usd(fee)}</dd></div></dl></a>`;
+        <div><dt>Trades 24h</dt><dd>${s.trades || 0}</dd></div><div><dt>Your fees 24h</dt><dd class="pf-fee">${argus ? "70% · claim on Argus" : `≈ ${usd(fee)}`}</dd></div></dl></a>`;
     }).join("");
     const html = `
       <div class="pf-summary">
@@ -432,9 +439,69 @@
       body.innerHTML = html; body.__html = html;
       body.querySelectorAll("[data-pf-go]").forEach((b) => b.addEventListener("click", () => window.arcpadShowTab && window.arcpadShowTab(b.dataset.pfGo)));
     }
+    renderPfExtra();
+  }
+
+  // ---- what this wallet received (Multisender airdrops, claim drops) and its LP positions ----
+  const PX = { acct: null, at: 0, drops: null, lp: null, busy: false };
+  async function loadPfExtra(acct) {
+    const [r1, lp] = await Promise.all([
+      fetch(`/api/social?received=${acct}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      (async () => {
+        for (let i = 0; i < 6; i++) {
+          const j = await fetch(`/api/social?liqmine=${acct}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+          if (!j) return null;
+          if (j.done) return j;
+          await new Promise((res) => setTimeout(res, 900));
+        }
+        return null;
+      })(),
+    ]);
+    return { drops: r1, lp };
+  }
+  function renderPfExtra() {
+    let box = $("pf-extra");
+    if (!box) { const after = $("pf-locks") || $("pf-body"); if (!after) return; box = document.createElement("div"); box.id = "pf-extra"; after.after(box); }
+    const acct = state.account && lc(state.account);
+    if (!acct) { box.innerHTML = ""; box.__html = ""; return; }
+    if (PX.acct === acct && PX.drops) paintPfExtra(box);
+    if ((PX.acct !== acct || Date.now() - PX.at > 60e3) && !PX.busy) {
+      PX.busy = true;
+      loadPfExtra(acct).then((d) => {
+        if (lc(state.account || "") !== acct) return;
+        Object.assign(PX, { acct, at: Date.now(), drops: d.drops || { got: [], claims: [] }, lp: d.lp });
+        paintPfExtra(box);
+      }).finally(() => { PX.busy = false; });
+    }
+  }
+  const fmtRaw = (raw, dec) => { try { return num(Number(ethers.formatUnits(BigInt(raw), dec ?? 18))); } catch { return "—"; } };
+  const agoS = (ts) => { const s = Math.max(0, Date.now() / 1000 - ts); return s < 3600 ? `${Math.max(1, Math.floor(s / 60))}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`; };
+  function paintPfExtra(box) {
+    const got = ((PX.drops && PX.drops.got) || []).filter((g) => g.kind !== "nft").slice(0, 30);
+    const claims = ((PX.drops && PX.drops.claims) || []).slice(0, 10);
+    const pools = (PX.lp && PX.lp.pools) || [];
+    // totals per token, for the headline chips
+    const byTok = new Map();
+    for (const g of got) { const k = lc(g.token || ""); const x = byTok.get(k) || { sym: g.sym, dec: g.dec, raw: 0n, n: 0 }; try { x.raw += BigInt(g.amount); } catch { /* skip */ } x.n++; byTok.set(k, x); }
+    const logo = (token, sym) => `<span class="pf-logo ph" style="${avatarBg(token || "")}">${esc(String(sym || "?").slice(0, 1).toUpperCase())}</span>`;
+    const dropsHtml = got.length ? `<div class="pf-drop-sum">${[...byTok.entries()].map(([t, x]) => `<span class="pf-drop-chip"><b data-no-i18n>${fmtRaw(x.raw, x.dec)} $${esc(x.sym)}</b><small>${x.n} ${x.n === 1 ? "airdrop" : "airdrops"}</small></span>`).join("")}</div>
+      <div class="pf-table"><div class="pf-row pf-head"><span></span><span>Token</span><span class="pf-amt">Amount</span><span class="pf-val">From</span><span class="pf-chg">When</span></div>
+      ${got.map((g) => `<a class="pf-row pf-drop" href="/arc#multisend?receipt=${esc(g.tx)}">${logo(g.token, g.sym)}<span class="pf-who"><b data-no-i18n>$${esc(g.sym)}</b><small>Receipt ↗</small></span><span class="pf-amt" data-no-i18n>${fmtRaw(g.amount, g.dec)}</span><span class="pf-val" data-no-i18n>${esc(g.from ? g.from.slice(0, 6) + "…" + g.from.slice(-4) : "—")}</span><span class="pf-chg">${g.ts ? esc(agoS(g.ts)) : ""}</span></a>`).join("")}</div>`
+      : `<div class="empty-state">No Multisender airdrops to this wallet yet.</div>`;
+    const claimHtml = claims.length ? `<h3 class="pf-h">Waiting to be claimed</h3><div class="pf-table">${claims.map((c) => `<a class="pf-row pf-claim" href="/arc#multisend?claim=${esc(c.drop)}">${logo(c.token, c.sym)}<span class="pf-who"><b data-no-i18n>$${esc(c.sym)}</b><small>Claim drop #${esc(c.drop)}</small></span><span class="pf-amt" data-no-i18n>${fmtRaw(c.amount, c.dec)}</span><span class="pf-val"></span><span class="pf-chg up">Claim →</span></a>`).join("")}</div>` : "";
+    const lpHtml = pools.length ? `<div class="pf-table"><div class="pf-row pf-head"><span></span><span>Pool</span><span class="pf-amt">Positions</span><span class="pf-val">Locked</span><span class="pf-chg">Fee</span></div>
+      ${pools.map((p) => `<a class="pf-row pf-lp" href="/arc#liquidity?token=${esc(p.token.address)}">${logo(p.token.address, p.token.symbol)}<span class="pf-who"><b data-no-i18n>$${esc(p.token.symbol)} / ${esc(p.quote.symbol)}</b><small>Uniswap v4</small></span><span class="pf-amt">${p.positions}</span><span class="pf-val">${p.locked ? `${p.locked} locked` : "—"}</span><span class="pf-chg" data-no-i18n>${esc(p.feePct != null ? p.feePct + "%" : "")}</span></a>`).join("")}</div>
+      <a class="pf-note lk-pf-more" href="/arc#liquidity">Manage your positions in Liquidity →</a>`
+      : PX.lp ? `<div class="empty-state">No liquidity positions in this wallet.</div>` : `<div class="empty-state">Reading your positions…</div>`;
+    const html = `<h3 class="pf-h pf-h-drops">Airdrops received</h3>${dropsHtml}${claimHtml}<h3 class="pf-h">Liquidity positions</h3>${lpHtml}`;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
   document.addEventListener("arcpad:tab", (e) => {
-    if (e.detail && e.detail.tab === "portfolio") renderPortfolio();
+    if (e.detail && e.detail.tab === "portfolio") {
+      renderPortfolio();
+      // coins launched on Argus through ArcPad count as holdings too: once their list is in, read again
+      if (window.arcArgus && typeof window.arcArgus.load === "function" && !window.arcArgus.rows().length) window.arcArgus.load().then((rows) => { if (rows && rows.length) { PF.data = null; renderPortfolio({ quiet: true }); } }).catch(() => {});
+    }
   });
   document.addEventListener("click", (e) => {
     const a = e.target.closest && e.target.closest("a.pf-row, a.pf-launch, a.ap-topcoin");
@@ -496,6 +563,9 @@
     document.body.classList.toggle("mtb-on", on);
     if (!on) { if (!sheet.hidden) closeSheet(); return; }
     bar.querySelector(".mtb-sym").textContent = (t.sym || "").trim() || "—";
+    const ag = t.kind === "coin" && typeof APC !== "undefined" && APC.l && APC.l.platform === "argus";
+    bar.classList.toggle("is-argus", !!ag);
+    bar.querySelector(".mtb-buy").textContent = ag ? "Trade on Argus ↗" : "Buy";
     bar.querySelector(".mtb-price").textContent = (t.price || "").trim();
     const dock = document.querySelector("nav.ax-dock");
     const r = dock && dock.getBoundingClientRect();
@@ -526,7 +596,12 @@
     }
     setTimeout(() => { if (!sheet.classList.contains("in")) sheet.hidden = true; }, 260);
   }
-  bar.addEventListener("click", (e) => { const b = e.target.closest("[data-mtb]"); if (b) openSheet(b.dataset.mtb); });
+  bar.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-mtb]");
+    if (!b) return;
+    if (bar.classList.contains("is-argus") && typeof APC !== "undefined" && APC.l) { window.open(`https://argus.world/token/${APC.l.token}`, "_blank", "noopener"); return; }
+    openSheet(b.dataset.mtb);
+  });
   sheet.querySelector(".msheet-backdrop").addEventListener("click", closeSheet);
   sheet.querySelector(".msheet-x").addEventListener("click", closeSheet);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });

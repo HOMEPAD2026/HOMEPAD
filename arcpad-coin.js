@@ -16,6 +16,9 @@
 // the far end of the tick range, so inside it the pool is exactly x·y = L²
 // with virtual reserves x = L/√P, y = L·√P. The quote maths below uses that.
 // UI classes are the $ARCIRCLE page's .ac2-* styles; ids are apc-*.
+// Coins launched on Argus through ArcPad (arc-argus.js) open here too: same chart, trades,
+// holders and scanner score from their own pool (USDC, dynamic fee, tick spacing 200, their
+// hook); trading happens on Argus, and the card on the right says so, with the support marks.
 
 const APC_SWAP_TOPIC = ethers.id("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)");
 const APC_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
@@ -101,7 +104,10 @@ function apcPriceFromSqrt(sqrtX96) {
   // pair-token units per launched token
   return arcPriceInQuote(sqrtX96, !APC.tokenIs0, APC.q.decimals);
 }
-function apcSpot() { return APC.s && APC.s.r ? apcUsdc(APC.s.r.quoteRes) / apcTok(APC.s.r.tokenRes) : null; }
+function apcSpot() {
+  if (APC.s && APC.s.r && APC.s.r.argus) return APC.s.sqrtX96 ? apcPriceFromSqrt(APC.s.sqrtX96) : null;
+  return APC.s && APC.s.r ? apcUsdc(APC.s.r.quoteRes) / apcTok(APC.s.r.tokenRes) : null;
+}
 function apcQuoteBuy(quoteIn) {
   const r = APC.s && APC.s.r; if (!r || quoteIn <= 0n) return null;
   const gross = (r.tokenRes * quoteIn) / (r.quoteRes + quoteIn);
@@ -116,11 +122,46 @@ function apcQuoteSell(tokensIn) {
 }
 
 // ---------- load one launch ----------
+/// the Argus list entry for a token (arc-argus.js rows, or the list itself)
+async function apcArgusItem(want) {
+  // the list itself (it has the pool's locker and escrow); arc-argus.js's rows if it can't be read
+  let x = null;
+  try {
+    const r = await fetch("/api/social?argusarc=list");
+    const j = r.ok ? await r.json() : null;
+    x = ((j && j.items) || []).find((i) => i && i.token === want && i.active !== false) || null;
+  } catch { x = null; }
+  if (x) return x;
+  const rows = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows() : [];
+  x = rows.find((r) => r.token === want);
+  return x ? { ...x, image: x.imageUrl } : null;
+}
+async function apcArgusLaunch(a) {
+  const token = ethers.getAddress(a.token), usdc = CONFIG.USDC_ADDRESS, hook = ethers.getAddress(a.hook);
+  const quoteIsCurrency0 = BigInt(usdc) < BigInt(token);
+  const key = { currency0: quoteIsCurrency0 ? usdc : token, currency1: quoteIsCurrency0 ? token : usdc, fee: 0x800000, tickSpacing: 200, hooks: hook };
+  const tokenIs0 = !quoteIsCurrency0;
+  const startPrice = a.startPrice > 0 ? a.startPrice : Number.isFinite(a.tickStart) ? (tokenIs0 ? Math.pow(1.0001, a.tickStart) * 1e12 : 1e12 / Math.pow(1.0001, a.tickStart)) : null;
+  const l = {
+    platform: "argus", token, name: a.name || "", symbol: a.symbol || "", creator: a.creator, quoteToken: usdc, quoteIsCurrency0,
+    extraFeeBps: 0, imageUrl: a.image || a.imageUrl || "", description: a.description || "", launchedAt: Number(a.launchedAt) || 0,
+    twitter: a.twitter || "", telegram: a.telegram || "", discord: "", website: a.website || "", hook, startPrice,
+    locker: a.locker || "", escrow: a.escrow || "",
+  };
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  const poolId = ethers.keccak256(coder.encode(["address", "address", "uint24", "int24", "address"], [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks]));
+  const stateSlot = BigInt(ethers.keccak256(ethers.concat([poolId, ethers.toBeHex(6, 32)])));
+  const qMeta = await arcQuoteMetaFor(usdc);
+  // Argus takes its fee in its hook: trades are shown at their gross amounts
+  return { l, key, poolId, stateSlot, feeBps: 0n, q: { ...qMeta, isUsdc: true, usd: 1 } };
+}
 async function apcLoadLaunch(token) {
   const want = token.toLowerCase();
   let l = (typeof ARC !== "undefined" && ARC.launches || []).find((x) => x.token.toLowerCase() === want) || null;
   const f = arcpadFactoryRead();
   if (!l) {
+    const ag = await apcArgusItem(want);
+    if (ag && ag.hook) return apcArgusLaunch(ag);
     const idx = Number(await withRetry(() => f.launchIndexOf(token)));
     if (!idx) throw new Error("This address isn't an ArcPad launch.");
     const rec = await withRetry(() => f.launches(idx - 1));
@@ -170,7 +211,8 @@ async function apcFetchState() {
   const slot0 = BigInt(res[0]);
   const sqrtX96 = slot0 & ((1n << 160n) - 1n);
   const L = BigInt(res[1]) & ((1n << 128n) - 1n);
-  APC.s = { sqrtX96, L, r: apcReserves(sqrtX96, L), at: Date.now() };
+  // Argus pools aren't one single-sided position: the price is all we read from them
+  APC.s = { sqrtX96, L, r: APC.l && APC.l.platform === "argus" ? { argus: true, startPrice: APC.l.startPrice } : apcReserves(sqrtX96, L), at: Date.now() };
   APC.user = ui >= 0 ? { usdc: res[ui] ?? 0n, tok: res[ui + 1] ?? 0n, allowUsdc: res[ui + 2] ?? 0n, allowTok: res[ui + 3] ?? 0n } : null;
   return APC.s;
 }
@@ -378,7 +420,9 @@ function apcRenderHeader() {
   apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on ArcPad and trades in its own Uniswap v4 pool on Arc, paired with ${APC.q.isUsdc ? "USDC" : APC.q.symbol}.${APC.q.isUsdc ? "" : ` Prices in USD are converted at ${APC.q.symbol}'s current price.`}`;
   apc$("apc-about-token").innerHTML = `<a href="${apcExplorer("token", l.token)}" target="_blank" rel="noopener">${apcShort(l.token)} ↗</a>`;
   apc$("apc-about-creator").innerHTML = l.creator ? `<a href="${apcExplorer("address", l.creator)}" target="_blank" rel="noopener">${apcShort(l.creator)} ↗</a>` : "—";
-  apc$("apc-about-fee").textContent = `${Number(APC.feeBps) / 100}% per trade${l.extraFeeBps ? ` (incl. ${l.extraFeeBps / 100}% creator add-on)` : ""}`;
+  apc$("apc-about-fee").textContent = l.platform === "argus" ? "Set by Argus · creator fees 70% creator, 30% ARCIRCLE PAD" : `${Number(APC.feeBps) / 100}% per trade${l.extraFeeBps ? ` (incl. ${l.extraFeeBps / 100}% creator add-on)` : ""}`;
+  if (l.platform === "argus") apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on Argus through ArcPad and trades in its own Uniswap v4 pool on Arc, paired with USDC. Trades happen on Argus; everything on this page is read from Arc.`;
+  apcArgusToggle(l.platform === "argus");
   apc$("apc-about-pool").innerHTML = `<a href="${apcExplorer("address", CONFIG.POOL_MANAGER_ADDRESS)}" target="_blank" rel="noopener" title="${APC.poolId}">v4 · ${apcShort(APC.poolId)}</a>`;
   if (l.launchedAt) {
     apc$("apc-about-launched").textContent = new Date(l.launchedAt * 1000).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
@@ -388,6 +432,7 @@ function apcRenderHeader() {
   // links
   const links = [
     ["ArcScan", "Token & holders", apcExplorer("token", l.token)],
+    ...(l.platform === "argus" ? [["Argus", "Trade & claim fees", `https://argus.world/token/${l.token}`]] : []),
     ["Website", "", apcSocialUrl(l.website)],
     ["X", "", apcSocialUrl(l.twitter, "https://x.com/")],
     ["Telegram", "", apcSocialUrl(l.telegram, "https://t.me/")],
@@ -410,6 +455,7 @@ function apcRenderState() {
   pq.hidden = APC.q.isUsdc || APC.q.usd == null;
   if (!pq.hidden) pq.textContent = `${apcFmtPrice(spot).replace("$", "")} ${APC.q.symbol}`;
   apc$("apc-mcap").textContent = spot != null ? apcFmtValue(spot * APC_SUPPLY) : "—";
+  if (r.argus) { apcRenderArgus(spot); return; }
   const liqQ = apcUsdc(r.realQuote), liqUsd = apcToUsd(liqQ);
   apc$("apc-liq").innerHTML = APC.q.isUsdc || liqUsd == null
     ? apcFmtQuoteAmt(liqQ)
@@ -421,6 +467,40 @@ function apcRenderState() {
 }
 
 function apcRenderData() { apcRenderStats(); apcRenderTrades(); apcRenderHolders(); apcRenderChart(); }
+
+// ---------- Argus coins: trade on Argus, the support marks instead of the sold bar ----------
+function apcArgusToggle(on) {
+  const panel = apc$("bp-panel-coin");
+  if (panel) panel.classList.toggle("apc-is-argus", !!on);
+  const swap = apc$("apc-swap"), box = apc$("apc-argus-trade"), grad = document.querySelector("#bp-panel-coin .ac2-grad");
+  if (swap) swap.hidden = !!on;
+  if (grad) grad.classList.toggle("is-argus", !!on);
+  if (!on) { if (box) box.hidden = true; const pr = apc$("apc-argus-prog"); if (pr) pr.hidden = true; return; }
+  if (box) {
+    const l = APC.l, sym = l.symbol ? "$" + l.symbol : "this coin";
+    box.hidden = false;
+    box.innerHTML = `<span class="apc-ag-tag">Launched on Argus via ArcPad</span>
+      <h3>Trade ${apcEsc(sym)} on Argus</h3>
+      <p>Swaps for this coin happen on Argus. Its creator fees are split on-chain: 70% to the creator, 30% to ARCIRCLE PAD.</p>
+      <a class="bp-btn-primary apc-ag-go" href="https://argus.world/token/${apcEsc(l.token)}" target="_blank" rel="noopener">Trade on Argus ↗</a>
+      <div class="apc-ag-acts"><a href="https://dexscreener.com/arc/${apcEsc(l.token)}" target="_blank" rel="noopener">Chart ↗</a><a href="#scanner?t=${apcEsc(l.token)}">Scan it</a><a href="#liquidity?token=${apcEsc(l.token)}">Liquidity</a></div>`;
+  }
+}
+function apcRenderArgus(spot) {
+  apc$("apc-liq").textContent = "Argus pool";
+  const pr = apc$("apc-argus-prog");
+  if (!pr || !window.arcArgus || typeof window.arcArgus.progress !== "function") return;
+  const m = spot != null ? spot * APC_SUPPLY : null;
+  const sup = (CONFIG.ARGUS_V5 && CONFIG.ARGUS_V5.SUPPORT) || { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 };
+  const ms = (need, t, sub) => `<li class="${m != null && m >= need ? "on" : ""}"><i aria-hidden="true">${m != null && m >= need ? "✓" : ""}</i><span><b>${t}</b><small>${sub}</small></span></li>`;
+  const key = m == null ? "-" : String(Math.round(m));
+  if (pr.dataset.k === key) return;
+  pr.dataset.k = key;
+  pr.hidden = false;
+  pr.innerHTML = `<div class="ac2-grad-top"><span>Support from ARCIRCLE PAD</span><strong>${m != null ? apcFmtValue(m) : "—"} mcap</strong></div>
+    ${window.arcArgus.progress(m, "lg", APC.l.token)}
+    <ul class="agl-sh-ms">${ms(sup.DEX_INFO_MCAP, "Dexscreener info support", "From a $20K market cap")}${ms(sup.MARKETING_MCAP, "Marketing support", "From a $100K market cap")}</ul>`;
+}
 
 function apcRenderStats() {
   const now = Math.floor(Date.now() / 1000);
@@ -618,6 +698,7 @@ function apcParseAmount() {
   try { return ethers.parseUnits(`${w || "0"}.${f.slice(0, dec) || "0"}`, dec); } catch { return null; }
 }
 function apcCurrentQuote() {
+  if (APC.l && APC.l.platform === "argus") return null; // traded on Argus
   const amt = apcParseAmount();
   if (!amt || !APC.s) return null;
   const q = APC.side === "buy" ? apcQuoteBuy(amt) : apcQuoteSell(amt);
@@ -634,7 +715,7 @@ function apcCurrentQuote() {
 }
 
 function apcRenderSwap() {
-  if (!APC.l) return;
+  if (!APC.l || APC.l.platform === "argus") return;
   const buy = APC.side === "buy";
   const sym = APC.l.symbol ? `$${APC.l.symbol}` : "tokens";
   document.querySelectorAll("#apc-swap .ac2-swap-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.side === APC.side));
@@ -694,6 +775,7 @@ function apcErrText(err) {
 }
 
 async function apcSubmit() {
+  if (APC.l && APC.l.platform === "argus") return;
   if (APC.busy) return;
   if (!state.account) { await connectWallet(); await apcRefresh(); return; }
   const btn = apc$("apc-submit");

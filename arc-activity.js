@@ -26,7 +26,52 @@ const ACT = {
   anchor: null, spb: 0.5,  // latest block {block, ts}; seconds per block
   stats: new Map(),        // token(lower) -> {vol, trades, lastB, spark:[price…]}
   ticker: [], seen: new Set(),
+  events: [], pushed: [], dropsAt: 0,
 };
+
+// ---------- ticker events: new launches, airdrops, milestones, between the trades ----------
+// arc-argus.js reports a coin crossing $20K / $100K with window.arcTickerEvent(); new launches
+// (ArcPad and Argus) come from the lists already loaded; airdrops from the Multisender feed.
+window.arcTickerEvent = function (ev) {
+  if (!ev || !ev.kind) return;
+  ev.ts = ev.ts || Math.floor(Date.now() / 1000);
+  ACT.pushed = ACT.pushed.filter((x) => !(x.kind === ev.kind && x.token === ev.token && x.text === ev.text)).concat(ev).slice(-20);
+  actEvents(); actPaintTicker();
+};
+function actEvents() {
+  const now = Date.now() / 1000, ev = [];
+  const argus = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows() : [];
+  for (const l of (ARC.launches || []).concat(argus)) {
+    if (l.launchedAt && now - l.launchedAt < ACT_WINDOW_SEC) ev.push({ kind: "launch", ts: l.launchedAt, sym: l.symbol, token: String(l.token).toLowerCase(), img: l.imageUrl, argus: l.platform === "argus" });
+  }
+  for (const d of ACT.drops || []) if (d.ts && now - d.ts < ACT_WINDOW_SEC) ev.push({ kind: "airdrop", ts: d.ts, sym: d.sym, token: d.token, n: d.n, total: d.total, dec: d.dec, tx: d.tx });
+  ACT.events = ev.concat(ACT.pushed.filter((x) => now - x.ts < ACT_WINDOW_SEC));
+}
+async function actLoadDrops() {
+  if (Date.now() - ACT.dropsAt < 120e3) return;
+  ACT.dropsAt = Date.now();
+  try {
+    const r = await fetch("/api/social?drops=recent");
+    const j = r.ok ? await r.json() : null;
+    if (j && Array.isArray(j.recent)) ACT.drops = j.recent.filter((x) => x.kind === "token");
+  } catch { /* the ticker just shows trades */ }
+  actEvents(); actPaintTicker();
+}
+function actTickerEventHtml(t) {
+  const sym = `$${actEsc(t.sym || "?")}`;
+  const img = /^https?:\/\//i.test(t.img || "") || /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "")
+    ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`;
+  const coinHref = `/arc#coin/${t.token}`;
+  if (t.kind === "launch") return `<a class="tk-item tk-ev tk-launch" href="${coinHref}"><span class="tk-badge">NEW</span>${img}<b>${sym}</b><span class="tk-side">${t.argus ? "on Argus" : "launched"}</span><time>${actAgo(t.ts)}</time></a>`;
+  if (t.kind === "milestone") return `<a class="tk-item tk-ev tk-ms" href="${coinHref}"><span class="tk-badge">${actEsc(t.text)}</span>${img}<b>${sym}</b><span class="tk-side">mcap reached</span><time>${actAgo(t.ts)}</time></a>`;
+  let amt = "";
+  try { amt = t.total ? actCompactUnits(BigInt(t.total), t.dec ?? 18) + " " : ""; } catch { amt = ""; }
+  return `<a class="tk-item tk-ev tk-drop" href="/arc#multisend?receipt=${actEsc(t.tx)}"><span class="tk-badge">AIRDROP</span><b>${amt}${sym}</b><span class="tk-side">→ ${Number(t.n || 0).toLocaleString("en-US")} wallets</span><time>${actAgo(t.ts)}</time></a>`;
+}
+function actCompactUnits(raw, dec) {
+  const x = Number(raw) / Math.pow(10, dec);
+  return x >= 1e9 ? (x / 1e9).toFixed(2) + "B" : x >= 1e6 ? (x / 1e6).toFixed(2) + "M" : x >= 1e3 ? (x / 1e3).toFixed(1) + "K" : x.toFixed(x < 10 ? 2 : 0);
+}
 
 // ---------- helpers ----------
 function actSigned(hex) { const v = BigInt(hex); return v >= (1n << 255n) ? v - (1n << 256n) : v; }
@@ -62,6 +107,7 @@ async function actGetLogs(params) {
 /// mirrors HomepadFactoryArc: price = virtualQuote / sellable, converted to
 /// a tick (floor), truncated toward zero to the 200-tick spacing.
 function arcStartPrice(l) {
+  if (l && l.platform === "argus") return l.startPrice > 0 ? l.startPrice : null; // arc-argus.js: from the pool's opening tick
   if (!l || l.initialVirtualQuoteRaw == null || l.quoteIsCurrency0 == null || l.quoteDecimals == null) return null;
   const sellableRaw = ARC_SELLABLE_SUPPLY * 1e18;
   const q = Number(l.initialVirtualQuoteRaw);
@@ -125,6 +171,7 @@ function actArgusPools() {
 /// arc-argus.js calls this when its list arrives: new pools join the ticker on the next scan
 function arcActivityArgus() {
   if (actArgusPools() && ACT.started) actScan();
+  actEvents(); actPaintTicker();
 }
 window.arcActivityArgus = arcActivityArgus;
 
@@ -283,7 +330,9 @@ function actSparkPath(pts, w = 100, h = 24) {
   return pts.map((v, i) => `${i ? "L" : "M"}${(i / (pts.length - 1) * w).toFixed(1)},${(h - 2 - ((v - lo) / span) * (h - 4)).toFixed(1)}`).join("");
 }
 function arcPaintCard(card) {
-  const l = ARC.launches.find((x) => x.token.toLowerCase() === String(card.dataset.token).toLowerCase());
+  const key = String(card.dataset.token).toLowerCase();
+  const l = ARC.launches.find((x) => x.token.toLowerCase() === key)
+    || (card.dataset.platform === "argus" && window.arcArgus ? window.arcArgus.rows().find((x) => x.token === key) : null);
   if (!l) return;
   const s = arcActStats(l.token);
   const chg = arcChangeSinceLaunch(l);
@@ -311,7 +360,10 @@ function arcPaintCard(card) {
 function actPaintTicker() {
   const host = document.getElementById("ap-ticker");
   if (!host) return;
-  const items = ACT.ticker;
+  // trades and events, newest first; events are few, so each one gets a place near its time
+  const trades = ACT.ticker.map((t) => ({ ...t, ts: actTs(t.b) }));
+  const evs = (ACT.events || []).map((e) => ({ ...e, ev: true, h: "ev:" + e.kind + ":" + (e.token || e.tx) + ":" + (e.text || ""), i: 0 }));
+  const items = trades.concat(evs).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 30);
   if (!items.length) { host.hidden = true; return; }
   host.hidden = false;
   const fresh = new Set();
@@ -319,7 +371,8 @@ function actPaintTicker() {
   ACT._tickerInit = true;
   const html = items.map((t) => {
     const id = t.h + ":" + t.i;
-    const href = t.argus ? `/arc#explore?plat=argus&coin=${t.token}` : t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
+    if (t.ev) return actTickerEventHtml(t).replace('class="tk-item', `class="tk-item${fresh.has(id) ? " tk-new" : ""}`);
+    const href = t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
     const safeImg = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "") || /^https?:\/\//i.test(t.img || "") || /^images\//.test(t.img || "");
     return `<a class="tk-item ${t.buy ? "tk-buy" : "tk-sell"}${fresh.has(id) ? " tk-new" : ""}" href="${href}">`
       + (safeImg ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
@@ -354,7 +407,9 @@ function arcActivityStart() {
       setInterval(() => { if (!document.hidden) actScan(); }, 20_000);
       setInterval(() => { document.querySelectorAll("[data-act=age]").forEach((el) => { const c = el.closest(".ap-launch-card"); if (c) arcPaintCard(c); }); actPaintTicker(); }, 60_000);
     }
-    actDerive(); actPaint();
+    actDerive(); actEvents(); actPaint();
+    actLoadDrops();
+    if (!ACT._dropsTimer) ACT._dropsTimer = setInterval(() => { if (!document.hidden) actLoadDrops(); }, 120e3);
     await actScan();
   })().catch((err) => console.warn("ArcPad activity failed to start", err));
 }

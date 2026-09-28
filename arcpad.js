@@ -219,12 +219,13 @@ function launchCardHtml(l) {
   if (l.platform === "argus") {
     return `
     <button type="button" class="launch-card card-type-curve ap-launch-card is-argus" data-token="${l.token}" data-platform="argus" style="text-align:left;cursor:pointer;border:1px solid var(--line);font:inherit;">
-      <div class="ap-card-top">${img}<span class="ap-plat-tag">Argus</span><span class="ap-card-age">${typeof actAgo === "function" && l.launchedAt ? actAgo(l.launchedAt) : ""}</span></div>
+      <div class="ap-card-top">${img}<span class="ap-plat-tag">Argus</span><span class="ap-card-age" data-act="age">${typeof actAgo === "function" && l.launchedAt ? actAgo(l.launchedAt) : ""}</span></div>
       <div class="sym">$${arcEscHtml(l.symbol)}</div>
       <div class="name">${arcEscHtml(l.name)}</div>
-      ${window.arcArgus && window.arcArgus.progress ? window.arcArgus.progress(l.marketCapUsd, "card") : '<div class="ap-argus-line" aria-hidden="true"><i></i></div>'}
-      <div class="meta"><span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—"} mcap</span><span class="ap-chg flat">USDC</span></div>
-      <div class="ap-card-vol">Argus · via ArcPad</div>
+      <svg class="ap-spark sm" data-act="spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"></svg>
+      ${window.arcArgus && window.arcArgus.progress ? window.arcArgus.progress(l.marketCapUsd, "card", l.token) : '<div class="ap-argus-line" aria-hidden="true"><i></i></div>'}
+      <div class="meta"><span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—"} mcap</span><span class="ap-chg" data-act="chg">—</span></div>
+      <div class="ap-card-vol" data-act="vol">Vol 24h …</div>
     </button>`;
   }
   return `
@@ -338,8 +339,9 @@ function renderArcpadExploreGrid() {
 function wireLaunchCardClicks(root) {
   root.querySelectorAll(".ap-launch-card").forEach((card) => {
     card.addEventListener("click", () => {
-      if (card.dataset.platform === "argus" && window.arcArgus) { window.arcArgus.openSheet(card.dataset.token); return; }
+      // Argus coins open the same full coin page (arcpad-coin.js knows them)
       if (typeof openArcCoin === "function") openArcCoin(card.dataset.token);
+      else if (card.dataset.platform === "argus" && window.arcArgus) { window.arcArgus.openSheet(card.dataset.token); return; }
       else openTradeModal(card.dataset.token);
     });
   });
@@ -989,7 +991,12 @@ function refreshAccountDependentViews() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (mobileMenuLabel) {
       const activeBtn = [...navItems].find((b) => b.dataset.tab === tab);
-      if (activeBtn) mobileMenuLabel.textContent = [...activeBtn.childNodes].filter((n) => !(n.classList && n.classList.contains("bp-nav-v"))).map((n) => n.textContent).join("").trim();
+      if (activeBtn) {
+        mobileMenuLabel.textContent = [...activeBtn.childNodes].filter((n) => !(n.classList && n.classList.contains("bp-nav-v"))).map((n) => n.textContent).join("").trim();
+        const ico = document.getElementById("bp-mm-ico"), svg = activeBtn.querySelector("svg");
+        if (ico) ico.innerHTML = svg ? svg.outerHTML : "";
+      }
+      fitMobileMenu();
     }
     if (sidebar) sidebar.classList.remove("bp-menu-open");
     // Keep the URL shareable (/arc#launch, /arc#explore, …) without adding
@@ -1003,6 +1010,20 @@ function refreshAccountDependentViews() {
     if (tab === "launch") updateArcpadLaunchBalance();
   }
   window.arcpadShowTab = showTab;
+  // phones: the tab name gets the room the wallet and the buttons leave; when it wouldn't fit
+  // ("Exp…") only the tab's icon shows
+  function fitMobileMenu() {
+    const trig = document.getElementById("bp-mobile-menu-trigger"), right = document.querySelector(".bp-topbar-right");
+    if (!trig || !mobileMenuLabel) return;
+    if (innerWidth > 900) { trig.classList.remove("icon-only"); trig.style.maxWidth = ""; return; }
+    const room = innerWidth - (right ? right.getBoundingClientRect().width : 0) - 36;
+    trig.style.maxWidth = Math.max(56, room) + "px";
+    trig.classList.remove("icon-only");
+    if (mobileMenuLabel.scrollWidth > mobileMenuLabel.clientWidth + 1) trig.classList.add("icon-only");
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(fitMobileMenu));
+  if ("ResizeObserver" in window) { const r = document.querySelector(".bp-topbar-right"); if (r) new ResizeObserver(() => requestAnimationFrame(fitMobileMenu)).observe(r); }
+  document.addEventListener("arc:lang", () => setTimeout(fitMobileMenu, 50));
   const tabFromHash = () => {
     const t = location.hash.slice(1).split("?")[0];
     if (t === "coin" || t.startsWith("coin/")) return null; // handled by arcpad-coin.js
@@ -1018,7 +1039,7 @@ function refreshAccountDependentViews() {
     });
   }
   document.querySelectorAll("[data-tab-link]").forEach((el) => el.addEventListener("click", () => showTab(el.dataset.tabLink)));
-  { const t = tabFromHash(); if (t && t !== "home") showTab(t); }
+  { const t = tabFromHash(); if (t && t !== "home") showTab(t); else { const h = document.querySelector('.bp-nav-item[data-tab="home"] svg'), ico = document.getElementById("bp-mm-ico"); if (h && ico) ico.innerHTML = h.outerHTML; fitMobileMenu(); } }
 
   // Docs sub-tabs
   document.querySelectorAll(".bp-doc-tab").forEach((tab) => {

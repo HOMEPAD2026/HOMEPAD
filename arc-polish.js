@@ -98,6 +98,10 @@
     mini.querySelector(".apc-mini-logo").innerHTML = safeImg(l.imageUrl) ? `<img src="${esc(l.imageUrl)}" alt="">`
       : `<span style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(APC.token) : ""}">${esc((l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
     mini.querySelector(".apc-mini-sym").textContent = l.symbol ? `$${l.symbol}` : "";
+    // a coin launched on Argus trades there: one button that opens it
+    const ag = l.platform === "argus";
+    mini.classList.toggle("is-argus", ag);
+    mini.querySelector(".apc-mini-btn.buy").textContent = ag ? "Trade on Argus ↗" : "Buy";
   }
   function paintMiniPrice() {
     const p = $("apc-price"), c = $("apc-change");
@@ -135,6 +139,7 @@
   }
   mini.addEventListener("click", (e) => {
     const b = e.target.closest("[data-mini]");
+    if (b && typeof APC !== "undefined" && APC.l && APC.l.platform === "argus") { window.open(`https://argus.world/token/${APC.l.token}`, "_blank", "noopener"); return; }
     if (!b) return;
     const side = b.dataset.mini;
     // phones: the bottom trade bar's sheet; desktop: scroll to the swap card

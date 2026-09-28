@@ -13,6 +13,16 @@ const MAX_CHUNKS = 400; // ≈ 3 weeks of Arc blocks; older coins fall back to t
 const json = (status, body, cache) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": cache || "no-store", "access-control-allow-origin": "*" } });
 const signed128 = (hex) => BigInt.asIntN(128, BigInt(hex));
 
+const USDC = "0x3600000000000000000000000000000000000000";
+async function argusItem(token) {
+  try {
+    const r = await fetch(`https://www.arcircle.app/api/social?argusarc=list`, { signal: AbortSignal.timeout(6000) });
+    const j = r.ok ? await r.json() : null;
+    const t = token.toLowerCase();
+    return ((j && j.items) || []).find((x) => x && x.token === t && /^0x[0-9a-f]{40}$/.test(x.hook || "")) || null;
+  } catch { return null; }
+}
+
 export default async function handler(req) {
   const params = new URL(req.url).searchParams;
   if (params.has("scan")) return scan(params.get("scan") || "");
@@ -21,13 +31,22 @@ export default async function handler(req) {
   try {
     const [idxHex] = await ethCalls([{ to: FACTORY_ADDRESS, data: "0x08b74625" + pad(token) }]);
     const idx = idxHex ? Number(BigInt(idxHex)) : 0;
-    if (!idx) return json(404, { error: "not an ArcPad launch" }, "public, s-maxage=300");
-    const [rec, keyHex] = await ethCalls([
-      { to: FACTORY_ADDRESS, data: "0x7b443a76" + pad((idx - 1).toString(16)) },
-      { to: FACTORY_ADDRESS, data: "0x8652edf9" + pad(token) },
-    ]);
-    const launchedAt = Number(wBig(rec, 5));
-    const poolId = keccakHex(strip(keyHex).slice(0, 5 * 64));
+    let launchedAt, poolId;
+    if (idx) {
+      const [rec, keyHex] = await ethCalls([
+        { to: FACTORY_ADDRESS, data: "0x7b443a76" + pad((idx - 1).toString(16)) },
+        { to: FACTORY_ADDRESS, data: "0x8652edf9" + pad(token) },
+      ]);
+      launchedAt = Number(wBig(rec, 5));
+      poolId = keccakHex(strip(keyHex).slice(0, 5 * 64));
+    } else {
+      // launched on Argus through ArcPad: its pool is USDC / dynamic fee / tick spacing 200 / its hook
+      const a = await argusItem(token);
+      if (!a) return json(404, { error: "not an ArcPad launch" }, "public, s-maxage=300");
+      launchedAt = Number(a.launchedAt) || 0;
+      const [c0, c1] = BigInt(a.token) < BigInt(USDC) ? [a.token, USDC] : [USDC, a.token];
+      poolId = keccakHex(pad(c0) + pad(c1) + pad((0x800000).toString(16)) + pad((200).toString(16)) + pad(a.hook));
+    }
     const latest = await latestBlock();
     // launch block: estimate from the timestamp, then step back until we're before it
     let spb = 0.5;

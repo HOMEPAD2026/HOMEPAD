@@ -1257,9 +1257,10 @@
     v.innerHTML = `<div class="ams-card ams-rcpt">
       <button type="button" class="ams-x" data-view-close aria-label="${esc(tr("Close"))}">×</button>
       <span class="ams-kicker">${esc(tr("Airdrop receipt · verified on Arc"))}</span>
-      <h2 data-no-i18n>${esc(amt)}</h2>
+      <h2 data-no-i18n>${!nft && d.kind !== "multi" ? `<span class="ams-cu" data-raw="${esc(d.total)}" data-dec="${d.decimals}">${esc(fmt(BigInt(d.total), d.decimals))}</span> $${esc(d.symbol)}` : esc(amt)}</h2>
       <p class="ams-rcpt-sub">${esc(tr(`to ${plural(d.wallets, "wallet", "wallets")}`))} · <span data-no-i18n>${esc(tr("from"))} <a href="${explorer("address", d.sender)}" target="_blank" rel="noopener">${esc(short(d.sender))}</a> · ${d.ts ? esc(new Date(d.ts * 1000).toLocaleString()) : ""}</span></p>
-      <div class="ams-dots ams-rcpt-dots" aria-hidden="true">${Array.from({ length: Math.min(d.wallets, 300) }, (_, i) => `<i class="ok" style="--d:${(i % 60) * 14}ms"></i>`).join("")}</div>
+      <div class="ams-rounds" hidden></div>
+      <div class="ams-dots ams-rcpt-dots seq" aria-hidden="true">${(() => { const n = Math.min(d.wallets, 300), step = Math.min(28, 1500 / Math.max(1, n)); return Array.from({ length: n }, (_, i) => `<i class="ok" style="--d:${Math.round(i * step)}ms"></i>`).join(""); })()}</div>
       <div class="ams-rcpt-acts">${d.txs.map((h, i) => `<a class="ams-mini" href="${explorer("tx", h)}" target="_blank" rel="noopener">${esc(d.txs.length === 1 ? "tx" : tr(`batch ${i + 1}`))} ↗</a>`).join("")}
         <button type="button" class="ams-mini" data-copy-link="${esc(url)}">${esc(tr("Copy receipt link"))}</button>
         <a class="ams-mini" href="https://x.com/intent/post?text=${encodeURIComponent(`Airdrop: ${amt} to ${d.wallets} wallets on Arc — verified on-chain`)}&url=${encodeURIComponent(url)}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a></div>
@@ -1267,7 +1268,52 @@
       <ol class="ams-rows ams-rcpt-rows">${d.rows.slice(0, 600).map(([a, val, x]) => `<li data-a="${esc(a)}"><a class="ams-addr" href="${explorer("address", a)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(a))}</a><b data-no-i18n>${nft ? `#${esc(x)}${val !== "1" ? " × " + esc(val) : ""}` : d.kind === "multi" ? esc(val) + " · " + esc(short(x)) : fmt(BigInt(val), d.decimals)}</b></li>`).join("")}</ol>
       ${state.account ? `<p class="ams-rcpt-me">${d.rows.some(([a]) => lc(a) === lc(state.account)) ? esc(tr("Your wallet is on this airdrop.")) : ""}</p>` : ""}</div>`;
     const q = v.querySelector(".ams-rcpt-q");
-    q.addEventListener("input", () => { const s = lc(q.value.trim()); v.querySelectorAll(".ams-rcpt-rows li").forEach((li) => { li.hidden = !!s && !li.dataset.a.includes(s); }); });
+    q.addEventListener("input", () => { const s = lc(q.value.trim()); v.querySelectorAll(".ams-rcpt-rows li").forEach((li) => { li.hidden = !!s && !li.dataset.a.includes(s); }); if (/^0x[0-9a-f]{40}$/.test(s)) rcptMe(v, d, s); });
+    rcptCount(v.querySelector(".ams-cu"));
+    if (state.account) rcptMe(v, d, lc(state.account));
+    if (d.kind === "token") rcptRounds(v, d);
+  }
+  // ---- the receipt's moments: the total counts up, the dots light up one by one, your own
+  // wallet glows (with confetti, once), and other sends of the same token by the same wallet
+  // line up as rounds ----
+  const compact = (x) => (x >= 1e9 ? (x / 1e9).toFixed(2) + "B" : x >= 1e6 ? (x / 1e6).toFixed(2) + "M" : x >= 1e3 ? (x / 1e3).toFixed(2) + "K" : x.toFixed(x < 10 ? 2 : 0));
+  function rcptCount(el) {
+    if (!el || reduce) return;
+    const end = el.textContent, target = Number(BigInt(el.dataset.raw)) / 10 ** Number(el.dataset.dec || 18);
+    if (!(target > 0)) return;
+    const t0 = performance.now(), dur = 1100;
+    const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = k < 1 ? compact(target * e) : end; if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  function rcptMe(v, d, addr) {
+    const k = d.rows.findIndex(([a]) => lc(a) === addr);
+    if (k < 0) return;
+    v.querySelectorAll(".ams-rcpt-dots i.me, .ams-rcpt-rows li.me").forEach((x) => x.classList.remove("me"));
+    const dot = v.querySelectorAll(".ams-rcpt-dots i")[k];
+    if (dot) dot.classList.add("me");
+    const li = v.querySelector(`.ams-rcpt-rows li[data-a="${addr}"]`);
+    if (li) { li.classList.add("me"); li.hidden = false; }
+    const card = v.querySelector(".ams-rcpt");
+    if (card && !card.dataset.party) {
+      card.dataset.party = "1";
+      const me = v.querySelector(".ams-rcpt-me");
+      const [, val] = d.rows[k];
+      if (me && d.kind === "token") me.innerHTML = `${esc(tr("Your wallet is on this airdrop."))} <b data-no-i18n>${esc(fmt(BigInt(val), d.decimals))} $${esc(d.symbol)}</b>`;
+      if (!reduce && typeof window.arcConfetti === "function") setTimeout(() => window.arcConfetti(), 500);
+    }
+  }
+  async function rcptRounds(v, d) {
+    const r = await fetchJson(`/api/social?dropsby=${d.sender}`, null, 15000);
+    const box = v.querySelector(".ams-rounds");
+    if (!box || !r.ok || !r.j || !Array.isArray(r.j.items)) return;
+    const mine = d.txs.map(lc);
+    const rounds = r.j.items.filter((x) => lc(x.token) === lc(d.token) && x.kind === "token").sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    if (rounds.length < 2) return;
+    box.innerHTML = `<span class="ams-rounds-h">${esc(tr("Airdrop rounds"))}</span><ol>${rounds.map((x, i) => {
+      const cur = (x.txs || [x.tx]).some((t) => mine.includes(lc(t)));
+      return `<li class="${cur ? "cur" : ""}" style="--i:${i}"><a href="#multisend?receipt=${esc((x.txs || [x.tx]).join(","))}"><i aria-hidden="true"></i><span><b data-no-i18n>Round ${i + 1}</b><small data-no-i18n>${esc(fmt(BigInt(x.total || "0"), d.decimals))} · ${esc(tr(plural(x.n, "wallet", "wallets")))}</small></span></a></li>`;
+    }).join("")}</ol>`;
+    box.hidden = false;
   }
   async function showClaim(id) {
     const v = $("ams-view");

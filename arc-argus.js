@@ -463,7 +463,9 @@ self.postMessage({done:true});};`;
     return {
       platform: "argus", token: lc(x.token), name: x.name || "", symbol: x.symbol || "", creator: x.creator, quoteToken: USDC, imageUrl: x.image || "",
       description: x.description || "", launchedAt: x.launchedAt || 0, twitter: x.twitter || "", telegram: x.telegram || "", discord: "", website: x.website || "",
-      quoteSymbol: "USDC", quoteDecimals: 6, quoteIsUsdc: true, priceUsdc: x.priceUsd, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null, hook: x.hook, tx: x.tx, active: x.active,
+      quoteSymbol: "USDC", quoteDecimals: 6, quoteIsUsdc: true, priceUsdc: x.priceUsd, priceInQuote: x.priceUsd, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null, hook: x.hook, tx: x.tx, active: x.active,
+      // the opening price, from the pool's first tick (same maths as the server's priceFromSqrt)
+      startPrice: Number.isFinite(x.tickStart) && typeof x.tokenIs0 === "boolean" ? (x.tokenIs0 ? Math.pow(1.0001, x.tickStart) * 1e12 : 1e12 / Math.pow(1.0001, x.tickStart)) : null,
     };
   }
   async function loadList() {
@@ -472,7 +474,7 @@ self.postMessage({done:true});};`;
     try {
       const r = await fetch("/api/social?argusarc=list", { cache: "no-store" });
       const j = r.ok ? await r.json() : null;
-      if (j && Array.isArray(j.items)) { AR.items = j.items.filter((x) => x.active !== false && isAddr(x.token)).map(rowOf); AR.at = Date.now(); }
+      if (j && Array.isArray(j.items)) { AR.items = j.items.filter((x) => x.active !== false && isAddr(x.token)).map(rowOf); AR.at = Date.now(); milestones(AR.items); }
     } catch { /* keep what we had */ }
     AR.busy = false;
     // only once ArcPad's own launches are in: before that (or if Arc couldn't be read) the grid keeps its skeleton / error
@@ -484,18 +486,39 @@ self.postMessage({done:true});};`;
   // a link straight to one coin (the Telegram launch card): #explore?plat=argus&coin=0x…
   function deepLink() {
     const dl = /^#explore\b.*[?&]coin=(0x[0-9a-fA-F]{40})/.exec(location.hash);
-    if (dl && AR.opened !== lc(dl[1]) && AR.items.some((x) => x.token === lc(dl[1]))) { AR.opened = lc(dl[1]); openSheet(dl[1]); }
+    if (dl && AR.opened !== lc(dl[1]) && AR.items.some((x) => x.token === lc(dl[1]))) { AR.opened = lc(dl[1]); if (typeof window.openArcCoin === "function") window.openArcCoin(dl[1]); else openSheet(dl[1]); }
   }
   // market cap on a line from $0 to a bit past $100K: where the coin is now (the label rides the
   // dot), and the $20K / $100K support marks. "card" is the compact one on Explore cards.
   const kfmt = (v) => (v >= 1e6 ? "$" + (v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(v >= 1e4 ? 0 : 1).replace(/\.0$/, "") + "K" : "$" + Math.round(v));
-  function progressHtml(m, kind) {
+  // a coin that crossed $20K or $100K since this browser last looked: its bar bursts at the
+  // mark and the card glows (once, for a few seconds). The first visit only records the levels.
+  const MS_KEY = "arcircle.argus.ms.v1";
+  const levelOf = (m) => (m != null && m >= SUP.MARKETING_MCAP ? 2 : m != null && m >= SUP.DEX_INFO_MCAP ? 1 : 0);
+  function milestones(items) {
+    let seen = null;
+    try { seen = JSON.parse(localStorage.getItem(MS_KEY) || "null"); } catch { seen = null; }
+    const first = !seen; seen = seen || {};
+    AR.burst = AR.burst || new Map();
+    for (const x of items) {
+      const lv = levelOf(x.marketCapUsd), was = seen[x.token] || 0;
+      if (lv > was && !first) {
+        AR.burst.set(x.token, lv);
+        setTimeout(() => AR.burst.delete(x.token), 6000);
+        if (typeof window.arcTickerEvent === "function") window.arcTickerEvent({ kind: "milestone", token: x.token, sym: x.symbol, img: x.imageUrl, text: lv === 2 ? "$100K" : "$20K", argus: true });
+      }
+      if (lv > was || first) seen[x.token] = Math.max(lv, was);
+    }
+    try { localStorage.setItem(MS_KEY, JSON.stringify(seen)); } catch { /* private mode */ }
+  }
+  function progressHtml(m, kind, token) {
     const lo = SUP.DEX_INFO_MCAP, hi = SUP.MARKETING_MCAP, max = hi * 1.1;
     const x = (v) => Math.max(0, Math.min(100, (v / max) * 100));
     const p = m == null || !isFinite(m) ? 0 : x(m), lab = Math.max(kind === "card" ? 12 : 8, Math.min(kind === "card" ? 88 : 92, p));
     const on = (v) => m != null && m >= v;
     const tick = (v, t) => `<em class="${on(v) ? "on" : ""}" style="left:${x(v).toFixed(1)}%">${t}</em>`;
-    return `<div class="agl-prog ${kind || ""}${reduce ? " still" : ""}" style="--p:${p.toFixed(1)}%;--l:${lab.toFixed(1)}%" role="img" aria-label="${T("Market cap")} ${m != null ? kfmt(m) : "—"}">
+    const burst = token && AR.burst && AR.burst.get(lc(token));
+    return `<div class="agl-prog ${kind || ""}${reduce ? " still" : ""}${burst ? " burst b" + burst : ""}" style="--p:${p.toFixed(1)}%;--l:${lab.toFixed(1)}%" role="img" aria-label="${T("Market cap")} ${m != null ? kfmt(m) : "—"}">
       <b class="now" data-no-i18n>${m != null ? kfmt(m) : "—"}</b>
       <div class="trk"><i class="fill"></i><i class="tk${on(lo) ? " on" : ""}" style="left:${x(lo).toFixed(1)}%"></i><i class="tk${on(hi) ? " on" : ""}" style="left:${x(hi).toFixed(1)}%"></i><i class="dot"></i></div>
       ${tick(lo, "$20K")}${tick(hi, "$100K")}</div>`;
@@ -521,7 +544,7 @@ self.postMessage({done:true});};`;
       <button type="button" class="agl-sh-x" data-sh-close aria-label="${T("Close")}">×</button>
       <div class="agl-sh-h"><div class="agl-sh-logo">${logo}</div><div><h3 id="agl-sh-t" data-no-i18n>$${esc(l.symbol)} <small>${esc(l.name)}</small></h3><span class="agl-sh-tag">${T("Launched on Argus via ArcPad")}</span></div></div>
       <div class="agl-sh-stats"><div><small>${T("Price")}</small><b data-no-i18n>${l.priceUsdc != null ? usd(l.priceUsdc) : "—"}</b></div><div><small>${T("Market cap")}</small><b data-no-i18n>${usd(m)}</b></div><div><small>${T("Creator")}</small><b data-no-i18n><a href="${esc(EXPL("address", l.creator))}" target="_blank" rel="noopener">${esc(short(l.creator))}</a></b></div></div>
-      ${progressHtml(m, "lg")}
+      ${progressHtml(m, "lg", l.token)}
       <ul class="agl-sh-ms">${ms(lo, "Dexscreener info support", "From a $20K market cap: we help update the coin's Dexscreener info.")}${ms(hi, "Marketing support", "From a $100K market cap: boosts, calls and promotion, case by case.")}</ul>
       <p class="agl-sh-note">${T("Support may be refused if our Token Scanner finds signs of manipulation, or if the 70 / 30 fee split is removed. It is ARCIRCLE PAD's own policy, not a contract.")}</p>
       ${l.description ? `<p class="agl-sh-desc" data-no-i18n>${esc(l.description)}</p>` : ""}

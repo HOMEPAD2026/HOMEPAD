@@ -487,6 +487,25 @@
     document.dispatchEvent(new CustomEvent("circlepad:state"));
   };
 
+  // ================= the final 24 hours: a banner across the top of the page =================
+  let banner = null;
+  function finalBanner(rem, urgent) {
+    if (!rem) { if (banner) banner.hidden = true; return; }
+    if (!banner) {
+      const host = document.querySelector(".bp-scroll");
+      if (!host) return;
+      banner = document.createElement("a");
+      banner.className = "cp-final24"; banner.href = "#bp-round-countdown";
+      banner.innerHTML = `<i aria-hidden="true"></i><b>${tr("Final 24 hours")}</b><span>${tr("The round closes in")}</span><time data-no-i18n></time><em>${tr("Join now")}</em>`;
+      banner.addEventListener("click", (e) => { const t = $("bp-round-countdown"); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); } });
+      host.insertBefore(banner, host.firstChild);
+    }
+    banner.hidden = false;
+    banner.classList.toggle("urgent", !!urgent);
+    const h = Math.floor(rem / 3600), m = Math.floor((rem % 3600) / 60), sec = rem % 60, z = (n) => String(n).padStart(2, "0");
+    banner.querySelector("time").textContent = `${z(h)}:${z(m)}:${z(sec)}`;
+  }
+
   // ================= countdown: flip digits, urgent last hour =================
   if (typeof updateCirclepadCountdown === "function") {
     const origCd = updateCirclepadCountdown;
@@ -506,8 +525,10 @@
         return `<span class="cp-cd-u"><b class="${changed ? "cp-flip" : ""}" data-no-i18n>${val}</b><i>${u}</i></span>`;
       }).join("")}</span>`;
       parts.forEach(([u, v]) => { last[u] = String(v).padStart(u === "d" ? 1 : 2, "0"); });
-      const urgent = rem < 3600;
+      const urgent = rem < 3600, lastDay = rem < 86400;
       cd.classList.toggle("cp-cd-urgent", urgent);
+      cd.classList.toggle("cp-cd-lastday", lastDay && !urgent);
+      finalBanner(lastDay ? rem : 0, urgent); // shown while the countdown runs, like the countdown itself
       if (ring && S && S.isOpen) ring.dataset.state = urgent ? "urgent" : "live";
     };
   }

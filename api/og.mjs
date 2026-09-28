@@ -345,10 +345,11 @@ async function snapCard(mark, id) {
   const when = done ? new Date(d.ts * 1000) : new Date(d.at * 1000);
   const big = done ? `${Number(d.count).toLocaleString("en-US")} holders` : "Scheduled";
   const line2 = done ? `of ${sym} at block #${Number(d.block).toLocaleString("en-US")}` : `${sym} snapshot at ${when.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  const extras = [d.f && d.f.hold ? `held for ${Math.round(d.f.hold / 3600) >= 48 ? Math.round(d.f.hold / 86400) + " days" : Math.round(d.f.hold / 3600) + "h"}` : "", d.f && d.f.locks ? "locked tokens count" : "", d.by ? `signed by ${d.by.slice(0, 6)}…${d.by.slice(-4)}` : ""].filter(Boolean).join(" · ");
+  const rec = done && d.created ? `recorded ${new Date(d.created).toISOString().slice(0, 16).replace("T", " ")} UTC` : "";
+  const extras = [rec, d.f && d.f.min ? `${Number(d.f.min).toLocaleString("en-US")}+ held` : "", d.f && d.f.hold ? `held for ${Math.round(d.f.hold / 3600) >= 48 ? Math.round(d.f.hold / 86400) + " days" : Math.round(d.f.hold / 3600) + "h"}` : "", d.f && d.f.locks ? "locked tokens count" : "", d.by ? `signed by ${d.by.slice(0, 6)}…${d.by.slice(-4)}` : ""].filter(Boolean).join(" · ");
   const bars = Array.from({ length: 16 }, (_, i) => h("div", { width: 16, height: 30 + Math.round(150 * Math.pow(0.84, i)), borderRadius: 5, backgroundColor: i < 3 ? "#ff8bd8" : i < 9 ? acc : "#7c9cff", opacity: done ? 1 : 0.35 }));
   return frame([
-    brandRow(mark, pill(done ? "SNAPSHOT" : "SCHEDULED", acc), "Snapshot · Circle's Arc"),
+    brandRow(mark, pill(done ? (d.auto ? "SNAPSHOT RECORD" : "SNAPSHOT") : "SCHEDULED", acc), "Snapshot · Circle's Arc"),
     h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
       h("div", { flexDirection: "column", gap: 12, maxWidth: 660 },
         d.title ? h("div", { fontSize: 30, color: acc, fontWeight: 700 }, clip(d.title, 40)) : null,

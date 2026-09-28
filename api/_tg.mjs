@@ -10,7 +10,7 @@ const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /// the card for an Argus launch listed through ArcPad (an item from api/_argus-arcpad.mjs)
 export function argusPost(c) {
   const sym = c.symbol || "COIN";
-  const page = `${SITE}/arc#explore?plat=argus&coin=${c.token}`;
+  const page = `${SITE}/arc#coin/${c.token}`;
   const trade = `https://argus.world/token/${c.token}`;
   const desc = String(c.description || "").replace(/\s+/g, " ").trim();
   const title = `<b>$${h(sym)}</b>${c.name && c.name !== sym ? `  —  ${h(c.name)}` : ""}`

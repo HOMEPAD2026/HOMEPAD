@@ -237,6 +237,43 @@ const note = (k, lang) => NOTE[k][lang] || NOTE[k].en;
 
 // ---------- who's chatting: name + wallet, as context for her ----------
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
+
+// "Did I get my airdrop?": the Multisender airdrops a wallet received (the connected one, or an
+// address in the question), round by round per token and sender, with the receipt of each — so
+// ARCIA answers from the chain, not from memory.
+const DROP_Q = /airdrop|air drop|drop|receiv|did i get|got any|claim|에어\s?드[랍롭]|에드|드랍|받았|받은|받을|수령|클레임|空投|收到|领取/i;
+function unitsOf(raw, dec) {
+  try {
+    const v = BigInt(raw), d = 10n ** BigInt(dec ?? 18), whole = v / d, frac = Number(v % d) / Number(d);
+    const x = Number(whole) + frac;
+    return x >= 1e6 ? (x / 1e6).toFixed(2) + "M" : x >= 1e3 ? (x / 1e3).toFixed(2) + "K" : x.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  } catch { return "?"; }
+}
+async function dropsContext(origin, q, wallet) {
+  const inQ = /0x[0-9a-fA-F]{40}/.exec(q || "");
+  if (!DROP_Q.test(q || "") && !inQ) return "";
+  const w = inQ ? inQ[0].toLowerCase() : wallet;
+  if (!w) return "About airdrops: no wallet is connected and the question has no address, so you can't look up what they received — ask them to connect their wallet or paste their address (0x…), and mention the Portfolio page (https://www.arcircle.app/arc#portfolio) shows every airdrop they got.";
+  const r = await fetch(`${origin}/api/social?received=${w}`, { signal: AbortSignal.timeout(6000) });
+  const j = r.ok ? await r.json() : null;
+  if (!j) return "";
+  const got = (j.got || []).filter((g) => g.kind !== "nft").sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const short = `${w.slice(0, 6)}…${w.slice(-4)}`;
+  if (!got.length && !(j.claims || []).length) return `Airdrop lookup for wallet ${short}: the ARCIRCLE PAD Multisender has sent it nothing yet (checked on-chain just now). Say so kindly; if they expected one, the snapshot and receipt links in ARCIRCLE's announcement show who was on the list.`;
+  const groups = new Map();
+  for (const g of got) { const k = `${g.token}|${g.from}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(g); }
+  const lines = [];
+  for (const list of groups.values()) {
+    let total = 0n;
+    list.forEach((g, i) => {
+      try { total += BigInt(g.amount); } catch { /* skip */ }
+      lines.push(`- Round ${i + 1}: ${unitsOf(g.amount, g.dec)} $${g.sym} on ${g.ts ? new Date(g.ts * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC" : "?"} from ${String(g.from).slice(0, 6)}…${String(g.from).slice(-4)} — receipt https://www.arcircle.app/drop/${g.tx}`);
+    });
+    if (list.length > 1) lines.push(`  Total from these ${list.length} rounds: ${unitsOf(total.toString(), list[0].dec)} $${list[0].sym}`);
+  }
+  for (const c of (j.claims || []).slice(0, 5)) lines.push(`- Waiting to be claimed: ${unitsOf(c.amount, c.dec)} $${c.sym} in claim drop #${c.drop} — https://www.arcircle.app/arc#multisend?claim=${c.drop}`);
+  return `Airdrop lookup for wallet ${short} (read on-chain just now, ARCIRCLE PAD Multisender):\n${lines.join("\n")}\nAnswer their airdrop question from this list: say round by round what they got and link the receipt (one link per round is fine here). Don't guess amounts that aren't listed.`;
+}
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>"`{}\[\]\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
 const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
 const fmtN = (v) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -391,7 +428,8 @@ export async function POST(req) {
   const name = cleanName(body.name);
   const L = await liveFor(url.origin, wallet);
   const me = L && L.me ? L.me : null;
-  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, pageContext(body.page), fanContext(name, me),
+  const drops = await dropsContext(url.origin, q, wallet).catch(() => "");
+  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, pageContext(body.page), fanContext(name, me), drops,
     "When one page on arcircle.app answers the question, end your reply with that page's link on its own line (just one, only a real page from your facts)."].filter(Boolean).join("\n");
   const pub = L ? { ...L, me: undefined } : null;
   const guideReply = () => json({ reply: guide(q, lang, L), mode: "guide", live: pub, me });
@@ -420,3 +458,4 @@ export async function POST(req) {
   if (text) { countAI(lim); return json({ reply: text, mode: "ai", live: pub, me, left: lim.left ?? null }); }
   return guideReply();
 }
+export { dropsContext };
