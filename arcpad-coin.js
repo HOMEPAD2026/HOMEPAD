@@ -366,7 +366,7 @@ function apcRenderHeader() {
   apc$("apc-ca-full").textContent = l.token;
   apc$("apc-ca-short").textContent = apcShort(l.token);
   apc$("apc-scan-link").href = apcExplorer("token", l.token);
-  if (apc$("apc-safety")) apc$("apc-safety").href = `#scanner?t=${l.token}`;
+  if (apc$("apc-safety")) { apc$("apc-safety").href = `#scanner?t=${l.token}`; apcSafetyScore(l.token); }
   if (apc$("apc-liqmgr")) apc$("apc-liqmgr").href = `#liquidity?token=${l.token}`;
   const desc = apc$("apc-desc");
   if (l.description) { desc.textContent = l.description; desc.hidden = false; } else desc.hidden = true;
@@ -896,3 +896,24 @@ window.arcLaunchedTokenFromReceipt = arcLaunchedTokenFromReceipt;
     if (APC.l) { apcRefresh(); apcRenderTrades(); apcRenderHolders(); }
   };
 })();
+
+// The Token Scanner's cached score on the coin page's "Safety scan" chip (server scans, a few hours old at most).
+const apcScoreCache = new Map();
+async function apcSafetyScore(token) {
+  const chip = apc$("apc-safety");
+  if (!chip) return;
+  const k = String(token).toLowerCase();
+  chip.classList.remove("v-ok", "v-care", "v-risk");
+  const old = chip.querySelector(".apc-score"); if (old) old.remove();
+  let d = apcScoreCache.get(k);
+  if (d === undefined) {
+    try { const r = await fetch(`/api/social?scores=${k}`); const j = r.ok ? await r.json() : null; d = (j && j.scores && j.scores[k]) || null; } catch (e) { d = null; }
+    apcScoreCache.set(k, d);
+  }
+  if (!d || d.score == null || !APC || String(APC.token).toLowerCase() !== k) return;
+  const b = document.createElement("b");
+  b.className = "apc-score"; b.setAttribute("data-no-i18n", ""); b.textContent = String(d.score);
+  chip.appendChild(b);
+  chip.classList.add("v-" + d.k);
+  chip.title = `Token Scanner: ${d.score}/100 · ${d.t}`;
+}

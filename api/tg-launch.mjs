@@ -30,6 +30,7 @@ import { scanToken } from "./_scan.mjs";
 
 export const config = { runtime: "edge" };
 const sent = new Set();
+let botName = null;
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const h = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -79,7 +80,10 @@ async function onUpdate(req, bot) {
   let u = {};
   try { u = (await req.json()) || {}; } catch { return json(200, { ok: true }); }
   const msg = u.message || u.edited_message;
-  const text = String((msg && msg.text) || "").trim();
+  let text = String((msg && msg.text) || "").trim();
+  // deep links from the Token Scanner: t.me/<bot>?start=watch_0x… / scan_0x…
+  const st = /^\/start(?:@\w+)?\s+(watch|scan)_(0x[0-9a-fA-F]{40})$/i.exec(text);
+  if (st) text = `/${st[1].toLowerCase()} ${st[2]}`;
   const m = /^\/scan(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
   const w = /^\/(watch|unwatch|watching)(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
   const sn = /^\/snapshot(?:@\w+)?(?:\s+(\S+))?/i.exec(text);
@@ -174,6 +178,12 @@ export default async function handler(req) {
     // only Telegram knows the secret; a wrong or missing one is ignored quietly
     if (!bot || !hook || sig !== hook) return json(200, { ok: false });
     return onUpdate(req, bot);
+  }
+  // GET ?bot=1 → the bot's @username, so the Token Scanner can link to it (the token itself never leaves the server)
+  if (req.method === "GET" && new URL(req.url).searchParams.has("bot")) {
+    if (!bot || !hook) return new Response(JSON.stringify({ enabled: false }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=300, s-maxage=3600" } });
+    if (!botName) { try { const r = await (await fetch(`https://api.telegram.org/bot${bot}/getMe`)).json(); botName = r && r.ok && r.result ? r.result.username : null; } catch { botName = null; } }
+    return new Response(JSON.stringify(botName ? { enabled: true, username: botName } : { enabled: false }), { status: 200, headers: { "content-type": "application/json", "cache-control": botName ? "public, max-age=3600, s-maxage=86400" : "no-store" } });
   }
   if (!bot || !chat) return json(200, { ok: false, enabled: false });
   if (req.method !== "POST") return json(405, { ok: false, error: "POST only" });

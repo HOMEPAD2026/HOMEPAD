@@ -10,6 +10,10 @@
 //   • holders as a donut, the token's own history as a timeline, the deployer
 //   • paste a wallet instead and it lists the ArcPad coins it holds
 //   • compare two tokens, watch one (alerts while ArcPad is open), share a card
+// v2: the launch (snipers, a bundled first block, deployer hand-outs, fresh wallets
+// at the top), where the points went, the last server score and its history,
+// holders as a bubble map, the creator's other coins with their scores, Telegram
+// alerts through the bot, and "Ask ARCIA" about the result.
 // Deep link: /arc#scanner?t=0x…   Recent scans and watches: this browser only.
 (function () {
   "use strict";
@@ -92,6 +96,12 @@
     progress(true);
     shell();
     const alive = () => my === seq;
+    // the server's last score for it (instant, and it keeps the daily history)
+    fetchJson(`/api/social?scores=${lc(addr)}`, 12000).then((j) => {
+      if (!alive() || !j || !j.scores) return;
+      cur.server = j.scores[lc(addr)] || null;
+      paintServer();
+    });
     const mark = (part, ok) => { if (!alive()) return; cur.done[part] = true; stepDone(part, ok); paint(); };
 
     // 1. contract (everything else needs to know it's a token)
@@ -199,7 +209,7 @@
     info: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 11v6M12 7.5h.01"/></svg>',
   };
   const GROUPS = [["contract", "Contract", ["contract", "extras"]], ["control", "Who controls it", ["contract", "extras"]], ["trade", "Trading", ["trade", "extras"]],
-    ["market", "Market", ["market"]], ["holders", "Holders", ["holders"]], ["history", "History", ["holders"]]];
+    ["market", "Market", ["market"]], ["holders", "Holders", ["holders"]], ["early", "Launch", ["holders"]], ["history", "History", ["holders"]]];
   const SHIELD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/></svg>';
 
   function shell() {
@@ -310,6 +320,8 @@
     res.rows.forEach((r) => { if (counts[r.status] != null) counts[r.status]++; });
     h.querySelector(".asc-vtitle").textContent = tr(v.t);
     h.querySelector(".asc-reasons").innerHTML = res.reasons.map((r, i) => `<span class="asc-reason st-${r.status}" style="--i:${i}">${ICON[r.status]}${esc(tr(r.title))}</span>`).join("");
+    paintBreak(res);
+    paintServer();
     h.querySelector(".asc-counts").innerHTML = `<span class="c-pass">${counts.pass} ${esc(tr("OK"))}</span><span class="c-warn">${counts.warn} ${esc(tr(counts.warn === 1 ? "warning" : "warnings"))}</span><span class="c-risk">${counts.risk} ${esc(tr(counts.risk === 1 ? "risk" : "risks"))}</span>`
       + `<span class="asc-when">${esc(tr("Scanned"))} <time data-no-i18n>${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</time></span>`;
     const watching = watched().some((w) => lc(w.a) === lc(cur.addr));
@@ -321,6 +333,8 @@
       <button type="button" data-act="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m3.5 15 5-4.5 4 3.5 3-2.5 5 4"/></svg>${esc(tr("Save card"))}</button>
       <button type="button" data-act="link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>${esc(tr("Copy link"))}</button>
       <button type="button" data-act="watch" aria-pressed="${watching}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>${esc(tr(watching ? "Watching" : "Watch"))}</button>
+      <button type="button" data-act="tg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.2M21 4l-3.5 16-6.5-5.5M21 4 9 13.2v5.3l2.8-3.5"/></svg>${esc(tr("Telegram alerts"))}</button>
+      <button type="button" data-act="arcia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H9l-5 4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>${esc(tr("Ask ARCIA"))}</button>
       <button type="button" data-act="embed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>${esc(tr("Embed badge"))}</button>
       <button type="button" data-act="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>${esc(tr(compareBase && lc(compareBase.addr) !== lc(cur.addr) ? "Compare" : "Compare with…"))}</button>`;
   }
@@ -332,6 +346,41 @@
     fill.style.strokeDashoffset = String(C * (1 - Math.max(0.02, s / 100)));
     fill.style.stroke = `hsl(${hue} 90% 58%)`; fill.style.filter = `drop-shadow(0 0 8px hsl(${hue} 90% 58% / .6))`;
     sc.textContent = String(Math.round(s));
+  }
+  // where the points went: one segment per group that cost something
+  const GCOL = { contract: "#4d9fff", control: "#b58bff", trade: "#ff8a4c", market: "#ffc861", holders: "#ff6e9a", early: "#35d8d0", history: "#9aa4b2" };
+  function paintBreak(res) {
+    const h = $("asc-head");
+    if (!h) return;
+    let box = h.querySelector(".asc-break");
+    if (!box) { box = document.createElement("div"); box.className = "asc-break"; h.querySelector(".asc-v-txt").appendChild(box); }
+    const lost = {};
+    res.rows.forEach((r) => { if (r.pts) lost[r.group] = (lost[r.group] || 0) + r.pts; });
+    const groups = GROUPS.filter(([g]) => res.rows.some((r) => r.group === g));
+    const total = Object.values(lost).reduce((t, v) => t + v, 0);
+    const bar = Object.entries(lost).map(([g, v], i) => `<i style="--w:${Math.min(100, v)}%;--c:${GCOL[g] || "#888"};--i:${i}" title="${esc(tr(GROUPS.find((x) => x[0] === g)[1]))} −${v}"></i>`).join("");
+    const capped = res.cap < 100 && res.score === res.cap && 100 - total > res.cap;
+    box.innerHTML = `<div class="asc-break-bar" aria-hidden="true"><b style="--w:${Math.max(0, 100 - Math.min(100, total))}%"></b>${bar}</div>
+      <div class="asc-break-chips">${groups.map(([g, t]) => `<span class="${lost[g] ? "lost" : "ok"}" style="--c:${GCOL[g]}"><i></i>${esc(tr(t))} <b data-no-i18n>${lost[g] ? "−" + lost[g] : "0"}</b></span>`).join("")}
+      ${capped ? `<span class="cap">${esc(tr("Capped at"))} <b data-no-i18n>${res.cap}</b></span>` : ""}</div>`;
+  }
+  // the server's own last score, and one score per day since
+  function paintServer() {
+    const h = $("asc-head");
+    if (!h || !cur) return;
+    const sv = cur.server;
+    let box = h.querySelector(".asc-server");
+    if (!sv || sv.score == null) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("div"); box.className = "asc-server"; h.querySelector(".asc-v-txt").appendChild(box); }
+    const ago = sv.at ? K.ageText(Math.max(60, (Date.now() - sv.at) / 1000)) : null;
+    const pts = (sv.hist || []).map((x) => { const [d, v] = String(x).split("|"); return { d, v: Number(v) }; }).filter((x) => isFinite(x.v));
+    if (cur.final && cur.res && !cur.res.notToken) { const today = new Date().toISOString().slice(0, 10); if (!pts.length || pts[pts.length - 1].d !== today) pts.push({ d: today, v: cur.res.score }); else pts[pts.length - 1].v = cur.res.score; }
+    let spark = "";
+    if (pts.length >= 2) {
+      const W = 150, H = 30, xs = (i) => ((i / (pts.length - 1)) * W).toFixed(1), ys = (v) => (H - 3 - (v / 100) * (H - 6)).toFixed(1);
+      spark = `<svg class="asc-hist" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${ys(75)}" y2="${ys(75)}" class="g"/><line x1="0" x2="${W}" y1="${ys(45)}" y2="${ys(45)}" class="g"/><polyline points="${pts.map((p, i) => `${xs(i)},${ys(p.v)}`).join(" ")}"/><circle cx="${xs(pts.length - 1)}" cy="${ys(pts[pts.length - 1].v)}" r="2.6"/></svg>`;
+    }
+    box.innerHTML = `${spark}<small>${pts.length >= 2 ? `${esc(tr("Score over time"))} · <span data-no-i18n>${esc(pts[0].d.slice(5))} → ${esc(pts[pts.length - 1].d.slice(5))}</span>` : `${esc(tr("Last server scan"))}: <b data-no-i18n>${sv.score}</b>${ago ? ` · <span data-no-i18n>${esc(ago)}</span> ${esc(tr("ago"))}` : ""}`}</small>`;
   }
   function reveal() {
     const h = $("asc-head");
@@ -383,6 +432,14 @@
       ["Market cap", K.usd(m.mcap)], ["Liquidity", m.liq != null ? K.usd(m.liq) : "—"], ["24h volume", m.vol != null ? K.usd(m.vol) : "—"],
       ["24h trades", m.buys != null ? `<span class="asc-b">${m.buys}</span> / <span class="asc-s">${m.sells}</span>` : "—"], ["Pool age", m.created ? K.ageText(now - m.created) : "—"],
     ];
+    // trade tax: the Argus record, else the dry-run trades
+    const ag = cur && cur.x && cur.x.argus;
+    const legs = cur && cur.sim && cur.sim.legs;
+    const tax = ag ? (ag.buyTaxBps === ag.sellTaxBps ? K.pct(ag.buyTaxBps / 100) : `${K.pct(ag.buyTaxBps / 100)} / ${K.pct(ag.sellTaxBps / 100)}`)
+      : legs && ((legs.buy && legs.buy.ok) || (legs.sell && legs.sell.ok)) ? `${legs.buy && legs.buy.ok ? K.pct(legs.buy.tax || 0) : "—"} / ${legs.sell && legs.sell.ok ? K.pct(legs.sell.tax || 0) : "—"}` : null;
+    if (tax) list.push(["Tax buy / sell", tax]);
+    const hist = (cur && cur.h && cur.h.hist) || [];
+    if (hist.length >= 2) { const dN = hist[hist.length - 1].n - hist[hist.length - 2].n; list.push(["Holders, last day", `<span class="${dN >= 0 ? "asc-b" : "asc-s"}">${dN >= 0 ? "+" : "−"}${Math.abs(dN).toLocaleString("en-US")}</span>`]); }
     const html = list.map(([k, v, extra], i) => `<div style="--i:${i}"><small>${esc(tr(k))}</small><b data-no-i18n>${v}</b>${extra || ""}</div>`).join("");
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
@@ -407,8 +464,10 @@
       const tags = [p.deployer ? `<em class="t-dep">${esc(tr("Deployer"))}</em>` : "", p.contract ? `<em class="t-con">${esc(tr("Contract"))}</em>` : ""].join("");
       return `<li style="--w:${Math.min(100, pc * 2).toFixed(2)}%"><span class="n" data-no-i18n>${i + 1}</span><a href="${ex("address", p.a)}" target="_blank" rel="noopener" data-no-i18n>${short(p.a)}</a>${tags}<b data-no-i18n>${K.pct(pc)}</b></li>`;
     }).join("") || `<li class="none">${esc(tr("No wallets besides the pool, burned and locked tokens."))}</li>`;
-    const html = `<h3>${esc(tr("Holders"))}</h3>
-      <div class="asc-donut-wrap"><svg class="asc-donut" viewBox="0 0 120 120" aria-hidden="true"><circle class="d-track" cx="60" cy="60" r="${R}"/>${arcs}</svg>
+    const view = box.dataset.view || "chart";
+    const html = `<h3>${esc(tr("Holders"))}<span class="asc-hview" role="radiogroup"><button type="button" role="radio" data-hview="chart" aria-checked="${view === "chart"}">${esc(tr("Chart"))}</button><button type="button" role="radio" data-hview="map" aria-checked="${view === "map"}">${esc(tr("Map"))}</button></span></h3>
+      ${view === "map" ? bubbleMap(d) : ""}
+      <div class="asc-donut-wrap"${view === "map" ? " hidden" : ""}><svg class="asc-donut" viewBox="0 0 120 120" aria-hidden="true"><circle class="d-track" cx="60" cy="60" r="${R}"/>${arcs}</svg>
         <div class="asc-donut-mid"><b data-no-i18n>${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}</b><small>${esc(tr("holders"))}</small></div>
         <ul class="asc-legend">${vis.map(([k, t, v]) => `<li class="d-${k}" data-seg="${k}" tabindex="0"><i></i><span>${esc(tr(t))}</span><b data-no-i18n>${K.pct(v)}</b></li>`).join("")}</ul></div>
       ${growth()}
@@ -416,6 +475,65 @@
       ${more ? `<p class="asc-more-hist"><i></i>${esc(tr("Reading older history…"))}</p>` : ""}
       <p class="asc-hnote">${esc(tr(d.complete ? "From the token's full transfer history; balances read live." : "From recent transfer history; balances read live."))}</p>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; box.classList.remove("is-pending"); }
+    earlyCard(d);
+  }
+  // ---- bubble map: every large wallet as a circle sized by its share; the
+  // deployer, snipers, hand-outs and fresh wallets coloured; lines from the
+  // deployer to the wallets it handed tokens to ----
+  function bubbleMap(d) {
+    const S = d.S, e = d.early || null;
+    const tag = new Map();
+    ((e && e.top) || []).forEach(([a, , k]) => tag.set(lc(a), k === "s" ? "snipe" : "hand"));
+    const items = [];
+    if (d.inPool > 0) items.push({ k: "pool", t: tr("Pool"), v: d.inPool });
+    if (d.burned > 0) items.push({ k: "burn", t: tr("Burned"), v: d.burned });
+    if (d.locked > 0) items.push({ k: "lock", t: tr("Locked"), v: d.locked });
+    d.people.forEach((p) => items.push({ k: p.deployer ? "dep" : tag.get(lc(p.a)) || (p.contract ? "con" : p.nonce != null && p.nonce <= 2 ? "fresh" : "hold"), t: short(p.a), v: p.v, a: p.a }));
+    ((e && e.top) || []).forEach(([a, v, k]) => { if (!items.some((x) => lc(x.a || "") === lc(a))) items.push({ k: k === "s" ? "snipe" : "hand", t: short(a), v: K.units(v, cur.c.decimals), a }); });
+    if (!items.length) return "";
+    const W = 300, H = 220, maxV = Math.max(...items.map((x) => x.v)) || 1;
+    items.sort((a, b) => b.v - a.v);
+    // spiral packing: each circle goes to the first free spot along a spiral from the middle
+    const placed = [];
+    items.slice(0, 26).forEach((it, i) => {
+      const r = Math.max(5, Math.sqrt(it.v / maxV) * 46);
+      let x = W / 2, y = H / 2, ang = 0, rad = 0;
+      for (let k = 0; k < 900; k++) {
+        const hit = placed.some((p) => Math.hypot(p.x - x, p.y - y) < p.r + r + 2.5);
+        if (!hit && x - r > 2 && x + r < W - 2 && y - r > 2 && y + r < H - 2) break;
+        ang += 0.35; rad += 0.45; x = W / 2 + Math.cos(ang) * rad * 1.35; y = H / 2 + Math.sin(ang) * rad * 0.95;
+      }
+      placed.push({ ...it, x, y, r, i });
+    });
+    const dep = placed.find((p) => p.k === "dep");
+    const lines = dep ? placed.filter((p) => p.k === "hand").map((p) => `<line x1="${dep.x.toFixed(1)}" y1="${dep.y.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}"/>`).join("") : "";
+    const LBL = { pool: "Pool", burn: "Burned", lock: "Locked", dep: "Deployer", snipe: "Sniper", hand: "Got a hand-out", fresh: "Fresh wallet", con: "Contract", hold: "Holder" };
+    const kinds = [...new Set(placed.map((p) => p.k))];
+    return `<div class="asc-bmap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tr("Holders as bubbles"))}"><g class="ln">${lines}</g>${placed.map((p) => `<g class="b k-${p.k}" style="--i:${p.i}"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r.toFixed(1)}"><title>${esc(p.t)} · ${K.pct((p.v / S) * 100)} · ${esc(tr(LBL[p.k]))}</title></circle>${p.r > 15 ? `<text x="${p.x.toFixed(1)}" y="${(p.y + 3.5).toFixed(1)}" text-anchor="middle">${K.pct((p.v / S) * 100)}</text>` : ""}</g>`).join("")}</svg>
+      <ul class="asc-bmap-key">${kinds.map((k) => `<li class="k-${k}"><i></i>${esc(tr(LBL[k]))}</li>`).join("")}</ul></div>`;
+  }
+  // ---- the first minutes of trading ----
+  function earlyCard(d) {
+    const side = $("asc-side");
+    if (!side || !cur) return;
+    let box = $("asc-early");
+    const e = d && d.early;
+    if (!e) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("div"); box.className = "asc-card asc-early"; box.id = "asc-early"; const dep = $("asc-deployer"); side.insertBefore(box, dep || $("asc-timeline") || null); }
+    const S = d.S, dec = cur.c.decimals;
+    const sev = e.heldPct >= 25 ? "risk" : e.heldPct >= 10 || e.sameBlock >= 5 || e.handout >= 5 ? "warn" : "ok";
+    const rows = (e.top || []).slice(0, 6).map(([a, v, k]) => `<li><span class="t t-${k === "s" ? "s" : "h"}">${esc(tr(k === "s" ? "Sniper" : "Hand-out"))}</span><a href="${ex("address", a)}" target="_blank" rel="noopener" data-no-i18n>${short(a)}</a><b data-no-i18n>${K.pct((K.units(v, dec) / S) * 100)}</b></li>`).join("");
+    const html = `<h3>${esc(tr("First minutes of trading"))}<em class="sev-${sev}">${esc(tr(sev === "risk" ? "Risk found" : sev === "warn" ? "Worth a look" : "All good"))}</em></h3>
+      <div class="asc-early-stats">
+        <div><b data-no-i18n>${e.snipers || 0}</b><small>${esc(tr("snipers"))}</small></div>
+        <div><b data-no-i18n>${K.pct(e.heldPct || 0)}</b><small>${esc(tr("they still hold"))}</small></div>
+        <div><b data-no-i18n>${e.sameBlock || 0}</b><small>${esc(tr("in the first block"))}</small></div>
+        <div><b data-no-i18n>${e.handout || 0}</b><small>${esc(tr("hand-outs"))}</small></div>
+      </div>
+      ${d.fresh ? `<p class="asc-hnote">${esc(tr("Fresh wallets among the 10 largest:"))} <b data-no-i18n>${d.fresh.n} / ${d.fresh.of}</b></p>` : ""}
+      ${rows ? `<ol class="asc-early-list">${rows}</ol>` : ""}
+      <p class="asc-hnote">${esc(tr("Read from the token's transfers in the first ~25 minutes after it was created. Snipers bought in the first ~10 seconds."))}</p>`;
+    if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
   // holder count per day (kept by the server each time the token is scanned)
   function growth() {
@@ -485,9 +603,18 @@
         ${when ? `<div><dt>${esc(tr("Created"))}</dt><dd data-no-i18n>${esc(when)}</dd></div>` : ""}
         <div><dt>${esc(tr("Other ArcPad coins"))}</dt><dd data-no-i18n>${others.length}</dd></div>
       </dl>
-      ${others.length ? `<div class="asc-chips-in">${others.map((l) => `<button type="button" class="asc-chip" data-t="${esc(l.token)}" data-no-i18n>$${esc(l.symbol)}</button>`).join("")}</div>` : ""}`;
+      ${others.length ? `<h4>${esc(tr("Their other coins"))}</h4><ul class="asc-dep-coins">${others.map((l) => { const sc = depScores.get(lc(l.token)); return `<li><button type="button" data-t="${esc(l.token)}"><b data-no-i18n>$${esc(l.symbol)}</b><small data-no-i18n>${l.marketCapUsd != null ? K.usd(l.marketCapUsd) + " " + esc(tr("market cap")) : ""}${l.launchedAt ? " · " + K.ageText(Date.now() / 1000 - l.launchedAt) : ""}</small>${sc ? miniRing(sc.score) : `<i class="asc-dep-wait"></i>`}</button></li>`; }).join("")}</ul>` : ""}`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
+    const need = others.map((l) => lc(l.token)).filter((a) => !depScores.has(a));
+    if (need.length) {
+      need.forEach((a) => depScores.set(a, null));
+      fetchJson(`/api/social?scores=${need.join(",")}`, 15000).then((j) => {
+        if (j && j.scores) Object.entries(j.scores).forEach(([a, v]) => depScores.set(a, v));
+        if (cur && cur.res && cur.res.dist) deployerCard(cur.res.dist);
+      });
+    }
   }
+  const depScores = new Map();
 
   // ---- mobile: score stays in view while you scroll the checks ----
   let stickyEl = null, stickyIo = null;
@@ -611,6 +738,20 @@
   }
   setInterval(watchTick, 180000);
 
+  // Telegram: the bot watches it every 15 minutes (owner, supply, liquidity, LP locks)
+  let botName;
+  async function tgWatch(btn) {
+    if (botName === undefined) { const j = await fetchJson("/api/tg-launch?bot=1", 8000); botName = j && j.enabled && j.username ? j.username : null; }
+    if (!botName) { toast(tr("Telegram alerts aren't switched on yet — use Watch for alerts in this browser.")); return; }
+    window.open(`https://t.me/${botName}?start=watch_${cur.addr}`, "_blank", "noopener");
+    btn.classList.add("ok");
+  }
+  function askArcia() {
+    if (!window.arcArcia || !cur || !cur.res) { location.hash = "#arcia"; return; }
+    const r = cur.res;
+    const bad = r.rows.filter((x) => x.status === "risk" || x.status === "warn").slice(0, 5).map((x) => x.title).join("; ");
+    window.arcArcia.ask(`${tr("Explain this Token Scanner result in simple words:")} $${cur.c.symbol} ${r.score}/100 (${tr(r.verdict.t)}). ${bad ? tr("Flags:") + " " + bad : tr("No warnings.")}`);
+  }
   function shareX() {
     if (!cur || !cur.res) return;
     const r = cur.res;
@@ -814,6 +955,8 @@
     if (tab) { $("asc-out").dataset.tab = tab.dataset.tab; panel.querySelectorAll(".asc-tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b === tab))); return; }
     const seg = e.target.closest("[data-seg]");
     if (seg) { highlight(seg.dataset.seg, true); return; }
+    const hv = e.target.closest("[data-hview]");
+    if (hv) { const box = $("asc-holders"); box.dataset.view = hv.dataset.hview; if (cur && cur.res && cur.res.dist) { box.__html = ""; holdersCard(cur.res.dist); } return; }
     const rep = e.target.closest("[data-report]");
     if (rep) { reportForm(rep); return; }
     const sendRep = e.target.closest("[data-send-report]");
@@ -829,6 +972,8 @@
     else if (a === "link") { try { await navigator.clipboard.writeText(`${location.origin}/s/${cur.addr}`); act.classList.add("ok"); toast(tr("Link copied")); } catch { /* denied */ } }
     else if (a === "watch") toggleWatch();
     else if (a === "embed") embedBox(act);
+    else if (a === "tg") tgWatch(act);
+    else if (a === "arcia") askArcia();
     else if (a === "compare") {
       if (compareBase && lc(compareBase.addr) !== lc(cur.addr)) { compareMaybe(); $("asc-compare").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); return; }
       compareBase = snapshot();

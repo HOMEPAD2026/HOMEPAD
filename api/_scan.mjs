@@ -58,7 +58,7 @@ function load(doc) {
 function save(S) {
   const arr = (m) => [...m.entries()].filter(([, v]) => v !== 0n).map(([a, v]) => `${a}:${v}`);
   const base = { v: 2, hi: S.hi, lo: S.lo, complete: S.complete, mints: S.mints.toString(), burns: S.burns.toString(),
-    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, hist: (S.hist || []).slice(-90), at: Date.now() };
+    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, hist: (S.hist || []).slice(-90), early: S.early || null, at: Date.now() };
   if (S.lite || S.net.size + (S.complete ? 0 : S.got.size) > MAX_KEEP) {
     return { ...base, lite: true, net: [], got: [], cand: (S.cand || []).slice(0, 300), count: S.count || 0 };
   }
@@ -95,6 +95,40 @@ function trimEvents(S) {
   ev = ev.filter((e) => (e.k !== "big" && e.k !== "burn") || bigs.includes(e));
   if (ev.length > MAX_EVENTS) ev = [...ev.slice(0, 10), ...ev.slice(-(MAX_EVENTS - 10))];
   S.events = ev;
+}
+
+// ---- the first minutes of trading: snipers, bundled buys, deployer hand-outs ----
+// Read once per token from one eth_getLogs over the blocks right after it was
+// created (EARLY_SPAN blocks ≈ 25 min at Arc's ~0.5 s blocks), then only the
+// early wallets' balances are re-read on later scans.
+const EARLY_SPAN = 3000, SNIPE_BLOCKS = 20;
+async function earlyLook(S, token) {
+  if (!S.first || S.first.block == null) return null;
+  if (!S.early) {
+    const L = S.first.block;
+    const logs = await getLogs({ address: token, fromBlock: toQty(L), toBlock: toQty(L + EARLY_SPAN), topics: [TOPIC.transfer] }).catch(() => null);
+    if (!logs) return null;
+    const dep = lc(S.deployer || ""), minted = lc(S.first.to || "");
+    const isMarket = (a) => { const k = core.labelOf(a); return !!(k && (k.kind === "pool" || k.kind === "infra")); };
+    const skip = (a) => a === ZERO || !!core.labelOf(a) || a === dep || a === minted;
+    const tx = logs.map((l) => ({ b: parseInt(l.blockNumber, 16), fr: "0x" + l.topics[1].slice(26).toLowerCase(), to: "0x" + l.topics[2].slice(26).toLowerCase() })).sort((a, b) => a.b - b.b);
+    const buys = tx.filter((t) => isMarket(t.fr) && !skip(t.to));
+    const lb = buys.length ? buys[0].b : null;
+    const snipers = [...new Set(buys.filter((t) => t.b < lb + SNIPE_BLOCKS).map((t) => t.to))];
+    const firstBlock = [...new Set(buys.filter((t) => t.b === lb).map((t) => t.to))];
+    const handout = [...new Set(tx.filter((t) => (t.fr === dep || t.fr === minted) && !isMarket(t.fr) && !skip(t.to)).map((t) => t.to))];
+    S.early = { lb, span: EARLY_SPAN, snipers: snipers.length, sameBlock: firstBlock.length, handout: handout.length, buyers: new Set(buys.map((t) => t.to)).size,
+      ws: snipers.slice(0, 30), wh: handout.filter((a) => !snipers.includes(a)).slice(0, 20) };
+  }
+  const e = S.early, ws = e.ws || [], wh = e.wh || [];
+  const all = [...ws, ...wh];
+  const base = { lb: e.lb, span: e.span, snipers: e.snipers, sameBlock: e.sameBlock, handout: e.handout, buyers: e.buyers };
+  if (!all.length) return { ...base, held: "0", top: [] };
+  const r = await ethCalls(all.map((a) => ({ to: token, data: "0x70a08231" + pad(a) }))).catch(() => []);
+  const bal = all.map((a, i) => [a, r[i] ? BigInt(r[i]) : 0n, i < ws.length ? "s" : "h"]);
+  // "held" counts only the snipers (the hand-out wallets are shown, not scored twice)
+  const held = bal.filter((x) => x[2] === "s").reduce((t, [, v]) => t + v, 0n);
+  return { ...base, held: held.toString(), top: bal.filter(([, v]) => v > 0n).sort((x, y) => (y[1] > x[1] ? 1 : -1)).slice(0, 12).map(([a, v, k]) => [a, v.toString(), k]) };
 }
 
 /// store: { get(key) → doc | null, set(key, doc) } — or null (edge: one pass, nothing kept).
@@ -164,9 +198,17 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
     const byId = new Map((Array.isArray(out) ? out : [out]).map((x) => [x.id, x.result]));
     codes = top.map((_, i) => { const c = byId.get(i); return !!(c && c !== "0x"); });
   } catch { codes = []; }
+  // how many transactions each of the biggest wallets has ever sent (0–2 = a fresh wallet)
+  let nonces = [];
+  try {
+    const out = await rpc(top.map(([a], id) => ({ jsonrpc: "2.0", id, method: "eth_getTransactionCount", params: [a, "latest"] })));
+    const byId = new Map((Array.isArray(out) ? out : [out]).map((x) => [x.id, x.result]));
+    nonces = top.map((_, i) => { const n = byId.get(i); return n ? parseInt(n, 16) : null; });
+  } catch { nonces = []; }
   if (S.complete && S.first && S.first.tx && !S.deployer) {
     try { const tx = await rpcCall("eth_getTransactionByHash", [S.first.tx]); if (tx && tx.from) S.deployer = lc(tx.from); } catch { /* next time */ }
   }
+  const early = S.complete ? await earlyLook(S, token).catch(() => null) : null;
   // timestamps for the timeline (a few at most per request, then kept)
   const need = S.events.filter((e) => e.ts == null).slice(-16);
   await Promise.all(need.map(async (e) => { e.ts = await blockTs(e.b).catch(() => null); }));
@@ -187,7 +229,8 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
     transfers: S.transfers, fromBlock: S.lo, toBlock: S.hi, fromTs, nowTs: latest.ts,
     firstMint: S.complete && S.first ? { block: S.first.block, ts: firstTs, tx: S.first.tx, to: S.first.to } : null,
     deployer: S.deployer, holderCount, holderCountExact: S.complete && !S.lite, hist: S.hist,
-    top: top.map(([a, v], i) => (codes[i] ? [a, v.toString(), { c: 1 }] : [a, v.toString()])),
+    top: top.map(([a, v], i) => { const f = {}; if (codes[i]) f.c = 1; if (nonces[i] != null) f.n = nonces[i]; return Object.keys(f).length ? [a, v.toString(), f] : [a, v.toString()]; }),
+    early,
     events: S.events.map((e) => ({ ...e })),
   };
 }
@@ -290,7 +333,9 @@ export async function scoreOf(token, { store = null, maxAgeMs = 30 * 60e3, compu
   const r = out.res;
   const doc = r.notToken ? { v: core.CORE_VERSION, notToken: true, at: Date.now() }
     : { v: core.CORE_VERSION, score: r.score, k: r.verdict.k, t: r.verdict.t, sym: (out.c && out.c.symbol) || "", reasons: r.reasons.map((x) => `${x.status}|${x.title}`),
-      trade: r.rows.filter((x) => x.group === "trade").map((x) => `${x.status}|${x.title}`), at: Date.now() };
+      trade: r.rows.filter((x) => x.group === "trade").map((x) => `${x.status}|${x.title}`), at: Date.now(),
+      // one score per day, for the "score over time" line on the scanner
+      hist: ((hit && hit.hist) || []).filter((x) => String(x).split("|")[0] !== new Date().toISOString().slice(0, 10)).concat([`${new Date().toISOString().slice(0, 10)}|${r.score}`]).slice(-60) };
   scoreMem.set(token, doc);
   if (store) { try { await store.set(key, doc); } catch { /* memory copy */ } }
   return doc;

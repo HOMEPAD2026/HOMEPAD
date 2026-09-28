@@ -218,7 +218,7 @@ export async function GET(req) {
     for (const t of list) {
       let d = await scanner.scoreOf(t, { store: st, compute: false }).catch(() => null);
       if ((!d || Date.now() - d.at > 6 * 3600e3) && fresh < 2) { fresh++; d = await scanner.scoreOf(t, { store: st }).catch(() => d); }
-      if (d && !d.notToken && d.score != null) out[t] = { score: d.score, k: d.k, t: d.t };
+      if (d && !d.notToken && d.score != null) out[t] = list.length === 1 ? { score: d.score, k: d.k, t: d.t, at: d.at || null, hist: d.hist || [] } : { score: d.score, k: d.k, t: d.t };
     }
     return json(200, { scores: out }, fresh ? "no-store" : "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
   }

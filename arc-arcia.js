@@ -1062,6 +1062,15 @@
     setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 60000);
     setInterval(function () { if (panel.classList.contains("active")) clock(); }, 1000);
   }
+  // Other utilities hand ARCIA a question ("Ask ARCIA" buttons): open her tab and send it.
+  window.arcArcia = {
+    ask: function (text) {
+      if (location.hash.split("?")[0] !== "#arcia") location.hash = "#arcia";
+      boot();
+      var tries = 0;
+      (function go() { if (!busy && sendBtn) { send(text); return; } if (++tries < 40) setTimeout(go, 150); })();
+    },
+  };
   document.addEventListener("arcpad:tab", function (e) { if (e.detail && e.detail.tab === "arcia") boot(); });
   if (panel.classList.contains("active") || /^#arcia\b/.test(location.hash)) boot();
   document.addEventListener("arc:lang", function () {

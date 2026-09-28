@@ -9,7 +9,7 @@
 //             io.keccak(hex) → 0x-prefixed keccak-256 of the bytes.
 // Amounts travel as decimal strings (BigInt inside), so results are plain JSON.
 
-export const CORE_VERSION = 3;
+export const CORE_VERSION = 4;
 
 // ---------------------------------------------------------------- addresses
 export const ADDR = {
@@ -331,6 +331,10 @@ export const HELP = {
   holders: "How many wallets hold the token, and whether a few of them could dump on everyone else.",
   mint: "New tokens minted after launch dilute every holder.",
   history: "Events read from the token's own on-chain history.",
+  snipe: "Snipers are bots or insiders that buy in the first seconds a pool opens, before anyone else can. If they still hold a big share, they can dump on later buyers.",
+  bundle: "When many different wallets buy in the exact same first block, it is usually one person splitting a buy to look like many holders.",
+  handout: "Tokens sent straight from the creator to other wallets weren't bought — those wallets may belong to the creator.",
+  fresh: "A wallet that has sent almost no transactions was probably made just for this token. Many of them at the top can mean one person holds far more than it looks.",
   lplock: "Liquidity that is locked (until a date, or for good) or burned can't be pulled out of the pool. Unlocked liquidity can be removed by whoever holds it — the classic rug pull.",
 };
 /// data: { c: readContract, x: { arcpad, argus, locks }, m: market (readMarket or { source: "arcpad"|"argus", … }), h: holders (api), sim, now }
@@ -473,7 +477,7 @@ export function evaluate(addr, data) {
       else if (k && k.kind === "burn") burned += amt;
       else if (k && k.kind === "lock") lockedIn += amt;
       else if (k) infra += amt;
-      else people.push({ a, v: amt, contract: !!(flags && flags.c), deployer: h.deployer && String(a).toLowerCase() === String(h.deployer).toLowerCase() });
+      else people.push({ a, v: amt, contract: !!(flags && flags.c), nonce: flags && flags.n != null ? flags.n : null, deployer: h.deployer && String(a).toLowerCase() === String(h.deployer).toLowerCase() });
     }
     const locked = x.locks && x.locks.count ? n(x.locks.locked) : lockedIn;
     const top10 = people.slice(0, 10).reduce((t, p) => t + p.v, 0);
@@ -499,6 +503,29 @@ export function evaluate(addr, data) {
     if (burned > 0) add("holders", "pass", "holders", "Tokens burned", `${pct((burned / S) * 100)} of the supply sits in burn addresses.`);
     if (locked > 0) add("holders", "pass", "holders", "Tokens locked", `${pct((locked / S) * 100)} is locked in ArcLock${x.locks && x.locks.count ? ` (${x.locks.count} lock${x.locks.count === 1 ? "" : "s"})` : ""}.`, { links: [{ href: `/arc#locker?token=${addr}`, label: "See locks", internal: true }] });
     if (inPool > 0) add("holders", "info", "holders", "In the trading pool", `${pct((inPool / S) * 100)} of the supply is liquidity in Uniswap v4 pools.`);
+    // ---- launch: the first minutes of trading (api/_scan.mjs earlyLook) ----
+    const e = h.early;
+    if (e && e.lb != null) {
+      const heldPct = S > 0 ? (n(e.held || "0") / S) * 100 : 0;
+      dist.early = { ...e, heldPct };
+      const sn = e.snipers || 0;
+      if (!sn) add("early", "pass", "snipe", "No sniping at launch", "Nobody bought in the first seconds of trading.");
+      else if (heldPct >= 25) add("early", "risk", "snipe", "Snipers still hold a lot", `${sn} wallet${sn === 1 ? "" : "s"} bought in the first ~10 seconds and still hold ${pct(heldPct)} of the supply.`, { pts: 18 });
+      else if (heldPct >= 10) add("early", "warn", "snipe", "Early snipers hold a share", `${sn} wallet${sn === 1 ? "" : "s"} bought in the first ~10 seconds and still hold ${pct(heldPct)}.`, { pts: 8 });
+      else add("early", "pass", "snipe", "Early buyers hold little", `${sn} wallet${sn === 1 ? "" : "s"} bought in the first ~10 seconds; together they hold ${pct(heldPct)} now.`);
+      if ((e.sameBlock || 0) >= 5) add("early", "warn", "bundle", "Bundled first block", `${e.sameBlock} different wallets bought in the very first block of trading — often one person spreading a buy over many wallets.`, { pts: 6 });
+      else add("early", "pass", "bundle", "No bundled first block", e.sameBlock ? `${e.sameBlock} wallet${e.sameBlock === 1 ? "" : "s"} bought in the first block of trading.` : "No buys landed in the very first block.");
+      if ((e.handout || 0) >= 5) add("early", "warn", "handout", "Deployer handed out tokens", `The creator sent tokens straight to ${e.handout} wallets before or while trading opened — they didn't buy them.`, { pts: 6 });
+      else if (e.handout) add("early", "info", "handout", "A few direct hand-outs", `The creator sent tokens straight to ${e.handout} wallet${e.handout === 1 ? "" : "s"} early on.`);
+    }
+    const withNonce = people.slice(0, 10).filter((p) => !p.contract && p.nonce != null);
+    if (withNonce.length >= 5) {
+      const fresh = withNonce.filter((p) => p.nonce <= 2);
+      const fp = (fresh.reduce((t, p) => t + p.v, 0) / S) * 100;
+      dist.fresh = { n: fresh.length, of: withNonce.length, pct: fp };
+      if (fresh.length >= 5 && fp >= 15) add("early", "warn", "fresh", "Many fresh wallets at the top", `${fresh.length} of the 10 largest wallets have sent 2 transactions or fewer, and hold ${pct(fp)} — fresh wallets are often the creator's own.`, { pts: 6 });
+      else add("early", "pass", "fresh", "Top wallets look used", `${withNonce.length - fresh.length} of the ${withNonce.length} largest wallets have a real transaction history.`);
+    }
     if (!h.complete) add("holders", "info", "holders", "Partial history", `The holder list covers transfers since ${h.fromTs ? new Date(h.fromTs * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "recently"}; balances shown are live.`);
     // ---- history (events from the token itself) ----
     const ev = h.events || [];
