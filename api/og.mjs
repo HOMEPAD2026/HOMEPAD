@@ -11,6 +11,7 @@ import { leaderboard as circleBoard } from "./_circle.mjs";
 import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx } from "./_burnvote.mjs";
+import { lockInfo } from "./_locker.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
@@ -123,6 +124,13 @@ export async function GET(req) {
     return new ImageResponse(await voteCard(await markP, url.searchParams.get("vote")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=600, s-maxage=86400, stale-while-revalidate=86400" },
+    });
+  }
+  if (url.searchParams.has("lock")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await lockCard(await markP, url.searchParams.get("lock")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
     });
   }
   if (url.searchParams.has("lplock")) {
@@ -382,6 +390,55 @@ async function lplockCard(mark, id) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "ArcLPLock · nobody can move it before the date"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lplock/${d.id}`)),
+  ]);
+}
+
+// ---- Locker certificate card (/lock/<id>) ----
+async function lockCard(mark, id) {
+  let d = null;
+  if (/^\d{1,9}$/.test(id || "")) { try { d = await lockInfo(id); } catch { d = null; } }
+  const acc = "#39ff88";
+  const padlock = h("div", { width: 170, height: 170, borderRadius: 40, flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundImage: "linear-gradient(135deg, rgba(53,216,208,0.22), rgba(57,255,136,0.25))", border: "3px solid rgba(57,255,136,0.5)" },
+    h("div", { width: 56, height: 44, borderTopLeftRadius: 28, borderTopRightRadius: 28, border: "9px solid #39ff88", borderBottomWidth: 0 }),
+    h("div", { width: 92, height: 62, borderRadius: 16, backgroundColor: "#39ff88", alignItems: "center", justifyContent: "center" },
+      h("div", { width: 14, height: 22, borderRadius: 7, backgroundColor: "#0b1413" })));
+  if (!d) {
+    return frame([
+      brandRow(mark, pill("LOCKER", acc), "ARCIRCLE PAD · Circle's Arc"),
+      h("div", { alignItems: "center", gap: 40 }, padlock,
+        h("div", { flexDirection: "column", gap: 16 },
+          h("div", { fontSize: 86, fontWeight: 800, lineHeight: 1.05 }, "Locked, on-chain."),
+          h("div", { fontSize: 34, color: "#9fb098" }, "Any Arc token, until a date nobody can bring forward."))),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#locker"),
+    ]);
+  }
+  const sym = clip(d.token.symbol, 12);
+  const until = new Date(d.unlockAt * 1000).toISOString().slice(0, 10);
+  const days = Math.max(0, Math.ceil((d.unlockAt - d.now) / 86400));
+  const span = Math.max(1, d.unlockAt - d.lockedAt), done = Math.min(1, Math.max(0, (d.now - d.lockedAt) / span));
+  const state = d.withdrawn ? "WITHDRAWN" : d.active ? "LOCKED" : "UNLOCKED";
+  const p = d.pctOfSupply == null ? "—" : `${(d.pctOfSupply >= 10 ? d.pctOfSupply.toFixed(1) : d.pctOfSupply >= 1 ? d.pctOfSupply.toFixed(2) : d.pctOfSupply.toFixed(3)).replace(/\.?0+$/, "")}%`;
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 38, fontWeight: 800, color }, value));
+  return frame([
+    brandRow(mark, pill(state, d.active ? acc : "#ffd166"), "Locker · Circle's Arc"),
+    h("div", { alignItems: "center", gap: 40, width: "100%" }, padlock,
+      h("div", { flexDirection: "column", gap: 10 },
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, `${amt(d.amount, d.token.decimals)} $${sym}`),
+        h("div", { fontSize: 80, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, d.active ? `Locked until ${until}` : d.withdrawn ? "Withdrawn" : `Unlocked ${until}`),
+        h("div", { fontSize: 30, color: "#b9c8b3" }, d.usd != null ? `About ${fmtUsd(d.usd)} at today's price` : "Nobody can move it before the date"))),
+    h("div", { flexDirection: "column", gap: 14, width: "100%" },
+      h("div", { width: "100%", height: 14, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.08)" },
+        h("div", { width: `${Math.round(done * 100)}%`, height: 14, borderRadius: 14, backgroundImage: "linear-gradient(90deg, #39ff88, #35d8d0)" })),
+      h("div", { gap: 16 },
+        box("Days left", d.active ? String(days) : "0", acc),
+        box("Of supply", p),
+        box("Locked on", new Date(d.lockedAt * 1000).toISOString().slice(0, 10)),
+        box("Lock", `#${d.id}`))),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "ArcLock · no owner, no admin, no fee"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lock/${d.id}`)),
   ]);
 }
 

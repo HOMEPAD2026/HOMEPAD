@@ -125,6 +125,14 @@
       "destination": "/api/c?view=lplock&id=:id"
     },
     {
+      "source": "/lock/:id",
+      "destination": "/api/c?view=lock&id=:id"
+    },
+    {
+      "source": "/lockbadge/:addr",
+      "destination": "/api/social?lockbadge=:addr"
+    },
+    {
       "source": "/circle/round/:n",
       "destination": "/api/c?view=report&n=:n"
     },

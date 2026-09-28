@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790566554"></script>
+<script src="arc-log.js?v=1790567669"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790566554">
+<link rel="stylesheet" href="style.css?v=1790567669">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -809,12 +809,25 @@
               <div class="lkr-chips" id="lkr-durs"></div>
               <div class="lkr-timeline"><span>Today</span><div class="lkr-bar" id="lkr-bar"><i></i></div><span><b id="lkr-until">—</b> · <em id="lkr-days">—</em></span></div>
             </div>
+            <div class="lkr-field lkr-split">
+              <label class="lkr-switch"><input type="checkbox" id="lkr-split-on"><i aria-hidden="true"></i><span>Split into tranches</span><small>Unlock in steps instead of all at once</small></label>
+              <div class="lkr-split-opts" id="lkr-split-opts" hidden>
+                <div class="lkr-split-row"><small>Tranches</small><div class="lkr-chips" id="lkr-split-n"></div></div>
+                <div class="lkr-split-row"><small>Then every</small><div class="lkr-chips" id="lkr-split-gap"></div></div>
+                <ol class="lkr-sched" id="lkr-sched"></ol>
+              </div>
+            </div>
+            <div class="lkr-taxnote" id="lkr-tax" hidden></div>
             <div class="lkr-summary" id="lkr-summary"></div>
             <ol class="lkr-steps" id="lkr-steps" data-step="0">
               <li><i>1</i><span>Approve</span></li><li><i>2</i><span>Lock</span></li><li><i>3</i><span>Done</span></li>
             </ol>
             <button type="button" class="lkr-btn" id="lkr-go">Approve &amp; lock</button>
             <div class="lkr-status" id="lkr-status" aria-live="polite"></div>
+            <div class="lkr-vault" id="lkr-vault" hidden aria-hidden="true">
+              <svg viewBox="0 0 120 120"><circle class="lkr-v-ring" cx="60" cy="60" r="50"/><g class="lkr-v-door"><circle cx="60" cy="60" r="38"/><path d="M60 30v12M60 78v12M30 60h12M78 60h12M39 39l8 8M73 73l8 8M39 81l8-8M73 47l8-8"/><circle class="lkr-v-hub" cx="60" cy="60" r="9"/></g></svg>
+              <b>Locked</b>
+            </div>
           </div>
 
           <div class="lkr-card lkr-find" id="lkr-find">
@@ -832,6 +845,15 @@
           <h2>Your locks</h2>
           <div id="lkr-mine"></div>
           <div class="lkr-status" id="lkr-mine-status" aria-live="polite"></div>
+        </div>
+
+        <div class="lkr-card lkr-dash" id="lkr-dash">
+          <div class="lkr-dash-head"><h2>Locker overview</h2><span class="lkr-live"><i></i>Live</span></div>
+          <div class="lkr-dash-stats" id="lkr-dash-stats"><div><small>Locked value</small><b>—</b></div><div><small>Active locks</small><b>—</b></div><div><small>Tokens locked</small><b>—</b></div><div><small>Locks ever</small><b>—</b></div></div>
+          <div class="lkr-dash-grid">
+            <div><h3>Most locked</h3><div id="lkr-dash-top"><div class="lkr-tok-load"><i></i><span>Reading every lock…</span></div></div></div>
+            <div><h3>Unlocking in the next 30 days</h3><div id="lkr-dash-soon"></div></div>
+          </div>
         </div>
 
         <p class="lkr-foot">Runs on ArcLock <a id="lkr-contract" href="#" target="_blank" rel="noopener" data-no-i18n>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. You pay only Arc gas. Tokens that take a fee on transfer are recorded at the amount that actually arrives.</p>
@@ -1446,6 +1468,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790566554"></script>
+<script src="arcpad.bundle.js?v=1790567669"></script>
 </body>
 </html>

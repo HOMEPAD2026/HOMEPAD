@@ -10,12 +10,14 @@
 //   /s/<address>        Token Scanner share link: the result card for X, then the scanner
 //   /drop/<tx>[,<tx>…]  Multisender receipt: the airdrop card for X, then the receipt in the app
 //   /snap/<id>          a published / scheduled Holder Snapshot: its card, then the snapshot in the app
+//   /lock/<id>          Locker certificate: one ArcLock lock's card, then the lock in the app
 //   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
+import { lockInfo } from "./_locker.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -32,6 +34,7 @@ export default async function handler(req) {
   if (view === "drop") return dropPage(url);
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
+  if (view === "lock") return lockPage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
   if (view === "latest") return latestCoins(url);
@@ -551,6 +554,48 @@ async function lplockPage(url) {
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39d0ff}</style>
 </head><body>
 <p>Opening the <a href="${esc(target)}">liquidity lock</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- Locker certificate (/lock/<id>) ----
+async function lockPage(url) {
+  const id = String(url.searchParams.get("id") || "");
+  if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#locker">`, "public, max-age=300");
+  let d = null;
+  try { d = await lockInfo(id); } catch { d = null; }
+  const sym = d ? "$" + d.token.symbol : "a token";
+  const until = d ? new Date(d.unlockAt * 1000).toISOString().slice(0, 10) : "";
+  const share = d && d.pctOfSupply != null ? ` — ${d.pctOfSupply >= 1 ? d.pctOfSupply.toFixed(2) : d.pctOfSupply.toFixed(3)}% of supply` : "";
+  const title = !d ? "Locker — ARCIRCLE PAD" : d.active ? `${fmtAmt(d.amount, d.token.decimals)} ${sym} locked until ${until}` : d.withdrawn ? `${sym} lock #${id} — withdrawn` : `${sym} lock #${id} — unlocked ${until}`;
+  const desc = !d ? "Lock any Arc token until a date you pick. No owner, no admin, no fee." : `${fmtAmt(d.amount, d.token.decimals)} ${sym}${share}, locked in ArcLock on Arc. Nobody — not even the locker — can move it before ${until}.`;
+  const target = d ? `/arc#locker?token=${d.token.address}&lock=${id}` : "/arc#locker";
+  const image = `${SITE}/api/og?lock=${id}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/lock/${id}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
 }
