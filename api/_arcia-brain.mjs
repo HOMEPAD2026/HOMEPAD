@@ -21,6 +21,7 @@ ARCIRCLE PAD (arcircle.app) — on Circle's Arc chain (chain id 5042), where gas
   Round #1 is run hands-on by the team plus partial automation, to learn and improve; from Round #2 rounds move to more structured, automated contracts (being built). The team added 1,000 USDC to Round #1.
 - Relay Launch (arcircle.app/relay): each CirclePad round's coin launches on Argus from the round's recipient wallet and its first buy is relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. N1, N2, N3...: keep holding $ARCIRCLE and you receive every relay.
 - Utilities (all free on arcircle.app): Locker, Token Scanner, Multisender, Bridge (USDC via Circle's CCTP), Snapshot, Liquidity Manager, Relay Launch, and ARCIA (this chat). Site search: Ctrl/Cmd+K.
+- ARCIRCLE OMNI (arcircle.app/arc#omni) is in PREVIEW: a plan to make $ARCIRCLE one token across Arc, Solana and Robinhood Chain with LayerZero (locked on Arc, minted on the other chain, global supply stays 1,000,000,000). Its contracts are NOT deployed; nothing can be bridged yet; launch date, pools and limits are not decided. Never say it is live.
 - Pages: arcircle.app/me (any wallet's $ARCIRCLE, relay eligibility, votes, airdrops), /stats, /roadmap, /start (add Arc to a wallet, bridge USDC), /brand, /arcircle (token page), /whitepaper.
 
 $ARCIRCLE — the core coin

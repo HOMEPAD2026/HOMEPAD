@@ -15,6 +15,7 @@ import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.m
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport } from "./_burnvote.mjs";
+import { omniStatus } from "./_omni.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -35,6 +36,11 @@ export default async function handler(req) {
   if (view === "report") return reportPage(url);
   if (view === "latest") return latestCoins(url);
   if (view === "coins") return allCoins();
+  // ARCIRCLE OMNI: supply per chain, the locked == remote check, prices and spread (arc-omni.js)
+  if (view === "omni") {
+    try { return new Response(JSON.stringify(await omniStatus(url.origin)), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=10, s-maxage=20, stale-while-revalidate=60" } }); }
+    catch (e) { return new Response(JSON.stringify({ error: "couldn't read OMNI right now" }), { status: 502, headers: { "content-type": "application/json", "cache-control": "no-store" } }); }
+  }
   const addr = url.searchParams.get("addr") || "";
   let coin = null;
   if (isAddr(addr)) { try { coin = await getCoin(addr); } catch { coin = null; } }

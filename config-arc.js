@@ -172,6 +172,22 @@ const CONFIG = {
     OLDER_PORTALS: ["0xA5628A11c412596e1f63b75a2C0284F843C549d6", "0x07a688a001f416cC433c68Ff56Aa26bC5131Cc6E"],
     HOOK_FLAGS: 0x2044,
   },
+  // ARCIRCLE OMNI — $ARCIRCLE on Arc, Robinhood Chain and Solana through LayerZero V2 (omni/README.md).
+  // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses
+  // keep the OMNI page in preview for that chain. Keep api/_omni.mjs in step.
+  OMNI: {
+    ADAPTER: "", // Arc · ArcircleOFTAdapter (the lockbox)
+    ROBINHOOD_OFT: "", // Robinhood Chain · ArcircleOFT
+    SOLANA_MINT: "", // Solana · SPL mint from the OFT program
+    SOLANA_OFT_STORE: "",
+    CHAINS: {
+      arc: { name: "Arc", eid: 30417, chainId: 5042, gas: "USDC" },
+      robinhood: { name: "Robinhood Chain", eid: 30416, chainId: 4663, gas: "ETH", rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" },
+      solana: { name: "Solana", eid: 30168, gas: "SOL", explorer: "https://solscan.io" },
+    },
+    LZ_SCAN: "https://layerzeroscan.com/tx/",
+    SHARED_DECIMALS: 6,
+  },
   RELAY: {
     OPERATOR: "0x1A35a754A4251E46971184046ac57E8AD621672E", // every round's recipient wallet
     MIN_ARCIRCLE: "100000", // whole $ARCIRCLE a wallet needs at the snapshot

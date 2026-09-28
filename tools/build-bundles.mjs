@@ -31,11 +31,11 @@ export const BUNDLES = {
     "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-coinhead.js", "arc-filters.js", "arc-chartev.js",
     "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "i18n.js",
   ],
-  // The utilities (Locker, Bridge, Scanner, Multisender, Snapshot, Relay, ARCIA, Liquidity) are ~half of
+  // The utilities (Locker, Bridge, Scanner, Multisender, Snapshot, Relay, ARCIA, Liquidity, OMNI) are ~half of
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
   // It runs after arcpad.bundle.js and shares its globals (ethers, CONFIG, state, the ABIs).
   "arcpad-tools.bundle.js": [
-    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js",
+    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js", "arc-omni.js",
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",

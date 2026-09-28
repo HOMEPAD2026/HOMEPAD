@@ -1,0 +1,40 @@
+{
+  "name": "arcircle-omni",
+  "version": "0.1.0",
+  "private": true,
+  "//": "tests use @layerzerolabs/test-devtools-evm-hardhat mocks (contracts/mocks); install with --legacy-peer-deps if npm complains about peers",
+  "description": "ARCIRCLE OMNI — $ARCIRCLE across Arc, Robinhood Chain and Solana on LayerZero V2 (one supply: Arc lockbox + mint/burn OFTs).",
+  "license": "MIT",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:arc": "hardhat lz:deploy --networks arc --tags ArcircleOFTAdapter",
+    "deploy:robinhood": "hardhat lz:deploy --networks robinhood --tags ArcircleOFT",
+    "wire": "hardhat lz:oapp:wire --oapp-config layerzero.config.ts",
+    "supply": "hardhat omni:supply"
+  },
+  "dependencies": {
+    "@layerzerolabs/oapp-evm": "^0.4.1",
+    "@layerzerolabs/oft-evm": "^4.0.1",
+    "@openzeppelin/contracts": "^5.1.0"
+  },
+  "devDependencies": {
+    "@layerzerolabs/devtools-evm-hardhat": "^4.0.4",
+    "@layerzerolabs/lz-definitions": "^3.1.14",
+    "@layerzerolabs/lz-evm-messagelib-v2": "^3.0.168",
+    "@layerzerolabs/lz-evm-protocol-v2": "^3.0.168",
+    "@layerzerolabs/lz-v2-utilities": "^3.0.168",
+    "@layerzerolabs/metadata-tools": "^4.0.0",
+    "@layerzerolabs/test-devtools-evm-hardhat": "^0.5.3",
+    "@layerzerolabs/toolbox-hardhat": "^0.6.14",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.2",
+    "chai": "^4.4.1",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.22.10",
+    "hardhat-deploy": "^0.12.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
