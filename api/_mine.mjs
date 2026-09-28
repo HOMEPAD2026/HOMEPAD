@@ -49,17 +49,20 @@ export const GAME = {
     { kind: "arc", name: "Arc Crystal", extra: 14, pts: 500 },   // 1 in 16,384 — the jackpot
   ],
   cap: 600,                 // shares that count per hour (overtime: ×1.5)
-  batchEvery: 12,           // seconds between submissions (the server refuses faster than minGap)
-  minGap: 8, maxBatch: 60,
+  batchEvery: 30,           // seconds between submissions (the server refuses faster than minGap) — keeps storage writes low
+  minGap: 25, maxBatch: 120,
   bonusCap: 100,            // bonuses add up to +100% at most
   layers: ["Grass", "Dirt", "Stone", "Ore", "Deep Rock", "Bedrock"],
   layerParts: [32, 16, 8, 4, 2, 1],
   pickaxes: [
     { tier: 0, id: "wood", name: "Wood pickaxe", mult: 1.0 },
-    { tier: 1, id: "stone", name: "Stone pickaxe", mult: 1.25 },
-    { tier: 2, id: "iron", name: "Iron pickaxe", mult: 1.6 },
-    { tier: 3, id: "diamond", name: "Diamond pickaxe", mult: 2.1 },
-    { tier: 4, id: "arcane", name: "Arcane pickaxe", mult: 2.6 },
+    { tier: 1, id: "stone", name: "Stone pickaxe", mult: 1.15 },
+    { tier: 2, id: "iron", name: "Iron pickaxe", mult: 1.3 },
+    { tier: 3, id: "steel", name: "Steel pickaxe", mult: 1.5 },
+    { tier: 4, id: "gold", name: "Gold pickaxe", mult: 1.7 },
+    { tier: 5, id: "diamond", name: "Diamond pickaxe", mult: 2.0 },
+    { tier: 6, id: "amethyst", name: "Amethyst pickaxe", mult: 2.3 },
+    { tier: 7, id: "arcane", name: "Arcane pickaxe", mult: 2.7 },
   ],
   // builder ranks, from lifetime points across every mine: a small bonus, and they unlock characters and pets
   ranks: [
@@ -75,15 +78,35 @@ export const GAME = {
     { id: "foreman", name: "Foreman", rank: 2 }, { id: "architect", name: "Architect", rank: 3 },
   ],
   pets: [
-    { id: "arccat", name: "Arc Cat", rank: 0 }, { id: "arcia", name: "ARCIA", rank: 1 }, { id: "mole", name: "Mole", rank: 2 },
-    { id: "picko", name: "Picko", rank: 3 }, { id: "orego", name: "Orego", rank: 4 },
+    { id: "arccat", name: "Arc Cat", rank: 0 }, { id: "corgi", name: "Corgi", rank: 0 }, { id: "slime", name: "Slime", rank: 1 }, { id: "arcia", name: "ARCIA", rank: 1 },
+    { id: "mole", name: "Mole", rank: 2 }, { id: "picko", name: "Picko", rank: 3 }, { id: "orego", name: "Orego", rank: 4 },
+  ],
+  // daily quests (UTC day): rank XP, claimed on the page — they never change a mine's split
+  quests: [
+    { id: "dig", name: "Dig 100 shares", goal: 100, xp: 50 },
+    { id: "rare", name: "Find gold or better", goal: 1, xp: 50 },
+    { id: "post", name: "Share your mine on X", goal: 1, xp: 50 },
+  ],
+  questBonus: 100,            // all three in one day
+  // achievements (badges on your builder card)
+  achievements: [
+    { id: "first", name: "First swing", about: "Hand in your first share" },
+    { id: "k1", name: "Thousand swings", about: "1,000 shares, lifetime" },
+    { id: "k10", name: "Iron arms", about: "10,000 shares, lifetime" },
+    { id: "gold", name: "Gold rush", about: "Find gold" },
+    { id: "diamond", name: "Diamond hands", about: "Find a diamond" },
+    { id: "arc", name: "Arc Crystal", about: "Find the jackpot ore" },
+    { id: "streak7", name: "Week in the mine", about: "A 7-day streak" },
+    { id: "posts5", name: "Loud builder", about: "5 proven X posts" },
+    { id: "crew", name: "Crew member", about: "Join or found a crew" },
+    { id: "legend", name: "Legend", about: "Reach the Legend rank" },
   ],
   // boosts (BuilderMine boost kinds 1–4)
   boosts: [
     { kind: 1, name: "Lantern", effect: "+15% for 24 h", pct: 15 },
     { kind: 2, name: "Dynamite", effect: "+50% for 1 h", pct: 50 },
-    { kind: 3, name: "Lucky charm", effect: "rare ores twice as often for 24 h", pct: 0 },
-    { kind: 4, name: "Overtime", effect: "+50% hourly cap for 24 h", pct: 0 },
+    { kind: 3, name: "Lucky gem", effect: "rare ores twice as often for 24 h", pct: 0 },
+    { kind: 4, name: "Overtime barrel", effect: "+50% hourly cap for 24 h", pct: 0 },
   ],
   holder: [[100_000, 10], [1_000_000, 20], [5_000_000, 30]], // $ARCIRCLE held → bonus %
   postPct: 5, postMax: 5,     // each extra verified X post (one a day) +5%, up to 5
@@ -91,8 +114,9 @@ export const GAME = {
   referredPct: 5,             // joining through someone's link
   streakPct: 2, streakMax: 10, streakMin: 30, // a day with ≥30 shares keeps the streak
   // default item list (the contract's getItems() wins once deployed) — [price $ARCIRCLE, tier, boost, seconds]
-  items: [[50_000, 1, 0, 0], [200_000, 2, 0, 0], [800_000, 3, 0, 0], [2_500_000, 4, 0, 0],
+  items: [[20_000, 1, 0, 0], [60_000, 2, 0, 0], [150_000, 3, 0, 0], [300_000, 4, 0, 0], [700_000, 5, 0, 0], [1_600_000, 6, 0, 0], [4_000_000, 7, 0, 0],
     [30_000, 0, 1, 86400], [20_000, 0, 2, 3600], [40_000, 0, 3, 86400], [30_000, 0, 4, 86400]],
+  feeUsd: 1,                  // opening or joining: 1 USDC worth of $ARCIRCLE, burned
 };
 
 // ---------------- small helpers ----------------
@@ -114,7 +138,8 @@ export const operatorAddress = () => addressOfKey(opKey());
 
 const S = {
   mineCount: sel("mineCount()"), getMine: sel("getMine(uint256)"), rigOf: sel("rigOf(uint256,address)"), getItems: sel("getItems()"),
-  postRoot: sel("postRoot(uint256,bytes32,uint256)"), operator: sel("operator()"), joinFee: sel("joinFee()"), arcBurned: sel("arcircleBurned()"),
+  postRoot: sel("postRoot(uint256,bytes32,uint256)"), operator: sel("operator()"), feeArc: sel("feeArc()"), arcBurned: sel("arcircleBurned()"),
+  segmentsOf: sel("segmentsOf(uint256)"), infoOf: sel("infoOf(uint256)"), joinsPaused: sel("joinsPaused()"),
   name: "0x06fdde03", symbol: "0x95d89b41", decimals: "0x313ce567", balanceOf: "0x70a08231", totalSupply: "0x18160ddd",
 };
 function decodeString(hex) {
@@ -134,13 +159,34 @@ async function cached(key, ms, fn) {
   memo.set(key, { t: Date.now(), v });
   return v;
 }
-function decodeMine(id, hex) {
-  if (!hex || strip(hex).length < 13 * 64) return null;
-  return {
+function decodeMine(id, hex, segHex, infoHex) {
+  if (!hex || strip(hex).length < 14 * 64) return null;
+  const m = {
     id, token: lc(wAddr(hex, 0)), creator: lc(wAddr(hex, 1)), deposited: wBig(hex, 2), rootTotal: wBig(hex, 3), claimed: wBig(hex, 4), burned: wBig(hex, 5),
     start: Number(wBig(hex, 6)), end: Number(wBig(hex, 7)), root: "0x" + strip(hex).slice(8 * 64, 9 * 64), builders: Number(wBig(hex, 9)), rootCount: Number(wBig(hex, 10)),
-    unminedBurned: wBig(hex, 11) === 1n, closed: wBig(hex, 12) === 1n,
+    unminedBurned: wBig(hex, 11) === 1n, closed: wBig(hex, 12) === 1n, paused: wBig(hex, 13) === 1n,
   };
+  m.segs = decodeSegs(segHex) || [{ amount: m.deposited, f0: 0n }];
+  m.info = decodeInfo(infoHex);
+  return m;
+}
+// segmentsOf(id) → Seg[] { uint128 amount; uint64 f0 }
+function decodeSegs(hex) {
+  if (!hex || strip(hex).length < 128) return null;
+  const n = Number(wBig(hex, 1));
+  return Array.from({ length: n }, (_, i) => ({ amount: wBig(hex, 2 + i * 2), f0: wBig(hex, 3 + i * 2) }));
+}
+// infoOf(id) → (string name, string about, string link)
+function decodeInfo(hex) {
+  const out = { name: "", about: "", link: "" };
+  try {
+    const h = strip(hex); if (h.length < 64 * 4) return out;
+    const base = Number(BigInt("0x" + h.slice(0, 64))) * 2; // the tuple
+    const str = (i) => { const off = base + Number(BigInt("0x" + h.slice(base + i * 64, base + (i + 1) * 64))) * 2; const len = Number(BigInt("0x" + h.slice(off, off + 64))) * 2; return new TextDecoder().decode(hexToBytes(h.slice(off + 64, off + 64 + len))).replace(/[\u0000-\u001f]/g, "").trim(); };
+    out.name = str(0).slice(0, 32); out.about = str(1).slice(0, 160); out.link = str(2).slice(0, 100);
+    if (!/^https:\/\/[^\s"<>]+$/i.test(out.link)) out.link = "";
+  } catch { /* keep blanks */ }
+  return out;
 }
 export async function tokenMeta(tokens) {
   const uniq = [...new Set(tokens.map(lc))].filter(isAddr);
@@ -159,14 +205,14 @@ export async function mines({ fresh = false } = {}) {
     const [c] = await ethCalls([{ to: mineAddress(), data: S.mineCount }]);
     const n = c ? Number(BigInt(c)) : 0;
     const ids = Array.from({ length: Math.min(n, 200) }, (_, i) => n - 1 - i);
-    const res = ids.length ? await ethCalls(ids.map((i) => ({ to: mineAddress(), data: S.getMine + u256(i) }))) : [];
-    return ids.map((i, k) => decodeMine(i, res[k])).filter(Boolean);
+    const res = ids.length ? await ethCalls(ids.flatMap((i) => [{ to: mineAddress(), data: S.getMine + u256(i) }, { to: mineAddress(), data: S.segmentsOf + u256(i) }, { to: mineAddress(), data: S.infoOf + u256(i) }]), { timeoutMs: 9000 }) : [];
+    return ids.map((i, k) => decodeMine(i, res[k * 3], res[k * 3 + 1], res[k * 3 + 2])).filter(Boolean);
   });
 }
 export async function mineInfo(id) {
   if (!live() || !/^\d{1,6}$/.test(String(id))) return null;
-  const [r] = await ethCalls([{ to: mineAddress(), data: S.getMine + u256(id) }]);
-  return decodeMine(Number(id), r);
+  const [r, sg, inf] = await ethCalls([{ to: mineAddress(), data: S.getMine + u256(id) }, { to: mineAddress(), data: S.segmentsOf + u256(id) }, { to: mineAddress(), data: S.infoOf + u256(id) }]);
+  return decodeMine(Number(id), r, sg, inf);
 }
 export async function rigs(id, wallets) {
   if (!wallets.length) return {};
@@ -191,14 +237,24 @@ export async function items() {
 }
 
 // ---------------- the schedule (the contract's _emitted, to the unit) ----------------
-export function emitted(m, t) {
-  const total = BigInt(m.deposited), start = BigInt(m.start), end = BigInt(m.end), T = BigInt(Math.floor(t));
+const ONE = 10n ** 18n;
+/// F(t) × 1e18 — the share of the six-layer halving curve reached at t (the contract's _f)
+export function curve(start, end, t) {
+  start = BigInt(start); end = BigInt(end); const T = BigInt(Math.floor(t));
   if (T <= start) return 0n;
-  if (T >= end) return total;
+  if (T >= end) return ONE;
   const layerLen = (end - start) / 6n, elapsed = T - start, k = elapsed / layerLen;
-  if (k >= 6n) return total;
+  if (k >= 6n) return ONE;
   const done = 64n - (1n << (6n - k)), w = 1n << (5n - k);
-  return (total * (done * layerLen + w * (elapsed - k * layerLen))) / (63n * layerLen);
+  return ((done * layerLen + w * (elapsed - k * layerLen)) * ONE) / (63n * layerLen);
+}
+/// the contract's emittedAt: the deposit and every top-up, each over the rest of the curve from where it came in
+export function emitted(m, t) {
+  const f = curve(m.start, m.end, t);
+  const segs = m.segs && m.segs.length ? m.segs : [{ amount: BigInt(m.deposited), f0: 0n }];
+  let total = 0n;
+  for (const s of segs) { const f0 = BigInt(s.f0); if (f > f0) total += (BigInt(s.amount) * (f - f0)) / (ONE - f0); }
+  return total;
 }
 export const epochs = (m) => Math.ceil((m.end - m.start) / GAME.epoch);
 export const epochAt = (m, t) => Math.floor((t - m.start) / GAME.epoch);
@@ -266,6 +322,7 @@ const P = {
   mine: (id) => `mines/${id}`, tree: (id) => `minetree/${id}`, feed: (id) => `minefeed/${id}`,
   user: (id, w) => `mineu/${id}_${lc(w)}`, ep: (id, e, w) => `minee/${id}_${e}_${lc(w)}`, epTot: (id, e) => `mineep/${id}_${e}`,
   handle: (h) => `minex/${lc(h)}`, tweet: (t) => `minetw/${t}`, builder: (w) => `minerank/${lc(w)}`,
+  crew: (slug) => `minecrew/${slug}`, crews: () => "minecrews/all", season: (ym) => `mineseason/${ym}`, hall: () => "minehall/arc",
 };
 
 // ---------------- shares ----------------
@@ -310,7 +367,14 @@ export async function submitShares(id, w, nonces, { m, rig } = {}) {
   const pts = ok + finds.reduce((n, f) => n + (GAME.ores.find((o) => o.kind === f.kind) || { pts: 0 }).pts, 0);
   const writes = [{ set: P.ep(id, e, w), data: d }];
   if (pts) writes.push({ inc: P.epTot(id, e), fields: { points: pts, shares: ok } });
+  // the builder's lifetime counters and today's quest progress — one write
+  if (ok) {
+    const q = qkey(t), inc = { sh: ok, [`${q}s`]: ok };
+    for (const f of finds) { inc[`o_${f.kind}`] = (inc[`o_${f.kind}`] || 0) + 1; if (["gold", "diamond", "arc"].includes(f.kind)) inc[`${q}r`] = (inc[`${q}r`] || 0) + 1; }
+    writes.push({ inc: P.builder(w), fields: inc });
+  }
   await commit(writes);
+  if (finds.some((f) => f.kind === "arc")) await addHall({ w: lc(w), id: Number(id), t }).catch(() => {});
   const big = finds.filter((f) => ["gold", "diamond", "arc"].includes(f.kind));
   if (big.length) await addFeed(id, big.map((f) => ({ w: lc(w), kind: f.kind, t, e }))).catch(() => {});
   return { ok: true, epoch: e, counted: ok, over, bad, shares: d.shares, ores: d.ores, cap, finds };
@@ -386,7 +450,8 @@ export async function verifyPost(id, w, url, { m, rig } = {}) {
   if ((u.posts || []).length >= 1 + GAME.postMax) return { error: "You've maxed out post bonuses for this mine." };
   u.x = tw.handle; u.xv = true;
   u.posts = [...(u.posts || []), { id: ref.id, day, t: now() }];
-  const writes = [{ set: P.user(id, w), data: u }, { set: P.tweet(ref.id), data: { w: lc(w), id: Number(id), t: now() } }, { set: P.handle(ref.handle), data: { w: lc(w), t: now() } }];
+  const writes = [{ set: P.user(id, w), data: u }, { set: P.tweet(ref.id), data: { w: lc(w), id: Number(id), t: now() } }, { set: P.handle(ref.handle), data: { w: lc(w), t: now() } },
+    { inc: P.builder(w), fields: { [`${qkey(now())}p`]: 1, posts: 1 } }];
   // the first proven post also counts for whoever referred this builder
   if (u.posts.length === 1 && isAddr(rig.referrer) && !/^0x0{40}$/.test(rig.referrer)) {
     const rd = (await getDocs([P.user(id, rig.referrer)]))[P.user(id, rig.referrer)] || { id: Number(id), w: rig.referrer, posts: [], refs: [], streak: 0 };
@@ -418,6 +483,113 @@ export async function setLook(w, char, pet) {
 }
 export async function builderOf(w) { return storeEnabled() ? (await getDocs([P.builder(w)]))[P.builder(w)] || {} : {}; }
 
+// ---------------- quests, achievements, crews, seasons, the hall of fame ----------------
+export const qkey = (t) => "q" + new Date(t * 1000).toISOString().slice(0, 10).replace(/-/g, "");
+export const seasonOf = (t) => new Date(t * 1000).toISOString().slice(0, 7).replace("-", "");
+async function addHall(row) {
+  const cur = (await getDocs([P.hall()]))[P.hall()] || { items: [] };
+  cur.items = [row, ...(cur.items || [])].slice(0, 100);
+  await setDoc(P.hall(), cur);
+}
+/// today's quests for a builder doc: progress, done, claimed
+export function questsOf(bd, t = now()) {
+  const q = qkey(t), claimed = (bd && bd.qc && bd.qc.day === q && bd.qc.ids) || [];
+  const have = { dig: (bd && bd[`${q}s`]) || 0, rare: (bd && bd[`${q}r`]) || 0, post: (bd && bd[`${q}p`]) || 0 };
+  const list = GAME.quests.map((x) => ({ ...x, have: Math.min(x.goal, have[x.id] || 0), done: (have[x.id] || 0) >= x.goal, claimed: claimed.includes(x.id) }));
+  const all = list.every((x) => x.done);
+  return { day: q, list, bonus: { xp: GAME.questBonus, done: all, claimed: claimed.includes("all") }, resetsIn: 86400 - (t % 86400) };
+}
+/// claim today's finished quests (and the all-three bonus) as rank XP
+export async function claimQuests(w) {
+  if (!storeEnabled()) return { error: "Storage isn't set up yet." };
+  const bd = (await getDocs([P.builder(w)]))[P.builder(w)] || {};
+  const qs = questsOf(bd);
+  const ids = [...qs.list.filter((x) => x.done && !x.claimed).map((x) => x.id), ...(qs.bonus.done && !qs.bonus.claimed ? ["all"] : [])];
+  if (!ids.length) return { error: "Nothing to claim yet — finish a quest first." };
+  const xp = ids.reduce((n, id) => n + (id === "all" ? GAME.questBonus : (GAME.quests.find((x) => x.id === id) || { xp: 0 }).xp), 0);
+  const prev = bd.qc && bd.qc.day === qs.day ? bd.qc.ids : [];
+  // drop quest counters from earlier days while the doc is being rewritten anyway
+  const clean = Object.fromEntries(Object.entries(bd).filter(([k]) => !/^q\d{8}[srp]$/.test(k) || k.startsWith(qs.day)));
+  const next = { ...clean, w: lc(w), pts: (bd.pts || 0) + xp, xp: (bd.xp || 0) + xp, qc: { day: qs.day, ids: [...prev, ...ids] } };
+  await commit([{ set: P.builder(w), data: next }]);
+  return { ok: true, xp, ids, lifetime: next.pts, rank: rankOf(next.pts) };
+}
+/// badges earned, from the builder doc (and this mine's streak/posts)
+export function achievementsOf(bd, extra = {}) {
+  bd = bd || {};
+  const got = {
+    first: (bd.sh || 0) >= 1, k1: (bd.sh || 0) >= 1000, k10: (bd.sh || 0) >= 10000,
+    gold: (bd.o_gold || 0) + (bd.o_diamond || 0) + (bd.o_arc || 0) >= 1, diamond: (bd.o_diamond || 0) + (bd.o_arc || 0) >= 1, arc: (bd.o_arc || 0) >= 1,
+    streak7: !!bd.st7ok || (extra.streak || 0) >= 7, posts5: (bd.posts || 0) >= 5, crew: !!bd.crew, legend: rankOf(bd.pts || 0) >= 4,
+  };
+  return GAME.achievements.map((a) => ({ ...a, got: !!got[a.id] }));
+}
+const slugOf = (name) => String(name || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
+const CREW_MAX = 30;
+export async function crewAct(w, act, name) {
+  if (!storeEnabled()) return { error: "Storage isn't set up yet." };
+  const bd = (await getDocs([P.builder(w)]))[P.builder(w)] || {};
+  const idx = (await getDocs([P.crews()]))[P.crews()] || { list: [] };
+  idx.list = idx.list || [];
+  if (act === "leave") {
+    if (!bd.crew) return { error: "You're not in a crew." };
+    const c = (await getDocs([P.crew(bd.crew)]))[P.crew(bd.crew)] || { members: [] };
+    c.members = (c.members || []).filter((x) => x !== lc(w));
+    const row = idx.list.find((x) => x.slug === bd.crew); if (row) row.n = c.members.length;
+    idx.list = idx.list.filter((x) => x.n > 0);
+    const nb = { ...bd }; delete nb.crew;
+    await commit([{ set: P.crew(bd.crew), data: c }, { set: P.crews(), data: idx }, { set: P.builder(w), data: { ...nb, w: lc(w) } }]);
+    return { ok: true, crew: null };
+  }
+  if (bd.crew) return { error: "Leave your crew first." };
+  const clean = String(name || "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 20);
+  const slug = slugOf(clean);
+  if (slug.length < 3) return { error: "A crew name needs 3–20 letters or numbers." };
+  const c = (await getDocs([P.crew(slug)]))[P.crew(slug)];
+  if (act === "create") {
+    if (c && (c.members || []).length) return { error: "That crew name is taken — join it or pick another." };
+    const crew = { slug, name: clean, owner: lc(w), members: [lc(w)], pts: 0, t: now() };
+    idx.list = [...idx.list.filter((x) => x.slug !== slug), { slug, name: clean, n: 1 }].slice(-500);
+    await commit([{ set: P.crew(slug), data: crew }, { set: P.crews(), data: idx }, { set: P.builder(w), data: { ...bd, w: lc(w), crew: slug } }]);
+    return { ok: true, crew: { slug, name: clean } };
+  }
+  if (act === "join") {
+    if (!c || !(c.members || []).length) return { error: "No crew by that name." };
+    if (c.members.length >= CREW_MAX) return { error: `That crew is full (${CREW_MAX}).` };
+    c.members = [...new Set([...c.members, lc(w)])];
+    const row = idx.list.find((x) => x.slug === slug); if (row) row.n = c.members.length;
+    await commit([{ set: P.crew(slug), data: c }, { set: P.crews(), data: idx }, { set: P.builder(w), data: { ...bd, w: lc(w), crew: slug } }]);
+    return { ok: true, crew: { slug, name: c.name } };
+  }
+  return { error: "unknown crew action" };
+}
+/// the boards: this month's builders, crews (this month and all time), the Arc Crystal hall of fame
+export async function boards() {
+  if (!storeEnabled()) return { season: [], crews: [], hall: [] };
+  return cached("boards", 30000, async () => {
+    const ym = seasonOf(now());
+    const docs = await getDocs([P.season(ym), P.crews(), P.hall()]);
+    const pts = (docs[P.season(ym)] || {}).pts || {};
+    const top = Object.entries(pts).sort((a, b) => b[1] - a[1]).slice(0, 50);
+    const idx = ((docs[P.crews()] || {}).list || []).slice(-200);
+    const crewDocs = idx.length ? await getDocs(idx.map((x) => P.crew(x.slug))) : {};
+    const looks = top.length ? await getDocs(top.slice(0, 20).map(([w]) => P.builder(w))) : {};
+    const crews = idx.map((x) => { const c = crewDocs[P.crew(x.slug)] || {}; return { slug: x.slug, name: c.name || x.name, n: (c.members || []).length, pts: c.pts || 0, season: c[`s${ym}`] || 0 }; })
+      .filter((c) => c.n > 0).sort((a, b) => b.season - a.season || b.pts - a.pts).slice(0, 30);
+    return {
+      season: { id: ym, endsIn: Math.floor((Date.UTC(+ym.slice(0, 4), +ym.slice(4), 1) - Date.now()) / 1000), top: top.map(([w, n], i) => ({ w, pts: n, look: i < 20 ? lookOf(looks[P.builder(w)]) : null, rank: rankOf(((looks[P.builder(w)] || {}).pts) || 0) })) },
+      crews, hall: ((docs[P.hall()] || {}).items || []).slice(0, 30),
+    };
+  });
+}
+/// who is digging right now in a mine (handed in shares in the last 2 minutes), with their looks
+async function liveBuilders(id, e) {
+  const rows = (await queryDocs("minee", "k", `${id}_${e}`, 2000).catch(() => [])).filter((r) => Date.now() - (r.at || 0) < 120000);
+  const ws = rows.map((r) => r.w).slice(0, 8);
+  const bds = ws.length ? await getDocs(ws.map((w) => P.builder(w))) : {};
+  return { n: rows.length, who: ws.map((w) => ({ w, look: lookOf(bds[P.builder(w)]) })) };
+}
+
 // ---------------- Merkle (same tree as the contract test) ----------------
 const leaf = (id, a, v) => kec(kec(hexToBytes(u256(id) + pad(a) + u256(v))));
 const cmp = (a, b) => { for (let i = 0; i < 32; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; };
@@ -441,6 +613,7 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
   doc.alloc = doc.alloc || {}; doc.pts = doc.pts || {};
   const last = Math.min(epochs(m) - 1, epochAt(m, t - 120) - 1); // an hour settles 2 minutes after it ends
   let done = 0;
+  const season = {};
   for (let e = (doc.settled ?? -1) + 1; e <= last && done < maxEpochs; e++, done++) {
     const rows = (await queryDocs("minee", "k", `${id}_${e}`, 2000)).filter((r) => isAddr(r.w));
     const ws = rows.map((r) => r.w);
@@ -468,7 +641,13 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
         u.lastDay = day;
       }
       userWrites.push({ set: P.user(id, x.w), data: u });
-      if (x.pts > 0) userWrites.push({ inc: P.builder(x.w), fields: { pts: x.pts } }); // lifetime points → rank
+      if (x.pts > 0) {
+        const ym = seasonOf(m.start + e * GAME.epoch), bd = users[P.builder(x.w)] || {};
+        // lifetime points → rank; this month's → season; a 7-day streak once → its badge
+        userWrites.push({ inc: P.builder(x.w), fields: { pts: x.pts, [`s${ym}`]: x.pts, ...(u.streak >= 7 && !bd.st7ok ? { st7ok: 1 } : {}) } });
+        season[ym] = season[ym] || {}; season[ym][x.w] = (season[ym][x.w] || 0) + x.pts;
+        if (bd.crew) userWrites.push({ inc: P.crew(bd.crew), fields: { pts: x.pts, [`s${ym}`]: x.pts } });
+      }
     }
     doc.stats = { ...(doc.stats || {}), lastEpoch: e, lastBuilders: rows.length, lastPoints: weights.reduce((n, x) => n + x.pts, 0), lastPot: pot.toString(), lastAllocated: total > 0n ? pot.toString() : "0" };
     doc.settled = e;
@@ -497,6 +676,13 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
   }
   writes.unshift({ set: P.mine(id), data: doc });
   await commit(writes);
+  // the monthly season board: everyone's points this month (one doc a month)
+  for (const [ym, add] of Object.entries(season)) {
+    const cur = (await getDocs([P.season(ym)]))[P.season(ym)] || { pts: {} };
+    cur.pts = cur.pts || {};
+    for (const [w, n] of Object.entries(add)) cur.pts[w] = (cur.pts[w] || 0) + n;
+    await setDoc(P.season(ym), cur);
+  }
   return { id, settled: doc.settled, epochsDone: done, rows: rows.length, total: total.toString(), posted };
 }
 /// Every open (or just-ended) mine; called from arcia-tg's tick and /api/mine?settle=1.
@@ -516,13 +702,14 @@ export async function mineView(id) {
   const m = await mineInfo(id);
   if (!m) return null;
   const t = now(), e = epochAt(m, t);
-  const [meta, docs] = await Promise.all([tokenMeta([m.token]), storeEnabled() ? getDocs([P.mine(id), P.feed(id), P.epTot(id, e)]) : {}]);
+  const [meta, docs, act] = await Promise.all([tokenMeta([m.token]), storeEnabled() ? getDocs([P.mine(id), P.feed(id), P.epTot(id, e)]) : {}, storeEnabled() && t < m.end ? liveBuilders(id, e) : { n: 0, who: [] }]);
   const d = docs[P.mine(id)] || {}, feed = (docs[P.feed(id)] || {}).items || [], cur = docs[P.epTot(id, e)] || {};
   return {
     ...ser(m), token: meta[m.token], now: t, epoch: e, epochs: epochs(m), layer: layerAt(m, t),
     emittedNow: emitted(m, t).toString(), hourPot: (emitted(m, Math.min(m.end, m.start + (e + 1) * GAME.epoch)) - emitted(m, m.start + e * GAME.epoch)).toString(),
     hour: { points: cur.points || 0, shares: cur.shares || 0 },
     top: d.top || [], feed: feed.slice(0, 20), stats: d.stats || {}, root: d.root || null, settled: d.settled ?? -1,
+    active: act, hourEndsIn: m.start + (e + 1) * GAME.epoch - t,
     link: `${SITE}/mine/${id}`,
   };
 }
@@ -547,10 +734,20 @@ export async function meView(id, w) {
     mined: md.alloc ? md.alloc[lc(w)] || "0" : "0", points: md.pts ? md.pts[lc(w)] || 0 : 0,
     claimable: { cumulative: cum, claimed: rig ? rig.claimed.toString() : "0", proof, rootLive: !!proof },
     x: u.x || "", verified: !!u.xv, posts: (u.posts || []).length, refs: (u.refs || []).length, streak: u.streak || 0,
+    quests: questsOf(bd, t), achievements: achievementsOf(bd, { streak: u.streak || 0 }), crew: bd.crew || null, xp: bd.xp || 0,
+    totals: { shares: bd.sh || 0, ores: Object.fromEntries(GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0])) },
+    // this hour's pot × my share of the hour's points (unweighted — the settle weighs it)
+    estimate: tot.points ? ((BigInt(emitted(m, Math.min(m.end, m.start + (e + 1) * GAME.epoch)) - emitted(m, m.start + e * GAME.epoch)) * BigInt(Math.round(myPts * 1000))) / BigInt(Math.max(1, Math.round((tot.points || 0) * 1000)))).toString() : "0",
     link: shareLink(id, w),
   };
 }
-const ser = (m) => ({ ...m, deposited: m.deposited.toString(), rootTotal: m.rootTotal.toString(), claimed: m.claimed.toString(), burned: m.burned.toString() });
+const ser = (m) => ({ ...m, deposited: m.deposited.toString(), rootTotal: m.rootTotal.toString(), claimed: m.claimed.toString(), burned: m.burned.toString(), segs: (m.segs || []).map((x) => ({ amount: String(x.amount), f0: String(x.f0) })) });
+/// a builder's card without a mine (rank, looks, quests, badges, crew)
+export async function builderView(w) {
+  const bd = await builderOf(w);
+  return { w: lc(w), lifetime: bd.pts || 0, rank: rankOf(bd.pts || 0), look: lookOf(bd), quests: questsOf(bd), achievements: achievementsOf(bd), crew: bd.crew || null, xp: bd.xp || 0,
+    totals: { shares: bd.sh || 0, ores: Object.fromEntries(GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0])) } };
+}
 export async function listView() {
   const list = await mines();
   const meta = await tokenMeta(list.map((m) => m.token));
@@ -558,18 +755,18 @@ export async function listView() {
   const t = now();
   return list.map((m) => {
     const d = docs[P.mine(m.id)] || {};
-    return { ...ser(m), token: meta[m.token], layer: layerAt(m, t), emittedNow: emitted(m, t).toString(), stats: d.stats || {}, status: t < m.start ? "soon" : t < m.end ? "live" : m.closed ? "closed" : "ended" };
+    return { ...ser(m), token: meta[m.token], layer: layerAt(m, t), emittedNow: emitted(m, t).toString(), stats: d.stats || {}, status: t < m.start ? "soon" : t < m.end ? (m.paused ? "paused" : "live") : m.closed ? "closed" : "ended" };
   });
 }
 export async function config() {
-  let op = null, fee = null, burned = null;
+  let op = null, fee = null, burned = null, paused = false;
   if (live()) {
-    const r = await ethCalls([{ to: mineAddress(), data: S.operator }, { to: mineAddress(), data: S.joinFee }, { to: mineAddress(), data: S.arcBurned }]).catch(() => []);
-    op = r[0] ? lc(wAddr(r[0], 0)) : null; fee = r[1] ? BigInt(r[1]).toString() : null; burned = r[2] ? BigInt(r[2]).toString() : null;
+    const r = await ethCalls([{ to: mineAddress(), data: S.operator }, { to: mineAddress(), data: S.feeArc }, { to: mineAddress(), data: S.arcBurned }, { to: mineAddress(), data: S.joinsPaused }]).catch(() => []);
+    op = r[0] ? lc(wAddr(r[0], 0)) : null; fee = r[1] ? BigInt(r[1]).toString() : null; burned = r[2] ? BigInt(r[2]).toString() : null; paused = !!(r[3] && BigInt(r[3]) === 1n);
   }
   const opAddr = operatorAddress();
   return {
-    live: live(), address: mineAddress() || null, game: GAME, items: await items().catch(() => []), joinFee: fee || "1000000", arcircleBurned: burned,
+    live: live(), address: mineAddress() || null, game: GAME, items: await items().catch(() => []), feeArc: fee, feeUsd: GAME.feeUsd, joinsPaused: paused, arcircleBurned: burned,
     ready: { secret: !!secret(), store: storeEnabled(), operatorKey: !!opAddr, operatorMatches: op && opAddr ? lc(op) === lc(opAddr) : null },
   };
 }

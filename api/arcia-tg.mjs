@@ -78,7 +78,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
 const PUBLIC_CMDS = [["price", "$ARCIRCLE price, market cap, holders"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
-  ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["mine", "Builder Mine: mines open now"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -597,6 +597,7 @@ async function onMessage(m, channel) {
       case "drops": { const wa = addrOf(arg) || (u && u.wallet); return wa ? sendCard(m.chat.id, await cardDrops(wa, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needWallet", lang, { cmd: "drops" })); }
       case "launches": return sendCard(m.chat.id, await cardLaunches(0, lang), { replyTo: group ? m.message_id : undefined });
       case "books": return sendCard(m.chat.id, await cardBooks(lang), { replyTo: group ? m.message_id : undefined });
+      case "mine": return mineList(m);
       case "me": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardMe(u, lang));
       case "link": return startLink(m, lang);
       case "unlink": { if (group) return say(m, w("dmOnly", lang)); delete u.wallet; await saveUser(u); return say(m, "✓ Unlinked."); }
@@ -845,6 +846,38 @@ async function onInline(iq) {
   return tg("answerInlineQuery", { inline_query_id: iq.id, results, cache_time: 30, button: { text: "Talk to ARCIA", start_parameter: "hi" } });
 }
 
+// ---------------- Builder Mine: /mine and the tick's announcements ----------------
+async function mineList(m) {
+  const MM = await import("./_mine.mjs");
+  if (!MM.live()) return say(m, `⛏ <b>Builder Mine</b> opens soon. Try the practice mine now: ${SITE}/arc#mine`);
+  const list = (await MM.listView().catch(() => [])).filter((x) => x.status === "live" || x.status === "soon").slice(0, 6);
+  if (!list.length) return say(m, `⛏ No mine is open right now. Open one for your token: ${SITE}/arc#mine`);
+  const left = (s) => (s > 86400 ? Math.floor(s / 86400) + "d" : Math.floor(s / 3600) + "h");
+  const lines = list.map((x) => `• <b>$${h(x.token.symbol)}</b>${x.info && x.info.name ? " — " + h(x.info.name) : ""} · layer ${x.layer + 1}/6 · ${x.builders} builders · ${x.status === "soon" ? "opens in " + left(x.start - Math.floor(Date.now() / 1000)) : left(x.end - Math.floor(Date.now() / 1000)) + " left"}`);
+  return say(m, `⛏ <b>Builder Mine</b>\n${lines.join("\n")}\n\nJoin with 1 USDC worth of $ARCIRCLE (burned) and dig in your browser.`, kb(list.slice(0, 3).map((x) => [{ text: `Enter $${x.token.symbol}`, url: `${SITE}/mine/${x.id}` }])));
+}
+async function mineTick(T, s, out) {
+  const MM = await import("./_mine.mjs");
+  if (!MM.live()) return;
+  const list = await MM.listView().catch(() => []);
+  const maxId = list.length ? Math.max(...list.map((x) => x.id)) : -1;
+  if (T.mineMax == null) T.mineMax = maxId;
+  else if (maxId > T.mineMax) {
+    for (const x of list.filter((y) => y.id > T.mineMax).slice(0, 2)) out.mineOpen = (out.mineOpen || 0) + await toSubs(s.alerts, { photo: `${SITE}/api/og?mine=${x.id}`, caption: `⛏ <b>New mine: $${h(x.token.symbol)}</b>${x.info && x.info.name ? "\n" + h(x.info.name) : ""}\nJoin with 1 USDC worth of $ARCIRCLE (burned) and dig in your browser.`, ...kb([[{ text: "Enter the mine", url: `${SITE}/mine/${x.id}` }]]) });
+    T.mineMax = maxId;
+  }
+  const hall = ((await MM.boards().catch(() => ({}))).hall) || [];
+  if (T.mineHall == null) T.mineHall = hall[0] ? hall[0].t : 0;
+  else {
+    const fresh = hall.filter((x) => x.t > T.mineHall);
+    for (const x of fresh.slice(0, 2)) {
+      const mn = list.find((y) => y.id === x.id);
+      out.mineArc = (out.mineArc || 0) + await toSubs(s.alerts, { text: `💜 <b>ARC CRYSTAL!</b> ${short(x.w)} just hit the jackpot ore${mn ? ` in the $${h(mn.token.symbol)} mine` : ""} — +500 points.`, ...kb([[{ text: "Dig too", url: `${SITE}/mine/${x.id}` }]]) });
+    }
+    if (hall[0]) T.mineHall = Math.max(T.mineHall, hall[0].t);
+  }
+}
+
 // ---------------- the tick (every ~5 min): alerts, watched wallets, price history, mirror, schedules ----------------
 async function toSubs(ids, payload, cap = 150) {
   let n = 0;
@@ -918,6 +951,7 @@ async function tick() {
   const due = sc.list.filter((x) => x.at <= now);
   if (due.length) { sc.list = sc.list.filter((x) => x.at > now); await putDoc(DOC.sched, sc); for (const x of due) out.scheduled = (out.scheduled || 0) + await postToTargets(c, { text: x.text }); }
   T.at = now;
+  try { await mineTick(T, s, out); } catch (e) { out.mineTick = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

@@ -8,6 +8,10 @@
 //   POST /api/mine?shares=<n> {w, s, nonces}  hand in shares
 //   POST /api/mine?xpost=<n>  {w, s, url}     prove an X post (unlocks claiming; more posts add bonus)
 //   POST /api/mine?look=1     {w, s, char, pet} pick a character and a pet (unlocked by rank; looks only)
+//   POST /api/mine?quests=1   {w, s}           claim today's finished quests (rank XP)
+//   POST /api/mine?crew=create|join|leave {w, s, name}   crews
+//   GET  /api/mine?boards=1                   this month's season, crews, the Arc Crystal hall of fame
+//   GET  /api/mine?builder=0x…                a builder's card without a mine (rank, looks, quests, badges)
 //   GET  /api/mine?settle=1&key=<CRON_SECRET> settle finished hours and post roots (arcia-tg's tick does this too)
 import * as M from "./_mine.mjs";
 
@@ -24,6 +28,8 @@ export async function GET(req) {
   try {
     if (q.cfg) return json(await M.config(), 200, "public, s-maxage=60");
     if (q.list) return json({ live: M.live(), mines: await M.listView() }, 200, "public, s-maxage=15");
+    if (q.boards) return json(await M.boards(), 200, "public, s-maxage=30");
+    if (q.builder) { if (!isAddr(q.builder)) return json({ error: "bad wallet" }, 400); return json(await M.builderView(q.builder)); }
     if (q.settle) {
       if (!authed(req, q)) return json({ error: "key required" }, 401);
       return json(await M.settleAll({ budgetMs: 45000 }));
@@ -64,6 +70,12 @@ export async function POST(req) {
     if (q.auth) {
       const r = M.signIn(b.w, b.t, b.sig);
       return r.error ? json(r, 400) : json(r);
+    }
+    if (q.quests || q.crew) {
+      if (!isAddr(b.w)) return json({ error: "wallet required" }, 400);
+      if (!M.session(b.s, b.w)) return json({ error: "Sign in again.", auth: true }, 401);
+      const r = q.quests ? await M.claimQuests(b.w) : await M.crewAct(b.w, String(q.crew), b.name);
+      return r.error ? json(r, 409) : json(r);
     }
     if (q.look) {
       if (!isAddr(b.w)) return json({ error: "wallet required" }, 400);
