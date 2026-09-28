@@ -291,6 +291,16 @@
       "</div>";
     document.body.appendChild(scrim);
     document.body.appendChild(panel);
+    // Builder Mine's tile: $ARCIRCLE burned and builders digging, once the contract is live
+    if (typeof CONFIG !== "undefined" && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.BUILDER_MINE_ADDRESS || "") && window.fetch) {
+      fetch("/api/mine?stats=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (s) {
+        var el = panel.querySelector('[data-util="mine"] small');
+        if (!el || !s || !s.live || s.burned == null) return;
+        var n = Number(BigInt(s.burned) / 1000000000000000000n);
+        var c = n >= 1e6 ? (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
+        el.textContent = c + " $ARCIRCLE burned · " + (s.digging || 0) + " digging now";
+      }).catch(function () { /* keep the line */ });
+    }
 
     // ---- two pages: the numbers below, a swipe / drag, arrow keys or a sideways trackpad scroll ----
     var track = panel.querySelector(".ax-util-track"), pages = [].slice.call(panel.querySelectorAll(".ax-util-grid"));

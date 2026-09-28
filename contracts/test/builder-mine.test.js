@@ -251,6 +251,32 @@ describe("BuilderMine v2", function () {
     await expect(mine.connect(a).buyItem(6, 0)).to.be.revertedWithCustomError(mine, "StackTooLong");
   });
 
+  it("top-ups under 1% of the first deposit are refused, so dust can't fill the 16 slots", async function () {
+    const { mine, coin, a } = await opened(6, 100_000);
+    await coin.mint(a.address, E(10_000)); await coin.connect(a).approve(mine.target, E(10_000));
+    await expect(mine.connect(a).topUp(0, E(999))).to.be.revertedWithCustomError(mine, "TopUpTooSmall");
+    await expect(mine.connect(a).topUp(0, E(1_000))).to.emit(mine, "ToppedUp");
+  });
+
+  it("the operator can never be the zero address", async function () {
+    const { mine, arc, pm } = await deploy();
+    await expect(mine.setOperator(ethers.ZeroAddress)).to.be.revertedWithCustomError(mine, "ZeroOperator");
+    const M = await ethers.getContractFactory("BuilderMine");
+    await expect(M.deploy(arc.target, pm.target, SLOT, true, ethers.ZeroAddress)).to.be.revertedWithCustomError(mine, "ZeroOperator");
+  });
+
+  it("a boost bought before the mine opens starts when it opens", async function () {
+    const d = await deploy();
+    await d.coin.connect(d.creator).approve(d.mine.target, E(100_000));
+    await d.mine.connect(d.creator).openMine(d.coin.target, E(100_000), 6, 2n * DAY, "Later", "", "");
+    const m = await d.mine.getMine(0);
+    await d.mine.connect(d.a).join(0, ethers.ZeroAddress);
+    await d.mine.connect(d.a).buyItem(7, 0); // dynamite, 1h
+    expect((await d.mine.rigOf(0, d.a.address)).boosts[1]).to.equal(m.start + 3600n);
+    for (let i = 0; i < 7; i++) await d.mine.connect(d.a).buyItem(6, 0); // lanterns stack from the start, up to seven days
+    await expect(d.mine.connect(d.a).buyItem(6, 0)).to.be.revertedWithCustomError(d.mine, "StackTooLong");
+  });
+
   it("no joining after the end", async function () {
     const { mine, a } = await opened(3);
     const m = await mine.getMine(0);

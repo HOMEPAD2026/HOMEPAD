@@ -15,7 +15,7 @@ import { lockInfo } from "./_locker.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
-import { mineView, meView, GAME as MINE_GAME } from "./_mine.mjs";
+import { mineView, meView, cardFacts as mineCardFacts, GAME as MINE_GAME } from "./_mine.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -138,7 +138,7 @@ export async function GET(req) {
   }
   if (url.searchParams.has("mine")) {
     const fonts = (await fontsP).filter(Boolean);
-    return new ImageResponse(await mineCard(await markP, url.searchParams.get("mine"), url.searchParams.get("w")), {
+    return new ImageResponse(await mineCard(await markP, url.searchParams.get("mine"), url.searchParams.get("w"), url.searchParams.get("c"), url.searchParams.get("k")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
     });
@@ -592,11 +592,17 @@ async function lockCard(mark, id) {
 
 // ---- Builder Mine card (/mine/<id>?r=<wallet>) — the mine's strata, and the builder's haul when a wallet is given ----
 const MINE_LAYER_COLORS = ["#5f9e4a", "#b07a4a", "#7d8594", "#c9a24a", "#4a5872", "#e2553b"];
-async function mineCard(mark, id, w) {
-  let v = null, me = null;
+const MINE_ORE = { diamond: { name: "Diamond", color: "#7fe7ff", pts: 60 }, arc: { name: "Arc Crystal", color: "#c58bff", pts: 500 }, heart: { name: "Heart of Arc", color: "#ff6b8b", pts: 100 } };
+const MINE_CARDS = ["jackpot", "rank", "season", "crew", "open", "book"];
+async function mineCard(mark, id, w, card, kind) {
+  let v = null, me = null, facts = null;
   if (/^\d{1,6}$/.test(id || "")) { try { v = await mineView(Number(id)); } catch { v = null; } }
   if (v && isAddr(w || "")) { try { me = await meView(Number(id), w); } catch { me = null; } }
+  card = MINE_CARDS.includes(card) ? card : "";
+  // every claim on a card is checked against the builder's own record; if it doesn't hold, the plain card is drawn
+  if (v && card && card !== "open" && me) { try { facts = await mineCardFacts(w, card, String(kind || "")); } catch { facts = null; } }
   const acc = "#ffc861";
+  if (v && ((card && card !== "open" && facts) || card === "open")) return mineSpecial(mark, v, me, card, facts, acc);
   const strata = (layer) => h("div", { width: 230, height: 360, flexDirection: "column", borderRadius: 28, overflow: "hidden", border: "3px solid rgba(255,200,97,0.45)" },
     ...MINE_LAYER_COLORS.map((c, i) => h("div", { flex: 1, backgroundColor: c, opacity: i <= layer ? 1 : 0.35, alignItems: "center", justifyContent: "center", borderTop: i ? "3px solid rgba(0,0,0,0.25)" : "none" },
       i === layer ? h("div", { width: 64, height: 64, borderRadius: 32, backgroundColor: "#0b0f14", border: `5px solid ${acc}`, alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 800, color: acc }, String(i + 1)) : null)));
@@ -637,6 +643,72 @@ async function mineCard(mark, id, w) {
           me ? box("Pickaxe", pick, acc) : box("In the mine", `${amt(v.deposited, dec)}`, acc),
           me ? box("Rank", rank >= 0 ? `#${rank + 1}` : "—") : box("Mined so far", amt(v.emittedNow, dec)),
           me ? box("Points", Number(me.points || 0).toLocaleString("en-US")) : box("Left: burned", "at the end")))),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "Join with 1 USDC · mine in your browser · claim on Arc"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/mine/${v.id}`)),
+  ]);
+}
+
+// the special cards: a jackpot ore, a rank, a season place, a crew, a fresh mine, the ore book
+async function mineSpecial(mark, v, me, card, f, acc) {
+  const sym = clip(v.token.symbol, 12), dec = v.token.decimals;
+  const who = me ? (me.x ? "@" + clip(me.x, 16) : `${me.w.slice(0, 6)}…${me.w.slice(-4)}`) : "";
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "14px 22px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 19, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 34, fontWeight: 800, color }, value));
+  const art = async (file, color, w = 300, hh = 300) => {
+    const im = await fetchImage(`${SITE}/images/mine/${file}`);
+    return h("div", { width: 330, height: 360, alignItems: "center", justifyContent: "center", borderRadius: 28, backgroundImage: `radial-gradient(circle at 50% 50%, ${color}66, ${color}08 70%)`, border: `3px solid ${color}88` },
+      im ? img(im, { width: w, height: hh, objectFit: "contain" }) : h("div", { width: 160, height: 160, borderRadius: 30, backgroundColor: color }));
+  };
+  let pillText = "BUILDER MINE", color = acc, left, kicker, headline, sub, boxes = [];
+  if (card === "jackpot") {
+    const o = MINE_ORE[f.kind]; color = o.color; pillText = f.kind === "arc" ? "JACKPOT" : "RARE FIND";
+    left = await art(`og-ore-${f.kind}.png`, color);
+    kicker = `${who} · $${sym} mine`; headline = `I found ${f.kind === "arc" ? "an" : "a"} ${o.name}`;
+    sub = f.kind === "arc" ? "1 in 16,384 shares. The rarest ore on Arc." : f.kind === "heart" ? "One per mine per hour. First to reach it wins." : "1 in 1,024 shares.";
+    boxes = [box("Points", `+${o.pts}`, color), box("Found", String(f.n) + (f.n === 1 ? " time" : " times")), box("Layer", `${v.layer + 1} · ${MINE_GAME.layers[v.layer] || ""}`)];
+  } else if (card === "rank") {
+    const r = MINE_GAME.ranks[f.rank] || MINE_GAME.ranks[0]; pillText = "RANK UP";
+    left = await art(`og-badge-${r.id}.png`, acc, 250, 290);
+    kicker = `${who} · Builder on Arc`; headline = `${r.name} rank`;
+    sub = r.pct ? `+${r.pct}% on every mine from now on.` : "The first rank. Every share counts.";
+    const next = MINE_GAME.ranks[f.rank + 1];
+    boxes = [box("Lifetime points", Number(f.pts).toLocaleString("en-US"), acc), box("Next", next ? `${next.name} · ${Number(next.min).toLocaleString("en-US")}` : "Top rank")];
+  } else if (card === "season") {
+    pillText = "SEASON"; const mo = new Date(Date.UTC(+f.ym.slice(0, 4), +f.ym.slice(4) - 1, 1)).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+    left = await art(`og-char-${(me.look && me.look.char) || "apprentice"}.png`, acc, 230, 330);
+    kicker = `${who} · Season ${mo}`; headline = `#${f.place} of ${Number(f.of).toLocaleString("en-US")} builders`;
+    sub = "Points from every mine on Arc this month.";
+    boxes = [box("Season points", Number(f.pts).toLocaleString("en-US"), acc), box("Rank", (MINE_GAME.ranks[me.rank || 0] || {}).name || "")];
+  } else if (card === "crew") {
+    pillText = "CREW"; color = "#6fe3b0";
+    left = await art(`og-char-${(me.look && me.look.char) || "apprentice"}.png`, color, 230, 330);
+    kicker = `${who} · ${f.owner ? "founder" : "member"}`; headline = `Crew ${clip(f.name, 18)}`;
+    sub = f.pct ? `Every member mines with +${f.pct}% this month.` : f.next ? `${Number(f.next.at - f.season).toLocaleString("en-US")} points to +${f.next.pct}% for everyone.` : "Dig together.";
+    boxes = [box("Members", `${f.n} / 30`, color), box("This month", Number(f.season).toLocaleString("en-US")), box("Crew bonus", f.pct ? `+${f.pct}%` : "—", color)];
+  } else if (card === "book") {
+    pillText = "ORE BOOK"; color = "#c58bff";
+    left = await art("og-ore-arc.png", color);
+    kicker = `${who} · Builder on Arc`; headline = `${f.found} of ${f.of} ores found`;
+    sub = f.found === f.of ? "Every ore on Arc, collected." : "Copper, silver, gold, diamond, Arc Crystal, the Heart of Arc.";
+    boxes = f.book.slice(0, 6).map((b) => box(b.kind === "arc" ? "Arc" : b.kind === "heart" ? "Heart" : b.kind, b.n ? Number(b.n).toLocaleString("en-US") : "—", b.n ? "#eaf2e6" : "#5d6b58"));
+  } else { // a fresh mine: the creator's promo card
+    pillText = v.now < v.start ? "OPENS SOON" : "NEW MINE";
+    left = await art("og-chest.png", acc, 290, 260);
+    const days = Math.round((v.end - v.start) / 86400);
+    kicker = v.info && v.info.name ? clip(v.info.name, 34) : "Builder Mine · Circle's Arc"; headline = `Mine $${sym} on Arc`;
+    sub = v.info && v.info.about ? clip(v.info.about, 90) : "Builders dig it in the browser. Whatever isn't mined is burned.";
+    boxes = [box("In the mine", amt(v.deposited, dec), acc), box("Runs", `${days} days`), box("Layers", "6")];
+  }
+  return frame([
+    brandRow(mark, pill(pillText, color), "Builder Mine · Circle's Arc"),
+    h("div", { alignItems: "center", gap: 44, width: "100%" }, left,
+      h("div", { flexDirection: "column", gap: 12, flex: 1 },
+        h("div", { fontSize: 28, color, fontWeight: 700 }, kicker),
+        h("div", { fontSize: headline.length > 22 ? 62 : 74, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }, headline),
+        h("div", { fontSize: 28, color: "#b9c8b3" }, sub),
+        h("div", { gap: 12, marginTop: 8, flexWrap: "wrap" }, ...boxes))),
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "Join with 1 USDC · mine in your browser · claim on Arc"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/mine/${v.id}`)),

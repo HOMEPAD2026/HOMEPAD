@@ -100,6 +100,8 @@ export const GAME = {
     { id: "posts5", name: "Loud builder", about: "5 proven X posts" },
     { id: "crew", name: "Crew member", about: "Join or found a crew" },
     { id: "legend", name: "Legend", about: "Reach the Legend rank" },
+    { id: "heart", name: "Heart hunter", about: "Find the Heart of Arc" },
+    { id: "book", name: "Collector", about: "Find every ore at least once" },
   ],
   // boosts (BuilderMine boost kinds 1–4)
   boosts: [
@@ -117,6 +119,12 @@ export const GAME = {
   items: [[20_000, 1, 0, 0], [60_000, 2, 0, 0], [150_000, 3, 0, 0], [300_000, 4, 0, 0], [700_000, 5, 0, 0], [1_600_000, 6, 0, 0], [4_000_000, 7, 0, 0],
     [30_000, 0, 1, 86400], [20_000, 0, 2, 3600], [40_000, 0, 3, 86400], [30_000, 0, 4, 86400]],
   feeUsd: 1,                  // opening or joining: 1 USDC worth of $ARCIRCLE, burned
+  // hourly events — they only shift points *within* an hour, so they change who gets more, never how much is released
+  rush: { mult: 3, kinds: ["copper", "silver", "gold"] }, // each hour one of these is the rush ore: its points ×3
+  heart: { name: "Heart of Arc", extra: 8, pts: 100 },    // one per mine per hour, hidden at a secret minute:
+                                                          // the first share with 8 more zero bits after it wins
+  crewTiers: [[20_000, 3], [100_000, 5]],                 // a crew's points this month → bonus % for every member
+  minTopUpPct: 1,                                         // a top-up is at least 1% of the first deposit (contract)
 };
 
 // ---------------- small helpers ----------------
@@ -297,7 +305,7 @@ export function holderPct(arcircleRaw) {
 }
 /// Every multiplier for one builder in one hour, itemised (the page shows the same list).
 export const rankOf = (pts) => { let r = 0; GAME.ranks.forEach((x, i) => { if ((pts || 0) >= x.min) r = i; }); return r; };
-export function weigh({ rig, user, at, lifetime = 0 }) {
+export function weigh({ rig, user, at, lifetime = 0, crew = 0 }) {
   const pick = GAME.pickaxes[Math.max(0, Math.min(GAME.pickaxes.length - 1, rig ? rig.pickaxe : 0))];
   const until = (rig && rig.boosts) || [0, 0, 0, 0];
   const u = user || {};
@@ -310,6 +318,7 @@ export function weigh({ rig, user, at, lifetime = 0 }) {
   add("Referrals", Math.min(GAME.refMax, (u.refs || []).length) * GAME.refPct);
   add("Joined by referral", rig && isAddr(rig.referrer) && !/^0x0{40}$/.test(rig.referrer) ? GAME.referredPct : 0);
   add("Streak", Math.min(GAME.streakMax, Math.max(0, (u.streak || 0) - 1)) * GAME.streakPct);
+  add("Crew", crew);
   add("Lantern", until[0] > at ? GAME.boosts[0].pct : 0);
   add("Dynamite", until[1] > at ? GAME.boosts[1].pct : 0);
   const bonus = Math.min(GAME.bonusCap, parts.reduce((n, p) => n + p.pct, 0));
@@ -323,7 +332,26 @@ const P = {
   user: (id, w) => `mineu/${id}_${lc(w)}`, ep: (id, e, w) => `minee/${id}_${e}_${lc(w)}`, epTot: (id, e) => `mineep/${id}_${e}`,
   handle: (h) => `minex/${lc(h)}`, tweet: (t) => `minetw/${t}`, builder: (w) => `minerank/${lc(w)}`,
   crew: (slug) => `minecrew/${slug}`, crews: () => "minecrews/all", season: (ym) => `mineseason/${ym}`, hall: () => "minehall/arc",
+  heart: (id, e) => `minehrt/${id}_${e}`, counts: (id) => `minec/${id}`, day: (d) => `minestat/${d}`,
 };
+
+// ---------------- hourly events ----------------
+/// this hour's rush ore (unknowable before the hour starts)
+export const rushOf = (id, e) => GAME.rush.kinds[hmac(`rush|${id}|${e}`)[0] % GAME.rush.kinds.length];
+/// seconds into the hour when the Heart of Arc can first be found (5–49 min) — never sent to the page
+const heartAt = (id, e) => 300 + (hmac(`heart|${id}|${e}`).readUInt16BE(0) % 2640);
+const orePts = (kind, rush) => kind === "heart" ? GAME.heart.pts : ((GAME.ores.find((o) => o.kind === kind) || { pts: 0 }).pts * (kind === rush ? GAME.rush.mult : 1));
+/// a crew's bonus from its points this month
+export function crewPct(crewDoc, ym) {
+  const n = (crewDoc && crewDoc[`s${ym}`]) || 0;
+  let p = 0; for (const [min, pct] of GAME.crewTiers) if (n >= min) p = pct;
+  return p;
+}
+function crewInfo(c, ym) {
+  if (!c || !(c.members || []).length) return null;
+  const season = c[`s${ym}`] || 0, pct = crewPct(c, ym), next = GAME.crewTiers.find(([min]) => season < min) || null;
+  return { slug: c.slug, name: c.name, n: c.members.length, season, pct, next: next ? { at: next[0], pct: next[1] } : null };
+}
 
 // ---------------- shares ----------------
 /// Check and count a batch of nonces for the current hour. Returns what counted.
@@ -348,7 +376,9 @@ export async function submitShares(id, w, nonces, { m, rig } = {}) {
   const wt = weigh({ rig, user: docs[P.user(id, w)], at: t, lifetime: (docs[P.builder(w)] || {}).pts || 0 });
   const cap = capFor(wt), luck = wt.lucky ? 1 : 0;
   const ch = challenge(id, e, w), seen = new Set(d.seen || []);
-  const finds = [];
+  const finds = [], rush = rushOf(id, e), hk = `heart:${id}:${e}`;
+  const heartOpen = t - (m.start + e * GAME.epoch) >= heartAt(id, e) && !memo.has(hk);
+  let heartZ = -1;
   let ok = 0, bad = 0, over = 0;
   for (const n of list) {
     const k = normNonce(n);
@@ -360,24 +390,31 @@ export async function submitShares(id, w, nonces, { m, rig } = {}) {
     d.shares++; ok++;
     const ore = oreOf(z, luck);
     if (ore) { d.ores[ore.kind] = (d.ores[ore.kind] || 0) + 1; finds.push({ kind: ore.kind, z }); }
+    if (heartOpen && z >= GAME.shareBits + GAME.heart.extra - luck && z > heartZ) heartZ = z;
   }
   if (bad > list.length / 2 && bad > 2) return { error: "Those shares don't match this hour's challenge — reload the page.", bad };
+  // the Heart of Arc: one per mine per hour — whoever's share lands first takes it (a create-only write decides)
+  if (heartZ >= 0 && !(d.ores.heart > 0)) {
+    const r = await commit([{ create: P.heart(id, e), data: { w: lc(w), t, id: Number(id), e } }]).catch(() => ({ ok: false }));
+    memo.set(hk, { t: Date.now(), v: 1 });
+    if (r.ok) { d.ores.heart = 1; finds.push({ kind: "heart", z: heartZ }); }
+  }
   d.seen = [...seen].slice(-4000);
   d.at = Date.now();
-  const pts = ok + finds.reduce((n, f) => n + (GAME.ores.find((o) => o.kind === f.kind) || { pts: 0 }).pts, 0);
+  const pts = ok + finds.reduce((n, f) => n + orePts(f.kind, rush), 0);
   const writes = [{ set: P.ep(id, e, w), data: d }];
   if (pts) writes.push({ inc: P.epTot(id, e), fields: { points: pts, shares: ok } });
   // the builder's lifetime counters and today's quest progress — one write
   if (ok) {
-    const q = qkey(t), inc = { sh: ok, [`${q}s`]: ok };
-    for (const f of finds) { inc[`o_${f.kind}`] = (inc[`o_${f.kind}`] || 0) + 1; if (["gold", "diamond", "arc"].includes(f.kind)) inc[`${q}r`] = (inc[`${q}r`] || 0) + 1; }
-    writes.push({ inc: P.builder(w), fields: inc });
+    const q = qkey(t), inc = { sh: ok, [`${q}s`]: ok }, first = {};
+    for (const f of finds) { inc[`o_${f.kind}`] = (inc[`o_${f.kind}`] || 0) + 1; first[`f_${f.kind}`] = t; if (["gold", "diamond", "arc", "heart"].includes(f.kind)) inc[`${q}r`] = (inc[`${q}r`] || 0) + 1; }
+    writes.push({ inc: P.builder(w), fields: inc, min: first }); // min: the ore book keeps the first time each ore was found
   }
   await commit(writes);
   if (finds.some((f) => f.kind === "arc")) await addHall({ w: lc(w), id: Number(id), t }).catch(() => {});
-  const big = finds.filter((f) => ["gold", "diamond", "arc"].includes(f.kind));
+  const big = finds.filter((f) => ["gold", "diamond", "arc", "heart"].includes(f.kind));
   if (big.length) await addFeed(id, big.map((f) => ({ w: lc(w), kind: f.kind, t, e }))).catch(() => {});
-  return { ok: true, epoch: e, counted: ok, over, bad, shares: d.shares, ores: d.ores, cap, finds };
+  return { ok: true, epoch: e, counted: ok, over, bad, shares: d.shares, ores: d.ores, cap, finds, rush, points: points(d) };
 }
 async function addFeed(id, rows) {
   const cur = (await getDocs([P.feed(id)]))[P.feed(id)] || { items: [] };
@@ -390,7 +427,11 @@ export function oreOf(z, luck = 0) {
   for (const o of GAME.ores) if (z >= GAME.shareBits + o.extra - luck) best = o;
   return best;
 }
-const points = (d) => Math.min(d.shares || 0, 1e9) + GAME.ores.reduce((n, o) => n + ((d.ores || {})[o.kind] || 0) * o.pts, 0);
+/// one builder's points in one hour: shares + rare ores (the hour's rush ore ×3) + the Heart of Arc
+const points = (d) => {
+  const rush = d && d.id != null && d.e != null ? rushOf(d.id, d.e) : null, o = (d && d.ores) || {};
+  return Math.min((d && d.shares) || 0, 1e9) + GAME.ores.reduce((n, x) => n + (o[x.kind] || 0) * orePts(x.kind, rush), 0) + (o.heart || 0) * GAME.heart.pts;
+};
 
 // ---------------- X posts ----------------
 export const shareLink = (id, w) => `${SITE}/mine/${id}?r=${lc(w)}`;
@@ -452,8 +493,11 @@ export async function verifyPost(id, w, url, { m, rig } = {}) {
   u.posts = [...(u.posts || []), { id: ref.id, day, t: now() }];
   const writes = [{ set: P.user(id, w), data: u }, { set: P.tweet(ref.id), data: { w: lc(w), id: Number(id), t: now() } }, { set: P.handle(ref.handle), data: { w: lc(w), t: now() } },
     { inc: P.builder(w), fields: { [`${qkey(now())}p`]: 1, posts: 1 } }];
+  const referred = u.posts.length === 1 && isAddr(rig.referrer) && !/^0x0{40}$/.test(rig.referrer);
+  // the mine's own counters (the creator's dashboard): posts, builders who proved one, referrals that did
+  writes.push({ inc: P.counts(id), fields: { posts: 1, ...(u.posts.length === 1 ? { xbuilders: 1 } : {}), ...(referred ? { refs: 1 } : {}) } });
   // the first proven post also counts for whoever referred this builder
-  if (u.posts.length === 1 && isAddr(rig.referrer) && !/^0x0{40}$/.test(rig.referrer)) {
+  if (referred) {
     const rd = (await getDocs([P.user(id, rig.referrer)]))[P.user(id, rig.referrer)] || { id: Number(id), w: rig.referrer, posts: [], refs: [], streak: 0 };
     if (!(rd.refs || []).includes(lc(w))) { rd.refs = [...(rd.refs || []), lc(w)]; writes.push({ set: P.user(id, rig.referrer), data: rd }); }
   }
@@ -467,6 +511,13 @@ export function lookOf(bd) {
   const c = GAME.characters.find((x) => x.id === (bd && bd.char) && x.rank <= r) || GAME.characters[0];
   const p = GAME.pets.find((x) => x.id === (bd && bd.pet) && x.rank <= r) || GAME.pets[0];
   return { char: c.id, pet: p.id };
+}
+export async function setPrefs(w, prefs) {
+  if (!storeEnabled()) return { error: "Storage isn't set up yet." };
+  const bd = (await getDocs([P.builder(w)]))[P.builder(w)] || {};
+  if (prefs && "xshare" in prefs) bd.xshare = prefs.xshare ? 1 : 0; // ARCIA may post my Arc Crystal on X (tagging my handle)
+  await commit([{ set: P.builder(w), data: { ...bd, w: lc(w) } }]);
+  return { ok: true, prefs: { xshare: !!bd.xshare } };
 }
 export async function setLook(w, char, pet) {
   if (!storeEnabled()) return { error: "Storage isn't set up yet." };
@@ -521,8 +572,15 @@ export function achievementsOf(bd, extra = {}) {
     first: (bd.sh || 0) >= 1, k1: (bd.sh || 0) >= 1000, k10: (bd.sh || 0) >= 10000,
     gold: (bd.o_gold || 0) + (bd.o_diamond || 0) + (bd.o_arc || 0) >= 1, diamond: (bd.o_diamond || 0) + (bd.o_arc || 0) >= 1, arc: (bd.o_arc || 0) >= 1,
     streak7: !!bd.st7ok || (extra.streak || 0) >= 7, posts5: (bd.posts || 0) >= 5, crew: !!bd.crew, legend: rankOf(bd.pts || 0) >= 4,
+    heart: (bd.o_heart || 0) >= 1, book: BOOK.every((k) => (bd[`o_${k}`] || 0) >= 1),
   };
   return GAME.achievements.map((a) => ({ ...a, got: !!got[a.id] }));
+}
+/// the ore book: every ore, how many, first found
+const BOOK = [...GAME.ores.map((o) => o.kind), "heart"];
+export function bookOf(bd) {
+  bd = bd || {};
+  return BOOK.map((k) => ({ kind: k, n: bd[`o_${k}`] || 0, first: bd[`f_${k}`] || null }));
 }
 const slugOf = (name) => String(name || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
 const CREW_MAX = 30;
@@ -574,7 +632,7 @@ export async function boards() {
     const idx = ((docs[P.crews()] || {}).list || []).slice(-200);
     const crewDocs = idx.length ? await getDocs(idx.map((x) => P.crew(x.slug))) : {};
     const looks = top.length ? await getDocs(top.slice(0, 20).map(([w]) => P.builder(w))) : {};
-    const crews = idx.map((x) => { const c = crewDocs[P.crew(x.slug)] || {}; return { slug: x.slug, name: c.name || x.name, n: (c.members || []).length, pts: c.pts || 0, season: c[`s${ym}`] || 0 }; })
+    const crews = idx.map((x) => { const c = crewDocs[P.crew(x.slug)] || {}; return { slug: x.slug, name: c.name || x.name, n: (c.members || []).length, pts: c.pts || 0, season: c[`s${ym}`] || 0, pct: crewPct(c, ym) }; })
       .filter((c) => c.n > 0).sort((a, b) => b.season - a.season || b.pts - a.pts).slice(0, 30);
     return {
       season: { id: ym, endsIn: Math.floor((Date.UTC(+ym.slice(0, 4), +ym.slice(4), 1) - Date.now()) / 1000), top: top.map(([w, n], i) => ({ w, pts: n, look: i < 20 ? lookOf(looks[P.builder(w)]) : null, rank: rankOf(((looks[P.builder(w)] || {}).pts) || 0) })) },
@@ -618,21 +676,29 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
     const rows = (await queryDocs("minee", "k", `${id}_${e}`, 2000)).filter((r) => isAddr(r.w));
     const ws = rows.map((r) => r.w);
     const [rg, users] = await Promise.all([rigs(id, ws), ws.length ? getDocs([...ws.map((w) => P.user(id, w)), ...ws.map((w) => P.builder(w))]) : {}]);
-    const at = m.start + e * GAME.epoch + GAME.epoch / 2;
+    const at = m.start + e * GAME.epoch + GAME.epoch / 2, ym = seasonOf(m.start + e * GAME.epoch);
+    // crews: every member gets their crew's bonus for this month's points so far
+    const slugs = [...new Set(ws.map((w) => (users[P.builder(w)] || {}).crew).filter(Boolean))];
+    const crews = slugs.length ? await getDocs(slugs.map((c) => P.crew(c))) : {};
     const weights = rows.map((r) => {
-      const u = users[P.user(id, r.w)], wt = weigh({ rig: rg[r.w], user: u, at, lifetime: (users[P.builder(r.w)] || {}).pts || 0 });
+      const u = users[P.user(id, r.w)], bd = users[P.builder(r.w)] || {};
+      const wt = weigh({ rig: rg[r.w], user: u, at, lifetime: bd.pts || 0, crew: bd.crew ? crewPct(crews[P.crew(bd.crew)], ym) : 0 });
       return { w: r.w, r, u, pts: points(r), W: BigInt(Math.round(points(r) * wt.mult * 1e6)) };
     });
     const total = weights.reduce((n, x) => n + x.W, 0n);
     const from = emitted(m, m.start + e * GAME.epoch), to = emitted(m, Math.min(m.end, m.start + (e + 1) * GAME.epoch));
     const pot = to - from;
     const userWrites = [];
+    const order = [...weights].sort((a, b) => (b.W > a.W ? 1 : b.W < a.W ? -1 : 0)).map((x) => x.w);
     for (const x of weights) {
-      if (total > 0n && x.W > 0n) doc.alloc[x.w] = (BigInt(doc.alloc[x.w] || 0) + (pot * x.W) / total).toString();
+      const got = total > 0n && x.W > 0n ? (pot * x.W) / total : 0n;
+      if (got > 0n) doc.alloc[x.w] = (BigInt(doc.alloc[x.w] || 0) + got).toString();
       doc.pts[x.w] = (doc.pts[x.w] || 0) + x.pts;
       // streak: a day with ≥ streakMin shares (counted at the hour it's reached)
       const day = dayOf(m.start + e * GAME.epoch);
       const u = x.u || { id, w: x.w, posts: [], refs: [], streak: 0 };
+      // this hour's result card on the page: points, what they got, place
+      u.last = { e, pts: x.pts, got: got.toString(), place: order.indexOf(x.w) + 1, of: weights.length, rush: rushOf(id, e), heart: !!((x.r.ores || {}).heart) };
       u.dayShares = u.dayKey === day ? (u.dayShares || 0) + (x.r.shares || 0) : (x.r.shares || 0);
       u.dayKey = day;
       if (u.dayShares >= GAME.streakMin && u.lastDay !== day) {
@@ -642,7 +708,7 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
       }
       userWrites.push({ set: P.user(id, x.w), data: u });
       if (x.pts > 0) {
-        const ym = seasonOf(m.start + e * GAME.epoch), bd = users[P.builder(x.w)] || {};
+        const bd = users[P.builder(x.w)] || {};
         // lifetime points → rank; this month's → season; a 7-day streak once → its badge
         userWrites.push({ inc: P.builder(x.w), fields: { pts: x.pts, [`s${ym}`]: x.pts, ...(u.streak >= 7 && !bd.st7ok ? { st7ok: 1 } : {}) } });
         season[ym] = season[ym] || {}; season[ym][x.w] = (season[ym][x.w] || 0) + x.pts;
@@ -650,6 +716,8 @@ export async function settle(m, { maxEpochs = 6, post = true } = {}) {
       }
     }
     doc.stats = { ...(doc.stats || {}), lastEpoch: e, lastBuilders: rows.length, lastPoints: weights.reduce((n, x) => n + x.pts, 0), lastPot: pot.toString(), lastAllocated: total > 0n ? pot.toString() : "0" };
+    // the creator's dashboard: one row per settled hour [hour, builders digging, points, released, joined so far]
+    doc.hist = [...(doc.hist || []), [e, rows.length, weights.reduce((n, x) => n + x.pts, 0), pot.toString(), m.builders]].slice(-1440);
     doc.settled = e;
     for (let i = 0; i < userWrites.length; i += 400) await commit(userWrites.slice(i, i + 400));
   }
@@ -702,14 +770,16 @@ export async function mineView(id) {
   const m = await mineInfo(id);
   if (!m) return null;
   const t = now(), e = epochAt(m, t);
-  const [meta, docs, act] = await Promise.all([tokenMeta([m.token]), storeEnabled() ? getDocs([P.mine(id), P.feed(id), P.epTot(id, e)]) : {}, storeEnabled() && t < m.end ? liveBuilders(id, e) : { n: 0, who: [] }]);
-  const d = docs[P.mine(id)] || {}, feed = (docs[P.feed(id)] || {}).items || [], cur = docs[P.epTot(id, e)] || {};
+  const [meta, docs, act] = await Promise.all([tokenMeta([m.token]), storeEnabled() ? getDocs([P.mine(id), P.feed(id), P.epTot(id, e), P.heart(id, e)]) : {}, storeEnabled() && t < m.end ? liveBuilders(id, e) : { n: 0, who: [] }]);
+  const d = docs[P.mine(id)] || {}, feed = (docs[P.feed(id)] || {}).items || [], cur = docs[P.epTot(id, e)] || {}, hrt = docs[P.heart(id, e)];
   return {
     ...ser(m), token: meta[m.token], now: t, epoch: e, epochs: epochs(m), layer: layerAt(m, t),
     emittedNow: emitted(m, t).toString(), hourPot: (emitted(m, Math.min(m.end, m.start + (e + 1) * GAME.epoch)) - emitted(m, m.start + e * GAME.epoch)).toString(),
     hour: { points: cur.points || 0, shares: cur.shares || 0 },
     top: d.top || [], feed: feed.slice(0, 20), stats: d.stats || {}, root: d.root || null, settled: d.settled ?? -1,
     active: act, hourEndsIn: m.start + (e + 1) * GAME.epoch - t,
+    // this hour's events: the rush ore, and whether the Heart of Arc was found (its minute stays secret)
+    events: t >= m.start && t < m.end ? { rush: rushOf(id, e), rushMult: GAME.rush.mult, heart: hrt ? { found: true, w: hrt.w, t: hrt.t } : { found: false } } : null,
     link: `${SITE}/mine/${id}`,
   };
 }
@@ -719,8 +789,9 @@ export async function meView(id, w) {
   const t = now(), e = epochAt(m, t);
   const [rg, docs] = await Promise.all([rigs(id, [w]), storeEnabled() ? getDocs([P.user(id, w), P.ep(id, e, w), P.mine(id), P.tree(id), P.epTot(id, e), P.builder(w)]) : {}]);
   const rig = rg[lc(w)], u = docs[P.user(id, w)] || {}, ep = docs[P.ep(id, e, w)] || {}, md = docs[P.mine(id)] || {}, tr = docs[P.tree(id)] || {}, tot = docs[P.epTot(id, e)] || {};
-  const bd = docs[P.builder(w)] || {}, lifetime = bd.pts || 0;
-  const wt = weigh({ rig, user: u, at: t, lifetime });
+  const bd = docs[P.builder(w)] || {}, lifetime = bd.pts || 0, ym = seasonOf(t);
+  const crewDoc = bd.crew ? (await getDocs([P.crew(bd.crew)]))[P.crew(bd.crew)] : null;
+  const wt = weigh({ rig, user: u, at: t, lifetime, crew: crewPct(crewDoc, ym) });
   const rows = tr.rows || [], k = rows.findIndex(([a]) => a === lc(w));
   const cum = k >= 0 ? rows[k][1] : "0";
   const proof = k >= 0 && md.root && md.root.root === tr.root ? buildTree(Number(id), rows).proof(k) : null;
@@ -734,8 +805,9 @@ export async function meView(id, w) {
     mined: md.alloc ? md.alloc[lc(w)] || "0" : "0", points: md.pts ? md.pts[lc(w)] || 0 : 0,
     claimable: { cumulative: cum, claimed: rig ? rig.claimed.toString() : "0", proof, rootLive: !!proof },
     x: u.x || "", verified: !!u.xv, posts: (u.posts || []).length, refs: (u.refs || []).length, streak: u.streak || 0,
-    quests: questsOf(bd, t), achievements: achievementsOf(bd, { streak: u.streak || 0 }), crew: bd.crew || null, xp: bd.xp || 0,
-    totals: { shares: bd.sh || 0, ores: Object.fromEntries(GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0])) },
+    quests: questsOf(bd, t), achievements: achievementsOf(bd, { streak: u.streak || 0 }), crew: bd.crew || null, crewInfo: crewInfo(crewDoc, ym), xp: bd.xp || 0,
+    totals: { shares: bd.sh || 0, ores: Object.fromEntries([...GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0]), ["heart", bd.o_heart || 0]]) },
+    book: bookOf(bd), prefs: { xshare: !!bd.xshare }, lastHour: u.last || null, season: bd[`s${ym}`] || 0,
     // this hour's pot × my share of the hour's points (unweighted — the settle weighs it)
     estimate: tot.points ? ((BigInt(emitted(m, Math.min(m.end, m.start + (e + 1) * GAME.epoch)) - emitted(m, m.start + e * GAME.epoch)) * BigInt(Math.round(myPts * 1000))) / BigInt(Math.max(1, Math.round((tot.points || 0) * 1000)))).toString() : "0",
     link: shareLink(id, w),
@@ -744,9 +816,73 @@ export async function meView(id, w) {
 const ser = (m) => ({ ...m, deposited: m.deposited.toString(), rootTotal: m.rootTotal.toString(), claimed: m.claimed.toString(), burned: m.burned.toString(), segs: (m.segs || []).map((x) => ({ amount: String(x.amount), f0: String(x.f0) })) });
 /// a builder's card without a mine (rank, looks, quests, badges, crew)
 export async function builderView(w) {
-  const bd = await builderOf(w);
-  return { w: lc(w), lifetime: bd.pts || 0, rank: rankOf(bd.pts || 0), look: lookOf(bd), quests: questsOf(bd), achievements: achievementsOf(bd), crew: bd.crew || null, xp: bd.xp || 0,
-    totals: { shares: bd.sh || 0, ores: Object.fromEntries(GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0])) } };
+  const bd = await builderOf(w), ym = seasonOf(now());
+  const crewDoc = bd.crew && storeEnabled() ? (await getDocs([P.crew(bd.crew)]))[P.crew(bd.crew)] : null;
+  return { w: lc(w), lifetime: bd.pts || 0, rank: rankOf(bd.pts || 0), look: lookOf(bd), quests: questsOf(bd), achievements: achievementsOf(bd), crew: bd.crew || null, crewInfo: crewInfo(crewDoc, ym), xp: bd.xp || 0,
+    totals: { shares: bd.sh || 0, ores: Object.fromEntries([...GAME.ores.map((o) => [o.kind, bd[`o_${o.kind}`] || 0]), ["heart", bd.o_heart || 0]]) },
+    book: bookOf(bd), prefs: { xshare: !!bd.xshare }, season: bd[`s${ym}`] || 0 };
+}
+/// the creator's dashboard for one mine (public: everything here is on-chain or on the boards anyway)
+export async function creatorView(id) {
+  const m = await mineInfo(id);
+  if (!m) return null;
+  const t = now();
+  const [meta, docs] = await Promise.all([tokenMeta([m.token]), storeEnabled() ? getDocs([P.mine(id), P.counts(id)]) : {}]);
+  const d = docs[P.mine(id)] || {}, c = docs[P.counts(id)] || {};
+  return {
+    ...ser(m), token: meta[m.token], now: t, layer: layerAt(m, t), epoch: epochAt(m, t), epochs: epochs(m),
+    emittedNow: emitted(m, t).toString(), left: (BigInt(m.deposited) - emitted(m, t)).toString(),
+    // what the curve releases per hour from here, so the creator sees what a top-up would do
+    hist: (d.hist || []).slice(-24 * 14), stats: d.stats || {}, root: d.root || null,
+    counts: { posts: c.posts || 0, xbuilders: c.xbuilders || 0, refs: c.refs || 0 },
+    topups: (m.segs || []).slice(1).map((x) => ({ amount: String(x.amount), f0: String(x.f0) })), minTopUp: ((BigInt((m.segs[0] || {}).amount || m.deposited) * BigInt(GAME.minTopUpPct)) / 100n).toString(),
+    top: (d.top || []).slice(0, 10), link: `${SITE}/mine/${id}`, embed: `${SITE}/embed/mine/${id}`,
+  };
+}
+/// the numbers across every mine: $ARCIRCLE burned (all time, today), who's digging, the hottest mine
+export async function statsView() {
+  return cached("stats", 30000, async () => {
+    const t = now(), out = { live: live(), burned: null, burnedToday: null, mines: 0, liveMines: 0, joined: 0, digging: 0, hottest: null, hall: 0 };
+    if (!live()) return out;
+    const [r] = await ethCalls([{ to: mineAddress(), data: S.arcBurned }]).catch(() => []);
+    const burned = r ? BigInt(r) : null;
+    out.burned = burned != null ? burned.toString() : null;
+    const list = await mines();
+    out.mines = list.length;
+    const running = list.filter((m) => t >= m.start && t < m.end);
+    out.liveMines = running.length;
+    out.joined = running.reduce((n, m) => n + m.builders, 0);
+    if (!storeEnabled()) return out;
+    const day = dayOf(t).replace(/-/g, "");
+    const docs = await getDocs([P.day(day), P.hall(), ...running.slice(0, 12).map((m) => P.epTot(m.id, epochAt(m, t)))]);
+    // $ARCIRCLE burned today: against the first reading of the day (one write a day)
+    if (burned != null) {
+      const base = docs[P.day(day)];
+      if (!base) await commit([{ create: P.day(day), data: { burned: burned.toString(), t } }]).catch(() => {});
+      out.burnedToday = (burned - BigInt((base && base.burned) || burned.toString())).toString();
+    }
+    out.hall = ((docs[P.hall()] || {}).items || []).length;
+    let best = null;
+    for (const m of running.slice(0, 12)) { const cur = docs[P.epTot(m.id, epochAt(m, t))] || {}; if ((cur.points || 0) > ((best && best.points) || 0)) best = { id: m.id, points: cur.points || 0, token: m.token }; }
+    if (best) out.hottest = { id: best.id, points: best.points, symbol: (await tokenMeta([best.token]))[best.token].symbol };
+    const act = await Promise.all(running.slice(0, 6).map((m) => liveBuilders(m.id, epochAt(m, t)).catch(() => ({ n: 0 }))));
+    out.digging = act.reduce((n, a) => n + (a.n || 0), 0);
+    return out;
+  });
+}
+/// a card's claim, checked against the builder's own record (share cards can't be faked)
+export async function cardFacts(w, card, kind) {
+  const bd = await builderOf(w), ym = seasonOf(now());
+  if (card === "jackpot") return ["diamond", "arc", "heart"].includes(kind) && (bd[`o_${kind}`] || 0) >= 1 ? { kind, n: bd[`o_${kind}`], first: bd[`f_${kind}`] || null } : null;
+  if (card === "rank") return { rank: rankOf(bd.pts || 0), pts: bd.pts || 0 };
+  if (card === "season") {
+    const pts = ((await getDocs([P.season(ym)]))[P.season(ym)] || {}).pts || {};
+    const order = Object.entries(pts).sort((a, b) => b[1] - a[1]), k = order.findIndex(([a]) => a === lc(w));
+    return k >= 0 ? { ym, place: k + 1, of: order.length, pts: order[k][1] } : null;
+  }
+  if (card === "crew" && bd.crew) { const c = (await getDocs([P.crew(bd.crew)]))[P.crew(bd.crew)]; const ci = crewInfo(c, ym); return ci ? { ...ci, owner: c.owner === lc(w) } : null; }
+  if (card === "book") { const b = bookOf(bd); return { found: b.filter((x) => x.n > 0).length, of: b.length, book: b }; }
+  return null;
 }
 export async function listView() {
   const list = await mines();

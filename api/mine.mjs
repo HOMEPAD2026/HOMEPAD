@@ -11,9 +11,13 @@
 //   POST /api/mine?quests=1   {w, s}           claim today's finished quests (rank XP)
 //   POST /api/mine?crew=create|join|leave {w, s, name}   crews
 //   GET  /api/mine?boards=1                   this month's season, crews, the Arc Crystal hall of fame
-//   GET  /api/mine?builder=0x…                a builder's card without a mine (rank, looks, quests, badges)
+//   GET  /api/mine?builder=0x…                a builder's card without a mine (rank, looks, quests, badges, ore book)
+//   GET  /api/mine?stats=1                    across every mine: $ARCIRCLE burned (all time, today), digging now, hottest mine
+//   GET  /api/mine?creator=<n>                a mine's dashboard: hourly history, posts, referrals, top-ups
+//   POST /api/mine?prefs=1    {w, s, xshare}   let ARCIA post my Arc Crystal on X (tagging me)
 //   GET  /api/mine?settle=1&key=<CRON_SECRET> settle finished hours and post roots (arcia-tg's tick does this too)
 import * as M from "./_mine.mjs";
+import { minePage, mineEmbed } from "./_mine-pages.mjs";
 
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type" };
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, ...CORS } });
@@ -24,11 +28,20 @@ const authed = (req, q) => { const s = process.env.CRON_SECRET; return !!s && (q
 export async function OPTIONS() { return new Response(null, { status: 204, headers: CORS }); }
 
 export async function GET(req) {
-  const q = Object.fromEntries(new URL(req.url).searchParams);
+  const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   try {
+    // the share page and the embed (vercel.json: /mine/:id and /embed/mine/:id)
+    if (q.view === "page") { url.searchParams.set("id", q.page || q.id || ""); return await minePage(url); }
+    if (q.view === "embed") { url.searchParams.set("id", q.embed || q.id || ""); return await mineEmbed(url); }
     if (q.cfg) return json(await M.config(), 200, "public, s-maxage=60");
     if (q.list) return json({ live: M.live(), mines: await M.listView() }, 200, "public, s-maxage=15");
     if (q.boards) return json(await M.boards(), 200, "public, s-maxage=30");
+    if (q.stats) return json(await M.statsView(), 200, "public, s-maxage=30");
+    if (q.creator != null) {
+      if (!idOk(q.creator)) return json({ error: "bad id" }, 400);
+      const v = await M.creatorView(Number(q.creator));
+      return v ? json(v, 200, "public, s-maxage=60") : json({ error: "No such mine." }, 404);
+    }
     if (q.builder) { if (!isAddr(q.builder)) return json({ error: "bad wallet" }, 400); return json(await M.builderView(q.builder)); }
     if (q.settle) {
       if (!authed(req, q)) return json({ error: "key required" }, 401);
@@ -43,7 +56,7 @@ export async function GET(req) {
       if (t < m.start) return json({ error: "This mine hasn't opened yet.", opensIn: m.start - t }, 409);
       if (t >= m.end) return json({ error: "This mine has ended." }, 409);
       const e = M.epochAt(m, t);
-      return json({ epoch: e, challenge: M.challenge(Number(q.work), e, q.w), bits: M.GAME.shareBits, gold: M.GAME.goldBits, diamond: M.GAME.diamondBits, endsIn: m.start + (e + 1) * M.GAME.epoch - t });
+      return json({ epoch: e, challenge: M.challenge(Number(q.work), e, q.w), bits: M.GAME.shareBits, rush: M.rushOf(Number(q.work), e), heartBits: M.GAME.shareBits + M.GAME.heart.extra, endsIn: m.start + (e + 1) * M.GAME.epoch - t });
     }
     if (q.id != null) {
       if (!idOk(q.id)) return json({ error: "bad id" }, 400);
@@ -77,10 +90,10 @@ export async function POST(req) {
       const r = q.quests ? await M.claimQuests(b.w) : await M.crewAct(b.w, String(q.crew), b.name);
       return r.error ? json(r, 409) : json(r);
     }
-    if (q.look) {
+    if (q.look || q.prefs) {
       if (!isAddr(b.w)) return json({ error: "wallet required" }, 400);
       if (!M.session(b.s, b.w)) return json({ error: "Sign in again.", auth: true }, 401);
-      const r = await M.setLook(b.w, b.char, b.pet);
+      const r = q.prefs ? await M.setPrefs(b.w, { xshare: !!b.xshare }) : await M.setLook(b.w, b.char, b.pet);
       return r.error ? json(r, 409) : json(r);
     }
     const id = q.shares != null ? q.shares : q.xpost;

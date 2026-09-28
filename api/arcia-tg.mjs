@@ -78,7 +78,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
 const PUBLIC_CMDS = [["price", "$ARCIRCLE price, market cap, holders"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
-  ["mine", "Builder Mine: mines open now"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -598,6 +598,7 @@ async function onMessage(m, channel) {
       case "launches": return sendCard(m.chat.id, await cardLaunches(0, lang), { replyTo: group ? m.message_id : undefined });
       case "books": return sendCard(m.chat.id, await cardBooks(lang), { replyTo: group ? m.message_id : undefined });
       case "mine": return mineList(m);
+      case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
       case "me": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardMe(u, lang));
       case "link": return startLink(m, lang);
       case "unlink": { if (group) return say(m, w("dmOnly", lang)); delete u.wallet; await saveUser(u); return say(m, "✓ Unlinked."); }
@@ -746,6 +747,7 @@ async function start(c, m, arg, lang) {
   if (/^drops_0x[0-9a-fA-F]{40}$/.test(p)) return sendCard(m.chat.id, await cardDrops(lc(p.slice(6)), lang));
   if (p === "link") return startLink(m, lang);
   if (p === "alerts") return setAlerts(m, true, lang);
+  if (p === "mine") return setMineAlerts(m, true, lang);
   if (/^v[m]?\d+$/.test(p)) { // holder-gate "Verify": v<chat id with the minus as m>
     const chatId = Number(p.slice(1).replace(/^m/, "-"));
     const cc = chatCfg(c, chatId);
@@ -856,6 +858,50 @@ async function mineList(m) {
   const lines = list.map((x) => `• <b>$${h(x.token.symbol)}</b>${x.info && x.info.name ? " — " + h(x.info.name) : ""} · layer ${x.layer + 1}/6 · ${x.builders} builders · ${x.status === "soon" ? "opens in " + left(x.start - Math.floor(Date.now() / 1000)) : left(x.end - Math.floor(Date.now() / 1000)) + " left"}`);
   return say(m, `⛏ <b>Builder Mine</b>\n${lines.join("\n")}\n\nJoin with 1 USDC worth of $ARCIRCLE (burned) and dig in your browser.`, kb(list.slice(0, 3).map((x) => [{ text: `Enter $${x.token.symbol}`, url: `${SITE}/mine/${x.id}` }])));
 }
+/// claim alerts for one's own linked wallet: a new root gives them something to claim, or the claim window is closing
+async function setMineAlerts(m, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const u = await loadUser(m.from.id);
+  if (on && !u.wallet) return startLink(m, lang);
+  const s = await subs(), wa = lc(u.wallet || "");
+  s.mine = s.mine || {};
+  for (const k of Object.keys(s.mine)) { s.mine[k] = s.mine[k].filter((x) => x !== m.from.id); if (!s.mine[k].length) delete s.mine[k]; }
+  if (on && wa) s.mine[wa] = [...(s.mine[wa] || []), m.from.id];
+  await putDoc(DOC.subs, s);
+  return say(m, on ? `⛏ Claim alerts on for <code>${short(wa)}</code>. I'll tell you when a mine has something for you to claim, and before unclaimed coins get burned. /minealerts off to stop.` : "⛏ Claim alerts off.");
+}
+/// after the settle: ping subscribed builders whose claimable grew (at most once a day per mine), and warn 3 days
+/// before a mine burns what's unclaimed
+async function mineNotify(T, s, settled, out) {
+  const subsMine = s.mine || {}, wallets = Object.keys(subsMine);
+  if (!wallets.length) return;
+  const MM = await import("./_mine.mjs");
+  const { getDocs } = await import("./_store.mjs");
+  T.mineN = Object.fromEntries(Object.entries(T.mineN || {}).filter(([, t]) => Date.now() - t < 40 * 86400e3));
+  const list = await MM.listView().catch(() => []);
+  const t = Math.floor(Date.now() / 1000);
+  const posted = new Set(((settled && settled.mines) || []).filter((x) => x.posted && x.posted.ok).map((x) => x.id));
+  const closing = list.filter((x) => !x.closed && t > x.end + 30 * 86400 && t < x.end + 33 * 86400).map((x) => x.id);
+  for (const id of [...new Set([...posted, ...closing])].slice(0, 6)) {
+    const mn = list.find((x) => x.id === id);
+    if (!mn) continue;
+    const tree = (await getDocs([MM.PATHS.tree(id)]))[MM.PATHS.tree(id)];
+    const rows = ((tree && tree.rows) || []).filter(([a]) => subsMine[a]);
+    if (!rows.length) continue;
+    const rg = await MM.rigs(id, rows.map(([a]) => a));
+    const warn = closing.includes(id);
+    for (const [a, cum] of rows.slice(0, 100)) {
+      const owed = BigInt(cum) - BigInt((rg[a] && rg[a].claimed) || 0n);
+      const key = `${warn ? "w" : "c"}${id}_${a}`;
+      if (owed <= 0n || (T.mineN[key] && (warn || Date.now() - T.mineN[key] < 20 * 3600e3))) continue;
+      T.mineN[key] = Date.now();
+      const amt = compact(Number(owed) / 10 ** (mn.token.decimals || 18));
+      const text = warn ? `⏳ <b>${amt} $${h(mn.token.symbol)}</b> is still unclaimed in mine #${id} — it gets burned in about ${Math.max(1, Math.ceil((mn.end + 33 * 86400 - t) / 86400))} days.`
+        : `⛏ <b>${amt} $${h(mn.token.symbol)}</b> to claim in mine #${id}${mn.info && mn.info.name ? ` (${h(mn.info.name)})` : ""}.`;
+      for (const uid of subsMine[a]) { const r = await tg("sendMessage", { chat_id: uid, parse_mode: "HTML", text, ...kb([[{ text: "Claim", url: `${SITE}/arc#mine?id=${id}&tab=claim` }]]) }, 6000); if (r.ok) out.mineClaim = (out.mineClaim || 0) + 1; await sleep(40); }
+    }
+  }
+}
 async function mineTick(T, s, out) {
   const MM = await import("./_mine.mjs");
   if (!MM.live()) return;
@@ -873,6 +919,20 @@ async function mineTick(T, s, out) {
     for (const x of fresh.slice(0, 2)) {
       const mn = list.find((y) => y.id === x.id);
       out.mineArc = (out.mineArc || 0) + await toSubs(s.alerts, { text: `💜 <b>ARC CRYSTAL!</b> ${short(x.w)} just hit the jackpot ore${mn ? ` in the $${h(mn.token.symbol)} mine` : ""} — +500 points.`, ...kb([[{ text: "Dig too", url: `${SITE}/mine/${x.id}` }]]) });
+      // on X too, if the builder said yes (Builder tab) and has proved an X account: at most 3 a day
+      try {
+        const day = new Date().toISOString().slice(0, 10);
+        if (T.mineXDay !== day) { T.mineXDay = day; T.mineXN = 0; }
+        if ((T.mineXN || 0) < 3 && mn) {
+          const { getDocs } = await import("./_store.mjs");
+          const d = await getDocs([MM.PATHS.builder(x.w), MM.PATHS.user(x.id, x.w)]);
+          const bd = d[MM.PATHS.builder(x.w)] || {}, u = d[MM.PATHS.user(x.id, x.w)] || {};
+          if (bd.xshare && u.x && /^[A-Za-z0-9_]{1,15}$/.test(u.x)) {
+            await postTweet(`💜 Arc Crystal found! @${u.x} just hit the jackpot ore in the $${mn.token.symbol} Builder Mine on Arc — 1 in 16,384 shares, +500 points.\n\nDig too: ${SITE}/mine/${x.id}?r=${x.w}&c=jackpot&k=arc`);
+            T.mineXN = (T.mineXN || 0) + 1; out.mineX = (out.mineX || 0) + 1;
+          }
+        }
+      } catch (e) { out.mineXErr = String(e.message || e).slice(0, 100); }
     }
     if (hall[0]) T.mineHall = Math.max(T.mineHall, hall[0].t);
   }
@@ -955,6 +1015,8 @@ async function tick() {
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }
+  // then tell subscribed builders what they can claim
+  try { const before = JSON.stringify(T.mineN || {}); await mineNotify(T, s, out.mine, out); if (JSON.stringify(T.mineN || {}) !== before) await putDoc(DOC.tick, T); } catch (e) { out.mineNotify = String(e.message || e).slice(0, 120); }
   return { ok: true, first, ...out };
 }
 

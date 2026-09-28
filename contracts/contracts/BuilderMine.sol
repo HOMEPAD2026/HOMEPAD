@@ -50,6 +50,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
     uint64 public constant CLAIM_WINDOW = 30 days; // then claims stay open this much longer
     uint64 public constant TOPUP_CUTOFF = 1 hours; // no top-ups in a mine's last hour
     uint256 public constant MAX_TOPUPS = 16;
+    uint256 public constant MIN_TOPUP_BPS = 100;   // a top-up is at least 1% of the first deposit (no dust filling the slots)
     uint256 public constant MAX_FEE_USD6 = 10e6;   // 10 USDC
     uint64 public constant MAX_BOOST_STACK = 7 days;
     uint8 public constant BOOST_KINDS = 4;         // 1 lantern · 2 dynamite · 3 lucky charm · 4 overtime
@@ -115,7 +116,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
     event Burned(uint256 indexed id, uint256 amount, bool unclaimed);
     event ItemBought(uint256 indexed mineId, address indexed builder, uint256 indexed itemId, uint256 paid, uint8 tier, uint8 boost, uint64 until);
     event ItemSet(uint256 indexed itemId, uint128 price, uint8 tier, uint8 boost, uint32 duration, bool active);
-    event OperatorSet(address operator);
+    event OperatorSet(address indexed operator);
     event FeeSet(uint256 feeUsd6, uint256 floorArc);
     event JoinsPaused(bool paused);
 
@@ -150,9 +151,12 @@ contract BuilderMine is ReentrancyGuard, Ownable {
     error BadItem();
     error NoPrice();
     error LengthMismatch();
+    error TopUpTooSmall();
+    error ZeroOperator();
 
     constructor(address arcircle_, address poolManager_, bytes32 arcPoolSlot_, bool arcIsToken1_, address operator_) Ownable(msg.sender) {
         if (arcircle_ == address(0) || poolManager_ == address(0)) revert BadToken();
+        if (operator_ == address(0)) revert ZeroOperator();
         arcircle = IERC20(arcircle_);
         poolManager = IExtsload(poolManager_);
         arcPoolSlot = arcPoolSlot_;
@@ -211,6 +215,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
         if (_segs[id].length > MAX_TOPUPS) revert TooManyTopUps();
         uint64 f0 = uint64(_f(m.start, m.end, block.timestamp));
         uint256 got = _pull(m.token, amount);
+        if (got * 10_000 < uint256(_segs[id][0].amount) * MIN_TOPUP_BPS) revert TopUpTooSmall();
         if (uint256(m.deposited) + got > type(uint128).max) revert ZeroAmount();
         m.deposited += uint128(got);
         _segs[id].push(Seg({ amount: uint128(got), f0: f0 }));
@@ -258,6 +263,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
         }
     }
     /// @dev F(t) × 1e18: the share of the six-layer halving curve reached at t.
+    ///      A run is whole days, so (end − start) / 6 is exact (86 400 s / 6 = 14 400 s).
     function _f(uint256 start, uint256 end, uint256 t) private pure returns (uint256) {
         if (t <= start) return 0;
         if (t >= end) return ONE;
@@ -347,7 +353,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
         Item memory it = _items[itemId];
         if (!it.active) revert ItemOff();
         uint256 cost = it.price;
-        uint64 until;
+        uint64 until = 0;
         if (it.tier > 0) {
             uint8 have = pickaxeOf[msg.sender];
             if (it.tier <= have) revert NotAnUpgrade();
@@ -360,10 +366,12 @@ contract BuilderMine is ReentrancyGuard, Ownable {
             Mine storage m = _get(mineId);
             if (!joined[mineId][msg.sender]) revert NotJoined();
             if (block.timestamp >= m.end) revert Ended();
+            // a boost bought before the mine opens starts running when it opens
+            uint64 base = uint64(block.timestamp) > m.start ? uint64(block.timestamp) : m.start;
             uint64 cur = boostUntil[mineId][msg.sender][it.boost];
-            uint64 from = cur > block.timestamp ? cur : uint64(block.timestamp);
+            uint64 from = cur > base ? cur : base;
             until = from + it.duration;
-            if (until > block.timestamp + MAX_BOOST_STACK) revert StackTooLong();
+            if (until > base + MAX_BOOST_STACK) revert StackTooLong();
             boostUntil[mineId][msg.sender][it.boost] = until;
         }
         if (cost > 0) { arcircle.safeTransferFrom(msg.sender, DEAD, cost); arcircleBurned += cost; emit FeeBurned(msg.sender, cost, 3); }
@@ -384,7 +392,7 @@ contract BuilderMine is ReentrancyGuard, Ownable {
         if (tier > 0) pickaxeItem[tier] = itemId + 1;
         emit ItemSet(itemId, price, tier, boost, duration, active);
     }
-    function setOperator(address o) external onlyOwner { operator = o; emit OperatorSet(o); }
+    function setOperator(address o) external onlyOwner { if (o == address(0)) revert ZeroOperator(); operator = o; emit OperatorSet(o); }
     function setFee(uint256 usd6, uint256 floorArc) external onlyOwner { if (usd6 > MAX_FEE_USD6) revert FeeTooHigh(); feeUsd6 = usd6; feeFloorArc = floorArc; emit FeeSet(usd6, floorArc); }
     function setJoinsPaused(bool p) external onlyOwner { joinsPaused = p; emit JoinsPaused(p); }
 

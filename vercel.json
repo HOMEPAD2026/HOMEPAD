@@ -150,7 +150,11 @@
     },
     {
       "source": "/mine/:id",
-      "destination": "/api/c?view=mine&id=:id"
+      "destination": "/api/mine?view=page&page=:id"
+    },
+    {
+      "source": "/embed/mine/:id",
+      "destination": "/api/mine?view=embed&embed=:id"
     },
     {
       "source": "/lockbadge/:addr",
@@ -234,7 +238,24 @@
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/embed/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/((?!embed/).*)",
       "headers": [
         {
           "key": "X-Frame-Options",

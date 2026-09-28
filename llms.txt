@@ -30,11 +30,12 @@ Services (price per call):
 
 ## Builder Mine — mining on Arc
 
-Holders open a mine with part of a token's supply (3–60 days, six layers that each release half as much as the one above; anyone can top it up). Builders mine in the browser and claim from hourly Merkle roots; one verified X post unlocks claiming. Opening and joining cost 1 USDC worth of $ARCIRCLE and items are priced in $ARCIRCLE — all of it burned. Whatever isn't mined is burned. The contract isn't deployed yet — the page runs a practice mine.
+Holders open a mine with part of a token's supply (3–60 days, six layers that each release half as much as the one above; anyone can top it up). Builders mine in the browser and claim from hourly Merkle roots; one verified X post unlocks claiming. Opening and joining cost 1 USDC worth of $ARCIRCLE and items are priced in $ARCIRCLE — all of it burned. Whatever isn't mined is burned. Each hour has a rush ore (points ×3) and one hidden Heart of Arc per mine; crews earn a shared bonus. The contract isn't deployed yet — the page runs a practice mine.
 
 - [Builder Mine page](https://www.arcircle.app/arc#mine)
 - [Game rules, items and fee (JSON)](https://www.arcircle.app/api/mine?cfg=1)
 - [Seasons, crews, Arc Crystal hall of fame (JSON)](https://www.arcircle.app/api/mine?boards=1)
+- [$ARCIRCLE burned and builders digging, across every mine (JSON)](https://www.arcircle.app/api/mine?stats=1)
 
 ## Free APIs
 
