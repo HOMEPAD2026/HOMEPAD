@@ -212,18 +212,25 @@ async function mentions(meId, sinceId, max = 20) {
 }
 const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
 Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
-Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Short reactions — one word ("Noice", "gm", "LFG"), an emoji, or just a GIF or image (it shows as a bare link) — are friendly too: answer with a short playful line of your own, never SKIP them. Posts by your own team (@ARCIRCLEonArc) announcing you or the project get a short, excited reaction from you as the idol — like an idol reacting to her agency's announcement ("Yay, it's official~ come talk to me!") — never a repeat of the announcement.
+Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Short reactions — one word ("Noice", "gm", "LFG"), an emoji, or just a GIF or image (it shows as a bare link) — are friendly too: answer with a short playful line of your own, never SKIP them. Every post by your own team (@ARCIRCLEonArc) — announcements, updates, teasers, milestones, words about you — always gets a reply, never SKIP: a short, excited reaction from you as the idol, like an idol reacting to her agency ("Yay, it's official~ come talk to me!"), never a repeat of what they said.
 Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from @ARCIRCLEonArc — never promise amounts or dates.
 Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
   if (!clean || m.rt) return { skip: "empty or repost" };
-  const t = await askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}` }], L, extra: REPLY_BRIEF, maxTokens: 220, timeoutMs: 15000 });
-  if (!t) return { skip: "model unavailable" };
+  const team = /^arcircleonarc$/i.test(m.username || "");
+  const t = await askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}${team ? "\n\n(This is your own team replying to or mentioning you — react to it; SKIP isn't an option.)" : ""}` }], L, extra: REPLY_BRIEF, maxTokens: 220, timeoutMs: 15000 });
+  if (!t) return { skip: "model unavailable", retry: true };
   let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@ARCIRCLEonArc\b/gi, "ARCIRCLE").replace(/(^|\s)@\w+/g, " ").replace(/ {2,}/g, " ").replace(/\s+\n/g, "\n").trim();
   if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
   return { text: out };
+}
+const replyDone = (st, id) => { const r = st.sent["reply:" + id]; return !!r && !(r.x === "retry" && (r.n || 0) < 3); };
+/// the last handled mentions and what happened to each (public: ids, handles, reasons — nothing secret)
+function recentReplies(st) {
+  return Object.entries(st.sent || {}).filter(([k]) => k.startsWith("reply:")).map(([k, v]) => ({ id: k.slice(6), t: v && v.t, from: v && v.from ? "@" + v.from : undefined,
+    result: !v || !v.x ? "handled" : /^(skip|cap|dup|retry)$/.test(v.x) ? v.x : "replied", why: v && v.why })).sort((a, b) => (b.t || 0) - (a.t || 0)).slice(0, 12);
 }
 async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   const results = [];
@@ -245,12 +252,17 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   const day = dayOf(now());
   st.replyDays = st.replyDays || {};
   const L = await liveNumbers(origin);
-  const todo = list.filter((m) => m.author !== who.id && !st.sent["reply:" + m.id]).slice(0, preview ? 3 : REPLIES_PER_RUN);
-  const drafts = await Promise.all(todo.map((m) => draftReply(m, L).catch(() => ({ skip: "error" }))));
+  const todo = list.filter((m) => m.author !== who.id && !replyDone(st, m.id)).slice(0, preview ? 3 : REPLIES_PER_RUN);
+  const drafts = await Promise.all(todo.map((m) => draftReply(m, L).catch(() => ({ skip: "error", retry: true }))));
   for (let k = 0; k < todo.length; k++) {
     const m = todo[k], d = drafts[k];
     const row = { mention: m.id, from: "@" + m.username, text: m.text.slice(0, 140) };
-    if (d.skip) { row.skip = d.skip; if (!preview && !dry) st.sent["reply:" + m.id] = { t: now(), x: "skip", why: d.skip, from: m.username }; results.push(row); continue; }
+    if (d.skip) {
+      row.skip = d.skip;
+      // a model hiccup isn't a verdict: tried again on the next runs (3 tries), then left
+      if (!preview && !dry) { const prev = st.sent["reply:" + m.id]; st.sent["reply:" + m.id] = d.retry ? { t: now(), x: "retry", n: ((prev && prev.n) || 0) + 1, why: d.skip, from: m.username } : { t: now(), x: "skip", why: d.skip, from: m.username }; }
+      results.push(row); continue;
+    }
     row.reply = d.text;
     if (preview || dry) { row.dry = true; results.push(row); continue; }
     if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap" }; results.push(row); continue; }
@@ -267,8 +279,8 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   }
   if (!preview && !dry) {
     // move the cursor past everything handled; anything not handled yet (per-run limit) is read again next time
-    const handled = list.filter((m) => st.sent["reply:" + m.id] || m.author === who.id);
-    const firstOpen = list.find((m) => !st.sent["reply:" + m.id] && m.author !== who.id);
+    const handled = list.filter((m) => replyDone(st, m.id) || m.author === who.id);
+    const firstOpen = list.find((m) => !replyDone(st, m.id) && m.author !== who.id);
     const upto = firstOpen ? list[list.indexOf(firstOpen) - 1] : list[list.length - 1];
     if (upto && handled.length) st.mentionSince = upto.id;
   }
@@ -298,7 +310,7 @@ export async function GET(req) {
       today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
       firstRun: st ? !st.coinSince : null,
       wouldPost: p.posts.map((x) => ({ id: x.id, chars: xLen(x.text), text: x.text })),
-      replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null,
+      replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null, recent: st ? recentReplies(st) : [],
         preview: url.searchParams.get("status") === "replies" && hasKeys() && st ? await replyRun(origin, st, { preview: true }).catch((e) => [{ error: String(e.message || e) }]) : "open ?status=replies to draft replies to the latest mentions (reads up to 5 mentions, posts nothing)" },
       live: { coins: true, round: true, daily: true, trends: false },
     });
@@ -330,7 +342,7 @@ export async function GET(req) {
     // ?redo=<post id>: answer one post again, even if it was skipped or is older than the cursor
     const redo = String(url.searchParams.get("redo") || "").replace(/\D/g, "");
     if (redo) {
-      if (st.sent["reply:" + redo] && st.sent["reply:" + redo].x && !/^(skip|cap|dup)$/.test(st.sent["reply:" + redo].x)) return json(200, { redo, already: st.sent["reply:" + redo] });
+      if (st.sent["reply:" + redo] && st.sent["reply:" + redo].x && !/^(skip|cap|dup|retry)$/.test(st.sent["reply:" + redo].x)) return json(200, { redo, already: st.sent["reply:" + redo] });
       try {
         const j = await xGet(`https://api.x.com/2/tweets/${redo}`, { "tweet.fields": "author_id,note_tweet,referenced_tweets", expansions: "author_id", "user.fields": "username,name" });
         const t = j.data || {}, u = ((j.includes && j.includes.users) || [])[0] || {};
