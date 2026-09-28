@@ -279,6 +279,7 @@
       F.shown = PAGE; F.tier = null; F.cmp.res = null; F.cmp.diff = null;
       remember();
       apply(true);
+      logTake(run);
       status("", "");
       shutter("open");
       afterTake();
@@ -504,6 +505,62 @@
     h.unshift(item);
     try { localStorage.setItem(HIST, JSON.stringify(h.slice(0, 8))); } catch { /* private mode */ }
     paintChips();
+  }
+
+  // ---------------- the record: every snapshot taken here, kept on the server ----------------
+  // The list the tool shows right after a snapshot is sent to the server, which rebuilds it
+  // from the chain (the same as publishing) and keeps it under its fingerprint with the block,
+  // the time and every wallet. "Recent snapshots" below lists them for everyone; each opens at
+  // #snapshot?id= — proof of who held what, and when.
+  const MINE = "arcircle.snapshot.mine.v1";
+  const LG = { items: null, at: 0, mine: false, shown: 8, busy: false, open: false };
+  const mineIds = () => { try { const a = JSON.parse(localStorage.getItem(MINE) || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
+  async function logTake(run) {
+    if (F.also.mode || !F.res || !F.tok) return;
+    const body = { action: "snaplog", token: lc(F.tok.address), block: F.res.block, filters: normFilters() };
+    const key = `${body.token}:${body.block}:${JSON.stringify(body.filters)}`;
+    if (LG.last === key) return;
+    LG.last = key;
+    for (let i = 0; i < 40; i++) {
+      const r = await fetchJson("/api/social", 60000, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (r.ok && r.j && r.j.pending) { await sleep(700); continue; }
+      if (r.ok && r.j && r.j.id) {
+        try { localStorage.setItem(MINE, JSON.stringify([r.j.id, ...mineIds().filter((x) => x !== r.j.id)].slice(0, 100))); } catch { /* private mode */ }
+        LG.at = 0; loadLog(true);
+        if (run === F.run) toast(tr("Recorded — it's in Recent snapshots below, with its block and fingerprint."));
+      } else LG.last = "";
+      return;
+    }
+    LG.last = "";
+  }
+  async function loadLog(force) {
+    if (LG.busy || (!force && LG.items && Date.now() - LG.at < 20000)) { paintLog(); return; }
+    LG.busy = true;
+    const r = await fetchJson("/api/social?snaplog=1", 15000);
+    LG.busy = false;
+    if (r.ok && r.j && Array.isArray(r.j.items)) { LG.items = r.j.items; LG.at = Date.now(); }
+    else if (!LG.items) LG.items = [];
+    paintLog();
+  }
+  const ago = (ms) => { const s = Math.max(0, (Date.now() - ms) / 1000); return s < 60 ? tr("just now") : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`; };
+  function paintLog() {
+    const box = $("asn-log");
+    if (!box) return;
+    const mine = new Set(mineIds());
+    const all = LG.items || [];
+    const list = LG.mine ? all.filter((x) => mine.has(x.id)) : all;
+    const rows = list.slice(0, LG.shown).map((x) => `<button type="button" class="asn-log-row${mine.has(x.id) ? " mine" : ""}${F.view && F.view.id === x.id ? " on" : ""}" data-snaplog="${esc(x.id)}">
+        <span class="asn-log-sym" data-no-i18n>$${esc(x.symbol || "?")}</span>
+        <span class="asn-log-b"><b data-no-i18n>#${num(x.block)}</b><small data-no-i18n>${esc(utc(x.ts))}</small></span>
+        <span class="asn-log-n"><b data-no-i18n>${num(x.count)}</b><small>${esc(tr("Holders"))}</small></span>
+        <code class="asn-log-fp" data-no-i18n>${esc(String(x.fp || "").slice(0, 10))}…</code>
+        <span class="asn-log-t"${x.created ? ` title="${esc(new Date(x.created).toISOString().replace("T", " ").slice(0, 19) + " UTC")}"` : ""}>${mine.has(x.id) ? `<em>${esc(tr("Yours"))}</em>` : ""}${esc(ago(x.created || x.at))}</span>
+      </button>`).join("");
+    box.innerHTML = `<div class="asn-log-h"><div><h3>${esc(tr("Recent snapshots"))}</h3>
+        <p>${esc(tr("Every snapshot taken here is kept with its block, time and fingerprint. Open one to check a wallet or download the exact list — proof of who held what, and when."))}</p></div>
+        <div class="asn-log-seg" role="radiogroup"><button type="button" role="radio" data-logmine="0" aria-checked="${!LG.mine}" class="${LG.mine ? "" : "on"}">${esc(tr("All snapshots"))}</button><button type="button" role="radio" data-logmine="1" aria-checked="${LG.mine}" class="${LG.mine ? "on" : ""}">${esc(tr("Only mine"))}</button></div></div>
+      ${LG.items == null ? `<p class="asn-note">${esc(tr("Loading…"))}</p>` : rows ? `<div class="asn-log-list">${rows}</div>` : `<p class="asn-note">${esc(tr(LG.mine ? "You haven't taken a snapshot here yet." : "No snapshots yet — take one above and it shows up here."))}</p>`}
+      ${list.length > LG.shown ? `<button type="button" class="ams-mini asn-log-more" data-logmore>${esc(tr("Show more"))}</button>` : ""}`;
   }
 
   // ---------------- motion ----------------
@@ -996,7 +1053,7 @@
     const rules = [f.min ? tr(`at least ${f.min}`) : "", f.top ? tr(`top ${f.top}`) : "", f.noC ? tr("no contracts") : "", f.hold ? tr(`held throughout ${span(f.hold)}`) : "", f.locks ? tr("locked tokens count") : "", f.lp ? tr("LP counts") : "", f.skip && f.skip.length ? tr(plural(f.skip.length, "wallet left out", "wallets left out")) : ""].filter(Boolean);
     box.innerHTML = `<div class="asn-pubview${done ? " done" : ""}">
       <button type="button" class="asn-x" data-act="view-close" aria-label="${esc(tr("Close"))}">×</button>
-      <span class="asn-kick">${esc(tr(done ? "Published snapshot" : d.status === "building" ? "Building now" : "Scheduled snapshot"))}</span>
+      <span class="asn-kick">${esc(tr(done ? (d.auto ? "Snapshot record" : "Published snapshot") : d.status === "building" ? "Building now" : "Scheduled snapshot"))}</span>
       <h2>${d.title ? esc(d.title) : esc(tr("Holder snapshot"))} <small data-no-i18n>$${esc(d.symbol || "?")}</small></h2>
       ${d.by ? `<p class="asn-signed ${d.verified ? "ok" : "bad"}">${esc(tr(d.verified ? "Signed by" : "Signature doesn't check out:"))} <a href="${explorer("address", d.by)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(cs(d.by)))}</a></p>` : ""}
       ${rules.length ? `<p class="asn-rules">${rules.map((x) => `<span>${esc(x)}</span>`).join("")}</p>` : ""}
@@ -1006,6 +1063,7 @@
           <div><b>${esc(when(d.ts))}</b><small data-no-i18n>${esc(utc(d.ts))}</small></div>
           <div><b data-no-i18n>${esc(fmt(BigInt(d.total || 0), dec))}</b><small data-no-i18n>$${esc(d.symbol || "")}</small></div></div>
         <p class="asn-fpline">${esc(tr("Fingerprint"))} <code data-no-i18n>${esc(d.fp)}</code> <button type="button" class="ams-mini" data-copy="${esc(d.fp)}">${esc(tr("Copy"))}</button></p>
+        ${d.created ? `<p class="asn-recorded">${esc(tr(d.auto ? "Recorded on ARCIRCLE PAD" : "Published on ARCIRCLE PAD"))} <b data-no-i18n>${esc(utc(Math.floor(d.created / 1000)))}</b> · <a href="${explorer("block", d.block)}" target="_blank" rel="noopener">${esc(tr("Block on the explorer"))} ↗</a></p>` : ""}
         <form class="asn-amin" id="asn-amin" autocomplete="off"><input id="asn-amin-w" type="text" spellcheck="false" value="${esc(v.wallet || (state && state.account) || "")}" placeholder="${esc(tr("Your wallet (0x…)"))}" aria-label="${esc(tr("Your wallet"))}"><button type="submit" class="ams-btn sm asn-primary">${esc(tr("Am I in it?"))}</button></form>
         ${d.me ? `<p class="asn-verdict ${d.me.rank ? "in" : "out"}">${d.me.rank ? esc(tr(`Yes — #${d.me.rank} on the list`)) + ` · <b data-no-i18n>${esc(fmt(BigInt(f.hold ? d.me.min : d.me.v), dec))} $${esc(d.symbol || "")}</b>` : esc(tr("That wallet isn't on this list."))}</p>` : ""}
         <div class="asn-acts"><a class="ams-mini" href="/api/social?snapcsv=${esc(d.id)}" download>${esc(tr("Download CSV"))}</a><button type="button" class="ams-mini" data-act="view-open">${esc(tr("Open in the tool"))}</button><button type="button" class="ams-mini" data-copy="${esc(location.origin + "/snap/" + d.id)}">${esc(tr("Copy link"))}</button></div>`
@@ -1165,6 +1223,14 @@
     const t = e.target.closest("button, [data-t], a[data-copy]");
     if (!t || !panel.contains(t)) return;
     if (t.dataset.copy) { e.preventDefault(); copy(t.dataset.copy, t); return; }
+    if (t.dataset.snaplog) {
+      const id = t.dataset.snaplog;
+      if (history.replaceState) history.replaceState(null, "", location.pathname + location.search + "#snapshot?id=" + id);
+      openView(id, state && state.account ? lc(state.account) : "").then(() => { paintLog(); const pv = $("asn-pub"); if (pv && !pv.hidden) pv.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); });
+      return;
+    }
+    if (t.dataset.logmine != null) { LG.mine = t.dataset.logmine === "1"; LG.shown = 8; paintLog(); return; }
+    if (t.dataset.logmore != null) { LG.shown += 12; paintLog(); return; }
     if (t.dataset.t) { F.mode = t.dataset.b ? "past" : "now"; F.pastBlock = t.dataset.b ? Number(t.dataset.b) : null; paintWhen(); pick(t.dataset.t, { go: true, block: F.pastBlock }); return; }
     if (t.dataset.when) {
       F.mode = t.dataset.when; F.pastBlock = null;
@@ -1243,7 +1309,7 @@
       if (!box.hidden && a === "skip-toggle") $("asn-skip").focus();
     }
     else if (a === "also-load") loadAlso();
-    else if (a === "view-close") { F.view = null; clearTimeout(viewT); paintView(); if (history.replaceState) history.replaceState(null, "", location.pathname + location.search + "#snapshot"); }
+    else if (a === "view-close") { F.view = null; clearTimeout(viewT); paintView(); paintLog(); if (history.replaceState) history.replaceState(null, "", location.pathname + location.search + "#snapshot"); }
     else if (a === "view-open") {
       const d = F.view && F.view.d; if (!d) return;
       const f = d.f || {};
@@ -1274,11 +1340,12 @@
   function onShow() {
     if (!booted) { booted = true; init(); }
     paintChips();
+    loadLog(false);
     fromHash();
     if (!F.tok && !reduce && !/[?&](id|t|token)=/.test(location.hash)) setTimeout(() => { if (panel.classList.contains("active")) $("asn-addr").focus({ preventScroll: true }); }, 250);
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "snapshot") onShow(); else $("asn-sticky").hidden = true; });
-  document.addEventListener("arc:lang", () => { if (!booted) return; labels(); paintChips(); paintToken(); if (F.res) { $("asn-out").innerHTML = ""; paintResult(false); } paintView(); });
+  document.addEventListener("arc:lang", () => { if (!booted) return; labels(); paintChips(); paintLog(); paintToken(); if (F.res) { $("asn-out").innerHTML = ""; paintResult(false); } paintView(); });
   window.addEventListener("hashchange", () => { if (booted && /^#snapshot\?/.test(location.hash)) fromHash(); });
   if (panel.classList.contains("active")) setTimeout(onShow, 0);
   let seen = state && state.account;

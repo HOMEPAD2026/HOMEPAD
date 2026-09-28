@@ -3289,6 +3289,18 @@
     "The same wallet is in the split twice.": "同一个钱包在分配中出现了两次。",
     "Every coin launched through ArcPad — on the ArcPad factory or on Argus — read live from Arc.": "通过 ArcPad 发射的所有代币 — 在 ArcPad 工厂或 Argus 上 — 实时从 Arc 读取。",
     "Argus · via ArcPad": "Argus · 经由 ArcPad",
+    "Recent snapshots": "最近的快照",
+    "Every snapshot taken here is kept with its block, time and fingerprint. Open one to check a wallet or download the exact list — proof of who held what, and when.": "在这里拍摄的每个快照都会连同区块、时间和指纹一起保存。打开即可查询钱包或下载完整名单——证明谁在何时持有多少。",
+    "All snapshots": "全部快照",
+    "Only mine": "只看我的",
+    "Yours": "我的",
+    "You haven't taken a snapshot here yet.": "你还没有在这里拍过快照。",
+    "No snapshots yet — take one above and it shows up here.": "还没有快照——在上方拍一个，就会显示在这里。",
+    "Recorded — it's in Recent snapshots below, with its block and fingerprint.": "已记录——可在下方“最近的快照”中查看，附区块和指纹。",
+    "Snapshot record": "快照记录",
+    "Recorded on ARCIRCLE PAD": "ARCIRCLE PAD 记录时间",
+    "Published on ARCIRCLE PAD": "ARCIRCLE PAD 发布时间",
+    "Block on the explorer": "在浏览器中查看区块",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

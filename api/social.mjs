@@ -319,6 +319,11 @@ export async function GET(req) {
       return json(200, out.done ? { ...out, rows: snap.packRows(out.rows) } : out, "no-store");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
+  // snapshots taken in the Snapshot tool, newest first (each one opens at #snapshot?id=)
+  if (url.searchParams.has("snaplog")) {
+    try { return json(200, await snap.recent({ store: scanStore(), token: url.searchParams.get("token") || "" }), "public, max-age=10, s-maxage=15"); }
+    catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
   if (url.searchParams.has("snapview")) {
     if (scanner.limited(`sv:${ip}`, 60, 60e3)) return json(429, { error: "slow down" });
     try { const out = await snap.view(url.searchParams.get("snapview"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "" }); return json(200, out, out.status === "done" && !url.searchParams.get("wallet") ? "public, max-age=60, s-maxage=300" : "no-store"); }
@@ -469,7 +474,16 @@ export async function POST(req) {
       if (!storeEnabled()) return json(503, { ok: false, error: "claim lists aren't available right now" });
       return json(200, await drop.dropSave({ get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) }, b));
     }
+    if (b.action === "snaplog") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`sl:${ip}`, 200, 3600e3)) return json(429, { error: "slow down" });
+      if (!storeEnabled()) return json(503, { error: "the snapshot record isn't available right now" });
+      const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };
+      try { return json(200, await snap.record(b, { store: st })); }
+      catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+    }
     if (b.action === "snappublish" || b.action === "snapschedule") {
+      delete b.auto; // only the tool's own record is marked as one
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`sp:${ip}`, 40, 3600e3)) return json(429, { error: "slow down" });
       const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };

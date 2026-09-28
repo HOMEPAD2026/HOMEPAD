@@ -9,6 +9,9 @@
 //                       first time someone opens it after that moment
 //   view(id, wallet)    a published snapshot: summary, top wallets, "am I in it?"
 //   csvOf(id)           its CSV (the exact bytes the fingerprint is of)
+//   record(body)        every snapshot taken in the tool is kept like a published one (its
+//                       block, time, fingerprint, list) and listed in recent() — proof of
+//                       who held what, and when
 import { rpc, getLogs, latestBlock, blockTs, pool, toQty, isAddr, keccakHex } from "./_arc.mjs";
 import * as core from "./_snap-core.mjs";
 import * as scanner from "./_scan.mjs";
@@ -190,10 +193,39 @@ export async function publish(body, { store, recover = null }) {
   const id = fp.slice(2, 14);
   const title = String(body.title || "").replace(/[<>]/g, "").slice(0, 80);
   const { by, sig } = signer("publish", { token, block: res.block, f, title }, /^0x[0-9a-f]{130}$/i.test(body.sig || "") ? body.sig : null, isAddr(body.by) ? lc(body.by) : null, recover);
-  const doc = meta(res, f, { id, symbol: await symbolOf(token), status: "done", fp, count: list.length, total: list.reduce((s, x) => s + (f.hold ? x.min : x.v), 0n).toString(), title, by, sig, created: Date.now(), bytes: csv.length, rows: packRows(list) });
+  const doc = meta(res, f, { id, symbol: await symbolOf(token), status: "done", fp, count: list.length, total: list.reduce((s, x) => s + (f.hold ? x.min : x.v), 0n).toString(), title, by, sig, created: Date.now(), bytes: csv.length, rows: packRows(list), ...(body.auto ? { auto: true } : {}) });
   const prev = await sget(store, `snap/${id}`);
   if (!prev) await sset(store, `snap/${id}`, doc);
-  return { id, fp, count: list.length };
+  const kept = prev || doc;
+  return { id, fp, count: list.length, symbol: kept.symbol, block: kept.block, ts: kept.ts, created: kept.created };
+}
+// ---- the record of snapshots taken in the tool ----
+const LOG = "snaplog/list";
+async function readLog(store) { try { const d = store ? await store.get(LOG) : mem.get(LOG); return d && Array.isArray(d.items) ? d.items : []; } catch { return []; } }
+/// POST {action:"snaplog", token, block, filters}: the list the tool just showed, kept under its
+/// fingerprint (the server rebuilds it, the same as publishing) and added to the recent list
+export async function record(body, { store }) {
+  if (!store) throw err(503, "the snapshot record isn't available right now");
+  const token = lc(body.token), block = Math.floor(Number(body.block) || 0);
+  if (!isAddr(token) || !(block > 0)) throw err(400, "token and block are needed");
+  const r = await publish({ token, block, filters: body.filters, title: "", auto: true }, { store });
+  if (r.pending) return r;
+  const items = await readLog(store);
+  if (!items.some((x) => x.id === r.id)) {
+    const f = clean(body.filters);
+    items.unshift({ id: r.id, token, symbol: r.symbol || "", block: r.block, ts: r.ts, count: r.count, fp: r.fp, created: r.created || Date.now(), at: Date.now(), hold: f.hold, locks: f.locks, lp: f.lp,
+      rules: !!(f.min || f.max || f.top || f.skip.length || f.since !== "any") });
+    const doc = { items: items.slice(0, 300), at: Date.now() };
+    mem.set(LOG, doc);
+    try { await store.set(LOG, doc); } catch { /* this instance keeps it */ }
+  }
+  return { ...r, recorded: true };
+}
+/// GET ?snaplog=1[&token=0x…] → the latest snapshots taken in the tool
+export async function recent({ store, token = "" }) {
+  const t = lc(token);
+  const items = (await readLog(store)).filter((x) => !isAddr(t) || x.token === t);
+  return { items: items.slice(0, 60) };
 }
 export async function schedule(body, { store, recover = null }) {
   if (!store) throw err(503, "scheduling isn't available right now");

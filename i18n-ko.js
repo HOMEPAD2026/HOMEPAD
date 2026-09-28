@@ -3196,6 +3196,18 @@
     "The same wallet is in the split twice.": "같은 지갑이 분배에 두 번 들어 있어요.",
     "Every coin launched through ArcPad — on the ArcPad factory or on Argus — read live from Arc.": "ArcPad를 통해 런칭된 모든 코인 — ArcPad 팩토리 또는 Argus — 을 Arc에서 실시간으로 읽어요.",
     "Argus · via ArcPad": "Argus · ArcPad 경유",
+    "Recent snapshots": "최근 스냅샷",
+    "Every snapshot taken here is kept with its block, time and fingerprint. Open one to check a wallet or download the exact list — proof of who held what, and when.": "여기서 찍은 모든 스냅샷은 블록, 시간, 지문과 함께 보관돼요. 열어서 지갑을 확인하거나 정확한 명단을 내려받을 수 있어요 — 누가, 언제, 얼마를 보유했는지의 증거예요.",
+    "All snapshots": "전체 스냅샷",
+    "Only mine": "내 것만",
+    "Yours": "내 스냅샷",
+    "You haven't taken a snapshot here yet.": "아직 여기서 찍은 스냅샷이 없어요.",
+    "No snapshots yet — take one above and it shows up here.": "아직 스냅샷이 없어요 — 위에서 찍으면 여기에 표시돼요.",
+    "Recorded — it's in Recent snapshots below, with its block and fingerprint.": "기록됐어요 — 아래 최근 스냅샷에 블록, 지문과 함께 남아 있어요.",
+    "Snapshot record": "스냅샷 기록",
+    "Recorded on ARCIRCLE PAD": "ARCIRCLE PAD 기록 시각",
+    "Published on ARCIRCLE PAD": "ARCIRCLE PAD 게시 시각",
+    "Block on the explorer": "익스플로러에서 블록 보기",
   };
 
 
