@@ -2526,8 +2526,7 @@ a.rw-chip:hover{border-color:rgba(255,200,97,.5);color:var(--ax-ink);}
 .tk-live i{width:7px;height:7px;border-radius:50%;background:#39ff88;box-shadow:0 0 10px #39ff88;animation:ac2pulse 1.6s ease-in-out infinite;}
 .tk-viewport{flex:1;min-width:0;overflow:hidden;height:100%;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);}
-.tk-track{display:flex;align-items:center;height:100%;width:max-content;animation:tk-scroll var(--tk-dur,60s) linear infinite;}
-.ap-ticker:hover .tk-track{animation-play-state:paused;}
+.tk-track{display:flex;align-items:center;height:100%;width:max-content;will-change:transform;}
 @keyframes tk-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
 .tk-item{display:flex;align-items:center;gap:7px;height:30px;margin:0 4px;padding:0 11px 0 6px;border-radius:999px;white-space:nowrap;
   font-size:.78rem;color:var(--ink);text-decoration:none;border:1px solid transparent;transition:background .15s;}

@@ -370,28 +370,73 @@ function actPaintTicker() {
   for (const t of items) { const id = t.h + ":" + t.i; if (ACT._tickerInit && !ACT.seen.has(id)) fresh.add(id); ACT.seen.add(id); }
   ACT._tickerInit = true;
   const html = items.map((t) => {
-    const id = t.h + ":" + t.i;
-    if (t.ev) return actTickerEventHtml(t).replace('class="tk-item', `class="tk-item${fresh.has(id) ? " tk-new" : ""}`);
+    const id = t.h + ":" + t.i, k = ` data-k="${actEsc(id)}"`;
+    if (t.ev) return actTickerEventHtml(t).replace('<a class="tk-item', `<a${k} class="tk-item${fresh.has(id) ? " tk-new" : ""}`);
     const href = t.token ? `/arc#coin/${t.token}` : "/arc#arcircle";
     const safeImg = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "") || /^https?:\/\//i.test(t.img || "") || /^images\//.test(t.img || "");
-    return `<a class="tk-item ${t.buy ? "tk-buy" : "tk-sell"}${fresh.has(id) ? " tk-new" : ""}" href="${href}">`
-      + (safeImg ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
+    return `<a${k} class="tk-item ${t.buy ? "tk-buy" : "tk-sell"}${fresh.has(id) ? " tk-new" : ""}" href="${href}">`
+      + (safeImg ? `<img src="${actEsc(t.img)}" alt="" width="20" height="20">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`)
       + `<b>$${actEsc(t.sym)}</b><span class="tk-side">${t.buy ? "buy" : "sell"}</span>`
       + `<strong>${actUsd(t.usd)}</strong><time>${actAgo(actTs(t.b))}</time></a>`;
   }).join("");
   const track = host.querySelector(".tk-track");
-  track.innerHTML = html + html; // doubled for a seamless loop
-  // Speed follows the market: ~40px/s when quiet, up to 2.5× with a busy
-  // last hour. Only re-set when it changes enough to notice (a new duration
-  // makes the strip jump).
   let hour = 0;
   ACT.stats.forEach((st) => { hour += st.trades1h || 0; });
-  const pxPerSec = 40 * (1 + Math.min(1.5, hour / 20));
-  const dur = Math.max(12, Math.round((track.scrollWidth / 2) / pxPerSec));
-  const cur = parseFloat(track.style.getPropertyValue("--tk-dur")) || 0;
-  if (!cur || Math.abs(dur - cur) / cur > 0.2) track.style.setProperty("--tk-dur", `${dur}s`);
   host.classList.toggle("tk-busy", hour >= 10);
+  if (track.__html === html) { tkStart(); return; }
+  // keep the strip where it is: the item at the left edge stays at the left edge after the
+  // rewrite (new trades come in at the front, which would otherwise shove everything along)
+  let anchor = null;
+  if (track.__html) {
+    for (const el of track.children) { if (el.offsetLeft + el.offsetWidth > TK.x) { anchor = { k: el.dataset.k, off: TK.x - el.offsetLeft }; break; } }
+  }
+  track.innerHTML = html + html; // doubled for a seamless loop
+  track.__html = html;
+  tkMeasure();
+  if (anchor) { const el = track.querySelector(`[data-k="${CSS.escape(anchor.k)}"]`); if (el) TK.x = el.offsetLeft + anchor.off; }
+  if (TK.half > 0) TK.x = ((TK.x % TK.half) + TK.half) % TK.half;
+  track.style.transform = `translate3d(${-TK.x}px,0,0)`;
+  tkStart();
 }
+// The strip moves at one steady speed (px per second) driven by requestAnimationFrame — not a CSS
+// animation whose duration had to be re-guessed from the content width on every repaint (that made
+// it speed up and slow down, and jump when the duration was re-set).
+const TK = { x: 0, last: 0, raf: 0, half: 0, hover: false, ro: null };
+const TK_REDUCE = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const tkSpeed = () => (innerWidth < 600 ? 34 : 42);
+function tkMeasure() {
+  const host = document.getElementById("ap-ticker"), track = host && host.querySelector(".tk-track");
+  if (!track) return;
+  TK.half = track.scrollWidth / 2;
+  if (!TK.ro && "ResizeObserver" in window) { TK.ro = new ResizeObserver(() => { TK.half = track.scrollWidth / 2; }); TK.ro.observe(track); }
+}
+function tkLoop(now) {
+  TK.raf = 0;
+  const host = document.getElementById("ap-ticker"), track = host && host.querySelector(".tk-track");
+  if (!track || host.hidden || document.hidden || !host.offsetParent) { TK.last = 0; return; }
+  const dt = TK.last ? Math.min(50, now - TK.last) : 0; // a stalled frame never turns into a jump
+  TK.last = now;
+  if (!TK.hover && TK.half > 0) {
+    TK.x = (TK.x + (tkSpeed() * dt) / 1000) % TK.half;
+    track.style.transform = `translate3d(${-TK.x.toFixed(2)}px,0,0)`;
+  }
+  TK.raf = requestAnimationFrame(tkLoop);
+}
+function tkStart() {
+  if (TK_REDUCE || TK.raf) return;
+  const host = document.getElementById("ap-ticker");
+  if (host && !host.__tkWired) {
+    host.__tkWired = true;
+    host.addEventListener("mouseenter", () => { TK.hover = true; });
+    host.addEventListener("mouseleave", () => { TK.hover = false; });
+    host.addEventListener("focusin", () => { TK.hover = true; });
+    host.addEventListener("focusout", () => { TK.hover = false; });
+  }
+  TK.last = 0;
+  TK.raf = requestAnimationFrame(tkLoop);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) tkStart(); });
+document.addEventListener("arcpad:tab", () => setTimeout(tkStart, 30));
 function actPaint() {
   document.querySelectorAll(".ap-launch-card[data-token]").forEach(arcPaintCard);
   actPaintTicker();
