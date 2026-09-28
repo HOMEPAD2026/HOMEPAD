@@ -2982,6 +2982,16 @@
     "claimable forever": "기한 없이 클레임 가능",
     "Sent": "전송 완료",
     "wallets — scroll the list": "개 지갑 — 목록을 스크롤하세요",
+    "Scan a token": "토큰 스캔",
+    "Your USDC is on Arc — ready for the next step:": "USDC가 Arc에 도착했어요 — 다음 단계:",
+    "After it lands on Arc": "Arc에 도착하면",
+    "Nothing": "없음",
+    "Not offered from here": "여기서는 제공 안 됨",
+    "into Arc / out of Arc": "Arc로 / Arc에서",
+    "most-used chains": "많이 쓰인 체인",
+    "Next:": "다음:",
+    "Circle CCTP · 15 chains": "Circle CCTP · 15개 체인",
+    "ARCIRCLE OMNI · preview": "ARCIRCLE OMNI · 미리보기",
   };
 
 

@@ -3075,6 +3075,16 @@
     "claimable forever": "永久可领取",
     "Sent": "已发送",
     "wallets — scroll the list": "个钱包 — 滚动查看列表",
+    "Scan a token": "扫描代币",
+    "Your USDC is on Arc — ready for the next step:": "你的 USDC 已到 Arc — 下一步：",
+    "After it lands on Arc": "到达 Arc 后",
+    "Nothing": "无",
+    "Not offered from here": "此链不提供",
+    "into Arc / out of Arc": "转入 Arc / 转出 Arc",
+    "most-used chains": "最常用的链",
+    "Next:": "下一步：",
+    "Circle CCTP · 15 chains": "Circle CCTP · 15 条链",
+    "ARCIRCLE OMNI · preview": "ARCIRCLE OMNI · 预览",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

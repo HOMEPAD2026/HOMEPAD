@@ -111,11 +111,19 @@ export async function logBridge(store, { tx, src }) {
   if (!(usd > 0) || usd > 1e9) return { ok: false, error: "odd amount" };
   await store.set(seenKey, { src: Number(src), dst: m.dstDomain, usd, at: Date.now() });
   const cur = (await store.get(STATS_KEY)) || { n: 0, usd: 0, in: 0, out: 0 };
-  const next = { n: (cur.n || 0) + 1, usd: (cur.usd || 0) + usd, in: (cur.in || 0) + (m.dstDomain === 26 ? usd : 0), out: (cur.out || 0) + (Number(src) === 26 ? usd : 0), at: Date.now() };
+  // the other chain of each transfer (not Arc), for "most-used chains"
+  const other = String(Number(src) === 26 ? m.dstDomain : Number(src));
+  const byDomain = { ...(cur.byDomain || {}) };
+  byDomain[other] = Math.round(((byDomain[other] || 0) + usd) * 100) / 100;
+  const next = { n: (cur.n || 0) + 1, usd: (cur.usd || 0) + usd, in: (cur.in || 0) + (m.dstDomain === 26 ? usd : 0), out: (cur.out || 0) + (Number(src) === 26 ? usd : 0), byDomain, at: Date.now() };
   await store.set(STATS_KEY, next);
   return { ok: true };
 }
 export async function bridgeStats(store) {
   if (!store) return { n: 0, usd: 0 };
-  try { const d = await store.get(STATS_KEY); return d ? { n: d.n || 0, usd: Math.round((d.usd || 0) * 100) / 100 } : { n: 0, usd: 0 }; } catch { return { n: 0, usd: 0 }; }
+  try {
+    const d = await store.get(STATS_KEY);
+    const r2 = (v) => Math.round((v || 0) * 100) / 100;
+    return d ? { n: d.n || 0, usd: r2(d.usd), in: r2(d.in), out: r2(d.out), byDomain: d.byDomain || {} } : { n: 0, usd: 0 };
+  } catch { return { n: 0, usd: 0 }; }
 }

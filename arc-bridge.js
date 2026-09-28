@@ -10,6 +10,10 @@
 // Contract addresses, domains and USDC addresses live in config-arc.js (BRIDGE).
 // Transfers in progress are remembered in this browser only (localStorage),
 // so the page can pick them up again after a reload.
+// v2: six more chains (Sonic, World Chain, Monad, Sei, HyperEVM, Ink), Fast only
+// where Circle offers it as a source, each step's time, "after it lands" (buy
+// $ARCIRCLE, launch, CirclePad, scan) carried into the arrival, the USDC / OMNI
+// switch, where bridged USDC came from, and a coin that travels the route.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-bridge");
@@ -34,7 +38,13 @@
   const ARC_GAS_KEEP = 100000n; // 0.10 USDC stays behind on Arc for gas when you press Max
   const STORE = "arcircle.bridge.v1";
   // Standard (no Fast fee) waits for the source chain's finality.
-  const STD_ETA = { ethereum: "15–20 min", base: "15–20 min", arbitrum: "15–20 min", optimism: "15–20 min", unichain: "15–20 min", linea: "6–32 h", polygon: "about 8 min", avalanche: "under a minute", arc: "under a minute" };
+  const STD_ETA = { ethereum: "15–20 min", base: "15–20 min", arbitrum: "15–20 min", optimism: "15–20 min", unichain: "15–20 min", linea: "6–32 h", polygon: "about 8 min", avalanche: "under a minute", arc: "under a minute",
+    sonic: "under a minute", worldchain: "15–20 min", monad: "under a minute", sei: "under a minute", hyperevm: "under a minute", ink: "about 30 min" };
+  // Circle offers Fast Transfer only from some chains; the rest are already fast (or final) on Standard
+  const fastOk = (c) => !!c && c.key !== "arc" && c.fast !== false;
+  // what to do once USDC lands on Arc
+  const NEXT = { buy: ["Buy $ARCIRCLE", null], launch: ["Launch a coin", "/arc#launch"], circle: ["Join CirclePad", "/circle"], scan: ["Scan a token", "#scanner"] };
+  let nextPick = (() => { try { return localStorage.getItem("arcircle.bridge.next") || ""; } catch { return ""; } })();
 
   const ARCIRCLE_ON = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
   const BUY_URL = CONFIG.ARCIRCLE_BUY_URL || "/arc#arcircle";
@@ -280,7 +290,15 @@
     render(); refresh();
     if (!busy && !$("abr-status").textContent) status(esc(tr(`Starting from ${top.name} — that's where your USDC is.`)), "info");
   }
+  let speedPref = null;
   function render() {
+    // no Fast from this chain: Standard it is (and back to what you picked when it's offered again)
+    const fo = fastOk(src());
+    if (!fo && speed === "fast") { speedPref = "fast"; speed = "standard"; }
+    else if (fo && speedPref === "fast") { speed = "fast"; speedPref = null; }
+    const fb = panel.querySelector('.abr-speed [data-speed="fast"]');
+    if (fb) { fb.disabled = !fo; fb.title = fo ? "" : tr(`Circle has no Fast Transfer from ${src().name} — Standard is already quick there.`); fb.classList.toggle("off", !fo); const sm = fb.querySelector("small"); if (sm) sm.textContent = fo ? tr("About a minute") : tr("Not offered from here"); }
+    paintNext();
     chainSelect("abr-from-chain", dir === "out");
     chainSelect("abr-to-chain", dir === "in");
     panel.querySelectorAll('[data-abr="to-name"]').forEach((el) => { el.textContent = dst().name; });
@@ -493,7 +511,7 @@
         : await m.depositForBurn(amount, d.domain, recip32, s.usdc, ZERO32, q.maxFee, q.thr);
       const rec = {
         id: tx.hash, tx: tx.hash, src: s.key, dst: d.key, amount: amount.toString(), maxFee: q.maxFee.toString(), recipient: rcp,
-        forward: q.forward, speed, at: Date.now(), dstBal0, stage: "burning",
+        forward: q.forward, speed, at: Date.now(), dstBal0, stage: "burning", next: d.key === "arc" ? nextPick || null : null,
       };
       save(rec);
       status(`${esc(tr("Sent — burning on"))} ${esc(s.name)}… <a href="${s.explorer}/tx/${tx.hash}" target="_blank" rel="noopener">tx ↗</a>`, "wait");
@@ -520,6 +538,10 @@
   // ---------- transfers (this browser) ----------
   function load() { try { return JSON.parse(localStorage.getItem(STORE) || "[]"); } catch { return []; } }
   function save(rec) {
+    if (!rec.recovered) {
+      if ((rec.stage === "burned" || rec.attested) && !rec.burnedAt) rec.burnedAt = Date.now();
+      if (rec.delivered && !rec.deliveredAt) rec.deliveredAt = Date.now();
+    }
     const list = load().filter((x) => x.id !== rec.id);
     list.unshift(rec);
     put(list);
@@ -552,13 +574,17 @@
       const st = stageOf(r);
       const age = Date.now() - (r.attestedAt || r.at);
       const canClaim = r.attested && !r.delivered && r.message && r.attestation && (!r.forward || age > 8 * 60000);
-      const step = (on, ok, label, link) => `<li class="${ok ? "ok" : on ? "on" : ""}"><span class="abr-tick" aria-hidden="true"></span><span>${esc(tr(label))}</span>${link || ""}</li>`;
+      const dur = (a, b) => { if (!a || !b || b < a) return ""; const x = Math.round((b - a) / 1000); return x < 60 ? `${x}s` : x < 3600 ? `${Math.floor(x / 60)}m ${x % 60}s` : `${Math.floor(x / 3600)}h ${Math.floor((x % 3600) / 60)}m`; };
+      const t1 = r.burnedAt, t2 = r.attestedAt, t3 = r.deliveredAt;
+      const timeOf = (i, ok, on) => r.recovered ? "" : ok ? `<em class="abr-dur" data-no-i18n>${dur(i === 0 ? r.at : i === 1 ? t1 || r.at : t2, i === 0 ? t1 : i === 1 ? t2 : t3)}</em>` : on ? `<em class="abr-dur live" data-since="${i === 0 ? r.at : i === 1 ? t1 || r.at : t2 || r.at}" data-no-i18n></em>` : "";
+      let si = 0;
+      const step = (on, ok, label, link) => { const i = si++; return `<li class="${ok ? "ok" : on ? "on" : ""}"><span class="abr-tick" aria-hidden="true"></span><span>${esc(tr(label))}</span>${link || ""}${timeOf(i, ok, on)}</li>`; };
       const recv = r.received ? `${fmt(BigInt(r.received))} USDC` : "";
       const pct = { burning: 18, burned: 48, attested: 80, delivered: 100, failed: 100 }[st];
       const buy = st === "delivered" && d.key === "arc" && ARCIRCLE_ON;
       return `<div class="abr-tx st-${st}${r.recovered ? " rec" : ""}" data-id="${esc(r.id)}" style="--a:${s.color};--b:${d.color}">
         <div class="abr-tx-head">${chainDot(s)}<b class="abr-tx-amt">${fmt(BigInt(r.amount))} USDC</b><span class="abr-tx-route">${esc(s.name)} → ${esc(d.name)}</span>${r.recovered ? `<span class="abr-tx-tag">${esc(tr("Found on Arc"))}</span>` : ""}<time>${esc(ago(r.at))}</time></div>
-        ${st !== "delivered" && st !== "failed" ? `<div class="abr-tx-bar" style="--p:${pct}%" aria-hidden="true"><i></i></div>` : ""}
+        ${st !== "failed" ? `<div class="abr-tx-bar${st === "delivered" ? " done" : ""}" style="--p:${pct}%" aria-hidden="true"><i></i><b class="abr-coin"></b><span class="abr-end" style="--c:${d.color}"></span></div>` : ""}
         <ol class="abr-tx-steps">
           ${step(st === "burning", st !== "burning" && st !== "failed", st === "failed" ? "Burn failed" : "Burned on " + s.name, r.tx ? `<a href="${s.explorer}/tx/${r.tx}" target="_blank" rel="noopener">tx ↗</a>` : "")}
           ${step(st === "burned", !!r.attested, r.attested ? "Signed by Circle" : r.delay ? "Circle is waiting: " + r.delay.replace(/_/g, " ") : "Waiting for Circle's signature")}
@@ -566,7 +592,7 @@
             r.dstTx ? `<a href="${d.explorer}/tx/${r.dstTx}" target="_blank" rel="noopener">tx ↗</a>` : r.delivered ? `<a href="${d.explorer}/address/${r.recipient}" target="_blank" rel="noopener">${esc(short(r.recipient))} ↗</a>` : "")}
         </ol>
         ${canClaim ? `<button type="button" class="abr-claim" data-claim="${esc(r.id)}">${esc(tr("Finish on " + d.name))}</button><p class="abr-claim-note">${esc(tr(r.forward ? "Delivery is taking longer than usual. You can mint it yourself — it needs a little gas on " + d.name + "." : "Mint it on " + d.name + " — it needs a little gas there."))}</p><p class="abr-gasline" data-gas="${esc(r.id)}" hidden></p>` : ""}
-        ${buy ? `<div class="abr-next"><span>${esc(tr("Your USDC is on Arc. What next?"))}</span><a class="abr-next-buy" href="${esc(BUY_URL)}">${esc(tr("Buy $ARCIRCLE"))} →</a><a href="#scanner">${esc(tr("Scan a token first"))}</a></div>` : ""}
+        ${st === "delivered" && d.key === "arc" ? nextHtml(r) : ""}
         ${st === "delivered" || st === "failed" ? `<button type="button" class="abr-x" data-remove="${esc(r.id)}" aria-label="${esc(tr("Remove"))}">×</button>` : ""}
       </div>`;
     }).join("");
@@ -579,6 +605,31 @@
     });
     paintBell();
   }
+
+  // "after it lands": the action you picked leads, the others follow
+  function nextHtml(r) {
+    const keys = Object.keys(NEXT).filter((k) => k !== "buy" || ARCIRCLE_ON);
+    const first = r.next && keys.includes(r.next) ? r.next : ARCIRCLE_ON ? "buy" : "launch";
+    const href = (k) => (k === "buy" ? BUY_URL : NEXT[k][1]);
+    return `<div class="abr-next${r.next ? " picked" : ""}"><span>${esc(tr(r.next ? "Your USDC is on Arc — ready for the next step:" : "Your USDC is on Arc. What next?"))}</span>
+      <a class="abr-next-buy" href="${esc(href(first))}">${esc(tr(NEXT[first][0]))} →</a>${keys.filter((k) => k !== first).map((k) => `<a href="${esc(href(k))}">${esc(tr(NEXT[k][0]))}</a>`).join("")}</div>`;
+  }
+  function paintNext() {
+    const box = $("abr-after");
+    if (!box) return;
+    box.hidden = dir !== "in";
+    if (box.hidden) return;
+    const keys = Object.keys(NEXT).filter((k) => k !== "buy" || ARCIRCLE_ON);
+    box.innerHTML = `<small>${esc(tr("After it lands on Arc"))}</small><div class="abr-after-chips" role="radiogroup">${[["", "Nothing"], ...keys.map((k) => [k, NEXT[k][0]])].map(([k, l]) => `<button type="button" role="radio" data-next="${k}" aria-checked="${nextPick === k}">${esc(tr(l))}</button>`).join("")}</div>`;
+  }
+  // the step that's running shows how long it's been going
+  setInterval(() => {
+    if (document.hidden) return;
+    panel.querySelectorAll(".abr-dur.live[data-since]").forEach((el) => {
+      const x = Math.max(0, Math.round((Date.now() - Number(el.dataset.since)) / 1000));
+      el.textContent = x < 60 ? `${x}s` : x < 3600 ? `${Math.floor(x / 60)}m ${String(x % 60).padStart(2, "0")}s` : `${Math.floor(x / 3600)}h ${Math.floor((x % 3600) / 60)}m`;
+    });
+  }, 1000);
 
   // ---------- alerts: tab title + browser notification when a transfer moves on ----------
   const canNotify = () => "Notification" in window;
@@ -627,7 +678,7 @@
     if (r.delivered && !r.nD) {
       r.nD = 1; r.nA = 1; save(r);
       arrived(r);
-      notify(tr(`Arrived on ${d.name}`), tr(`${r.received ? fmt(BigInt(r.received)) + " USDC" : amt} is in your wallet on ${d.name}.`), "abr-" + r.id);
+      notify(tr(`Arrived on ${d.name}`), tr(`${r.received ? fmt(BigInt(r.received)) + " USDC" : amt} is in your wallet on ${d.name}.`) + (r.next && NEXT[r.next] ? " " + tr("Next:") + " " + tr(NEXT[r.next][0]) : ""), "abr-" + r.id);
     } else if (r.attested && !r.nA) {
       r.nA = 1; save(r);
       logTransfer(r);
@@ -758,7 +809,11 @@
       if (!j || !(j.n > 0)) { el.hidden = true; return; }
       const first = el.hidden;
       el.hidden = false;
-      el.innerHTML = `<span class="abr-stat"><b data-v="usd">$0</b><small>${esc(tr("bridged with ARCIRCLE PAD"))}</small></span><span class="abr-stat"><b data-v="n">0</b><small>${esc(tr(j.n === 1 ? "transfer" : "transfers"))}</small></span>`;
+      const money0 = (n) => "$" + Math.round(n).toLocaleString("en-US");
+      const top = Object.entries(j.byDomain || {}).map(([dm, v]) => [CHAINS.find((c) => c.domain === Number(dm)), v]).filter(([c]) => c).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      el.innerHTML = `<span class="abr-stat"><b data-v="usd">$0</b><small>${esc(tr("bridged with ARCIRCLE PAD"))}</small></span><span class="abr-stat"><b data-v="n">0</b><small>${esc(tr(j.n === 1 ? "transfer" : "transfers"))}</small></span>`
+        + (j.in != null ? `<span class="abr-stat"><b data-no-i18n>${esc(money0(j.in))} / ${esc(money0(j.out || 0))}</b><small>${esc(tr("into Arc / out of Arc"))}</small></span>` : "")
+        + (top.length ? `<span class="abr-stat abr-stat-chains"><span class="abr-stat-dots">${top.map(([c, v]) => `<i style="--c:${c.color}" title="${esc(c.name)} · ${esc(money0(v))}">${esc(c.name.charAt(0))}</i>`).join("")}</span><small>${esc(tr("most-used chains"))}</small></span>` : "");
       const money = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 0 : 2, minimumFractionDigits: n >= 1000 ? 0 : 2 });
       countUp(el.querySelector('[data-v="usd"]'), j.usd, money, first ? 1100 : 400);
       countUp(el.querySelector('[data-v="n"]'), j.n, (n) => Math.round(n).toLocaleString("en-US"), first ? 1100 : 400);
@@ -862,6 +917,13 @@
     copyShare.t = setTimeout(() => { if (lab) lab.textContent = tr("Copy link to this route"); btn.classList.remove("done"); }, 1800);
   }
 
+  panel.addEventListener("click", (e) => {
+    const nb = e.target.closest("[data-next]");
+    if (!nb) return;
+    nextPick = nb.dataset.next;
+    try { localStorage.setItem("arcircle.bridge.next", nextPick); } catch { /* private mode */ }
+    paintNext();
+  });
   // ---------- wiring ----------
   $("abr-flip").addEventListener("click", () => {
     dir = dir === "in" ? "out" : "in";

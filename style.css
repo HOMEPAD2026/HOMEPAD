@@ -9174,3 +9174,40 @@ html.arc-tools-loading::before{content:"";position:fixed;top:0;left:0;right:0;he
 .ams-card .ams-filters .ams-f-in input{width:78px;min-width:0;flex:none;padding:5px 8px;border-radius:8px;font-size:.72rem;height:auto;}
 .ams-card .ams-filters .ams-f-excl textarea{padding:8px 10px;font-size:12px;}
 @media (max-width:640px){.ams-card .ams-filters .ams-f-in input{width:66px;}}
+
+/* ---- Bridge v2: USDC / OMNI switch, after-it-lands, step times, travelling coin, stats ---- */
+.abr-assets{display:flex;gap:8px;margin:0 0 14px;}
+.abr-assets a{flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:inherit;text-decoration:none;transition:border-color .2s,background .2s,transform .15s;}
+.abr-assets a:hover{border-color:rgba(53,216,208,.45);transform:translateY(-1px);}
+.abr-assets a.on{border-color:rgba(77,159,255,.6);background:linear-gradient(135deg,rgba(77,159,255,.14),rgba(53,216,208,.06));}
+.abr-assets b{font-size:.9rem;}
+.abr-assets small{font-size:.68rem;color:var(--ink-dim,#8c98a6);}
+.abr-speed button.off,.abr-speed button[disabled]{opacity:.45;cursor:not-allowed;}
+.abr-after{display:flex;flex-direction:column;gap:6px;margin:10px 0 2px;}
+.abr-after[hidden]{display:none;}
+.abr-after > small{font-size:.7rem;font-weight:700;color:var(--ink-dim,#8c98a6);}
+.abr-after-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.abr-after-chips button{padding:6px 11px;border-radius:99px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eef3f7;font:inherit;font-size:.72rem;font-weight:700;cursor:pointer;transition:border-color .2s,background .2s;}
+.abr-after-chips button[aria-checked="true"]{border-color:rgba(57,255,136,.6);background:rgba(57,255,136,.1);color:#39ff88;}
+.abr-dur{margin-left:auto;font-style:normal;font-size:.66rem;font-variant-numeric:tabular-nums;color:var(--ink-dim,#8c98a6);}
+.abr-dur.live{color:#ffc861;}
+.abr-tx-steps li{display:flex;align-items:center;gap:6px;}
+.abr-tx-bar{height:18px;margin:10px 0 2px;background:none;overflow:visible;}
+.abr-tx-bar::before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;border-radius:3px;background:rgba(255,255,255,.07);}
+.abr-tx-bar i{top:50%;bottom:auto;height:3px;margin-top:-1.5px;}
+.abr-tx-bar .abr-coin{position:absolute;top:50%;left:var(--p);width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#9cd0ff 35%,#2775ca 75%);box-shadow:0 0 12px rgba(77,159,255,.8);transition:left .9s cubic-bezier(.2,.8,.2,1);animation:abr-coin-bob 1.4s ease-in-out infinite;}
+.abr-tx-bar .abr-end{position:absolute;right:-4px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--c);opacity:.5;}
+.abr-tx-bar.done .abr-coin{left:100%;animation:none;}
+.abr-tx-bar.done .abr-end{opacity:1;}
+.abr-tx.arrived .abr-tx-bar .abr-end{animation:abr-land 1s ease-out 2;}
+@keyframes abr-coin-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+@keyframes abr-land{0%{box-shadow:0 0 0 0 rgba(57,255,136,.7);}100%{box-shadow:0 0 0 14px rgba(57,255,136,0);}}
+.abr-next.picked .abr-next-buy{animation:abr-nextglow 2.4s ease-in-out infinite;}
+@keyframes abr-nextglow{0%,100%{box-shadow:0 0 0 0 rgba(57,255,136,0);}50%{box-shadow:0 0 16px 2px rgba(57,255,136,.35);}}
+.abr-stat-dots{display:inline-flex;gap:3px;}
+.abr-stat-dots i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.6rem;font-weight:800;color:#08110f;background:var(--c);}
+@media (max-width:640px){.abr-assets small{font-size:.62rem;}}
+@media (prefers-reduced-motion:reduce){.abr-tx-bar .abr-coin,.abr-next.picked .abr-next-buy,.abr-tx.arrived .abr-tx-bar .abr-end{animation:none;}}
+.abr-assets{min-width:0;max-width:100%;}
+.abr-assets a{min-width:0;}
+.abr-assets small,.abr-assets b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
