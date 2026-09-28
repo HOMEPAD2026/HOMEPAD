@@ -121,6 +121,17 @@
     const w = BigInt(i) * 1000000n + BigInt((f + "000000").slice(0, 6));
     return w > 0n ? { v: w } : { err: "is zero" };
   }
+  // "% of holding": each line says how much of some token the wallet holds (up to 18 decimals);
+  // everyone gets that percentage of it — 100 held at 10% → 10 of the token being sent
+  function parseHold(str) {
+    const v = cleanNum(str);
+    if (!/^\d+(\.\d+)?$/.test(v) && !/^\.\d+$/.test(v)) return { err: v ? "isn't a number" : "has no holding" };
+    const [i, f = ""] = (v.startsWith(".") ? "0" + v : v).split(".");
+    const h = BigInt(i) * 10n ** 18n + BigInt((f + "0".repeat(18)).slice(0, 18));
+    return h > 0n ? { v: h } : { err: "holds nothing" };
+  }
+  /// holding (raw, hdec decimals) × percent (×1e6) → amount of the sent token (raw, dec decimals)
+  const pctOfHolding = (w, hdec, P, dec) => (w * P * 10n ** BigInt(dec)) / (100n * 1000000n * 10n ** BigInt(hdec));
   /// opts: { am: line|same|split|weight|pct, value, mixed, nft: 721|1155, decs: Map(token → decimals), token }
   function parseList(text, dec, opts) {
     opts = opts || {};
@@ -155,7 +166,12 @@
         rows.push(row); return;
       }
       if (am === "same" || am === "split") { rows.push(row); return; }
-      if (am === "weight" || am === "pct") {
+      if (am === "pct") {
+        const h = parseHold(cols[0]);
+        if (h.err) { errors.push({ line: n, why: h.err }); return; }
+        row.hold = h.v; rows.push(row); return;
+      }
+      if (am === "weight") {
         const w = parseWeight(cols[0]);
         if (w.err) { errors.push({ line: n, why: w.err }); return; }
         row.weight = w.v; rows.push(row); return;
@@ -175,18 +191,22 @@
     });
     // amounts for split / weight / percent / same
     let valueErr = null;
-    if (!opts.nft && am !== "line" && rows.length) {
+    if (!opts.nft && am === "pct" && rows.length) {
+      const P = parseWeight(opts.value);
+      if (P.err) valueErr = P.err;
+      else {
+        rows.forEach((r) => { r.amount = pctOfHolding(r.hold, 18, P.v, dec); });
+        errors.push(...rows.filter((r) => r.amount === 0n).map((r) => ({ line: r.line, why: "gets nothing at this percentage" })));
+      }
+    } else if (!opts.nft && am !== "line" && rows.length) {
       const v = parseAmount(opts.value, dec);
       if (v.err) valueErr = v.err;
       else if (am === "same") rows.forEach((r) => { r.amount = v.v; });
       else if (am === "split") splitEven(rows, v.v);
       else {
         const W = rows.reduce((s, r) => s + r.weight, 0n);
-        if (am === "pct" && W > 100n * 1000000n) valueErr = "percentages add up to more than 100";
-        else {
-          splitWeighted(rows, v.v, am === "pct" ? 100n * 1000000n : W);
-          if (rows.some((r) => r.amount === 0n)) errors.push(...rows.filter((r) => r.amount === 0n).map((r) => ({ line: r.line, why: "gets nothing at this total" })));
-        }
+        splitWeighted(rows, v.v, W);
+        if (rows.some((r) => r.amount === 0n)) errors.push(...rows.filter((r) => r.amount === 0n).map((r) => ({ line: r.line, why: "gets nothing at this total" })));
       }
     }
     const seen = new Map();
@@ -225,11 +245,12 @@
     P.rows.forEach((r) => {
       const k = lc(r.addr) + (r.token ? ":" + lc(r.token) : "");
       const x = agg.get(k);
-      if (x) { x.amount = (x.amount || 0n) + (r.amount || 0n); x.weight = (x.weight || 0n) + (r.weight || 0n); }
-      else agg.set(k, { addr: r.addr, amount: r.amount, weight: r.weight, token: r.token });
+      if (x) { x.amount = (x.amount || 0n) + (r.amount || 0n); x.weight = (x.weight || 0n) + (r.weight || 0n); x.hold = (x.hold || 0n) + (r.hold || 0n); }
+      else agg.set(k, { addr: r.addr, amount: r.amount, weight: r.weight, hold: r.hold, token: r.token });
     });
     return [...agg.values()].map((x) => (am === "same" || am === "split" ? x.addr
-      : am === "weight" || am === "pct" ? `${x.addr}, ${plainW(x.weight)}`
+      : am === "pct" ? `${x.addr}, ${plain(x.hold || 0n, 18)}`
+      : am === "weight" ? `${x.addr}, ${plainW(x.weight)}`
       : `${x.addr}, ${plain(x.amount || 0n, dec)}${x.token ? ", " + x.token : ""}`)).join("\n");
   }
   const plainW = (w) => { const s = (Number(w) / 1e6).toFixed(6); return s.replace(/\.?0+$/, ""); };
@@ -370,21 +391,21 @@
     same: "One wallet address per line — everyone gets the amount above.",
     split: "One wallet address per line — the total above is split evenly.",
     weight: "One wallet per line — address, then a weight. The total above is split in proportion.",
-    pct: "One wallet per line — address, then a percentage of the total above.",
+    pct: "One wallet per line — address, then how much it holds. Each wallet gets the percentage above of its holding: 100 held at 10% gets 10.",
   };
   function renderAm() {
     $("ams-amodes").querySelectorAll("[data-am]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.am === F.am)));
     const needVal = F.mode !== "nft" && F.am !== "line";
     $("ams-same-row").hidden = !needVal;
-    $("ams-same").placeholder = tr(F.am === "same" ? "Amount per wallet" : "Total to send");
+    $("ams-same").placeholder = tr(F.am === "same" ? "Amount per wallet" : F.am === "pct" ? "Percent of each holding" : "Total to send");
     $("ams-same").setAttribute("aria-label", $("ams-same").placeholder);
-    $("ams-same-sym").textContent = symOf();
+    $("ams-same-sym").textContent = F.am === "pct" ? "%" : symOf();
     $("ams-am-help").textContent = tr(F.mode === "nft" ? (F.info && F.info.kind === 1155 ? "One wallet per line — address, token ID, copies." : "One wallet per line — address, token ID.") : AM_HELP[F.am]);
-    const ph = F.mode === "nft" ? "0x1234…abcd, 7\n0x5678…ef01, 8" : F.am === "line" ? "0x1234…abcd, 100\n0x5678…ef01, 250.5" : F.am === "same" || F.am === "split" ? "0x1234…abcd\n0x5678…ef01" : F.am === "pct" ? "0x1234…abcd, 60\n0x5678…ef01, 40" : "0x1234…abcd, 3\n0x5678…ef01, 1";
+    const ph = F.mode === "nft" ? "0x1234…abcd, 7\n0x5678…ef01, 8" : F.am === "line" ? "0x1234…abcd, 100\n0x5678…ef01, 250.5" : F.am === "same" || F.am === "split" ? "0x1234…abcd\n0x5678…ef01" : F.am === "pct" ? "0x1234…abcd, 100\n0x5678…ef01, 2500" : "0x1234…abcd, 3\n0x5678…ef01, 1";
     ta().placeholder = ph + "\n" + $("ams-am-help").textContent;
     ta().setAttribute("aria-label", tr("Recipients, one per line: address, amount"));
     $("ams-add-amt").hidden = F.am === "same" || F.am === "split";
-    $("ams-add-amt").placeholder = tr(F.mode === "nft" ? "Token ID" : F.am === "pct" ? "Percent" : F.am === "weight" ? "Weight" : "Amount");
+    $("ams-add-amt").placeholder = tr(F.mode === "nft" ? "Token ID" : F.am === "pct" ? "Holding" : F.am === "weight" ? "Weight" : "Amount");
   }
   function paintGutter() {
     const g = $("ams-gutter");
@@ -409,7 +430,7 @@
     const fails = (F.checks && F.checks.failed) || [];
     if (!P || (!P.errors.length && !P.dups.length && !P.valueErr && !contracts.length && !system.length && !tokenSelf.length && !fails.length && !(P.rows.length > rowCap()))) { box.hidden = true; box.innerHTML = ""; return; }
     const items = [];
-    if (P.valueErr) items.push(`<li class="bad">${esc(tr(`The amount above ${P.valueErr}.`))}</li>`);
+    if (P.valueErr) items.push(`<li class="bad">${esc(tr(F.am === "pct" ? `The percentage above ${P.valueErr}.` : `The amount above ${P.valueErr}.`))}</li>`);
     P.errors.slice(0, 6).forEach((e) => items.push(`<li class="bad"><button type="button" class="ams-line" data-line="${e.line}">${esc(tr(`Line ${e.line}`))}</button> ${esc(tr(e.why))}</li>`));
     if (P.errors.length > 6) items.push(`<li class="bad">${esc(tr(`…and ${P.errors.length - 6} more lines with problems`))}</li>`);
     fails.slice(0, 4).forEach((f) => items.push(`<li class="bad"><button type="button" class="ams-line" data-line="${f.line}">${esc(tr(`Line ${f.line}`))}</button> ${esc(tr("would fail:"))} <span data-no-i18n>${esc(f.reason || tr("the token refused this transfer"))}</span></li>`));
@@ -743,7 +764,7 @@
     const set = (t, on) => { goText(tr(t)); go.disabled = !on; };
     if (!F.info) return set(F.mode === "nft" ? "Pick a collection" : "Pick a token", false);
     if (!P || !rows.length) return set("Add recipients", false);
-    if (P.valueErr) return set(F.am === "same" ? "Enter the amount per wallet" : "Enter the total", false);
+    if (P.valueErr) return set(F.am === "same" ? "Enter the amount per wallet" : F.am === "pct" ? "Enter the percentage" : "Enter the total", false);
     if (P.errors.length) return set(`Fix ${plural(P.errors.length, "line", "lines")} first`, false);
     if (P.needDec.length) return set("Reading tokens…", false);
     if (rows.length > rowCap()) return set("Too many wallets", false);
@@ -1392,6 +1413,11 @@
       if (!tiers.length) return null;
       return rows.map((r) => { const t = tiers.find(([m]) => r.w >= m); return t ? t[1] : 0n; });
     }
+    if (S.dist === "pct") {
+      const P = parseWeight(S.value);
+      if (P.err || !rows.length) return null;
+      return rows.map((r) => pctOfHolding(r.w, S.data.dec, P.v, dec));
+    }
     let v;
     try { v = ethers.parseUnits(cleanNum(S.value), dec); } catch { return null; }
     if (!(v > 0n) || !rows.length) return null;
@@ -1423,9 +1449,10 @@
         <label class="ams-scheck"><input type="checkbox" id="ams-s-noc"${S.noContracts ? " checked" : ""}> ${esc(tr("Leave out contracts (pools, lockers, exchanges)"))}</label>
         <label class="ams-scheck"><input type="checkbox" id="ams-s-nome"${S.noMe ? " checked" : ""}> ${esc(tr("Leave out my own wallet"))}</label>
         ${!F.info || F.info.kind ? `<p class="ams-warn">${esc(tr("Pick the token you're sending first (step 1)."))}</p>` : `
-        <div class="ams-amodes ams-sdist" role="radiogroup">${[["each", "Same amount each"], ["even", "Split a total evenly"], ["prop", src === "circle" ? "Split by contribution" : "Split by holding"], ["tiers", "Tiers"]].map(([k, l]) => `<button type="button" role="radio" data-sdist="${k}" aria-checked="${S.dist === k}">${esc(tr(l))}</button>`).join("")}</div>
+        <div class="ams-amodes ams-sdist" role="radiogroup">${[["each", "Same amount each"], ["even", "Split a total evenly"], ["prop", src === "circle" ? "Split by contribution" : "Split by holding"], ["pct", src === "circle" ? "% of contribution" : "% of holding"], ["tiers", "Tiers"]].map(([k, l]) => `<button type="button" role="radio" data-sdist="${k}" aria-checked="${S.dist === k}">${esc(tr(l))}</button>`).join("")}</div>
         ${S.dist === "tiers" ? `<div class="ams-tiers">${S.tiers.map(([m, v], i) => `<div><span>${esc(tr("Holding at least"))}</span><input data-tier="${i}" data-k="0" type="text" inputmode="decimal" value="${esc(m)}" placeholder="${esc(d.sym)}"><span>${esc(tr("gets"))}</span><input data-tier="${i}" data-k="1" type="text" inputmode="decimal" value="${esc(v)}" placeholder="${esc(symOf())}"></div>`).join("")}</div>`
-          : `<label class="ams-sval">${esc(tr(S.dist === "each" ? "Amount per wallet" : "Total to send"))}<span><input id="ams-s-val" type="text" inputmode="decimal" value="${esc(S.value)}" placeholder="0"><b data-no-i18n>${esc(symOf())}</b></span></label>`}
+          : `<label class="ams-sval">${esc(tr(S.dist === "each" ? "Amount per wallet" : S.dist === "pct" ? (src === "circle" ? "Percent of each contribution" : "Percent of each holding") : "Total to send"))}<span><input id="ams-s-val" type="text" inputmode="decimal" value="${esc(S.value)}" placeholder="${S.dist === "pct" ? "10" : "0"}"><b data-no-i18n>${esc(S.dist === "pct" ? "%" : symOf())}</b></span></label>
+          ${S.dist === "pct" ? `<p class="ams-sheet-meta">${esc(tr(src === "circle" ? "Each wallet gets this percentage of what it put in: 100 at 10% gets 10." : "Each wallet gets this percentage of what it holds now: 100 held at 10% gets 10."))}</p>` : ""}`}
         <div class="ams-sprev"><b>${esc(tr(plural(kept.length, "wallet", "wallets")))}</b><span data-no-i18n>${kept.length ? `${fmt(total, dec)} ${esc(symOf())}` : "—"}</span></div>
         <ol class="ams-rows ams-srows">${kept.slice(0, 8).map(([r, a]) => `<li><span class="ams-addr" data-no-i18n>${esc(short(r.a))}</span><small data-no-i18n>${fmt(r.w, d.dec)} ${esc(d.sym)}</small><b data-no-i18n>${fmt(a, dec)}</b></li>`).join("")}</ol>
         <button type="button" class="ams-go ams-suse" data-sheet-use${kept.length ? "" : " disabled"}><span class="ams-go-txt">${esc(tr(`Use these ${plural(kept.length, "wallet", "wallets")}`))}</span></button>`}` : ""}`;

@@ -3208,6 +3208,14 @@
     "Recorded on ARCIRCLE PAD": "ARCIRCLE PAD 기록 시각",
     "Published on ARCIRCLE PAD": "ARCIRCLE PAD 게시 시각",
     "Block on the explorer": "익스플로러에서 블록 보기",
+    "% of holding": "보유량의 %",
+    "% of contribution": "기여액의 %",
+    "One wallet per line — address, then how much it holds. Each wallet gets the percentage above of its holding: 100 held at 10% gets 10.": "한 줄에 지갑 하나 — 주소, 그다음 보유량. 각 지갑은 보유량의 위 퍼센트만큼 받아요: 100개 보유에 10%면 10개.",
+    "Percent of each holding": "보유량의 몇 %",
+    "Percent of each contribution": "기여액의 몇 %",
+    "Enter the percentage": "퍼센트를 입력하세요",
+    "Each wallet gets this percentage of what it holds now: 100 held at 10% gets 10.": "각 지갑은 현재 보유량의 이 퍼센트만큼 받아요: 100개 보유에 10%면 10개.",
+    "Each wallet gets this percentage of what it put in: 100 at 10% gets 10.": "각 지갑은 기여한 금액의 이 퍼센트만큼 받아요: 100에 10%면 10.",
   };
 
 

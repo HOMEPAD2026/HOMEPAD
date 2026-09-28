@@ -3301,6 +3301,14 @@
     "Recorded on ARCIRCLE PAD": "ARCIRCLE PAD 记录时间",
     "Published on ARCIRCLE PAD": "ARCIRCLE PAD 发布时间",
     "Block on the explorer": "在浏览器中查看区块",
+    "% of holding": "按持有量的 %",
+    "% of contribution": "按贡献额的 %",
+    "One wallet per line — address, then how much it holds. Each wallet gets the percentage above of its holding: 100 held at 10% gets 10.": "每行一个钱包——地址，然后是持有量。每个钱包按上面的百分比获得其持有量的对应数量：持有 100、10% 即得 10。",
+    "Percent of each holding": "持有量的百分比",
+    "Percent of each contribution": "贡献额的百分比",
+    "Enter the percentage": "请输入百分比",
+    "Each wallet gets this percentage of what it holds now: 100 held at 10% gets 10.": "每个钱包按当前持有量的此百分比获得：持有 100、10% 即得 10。",
+    "Each wallet gets this percentage of what it put in: 100 at 10% gets 10.": "每个钱包按其投入金额的此百分比获得：投入 100、10% 即得 10。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
