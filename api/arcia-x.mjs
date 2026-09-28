@@ -182,7 +182,12 @@ async function plan(origin, st) {
 async function loadState() {
   const doc = (await getDocs([STATE]))[STATE] || {};
   return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {}, mentionSince: doc.mentionSince || "", me: doc.me || null,
-    replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "" };
+    replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "", recent: Array.isArray(doc.recent) ? doc.recent : [] };
+}
+// the last things ARCIA said on X, for the feed on her page (?feed=1)
+function remember(st, row) {
+  if (!row.id) return;
+  st.recent = [{ ...row, t: now() }, ...(st.recent || []).filter((r) => r.id !== row.id)].slice(0, 20);
 }
 const stripTemp = (st) => { const o = { ...st }; delete o.dirty; return o; };
 function prune(st) {
@@ -251,6 +256,7 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
     try {
       row.posted = await xPost(d.text, m.id);
       st.sent["reply:" + m.id] = { t: now(), x: row.posted || "" };
+      remember(st, { id: row.posted, kind: "reply", text: d.text, to: m.username, toText: m.text.replace(/\s+/g, " ").slice(0, 140) });
       st.replyDays[day] = (st.replyDays[day] || 0) + 1;
       st.replyAuthors.n[m.author] = (st.replyAuthors.n[m.author] || 0) + 1;
     } catch (e) {
@@ -276,6 +282,12 @@ export async function GET(req) {
   if (url.searchParams.get("status") === "lite") {
     const on = postsOn() && hasKeys();
     return new Response(JSON.stringify({ live: { coins: on, round: on, daily: on, replies: repliesOn(), trends: false } }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=60, s-maxage=300" } });
+  }
+  // ?feed=1 — what ARCIA said on X lately (public; her own posts and replies)
+  if (url.searchParams.has("feed")) {
+    const st = storeEnabled() ? await loadState().catch(() => null) : null;
+    const feed = ((st && st.recent) || []).map((r) => ({ id: r.id, kind: r.kind, text: r.text, to: r.to || "", toText: r.toText || "", t: r.t, url: `https://x.com/ARCIAonArc/status/${r.id}` }));
+    return new Response(JSON.stringify({ feed, today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, replies: repliesOn() }), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=20, s-maxage=30, stale-while-revalidate=120" } });
   }
   if (url.searchParams.has("status")) {
     const st = storeEnabled() ? await loadState().catch(() => null) : null;
@@ -312,6 +324,7 @@ export async function GET(req) {
         const day = dayOf(now());
         st.sent["reply:" + redo] = { t: now(), x: id || "" };
         st.replyDays[day] = (st.replyDays[day] || 0) + 1;
+        remember(st, { id, kind: "reply", text: d.text, to: m.username, toText: m.text.replace(/\s+/g, " ").slice(0, 140) });
         await setDoc(STATE, stripTemp(st));
         return json(200, { redo, posted: id, reply: d.text });
       } catch (e) { return json(502, { redo, error: String(e.message || e).slice(0, 200) }); }
@@ -337,6 +350,7 @@ export async function GET(req) {
     try {
       const id = await xPost(p.text);
       st.sent[p.id] = { t: now(), x: id || "" };
+      remember(st, { id, kind: "post", text: p.text });
       for (const a of p.also || []) st.sent[a] = { t: now(), x: "" };
       st.days[day] = (st.days[day] || 0) + 1;
       results.push({ id: p.id, posted: id });

@@ -258,6 +258,9 @@
   "functions": {
     "api/arcia-x.mjs": {
       "maxDuration": 60
+    },
+    "api/arcia.mjs": {
+      "maxDuration": 30
     }
   }
 }

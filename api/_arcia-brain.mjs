@@ -60,19 +60,23 @@ HOW YOU TALK
 export const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
   KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
 
-export async function live(origin) {
+/// Live $ARCIRCLE numbers from /api/social. With a wallet, also that wallet's holding (L.me).
+export async function live(origin, wallet) {
   try {
-    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 3500);
-    const r = await fetch(origin + "/api/social?token=arcircle", { signal: ctl.signal });
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), wallet ? 5000 : 3500);
+    const r = await fetch(origin + "/api/social?token=arcircle" + (wallet ? "&wallet=" + wallet : ""), { signal: ctl.signal });
     clearTimeout(t);
     if (!r.ok) return null;
     const d = await r.json();
     const c = (d.revenue && d.revenue.circle) || {};
+    const w = d.wallet || null;
     return {
       price: d.price ?? null, mcap: d.mcap ?? null, holders: d.holders ?? null, change24h: d.change24h ?? null,
       burnedPct: d.burned && d.burned.pct != null ? d.burned.pct : null, burnedTokens: d.burned ? d.burned.tokens : null,
       launches: d.revenue ? d.revenue.launches : null,
       round: { open: !!c.open, raised: c.raised ?? null, deadline: c.deadline || ROUND1_CLOSE },
+      ...(w ? { me: { address: w.address, balance: w.balance ?? 0, rank: w.rank ?? null, of: w.of ?? null, heldDays: w.heldDays ?? 0,
+        circle: w.circle ?? null, launches: w.launches ?? null, relay: (w.balance || 0) >= 100000 } } : {}),
     };
   } catch (e) { return null; }
 }
@@ -96,22 +100,21 @@ export function liveText(L) {
 - CirclePad Round #1: ${L.round.open ? "open" : "not open / closed"}, raised ${L.round.raised == null ? "—" : Number(L.round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"}, closes ${closes}${left(L.round.deadline) ? " (" + left(L.round.deadline) + " left)" : ""}`;
 }
 
-/// One call to Claude with ARCIA's mind loaded (cached). extra: text appended after the live numbers.
-/// Returns the reply text, or null when there's no key or the call fails (callers fall back).
-export async function askClaude({ messages, L, extra = "", maxTokens = 500, timeoutMs = 20000 }) {
+const reqBody = ({ messages, L, extra, maxTokens, stream }) => JSON.stringify({
+  model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
+  max_tokens: maxTokens,
+  ...(stream ? { stream: true } : {}),
+  system: [
+    { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
+    { type: "text", text: `${liveText(L)}\n${extra}` },
+  ],
+  messages,
+});
+// with ANTHROPIC_WORKSPACE_ID set the header goes along; if the API says that workspace doesn't
+// exist (or wasn't needed), the same call is tried once without it. Returns the ok Response or null.
+async function callClaude(body, timeoutMs) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
-  const body = JSON.stringify({
-    model: process.env.ARCIA_MODEL || "claude-haiku-4-5-20251001",
-    max_tokens: maxTokens,
-    system: [
-      { type: "text", text: `${FACTS}\n${RULES}\n${KB_TEXT}`, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `${liveText(L)}\n${extra}` },
-    ],
-    messages,
-  });
-  // with ANTHROPIC_WORKSPACE_ID set the header goes along; if the API says that workspace
-  // doesn't exist (or wasn't needed), the same call is tried once without it
   const ws = (process.env.ANTHROPIC_WORKSPACE_ID || "").trim();
   for (const withWs of ws ? [true, false] : [false]) {
     try {
@@ -119,16 +122,52 @@ export async function askClaude({ messages, L, extra = "", maxTokens = 500, time
       const headers = { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" };
       if (withWs) headers["anthropic-workspace-id"] = ws;
       const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: ctl.signal, headers, body });
+      if (r.ok) { r.__timer = t; return r; }
       clearTimeout(t);
-      if (r.ok) {
-        const j = await r.json();
-        const text = (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
-        return text || null;
-      }
       const err = (await r.text()).slice(0, 240);
       console.error("arcia model", r.status, withWs ? "(with workspace header)" : "", err);
       if (!(withWs && /workspace/i.test(err))) return null;
     } catch (e) { console.error("arcia model", String(e && e.message || e)); return null; }
   }
   return null;
+}
+
+/// One call to Claude with ARCIA's mind loaded (cached). extra: text appended after the live numbers.
+/// Returns the reply text, or null when there's no key or the call fails (callers fall back).
+export async function askClaude({ messages, L, extra = "", maxTokens = 500, timeoutMs = 20000 }) {
+  const r = await callClaude(reqBody({ messages, L, extra, maxTokens }), timeoutMs);
+  if (!r) return null;
+  try {
+    const j = await r.json();
+    clearTimeout(r.__timer);
+    const text = (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
+    return text || null;
+  } catch (e) { return null; }
+}
+
+/// The same, streamed: resolves to an async iterator of text pieces as Claude writes them,
+/// or null when the call can't start (no key, refused) so the caller can fall back.
+export async function streamClaude({ messages, L, extra = "", maxTokens = 500, timeoutMs = 30000 }) {
+  const r = await callClaude(reqBody({ messages, L, extra, maxTokens, stream: true }), timeoutMs);
+  if (!r || !r.body) return null;
+  return (async function* () {
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n\n")) >= 0) {
+          const evt = buf.slice(0, i); buf = buf.slice(i + 2);
+          const line = evt.split("\n").find((l) => l.startsWith("data:"));
+          if (!line) continue;
+          let j; try { j = JSON.parse(line.slice(5)); } catch (e) { continue; }
+          if (j.type === "content_block_delta" && j.delta && j.delta.type === "text_delta") yield j.delta.text;
+          else if (j.type === "error") throw new Error((j.error && j.error.message) || "stream error");
+        }
+      }
+    } finally { clearTimeout(r.__timer); }
+  })();
 }

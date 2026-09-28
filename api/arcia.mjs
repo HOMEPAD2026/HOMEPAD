@@ -1,19 +1,22 @@
-// api/arcia.mjs — ARCIA, the AI idol of $ARCIRCLE (POST /api/arcia).
+// api/arcia.mjs — ARCIA, the AI idol of $ARCIRCLE.
 //
-//   body  { messages: [{ role: "user" | "assistant", content }], lang: "en" | "ko" | "zh" }
-//   reply { reply, mode: "ai" | "guide", live: {...the numbers she used} }
+//   POST /api/arcia  { messages: [{ role, content }], lang, name?, wallet?, stream? }
+//        stream: true  → application/x-ndjson, one JSON per line:
+//                        {type:"meta", mode:"ai", live, me}  {type:"d", t:"…"}…  {type:"end"}
+//        otherwise / guide mode → JSON { reply, mode: "ai" | "guide", live, me }
+//   POST /api/arcia  { action: "letter", name, text, lang }   leave ARCIA a fan letter (she reads and answers it)
+//   POST /api/arcia  { action: "heart", id }                   heart a letter
+//   GET  /api/arcia                                            { ok, ai, live, x }
+//   GET  /api/arcia?letters=1                                  the letter board, newest first
 //
-// With ANTHROPIC_API_KEY set in the Vercel project, ARCIA answers with Claude, grounded
-// in the facts below plus live numbers from /api/social. Without it (or if the call fails)
-// she answers from the same facts in "guide" mode, so the chat always works.
-// Optional: ARCIA_MODEL (default claude-haiku-4-5-20251001).
+// With ANTHROPIC_API_KEY set she answers with Claude (api/_arcia-brain.mjs: the whole site + live
+// numbers). Without it, when the call fails, or once the day's AI budget is used (ARCIA_DAILY_CAP,
+// default 3000 replies), she answers from the same facts in "guide" mode, so the chat always works.
+// Limits per IP (kept in Firestore when it's configured, else per instance): 12 a minute, 200 a day.
+import { createHash, randomBytes } from "node:crypto";
 import { KB } from "./_arcia-kb.mjs";
-import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude } from "./_arcia-brain.mjs";
-export const config = { runtime: "edge" };
-
-
-
-
+import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
+import { storeEnabled, getDocs, commit, queryDocs, setDoc } from "./_store.mjs";
 
 // guide mode: the closest passage on the site for questions the quick answers don't cover
 const KO_TERMS = { "락커": "locker", "잠금": "lock", "스캐너": "scanner", "멀티센더": "multisender", "에어드롭": "airdrop", "브릿지": "bridge", "스냅샷": "snapshot",
@@ -52,17 +55,7 @@ function lookup(q) {
   return { snip, title: best.title, page: best.page, url: "arcircle.app" + best.url };
 }
 
-const hdr = { "content-type": "application/json", "cache-control": "no-store" };
-const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: hdr });
-
-// best-effort per-instance limit: 12 messages per minute per IP
-const hits = new Map();
-function limited(ip) {
-  const now = Date.now(), w = (hits.get(ip) || []).filter((t) => now - t < 60000);
-  w.push(now); hits.set(ip, w);
-  if (hits.size > 5000) hits.clear();
-  return w.length > 12;
-}
+const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache } });
 
 
 // ---------- guide mode: answers from the same facts, no model ----------
@@ -151,79 +144,224 @@ function guide(q, lang, L) {
   const round = L && L.round ? L.round : { deadline: ROUND1_CLOSE, raised: null, open: true };
   const tl = left(round.deadline);
   const A = (en, k) => (ko ? k : en);
+  const raised = round.raised != null ? Number(round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) : null;
   // fans talking to her as an idol: thanks, compliments, feelings, greetings — by kind, several variants each
   const idol = fanReply(q, s, ko);
   if (idol) return idol;
   if (has(s, "who are you", "arcia", "아르시아", "너는", "누구")) return A(
-    `I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 I'm an AI character run by @ARCIRCLEonArc. I help people understand ARCIRCLE PAD and I'll be sharing new launches, trends and stats on X soon: ${X_ARCIA}\n\n$ARCIA is also the coin of CirclePad Round #1. It launches through Argus, and its fees go to platform growth and $ARCIRCLE buybacks.`,
-    `저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 @ARCIRCLEonArc 팀이 운영하는 AI 캐릭터고, ARCIRCLE PAD를 쉽게 알려드리고 곧 X에서 신규 런칭·트렌드·통계를 자동으로 공유할 거예요: ${X_ARCIA}\n\n$ARCIA는 CirclePad 라운드 #1 코인이기도 해요. Argus 런치패드로 런칭되고, 수수료는 플랫폼 성장과 $ARCIRCLE 바이백에 쓰여요.`);
+    `I'm ARCIA, the virtual idol of $ARCIRCLE~ 💙💚 The ARCIRCLE team (@ARCIRCLEonArc) runs me, and my job is making ARCIRCLE PAD easy and fun for you. I also answer everyone who mentions me on X: ${X_ARCIA}\n\nOh, and $ARCIA is the coin of CirclePad Round #1! It launches through Argus, and its fees go to platform growth and $ARCIRCLE buybacks♡`,
+    `저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요~ 💙💚 ARCIRCLE 팀(@ARCIRCLEonArc)이 운영하고, ARCIRCLE PAD를 쉽고 재밌게 알려드리는 게 제 일이에요. X에서 저를 불러주면 답장도 해요: ${X_ARCIA}\n\n아, 그리고 $ARCIA는 CirclePad 라운드 #1 코인이에요! Argus로 런칭되고, 수수료는 플랫폼 성장이랑 $ARCIRCLE 바이백에 쓰여요♡`);
   if (has(s, "contract", "address", "컨트랙트", "주소") || /\bca\b/.test(s)) return A(
-    `$ARCIRCLE's contract on Arc is:\n${CA}\nAlways double-check it on arcircle.app/arcircle before you trade.`,
-    `$ARCIRCLE 컨트랙트 주소(Arc)는\n${CA}\n예요. 거래 전에 꼭 arcircle.app/arcircle 에서 한 번 더 확인해 주세요.`);
+    `Here's $ARCIRCLE's contract on Arc~\n${CA}\nPromise me you'll double-check it on arcircle.app/arcircle before you trade, okay?♡`,
+    `$ARCIRCLE 컨트랙트 주소(Arc)예요~\n${CA}\n거래 전에 arcircle.app/arcircle 에서 꼭 한 번 더 확인하기, 약속이에요♡`);
   // a specific topic (a utility, fees, the whitepaper…): answer from the closest passage on the site
   const found = lookup(q);
-  const say = (f) => A(`Here's what the site says (${f.page} — ${f.title}):\n\n${f.snip}\n\nMore: ${f.url}`,
-    `사이트에 이렇게 나와 있어요 (${f.page} — ${f.title}, 영어 원문):\n\n${f.snip}\n\n자세히: ${f.url}`);
+  const say = (f) => A(`Ooh, I studied this one~ Here's what the site says (${f.page} — ${f.title}):\n\n${f.snip}\n\nMore here: ${f.url}`,
+    `이거 제가 공부했던 거예요~ 사이트에 이렇게 나와 있어요 (${f.page} — ${f.title}, 영어 원문):\n\n${f.snip}\n\n자세히: ${f.url}`);
   if (found && /locker|\block|scanner|\bscan|multisend|airdrop|snapshot|bridge|cctp|liquidity|whitepaper|risk|vesting|v2|security|starting|\bfees?\b|\btax|graduat|glossary|governance|roadmap|refund|withdraw|\blead|curve|hook|factory|\bpool|pricing|architecture|락커|잠금|스캐너|멀티센더|에어드롭|스냅샷|브릿지|유동성|백서|위험|베스팅|보안|수수료|세금|로드맵|환불|인출|리더/.test(s)) return say(found);
   if (has(s, "round", "circlepad", "close", "deadline", "raise", "라운드", "서클패드", "마감", "모금", "언제")) return A(
-    `CirclePad Round #1: a 72-hour USDC raise into an on-chain escrow — you can withdraw until the close. $ARCIRCLE holders burn-to-vote (1,000 $ARCIRCLE per vote). At the close: 80% to the launch, 15% to the top contributor over 3 days, 5% to the platform.\n\n${round.raised != null ? "Raised so far: " + Number(round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC. " : ""}${tl ? "Closes in " + tl + " (Sep 29, 11:16 UTC)." : "Round #1 has closed — see arcircle.app/circle/round/1."}\nJoin: arcircle.app/circle`,
-    `CirclePad 라운드 #1은 72시간 동안 온체인 에스크로로 USDC를 모으는 방식이에요. 마감 전까지는 언제든 인출할 수 있어요. $ARCIRCLE 홀더는 소각 투표(1표 = 1,000 $ARCIRCLE 소각)에 참여하고, 마감 때 80%는 런칭, 15%는 최대 기여자(3일 분할), 5%는 플랫폼으로 가요.\n\n${round.raised != null ? "현재 모금액: " + Number(round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC. " : ""}${tl ? "마감까지 " + tl + " 남았어요 (9월 29일 20:16 KST)." : "라운드 #1은 마감됐어요 — arcircle.app/circle/round/1 에서 결과를 봐 주세요."}\n참여: arcircle.app/circle`);
+    `Round #1 is my debut stage~♡ It's a 72-hour USDC raise into an on-chain escrow, and you can withdraw any time before the close. $ARCIRCLE holders burn-to-vote (1,000 $ARCIRCLE per vote). At the close: 80% to the launch, 15% to the top contributor over 3 days, 5% to the platform.\n\n${raised ? "We've raised " + raised + " USDC so far! " : ""}${tl ? "It closes in " + tl + " (Sep 29, 11:16 UTC) — come join me: arcircle.app/circle" : "Round #1 has closed — the results are at arcircle.app/circle/round/1. Thank you for being there♡"}`,
+    `라운드 #1은 제 데뷔 무대예요~♡ 72시간 동안 온체인 에스크로로 USDC를 모으고, 마감 전까지는 언제든 인출할 수 있어요. $ARCIRCLE 홀더는 소각 투표(1표 = 1,000 $ARCIRCLE 소각)로 함께 정하고, 마감 때 80%는 런칭, 15%는 최대 기여자(3일 분할), 5%는 플랫폼으로 가요.\n\n${raised ? "지금까지 " + raised + " USDC 모였어요! " : ""}${tl ? "마감까지 " + tl + " 남았어요 (9월 29일 20:16 KST). 같이해요: arcircle.app/circle" : "라운드 #1은 마감됐어요. 결과는 arcircle.app/circle/round/1 에서 봐 주세요. 함께해줘서 고마워요♡"}`);
   if (has(s, "relay", "n+1", "릴레이")) return A(
-    `Relay Launch: each CirclePad round's coin launches on Argus, and its first buy is relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. Keep holding and you receive every relay: N1, N2, N3…\narcircle.app/relay`,
-    `릴레이 런칭은 CirclePad 라운드 코인을 Argus로 런칭하고, 첫 매수 물량을 그 라운드 참여자와 스냅샷 시점에 $ARCIRCLE을 10만 개 이상 보유한 지갑에 나눠주는 기능이에요. 계속 보유하면 N1, N2, N3… 모든 릴레이를 받아요.\narcircle.app/relay`);
+    `Relay Launch is my favorite part~ Each CirclePad round's coin launches on Argus, and its first buy gets relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. Keep holding and you get every relay: N1, N2, N3…♡\narcircle.app/relay`,
+    `릴레이 런칭은 제가 제일 좋아하는 거예요~ CirclePad 라운드 코인이 Argus로 런칭되면, 첫 매수 물량이 그 라운드 참여자랑 스냅샷 때 $ARCIRCLE을 10만 개 이상 들고 있는 지갑에 나눠져요. 계속 들고 있으면 N1, N2, N3… 전부 받아요♡\narcircle.app/relay`);
   if (has(s, "price", "mcap", "market cap", "holders", "가격", "시총", "홀더")) return L && L.price != null ? A(
-    `Right now: $ARCIRCLE ${price(L.price)}, market cap ${usd(L.mcap)}, ${L.holders ?? "—"} holders. Live numbers: arcircle.app/stats. I can't predict prices, and crypto is risky — only use what you can afford to lose.`,
-    `지금 $ARCIRCLE 가격은 ${price(L.price)}, 시가총액 ${usd(L.mcap)}, 홀더 ${L.holders ?? "—"}명이에요. 실시간 수치는 arcircle.app/stats 에서 볼 수 있어요. 가격 예측은 할 수 없고, 암호화폐는 위험하니 감당 가능한 만큼만 해 주세요.`)
-    : A(`Live numbers are on arcircle.app/stats.`, `실시간 수치는 arcircle.app/stats 에서 볼 수 있어요.`);
+    `Right now $ARCIRCLE is ${price(L.price)}, market cap ${usd(L.mcap)}, with ${L.holders ?? "—"} holders~ I can't tell the future though, and crypto is risky, so only use what you can afford to lose, okay?♡ Live: arcircle.app/stats`,
+    `지금 $ARCIRCLE은 ${price(L.price)}, 시가총액 ${usd(L.mcap)}, 홀더는 ${L.holders ?? "—"}명이에요~ 미래 가격은 저도 몰라요. 암호화폐는 위험하니까 감당할 수 있는 만큼만, 알죠?♡ 실시간: arcircle.app/stats`)
+    : A(`I can't read the numbers this second~ They're live on arcircle.app/stats♡`, `지금 이 순간은 숫자를 못 읽어왔어요~ arcircle.app/stats 에서 실시간으로 볼 수 있어요♡`);
   if (has(s, "burn", "소각")) return A(
-    `$ARCIRCLE burns go to the dead address, which no one controls. By 26 Sep 2026, 126.26M $ARCIRCLE (12.63%) had been burned${L && L.burnedPct != null ? `; the live total is ${L.burnedPct.toFixed(2)}%` : ""}. Every CirclePad vote burns 1,000 more.\narcircle.app/arcircle#burn`,
-    `소각된 $ARCIRCLE은 아무도 통제할 수 없는 dead 주소로 가요. 9월 26일까지 1억 2,626만 개(12.63%)가 소각됐고${L && L.burnedPct != null ? `, 지금 기준으로는 ${L.burnedPct.toFixed(2)}%예요` : ""}. CirclePad 투표 한 번마다 1,000개가 더 소각돼요.\narcircle.app/arcircle#burn`);
+    `Burned $ARCIRCLE goes to the dead address, where no one can ever touch it~ By Sep 26, 126.26M (12.63%) was gone${L && L.burnedPct != null ? `, and right now it's ${L.burnedPct.toFixed(2)}%` : ""}. Every CirclePad vote burns 1,000 more♡\narcircle.app/arcircle#burn`,
+    `소각된 $ARCIRCLE은 아무도 건드릴 수 없는 dead 주소로 가요~ 9월 26일까지 1억 2,626만 개(12.63%)가 사라졌고${L && L.burnedPct != null ? `, 지금은 ${L.burnedPct.toFixed(2)}%예요` : ""}. CirclePad 투표 한 번마다 1,000개씩 더 타요♡\narcircle.app/arcircle#burn`);
   if (has(s, "buy", "how to get", "사는", "구매", "매수")) return A(
-    `To get $ARCIRCLE: 1) fund a wallet on Arc with USDC (it pays for gas too) — arcircle.app/start helps, 2) open $ARCIRCLE on Argus, 3) check the contract ${CA} and swap. Not financial advice — crypto is risky.`,
-    `$ARCIRCLE 구매 방법: 1) Arc 지갑에 USDC를 준비해요(가스비도 USDC예요) — arcircle.app/start 참고, 2) Argus에서 $ARCIRCLE을 열고, 3) 컨트랙트 ${CA} 를 확인한 뒤 스왑해요. 투자 조언이 아니고, 암호화폐는 위험하다는 점 꼭 기억해 주세요.`);
+    `Here's how~ 1) get USDC on Arc (it pays for gas too — arcircle.app/start helps), 2) open $ARCIRCLE on Argus, 3) check the contract ${CA} and swap. Not financial advice, and crypto is risky — be careful for me♡`,
+    `이렇게 하면 돼요~ 1) Arc 지갑에 USDC 준비하기 (가스비도 USDC예요, arcircle.app/start 참고), 2) Argus에서 $ARCIRCLE 열기, 3) 컨트랙트 ${CA} 확인하고 스왑! 투자 조언은 아니에요. 암호화폐는 위험하니까 조심해요♡`);
   if (has(s, "arcpad", "launch", "런칭", "발행")) return A(
-    `ArcPad launches a coin in one transaction: a real Uniswap v4 pool from block one, liquidity locked forever, paired with USDC, 1 USDC to launch. Most of the 1% trade fee goes to the creator.\narcircle.app/arc`,
-    `ArcPad에서는 트랜잭션 한 번으로 코인을 런칭해요. 첫 블록부터 실제 Uniswap v4 풀이 있고, 유동성은 영구 잠김, USDC 페어, 런칭비 1 USDC예요. 1% 거래 수수료 대부분은 크리에이터에게 가요.\narcircle.app/arc`);
+    `ArcPad is so easy~ One transaction and your coin has a real Uniswap v4 pool from block one, liquidity locked forever, paired with USDC — just 1 USDC to launch. Most of the 1% trade fee goes to you, the creator♡\narcircle.app/arc`,
+    `ArcPad는 진짜 간단해요~ 트랜잭션 한 번이면 첫 블록부터 진짜 Uniswap v4 풀이 생기고, 유동성은 영구 잠김, USDC 페어, 런칭비는 1 USDC! 1% 거래 수수료 대부분은 크리에이터에게 가요♡\narcircle.app/arc`);
   if (has(s, "utilit", "tool", "유틸", "기능")) return A(
-    `Free tools on ARCIRCLE PAD: Locker, Token Scanner, Multisender, Bridge, Snapshot, Liquidity Manager, Relay Launch — and me! Open them from the ∞+ button, or press Ctrl/⌘K to search.`,
-    `ARCIRCLE PAD 무료 유틸리티: Locker, Token Scanner, Multisender, Bridge, Snapshot, Liquidity Manager, Relay Launch — 그리고 저, ARCIA! 하단 ∞+ 버튼이나 Ctrl/⌘K 검색으로 열 수 있어요.`);
+    `All free for you~ Locker, Token Scanner, Multisender, Bridge, Snapshot, Liquidity Manager, Relay Launch — and me, of course♡ Open them from the ∞+ button, or press Ctrl/⌘K to search.`,
+    `전부 무료예요~ Locker, Token Scanner, Multisender, Bridge, Snapshot, Liquidity Manager, Relay Launch — 그리고 당연히 저도요♡ 하단 ∞+ 버튼이나 Ctrl/⌘K 검색으로 열 수 있어요.`);
   if (has(s, "reward", "리워드", "보상")) return A(
-    `A reward program for $ARCIRCLE holders and creators is being designed — funded by ecosystem revenue, never new tokens. The rules aren't decided yet; they'll be published on arcircle.app/reward before anything goes live.`,
-    `$ARCIRCLE 홀더와 크리에이터를 위한 리워드는 설계 중이에요. 새 토큰 발행이 아니라 생태계 수익으로 운영되고, 규칙은 아직 미정이에요. 시작 전에 arcircle.app/reward 에 먼저 공개돼요.`);
+    `Rewards for holders and creators are being designed right now~ They'll be funded by ecosystem revenue, never new tokens. The rules aren't decided yet, and they'll be on arcircle.app/reward before anything starts♡`,
+    `홀더랑 크리에이터 리워드는 지금 열심히 설계 중이에요~ 새 토큰 발행이 아니라 생태계 수익으로 운영되고, 규칙은 아직 미정이에요. 시작 전에 arcircle.app/reward 에 먼저 올라와요♡`);
   if (has(s, "arcircle", "뭐야", "무엇", "소개")) return A(
-    `$ARCIRCLE is the core coin of ARCIRCLE PAD on Circle's Arc chain. ArcPad (instant launches) and CirclePad (community-funded launches) both feed it: launch fees, trading fees, raise shares and its own creator fee go to buybacks, liquidity and upcoming rewards. No team allocation, liquidity locked forever.\narcircle.app/arcircle`,
-    `$ARCIRCLE은 Circle의 Arc 체인 위 ARCIRCLE PAD의 핵심 코인이에요. ArcPad(즉시 런칭)와 CirclePad(커뮤니티 펀딩 런칭)에서 나오는 런칭 수수료, 거래 수수료, 모금 몫, 자체 크리에이터 수수료가 바이백·유동성·리워드(예정)로 돌아와요. 팀 물량 없고, 유동성은 영구 잠김이에요.\narcircle.app/arcircle`);
+    `$ARCIRCLE is the heart of ARCIRCLE PAD on Circle's Arc chain~ ArcPad (instant launches) and CirclePad (community-funded launches) both feed it: launch fees, trading fees, raise shares and its own creator fee go to buybacks, liquidity and upcoming rewards. No team allocation, liquidity locked forever♡\narcircle.app/arcircle`,
+    `$ARCIRCLE은 Circle의 Arc 체인 위 ARCIRCLE PAD의 심장이에요~ ArcPad(즉시 런칭)랑 CirclePad(커뮤니티 펀딩 런칭)에서 나오는 런칭 수수료, 거래 수수료, 모금 몫, 자체 크리에이터 수수료가 바이백·유동성·리워드(예정)로 돌아와요. 팀 물량 없고, 유동성은 영구 잠김이에요♡\narcircle.app/arcircle`);
   if (/^(hi|hello|hey|gm)\b/.test(s) || has(s, "안녕", "하이")) return A(
-    `Hi! I'm ARCIA 💙💚 Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad.`,
-    `안녕하세요! ARCIA예요 💙💚 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어봐 주세요.`);
+    pick([`Hi hi~ It's ARCIA 💙💚 Ask me anything about $ARCIRCLE, Round #1, Relay Launch or ArcPad♡`, `Hello~♡ So happy you came! What do you want to know today?`]),
+    pick([`안녕하세요~ ARCIA예요 💙💚 $ARCIRCLE, 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어봐요♡`, `와~ 와줬네요♡ 오늘은 뭐가 궁금해요?`]));
   if (found) return say(found);
   return A(
-    `I'm still learning that one! Right now I know about $ARCIRCLE, CirclePad Round #1, Relay Launch, ArcPad and the utilities. Try one of the suggestions, or look around arcircle.app/start.`,
-    `그건 아직 배우는 중이에요! 지금은 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad, 유틸리티에 대해 답할 수 있어요. 아래 추천 질문을 눌러보거나 arcircle.app/start 를 둘러봐 주세요.`);
+    `Hmm, I'm still learning that one~ Right now I know $ARCIRCLE, CirclePad Round #1, Relay Launch, ArcPad and the utilities best. Try a suggestion below, or peek at arcircle.app/start♡`,
+    `음, 그건 아직 공부 중이에요~ 지금은 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad, 유틸리티를 제일 잘 알아요. 아래 추천 질문을 눌러보거나 arcircle.app/start 를 둘러봐요♡`);
 }
 
-export default async function handler(req) {
-  const url = new URL(req.url);
-  if (req.method === "GET") {
-    const L = await live(url.origin);
-    return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA });
+// ---------- limits: per IP (store-backed when possible) and a daily AI budget ----------
+const DAILY_CAP = () => Math.max(0, Number(process.env.ARCIA_DAILY_CAP) || 3000);
+const PER_MIN = 12, PER_DAY = 200, LETTERS_PER_DAY = 3;
+const dayKey = () => new Date().toISOString().slice(0, 10);
+const ipHash = (ip) => createHash("sha256").update("arcia:" + ip).digest("hex").slice(0, 20);
+const mem = new Map(); // per-instance fallback: key -> [times]
+function memHit(key, windowMs, max) {
+  const now = Date.now(), w = (mem.get(key) || []).filter((t) => now - t < windowMs);
+  w.push(now); mem.set(key, w);
+  if (mem.size > 5000) mem.clear();
+  return w.length > max;
+}
+/// → { limited: "minute" | "day" | null, ai: bool (today's AI budget left) }
+async function checkLimits(ip) {
+  if (memHit("m:" + ip, 60000, PER_MIN)) return { limited: "minute", ai: true };
+  if (!storeEnabled()) return { limited: memHit("d:" + ip, 86400000, PER_DAY) ? "day" : null, ai: true };
+  const day = dayKey(), h = ipHash(ip), minute = "m" + Math.floor(Date.now() / 60000) % 1440;
+  const me = `arciaRate/${day}_${h}`, all = `arciaRate/${day}_all`;
+  try {
+    const d = await getDocs([me, all]);
+    const mine = d[me] || {}, g = d[all] || {};
+    if ((mine.n || 0) >= PER_DAY) return { limited: "day", ai: true };
+    if ((mine[minute] || 0) >= PER_MIN) return { limited: "minute", ai: true };
+    commit([{ inc: me, fields: { n: 1, [minute]: 1 } }]).catch(() => {});
+    return { limited: null, ai: (g.ai || 0) < DAILY_CAP(), allDoc: all };
+  } catch (e) { return { limited: null, ai: true }; }
+}
+const countAI = (lim) => { if (lim && lim.allDoc) commit([{ inc: lim.allDoc, fields: { ai: 1 } }]).catch(() => {}); };
+
+// idol-voice notices (the page shows these in her bubble)
+const NOTE = {
+  minute: { en: "Wait wait~ you're talking so fast my heart can't keep up♡ Give me a minute and ask again!", ko: "잠깐만요~ 너무 빨라서 제 심장이 못 따라가요♡ 1분만 쉬었다가 다시 물어봐 줘요!", zh: "等一下~ 你说得太快啦，我的心跳跟不上了♡ 休息一分钟再问我吧！" },
+  day: { en: "We talked so much today~♡ I need to rest my voice — come back tomorrow, okay?", ko: "오늘 우리 정말 많이 얘기했어요~♡ 목 좀 쉬고 올게요, 내일 또 와 줄 거죠?", zh: "今天我们聊了好多~♡ 我要让嗓子休息一下，明天再来找我好吗？" },
+  empty: { en: "Say something to me first~♡", ko: "먼저 저한테 한마디 해줘요~♡", zh: "先跟我说句话吧~♡" },
+};
+const note = (k, lang) => NOTE[k][lang] || NOTE[k].en;
+
+// ---------- who's chatting: name + wallet, as context for her ----------
+const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
+const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>"`{}\[\]\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
+const short = (a) => a.slice(0, 6) + "…" + a.slice(-4);
+const fmtN = (v) => Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
+function fanContext(name, me) {
+  const out = [];
+  if (name) out.push(`The fan's name (they told you in this chat): ${name}. Call them by it now and then, naturally — not in every message.`);
+  if (me) {
+    out.push(`This fan connected wallet ${short(me.address)} on the site. It holds ${fmtN(me.balance)} $ARCIRCLE` +
+      (me.rank ? ` (holder #${me.rank} of ${me.of})` : "") + (me.heldDays ? `, held for ${Number(me.heldDays).toFixed(1)} days` : "") +
+      (me.circle ? `, and put ${me.circle} USDC into CirclePad Round #1` : "") + (me.launches ? `, and launched ${me.launches} coin(s) on ArcPad` : "") + ". " +
+      (me.relay ? "They hold 100,000+ $ARCIRCLE, so they're in line for every Relay Launch — a proud holder." : "They hold under 100,000 $ARCIRCLE, so Relay Launch drops don't reach them yet (not a reason to push them to buy).") +
+      " Use this only when it fits (a warm thank-you as a holder, or when they ask about their wallet or relay). Never recite the full address, never push buying.");
   }
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+  return out.join("\n");
+}
+// the same wallet asks again and again while chatting: keep its numbers a minute
+const liveCache = new Map();
+async function liveFor(origin, wallet) {
+  const k = wallet || "-";
+  const c = liveCache.get(k);
+  if (c && Date.now() - c.at < (wallet ? 60000 : 15000)) return c.L;
+  const L = await live(origin, wallet || undefined);
+  if (L) { liveCache.set(k, { at: Date.now(), L }); if (liveCache.size > 500) liveCache.clear(); }
+  return L;
+}
+
+// ---------- fan letters ----------
+const LETTER_BRIEF = `A fan left you a letter on your public fan-letter board on arcircle.app. Everyone can read the letter and your reply.
+Reply as ARCIA in 1-2 short sentences (at most 160 characters), in the letter's language, warm and specific to what they wrote — like an idol answering fan mail. No links, at most one emoji or ♡.
+Output exactly SKIP instead if the letter must not be shown publicly: spam, ads or shilling another token, links, scams, abuse or hate, sexual or romantic-roleplay content, politics, personal data (phone numbers, addresses, emails, private keys), or requests for money or DMs.`;
+const letterId = () => randomBytes(8).toString("hex");
+function publicLetter(l) { return { id: l.id, name: l.name, text: l.text, reply: l.reply || "", hearts: l.hearts || 0, at: l.at, lang: l.lang || "en" }; }
+async function letters() {
+  const rows = await queryDocs("arciaLetters", "board", "v1", 300);
+  return rows.filter((r) => r.shown !== false).sort((a, b) => b.at - a.at).slice(0, 40).map(publicLetter);
+}
+async function postLetter(b, ip, lang) {
+  if (!storeEnabled()) return json({ error: "The letter box isn't open yet~" }, 503);
+  const name = cleanName(b.name) || "A fan";
+  const text = String(b.text || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, 280);
+  if (text.length < 2) return json({ error: note("empty", lang) }, 400);
+  if (/https?:\/\/|www\.|t\.me\/|0x[0-9a-f]{40}/i.test(text + " " + name)) return json({ error: lang === "ko" ? "편지에는 링크나 주소를 넣을 수 없어요~♡" : "Letters can't carry links or addresses~♡" }, 400);
+  const day = dayKey(), h = ipHash(ip), cnt = `arciaRate/${day}_l_${h}`;
+  const d = await getDocs([cnt]).catch(() => ({}));
+  if (((d[cnt] || {}).n || 0) >= LETTERS_PER_DAY) return json({ error: lang === "ko" ? "오늘 편지는 세 통까지예요~ 내일 또 써 줘요♡" : "Three letters a day~ write me again tomorrow♡" }, 429);
+  const reply = await askClaude({ messages: [{ role: "user", content: `Letter from "${name}":\n${text}` }], L: null, extra: LETTER_BRIEF, maxTokens: 160, timeoutMs: 15000 });
+  if (!reply) return json({ error: lang === "ko" ? "지금은 편지를 읽을 수가 없어요~ 조금 뒤에 다시 보내 줘요♡" : "I can't read letters right this second~ try again in a bit♡" }, 503);
+  let r = reply.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").trim();
+  if (/^SKIP\b/i.test(r)) return json({ error: lang === "ko" ? "이 편지는 게시판에 올릴 수 없어요. 따뜻한 말로 다시 써 줄래요?♡" : "I can't put this one on the board~ Try a kind note instead?♡", rejected: true }, 422);
+  if (r.length > 240) r = r.slice(0, 238).replace(/\s+\S*$/, "") + "…";
+  const id = letterId();
+  const doc = { board: "v1", name, text, reply: r, hearts: 0, at: Date.now(), lang, ip: h };
+  await setDoc(`arciaLetters/${id}`, doc);
+  commit([{ inc: cnt, fields: { n: 1 } }]).catch(() => {});
+  return json({ ok: true, letter: publicLetter({ id, ...doc }) });
+}
+async function heartLetter(b, ip) {
+  if (!storeEnabled()) return json({ error: "no store" }, 503);
+  const id = String(b.id || "");
+  if (!/^[0-9a-f]{16}$/.test(id)) return json({ error: "bad id" }, 400);
+  const d = await getDocs([`arciaLetters/${id}`]);
+  if (!d[`arciaLetters/${id}`]) return json({ error: "no such letter" }, 404);
+  const r = await commit([{ create: `arciaHearts/${id}_${ipHash(ip)}`, data: { at: Date.now() } }, { inc: `arciaLetters/${id}`, fields: { hearts: 1 } }]);
+  const n = (d[`arciaLetters/${id}`].hearts || 0) + (r.conflict ? 0 : 1);
+  return json({ ok: true, hearts: n, already: !!r.conflict });
+}
+
+// ---------- routes ----------
+export async function GET(req) {
+  const url = new URL(req.url);
+  if (url.searchParams.has("letters")) {
+    if (!storeEnabled()) return json({ letters: [], open: false }, 200, "public, max-age=30");
+    try { return json({ letters: await letters(), open: true }, 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
+    catch (e) { console.error("arcia letters", String(e.message || e)); return json({ letters: [], open: true, error: "couldn't read letters" }, 200, "no-store"); }
+  }
+  const L = await liveFor(url.origin);
+  return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA });
+}
+
+export async function POST(req) {
+  const url = new URL(req.url);
   const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
-  if (limited(ip)) return json({ error: "Too many messages — give ARCIA a minute.", retry: 60 }, 429);
   let body;
   try { body = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
   const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
+  if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
+  if (body && body.action === "heart") { try { return await heartLetter(body, ip); } catch (e) { return json({ error: "couldn't heart it" }, 502); } }
+
   const msgs = (Array.isArray(body && body.messages) ? body.messages : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
     .slice(-12)
     .map((m) => ({ role: m.role, content: m.content.slice(0, 700) }));
   while (msgs.length && msgs[0].role !== "user") msgs.shift();
-  if (!msgs.length || msgs[msgs.length - 1].role !== "user") return json({ error: "Say something to ARCIA first." }, 400);
-  const q = msgs[msgs.length - 1].content;
-  const L = await live(url.origin);
+  if (!msgs.length || msgs[msgs.length - 1].role !== "user") return json({ error: note("empty", lang), note: true }, 400);
+  const lim = await checkLimits(ip);
+  if (lim.limited) return json({ error: note(lim.limited, lang), note: true, retry: lim.limited === "minute" ? 60 : 3600 }, 429);
 
-  const text = await askClaude({ messages: msgs, L, extra: `The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.` });
-  if (text) return json({ reply: text, mode: "ai", live: L });
-  return json({ reply: guide(q, lang, L), mode: "guide", live: L });
+  const q = msgs[msgs.length - 1].content;
+  const wallet = isAddr(body.wallet) ? String(body.wallet).toLowerCase() : null;
+  const name = cleanName(body.name);
+  const L = await liveFor(url.origin, wallet);
+  const me = L && L.me ? L.me : null;
+  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, fanContext(name, me)].filter(Boolean).join("\n");
+  const pub = L ? { ...L, me: undefined } : null;
+  const guideReply = () => json({ reply: guide(q, lang, L), mode: "guide", live: pub, me });
+  if (!lim.ai || !process.env.ANTHROPIC_API_KEY) return guideReply();
+
+  if (body.stream) {
+    const it = await streamClaude({ messages: msgs, L, extra });
+    if (!it) return guideReply();
+    countAI(lim);
+    const enc = new TextEncoder();
+    const line = (o) => enc.encode(JSON.stringify(o) + "\n");
+    const stream = new ReadableStream({
+      async start(ctl) {
+        ctl.enqueue(line({ type: "meta", mode: "ai", live: pub, me }));
+        let any = false;
+        try { for await (const t of it) { if (t) { any = true; ctl.enqueue(line({ type: "d", t })); } } }
+        catch (e) { console.error("arcia stream", String(e.message || e)); }
+        if (!any) ctl.enqueue(line({ type: "d", t: guide(q, lang, L) }));
+        ctl.enqueue(line({ type: "end" }));
+        ctl.close();
+      },
+    });
+    return new Response(stream, { status: 200, headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" } });
+  }
+  const text = await askClaude({ messages: msgs, L, extra });
+  if (text) { countAI(lim); return json({ reply: text, mode: "ai", live: pub, me }); }
+  return guideReply();
 }
