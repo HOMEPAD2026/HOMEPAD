@@ -156,6 +156,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=3600, s-maxage=86400" },
     });
   }
+  if (url.searchParams.has("price")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await priceCard(await markP), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=60, s-maxage=120" },
+    });
+  }
   if (url.searchParams.has("a402")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await a402Card(await markP, url.searchParams.get("a402")), {
@@ -330,6 +337,44 @@ async function dropCard(mark, txs) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
       h("div", {}, "arcircle.app/multisend · verified on-chain"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, r.ts ? new Date(r.ts * 1000).toISOString().slice(0, 10) : "")),
+  ]);
+}
+
+// ---------------- $ARCIRCLE price card (ARCIA's Telegram /price) ----------------
+async function priceCard(mark) {
+  const get = async (u) => { try { const r = await fetch(u, { signal: AbortSignal.timeout(4000) }); return r.ok ? await r.json() : null; } catch { return null; } };
+  const [d, sr] = await Promise.all([get(`${SITE}/api/social?token=arcircle`), get(`${SITE}/api/arcia-tg?series=1`)]);
+  const pts = (sr && sr.points) || [];
+  const acc = "#39ff88";
+  const price = d && d.price != null ? (d.price < 0.001 ? Number(d.price).toPrecision(3) : Number(d.price).toFixed(6)) : "—";
+  const ch = d && d.change24h != null ? d.change24h : null;
+  let spark = null;
+  if (pts.length >= 3) {
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const Wd = 460, Hd = 200, px = (x) => ((x - x0) / Math.max(1, x1 - x0)) * Wd, py = (y) => Hd - 10 - ((y - y0) / Math.max(1e-18, y1 - y0)) * (Hd - 20);
+    const dpath = pts.map((p, i) => `${i ? "L" : "M"}${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(" ");
+    const up = ys[ys.length - 1] >= ys[0];
+    spark = { type: "svg", props: { width: Wd, height: Hd, viewBox: `0 0 ${Wd} ${Hd}`, children: [
+      { type: "path", props: { d: `${dpath} L${Wd},${Hd} L0,${Hd} Z`, fill: up ? "rgba(57,255,136,0.12)" : "rgba(255,110,110,0.12)" } },
+      { type: "path", props: { d: dpath, fill: "none", stroke: up ? acc : "#ff6e6e", strokeWidth: 5, strokeLinejoin: "round", strokeLinecap: "round" } },
+    ] } };
+  }
+  const stat = (k, v) => h("div", { flexDirection: "column", gap: 4 }, h("div", { fontSize: 22, color: "#9fb098" }, k), h("div", { fontSize: 38, fontWeight: 800 }, v));
+  return frame([
+    brandRow(mark, pill("$ARCIRCLE LIVE", acc), "Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 10 },
+        h("div", { alignItems: "baseline", gap: 18 },
+          h("div", { fontSize: 104, fontWeight: 800, letterSpacing: -2 }, `$${price}`),
+          ch != null ? h("div", { fontSize: 40, fontWeight: 700, color: ch >= 0 ? acc : "#ff6e6e" }, `${ch >= 0 ? "+" : ""}${ch.toFixed(2)}%`) : null),
+        h("div", { gap: 48, marginTop: 10 },
+          stat("Market cap", d && d.mcap != null ? fmtUsd(d.mcap) : "—"),
+          stat("Holders", d && d.holders != null ? Number(d.holders).toLocaleString("en-US") : "—"),
+          stat("Burned", d && d.burned && d.burned.pct != null ? d.burned.pct.toFixed(2) + "%" : "—"))),
+      spark ? h("div", { flexDirection: "column", alignItems: "flex-end", gap: 6 }, spark, h("div", { fontSize: 20, color: "#9fb098" }, "last 24 h")) : null),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, "arcircle.app · read live from Arc"), h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC")),
   ]);
 }
 

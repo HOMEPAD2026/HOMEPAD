@@ -173,6 +173,28 @@ function dailyPost(d, st) {
   ]) }];
 }
 
+/// A post the team approved elsewhere (the Telegram admin mode): counts toward the daily cap and goes on
+/// her recent feed like any other post. Returns the post id.
+export async function postTweet(text) {
+  if (!hasKeys()) throw new Error("the X keys aren't set");
+  if (!storeEnabled()) throw new Error("no store");
+  const st = await loadState(), d = dayOf(now());
+  if ((st.days[d] || 0) >= DAY_CAP) throw new Error(`today's cap of ${DAY_CAP} posts is reached`);
+  const id = await xPost(String(text).slice(0, 280));
+  st.sent["tg:" + (id || now())] = { t: now(), x: id || "" };
+  remember(st, { id, kind: "post", text });
+  st.days[d] = (st.days[d] || 0) + 1;
+  prune(st);
+  await setDoc(STATE, stripTemp(st));
+  return id;
+}
+/// her latest own posts (not replies), newest first — the Telegram bot mirrors these to its channels
+export async function recentPosts() {
+  if (!storeEnabled()) return [];
+  const st = await loadState();
+  return (st.recent || []).filter((r) => r.kind === "post" && r.id);
+}
+
 // ARCIA 402: yesterday's books, once a day from 12:00 UTC, only when something happened
 async function booksPost(st) {
   const t = now(), yday = dayOf(t - 86400);

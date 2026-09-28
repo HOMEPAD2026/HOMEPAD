@@ -12,15 +12,18 @@
     x: { url: "https://x.com/ARCIRCLEonArc", handle: "@ARCIRCLEonArc", name: "X", sub: "@ARCIRCLEonArc" },
     tg: { url: "https://t.me/ARCIRCLEonarc", handle: "@ARCIRCLEonarc", name: "Telegram", sub: "Community chat" },
     alerts: { url: "https://t.me/arcircle_launch", handle: "@arcircle_launch", name: "Launch alerts", sub: "@arcircle_launch" },
+    bot: { url: "https://t.me/ARCIAonArc_bot", handle: "@ARCIAonArc_bot", name: "ARCIA bot", sub: "@ARCIAonArc_bot" },
   };
   window.ARC_SOCIAL = S;
   var ICON = {
     x: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
     tg: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-fill"><path d="M22.05 2.5 2.6 10.13c-1.33.53-1.32 1.27-.24 1.6l4.98 1.55 11.5-7.25c.54-.33 1.04-.15.63.22L10.7 14.3l-.36 5.16c.52 0 .75-.24 1.03-.52l2.48-2.4 5.15 3.8c.95.52 1.63.25 1.87-.88l3.38-15.9c.36-1.39-.53-2.02-1.9-1.06z"/></svg>',
+    bot: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 7V4M9 12.5h.01M15 12.5h.01M9.5 16h5"/></svg>',
     alerts: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M3.5 8.5a9 9 0 0 1 2.2-4M20.5 8.5a9 9 0 0 0-2.2-4"/></svg>',
     ext: '<svg viewBox="0 0 24 24" aria-hidden="true" class="soc-line"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 13.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5.5"/></svg>',
   };
   var KEYS = ["x", "tg", "alerts"];
+  var KEYS_ALL = ["x", "tg", "bot", "alerts"]; // sidebar + footer also list ARCIA's Telegram bot
   var a = function (k, cls, inner, label) {
     return '<a class="' + cls + '" data-soc="' + k + '" href="' + S[k].url + '" target="_blank" rel="noopener"' +
       (label ? ' aria-label="' + label + '"' : "") + ">" + inner + "</a>";
@@ -57,7 +60,7 @@
   function sidebar() {
     var foot = document.querySelector(".bp-sidebar .bp-side-foot");
     if (!foot || document.querySelector(".bp-side-social")) return;
-    var html = '<div class="bp-side-social"><div class="bp-side-section-label">Community</div><div class="bp-soc-list">' + KEYS.map(function (k) {
+    var html = '<div class="bp-side-social"><div class="bp-side-section-label">Community</div><div class="bp-soc-list">' + KEYS_ALL.map(function (k) {
       return a(k, "bp-soc bp-soc-" + k,
         '<span class="bp-soc-ico">' + ICON[k] + (k === "alerts" ? live : "") + "</span>" +
         '<span class="bp-soc-txt"><strong>' + S[k].name + "</strong><small>" + S[k].sub + "</small></span>" +
@@ -70,7 +73,7 @@
   function footer() {
     var brand = document.querySelector(".axf .axf-brand");
     if (!brand || brand.querySelector(".axf-social")) return;
-    var html = '<div class="axf-social" aria-label="Community">' + KEYS.map(function (k) {
+    var html = '<div class="axf-social" aria-label="Community">' + KEYS_ALL.map(function (k) {
       return a(k, "axf-soc axf-soc-" + k, '<span class="axf-soc-ico">' + ICON[k] + "</span><span>" + S[k].name + "</span>", k === "x" ? "ARCIRCLE PAD on X" : null);
     }).join("") + "</div>";
     var net = brand.querySelector(".axf-net");
