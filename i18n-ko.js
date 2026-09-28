@@ -3088,6 +3088,18 @@
     "Net change: {n} more holders": "순변화: 홀더 {n}명 증가",
     "Net change: {n} fewer holders": "순변화: 홀더 {n}명 감소",
     "Quick rules": "빠른 규칙",
+    "LP position": "LP 포지션",
+    "LP positions": "LP 포지션",
+    "alert on": "알림 켜짐",
+    "You're in the next relay": "다음 릴레이 대상이에요",
+    "{n} more $ARCIRCLE to join the next relay (locked tokens count)": "$ARCIRCLE {n}개 더 있으면 다음 릴레이 대상 (락한 토큰도 인정)",
+    "Locks, LP positions and Relay Launch are read from Arc for your connected wallet. Scans, snapshots, sends and bridge transfers are the ones made in this browser.": "락, LP 포지션, 릴레이 런치는 연결된 지갑 기준으로 Arc에서 읽어요. 스캔, 스냅샷, 전송, 브리지 기록은 이 브라우저에서 한 것만 보여요.",
+    "Right now": "지금 상태",
+    "How do I take a holder snapshot on ARCIRCLE PAD and turn it into an airdrop?": "ARCIRCLE PAD에서 홀더 스냅샷을 찍고 에어드랍으로 만드는 방법은?",
+    "How do I read a pool in the ARCIRCLE PAD Liquidity Manager — fee yield, range and locked liquidity?": "ARCIRCLE PAD 유동성 매니저에서 풀을 읽는 법 — 수수료 수익률, 범위, 락된 유동성은?",
+    "How does Relay Launch work, and how do I get into the next relay?": "릴레이 런치는 어떻게 작동하고, 다음 릴레이에 들어가려면 어떻게 해야 해?",
+    "{n} holders": "홀더 {n}명",
+    "{n} locked": "{n}개 락",
   };
 
 

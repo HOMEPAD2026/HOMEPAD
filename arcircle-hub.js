@@ -143,14 +143,14 @@
   ];
   // Page 2: Snapshot, Liquidity, Relay Launch, then a placeholder until the next one is decided.
   var UTILS2 = [
-    { id: "snapshot", name: "Snapshot", sub: "Every holder of a token at one moment", status: "New", acc: "#b58bff", href: "/arc#snapshot",
+    { id: "snapshot", name: "Snapshot", sub: "Every holder of a token at one moment", status: "v1", acc: "#b58bff", href: "/arc#snapshot",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="10.3" r="2.3"/><path d="M8.3 16.2c.8-1.9 2.1-2.8 3.7-2.8s2.9.9 3.7 2.8"/></svg>' },
-    { id: "liquidity", name: "Liquidity", sub: "Pools, LP positions and LP locks for any token", status: "New", acc: "#39d0ff", href: "/arc#liquidity",
+    { id: "liquidity", name: "Liquidity", sub: "Pools, LP positions and LP locks for any token", status: "v1", acc: "#39d0ff", href: "/arc#liquidity",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.4"/></svg>' },
   ];
-  UTILS2.push({ id: "relay", name: "Relay Launch", sub: "CirclePad round → Argus coin, relayed to holders", status: "New", acc: "#35d8d0", href: "/arc#relay",
+  UTILS2.push({ id: "relay", name: "Relay Launch", sub: "CirclePad round → Argus coin, relayed to holders", status: "v1", acc: "#35d8d0", href: "/arc#relay",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
-  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "New", acc: "#5b8cff", href: "/arc#arcia",
+  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
   // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), then three more in development.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");

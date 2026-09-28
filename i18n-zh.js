@@ -3181,6 +3181,18 @@
     "Net change: {n} more holders": "净变化：持有者增加 {n} 个",
     "Net change: {n} fewer holders": "净变化：持有者减少 {n} 个",
     "Quick rules": "快捷规则",
+    "LP position": "LP 仓位",
+    "LP positions": "LP 仓位",
+    "alert on": "提醒已开启",
+    "You're in the next relay": "你在下一次接力名单中",
+    "{n} more $ARCIRCLE to join the next relay (locked tokens count)": "再持有 {n} 个 $ARCIRCLE 即可加入下一次接力（锁定的也算）",
+    "Locks, LP positions and Relay Launch are read from Arc for your connected wallet. Scans, snapshots, sends and bridge transfers are the ones made in this browser.": "锁定、LP 仓位和 Relay Launch 按已连接的钱包从 Arc 读取。扫描、快照、发送和跨链记录只显示在此浏览器中进行的。",
+    "Right now": "当前状态",
+    "How do I take a holder snapshot on ARCIRCLE PAD and turn it into an airdrop?": "如何在 ARCIRCLE PAD 拍摄持有者快照并把它变成空投？",
+    "How do I read a pool in the ARCIRCLE PAD Liquidity Manager — fee yield, range and locked liquidity?": "如何在 ARCIRCLE PAD 流动性管理器里看懂一个池子 — 手续费收益率、区间和锁定的流动性？",
+    "How does Relay Launch work, and how do I get into the next relay?": "Relay Launch 是怎么运作的？怎样加入下一次接力？",
+    "{n} holders": "{n} 个持有者",
+    "{n} locked": "{n} 个已锁定",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

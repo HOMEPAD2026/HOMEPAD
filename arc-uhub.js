@@ -1,18 +1,23 @@
 /* global CONFIG, ethers, state, readProvider */
-// arc-uhub.js — what the four v2 utilities (Locker, Token Scanner, Multisender, Bridge) share:
-//   • "My activity": one drawer with your locks (read from ArcLock), scans, sends and
-//     bridge transfers (this browser) — newest first, filter by utility, each links back
+// arc-uhub.js — what the utilities share (v2: Locker, Token Scanner, Multisender, Bridge;
+// v1: Snapshot, Liquidity, Relay Launch):
+//   • "My activity": one drawer with your locks (read from ArcLock), scans, snapshots, sends and
+//     bridge transfers (this browser) — newest first, filter by utility, each links back —
+//     and "Right now": your LP positions and whether you're in the next Relay Launch
 //   • "Ask ARCIA": a question about the utility you're on, answered in her chat
 // It only reads what each utility already keeps; nothing new is stored.
 (function () {
   "use strict";
   if (window.arcUHub) return;
-  var PANELS = { locker: "Locker", scanner: "Token Scanner", multisend: "Multisender", bridge: "Bridge" };
+  var PANELS = { locker: "Locker", scanner: "Token Scanner", multisend: "Multisender", bridge: "Bridge", snapshot: "Snapshot", liquidity: "Liquidity", relay: "Relay Launch" };
   var ASK = {
     locker: "How does the Locker on ARCIRCLE PAD work, and when should I split a lock into tranches?",
     scanner: "How do I read a Token Scanner result on ARCIRCLE PAD — what do snipers, bundles and fresh wallets mean?",
     multisend: "How do I send an airdrop with the ARCIRCLE PAD Multisender, step by step?",
     bridge: "How do I bring USDC to Arc with the ARCIRCLE PAD Bridge, and what's the difference between Fast and Standard?",
+    snapshot: "How do I take a holder snapshot on ARCIRCLE PAD and turn it into an airdrop?",
+    liquidity: "How do I read a pool in the ARCIRCLE PAD Liquidity Manager — fee yield, range and locked liquidity?",
+    relay: "How does Relay Launch work, and how do I get into the next relay?",
   };
   var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
   var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
@@ -25,6 +30,9 @@
     scanner: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/></svg>',
     multisend: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M7.7 12h8.8M7.4 10.9l9.2-4.6M7.4 13.1l9.2 4.6"/></svg>',
     bridge: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.5h18M4.5 15.5c2-5.3 4.7-8 7.5-8s5.5 2.7 7.5 8"/></svg>',
+    snapshot: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><circle cx="12" cy="12" r="3"/></svg>',
+    liquidity: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/></svg>',
+    relay: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="18.5" cy="12" r="2.4"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0"/></svg>',
   };
   var num = function (raw, dec) {
     var n = Number(raw) / Math.pow(10, dec || 0);
@@ -70,6 +78,36 @@
     });
   }
 
+  function snaps() {
+    return (ls("arcircle.snapshot.hist.v2") || []).map(function (r) {
+      return { u: "snapshot", at: r.at || (r.ts || 0) * 1000, t: "$" + (r.s || "?"), s: tr("Holder snapshot") + " · " + tr("{n} holders").replace("{n}", num(r.n || 0)) + (r.b ? " · #" + r.b : ""),
+        href: "/arc#snapshot?t=" + r.t + (r.b ? "&b=" + r.b : "") };
+    });
+  }
+  // "right now" (read from Arc, not dated): LP positions and the next Relay Launch
+  async function pinned() {
+    var a = state && state.account ? lc(state.account) : "";
+    if (!a) return [];
+    var out = [];
+    var get = function (u) { return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    var lp = null;
+    for (var i = 0; i < 4; i++) { lp = await get("/api/social?liqmine=" + a); if (!lp || lp.done) break; await new Promise(function (r) { setTimeout(r, 1200); }); }
+    var watch = ls("arcircle.liq.watch.v1") || [];
+    if (lp && lp.done && lp.pools) lp.pools.slice(0, 6).forEach(function (g) {
+      var al = watch.filter(function (w) { return lc(w.t) === lc(g.token.address); }).length;
+      out.push({ u: "liquidity", pin: true, t: "$" + g.token.symbol + " / " + g.quote.symbol, s: g.positions + " " + tr(g.positions === 1 ? "LP position" : "LP positions") + (g.locked ? " · " + tr("{n} locked").replace("{n}", g.locked) : "") + (al ? " · " + tr("alert on") : ""), href: "/arc#liquidity?token=" + g.token.address });
+    });
+    var R = CONFIG.RELAY;
+    if (R && R.MIN_ARCIRCLE) {
+      var d = await get("/api/social?token=arcircle&wallet=" + a), w = d && d.wallet;
+      if (w) {
+        var need = Number(R.MIN_ARCIRCLE) - Number(w.balance || 0);
+        out.push({ u: "relay", pin: true, t: "Relay Launch", s: need <= 0 ? tr("You're in the next relay") : tr("{n} more $ARCIRCLE to join the next relay (locked tokens count)").replace("{n}", num(need, 0)), href: "/arc#relay" });
+      }
+    }
+    return out;
+  }
+
   // ---------- drawer ----------
   var box = null, filter = "all", items = [];
   function open() {
@@ -78,7 +116,7 @@
       box.className = "u2-drawer"; box.hidden = true;
       box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", tr("My activity"));
       box.innerHTML = '<div class="u2-scrim" data-u2-close></div><aside class="u2-sheet"><div class="u2-head"><h2>' + esc(tr("My activity")) + '</h2><button type="button" class="u2-x" data-u2-close aria-label="' + esc(tr("Close")) + '">×</button></div>' +
-        '<div class="u2-filters" role="radiogroup"></div><div class="u2-list"></div><p class="u2-note">' + esc(tr("Locks are read from Arc for your connected wallet. Scans, sends and bridge transfers are the ones made in this browser.")) + "</p></aside>";
+        '<div class="u2-filters" role="radiogroup"></div><div class="u2-list"></div><p class="u2-note">' + esc(tr("Locks, LP positions and Relay Launch are read from Arc for your connected wallet. Scans, snapshots, sends and bridge transfers are the ones made in this browser.")) + "</p></aside>";
       document.body.appendChild(box);
       box.addEventListener("click", function (e) {
         if (e.target.closest("[data-u2-close]")) { close(); return; }
@@ -91,9 +129,10 @@
     box.hidden = false;
     document.documentElement.classList.add("u2-lock");
     requestAnimationFrame(function () { box.classList.add("in"); });
-    items = scans().concat(sends(), bridges());
+    items = scans().concat(snaps(), sends(), bridges());
     paint(true);
     locks().then(function (l) { items = items.concat(l); paint(); });
+    pinned().then(function (l) { items = items.concat(l); paint(); });
   }
   function close() {
     if (!box) return;
@@ -104,11 +143,15 @@
   function paint(loading) {
     var counts = { all: items.length };
     items.forEach(function (x) { counts[x.u] = (counts[x.u] || 0) + 1; });
-    box.querySelector(".u2-filters").innerHTML = [["all", "All"], ["locker", "Locker"], ["scanner", "Scanner"], ["multisend", "Multisender"], ["bridge", "Bridge"]].map(function (f) {
+    box.querySelector(".u2-filters").innerHTML = [["all", "All"], ["locker", "Locker"], ["scanner", "Scanner"], ["multisend", "Multisender"], ["bridge", "Bridge"], ["snapshot", "Snapshot"], ["liquidity", "Liquidity"], ["relay", "Relay Launch"]].filter(function (f) { return f[0] === "all" || f[0] === filter || counts[f[0]]; }).map(function (f) {
       return '<button type="button" role="radio" data-u2-f="' + f[0] + '" aria-checked="' + (filter === f[0]) + '">' + esc(tr(f[1])) + (counts[f[0]] ? " <b data-no-i18n>" + counts[f[0]] + "</b>" : "") + "</button>";
     }).join("");
-    var list = items.filter(function (x) { return filter === "all" || x.u === filter; }).sort(function (a, b) { return b.at - a.at; }).slice(0, 80);
-    var day = "", html = "";
+    var mine = items.filter(function (x) { return filter === "all" || x.u === filter; });
+    var list = mine.filter(function (x) { return !x.pin; }).sort(function (a, b) { return b.at - a.at; }).slice(0, 80);
+    var pins = mine.filter(function (x) { return x.pin; });
+    var day = "", html = pins.length ? '<h3 class="u2-now">' + esc(tr("Right now")) + "</h3>" + pins.map(function (x, i) {
+      return '<a class="u2-item pin u-' + x.u + '" href="' + esc(x.href) + '" style="--i:' + i + '"><span class="u2-ico">' + ICO[x.u] + '</span><span class="u2-txt"><b data-no-i18n>' + esc(x.t) + '</b><small data-no-i18n>' + esc(x.s) + "</small></span></a>";
+    }).join("") : "";
     list.forEach(function (x, i) {
       var d = new Date(x.at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
       if (d !== day) { day = d; html += '<h3 data-no-i18n>' + esc(d) + "</h3>"; }
@@ -122,7 +165,7 @@
     Object.keys(PANELS).forEach(function (k) {
       var p = document.getElementById("bp-panel-" + k);
       if (!p || p.querySelector(".u2-acts")) return;
-      var host = p.querySelector(".lkr-hero-txt, .abr-hero-txt, .asc-hero-txt, .ams-hero-txt");
+      var host = p.querySelector(".lkr-hero-txt, .abr-hero-txt, .asc-hero-txt, .ams-hero-txt, .asn-hero, .alq-hero");
       if (!host) return;
       var d = document.createElement("div");
       d.className = "u2-acts";

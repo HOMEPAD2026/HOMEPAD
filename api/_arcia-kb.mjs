@@ -1078,7 +1078,7 @@ export const KB = [
 },
 {
 "page": "ArcPad and utilities",
-"title": "Relay Launch New",
+"title": "Relay Launch v1Updated regularly",
 "url": "/arc",
 "text": "Every CirclePad round becomes a coin on Argus, and its first buy is relayed — to the round's contributors and to every wallet holding $ARCIRCLE. Keep holding $ARCIRCLE and you receive every relay: N+1, N+2, N+3 and on."
 },
