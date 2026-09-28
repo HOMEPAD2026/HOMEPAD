@@ -125,6 +125,14 @@
       "destination": "/api/arcia402?svc=:svc"
     },
     {
+      "source": "/a402/:tx",
+      "destination": "/api/arcia402?receipt=:tx"
+    },
+    {
+      "source": "/.well-known/x402",
+      "destination": "/api/arcia402?wk=1"
+    },
+    {
       "source": "/snap/:id",
       "destination": "/api/c?view=snap&id=:id"
     },

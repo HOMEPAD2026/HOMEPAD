@@ -13,6 +13,7 @@
 //   · new ArcPad coins, as they launch (up to 2 per run)
 //   · CirclePad round alerts: 24 h, 6 h and 1 h before the close, and when it closes
 //   · a daily $ARCIRCLE check from 12:00 UTC: price, market cap, holders, burns, launches, the round
+//   · ARCIA 402's books for the day before (revenue, expenses, tips, net) — only when she sold or hired
 //   · replies: when someone mentions @ARCIAonArc or replies to her, she answers as herself (Claude,
 //     same mind as the chat on the site) — up to 5 per run, 25 a day (no per-person limit); spam, scams,
 //     abuse and bait are skipped. Off with ARCIA_X_REPLIES=0. Needs ANTHROPIC_API_KEY.
@@ -172,12 +173,32 @@ function dailyPost(d, st) {
   ]) }];
 }
 
+// ARCIA 402: yesterday's books, once a day from 12:00 UTC, only when something happened
+async function booksPost(st) {
+  const t = now(), yday = dayOf(t - 86400);
+  if (new Date(t * 1000).getUTCHours() < 12 || st.sent["a402:" + yday]) return [];
+  const L = (await getDocs(["arcia402/ledger"]))["arcia402/ledger"];
+  const d = L && L.days && L.days[yday];
+  if (!d || !(d.sold || d.bought || d.tip)) return [];
+  const e = (d.e || 0) / 1e6, sp = (d.s || 0) / 1e6, tp = (d.tip || 0) / 1e6, net = e + tp - sp;
+  const usd = (n) => "$" + n.toFixed(n !== 0 && Math.abs(n) < 0.1 ? 3 : 2);
+  return [{ id: "a402:" + yday, text: fit([
+    net >= 0 ? "My books for yesterday — I earned more than I spent 💙💚" : "My books for yesterday 💙💚", "",
+    `Revenue: ${usd(e)} (${d.sold || 0} paid call${d.sold === 1 ? "" : "s"})`,
+    `Expenses: ${usd(sp)} (${d.bought || 0} agent${d.bought === 1 ? "" : "s"} hired)`,
+    tp ? `Tips: ${usd(tp)}` : null,
+    `Net: ${net >= 0 ? "+" : "−"}${usd(Math.abs(net))}`, "",
+    "An AI running her own economy on Arc, in USDC with x402.",
+  ]) }];
+}
+
 async function plan(origin, st) {
   const d = await arcircle(origin);
   const round = roundPosts(d, st.sent);
   const coins = await coinPosts(st).catch((e) => { console.error("arcia-x coins", e && e.message); return { out: [], pending: [] }; });
   const daily = dailyPost(d, st);
-  return { posts: [...round, ...coins.out, ...daily], pending: coins.pending };
+  const books = await booksPost(st).catch(() => []);
+  return { posts: [...round, ...coins.out, ...daily, ...books], pending: coins.pending };
 }
 
 async function loadState() {

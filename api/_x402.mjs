@@ -12,7 +12,7 @@
 // authorization with ARCIA's key for the exact amount, and call again with X-PAYMENT.
 //
 // ARCIA's key lives only in Vercel (ARCIA_WALLET_KEY). Without it, selling still works in the
-// arc-tx form (payTo = ARCIA_WALLET_ADDRESS), and settling / hiring are off.
+// arc-tx form (payTo = ARCIA_WALLET_ADDRESS, else ARCIA_HOME below), and settling / hiring are off.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { rpcCall, ethCalls, isAddr, pad, strip } from "./_arc.mjs";
@@ -61,15 +61,23 @@ function addressOf(sk) {
   const pub = secp256k1.getPublicKey(sk, false);
   return bytesToHex(keccak(pub.subarray(1)).subarray(12));
 }
+// ARCIA's public wallet on Arc (the team published it, 28 Sep 2026). The key in Vercel must
+// belong to this address; if it doesn't, walletCheck() says so on the public books.
+export const ARCIA_HOME = "0xdbc9bb465c52688c0af75e002caaa43d731b8562";
 let meMemo = null;
-/// ARCIA's wallet address (from the key; else ARCIA_WALLET_ADDRESS), or "" when neither is set.
+/// ARCIA's wallet address: from the key; else ARCIA_WALLET_ADDRESS; else ARCIA_HOME.
 export function wallet() {
   if (meMemo !== null) return meMemo;
   const sk = secret();
-  meMemo = sk ? addressOf(sk) : (isAddr(process.env.ARCIA_WALLET_ADDRESS) ? lc(process.env.ARCIA_WALLET_ADDRESS) : "");
+  meMemo = sk ? addressOf(sk) : (isAddr(process.env.ARCIA_WALLET_ADDRESS) ? lc(process.env.ARCIA_WALLET_ADDRESS) : ARCIA_HOME);
   return meMemo;
 }
 export const canSign = () => !!secret();
+/// is the key the one for ARCIA's published wallet? (never exposes the key)
+export function walletCheck() {
+  const sk = secret();
+  return { key: !!sk, matches: sk ? addressOf(sk) === ARCIA_HOME : null, home: ARCIA_HOME };
+}
 
 /// Send one transaction from ARCIA's wallet (EIP-1559, chain 5042) and wait for its receipt.
 export async function sendTx({ to, data = "0x", value = 0n }) {
@@ -154,24 +162,11 @@ export async function verifyAndSettle(p, req, { used }) {
 
   if (scheme === "arc-tx") {
     const tx = lc(p.payload && p.payload.txHash);
-    if (!/^0x[0-9a-f]{64}$/.test(tx)) return { ok: false, error: "payload.txHash is needed" };
-    const rc = await rpcCall("eth_getTransactionReceipt", [tx]).catch(() => null);
-    if (!rc) return { ok: false, error: "that transaction isn't on Arc yet — try again in a few seconds", retry: true };
-    if (rc.status !== "0x1") return { ok: false, error: "that transaction failed" };
-    // USDC to ARCIA: the ERC-20 Transfer log, or a plain native transfer (native USDC has 18 decimals)
-    let paid = 0n, from = lc(rc.from);
-    for (const l of rc.logs || []) {
-      if (lc(l.address) === USDC && l.topics && l.topics[0] === TRANSFER_TOPIC && ("0x" + strip(l.topics[2]).slice(24)) === payTo) { paid += BigInt(l.data); from = "0x" + strip(l.topics[1]).slice(24); }
-    }
-    if (paid < need) {
-      const t = await rpcCall("eth_getTransactionByHash", [tx]).catch(() => null);
-      if (t && lc(t.to) === payTo) paid += BigInt(t.value || "0x0") / 10n ** 12n;
-    }
-    if (paid < need) return { ok: false, error: `that transaction paid ${paid} (6-decimal units), ${need} needed, to ${payTo}` };
-    const head = BigInt(await rpcCall("eth_blockNumber", []));
-    if (head - BigInt(rc.blockNumber) > 20000n) return { ok: false, error: "that payment is too old — send a new one" };
+    const got = await readTransfer(tx, payTo);
+    if (!got.ok) return got;
+    if (got.paid < need) return { ok: false, error: `that transaction paid ${got.paid} (6-decimal units), ${need} needed, to ${payTo}` };
     if (await used(`tx:${tx}`)) return { ok: false, error: "that payment was already used" };
-    return { ok: true, from, tx, amount: paid, scheme };
+    return { ok: true, from: got.from, tx, amount: got.paid, scheme };
   }
 
   if (scheme === "exact") {
@@ -195,6 +190,46 @@ export async function verifyAndSettle(p, req, { used }) {
     return { ok: true, from: lc(a.from), tx: res.hash, amount: BigInt(a.value), scheme };
   }
   return { ok: false, error: "unknown payment scheme (use exact or arc-tx)" };
+}
+
+/// USDC that one Arc transaction paid to `payTo` (ERC-20 Transfer logs, or a native transfer —
+/// native USDC has 18 decimals), in 6-decimal units. Refuses failed or old (>20000 blocks) ones.
+export async function readTransfer(txHash, payTo) {
+  const tx = lc(txHash);
+  payTo = lc(payTo);
+  if (!/^0x[0-9a-f]{64}$/.test(tx)) return { ok: false, error: "payload.txHash is needed" };
+  const rc = await rpcCall("eth_getTransactionReceipt", [tx]).catch(() => null);
+  if (!rc) return { ok: false, error: "that transaction isn't on Arc yet — try again in a few seconds", retry: true };
+  if (rc.status !== "0x1") return { ok: false, error: "that transaction failed" };
+  let paid = 0n, from = lc(rc.from);
+  for (const l of rc.logs || []) {
+    if (lc(l.address) === USDC && l.topics && l.topics[0] === TRANSFER_TOPIC && ("0x" + strip(l.topics[2]).slice(24)) === payTo) { paid += BigInt(l.data); from = "0x" + strip(l.topics[1]).slice(24); }
+  }
+  if (paid === 0n) {
+    const t = await rpcCall("eth_getTransactionByHash", [tx]).catch(() => null);
+    if (t && lc(t.to) === payTo) paid += BigInt(t.value || "0x0") / 10n ** 12n;
+  }
+  const head = BigInt(await rpcCall("eth_blockNumber", []));
+  if (head - BigInt(rc.blockNumber) > 20000n) return { ok: false, error: "that payment is too old — send a new one" };
+  return { ok: true, tx, from, paid };
+}
+
+/// the key a payment is remembered by (so one payment is used once): tx:<hash> or auth:<from>:<nonce>
+export function paymentKey(p) {
+  if (!p || p.bad) return "";
+  const pl = p.payload || {};
+  if (pl.txHash && /^0x[0-9a-fA-F]{64}$/.test(pl.txHash)) return `tx:${lc(pl.txHash)}`;
+  if (pl.authorization && pl.authorization.from && pl.authorization.nonce) return `auth:${lc(pl.authorization.from)}:${lc(pl.authorization.nonce)}`;
+  return "";
+}
+/// for an "exact" payload: who signed it (null if the signature doesn't check out)
+export async function authSigner(p) {
+  try {
+    const a = p && p.payload && p.payload.authorization, sig = p && p.payload && p.payload.signature;
+    if (!a || !sig) return null;
+    const who = recover(await authDigest(a), sig);
+    return who === lc(a.from) ? who : null;
+  } catch { return null; }
 }
 
 // ---------------- buying ----------------

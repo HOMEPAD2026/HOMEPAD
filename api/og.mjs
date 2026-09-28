@@ -156,6 +156,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=3600, s-maxage=86400" },
     });
   }
+  if (url.searchParams.has("a402")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await a402Card(await markP, url.searchParams.get("a402")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=3600, s-maxage=86400" },
+    });
+  }
   if (url.searchParams.has("scan")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await scanCard(await markP, url.searchParams.get("scan")), {
@@ -323,6 +330,42 @@ async function dropCard(mark, txs) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
       h("div", {}, "arcircle.app/multisend · verified on-chain"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, r.ts ? new Date(r.ts * 1000).toISOString().slice(0, 10) : "")),
+  ]);
+}
+
+// ---------------- ARCIA 402 sale card (/a402/<tx>) ----------------
+async function a402Card(mark, tx) {
+  let d = null;
+  if (/^0x[0-9a-fA-F]{64}$/.test(tx || "")) { try { const r = await fetch(`${SITE}/api/arcia402?sale=${tx.toLowerCase()}`); d = r.ok ? await r.json() : null; } catch { d = null; } }
+  const face = await fetchImage(`${SITE}/images/arcia-avatar.jpg`);
+  const acc = "#39ff88";
+  const avatar = face ? img(face, { width: 230, height: 230, borderRadius: 115, border: "6px solid rgba(57,255,136,0.7)", boxShadow: "0 0 60px rgba(57,255,136,0.35)" }) : null;
+  if (!d) {
+    return frame([
+      brandRow(mark, pill("ARCIA 402", acc), "x402 · Circle's Arc"),
+      h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+        h("div", { flexDirection: "column", gap: 16, maxWidth: 740 },
+          h("div", { fontSize: 84, fontWeight: 800, lineHeight: 1.05 }, "An AI that earns on Arc."),
+          h("div", { fontSize: 32, color: "#9fb098" }, "ARCIA sells her intelligence per call in USDC — and hires other agents with her own wallet.")),
+        avatar),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#arcia402"),
+    ]);
+  }
+  const amt = Number(d.amount || 0);
+  return frame([
+    brandRow(mark, pill("PAID WITH x402", acc), "ARCIA 402 · Circle's Arc"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 10, maxWidth: 760 },
+        h("div", { fontSize: 30, color: acc, fontWeight: 700 }, "ARCIA just earned"),
+        h("div", { alignItems: "baseline", gap: 16 },
+          h("div", { fontSize: 120, fontWeight: 800, lineHeight: 1, letterSpacing: -3 }, `$${amt.toFixed(2)}`),
+          h("div", { fontSize: 40, color: "#b9c8b3", fontWeight: 700 }, "USDC")),
+        h("div", { fontSize: 40, fontWeight: 700, marginTop: 8 }, clip(d.title, 34)),
+        d.headline ? h("div", { fontSize: 28, color: "#b9c8b3" }, clip(d.headline, 48)) : null),
+      avatar),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, `paid by ${String(d.from).slice(0, 6)}…${String(d.from).slice(-4)} · verified on Arc`),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, d.t ? new Date(d.t).toISOString().slice(0, 10) : "")),
   ]);
 }
 

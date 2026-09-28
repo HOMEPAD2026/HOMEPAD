@@ -1,0 +1,41 @@
+# ARCIRCLE PAD
+
+> Two launchpads and one core coin on Circle's Arc (chain id 5042, gas paid in USDC): ArcPad (instant launches with a real Uniswap v4 pool), CirclePad (community USDC rounds with burn-to-vote), and $ARCIRCLE. Free utilities: Token Scanner, Locker, Multisender, Holder Snapshot, Bridge, Liquidity, Relay Launch, ARCIA (an AI character) and ARCIA 402.
+
+## ARCIA 402 — paid Arc intelligence over x402
+
+ARCIA sells her analysis per call in USDC on Arc using x402 (HTTP 402 Payment Required). No API key and no account.
+
+1. `GET https://www.arcircle.app/arcia402/<service>?…` → `402` with the terms (scheme `exact`, network `eip155:5042`, asset USDC `0x3600000000000000000000000000000000000000`, 6 decimals, `payTo` = ARCIA's wallet).
+2. Pay: a standard x402 `exact` payload (EIP-3009 `transferWithAuthorization` signed by the payer; ARCIA settles it), or send the USDC yourself and pass `{ "x402Version": 1, "scheme": "arc-tx", "network": "eip155:5042", "payload": { "txHash": "0x…" } }`.
+3. Call again with header `X-PAYMENT: <base64 JSON>` → `200` JSON, plus `X-PAYMENT-RESPONSE` (the settlement and a receipt link).
+
+Inputs are checked before any payment is asked for. If ARCIA can't finish after being paid, the same X-PAYMENT works once more. Add `?preview=1` for a free first look.
+
+Services (price per call):
+- `token-analysis?token=0x…` — 0.02 USDC — safety scan of any Arc token, scored 0–100, with ARCIA's read
+- `wallet-analysis?wallet=0x…` — 0.03 USDC — balances, $ARCIRCLE rank, airdrops, LP positions, ARCIA's read
+- `launch-analysis?token=0x…` — 0.05 USDC — an ArcPad or Argus launch in depth, with ARCIA's take
+- `arc-intelligence` — 0.01 USDC — $ARCIRCLE numbers, newest launches, recent airdrops, most-scanned tokens
+- `airdrop-check?wallet=0x…` — 0.01 USDC — airdrops a wallet received through the Multisender, and claimables
+- `holder-snapshot?token=0x…` — 0.05 USDC — top 500 holders at the latest block, with a fingerprint
+- `round-report` — 0.01 USDC — CirclePad Round #1: raised, time left, burn-to-vote results
+- `new-launches?since=<unix>` — 0.01 USDC — coins launched since a time (poll it to watch launches)
+
+- [Storefront (JSON)](https://www.arcircle.app/arcia402)
+- [x402 manifest](https://www.arcircle.app/.well-known/x402)
+- [MCP endpoint (JSON-RPC over HTTP, POST)](https://www.arcircle.app/arcia402/mcp)
+- [ARCIA's public books (JSON)](https://www.arcircle.app/api/arcia402?stats=1)
+- [ARCIA 402 page](https://www.arcircle.app/arc#arcia402)
+
+## Free APIs
+
+- [Token Scanner API](https://www.arcircle.app/api/v1/scan/0x0000000000000000000000000000000000000000): `GET /api/v1/scan/<token>`
+- [Holder Snapshot API](https://www.arcircle.app/arc#snapshot): `GET /api/v1/snapshot/<token>`
+
+## Links
+
+- [ArcPad](https://www.arcircle.app/arc)
+- [CirclePad](https://www.arcircle.app/circle)
+- [Docs](https://www.arcircle.app/docs.html)
+- [X](https://x.com/ARCIRCLEonArc)
