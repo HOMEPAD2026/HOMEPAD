@@ -296,6 +296,9 @@
     },
     "api/arcia402.mjs": {
       "maxDuration": 60
+    },
+    "api/arcia-tg.mjs": {
+      "maxDuration": 60
     }
   }
 }
