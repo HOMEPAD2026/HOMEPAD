@@ -1096,7 +1096,7 @@ export const KB = [
 },
 {
 "page": "ArcPad and utilities",
-"title": "Liquidity Manager New",
+"title": "Liquidity Manager v1Updated regularly",
 "url": "/arc",
 "text": "Every Uniswap v4 pool an Arc token trades in — price, depth, every LP position and how much of it is locked. Add or remove liquidity and lock your LP without leaving ARCIRCLE PAD. Launch Liquidity Lock Scanner Utility · Holder snapshot"
 },

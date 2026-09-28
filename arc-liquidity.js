@@ -153,6 +153,172 @@
   }
   const skeleton = () => `<div class="alq-skel"><i></i><i></i><i></i></div>`;
 
+  // ================= v1: what a pool pays, what a position earns =================
+  // fee yield from the last 24h of volume: volume × LP fee × 365 ÷ liquidity — a rough guide, volume moves daily
+  const yieldPct = (p) => (p.dex && p.dex.vol > 0 && p.dex.liqUsd > 0 && p.feePct > 0 ? ((p.dex.vol * (p.feePct / 100) * 365) / p.dex.liqUsd) * 100 : null);
+  const pctTxt = (v) => (v == null || !isFinite(v) ? "—" : v >= 1000 ? ">999%" : v >= 10 ? v.toFixed(0) + "%" : v.toFixed(1) + "%");
+  const safeOf = (p) => p.share.locked + p.share.burned;
+  // a position's slice of a day's fees: its liquidity over the pool's active liquidity, at 24h volume
+  function perDay(p, q) {
+    if (!q.inRange || !p.dex || !(p.dex.vol > 0) || !(p.feePct > 0)) return null;
+    const act = B(p.liquidity);
+    if (act <= 0n) return null;
+    return p.dex.vol * (p.feePct / 100) * Math.min(1, Number((B(q.liquidity) * 1000000n) / act) / 1e6);
+  }
+  function yieldLine(p) {
+    const y = yieldPct(p);
+    if (y == null) return "";
+    return `<div class="alq-yield"><span>${T("Fee yield")}</span><b data-no-i18n>≈ ${pctTxt(y)}</b><small>${T("a year, if the last 24 hours of volume kept up")}</small></div>`;
+  }
+  // value vs just holding, for a position in [pa, pb] (quote per token) opened at price e, now at price n
+  function vsHold(pa, pb, e, n) {
+    const amt = (P) => (P <= pa ? [1 / Math.sqrt(pa) - 1 / Math.sqrt(pb), 0] : P >= pb ? [0, Math.sqrt(pb) - Math.sqrt(pa)] : [1 / Math.sqrt(P) - 1 / Math.sqrt(pb), Math.sqrt(P) - Math.sqrt(pa)]);
+    const [x0, y0] = amt(e), [x1, y1] = amt(n);
+    const hold = x0 * n + y0, lp = x1 * n + y1;
+    return hold > 0 ? lp / hold - 1 : 0;
+  }
+  const rangeOf = (p, q) => {
+    if (q.full) return [1e-30, 1e30];
+    const a = priceAtTick(p, q.tl), b = priceAtTick(p, q.tu);
+    return a < b ? [a, b] : [b, a];
+  };
+  function openIL(p, q) {
+    const qs = esc(p.quote.symbol), key = "arcircle.liq.entry." + q.id;
+    let entry = 0;
+    try { entry = Number(localStorage.getItem(key)) || 0; } catch { /* none */ }
+    if (!(entry > 0)) entry = p.price;
+    const m = modal(`${T("Price change calculator")} · <span data-no-i18n>#${q.id}</span>`, `
+      <label class="alq-in"><span>${T("Price when you added")} <small data-no-i18n>(${qs})</small></span><input type="text" inputmode="decimal" id="alq-entry" value="${esc(fmtPrice(entry).replace(/,/g, ""))}" autocomplete="off"></label>
+      <div class="alq-il" id="alq-il"></div>
+      <p class="alq-fine">${T(q.full ? "Compared with simply holding the same tokens. Fees earned are not included." : "Compared with simply holding the same tokens, for this position's own price range — a narrow range loses more once the price leaves it. Fees earned are not included.")}</p>`);
+    const [pa, pb] = rangeOf(p, q);
+    const show = () => {
+      const e = entry, n = p.price, r = vsHold(pa, pb, e, n), mv = (n / e - 1) * 100;
+      const row = (k) => { const v = vsHold(pa, pb, e, e * k); return `<li><span data-no-i18n>×${k}</span><i style="--w:${Math.min(100, Math.abs(v) * 200).toFixed(1)}%"></i><b data-no-i18n>${(v * 100).toFixed(1)}%</b></li>`; };
+      $("alq-il").innerHTML = `<div class="alq-il-now"><div><small>${T("Price since then")}</small><b data-no-i18n class="${mv >= 0 ? "up" : "down"}">${mv >= 0 ? "+" : ""}${isFinite(mv) ? mv.toFixed(1) : "—"}%</b></div><div><small>${T("vs just holding")}</small><b data-no-i18n class="${r < -0.0005 ? "down" : ""}">${isFinite(r) ? (r * 100).toFixed(2) : "—"}%</b></div></div>
+        <small class="alq-il-h">${T("If the price moves from your entry")}</small><ul class="alq-il-rows">${[0.25, 0.5, 1.5, 2, 4].map(row).join("")}</ul>`;
+    };
+    m.querySelector("#alq-entry").addEventListener("input", (ev) => {
+      const v = Number(String(ev.target.value).replace(/,/g, ""));
+      if (v > 0) { entry = v; try { localStorage.setItem(key, String(v)); } catch { /* this visit */ } show(); }
+    });
+    show();
+  }
+
+  // ---- out-of-range alerts (this browser): checked every 5 minutes while ArcPad is open ----
+  const WATCH_KEY = "arcircle.liq.watch.v1";
+  const watchList = () => { try { return JSON.parse(localStorage.getItem(WATCH_KEY) || "[]").filter((w) => w && w.id != null && /^0x[0-9a-f]{40}$/.test(w.t)).slice(-24); } catch { return []; } };
+  const saveWatch = (l) => { try { localStorage.setItem(WATCH_KEY, JSON.stringify(l.slice(-24))); } catch { /* this visit */ } };
+  const watching = (id) => watchList().some((w) => String(w.id) === String(id));
+  function toggleWatch(p, q, btn) {
+    let l = watchList();
+    if (watching(q.id)) { l = l.filter((w) => String(w.id) !== String(q.id)); toast("Alert off.", "info"); }
+    else {
+      l.push({ t: D.token.address, id: q.id, s: D.token.symbol, q: p.quote ? p.quote.symbol : "", r: !!q.inRange });
+      toast("You'll get an alert here if it leaves its range.", "ok");
+      try { if (window.Notification && Notification.permission === "default") Notification.requestPermission(); } catch { /* no notifications */ }
+    }
+    saveWatch(l);
+    if (btn) btn.setAttribute("aria-pressed", String(watching(q.id)));
+  }
+  function alertFlip(w, inRange) {
+    const msg = `$${w.s} / ${w.q} #${w.id} — ${tr(inRange ? "back in range, earning again" : "left its price range and stopped earning fees")}`;
+    toast(msg, inRange ? "ok" : "info");
+    try { if (window.Notification && Notification.permission === "granted" && document.hidden) new Notification("ARCIRCLE PAD · Liquidity", { body: msg, icon: "/images/icon-192.png", tag: "alq-" + w.id }); } catch { /* blocked */ }
+  }
+  // positions on screen: compare right after a load
+  function noteWatch() {
+    const l = watchList();
+    if (!l.length || !D) return;
+    let changed = false;
+    for (const w of l) {
+      if (w.t !== D.token.address) continue;
+      const [, q] = findPos(w.id);
+      if (!q) continue;
+      if (!!q.inRange !== w.r) { alertFlip(w, !!q.inRange); w.r = !!q.inRange; changed = true; }
+    }
+    if (changed) saveWatch(l);
+  }
+  let watchBusy = false;
+  async function checkWatch() {
+    const l = watchList();
+    if (!l.length || watchBusy) return;
+    watchBusy = true;
+    try {
+      for (const t of [...new Set(l.map((w) => w.t))].slice(0, 6)) {
+        if (D && D.token.address === t && panel.classList.contains("active")) { await load(t, { quiet: true }); continue; }
+        const r = await fetch(`${API}?liq=${t}`, { cache: "no-store" }).catch(() => null);
+        const j = r && r.ok ? await r.json().catch(() => null) : null;
+        if (!j || !j.done) continue;
+        const cur = watchList();
+        let changed = false;
+        for (const w of cur.filter((x) => x.t === t)) {
+          let q = null;
+          for (const p of j.pools || []) { q = (p.positions || []).find((x) => String(x.id) === String(w.id)); if (q) break; }
+          if (q && !!q.inRange !== w.r) { alertFlip(w, !!q.inRange); w.r = !!q.inRange; changed = true; }
+        }
+        if (changed) saveWatch(cur);
+      }
+    } finally { watchBusy = false; }
+  }
+  setInterval(checkWatch, 5 * 60e3);
+  setTimeout(checkWatch, 20e3);
+
+  // ---- the creator's path: pool → add → lock → share ----
+  function creatorPath() {
+    if (!D.launch || !D.launch.creator || !me() || lc(D.launch.creator) !== me()) return "";
+    const pools = D.pools.filter((p) => p.key && p.manageable);
+    const mine = []; for (const p of D.pools) for (const q of p.positions) if (q.mine) mine.push([p, q]);
+    const free = mine.find(([, q]) => q.kind === "wallet");
+    const locked = mine.find(([, q]) => q.lock);
+    let shared = false;
+    try { shared = !!localStorage.getItem("arcircle.liq.shared." + D.token.address); } catch { /* no */ }
+    const steps = [
+      ["Pool is live", !!pools.length, pools.length ? "" : `<button type="button" class="alq-link" data-create>${T("Create a pool")}</button>`],
+      ["Add your liquidity", !!mine.length, !mine.length && pools[0] ? `<button type="button" class="alq-link" data-add="${esc(pools[0].id)}">${T("Add liquidity")}</button>` : ""],
+      ["Lock it", !!locked, !locked && free && LPLOCK ? `<button type="button" class="alq-link" data-lock="${free[1].id}">${T("Lock")}</button>` : ""],
+      ["Share the certificate", shared, locked ? `<button type="button" class="alq-link" data-lshare="${locked[1].lock.lockId}">${T("Share")}</button>` : ""],
+    ];
+    const done = steps.filter((x) => x[1]).length;
+    return `<section class="alq-path" style="--p:${(Math.max(0, done - 1) / (steps.length - 1)).toFixed(3)}"><div class="alq-path-h"><b>${T("Your coin's liquidity path")}</b><small>${T("You launched this token — these four steps show holders the liquidity stays.")}</small></div>
+      <ol>${steps.map(([l, ok, act], i) => `<li class="${ok ? "done" : i === done ? "next" : ""}"><i aria-hidden="true">${ok ? "✓" : i + 1}</i><b>${T(l)}</b>${ok ? "" : act}</li>`).join("")}</ol></section>`;
+  }
+
+  // ---- two or more pools: side by side ----
+  function compare() {
+    const pools = D.pools.filter((p) => p.key);
+    if (pools.length < 2) return "";
+    const ys = pools.map(yieldPct), best = Math.max(...ys.map((v) => (v == null ? -1 : v))), safest = Math.max(...pools.map(safeOf));
+    return `<section class="alq-cmp"><div class="alq-cmp-h"><b>${T("Compare pools")}</b><small>${T("Tap a row to jump to that pool.")}</small></div>
+      <div class="alq-tablewrap"><table class="alq-table alq-cmp-t"><thead><tr><th>${T("Pool")}</th><th>${T("Price")}</th><th>${T("Liquidity")}</th><th>${T("24h volume")}</th><th>${T("Fee yield")}</th><th>${T("Locked or burned")}</th></tr></thead><tbody>
+      ${pools.map((p, i) => `<tr data-jump-pool="${esc(p.id)}" tabindex="0">
+        <td data-l="${T("Pool")}" data-no-i18n><b>${esc(D.token.symbol)} / ${esc(p.quote ? p.quote.symbol : "?")}</b> <small>${p.feePct != null ? p.feePct + "%" : esc(tr("Dynamic fee"))}</small></td>
+        <td data-l="${T("Price")}" data-no-i18n>${fmtPrice(p.price)}</td>
+        <td data-l="${T("Liquidity")}" data-no-i18n>${p.dex ? usd(p.dex.liqUsd) : "—"}</td>
+        <td data-l="${T("24h volume")}" data-no-i18n>${p.dex && p.dex.vol ? usd(p.dex.vol) : "—"}</td>
+        <td data-l="${T("Fee yield")}"><span data-no-i18n>${pctTxt(ys[i])}</span>${ys[i] != null && ys[i] === best && best > 0 ? ` <em class="alq-best">${T("Highest yield")}</em>` : ""}</td>
+        <td data-l="${T("Locked or burned")}"><span data-no-i18n>${safeOf(p).toFixed(1)}%</span>${safeOf(p) === safest && safest > 0 ? ` <em class="alq-best">${T("Most locked")}</em>` : ""}</td></tr>`).join("")}
+      </tbody></table></div></section>`;
+  }
+
+  // ---- the Token Scanner's score, next to the token ----
+  const scoreMem = new Map();
+  async function paintScore() {
+    const el = $("alq-score");
+    if (!el || !D) return;
+    const t = D.token.address;
+    let s = scoreMem.get(t);
+    if (s === undefined) {
+      try { const r = await fetch(`${API}?scores=${t}`); const j = await r.json(); s = j.scores && j.scores[t] ? j.scores[t].score : null; } catch { s = null; }
+      scoreMem.set(t, s);
+    }
+    const now2 = $("alq-score");
+    if (!now2 || !D || D.token.address !== t || s == null) return;
+    now2.hidden = false;
+    now2.className = "alq-link alq-score " + (s >= 70 ? "good" : s >= 40 ? "mid" : "bad");
+    now2.innerHTML = `${T("Scanner")} <b data-no-i18n>${s}</b><small data-no-i18n>/100</small>`;
+  }
+
   // ================= render =================
   function kindChip(q) {
     if (q.kind === "locked") return `<span class="alq-chip lock">${T("Locked until")} <b data-no-i18n>${esc(date(q.lock.unlockAt))}</b></span>`;
@@ -208,6 +374,7 @@
         <div data-stat="held"><small>${T("In LP positions")}</small><b data-no-i18n>${fmtRaw(p.inPositions.token, D.token.decimals)} ${sym}</b><span data-no-i18n>${fmtRaw(p.inPositions.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
         <div data-stat="count"><small>${T("Positions")}</small><b data-no-i18n>${p.positionCount}</b><span>${p.dex && p.dex.vol ? `<span data-no-i18n>${usd(p.dex.vol)}</span> ${T("24h volume")}` : "&nbsp;"}</span></div>
       </div>
+      ${yieldLine(p)}
       <div class="alq-lockbox"><div class="alq-lockhead"><b>${T("Who can pull this liquidity")}</b><small>${T("Share of the liquidity trading at the current price")}</small></div>${bar(p.share)}${notes.length ? `<ul class="alq-notes">${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}</div>
       ${depth(p)}
       ${p.positions.length ? `${sorts}<div class="alq-tablewrap"><table class="alq-table"><thead><tr><th>${T("Position")}</th><th>${T("Owner")}</th><th>${T("Price range")}</th><th>${T("Holds")}</th><th>${T("Status")}</th></tr></thead><tbody>${posRows}</tbody></table>${more}</div>` : `<p class="alq-empty">${T("No position NFTs in this pool yet.")}</p>`}
@@ -222,19 +389,23 @@
     const locked = q.kind === "locked" || q.kind === "unlocking";
     let acts = "";
     if (!locked && q.kind === "wallet") {
-      acts = `<button type="button" class="alq-act" data-increase="${q.id}">${T("Add more")}</button><button type="button" class="alq-act" data-remove="${q.id}">${T("Remove")}</button><button type="button" class="alq-act" data-collect="${q.id}">${T("Collect fees")}</button>` +
+      acts = (!q.inRange && !q.full && p.manageable ? `<button type="button" class="alq-act rebal" data-rebal="${q.id}">${T("Rebalance")}</button>` : "") + `<button type="button" class="alq-act" data-increase="${q.id}">${T("Add more")}</button><button type="button" class="alq-act" data-remove="${q.id}">${T("Remove")}</button><button type="button" class="alq-act" data-collect="${q.id}">${T("Collect fees")}</button>` +
         (LPLOCK ? `<button type="button" class="alq-act lock" data-lock="${q.id}">${T("Lock")}</button>` : "");
     } else if (locked && q.lock) {
       acts = `<button type="button" class="alq-act" data-lcollect="${q.lock.lockId}">${T("Collect fees")}</button>` +
         (q.kind === "unlocking" ? `<button type="button" class="alq-act lock" data-lwithdraw="${q.lock.lockId}">${T("Withdraw")}</button>` : `<button type="button" class="alq-act" data-lextend="${q.lock.lockId}" data-at="${q.lock.unlockAt}">${T("Extend +90 days")}</button>`) +
         `<button type="button" class="alq-act share" data-lshare="${q.lock.lockId}">${T("Share the lock")}</button>`;
     }
-    return `<div class="alq-mine-card${locked ? " locked" : ""}" data-pos="${q.id}">
+    const d = perDay(p, q);
+    const tools = `<div class="alq-mine-tools"><button type="button" data-il="${q.id}">${T("Price change calculator")}</button>${q.full || q.kind === "burn" ? "" : `<button type="button" data-watch="${q.id}" aria-pressed="${watching(q.id)}">${T("Out-of-range alert")}</button>`}</div>`;
+    return `<div class="alq-mine-card${locked ? " locked" : ""}${q.inRange ? " in" : " out"}" data-pos="${q.id}">
       <div class="alq-mine-top"><b data-no-i18n>#${q.id}</b><span data-no-i18n>${sym} / ${qs}</span>${kindChip(q)}${locked && q.lock ? ring(q.lock) : ""}</div>
       <div class="alq-mine-amt" data-no-i18n><b>${fmtRaw(q.token, D.token.decimals)} ${sym}</b><span>+ ${fmtRaw(q.quote, p.quote ? p.quote.decimals : 18)} ${qs}</span></div>
       ${q.fees && (B(q.fees.token) > 0n || B(q.fees.quote) > 0n) ? `<div class="alq-fees"><small>${T("Unclaimed fees")}</small><b data-no-i18n>${fmtRaw(q.fees.token, D.token.decimals)} ${sym} + ${fmtRaw(q.fees.quote, p.quote ? p.quote.decimals : 18)} ${qs}</b></div>` : ""}
       <div class="alq-mine-meta">${rangeText(p, q)}${q.inRange ? ` · <span class="alq-earn">${T("earning")}</span>` : ` · <em class="alq-out-range">${T("out of range")}</em>`}</div>
+      ${d != null ? `<div class="alq-est"><small>${T("Earning about")}</small><b data-no-i18n>${d < 0.01 ? "<$0.01" : usd(d)}</b><small>${T("a day at today's volume")}</small></div>` : ""}
       <div class="alq-mine-acts">${acts}</div>
+      ${tools}
     </div>`;
   }
   function render() {
@@ -247,21 +418,24 @@
       <div class="alq-token">
         <div><h2 data-no-i18n>${esc(t.symbol)} <small>${esc(t.name)}</small></h2><a href="${explorer("token", t.address)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(t.address))} ↗</a> ${launch}</div>
         <div class="alq-token-links">
+          <a class="alq-link alq-score" id="alq-score" href="#scanner?t=${esc(t.address)}" data-go="scanner" hidden></a>
           <a class="alq-link" href="#scanner?t=${esc(t.address)}" data-go="scanner">${T("Scan this token")}</a>
           <a class="alq-link" href="#locker?token=${esc(t.address)}" data-go="locker">${T("Token locks")}</a>
           <button type="button" class="alq-link" data-create>${T("New pool")}</button>
           <button type="button" class="alq-link" data-refresh>${T("Refresh")}</button>
         </div>
       </div>
-      ${D.pools.length ? summary() + `<div id="alq-alert"></div>` + timeline() : ""}
+      ${D.pools.length ? summary() + `<div id="alq-alert"></div>` + creatorPath() + timeline() : creatorPath()}
       ${me() ? `<section class="alq-mine"><h3>${T("Your positions")} <b data-no-i18n>${mine.length}</b></h3>${mine.length ? `<div class="alq-mine-grid">${mine.map(([p, q]) => myCard(p, q)).join("")}</div>` : `<p class="alq-empty">${T("This wallet has no liquidity positions in these pools yet.")}</p>`}</section>` : `<p class="alq-connect">${T("Connect a wallet to add liquidity or manage your own positions.")} <button type="button" class="ams-mini" data-connect>${T("Connect wallet")}</button></p>`}
-      ${D.pools.length ? D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><div class="alq-none-acts"><button type="button" class="bp-btn-primary" data-create>${T("Create a pool")}</button><a class="bp-btn-ghost" href="#launch" data-go="launch">${T("Launch a coin")}</a></div></div>`}
+      ${D.pools.length ? compare() + D.pools.map(poolCard).join("") : `<div class="alq-none"><b>${T("No Uniswap v4 pool found for this token.")}</b><p>${T("Launch it on ArcPad and it gets a pool right away.")}</p><div class="alq-none-acts"><button type="button" class="bp-btn-primary" data-create>${T("Create a pool")}</button><a class="bp-btn-ghost" href="#launch" data-go="launch">${T("Launch a coin")}</a></div></div>`}
       ${D.pools.some((p) => p.key) ? `<section class="alq-feed" id="alq-feed"><div class="alq-feed-h"><b>${T("Liquidity activity")}</b><small>${T("Last 24 hours · adds, removals and LP locks in these pools")}</small></div><div class="alq-feed-body"><span class="alq-spin"></span></div></section>` : ""}
       ${D.external.length ? `<p class="alq-muted">${T("Also trading on")}: ${D.external.map((x) => `<a href="${esc(x.url || "#")}" target="_blank" rel="noopener" data-no-i18n>${esc(x.dex)}</a>`).join(", ")}</p>` : ""}
       ${LPLOCK ? "" : `<p class="alq-muted alq-soon">${T("LP locking opens once the ArcLPLock contract is live. Locks by launchpads and burned positions already show here.")}</p>`}`;
     countUp($("alq-out"));
     tickRings();
     paintFeed();
+    paintScore();
+    noteWatch();
     if (focusLock != null) {
       const id = focusLock; focusLock = null;
       for (const p of D.pools) {
@@ -293,6 +467,12 @@
     if (!card) return;
     card.scrollIntoView({ behavior: reduce() ? "auto" : "smooth", block: "center" });
     if (reduce()) return;
+    if (kind === "fees") { // coins drop out of the position into the wallet
+      card.classList.remove("alq-coins-on"); void card.offsetWidth; card.classList.add("alq-coins-on");
+      for (let i = 0; i < 7; i++) { const c = document.createElement("span"); c.className = "alq-coin"; c.style.setProperty("--i", i); c.style.setProperty("--x", `${(i - 3) * 22 + (Math.random() * 10 - 5)}px`); c.setAttribute("aria-hidden", "true"); card.appendChild(c); }
+      setTimeout(() => { card.classList.remove("alq-coins-on"); card.querySelectorAll(".alq-coin").forEach((x) => x.remove()); }, 1900);
+      return;
+    }
     const cls = kind === "lock" ? "alq-locked-now" : "alq-drop";
     card.classList.remove(cls); void card.offsetWidth; card.classList.add(cls);
     if (kind !== "lock") { const d = document.createElement("span"); d.className = "alq-droplet"; d.setAttribute("aria-hidden", "true"); card.appendChild(d); }
@@ -531,7 +711,7 @@
     });
     const mineBands = p.positions.filter((q) => q.mine && q.tu > a && q.tl < b).map((q) => {
       const x1 = X(Math.max(q.tl, a)), x2 = X(Math.min(q.tu, b));
-      return `<rect class="mine" x="${Math.min(x1, x2).toFixed(2)}" y="0" width="${Math.abs(x2 - x1).toFixed(2)}" height="${H}"/>`;
+      return `<rect class="mine${q.inRange ? "" : " out"}" x="${Math.min(x1, x2).toFixed(2)}" y="0" width="${Math.abs(x2 - x1).toFixed(2)}" height="${H}"/>`;
     }).join("");
     charts.set(p.id, { cols, a, b, flip, p });
     const qs = esc(p.quote.symbol);
@@ -820,10 +1000,11 @@
   }
 
   // ---- remove ----
-  function openRemove(p, q) {
+  function openRemove(p, q, rebal = false) {
     const sym = esc(D.token.symbol), qs = esc(p.quote.symbol);
-    const m = modal(`${T("Remove liquidity")} · <span data-no-i18n>#${q.id}</span>`, `
-      <div class="alq-seg" role="radiogroup">${[25, 50, 75, 100].map((v) => `<button type="button" role="radio" aria-checked="${v === 100}" data-pct="${v}" data-no-i18n>${v}%</button>`).join("")}</div>
+    const m = modal(`${T(rebal ? "Rebalance" : "Remove liquidity")} · <span data-no-i18n>#${q.id}</span>`, `
+      ${rebal ? `<ol class="alq-rebal"><li class="on">${T("Take the position out (100%)")}</li><li>${T("Add it back around today's price")}</li></ol><p class="alq-fine">${T("This position is out of range, so it earns nothing. Rebalancing moves it back to where trading happens.")}</p>` : ""}
+      <div class="alq-seg"${rebal ? " hidden" : ""} role="radiogroup">${[25, 50, 75, 100].map((v) => `<button type="button" role="radio" aria-checked="${v === 100}" data-pct="${v}" data-no-i18n>${v}%</button>`).join("")}</div>
       <div class="alq-get" id="alq-get"></div>
       ${slipHtml()}
       <button type="button" class="bp-btn-primary bp-btn-block" id="alq-go">${T("Remove liquidity")}</button>
@@ -844,8 +1025,9 @@
         const tx = await new ethers.Contract(PM, POSM, state.signer).modifyLiquidities(decreaseData(p.key, q.id, liq, min(t0), min(t1), state.account, pct === 100), deadline());
         btn.textContent = tr("Confirming…");
         await tx.wait();
-        close(); toast("Liquidity removed.", "ok");
+        close(); toast(rebal ? "Step 1 done — now add it back around today's price." : "Liquidity removed.", "ok");
         await load(tokenAddr, { quiet: true });
+        if (rebal) { const np = D && D.pools.find((x) => x.id === p.id); if (np && np.manageable) openAdd(np); }
       } catch (e) { toast(errText(e, "Removing liquidity failed or was rejected."), "info"); btn.disabled = false; btn.textContent = tr("Remove liquidity"); }
     });
     show();
@@ -902,14 +1084,16 @@
         <button type="button" class="bp-btn-ghost" data-certcopy>${T("Copy link")}</button>
         <a class="bp-btn-ghost" href="${esc(img)}" download="lp-lock-${lockId}.png" target="_blank" rel="noopener">${T("Save the image")}</a>
       </div>`);
+    const markShared = () => { try { if (D && D.token) localStorage.setItem("arcircle.liq.shared." + D.token.address, "1"); } catch { /* no */ } };
+    m.querySelectorAll(".alq-cert-acts a, .alq-cert-acts button").forEach((a) => a.addEventListener("click", markShared));
     m.querySelector("[data-certcopy]").addEventListener("click", async (e) => { try { await navigator.clipboard.writeText(link); e.target.textContent = tr("Copied"); } catch { /* denied */ } });
   }
 
-  async function simpleTx(btn, fn, okMsg, failMsg) {
+  async function simpleTx(btn, fn, okMsg, failMsg, after) {
     if (!(await needWallet())) return;
     const orig = btn.textContent;
     btn.disabled = true; btn.textContent = tr("Confirm in wallet…");
-    try { const tx = await fn(); btn.textContent = tr("Confirming…"); await tx.wait(); toast(okMsg, "ok"); await load(tokenAddr, { quiet: true }); }
+    try { const tx = await fn(); btn.textContent = tr("Confirming…"); await tx.wait(); toast(okMsg, "ok"); await load(tokenAddr, { quiet: true }); if (after) after(); }
     catch (e) { toast(errText(e, failMsg), "info"); btn.disabled = false; btn.textContent = orig; }
   }
 
@@ -950,9 +1134,21 @@
     const lk = t.closest("[data-lock]");
     if (lk) { const [p, q] = findPos(lk.dataset.lock); if (p) openLock(p, q); return; }
     const col = t.closest("[data-collect]");
-    if (col) { const [p] = findPos(col.dataset.collect); if (p) simpleTx(col, () => new ethers.Contract(PM, POSM, state.signer).modifyLiquidities(decreaseData(p.key, Number(col.dataset.collect), 0n, 0n, 0n, state.account, false), deadline()), "Fees collected.", "Collecting fees failed or was rejected."); return; }
+    if (col) { const [p] = findPos(col.dataset.collect); if (p) simpleTx(col, () => new ethers.Contract(PM, POSM, state.signer).modifyLiquidities(decreaseData(p.key, Number(col.dataset.collect), 0n, 0n, 0n, state.account, false), deadline()), "Fees collected.", "Collecting fees failed or was rejected.", () => celebrate("fees", col.dataset.collect)); return; }
     const lc2 = t.closest("[data-lcollect]");
-    if (lc2) { simpleTx(lc2, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).collectFees(Number(lc2.dataset.lcollect)), "Fees collected.", "Collecting fees failed or was rejected."); return; }
+    if (lc2) {
+      const lid = Number(lc2.dataset.lcollect), pid = (() => { for (const p of D.pools) { const q = p.positions.find((x) => x.lock && x.lock.lockId === lid); if (q) return q.id; } return null; })();
+      simpleTx(lc2, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).collectFees(lid), "Fees collected.", "Collecting fees failed or was rejected.", () => celebrate("fees", pid));
+      return;
+    }
+    const rb = t.closest("[data-rebal]");
+    if (rb) { const [p, q] = findPos(rb.dataset.rebal); if (p) { if (!(await needWallet())) return; openRemove(p, q, true); } return; }
+    const il = t.closest("[data-il]");
+    if (il) { const [p, q] = findPos(il.dataset.il); if (p) openIL(p, q); return; }
+    const wt = t.closest("[data-watch]");
+    if (wt) { const [p, q] = findPos(wt.dataset.watch); if (p) toggleWatch(p, q, wt); return; }
+    const jp = t.closest("[data-jump-pool]");
+    if (jp) { const el = [...$("alq-out").querySelectorAll("article.alq-pool")].find((a) => a.dataset.pool === jp.dataset.jumpPool); if (el) { el.scrollIntoView({ behavior: reduce() ? "auto" : "smooth", block: "start" }); el.classList.remove("alq-focus"); void el.offsetWidth; el.classList.add("alq-focus"); setTimeout(() => el.classList.remove("alq-focus"), 2400); } return; }
     const ext = t.closest("[data-lextend]");
     if (ext) { const at = Math.max(Number(ext.dataset.at), cnow()) + 90 * DAY; simpleTx(ext, () => new ethers.Contract(LPLOCK, LOCK_ABI, state.signer).extend(Number(ext.dataset.lextend), at), "Lock extended.", "Extending failed or was rejected."); return; }
     const sh = t.closest("[data-lshare]");
