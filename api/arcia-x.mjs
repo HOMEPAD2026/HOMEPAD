@@ -3,6 +3,7 @@
 //   GET /api/arcia-x?status=1   what is set up, which account the keys post as, and what the
 //                               next run would post right now (nothing is sent)
 //   GET /api/arcia-x?replies=1&redo=<post id>  answer that one post now (e.g. one skipped earlier)
+//   GET /api/arcia-x?replies=1&check=<post id> why that post got no reply, and what she'd say now (posts nothing)
 //   GET /api/arcia-x?replies=1  replies only — call it every minute (e.g. cron-job.org) so fans get an
 //                               answer within about a minute; writes to the store only when something changed
 //   GET /api/arcia-x[?run=1]    one run: posts whatever is due (Vercel cron daily + the optional
@@ -212,7 +213,8 @@ async function mentions(meId, sinceId, max = 20) {
 const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
 Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
 Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Posts by your own team (@ARCIRCLEonArc) announcing you or the project get a short, excited reaction from you as the idol — like an idol reacting to her agency's announcement ("Yay, it's official~ come talk to me!") — never a repeat of the announcement.
-Output exactly SKIP only for: spam, scams, giveaway or airdrop bait, abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
+Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from @ARCIRCLEonArc — never promise amounts or dates.
+Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
   if (!clean || m.rt) return { skip: "empty or repost" };
@@ -248,11 +250,11 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   for (let k = 0; k < todo.length; k++) {
     const m = todo[k], d = drafts[k];
     const row = { mention: m.id, from: "@" + m.username, text: m.text.slice(0, 140) };
-    if (d.skip) { row.skip = d.skip; if (!preview && !dry) st.sent["reply:" + m.id] = { t: now(), x: "skip" }; results.push(row); continue; }
+    if (d.skip) { row.skip = d.skip; if (!preview && !dry) st.sent["reply:" + m.id] = { t: now(), x: "skip", why: d.skip, from: m.username }; results.push(row); continue; }
     row.reply = d.text;
     if (preview || dry) { row.dry = true; results.push(row); continue; }
     if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap" }; results.push(row); continue; }
-    if ((st.replyAuthors.n[m.author] || 0) >= PER_AUTHOR_DAY) { row.skip = "enough replies to this person today"; st.sent["reply:" + m.id] = { t: now(), x: "skip" }; results.push(row); continue; }
+    if ((st.replyAuthors.n[m.author] || 0) >= PER_AUTHOR_DAY) { row.skip = "enough replies to this person today"; st.sent["reply:" + m.id] = { t: now(), x: "skip", why: row.skip, from: m.username }; results.push(row); continue; }
     try {
       row.posted = await xPost(d.text, m.id);
       st.sent["reply:" + m.id] = { t: now(), x: row.posted || "" };
@@ -310,6 +312,23 @@ export async function GET(req) {
     if (!repliesOn()) return json(200, { replies: "off", need: "ARCIA_X_ENABLED=1, the four X keys and ANTHROPIC_API_KEY" });
     if (!storeEnabled()) return json(503, { error: "no store" });
     const st = await loadState();
+    // ?check=<post id>: why a post got no reply (the record, whether it's in her mentions) and the reply
+    // she would give now — reads only, posts nothing
+    const check = String(url.searchParams.get("check") || "").replace(/\D/g, "");
+    if (check) {
+      const out = { check, record: st.sent["reply:" + check] || null, cursor: st.mentionSince || null };
+      try {
+        const j = await xGet(`https://api.x.com/2/tweets/${check}`, { "tweet.fields": "author_id,note_tweet,referenced_tweets,entities,created_at", expansions: "author_id", "user.fields": "username,name" });
+        const t = j.data || {}, u = ((j.includes && j.includes.users) || [])[0] || {};
+        const who = st.me && st.me.id ? st.me : await whoami();
+        const ments = ((t.entities && t.entities.mentions) || []).map((x) => String(x.username || "").toLowerCase());
+        out.post = { from: "@" + (u.username || ""), at: t.created_at, text: ((t.note_tweet && t.note_tweet.text) || t.text || "").slice(0, 280), mentionsArcia: ments.includes(String(who.username || "arciaonarc").toLowerCase()), replyTo: (t.referenced_tweets || []).map((r) => r.type).join(",") || null };
+        out.olderThanCursor = !!(st.mentionSince && BigInt(check) <= BigInt(st.mentionSince));
+        const d = await draftReply({ id: check, text: out.post.text, author: t.author_id, username: u.username || "", name: u.name || "", rt: false }, await liveNumbers(origin));
+        out.wouldReply = d.skip ? { skip: d.skip } : { text: d.text };
+      } catch (e) { out.error = String(e.message || e).slice(0, 200); }
+      return json(200, out);
+    }
     // ?redo=<post id>: answer one post again, even if it was skipped or is older than the cursor
     const redo = String(url.searchParams.get("redo") || "").replace(/\D/g, "");
     if (redo) {
