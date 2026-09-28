@@ -302,25 +302,43 @@ export async function blockAtOrBefore(ts, hi) {
   while (top - lo > 1) { const mid = Math.floor((lo + top) / 2), t = await blockTs(mid); if (t != null && t <= ts) lo = mid; else top = mid; }
   return lo;
 }
+// One scan at a time per instance: two overlapping requests used to read the
+// same chunk from the same scannedTo and both append it, counting those
+// events twice (Round #1 showed one 80 USDC contribution twice). Events are
+// also de-duplicated by block + log index below, which repairs stored copies.
+let lbBusy = null;
 export async function leaderboard(wallet) {
-  const st = await roundState();
-  if (!st.started) return { started: false, rows: [], activity: [], complete: true };
   if (lbMem && Date.now() - lbMem.at < 12e3) return withMine(lbMem.out, lbMem.EV, wallet);
+  if (!lbBusy) lbBusy = lbScan().finally(() => { lbBusy = null; });
+  const r = await lbBusy;
+  return r.EV ? withMine(r.out, r.EV, wallet) : r.out;
+}
+async function lbScan() {
+  const st = await roundState();
+  if (!st.started) return { out: { started: false, rows: [], activity: [], complete: true } };
   const key = `circleLb/${ESCROW}`;
   let L = lbMem ? lbMem.L : null;
   if (!L && storeEnabled()) { try { L = (await getDocs([key]))[key]; } catch { L = null; } }
   if (!L || L.deadline !== st.deadline) L = { deadline: st.deadline, from: null, scannedTo: null, end: null, ev: [] };
+  const evCount = L.ev.length;
   const head = await latestBlock();
   if (L.from == null) { L.from = await blockAtOrBefore(st.deadline - FUNDING, head); L.scannedTo = L.from - 1; }
   let to = head.number;
   if (head.ts > st.deadline + 60) { if (L.end == null) L.end = (await blockAtOrBefore(st.deadline, head)) + 50; to = Math.min(to, L.end); }
+  const evKey = (x) => { const p = String(x).split("|"); return p[3] + ":" + p[4]; };
+  { const seen = new Set(); L.ev = L.ev.filter((x) => { const k = evKey(x); if (seen.has(k)) return false; seen.add(k); return true; }); }
+  const have = new Set(L.ev.map(evKey));
   let chunks = 0;
   while (L.scannedTo < to && chunks < MAX_CHUNKS) {
     const a = L.scannedTo + 1, b = Math.min(to, a + CHUNK - 1);
     const logs = await getLogs({ address: ESCROW, fromBlock: toQty(a), toBlock: toQty(b), topics: [[CONTRIBUTED, REFUNDED]] });
     // stored as "kind|wallet|amount|block|logIndex" strings (Firestore can't nest arrays)
     // stored as "kind|wallet|amount|block|logIndex|txHash" (older entries have no hash)
-    for (const l of logs) L.ev.push([lc(l.topics[0]) === CONTRIBUTED ? 1 : 0, "0x" + String(l.topics[1]).slice(26).toLowerCase(), BigInt("0x" + String(l.data).slice(2, 66)).toString(), parseInt(l.blockNumber, 16), parseInt(l.logIndex, 16), lc(l.transactionHash || "")].join("|"));
+    for (const l of logs) {
+      const e = [lc(l.topics[0]) === CONTRIBUTED ? 1 : 0, "0x" + String(l.topics[1]).slice(26).toLowerCase(), BigInt("0x" + String(l.data).slice(2, 66)).toString(), parseInt(l.blockNumber, 16), parseInt(l.logIndex, 16), lc(l.transactionHash || "")].join("|");
+      const k = evKey(e);
+      if (!have.has(k)) { have.add(k); L.ev.push(e); }
+    }
     L.scannedTo = b; chunks++;
   }
   const complete = L.scannedTo >= to;
@@ -359,8 +377,8 @@ export async function leaderboard(wallet) {
   { let run = 0n, i = 0; for (let t = t0 + 3600; ; t += 3600) { const cut = Math.min(t, tEnd); while (i < ordered.length && tsAt(ordered[i][3]) <= cut) { const [k, , amt] = ordered[i]; run += k ? BigInt(amt) : -BigInt(amt); i++; } series.push([cut, run.toString()]); if (cut >= tEnd || series.length > 100) break; } }
   const outv = { started: true, rows, activity, flow, complete, scannedTo: L.scannedTo, joinOrder, series, startTs: t0 };
   lbMem = { at: Date.now(), L, out: outv, EV };
-  if (storeEnabled() && chunks) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
-  return withMine(outv, EV, wallet);
+  if (storeEnabled() && (chunks || L.ev.length !== evCount)) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
+  return { out: outv, EV };
 }
 async function withMine(outv, EV, wallet) {
   wallet = lc(wallet);

@@ -704,9 +704,14 @@ async function refreshCirclepadLeaderboardInner() {
       // rate-limit failure halfway through resumes from there next poll.
       await queryFilterChunked(escrow, "*", log.scannedTo + 1, to, {
         onChunk: (found, [, chunkTo], done, total) => {
+          // never keep the same log twice (block + log index), even if a chunk is re-read
+          const seen = new Set([...log.contributed, ...log.refunded].map((x) => `${x.blockNumber}:${x.index}`));
           for (const e of found) {
-            if (e.eventName === "Contributed") log.contributed.push(plain(e));
-            else if (e.eventName === "Refunded") log.refunded.push(plain(e));
+            const p = plain(e), k = `${p.blockNumber}:${p.index}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            if (e.eventName === "Contributed") log.contributed.push(p);
+            else if (e.eventName === "Refunded") log.refunded.push(p);
           }
           log.scannedTo = chunkTo;
           if (done === total || done % 5 === 0) circlepadSaveLogCache(log);
