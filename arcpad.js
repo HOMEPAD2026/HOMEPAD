@@ -192,6 +192,7 @@ async function loadArcpadLaunches() {
 
   built.sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
   ARC.launches = built;
+  ARC.launchesLoaded = true; // arc-argus.js adds its coins to the grid only after this
   document.getElementById("ap-stat-count").textContent = String(built.length);
   document.getElementById("ap-home-count").textContent = String(built.length);
   const foot = document.getElementById("bp-side-foot-text");

@@ -407,7 +407,7 @@ self.postMessage({done:true});};`;
   }
   function done(token, sym) {
     status(`<b>${T("Your coin is live on Argus.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${T("Claim your 70% of the creator fees any time at argus.world/claim.")}
-      <span class="agl-links"><a href="https://argus.world/token/${esc(token)}" target="_blank" rel="noopener">Argus ↗</a><a href="#scanner?t=${esc(token)}">${T("Scan it")}</a><a href="#liquidity?token=${esc(token)}">${T("Liquidity")}</a><a href="#explore?plat=argus">${T("See it in Explore")}</a><a href="${esc(EXPL("token", token))}" target="_blank" rel="noopener">${T("Explorer")} ↗</a></span>`, "success");
+      <span class="agl-links"><a href="https://argus.world/token/${esc(token)}" target="_blank" rel="noopener">Argus ↗</a><a href="#scanner?t=${esc(token)}">${T("Scan it")}</a><a href="#liquidity?token=${esc(token)}">${T("Liquidity")}</a><a href="#explore">${T("See it in Explore")}</a><a href="${esc(EXPL("token", token))}" target="_blank" rel="noopener">${T("Explorer")} ↗</a></span>`, "success");
     if (typeof window.arcConfetti === "function") window.arcConfetti();
   }
   // a launch that went out but whose split step didn't finish (closed tab, rejected, out of gas)
@@ -475,7 +475,8 @@ self.postMessage({done:true});};`;
       if (j && Array.isArray(j.items)) { AR.items = j.items.filter((x) => x.active !== false && isAddr(x.token)).map(rowOf); AR.at = Date.now(); }
     } catch { /* keep what we had */ }
     AR.busy = false;
-    if (typeof renderArcpadExploreGrid === "function" && document.getElementById("ap-explore-grid")) renderArcpadExploreGrid();
+    // only once ArcPad's own launches are in: before that (or if Arc couldn't be read) the grid keeps its skeleton / error
+    if (typeof renderArcpadExploreGrid === "function" && document.getElementById("ap-explore-grid") && typeof ARC !== "undefined" && ARC.launchesLoaded) renderArcpadExploreGrid();
     return AR.items;
   }
   // the coin's sheet: numbers, the support milestones, links

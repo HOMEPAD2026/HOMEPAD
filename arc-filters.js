@@ -13,7 +13,7 @@
   const AGE = { "1h": 3600, "24h": 86400, "7d": 7 * 86400 };
   const VALID = { plat: ["all", "arcpad", "argus"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
   let F = { ...DEF };
-  try { F = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) { /* private mode */ }
+  try { F = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || "{}"), plat: "all" }; } catch (e) { /* private mode */ }
   // A shared link — /arc#explore?pair=arcircle&age=24h — wins over the saved
   // filters, and the address bar follows the chips so the view can be shared.
   function fromHash() {
@@ -32,7 +32,7 @@
     if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
   }
   const linked = fromHash();
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(F)); } catch (e) { /* ignore */ } };
+  const save = () => { try { const { plat, ...keep } = F; void plat; localStorage.setItem(KEY, JSON.stringify(keep)); } catch (e) { /* ignore */ } };
   const count = () => ["pair", "age", "mcap"].filter((k) => F[k] !== "all").length;
 
   window.arcFiltersActive = () => count() > 0;
@@ -114,7 +114,12 @@
       if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
     });
     window.addEventListener("hashchange", () => { if (fromHash()) { paint(); if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid(); } });
-    document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "explore") toHash(); });
+    document.addEventListener("arcpad:tab", (e) => {
+      if (!e.detail || e.detail.tab !== "explore") return;
+      // opened from the menu (no ?plat= in the link): every coin again, ArcPad and Argus
+      if (F.plat !== "all" && !/[?&]plat=/.test(location.hash)) { F.plat = "all"; paint(); if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid(); }
+      toHash();
+    });
     paint(); toHash();
     if (linked && count()) btn.click();
     if ((count() || F.plat !== "all") && typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
