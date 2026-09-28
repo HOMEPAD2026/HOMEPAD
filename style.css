@@ -9609,3 +9609,26 @@ html.agl-sh-open{overflow:hidden;}
 @media (prefers-reduced-motion:reduce){.agl-fields.in,.ap-argus-line i,.agl-sh-track .fill,.agl-steps li.doing > i{animation:none !important;}}
 .agl-resume[hidden],.agl-fields[hidden],.agl-steps[hidden]{display:none !important;}
 .agl-num{flex-direction:column !important;align-items:stretch !important;}
+/* market cap on the way to the $20K / $100K support marks (Argus sheet + Explore cards) */
+.agl-prog{position:relative;padding:26px 0 22px;margin:4px 0 12px;}
+.agl-prog .trk{position:relative;height:10px;border-radius:5px;background:rgba(255,255,255,.07);}
+.agl-prog .fill{position:absolute;inset:0 auto 0 0;width:var(--p);border-radius:5px;background:linear-gradient(90deg,#5b8cff,#39ff88);animation:aglFill 1.1s cubic-bezier(.2,.8,.2,1) both;}
+.agl-prog .dot{position:absolute;top:50%;left:var(--p);width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(57,255,136,.25),0 0 14px rgba(57,255,136,.6);animation:aglSlide 1.1s cubic-bezier(.2,.8,.2,1) both;}
+.agl-prog .tk{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:rgba(255,255,255,.35);border-radius:1px;}
+.agl-prog .tk.on{background:#39ff88;}
+.agl-prog .now{position:absolute;top:0;left:var(--l);transform:translateX(-50%);font:800 .82rem 'Sora',sans-serif;color:#fff;background:rgba(57,255,136,.14);border:1px solid rgba(57,255,136,.45);border-radius:999px;padding:1px 9px;white-space:nowrap;animation:aglLabel 1.1s cubic-bezier(.2,.8,.2,1) both;}
+.agl-prog em{position:absolute;bottom:0;transform:translateX(-50%);font:700 .66rem 'Sora',sans-serif;font-style:normal;color:var(--ink-dim);white-space:nowrap;}
+.agl-prog em.on{color:#39ff88;}
+@keyframes aglFill{from{width:0;}}
+@keyframes aglSlide{from{left:0;}}
+@keyframes aglLabel{from{left:8%;opacity:0;}}
+/* the compact one on an Explore card: fits where the sparkline goes */
+.agl-prog.card{padding:16px 0 11px;margin:4px 0 5px;}
+.agl-prog.card .trk{height:6px;border-radius:3px;}
+.agl-prog.card .fill{border-radius:3px;}
+.agl-prog.card .dot{width:10px;height:10px;margin:-5px 0 0 -5px;box-shadow:0 0 0 3px rgba(57,255,136,.22),0 0 10px rgba(57,255,136,.5);}
+.agl-prog.card .tk{top:-3px;bottom:-3px;}
+.agl-prog.card .now{font-size:.62rem;padding:0 6px;line-height:15px;}
+.agl-prog.card em{bottom:-3px;font-size:.54rem;transform:translate(-50%,0);opacity:.8;}
+.agl-prog.still .fill,.agl-prog.still .dot,.agl-prog.still .now{animation:none;}
+@media (prefers-reduced-motion:reduce){.agl-prog .fill,.agl-prog .dot,.agl-prog .now{animation:none;}}

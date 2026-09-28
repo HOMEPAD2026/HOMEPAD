@@ -479,6 +479,21 @@ self.postMessage({done:true});};`;
     if (typeof renderArcpadExploreGrid === "function" && document.getElementById("ap-explore-grid") && typeof ARC !== "undefined" && ARC.launchesLoaded) renderArcpadExploreGrid();
     return AR.items;
   }
+  // market cap on a line from $0 to a bit past $100K: where the coin is now (the label rides the
+  // dot), and the $20K / $100K support marks. "card" is the compact one on Explore cards.
+  const kfmt = (v) => (v >= 1e6 ? "$" + (v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(v >= 1e4 ? 0 : 1).replace(/\.0$/, "") + "K" : "$" + Math.round(v));
+  function progressHtml(m, kind) {
+    const lo = SUP.DEX_INFO_MCAP, hi = SUP.MARKETING_MCAP, max = hi * 1.1;
+    const x = (v) => Math.max(0, Math.min(100, (v / max) * 100));
+    const p = m == null || !isFinite(m) ? 0 : x(m), lab = Math.max(kind === "card" ? 12 : 8, Math.min(kind === "card" ? 88 : 92, p));
+    const on = (v) => m != null && m >= v;
+    const tick = (v, t) => `<em class="${on(v) ? "on" : ""}" style="left:${x(v).toFixed(1)}%">${t}</em>`;
+    return `<div class="agl-prog ${kind || ""}${reduce ? " still" : ""}" style="--p:${p.toFixed(1)}%;--l:${lab.toFixed(1)}%" role="img" aria-label="${T("Market cap")} ${m != null ? kfmt(m) : "—"}">
+      <b class="now" data-no-i18n>${m != null ? kfmt(m) : "—"}</b>
+      <div class="trk"><i class="fill"></i><i class="tk${on(lo) ? " on" : ""}" style="left:${x(lo).toFixed(1)}%"></i><i class="tk${on(hi) ? " on" : ""}" style="left:${x(hi).toFixed(1)}%"></i><i class="dot"></i></div>
+      ${tick(lo, "$20K")}${tick(hi, "$100K")}</div>`;
+  }
+
   // the coin's sheet: numbers, the support milestones, links
   let sheet = null;
   function openSheet(token) {
@@ -493,15 +508,13 @@ self.postMessage({done:true});};`;
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && sheet && !sheet.hidden) closeSheet(); });
     }
     const m = l.marketCapUsd, lo = SUP.DEX_INFO_MCAP, hi = SUP.MARKETING_MCAP;
-    const pos = m == null ? 0 : Math.min(100, (Math.log10(Math.max(1, m)) / Math.log10(hi * 2)) * 100);
-    const mk = (v) => (Math.log10(v) / Math.log10(hi * 2)) * 100;
     const logo = /^https:\/\//i.test(l.imageUrl) ? `<img src="${esc(l.imageUrl)}" alt="" onerror="this.remove()">` : `<span>${esc(String(l.symbol || "?").slice(0, 1))}</span>`;
     const ms = (need, label, sub) => { const on = m != null && m >= need; return `<li class="${on ? "on" : ""}"><i aria-hidden="true">${on ? "✓" : ""}</i><span><b>${T(label)}</b><small>${T(sub)}</small></span></li>`; };
     sheet.querySelector(".agl-sh-box").innerHTML = `
       <button type="button" class="agl-sh-x" data-sh-close aria-label="${T("Close")}">×</button>
       <div class="agl-sh-h"><div class="agl-sh-logo">${logo}</div><div><h3 id="agl-sh-t" data-no-i18n>$${esc(l.symbol)} <small>${esc(l.name)}</small></h3><span class="agl-sh-tag">${T("Launched on Argus via ArcPad")}</span></div></div>
       <div class="agl-sh-stats"><div><small>${T("Price")}</small><b data-no-i18n>${l.priceUsdc != null ? usd(l.priceUsdc) : "—"}</b></div><div><small>${T("Market cap")}</small><b data-no-i18n>${usd(m)}</b></div><div><small>${T("Creator")}</small><b data-no-i18n><a href="${esc(EXPL("address", l.creator))}" target="_blank" rel="noopener">${esc(short(l.creator))}</a></b></div></div>
-      <div class="agl-sh-track" aria-hidden="true"><i class="fill" style="width:${pos.toFixed(1)}%"></i><em style="left:${mk(lo).toFixed(1)}%">$20K</em><em style="left:${mk(hi).toFixed(1)}%">$100K</em></div>
+      ${progressHtml(m, "lg")}
       <ul class="agl-sh-ms">${ms(lo, "Dexscreener info support", "From a $20K market cap: we help update the coin's Dexscreener info.")}${ms(hi, "Marketing support", "From a $100K market cap: boosts, calls and promotion, case by case.")}</ul>
       <p class="agl-sh-note">${T("Support may be refused if our Token Scanner finds signs of manipulation, or if the 70 / 30 fee split is removed. It is ARCIRCLE PAD's own policy, not a contract.")}</p>
       ${l.description ? `<p class="agl-sh-desc" data-no-i18n>${esc(l.description)}</p>` : ""}
@@ -517,7 +530,7 @@ self.postMessage({done:true});};`;
     setTimeout(() => { sheet.hidden = true; }, reduce ? 0 : 200);
   }
 
-  window.arcArgus = { active: () => plat === "argus" && !$("agl-fields").hidden, submit, rows: () => AR.items, load: loadList, openSheet, setPlatform: setPlat };
+  window.arcArgus = { active: () => plat === "argus" && !$("agl-fields").hidden, submit, rows: () => AR.items, load: loadList, openSheet, setPlatform: setPlat, progress: progressHtml };
   wire();
   document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { if (/[?&]platform=argus/.test(location.hash)) setPlat("argus"); resumeCard(); } });
   setTimeout(loadList, 1200);

@@ -222,7 +222,7 @@ function launchCardHtml(l) {
       <div class="ap-card-top">${img}<span class="ap-plat-tag">Argus</span><span class="ap-card-age">${typeof actAgo === "function" && l.launchedAt ? actAgo(l.launchedAt) : ""}</span></div>
       <div class="sym">$${arcEscHtml(l.symbol)}</div>
       <div class="name">${arcEscHtml(l.name)}</div>
-      <div class="ap-argus-line" aria-hidden="true"><i></i></div>
+      ${window.arcArgus && window.arcArgus.progress ? window.arcArgus.progress(l.marketCapUsd, "card") : '<div class="ap-argus-line" aria-hidden="true"><i></i></div>'}
       <div class="meta"><span>${l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—"} mcap</span><span class="ap-chg flat">USDC</span></div>
       <div class="ap-card-vol">Argus · via ArcPad</div>
     </button>`;
