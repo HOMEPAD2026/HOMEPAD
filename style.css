@@ -9425,7 +9425,8 @@ html.u2-lock{overflow:hidden;}
 .aa-fab.busy img{animation:aa-fab-spin 1s linear infinite;}
 @keyframes aa-fab-spin{to{transform:rotate(360deg);}}
 html.aa-dr-open .aa-fab{display:none;}
-@media (max-width:900px){.aa-fab{right:14px;bottom:calc(150px + env(safe-area-inset-bottom));padding:4px;}.aa-fab span{display:none;}}
+@media (max-width:900px){.aa-fab{right:14px;bottom:calc(176px + env(safe-area-inset-bottom));padding:4px;}.aa-fab span{display:none;}}
+.aa-fab{transition:transform .2s,box-shadow .2s,bottom .3s ease;}
 .aa-drawer{position:fixed;inset:0;z-index:9100;}
 .aa-drawer[hidden]{display:none;}
 .aa-dr-scrim{position:absolute;inset:0;background:rgba(3,6,12,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .24s;}

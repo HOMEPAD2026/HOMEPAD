@@ -14,6 +14,8 @@
   "use strict";
   var panel = document.getElementById("bp-panel-arcia");
   if (!panel) return;
+  // on pages other than ArcPad (arc-arcia-fab.js) she lives in a hidden host and only opens as the drawer
+  var HOST = panel.getAttribute("data-host") === "float";
   var X = "https://x.com/ARCIAonArc";
   var CA = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
   var BUY = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "https://argus.world/token/" + CA;
@@ -229,6 +231,7 @@
   function pageCtx() {
     var h = location.hash.replace(/^#/, "");
     var tab = drawer && !drawer.hidden ? (h.split(/[?/]/)[0] || "home") : "arcia";
+    if (HOST) { var p = location.pathname.replace(/^\/+|\/+$/g, "").split("/"); tab = { "": "site", circle: "circlepad", round: "circlepad", "whitepaper": "whitepaper" }[p[0]] || p[0] || "site"; }
     var m = /(?:[?&](?:t|token)=|coin\/)(0x[0-9a-fA-F]{40})/.exec(h);
     return { tab: tab, token: m ? m[1] : undefined };
   }
@@ -993,9 +996,9 @@
     panel.innerHTML =
       '<div class="aa">' +
         '<div class="aa-hero">' +
-          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner-900.webp 900w, /images/arcia-banner.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner.jpg" srcset="/images/arcia-banner-900.jpg 900w, /images/arcia-banner.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="523" fetchpriority="high"></picture></div></div>' +
+          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner-900.webp 900w, /images/arcia-banner.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner.jpg" srcset="/images/arcia-banner-900.jpg 900w, /images/arcia-banner.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="523"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + '></picture></div></div>' +
           '<div class="aa-id">' +
-            '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
+            '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"' + (HOST ? ' loading="lazy"' : "") + '></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
             '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>' +
               '<p class="aa-handle"><a href="' + X + '" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p>' +
               '<div class="aa-badges"></div></div>' +
@@ -1241,7 +1244,7 @@
       drawer.className = "aa-drawer"; drawer.hidden = true;
       drawer.setAttribute("role", "dialog"); drawer.setAttribute("aria-label", "ARCIA");
       drawer.innerHTML = '<div class="aa-dr-scrim" data-dr-close></div><div class="aa-dr-sheet"><div class="aa-dr-h"><img src="/images/arcia-avatar-96.jpg" alt="" width="36" height="36"><div><b>ARCIA</b><small>' +
-        esc(T({ en: "Ask about this page", ko: "이 화면에 대해 물어보세요", zh: "问问这个页面" })) + '</small></div><a href="#arcia" class="aa-dr-full" data-dr-close>' +
+        esc(T({ en: "Ask about this page", ko: "이 화면에 대해 물어보세요", zh: "问问这个页面" })) + '</small></div><a href="' + (HOST ? "/arc#arcia" : "#arcia") + '" class="aa-dr-full" data-dr-close>' +
         esc(T({ en: "Full page", ko: "전체 화면", zh: "完整页面" })) + '</a><button type="button" class="aa-dr-x" data-dr-close aria-label="Close">×</button></div><div class="aa-dr-body"></div></div>';
       document.body.appendChild(drawer);
       drawer.addEventListener("click", function (e) { if (e.target.closest("[data-dr-close]")) closeDrawer(); });

@@ -278,12 +278,16 @@ async function letters(top) {
 }
 // what the fan is looking at on arcircle.app when they ask (the mini chat opens over any page)
 const PAGES = { arcia: "the ARCIA chat", locker: "the Locker", scanner: "the Token Scanner", multisend: "the Multisender", bridge: "the Bridge", snapshot: "the Holder Snapshot", liquidity: "the Liquidity Manager", relay: "Relay Launch", omni: "ARCIRCLE OMNI (preview)", coin: "an ArcPad coin page", explore: "Explore (ArcPad coins)", launch: "the ArcPad launch form", home: "the ArcPad home page", arcircle: "the $ARCIRCLE page", portfolio: "their ArcPad portfolio" };
+// pages outside ArcPad (the floating button, arc-arcia-fab.js): tab → path on arcircle.app
+Object.assign(PAGES, { site: "the ARCIRCLE PAD home page", circlepad: "CirclePad (the crowdfunded launch rounds)", reward: "the Reward page", me: "their wallet page", stats: "the stats page", roadmap: "the roadmap", start: "the Start guide (add Arc to a wallet, bring USDC)", brand: "the brand kit", whitepaper: "the $ARCIRCLE whitepaper" });
+const SITE_PAGES = { site: "", arcircle: "arcircle", circlepad: "circlepad", reward: "reward", me: "me", stats: "stats", roadmap: "roadmap", start: "start", brand: "brand", whitepaper: "whitepaper" };
 function pageContext(p) {
   if (!p || typeof p !== "object") return "";
   const tab = String(p.tab || "").toLowerCase();
   if (!PAGES[tab]) return "";
   const token = isAddr(p.token) ? String(p.token).toLowerCase() : "";
-  return `The fan is looking at ${PAGES[tab]} (arcircle.app/arc#${tab}${token ? ", token " + token : ""}) while they chat with you. When they say "this" or "here", they mean that screen.`;
+  const where = SITE_PAGES[tab] ? `arcircle.app/${SITE_PAGES[tab]}` : `arcircle.app/arc#${tab}`;
+  return `The fan is looking at ${PAGES[tab]} (${where}${token ? ", token " + token : ""}) while they chat with you. When they say "this" or "here", they mean that screen.`;
 }
 async function postLetter(b, ip, lang) {
   if (!storeEnabled()) return json({ error: "The letter box isn't open yet~" }, 503);
