@@ -10,6 +10,7 @@
 //   /s/<address>        Token Scanner share link: the result card for X, then the scanner
 //   /drop/<tx>[,<tx>…]  Multisender receipt: the airdrop card for X, then the receipt in the app
 //   /snap/<id>          a published / scheduled Holder Snapshot: its card, then the snapshot in the app
+//   /bx/<src>/<tx>      Bridge receipt: one CCTP transfer in or out of Arc (Circle's own record), then the Bridge
 //   /lock/<id>          Locker certificate: one ArcLock lock's card, then the lock in the app
 //   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
@@ -18,6 +19,7 @@ import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
+import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -35,6 +37,7 @@ export default async function handler(req) {
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
   if (view === "lock") return lockPage(url);
+  if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
   if (view === "latest") return latestCoins(url);
@@ -556,6 +559,47 @@ async function lplockPage(url) {
 <p>Opening the <a href="${esc(target)}">liquidity lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- Bridge receipt (/bx/<src>/<tx>) — read from Circle's attestation service ----
+async function bridgePage(url) {
+  const src = String(url.searchParams.get("src") || ""), tx = String(url.searchParams.get("tx") || "");
+  if (!/^\d{1,3}$/.test(src) || !/^0x[0-9a-fA-F]{64}$/.test(tx)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#bridge">`, "public, max-age=300");
+  let m = null;
+  try { const [st, body] = await cctp(new URLSearchParams({ cctp: "msg", src, tx })); m = st === 200 && body.messages && body.messages[0] ? body.messages[0] : null; } catch { m = null; }
+  const from = DOMAIN_NAMES[Number(src)] || "another chain", to = m && m.dstDomain != null ? DOMAIN_NAMES[m.dstDomain] || "another chain" : "Arc";
+  const amt = m && m.amount ? (Number(BigInt(m.amount)) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "USDC";
+  const title = m ? `Bridged ${amt} from ${from} to ${to}` : "Bridge — ARCIRCLE PAD";
+  const desc = m ? `Native USDC, burned on ${from} and minted on ${to} by Circle's CCTP${m.status === "complete" ? " — signed by Circle" : ""}. Bridged with ARCIRCLE PAD, no extra fee.` : "Move USDC between Arc and 14 chains with Circle's CCTP.";
+  const target = "/arc#bridge";
+  const image = `${SITE}/api/og?bridge=${src}:${tx.toLowerCase()}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/bx/${src}/${tx}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ffc861}</style>
+</head><body>
+<p>Opening the <a href="${esc(target)}">Bridge</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, m && m.status === "complete" ? "public, max-age=0, s-maxage=86400" : "public, max-age=0, s-maxage=60");
 }
 
 // ---- Locker certificate (/lock/<id>) ----

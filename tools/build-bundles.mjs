@@ -35,7 +35,7 @@ export const BUNDLES = {
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
   // It runs after arcpad.bundle.js and shares its globals (ethers, CONFIG, state, the ABIs).
   "arcpad-tools.bundle.js": [
-    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js", "arc-omni.js",
+    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "liq-core.js", "arc-liquidity.js", "arc-omni.js", "arc-uhub.js",
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",

@@ -966,7 +966,7 @@ function refreshAccountDependentViews() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (mobileMenuLabel) {
       const activeBtn = [...navItems].find((b) => b.dataset.tab === tab);
-      if (activeBtn) mobileMenuLabel.textContent = activeBtn.textContent.trim();
+      if (activeBtn) mobileMenuLabel.textContent = [...activeBtn.childNodes].filter((n) => !(n.classList && n.classList.contains("bp-nav-v"))).map((n) => n.textContent).join("").trim();
     }
     if (sidebar) sidebar.classList.remove("bp-menu-open");
     // Keep the URL shareable (/arc#launch, /arc#explore, …) without adding

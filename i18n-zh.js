@@ -3085,6 +3085,20 @@
     "Next:": "下一步：",
     "Circle CCTP · 15 chains": "Circle CCTP · 15 条链",
     "ARCIRCLE OMNI · preview": "ARCIRCLE OMNI · 预览",
+    "Move USDC between Arc and 14 chains": "在 Arc 与 14 条链之间转移 USDC",
+    "My activity": "我的动态",
+    "Locks are read from Arc for your connected wallet. Scans, sends and bridge transfers are the ones made in this browser.": "锁定从 Arc 按已连接钱包读取；扫描、发送和跨链记录为本浏览器中的操作。",
+    "Reading your activity…": "正在读取你的动态…",
+    "Nothing here yet — lock, scan, send or bridge something and it shows up here.": "这里还没有记录 — 锁定、扫描、发送或跨链后会显示在这里。",
+    "Delivered": "已送达",
+    "On its way": "途中",
+    "Failed": "失败",
+    "How does the Locker on ARCIRCLE PAD work, and when should I split a lock into tranches?": "ARCIRCLE PAD 的 Locker 如何运作？什么时候应该分批锁定？",
+    "How do I read a Token Scanner result on ARCIRCLE PAD — what do snipers, bundles and fresh wallets mean?": "如何看 ARCIRCLE PAD 代币扫描结果？狙击者、捆绑和新钱包是什么意思？",
+    "How do I send an airdrop with the ARCIRCLE PAD Multisender, step by step?": "如何用 ARCIRCLE PAD Multisender 一步步发送空投？",
+    "How do I bring USDC to Arc with the ARCIRCLE PAD Bridge, and what's the difference between Fast and Standard?": "如何用 ARCIRCLE PAD Bridge 把 USDC 转到 Arc？Fast 和 Standard 有什么区别？",
+    "Token scan": "代币扫描",
+    "Airdrop sent": "已发送空投",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

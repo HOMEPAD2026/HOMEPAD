@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790568877"></script>
+<script src="arc-log.js?v=1790569202"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790568877">
+<link rel="stylesheet" href="style.css?v=1790569202">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -105,10 +105,10 @@
       <button type="button" class="bp-nav-item" data-tab="launch"><svg><use href="#i-rocket" xlink:href="#i-rocket"/></svg>Launch</button>
       <button type="button" class="bp-nav-item" data-tab="portfolio"><svg><use href="#i-wallet" xlink:href="#i-wallet"/></svg>Portfolio</button>
       <button type="button" class="bp-nav-item" data-tab="creators"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Creators</button>
-      <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker</button>
-      <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge</button>
-      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner</button>
-      <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender</button>
+      <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot</button>
       <button type="button" class="bp-nav-item" data-tab="relay"><svg><use href="#i-relay" xlink:href="#i-relay"/></svg>Relay Launch</button>
       <button type="button" class="bp-nav-item" data-tab="arcia"><svg><use href="#i-arcia" xlink:href="#i-arcia"/></svg>ARCIA</button>
@@ -778,7 +778,7 @@
           </div>
           <div class="lkr-hero-txt">
             <span class="lkr-kicker">Utility</span>
-            <h1>Locker</h1>
+            <h1>Locker <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
             <p class="bp-lede">Lock any Arc token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.</p>
             <p class="lkr-lp-note">Locking a Uniswap v4 LP position? That's in the <a href="#liquidity">Liquidity Manager</a>.</p>
           </div>
@@ -868,7 +868,7 @@
           </div>
           <div class="abr-hero-txt">
             <span class="abr-kicker">Utility · Circle CCTP</span>
-            <h1>Bridge</h1>
+            <h1>Bridge <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
             <p class="bp-lede">Move USDC between Arc and other chains. It's Circle's own Cross-Chain Transfer Protocol: native USDC is burned on one side and minted on the other — no wrapped tokens, no pools, and Circle delivers it on the other side so you don't need gas there.</p>
             <div class="abr-stats" id="abr-stats" hidden></div>
           </div>
@@ -954,7 +954,7 @@
           </div>
           <div class="asc-hero-txt">
             <span class="asc-kicker">Utility · On-chain check</span>
-            <h1>Token Scanner <span class="asc-ver" title="Version 1 — new checks are added regularly">v1<i>Updated regularly</i></span></h1>
+            <h1>Token Scanner <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
             <p class="bp-lede">Paste any Arc token. The scanner reads its contract, who can still change it, where it trades and who holds it — then sums it up in one score. It reads the chain; it can't promise a token is safe.</p>
           </div>
         </div>
@@ -990,7 +990,7 @@
             </ul>
           </div>
           <div class="asc-card asc-next">
-            <h2>Coming next <span class="asc-ver sm">v2</span></h2>
+            <h2>Coming next <span class="asc-ver sm">v3</span></h2>
             <ul>
               <li>Verified source code check</li>
               <li>A full swap through the pool in the dry run, so hook taxes show too</li>
@@ -1022,7 +1022,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Batch transfer</span>
-            <h1>Multisender <span class="asc-ver" title="Version 1.1 — new features are added regularly">v1.1<i>Updated regularly</i></span></h1>
+            <h1>Multisender <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
             <p class="bp-lede">Send one Arc token to many wallets at once — an airdrop, rewards, payroll in USDC. Paste a list, check it, approve once, and it goes out in as few transactions as possible, straight from your wallet.</p>
             <div class="ams-stats" id="ams-stats" hidden></div>
           </div>
@@ -1474,6 +1474,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790568877"></script>
+<script src="arcpad.bundle.js?v=1790569202"></script>
 </body>
 </html>

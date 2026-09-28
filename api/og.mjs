@@ -12,6 +12,7 @@ import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx } from "./_burnvote.mjs";
 import { lockInfo } from "./_locker.mjs";
+import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
@@ -124,6 +125,13 @@ export async function GET(req) {
     return new ImageResponse(await voteCard(await markP, url.searchParams.get("vote")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=600, s-maxage=86400, stale-while-revalidate=86400" },
+    });
+  }
+  if (url.searchParams.has("bridge")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await bridgeCard(await markP, url.searchParams.get("bridge")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" },
     });
   }
   if (url.searchParams.has("lock")) {
@@ -390,6 +398,40 @@ async function lplockCard(mark, id) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "ArcLPLock · nobody can move it before the date"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, `arcircle.app/lplock/${d.id}`)),
+  ]);
+}
+
+// ---- Bridge receipt card (/bx/<src>/<tx>) ----
+async function bridgeCard(mark, key) {
+  const [src, tx] = String(key || "").split(":");
+  let m = null;
+  if (/^\d{1,3}$/.test(src || "") && /^0x[0-9a-f]{64}$/i.test(tx || "")) {
+    try { const [st, body] = await cctp(new URLSearchParams({ cctp: "msg", src, tx })); m = st === 200 && body.messages && body.messages[0] ? body.messages[0] : null; } catch { m = null; }
+  }
+  const acc = "#ffc861";
+  const from = DOMAIN_NAMES[Number(src)] || "Chain", to = m && m.dstDomain != null ? DOMAIN_NAMES[m.dstDomain] || "Chain" : "Arc";
+  const coin = h("div", { width: 150, height: 150, borderRadius: 75, alignItems: "center", justifyContent: "center", backgroundImage: "radial-gradient(circle at 35% 30%, #ffffff, #9cd0ff 35%, #2775ca 75%)", boxShadow: "0 0 60px rgba(77,159,255,0.6)" },
+    h("div", { fontSize: 44, fontWeight: 800, color: "#0b2a55" }, "USDC"));
+  const chip = (t, c) => h("div", { padding: "14px 26px", borderRadius: 999, border: `3px solid ${c}`, fontSize: 36, fontWeight: 800, color: "#eaf2e6" }, t);
+  if (!m) {
+    return frame([
+      brandRow(mark, pill("BRIDGE", acc), "Circle CCTP · Circle's Arc"),
+      h("div", { alignItems: "center", gap: 40 }, coin, h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 84, fontWeight: 800, lineHeight: 1.05 }, "USDC, anywhere."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Native USDC between Arc and 14 chains, by Circle's CCTP."))),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#bridge"),
+    ]);
+  }
+  const amt = (Number(BigInt(m.amount || "0")) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return frame([
+    brandRow(mark, pill(m.status === "complete" ? "SIGNED BY CIRCLE" : "ON ITS WAY", acc), "Bridge · Circle CCTP"),
+    h("div", { alignItems: "center", gap: 40, width: "100%" }, coin,
+      h("div", { flexDirection: "column", gap: 18 },
+        h("div", { fontSize: 96, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `${amt} USDC`),
+        h("div", { alignItems: "center", gap: 18 }, chip(from, "#4d9fff"), h("div", { fontSize: 44, color: acc, fontWeight: 800 }, "→"), chip(to, "#39ff88")))),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
+      h("div", {}, "Burned on one chain, minted on the other · no wrapped tokens"),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, "arcircle.app/arc#bridge")),
   ]);
 }
 

@@ -593,6 +593,7 @@
         </ol>
         ${canClaim ? `<button type="button" class="abr-claim" data-claim="${esc(r.id)}">${esc(tr("Finish on " + d.name))}</button><p class="abr-claim-note">${esc(tr(r.forward ? "Delivery is taking longer than usual. You can mint it yourself — it needs a little gas on " + d.name + "." : "Mint it on " + d.name + " — it needs a little gas there."))}</p><p class="abr-gasline" data-gas="${esc(r.id)}" hidden></p>` : ""}
         ${st === "delivered" && d.key === "arc" ? nextHtml(r) : ""}
+        ${(st === "delivered" || r.attested) && r.tx ? `<div class="abr-tx-share"><a href="https://x.com/intent/post?text=${encodeURIComponent(`Bridged ${fmt(BigInt(r.amount))} USDC from ${s.name} to ${d.name} with Circle's CCTP on @ARCIRCLEonArc`)}&url=${encodeURIComponent(`${location.origin}/bx/${s.domain}/${r.tx}`)}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a><button type="button" data-copy-rx="${esc(`${location.origin}/bx/${s.domain}/${r.tx}`)}">${esc(tr("Copy receipt link"))}</button></div>` : ""}
         ${st === "delivered" || st === "failed" ? `<button type="button" class="abr-x" data-remove="${esc(r.id)}" aria-label="${esc(tr("Remove"))}">×</button>` : ""}
       </div>`;
     }).join("");
@@ -918,6 +919,8 @@
   }
 
   panel.addEventListener("click", (e) => {
+    const rx = e.target.closest("[data-copy-rx]");
+    if (rx) { (navigator.clipboard ? navigator.clipboard.writeText(rx.dataset.copyRx) : Promise.reject()).then(() => { const t = rx.textContent; rx.textContent = tr("Copied"); setTimeout(() => { rx.textContent = t; }, 1400); }, () => {}); return; }
     const nb = e.target.closest("[data-next]");
     if (!nb) return;
     nextPick = nb.dataset.next;

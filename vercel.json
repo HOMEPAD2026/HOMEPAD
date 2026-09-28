@@ -125,6 +125,10 @@
       "destination": "/api/c?view=lplock&id=:id"
     },
     {
+      "source": "/bx/:src/:tx",
+      "destination": "/api/c?view=bridge&src=:src&tx=:tx"
+    },
+    {
       "source": "/lock/:id",
       "destination": "/api/c?view=lock&id=:id"
     },

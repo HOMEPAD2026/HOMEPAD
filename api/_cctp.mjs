@@ -9,6 +9,7 @@
 const IRIS = "https://iris-api.circle.com";
 // Arc 26 · Ethereum 0 · Avalanche 1 · OP 2 · Arbitrum 3 · Base 6 · Polygon 7 · Unichain 10 · Linea 11
 // · Sonic 13 · World Chain 14 · Monad 15 · Sei 16 · HyperEVM 19 · Ink 21
+export const DOMAIN_NAMES = { 26: "Arc", 0: "Ethereum", 1: "Avalanche", 2: "OP Mainnet", 3: "Arbitrum", 6: "Base", 7: "Polygon", 10: "Unichain", 11: "Linea", 13: "Sonic", 14: "World Chain", 15: "Monad", 16: "Sei", 19: "HyperEVM", 21: "Ink" };
 export const DOMAINS = new Set([26, 0, 1, 2, 3, 6, 7, 10, 11, 13, 14, 15, 16, 19, 21]);
 const dom = (v) => { const n = Number(v); return Number.isInteger(n) && DOMAINS.has(n) ? n : null; };
 

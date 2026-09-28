@@ -2992,6 +2992,20 @@
     "Next:": "다음:",
     "Circle CCTP · 15 chains": "Circle CCTP · 15개 체인",
     "ARCIRCLE OMNI · preview": "ARCIRCLE OMNI · 미리보기",
+    "Move USDC between Arc and 14 chains": "Arc와 14개 체인 사이에서 USDC 이동",
+    "My activity": "내 활동",
+    "Locks are read from Arc for your connected wallet. Scans, sends and bridge transfers are the ones made in this browser.": "락은 연결된 지갑 기준으로 Arc에서 읽고, 스캔·전송·브리지 기록은 이 브라우저에서 한 것들입니다.",
+    "Reading your activity…": "활동을 불러오는 중…",
+    "Nothing here yet — lock, scan, send or bridge something and it shows up here.": "아직 기록이 없어요 — 락, 스캔, 전송, 브리지를 하면 여기에 나타납니다.",
+    "Delivered": "전달 완료",
+    "On its way": "이동 중",
+    "Failed": "실패",
+    "How does the Locker on ARCIRCLE PAD work, and when should I split a lock into tranches?": "ARCIRCLE PAD의 Locker는 어떻게 작동하고, 언제 락을 여러 회차로 나누는 게 좋아?",
+    "How do I read a Token Scanner result on ARCIRCLE PAD — what do snipers, bundles and fresh wallets mean?": "ARCIRCLE PAD 토큰 스캐너 결과는 어떻게 읽어? 스나이퍼, 번들, 새 지갑은 무슨 뜻이야?",
+    "How do I send an airdrop with the ARCIRCLE PAD Multisender, step by step?": "ARCIRCLE PAD 멀티센더로 에어드랍은 어떻게 보내? 단계별로 알려줘.",
+    "How do I bring USDC to Arc with the ARCIRCLE PAD Bridge, and what's the difference between Fast and Standard?": "ARCIRCLE PAD 브리지로 USDC를 Arc로 어떻게 가져와? Fast와 Standard는 뭐가 달라?",
+    "Token scan": "토큰 스캔",
+    "Airdrop sent": "에어드랍 전송",
   };
 
 
