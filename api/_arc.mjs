@@ -13,7 +13,7 @@ export const RPCS = [
   "https://rpc.drpc.mainnet.arc.io",
   "https://rpc.quicknode.mainnet.arc.io",
 ];
-let rpcIdx = 0;
+let rpcIdx = 0, rpcSince = 0;
 export const PM_ADDRESS = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
 export const FACTORY_ADDRESS = "0x0ebd6df354056ff469F17F8Fd14dc0D2c87bd65E";
 export const TOPIC = {
@@ -23,19 +23,36 @@ export const TOPIC = {
 };
 /// Raw JSON-RPC (single or batch) with failover to the next endpoint when one
 /// is unreachable, rate-limited or answers garbage.
+// The fallbacks are free tiers with their own limits (dRPC refuses batches of more than 3 and
+// log ranges over 10k blocks; QuickNode rate-limits items inside a batch), so a batch they only
+// half-answer counts as a failure and moves on, big batches go to them in pieces of 3, and the
+// primary gets another chance two minutes after a switch.
+const RPC_LIMIT = /rate|limit|too many|timeout|free plan|batch of more than|not supported|capacity|coalesce/i;
+async function post(url, body, signal) {
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
+  if (r.status === 429 || r.status >= 500) throw new Error(`rpc ${r.status}`);
+  return r.json();
+}
 export async function rpc(body, { timeoutMs = 8000 } = {}) {
   let lastErr;
+  if (rpcIdx !== 0 && Date.now() - rpcSince > 120e3) rpcIdx = 0;
   for (let k = 0; k < RPCS.length; k++) {
     const url = RPCS[(rpcIdx + k) % RPCS.length];
     const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
     const t = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
     try {
-      const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined });
-      if (r.status === 429 || r.status >= 500) throw new Error(`rpc ${r.status}`);
-      const out = await r.json();
-      const single = Array.isArray(out) ? null : out;
-      if (single && single.error && /rate|limit|too many|timeout/i.test(String(single.error.message))) throw new Error(single.error.message);
+      const sig = ctl ? ctl.signal : undefined;
+      let out;
+      if (Array.isArray(body) && body.length > 3 && url !== RPCS[0]) {
+        out = [];
+        for (let i = 0; i < body.length; i += 3) { const part = await post(url, body.slice(i, i + 3), sig); if (!Array.isArray(part)) throw new Error((part && part.error && part.error.message) || "batch refused"); out.push(...part); }
+      } else out = await post(url, body, sig);
+      if (Array.isArray(body) && !Array.isArray(out)) throw new Error((out && out.error && out.error.message) || "batch refused");
+      const bad = (Array.isArray(out) ? out : [out]).find((x) => x && x.error && RPC_LIMIT.test(String(x.error.message)));
+      if (bad) throw new Error(bad.error.message);
+      const was = rpcIdx;
       rpcIdx = (rpcIdx + k) % RPCS.length;
+      if (rpcIdx !== was) rpcSince = Date.now();
       return out;
     } catch (err) { lastErr = err; } finally { if (t) clearTimeout(t); }
   }

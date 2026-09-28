@@ -30,10 +30,12 @@ function rpcUrls() {
 }
 function readProvider() {
   const urls = rpcUrls();
-  if (RPC_STATE.idx > 0 && Date.now() - RPC_STATE.since > 10 * 60_000 && !RPC_STATE.switching) rpcProbe(0);
+  if (RPC_STATE.idx > 0 && Date.now() - RPC_STATE.since > 2 * 60_000 && !RPC_STATE.switching) rpcProbe(0);
   if (!state.provider) {
     const net = ethers.Network.from(CONFIG.CHAIN_ID_DECIMAL);
-    state.provider = new ethers.JsonRpcProvider(urls[RPC_STATE.idx], net, { staticNetwork: net });
+    // the fallbacks are free tiers: dRPC refuses batches of more than 3 and QuickNode rate-limits
+    // items inside one, so reads go to them one request at a time
+    state.provider = new ethers.JsonRpcProvider(urls[RPC_STATE.idx], net, RPC_STATE.idx === 0 ? { staticNetwork: net } : { staticNetwork: net, batchMaxCount: 1 });
   }
   return state.provider;
 }
@@ -75,7 +77,7 @@ function rpcNoteFailure() {
   return null;
 }
 
-const TRANSIENT_RPC = /failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET/i;
+const TRANSIENT_RPC = /failed to fetch|timed out|timeout|429|rate limit|too many|coalesce|network error|ECONNRESET|free plan|batch of more than/i;
 async function withRetry(fn, { tries = 3, delayMs = 900 } = {}) {
   let lastErr;
   for (let i = 0; i < tries; i++) {

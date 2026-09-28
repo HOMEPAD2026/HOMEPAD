@@ -120,7 +120,12 @@ async function loadArcpadLaunches() {
   // query failed outright within hours of going live. This costs the same
   // few multicalls however old the factory gets. Batched so a page of
   // launches with embedded data-URI logos stays within eth_call limits.
-  const count = Number(await withRetry(() => f.launchCount()));
+  // launchCount() can't revert: "missing revert data" here is an RPC answering badly, so it's
+  // retried (and counts toward switching endpoints) like a timeout
+  const count = Number(await withRetry(() => f.launchCount().catch((e) => {
+    if (/missing revert data/i.test(String(e && (e.shortMessage || e.message)))) throw new Error("rpc timeout: launchCount answered without data");
+    throw e;
+  })));
   const BATCH = 20;
   const built = [];
   for (let start = 0; start < count; start += BATCH) {
@@ -1091,9 +1096,12 @@ function refreshAccountDependentViews() {
   let loadingLaunches = null;
   const loadLaunches = () => {
     if (loadingLaunches) return loadingLaunches;
+    const startIdx = typeof RPC_STATE !== "undefined" ? RPC_STATE.idx : 0;
     loadingLaunches = loadArcpadLaunches().catch((err) => {
       console.error("loadArcpadLaunches failed", err);
       if (!ARC.launches.length) renderArcpadLoadError(err);
+      // no endpoint switch happened while it failed: try the others once (a switch reloads the list, arc:rpc-switched below)
+      if (!ARC.launches.length && typeof rpcProbe === "function" && !loadLaunches.probed && RPC_STATE.idx === startIdx && !RPC_STATE.switching) { loadLaunches.probed = true; rpcProbe(); }
     }).finally(() => { loadingLaunches = null; });
     return loadingLaunches;
   };
