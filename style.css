@@ -9665,9 +9665,9 @@ html.agl-sh-open{overflow:hidden;}
 @media (prefers-reduced-motion:reduce){.agl-prog .fill,.agl-prog .dot,.agl-prog .now{animation:none;}}
 
 /* ♾ in page text → the brand's infinity mark (arc-glyph.js) */
-.ax-inf{display:inline-block;width:1.2em;height:.62em;vertical-align:-.02em;margin:0 .04em;line-height:0;}
-.ax-inf svg{display:block;width:100%;height:100%;overflow:visible;}
-.ax-inf path{fill:none;stroke:url(#axInfG);stroke-width:8;stroke-linecap:round;}
+.ax-glyph{display:inline-block;width:1.2em;height:.62em;vertical-align:-.02em;margin:0 .04em;line-height:0;}
+.ax-glyph svg{display:block;width:100%;height:100%;overflow:visible;}
+.ax-glyph path{fill:none;stroke:url(#axInfG);stroke-width:8;stroke-linecap:round;}
 
 /* Multisender: the "Sent" stamp keeps clear of the headline */
 .ams-done>div>b:first-child{padding-right:104px;}

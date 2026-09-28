@@ -19,7 +19,7 @@
   }
   function mark() {
     var s = document.createElement("span");
-    s.className = "ax-inf"; s.setAttribute("role", "img"); s.setAttribute("aria-label", "♾");
+    s.className = "ax-glyph"; s.setAttribute("role", "img"); s.setAttribute("aria-label", "♾");
     s.innerHTML = '<svg viewBox="0 0 100 50" aria-hidden="true"><path d="' + PATH + '"/></svg>';
     return s;
   }
