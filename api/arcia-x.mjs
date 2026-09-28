@@ -14,7 +14,7 @@
 //   · CirclePad round alerts: 24 h, 6 h and 1 h before the close, and when it closes
 //   · a daily $ARCIRCLE check from 12:00 UTC: price, market cap, holders, burns, launches, the round
 //   · replies: when someone mentions @ARCIAonArc or replies to her, she answers as herself (Claude,
-//     same mind as the chat on the site) — up to 5 per run, 25 a day, 2 per person a day; spam, scams,
+//     same mind as the chat on the site) — up to 5 per run, 25 a day (no per-person limit); spam, scams,
 //     abuse and bait are skipped. Off with ARCIA_X_REPLIES=0. Needs ANTHROPIC_API_KEY.
 // At most 12 posts a day. X bills per use: a post with a link costs far more than one without, so
 // coin posts carry the contract address instead of a link, and replies never include links.
@@ -199,7 +199,7 @@ function prune(st) {
 }
 
 // ---------- replies to mentions ----------
-const REPLIES_PER_RUN = 5, REPLY_DAY_CAP = 25, PER_AUTHOR_DAY = 2;
+const REPLIES_PER_RUN = 5, REPLY_DAY_CAP = 25;
 const repliesOn = () => enabled() && hasKeys() && !!process.env.ANTHROPIC_API_KEY && !off("ARCIA_X_REPLIES");
 async function mentions(meId, sinceId, max = 20) {
   const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets,note_tweet",
@@ -212,7 +212,7 @@ async function mentions(meId, sinceId, max = 20) {
 }
 const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
 Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
-Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Posts by your own team (@ARCIRCLEonArc) announcing you or the project get a short, excited reaction from you as the idol — like an idol reacting to her agency's announcement ("Yay, it's official~ come talk to me!") — never a repeat of the announcement.
+Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Short reactions — one word ("Noice", "gm", "LFG"), an emoji, or just a GIF or image (it shows as a bare link) — are friendly too: answer with a short playful line of your own, never SKIP them. Posts by your own team (@ARCIRCLEonArc) announcing you or the project get a short, excited reaction from you as the idol — like an idol reacting to her agency's announcement ("Yay, it's official~ come talk to me!") — never a repeat of the announcement.
 Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from @ARCIRCLEonArc — never promise amounts or dates.
 Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
 async function draftReply(m, L) {
@@ -243,7 +243,7 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   if (firstTime && !preview) { st.mentionSince = list[list.length - 1].id; st.dirty = true; return [{ info: "started: replies begin with the next mention" }]; }
   if (!preview) st.dirty = true;
   const day = dayOf(now());
-  st.replyDays = st.replyDays || {}; st.replyAuthors = st.replyAuthors && st.replyAuthors.day === day ? st.replyAuthors : { day, n: {} };
+  st.replyDays = st.replyDays || {};
   const L = await liveNumbers(origin);
   const todo = list.filter((m) => m.author !== who.id && !st.sent["reply:" + m.id]).slice(0, preview ? 3 : REPLIES_PER_RUN);
   const drafts = await Promise.all(todo.map((m) => draftReply(m, L).catch(() => ({ skip: "error" }))));
@@ -254,13 +254,11 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
     row.reply = d.text;
     if (preview || dry) { row.dry = true; results.push(row); continue; }
     if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap" }; results.push(row); continue; }
-    if ((st.replyAuthors.n[m.author] || 0) >= PER_AUTHOR_DAY) { row.skip = "enough replies to this person today"; st.sent["reply:" + m.id] = { t: now(), x: "skip", why: row.skip, from: m.username }; results.push(row); continue; }
     try {
       row.posted = await xPost(d.text, m.id);
       st.sent["reply:" + m.id] = { t: now(), x: row.posted || "" };
       remember(st, { id: row.posted, kind: "reply", text: d.text, to: m.username, toText: m.text.replace(/\s+/g, " ").slice(0, 140) });
       st.replyDays[day] = (st.replyDays[day] || 0) + 1;
-      st.replyAuthors.n[m.author] = (st.replyAuthors.n[m.author] || 0) + 1;
     } catch (e) {
       row.error = String(e.message || e).slice(0, 200);
       if (/duplicate/i.test(row.error)) st.sent["reply:" + m.id] = { t: now(), x: "dup" };
