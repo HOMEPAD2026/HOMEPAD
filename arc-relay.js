@@ -15,6 +15,10 @@
 //                balance, ArcLock-locked tokens counted for their owners);
 //                one list, a CSV, straight into the Multisender
 //
+// v1: the page opens on what a visitor needs (am I in, how much would I get, what
+// happened in earlier rounds) and keeps the launch / relay steps for the
+// recipient wallet; ArcLock-locked $ARCIRCLE counts in the check; an estimate
+// of your share (clearly an estimate); a calendar reminder for the voted date.
 // Holding $ARCIRCLE is the relay ticket: every round's coin goes to the
 // holders at that round's snapshot — N+1, N+2, N+3 and on.
 (function () {
@@ -54,6 +58,7 @@
   // ---------------- ABIs ----------------
   // Argus Portal #7: from the published bundle (argus-v4.json v3), events, errors and the calls used here
   const PORTAL_ABI = [{"type":"function","name":"LAUNCH_STRUCT_WORDS","inputs":[],"outputs":[{"name":"","type":"uint8"}],"stateMutability":"view"},{"type":"function","name":"devBuyMaxBps","inputs":[],"outputs":[{"name":"","type":"uint16"}],"stateMutability":"view"},{"type":"function","name":"hookCreate2Salt","inputs":[{"name":"creator","type":"address"},{"name":"hookSalt","type":"bytes32"}],"outputs":[{"name":"","type":"bytes32"}],"stateMutability":"pure"},{"type":"function","name":"hookInitCodeHash","inputs":[{"name":"splitter_","type":"address"},{"name":"buyTaxBps","type":"uint16"},{"name":"sellTaxBps","type":"uint16"},{"name":"quote","type":"address"}],"outputs":[{"name":"","type":"bytes32"}],"stateMutability":"view"},{"type":"function","name":"launch","inputs":[{"name":"p","type":"tuple","components":[{"name":"name","type":"string"},{"name":"symbol","type":"string"},{"name":"totalSupply","type":"uint256"},{"name":"startFdvUsdc6","type":"uint256"},{"name":"bondFdvUsdc6","type":"uint256"},{"name":"buyTaxBps","type":"uint16"},{"name":"sellTaxBps","type":"uint16"},{"name":"creatorBps","type":"uint16"},{"name":"burnBps","type":"uint16"},{"name":"dividendBps","type":"uint16"},{"name":"liquidityBps","type":"uint16"},{"name":"devBuyQuote","type":"uint256"},{"name":"quoteAsset","type":"address"},{"name":"expectConvert","type":"uint8"}]},{"name":"meta","type":"tuple","components":[{"name":"imageURI","type":"string"},{"name":"website","type":"string"},{"name":"twitter","type":"string"},{"name":"telegram","type":"string"},{"name":"description","type":"string"}]},{"name":"salt","type":"bytes32"},{"name":"hookSalt","type":"bytes32"}],"outputs":[{"name":"","type":"address"}],"stateMutability":"nonpayable"},{"type":"function","name":"launches","inputs":[{"name":"token","type":"address"}],"outputs":[{"name":"","type":"address"},{"name":"","type":"int24"},{"name":"","type":"bool"},{"name":"","type":"address"},{"name":"","type":"address"},{"name":"","type":"address"},{"name":"","type":"uint16"},{"name":"","type":"uint16"},{"name":"","type":"uint256"},{"name":"","type":"int24"},{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"lockerImpl","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"predictHook","inputs":[{"name":"creator","type":"address"},{"name":"salt","type":"bytes32"},{"name":"hookSalt","type":"bytes32"},{"name":"buyTaxBps","type":"uint16"},{"name":"sellTaxBps","type":"uint16"},{"name":"quote","type":"address"}],"outputs":[{"name":"","type":"address"},{"name":"","type":"uint160"},{"name":"","type":"bool"}],"stateMutability":"view"},{"type":"function","name":"predictSplitter","inputs":[{"name":"creator","type":"address"},{"name":"salt","type":"bytes32"}],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"predictToken","inputs":[{"name":"creator","type":"address"},{"name":"salt","type":"bytes32"},{"name":"hook","type":"address"},{"name":"quote","type":"address"}],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"quoteApproved","inputs":[{"name":"quote","type":"address"}],"outputs":[{"name":"","type":"bool"}],"stateMutability":"view"},{"type":"function","name":"registry","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"splitterImpl","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"tokenImpl","inputs":[],"outputs":[{"name":"","type":"address"}],"stateMutability":"view"},{"type":"function","name":"treasuryBps","inputs":[],"outputs":[{"name":"","type":"uint16"}],"stateMutability":"view"},{"type":"event","name":"DevBuy","inputs":[{"name":"token","type":"address","indexed":true},{"name":"creator","type":"address","indexed":true},{"name":"quoteIn","type":"uint256","indexed":false},{"name":"tokensOut","type":"uint256","indexed":false}],"anonymous":false},{"type":"event","name":"TokenCreated","inputs":[{"name":"token","type":"address","indexed":true},{"name":"creator","type":"address","indexed":true},{"name":"name","type":"string","indexed":false},{"name":"symbol","type":"string","indexed":false},{"name":"poolId","type":"bytes32","indexed":false},{"name":"imageURI","type":"string","indexed":false},{"name":"website","type":"string","indexed":false},{"name":"twitter","type":"string","indexed":false},{"name":"telegram","type":"string","indexed":false}],"anonymous":false},{"type":"error","name":"DefaultQuoteNotRevocable","inputs":[]},{"type":"error","name":"DelayAboveCeiling","inputs":[]},{"type":"error","name":"DelayNotRaised","inputs":[]},{"type":"error","name":"DevBuyExceedsCap","inputs":[]},{"type":"error","name":"DividendWithoutRewardTracker","inputs":[]},{"type":"error","name":"ExpectConvertOutOfRange","inputs":[]},{"type":"error","name":"FailedDeployment","inputs":[]},{"type":"error","name":"HookCodeMustBeSubmitted","inputs":[]},{"type":"error","name":"HookDeployFailed","inputs":[]},{"type":"error","name":"HookHasNoCode","inputs":[{"name":"hook","type":"address"}]},{"type":"error","name":"HookSaltInvalid","inputs":[{"name":"produced","type":"address"},{"name":"mask","type":"uint160"}]},{"type":"error","name":"HookStoreDeployFailed","inputs":[]},{"type":"error","name":"HookStoreMalformed","inputs":[]},{"type":"error","name":"HookStoreUnreadable","inputs":[]},{"type":"error","name":"InsufficientBalance","inputs":[{"name":"balance","type":"uint256"},{"name":"needed","type":"uint256"}]},{"type":"error","name":"InvalidAllocation","inputs":[]},{"type":"error","name":"InvalidConfig","inputs":[]},{"type":"error","name":"LaunchGriefed","inputs":[]},{"type":"error","name":"LiquidityOverflow","inputs":[]},{"type":"error","name":"NotAdmin","inputs":[]},{"type":"error","name":"NotQueued","inputs":[]},{"type":"error","name":"NotSingleSided","inputs":[]},{"type":"error","name":"PayoutAssetChanged","inputs":[{"name":"payoutAsset","type":"address"}]},{"type":"error","name":"PointerUnchanged","inputs":[]},{"type":"error","name":"PoolMispriced","inputs":[]},{"type":"error","name":"PositionLiquidityMismatch","inputs":[]},{"type":"error","name":"PositionNotDelivered","inputs":[]},{"type":"error","name":"PositionPoolMismatch","inputs":[]},{"type":"error","name":"PositionRangeMismatch","inputs":[]},{"type":"error","name":"PriceOutOfRange","inputs":[]},{"type":"error","name":"QuoteAlreadyApproved","inputs":[]},{"type":"error","name":"QuoteConsumed","inputs":[]},{"type":"error","name":"QuoteNotApproved","inputs":[]},{"type":"error","name":"QuoteNotConvertible","inputs":[]},{"type":"error","name":"QuoteShape","inputs":[]},{"type":"error","name":"ReentrancyGuardReentrantCall","inputs":[]},{"type":"error","name":"RewardTrackerWithoutDividend","inputs":[]},{"type":"error","name":"SafeERC20FailedOperation","inputs":[{"name":"token","type":"address"}]},{"type":"error","name":"SeedFailed","inputs":[]},{"type":"error","name":"SplitterRegistryMismatch","inputs":[]},{"type":"error","name":"SupplyNotAnchored","inputs":[]},{"type":"error","name":"SupplyTooLarge","inputs":[]},{"type":"error","name":"TaxTooHigh","inputs":[]},{"type":"error","name":"TickRangeInvalid","inputs":[]},{"type":"error","name":"TimelockNotElapsed","inputs":[{"name":"eta","type":"uint64"}]},{"type":"error","name":"UnexpectedCallback","inputs":[]},{"type":"error","name":"ZeroAddress","inputs":[]},{"type":"error","name":"ZeroTaxNotAllowed","inputs":[]}];
+  const LOCK_ABI = ["function activeLockedBy(address token, address owner) view returns (uint256 total, uint64 firstUnlock)"];
   const ERC20 = ["function balanceOf(address) view returns (uint256)", "function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)",
     "function decimals() view returns (uint8)", "function symbol() view returns (string)", "function name() view returns (string)"];
   const ESCROW_ABI = ["function totalRaised() view returns (uint256)", "function deadline() view returns (uint256)", "function isOpen() view returns (bool)", "function started() view returns (bool)", "function recipient() view returns (address)"];
@@ -108,6 +113,7 @@
         <div class="ams-card arl-me" id="arl-me"></div>
         <div class="ams-card arl-how">
           <div class="ams-card-head"><h2>${T("How the relay works")}</h2></div>
+          <div class="arl-diagram" aria-hidden="true"><span class="d1">${T("Round")}</span><i></i><span class="d2">${T("Launch")}</span><i></i><span class="d3">${T("Snapshot")}</span><i></i><span class="d4">${T("Relay")}</span><b class="arl-pkt"></b></div>
           <ol class="arl-how-list">
             <li><b>${T("A CirclePad round closes")}</b><span>${T("Its recipient wallet receives the raise; the vote has picked the coin.")}</span></li>
             <li><b>${T("The coin launches on Argus")}</b><span>${T("From that wallet, with a dev buy in the same transaction — no sniping window.")}</span></li>
@@ -116,20 +122,56 @@
           </ol>
         </div>
       </div>
-      <div class="arl-op" id="arl-op"></div>
-      <ol class="ams-flow arl-flow" aria-label="${T("Steps")}">
-        <li data-go="arl-s1"><i>1</i><span>${T("The round")}</span></li>
-        <li data-go="arl-s2"><i>2</i><span>${T("Launch on Argus")}</span></li>
-        <li data-go="arl-s3"><i>3</i><span>${T("Relay")}</span></li>
-      </ol>
+      <div class="ams-card arl-history" id="arl-history"></div>
       <div class="ams-card arl-step" id="arl-s1"></div>
-      <div class="ams-card arl-step" id="arl-s2"></div>
-      <div class="ams-card arl-step" id="arl-s3"></div>
+      <div class="arl-opbox" id="arl-opbox">
+        <button type="button" class="arl-opbox-t" id="arl-opbox-t" aria-expanded="false"><b>${T("Launch & relay steps")}</b><small>${T("For the round's recipient wallet — anyone can look")}</small><i aria-hidden="true"></i></button>
+        <div class="arl-opbox-in" id="arl-opbox-in" hidden>
+          <div class="arl-op" id="arl-op"></div>
+          <ol class="ams-flow arl-flow" aria-label="${T("Steps")}">
+            <li data-go="arl-s1"><i>1</i><span>${T("The round")}</span></li>
+            <li data-go="arl-s2"><i>2</i><span>${T("Launch on Argus")}</span></li>
+            <li data-go="arl-s3"><i>3</i><span>${T("Relay")}</span></li>
+          </ol>
+          <div class="ams-card arl-step" id="arl-s2"></div>
+          <div class="ams-card arl-step" id="arl-s3"></div>
+        </div>
+      </div>
       <p class="ams-foot">${T("Launches go through Argus Portal #7")} <a href="${EXPL("address", AG.PORTAL)}" target="_blank" rel="noopener" data-no-i18n>${short(AG.PORTAL)} ↗</a> · ${T("tokens are relayed with the Multisender")} · ${T("nothing here holds your funds.")}</p>`);
+    $("arl-opbox-t").addEventListener("click", () => opBox(!$("arl-opbox-in").hidden ? false : true));
     panel.querySelector(".arl-flow").addEventListener("click", (e) => {
       const li = e.target.closest("[data-go]");
       if (li) { const el = $(li.dataset.go); if (el) el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
     });
+  }
+
+  function opBox(open) {
+    const inn = $("arl-opbox-in"), t = $("arl-opbox-t");
+    if (!inn) return;
+    inn.hidden = !open; t.setAttribute("aria-expanded", String(!!open));
+    $("arl-opbox").classList.toggle("open", !!open);
+  }
+
+  // ================= earlier relays =================
+  function paintHistory() {
+    const el = $("arl-history");
+    if (!el) return;
+    const done = RL.ROUNDS.filter((r) => r.launch && isAddr(r.launch.token));
+    el.innerHTML = `<div class="ams-card-head"><h2>${T("Relay history")}</h2></div>` + (done.length
+      ? `<ul class="arl-hist">${done.map((r) => `<li><span class="arl-ring sm"><b data-no-i18n>N${r.n}</b></span><div><b data-no-i18n>${esc(r.launch.symbol ? "$" + r.launch.symbol : short(r.launch.token))}</b><small>${T(r.label)}${r.launch.at ? ` · <span data-no-i18n>${esc(String(r.launch.at).slice(0, 10))}</span>` : ""}${r.launch.snapshotBlock ? ` · ${T("snapshot")} <span data-no-i18n>#${nf(r.launch.snapshotBlock, 0)}</span>` : ""}</small></div>
+          <span class="arl-hist-acts"><a href="${EXPL("token", r.launch.token)}" target="_blank" rel="noopener">${T("Token")} ↗</a>${r.launch.tx ? `<a href="${EXPL("tx", r.launch.tx)}" target="_blank" rel="noopener">${T("Launch")} ↗</a>` : ""}${(r.launch.drops || []).length ? `<a href="/drop/${esc(r.launch.drops.join(","))}" target="_blank" rel="noopener">${T("Relay receipt")} ↗</a>` : ""}</span></li>`).join("")}</ul>`
+      : `<p class="arl-muted">${T("No round has been relayed yet — Round #1's coin will be the first. Each relay shows up here with its token, launch and receipt.")}</p>`);
+  }
+
+  // a calendar reminder for the launch date the vote picked
+  function remindIcs() {
+    const d = votedDate();
+    if (!d) return;
+    const f = (t) => new Date(t).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//Relay//EN", "BEGIN:VEVENT", `UID:relay-n${R.n}@arcircle.app`, `DTSTAMP:${f(Date.now())}`, `DTSTART:${f(d.getTime())}`, `DTEND:${f(d.getTime() + 3600e3)}`,
+      `SUMMARY:${roundCfg().label} — coin launch and relay`, "DESCRIPTION:The launch date voted by $ARCIRCLE holders. The relay counts balances at a snapshot block taken at the launch. https://www.arcircle.app/arc#relay",
+      "URL:https://www.arcircle.app/arc#relay", "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Relay launch in one hour", "TRIGGER:-PT1H", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    download(`relay-N${R.n}.ics`, body, "text/calendar");
   }
 
   // ================= the relay chain + "my relay" =================
@@ -156,7 +198,10 @@
     box.innerHTML = head + `<p class="arl-muted">${T("Checking…")}</p>`;
     try {
       const min = BigInt(RL.MIN_ARCIRCLE) * 10n ** 18n;
-      const bal = isAddr(ARC_TOKEN) ? await retry(() => new ethers.Contract(ARC_TOKEN, ERC20, lr()).balanceOf(addr)) : 0n;
+      const bal0 = isAddr(ARC_TOKEN) ? await retry(() => new ethers.Contract(ARC_TOKEN, ERC20, lr()).balanceOf(addr)) : 0n;
+      // tokens locked in ArcLock count for their owner
+      const locked = isAddr(ARC_TOKEN) && CONFIG.ARCLOCK_ADDRESS ? await retry(() => new ethers.Contract(CONFIG.ARCLOCK_ADDRESS, LOCK_ABI, lr()).activeLockedBy(ARC_TOKEN, addr)).then((r) => BigInt(r[0])).catch(() => 0n) : 0n;
+      const bal = bal0 + locked;
       const lb = await loadLb().catch(() => null);
       const mine = lb ? lb.find((x) => lc(x.address) === lc(addr)) : null;
       const got = [];
@@ -167,14 +212,56 @@
       }
       if (meFor !== lc(addr)) return;
       const ok = bal >= min;
+      const pct = min > 0n ? Math.min(100, Number((bal * 10000n) / min) / 100) : 100;
+      R.meInfo = { addr: lc(addr), bal, locked, mine };
       box.innerHTML = head + `<div class="arl-me-grid">
-          <div class="arl-me-t ${ok ? "ok" : ""}"><small>$ARCIRCLE</small><b data-no-i18n>${units(bal, 18, 0)}</b><span>${ok ? T("In the next relay") : `<span data-no-i18n>${units(min - bal, 18, 0)}</span> <span>${T("more $ARCIRCLE to join the next relay")}</span>`}</span></div>
+          <div class="arl-me-t ${ok ? "ok" : ""}"><small>$ARCIRCLE</small><b data-no-i18n>${units(bal, 18, 0)}</b>${locked > 0n ? `<em class="arl-locked" data-no-i18n>${units(locked, 18, 0)} <span>${T("in ArcLock")}</span></em>` : ""}<span>${ok ? T("In the next relay") : `<span data-no-i18n>${units(min - bal, 18, 0)}</span> <span>${T("more $ARCIRCLE to join the next relay")}</span>`}</span>
+            <span class="arl-meter" style="--p:${pct}%" aria-hidden="true"><i></i></span></div>
           <div class="arl-me-t ${mine ? "ok" : ""}"><small>${T(roundCfg().label)}</small><b data-no-i18n>${mine ? units(BigInt(mine.amount), 18, 2) + " USDC" : "—"}</b><span>${T(mine ? "Contributor — in this round's relay" : "Not a contributor")}</span></div>
         </div>
         ${got.length ? `<ul class="arl-got">${got.map((g) => `<li><b data-no-i18n>N${g.r.n}</b><span data-no-i18n>${esc(g.r.launch.symbol ? "$" + g.r.launch.symbol : short(g.r.launch.token))}</span><em data-no-i18n>${g.b == null ? "—" : units(g.b, 18, 2)}</em></li>`).join("")}</ul>` : ""}
+        <div class="arl-est" id="arl-est">${ok || mine ? `<button type="button" class="ams-mini" data-arl-est>${T("Estimate my share")}</button>` : ""}
+          <a class="ams-mini" href="#locker?token=${esc(ARC_TOKEN)}">${T("Lock $ARCIRCLE — it still counts")}</a>
+          ${votedDate() ? `<button type="button" class="ams-mini" data-arl-ics>${T("Add the launch date to my calendar")}</button>` : ""}</div>
         <p class="arl-muted">${T("The relay counts balances at a snapshot block taken when each round's coin launches. Tokens locked in ArcLock count for their owner.")}</p>`;
     } catch (e) { if (meFor === lc(addr)) box.innerHTML = head + `<p class="arl-muted">${T("Couldn't read this wallet right now — try again in a moment.")}</p>`; }
   }
+  // Your share today: contributors by what each put in, holders by balance above the minimum.
+  // The split between the two and the snapshot block are set at the launch, so this is shown as a share of each part.
+  let holdersCache = null;
+  async function estimate() {
+    const el = $("arl-est"), info = R.meInfo;
+    if (!el || !info) return;
+    el.innerHTML = `<p class="arl-muted">${T("Reading every $ARCIRCLE holder…")}</p>`;
+    try {
+      let partPct = null, holdPct = null;
+      const lb = await loadLb().catch(() => null);
+      if (lb && info.mine) { const tot = lb.reduce((s, x) => s + BigInt(x.amount), 0n); partPct = tot > 0n ? Number((BigInt(info.mine.amount) * 1000000n) / tot) / 10000 : null; }
+      const min = BigInt(RL.MIN_ARCIRCLE) * 10n ** 18n;
+      if (info.bal >= min) {
+        if (!holdersCache || Date.now() - holdersCache.at > 300e3) {
+          let last = null;
+          for (let t = 0; t < 8; t++) { const r = await fetchJson(`/api/social?holdersnap=${ARC_TOKEN}`, 30000); if (!r.ok || !r.j) break; last = r.j; if (last.complete || !last.more) break; await sleep(800); }
+          if (!last) throw new Error("holders");
+          holdersCache = { at: Date.now(), rows: last.holders || [] };
+        }
+        const skip = new Set([lc(OPERATOR), lc(roundCfg().escrow), lc(AG.PORTAL)]);
+        let sum = 0n, mineIn = false;
+        for (const [a, v, c] of holdersCache.rows) { const w = BigInt(v); if (c || skip.has(lc(a)) || w < min) continue; if (lc(a) === info.addr) { sum += info.bal; mineIn = true; } else sum += w; }
+        if (!mineIn) sum += info.bal;
+        holdPct = sum > 0n ? Number((info.bal * 1000000n) / sum) / 10000 : null;
+      }
+      el.innerHTML = `<div class="arl-est-grid">
+          <div><small>${T("Of the contributors' part")}</small><b data-no-i18n>${partPct == null ? "—" : partPct.toFixed(partPct >= 1 ? 2 : 4) + "%"}</b></div>
+          <div><small>${T("Of the holders' part")}</small><b data-no-i18n>${holdPct == null ? "—" : holdPct.toFixed(holdPct >= 1 ? 2 : 4) + "%"}</b></div>
+        </div><p class="arl-muted">${T("An estimate at the current block. How the relay is split between contributors and holders, and the snapshot block, are set when the round's coin launches — not decided yet.")}</p>`;
+      if (!reduce) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+    } catch { el.innerHTML = `<p class="arl-muted">${T("Couldn't read the holders right now — try again in a moment.")}</p>`; }
+  }
+  panel.addEventListener("click", (e) => {
+    if (e.target.closest("[data-arl-est]")) estimate();
+    if (e.target.closest("[data-arl-ics]")) remindIcs();
+  });
   panel.addEventListener("submit", (e) => {
     if (e.target.id === "arl-me-form") { e.preventDefault(); paintMe($("arl-me-addr").value.trim()); }
   });
@@ -194,6 +281,7 @@
     el.className = "arl-op " + cls;
     el.innerHTML = html;
     panel.classList.toggle("arl-can", isOperator());
+    if (isOperator()) opBox(true);
   }
   panel.addEventListener("click", async (e) => {
     if (e.target.closest("[data-arl-connect]") && typeof connectWallet === "function") { try { await connectWallet(); } catch { /* cancelled */ } tick(true); }
@@ -814,9 +902,22 @@
       P2.forEach((x) => { const o = byA.get(x.a) || { a: x.a, part: 0n, hold: 0n }; o.hold += x.v; byA.set(x.a, o); });
       const rows = [...byA.values()].map((o) => ({ ...o, v: o.part + o.hold })).filter((o) => o.v > 0n).sort((x, y) => (y.v > x.v ? 1 : y.v < x.v ? -1 : 0));
       const sent = rows.reduce((s, x) => s + x.v, 0n);
+      shutter();
       R.plan = { token: D.token, dec: D.dec, sym: D.sym, total: total.toString(), sent: sent.toString(), kept: (total - sent).toString(), bps, rows, nPart: P1.length, nHold: P2.length, both: rows.filter((x) => x.part > 0n && x.hold > 0n).length, block: snap.block, ts: snap.ts, n: R.n };
       paintPlan();
     } catch (e) { out.innerHTML = `<p class="arl-bad">${esc(e && e.message ? e.message : tr("Couldn't build the list — try again."))}</p>`; }
+  }
+  // the snapshot "clicks" over the plan, then the wallets scatter out of the centre
+  function shutter() {
+    const out = $("arl-plan");
+    if (!out || reduce) return;
+    const f = document.createElement("i"); f.className = "arl-shutter"; out.appendChild(f);
+    setTimeout(() => f.remove(), 700);
+  }
+  function scatter(n) {
+    if (reduce || !n) return "";
+    const k = Math.min(60, n);
+    return `<div class="arl-scatter" aria-hidden="true">${Array.from({ length: k }, (_, i) => { const a = (i / k) * Math.PI * 2 + (i % 3) * 0.3, r = 26 + ((i * 37) % 60); return `<i style="--x:${(Math.cos(a) * r).toFixed(1)}px;--y:${(Math.sin(a) * r * 0.55).toFixed(1)}px;--d:${(i % 12) * 30}ms"></i>`; }).join("")}</div>`;
   }
   function paintPlan() {
     const out = $("arl-plan");
@@ -824,7 +925,7 @@
     const P = R.plan;
     if (!P) { if (!out.innerHTML.includes("arl-muted") && !out.innerHTML.includes("arl-bad")) out.innerHTML = ""; return; }
     const u = (v) => units(v, P.dec, 2);
-    out.innerHTML = `<div class="arl-plan-sum">
+    out.innerHTML = `${scatter(P.rows.length)}<div class="arl-plan-sum">
         <div><small>${T("Wallets")}</small><b data-no-i18n>${nf(P.rows.length, 0)}</b><span><span data-no-i18n>${nf(P.nPart, 0)}</span> ${T("contributors")} · <span data-no-i18n>${nf(P.nHold, 0)}</span> ${T("holders")} · <span data-no-i18n>${nf(P.both, 0)}</span> ${T("both")}</span></div>
         <div><small>${T("To send")}</small><b data-no-i18n>${u(BigInt(P.sent))}</b><span data-no-i18n>${P.sym ? "$" + esc(P.sym) : ""}</span></div>
         <div><small>${T("Stays with the recipient")}</small><b data-no-i18n>${u(BigInt(P.kept))}</b><span>${T("kept share + rounding")}</span></div>
@@ -880,7 +981,7 @@
     booted = true;
     shell();
     R.launched = load("launch");
-    paintChain(); paintOp(); paintMe(me()); paintForm(); paintRelay();
+    paintChain(); paintHistory(); paintOp(); paintMe(me()); paintForm(); paintRelay();
     loadRound();
     if (R.launched) tokenInfo();
     setInterval(() => {
@@ -896,5 +997,5 @@
   // build the page the first time the tab opens (or straight away on /arc#relay)
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "relay") boot(); });
   if (panel.classList.contains("active") || /^#relay\b/.test(location.hash)) boot();
-  document.addEventListener("arc:lang", () => { if (booted) { paintChain(); paintOp(); paintForm(); paintRelay(); if (R.round) paintRound(); paintMe(me()); } });
+  document.addEventListener("arc:lang", () => { if (booted) { paintChain(); paintHistory(); paintOp(); paintForm(); paintRelay(); if (R.round) paintRound(); paintMe(me()); } });
 })();

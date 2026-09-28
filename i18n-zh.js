@@ -3099,6 +3099,21 @@
     "How do I bring USDC to Arc with the ARCIRCLE PAD Bridge, and what's the difference between Fast and Standard?": "如何用 ARCIRCLE PAD Bridge 把 USDC 转到 Arc？Fast 和 Standard 有什么区别？",
     "Token scan": "代币扫描",
     "Airdrop sent": "已发送空投",
+    "Launch & relay steps": "发行与接力步骤",
+    "For the round's recipient wallet — anyone can look": "供本轮接收钱包使用 — 任何人都可查看",
+    "Round": "轮次",
+    "Relay history": "接力记录",
+    "snapshot": "快照",
+    "Relay receipt": "接力回执",
+    "No round has been relayed yet — Round #1's coin will be the first. Each relay shows up here with its token, launch and receipt.": "还没有完成接力的轮次 — 第 1 轮的代币将是第一个。每次接力的代币、发行和回执都会显示在这里。",
+    "in ArcLock": "锁在 ArcLock",
+    "Estimate my share": "估算我的份额",
+    "Lock $ARCIRCLE — it still counts": "锁定 $ARCIRCLE 也会计入",
+    "Add the launch date to my calendar": "把发行日期加入日历",
+    "Reading every $ARCIRCLE holder…": "正在读取所有 $ARCIRCLE 持有人…",
+    "Of the contributors' part": "在贡献者部分中的占比",
+    "Of the holders' part": "在持有人部分中的占比",
+    "An estimate at the current block. How the relay is split between contributors and holders, and the snapshot block, are set when the round's coin launches — not decided yet.": "这是按当前区块的估算。贡献者与持有人之间的分配比例以及快照区块在本轮代币发行时确定，目前尚未决定。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

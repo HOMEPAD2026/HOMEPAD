@@ -3006,6 +3006,21 @@
     "How do I bring USDC to Arc with the ARCIRCLE PAD Bridge, and what's the difference between Fast and Standard?": "ARCIRCLE PAD 브리지로 USDC를 Arc로 어떻게 가져와? Fast와 Standard는 뭐가 달라?",
     "Token scan": "토큰 스캔",
     "Airdrop sent": "에어드랍 전송",
+    "Launch & relay steps": "런칭 · 릴레이 단계",
+    "For the round's recipient wallet — anyone can look": "라운드 수령 지갑용 — 누구나 볼 수 있어요",
+    "Round": "라운드",
+    "Relay history": "릴레이 기록",
+    "snapshot": "스냅샷",
+    "Relay receipt": "릴레이 영수증",
+    "No round has been relayed yet — Round #1's coin will be the first. Each relay shows up here with its token, launch and receipt.": "아직 릴레이된 라운드가 없어요 — 라운드 #1 코인이 첫 번째입니다. 릴레이마다 토큰, 런칭, 영수증이 여기에 쌓입니다.",
+    "in ArcLock": "ArcLock에 락",
+    "Estimate my share": "내 몫 추정하기",
+    "Lock $ARCIRCLE — it still counts": "$ARCIRCLE을 락해도 인정돼요",
+    "Add the launch date to my calendar": "런칭일을 캘린더에 추가",
+    "Reading every $ARCIRCLE holder…": "$ARCIRCLE 홀더를 모두 읽는 중…",
+    "Of the contributors' part": "기여자 몫 중 내 비율",
+    "Of the holders' part": "홀더 몫 중 내 비율",
+    "An estimate at the current block. How the relay is split between contributors and holders, and the snapshot block, are set when the round's coin launches — not decided yet.": "현재 블록 기준 추정치입니다. 기여자와 홀더 사이의 분배 비율과 스냅샷 블록은 라운드 코인 런칭 때 정해지며, 아직 결정되지 않았습니다.",
   };
 
 
