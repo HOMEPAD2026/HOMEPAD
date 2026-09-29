@@ -9,6 +9,15 @@ import type { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/t
 import './tasks/supply'
 import './tasks/check'
 
+import { Wallet } from 'ethers'
+import { EXPOSED } from './utils/exposed'
+
+// Refuse known-exposed keys before anything signs: whoever else holds them could take over what they deploy.
+if (process.env.PRIVATE_KEY) {
+    let who = ''
+    try { who = new Wallet(process.env.PRIVATE_KEY).address.toLowerCase() } catch { throw new Error('PRIVATE_KEY in .env is not a valid key') }
+    if (EXPOSED.includes(who)) throw new Error(`PRIVATE_KEY belongs to ${who.slice(0, 6)}…${who.slice(-4)}, a key that was exposed. Make a NEW wallet for deploying (ROBINHOOD.md step 1).`)
+}
 const accounts: HttpNetworkAccountsUserConfig | undefined = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : undefined
 
 const config: HardhatUserConfig = {

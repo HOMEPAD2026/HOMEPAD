@@ -72,6 +72,8 @@ task('omni:check', 'Checks the pinned LayerZero addresses and, after wiring, the
         const ex = ethers.utils.defaultAbiCoder.decode(['tuple(uint32 maxMessageSize,address executor)'], await ep.getConfig(me, L.sendLib, LZ[other].eid, 1))[0]
         ok(ex.executor.toLowerCase() === L.executor.toLowerCase(), `executor ${ex.executor}`)
         const owner = await oapp.owner()
+        const { EXPOSED } = await import('../utils/exposed')
+        ok(!EXPOSED.includes(owner.toLowerCase()), `owner ${owner} is not an exposed key`)
         if (safe) ok(owner.toLowerCase() === safe.toLowerCase(), `owner ${owner} is the Safe (after handover)`)
         else console.log(`  owner: ${owner} (after handover this must be the Safe)`)
         if (chain === 'arc') console.log(`  rewards receiver: ${await oapp.rewardsReceiver()} (lockbox rewards → buy and burn $ARCIRCLE)`)

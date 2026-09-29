@@ -152,5 +152,11 @@ Uniswap이 로빈후드 체인(4663)에 올린 주소 (`@uniswap/sdk-core` 7.19.
 
 ## 문제가 생기면
 
+- **노출된 키로 배포한 경우**(owner가 `0x80e1…8bc7`): 그 컨트랙트들은 **버립니다.** handover하지 말고, 주소도 공개하지 않습니다.
+  키를 가진 다른 사람이 소유권을 넘기기 전에 peer·DVN을 바꿔 둘 수 있기 때문입니다.
+  1. 새 지갑을 만들어 `.env`의 `PRIVATE_KEY`를 바꿉니다(노출 키는 이제 설정 단계에서 거부됩니다).
+  2. `mv deployments deployments-exposed` (그대로 두면 `skipIfAlreadyDeployed` 때문에 새 배포가 건너뛰어집니다)
+  3. 5단계(배포 → wire → omni:check → handover → omni:check)를 처음부터 다시 합니다.
+
 - `omni:supply`가 `ALERT`(원격 공급 > 잠긴 양): 가디언이나 소유자가 **양쪽 모두 pause**. 멀티시그만 해제할 수 있습니다.
 - 전송이 LayerZero Scan에서 멈춤: DVN 설정이 한쪽만 바뀐 경우가 대부분입니다. `omni:check`의 MISMATCH를 보고 멀티시그로 설정을 맞춥니다.
