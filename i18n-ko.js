@@ -4635,6 +4635,8 @@
     "A mine that digs $ARCIA. Date not announced yet.": "$ARCIA를 캐는 마인이에요. 날짜는 아직 발표 전이에요.",
     "What happened in Round #1?": "라운드 #1 결과가 어땠어?",
     "When does Round #2 start?": "라운드 #2 언제 시작해?",
+    "Automated burns on-chain": "온체인 자동 소각",
+    "$ARCIA joins the reward contract with $ARCIRCLE. Utility and platform revenue flows into contracts that buy back and burn automatically. Ratios and timeline: not decided.": "$ARCIA가 $ARCIRCLE과 함께 리워드 컨트랙트에 들어가요. 유틸리티·플랫폼 수익이 컨트랙트로 들어가 자동으로 바이백·소각돼요. 비율과 일정: 미정.",
   };
 
 

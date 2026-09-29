@@ -4787,6 +4787,8 @@
     "A mine that digs $ARCIA. Date not announced yet.": "一个挖 $ARCIA 的矿。日期尚未公布。",
     "What happened in Round #1?": "第 1 轮结果怎么样？",
     "When does Round #2 start?": "第 2 轮什么时候开始？",
+    "Automated burns on-chain": "链上自动销毁",
+    "$ARCIA joins the reward contract with $ARCIRCLE. Utility and platform revenue flows into contracts that buy back and burn automatically. Ratios and timeline: not decided.": "$ARCIA 将与 $ARCIRCLE 一起加入奖励合约。工具与平台收入将进入合约,自动回购并销毁。比例与时间表:未定。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

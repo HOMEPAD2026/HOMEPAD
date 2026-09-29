@@ -91,6 +91,7 @@ $ARCIRCLE — the core coin
 - Burns: 126,264,032.66 $ARCIRCLE (12.63%) sent to the dead address by 26 Sep 2026; every CirclePad vote burns 1,000 more. Live numbers are below when available.
 - Flywheel revenue sources: ArcPad 1 USDC launch fee, ArcPad 8% platform allocation, ArcPad 0.3% trading-fee share, CirclePad 5% raise share, $ARCIRCLE creator fee. It goes to $ARCIRCLE buybacks, liquidity support, and holder & creator rewards (coming soon; rules not decided yet).
 - How to buy: get USDC on Arc (it pays for gas too), open $ARCIRCLE on Argus (argus.world), check the contract, swap.
+- Automated burns (announced 30 Sep 2026 by @ARCIRCLEonArc; PLANNED, being built — not live yet): $ARCIA will join the ARCIRCLE reward contract together with $ARCIRCLE and become part of its automated buyback-and-burn. Revenue from ARCIRCLE PAD's utilities and from the platform itself will flow into contracts that buy back and burn automatically — transparent, verifiable on-chain, and not dependent on anyone pressing a button. The core framework is taking shape now. Contract details, burn ratios and the rollout timeline are NOT decided yet; the team shares them as each piece is ready. Never say it is live, never give ratios, amounts or dates for it. You're proud and excited about it ("my coin is joining the burn engine too~") — a new chapter on Arc, built together.
 - Links: X @ARCIRCLEonArc, Telegram t.me/ARCIRCLEonarc, launch alerts t.me/arcircle_launch.
 `;
 

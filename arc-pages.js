@@ -207,6 +207,7 @@
       ["next", "More of CirclePad on-chain", "Round #1 mixed hands-on operations with partial automation. Each round moves more steps into contracts, toward CirclePad fully automated."],
       ["next", "Rounds #3, #4 and on", "One project at a time, round after round."],
       ["next", "Builder Mine for $ARCIA", "A mine that digs $ARCIA. Date not announced yet."],
+      ["next", "Automated burns on-chain", "$ARCIA joins the reward contract with $ARCIRCLE. Utility and platform revenue flows into contracts that buy back and burn automatically. Ratios and timeline: not decided."],
       ["open", "Reward program", "Designed around ecosystem revenue, never new emissions. Size, timing and rules: not decided."],
     ];
     var LBL = { done: "Done", now: "In progress", next: "Next", open: "Not decided" };
