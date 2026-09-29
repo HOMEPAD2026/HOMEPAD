@@ -19,33 +19,42 @@
 
 export const BRAIN_VERSION = 1;
 
+// ---------------------------------------------------------------- the runner (after the first take-profit)
+// New coins bought at a $2–10k market cap sometimes run 5–20×; selling everything at +30% would cut off the very
+// trades that pay for all the losers. So profit is taken in steps and the rest rides:
+//   tp  (per playbook, ~+30%)  sell tp1Pct (35%) of the position
+//   tp2 (+100%, a double)      sell tp2Pct (25%) — with the first sale the stake is back, the rest is "free"
+//   the rest (~40%) runs with a trailing stop measured from its peak (30% below it, 40% once it's 5×+),
+//   never gives back the entry, and has maxRunH (48 h) instead of the playbook's short time limit.
+export const RUN = { tp1Pct: 35, tp2: 100, tp2Pct: 25, runTrail: 30, runTrailWide: 40, maxRunH: 48 };
+
 // ---------------------------------------------------------------- playbooks
 // age in minutes, sizes in USD, changes in %, flows as (buys − sells) / (buys + sells + 1)
 export const PLAYBOOKS = {
   momentum: {
     name: "Launch momentum", why: "Early buyers keep coming and the price is rising, but it hasn't run away yet.",
     when: (f) => f.ageMin >= 3 && f.ageMin <= 90 && f.buysM5 >= 3 && f.flowM5 >= 0.2 && f.chgM5 >= 0 && f.chgM5 <= 60 && f.mom15 > 0,
-    exits: { tp: 30, sl: 20, trailAt: 15, trail: 10, maxH: 3 },
+    exits: { tp: 30, sl: 20, trailAt: 15, trail: 10, maxH: 3, ...RUN },
   },
   pullback: {
     name: "Pullback", why: "It fell well off its high and buyers are stepping back in.",
     when: (f) => f.ageMin >= 20 && f.ageMin <= 1440 && f.ddHigh <= -15 && f.ddHigh >= -45 && f.flowM5 >= 0 && f.buysM5 >= 2 && f.liq >= 1500,
-    exits: { tp: 25, sl: 18, trailAt: 12, trail: 12, maxH: 8 },
+    exits: { tp: 25, sl: 18, trailAt: 12, trail: 12, maxH: 8, ...RUN },
   },
   breakout: {
     name: "Volume breakout", why: "Volume jumped against its liquidity and the price is breaking up.",
     when: (f) => f.ageMin >= 60 && f.ageMin <= 4320 && f.volLiqH1 >= 0.5 && f.chgH1 >= 5 && f.chgH1 <= 120 && f.flowH1 >= 0.1,
-    exits: { tp: 35, sl: 20, trailAt: 20, trail: 12, maxH: 12 },
+    exits: { tp: 35, sl: 20, trailAt: 20, trail: 12, maxH: 12, ...RUN },
   },
   steady: {
     name: "Steady climber", why: "A calm, well spread token that keeps trading and slowly climbs.",
     when: (f) => f.ageMin >= 360 && f.ageMin <= 4320 && f.chgH1 >= -5 && f.chgH1 <= 20 && f.top10 <= 35 && f.score >= 70 && f.txH1 >= 10,
-    exits: { tp: 30, sl: 15, trailAt: 15, trail: 10, maxH: 24 },
+    exits: { tp: 30, sl: 15, trailAt: 15, trail: 10, maxH: 24, ...RUN },
   },
   dexpaid: {
     name: "Dex paid", why: "The team just paid for its Dexscreener profile and buyers are still coming, but the price hasn't run yet.",
     when: (f) => f.dexPaid && f.dexPaidMin >= 1 && f.dexPaidMin <= 180 && f.chgSincePaid >= -15 && f.chgSincePaid <= 40 && f.flowM5 >= 0 && f.buysM5 >= 2 && f.ageMin >= 3,
-    exits: { tp: 35, sl: 18, trailAt: 15, trail: 10, maxH: 6 },
+    exits: { tp: 35, sl: 18, trailAt: 15, trail: 10, maxH: 6, ...RUN },
   },
 };
 export const PB_KEYS = Object.keys(PLAYBOOKS);
@@ -193,9 +202,10 @@ export function decide({ pb, x, state, rand = Math.random }) {
 }
 
 // ---------------------------------------------------------------- exits
-export const UP = [10, 15, 20, 25, 30, 40, 50, 75, 100];
+export const UP = [10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200, 300, 500, 1000];
 export const DOWN = [5, 10, 15, 20, 25, 30];
-/// update a position's running path; returns { action: null|"tp"|"sl"|"trail"|"time"|"be", sellPct }
+/// update a position's running path; returns { action: null|"tp"|"tp2"|"sl"|"trail"|"runner"|"time"|"be", sellPct }
+/// sellPct: % of the ORIGINAL position for the partial take-profits; 100 = everything that's left
 export function exitCheck(pos, ret, nowTs) {
   const mins = (nowTs - pos.entryTs) / 60;
   pos.peak = Math.max(pos.peak != null ? pos.peak : ret, ret);
@@ -203,10 +213,17 @@ export function exitCheck(pos, ret, nowTs) {
   pos.up = pos.up || {}; pos.dn = pos.dn || {};
   for (const u of UP) if (ret >= u && pos.up[u] == null) pos.up[u] = Math.round(mins);
   for (const d of DOWN) if (ret <= -d && pos.dn[d] == null) pos.dn[d] = Math.round(mins);
-  const X = pos.exits;
-  if (!pos.tpHit && ret >= X.tp) return { action: "tp", sellPct: pos.real ? 60 : 60 };
+  const X = { ...RUN, ...pos.exits };
+  if (!pos.tpHit && ret >= X.tp) return { action: "tp", sellPct: X.tp1Pct };
+  if (pos.tpHit && !pos.tp2Hit && ret >= X.tp2) return { action: "tp2", sellPct: X.tp2Pct };
   if (pos.tpHit && ret <= 0) return { action: "be", sellPct: 100 }; // after taking profit, never give the rest back below entry
   if (ret <= -X.sl) return { action: "sl", sellPct: 100 };
+  if (pos.tpHit) { // the runner: a trailing stop from its peak, measured on the price, and a long time limit
+    const fromPeak = ((1 + ret / 100) / (1 + pos.peak / 100) - 1) * 100;
+    if (fromPeak <= -(pos.peak >= 400 ? X.runTrailWide : X.runTrail)) return { action: "runner", sellPct: 100 };
+    if (mins >= X.maxRunH * 60) return { action: "time", sellPct: 100 };
+    return { action: null };
+  }
   if (pos.peak >= X.trailAt && ret <= pos.peak - X.trail) return { action: "trail", sellPct: 100 };
   if (mins >= X.maxH * 60) return { action: "time", sellPct: 100 };
   return { action: null };
@@ -264,7 +281,7 @@ export function newLearn() {
 /// fills in what a brain saved by an older version doesn't have (new playbooks, add stats)
 export function ensureLearn(L) {
   L.exits = L.exits || {}; L.bandit = L.bandit || newBandit();
-  for (const k of PB_KEYS) { if (!L.exits[k]) L.exits[k] = { ...PLAYBOOKS[k].exits }; if (!L.bandit[k]) L.bandit[k] = { n: 0, mean: 0, m2: 0, wins: 0, real: 0, paper: 0, sum: 0 }; }
+  for (const k of PB_KEYS) { L.exits[k] = { ...RUN, ...(L.exits[k] || PLAYBOOKS[k].exits) }; if (!L.bandit[k]) L.bandit[k] = { n: 0, mean: 0, m2: 0, wins: 0, real: 0, paper: 0, sum: 0 }; }
   L.adds = L.adds || newAdds();
   return L;
 }

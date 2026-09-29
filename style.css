@@ -11270,4 +11270,8 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
 .dk-flag.dk-paid{background:rgba(57,255,136,.12);color:#9dffc6;}
 .dk-flag.dk-warn{background:rgba(255,110,90,.12);color:#ff9b8a;}
 @media (max-width:560px){.dk-adds{grid-template-columns:minmax(0,1fr);}}
+.dk-tails{display:flex;flex-wrap:wrap;gap:8px;}
+.dk-tails>span{flex:1;min-width:80px;padding:8px 10px;border-radius:12px;background:rgba(255,200,97,.06);border:1px solid rgba(255,200,97,.22);font-size:.7rem;color:var(--ink-dim,#8c98a6);display:flex;flex-direction:column;}
+.dk-tails b{font:800 1.05rem Sora,sans-serif;color:#ffc861;}
+.dk-tails small{flex-basis:100%;font-size:.68rem;color:var(--ink-dim,#8c98a6);}
 #bp-panel-mine [hidden]{display:none !important;}

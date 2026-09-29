@@ -4482,6 +4482,17 @@
     "She also reads each launch's website, X and Telegram (from Argus's launch data and Dexscreener) and whether the team paid for a Dexscreener profile. A \"Dex paid\" playbook looks for entries after the payment, before the price runs. A link that another launch also uses is a copy-paste warning: no real money.": "각 런칭의 웹사이트, X, 텔레그램(Argus 런칭 데이터와 Dexscreener 기준)과 팀이 Dexscreener 프로필 비용을 냈는지도 확인합니다. \"덱스 유료 등록\" 플레이북은 결제 후 가격이 오르기 전의 진입점을 찾습니다. 다른 런칭도 쓰는 링크는 복붙 경고 신호라 실제 자금으로 사지 않습니다.",
     "Adding to a position (a second buy on a dip, or on strength) is learned before it's used: every paper trade records what one add would have done, and a kind of add goes live for real money only after 20+ cases with a clearly positive edge — never during the warm-up.": "추매(하락 시 또는 상승 추세에서의 두 번째 매수)는 쓰기 전에 먼저 배웁니다. 모든 모의 거래가 한 번 추매했다면 어땠을지를 기록하고, 추매 방식은 20건 이상에서 분명한 플러스 효과가 확인된 뒤에만 실제 자금에 쓰입니다 — 워밍업 중에는 절대 쓰지 않습니다.",
     "Five playbooks decide when to enter: Launch momentum (early buyers keep coming and it hasn't run away), Pullback (it fell 15–45% off its high and buyers are back), Volume breakout (volume jumped against liquidity and the price is breaking up), Steady climber (a calm, well spread token slowly climbing) and Dex paid (the team just paid for its Dexscreener profile and the price hasn't run yet).": "다섯 가지 플레이북이 진입 시점을 정합니다: 런칭 모멘텀(초기 매수세가 이어지고 아직 과열 전), 눌림목(고점 대비 15–45% 하락 후 매수세 복귀), 거래량 돌파(유동성 대비 거래량 급증과 가격 돌파), 꾸준한 상승(분산이 잘 된 차분한 토큰의 완만한 상승), 덱스 유료 등록(팀이 방금 Dexscreener 프로필 비용을 냈고 가격이 아직 안 오름).",
+    "Second take-profit (2×)": "2차 익절 (2배)",
+    "Runner trailing stop": "러너 트레일링 스탑",
+    "runner": "러너",
+    "from peak": "고점 대비",
+    "Big runs seen": "지금까지 본 큰 상승",
+    "doubled": "2배 달성",
+    "went 4×": "4배 달성",
+    "went 11×+": "11배 이상",
+    "out of": "전체",
+    "trades, counting what happened after they closed — the runner is there for these": "건 중 (청산 이후 움직임까지 포함) — 러너는 바로 이런 코인을 위한 것",
+    "Profit is taken in steps, because the few launches that run 5–20× pay for all the losers: at the playbook's take-profit (about +30%) she sells 35%, at a double she sells another 25% (the stake is back by then), and the last 40% rides with a trailing stop 30% below its peak (40% once it's 5× or more), for up to 48 hours. After the first take-profit she never lets the rest fall below the entry. Every trade also has a stop-loss and a time limit. Between the once-a-minute checks she re-quotes what she holds every 10 seconds, so a stop-loss or a crash is acted on in seconds, not a minute later. After a real trade loses 30% or more, Claude writes a short review of what went wrong. She sells everything at once if the scanner finds a new critical flag, the price halves within a minute, or the pool can't be quoted anymore. Prices come from an exact quote from the desk contract, so pool fees, hook taxes and price impact are already in every return shown.": "수익은 단계적으로 실현합니다. 5~20배 오르는 소수의 코인이 모든 손실을 메워 주기 때문입니다. 플레이북 익절가(약 +30%)에서 35%를 팔고, 2배에서 25%를 더 팔며(이 시점엔 원금이 회수됨), 마지막 40%는 고점 대비 30%(5배 이상이면 40%) 아래에 트레일링 스탑을 걸고 최대 48시간 동안 가져갑니다. 첫 익절 이후에는 나머지가 진입가 아래로 떨어지게 두지 않습니다. 모든 거래에는 손절과 시간 제한도 있습니다. 1분마다의 점검 사이에도 보유 코인 시세를 10초마다 다시 확인해, 손절이나 폭락에 몇 초 만에 대응합니다. 실제 거래가 30% 이상 손실 나면 Claude가 무엇이 잘못됐는지 짧은 리뷰를 씁니다. 스캐너가 새 치명 플래그를 찾거나, 1분 안에 가격이 반토막 나거나, 풀 시세를 더 받을 수 없으면 한 번에 전부 팝니다. 가격은 데스크 컨트랙트의 정확한 견적에서 오므로, 표시되는 모든 수익률에 풀 수수료·훅 세금·가격 영향이 이미 반영돼 있습니다.",
   };
 
 

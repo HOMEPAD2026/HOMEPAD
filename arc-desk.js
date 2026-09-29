@@ -38,7 +38,7 @@
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m` : `${Math.floor(d / 86400)}d`; };
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
-  const WHY = { tp: "Take-profit", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
+  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
   const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0" };
   const S = { d: null, booted: false, timer: 0, tab: "real", shown: { eq: null }, seenLog: null, hover: null };
 
@@ -155,11 +155,13 @@
   }
   /// where the return sits between the stop-loss and the take-profit
   function rangeBar(p) {
-    const lo = -p.sl, hi = p.tp, r = p.ret == null ? 0 : Math.max(lo, Math.min(hi, p.ret));
+    // before the first take-profit: stop-loss → take-profit; after it: entry → the next target (2×, then the runner's peak)
+    const lo = p.tpHit ? 0 : -p.sl, hi = !p.tpHit ? p.tp : !p.tp2Hit ? p.tp2 : Math.max(p.tp2 * 2, p.peak || 0), r = p.ret == null ? 0 : Math.max(lo, Math.min(hi, p.ret));
     const at = ((r - lo) / (hi - lo)) * 100, zero = ((0 - lo) / (hi - lo)) * 100;
-    const trail = p.peak != null && p.peak >= p.trailAt ? ((Math.max(lo, p.peak - p.trail) - lo) / (hi - lo)) * 100 : null;
+    const stopAt = p.tpHit ? ((1 + (p.peak || 0) / 100) * (1 - (p.runTrail || 30) / 100) - 1) * 100 : p.peak - p.trail;
+    const trail = p.peak != null && (p.tpHit || p.peak >= p.trailAt) ? ((Math.max(lo, Math.min(hi, stopAt)) - lo) / (hi - lo)) * 100 : null;
     return `<div class="dk-range" title="${T("stop-loss")} −${p.sl}% · ${T("take-profit")} +${p.tp}%">
-      <span class="dk-r-sl" data-no-i18n>−${p.sl}%</span><div class="dk-r-bar"><i class="dk-r-zero" style="left:${zero}%"></i>${trail != null ? `<i class="dk-r-trail" style="left:${trail}%"></i>` : ""}<b class="dk-r-at ${cls(p.ret)}" style="left:${at}%"></b></div><span class="dk-r-tp" data-no-i18n>+${p.tp}%</span></div>`;
+      <span class="dk-r-sl" data-no-i18n>${p.tpHit ? "0%" : `−${p.sl}%`}</span><div class="dk-r-bar"><i class="dk-r-zero" style="left:${zero}%"></i>${trail != null ? `<i class="dk-r-trail" style="left:${trail}%"></i>` : ""}<b class="dk-r-at ${cls(p.ret)}" style="left:${at}%"></b></div><span class="dk-r-tp" data-no-i18n>+${Math.round(hi)}%</span></div>`;
   }
   const pbTag = (k, name) => `<span class="dk-pb" style="--pb:${PBCOL[k] || "#8c98a6"}">${T(name || k)}</span>`;
   const pbName = (k) => { const p = (S.d.learn.playbooks || []).find((x) => x.k === k); return p ? p.name : k; };
@@ -235,8 +237,9 @@
           <div class="dk-pbc-h"><b>${T(p.name)}</b><span class="${cls(p.mean)}" data-no-i18n>${p.n ? pc(p.mean) : "—"}</span></div>
           <p>${T(p.why)}</p>
           <div class="dk-pbc-s"><span>${T("trades")} <b data-no-i18n>${p.real}</b>+<b data-no-i18n>${p.paper}</b> ${T("paper")}</span><span>${T("wins")} <b data-no-i18n>${p.winRate == null ? "—" : p.winRate + "%"}</b></span></div>
-          <div class="dk-pbc-x" data-no-i18n>TP +${p.exits.tp}% · SL −${p.exits.sl}% · ${tr("trail")} ${p.exits.trail}% ${tr("after")} +${p.exits.trailAt}% · ${p.exits.maxH}h</div>
+          <div class="dk-pbc-x" data-no-i18n>TP +${p.exits.tp}% (${p.exits.tp1Pct ?? 35}%) · 2× (${p.exits.tp2Pct ?? 25}%) · ${tr("runner")} −${p.exits.runTrail ?? 30}% ${tr("from peak")} · SL −${p.exits.sl}% · ${p.exits.maxH}h</div>
         </div>`).join("")}</div>
+      ${L.tails && L.tails.n ? `<h4>${T("Big runs seen")}</h4><div class="dk-tails"><span><b data-no-i18n>${L.tails.x2}</b>${T("doubled")}</span><span><b data-no-i18n>${L.tails.x4}</b>${T("went 4×")}</span><span><b data-no-i18n>${L.tails.x11}</b>${T("went 11×+")}</span><small>${T("out of")} <span data-no-i18n>${L.tails.n}</span> ${T("trades, counting what happened after they closed — the runner is there for these")}</small></div>` : ""}
       <h4>${T("What the model has learned")}</h4>
       ${L.modelN ? `<div class="dk-wts">${L.weights.map((x) => `<div class="dk-wt"><span>${T(x.name)}</span><div class="dk-wt-bar"><i class="${x.w >= 0 ? "up" : "dn"}" style="${x.w >= 0 ? "left:50%" : `right:50%`};width:${((Math.abs(x.w) / maxW) * 50).toFixed(1)}%"></i></div><b class="${cls(x.w)}" data-no-i18n>${x.w > 0 ? "+" : ""}${x.w.toFixed(2)}</b></div>`).join("")}</div><small class="dk-legend">${T("Right: more of it has meant a winning trade. Left: a losing one.")}</small>` : `<div class="dk-empty-s">${T("Nothing yet — it learns from the first closed trades.")}</div>`}
       ${(L.adds || []).length ? `<h4>${T("Adding to a position")}</h4><div class="dk-adds">${L.adds.map((a) => `<div class="dk-add ${a.live ? "on" : ""}"><b>${T(a.name)}</b><span class="dk-add-st">${a.live ? T("live") : T("paper only")}</span>

@@ -468,7 +468,8 @@ function learnFrom(S, rec) {
 /// sees what holding longer would have done — not only the path up to where it sold
 function ghostOf(pos, rec, c) {
   const maxH = (B.PLAYBOOKS[pos.pb] && B.PLAYBOOKS[pos.pb].exits.maxH) || 6;
-  return { id: pos.id, day: rec.day, t: pos.t, p0: pos.p0, rt: pos.rt || 0, entryTs: pos.entryTs, until: pos.entryTs + maxH * 5400, up: { ...(pos.up || {}) }, dn: { ...(pos.dn || {}) }, last: rec.ret };
+  const until = pos.entryTs + ((pos.peak || 0) >= 50 ? Math.max(maxH * 5400, 86400) : maxH * 5400); // big movers: watch a full day for the tail
+  return { id: pos.id, day: rec.day, t: pos.t, p0: pos.p0, rt: pos.rt || 0, entryTs: pos.entryTs, until, up: { ...(pos.up || {}) }, dn: { ...(pos.dn || {}) }, last: rec.ret, real: !!pos.real, soldAt: rec.ret };
 }
 const pret = (pos, px) => (px && pos.p0 ? ((px / pos.p0) * (1 - (pos.rt || 0) / 100) - 1) * 100 : null);
 
@@ -611,7 +612,9 @@ export async function tick(st, opts = {}) {
     async function sellNow(s, when) {
       const p = s.p;
       const all = BigInt(p.tokens);
-      const amt = s.pct >= 100 ? all : (all * BigInt(s.pct)) / 100n;
+      const remainPct = 100 - p.parts.reduce((t, x) => t + x.pct, 0); // s.pct is % of the original position
+      const partPct = s.pct >= 100 || s.pct >= remainPct ? remainPct : s.pct;
+      const amt = partPct >= remainPct ? all : (all * BigInt(Math.round(partPct * 100))) / BigInt(Math.max(1, Math.round(remainPct * 100)));
       if (amt <= 0n) return false;
       const q = decodeQuote((await callsRaw([quoteCall(desk, p.k, false, amt)]))[0]);
       const ladder = [92n, 85n, 70n, 0n], step = Math.min(p.sellFails || 0, 3);
@@ -625,13 +628,13 @@ export async function tick(st, opts = {}) {
       const usd = human(tl.amountOut, 6), frac = Number(amt) / Number(all), basisPart = p.basis * frac;
       const partRet = (usd / basisPart - 1) * 100;
       const px = r2(usd / human(amt, p.dec), 12);
-      p.parts.push({ pct: s.pct >= 100 ? 100 - p.parts.reduce((t, x) => t + x.pct, 0) : s.pct, ret: partRet, usd, why: s.why, tx: r.hash, px, ts: when });
+      p.parts.push({ pct: partPct, ret: partRet, usd, why: s.why, tx: r.hash, px, ts: when });
       p.tokens = (all - amt).toString(); p.basis -= basisPart;
       S.cash = (S.cash || 0) + usd;
       log.push({ ts: when, side: "sell", t: p.t, sym: p.sym, pb: p.pb, usd: r2(usd, 4), tokens: human(amt, p.dec), px, tx: r.hash, why: s.why, ret: r2(partRet) });
       out.real.push(`sell ${p.sym} ${s.why} ${r2(partRet)}%`);
       if (s.urgent) alarm(`ARCIA DESK sold ${p.sym} (${s.why}) at ${r2(partRet)}% — tx ${r.hash}`);
-      if (s.why === "tp" && BigInt(p.tokens) > 0n) { p.tpHit = true; return true; }
+      if ((s.why === "tp" || s.why === "tp2") && BigInt(p.tokens) > 0n) { if (s.why === "tp") p.tpHit = true; else p.tp2Hit = true; return true; }
       p.done = true;
       return true;
     }
@@ -662,7 +665,7 @@ export async function tick(st, opts = {}) {
       const e = crit ? { action: "emergency", sellPct: 100 } : B.exitCheck(p, ret, nowS);
       if (!e.action) continue;
       const leftPct = 100 - p.parts.reduce((t, x) => t + x.pct, 0);
-      if (e.action === "tp" && !p.tpHit) { p.parts.push({ pct: Math.round((leftPct * e.sellPct) / 100), ret, why: "tp", px: c.px, ts: nowS }); p.tpHit = true; continue; }
+      if ((e.action === "tp" || e.action === "tp2") && e.sellPct < leftPct) { p.parts.push({ pct: e.sellPct, ret, why: e.action, px: c.px, ts: nowS }); if (e.action === "tp") p.tpHit = true; else p.tp2Hit = true; continue; }
       p.parts.push({ pct: leftPct, ret, why: e.action, px: c.px, ts: nowS });
       p.done = true;
     }
@@ -688,6 +691,11 @@ export async function tick(st, opts = {}) {
       if (nowS >= g.until || !c || ret == null || ret <= -60) ghostDone.push(g);
     }
     const G2 = G.filter((g) => !ghostDone.includes(g)).slice(-150);
+    // how often a trade (with what happened after it closed) ran 2×, 4×, 11× — the tail the runner is there for
+    for (const g of ghostDone) {
+      const t = S.stats.tails || (S.stats.tails = { n: 0, x2: 0, x4: 0, x11: 0 });
+      t.n++; if (g.up[100] != null) t.x2++; if (g.up[300] != null) t.x4++; if (g.up[1000] != null) t.x11++;
+    }
 
     // ---- 5. entries
     for (const [k, v] of Object.entries(S.cool)) if (v < nowS) delete S.cool[k];
@@ -991,7 +999,8 @@ export async function view(st) {
     stats: { realClosed: nReal, realWins: s.realWins, winRate: nReal ? r2((s.realWins / nReal) * 100, 1) : null, avgRet: nReal ? r2(s.realSum / nReal) : null, realPnl: s.realPnl,
       paperClosed: s.paperClosed, paperWinRate: s.paperClosed ? r2((s.paperWins / s.paperClosed) * 100, 1) : null, paperAvg: s.paperClosed ? r2(s.paperSum / s.paperClosed) : null, best: s.best, worst: s.worst },
     open: (S.open || []).map((p) => ({ id: p.id, t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, usdIn: r2(p.usdIn, 4), value: r2(p.value, 4), ret: p.ret, entryPx: p.entryPx, nowPx: p.nowPx ? r2(p.nowPx, 12) : null,
-      tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tx: p.tx, pending: !!p.pending,
+      tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tp2Hit: !!p.tp2Hit,
+      tp2: (p.exits.tp2 ?? B.RUN.tp2), runTrail: (p.peak >= 400 ? (p.exits.runTrailWide ?? B.RUN.runTrailWide) : (p.exits.runTrail ?? B.RUN.runTrail)), tx: p.tx, pending: !!p.pending,
       sells: (p.parts || []).filter((x) => x.tx).map((x) => ({ tx: x.tx, px: x.px, pct: x.pct, ret: r2(x.ret), why: x.why })), why: p.why0, gate: p.gate || null, review: p.review || null, added: p.added && !p.added.failed ? p.added : null })),
     paper: { open: ((P && P.open) || []).length, list: ((P && P.open) || []).slice().sort((a, b) => b.entryTs - a.entryTs).slice(0, 16).map((p) => ({ t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, ret: p.ret ?? null, tp: p.exits.tp, sl: p.exits.sl, tpHit: !!p.tpHit })) },
     recent: ((rec && rec.items) || []).slice(0, 80),
@@ -1005,6 +1014,7 @@ export async function view(st) {
       playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k] }; }),
       weights: B.topWeights(L.model, 8).map(([k, w]) => ({ k, name: B.featureName(k), w: r2(w, 3) })),
       history: (L.history || []).slice(-14).map((h) => ({ day: h.day, n: h.n, means: h.means, changes: h.changes })),
+      tails: S.stats.tails || { n: 0, x2: 0, x4: 0, x11: 0 }, runner: B.RUN,
       adds: Object.entries(B.ADD_KINDS).map(([k, name]) => { const a = (L.adds || {})[k] || { n: 0, mean: 0, helped: 0 }; return { k, name, n: a.n, edge: r2(a.mean), helped: a.n ? r2((a.helped / a.n) * 100, 1) : null, live: B.addAllowed(L.adds, k) }; }),
     },
     // how far discovery has read, for checking it's keeping up
