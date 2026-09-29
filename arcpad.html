@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790639722"></script>
+<script src="arc-log.js?v=1790640472"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790639722">
+<link rel="stylesheet" href="style.css?v=1790640472">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1269,6 +1269,63 @@
           </div>
         </div>
         <div id="bm-body"></div>
+        <!-- Builder Mine guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the game -->
+        <section class="bm-guide" aria-labelledby="bm-guide-h">
+          <h2 id="bm-guide-h">Builder Mine guide</h2>
+          <p class="bm-guide-lede"><span>Everything about mining on Arc, in one place.</span> <span>Contract on Arc mainnet:</span> <a href="https://arc.etherscan.io/address/0x1538c76917dE5911D71c5C397ff18cA09d52B019" target="_blank" rel="noopener" data-no-i18n>BuilderMine 0x1538…B019</a></p>
+          <details open><summary><h3>What is Builder Mine?</h3></summary>
+            <p>Any Arc token can have a mine. A holder puts part of the token's supply in the ground for 3 to 60 days. Builders — Arc's miners — join, mine with their browser and claim what they dig. Whatever nobody digs is burned, and the deposit can never go back to the creator.</p>
+            <p>Every fee is paid in $ARCIRCLE and burned on the spot: opening a mine and joining one each cost 1 USDC worth of $ARCIRCLE, and pickaxes and boosts are priced in $ARCIRCLE. Nobody is paid.</p>
+          </details>
+          <details><summary><h3>Start mining in five steps</h3></summary>
+            <ol>
+              <li>Open arcircle.app/arc#mine and connect your wallet. The practice mine works without a wallet, for free, with no rewards.</li>
+              <li>Pick a mine from the cards or the Arc World map. Each card shows the token, its Token Scanner score, the layer, how many builders have joined and how much is left.</li>
+              <li>Join: 1 USDC worth of $ARCIRCLE is burned. If you don't hold enough, the page shows exactly how much you need, links to buy it on Argus, and carries on by itself once it arrives.</li>
+              <li>Press Start mining and sign once — only a signature, no transaction. Your browser does the hashing only while the tab is open and hands in its shares every 30 seconds.</li>
+              <li>Post your card on X with your own mine link, then paste the post's link on the Mining tab. Your first verified post unlocks claiming. Claim on the Claim tab after each hourly payout — or claim from every mine in one transaction.</li>
+            </ol>
+          </details>
+          <details><summary><h3>How each hour is paid out</h3></summary>
+            <p>A mine has six layers. Each lasts a sixth of the run and releases half as much as the one above: 50.8%, 25.4%, 12.7%, 6.3%, 3.2% and 1.6% of the mine. Early builders dig the richest ground.</p>
+            <p>Every hour's release is split by weight: points × pickaxe × (1 + bonuses). A share is worth 1 point, up to 600 shares an hour per wallet. Rare ores add more: Copper +1 (1 in 4 shares), Silver +2 (1 in 16), Gold +10 (1 in 64), Diamond +60 (1 in 1,024) and the Arc Crystal jackpot +500 (1 in 16,384).</p>
+            <p>Each hour has a rush ore — copper, silver or gold — whose points count three times. Each mine also hides one Heart of Arc per hour: after a secret minute, the first builder whose share reaches it gets +100 points. These only move points within the hour; they never change how much is released.</p>
+            <p>The hour settles two minutes after it ends. A result card shows your place, your points and what you got.</p>
+          </details>
+          <details><summary><h3>Bonuses (up to +100%)</h3></summary>
+            <ul>
+              <li>Holding $ARCIRCLE: 100K +10%, 1M +20%, 5M +30%.</li>
+              <li>Each extra verified X post on a new day: +5%, up to +25%.</li>
+              <li>Each builder who joins with your link and posts: +5%, up to +25%. Joining through someone's link: +5%.</li>
+              <li>Daily streak (30+ shares a day): +2% a day, up to +20%.</li>
+              <li>Rank: Miner +2%, Foreman +4%, Architect +6%, Legend +10%.</li>
+              <li>Crew: +3% when your crew has 20,000 points this month, +5% at 100,000.</li>
+              <li>Boosts: Lantern +15% for 24 hours, Dynamite +50% for 1 hour.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Pickaxes and boosts</h3></summary>
+            <p>Paid in $ARCIRCLE, which is burned. A pickaxe is yours for good and works in every mine; an upgrade costs only the difference. Launch prices: Stone ×1.15 for 20K, Iron ×1.3 for 60K, Steel ×1.5 for 150K, Gold ×1.7 for 300K, Diamond ×2.0 for 700K, Amethyst ×2.3 for 1.6M, Arcane ×2.7 for 4M.</p>
+            <p>Boosts belong to one mine: Lantern (+15% for 24 hours, 30K), Dynamite (+50% for 1 hour, 20K), Lucky gem (rare ores twice as often for 24 hours, 40K) and Overtime barrel (+50% hourly cap for 24 hours, 30K). A boost bought before a mine opens starts when it opens.</p>
+          </details>
+          <details><summary><h3>Ranks, looks, quests and crews</h3></summary>
+            <p>Your rank comes from lifetime points in every mine plus quest XP: Apprentice, Miner (1,000), Foreman (10,000), Architect (50,000) and Legend (200,000). Ranks unlock characters and pets — looks only, they never change your mining.</p>
+            <p>Daily quests: dig 100 shares, find gold or better, share your mine on X — 50 XP each and 100 more for all three. Crews hold up to 30 builders and are free to found or join. There is an ore book, badges, a monthly season board and an Arc Crystal hall of fame.</p>
+          </details>
+          <details><summary><h3>Open a mine for your token</h3></summary>
+            <p>Press Open a mine, paste the token's contract address, pick the amount, 3 to 60 days and when it opens (now, in 1 hour or in 24 hours), and add a name, one line and a link. Opening costs 1 USDC worth of $ARCIRCLE, burned. The deposit can never come back: it is mined by builders or burned.</p>
+            <p>Anyone can top a running mine up (at least 1% of the first deposit, up to 16 times, not in the last hour); a top-up is released over what is left of the curve. The creator can edit the name, line and link, and pause new joins. The mine's dashboard shows builders and points hour by hour, X posts and referrals, what a top-up would add, a promo card for X and a live card to embed on any site (arcircle.app/embed/mine/&lt;id&gt;).</p>
+          </details>
+          <details><summary><h3>Claims, burns and alerts</h3></summary>
+            <p>Payouts are posted on-chain every hour as a Merkle root, capped by the halving schedule. Only builders with a verified X post are in it. Three days after a mine ends, everything no root handed out — unmined, or mined by builders who never proved a post — can be burned, and 30 days after that whatever is still unclaimed. Anyone can send these burns to 0x…dEaD from the Claim tab; nothing ever goes back to the creator.</p>
+            <p>On Telegram, send /minealerts to @ARCIAonArc_bot (after /link) and ARCIA tells you when you can claim and before anything unclaimed is burned. /mine lists the open mines.</p>
+          </details>
+          <details><summary><h3>Share cards</h3></summary>
+            <p>Your builder card, a jackpot card (Diamond, Arc Crystal or Heart of Arc), your rank, your season place, your crew and your ore book. Every card is checked against your record before it is drawn, and every card link carries your referral. In Builder → Settings you can let ARCIA post your Arc Crystal on X, tagging your verified account (up to three posts a day across all builders).</p>
+          </details>
+          <details><summary><h3>Fair and safe</h3></summary>
+            <p>Mining needs only a signature. One X account per wallet, a cap per wallet per hour, and every root is capped on-chain. Nobody — not the creator, not ARCIRCLE PAD — can take a mine's tokens back. Each mine shows its token's scanner score and warns on low ones: read the scan before you join.</p>
+          </details>
+        </section>
       </section>
 
       <!-- ============ ARCIA (arc-arcia.js + api/arcia.mjs) — the AI idol of $ARCIRCLE: profile, chat, live numbers, X feed ============ -->
@@ -1558,6 +1615,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790639722"></script>
+<script src="arcpad.bundle.js?v=1790640472"></script>
 </body>
 </html>

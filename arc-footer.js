@@ -61,6 +61,7 @@
     ["CirclePad burn vote", "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2"],
     ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
     ["LP lock", "0x674E7010Dab5cCb519e06df72b1D4c063952f45B"],
+    ["Builder Mine", (typeof CONFIG !== "undefined" && CONFIG.BUILDER_MINE_ADDRESS) || ""],
   ];
   var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
   function build() {

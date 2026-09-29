@@ -10680,4 +10680,19 @@ button.bm-li:hover{border-color:rgba(255,200,97,.5);transform:translateY(-1px);}
   .bm-xpbar i,.bm-capbar i{transition:none;}
 }
 
+/* the static guide under the game */
+.bm-guide{margin:28px 0 8px;padding:18px;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,200,97,.05),rgba(255,255,255,.01));}
+.bm-guide > h2{margin:0 0 4px;font:800 1.15rem Sora,sans-serif;}
+.bm-guide-lede{margin:0 0 12px;font-size:.84rem;color:var(--ink-dim);}
+.bm-guide-lede a{color:#ffc861;}
+.bm-guide details{border-top:1px solid rgba(255,255,255,.08);}
+.bm-guide summary{cursor:pointer;list-style:none;padding:12px 28px 12px 0;position:relative;}
+.bm-guide summary::-webkit-details-marker{display:none;}
+.bm-guide summary::after{content:"+";position:absolute;right:4px;top:50%;transform:translateY(-50%);font:800 1.1rem Sora,sans-serif;color:#ffc861;}
+.bm-guide details[open] summary::after{content:"−";}
+.bm-guide summary h3{display:inline;margin:0;font:800 .92rem Sora,sans-serif;}
+.bm-guide p,.bm-guide li{font-size:.84rem;line-height:1.6;color:#dfe7f5;}
+.bm-guide p{margin:0 0 10px;}
+.bm-guide ol,.bm-guide ul{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px;}
+
 #bp-panel-mine [hidden]{display:none !important;}
