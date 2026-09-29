@@ -198,15 +198,16 @@
       ["done", "ArcPad is live", "Instant launches paired with USDC in a real Uniswap v4 pool from block one, 1 USDC to launch."],
       ["done", "$ARCIRCLE relaunched on Argus", "25 Sep 2026 — the whole supply in one locked liquidity position, no team allocation."],
       ["done", "Utilities", "Locker, Token Scanner, Multisender, Bridge, Snapshot, Liquidity Manager and Relay Launch."],
-      ["done", "CirclePad Round #1 opened", "A 72-hour USDC raise in an on-chain escrow, withdrawable until the close."],
-      ["done", "Burn-to-vote", "$ARCIRCLE holders vote on the coin's name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE."],
-      ["now", "Round #1 closes", "29 Sep 2026, 11:16 UTC — the raise splits 80 / 15 / 5 and the vote is final."],
+      ["done", "CirclePad Round #1", "A 72-hour USDC raise in an on-chain escrow: 1,565.66 USDC from 21 wallets. Closed 29 Sep 2026 and split 80 / 15 / 5 in one transaction."],
+      ["done", "Burn-to-vote", "250 votes burned 250,000 $ARCIRCLE and chose the coin's name, ticker, logo and roadmap: ARCIA, $ARCIA."],
+      ["done", "$ARCIA launched", "Round #1's coin went live on Argus. 335.49M $ARCIA went to the 18 contributors by their share, in one Multisender transaction."],
+      ["now", "CirclePad Round #2", "Being prepared: the round wallet sets it up, then presses Start. Start date: not decided."],
       ["now", "Relay N1", "The voted coin launches on Argus from the round's recipient wallet; the first buy is relayed to contributors and $ARCIRCLE holders."],
       ["now", "Verified contracts", "Publishing contract sources on the explorer."],
-      ["next", "More of CirclePad on-chain", "Round #1 mixes hands-on operations with partial automation. Each round moves more steps into contracts."],
-      ["next", "Round #2", "Timing to be announced after Round #1 settles."],
+      ["next", "More of CirclePad on-chain", "Round #1 mixed hands-on operations with partial automation. Each round moves more steps into contracts, toward CirclePad fully automated."],
+      ["next", "Rounds #3, #4 and on", "One project at a time, round after round."],
+      ["next", "Builder Mine for $ARCIA", "A mine that digs $ARCIA. Date not announced yet."],
       ["open", "Reward program", "Designed around ecosystem revenue, never new emissions. Size, timing and rules: not decided."],
-      ["open", "CirclePad airdrop size", "Every Round #1 contributor is in. The amount: not decided."],
     ];
     var LBL = { done: "Done", now: "In progress", next: "Next", open: "Not decided" };
     $("#rm-list").innerHTML = ITEMS.map(function (x, i) {

@@ -42,7 +42,7 @@
     if (d && d.mcap != null) roll(el("mcap"), d.mcap, usd);
     var c = rv.circle, box = el("circle");
     if (box) {
-      if (c && c.started) { box.parentNode.classList.remove("soon"); roll(box, c.raised || 0, usd); el("circle-lbl").textContent = tr("raised"); }
+      if (c && c.started) { box.parentNode.classList.remove("soon"); roll(box, c.raised || 0, usd); el("circle-lbl").textContent = tr(c.open ? "raised" : "raised in Round #1"); }
       else { box.parentNode.classList.add("soon"); box.textContent = tr("Opening soon"); box.__v = null; el("circle-lbl").textContent = ""; }
     }
     bar.classList.add("ready");

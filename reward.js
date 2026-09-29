@@ -109,7 +109,7 @@
       : d.venue === "pool" ? (rv.curveVolume != null ? "90% of the tax on " + usd(rv.curveVolume) + " traded" : "90% of the tax on every $ARCIRCLE trade")
       : rv.curveVolume != null ? "2% of " + usd(rv.curveVolume) + " traded on the curve" : "2% of every $ARCIRCLE trade");
     var c = rv.circle;
-    setText("raise-sub", !c ? "5% of round #1 when it closes" : !c.started ? "Round #1 opens soon" : usd(c.raised) + " raised in round #1 so far");
+    setText("raise-sub", !c ? "5% of round #1 when it closes" : !c.started ? "Round #1 opens soon" : c.open ? usd(c.raised) + " raised in round #1 so far" : usd(c.share) + " from round #1 · round #2 next");
     if (dash.__seen) go();
     else if (T()) T().onVisible(dash, function () { dash.__seen = true; go(); });
   }

@@ -42,9 +42,9 @@
 
   // ---------------- words ----------------
   var GREET = {
-    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad — or just say hi♡",
-    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",
-    zh: "你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、CirclePad 第 1 轮、接力发币或 ArcPad，尽管问我，或者只是打个招呼也好♡",
+    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, $ARCIA, CirclePad Round #2, Relay Launch or ArcPad — or just say hi♡",
+    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, $ARCIA, CirclePad 라운드 #2, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",
+    zh: "你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、$ARCIA、CirclePad 第 2 轮、接力发币或 ArcPad，尽管问我，或者只是打个招呼也好♡",
   };
   var GREET_NAME = {
     en: "Welcome back, {n}~♡ I missed you! What shall we talk about today?",
@@ -52,13 +52,13 @@
     zh: "{n}，欢迎回来~♡ 好想你！今天想聊什么？",
   };
   var SUGG = {
-    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?"],
-    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?"],
-    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？"],
+    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "When does Round #2 start?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?"],
+    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #2 언제 시작해?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?"],
+    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "第 2 轮什么时候开始？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？"],
   };
   // follow-up chips by what was just talked about
   var NEXT = {
-    round: { en: ["How do I join Round #1?", "What is burn-to-vote?", "Can I withdraw before the close?", "What happens at the close?"], ko: ["라운드 #1 어떻게 참여해?", "소각 투표가 뭐야?", "마감 전에 인출할 수 있어?", "마감되면 어떻게 돼?"], zh: ["怎么参加第 1 轮？", "什么是销毁投票？", "截止前可以撤回吗？", "截止后会怎样？"] },
+    round: { en: ["What happened in Round #1?", "When does Round #2 start?", "Can I withdraw before the close?", "What happens at the close?"], ko: ["라운드 #1 결과가 어땠어?", "라운드 #2 언제 시작해?", "마감 전에 인출할 수 있어?", "마감되면 어떻게 돼?"], zh: ["第 1 轮结果怎么样？", "第 2 轮什么时候开始？", "截止前可以撤回吗？", "截止后会怎样？"] },
     relay: { en: ["How much do I need to hold?", "When is the snapshot?", "Check my wallet", "What is N1, N2, N3?"], ko: ["얼마나 들고 있어야 해?", "스냅샷은 언제야?", "내 지갑 확인하고 싶어", "N1, N2, N3가 뭐야?"], zh: ["需要持有多少？", "快照是什么时候？", "查看我的钱包", "N1、N2、N3 是什么？"] },
     buy: { en: ["What's the contract?", "How do I bridge USDC to Arc?", "What are the fees?", "What are the risks?"], ko: ["컨트랙트 주소 알려줘", "Arc로 USDC 브릿지는 어떻게 해?", "수수료는 얼마야?", "위험 요소는 뭐야?"], zh: ["合约地址是什么？", "怎么把 USDC 跨链到 Arc？", "手续费是多少？", "有哪些风险？"] },
     price: { en: ["How many holders are there?", "How much has been burned?", "Where do the fees go?", "How do I buy $ARCIRCLE?"], ko: ["홀더는 몇 명이야?", "얼마나 소각됐어?", "수수료는 어디로 가?", "$ARCIRCLE 어떻게 사?"], zh: ["有多少持有人？", "销毁了多少？", "手续费去哪里？", "怎么买 $ARCIRCLE？"] },

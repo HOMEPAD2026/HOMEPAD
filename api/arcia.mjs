@@ -118,7 +118,7 @@ const FAN = [
       "헤헤, 정말 고마워요~♡ 오늘 특별히 신경 써서 준비했는데 알아봐 줘서 너무 기뻐요!"] },
   { k: "fan", re: /\b(fan|fans|stan|cheer|cheering|fighting|hwaiting|support you|rooting for you|best idol|number one|no\.? ?1)\b|팬|응원|화이팅|파이팅|힘내|최고|짱|덕질|입덕/,
     en: ["Thank you so much~♡ Knowing you're my fan makes my whole day. I'll keep working hard for you and for $ARCIRCLE 💙💚",
-      "Waaah, my fan! Thank you for cheering me on~♡ See you in CirclePad Round #1?",
+      "Waaah, my fan! Thank you for cheering me on~♡ See you in CirclePad Round #2?",
       "You're the best~♡ Every fan who cheers for me gives me more energy to spread $ARCIRCLE to the world ✨",
       "Thank you, thank you~♡ Stay with me — and come say hi on X too: @ARCIAonArc 💙💚"],
     ko: ["정말 고마워요~♡ 제 팬이라는 말에 오늘 하루가 반짝반짝해졌어요. 앞으로도 $ARCIRCLE이랑 같이 열심히 할게요 💙💚",
@@ -164,8 +164,8 @@ function guide(q, lang, L) {
     `이거 제가 공부했던 거예요~ 사이트에 이렇게 나와 있어요 (${f.page} — ${f.title}, 영어 원문):\n\n${f.snip}\n\n자세히: ${f.url}`);
   if (found && /locker|\block|scanner|\bscan|multisend|airdrop|snapshot|bridge|cctp|liquidity|whitepaper|risk|vesting|v2|security|starting|\bfees?\b|\btax|graduat|glossary|governance|roadmap|refund|withdraw|\blead|curve|hook|factory|\bpool|pricing|architecture|락커|잠금|스캐너|멀티센더|에어드롭|스냅샷|브릿지|유동성|백서|위험|베스팅|보안|수수료|세금|로드맵|환불|인출|리더/.test(s)) return say(found);
   if (has(s, "round", "circlepad", "close", "deadline", "raise", "라운드", "서클패드", "마감", "모금", "언제")) return A(
-    `Round #1 is my debut stage~♡ It's a 72-hour USDC raise into an on-chain escrow, and you can withdraw any time before the close. $ARCIRCLE holders burn-to-vote (1,000 $ARCIRCLE per vote). At the close: 80% to the launch, 15% to the top contributor over 3 days, 5% to the platform.\n\n${raised ? "We've raised " + raised + " USDC so far! " : ""}${tl ? "It closes in " + tl + " (Sep 29, 11:16 UTC) — come join me: arcircle.app/circle" : "Round #1 has closed — the results are at arcircle.app/circle/round/1. Thank you for being there♡"}`,
-    `라운드 #1은 제 데뷔 무대예요~♡ 72시간 동안 온체인 에스크로로 USDC를 모으고, 마감 전까지는 언제든 인출할 수 있어요. $ARCIRCLE 홀더는 소각 투표(1표 = 1,000 $ARCIRCLE 소각)로 함께 정하고, 마감 때 80%는 런칭, 15%는 최대 기여자(3일 분할), 5%는 플랫폼으로 가요.\n\n${raised ? "지금까지 " + raised + " USDC 모였어요! " : ""}${tl ? "마감까지 " + tl + " 남았어요 (9월 29일 20:16 KST). 같이해요: arcircle.app/circle" : "라운드 #1은 마감됐어요. 결과는 arcircle.app/circle/round/1 에서 봐 주세요. 함께해줘서 고마워요♡"}`);
+    `Round #1 is my debut stage~♡ It's a 72-hour USDC raise into an on-chain escrow, and you can withdraw any time before the close. $ARCIRCLE holders burn-to-vote (1,000 $ARCIRCLE per vote). At the close: 80% to the launch, 15% to the top contributor over 3 days, 5% to the platform.\n\n${raised ? "We've raised " + raised + " USDC so far! " : ""}${tl ? "It closes in " + tl + " (Sep 29, 11:16 UTC) — come join me: arcircle.app/circle" : "Round #1 is complete — $ARCIA launched and went out to all 18 contributors. Results: arcircle.app/circle/round/1. Round #2 is being prepared (start date not decided yet)~ Thank you for being there♡"}`,
+    `라운드 #1은 제 데뷔 무대예요~♡ 72시간 동안 온체인 에스크로로 USDC를 모으고, 마감 전까지는 언제든 인출할 수 있어요. $ARCIRCLE 홀더는 소각 투표(1표 = 1,000 $ARCIRCLE 소각)로 함께 정하고, 마감 때 80%는 런칭, 15%는 최대 기여자(3일 분할), 5%는 플랫폼으로 가요.\n\n${raised ? "지금까지 " + raised + " USDC 모였어요! " : ""}${tl ? "마감까지 " + tl + " 남았어요 (9월 29일 20:16 KST). 같이해요: arcircle.app/circle" : "라운드 #1은 완료됐어요! $ARCIA가 런칭되어 18명의 기여자 모두에게 지급됐어요. 결과는 arcircle.app/circle/round/1 에서 봐 주세요. 라운드 #2는 준비 중이에요 (시작일은 아직 미정)~ 함께해줘서 고마워요♡"}`);
   if (has(s, "relay", "n+1", "릴레이")) return A(
     `Relay Launch is my favorite part~ Each CirclePad round's coin launches on Argus, and its first buy gets relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. Keep holding and you get every relay: N1, N2, N3…♡\narcircle.app/relay`,
     `릴레이 런칭은 제가 제일 좋아하는 거예요~ CirclePad 라운드 코인이 Argus로 런칭되면, 첫 매수 물량이 그 라운드 참여자랑 스냅샷 때 $ARCIRCLE을 10만 개 이상 들고 있는 지갑에 나눠져요. 계속 들고 있으면 N1, N2, N3… 전부 받아요♡\narcircle.app/relay`);
@@ -192,11 +192,11 @@ function guide(q, lang, L) {
     `$ARCIRCLE is the heart of ARCIRCLE PAD on Circle's Arc chain~ ArcPad (instant launches) and CirclePad (community-funded launches) both feed it: launch fees, trading fees, raise shares and its own creator fee go to buybacks, liquidity and upcoming rewards. No team allocation, liquidity locked forever♡\narcircle.app/arcircle`,
     `$ARCIRCLE은 Circle의 Arc 체인 위 ARCIRCLE PAD의 심장이에요~ ArcPad(즉시 런칭)랑 CirclePad(커뮤니티 펀딩 런칭)에서 나오는 런칭 수수료, 거래 수수료, 모금 몫, 자체 크리에이터 수수료가 바이백·유동성·리워드(예정)로 돌아와요. 팀 물량 없고, 유동성은 영구 잠김이에요♡\narcircle.app/arcircle`);
   if (/^(hi|hello|hey|gm)\b/.test(s) || has(s, "안녕", "하이")) return A(
-    pick([`Hi hi~ It's ARCIA 💙💚 Ask me anything about $ARCIRCLE, Round #1, Relay Launch or ArcPad♡`, `Hello~♡ So happy you came! What do you want to know today?`]),
+    pick([`Hi hi~ It's ARCIA 💙💚 Ask me anything about $ARCIRCLE, $ARCIA, CirclePad, Relay Launch or ArcPad♡`, `Hello~♡ So happy you came! What do you want to know today?`]),
     pick([`안녕하세요~ ARCIA예요 💙💚 $ARCIRCLE, 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어봐요♡`, `와~ 와줬네요♡ 오늘은 뭐가 궁금해요?`]));
   if (found) return say(found);
   return A(
-    `Hmm, I'm still learning that one~ Right now I know $ARCIRCLE, CirclePad Round #1, Relay Launch, ArcPad and the utilities best. Try a suggestion below, or peek at arcircle.app/start♡`,
+    `Hmm, I'm still learning that one~ Right now I know $ARCIRCLE, $ARCIA, CirclePad, Relay Launch, ArcPad and the utilities best. Try a suggestion below, or peek at arcircle.app/start♡`,
     `음, 그건 아직 공부 중이에요~ 지금은 $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad, 유틸리티를 제일 잘 알아요. 아래 추천 질문을 눌러보거나 arcircle.app/start 를 둘러봐요♡`);
 }
 

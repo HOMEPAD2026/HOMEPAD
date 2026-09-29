@@ -173,7 +173,8 @@ async function cardRound(lang) {
   return {
     photo: `${SITE}/api/og?round=1&t=${minute()}`,
     text: [`🟢 <b>CirclePad Round #1</b> · ${open ? T3(lang, "open", "진행 중", "进行中") : T3(lang, "closed", "마감", "已结束")}`, `${T3(lang, "Raised", "모금액", "已募")}: <b>${num(raised)} USDC</b>`,
-      open && lf ? `${T3(lang, "Time left", "남은 시간", "剩余时间")}: <b>${lf}</b>` : null, deadline ? `${T3(lang, "Closes", "마감", "截止")}: ${new Date(deadline * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC` : null].filter(Boolean).join("\n"),
+      open && lf ? `${T3(lang, "Time left", "남은 시간", "剩余时间")}: <b>${lf}</b>` : null, deadline ? `${T3(lang, "Closes", "마감", "截止")}: ${new Date(deadline * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC` : null,
+      !open ? `\n${T3(lang, "Round #1 is complete — $ARCIA launched and went out to every contributor. Round #2 is next (start date not decided).", "라운드 #1 완료 — $ARCIA가 런칭되어 모든 기여자에게 지급됐어요. 다음은 라운드 #2예요 (시작일 미정).", "第 1 轮已完成 — $ARCIA 已上线并发放给所有贡献者。下一轮是第 2 轮(开始时间未定)。")}` : null].filter(Boolean).join("\n"),
     buttons: [[{ text: "CirclePad", url: `${SITE}/circle` }, { text: T3(lang, "Round report", "라운드 리포트", "轮次报告"), url: `${SITE}/circle/round/1` }]], refresh: "round",
   };
 }

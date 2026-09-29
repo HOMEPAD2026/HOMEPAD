@@ -182,6 +182,7 @@
       var c = rv.circle;
       if (!c) return "";
       if (!c.started) return "Round #1 opens soon";
+      if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · Round #2 next";
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
     if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live"

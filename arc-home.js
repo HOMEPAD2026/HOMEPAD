@@ -95,18 +95,46 @@
     var rv = d.revenue || {};
     if (rv.launches != null) { put("launches", rv.launches, int); if (changed("launches", rv.launches)) spark(); }
     var c = rv.circle;
-    if (c) {
-      put("raised", c.raised || 0, function (v) { return v.toLocaleString("en-US", { maximumFractionDigits: v >= 100 ? 0 : 2 }); });
-      if (changed("raised", c.raised)) spark();
-      var st = $("[data-hm-round-st]");
-      var closed = !c.open && c.started;
-      if (st) st.textContent = tr(c.open ? "CirclePad · Round #1 live" : closed ? "CirclePad · Round #1 closed · see the result" : "CirclePad · Round #1");
-      $(".hm-round").classList.toggle("live", !!c.open);
-      $(".hm-round").setAttribute("href", closed ? "/circle/round/1" : "/circle");
-      roundTo = c.open && c.deadline ? Number(c.deadline) : 0;
-      tickClock();
-    }
+    // Round #1's numbers, until a later round is live (paintRounds takes the card over then)
+    if (c && !laterLive) put("raised", c.raised || 0, function (v) { return v.toLocaleString("en-US", { maximumFractionDigits: v >= 100 ? 0 : 2 }); });
     if (b != null && changed("burned", b)) spark();
+  }
+  // which CirclePad round the hero button and the round card point at (/api/social?circle=rounds):
+  // a later round that's live → "Join CirclePad Round #N"; one prepared but not started → "opening soon";
+  // otherwise the next round number, "coming soon". Round #1's result stays one tap away.
+  var laterLive = false;
+  var RT = function (s, n, c) { return tr(s).replace("{n}", n).replace("{c}", c); };
+  function paintRounds(d) {
+    if (!d || !Array.isArray(d.rounds) || !d.rounds.length) return;
+    var last = d.rounds[d.rounds.length - 1], st = last.state || {}, now = Math.floor(Date.now() / 1000);
+    var live = !!(last.started && st.started && now < Number(st.deadline));
+    var n = live || !last.started ? last.n : last.n + 1;
+    if (n < 2) return; // Round #1 still running: the page as it was
+    laterLive = last.n >= 2 && last.started; // the card shows that round's raise, not Round #1's
+    var raisedOf = function () { var v = Number(BigInt(st.totalRaised || "0") / 10n ** 14n) / 1e4; put("raised", v, function (x) { return x.toLocaleString("en-US", { maximumFractionDigits: x >= 100 ? 0 : 2 }); }); };
+    var btn = $("[data-hm-round-btn]"), lbl = $("[data-hm-round-lbl]"), dot = btn && btn.querySelector(".hm-live-dot");
+    if (lbl) lbl.textContent = live ? RT("Join CirclePad Round #{n}", n) : !last.started ? RT("CirclePad Round #{n} · Opening soon", n) : RT("CirclePad Round #{n} · Coming soon", n);
+    if (dot) dot.hidden = !live;
+    var card = $(".hm-round"), tag = $("[data-hm-round-st]"), go = $("[data-hm-round-go]"), rl = $("[data-hm-raised-lbl]"), vb = $("[data-hm-votes-box]");
+    if (live && last.n >= 2) {
+      if (tag) tag.textContent = RT("CirclePad · Round #{n} live", n);
+      if (rl) rl.textContent = RT("Round #{n} raised", n);
+      if (vb) vb.hidden = true;
+      if (go) go.textContent = tr("Join the round →");
+      if (card) { card.classList.add("live"); card.setAttribute("href", "/circle"); }
+      raisedOf();
+      roundTo = Number(st.deadline) || 0;
+    } else {
+      var c = n - 1; // the last round that closed
+      if (tag) tag.textContent = RT(!last.started ? "CirclePad · Round #{c} complete · Round #{n} opening soon" : "CirclePad · Round #{c} complete · Round #{n} next", n, c);
+      if (rl) rl.textContent = RT("Round #{c} raised", n, c);
+      if (vb) vb.hidden = c !== 1; // burn-to-vote ran in Round #1
+      if (go) go.textContent = RT("See Round #{c}'s result →", n, c);
+      if (card) { card.classList.remove("live"); card.setAttribute("href", c === 1 ? "/circle/round/1" : "/circle#projects"); }
+      if (laterLive) raisedOf();
+      roundTo = 0;
+    }
+    tickClock();
   }
   function tickClock() {
     var el = $("[data-hm-to]");
@@ -137,6 +165,7 @@
   function load() {
     if (document.hidden) return;
     getJson("/api/social?token=arcircle").then(paintToken);
+    getJson("/api/social?circle=rounds").then(paintRounds);
     getJson("/api/social?circle=burns").then(paintBurns);
   }
   function loadCoins() { if (!document.hidden) getJson("/api/c?view=latest&n=3").then(function (j) { if (j && !j.error) paintCoins(j); else { var ul = $("#hm-coins"); if (ul && ul.querySelector(".hm-skel")) ul.innerHTML = '<li class="hm-coin-empty">' + esc(tr("Couldn't reach Arc just now.")) + ' <a href="/arc#explore">' + esc(tr("Open ArcPad")) + "</a></li>"; } }); }

@@ -43,7 +43,7 @@ export const SERVICES = [
   { id: "holder-snapshot", price: U(0.05), title: "Holder Snapshot", input: "token", ai: false, gets: ["Top 500 holders at the latest block", "Balance and share of supply each", "A fingerprint anyone can re-check"],
     desc: "The holders of any Arc token at the latest block, ranked (top 500), locked tokens counted, contracts left out — with a fingerprint anyone can re-check." },
   { id: "round-report", price: U(0.01), title: "CirclePad Round Report", input: null, ai: false, gets: ["Raised, cap and time left", "Burn-to-vote: every category", "Burned $ARCIRCLE and voters"],
-    desc: "CirclePad Round #1 right now: USDC raised, time left, and the burn-to-vote result in every category." },
+    desc: "CirclePad Round #1's report: USDC raised, the close, and the burn-to-vote result in every category." },
   { id: "new-launches", price: U(0.01), title: "Launch Watch", input: null, ai: false, gets: ["Coins launched since ?since= (unix s)", "ArcPad and Argus via ArcPad", "Poll it to watch for launches"],
     desc: "Coins launched on ArcPad and on Argus through ArcPad since the time you pass (?since=unix seconds; default the last 24 h). Poll it to watch for launches." },
 ];
