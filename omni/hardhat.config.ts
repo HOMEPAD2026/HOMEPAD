@@ -8,6 +8,7 @@ import { EndpointId } from '@layerzerolabs/lz-definitions'
 import type { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 import './tasks/supply'
 import './tasks/check'
+import './tasks/audit'
 
 import { Wallet } from 'ethers'
 import { EXPOSED } from './utils/exposed'
@@ -16,7 +17,12 @@ import { EXPOSED } from './utils/exposed'
 if (process.env.PRIVATE_KEY) {
     let who = ''
     try { who = new Wallet(process.env.PRIVATE_KEY).address.toLowerCase() } catch { throw new Error('PRIVATE_KEY in .env is not a valid key') }
-    if (EXPOSED.includes(who)) throw new Error(`PRIVATE_KEY belongs to ${who.slice(0, 6)}…${who.slice(-4)}, a key that was exposed. Make a NEW wallet for deploying (ROBINHOOD.md step 1).`)
+    if (EXPOSED.includes(who)) {
+        const msg = `PRIVATE_KEY belongs to ${who.slice(0, 6)}…${who.slice(-4)}, a key that was exposed.`
+        // escape hatch for ONE purpose: handing contracts it already deployed over to the Safe (then remove the flag)
+        if (process.env.OMNI_ALLOW_EXPOSED_KEY === '1') console.warn(`WARNING: ${msg} Allowed by OMNI_ALLOW_EXPOSED_KEY=1 — use it only for handover, then delete that line.`)
+        else throw new Error(`${msg} Make a NEW wallet for deploying (ROBINHOOD.md step 1).`)
+    }
 }
 const accounts: HttpNetworkAccountsUserConfig | undefined = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : undefined
 

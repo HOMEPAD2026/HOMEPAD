@@ -141,4 +141,21 @@ describe("ARCIRCLE OMNI", () => {
     await expect(send(fake, owner, param(RH, bob.address, E(1)))).to.be.reverted;
     expect(await rh.totalSupply()).to.equal(0);
   });
+
+  it("handover cleanup removes what a leaked deploy key could have added", async () => {
+    const { cleanForHandover, nonZeroPeers, V2_MAINNET_EIDS } = require("../utils/eids");
+    expect(V2_MAINNET_EIDS).to.include.members([ARC, RH, SOL]);
+    // the "attacker" (still owner before handover) adds a peer on another chain and hooks
+    await rh.setPeer(30101, b32(bob.address)); // Ethereum
+    await rh.setMsgInspector(bob.address);
+    await rh.setPreCrime(bob.address);
+    await rh.setGuardian(bob.address);
+    const fixed = await cleanForHandover(rh, [ARC, SOL], "", ethers);
+    expect(fixed).to.have.length(4);
+    expect((await nonZeroPeers(rh)).map((x) => x.eid).sort()).to.deep.equal([SOL, ARC].sort());
+    expect(await rh.msgInspector()).to.equal(ethers.constants.AddressZero);
+    expect(await rh.preCrime()).to.equal(ethers.constants.AddressZero);
+    expect(await rh.guardian()).to.equal(ethers.constants.AddressZero);
+    expect(await cleanForHandover(rh, [ARC, SOL], "", ethers)).to.have.length(0); // idempotent
+  });
 });

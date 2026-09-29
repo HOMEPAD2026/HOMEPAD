@@ -92,7 +92,7 @@ npx hardhat run scripts/handover.ts --network robinhood
 ```
 
 일일 한도(10,000,000개), 가디언, 보상 수령 주소(기본값 Safe)를 설정하고 **소유권과 LayerZero 권한(delegate)을 Safe로** 넘깁니다.
-그다음 `npx hardhat omni:check`를 한 번 더 돌려 `owner … is the Safe`가 양쪽 모두 ok인지 봅니다.
+그다음 `npx hardhat omni:check`와 `npx hardhat omni:audit`을 돌려 둘 다 깨끗한지 봅니다(감사: 모든 LayerZero 체인에 대해 peer·권한·훅 확인).
 한도가 없는 방향으로는 아무것도 보낼 수 없습니다. 솔라나는 2단계 전까지 한도를 주지 않아 막혀 있습니다.
 
 ## 6. 사이트 연결 (저에게 주소 전달)
@@ -152,11 +152,15 @@ Uniswap이 로빈후드 체인(4663)에 올린 주소 (`@uniswap/sdk-core` 7.19.
 
 ## 문제가 생기면
 
-- **노출된 키로 배포한 경우**(owner가 `0x80e1…8bc7`): 그 컨트랙트들은 **버립니다.** handover하지 말고, 주소도 공개하지 않습니다.
-  키를 가진 다른 사람이 소유권을 넘기기 전에 peer·DVN을 바꿔 둘 수 있기 때문입니다.
-  1. 새 지갑을 만들어 `.env`의 `PRIVATE_KEY`를 바꿉니다(노출 키는 이제 설정 단계에서 거부됩니다).
-  2. `mv deployments deployments-exposed` (그대로 두면 `skipIfAlreadyDeployed` 때문에 새 배포가 건너뛰어집니다)
-  3. 5단계(배포 → wire → omni:check → handover → omni:check)를 처음부터 다시 합니다.
-
+- **노출된 키로 배포한 경우**(owner가 `0x80e1…8bc7`): 둘 중 하나를 고릅니다.
+  - **그대로 쓰기(선택함)**: 가능한 한 빨리 소유권을 Safe로 넘기고, 넘긴 뒤 감사로 깨끗한지 확인합니다.
+    1. `.env`에 `OMNI_ALLOW_EXPOSED_KEY=1`을 **잠시** 추가합니다(노출 키는 이 줄이 없으면 거부됩니다).
+    2. `npx hardhat run scripts/handover.ts --network arc` → `--network robinhood`.
+       handover는 먼저 소유자가 아직 배포 지갑인지 확인하고(아니면 STOP), 모든 LayerZero 체인에서 예상 밖 peer,
+       message inspector, pre-crime, 모르는 guardian을 지운 뒤 한도·보상 주소를 걸고 Safe로 넘깁니다.
+    3. `.env`에서 `OMNI_ALLOW_EXPOSED_KEY=1` 줄을 지웁니다. 노출 키는 다시 쓰지 않습니다.
+    4. `npx hardhat omni:check`와 `npx hardhat omni:audit`. 감사는 192개 LayerZero 체인 전부의 peer, 소유자·delegate,
+       수신 라이브러리 유예, 훅, guardian, 한도, 보상 주소를 확인합니다. **ALERT가 하나라도 있으면 브릿지하지 않습니다.**
+  - **새로 배포하기**: 새 지갑으로 `PRIVATE_KEY`를 바꾸고 `mv deployments deployments-exposed` 후 5단계를 처음부터.
 - `omni:supply`가 `ALERT`(원격 공급 > 잠긴 양): 가디언이나 소유자가 **양쪽 모두 pause**. 멀티시그만 해제할 수 있습니다.
 - 전송이 LayerZero Scan에서 멈춤: DVN 설정이 한쪽만 바뀐 경우가 대부분입니다. `omni:check`의 MISMATCH를 보고 멀티시그로 설정을 맞춥니다.

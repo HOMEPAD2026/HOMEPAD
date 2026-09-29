@@ -12,7 +12,8 @@
     "deploy:robinhood": "hardhat lz:deploy --networks robinhood --tags ArcircleOFT",
     "wire": "hardhat lz:oapp:wire --oapp-config layerzero.config.ts",
     "supply": "hardhat omni:supply",
-    "check": "hardhat omni:check"
+    "check": "hardhat omni:check",
+    "audit": "hardhat omni:audit"
   },
   "dependencies": {
     "@layerzerolabs/oapp-evm": "^0.4.1",
