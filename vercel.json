@@ -346,6 +346,9 @@
     },
     "api/scan.mjs": {
       "maxDuration": 60
+    },
+    "api/desk.mjs": {
+      "maxDuration": 60
     }
   }
 }
