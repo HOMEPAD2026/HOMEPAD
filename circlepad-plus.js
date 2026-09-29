@@ -168,7 +168,7 @@
         <div class="cpx-face cpx-front"><span class="cpx-orb" style="--h:${hue(w)}"></span><b>${esc(tr("Joining the circle…"))}</b></div>
         <div class="cpx-face cpx-back">
           <button type="button" class="cpx-x" data-close aria-label="${esc(tr("Close"))}">×</button>
-          <span class="cpx-k">${esc(tr("CirclePad · Round #1"))}</span>
+          <span class="cpx-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad · Round #1") : tr("CirclePad · Round #1"))}</span>
           <div class="cpx-me"><span class="cpx-av" style="--h:${hue(w)}"></span><b data-no-i18n>${esc(sh(ethers.getAddress(w)))}</b></div>
           <h3>${esc(tr("You're in the circle"))}</h3>
           <div class="cpx-nums">

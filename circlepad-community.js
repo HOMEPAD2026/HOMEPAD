@@ -10,7 +10,8 @@
   "use strict";
   if (!document.body.classList.contains("circlepad-page") || typeof CONFIG === "undefined" || !CONFIG.CIRCLEPAD_ESCROW_ADDRESS) return;
   const API = "/api/social";
-  const ESCROW = CONFIG.CIRCLEPAD_ESCROW_ADDRESS.toLowerCase();
+  // the Q&A room and pledges stay Round #1's (circlepad-boot.js); signed messages name that escrow
+  const ESCROW = (CONFIG.CIRCLEPAD_COMMUNITY_ESCROW || CONFIG.CIRCLEPAD_ESCROW_ADDRESS).toLowerCase();
   const $ = (id) => document.getElementById(id);
   const lc = (a) => String(a || "").toLowerCase();
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -395,7 +396,7 @@
     let evs = null;
     if (started()) {
       try {
-        const j = await (await fetch(`${API}?circle=lb&wallet=${w}`, { cache: "no-store" })).json();
+        const j = await (await fetch(`${API}?circle=lb&wallet=${w}${(CONFIG.CIRCLEPAD_ROUND || 1) > 1 ? "&round=" + CONFIG.CIRCLEPAD_ROUND : ""}`, { cache: "no-store" })).json();
         if (j && Array.isArray(j.mine)) evs = j.mine.map((e, i) => { const n = -1 - i; blockTs.set(n, e.ts * 1000); return { kind: e.kind, amount: e.amount, blockNumber: n }; });
       } catch (e) { evs = null; }
     }

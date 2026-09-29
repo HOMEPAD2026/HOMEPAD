@@ -201,7 +201,7 @@
   const media = document.querySelector("#bp-featured .bp-featured-media");
   if (media) {
     media.classList.add("cp-media");
-    media.innerHTML = `<span class="cp-media-round">Round</span><b class="cp-media-n" data-no-i18n>#1</b><span class="cp-media-stack" id="cp-media-stack"></span><span class="cp-media-count" id="cp-media-count">No contributors yet</span>`;
+    media.innerHTML = `<span class="cp-media-round">Round</span><b class="cp-media-n" data-no-i18n>#${(typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ROUND) || 1}</b><span class="cp-media-stack" id="cp-media-stack"></span><span class="cp-media-count" id="cp-media-count">No contributors yet</span>`;
   }
   const seenDots = new Set();
   // Before the raise the orbit shows pledgers (gold); once it opens, the
@@ -396,18 +396,23 @@
     timeline = document.createElement("section");
     timeline.className = "cp-timeline";
     const head = card.querySelector(".bp-card-head");
-    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"} <span class="cp-tl-tag">Round #1</span></h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
+    timeline.id = "cp-timeline";
+    timeline.innerHTML = `<div class="cp-tl-head"><h3>${head ? head.textContent.trim() : "Launch process"} <span class="cp-tl-tag" data-no-i18n>${esc(window.cpRT ? window.cpRT("Round #1") : "Round #1")}</span></h3><span class="cp-tl-now" id="cp-tl-now"></span></div>`;
     timeline.appendChild(steps);
     const note = document.createElement("p");
     note.className = "cp-tl-note";
     note.textContent = "The raise and the 80 / 15 / 5 split are enforced by the escrow contract, the vote by the burn-vote contract. The top contributor's 15% (over 3 days) and the airdrop are paid by the team.";
     timeline.appendChild(note);
-    row.parentNode.insertBefore(timeline, row);
+    // right under the round panel, and it stays there in every phase (the launch process is the round's status)
+    const featured = document.getElementById("bp-featured");
+    if (featured && featured.parentNode === row.parentNode) featured.insertAdjacentElement("afterend", timeline);
+    else row.parentNode.insertBefore(timeline, row);
     card.remove();
     row.classList.add("cp-row2");
   })();
   let govPhaseNow = null, lastStage = null;
   document.addEventListener("circlepad:gov", (e) => { govPhaseNow = e.detail && e.detail.phase; if (lastStage) try { paintStage(lastStage); } catch (err) { /* cosmetic */ } });
+  window.cpRepaintStage = () => { if (lastStage) try { paintStage(lastStage); } catch (err) { /* cosmetic */ } };
   function paintStage(s) {
     lastStage = s;
     const st = stageOf(s);
@@ -415,17 +420,21 @@
     document.body.classList.toggle("cp-open", !!(s && s.isOpen));
     if (timeline) {
       const lis = [...timeline.querySelectorAll(".bp-steps > li")];
-      // Round #1 steps: raise (0) → burn-to-vote, during the raise (1) → close & split (2) → top contributor (3) → launch & airdrop (4)
+      // steps: raise (0) → burn-to-vote, during the raise (1) → close & split (2) → top contributor (3) → launch & airdrop (4);
+      // 5 = all done. After the close: the split is on-chain, steps 4–5 are marked by the round wallet (circlepad-rounds.js).
       const voting = govPhaseNow === "voting";
-      const at = st < 0 ? -1 : st === 0 ? (voting ? 1 : 0) : 3;
+      const at = st < 0 ? -1 : st === 0 ? (voting ? 1 : 0) : typeof window.cpStepAfterClose === "function" ? window.cpStepAfterClose(s) : 3;
       lis.forEach((li, i) => {
         li.classList.toggle("is-now", at === i);
         li.classList.toggle("is-done", at > 0 && i < at);
       });
+      timeline.dataset.step = String(at);
       const label = $("cp-tl-now");
-      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? (voting ? tr("Live — raise and voting open") : tr("Live — raise open")) : st === 3 ? tr("Raise closed") : tr("Distributed");
+      const after = ["", "", "Raise closed — split next", "Split sent — paying the top contributor", "Top contributor paid — launching next", "Launched"];
+      if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? (voting ? tr("Live — raise and voting open") : tr("Live — raise open")) : tr(after[at] || "Raise closed");
       // the fill follows the real clock when circlepad-round.js knows the dates
-      if (!timeline.dataset.clock) timeline.style.setProperty("--cp-tl", at < 0 ? 0 : Math.min(1, (at + 0.5) / 5));
+      if (!timeline.dataset.clock || st > 0) timeline.style.setProperty("--cp-tl", at < 0 ? 0 : at >= 5 ? 1 : Math.min(1, (at + 0.5) / 5));
+      document.dispatchEvent(new CustomEvent("circlepad:stage", { detail: { at } }));
     }
     paintQuick(s);
   }

@@ -294,7 +294,6 @@ export async function refReport(b, json) {
 // at most MAX_CHUNKS new chunks per request, and serves the result to all.
 const REFUNDED = kec("Refunded(address,uint256,uint256)");
 const CHUNK = 9000, MAX_CHUNKS = 24, FUNDING = 72 * 3600;
-let lbMem = null;
 export async function blockAtOrBefore(ts, hi) {
   let lo = Math.max(0, hi.number - Math.ceil((hi.ts - ts) * 2.2) - 5000), loTs = await blockTs(lo);
   while (loTs != null && loTs > ts && lo > 0) { lo = Math.max(0, lo - 200000); loTs = await blockTs(lo); }
@@ -306,18 +305,22 @@ export async function blockAtOrBefore(ts, hi) {
 // same chunk from the same scannedTo and both append it, counting those
 // events twice (Round #1 showed one 80 USDC contribution twice). Events are
 // also de-duplicated by block + log index below, which repairs stored copies.
-let lbBusy = null;
-export async function leaderboard(wallet) {
-  if (lbMem && Date.now() - lbMem.at < 12e3) return withMine(lbMem.out, lbMem.EV, wallet);
-  if (!lbBusy) lbBusy = lbScan().finally(() => { lbBusy = null; });
-  const r = await lbBusy;
+// Per round (Round #1 = ESCROW; later rounds pass their escrow, api/_rounds.mjs).
+const lbMemBy = new Map(), lbBusyBy = new Map();
+export async function leaderboard(wallet, escrow = ESCROW) {
+  escrow = lc(escrow);
+  const m = lbMemBy.get(escrow);
+  if (m && Date.now() - m.at < 12e3) return withMine(m.out, m.EV, wallet);
+  if (!lbBusyBy.has(escrow)) lbBusyBy.set(escrow, lbScan(escrow).finally(() => { lbBusyBy.delete(escrow); }));
+  const r = await lbBusyBy.get(escrow);
   return r.EV ? withMine(r.out, r.EV, wallet) : r.out;
 }
-async function lbScan() {
-  const st = await roundState();
+async function lbScan(escrow) {
+  const st = await roundState(escrow);
   if (!st.started) return { out: { started: false, rows: [], activity: [], complete: true } };
-  const key = `circleLb/${ESCROW}`;
-  let L = lbMem ? lbMem.L : null;
+  const key = `circleLb/${escrow}`;
+  const mem = lbMemBy.get(escrow);
+  let L = mem ? mem.L : null;
   if (!L && storeEnabled()) { try { L = (await getDocs([key]))[key]; } catch { L = null; } }
   if (!L || L.deadline !== st.deadline) L = { deadline: st.deadline, from: null, scannedTo: null, end: null, ev: [] };
   const evCount = L.ev.length;
@@ -331,7 +334,7 @@ async function lbScan() {
   let chunks = 0;
   while (L.scannedTo < to && chunks < MAX_CHUNKS) {
     const a = L.scannedTo + 1, b = Math.min(to, a + CHUNK - 1);
-    const logs = await getLogs({ address: ESCROW, fromBlock: toQty(a), toBlock: toQty(b), topics: [[CONTRIBUTED, REFUNDED]] });
+    const logs = await getLogs({ address: escrow, fromBlock: toQty(a), toBlock: toQty(b), topics: [[CONTRIBUTED, REFUNDED]] });
     // stored as "kind|wallet|amount|block|logIndex" strings (Firestore can't nest arrays)
     // stored as "kind|wallet|amount|block|logIndex|txHash" (older entries have no hash)
     for (const l of logs) {
@@ -376,7 +379,7 @@ async function lbScan() {
   const series = [];
   { let run = 0n, i = 0; for (let t = t0 + 3600; ; t += 3600) { const cut = Math.min(t, tEnd); while (i < ordered.length && tsAt(ordered[i][3]) <= cut) { const [k, , amt] = ordered[i]; run += k ? BigInt(amt) : -BigInt(amt); i++; } series.push([cut, run.toString()]); if (cut >= tEnd || series.length > 100) break; } }
   const outv = { started: true, rows, activity, flow, complete, scannedTo: L.scannedTo, joinOrder, series, startTs: t0 };
-  lbMem = { at: Date.now(), L, out: outv, EV };
+  lbMemBy.set(escrow, { at: Date.now(), L, out: outv, EV });
   if (storeEnabled() && (chunks || L.ev.length !== evCount)) { try { await setDoc(key, L); } catch { /* memory copy still works */ } }
   return { out: outv, EV };
 }

@@ -1,0 +1,49 @@
+/* global CONFIG */
+// circlepad-boot.js — which CirclePad round /circle runs, decided before any other CirclePad script reads
+// CONFIG. Round #1 is config-arc.js's escrow. Later rounds come from /api/social?circle=boot (a small
+// <script> in circlepad.html's <head> that sets window.CP_ROUNDS from api/_rounds.mjs): the newest round
+// that has started becomes the page's round. Its raise, leaderboard, position and split work exactly like
+// Round #1's (same BigPadEscrow contract); burn-to-vote isn't set up for it, so the vote contracts are
+// switched off here and Governance says so. The Q&A room stays Round #1's (CIRCLEPAD_COMMUNITY_ESCROW).
+// Right after the round wallet starts a round, circlepad-rounds.js leaves a short-lived note in
+// localStorage so this page switches at once, before the cached boot script catches up.
+(function () {
+  "use strict";
+  if (typeof CONFIG === "undefined" || !CONFIG.CIRCLEPAD_ESCROW_ADDRESS) return;
+  const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
+  CONFIG.CIRCLEPAD_ROUND1_ESCROW = CONFIG.CIRCLEPAD_ESCROW_ADDRESS;
+  CONFIG.CIRCLEPAD_COMMUNITY_ESCROW = CONFIG.CIRCLEPAD_ESCROW_ADDRESS;
+  CONFIG.CIRCLEPAD_ROUND = 1;
+  const list = (window.CP_ROUNDS && Array.isArray(window.CP_ROUNDS.list) ? window.CP_ROUNDS.list : []).filter((r) => r && r.n > 1 && isAddr(r.escrow));
+  let cur = list.filter((r) => r.started).sort((a, b) => b.n - a.n)[0] || null;
+  try {
+    const o = JSON.parse(localStorage.getItem("circlepad.round.just-started") || "null");
+    if (o && isAddr(o.escrow) && o.n > 1 && Date.now() - o.at < 10 * 60e3 && (!cur || o.n > cur.n)) cur = { n: o.n, escrow: o.escrow, started: true };
+    else if (o && Date.now() - o.at >= 10 * 60e3) localStorage.removeItem("circlepad.round.just-started");
+  } catch (e) { /* storage blocked: the boot script alone decides */ }
+  if (cur) {
+    CONFIG.CIRCLEPAD_ESCROW_ADDRESS = cur.escrow;
+    CONFIG.CIRCLEPAD_ROUND = cur.n;
+    CONFIG.CIRCLEPAD_VOTE_ADDRESS = "";
+    CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = "";
+    CONFIG.CIRCLEPAD_VOTE_MODE = "";
+    CONFIG.CIRCLEPAD_EXTRA_CANDIDATES = {};
+    CONFIG.CIRCLEPAD_OPENS_AT = 0;
+    CONFIG.CIRCLEPAD_ESCROW_VERIFIED = false;
+    CONFIG.CIRCLEPAD_ALLOCATION_NOTE = "";
+    CONFIG.CIRCLEPAD_NEXT = [
+      { id: "close", title: "The raise closes", body: "Contributions and withdrawals stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
+      { id: "vote", title: "The coin's identity", body: "How this round's coin is named and when it launches: not decided yet.", status: "open" },
+      { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
+      { id: "airdrop", title: "Contributor airdrop", body: "Not decided yet.", status: "open" },
+    ];
+    document.documentElement.setAttribute("data-cp-round", String(cur.n));
+  }
+  // "Round #1" in page copy → this round's number (English "#1", Chinese "第 1 轮")
+  window.cpRN = () => CONFIG.CIRCLEPAD_ROUND || 1;
+  window.cpRT = function (s) {
+    const t = (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
+    const n = window.cpRN();
+    return n === 1 ? t : String(t).replace(/#1(?!\d)/g, "#" + n).replace(/第 1 轮/g, "第 " + n + " 轮");
+  };
+})();

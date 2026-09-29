@@ -113,7 +113,7 @@
   const contractsEl = document.getElementById("cp-contracts");
   if (contractsEl && typeof renderContractRows === "function") {
     contractsEl.innerHTML = renderContractRows([
-      ["BigPadEscrow (CirclePad round #1)", CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close"],
+      [`BigPadEscrow (CirclePad round #${CONFIG.CIRCLEPAD_ROUND || 1})`, CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close"],
       ["BigPadVote (candidates)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "The round's name / ticker / logo / roadmap / launch-date candidates"],
       ["ArcircleBurnVote (voting)", CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner"],
     ]);
@@ -571,7 +571,7 @@ async function initCirclepadRound() {
 
     const nextTitle = document.getElementById("bp-nextcard-title");
     const nextBody = document.getElementById("bp-nextcard-body");
-    if (nextTitle) nextTitle.textContent = "How Round #1 closes";
+    if (nextTitle) nextTitle.textContent = window.cpRT ? window.cpRT("How Round #1 closes") : "How Round #1 closes";
     if (nextBody) {
       nextBody.innerHTML = `Once the recipient starts the clock, the raise runs for 72 hours. Contributors can withdraw their own USDC any time before it closes, no lock-in. When it closes, the balance splits automatically: 80% to the <a href="${CONFIG.BLOCK_EXPLORER}/address/${recipient}" target="_blank" rel="noopener">recipient wallet</a>, 5% to the <a href="${CONFIG.BLOCK_EXPLORER}/address/${platformWallet}" target="_blank" rel="noopener">platform wallet</a>, and 15% to the <a href="${CONFIG.BLOCK_EXPLORER}/address/${treasuryWallet}" target="_blank" rel="noopener">treasury wallet</a>. The top contributor at the close receives that 15% over 3 days, and every contributor gets an airdrop of the new coin.`;
     }
@@ -663,7 +663,7 @@ async function refreshCirclepadLeaderboardInner() {
   // The server aggregates the round's events once for everyone
   // (/api/social?circle=lb); the in-browser scan below is only the fallback.
   try {
-    const r = await fetch("/api/social?circle=lb", { cache: "no-store" });
+    const r = await fetch(`/api/social?circle=lb${(CONFIG.CIRCLEPAD_ROUND || 1) > 1 ? "&round=" + CONFIG.CIRCLEPAD_ROUND : ""}`, { cache: "no-store" });
     const j = r.ok ? await r.json() : null;
     if (j && Array.isArray(j.rows) && Array.isArray(j.activity) && (j.complete || j.rows.length || !j.started)) {
       const B = (v) => BigInt(v || 0);

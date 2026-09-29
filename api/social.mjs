@@ -25,6 +25,10 @@
 //   GET  /api/social?circle=ideas[&wallet=0x…]   Round #1 governance ideas (api/_circle.mjs)
 //   GET  /api/social?circle=burns                CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
 //   GET  /api/social?circle=vote&tx=0x…          one burn-vote transaction (/vote/<tx>)
+//   GET  /api/social?circle=rounds[&fresh=1]     every CirclePad round + its launch process (api/_rounds.mjs)
+//   GET  /api/social?circle=boot                 /circle's <head> script: which round the page runs
+//   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
+//   GET  /api/social?circle=csv&round=N          a round's leaderboard as CSV (?circle=lb&round=N for JSON)
 //   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
@@ -32,6 +36,7 @@
 //   GET  /api/social?locks=overview|<token>     Locker: dashboard (every lock by token) / one token's totals
 //   GET  /api/social?lockbadge=<token>          Locker: embeddable SVG badge (/lockbadge/<token>)
 //   GET  /api/social?liqsafe=<token>             Liquidity Manager: scanner verdict + trade/tax checks
+//   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -48,6 +53,7 @@ import { createHash } from "node:crypto";
 import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 import * as circle from "./_circle.mjs";
+import * as rounds from "./_rounds.mjs";
 import * as burnvote from "./_burnvote.mjs";
 import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
@@ -165,10 +171,36 @@ export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
   if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
+  // CirclePad rounds (api/_rounds.mjs): the list + launch process, the boot script for /circle, a round's summary and CSV
+  if (url.searchParams.get("circle") === "rounds") {
+    try { const fresh = url.searchParams.has("fresh"); return json(200, await rounds.roundsData(fresh), fresh ? "no-store" : "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
+    catch (err) { console.error("circle rounds", err && err.message || err); return json(502, { error: "couldn't read the rounds" }); }
+  }
+  if (url.searchParams.get("circle") === "boot") {
+    let js = "window.CP_ROUNDS=null;";
+    try { js = await rounds.bootScript(); } catch { /* the page falls back to Round #1 */ }
+    return new Response(js, { status: 200, headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=20, s-maxage=20, stale-while-revalidate=300", "access-control-allow-origin": "*" } });
+  }
+  if (url.searchParams.get("circle") === "summary") {
+    try {
+      const v = await rounds.summary(url.searchParams.get("round") || 1);
+      return v ? json(200, v, v.board.complete ? "public, max-age=15, s-maxage=30, stale-while-revalidate=120" : "no-store") : json(404, { error: "no such round" });
+    } catch (err) { console.error("circle summary", err && err.message || err); return json(502, { error: "couldn't read the round" }); }
+  }
+  if (url.searchParams.get("circle") === "csv") {
+    try {
+      const v = await rounds.leaderboardCsv(url.searchParams.get("round") || 1);
+      if (!v) return json(404, { error: "no such round" });
+      return new Response(v.csv, { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${v.filename}"`, "cache-control": v.closed && v.complete ? "public, max-age=60, s-maxage=300" : "no-store", "access-control-allow-origin": "*" } });
+    } catch (err) { console.error("circle csv", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
+  }
   if (url.searchParams.get("circle") === "lb") {
     try {
       const w = url.searchParams.get("wallet");
-      const lb = await circle.leaderboard(w);
+      const rn = Number(url.searchParams.get("round") || 1);
+      const rr = rn > 1 ? await rounds.roundByN(rn) : null;
+      if (rn > 1 && !rr) return json(404, { error: "no such round" });
+      const lb = await circle.leaderboard(w, rr ? rr.escrow : undefined);
       return json(200, lb, lb.complete && !w ? "public, max-age=10, s-maxage=15, stale-while-revalidate=60" : "no-store");
     }
     catch (err) { console.error("circle lb", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
@@ -471,6 +503,8 @@ export async function POST(req) {
     if (b.action === "cidea") return await circle.ideaPost(b, recoverSigner, json);
     if (b.action === "cidea-up") return await circle.ideaUp(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
+    if (b.action === "cstage") return await rounds.stagePost(b, recoverSigner, json);
+    if (b.action === "cround") return await rounds.registerRound(b, json);
     if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
     if (b.action === "scanreport") return await scanReport(b, req);
     if (b.action === "bridgelog") {

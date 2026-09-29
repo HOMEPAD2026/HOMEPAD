@@ -55,7 +55,8 @@
     const home = $("bp-panel-home"), anchor = document.querySelector("#bp-panel-home > .bp-nextcard");
     if (!home || !anchor) return;
     ordered = true;
-    const explain = [".bp-hero", "#cp-flowcard", "#cpx-trust", ".cp-core-coin", ".cp-timeline"].map((s) => home.querySelector(`:scope > ${s}`)).filter(Boolean);
+    // the launch process stays up top, under the round panel (circlepad-rounds.js)
+    const explain = [".bp-hero", "#cp-flowcard", "#cpx-trust", ".cp-core-coin"].map((s) => home.querySelector(`:scope > ${s}`)).filter(Boolean);
     const lead = document.createElement("div");
     lead.className = "cp-home-more"; lead.id = "cp-home-more";
     lead.innerHTML = `<h3>${T("How CirclePad works")}</h3>`;
@@ -94,7 +95,7 @@
     else race = [`<b data-no-i18n>&gt; ${usdc(BigInt(n.top.amount) - n.mine)}</b> <span data-no-i18n>USDC</span>`, `<span>${T("more takes #1 from")}</span> <span data-no-i18n>${short(n.top.address)}</span>`];
     const eligible = n.mine > 0n;
     const tile = (k, v, sub, cls = "") => `<div class="cp-pos-t ${cls}"><small>${T(k)}</small><div class="cp-pos-v">${v}</div><span class="cp-pos-s">${sub}</span></div>`;
-    const html = `<div class="cp-pos-head"><span class="cp-pos-k">${T("CirclePad Round #1")}</span><span class="cp-pos-w" data-no-i18n>${short(n.w)}</span></div>
+    const html = `<div class="cp-pos-head"><span class="cp-pos-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad Round #1") : tr("CirclePad Round #1"))}</span><span class="cp-pos-w" data-no-i18n>${short(n.w)}</span></div>
       <div class="cp-pos-grid">
         ${tile("My contribution", `<b data-no-i18n>${usdc(n.mine)}</b> <span data-no-i18n>USDC</span>`, n.mine > 0n ? `<span data-no-i18n>${pct}%</span> <span>${T("of the raise")}</span>` : T("Nothing in yet"), "mine")}
         ${tile("My rank", n.rank ? `<b data-no-i18n>#${n.rank}</b>` : "<b>—</b>", n.rank ? `<span>${T("of")}</span> <span data-no-i18n>${num(n.list.length)}</span> <span>${T("contributors")}</span>` : T("Contribute to get a rank"), isTop ? "top" : "")}
@@ -117,7 +118,7 @@
     let html;
     if (!n.w) html = `<div class="cp-ad-row"><span class="cp-ad-dot" aria-hidden="true"></span><div><b>${T("Check your wallet")}</b><p>${T("Connect to see whether this wallet is in the airdrop.")}</p></div><button type="button" class="bp-btn-primary" data-cp-connect>${T("Connect wallet")}</button></div>`;
     else if (n.mine > 0n) html = `<div class="cp-ad-row ok"><span class="cp-ad-dot" aria-hidden="true"></span><div><b><span>${T("Eligible")}</span> · <span>${T("contributed")}</span> <span data-no-i18n>${usdc(n.mine)} USDC</span></b><p>${T(r && r.isOpen ? "Keep a contribution in until the close — the list at the close is what counts." : "This wallet is on the contributor list at the close.")}</p></div></div>`;
-    else html = `<div class="cp-ad-row"><span class="cp-ad-dot" aria-hidden="true"></span><div><b>${T("Not eligible yet")}</b><p>${T(r && r.isOpen ? "Contribute any amount before the close to be in the airdrop." : "This wallet didn't contribute to Round #1.")}</p></div>${r && r.isOpen ? `<button type="button" class="bp-btn-primary" data-cp-go="home">${T("Contribute")}</button>` : ""}</div>`;
+    else html = `<div class="cp-ad-row"><span class="cp-ad-dot" aria-hidden="true"></span><div><b>${T("Not eligible yet")}</b><p>${T(r && r.isOpen ? "Contribute any amount before the close to be in the airdrop." : (window.cpRN && window.cpRN() > 1 ? "This wallet didn't contribute to this round." : "This wallet didn't contribute to Round #1."))}</p></div>${r && r.isOpen ? `<button type="button" class="bp-btn-primary" data-cp-go="home">${T("Contribute")}</button>` : ""}</div>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
 
@@ -175,7 +176,7 @@
     if (ls) return;
     ls = document.createElement("div");
     ls.className = "cp-ls"; ls.setAttribute("role", "dialog"); ls.setAttribute("aria-label", tr("Live screen"));
-    ls.innerHTML = `<div class="cp-ls-top"><span class="cp-ls-brand"><i aria-hidden="true"></i><b>CirclePad</b> <span>${T("Round #1 · live")}</span></span><div class="cp-ls-btns"><button type="button" class="cp-ls-fs" data-ls-fs>${T("Full screen")}</button><button type="button" class="cp-ls-x" data-ls-close aria-label="${T("Close")}">×</button></div></div>
+    ls.innerHTML = `<div class="cp-ls-top"><span class="cp-ls-brand"><i aria-hidden="true"></i><b>CirclePad</b> <span data-no-i18n>${esc(window.cpRT ? window.cpRT("Round #1 · live") : tr("Round #1 · live"))}</span></span><div class="cp-ls-btns"><button type="button" class="cp-ls-fs" data-ls-fs>${T("Full screen")}</button><button type="button" class="cp-ls-x" data-ls-close aria-label="${T("Close")}">×</button></div></div>
       <div class="cp-ls-clock"><small></small><div class="cp-ls-digits"></div></div>
       <div class="cp-ls-body"></div>
       <div class="cp-ls-foot" data-no-i18n>arcircle.app/circle</div>`;

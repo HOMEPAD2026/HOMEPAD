@@ -91,7 +91,7 @@
       <span class="cp-strip-n"><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
       ${burnOn() ? `<span class="cp-strip-burn"><small>${T("Burned by votes")}</small><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b></span>` : ""}
       ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${clock[1] > nowS() ? left(clock[1] - nowS()) : T("Closing…")}</b></span>` : ""}
-      ${ph === "raise" || ph === "voting" ? `<button type="button" class="cp-strip-live" data-cp-live>${T("Live screen")}</button>` : `<span class="cp-strip-split ${r.distributed ? "ok" : "wait"}"><i></i>${T(r.distributed ? "Split sent" : "Settling the split")}</span><a class="cp-strip-live" href="/circle/round/1">${T("Round report")}</a>`}
+      ${ph === "raise" || ph === "voting" ? `<button type="button" class="cp-strip-live" data-cp-live>${T("Live screen")}</button>` : `<span class="cp-strip-split ${r.distributed ? "ok" : "wait"}"><i></i>${T(r.distributed ? "Split sent" : "Settling the split")}</span>${(window.cpRN ? window.cpRN() : 1) === 1 ? `<a class="cp-strip-live" href="/circle/round/1">${T("Round report")}</a>` : `<button type="button" class="cp-strip-live" data-cp-go="projects">${T("Results")}</button>`}`}
       <i class="cp-strip-more" aria-hidden="true"></i>`;
     strip.setAttribute("aria-expanded", strip.classList.contains("open") ? "true" : "false");
   }
@@ -180,7 +180,7 @@
   if (anchor) anchor.insertAdjacentElement("beforebegin", nextHome); else home.appendChild(nextHome);
   function paintNext() {
     const body = nextHtml();
-    nextHome.innerHTML = `<div class="cp-next-head"><h3>${T("What happens next")}</h3><small>${T("Round #1 — what's fixed, what's planned, what isn't decided")}</small></div>${body}`;
+    nextHome.innerHTML = `<div class="cp-next-head"><h3>${T("What happens next")}</h3><small data-no-i18n>${esc(window.cpRT ? window.cpRT("Round #1 — what's fixed, what's planned, what isn't decided") : tr("Round #1 — what's fixed, what's planned, what isn't decided"))}</small></div>${body}`;
     const docs = $("cp-next-docs");
     if (docs) docs.innerHTML = body;
     document.dispatchEvent(new CustomEvent("circlepad:nextpaint"));
@@ -192,6 +192,7 @@
     if (!tl || !deadline()) return;
     tl.dataset.clock = "1";
     const t = nowS(), dl = deadline(), start = dl - 72 * 3600, op = opensAt() || dl;
+    if (t >= dl) { delete tl.dataset.clock; if (typeof window.cpRepaintStage === "function") window.cpRepaintStage(); return; } // after the close the fill follows the real steps (circlepad-fx.js)
     const w = winner(), launchAt = w.date ? Math.floor(w.date.getTime() / 1000) : dl + 5 * 86400;
     // five steps, each a fifth of the bar: raise, burn-to-vote (during the raise), close, top contributor, launch
     const seg = (a, b, k) => (t <= a ? k / 5 : t >= b ? (k + 1) / 5 : (k + (t - a) / Math.max(1, b - a)) / 5);
@@ -205,12 +206,14 @@
     if (!panel || !r || !r.started) return;
     const wrap = panel.querySelector(".bp-simple");
     let card = $("cp-round-card");
+    // once the round has closed, circlepad-rounds.js shows its full summary card instead
+    if (deadline() && nowS() >= deadline() && window.cpRoundCards) { if (card) card.remove(); return; }
     if (!card) { card = document.createElement("div"); card.id = "cp-round-card"; card.className = "cp-round-card"; const h1 = wrap.querySelector("h1"); if (h1) h1.insertAdjacentElement("afterend", card); else wrap.prepend(card); }
     const ph = phase(), w = winner();
     const badge = ph === "raise" ? "Raising" : ph === "voting" ? "Voting" : ph === "result" ? "Decided" : "Closed";
-    card.innerHTML = `<div class="cp-rc-top"><span class="cp-rc-badge ${ph}">${T(badge)}</span><span class="cp-rc-k">${T("CirclePad Round #1")}</span></div>
-      <div class="cp-rc-main"><span class="cp-coin-logo">${w.logo ? `<img src="${esc(w.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${esc((w.name || "#1").slice(0, 2))}</em>`}</span>
-        <div><b data-no-i18n>${esc(w.name || tr("Name decided by the vote"))}</b><span data-no-i18n>${w.ticker ? "$" + esc(w.ticker) : "$TBD"}</span></div></div>
+    card.innerHTML = `<div class="cp-rc-top"><span class="cp-rc-badge ${ph}">${T(badge)}</span><span class="cp-rc-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad Round #1") : tr("CirclePad Round #1"))}</span></div>
+      <div class="cp-rc-main"><span class="cp-coin-logo">${w.logo ? `<img src="${esc(w.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${esc((w.name || "#" + (window.cpRN ? window.cpRN() : 1)).slice(0, 2))}</em>`}</span>
+        <div><b data-no-i18n>${esc(w.name || tr((window.cpRN ? window.cpRN() : 1) > 1 ? "Name not decided yet" : "Name decided by the vote"))}</b><span data-no-i18n>${w.ticker ? "$" + esc(w.ticker) : "$TBD"}</span></div></div>
       <div class="cp-rc-stats"><span><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span><span><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>${burnOn() ? `<span><small>${T("Burned by votes")}</small><b data-no-i18n>${tok(burnedTotal())}</b></span>` : ""}</div>
       <div class="cp-rc-acts"><button type="button" class="bp-btn-primary" data-cp-go="${ph === "raise" ? "home" : "governance"}">${T(ph === "raise" ? "Contribute" : ph === "voting" ? "Burn & vote" : "See the result")}</button></div>`;
   }
@@ -576,7 +579,7 @@
     // a short curtain while the chain catches up
     const el = document.createElement("div");
     el.className = "cp-closing"; el.setAttribute("role", "status");
-    el.innerHTML = `<div class="cp-closing-box"><span class="cp-flame" aria-hidden="true"></span><b>${T(R() && R().isOpen === false || deadline() <= nowS() ? "Round #1 has closed" : "Voting has closed")}</b><p>${T("Counting the votes on-chain — the result opens in a moment.")}</p></div>`;
+    el.innerHTML = `<div class="cp-closing-box"><span class="cp-flame" aria-hidden="true"></span><b>${R() && R().isOpen === false || deadline() <= nowS() ? esc(window.cpRT ? window.cpRT("Round #1 has closed") : tr("Round #1 has closed")) : T("Voting has closed")}</b><p>${T("Counting the votes on-chain — the result opens in a moment.")}</p></div>`;
     document.body.appendChild(el); closing.el = el;
     if (!reduce()) requestAnimationFrame(() => el.classList.add("in")); else el.classList.add("in", "still");
     const pull = async () => {
