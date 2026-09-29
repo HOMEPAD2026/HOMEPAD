@@ -61,7 +61,7 @@ export const PLAYBOOKS = {
     name: "Crash buy + DCA", why: "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.",
     when: (f) => f.ageMin >= 20 && f.ddHigh <= -55 && f.txH1 >= 5 && f.flowM5 >= 0 && f.chgM5 >= -5 && f.liq >= 800,
     exits: { tp: 25, sl: 45, trailAt: 15, trail: 10, maxH: 3, tp1Pct: 70, tp2: 80, tp2Pct: 30, runTrail: 25, runTrailWide: 30, maxRunH: 3 },
-    sizeUsd: 2, dca: [-15, -30], maxFloorX: 1e9, lowCapExempt: true, // its thesis needs time; its own 3 h limit applies
+    sizeUsd: 2, dca: [-15, -30], maxFloorX: 1e9, lowCap: { usd: 10000, min: 60 }, // its thesis needs a little time: under a $10k cap it gets 1 hour, then it is sold
   },
   dexpaid: {
     name: "Dex paid", why: "The team just paid for its Dexscreener profile and buyers are still coming, but the price hasn't run yet.",

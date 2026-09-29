@@ -38,7 +38,7 @@
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m` : `${Math.floor(d / 86400)}d`; };
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
-  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "30-minute limit under a $5k cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
+  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "Time limit at a low market cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
   const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0", scalp: "#ff7ac4", dipdca: "#ff9b5a" };
   const S = { d: null, booted: false, timer: 0, tab: "real", shown: { eq: null }, seenLog: null, hover: null };
 
@@ -297,7 +297,7 @@
         <div><b>${T("Money limits")}</b><ul>
           <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>)${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
-          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (the crash-buy DCA has its own 3-hour limit)")}</li>` : ""}<li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
+          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
           <li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
           <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li><li>${T("No message, chat or command can make it trade")}</li></ul></div>

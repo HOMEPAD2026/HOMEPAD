@@ -4738,6 +4738,9 @@
     "Whether the largest contributor receives the 15% as in Round #1: not decided yet.": "最大贡献者是否像第 1 轮一样获得 15%：尚未决定。",
     "Not decided yet.": "尚未决定。",
     "Chat": "聊天",
+    "Time limit at a low market cap": "低市值持仓时限",
+    "minutes (crash-buy DCA: under $10k, 1 hour)": "分钟（急跌抄底补仓：低于 $10k 时 1 小时）",
+    "Under a $5k market cap, a position is never held longer than 30 minutes; a crash-buy DCA position under a $10k market cap is sold after 1 hour.": "市值低于 $5k 时持仓绝不超过 30 分钟；急跌抄底补仓的持仓在市值低于 $10k 时 1 小时后卖出。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

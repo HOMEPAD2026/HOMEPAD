@@ -601,13 +601,14 @@ export async function tick(st, opts = {}) {
     // ---- 4. exits: real first (emergencies first), then paper, then ghosts
     let txs = 0;
     const sellsDue = [];
-    // under a $5k market cap, never hold longer than 30 minutes (the crash-buy DCA playbook has its own 3 h limit)
+    // under a $5k market cap, never hold longer than 30 minutes; a playbook can set its own (crash-buy DCA: $10k, 1 hour)
+    const lowCapOf = (pb) => { const pbk = B.PLAYBOOKS[pb]; return pbk && pbk.lowCap ? pbk.lowCap : { usd: B.RISK.lowCapUsd, min: B.RISK.lowCapMin }; };
     const lowCapDue = (p, when) => {
-      const pbk = B.PLAYBOOKS[p.pb];
-      if ((pbk && pbk.lowCapExempt) || when - p.entryTs < B.RISK.lowCapMin * 60) return false;
+      const lim = lowCapOf(p.pb);
+      if (when - p.entryTs < lim.min * 60) return false;
       const c = C[p.t]; if (!c) return false;
       const m = featuresOf(c, when).mcap;
-      return m > 0 && m <= B.RISK.lowCapUsd;
+      return m > 0 && m <= lim.usd;
     };
     for (const p of S.open) {
       if (p.pending) continue;
@@ -825,6 +826,8 @@ export async function tick(st, opts = {}) {
       const warm = (S.stats.realClosed || 0) < (S.learn.warmup || 25);
       if (S.open.length >= B.RISK.maxOpen || S.buys.length >= (warm ? B.RISK.warmPerHour : B.RISK.maxPerHour)) break;
       const { c, f, x, pb, d } = rc;
+      // one real position per coin, and none in a same-named copy of a coin already held (clones of a name are usually rugs)
+      if (S.open.some((p) => p.t === c.t || (p.sym && c.sym && String(p.sym).toLowerCase() === String(c.sym).toLowerCase()))) continue;
       const pbk = B.PLAYBOOKS[pb];
       const eqNow = S.cash + S.open.reduce((t, p) => t + (p.value || p.usdIn), 0);
       let size = Math.min(pbk.sizeUsd ? Math.min(pbk.sizeUsd, S.cash - B.RISK.keepCash) : warm ? Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash) : B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);

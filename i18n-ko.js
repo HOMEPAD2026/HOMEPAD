@@ -4586,6 +4586,9 @@
     "Whether the largest contributor receives the 15% as in Round #1: not decided yet.": "라운드 #1처럼 최대 기여자가 15%를 받는지: 아직 미정.",
     "Not decided yet.": "아직 미정.",
     "Chat": "채팅",
+    "Time limit at a low market cap": "낮은 시총 보유 시간 제한",
+    "minutes (crash-buy DCA: under $10k, 1 hour)": "분까지만 보유 (급락 매수·물타기: $10k 미만 1시간)",
+    "Under a $5k market cap, a position is never held longer than 30 minutes; a crash-buy DCA position under a $10k market cap is sold after 1 hour.": "시가총액 $5k 미만에서는 30분 넘게 보유하지 않고, 급락 매수·물타기 포지션은 시가총액 $10k 미만이면 1시간 뒤 매도합니다.",
   };
 
 
