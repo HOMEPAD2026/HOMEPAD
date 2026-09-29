@@ -4746,6 +4746,12 @@
     "Complete": "已完成",
     "One wallet confirmation: a fresh escrow contract is deployed with the same recipient, platform and treasury wallets as Round #1. The page then shows the round before its start; the 72 hours only begin when you press Start.": "只需一次钱包确认：部署一个新的托管合约，接收、平台和金库钱包与第 1 轮相同。页面随后显示开始前的轮次；按下开始后 72 小时才会开始。",
     "Round #1 is ready — press Start when you want the 72 hours to begin.": "第 1 轮已准备好——想开始 72 小时时按下开始。",
+    "Mark each step when it's done — they can be done in either order. A proof link is optional.": "每一步完成后标记即可——顺序不限。证明链接可选。",
+    "Top contributor has received the 15%": "最大贡献者已收到 15%",
+    "Coin launched and airdrop sent": "代币已上线，空投已发出",
+    "Step 4 done — top contributor paid": "第 4 步完成——已支付最大贡献者",
+    "Step 5 done — launched": "第 5 步完成——已上线",
+    "Launched — top contributor paid over 3 days": "已上线——最大贡献者分 3 天支付",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

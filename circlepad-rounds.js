@@ -43,6 +43,9 @@
   const proofLink = (p) => (!p ? "" : /^0x[0-9a-fA-F]{64}$/.test(p) ? ex("tx", p) : p);
   // after the close: 2 split next · 3 top contributor · 4 launch · 5 all done (circlepad-fx.js paints it)
   const stepFrom = (st, m) => (!st || !st.started ? -1 : nowS() < Number(st.deadline) ? 0 : !st.distributed ? 2 : !(m && m.top) ? 3 : !(m && m.launch) ? 4 : 5);
+  // the launch can be marked before the top contributor's 3-day payout ends: step 5 shows done on its own
+  window.cpStepDoneExtra = (i) => i === 4 && !!marksOf(N()).launch;
+  window.cpStageLabel = (at) => (at === 3 && marksOf(N()).launch ? "Launched — top contributor paid over 3 days" : null);
   window.cpStepAfterClose = (s) => stepFrom({ started: true, deadline: 0, distributed: !!(s && s.distributed) }, marksOf(N()));
 
   // ================= data =================
@@ -118,9 +121,14 @@
     let body = "";
     if (at === 0) body = `<p>${T("Steps 1–2 run on their own until the raise closes.")} <span data-no-i18n>${esc(dt(st.deadline))}</span></p>`;
     else if (at === 2) body = `<p>${T("The raise has closed. Send the split to move on: 80% recipient, 15% treasury, 5% platform, in one transaction.")}</p><div class="cp-admin-row"><button type="button" class="bp-btn-primary" data-cp-split="${n}" data-escrow="${esc(st.escrow)}">${T("Send the 80 / 15 / 5 split")}</button></div>`;
-    else if (at === 3) body = `<p>${T("Step 4: once the top contributor has received the 15%, mark it done.")}</p><div class="cp-admin-row">${proof}<button type="button" class="bp-btn-primary" data-cp-stage="${n}" data-step="top">${T("Mark step 4 done")}</button></div>`;
-    else if (at === 4) body = `<p>${T("Step 5: once the coin has launched and the airdrop is out, mark it done.")}</p><div class="cp-admin-row">${proof}<button type="button" class="bp-btn-primary" data-cp-stage="${n}" data-step="launch">${T("Mark step 5 done")}</button>${undo("top", "Undo step 4")}</div>`;
-    else if (at === 5) body = `<p>${T("Every step is done.")}</p><div class="cp-admin-row">${undo("launch", "Undo step 5")}</div>`;
+    else if (at >= 3) {
+      // steps 4 and 5 run side by side: the top contributor is paid over 3 days while the coin launches
+      const row = (step, k, label, doneLabel) => (m && m[step]
+        ? `<div class="cp-admin-row"><span class="cp-admin-done">${T(doneLabel)}</span>${undo(step, "Undo step " + k)}</div>`
+        : `<div class="cp-admin-row"><button type="button" class="bp-btn-primary" data-cp-stage="${n}" data-step="${step}">${T("Mark step " + k + " done")}</button><span class="cp-admin-what">${T(label)}</span></div>`);
+      body = at === 5 ? `<p>${T("Every step is done.")}</p>` : `<p>${T("Mark each step when it's done — they can be done in either order. A proof link is optional.")}</p><div class="cp-admin-row">${proof}</div>`;
+      body += row("top", 4, "Top contributor has received the 15%", "Step 4 done — top contributor paid") + row("launch", 5, "Coin launched and airdrop sent", "Step 5 done — launched");
+    }
     return head + body;
   }
 
@@ -136,7 +144,7 @@
   }
   function miniSteps(at, m, n) {
     return `<ol class="cp-mini-steps">${STEPS.map((s, i) => {
-      const cls = at < 0 ? "" : i < at ? "done" : i === at ? "now" : "";
+      const cls = at < 0 ? "" : i < at || (i === 4 && m && m.launch) ? "done" : i === at ? "now" : "";
       const label = n > 1 && i === 1 ? "Coin identity" : s;
       const mk = i === 3 && m && m.top ? m.top : i === 4 && m && m.launch ? m.launch : null;
       const link = mk ? proofLink(mk.proof) : "";
@@ -145,6 +153,7 @@
   }
   function badgeOf(v) {
     const at = stepFrom(v.state, v.marks);
+    if (at >= 3 && v.marks && v.marks.launch) return ["done", "Launched"];
     return at === 2 ? ["wait", "Settling the split"] : at === 3 ? ["ok", "Split sent"] : at === 4 ? ["ok", "Top contributor paid"] : at === 5 ? ["done", "Launched"] : ["ok", "Closed"];
   }
   const boardOpen = new Set();

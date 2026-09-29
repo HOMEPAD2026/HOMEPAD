@@ -11470,4 +11470,6 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
 .cp-home-done > span:not(.cp-rc-badge){font:700 .9rem 'JetBrains Mono',monospace;color:#9dffc7;}
 .cp-home-done .cp-link{margin-left:auto;background:none;border:0;color:#9fd0ff;font-weight:700;cursor:pointer;padding:0;}
 @media (max-width:640px){.cp-home-done .cp-link{margin-left:0;}}
+.cp-admin-done{font-size:.8rem;font-weight:700;color:#8dffc0;}
+.cp-admin-what{font-size:.78rem;color:var(--ink-dim);}
 #bp-panel-mine [hidden]{display:none !important;}

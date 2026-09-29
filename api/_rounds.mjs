@@ -71,6 +71,8 @@ async function stagesOf(escrow) {
   try { return (await store.get(`circleStage/${lc(escrow)}`)) || {}; } catch { return {}; }
 }
 /// 0 raise · 1 burn-to-vote · 2 close & split · 3 top contributor · 4 launch & airdrop · 5 all done
+/// Steps 4 and 5 run side by side (the top contributor is paid over 3 days while the coin launches), so
+/// either can be marked first; the step shown as "now" is the first one not done yet.
 export function stepNow(st, marks, t = now()) {
   if (!st || !st.started) return -1;
   if (t < st.deadline) return 0;
@@ -105,15 +107,13 @@ export async function stagePost(b, recover, json) {
   const marks = await stagesOf(r.escrow);
   const at = stepNow(st, marks);
   if (undo) {
-    const last = marks.launch ? "launch" : marks.top ? "top" : null;
-    if (step !== last) return json(409, { error: "only the last step marked done can be undone" });
+    if (!marks[step]) return json(409, { error: "that step isn't marked done" });
     const next = { ...marks }; delete next[step];
     await store.set(`circleStage/${r.escrow}`, next);
     return json(200, { ok: true, marks: next, step: stepNow(st, next) });
   }
   if (at < 3) return json(409, { error: at < 2 ? "the raise hasn't closed yet" : "send the 80 / 15 / 5 split from the escrow first" });
-  const want = step === "top" ? 3 : 4;
-  if (at !== want) return json(409, { error: at > want ? "that step is already done" : "mark the top contributor's payout first" });
+  if (marks[step]) return json(409, { error: "that step is already done" });
   const next = { ...marks, [step]: { at: Date.now(), proof: proof || null, by: wallet } };
   await store.set(`circleStage/${r.escrow}`, next);
   return json(200, { ok: true, marks: next, step: stepNow(st, next) });

@@ -4594,6 +4594,12 @@
     "Complete": "완료",
     "One wallet confirmation: a fresh escrow contract is deployed with the same recipient, platform and treasury wallets as Round #1. The page then shows the round before its start; the 72 hours only begin when you press Start.": "지갑 확인 한 번: 라운드 #1과 같은 수령·플랫폼·트레저리 지갑으로 새 에스크로 컨트랙트를 배포해요. 그러면 페이지가 시작 전 라운드를 보여주고, 72시간은 시작 버튼을 눌러야 시작돼요.",
     "Round #1 is ready — press Start when you want the 72 hours to begin.": "라운드 #1 준비 완료 — 72시간을 시작하려면 시작 버튼을 누르세요.",
+    "Mark each step when it's done — they can be done in either order. A proof link is optional.": "각 단계가 끝나면 완료로 표시하세요 — 순서는 상관없어요. 증빙 링크는 선택이에요.",
+    "Top contributor has received the 15%": "최대 기여자가 15%를 받음",
+    "Coin launched and airdrop sent": "코인 런칭 및 에어드롭 완료",
+    "Step 4 done — top contributor paid": "4단계 완료 — 최대 기여자 지급",
+    "Step 5 done — launched": "5단계 완료 — 런칭",
+    "Launched — top contributor paid over 3 days": "런칭 완료 — 최대 기여자 3일간 지급 중",
   };
 
 
