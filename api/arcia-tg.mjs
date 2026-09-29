@@ -1084,6 +1084,7 @@ async function setup() {
 export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   if (q.series) { const T = (await getDoc(DOC.tick, 60e3)) || {}; return json(200, { points: (T.series || []).map(([t, p]) => [Math.round(t / 1000), p]) }, "public, max-age=120, s-maxage=240"); }
+  if (q.buybot) return json(200, await BB.health()); // public: is the buybot running (no secrets)
   if (q.linkinfo) { const i = await linkInfo(q.linkinfo); return i ? json(200, { message: i.message }) : json(410, { error: "This link expired — send /link to ARCIA again." }); }
   const secret = env("CRON_SECRET");
   if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json(401, { error: "unauthorized" });

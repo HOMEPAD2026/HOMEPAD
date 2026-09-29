@@ -30,7 +30,7 @@ export async function load() {
   const tokens = Array.isArray(d.tokens) ? d.tokens : [];
   // $ARCIRCLE is always followed
   if (CFG.arcircle && !tokens.some((t) => t.t === CFG.arcircle)) tokens.unshift({ t: CFG.arcircle, pool: CFG.pool, sym: "ARCIRCLE" });
-  return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "" };
+  return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "", last: d.last || null, lastPost: d.lastPost || null, lastPostErr: d.lastPostErr || null };
 }
 export const save = (s) => putDoc(KEY, s);
 
@@ -138,7 +138,7 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
   const t0 = Date.now();
   const S = await load();
   const out = { posted: 0, buys: 0, chats: Object.keys(S.chats).length, polls: 0 };
-  if (!out.chats) return { ...out, note: "no group has /buybot on" };
+  if (!out.chats) { S.last = { at: Date.now(), note: "no group has /buybot on" }; await save(S); return { ...out, note: "no group has /buybot on" }; }
   for (const tk of S.tokens) { try { await fill(tk); } catch { /* next run */ } }
   const pools = S.tokens.filter((t) => t.pool && t.dec != null).map((t) => t.pool);
   if (!pools.length) return out;
@@ -160,7 +160,8 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
           if (b.usd < (cc.min || 0)) continue;
           if (cc.n && cc.n >= 20 && cc.nMin === Math.floor(Date.now() / 60000)) continue; // Telegram: 20 messages a minute per group
           const r = await post(S, id, b);
-          if (r.ok) { out.posted++; const m = Math.floor(Date.now() / 60000); cc.n = cc.nMin === m ? (cc.n || 0) + 1 : 1; cc.nMin = m; }
+          if (!r.ok) S.lastPostErr = { at: Date.now(), error: String(r.description || "").slice(0, 160) };
+          if (r.ok) { out.posted++; S.lastPost = { at: Date.now(), sym: b.tk.sym, usd: Math.round(b.usd * 100) / 100 }; const m = Math.floor(Date.now() / 60000); cc.n = cc.nMin === m ? (cc.n || 0) + 1 : 1; cc.nMin = m; }
         }
       }
       S.hi = head; S.err = "";
@@ -169,8 +170,22 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
     await sleep(everyMs);
   } while (true);
   delete S.dirty;
+  S.last = { at: Date.now(), polls: out.polls, buys: out.buys, posted: out.posted, head: S.hi, error: S.err || "" };
   await save(S);
   return out;
+}
+
+/// public, read-only: is the buybot running? (no chat ids, nothing secret)
+export async function health() {
+  const S = await load();
+  const ago = (t) => (t ? Math.round((Date.now() - t) / 1000) + " s ago" : null);
+  return {
+    groups: Object.keys(S.chats).length, coins: S.tokens.map((t) => ({ sym: t.sym || "?", token: t.t, pool: t.pool || null })),
+    lastRun: S.last ? { ...S.last, at: ago(S.last.at) } : null, lastPost: S.lastPost ? { ...S.lastPost, at: ago(S.lastPost.at) } : null,
+    lastPostError: S.lastPostErr ? { ...S.lastPostErr, at: ago(S.lastPostErr.at) } : null,
+    running: !!(S.last && Date.now() - S.last.at < 3 * 60e3),
+    hint: !S.last ? "the every-minute call (GET /api/arcia-tg?buys=1&key=…) hasn't run yet" : !Object.keys(S.chats).length ? "no group has /buybot on" : null,
+  };
 }
 
 // ---- commands ----
