@@ -46,19 +46,30 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 const CHUNK = 9000, WAVE = 10, MAX_EVENTS = 60, MAX_KEEP = 8000;
 const mem = new Map(); // token → state, per server instance
 
-function fresh() { return { v: 2, hi: null, lo: null, complete: false, net: new Map(), got: new Map(), mints: 0n, burns: 0n, transfers: 0, first: null, events: [], deployer: null }; }
+function fresh() { return { v: 3, hi: null, lo: null, complete: false, net: new Map(), got: new Map(), mints: 0n, burns: 0n, transfers: 0, first: null, events: [], deployer: null, lk: new Map(), tr: [] }; }
+// v3: who first sent each wallet its tokens (linked wallets), and the latest trades with the pool (who trades)
+const MAX_LINKS_MEM = 6000, MAX_LINKS_KEEP = 800, MAX_TRADES = 400;
+const isMarket = (a) => { const k = core.labelOf(a); return !!(k && (k.kind === "pool" || k.kind === "infra")); };
 function load(doc) {
-  if (!doc || doc.v !== 2) return null;
+  if (!doc || doc.v !== 3) return null; // v3 re-reads each token once to learn who sent whom what
   const toMap = (arr) => new Map((arr || []).map((s) => { const i = String(s).indexOf(":"); return [s.slice(0, i), BigInt(s.slice(i + 1))]; }));
-  return { ...doc, net: toMap(doc.net), got: toMap(doc.got), mints: BigInt(doc.mints || 0), burns: BigInt(doc.burns || 0), events: doc.events || [], hist: doc.hist || [], cand: doc.cand || [] };
+  const lk = new Map((doc.lk || []).map((s) => { const [to, fr, b] = String(s).split(":"); return ["0x" + to, ["0x" + fr, Number(b) || 0]]; }));
+  const tr = (doc.tr || []).map((s) => { const [b, w, side] = String(s).split(":"); return [Number(b) || 0, "0x" + w, Number(side) || 0]; });
+  return { ...doc, net: toMap(doc.net), got: toMap(doc.got), mints: BigInt(doc.mints || 0), burns: BigInt(doc.burns || 0), events: doc.events || [], hist: doc.hist || [], cand: doc.cand || [], lk, tr };
 }
 /// Tokens with more wallets than MAX_KEEP are kept "lite": no full balance
 /// sheet, just the place in the chain, the counters, the events and the
 /// wallets worth re-reading — so they still only scan new blocks.
-function save(S) {
+function save(S, keep) {
   const arr = (m) => [...m.entries()].filter(([, v]) => v !== 0n).map(([a, v]) => `${a}:${v}`);
-  const base = { v: 2, hi: S.hi, lo: S.lo, complete: S.complete, mints: S.mints.toString(), burns: S.burns.toString(),
-    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, hist: (S.hist || []).slice(-90), early: S.early || null, at: Date.now() };
+  // links: the ones about the wallets that matter (largest holders, early buyers) first
+  const want = new Set(keep || []);
+  const lkAll = [...(S.lk || new Map()).entries()];
+  const lk = [...lkAll.filter(([to]) => want.has(to)), ...lkAll.filter(([to]) => !want.has(to))].slice(0, MAX_LINKS_KEEP)
+    .map(([to, [fr, b]]) => `${to.slice(2)}:${fr.slice(2)}:${b}`);
+  const tr = (S.tr || []).slice(-MAX_TRADES).map(([b, w, side]) => `${b}:${w.slice(2)}:${side}`);
+  const base = { v: 3, hi: S.hi, lo: S.lo, complete: S.complete, mints: S.mints.toString(), burns: S.burns.toString(),
+    transfers: S.transfers, first: S.first, events: S.events, deployer: S.deployer, hist: (S.hist || []).slice(-90), early: S.early || null, at: Date.now(), lk, tr };
   if (S.lite || S.net.size + (S.complete ? 0 : S.got.size) > MAX_KEEP) {
     return { ...base, lite: true, net: [], got: [], cand: (S.cand || []).slice(0, 300), count: S.count || 0 };
   }
@@ -80,6 +91,15 @@ function take(S, logs, supply) {
       if (to === ZERO) { S.burns += v; if (fr !== ZERO) S.events.push({ k: "burn", b, v: v.toString(), from: fr, tx }); }
       else { S.net.set(to, (S.net.get(to) || 0n) + v); S.got.set(to, (S.got.get(to) || 0n) + v); }
       if (big > 0n && v >= big && fr !== ZERO && to !== ZERO) S.events.push({ k: "big", b, v: v.toString(), from: fr, to, tx });
+      if (fr !== ZERO && to !== ZERO) {
+        if (isMarket(fr) && !core.labelOf(to)) S.tr.push([b, to, 1]);
+        else if (isMarket(to) && !core.labelOf(fr)) S.tr.push([b, fr, 0]);
+        else if (!core.labelOf(fr) && !core.labelOf(to) && (supply === 0n || v >= supply / 100000n)) {
+          // the first wallet that sent this one tokens (the scan runs both ways in time: keep the earliest)
+          const cur = S.lk.get(to);
+          if ((!cur && S.lk.size < MAX_LINKS_MEM) || (cur && b < cur[1])) S.lk.set(to, [fr, b]);
+        }
+      }
     } else if (t0 === TOPIC.owner && l.topics.length >= 3) {
       S.events.push({ k: "owner", b, from: "0x" + l.topics[1].slice(26).toLowerCase(), to: "0x" + l.topics[2].slice(26).toLowerCase(), tx });
     } else if (t0 === TOPIC.paused) S.events.push({ k: "pause", b, tx });
@@ -118,11 +138,11 @@ async function earlyLook(S, token) {
     const firstBlock = [...new Set(buys.filter((t) => t.b === lb).map((t) => t.to))];
     const handout = [...new Set(tx.filter((t) => (t.fr === dep || t.fr === minted) && !isMarket(t.fr) && !skip(t.to)).map((t) => t.to))];
     S.early = { lb, span: EARLY_SPAN, snipers: snipers.length, sameBlock: firstBlock.length, handout: handout.length, buyers: new Set(buys.map((t) => t.to)).size,
-      ws: snipers.slice(0, 30), wh: handout.filter((a) => !snipers.includes(a)).slice(0, 20) };
+      ws: snipers.slice(0, 30), wh: handout.filter((a) => !snipers.includes(a)).slice(0, 20), fb: firstBlock.slice(0, 30) };
   }
   const e = S.early, ws = e.ws || [], wh = e.wh || [];
   const all = [...ws, ...wh];
-  const base = { lb: e.lb, span: e.span, snipers: e.snipers, sameBlock: e.sameBlock, handout: e.handout, buyers: e.buyers };
+  const base = { lb: e.lb, span: e.span, snipers: e.snipers, sameBlock: e.sameBlock, handout: e.handout, buyers: e.buyers, fb: e.fb || [] };
   if (!all.length) return { ...base, held: "0", top: [] };
   const r = await ethCalls(all.map((a) => ({ to: token, data: "0x70a08231" + pad(a) }))).catch(() => []);
   const bal = all.map((a, i) => [a, r[i] ? BigInt(r[i]) : 0n, i < ws.length ? "s" : "h"]);
@@ -220,19 +240,38 @@ export async function holderScan(token, { store = null, budgetMs = 6500, maxChun
   // one holder count per day, for the growth chart
   const day = new Date().toISOString().slice(0, 10);
   S.hist = (S.hist || []).filter((x) => x.d !== day).concat([{ d: day, n: holderCount }]).slice(-90);
+  // v3: linked wallets among the largest holders, and who does the trading
+  S.tr = (S.tr || []).sort((x, y) => x[0] - y[0]).slice(-MAX_TRADES);
+  const topSet = top.map(([a]) => a);
+  const fanout = new Map();
+  for (const [, [fr]] of S.lk || new Map()) fanout.set(fr, (fanout.get(fr) || 0) + 1);
+  // a sender that handed tokens to very many wallets is an airdrop or a distributor, not one person's wallets
+  const links = [...new Set([...topSet, ...((early && early.fb) || [])])].map((a) => { const l = (S.lk || new Map()).get(a); return l && (fanout.get(l[0]) || 0) <= 25 ? [a, l[0]] : null; }).filter(Boolean);
+  const flow = flowOf(S.tr);
   mem.set(token, S);
   if (mem.size > 300) mem.delete(mem.keys().next().value);
-  if (store) { const doc = save(S); if (doc) { try { await store.set(key, doc); } catch { /* memory copy still works */ } } }
+  if (store) { const doc = save(S, [...topSet, ...((early && early.fb) || [])]); if (doc) { try { await store.set(key, doc); } catch { /* memory copy still works */ } } }
   const fromTs = await blockTs(S.lo).catch(() => null);
   return {
-    v: 2, token, supply: supply.toString(), decimals, complete: S.complete, more: !S.complete && S.lo > 0 && !!store,
+    v: 3, token, supply: supply.toString(), decimals, complete: S.complete, more: !S.complete && S.lo > 0 && !!store,
     transfers: S.transfers, fromBlock: S.lo, toBlock: S.hi, fromTs, nowTs: latest.ts,
     firstMint: S.complete && S.first ? { block: S.first.block, ts: firstTs, tx: S.first.tx, to: S.first.to } : null,
     deployer: S.deployer, holderCount, holderCountExact: S.complete && !S.lite, hist: S.hist,
     top: top.map(([a, v], i) => { const f = {}; if (codes[i]) f.c = 1; if (nonces[i] != null) f.n = nonces[i]; return Object.keys(f).length ? [a, v.toString(), f] : [a, v.toString()]; }),
-    early,
+    early, links, flow,
     events: S.events.map((e) => ({ ...e })),
   };
+}
+/// The latest trades with the pool → how many, how many wallets on each side, and how much the busiest 3 wallets make up.
+function flowOf(tr) {
+  if (!tr || !tr.length) return null;
+  const by = new Map(), buyers = new Set(), sellers = new Set();
+  for (const [, w, side] of tr) { by.set(w, (by.get(w) || 0) + 1); (side ? buyers : sellers).add(w); }
+  const counts = [...by.values()].sort((a, b) => b - a);
+  const top3 = counts.slice(0, 3).reduce((t, n) => t + n, 0) / tr.length;
+  const repeat = [...by.entries()].filter(([w, n]) => n >= 4 && buyers.has(w) && sellers.has(w)).length;
+  return { n: tr.length, buyers: buyers.size, sellers: sellers.size, wallets: by.size, top3: Math.round(top3 * 1000) / 1000, repeat, from: tr[0][0], to: tr[tr.length - 1][0],
+    busiest: [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([w, n]) => [w, n, buyers.has(w) ? 1 : 0, sellers.has(w) ? 1 : 0]) };
 }
 
 /// Every holder of a token with its balance (Multisender "airdrop to holders").
@@ -283,11 +322,107 @@ export async function marketFallback(addr, { arcpad, argus }) {
   return null;
 }
 
+// ---- v3: published source, the deployer's other contracts, same-code tokens ----
+// The explorer is Arc's Blockscout (keyless API); an Etherscan API key
+// (ETHERSCAN_API_KEY, optional) is the fallback. Answers are kept a day.
+export const EXPLORER_API = "https://explorer.arc.io";
+const cacheMem = new Map();
+async function cached(store, key, maxAgeMs, fn) {
+  const m = cacheMem.get(key);
+  if (m && Date.now() - m.at < maxAgeMs) return m.v;
+  if (store) { try { const d = await store.get(key); if (d && Date.now() - (d.at || 0) < maxAgeMs) { cacheMem.set(key, { at: d.at, v: d.v }); return d.v; } } catch { /* read through */ } }
+  const v = await fn();
+  if (v != null) {
+    cacheMem.set(key, { at: Date.now(), v });
+    if (cacheMem.size > 800) cacheMem.delete(cacheMem.keys().next().value);
+    if (store) { try { await store.set(key, { at: Date.now(), v }); } catch { /* memory copy */ } }
+  }
+  return v;
+}
+async function blockscoutVerified(a) {
+  const j = await fetchJson(`${EXPLORER_API}/api/v2/addresses/${a}`, 7000);
+  if (!j || typeof j !== "object" || !("is_contract" in j || "is_verified" in j)) return null;
+  const impls = (j.implementations || []).map((x) => lc(x.address_hash || x.address || "")).filter(isAddr);
+  let name = j.name || "", compiler = "";
+  if (j.is_verified) {
+    const sc = await fetchJson(`${EXPLORER_API}/api/v2/smart-contracts/${a}`, 7000);
+    if (sc) { name = sc.name || name; compiler = sc.compiler_version || ""; }
+  }
+  return { verified: !!j.is_verified, name, compiler, impls, creator: isAddr(j.creator_address_hash) ? lc(j.creator_address_hash) : null };
+}
+async function etherscanVerified(a) {
+  const key = String(process.env.ETHERSCAN_API_KEY || "").trim();
+  if (!key) return null;
+  const j = await fetchJson(`https://api.etherscan.io/v2/api?chainid=5042&module=contract&action=getsourcecode&address=${a}&apikey=${encodeURIComponent(key)}`, 7000);
+  const r = j && Array.isArray(j.result) ? j.result[0] : null;
+  if (!r) return null;
+  return { verified: !!(r.SourceCode && String(r.SourceCode).length > 0), name: r.ContractName || "", compiler: r.CompilerVersion || "", impls: isAddr(r.Implementation) ? [lc(r.Implementation)] : [] };
+}
+/// → { verified, name, compiler, impl?: { verified, name } } or null when no explorer answered
+export async function sourceOf(addr, impl, store = null) {
+  addr = lc(addr);
+  if (!isAddr(addr)) return null;
+  return cached(store, `scanSrc/${addr}`, 24 * 3600e3, async () => {
+    const one = async (a) => (await blockscoutVerified(a).catch(() => null)) || (await etherscanVerified(a).catch(() => null));
+    const me = await one(addr);
+    if (!me) return null;
+    const im = impl ? lc(impl) : me.impls && me.impls[0];
+    if (im && isAddr(im) && im !== addr) {
+      const i2 = await one(im);
+      // behind a proxy what matters is the logic contract's code
+      if (i2) return { verified: i2.verified, name: i2.name || me.name, compiler: i2.compiler || me.compiler, proxyVerified: me.verified, impl: im };
+    }
+    return { verified: me.verified, name: me.name, compiler: me.compiler };
+  });
+}
+/// The contracts the deployer created (explorer), with their cached scanner scores.
+export async function deployerOf(dep, exclude, store = null) {
+  dep = lc(dep); exclude = lc(exclude);
+  if (!isAddr(dep)) return null;
+  const base = await cached(store, `scanDep/${dep}`, 6 * 3600e3, async () => {
+    const j = await fetchJson(`${EXPLORER_API}/api?module=account&action=txlist&address=${dep}&sort=desc&page=1&offset=200`, 8000);
+    if (!j || !Array.isArray(j.result)) return null;
+    const made = j.result.filter((t) => t && (!t.to || t.to === "") && isAddr(t.contractAddress) && lc(t.from) === dep && String(t.isError || "0") === "0")
+      .map((t) => ({ a: lc(t.contractAddress), ts: Number(t.timeStamp) || null }));
+    let nonce = null;
+    try { nonce = parseInt(await rpcCall("eth_getTransactionCount", [dep, "latest"]), 16); } catch { nonce = null; }
+    return { addr: dep, created: made.length, list: made.slice(0, 24), nonce, capped: j.result.length >= 200 };
+  });
+  if (!base) return null;
+  const others = base.list.filter((x) => x.a !== exclude).slice(0, 12);
+  const docs = await Promise.all(others.map((x) => scoreOf(x.a, { store, compute: false }).catch(() => null)));
+  const tokens = others.map((x, i) => { const d = docs[i]; return d && !d.notToken && d.score != null ? { token: x.a, sym: d.sym || "", score: d.score, k: d.k, ts: x.ts } : { token: x.a, ts: x.ts, score: null }; });
+  return { addr: dep, created: base.created, nonce: base.nonce, capped: base.capped, tokens };
+}
+/// Other scanned tokens whose running code has exactly the same functions (the same template).
+export async function clonesOf(fp, addr, store = null) {
+  if (!store || !/^[0-9a-f]{16}$/.test(String(fp || ""))) return null;
+  let doc = null;
+  try { doc = await store.get(`scanFp/${fp}`); } catch { return null; }
+  const items = ((doc && doc.items) || []).map((s) => { const [t, sym, sc, at, crit] = String(s).split("|"); return { token: t, sym, score: sc === "" ? null : Number(sc), at: Number(at) || 0, crit: crit || null }; })
+    .filter((x) => isAddr(x.token) && x.token !== lc(addr));
+  return { fp, items: items.slice(0, 20) };
+}
+async function fpRemember(store, fp, token, sym, score, crit) {
+  if (!store || !/^[0-9a-f]{16}$/.test(String(fp || ""))) return;
+  try {
+    const key = `scanFp/${fp}`, doc = (await store.get(key)) || { items: [] };
+    const items = (doc.items || []).filter((x) => String(x).split("|")[0] !== lc(token));
+    items.unshift(`${lc(token)}|${String(sym || "").replace(/\|/g, "").slice(0, 16)}|${score == null ? "" : score}|${Date.now()}|${String(crit || "").replace(/\|/g, "/").slice(0, 60)}`);
+    await store.set(key, { items: items.slice(0, 40) });
+  } catch { /* best effort */ }
+}
+
 /// The whole scan, server side.
 export async function scanToken(addr, { store = null, budgetMs = 6000 } = {}) {
   // the liquidity lock row: only when the position index already knows the token (a short read)
   const lpP = import("./_liquidity.mjs").then((L) => L.run(addr, { store, budgetMs: 2500 })).then((j) => core.lpSummary(j)).catch(() => null);
-  return core.scanAll(io, addr, { holders: (a) => holderScan(a, { store, budgetMs }), marketFallback, lp: lpP });
+  const sio = { ...io, source: (a, i) => sourceOf(a, i, store) };
+  return core.scanAll(sio, addr, {
+    holders: (a) => holderScan(a, { store, budgetMs }), marketFallback, lp: lpP,
+    clones: (fp, a) => clonesOf(fp, a, store), deployer: (d, a) => deployerOf(d, a, store),
+    block: () => latestBlock().then((b) => b.number), // asked for only when the scan gets that far
+  });
 }
 
 // ---- "most scanned this week" ----
@@ -321,23 +456,39 @@ export async function scanTop(store) {
 
 // ---- cached server scores: Explore badges, the embeddable badge, the public API ----
 const scoreMem = new Map();
-/// → { score, k, t (verdict), sym, at } — from the store when fresh, else a new server scan.
+/// → { score, k, t (verdict), sym, at, crit, conf, sub, cmp, prev } — from the store when fresh, else a new server scan.
 export async function scoreOf(token, { store = null, maxAgeMs = 30 * 60e3, compute = true } = {}) {
   token = lc(token);
   const key = `scanScore/${token}`;
   let hit = scoreMem.get(token) || null;
   if (!hit && store) { try { hit = await store.get(key); } catch { hit = null; } }
   if (hit && Date.now() - (hit.at || 0) < maxAgeMs && hit.v === core.CORE_VERSION) { scoreMem.set(token, hit); return hit; }
-  if (!compute) return hit || null;
+  if (!compute) return hit && hit.v === core.CORE_VERSION ? hit : hit ? { ...hit, stale: true } : null;
   const out = await scanToken(token, { store, budgetMs: 5000 });
+  return rememberScore(token, out, { store, hit });
+}
+/// Keeps a finished server scan as the token's score doc (and in the same-code index).
+export async function rememberScore(token, out, { store = null, hit = undefined } = {}) {
+  token = lc(token);
+  const key = `scanScore/${token}`;
+  if (hit === undefined) { hit = scoreMem.get(token) || null; if (!hit && store) { try { hit = await store.get(key); } catch { hit = null; } } }
   const r = out.res;
+  const today = new Date().toISOString().slice(0, 10);
+  const cmp = r.notToken ? null : core.compactOf(r, out.c);
+  // the snapshot to compare with: the last one that's at least an hour older
+  const prev = hit && hit.cmp && cmp && cmp.at - (hit.cmp.at || 0) >= 3600e3 ? hit.cmp : (hit && hit.prev) || null;
   const doc = r.notToken ? { v: core.CORE_VERSION, notToken: true, at: Date.now() }
     : { v: core.CORE_VERSION, score: r.score, k: r.verdict.k, t: r.verdict.t, sym: (out.c && out.c.symbol) || "", reasons: r.reasons.map((x) => `${x.status}|${x.title}`),
       trade: r.rows.filter((x) => x.group === "trade").map((x) => `${x.status}|${x.title}`), at: Date.now(),
+      crit: (r.critical || []).map((x) => x.title), conf: r.confidence, sub: Object.fromEntries(Object.entries(r.sub || {}).map(([k2, v]) => [k2, v.score])),
+      fp: (out.c && out.c.fp) || null, cmp, prev, summary: core.summaryText(r.summary),
       // one score per day, for the "score over time" line on the scanner
-      hist: ((hit && hit.hist) || []).filter((x) => String(x).split("|")[0] !== new Date().toISOString().slice(0, 10)).concat([`${new Date().toISOString().slice(0, 10)}|${r.score}`]).slice(-60) };
+      hist: ((hit && hit.hist) || []).filter((x) => String(x).split("|")[0] !== today).concat([`${today}|${r.score}`]).slice(-60) };
   scoreMem.set(token, doc);
+  if (scoreMem.size > 2000) scoreMem.delete(scoreMem.keys().next().value);
   if (store) { try { await store.set(key, doc); } catch { /* memory copy */ } }
+  const codeCrit = (r.critical || []).find((x) => ["sim", "fresh", "size", "power", "proxy"].includes(x.id));
+  if (!r.notToken && out.c && out.c.fp && !(out.x && (out.x.arcpad || out.x.argus))) fpRemember(store, out.c.fp, token, out.c.symbol, r.score, codeCrit ? codeCrit.title : "");
   return doc;
 }
 /// The public JSON shape (GET /api/v1/scan/<address>).
@@ -345,14 +496,18 @@ export async function apiResult(token, { store = null } = {}) {
   const out = await scanToken(token, { store, budgetMs: 5500 });
   const r = out.res, c = out.c || {};
   if (r.notToken) return { token: lc(token), token_standard: null, verdict: null, checks: r.rows.map(({ group, status, title, detail }) => ({ group, status, title, detail })) };
+  rememberScore(token, out, { store }).catch(() => null);
   const d = r.dist, m = r.market;
   return {
     token: lc(token), name: c.name, symbol: c.symbol, decimals: c.decimals, supply: c.supply,
     score: r.score, verdict: r.verdict.t, reasons: r.reasons,
-    checks: r.rows.map(({ group, status, title, detail, pts, addr }) => ({ group, status, title, detail, points: pts || 0, ...(addr ? { address: addr } : {}) })),
+    confidence: r.confidence, unknown: r.missing, critical: (r.critical || []).map((x) => x.title),
+    sections: Object.fromEntries(Object.entries(r.sub || {}).map(([k, v]) => [k, v.score])),
+    summary: core.summaryText(r.summary),
+    checks: r.rows.map(({ group, status, title, detail, pts, addr, src, crit }) => ({ group, status, title, detail, points: pts || 0, source: src || "chain", ...(crit ? { critical: true } : {}), ...(addr ? { address: addr } : {}) })),
     market: m ? { source: m.source, price_usd: m.price ?? null, market_cap_usd: m.mcap ?? null, liquidity_usd: m.liq ?? null, pool_created: m.created ?? null } : null,
-    holders: d ? { count: d.holders, exact: d.exact, top10_pct: d.S ? (d.top10 / d.S) * 100 : null, deployer: d.deployer } : null,
-    engine: core.CORE_VERSION, scanned_at: new Date().toISOString(), page: `https://www.arcircle.app/s/${lc(token)}`,
+    holders: d ? { count: d.holders, exact: d.exact, top10_pct: d.S ? (d.top10 / d.S) * 100 : null, deployer: d.deployer, linked_top_pct: d.clusters && d.clusters[0] ? d.clusters[0].pct : null } : null,
+    block: r.block || null, engine: core.CORE_VERSION, scanner: core.SCANNER_VERSION, scanned_at: new Date().toISOString(), page: `https://www.arcircle.app/s/${lc(token)}`,
   };
 }
 /// Embeddable badge (/badge/<address>): "Scanned by ARCIRCLE | 82/100 · Looks OK".
@@ -408,11 +563,15 @@ export async function tgWatchOp(store, { chat, token, op }) {
   return { ok: true, mine };
 }
 /// Compares each watched token with its last snapshot; returns the alerts to send.
-export async function tgWatchTick(store) {
+/// hooks: Pro webhooks ({ id, token, url, ev }) watched the same way; their alerts come back with `hook` set.
+/// v3: every tick also re-scans up to two watched tokens in full (oldest first) for score drops,
+/// new critical flags and large sells into the pool.
+export async function tgWatchTick(store, { hooks = [] } = {}) {
   const doc = (await store.get(WATCH_KEY)) || { items: [], snaps: {} };
   const items = (doc.items || []).map((s) => { const [c, t] = String(s).split("|"); return { c, t }; });
   const snaps = doc.snaps || {};
-  const tokens = [...new Set(items.map((x) => x.t))].slice(0, 40);
+  const tokens = [...new Set([...items.map((x) => x.t), ...hooks.map((h) => lc(h.token))])].slice(0, 60);
+  const deep = tokens.slice().sort((x, y) => ((snaps[x] && snaps[x].sat) || 0) - ((snaps[y] && snaps[y].sat) || 0)).slice(0, 2);
   const alerts = [];
   await pool(tokens, 5, async (t) => {
     let c, m;
@@ -424,18 +583,49 @@ export async function tgWatchTick(store) {
     let lp = null;
     try { const Lm = await import("./_liquidity.mjs"); lp = core.lpSummary(await Lm.run(t, { store, budgetMs: 4000 })); } catch { lp = null; }
     now.lp = lp ? { safe: Math.round((lp.locked + lp.burned) * 10) / 10, soonest: lp.soonest || null, warned: (old && old.lp && old.lp.warned) || null } : (old && old.lp) || null;
+    // the full re-scan (two tokens a tick)
+    now.score = old && old.score != null ? old.score : null; now.crit = (old && old.crit) || []; now.bb = (old && old.bb) || 0; now.sat = (old && old.sat) || 0;
+    let deepOut = null;
+    if (deep.includes(t)) {
+      try { deepOut = await scanToken(t, { store, budgetMs: 4500 }); await rememberScore(t, deepOut, { store }); } catch { deepOut = null; }
+      now.sat = Date.now();
+    }
+    const msgs = [];
+    const add = (k, text) => msgs.push({ k, text });
     if (old) {
-      const msgs = [];
-      if (old.lp && lp && now.lp.safe < old.lp.safe - 15) msgs.push(`locked liquidity fell from ${old.lp.safe}% to ${now.lp.safe}%`);
+      if (old.lp && lp && now.lp.safe < old.lp.safe - 15) add("lp", `locked liquidity fell from ${old.lp.safe}% to ${now.lp.safe}%`);
       const sec = Date.now() / 1000;
       if (lp && lp.soonest && lp.soonest > sec && lp.soonest - sec < 86400 && now.lp.warned !== lp.soonest) {
-        msgs.push(`an LP lock ends in under 24 hours (${new Date(lp.soonest * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC)`);
+        add("lp", `an LP lock ends in under 24 hours (${new Date(lp.soonest * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC)`);
         now.lp.warned = lp.soonest;
       }
-      if (lc(old.owner) !== lc(now.owner)) msgs.push(core.BURN.includes(lc(now.owner)) ? "ownership was renounced" : `the owner changed to ${core.short(now.owner)}`);
-      if (old.supply !== now.supply) msgs.push(BigInt(now.supply) > BigInt(old.supply || 0) ? "new tokens were minted" : "the supply went down");
-      if (old.liq && now.liq != null && now.liq < old.liq * 0.7) msgs.push(`liquidity fell ${Math.round((1 - now.liq / old.liq) * 100)}% (to ${core.usd(now.liq)})`);
-      if (msgs.length) items.filter((x) => x.t === t).forEach((x) => alerts.push({ chat: x.c, token: t, sym: now.sym, text: msgs.join(", ") }));
+      if (lc(old.owner) !== lc(now.owner)) add("owner", core.BURN.includes(lc(now.owner)) ? "ownership was renounced" : `the owner changed to ${core.short(now.owner)}`);
+      if (old.supply !== now.supply) add("supply", BigInt(now.supply) > BigInt(old.supply || 0) ? "new tokens were minted" : "the supply went down");
+      if (old.liq && now.liq != null && now.liq < old.liq * 0.7) add("liquidity", `liquidity fell ${Math.round((1 - now.liq / old.liq) * 100)}% (to ${core.usd(now.liq)})`);
+    }
+    if (deepOut && deepOut.res && !deepOut.res.notToken) {
+      const r = deepOut.res;
+      if (old && old.score != null && r.score <= old.score - 10) add("score", `the scanner score dropped from ${old.score} to ${r.score} (${r.verdict.t})`);
+      const newCrit = (r.critical || []).map((x) => x.title).filter((x) => !(now.crit || []).includes(x));
+      if (old && newCrit.length) add("score", `new critical flag: ${newCrit.join(", ")}`);
+      now.score = r.score; now.crit = (r.critical || []).map((x) => x.title);
+      // large sells into the pool since the last look (1%+ of the supply in one transfer)
+      const dec = deepOut.c.decimals, S = core.units(deepOut.c.supply, dec);
+      const sells = ((deepOut.h && deepOut.h.events) || []).filter((e) => e.k === "big" && lc(e.to) === core.ADDR.poolManager && e.b > (now.bb || 0));
+      if (old && old.bb && sells.length) {
+        const top = sells.reduce((a, e) => (BigInt(e.v) > BigInt(a.v) ? e : a), sells[0]);
+        add("sell", `${sells.length === 1 ? "a wallet" : `${sells.length} large sells — the biggest`} sold ${core.pct((core.units(top.v, dec) / S) * 100)} of the supply into the pool`);
+      }
+      const maxB = ((deepOut.h && deepOut.h.events) || []).reduce((mx, e) => Math.max(mx, e.b || 0), 0);
+      now.bb = Math.max(now.bb || 0, maxB);
+    }
+    if (msgs.length) {
+      const text = msgs.map((x) => x.text).join(", ");
+      items.filter((x) => x.t === t).forEach((x) => alerts.push({ chat: x.c, token: t, sym: now.sym, text }));
+      hooks.filter((h) => lc(h.token) === t).forEach((h) => {
+        const kinds = msgs.filter((x) => (h.ev || []).includes(x.k));
+        if (kinds.length) alerts.push({ hook: h, token: t, sym: now.sym, kinds: kinds.map((x) => x.k), text: kinds.map((x) => x.text).join(", "), score: now.score });
+      });
     }
     snaps[t] = now;
   });

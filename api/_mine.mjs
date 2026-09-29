@@ -435,8 +435,8 @@ const points = (d) => {
 
 // ---------------- X posts ----------------
 export const shareLink = (id, w) => `${SITE}/mine/${id}?r=${lc(w)}`;
-const tweetIdOf = (url) => { const m = /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d{5,25})/.exec(String(url || "").trim()); return m ? { handle: m[1], id: m[2] } : null; };
-async function fetchTweet(tid) {
+export const tweetIdOf = (url) => { const m = /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d{5,25})/.exec(String(url || "").trim()); return m ? { handle: m[1], id: m[2] } : null; };
+export async function fetchTweet(tid) {
   // 1) the public embed feed (no key)
   try {
     const token = ((Number(tid) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, "");

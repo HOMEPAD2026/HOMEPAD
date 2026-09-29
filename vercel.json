@@ -113,6 +113,22 @@
       "destination": "/api/social?badge=:addr"
     },
     {
+      "source": "/api/v1/scan/batch",
+      "destination": "/api/scan?v1batch=1"
+    },
+    {
+      "source": "/api/v1/report/:id",
+      "destination": "/api/scan?rep=:id"
+    },
+    {
+      "source": "/scan-report/:id",
+      "destination": "/api/scan?reppage=:id"
+    },
+    {
+      "source": "/embed/scan/:addr",
+      "destination": "/api/scan?embed=:addr"
+    },
+    {
       "source": "/api/v1/scan/:addr",
       "destination": "/api/social?scanapi=:addr"
     },
@@ -326,6 +342,9 @@
       "maxDuration": 60
     },
     "api/mine.mjs": {
+      "maxDuration": 60
+    },
+    "api/scan.mjs": {
       "maxDuration": 60
     }
   }
