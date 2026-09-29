@@ -445,6 +445,17 @@ export async function tokenStats(wallet) {
     }
     if (price) spark[spark.length - 1] = Number(price.toPrecision(6));
   }
+  // the last 24 hours in 1-hour steps (last point = the live spot price), for the $ARCIRCLE page's 24h chart
+  const spark24 = [];
+  if (W.trades.length || W.p0) {
+    let i = 0, p = W.p0;
+    for (let s = 0; s < 24; s++) {
+      const end = now - 86400 + (s + 1) * 3600;
+      while (i < W.trades.length && (tsAt(W, W.trades[i].b) || 0) <= end) { p = W.trades[i].price; i++; }
+      spark24.push(p == null ? null : Number(p.toPrecision(6)));
+    }
+    if (price) spark24[spark24.length - 1] = Number(price.toPrecision(6));
+  }
   // holders and supply split
   const tset = new Set(wl.map((w) => w.addr));
   // the pool's tokens sit in the v4 PoolManager (or, for a curve, in the curve)
@@ -470,7 +481,8 @@ export async function tokenStats(wallet) {
     recent: W.recent.slice(-20).reverse().map((x) => ({ side: x.buy ? "buy" : "sell", usdc: r2(x.usd, 4), tokens: Math.round(x.tok), trader: x.trader, tx: x.h, ts: tsAt(W, x.b) })),
     vol24h: r2(day.reduce((s, t) => s + t.usd, 0)), trades24h: day.length,
     buys24h: day.filter((t) => t.buy).length, sells24h: day.filter((t) => !t.buy).length,
-    spark, sparkStep: 4 * 3600,
+    spark, sparkStep: 4 * 3600, spark24, spark24Step: 3600,
+    buyVol24h: r2(day.filter((t) => t.buy).reduce((s, t) => s + t.usd, 0)), sellVol24h: r2(day.filter((t) => !t.buy).reduce((s, t) => s + t.usd, 0)),
     holders: rows.length,
     split: { curve: Math.round(curveTok), treasury: Math.round(treasTok), top10: Math.round(top10), others: Math.round(rest), burned: Math.round(burnedTok) },
     burned: {

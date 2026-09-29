@@ -49,7 +49,7 @@ export const BUNDLES = {
   // the $ARCIRCLE contract / "not live" switch): its numbers come from
   // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
   "arcircle.bundle.js": [
-    "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arcircle-plus.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
     "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // ARCIA on pages other than ArcPad: arc-arcia-fab.js loads this on the first tap of "Ask ARCIA"
