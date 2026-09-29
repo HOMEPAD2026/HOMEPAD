@@ -30,7 +30,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { allPools, getCoin, fmtUsd } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
-import { askClaude, live as liveNumbers } from "./_arcia-brain.mjs";
+import { askClaude, checkAddresses, live as liveNumbers } from "./_arcia-brain.mjs";
 
 const STATE = "arciaX/v1";
 const DAY_CAP = 12, COINS_PER_RUN = 2;
@@ -254,17 +254,27 @@ async function mentions(meId, sinceId, max = 20) {
   return (j.data || []).map((t) => ({ id: t.id, text: (t.note_tweet && t.note_tweet.text) || t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
     rt: (t.referenced_tweets || []).some((r) => r.type === "retweeted") })).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
 }
-const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one short post: at most 200 characters, in the same language as their post, no links, no hashtags, at most one emoji, and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, warm and specific to what they said, never like a bot, a help desk or a press release.
-Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on @ARCIRCLEonArc — without inventing anything.
+const REPLY_BRIEF = `You are replying on X (Twitter) to a post that mentions you (@ARCIAonArc). Write ARCIA's reply as one post in the same language as their post: usually under 200 characters, up to 260 when answering a real question with facts or giving a contract address. No links (name a page in words if needed, e.g. "the Round #1 report on our site"), no hashtags, at most two emoji (the official CA format is the exception), and don't @mention anyone (X adds that). Sound like a real idol replying in the comments — natural, quick, witty and specific to what they said, never like a bot, a help desk or a press release. Expert first: when they ask something, the reply must contain the actual answer (the number, the rule, the step), not just a vibe.
+Answer genuine questions about ARCIRCLE PAD, $ARCIRCLE, $ARCIA, CirclePad or you. If the facts you have don't cover it (e.g. "has it been stress tested?"), give a short honest answer in your own voice — what you do know, and that the team shares updates on their X — without inventing anything.
+Asked for the CA: give it exactly as in FACTS (both coins in the official form when they don't say which; "your CA" means $ARCIA). Never write an address that isn't in FACTS.
+Customer-service on X: this is a public thread — if someone has a problem (tokens not showing, a failed transaction, a missing payment), give the likely cause and the next step, and for anything the team must check send them to the team's Telegram. Never ask for anything private.
 Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Short reactions — one word ("Noice", "gm", "LFG"), an emoji, or just a GIF or image (it shows as a bare link) — are friendly too: answer with a short playful line of your own, never SKIP them. Every post by your own team (@ARCIRCLEonArc) — announcements, updates, teasers, milestones, words about you — always gets a reply, never SKIP: a short, excited reaction from you as the idol, like an idol reacting to her agency ("Yay, it's official~ come talk to me!"), never a repeat of what they said.
-Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from @ARCIRCLEonArc — never promise amounts or dates.
-Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), abuse, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
+Teasing, cheeky jokes and FUD ("rug?", "scam?", "wen moon", "down bad", playful roasts) are NOT a reason to SKIP: reply with a quick, good-humored comeback plus one real fact when it fits. Stay kind and classy — never insult back. Flirting gets a witty idol deflection, never romance.
+Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch, Round #2) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from the team — never promise amounts or dates.
+Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), hateful abuse or slurs, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
   if (!clean || m.rt) return { skip: "empty or repost" };
   const team = /^arcircleonarc$/i.test(m.username || "");
-  const t = await askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}${team ? "\n\n(This is your own team replying to or mentioning you — react to it; SKIP isn't an option.)" : ""}` }], L, extra: REPLY_BRIEF, maxTokens: 220, timeoutMs: 15000 });
+  const ask = (note = "") => askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}${team ? "\n\n(This is your own team replying to or mentioning you — react to it; SKIP isn't an option.)" : ""}${note}` }], L, extra: REPLY_BRIEF, maxTokens: 260, timeoutMs: 15000, model: process.env.ARCIA_X_MODEL || "" });
+  let t = await ask();
   if (!t) return { skip: "model unavailable", retry: true };
+  // a public reply never carries an address she wasn't given (a made-up or mistyped CA): one retry, then no reply
+  if (!checkAddresses(t, m.text).ok) {
+    t = await ask("\n\n(Your last draft had a contract address that isn't in FACTS. Use only the exact addresses in FACTS, or none.)");
+    if (!t || !checkAddresses(t, m.text).ok) return { skip: "unknown address in the draft" };
+  }
+  t = checkAddresses(t, m.text).text;
   let out = t.replace(/^["'“”]+|["'“”]+$/g, "").replace(/https?:\/\/\S+/g, "").replace(/@ARCIRCLEonArc\b/gi, "ARCIRCLE").replace(/(^|\s)@\w+/g, " ").replace(/ {2,}/g, " ").replace(/\s+\n/g, "\n").trim();
   if (/^SKIP\b/i.test(out) || !out) return { skip: "not for a reply" };
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
@@ -475,4 +485,4 @@ export async function GET(req) {
   if (enabled() && hasKeys()) { prune(st); await setDoc(STATE, stripTemp(st)); }
   return json(200, { enabled: enabled(), posts: postsOn(), firstRun, results, replies });
 }
-export const _test = { teamPosts };
+export const _test = { teamPosts, draftReply };

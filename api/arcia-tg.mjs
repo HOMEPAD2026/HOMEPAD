@@ -22,7 +22,7 @@
 //   /poll, /schedule, /say, /tweet (draft → approve → X), /here /unhere /targets, /mirror, /guard,
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
 // Nothing here moves funds: no command signs or sends a transaction.
-import { askClaude, streamClaude, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
+import { askClaude, streamClaude, checkAddresses, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
 import { getCoin, allPools, isAddr, rpcCall, ethCalls, keccakHex, pad, PM_ADDRESS } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import * as scanner from "./_scan.mjs";
@@ -278,7 +278,7 @@ async function answer(m, text, { lang, group, image } = {}) {
     const messages = [...turns.map((t) => ({ role: t.r, content: t.c })), { role: "user", content }];
     const L = await live(SITE).catch(() => null);
     const who = [m.from.first_name, m.from.username ? "@" + m.from.username : ""].filter(Boolean).join(" ");
-    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)` : " in a private chat"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
+    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)` : " in a private chat"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /ca /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
     const replyTo = group ? { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } } : {};
     let out = "", mid = null, lastEdit = 0;
     const it = await streamClaude({ messages, L, extra, maxTokens: 420, timeoutMs: 30000 }).catch(() => null);
@@ -294,6 +294,8 @@ async function answer(m, text, { lang, group, image } = {}) {
     stop();
     if (!out.trim()) return say(m, w("busy", lang));
     out = out.trim().slice(0, 4000);
+    // the final text never keeps an address she wasn't given (FACTS, the site, or this chat): it's swapped for a pointer to /ca
+    { const src = [q || "", ...turns.map((t) => t.c)].join("\n"); const c = checkAddresses(out, src); out = c.ok ? c.text : c.text.replace(/0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/g, (a) => (checkAddresses(a, src).ok ? checkAddresses(a, src).text : "(official addresses: /ca)")); }
     if (mid) await tg("editMessageText", { chat_id: m.chat.id, message_id: mid, text: out, link_preview_options: { is_disabled: true } });
     else await tg("sendMessage", { chat_id: m.chat.id, text: out, link_preview_options: { is_disabled: true }, ...replyTo });
     await bump("chat", uid);
