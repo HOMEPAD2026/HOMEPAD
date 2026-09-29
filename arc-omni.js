@@ -122,8 +122,9 @@
               '<div class="lk"><dt>' + ICON.lock + 'Locked in the Arc adapter</dt><dd data-no-i18n data-om="sup-lock">—</dd></div></dl>' +
             '<p class="om-check" data-om="check"></p>' +
             '<ul class="om-safe"><li>' + ICON.shield + "<span>Only Arc holds real supply. The other chains can mint only what Arc locked.</span></li>" +
-              "<li>" + ICON.shield + "<span>Two independent verifiers (DVNs) must confirm every message.</span></li>" +
-              "<li>" + ICON.shield + "<span>Daily limits per route, and a pause switch held by a multisig.</span></li></ul>" +
+              "<li>" + ICON.shield + "<span>Two independent verifiers, LayerZero Labs and Nethermind, must confirm every message.</span></li>" +
+              "<li>" + ICON.shield + "<span>Up to 10,000,000 per day each way to start, owned by a 2-of-3 Safe that can pause.</span></li>" +
+              "<li>" + ICON.shield + "<span>Rewards the Arc lockbox earns go to the burn engine.</span></li></ul>" +
           "</aside>" +
         "</div>" +
         '<section class="om-card om-how"><h3>How it works</h3><ol>' +
@@ -131,7 +132,7 @@
           "<li><b>Back to Arc</b><span>Send from Solana or Robinhood Chain. The tokens are burned there and the adapter unlocks the same amount to you on Arc.</span></li>" +
           "<li><b>Between Solana and Robinhood</b><span>Burned on one, minted on the other. Arc's locked amount doesn't change, so the total still adds up.</span></li>" +
           "<li><b>Prices</b><span>Each chain has its own market. When prices drift apart, buying where it's cheaper and selling where it's higher pulls them together.</span></li>" +
-        '</ol><p class="om-foot">Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Not decided yet: the second verifier, daily limits, pool venues on Solana and Robinhood Chain, and the launch date.</p></section>' +
+        '</ol><p class="om-foot">Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.</p></section>' +
         '<section class="om-card om-hist" hidden><h3>Your transfers</h3><ul data-om="hist"></ul></section>' +
       "</div>";
     wire();

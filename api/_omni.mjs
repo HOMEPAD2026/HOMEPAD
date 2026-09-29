@@ -9,6 +9,7 @@ export const OMNI = {
   ADAPTER: "", // Arc · ArcircleOFTAdapter
   ROBINHOOD_OFT: "", // Robinhood Chain · ArcircleOFT
   SOLANA_MINT: "", // Solana · SPL mint created by the OFT program
+  SAFE: "", // the owner Safe 2-of-3 on Arc — its burns of lockbox rewards show as "OMNI rewards"
   ROBINHOOD_RPC: "https://rpc.mainnet.chain.robinhood.com",
   SOLANA_RPC: "https://api.mainnet-beta.solana.com",
 };

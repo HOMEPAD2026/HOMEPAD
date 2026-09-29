@@ -4,7 +4,7 @@
 //   npx hardhat lz:oapp:wire --oapp-config layerzero.config.ts
 //
 // Security stack — REVIEW BEFORE WIRING (README "Security"):
-//   * 2 required DVNs on every pathway: LayerZero Labs + OMNI_SECOND_DVN (both must verify every message).
+//   * 2 required DVNs on every pathway: LayerZero Labs + Nethermind (OMNI_SECOND_DVN; both must verify every message).
 //   * DVN, library and executor ADDRESSES are pinned per chain below — not looked up by name — because on Arc the
 //     name "LayerZero Labs" matches two entries and the older one (0x282b…46b4) is DEPRECATED. A name lookup could
 //     pick it. Addresses from LayerZero's metadata API (read 30 Sep 2026); `npx hardhat omni:check` confirms each one
@@ -50,7 +50,8 @@ export const LZ = {
 }
 // operators listed (not deprecated) on BOTH Arc and Robinhood — the second DVN must be one of these
 export const SECOND_DVN_CHOICES = ['Nethermind', 'Horizen', 'Canary', 'P2P', 'Nansen']
-export const SECOND_DVN = process.env.OMNI_SECOND_DVN || 'NOT_DECIDED'
+// decided: Nethermind (LayerZero Labs + Nethermind must both verify every message)
+export const SECOND_DVN = process.env.OMNI_SECOND_DVN || 'Nethermind'
 
 // block confirmations each chain waits before its DVNs verify — REVIEW (Arc finalizes deterministically)
 export const CONF = { arc: 5, robinhood: 20, solana: 32 }
@@ -87,7 +88,7 @@ function edge(from: 'arc' | 'robinhood', to: 'arc' | 'robinhood') {
 }
 
 export default async function () {
-    if (SECOND_DVN === 'NOT_DECIDED') throw new Error('Set OMNI_SECOND_DVN (one of ' + SECOND_DVN_CHOICES.join(', ') + '): a 1-DVN setup lets one operator forge messages')
+    if (!SECOND_DVN_CHOICES.includes(SECOND_DVN)) throw new Error('OMNI_SECOND_DVN must be one of ' + SECOND_DVN_CHOICES.join(', ') + ' (got "' + SECOND_DVN + '")')
     const contracts: { contract: OmniPointHardhat }[] = [{ contract: arc }, { contract: robinhood }]
     const connections: unknown[] = [edge('arc', 'robinhood'), edge('robinhood', 'arc')]
     // phase 2: Solana — needs its own pinned addresses and the Solana OFT store (solana/README.md)

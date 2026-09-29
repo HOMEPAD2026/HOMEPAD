@@ -21,6 +21,7 @@ import { ARCIRCLE_CURVE, ARCIRCLE_POOL_ID, ARCIRCLE_LAUNCHED_AT, ARCIRCLE_VENUE_
   ARCIRCLE_IS_CURRENCY0, ARGUS_PORTALS, ARGUS_POOL_FEE, ARGUS_POOL_FEE_DYNAMIC, ARGUS_TICK_SPACING, ARGUS_SHARE_BPS, arcircleUsd } from "./_arcircle.mjs";
 import { PM_ADDRESS, keccakHex } from "./_arc.mjs";
 import { creatorCounts, blockAtOrBefore } from "./_circle.mjs";
+import { OMNI } from "./_omni.mjs";
 
 export const CURVE = ARCIRCLE_CURVE.toLowerCase(); // foci-style curve (first launch); "" otherwise
 // Uniswap v4 pool (Argus launch): Swap events on the PoolManager for this pool id.
@@ -277,12 +278,15 @@ async function liveReads(wallets) {
 // ---- where each burn came from ----
 // Read once per burn (the transaction's `to`, and for a plain transfer the unlock records) and kept in the
 // state: vote (CirclePad burn-to-vote), mine (Builder Mine joins and shop), scanner (Token Scanner Plus/Pro
-// unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), buyback (a swap paid straight to
-// 0x…dEaD), team (a team or treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
-export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "buyback", "team", "wallet"];
+// unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), omni (the OMNI Safe burning the
+// rewards its Arc lockbox earned — omni/README.md), buyback (a swap paid straight to 0x…dEaD), team (a team or
+// treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
+export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "omni", "buyback", "team", "wallet"];
 const BURNVOTE = "0x54121a7894d90a02ea973ab45eef424c2716eeb2";
 const MINE = () => lc(process.env.BUILDER_MINE_ADDRESS || "0x1538c76917dE5911D71c5C397ff18cA09d52B019");
 const DESK = () => lc(process.env.ARCIA_DESK_ADDRESS || "0xc30f1694203f4fc671ec769b90149e67ce3a1f03");
+// the OMNI owner Safe on Arc (api/_omni.mjs OMNI.SAFE; empty until the Safe exists)
+const OMNI_SAFE = () => lc(process.env.OMNI_SAFE_ADDRESS || OMNI.SAFE);
 const TEAM = new Set([TREASURY, "0x1a35a754a4251e46971184046ac57e8ad621672e"]); // + the factory's treasury wallets
 export function kindOf(x, txTo, marks = {}, team = TEAM) {
   const to = lc(txTo), fr = lc(x.fr);
@@ -291,6 +295,8 @@ export function kindOf(x, txTo, marks = {}, team = TEAM) {
   if (to === DESK() || fr === DESK()) return "desk";
   if (marks.scanner) return "scanner";
   if (marks.secret) return "secret";
+  const safe = OMNI_SAFE();
+  if (safe && (to === safe || fr === safe)) return "omni";
   if (team.has(fr)) return "team";
   if (fr === PM) return "buyback";
   return "wallet";

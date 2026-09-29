@@ -48,19 +48,20 @@ mint/burn OFTs everywhere else — with the rule that **only one adapter may exi
 | Transfer fee | None on transfers — the buy/sell tax is taken by the Argus Uniswap v4 hook on swaps. Wallet-to-wallet hops keep the exact amount (checked on recent transfers) | Lossless transfers, so the standard adapter works. We still check every lock (`NotLossless`) |
 | Holder rewards | Holders accrue USDC rewards by balance (`pendingOf`, paid by the hook via `consumeClaim`). Excluded addresses don't count | **The lockbox would earn rewards on everything bridged.** Policy below |
 
-### Argus rewards held by the lockbox — NOT DECIDED
+### Argus rewards held by the lockbox — DECIDED: collect and burn
 
-The adapter holds every bridged $ARCIRCLE, so by default it earns the Arc holder rewards for that share while
-the people holding it on Solana/Robinhood don't. Options:
+The adapter holds every bridged $ARCIRCLE, so it earns the Arc holder rewards (USDC) for that share while the
+people holding it on Robinhood (and later Solana) don't. **Policy: those rewards feed the burn engine.**
 
-1. **Exclude the adapter** — ask Argus to call `exclude(adapter)` (only their portal can). Bridged tokens then earn
-   nothing on Arc and the rewards go to the remaining Arc holders. Simplest, fully on-chain, no custody.
-2. **Collect and route** — keep it eligible; the multisig calls `collectRewards(hook, claimCalldata)` (it can
-   never touch the locked $ARCIRCLE — enforced in the contract and tested) and `sweep(USDC)` to a rewards wallet,
-   then uses it for $ARCIRCLE buybacks or pays it to Solana/Robinhood holders. More value, more operations.
-3. Leave it unclaimed — not recommended.
+- The Safe calls `collectRewards(hook, claimCalldata)` on the adapter — it can never touch the locked $ARCIRCLE
+  (enforced in the contract and tested) — then `sweep(USDC)` to the rewards receiver (the Safe by default).
+- The Safe buys $ARCIRCLE with that USDC and sends it to 0x…dEaD. The site labels these burns **OMNI** once
+  `OMNI_SAFE` is set (api/_token.mjs), and the burn engine counts them with the utilities.
+- When the automated burn contract ships, point the receiver at it with `setRewardsReceiver` — no redeploy.
+- `claimCalldata` is the Argus hook's claim call for the adapter. The claim function isn't documented here yet:
+  copy it from an Argus reward-claim transaction on ArcScan (Input data → function name) before the first claim.
 
-The contract supports 1 and 2; which one is a team decision to publish before launch.
+Other options that were considered: asking Argus to `exclude(adapter)`, or paying the rewards to Robinhood holders.
 
 ## Contracts (this folder)
 
@@ -79,18 +80,19 @@ solc 0.8.26 / Cancun (same target as the ArcPad contracts already on Arc).
 
 ## Security stack (set explicitly — never rely on defaults)
 
-- **DVNs**: 2 required on every pathway — LayerZero Labs + one more independent operator that LayerZero lists on
-  Arc, Robinhood and Solana. The second one is **not decided** (`OMNI_SECOND_DVN`); `layerzero.config.ts` refuses
-  to wire without it, because 1-of-1 lets a single operator forge messages.
+- **DVNs**: 2 required on every pathway — **LayerZero Labs + Nethermind** (decided; `OMNI_SECOND_DVN`). Both must
+  verify every message, because 1-of-1 lets a single operator forge messages. Addresses are pinned per chain in
+  `layerzero.config.ts` (Nethermind must also run on Solana before phase 2 — check then).
 - **Confirmations**: set on both sides of each pathway (proposal: Arc 5, Robinhood 20, Solana 32 — review).
 - **Enforced options**: 80k gas for EVM receives; 200k CU + 2,500,000 lamports on Solana (creates the
   recipient's token account).
 - **Rate limits**: per destination per 24h, on every chain. They **fail closed** — no limit set means nothing can
-  go there. Proposal: 50,000,000 (5% of supply) per day per pathway — not decided.
+  go there. **Decided: 10,000,000 (1% of supply) per day per direction** to start; the Safe can raise it later.
 - **Pause**: the guardian (a monitoring bot or a 1-of-N Safe) can pause any chain; only the owner multisig
   unpauses. Messages that arrive while paused wait at the endpoint and are retried later.
 - **Ownership**: deploy with a fresh key, then `scripts/handover.ts` moves owner **and** LayerZero delegate to the
-  multisig on each EVM chain; on Solana the OFT Store admin, delegate and program upgrade authority go to a
+  owner Safe — **decided: a Safe 2-of-3 with the same address on Arc and Robinhood Chain** (Safe{Wallet} supports
+  both chains; `omni:check` confirms it exists and has at least 2 signers); on Solana the OFT Store admin, delegate and program upgrade authority go to a
   Squads multisig. The exposed `0x80e1…8bc7` key must not be used for anything here.
 - **Monitoring**: `npx hardhat omni:supply` (and the OMNI page) compares locked vs remote supply; remote > locked
   means something minted without a lock → pause everything.
@@ -104,7 +106,7 @@ Bridging only moves tokens; each chain needs its own market:
 | Chain | Market | Status |
 |---|---|---|
 | Arc | Argus Uniswap v4 pool (live) | live |
-| Robinhood Chain | a DEX pool ARCIRCLE/ETH or /USDG | venue **not decided** |
+| Robinhood Chain | Uniswap v3 ARCIRCLE/ETH, 1%, full range (ROBINHOOD.md step 8) | proposed |
 | Solana | Raydium / Meteora / Orca pool ARCIRCLE/SOL or /USDC | venue **not decided** |
 
 Seed liquidity has to be real $ARCIRCLE bridged from Arc plus the quote asset (there is no team allocation to

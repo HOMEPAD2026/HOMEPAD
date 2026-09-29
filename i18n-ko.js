@@ -4827,6 +4827,12 @@
     "buy / sell": "매수 / 매도",
     "forever": "영구 고정",
     "24 hours": "24시간",
+    "OMNI rewards": "OMNI 보상",
+    "Two independent verifiers, LayerZero Labs and Nethermind, must confirm every message.": "독립된 검증자 두 곳, LayerZero Labs와 Nethermind가 모든 메시지를 확인해야 합니다.",
+    "Up to 10,000,000 per day each way to start, owned by a 2-of-3 Safe that can pause.": "처음에는 방향별 하루 최대 10,000,000개. 일시정지할 수 있는 2-of-3 Safe가 소유합니다.",
+    "Rewards the Arc lockbox earns go to the burn engine.": "Arc 잠금 컨트랙트가 받는 보상은 번 엔진으로 갑니다.",
+    "Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "로빈후드 체인이 먼저, 솔라나는 나중입니다. 아직 미정: 풀 규모와 출시일.",
+    "Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "LayerZero V2 OFT 기반: 기존 토큰을 위한 Arc 어댑터와 다른 체인의 발행/소각 OFT. 로빈후드 체인이 먼저, 솔라나는 나중입니다. 아직 미정: 풀 규모와 출시일.",
   };
 
 

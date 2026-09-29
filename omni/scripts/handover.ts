@@ -6,15 +6,17 @@
 import hre from 'hardhat'
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
-// Per destination, per rolling 24h. NOT DECIDED — 50M (5% of supply) is a starting proposal to review.
-const LIMIT = hre.ethers.utils.parseEther(process.env.OMNI_DAILY_LIMIT || '50000000')
+// Per destination, per rolling 24h. Decided: 10M (1% of supply) to start; the Safe can raise it with setRateLimits.
+const LIMIT = hre.ethers.utils.parseEther(process.env.OMNI_DAILY_LIMIT || '10000000')
 const DAY = 86_400
 
 async function main() {
     const name = hre.network.name === 'arc' ? 'ArcircleOFTAdapter' : 'ArcircleOFT'
     const d = await hre.deployments.get(name)
     const c = await hre.ethers.getContractAt(name, d.address)
-    const owner = process.env.OMNI_OWNER!, guardian = process.env.OMNI_GUARDIAN, rewards = process.env.OMNI_REWARDS_RECEIVER
+    const owner = process.env['OMNI_OWNER_' + hre.network.name.toUpperCase()] || process.env.OMNI_OWNER!, guardian = process.env.OMNI_GUARDIAN
+    // lockbox rewards → burn engine: swept to the Safe (which buys and burns) unless a burn contract is given
+    const rewards = process.env.OMNI_REWARDS_RECEIVER || owner
     if (!/^0x[0-9a-fA-F]{40}$/.test(owner || '')) throw new Error('OMNI_OWNER missing')
     // phase 1: Arc ⇄ Robinhood only. Solana gets a limit (and so becomes reachable) only with OMNI_SOLANA=1;
     // until then it has none, and rate limits fail closed, so nothing can be sent there.

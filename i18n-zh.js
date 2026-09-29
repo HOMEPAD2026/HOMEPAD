@@ -4979,6 +4979,12 @@
     "buy / sell": "买 / 卖",
     "forever": "永久固定",
     "24 hours": "24 小时",
+    "OMNI rewards": "OMNI 奖励",
+    "Two independent verifiers, LayerZero Labs and Nethermind, must confirm every message.": "两个独立验证者 LayerZero Labs 和 Nethermind 必须确认每条消息。",
+    "Up to 10,000,000 per day each way to start, owned by a 2-of-3 Safe that can pause.": "初期每个方向每天最多 10,000,000 枚，由可暂停的 2-of-3 Safe 持有。",
+    "Rewards the Arc lockbox earns go to the burn engine.": "Arc 锁仓合约获得的奖励进入销毁引擎。",
+    "Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "先上 Robinhood Chain，Solana 随后。尚未决定：资金池规模和上线日期。",
+    "Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "基于 LayerZero V2 OFT：Arc 上为现有代币部署适配器，其他链上为铸造/销毁 OFT。先上 Robinhood Chain，Solana 随后。尚未决定：资金池规模和上线日期。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

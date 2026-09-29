@@ -14,7 +14,9 @@ const dep = (net: string, name: string) => {
 }
 const ENDPOINT_ABI = ['function getConfig(address,address,uint32,uint32) view returns (bytes)', 'function getSendLibrary(address,uint32) view returns (address)',
     'function getReceiveLibrary(address,uint32) view returns (address,bool)']
-const OAPP_ABI = ['function peers(uint32) view returns (bytes32)', 'function owner() view returns (address)', 'function token() view returns (address)']
+const OAPP_ABI = ['function peers(uint32) view returns (bytes32)', 'function owner() view returns (address)', 'function token() view returns (address)',
+    'function rewardsReceiver() view returns (address)']
+const SAFE_ABI = ['function getThreshold() view returns (uint256)', 'function getOwners() view returns (address[])']
 const ULN = 'tuple(uint64 confirmations,uint8 requiredDVNCount,uint8 optionalDVNCount,uint8 optionalDVNThreshold,address[] requiredDVNs,address[] optionalDVNs)'
 
 task('omni:check', 'Checks the pinned LayerZero addresses and, after wiring, the live Arc ⇄ Robinhood config').setAction(async (_a, hre) => {
@@ -37,6 +39,17 @@ task('omni:check', 'Checks the pinned LayerZero addresses and, after wiring, the
             const code = await p.getCode(a)
             ok(code && code !== '0x', `${k} ${a} has code`)
         }
+        // the owner Safe (decided: 2-of-3, same address on both chains) must exist here before handover
+        const safe = process.env['OMNI_OWNER_' + chain.toUpperCase()] || process.env.OMNI_OWNER
+        if (safe && /^0x[0-9a-fA-F]{40}$/.test(safe)) {
+            const hasCode = (await p.getCode(safe)) !== '0x'
+            ok(hasCode, `owner Safe ${safe} exists on ${chain}`)
+            if (hasCode) {
+                const sc = new ethers.Contract(safe, SAFE_ABI, p)
+                const [t, o] = await Promise.all([sc.getThreshold(), sc.getOwners()])
+                ok(Number(t) >= 2, `Safe threshold ${t}-of-${o.length} (want at least 2 signers)`)
+            }
+        } else console.log('  (OMNI_OWNER not set — create the Safe and put it in .env)')
         const me = deployed[chain], other = chain === 'arc' ? 'robinhood' : 'arc'
         if (!me) { console.log(`  (${names[chain]} not deployed yet — deploy + wire, then run this again)`); continue }
         const oapp = new ethers.Contract(me, OAPP_ABI, p), ep = new ethers.Contract(L.endpoint, ENDPOINT_ABI, p)
@@ -58,7 +71,10 @@ task('omni:check', 'Checks the pinned LayerZero addresses and, after wiring, the
         ok(Number(r.confirmations) === CONF[other], `receive confirmations ${r.confirmations} (want ${CONF[other]})`)
         const ex = ethers.utils.defaultAbiCoder.decode(['tuple(uint32 maxMessageSize,address executor)'], await ep.getConfig(me, L.sendLib, LZ[other].eid, 1))[0]
         ok(ex.executor.toLowerCase() === L.executor.toLowerCase(), `executor ${ex.executor}`)
-        console.log(`  owner: ${await oapp.owner()} (after handover this must be the multisig)`)
+        const owner = await oapp.owner()
+        if (safe) ok(owner.toLowerCase() === safe.toLowerCase(), `owner ${owner} is the Safe (after handover)`)
+        else console.log(`  owner: ${owner} (after handover this must be the Safe)`)
+        if (chain === 'arc') console.log(`  rewards receiver: ${await oapp.rewardsReceiver()} (lockbox rewards → buy and burn $ARCIRCLE)`)
     }
     console.log(bad ? `\n${bad} problem(s) — do not bridge until they're fixed.` : '\nAll checks passed.')
     if (bad) process.exitCode = 1

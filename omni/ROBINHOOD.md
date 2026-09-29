@@ -12,24 +12,33 @@ Dexscreener에 뜨게 하는 순서입니다. 솔라나는 2단계에서 `OMNI_S
 
 ---
 
-## 0. 먼저 정할 것
+## 0. 결정 사항
 
-| 항목 | 선택지 / 제안 | 상태 |
+| 항목 | 결정 | 상태 |
 |---|---|---|
-| 두 번째 DVN(메시지 검증자) | Nethermind · Horizen · Canary · P2P · Nansen 중 하나 (Arc와 로빈후드 양쪽에서 운영 중인 곳만) | 미정 |
-| 소유 멀티시그 | Arc와 로빈후드 체인 각각의 Safe(또는 다른 멀티시그) 주소 | 미정 · Safe가 두 체인에 배포돼 있는지 확인 필요 |
-| 일일 브릿지 한도 | 방향별 24시간 한도. 제안: 처음엔 작게(예: 10,000,000개), 안정되면 올리기 | 미정 |
-| 잠금 컨트랙트의 Argus 보상 | ① Argus에 제외 요청 ② 모아서 바이백 등에 사용 (README "Argus rewards") | 미정 |
-| 풀 조건 | Uniswap v3 · ARCIRCLE/WETH · 수수료 1% · 전체 범위 (아래 6단계) | 제안 |
+| 두 번째 DVN(메시지 검증자) | **Nethermind** — LayerZero Labs와 Nethermind가 모든 메시지를 둘 다 검증해야 통과 | 확정 |
+| 소유 멀티시그 | **Safe 2-of-3**, Arc와 로빈후드 체인에 **같은 주소**로 생성 (아래 1단계) | 확정 · 생성 필요 |
+| 일일 브릿지 한도 | 방향별 24시간 **10,000,000개**(총공급 1%). 안정되면 Safe로 올림 | 확정 |
+| 잠금 컨트랙트의 Argus 보상 | **모아서 번 엔진으로**: Safe가 USDC 보상을 수집 → $ARCIRCLE 구매 → 소각 | 확정 |
+| 풀 조건 | Uniswap v3 · ARCIRCLE/ETH · 수수료 1% · 전체 범위 (아래 8단계) | 제안 |
 | 초기 유동성 | ARCIRCLE 수량 + ETH 수량 (팀 물량이 없으므로 Arc에서 구매해 브릿지) | 미정 |
 | 외부 보안 검토 | 잠금 컨트랙트에 실제 자산이 쌓이므로 메인넷 전에 권장 | 미정 |
 
-## 1. 준비물
+## 1. 준비물과 Safe 만들기
 
 - **새 배포 지갑**(배포에만 쓰는 새 키). 노출된 `0x80e1…8bc7` 키는 절대 쓰지 않습니다.
   키는 본인만 `.env`에 입력하고, 채팅·이슈·커밋에 붙여 넣지 않습니다.
 - 가스: Arc는 **USDC**, 로빈후드 체인은 **ETH**(두 컨트랙트 배포 + 설정 트랜잭션 몇 건).
 - Node 20+, 이 폴더(`omni/`).
+
+**Safe 2-of-3 만들기** (Safe{Wallet}은 Arc와 Robinhood Chain을 둘 다 지원합니다)
+
+1. [app.safe.global](https://app.safe.global) → Create account.
+2. 네트워크에서 **Arc**와 **Robinhood Chain**을 **둘 다** 선택합니다. 그래야 두 체인에 같은 주소로 만들어집니다.
+3. 서명자 3명(서로 다른 지갑 3개. 가능하면 하드웨어 지갑 포함, 배포 지갑과는 다른 지갑), 기준 **2 of 3**.
+4. 생성 후 두 체인 모두에 Safe가 활성화됐는지 확인하고, 그 주소를 `.env`의 `OMNI_OWNER`에 넣습니다.
+   앱에서 두 체인을 함께 고를 수 없어 주소가 달라졌다면 `OMNI_OWNER_ARC`, `OMNI_OWNER_ROBINHOOD`에 각각 넣으면 됩니다.
+5. 서명자 지갑 중 하나를 잃어도 나머지 둘로 운영할 수 있게, 서명자 3개는 서로 다른 곳에 보관합니다.
 
 ## 2. 설치와 테스트
 
@@ -47,8 +56,10 @@ npx hardhat test
 cp .env.example .env
 ```
 
-`PRIVATE_KEY`(새 배포 키), `OMNI_OWNER`(멀티시그), `OMNI_SECOND_DVN`(0단계에서 고른 이름), `OMNI_DAILY_LIMIT`,
-필요하면 `OMNI_GUARDIAN`, `OMNI_REWARDS_RECEIVER`를 채웁니다. RPC 주소는 기본값이 들어 있습니다.
+직접 채울 것은 두 개입니다: `PRIVATE_KEY`(새 배포 키), `OMNI_OWNER`(1단계의 Safe 주소).
+`OMNI_SECOND_DVN=Nethermind`, `OMNI_DAILY_LIMIT=10000000`은 결정값으로 이미 들어 있습니다.
+`OMNI_REWARDS_RECEIVER`는 비워 두면 Safe가 보상을 받습니다(번 엔진 정책). `OMNI_GUARDIAN`(일시정지만 가능한 지갑)은 선택입니다.
+RPC 주소는 기본값이 들어 있습니다.
 
 ## 4. 배포 전 점검
 
@@ -56,8 +67,8 @@ cp .env.example .env
 npx hardhat omni:check
 ```
 
-`layerzero.config.ts`에 고정한 LayerZero 주소(엔드포인트, 송수신 라이브러리, 실행자, DVN 2개)가 각 체인에 실제로 있는지 확인합니다.
-전부 `ok`여야 다음으로 갑니다.
+`layerzero.config.ts`에 고정한 LayerZero 주소(엔드포인트, 송수신 라이브러리, 실행자, DVN 2개: LayerZero Labs + Nethermind)가
+각 체인에 실제로 있는지, `OMNI_OWNER` Safe가 두 체인에 있고 서명 기준이 2 이상인지 확인합니다. 전부 `ok`여야 다음으로 갑니다.
 
 > 왜 주소를 고정했나: Arc에는 "LayerZero Labs" DVN이 두 개 등록돼 있고, 옛 주소(`0x282b…46b4`)는 **폐기(deprecated)** 상태입니다.
 > 이름으로 찾으면 옛 주소가 잡힐 수 있어서, 살아 있는 주소를 체인별로 적어 두었습니다.
@@ -80,7 +91,8 @@ npx hardhat run scripts/handover.ts --network arc
 npx hardhat run scripts/handover.ts --network robinhood
 ```
 
-일일 한도, 가디언, 보상 수령 주소를 설정하고 **소유권과 LayerZero 권한(delegate)을 멀티시그로** 넘깁니다.
+일일 한도(10,000,000개), 가디언, 보상 수령 주소(기본값 Safe)를 설정하고 **소유권과 LayerZero 권한(delegate)을 Safe로** 넘깁니다.
+그다음 `npx hardhat omni:check`를 한 번 더 돌려 `owner … is the Safe`가 양쪽 모두 ok인지 봅니다.
 한도가 없는 방향으로는 아무것도 보낼 수 없습니다. 솔라나는 2단계 전까지 한도를 주지 않아 막혀 있습니다.
 
 ## 6. 사이트 연결 (저에게 주소 전달)
@@ -123,9 +135,20 @@ Uniswap이 로빈후드 체인(4663)에 올린 주소 (`@uniswap/sdk-core` 7.19.
 ## 9. 공지 전 마지막 확인
 
 - `omni:check` 전부 ok, `omni:supply` OK
-- 두 컨트랙트 소유자 = 멀티시그 (`omni:check` 마지막 줄)
-- 보상 정책 공개, 일일 한도 공개
+- 두 컨트랙트 소유자 = Safe 2-of-3 (`omni:check`)
+- 공개할 정책: DVN 2개(LayerZero Labs + Nethermind), 일일 한도 10,000,000개, 잠금 보상 → $ARCIRCLE 소각
 - 공식 주소: Arc `0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7` · Robinhood `<ArcircleOFT 주소>`
+
+## 잠금 보상 → 소각 (정기 운영)
+
+잠금 컨트랙트에 쌓인 Arc 홀더 보상(USDC)을 Safe가 모아 $ARCIRCLE을 사서 소각합니다.
+
+1. **클레임 함수 확인(처음 한 번)**: 본인 지갑으로 Argus에서 보상을 한 번 받은 뒤, ArcScan에서 그 트랜잭션의
+   Input data(함수 이름과 인자)를 확인해 저에게 알려주세요. 그걸로 Safe에 넣을 `collectRewards` 데이터를 만들어 드립니다.
+2. Safe → 잠금 컨트랙트 `collectRewards(Argus hook, 클레임 데이터)` → `sweep(USDC)` (보상이 Safe로 들어옴).
+3. Safe로 Argus에서 $ARCIRCLE 구매 → `0x000000000000000000000000000000000000dEaD`로 전송.
+4. Safe 주소를 알려주시면 사이트 번 엔진에 이 소각들을 **OMNI**로 따로 표시합니다.
+   자동 소각 컨트랙트가 나오면 `setRewardsReceiver`로 받는 곳만 바꾸면 됩니다(재배포 없음).
 
 ## 문제가 생기면
 

@@ -210,6 +210,7 @@ const CONFIG = {
     ROBINHOOD_OFT: "", // Robinhood Chain · ArcircleOFT
     SOLANA_MINT: "", // Solana · SPL mint from the OFT program
     SOLANA_OFT_STORE: "",
+    SAFE: "", // owner Safe 2-of-3 (same address on Arc and Robinhood Chain)
     CHAINS: {
       arc: { name: "Arc", eid: 30417, chainId: 5042, gas: "USDC" },
       robinhood: { name: "Robinhood Chain", eid: 30416, chainId: 4663, gas: "ETH", rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" },
