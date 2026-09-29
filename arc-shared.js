@@ -334,7 +334,16 @@ function attachBasicWalletListeners() {
     if (state.account !== prevAccount && typeof refreshAccountDependentViews === "function") refreshAccountDependentViews();
   });
 
-  window.ethereum.on("chainChanged", () => {
+  window.ethereum.on("chainChanged", async (cid) => {
+    // A page that switches chains on purpose mid-flow (ARCIRCLE OMNI sending from Robinhood Chain) sets
+    // window.arcChainSwitching: keep the session and pick up a signer on the new chain instead of reloading
+    // (the reload is what dropped the connection and the transfer with it). Any other switch still reloads.
+    if (window.arcChainSwitching) {
+      state.chainId = Number.parseInt(cid, 16);
+      try { state.signer = await new ethers.BrowserProvider(window.ethereum, "any").getSigner(); } catch (e) { /* next write asks again */ }
+      if (typeof updateNetworkBadge === "function") updateNetworkBadge();
+      return;
+    }
     location.reload();
   });
 }

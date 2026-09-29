@@ -4844,6 +4844,9 @@
     "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "2-of-3 Safe가 소유합니다. 로빈후드 체인의 $ARCIRCLE은 Arc에 $ARCIRCLE이 잠길 때만 발행됩니다. 로빈후드 체인에서 $ARCIRCLE이라고 불리는 다른 주소는 저희 것이 아닙니다.",
     "OMNI lockbox (bridged to Robinhood)": "OMNI 잠금 컨트랙트 (로빈후드로 브릿지됨)",
     "OMNI Safe": "OMNI Safe",
+    "Switch your wallet to Robinhood Chain if it asks…": "지갑이 요청하면 로빈후드 체인으로 전환해 주세요…",
+    "Not enough ETH on Robinhood Chain for the fee.": "로빈후드 체인에 수수료로 낼 ETH가 부족해요.",
+    "Not enough USDC on Arc for the fee.": "Arc에 수수료로 낼 USDC가 부족해요.",
   };
 
 

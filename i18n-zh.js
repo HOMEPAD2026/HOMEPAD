@@ -4996,6 +4996,9 @@
     "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "由 2-of-3 Safe 持有。Robinhood Chain 上的 $ARCIRCLE 仅在 Arc 上锁定 $ARCIRCLE 时铸造。Robinhood Chain 上其他自称 $ARCIRCLE 的地址都不是我们的。",
     "OMNI lockbox (bridged to Robinhood)": "OMNI 锁仓合约（已跨链至 Robinhood）",
     "OMNI Safe": "OMNI Safe",
+    "Switch your wallet to Robinhood Chain if it asks…": "如果钱包提示，请切换到 Robinhood Chain…",
+    "Not enough ETH on Robinhood Chain for the fee.": "Robinhood Chain 上的 ETH 不足以支付手续费。",
+    "Not enough USDC on Arc for the fee.": "Arc 上的 USDC 不足以支付手续费。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

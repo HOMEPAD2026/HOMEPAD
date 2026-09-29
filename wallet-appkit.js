@@ -262,7 +262,7 @@ async function syncFromWagmi() {
       const changed = state.account !== account.address;
       state.account = account.address; // header first — a signer failure below must not hide a connected wallet
       state.walletProvider = eip1193;
-      if (Number(account.chainId) !== CONFIG.CHAIN_ID_DECIMAL && !autoSwitchTried.has(account.address)) {
+      if (Number(account.chainId) !== CONFIG.CHAIN_ID_DECIMAL && !window.arcChainSwitching && !autoSwitchTried.has(account.address)) {
         autoSwitchTried.add(account.address);
         setTimeout(() => { ensureAppKitChain().catch((e) => console.warn("auto network switch declined/failed", e && e.message)); }, 400);
       }
@@ -397,7 +397,17 @@ const appkitCdn = await import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1
       blockExplorers: { default: { name: "Explorer", url: c.explorer } },
       chainNamespace: "eip155", caipNetworkId: `eip155:${c.chainId}`, testnet: false,
     }));
-    const allNetworks = [robinhoodNetwork].concat(bridgeNetworks);
+    // ARCIRCLE OMNI sends from other chains too (arc-omni.js): list those so a WalletConnect
+    // session can switch to them and wagmi doesn't treat them as unsupported.
+    const omniNetworks = Object.values((CONFIG.OMNI && CONFIG.OMNI.CHAINS) || {})
+      .filter((c) => c.chainId && c.rpc && c.chainId !== CONFIG.CHAIN_ID_DECIMAL && !bridgeNetworks.some((b) => b.id === c.chainId))
+      .map((c) => ({
+        id: c.chainId, name: c.name, nativeCurrency: { name: "Ether", symbol: c.gas || "ETH", decimals: 18 },
+        rpcUrls: { default: { http: [c.rpc] } },
+        blockExplorers: { default: { name: "Explorer", url: c.explorer } },
+        chainNamespace: "eip155", caipNetworkId: `eip155:${c.chainId}`, testnet: false,
+      }));
+    const allNetworks = [robinhoodNetwork].concat(bridgeNetworks, omniNetworks);
     const wagmiAdapter = new WagmiAdapter({
       projectId: CONFIG.REOWN_PROJECT_ID,
       networks: allNetworks,

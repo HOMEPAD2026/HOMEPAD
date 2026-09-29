@@ -295,60 +295,98 @@
   }
 
   // ---------------- send ----------------
+  // Same wallet handling as the USDC bridge (arc-bridge.js): switch through wagmi for AppKit / WalletConnect
+  // sessions or the raw provider for injected wallets, then take a signer from whatever provider the session
+  // uses, on the chain it's on now. window.arcChainSwitching keeps the page from reloading (arc-shared.js) and
+  // AppKit from switching the wallet back to Arc (wallet-appkit.js) while a transfer is in progress.
   function hexChain(id) { return "0x" + Number(id).toString(16); }
-  function onChain(k) {
-    var want = C[k] && C[k].chainId;
-    if (!window.ethereum || !want) return Promise.resolve(false);
-    return window.ethereum.request({ method: "eth_chainId" }).then(function (cid) {
-      if (parseInt(cid, 16) === want) return true;
-      // switching chains reloads the page (arc-shared.js): the form is saved and comes back as it was
-      ls.set("omni-form", S);
-      var p = { chainId: hexChain(want) };
-      return window.ethereum.request({ method: "wallet_switchEthereumChain", params: [p] }).catch(function (e) {
-        if (e && (e.code === 4902 || /unrecognized|not added/i.test(e.message || "")) && k === "robinhood") {
-          return window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: hexChain(want), chainName: C.robinhood.name, nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: [C.robinhood.rpc], blockExplorerUrls: [C.robinhood.explorer] }] });
-        }
-        throw e;
-      }).then(function () { return false; });
-    });
+  var walletProv = function () { return (typeof state !== "undefined" && state && state.walletProvider) || window.ethereum || null; };
+  var rejected = function (e) { return e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.message || e.shortMessage || ""))); };
+  function addParams(k) {
+    var c = C[k];
+    return { chainId: hexChain(c.chainId), chainName: c.name, rpcUrls: [c.rpc], blockExplorerUrls: [c.explorer], nativeCurrency: { name: "Ether", symbol: c.gas || "ETH", decimals: 18 } };
   }
-  function go() {
+  function holdChain(on) {
+    if (on) { clearTimeout(holdChain.t); window.arcChainSwitching = true; try { sessionStorage.setItem("wallet.autoSwitch." + me(), "1"); } catch (e) { /* fine */ } }
+    else holdChain.t = setTimeout(function () { window.arcChainSwitching = false; }, 4000); // late chainChanged events still land inside the hold
+  }
+  async function switchTo(k) {
+    if (k === "arc") { if (typeof ensureArcForWrite === "function") await ensureArcForWrite(); return; }
+    var want = C[k].chainId;
+    if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
+      try {
+        var acc = WagmiCoreRef.getAccount(wagmiConfigRef);
+        if (acc && acc.isConnected) {
+          if (Number(acc.chainId) !== want) await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: want, addEthereumChainParameter: addParams(k) });
+          state.chainId = want;
+          return;
+        }
+      } catch (e) { if (rejected(e)) throw e; /* fall back to the raw provider */ }
+    }
+    var p = walletProv();
+    if (!p) throw new Error("Switch your wallet to " + chainName(k) + " and try again.");
+    var cur = Number.parseInt(await p.request({ method: "eth_chainId" }), 16);
+    if (cur !== want) {
+      try { await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexChain(want) }] }); }
+      catch (e) {
+        if (rejected(e)) throw e;
+        await p.request({ method: "wallet_addEthereumChain", params: [addParams(k)] });
+        await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexChain(want) }] }).catch(function () {});
+      }
+    }
+    state.chainId = want;
+  }
+  async function signerOn(k) {
+    var p = walletProv();
+    if (!p) throw new Error("No wallet found.");
+    var want = k === "arc" ? CONFIG.CHAIN_ID_DECIMAL : C[k].chainId;
+    var bp = new ethers.BrowserProvider(p, "any");
+    for (var i = 0; i < 6; i++) { // some wallets report the new chain a moment after the switch resolves
+      if (Number((await bp.getNetwork()).chainId) === want) return bp.getSigner(me());
+      await new Promise(function (r) { setTimeout(r, 500); });
+    }
+    throw new Error("Your wallet is still on another network — switch it to " + chainName(k) + " and press Send again.");
+  }
+  async function go() {
     if (busy) return;
     if (!me()) { if (typeof connectWallet === "function") connectWallet(); return; }
     var w = parseAmt(S.amt), to = S.to_addr || (S.to !== "solana" ? me() : ""), addr = contractOn(S.from);
     if (!w || !isAddr(addr) || !(S.to === "solana" ? isSol(to) : isAddr(to))) return;
     busy = true; paintButton(); setMsg("", "");
-    onChain(S.from).then(function (ready) {
-      if (!ready) { setMsg("Switched network — press Send again.", "info"); return null; }
-      var signer = state.signer;
+    ls.set("omni-form", S);
+    holdChain(true);
+    try {
+      if (S.from !== "arc") setMsg("Switch your wallet to " + chainName(S.from) + " if it asks…", "info");
+      await switchTo(S.from);
+      var signer = await signerOn(S.from);
       var oft = new ethers.Contract(addr, OFT_ABI, signer);
       var param = sendParam(w, to);
-      return oft.quoteSend(param, false).then(function (q) {
-        var fee = { nativeFee: q.nativeFee !== undefined ? q.nativeFee : q[0], lzTokenFee: 0n };
-        var step = S.from === "arc"
-          ? new ethers.Contract(ARCIRCLE, ERC20, signer).allowance(me(), addr).then(function (al) {
-              if (al >= w) return null;
-              setMsg("Approve $ARCIRCLE for the OMNI adapter in your wallet…", "info");
-              return new ethers.Contract(ARCIRCLE, ERC20, signer).approve(addr, w).then(function (tx) { return tx.wait(); });
-            })
-          : Promise.resolve(null);
-        return step.then(function () {
-          setMsg("Confirm the transfer in your wallet…", "info");
-          flow(1);
-          return oft.send(param, fee, me(), { value: fee.nativeFee });
-        }).then(function (tx) {
-          flow(2);
-          var rec = { h: tx.hash, from: S.from, to: S.to, amt: ethers.formatUnits(w, 18), t: Date.now() };
-          var h = ls.get("omni-tx", []); h.unshift(rec); ls.set("omni-tx", h.slice(0, 20)); paintHist();
-          setMsg("Sent. LayerZero is delivering it — follow it on LayerZero Scan below.", "ok");
-          return tx.wait().then(function () { flow(3); S.amt = ""; ls.set("omni-form", S); paintForm(); loadBalance(); setTimeout(loadStatus, 4000); });
-        });
-      });
-    }).catch(function (e) {
+      var q = await oft.quoteSend(param, false);
+      var fee = { nativeFee: q.nativeFee !== undefined ? q.nativeFee : q[0], lzTokenFee: 0n };
+      if (S.from === "arc") {
+        var tok = new ethers.Contract(ARCIRCLE, ERC20, signer);
+        if ((await tok.allowance(me(), addr)) < w) {
+          setMsg("Approve $ARCIRCLE for the OMNI adapter in your wallet…", "info");
+          await (await tok.approve(addr, w)).wait();
+        }
+      }
+      setMsg("Confirm the transfer in your wallet…", "info");
+      flow(1);
+      var tx = await oft.send(param, fee, me(), { value: fee.nativeFee });
+      flow(2);
+      var rec = { h: tx.hash, from: S.from, to: S.to, amt: ethers.formatUnits(w, 18), t: Date.now() };
+      var h = ls.get("omni-tx", []); h.unshift(rec); ls.set("omni-tx", h.slice(0, 20)); paintHist();
+      setMsg("Sent. LayerZero is delivering it — follow it on LayerZero Scan below.", "ok");
+      await tx.wait();
+      flow(3); S.amt = ""; ls.set("omni-form", S); paintForm(); loadBalance(); setTimeout(loadStatus, 4000);
+    } catch (e) {
       flow(0);
       var m = String((e && (e.shortMessage || e.message)) || e);
-      setMsg(/rejected|denied|4001/i.test(m) ? "Cancelled in your wallet." : /RateLimitExceeded|0xa74c1c5f/i.test(m) ? "This route's daily limit is used up — try a smaller amount or later." : /EnforcedPause|0xd93c0665|paused/i.test(m) ? "OMNI is paused right now." : "Couldn't send: " + m.slice(0, 140), "bad");
-    }).then(function () { busy = false; paintButton(); });
+      setMsg(rejected(e) ? "Cancelled in your wallet." : /RateLimitExceeded|0xa74c1c5f/i.test(m) ? "This route's daily limit is used up — try a smaller amount or later." : /EnforcedPause|0xd93c0665|paused/i.test(m) ? "OMNI is paused right now." : /insufficient funds/i.test(m) ? "Not enough " + ((C[S.from] && C[S.from].gas) || "gas") + " on " + chainName(S.from) + " for the fee." : "Couldn't send: " + m.slice(0, 140), "bad");
+    } finally {
+      holdChain(false);
+      busy = false; paintButton();
+    }
   }
   function flow(n) {
     panel.querySelectorAll(".om-step").forEach(function (s) { var k = Number(s.getAttribute("data-s")); s.classList.toggle("done", n > k || n === 3); s.classList.toggle("now", n === k && n !== 3); });
