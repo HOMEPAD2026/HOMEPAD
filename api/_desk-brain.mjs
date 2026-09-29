@@ -55,6 +55,25 @@ export const GATES = {
   minScore: 35,
   maxTop10: 70,
 };
+// real money only (paper keeps trading these, so the model learns whether they matter):
+//   the launch floor — an Argus pool starts at its launch price, and if the early buyers all sell the price
+//   goes back there, so buying at 10× the floor can lose ~90% in one block; and the scanner's stress test
+//   (the price drop if the top 10 wallets sell everything)
+export const REAL_GATES = {
+  maxFloorDrop: 75, // % lost if the price fell back to the launch floor (price at most 4× the floor)
+  maxDump: 70, // % the price drops if the top 10 wallets sell everything
+  maxScanAgeMin: 15, // a real buy needs a scan this fresh
+  flagHours: 6, // a token that ever scored under the gate or showed a critical flag stays off-limits this long
+};
+export function realGate(f, c, nowS) {
+  const r = [];
+  if (f.floorDrop != null && f.floorDrop > REAL_GATES.maxFloorDrop) r.push(`${Math.round(f.floorDrop)}% above-floor risk (price ${f.floorX.toFixed(1)}× its launch floor)`);
+  if (f.dumpTop10 != null && f.dumpTop10 > REAL_GATES.maxDump) r.push(`top 10 selling would drop it ${Math.round(f.dumpTop10)}%`);
+  if (!c.scan || c.scan.score == null) r.push("no fresh scan yet");
+  else if (!c.scanAt || nowS - c.scanAt > REAL_GATES.maxScanAgeMin * 60) r.push("scan older than 15 minutes");
+  if (c.flagUntil && c.flagUntil > nowS) r.push(`flagged earlier: ${c.flagWhy || "low score"}`);
+  return r;
+}
 export function gate(f, crit) {
   const r = [];
   if (crit && crit.length) r.push(`critical: ${crit[0]}`);
@@ -72,7 +91,7 @@ export function gate(f, crit) {
 // ---------------------------------------------------------------- features
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const nz = (x, d = 0) => (x == null || !isFinite(x) ? d : x);
-export const FEATURES = ["age", "liq", "mcap", "volLiq", "flowM5", "flowH1", "txM5", "chgM5", "chgH1", "ddHigh", "mom15", "score", "top10", "snipers", "linked", "tax", "rt", "holders", "social", "secTrade", "secHolders"];
+export const FEATURES = ["age", "liq", "mcap", "volLiq", "flowM5", "flowH1", "txM5", "chgM5", "chgH1", "ddHigh", "mom15", "score", "top10", "snipers", "linked", "tax", "rt", "holders", "social", "secTrade", "secHolders", "floorX", "dump"];
 /// raw snapshot → feature vector in roughly [-1, 1]
 export function vec(f) {
   return {
@@ -97,6 +116,8 @@ export function vec(f) {
     social: f.social ? 1 : 0,
     secTrade: nz(f.secTrade, 60) / 100,
     secHolders: nz(f.secHolders, 60) / 100,
+    floorX: clamp(Math.log10(Math.max(1, nz(f.floorX, 1))) / 2, 0, 1), // 1× → 0, 10× → 0.5, 100× → 1
+    dump: clamp(nz(f.dumpTop10, 50), 0, 100) / 100,
   };
 }
 
@@ -217,6 +238,8 @@ export const RISK = {
   maxPerHour: 6,
   dailyLossPct: 15, // stop opening new trades for the rest of the UTC day
   keepCash: 2, // USD left in the desk
+  warmTrade: 3, // USD per real trade during the warm-up
+  warmPerHour: 2, // real buys an hour during the warm-up
   burnPct: 20, // of new profit above the high-water mark, each day
 };
 export function tradeSize(equity, cash) {
@@ -233,7 +256,7 @@ export function newLearn() {
 const FNAME = { age: "launch age", liq: "liquidity", mcap: "market cap", volLiq: "volume vs liquidity", flowM5: "5-minute buy pressure", flowH1: "1-hour buy pressure",
   txM5: "5-minute activity", chgM5: "5-minute price move", chgH1: "1-hour price move", ddHigh: "distance from the high", mom15: "15-minute momentum", score: "scanner score",
   top10: "top-10 concentration", snipers: "sniper share", linked: "linked wallets", tax: "taxes", rt: "round-trip cost", holders: "holder count", social: "listed socials",
-  secTrade: "scanner trading section", secHolders: "scanner holders section" };
+  secTrade: "scanner trading section", secHolders: "scanner holders section", floorX: "height above the launch floor", dump: "top-10 dump risk" };
 export const featureName = (k) => FNAME[k] || k;
 export function lessons(learn, closedToday) {
   const out = [];

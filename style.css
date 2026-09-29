@@ -11249,4 +11249,13 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
   .dk-p-grid{grid-template-columns:1fr 1fr;}
 }
 @media (prefers-reduced-motion:reduce){.dk-e-c,.dk-e-line,.dk-mode.on i,.dk-live i,.dk-l.dk-new,.dk-p,.dk-skel i{animation:none;}.dk-e-line{stroke-dashoffset:0;}}
+.dk-p-g{font-size:.72rem;color:var(--ink-dim,#8c98a6);}
+.dk-p-g b{color:#dfe7f5;font-variant-numeric:tabular-nums;}
+.dk-p-rv{display:flex;gap:8px;align-items:baseline;font-size:.74rem;line-height:1.45;color:#c9d4de;padding:8px 10px;border-radius:10px;background:rgba(77,159,255,.07);border-left:3px solid #4d9fff;}
+.dk-p-rv b{flex-shrink:0;color:#9fc6ff;font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;}
+.dk-rv{padding:10px 0;border-top:1px solid rgba(255,255,255,.06);}
+.dk-rv:first-child{border-top:0;}
+.dk-rv-h{display:flex;align-items:center;gap:8px;font-size:.8rem;}
+.dk-rv-h em{margin-left:auto;font-style:normal;font-size:.7rem;color:var(--ink-dim,#8c98a6);}
+.dk-rv p{margin:6px 0 0;font-size:.76rem;line-height:1.55;color:#c9d4de;}
 #bp-panel-mine [hidden]{display:none !important;}

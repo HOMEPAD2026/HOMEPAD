@@ -4440,6 +4440,27 @@
     "listed socials": "등록된 소셜",
     "scanner trading section": "스캐너 거래 섹션",
     "scanner holders section": "스캐너 보유자 섹션",
+    "Launch floor": "런칭 바닥가 대비",
+    "top-10 dump": "상위 10 매도 시",
+    "score": "점수",
+    "Risk check": "리스크 점검",
+    "Loss reviews": "손실 리뷰",
+    "what went wrong, written by Claude": "무엇이 잘못됐는지, Claude가 작성",
+    "After a real trade loses 30% or more, Claude writes what most likely went wrong. None yet.": "실제 거래가 30% 이상 손실 나면 Claude가 가장 가능성 높은 원인을 씁니다. 아직 없습니다.",
+    "Loss reviews start once the Claude API key is set.": "Claude API 키가 설정되면 손실 리뷰가 시작됩니다.",
+    "paper only": "모의만",
+    "Real money only: price at most 4× its launch floor, a top-10 dump under": "실제 자금 전용: 가격이 런칭 바닥가의 4배 이하, 상위 10 매도 시 하락폭",
+    ", a scan under 15 minutes old, and never a token flagged in the last 6 hours": " 미만, 15분 이내 스캔, 최근 6시간 내 경고된 토큰 제외",
+    "A second opinion from Claude before every real buy — it can only say no": "모든 실제 매수 전 Claude의 2차 의견 — 거절만 할 수 있음",
+    "warm-up:": "워밍업:",
+    "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 4× its launch floor, a top-10 sell-off that would drop it less than 70%, a Token Scanner scan under 15 minutes old, and no low score or critical flag in the last 6 hours.": "실제 자금에는 모의보다 엄격한 규칙이 적용됩니다. Argus 풀은 런칭 가격에서 시작하고, 초기 매수자가 모두 팔면 한 블록 만에 그 가격으로 돌아갑니다. 그래서 실제 매수는 가격이 런칭 바닥가의 4배 이하, 상위 10개 지갑이 다 팔 때 하락폭 70% 미만, 15분 이내의 토큰 스캐너 스캔, 최근 6시간 동안 낮은 점수나 치명 플래그 없음이 필요합니다.",
+    "Then Claude gives a second opinion on the live numbers. It can only say no: it can never make the desk buy something the rules refused.": "그다음 Claude가 실시간 수치로 2차 의견을 냅니다. 거절만 할 수 있고, 규칙이 막은 것을 사게 만들 수는 없습니다.",
+    "At the take-profit she sells 60% and lets the rest run with a trailing stop; after taking profit she never lets the rest fall below the entry. Every trade also has a stop-loss and a time limit. Between the once-a-minute checks she re-quotes what she holds every 10 seconds, so a stop-loss or a crash is acted on in seconds, not a minute later. After a real trade loses 30% or more, Claude writes a short review of what went wrong.": "익절가에서 60%를 팔고 나머지는 트레일링 스탑으로 둡니다. 익절 후에는 나머지가 진입가 아래로 떨어지게 두지 않습니다. 모든 거래에는 손절과 시간 제한도 있습니다. 1분마다의 점검 사이에도 보유 코인 시세를 10초마다 다시 확인해, 손절이나 폭락에 1분이 아니라 몇 초 만에 대응합니다. 실제 거래가 30% 이상 손실 나면 Claude가 무엇이 잘못됐는지 짧은 리뷰를 씁니다.",
+    "6% of the desk per trade, between $3 and $10; at most 8 positions open and 6 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 2 buys an hour.": "거래당 데스크 자금의 6%, $3~$10; 동시 포지션 최대 8개, 시간당 매수 최대 6회; 항상 $2는 현금으로 유지. 워밍업(처음 25건의 실제 거래) 동안은 거래당 $3, 시간당 최대 2회.",
+    "height above the launch floor": "런칭 바닥가 대비 높이",
+    "top-10 dump risk": "상위 10 매도 위험",
+    "no fresh scan yet": "최근 스캔 없음",
+    "scan older than 15 minutes": "스캔이 15분 넘게 지남",
   };
 
 
@@ -4779,6 +4800,10 @@
     [/^Today: (\d+) closed, (\d+) wins, average (.+)%\.$/, "오늘: $1건 종료, $2건 수익, 평균 $3%."],
     [/^More than half hit the stop-loss today — entries are coming in late\.$/, "오늘은 절반 이상이 손절에 걸렸습니다 — 진입이 늦고 있습니다."],
     [/^(.+): exits moved from \+(\d+)\/−(\d+)% to \+(\d+)\/−(\d+)% \(best on replay: \+(\d+)\/−(\d+)%, (.+)% a trade over (\d+) trades\)\.$/, "$1: 청산 기준 +$2/−$3% → +$4/−$5% (재현 최고: +$6/−$7%, $9건 거래당 $8%)."],
+    [/^(\d+)% above-floor risk \(price (.+)× its launch floor\)$/, "바닥가 대비 $1% 하락 위험 (런칭 바닥가의 $2배)"],
+    [/^top 10 selling would drop it (\d+)%$/, "상위 10 매도 시 $1% 하락"],
+    [/^flagged earlier: (.+)$/, "이전에 경고됨: $1"],
+    [/^risk review: (.+)$/, "리스크 점검: $1"],
   ];
 
   (window.__arcDict = window.__arcDict || {}).ko = { d: KO, p: PATTERNS };

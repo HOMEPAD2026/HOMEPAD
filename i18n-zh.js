@@ -338,6 +338,10 @@
     [/^Today: (\d+) closed, (\d+) wins, average (.+)%\.$/, "今天：平仓 $1 笔，盈利 $2 笔，平均 $3%。"],
     [/^More than half hit the stop-loss today — entries are coming in late\.$/, "今天过半触发止损——进场偏晚。"],
     [/^(.+): exits moved from \+(\d+)\/−(\d+)% to \+(\d+)\/−(\d+)% \(best on replay: \+(\d+)\/−(\d+)%, (.+)% a trade over (\d+) trades\)\.$/, "$1：离场参数从 +$2/−$3% 调整为 +$4/−$5%（回放最佳：+$6/−$7%，$9 笔每笔 $8%）。"],
+    [/^(\d+)% above-floor risk \(price (.+)× its launch floor\)$/, "有跌回底价 $1% 的风险（价格为发行底价的 $2 倍）"],
+    [/^top 10 selling would drop it (\d+)%$/, "前 10 抛售会下跌 $1%"],
+    [/^flagged earlier: (.+)$/, "之前被标记：$1"],
+    [/^risk review: (.+)$/, "风险检查：$1"],
   ];
 
 
@@ -4587,6 +4591,27 @@
     "listed socials": "已登记社交账号",
     "scanner trading section": "扫描器交易部分",
     "scanner holders section": "扫描器持有人部分",
+    "Launch floor": "相对发行底价",
+    "top-10 dump": "前 10 抛售时",
+    "score": "评分",
+    "Risk check": "风险检查",
+    "Loss reviews": "亏损复盘",
+    "what went wrong, written by Claude": "哪里出了问题，由 Claude 撰写",
+    "After a real trade loses 30% or more, Claude writes what most likely went wrong. None yet.": "真实交易亏损 30% 以上时，Claude 会写出最可能的原因。暂时还没有。",
+    "Loss reviews start once the Claude API key is set.": "设置 Claude API 密钥后开始亏损复盘。",
+    "paper only": "仅模拟",
+    "Real money only: price at most 4× its launch floor, a top-10 dump under": "仅限真实资金：价格不超过发行底价的 4 倍，前 10 抛售跌幅低于",
+    ", a scan under 15 minutes old, and never a token flagged in the last 6 hours": "，扫描不超过 15 分钟，且过去 6 小时内未被标记",
+    "A second opinion from Claude before every real buy — it can only say no": "每次真实买入前征求 Claude 的第二意见——它只能否决",
+    "warm-up:": "热身：",
+    "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 4× its launch floor, a top-10 sell-off that would drop it less than 70%, a Token Scanner scan under 15 minutes old, and no low score or critical flag in the last 6 hours.": "真实资金的规则比模拟更严。Argus 池子从发行价开始，如果早期买家全部卖出，价格会在一个区块内跌回那里。所以真实买入需要：价格不超过发行底价的 4 倍、前 10 钱包全部卖出时跌幅低于 70%、代币扫描器扫描不超过 15 分钟、过去 6 小时内没有低分或严重标记。",
+    "Then Claude gives a second opinion on the live numbers. It can only say no: it can never make the desk buy something the rules refused.": "然后 Claude 根据实时数据给出第二意见。它只能否决，永远不能让交易台买入规则拒绝的东西。",
+    "At the take-profit she sells 60% and lets the rest run with a trailing stop; after taking profit she never lets the rest fall below the entry. Every trade also has a stop-loss and a time limit. Between the once-a-minute checks she re-quotes what she holds every 10 seconds, so a stop-loss or a crash is acted on in seconds, not a minute later. After a real trade loses 30% or more, Claude writes a short review of what went wrong.": "到止盈位她卖出 60%，其余用移动止损继续持有；止盈后绝不让剩余部分跌破成本价。每笔交易也都有止损和时间限制。在每分钟一次的检查之间，她每 10 秒重新报价持仓，所以止损或暴跌能在几秒内处理，而不是一分钟后。真实交易亏损 30% 以上时，Claude 会写一段简短复盘。",
+    "6% of the desk per trade, between $3 and $10; at most 8 positions open and 6 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 2 buys an hour.": "每笔占交易台资金 6%，介于 $3 到 $10；最多同时 8 个持仓、每小时 6 笔买入；始终保留 $2 现金。热身期（前 25 笔真实交易）：每笔 $3，每小时最多 2 笔。",
+    "height above the launch floor": "高出发行底价的程度",
+    "top-10 dump risk": "前 10 抛售风险",
+    "no fresh scan yet": "还没有最新扫描",
+    "scan older than 15 minutes": "扫描已超过 15 分钟",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

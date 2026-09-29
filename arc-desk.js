@@ -68,6 +68,7 @@
         <div class="dk-side">
           <div class="ams-card dk-learn"><div class="dk-h"><h3>${T("How ARCIA is learning")}</h3></div><div id="dk-learn"></div></div>
           <div class="ams-card"><div class="dk-h"><h3>${T("ARCIA's journal")}</h3></div><div id="dk-journal"></div></div>
+          <div class="ams-card"><div class="dk-h"><h3>${T("Loss reviews")}</h3><span class="dk-sub">${T("what went wrong, written by Claude")}</span></div><div id="dk-reviews"></div></div>
           <div class="ams-card"><div class="dk-h"><h3>${T("Watching now")}</h3><span class="dk-sub">${T("new Argus launches")}</span></div><div id="dk-watch"></div></div>
           <div class="ams-card"><div class="dk-h"><h3>${T("Passed on")}</h3><span class="dk-sub">${T("and why")}</span></div><div id="dk-rej"></div></div>
           <div class="ams-card"><div class="dk-h"><h3>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
@@ -88,7 +89,7 @@
   function paint() {
     const d = S.d;
     if (!d) return;
-    status(d); kpis(d); chart(); openPos(d); hist(); logRows(d); learning(d); journal(d); watch(d); rej(d); burns(d); rules(d);
+    status(d); kpis(d); chart(); openPos(d); hist(); logRows(d); learning(d); journal(d); reviewsCard(d); watch(d); rej(d); burns(d); rules(d);
   }
   function status(d) {
     const live = d.mode === "live";
@@ -179,6 +180,8 @@
           <div><small>${T("Value")}</small><span data-no-i18n>${usd(p.value, 2)}</span><em>${T("in")} <span data-no-i18n>${usd(p.usdIn)}</span></em></div>
         </div>
         ${rangeBar(p)}
+        ${p.gate && p.gate.floorX != null ? `<div class="dk-p-g">${T("Launch floor")} <b data-no-i18n>${p.gate.floorX}×</b>${p.gate.dump != null ? ` · ${T("top-10 dump")} <b data-no-i18n>−${Math.round(p.gate.dump)}%</b>` : ""}${p.gate.score != null ? ` · ${T("score")} <b data-no-i18n>${p.gate.score}</b>` : ""}</div>` : ""}
+        ${p.review ? `<div class="dk-p-rv"><b>${T("Risk check")}</b><span data-no-i18n>${esc(p.review.reason)}</span></div>` : ""}
         ${p.sells.length ? `<div class="dk-p-sells">${p.sells.map((s) => `<span>${T(WHY[s.why] || s.why)} ${s.pct}% <b data-no-i18n>${pc(s.ret)}</b> ${txa(s.tx, "tx")}</span>`).join("")}</div>` : ""}
       </div>`).join("") + `</div>` + paperMini(d);
   }
@@ -245,6 +248,12 @@
         ${j.text ? `<p class="dk-j-t" data-no-i18n>${esc(j.text)}</p>` : ""}
         <ul>${j.lessons.map((l) => `<li>${T(l)}</li>`).join("")}</ul></details>`).join("");
   }
+  function reviewsCard(d) {
+    const el = $("dk-reviews");
+    const list = d.reviews || [];
+    if (!list.length) { el.innerHTML = `<div class="dk-empty-s">${d.ai ? T("After a real trade loses 30% or more, Claude writes what most likely went wrong. None yet.") : T("Loss reviews start once the Claude API key is set.")}</div>`; return; }
+    el.innerHTML = list.slice(0, 5).map((r) => `<div class="dk-rv"><div class="dk-rv-h">${tokenLink(r.t, r.sym)}<b class="${cls(r.ret)}" data-no-i18n>${pc(r.ret)}</b><em data-no-i18n>${ago(r.ts)}</em></div><p data-no-i18n>${esc(r.text)}</p></div>`).join("");
+  }
   function watch(d) {
     const el = $("dk-watch");
     if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T("No Argus launches in the last three days yet.")}</div>`; return; }
@@ -253,7 +262,7 @@
   function rej(d) {
     const el = $("dk-rej");
     if (!d.rejects.length) { el.innerHTML = `<div class="dk-empty-s">${T("Setups that fail a safety gate show up here.")}</div>`; return; }
-    el.innerHTML = `<div class="dk-rows">` + d.rejects.slice(0, 10).map((r) => `<div class="dk-row dk-rj">${tokenLink(r.t, r.sym)}<small>${r.why.map((x) => T(x)).join(" · ")}</small><em data-no-i18n>${ago(r.ts)}</em></div>`).join("") + `</div>`;
+    el.innerHTML = `<div class="dk-rows">` + d.rejects.slice(0, 10).map((r) => `<div class="dk-row dk-rj">${tokenLink(r.t, r.sym)}${r.paper ? `<span class="dk-flag">${T("paper only")}</span>` : ""}<small>${r.why.map((x) => T(x)).join(" · ")}</small><em data-no-i18n>${ago(r.ts)}</em></div>`).join("") + `</div>`;
   }
   function burns(d) {
     const el = $("dk-burns");
@@ -269,9 +278,11 @@
         <div><b>${T("Safety gates")}</b><ul>
           <li>${T("No Token Scanner critical flag")}</li><li>${T("Launched at least")} <span data-no-i18n>${g.minAgeMin}</span> ${T("minutes ago, at most 3 days")}</li>
           <li>${T("Liquidity at least")} <span data-no-i18n>$${g.minLiq}</span></li><li>${T("A buy and an immediate sell lose at most")} <span data-no-i18n>${g.maxRoundTrip}%</span></li>
-          <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("scanner score at least")} <span data-no-i18n>${g.minScore}</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li></ul></div>
+          <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("scanner score at least")} <span data-no-i18n>${g.minScore}</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
+          ${d.rules.realGates ? `<li>${T("Real money only: price at most 4× its launch floor, a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span>${T(", a scan under 15 minutes old, and never a token flagged in the last 6 hours")}</li>` : ""}
+          ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
-          <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>)</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
+          <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>)${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li><li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
           <li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>

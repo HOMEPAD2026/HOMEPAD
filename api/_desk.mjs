@@ -20,12 +20,15 @@
 // operator; Sensitive). Without them the desk runs on paper only. Optional: ARCIA_DESK_BURN_PCT
 // (default 20), ARCIA_DESK_TRADE_ARCPAD=1 (also trade coins launched through ArcPad's own Argus
 // flow — off: the platform earns fees on those), ARCIA_DESK_TG_CHAT (rug alarms and the journal).
+// Claude (api/_desk-ai.mjs, ANTHROPIC_API_KEY): a veto-only review before each real buy and a written review of bad
+// losses; ARCIA_DESK_MODEL picks the model (default claude-opus-5-5, falling back to claude-opus-5), ARCIA_DESK_AI=0 turns it off.
 // No command, message or page can make it trade: only this schedule and these rules.
 import { rpc, rpcCall, getLogs, latestBlock, toQty, ethCalls, isAddr, pad, strip, keccakHex, PM_ADDRESS, TOPIC as ARC_TOPIC } from "./_arc.mjs";
 import { sendTx, addressOfKey, USDC } from "./_x402.mjs";
 import { ARCIRCLE_TOKEN, ARCIRCLE_POOL_ID, ARGUS_PORTALS, ARGUS_POOL_FEE, ARGUS_POOL_FEE_DYNAMIC, ARGUS_TICK_SPACING } from "./_arcircle.mjs";
 import { REGISTRY, decodeSplit, platformShare } from "./_argus-arcpad.mjs";
 import * as B from "./_desk-brain.mjs";
+import * as AI from "./_desk-ai.mjs";
 
 export const DESK_VERSION = 1;
 const lc = (a) => String(a || "").toLowerCase();
@@ -44,7 +47,7 @@ export const CFG = {
   tradeOwn: () => env("ARCIA_DESK_TRADE_ARCPAD") === "1",
   burnPct: () => { const n = Number(env("ARCIA_DESK_BURN_PCT")); return env("ARCIA_DESK_BURN_PCT") !== "" && n >= 0 && n <= 50 ? n : B.RISK.burnPct; },
   tgChat: () => env("ARCIA_DESK_TG_CHAT"),
-  budgetMs: 48000,
+  budgetMs: 52000,
 };
 export function configure(o) { Object.assign(CFG, o); }
 
@@ -133,7 +136,7 @@ const human = (raw, dec) => Number(BigInt(raw)) / 10 ** dec;
 // ---------------------------------------------------------------- storage
 const K = {
   state: "desk/state", cands: "desk/cands", paper: "desk/paper", ghosts: "desk/ghosts", log: "desk/log", recent: "desk/recent",
-  rejects: "desk/rejects", equity: "desk/equity", journal: "desk/journal", burns: "desk/burns", closed: (d) => `desk/closed-${d}`,
+  rejects: "desk/rejects", equity: "desk/equity", journal: "desk/journal", burns: "desk/burns", reviews: "desk/reviews", closed: (d) => `desk/closed-${d}`,
 };
 const mem = new Map(); // no store: one instance's memory (paper runs and tests)
 function memStore() { return { get: async (k) => mem.get(k) || null, getMany: async (ks) => Object.fromEntries(ks.map((k) => [k, mem.get(k) || null])), set: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } }; }
@@ -170,7 +173,7 @@ async function discover(S, C, latest, left) {
       const t = c0 === CFG.usdc ? c1 : c0;
       if (t === CFG.arcircle || C[t]) continue;
       const fee = Number(W(l.data, 0)), ts = Number(BigInt.asIntN(24, W(l.data, 1)));
-      C[t] = { t, id: lc(l.topics[1]), k: { c0, c1, fee, ts, hooks }, t0: c0 === t, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0 };
+      C[t] = { t, id: lc(l.topics[1]), k: { c0, c1, fee, ts, hooks }, t0: c0 === t, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0, sq0: W(l.data, 3).toString() };
       found.push(t);
     }
     S.hi = ranges[ranges.length - 1][1];
@@ -193,6 +196,16 @@ async function discover(S, C, latest, left) {
       c.ts = times.get(c.b) || latest.ts;
     });
   }
+  // the launch floor (the pool's first price) — read back for pools found before it was kept
+  const noFloor = Object.values(C).filter((c) => c.ok === 1 && !c.sq0 && !c.sq0Tried).slice(0, 8);
+  if (noFloor.length && left() > 25000) {
+    await Promise.all(noFloor.map(async (c) => {
+      c.sq0Tried = 1;
+      const logs = await getLogs({ address: CFG.pm, topics: [TOPIC.init, c.id], fromBlock: toQty(c.b), toBlock: toQty(c.b) }, 1).catch(() => []);
+      if (logs && logs[0]) c.sq0 = W(logs[0].data, 3).toString();
+    }));
+  }
+  for (const c of Object.values(C)) if (c.sq0 && c.dec != null && !c.floor) { const f = priceOf(BigInt(c.sq0), c.t0, c.dec); if (f) c.floor = f; }
   // forget what's too old (unless held)
   const held = new Set([...(S.open || []).map((p) => p.t)]);
   for (const [t, c] of Object.entries(C)) {
@@ -304,7 +317,9 @@ function scanSummary(out) {
   const d = r.dist || {};
   let tax = 0;
   try { const f = out.core.feesOf(r, out.x || {}, out.sim); tax = (f.buyTax || 0) + (f.sellTax || 0); } catch { tax = 0; }
-  return { score: r.score, crit: (r.critical || []).map((x) => x.title).slice(0, 3), top10: d.S ? r2((d.top10 / d.S) * 100, 1) : null, sn: d.early ? r2(d.early.heldPct || 0, 1) : 0,
+  let dump = null;
+  try { const st = out.core.stressOf(r); const t10 = st && st.items.find((i) => i.k === "top10"); if (t10 && t10.drop != null) dump = r2(t10.drop, 1); } catch { dump = null; }
+  return { score: r.score, dump, crit: (r.critical || []).map((x) => x.title).slice(0, 3), top10: d.S ? r2((d.top10 / d.S) * 100, 1) : null, sn: d.early ? r2(d.early.heldPct || 0, 1) : 0,
     lk: d.clusters && d.clusters[0] ? r2(d.clusters[0].pct, 1) : 0, tax: r2(tax, 2), hold: d.holders || null, sT: r.sub && r.sub.trade ? r.sub.trade.score : null, sH: r.sub && r.sub.holders ? r.sub.holders.score : null };
 }
 async function defaultScan(t, st) {
@@ -339,6 +354,7 @@ export function featuresOf(c, nowS) {
     ddHigh: px && c.hi ? (px / c.hi - 1) * 100 : 0,
     score: sc.score ?? null, top10: sc.top10 ?? null, snipersPct: sc.sn ?? 0, linkedPct: sc.lk ?? 0, tax: sc.tax ?? 0, holders: sc.hold ?? null,
     social: !!(c.dex && c.dex.soc), secTrade: sc.sT ?? null, secHolders: sc.sH ?? null, rtLoss: c.rt ? c.rt.loss : null, quoteFailed: !!(c.rt && c.rt.fail), px,
+    floorX: px && c.floor ? px / c.floor : null, floorDrop: px && c.floor ? Math.max(0, (1 - c.floor / px) * 100) : null, dumpTop10: sc.dump ?? null,
   };
 }
 const round3 = (x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
@@ -381,6 +397,7 @@ function closeRecord(pos, c, nowS, why) {
     usdIn: r2(pos.usdIn), usdOut: usdOut == null ? null : r2(usdOut, 4), pnl: r2(pnl, 4), ret, why, parts: pos.parts.map((p) => ({ pct: p.pct, ret: r2(p.ret), why: p.why, ...(p.tx ? { tx: p.tx } : {}), ...(p.px ? { px: p.px } : {}), ...(p.ts ? { ts: p.ts } : {}) })),
     entryPx: pos.entryPx || null, exitPx: pos.parts.length ? pos.parts[pos.parts.length - 1].px || null : null, buyTx: pos.tx || null,
     up: pos.up || {}, dn: pos.dn || {}, final: ret, peak: r2(pos.peak), low: r2(pos.low), x: pos.x, p: r2(pos.p, 3), why0: pos.why0 || "", exits: pos.exits, day: dayOf(nowS), full: null,
+    ...(pos.gate ? { gate: pos.gate } : {}), ...(pos.review ? { review: pos.review } : {}),
   };
 }
 function learnFrom(S, rec) {
@@ -410,7 +427,7 @@ export async function tick(st, opts = {}) {
   const notes = [];
   let [S, cd, pp, gh] = await load(st, [K.state, K.cands, K.paper, K.ghosts]);
   S = S && S.v === DESK_VERSION ? S : newState();
-  if (S.busy && Date.now() - S.busy < 55e3 && !opts.force) return { skipped: "another tick is running" };
+  if (S.busy && Date.now() - S.busy < 65e3 && !opts.force) return { skipped: "another tick is running" };
   S.busy = Date.now();
   await save(st, K.state, S);
   const C = (cd && cd.items) || {};
@@ -456,12 +473,23 @@ export async function tick(st, opts = {}) {
     const dexDue = liveC.filter((c) => !c.dex || Date.now() - c.dex.at > 110e3);
     if (dexDue.length && left() > 22000) await readDex(dexDue.slice(0, 60), fetchJson);
     const heldT = new Set(S.open.map((p) => p.t));
-    const scanDue = liveC.filter((c) => !c.own || CFG.tradeOwn()).filter((c) => !c.scanAt || nowS - c.scanAt > (heldT.has(c.t) ? 900 : 1800))
-      .sort((a, b) => (heldT.has(b.t) - heldT.has(a.t)) || ((!!a.scanAt) - (!!b.scanAt)) || (b.ts - a.ts));
-    const toScan = scanDue.slice(0, opts.scansPerTick ?? 2);
+    // held tokens every 10 minutes, tokens that just triggered a playbook every 10, the rest every 30; a failed scan retries after 3
+    const hot = (c) => c.hotAt && nowS - c.hotAt < 300;
+    const rank = (c) => (heldT.has(c.t) ? 0 : hot(c) ? 1 : !c.scanAt ? 2 : 3);
+    const scanDue = liveC.filter((c) => !c.own || CFG.tradeOwn())
+      .filter((c) => !(c.scanTry && nowS - c.scanTry < 180) && (!c.scanAt || nowS - c.scanAt > (heldT.has(c.t) || hot(c) ? 600 : 1800)))
+      .sort((a, b) => rank(a) - rank(b) || (b.ts - a.ts));
+    const toScan = scanDue.slice(0, opts.scansPerTick ?? 3);
     if (toScan.length && left() > 20000) {
       const res = await Promise.all(toScan.map((c) => Promise.race([scan(c.t).catch(() => null), new Promise((r) => setTimeout(() => r(null), 15000))])));
-      toScan.forEach((c, i) => { if (res[i]) { c.scan = res[i]; out.scanned.push(c.sym || c.t); } c.scanAt = nowS; });
+      toScan.forEach((c, i) => {
+        c.scanTry = nowS;
+        if (!res[i]) return; // a failed scan leaves the old one marked as old
+        c.scan = res[i]; c.scanAt = nowS; out.scanned.push(c.sym || c.t);
+        // once bad, off-limits for real money for a while, whatever a later scan says
+        const bad = res[i].notToken ? "not a token" : res[i].crit && res[i].crit.length ? `critical: ${res[i].crit[0]}` : res[i].score != null && res[i].score < B.GATES.minScore ? `scanner score ${res[i].score}` : null;
+        if (bad) { c.flagUntil = nowS + B.REAL_GATES.flagHours * 3600; c.flagWhy = bad; }
+      });
     }
 
     // ---- 3. money: deposits / withdrawals, the real positions' values
@@ -517,39 +545,48 @@ export async function tick(st, opts = {}) {
       if (e.action) sellsDue.push({ p, pct: e.sellPct, why: e.action });
     }
     sellsDue.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
-    for (const s of sellsDue) {
-      if (!live || txs >= 4 || left() < 20000) break; // a transaction can wait ~20 s for its receipt
+    /// sells part or all of a real position; true when a sale went through
+    async function sellNow(s, when) {
       const p = s.p;
       const all = BigInt(p.tokens);
       const amt = s.pct >= 100 ? all : (all * BigInt(s.pct)) / 100n;
-      if (amt <= 0n) continue;
+      if (amt <= 0n) return false;
       const q = decodeQuote((await callsRaw([quoteCall(desk, p.k, false, amt)]))[0]);
       const ladder = [92n, 85n, 70n, 0n], step = Math.min(p.sellFails || 0, 3);
       const minOut = q == null ? 0n : (q * ladder[step]) / 100n;
-      if (q == null && !s.urgent) continue;
+      if (q == null && !s.urgent) return false;
       txs++;
       const r = await sendTx({ to: desk, data: SEL.sell + encKey(p.k) + u(amt) + u(minOut), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
-      if (!r.ok || !tl) { p.sellFails = (p.sellFails || 0) + 1; out.errors.push(`sell ${p.sym}: ${r.err || (r.ok === null ? "no receipt yet" : "reverted")}`); if (s.urgent) alarm(`ARCIA DESK: trying to get out of ${p.sym} (${s.why}) — sell failed ${p.sellFails}×`); continue; }
+      if (!r.ok || !tl) { p.sellFails = (p.sellFails || 0) + 1; out.errors.push(`sell ${p.sym}: ${r.err || (r.ok === null ? "no receipt yet" : "reverted")}`); if (s.urgent) alarm(`ARCIA DESK: trying to get out of ${p.sym} (${s.why}) — sell failed ${p.sellFails}×`); return false; }
       p.sellFails = 0;
       const usd = human(tl.amountOut, 6), frac = Number(amt) / Number(all), basisPart = p.basis * frac;
       const partRet = (usd / basisPart - 1) * 100;
       const px = r2(usd / human(amt, p.dec), 12);
-      p.parts.push({ pct: s.pct >= 100 ? 100 - p.parts.reduce((t, x) => t + x.pct, 0) : s.pct, ret: partRet, usd, why: s.why, tx: r.hash, px, ts: nowS });
+      p.parts.push({ pct: s.pct >= 100 ? 100 - p.parts.reduce((t, x) => t + x.pct, 0) : s.pct, ret: partRet, usd, why: s.why, tx: r.hash, px, ts: when });
       p.tokens = (all - amt).toString(); p.basis -= basisPart;
       S.cash = (S.cash || 0) + usd;
-      log.push({ ts: nowS, side: "sell", t: p.t, sym: p.sym, pb: p.pb, usd: r2(usd, 4), tokens: human(amt, p.dec), px, tx: r.hash, why: s.why, ret: r2(partRet) });
+      log.push({ ts: when, side: "sell", t: p.t, sym: p.sym, pb: p.pb, usd: r2(usd, 4), tokens: human(amt, p.dec), px, tx: r.hash, why: s.why, ret: r2(partRet) });
       out.real.push(`sell ${p.sym} ${s.why} ${r2(partRet)}%`);
       if (s.urgent) alarm(`ARCIA DESK sold ${p.sym} (${s.why}) at ${r2(partRet)}% — tx ${r.hash}`);
-      if (s.why === "tp" && BigInt(p.tokens) > 0n) { p.tpHit = true; continue; }
+      if (s.why === "tp" && BigInt(p.tokens) > 0n) { p.tpHit = true; return true; }
       p.done = true;
+      return true;
     }
-    for (const p of S.open.filter((x) => x.done)) {
-      const rec = closeRecord(p, C[p.t], nowS, p.parts[p.parts.length - 1].why);
-      closed.push(rec); learnFrom(S, rec); G.push(ghostOf(p, rec, C[p.t]));
-      S.cool[p.t] = nowS + 3600;
+    const closeDone = (when) => {
+      for (const p of S.open.filter((x) => x.done)) {
+        const rec = closeRecord(p, C[p.t], when, p.parts[p.parts.length - 1].why);
+        closed.push(rec); learnFrom(S, rec); G.push(ghostOf(p, rec, C[p.t]));
+        S.cool[p.t] = when + 3600;
+        if (rec.ret <= -30) S.pmQueue = [...(S.pmQueue || []), rec.id].slice(-10); // a bad loss gets a written review
+      }
+      S.open = S.open.filter((p) => !p.done);
+    };
+    for (const s of sellsDue) {
+      if (!live || txs >= 4 || left() < 20000) break; // a transaction can wait ~20 s for its receipt
+      await sellNow(s, nowS);
     }
-    S.open = S.open.filter((p) => !p.done);
+    closeDone(nowS);
 
     // paper
     for (const p of P) {
@@ -596,7 +633,7 @@ export async function tick(st, opts = {}) {
       if (c.own && !CFG.tradeOwn()) { if (!c.ownNoted) { c.ownNoted = 1; rejects.push({ ts: nowS, t: c.t, sym: c.sym, why: ["launched through ArcPad's own Argus flow — the desk skips those (the platform earns their fees)"] }); } continue; }
       const f = featuresOf(c, nowS);
       const pbs = B.PB_KEYS.filter((k) => { try { return B.PLAYBOOKS[k].when(f); } catch { return false; } });
-      if (pbs.length) want.push({ c, f, pbs });
+      if (pbs.length) { c.hotAt = nowS; want.push({ c, f, pbs }); }
     }
     // exact round-trip cost at trade size, for the ones that triggered (the desk's quote; paper-only: estimated)
     const size0 = live ? B.tradeSize(equity, S.cash) || B.RISK.minTrade : 5;
@@ -625,7 +662,9 @@ export async function tick(st, opts = {}) {
         P2.push({ id: `p${++S.seq}`, t: c.t, sym: c.sym, pb, real: false, entryTs: nowS, p0: c.px, rt: f.rtLoss || 0, usdIn: size0, exits: { ...S.learn.exits[pb] }, x: round3(x), p, parts: [], critAtEntry: (c.scan && c.scan.crit && c.scan.crit[0]) || null });
         out.opened.push(`paper ${c.sym} ${pb}`);
       }
-      if (live && c.scan && !c.scan.notToken && c.scanAt && nowS - c.scanAt < 2400 && !S.open.some((p) => p.t === c.t) && !S.cool[c.t]) {
+      if (live && !S.open.some((p) => p.t === c.t) && !S.cool[c.t]) {
+        const rg = B.realGate(f, c, nowS);
+        if (rg.length) { if (!rejects.find((x) => x.t === c.t)) rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb: w.pbs[0], why: rg.slice(0, 3), paper: true }); continue; }
         const ds = w.pbs.map((pb) => ({ pb, d: B.decide({ pb, x, state: S }) })).filter((z) => z.d.go).sort((a, b) => b.d.draw + (b.d.p - 0.5) * 20 - (a.d.draw + (a.d.p - 0.5) * 20));
         if (ds.length) realCands.push({ c, f, x, pb: ds[0].pb, d: ds[0].d });
       }
@@ -640,12 +679,22 @@ export async function tick(st, opts = {}) {
     realCands.sort((a, b) => b.d.draw + (b.d.p - 0.5) * 20 - (a.d.draw + (a.d.p - 0.5) * 20));
     for (const rc of realCands) {
       if (!live || D.paused || stopDay || txs >= 5 || left() < 20000) break;
-      if (S.open.length >= B.RISK.maxOpen || S.buys.length >= B.RISK.maxPerHour) break;
+      const warm = (S.stats.realClosed || 0) < (S.learn.warmup || 25);
+      if (S.open.length >= B.RISK.maxOpen || S.buys.length >= (warm ? B.RISK.warmPerHour : B.RISK.maxPerHour)) break;
       const eqNow = S.cash + S.open.reduce((t, p) => t + (p.value || p.usdIn), 0);
-      let size = Math.min(B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);
-      if (!(size >= B.RISK.minTrade)) break;
+      let size = Math.min(warm ? Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash) : B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);
+      if (!(size >= B.RISK.warmTrade)) break;
       size = Math.floor(size * 100) / 100;
       const { c, f, x, pb, d } = rc;
+      // a second opinion from Claude on real money (it can only say no)
+      let rv = null;
+      if (AI.aiEnabled() && left() > 30000) {
+        rv = await (opts.review || AI.review)({ token: c.sym, playbook: pb, why: B.PLAYBOOKS[pb].why, ageMin: r2(f.ageMin, 1), priceVsLaunchFloor: f.floorX != null ? `${r2(f.floorX, 2)}x` : "unknown",
+          dropIfBackToFloorPct: r2(f.floorDrop, 1), dropIfTop10SellPct: f.dumpTop10, liquidityUsd: Math.round(f.liq), mcapUsd: Math.round(f.mcap), buysSells5m: [f.buysM5, f.sellsM5], trades1h: f.txH1,
+          change5mPct: r2(f.chgM5, 1), change1hPct: r2(f.chgH1, 1), fromHighPct: r2(f.ddHigh, 1), scanner: c.scan ? { score: c.scan.score, top10Pct: c.scan.top10, snipersPct: c.scan.sn, linkedPct: c.scan.lk, taxPct: c.scan.tax, holders: c.scan.hold } : null,
+          roundTripLossPct: f.rtLoss, lastMinutes: (c.bk || []).slice(-10), sizeUsd: size, modelWinOdds: r2(d.p, 2) }).catch(() => null);
+        if (rv && !rv.go) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: [`risk review: ${rv.reason}`], paper: true }); S.cool[c.t] = nowS + 900; continue; }
+      }
       const usdRaw = BigInt(Math.round(size * 1e6));
       const qb = decodeQuote((await callsRaw([quoteCall(desk, c.k, true, usdRaw)]))[0]);
       if (qb == null || qb === 0n) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: ["no buy quote at trade size"] }); continue; }
@@ -656,10 +705,42 @@ export async function tick(st, opts = {}) {
       const tokens = tl ? tl.amountOut : qb;
       const pos = { id: `r${++S.seq}`, t: c.t, sym: c.sym, dec: c.dec || 18, k: c.k, pb, real: true, entryTs: nowS, usdIn: size, basis: size, tokens: tokens.toString(),
         entryPx: r2(size / human(tokens, c.dec || 18), 12), p0: c.px, rt: f.rtLoss || 0, tx: r.hash, exits: { ...S.learn.exits[pb] }, x: round3(x), p: d.p, why0: d.why, parts: [],
-        critAtEntry: (c.scan && c.scan.crit && c.scan.crit[0]) || null, lastPx: c.px, ...(r.ok ? {} : { pending: r.hash }) };
+        critAtEntry: (c.scan && c.scan.crit && c.scan.crit[0]) || null, lastPx: c.px, ...(r.ok ? {} : { pending: r.hash }),
+        gate: { score: c.scan ? c.scan.score : null, scanAge: c.scanAt ? nowS - c.scanAt : null, floorX: f.floorX != null ? r2(f.floorX, 2) : null, dump: f.dumpTop10 },
+        ...(rv ? { review: { go: rv.go, reason: rv.reason, conf: rv.confidence, model: rv.model } } : {}) };
       S.open.push(pos); S.buys.push(nowS); S.cash -= size; D.dailyLeft -= size;
       log.push({ ts: nowS, side: "buy", t: c.t, sym: c.sym, pb, usd: size, tokens: human(tokens, c.dec || 18), px: pos.entryPx, tx: r.hash, why: d.why });
       out.real.push(`buy ${c.sym} ${pb} $${size}`);
+    }
+
+    // ---- 5b. keep watching what's held for the rest of the minute (the next tick is a minute away)
+    const watchMs = opts.watchMs ?? 10000;
+    while (live && S.open.some((p) => !p.pending) && left() > 16000 && watchMs > 0) {
+      await new Promise((r) => setTimeout(r, watchMs));
+      const held = S.open.filter((p) => !p.pending);
+      const q = await callsRaw(held.map((p) => quoteCall(desk, p.k, false, BigInt(p.tokens || "0"))));
+      const when = nowS + Math.round((Date.now() - t0) / 1000);
+      for (let i = 0; i < held.length && left() > 12000; i++) {
+        const p = held[i], v = decodeQuote(q[i]);
+        if (v == null) continue;
+        const value = human(v, 6), prev = p.value;
+        p.value = value; p.ret = r2((value / p.basis - 1) * 100, 2);
+        const crash = prev && value < prev * 0.6;
+        const e = crash ? { action: "crash", sellPct: 100 } : B.exitCheck(p, p.ret, when);
+        if (e.action) await sellNow({ p, pct: e.sellPct, why: e.action, urgent: e.action === "crash" || e.action === "sl" }, when);
+      }
+      closeDone(when);
+      out.watched = (out.watched || 0) + 1;
+    }
+    // a written review of a bad loss, one per tick when there's time
+    if (S.pmQueue && S.pmQueue.length && AI.aiEnabled() && left() > 26000) {
+      const id = S.pmQueue.shift();
+      const rec = closed.find((r) => r.id === id) || ((unpack(await st.get(K.closed(today)).catch(() => null)) || {}).items || []).find((r) => r.id === id);
+      if (rec) {
+        const pm = await (opts.postMortem || AI.postMortem)({ token: rec.sym, playbook: rec.pb, returnPct: rec.ret, minutesHeld: rec.mins, exit: rec.why, entryPrice: rec.entryPx, exitPrice: rec.exitPx,
+          features: rec.x, gate: rec.gate || null, review: rec.review || null }).catch(() => null);
+        if (pm) await appendList(st, K.reviews, "items", [{ ts: nowS, id, t: rec.t, sym: rec.sym, ret: rec.ret, text: pm.text, model: pm.model }], 60);
+      }
     }
 
     // ---- 6. equity, save
@@ -688,7 +769,7 @@ export async function tick(st, opts = {}) {
     S.lastErr = { at: Math.floor(Date.now() / 1000), msg: String((e && e.message) || e).slice(0, 200) };
   }
   S.notes = [...notes.map((n) => ({ at: Math.floor(Date.now() / 1000), n })), ...(S.notes || [])].slice(0, 20);
-  S.busy = 0; S.lastTick = Math.floor(Date.now() / 1000);
+  S.busy = 0; S.lastTick = Math.floor(Date.now() / 1000); S.lastDur = Date.now() - t0;
   await save(st, K.state, S);
   return out;
 }
@@ -799,7 +880,7 @@ async function daily(st, S, { yday, nowS, D, live, desk, key, notes, ask }) {
 // ---------------------------------------------------------------- the public view (GET /api/desk)
 export async function view(st) {
   st = st || memStore();
-  const [S0, P, rec, lg, rj, jr, bu, eq, cd] = await load(st, [K.state, K.paper, K.recent, K.log, K.rejects, K.journal, K.burns, K.equity, K.cands]);
+  const [S0, P, rec, lg, rj, jr, bu, eq, cd, rvw] = await load(st, [K.state, K.paper, K.recent, K.log, K.rejects, K.journal, K.burns, K.equity, K.cands, K.reviews]);
   const S = S0 || newState();
   const L = S.learn, s = S.stats;
   const nReal = s.realClosed || 0;
@@ -808,13 +889,14 @@ export async function view(st) {
   const C = (cd && cd.items) || {};
   const pnl = pnlOf(S);
   return {
-    v: DESK_VERSION, brain: B.BRAIN_VERSION, mode: S.mode || "paper", desk: CFG.desk(), updated: S.lastTick || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
+    v: DESK_VERSION, brain: B.BRAIN_VERSION, mode: S.mode || "paper", desk: CFG.desk(), updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
+    ai: AI.aiEnabled(), reviews: ((rvw && rvw.items) || []).slice(0, 10),
     money: { cash: r2(S.cash, 4), equity: S.eq, netIn: r2(S.netIn, 4), pnl: r2(pnl, 4), pnlPct: S.netIn > 0 ? r2((pnl / S.netIn) * 100) : null, burnedUsd: r2(S.burnedUsd, 4), burnedTok: r2(S.burnedTok, 2), hwm: r2(S.hwm, 4), dayStart: S.dayStartEq, flows: (S.flows || []).slice(0, 10) },
     stats: { realClosed: nReal, realWins: s.realWins, winRate: nReal ? r2((s.realWins / nReal) * 100, 1) : null, avgRet: nReal ? r2(s.realSum / nReal) : null, realPnl: s.realPnl,
       paperClosed: s.paperClosed, paperWinRate: s.paperClosed ? r2((s.paperWins / s.paperClosed) * 100, 1) : null, paperAvg: s.paperClosed ? r2(s.paperSum / s.paperClosed) : null, best: s.best, worst: s.worst },
     open: (S.open || []).map((p) => ({ id: p.id, t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, usdIn: r2(p.usdIn, 4), value: r2(p.value, 4), ret: p.ret, entryPx: p.entryPx, nowPx: p.nowPx ? r2(p.nowPx, 12) : null,
       tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tx: p.tx, pending: !!p.pending,
-      sells: (p.parts || []).filter((x) => x.tx).map((x) => ({ tx: x.tx, px: x.px, pct: x.pct, ret: r2(x.ret), why: x.why })), why: p.why0 })),
+      sells: (p.parts || []).filter((x) => x.tx).map((x) => ({ tx: x.tx, px: x.px, pct: x.pct, ret: r2(x.ret), why: x.why })), why: p.why0, gate: p.gate || null, review: p.review || null })),
     paper: { open: ((P && P.open) || []).length, list: ((P && P.open) || []).slice().sort((a, b) => b.entryTs - a.entryTs).slice(0, 16).map((p) => ({ t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, ret: p.ret ?? null, tp: p.exits.tp, sl: p.exits.sl, tpHit: !!p.tpHit })) },
     recent: ((rec && rec.items) || []).slice(0, 80),
     log: ((lg && lg.items) || []).slice(0, 80),
@@ -831,7 +913,7 @@ export async function view(st) {
     // how far discovery has read, for checking it's keeping up
     sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own })),
-    rules: { gates: B.GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
+    rules: { gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
 }
 /// closed trades of one day (real, and paper with paper=1)
