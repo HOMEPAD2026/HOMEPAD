@@ -10,3 +10,9 @@ contracts/cache/
 *~
 .env.*
 !.env.example
+
+# ARCIRCLE OMNI build output (omni/deployments/ is kept: it records the deployed addresses)
+omni/artifacts/
+omni/cache/
+omni/typechain-types/
+omni/dist/

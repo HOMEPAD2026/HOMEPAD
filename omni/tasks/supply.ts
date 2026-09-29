@@ -20,8 +20,8 @@ task('omni:supply', 'Checks locked-on-Arc == Robinhood + Solana supply').setActi
     const total = BigInt((await token.totalSupply()).toString())
     const locked = adapter ? BigInt((await token.balanceOf(adapter.address)).toString()) : 0n
     let rhSupply = 0n
-    if (rh && process.env.RPC_URL_ROBINHOOD) {
-        const p = new ethers.providers.JsonRpcProvider(process.env.RPC_URL_ROBINHOOD)
+    if (rh) {
+        const p = new ethers.providers.JsonRpcProvider(process.env.RPC_URL_ROBINHOOD || 'https://rpc.mainnet.chain.robinhood.com')
         rhSupply = BigInt((await new ethers.Contract(rh.address, ERC20, p).totalSupply()).toString())
     }
     let solSupply = 0n

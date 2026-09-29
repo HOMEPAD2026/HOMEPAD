@@ -16,7 +16,9 @@ async function main() {
     const c = await hre.ethers.getContractAt(name, d.address)
     const owner = process.env.OMNI_OWNER!, guardian = process.env.OMNI_GUARDIAN, rewards = process.env.OMNI_REWARDS_RECEIVER
     if (!/^0x[0-9a-fA-F]{40}$/.test(owner || '')) throw new Error('OMNI_OWNER missing')
-    const all = [EndpointId.ARC_V2_MAINNET, EndpointId.ROBINHOOD_V2_MAINNET, EndpointId.SOLANA_V2_MAINNET]
+    // phase 1: Arc ⇄ Robinhood only. Solana gets a limit (and so becomes reachable) only with OMNI_SOLANA=1;
+    // until then it has none, and rate limits fail closed, so nothing can be sent there.
+    const all = [EndpointId.ARC_V2_MAINNET, EndpointId.ROBINHOOD_V2_MAINNET, ...(process.env.OMNI_SOLANA === '1' ? [EndpointId.SOLANA_V2_MAINNET] : [])]
     const here = (hre.network.config as { eid: number }).eid
     const limits = all.filter((e) => e !== here).map((dstEid) => ({ dstEid, limit: LIMIT, window: DAY }))
     await (await c.setRateLimits(limits)).wait()

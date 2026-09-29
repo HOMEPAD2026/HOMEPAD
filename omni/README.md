@@ -1,5 +1,11 @@
 # ARCIRCLE OMNI — $ARCIRCLE on Arc ♾ Robinhood Chain ♾ Solana
 
+> **Phase 1 = Arc ⇄ Robinhood Chain.** Step-by-step (Korean): [`ROBINHOOD.md`](ROBINHOOD.md). `layerzero.config.ts` wires only
+> Arc ⇄ Robinhood with DVN / library / executor addresses **pinned per chain** (on Arc the name "LayerZero Labs" also matches a
+> deprecated DVN); Solana joins with `OMNI_SOLANA=1` — pin its addresses the same way before phase 2.
+> Tooling: ethers v5 + `@nomiclabs/hardhat-ethers` (what LayerZero's toolbox runs on) — `npm install --legacy-peer-deps`,
+> `npx hardhat test` (10 passing), `npx hardhat omni:check` before and after wiring.
+
 One token, one supply, three chains. $ARCIRCLE keeps its Arc contract
 (`0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7`, 1,000,000,000 fixed) as the **canonical** token. The other chains get
 LayerZero V2 OFTs whose supply can only come from Arc:

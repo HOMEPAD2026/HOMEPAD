@@ -1,12 +1,13 @@
 // ARCIRCLE OMNI — Hardhat + LayerZero devtools. Keys come from .env only (see .env.example).
 import 'dotenv/config'
 import 'hardhat-deploy'
-import '@nomicfoundation/hardhat-ethers'
+import '@nomiclabs/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import '@layerzerolabs/toolbox-hardhat'
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 import type { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 import './tasks/supply'
+import './tasks/check'
 
 const accounts: HttpNetworkAccountsUserConfig | undefined = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : undefined
 
@@ -23,7 +24,7 @@ const config: HardhatUserConfig = {
         },
         robinhood: {
             eid: EndpointId.ROBINHOOD_V2_MAINNET, // 30416 · chain id 4663
-            url: process.env.RPC_URL_ROBINHOOD || '',
+            url: process.env.RPC_URL_ROBINHOOD || 'https://rpc.mainnet.chain.robinhood.com',
             accounts,
         },
         hardhat: { allowUnlimitedContractSize: true },

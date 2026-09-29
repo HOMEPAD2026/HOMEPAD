@@ -2,8 +2,8 @@
   "name": "arcircle-omni",
   "version": "0.1.0",
   "private": true,
-  "//": "tests use @layerzerolabs/test-devtools-evm-hardhat mocks (contracts/mocks); install with --legacy-peer-deps if npm complains about peers",
-  "description": "ARCIRCLE OMNI — $ARCIRCLE across Arc, Robinhood Chain and Solana on LayerZero V2 (one supply: Arc lockbox + mint/burn OFTs).",
+  "//": "ethers v5 + @nomiclabs/hardhat-ethers: what LayerZero's toolbox (lz:deploy, lz:oapp:wire) is built on. Install with --legacy-peer-deps.",
+  "description": "ARCIRCLE OMNI \u2014 $ARCIRCLE across Arc, Robinhood Chain and Solana on LayerZero V2 (one supply: Arc lockbox + mint/burn OFTs).",
   "license": "MIT",
   "scripts": {
     "compile": "hardhat compile",
@@ -11,7 +11,8 @@
     "deploy:arc": "hardhat lz:deploy --networks arc --tags ArcircleOFTAdapter",
     "deploy:robinhood": "hardhat lz:deploy --networks robinhood --tags ArcircleOFT",
     "wire": "hardhat lz:oapp:wire --oapp-config layerzero.config.ts",
-    "supply": "hardhat omni:supply"
+    "supply": "hardhat omni:supply",
+    "check": "hardhat omni:check"
   },
   "dependencies": {
     "@layerzerolabs/oapp-evm": "^0.4.1",
@@ -23,17 +24,23 @@
     "@layerzerolabs/lz-definitions": "^3.1.14",
     "@layerzerolabs/lz-evm-messagelib-v2": "^3.0.168",
     "@layerzerolabs/lz-evm-protocol-v2": "^3.0.168",
+    "@layerzerolabs/lz-evm-v1-0.7": "^3.0.168",
     "@layerzerolabs/lz-v2-utilities": "^3.0.168",
     "@layerzerolabs/metadata-tools": "^4.0.0",
     "@layerzerolabs/test-devtools-evm-hardhat": "^0.5.3",
     "@layerzerolabs/toolbox-hardhat": "^0.6.14",
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
-    "@nomicfoundation/hardhat-ethers": "^3.0.2",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@openzeppelin/contracts-upgradeable": "^5.6.1",
+    "@safe-global/api-kit": "^1.3.1",
+    "@safe-global/safe-core-sdk-types": "^1.10.1",
+    "@types/node": "^20.11.0",
     "chai": "^4.4.1",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
     "hardhat": "^2.22.10",
     "hardhat-deploy": "^0.12.1",
+    "solidity-bytes-utils": "^0.8.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   }
