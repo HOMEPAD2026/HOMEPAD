@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rewards — ARCIRCLE PAD</title>
-<meta name="description" content="Rewards for $ARCIRCLE holders and ARCIRCLE PAD creators — funded by ecosystem revenue, never by new emissions. How the program is designed, how it is funded, and what comes next.">
+<title>Burn Engine & Rewards — ARCIRCLE PAD</title>
+<meta name="description" content="The ARCIRCLE burn engine on Arc: every $ARCIRCLE burn, live and by source, $ARCIA joining the reward contract, and utility and platform revenue moving on-chain into automatic buyback-and-burn. Rewards funded by revenue, never by new emissions.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ARCIRCLE PAD">
-<meta property="og:title" content="Rewards for holders and creators — ARCIRCLE PAD">
-<meta property="og:description" content="Funded by what ArcPad and CirclePad earn, never by new $ARCIRCLE. Hard to farm, verifiable on-chain, simple to claim.">
+<meta property="og:title" content="Building the burn engine on Arc — ARCIRCLE PAD">
+<meta property="og:description" content="Every $ARCIRCLE burn, live and by source. $ARCIA joins the reward contract; utility and platform revenue moves on-chain into automatic buyback-and-burn.">
 <meta property="og:url" content="https://www.arcircle.app/reward">
 <meta property="og:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta property="og:image:type" content="image/jpeg">
@@ -16,20 +16,20 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@ARCIRCLEonArc">
-<meta name="twitter:title" content="Rewards for holders and creators — ARCIRCLE PAD">
-<meta name="twitter:description" content="Funded by what ArcPad and CirclePad earn, never by new $ARCIRCLE. Hard to farm, verifiable on-chain, simple to claim.">
+<meta name="twitter:title" content="Building the burn engine on Arc — ARCIRCLE PAD">
+<meta name="twitter:description" content="Every $ARCIRCLE burn, live and by source. $ARCIA joins the reward contract; utility and platform revenue moves on-chain into automatic buyback-and-burn.">
 <meta name="twitter:image" content="https://www.arcircle.app/images/og/og-arcircle.jpg">
 <meta name="theme-color" content="#04060a">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790694900">
-<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790694900">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790694900">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1790700151">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png?v=1790700151">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1790700151">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790694900"></script>
+<script src="arc-log.js?v=1790700151"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790694900">
+<link rel="stylesheet" href="style.css?v=1790700151">
 </head>
 <body class="ax-page ax-token ax-reward-page">
 
@@ -52,32 +52,141 @@
 <main class="ax-main">
   <div class="ax-wrap">
 
-    <!-- ============ Hero ============ -->
-    <section class="rw-hero">
-      <span class="ax-badge">Coming soon · In design</span>
-      <h1>Rewards for the people who <span>grow ARCIRCLE PAD.</span></h1>
-      <p class="ax-lede">The reward system is how the flywheel gives back — to the ones who hold $ARCIRCLE and the ones who launch. It is funded by what ArcPad and CirclePad earn, never by new tokens, and it goes live only once its rules are published here.</p>
+    <!-- ============ Hero: the burn engine (reward-engine.js fills the meter) ============ -->
+    <section class="rw-hero rw-hero-burn">
+      <span class="ax-badge rw-badge-live"><i aria-hidden="true"></i>Burns live · Engine in build</span>
+      <h1>Building the burn engine <span>on Arc.</span></h1>
+      <p class="ax-lede">$ARCIA joins the ARCIRCLE reward contract alongside $ARCIRCLE. Next, revenue from ARCIRCLE PAD's utilities and the platform itself moves on-chain, into contracts that buy back and burn automatically: transparent, verifiable, and not dependent on anyone pressing a button.</p>
       <div class="ax-actions">
-        <a class="ax-btn ax-btn-grad" href="#programs">See the programs</a>
-        <a class="ax-btn ax-btn-ghost" href="#funding">How it's funded</a>
+        <a class="ax-btn ax-btn-grad" href="#burns">Watch the burns</a>
+        <a class="ax-btn ax-btn-ghost" href="#engine">How the engine works</a>
         <a class="ax-btn ax-btn-ghost" href="#check">Check a wallet</a>
       </div>
-      <div class="rw-zero" id="rw-zero">
-        <strong class="rw-zero-n" aria-hidden="true">0</strong>
-        <div class="rw-zero-txt">
-          <span>New $ARCIRCLE minted to pay rewards — ever.</span>
-          <small>Supply fixed at <b class="rw-zero-supply" data-no-i18n>1,000,000,000</b></small>
-          <small class="rw-zero-burn arc-live-only"><a href="https://arc.etherscan.io/token/0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7?a=0x000000000000000000000000000000000000dEaD" target="_blank" rel="noopener">12.63% of it already burned ↗</a></small>
+      <div class="rw-meter" id="rw-meter">
+        <div class="rw-meter-top">
+          <div class="rw-meter-big"><strong data-rb="pct" data-no-i18n>—</strong><span>of all $ARCIRCLE burned forever</span></div>
+          <div class="rw-meter-side">
+            <div><small>Burned</small><b data-rb="tok" data-no-i18n>—</b></div>
+            <div><small>Worth today</small><b data-rb="usd" data-no-i18n>—</b></div>
+            <div><small>Burns</small><b data-rb="n" data-no-i18n>—</b></div>
+          </div>
         </div>
+        <div class="rw-meter-bar" role="img" aria-label="Share of the 1,000,000,000 $ARCIRCLE supply burned" data-rb="bar-label"><i class="rw-meter-fill" data-rb="fill"></i><span class="rw-meter-ms" data-rb="ms"></span></div>
+        <div class="rw-meter-foot">
+          <span><b data-no-i18n>1,000,000,000</b> fixed supply · <b>0</b> new $ARCIRCLE minted to pay rewards — ever</span>
+          <span data-rb="next">—</span>
+        </div>
+        <p class="rw-meter-stale" data-rb="stale" hidden></p>
       </div>
     </section>
 
     <div class="ax-facts">
-      <div class="ax-fact"><span>Status</span><strong class="rw-gold">In design</strong></div>
-      <div class="ax-fact"><span>Funded by</span><strong>Ecosystem revenue</strong></div>
+      <div class="ax-fact"><span>Status</span><strong class="rw-gold">Burns live · Engine in build</strong></div>
+      <div class="ax-fact"><span>In the engine</span><strong>$ARCIRCLE + $ARCIA</strong></div>
       <div class="ax-fact"><span>New $ARCIRCLE minted</span><strong>0 — ever</strong></div>
-      <div class="ax-fact"><span>Target</span><strong>Q4 2026 – Q1 2027</strong></div>
+      <div class="ax-fact"><span>Ratios &amp; timeline</span><strong>Not decided</strong></div>
     </div>
+
+    <!-- ============ The engine: how revenue becomes burns ============ -->
+    <section class="ax-section" id="engine">
+      <div class="ax-kicker">The burn engine</div>
+      <h2>Revenue in. Burns out. On-chain.</h2>
+      <p class="ax-section-lede">Every utility on ARCIRCLE PAD already burns $ARCIRCLE straight to 0x…dEaD. The engine being built routes utility and platform revenue through a reward contract that buys back and burns automatically. Solid lines run today; dashed ones are being built.</p>
+      <div class="rw-flow" id="rw-flow">
+        <div class="rw-flow-col rw-flow-src">
+          <h3 class="rw-flow-h">Burning today</h3>
+          <div class="rw-src" data-src="vote" data-live><b>CirclePad burn-to-vote</b><small>1,000 $ARCIRCLE per vote</small></div>
+          <div class="rw-src" data-src="scanner" data-live><b>Token Scanner Plus / Pro</b><small>1,000 / 2,000 per unlock</small></div>
+          <div class="rw-src" data-src="mine" data-live><b>Builder Mine</b><small>Joins and the shop</small></div>
+          <div class="rw-src" data-src="secret" data-live><b>ARCIA's secret file</b><small>100,000 per wallet</small></div>
+          <div class="rw-src" data-src="desk" data-live><b>ARCIA DESK</b><small>20% of new profit, bought and burned</small></div>
+          <h3 class="rw-flow-h">Revenue to route</h3>
+          <div class="rw-src" data-src="util" data-plan><b>Utility revenue</b><small>Tools, ARCIA 402 and more</small></div>
+          <div class="rw-src" data-src="platform" data-plan><b>Platform revenue</b><small>ArcPad fees, CirclePad 5%, Argus launch share, $ARCIRCLE creator fee</small></div>
+        </div>
+        <div class="rw-flow-col rw-flow-mid">
+          <div class="rw-node rw-node-contract" data-node="contract">
+            <span class="rw-chip rw-chip-build">Building</span>
+            <b>ARCIRCLE reward contract</b>
+            <small>Buys back and burns on its own. Ratios: not decided.</small>
+            <div class="rw-node-coins"><span>$ARCIRCLE</span><span class="rw-arcia">$ARCIA</span></div>
+          </div>
+        </div>
+        <div class="rw-flow-col rw-flow-out">
+          <div class="rw-node rw-node-burn" data-node="burn">
+            <span class="rw-flame" aria-hidden="true"><i></i><i></i><i></i></span>
+            <b>0x…dEaD</b>
+            <small>Burned forever. Nobody holds the key.</small>
+          </div>
+          <div class="rw-node rw-node-rew" data-node="rewards">
+            <span class="rw-chip rw-chip-plan">Planned</span>
+            <b>Holder &amp; creator rewards</b>
+            <small>Funded by revenue, rules published first</small>
+          </div>
+        </div>
+        <svg class="rw-flow-svg" aria-hidden="true"></svg>
+      </div>
+      <p class="rw-legend"><span class="rw-leg-live">Runs today</span><span class="rw-leg-plan">Being built</span></p>
+
+      <div class="rw-coins">
+        <article class="rw-coin" style="--acc:#35d8d0">
+          <div class="rw-coin-head"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"><div><h3>$ARCIRCLE</h3><span class="rw-chip rw-chip-live">Burning now</span></div></div>
+          <dl class="rw-coin-dl">
+            <div><dt>Burned</dt><dd data-rc="arc-burned" data-no-i18n>—</dd></div>
+            <div><dt>Price</dt><dd data-rc="arc-price" data-no-i18n>—</dd></div>
+            <div><dt>Market cap</dt><dd data-rc="arc-mcap" data-no-i18n>—</dd></div>
+          </dl>
+          <div class="rw-coin-ca"><code data-no-i18n>0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7</code><button type="button" class="rw-copy" data-copy="0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7">Copy</button></div>
+          <div class="rw-coin-acts"><a class="ax-btn ax-btn-ghost" href="/arcircle">Token page</a><a class="ax-btn ax-btn-ghost" href="https://argus.world/token/0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7" target="_blank" rel="noopener">Argus ↗</a></div>
+        </article>
+        <article class="rw-coin rw-coin-arcia" style="--acc:#4d9fff">
+          <div class="rw-coin-head"><img src="images/arcia-avatar-96.jpg" alt="" width="96" height="96"><div><h3>$ARCIA</h3><span class="rw-chip rw-chip-build">Joining the reward contract</span></div></div>
+          <dl class="rw-coin-dl">
+            <div><dt>Burned</dt><dd data-rc="arcia-burned" data-no-i18n>—</dd></div>
+            <div><dt>Price</dt><dd data-rc="arcia-price" data-no-i18n>—</dd></div>
+            <div><dt>Market cap</dt><dd data-rc="arcia-mcap" data-no-i18n>—</dd></div>
+          </dl>
+          <div class="rw-coin-ca"><code data-no-i18n>0x9da6d5ce413e94264Ea411372459413334a83bE5</code><button type="button" class="rw-copy" data-copy="0x9da6d5ce413e94264Ea411372459413334a83bE5">Copy</button></div>
+          <div class="rw-coin-acts"><a class="ax-btn ax-btn-ghost" href="/circle/round/1">Round #1 report</a><a class="ax-btn ax-btn-ghost" href="https://argus.world/token/0x9da6d5ce413e94264ea411372459413334a83be5" target="_blank" rel="noopener">Argus ↗</a></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ Live burns ============ -->
+    <section class="ax-section" id="burns">
+      <div class="ax-kicker">Live from Arc</div>
+      <h2>Every burn, as it happens.</h2>
+      <p class="ax-section-lede">Each line is a transfer of $ARCIRCLE to 0x…dEaD, read from the chain and labeled by where it came from.</p>
+      <div class="rw-burns">
+        <div class="rw-feed-wrap">
+          <div class="rw-feed-head"><h3>Latest burns</h3><span class="rw-live-dot" aria-hidden="true"></span><small data-rb="feed-at" data-no-i18n></small></div>
+          <ol class="rw-feed" id="rw-feed" aria-live="polite"><li class="rw-feed-empty">Loading burns…</li></ol>
+        </div>
+        <div class="rw-srcbars-wrap">
+          <h3>Burned by source</h3>
+          <ul class="rw-srcbars" id="rw-srcbars"><li class="rw-feed-empty">Loading…</li></ul>
+          <p class="rw-mini">Sources are read from each burn's transaction: the contract it called, or the unlock it paid for.</p>
+          <p class="rw-mini">Each group's bars are scaled to its largest source; the % is the share of everything burned.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Build tracker ============ -->
+    <section class="ax-section" id="build">
+      <div class="ax-kicker">Build tracker</div>
+      <h2>The core framework is taking shape.</h2>
+      <p class="ax-section-lede">Contract details, burn ratios and the rollout timeline are shared as each piece is ready. Round by round, contract by contract.</p>
+      <ol class="rw-build">
+        <li class="rw-b live"><span class="rw-chip rw-chip-live">Live</span><div><b>Direct burns in every utility</b><small>Burn-to-vote, Token Scanner unlocks, Builder Mine, ARCIA's secret file and ARCIA DESK send $ARCIRCLE to 0x…dEaD today.</small></div></li>
+        <li class="rw-b live"><span class="rw-chip rw-chip-live">Live</span><div><b>Burn tracking by source</b><small>This page: every burn, labeled and totaled, read from Arc.</small></div></li>
+        <li class="rw-b build"><span class="rw-chip rw-chip-build">Building</span><div><b>ARCIRCLE reward contract</b><small>The core framework that holds revenue and runs buyback-and-burn.</small></div></li>
+        <li class="rw-b plan"><span class="rw-chip rw-chip-plan">Planned</span><div><b>$ARCIA in the reward contract</b><small>$ARCIA joins $ARCIRCLE in the automated buyback-and-burn.</small></div></li>
+        <li class="rw-b plan"><span class="rw-chip rw-chip-plan">Planned</span><div><b>Revenue routing</b><small>Utility and platform income flows into the contract on its own.</small></div></li>
+        <li class="rw-b plan"><span class="rw-chip rw-chip-plan">Planned</span><div><b>Automatic buyback-and-burn</b><small>No button to press: the contract buys and burns by its rules.</small></div></li>
+        <li class="rw-b plan"><span class="rw-chip rw-chip-plan">Planned</span><div><b>Verified contracts, public addresses</b><small>Source published on the explorer and listed here before anything goes live.</small></div></li>
+        <li class="rw-b open"><span class="rw-chip rw-chip-open">Not decided</span><div><b>Burn ratios and rollout timeline</b><small>Shared as each piece is ready.</small></div></li>
+      </ol>
+    </section>
 
     <!-- ============ Programs ============ -->
     <section class="ax-section" id="programs">
@@ -116,7 +225,7 @@
     <section class="ax-section" id="funding">
       <div class="ax-kicker">How it's funded</div>
       <h2>Paid from revenue — never from emissions.</h2>
-      <p class="ax-section-lede">$ARCIRCLE's supply is fixed at one billion. Rewards come out of real ecosystem income: the same five sources that turn the $ARCIRCLE flywheel.</p>
+      <p class="ax-section-lede">$ARCIRCLE's supply is fixed at one billion. Rewards and the burn engine run on real ecosystem income: the sources that turn the $ARCIRCLE flywheel.</p>
       <div class="ax-rev" data-flow>
         <div class="ax-rev-list" data-rev-list>
           <div class="ax-rev-row" style="--acc:#4d9fff" data-rev="launch">
@@ -161,7 +270,7 @@
         <div class="rw-dash-card" style="--acc:#39ff88"><span>Earned so far</span><strong data-tk="earned">—</strong><small>Launch fees + $ARCIRCLE creator fee, in USDC</small></div>
         <div class="rw-dash-card" style="--acc:#4d9fff"><span>Launch fees</span><strong data-tk="fees">—</strong><small data-tk="fees-sub">1 USDC × every ArcPad launch</small></div>
         <div class="rw-dash-card" style="--acc:#35d8d0"><span>Creator fee</span><strong data-tk="tax">—</strong><small data-tk="tax-sub">90% of the tax on every $ARCIRCLE trade</small></div>
-        <div class="rw-dash-card" style="--acc:#ffc861"><span>CirclePad share</span><strong data-tk="raise">—</strong><small data-tk="raise-sub">5% of round #1 when it closes</small></div>
+        <div class="rw-dash-card" style="--acc:#ffc861"><span>CirclePad share</span><strong data-tk="raise">—</strong><small data-tk="raise-sub">5% of each round's raise at the close</small></div>
       </div>
 
       <div class="rw-live">
@@ -264,7 +373,7 @@
     <section class="ax-section" id="check">
       <div class="ax-kicker">Your wallet</div>
       <h2>Check a wallet.</h2>
-      <p class="ax-section-lede">See the on-chain activity the programs are designed around — read live from Arc. This is a preview, not an eligibility check: no rewards are live yet and nothing here promises any.</p>
+      <p class="ax-section-lede">See the on-chain activity the programs are designed around, and how much $ARCIRCLE a wallet has burned — read live from Arc. This is a preview, not an eligibility check: no rewards are live yet and nothing here promises any.</p>
       <form class="rw-check" id="rw-check-form" autocomplete="off">
         <input type="text" id="rw-addr" placeholder="Paste a wallet address (0x…)" spellcheck="false" aria-label="Wallet address">
         <button type="submit" class="ax-btn ax-btn-grad">Check</button>
@@ -288,6 +397,12 @@
             <strong id="rw-created">—</strong>
             <small id="rw-created-sub">—</small>
           </div>
+          <div class="rw-result-card rw-result-burn" style="--acc:#ff8a4c">
+            <span>Burned by this wallet</span>
+            <strong id="rw-wburn">—</strong>
+            <small id="rw-wburn-sub">—</small>
+            <button type="button" class="rw-share-btn" id="rw-wburn-share" hidden>Make my burn card</button>
+          </div>
           <div class="rw-result-card" style="--acc:#4d9fff">
             <span>CirclePad</span>
             <strong id="rw-circle">—</strong>
@@ -306,16 +421,22 @@
       <ol class="rw-time" id="rw-time">
         <li class="rw-t done">
           <div class="rw-t-head"><h3>Phase 0 — Foundation</h3><span>Q3 2026 · Done</span></div>
-          <p>$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and 12.63% of the supply has been burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.</p>
+          <p>$ARCIRCLE launched on Argus with its whole supply in one locked Uniswap v4 position, and <span data-rb="pct-inline" data-no-i18n>12.6%</span> of the supply has been burned. ArcPad live on Arc mainnet. CirclePad escrow deployed.</p>
         </li>
         <li class="rw-t now">
           <span class="rw-here">We are here</span>
           <div class="rw-t-head"><h3>Phase 1 — First rounds</h3><span>Q4 2026 · In progress</span></div>
-          <p>Publish the flywheel revenue split. First treasury buybacks of $ARCIRCLE, posted with transaction links. First CirclePad round.</p>
+          <ul>
+            <li class="ok">First CirclePad round: Round #1 raised 1,565.66 USDC and launched $ARCIA</li>
+            <li class="ok">Burns in every utility, tracked live by source on this page</li>
+            <li>Treasury buybacks of $ARCIRCLE, posted with transaction links</li>
+            <li>Publish the flywheel revenue split</li>
+          </ul>
         </li>
         <li class="rw-t next">
-          <div class="rw-t-head"><h3>Phase 2 — Rewards</h3><span>Q4 2026 – Q1 2027 · Planned</span></div>
+          <div class="rw-t-head"><h3>Phase 2 — Burn engine &amp; rewards</h3><span>Q4 2026 – Q1 2027 · Planned</span></div>
           <ul>
+            <li>The burn engine: the ARCIRCLE reward contract with $ARCIRCLE and $ARCIA, automatic buyback-and-burn from utility and platform revenue (timeline shared as each piece is ready)</li>
             <li>Holder rewards v1 — time-weighted snapshots, funded by revenue</li>
             <li>Creator rewards v1 — based on organic volume, buyers and retention</li>
             <li>Rewards dashboard and claim on this page</li>
@@ -353,7 +474,9 @@
       <div class="ax-kicker">FAQ</div>
       <h2>Questions about rewards.</h2>
       <div class="ax-faq">
-        <details><summary>Are rewards live?</summary><p>Not yet. The program is in design, and it only goes live once its rules are published on this page.</p></details>
+        <details><summary>Are rewards live?</summary><p>Not yet. Burns are live today in every utility; the reward contract and the holder and creator programs are being built, and they only go live once their rules are published on this page.</p></details>
+        <details><summary>What is the burn engine?</summary><p>A reward contract that receives utility and platform revenue and buys back and burns $ARCIRCLE and $ARCIA automatically, so no one has to press a button. The core framework is being built; contract details, burn ratios and the rollout timeline are shared as each piece is ready.</p></details>
+        <details><summary>How are burns labeled by source?</summary><p>Each transfer to 0x…dEaD is matched to its transaction: the contract it called (burn-to-vote, Builder Mine, ARCIA DESK), or the Token Scanner unlock or secret file it paid for. Anything else is shown as a direct burn from a wallet.</p></details>
         <details><summary>Do I need to do anything now?</summary><p>No. There is nothing to register or claim today. The wallet check above only shows the on-chain activity the programs are designed around.</p></details>
         <details><summary>Will buying just before a snapshot help?</summary><p>The candidate design uses time-weighted balances and unannounced snapshots, so a balance held for a moment counts for very little.</p></details>
         <details><summary>Where does the money come from?</summary><p>From what the ecosystem earns: the five revenue sources above. No new $ARCIRCLE is ever minted to pay rewards.</p></details>
@@ -374,7 +497,7 @@
       </div>
     </section>
 
-    <p class="ax-disclaimer">Everything on this page is design intent. The reward program is not live, and its final form may differ from what is described here; it will only go live once its rules are published on this page. $ARCIRCLE is a community memecoin — holding it is not a share, a claim on revenue or a right to any payment. Nothing here is financial advice or a promise of returns. Full details: <a class="rw-link" href="/whitepaper#p-rewards">whitepaper, Section 8</a>.</p>
+    <p class="ax-disclaimer">Burn figures are read live from Arc. The reward contract, the automated buyback-and-burn and the reward programs are design intent: they are not live yet, their final form may differ from what is described here, and each goes live only once its rules are published on this page. $ARCIRCLE is a community memecoin — holding it is not a share, a claim on revenue or a right to any payment. Nothing here is financial advice or a promise of returns. Full details: <a class="rw-link" href="/whitepaper#p-rewards">whitepaper, Section 8</a>.</p>
 
   </div>
 </main>
@@ -390,7 +513,7 @@
   </a>
   <a class="ax-dock-item" data-accent="reward" href="/reward" aria-current="page">
     <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 10h18M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></span>
-    <span class="ax-dock-txt"><strong>Reward</strong><small>Coming soon</small></span>
+    <span class="ax-dock-txt"><strong>Reward</strong><small>Burn engine</small></span>
   </a>
   <span class="ax-dock-sep" aria-hidden="true"></span>
   <a class="ax-dock-item" data-accent="token" href="/arcircle">
@@ -401,6 +524,7 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 13 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, arc-fx.js, arcircle-live.js, arc-token.js, reward.js, arc-motion.js, arc-footer.js, arcircle-hub.js, arc-social.js, arc-a11y.js, i18n.js) -->
-<script src="reward.bundle.js?v=1790694900"></script>
+<!-- reward-engine.js (burn meter, engine flow, live burns, coins, wallet burn card) is part of this bundle -->
+<script src="reward.bundle.js?v=1790700151"></script>
 </body>
 </html>

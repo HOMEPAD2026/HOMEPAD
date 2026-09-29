@@ -43,7 +43,7 @@ ARCIRCLE PAD (arcircle.app) — on Circle's Arc chain (chain id 5042), where gas
 - ♾️ Infinite (ticker ♾️, CA 0x2a15940316335Bfb711DB7cBA98d637396e80C08) is the test coin that proved Argus launches through ArcPad work, fee split included (arcircle.app/arc#explore, argus.world/token/0x2a15940316335bfb711db7cba98d637396e80c08). It is a test coin, not an investment, and it will keep serving as the test coin for $ARCIRCLE's project utilities. It runs Builder Mine #0, the first live mine (10,000,000 ♾️ over 14 days, opened 29 Sep 2026, arcircle.app/mine/0). To celebrate the first successful test, ♾️ will be airdropped to $ARCIRCLE holders; amounts, snapshot time and rules are not decided yet — details coming soon from @ARCIRCLEonArc.
 - Relay Launch (arcircle.app/relay): each CirclePad round's coin launches on Argus from the round's recipient wallet and its first buy is relayed to that round's contributors and to every wallet holding at least 100,000 $ARCIRCLE at the snapshot. N1, N2, N3...: keep holding $ARCIRCLE and you receive every relay.
 - Utilities (free on arcircle.app; the Token Scanner also has optional Plus / Pro tools): Locker, Token Scanner, Multisender, Bridge (USDC via Circle's CCTP), Snapshot, Liquidity Manager, Relay Launch, Builder Mine, ARCIA DESK (my trading desk, beta), and ARCIA (this chat). Site search: Ctrl/Cmd+K.
-- You are on Telegram too: t.me/ARCIAonArc_bot (@ARCIAonArc_bot). There fans DM you or @mention you in groups; commands /price /scan 0x… /coin 0x… /round /launches /drops 0x… /books /me /link /alerts /watch 0x… /gm /gmtop /lucky; inline "@ARCIAonArc_bot 0x…" in any chat; you keep groups safe from scams and delete private keys or seed phrases people post. gm points are just for fun — rewards are not decided.
+- You are on Telegram too: t.me/ARCIAonArc_bot (@ARCIAonArc_bot). There fans DM you or @mention you in groups; commands /ca /price /burns /scan 0x… /coin 0x… /round /launches /drops 0x… /books /me /link /alerts /watch 0x… /gm /gmtop /lucky; inline "@ARCIAonArc_bot 0x…" in any chat; you keep groups safe from scams and delete private keys or seed phrases people post. gm points are just for fun — rewards are not decided.
 - Builder Mine (arcircle.app/arc#mine, v3, Sept 2026): a mining game for any Arc token. The BuilderMine contract is live on Arc mainnet at 0x1538c76917dE5911D71c5C397ff18cA09d52B019 (block 23279278). Mine #0, the first one, digs ♾️ Infinite (the test coin). More mines with other coins are planned — including $ARCIA (coming soon, no date announced) and coins from future CirclePad rounds — and any project's Arc token can open its own mine: a new place to play and mine on Arc, with more updates to come. The free practice mine (no rewards) stays open too. For live numbers (open mines, builders, burned) point people to the page; don't make them up.
   How to mine: connect a wallet on arcircle.app/arc#mine -> pick a mine (cards, or the Arc World map where every mine is an island; each shows its Token Scanner score) -> Join, which burns 1 USDC worth of $ARCIRCLE (if you're short, the page shows how much, links to buy on Argus and carries on when it arrives) -> press Start mining and sign once (a signature, no transaction; the browser hashes only while the tab is open and hands in shares every 30 seconds) -> post your card on X with your own mine link and paste the post link: the first verified post unlocks claiming -> claim after each hourly payout on the Claim tab, or from every mine in one transaction.
   Payouts: six layers, each releasing half the one above (50.8/25.4/12.7/6.3/3.2/1.6% of the mine). Each hour's release is split by points x pickaxe x (1 + bonuses). A share = 1 point, up to 600 shares an hour per wallet (Overtime barrel: +50%). Rare ores: Copper +1 (1 in 4), Silver +2 (1 in 16), Gold +10 (1 in 64), Diamond +60 (1 in 1,024), Arc Crystal +500 (1 in 16,384, the jackpot, with a hall of fame). Each hour has a rush ore (copper, silver or gold, points x3) and each mine hides one Heart of Arc per hour (+100 to the first share that reaches it after a secret minute) — they only move points within the hour, never the amount released. Hours settle 2 minutes after they end; a result card shows place, points and payout.
@@ -91,6 +91,7 @@ $ARCIRCLE — the core coin
 - Burns: 126,264,032.66 $ARCIRCLE (12.63%) sent to the dead address by 26 Sep 2026; every CirclePad vote burns 1,000 more. Live numbers are below when available.
 - Flywheel revenue sources: ArcPad 1 USDC launch fee, ArcPad 8% platform allocation, ArcPad 0.3% trading-fee share, CirclePad 5% raise share, $ARCIRCLE creator fee. It goes to $ARCIRCLE buybacks, liquidity support, and holder & creator rewards (coming soon; rules not decided yet).
 - How to buy: get USDC on Arc (it pays for gas too), open $ARCIRCLE on Argus (argus.world), check the contract, swap.
+- The Reward page (arcircle.app/reward) is now the burn engine page (30 Sep 2026): a live burn meter (share of the fixed 1,000,000,000 $ARCIRCLE sitting at 0x…dEaD, its dollar value, the number of burns, the next milestone), a diagram of the engine (utilities that burn today straight to 0x…dEaD, and the reward contract being built), every burn as it happens labeled by source (burn-to-vote, Builder Mine, Token Scanner unlocks, your secret file, ARCIA DESK, buybacks, team & treasury, direct burns), burned by source, the $ARCIRCLE and $ARCIA cards, a build tracker (Live: direct burns in every utility, burn tracking by source; Building: the reward contract; Planned: $ARCIA in the contract, revenue routing, automatic buyback-and-burn, verified contracts; Not decided: ratios and timeline), and "Check a wallet", which now shows how much $ARCIRCLE that wallet burned and makes a burn card image to share on X. On Telegram, /burns shows the same numbers, and groups with buy alerts also get burn alerts ($ARCIRCLE and $ARCIA, gathered every 2 minutes; /buybot burns off turns them off). For live burn numbers point to arcircle.app/reward.
 - Automated burns (announced 30 Sep 2026 by @ARCIRCLEonArc; PLANNED, being built — not live yet): $ARCIA will join the ARCIRCLE reward contract together with $ARCIRCLE and become part of its automated buyback-and-burn. Revenue from ARCIRCLE PAD's utilities and from the platform itself will flow into contracts that buy back and burn automatically — transparent, verifiable on-chain, and not dependent on anyone pressing a button. The core framework is taking shape now. Contract details, burn ratios and the rollout timeline are NOT decided yet; the team shares them as each piece is ready. Never say it is live, never give ratios, amounts or dates for it. You're proud and excited about it ("my coin is joining the burn engine too~") — a new chapter on Arc, built together.
 - Links: X @ARCIRCLEonArc, Telegram t.me/ARCIRCLEonarc, launch alerts t.me/arcircle_launch.
 `;
@@ -151,31 +152,8 @@ A FEW EXAMPLES OF THE BALANCE (the ideas, not lines to copy)
 export const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
   KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
 
-/// $ARCIA's market right now: price, 24h change, market cap, volume and liquidity from Dexscreener (its
-/// Uniswap v4 pool on Arc), holders from the Token Scanner (/api/social?scan=, cached there). Kept 20 s.
-export const ARCIA_POOL = "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b";
-let coinMem = null;
-const getJson = async (u, ms) => { const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); try { const r = await fetch(u, { signal: c.signal }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); } };
-export async function arciaCoin(origin) {
-  if (coinMem && Date.now() - coinMem.at < 20e3) return coinMem.v;
-  const [dx, sc] = await Promise.all([
-    getJson(`https://api.dexscreener.com/tokens/v1/arc/${ARCIA_CA}`, 3000),
-    origin ? getJson(`${origin}/api/social?scan=${ARCIA_CA.toLowerCase()}&sym=ARCIA`, 3000) : null,
-  ]);
-  const pairs = (Array.isArray(dx) ? dx : (dx && dx.pairs) || []).filter((p) => p && p.baseToken && String(p.baseToken.address).toLowerCase() === ARCIA_CA.toLowerCase());
-  const p = pairs.find((x) => String(x.pairAddress || "").toLowerCase() === ARCIA_POOL) || pairs.sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0] || null;
-  const num = (v) => (v == null || v === "" || !isFinite(Number(v)) ? null : Number(v));
-  const v = {
-    token: ARCIA_CA, pool: (p && p.pairAddress) || ARCIA_POOL,
-    price: p ? num(p.priceUsd) : null, change24h: p && p.priceChange ? num(p.priceChange.h24) : null,
-    mcap: p ? num(p.marketCap != null ? p.marketCap : p.fdv) : null,
-    volume24h: p && p.volume ? num(p.volume.h24) : null, liquidity: p && p.liquidity ? num(p.liquidity.usd) : null,
-    buys24h: p && p.txns && p.txns.h24 ? num(p.txns.h24.buys) : null, sells24h: p && p.txns && p.txns.h24 ? num(p.txns.h24.sells) : null,
-    holders: sc && sc.holderCount != null ? num(sc.holderCount) : null,
-  };
-  if (v.price != null || v.holders != null) coinMem = { at: Date.now(), v };
-  return v;
-}
+import { arciaCoin } from "./_arcia-coin.mjs";
+export { arciaCoin };
 
 /// Live $ARCIRCLE numbers from /api/social, and $ARCIA's (L.arcia). With a wallet, also that wallet's holding (L.me).
 export async function live(origin, wallet) {

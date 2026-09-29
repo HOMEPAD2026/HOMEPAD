@@ -12,7 +12,9 @@
 //                               Dexscreener when it isn't given) · /buybot remove 0xTOKEN
 //   /buybot test                ARCIRCLE bot admins: post the latest buy here again, marked as a test
 // Reads only: nothing here signs or sends a transaction.
-import { getLogs, latestBlock, ethCalls, rpc, toQty, isAddr, PM_ADDRESS, TOPIC } from "./_arc.mjs";
+import { getLogs, latestBlock, ethCalls, rpc, rpcCall, toQty, isAddr, PM_ADDRESS, TOPIC } from "./_arc.mjs";
+import { kindOf } from "./_token.mjs";
+import { getDocs } from "./_store.mjs";
 import { ARCIRCLE_TOKEN, ARCIRCLE_POOL_ID, ARCIRCLE_QUOTE } from "./_arcircle.mjs";
 import { SITE, h, lc, short, compact, sleep, tg, kb, getDoc, putDoc } from "./_tg-lib.mjs";
 
@@ -41,7 +43,10 @@ export async function load() {
   const main = at >= 0 ? tokens.splice(at, 1)[0] : { t: CFG.main, pool: CFG.mainPool, sym: CFG.mainSym };
   if (!main.pool) main.pool = CFG.mainPool;
   tokens.unshift(main);
-  return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "", last: d.last || null, lastPost: d.lastPost || null, lastPostErr: d.lastPostErr || null };
+  // $ARCIRCLE's burns are always posted, even when its buys aren't followed
+  if (CFG.arcircle && !tokens.some((t) => t && t.t === CFG.arcircle)) tokens.push({ t: CFG.arcircle, pool: CFG.arcirclePool, sym: "ARCIRCLE", burnsOnly: true });
+  return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "", last: d.last || null, lastPost: d.lastPost || null, lastPostErr: d.lastPostErr || null,
+    burnPend: d.burnPend || {}, burnAt: d.burnAt || 0, burnMs: d.burnMs || {}, burnSeen: Array.isArray(d.burnSeen) ? d.burnSeen : [] };
 }
 export const save = (s) => putDoc(KEY, s);
 
@@ -144,6 +149,84 @@ async function post(S, chatId, b, opts) {
   return r;
 }
 
+// ---- burns: $ARCIRCLE and $ARCIA sent to 0x…dEaD, gathered and posted at most every 2 minutes per coin
+// (burn-to-vote alone can be many small burns), with where they came from and the total burned so far.
+// A group turns them off with /buybot burns off (they're on wherever buy alerts are on).
+const DEAD = "0x000000000000000000000000000000000000dead";
+const DEAD_TOPIC = "0x" + DEAD.slice(2).padStart(64, "0");
+const BURN_EVERY = 120e3;
+export const BURN_MS = [15, 20, 25, 30, 40, 50, 60, 75, 90];
+const KIND_NAME = { vote: "Burn-to-vote", mine: "Builder Mine", scanner: "Token Scanner", secret: "ARCIA's secret file", desk: "ARCIA DESK", buyback: "Buyback", team: "Team & treasury", wallet: "Direct burn" };
+function burnTokens(S) { return S.tokens.filter((t) => t.dec != null); }
+async function gatherBurns(S, logs) {
+  for (const l of logs) {
+    const key = `${l.transactionHash}:${parseInt(l.logIndex, 16)}`;
+    if (S.burnSeen.includes(key)) continue;
+    S.burnSeen = [...S.burnSeen, key].slice(-300);
+    const t = lc(l.address), tk = S.tokens.find((x) => x.t === t);
+    if (!tk) continue;
+    const p = S.burnPend[t] || (S.burnPend[t] = { tok: 0, n: 0, txs: [], froms: [] });
+    p.tok += Number(BigInt(l.data || "0x0")) / 10 ** (tk.dec || 18); p.n++;
+    p.txs = [...p.txs, l.transactionHash].slice(-12);
+    p.froms = [...p.froms, lc("0x" + String(l.topics[1]).slice(26))].slice(-12);
+  }
+}
+async function burnKinds(p) {
+  const txs = [...new Set(p.txs)].slice(-10);
+  const tos = await Promise.all(txs.map((h) => rpcCall("eth_getTransactionByHash", [h]).then((x) => lc(x && x.to)).catch(() => "")));
+  let docs = {};
+  try { docs = (await getDocs(txs.flatMap((h) => [`scanBurn/${lc(h)}`, `arciaSecretTx/${lc(h)}`]))) || {}; } catch { docs = {}; }
+  const count = {};
+  txs.forEach((h, i) => {
+    const k = kindOf({ fr: p.froms[p.txs.lastIndexOf(h)] || "" }, tos[i], { scanner: !!docs[`scanBurn/${lc(h)}`], secret: !!docs[`arciaSecretTx/${lc(h)}`] });
+    count[k] = (count[k] || 0) + 1;
+  });
+  return Object.entries(count).sort((a, b) => b[1] - a[1]).map(([k, n]) => (KIND_NAME[k] || k) + (n > 1 ? " ×" + n : "")).join(" · ");
+}
+export function burnMessage(tk, p, from, totalPct, milestone) {
+  const n = Math.max(1, Math.min(12, Math.round(Math.log10(Math.max(10, p.tok)) * 2)));
+  const text = [
+    milestone ? `🏆 <b>MILESTONE: ${milestone}% of $${h(tk.sym)} burned forever</b>` : null,
+    `🔥 <b>$${h(tk.sym)} BURNED</b>`,
+    "🔥".repeat(n),
+    "",
+    `🪙 <b>Burned</b>   ${compact(p.tok)} $${h(tk.sym)}${p.n > 1 ? ` (${p.n} burns)` : ""}`,
+    from ? `🏷 <b>From</b>   ${h(from)}` : null,
+    totalPct != null ? `📊 <b>Total burned</b>   ${totalPct.toFixed(2)}% of the supply` : null,
+    "",
+    `<i>💬 ARCIA: ${milestone ? "A new milestone~ thank you for burning with me 💙💚" : "Gone forever~ the burn engine keeps going 💙💚"}</i>`,
+  ].filter((x) => x !== null).join("\n");
+  const last = p.txs[p.txs.length - 1];
+  const buttons = [[{ text: "🔥 Burn engine", url: `${SITE}/reward` }, ...(last ? [{ text: "🔍 Transaction", url: `${EXPLORER}/tx/${last}` }] : [])]];
+  return { text, buttons };
+}
+async function flushBurns(S, out, force = false) {
+  if (!force && Date.now() - (S.burnAt || 0) < BURN_EVERY) return;
+  const coins = Object.keys(S.burnPend).filter((t) => S.burnPend[t] && S.burnPend[t].n > 0);
+  if (!coins.length) return;
+  S.burnAt = Date.now();
+  for (const t of coins) {
+    const tk = S.tokens.find((x) => x.t === t), p = S.burnPend[t];
+    delete S.burnPend[t];
+    if (!tk) continue;
+    let pct = null;
+    try { const [b] = await ethCalls([{ to: t, data: SEL.balanceOf + pad(DEAD) }]); if (b && tk.supply) pct = (Number(BigInt(b)) / Number(BigInt(tk.supply))) * 100; } catch { /* no total this time */ }
+    let ms = null;
+    if (pct != null) {
+      const hit = BURN_MS.filter((m) => pct >= m && !(S.burnMs[t] || []).includes(m));
+      if (hit.length) { S.burnMs[t] = [...(S.burnMs[t] || []), ...hit]; ms = S.burnMs[t].length === hit.length && hit.length > 1 ? null : hit[hit.length - 1]; } // first run: remember, don't announce old milestones
+    }
+    const from = await burnKinds(p).catch(() => "");
+    const { text, buttons } = burnMessage(tk, p, from, pct, ms);
+    for (const [id, cc] of Object.entries(S.chats)) {
+      if (cc.burns === false) continue;
+      const r = await tg("sendMessage", { chat_id: id, text, parse_mode: "HTML", link_preview_options: { is_disabled: true }, ...kb(buttons) });
+      if (r.ok) out.burnsPosted = (out.burnsPosted || 0) + 1;
+      else if (/chat not found|kicked|not a member|blocked/i.test(r.description || "")) delete S.chats[String(id)];
+    }
+  }
+}
+
 /// one run: from the last block seen to the head, every few seconds until the time is up
 export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
   const t0 = Date.now();
@@ -151,7 +234,7 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
   const out = { posted: 0, buys: 0, chats: Object.keys(S.chats).length, polls: 0 };
   if (!out.chats) { S.last = { at: Date.now(), note: "no group has /buybot on" }; await save(S); return { ...out, note: "no group has /buybot on" }; }
   for (const tk of S.tokens) { try { await fill(tk); } catch { /* next run */ } }
-  const pools = S.tokens.filter((t) => t.pool && t.dec != null).map((t) => t.pool);
+  const pools = S.tokens.filter((t) => t.pool && t.dec != null && !t.burnsOnly).map((t) => t.pool);
   if (!pools.length) return out;
   do {
     out.polls++;
@@ -163,6 +246,12 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
       let logs = [];
       try { logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, pools], fromBlock: toQty(from), toBlock: toQty(head) }, 2); }
       catch (e) { S.err = String(e.message || e).slice(0, 160); break; }
+      // burns of our coins in the same range
+      const bt = burnTokens(S).map((t) => t.t);
+      if (bt.length) {
+        try { await gatherBurns(S, await getLogs({ address: bt, topics: [TOPIC.transfer, null, DEAD_TOPIC], fromBlock: toQty(from), toBlock: toQty(head) }, 2)); }
+        catch { /* next poll */ }
+      }
       const buys = (await toBuys(S, logs)).filter((b) => !S.seen.includes(`${b.tx}:${b.idx}`));
       out.buys += buys.length;
       for (const b of buys) {
@@ -176,6 +265,7 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
         }
       }
       S.hi = head; S.err = "";
+      await flushBurns(S, out).catch((e) => { S.err = "burns: " + String(e.message || e).slice(0, 120); });
     }
     if (Date.now() - t0 + everyMs > budgetMs) break;
     await sleep(everyMs);
@@ -203,8 +293,9 @@ export async function health() {
 export async function status(chatId) {
   const S = await load();
   const cc = S.chats[String(chatId)];
-  const coins = S.tokens.map((t) => `$${h(t.sym || "?")} <code>${short(t.t)}</code>`).join(", ");
-  return `<b>Buy alerts</b> — ${cc ? `on here${cc.min ? `, buys of $${cc.min}+` : ", every buy"}` : "off here"}\nFollowing: ${coins}\n\n/buybot on [min] · /buybot min 10 · /buybot off`;
+  const coins = S.tokens.filter((t) => !t.burnsOnly).map((t) => `$${h(t.sym || "?")} <code>${short(t.t)}</code>`).join(", ");
+  const burns = S.tokens.map((t) => `$${h(t.sym || "?")}`).join(", ");
+  return `<b>Buy alerts</b> — ${cc ? `on here${cc.min ? `, buys of $${cc.min}+` : ", every buy"}` : "off here"}\nFollowing: ${coins}\n<b>Burn alerts</b> — ${cc && cc.burns !== false ? "on" : "off"} here (${burns})\n\n/buybot on [min] · /buybot min 10 · /buybot off · /buybot burns on|off`;
 }
 export async function setChat(chatId, title, patch) {
   const S = await load();
@@ -213,6 +304,14 @@ export async function setChat(chatId, title, patch) {
   if (!S.hi) { try { S.hi = (await latestBlock()).number; } catch { /* the first run sets it */ } }
   await save(S);
   return S.chats[String(chatId)] || null;
+}
+export async function setBurns(chatId, on) {
+  const S = await load();
+  const cc = S.chats[String(chatId)];
+  if (!cc) return { error: "Turn buy alerts on here first: /buybot on" };
+  cc.burns = !!on;
+  await save(S);
+  return { ok: true };
 }
 export async function addToken(token, pool) {
   if (!isAddr(token)) return { error: "Send the token's contract address: /buybot add 0x…" };
@@ -242,10 +341,10 @@ export async function test(chatId) {
   for (const tk of S.tokens) { try { await fill(tk); } catch { /* skip */ } }
   const head = (await latestBlock()).number;
   for (let to = head, k = 0; k < 3; k++, to -= MAX_RANGE) {
-    const logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, S.tokens.map((t) => t.pool)], fromBlock: toQty(Math.max(0, to - MAX_RANGE + 1)), toBlock: toQty(to) }, 2);
+    const logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, S.tokens.filter((t) => !t.burnsOnly).map((t) => t.pool)], fromBlock: toQty(Math.max(0, to - MAX_RANGE + 1)), toBlock: toQty(to) }, 2);
     const buys = await toBuys(S, logs.slice(-40));
     if (buys.length) { const r = await post(S, chatId, buys[buys.length - 1], { test: true }); if (S.dirty) { delete S.dirty; await save(S); } return r.ok ? { ok: true } : { error: r.description || "couldn't post" }; }
   }
   return { error: "No buy in the last few hours to show." };
 }
-export const _test = { toBuys, fill, configure: (x) => Object.assign(CFG, x) };
+export const _test = { toBuys, fill, gatherBurns, flushBurns, configure: (x) => Object.assign(CFG, x) };

@@ -179,6 +179,8 @@
           ? "Invites brought " + usd(ws.referrals.usdc, true) + " into CirclePad"
           : ws.circle > 0 ? "Contributed to round #1" : "No CirclePad contribution yet";
       }
+      // the burn card (reward-engine.js) fills itself from the same answer
+      document.dispatchEvent(new CustomEvent("reward:wallet", { detail: { address: addr, wallet: ws } }));
 
       var list = $("rw-created-list");
       list.innerHTML = "";
@@ -331,16 +333,17 @@
     else ol.classList.add("fill");
   }
 
-  // ---- Tabs: the page is five short views instead of one long scroll.
+  // ---- Tabs: the page is seven short views instead of one long scroll (the burn engine first).
   // Section ids stay as they were, so #funding, #check=0x…, #faq… still land
   // on the right view (and in-page links switch views).
   var TABS = [
+    { id: "engine", label: "Burn engine", secs: ["engine", "burns"] },
+    { id: "build", label: "Build", secs: ["build", "timeline"] },
     { id: "programs", label: "Programs", secs: ["programs", "principles"] },
     { id: "study", label: "Under study", secs: ["mechanics", "next"] },
     { id: "funding", label: "Funding", secs: ["funding"] },
     { id: "wallet", label: "My wallet", secs: ["check"] },
-    { id: "roadmap", label: "Roadmap", secs: ["timeline", "alerts"] },
-    { id: "faq", label: "FAQ", secs: ["faq", "commitments"] },
+    { id: "faq", label: "FAQ", secs: ["faq", "commitments", "alerts"] },
   ];
   var showTab = null;
   function mountTabs() {

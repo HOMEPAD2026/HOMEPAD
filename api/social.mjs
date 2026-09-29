@@ -38,7 +38,8 @@
 //   GET  /api/social?liqsafe=<token>             Liquidity Manager: scanner verdict + trade/tax checks
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up", … }  (api/_circle.mjs)
-//   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, revenue, a wallet's holding (api/_token.mjs)
+//   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
+//   GET  /api/social?coin=arcia                  $ARCIA market, holders and burned (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
 //   GET  /api/social?cctp=fees|msg&src=…        Bridge: Circle CCTP fee quotes / transfer status (api/_cctp.mjs)
 //
@@ -55,6 +56,7 @@ import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs
 import * as circle from "./_circle.mjs";
 import * as rounds from "./_rounds.mjs";
 import * as burnvote from "./_burnvote.mjs";
+import { arciaCoin, arciaBurned } from "./_arcia-coin.mjs";
 import * as token from "./_token.mjs";
 import { cctp } from "./_cctp.mjs";
 import * as scanner from "./_scan.mjs";
@@ -215,6 +217,13 @@ export async function GET(req) {
       const v = await burnvote.voteTx(url.searchParams.get("tx"));
       return v ? json(200, v, "public, max-age=300, s-maxage=86400") : json(404, { error: "no CirclePad vote in that transaction" }, "public, max-age=30");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  // $ARCIA for the Reward page: market (Dexscreener), holders (Token Scanner) and what sits at 0x…dEaD
+  if (url.searchParams.get("coin") === "arcia") {
+    try {
+      const [m, b] = await Promise.all([arciaCoin(url.origin).catch(() => null), arciaBurned().catch(() => null)]);
+      return json(200, { ...(m || {}), burned: b ? b.burned : null, burnedPct: b ? b.pct : null, supply: b ? b.supply : null }, "public, max-age=20, s-maxage=30, stale-while-revalidate=300");
+    } catch (err) { return json(502, { error: "couldn't read $ARCIA right now" }); }
   }
   if (url.searchParams.get("token") === "arcircle") {
     try {

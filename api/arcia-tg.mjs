@@ -78,7 +78,7 @@ const L3 = (lang) => (lang === "ko" ? 1 : lang === "zh" ? 2 : 0);
 const w = (k, lang, vars = {}) => W[k][L3(lang)].replace(/\{(\w+)\}/g, (_, x) => (vars[x] != null ? vars[x] : ""));
 const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
-const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
+const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
@@ -118,6 +118,28 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
 const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b>:\n<code>${h(CHECKSUM.arcia)}</code>`;
 const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5" };
+// /burns: everything burned so far, where it came from, and the latest burns (the Reward page's numbers)
+const BURN_NAMES = { vote: ["Burn-to-vote", "소각 투표", "销毁投票"], mine: ["Builder Mine", "빌더 마인", "Builder Mine"], scanner: ["Token Scanner", "토큰 스캐너", "代币扫描器"],
+  secret: ["ARCIA's secret file", "ARCIA 시크릿 파일", "ARCIA 秘密档案"], desk: ["ARCIA DESK", "ARCIA DESK", "ARCIA DESK"], buyback: ["Buyback", "바이백", "回购"],
+  team: ["Team & treasury", "팀 · 트레저리", "团队与金库"], wallet: ["Direct burn", "직접 소각", "直接销毁"], pending: ["Being labeled", "분류 중", "标注中"] };
+async function cardBurns(lang) {
+  let d = null;
+  try { const r = await fetch(`${SITE}/api/social?token=arcircle`); d = r.ok ? await r.json() : null; } catch { d = null; }
+  const b = d && d.burned;
+  if (!b || b.pct == null) return w("err", lang);
+  const nm = (k) => T3(lang, ...(BURN_NAMES[k] || BURN_NAMES.pending));
+  const src = Object.entries(b.bySource || {}).filter(([, o]) => o.tokens > 0).sort((x, y) => y[1].tokens - x[1].tokens).slice(0, 6)
+    .map(([k, o]) => `· ${h(nm(k))}: <b>${compact(o.tokens)}</b> (${o.n})`);
+  const last = (b.list || []).slice(0, 5).map((x) => `🔥 ${compact(x.tokens)} · ${h(nm(x.kind || "pending"))}`);
+  return {
+    photo: `${SITE}/api/og?price=1&t=${minute()}`,
+    text: [`🔥 <b>$ARCIRCLE burned forever</b>: <b>${b.pct.toFixed(2)}%</b> · ${compact(b.tokens)}${b.n != null ? ` · ${num(b.n)} ${T3(lang, "burns", "회", "次")}` : ""}`,
+      src.length ? `\n<b>${T3(lang, "By source", "출처별", "按来源")}</b>\n${src.join("\n")}` : null,
+      last.length ? `\n<b>${T3(lang, "Latest", "최근", "最新")}</b>\n${last.join("\n")}` : null,
+      `\n${T3(lang, "The burn engine is being built: $ARCIA joins the reward contract, and utility and platform revenue will buy back and burn automatically.", "소각 엔진을 만드는 중이에요: $ARCIA가 리워드 컨트랙트에 합류하고, 유틸리티·플랫폼 수익이 자동으로 바이백·소각될 예정이에요.", "销毁引擎正在建设:$ARCIA 加入奖励合约,工具与平台收入将自动回购销毁。")}`].filter(Boolean).join("\n"),
+    buttons: [[{ text: T3(lang, "🔥 Burn engine", "🔥 소각 엔진", "🔥 销毁引擎"), url: `${SITE}/reward` }]], refresh: "burns",
+  };
+}
 async function cardPrice(lang) {
   const L = await live(SITE);
   if (!L) return w("err", lang);
@@ -238,6 +260,7 @@ async function cardMe(u, lang) {
 }
 async function cardFor(kind, arg, lang, uid) {
   if (kind === "price") return cardPrice(lang);
+  if (kind === "burns") return cardBurns(lang);
   if (kind === "scan") return cardScan(arg, lang);
   if (kind === "coin") return cardCoin(arg, lang);
   if (kind === "round") return cardRound(lang);
@@ -613,6 +636,7 @@ async function onMessage(m, channel) {
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
       case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }]]));
+      case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
       case "coin": { const ca = addrOf(arg); return ca ? sendCard(m.chat.id, await cardCoin(ca, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needCA", lang, { cmd: "coin" })); }
@@ -670,6 +694,12 @@ async function onMessage(m, channel) {
         const [sub = "", a1 = "", a2 = ""] = String(arg || "").trim().split(/\s+/);
         const s0 = lc(sub);
         if (!s0) return say(m, await BB.status(m.chat.id));
+        if (s0 === "burns") {
+          if (!group) return say(m, "Use /buybot burns on|off inside the group.");
+          if (!(await mod())) return adminOnly();
+          const r = await BB.setBurns(m.chat.id, !/^off$/i.test(a1));
+          return say(m, r.error ? h(r.error) : /^off$/i.test(a1) ? "✓ Burn alerts off here." : "✓ Burn alerts on here 🔥 — $ARCIRCLE and $ARCIA burns, gathered every 2 minutes.");
+        }
         if (s0 === "on" || s0 === "off" || s0 === "min") {
           if (!group) return say(m, "Use /buybot on inside the group where the buys should show up.");
           if (!(await mod())) return adminOnly();
@@ -682,7 +712,7 @@ async function onMessage(m, channel) {
         if (s0 === "add") { const r = await BB.addToken(a1, a2); return say(m, r.error ? h(r.error) : `✓ Following $${h(r.tk.sym)} (<code>${short(r.tk.t)}</code>) — pool <code>${short(r.tk.pool)}</code>.`); }
         if (s0 === "remove") { const r = await BB.removeToken(a1); return say(m, r.error ? h(r.error) : "✓ Stopped following it."); }
         if (s0 === "test") { const r = await BB.test(m.chat.id); return r.error ? say(m, h(r.error)) : undefined; }
-        return say(m, "/buybot · /buybot on [min] · /buybot min 10 · /buybot off\nTeam: /buybot add 0xTOKEN [0xPOOL] · /buybot remove 0xTOKEN · /buybot test");
+        return say(m, "/buybot · /buybot on [min] · /buybot min 10 · /buybot off · /buybot burns on|off\nTeam: /buybot add 0xTOKEN [0xPOOL] · /buybot remove 0xTOKEN · /buybot test");
       }
       case "gate": {
         if (!group) return say(m, "Use /gate <min $ARCIRCLE> or /gate off inside a group.");
@@ -1074,7 +1104,7 @@ async function setup() {
   const hook = await tg("setWebhook", { url: `${SITE}/api/arcia-tg`, secret_token: secret, allowed_updates: ["message", "callback_query", "channel_post", "my_chat_member", "inline_query"], max_connections: 20 });
   const cmds = await Promise.all([
     tg("setMyCommands", { commands: menu(PUBLIC_CMDS) }),
-    tg("setMyCommands", { commands: menu([["ca", "Official contract addresses"], ["price", "$ARCIRCLE price"], ["scan", "Scan a token: /scan 0x…"], ["round", "CirclePad round"], ["launches", "Newest launches"], ["gm", "Say gm"], ["report", "Reply to a message to report it"], ["help", "What I can do"]]), scope: { type: "all_group_chats" } }),
+    tg("setMyCommands", { commands: menu([["ca", "Official contract addresses"], ["price", "$ARCIRCLE price"], ["burns", "$ARCIRCLE burns"], ["scan", "Scan a token: /scan 0x…"], ["round", "CirclePad round"], ["launches", "Newest launches"], ["gm", "Say gm"], ["report", "Reply to a message to report it"], ["help", "What I can do"]]), scope: { type: "all_group_chats" } }),
     tg("deleteMyCommands", { language_code: "ko" }), tg("deleteMyCommands", { language_code: "zh" }),
     tg("setMyDescription", { description: "", language_code: "ko" }), tg("setMyShortDescription", { short_description: "", language_code: "ko" }),
     tg("setMyDescription", { description: "Hi, I'm ARCIA — the virtual idol of $ARCIRCLE on Circle's Arc 💙💚 Talk to me about ARCIRCLE PAD, scan any token, get launch and airdrop alerts, and say gm every day. I'm an AI character run by @ARCIRCLEonArc. Not financial advice." }),

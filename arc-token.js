@@ -161,6 +161,8 @@
     { id: "alloc", tag: "ArcPad", acc: "#4d9fff", name: "Platform allocation", sub: "Of every ArcPad coin's supply, set aside at launch", amt: "8%" },
     { id: "fees", tag: "ArcPad", acc: "#4d9fff", name: "Trading-fee share", sub: "30% of the 1% base fee on every ArcPad trade", amt: "0.3%" },
     { id: "raise", tag: "CirclePad", acc: "#39ff88", name: "Raise share", sub: "Of each CirclePad raise when it closes", amt: "5%" },
+    { id: "argus", tag: "ArcPad", acc: "#4d9fff", name: "Argus launch share", sub: "30% of the creator share on coins launched on Argus through ArcPad", amt: "30%" },
+    { id: "util", tag: "Utilities", acc: "#ffc861", name: "Utility revenue", sub: "Paid tools and ARCIA 402; Token Scanner unlocks and Builder Mine burn $ARCIRCLE directly", amt: "Burns" },
     { id: "tax", tag: "$ARCIRCLE", acc: "#35d8d0", name: "Creator fee", sub: "90% of the buy / sell tax on every $ARCIRCLE trade", amt: "90% of tax" },
   ];
   window.ARC_REVENUE = REVENUE;
@@ -185,6 +187,7 @@
       if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · Round #2 next";
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
+    if (id === "util") return d.burned && d.burned.bySource ? (function (b) { var t = ["scanner", "mine", "secret", "desk"].reduce(function (x, k) { return x + (b[k] ? b[k].tokens : 0); }, 0); return t > 0 ? num(t) + " $ARCIRCLE burned by utilities so far" : ""; })(d.burned.bySource) : "";
     if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live"
       : rv.curveVolume != null ? usd(rv.curveVolume) + " traded since launch" : "";
     return "";

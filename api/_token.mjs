@@ -66,7 +66,7 @@ function load(doc) {
   for (const s of doc.hold || []) { const [a, bal, first, since] = String(s).split("|"); W.hold.set(a, { bal: BigInt(bal), first: Number(first), since: Number(since) }); }
   W.trades = (doc.trades || []).map((s) => { const [b, k, usd, price] = String(s).split("|"); return { b: Number(b), buy: k === "1", usd: Number(usd), price: Number(price) }; });
   W.bb = (doc.bb || []).map((s) => { const [b, usd, tok, h, w] = String(s).split("|"); return { b: Number(b), usd: Number(usd), tok: Number(tok), h, w }; });
-  W.burns = (doc.burns || []).map((s) => { const [b, tok, h, fr] = String(s).split("|"); return { b: Number(b), tok: Number(tok), h, fr }; });
+  W.burns = (doc.burns || []).map((s) => { const [b, tok, h, fr, k] = String(s).split("|"); return { b: Number(b), tok: Number(tok), h, fr, k: k || null }; });
   W.recent = (doc.recent || []).map((s) => { const [b, k, usd, tok, tr, h] = String(s).split("|"); return { b: Number(b), buy: k === "1", usd: Number(usd), tok: Number(tok), trader: tr, h }; });
   if (doc.agg) W.agg = { vol: doc.agg.vol || 0, n: doc.agg.n || 0, tax: doc.agg.tax || 0, fee: doc.agg.fee || 0, buyVol: doc.agg.buyVol || 0, sellVol: doc.agg.sellVol || 0 };
   return W;
@@ -78,7 +78,7 @@ function save(W) {
     hold: [...W.hold.entries()].map(([a, h]) => [a, h.bal.toString(), h.first, h.since].join("|")),
     trades: W.trades.map((t) => [t.b, t.buy ? 1 : 0, +t.usd.toFixed(6), +t.price.toPrecision(8)].join("|")),
     bb: W.bb.map((x) => [x.b, +x.usd.toFixed(6), +x.tok.toFixed(4), x.h, x.w].join("|")),
-    burns: W.burns.map((x) => [x.b, +x.tok.toFixed(6), x.h, x.fr].join("|")),
+    burns: W.burns.map((x) => [x.b, +x.tok.toFixed(6), x.h, x.fr, x.k || ""].join("|")),
     recent: W.recent.map((x) => [x.b, x.buy ? 1 : 0, +x.usd.toFixed(6), +x.tok.toFixed(2), x.trader, x.h].join("|")),
   };
 }
@@ -121,7 +121,7 @@ export function apply(W, logs, bbSet) {
       const v = BigInt(l.data), fr = lc("0x" + l.topics[1].slice(26)), to = lc("0x" + l.topics[2].slice(26));
       move(W, fr, -v, b); move(W, to, v, b);
       // a transfer into a burn sink (not the mint, which comes from zero)
-      if (BURN_SINKS.has(to) && fr !== ZERO) W.burns.push({ b, tok: Number(v) / 1e18, h: l.transactionHash, fr });
+      if (BURN_SINKS.has(to) && fr !== ZERO) W.burns.push({ b, tok: Number(v) / 1e18, h: l.transactionHash, fr, k: null });
       continue;
     }
     if (POOL && lc(l.address) === PM && t0 === TOPIC.swap && lc(l.topics[1]) === POOL) { applySwap(W, l, byTx.get(l.transactionHash) || [], bbSet, b); continue; }
@@ -274,8 +274,56 @@ async function liveReads(wallets) {
   return v;
 }
 
+// ---- where each burn came from ----
+// Read once per burn (the transaction's `to`, and for a plain transfer the unlock records) and kept in the
+// state: vote (CirclePad burn-to-vote), mine (Builder Mine joins and shop), scanner (Token Scanner Plus/Pro
+// unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), buyback (a swap paid straight to
+// 0x…dEaD), team (a team or treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
+export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "buyback", "team", "wallet"];
+const BURNVOTE = "0x54121a7894d90a02ea973ab45eef424c2716eeb2";
+const MINE = () => lc(process.env.BUILDER_MINE_ADDRESS || "0x1538c76917dE5911D71c5C397ff18cA09d52B019");
+const DESK = () => lc(process.env.ARCIA_DESK_ADDRESS || "0xc30f1694203f4fc671ec769b90149e67ce3a1f03");
+const TEAM = new Set([TREASURY, "0x1a35a754a4251e46971184046ac57e8ad621672e"]); // + the factory's treasury wallets
+export function kindOf(x, txTo, marks = {}, team = TEAM) {
+  const to = lc(txTo), fr = lc(x.fr);
+  if (to === BURNVOTE) return "vote";
+  if (to === MINE()) return "mine";
+  if (to === DESK() || fr === DESK()) return "desk";
+  if (marks.scanner) return "scanner";
+  if (marks.secret) return "secret";
+  if (team.has(fr)) return "team";
+  if (fr === PM) return "buyback";
+  return "wallet";
+}
+async function classifyBurns(W, teamSet, budgetMs = 3500) {
+  const todo = W.burns.filter((x) => !x.k).slice(-40);
+  if (!todo.length) return 0;
+  const t0 = Date.now();
+  const txs = new Map();
+  for (let i = 0; i < todo.length && Date.now() - t0 < budgetMs; i += 8) {
+    const part = todo.slice(i, i + 8).filter((x) => !txs.has(x.h));
+    const got = await Promise.all(part.map((x) => rpcCall("eth_getTransactionByHash", [x.h]).catch(() => null)));
+    part.forEach((x, j) => { if (got[j]) txs.set(x.h, lc(got[j].to)); });
+  }
+  // plain transfers to 0x…dEaD: was it a Token Scanner unlock or the secret file? (their own records)
+  const direct = todo.filter((x) => txs.get(x.h) === ARCIRCLE);
+  let docs = {};
+  if (direct.length && storeEnabled()) {
+    try { docs = await getDocs(direct.flatMap((x) => [`scanBurn/${lc(x.h)}`, `arciaSecretTx/${lc(x.h)}`])); } catch { docs = null; }
+  }
+  if (docs === null) return 0; // the store didn't answer: try again later rather than guess
+  let n = 0;
+  for (const x of todo) {
+    if (!txs.has(x.h)) continue;
+    x.k = kindOf(x, txs.get(x.h), { scanner: !!docs[`scanBurn/${lc(x.h)}`], secret: !!docs[`arciaSecretTx/${lc(x.h)}`] }, teamSet);
+    n++;
+  }
+  return n;
+}
+
 // ---- the scan ----
 let mem = null; // { at, W, out }
+let savedAt = 0; // the state is saved at most every 90 s (and on the first scan), to keep store writes low
 let running = null;
 async function scanState() {
   if (mem && Date.now() - mem.at < 12e3) return mem;
@@ -320,7 +368,11 @@ async function scanState() {
     if (k) { W.p0 = W.trades[k - 1].price; W.trades = W.trades.slice(k); }
     // anchors: the first one, plus the last 9 days
     if (W.anchors.length > 2) W.anchors = W.anchors.filter((a, i) => i === 0 || a[1] >= head.ts - 9 * 86400 || i >= W.anchors.length - 2);
-    if (storeEnabled() && chunks) { try { await setDoc(DOC, save(W)); } catch (err) { console.error("token stats save", err && err.message || err); } }
+    const teamSet = new Set([...TEAM, ...bbSet]);
+    const kinds = await classifyBurns(W, teamSet).catch(() => 0);
+    if (storeEnabled() && (chunks || kinds) && (Date.now() - savedAt > 90e3 || !savedAt)) {
+      try { await setDoc(DOC, save(W)); savedAt = Date.now(); } catch (err) { console.error("token stats save", err && err.message || err); }
+    }
     mem = { at: Date.now(), W, head, complete: W.scannedTo >= head.number };
     return mem;
   })();
@@ -423,7 +475,9 @@ export async function tokenStats(wallet) {
     split: { curve: Math.round(curveTok), treasury: Math.round(treasTok), top10: Math.round(top10), others: Math.round(rest), burned: Math.round(burnedTok) },
     burned: {
       tokens: r2(burnedTok, 2), pct: r2((burnedTok / SUPPLY) * 100, 3), circulating: Math.round(SUPPLY - burnedTok),
-      list: W.burns.slice(-20).reverse().map((x) => ({ tokens: r2(x.tok, 2), pct: r2((x.tok / SUPPLY) * 100, 3), tx: x.h, from: x.fr, ts: tsAt(W, x.b) })),
+      list: W.burns.slice(-40).reverse().map((x) => ({ tokens: r2(x.tok, 2), pct: r2((x.tok / SUPPLY) * 100, 3), tx: x.h, from: x.fr, ts: tsAt(W, x.b), kind: x.k || null })),
+      n: W.burns.length,
+      bySource: burnSources(W),
     },
     top: others.slice(0, 10).map(([a, h]) => ({ address: a, pct: r2((tokOf(h) / SUPPLY) * 100, 3) })),
     buybacks: {
@@ -442,6 +496,19 @@ export async function tokenStats(wallet) {
     argus: POOL ? argusOut(L, live) : null,
   };
   if (isAddr(wallet)) out.wallet = await walletStats(st, rows, lc(wallet), now);
+  return out;
+}
+
+/// Burned $ARCIRCLE by where it came from: { vote: { tokens, n }, … } (unclassified ones as "pending").
+export function burnSources(W, wallet = null) {
+  const out = {};
+  for (const x of W.burns) {
+    if (wallet && lc(x.fr) !== wallet) continue;
+    const k = x.k || "pending";
+    const o = out[k] || (out[k] = { tokens: 0, n: 0 });
+    o.tokens += x.tok; o.n++;
+  }
+  for (const k of Object.keys(out)) out[k].tokens = r2(out[k].tokens, 2);
   return out;
 }
 
@@ -478,6 +545,8 @@ async function walletStats(st, rows, w, now) {
     circle: contrib == null ? null : r2(Number(contrib) / 1e18, 4),
     launches: creators ? creators.get(w) || 0 : null,
     referrals: refs ? { n: refs.length, usdc: r2(refs.reduce((s, r) => s + (r.amount || 0), 0), 4) } : null,
+    // $ARCIRCLE this wallet sent to 0x…dEaD itself (votes, mine, unlocks, the secret file, direct burns)
+    burned: (() => { const by = burnSources(W, w); const tokens = r2(Object.values(by).reduce((t, o) => t + o.tokens, 0), 2); return { tokens, n: Object.values(by).reduce((t, o) => t + o.n, 0), bySource: by }; })(),
   };
 }
 

@@ -42,7 +42,7 @@ export const BUNDLES = {
     "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-rounds.js", "circlepad-live.js", "circlepad-look.js", "arc-uxfx.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   "reward.bundle.js": [
-    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "reward-engine.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
     "arc-social.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // The $ARCIRCLE page needs no wallet and no ethers (config-arc.js only for

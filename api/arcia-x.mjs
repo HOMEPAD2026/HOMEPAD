@@ -109,6 +109,22 @@ async function arcircle(origin) {
   try { const r = await fetch(origin + "/api/social?token=arcircle"); return r.ok ? await r.json() : null; } catch (e) { return null; }
 }
 
+// $ARCIRCLE burn milestones (share of the fixed supply sitting at 0x…dEaD): one post per milestone, only the
+// highest one crossed since the last run (the lower ones are marked done with it)
+export const BURN_MILESTONES = [15, 20, 25, 30, 40, 50, 60, 75, 90];
+export function burnPosts(d, sent) {
+  const pct = d && d.burned && d.burned.pct;
+  if (pct == null) return [];
+  const hit = BURN_MILESTONES.filter((m) => pct >= m && !sent["burn:" + m]);
+  if (!hit.length) return [];
+  const m = hit[hit.length - 1];
+  return [{ id: "burn:" + m, also: BURN_MILESTONES.filter((x) => x < m).map((x) => "burn:" + x), text: fit([
+    `$ARCIRCLE just crossed ${m}% burned forever 🔥`, "",
+    `${num(d.burned.tokens, 0)} $ARCIRCLE now sits at 0x…dEaD, from burn-to-vote, the Token Scanner, Builder Mine, ARCIA DESK and the team.`, "",
+    "The burn engine keeps going~ 💙💚", `${SITE}/reward`,
+  ]) }];
+}
+
 function roundPosts(d, sent) {
   const c = (d && d.revenue && d.revenue.circle) || {};
   const deadline = c.deadline || ROUND1_CLOSE, s = deadline - now();
@@ -217,10 +233,11 @@ async function booksPost(st) {
 async function plan(origin, st) {
   const d = await arcircle(origin);
   const round = roundPosts(d, st.sent);
+  const burns = burnPosts(d, st.sent);
   const coins = await coinPosts(st).catch((e) => { console.error("arcia-x coins", e && e.message); return { out: [], pending: [] }; });
   const daily = dailyPost(d, st);
   const books = await booksPost(st).catch(() => []);
-  return { posts: [...round, ...coins.out, ...daily, ...books], pending: coins.pending };
+  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books], pending: coins.pending };
 }
 
 async function loadState() {
