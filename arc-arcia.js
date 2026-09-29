@@ -486,6 +486,22 @@
   // ---------------- voice ----------------
   var voices = [];
   function loadVoices() { try { voices = speechSynthesis.getVoices() || []; } catch (e) { voices = []; } }
+  // Her voice: a young woman's. Browsers only give voice names, so known female voices are ranked first,
+  // known male voices are never used, and anything unknown comes after (with a higher pitch, see speak()).
+  var FEMALE = {
+    ko: [/sunhi|선희/i, /yuna|유나/i, /seohyeon|서현/i, /jimin|지민/i, /heami|해미/i, /ko-kr-x-ism/i, /ko-kr-x-kob/i, /google.*(한국|korean)/i, /smtf/i, /female|여성|woman/i],
+    en: [/aria/i, /jenny/i, /ava\b/i, /samantha/i, /allison/i, /susan/i, /zira/i, /victoria/i, /karen/i, /serena/i, /moira/i, /tessa/i, /google us english/i, /google uk english female/i, /en-us-x-(sfg|tpf|iob|tpc)/i, /smtf/i, /female|woman/i],
+    zh: [/xiaoxiao/i, /xiaoyi/i, /huihui/i, /yaoyao/i, /ting-?ting/i, /mei-?jia/i, /sin-?ji/i, /google.*(普通话|mandarin)/i, /smtf/i, /female|女/i],
+  };
+  var MALE = /(^|[^e])male\b|\bman\b|男|남성|david|mark|guy\b|daniel|fred|alex\b|thomas|rishi|james|oliver|george|ryan|brian|eric\b|christopher|roger|andrew|steffan|injoon|인준|hyunsu|현수|junwoo|gookmin|bong-?jin|yunxi|yunyang|yunjian|kangkang|ko-kr-x-(koc|kod|jmm)|en-us-x-(iol|iom|tpd)|smtm/i;
+  function pickVoice(code) {
+    var mine = voices.filter(function (x) { return x.lang && x.lang.toLowerCase().replace("_", "-").indexOf(code) === 0 && !MALE.test(x.name + " " + (x.voiceURI || "")); });
+    var list = FEMALE[code] || [];
+    for (var i = 0; i < list.length; i++) {
+      for (var k = 0; k < mine.length; k++) if (list[i].test(mine[k].name + " " + (mine[k].voiceURI || ""))) return { voice: mine[k], female: true };
+    }
+    return { voice: mine[0] || null, female: false };
+  }
   function speak(text, li) {
     if (!("speechSynthesis" in window)) return;
     try {
@@ -496,9 +512,11 @@
       var code = /[가-힣]/.test(clean) ? "ko" : /[一-鿿]/.test(clean) ? "zh" : "en";
       u.lang = { ko: "ko-KR", zh: "zh-CN", en: "en-US" }[code];
       if (!voices.length) loadVoices();
-      var mine = voices.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(code) === 0; });
-      u.voice = mine.filter(function (v) { return /female|woman|samantha|victoria|karen|zira|aria|jenny|yuna|sora|heami|sunhi|xiaoxiao|ting-?ting|mei-?jia|google/i.test(v.name); })[0] || mine[0] || null;
-      u.pitch = 1.25; u.rate = code === "en" ? 1.02 : 1.05;
+      var v = pickVoice(code);
+      u.voice = v.voice;
+      // a known female voice gets a light lift; a voice we can't tell (Android lists one voice per language,
+      // whatever the phone's own TTS setting is) gets a higher pitch so she never sounds like a man
+      u.pitch = v.female ? 1.2 : 1.55; u.rate = code === "en" ? 1.03 : 1.06;
       u.onstart = function () { speaking(true); if (li) li.classList.add("talking"); };
       u.onend = u.onerror = function () { speaking(false); if (li) li.classList.remove("talking"); };
       speechSynthesis.speak(u);
