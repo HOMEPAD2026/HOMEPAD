@@ -47,7 +47,7 @@ const isGroup = (chat) => chat.type === "group" || chat.type === "supergroup";
 // ARCIA's chat replies always follow the language the message is written in.
 const W = {
   hello: ["Hi everyone, I'm ARCIA 💙💚 the virtual idol of $ARCIRCLE.", "안녕하세요 여러분, $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚", "大家好,我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚"],
-  welcome: ["Welcome to ARCIRCLE, {name}! 💙💚 I'm ARCIA — mention me anytime, or try /price and /scan.", "{name}님, ARCIRCLE에 오신 걸 환영해요! 💙💚 저는 ARCIA예요 — 언제든 불러 주세요. /price, /scan도 써 보세요.", "欢迎来到 ARCIRCLE,{name}!💙💚 我是 ARCIA,随时 @我,也可以试试 /price 和 /scan。"],
+  welcome: ["gm {name} 💙💚\nA little wink from ARCIA 😉\nKeep building. Keep shining. ♾️\nTry /help to see what I can do ✨", "gm {name}님 💙💚\nARCIA가 살짝 윙크 보내요 😉\nKeep building. Keep shining. ♾️\n/help 로 제가 할 수 있는 걸 확인해 보세요 ✨", "gm {name} 💙💚\nARCIA 给你一个小小的眨眼 😉\nKeep building. Keep shining. ♾️\n试试 /help,看看我能做什么 ✨"],
   start: ["Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE on Circle's Arc 💙💚\n\nTalk to me about anything ARCIRCLE PAD, send me a contract address to scan, or tap below.", "안녕하세요~ Circle Arc 위 $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚\n\nARCIRCLE PAD에 대해 뭐든 물어보고, 컨트랙트 주소를 보내면 스캔해 드려요. 아래 버튼도 눌러 보세요.", "你好~ 我是 Circle Arc 上 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚\n\n关于 ARCIRCLE PAD 的问题都可以问我,发合约地址给我就帮你扫描,也可以点下面的按钮。"],
   help: ["Here's what I can do~", "제가 할 수 있는 것들이에요~", "我能做的事~"],
   groupHint: ["In groups, @mention me or reply to my message.", "그룹에서는 저를 @멘션하거나 제 메시지에 답장해 주세요.", "在群里请 @我 或回复我的消息。"],
@@ -353,7 +353,7 @@ async function holdsEnough(uid, min) {
 async function welcome(chatId, user, lang) {
   if (tooMany(`welcome:${chatId}`, 3, 60e3)) return; // a raid of joins gets one welcome a minute or so
   const cap = w("welcome", lang, { name: nameOf(user) });
-  const r = await tg("sendAnimation", { chat_id: chatId, animation: `${SITE}/images/arcia-hello.mp4`, caption: cap, parse_mode: "HTML", ...kb([[{ text: "ArcPad", url: `${SITE}/arc` }, { text: T3(lang, "Talk to me", "대화하기", "和我聊天"), url: BOT_URL }]]) });
+  const r = await tg("sendAnimation", { chat_id: chatId, animation: `${SITE}/images/arcia-wink.mp4`, caption: cap, parse_mode: "HTML", ...kb([[{ text: "ArcPad", url: `${SITE}/arc` }, { text: T3(lang, "Talk to me", "대화하기", "和我聊天"), url: BOT_URL }]]) });
   if (!r.ok) await tg("sendMessage", { chat_id: chatId, text: cap, parse_mode: "HTML" });
 }
 async function onJoin(c, m, lang) {
