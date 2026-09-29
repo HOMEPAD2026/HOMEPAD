@@ -23,7 +23,7 @@
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
 // Nothing here moves funds: no command signs or sends a transaction.
 import { askClaude, streamClaude, live, price as fmtPrice, usd as fmtUsd, left } from "./_arcia-brain.mjs";
-import { getCoin, allPools, isAddr, rpcCall } from "./_arc.mjs";
+import { getCoin, allPools, isAddr, rpcCall, ethCalls, keccakHex, pad, PM_ADDRESS } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import * as scanner from "./_scan.mjs";
 import * as drop from "./_drop.mjs";
@@ -312,11 +312,22 @@ async function isChatAdmin(chatId, uid) {
 const canModerate = async (c, m) => c.admins.includes(m.from.id) || (isGroup(m.chat) && (await isChatAdmin(m.chat.id, m.from.id)));
 const nameOf = (u) => h([u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "friend");
 async function isRealTx(hash) { const t = await rpcCall("eth_getTransactionByHash", [hash]).catch(() => null); return !!t; }
+/// a Uniswap v4 pool id on Arc (its slot0 in the PoolManager is set) — e.g. "/buybot add 0xTOKEN 0xPOOLID"
+async function isRealPool(id) {
+  try { const [r] = await ethCalls([{ to: PM_ADDRESS, data: "0x1e2eaeaf" + keccakHex(id.slice(2).toLowerCase() + pad("6")).slice(2) }]); return !!r && BigInt(r) !== 0n; } catch { return false; }
+}
+/// every 0x…64-hex in the message is a real transaction or a real pool → not a private key
+async function allPublic(text) {
+  const all = [...new Set(text.match(/0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/g) || [])].slice(0, 4);
+  if (!all.length) return false;
+  for (const hx of all) if (!(await isRealTx(hx)) && !(await isRealPool(hx))) return false;
+  return true;
+}
 /// true when the message was handled here (removed / warned) and shouldn't go on
 async function guard(c, m, lang) {
   const text = String(m.text || m.caption || "");
   let secret = secretIn(text);
-  if (secret === "maybe-key") { const hx = (text.match(/0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/) || [])[0]; secret = hx && (await isRealTx(hx)) ? null : "key"; }
+  if (secret === "maybe-key") secret = (await allPublic(text)) ? null : "key";
   if (secret) {
     if (isGroup(m.chat)) { await tg("deleteMessage", { chat_id: m.chat.id, message_id: m.message_id }); await tg("sendMessage", { chat_id: m.chat.id, text: w("keyGroup", lang) }); }
     else await tg("sendMessage", { chat_id: m.chat.id, text: w("keyDm", lang) });
