@@ -68,6 +68,7 @@ const ERR = { quote: sel("QuoteResult(uint256)"), rt: sel("RoundTripResult(uint2
 const TOPIC = {
   init: sig("Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)"), swap: ARC_TOPIC.swap,
   trade: sig("Trade(address,bool,uint256,uint256)"), burned: sig("Burned(uint256,uint256)"),
+  meta: sig("LaunchMetadata(address,string,string,string,string,string)"),
 };
 const i24 = (n) => BigInt.asUintN(256, BigInt(n)).toString(16).padStart(64, "0");
 const u = (n) => BigInt(n).toString(16).padStart(64, "0");
@@ -188,6 +189,9 @@ async function discover(S, C, latest, left) {
       const rc = rcs[i];
       if (!rc) { c.tries = (c.tries || 0) + 1; if (c.tries > 5) c.ok = 0; c.ts = c.ts || latest.ts; return; }
       c.ok = (rc.logs || []).some((l) => CFG.portals.includes(lc(l.address))) ? 1 : 0;
+      // the creator's own links, from Argus's LaunchMetadata event (image, website, X, Telegram, description)
+      const M = (rc.logs || []).find((l) => l.topics[0] === TOPIC.meta && "0x" + strip(l.topics[1]).slice(24) === c.t);
+      if (M) c.meta = { web: strAt(M.data, 1), x: strAt(M.data, 2), tg: strAt(M.data, 3) };
       const d = meta[4 * i], s = meta[4 * i + 1], sup = meta[4 * i + 2], sp = meta[4 * i + 3];
       c.dec = d ? Number(BigInt(d)) : 18;
       c.sym = symOf(s) || "?";
@@ -217,6 +221,22 @@ async function discover(S, C, latest, left) {
   for (const c of all.slice(80)) if (!held.has(c.t)) delete C[c.t];
   return found;
 }
+function strAt(hex, i) {
+  try {
+    const h = strip(hex), off = Number(BigInt("0x" + h.slice(i * 64, i * 64 + 64))) * 2;
+    const len = Number(BigInt("0x" + h.slice(off, off + 64))) * 2;
+    return new TextDecoder().decode(Uint8Array.from(h.slice(off + 64, off + 64 + len).match(/../g) || [], (b) => parseInt(b, 16))).trim().slice(0, 200);
+  } catch { return ""; }
+}
+/// website / X / Telegram, from Argus's launch metadata and Dexscreener's profile
+function linksOf(c) {
+  const out = { web: "", x: "", tg: "" };
+  const put = (k, v) => { if (!out[k] && v && /^(https?:\/\/|@|t\.me|x\.com|twitter\.com|[\w.-]+\.[a-z]{2,})/i.test(String(v).trim())) out[k] = String(v).trim(); };
+  if (c.meta) { put("web", c.meta.web); put("x", c.meta.x); put("tg", c.meta.tg); }
+  if (c.dex && c.dex.links) { put("web", c.dex.links.web); put("x", c.dex.links.x); put("tg", c.dex.links.tg); }
+  return out;
+}
+const normLink = (u) => String(u || "").toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "").replace(/^twitter\.com/, "x.com");
 function symOf(h) {
   try {
     const s = strip(h || "");
@@ -305,9 +325,41 @@ async function readDex(list, fetchJson) {
       const p = ps.find((x) => lc(x.pairAddress) === c.id) || ps.sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0];
       const info = p.info || {};
       c.dex = { liq: (p.liquidity && Number(p.liquidity.usd)) || null, mcap: Number(p.marketCap || p.fdv || 0) || null, chgM5: p.priceChange ? p.priceChange.m5 ?? null : null,
-        chgH1: p.priceChange ? p.priceChange.h1 ?? null : null, soc: ((info.socials || []).length + (info.websites || []).length) > 0, img: /^https:\/\//.test(info.imageUrl || "") ? info.imageUrl : null, at: Date.now() };
+        chgH1: p.priceChange ? p.priceChange.h1 ?? null : null, soc: ((info.socials || []).length + (info.websites || []).length) > 0, img: /^https:\/\//.test(info.imageUrl || "") ? info.imageUrl : null, at: Date.now(),
+        boosts: (p.boosts && p.boosts.active) || 0, links: dexLinks(info) };
     }
   }
+}
+
+function dexLinks(info) {
+  const l = { web: "", x: "", tg: "" };
+  const web = (info.websites || [])[0]; if (web) l.web = web.url || "";
+  for (const s of info.socials || []) {
+    const kind = String(s.type || s.platform || "").toLowerCase(), url = s.url || (s.handle ? String(s.handle) : "");
+    if (!l.x && (kind === "twitter" || kind === "x" || /x\.com|twitter\.com/i.test(url))) l.x = kind === "twitter" && s.handle && !s.url ? `https://x.com/${s.handle}` : url;
+    if (!l.tg && (kind === "telegram" || /t\.me\//i.test(url))) l.tg = kind === "telegram" && s.handle && !s.url ? `https://t.me/${s.handle}` : url;
+  }
+  return l;
+}
+/// Dexscreener "Dex paid": the newest token profiles (one call), then the orders of a few tokens a tick
+async function readPaid(C, liveC, fetchJson, nowS, left) {
+  const byT = new Map(liveC.map((c) => [c.t, c]));
+  const mark = (c, at) => {
+    if (c.paid) return;
+    const m = Math.floor(at / 60), p = priceAt(series(c), m) || c.px || null;
+    c.paid = { at, px: p };
+  };
+  const prof = await fetchJson("https://api.dexscreener.com/token-profiles/latest/v1", 6000).catch(() => null);
+  for (const x of Array.isArray(prof) ? prof : []) { const c = x && x.chainId === "arc" && byT.get(lc(x.tokenAddress)); if (c) mark(c, nowS); }
+  const due = liveC.filter((c) => !c.paid && (!c.ordAt || nowS - c.ordAt > 600)).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 8);
+  if (!due.length || left() < 24000) return;
+  await Promise.all(due.map(async (c) => {
+    c.ordAt = nowS;
+    const j = await fetchJson(`https://api.dexscreener.com/orders/v1/arc/${c.t}`, 6000).catch(() => null);
+    const list = Array.isArray(j) ? j : j && Array.isArray(j.orders) ? j.orders : [];
+    const o = list.find((x) => x && x.type === "tokenProfile" && x.status === "approved");
+    if (o) mark(c, o.paymentTimestamp ? Math.floor(Number(o.paymentTimestamp) / (o.paymentTimestamp > 1e12 ? 1000 : 1)) : nowS);
+  }));
 }
 
 // ---------------------------------------------------------------- Token Scanner v3
@@ -353,8 +405,10 @@ export function featuresOf(c, nowS) {
     chgM5: ch(5) ?? (c.dex && c.dex.chgM5) ?? 0, chgH1: ch(60) ?? (c.dex && c.dex.chgH1) ?? 0, mom15: ch(15) ?? ch(5) ?? 0,
     ddHigh: px && c.hi ? (px / c.hi - 1) * 100 : 0,
     score: sc.score ?? null, top10: sc.top10 ?? null, snipersPct: sc.sn ?? 0, linkedPct: sc.lk ?? 0, tax: sc.tax ?? 0, holders: sc.hold ?? null,
-    social: !!(c.dex && c.dex.soc), secTrade: sc.sT ?? null, secHolders: sc.sH ?? null, rtLoss: c.rt ? c.rt.loss : null, quoteFailed: !!(c.rt && c.rt.fail), px,
+    social: !!(c.dex && c.dex.soc) || !!(c.meta && (c.meta.web || c.meta.x || c.meta.tg)), secTrade: sc.sT ?? null, secHolders: sc.sH ?? null, rtLoss: c.rt ? c.rt.loss : null, quoteFailed: !!(c.rt && c.rt.fail), px,
     floorX: px && c.floor ? px / c.floor : null, floorDrop: px && c.floor ? Math.max(0, (1 - c.floor / px) * 100) : null, dumpTop10: sc.dump ?? null,
+    socialCount: (() => { const l = linksOf(c); return (l.web ? 1 : 0) + (l.x ? 1 : 0) + (l.tg ? 1 : 0); })(), reused: !!c.reused,
+    dexPaid: !!c.paid, dexPaidMin: c.paid ? (nowS - c.paid.at) / 60 : null, chgSincePaid: c.paid && c.paid.px && px ? (px / c.paid.px - 1) * 100 : null,
   };
 }
 const round3 = (x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
@@ -427,6 +481,7 @@ export async function tick(st, opts = {}) {
   const notes = [];
   let [S, cd, pp, gh] = await load(st, [K.state, K.cands, K.paper, K.ghosts]);
   S = S && S.v === DESK_VERSION ? S : newState();
+  B.ensureLearn(S.learn);
   if (S.busy && Date.now() - S.busy < 65e3 && !opts.force) return { skipped: "another tick is running" };
   S.busy = Date.now();
   await save(st, K.state, S);
@@ -472,6 +527,13 @@ export async function tick(st, opts = {}) {
     await readPrices(liveC);
     const dexDue = liveC.filter((c) => !c.dex || Date.now() - c.dex.at > 110e3);
     if (dexDue.length && left() > 22000) await readDex(dexDue.slice(0, 60), fetchJson);
+    if (left() > 24000) await readPaid(C, liveC, fetchJson, nowS, left).catch(() => null);
+    // a website / X / Telegram link shared by two launches is a copy-paste warning sign
+    const seen = new Map();
+    // (only links that name something — a bare "x.com" or "t.me" says nothing)
+    const named = (c) => [...new Set(Object.values(linksOf(c)).filter(Boolean).map(normLink))].filter((u) => /^[^/]+\.[a-z]{2,}\/[^/]{2,}|^[\w-]+\.[a-z]{2,}$/i.test(u) && !/^(x\.com|t\.me|twitter\.com)$/.test(u));
+    for (const c of liveC) for (const u of named(c)) seen.set(u, (seen.get(u) || 0) + 1);
+    for (const c of liveC) c.reused = named(c).some((u) => seen.get(u) > 1);
     const heldT = new Set(S.open.map((p) => p.t));
     // held tokens every 10 minutes, tokens that just triggered a playbook every 10, the rest every 30; a failed scan retries after 3
     const hot = (c) => c.hotAt && nowS - c.hotAt < 300;
@@ -594,6 +656,8 @@ export async function tick(st, opts = {}) {
       const ret = pret(p, c && c.px);
       if (ret == null) { if (nowS - p.entryTs > 86400) p.done = "lost"; continue; }
       p.ret = r2(ret);
+      // what one add would have done (counterfactual — nothing is bought)
+      if (!p.tpHit) { const k = B.addTrigger(p, featuresOf(c, nowS), ret, nowS); if (k && !(p.addCf && p.addCf[k])) p.addCf = { ...(p.addCf || {}), [k]: c.px }; }
       const crit = c.scan && c.scan.crit && c.scan.crit.length && !p.critAtEntry;
       const e = crit ? { action: "emergency", sellPct: 100 } : B.exitCheck(p, ret, nowS);
       if (!e.action) continue;
@@ -605,7 +669,7 @@ export async function tick(st, opts = {}) {
     for (const p of P.filter((x) => x.done)) {
       if (p.done === "lost") continue;
       const rec = closeRecord(p, C[p.t], nowS, p.parts[p.parts.length - 1].why);
-      closed.push(rec); learnFrom(S, rec); G.push(ghostOf(p, rec, C[p.t]));
+      closed.push(rec); learnFrom(S, rec); G.push(ghostOf(p, rec, C[p.t])); addEdges(S, p, rec);
       S.cool[`${p.t}|${p.pb}`] = nowS + 1800;
     }
     const P2 = P.filter((p) => !p.done);
@@ -676,6 +740,29 @@ export async function tick(st, opts = {}) {
     const dayLossAdj = S.dayStartEq ? ((equity - flowToday - S.dayStartEq) / S.dayStartEq) * 100 : dayLoss;
     const stopDay = equity != null && dayLossAdj <= -B.RISK.dailyLossPct;
     if (stopDay && !S.stopNoted) { S.stopNoted = today; notes.push(`down ${r2(-dayLossAdj)}% today — no new real trades until tomorrow (paper continues)`); }
+    // adding to a real position (추매): only a kind of add that paper trading has proven, once per position, never in the warm-up
+    const warmNow = (S.stats.realClosed || 0) < (S.learn.warmup || 25);
+    for (const p of S.open) {
+      if (!live || D.paused || stopDay || warmNow || p.pending || p.added || p.tpHit || p.ret == null || txs >= 5 || left() < 20000) continue;
+      const c = C[p.t]; if (!c) continue;
+      const f = featuresOf(c, nowS), k = B.addTrigger(p, f, p.ret, nowS);
+      if (!k || !B.addAllowed(S.learn.adds, k) || B.realGate(f, c, nowS).length) continue;
+      const size = Math.floor(Math.min(p.usdIn0 || p.usdIn, D.maxTrade, D.dailyLeft, (S.cash || 0) - B.RISK.keepCash) * 100) / 100;
+      if (!(size >= B.RISK.warmTrade)) continue;
+      const usdRaw = BigInt(Math.round(size * 1e6));
+      const qb = decodeQuote((await callsRaw([quoteCall(desk, p.k, true, usdRaw)]))[0]);
+      if (qb == null || qb === 0n) continue;
+      txs++;
+      const r = await sendTx({ to: desk, data: SEL.buy + encKey(p.k) + u(usdRaw) + u((qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const tl = r.ok ? tradeLog(r.receipt, desk) : null;
+      if (!tl) { out.errors.push(`add ${p.sym}: ${r.err || "reverted"}`); p.added = { kind: k, failed: true, ts: nowS }; continue; }
+      p.tokens = (BigInt(p.tokens) + tl.amountOut).toString(); p.basis += size; p.usdIn += size;
+      p.added = { kind: k, tx: r.hash, usd: size, px: r2(size / human(tl.amountOut, p.dec), 12), ts: nowS };
+      p.entryPx = r2(p.usdIn / human(p.tokens, p.dec), 12);
+      S.cash -= size; D.dailyLeft -= size;
+      log.push({ ts: nowS, side: "buy", t: p.t, sym: p.sym, pb: p.pb, usd: size, tokens: human(tl.amountOut, p.dec), px: p.added.px, tx: r.hash, why: B.ADD_KINDS[k] });
+      out.real.push(`add ${p.sym} ${k} $${size}`);
+    }
     realCands.sort((a, b) => b.d.draw + (b.d.p - 0.5) * 20 - (a.d.draw + (a.d.p - 0.5) * 20));
     for (const rc of realCands) {
       if (!live || D.paused || stopDay || txs >= 5 || left() < 20000) break;
@@ -692,7 +779,8 @@ export async function tick(st, opts = {}) {
         rv = await (opts.review || AI.review)({ token: c.sym, playbook: pb, why: B.PLAYBOOKS[pb].why, ageMin: r2(f.ageMin, 1), priceVsLaunchFloor: f.floorX != null ? `${r2(f.floorX, 2)}x` : "unknown",
           dropIfBackToFloorPct: r2(f.floorDrop, 1), dropIfTop10SellPct: f.dumpTop10, liquidityUsd: Math.round(f.liq), mcapUsd: Math.round(f.mcap), buysSells5m: [f.buysM5, f.sellsM5], trades1h: f.txH1,
           change5mPct: r2(f.chgM5, 1), change1hPct: r2(f.chgH1, 1), fromHighPct: r2(f.ddHigh, 1), scanner: c.scan ? { score: c.scan.score, top10Pct: c.scan.top10, snipersPct: c.scan.sn, linkedPct: c.scan.lk, taxPct: c.scan.tax, holders: c.scan.hold } : null,
-          roundTripLossPct: f.rtLoss, lastMinutes: (c.bk || []).slice(-10), sizeUsd: size, modelWinOdds: r2(d.p, 2) }).catch(() => null);
+          roundTripLossPct: f.rtLoss, lastMinutes: (c.bk || []).slice(-10), sizeUsd: size, modelWinOdds: r2(d.p, 2),
+          links: linksOf(c), linkAlsoUsedByAnotherLaunch: !!f.reused, dexscreener: { profilePaid: !!f.dexPaid, minutesSincePaid: f.dexPaidMin != null ? Math.round(f.dexPaidMin) : null, moveSincePaidPct: r2(f.chgSincePaid, 1), boosts: (c.dex && c.dex.boosts) || 0 } }).catch(() => null);
         if (rv && !rv.go) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: [`risk review: ${rv.reason}`], paper: true }); S.cool[c.t] = nowS + 900; continue; }
       }
       const usdRaw = BigInt(Math.round(size * 1e6));
@@ -703,7 +791,7 @@ export async function tick(st, opts = {}) {
       if (r.ok === false || (r.ok && !tradeLog(r.receipt, desk))) { out.errors.push(`buy ${c.sym}: ${r.err || "reverted"}`); S.cool[c.t] = nowS + 900; continue; }
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
       const tokens = tl ? tl.amountOut : qb;
-      const pos = { id: `r${++S.seq}`, t: c.t, sym: c.sym, dec: c.dec || 18, k: c.k, pb, real: true, entryTs: nowS, usdIn: size, basis: size, tokens: tokens.toString(),
+      const pos = { id: `r${++S.seq}`, t: c.t, sym: c.sym, dec: c.dec || 18, k: c.k, pb, real: true, entryTs: nowS, usdIn: size, usdIn0: size, basis: size, tokens: tokens.toString(),
         entryPx: r2(size / human(tokens, c.dec || 18), 12), p0: c.px, rt: f.rtLoss || 0, tx: r.hash, exits: { ...S.learn.exits[pb] }, x: round3(x), p: d.p, why0: d.why, parts: [],
         critAtEntry: (c.scan && c.scan.crit && c.scan.crit[0]) || null, lastPx: c.px, ...(r.ok ? {} : { pending: r.hash }),
         gate: { score: c.scan ? c.scan.score : null, scanAge: c.scanAt ? nowS - c.scanAt : null, floorX: f.floorX != null ? r2(f.floorX, 2) : null, dump: f.dumpTop10 },
@@ -772,6 +860,14 @@ export async function tick(st, opts = {}) {
   S.busy = 0; S.lastTick = Math.floor(Date.now() / 1000); S.lastDur = Date.now() - t0;
   await save(st, K.state, S);
   return out;
+}
+/// a closed paper trade: the edge one add (an equal second tranche at the trigger price, sold with the rest) would have had
+function addEdges(S, p, rec) {
+  for (const [k, pxAdd] of Object.entries(p.addCf || {})) {
+    if (!pxAdd) continue;
+    const r2nd = B.blended(p.parts.map((x) => ({ pct: x.pct, ret: x.px ? ((x.px / pxAdd) * (1 - (p.rt || 0) / 100) - 1) * 100 : x.ret })));
+    B.addLearn(S.learn.adds, k, (r2nd - rec.ret) / 2);
+  }
 }
 function predictP(S, x) { return r2(B.predict(S.learn.model, x), 3); }
 export const pnlOf = (S) => (S.eq == null ? 0 : S.eq + (S.burnedUsd || 0) - (S.netIn || 0));
@@ -896,7 +992,7 @@ export async function view(st) {
       paperClosed: s.paperClosed, paperWinRate: s.paperClosed ? r2((s.paperWins / s.paperClosed) * 100, 1) : null, paperAvg: s.paperClosed ? r2(s.paperSum / s.paperClosed) : null, best: s.best, worst: s.worst },
     open: (S.open || []).map((p) => ({ id: p.id, t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, usdIn: r2(p.usdIn, 4), value: r2(p.value, 4), ret: p.ret, entryPx: p.entryPx, nowPx: p.nowPx ? r2(p.nowPx, 12) : null,
       tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tx: p.tx, pending: !!p.pending,
-      sells: (p.parts || []).filter((x) => x.tx).map((x) => ({ tx: x.tx, px: x.px, pct: x.pct, ret: r2(x.ret), why: x.why })), why: p.why0, gate: p.gate || null, review: p.review || null })),
+      sells: (p.parts || []).filter((x) => x.tx).map((x) => ({ tx: x.tx, px: x.px, pct: x.pct, ret: r2(x.ret), why: x.why })), why: p.why0, gate: p.gate || null, review: p.review || null, added: p.added && !p.added.failed ? p.added : null })),
     paper: { open: ((P && P.open) || []).length, list: ((P && P.open) || []).slice().sort((a, b) => b.entryTs - a.entryTs).slice(0, 16).map((p) => ({ t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, ret: p.ret ?? null, tp: p.exits.tp, sl: p.exits.sl, tpHit: !!p.tpHit })) },
     recent: ((rec && rec.items) || []).slice(0, 80),
     log: ((lg && lg.items) || []).slice(0, 80),
@@ -909,10 +1005,12 @@ export async function view(st) {
       playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k] }; }),
       weights: B.topWeights(L.model, 8).map(([k, w]) => ({ k, name: B.featureName(k), w: r2(w, 3) })),
       history: (L.history || []).slice(-14).map((h) => ({ day: h.day, n: h.n, means: h.means, changes: h.changes })),
+      adds: Object.entries(B.ADD_KINDS).map(([k, name]) => { const a = (L.adds || {})[k] || { n: 0, mean: 0, helped: 0 }; return { k, name, n: a.n, edge: r2(a.mean), helped: a.n ? r2((a.helped / a.n) * 100, 1) : null, live: B.addAllowed(L.adds, k) }; }),
     },
     // how far discovery has read, for checking it's keeping up
     sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
-    watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own })),
+    watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own,
+      paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
     rules: { gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
 }

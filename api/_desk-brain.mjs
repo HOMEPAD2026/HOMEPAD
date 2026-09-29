@@ -42,6 +42,11 @@ export const PLAYBOOKS = {
     when: (f) => f.ageMin >= 360 && f.ageMin <= 4320 && f.chgH1 >= -5 && f.chgH1 <= 20 && f.top10 <= 35 && f.score >= 70 && f.txH1 >= 10,
     exits: { tp: 30, sl: 15, trailAt: 15, trail: 10, maxH: 24 },
   },
+  dexpaid: {
+    name: "Dex paid", why: "The team just paid for its Dexscreener profile and buyers are still coming, but the price hasn't run yet.",
+    when: (f) => f.dexPaid && f.dexPaidMin >= 1 && f.dexPaidMin <= 180 && f.chgSincePaid >= -15 && f.chgSincePaid <= 40 && f.flowM5 >= 0 && f.buysM5 >= 2 && f.ageMin >= 3,
+    exits: { tp: 35, sl: 18, trailAt: 15, trail: 10, maxH: 6 },
+  },
 };
 export const PB_KEYS = Object.keys(PLAYBOOKS);
 
@@ -72,6 +77,7 @@ export function realGate(f, c, nowS) {
   if (!c.scan || c.scan.score == null) r.push("no fresh scan yet");
   else if (!c.scanAt || nowS - c.scanAt > REAL_GATES.maxScanAgeMin * 60) r.push("scan older than 15 minutes");
   if (c.flagUntil && c.flagUntil > nowS) r.push(`flagged earlier: ${c.flagWhy || "low score"}`);
+  if (f.reused) r.push("its website / X / Telegram link is also used by another launch");
   return r;
 }
 export function gate(f, crit) {
@@ -91,7 +97,7 @@ export function gate(f, crit) {
 // ---------------------------------------------------------------- features
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const nz = (x, d = 0) => (x == null || !isFinite(x) ? d : x);
-export const FEATURES = ["age", "liq", "mcap", "volLiq", "flowM5", "flowH1", "txM5", "chgM5", "chgH1", "ddHigh", "mom15", "score", "top10", "snipers", "linked", "tax", "rt", "holders", "social", "secTrade", "secHolders", "floorX", "dump"];
+export const FEATURES = ["age", "liq", "mcap", "volLiq", "flowM5", "flowH1", "txM5", "chgM5", "chgH1", "ddHigh", "mom15", "score", "top10", "snipers", "linked", "tax", "rt", "holders", "social", "secTrade", "secHolders", "floorX", "dump", "socials", "reused", "dexPaid", "sincePaid"];
 /// raw snapshot → feature vector in roughly [-1, 1]
 export function vec(f) {
   return {
@@ -118,6 +124,10 @@ export function vec(f) {
     secHolders: nz(f.secHolders, 60) / 100,
     floorX: clamp(Math.log10(Math.max(1, nz(f.floorX, 1))) / 2, 0, 1), // 1× → 0, 10× → 0.5, 100× → 1
     dump: clamp(nz(f.dumpTop10, 50), 0, 100) / 100,
+    socials: clamp(nz(f.socialCount), 0, 3) / 3, // website, X, Telegram
+    reused: f.reused ? 1 : 0, // a link another launch also uses
+    dexPaid: f.dexPaid ? 1 : 0,
+    sincePaid: f.dexPaid ? clamp(nz(f.chgSincePaid), -50, 100) / 100 : 0,
   };
 }
 
@@ -249,14 +259,51 @@ export function tradeSize(equity, cash) {
 
 // ---------------------------------------------------------------- a fresh brain
 export function newLearn() {
-  return { v: BRAIN_VERSION, model: newModel(), bandit: newBandit(), exits: Object.fromEntries(PB_KEYS.map((k) => [k, { ...PLAYBOOKS[k].exits }])), threshold: 0, warmup: 25, history: [] };
+  return { v: BRAIN_VERSION, model: newModel(), bandit: newBandit(), exits: Object.fromEntries(PB_KEYS.map((k) => [k, { ...PLAYBOOKS[k].exits }])), threshold: 0, warmup: 25, history: [], adds: newAdds() };
+}
+/// fills in what a brain saved by an older version doesn't have (new playbooks, add stats)
+export function ensureLearn(L) {
+  L.exits = L.exits || {}; L.bandit = L.bandit || newBandit();
+  for (const k of PB_KEYS) { if (!L.exits[k]) L.exits[k] = { ...PLAYBOOKS[k].exits }; if (!L.bandit[k]) L.bandit[k] = { n: 0, mean: 0, m2: 0, wins: 0, real: 0, paper: 0, sum: 0 }; }
+  L.adds = L.adds || newAdds();
+  return L;
+}
+
+// ---------------------------------------------------------------- adding to a position (추매), learned before it's used
+// Two kinds: "dip" — it fell 6–15% from the entry but buyers are back; "strength" — it's up 8–20% with buying
+// still strong (pyramiding). Every paper trade records what one add would have done (a second, equal tranche at
+// the trigger price, sold with the first), so the desk learns the edge of adding without risking money.
+// Real adds only once a kind has 20+ paper cases and an edge that's positive even at its lower bound.
+export const ADD_KINDS = { dip: "Add on a dip", strength: "Add on strength" };
+export function newAdds() { return { dip: { n: 0, mean: 0, m2: 0, helped: 0 }, strength: { n: 0, mean: 0, m2: 0, helped: 0 } }; }
+export function addTrigger(pos, f, ret, nowS) {
+  const mins = (nowS - pos.entryTs) / 60, X = pos.exits || {};
+  if (pos.tpHit || mins > (X.maxH || 6) * 30) return null; // only in the first half of its time
+  const move = pos.p0 && f.px ? (f.px / pos.p0 - 1) * 100 : null; // price move since entry (costs aside)
+  if (move == null) return null;
+  if (move <= -6 && move >= -15 && ret > -(X.sl || 20) + 3 && f.flowM5 >= 0.1 && f.buysM5 >= 2) return "dip";
+  if (move >= 8 && move <= 20 && f.flowM5 >= 0.2 && f.buysM5 >= 3) return "strength";
+  return null;
+}
+export function addLearn(adds, kind, edge) {
+  const s = adds[kind] || (adds[kind] = { n: 0, mean: 0, m2: 0, helped: 0 });
+  const n1 = s.n + 1, d = edge - s.mean;
+  s.mean += d / n1; s.m2 += d * (edge - s.mean); s.n = n1;
+  if (edge > 0) s.helped++;
+  return adds;
+}
+export function addAllowed(adds, kind) {
+  const s = adds && adds[kind];
+  if (!s || s.n < 20) return false;
+  const sd = Math.sqrt(s.m2 / Math.max(1, s.n - 1));
+  return s.mean - sd / Math.sqrt(s.n) > 0;
 }
 
 // ---------------------------------------------------------------- plain-words lessons (deterministic)
 const FNAME = { age: "launch age", liq: "liquidity", mcap: "market cap", volLiq: "volume vs liquidity", flowM5: "5-minute buy pressure", flowH1: "1-hour buy pressure",
   txM5: "5-minute activity", chgM5: "5-minute price move", chgH1: "1-hour price move", ddHigh: "distance from the high", mom15: "15-minute momentum", score: "scanner score",
   top10: "top-10 concentration", snipers: "sniper share", linked: "linked wallets", tax: "taxes", rt: "round-trip cost", holders: "holder count", social: "listed socials",
-  secTrade: "scanner trading section", secHolders: "scanner holders section", floorX: "height above the launch floor", dump: "top-10 dump risk" };
+  secTrade: "scanner trading section", secHolders: "scanner holders section", floorX: "height above the launch floor", dump: "top-10 dump risk", socials: "website / X / Telegram", reused: "reused links", dexPaid: "Dexscreener profile paid", sincePaid: "move since Dex paid" };
 export const featureName = (k) => FNAME[k] || k;
 export function lessons(learn, closedToday) {
   const out = [];

@@ -11258,4 +11258,16 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
 .dk-rv-h{display:flex;align-items:center;gap:8px;font-size:.8rem;}
 .dk-rv-h em{margin-left:auto;font-style:normal;font-size:.7rem;color:var(--ink-dim,#8c98a6);}
 .dk-rv p{margin:6px 0 0;font-size:.76rem;line-height:1.55;color:#c9d4de;}
+.dk-adds{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.dk-add{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px dashed rgba(255,255,255,.14);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;}
+.dk-add.on{border-style:solid;border-color:rgba(57,255,136,.45);}
+.dk-add b{font-size:.78rem;}
+.dk-add-st{margin-left:auto;font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#ffc861;}
+.dk-add.on .dk-add-st{color:#39ff88;}
+.dk-add small{flex-basis:100%;font-size:.7rem;color:var(--ink-dim,#8c98a6);}
+.dk-add em{font-style:normal;color:#dfe7f5;}
+.dk-tags{font-size:.66rem;color:#9fc6ff;}
+.dk-flag.dk-paid{background:rgba(57,255,136,.12);color:#9dffc6;}
+.dk-flag.dk-warn{background:rgba(255,110,90,.12);color:#ff9b8a;}
+@media (max-width:560px){.dk-adds{grid-template-columns:minmax(0,1fr);}}
 #bp-panel-mine [hidden]{display:none !important;}

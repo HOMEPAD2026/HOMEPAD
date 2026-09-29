@@ -39,7 +39,7 @@
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
   const WHY = { tp: "Take-profit", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
-  const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff" };
+  const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0" };
   const S = { d: null, booted: false, timer: 0, tab: "real", shown: { eq: null }, seenLog: null, hover: null };
 
   async function load() {
@@ -181,6 +181,7 @@
         </div>
         ${rangeBar(p)}
         ${p.gate && p.gate.floorX != null ? `<div class="dk-p-g">${T("Launch floor")} <b data-no-i18n>${p.gate.floorX}×</b>${p.gate.dump != null ? ` · ${T("top-10 dump")} <b data-no-i18n>−${Math.round(p.gate.dump)}%</b>` : ""}${p.gate.score != null ? ` · ${T("score")} <b data-no-i18n>${p.gate.score}</b>` : ""}</div>` : ""}
+        ${p.added ? `<div class="dk-p-g">${T(p.added.kind === "dip" ? "Added on a dip" : "Added on strength")} <b data-no-i18n>${usd(p.added.usd)} @ ${px(p.added.px)}</b> ${txa(p.added.tx, "tx")}</div>` : ""}
         ${p.review ? `<div class="dk-p-rv"><b>${T("Risk check")}</b><span data-no-i18n>${esc(p.review.reason)}</span></div>` : ""}
         ${p.sells.length ? `<div class="dk-p-sells">${p.sells.map((s) => `<span>${T(WHY[s.why] || s.why)} ${s.pct}% <b data-no-i18n>${pc(s.ret)}</b> ${txa(s.tx, "tx")}</span>`).join("")}</div>` : ""}
       </div>`).join("") + `</div>` + paperMini(d);
@@ -238,6 +239,9 @@
         </div>`).join("")}</div>
       <h4>${T("What the model has learned")}</h4>
       ${L.modelN ? `<div class="dk-wts">${L.weights.map((x) => `<div class="dk-wt"><span>${T(x.name)}</span><div class="dk-wt-bar"><i class="${x.w >= 0 ? "up" : "dn"}" style="${x.w >= 0 ? "left:50%" : `right:50%`};width:${((Math.abs(x.w) / maxW) * 50).toFixed(1)}%"></i></div><b class="${cls(x.w)}" data-no-i18n>${x.w > 0 ? "+" : ""}${x.w.toFixed(2)}</b></div>`).join("")}</div><small class="dk-legend">${T("Right: more of it has meant a winning trade. Left: a losing one.")}</small>` : `<div class="dk-empty-s">${T("Nothing yet — it learns from the first closed trades.")}</div>`}
+      ${(L.adds || []).length ? `<h4>${T("Adding to a position")}</h4><div class="dk-adds">${L.adds.map((a) => `<div class="dk-add ${a.live ? "on" : ""}"><b>${T(a.name)}</b><span class="dk-add-st">${a.live ? T("live") : T("paper only")}</span>
+        <small>${a.n ? `${T("edge per add")} <em class="${cls(a.edge)}" data-no-i18n>${pc(a.edge)}</em> · ${T("helped")} <em data-no-i18n>${a.helped}%</em> · <span data-no-i18n>${a.n}</span> ${T("cases")}` : T("no cases yet")}</small></div>`).join("")}</div>
+        <small class="dk-legend">${T("Every paper trade records what one more buy on a dip, or on strength, would have done. A kind of add goes live only after 20+ cases with a clearly positive edge, never during the warm-up.")}</small>` : ""}
       ${L.history.some((h) => h.changes && h.changes.length) ? `<h4>${T("Exit changes")}</h4><div class="dk-rows">${L.history.filter((h) => h.changes && h.changes.length).slice(-6).reverse().map((h) => h.changes.map((c) => `<div class="dk-row"><span data-no-i18n>${esc(h.day)}</span><span>${T(pbName(c.pb))}</span><small data-no-i18n>+${c.from.tp}/−${c.from.sl} → +${c.to.tp}/−${c.to.sl}</small></div>`).join("")).join("")}</div>` : ""}`;
   }
   function journal(d) {
@@ -254,10 +258,14 @@
     if (!list.length) { el.innerHTML = `<div class="dk-empty-s">${d.ai ? T("After a real trade loses 30% or more, Claude writes what most likely went wrong. None yet.") : T("Loss reviews start once the Claude API key is set.")}</div>`; return; }
     el.innerHTML = list.slice(0, 5).map((r) => `<div class="dk-rv"><div class="dk-rv-h">${tokenLink(r.t, r.sym)}<b class="${cls(r.ret)}" data-no-i18n>${pc(r.ret)}</b><em data-no-i18n>${ago(r.ts)}</em></div><p data-no-i18n>${esc(r.text)}</p></div>`).join("");
   }
+  const watchTags = (c) => {
+    const l = c.links || {}, t = [l.web ? "web" : "", l.x ? "X" : "", l.tg ? "TG" : ""].filter(Boolean);
+    return (t.length ? `<span class="dk-tags" data-no-i18n>${t.join(" · ")}</span>` : "") + (c.paid ? `<span class="dk-flag dk-paid">${T("Dex paid")}</span>` : "") + (c.reused ? `<span class="dk-flag dk-warn">${T("reused links")}</span>` : "");
+  };
   function watch(d) {
     const el = $("dk-watch");
     if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T("No Argus launches in the last three days yet.")}</div>`; return; }
-    el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
+    el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
   }
   function rej(d) {
     const el = $("dk-rej");
