@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790640472"></script>
+<script src="arc-log.js?v=1790647656"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790640472">
+<link rel="stylesheet" href="style.css?v=1790647656">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -110,7 +110,7 @@
       <button type="button" class="bp-nav-item" data-tab="creators"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Creators</button>
       <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge<em class="bp-nav-v" data-no-i18n>v2</em></button>
-      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="relay"><svg><use href="#i-relay" xlink:href="#i-relay"/></svg>Relay Launch<em class="bp-nav-v" data-no-i18n>v1</em></button>
@@ -1006,15 +1006,15 @@
           </div>
           <div class="asc-hero-txt">
             <span class="asc-kicker">Utility · On-chain check</span>
-            <h1>Token Scanner <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
-            <p class="bp-lede">Paste any Arc token. The scanner reads its contract, who can still change it, where it trades and who holds it — then sums it up in one score. It reads the chain; it can't promise a token is safe.</p>
+            <h1>Token Scanner <span class="asc-ver" title="Version 3 — new features are added regularly">v3<i>Updated regularly</i></span></h1>
+            <p class="bp-lede">Paste any Arc token. The scanner reads its contract and who really controls it, tries buys and sells at three sizes, checks where it trades and who holds it — then sums it up in one score, with critical flags and how sure it is. It reads the chain; it can't promise a token is safe.</p>
           </div>
         </div>
 
         <form class="asc-search" id="asc-form" autocomplete="off">
           <div class="asc-input">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-            <input id="asc-addr" type="text" spellcheck="false" placeholder="Token contract address (0x…)" aria-label="Token contract address">
+            <input id="asc-addr" type="text" spellcheck="false" placeholder="Token address (0x…) — or a name with Pro" aria-label="Token contract address or name">
             <button type="button" class="asc-paste" id="asc-paste">Paste</button>
           </div>
           <button type="submit" class="asc-go" id="asc-go">Scan</button>
@@ -1033,20 +1033,22 @@
           <div class="asc-card">
             <h2>What it checks</h2>
             <ul class="asc-what">
-              <li><b>Contract</b><span>Is it a standard token? Can its code be swapped out? Was it launched on ArcPad or Argus?</span></li>
-              <li><b>Control</b><span>Who owns it — and can they still mint, pause, block wallets or change fees?</span></li>
-              <li><b>Trading</b><span>A dry-run buy, sell and transfer — does it go through, and how much tax is taken?</span></li>
-              <li><b>Market</b><span>Where it trades, how deep the pool is, how old it is, and whether people actually sell.</span></li>
-              <li><b>Holders</b><span>How spread out the supply is, who deployed it and what they still hold.</span></li>
+              <li><b>Contract</b><span>Is it a standard token? Is the source code published? Can one wallet swap its code? Does it share code with a flagged token, or hide a self-destruct?</span></li>
+              <li><b>Control</b><span>Who owns it — a wallet, a multisig or a timelock — and can they still mint, pause, block wallets or change fees? Is another admin left after a renounce?</span></li>
+              <li><b>Trading</b><span>Dry-run buys and sells at three sizes, a brand-new buyer selling, and two sells in a row — does it go through, and how much is taken?</span></li>
+              <li><b>Market</b><span>Where it trades, how deep and how locked the pool is, whether people really sell, who does the trading, and copycats with the same ticker.</span></li>
+              <li><b>Holders</b><span>How spread out the supply is, wallets that look like one owner, who deployed it and what else that wallet made.</span></li>
               <li><b>History</b><span>Mints after launch, ownership changes, pauses and big moves — from the token's own log.</span></li>
             </ul>
           </div>
           <div class="asc-card asc-next">
-            <h2>Coming next <span class="asc-ver sm">v3</span></h2>
+            <h2>New in v3 <span class="asc-ver sm">v3</span></h2>
             <ul>
-              <li>Verified source code check</li>
-              <li>A full swap through the pool in the dry run, so hook taxes show too</li>
-              <li>Unlock schedules from ArcLock inside the scan</li>
+              <li>Critical flags apart from the score, a confidence level and section scores</li>
+              <li>Dry runs at three sizes, a new buyer's sell and a cooldown check</li>
+              <li>Published source, proxy admins, multisigs and timelocks, hidden admins</li>
+              <li>Linked wallets, who trades, copycat tickers, the deployer's other contracts</li>
+              <li>Pre-buy and stress tests, a price chart with events, wallet approvals, frozen reports</li>
             </ul>
           </div>
           <div class="asc-card asc-dev">
@@ -1054,10 +1056,42 @@
             <ul class="asc-what">
               <li><b>Telegram</b><span><code data-no-i18n>/scan 0x…</code> for a score, <code data-no-i18n>/watch 0x…</code> for alerts when the owner, supply or liquidity changes.</span></li>
               <li><b>Badge</b><span>Put a live score on any site — open a scan and press "Embed badge".</span></li>
-              <li><b>API</b><span><code data-no-i18n>GET /api/v1/scan/&lt;address&gt;</code> returns the full result as JSON (30 scans a minute).</span></li>
+              <li><b>API</b><span><code data-no-i18n>GET /api/v1/scan/&lt;address&gt;</code> returns the full result as JSON (30 scans a minute) — with confidence, critical flags and section scores. Pro adds <code data-no-i18n>POST /api/v1/scan/batch</code> and webhooks.</span></li>
             </ul>
           </div>
         </div>
+        <section class="asc-guide" aria-labelledby="asc-guide-h">
+          <h2 id="asc-guide-h">Token Scanner guide</h2>
+          <p class="asc-guide-lede"><span>How the v3 scanner reads a token, what the score means, and what Free, Plus and Pro include.</span></p>
+          <details open><summary><h3>Reading a result</h3></summary>
+            <p>The score runs from 0 to 100: 75 and up is Looks OK, 45 to 74 is Be careful, below 45 is High risk. Critical flags sit apart from the score in red — a sell that fails, new buyers who can't sell, a tax that jumps on big sells, a wallet that can still mint, one wallet that can swap the code, liquidity that can be pulled.</p>
+            <p>Confidence says how much of what matters was actually read: the dry-run sell, market data, holders, the source code and the liquidity locks. A part the scanner couldn't read shows as "Couldn't check" with a Try again button; it never counts as good or bad. Every check carries a chip saying where its answer came from: on-chain, a dry run, Dexscreener, the explorer or the scanner's own index.</p>
+            <p>The six section bars (Contract, Who controls it, Trading, Market, Holders, Launch &amp; history) show where the points went; tap one to jump to its checks.</p>
+          </details>
+          <details><summary><h3>The dry runs</h3></summary>
+            <p>Nothing is signed or spent. The scanner pretends to be a real holder on the latest block and sells about 0.01%, 0.1% and 1% of the supply into the pool, buys the same sizes from it, has a brand-new wallet buy and sell straight back, and sells twice in a row.</p>
+            <ul>
+              <li>A sell that fails, or a new buyer who can't sell while old holders can, is critical.</li>
+              <li>A tax that grows with size, or larger sells that are refused, only hurts bigger holders — a max-transaction limit.</li>
+              <li>A second sell refused right after the first means a cooldown between sells.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Who controls it</h3></summary>
+            <p>The scanner follows the keys: the owner, a proxy's upgrade admin, and admins that stay after owner() is renounced (admin, operator, governance). It tells a plain wallet from a Safe multisig (k of n) and a timelock (and its delay). One wallet that can swap the code caps the score at 40. It also checks for published source code, a self-destruct or delegatecall in the code, and other tokens with exactly the same functions.</p>
+          </details>
+          <details><summary><h3>Holders, trading and the deployer</h3></summary>
+            <p>Linked wallets — ones that passed tokens between each other, got them from the same sender, or bought in the same first block — are grouped, and what they hold together is shown on the bubble map. Who trades shows the latest trades with the pool and how much the three busiest wallets make up. A ticker used by another Arc token with more liquidity is flagged as a possible copycat. The deployer card lists the other contracts that wallet created, with their scores.</p>
+          </details>
+          <details><summary><h3>Free, Plus and Pro</h3></summary>
+            <p>Every check, the score, the verdict, critical flags and confidence are free for everyone, and the same on the page, the API, the badge and Telegram. The dry-run trades and Before you buy are free too.</p>
+            <p>Plus: sign in with your wallet — a signature, no transaction. You get 3 free unlocks a day per wallet, then each unlock burns 1,000 $ARCIRCLE. Plus opens the stress test, what changed, the price chart, linked wallets, who trades, alert rules, a project note, a frozen report, wallet approvals and New on Arc.</p>
+            <p>Pro: sign in and post one scan on X a day with your Share link. You get 1 free unlock a day, then each unlock burns 2,000 $ARCIRCLE. Pro opens ARCIA's take, search by name, the live embed card, batch scans and webhooks.</p>
+            <p>One unlock opens one tool for one token (or wallet) for 24 hours. Free unlocks reset every day at 00:00 UTC. Burned tokens go to the dead address; nobody receives them. While we test, every wallet gets the free daily unlocks — later they are planned for wallets holding 100,000 $ARCIRCLE.</p>
+          </details>
+          <details><summary><h3>Reports, embeds and the API</h3></summary>
+            <p>A frozen report keeps a scan exactly as it was at one block, as a page you can print to PDF. The badge and the live card update by themselves. The public API returns the score, verdict, confidence, critical flags, section scores, a summary and every check with its source; Pro adds a batch endpoint for up to 25 tokens and signed webhooks.</p>
+          </details>
+        </section>
         <p class="asc-foot">Reads Arc directly — the buy and sell checks are dry runs, nothing is signed or spent — plus Dexscreener for market data. An automated check, not advice: a clean scan can't rule out every risk, and a warning doesn't always mean a scam.</p>
       </section>
 
@@ -1615,6 +1649,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790640472"></script>
+<script src="arcpad.bundle.js?v=1790647656"></script>
 </body>
 </html>
