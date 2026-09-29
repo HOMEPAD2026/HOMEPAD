@@ -51,6 +51,18 @@ export const PLAYBOOKS = {
     when: (f) => f.ageMin >= 360 && f.ageMin <= 4320 && f.chgH1 >= -5 && f.chgH1 <= 20 && f.top10 <= 35 && f.score >= 70 && f.txH1 >= 10,
     exits: { tp: 30, sl: 15, trailAt: 15, trail: 10, maxH: 24, ...RUN },
   },
+  scalp: {
+    name: "Pump scalp", why: "A sudden burst of buying (or a fresh Dex payment): in fast, out at +20–25%, small size.",
+    when: (f) => f.ageMin >= 2 && f.flowM5 >= 0.35 && ((f.chgM5 >= 15 && f.chgM5 <= 150 && f.buysM5 >= 6) || (f.dexPaid && f.dexPaidMin <= 10 && f.buysM5 >= 3 && f.chgSincePaid <= 30)),
+    exits: { tp: 22, sl: 12, trailAt: 10, trail: 7, maxH: 0.34, tp1Pct: 75, tp2: 60, tp2Pct: 25, runTrail: 20, runTrailWide: 25, maxRunH: 0.5 },
+    sizeUsd: 2, maxFloorX: 15, review: false, // speed over a second opinion; the size is the risk control
+  },
+  dipdca: {
+    name: "Crash buy + DCA", why: "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.",
+    when: (f) => f.ageMin >= 20 && f.ddHigh <= -55 && f.txH1 >= 5 && f.flowM5 >= 0 && f.chgM5 >= -5 && f.liq >= 800,
+    exits: { tp: 25, sl: 45, trailAt: 15, trail: 10, maxH: 3, tp1Pct: 70, tp2: 80, tp2Pct: 30, runTrail: 25, runTrailWide: 30, maxRunH: 3 },
+    sizeUsd: 2, dca: [-15, -30], maxFloorX: 1e9, lowCapExempt: true, // its thesis needs time; its own 3 h limit applies
+  },
   dexpaid: {
     name: "Dex paid", why: "The team just paid for its Dexscreener profile and buyers are still coming, but the price hasn't run yet.",
     when: (f) => f.dexPaid && f.dexPaidMin >= 1 && f.dexPaidMin <= 180 && f.chgSincePaid >= -15 && f.chgSincePaid <= 40 && f.flowM5 >= 0 && f.buysM5 >= 2 && f.ageMin >= 3,
@@ -61,31 +73,31 @@ export const PB_KEYS = Object.keys(PLAYBOOKS);
 
 // ---------------------------------------------------------------- hard gates (never learned)
 export const GATES = {
-  minAgeMin: 3, // not in the first minutes: no sniping launches, and too little to judge
+  minAgeMin: 2, // not in the very first minutes: the sniper bots' window
   maxAgeMin: 4320, // 3 days: this desk trades new launches only
   minLiq: 800,
   maxRoundTrip: 15, // % lost buying and selling straight back at trade size
   maxTax: 12, // buy + sell tax %
-  minScore: 35,
-  maxTop10: 70,
+  // Token Scanner: an Argus launch can't be a sell-blocking honeypot, so the score is shown and fed to the model
+  // (which learns its weight) but doesn't block a buy; only a critical flag does.
+  minScore: 0,
+  maxTop10: 90,
 };
 // real money only (paper keeps trading these, so the model learns whether they matter):
 //   the launch floor — an Argus pool starts at its launch price, and if the early buyers all sell the price
 //   goes back there, so buying at 10× the floor can lose ~90% in one block; and the scanner's stress test
 //   (the price drop if the top 10 wallets sell everything)
 export const REAL_GATES = {
-  maxFloorDrop: 75, // % lost if the price fell back to the launch floor (price at most 4× the floor)
-  maxDump: 70, // % the price drops if the top 10 wallets sell everything
-  maxScanAgeMin: 15, // a real buy needs a scan this fresh
-  flagHours: 6, // a token that ever scored under the gate or showed a critical flag stays off-limits this long
+  maxFloorX: 6, // price at most this many × its launch floor (per playbook: the pump scalp takes 15×, small)
+  maxDump: 80, // % the price drops if the top 10 wallets sell everything
+  flagHours: 6, // a token that showed a critical flag stays off-limits this long
 };
-export function realGate(f, c, nowS) {
+export function realGate(f, c, nowS, pb) {
   const r = [];
-  if (f.floorDrop != null && f.floorDrop > REAL_GATES.maxFloorDrop) r.push(`${Math.round(f.floorDrop)}% above-floor risk (price ${f.floorX.toFixed(1)}× its launch floor)`);
-  if (f.dumpTop10 != null && f.dumpTop10 > REAL_GATES.maxDump) r.push(`top 10 selling would drop it ${Math.round(f.dumpTop10)}%`);
-  if (!c.scan || c.scan.score == null) r.push("no fresh scan yet");
-  else if (!c.scanAt || nowS - c.scanAt > REAL_GATES.maxScanAgeMin * 60) r.push("scan older than 15 minutes");
-  if (c.flagUntil && c.flagUntil > nowS) r.push(`flagged earlier: ${c.flagWhy || "low score"}`);
+  const maxX = (pb && PLAYBOOKS[pb] && PLAYBOOKS[pb].maxFloorX) || REAL_GATES.maxFloorX;
+  if (f.floorX != null && f.floorX > maxX) r.push(`${Math.round(f.floorDrop)}% above-floor risk (price ${f.floorX.toFixed(1)}× its launch floor)`);
+  if (f.dumpTop10 != null && f.dumpTop10 > REAL_GATES.maxDump && pb !== "dipdca") r.push(`top 10 selling would drop it ${Math.round(f.dumpTop10)}%`);
+  if (c.flagUntil && c.flagUntil > nowS) r.push(`flagged earlier: ${c.flagWhy || "critical flag"}`);
   if (f.reused) r.push("its website / X / Telegram link is also used by another launch");
   return r;
 }
@@ -98,7 +110,7 @@ export function gate(f, crit) {
   if (f.rtLoss != null && f.rtLoss > GATES.maxRoundTrip) r.push(`a round trip loses ${f.rtLoss.toFixed(1)}%`);
   if (f.rtLoss == null && f.quoteFailed) r.push("the desk couldn't quote a trade in this pool");
   if (f.tax > GATES.maxTax) r.push(`taxes add up to ${f.tax}%`);
-  if (f.score != null && f.score < GATES.minScore) r.push(`scanner score ${f.score}`);
+  if (GATES.minScore > 0 && f.score != null && f.score < GATES.minScore) r.push(`scanner score ${f.score}`);
   if (f.top10 != null && f.top10 > GATES.maxTop10) r.push(`top 10 wallets hold ${Math.round(f.top10)}%`);
   return r;
 }
@@ -261,12 +273,13 @@ const nearest = (list, v) => list.reduce((a, b) => (Math.abs(b - v) < Math.abs(a
 export const RISK = {
   tradePct: 6, // of equity per real trade
   minTrade: 3, maxTrade: 10, // USD
-  maxOpen: 8,
-  maxPerHour: 6,
+  maxOpen: 10,
+  maxPerHour: 8,
   dailyLossPct: 15, // stop opening new trades for the rest of the UTC day
   keepCash: 2, // USD left in the desk
   warmTrade: 3, // USD per real trade during the warm-up
-  warmPerHour: 2, // real buys an hour during the warm-up
+  warmPerHour: 6, // real buys an hour during the warm-up
+  lowCapUsd: 5000, lowCapMin: 30, // under a $5k market cap, never hold longer than 30 minutes
   burnPct: 20, // of new profit above the high-water mark, each day
 };
 export function tradeSize(equity, cash) {

@@ -38,8 +38,8 @@
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m` : `${Math.floor(d / 86400)}d`; };
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
-  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
-  const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0" };
+  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "30-minute limit under a $5k cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
+  const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0", scalp: "#ff7ac4", dipdca: "#ff9b5a" };
   const S = { d: null, booted: false, timer: 0, tab: "real", shown: { eq: null }, seenLog: null, hover: null };
 
   async function load() {
@@ -183,6 +183,7 @@
         </div>
         ${rangeBar(p)}
         ${p.gate && p.gate.floorX != null ? `<div class="dk-p-g">${T("Launch floor")} <b data-no-i18n>${p.gate.floorX}×</b>${p.gate.dump != null ? ` · ${T("top-10 dump")} <b data-no-i18n>−${Math.round(p.gate.dump)}%</b>` : ""}${p.gate.score != null ? ` · ${T("score")} <b data-no-i18n>${p.gate.score}</b>` : ""}</div>` : ""}
+        ${p.dca && p.dca.length ? `<div class="dk-p-g">${T("DCA buys")} <b data-no-i18n>${p.dca.map((l) => l + "%").join(" · ")}</b> · ${T("in")} <b data-no-i18n>${usd(p.usdIn)}</b></div>` : ""}
         ${p.added ? `<div class="dk-p-g">${T(p.added.kind === "dip" ? "Added on a dip" : "Added on strength")} <b data-no-i18n>${usd(p.added.usd)} @ ${px(p.added.px)}</b> ${txa(p.added.tx, "tx")}</div>` : ""}
         ${p.review ? `<div class="dk-p-rv"><b>${T("Risk check")}</b><span data-no-i18n>${esc(p.review.reason)}</span></div>` : ""}
         ${p.sells.length ? `<div class="dk-p-sells">${p.sells.map((s) => `<span>${T(WHY[s.why] || s.why)} ${s.pct}% <b data-no-i18n>${pc(s.ret)}</b> ${txa(s.tx, "tx")}</span>`).join("")}</div>` : ""}
@@ -289,12 +290,14 @@
         <div><b>${T("Safety gates")}</b><ul>
           <li>${T("No Token Scanner critical flag")}</li><li>${T("Launched at least")} <span data-no-i18n>${g.minAgeMin}</span> ${T("minutes ago, at most 3 days")}</li>
           <li>${T("Liquidity at least")} <span data-no-i18n>$${g.minLiq}</span></li><li>${T("A buy and an immediate sell lose at most")} <span data-no-i18n>${g.maxRoundTrip}%</span></li>
-          <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("scanner score at least")} <span data-no-i18n>${g.minScore}</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
-          ${d.rules.realGates ? `<li>${T("Real money only: price at most 4× its launch floor, a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span>${T(", a scan under 15 minutes old, and never a token flagged in the last 6 hours")}</li>` : ""}
+          <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
+          <li>${T("Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
+          ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp: 15×, $2), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span>${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
           ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
           <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>)${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
-          <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li><li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
+          <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
+          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (the crash-buy DCA has its own 3-hour limit)")}</li>` : ""}<li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
           <li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
           <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li><li>${T("No message, chat or command can make it trade")}</li></ul></div>

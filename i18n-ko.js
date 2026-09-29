@@ -4493,6 +4493,24 @@
     "out of": "전체",
     "trades, counting what happened after they closed — the runner is there for these": "건 중 (청산 이후 움직임까지 포함) — 러너는 바로 이런 코인을 위한 것",
     "Profit is taken in steps, because the few launches that run 5–20× pay for all the losers: at the playbook's take-profit (about +30%) she sells 35%, at a double she sells another 25% (the stake is back by then), and the last 40% rides with a trailing stop 30% below its peak (40% once it's 5× or more), for up to 48 hours. After the first take-profit she never lets the rest fall below the entry. Every trade also has a stop-loss and a time limit. Between the once-a-minute checks she re-quotes what she holds every 10 seconds, so a stop-loss or a crash is acted on in seconds, not a minute later. After a real trade loses 30% or more, Claude writes a short review of what went wrong. She sells everything at once if the scanner finds a new critical flag, the price halves within a minute, or the pool can't be quoted anymore. Prices come from an exact quote from the desk contract, so pool fees, hook taxes and price impact are already in every return shown.": "수익은 단계적으로 실현합니다. 5~20배 오르는 소수의 코인이 모든 손실을 메워 주기 때문입니다. 플레이북 익절가(약 +30%)에서 35%를 팔고, 2배에서 25%를 더 팔며(이 시점엔 원금이 회수됨), 마지막 40%는 고점 대비 30%(5배 이상이면 40%) 아래에 트레일링 스탑을 걸고 최대 48시간 동안 가져갑니다. 첫 익절 이후에는 나머지가 진입가 아래로 떨어지게 두지 않습니다. 모든 거래에는 손절과 시간 제한도 있습니다. 1분마다의 점검 사이에도 보유 코인 시세를 10초마다 다시 확인해, 손절이나 폭락에 몇 초 만에 대응합니다. 실제 거래가 30% 이상 손실 나면 Claude가 무엇이 잘못됐는지 짧은 리뷰를 씁니다. 스캐너가 새 치명 플래그를 찾거나, 1분 안에 가격이 반토막 나거나, 풀 시세를 더 받을 수 없으면 한 번에 전부 팝니다. 가격은 데스크 컨트랙트의 정확한 견적에서 오므로, 표시되는 모든 수익률에 풀 수수료·훅 세금·가격 영향이 이미 반영돼 있습니다.",
+    "30-minute limit under a $5k cap": "시총 $5k 미만 30분 제한",
+    "DCA buys": "물타기 매수",
+    "Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)": "토큰 스캐너: 표시하고 학습에 쓰지만, 매수를 막는 건 치명 플래그뿐 (Argus 런칭은 매도를 막을 수 없음)",
+    "Real money only: price at most": "실제 자금 전용: 가격이 런칭 바닥가의 최대",
+    "its launch floor (the pump scalp: 15×, $2), a top-10 dump under": "배 (급등 스캘핑은 15배, $2), 상위 10 매도 시 하락폭",
+    ", and never a token with a critical flag in the last 6 hours": " 미만, 최근 6시간 내 치명 플래그가 있던 토큰 제외",
+    "Under a": "시가총액",
+    "market cap, never held longer than": "미만에서는 최대",
+    "minutes (the crash-buy DCA has its own 3-hour limit)": "분까지만 보유 (급락 매수·물타기는 별도 3시간 제한)",
+    "Pump scalp": "급등 스캘핑",
+    "A sudden burst of buying (or a fresh Dex payment): in fast, out at +20–25%, small size.": "갑작스러운 매수 폭발(또는 방금 덱스 유료 등록): 빠르게 소액 진입, +20~25%에 매도.",
+    "Crash buy + DCA": "급락 매수 + 물타기",
+    "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.": "고점 대비 55% 이상 폭락했지만 거래는 살아 있음: 조금 사고, -15%와 -30%에서 더 사고, 반등에 매도.",
+    "Hard safety gates, which learning can never loosen: no critical flag from the scanner, launched at least 2 minutes and at most 3 days ago, at least $800 of liquidity, a buy and an immediate sell at trade size lose no more than 15%, taxes no more than 12%. The Token Scanner score is shown and learned from, but it doesn't block a buy: an Argus launch can't block selling.": "학습으로도 절대 완화되지 않는 안전 관문: 스캐너 치명 플래그 없음, 런칭 후 2분 이상 3일 이하, 유동성 $800 이상, 거래 규모로 사고 바로 팔 때 손실 15% 이하, 세금 12% 이하. 토큰 스캐너 점수는 표시하고 학습에 쓰지만 매수를 막지는 않습니다: Argus 런칭은 매도를 막을 수 없기 때문입니다.",
+    "Seven playbooks decide when to enter: Launch momentum (early buyers keep coming and it hasn't run away), Pullback (it fell 15–45% off its high and buyers are back), Volume breakout (volume jumped against liquidity and the price is breaking up), Steady climber (a calm, well spread token slowly climbing), Dex paid (the team just paid for its Dexscreener profile and the price hasn't run yet), Pump scalp (a sudden burst of buying or a fresh Dex payment: in fast with $2, out at +20–25%) and Crash buy + DCA (down 55%+ from its high but still trading: $2, again at -15% and -30%, sell into the bounce).": "일곱 가지 플레이북이 진입 시점을 정합니다: 런칭 모멘텀(초기 매수세가 이어지고 아직 과열 전), 눌림목(고점 대비 15–45% 하락 후 매수세 복귀), 거래량 돌파(유동성 대비 거래량 급증과 가격 돌파), 꾸준한 상승(분산이 잘 된 차분한 토큰의 완만한 상승), 덱스 유료 등록(팀이 방금 Dexscreener 프로필 비용을 냈고 가격이 아직 안 오름), 급등 스캘핑(갑작스러운 매수 폭발 또는 방금 덱스 유료 등록: $2로 빠르게 진입, +20~25%에 매도), 급락 매수 + 물타기(고점 대비 55% 이상 하락했지만 거래가 살아 있음: $2, -15%와 -30%에서 추가 매수, 반등에 매도).",
+    "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 6× its launch floor (the $2 pump scalp: 15×), a top-10 sell-off that would drop it less than 80%, and no critical flag in the last 6 hours.": "실제 자금에는 모의보다 엄격한 규칙이 적용됩니다. Argus 풀은 런칭 가격에서 시작하고, 초기 매수자가 모두 팔면 한 블록 만에 그 가격으로 돌아갑니다. 그래서 실제 매수는 가격이 런칭 바닥가의 6배 이하($2 급등 스캘핑은 15배), 상위 10개 지갑이 다 팔 때 하락폭 80% 미만, 최근 6시간 동안 치명 플래그 없음이 필요합니다.",
+    "6% of the desk per trade, between $3 and $10; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. The pump scalp and each DCA tranche are $2.": "거래당 데스크 자금의 6%, $3~$10; 동시 포지션 최대 10개, 시간당 매수 최대 8회; 항상 $2는 현금으로 유지. 워밍업(처음 25건의 실제 거래) 동안은 거래당 $3, 시간당 최대 6회. 급등 스캘핑과 물타기 매수는 각 $2.",
+    "Under a $5k market cap, a position is never held longer than 30 minutes (the crash-buy DCA playbook has its own 3-hour limit).": "시가총액 $5k 미만에서는 30분 넘게 보유하지 않습니다 (급락 매수·물타기 플레이북은 별도 3시간 제한).",
   };
 
 
@@ -4836,6 +4854,7 @@
     [/^top 10 selling would drop it (\d+)%$/, "상위 10 매도 시 $1% 하락"],
     [/^flagged earlier: (.+)$/, "이전에 경고됨: $1"],
     [/^risk review: (.+)$/, "리스크 점검: $1"],
+    [/^DCA (-?\d+)%$/, "물타기 $1%"],
   ];
 
   (window.__arcDict = window.__arcDict || {}).ko = { d: KO, p: PATTERNS };

@@ -342,6 +342,7 @@
     [/^top 10 selling would drop it (\d+)%$/, "前 10 抛售会下跌 $1%"],
     [/^flagged earlier: (.+)$/, "之前被标记：$1"],
     [/^risk review: (.+)$/, "风险检查：$1"],
+    [/^DCA (-?\d+)%$/, "补仓 $1%"],
   ];
 
 
@@ -4644,6 +4645,24 @@
     "out of": "共",
     "trades, counting what happened after they closed — the runner is there for these": "笔交易中（包括平仓后的走势）——留仓就是为这些准备的",
     "Profit is taken in steps, because the few launches that run 5–20× pay for all the losers: at the playbook's take-profit (about +30%) she sells 35%, at a double she sells another 25% (the stake is back by then), and the last 40% rides with a trailing stop 30% below its peak (40% once it's 5× or more), for up to 48 hours. After the first take-profit she never lets the rest fall below the entry. Every trade also has a stop-loss and a time limit. Between the once-a-minute checks she re-quotes what she holds every 10 seconds, so a stop-loss or a crash is acted on in seconds, not a minute later. After a real trade loses 30% or more, Claude writes a short review of what went wrong. She sells everything at once if the scanner finds a new critical flag, the price halves within a minute, or the pool can't be quoted anymore. Prices come from an exact quote from the desk contract, so pool fees, hook taxes and price impact are already in every return shown.": "利润分步兑现，因为少数涨 5–20 倍的币能弥补所有亏损：到打法的止盈位（约 +30%）卖出 35%，翻倍时再卖 25%（此时本金已收回），最后 40% 用距高点 30%（5 倍以上时 40%）的移动止损继续持有，最长 48 小时。第一次止盈后绝不让剩余部分跌破成本价。每笔交易也都有止损和时间限制。在每分钟一次的检查之间，她每 10 秒重新报价持仓，所以止损或暴跌能在几秒内处理。真实交易亏损 30% 以上时，Claude 会写一段简短复盘。如果扫描器发现新的严重标记、价格一分钟内腰斩，或池子再也拿不到报价，她会一次全部卖出。价格来自交易台合约的精确报价，所以显示的每个收益都已包含池子手续费、钩子税和价格冲击。",
+    "30-minute limit under a $5k cap": "市值低于 $5k 的 30 分钟限制",
+    "DCA buys": "分批补仓",
+    "Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)": "代币扫描器：会显示并用于学习，但只有严重标记会阻止买入（Argus 发行无法阻止卖出）",
+    "Real money only: price at most": "仅限真实资金：价格最多为发行底价的",
+    "its launch floor (the pump scalp: 15×, $2), a top-10 dump under": "倍（急涨短炒：15 倍，$2），前 10 抛售跌幅低于",
+    ", and never a token with a critical flag in the last 6 hours": "，且过去 6 小时内没有严重标记",
+    "Under a": "市值低于",
+    "market cap, never held longer than": "时，最长持有",
+    "minutes (the crash-buy DCA has its own 3-hour limit)": "分钟（急跌抄底补仓有自己的 3 小时限制）",
+    "Pump scalp": "急涨短炒",
+    "A sudden burst of buying (or a fresh Dex payment): in fast, out at +20–25%, small size.": "突然的买盘爆发（或刚完成 Dex 付费）：小额快速进场，+20–25% 离场。",
+    "Crash buy + DCA": "急跌抄底 + 补仓",
+    "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.": "从高点暴跌 55% 以上但仍有交易：先买一点，在 -15% 和 -30% 再买，反弹时卖出。",
+    "Hard safety gates, which learning can never loosen: no critical flag from the scanner, launched at least 2 minutes and at most 3 days ago, at least $800 of liquidity, a buy and an immediate sell at trade size lose no more than 15%, taxes no more than 12%. The Token Scanner score is shown and learned from, but it doesn't block a buy: an Argus launch can't block selling.": "学习永远放宽不了的安全关卡：扫描器没有严重标记，发行 2 分钟到 3 天之间，流动性至少 $800，按交易规模买入后立即卖出亏损不超过 15%，税费不超过 12%。代币扫描器评分会显示并用于学习，但不会阻止买入：Argus 发行无法阻止卖出。",
+    "Seven playbooks decide when to enter: Launch momentum (early buyers keep coming and it hasn't run away), Pullback (it fell 15–45% off its high and buyers are back), Volume breakout (volume jumped against liquidity and the price is breaking up), Steady climber (a calm, well spread token slowly climbing), Dex paid (the team just paid for its Dexscreener profile and the price hasn't run yet), Pump scalp (a sudden burst of buying or a fresh Dex payment: in fast with $2, out at +20–25%) and Crash buy + DCA (down 55%+ from its high but still trading: $2, again at -15% and -30%, sell into the bounce).": "七套打法决定何时进场：发行动量（早期买家持续进场、还没涨过头）、回调（从高点回落 15–45% 后买家回来）、放量突破（成交量相对流动性猛增、价格向上突破）、稳步上涨（持仓分散的平稳代币缓慢上涨）、Dex 已付费（团队刚为 Dexscreener 资料付费、价格还没起飞）、急涨短炒（突然的买盘爆发或刚完成 Dex 付费：$2 快速进场，+20–25% 离场）和急跌抄底 + 补仓（从高点下跌 55% 以上但仍有交易：$2，在 -15% 和 -30% 再买，反弹时卖出）。",
+    "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 6× its launch floor (the $2 pump scalp: 15×), a top-10 sell-off that would drop it less than 80%, and no critical flag in the last 6 hours.": "真实资金的规则比模拟更严。Argus 池子从发行价开始，如果早期买家全部卖出，价格会在一个区块内跌回那里。所以真实买入需要：价格不超过发行底价的 6 倍（$2 的急涨短炒：15 倍）、前 10 钱包全部卖出时跌幅低于 80%、过去 6 小时内没有严重标记。",
+    "6% of the desk per trade, between $3 and $10; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. The pump scalp and each DCA tranche are $2.": "每笔占交易台资金 6%，介于 $3 到 $10；最多同时 10 个持仓、每小时 8 笔买入；始终保留 $2 现金。热身期（前 25 笔真实交易）：每笔 $3，每小时最多 6 笔。急涨短炒和每次补仓为 $2。",
+    "Under a $5k market cap, a position is never held longer than 30 minutes (the crash-buy DCA playbook has its own 3-hour limit).": "市值低于 $5k 时，持仓绝不超过 30 分钟（急跌抄底补仓打法有自己的 3 小时限制）。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
