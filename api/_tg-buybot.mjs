@@ -92,20 +92,32 @@ async function toBuys(S, logs) {
 // ---- the message ----
 const money = (n) => (n >= 1000 ? "$" + compact(n) : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const pxFmt = (p) => (p >= 1 ? "$" + p.toFixed(4) : p >= 0.0001 ? "$" + p.toPrecision(4) : "$" + p.toExponential(3));
+// ARCIA's little word under each buy — a new holder gets a welcome
+const CHEER_NEW = ["Welcome to the ARCIRCLE family~ 💙💚", "A new fan joined the circle! So happy~ ✨", "Hi new holder~ I'll remember you 😉"];
+const CHEER = ["Thank you for the love~ 💙💚", "Keep building. Keep shining. ♾", "The circle keeps growing~ ✨", "You made my day~ 😉"];
+const pick = (list, seed) => list[Math.abs(parseInt(String(seed).slice(-6), 16) || 0) % list.length];
 export function message(b, { test = false } = {}) {
-  const hearts = "💚".repeat(Math.max(1, Math.min(24, Math.round(b.usd / 5))));
+  const n = Math.max(2, Math.min(16, Math.round(b.usd / 5))); // 💙💚 per $10, up to a phone-width line
+  const bar = Array.from({ length: n }, (_, i) => (i % 2 ? "💚" : "💙")).join("");
   const mc = b.tk.supply ? (Number(BigInt(b.tk.supply)) / 10 ** b.tk.dec) * b.px : null;
-  const whale = b.usd >= 500;
+  const tier = b.usd >= 500 ? "🐳 WHALE BUY" : b.usd >= 100 ? "🔥 BIG BUY" : "🚀 NEW BUY";
+  const prev = b.held != null ? b.held - b.tokens : null;
+  const pos = b.fresh ? "✨ <b>New holder!</b>" : prev > 0 ? `📊 Position <b>+${Math.min(9999, (b.tokens / prev) * 100).toFixed(prev < b.tokens ? 0 : 1)}%</b>` : "";
   const text = [
-    `<b>${whale ? "Big buy — " : ""}$${h(b.tk.sym)} buy</b>${test ? " <i>(test)</i>" : ""}`,
-    hearts,
+    `♾ <b>$${h(b.tk.sym)}</b>  ${tier}!${test ? "  <i>(test)</i>" : ""}`,
+    bar,
     "",
-    `Spent  <b>${money(b.usd)}</b> USDC`,
-    `Got  <b>${compact(b.tokens)}</b> $${h(b.tk.sym)}`,
-    `Buyer  <a href="${EXPLORER}/address/${b.buyer}">${short(b.buyer)}</a>${b.fresh ? " · <b>new holder</b>" : ""}`,
-    `Price  ${pxFmt(b.px)}${mc ? `  ·  MC <b>${money(mc)}</b>` : ""}`,
-  ].join("\n");
-  const buttons = [[{ text: `Buy $${b.tk.sym}`, url: `https://argus.world/token/${b.tk.t}` }, { text: "Chart", url: `https://dexscreener.com/arc/${b.tk.pool}` }], [{ text: "Transaction", url: `${EXPLORER}/tx/${b.tx}` }, { text: "ARCIRCLE PAD", url: `${SITE}/arc` }]];
+    `💵 <b>Spent</b>   ${money(b.usd)} USDC`,
+    `🪙 <b>Got</b>   ${compact(b.tokens)} $${h(b.tk.sym)}`,
+    `👤 <b>Buyer</b>   <a href="${EXPLORER}/address/${b.buyer}">${short(b.buyer)}</a>`,
+    pos,
+    `💲 <b>Price</b>   ${pxFmt(b.px)}`,
+    mc ? `💎 <b>Market cap</b>   ${money(mc)}` : "",
+    "",
+    `<i>💬 ARCIA: ${h(pick(b.fresh ? CHEER_NEW : CHEER, b.tx))}</i>`,
+  ].filter((x, i, a) => x !== "" || (a[i - 1] !== "" && i > 0)).join("\n");
+  const buttons = [[{ text: `🛒 Buy $${b.tk.sym}`, url: `https://argus.world/token/${b.tk.t}` }, { text: "📈 Chart", url: `https://dexscreener.com/arc/${b.tk.pool}` }],
+    [{ text: "🔍 Transaction", url: `${EXPLORER}/tx/${b.tx}` }, { text: "♾ ARCIRCLE PAD", url: `${SITE}/arc` }]];
   return { text, buttons };
 }
 async function post(S, chatId, b, opts) {
