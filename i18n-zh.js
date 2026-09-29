@@ -4756,6 +4756,10 @@
     "Step 4 done — this round's exception": "第 4 步完成 — 本轮例外",
     "This round's exception": "本轮例外",
     "Complete — all 5 steps done": "已完成 — 5 个步骤全部完成",
+    "Copy CA": "复制 CA",
+    "Market numbers from Dexscreener, holders from the Token Scanner. New coins are risky — scan before you buy.": "行情来自 Dexscreener,持有人数来自代币扫描器。新币风险很高 — 购买前请先扫描。",
+    "Round #1 results →": "第 1 轮结果 →",
+    "$ARCIA CA": "$ARCIA CA",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

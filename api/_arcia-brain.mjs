@@ -150,8 +150,40 @@ A FEW EXAMPLES OF THE BALANCE (the ideas, not lines to copy)
 export const KB_TEXT = "SITE KNOWLEDGE — every page of arcircle.app, as a visitor sees it today:\n\n" +
   KB.map((k) => `## ${k.page} — ${k.title} (arcircle.app${k.url})\n${k.text}`).join("\n\n");
 
-/// Live $ARCIRCLE numbers from /api/social. With a wallet, also that wallet's holding (L.me).
+/// $ARCIA's market right now: price, 24h change, market cap, volume and liquidity from Dexscreener (its
+/// Uniswap v4 pool on Arc), holders from the Token Scanner (/api/social?scan=, cached there). Kept 20 s.
+export const ARCIA_POOL = "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b";
+let coinMem = null;
+const getJson = async (u, ms) => { const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); try { const r = await fetch(u, { signal: c.signal }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); } };
+export async function arciaCoin(origin) {
+  if (coinMem && Date.now() - coinMem.at < 20e3) return coinMem.v;
+  const [dx, sc] = await Promise.all([
+    getJson(`https://api.dexscreener.com/tokens/v1/arc/${ARCIA_CA}`, 3000),
+    origin ? getJson(`${origin}/api/social?scan=${ARCIA_CA.toLowerCase()}&sym=ARCIA`, 3000) : null,
+  ]);
+  const pairs = (Array.isArray(dx) ? dx : (dx && dx.pairs) || []).filter((p) => p && p.baseToken && String(p.baseToken.address).toLowerCase() === ARCIA_CA.toLowerCase());
+  const p = pairs.find((x) => String(x.pairAddress || "").toLowerCase() === ARCIA_POOL) || pairs.sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0] || null;
+  const num = (v) => (v == null || v === "" || !isFinite(Number(v)) ? null : Number(v));
+  const v = {
+    token: ARCIA_CA, pool: (p && p.pairAddress) || ARCIA_POOL,
+    price: p ? num(p.priceUsd) : null, change24h: p && p.priceChange ? num(p.priceChange.h24) : null,
+    mcap: p ? num(p.marketCap != null ? p.marketCap : p.fdv) : null,
+    volume24h: p && p.volume ? num(p.volume.h24) : null, liquidity: p && p.liquidity ? num(p.liquidity.usd) : null,
+    buys24h: p && p.txns && p.txns.h24 ? num(p.txns.h24.buys) : null, sells24h: p && p.txns && p.txns.h24 ? num(p.txns.h24.sells) : null,
+    holders: sc && sc.holderCount != null ? num(sc.holderCount) : null,
+  };
+  if (v.price != null || v.holders != null) coinMem = { at: Date.now(), v };
+  return v;
+}
+
+/// Live $ARCIRCLE numbers from /api/social, and $ARCIA's (L.arcia). With a wallet, also that wallet's holding (L.me).
 export async function live(origin, wallet) {
+  const coin = arciaCoin(origin).catch(() => null);
+  const L = await liveArcircle(origin, wallet);
+  const arcia = await coin;
+  return L ? { ...L, arcia } : null;
+}
+async function liveArcircle(origin, wallet) {
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), wallet ? 5000 : 3500);
     const r = await fetch(origin + "/api/social?token=arcircle" + (wallet ? "&wallet=" + wallet : ""), { signal: ctl.signal });
@@ -187,6 +219,7 @@ export function liveText(L) {
 - $ARCIRCLE price ${price(L.price)}, market cap ${usd(L.mcap)}, 24h change ${L.change24h == null ? "—" : L.change24h.toFixed(2) + "%"}, holders ${L.holders ?? "—"}
 - Burned so far: ${L.burnedPct == null ? "—" : L.burnedPct.toFixed(2) + "%"}${L.burnedTokens ? " (" + Math.round(L.burnedTokens).toLocaleString("en-US") + " $ARCIRCLE)" : ""}
 - ArcPad coins launched: ${L.launches ?? "—"}
+- $ARCIA (CirclePad Round #1's coin): ${L.arcia && L.arcia.price != null ? `price ${price(L.arcia.price)}, market cap ${usd(L.arcia.mcap)}, 24h change ${L.arcia.change24h == null ? "—" : L.arcia.change24h.toFixed(2) + "%"}, 24h volume ${usd(L.arcia.volume24h)}, liquidity ${usd(L.arcia.liquidity)}` : "market numbers not available right now"}${L.arcia && L.arcia.holders != null ? `, holders ${L.arcia.holders}` : ""}
 - CirclePad Round #1: ${L.round.open ? "open" : "not open / closed"}${!L.round.open && L.round.distributed === true ? " — the 80/15/5 split has been sent from the escrow" : !L.round.open && L.round.distributed === false && L.round.deadline <= Date.now() / 1000 ? " — settling: the recipient has not sent the 80/15/5 split from the escrow yet; results are on arcircle.app/circle/round/1" : ""}, raised ${L.round.raised == null ? "—" : Number(L.round.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"}, closes ${closes}${left(L.round.deadline) ? " (" + left(L.round.deadline) + " left)" : ""}`;
 }
 

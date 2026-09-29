@@ -4604,6 +4604,10 @@
     "Step 4 done — this round's exception": "4단계 완료 — 이번 라운드 예외",
     "This round's exception": "이번 라운드 예외",
     "Complete — all 5 steps done": "완료 — 5단계 모두 완료",
+    "Copy CA": "CA 복사",
+    "Market numbers from Dexscreener, holders from the Token Scanner. New coins are risky — scan before you buy.": "시세는 Dexscreener, 홀더 수는 토큰 스캐너 기준이에요. 새 코인은 위험할 수 있으니 사기 전에 꼭 스캔하세요.",
+    "Round #1 results →": "Round #1 결과 →",
+    "$ARCIA CA": "$ARCIA CA",
   };
 
 

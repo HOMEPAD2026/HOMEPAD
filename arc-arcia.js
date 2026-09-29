@@ -18,6 +18,9 @@
   var HOST = panel.getAttribute("data-host") === "float";
   var X = "https://x.com/ARCIAonArc";
   var CA = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
+  // $ARCIA — CirclePad Round #1's coin, named after her — and its Uniswap v4 pool on Arc
+  var ARCIA_CA = "0x9da6d5ce413e94264Ea411372459413334a83bE5";
+  var ARCIA_POOL = "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b";
   var BUY = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "https://argus.world/token/" + CA;
   var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
   var lang = function () { return (window.arcI18n && window.arcI18n.get()) || "en"; };
@@ -473,7 +476,8 @@
   // ---------------- cards under her replies ----------------
   function richCard(li, tp) {
     var L = LIVE || {}, R = L.round || {}, html = "";
-    if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div></div>';
+    if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div>' +
+      '<span class="aa-rc-k aa-rc-k2">$ARCIA · Arc</span><code data-no-i18n>' + ARCIA_CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Argus</a></div></div>';
     else if (tp === "round") html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>' + (R.raised != null ? Number(R.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row">' + (deadline() > nowS() ? '<a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button>" : '<a class="aa-rc-btn" href="/circle/round/1">See the result</a>') + "</div></div>";
     else if (tp === "price") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>' + (L.price != null ? (F.price ? F.price(L.price) : "$" + L.price) : "—") + (L.change24h != null ? ' <em class="' + (L.change24h >= 0 ? "up" : "down") + '">' + (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%</em>" : "") + '</div><span class="aa-rc-sub" data-no-i18n>' + (L.holders != null ? Number(L.holders).toLocaleString("en-US") + " holders" : "") + '</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>';
     else if (tp === "buy") html = '<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(BUY) + '" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>';
@@ -690,18 +694,21 @@
     var box = panel.querySelector(".aa-live-rows");
     if (!box) return;
     if (!box.querySelector("[data-k]")) {
-      box.innerHTML = [["price", "$ARCIRCLE"], ["holders", "Holders"], ["burned", "Burned forever"], ["raised", "Round #1 raised"], ["left", "Round #1 closes in"]].map(function (r) {
+      box.innerHTML = [["price", "$ARCIA"], ["mcap", "Market cap"], ["holders", "Holders"], ["vol", "24h volume"], ["liq", "Liquidity"]].map(function (r) {
         return "<div><dt>" + esc(tr(r[1])) + '</dt><dd data-no-i18n><span data-k="' + r[0] + '">—</span>' + (r[0] === "price" ? ' <em class="aa-chg"></em>' : "") + "</dd></div>";
       }).join("");
     }
+    // the Live tab follows $ARCIA (L.arcia, from /api/arcia); $ARCIRCLE's numbers stay on /stats
+    var A = L.arcia || {};
     var q = function (k) { return box.querySelector('[data-k="' + k + '"]'); };
-    if (L.price != null) roll(q("price"), "price", L.price, function (v) { return F.price ? F.price(v) : "$" + v.toPrecision(3); });
+    var usd = function (v) { return v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + v.toFixed(2); };
+    if (A.price != null) roll(q("price"), "aprice", A.price, function (v) { return F.price ? F.price(v) : "$" + v.toPrecision(3); });
     var chg = box.querySelector(".aa-chg");
-    if (chg) { chg.textContent = L.change24h != null ? (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%" : ""; chg.className = "aa-chg " + (L.change24h >= 0 ? "up" : "down"); }
-    if (L.holders != null) roll(q("holders"), "holders", Number(L.holders), function (v) { return Math.round(v).toLocaleString("en-US"); });
-    if (L.burnedPct != null) roll(q("burned"), "burned", L.burnedPct, function (v) { return v.toFixed(2) + "%"; });
-    if (L.round && L.round.raised != null) roll(q("raised"), "raised", Number(L.round.raised), function (v) { return v.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"; });
-    var lf = q("left"); if (lf && !lf.classList.contains("aa-clock")) lf.classList.add("aa-clock");
+    if (chg) { chg.textContent = A.change24h != null ? (A.change24h >= 0 ? "+" : "") + A.change24h.toFixed(2) + "%" : ""; chg.className = "aa-chg " + (A.change24h >= 0 ? "up" : "down"); }
+    if (A.mcap != null) roll(q("mcap"), "amcap", A.mcap, usd);
+    if (A.holders != null) roll(q("holders"), "aholders", Number(A.holders), function (v) { return Math.round(v).toLocaleString("en-US"); });
+    if (A.volume24h != null) roll(q("vol"), "avol", A.volume24h, usd);
+    if (A.liquidity != null) roll(q("liq"), "aliq", A.liquidity, usd);
     clock(); paintRemind();
   }
   function clock() {
@@ -1209,9 +1216,12 @@
                 return '<button type="button" role="tab" id="aa-t-' + t + '" aria-controls="aa-p-' + t + '" aria-selected="' + (i ? "false" : "true") + '" tabindex="' + (i ? "-1" : "0") + '" data-t="' + t + '" data-no-i18n>' + esc(T(TABS[t])) + "</button>";
               }).join("") + "</div>" +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl>' +
-              '<div class="aa-remind"><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + '<span>Add to calendar</span></button><button type="button" class="aa-rc-btn ghost" data-remind="1">' + ICON.bell + "<span>Remind me</span></button>" +
-              '<p class="aa-mini">Reminders show while this page is open. For alerts anywhere, join <a href="https://t.me/arcircle_launch" target="_blank" rel="noopener">t.me/arcircle_launch</a>.</p></div>' +
-              '<a class="aa-more" href="/stats">All live stats →</a></div>' +
+              '<div class="aa-coin"><span class="aa-coin-k">$ARCIA CA</span><code data-no-i18n>' + ARCIA_CA + '</code>' +
+              '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
+              '<a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Buy on Argus</a>' +
+              '<a class="aa-rc-btn ghost" href="https://dexscreener.com/arc/' + ARCIA_POOL + '" target="_blank" rel="noopener">Chart</a></div>' +
+              '<p class="aa-mini">Market numbers from Dexscreener, holders from the Token Scanner. New coins are risky — scan before you buy.</p></div>' +
+              '<a class="aa-more" href="/circle/round/1">Round #1 results →</a></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-x" aria-labelledby="aa-t-x" hidden><h3>ARCIA on X</h3><p class="aa-xhead"></p><ul class="aa-xfeed"><li class="aa-empty">Loading…</li></ul>' +
               '<a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow @ARCIAonArc</span></a></div>" +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-letters" aria-labelledby="aa-t-letters" hidden><h3>Fan letters</h3><p class="aa-mini">Write to ARCIA. She reads every letter and answers it here, for everyone to see.</p>' +
@@ -1307,7 +1317,9 @@
     });
     var side = panel.querySelector(".aa-side");
     side.addEventListener("click", function (e) {
-      if (e.target.closest("[data-ics]")) ics();
+      var cpy = e.target.closest("[data-copy]");
+      if (cpy) copyText(cpy.getAttribute("data-copy"), cpy);
+      else if (e.target.closest("[data-ics]")) ics();
       else if (e.target.closest("[data-remind]")) remind();
       else if (e.target.closest("[data-q=start]")) quizStart();
       else if (e.target.closest(".aa-q-opts button")) quizPick(e.target.closest("button"));

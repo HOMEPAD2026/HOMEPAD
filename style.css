@@ -8654,6 +8654,12 @@ html.ck-open{overflow:hidden;}
 @keyframes aa-flash-down{0%{background:rgba(255,120,120,.35);}100%{background:transparent;}}
 .aa-clock{color:#8fe9ff;}
 .aa-remind{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.aa-coin{margin-top:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(57,255,136,.28);background:rgba(57,255,136,.05);}
+.aa-coin-k{display:block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8fe9bd;}
+.aa-coin code{display:block;margin-top:4px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:clamp(.64rem,3.05vw,.78rem);letter-spacing:-.01em;word-break:break-all;color:#e6eeff;}
+.aa-coin-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.aa-coin .aa-mini{margin:10px 0 0;}
+.aa-rc-k2{display:block;margin-top:12px;}
 .aa-remind .aa-mini{flex-basis:100%;margin:2px 0 0;}
 .aa-more{display:inline-block;margin-top:10px;font-size:.8rem;color:#8fb6ff;}
 .aa-xhead{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:.78rem;color:var(--ink-dim);}
