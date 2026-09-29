@@ -244,7 +244,7 @@
   async function loadFeed() {
     if (!burnOn() || !/^0x[0-9a-fA-F]{40}$/.test(BURN)) return;
     try {
-      const r = await fetch("/api/social?circle=burns", { cache: "no-store" });
+      const r = await fetch(`/api/social?circle=burns${(CONFIG.CIRCLEPAD_ROUND || 1) > 1 ? `&round=${CONFIG.CIRCLEPAD_ROUND}` : ""}`, { cache: "no-store" });
       if (!r.ok) return;
       const j = await r.json();
       const fresh = seen ? j.events.filter((e) => !seen.has(e.tx + ":" + e.i)) : [];

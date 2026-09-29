@@ -23,20 +23,28 @@
     else if (o && Date.now() - o.at >= 10 * 60e3) localStorage.removeItem("circlepad.round.just-started");
   } catch (e) { /* storage blocked: the boot script alone decides */ }
   if (cur) {
+    const G = (CONFIG.CIRCLEPAD_GOV && CONFIG.CIRCLEPAD_GOV[cur.n]) || {};
+    const voteOn = isAddr(G.vote) && isAddr(G.burnvote);
     CONFIG.CIRCLEPAD_ESCROW_ADDRESS = cur.escrow;
     CONFIG.CIRCLEPAD_ROUND = cur.n;
-    CONFIG.CIRCLEPAD_VOTE_ADDRESS = "";
-    CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = "";
-    CONFIG.CIRCLEPAD_VOTE_MODE = "";
+    CONFIG.CIRCLEPAD_ROUND_GOV = { ...G, voteOn, ballotOn: isAddr(G.vote) };
+    // the round's own ballot (the ideas board and candidates) and burn-to-vote, once they're deployed
+    CONFIG.CIRCLEPAD_VOTE_ADDRESS = isAddr(G.vote) ? G.vote : "";
+    CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = voteOn ? G.burnvote : "";
+    CONFIG.CIRCLEPAD_VOTE_MODE = voteOn ? "burn" : "";
     CONFIG.CIRCLEPAD_EXTRA_CANDIDATES = {};
     CONFIG.CIRCLEPAD_OPENS_AT = 0;
     CONFIG.CIRCLEPAD_ESCROW_VERIFIED = false;
     CONFIG.CIRCLEPAD_ALLOCATION_NOTE = "";
     CONFIG.CIRCLEPAD_NEXT = [
-      { id: "close", title: "The raise closes", body: "Contributions and withdrawals stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
-      { id: "vote", title: "The coin's identity", body: "How this round's coin is named and when it launches: not decided yet.", status: "open" },
-      { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
-      { id: "airdrop", title: "Contributor airdrop", body: "Not decided yet.", status: "open" },
+      voteOn
+        ? { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" }
+        : { id: "vote", title: "Governance, as in Round #1", body: "First the community suggests ideas, then the round wallet publishes the candidates and $ARCIRCLE holders burn-to-vote on name, ticker, logo, roadmap and launch date until the raise closes. Opens soon.", status: "policy" },
+      { id: "close", title: "The raise closes", body: "Contributions, withdrawals and voting stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
+      G.top === true ? { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.", status: "policy" }
+        : { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
+      { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
+      { id: "airdrop", title: "Contributor airdrop", body: G.airdrop || "Not decided yet.", status: G.airdrop ? "policy" : "open" },
     ];
     document.documentElement.setAttribute("data-cp-round", String(cur.n));
   }

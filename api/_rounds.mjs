@@ -12,7 +12,7 @@ import { ethCalls, rpcCall, isAddr, wAddr, keccakHex } from "./_arc.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { ESCROW, VOTE, S, big, roundState, forgetRound } from "./_round.mjs";
 import { leaderboard } from "./_circle.mjs";
-import { ballotReport, ADDR as BV } from "./_burnvote.mjs";
+import { ballotReport, forRound } from "./_burnvote.mjs";
 
 // keccak256 of circlepad-escrow-code.js's CP_ESCROW_CODE (BigPadEscrow creation code, solc 0.8.26 / 200 runs / viaIR / cancun)
 export const ESCROW_CODE_HASH = "0xf4691a923fed8a3b40db2cd952a065d72b0a7385432fd7053d8fd1a2daaca57a";
@@ -220,7 +220,7 @@ export async function summary(n) {
   forgetRound(r.escrow);
   const [st, marks, wallets, lb, ballot] = await Promise.all([
     roundState(r.escrow), stagesOf(r.escrow), walletsOf(r.escrow).catch(() => null), leaderboard(null, r.escrow),
-    r.n === 1 && VOTE ? ballotReport().catch(() => null) : Promise.resolve(null),
+    forRound(r.n) ? ballotReport(forRound(r.n)).catch(() => null) : Promise.resolve(null),
   ]);
   const total = st.totalRaised;
   const rows = (lb.rows || []).map((x, i) => ({ rank: i + 1, address: x.address, amount: x.amount, share: pct(BigInt(x.amount), total), deposited: x.depositedTotal, withdrawn: x.withdrawnTotal }));
@@ -234,7 +234,7 @@ export async function summary(n) {
     closed: st.started && now() >= st.deadline, startedAt: st.started ? st.deadline - FUNDING : null,
     board: { rows, complete: !!lb.complete, flow: lb.flow || null, contributors: rows.length, top: rows[0] || null },
     ballot: ballot ? { burned: ballot.burned, votes: ballot.votes, voters: ballot.voters, opensAt: ballot.opensAt, votingEnds: ballot.votingEnds, winners } : null,
-    contracts: { escrow: r.escrow, vote: r.n === 1 ? VOTE : null, burnvote: r.n === 1 ? lc(BV.burnvote || "") || null : null },
+    contracts: { escrow: r.escrow, vote: forRound(r.n) ? forRound(r.n).ballot : null, burnvote: forRound(r.n) ? forRound(r.n).burnvote : null },
     report: r.n === 1 ? "/circle/round/1" : null,
   };
 }

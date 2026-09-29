@@ -84,9 +84,11 @@
     tl.dataset.adapted = "1";
     const lis = tl.querySelectorAll(".bp-steps > li");
     const set = (i, title, body) => { const li = lis[i]; if (!li) return; const s = li.querySelector("strong"), p = li.querySelector("p"); if (s && title) s.textContent = tr(title); if (p) p.textContent = tr(body); };
-    set(1, "Coin identity", "How this round's coin is named and when it launches: not decided yet.");
-    set(3, "", "Whether the top contributor receives the 15% this round: not decided yet.");
-    set(4, "", "Launch and airdrop for this round: not decided yet.");
+    const G = CONFIG.CIRCLEPAD_ROUND_GOV || {};
+    if (G.voteOn) set(1, "Burn-to-vote", "$ARCIRCLE holders vote on name, ticker, logo, roadmap, date — every vote burns 1,000 $ARCIRCLE.");
+    else set(1, "Burn-to-vote", "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.");
+    set(3, "", G.top === true ? "The largest contributor at the close receives the 15%, over 3 days." : "Whether the top contributor receives the 15% this round: not decided yet.");
+    set(4, "", G.airdrop ? "The coin launches on the date the vote picks. " + G.airdrop : "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.");
     const note = tl.querySelector(".cp-tl-note");
     if (note) note.textContent = tr("The raise and the 80 / 15 / 5 split are enforced by the escrow contract. The steps after the split are the team's, marked done here by the round wallet.");
   }
@@ -408,8 +410,8 @@
   // Later rounds: this round's number on the page, and Governance says plainly that its vote isn't set up
   function relabel() {
     if (N() === 1) return;
-    const note = $("bp-gov-panel-note");
-    if (note) note.textContent = tr("Burn-to-vote isn't set up for this round — not decided yet. Round #1's result is on Projects.");
+    const note = $("bp-gov-panel-note"), G = CONFIG.CIRCLEPAD_ROUND_GOV || {};
+    if (note && !G.voteOn) note.textContent = tr("Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.");
     const h2 = document.querySelector("#bp-featured .bp-featured-info h2");
     if (h2 && h2.firstChild && h2.firstChild.nodeType === 3) { h2.setAttribute("data-no-i18n", ""); h2.firstChild.textContent = RTraw("CirclePad Round #1", N()) + " "; }
     const tag = document.querySelector(".cp-tl-tag");

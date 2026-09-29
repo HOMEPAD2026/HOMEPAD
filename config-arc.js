@@ -92,6 +92,13 @@ const CONFIG = {
   // voting from then until the raise closes (29 Sep 11:16:07 UTC). Replaces 0x89A5…CB70,
   // which only opened after the close and never took a vote.
   CIRCLEPAD_BURNVOTE_ADDRESS: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2",
+  // Later rounds' governance and rules (circlepad-boot.js switches the page to the newest round). A round's
+  // vote goes live once its BigPadVote (vote) and ArcircleBurnVote (burnvote) are filled in — keep api/_burnvote.mjs GOV
+  // in step. top: the largest contributor receives the 15% over 3 days (true / false / null = not decided);
+  // airdrop: the contributor airdrop's text, or "" = not decided.
+  CIRCLEPAD_GOV: {
+    2: { vote: "", burnvote: "", top: true, airdrop: "" },
+  },
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an
   //     "opens in" countdown and a calendar file before start(); 0 = not announced

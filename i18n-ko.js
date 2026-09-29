@@ -4946,6 +4946,13 @@
     "Runner: what's left after taking profit rides on with a wide trailing stop": "러너: 익절 후 남은 물량은 넓은 트레일링 스탑으로 계속 보유",
     "DCA: buying again in small steps as the price falls, for a better average": "분할매수(DCA): 가격이 내릴 때 조금씩 더 사서 평균 단가를 낮춤",
     "more profit to go": "만큼 더 벌면 소각돼요",
+    "Governance, as in Round #1": "Round #1과 같은 거버넌스",
+    "First the community suggests ideas, then the round wallet publishes the candidates and $ARCIRCLE holders burn-to-vote on name, ticker, logo, roadmap and launch date until the raise closes. Opens soon.": "먼저 커뮤니티가 아이디어를 내고, 라운드 지갑이 후보를 올리면 $ARCIRCLE 홀더가 이름·티커·로고·로드맵·출시일을 모금 마감까지 소각 투표합니다. 곧 열려요.",
+    "Contributions, withdrawals and voting stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.": "기여·출금·투표가 멈춥니다. 에스크로가 전부 나눠요: 수령인 80%, 트레저리 15%, 플랫폼 5%.",
+    "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.": "마감 시점 최다 기여자가 15%를 3일에 걸쳐 받아요. 팀이 트레저리 지갑에서 보냅니다 — Round #1과 같아요.",
+    "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.": "Round #1처럼: 아이디어 먼저, 그다음 $ARCIRCLE 소각 투표로 이름·티커·로고·로드맵·날짜를 정해요. 곧 열려요.",
+    "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.": "코인은 투표로 정한 날짜에 출시돼요. 이번 라운드 에어드랍: 아직 미정.",
+    "Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.": "이번 라운드 거버넌스도 곧 열려요. Round #1처럼 커뮤니티 아이디어를 먼저 받고, 모금 마감까지 $ARCIRCLE 소각 투표를 합니다. Round #1 결과는 Projects에 있어요.",
   };
 
 

@@ -47,7 +47,7 @@
 
   async function load() {
     try {
-      const r = await fetch(`${API}?circle=ideas${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
+      const r = await fetch(`${API}?circle=ideas&round=${ESCROW}${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
       const j = await r.json();
       if (!j || j.enabled === false) { off = true; render(); return; }
       if (Array.isArray(j.ideas)) { D = { ideas: j.ideas, myUps: j.myUps || [] }; loaded = true; }
@@ -232,7 +232,7 @@
         const issued = new Date().toISOString();
         const sig = await sign((w) => hideMessage(w, hd.dataset.hide, issued));
         if (!sig) return;
-        const r = await post({ action: "chide", kind: "idea", wallet: me(), id: hd.dataset.hide, issued, signature: sig });
+        const r = await post({ action: "chide", kind: "idea", round: ESCROW, wallet: me(), id: hd.dataset.hide, issued, signature: sig });
         if (r.ok) { D.ideas = D.ideas.filter((x) => x.id !== hd.dataset.hide); render(); toast("Hidden.", "ok"); }
         else toast(r.j.error || "Couldn't hide that.", "bad");
       } catch (err) { toast("Signing was cancelled.", "bad"); }
@@ -250,7 +250,7 @@
         const issued = new Date().toISOString();
         const sig = await sign((w) => ideaMessage(w, cat, f.text, f.note, issued));
         if (!sig) return;
-        const r = await post({ action: "cidea", wallet: me(), cat, text: f.text, note: f.note, issued, signature: sig });
+        const r = await post({ action: "cidea", round: ESCROW, wallet: me(), cat, text: f.text, note: f.note, issued, signature: sig });
         if (r.ok) {
           toast("Idea posted — thanks.", "ok");
           formKey = ""; // fresh, empty form

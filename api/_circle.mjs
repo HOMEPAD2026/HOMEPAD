@@ -12,6 +12,7 @@ import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
 import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, VOTE, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
+import { ideasRound } from "./_burnvote.mjs";
 export { ESCROW, roundState, contributionOf };
 const lc = (a) => String(a || "").toLowerCase();
 const usd = (wei) => Number(wei) / 1e18; // native USDC on Arc: 18 decimals
@@ -25,9 +26,9 @@ export const upMessage = (wallet, id) => `ARCIRCLE PAD — upvote CirclePad prop
 // Round #1 governance: anyone with a wallet can suggest a candidate for one of
 // the five categories the vote decides; the recipient picks from them.
 export const IDEA_CATS = ["name", "ticker", "logo", "roadmap", "date"];
-export const ideaMessage = (wallet, cat, text, note, issued) => `ARCIRCLE PAD — CirclePad idea\nRound: ${ESCROW}\nWallet: ${lc(wallet)}\nCategory: ${IDEA_CATS[cat]}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([text, note]))}`;
+export const ideaMessage = (wallet, cat, text, note, issued, round = ESCROW) => `ARCIRCLE PAD — CirclePad idea\nRound: ${round}\nWallet: ${lc(wallet)}\nCategory: ${IDEA_CATS[cat]}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([text, note]))}`;
 export const ideaUpMessage = (wallet, id) => `ARCIRCLE PAD — back a CirclePad idea\nIdea: ${id}\nWallet: ${lc(wallet)}`;
-export const hideMessage = (wallet, kind, id, issued) => `ARCIRCLE PAD — CirclePad moderation\nRound: ${ESCROW}\nHide ${kind}: ${id}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
+export const hideMessage = (wallet, kind, id, issued, round = ESCROW) => `ARCIRCLE PAD — CirclePad moderation\nRound: ${round}\nHide ${kind}: ${id}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
 
 // ---- chain reads ----
 let creatorsCache = null;
@@ -194,13 +195,22 @@ export function ideaText(cat, raw) {
   }
   return { t };
 }
-async function ballotSet(cat) {
-  if (!VOTE) return false;
-  const [h] = await ethCalls([{ to: VOTE, data: S.optionsSet + cat.toString(16).padStart(64, "0") }]);
+/// the ideas board a request is for: Round #1's, or a later round's (its escrow must have a ballot)
+function ideasTarget(round) {
+  if (!round || lc(round) === ESCROW) return { escrow: ESCROW, ballot: VOTE };
+  const g = ideasRound(round);
+  return g ? { escrow: g.escrow, ballot: g.ballot } : null;
+}
+async function ballotSet(cat, ballot = VOTE) {
+  if (!ballot) return false;
+  const [h] = await ethCalls([{ to: ballot, data: S.optionsSet + cat.toString(16).padStart(64, "0") }]);
   return big(h) > 0n;
 }
-export async function ideasData(wallet) {
+export async function ideasData(wallet, round) {
   wallet = lc(wallet);
+  const R = ideasTarget(round);
+  if (!R) return { enabled: false, round: lc(round), ideas: [], myUps: [] };
+  const ESCROW = R.escrow;
   const docs = await queryDocs("circleIdeas", "round", ESCROW, 600);
   const live = docs.filter((d) => !d.hidden).sort((a, b) => (b.up || 0) - (a.up || 0) || a.at - b.at);
   const per = [0, 0, 0, 0, 0];
@@ -216,6 +226,9 @@ export async function ideasData(wallet) {
 }
 export async function ideaPost(b, recover, json) {
   const wallet = lc(b.wallet), cat = Number(b.cat);
+  const R = ideasTarget(b.round);
+  if (!R) return json(400, { error: "that round has no ideas board" });
+  const ESCROW = R.escrow;
   if (!isAddr(wallet)) return json(400, { error: "wallet must be an address" });
   if (!Number.isInteger(cat) || cat < 0 || cat > 4) return json(400, { error: "pick a category" });
   // the signature covers exactly what was typed; the check below works on the tidied form
@@ -225,10 +238,10 @@ export async function ideaPost(b, recover, json) {
   const note = rawNote.replace(/\s+/g, " ").trim();
   if (note.length > 140) return json(400, { error: "keep the note under 140 characters" });
   if (!issuedOk(b.issued, 10 * 60e3)) return json(400, { error: "signature expired — sign again" });
-  let signer; try { signer = recover(ideaMessage(wallet, cat, rawText, rawNote, b.issued), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  let signer; try { signer = recover(ideaMessage(wallet, cat, rawText, rawNote, b.issued, ESCROW), b.signature); } catch { return json(400, { error: "invalid signature" }); }
   if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
-  if (await ballotSet(cat)) return json(409, { error: "the candidates for this one are already on the ballot" });
-  const st = await roundState().catch(() => null);
+  if (await ballotSet(cat, R.ballot)) return json(409, { error: "the candidates for this one are already on the ballot" });
+  const st = await roundState(ESCROW).catch(() => null);
   const team = !!(st && wallet === st.recipient);
   const rk = `rate/cidea_${wallet}_${dayKey()}`;
   if (!team && (await limited(rk, IDEAS_PER_DAY))) return json(429, { error: `${IDEAS_PER_DAY} ideas a day per wallet — try again tomorrow` });
@@ -255,8 +268,10 @@ export async function hide(b, recover, json) {
   const wallet = lc(b.wallet), kind = b.kind === "prop" || b.kind === "idea" ? b.kind : "qa", id = String(b.id || "");
   if (!isAddr(wallet) || !/^[0-9a-f]{16}$/.test(id)) return json(400, { error: "bad request" });
   if (!issuedOk(b.issued, 10 * 60e3)) return json(400, { error: "signature expired — sign again" });
-  let signer; try { signer = recover(hideMessage(wallet, kind, id, b.issued), b.signature); } catch { return json(400, { error: "invalid signature" }); }
-  if (signer !== wallet || wallet !== (await roundState()).recipient) return json(403, { error: "only the round's recipient wallet can hide posts" });
+  const R = kind === "idea" ? ideasTarget(b.round) : { escrow: ESCROW };
+  if (!R) return json(400, { error: "that round has no ideas board" });
+  let signer; try { signer = recover(hideMessage(wallet, kind, id, b.issued, R.escrow), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  if (signer !== wallet || wallet !== (await roundState(R.escrow)).recipient) return json(403, { error: "only the round's recipient wallet can hide posts" });
   const path = kind === "prop" ? `circleProps/${id}` : kind === "idea" ? `circleIdeas/${id}` : `circleQA/${id}`;
   const cur = (await getDocs([path]))[path];
   if (!cur) return json(404, { error: "not found" });

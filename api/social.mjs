@@ -22,8 +22,8 @@
 //   GET  /api/social?dropsby=0x…                 a wallet's own Multisender sends
 //   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
 //   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
-//   GET  /api/social?circle=ideas[&wallet=0x…]   Round #1 governance ideas (api/_circle.mjs)
-//   GET  /api/social?circle=burns                CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
+//   GET  /api/social?circle=ideas[&wallet=0x…][&round=<escrow>]   a round's governance ideas (api/_circle.mjs)
+//   GET  /api/social?circle=burns[&round=n]      CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
 //   GET  /api/social?circle=vote&tx=0x…          one burn-vote transaction (/vote/<tx>)
 //   GET  /api/social?circle=rounds[&fresh=1]     every CirclePad round + its launch process (api/_rounds.mjs)
 //   GET  /api/social?circle=boot                 /circle's <head> script: which round the page runs
@@ -209,7 +209,10 @@ export async function GET(req) {
   }
   // CirclePad burn-to-vote: the feed of Voted events + totals, and one vote tx (/vote/<tx>)
   if (url.searchParams.get("circle") === "burns") {
-    try { return json(200, await burnvote.burnFeed(scanStoreEarly()), "public, max-age=5, s-maxage=10, stale-while-revalidate=60"); }
+    // &round=n: that round's burn-to-vote; without it, the current one
+    const A = url.searchParams.has("round") ? burnvote.forRound(url.searchParams.get("round")) : burnvote.ADDR;
+    if (!A) return json(404, { error: "that round has no burn-to-vote" }, "public, max-age=30");
+    try { return json(200, await burnvote.burnFeed(scanStoreEarly(), A), "public, max-age=5, s-maxage=10, stale-while-revalidate=60"); }
     catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.get("circle") === "vote") {
@@ -451,7 +454,7 @@ export async function GET(req) {
     }
     if (url.searchParams.get("circle") === "ideas") {
       const w = lc(url.searchParams.get("wallet"));
-      return json(200, await circle.ideasData(w), isAddr(w) ? "no-store" : "public, max-age=5, s-maxage=10, stale-while-revalidate=60");
+      return json(200, await circle.ideasData(w, url.searchParams.get("round")), isAddr(w) ? "no-store" : "public, max-age=5, s-maxage=10, stale-while-revalidate=60");
     }
     if (url.searchParams.has("circle")) {
       const w = lc(url.searchParams.get("wallet"));

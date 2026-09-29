@@ -1,6 +1,15 @@
 require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 
+// Keys that were exposed must never deploy or sign anything again: whoever else holds them could act first.
+const EXPOSED = ["0x80e18846cb2ed34bdf1e3a8a8689fd5d4c9e8bc7"];
+for (const k of ["DEPLOYER_PRIVATE_KEY", "TREASURY_PRIVATE_KEY"]) {
+  if (!process.env[k]) continue;
+  let who = "";
+  try { who = new (require("ethers").Wallet)(process.env[k]).address.toLowerCase(); } catch { throw new Error(`${k} in contracts/.env is not a valid key`); }
+  if (EXPOSED.includes(who)) throw new Error(`${k} belongs to ${who.slice(0, 6)}…${who.slice(-4)}, a key that was exposed. Use a new wallet.`);
+}
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {

@@ -5098,6 +5098,13 @@
     "Runner: what's left after taking profit rides on with a wide trailing stop": "剩余仓位：止盈后余下部分以较宽的移动止损继续持有",
     "DCA: buying again in small steps as the price falls, for a better average": "分批买入（DCA）：价格下跌时分步加仓以降低均价",
     "more profit to go": "再盈利这么多即可销毁",
+    "Governance, as in Round #1": "与第 1 轮相同的治理",
+    "First the community suggests ideas, then the round wallet publishes the candidates and $ARCIRCLE holders burn-to-vote on name, ticker, logo, roadmap and launch date until the raise closes. Opens soon.": "先由社区提出想法，再由轮次钱包发布候选，$ARCIRCLE 持有者在募集结束前对名称、代码、标志、路线图和上线日期进行销毁投票。即将开放。",
+    "Contributions, withdrawals and voting stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.": "贡献、提取和投票停止。托管合约分配全部资金：接收方 80%、金库 15%、平台 5%。",
+    "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.": "结束时贡献最多的钱包将在 3 天内获得 15%，由团队从金库钱包发送——与第 1 轮相同。",
+    "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.": "与第 1 轮相同：先征集想法，再用 $ARCIRCLE 销毁投票决定名称、代码、标志、路线图和日期。即将开放。",
+    "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.": "代币在投票选定的日期上线。本轮空投：尚未决定。",
+    "Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.": "本轮治理即将开放，与第 1 轮相同：先征集社区想法，再在募集结束前用 $ARCIRCLE 销毁投票。第 1 轮结果见 Projects。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
