@@ -130,11 +130,14 @@ async function cardScan(ca, lang) {
   const r = await scanner.apiResult(ca, { store: store() }).catch(() => null);
   if (!r) return w("err", lang);
   if (r.score == null) return { text: `<code>${h(ca)}</code>\n${T3(lang, "That address isn't a token on Arc.", "Arc의 토큰이 아니에요.", "这不是 Arc 上的代币。")}` };
-  const warn = (r.checks || []).filter((c) => c.status === "fail" || c.status === "warn").slice(0, 3).map((c) => `⚠️ ${h(c.title)}`);
+  // v3: critical flags first, then the main reasons (objects: { status, title }), the plain-words summary and how sure the scan is
+  const crit = (r.critical || []).slice(0, 3).map((t) => `🛑 <b>${h(T3(lang, "Critical", "치명", "严重"))}:</b> ${h(t)}`);
+  const reasons = (r.reasons || []).filter((x) => !(r.critical || []).includes(x.title || x)).slice(0, 3).map((x) => `${(x.status || "") === "pass" ? "✓" : "•"} ${h(x.title || x)}`);
+  const conf = r.confidence ? `${T3(lang, "Confidence", "신뢰도", "可信度")}: ${h(r.confidence)}` : "";
   return {
     photo: `${SITE}/api/og?scan=${ca}&t=${minute()}`,
     text: [`🔍 <b>${h(r.symbol ? "$" + r.symbol : short(ca))}</b>${r.name ? ` · ${h(r.name)}` : ""}`, `${T3(lang, "Score", "점수", "评分")}: <b>${r.score}/100</b> · ${h(r.verdict || "")}`,
-      ...(r.reasons || []).slice(0, 3).map((x) => `• ${h(x)}`), ...warn,
+      ...crit, ...reasons, r.summary ? `\n${h(r.summary)}` : null, conf || null,
       [r.market && r.market.market_cap_usd != null ? `${T3(lang, "Market cap", "시가총액", "市值")} ${fmtUsd(r.market.market_cap_usd)}` : "", r.holders && r.holders.count != null ? `${T3(lang, "Holders", "홀더", "持有人")} ${num(r.holders.count)}` : ""].filter(Boolean).join(" · ") || null,
       `<i>${T3(lang, "Not financial advice. DYOR.", "투자 조언이 아니에요. 직접 확인하세요.", "非投资建议,请自行研究。")}</i>`].filter(Boolean).join("\n"),
     buttons: [[{ text: T3(lang, "Full report", "전체 리포트", "完整报告"), url: `${SITE}/s/${ca}` }, { text: T3(lang, "Deep analysis · $0.02", "심층 분석 · $0.02", "深度分析 · $0.02"), url: `${SITE}/arc#arcia402?svc=token-analysis&token=${ca}` }]],
@@ -387,7 +390,7 @@ async function autoScan(c, m, lang) {
   const r = await scanner.apiResult(addrs[0], { store: store() }).catch(() => null);
   if (!r || r.score == null) return false; // a wallet, or unreadable: stay quiet
   await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true },
-    text: `🔍 <b>${h(r.symbol ? "$" + r.symbol : short(addrs[0]))}</b> · ${r.score}/100 · ${h(r.verdict || "")}${(r.reasons || [])[0] ? `\n• ${h(r.reasons[0])}` : ""}\n<i>${T3(lang, "Auto-scan · not financial advice", "자동 스캔 · 투자 조언 아님", "自动扫描 · 非投资建议")}</i>`,
+    text: `🔍 <b>${h(r.symbol ? "$" + r.symbol : short(addrs[0]))}</b> · ${r.score}/100 · ${h(r.verdict || "")}${(r.critical || [])[0] ? `\n🛑 ${h(r.critical[0])}` : (r.reasons || [])[0] ? `\n• ${h(r.reasons[0].title || r.reasons[0])}` : ""}\n<i>${T3(lang, "Auto-scan · not financial advice", "자동 스캔 · 투자 조언 아님", "自动扫描 · 非投资建议")}</i>`,
     ...kb([[{ text: T3(lang, "Full report", "전체 리포트", "完整报告"), url: `${SITE}/s/${addrs[0]}` }]]) });
   return true;
 }
@@ -838,8 +841,8 @@ async function onInline(iq) {
   const results = [];
   if (ca) {
     const r = await scanner.apiResult(ca, { store: store() }).catch(() => null);
-    if (r && r.score != null) results.push({ type: "article", id: "scan" + ca.slice(2, 12), title: `${r.symbol ? "$" + r.symbol : short(ca)} · ${r.score}/100 · ${r.verdict || ""}`, description: (r.reasons || []).slice(0, 2).join(" · ") || "Token Scanner",
-      thumbnail_url: `${SITE}/images/arcia-avatar-96.jpg`, input_message_content: { message_text: `🔍 <b>${h(r.symbol ? "$" + r.symbol : short(ca))}</b> · ${r.score}/100 · ${h(r.verdict || "")}\n${(r.reasons || []).slice(0, 3).map((x) => `• ${h(x)}`).join("\n")}\n<a href="${SITE}/s/${ca}">Full report</a> · scanned by ARCIA`, parse_mode: "HTML", link_preview_options: { url: `${SITE}/s/${ca}`, prefer_large_media: true } },
+    if (r && r.score != null) results.push({ type: "article", id: "scan" + ca.slice(2, 12), title: `${r.symbol ? "$" + r.symbol : short(ca)} · ${r.score}/100 · ${r.verdict || ""}`, description: [...(r.critical || []).map((t) => "Critical: " + t), ...(r.reasons || []).map((x) => x.title || x)].slice(0, 2).join(" · ") || "Token Scanner",
+      thumbnail_url: `${SITE}/images/arcia-avatar-96.jpg`, input_message_content: { message_text: `🔍 <b>${h(r.symbol ? "$" + r.symbol : short(ca))}</b> · ${r.score}/100 · ${h(r.verdict || "")}\n${[...(r.critical || []).map((t) => `🛑 Critical: ${h(t)}`), ...(r.reasons || []).map((x) => `• ${h(x.title || x)}`)].slice(0, 3).join("\n")}\n<a href="${SITE}/s/${ca}">Full report</a> · scanned by ARCIA`, parse_mode: "HTML", link_preview_options: { url: `${SITE}/s/${ca}`, prefer_large_media: true } },
       reply_markup: { inline_keyboard: [[{ text: "Full report", url: `${SITE}/s/${ca}` }, { text: "Ask ARCIA", url: `${BOT_URL}?start=scan_${ca}` }]] } });
   }
   const L = await live(SITE).catch(() => null);

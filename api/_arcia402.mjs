@@ -160,7 +160,7 @@ async function withArcia(kind, data) {
 }
 async function tokenAnalysis(token) {
   const r = await scanner.apiResult(lc(token), { store: store() });
-  return { ...r, arcia: await withArcia("token analysis", { score: r.score, verdict: r.verdict, reasons: r.reasons, market: r.market, holders: r.holders, checks: (r.checks || []).filter((c) => c.status !== "pass").slice(0, 8) }) };
+  return { ...r, arcia: await withArcia("token analysis", { score: r.score, verdict: r.verdict, confidence: r.confidence, critical: r.critical, summary: r.summary, sections: r.sections, reasons: r.reasons, market: r.market, holders: r.holders, checks: (r.checks || []).filter((c) => c.status !== "pass").slice(0, 10) }) };
 }
 async function airdrops(w) {
   const got = await drop.received(store(), lc(w));
@@ -209,7 +209,7 @@ async function launchAnalysis(token) {
     price_usd: a.priceUsd ?? null, market_cap_usd: a.mcapUsd ?? null, pair: "USDC", creator_fees: "70% creator / 30% ARCIRCLE PAD",
     support: { dexscreener_info_from_usd: 20000, marketing_from_usd: 100000, reached: a.mcapUsd >= 100000 ? "marketing" : a.mcapUsd >= 20000 ? "dexscreener info" : "none yet" },
   };
-  const out = { token, ...base, scan: scan ? { score: scan.score, verdict: scan.verdict, reasons: scan.reasons, holders: scan.holders, market: scan.market } : null, page: `${SITE}/arc#coin/${token}` };
+  const out = { token, ...base, scan: scan ? { score: scan.score, verdict: scan.verdict, confidence: scan.confidence, critical: scan.critical, summary: scan.summary, reasons: scan.reasons, holders: scan.holders, market: scan.market } : null, page: `${SITE}/arc#coin/${token}` };
   return { ...out, arcia: await withArcia("launch analysis", out) };
 }
 async function launches(since) {

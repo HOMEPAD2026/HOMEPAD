@@ -39,7 +39,10 @@ Holders open a mine with part of a token's supply (3–60 days, six layers that 
 
 ## Free APIs
 
-- [Token Scanner API](https://www.arcircle.app/api/v1/scan/0x0000000000000000000000000000000000000000): `GET /api/v1/scan/<token>`
+- [Token Scanner API](https://www.arcircle.app/api/v1/scan/0x0000000000000000000000000000000000000000): `GET /api/v1/scan/<token>` — Scanner v3: score 0–100, verdict, `confidence` (high / medium / low), `critical` flags kept apart from the score, `sections` (contract, control, trade, market, holders, launch), a plain-words `summary`, and every check with its `source` (chain, dry run, Dexscreener, explorer, scanner index)
+- Token Scanner live card (iframe): `https://www.arcircle.app/embed/scan/<token>` · badge: `https://www.arcircle.app/badge/<token>`
+- Token Scanner frozen reports: `https://www.arcircle.app/scan-report/<id>` and `GET /api/v1/report/<id>` (a scan kept exactly as it was at one block)
+- Token Scanner Pro (signed-in wallet): `POST /api/v1/scan/batch` with `{ "tokens": ["0x…"] }` and headers `x-scan-wallet` / `x-scan-session` — up to 25 tokens
 - [Holder Snapshot API](https://www.arcircle.app/arc#snapshot): `GET /api/v1/snapshot/<token>`
 
 ## Links

@@ -997,5 +997,6 @@ async function apcSafetyScore(token) {
   b.className = "apc-score"; b.setAttribute("data-no-i18n", ""); b.textContent = String(d.score);
   chip.appendChild(b);
   chip.classList.add("v-" + d.k);
-  chip.title = `Token Scanner: ${d.score}/100 · ${d.t}`;
+  chip.title = `Token Scanner: ${d.score}/100 · ${d.t}${d.crit && d.crit.length ? ` · Critical: ${d.crit.join(", ")}` : ""}`;
+  if (d.crit && d.crit.length) { const i = document.createElement("i"); i.className = "apc-crit"; i.setAttribute("aria-label", "Critical flag"); i.textContent = "!"; chip.appendChild(i); } // Scanner v3
 }

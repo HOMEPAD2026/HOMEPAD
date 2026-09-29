@@ -401,7 +401,7 @@ async function scanPage(url) {
   } catch { sym = ""; }
   sym = sym.replace(/[^\w$.-]/g, "").slice(0, 16);
   const title = `${sym ? "$" + sym : "Token"} — Token Scanner result on ARCIRCLE PAD`;
-  const desc = "Contract, owner powers, a dry-run sell, liquidity and holders, read from Circle's Arc and summed up in one score. An automated check, not advice.";
+  const desc = "Token Scanner v3: who really controls it, dry-run trades at three sizes, liquidity and holders, read from Circle's Arc — one score, critical flags apart, and how sure it is. An automated check, not advice.";
   const target = `/arc#scanner?t=${addr}`;
   const image = `${SITE}/api/og?scan=${addr}`;
   return html(`<!doctype html>

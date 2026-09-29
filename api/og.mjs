@@ -285,32 +285,44 @@ async function scanCard(mark, addr) {
   const res = out && out.res, c = out && out.c;
   if (!res || res.notToken || !c) {
     return frame([
-      brandRow(mark, pill("TOKEN SCANNER", "#4d9fff"), "Token Scanner · Circle's Arc"),
+      brandRow(mark, pill("TOKEN SCANNER V3", "#4d9fff"), "Token Scanner · Circle's Arc"),
       h("div", { flexDirection: "column", gap: 16 },
         h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "Check any Arc token."),
-        h("div", { fontSize: 34, color: "#9fb098" }, "Contract, owner powers, a dry-run sell, liquidity and holders — in one score.")),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Who really controls it, dry-run trades at three sizes, liquidity and holders — one score, critical flags apart.")),
       h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/scanner"),
     ]);
   }
   const col = res.verdict.k === "ok" ? "#39ff88" : res.verdict.k === "care" ? "#ffc861" : "#ff6e5a";
   const sym = clip(c.symbol || "TOKEN", 12);
-  const reasons = res.reasons.slice(0, 3).map((r) => h("div", { alignItems: "center", gap: 16, fontSize: 32, color: "#eaf2e6" },
+  // v3: critical flags as red pills first, then the other reasons; the section scores as bars
+  const crit = (res.critical || []).slice(0, 2);
+  const critEls = crit.map((r) => h("div", { alignItems: "center", gap: 12, fontSize: 28, fontWeight: 700, color: "#ffc2b8", padding: "8px 18px", borderRadius: 14, border: "2px solid rgba(255,110,90,0.85)", backgroundColor: "rgba(255,110,90,0.16)" },
+    h("div", { fontSize: 18, fontWeight: 800, color: "#2a0905", backgroundColor: "#ff6e5a", padding: "2px 8px", borderRadius: 6 }, "CRITICAL"), h("div", {}, clip(r.title, 30))));
+  const reasons = [...critEls, ...res.reasons.filter((r) => !crit.some((x) => x.title === r.title)).slice(0, 3 - crit.length).map((r) => h("div", { alignItems: "center", gap: 16, fontSize: 32, color: "#eaf2e6" },
     h("div", { width: 18, height: 18, borderRadius: 99, backgroundColor: r.status === "risk" ? "#ff6e5a" : r.status === "warn" ? "#ffc861" : "#39ff88" }),
-    h("div", {}, clip(r.title, 34))));
+    h("div", {}, clip(r.title, 34))))];
+  const SECT = [["contract", "Contract"], ["control", "Control"], ["trade", "Trading"], ["market", "Market"], ["holders", "Holders"], ["launch", "Launch"]];
+  const bars = h("div", { gap: 14, marginTop: 18 }, ...SECT.filter(([k]) => res.sub && res.sub[k]).map(([k, t]) => {
+    const v = res.sub[k].score, bc = v == null ? "#6b7785" : v >= 75 ? "#39ff88" : v >= 45 ? "#ffc861" : "#ff6e5a";
+    return h("div", { flexDirection: "column", gap: 6, width: 104 },
+      h("div", { width: 104, height: 10, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.1)" }, h("div", { width: Math.max(8, ((v || 0) / 100) * 104), height: 10, borderRadius: 99, backgroundColor: bc })),
+      h("div", { fontSize: 18, color: "#9fb098" }, t));
+  }));
   const ring = h("div", { width: 300, height: 300, borderRadius: 999, alignItems: "center", justifyContent: "center", flexDirection: "column",
     border: `22px solid ${col}`, boxShadow: `0 0 60px ${col}55`, backgroundColor: "rgba(0,0,0,0.35)" },
     h("div", { fontSize: 110, fontWeight: 800, letterSpacing: -3, lineHeight: 1 }, String(res.score)),
-    h("div", { fontSize: 26, color: "#9fb098" }, "/ 100"));
+    h("div", { fontSize: 26, color: "#9fb098" }, "/ 100"),
+    h("div", { fontSize: 20, color: "#b9c8b3", marginTop: 6 }, `confidence ${res.confidence || "—"}`));
   return frame([
     brandRow(mark, pill(res.verdict.t.toUpperCase(), col), "Token Scanner · Circle's Arc"),
     h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
       h("div", { flexDirection: "column", gap: 14, maxWidth: 700 },
         h("div", { fontSize: sym.length > 8 ? 84 : 100, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `$${sym}`),
         h("div", { fontSize: 30, color: "#b9c8b3", marginBottom: 14 }, clip(c.name || "", 34)),
-        reasons),
+        ...reasons, bars),
       ring),
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
-      h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · automated check, not advice`),
+      h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · Scanner v3 · automated check, not advice`),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 10))),
   ]);
 }

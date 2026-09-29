@@ -107,11 +107,12 @@ async function onUpdate(req, bot) {
   if (!res) { await say({ text: "Couldn't read that address from Arc right now — try again in a minute." }); return json(200, { ok: true }); }
   if (res.notToken) { await say({ text: `<b>${h(res.rows[0].title)}</b>\n${h(res.rows[0].detail)}` }); return json(200, { ok: true }); }
   const link = `${SITE}/s/${addr.toLowerCase()}`;
-  const lines = res.reasons.map((r) => `${r.status === "risk" ? "✕" : r.status === "warn" ? "!" : "✓"}  ${h(r.title)}`).join("\n");
+  const crit = (res.critical || []).map((r) => `🛑  <b>Critical:</b> ${h(r.title)}`);
+  const lines = [...crit, ...res.reasons.filter((r) => !(res.critical || []).some((c) => c.title === r.title)).map((r) => `${r.status === "risk" ? "✕" : r.status === "warn" ? "!" : "✓"}  ${h(r.title)}`)].slice(0, 4).join("\n");
   const counts = ["risk", "warn"].map((k) => res.rows.filter((r) => r.status === k).length);
   const textOut = [
     `<b>$${h(c.symbol || "?")}</b>  ·  Token Scanner`,
-    `${VERDICT_MARK[res.verdict.k]} <b>${res.score}/100 — ${h(res.verdict.t)}</b>\n${counts[0]} risk${counts[0] === 1 ? "" : "s"} · ${counts[1]} warning${counts[1] === 1 ? "" : "s"}`,
+    `${VERDICT_MARK[res.verdict.k]} <b>${res.score}/100 — ${h(res.verdict.t)}</b>\n${counts[0]} risk${counts[0] === 1 ? "" : "s"} · ${counts[1]} warning${counts[1] === 1 ? "" : "s"}${res.confidence ? ` · confidence ${res.confidence}` : ""}`,
     lines,
     `<code>${h(addr)}</code>`,
     `<i>An automated read of the chain, not advice.</i>`,

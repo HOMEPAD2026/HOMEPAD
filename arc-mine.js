@@ -101,7 +101,7 @@
     live: false, address: "", practice: false,
     sess: null, mining: false, workers: [], rates: {}, queue: [], work: null, power: Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 2) - 1)),
     local: { shares: 0, ores: {}, dug: 0 }, subTimer: 0, pollTimer: 0, clock: 0, busy: false, capHit: false,
-    lastShareAt: 0, tutorial: 0, sound: lsGet("bm.sound") === "1", lastMined: null, lastLayer: -1, safety: {},
+    lastShareAt: 0, tutorial: 0, sound: lsGet("bm.sound") === "1", lastMined: null, lastLayer: -1, safety: {}, crit: {},
     logo: {}, stats: null, worldView: lsGet("bm.wview") || "cards", filter: "all", sort: "new", feedSeen: null, claims: null, cardPick: null, shareFind: null, installEvt: null, hudOpen: false,
   };
   const G = () => S.G;
@@ -681,14 +681,14 @@
   function mineCard(m) {
     const sym = m.token ? m.token.symbol : "?", dec = m.token ? m.token.decimals : 18, name = (m.info && m.info.name) || "";
     const left = m.status === "live" || m.status === "paused" ? dur(m.end - now()) : m.status === "soon" ? tr("opens in") + " " + dur(m.start - now()) : tr(m.status === "closed" ? "closed" : "ended");
-    const sf = S.safety[m.token && m.token.address], risky = sf != null && sf < 40;
+    const sf = S.safety[m.token && m.token.address], cr = S.crit[m.token && m.token.address], risky = (sf != null && sf < 40) || !!(cr && cr.length);
     return `<button type="button" role="listitem" class="bm-mc ${S.id === m.id ? "on" : ""} st-${m.status} ${risky ? "risky" : ""}" data-mine="${m.id}">
       <span class="bm-mc-art" style="background-image:url(${src(biome(m.id))})"><em class="bm-st">${T(STATUS_TXT[m.status] || "Ended")}</em>${sf != null ? `<em class="bm-safe ${sf >= 70 ? "hi" : sf >= 40 ? "mid" : "lo"}" title="${T("Token Scanner score")}">${sf}</em>` : ""}${tokenFace(m.token, 34)}</span>
       <span class="bm-mc-top"><b data-no-i18n>$${esc(sym)}</b>${name ? `<i data-no-i18n>${esc(name)}</i>` : ""}</span>
       <span class="bm-mc-amt" data-no-i18n>${compact(units(m.deposited, dec))}</span>
       <span class="bm-mc-sub">${T("Layer")} ${m.layer + 1}/6 · ${fmtN(m.builders)} ${T("builders")}</span>
       <span class="bm-mc-bar"><i style="width:${Math.min(100, (units(m.emittedNow, dec) / Math.max(1e-18, units(m.deposited, dec))) * 100).toFixed(1)}%"></i></span>
-      <span class="bm-mc-sub">${esc(left)}</span>${risky ? `<span class="bm-risk">${T("Low scanner score — check the token first")}</span>` : ""}</button>`;
+      <span class="bm-mc-sub">${esc(left)}</span>${cr && cr.length ? `<span class="bm-risk">${T("Scanner critical flag")}: ${esc(T(cr[0]))}</span>` : risky ? `<span class="bm-risk">${T("Low scanner score — check the token first")}</span>` : ""}</button>`;
   }
   function shownMines() {
     const f = S.filter || "all", sort = S.sort || "new";
@@ -723,6 +723,7 @@
         const logo = findImage(j);
         if (logo) S.logo[a] = logo;
         if (sc != null) S.safety[a] = Math.round(sc);
+        if (Array.isArray(j.critical) && j.critical.length) S.crit[a] = j.critical; // Scanner v3 critical flags
         paintMines(); paintMineHead();
       }).catch(() => {});
     });
@@ -819,9 +820,9 @@
     el.hidden = false;
     const dec = v.token ? v.token.decimals : 18, sym = v.token ? v.token.symbol : "", info = v.info || {}, link = safeLink(info.link);
     const mine = me0() && v.creator === me0();
-    const sf = S.safety[v.token && v.token.address];
+    const sf = S.safety[v.token && v.token.address], cr = S.crit[v.token && v.token.address];
     el.innerHTML = `<div class="bm-mh-art" style="background-image:url(${src(biome(S.id))})">${tokenFace(v.token, 40)}</div>
-      <div class="bm-mh-t"><b data-no-i18n>${esc(info.name || "$" + sym + " mine")}</b>${sf != null ? `<span class="bm-safe ${sf >= 70 ? "hi" : sf >= 40 ? "mid" : "lo"} inl" title="${T("Token Scanner score")}">${T("Scan")} ${sf}</span>${sf < 40 ? ` <a class="bm-risklink" href="/s/${esc(v.token.address)}" target="_blank" rel="noopener">${T("Low score — read the scan first")}</a>` : ""}` : ""}${info.about ? `<p data-no-i18n>${esc(info.about)}</p>` : ""}
+      <div class="bm-mh-t"><b data-no-i18n>${esc(info.name || "$" + sym + " mine")}</b>${sf != null ? `<span class="bm-safe ${sf >= 70 ? "hi" : sf >= 40 ? "mid" : "lo"} inl" title="${T("Token Scanner score")}">${T("Scan")} ${sf}</span>${cr && cr.length ? ` <a class="bm-risklink" href="/s/${esc(v.token.address)}" target="_blank" rel="noopener">${T("Scanner critical flag")}: ${esc(T(cr[0]))}</a>` : sf < 40 ? ` <a class="bm-risklink" href="/s/${esc(v.token.address)}" target="_blank" rel="noopener">${T("Low score — read the scan first")}</a>` : ""}` : ""}${info.about ? `<p data-no-i18n>${esc(info.about)}</p>` : ""}
         <span class="bm-sm">$${esc(sym)} · ${T("by")} <span data-no-i18n>${short(v.creator)}</span>${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener nofollow" data-no-i18n>${esc(link.replace(/^https:\/\//, "").slice(0, 32))}</a>` : ""}${v.paused ? ` · <em class="bm-st">${T("Joins paused")}</em>` : ""}</span></div>
       <div class="bm-mh-k"><div><span>${T("In the mine")}</span><b data-no-i18n>${compact(units(v.deposited, dec))}</b></div><div><span>${T("Mined")}</span><b data-no-i18n>${compact(units(v.emittedNow, dec))}</b></div><div><span>${T("Digging now")}</span><b data-no-i18n>${fmtN((v.active && v.active.n) || 0)}</b></div><div><span>${T("Builders")}</span><b data-no-i18n>${fmtN(v.builders)}</b></div></div>
       <div class="bm-mh-a"><button type="button" class="bm-mini" data-act="dash"><img src="${src("ui-trophy")}" alt="" width="16" height="16">${T(mine ? "Your mine's dashboard" : "Mine stats")}</button>${now() < v.end - 3600 ? `<button type="button" class="bm-mini" data-act="topup">${T("Top up")}</button>` : ""}<button type="button" class="bm-mini" data-act="copy" data-copy="${esc(v.link)}">${T("Share mine")}</button>${mine ? `<button type="button" class="bm-mini" data-act="editinfo">${T("Edit")}</button><button type="button" class="bm-mini" data-act="pausemine">${T(v.paused ? "Resume joins" : "Pause joins")}</button>` : ""}</div>`;

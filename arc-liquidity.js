@@ -791,6 +791,7 @@
     if (!d || !el.isConnected) return;
     const bad = (d.trade || []).map((x) => x.split("|")).filter(([st, t]) => (st === "risk" || st === "warn") && /tax|fail/i.test(t));
     const lines = [];
+    if (d.crit && d.crit.length) lines.push(`${T("Token Scanner critical flag")}: <b>${d.crit.map((t) => T(t)).join(" · ")}</b> — <a href="#scanner?t=${esc(D.token.address)}" data-go="scanner">${T("see why")}</a>`);
     if (bad.length) lines.push(`${T("The Token Scanner found")}: <b>${bad.map(([, t]) => T(t)).join(" · ")}</b>. ${T("A taxed token loses part of every deposit and withdrawal to the tax, and pool math can break.")}`);
     else if (d.k && d.k !== "ok" && d.score != null) lines.push(`${T("Token Scanner verdict")}: <b>${T(d.t)}</b> <span data-no-i18n>(${d.score}/100)</span> — <a href="#scanner?t=${esc(D.token.address)}" data-go="scanner">${T("see why")}</a>`);
     if (lines.length) { el.innerHTML = lines.map((l) => `<p class="alq-warn">${l}</p>`).join(""); el.hidden = false; }
