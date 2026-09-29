@@ -4585,6 +4585,7 @@
     "How this round's coin is named and when it launches: not decided yet": "이번 라운드 코인의 이름과 런칭 시점: 아직 미정",
     "Whether the largest contributor receives the 15% as in Round #1: not decided yet.": "라운드 #1처럼 최대 기여자가 15%를 받는지: 아직 미정.",
     "Not decided yet.": "아직 미정.",
+    "Chat": "채팅",
   };
 
 

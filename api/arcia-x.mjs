@@ -226,7 +226,8 @@ async function plan(origin, st) {
 async function loadState() {
   const doc = (await getDocs([STATE]))[STATE] || {};
   return { sent: doc.sent || {}, coinSince: doc.coinSince || 0, days: doc.days || {}, mentionSince: doc.mentionSince || "", me: doc.me || null,
-    replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "", recent: Array.isArray(doc.recent) ? doc.recent : [] };
+    replyDays: doc.replyDays || {}, replyAuthors: doc.replyAuthors || null, replyError: doc.replyError || "", recent: Array.isArray(doc.recent) ? doc.recent : [],
+    team: doc.team || null, teamSince: doc.teamSince || "", teamAt: doc.teamAt || 0, teamError: doc.teamError || "" };
 }
 // the last things ARCIA said on X, for the feed on her page (?feed=1)
 function remember(st, row) {
@@ -269,6 +270,27 @@ async function draftReply(m, L) {
   if (out.length > 270) out = out.slice(0, 268).replace(/\s+\S*$/, "") + "…";
   return { text: out };
 }
+// The team's own posts that name her. A long post (over 280 characters) keeps its @mention in the part X
+// folds away, and X's mentions timeline can leave such a post out (29 Sep: the Round #2 post from
+// @ARCIRCLEonArc was never listed), so @ARCIRCLEonArc's new posts are also read — every 5 minutes,
+// only posts newer than the last one seen (one small read), and the first read looks back 12 hours.
+const TEAM = "ARCIRCLEonArc", TEAM_EVERY = 300;
+async function teamPosts(st, who) {
+  if (!st.team || !st.team.id) {
+    const j = await xGet(`https://api.x.com/2/users/by/username/${TEAM}`);
+    if (!j.data || !j.data.id) throw new Error("team account not found");
+    st.team = { id: j.data.id, username: j.data.username || TEAM };
+  }
+  const q = { max_results: "10", exclude: "retweets", "tweet.fields": "author_id,created_at,note_tweet,referenced_tweets" };
+  if (st.teamSince) q.since_id = st.teamSince;
+  const j = await xGet(`https://api.x.com/2/users/${st.team.id}/tweets`, q);
+  const data = j.data || [];
+  for (const t of data) if (!st.teamSince || BigInt(t.id) > BigInt(st.teamSince)) st.teamSince = t.id;
+  const cut = Date.now() - 12 * 3600e3;
+  const named = new RegExp("@" + String(who.username || "ARCIAonArc").replace(/\W/g, "") + "\\b", "i");
+  return data.filter((t) => (q.since_id || Date.parse(t.created_at) >= cut) && named.test((t.note_tweet && t.note_tweet.text) || t.text || ""))
+    .map((t) => ({ id: t.id, text: (t.note_tweet && t.note_tweet.text) || t.text, author: t.author_id || st.team.id, username: st.team.username, name: "", rt: false, team: true }));
+}
 const replyDone = (st, id) => { const r = st.sent["reply:" + id]; return !!r && !(r.x === "retry" && (r.n || 0) < 3); };
 /// the last handled mentions and what happened to each (public: ids, handles, reasons — nothing secret)
 function recentReplies(st) {
@@ -289,13 +311,20 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   try { list = await mentions(who.id, preview ? null : st.mentionSince, preview ? 5 : 20); }
   catch (e) { st.replyError = String(e.message || e).slice(0, 200); st.dirty = true; return [{ error: "mentions: " + st.replyError }]; }
   if (st.replyError) { st.replyError = ""; st.dirty = true; }
-  if (!list.length) return results;
+  // the team's posts that name her but that the mentions timeline left out (see teamPosts)
+  let extra = [];
+  if (!preview && !firstTime && now() - (st.teamAt || 0) >= TEAM_EVERY) {
+    st.teamAt = now(); st.dirty = true;
+    try { extra = (await teamPosts(st, who)).filter((t) => !list.some((m) => m.id === t.id) && !replyDone(st, t.id)); if (st.teamError) st.teamError = ""; }
+    catch (e) { st.teamError = String(e.message || e).slice(0, 200); }
+  }
+  if (!list.length && !extra.length) return results;
   if (firstTime && !preview) { st.mentionSince = list[list.length - 1].id; st.dirty = true; return [{ info: "started: replies begin with the next mention" }]; }
   if (!preview) st.dirty = true;
   const day = dayOf(now());
   st.replyDays = st.replyDays || {};
   const L = await liveNumbers(origin);
-  const todo = list.filter((m) => m.author !== who.id && !replyDone(st, m.id)).slice(0, preview ? 3 : REPLIES_PER_RUN);
+  const todo = [...extra, ...list.filter((m) => m.author !== who.id && !replyDone(st, m.id))].slice(0, preview ? 3 : REPLIES_PER_RUN);
   const drafts = await Promise.all(todo.map((m) => draftReply(m, L).catch(() => ({ skip: "error", retry: true }))));
   for (let k = 0; k < todo.length; k++) {
     const m = todo[k], d = drafts[k];
@@ -353,7 +382,7 @@ export async function GET(req) {
       today: st ? st.days[dayOf(now())] || 0 : null, cap: DAY_CAP,
       firstRun: st ? !st.coinSince : null,
       wouldPost: p.posts.map((x) => ({ id: x.id, chars: xLen(x.text), text: x.text })),
-      replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null, recent: st ? recentReplies(st) : [],
+      replies: { on: repliesOn(), today: st ? (st.replyDays || {})[dayOf(now())] || 0 : null, cap: REPLY_DAY_CAP, lastError: st ? st.replyError : null, teamCheck: st ? { at: st.teamAt || null, error: st.teamError || "" } : null, recent: st ? recentReplies(st) : [],
         preview: url.searchParams.get("status") === "replies" && hasKeys() && st ? await replyRun(origin, st, { preview: true }).catch((e) => [{ error: String(e.message || e) }]) : "open ?status=replies to draft replies to the latest mentions (reads up to 5 mentions, posts nothing)" },
       live: { coins: true, round: true, daily: true, trends: false },
     });
@@ -446,3 +475,4 @@ export async function GET(req) {
   if (enabled() && hasKeys()) { prune(st); await setDoc(STATE, stripTemp(st)); }
   return json(200, { enabled: enabled(), posts: postsOn(), firstRun, results, replies });
 }
+export const _test = { teamPosts };

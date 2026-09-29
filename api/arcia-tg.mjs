@@ -764,7 +764,7 @@ async function start(c, m, arg, lang) {
   const buttons = [[{ text: "📈 Price", callback_data: "mn:price" }, { text: "🟢 Round", callback_data: "mn:round" }], [{ text: "🚀 Launches", callback_data: "mn:launches" }, { text: "💙 ARCIA 402", callback_data: "mn:books" }],
     [{ text: "🔔 Alerts", callback_data: "mn:alerts" }, { text: "🔗 Link wallet", callback_data: "mn:link" }], [{ text: "Open ArcPad", url: `${SITE}/arc` }, { text: "X @ARCIAonArc", url: "https://x.com/ARCIAonArc" }]];
   const r = await tg("sendAnimation", { chat_id: m.chat.id, animation: `${SITE}/images/arcia-hello.mp4`, caption: cap, ...kb(buttons) });
-  if (!r.ok) { const r2 = await tg("sendPhoto", { chat_id: m.chat.id, photo: `${SITE}/images/arcia-banner-900.jpg`, caption: cap, ...kb(buttons) }); if (!r2.ok) await tg("sendMessage", { chat_id: m.chat.id, text: cap, ...kb(buttons) }); }
+  if (!r.ok) { const r2 = await tg("sendPhoto", { chat_id: m.chat.id, photo: `${SITE}/images/arcia-banner2-900.jpg`, caption: cap, ...kb(buttons) }); if (!r2.ok) await tg("sendMessage", { chat_id: m.chat.id, text: cap, ...kb(buttons) }); }
 }
 async function help(c, m, lang) {
   const admin = c.admins.includes(m.from.id);

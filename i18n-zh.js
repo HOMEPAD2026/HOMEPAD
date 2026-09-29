@@ -4737,6 +4737,7 @@
     "How this round's coin is named and when it launches: not decided yet": "本轮代币的命名与上线时间：尚未决定",
     "Whether the largest contributor receives the 15% as in Round #1: not decided yet.": "最大贡献者是否像第 1 轮一样获得 15%：尚未决定。",
     "Not decided yet.": "尚未决定。",
+    "Chat": "聊天",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

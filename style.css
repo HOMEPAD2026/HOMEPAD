@@ -11405,4 +11405,21 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
   .cp-admin-row .bp-btn-primary,.cp-admin-row .bp-btn-ghost{flex:1 1 100%;}
 }
 @media (prefers-reduced-motion:reduce){.cp-sum-sec > summary::after{transition:none;}}
+/* ARCIA hero, v2 banner (Sep 29): her face sits right of centre; phones keep the chat / X / Telegram buttons as one row */
+.aa-banner{aspect-ratio:1600/520;}
+.aa-banner img{object-position:62% 22%;}
+@media (max-width:640px){
+  .aa-banner{aspect-ratio:16/7;}
+  .aa-banner img{object-position:64% 24%;}
+  .aa-id{flex-wrap:wrap;row-gap:12px;}
+  .aa-name{flex:1 1 0;}
+  .aa-act{display:flex;flex:1 1 100%;flex-wrap:nowrap;gap:8px;padding-bottom:0;}
+  .aa-act > a{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;text-align:center;padding:10px 6px;font-size:.78rem;border-radius:12px;white-space:nowrap;}
+  .aa-act .aa-go{flex:1.25 1 0;}
+  .aa-act .aa-x svg{width:13px;height:13px;flex:none;}
+  .aa-badges .aa-badge,.aa-badges > *{font-size:.66rem;}
+}
+.aa-act .aa-sh{display:none;}
+@media (max-width:640px){.aa-act .aa-lg{display:none;}.aa-act .aa-sh{display:inline;}}
+@media (max-width:360px){.aa-act > a{font-size:.72rem;padding:9px 4px;}.aa-act .aa-x svg{display:none;}}
 #bp-panel-mine [hidden]{display:none !important;}

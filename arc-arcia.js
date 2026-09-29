@@ -1012,22 +1012,23 @@
     panel.innerHTML =
       '<div class="aa">' +
         '<div class="aa-hero">' +
-          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner-900.webp 900w, /images/arcia-banner.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner.jpg" srcset="/images/arcia-banner-900.jpg 900w, /images/arcia-banner.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="523"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + '></picture></div></div>' +
+          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner2-900.webp 900w, /images/arcia-banner2.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner2.jpg" srcset="/images/arcia-banner2-900.jpg 900w, /images/arcia-banner2.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="547"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + '></picture></div></div>' +
           '<div class="aa-id">' +
             '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"' + (HOST ? ' loading="lazy"' : "") + '></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
             '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>' +
               '<p class="aa-handle"><a href="' + X + '" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p>' +
               '<div class="aa-badges"></div></div>' +
-            '<div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat">Chat with ARCIA</a><a class="aa-x" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow on X</span></a><a class=\"aa-x aa-tg\" href=\"https://t.me/ARCIAonArc_bot\" target=\"_blank\" rel=\"noopener\"><span>Chat on Telegram</span></a></div>" +
+            '<div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat"><span class="aa-lg">Chat with ARCIA</span><span class="aa-sh">Chat</span></a><a class="aa-x" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow on X</span></a><a class=\"aa-x aa-tg\" href=\"https://t.me/ARCIAonArc_bot\" target=\"_blank\" rel=\"noopener\"><span class=\"aa-lg\">Chat on Telegram</span><span class=\"aa-sh\">Telegram</span></a></div>" +
           "</div>" +
           '<p class="aa-lede">ARCIA has studied every page of ARCIRCLE PAD and carries $ARCIRCLE to the world — here in her chat, and on X, where she answers every mention within about a minute.</p>' +
           // ARCIA's other utilities, in one place
-          '<nav class="aa-fam" aria-label="More from ARCIA">' +
+          // a div, not <nav>: the site's global nav rules (full-bleed width, side padding, scrolling) would pull it out of the hero on phones
+          '<div class="aa-fam" role="navigation" aria-label="More from ARCIA">' +
             '<a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
-          "</nav>" +
+          "</div>" +
         "</div>" +
         '<div class="aa-stage">' +
           '<aside class="aa-portrait" aria-label="ARCIA">' +
