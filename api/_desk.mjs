@@ -47,6 +47,8 @@ export const CFG = {
   tradeOwn: () => env("ARCIA_DESK_TRADE_ARCPAD") === "1",
   burnPct: () => { const n = Number(env("ARCIA_DESK_BURN_PCT")); return env("ARCIA_DESK_BURN_PCT") !== "" && n >= 0 && n <= 50 ? n : B.RISK.burnPct; },
   tgChat: () => env("ARCIA_DESK_TG_CHAT"),
+  tgTrades: () => env("ARCIA_DESK_TG_TRADES") === "1", // every real buy / sell / burn to ARCIA_DESK_TG_CHAT
+
   budgetMs: 52000,
 };
 export function configure(o) { Object.assign(CFG, o); }
@@ -452,15 +454,41 @@ function closeRecord(pos, c, nowS, why) {
     usdIn: r2(pos.usdIn), usdOut: usdOut == null ? null : r2(usdOut, 4), pnl: r2(pnl, 4), ret, why, parts: pos.parts.map((p) => ({ pct: p.pct, ret: r2(p.ret), why: p.why, ...(p.tx ? { tx: p.tx } : {}), ...(p.px ? { px: p.px } : {}), ...(p.ts ? { ts: p.ts } : {}) })),
     entryPx: pos.entryPx || null, exitPx: pos.parts.length ? pos.parts[pos.parts.length - 1].px || null : null, buyTx: pos.tx || null,
     up: pos.up || {}, dn: pos.dn || {}, final: ret, peak: r2(pos.peak), low: r2(pos.low), x: pos.x, p: r2(pos.p, 3), why0: pos.why0 || "", exits: pos.exits, day: dayOf(nowS), full: null,
-    ...(pos.gate ? { gate: pos.gate } : {}), ...(pos.review ? { review: pos.review } : {}),
+    ...(pos.gate ? { gate: pos.gate } : {}), ...(pos.review ? { review: pos.review } : {}), rt: pos.rt != null ? r2(pos.rt, 2) : null,
   };
+}
+/// per-playbook results on REAL money (the leaderboard): count, wins, P&L, summed return, time held, gross win / loss
+function pbAdd(by, r) {
+  const b = by[r.pb] || (by[r.pb] = { n: 0, wins: 0, pnl: 0, sumRet: 0, mins: 0, gw: 0, gl: 0, cost: 0 });
+  b.n++; if (r.ret > 0) b.wins++;
+  b.pnl = r2(b.pnl + (r.pnl || 0), 4); b.sumRet = r2(b.sumRet + (r.ret || 0), 2); b.mins += r.mins || 0;
+  if ((r.pnl || 0) > 0) b.gw = r2(b.gw + r.pnl, 4); else b.gl = r2(b.gl - (r.pnl || 0), 4);
+  if (r.rt != null) b.cost = r2(b.cost + ((r.usdIn || 0) * r.rt) / 100, 4);
+  return by;
+}
+/// once: the per-playbook real results from every closed-trades day so far (trades closed before the
+/// leaderboard existed); costs can't be rebuilt for those, so the cost figure counts from here on
+async function backfillPb(st, S, nowS) {
+  const start = Math.min(...(S.flows || []).map((f) => f.ts).filter(Boolean), nowS);
+  const days = [];
+  for (let t = start - 86400; t <= nowS && days.length < 40; t += 86400) days.push(dayOf(t));
+  if (!days.includes(dayOf(nowS))) days.push(dayOf(nowS));
+  const docs = await st.getMany(days.map(K.closed));
+  const by = {};
+  for (const d of days) for (const r of ((unpack(docs[K.closed(d)]) || {}).items || [])) if (r.real) pbAdd(by, r);
+  S.stats.byPb = by; S.stats.byPbV = 1; S.stats.costFrom = nowS;
 }
 function learnFrom(S, rec) {
   const L = S.learn, w = rec.real ? 1 : 0.5;
   if (rec.x) B.learn(L.model, rec.x, rec.ret > 0 ? 1 : 0, w);
   B.banditAdd(L.bandit, rec.pb, rec.ret, w, rec.real);
   const s = S.stats;
-  if (rec.real) { s.realClosed++; if (rec.ret > 0) s.realWins++; s.realSum += rec.ret; s.realPnl = r2(s.realPnl + rec.pnl, 4); }
+  if (rec.real) {
+    s.realClosed++; if (rec.ret > 0) s.realWins++; s.realSum += rec.ret; s.realPnl = r2(s.realPnl + rec.pnl, 4);
+    // what trading cost: the buy + sell loss measured by a round-trip quote at entry (taxes and price impact)
+    if (rec.rt != null) { s.costUsd = r2((s.costUsd || 0) + ((rec.usdIn || 0) * rec.rt) / 100, 4); s.costN = (s.costN || 0) + 1; }
+    pbAdd((s.byPb = s.byPb || {}), rec);
+  }
   else { s.paperClosed++; if (rec.ret > 0) s.paperWins++; s.paperSum += rec.ret; }
   if (s.best == null || rec.ret > s.best.ret) s.best = { ret: rec.ret, sym: rec.sym, real: rec.real };
   if (s.worst == null || rec.ret < s.worst.ret) s.worst = { ret: rec.ret, sym: rec.sym, real: rec.real };
@@ -525,6 +553,7 @@ export async function tick(st, opts = {}) {
       return out;
     }
     if (!S.day) S.day = today;
+    if (!S.stats.byPbV && left() > 40000) await backfillPb(st, S, nowS).catch(() => null);
 
     // ---- 1–2. discover, read the chain, the market and the scanner
     S.lastBlock = latest.number;
@@ -841,7 +870,7 @@ export async function tick(st, opts = {}) {
           change5mPct: r2(f.chgM5, 1), change1hPct: r2(f.chgH1, 1), fromHighPct: r2(f.ddHigh, 1), scanner: c.scan ? { score: c.scan.score, top10Pct: c.scan.top10, snipersPct: c.scan.sn, linkedPct: c.scan.lk, taxPct: c.scan.tax, holders: c.scan.hold } : null,
           roundTripLossPct: f.rtLoss, lastMinutes: (c.bk || []).slice(-10), sizeUsd: size, modelWinOdds: r2(d.p, 2),
           links: linksOf(c), linkAlsoUsedByAnotherLaunch: !!f.reused, dexscreener: { profilePaid: !!f.dexPaid, minutesSincePaid: f.dexPaidMin != null ? Math.round(f.dexPaidMin) : null, moveSincePaidPct: r2(f.chgSincePaid, 1), boosts: (c.dex && c.dex.boosts) || 0 } }).catch(() => null);
-        if (rv && !rv.go) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: [`risk review: ${rv.reason}`], paper: true }); S.cool[c.t] = nowS + 900; continue; }
+        if (rv && !rv.go) { S.stats.vetoes = (S.stats.vetoes || 0) + 1; rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: [`risk review: ${rv.reason}`], paper: true }); S.cool[c.t] = nowS + 900; continue; }
       }
       const usdRaw = BigInt(Math.round(size * 1e6));
       const qb = decodeQuote((await callsRaw([quoteCall(desk, c.k, true, usdRaw)]))[0]);
@@ -907,7 +936,8 @@ export async function tick(st, opts = {}) {
       writes.push(appendList(st, K.closed(today), "items", closed, 3000));
       writes.push(appendList(st, K.recent, "items", closed.map(slim), 200));
     }
-    if (rejects.length) writes.push(appendList(st, K.rejects, "items", rejects, 60, (a) => a.t));
+    if (rejects.length) writes.push(appendList(st, K.rejects, "items", rejects.map((r) => ({ ...r, px: r.px ?? (C[r.t] && C[r.t].px) ?? null })), 60, (a) => a.t));
+    if (log.length && CFG.tgTrades()) alarm(tradeAlert(log));
     if (ghostDone.length) writes.push(finishGhosts(st, ghostDone));
     await Promise.all(writes);
     out.closed = closed.map((r) => `${r.real ? "real" : "paper"} ${r.sym} ${r.pb} ${r.ret}% (${r.why})`);
@@ -931,7 +961,7 @@ function addEdges(S, p, rec) {
 }
 function predictP(S, x) { return r2(B.predict(S.learn.model, x), 3); }
 export const pnlOf = (S) => (S.eq == null ? 0 : S.eq + (S.burnedUsd || 0) - (S.netIn || 0));
-const slim = (r) => ({ id: r.id, t: r.t, sym: r.sym, pb: r.pb, real: r.real, entryTs: r.entryTs, exitTs: r.exitTs, usdIn: r.usdIn, usdOut: r.usdOut, pnl: r.pnl, ret: r.ret, why: r.why,
+const slim = (r) => ({ id: r.id, t: r.t, sym: r.sym, pb: r.pb, real: r.real, entryTs: r.entryTs, exitTs: r.exitTs, usdIn: r.usdIn, usdOut: r.usdOut, pnl: r.pnl, ret: r.ret, why: r.why, day: r.day, rt: r.rt ?? null,
   entryPx: r.entryPx, exitPx: r.exitPx, buyTx: r.buyTx, sells: r.parts.filter((p) => p.tx).map((p) => ({ tx: p.tx, px: p.px, pct: p.pct, ret: p.ret, why: p.why })), peak: r.peak, low: r.low, mins: r.mins });
 /// newest first (a time series — field "pts" — stays oldest first)
 async function appendList(st, key, field, add, max, uniqBy = null) {
@@ -950,6 +980,15 @@ async function finishGhosts(st, done) {
     for (const g of gs) { const r = d.items.find((x) => x.id === g.id); if (r) r.full = { up: g.up, dn: g.dn, final: g.last }; }
     await save(st, K.closed(day), d);
   }
+}
+/// one Telegram message for a tick's real buys, sells and burns
+function tradeAlert(log) {
+  const usd = (n) => "$" + Number(n || 0).toFixed(2);
+  const pc = (n) => (n > 0 ? "+" : "") + Number(n || 0).toFixed(1) + "%";
+  const lines = log.slice(0, 8).map((x) => x.side === "buy" ? `🟢 ARCIA bought ${x.sym} · ${usd(x.usd)} (${B.PLAYBOOKS[x.pb] ? B.PLAYBOOKS[x.pb].name : x.pb})`
+    : x.side === "sell" ? `${x.ret > 0 ? "💚" : "🔻"} ARCIA sold ${x.sym} · ${pc(x.ret)} · ${usd(x.usd)}`
+    : `🔥 ARCIA burned ${Math.round(x.tokens || 0).toLocaleString("en-US")} $ARCIRCLE (${usd(x.usd)} of profit)`);
+  return [...lines, "", "Every trade on-chain: arcircle.app/arc#desk"].join("\n");
 }
 function alarm(text) {
   const chat = CFG.tgChat();
@@ -1044,12 +1083,37 @@ export async function view(st) {
   const step = Math.max(1, Math.ceil(pts.length / 360));
   const C = (cd && cd.items) || {};
   const pnl = pnlOf(S);
+  // P&L by UTC day and the drawdown, from every stored equity point (5-minute steps, up to 30 days)
+  const P3 = pts.map((x) => x.split("|").map(Number)).filter((x) => isFinite(x[2]));
+  const daily = [];
+  let prevLast = 0, peak = -Infinity, maxDd = 0;
+  for (let i = 0; i < P3.length; i++) {
+    const [t, , v] = P3[i], d = dayOf(t);
+    if (!daily.length || daily[daily.length - 1].day !== d) { if (daily.length) prevLast = daily[daily.length - 1].last; daily.push({ day: d, first: prevLast, last: v }); }
+    else daily[daily.length - 1].last = v;
+    peak = Math.max(peak, v); maxDd = Math.max(maxDd, peak - v);
+  }
+  const nowDd = P3.length ? peak - P3[P3.length - 1][2] : 0;
+  // the last 7 days of real trades
+  const wk = ((rec && rec.items) || []).filter((r) => r.real && r.exitTs >= (S.lastTick || 0) - 7 * 86400);
+  // on-chain proof: the desk contract's USDC balance, read now (cash the page shows is the tick's figure)
+  let chainUsdc = null;
+  if (CFG.desk()) { try { const [h] = await ethCalls([{ to: CFG.usdc, data: SEL.balanceOf + pad(CFG.desk()) }]); if (h && h !== "0x") chainUsdc = r2(Number(BigInt(h)) / 1e6, 4); } catch { /* shown as unknown */ } }
+  const byPb = s.byPb || {};
   return {
     v: DESK_VERSION, brain: B.BRAIN_VERSION, mode: S.mode || "paper", desk: CFG.desk(), updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
     ai: AI.aiEnabled(), reviews: ((rvw && rvw.items) || []).slice(0, 10),
     money: { cash: r2(S.cash, 4), equity: S.eq, netIn: r2(S.netIn, 4), pnl: r2(pnl, 4), pnlPct: S.netIn > 0 ? r2((pnl / S.netIn) * 100) : null, burnedUsd: r2(S.burnedUsd, 4), burnedTok: r2(S.burnedTok, 2), hwm: r2(S.hwm, 4), dayStart: S.dayStartEq, flows: (S.flows || []).slice(0, 10) },
     stats: { realClosed: nReal, realWins: s.realWins, winRate: nReal ? r2((s.realWins / nReal) * 100, 1) : null, avgRet: nReal ? r2(s.realSum / nReal) : null, realPnl: s.realPnl,
-      paperClosed: s.paperClosed, paperWinRate: s.paperClosed ? r2((s.paperWins / s.paperClosed) * 100, 1) : null, paperAvg: s.paperClosed ? r2(s.paperSum / s.paperClosed) : null, best: s.best, worst: s.worst },
+      paperClosed: s.paperClosed, paperWinRate: s.paperClosed ? r2((s.paperWins / s.paperClosed) * 100, 1) : null, paperAvg: s.paperClosed ? r2(s.paperSum / s.paperClosed) : null, best: s.best, worst: s.worst,
+      cost: { usd: r2(s.costUsd || 0, 4), n: s.costN || 0, from: s.costFrom || null }, vetoes: s.vetoes || 0,
+      week: { n: wk.length, wins: wk.filter((r) => r.ret > 0).length, pnl: r2(wk.reduce((t, r) => t + (r.pnl || 0), 0), 4), best: wk.reduce((b, r) => (!b || r.ret > b.ret ? { sym: r.sym, ret: r.ret } : b), null) } },
+    daily: daily.slice(-30).map((d) => ({ day: d.day, pnl: r2(d.last - d.first, 4) })),
+    drawdown: { max: r2(maxDd, 4), now: r2(nowDd, 4) },
+    chain: { usdc: chainUsdc, cash: r2(S.cash, 4) },
+    leaderboard: B.PB_KEYS.map((k) => { const b = byPb[k] || { n: 0, wins: 0, pnl: 0, sumRet: 0, mins: 0, gw: 0, gl: 0, cost: 0 }; const bd = L.bandit[k] || {};
+      return { k, name: B.PLAYBOOKS[k].name, real: b.n, wins: b.wins, winRate: b.n ? r2((b.wins / b.n) * 100, 1) : null, pnl: b.pnl, avgRet: b.n ? r2(b.sumRet / b.n) : null, pf: b.gl > 0 ? r2(b.gw / b.gl, 2) : null, hold: b.n ? Math.round(b.mins / b.n) : null, cost: b.cost,
+        all: { n: r2(bd.n || 0, 1), mean: r2(bd.mean || 0) }, benched: (s.realClosed || 0) >= (L.warmup || 25) && B.benched(bd) }; }),
     open: (S.open || []).map((p) => ({ id: p.id, t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, usdIn: r2(p.usdIn, 4), value: r2(p.value, 4), ret: p.ret, entryPx: p.entryPx, nowPx: p.nowPx ? r2(p.nowPx, 12) : null,
       tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tp2Hit: !!p.tp2Hit,
       tp2: (p.exits.tp2 ?? B.RUN.tp2), runTrail: (p.peak >= 400 ? (p.exits.runTrailWide ?? B.RUN.runTrailWide) : (p.exits.runTrail ?? B.RUN.runTrail)), tx: p.tx, pending: !!p.pending,
@@ -1057,13 +1121,13 @@ export async function view(st) {
     paper: { open: ((P && P.open) || []).length, list: ((P && P.open) || []).slice().sort((a, b) => b.entryTs - a.entryTs).slice(0, 16).map((p) => ({ t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, ret: p.ret ?? null, tp: p.exits.tp, sl: p.exits.sl, tpHit: !!p.tpHit })) },
     recent: ((rec && rec.items) || []).slice(0, 80),
     log: ((lg && lg.items) || []).slice(0, 80),
-    rejects: ((rj && rj.items) || []).slice(0, 25),
+    rejects: ((rj && rj.items) || []).slice(0, 25).map((r) => ({ ...r, nowPx: C[r.t] && C[r.t].px ? Number(C[r.t].px.toPrecision(6)) : null, hi: C[r.t] && C[r.t].hi ? Number(C[r.t].hi.toPrecision(6)) : null })),
     journal: ((jr && jr.items) || []).slice(0, 14),
     burns: ((bu && bu.items) || []).slice(0, 30),
     equity: pts.filter((_, i) => i % step === 0 || i === pts.length - 1).map((x) => x.split("|").map(Number)),
     learn: {
-      warmup: { done: Math.min(nReal, L.warmup || 25), need: L.warmup || 25 }, explore: nReal < (L.warmup || 25) ? 1 : r2(Math.max(0.12, 0.5 * Math.exp(-nReal / 120)), 3), modelN: L.model.n,
-      playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k] }; }),
+      warmup: { done: Math.min(nReal, L.warmup || 25), need: L.warmup || 25 }, explore: nReal < (L.warmup || 25) ? 1 : r2(B.exploreRate(nReal), 3), modelN: L.model.n, bench: B.BENCH,
+      playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k], benched: nReal >= (L.warmup || 25) && B.benched(b) }; }),
       weights: B.topWeights(L.model, 8).map(([k, w]) => ({ k, name: B.featureName(k), w: r2(w, 3) })),
       history: (L.history || []).slice(-14).map((h) => ({ day: h.day, n: h.n, means: h.means, changes: h.changes })),
       tails: S.stats.tails || { n: 0, x2: 0, x4: 0, x11: 0 }, runner: B.RUN,
@@ -1075,6 +1139,18 @@ export async function view(st) {
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
     rules: { gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
+}
+/// one closed trade in full (gates, Claude's check, every sell) and, while it's still in memory, the coin's
+/// price by the minute around it — for the trade drawer on the page
+export async function tradeDetail(st, day, id) {
+  st = st || memStore();
+  const [dd, cd] = await load(st, [K.closed(day), K.cands]);
+  const r = ((dd && dd.items) || []).find((x) => x.id === id);
+  if (!r) return { error: "not found" };
+  const c = ((cd && cd.items) || {})[r.t];
+  const from = Math.floor(r.entryTs / 60) - 30, to = Math.floor(r.exitTs / 60) + 60;
+  const series = c ? (c.bk || []).map(parseBk).filter((o) => o.m >= from && o.m <= to && o.p).map((o) => [o.m * 60, o.p, o.b, o.s]) : [];
+  return { trade: { ...r, x: undefined, exits: r.exits, up: r.up, dn: r.dn }, series, name: B.PLAYBOOKS[r.pb] ? B.PLAYBOOKS[r.pb].name : r.pb };
 }
 /// closed trades of one day (real, and paper with paper=1)
 export async function dayTrades(st, day, paper = false) {

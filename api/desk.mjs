@@ -2,10 +2,11 @@
 // Public, read-only:
 //   GET /api/desk                         everything the page shows: money, open trades, history, learning, journal, burns
 //   GET /api/desk?day=YYYY-MM-DD[&paper=1] one day's closed trades
+//   GET /api/desk?day=YYYY-MM-DD&trade=<id> one closed trade in full, with the coin's minute prices around it
 // Scheduled (cron-job.org, every minute):
 //   GET /api/desk?tick=1&key=<CRON_SECRET>   (or "Authorization: Bearer <CRON_SECRET>")
 // There is no endpoint that makes the desk buy or sell: trades only come from the tick's rules.
-import { tick, view, dayTrades } from "./_desk.mjs";
+import { tick, view, dayTrades, tradeDetail } from "./_desk.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
@@ -21,7 +22,8 @@ export async function GET(req) {
     try { return json(await tick(st)); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   try {
+    if (q.day && q.trade) return json(await tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");
     if (q.day) return json(await dayTrades(st, q.day, q.paper === "1"), 200, "public, max-age=30, s-maxage=60");
-    return json(await view(st), 200, "public, max-age=10, s-maxage=10, stale-while-revalidate=30");
+    return json(await view(st), 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60");
   } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
 }

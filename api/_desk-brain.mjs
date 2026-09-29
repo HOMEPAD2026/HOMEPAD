@@ -199,6 +199,16 @@ export function sampleMean(s, rand = Math.random) {
 
 // ---------------------------------------------------------------- the policy
 /// Should this gated trigger become a REAL trade?  → { go, why, p, draw, explore }
+/// How often a setup is taken just to learn, once the warm-up is over: starts at 15%, settles at 8%.
+export const exploreRate = (nReal) => Math.min(0.15, Math.max(0.08, 0.5 * Math.exp(-nReal / 120)));
+/// A playbook whose trades have clearly lost money (after every cost — returns are measured on real sell
+/// quotes) is BENCHED: it keeps running on paper, and comes back to real money on its own once its paper
+/// results recover. Clear = 20+ trades averaging −1% or worse, or 10+ averaging −10% or worse.
+export const BENCH = { n: 20, mean: -1, nFast: 10, meanFast: -10 };
+export function benched(s) {
+  if (!s || !s.n) return false;
+  return (s.n >= BENCH.n && s.mean <= BENCH.mean) || (s.n >= BENCH.nFast && s.mean <= BENCH.meanFast);
+}
 export function decide({ pb, x, state, rand = Math.random }) {
   const L = state.learn;
   const nReal = state.stats ? state.stats.realClosed || 0 : 0;
@@ -206,8 +216,8 @@ export function decide({ pb, x, state, rand = Math.random }) {
   const draw = sampleMean(L.bandit[pb], rand);
   const warm = nReal < (L.warmup || 25);
   if (warm) return { go: true, why: "warm-up: every gated setup is traded to learn", p, draw, explore: true };
-  const eps = Math.max(0.12, 0.5 * Math.exp(-nReal / 120));
-  if (rand() < eps) return { go: true, why: "exploring", p, draw, explore: true };
+  if (benched(L.bandit[pb])) return { go: false, why: "benched: this playbook is losing money — paper only until it recovers", p, draw, explore: false, benched: true };
+  if (rand() < exploreRate(nReal)) return { go: true, why: "exploring", p, draw, explore: true };
   // the model's odds shift the playbook's sampled mean: ±10 points at the extremes
   const score = draw + (p - 0.5) * 20;
   return score > (L.threshold ?? 0) ? { go: true, why: `expected edge ${score.toFixed(1)}`, p, draw, explore: false } : { go: false, why: `expected edge ${score.toFixed(1)} too low`, p, draw, explore: false };

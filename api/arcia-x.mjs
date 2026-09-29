@@ -230,6 +230,44 @@ async function booksPost(st) {
   ]) }];
 }
 
+// ARCIA DESK: her trading week, once a week (Monday from 12:00 UTC), only when she traded real money
+async function deskWeekPost(origin, st) {
+  const t = now(), dt = new Date(t * 1000);
+  if (dt.getUTCDay() !== 1 || dt.getUTCHours() < 12) return [];
+  const id = "desk:" + dayOf(t);
+  if (st.sent[id]) return [];
+  const r = await fetch(origin + "/api/desk").catch(() => null);
+  const d = r && r.ok ? await r.json().catch(() => null) : null;
+  const w = d && d.stats && d.stats.week;
+  if (!w || !w.n) return [];
+  const sg = (n) => (n >= 0 ? "+" : "−") + "$" + Math.abs(n).toFixed(2);
+  return [{ id, text: fit([
+    "My trading week at ARCIA DESK 💙💚", "",
+    `Real trades: ${w.n} (${w.wins} won)`,
+    `P&L: ${sg(w.pnl)}`,
+    w.best && w.best.ret > 0 ? `Best: ${w.best.sym} +${w.best.ret.toFixed(1)}%` : null,
+    d.money && d.money.burnedTok ? `Burned so far: ${num(d.money.burnedTok, 0)} $ARCIRCLE` : null, "",
+    "Every trade is on-chain, wins and losses. An AI learning in public, not advice~",
+    `${SITE}/arc#desk`,
+  ]) }];
+}
+
+// If ARCIA DESK's own every-minute schedule stops (a scheduler that gave up after errors), start a tick from
+// here. Checked every fifth minute; only when the desk has been quiet for 5+ minutes and isn't mid-tick.
+// It starts the same scheduled tick with the same rules — it can't make the desk trade anything else.
+async function deskWatchdog(origin) {
+  const secret = String(process.env.CRON_SECRET || "").trim();
+  if (!secret || !storeEnabled() || Math.floor(now() / 60) % 5 !== 0) return null;
+  const doc = (await getDocs(["desk/state"]).catch(() => ({})))["desk/state"];
+  let S = null;
+  try { S = doc && typeof doc.j === "string" ? JSON.parse(doc.j) : doc; } catch { S = null; }
+  if (!S || !S.lastTick || now() - S.lastTick < 300 || (S.busy && Date.now() - S.busy < 65e3)) return null;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 3000);
+  await fetch(origin + "/api/desk?tick=1", { headers: { authorization: `Bearer ${secret}` }, signal: ctl.signal }).catch(() => null);
+  clearTimeout(timer);
+  return "desk tick started";
+}
+
 async function plan(origin, st) {
   const d = await arcircle(origin);
   const round = roundPosts(d, st.sent);
@@ -237,7 +275,8 @@ async function plan(origin, st) {
   const coins = await coinPosts(st).catch((e) => { console.error("arcia-x coins", e && e.message); return { out: [], pending: [] }; });
   const daily = dailyPost(d, st);
   const books = await booksPost(st).catch(() => []);
-  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books], pending: coins.pending };
+  const deskWeek = await deskWeekPost(origin, st).catch(() => []);
+  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books, ...deskWeek], pending: coins.pending };
 }
 
 async function loadState() {
@@ -418,6 +457,7 @@ export async function GET(req) {
   if (url.searchParams.has("replies")) {
     const secret = process.env.CRON_SECRET;
     if (secret && req.headers.get("authorization") !== `Bearer ${secret}` && url.searchParams.get("key") !== secret) return json(401, { error: "unauthorized" });
+    const watchdog = await deskWatchdog(origin).catch(() => null);
     if (!repliesOn()) return json(200, { replies: "off", need: "ARCIA_X_ENABLED=1, the four X keys and ANTHROPIC_API_KEY" });
     if (!storeEnabled()) return json(503, { error: "no store" });
     const st = await loadState();
@@ -459,7 +499,7 @@ export async function GET(req) {
     }
     const replies = await replyRun(origin, st).catch((e) => [{ error: String(e.message || e).slice(0, 200) }]);
     if (st.dirty) { prune(st); await setDoc(STATE, stripTemp(st)); } // nothing new → no write
-    return json(200, { replies });
+    return json(200, { replies, ...(watchdog ? { watchdog } : {}) });
   }
   // anything else is a run (Vercel's cron calls the bare path); runs are idempotent — nothing is posted twice
   const secret = process.env.CRON_SECRET;
