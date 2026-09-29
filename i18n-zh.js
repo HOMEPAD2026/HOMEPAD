@@ -4663,6 +4663,10 @@
     "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 6× its launch floor (the $2 pump scalp: 15×), a top-10 sell-off that would drop it less than 80%, and no critical flag in the last 6 hours.": "真实资金的规则比模拟更严。Argus 池子从发行价开始，如果早期买家全部卖出，价格会在一个区块内跌回那里。所以真实买入需要：价格不超过发行底价的 6 倍（$2 的急涨短炒：15 倍）、前 10 钱包全部卖出时跌幅低于 80%、过去 6 小时内没有严重标记。",
     "6% of the desk per trade, between $3 and $10; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. The pump scalp and each DCA tranche are $2.": "每笔占交易台资金 6%，介于 $3 到 $10；最多同时 10 个持仓、每小时 8 笔买入；始终保留 $2 现金。热身期（前 25 笔真实交易）：每笔 $3，每小时最多 6 笔。急涨短炒和每次补仓为 $2。",
     "Under a $5k market cap, a position is never held longer than 30 minutes (the crash-buy DCA playbook has its own 3-hour limit).": "市值低于 $5k 时，持仓绝不超过 30 分钟（急跌抄底补仓打法有自己的 3 小时限制）。",
+    "She earns and pays in USDC with x402 on Arc — every dollar on public books": "她在 Arc 上用 x402 赚取和支付 USDC——每一美元都在公开账本上",
+    "She trades new Argus launches with her own small wallet and learns from every trade": "她用自己的小钱包交易 Argus 新发行，并从每笔交易中学习",
+    "real trades": "笔真实交易",
+    "learning": "学习中",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -991,6 +991,22 @@
     return true;
   }
 
+  // ---------------- ARCIA's other utilities: one live line each ----------------
+  function famLoad() {
+    if (!window.fetch) return;
+    var put = function (k, html) { var el = panel.querySelector('[data-fam="' + k + '"]'); if (el && html) el.innerHTML = html; };
+    var money = function (n) { return (n < 0 ? "−$" : "$") + Math.abs(Number(n) || 0).toFixed(2); };
+    fetch("/api/arcia402?stats=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var t = d && d.totals; if (!t) return;
+      put("402", '<i></i><span>' + esc(tr("Earned")) + '</span> <b data-no-i18n>' + money(t.earned || 0) + '</b> · <b data-no-i18n>' + (Number(t.sold) || 0) + "</b> " + esc(tr("paid calls")));
+    }).catch(function () {});
+    fetch("/api/desk").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.stats) return;
+      var live = d.mode === "live", n = (d.stats.realClosed || 0) + (d.open ? d.open.length : 0), p = d.money && d.money.pnl;
+      put("desk", '<i class="' + (live ? "on" : "") + '"></i><span>' + esc(tr(live ? "Live" : "Paper")) + "</span> · <b data-no-i18n>" + n + "</b> " + esc(tr("real trades")) + (live && p != null ? ' · <b data-no-i18n class="' + (p >= 0 ? "up" : "down") + '">' + (p >= 0 ? "+" : "") + money(p) + "</b>" : "") + " · <span>" + esc(tr("learning")) + "</span>");
+    }).catch(function () {});
+  }
+
   // ---------------- build ----------------
   function build() {
     panel.innerHTML =
@@ -1005,6 +1021,13 @@
             '<div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat">Chat with ARCIA</a><a class="aa-x" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow on X</span></a><a class=\"aa-x aa-tg\" href=\"https://t.me/ARCIAonArc_bot\" target=\"_blank\" rel=\"noopener\"><span>Chat on Telegram</span></a></div>" +
           "</div>" +
           '<p class="aa-lede">ARCIA has studied every page of ARCIRCLE PAD and carries $ARCIRCLE to the world — here in her chat, and on X, where she answers every mention within about a minute.</p>' +
+          // ARCIA's other utilities, in one place
+          '<nav class="aa-fam" aria-label="More from ARCIA">' +
+            '<a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span>' +
+              '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+            '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
+              '<span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+          "</nav>" +
         "</div>" +
         '<div class="aa-stage">' +
           '<aside class="aa-portrait" aria-label="ARCIA">' +
@@ -1050,6 +1073,12 @@
           "</aside>" +
         "</div>" +
       "</div>";
+    famLoad();
+    panel.querySelector(".aa-fam").addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("[data-arc-tab]");
+      if (!a || typeof window.arcpadShowTab !== "function" || HOST) return; // other pages: a normal link to /arc#…
+      e.preventDefault(); window.arcpadShowTab(a.getAttribute("data-arc-tab"));
+    });
     chat = panel.querySelector(".aa-chat");
     log = panel.querySelector(".aa-log");
     form = panel.querySelector(".aa-form");

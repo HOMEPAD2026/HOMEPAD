@@ -4511,6 +4511,10 @@
     "Real money has stricter rules than paper. An Argus pool starts at its launch price, and if the early buyers all sell, the price falls back there in one block. So a real buy needs the price at most 6× its launch floor (the $2 pump scalp: 15×), a top-10 sell-off that would drop it less than 80%, and no critical flag in the last 6 hours.": "실제 자금에는 모의보다 엄격한 규칙이 적용됩니다. Argus 풀은 런칭 가격에서 시작하고, 초기 매수자가 모두 팔면 한 블록 만에 그 가격으로 돌아갑니다. 그래서 실제 매수는 가격이 런칭 바닥가의 6배 이하($2 급등 스캘핑은 15배), 상위 10개 지갑이 다 팔 때 하락폭 80% 미만, 최근 6시간 동안 치명 플래그 없음이 필요합니다.",
     "6% of the desk per trade, between $3 and $10; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. The pump scalp and each DCA tranche are $2.": "거래당 데스크 자금의 6%, $3~$10; 동시 포지션 최대 10개, 시간당 매수 최대 8회; 항상 $2는 현금으로 유지. 워밍업(처음 25건의 실제 거래) 동안은 거래당 $3, 시간당 최대 6회. 급등 스캘핑과 물타기 매수는 각 $2.",
     "Under a $5k market cap, a position is never held longer than 30 minutes (the crash-buy DCA playbook has its own 3-hour limit).": "시가총액 $5k 미만에서는 30분 넘게 보유하지 않습니다 (급락 매수·물타기 플레이북은 별도 3시간 제한).",
+    "She earns and pays in USDC with x402 on Arc — every dollar on public books": "x402로 Arc에서 USDC를 벌고 씁니다 — 모든 달러가 공개 장부에",
+    "She trades new Argus launches with her own small wallet and learns from every trade": "자신의 소액 지갑으로 신규 Argus 런칭을 거래하고, 모든 거래에서 배웁니다",
+    "real trades": "건 실거래",
+    "learning": "학습 중",
   };
 
 
