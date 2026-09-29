@@ -157,7 +157,7 @@ async function discover(S, C, latest, left) {
     const ranges = []; let a = S.hi + 1;
     for (let k = 0; k < 8 && a <= latest.number; k++) { const b = Math.min(latest.number, a + CH - 1); ranges.push([a, b]); a = b + 1; }
     let logs;
-    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.pm, topics: [TOPIC.init], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); } catch { break; }
+    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.pm, topics: [TOPIC.init], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); S.discErr = null; } catch (e) { S.discErr = String((e && e.message) || e).slice(0, 160); break; }
     for (const l of logs) {
       const c0 = "0x" + strip(l.topics[2]).slice(24), c1 = "0x" + strip(l.topics[3]).slice(24);
       const hooks = wA(l.data, 2);
@@ -443,6 +443,7 @@ export async function tick(st, opts = {}) {
     if (!S.day) S.day = today;
 
     // ---- 1–2. discover, read the chain, the market and the scanner
+    S.lastBlock = latest.number;
     out.discovered = (await discover(S, C, latest, left)).length;
     await readSwaps(S, C, latest, left);
     const liveC = Object.values(C).filter((c) => c.ok === 1);
@@ -822,6 +823,8 @@ export async function view(st) {
       weights: B.topWeights(L.model, 8).map(([k, w]) => ({ k, name: B.featureName(k), w: r2(w, 3) })),
       history: (L.history || []).slice(-14).map((h) => ({ day: h.day, n: h.n, means: h.means, changes: h.changes })),
     },
+    // how far discovery has read, for checking it's keeping up
+    sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own })),
     rules: { gates: B.GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
