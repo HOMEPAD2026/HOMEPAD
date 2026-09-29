@@ -353,7 +353,7 @@ async function holdsEnough(uid, min) {
 async function welcome(chatId, user, lang) {
   if (tooMany(`welcome:${chatId}`, 3, 60e3)) return; // a raid of joins gets one welcome a minute or so
   const cap = w("welcome", lang, { name: nameOf(user) });
-  const r = await tg("sendAnimation", { chat_id: chatId, animation: `${SITE}/images/arcia-wink.mp4`, caption: cap, parse_mode: "HTML", ...kb([[{ text: "ArcPad", url: `${SITE}/arc` }, { text: T3(lang, "Talk to me", "대화하기", "和我聊天"), url: BOT_URL }]]) });
+  const r = await tg("sendAnimation", { chat_id: chatId, animation: `${SITE}/images/arcia-gm.mp4`, caption: cap, parse_mode: "HTML", ...kb([[{ text: "ArcPad", url: `${SITE}/arc` }, { text: T3(lang, "Talk to me", "대화하기", "和我聊天"), url: BOT_URL }]]) });
   if (!r.ok) await tg("sendMessage", { chat_id: chatId, text: cap, parse_mode: "HTML" });
 }
 async function onJoin(c, m, lang) {
