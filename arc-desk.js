@@ -122,6 +122,10 @@
       S.view = b.dataset.dkView;
       try { localStorage.setItem("dk-view", S.view); } catch { /* fine */ }
       showView();
+      // when the tab bar is stuck to the top, bring the new section's start into view just under it
+      const nav = panel.querySelector(".dk-nav"), v = panel.querySelector(`.dk-view[data-view="${S.view}"]`);
+      const nb = nav.getBoundingClientRect(), vt = v.getBoundingClientRect().top;
+      if (vt < nb.bottom) window.scrollBy({ top: vt - nb.bottom - 10, behavior: reduce ? "auto" : "smooth" });
     });
     panel.querySelector(".dk-tabs").addEventListener("click", (e) => {
       const b = e.target.closest("[data-dk-tab]");
