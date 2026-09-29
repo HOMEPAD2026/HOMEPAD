@@ -8,6 +8,8 @@ import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 export const SITE = "https://www.arcircle.app";
 export const BOT_URL = "https://t.me/ARCIAonArc_bot";
 export const CA = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
+export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
+export const OUR_CAS = [CA, ARCIA_CA];
 export const env = (k) => String(process.env[k] || "").trim();
 export const h = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const lc = (a) => String(a || "").toLowerCase();
@@ -189,7 +191,9 @@ export function scamReason(m, { newbie = false } = {}) {
   const hosts = linksIn(m).filter((x) => !ALLOW_HOSTS.test(x));
   if (hosts.length && (newbie || BAIT.test(t))) return `link to ${hosts[0]}`;
   const addrs = (t.match(ADDR_RE) || []).map(lc);
-  if (/arcircle|\$arc\b/i.test(t) && /\b(ca|contract|address|token)\b/i.test(t) && addrs.length && !addrs.includes(CA)) return "a contract address posted as $ARCIRCLE that isn't $ARCIRCLE";
+  // our two coins: an address posted as $ARCIRCLE or $ARCIA that is neither of them
+  if (/\$arcia\b/i.test(t) && /\b(ca|contract|address|token)\b/i.test(t) && addrs.length && !addrs.some((a) => OUR_CAS.includes(a))) return "a contract address posted as $ARCIA that isn't $ARCIA";
+  if (/arcircle|\$arc\b/i.test(t) && /\b(ca|contract|address|token)\b/i.test(t) && addrs.length && !addrs.some((a) => OUR_CAS.includes(a))) return "a contract address posted as $ARCIRCLE that isn't $ARCIRCLE";
   const name = `${(m.from && m.from.first_name) || ""} ${(m.from && m.from.last_name) || ""} ${(m.from && m.from.username) || ""}`;
   if (/\b(admin|support|moderator|mod|official|arcircle|arcia)\b/i.test(name) && /\b(dm|inbox|message me|contact me|pm)\b/i.test(t)) return "someone posing as the team";
   return null;

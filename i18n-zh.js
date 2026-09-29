@@ -4752,6 +4752,10 @@
     "Step 4 done — top contributor paid": "第 4 步完成——已支付最大贡献者",
     "Step 5 done — launched": "第 5 步完成——已上线",
     "Launched — top contributor paid over 3 days": "已上线——最大贡献者分 3 天支付",
+    "Done · this round's exception": "已完成 · 本轮例外",
+    "Step 4 done — this round's exception": "第 4 步完成 — 本轮例外",
+    "This round's exception": "本轮例外",
+    "Complete — all 5 steps done": "已完成 — 5 个步骤全部完成",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

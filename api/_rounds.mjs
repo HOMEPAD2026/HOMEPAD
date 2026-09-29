@@ -66,9 +66,21 @@ export async function walletsOf(escrow) {
 }
 
 // ---- the launch process ----
-async function stagesOf(escrow) {
+// Round #1 is settled: step 4 was this round's exception (the team settled it, so it counts as done) and
+// step 5 is $ARCIA's launch on Argus. These marks are fixed: the round wallet can't undo or re-mark them.
+export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
+const FIXED = {
+  [lc(ESCROW)]: {
+    top: { at: null, proof: null, by: "team", exception: true, fixed: true },
+    launch: { at: null, proof: `https://argus.world/token/${ARCIA_CA}`, by: "team", fixed: true },
+  },
+};
+async function storedStagesOf(escrow) {
   if (!store.enabled()) return {};
   try { return (await store.get(`circleStage/${lc(escrow)}`)) || {}; } catch { return {}; }
+}
+async function stagesOf(escrow) {
+  return { ...(FIXED[lc(escrow)] || {}), ...(await storedStagesOf(escrow)) };
 }
 /// 0 raise · 1 burn-to-vote · 2 close & split · 3 top contributor · 4 launch & airdrop · 5 all done
 /// Steps 4 and 5 run side by side (the top contributor is paid over 3 days while the coin launches), so
@@ -108,14 +120,16 @@ export async function stagePost(b, recover, json) {
   const at = stepNow(st, marks);
   if (undo) {
     if (!marks[step]) return json(409, { error: "that step isn't marked done" });
-    const next = { ...marks }; delete next[step];
-    await store.set(`circleStage/${r.escrow}`, next);
+    if (marks[step].fixed) return json(409, { error: "this round's step is settled and can't be undone" });
+    const saved = await storedStagesOf(r.escrow); delete saved[step];
+    await store.set(`circleStage/${r.escrow}`, saved);
+    const next = await stagesOf(r.escrow);
     return json(200, { ok: true, marks: next, step: stepNow(st, next) });
   }
   if (at < 3) return json(409, { error: at < 2 ? "the raise hasn't closed yet" : "send the 80 / 15 / 5 split from the escrow first" });
   if (marks[step]) return json(409, { error: "that step is already done" });
-  const next = { ...marks, [step]: { at: Date.now(), proof: proof || null, by: wallet } };
-  await store.set(`circleStage/${r.escrow}`, next);
+  await store.set(`circleStage/${r.escrow}`, { ...(await storedStagesOf(r.escrow)), [step]: { at: Date.now(), proof: proof || null, by: wallet } });
+  const next = await stagesOf(r.escrow);
   return json(200, { ok: true, marks: next, step: stepNow(st, next) });
 }
 

@@ -33,7 +33,7 @@ import { roundState } from "./_round.mjs";
 import { postTweet, recentPosts } from "./arcia-x.mjs";
 import * as BB from "./_tg-buybot.mjs";
 import {
-  SITE, BOT_URL, CA, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
+  SITE, BOT_URL, CA, ARCIA_CA, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
   linkMessage, personalSigner, secretIn, scamReason,
 } from "./_tg-lib.mjs";
@@ -78,7 +78,7 @@ const L3 = (lang) => (lang === "ko" ? 1 : lang === "zh" ? 2 : 0);
 const w = (k, lang, vars = {}) => W[k][L3(lang)].replace(/\{(\w+)\}/g, (_, x) => (vars[x] != null ? vars[x] : ""));
 const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
-const PUBLIC_CMDS = [["price", "$ARCIRCLE price, market cap, holders"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
+const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
@@ -115,6 +115,9 @@ async function editCard(msg, card) {
 const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, text, parse_mode: "HTML", link_preview_options: { is_disabled: true }, ...(isGroup(m.chat) ? { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } } : {}), ...extra });
 
 // ---------------- cards ----------------
+// our two official contract addresses, in the one form ARCIA always uses (tap to copy)
+const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b>:\n<code>${h(CHECKSUM.arcia)}</code>`;
+const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5" };
 async function cardPrice(lang) {
   const L = await live(SITE);
   if (!L) return w("err", lang);
@@ -399,7 +402,7 @@ async function autoScan(c, m, lang) {
   const cc = chatCfg(c, m.chat.id);
   if (!cc.autoscan) return false;
   const addrs = [...new Set((String(m.text || m.caption || "").match(ADDR_RE) || []).map(lc))];
-  if (addrs.length !== 1 || addrs[0] === CA || tooMany(`scan:${m.chat.id}:${addrs[0]}`, 1, 1800e3) || tooMany(`autoscan:${m.chat.id}`, 4, 600e3)) return false;
+  if (addrs.length !== 1 || OUR_CAS.includes(addrs[0]) || tooMany(`scan:${m.chat.id}:${addrs[0]}`, 1, 1800e3) || tooMany(`autoscan:${m.chat.id}`, 4, 600e3)) return false;
   const r = await scanner.apiResult(addrs[0], { store: store() }).catch(() => null);
   if (!r || r.score == null) return false; // a wallet, or unreadable: stay quiet
   await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true },
@@ -606,6 +609,7 @@ async function onMessage(m, channel) {
       case "help": return help(c, m, lang);
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
+      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }]]));
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
       case "coin": { const ca = addrOf(arg); return ca ? sendCard(m.chat.id, await cardCoin(ca, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needCA", lang, { cmd: "coin" })); }
@@ -1067,7 +1071,7 @@ async function setup() {
   const hook = await tg("setWebhook", { url: `${SITE}/api/arcia-tg`, secret_token: secret, allowed_updates: ["message", "callback_query", "channel_post", "my_chat_member", "inline_query"], max_connections: 20 });
   const cmds = await Promise.all([
     tg("setMyCommands", { commands: menu(PUBLIC_CMDS) }),
-    tg("setMyCommands", { commands: menu([["price", "$ARCIRCLE price"], ["scan", "Scan a token: /scan 0x…"], ["round", "CirclePad round"], ["launches", "Newest launches"], ["gm", "Say gm"], ["report", "Reply to a message to report it"], ["help", "What I can do"]]), scope: { type: "all_group_chats" } }),
+    tg("setMyCommands", { commands: menu([["ca", "Official contract addresses"], ["price", "$ARCIRCLE price"], ["scan", "Scan a token: /scan 0x…"], ["round", "CirclePad round"], ["launches", "Newest launches"], ["gm", "Say gm"], ["report", "Reply to a message to report it"], ["help", "What I can do"]]), scope: { type: "all_group_chats" } }),
     tg("deleteMyCommands", { language_code: "ko" }), tg("deleteMyCommands", { language_code: "zh" }),
     tg("setMyDescription", { description: "", language_code: "ko" }), tg("setMyShortDescription", { short_description: "", language_code: "ko" }),
     tg("setMyDescription", { description: "Hi, I'm ARCIA — the virtual idol of $ARCIRCLE on Circle's Arc 💙💚 Talk to me about ARCIRCLE PAD, scan any token, get launch and airdrop alerts, and say gm every day. I'm an AI character run by @ARCIRCLEonArc. Not financial advice." }),

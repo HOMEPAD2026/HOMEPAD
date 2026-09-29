@@ -430,7 +430,7 @@
       });
       timeline.dataset.step = String(at);
       const label = $("cp-tl-now");
-      const after = ["", "", "Raise closed — split next", "Split sent — paying the top contributor", "Top contributor paid — launching next", "Launched"];
+      const after = ["", "", "Raise closed — split next", "Split sent — paying the top contributor", "Top contributor paid — launching next", "Complete — all 5 steps done"];
       if (label) label.textContent = st < 0 ? tr("Waiting for the raise to open") : st === 0 ? (voting ? tr("Live — raise and voting open") : tr("Live — raise open")) : tr((typeof window.cpStageLabel === "function" && window.cpStageLabel(at)) || after[at] || "Raise closed");
       // the fill follows the real clock when circlepad-round.js knows the dates
       if (!timeline.dataset.clock || st > 0) timeline.style.setProperty("--cp-tl", at < 0 ? 0 : at >= 5 ? 1 : Math.min(1, (at + 0.5) / 5));

@@ -4600,6 +4600,10 @@
     "Step 4 done — top contributor paid": "4단계 완료 — 최대 기여자 지급",
     "Step 5 done — launched": "5단계 완료 — 런칭",
     "Launched — top contributor paid over 3 days": "런칭 완료 — 최대 기여자 3일간 지급 중",
+    "Done · this round's exception": "완료 · 이번 라운드 예외",
+    "Step 4 done — this round's exception": "4단계 완료 — 이번 라운드 예외",
+    "This round's exception": "이번 라운드 예외",
+    "Complete — all 5 steps done": "완료 — 5단계 모두 완료",
   };
 
 

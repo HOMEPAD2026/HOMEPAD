@@ -90,10 +90,12 @@
     const note = tl.querySelector(".cp-tl-note");
     if (note) note.textContent = tr("The raise and the 80 / 15 / 5 split are enforced by the escrow contract. The steps after the split are the team's, marked done here by the round wallet.");
   }
+  // a mark: when it was done (unless it's a settled mark with no time), and its proof link
   function markText(m, what) {
     if (!m) return "";
     const link = proofLink(m.proof);
-    return `<em class="cp-tl-mark"><i></i>${T(what)} · <span data-no-i18n>${esc(dt(Math.floor(m.at / 1000)))}</span>${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${T("Proof")} ↗</a>` : ""}</em>`;
+    const when = m.at ? ` · <span data-no-i18n>${esc(dt(Math.floor(m.at / 1000)))}</span>` : "";
+    return `<em class="cp-tl-mark"><i></i>${T(m.exception ? "Done · this round's exception" : what)}${when}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${T("Proof")} ↗</a>` : ""}</em>`;
   }
   function paintTimeline() {
     const tl = $("cp-timeline");
@@ -124,7 +126,7 @@
     else if (at >= 3) {
       // steps 4 and 5 run side by side: the top contributor is paid over 3 days while the coin launches
       const row = (step, k, label, doneLabel) => (m && m[step]
-        ? `<div class="cp-admin-row"><span class="cp-admin-done">${T(doneLabel)}</span>${undo(step, "Undo step " + k)}</div>`
+        ? `<div class="cp-admin-row"><span class="cp-admin-done">${T(m[step].exception ? "Step " + k + " done — this round's exception" : doneLabel)}</span>${m[step].fixed ? "" : undo(step, "Undo step " + k)}</div>`
         : `<div class="cp-admin-row"><button type="button" class="bp-btn-primary" data-cp-stage="${n}" data-step="${step}">${T("Mark step " + k + " done")}</button><span class="cp-admin-what">${T(label)}</span></div>`);
       body = at === 5 ? `<p>${T("Every step is done.")}</p>` : `<p>${T("Mark each step when it's done — they can be done in either order. A proof link is optional.")}</p><div class="cp-admin-row">${proof}</div>`;
       body += row("top", 4, "Top contributor has received the 15%", "Step 4 done — top contributor paid") + row("launch", 5, "Coin launched and airdrop sent", "Step 5 done — launched");
@@ -148,13 +150,15 @@
       const label = n > 1 && i === 1 ? "Coin identity" : s;
       const mk = i === 3 && m && m.top ? m.top : i === 4 && m && m.launch ? m.launch : null;
       const link = mk ? proofLink(mk.proof) : "";
-      return `<li class="${cls}"><span class="cp-ms-n">${i + 1}</span><b>${T(label)}</b>${mk ? `<small data-no-i18n>${esc(dt(Math.floor(mk.at / 1000)))}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(tr("Proof"))} ↗</a>` : ""}</small>` : ""}</li>`;
+      const bits = [mk && mk.exception ? esc(tr("This round's exception")) : mk && mk.at ? esc(dt(Math.floor(mk.at / 1000))) : "", link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(tr("Proof"))} ↗</a>` : ""].filter(Boolean);
+      return `<li class="${cls}"><span class="cp-ms-n">${i + 1}</span><b>${T(label)}</b>${bits.length ? `<small data-no-i18n>${bits.join(" · ")}</small>` : ""}</li>`;
     }).join("")}</ol>`;
   }
   function badgeOf(v) {
     const at = stepFrom(v.state, v.marks);
+    if (at === 5) return ["done", "Complete"];
     if (at >= 3 && v.marks && v.marks.launch) return ["done", "Launched"];
-    return at === 2 ? ["wait", "Settling the split"] : at === 3 ? ["ok", "Split sent"] : at === 4 ? ["ok", "Top contributor paid"] : at === 5 ? ["done", "Launched"] : ["ok", "Closed"];
+    return at === 2 ? ["wait", "Settling the split"] : at === 3 ? ["ok", "Split sent"] : at === 4 ? ["ok", "Top contributor paid"] : ["ok", "Closed"];
   }
   const boardOpen = new Set();
   function summaryHtml(v) {
