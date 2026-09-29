@@ -157,7 +157,12 @@ async function discover(S, C, latest, left) {
     const ranges = []; let a = S.hi + 1;
     for (let k = 0; k < 8 && a <= latest.number; k++) { const b = Math.min(latest.number, a + CH - 1); ranges.push([a, b]); a = b + 1; }
     let logs;
-    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.pm, topics: [TOPIC.init], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); S.discErr = null; } catch (e) { S.discErr = String((e && e.message) || e).slice(0, 160); break; }
+    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.pm, topics: [TOPIC.init], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); S.discErr = null; } catch (e) {
+      S.discErr = String((e && e.message) || e).slice(0, 160);
+      // the node has pruned logs that old: skip half of what's left and try again (older launches are past the gates anyway)
+      if (/prun|history|not available|too old|missing/i.test(S.discErr) && S.hi < latest.number - 1) { S.hi = Math.min(latest.number - 1, S.hi + Math.max(CH, Math.ceil((latest.number - S.hi) / 2))); continue; }
+      break;
+    }
     for (const l of logs) {
       const c0 = "0x" + strip(l.topics[2]).slice(24), c1 = "0x" + strip(l.topics[3]).slice(24);
       const hooks = wA(l.data, 2);
