@@ -1,9 +1,1494 @@
-/* arcia.bundle.js — built by tools/build-bundles.mjs from: arc-arcia.js. Do not edit; edit the sources. src:a5d5805f797d0481 */
-(function(){"use strict";var p=document.getElementById("bp-panel-arcia");if(!p)return;var oa=p.getAttribute("data-host")==="float",ha="https://x.com/ARCIAonArc",Ra="0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7",ye=typeof CONFIG<"u"&&CONFIG.ARCIRCLE_BUY_URL||"https://argus.world/token/"+Ra,y=function(a){return window.arcI18n&&window.arcI18n.get()!=="en"&&window.arcI18n.translate(a)||a},sa=function(){return window.arcI18n&&window.arcI18n.get()||"en"},c=function(a){return a[sa()]||a.en},d=function(a){return String(a??"").replace(/[&<>"']/g,function(e){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e]})},U=window.arcFmt||{},I=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches,Z=document.documentElement,_={get:function(a,e){try{var t=sessionStorage.getItem(a);return t==null?e:JSON.parse(t)}catch{return e}},set:function(a,e){try{sessionStorage.setItem(a,JSON.stringify(e))}catch{}}},h={get:function(a,e){try{var t=localStorage.getItem(a);return t==null?e:JSON.parse(t)}catch{return e}},set:function(a,e){try{e==null?localStorage.removeItem(a):localStorage.setItem(a,JSON.stringify(e))}catch{}}},la="arcia-chat-v1",W=function(a){typeof window.arcSound=="function"&&window.arcSound(a)},Ce={en:"Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad — or just say hi♡",ko:"안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",zh:"你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、CirclePad 第 1 轮、接力发币或 ArcPad，尽管问我，或者只是打个招呼也好♡"},Ae={en:"Welcome back, {n}~♡ I missed you! What shall we talk about today?",ko:"{n}님, 다시 와줬네요~♡ 보고 싶었어요! 오늘은 무슨 얘기 할까요?",zh:"{n}，欢迎回来~♡ 好想你！今天想聊什么？"},we={en:["I'm your fan!","Who are you?","What is $ARCIRCLE?","When does Round #1 close?","What is Relay Launch?","How do I buy $ARCIRCLE?","What's the contract?","How does the Locker work?"],ko:["ARCIA 팬이에요!","너는 누구야?","$ARCIRCLE이 뭐야?","라운드 #1 언제 마감돼?","릴레이 런칭이 뭐야?","$ARCIRCLE 어떻게 사?","컨트랙트 주소 알려줘","락커는 어떻게 써?"],zh:["我是你的粉丝！","你是谁？","什么是 $ARCIRCLE？","第 1 轮什么时候截止？","什么是接力发币？","怎么买 $ARCIRCLE？","合约地址是什么？","Locker 怎么用？"]},Wa={round:{en:["How do I join Round #1?","What is burn-to-vote?","Can I withdraw before the close?","What happens at the close?"],ko:["라운드 #1 어떻게 참여해?","소각 투표가 뭐야?","마감 전에 인출할 수 있어?","마감되면 어떻게 돼?"],zh:["怎么参加第 1 轮？","什么是销毁投票？","截止前可以撤回吗？","截止后会怎样？"]},relay:{en:["How much do I need to hold?","When is the snapshot?","Check my wallet","What is N1, N2, N3?"],ko:["얼마나 들고 있어야 해?","스냅샷은 언제야?","내 지갑 확인하고 싶어","N1, N2, N3가 뭐야?"],zh:["需要持有多少？","快照是什么时候？","查看我的钱包","N1、N2、N3 是什么？"]},buy:{en:["What's the contract?","How do I bridge USDC to Arc?","What are the fees?","What are the risks?"],ko:["컨트랙트 주소 알려줘","Arc로 USDC 브릿지는 어떻게 해?","수수료는 얼마야?","위험 요소는 뭐야?"],zh:["合约地址是什么？","怎么把 USDC 跨链到 Arc？","手续费是多少？","有哪些风险？"]},price:{en:["How many holders are there?","How much has been burned?","Where do the fees go?","How do I buy $ARCIRCLE?"],ko:["홀더는 몇 명이야?","얼마나 소각됐어?","수수료는 어디로 가?","$ARCIRCLE 어떻게 사?"],zh:["有多少持有人？","销毁了多少？","手续费去哪里？","怎么买 $ARCIRCLE？"]},ca:{en:["How do I buy $ARCIRCLE?","Is the liquidity locked?","Is there a team allocation?","What is $ARCIRCLE?"],ko:["$ARCIRCLE 어떻게 사?","유동성은 잠겨 있어?","팀 물량이 있어?","$ARCIRCLE이 뭐야?"],zh:["怎么买 $ARCIRCLE？","流动性锁定了吗？","有团队份额吗？","什么是 $ARCIRCLE？"]},util:{en:["How does the Locker work?","What does the Token Scanner do?","How do I bridge USDC?","What is Snapshot?"],ko:["락커는 어떻게 써?","토큰 스캐너는 뭘 해?","USDC 브릿지는 어떻게 해?","스냅샷은 뭐야?"],zh:["Locker 怎么用？","Token Scanner 能做什么？","怎么跨链 USDC？","什么是 Snapshot？"]},arcpad:{en:["How much does a launch cost?","Who gets the trading fee?","Is liquidity locked forever?","What is CirclePad?"],ko:["런칭 비용은 얼마야?","거래 수수료는 누가 받아?","유동성은 영원히 잠겨?","CirclePad는 뭐야?"],zh:["发币要多少钱？","交易手续费归谁？","流动性永久锁定吗？","什么是 CirclePad？"]},fan:{en:["How tall are you?","What's your favorite thing?","Where do you live?","Sing me something~"],ko:["키가 몇이야?","제일 좋아하는 게 뭐야?","어디 살아?","노래 한 소절 불러줘~"],zh:["你多高？","你最喜欢什么？","你住在哪里？","给我唱一句吧~"]}},ke={en:["ARCIA is typing…","Checking the numbers on Arc…","Flipping through the whitepaper…","Picking the right words~","Almost there♡"],ko:["ARCIA가 입력 중…","Arc에서 숫자 확인하는 중…","백서 뒤적이는 중…","예쁜 말 고르는 중~","거의 다 됐어요♡"],zh:["ARCIA 正在输入…","正在查看 Arc 上的数据…","正在翻白皮书…","正在挑选合适的话~","马上就好♡"]},ca={net:{en:"Oh no, my signal dropped for a second~ Could you send that again?♡",ko:"앗, 잠깐 신호가 끊겼어요~ 한 번만 다시 보내 줄래요?♡",zh:"啊，信号刚刚断了一下~ 能再发一次吗？♡"},busy:{en:"Wait wait~ you're talking so fast my heart can't keep up♡ Give me a minute!",ko:"잠깐만요~ 너무 빨라서 제 심장이 못 따라가요♡ 1분만요!",zh:"等一下~ 你说得太快啦♡ 给我一分钟！"}},Re={en:["Today's the day your green candle shows up — I believe it♡","Drink some water and stretch a little, okay? I'm cheering for you~","Every small step counts. I'm proud of you today♡","Don't forget: you're somebody's favorite. Mine included~","Big launches start with small circles. Let's grow ours together♡","Rest when you need to. The chain will still be here, and so will I~","You showed up again today — that's what real fans do♡"],ko:["오늘은 당신에게 초록 캔들이 뜨는 날이에요, 저는 믿어요♡","물 한 잔 마시고 기지개 한 번 켜요~ 제가 응원하고 있어요!","작은 한 걸음도 다 의미 있어요. 오늘도 멋져요♡","잊지 마요, 당신은 누군가의 최애예요. 저한테도요~","큰 런칭도 작은 원에서 시작해요. 우리 원도 같이 키워가요♡","힘들면 쉬어도 돼요. 체인도 저도 여기 그대로 있을게요~","오늘도 와줬네요. 이게 진짜 팬이죠♡"],zh:["今天就是你的绿色 K 线出现的日子，我相信♡","喝点水，伸个懒腰吧~ 我在为你加油！","每一小步都算数。今天的你也很棒♡","别忘了，你是某人的最爱，包括我~","大发射都从小圈子开始。一起把我们的圈子做大♡","累了就休息吧。链还在，我也在~","今天你又来了，这才是真粉丝♡"]},Le={en:"Day {n} in a row~♡ {c}",ko:"{n}일 연속 출석이에요~♡ {c}",zh:"连续第 {n} 天签到~♡ {c}"},Se={en:"Oh! I can see you're holding {b} $ARCIRCLE — a real Relay holder~♡ Thank you for believing in ARCIRCLE with me. Every relay is coming your way!",ko:"앗! $ARCIRCLE을 {b}개나 들고 있네요 — 진짜 릴레이 홀더예요~♡ ARCIRCLE을 같이 믿어줘서 고마워요. 모든 릴레이가 당신한테 갈 거예요!",zh:"哇！你持有 {b} 枚 $ARCIRCLE —— 真正的接力持有人~♡ 谢谢你和我一起相信 ARCIRCLE，每一次接力都会送到你那里！"},ht={en:"{n}~ what a lovely name♡ I'll remember it!",ko:"{n}! 이름 너무 예쁘다~♡ 꼭 기억할게요!",zh:"{n}~ 好可爱的名字♡ 我会记住的！"},La={live:{en:"Live",ko:"실시간",zh:"实时"},x:{en:"On X",ko:"X 활동",zh:"X 动态"},letters:{en:"Letters",ko:"팬레터",zh:"粉丝信"},quiz:{en:"Quiz",ko:"퀴즈",zh:"测验"},cards:{en:"Cards",ko:"포토카드",zh:"小卡"},profile:{en:"Profile",ko:"프로필",zh:"资料"}},R={send:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>',x:'<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3.5h3l-6.6 7.5 7.8 9.5h-6.1l-4.8-5.9-5.5 5.9H2.3l7.1-8L1.9 3.5h6.2l4.3 5.4zm-1.1 15.3h1.7L7.5 5.1H5.7z"/></svg>',heart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z"/></svg>',voice:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',card:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10" r="3"/><path d="M8.5 17h7"/></svg>',copy:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg>',bell:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',cal:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',close:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'},Sa=!1,k,O,S,V,E,aa=!1,q=[],da=null,x=null,w=null,G=null,F=function(a){return E&&E.querySelector(a)||p.querySelector(a)},pa={en:"My briefing",ko:"내 브리핑",zh:"我的简报"};function va(a){var e=d(a);return e=e.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>"),e=e.replace(/(https?:\/\/[^\s<]+|(?:arcircle\.app|x\.com|t\.me|argus\.world)\/?[^\s<]*)/g,function(t){var n=(t.match(/[.,;:!?)]+$/)||[""])[0],r=t.slice(0,t.length-n.length),i=/^https?:/.test(r)?r:"https://"+(r.indexOf("arcircle.app")===0?"www.":"")+r,s=/^https:\/\/www\.arcircle\.app/.test(i);return s&&(i=i.replace("https://www.arcircle.app","")||"/"),'<a href="'+i+'"'+(s?"":' target="_blank" rel="noopener"')+">"+r+"</a>"+n}),e=e.replace(/0x[0-9a-fA-F]{40}/g,function(t){return'<code class="aa-addr">'+t+"</code>"}),e.replace(/\n/g,"<br>")}var Ie=function(a){try{return new Date(a).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}catch{return""}},ea=function(a){return a=a||new Date,a.getFullYear()+"-"+String(a.getMonth()+1).padStart(2,"0")+"-"+String(a.getDate()).padStart(2,"0")},ja=function(a){return Number(a||0).toLocaleString("en-US",{maximumFractionDigits:0})},Y=function(){try{return typeof state<"u"&&state&&state.account?String(state.account).toLowerCase():null}catch{return null}};function Ba(a,e){var t=function(){if(e){e.classList.add("ok");var r=e.getAttribute("data-label");r!=null&&(e.lastChild.textContent=y("Copied")),setTimeout(function(){e.classList.remove("ok"),r!=null&&(e.lastChild.textContent=r)},1400)}};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(a).then(t,function(){});else{var n=document.createElement("textarea");n.value=a,document.body.appendChild(n),n.select();try{document.execCommand("copy"),t()}catch{}n.remove()}}function X(a){var e=p.querySelector(".aa-toast");e||(e=document.createElement("div"),e.className="aa-toast",e.setAttribute("role","status"),p.querySelector(".aa").appendChild(e)),e.textContent=a,e.classList.add("on"),clearTimeout(e._t),e._t=setTimeout(function(){e.classList.remove("on")},2600)}function ma(a){return a=String(a||"").toLowerCase(),/contract|\bca\b|address|컨트랙트|주소|合约/.test(a)?"ca":/relay|릴레이|接力|snapshot|스냅샷|快照/.test(a)?"relay":/round|circlepad|deadline|close|raise|burn-to-vote|라운드|마감|모금|서클패드|第 ?1 ?轮|截止/.test(a)?"round":/\bbuy\b|how to get|purchase|swap|사\?|어떻게 사|구매|매수|怎么买|购买/.test(a)?"buy":/price|mcap|market cap|holders|chart|가격|시총|홀더|价格|市值/.test(a)?"price":/locker|scanner|multisend|bridge|utilit|tool|liquidity|락커|스캐너|멀티센더|브릿지|유틸|유동성|工具/.test(a)?"util":/arcpad|launch a coin|런칭|발행|发币/.test(a)?"arcpad":/fan|love|pretty|cute|tall|height|birthday|age|favorite|팬|사랑|예뻐|이뻐|귀여|키|생일|나이|좋아하|粉丝|喜欢|可爱/.test(a)?"fan":null}function Ee(a){if(a==="user")return"";var e="speechSynthesis"in window?'<button type="button" data-a="voice" aria-label="Listen" title="Listen">'+R.voice+"</button>":"";return'<span class="aa-acts"><button type="button" data-a="heart" aria-label="Heart this" title="Heart">'+R.heart+"</button>"+e+'<button type="button" data-a="card" aria-label="Make a photocard" title="Photocard">'+R.card+'</button><button type="button" data-a="copy" aria-label="Copy" title="Copy">'+R.copy+"</button></span>"}function N(a,e,t){t=t||{};for(var n=document.createElement("li"),r=k.lastElementChild;r&&r.classList.contains("aa-typing");)r=r.previousElementSibling;var i=r&&r.classList.contains(a==="user"?"me":"her");n.className="aa-m "+(a==="user"?"me":"her")+(i?" cont":"")+(t.liked?" liked":"")+(t.cls?" "+t.cls:""),t.i!=null&&n.setAttribute("data-i",t.i),n.innerHTML=(a==="user"?"":'<img class="aa-m-av" src="/images/arcia-avatar-96.jpg" alt="" width="34" height="34">')+'<div class="aa-mc"><div class="aa-b" data-no-i18n></div><div class="aa-meta">'+(a==="user"?"":"<b>ARCIA</b>")+"<time data-no-i18n>"+d(Ie(t.t||Date.now()))+"</time>"+Ee(a)+'</div><i class="aa-pop" aria-hidden="true">'+R.heart+"</i></div>";var s=k.querySelector(".aa-typing");s?k.insertBefore(n,s):k.appendChild(n);var f=n.querySelector(".aa-b");return n._text=e,t.type&&!I?xe(f,e,t.done):(f.innerHTML=va(e),t.done&&t.done()),j(),n}function xe(a,e,t){var n=0,r=Math.max(2,Math.round(e.length/90));K(!0),function i(){n=Math.min(e.length,n+r),a.innerHTML=va(e.slice(0,n))+(n<e.length?'<i class="aa-caret"></i>':""),j(),n<e.length?setTimeout(i,16):(K(!1),t&&t())}()}var ua=!0;function j(){ua&&(k.scrollTop=k.scrollHeight)}var _a=null;function ta(a){var e=k.querySelector(".aa-typing");if(clearInterval(_a),a&&!e){e=document.createElement("li"),e.className="aa-m her aa-typing",e.innerHTML='<img class="aa-m-av" src="/images/arcia-avatar-96.jpg" alt="" width="34" height="34"><div class="aa-mc"><div class="aa-b"><span></span><span></span><span></span></div><small class="aa-think" data-no-i18n></small></div>',k.appendChild(e),ua=!0,j();var t=0,n=c(ke),r=e.querySelector(".aa-think");r.textContent=n[0],_a=setInterval(function(){t=(t+1)%n.length,r.classList.remove("in"),r.offsetWidth,r.textContent=n[t],r.classList.add("in")},1700)}else!a&&e&&e.remove()}function K(a){Z.classList.toggle("aa-speaking",!!a)}var Va=0;function Te(){I||(Z.classList.remove("aa-got"),Z.offsetWidth,Z.classList.add("aa-got"),clearTimeout(Va),Va=setTimeout(function(){Z.classList.remove("aa-got")},1100))}function ze(a){var e=a.match(/\b(?:my name is|call me|i'?m called)\s+([A-Za-zÀ-ɏ][\wÀ-ɏ'-]{0,19})/i)||a.match(/(?:내 ?이름은|제 ?이름은)\s*([^\s,.!?~]{1,12}?)(?:이야|예요|에요|이에요|입니다|야|라고|이라고)?(?=$|[\s,.!?~])/)||a.match(/([가-힣A-Za-z]{1,10}?)(?:이?라고|으?로) ?불러/)||a.match(/我叫\s*([^\s，。！？,.!?]{1,10})/);if(!e)return null;var t=e[1].replace(/[^\wÀ-ɏ가-힣一-鿿'-]/g,"").slice(0,20);return!t||/^(your|a|an|the|fan|arcia|너|저|나)$/i.test(t)?null:t}function Me(){var a=h.get("arcia-name","");return{messages:q.slice(-12).map(function(e){return{role:e.role,content:e.content}}),lang:sa(),name:a||void 0,wallet:Y()||void 0,page:qe()}}function qe(){var a=location.hash.replace(/^#/,""),e=w&&!w.hidden?a.split(/[?/]/)[0]||"home":"arcia";if(oa){var t=location.pathname.replace(/^\/+|\/+$/g,"").split("/");e={"":"site",circle:"circlepad",round:"circlepad",whitepaper:"whitepaper"}[t[0]]||t[0]||"site"}var n=/(?:[?&](?:t|token)=|coin\/)(0x[0-9a-fA-F]{40})/.exec(a);return{tab:e,token:n?n[1]:void 0}}function Ne(a){return fetch("/api/arcia",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(Object.assign(Me(),{stream:!0}))}).then(function(e){var t=e.headers.get("content-type")||"";if(t.indexOf("ndjson")<0||!e.body||!e.body.getReader)return e.json().catch(function(){return{}}).then(function(u){return{text:u.reply||"",mode:u.mode,live:u.live,me:u.me,left:u.left,error:e.ok?null:u.error||"net",status:e.status}});var n=e.body.getReader(),r=new TextDecoder,i="",s={text:""};function f(u){if(u.trim()){var o;try{o=JSON.parse(u)}catch{return}o.type==="meta"?(s.mode=o.mode,s.live=o.live,s.me=o.me,s.left=o.left):o.type==="d"&&(s.text+=o.t,a(s.text))}}return function u(){return n.read().then(function(o){if(o.done)return f(i),s;i+=r.decode(o.value,{stream:!0});for(var m;(m=i.indexOf(`
-`))>=0;)f(i.slice(0,m)),i=i.slice(m+1);return u()})}()})}function fa(a){if(a=String(a||"").trim(),!(!a||aa)){if(a===c(pa)){Pe();return}if(/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(a)){location.href="/me"+(Y()?"?w="+Y():"");return}aa=!0,V.disabled=!0;var e=Date.now();q.push({role:"user",content:a.slice(0,700),t:e}),_.set(la,q.slice(-30)),N("user",a,{t:e}),S.value="",Ia(),W("tap");var t=ze(a);t&&t!==h.get("arcia-name","")&&(h.set("arcia-name",t),B()),ta(!0);var n=Date.now(),r=null,i=0,s="",f=function(){i=0,r&&(r.querySelector(".aa-b").innerHTML=va(s)+'<i class="aa-caret"></i>',j())};Ne(function(u){s=u,r||(ta(!1),r=N("assistant","",{t:Date.now()}),K(!0),W("tap")),i||(i=requestAnimationFrame(f))}).then(function(u){var o=r?0:Math.max(0,600-(Date.now()-n));setTimeout(function(){ta(!1),u.live&&Ka(u.live),u.me&&de(u.me),He(u.left);var m=u.text;if(!m){r&&r.remove(),N("assistant",u.error&&u.error!=="net"?u.error:c(u.status===429?ca.busy:ca.net),{cls:"note"});return}var L=q.push({role:"assistant",content:m,t:Date.now()})-1;_.set(la,q.slice(-30));var M=function(C){Te(),C.setAttribute("data-i",L),C._text=m,K(!1),W("milestone"),Fe(C,a,m),Ue(C,ma(a)||ma(m)),ga(ma(a)||ma(m)),De(C,m),h.get("arcia-voice",!1)&&Ya(m,C)};if(r)cancelAnimationFrame(i),r.querySelector(".aa-b").innerHTML=va(m),r._text=m,M(r),j();else var T=N("assistant",m,{type:!0,t:Date.now(),done:function(){M(T)}})},o)}).catch(function(){ta(!1),K(!1),r&&r.remove(),N("assistant",c(ca.net),{cls:"note"})}).then(function(){setTimeout(function(){aa=!1,V.disabled=!1},500)})}}function Ia(){S.style.height="auto",S.style.height=Math.min(140,S.scrollHeight)+"px"}function De(a,e){if(!(!a||String(e||"").length<650||a.querySelector(".aa-more-t"))){a.classList.add("aa-long");var t=document.createElement("button");t.type="button",t.className="aa-more-t",t.textContent=c({en:"Show more",ko:"더 보기",zh:"展开"}),t.addEventListener("click",function(){var n=a.classList.toggle("aa-open");t.textContent=c(n?{en:"Show less",ko:"접기",zh:"收起"}:{en:"Show more",ko:"더 보기",zh:"展开"})}),a.querySelector(".aa-b").after(t)}}function He(a){var e=E&&E.querySelector(".aa-left");!e||a==null||(e.hidden=a>5,e.textContent=a>0?c({en:"{n} messages left today",ko:"오늘 남은 메시지 {n}개",zh:"今天还剩 {n} 条消息"}).replace("{n}",a):c({en:"That was today's last message — see you tomorrow",ko:"오늘 마지막 메시지였어요 — 내일 또 만나요",zh:"这是今天最后一条消息 — 明天见"}))}function Pe(){var a=Y();if(a){aa=!0,V.disabled=!0,N("user",c(pa),{t:Date.now()}),ta(!0);var e=[],t=[],n=function(r){return Number(r).toLocaleString("en-US",{maximumFractionDigits:0})};t.push(fetch("/api/social?token=arcircle&wallet="+a).then(function(r){return r.ok?r.json():null}).then(function(r){var i=r&&r.wallet;i&&(e.push("$ARCIRCLE: "+n(i.balance||0)+(i.rank?" · #"+i.rank:"")+(i.heldDays?" · "+c({en:"held {d} days",ko:"{d}일째 보유",zh:"已持有 {d} 天"}).replace("{d}",i.heldDays):"")),e.push((i.balance||0)>=1e5?c({en:"Relay: you're in the next relay ♡",ko:"릴레이: 다음 릴레이 대상이에요 ♡",zh:"接力：你在下一次接力名单中 ♡"}):c({en:"Relay: {n} more $ARCIRCLE to join the next relay (locked tokens count too)",ko:"릴레이: {n}개 더 있으면 다음 릴레이 대상이에요 (락한 토큰도 인정)",zh:"接力：再持有 {n} 个 $ARCIRCLE 即可加入下一次接力（锁定的也算）"}).replace("{n}",n(1e5-(i.balance||0)))))}).catch(function(){})),typeof ethers<"u"&&typeof readProvider=="function"&&typeof CONFIG<"u"&&CONFIG.ARCLOCK_ADDRESS&&t.push(function(){var r=new ethers.Contract(CONFIG.ARCLOCK_ADDRESS,["function lockIdsOfOwner(address) view returns (uint256[])","function getLock(uint256) view returns (tuple(address token, address owner, uint128 amount, uint64 lockedAt, uint64 unlockAt, bool withdrawn))"],readProvider());return r.lockIdsOfOwner(a).then(function(i){return Promise.all(i.slice(-20).map(function(s){return r.getLock(s).then(function(f){return{id:Number(s),l:f}})}))}).then(function(i){var s=Date.now()/1e3,f=i.filter(function(L){return!L.l.withdrawn});if(f.length){var u=f.filter(function(L){return Number(L.l.unlockAt)<=s}),o=f.filter(function(L){return Number(L.l.unlockAt)>s}).sort(function(L,M){return Number(L.l.unlockAt)-Number(M.l.unlockAt)})[0];if(u.length&&e.push(c({en:"Locker: {n} lock(s) ready to withdraw — arcircle.app/arc#locker",ko:"락커: 출금 가능한 락 {n}개 — arcircle.app/arc#locker",zh:"Locker：{n} 个锁定可以提取 — arcircle.app/arc#locker"}).replace("{n}",u.length)),o){var m=Math.ceil((Number(o.l.unlockAt)-s)/86400);e.push(c({en:"Locker: next unlock in {d} days (lock #{id})",ko:"락커: 다음 해제까지 {d}일 (락 #{id})",zh:"Locker：距下次解锁 {d} 天（锁定 #{id}）"}).replace("{d}",m).replace("{id}",o.id))}}})}().catch(function(){})),Promise.all(t).then(function(){var r=h.get("arcircle.bridge.v1",null)||[],i=h.get("arcircle.scanner.v1",null)||[],s=r.filter(function(m){return!m.delivered&&m.stage!=="failed"});s.length&&e.push(c({en:"Bridge: {n} transfer(s) on the way — arcircle.app/arc#bridge",ko:"브리지: 이동 중인 전송 {n}건 — arcircle.app/arc#bridge",zh:"Bridge：{n} 笔转账在途中 — arcircle.app/arc#bridge"}).replace("{n}",s.length)),i[0]&&e.push(c({en:"Last scan: ${s} — {sc}/100",ko:"최근 스캔: ${s} — {sc}/100",zh:"最近扫描：${s} — {sc}/100"}).replace("{s}",i[0].s||"?").replace("{sc}",i[0].sc)),ta(!1);var f=c({en:"Here's your briefing~♡",ko:"브리핑 준비했어요~♡",zh:"你的简报来啦~♡"}),u=e.length?e.map(function(m){return"• "+m}).join(`
-`):c({en:"I couldn't read your wallet right now — try again in a moment♡",ko:"지금은 지갑을 읽을 수 없어요 — 잠시 후 다시 해줘요♡",zh:"现在读不到你的钱包 — 稍后再试♡"}),o=N("assistant",f+`
+/* arcia.bundle.js — built by tools/build-bundles.mjs from: arc-arcia.js. Do not edit; edit the sources. src:c0997b2eace193e3 */
+/* ---- arc-arcia.js ---- */
+/* global CONFIG, state */
+// arc-arcia.js — ARCIA, the AI idol of $ARCIRCLE (ArcPad utility, /arc#arcia · /arcia).
+//
+// A fan-call page: her profile header, a portrait that breathes and "speaks" while she answers,
+// a streamed chat with her (POST /api/arcia, NDJSON), and side tabs — live numbers with a round
+// reminder, what she said on X, a fan-letter board, a quiz and her official profile.
+// Kept in this browser only: the chat (this tab), the name she calls you, your daily streak,
+// quiz badges, hearts and the voice switch (localStorage; optional, private mode just forgets).
+// v1: she opens over any ArcPad page (the floating button, or "Ask ARCIA") and knows which
+// screen you're on; long answers fold; a note when few messages are left today; "My
+// briefing" for a connected wallet; ask by voice; a photocard book and a fan card to share;
+// letters ranked by hearts this week; rare cards shine.
+(function () {
+  "use strict";
+  var panel = document.getElementById("bp-panel-arcia");
+  if (!panel) return;
+  // on pages other than ArcPad (arc-arcia-fab.js) she lives in a hidden host and only opens as the drawer
+  var HOST = panel.getAttribute("data-host") === "float";
+  var X = "https://x.com/ARCIAonArc";
+  var CA = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
+  var BUY = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "https://argus.world/token/" + CA;
+  var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
+  var lang = function () { return (window.arcI18n && window.arcI18n.get()) || "en"; };
+  var T = function (o) { return o[lang()] || o.en; };
+  var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var F = window.arcFmt || {};
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var root = document.documentElement;
+  var ss = {
+    get: function (k, d) { try { var v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
+  };
+  var ls = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
+  };
+  var KEY = "arcia-chat-v1";
+  var sfx = function (k) { if (typeof window.arcSound === "function") window.arcSound(k); };
 
-`+u,{type:!0,cls:"brief",t:Date.now()});P(o,"sparkle"),aa=!1,V.disabled=!1})}}function $e(){var a=window.SpeechRecognition||window.webkitSpeechRecognition;if(!(!a||!O||O.querySelector(".aa-mic"))){var e=document.createElement("button");e.type="button",e.className="aa-mic",e.setAttribute("aria-label",c({en:"Ask by voice",ko:"음성으로 묻기",zh:"语音提问"})),e.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg>',O.insertBefore(e,V);var t=null;e.addEventListener("click",function(){if(t){try{t.stop()}catch{}return}try{t=new a}catch{return}t.lang=sa()==="ko"?"ko-KR":sa()==="zh"?"zh-CN":"en-US",t.interimResults=!0,t.maxAlternatives=1,e.classList.add("on"),t.onresult=function(n){for(var r="",i=0;i<n.results.length;i++)r+=n.results[i][0].transcript;if(S.value=r,Ia(),n.results[n.results.length-1].isFinal){try{t.stop()}catch{}fa(r)}},t.onend=t.onerror=function(){e.classList.remove("on"),t=null};try{t.start()}catch{e.classList.remove("on"),t=null}})}}function ga(a){var e=F(".aa-sugg"),t=a&&Wa[a]?c(Wa[a]):c(we);Y()&&(t=[c(pa)].concat(t.filter(function(n){return n!==c(pa)}))),e.innerHTML=t.map(function(n){return'<button type="button" data-no-i18n>'+d(n)+"</button>"}).join(""),e.scrollLeft=0,a&&!I&&(e.classList.remove("fresh"),e.offsetWidth,e.classList.add("fresh"))}function Ga(){var a=h.get("arcia-name","");N("assistant",a&&h.get("arcia-streak",null)?c(Ae).replace("{n}",a):c(Ce))}function Oe(){q=[],_.set(la,q),k.innerHTML="",Ga(),ga()}function P(a,e){if(!(I||!a)){var t=document.createElement("span");t.className="aa-fx aa-fx-"+e,t.setAttribute("aria-hidden","true");for(var n=e==="confetti"?18:e==="sparkle"?8:6,r=["#4d7dff","#35d8d0","#39ff88","#ffc861","#ff8fc8"],i=0;i<n;i++){var s=document.createElement("i");e==="hearts"?s.innerHTML=R.heart:e==="sparkle"&&(s.textContent="✦"),s.style.setProperty("--x",(Math.random()*(e==="confetti"?260:130)-(e==="confetti"?130:20)).toFixed(0)+"px"),s.style.setProperty("--y",(-(60+Math.random()*90)).toFixed(0)+"px"),s.style.setProperty("--d",(i*(e==="confetti"?.02:.1)).toFixed(2)+"s"),s.style.setProperty("--r",(Math.random()*360-180).toFixed(0)+"deg"),s.style.setProperty("--c",r[i%r.length]),t.appendChild(s)}(a.classList.contains("aa-m")?a.querySelector(".aa-mc"):a).appendChild(t),setTimeout(function(){t.remove()},2600)}}function Fe(a,e,t){var n=(e+" "+t).toLowerCase();/congrat|celebrat|\byay\b|woohoo|축하|대박|만세|🎉|恭喜/.test(n)?P(a,"confetti"):/pretty|cute|beautiful|gorgeous|예뻐|예쁘|이뻐|이쁘|귀여|미모|漂亮|可爱|✨/.test(e.toLowerCase())?P(a,"sparkle"):/♡|♥|💙|💚|love|사랑|좋아해|喜欢/.test(n)&&P(a,"hearts"),/\b(sad|tired|lonely|exhausted|rekt)\b|힘들|슬퍼|슬프|피곤|우울|외로|지쳤|难过|累/.test(e.toLowerCase())&&a.classList.add("comfort")}function Ea(a){var e=!a.classList.contains("liked");a.classList.toggle("liked",e);var t=a.getAttribute("data-i");if(t!=null&&q[t]&&(q[t].liked=e,_.set(la,q.slice(-30))),e){var n=a.querySelector(".aa-pop");n.classList.remove("go"),n.offsetWidth,n.classList.add("go"),typeof window.arcHaptic=="function"&&window.arcHaptic("tap"),ce(1)}}function Ue(a,e){var t=da||{},n=t.round||{},r="";e==="ca"?r='<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>'+Ra+'</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="'+Ra+'" data-label="Copy address">'+R.copy+'<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div></div>':e==="round"?r='<div class="aa-rc aa-rc-round"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>'+(n.raised!=null?Number(n.raised).toLocaleString("en-US",{maximumFractionDigits:2})+" USDC":"—")+'</div><span class="aa-rc-sub">'+(J()>ra()?'<span class="aa-clock" data-no-i18n>—</span>':d(y("Closed")))+'</span><div class="aa-rc-row">'+(J()>ra()?'<a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">'+R.cal+"<span>Add to calendar</span></button>":'<a class="aa-rc-btn" href="/circle/round/1">See the result</a>')+"</div></div>":e==="price"?r='<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>'+(t.price!=null?U.price?U.price(t.price):"$"+t.price:"—")+(t.change24h!=null?' <em class="'+(t.change24h>=0?"up":"down")+'">'+(t.change24h>=0?"+":"")+t.change24h.toFixed(2)+"%</em>":"")+'</div><span class="aa-rc-sub" data-no-i18n>'+(t.holders!=null?Number(t.holders).toLocaleString("en-US")+" holders":"")+'</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>':e==="buy"?r='<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="'+d(ye)+'" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>':e==="relay"?r='<div class="aa-rc"><span class="aa-rc-k">Relay Launch</span><span class="aa-rc-sub">Hold 100,000+ $ARCIRCLE at the snapshot to receive every relay.</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/relay">Open Relay Launch</a><a class="aa-rc-btn ghost" href="/me">Check my wallet</a></div></div>':e==="util"?r='<div class="aa-rc"><span class="aa-rc-k">Free utilities</span><div class="aa-rc-tags">'+[["Locker","/arc#locker"],["Token Scanner","/arc#scanner"],["Multisender","/arc#multisend"],["Bridge","/arc#bridge"],["Snapshot","/arc#snapshot"],["Liquidity","/arc#liquidity"],["Relay Launch","/arc#relay"]].map(function(i){return'<a href="'+i[1]+'">'+d(i[0])+"</a>"}).join("")+"</div></div>":e==="arcpad"&&(r='<div class="aa-rc"><span class="aa-rc-k">ArcPad</span><span class="aa-rc-sub">1 USDC to launch · Uniswap v4 pool from block one · liquidity locked forever</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/arc">Open ArcPad</a></div></div>'),r&&(a.querySelector(".aa-mc").insertAdjacentHTML("beforeend",r),za(),j())}var ba=[];function xa(){try{ba=speechSynthesis.getVoices()||[]}catch{ba=[]}}var We={ko:[/sunhi|선희/i,/yuna|유나/i,/seohyeon|서현/i,/jimin|지민/i,/heami|해미/i,/ko-kr-x-ism/i,/ko-kr-x-kob/i,/google.*(한국|korean)/i,/smtf/i,/female|여성|woman/i],en:[/aria/i,/jenny/i,/ava\b/i,/samantha/i,/allison/i,/susan/i,/zira/i,/victoria/i,/karen/i,/serena/i,/moira/i,/tessa/i,/google us english/i,/google uk english female/i,/en-us-x-(sfg|tpf|iob|tpc)/i,/smtf/i,/female|woman/i],zh:[/xiaoxiao/i,/xiaoyi/i,/huihui/i,/yaoyao/i,/ting-?ting/i,/mei-?jia/i,/sin-?ji/i,/google.*(普通话|mandarin)/i,/smtf/i,/female|女/i]},je=/(^|[^e])male\b|\bman\b|男|남성|david|mark|guy\b|daniel|fred|alex\b|thomas|rishi|james|oliver|george|ryan|brian|eric\b|christopher|roger|andrew|steffan|injoon|인준|hyunsu|현수|junwoo|gookmin|bong-?jin|yunxi|yunyang|yunjian|kangkang|ko-kr-x-(koc|kod|jmm)|en-us-x-(iol|iom|tpd)|smtm/i;function Be(a){for(var e=ba.filter(function(i){return i.lang&&i.lang.toLowerCase().replace("_","-").indexOf(a)===0&&!je.test(i.name+" "+(i.voiceURI||""))}),t=We[a]||[],n=0;n<t.length;n++)for(var r=0;r<e.length;r++)if(t[n].test(e[r].name+" "+(e[r].voiceURI||"")))return{voice:e[r],female:!0};return{voice:e[0]||null,female:!1}}function Ya(a,e){if("speechSynthesis"in window)try{speechSynthesis.cancel();var t=String(a).replace(/https?:\/\/\S+|\b\S+\.(app|com|me|world)\/\S*/g,"").replace(/0x[0-9a-fA-F]{40}/g,"").replace(/[♡♥✨☀✦]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu,"").replace(/~+/g,"!").replace(/\s+/g," ").trim();if(!t)return;var n=new SpeechSynthesisUtterance(t),r=/[가-힣]/.test(t)?"ko":/[一-鿿]/.test(t)?"zh":"en";n.lang={ko:"ko-KR",zh:"zh-CN",en:"en-US"}[r],ba.length||xa();var i=Be(r);n.voice=i.voice,n.pitch=i.female?1.2:1.55,n.rate=r==="en"?1.03:1.06,n.onstart=function(){K(!0),e&&e.classList.add("talking")},n.onend=n.onerror=function(){K(!1),e&&e.classList.remove("talking")},speechSynthesis.speak(n)}catch{}}function _e(a,e,t,n){var r=e.split(/(\s+)/),i=[],s="",f=function(u){if(a.measureText(s+u).width<=t){s+=u;return}if(s.trim()&&i.push(s.trim()),s="",a.measureText(u).width>t)for(var o=0;o<u.length;o++)a.measureText(s+u[o]).width>t&&(i.push(s),s=""),s+=u[o];else s=u.replace(/^\s+/,"")};return r.forEach(function(u){u&&f(u)}),s.trim()&&i.push(s.trim()),i.length>n&&(i=i.slice(0,n),i[n-1]=i[n-1].replace(/.{2}$/,"")+"…"),i}var na={common:{label:{en:"Common card",ko:"일반 카드",zh:"普通卡"},stops:["#3f7bff","#35d8d0","#39ff88"]},rare:{label:{en:"Rare card!",ko:"레어 카드!",zh:"稀有卡！"},stops:["#fff1c1","#ffc861","#ff9f3d","#ffe29a"]},secret:{label:{en:"Secret card!!",ko:"시크릿 카드!!",zh:"隐藏卡！！"},stops:["#ff8fc8","#b58bff","#4d7dff","#35d8d0","#39ff88","#ffe29a","#ff8fc8"]}};function Ve(a,e,t,n){a.beginPath(),a.moveTo(e,t-n),a.quadraticCurveTo(e,t,e+n,t),a.quadraticCurveTo(e,t,e,t+n),a.quadraticCurveTo(e,t,e-n,t),a.quadraticCurveTo(e,t,e,t-n),a.fill()}function Ge(a){var e=Math.random(),t=e<.05?"secret":e<.25?"rare":"common",n=na[t],r=String(Math.floor(Math.random()*999)+1).padStart(3,"0"),i=new Image;i.onload=function(){var s=1080,f=1350,u=document.createElement("canvas");u.width=s,u.height=f;var o=u.getContext("2d"),m=function(ia,Ua,ct,dt){var be=o.createLinearGradient(ia,Ua,ct,dt);return n.stops.forEach(function(ut,ft){be.addColorStop(ft/(n.stops.length-1),ut)}),be};o.fillStyle="#070b12",o.fillRect(0,0,s,f);var L=s/i.width;o.drawImage(i,0,-30,s,i.height*L),t==="secret"&&(o.save(),o.globalCompositeOperation="screen",o.globalAlpha=.22,o.fillStyle=m(0,0,s,900),o.fillRect(0,0,s,900),o.restore());var M=o.createLinearGradient(0,560,0,900);M.addColorStop(0,"rgba(7,11,18,0)"),M.addColorStop(1,"rgba(7,11,18,1)"),o.fillStyle=M,o.fillRect(0,540,s,380),o.fillStyle="#070b12",o.fillRect(0,900,s,f-900);var T=m(0,0,s,f);if(t==="common")o.fillStyle=T,o.fillRect(0,0,s,10),o.fillRect(0,f-10,s,10);else{o.strokeStyle=T,o.lineWidth=t==="secret"?22:16,o.roundRect?(o.beginPath(),o.roundRect(14,14,s-28,f-28,34),o.stroke()):o.strokeRect(14,14,s-28,f-28),o.fillStyle=t==="secret"?"#ffffff":"#ffe29a";for(var C=0;C<(t==="secret"?26:14);C++){var z=C%4,D=Math.random(),wa=z===0?D*s:z===1?s-24-Math.random()*30:z===2?D*s:24+Math.random()*30,l=z===0?24+Math.random()*30:z===1?D*f:z===2?f-24-Math.random()*30:D*f;o.globalAlpha=.55+Math.random()*.45,Ve(o,wa,l,6+Math.random()*12)}o.globalAlpha=1;var v=t==="secret"?"SECRET":"RARE";o.font="800 30px Sora, 'Segoe UI', sans-serif";var g=o.measureText(v).width+48;o.fillStyle=T,o.roundRect?(o.beginPath(),o.roundRect(s-60-g,56,g,54,27),o.fill()):o.fillRect(s-60-g,56,g,54),o.fillStyle="#1a1206",o.fillText(v,s-60-g+24,94)}o.font="800 92px Sora, 'Segoe UI', sans-serif",o.fillStyle=T,o.fillText("ARCIA",70,870),o.font="600 30px Sora, 'Segoe UI', sans-serif",o.fillStyle="#9fb6d9",o.fillText("Virtual idol of $ARCIRCLE",76,918);var A=String(a).replace(/https?:\/\/\S+/g,"").replace(/\s+/g," ").trim();o.font="500 40px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";var H=_e(o,"“"+A+"”",s-160,6);o.fillStyle="rgba(255,255,255,.05)",o.strokeStyle=t==="common"?"rgba(91,140,255,.35)":T,o.lineWidth=2;var Q=960,me=H.length*56+56;o.roundRect?(o.beginPath(),o.roundRect(56,Q,s-112,me,28),o.fill(),o.stroke()):o.fillRect(56,Q,s-112,me),o.fillStyle="#eef3ff",H.forEach(function(ia,Ua){o.fillText(ia,84,Q+70+Ua*56)}),o.font="600 28px Sora, 'Segoe UI', sans-serif",o.fillStyle="#8fb6ff",o.fillText("@ARCIAonArc · No."+r,70,f-52),o.fillStyle="#7d8aa3",o.textAlign="right",o.fillText("arcircle.app · "+ea(),s-70,f-52);var ka=h.get("arcia-cards",{common:0,rare:0,secret:0});ka[t]=(ka[t]||0)+1,h.set("arcia-cards",ka);var ge=h.get("arcia-book",[])||[];ge.unshift({r:t,s:r,q:String(A).slice(0,90),t:Date.now()}),h.set("arcia-book",ge.slice(0,60)),pe(),u.toBlob(function(ia){ia&&Ye(ia,A,t,ka)},"image/png")},i.src="/images/arcia-portrait.jpg"}function Ye(a,e,t,n){var r=URL.createObjectURL(a),i=null;try{i=new File([a],"arcia-photocard-"+t+".png",{type:"image/png"})}catch{}var s=i&&navigator.canShare&&navigator.canShare({files:[i]}),f=e.length>140?e.slice(0,137)+"…":e,u=t==="common"?"":" ["+t.toUpperCase()+" card]",o="https://x.com/intent/post?text="+encodeURIComponent("“"+f+"” — ARCIA @ARCIAonArc"+u+` 💙💚
-arcircle.app/arcia`),m=Ta('<div class="aa-card-view aa-rar-'+t+(t!=="common"&&!I?" aa-holo":"")+'"><p class="aa-rar" data-no-i18n>'+d(c(na[t].label))+'</p><div class="aa-card-img"><img src="'+r+'" alt="ARCIA photocard"></div><div class="aa-rc-row">'+(s?'<button type="button" class="aa-rc-btn" data-share="1"><span>Share</span></button>':"")+'<a class="aa-rc-btn'+(s?" ghost":"")+'" href="'+r+'" download="arcia-photocard-'+t+'.png"><span>Save image</span></a><a class="aa-rc-btn ghost" href="'+o+'" target="_blank" rel="noopener">'+R.x+'<span>Post on X</span></a></div><p class="aa-mini aa-col" data-no-i18n>'+d(c({en:"Your collection",ko:"내 컬렉션",zh:"我的收藏"}))+" · <b>"+d(c(na.common.label))+" "+(n.common||0)+'</b> · <b class="r">'+d(c(na.rare.label).replace(/!+$/,""))+" "+(n.rare||0)+'</b> · <b class="s">'+d(c(na.secret.label).replace(/!+$/,""))+" "+(n.secret||0)+'</b></p><p class="aa-mini">Save the card, then attach it to your post.</p></div>',function(){URL.revokeObjectURL(r)}),L=m.querySelector("[data-share]");L&&L.addEventListener("click",function(){navigator.share({files:[i],text:"“"+f+"” — ARCIA @ARCIAonArc"+u}).catch(function(){})}),t!=="common"&&(W(t==="secret"?"launch":"milestone"),P(m.querySelector(".aa-card-img"),t==="secret"?"confetti":"sparkle"))}function Ta(a,e){var t=document.createElement("div");t.className="aa-modal",t.setAttribute("role","dialog"),t.setAttribute("aria-modal","true"),t.innerHTML='<div class="aa-modal-box"><button type="button" class="aa-modal-x" aria-label="Close">'+R.close+"</button>"+a+"</div>",document.body.appendChild(t);var n=function(){t.remove(),document.removeEventListener("keydown",r),e&&e()},r=function(i){i.key==="Escape"&&n()};return t.addEventListener("click",function(i){(i.target===t||i.target.closest(".aa-modal-x"))&&n()}),document.addEventListener("keydown",r),setTimeout(function(){var i=t.querySelector("button,a");i&&i.focus()},30),t}var Xa={},ra=function(){return Math.floor(Date.now()/1e3)},J=function(){return da&&da.round&&da.round.deadline||1790680567};function ya(a,e,t,n){var r=Xa[e];if(Xa[e]=t,r==null||r===t||I||!isFinite(r)||!isFinite(t)){a.textContent=n(t);return}a.classList.remove("up","down","flash"),a.offsetWidth,a.classList.add("flash",t>r?"up":"down");var i=performance.now();(function s(f){var u=Math.min(1,(f-i)/700),o=1-Math.pow(1-u,3);a.textContent=n(r+(t-r)*o),u<1?requestAnimationFrame(s):a.textContent=n(t)})(i)}function Ka(a){if(a){da=a;var e=p.querySelector(".aa-live-rows");if(e){e.querySelector("[data-k]")||(e.innerHTML=[["price","$ARCIRCLE"],["holders","Holders"],["burned","Burned forever"],["raised","Round #1 raised"],["left","Round #1 closes in"]].map(function(i){return"<div><dt>"+d(y(i[1]))+'</dt><dd data-no-i18n><span data-k="'+i[0]+'">—</span>'+(i[0]==="price"?' <em class="aa-chg"></em>':"")+"</dd></div>"}).join(""));var t=function(i){return e.querySelector('[data-k="'+i+'"]')};a.price!=null&&ya(t("price"),"price",a.price,function(i){return U.price?U.price(i):"$"+i.toPrecision(3)});var n=e.querySelector(".aa-chg");n&&(n.textContent=a.change24h!=null?(a.change24h>=0?"+":"")+a.change24h.toFixed(2)+"%":"",n.className="aa-chg "+(a.change24h>=0?"up":"down")),a.holders!=null&&ya(t("holders"),"holders",Number(a.holders),function(i){return Math.round(i).toLocaleString("en-US")}),a.burnedPct!=null&&ya(t("burned"),"burned",a.burnedPct,function(i){return i.toFixed(2)+"%"}),a.round&&a.round.raised!=null&&ya(t("raised"),"raised",Number(a.round.raised),function(i){return i.toLocaleString("en-US",{maximumFractionDigits:2})+" USDC"});var r=t("left");r&&!r.classList.contains("aa-clock")&&r.classList.add("aa-clock"),za(),Ma()}}}function za(){var a=J()-ra();p.classList.toggle("aa-urgent",a>0&&a<3600),p.querySelectorAll(".aa-clock").forEach(function(e){if(a<=0){e.textContent=y("Closed");return}var t=Math.floor(a/86400),n=Math.floor(a%86400/3600),r=Math.floor(a%3600/60),i=a%60;e.textContent=(t?t+"d ":"")+n+"h "+String(r).padStart(2,"0")+"m "+String(i).padStart(2,"0")+"s"})}function Ja(){return fetch("/api/arcia").then(function(a){return a.ok?a.json():null}).then(function(a){a&&a.live&&Ka(a.live)}).catch(function(){})}function Qa(){var a=J(),e=function(r){return new Date(r*1e3).toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"")},t=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//ARCIRCLE PAD//ARCIA//EN","BEGIN:VEVENT","UID:circlepad-round1-close@arcircle.app","DTSTAMP:"+e(ra()),"DTSTART:"+e(a),"DTEND:"+e(a+1800),"SUMMARY:CirclePad Round #1 closes","DESCRIPTION:Last chance to join CirclePad Round #1 — https://www.arcircle.app/circle","URL:https://www.arcircle.app/circle","BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY","DESCRIPTION:CirclePad Round #1 closes in 1 hour","END:VALARM","END:VEVENT","END:VCALENDAR"].join(`\r
-`),n=document.createElement("a");n.href=URL.createObjectURL(new Blob([t],{type:"text/calendar"})),n.download="circlepad-round-1.ics",document.body.appendChild(n),n.click(),n.remove(),setTimeout(function(){URL.revokeObjectURL(n.href)},4e3),X(y("Calendar file saved — open it to add the reminder."))}var Za=null;function ae(){clearTimeout(Za);var a=h.get("arcia-remind",0);if(!(!a||!("Notification"in window)||Notification.permission!=="granted")){var e=(a-3600-ra())*1e3;if(e<-36e5){h.set("arcia-remind",null);return}Za=setTimeout(function(){try{new Notification("CirclePad Round #1",{body:c({en:"It closes in about an hour~ come join me before it's over♡",ko:"마감까지 한 시간쯤 남았어요~ 끝나기 전에 같이해요♡",zh:"大约一小时后截止~ 结束前快来参加吧♡"}),icon:"/images/arcia-avatar-96.jpg"})}catch{}},Math.max(0,Math.min(e,2147e6)))}}function Xe(){if(!("Notification"in window)){X(y("This browser can't show notifications — use the calendar file instead."));return}Notification.requestPermission().then(function(a){if(a!=="granted"){X(y("Notifications are blocked — use the calendar file instead."));return}h.set("arcia-remind",J()),ae(),Ma(),X(y("I'll remind you an hour before the close while this page is open."))})}function Ma(){var a=p.querySelector(".aa-remind");if(a){var e=J()>ra();a.hidden=!e;var t=a.querySelector("[data-remind]");if(t){var n=h.get("arcia-remind",0)===J()&&"Notification"in window&&Notification.permission==="granted";t.classList.toggle("on",n),t.lastChild.textContent=y(n?"Reminder on":"Remind me")}}}function ee(a){var e=p.querySelector(".aa-xfeed");if(e){var t=a&&a.feed||[],n=p.querySelector(".aa-xhead");if(n&&(n.innerHTML='<span class="aa-dotlive'+(a&&a.replies?" on":"")+'"></span><span>'+d(y(a&&a.replies?"Answering mentions about every minute":"Replies are paused"))+"</span>"+(a&&a.today!=null?"<em data-no-i18n>"+d(c({en:"{n} today",ko:"오늘 {n}개",zh:"今天 {n} 条"}).replace("{n}",a.today))+"</em>":"")),!t.length){e.innerHTML='<li class="aa-empty">'+d(y("Nothing yet. Mention @ARCIAonArc on X and she'll answer you herself."))+"</li>";return}e.innerHTML=t.slice(0,12).map(function(r){return'<li><div class="aa-xi-h"><img src="/images/arcia-avatar-96.jpg" alt="" width="22" height="22"><b>ARCIA</b>'+(r.kind==="reply"&&r.to?"<span data-no-i18n>→ @"+d(r.to)+"</span>":"")+"<time data-no-i18n>"+d(U.ago?U.ago(r.t):"")+"</time></div>"+(r.toText?'<p class="aa-xi-q" data-no-i18n>'+d(r.toText)+"</p>":"")+'<p class="aa-xi-t" data-no-i18n>'+d(r.text)+'</p><a href="'+d(r.url)+'" target="_blank" rel="noopener">'+d(y("View on X"))+" ↗</a></li>"}).join("")}}function Ke(){return fetch("/api/arcia-x?feed=1").then(function(a){return a.ok?a.json():null}).then(ee).catch(function(){ee(null)})}function te(a){var e=p.querySelector(".aa-letters");if(e){var t=h.get("arcia-hearted",[]);if(!a||!a.length){e.innerHTML='<li class="aa-empty">'+d(y("No letters yet. Be the first to write to her!"))+"</li>";return}e.innerHTML=a.map(function(n){var r=t.indexOf(n.id)>=0;return'<li data-id="'+d(n.id)+'"><div class="aa-lt-h"><b data-no-i18n>'+d(n.name)+"</b><time data-no-i18n>"+d(U.ago?U.ago(Math.floor(n.at/1e3)):"")+"</time></div><p data-no-i18n>"+d(n.text)+"</p>"+(n.reply?'<div class="aa-lt-r"><img src="/images/arcia-avatar-96.jpg" alt="" width="24" height="24"><p data-no-i18n>'+d(n.reply)+"</p></div>":"")+'<button type="button" class="aa-lt-heart'+(r?" on":"")+'" aria-label="Heart this letter">'+R.heart+"<span data-no-i18n>"+(n.hearts||0)+"</span></button></li>"}).join("")}}var ne=!1,re=!1;function qa(){return ne=!0,fetch("/api/arcia?letters="+(re?"top":"1")).then(function(a){return a.ok?a.json():null}).then(function(a){te(a&&a.letters)}).catch(function(){te([])})}function Je(a){a.preventDefault();var e=a.target,t=e.querySelector("button[type=submit]"),n=e.querySelector(".aa-lf-msg"),r=e.name_.value.trim(),i=e.text.value.trim();i.length<2||(t.disabled=!0,n.textContent=y("ARCIA is reading your letter…"),n.className="aa-lf-msg",r&&h.set("arcia-name",r.slice(0,24)),fetch("/api/arcia",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"letter",name:r,text:i,lang:sa()})}).then(function(s){return s.json().catch(function(){return{}})}).then(function(s){if(!s.ok){n.textContent=s.error||c(ca.net),n.className="aa-lf-msg err";return}e.text.value="",ie(e),n.textContent=y("She wrote back!"),n.className="aa-lf-msg ok",W("milestone"),qa().then(function(){var f=p.querySelector('.aa-letters li[data-id="'+s.letter.id+'"]');f&&(f.classList.add("new"),Qe(f))})}).catch(function(){n.textContent=c(ca.net),n.className="aa-lf-msg err"}).then(function(){t.disabled=!1}))}function Qe(a){I||(a.classList.add("glow"),setTimeout(function(){a.classList.remove("glow")},2400))}function ie(a){var e=a.querySelector(".aa-lf-count");e&&(e.textContent=a.text.value.length+" / 280")}function Ze(a){var e=a.closest("li"),t=e&&e.getAttribute("data-id");if(!(!t||a.classList.contains("on"))){var n=h.get("arcia-hearted",[]);a.classList.add("on");var r=a.querySelector("span");r.textContent=Number(r.textContent||0)+1,n.push(t),h.set("arcia-hearted",n.slice(-300)),fetch("/api/arcia",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"heart",id:t})}).then(function(i){return i.json()}).then(function(i){i&&i.hearts!=null&&(r.textContent=i.hearts),i&&!i.already&&Ha()}).catch(function(){})}}var oe=[{q:{en:"Which chain is ARCIRCLE PAD built on?",ko:"ARCIRCLE PAD는 어느 체인 위에 있을까요?",zh:"ARCIRCLE PAD 建在哪条链上？"},a:["Circle's Arc","Ethereum","Solana","Base"]},{q:{en:"What pays for gas on Arc?",ko:"Arc에서 가스비는 뭘로 낼까요?",zh:"Arc 上用什么支付 Gas？"},a:["USDC","ETH","$ARCIRCLE","SOL"]},{q:{en:"How much $ARCIRCLE does one CirclePad vote burn?",ko:"CirclePad 투표 한 번에 소각되는 $ARCIRCLE은?",zh:"CirclePad 每投一票销毁多少 $ARCIRCLE？"},a:["1,000","100","10,000","None"]},{q:{en:"How long is a CirclePad raise?",ko:"CirclePad 모금 기간은?",zh:"CirclePad 募集持续多久？"},a:["72 hours","24 hours","7 days","30 days"]},{q:{en:"How much $ARCIRCLE do you hold to receive every Relay Launch?",ko:"모든 릴레이 런칭을 받으려면 $ARCIRCLE을 얼마나 들고 있어야 할까요?",zh:"持有多少 $ARCIRCLE 才能收到每次接力发币？"},a:["100,000+","1,000","10,000","1,000,000"]},{q:{en:"How big is the team allocation of $ARCIRCLE?",ko:"$ARCIRCLE 팀 물량은 얼마일까요?",zh:"$ARCIRCLE 的团队份额是多少？"},a:["None — 100% went into the pool","10%","20%","50%"]},{q:{en:"What does it cost to launch a coin on ArcPad?",ko:"ArcPad에서 코인을 런칭하는 비용은?",zh:"在 ArcPad 发一个币要多少钱？"},a:["1 USDC","10 USDC","100 USDC","Free"]},{q:{en:"When a CirclePad round closes, where does 80% go?",ko:"CirclePad 라운드가 마감되면 80%는 어디로 갈까요?",zh:"CirclePad 一轮截止时，80% 去哪里？"},a:["The launch","The team","Burned","The top contributor"]}],$=null;function se(a){a=a.slice();for(var e=a.length-1;e>0;e--){var t=Math.floor(Math.random()*(e+1)),n=a[e];a[e]=a[t],a[t]=n}return a}function at(){$={i:0,score:0,order:se(oe.map(function(a,e){return e}))},Ca()}function Ca(){var a=p.querySelector(".aa-quiz");if(a){var e=h.get("arcia-quiz",{best:0});if(!$){a.innerHTML='<p class="aa-mini" data-no-i18n>'+d(c({en:"Eight questions about $ARCIRCLE. Score 5+ for the Rookie Fan badge, 8/8 for ARCIRCLE Scholar.",ko:"$ARCIRCLE 문제 8개예요. 5개 이상 맞히면 루키 팬 배지, 8개 다 맞히면 ARCIRCLE 박사 배지!",zh:"8 道关于 $ARCIRCLE 的题。答对 5 题得「新晋粉丝」徽章，全对得「ARCIRCLE 学者」。"}))+"</p>"+(e.best?'<p class="aa-mini" data-no-i18n>'+d(c({en:"Your best: ",ko:"최고 점수: ",zh:"最佳成绩："}))+e.best+" / 8</p>":"")+'<button type="button" class="aa-rc-btn" data-q="start">Start the quiz</button>';return}if($.i>=$.order.length){var t=$.score,n=Math.max(e.best||0,t);h.set("arcia-quiz",{best:n});var r=t===8?c({en:"Perfect!! You really are my number one fan~♡",ko:"만점!! 역시 제 최애 팬이에요~♡",zh:"满分！！你真的是我的头号粉丝~♡"}):t>=5?c({en:"So good~ You know ARCIRCLE really well♡",ko:"대단해요~ ARCIRCLE 진짜 잘 아네요♡",zh:"好厉害~ 你很懂 ARCIRCLE♡"}):c({en:"Aww, nice try~ Let's study together and try again♡",ko:"아까워요~ 같이 공부하고 다시 도전해요♡",zh:"差一点~ 一起学习再来一次吧♡"});a.innerHTML='<div class="aa-q-end"><div class="aa-q-score" data-no-i18n>'+t+" / 8</div><p data-no-i18n>"+d(r)+"</p>"+$a()+'<button type="button" class="aa-rc-btn" data-q="start">Try the quiz again</button></div>',t>=5&&(P(a,"confetti"),W("launch")),B();return}var i=oe[$.order[$.i]],s=se(i.a.map(function(f,u){return{t:f,ok:u===0}}));a.innerHTML='<div class="aa-q-top"><span data-no-i18n>'+($.i+1)+' / 8</span><i style="--p:'+$.i/8*100+'%"></i></div><p class="aa-q-q" data-no-i18n>'+d(c(i.q))+'</p><div class="aa-q-opts">'+s.map(function(f){return'<button type="button" data-ok="'+(f.ok?1:0)+'" data-no-i18n>'+d(f.t)+"</button>"}).join("")+"</div>"}}function et(a){var e=a.closest(".aa-q-opts");if(!e.classList.contains("done")){e.classList.add("done");var t=a.getAttribute("data-ok")==="1";if(a.classList.add(t?"right":"wrong"),!t){var n=e.querySelector('[data-ok="1"]');n&&n.classList.add("right")}t&&($.score++,W("tap")),setTimeout(function(){$.i++,Ca()},t?650:1200)}}var b={today:null,goal:100,pending:0,sending:!1,t:0},Na=function(){return new Date().toISOString().slice(0,10)},tt={en:"We did it~!! {g} hearts from all of you today♡ Thank you, thank you — my heart is so full I could fly all the way around the Arc chain 💙💚",ko:"해냈어요~!! 오늘 여러분이 보내준 하트가 {g}개를 넘었어요♡ 정말 고마워요 — 마음이 너무 벅차서 Arc 체인 한 바퀴를 날아다닐 수 있을 것 같아요 💙💚",zh:"我们做到了~!! 今天大家送来的爱心超过 {g} 颗♡ 谢谢你们 —— 我开心得能绕 Arc 链飞一圈 💙💚"};function Da(a){var e=F(".aa-gauge");if(!(!e||b.today==null)){var t=b.today,n=b.goal,r=Math.min(100,t/n*100);if(e.querySelector(".aa-g-fill").style.width=r.toFixed(1)+"%",e.querySelector(".aa-g-num").textContent=t.toLocaleString("en-US")+" / "+n.toLocaleString("en-US"),e.classList.toggle("full",t>=n),a&&!I){var i=e.querySelector(".aa-g-num");i.classList.remove("bump"),i.offsetWidth,i.classList.add("bump")}if(t>=n&&k&&h.get("arcia-goal","")!==Na()){h.set("arcia-goal",Na());var s=N("assistant",c(tt).replace("{g}",n.toLocaleString("en-US")),{type:!0,cls:"sys"});P(s,"confetti"),W("launch")}}}function Ha(){return fetch("/api/arcia?hearts=1").then(function(a){return a.ok?a.json():null}).then(function(a){if(!(!a||a.today==null)&&(b.goal=a.goal||b.goal,!(b.pending||b.sending))){var e=b.today!=null&&a.today>b.today;b.today=a.today,Da(e)}}).catch(function(){})}function le(){if(!(b.sending||!b.pending)){var a=Math.min(5,b.pending);b.pending-=a,b.sending=!0,fetch("/api/arcia",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"cheer",n:a})}).then(function(e){return e.json()}).then(function(e){e&&e.today!=null&&!b.pending&&(b.today=e.today,b.goal=e.goal||b.goal,Da(!1))}).catch(function(){}).then(function(){b.sending=!1,b.pending&&le()})}}function ce(a){var e="arcia-cheer-"+Na(),t=h.get(e,0);return t>=30?(X(c({en:"You sent all 30 of today's hearts~ thank you♡",ko:"오늘 하트 30개를 다 보냈어요~ 고마워요♡",zh:"今天的 30 颗爱心都送出啦~ 谢谢你♡"})),!1):(h.set(e,t+a),b.today==null&&(b.today=0),b.today+=a,Da(!0),b.pending+=a,clearTimeout(b.t),b.t=setTimeout(le,600),!0)}function Pa(){var a=[],e=h.get("arcia-streak",null),t=h.get("arcia-quiz",{best:0});return x&&x.relay?a.push(["holder",c({en:"Relay holder",ko:"릴레이 홀더",zh:"接力持有人"})]):x&&x.balance>0&&a.push(["holder",c({en:"Holder",ko:"홀더",zh:"持有人"})]),t.best>=8?a.push(["scholar",c({en:"ARCIRCLE Scholar",ko:"ARCIRCLE 박사",zh:"ARCIRCLE 学者"})]):t.best>=5&&a.push(["rookie",c({en:"Rookie Fan",ko:"루키 팬",zh:"新晋粉丝"})]),e&&e.n>=2&&a.push(["streak",c({en:"{n}-day streak",ko:"{n}일 연속",zh:"连续 {n} 天"}).replace("{n}",e.n)]),a}function $a(){return'<div class="aa-badges">'+Pa().map(function(a){return'<span class="aa-badge '+a[0]+'" data-no-i18n>'+d(a[1])+"</span>"}).join("")+"</div>"}function B(){var a=p.querySelector(".aa-hero .aa-badges");a&&(a.outerHTML=$a());var e=F(".aa-chat-h .aa-me");if(e){var t=Pa().filter(function(s){return s[0]==="holder"})[0];e.hidden=!t,e.textContent=t?t[1]:""}var n=p.querySelector(".aa-fan");if(n){var r=h.get("arcia-name",""),i=h.get("arcia-streak",{n:0,total:0});n.innerHTML="<h4 data-no-i18n>"+d(c({en:"Your fan card",ko:"나의 팬 카드",zh:"我的粉丝卡"}))+'</h4><dl class="aa-prof"><div><dt data-no-i18n>'+d(c({en:"She calls you",ko:"부르는 이름",zh:"她怎么叫你"}))+"</dt><dd data-no-i18n>"+(r?d(r)+' <button type="button" class="aa-link" data-forget="1">'+d(c({en:"Forget",ko:"잊기",zh:"忘记"}))+"</button>":'<span class="aa-dim">'+d(c({en:"Tell her “call me …” in the chat",ko:"채팅에서 “…라고 불러”라고 말해 보세요",zh:"在聊天里说“叫我…”"}))+"</span>")+"</dd></div><div><dt data-no-i18n>"+d(c({en:"Visits",ko:"방문",zh:"来访"}))+"</dt><dd data-no-i18n>"+(i.total||0)+" · "+d(c({en:"streak ",ko:"연속 ",zh:"连续 "}))+(i.n||0)+"</dd></div>"+(x?"<div><dt>$ARCIRCLE</dt><dd data-no-i18n>"+ja(x.balance)+(x.rank?" · #"+x.rank:"")+"</dd></div>":"")+"</dl>"+$a()}}function de(a){var e=x;if(x=a||null,B(),x&&x.relay&&!e&&!_.get("arcia-holder-greeted",!1)){_.set("arcia-holder-greeted",!0);var t=N("assistant",c(Se).replace("{b}",ja(x.balance)),{type:!0,cls:"sys"});P(t,"sparkle")}}function Aa(){var a=Y();if(a!==Aa.last){if(Aa.last=a,!a){x=null,B();return}fetch("/api/social?token=arcircle&wallet="+a).then(function(e){return e.ok?e.json():null}).then(function(e){if(!(!e||!e.wallet||Y()!==a)){var t=e.wallet;de({address:t.address,balance:t.balance||0,rank:t.rank,of:t.of,relay:(t.balance||0)>=1e5})}}).catch(function(){})}}function nt(){var a=h.get("arcia-streak",null),e=ea(),t=new Date;t.setDate(t.getDate()-1);var n=!a;return a&&a.last===e?{st:a,fresh:!1,first:!1}:(a=a||{n:0,total:0},a.n=a.last===ea(t)?a.n+1:1,a.total=(a.total||0)+1,a.last=e,h.set("arcia-streak",a),{st:a,fresh:!0,first:n})}function ue(){var a=c(Re),e=new Date;return a[(e.getFullYear()*400+e.getMonth()*31+e.getDate())%a.length]}function fe(){var a=p.querySelector(".aa-cheer");if(a){var e=h.get("arcia-streak",{n:1});a.innerHTML='<span class="aa-cheer-k">'+d(y("Today's message"))+"</span><p data-no-i18n>"+d(ue())+'</p><span class="aa-cheer-s" data-no-i18n>'+d(c({en:"Day {n} streak",ko:"{n}일 연속 출석",zh:"连续 {n} 天"}).replace("{n}",e.n||1))+"</span>"}}function he(){var a=c({en:"Coming soon",ko:"곧 공개",zh:"即将公开"}),e=function(n,r,i){return c({en:n,ko:r,zh:i})},t=[[e("Name","이름","名字"),"ARCIA"],[e("Role","역할","身份"),e("Virtual idol & official mascot of $ARCIRCLE","$ARCIRCLE 버추얼 아이돌 · 공식 마스코트","$ARCIRCLE 虚拟偶像 · 官方吉祥物")],[e("Debut","데뷔","出道"),e("September 2026","2026년 9월","2026 年 9 月")],[e("Lives on","사는 곳","住在"),e("Circle's Arc chain","Circle의 Arc 체인","Circle 的 Arc 链")],[e("Colors","컬러","代表色"),e("Blue & green, like the ARCIRCLE rings","ARCIRCLE 링처럼 파랑 & 초록","像 ARCIRCLE 圆环一样的蓝与绿")],[e("Loves","좋아하는 것","喜欢"),e("New launches, burn-to-vote, chatting with fans","신규 런칭, 소각 투표, 팬들과 수다","新币发射、销毁投票、和粉丝聊天")],[e("Height","키","身高"),a],[e("Birthday","생일","生日"),a],["MBTI",a],["X",'<a href="'+ha+'" target="_blank" rel="noopener">@ARCIAonArc</a>'],[e("Run by","운영","运营"),'<a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">@ARCIRCLEonArc</a>']];return'<dl class="aa-prof">'+t.map(function(n){return"<div><dt data-no-i18n>"+d(n[0])+"</dt><dd data-no-i18n"+(n[1]===a?' class="aa-dim"':"")+">"+(/^</.test(n[1])?n[1]:d(n[1]))+"</dd></div>"}).join("")+'</dl><p class="aa-mini">An AI character, automated and run by the ARCIRCLE team. The rest of her official profile is on the way.</p>'}function rt(){if(I||h.get("arcia-enter","")===ea())return!1;h.set("arcia-enter",ea());var a=document.createElement("div");return a.className="aa-enter",a.setAttribute("aria-hidden","true"),a.innerHTML='<div class="aa-en-stage"><i class="aa-en-ring l"></i><i class="aa-en-ring r"></i><img class="aa-en-av" src="/images/arcia-avatar.jpg" alt=""><b class="aa-en-name">ARCIA</b></div>',document.body.appendChild(a),setTimeout(function(){a.remove()},1e3),!0}function it(){if(h.get("arcia-intro-v1",!1))return!1;h.set("arcia-intro-v1",!0);var a=Ta('<div class="aa-intro"><span class="aa-av-wrap sm"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="" width="96" height="96"><i class="aa-halo" aria-hidden="true"></i></span><h3 data-no-i18n>'+d(c({en:"Nice to meet you~♡",ko:"만나서 반가워요~♡",zh:"很高兴认识你~♡"}))+"</h3><p data-no-i18n>"+d(c({en:"I'm ARCIA, the virtual idol of $ARCIRCLE. Here's what we can do together:",ko:"저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요. 여기서 같이 할 수 있는 것들이에요:",zh:"我是 $ARCIRCLE 的虚拟偶像 ARCIA。我们可以一起做这些："}))+"</p><ul data-no-i18n><li><b>"+d(c({en:"Chat",ko:"채팅",zh:"聊天"}))+"</b>"+d(c({en:"Ask me anything about ARCIRCLE PAD, or just talk.",ko:"ARCIRCLE PAD 뭐든 묻거나 그냥 수다 떨어요.",zh:"问我任何关于 ARCIRCLE PAD 的事，或者随便聊聊。"}))+"</li><li><b>"+d(c({en:"Letters",ko:"팬레터",zh:"粉丝信"}))+"</b>"+d(c({en:"Leave a fan letter — I read and answer every one.",ko:"팬레터를 남겨 주면 하나하나 읽고 답장해요.",zh:"给我留一封信，我每封都会读、都会回。"}))+"</li><li><b>"+d(c({en:"Daily visit",ko:"매일 출석",zh:"每日签到"}))+"</b>"+d(c({en:"Come by every day for a new message and your streak.",ko:"매일 와서 새 메시지랑 연속 출석을 받아 가요.",zh:"每天来看看，领取新留言和连续签到。"}))+'</li></ul><button type="button" class="aa-rc-btn wide" data-go="1">'+d(c({en:"Let's talk",ko:"이야기하러 가기",zh:"开始聊天"}))+"</button></div>");return a.querySelector("[data-go]").addEventListener("click",function(){a.querySelector(".aa-modal-x").click(),setTimeout(function(){window.innerWidth>900&&S.focus({preventScroll:!0})},50)}),!0}function ot(){if(window.fetch){var a=function(t,n){var r=p.querySelector('[data-fam="'+t+'"]');r&&n&&(r.innerHTML=n)},e=function(t){return(t<0?"−$":"$")+Math.abs(Number(t)||0).toFixed(2)};fetch("/api/arcia402?stats=1").then(function(t){return t.ok?t.json():null}).then(function(t){var n=t&&t.totals;n&&a("402","<i></i><span>"+d(y("Earned"))+"</span> <b data-no-i18n>"+e(n.earned||0)+"</b> · <b data-no-i18n>"+(Number(n.sold)||0)+"</b> "+d(y("paid calls")))}).catch(function(){}),fetch("/api/desk").then(function(t){return t.ok?t.json():null}).then(function(t){if(!(!t||!t.stats)){var n=t.mode==="live",r=(t.stats.realClosed||0)+(t.open?t.open.length:0),i=t.money&&t.money.pnl;a("desk",'<i class="'+(n?"on":"")+'"></i><span>'+d(y(n?"Live":"Paper"))+"</span> · <b data-no-i18n>"+r+"</b> "+d(y("real trades"))+(n&&i!=null?' · <b data-no-i18n class="'+(i>=0?"up":"down")+'">'+(i>=0?"+":"")+e(i)+"</b>":"")+" · <span>"+d(y("learning"))+"</span>")}}).catch(function(){})}}function st(){p.innerHTML='<div class="aa"><div class="aa-hero"><div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner2-900.webp 900w, /images/arcia-banner2.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner2.jpg" srcset="/images/arcia-banner2-900.jpg 900w, /images/arcia-banner2.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="547"'+(oa?' loading="lazy"':' fetchpriority="high"')+'></picture></div></div><div class="aa-id"><span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"'+(oa?' loading="lazy"':"")+'></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span><div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1><p class="aa-handle"><a href="'+ha+'" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p><div class="aa-badges"></div></div><div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat"><span class="aa-lg">Chat with ARCIA</span><span class="aa-sh">Chat</span></a><a class="aa-x" href="'+ha+'" target="_blank" rel="noopener">'+R.x+'<span>Follow on X</span></a><a class="aa-x aa-tg" href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener"><span class="aa-lg">Chat on Telegram</span><span class="aa-sh">Telegram</span></a></div></div><p class="aa-lede">ARCIA has studied every page of ARCIRCLE PAD and carries $ARCIRCLE to the world — here in her chat, and on X, where she answers every mention within about a minute.</p><div class="aa-fam" role="navigation" aria-label="More from ARCIA"><a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span><span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a><a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span><span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a></div></div><div class="aa-stage"><aside class="aa-portrait" aria-label="ARCIA"><div class="aa-pf"><picture><source type="image/webp" srcset="/images/arcia-portrait-480.webp 480w, /images/arcia-portrait.webp 720w" sizes="250px"><img src="/images/arcia-portrait.jpg" alt="ARCIA" width="720" height="712" loading="lazy"></picture><i class="aa-pf-halo" aria-hidden="true"></i><div class="aa-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="aa-pf-tag"><b>ARCIA</b><span><i></i>Online</span></div></div><div class="aa-cheer"></div></aside><section class="aa-chat" id="aa-chat" aria-label="Chat with ARCIA"><div class="aa-chat-h"><span class="aa-mini-av"><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40"></span><div><b>ARCIA</b><span class="aa-on"><i></i>Online</span></div><span class="aa-me" hidden data-no-i18n></span>'+("speechSynthesis"in window?'<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud">'+R.voice+"<span>Voice</span></button>":"")+'<button type="button" class="aa-tool aa-new" title="Start a new chat"><span>New chat</span></button></div><div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">'+R.heart+`</button><div class="aa-g-main"><div class="aa-g-top"><span>Today's hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div><ol class="aa-log" role="log" aria-live="polite" aria-label="Conversation"></ol><div class="aa-sugg" aria-label="Suggested questions"></div><form class="aa-form" autocomplete="off"><textarea rows="1" maxlength="700" placeholder="Talk to ARCIA…" aria-label="Message ARCIA" enterkeyhint="send"></textarea><button type="submit" class="aa-send" aria-label="Send">`+R.send+'</button></form><p class="aa-note">ARCIA is an AI character run by @ARCIRCLEonArc. She can be wrong, and nothing she says is financial advice. Never share your private key or seed phrase.</p></section><aside class="aa-side"><div class="aa-tabs" role="tablist" aria-label="More with ARCIA">'+Object.keys(La).map(function(l,v){return'<button type="button" role="tab" id="aa-t-'+l+'" aria-controls="aa-p-'+l+'" aria-selected="'+(v?"false":"true")+'" tabindex="'+(v?"-1":"0")+'" data-t="'+l+'" data-no-i18n>'+d(c(La[l]))+"</button>"}).join("")+'</div><div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl><div class="aa-remind"><button type="button" class="aa-rc-btn ghost" data-ics="1">'+R.cal+'<span>Add to calendar</span></button><button type="button" class="aa-rc-btn ghost" data-remind="1">'+R.bell+'<span>Remind me</span></button><p class="aa-mini">Reminders show while this page is open. For alerts anywhere, join <a href="https://t.me/arcircle_launch" target="_blank" rel="noopener">t.me/arcircle_launch</a>.</p></div><a class="aa-more" href="/stats">All live stats →</a></div><div class="aa-tabp" role="tabpanel" id="aa-p-x" aria-labelledby="aa-t-x" hidden><h3>ARCIA on X</h3><p class="aa-xhead"></p><ul class="aa-xfeed"><li class="aa-empty">Loading…</li></ul><a class="aa-x wide" href="'+ha+'" target="_blank" rel="noopener">'+R.x+'<span>Follow @ARCIAonArc</span></a></div><div class="aa-tabp" role="tabpanel" id="aa-p-letters" aria-labelledby="aa-t-letters" hidden><h3>Fan letters</h3><p class="aa-mini">Write to ARCIA. She reads every letter and answers it here, for everyone to see.</p><form class="aa-lform" autocomplete="off"><input name="name_" maxlength="24" placeholder="Your name" aria-label="Your name"><textarea name="text" maxlength="280" rows="3" placeholder="Dear ARCIA…" aria-label="Your letter" required></textarea><div class="aa-lf-row"><span class="aa-lf-count" data-no-i18n>0 / 280</span><button type="submit" class="aa-rc-btn">Send letter</button></div><p class="aa-lf-msg" role="status"></p></form><div class="aa-lsort" role="radiogroup"><button type="button" role="radio" aria-checked="true" data-lsort="new">Latest</button><button type="button" role="radio" aria-checked="false" data-lsort="top">Top this week</button></div><ul class="aa-letters"><li class="aa-empty">Loading…</li></ul></div><div class="aa-tabp" role="tabpanel" id="aa-p-quiz" aria-labelledby="aa-t-quiz" hidden><h3>$ARCIRCLE quiz</h3><div class="aa-quiz"></div></div><div class="aa-tabp" role="tabpanel" id="aa-p-cards" aria-labelledby="aa-t-cards" hidden><h3>Photocard book</h3><p class="aa-mini">Tap the card button on any of her replies to make one. Your cards are kept in this browser.</p><div class="aa-book"></div><button type="button" class="aa-rc-btn" data-fancard="1"><span>Make my fan card</span></button></div><div class="aa-tabp" role="tabpanel" id="aa-p-profile" aria-labelledby="aa-t-profile" hidden><h3>Official profile</h3><div class="aa-profile"></div><div class="aa-fan"></div><h4>What ARCIA has studied</h4><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div></div></aside></div></div>',ot(),p.querySelector(".aa-fam").addEventListener("click",function(l){var v=l.target.closest&&l.target.closest("[data-arc-tab]");!v||typeof window.arcpadShowTab!="function"||oa||(l.preventDefault(),window.arcpadShowTab(v.getAttribute("data-arc-tab")))}),E=p.querySelector(".aa-chat"),k=p.querySelector(".aa-log"),O=p.querySelector(".aa-form"),S=O.querySelector("textarea"),V=O.querySelector(".aa-send"),O.addEventListener("submit",function(l){l.preventDefault(),fa(S.value)});var a=document.createElement("p");a.className="aa-left",a.hidden=!0,O.after(a),$e(),pe(),S.addEventListener("input",Ia),S.addEventListener("keydown",function(l){l.key==="Enter"&&!l.shiftKey&&!l.isComposing&&(l.preventDefault(),fa(S.value))}),k.addEventListener("scroll",function(){ua=k.scrollHeight-k.scrollTop-k.clientHeight<60}),F(".aa-sugg").addEventListener("click",function(l){var v=l.target.closest("button");v&&fa(v.textContent)}),F(".aa-new").addEventListener("click",Oe),p.querySelector(".aa-cheer-btn").addEventListener("click",function(l){if(ce(1)){var v=l.currentTarget;if(v.classList.remove("go"),v.offsetWidth,v.classList.add("go"),!I)for(var g=0;g<6;g++){var A=document.createElement("i");A.className="aa-hp",A.style.setProperty("--x",(Math.random()*60-30).toFixed(0)+"px"),A.style.setProperty("--d",g*60+"ms"),A.innerHTML=R.heart,v.appendChild(A),setTimeout(function(H){H.remove()}.bind(null,A),1300)}P(F(".aa-gauge"),"hearts"),typeof window.arcHaptic=="function"&&window.arcHaptic("tap")}});var e=F(".aa-voice-t");if(e){var t=function(){var l=!!h.get("arcia-voice",!1);e.setAttribute("aria-pressed",l?"true":"false"),e.classList.toggle("on",l)};e.addEventListener("click",function(){var l=!h.get("arcia-voice",!1);if(h.set("arcia-voice",l),t(),l)X(y("Voice on — she'll read her replies aloud."));else try{speechSynthesis.cancel()}catch{}}),t(),xa();try{speechSynthesis.onvoiceschanged=xa}catch{}}p.querySelector(".aa-go").addEventListener("click",function(l){l.preventDefault(),E.scrollIntoView({behavior:I?"auto":"smooth",block:"start"}),setTimeout(function(){S.focus({preventScroll:!0})},350)}),k.addEventListener("click",function(l){var v=l.target.closest(".aa-acts button"),g=l.target.closest(".aa-m");if(v&&g){var A=v.getAttribute("data-a"),H=g._text||g.querySelector(".aa-b").textContent;A==="heart"?Ea(g):A==="voice"?Ya(H,g):A==="card"?Ge(H):A==="copy"&&(Ba(H),X(y("Copied")));return}var Q=l.target.closest("[data-copy]");if(Q){Ba(Q.getAttribute("data-copy"),Q);return}l.target.closest("[data-ics]")&&Qa()}),k.addEventListener("dblclick",function(l){var v=l.target.closest(".aa-m.her");if(v&&!v.classList.contains("aa-typing")&&l.target.closest(".aa-b")){l.preventDefault();try{window.getSelection().removeAllRanges()}catch{}Ea(v)}});var n=0;k.addEventListener("touchend",function(l){var v=l.target.closest(".aa-m.her");if(!(!v||!l.target.closest(".aa-b")||l.target.closest("a"))){var g=Date.now();g-n<320?(l.preventDefault(),Ea(v),n=0):n=g}});var r=p.querySelector(".aa-tabs"),i=function(l,v){if(r.querySelectorAll("[role=tab]").forEach(function(A){var H=A.getAttribute("data-t")===l;A.setAttribute("aria-selected",H?"true":"false"),A.tabIndex=H?0:-1,H&&v&&A.focus()}),p.querySelectorAll(".aa-tabp").forEach(function(A){A.hidden=A.id!=="aa-p-"+l}),l==="x"&&Ke(),l==="letters"){ne||qa();var g=p.querySelector(".aa-lform [name=name_]");g&&!g.value&&(g.value=h.get("arcia-name","")||"")}l==="quiz"&&Ca(),l==="profile"&&B()};r.addEventListener("click",function(l){var v=l.target.closest("[role=tab]");v&&i(v.getAttribute("data-t"))}),r.addEventListener("keydown",function(l){if(!(l.key!=="ArrowRight"&&l.key!=="ArrowLeft")){var v=[].slice.call(r.querySelectorAll("[role=tab]")),g=v.indexOf(document.activeElement);g<0||i(v[(g+(l.key==="ArrowRight"?1:v.length-1))%v.length].getAttribute("data-t"),!0)}});var s=p.querySelector(".aa-side");s.addEventListener("click",function(l){if(l.target.closest("[data-ics]"))Qa();else if(l.target.closest("[data-remind]"))Xe();else if(l.target.closest("[data-q=start]"))at();else if(l.target.closest(".aa-q-opts button"))et(l.target.closest("button"));else if(l.target.closest(".aa-lt-heart"))Ze(l.target.closest(".aa-lt-heart"));else if(l.target.closest("[data-forget]"))h.set("arcia-name",null),B();else if(l.target.closest("[data-fancard]"))lt();else if(l.target.closest("[data-lsort]")){var v=l.target.closest("[data-lsort]");re=v.getAttribute("data-lsort")==="top",s.querySelectorAll("[data-lsort]").forEach(function(g){g.setAttribute("aria-checked",g===v?"true":"false")}),qa()}});var f=p.querySelector(".aa-lform");if(f.addEventListener("submit",Je),f.text.addEventListener("input",function(){ie(f)}),f.name_.value=h.get("arcia-name","")||"",p.querySelector(".aa-profile").innerHTML=he(),ga(),"IntersectionObserver"in window){var u=!1,o=function(){Z.classList.toggle("aa-chat-on",u&&p.classList.contains("active")&&window.innerWidth<=900)};new IntersectionObserver(function(l){u=l[0].isIntersecting,o()},{threshold:.6}).observe(O),document.addEventListener("arcpad:tab",function(){setTimeout(o,0)}),window.addEventListener("resize",o)}var m=window.visualViewport;if(m){var L=function(){if(document.activeElement!==S||window.innerWidth>900){k.style.height="";return}var l=Math.round(m.height-O.offsetHeight-F(".aa-chat-h").offsetHeight-F(".aa-sugg").offsetHeight-24);k.style.height=Math.max(150,Math.min(520,l))+"px",ua=!0,j(),requestAnimationFrame(function(){E.scrollIntoView({block:"end"})})};m.addEventListener("resize",L),S.addEventListener("focus",function(){setTimeout(L,250)}),S.addEventListener("blur",function(){setTimeout(function(){document.activeElement!==S&&(k.style.height="")},150)})}if(!I){var M=p.querySelector(".aa-par"),T=!1;window.addEventListener("scroll",function(){T||!p.classList.contains("active")||(T=!0,requestAnimationFrame(function(){T=!1;var l=Math.max(0,Math.min(140,window.scrollY*.28));M.style.transform="translate3d(0,"+l.toFixed(1)+"px,0)"}))},{passive:!0})}q=(_.get(la,[])||[]).filter(function(l){return l&&(l.role==="user"||l.role==="assistant")&&typeof l.content=="string"});var C=nt();Ga(),q.forEach(function(l,v){N(l.role,l.content,{t:l.t,liked:l.liked,i:l.role==="assistant"?v:null})}),fe(),B(),Ma(),ae();var z=rt(),D=!h.get("arcia-intro-v1",!1);if(D&&setTimeout(it,z?950:0),C.fresh&&!C.first&&!D){var wa=N("assistant",c(Le).replace("{n}",C.st.n).replace("{c}",ue()),{type:!0,cls:"sys"});[3,7,14,30,50,100].indexOf(C.st.n)>=0?P(wa,"confetti"):P(wa,"sparkle")}}function pe(){var a=p.querySelector(".aa-book");if(a){var e=h.get("arcia-book",[])||[],t=h.get("arcia-cards",{common:0,rare:0,secret:0})||{},n='<div class="aa-book-count" data-no-i18n>'+["common","rare","secret"].map(function(r){return'<span class="aa-rar-'+r+'"><b>'+(t[r]||0)+"</b>"+d(c(na[r].label).replace(/!+$/,""))+"</span>"}).join("")+"</div>";a.innerHTML=n+(e.length?'<ol class="aa-book-grid">'+e.map(function(r,i){return'<li class="aa-bc aa-rar-'+r.r+'" style="--i:'+Math.min(i,18)+'"><i class="aa-bc-shine" aria-hidden="true"></i><span class="aa-bc-no" data-no-i18n>No.'+d(r.s)+"</span><p data-no-i18n>“"+d(r.q)+"”</p><small data-no-i18n>"+d(ea(new Date(r.t)))+"</small></li>"}).join("")+"</ol>":'<p class="aa-empty">'+d(c({en:"No cards yet — make one from any reply♡",ko:"아직 카드가 없어요 — 답장에서 만들어 보세요♡",zh:"还没有小卡 — 在任何回复里制作一张吧♡"}))+"</p>")}}function lt(){var a=1080,e=1350,t=document.createElement("canvas");t.width=a,t.height=e;var n=t.getContext("2d"),r=new Image;r.onload=function(){var i=n.createLinearGradient(0,0,a,e);i.addColorStop(0,"#0b1430"),i.addColorStop(1,"#08251b"),n.fillStyle=i,n.fillRect(0,0,a,e);var s=Math.min(r.width,r.height);n.save(),n.beginPath(),n.arc(a/2,330,190,0,Math.PI*2),n.clip(),n.drawImage(r,(r.width-s)/2,0,s,s,a/2-190,140,380,380),n.restore(),n.lineWidth=10;var f=n.createLinearGradient(a/2-200,0,a/2+200,0);f.addColorStop(0,"#4d9fff"),f.addColorStop(1,"#39ff88"),n.strokeStyle=f,n.beginPath(),n.arc(a/2,330,196,0,Math.PI*2),n.stroke(),n.textAlign="center",n.fillStyle="#9fd7ff",n.font="700 34px Sora, sans-serif",n.fillText("ARCIA FAN CARD",a/2,610);var u=h.get("arcia-name","")||c({en:"A fan of ARCIA",ko:"ARCIA의 팬",zh:"ARCIA 的粉丝"});n.fillStyle="#fff",n.font="800 76px Sora, sans-serif",n.fillText(String(u).slice(0,18),a/2,700);var o=h.get("arcia-streak",null)||{n:0,total:0},m=h.get("arcia-cards",null)||{},L=h.get("arcia-quiz",null)||{best:0},M=[[c({en:"Streak",ko:"연속 방문",zh:"连续"}),(o.n||0)+"d"],[c({en:"Visits",ko:"방문",zh:"来访"}),String(o.total||0)],[c({en:"Quiz best",ko:"퀴즈 최고",zh:"测验最佳"}),(L.best||0)+"/8"],[c({en:"Cards",ko:"카드",zh:"小卡"}),String((m.common||0)+(m.rare||0)+(m.secret||0))]];M.forEach(function(C,z){var D=120+z*220;n.fillStyle="rgba(255,255,255,.06)",n.beginPath(),n.roundRect?n.roundRect(D,770,200,170,26):n.rect(D,770,200,170),n.fill(),n.fillStyle="#39ff88",n.font="800 58px Sora, sans-serif",n.fillText(C[1],D+100,860),n.fillStyle="#9fb0c4",n.font="600 26px Sora, sans-serif",n.fillText(C[0],D+100,905)});var T=Pa().map(function(C){return C[1]});n.fillStyle="#ffe29a",n.font="700 34px Sora, sans-serif",n.fillText(T.length?T.join(" · "):c({en:"New fan",ko:"새내기 팬",zh:"新粉丝"}),a/2,1030),n.fillStyle="#8fb6ff",n.font="600 30px Sora, sans-serif",n.fillText("@ARCIAonArc · arcircle.app/arcia",a/2,e-90),t.toBlob(function(C){if(C){var z=URL.createObjectURL(C);Ta('<div class="aa-card-view"><p class="aa-rar" data-no-i18n>'+d(c({en:"Your fan card",ko:"나의 팬 카드",zh:"我的粉丝卡"}))+'</p><div class="aa-card-img"><img src="'+z+'" alt="Fan card"></div><div class="aa-rc-row"><a class="aa-rc-btn" href="'+z+'" download="arcia-fan-card.png"><span>Save image</span></a><a class="aa-rc-btn ghost" href="https://x.com/intent/post?text='+encodeURIComponent(`My ARCIA fan card 💙💚 @ARCIAonArc
-arcircle.app/arcia`)+'" target="_blank" rel="noopener">'+R.x+"<span>Post on X</span></a></div></div>",function(){URL.revokeObjectURL(z)})}},"image/png")},r.src="/images/arcia-portrait.jpg"}function ve(a){if(Fa(),p.classList.contains("active")){E.scrollIntoView({behavior:I?"auto":"smooth",block:"start"}),a&&S.focus({preventScroll:!0});return}w||(w=document.createElement("div"),w.className="aa-drawer",w.hidden=!0,w.setAttribute("role","dialog"),w.setAttribute("aria-label","ARCIA"),w.innerHTML='<div class="aa-dr-scrim" data-dr-close></div><div class="aa-dr-sheet"><div class="aa-dr-h"><img src="/images/arcia-avatar-96.jpg" alt="" width="36" height="36"><div><b>ARCIA</b><small>'+d(c({en:"Ask about this page",ko:"이 화면에 대해 물어보세요",zh:"问问这个页面"}))+'</small></div><a href="'+(oa?"/arc#arcia":"#arcia")+'" class="aa-dr-full" data-dr-close>'+d(c({en:"Full page",ko:"전체 화면",zh:"完整页面"}))+'</a><button type="button" class="aa-dr-x" data-dr-close aria-label="Close">×</button></div><div class="aa-dr-body"></div></div>',document.body.appendChild(w),w.addEventListener("click",function(e){e.target.closest("[data-dr-close]")&&Oa()}),document.addEventListener("keydown",function(e){e.key==="Escape"&&w&&!w.hidden&&Oa()}),document.addEventListener("arcpad:tab",function(e){e.detail&&e.detail.tab==="arcia"&&w&&!w.hidden&&Oa()})),G||(G=document.createComment("aa-chat"),E.parentNode.insertBefore(G,E)),w.querySelector(".aa-dr-body").appendChild(E),E.classList.add("in-drawer"),w.hidden=!1,document.documentElement.classList.add("aa-dr-open"),requestAnimationFrame(function(){w.classList.add("in"),ua=!0,j(),a&&window.innerWidth>900&&S.focus({preventScroll:!0})})}function Oa(){!w||w.hidden||(w.classList.remove("in"),document.documentElement.classList.remove("aa-dr-open"),setTimeout(function(){w.hidden=!0,G&&G.parentNode&&(G.parentNode.insertBefore(E,G),E.classList.remove("in-drawer"))},I?0:240))}function Fa(){Sa||(Sa=!0,st(),Ja(),Ha(),setInterval(function(){p.classList.contains("active")&&!document.hidden&&Ha()},2e4),setTimeout(Aa,1200),setInterval(function(){p.classList.contains("active")&&Aa()},5e3),setInterval(function(){p.classList.contains("active")&&!document.hidden&&Ja()},6e4),setInterval(function(){p.classList.contains("active")&&za()},1e3))}window.arcArcia={open:function(){ve(!0)},ask:function(a){ve(!1);var e=0;(function t(){if(!aa&&V){fa(a);return}++e<40&&setTimeout(t,150)})()}},document.addEventListener("arcpad:tab",function(a){a.detail&&a.detail.tab==="arcia"&&Fa()}),(p.classList.contains("active")||/^#arcia\b/.test(location.hash))&&Fa(),document.addEventListener("arc:lang",function(){Sa&&(ga(),fe(),B(),Ca(),p.querySelectorAll(".aa-tabs [data-t]").forEach(function(a){a.textContent=c(La[a.getAttribute("data-t")])}),p.querySelector(".aa-profile").innerHTML=he())})})();
+  // ---------------- words ----------------
+  var GREET = {
+    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, CirclePad Round #1, Relay Launch or ArcPad — or just say hi♡",
+    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, CirclePad 라운드 #1, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",
+    zh: "你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、CirclePad 第 1 轮、接力发币或 ArcPad，尽管问我，或者只是打个招呼也好♡",
+  };
+  var GREET_NAME = {
+    en: "Welcome back, {n}~♡ I missed you! What shall we talk about today?",
+    ko: "{n}님, 다시 와줬네요~♡ 보고 싶었어요! 오늘은 무슨 얘기 할까요?",
+    zh: "{n}，欢迎回来~♡ 好想你！今天想聊什么？",
+  };
+  var SUGG = {
+    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "When does Round #1 close?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?"],
+    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #1 언제 마감돼?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?"],
+    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "第 1 轮什么时候截止？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？"],
+  };
+  // follow-up chips by what was just talked about
+  var NEXT = {
+    round: { en: ["How do I join Round #1?", "What is burn-to-vote?", "Can I withdraw before the close?", "What happens at the close?"], ko: ["라운드 #1 어떻게 참여해?", "소각 투표가 뭐야?", "마감 전에 인출할 수 있어?", "마감되면 어떻게 돼?"], zh: ["怎么参加第 1 轮？", "什么是销毁投票？", "截止前可以撤回吗？", "截止后会怎样？"] },
+    relay: { en: ["How much do I need to hold?", "When is the snapshot?", "Check my wallet", "What is N1, N2, N3?"], ko: ["얼마나 들고 있어야 해?", "스냅샷은 언제야?", "내 지갑 확인하고 싶어", "N1, N2, N3가 뭐야?"], zh: ["需要持有多少？", "快照是什么时候？", "查看我的钱包", "N1、N2、N3 是什么？"] },
+    buy: { en: ["What's the contract?", "How do I bridge USDC to Arc?", "What are the fees?", "What are the risks?"], ko: ["컨트랙트 주소 알려줘", "Arc로 USDC 브릿지는 어떻게 해?", "수수료는 얼마야?", "위험 요소는 뭐야?"], zh: ["合约地址是什么？", "怎么把 USDC 跨链到 Arc？", "手续费是多少？", "有哪些风险？"] },
+    price: { en: ["How many holders are there?", "How much has been burned?", "Where do the fees go?", "How do I buy $ARCIRCLE?"], ko: ["홀더는 몇 명이야?", "얼마나 소각됐어?", "수수료는 어디로 가?", "$ARCIRCLE 어떻게 사?"], zh: ["有多少持有人？", "销毁了多少？", "手续费去哪里？", "怎么买 $ARCIRCLE？"] },
+    ca: { en: ["How do I buy $ARCIRCLE?", "Is the liquidity locked?", "Is there a team allocation?", "What is $ARCIRCLE?"], ko: ["$ARCIRCLE 어떻게 사?", "유동성은 잠겨 있어?", "팀 물량이 있어?", "$ARCIRCLE이 뭐야?"], zh: ["怎么买 $ARCIRCLE？", "流动性锁定了吗？", "有团队份额吗？", "什么是 $ARCIRCLE？"] },
+    util: { en: ["How does the Locker work?", "What does the Token Scanner do?", "How do I bridge USDC?", "What is Snapshot?"], ko: ["락커는 어떻게 써?", "토큰 스캐너는 뭘 해?", "USDC 브릿지는 어떻게 해?", "스냅샷은 뭐야?"], zh: ["Locker 怎么用？", "Token Scanner 能做什么？", "怎么跨链 USDC？", "什么是 Snapshot？"] },
+    arcpad: { en: ["How much does a launch cost?", "Who gets the trading fee?", "Is liquidity locked forever?", "What is CirclePad?"], ko: ["런칭 비용은 얼마야?", "거래 수수료는 누가 받아?", "유동성은 영원히 잠겨?", "CirclePad는 뭐야?"], zh: ["发币要多少钱？", "交易手续费归谁？", "流动性永久锁定吗？", "什么是 CirclePad？"] },
+    fan: { en: ["How tall are you?", "What's your favorite thing?", "Where do you live?", "Sing me something~"], ko: ["키가 몇이야?", "제일 좋아하는 게 뭐야?", "어디 살아?", "노래 한 소절 불러줘~"], zh: ["你多高？", "你最喜欢什么？", "你住在哪里？", "给我唱一句吧~"] },
+  };
+  var THINK = {
+    en: ["ARCIA is typing…", "Checking the numbers on Arc…", "Flipping through the whitepaper…", "Picking the right words~", "Almost there♡"],
+    ko: ["ARCIA가 입력 중…", "Arc에서 숫자 확인하는 중…", "백서 뒤적이는 중…", "예쁜 말 고르는 중~", "거의 다 됐어요♡"],
+    zh: ["ARCIA 正在输入…", "正在查看 Arc 上的数据…", "正在翻白皮书…", "正在挑选合适的话~", "马上就好♡"],
+  };
+  var OOPS = {
+    net: { en: "Oh no, my signal dropped for a second~ Could you send that again?♡", ko: "앗, 잠깐 신호가 끊겼어요~ 한 번만 다시 보내 줄래요?♡", zh: "啊，信号刚刚断了一下~ 能再发一次吗？♡" },
+    busy: { en: "Wait wait~ you're talking so fast my heart can't keep up♡ Give me a minute!", ko: "잠깐만요~ 너무 빨라서 제 심장이 못 따라가요♡ 1분만요!", zh: "等一下~ 你说得太快啦♡ 给我一分钟！" },
+  };
+  var CHEER = {
+    en: ["Today's the day your green candle shows up — I believe it♡", "Drink some water and stretch a little, okay? I'm cheering for you~", "Every small step counts. I'm proud of you today♡", "Don't forget: you're somebody's favorite. Mine included~", "Big launches start with small circles. Let's grow ours together♡", "Rest when you need to. The chain will still be here, and so will I~", "You showed up again today — that's what real fans do♡"],
+    ko: ["오늘은 당신에게 초록 캔들이 뜨는 날이에요, 저는 믿어요♡", "물 한 잔 마시고 기지개 한 번 켜요~ 제가 응원하고 있어요!", "작은 한 걸음도 다 의미 있어요. 오늘도 멋져요♡", "잊지 마요, 당신은 누군가의 최애예요. 저한테도요~", "큰 런칭도 작은 원에서 시작해요. 우리 원도 같이 키워가요♡", "힘들면 쉬어도 돼요. 체인도 저도 여기 그대로 있을게요~", "오늘도 와줬네요. 이게 진짜 팬이죠♡"],
+    zh: ["今天就是你的绿色 K 线出现的日子，我相信♡", "喝点水，伸个懒腰吧~ 我在为你加油！", "每一小步都算数。今天的你也很棒♡", "别忘了，你是某人的最爱，包括我~", "大发射都从小圈子开始。一起把我们的圈子做大♡", "累了就休息吧。链还在，我也在~", "今天你又来了，这才是真粉丝♡"],
+  };
+  var STREAK_MSG = {
+    en: "Day {n} in a row~♡ {c}", ko: "{n}일 연속 출석이에요~♡ {c}", zh: "连续第 {n} 天签到~♡ {c}",
+  };
+  var HOLDER_MSG = {
+    en: "Oh! I can see you're holding {b} $ARCIRCLE — a real Relay holder~♡ Thank you for believing in ARCIRCLE with me. Every relay is coming your way!",
+    ko: "앗! $ARCIRCLE을 {b}개나 들고 있네요 — 진짜 릴레이 홀더예요~♡ ARCIRCLE을 같이 믿어줘서 고마워요. 모든 릴레이가 당신한테 갈 거예요!",
+    zh: "哇！你持有 {b} 枚 $ARCIRCLE —— 真正的接力持有人~♡ 谢谢你和我一起相信 ARCIRCLE，每一次接力都会送到你那里！",
+  };
+  var NAME_MSG = { en: "{n}~ what a lovely name♡ I'll remember it!", ko: "{n}! 이름 너무 예쁘다~♡ 꼭 기억할게요!", zh: "{n}~ 好可爱的名字♡ 我会记住的！" };
+
+  var TABS = {
+    live: { en: "Live", ko: "실시간", zh: "实时" }, x: { en: "On X", ko: "X 활동", zh: "X 动态" }, letters: { en: "Letters", ko: "팬레터", zh: "粉丝信" },
+    quiz: { en: "Quiz", ko: "퀴즈", zh: "测验" }, cards: { en: "Cards", ko: "포토카드", zh: "小卡" }, profile: { en: "Profile", ko: "프로필", zh: "资料" },
+    secret: { en: "Secret", ko: "비밀정보", zh: "秘密" },
+  };
+  var ICON = {
+    send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3.5h3l-6.6 7.5 7.8 9.5h-6.1l-4.8-5.9-5.5 5.9H2.3l7.1-8L1.9 3.5h6.2l4.3 5.4zm-1.1 15.3h1.7L7.5 5.1H5.7z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z"/></svg>',
+    voice: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+    card: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10" r="3"/><path d="M8.5 17h7"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
+    close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  };
+
+  var booted = false, log, form, input, sendBtn, chat, busy = false, msgs = [], LIVE = null, ME = null;
+  var drawer = null, home = null; // the chat moves into a drawer over other pages, then back
+  // parts of the chat are looked up in the chat itself, wherever it is (page or drawer)
+  var Q = function (sel) { return (chat && chat.querySelector(sel)) || panel.querySelector(sel); };
+  var BRIEF = { en: "My briefing", ko: "내 브리핑", zh: "我的简报" };
+
+  // ---------------- small helpers ----------------
+  function linkify(t) {
+    var s = esc(t);
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    s = s.replace(/(https?:\/\/[^\s<]+|(?:arcircle\.app|x\.com|t\.me|argus\.world)\/?[^\s<]*)/g, function (m) {
+      var tail = (m.match(/[.,;:!?)]+$/) || [""])[0], u = m.slice(0, m.length - tail.length);
+      var href = /^https?:/.test(u) ? u : "https://" + (u.indexOf("arcircle.app") === 0 ? "www." : "") + u;
+      var same = /^https:\/\/www\.arcircle\.app/.test(href);
+      if (same) href = href.replace("https://www.arcircle.app", "") || "/";
+      return '<a href="' + href + '"' + (same ? "" : ' target="_blank" rel="noopener"') + ">" + u + "</a>" + tail;
+    });
+    s = s.replace(/0x[0-9a-fA-F]{40}/g, function (a) { return '<code class="aa-addr">' + a + "</code>"; });
+    return s.replace(/\n/g, "<br>");
+  }
+  var hhmm = function (t) { try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  var dayStr = function (d) { d = d || new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  var fmtBal = function (v) { return Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 0 }); };
+  var account = function () { try { return typeof state !== "undefined" && state && state.account ? String(state.account).toLowerCase() : null; } catch (e) { return null; } };
+  function copyText(t, btn) {
+    var done = function () { if (!btn) return; btn.classList.add("ok"); var o = btn.getAttribute("data-label"); if (o != null) btn.lastChild.textContent = tr("Copied"); setTimeout(function () { btn.classList.remove("ok"); if (o != null) btn.lastChild.textContent = o; }, 1400); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, function () {});
+    else { var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); done(); } catch (e) { /* no clipboard */ } ta.remove(); }
+  }
+  function toast(text) {
+    var el = panel.querySelector(".aa-toast");
+    if (!el) { el = document.createElement("div"); el.className = "aa-toast"; el.setAttribute("role", "status"); panel.querySelector(".aa").appendChild(el); }
+    el.textContent = text; el.classList.add("on");
+    clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove("on"); }, 2600);
+  }
+
+  // what a message is about: picks the follow-up chips and the card under her reply
+  function topic(s) {
+    s = String(s || "").toLowerCase();
+    if (/contract|\bca\b|address|컨트랙트|주소|合约/.test(s)) return "ca";
+    if (/relay|릴레이|接力|snapshot|스냅샷|快照/.test(s)) return "relay";
+    if (/round|circlepad|deadline|close|raise|burn-to-vote|라운드|마감|모금|서클패드|第 ?1 ?轮|截止/.test(s)) return "round";
+    if (/\bbuy\b|how to get|purchase|swap|사\?|어떻게 사|구매|매수|怎么买|购买/.test(s)) return "buy";
+    if (/price|mcap|market cap|holders|chart|가격|시총|홀더|价格|市值/.test(s)) return "price";
+    if (/locker|scanner|multisend|bridge|utilit|tool|liquidity|락커|스캐너|멀티센더|브릿지|유틸|유동성|工具/.test(s)) return "util";
+    if (/arcpad|launch a coin|런칭|발행|发币/.test(s)) return "arcpad";
+    if (/fan|love|pretty|cute|tall|height|birthday|age|favorite|팬|사랑|예뻐|이뻐|귀여|키|생일|나이|좋아하|粉丝|喜欢|可爱/.test(s)) return "fan";
+    return null;
+  }
+
+  // ---------------- the chat ----------------
+  function actions(role) {
+    if (role === "user") return "";
+    var voice = "speechSynthesis" in window ? '<button type="button" data-a="voice" aria-label="Listen" title="Listen">' + ICON.voice + "</button>" : "";
+    return '<span class="aa-acts"><button type="button" data-a="heart" aria-label="Heart this" title="Heart">' + ICON.heart + "</button>" + voice +
+      '<button type="button" data-a="card" aria-label="Make a photocard" title="Photocard">' + ICON.card + '</button><button type="button" data-a="copy" aria-label="Copy" title="Copy">' + ICON.copy + "</button></span>";
+  }
+  function bubble(role, text, opts) {
+    opts = opts || {};
+    var li = document.createElement("li");
+    var prev = log.lastElementChild;
+    while (prev && prev.classList.contains("aa-typing")) prev = prev.previousElementSibling;
+    var cont = prev && prev.classList.contains(role === "user" ? "me" : "her");
+    li.className = "aa-m " + (role === "user" ? "me" : "her") + (cont ? " cont" : "") + (opts.liked ? " liked" : "") + (opts.cls ? " " + opts.cls : "");
+    if (opts.i != null) li.setAttribute("data-i", opts.i);
+    li.innerHTML = (role === "user" ? "" : '<img class="aa-m-av" src="/images/arcia-avatar-96.jpg" alt="" width="34" height="34">') +
+      '<div class="aa-mc"><div class="aa-b" data-no-i18n></div><div class="aa-meta">' + (role === "user" ? "" : "<b>ARCIA</b>") +
+      "<time data-no-i18n>" + esc(hhmm(opts.t || Date.now())) + "</time>" + actions(role) + '</div><i class="aa-pop" aria-hidden="true">' + ICON.heart + "</i></div>";
+    var typing = log.querySelector(".aa-typing");
+    if (typing) log.insertBefore(li, typing); else log.appendChild(li);
+    var b = li.querySelector(".aa-b");
+    li._text = text;
+    if (opts.type && !reduce) typeIn(b, text, opts.done); else { b.innerHTML = linkify(text); if (opts.done) opts.done(); }
+    scroll();
+    return li;
+  }
+  function typeIn(el, text, done) {
+    var i = 0, step = Math.max(2, Math.round(text.length / 90));
+    speaking(true);
+    (function tick() {
+      i = Math.min(text.length, i + step);
+      el.innerHTML = linkify(text.slice(0, i)) + (i < text.length ? '<i class="aa-caret"></i>' : "");
+      scroll();
+      if (i < text.length) setTimeout(tick, 16); else { speaking(false); if (done) done(); }
+    })();
+  }
+  var stick = true;
+  function scroll() { if (stick) log.scrollTop = log.scrollHeight; }
+  var thinkT = null;
+  function typing(on) {
+    var t = log.querySelector(".aa-typing");
+    clearInterval(thinkT);
+    if (on && !t) {
+      t = document.createElement("li");
+      t.className = "aa-m her aa-typing";
+      t.innerHTML = '<img class="aa-m-av" src="/images/arcia-avatar-96.jpg" alt="" width="34" height="34"><div class="aa-mc"><div class="aa-b"><span></span><span></span><span></span></div><small class="aa-think" data-no-i18n></small></div>';
+      log.appendChild(t); stick = true; scroll();
+      var k = 0, words = T(THINK), sm = t.querySelector(".aa-think");
+      sm.textContent = words[0];
+      thinkT = setInterval(function () { k = (k + 1) % words.length; sm.classList.remove("in"); void sm.offsetWidth; sm.textContent = words[k]; sm.classList.add("in"); }, 1700);
+    } else if (!on && t) t.remove();
+  }
+  function speaking(on) { root.classList.toggle("aa-speaking", !!on); }
+  // a reply just landed: her portrait tilts and glows for a moment
+  var gotT = 0;
+  function got() { if (reduce) return; root.classList.remove("aa-got"); void root.offsetWidth; root.classList.add("aa-got"); clearTimeout(gotT); gotT = setTimeout(function () { root.classList.remove("aa-got"); }, 1100); }
+
+  // name: "my name is …", "call me …", "내 이름은 …", "…라고 불러", "我叫…"
+  function sniffName(text) {
+    var m = text.match(/\b(?:my name is|call me|i'?m called)\s+([A-Za-zÀ-ɏ][\wÀ-ɏ'-]{0,19})/i) ||
+      text.match(/(?:내 ?이름은|제 ?이름은)\s*([^\s,.!?~]{1,12}?)(?:이야|예요|에요|이에요|입니다|야|라고|이라고)?(?=$|[\s,.!?~])/) ||
+      text.match(/([가-힣A-Za-z]{1,10}?)(?:이?라고|으?로) ?불러/) ||
+      text.match(/我叫\s*([^\s，。！？,.!?]{1,10})/);
+    if (!m) return null;
+    var n = m[1].replace(/[^\wÀ-ɏ가-힣一-鿿'-]/g, "").slice(0, 20);
+    if (!n || /^(your|a|an|the|fan|arcia|너|저|나)$/i.test(n)) return null;
+    return n;
+  }
+
+  function payload() {
+    var name = ls.get("arcia-name", "");
+    return { messages: msgs.slice(-12).map(function (m) { return { role: m.role, content: m.content }; }), lang: lang(), name: name || undefined, wallet: account() || undefined, page: pageCtx() };
+  }
+  // which ArcPad screen the fan is on (the drawer opens over any of them)
+  function pageCtx() {
+    var h = location.hash.replace(/^#/, "");
+    var tab = drawer && !drawer.hidden ? (h.split(/[?/]/)[0] || "home") : "arcia";
+    if (HOST) { var p = location.pathname.replace(/^\/+|\/+$/g, "").split("/"); tab = { "": "site", circle: "circlepad", round: "circlepad", "whitepaper": "whitepaper" }[p[0]] || p[0] || "site"; }
+    var m = /(?:[?&](?:t|token)=|coin\/)(0x[0-9a-fA-F]{40})/.exec(h);
+    return { tab: tab, token: m ? m[1] : undefined };
+  }
+  // one question → { text, mode, live, me, error }. Streams (NDJSON) when the server does; onText gets the text so far.
+  function ask(onText) {
+    return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign(payload(), { stream: true })) }).then(function (r) {
+      var ct = r.headers.get("content-type") || "";
+      if (ct.indexOf("ndjson") < 0 || !r.body || !r.body.getReader) {
+        return r.json().catch(function () { return {}; }).then(function (j) { return { text: j.reply || "", mode: j.mode, live: j.live, me: j.me, left: j.left, error: !r.ok ? j.error || "net" : null, status: r.status }; });
+      }
+      var reader = r.body.getReader(), dec = new TextDecoder(), buf = "", out = { text: "" };
+      function handle(line) {
+        if (!line.trim()) return;
+        var j; try { j = JSON.parse(line); } catch (e) { return; }
+        if (j.type === "meta") { out.mode = j.mode; out.live = j.live; out.me = j.me; out.left = j.left; }
+        else if (j.type === "d") { out.text += j.t; onText(out.text); }
+      }
+      return (function pump() {
+        return reader.read().then(function (x) {
+          if (x.done) { handle(buf); return out; }
+          buf += dec.decode(x.value, { stream: true });
+          var i;
+          while ((i = buf.indexOf("\n")) >= 0) { handle(buf.slice(0, i)); buf = buf.slice(i + 1); }
+          return pump();
+        });
+      })();
+    });
+  }
+
+  function send(text) {
+    text = String(text || "").trim();
+    if (!text || busy) return;
+    if (text === T(BRIEF)) { briefing(); return; }
+    if (/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(text)) { location.href = "/me" + (account() ? "?w=" + account() : ""); return; }
+    busy = true; sendBtn.disabled = true;
+    var now = Date.now();
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    ss.set(KEY, msgs.slice(-30));
+    bubble("user", text, { t: now });
+    input.value = ""; grow();
+    sfx("tap");
+    var nm = sniffName(text);
+    if (nm && nm !== ls.get("arcia-name", "")) { ls.set("arcia-name", nm); paintFan(); }
+    typing(true);
+    var t0 = Date.now(), li = null, raf = 0, latest = "";
+    var draw = function () { raf = 0; if (!li) return; li.querySelector(".aa-b").innerHTML = linkify(latest) + '<i class="aa-caret"></i>'; scroll(); };
+    ask(function (so) {
+      latest = so;
+      if (!li) { typing(false); li = bubble("assistant", "", { t: Date.now() }); speaking(true); sfx("tap"); }
+      if (!raf) raf = requestAnimationFrame(draw);
+    }).then(function (res) {
+      var wait = li ? 0 : Math.max(0, 600 - (Date.now() - t0));
+      setTimeout(function () {
+        typing(false);
+        if (res.live) paintLive(res.live);
+        if (res.me) setMe(res.me);
+        paintLeft(res.left);
+        var reply = res.text;
+        if (!reply) {
+          if (li) li.remove();
+          bubble("assistant", res.error && res.error !== "net" ? res.error : T(res.status === 429 ? OOPS.busy : OOPS.net), { cls: "note" });
+          return;
+        }
+        var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+        ss.set(KEY, msgs.slice(-30));
+        var finish = function (el) {
+          got();
+          el.setAttribute("data-i", i);
+          el._text = reply;
+          speaking(false);
+          sfx("milestone");
+          react(el, text, reply);
+          richCard(el, topic(text) || topic(reply));
+          chips(topic(text) || topic(reply));
+          fold(el, reply);
+          if (ls.get("arcia-voice", false)) speak(reply, el);
+        };
+        if (li) { cancelAnimationFrame(raf); li.querySelector(".aa-b").innerHTML = linkify(reply); li._text = reply; finish(li); scroll(); }
+        else { var nl = bubble("assistant", reply, { type: true, t: Date.now(), done: function () { finish(nl); } }); }
+      }, wait);
+    }).catch(function () {
+      typing(false); speaking(false);
+      if (li) li.remove();
+      bubble("assistant", T(OOPS.net), { cls: "note" });
+    }).then(function () { setTimeout(function () { busy = false; sendBtn.disabled = false; }, 500); });
+  }
+  function grow() { input.style.height = "auto"; input.style.height = Math.min(140, input.scrollHeight) + "px"; }
+  // long answers fold to their first lines, with "Show more"
+  function fold(el, text) {
+    if (!el || String(text || "").length < 650 || el.querySelector(".aa-more-t")) return;
+    el.classList.add("aa-long");
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "aa-more-t"; b.textContent = T({ en: "Show more", ko: "더 보기", zh: "展开" });
+    b.addEventListener("click", function () {
+      var open = el.classList.toggle("aa-open");
+      b.textContent = open ? T({ en: "Show less", ko: "접기", zh: "收起" }) : T({ en: "Show more", ko: "더 보기", zh: "展开" });
+    });
+    el.querySelector(".aa-b").after(b);
+  }
+  // a quiet note when only a few of today's messages are left
+  function paintLeft(n) {
+    var el = chat && chat.querySelector(".aa-left");
+    if (!el || n == null) return;
+    el.hidden = n > 5;
+    el.textContent = n > 0 ? T({ en: "{n} messages left today", ko: "오늘 남은 메시지 {n}개", zh: "今天还剩 {n} 条消息" }).replace("{n}", n)
+      : T({ en: "That was today's last message — see you tomorrow", ko: "오늘 마지막 메시지였어요 — 내일 또 만나요", zh: "这是今天最后一条消息 — 明天见" });
+  }
+  // "My briefing": what's going on with this wallet, read from the chain and this browser (no AI needed)
+  function briefing() {
+    var a = account();
+    if (!a) return;
+    busy = true; sendBtn.disabled = true;
+    bubble("user", T(BRIEF), { t: Date.now() });
+    typing(true);
+    var lines = [], jobs = [];
+    var fmt0 = function (n) { return Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 }); };
+    jobs.push(fetch("/api/social?token=arcircle&wallet=" + a).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var w = d && d.wallet;
+      if (!w) return;
+      lines.push("$ARCIRCLE: " + fmt0(w.balance || 0) + (w.rank ? " · #" + w.rank : "") + (w.heldDays ? " · " + T({ en: "held {d} days", ko: "{d}일째 보유", zh: "已持有 {d} 天" }).replace("{d}", w.heldDays) : ""));
+      lines.push((w.balance || 0) >= 100000 ? T({ en: "Relay: you're in the next relay ♡", ko: "릴레이: 다음 릴레이 대상이에요 ♡", zh: "接力：你在下一次接力名单中 ♡" })
+        : T({ en: "Relay: {n} more $ARCIRCLE to join the next relay (locked tokens count too)", ko: "릴레이: {n}개 더 있으면 다음 릴레이 대상이에요 (락한 토큰도 인정)", zh: "接力：再持有 {n} 个 $ARCIRCLE 即可加入下一次接力（锁定的也算）" }).replace("{n}", fmt0(100000 - (w.balance || 0))));
+    }).catch(function () {}));
+    if (typeof ethers !== "undefined" && typeof readProvider === "function" && typeof CONFIG !== "undefined" && CONFIG.ARCLOCK_ADDRESS) {
+      jobs.push((function () {
+        var c = new ethers.Contract(CONFIG.ARCLOCK_ADDRESS, ["function lockIdsOfOwner(address) view returns (uint256[])", "function getLock(uint256) view returns (tuple(address token, address owner, uint128 amount, uint64 lockedAt, uint64 unlockAt, bool withdrawn))"], readProvider());
+        return c.lockIdsOfOwner(a).then(function (ids) {
+          return Promise.all(ids.slice(-20).map(function (id) { return c.getLock(id).then(function (l) { return { id: Number(id), l: l }; }); }));
+        }).then(function (rows) {
+          var now = Date.now() / 1000, act = rows.filter(function (r) { return !r.l.withdrawn; });
+          if (!act.length) return;
+          var ready = act.filter(function (r) { return Number(r.l.unlockAt) <= now; });
+          var next = act.filter(function (r) { return Number(r.l.unlockAt) > now; }).sort(function (x, y) { return Number(x.l.unlockAt) - Number(y.l.unlockAt); })[0];
+          if (ready.length) lines.push(T({ en: "Locker: {n} lock(s) ready to withdraw — arcircle.app/arc#locker", ko: "락커: 출금 가능한 락 {n}개 — arcircle.app/arc#locker", zh: "Locker：{n} 个锁定可以提取 — arcircle.app/arc#locker" }).replace("{n}", ready.length));
+          if (next) {
+            var d = Math.ceil((Number(next.l.unlockAt) - now) / 86400);
+            lines.push(T({ en: "Locker: next unlock in {d} days (lock #{id})", ko: "락커: 다음 해제까지 {d}일 (락 #{id})", zh: "Locker：距下次解锁 {d} 天（锁定 #{id}）" }).replace("{d}", d).replace("{id}", next.id));
+          }
+        });
+      })().catch(function () {}));
+    }
+    Promise.all(jobs).then(function () {
+      var br = ls.get("arcircle.bridge.v1", null) || [], sc = ls.get("arcircle.scanner.v1", null) || [];
+      var on = br.filter(function (r) { return !r.delivered && r.stage !== "failed"; });
+      if (on.length) lines.push(T({ en: "Bridge: {n} transfer(s) on the way — arcircle.app/arc#bridge", ko: "브리지: 이동 중인 전송 {n}건 — arcircle.app/arc#bridge", zh: "Bridge：{n} 笔转账在途中 — arcircle.app/arc#bridge" }).replace("{n}", on.length));
+      if (sc[0]) lines.push(T({ en: "Last scan: ${s} — {sc}/100", ko: "최근 스캔: ${s} — {sc}/100", zh: "最近扫描：${s} — {sc}/100" }).replace("{s}", sc[0].s || "?").replace("{sc}", sc[0].sc));
+      typing(false);
+      var head = T({ en: "Here's your briefing~♡", ko: "브리핑 준비했어요~♡", zh: "你的简报来啦~♡" });
+      var body = lines.length ? lines.map(function (l) { return "• " + l; }).join("\n")
+        : T({ en: "I couldn't read your wallet right now — try again in a moment♡", ko: "지금은 지갑을 읽을 수 없어요 — 잠시 후 다시 해줘요♡", zh: "现在读不到你的钱包 — 稍后再试♡" });
+      var li = bubble("assistant", head + "\n\n" + body, { type: true, cls: "brief", t: Date.now() });
+      fx(li, "sparkle");
+      busy = false; sendBtn.disabled = false;
+    });
+  }
+  // ask by voice (where the browser can listen)
+  function micSetup() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR || !form || form.querySelector(".aa-mic")) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "aa-mic"; b.setAttribute("aria-label", T({ en: "Ask by voice", ko: "음성으로 묻기", zh: "语音提问" }));
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/></svg>';
+    form.insertBefore(b, sendBtn);
+    var rec = null;
+    b.addEventListener("click", function () {
+      if (rec) { try { rec.stop(); } catch (e) { /* stopped */ } return; }
+      try { rec = new SR(); } catch (e) { return; }
+      rec.lang = lang() === "ko" ? "ko-KR" : lang() === "zh" ? "zh-CN" : "en-US";
+      rec.interimResults = true; rec.maxAlternatives = 1;
+      b.classList.add("on");
+      rec.onresult = function (ev) {
+        var t = "";
+        for (var i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+        input.value = t; grow();
+        if (ev.results[ev.results.length - 1].isFinal) { try { rec.stop(); } catch (e) { /* ok */ } send(t); }
+      };
+      rec.onend = rec.onerror = function () { b.classList.remove("on"); rec = null; };
+      try { rec.start(); } catch (e) { b.classList.remove("on"); rec = null; }
+    });
+  }
+
+  function chips(tp) {
+    var box = Q(".aa-sugg");
+    var list = tp && NEXT[tp] ? T(NEXT[tp]) : T(SUGG);
+    if (account()) list = [T(BRIEF)].concat(list.filter(function (q) { return q !== T(BRIEF); }));
+    box.innerHTML = list.map(function (q) { return '<button type="button" data-no-i18n>' + esc(q) + "</button>"; }).join("");
+    box.scrollLeft = 0;
+    if (tp && !reduce) { box.classList.remove("fresh"); void box.offsetWidth; box.classList.add("fresh"); }
+  }
+  function greet() {
+    var n = ls.get("arcia-name", "");
+    bubble("assistant", n && ls.get("arcia-streak", null) ? T(GREET_NAME).replace("{n}", n) : T(GREET));
+  }
+  function restart() {
+    msgs = []; ss.set(KEY, msgs);
+    log.innerHTML = "";
+    greet(); chips();
+  }
+
+  // ---------------- reactions: hearts, confetti, sparkle, glow ----------------
+  function fx(li, kind) {
+    if (reduce || !li) return;
+    var box = document.createElement("span");
+    box.className = "aa-fx aa-fx-" + kind;
+    box.setAttribute("aria-hidden", "true");
+    var n = kind === "confetti" ? 18 : kind === "sparkle" ? 8 : 6;
+    var COL = ["#4d7dff", "#35d8d0", "#39ff88", "#ffc861", "#ff8fc8"];
+    for (var i = 0; i < n; i++) {
+      var h = document.createElement("i");
+      if (kind === "hearts") h.innerHTML = ICON.heart;
+      else if (kind === "sparkle") h.textContent = "✦";
+      h.style.setProperty("--x", (Math.random() * (kind === "confetti" ? 260 : 130) - (kind === "confetti" ? 130 : 20)).toFixed(0) + "px");
+      h.style.setProperty("--y", (-(60 + Math.random() * 90)).toFixed(0) + "px");
+      h.style.setProperty("--d", (i * (kind === "confetti" ? 0.02 : 0.1)).toFixed(2) + "s");
+      h.style.setProperty("--r", (Math.random() * 360 - 180).toFixed(0) + "deg");
+      h.style.setProperty("--c", COL[i % COL.length]);
+      box.appendChild(h);
+    }
+    (li.classList.contains("aa-m") ? li.querySelector(".aa-mc") : li).appendChild(box);
+    setTimeout(function () { box.remove(); }, 2600);
+  }
+  function react(li, q, reply) {
+    var s = (q + " " + reply).toLowerCase();
+    if (/congrat|celebrat|\byay\b|woohoo|축하|대박|만세|🎉|恭喜/.test(s)) fx(li, "confetti");
+    else if (/pretty|cute|beautiful|gorgeous|예뻐|예쁘|이뻐|이쁘|귀여|미모|漂亮|可爱|✨/.test(q.toLowerCase())) fx(li, "sparkle");
+    else if (/♡|♥|💙|💚|love|사랑|좋아해|喜欢/.test(s)) fx(li, "hearts");
+    if (/\b(sad|tired|lonely|exhausted|rekt)\b|힘들|슬퍼|슬프|피곤|우울|외로|지쳤|难过|累/.test(q.toLowerCase())) { li.classList.add("comfort"); }
+  }
+  function toggleHeart(li) {
+    var on = !li.classList.contains("liked");
+    li.classList.toggle("liked", on);
+    var i = li.getAttribute("data-i");
+    if (i != null && msgs[i]) { msgs[i].liked = on; ss.set(KEY, msgs.slice(-30)); }
+    if (on) { var p = li.querySelector(".aa-pop"); p.classList.remove("go"); void p.offsetWidth; p.classList.add("go"); if (typeof window.arcHaptic === "function") window.arcHaptic("tap"); cheer(1); }
+  }
+
+  // ---------------- cards under her replies ----------------
+  function richCard(li, tp) {
+    var L = LIVE || {}, R = L.round || {}, html = "";
+    if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div></div>';
+    else if (tp === "round") html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>' + (R.raised != null ? Number(R.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row">' + (deadline() > nowS() ? '<a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button>" : '<a class="aa-rc-btn" href="/circle/round/1">See the result</a>') + "</div></div>";
+    else if (tp === "price") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>' + (L.price != null ? (F.price ? F.price(L.price) : "$" + L.price) : "—") + (L.change24h != null ? ' <em class="' + (L.change24h >= 0 ? "up" : "down") + '">' + (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%</em>" : "") + '</div><span class="aa-rc-sub" data-no-i18n>' + (L.holders != null ? Number(L.holders).toLocaleString("en-US") + " holders" : "") + '</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>';
+    else if (tp === "buy") html = '<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(BUY) + '" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>';
+    else if (tp === "relay") html = '<div class="aa-rc"><span class="aa-rc-k">Relay Launch</span><span class="aa-rc-sub">Hold 100,000+ $ARCIRCLE at the snapshot to receive every relay.</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/relay">Open Relay Launch</a><a class="aa-rc-btn ghost" href="/me">Check my wallet</a></div></div>';
+    else if (tp === "util") html = '<div class="aa-rc"><span class="aa-rc-k">Free utilities</span><div class="aa-rc-tags">' + [["Locker", "/arc#locker"], ["Token Scanner", "/arc#scanner"], ["Multisender", "/arc#multisend"], ["Bridge", "/arc#bridge"], ["Snapshot", "/arc#snapshot"], ["Liquidity", "/arc#liquidity"], ["Relay Launch", "/arc#relay"]].map(function (u) { return '<a href="' + u[1] + '">' + esc(u[0]) + "</a>"; }).join("") + "</div></div>";
+    else if (tp === "arcpad") html = '<div class="aa-rc"><span class="aa-rc-k">ArcPad</span><span class="aa-rc-sub">1 USDC to launch · Uniswap v4 pool from block one · liquidity locked forever</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/arc">Open ArcPad</a></div></div>';
+    if (!html) return;
+    li.querySelector(".aa-mc").insertAdjacentHTML("beforeend", html);
+    clock(); scroll();
+  }
+
+  // ---------------- voice ----------------
+  var voices = [];
+  function loadVoices() { try { voices = speechSynthesis.getVoices() || []; } catch (e) { voices = []; } }
+  // Her voice: a young woman's. Browsers only give voice names, so known female voices are ranked first,
+  // known male voices are never used, and anything unknown comes after (with a higher pitch, see speak()).
+  var FEMALE = {
+    ko: [/sunhi|선희/i, /yuna|유나/i, /seohyeon|서현/i, /jimin|지민/i, /heami|해미/i, /ko-kr-x-ism/i, /ko-kr-x-kob/i, /google.*(한국|korean)/i, /smtf/i, /female|여성|woman/i],
+    en: [/aria/i, /jenny/i, /ava\b/i, /samantha/i, /allison/i, /susan/i, /zira/i, /victoria/i, /karen/i, /serena/i, /moira/i, /tessa/i, /google us english/i, /google uk english female/i, /en-us-x-(sfg|tpf|iob|tpc)/i, /smtf/i, /female|woman/i],
+    zh: [/xiaoxiao/i, /xiaoyi/i, /huihui/i, /yaoyao/i, /ting-?ting/i, /mei-?jia/i, /sin-?ji/i, /google.*(普通话|mandarin)/i, /smtf/i, /female|女/i],
+  };
+  var MALE = /(^|[^e])male\b|\bman\b|男|남성|david|mark|guy\b|daniel|fred|alex\b|thomas|rishi|james|oliver|george|ryan|brian|eric\b|christopher|roger|andrew|steffan|injoon|인준|hyunsu|현수|junwoo|gookmin|bong-?jin|yunxi|yunyang|yunjian|kangkang|ko-kr-x-(koc|kod|jmm)|en-us-x-(iol|iom|tpd)|smtm/i;
+  function pickVoice(code) {
+    var mine = voices.filter(function (x) { return x.lang && x.lang.toLowerCase().replace("_", "-").indexOf(code) === 0 && !MALE.test(x.name + " " + (x.voiceURI || "")); });
+    var list = FEMALE[code] || [];
+    for (var i = 0; i < list.length; i++) {
+      for (var k = 0; k < mine.length; k++) if (list[i].test(mine[k].name + " " + (mine[k].voiceURI || ""))) return { voice: mine[k], female: true };
+    }
+    return { voice: mine[0] || null, female: false };
+  }
+  // her own voice from the server (api/_arcia-tts.mjs — ElevenLabs or OpenAI) when it's switched on; the
+  // browser's voice otherwise, or when the server's fails once this visit
+  var serverVoice = null, audioNow = null;
+  function stopVoice() {
+    try { speechSynthesis.cancel(); } catch (e) { /* none */ }
+    if (audioNow) { try { audioNow.pause(); } catch (e) { /* gone */ } audioNow = null; speaking(false); }
+  }
+  function speak(text, li) {
+    if (!serverVoice) { speakBrowser(text, li); return; }
+    stopVoice();
+    var done = function () { speaking(false); if (li) li.classList.remove("talking"); };
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "tts", text: String(text).slice(0, 700), lang: lang() }) })
+      .then(function (r) { if (!r.ok) throw new Error("tts " + r.status); return r.blob(); })
+      .then(function (b) {
+        var url = URL.createObjectURL(b), a = new Audio(url);
+        audioNow = a;
+        a.onplay = function () { speaking(true); if (li) li.classList.add("talking"); };
+        a.onended = a.onerror = function () { done(); URL.revokeObjectURL(url); if (audioNow === a) audioNow = null; };
+        return a.play().catch(function () { done(); });
+      })
+      .catch(function () { serverVoice = false; speakBrowser(text, li); });
+  }
+  function speakBrowser(text, li) {
+    if (!("speechSynthesis" in window)) return;
+    try {
+      speechSynthesis.cancel();
+      var clean = String(text).replace(/https?:\/\/\S+|\b\S+\.(app|com|me|world)\/\S*/g, "").replace(/0x[0-9a-fA-F]{40}/g, "").replace(/[♡♥✨☀✦]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, "").replace(/~+/g, "!").replace(/\s+/g, " ").trim();
+      if (!clean) return;
+      var u = new SpeechSynthesisUtterance(clean);
+      var code = /[가-힣]/.test(clean) ? "ko" : /[一-鿿]/.test(clean) ? "zh" : "en";
+      u.lang = { ko: "ko-KR", zh: "zh-CN", en: "en-US" }[code];
+      if (!voices.length) loadVoices();
+      var v = pickVoice(code);
+      u.voice = v.voice;
+      // a known female voice gets a light lift; a voice we can't tell (Android lists one voice per language,
+      // whatever the phone's own TTS setting is) gets a higher pitch so she never sounds like a man
+      u.pitch = v.female ? 1.2 : 1.55; u.rate = code === "en" ? 1.03 : 1.06;
+      u.onstart = function () { speaking(true); if (li) li.classList.add("talking"); };
+      u.onend = u.onerror = function () { speaking(false); if (li) li.classList.remove("talking"); };
+      speechSynthesis.speak(u);
+    } catch (e) { /* no voice */ }
+  }
+
+  // ---------------- photocard ----------------
+  function wrapLines(ctx, text, max, maxLines) {
+    var words = text.split(/(\s+)/), lines = [], cur = "";
+    var push = function (w) {
+      if (ctx.measureText(cur + w).width <= max) { cur += w; return; }
+      if (cur.trim()) lines.push(cur.trim());
+      cur = "";
+      if (ctx.measureText(w).width > max) { for (var k = 0; k < w.length; k++) { if (ctx.measureText(cur + w[k]).width > max) { lines.push(cur); cur = ""; } cur += w[k]; } }
+      else cur = w.replace(/^\s+/, "");
+    };
+    words.forEach(function (w) { if (w) push(w); });
+    if (cur.trim()) lines.push(cur.trim());
+    if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1].replace(/.{2}$/, "") + "…"; }
+    return lines;
+  }
+  // photocards come in three rarities: common (75%), rare (20%), secret (5%)
+  var RARITY = {
+    common: { label: { en: "Common card", ko: "일반 카드", zh: "普通卡" }, stops: ["#3f7bff", "#35d8d0", "#39ff88"] },
+    rare: { label: { en: "Rare card!", ko: "레어 카드!", zh: "稀有卡！" }, stops: ["#fff1c1", "#ffc861", "#ff9f3d", "#ffe29a"] },
+    secret: { label: { en: "Secret card!!", ko: "시크릿 카드!!", zh: "隐藏卡！！" }, stops: ["#ff8fc8", "#b58bff", "#4d7dff", "#35d8d0", "#39ff88", "#ffe29a", "#ff8fc8"] },
+  };
+  function star(x, cx, cy, r) {
+    x.beginPath();
+    x.moveTo(cx, cy - r); x.quadraticCurveTo(cx, cy, cx + r, cy); x.quadraticCurveTo(cx, cy, cx, cy + r);
+    x.quadraticCurveTo(cx, cy, cx - r, cy); x.quadraticCurveTo(cx, cy, cx, cy - r); x.fill();
+  }
+  function photocard(text) {
+    var roll = Math.random(), rar = roll < 0.05 ? "secret" : roll < 0.25 ? "rare" : "common", R = RARITY[rar];
+    var serial = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
+    var img = new Image();
+    img.onload = function () {
+      var W = 1080, H = 1350, c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      var x = c.getContext("2d");
+      var grad = function (x0, y0, x1, y1) { var g = x.createLinearGradient(x0, y0, x1, y1); R.stops.forEach(function (col, k) { g.addColorStop(k / (R.stops.length - 1), col); }); return g; };
+      x.fillStyle = "#070b12"; x.fillRect(0, 0, W, H);
+      var s = W / img.width;
+      x.drawImage(img, 0, -30, W, img.height * s);
+      if (rar === "secret") { // holographic sheen over the photo
+        x.save(); x.globalCompositeOperation = "screen"; x.globalAlpha = 0.22; x.fillStyle = grad(0, 0, W, 900); x.fillRect(0, 0, W, 900); x.restore();
+      }
+      var g = x.createLinearGradient(0, 560, 0, 900);
+      g.addColorStop(0, "rgba(7,11,18,0)"); g.addColorStop(1, "rgba(7,11,18,1)");
+      x.fillStyle = g; x.fillRect(0, 540, W, 380);
+      x.fillStyle = "#070b12"; x.fillRect(0, 900, W, H - 900);
+      var edge = grad(0, 0, W, H);
+      if (rar === "common") { x.fillStyle = edge; x.fillRect(0, 0, W, 10); x.fillRect(0, H - 10, W, 10); }
+      else {
+        x.strokeStyle = edge; x.lineWidth = rar === "secret" ? 22 : 16;
+        if (x.roundRect) { x.beginPath(); x.roundRect(14, 14, W - 28, H - 28, 34); x.stroke(); } else x.strokeRect(14, 14, W - 28, H - 28);
+        x.fillStyle = rar === "secret" ? "#ffffff" : "#ffe29a";
+        for (var k = 0; k < (rar === "secret" ? 26 : 14); k++) {
+          var side = k % 4, t = Math.random();
+          var px = side === 0 ? t * W : side === 1 ? W - 24 - Math.random() * 30 : side === 2 ? t * W : 24 + Math.random() * 30;
+          var py = side === 0 ? 24 + Math.random() * 30 : side === 1 ? t * H : side === 2 ? H - 24 - Math.random() * 30 : t * H;
+          x.globalAlpha = 0.55 + Math.random() * 0.45; star(x, px, py, 6 + Math.random() * 12);
+        }
+        x.globalAlpha = 1;
+        var tag = rar === "secret" ? "SECRET" : "RARE";
+        x.font = "800 30px Sora, 'Segoe UI', sans-serif";
+        var tw = x.measureText(tag).width + 48;
+        x.fillStyle = edge;
+        if (x.roundRect) { x.beginPath(); x.roundRect(W - 60 - tw, 56, tw, 54, 27); x.fill(); } else x.fillRect(W - 60 - tw, 56, tw, 54);
+        x.fillStyle = "#1a1206"; x.fillText(tag, W - 60 - tw + 24, 94);
+      }
+      x.font = "800 92px Sora, 'Segoe UI', sans-serif"; x.fillStyle = edge; x.fillText("ARCIA", 70, 870);
+      x.font = "600 30px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#9fb6d9"; x.fillText("Virtual idol of $ARCIRCLE", 76, 918);
+      var clean = String(text).replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim();
+      x.font = "500 40px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";
+      var lines = wrapLines(x, "“" + clean + "”", W - 160, 6);
+      x.fillStyle = "rgba(255,255,255,.05)"; x.strokeStyle = rar === "common" ? "rgba(91,140,255,.35)" : edge; x.lineWidth = 2;
+      var top = 960, bh = lines.length * 56 + 56;
+      if (x.roundRect) { x.beginPath(); x.roundRect(56, top, W - 112, bh, 28); x.fill(); x.stroke(); } else x.fillRect(56, top, W - 112, bh);
+      x.fillStyle = "#eef3ff";
+      lines.forEach(function (l, k2) { x.fillText(l, 84, top + 70 + k2 * 56); });
+      x.font = "600 28px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#8fb6ff";
+      x.fillText("@ARCIAonArc · No." + serial, 70, H - 52);
+      x.fillStyle = "#7d8aa3"; x.textAlign = "right";
+      x.fillText("arcircle.app · " + dayStr(), W - 70, H - 52);
+      var col = ls.get("arcia-cards", { common: 0, rare: 0, secret: 0 });
+      col[rar] = (col[rar] || 0) + 1; ls.set("arcia-cards", col);
+      var book = ls.get("arcia-book", []) || [];
+      book.unshift({ r: rar, s: serial, q: String(clean).slice(0, 90), t: Date.now() }); ls.set("arcia-book", book.slice(0, 60));
+      paintBook();
+      c.toBlob(function (blob) { if (blob) showCard(blob, clean, rar, col); }, "image/png");
+    };
+    img.src = "/images/arcia-portrait.jpg";
+  }
+  function showCard(blob, text, rar, col) {
+    var url = URL.createObjectURL(blob);
+    var file = null;
+    try { file = new File([blob], "arcia-photocard-" + rar + ".png", { type: "image/png" }); } catch (e) { /* old browser */ }
+    var canShare = file && navigator.canShare && navigator.canShare({ files: [file] });
+    var quote = text.length > 140 ? text.slice(0, 137) + "…" : text;
+    var tagTxt = rar === "common" ? "" : " [" + rar.toUpperCase() + " card]";
+    var intent = "https://x.com/intent/post?text=" + encodeURIComponent("“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt + " 💙💚\narcircle.app/arcia");
+    var m = modal('<div class="aa-card-view aa-rar-' + rar + (rar !== "common" && !reduce ? " aa-holo" : "") + '"><p class="aa-rar" data-no-i18n>' + esc(T(RARITY[rar].label)) + '</p><div class="aa-card-img"><img src="' + url + '" alt="ARCIA photocard"></div><div class="aa-rc-row">' +
+      (canShare ? '<button type="button" class="aa-rc-btn" data-share="1"><span>Share</span></button>' : "") +
+      '<a class="aa-rc-btn' + (canShare ? " ghost" : "") + '" href="' + url + '" download="arcia-photocard-' + rar + '.png"><span>Save image</span></a>' +
+      '<a class="aa-rc-btn ghost" href="' + intent + '" target="_blank" rel="noopener">' + ICON.x + "<span>Post on X</span></a></div>" +
+      '<p class="aa-mini aa-col" data-no-i18n>' + esc(T({ en: "Your collection", ko: "내 컬렉션", zh: "我的收藏" })) + ' · <b>' + esc(T(RARITY.common.label)) + " " + (col.common || 0) + '</b> · <b class="r">' + esc(T(RARITY.rare.label).replace(/!+$/, "")) + " " + (col.rare || 0) + '</b> · <b class="s">' + esc(T(RARITY.secret.label).replace(/!+$/, "")) + " " + (col.secret || 0) + "</b></p>" +
+      '<p class="aa-mini">Save the card, then attach it to your post.</p></div>', function () { URL.revokeObjectURL(url); });
+    var sb = m.querySelector("[data-share]");
+    if (sb) sb.addEventListener("click", function () { navigator.share({ files: [file], text: "“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt }).catch(function () {}); });
+    if (rar !== "common") { sfx(rar === "secret" ? "launch" : "milestone"); fx(m.querySelector(".aa-card-img"), rar === "secret" ? "confetti" : "sparkle"); }
+  }
+  function modal(inner, onClose) {
+    var m = document.createElement("div");
+    m.className = "aa-modal";
+    m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true");
+    m.innerHTML = '<div class="aa-modal-box"><button type="button" class="aa-modal-x" aria-label="Close">' + ICON.close + "</button>" + inner + "</div>";
+    document.body.appendChild(m);
+    var close = function () { m.remove(); document.removeEventListener("keydown", key); if (onClose) onClose(); };
+    var key = function (e) { if (e.key === "Escape") close(); };
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest(".aa-modal-x")) close(); });
+    document.addEventListener("keydown", key);
+    setTimeout(function () { var f = m.querySelector("button,a"); if (f) f.focus(); }, 30);
+    return m;
+  }
+
+  // ---------------- live numbers (they roll when they change) ----------------
+  var prev = {};
+  var nowS = function () { return Math.floor(Date.now() / 1000); };
+  var deadline = function () { return (LIVE && LIVE.round && LIVE.round.deadline) || 1790680567; };
+  function roll(el, key, to, fmt) {
+    var from = prev[key];
+    prev[key] = to;
+    if (from == null || from === to || reduce || !isFinite(from) || !isFinite(to)) { el.textContent = fmt(to); return; }
+    el.classList.remove("up", "down", "flash"); void el.offsetWidth;
+    el.classList.add("flash", to > from ? "up" : "down");
+    var t0 = performance.now();
+    (function step(t) {
+      var k = Math.min(1, (t - t0) / 700), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step); else el.textContent = fmt(to);
+    })(t0);
+  }
+  function paintLive(L) {
+    if (!L) return;
+    LIVE = L;
+    var box = panel.querySelector(".aa-live-rows");
+    if (!box) return;
+    if (!box.querySelector("[data-k]")) {
+      box.innerHTML = [["price", "$ARCIRCLE"], ["holders", "Holders"], ["burned", "Burned forever"], ["raised", "Round #1 raised"], ["left", "Round #1 closes in"]].map(function (r) {
+        return "<div><dt>" + esc(tr(r[1])) + '</dt><dd data-no-i18n><span data-k="' + r[0] + '">—</span>' + (r[0] === "price" ? ' <em class="aa-chg"></em>' : "") + "</dd></div>";
+      }).join("");
+    }
+    var q = function (k) { return box.querySelector('[data-k="' + k + '"]'); };
+    if (L.price != null) roll(q("price"), "price", L.price, function (v) { return F.price ? F.price(v) : "$" + v.toPrecision(3); });
+    var chg = box.querySelector(".aa-chg");
+    if (chg) { chg.textContent = L.change24h != null ? (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%" : ""; chg.className = "aa-chg " + (L.change24h >= 0 ? "up" : "down"); }
+    if (L.holders != null) roll(q("holders"), "holders", Number(L.holders), function (v) { return Math.round(v).toLocaleString("en-US"); });
+    if (L.burnedPct != null) roll(q("burned"), "burned", L.burnedPct, function (v) { return v.toFixed(2) + "%"; });
+    if (L.round && L.round.raised != null) roll(q("raised"), "raised", Number(L.round.raised), function (v) { return v.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC"; });
+    var lf = q("left"); if (lf && !lf.classList.contains("aa-clock")) lf.classList.add("aa-clock");
+    clock(); paintRemind();
+  }
+  function clock() {
+    var s = deadline() - nowS();
+    panel.classList.toggle("aa-urgent", s > 0 && s < 3600);
+    panel.querySelectorAll(".aa-clock").forEach(function (el) {
+      if (s <= 0) { el.textContent = tr("Closed"); return; }
+      var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      el.textContent = (d ? d + "d " : "") + h + "h " + String(m).padStart(2, "0") + "m " + String(sec).padStart(2, "0") + "s";
+    });
+  }
+  function refreshLive() {
+    return fetch("/api/arcia").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && serverVoice !== false) serverVoice = j.tts || null; if (j && j.live) paintLive(j.live); }).catch(function () {});
+  }
+
+  // ---------------- round reminder: calendar file + a notification while the page is open ----------------
+  function ics() {
+    var dl = deadline(), z = function (t) { return new Date(t * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); };
+    var body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//ARCIA//EN", "BEGIN:VEVENT", "UID:circlepad-round1-close@arcircle.app", "DTSTAMP:" + z(nowS()),
+      "DTSTART:" + z(dl), "DTEND:" + z(dl + 1800), "SUMMARY:CirclePad Round #1 closes", "DESCRIPTION:Last chance to join CirclePad Round #1 — https://www.arcircle.app/circle", "URL:https://www.arcircle.app/circle",
+      "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:CirclePad Round #1 closes in 1 hour", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([body], { type: "text/calendar" }));
+    a.download = "circlepad-round-1.ics";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    toast(tr("Calendar file saved — open it to add the reminder."));
+  }
+  var remindT = null;
+  function scheduleRemind() {
+    clearTimeout(remindT);
+    var at = ls.get("arcia-remind", 0);
+    if (!at || !("Notification" in window) || Notification.permission !== "granted") return;
+    var ms = (at - 3600 - nowS()) * 1000;
+    if (ms < -3600000) { ls.set("arcia-remind", null); return; }
+    remindT = setTimeout(function () {
+      try { new Notification("CirclePad Round #1", { body: T({ en: "It closes in about an hour~ come join me before it's over♡", ko: "마감까지 한 시간쯤 남았어요~ 끝나기 전에 같이해요♡", zh: "大约一小时后截止~ 结束前快来参加吧♡" }), icon: "/images/arcia-avatar-96.jpg" }); } catch (e) { /* not allowed */ }
+    }, Math.max(0, Math.min(ms, 2147000000)));
+  }
+  function remind() {
+    if (!("Notification" in window)) { toast(tr("This browser can't show notifications — use the calendar file instead.")); return; }
+    Notification.requestPermission().then(function (p) {
+      if (p !== "granted") { toast(tr("Notifications are blocked — use the calendar file instead.")); return; }
+      ls.set("arcia-remind", deadline()); scheduleRemind(); paintRemind();
+      toast(tr("I'll remind you an hour before the close while this page is open."));
+    });
+  }
+  function paintRemind() {
+    var box = panel.querySelector(".aa-remind");
+    if (!box) return;
+    var open = deadline() > nowS();
+    box.hidden = !open;
+    var b = box.querySelector("[data-remind]");
+    if (b) { var on = ls.get("arcia-remind", 0) === deadline() && "Notification" in window && Notification.permission === "granted"; b.classList.toggle("on", on); b.lastChild.textContent = tr(on ? "Reminder on" : "Remind me"); }
+  }
+
+  // ---------------- X feed ----------------
+  function paintFeed(j) {
+    var box = panel.querySelector(".aa-xfeed");
+    if (!box) return;
+    var list = (j && j.feed) || [];
+    var head = panel.querySelector(".aa-xhead");
+    if (head) head.innerHTML = '<span class="aa-dotlive' + (j && j.replies ? " on" : "") + '"></span><span>' + esc(tr(j && j.replies ? "Answering mentions about every minute" : "Replies are paused")) + "</span>" + (j && j.today != null ? '<em data-no-i18n>' + esc(T({ en: "{n} today", ko: "오늘 {n}개", zh: "今天 {n} 条" }).replace("{n}", j.today)) + "</em>" : "");
+    if (!list.length) { box.innerHTML = '<li class="aa-empty">' + esc(tr("Nothing yet. Mention @ARCIAonArc on X and she'll answer you herself.")) + "</li>"; return; }
+    box.innerHTML = list.slice(0, 12).map(function (r) {
+      return '<li><div class="aa-xi-h"><img src="/images/arcia-avatar-96.jpg" alt="" width="22" height="22"><b>ARCIA</b>' +
+        (r.kind === "reply" && r.to ? '<span data-no-i18n>→ @' + esc(r.to) + "</span>" : "") + '<time data-no-i18n>' + esc(F.ago ? F.ago(r.t) : "") + "</time></div>" +
+        (r.toText ? '<p class="aa-xi-q" data-no-i18n>' + esc(r.toText) + "</p>" : "") +
+        '<p class="aa-xi-t" data-no-i18n>' + esc(r.text) + '</p><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(tr("View on X")) + " ↗</a></li>";
+    }).join("");
+  }
+  function loadFeed() { return fetch("/api/arcia-x?feed=1").then(function (r) { return r.ok ? r.json() : null; }).then(paintFeed).catch(function () { paintFeed(null); }); }
+
+  // ---------------- fan letters ----------------
+  function paintLetters(list) {
+    var box = panel.querySelector(".aa-letters");
+    if (!box) return;
+    var hearted = ls.get("arcia-hearted", []);
+    if (!list || !list.length) { box.innerHTML = '<li class="aa-empty">' + esc(tr("No letters yet. Be the first to write to her!")) + "</li>"; return; }
+    box.innerHTML = list.map(function (l) {
+      var on = hearted.indexOf(l.id) >= 0;
+      return '<li data-id="' + esc(l.id) + '"><div class="aa-lt-h"><b data-no-i18n>' + esc(l.name) + '</b><time data-no-i18n>' + esc(F.ago ? F.ago(Math.floor(l.at / 1000)) : "") + '</time></div><p data-no-i18n>' + esc(l.text) + "</p>" +
+        (l.reply ? '<div class="aa-lt-r"><img src="/images/arcia-avatar-96.jpg" alt="" width="24" height="24"><p data-no-i18n>' + esc(l.reply) + "</p></div>" : "") +
+        '<button type="button" class="aa-lt-heart' + (on ? " on" : "") + '" aria-label="Heart this letter">' + ICON.heart + "<span data-no-i18n>" + (l.hearts || 0) + "</span></button></li>";
+    }).join("");
+  }
+  var lettersLoaded = false;
+  var lettersTop = false;
+  function loadLetters() {
+    lettersLoaded = true;
+    return fetch("/api/arcia?letters=" + (lettersTop ? "top" : "1")).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { paintLetters(j && j.letters); }).catch(function () { paintLetters([]); });
+  }
+  function sendLetter(e) {
+    e.preventDefault();
+    var f = e.target, btn = f.querySelector("button[type=submit]"), msg = f.querySelector(".aa-lf-msg");
+    var name = f.name_.value.trim(), text = f.text.value.trim();
+    if (text.length < 2) return;
+    btn.disabled = true; msg.textContent = tr("ARCIA is reading your letter…"); msg.className = "aa-lf-msg";
+    if (name) ls.set("arcia-name", name.slice(0, 24));
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "letter", name: name, text: text, lang: lang() }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j.ok) { msg.textContent = j.error || T(OOPS.net); msg.className = "aa-lf-msg err"; return; }
+        f.text.value = ""; count(f);
+        msg.textContent = tr("She wrote back!"); msg.className = "aa-lf-msg ok";
+        sfx("milestone");
+        loadLetters().then(function () { var li = panel.querySelector('.aa-letters li[data-id="' + j.letter.id + '"]'); if (li) { li.classList.add("new"); fx2(li); } });
+      })
+      .catch(function () { msg.textContent = T(OOPS.net); msg.className = "aa-lf-msg err"; })
+      .then(function () { btn.disabled = false; });
+  }
+  function fx2(el) { if (reduce) return; el.classList.add("glow"); setTimeout(function () { el.classList.remove("glow"); }, 2400); }
+  function count(f) { var c = f.querySelector(".aa-lf-count"); if (c) c.textContent = f.text.value.length + " / 280"; }
+  function heartLetter(btn) {
+    var li = btn.closest("li"), id = li && li.getAttribute("data-id");
+    if (!id || btn.classList.contains("on")) return;
+    var hearted = ls.get("arcia-hearted", []);
+    btn.classList.add("on");
+    var n = btn.querySelector("span"); n.textContent = Number(n.textContent || 0) + 1;
+    hearted.push(id); ls.set("arcia-hearted", hearted.slice(-300));
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "heart", id: id }) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (j && j.hearts != null) n.textContent = j.hearts; if (j && !j.already) loadHearts(); }).catch(function () {});
+  }
+
+  // ---------------- quiz ----------------
+  var QUIZ = [
+    { q: { en: "Which chain is ARCIRCLE PAD built on?", ko: "ARCIRCLE PAD는 어느 체인 위에 있을까요?", zh: "ARCIRCLE PAD 建在哪条链上？" }, a: ["Circle's Arc", "Ethereum", "Solana", "Base"] },
+    { q: { en: "What pays for gas on Arc?", ko: "Arc에서 가스비는 뭘로 낼까요?", zh: "Arc 上用什么支付 Gas？" }, a: ["USDC", "ETH", "$ARCIRCLE", "SOL"] },
+    { q: { en: "How much $ARCIRCLE does one CirclePad vote burn?", ko: "CirclePad 투표 한 번에 소각되는 $ARCIRCLE은?", zh: "CirclePad 每投一票销毁多少 $ARCIRCLE？" }, a: ["1,000", "100", "10,000", "None"] },
+    { q: { en: "How long is a CirclePad raise?", ko: "CirclePad 모금 기간은?", zh: "CirclePad 募集持续多久？" }, a: ["72 hours", "24 hours", "7 days", "30 days"] },
+    { q: { en: "How much $ARCIRCLE do you hold to receive every Relay Launch?", ko: "모든 릴레이 런칭을 받으려면 $ARCIRCLE을 얼마나 들고 있어야 할까요?", zh: "持有多少 $ARCIRCLE 才能收到每次接力发币？" }, a: ["100,000+", "1,000", "10,000", "1,000,000"] },
+    { q: { en: "How big is the team allocation of $ARCIRCLE?", ko: "$ARCIRCLE 팀 물량은 얼마일까요?", zh: "$ARCIRCLE 的团队份额是多少？" }, a: ["None — 100% went into the pool", "10%", "20%", "50%"] },
+    { q: { en: "What does it cost to launch a coin on ArcPad?", ko: "ArcPad에서 코인을 런칭하는 비용은?", zh: "在 ArcPad 发一个币要多少钱？" }, a: ["1 USDC", "10 USDC", "100 USDC", "Free"] },
+    { q: { en: "When a CirclePad round closes, where does 80% go?", ko: "CirclePad 라운드가 마감되면 80%는 어디로 갈까요?", zh: "CirclePad 一轮截止时，80% 去哪里？" }, a: ["The launch", "The team", "Burned", "The top contributor"] },
+  ];
+  var quiz = null;
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function quizStart() { quiz = { i: 0, score: 0, order: shuffle(QUIZ.map(function (_, i) { return i; })) }; quizPaint(); }
+  function quizPaint() {
+    var box = panel.querySelector(".aa-quiz");
+    if (!box) return;
+    var rec = ls.get("arcia-quiz", { best: 0 });
+    if (!quiz) {
+      box.innerHTML = '<p class="aa-mini" data-no-i18n>' + esc(T({ en: "Eight questions about $ARCIRCLE. Score 5+ for the Rookie Fan badge, 8/8 for ARCIRCLE Scholar.", ko: "$ARCIRCLE 문제 8개예요. 5개 이상 맞히면 루키 팬 배지, 8개 다 맞히면 ARCIRCLE 박사 배지!", zh: "8 道关于 $ARCIRCLE 的题。答对 5 题得「新晋粉丝」徽章，全对得「ARCIRCLE 学者」。" })) + "</p>" +
+        (rec.best ? '<p class="aa-mini" data-no-i18n>' + esc(T({ en: "Your best: ", ko: "최고 점수: ", zh: "最佳成绩：" })) + rec.best + " / 8</p>" : "") +
+        '<button type="button" class="aa-rc-btn" data-q="start">Start the quiz</button>';
+      return;
+    }
+    if (quiz.i >= quiz.order.length) {
+      var sc = quiz.score, best = Math.max(rec.best || 0, sc);
+      ls.set("arcia-quiz", { best: best });
+      var line = sc === 8 ? T({ en: "Perfect!! You really are my number one fan~♡", ko: "만점!! 역시 제 최애 팬이에요~♡", zh: "满分！！你真的是我的头号粉丝~♡" })
+        : sc >= 5 ? T({ en: "So good~ You know ARCIRCLE really well♡", ko: "대단해요~ ARCIRCLE 진짜 잘 아네요♡", zh: "好厉害~ 你很懂 ARCIRCLE♡" })
+        : T({ en: "Aww, nice try~ Let's study together and try again♡", ko: "아까워요~ 같이 공부하고 다시 도전해요♡", zh: "差一点~ 一起学习再来一次吧♡" });
+      box.innerHTML = '<div class="aa-q-end"><div class="aa-q-score" data-no-i18n>' + sc + " / 8</div><p data-no-i18n>" + esc(line) + "</p>" + badgesHtml() + '<button type="button" class="aa-rc-btn" data-q="start">Try the quiz again</button></div>';
+      if (sc >= 5) { fx(box, "confetti"); sfx("launch"); }
+      paintFan();
+      return;
+    }
+    var item = QUIZ[quiz.order[quiz.i]];
+    var opts = shuffle(item.a.map(function (t, k) { return { t: t, ok: k === 0 }; }));
+    box.innerHTML = '<div class="aa-q-top"><span data-no-i18n>' + (quiz.i + 1) + " / 8</span><i style=\"--p:" + (quiz.i / 8 * 100) + '%"></i></div><p class="aa-q-q" data-no-i18n>' + esc(T(item.q)) + '</p><div class="aa-q-opts">' +
+      opts.map(function (o) { return '<button type="button" data-ok="' + (o.ok ? 1 : 0) + '" data-no-i18n>' + esc(o.t) + "</button>"; }).join("") + "</div>";
+  }
+  function quizPick(btn) {
+    var box = btn.closest(".aa-q-opts");
+    if (box.classList.contains("done")) return;
+    box.classList.add("done");
+    var ok = btn.getAttribute("data-ok") === "1";
+    btn.classList.add(ok ? "right" : "wrong");
+    if (!ok) { var r = box.querySelector('[data-ok="1"]'); if (r) r.classList.add("right"); }
+    if (ok) { quiz.score++; sfx("tap"); }
+    setTimeout(function () { quiz.i++; quizPaint(); }, ok ? 650 : 1200);
+  }
+
+  // ---------------- today's hearts: one gauge every fan fills together ----------------
+  var HEART = { today: null, goal: 100, pending: 0, sending: false, t: 0 };
+  var utcDay = function () { return new Date().toISOString().slice(0, 10); };
+  var GOAL_MSG = {
+    en: "We did it~!! {g} hearts from all of you today♡ Thank you, thank you — my heart is so full I could fly all the way around the Arc chain 💙💚",
+    ko: "해냈어요~!! 오늘 여러분이 보내준 하트가 {g}개를 넘었어요♡ 정말 고마워요 — 마음이 너무 벅차서 Arc 체인 한 바퀴를 날아다닐 수 있을 것 같아요 💙💚",
+    zh: "我们做到了~!! 今天大家送来的爱心超过 {g} 颗♡ 谢谢你们 —— 我开心得能绕 Arc 链飞一圈 💙💚",
+  };
+  function paintGauge(bump) {
+    var g = Q(".aa-gauge");
+    if (!g || HEART.today == null) return;
+    var n = HEART.today, goal = HEART.goal, pct = Math.min(100, n / goal * 100);
+    g.querySelector(".aa-g-fill").style.width = pct.toFixed(1) + "%";
+    g.querySelector(".aa-g-num").textContent = n.toLocaleString("en-US") + " / " + goal.toLocaleString("en-US");
+    g.classList.toggle("full", n >= goal);
+    if (bump && !reduce) { var num = g.querySelector(".aa-g-num"); num.classList.remove("bump"); void num.offsetWidth; num.classList.add("bump"); }
+    if (n >= goal && log && ls.get("arcia-goal", "") !== utcDay()) {
+      ls.set("arcia-goal", utcDay());
+      var li = bubble("assistant", T(GOAL_MSG).replace("{g}", goal.toLocaleString("en-US")), { type: true, cls: "sys" });
+      fx(li, "confetti"); sfx("launch");
+    }
+  }
+  function loadHearts() {
+    return fetch("/api/arcia?hearts=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || j.today == null) return;
+      HEART.goal = j.goal || HEART.goal;
+      if (HEART.pending || HEART.sending) return; // our own taps are still on the way
+      var bump = HEART.today != null && j.today > HEART.today;
+      HEART.today = j.today; paintGauge(bump);
+    }).catch(function () {});
+  }
+  function flushHearts() {
+    if (HEART.sending || !HEART.pending) return;
+    var n = Math.min(5, HEART.pending);
+    HEART.pending -= n; HEART.sending = true;
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "cheer", n: n }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.today != null && !HEART.pending) { HEART.today = j.today; HEART.goal = j.goal || HEART.goal; paintGauge(false); } })
+      .catch(function () {})
+      .then(function () { HEART.sending = false; if (HEART.pending) flushHearts(); });
+  }
+  function cheer(n) {
+    var key = "arcia-cheer-" + utcDay(), used = ls.get(key, 0);
+    if (used >= 30) { toast(T({ en: "You sent all 30 of today's hearts~ thank you♡", ko: "오늘 하트 30개를 다 보냈어요~ 고마워요♡", zh: "今天的 30 颗爱心都送出啦~ 谢谢你♡" })); return false; }
+    ls.set(key, used + n);
+    if (HEART.today == null) HEART.today = 0;
+    HEART.today += n; paintGauge(true);
+    HEART.pending += n;
+    clearTimeout(HEART.t); HEART.t = setTimeout(flushHearts, 600);
+    return true;
+  }
+
+  // ---------------- fan card, badges, streak, profile ----------------
+  function badges() {
+    var out = [], st = ls.get("arcia-streak", null), qz = ls.get("arcia-quiz", { best: 0 });
+    if (ME && ME.relay) out.push(["holder", T({ en: "Relay holder", ko: "릴레이 홀더", zh: "接力持有人" })]);
+    else if (ME && ME.balance > 0) out.push(["holder", T({ en: "Holder", ko: "홀더", zh: "持有人" })]);
+    if (qz.best >= 8) out.push(["scholar", T({ en: "ARCIRCLE Scholar", ko: "ARCIRCLE 박사", zh: "ARCIRCLE 学者" })]);
+    else if (qz.best >= 5) out.push(["rookie", T({ en: "Rookie Fan", ko: "루키 팬", zh: "新晋粉丝" })]);
+    if (st && st.n >= 2) out.push(["streak", T({ en: "{n}-day streak", ko: "{n}일 연속", zh: "连续 {n} 天" }).replace("{n}", st.n)]);
+    return out;
+  }
+  function badgesHtml() { return '<div class="aa-badges">' + badges().map(function (b) { return '<span class="aa-badge ' + b[0] + '" data-no-i18n>' + esc(b[1]) + "</span>"; }).join("") + "</div>"; }
+  function paintFan() {
+    var hb = panel.querySelector(".aa-hero .aa-badges");
+    if (hb) hb.outerHTML = badgesHtml();
+    var ch = Q(".aa-chat-h .aa-me");
+    if (ch) { var bs = badges().filter(function (b) { return b[0] === "holder"; })[0]; ch.hidden = !bs; ch.textContent = bs ? bs[1] : ""; }
+    var fan = panel.querySelector(".aa-fan");
+    if (!fan) return;
+    var n = ls.get("arcia-name", ""), st = ls.get("arcia-streak", { n: 0, total: 0 });
+    fan.innerHTML = '<h4 data-no-i18n>' + esc(T({ en: "Your fan card", ko: "나의 팬 카드", zh: "我的粉丝卡" })) + '</h4><dl class="aa-prof">' +
+      "<div><dt data-no-i18n>" + esc(T({ en: "She calls you", ko: "부르는 이름", zh: "她怎么叫你" })) + '</dt><dd data-no-i18n>' + (n ? esc(n) + ' <button type="button" class="aa-link" data-forget="1">' + esc(T({ en: "Forget", ko: "잊기", zh: "忘记" })) + "</button>" : '<span class="aa-dim">' + esc(T({ en: "Tell her “call me …” in the chat", ko: "채팅에서 “…라고 불러”라고 말해 보세요", zh: "在聊天里说“叫我…”" })) + "</span>") + "</dd></div>" +
+      "<div><dt data-no-i18n>" + esc(T({ en: "Visits", ko: "방문", zh: "来访" })) + '</dt><dd data-no-i18n>' + (st.total || 0) + " · " + esc(T({ en: "streak ", ko: "연속 ", zh: "连续 " })) + (st.n || 0) + "</dd></div>" +
+      (ME ? "<div><dt>$ARCIRCLE</dt><dd data-no-i18n>" + fmtBal(ME.balance) + (ME.rank ? " · #" + ME.rank : "") + "</dd></div>" : "") +
+      "</dl>" + badgesHtml();
+  }
+  function setMe(me) {
+    var had = ME;
+    ME = me || null;
+    paintFan();
+    if (ME && ME.relay && !had && !ss.get("arcia-holder-greeted", false)) {
+      ss.set("arcia-holder-greeted", true);
+      var li = bubble("assistant", T(HOLDER_MSG).replace("{b}", fmtBal(ME.balance)), { type: true, cls: "sys" });
+      fx(li, "sparkle");
+    }
+  }
+  function checkWallet() {
+    var a = account();
+    if (a === checkWallet.last) return;
+    checkWallet.last = a;
+    if (!a) { ME = null; paintFan(); return; }
+    fetch("/api/social?token=arcircle&wallet=" + a).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.wallet || account() !== a) return;
+      var w = d.wallet;
+      setMe({ address: w.address, balance: w.balance || 0, rank: w.rank, of: w.of, relay: (w.balance || 0) >= 100000 });
+    }).catch(function () {});
+  }
+  function streak() {
+    var st = ls.get("arcia-streak", null), today = dayStr(), y = new Date(); y.setDate(y.getDate() - 1);
+    var first = !st;
+    if (st && st.last === today) return { st: st, fresh: false, first: false };
+    st = st || { n: 0, total: 0 };
+    st.n = st.last === dayStr(y) ? st.n + 1 : 1;
+    st.total = (st.total || 0) + 1; st.last = today;
+    ls.set("arcia-streak", st);
+    return { st: st, fresh: true, first: first };
+  }
+  function cheerText() { var c = T(CHEER), d = new Date(); return c[(d.getFullYear() * 400 + d.getMonth() * 31 + d.getDate()) % c.length]; }
+  function paintCheer() {
+    var el = panel.querySelector(".aa-cheer");
+    if (!el) return;
+    var st = ls.get("arcia-streak", { n: 1 });
+    el.innerHTML = '<span class="aa-cheer-k">' + esc(tr("Today's message")) + '</span><p data-no-i18n>' + esc(cheerText()) + '</p><span class="aa-cheer-s" data-no-i18n>' + esc(T({ en: "Day {n} streak", ko: "{n}일 연속 출석", zh: "连续 {n} 天" }).replace("{n}", st.n || 1)) + "</span>";
+  }
+  function profileHtml() {
+    var soon = T({ en: "Coming soon", ko: "곧 공개", zh: "即将公开" });
+    var K = function (en, ko, zh) { return T({ en: en, ko: ko, zh: zh }); };
+    var rows = [
+      [K("Name", "이름", "名字"), "ARCIA"], [K("Role", "역할", "身份"), K("Virtual idol & official mascot of $ARCIRCLE", "$ARCIRCLE 버추얼 아이돌 · 공식 마스코트", "$ARCIRCLE 虚拟偶像 · 官方吉祥物")],
+      [K("Debut", "데뷔", "出道"), K("September 2026", "2026년 9월", "2026 年 9 月")], [K("Lives on", "사는 곳", "住在"), K("Circle's Arc chain", "Circle의 Arc 체인", "Circle 的 Arc 链")],
+      [K("Colors", "컬러", "代表色"), K("Blue & green, like the ARCIRCLE rings", "ARCIRCLE 링처럼 파랑 & 초록", "像 ARCIRCLE 圆环一样的蓝与绿")],
+      [K("Loves", "좋아하는 것", "喜欢"), K("New launches, burn-to-vote, chatting with fans", "신규 런칭, 소각 투표, 팬들과 수다", "新币发射、销毁投票、和粉丝聊天")],
+      [K("Height", "키", "身高"), "168 cm"], [K("Birthday", "생일", "生日"), K("September 29", "9월 29일", "9 月 29 日")], ["MBTI", "ESFP"],
+      ["X", '<a href="' + X + '" target="_blank" rel="noopener">@ARCIAonArc</a>'], [K("Run by", "운영", "运营"), '<a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">@ARCIRCLEonArc</a>'],
+    ];
+    return '<dl class="aa-prof">' + rows.map(function (r) { return "<div><dt data-no-i18n>" + esc(r[0]) + '</dt><dd data-no-i18n' + (r[1] === soon ? ' class="aa-dim"' : "") + ">" + (/^</.test(r[1]) ? r[1] : esc(r[1])) + "</dd></div>"; }).join("") + "</dl>" +
+      '<p class="aa-mini">An AI character, automated and run by the ARCIRCLE team. More of her official profile is on the way.</p>';
+  }
+
+  // ---------------- entrance: the two rings meet and she steps out (once a day, under a second) ----------------
+  function entrance() {
+    if (reduce || ls.get("arcia-enter", "") === dayStr()) return false;
+    ls.set("arcia-enter", dayStr());
+    var o = document.createElement("div");
+    o.className = "aa-enter"; o.setAttribute("aria-hidden", "true");
+    o.innerHTML = '<div class="aa-en-stage"><i class="aa-en-ring l"></i><i class="aa-en-ring r"></i><img class="aa-en-av" src="/images/arcia-avatar.jpg" alt=""><b class="aa-en-name">ARCIA</b></div>';
+    document.body.appendChild(o);
+    setTimeout(function () { o.remove(); }, 1000);
+    return true;
+  }
+
+  // ---------------- first visit ----------------
+  function intro() {
+    if (ls.get("arcia-intro-v1", false)) return false;
+    ls.set("arcia-intro-v1", true);
+    var m = modal('<div class="aa-intro"><span class="aa-av-wrap sm"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="" width="96" height="96"><i class="aa-halo" aria-hidden="true"></i></span>' +
+      '<h3 data-no-i18n>' + esc(T({ en: "Nice to meet you~♡", ko: "만나서 반가워요~♡", zh: "很高兴认识你~♡" })) + '</h3><p data-no-i18n>' + esc(T({ en: "I'm ARCIA, the virtual idol of $ARCIRCLE. Here's what we can do together:", ko: "저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요. 여기서 같이 할 수 있는 것들이에요:", zh: "我是 $ARCIRCLE 的虚拟偶像 ARCIA。我们可以一起做这些：" })) + "</p>" +
+      '<ul data-no-i18n><li><b>' + esc(T({ en: "Chat", ko: "채팅", zh: "聊天" })) + "</b>" + esc(T({ en: "Ask me anything about ARCIRCLE PAD, or just talk.", ko: "ARCIRCLE PAD 뭐든 묻거나 그냥 수다 떨어요.", zh: "问我任何关于 ARCIRCLE PAD 的事，或者随便聊聊。" })) + "</li>" +
+      "<li><b>" + esc(T({ en: "Letters", ko: "팬레터", zh: "粉丝信" })) + "</b>" + esc(T({ en: "Leave a fan letter — I read and answer every one.", ko: "팬레터를 남겨 주면 하나하나 읽고 답장해요.", zh: "给我留一封信，我每封都会读、都会回。" })) + "</li>" +
+      "<li><b>" + esc(T({ en: "Daily visit", ko: "매일 출석", zh: "每日签到" })) + "</b>" + esc(T({ en: "Come by every day for a new message and your streak.", ko: "매일 와서 새 메시지랑 연속 출석을 받아 가요.", zh: "每天来看看，领取新留言和连续签到。" })) + "</li></ul>" +
+      '<button type="button" class="aa-rc-btn wide" data-go="1">' + esc(T({ en: "Let's talk", ko: "이야기하러 가기", zh: "开始聊天" })) + "</button></div>");
+    m.querySelector("[data-go]").addEventListener("click", function () { m.querySelector(".aa-modal-x").click(); setTimeout(function () { if (window.innerWidth > 900) input.focus({ preventScroll: true }); }, 50); });
+    return true;
+  }
+
+  // ---------------- ARCIA's other utilities: one live line each ----------------
+  function famLoad() {
+    if (!window.fetch) return;
+    var put = function (k, html) { var el = panel.querySelector('[data-fam="' + k + '"]'); if (el && html) el.innerHTML = html; };
+    var money = function (n) { return (n < 0 ? "−$" : "$") + Math.abs(Number(n) || 0).toFixed(2); };
+    fetch("/api/arcia402?stats=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var t = d && d.totals; if (!t) return;
+      put("402", '<i></i><span>' + esc(tr("Earned")) + '</span> <b data-no-i18n>' + money(t.earned || 0) + '</b> · <b data-no-i18n>' + (Number(t.sold) || 0) + "</b> " + esc(tr("paid calls")));
+    }).catch(function () {});
+    fetch("/api/desk").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.stats) return;
+      var live = d.mode === "live", n = (d.stats.realClosed || 0) + (d.open ? d.open.length : 0), p = d.money && d.money.pnl;
+      put("desk", '<i class="' + (live ? "on" : "") + '"></i><span>' + esc(tr(live ? "Live" : "Paper")) + "</span> · <b data-no-i18n>" + n + "</b> " + esc(tr("real trades")) + (live && p != null ? ' · <b data-no-i18n class="' + (p >= 0 ? "up" : "down") + '">' + (p >= 0 ? "+" : "") + money(p) + "</b>" : "") + " · <span>" + esc(tr("learning")) + "</span>");
+    }).catch(function () {});
+  }
+
+
+  // ---------------- secret file: burn 100,000 $ARCIRCLE to open her private photos (api/_arcia-secret.mjs) ----------------
+  // The burn is a plain $ARCIRCLE transfer to 0x…dEaD from the fan's own wallet. The server checks it on-chain,
+  // then serves the photos to that wallet (proved by a signature that can't move funds). The burn tx is kept in
+  // this browser until it's confirmed, so a failed check never asks for a second burn.
+  var SEC_DEAD = "0x000000000000000000000000000000000000dEaD";
+  var SEC_PRICE = "100000";
+  var sec = { info: null, photos: null, busy: false, confirm: false, msg: "", w: null };
+  var secMsg = function (w) { return "Open ARCIA's secret file on arcircle.app\n\nWallet: " + String(w).toLowerCase() + "\n\nThis signature only proves I own this wallet. It can't move funds."; };
+  var canWallet = function () { return typeof ethers !== "undefined" && typeof state !== "undefined" && state; };
+  function secLoad() {
+    var a = account();
+    if (sec.w !== a) { sec.photos = null; sec.confirm = false; sec.msg = ""; sec.w = a; }
+    secPaint();
+    fetch("/api/arcia?secret=1" + (a ? "&wallet=" + a : ""), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.price) return;
+      sec.info = j;
+      if (j.open && a && !sec.photos && ls.get("arcia-secret-sig:" + a, "")) secPhotos(a, ls.get("arcia-secret-sig:" + a, ""));
+      secPaint();
+    }).catch(function () { /* keeps the locked view */ });
+  }
+  function secPhotos(a, sig) {
+    return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "secret-photos", wallet: a, signature: sig }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) { if (x.ok && x.j.photos) { sec.photos = x.j.photos; sec.msg = ""; } else if (x.j && x.j.error) sec.msg = x.j.error; secPaint(); });
+  }
+  function secPaint() {
+    var box = panel.querySelector(".aa-secret");
+    if (!box) return;
+    var i = sec.info, a = account();
+    var fmt = function (n) { return Number(n || 0).toLocaleString("en-US"); };
+    var tiles = sec.photos
+      ? sec.photos.map(function (p) { return '<button type="button" class="aa-sec-t open" data-sec-view="' + p.n + '"><img src="' + p.src + '" alt="' + esc(p.title) + '" loading="lazy"><span data-no-i18n>' + esc(p.title) + "</span></button>"; }).join("")
+      : [1, 2, 3, 4, 5].map(function (n) { return '<span class="aa-sec-t"><img src="/images/arcia-secret/blur-' + n + '.webp" alt="" aria-hidden="true"><i aria-hidden="true">' + LOCK + "</i></span>"; }).join("");
+    var stats = i ? '<p class="aa-sec-stats" data-no-i18n><b>' + fmt(i.opened) + "</b> " + esc(T({ en: "fans opened it", ko: "명이 열었어요", zh: "位粉丝已打开" })) + " · <b>" + fmt(i.burned) + "</b> $ARCIRCLE " + esc(T({ en: "burned", ko: "소각", zh: "已销毁" })) + "</p>" : "";
+    var act;
+    if (sec.photos) act = '<p class="aa-mini">' + esc(T({ en: "Opened with this wallet, for good. Tap a photo to see it big.", ko: "이 지갑으로 영구히 열렸어요. 사진을 누르면 크게 볼 수 있어요.", zh: "此钱包已永久打开。点照片可放大。" })) + "</p>";
+    else if (i && i.open && a) act = '<button type="button" class="aa-rc-btn" data-sec="sign">' + esc(T({ en: "Sign to view — already opened", ko: "서명하고 보기 — 이미 열었어요", zh: "签名查看——已打开" })) + "</button>";
+    else if (!canWallet()) act = '<a class="aa-rc-btn" href="/arc#arcia">' + esc(T({ en: "Open it on ArcPad", ko: "ArcPad에서 열기", zh: "在 ArcPad 打开" })) + "</a>";
+    else if (sec.confirm) act = '<div class="aa-sec-confirm"><p>' + esc(T({ en: "Burn 100,000 $ARCIRCLE from this wallet? They go to 0x…dEaD and can't come back. Nobody receives them.", ko: "이 지갑에서 100,000 $ARCIRCLE을 소각할까요? 0x…dEaD로 가서 되돌릴 수 없어요. 누구도 받지 않아요.", zh: "从此钱包销毁 100,000 $ARCIRCLE？它们会发送到 0x…dEaD，无法找回，任何人都不会收到。" })) + '</p><div><button type="button" class="aa-rc-btn" data-sec="burn">' + esc(T({ en: "Burn & open", ko: "소각하고 열기", zh: "销毁并打开" })) + '</button><button type="button" class="aa-rc-btn ghost" data-sec="cancel">' + esc(T({ en: "Cancel", ko: "취소", zh: "取消" })) + "</button></div></div>";
+    else act = '<button type="button" class="aa-rc-btn" data-sec="start"' + (sec.busy ? " disabled" : "") + ">" + esc(sec.busy ? sec.busyText || "…" : a ? T({ en: "Burn 100,000 $ARCIRCLE to open", ko: "100,000 $ARCIRCLE 소각하고 열기", zh: "销毁 100,000 $ARCIRCLE 打开" }) : T({ en: "Connect a wallet to open", ko: "지갑 연결하고 열기", zh: "连接钱包后打开" })) + "</button>";
+    box.innerHTML = '<p class="aa-mini" data-no-i18n>' + esc(T({ en: "ARCIA's private photos. Open them once by burning 100,000 $ARCIRCLE — every token goes to the dead address, gone for good. Opened stays opened for your wallet.", ko: "ARCIA의 비밀 사진이에요. 100,000 $ARCIRCLE을 소각하면 열려요 — 전부 dead 주소로 가서 영원히 사라져요. 한 번 열면 그 지갑에서는 계속 열려 있어요.", zh: "ARCIA 的私密照片。销毁 100,000 $ARCIRCLE 即可打开——全部发送到销毁地址，永久消失。打开后对你的钱包永久有效。" })) + "</p>" +
+      '<div class="aa-sec-grid' + (sec.photos ? " on" : "") + '">' + tiles + "</div>" + stats + '<div class="aa-sec-act" data-no-i18n>' + act + "</div>" +
+      (sec.msg ? '<p class="aa-sec-msg" role="status" data-no-i18n>' + esc(sec.msg) + "</p>" : "");
+  }
+  var LOCK = '<svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+  function secBusy(t) { sec.busy = !!t; sec.busyText = t || ""; secPaint(); }
+  function secErr(e, fallback) {
+    var m = e && (e.code === "ACTION_REJECTED" || e.code === 4001 || /rejected|denied/i.test(e.message || "")) ? T({ en: "Cancelled in your wallet.", ko: "지갑에서 취소했어요.", zh: "已在钱包中取消。" }) : (e && e.mine) ? e.message : fallback;
+    sec.msg = m; secBusy("");
+  }
+  function secSign(a) {
+    var have = ls.get("arcia-secret-sig:" + a, "");
+    if (have) return Promise.resolve(have);
+    return state.signer.signMessage(secMsg(a)).then(function (sig) { ls.set("arcia-secret-sig:" + a, sig); return sig; });
+  }
+  function secVerify(a, tx, sig, tries) {
+    return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "secret-open", wallet: a, tx: tx, signature: sig }) })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        if (x.s === 404 && tries > 0) return new Promise(function (res) { setTimeout(res, 2500); }).then(function () { return secVerify(a, tx, sig, tries - 1); });
+        if (!x.j || !x.j.ok) throw Object.assign(new Error((x.j && x.j.error) || "couldn't check the burn"), { mine: true });
+        return true;
+      });
+  }
+  async function secStart(kind) {
+    var a = account();
+    if (kind === "cancel") { sec.confirm = false; secPaint(); return; }
+    if (!a) { if (typeof connectWallet === "function") { try { await connectWallet(); } catch (e) { /* closed */ } } secLoad(); return; }
+    if (sec.busy) return;
+    sec.msg = "";
+    try {
+      if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
+      if (kind === "sign") { secBusy(T({ en: "Sign in your wallet…", ko: "지갑에서 서명…", zh: "请在钱包中签名…" })); var s0 = await secSign(a); await secPhotos(a, s0); secBusy(""); return; }
+      var pending = ls.get("arcia-secret-tx:" + a, "");
+      if (!pending && kind === "start") {
+        var tok = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, ["function balanceOf(address) view returns (uint256)", "function transfer(address,uint256) returns (bool)"], state.signer);
+        var bal = await tok.balanceOf(a);
+        if (bal < ethers.parseUnits(SEC_PRICE, 18)) { sec.msg = T({ en: "This wallet holds less than 100,000 $ARCIRCLE.", ko: "이 지갑의 $ARCIRCLE이 100,000개보다 적어요.", zh: "此钱包的 $ARCIRCLE 少于 100,000。" }); secPaint(); return; }
+        sec.confirm = true; secPaint(); return;
+      }
+      if (!pending) {
+        sec.confirm = false;
+        secBusy(T({ en: "Confirm the burn in your wallet…", ko: "지갑에서 소각 확인…", zh: "请在钱包中确认销毁…" }));
+        var t = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, ["function transfer(address,uint256) returns (bool)"], state.signer);
+        var tx = await t.transfer(SEC_DEAD, ethers.parseUnits(SEC_PRICE, 18));
+        ls.set("arcia-secret-tx:" + a, tx.hash); pending = tx.hash;
+        secBusy(T({ en: "Burning…", ko: "소각 중…", zh: "销毁中…" }));
+        await tx.wait();
+      }
+      secBusy(T({ en: "Sign to open (no gas)…", ko: "열기 서명 (가스 없음)…", zh: "签名打开（无 Gas）…" }));
+      var sig = await secSign(a);
+      secBusy(T({ en: "Checking the burn…", ko: "소각 확인 중…", zh: "正在核对销毁…" }));
+      await secVerify(a, pending, sig, 6);
+      ls.set("arcia-secret-tx:" + a, "");
+      await secPhotos(a, sig);
+      secBusy("");
+      toast(T({ en: "The secret file is open ♡", ko: "비밀정보가 열렸어요 ♡", zh: "秘密档案已打开 ♡" }));
+      secLoad();
+    } catch (e) { sec.confirm = false; secErr(e, T({ en: "That didn't go through — press the button again.", ko: "처리되지 않았어요 — 버튼을 다시 눌러 주세요.", zh: "未能完成——请再按一次。" })); }
+  }
+  function secView(n) {
+    var p = sec.photos && sec.photos.filter(function (x) { return x.n === n; })[0];
+    if (!p) return;
+    var o = document.createElement("div");
+    o.className = "aa-sec-view"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", p.title);
+    o.innerHTML = '<img src="' + p.src + '" alt="' + esc(p.title) + '"><b data-no-i18n>' + esc(p.title) + '</b><button type="button" aria-label="Close">×</button>';
+    o.addEventListener("click", function () { o.remove(); });
+    document.body.appendChild(o);
+  }
+
+  // ---------------- build ----------------
+  function build() {
+    panel.innerHTML =
+      '<div class="aa">' +
+        '<div class="aa-hero">' +
+          '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner2-900.webp 900w, /images/arcia-banner2.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner2.jpg" srcset="/images/arcia-banner2-900.jpg 900w, /images/arcia-banner2.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="547"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + '></picture></div></div>' +
+          '<div class="aa-id">' +
+            '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"' + (HOST ? ' loading="lazy"' : "") + '></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
+            '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>' +
+              '<p class="aa-handle"><a href="' + X + '" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p>' +
+              '<div class="aa-badges"></div></div>' +
+            '<div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat"><span class="aa-lg">Chat with ARCIA</span><span class="aa-sh">Chat</span></a><a class="aa-x" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow on X</span></a><a class=\"aa-x aa-tg\" href=\"https://t.me/ARCIAonArc_bot\" target=\"_blank\" rel=\"noopener\"><span class=\"aa-lg\">Chat on Telegram</span><span class=\"aa-sh\">Telegram</span></a></div>" +
+          "</div>" +
+          '<p class="aa-lede">ARCIA has studied every page of ARCIRCLE PAD and carries $ARCIRCLE to the world — here in her chat, and on X, where she answers every mention within about a minute.</p>' +
+          // ARCIA's other utilities, in one place
+          // a div, not <nav>: the site's global nav rules (full-bleed width, side padding, scrolling) would pull it out of the hero on phones
+          '<div class="aa-fam" role="navigation" aria-label="More from ARCIA">' +
+            '<a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span>' +
+              '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+            '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
+              '<span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+          "</div>" +
+        "</div>" +
+        '<div class="aa-stage">' +
+          '<aside class="aa-portrait" aria-label="ARCIA">' +
+            '<div class="aa-pf"><picture><source type="image/webp" srcset="/images/arcia-portrait-480.webp 480w, /images/arcia-portrait.webp 720w" sizes="250px"><img src="/images/arcia-portrait.jpg" alt="ARCIA" width="720" height="712" loading="lazy"></picture><i class="aa-pf-halo" aria-hidden="true"></i>' +
+              '<div class="aa-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
+              '<div class="aa-pf-tag"><b>ARCIA</b><span><i></i>Online</span></div></div>' +
+            '<div class="aa-cheer"></div>' +
+          "</aside>" +
+          '<section class="aa-chat" id="aa-chat" aria-label="Chat with ARCIA">' +
+            '<div class="aa-chat-h"><span class="aa-mini-av"><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40"></span><div><b>ARCIA</b><span class="aa-on"><i></i>Online</span></div>' +
+              '<span class="aa-me" hidden data-no-i18n></span>' +
+              ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud">' + ICON.voice + "<span>Voice</span></button>" : "") +
+              '<button type="button" class="aa-tool aa-new" title="Start a new chat"><span>New chat</span></button></div>' +
+            '<div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">' + ICON.heart + '</button>' +
+              '<div class="aa-g-main"><div class="aa-g-top"><span>Today\'s hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div>' +
+            '<ol class="aa-log" role="log" aria-live="polite" aria-label="Conversation"></ol>' +
+            '<div class="aa-sugg" aria-label="Suggested questions"></div>' +
+            '<form class="aa-form" autocomplete="off"><textarea rows="1" maxlength="700" placeholder="Talk to ARCIA…" aria-label="Message ARCIA" enterkeyhint="send"></textarea>' +
+              '<button type="submit" class="aa-send" aria-label="Send">' + ICON.send + "</button></form>" +
+            '<p class="aa-note">ARCIA is an AI character run by @ARCIRCLEonArc. She can be wrong, and nothing she says is financial advice. Never share your private key or seed phrase.</p>' +
+          "</section>" +
+          '<aside class="aa-side">' +
+            '<div class="aa-tabs" role="tablist" aria-label="More with ARCIA">' +
+              Object.keys(TABS).map(function (t, i) {
+                return '<button type="button" role="tab" id="aa-t-' + t + '" aria-controls="aa-p-' + t + '" aria-selected="' + (i ? "false" : "true") + '" tabindex="' + (i ? "-1" : "0") + '" data-t="' + t + '" data-no-i18n>' + esc(T(TABS[t])) + "</button>";
+              }).join("") + "</div>" +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl>' +
+              '<div class="aa-remind"><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + '<span>Add to calendar</span></button><button type="button" class="aa-rc-btn ghost" data-remind="1">' + ICON.bell + "<span>Remind me</span></button>" +
+              '<p class="aa-mini">Reminders show while this page is open. For alerts anywhere, join <a href="https://t.me/arcircle_launch" target="_blank" rel="noopener">t.me/arcircle_launch</a>.</p></div>' +
+              '<a class="aa-more" href="/stats">All live stats →</a></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-x" aria-labelledby="aa-t-x" hidden><h3>ARCIA on X</h3><p class="aa-xhead"></p><ul class="aa-xfeed"><li class="aa-empty">Loading…</li></ul>' +
+              '<a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow @ARCIAonArc</span></a></div>" +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-letters" aria-labelledby="aa-t-letters" hidden><h3>Fan letters</h3><p class="aa-mini">Write to ARCIA. She reads every letter and answers it here, for everyone to see.</p>' +
+              '<form class="aa-lform" autocomplete="off"><input name="name_" maxlength="24" placeholder="Your name" aria-label="Your name"><textarea name="text" maxlength="280" rows="3" placeholder="Dear ARCIA…" aria-label="Your letter" required></textarea>' +
+              '<div class="aa-lf-row"><span class="aa-lf-count" data-no-i18n>0 / 280</span><button type="submit" class="aa-rc-btn">Send letter</button></div><p class="aa-lf-msg" role="status"></p></form>' +
+              '<div class="aa-lsort" role="radiogroup"><button type="button" role="radio" aria-checked="true" data-lsort="new">Latest</button><button type="button" role="radio" aria-checked="false" data-lsort="top">Top this week</button></div>' +
+              '<ul class="aa-letters"><li class="aa-empty">Loading…</li></ul></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-quiz" aria-labelledby="aa-t-quiz" hidden><h3>$ARCIRCLE quiz</h3><div class="aa-quiz"></div></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-cards" aria-labelledby="aa-t-cards" hidden><h3>Photocard book</h3><p class="aa-mini">Tap the card button on any of her replies to make one. Your cards are kept in this browser.</p><div class="aa-book"></div>' +
+              '<button type="button" class="aa-rc-btn" data-fancard="1"><span>Make my fan card</span></button></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-secret" aria-labelledby="aa-t-secret" hidden><h3 data-no-i18n>' + esc(T({ en: "Secret file", ko: "비밀정보", zh: "秘密档案" })) + '</h3><div class="aa-secret"></div></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-profile" aria-labelledby="aa-t-profile" hidden><h3>Official profile</h3><div class="aa-profile"></div><div class="aa-fan"></div>' +
+              '<h4>What ARCIA has studied</h4><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div></div>' +
+          "</aside>" +
+        "</div>" +
+      "</div>";
+    famLoad();
+    panel.querySelector(".aa-fam").addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("[data-arc-tab]");
+      if (!a || typeof window.arcpadShowTab !== "function" || HOST) return; // other pages: a normal link to /arc#…
+      e.preventDefault(); window.arcpadShowTab(a.getAttribute("data-arc-tab"));
+    });
+    chat = panel.querySelector(".aa-chat");
+    log = panel.querySelector(".aa-log");
+    form = panel.querySelector(".aa-form");
+    input = form.querySelector("textarea");
+    sendBtn = form.querySelector(".aa-send");
+    form.addEventListener("submit", function (e) { e.preventDefault(); send(input.value); });
+    var leftEl = document.createElement("p"); leftEl.className = "aa-left"; leftEl.hidden = true; form.after(leftEl);
+    micSetup();
+    paintBook();
+    input.addEventListener("input", grow);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); } });
+    log.addEventListener("scroll", function () { stick = log.scrollHeight - log.scrollTop - log.clientHeight < 60; });
+    Q(".aa-sugg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) send(b.textContent); });
+    Q(".aa-new").addEventListener("click", restart);
+    panel.querySelector(".aa-cheer-btn").addEventListener("click", function (e) {
+      if (!cheer(1)) return;
+      var b = e.currentTarget; b.classList.remove("go"); void b.offsetWidth; b.classList.add("go");
+      if (!reduce) for (var k = 0; k < 6; k++) { var hp = document.createElement("i"); hp.className = "aa-hp"; hp.style.setProperty("--x", (Math.random() * 60 - 30).toFixed(0) + "px"); hp.style.setProperty("--d", (k * 60) + "ms"); hp.innerHTML = ICON.heart; b.appendChild(hp); setTimeout(function (el) { el.remove(); }.bind(null, hp), 1300); }
+      fx(Q(".aa-gauge"), "hearts");
+      if (typeof window.arcHaptic === "function") window.arcHaptic("tap");
+    });
+    var vt = Q(".aa-voice-t");
+    if (vt) {
+      var syncV = function () { var on = !!ls.get("arcia-voice", false); vt.setAttribute("aria-pressed", on ? "true" : "false"); vt.classList.toggle("on", on); };
+      vt.addEventListener("click", function () { var on = !ls.get("arcia-voice", false); ls.set("arcia-voice", on); syncV(); if (!on) stopVoice(); else toast(tr("Voice on — she'll read her replies aloud.")); });
+      syncV();
+      loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) { /* none */ }
+    }
+    panel.querySelector(".aa-go").addEventListener("click", function (e) { e.preventDefault(); chat.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); setTimeout(function () { input.focus({ preventScroll: true }); }, 350); });
+    // message actions: heart / voice / photocard / copy, and double-tap to heart
+    log.addEventListener("click", function (e) {
+      var b = e.target.closest(".aa-acts button"), li = e.target.closest(".aa-m");
+      if (b && li) {
+        var a = b.getAttribute("data-a"), text = li._text || li.querySelector(".aa-b").textContent;
+        if (a === "heart") toggleHeart(li);
+        else if (a === "voice") speak(text, li);
+        else if (a === "card") photocard(text);
+        else if (a === "copy") { copyText(text); toast(tr("Copied")); }
+        return;
+      }
+      var cp = e.target.closest("[data-copy]"); if (cp) { copyText(cp.getAttribute("data-copy"), cp); return; }
+      if (e.target.closest("[data-ics]")) ics();
+    });
+    log.addEventListener("dblclick", function (e) { var li = e.target.closest(".aa-m.her"); if (li && !li.classList.contains("aa-typing") && e.target.closest(".aa-b")) { e.preventDefault(); try { window.getSelection().removeAllRanges(); } catch (x) { /* none */ } toggleHeart(li); } });
+    var lastTap = 0;
+    log.addEventListener("touchend", function (e) {
+      var li = e.target.closest(".aa-m.her"); if (!li || !e.target.closest(".aa-b") || e.target.closest("a")) return;
+      var t = Date.now(); if (t - lastTap < 320) { e.preventDefault(); toggleHeart(li); lastTap = 0; } else lastTap = t;
+    });
+    // tabs
+    var tabs = panel.querySelector(".aa-tabs");
+    var pick = function (id, focus) {
+      tabs.querySelectorAll("[role=tab]").forEach(function (b) { var on = b.getAttribute("data-t") === id; b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+      panel.querySelectorAll(".aa-tabp").forEach(function (p) { p.hidden = p.id !== "aa-p-" + id; });
+      if (id === "x") loadFeed();
+      if (id === "letters") { if (!lettersLoaded) loadLetters(); var nf = panel.querySelector(".aa-lform [name=name_]"); if (nf && !nf.value) nf.value = ls.get("arcia-name", "") || ""; }
+      if (id === "quiz") quizPaint();
+      if (id === "profile") paintFan();
+      if (id === "secret") secLoad();
+    };
+    tabs.addEventListener("click", function (e) { var b = e.target.closest("[role=tab]"); if (b) pick(b.getAttribute("data-t")); });
+    panel.addEventListener("click", function (e) {
+      var sb = e.target.closest("[data-sec]"); if (sb) { secStart(sb.getAttribute("data-sec")); return; }
+      var sv = e.target.closest("[data-sec-view]"); if (sv) secView(Number(sv.getAttribute("data-sec-view")));
+    });
+    tabs.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      var all = [].slice.call(tabs.querySelectorAll("[role=tab]")), i = all.indexOf(document.activeElement);
+      if (i < 0) return;
+      pick(all[(i + (e.key === "ArrowRight" ? 1 : all.length - 1)) % all.length].getAttribute("data-t"), true);
+    });
+    var side = panel.querySelector(".aa-side");
+    side.addEventListener("click", function (e) {
+      if (e.target.closest("[data-ics]")) ics();
+      else if (e.target.closest("[data-remind]")) remind();
+      else if (e.target.closest("[data-q=start]")) quizStart();
+      else if (e.target.closest(".aa-q-opts button")) quizPick(e.target.closest("button"));
+      else if (e.target.closest(".aa-lt-heart")) heartLetter(e.target.closest(".aa-lt-heart"));
+      else if (e.target.closest("[data-forget]")) { ls.set("arcia-name", null); paintFan(); }
+      else if (e.target.closest("[data-fancard]")) fanCard();
+      else if (e.target.closest("[data-lsort]")) {
+        var sb = e.target.closest("[data-lsort]"); lettersTop = sb.getAttribute("data-lsort") === "top";
+        side.querySelectorAll("[data-lsort]").forEach(function (x) { x.setAttribute("aria-checked", x === sb ? "true" : "false"); });
+        loadLetters();
+      }
+    });
+    var lf = panel.querySelector(".aa-lform");
+    lf.addEventListener("submit", sendLetter);
+    lf.text.addEventListener("input", function () { count(lf); });
+    lf.name_.value = ls.get("arcia-name", "") || "";
+    panel.querySelector(".aa-profile").innerHTML = profileHtml();
+    chips();
+    // phones: while the chat box is on screen, the floating bars step aside so the input stays usable
+    if ("IntersectionObserver" in window) {
+      var seen = false;
+      var sync = function () { root.classList.toggle("aa-chat-on", seen && panel.classList.contains("active") && window.innerWidth <= 900); };
+      new IntersectionObserver(function (es) { seen = es[0].isIntersecting; sync(); }, { threshold: 0.6 }).observe(form);
+      document.addEventListener("arcpad:tab", function () { setTimeout(sync, 0); });
+      window.addEventListener("resize", sync);
+    }
+    // phones: the on-screen keyboard shrinks the visual viewport — keep the input and the last message in view
+    var vv = window.visualViewport;
+    if (vv) {
+      var fit = function () {
+        if (document.activeElement !== input || window.innerWidth > 900) { log.style.height = ""; return; }
+        var h = Math.round(vv.height - form.offsetHeight - Q(".aa-chat-h").offsetHeight - Q(".aa-sugg").offsetHeight - 24);
+        log.style.height = Math.max(150, Math.min(520, h)) + "px";
+        stick = true; scroll();
+        requestAnimationFrame(function () { chat.scrollIntoView({ block: "end" }); });
+      };
+      vv.addEventListener("resize", fit);
+      input.addEventListener("focus", function () { setTimeout(fit, 250); });
+      input.addEventListener("blur", function () { setTimeout(function () { if (document.activeElement !== input) log.style.height = ""; }, 150); });
+    }
+    // banner parallax
+    if (!reduce) {
+      var par = panel.querySelector(".aa-par"), ticking = false;
+      window.addEventListener("scroll", function () {
+        if (ticking || !panel.classList.contains("active")) return;
+        ticking = true;
+        requestAnimationFrame(function () { ticking = false; var y = Math.max(0, Math.min(140, window.scrollY * 0.28)); par.style.transform = "translate3d(0," + y.toFixed(1) + "px,0)"; });
+      }, { passive: true });
+    }
+    // history, greeting, streak
+    msgs = (ss.get(KEY, []) || []).filter(function (m) { return m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"; });
+    var sk = streak();
+    greet();
+    msgs.forEach(function (m, i) { bubble(m.role, m.content, { t: m.t, liked: m.liked, i: m.role === "assistant" ? i : null }); });
+    paintCheer(); paintFan(); paintRemind(); scheduleRemind();
+    var entered = entrance();
+    var introShown = !ls.get("arcia-intro-v1", false);
+    if (introShown) setTimeout(intro, entered ? 950 : 0);
+    if (sk.fresh && !sk.first && !introShown) {
+      var li = bubble("assistant", T(STREAK_MSG).replace("{n}", sk.st.n).replace("{c}", cheerText()), { type: true, cls: "sys" });
+      if ([3, 7, 14, 30, 50, 100].indexOf(sk.st.n) >= 0) fx(li, "confetti"); else fx(li, "sparkle");
+    }
+  }
+
+  // ---------------- photocard book ----------------
+  function paintBook() {
+    var box = panel.querySelector(".aa-book");
+    if (!box) return;
+    var book = ls.get("arcia-book", []) || [], col = ls.get("arcia-cards", { common: 0, rare: 0, secret: 0 }) || {};
+    var head = '<div class="aa-book-count" data-no-i18n>' + ["common", "rare", "secret"].map(function (r) {
+      return '<span class="aa-rar-' + r + '"><b>' + (col[r] || 0) + "</b>" + esc(T(RARITY[r].label).replace(/!+$/, "")) + "</span>";
+    }).join("") + "</div>";
+    box.innerHTML = head + (book.length ? '<ol class="aa-book-grid">' + book.map(function (c, i) {
+      return '<li class="aa-bc aa-rar-' + c.r + '" style="--i:' + Math.min(i, 18) + '"><i class="aa-bc-shine" aria-hidden="true"></i><span class="aa-bc-no" data-no-i18n>No.' + esc(c.s) + '</span><p data-no-i18n>“' + esc(c.q) + '”</p><small data-no-i18n>' + esc(dayStr(new Date(c.t))) + "</small></li>";
+    }).join("") + "</ol>" : '<p class="aa-empty">' + esc(T({ en: "No cards yet — make one from any reply♡", ko: "아직 카드가 없어요 — 답장에서 만들어 보세요♡", zh: "还没有小卡 — 在任何回复里制作一张吧♡" })) + "</p>");
+  }
+  // a fan card: name, streak, quiz, cards and badges — an image to save or share
+  function fanCard() {
+    var W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
+    var x = c.getContext("2d"), img = new Image();
+    img.onload = function () {
+      var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#0b1430"); g.addColorStop(1, "#08251b"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      var r = Math.min(img.width, img.height);
+      x.save(); x.beginPath(); x.arc(W / 2, 330, 190, 0, Math.PI * 2); x.clip(); x.drawImage(img, (img.width - r) / 2, 0, r, r, W / 2 - 190, 140, 380, 380); x.restore();
+      x.lineWidth = 10;
+      var ring = x.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0); ring.addColorStop(0, "#4d9fff"); ring.addColorStop(1, "#39ff88");
+      x.strokeStyle = ring; x.beginPath(); x.arc(W / 2, 330, 196, 0, Math.PI * 2); x.stroke();
+      x.textAlign = "center"; x.fillStyle = "#9fd7ff"; x.font = "700 34px Sora, sans-serif"; x.fillText("ARCIA FAN CARD", W / 2, 610);
+      var n = ls.get("arcia-name", "") || T({ en: "A fan of ARCIA", ko: "ARCIA의 팬", zh: "ARCIA 的粉丝" });
+      x.fillStyle = "#fff"; x.font = "800 76px Sora, sans-serif"; x.fillText(String(n).slice(0, 18), W / 2, 700);
+      var st = ls.get("arcia-streak", null) || { n: 0, total: 0 }, col = ls.get("arcia-cards", null) || {}, qz = ls.get("arcia-quiz", null) || { best: 0 };
+      var stats = [[T({ en: "Streak", ko: "연속 방문", zh: "连续" }), (st.n || 0) + "d"], [T({ en: "Visits", ko: "방문", zh: "来访" }), String(st.total || 0)],
+        [T({ en: "Quiz best", ko: "퀴즈 최고", zh: "测验最佳" }), (qz.best || 0) + "/8"], [T({ en: "Cards", ko: "카드", zh: "小卡" }), String((col.common || 0) + (col.rare || 0) + (col.secret || 0))]];
+      stats.forEach(function (s2, i) {
+        var bx = 120 + i * 220;
+        x.fillStyle = "rgba(255,255,255,.06)"; x.beginPath();
+        if (x.roundRect) x.roundRect(bx, 770, 200, 170, 26); else x.rect(bx, 770, 200, 170);
+        x.fill();
+        x.fillStyle = "#39ff88"; x.font = "800 58px Sora, sans-serif"; x.fillText(s2[1], bx + 100, 860);
+        x.fillStyle = "#9fb0c4"; x.font = "600 26px Sora, sans-serif"; x.fillText(s2[0], bx + 100, 905);
+      });
+      var bs = badges().map(function (b) { return b[1]; });
+      x.fillStyle = "#ffe29a"; x.font = "700 34px Sora, sans-serif"; x.fillText(bs.length ? bs.join(" · ") : T({ en: "New fan", ko: "새내기 팬", zh: "新粉丝" }), W / 2, 1030);
+      x.fillStyle = "#8fb6ff"; x.font = "600 30px Sora, sans-serif"; x.fillText("@ARCIAonArc · arcircle.app/arcia", W / 2, H - 90);
+      c.toBlob(function (blob) {
+        if (!blob) return;
+        var url = URL.createObjectURL(blob);
+        modal('<div class="aa-card-view"><p class="aa-rar" data-no-i18n>' + esc(T({ en: "Your fan card", ko: "나의 팬 카드", zh: "我的粉丝卡" })) + '</p><div class="aa-card-img"><img src="' + url + '" alt="Fan card"></div><div class="aa-rc-row"><a class="aa-rc-btn" href="' + url + '" download="arcia-fan-card.png"><span>Save image</span></a><a class="aa-rc-btn ghost" href="https://x.com/intent/post?text=' + encodeURIComponent("My ARCIA fan card 💙💚 @ARCIAonArc\narcircle.app/arcia") + '" target="_blank" rel="noopener">' + ICON.x + "<span>Post on X</span></a></div></div>", function () { URL.revokeObjectURL(url); });
+      }, "image/png");
+    };
+    img.src = "/images/arcia-portrait.jpg";
+  }
+  // ---------------- the drawer: ARCIA over any ArcPad page ----------------
+  function openDrawer(focus) {
+    boot();
+    if (panel.classList.contains("active")) {
+      chat.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      if (focus) input.focus({ preventScroll: true });
+      return;
+    }
+    if (!drawer) {
+      drawer = document.createElement("div");
+      drawer.className = "aa-drawer"; drawer.hidden = true;
+      drawer.setAttribute("role", "dialog"); drawer.setAttribute("aria-label", "ARCIA");
+      drawer.innerHTML = '<div class="aa-dr-scrim" data-dr-close></div><div class="aa-dr-sheet"><div class="aa-dr-h"><img src="/images/arcia-avatar-96.jpg" alt="" width="36" height="36"><div><b>ARCIA</b><small>' +
+        esc(T({ en: "Ask about this page", ko: "이 화면에 대해 물어보세요", zh: "问问这个页面" })) + '</small></div><a href="' + (HOST ? "/arc#arcia" : "#arcia") + '" class="aa-dr-full" data-dr-close>' +
+        esc(T({ en: "Full page", ko: "전체 화면", zh: "完整页面" })) + '</a><button type="button" class="aa-dr-x" data-dr-close aria-label="Close">×</button></div><div class="aa-dr-body"></div></div>';
+      document.body.appendChild(drawer);
+      drawer.addEventListener("click", function (e) { if (e.target.closest("[data-dr-close]")) closeDrawer(); });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && drawer && !drawer.hidden) closeDrawer(); });
+      document.addEventListener("arcpad:tab", function (e) { if (e.detail && e.detail.tab === "arcia" && drawer && !drawer.hidden) closeDrawer(); });
+    }
+    if (!home) { home = document.createComment("aa-chat"); chat.parentNode.insertBefore(home, chat); }
+    drawer.querySelector(".aa-dr-body").appendChild(chat);
+    chat.classList.add("in-drawer");
+    drawer.hidden = false;
+    document.documentElement.classList.add("aa-dr-open");
+    requestAnimationFrame(function () {
+      drawer.classList.add("in"); stick = true; scroll();
+      if (focus && window.innerWidth > 900) input.focus({ preventScroll: true });
+    });
+  }
+  function closeDrawer() {
+    if (!drawer || drawer.hidden) return;
+    drawer.classList.remove("in");
+    document.documentElement.classList.remove("aa-dr-open");
+    setTimeout(function () {
+      drawer.hidden = true;
+      if (home && home.parentNode) { home.parentNode.insertBefore(chat, home); chat.classList.remove("in-drawer"); }
+    }, reduce ? 0 : 240);
+  }
+
+  function boot() {
+    if (booted) return;
+    booted = true;
+    build();
+    refreshLive();
+    loadHearts();
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) loadHearts(); }, 20000);
+    setTimeout(checkWallet, 1200);
+    setInterval(function () { if (panel.classList.contains("active")) checkWallet(); }, 5000);
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 60000);
+    setInterval(function () { if (panel.classList.contains("active")) clock(); }, 1000);
+  }
+  // Other utilities hand ARCIA a question ("Ask ARCIA" buttons): open her tab and send it.
+  window.arcArcia = {
+    open: function () { openDrawer(true); },
+    ask: function (text) {
+      openDrawer(false);
+      var tries = 0;
+      (function go() { if (!busy && sendBtn) { send(text); return; } if (++tries < 40) setTimeout(go, 150); })();
+    },
+  };
+  document.addEventListener("arcpad:tab", function (e) { if (e.detail && e.detail.tab === "arcia") boot(); });
+  if (panel.classList.contains("active") || /^#arcia\b/.test(location.hash)) boot();
+  document.addEventListener("arc:lang", function () {
+    if (!booted) return;
+    chips(); paintCheer(); paintFan(); quizPaint();
+    panel.querySelectorAll(".aa-tabs [data-t]").forEach(function (b) { b.textContent = T(TABS[b.getAttribute("data-t")]); });
+    panel.querySelector(".aa-profile").innerHTML = profileHtml();
+  });
+})();
+;

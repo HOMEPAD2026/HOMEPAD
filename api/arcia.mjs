@@ -19,6 +19,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { KB } from "./_arcia-kb.mjs";
 import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
 import { storeEnabled, getDocs, commit, queryDocs, setDoc } from "./_store.mjs";
+import * as secret from "./_arcia-secret.mjs";
+import { ttsProvider, speak as ttsSpeak } from "./_arcia-tts.mjs";
 
 // guide mode: the closest passage on the site for questions the quick answers don't cover
 const KO_TERMS = { "락커": "locker", "잠금": "lock", "스캐너": "scanner", "멀티센더": "multisender", "에어드롭": "airdrop", "브릿지": "bridge", "스냅샷": "snapshot",
@@ -388,6 +390,19 @@ async function cheer(b, ip) {
   return json({ ok: true, counted: give, today: memToday(), goal: HEART_GOAL() });
 }
 
+// ---------- her voice (api/_arcia-tts.mjs) ----------
+async function tts(body, ip, lang) {
+  if (!ttsProvider()) return json({ error: "voice is off" }, 503);
+  if (memHit("t:" + ip, 3600000, 40)) return json({ error: "that's a lot of listening — try again later" }, 429);
+  const cap = Number(process.env.ARCIA_TTS_DAY_CAP || 3000);
+  if (storeEnabled()) {
+    const k = `arciaTts/${dayKey()}`;
+    try { const d = (await getDocs([k]))[k]; if (d && d.n >= cap) return json({ error: "her voice is resting for today" }, 429); await commit([{ inc: k, fields: { n: 1 } }]); } catch (e) { /* count is best effort */ }
+  }
+  const v = await ttsSpeak(String(body.text || ""), lang);
+  return new Response(v.audio, { status: 200, headers: { "content-type": v.type, "cache-control": "no-store" } });
+}
+
 // ---------- routes ----------
 export async function GET(req) {
   const url = new URL(req.url);
@@ -395,13 +410,18 @@ export async function GET(req) {
     try { return json({ today: await heartsToday(), goal: HEART_GOAL() }, 200, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"); }
     catch (e) { return json({ today: null, goal: HEART_GOAL() }, 200, "no-store"); }
   }
+  // the secret file (api/_arcia-secret.mjs)
+  if (url.searchParams.has("secret")) {
+    try { const w = url.searchParams.get("wallet"); return json(await secret.info(w), 200, w ? "no-store" : "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
+    catch (e) { return json({ error: "couldn't read the secret file" }, 502); }
+  }
   if (url.searchParams.has("letters")) {
     if (!storeEnabled()) return json({ letters: [], open: false }, 200, "public, max-age=30");
     try { return json({ letters: await letters(url.searchParams.get("letters") === "top"), open: true }, 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60"); }
     catch (e) { console.error("arcia letters", String(e.message || e)); return json({ letters: [], open: true, error: "couldn't read letters" }, 200, "no-store"); }
   }
   const L = await liveFor(url.origin);
-  return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA });
+  return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA, tts: ttsProvider() });
 }
 
 export async function POST(req) {
@@ -412,6 +432,9 @@ export async function POST(req) {
   const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
   if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
   if (body && body.action === "cheer") { try { return await cheer(body, ip); } catch (e) { return json({ error: "couldn't send it" }, 502); } }
+  if (body && body.action === "tts") { try { return await tts(body, ip, lang); } catch (e) { console.error("arcia tts", String(e.message || e)); return json({ error: "voice unavailable" }, e.status || 502); } }
+  if (body && body.action === "secret-open") { try { return await secret.open(body, json); } catch (e) { console.error("arcia secret", String(e.message || e)); return json({ error: "couldn't check the burn — try again" }, 502); } }
+  if (body && body.action === "secret-photos") { try { return await secret.photos(body, json); } catch (e) { return json({ error: "couldn't open it — try again" }, 502); } }
   if (body && body.action === "heart") { try { return await heartLetter(body, ip); } catch (e) { return json({ error: "couldn't heart it" }, 502); } }
 
   const msgs = (Array.isArray(body && body.messages) ? body.messages : [])

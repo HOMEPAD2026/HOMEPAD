@@ -91,6 +91,7 @@
   var TABS = {
     live: { en: "Live", ko: "실시간", zh: "实时" }, x: { en: "On X", ko: "X 활동", zh: "X 动态" }, letters: { en: "Letters", ko: "팬레터", zh: "粉丝信" },
     quiz: { en: "Quiz", ko: "퀴즈", zh: "测验" }, cards: { en: "Cards", ko: "포토카드", zh: "小卡" }, profile: { en: "Profile", ko: "프로필", zh: "资料" },
+    secret: { en: "Secret", ko: "비밀정보", zh: "秘密" },
   };
   var ICON = {
     send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>',
@@ -502,7 +503,29 @@
     }
     return { voice: mine[0] || null, female: false };
   }
+  // her own voice from the server (api/_arcia-tts.mjs — ElevenLabs or OpenAI) when it's switched on; the
+  // browser's voice otherwise, or when the server's fails once this visit
+  var serverVoice = null, audioNow = null;
+  function stopVoice() {
+    try { speechSynthesis.cancel(); } catch (e) { /* none */ }
+    if (audioNow) { try { audioNow.pause(); } catch (e) { /* gone */ } audioNow = null; speaking(false); }
+  }
   function speak(text, li) {
+    if (!serverVoice) { speakBrowser(text, li); return; }
+    stopVoice();
+    var done = function () { speaking(false); if (li) li.classList.remove("talking"); };
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "tts", text: String(text).slice(0, 700), lang: lang() }) })
+      .then(function (r) { if (!r.ok) throw new Error("tts " + r.status); return r.blob(); })
+      .then(function (b) {
+        var url = URL.createObjectURL(b), a = new Audio(url);
+        audioNow = a;
+        a.onplay = function () { speaking(true); if (li) li.classList.add("talking"); };
+        a.onended = a.onerror = function () { done(); URL.revokeObjectURL(url); if (audioNow === a) audioNow = null; };
+        return a.play().catch(function () { done(); });
+      })
+      .catch(function () { serverVoice = false; speakBrowser(text, li); });
+  }
+  function speakBrowser(text, li) {
     if (!("speechSynthesis" in window)) return;
     try {
       speechSynthesis.cancel();
@@ -690,7 +713,7 @@
     });
   }
   function refreshLive() {
-    return fetch("/api/arcia").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.live) paintLive(j.live); }).catch(function () {});
+    return fetch("/api/arcia").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && serverVoice !== false) serverVoice = j.tts || null; if (j && j.live) paintLive(j.live); }).catch(function () {});
   }
 
   // ---------------- round reminder: calendar file + a notification while the page is open ----------------
@@ -976,11 +999,11 @@
       [K("Debut", "데뷔", "出道"), K("September 2026", "2026년 9월", "2026 年 9 月")], [K("Lives on", "사는 곳", "住在"), K("Circle's Arc chain", "Circle의 Arc 체인", "Circle 的 Arc 链")],
       [K("Colors", "컬러", "代表色"), K("Blue & green, like the ARCIRCLE rings", "ARCIRCLE 링처럼 파랑 & 초록", "像 ARCIRCLE 圆环一样的蓝与绿")],
       [K("Loves", "좋아하는 것", "喜欢"), K("New launches, burn-to-vote, chatting with fans", "신규 런칭, 소각 투표, 팬들과 수다", "新币发射、销毁投票、和粉丝聊天")],
-      [K("Height", "키", "身高"), soon], [K("Birthday", "생일", "生日"), soon], ["MBTI", soon],
+      [K("Height", "키", "身高"), "168 cm"], [K("Birthday", "생일", "生日"), K("September 29", "9월 29일", "9 月 29 日")], ["MBTI", "ESFP"],
       ["X", '<a href="' + X + '" target="_blank" rel="noopener">@ARCIAonArc</a>'], [K("Run by", "운영", "运营"), '<a href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">@ARCIRCLEonArc</a>'],
     ];
     return '<dl class="aa-prof">' + rows.map(function (r) { return "<div><dt data-no-i18n>" + esc(r[0]) + '</dt><dd data-no-i18n' + (r[1] === soon ? ' class="aa-dim"' : "") + ">" + (/^</.test(r[1]) ? r[1] : esc(r[1])) + "</dd></div>"; }).join("") + "</dl>" +
-      '<p class="aa-mini">An AI character, automated and run by the ARCIRCLE team. The rest of her official profile is on the way.</p>';
+      '<p class="aa-mini">An AI character, automated and run by the ARCIRCLE team. More of her official profile is on the way.</p>';
   }
 
   // ---------------- entrance: the two rings meet and she steps out (once a day, under a second) ----------------
@@ -1023,6 +1046,117 @@
       var live = d.mode === "live", n = (d.stats.realClosed || 0) + (d.open ? d.open.length : 0), p = d.money && d.money.pnl;
       put("desk", '<i class="' + (live ? "on" : "") + '"></i><span>' + esc(tr(live ? "Live" : "Paper")) + "</span> · <b data-no-i18n>" + n + "</b> " + esc(tr("real trades")) + (live && p != null ? ' · <b data-no-i18n class="' + (p >= 0 ? "up" : "down") + '">' + (p >= 0 ? "+" : "") + money(p) + "</b>" : "") + " · <span>" + esc(tr("learning")) + "</span>");
     }).catch(function () {});
+  }
+
+
+  // ---------------- secret file: burn 100,000 $ARCIRCLE to open her private photos (api/_arcia-secret.mjs) ----------------
+  // The burn is a plain $ARCIRCLE transfer to 0x…dEaD from the fan's own wallet. The server checks it on-chain,
+  // then serves the photos to that wallet (proved by a signature that can't move funds). The burn tx is kept in
+  // this browser until it's confirmed, so a failed check never asks for a second burn.
+  var SEC_DEAD = "0x000000000000000000000000000000000000dEaD";
+  var SEC_PRICE = "100000";
+  var sec = { info: null, photos: null, busy: false, confirm: false, msg: "", w: null };
+  var secMsg = function (w) { return "Open ARCIA's secret file on arcircle.app\n\nWallet: " + String(w).toLowerCase() + "\n\nThis signature only proves I own this wallet. It can't move funds."; };
+  var canWallet = function () { return typeof ethers !== "undefined" && typeof state !== "undefined" && state; };
+  function secLoad() {
+    var a = account();
+    if (sec.w !== a) { sec.photos = null; sec.confirm = false; sec.msg = ""; sec.w = a; }
+    secPaint();
+    fetch("/api/arcia?secret=1" + (a ? "&wallet=" + a : ""), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.price) return;
+      sec.info = j;
+      if (j.open && a && !sec.photos && ls.get("arcia-secret-sig:" + a, "")) secPhotos(a, ls.get("arcia-secret-sig:" + a, ""));
+      secPaint();
+    }).catch(function () { /* keeps the locked view */ });
+  }
+  function secPhotos(a, sig) {
+    return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "secret-photos", wallet: a, signature: sig }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) { if (x.ok && x.j.photos) { sec.photos = x.j.photos; sec.msg = ""; } else if (x.j && x.j.error) sec.msg = x.j.error; secPaint(); });
+  }
+  function secPaint() {
+    var box = panel.querySelector(".aa-secret");
+    if (!box) return;
+    var i = sec.info, a = account();
+    var fmt = function (n) { return Number(n || 0).toLocaleString("en-US"); };
+    var tiles = sec.photos
+      ? sec.photos.map(function (p) { return '<button type="button" class="aa-sec-t open" data-sec-view="' + p.n + '"><img src="' + p.src + '" alt="' + esc(p.title) + '" loading="lazy"><span data-no-i18n>' + esc(p.title) + "</span></button>"; }).join("")
+      : [1, 2, 3, 4, 5].map(function (n) { return '<span class="aa-sec-t"><img src="/images/arcia-secret/blur-' + n + '.webp" alt="" aria-hidden="true"><i aria-hidden="true">' + LOCK + "</i></span>"; }).join("");
+    var stats = i ? '<p class="aa-sec-stats" data-no-i18n><b>' + fmt(i.opened) + "</b> " + esc(T({ en: "fans opened it", ko: "명이 열었어요", zh: "位粉丝已打开" })) + " · <b>" + fmt(i.burned) + "</b> $ARCIRCLE " + esc(T({ en: "burned", ko: "소각", zh: "已销毁" })) + "</p>" : "";
+    var act;
+    if (sec.photos) act = '<p class="aa-mini">' + esc(T({ en: "Opened with this wallet, for good. Tap a photo to see it big.", ko: "이 지갑으로 영구히 열렸어요. 사진을 누르면 크게 볼 수 있어요.", zh: "此钱包已永久打开。点照片可放大。" })) + "</p>";
+    else if (i && i.open && a) act = '<button type="button" class="aa-rc-btn" data-sec="sign">' + esc(T({ en: "Sign to view — already opened", ko: "서명하고 보기 — 이미 열었어요", zh: "签名查看——已打开" })) + "</button>";
+    else if (!canWallet()) act = '<a class="aa-rc-btn" href="/arc#arcia">' + esc(T({ en: "Open it on ArcPad", ko: "ArcPad에서 열기", zh: "在 ArcPad 打开" })) + "</a>";
+    else if (sec.confirm) act = '<div class="aa-sec-confirm"><p>' + esc(T({ en: "Burn 100,000 $ARCIRCLE from this wallet? They go to 0x…dEaD and can't come back. Nobody receives them.", ko: "이 지갑에서 100,000 $ARCIRCLE을 소각할까요? 0x…dEaD로 가서 되돌릴 수 없어요. 누구도 받지 않아요.", zh: "从此钱包销毁 100,000 $ARCIRCLE？它们会发送到 0x…dEaD，无法找回，任何人都不会收到。" })) + '</p><div><button type="button" class="aa-rc-btn" data-sec="burn">' + esc(T({ en: "Burn & open", ko: "소각하고 열기", zh: "销毁并打开" })) + '</button><button type="button" class="aa-rc-btn ghost" data-sec="cancel">' + esc(T({ en: "Cancel", ko: "취소", zh: "取消" })) + "</button></div></div>";
+    else act = '<button type="button" class="aa-rc-btn" data-sec="start"' + (sec.busy ? " disabled" : "") + ">" + esc(sec.busy ? sec.busyText || "…" : a ? T({ en: "Burn 100,000 $ARCIRCLE to open", ko: "100,000 $ARCIRCLE 소각하고 열기", zh: "销毁 100,000 $ARCIRCLE 打开" }) : T({ en: "Connect a wallet to open", ko: "지갑 연결하고 열기", zh: "连接钱包后打开" })) + "</button>";
+    box.innerHTML = '<p class="aa-mini" data-no-i18n>' + esc(T({ en: "ARCIA's private photos. Open them once by burning 100,000 $ARCIRCLE — every token goes to the dead address, gone for good. Opened stays opened for your wallet.", ko: "ARCIA의 비밀 사진이에요. 100,000 $ARCIRCLE을 소각하면 열려요 — 전부 dead 주소로 가서 영원히 사라져요. 한 번 열면 그 지갑에서는 계속 열려 있어요.", zh: "ARCIA 的私密照片。销毁 100,000 $ARCIRCLE 即可打开——全部发送到销毁地址，永久消失。打开后对你的钱包永久有效。" })) + "</p>" +
+      '<div class="aa-sec-grid' + (sec.photos ? " on" : "") + '">' + tiles + "</div>" + stats + '<div class="aa-sec-act" data-no-i18n>' + act + "</div>" +
+      (sec.msg ? '<p class="aa-sec-msg" role="status" data-no-i18n>' + esc(sec.msg) + "</p>" : "");
+  }
+  var LOCK = '<svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+  function secBusy(t) { sec.busy = !!t; sec.busyText = t || ""; secPaint(); }
+  function secErr(e, fallback) {
+    var m = e && (e.code === "ACTION_REJECTED" || e.code === 4001 || /rejected|denied/i.test(e.message || "")) ? T({ en: "Cancelled in your wallet.", ko: "지갑에서 취소했어요.", zh: "已在钱包中取消。" }) : (e && e.mine) ? e.message : fallback;
+    sec.msg = m; secBusy("");
+  }
+  function secSign(a) {
+    var have = ls.get("arcia-secret-sig:" + a, "");
+    if (have) return Promise.resolve(have);
+    return state.signer.signMessage(secMsg(a)).then(function (sig) { ls.set("arcia-secret-sig:" + a, sig); return sig; });
+  }
+  function secVerify(a, tx, sig, tries) {
+    return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "secret-open", wallet: a, tx: tx, signature: sig }) })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        if (x.s === 404 && tries > 0) return new Promise(function (res) { setTimeout(res, 2500); }).then(function () { return secVerify(a, tx, sig, tries - 1); });
+        if (!x.j || !x.j.ok) throw Object.assign(new Error((x.j && x.j.error) || "couldn't check the burn"), { mine: true });
+        return true;
+      });
+  }
+  async function secStart(kind) {
+    var a = account();
+    if (kind === "cancel") { sec.confirm = false; secPaint(); return; }
+    if (!a) { if (typeof connectWallet === "function") { try { await connectWallet(); } catch (e) { /* closed */ } } secLoad(); return; }
+    if (sec.busy) return;
+    sec.msg = "";
+    try {
+      if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
+      if (kind === "sign") { secBusy(T({ en: "Sign in your wallet…", ko: "지갑에서 서명…", zh: "请在钱包中签名…" })); var s0 = await secSign(a); await secPhotos(a, s0); secBusy(""); return; }
+      var pending = ls.get("arcia-secret-tx:" + a, "");
+      if (!pending && kind === "start") {
+        var tok = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, ["function balanceOf(address) view returns (uint256)", "function transfer(address,uint256) returns (bool)"], state.signer);
+        var bal = await tok.balanceOf(a);
+        if (bal < ethers.parseUnits(SEC_PRICE, 18)) { sec.msg = T({ en: "This wallet holds less than 100,000 $ARCIRCLE.", ko: "이 지갑의 $ARCIRCLE이 100,000개보다 적어요.", zh: "此钱包的 $ARCIRCLE 少于 100,000。" }); secPaint(); return; }
+        sec.confirm = true; secPaint(); return;
+      }
+      if (!pending) {
+        sec.confirm = false;
+        secBusy(T({ en: "Confirm the burn in your wallet…", ko: "지갑에서 소각 확인…", zh: "请在钱包中确认销毁…" }));
+        var t = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, ["function transfer(address,uint256) returns (bool)"], state.signer);
+        var tx = await t.transfer(SEC_DEAD, ethers.parseUnits(SEC_PRICE, 18));
+        ls.set("arcia-secret-tx:" + a, tx.hash); pending = tx.hash;
+        secBusy(T({ en: "Burning…", ko: "소각 중…", zh: "销毁中…" }));
+        await tx.wait();
+      }
+      secBusy(T({ en: "Sign to open (no gas)…", ko: "열기 서명 (가스 없음)…", zh: "签名打开（无 Gas）…" }));
+      var sig = await secSign(a);
+      secBusy(T({ en: "Checking the burn…", ko: "소각 확인 중…", zh: "正在核对销毁…" }));
+      await secVerify(a, pending, sig, 6);
+      ls.set("arcia-secret-tx:" + a, "");
+      await secPhotos(a, sig);
+      secBusy("");
+      toast(T({ en: "The secret file is open ♡", ko: "비밀정보가 열렸어요 ♡", zh: "秘密档案已打开 ♡" }));
+      secLoad();
+    } catch (e) { sec.confirm = false; secErr(e, T({ en: "That didn't go through — press the button again.", ko: "처리되지 않았어요 — 버튼을 다시 눌러 주세요.", zh: "未能完成——请再按一次。" })); }
+  }
+  function secView(n) {
+    var p = sec.photos && sec.photos.filter(function (x) { return x.n === n; })[0];
+    if (!p) return;
+    var o = document.createElement("div");
+    o.className = "aa-sec-view"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", p.title);
+    o.innerHTML = '<img src="' + p.src + '" alt="' + esc(p.title) + '"><b data-no-i18n>' + esc(p.title) + '</b><button type="button" aria-label="Close">×</button>';
+    o.addEventListener("click", function () { o.remove(); });
+    document.body.appendChild(o);
   }
 
   // ---------------- build ----------------
@@ -1087,6 +1221,7 @@
             '<div class="aa-tabp" role="tabpanel" id="aa-p-quiz" aria-labelledby="aa-t-quiz" hidden><h3>$ARCIRCLE quiz</h3><div class="aa-quiz"></div></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-cards" aria-labelledby="aa-t-cards" hidden><h3>Photocard book</h3><p class="aa-mini">Tap the card button on any of her replies to make one. Your cards are kept in this browser.</p><div class="aa-book"></div>' +
               '<button type="button" class="aa-rc-btn" data-fancard="1"><span>Make my fan card</span></button></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-secret" aria-labelledby="aa-t-secret" hidden><h3 data-no-i18n>' + esc(T({ en: "Secret file", ko: "비밀정보", zh: "秘密档案" })) + '</h3><div class="aa-secret"></div></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-profile" aria-labelledby="aa-t-profile" hidden><h3>Official profile</h3><div class="aa-profile"></div><div class="aa-fan"></div>' +
               '<h4>What ARCIA has studied</h4><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div></div>' +
           "</aside>" +
@@ -1122,7 +1257,7 @@
     var vt = Q(".aa-voice-t");
     if (vt) {
       var syncV = function () { var on = !!ls.get("arcia-voice", false); vt.setAttribute("aria-pressed", on ? "true" : "false"); vt.classList.toggle("on", on); };
-      vt.addEventListener("click", function () { var on = !ls.get("arcia-voice", false); ls.set("arcia-voice", on); syncV(); if (!on) try { speechSynthesis.cancel(); } catch (e) { /* none */ } else toast(tr("Voice on — she'll read her replies aloud.")); });
+      vt.addEventListener("click", function () { var on = !ls.get("arcia-voice", false); ls.set("arcia-voice", on); syncV(); if (!on) stopVoice(); else toast(tr("Voice on — she'll read her replies aloud.")); });
       syncV();
       loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) { /* none */ }
     }
@@ -1156,8 +1291,13 @@
       if (id === "letters") { if (!lettersLoaded) loadLetters(); var nf = panel.querySelector(".aa-lform [name=name_]"); if (nf && !nf.value) nf.value = ls.get("arcia-name", "") || ""; }
       if (id === "quiz") quizPaint();
       if (id === "profile") paintFan();
+      if (id === "secret") secLoad();
     };
     tabs.addEventListener("click", function (e) { var b = e.target.closest("[role=tab]"); if (b) pick(b.getAttribute("data-t")); });
+    panel.addEventListener("click", function (e) {
+      var sb = e.target.closest("[data-sec]"); if (sb) { secStart(sb.getAttribute("data-sec")); return; }
+      var sv = e.target.closest("[data-sec-view]"); if (sv) secView(Number(sv.getAttribute("data-sec-view")));
+    });
     tabs.addEventListener("keydown", function (e) {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
       var all = [].slice.call(tabs.querySelectorAll("[role=tab]")), i = all.indexOf(document.activeElement);
