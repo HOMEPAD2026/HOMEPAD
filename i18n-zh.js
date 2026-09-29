@@ -4741,6 +4741,11 @@
     "Time limit at a low market cap": "低市值持仓时限",
     "minutes (crash-buy DCA: under $10k, 1 hour)": "分钟（急跌抄底补仓：低于 $10k 时 1 小时）",
     "Under a $5k market cap, a position is never held longer than 30 minutes; a crash-buy DCA position under a $10k market cap is sold after 1 hour.": "市值低于 $5k 时持仓绝不超过 30 分钟；急跌抄底补仓的持仓在市值低于 $10k 时 1 小时后卖出。",
+    "Prepare Round #1": "准备第 1 轮",
+    "Prepare": "准备",
+    "Complete": "已完成",
+    "One wallet confirmation: a fresh escrow contract is deployed with the same recipient, platform and treasury wallets as Round #1. The page then shows the round before its start; the 72 hours only begin when you press Start.": "只需一次钱包确认：部署一个新的托管合约，接收、平台和金库钱包与第 1 轮相同。页面随后显示开始前的轮次；按下开始后 72 小时才会开始。",
+    "Round #1 is ready — press Start when you want the 72 hours to begin.": "第 1 轮已准备好——想开始 72 小时时按下开始。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

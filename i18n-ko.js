@@ -4589,6 +4589,11 @@
     "Time limit at a low market cap": "낮은 시총 보유 시간 제한",
     "minutes (crash-buy DCA: under $10k, 1 hour)": "분까지만 보유 (급락 매수·물타기: $10k 미만 1시간)",
     "Under a $5k market cap, a position is never held longer than 30 minutes; a crash-buy DCA position under a $10k market cap is sold after 1 hour.": "시가총액 $5k 미만에서는 30분 넘게 보유하지 않고, 급락 매수·물타기 포지션은 시가총액 $10k 미만이면 1시간 뒤 매도합니다.",
+    "Prepare Round #1": "라운드 #1 준비",
+    "Prepare": "준비",
+    "Complete": "완료",
+    "One wallet confirmation: a fresh escrow contract is deployed with the same recipient, platform and treasury wallets as Round #1. The page then shows the round before its start; the 72 hours only begin when you press Start.": "지갑 확인 한 번: 라운드 #1과 같은 수령·플랫폼·트레저리 지갑으로 새 에스크로 컨트랙트를 배포해요. 그러면 페이지가 시작 전 라운드를 보여주고, 72시간은 시작 버튼을 눌러야 시작돼요.",
+    "Round #1 is ready — press Start when you want the 72 hours to begin.": "라운드 #1 준비 완료 — 72시간을 시작하려면 시작 버튼을 누르세요.",
   };
 
 

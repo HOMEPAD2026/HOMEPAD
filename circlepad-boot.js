@@ -2,7 +2,8 @@
 // circlepad-boot.js — which CirclePad round /circle runs, decided before any other CirclePad script reads
 // CONFIG. Round #1 is config-arc.js's escrow. Later rounds come from /api/social?circle=boot (a small
 // <script> in circlepad.html's <head> that sets window.CP_ROUNDS from api/_rounds.mjs): the newest round
-// that has started becomes the page's round. Its raise, leaderboard, position and split work exactly like
+// that the round wallet has prepared (deployed — started or not yet) becomes the page's round: before start() it
+// shows in its pre-start state (the round wallet's Start button on Home), after it runs like any round. Its raise, leaderboard, position and split work exactly like
 // Round #1's (same BigPadEscrow contract); burn-to-vote isn't set up for it, so the vote contracts are
 // switched off here and Governance says so. The Q&A room stays Round #1's (CIRCLEPAD_COMMUNITY_ESCROW).
 // Right after the round wallet starts a round, circlepad-rounds.js leaves a short-lived note in
@@ -15,10 +16,10 @@
   CONFIG.CIRCLEPAD_COMMUNITY_ESCROW = CONFIG.CIRCLEPAD_ESCROW_ADDRESS;
   CONFIG.CIRCLEPAD_ROUND = 1;
   const list = (window.CP_ROUNDS && Array.isArray(window.CP_ROUNDS.list) ? window.CP_ROUNDS.list : []).filter((r) => r && r.n > 1 && isAddr(r.escrow));
-  let cur = list.filter((r) => r.started).sort((a, b) => b.n - a.n)[0] || null;
+  let cur = list.slice().sort((a, b) => b.n - a.n)[0] || null;
   try {
     const o = JSON.parse(localStorage.getItem("circlepad.round.just-started") || "null");
-    if (o && isAddr(o.escrow) && o.n > 1 && Date.now() - o.at < 10 * 60e3 && (!cur || o.n > cur.n)) cur = { n: o.n, escrow: o.escrow, started: true };
+    if (o && isAddr(o.escrow) && o.n > 1 && Date.now() - o.at < 10 * 60e3 && (!cur || o.n > cur.n)) cur = { n: o.n, escrow: o.escrow, started: !!o.started };
     else if (o && Date.now() - o.at >= 10 * 60e3) localStorage.removeItem("circlepad.round.just-started");
   } catch (e) { /* storage blocked: the boot script alone decides */ }
   if (cur) {

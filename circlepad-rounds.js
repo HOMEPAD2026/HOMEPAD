@@ -53,10 +53,10 @@
       if (!j || !Array.isArray(j.rounds)) return;
       data = j;
       // this page booted on an older round (cached boot script): switch once
-      const newest = [...j.rounds].reverse().find((x) => x.started);
+      const newest = j.rounds[j.rounds.length - 1];
       if (newest && newest.n > N()) {
         try {
-          localStorage.setItem("circlepad.round.just-started", JSON.stringify({ n: newest.n, escrow: newest.escrow, at: Date.now() }));
+          localStorage.setItem("circlepad.round.just-started", JSON.stringify({ n: newest.n, escrow: newest.escrow, started: !!newest.started, at: Date.now() }));
           if (sessionStorage.getItem("circlepad.round.reloaded") !== String(newest.n)) { sessionStorage.setItem("circlepad.round.reloaded", String(newest.n)); location.reload(); return; }
         } catch (e) { /* storage blocked */ }
       }
@@ -199,14 +199,14 @@
       <div class="cp-sum-links">${links}</div>
     </article>`;
   }
-  function nextHtml(nx, pending) {
+  function nextHtml(nx, pending, where) {
     const n = pending ? pending.n : nx.n;
     const can = pending ? true : nx.canOpen;
     const w = data.wallets;
     const btn = team()
-      ? `<button type="button" class="bp-btn-primary" data-cp-open="${n}" ${can ? "" : "disabled"}>${RT(pending ? "Start the 72h raise" : "Start Round #1", n)}</button>${can ? "" : `<small class="cp-nr-wait">${RT("Round #1 closes first", n - 1)}</small>`}`
+      ? `<button type="button" class="bp-btn-primary" data-cp-open="${n}" ${can ? "" : "disabled"}>${RT(pending ? "Start the 72h raise" : "Prepare Round #1", n)}</button>${can ? "" : `<small class="cp-nr-wait">${RT("Round #1 closes first", n - 1)}</small>`}`
       : `<small class="cp-nr-wait">${T("Opens when the round wallet starts it.")}</small>`;
-    return `<article class="cp-next-round" id="cp-next-round">
+    return `<article class="cp-next-round" id="cp-next-round${where ? "-" + where : ""}">
       <div class="cp-sum-top"><span class="cp-rc-badge pre">${T(pending ? "Ready to start" : "Not started")}</span><span class="cp-sum-k">${RT("CirclePad Round #1", n)}</span></div>
       <p>${T("Same escrow as Round #1: a 72-hour USDC raise, withdraw any time before the close, and the 80 / 15 / 5 split at the close.")}</p>
       <dl class="cp-nr-facts"><div><dt>${T("Opens")}</dt><dd>${T("When the round wallet presses Start — date not decided yet")}</dd></div><div><dt>${T("Coin and vote")}</dt><dd>${T("Not decided yet")}</dd></div><div><dt>${T("Round wallet")}</dt><dd data-no-i18n>${w ? `<a href="${ex("address", w.recipient)}" target="_blank" rel="noopener">${short(w.recipient)} ↗</a>` : "—"}</dd></div>${pending ? `<div><dt>${T("Escrow")}</dt><dd data-no-i18n><a href="${ex("address", pending.escrow)}" target="_blank" rel="noopener">${short(pending.escrow)} ↗</a></dd></div>` : ""}</dl>
@@ -233,6 +233,27 @@
     if (empty) empty.hidden = !!html || !!$("cp-round-card");
   }
 
+  // ================= Home: between rounds =================
+  // Round #1 closed, Round #2 not prepared yet → the next round's card on Home too (the round wallet prepares it
+  // there); a later round on the page → a line back to the earlier round's results.
+  function paintHome() {
+    const home = $("bp-panel-home"), feat = $("bp-featured");
+    if (!home || !feat || !data) return;
+    let box = $("cp-home-next");
+    const cur = roundOf(N()), prev = N() > 1 ? roundOf(N() - 1) : null;
+    const closed = cur && cur.state && cur.state.started && nowS() >= Number(cur.state.deadline);
+    let html = "";
+    if (closed && data.next && !data.rounds.some((r) => r.n > N())) {
+      const st = cur.state;
+      html = `<div class="cp-home-done"><span class="cp-rc-badge done">${T("Complete")}</span><b>${RT("CirclePad Round #1", N())}</b><span data-no-i18n>${usdc(st.totalRaised, 2)} USDC</span><button type="button" class="cp-link" data-cp-go="projects">${T("See the results")} →</button></div>` + nextHtml(data.next, null, "home");
+    } else if (prev && prev.state) {
+      html = `<div class="cp-home-done"><span class="cp-rc-badge done">${T("Complete")}</span><b>${RT("CirclePad Round #1", prev.n)}</b><span data-no-i18n>${usdc(prev.state.totalRaised, 2)} USDC</span><button type="button" class="cp-link" data-cp-go="projects">${T("See the results")} →</button></div>`;
+    }
+    if (!html) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement("section"); box.id = "cp-home-next"; box.className = "cp-home-next"; feat.insertAdjacentElement("beforebegin", box); }
+    if (box.__h !== html) { box.innerHTML = html; box.__h = html; }
+  }
+
   // ================= Leaderboard: CSV =================
   function paintCsv() {
     const panel = $("bp-panel-leaderboard");
@@ -247,7 +268,7 @@
   }
 
   function paintAll() {
-    try { relabel(); paintTimeline(); paintProjects(); paintCsv(); if (typeof window.cpRepaintStage === "function") window.cpRepaintStage(); } catch (e) { console.warn("circlepad-rounds paint", e); }
+    try { relabel(); paintTimeline(); paintProjects(); paintHome(); paintCsv(); if (typeof window.cpRepaintStage === "function") window.cpRepaintStage(); } catch (e) { console.warn("circlepad-rounds paint", e); }
   }
 
   // ================= the round wallet's actions =================
@@ -324,10 +345,11 @@
     const n = Number(btn.dataset.cpOpen);
     if (busy || !data || !data.wallets) return;
     let pending = data.rounds.find((r) => r.n === n && !r.started) || null;
+    // two steps: "Prepare" deploys the round's escrow (the page switches to it, before its start), "Start" opens the 72 hours
     const body = pending
       ? tr("The 72-hour raise opens right now and closes 72 hours later. This can't be undone or redone.")
-      : tr("Two wallet confirmations: first a fresh escrow contract is deployed (same recipient, platform and treasury wallets as Round #1), then its 72-hour raise opens right away. This can't be undone.");
-    if (!(await cpConfirm({ title: RTraw(pending ? "Start the 72h raise" : "Start Round #1", n) + "?", body, ok: tr("Start") }))) return;
+      : tr("One wallet confirmation: a fresh escrow contract is deployed with the same recipient, platform and treasury wallets as Round #1. The page then shows the round before its start; the 72 hours only begin when you press Start.");
+    if (!(await cpConfirm({ title: RTraw(pending ? "Start the 72h raise" : "Prepare Round #1", n) + "?", body, ok: tr(pending ? "Start" : "Prepare") }))) return;
     busy = true; const orig = btn.textContent; btn.disabled = true;
     try {
       if (!(await needTeam())) return;
@@ -342,13 +364,18 @@
         await dtx.wait();
         btn.textContent = tr("Registering…");
         pending = await register(dtx.hash);
+        try { localStorage.setItem("circlepad.round.just-started", JSON.stringify({ n: pending.n, escrow: pending.escrow, started: false, at: Date.now() })); } catch (err) { /* the boot script catches up within a minute */ }
+        await fetch(`${API}?circle=rounds&fresh=1`, { cache: "no-store" }).catch(() => null);
+        cpToast(RTraw("Round #1 is ready — press Start when you want the 72 hours to begin.", pending.n), "ok");
+        setTimeout(() => { location.hash = "home"; location.reload(); }, 900);
+        return;
       }
       btn.textContent = tr("Start — confirm in wallet…");
       const e = new ethers.Contract(pending.escrow, ["function start()"], state.signer);
       const tx = await e.start();
       btn.textContent = tr("Confirming…");
       await tx.wait();
-      try { localStorage.setItem("circlepad.round.just-started", JSON.stringify({ n: pending.n, escrow: pending.escrow, at: Date.now() })); } catch (err) { /* the boot script catches up within a minute */ }
+      try { localStorage.setItem("circlepad.round.just-started", JSON.stringify({ n: pending.n, escrow: pending.escrow, started: true, at: Date.now() })); } catch (err) { /* the boot script catches up within a minute */ }
       await fetch(`${API}?circle=rounds&fresh=1`, { cache: "no-store" }).catch(() => null);
       cpToast(RTraw("Round #1 is open.", pending.n), "ok");
       setTimeout(() => location.reload(), 900);

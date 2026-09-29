@@ -76,7 +76,8 @@
     const panel = $("bp-round-panel");
     if (!panel) return;
     let box = $("cp-pledge");
-    const show = !!D && !started();
+    // pledges belong to Round #1's room (signed for its escrow); later rounds open without them
+    const show = !!D && !started() && (CONFIG.CIRCLEPAD_ROUND || 1) === 1;
     if (window.circlepadFx) { window.circlepadFx.setPledged(show ? D.pledges.total : null, show ? D.pledges.count : 0); window.circlepadFx.setPledgers(show ? D.pledges.top : []); }
     paintPreStats(show);
     paintConvert();
