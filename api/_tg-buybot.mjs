@@ -1,6 +1,6 @@
-// api/_tg-buybot.mjs — ARCIA's buy alerts on Telegram, for our own coins only ($ARCIRCLE, and $ARCIA once it
-// launches). Every buy in the coin's Uniswap v4 pool on Arc is posted to the groups that turned it on:
-// how much was spent, what it bought, who bought (new holder or not), the price and market cap, with buttons.
+// api/_tg-buybot.mjs — ARCIA's buy alerts on Telegram, for our own coins only: $ARCIA always; other coins of ours
+// (like $ARCIRCLE) only when a bot admin adds them. Every buy in the coin's Uniswap v4 pool on Arc is posted to the
+// groups that turned it on: how much was spent, what it bought, who bought (new holder or not), the price and market cap, with buttons.
 //
 //   GET /api/arcia-tg?buys=1&key=<CRON_SECRET>   call it every minute (cron-job.org); it keeps checking for ~45 s,
 //                                                every 8 s, so a buy shows up within about 10–20 seconds
@@ -18,7 +18,13 @@ import { SITE, h, lc, short, compact, sleep, tg, kb, getDoc, putDoc } from "./_t
 
 const KEY = "tgArcia/buybot";
 // the chain's addresses (tests point these at a local chain)
-const CFG = { pm: PM_ADDRESS, usdc: lc(ARCIRCLE_QUOTE), arcircle: lc(ARCIRCLE_TOKEN || ""), pool: lc(ARCIRCLE_POOL_ID || "") };
+// main: the coin every buy alert follows — $ARCIA (CirclePad Round #1's coin) and its Uniswap v4 pool on Arc
+const CFG = {
+  pm: PM_ADDRESS, usdc: lc(ARCIRCLE_QUOTE),
+  main: "0x9da6d5ce413e94264ea411372459413334a83be5", mainPool: "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b", mainSym: "ARCIA",
+  arcircle: lc(ARCIRCLE_TOKEN || ""), arcirclePool: lc(ARCIRCLE_POOL_ID || ""),
+};
+const EMOJI = (tk) => (tk.t === CFG.main ? "💙💚" : "♾");
 const EXPLORER = "https://arc.etherscan.io";
 const MAX_RANGE = 9000; // Arc's RPC refuses wider eth_getLogs
 const SEL = { decimals: "0x313ce567", symbol: "0x95d89b41", totalSupply: "0x18160ddd", balanceOf: "0x70a08231" };
@@ -28,8 +34,13 @@ const W = (hex, i) => BigInt("0x" + String(hex).slice(2 + i * 64, 2 + (i + 1) * 
 export async function load() {
   const d = (await getDoc(KEY)) || {};
   const tokens = Array.isArray(d.tokens) ? d.tokens : [];
-  // $ARCIRCLE is always followed
-  if (CFG.arcircle && !tokens.some((t) => t.t === CFG.arcircle)) tokens.unshift({ t: CFG.arcircle, pool: CFG.pool, sym: "ARCIRCLE" });
+  // $ARCIRCLE used to be followed by default: keep it only if a bot admin added it with /buybot add
+  for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && tokens[i].t === CFG.arcircle && !tokens[i].added) tokens.splice(i, 1);
+  // $ARCIA is always followed, first
+  const at = tokens.findIndex((t) => t && t.t === CFG.main);
+  const main = at >= 0 ? tokens.splice(at, 1)[0] : { t: CFG.main, pool: CFG.mainPool, sym: CFG.mainSym };
+  if (!main.pool) main.pool = CFG.mainPool;
+  tokens.unshift(main);
   return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "", last: d.last || null, lastPost: d.lastPost || null, lastPostErr: d.lastPostErr || null };
 }
 export const save = (s) => putDoc(KEY, s);
@@ -104,7 +115,7 @@ export function message(b, { test = false } = {}) {
   const prev = b.held != null ? b.held - b.tokens : null;
   const pos = b.fresh ? "✨ <b>New holder!</b>" : prev > 0 ? `📊 Position <b>+${Math.min(9999, (b.tokens / prev) * 100).toFixed(prev < b.tokens ? 0 : 1)}%</b>` : "";
   const text = [
-    `♾ <b>$${h(b.tk.sym)}</b>  ${tier}!${test ? "  <i>(test)</i>" : ""}`,
+    `${EMOJI(b.tk)} <b>$${h(b.tk.sym)}</b>  ${tier}!${test ? "  <i>(test)</i>" : ""}`,
     bar,
     "",
     `💵 <b>Spent</b>   ${money(b.usd)} USDC`,
@@ -210,7 +221,7 @@ export async function addToken(token, pool) {
   if (S.tokens.some((t) => t.t === token)) return { error: "Already following that coin." };
   if (!pool) pool = await findPool(token);
   if (!/^0x[0-9a-f]{64}$/.test(lc(pool || ""))) return { error: "Couldn't find its USDC pool yet (Dexscreener lists it a few minutes after launch). Add it with the pool id: /buybot add 0xTOKEN 0xPOOLID" };
-  const tk = await fill({ t: token, pool: lc(pool) });
+  const tk = await fill({ t: token, pool: lc(pool), added: true });
   if (tk.dec == null) return { error: "That address doesn't answer like a token." };
   S.tokens.push(tk);
   await save(S);
@@ -218,7 +229,7 @@ export async function addToken(token, pool) {
 }
 export async function removeToken(token) {
   const S = await load();
-  if (lc(token) === CFG.arcircle) return { error: "$ARCIRCLE is always followed." };
+  if (lc(token) === CFG.main) return { error: "$ARCIA is always followed." };
   const n = S.tokens.length;
   S.tokens = S.tokens.filter((t) => t.t !== lc(token));
   if (S.tokens.length === n) return { error: "Not following that coin." };
