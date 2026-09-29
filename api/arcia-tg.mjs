@@ -8,6 +8,7 @@
 //   GET  /api/arcia-tg?setup=1&key=<CRON_SECRET> webhook, menus, descriptions, the "Open ArcPad" menu button
 //   GET  /api/arcia-tg?claim=1&key=<CRON_SECRET> one-time admin code (10 min): "/admin CODE" in a DM
 //   GET  /api/arcia-tg?status=1&key=<CRON_SECRET>
+//   GET  /api/arcia-tg?buys=1&key=<CRON_SECRET>  every minute (cron-job.org): buy alerts for our coins (api/_tg-buybot.mjs)
 //   GET  /api/arcia-tg?tick=1&key=<CRON_SECRET>  every ~5 min (cron-job.org): alerts, watched wallets,
 //                                                price history, X → Telegram mirror, scheduled posts
 //
@@ -30,6 +31,7 @@ import * as argusArc from "./_argus-arcpad.mjs";
 import * as A402 from "./_arcia402.mjs";
 import { roundState } from "./_round.mjs";
 import { postTweet, recentPosts } from "./arcia-x.mjs";
+import * as BB from "./_tg-buybot.mjs";
 import {
   SITE, BOT_URL, CA, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -83,7 +85,7 @@ const PUBLIC_CMDS = [["price", "$ARCIRCLE price, market cap, holders"], ["scan",
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
   ["here", "Use this chat for announcements"], ["unhere", "Stop announcing here"], ["targets", "Where announcements go"], ["mirror", "Mirror ARCIA's X posts: on / off"], ["guard", "Scam filter here: on / off"], ["captcha", "Join check here: on / off"],
-  ["autoscan", "Auto-scan contract addresses here: on / off"], ["gate", "Holders-only group: /gate 100000 or off"], ["warn", "Reply: warn (3 = 24 h mute)"], ["mute", "Reply: mute [hours]"], ["unmute", "Reply: unmute"], ["ban", "Reply: ban"],
+  ["autoscan", "Auto-scan contract addresses here: on / off"], ["gate", "Holders-only group: /gate 100000 or off"], ["buybot", "Buy alerts for our coins here: on [min $] / off"], ["warn", "Reply: warn (3 = 24 h mute)"], ["mute", "Reply: mute [hours]"], ["unmute", "Reply: unmute"], ["ban", "Reply: ban"],
   ["stickers", "Create ARCIA's sticker set"], ["pause402", "ARCIA 402: sell | hire | all | off"], ["hire", "ARCIA 402: hire an agent now"], ["whoami", "Your Telegram ID"]];
 const menu = (list) => list.map(([command, description]) => ({ command, description }));
 
@@ -646,6 +648,24 @@ async function onMessage(m, channel) {
         await setChatCfg(c, m.chat.id, { [cmd]: on });
         return say(m, `✓ ${cmd} ${on ? "on" : "off"} here.${on && cmd !== "autoscan" ? " I need admin rights (delete messages, restrict members) for it to work." : ""}`);
       }
+      case "buybot": {
+        const [sub = "", a1 = "", a2 = ""] = String(arg || "").trim().split(/\s+/);
+        const s0 = lc(sub);
+        if (!s0) return say(m, await BB.status(m.chat.id));
+        if (s0 === "on" || s0 === "off" || s0 === "min") {
+          if (!group) return say(m, "Use /buybot on inside the group where the buys should show up.");
+          if (!(await mod())) return adminOnly();
+          if (s0 === "off") { await BB.setChat(m.chat.id, m.chat.title, null); return say(m, "✓ Buy alerts off here."); }
+          const min = Math.max(0, Math.min(1e6, Number(String(a1).replace(/[$,]/g, "")) || 0));
+          await BB.setChat(m.chat.id, m.chat.title, { min });
+          return say(m, `✓ Buy alerts on here — ${min ? `buys of $${min}+` : "every buy"} of our coins 💚\nChange it with /buybot min 10, stop with /buybot off.`);
+        }
+        if (!admin) return adminOnly();
+        if (s0 === "add") { const r = await BB.addToken(a1, a2); return say(m, r.error ? h(r.error) : `✓ Following $${h(r.tk.sym)} (<code>${short(r.tk.t)}</code>) — pool <code>${short(r.tk.pool)}</code>.`); }
+        if (s0 === "remove") { const r = await BB.removeToken(a1); return say(m, r.error ? h(r.error) : "✓ Stopped following it."); }
+        if (s0 === "test") { const r = await BB.test(m.chat.id); return r.error ? say(m, h(r.error)) : undefined; }
+        return say(m, "/buybot · /buybot on [min] · /buybot min 10 · /buybot off\nTeam: /buybot add 0xTOKEN [0xPOOL] · /buybot remove 0xTOKEN · /buybot test");
+      }
       case "gate": {
         if (!group) return say(m, "Use /gate <min $ARCIRCLE> or /gate off inside a group.");
         if (!(await mod())) return adminOnly();
@@ -1059,6 +1079,7 @@ export async function GET(req) {
   try {
     if (q.setup) return json(200, await setup());
     if (q.tick) return json(200, await tick());
+    if (q.buys) return json(200, await BB.run());
     if (q.claim) {
       const c = await loadCfg();
       const code = String(Math.floor(10000000 + Math.random() * 89999999));
@@ -1072,7 +1093,7 @@ export async function GET(req) {
       return json(200, { bot: c.me ? "@" + c.me.username : null, webhook: wh.ok ? { connected: wh.result.url === `${SITE}/api/arcia-tg`, pending: wh.result.pending_update_count, last_error: wh.result.last_error_message || null } : wh.description,
         admins: c.admins.length, targets: c.targets.map((t) => ({ title: t.title, type: t.type })), alertSubscribers: s.alerts.length, watched: Object.keys(s.watch).length, lastTick: T.at ? new Date(T.at).toISOString() : "never — add the cron-job.org job", lastError: c.lastError });
     }
-    return json(400, { error: "use ?setup=1, ?claim=1, ?status=1 or ?tick=1" });
+    return json(400, { error: "use ?setup=1, ?claim=1, ?status=1, ?tick=1 or ?buys=1" });
   } catch (e) { return json(500, { error: String(e && e.message || e).slice(0, 200) }); }
 }
 
