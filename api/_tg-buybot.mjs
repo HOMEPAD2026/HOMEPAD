@@ -123,8 +123,11 @@ export function message(b, { test = false } = {}) {
 async function post(S, chatId, b, opts) {
   const { text, buttons } = message(b, opts);
   const base = { chat_id: chatId, caption: text, parse_mode: "HTML", ...kb(buttons) };
+  // every alert carries the welcome clip (arcia-gm.mp4): Telegram's own copy once it has one, the file itself otherwise
   let r = await tg("sendAnimation", { ...base, animation: S.anim || `${SITE}/images/arcia-gm.mp4` });
+  if (!r.ok && S.anim && !/chat not found|kicked|not a member|blocked|too many/i.test(r.description || "")) { S.anim = ""; S.dirty = true; r = await tg("sendAnimation", { ...base, animation: `${SITE}/images/arcia-gm.mp4` }); }
   if (r.ok && !S.anim && r.result && r.result.animation) { S.anim = r.result.animation.file_id; S.dirty = true; } // Telegram's copy, reused from now on
+  if (!r.ok && /too many/i.test(r.description || "")) { await sleep(1500); r = await tg("sendAnimation", { ...base, animation: S.anim || `${SITE}/images/arcia-gm.mp4` }); }
   if (!r.ok) r = await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", link_preview_options: { is_disabled: true }, ...kb(buttons) });
   if (!r.ok && /chat not found|kicked|not a member|blocked/i.test(r.description || "")) { delete S.chats[String(chatId)]; S.dirty = true; }
   return r;
