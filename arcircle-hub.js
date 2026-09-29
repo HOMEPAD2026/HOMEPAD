@@ -152,7 +152,8 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
   UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
-  // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, then one more in development.
+  // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
+  // Page 4: four slots in development.
   // Four tiles a page, always — a fifth would make every page as tall as three rows.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
   var UTILS3 = [
@@ -163,8 +164,13 @@
   ];
   UTILS3.push({ id: "mine", name: "Builder Mine", sub: "Open a mine for your token — builders dig it, the rest is burned", status: "v1", acc: "#ffc861", href: "/arc#mine",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
+  UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new Argus launches live — every trade public", status: "Beta", acc: "#39ff88", href: "/arc#desk",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
   var NEXT = [
-    { id: "next-12", sub: "In development" },
+    { id: "next-13", sub: "In development" },
+    { id: "next-14", sub: "In development" },
+    { id: "next-15", sub: "In development" },
+    { id: "next-16", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
@@ -280,14 +286,16 @@
       '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
       '<div class="ax-util-pages" aria-roledescription="carousel">' +
         '<div class="ax-util-track">' +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 3" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 3" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 3" data-page="2">' + UTILS3.map(tile).join("") + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length); }).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 4" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 4" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 4" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 4" data-page="3">' + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
         '<button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button>' +
         '<button type="button" role="tab" data-go-page="2" aria-selected="false" aria-label="Page 3">3</button>' +
+        '<button type="button" role="tab" data-go-page="3" aria-selected="false" aria-label="Page 4">4</button>' +
       "</div>";
     document.body.appendChild(scrim);
     document.body.appendChild(panel);

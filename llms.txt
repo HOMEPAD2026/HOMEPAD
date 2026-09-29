@@ -37,6 +37,14 @@ Holders open a mine with part of a token's supply (3–60 days, six layers that 
 - [Seasons, crews, Arc Crystal hall of fame (JSON)](https://www.arcircle.app/api/mine?boards=1)
 - [$ARCIRCLE burned and builders digging, across every mine (JSON)](https://www.arcircle.app/api/mine?stats=1)
 
+## ARCIA DESK — ARCIA trades new Argus launches (beta)
+
+ARCIA trades only coins just launched on Argus on Arc (Uniswap v4 pools paired with USDC) with a small wallet the team funds, through the ArciaDesk contract (only her trading key trades, only the owner withdraws, each buy and each day's buys are capped). Every setup that passes hard safety gates (no Token Scanner critical flag, 3 minutes to 3 days old, liquidity, round-trip cost, taxes, score, holder concentration) is also traded on paper, and she learns from every close: which of four playbooks works, a model over ~20 signals, and where to exit. Once a day 20% of new profit above the previous high buys and burns $ARCIRCLE. Nothing can make it trade on request; nobody can deposit or copy it. Not financial advice.
+
+- [ARCIA DESK page](https://www.arcircle.app/arc#desk)
+- [Live state: money, open positions, trades with tx hashes, learning, journal, burns (JSON)](https://www.arcircle.app/api/desk)
+- One day's closed trades: `GET /api/desk?day=YYYY-MM-DD` (add `&paper=1` for paper trades)
+
 ## Free APIs
 
 - [Token Scanner API](https://www.arcircle.app/api/v1/scan/0x0000000000000000000000000000000000000000): `GET /api/v1/scan/<token>` — Scanner v3: score 0–100, verdict, `confidence` (high / medium / low), `critical` flags kept apart from the score, `sections` (contract, control, trade, market, holders, launch), a plain-words `summary`, and every check with its `source` (chain, dry run, Dexscreener, explorer, scanner index)
