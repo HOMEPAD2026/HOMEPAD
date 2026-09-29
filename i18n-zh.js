@@ -4985,6 +4985,17 @@
     "Rewards the Arc lockbox earns go to the burn engine.": "Arc 锁仓合约获得的奖励进入销毁引擎。",
     "Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "先上 Robinhood Chain，Solana 随后。尚未决定：资金池规模和上线日期。",
     "Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "基于 LayerZero V2 OFT：Arc 上为现有代币部署适配器，其他链上为铸造/销毁 OFT。先上 Robinhood Chain，Solana 随后。尚未决定：资金池规模和上线日期。",
+    "Live now: Arc ⇄ Robinhood Chain. Solana opens later.": "现已开放：Arc ⇄ Robinhood Chain。Solana 稍后开放。",
+    "Daily limit left": "今日剩余额度",
+    "Solana opens later": "Solana 稍后开放",
+    "Official contracts": "官方合约",
+    "$ARCIRCLE on Arc": "Arc 上的 $ARCIRCLE",
+    "OMNI lockbox (Arc)": "OMNI 锁仓合约 (Arc)",
+    "$ARCIRCLE on Robinhood Chain": "Robinhood Chain 上的 $ARCIRCLE",
+    "Owner Safe (Arc + Robinhood)": "所有者 Safe (Arc + Robinhood)",
+    "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "由 2-of-3 Safe 持有。Robinhood Chain 上的 $ARCIRCLE 仅在 Arc 上锁定 $ARCIRCLE 时铸造。Robinhood Chain 上其他自称 $ARCIRCLE 的地址都不是我们的。",
+    "OMNI lockbox (bridged to Robinhood)": "OMNI 锁仓合约（已跨链至 Robinhood）",
+    "OMNI Safe": "OMNI Safe",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -35,6 +35,8 @@
     "0x1538c76917de5911d71c5c397ff18ca09d52b019": "Builder Mine",
     "0x54121a7894d90a02ea973ab45eef424c2716eeb2": "CirclePad burn vote",
     "0xdbc9bb465c52688c0af75e002caaa43d731b8562": "ARCIA 402 wallet",
+    "0x075e5dc585effe0bfdc1a0d452499ce7afe2fab6": "OMNI lockbox (bridged to Robinhood)",
+    "0xa4101562b2c6fd5e422a0f78b2fe166df84a48fd": "OMNI Safe",
   };
 
   // ================= uses: what each one has burned =================

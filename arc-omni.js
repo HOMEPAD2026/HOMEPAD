@@ -73,7 +73,8 @@
   };
 
   // ---------------- state ----------------
-  var S = ls.get("omni-form", null) || { from: "arc", to: "solana", amt: "", to_addr: "" };
+  var S = ls.get("omni-form", null) || { from: "arc", to: DEPLOYED.robinhood ? "robinhood" : "solana", amt: "", to_addr: "" };
+  if (DEPLOYED.robinhood && !DEPLOYED.solana && (S.from === "solana" || S.to === "solana")) { S.from = "arc"; S.to = "robinhood"; S.to_addr = ""; }
   var status = null, quote = null, quoteSeq = 0, busy = false;
 
   // ---------------- render ----------------
@@ -85,6 +86,7 @@
             '<h1>ARCIRCLE OMNI <span class="om-state ' + (LIVE ? "live" : "pre") + '">' + (LIVE ? "Live" : "Preview") + "</span></h1>" +
             '<p class="om-chains" data-no-i18n>Arc <i class="om-inf"></i> Solana <i class="om-inf"></i> Robinhood</p>' +
             '<p class="om-lede">One $ARCIRCLE on three chains. Sending it from Arc locks it here and mints the same amount on the other chain; sending it back burns it there and unlocks it on Arc. The global supply stays 1,000,000,000.</p>' +
+            (LIVE ? '<p class="om-live">Live now: Arc ⇄ Robinhood Chain. Solana opens later.</p>' : "") +
             (LIVE ? "" : '<p class="om-pre">Preview: the OMNI contracts are not deployed yet, so nothing can be sent. Prices, supply and the route below are shown so you can see how it will work.</p>') +
           "</div>" +
           '<div class="om-orbit" aria-hidden="true"><svg viewBox="0 0 240 200"><defs><linearGradient id="omG" x1="0" y1="0" x2="240" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4d9fff"/><stop offset=".5" stop-color="#9b7bff"/><stop offset="1" stop-color="#39ff88"/></linearGradient></defs>' +
@@ -109,7 +111,8 @@
             '<label class="om-field"><span>Amount</span><div class="om-in"><input type="text" inputmode="decimal" autocomplete="off" placeholder="100000" aria-label="Amount of $ARCIRCLE" data-om="amt"><b data-no-i18n>ARCIRCLE</b><button type="button" class="om-max">Max</button></div><small class="om-bal" data-om="bal"></small></label>' +
             '<label class="om-field"><span data-om="to-label">Recipient</span><div class="om-in"><input type="text" autocomplete="off" spellcheck="false" data-om="to-addr" aria-label="Recipient address"></div><small class="om-hint" data-om="to-hint"></small></label>' +
             '<dl class="om-sum"><div><dt>You send</dt><dd data-no-i18n data-om="s-send">—</dd></div><div><dt>They receive</dt><dd data-no-i18n data-om="s-get">—</dd></div>' +
-              '<div><dt>LayerZero fee</dt><dd data-no-i18n data-om="s-fee">—</dd></div><div><dt>Route</dt><dd data-om="s-route">—</dd></div></dl>' +
+              '<div><dt>LayerZero fee</dt><dd data-no-i18n data-om="s-fee">—</dd></div><div><dt>Route</dt><dd data-om="s-route">—</dd></div>' +
+              '<div><dt>Daily limit left</dt><dd data-no-i18n data-om="s-left">—</dd></div></dl>' +
             '<div class="om-flow" aria-hidden="true"><span class="om-step" data-s="1">' + ICON.lock + '<b data-om="f1">Lock on Arc</b></span><i class="om-wire"><em></em></i><span class="om-step" data-s="2">' + ICON.msg + "<b>LayerZero message</b></span><i class=\"om-wire\"><em></em></i><span class=\"om-step\" data-s=\"3\">" + ICON.mint + '<b data-om="f3">Mint on Solana</b></span></div>' +
             '<button type="button" class="om-go" data-om="go">Send</button><p class="om-msg" role="status" data-om="msg"></p>' +
           "</section>" +
@@ -133,12 +136,28 @@
           "<li><b>Between Solana and Robinhood</b><span>Burned on one, minted on the other. Arc's locked amount doesn't change, so the total still adds up.</span></li>" +
           "<li><b>Prices</b><span>Each chain has its own market. When prices drift apart, buying where it's cheaper and selling where it's higher pulls them together.</span></li>" +
         '</ol><p class="om-foot">Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.</p></section>' +
+        (LIVE ? '<section class="om-card om-contracts"><h3>Official contracts</h3><ul>' + contractRows() + "</ul>" +
+          '<p class="om-foot">Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.</p></section>' : "") +
         '<section class="om-card om-hist" hidden><h3>Your transfers</h3><ul data-om="hist"></ul></section>' +
       "</div>";
     wire();
     paintChips(); paintForm(); paintHist();
   }
 
+  function contractRows() {
+    var ARC_EX = (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io";
+    var RH_EX = (C.robinhood && C.robinhood.explorer) || "https://robinhoodchain.blockscout.com";
+    var rows = [
+      ["arc", "$ARCIRCLE on Arc", ARCIRCLE, ARC_EX + "/token/" + ARCIRCLE],
+      ["arc", "OMNI lockbox (Arc)", O.ADAPTER, ARC_EX + "/address/" + O.ADAPTER],
+      ["robinhood", "$ARCIRCLE on Robinhood Chain", O.ROBINHOOD_OFT, RH_EX + "/token/" + O.ROBINHOOD_OFT],
+      ["arc", "Owner Safe (Arc + Robinhood)", O.SAFE, "https://app.safe.global/home?safe=arc:" + O.SAFE],
+    ];
+    return rows.filter(function (r) { return isAddr(r[2]); }).map(function (r) {
+      return '<li>' + CHAIN_ICO[r[0]] + '<span class="om-c-n">' + esc(tr(r[1])) + '</span><code data-no-i18n>' + esc(r[2]) + "</code>" +
+        '<span class="om-c-a"><button type="button" class="om-copy" data-copy="' + esc(r[2]) + '">' + esc(tr("Copy")) + '</button><a href="' + esc(r[3]) + '" target="_blank" rel="noopener">' + esc(tr("View")) + " ↗</a></span></li>";
+    }).join("");
+  }
   function paintChips() {
     ["from", "to"].forEach(function (side) {
       var box = panel.querySelector('.om-chips[data-side="' + side + '"]');
@@ -180,7 +199,7 @@
     var go = $('[data-om="go"]'), msg = "", label = "Send", dis = false;
     var w = parseAmt(S.amt), ready = w != null && w > 0n;
     if (S.from === "solana") { label = "Send from Solana"; dis = true; msg = "Sending from Solana needs a Solana wallet — coming in the next version. Use Arc or Robinhood Chain as the source for now."; }
-    else if (!DEPLOYED[S.from] || !(S.to === "arc" ? DEPLOYED.arc : DEPLOYED[S.to])) { label = "Opens when OMNI is deployed"; dis = true; }
+    else if (!DEPLOYED[S.from] || !(S.to === "arc" ? DEPLOYED.arc : DEPLOYED[S.to])) { label = LIVE && (S.to === "solana" || S.from === "solana") ? "Solana opens later" : "Opens when OMNI is deployed"; dis = true; }
     else if (!me()) label = "Connect wallet";
     else if (!ready) { label = "Enter an amount"; dis = true; }
     else if (!validTo()) { label = S.to === "solana" ? "Enter a Solana address" : "Enter a recipient"; dis = true; }
@@ -255,12 +274,21 @@
     if (!(S.to === "solana" ? isSol(to) : isAddr(to))) { fee.textContent = "—"; return; }
     var p = S.from === "arc" && typeof readProvider === "function" ? readProvider() : new ethers.JsonRpcProvider(C.robinhood.rpc);
     var param = sendParam(w, to);
+    loadLeft(addr, p);
     fee.textContent = tr("Quoting…");
     new ethers.Contract(addr, OFT_ABI, p).quoteSend(param, false).then(function (q) {
       if (seq !== quoteSeq) return;
       quote = { nativeFee: q.nativeFee !== undefined ? q.nativeFee : q[0], lzTokenFee: 0n };
       fee.textContent = Number(ethers.formatEther(quote.nativeFee)).toLocaleString("en-US", { maximumFractionDigits: 6 }) + " " + ((C[S.from] && C[S.from].gas) || "");
     }).catch(function () { if (seq === quoteSeq) fee.textContent = tr("Couldn't quote"); });
+  }
+  function loadLeft(addr, p) {
+    var el = $('[data-om="s-left"]'), dst = C[S.to] && C[S.to].eid;
+    if (!dst) { el.textContent = "—"; return; }
+    new ethers.Contract(addr, OFT_ABI, p).getAmountCanBeSent(dst).then(function (r) {
+      var left = r.amountCanBeSent !== undefined ? r.amountCanBeSent : r[1];
+      el.textContent = fmtAmt(Math.floor(Number(ethers.formatUnits(left, 18)))) + " ARCIRCLE";
+    }).catch(function () { el.textContent = "—"; });
   }
   function sendParam(w, to) {
     return { dstEid: C[S.to].eid, to: toB32(to, S.to), amountLD: w, minAmountLD: w, extraOptions: "0x", composeMsg: "0x", oftCmd: "0x" };
@@ -357,6 +385,11 @@
     $('[data-om="to-addr"]').addEventListener("input", function (e) { S.to_addr = e.target.value.trim(); ls.set("omni-form", S); clearTimeout(t); t = setTimeout(paintForm, 250); });
     $(".om-max").addEventListener("click", function () { var m = $('[data-om="bal"]').dataset.max; if (m) { S.amt = m; ls.set("omni-form", S); paintForm(); } });
     $('[data-om="go"]').addEventListener("click", go);
+    panel.addEventListener("click", function (e) {
+      var b = e.target.closest(".om-copy"); if (!b) return;
+      var v = b.getAttribute("data-copy");
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(function () { b.textContent = tr("Copied"); setTimeout(function () { b.textContent = tr("Copy"); }, 1400); }).catch(function () { /* no clipboard */ });
+    });
   }
 
   var booted = false;

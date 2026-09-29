@@ -10,6 +10,16 @@ Dexscreener에 뜨게 하는 순서입니다. 솔라나는 2단계에서 `OMNI_S
 > 로빈후드 체인의 $ARCIRCLE은 **Arc와 다른 새 주소**입니다. 같은 주소는 기술적으로 만들 수 없습니다(README 참고).
 > 배포가 끝나면 공식 주소 두 개(Arc, 로빈후드)를 사이트·ARCIA·공지에 함께 올립니다.
 
+## 배포 결과 (2026-09-30)
+
+| | 주소 |
+|---|---|
+| ArcircleOFTAdapter (Arc, 잠금 컨트랙트) | `0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6` |
+| ArcircleOFT (로빈후드 체인의 $ARCIRCLE) | `0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4` |
+| 소유 Safe 2-of-3 (두 체인 같은 주소) | `0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd` |
+
+`omni:check` All checks passed · `omni:audit` Audit clean (handover 후). 다음: 7단계 소액 왕복 테스트 → 8단계 풀.
+
 ---
 
 ## 0. 결정 사항

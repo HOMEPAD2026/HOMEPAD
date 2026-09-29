@@ -4833,6 +4833,17 @@
     "Rewards the Arc lockbox earns go to the burn engine.": "Arc 잠금 컨트랙트가 받는 보상은 번 엔진으로 갑니다.",
     "Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "로빈후드 체인이 먼저, 솔라나는 나중입니다. 아직 미정: 풀 규모와 출시일.",
     "Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.": "LayerZero V2 OFT 기반: 기존 토큰을 위한 Arc 어댑터와 다른 체인의 발행/소각 OFT. 로빈후드 체인이 먼저, 솔라나는 나중입니다. 아직 미정: 풀 규모와 출시일.",
+    "Live now: Arc ⇄ Robinhood Chain. Solana opens later.": "지금 가능: Arc ⇄ 로빈후드 체인. 솔라나는 나중에 열립니다.",
+    "Daily limit left": "오늘 남은 한도",
+    "Solana opens later": "솔라나는 나중에 열립니다",
+    "Official contracts": "공식 컨트랙트",
+    "$ARCIRCLE on Arc": "Arc의 $ARCIRCLE",
+    "OMNI lockbox (Arc)": "OMNI 잠금 컨트랙트 (Arc)",
+    "$ARCIRCLE on Robinhood Chain": "로빈후드 체인의 $ARCIRCLE",
+    "Owner Safe (Arc + Robinhood)": "소유 Safe (Arc + 로빈후드)",
+    "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "2-of-3 Safe가 소유합니다. 로빈후드 체인의 $ARCIRCLE은 Arc에 $ARCIRCLE이 잠길 때만 발행됩니다. 로빈후드 체인에서 $ARCIRCLE이라고 불리는 다른 주소는 저희 것이 아닙니다.",
+    "OMNI lockbox (bridged to Robinhood)": "OMNI 잠금 컨트랙트 (로빈후드로 브릿지됨)",
+    "OMNI Safe": "OMNI Safe",
   };
 
 

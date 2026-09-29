@@ -6,10 +6,10 @@ import { ethCalls, pad } from "./_arc.mjs";
 
 export const OMNI = {
   ARCIRCLE: "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7",
-  ADAPTER: "", // Arc · ArcircleOFTAdapter
-  ROBINHOOD_OFT: "", // Robinhood Chain · ArcircleOFT
+  ADAPTER: "0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6", // Arc · ArcircleOFTAdapter
+  ROBINHOOD_OFT: "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4", // Robinhood Chain · ArcircleOFT
   SOLANA_MINT: "", // Solana · SPL mint created by the OFT program
-  SAFE: "", // the owner Safe 2-of-3 on Arc — its burns of lockbox rewards show as "OMNI rewards"
+  SAFE: "0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd", // the owner Safe 2-of-3 on Arc — its burns of lockbox rewards show as "OMNI rewards"
   ROBINHOOD_RPC: "https://rpc.mainnet.chain.robinhood.com",
   SOLANA_RPC: "https://api.mainnet-beta.solana.com",
 };

@@ -9,7 +9,9 @@ export const SITE = "https://www.arcircle.app";
 export const BOT_URL = "https://t.me/ARCIAonArc_bot";
 export const CA = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
-export const OUR_CAS = [CA, ARCIA_CA];
+// + ARCIRCLE OMNI: $ARCIRCLE on Robinhood Chain and the Arc lockbox — ours, never flagged as a fake CA
+export const OMNI_CAS = ["0x6f9ebd0dfc6de9ed47eec18efeb69a9b97c71ee4", "0x075e5dc585effe0bfdc1a0d452499ce7afe2fab6"];
+export const OUR_CAS = [CA, ARCIA_CA, ...OMNI_CAS];
 export const env = (k) => String(process.env[k] || "").trim();
 export const h = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const lc = (a) => String(a || "").toLowerCase();

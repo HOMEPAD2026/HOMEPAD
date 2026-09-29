@@ -206,11 +206,11 @@ const CONFIG = {
   // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses
   // keep the OMNI page in preview for that chain. Keep api/_omni.mjs in step.
   OMNI: {
-    ADAPTER: "", // Arc · ArcircleOFTAdapter (the lockbox)
-    ROBINHOOD_OFT: "", // Robinhood Chain · ArcircleOFT
+    ADAPTER: "0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6", // Arc · ArcircleOFTAdapter (the lockbox)
+    ROBINHOOD_OFT: "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4", // Robinhood Chain · ArcircleOFT
     SOLANA_MINT: "", // Solana · SPL mint from the OFT program
     SOLANA_OFT_STORE: "",
-    SAFE: "", // owner Safe 2-of-3 (same address on Arc and Robinhood Chain)
+    SAFE: "0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd", // owner Safe 2-of-3 (same address on Arc and Robinhood Chain)
     CHAINS: {
       arc: { name: "Arc", eid: 30417, chainId: 5042, gas: "USDC" },
       robinhood: { name: "Robinhood Chain", eid: 30416, chainId: 4663, gas: "ETH", rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" },
