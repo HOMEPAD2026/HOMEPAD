@@ -97,7 +97,8 @@
     send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12 19.5 4.5 15 19.5l-3.4-6.1z"/><path d="M11.6 13.4 19.5 4.5"/></svg>',
     x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 3.5h3l-6.6 7.5 7.8 9.5h-6.1l-4.8-5.9-5.5 5.9H2.3l7.1-8L1.9 3.5h6.2l4.3 5.4zm-1.1 15.3h1.7L7.5 5.1H5.7z"/></svg>',
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.5-4.6-7.5-10.1A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z"/></svg>',
-    voice: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+    voice: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.2v3.6c0 .6.4 1 1 1h2.3l3.9 3.2c.5.4 1.3 0 1.3-.6V6.6c0-.6-.8-1-1.3-.6L7.8 9.2H5.5c-.6 0-1 .4-1 1z"/><path d="M16.3 9.4a3.8 3.8 0 0 1 0 5.2"/><path class="w2" d="M18.8 7a7.2 7.2 0 0 1 0 10"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.2v3.6c0 .6.4 1 1 1h2.3l3.9 3.2c.5.4 1.3 0 1.3-.6V6.6c0-.6-.8-1-1.3-.6L7.8 9.2H5.5c-.6 0-1 .4-1 1z"/><path d="M16.5 10l4 4M20.5 10l-4 4"/></svg>',
     card: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10" r="3"/><path d="M8.5 17h7"/></svg>',
     copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg>',
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',
@@ -1192,7 +1193,7 @@
           '<section class="aa-chat" id="aa-chat" aria-label="Chat with ARCIA">' +
             '<div class="aa-chat-h"><span class="aa-mini-av"><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40"></span><div><b>ARCIA</b><span class="aa-on"><i></i>Online</span></div>' +
               '<span class="aa-me" hidden data-no-i18n></span>' +
-              ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud">' + ICON.voice + "<span>Voice</span></button>" : "") +
+              ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud"><i class="ic-off">' + ICON.mute + '</i><i class="ic-on">' + ICON.voice + "</i><span>Voice</span></button>" : "") +
               '<button type="button" class="aa-tool aa-new" title="Start a new chat"><span>New chat</span></button></div>' +
             '<div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">' + ICON.heart + '</button>' +
               '<div class="aa-g-main"><div class="aa-g-top"><span>Today\'s hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div>' +

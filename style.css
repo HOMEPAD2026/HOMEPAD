@@ -11451,4 +11451,16 @@ a.dk-chip:hover{border-color:rgba(77,159,255,.5);}
 .aa-sec-view img{max-width:min(92vw,900px);max-height:82vh;border-radius:16px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.6);}
 .aa-sec-view b{color:#fff;font:700 .9rem Sora,sans-serif;}
 .aa-sec-view button{position:absolute;top:14px;right:16px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-size:1.4rem;cursor:pointer;}
+/* ARCIA voice toggle: a muted speaker when off, a quiet teal speaker when on (no gradient block) */
+.aa-voice-t i{display:inline-flex;font-style:normal;}
+.aa-voice-t .ic-on{display:none;}
+.aa-voice-t.on .ic-on{display:inline-flex;}
+.aa-voice-t.on .ic-off{display:none;}
+.aa-tool.aa-voice-t.on{color:#8ff5dc;background:rgba(53,216,208,.1);border-color:rgba(53,216,208,.5);box-shadow:none;}
+.aa-tool.aa-voice-t.on:hover{color:#c4fff0;border-color:rgba(53,216,208,.8);}
+.aa-speaking .aa-voice-t.on .w2{animation:aa-wave2 1s ease-in-out infinite;}
+@keyframes aa-wave2{0%,100%{opacity:.25}50%{opacity:1}}
+@media (max-width:640px){.aa-tool.aa-voice-t,.aa-tool.aa-new{width:36px;height:36px;padding:0;justify-content:center;border-radius:50%;}.aa-tool.aa-voice-t svg{width:18px;height:18px;}}
+.aa-acts [data-a=voice] svg{width:15px;height:15px;}
+@media (prefers-reduced-motion:reduce){.aa-speaking .aa-voice-t.on .w2{animation:none;}}
 #bp-panel-mine [hidden]{display:none !important;}
