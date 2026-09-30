@@ -12333,6 +12333,7 @@ body.dk-noscroll{overflow:hidden;}
 .ag-health{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;border-radius:12px;font-size:.8rem}
 .ag-health i{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
 .ag-health small{margin-left:auto;font-size:.7rem;color:#9fb0bd}
+.ag-health.bad small{display:block;margin:4px 0 0;color:#ffb3a6}
 .ag-health.ok{background:rgba(57,255,136,.07);border:1px solid rgba(57,255,136,.3);color:#c8f7dd}.ag-health.ok i{background:#39ff88;box-shadow:0 0 0 0 rgba(57,255,136,.6);animation:dk-ping 1.8s ease-out infinite}
 .ag-health.warn{background:rgba(255,200,97,.08);border:1px solid rgba(255,200,97,.4);color:#ffe2a8}.ag-health.warn i{background:#ffc861}
 .ag-health.bad{background:rgba(255,110,90,.08);border:1px solid rgba(255,110,90,.4);color:#ffd0c8}.ag-health.bad i{background:#ff6e5a}

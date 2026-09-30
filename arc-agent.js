@@ -387,7 +387,7 @@
       return;
     }
     const h = V.health || {};
-    const hb = !h.key || !h.match ? `<div class="ag-health bad"><i></i><span>${T("ARCIA's key isn't connected on the server yet — vaults wait until it is.")}</span></div>`
+    const hb = !h.key || !h.match ? `<div class="ag-health bad"><i></i><span>${T("ARCIA's key isn't connected on the server yet — vaults wait until it is.")}${h.key ? ` <small>${!h.valid ? T("The server's ARCIA_AGENT_KEY isn't a valid private key (64 hex characters, no quotes or spaces).") : `${T("The server's key belongs to")} <b data-no-i18n>${esc(h.keyAddr)}</b>, ${T("not ARCIA's operator")} <b data-no-i18n>${short(V.operator)}</b>.`}</small>` : ""}</span></div>`
       : h.low ? `<div class="ag-health warn"><i></i><span>${T("ARCIA is connected, but her wallet is low on gas")} <b data-no-i18n>(${h.gas} USDC)</b></span></div>`
       : `<div class="ag-health ok"><i></i><span>${T("ARCIA is connected")}</span><small data-no-i18n>${short(V.operator)} · ${h.gas} USDC gas</small></div>`;
     el.innerHTML = hb + (V.paused ? `<div class="ag-crit"><b>${T("Paused by the team")}</b><span>${T("Every vault waits; owners can still withdraw.")}</span></div>` : "") +

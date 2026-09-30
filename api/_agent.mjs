@@ -238,7 +238,8 @@ async function keyHealth(operator) {
   const me = key ? lc(addressOfKey(key) || "") : "";
   let gas = null;
   if (operator) { try { gas = Number(BigInt(await rpcCall("eth_getBalance", [operator, "latest"]))) / 1e18; } catch { gas = null; } }
-  return { key: !!key, match: !!me && me === operator, gas: gas == null ? null : Math.round(gas * 1000) / 1000, low: gas != null && gas < 0.5 };
+  // the key's ADDRESS (public) helps find a wrong key; the key itself never leaves the server
+  return { key: !!key, valid: !!me, keyAddr: me ? `${me.slice(0, 6)}…${me.slice(-4)}` : null, match: !!me && me === operator, gas: gas == null ? null : Math.round(gas * 1000) / 1000, low: gas != null && gas < 0.5 };
 }
 export async function vaults(st, { token = "", vault = "" } = {}) {
   const f = CFG.factory();

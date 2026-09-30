@@ -5430,6 +5430,9 @@
     "waiting for the token's trading volume": "等待代币成交量数据",
     "Each vault has a strategy its owner signs (no gas): Dips only (the default), Steady (one buy each interval, whatever the price did) or By volume (each buy at most 2% of the token's hourly trading volume).": "每个金库都有所有者签名设定的策略（无 gas）：只在回调时（默认）、稳定（不论价格，每个间隔买一次）或按成交量（每笔最多为代币每小时成交量的 2%）。",
     "Once a day, ARCIA writes the previous day's call hashes on Arc as one root, from her own wallet. The Record tab re-computes that root in your browser and compares it with the transaction, so anyone can check the calls were made before their outcomes.": "ARCIA 每天一次用自己的钱包把前一天判断的哈希合成一个根写到 Arc 上。记录标签页会在你的浏览器中重新计算这个根并与交易比对，任何人都能核对判断先于结果。",
+    "The server's ARCIA_AGENT_KEY isn't a valid private key (64 hex characters, no quotes or spaces).": "服务器上的 ARCIA_AGENT_KEY 不是有效的私钥（64 个十六进制字符，不含引号或空格）。",
+    "The server's key belongs to": "服务器上的密钥属于",
+    "not ARCIA's operator": "而不是 ARCIA 的 operator",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

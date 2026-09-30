@@ -5278,6 +5278,9 @@
     "waiting for the token's trading volume": "토큰 거래량 정보를 기다리는 중",
     "Each vault has a strategy its owner signs (no gas): Dips only (the default), Steady (one buy each interval, whatever the price did) or By volume (each buy at most 2% of the token's hourly trading volume).": "금고마다 주인이 서명으로 정하는 전략이 있습니다(가스 없음): 눌림만(기본), 일정하게(가격과 상관없이 간격마다 한 번), 거래량 비례(매수당 토큰 시간 거래량의 2% 이하).",
     "Once a day, ARCIA writes the previous day's call hashes on Arc as one root, from her own wallet. The Record tab re-computes that root in your browser and compares it with the transaction, so anyone can check the calls were made before their outcomes.": "ARCIA는 하루 한 번 전날 콜의 해시를 하나의 루트로 묶어 자기 지갑으로 Arc에 기록합니다. 기록 탭이 브라우저에서 그 루트를 다시 계산해 거래와 비교하므로, 누구나 콜이 결과보다 먼저였는지 확인할 수 있어요.",
+    "The server's ARCIA_AGENT_KEY isn't a valid private key (64 hex characters, no quotes or spaces).": "서버의 ARCIA_AGENT_KEY가 올바른 개인키 형식이 아닙니다 (16진수 64자, 따옴표·공백 없이).",
+    "The server's key belongs to": "서버의 키는 이 지갑의 것입니다:",
+    "not ARCIA's operator": "ARCIA operator가 아님:",
   };
 
 
