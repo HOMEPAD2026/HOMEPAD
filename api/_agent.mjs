@@ -53,11 +53,12 @@ export function callOf(s) {
   if (liq != null && liq < 500) why.push(`only $${Math.round(liq)} of liquidity`);
   if (top10 != null && top10 > 70) why.push(`top 10 wallets hold ${Math.round(top10)}%`);
   if (why.length) return { call: "risky", why };
-  if (score != null && score >= 75 && liq != null && liq >= 5000 && (top10 == null || top10 <= 35)) return { call: "safe", why: [`scanner score ${score}/100`, `$${Math.round(liq).toLocaleString("en-US")} of liquidity`, top10 != null ? `top 10 hold ${Math.round(top10)}%` : "holders spread"] };
+  // Safe needs the holders read too: an unknown top 10 is never called safe
+  if (score != null && score >= 75 && liq != null && liq >= 5000 && top10 != null && top10 <= 35) return { call: "safe", why: [`scanner score ${score}/100`, `$${Math.round(liq).toLocaleString("en-US")} of liquidity`, `top 10 hold ${Math.round(top10)}%`] };
   const w = [];
   if (score != null) w.push(`scanner score ${score}/100`);
-  if (liq == null) w.push("no market data yet"); else if (liq < 5000) w.push(`$${Math.round(liq).toLocaleString("en-US")} of liquidity`);
-  if (top10 != null && top10 > 35) w.push(`top 10 hold ${Math.round(top10)}%`);
+  if (liq == null) w.push("no market data yet"); else if (liq < 5000) w.push(`$${Math.round(liq).toLocaleString("en-US")} of liquidity`); else w.push(`$${Math.round(liq).toLocaleString("en-US")} of liquidity`);
+  if (top10 == null) w.push("holders not read yet"); else if (top10 > 35) w.push(`top 10 hold ${Math.round(top10)}%`);
   return { call: "caution", why: w };
 }
 /// what happened since the call: "bad" if the price fell 60%+ or the liquidity 50%+; "ok" otherwise
@@ -107,10 +108,17 @@ async function takeOf(rep, c0, ask) {
     : `${rep.sym || "This token"} is somewhere in between: ${c0.why.join(", ") || "not enough data yet"}. I'm watching, not cheering.`;
   if (!env("ANTHROPIC_API_KEY") || env("ARCIA_AGENT_AI") === "0") return { text: plain, ai: false };
   const askFn = ask || (await import("./_arcia-brain.mjs")).askClaude;
-  const text = await askFn({ L: null, maxTokens: 220, messages: [{ role: "user", content:
-    `You are ARCIA reading an Arc token for someone who pasted its address into ARCIA AGENT. Write 2–3 short sentences in first person, plain English, calm and honest: what stands out (good and bad) and what to watch. Never tell anyone to buy or sell, never predict price, no hype, no emojis. Your safety call for the next 24h is "${c0.call}" (${c0.why.join("; ")}). Only use these facts:\n` +
+  const text = await askFn({ L: null, maxTokens: 220, timeoutMs: 9000, messages: [{ role: "user", content:
+    `You are ARCIA reading an Arc token for someone who pasted its address into ARCIA AGENT. Write 2–3 short sentences in first person, plain English, calm and honest: what stands out (good and bad) and what to watch. Plain text only: no markdown, no headings, no bold, no lists. Don't restate the safety call (the page shows it next to your words). Never tell anyone to buy or sell, never predict price, no hype, no emojis. For context, your safety call for the next 24h is "${c0.call}" (${c0.why.join("; ")}). Only use these facts:\n` +
     JSON.stringify({ symbol: rep.sym, name: rep.name, ...f, reasons: rep.reasons.map((r) => r.title || r), issues: rep.checks.map((c) => c.title) }) }] });
-  return text ? { text: String(text).slice(0, 600), ai: true } : { text: plain, ai: false };
+  return text ? { text: plainText(text), ai: true } : { text: plain, ai: false };
+}
+/// Claude's words as plain text: no markdown, no restated call line, at most ~600 characters
+export function plainText(t) {
+  let x = String(t || "").replace(/\*\*|__|`/g, "").replace(/^#+\s*/gm, "").replace(/^\s*[-*]\s+/gm, "");
+  x = x.split(/\n+/).filter((l) => !/^\s*safety call\b/i.test(l)).join(" ").replace(/\s+/g, " ").trim();
+  if (x.length > 600) x = x.slice(0, 600).replace(/[^.!?]*$/, "").trim() || x.slice(0, 600);
+  return x;
 }
 /// one call per token per 12 hours; a newer report reuses the open one
 async function makeCall(st, rep, c0) {
