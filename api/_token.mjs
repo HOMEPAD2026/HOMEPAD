@@ -22,6 +22,7 @@ import { ARCIRCLE_CURVE, ARCIRCLE_POOL_ID, ARCIRCLE_LAUNCHED_AT, ARCIRCLE_VENUE_
 import { PM_ADDRESS, keccakHex } from "./_arc.mjs";
 import { creatorCounts, blockAtOrBefore } from "./_circle.mjs";
 import { OMNI } from "./_omni.mjs";
+import { readVoteAmount } from "./_burnvote.mjs";
 
 export const CURVE = ARCIRCLE_CURVE.toLowerCase(); // foci-style curve (first launch); "" otherwise
 // Uniswap v4 pool (Argus launch): Swap events on the PoolManager for this pool id.
@@ -122,7 +123,8 @@ export function apply(W, logs, bbSet) {
       const v = BigInt(l.data), fr = lc("0x" + l.topics[1].slice(26)), to = lc("0x" + l.topics[2].slice(26));
       move(W, fr, -v, b); move(W, to, v, b);
       // a transfer into a burn sink (not the mint, which comes from zero)
-      if (BURN_SINKS.has(to) && fr !== ZERO) W.burns.push({ b, tok: Number(v) / 1e18, h: l.transactionHash, fr, k: null });
+      // (a CirclePad direct-round vote carries its code in the amount: counted as a vote straight away)
+      if (BURN_SINKS.has(to) && fr !== ZERO) W.burns.push({ b, tok: Number(v) / 1e18, h: l.transactionHash, fr, k: to === DEAD && readVoteAmount(v) ? "vote" : null });
       continue;
     }
     if (POOL && lc(l.address) === PM && t0 === TOPIC.swap && lc(l.topics[1]) === POOL) { applySwap(W, l, byTx.get(l.transactionHash) || [], bbSet, b); continue; }
@@ -277,7 +279,7 @@ async function liveReads(wallets) {
 
 // ---- where each burn came from ----
 // Read once per burn (the transaction's `to`, and for a plain transfer the unlock records) and kept in the
-// state: vote (CirclePad burn-to-vote), mine (Builder Mine joins and shop), scanner (Token Scanner Plus/Pro
+// state: vote (CirclePad burn-to-vote: Round #1's contract, or a direct round's coded transfer), mine (Builder Mine joins and shop), scanner (Token Scanner Plus/Pro
 // unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), omni (the OMNI Safe burning the
 // rewards its Arc lockbox earned — omni/README.md), buyback (a swap paid straight to 0x…dEaD), team (a team or
 // treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).

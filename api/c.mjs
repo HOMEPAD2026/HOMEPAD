@@ -16,7 +16,7 @@
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
-import { voteTx, ballotReport } from "./_burnvote.mjs";
+import { voteTx, ballotReport, forRound } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
@@ -698,7 +698,7 @@ async function reportPage(url) {
   const n = String(url.searchParams.get("n") || "1");
   if (n !== "1") return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/circle">`, "public, max-age=300");
   let st = null, b = null;
-  const [rs, rb] = await Promise.allSettled([roundState(), ballotReport()]);
+  const [rs, rb] = await Promise.allSettled([roundState(), ballotReport(forRound(1))]);
   if (rs.status === "fulfilled") st = rs.value;
   if (rb.status === "fulfilled") b = rb.value;
   const now = Math.floor(Date.now() / 1000);

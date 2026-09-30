@@ -242,7 +242,7 @@
   // ================= burn feed: every vote, voters, top burners =================
   let seen = null, feedT = 0;
   async function loadFeed() {
-    if (!burnOn() || !/^0x[0-9a-fA-F]{40}$/.test(BURN)) return;
+    if (!burnOn() || !(/^0x[0-9a-fA-F]{40}$/.test(BURN) || CONFIG.CIRCLEPAD_GOV_DIRECT === true)) return;
     try {
       const r = await fetch(`/api/social?circle=burns${(CONFIG.CIRCLEPAD_ROUND || 1) > 1 ? `&round=${CONFIG.CIRCLEPAD_ROUND}` : ""}`, { cache: "no-store" });
       if (!r.ok) return;
@@ -362,7 +362,7 @@
   });
 
   // ================= the reveal, once per browser after voting closes =================
-  const REVEAL_KEY = "circlepad.reveal." + String(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || CONFIG.CIRCLEPAD_VOTE_ADDRESS || "").toLowerCase();
+  const REVEAL_KEY = "circlepad.reveal." + String(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || CONFIG.CIRCLEPAD_VOTE_ADDRESS || CONFIG.CIRCLEPAD_ESCROW_ADDRESS || "").toLowerCase();
   let revealed = false;
   function reveal(force) {
     const g = G();
@@ -502,6 +502,8 @@
   // numbers roll digit by digit when they go up
   const odoLast = new Map();
   function odometer(el, key) {
+    // still rolling from the last change: its text is the digit strips, not the number — let it finish
+    if (el.classList.contains("odo") || el.querySelector(".odo-strip")) return;
     const text = el.textContent, prev = odoLast.get(key);
     odoLast.set(key, text);
     if (reduce() || prev == null || prev === text || el.dataset.odo === text) return;

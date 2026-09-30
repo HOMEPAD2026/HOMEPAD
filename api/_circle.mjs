@@ -12,7 +12,7 @@ import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
 import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, VOTE, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
-import { ideasRound } from "./_burnvote.mjs";
+import { ideasRound, isDirect, directBallot } from "./_burnvote.mjs";
 export { ESCROW, roundState, contributionOf };
 const lc = (a) => String(a || "").toLowerCase();
 const usd = (wei) => Number(wei) / 1e18; // native USDC on Arc: 18 decimals
@@ -199,9 +199,10 @@ export function ideaText(cat, raw) {
 function ideasTarget(round) {
   if (!round || lc(round) === ESCROW) return { escrow: ESCROW, ballot: VOTE };
   const g = ideasRound(round);
-  return g ? { escrow: g.escrow, ballot: g.ballot } : null;
+  return g ? { escrow: g.escrow, ballot: g.ballot, direct: isDirect(g) ? g : null } : null;
 }
-async function ballotSet(cat, ballot = VOTE) {
+async function ballotSet(cat, ballot = VOTE, R = null) {
+  if (R && R.direct) return !!(await directBallot(R.direct, true))[cat];
   if (!ballot) return false;
   const [h] = await ethCalls([{ to: ballot, data: S.optionsSet + cat.toString(16).padStart(64, "0") }]);
   return big(h) > 0n;
@@ -240,7 +241,7 @@ export async function ideaPost(b, recover, json) {
   if (!issuedOk(b.issued, 10 * 60e3)) return json(400, { error: "signature expired — sign again" });
   let signer; try { signer = recover(ideaMessage(wallet, cat, rawText, rawNote, b.issued, ESCROW), b.signature); } catch { return json(400, { error: "invalid signature" }); }
   if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
-  if (await ballotSet(cat, R.ballot)) return json(409, { error: "the candidates for this one are already on the ballot" });
+  if (await ballotSet(cat, R.ballot, R)) return json(409, { error: "the candidates for this one are already on the ballot" });
   const st = await roundState(ESCROW).catch(() => null);
   const team = !!(st && wallet === st.recipient);
   const rk = `rate/cidea_${wallet}_${dayKey()}`;

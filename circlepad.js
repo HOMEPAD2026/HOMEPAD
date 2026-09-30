@@ -114,8 +114,12 @@
   if (contractsEl && typeof renderContractRows === "function") {
     contractsEl.innerHTML = renderContractRows([
       [`BigPadEscrow (CirclePad round #${CONFIG.CIRCLEPAD_ROUND || 1})`, CONFIG.CIRCLEPAD_ESCROW_ADDRESS, "Holds the 72h USDC raise; withdraw any time before close; 80/5/15 split at close"],
-      ["BigPadVote (candidates)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "The round's name / ticker / logo / roadmap / launch-date candidates"],
-      ["ArcircleBurnVote (voting)", CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner"],
+      ...(CONFIG.CIRCLEPAD_GOV_DIRECT === true ? [
+        ["$ARCIRCLE (burn-to-vote)", CONFIG.ARCIRCLE_TOKEN, "No vote contract this round: a vote is a transfer to 0x…dEaD, 1,000 $ARCIRCLE per vote, the choice coded in the amount's last 12 decimals"],
+      ] : [
+        ["BigPadVote (candidates)", CONFIG.CIRCLEPAD_VOTE_ADDRESS, "The round's name / ticker / logo / roadmap / launch-date candidates"],
+        ["ArcircleBurnVote (voting)", CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, "1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD; open to every holder; no owner"],
+      ]),
     ]);
   }
 })();
@@ -1073,8 +1077,16 @@ const govEsc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;"
 const govNow = () => Math.floor(Date.now() / 1000) + _govSkew;
 
 function circlepadVoteConfigured() {
-  return typeof CONFIG !== "undefined" && !!CONFIG.CIRCLEPAD_VOTE_ADDRESS && CONFIG.CIRCLEPAD_VOTE_ADDRESS.length === 42;
+  return typeof CONFIG !== "undefined" && ((!!CONFIG.CIRCLEPAD_VOTE_ADDRESS && CONFIG.CIRCLEPAD_VOTE_ADDRESS.length === 42) || CONFIG.CIRCLEPAD_GOV_DIRECT === true);
 }
+// A direct round (Round #2 on) has no vote contracts: the round wallet signs its candidates (kept by
+// /api/social with the signature) and a vote is a plain $ARCIRCLE transfer to 0x…dEaD whose amount carries the
+// choice in its last 12 decimals — votes × 1,000 $ARCIRCLE + round·10⁶ + (category+1)·10³ + (candidate+1) raw
+// units, far below a billionth of a token (api/_burnvote.mjs voteAmount). Anyone can recount it from the chain.
+const govDirect = () => typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_GOV_DIRECT === true;
+const GOV_DUST = 10n ** 12n;
+const govVoteAmount = (cat, opt, votes) => BigInt(votes) * GOV_PER_VOTE * 10n ** 18n + BigInt(CONFIG.CIRCLEPAD_ROUND || 1) * 1000000n + BigInt(cat + 1) * 1000n + BigInt(opt + 1);
+const govCandMessage = (cat, options) => `ARCIRCLE PAD — CirclePad Round #${CONFIG.CIRCLEPAD_ROUND || 1} candidates\nRound: ${String(CONFIG.CIRCLEPAD_ESCROW_ADDRESS).toLowerCase()}\nCategory: ${CIRCLEPAD_VOTE_CATEGORIES[cat].label}\n` + options.map((o, i) => `${i + 1}. ${o}`).join("\n");
 function circlepadVoteRead() {
   return new ethers.Contract(CONFIG.CIRCLEPAD_VOTE_ADDRESS, CIRCLEPAD_VOTE_ABI, readProvider());
 }
@@ -1105,9 +1117,10 @@ const GOV_ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address, address) view returns (uint256)",
   "function approve(address, uint256) returns (bool)",
+  "function transfer(address, uint256) returns (bool)",
 ];
 const govBurnMode = () => typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_VOTE_MODE === "burn";
-const govBurnLive = () => govBurnMode() && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || "") && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
+const govBurnLive = () => govBurnMode() && (/^0x[0-9a-fA-F]{40}$/.test(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || "") || govDirect()) && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "");
 const govBurnRead = () => new ethers.Contract(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, CIRCLEPAD_BURNVOTE_ABI, readProvider());
 const govTokenRead = () => new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, GOV_ERC20_ABI, readProvider());
 let _govBurn = null; // the open "burn & vote" panel: { cat, opt, n, busy } — survives the 15s refresh
@@ -1201,7 +1214,30 @@ async function initCirclepadGovernance() {
 // those categories' option lists (now that their lengths are known),
 // round 3 fetches every option's weight plus the caller's own vote per
 // category — all through multicallRead (see app.js).
+// a direct round: one API read (candidates, tallies, this wallet's votes) + the wallet's $ARCIRCLE balance
+async function fetchDirectGovernanceState() {
+  const q = `/api/social?circle=gov&round=${CONFIG.CIRCLEPAD_ROUND || 1}${state.account ? `&voter=${state.account.toLowerCase()}` : ""}`;
+  const [d, bal] = await Promise.all([
+    fetch(q, { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("governance read failed: " + r.status)))),
+    state.account && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.ARCIRCLE_TOKEN || "") ? govTokenRead().balanceOf(state.account).catch(() => null) : Promise.resolve(null),
+  ]);
+  if (d.now) _govSkew = Number(d.now) - Math.floor(Date.now() / 1000);
+  window.circlepadGovSkew = _govSkew;
+  const categories = CIRCLEPAD_VOTE_CATEGORIES.map((c) => {
+    const x = (d.categories || [])[c.id] || {};
+    const mv = (x.mine || []).map((v) => BigInt(v || 0));
+    let best = null; mv.forEach((v, j) => { if (v > 0n && (best === null || v > mv[best])) best = j; });
+    return { id: c.id, label: c.label, set: !!x.set, options: (x.options || []).map((text, j) => ({ text, weight: BigInt((x.tallies || [])[j] || 0), mine: mv[j] ?? 0n })), myVoteIndex: best };
+  });
+  const burn = {
+    live: true, direct: true, totalBurned: BigInt(d.totals ? d.totals.burned : 0), totalVotes: BigInt(d.totals ? d.totals.votes : 0), voterCount: BigInt(d.totals ? d.totals.voters : 0),
+    votingOpen: !!d.votingOpen, opensAt: BigInt(d.opensAt || 0), votingEnds: BigInt(d.votingEnds || 0), allowance: ethers.MaxUint256,
+  };
+  if (bal != null) burn.bal = bal;
+  return { votingOpen: !!d.votingOpen, votingEnds: BigInt(d.votingEnds || 0), opensAt: BigInt(d.opensAt || d.deadline || 0), recipient: d.recipient || ethers.ZeroAddress, deadline: BigInt(d.deadline || 0), categories, burn };
+}
 async function fetchCirclepadGovernanceState() {
+  if (govDirect()) return fetchDirectGovernanceState();
   const vote = circlepadVoteRead();
   const round1 = [
     { contract: vote, method: "votingOpen" },
@@ -1325,7 +1361,8 @@ function renderCirclepadGovernance(g) {
   const bm = govBurnMode(), bLive = !!(bm && g.burn && g.burn.live);
   const unit = GOV_PER_VOTE * 10n ** 18n;
   const bal = bLive && g.burn.bal != null ? BigInt(g.burn.bal) : 0n;
-  const avail = bal / unit;
+  // a direct round's vote code adds a few raw units on top: keep them in hand
+  const avail = govDirect() ? (bal > GOV_DUST ? (bal - GOV_DUST) / unit : 0n) : bal / unit;
   const myCast = g.categories.reduce((a, c) => a + c.options.reduce((b, o) => b + (o.mine || 0n), 0n), 0n);
   const burnedAll = bLive && g.burn.totalBurned != null ? BigInt(g.burn.totalBurned) : 0n;
   const votesAll = bLive && g.burn.totalVotes != null ? BigInt(g.burn.totalVotes) : 0n;
@@ -1555,6 +1592,12 @@ async function castBurnVote() {
   try {
     await ensureArcForWrite();
     const tok = new ethers.Contract(CONFIG.ARCIRCLE_TOKEN, GOV_ERC20_ABI, state.signer);
+    let tx;
+    if (govDirect()) {
+      // no contract and no approval: one transfer to 0x…dEaD, the choice coded in the amount
+      set("Confirm the burn in wallet…");
+      tx = await tok.transfer(GOV_DEAD, govVoteAmount(b.cat, b.opt, n));
+    } else {
     const allow = await tok.allowance(state.account, CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS);
     if (allow < cost) {
       set("Approve in wallet…");
@@ -1565,7 +1608,8 @@ async function castBurnVote() {
     }
     set("Confirm the burn in wallet…");
     const bv = new ethers.Contract(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS, CIRCLEPAD_BURNVOTE_ABI, state.signer);
-    const tx = await bv.vote(b.cat, b.opt, n);
+    tx = await bv.vote(b.cat, b.opt, n);
+    }
     set("Burning…");
     await tx.wait();
     _govBurn = null;
@@ -1594,7 +1638,7 @@ function govEditorHtml(def) {
   return `<div class="gv-ed" data-category="${def.id}">
     <div class="gv-ed-rows">${drafts.map(row).join("")}</div>
     ${drafts.length < GOV_MAX_OPTIONS ? `<button type="button" class="gv-ed-add" data-gv="add">+ Add an option</button>` : ""}
-    <div class="gv-ed-foot"><span class="gv-ed-hint">Only you (the recipient wallet) see this. Tap "Use" on a community idea above to fill a row. Candidates go on-chain once and can't be edited afterwards.</span>
+    <div class="gv-ed-foot"><span class="gv-ed-hint">Only you (the recipient wallet) see this. Tap "Use" on a community idea above to fill a row. ${govDirect() ? "You sign the list with your wallet (no gas) and it's published once — it can't be edited afterwards." : "Candidates go on-chain once and can't be edited afterwards."}</span>
       <button type="button" class="bp-gov-propose-btn" data-gv="publish" data-category="${def.id}">Publish candidates</button></div>
   </div>`;
 }
@@ -1829,10 +1873,19 @@ async function proposeCirclepadOptions(category) {
   if (btn) { btn.disabled = true; btn.textContent = "Confirm in wallet…"; }
   try {
     await ensureArcForWrite();
+    if (govDirect()) {
+      // a direct round: the round wallet signs the list (no gas); the site keeps it with the signature
+      const signature = await state.signer.signMessage(govCandMessage(category, options));
+      if (btn) btn.textContent = "Publishing…";
+      const r = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "cgov-cands", round: String(CONFIG.CIRCLEPAD_ESCROW_ADDRESS).toLowerCase(), cat: category, options, signature }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Publishing failed.");
+    } else {
     const vote = circlepadVoteWrite();
     const tx = await vote.proposeOptions(category, options);
     if (btn) btn.textContent = "Confirming…";
     await tx.wait();
+    }
     _govDrafts.delete(category);
     cpToast("Candidates published.", "ok");
     await refreshCirclepadGovernance();

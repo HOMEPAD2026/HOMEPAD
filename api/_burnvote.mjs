@@ -1,26 +1,39 @@
-// api/_burnvote.mjs — CirclePad burn-to-vote (contracts/ArcircleBurnVote.sol),
-// read for the governance feed, the hub / $ARCIRCLE burn chips and the
-// /vote/<tx> share page. Every vote is a Voted event; 1 vote = 1,000
-// $ARCIRCLE sent to 0x…dEaD inside that transaction.
-import { ethCalls, rpcCall, getLogs, latestBlock, pool, toQty, keccakHex } from "./_arc.mjs";
+// api/_burnvote.mjs — CirclePad burn-to-vote, read for the governance feed, the hub / $ARCIRCLE burn chips
+// and the /vote/<tx> share page. 1 vote = 1,000 $ARCIRCLE sent to 0x…dEaD.
+//
+// Two ways a round votes:
+//   contract (Round #1) — the candidates live in the round's BigPadVote ("ballot") and every vote is a Voted
+//     event of its ArcircleBurnVote (contracts/).
+//   direct (Round #2 on) — no contract to deploy. The round wallet signs each category's candidates (stored
+//     here with the signature, published once, never edited), and a vote is a plain $ARCIRCLE transfer to
+//     0x…dEaD whose amount carries the choice in its last 12 decimals: votes × 1,000 $ARCIRCLE + a code of
+//     round, category and candidate worth well under a billionth of a token (voteAmount / readVoteAmount).
+//     Anyone can recount it from the chain: every such transfer from the first candidates to the raise's close.
+import { ethCalls, rpcCall, getLogs, latestBlock, blockTs, pool, toQty, keccakHex } from "./_arc.mjs";
+import { ARCIRCLE_TOKEN } from "./_arcircle.mjs";
+import { roundState, forgetRound } from "./_round.mjs";
+import { storeEnabled, getDocs, commit } from "./_store.mjs";
 
-// Governance round by round: the round's escrow, its ballot (BigPadVote: the candidates the round wallet
-// publishes) and its burn-to-vote (ArcircleBurnVote), with the block it was deployed in. A round's vote is
-// live once both addresses are here; keep config-arc.js CIRCLEPAD_GOV in step.
+// Governance round by round: the round's escrow and how it votes. Contract rounds list their ballot
+// (BigPadVote) and burn-to-vote (ArcircleBurnVote) with the block they were deployed in; direct rounds need
+// nothing else. Keep config-arc.js CIRCLEPAD_GOV in step.
 export const GOV = {
   1: { escrow: "0xc5998d7ce728fdd6f77217fde775aab90ec61703", ballot: "0x23c376615a58f059fc4bc83a38eb4acdf8d39ff2", burnvote: "0x54121a7894d90a02ea973ab45eef424c2716eeb2", from: 22945226 },
-  // Round #2 (started 30 Sep 2026): same rules as Round #1 — community ideas, then burn-to-vote. Filled in
-  // once its BigPadVote and ArcircleBurnVote are deployed (contracts/scripts, CIRCLEPAD_ROUND2.md).
-  2: { escrow: "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", ballot: "", burnvote: "", from: 0 },
+  // Round #2 (started 30 Sep 2026): Round #1's rules — community ideas, the round wallet's candidates, burn-to-vote
+  // until the raise closes — without new contracts.
+  2: { escrow: "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", mode: "direct", ballot: "", burnvote: "", from: 0 },
 };
 const isA = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
-const gov = (n) => ({ n: Number(n), ...GOV[n] });
+export const isDirect = (A) => !!A && A.mode === "direct";
+const gov = (n) => ({ n: Number(n), mode: "contract", ...GOV[n] });
+const hasBallot = (g) => g.mode === "direct" || isA(g.ballot);
+const hasVote = (g) => g.mode === "direct" || (isA(g.ballot) && isA(g.burnvote));
 /// rounds whose ballot exists (the ideas board and candidates work from here), newest first
-export const ballotRounds = () => Object.keys(GOV).filter((n) => isA(GOV[n].ballot)).map(gov).sort((a, b) => b.n - a.n);
+export const ballotRounds = () => Object.keys(GOV).map(gov).filter(hasBallot).sort((a, b) => b.n - a.n);
 /// rounds whose burn-to-vote exists, newest first
-export const voteRounds = () => Object.keys(GOV).filter((n) => isA(GOV[n].ballot) && isA(GOV[n].burnvote)).map(gov).sort((a, b) => b.n - a.n);
-// The CURRENT burn-to-vote (the newest round that has one). Mutable only so tests can point it at a local chain.
-export const ADDR = (() => { const c = voteRounds()[0]; return { n: c.n, escrow: c.escrow, burnvote: c.burnvote, ballot: c.ballot, from: c.from }; })();
+export const voteRounds = () => Object.keys(GOV).map(gov).filter(hasVote).sort((a, b) => b.n - a.n);
+// The CURRENT burn-to-vote (the newest round that has one). Mutable only so tests can point it elsewhere.
+export const ADDR = (() => { const c = voteRounds()[0]; return { n: c.n, mode: c.mode, escrow: c.escrow, burnvote: c.burnvote, ballot: c.ballot, from: c.from }; })();
 /// the burn-to-vote of round n, or null when that round has none
 export function forRound(n) {
   n = Number(n);
@@ -42,6 +55,182 @@ const word = (h, i) => strip(h).slice(i * 64, (i + 1) * 64);
 const big = (h) => { try { return BigInt(h && h !== "0x" ? h : 0); } catch { return 0n; } };
 const pad = (n) => BigInt(n).toString(16).padStart(64, "0");
 export const CATS = ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"];
+
+// ---- direct rounds: the vote code in the amount ----
+export const VOTE_UNIT = 1000n * 10n ** 18n; // 1 vote = 1,000 $ARCIRCLE
+const DUST = 10n ** 12n;
+export const MAX_CANDS = 8;
+/// the amount to send to 0x…dEaD: votes × 1,000 $ARCIRCLE + round·10⁶ + (category+1)·10³ + (candidate+1) raw units
+export const voteAmount = (n, cat, opt, votes) => BigInt(votes) * VOTE_UNIT + BigInt(n) * 1000000n + BigInt(cat + 1) * 1000n + BigInt(opt + 1);
+/// { round, cat, opt, votes } from an amount sent to 0x…dEaD, or null when it isn't a vote
+export function readVoteAmount(v) {
+  let x; try { x = BigInt(v); } catch { return null; }
+  const d = x % DUST, base = x - d;
+  if (base < VOTE_UNIT || base % VOTE_UNIT !== 0n) return null;
+  const round = Number(d / 1000000n), cat = Number((d / 1000n) % 1000n) - 1, opt = Number(d % 1000n) - 1;
+  if (round < 2 || cat < 0 || cat >= CATS.length || opt < 0 || opt >= MAX_CANDS) return null;
+  return { round, cat, opt, votes: Number(base / VOTE_UNIT) };
+}
+const TOKEN_OVERRIDE = { v: "" };
+const tokenAddr = () => TOKEN_OVERRIDE.v || String(ARCIRCLE_TOKEN || "").toLowerCase();
+const T_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const DEAD_TOPIC = "0x000000000000000000000000000000000000000000000000000000000000dead";
+
+// the round wallet's signed candidates: one store doc per category, created once
+const CAND_MAX = [32, 10, 300, 400, 40];
+export const candMessage = (n, escrow, cat, options) =>
+  `ARCIRCLE PAD — CirclePad Round #${n} candidates\nRound: ${String(escrow).toLowerCase()}\nCategory: ${CATS[cat]}\n` + options.map((o, i) => `${i + 1}. ${o}`).join("\n");
+let S = { get: null, create: null }; // tests swap in a memory store
+const candPath = (escrow, cat) => `cgovCands/${String(escrow).toLowerCase()}_${cat}`;
+async function candDocs(A) {
+  const paths = CATS.map((_, c) => candPath(A.escrow, c));
+  if (S.get) return Promise.all(paths.map((p) => S.get(p)));
+  if (!storeEnabled()) return paths.map(() => null);
+  const got = await getDocs(paths);
+  return paths.map((p) => got[p] || null);
+}
+const candMem = new Map();
+/// per category: { options, at (unix s), by, sig } or null while unpublished
+export async function directBallot(A, fresh = false) {
+  const m = candMem.get(A.escrow);
+  if (!fresh && m && Date.now() - m.at < 15e3) return m.v;
+  const docs = await candDocs(A);
+  const v = docs.map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
+  candMem.set(A.escrow, { at: Date.now(), v });
+  return v;
+}
+function tidyCand(cat, t) {
+  let s = String(t ?? "").replace(/\r/g, "").trim();
+  if (cat !== 3) s = s.replace(/\s+/g, " ");
+  if (cat === 1) s = s.replace(/^\$/, "").toUpperCase();
+  return s;
+}
+function candError(cat, list) {
+  if (!Array.isArray(list) || list.length < 2) return "publish at least two candidates";
+  if (list.length > MAX_CANDS) return `at most ${MAX_CANDS} candidates`;
+  const seen = new Set();
+  for (const o of list) {
+    if (!o) return "a candidate is empty";
+    if (o.length > CAND_MAX[cat]) return `keep each one under ${CAND_MAX[cat]} characters`;
+    if (cat === 1 && !/^[A-Z0-9]{1,10}$/.test(o)) return "tickers are letters and digits only";
+    if (cat === 2 && !/^(https:\/\/[^\s"'<>`]+|ipfs:\/\/[A-Za-z0-9./_-]+)$/i.test(o)) return "each logo is an https:// or ipfs:// link";
+    if (cat === 4 && !Number.isFinite(Date.parse(o))) return "each launch date needs a date and time";
+    const k = o.toLowerCase();
+    if (seen.has(k)) return "the same candidate twice";
+    seen.add(k);
+  }
+  return null;
+}
+/// POST { action: "cgov-cands", round: <escrow>, cat, options, signature } — the round wallet publishes one category
+export async function publishCands(b, recover, json) {
+  const A = ballotRounds().find((g) => isDirect(g) && g.escrow === String(b.round || "").toLowerCase());
+  if (!A) return json(400, { error: "that round doesn't take signed candidates" });
+  const cat = Number(b.cat);
+  if (!Number.isInteger(cat) || cat < 0 || cat >= CATS.length) return json(400, { error: "pick a category" });
+  const raw = Array.isArray(b.options) ? b.options.map(String) : [];
+  const options = raw.map((o) => tidyCand(cat, o));
+  const bad = candError(cat, options);
+  if (bad) return json(400, { error: bad });
+  let signer; try { signer = recover(candMessage(A.n, A.escrow, cat, raw), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  forgetRound(A.escrow); // read it fresh: publishing is rare and the start/close matter
+  const st = await roundState(A.escrow);
+  if (signer !== st.recipient) return json(403, { error: "only the round's wallet publishes candidates" });
+  if (!st.started) return json(409, { error: "the round hasn't started" });
+  const head = await latestBlock();
+  if (st.deadline && head.ts >= st.deadline) return json(409, { error: "the raise has closed" });
+  const data = { round: A.escrow, n: A.n, cat, options, raw, by: signer, sig: String(b.signature), at: Date.now() };
+  const path = candPath(A.escrow, cat);
+  if (S.create) { if (!(await S.create(path, data))) return json(409, { error: "these candidates are already published" }); }
+  else {
+    const r = await commit([{ create: path, data }]);
+    if (r.conflict) return json(409, { error: "these candidates are already published" });
+  }
+  candMem.delete(A.escrow);
+  return json(200, { ok: true, cat, options });
+}
+/// the signed text for a published category, so anyone can check the signature
+export async function candProof(A, cat) {
+  const docs = await candDocs(A);
+  const d = docs[cat];
+  return d ? { message: candMessage(A.n, A.escrow, cat, d.raw || d.options), signature: d.sig, by: d.by } : null;
+}
+
+// every transfer to 0x…dEaD whose amount is a vote of this round, kept incrementally
+const dmem = new Map();
+async function blockAt(ts, head) {
+  let lo = 0, hi = head.number;
+  if (head.ts <= ts) return head.number;
+  for (let k = 0; k < 40 && lo < hi; k++) {
+    const mid = Math.floor((lo + hi + 1) / 2);
+    const t = await blockTs(mid);
+    if (t != null && t <= ts) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
+async function directScan(store, A, bal) {
+  const key = `cburn/direct/${A.escrow}`;
+  const latest = await latestBlock();
+  const first = bal.filter(Boolean).reduce((m, c) => Math.min(m, c.at), Infinity);
+  let st = dmem.get(key) || null;
+  if (!st && store) { try { st = await store.get(key); } catch { st = null; } }
+  if (!Number.isFinite(first)) return { st: { hi: latest.number, ev: [] }, latest }; // no candidates yet: nothing can be a vote
+  if (!st || !Array.isArray(st.ev)) st = { hi: (A.from || (await blockAt(first - 300, latest))) - 1, ev: [] };
+  let n = 0, moved = false;
+  while (tokenAddr() && st.hi < latest.number && n < MAX_CHUNKS) {
+    const ranges = [];
+    let a = st.hi + 1;
+    for (let k = 0; k < 8 && a <= latest.number && n < MAX_CHUNKS; k++, n++) { const b = Math.min(latest.number, a + CHUNK - 1); ranges.push([a, b]); a = b + 1; }
+    let logs;
+    try { logs = (await pool(ranges, 8, ([x, y]) => getLogs({ address: tokenAddr(), topics: [T_TRANSFER, null, DEAD_TOPIC], fromBlock: toQty(x), toBlock: toQty(y) }))).flat(); }
+    catch { break; }
+    const mine = logs.map((l) => ({ l, v: readVoteAmount(l.data) })).filter((x) => x.v && x.v.round === A.n);
+    const ts = new Map();
+    await pool([...new Set(mine.map((x) => x.l.blockNumber))], 6, async (bn) => { ts.set(bn, await blockTs(parseInt(bn, 16)).catch(() => null)); });
+    for (const { l, v } of mine) {
+      const t = ts.get(l.blockNumber);
+      if (t == null) { logs = null; break; }
+      st.ev.push(`${parseInt(l.blockNumber, 16)}|${parseInt(l.logIndex, 16)}|${lc(l.transactionHash)}|0x${strip(l.topics[1]).slice(24)}|${v.cat}|${v.opt}|${v.votes}|${t}`);
+    }
+    if (!logs) break; // a block time didn't come back: rescan this stretch next time
+    st.hi = ranges[ranges.length - 1][1]; moved = true;
+  }
+  if (moved) { dmem.set(key, st); if (store) { try { await store.set(key, st); } catch { /* this instance keeps it */ } } }
+  return { st, latest };
+}
+const evOf = (r) => { const [b, i, tx, voter, cat, opt, votes, ts] = r.split("|"); return { b: +b, i: +i, tx, voter, cat: +cat, opt: +opt, votes: +votes, ts: +ts }; };
+/// does a vote count: its category's candidates were out when it was sent, the candidate exists, the raise was open
+const counts = (e, bal, deadline) => { const c = bal[e.cat]; return !!c && e.opt < c.options.length && e.ts >= c.at - 60 && (!deadline || e.ts < deadline); };
+/// the whole direct-round picture: candidates, tallies, a voter's own votes, totals and the feed
+export async function directState(store, A, voter = null) {
+  const bal = await directBallot(A);
+  const [{ st, latest }, rs] = await Promise.all([directScan(store, A, bal), roundState(A.escrow).catch(() => null)]);
+  const deadline = rs ? rs.deadline : 0;
+  const all = st.ev.map(evOf).sort((x, y) => (y.b - x.b) || (y.i - x.i));
+  const ev = all.filter((e) => counts(e, bal, deadline));
+  const v = voter ? lc(voter) : null;
+  const tallies = CATS.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
+  const mine = CATS.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
+  const by = new Map();
+  let votes = 0;
+  for (const e of ev) {
+    tallies[e.cat][e.opt] += e.votes; votes += e.votes;
+    by.set(e.voter, (by.get(e.voter) || 0) + e.votes);
+    if (v && e.voter === v) mine[e.cat][e.opt] += e.votes;
+  }
+  const opens = bal.filter(Boolean).reduce((m, c) => Math.min(m, c.at), Infinity);
+  return {
+    mode: "direct", round: A.n, escrow: A.escrow, token: tokenAddr(), recipient: rs ? rs.recipient : null,
+    // as in Round #1, voting runs from the start to the close; each category takes votes once its candidates are out
+    deadline, now: latest.ts, opensAt: Number.isFinite(opens) ? opens : null, votingEnds: deadline,
+    votingOpen: !!rs && rs.started && latest.ts < deadline,
+    done: st.hi >= latest.number, hi: st.hi, anchor: { block: latest.number, ts: latest.ts },
+    categories: CATS.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c] })),
+    totals: { burned: (BigInt(votes) * VOTE_UNIT).toString(), votes, voters: by.size },
+    top: [...by].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([voter, votes]) => ({ voter, votes })),
+    events: ev.slice(0, 60).map((e) => ({ b: e.b, i: e.i, tx: e.tx, cat: e.cat, voter: e.voter, opt: e.opt, votes: e.votes, text: bal[e.cat] ? bal[e.cat].options[e.opt] || "" : "" })),
+    uncounted: all.length - ev.length,
+  };
+}
 
 /// string[] from an ABI-encoded return value
 export function decodeStrings(hex) {
@@ -68,6 +257,7 @@ const parse = (l) => ({
 
 const optMem = new Map(); // ballot → { at, v: string[][] }
 export async function ballotOptions(A = ADDR) {
+  if (isDirect(A)) return (await directBallot(A)).map((c) => (c ? c.options : []));
   const m = optMem.get(A.ballot);
   if (m && Date.now() - m.at < 60e3) return m.v;
   const r = await ethCalls(CATS.map((_, c) => ({ to: A.ballot, data: sel("optionsSet(uint8)") + pad(c) })));
@@ -82,6 +272,10 @@ export async function ballotOptions(A = ADDR) {
 // ---- the feed: every Voted event, kept incrementally (store doc or this instance) ----
 const mem = new Map();
 export async function burnFeed(store, A = ADDR) {
+  if (isDirect(A)) {
+    const d = await directState(store, A);
+    return { contract: null, mode: "direct", token: d.token, round: A.n, done: d.done, hi: d.hi, anchor: d.anchor, totals: d.totals, events: d.events, top: d.top };
+  }
   const key = `cburn/feed/${A.burnvote}`; // one feed per vote contract
   let st = mem.get(key) || null;
   if (!st && store) { try { st = await store.get(key); } catch { st = null; } }
@@ -122,6 +316,22 @@ export async function voteTx(tx) {
   if (!rc) return null;
   // any round's burn-to-vote: the share page works for every round's votes
   const known = [ADDR, ...voteRounds()];
+  const dv = (rc.logs || []).filter((l) => lc(l.address) === tokenAddr() && l.topics && lc(l.topics[0]) === T_TRANSFER && lc(l.topics[2]) === DEAD_TOPIC)
+    .map((l) => ({ l, v: readVoteAmount(l.data) })).filter((x) => x.v);
+  const DA = dv.length ? known.find((g) => isDirect(g) && g.n === dv[0].v.round) : null;
+  if (DA) {
+    const [bal, blk, rs] = await Promise.all([directBallot(DA), rpcCall("eth_getBlockByNumber", [rc.blockNumber, false]).catch(() => null), roundState(DA.escrow).catch(() => null)]);
+    const ts = blk ? parseInt(blk.timestamp, 16) : null;
+    const items = dv.filter((x) => x.v.round === DA.n)
+      .map(({ l, v }) => ({ voter: "0x" + strip(l.topics[1]).slice(24), cat: v.cat, opt: v.opt, votes: v.votes, ts }))
+      .filter((e) => ts != null && counts(e, bal, rs ? rs.deadline : 0));
+    if (!items.length) return null;
+    const votes = items.reduce((a, e) => a + e.votes, 0);
+    return {
+      tx, round: DA.n, voter: items[0].voter, block: parseInt(rc.blockNumber, 16), ts, votes, burned: (BigInt(votes) * 1000n).toString(),
+      items: items.map((e) => ({ cat: e.cat, category: CATS[e.cat] || "", opt: e.opt, text: bal[e.cat].options[e.opt] || "", votes: e.votes })),
+    };
+  }
   const A = known.find((g) => (rc.logs || []).some((l) => lc(l.address) === g.burnvote && l.topics && l.topics[0] === T_VOTED));
   if (!A) return null;
   const logs = (rc.logs || []).filter((l) => lc(l.address) === A.burnvote && l.topics && l.topics[0] === T_VOTED).map(parse);
@@ -146,6 +356,13 @@ function decodeUints(hex) {
   } catch { return []; }
 }
 export async function ballotReport(A = ADDR) {
+  if (isDirect(A)) {
+    const d = await directState(null, A);
+    return {
+      mode: "direct", categories: d.categories.map((c) => ({ id: c.id, label: c.label, options: c.options.map((text, i) => ({ text, votes: c.tallies[i] || 0 })) })),
+      burned: d.totals.burned, votes: d.totals.votes, voters: d.totals.voters, opensAt: d.opensAt || 0, votingEnds: d.votingEnds,
+    };
+  }
   const opts = await ballotOptions(A);
   const calls = [
     ...CATS.map((_, c) => ({ to: A.burnvote, data: sel("tallies(uint8)") + pad(c) })),
@@ -159,3 +376,8 @@ export async function ballotReport(A = ADDR) {
     burned: big(tb).toString(), votes: Number(big(tv)), voters: Number(big(vc)), opensAt: Number(big(op)), votingEnds: Number(big(ve)),
   };
 }
+
+export const _test = {
+  useStore(m) { S = m || { get: null, create: null }; candMem.clear(); dmem.clear(); },
+  setToken(t) { /* tests point the scan at a local token */ TOKEN_OVERRIDE.v = String(t).toLowerCase(); },
+};

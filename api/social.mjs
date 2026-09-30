@@ -25,6 +25,8 @@
 //   GET  /api/social?circle=ideas[&wallet=0x…][&round=<escrow>]   a round's governance ideas (api/_circle.mjs)
 //   GET  /api/social?circle=burns[&round=n]      CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
 //   GET  /api/social?circle=vote&tx=0x…          one burn-vote transaction (/vote/<tx>)
+//   GET  /api/social?circle=gov&round=n[&voter=0x…][&proof=cat]   a direct round's governance (no vote contracts)
+//   POST /api/social  { action: "cgov-cands", round: <escrow>, cat, options, signature }   its signed candidates
 //   GET  /api/social?circle=rounds[&fresh=1]     every CirclePad round + its launch process (api/_rounds.mjs)
 //   GET  /api/social?circle=boot                 /circle's <head> script: which round the page runs
 //   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
@@ -213,6 +215,20 @@ export async function GET(req) {
     const A = url.searchParams.has("round") ? burnvote.forRound(url.searchParams.get("round")) : burnvote.ADDR;
     if (!A) return json(404, { error: "that round has no burn-to-vote" }, "public, max-age=30");
     try { return json(200, await burnvote.burnFeed(scanStoreEarly(), A), "public, max-age=5, s-maxage=10, stale-while-revalidate=60"); }
+    catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  // a direct round's governance (no vote contracts): candidates, tallies, &voter's own votes (api/_burnvote.mjs)
+  if (url.searchParams.get("circle") === "gov") {
+    const A = burnvote.forRound(url.searchParams.get("round") || burnvote.ADDR.n);
+    if (!A || !burnvote.isDirect(A)) return json(404, { error: "that round votes through its contracts" }, "public, max-age=30");
+    const v = String(url.searchParams.get("voter") || "");
+    if (url.searchParams.has("proof")) {
+      const c = Number(url.searchParams.get("proof"));
+      if (!(c >= 0 && c < burnvote.CATS.length)) return json(400, { error: "bad category" });
+      try { const p = await burnvote.candProof(A, c); return p ? json(200, p, "public, max-age=60, s-maxage=3600") : json(404, { error: "not published" }, "public, max-age=10"); }
+      catch (err) { return json(502, { error: "couldn't read the candidates" }); }
+    }
+    try { return json(200, await burnvote.directState(scanStoreEarly(), A, isAddr(v) ? v : null), isAddr(v) ? "public, max-age=3, s-maxage=5" : "public, max-age=5, s-maxage=8, stale-while-revalidate=60"); }
     catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.get("circle") === "vote") {
@@ -514,6 +530,7 @@ export async function POST(req) {
     if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
     if (b.action === "cidea") return await circle.ideaPost(b, recoverSigner, json);
     if (b.action === "cidea-up") return await circle.ideaUp(b, recoverSigner, json);
+    if (b.action === "cgov-cands") return await burnvote.publishCands(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "cstage") return await rounds.stagePost(b, recoverSigner, json);
     if (b.action === "cround") return await rounds.registerRound(b, json);

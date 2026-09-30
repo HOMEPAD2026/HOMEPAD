@@ -5105,6 +5105,11 @@
     "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.": "与第 1 轮相同：先征集想法，再用 $ARCIRCLE 销毁投票决定名称、代码、标志、路线图和日期。即将开放。",
     "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.": "代币在投票选定的日期上线。本轮空投：尚未决定。",
     "Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.": "本轮治理即将开放，与第 1 轮相同：先征集社区想法，再在募集结束前用 $ARCIRCLE 销毁投票。第 1 轮结果见 Projects。",
+    "Only you (the recipient wallet) see this. Tap \"Use\" on a community idea above to fill a row. You sign the list with your wallet (no gas) and it's published once — it can't be edited afterwards.": "只有你(收款钱包)能看到这里。点上方社区想法的\"使用\"即可填入一行。列表由你的钱包签名发布(无 Gas),只发布一次,之后无法修改。",
+    "Burn-to-vote, as in Round #1": "与第 1 轮相同的销毁投票",
+    "Until the raise closes. The round wallet signs the candidates from the community's ideas; anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date, and every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "直到募集结束。轮次钱包从社区想法中签名确定候选;任何持有 $ARCIRCLE 的人都可以对名称、代码、Logo、路线图和上线日期投票,每票直接向 0x…dEaD 销毁 1,000 $ARCIRCLE。不部署新合约:票数按 Arc 上的这些销毁统计。",
+    "$ARCIRCLE (burn-to-vote)": "$ARCIRCLE(销毁投票)",
+    "No vote contract this round: a vote is a transfer to 0x…dEaD, 1,000 $ARCIRCLE per vote, the choice coded in the amount's last 12 decimals": "本轮没有投票合约:投票就是转账到 0x…dEaD,每票 1,000 $ARCIRCLE,所选项编码在金额的最后 12 位小数中",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

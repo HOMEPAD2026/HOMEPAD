@@ -1,4 +1,4 @@
-# CirclePad Round #2 — 거버넌스 켜기
+# CirclePad Round #2 — 거버넌스 (새 컨트랙트 없음)
 
 Round #2 에스크로: `0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3` (2026-09-30 시작, 2026-10-02 12:13 UTC = 21:13 KST 마감)
 
@@ -7,30 +7,19 @@ Round #2 에스크로: `0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3` (2026-09-30 
 - 마감 시 80% 수령인 / 15% 트레저리 / 5% 플랫폼, 최다 기여자에게 15%를 3일에 걸쳐 지급
 - 기여자 에어드랍: 미정
 
-## 1. 배포 (Codespace)
+## 컨트랙트를 새로 배포하지 않는 방식
 
-`contracts/.env`에 **새 배포용 지갑**의 `DEPLOYER_PRIVATE_KEY`를 직접 넣습니다(가스용 Arc USDC 조금).
-노출된 `0x80e1…8bc7` 키는 설정 단계에서 거부됩니다. 배포 지갑은 컨트랙트에 아무 권한도 갖지 않습니다.
+Round #1의 BigPadVote / ArcircleBurnVote는 Round #1 에스크로와 그 투표 기간에 고정돼 있어 다시 쓸 수 없습니다.
+그래서 Round #2는 배포 없이 이렇게 돌아갑니다(`api/_burnvote.mjs`의 `GOV[2].mode = "direct"`).
 
-```
-cd /workspaces/HOMEPAD/contracts
-BIGPAD_ESCROW_ADDRESS=0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3 npx hardhat run scripts/deploy-bigpad-vote.js --network arcMainnet
-```
-→ 출력된 **BigPadVote 주소**를 적어 둡니다.
+- **후보 게시**: 라운드 지갑(에스크로의 recipient, 0x1A35…672E)이 카테고리마다 후보 목록에 **서명**합니다(가스비 없음).
+  사이트가 서명과 함께 저장하고, 한 번 게시하면 수정할 수 없습니다. 누구나 `/api/social?circle=gov&round=2&proof=<0-4>`로 서명을 확인할 수 있습니다.
+- **투표**: Governance 탭에서 투표하면 지갑에서 $ARCIRCLE을 `0x…dEaD`로 **그냥 전송**합니다(승인 단계 없음).
+  금액 = 표 수 × 1,000 $ARCIRCLE + 아주 작은 코드(라운드·카테고리·후보, 10억분의 1 토큰 미만).
+  사이트는 Arc의 dEaD 전송 기록에서 이 코드를 읽어 집계하므로, 누구나 체인에서 다시 셀 수 있습니다.
+- **집계 조건**: 그 카테고리의 후보가 게시된 뒤 ~ 모금 마감 전에 보낸 것만 셉니다. 손으로 보낸 일반 소각은 표가 아닙니다.
 
-```
-CIRCLEPAD_VOTE_ADDRESS=<위 BigPadVote 주소> npx hardhat run scripts/deploy-arcircle-burn-vote.js --network arcMainnet
-```
-→ 출력된 **ArcircleBurnVote 주소와 블록 번호**를 적어 둡니다. 투표는 이 순간부터 모금 마감까지 열립니다.
-
-끝나면 `contracts/.env`에서 키를 지웁니다.
-
-## 2. 사이트 연결
-
-두 주소와 블록 번호를 Claude에게 보내면 `api/_burnvote.mjs`의 `GOV[2]`와 `config-arc.js`의 `CIRCLEPAD_GOV[2]`에 넣어
-Round #2 아이디어 보드와 소각 투표가 열립니다.
-
-## 3. 후보 올리기 (라운드 지갑 0x1A35…672E)
+## 할 일 (라운드 지갑)
 
 /circle → Governance에서 아이디어를 모은 뒤 "Fill every category from the ideas" → 카테고리마다 서명해 게시합니다.
 후보가 게시된 카테고리부터 투표할 수 있습니다. 마감(10/2 21:13 KST) 전에 모두 게시하세요.

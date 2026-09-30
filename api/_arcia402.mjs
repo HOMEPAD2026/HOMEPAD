@@ -22,7 +22,7 @@ import * as liquidity from "./_liquidity.mjs";
 import * as argusArc from "./_argus-arcpad.mjs";
 import * as snap from "./_snapshot.mjs";
 import { roundState } from "./_round.mjs";
-import { ballotReport } from "./_burnvote.mjs";
+import { ballotReport, forRound } from "./_burnvote.mjs";
 import { live, askClaude } from "./_arcia-brain.mjs";
 
 const SITE = "https://www.arcircle.app";
@@ -247,7 +247,7 @@ async function holderSnapshot(token) {
   }
 }
 async function roundReport() {
-  const [st, b] = await Promise.all([roundState(), ballotReport().catch(() => null)]);
+  const [st, b] = await Promise.all([roundState(), ballotReport(forRound(1)).catch(() => null)]);
   const now = Math.floor(Date.now() / 1000);
   return {
     round: 1, open: st.isOpen, raised_usdc: Number(st.totalRaised / 10n ** 16n) / 100, cap_usdc: st.cap > 0n ? Number(st.cap / 10n ** 16n) / 100 : null,

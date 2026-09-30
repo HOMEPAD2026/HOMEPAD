@@ -4,8 +4,8 @@
 // <script> in circlepad.html's <head> that sets window.CP_ROUNDS from api/_rounds.mjs): the newest round
 // that the round wallet has prepared (deployed — started or not yet) becomes the page's round: before start() it
 // shows in its pre-start state (the round wallet's Start button on Home), after it runs like any round. Its raise, leaderboard, position and split work exactly like
-// Round #1's (same BigPadEscrow contract); burn-to-vote isn't set up for it, so the vote contracts are
-// switched off here and Governance says so. The Q&A room stays Round #1's (CIRCLEPAD_COMMUNITY_ESCROW).
+// Round #1's (same BigPadEscrow contract); its governance comes from CONFIG.CIRCLEPAD_GOV[n]: its own vote contracts,
+// or mode "direct" (no contracts — signed candidates, coded burns to 0x…dEaD), or "opens soon" until one is set. The Q&A room stays Round #1's (CIRCLEPAD_COMMUNITY_ESCROW).
 // Right after the round wallet starts a round, circlepad-rounds.js leaves a short-lived note in
 // localStorage so this page switches at once, before the cached boot script catches up.
 (function () {
@@ -24,13 +24,16 @@
   } catch (e) { /* storage blocked: the boot script alone decides */ }
   if (cur) {
     const G = (CONFIG.CIRCLEPAD_GOV && CONFIG.CIRCLEPAD_GOV[cur.n]) || {};
-    const voteOn = isAddr(G.vote) && isAddr(G.burnvote);
+    // direct: no vote contracts — signed candidates and coded burns to 0x…dEaD (circlepad.js govDirect)
+    const direct = G.mode === "direct";
+    const voteOn = direct || (isAddr(G.vote) && isAddr(G.burnvote));
     CONFIG.CIRCLEPAD_ESCROW_ADDRESS = cur.escrow;
     CONFIG.CIRCLEPAD_ROUND = cur.n;
-    CONFIG.CIRCLEPAD_ROUND_GOV = { ...G, voteOn, ballotOn: isAddr(G.vote) };
+    CONFIG.CIRCLEPAD_ROUND_GOV = { ...G, voteOn, ballotOn: direct || isAddr(G.vote) };
+    CONFIG.CIRCLEPAD_GOV_DIRECT = direct;
     // the round's own ballot (the ideas board and candidates) and burn-to-vote, once they're deployed
-    CONFIG.CIRCLEPAD_VOTE_ADDRESS = isAddr(G.vote) ? G.vote : "";
-    CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = voteOn ? G.burnvote : "";
+    CONFIG.CIRCLEPAD_VOTE_ADDRESS = !direct && isAddr(G.vote) ? G.vote : "";
+    CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = !direct && voteOn ? G.burnvote : "";
     CONFIG.CIRCLEPAD_VOTE_MODE = voteOn ? "burn" : "";
     CONFIG.CIRCLEPAD_EXTRA_CANDIDATES = {};
     CONFIG.CIRCLEPAD_OPENS_AT = 0;
@@ -38,7 +41,9 @@
     CONFIG.CIRCLEPAD_ALLOCATION_NOTE = "";
     CONFIG.CIRCLEPAD_NEXT = [
       voteOn
-        ? { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" }
+        ? direct
+          ? { id: "vote", title: "Burn-to-vote, as in Round #1", body: "Until the raise closes. The round wallet signs the candidates from the community's ideas; anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date, and every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.", status: "policy" }
+          : { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" }
         : { id: "vote", title: "Governance, as in Round #1", body: "First the community suggests ideas, then the round wallet publishes the candidates and $ARCIRCLE holders burn-to-vote on name, ticker, logo, roadmap and launch date until the raise closes. Opens soon.", status: "policy" },
       { id: "close", title: "The raise closes", body: "Contributions, withdrawals and voting stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
       G.top === true ? { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.", status: "policy" }

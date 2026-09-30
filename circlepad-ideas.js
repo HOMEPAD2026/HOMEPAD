@@ -7,7 +7,7 @@
 // the signed messages below must match that file byte for byte.
 (function () {
   "use strict";
-  if (!document.body.classList.contains("circlepad-page") || typeof CONFIG === "undefined" || !CONFIG.CIRCLEPAD_ESCROW_ADDRESS || !CONFIG.CIRCLEPAD_VOTE_ADDRESS) return;
+  if (!document.body.classList.contains("circlepad-page") || typeof CONFIG === "undefined" || !CONFIG.CIRCLEPAD_ESCROW_ADDRESS || !(CONFIG.CIRCLEPAD_VOTE_ADDRESS || CONFIG.CIRCLEPAD_GOV_DIRECT === true)) return;
   const host = document.getElementById("gv-ideas");
   if (!host) return;
   const API = "/api/social";

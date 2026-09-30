@@ -30,6 +30,7 @@ import * as drop from "./_drop.mjs";
 import * as argusArc from "./_argus-arcpad.mjs";
 import * as A402 from "./_arcia402.mjs";
 import { roundState } from "./_round.mjs";
+import { voteRounds } from "./_burnvote.mjs";
 import { postTweet, recentPosts } from "./arcia-x.mjs";
 import * as BB from "./_tg-buybot.mjs";
 import {
@@ -187,17 +188,24 @@ async function cardCoin(ca, lang) {
   };
 }
 async function cardRound(lang) {
+  // the current round (api/_burnvote.mjs GOV: Round #2 on 30 Sep 2026), falling back to Round #1's numbers
+  const R = voteRounds()[0] || { n: 1, escrow: undefined };
   let raised = null, deadline = null, open = null;
-  const st = await roundState().catch(() => null);
+  const st = await roundState(R.escrow).catch(() => null);
   if (st) { raised = Number(st.totalRaised / 10n ** 16n) / 100; deadline = st.deadline; open = st.isOpen; }
-  else { const L = await live(SITE).catch(() => null); if (!L) return w("err", lang); raised = L.round.raised; deadline = L.round.deadline; open = L.round.open; } // the escrow didn't answer: the site's numbers
+  else if (R.n === 1) { const L = await live(SITE).catch(() => null); if (!L) return w("err", lang); raised = L.round.raised; deadline = L.round.deadline; open = L.round.open; } // the escrow didn't answer: the site's numbers
+  else return w("err", lang);
   const lf = left(deadline);
+  const govLine = R.n > 1 && open ? T3(lang, "Governance, as in Round #1: suggest ideas, then burn-to-vote with $ARCIRCLE (1 vote = 1,000) on name, ticker, logo, roadmap and launch date at arcircle.app/circle → Governance.",
+    "거버넌스는 라운드 #1과 같아요: 아이디어를 제안하고, $ARCIRCLE 소각 투표(1표 = 1,000개)로 이름·티커·로고·로드맵·런칭일을 정해요. arcircle.app/circle → Governance.",
+    "治理与第 1 轮相同:先提交想法,再用 $ARCIRCLE 销毁投票(1 票 = 1,000 枚)决定名称、代码、Logo、路线图和上线日期。arcircle.app/circle → Governance。") : null;
   return {
-    photo: `${SITE}/api/og?round=1&t=${minute()}`,
-    text: [`🟢 <b>CirclePad Round #1</b> · ${open ? T3(lang, "open", "진행 중", "进行中") : T3(lang, "closed", "마감", "已结束")}`, `${T3(lang, "Raised", "모금액", "已募")}: <b>${num(raised)} USDC</b>`,
+    ...(R.n === 1 ? { photo: `${SITE}/api/og?round=1&t=${minute()}` } : {}), // the share image is Round #1's card
+    text: [`🟢 <b>CirclePad Round #${R.n}</b> · ${open ? T3(lang, "open", "진행 중", "进行中") : T3(lang, "closed", "마감", "已结束")}`, `${T3(lang, "Raised", "모금액", "已募")}: <b>${num(raised)} USDC</b>`,
       open && lf ? `${T3(lang, "Time left", "남은 시간", "剩余时间")}: <b>${lf}</b>` : null, deadline ? `${T3(lang, "Closes", "마감", "截止")}: ${new Date(deadline * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC` : null,
-      !open ? `\n${T3(lang, "Round #1 is complete — $ARCIA launched and went out to every contributor. Round #2 is next (start date not decided).", "라운드 #1 완료 — $ARCIA가 런칭되어 모든 기여자에게 지급됐어요. 다음은 라운드 #2예요 (시작일 미정).", "第 1 轮已完成 — $ARCIA 已上线并发放给所有贡献者。下一轮是第 2 轮(开始时间未定)。")}` : null].filter(Boolean).join("\n"),
-    buttons: [[{ text: "CirclePad", url: `${SITE}/circle` }, { text: T3(lang, "Round report", "라운드 리포트", "轮次报告"), url: `${SITE}/circle/round/1` }]], refresh: "round",
+      govLine ? `\n${govLine}` : null,
+      !open && R.n === 1 ? `\n${T3(lang, "Round #1 is complete — $ARCIA launched and went out to every contributor. Round #2 is next (start date not decided).", "라운드 #1 완료 — $ARCIA가 런칭되어 모든 기여자에게 지급됐어요. 다음은 라운드 #2예요 (시작일 미정).", "第 1 轮已完成 — $ARCIA 已上线并发放给所有贡献者。下一轮是第 2 轮(开始时间未定)。")}` : null].filter(Boolean).join("\n"),
+    buttons: [[{ text: "CirclePad", url: `${SITE}/circle` }, R.n === 1 ? { text: T3(lang, "Round report", "라운드 리포트", "轮次报告"), url: `${SITE}/circle/round/1` } : { text: T3(lang, "Vote", "투표", "投票"), url: `${SITE}/circle#governance` }]], refresh: "round",
   };
 }
 async function dropsOf(wallet) {

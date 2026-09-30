@@ -234,7 +234,8 @@ export async function summary(n) {
     closed: st.started && now() >= st.deadline, startedAt: st.started ? st.deadline - FUNDING : null,
     board: { rows, complete: !!lb.complete, flow: lb.flow || null, contributors: rows.length, top: rows[0] || null },
     ballot: ballot ? { burned: ballot.burned, votes: ballot.votes, voters: ballot.voters, opensAt: ballot.opensAt, votingEnds: ballot.votingEnds, winners } : null,
-    contracts: { escrow: r.escrow, vote: forRound(r.n) ? forRound(r.n).ballot : null, burnvote: forRound(r.n) ? forRound(r.n).burnvote : null },
+    contracts: { escrow: r.escrow, vote: forRound(r.n) ? forRound(r.n).ballot || null : null, burnvote: forRound(r.n) ? forRound(r.n).burnvote || null : null },
+    govMode: forRound(r.n) ? forRound(r.n).mode : null, // "direct": signed candidates + burns to 0x…dEaD, no vote contracts
     report: r.n === 1 ? "/circle/round/1" : null,
   };
 }

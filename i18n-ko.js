@@ -4953,6 +4953,11 @@
     "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.": "Round #1처럼: 아이디어 먼저, 그다음 $ARCIRCLE 소각 투표로 이름·티커·로고·로드맵·날짜를 정해요. 곧 열려요.",
     "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.": "코인은 투표로 정한 날짜에 출시돼요. 이번 라운드 에어드랍: 아직 미정.",
     "Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.": "이번 라운드 거버넌스도 곧 열려요. Round #1처럼 커뮤니티 아이디어를 먼저 받고, 모금 마감까지 $ARCIRCLE 소각 투표를 합니다. Round #1 결과는 Projects에 있어요.",
+    "Only you (the recipient wallet) see this. Tap \"Use\" on a community idea above to fill a row. You sign the list with your wallet (no gas) and it's published once — it can't be edited afterwards.": "수령 지갑인 나에게만 보여요. 위 커뮤니티 아이디어의 \"사용\"을 누르면 칸이 채워져요. 목록은 지갑 서명(가스비 없음)으로 한 번만 공개되고, 이후에는 수정할 수 없어요.",
+    "Burn-to-vote, as in Round #1": "Round #1과 같은 소각 투표",
+    "Until the raise closes. The round wallet signs the candidates from the community's ideas; anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date, and every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "모금 마감까지. 라운드 지갑이 커뮤니티 아이디어에서 후보를 골라 서명하고, $ARCIRCLE 보유자 누구나 이름·티커·로고·로드맵·런칭일에 투표해요. 한 표마다 1,000 $ARCIRCLE이 0x…dEaD로 바로 소각돼요. 새 컨트랙트 없이 Arc의 소각 기록으로 표를 집계해요.",
+    "$ARCIRCLE (burn-to-vote)": "$ARCIRCLE (소각 투표)",
+    "No vote contract this round: a vote is a transfer to 0x…dEaD, 1,000 $ARCIRCLE per vote, the choice coded in the amount's last 12 decimals": "이번 라운드는 투표 컨트랙트가 없어요: 투표는 0x…dEaD로 보내는 전송이고, 1표당 1,000 $ARCIRCLE, 선택은 금액의 마지막 12자리 소수에 담겨요",
   };
 
 
