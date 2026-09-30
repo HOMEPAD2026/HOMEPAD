@@ -809,7 +809,7 @@ export async function tick(st, opts = {}) {
     S.buys = (S.buys || []).filter((t) => nowS - t < 3600);
     const dayLoss = S.dayStartEq && equity != null ? ((equity - S.dayStartEq) / S.dayStartEq) * 100 : 0;
     const flowToday = S.flows.filter((fl) => dayOf(fl.ts) === today && fl.kind !== "start").reduce((t, fl) => t + fl.usd, 0);
-    const dayLossAdj = S.dayStartEq ? ((equity - flowToday - S.dayStartEq) / S.dayStartEq) * 100 : dayLoss;
+    const dayLossAdj = dayPctOf(equity, S.dayStartEq, flowToday) ?? dayLoss;
     const stopDay = equity != null && dayLossAdj <= -B.RISK.dailyLossPct;
     if (stopDay && !S.stopNoted) { S.stopNoted = today; notes.push(`down ${r2(-dayLossAdj)}% today — no new real trades until tomorrow (paper continues)`); }
     // the crash-buy playbook's planned DCA tranches (-15%, -30% from its first price)
@@ -944,7 +944,7 @@ export async function tick(st, opts = {}) {
       if (S.dayStartEq == null) S.dayStartEq = S.eq;
       // owner alerts: a bad day, a losing streak, a trade that fell apart
       const flowsT = (S.flows || []).filter((fl) => dayOf(fl.ts) === today && fl.kind !== "start").reduce((t, fl) => t + fl.usd, 0);
-      const dayPct = S.dayStartEq ? ((S.eq - flowsT - S.dayStartEq) / S.dayStartEq) * 100 : null;
+      const dayPct = dayPctOf(S.eq, S.dayStartEq, flowsT);
       const ra = B.riskAlerts(S.alerts, { day: today, dayPct, tail: S.realTail, closed: closed.filter((r) => r.real) });
       S.alerts = ra.mem;
       if (ra.msgs.length) alarm(`ARCIA DESK — heads up\n${ra.msgs.join("\n")}\n\nhttps://www.arcircle.app/arc#desk`);
@@ -983,6 +983,14 @@ function addEdges(S, p, rec) {
   }
 }
 function predictP(S, x) { return r2(B.predict(S.learn.model, x), 3); }
+/// the day's result in % of the money the desk worked with today: the day's start plus today's deposits (minus
+/// withdrawals). Dividing by the start alone made a mid-day deposit look like a crash: on 30 Sep 2026 a $298
+/// deposit onto a $91 start turned a −$21 day (−5.4%) into "−23%" and stopped real trading for the day.
+export function dayPctOf(eq, dayStart, flowToday) {
+  if (!dayStart || eq == null) return null;
+  const base = dayStart + (flowToday || 0);
+  return base > 0 ? ((eq - (flowToday || 0) - dayStart) / base) * 100 : null;
+}
 export const pnlOf = (S) => (S.eq == null ? 0 : S.eq + (S.burnedUsd || 0) - (S.netIn || 0));
 const slim = (r) => ({ id: r.id, t: r.t, sym: r.sym, pb: r.pb, real: r.real, entryTs: r.entryTs, exitTs: r.exitTs, usdIn: r.usdIn, usdOut: r.usdOut, pnl: r.pnl, ret: r.ret, why: r.why, day: r.day, rt: r.rt ?? null,
   entryPx: r.entryPx, exitPx: r.exitPx, buyTx: r.buyTx, sells: r.parts.filter((p) => p.tx).map((p) => ({ tx: p.tx, px: p.px, pct: p.pct, ret: p.ret, why: p.why })), peak: r.peak, low: r.low, mins: r.mins,
@@ -1145,7 +1153,7 @@ export async function view(st) {
   // the sizing ramp now, and what a buy would be at the scalp's floor limit
   const eqNow = S.eq || 0;
   const flowsT = (S.flows || []).filter((fl) => dayOf(fl.ts) === dayOf(S.lastTick || 0) && fl.kind !== "start").reduce((t, fl) => t + fl.usd, 0);
-  const dayPct = S.dayStartEq ? r2(((eqNow - flowsT - S.dayStartEq) / S.dayStartEq) * 100) : null;
+  const dayPct = S.dayStartEq ? r2(dayPctOf(eqNow, S.dayStartEq, flowsT)) : null;
   const ts = B.tailStats(S.realTail);
   const sample = eqNow > 0 ? B.sizePlan({ equity: eqNow, cash: S.cash || 0, floorDrop: (1 - 1 / SET.scalpFloorX) * 100, tail: S.realTail, dayLossPct: dayPct || 0, set: SET }) : null;
   const ramp = { n: ts.n, pf: ts.pf == null || !isFinite(ts.pf) ? ts.pf === Infinity ? "inf" : null : r2(ts.pf, 2), pnl: r2(ts.pnl, 4), streak: ts.streak, dayPct, rules: B.RAMP,
