@@ -12,7 +12,13 @@ import { storeEnabled } from "./_store.mjs";
 import { getDocs, setDoc, commit, queryDocs } from "./_store.mjs";
 
 import { ESCROW, ARCIRCLE, ARCIRCLE_LIVE, FACTORY, VOTE, kec, S, CONTRIBUTED, big, roundState, contributionOf } from "./_round.mjs";
-import { ideasRound, isDirect, directBallot } from "./_burnvote.mjs";
+import { ideasRound, isDirect, directBallot, useCandStore } from "./_burnvote.mjs";
+// a direct round's signed candidates live in this store; api/_burnvote.mjs can't import it itself (it is also
+// bundled into Edge functions, where node:crypto isn't available)
+useCandStore({
+  getMany: async (paths) => { if (!storeEnabled()) return paths.map(() => null); const g = await getDocs(paths); return paths.map((p) => g[p] || null); },
+  create: async (path, data) => !(await commit([{ create: path, data }])).conflict,
+});
 export { ESCROW, roundState, contributionOf };
 const lc = (a) => String(a || "").toLowerCase();
 const usd = (wei) => Number(wei) / 1e18; // native USDC on Arc: 18 decimals

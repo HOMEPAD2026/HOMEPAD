@@ -12,7 +12,7 @@
 import { ethCalls, rpcCall, getLogs, latestBlock, blockTs, pool, toQty, keccakHex } from "./_arc.mjs";
 import { ARCIRCLE_TOKEN } from "./_arcircle.mjs";
 import { roundState, forgetRound } from "./_round.mjs";
-import { storeEnabled, getDocs, commit } from "./_store.mjs";
+import { SITE } from "./_arc.mjs";
 
 // Governance round by round: the round's escrow and how it votes. Contract rounds list their ballot
 // (BigPadVote) and burn-to-vote (ArcircleBurnVote) with the block they were deployed in; direct rounds need
@@ -80,14 +80,21 @@ const DEAD_TOPIC = "0x0000000000000000000000000000000000000000000000000000000000
 const CAND_MAX = [32, 10, 300, 400, 40];
 export const candMessage = (n, escrow, cat, options) =>
   `ARCIRCLE PAD — CirclePad Round #${n} candidates\nRound: ${String(escrow).toLowerCase()}\nCategory: ${CATS[cat]}\n` + options.map((o, i) => `${i + 1}. ${o}`).join("\n");
-let S = { get: null, create: null }; // tests swap in a memory store
+// The store is handed in by the Node functions (api/_circle.mjs → useCandStore): this module is also bundled into
+// Edge functions (api/c.mjs), which can't load api/_store.mjs (node:crypto). Without a store, candidates are read
+// from the site's own /api/social?circle=gov (read-only).
+let CONFIGURED = null, S = null; // { getMany(paths) → docs[], create(path, data) → false when it already exists } | tests: { get, create }
+export function useCandStore(store) { CONFIGURED = store; S = store; candMem.clear(); }
 const candPath = (escrow, cat) => `cgovCands/${String(escrow).toLowerCase()}_${cat}`;
 async function candDocs(A) {
   const paths = CATS.map((_, c) => candPath(A.escrow, c));
-  if (S.get) return Promise.all(paths.map((p) => S.get(p)));
-  if (!storeEnabled()) return paths.map(() => null);
-  const got = await getDocs(paths);
-  return paths.map((p) => got[p] || null);
+  if (S && S.getMany) return S.getMany(paths);
+  if (S && S.get) return Promise.all(paths.map((p) => S.get(p)));
+  try {
+    const r = await fetch(`${SITE}/api/social?circle=gov&round=${A.n}`, { headers: { accept: "application/json" } });
+    const j = r.ok ? await r.json() : null;
+    return CATS.map((_, c) => { const x = j && j.categories && j.categories[c]; return x && x.set ? { options: x.options, at: (x.at || 0) * 1000 } : null; });
+  } catch { return paths.map(() => null); }
 }
 const candMem = new Map();
 /// per category: { options, at (unix s), by, sig } or null while unpublished
@@ -140,11 +147,8 @@ export async function publishCands(b, recover, json) {
   if (st.deadline && head.ts >= st.deadline) return json(409, { error: "the raise has closed" });
   const data = { round: A.escrow, n: A.n, cat, options, raw, by: signer, sig: String(b.signature), at: Date.now() };
   const path = candPath(A.escrow, cat);
-  if (S.create) { if (!(await S.create(path, data))) return json(409, { error: "these candidates are already published" }); }
-  else {
-    const r = await commit([{ create: path, data }]);
-    if (r.conflict) return json(409, { error: "these candidates are already published" });
-  }
+  if (!S || !S.create) return json(503, { error: "candidates can't be stored right now" });
+  if (!(await S.create(path, data))) return json(409, { error: "these candidates are already published" });
   candMem.delete(A.escrow);
   return json(200, { ok: true, cat, options });
 }
@@ -378,6 +382,6 @@ export async function ballotReport(A = ADDR) {
 }
 
 export const _test = {
-  useStore(m) { S = m || { get: null, create: null }; candMem.clear(); dmem.clear(); },
+  useStore(m) { S = m || CONFIGURED; candMem.clear(); dmem.clear(); },
   setToken(t) { /* tests point the scan at a local token */ TOKEN_OVERRIDE.v = String(t).toLowerCase(); },
 };
