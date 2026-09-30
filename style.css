@@ -12366,3 +12366,14 @@ body.dk-noscroll{overflow:hidden;}
   .ag-toasts{left:16px;right:16px;bottom:176px}
 }
 @media (prefers-reduced-motion:reduce){.ag-steps > em::after,.ag-av.mood-safe,.ag-av.mood-caution,.ag-av.mood-risky,.ag-av.mood-pending,.ag-av.mood-pending img,.ag-spin,.ag-stamp.k-risky,.ag-health.ok i,.ag-v.ag-looked::after,.ag-tank.ag-splash i,.ag-tank.ag-splash::after,.ag-confetti i,.ag-toast{animation:none!important}}
+/* ARCIA DESK: which desk — Arc (USDC) or Robinhood Chain (ETH, pons) */
+.dk-net{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px;padding:4px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);}
+.dk-net button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid transparent;background:none;color:var(--ink-dim,#8c98a6);padding:8px 12px;border-radius:10px;cursor:pointer;text-align:left;transition:background .2s,border-color .2s,color .2s;}
+.dk-net button b{font:700 .86rem Sora,sans-serif;color:inherit;}
+.dk-net button small{font-size:.7rem;opacity:.8;}
+.dk-net button:hover{background:rgba(255,255,255,.04);}
+.dk-net button[aria-selected="true"]{background:rgba(57,255,136,.08);border-color:rgba(57,255,136,.35);color:#eafff2;}
+.dk-net button[aria-selected="true"] small{color:#39ff88;opacity:1;}
+.dk-net button:focus-visible{outline:2px solid #35d8d0;outline-offset:2px;}
+.dk-addr-c{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 .76rem "JetBrains Mono",monospace;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
+a.dk-dep-go{display:inline-flex;align-items:center;text-decoration:none;}

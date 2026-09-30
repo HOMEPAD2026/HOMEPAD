@@ -14,6 +14,9 @@
 // History / Playbooks / Learning / Rules), more KPIs (today, trading costs, best / worst, Claude's vetoes),
 // daily P&L calendar, drawdown, "every setup" baseline, playbook leaderboard with benched playbooks,
 // a trade drawer, what happened after she passed, the on-chain cash check, the next burn, toasts.
+// v3 (1 Oct 2026): two desks — Arc (USDC, Argus launches) and Robinhood Chain (ETH, pons launches; /api/desk?chain=rh),
+// switched at the top or by #desk?chain=rh; the Robinhood one shows ETH beside dollars, no burn, and its owner panel
+// points to the chain (a plain ETH send to deposit, the explorer's Write tab for withdraw / pause / limits).
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-desk");
@@ -24,7 +27,13 @@
   const T = (s) => esc(tr(s));
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const EXPL = (kind, x) => `${(typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
+  // the desk shown: Arc (USDC, Argus launches) or Robinhood Chain (ETH, pons launches) — #desk / #desk?chain=rh
+  const EXPL = (kind, x) => `${(S.d && S.d.net === "rh" && S.d.explorer) || (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
+  const isRH = () => S.net === "rh";
+  const netFromHash = () => (/^#desk\?(?:.*&)?chain=rh\b/.test(location.hash) ? "rh" : /^#desk\b/.test(location.hash) && /chain=arc\b/.test(location.hash) ? "arc" : null);
+  const api = (q = "") => "/api/desk" + (isRH() ? "?chain=rh" + (q ? "&" + q : "") : q ? "?" + q : "");
+  const eth = (n, d = 4) => (n == null || !isFinite(n) ? "—" : (n < 0 ? "−" : "") + Math.abs(Number(n)).toLocaleString("en-US", { maximumFractionDigits: d }) + " ETH");
+  const sgnEth = (n, d = 5) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : "") + eth(n, d));
   const txa = (h, label) => (h ? `<a class="dk-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
   const usd = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n < 0 ? "−$" : "$") + Math.abs(Number(n)).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }));
   const sgnUsd = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : "") + usd(n, d));
@@ -44,7 +53,7 @@
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
   const WHY = { early: "Early exit (fell right after the buy)", tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "Time limit at a low market cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
   const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0", scalp: "#ff7ac4", dipdca: "#ff9b5a" };
-  const S = { d: null, booted: false, timer: 0, tab: "real", shown: {}, seenLog: null, hover: null, view: "overview", f: { pb: "all", res: "all" }, lastVal: {}, drawn: false, cd: 0 };
+  const S = { net: "arc", d: null, booted: false, timer: 0, tab: "real", shown: {}, seenLog: null, hover: null, view: "overview", f: { pb: "all", res: "all" }, lastVal: {}, drawn: false, cd: 0 };
   const AV = "/images/arcia-avatar-96.jpg";
   const dayOfTs = (s) => new Date(s * 1000).toISOString().slice(0, 10);
   const TIP = {
@@ -58,8 +67,10 @@
 
   async function load() {
     try {
-      const r = await fetch("/api/desk", { cache: "no-store" });
+      const net = S.net;
+      const r = await fetch(api(), { cache: "no-store" });
       const j = r.ok ? await r.json() : null;
+      if (net !== S.net) return; // switched desks while this was loading
       if (j && !j.error) { S.d = j; paint(); }
       else if (!S.d) $("dk-body").innerHTML = `<div class="ams-card dk-empty">${T("ARCIA DESK isn't reachable right now. Try again in a minute.")}</div>`;
     } catch { if (!S.d) $("dk-body").innerHTML = `<div class="ams-card dk-empty">${T("ARCIA DESK isn't reachable right now. Try again in a minute.")}</div>`; }
@@ -68,7 +79,9 @@
   // ---------------- skeleton ----------------
   function frame() {
     const tab = (k, label) => `<button type="button" role="tab" data-dk-view="${k}" aria-selected="${S.view === k}">${T(label)}</button>`;
+    const nb = (k, label, sub) => `<button type="button" role="tab" data-dk-net="${k}" aria-selected="${S.net === k}"><b>${T(label)}</b><small>${T(sub)}</small></button>`;
     $("dk-body").innerHTML = `
+      <div class="dk-net" role="tablist" aria-label="${T("Which desk")}">${nb("arc", "Arc", "USDC · Argus launches")}${nb("rh", "Robinhood Chain", "ETH · pons launches")}</div>
       <div class="dk-health" id="dk-health" hidden></div>
       <div class="dk-hero2" id="dk-hero2"></div>
       <div class="dk-status" id="dk-status"></div>
@@ -85,9 +98,9 @@
           <div class="dk-side">
             <div class="ams-card dk-riskc"><div class="dk-h"><h3>${T("Risk now")}</h3><span class="dk-sub">${T("how much a buy spends, and why")}</span></div><div id="dk-risk"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Better than taking every setup?")}</h3></div><div id="dk-base"></div></div>
-            <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T("new Argus launches")}</span></div><div id="dk-watch"></div></div>
+            <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T(isRH() ? "new pons launches" : "new Argus launches")}</span></div><div id="dk-watch"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Passed on")}</h3><span class="dk-sub" id="dk-rej-sub">${T("and what happened next")}</span></div><div id="dk-rej"></div></div>
-            <div class="ams-card"><div class="dk-h"><h3>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
+            <div class="ams-card"${isRH() ? " hidden" : ""}><div class="dk-h"><h3>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
           </div>
         </div>
       </div>
@@ -122,6 +135,7 @@
       </div>
       <div class="dk-toasts" id="dk-toasts" aria-live="polite"></div>
       <div class="dk-drawer" id="dk-drawer" hidden><div class="dk-dr-bg" data-dk-close></div><aside class="dk-dr" role="dialog" aria-modal="true" aria-label="${T("Trade details")}"><button type="button" class="dk-dr-x" data-dk-close aria-label="${T("Close")}">×</button><div id="dk-dr-body"></div></aside></div>`;
+    panel.querySelector(".dk-net").addEventListener("click", (e) => { const b = e.target.closest("[data-dk-net]"); if (b) switchNet(b.dataset.dkNet, true); });
     panel.querySelector(".dk-nav").addEventListener("click", (e) => {
       const b = e.target.closest("[data-dk-view]");
       if (!b) return;
@@ -217,7 +231,7 @@
       <div class="dk-av dk-m-${mk}"><img src="${AV}" alt="" width="64" height="64" loading="lazy"><i></i></div>
       <div class="dk-hero-t"><small>${T("ARCIA at her desk")}</small><b>${T(ml)}</b><span class="dk-say">${T(say(d))}</span></div>
       <div class="dk-hero-v"><small>${T("Desk value")}</small><b data-no-i18n>${live ? usd(m.equity) : "—"}</b><em class="${cls(m.pnl)}" data-no-i18n>${live ? `${sgnUsd(m.pnl)} ${m.pnlPct != null ? "(" + pc(m.pnlPct) + ")" : ""}` : ""}</em>${spark}</div>
-      <div class="dk-hero-b"><small>${T("Next $ARCIRCLE burn")}</small>${need == null ? `<span>${T("after the first profitable day")}</span>` : need <= 0 ? `<span class="up">${T("due at the next daily run")}</span>` : `<span><b data-no-i18n>+${usd(need)}</b> ${T("more profit to go")}</span>`}<em>${T("share of new profit above her best level")}: <span data-no-i18n>${d.rules.risk.burnPct}%</span></em></div>`;
+      ${d.net === "rh" ? `<div class="dk-hero-b"><small>${T("In ETH")}</small><span><b data-no-i18n>${live ? eth(m.equityEth) : "—"}</b></span><em>${live ? `<span class="${cls(m.pnlEth)}" data-no-i18n>${sgnEth(m.pnlEth)}</span> · ` : ""}${T("ETH at")} <span data-no-i18n>${d.ethUsd ? usd(d.ethUsd) : "—"}</span></em></div>` : `<div class="dk-hero-b"><small>${T("Next $ARCIRCLE burn")}</small>${need == null ? `<span>${T("after the first profitable day")}</span>` : need <= 0 ? `<span class="up">${T("due at the next daily run")}</span>` : `<span><b data-no-i18n>+${usd(need)}</b> ${T("more profit to go")}</span>`}<em>${T("share of new profit above her best level")}: <span data-no-i18n>${d.rules.risk.burnPct}%</span></em></div>`}`;
     // a scan line across the hero each time a new run lands
     const h = $("dk-hero2");
     if (!reduce && S.lastUpd != null && d.updated !== S.lastUpd) { h.classList.remove("dk-scan"); void h.offsetWidth; h.classList.add("dk-scan"); }
@@ -242,7 +256,7 @@
     el.innerHTML = it("Total", `${sgnUsd(m.pnl)}${m.pnlPct != null ? ` · ${pc(m.pnlPct)}` : ""}`, cls(m.pnl)) +
       it("Today", `${today ? sgnUsd(today.pnl) : "—"}${rk.ramp && rk.ramp.dayPct != null ? ` · ${pc(rk.ramp.dayPct)}` : ""}`, cls(today && today.pnl)) +
       it("Deepest drop", dd.max ? "−" + usd(dd.max) : usd(0), dd.max ? "dn" : "") +
-      it("Next burn", b ? (b.needed <= 0 ? tr("due now") : `+${usd(b.needed)} ${tr("more profit")}`) : "—", b && b.needed <= 0 ? "up" : "") +
+      (d.net === "rh" ? it("In ETH", sgnEth(m.pnlEth), cls(m.pnlEth)) : it("Next burn", b ? (b.needed <= 0 ? tr("due now") : `+${usd(b.needed)} ${tr("more profit")}`) : "—", b && b.needed <= 0 ? "up" : "")) +
       (md ? `<span class="dk-sum-i"><small>${T("Buy size")}</small><span class="dk-st ${md[1]}">${T(md[0])}</span></span>` : "");
   }
   // ---------------- risk now: next buy size, open exposure, the burn gauge ----------------
@@ -265,9 +279,9 @@
         <li>${T("A buy may lose at most")} <b data-no-i18n>${set.maxLossPct}%</b> ${T("of the desk if the coin falls back to its launch floor")}</li>${sm ? `<li>${T("At the pump scalp's floor limit")} <b data-no-i18n>(${sm.atFloorX}×)</b>: ${T("a buy of at most")} <b data-no-i18n>${usd(sm.cap)}</b></li>` : ""}</ul>
       <div class="dk-rk-exp"><div><small>${T("Open now")}</small><b data-no-i18n>${usd(e.open)}</b><span><span data-no-i18n>${e.n || 0}</span> ${T("open positions")}</span></div>
         <div><small>${T("If every one fell to its launch floor")}</small><b class="${e.toFloor > 0 ? "dn" : ""}" data-no-i18n>${e.toFloor > 0 ? "−" + usd(e.toFloor) : usd(0)}</b><span>${T("the worst case, before any stop-loss")}</span></div></div>
-      <div class="dk-rk-burn ${b.needed <= 0 ? "due" : ""}"><div class="dk-rk-bh"><small>${T("To the next $ARCIRCLE burn")}</small><b data-no-i18n>${b.needed <= 0 ? tr("due at the next daily run") : "+" + usd(b.needed)}</b></div>
+      ${!rk.burn ? "" : `<div class="dk-rk-burn ${b.needed <= 0 ? "due" : ""}"><div class="dk-rk-bh"><small>${T("To the next $ARCIRCLE burn")}</small><b data-no-i18n>${b.needed <= 0 ? tr("due at the next daily run") : "+" + usd(b.needed)}</b></div>
         <div class="dk-rk-bar"><i style="width:${(fill * 100).toFixed(1)}%"></i>${b.needed <= 0 ? `<em class="dk-flame-i" aria-hidden="true"></em>` : ""}</div>
-        <p class="dk-small">${T("A burn needs profit above the desk's best level so far.")}</p></div>`;
+        <p class="dk-small">${T("A burn needs profit above the desk's best level so far.")}</p></div>`}`;
   }
   function cohorts(d) {
     const el = $("dk-coh"), c = (d.risk && d.risk.cohorts) || [];
@@ -324,7 +338,8 @@
       tile("cost", "Trading costs", 0, c.n ? `${T("taxes and price impact on")} <em data-no-i18n>${c.n}</em> ${T("trades")}` : T("counted from the next trade")) +
       tile("best", "Best / worst", 0, s.best ? `<span data-no-i18n>${esc(s.best.sym)} ${pc(s.best.ret)} · ${esc(s.worst.sym)} ${pc(s.worst.ret)}</span>` : "—") +
       tile("veto", "Claude said no", 0, T("real buys stopped by the second opinion")) +
-      tile("burn", "$ARCIRCLE burned", 0, `${T("bought with")} <em data-no-i18n>${usd(m.burnedUsd || 0)}</em> ${T("of profit")}`, "dk-burn");
+      (d.net === "rh" ? tile("ethp", "Profit in ETH", 0, `${T("put in")} <em data-no-i18n>${eth(m.netInEth)}</em> · ${T("ETH's own price moves left out")}`, cls(m.pnlEth))
+        : tile("burn", "$ARCIRCLE burned", 0, `${T("bought with")} <em data-no-i18n>${usd(m.burnedUsd || 0)}</em> ${T("of profit")}`, "dk-burn"));
     const put = (k, v, fmt) => { const el = panel.querySelector(`[data-k="${k}"]`); if (el) countUp(el, k, v, fmt); };
     put("eq", live ? m.equity : null, (v) => (live ? usd(v) : "—"));
     put("pnl", live ? m.pnl : null, (v) => (live ? sgnUsd(v) : "—"));
@@ -333,7 +348,8 @@
     put("cost", c.n ? c.usd : null, (v) => (v == null ? "—" : usd(v)));
     const bestEl = panel.querySelector('[data-k="best"]'); if (bestEl) bestEl.textContent = s.best ? pc(s.best.ret) : "—";
     put("veto", s.vetoes || 0, (v) => String(Math.round(v)));
-    put("burn", m.burnedTok || 0, (v) => num(v));
+    if (d.net === "rh") { const el = panel.querySelector('[data-k="ethp"]'); if (el) el.textContent = live ? sgnEth(m.pnlEth) : "—"; }
+    else put("burn", m.burnedTok || 0, (v) => num(v));
   }
   function chart() {
     const d = S.d, el = $("dk-eq");
@@ -393,7 +409,8 @@
     const el = $("dk-proof"), c = d.chain || {};
     if (!d.desk) { el.innerHTML = `<div class="dk-empty-s">${T("The desk contract isn't set yet.")}</div>`; return; }
     const diff = c.usdc != null && c.cash != null ? c.usdc - c.cash : null, okM = diff != null && Math.abs(diff) < 0.05;
-    el.innerHTML = `<div class="dk-proof"><div><small>${T("USDC in the desk contract")}</small><b data-no-i18n>${c.usdc == null ? "—" : usd(c.usdc)}</b><a class="dk-tx" href="${EXPL("address", d.desk)}" target="_blank" rel="noopener" data-no-i18n>${short(d.desk)} ↗</a></div>
+    const rh = d.net === "rh";
+    el.innerHTML = `<div class="dk-proof"><div><small>${T(rh ? "WETH in the desk contract" : "USDC in the desk contract")}</small><b data-no-i18n>${rh ? (c.weth == null ? "—" : `${eth(c.weth, 6)} · ${usd(c.usdc)}`) : c.usdc == null ? "—" : usd(c.usdc)}</b><a class="dk-tx" href="${EXPL("address", d.desk)}" target="_blank" rel="noopener" data-no-i18n>${short(d.desk)} ↗</a></div>
       <div><small>${T("Cash on this page")}</small><b data-no-i18n>${usd(c.cash)}</b><span>${T("from her last run")}</span></div>
       <div class="dk-pf ${diff == null ? "" : okM ? "ok" : "warn"}">${diff == null ? T("Couldn't read the chain just now.") : okM ? T("They match.") : `${T("They differ by")} <b data-no-i18n>${usd(Math.abs(diff))}</b> — ${T("usually a trade settling between runs.")}`}</div></div>
       <p class="dk-small">${T("Open positions are held as tokens in the same contract; their value is what an exact sell quote from the contract says right now.")}</p>`;
@@ -415,7 +432,7 @@
   const SETF = [["tradePct", "Buy size", "% of desk"], ["maxLossPct", "Most a buy may lose at the launch floor", "% of desk"], ["scalpFloorX", "Pump scalp: at most", "× launch floor"],
     ["scalpMaxDump", "Pump scalp: top-10 dump under", "%"], ["earlyFailPct", "Early exit: down", "%"], ["earlyFailMin", "Early exit: in the first", "min"]];
   const setMsg = (desk, v, issued) => `ARCIRCLE PAD — ARCIA DESK settings\nDesk: ${String(desk).toLowerCase()}\nSettings: ${JSON.stringify(Object.fromEntries(SETF.map(([k]) => [k, Number(v[k])])))}\nIssued: ${issued}`;
-  let depBox = null, deskOwner = null, ownerAsked = false, depLast = null, chain = { bal: null, paused: null, at: 0 };
+  let depBox = null, deskOwner = null, ownerAsked = false, depLast = null, chain = { bal: null, paused: null, at: 0 }, rhBox = null, rhLast = null;
   // the page only repaints when the desk's numbers change, so a wallet that connects later is checked here
   setInterval(() => { if (depLast && !document.hidden) deposit(depLast); }, 3000);
   const fmt6 = (x) => Number(ethers.formatUnits(x, 6)).toLocaleString("en-US", { maximumFractionDigits: 6 });
@@ -456,6 +473,8 @@
     post.value = (d.risk && d.risk.postDraft) || tr("Starts once the desk is funded.");
   }
   function deposit(d) {
+    if (d.net === "rh") { if (depBox) depBox.hidden = true; return depositRH(d); }
+    if (rhBox) rhBox.hidden = true;
     depLast = d;
     if (!d.desk || typeof ethers === "undefined") return;
     if (!ownerAsked && typeof readProvider === "function") {
@@ -585,6 +604,100 @@
     if (show && Date.now() - chain.at > 20000) readChain(d).catch(() => {});
     else if (show) paintMoney(d);
   }
+  // ---- the Robinhood desk's owner panel. Its wallet moves happen on Robinhood Chain, so the page points to them
+  // (a plain ETH send to deposit — the contract wraps it — and the contract's Write tab on the explorer for
+  // withdrawETH / setPaused / setCaps); the settings are signed here (a signature, no gas, any network).
+  function depositRH(d) {
+    rhLast = d;
+    const me = typeof state !== "undefined" && state.account ? String(state.account).toLowerCase() : null;
+    const show = !!(d.desk && me && d.owner && me === String(d.owner).toLowerCase());
+    if (!rhBox) {
+      if (!show) return;
+      rhBox = document.createElement("div");
+      rhBox.className = "dk-dep"; rhBox.id = "dk-dep-rh";
+      rhBox.innerHTML = `<div class="dk-dep-h"><b>${T("Desk money")}</b><span class="dk-st on">${T("Owner")}</span><span class="dk-dep-bal"><small>${T("WETH in the contract")}</small><b data-m="bal" data-no-i18n>—</b></span></div>
+        <div class="dk-dep-grid">
+          <div class="dk-dep-col"><small>${T("Deposit")}</small><p class="dk-small">${T("Send ETH on Robinhood Chain from your wallet to the desk contract — it becomes WETH there.")}</p>
+            <div class="dk-dep-row"><code class="dk-addr-c" data-m="addr" data-no-i18n></code><button type="button" class="dk-dep-max" data-m="copy">${T("Copy")}</button></div></div>
+          <div class="dk-dep-col"><small>${T("Withdraw, pause, limits")}</small><p class="dk-small">${T("In the contract's Write tab on the explorer, from the owner wallet: withdrawETH (always to the owner), setPaused, setCaps (in wei).")}</p>
+            <div class="dk-dep-row"><a class="dk-dep-go" data-m="write" target="_blank" rel="noopener">${T("Open the contract")} ↗</a></div></div>
+        </div>
+        <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
+        <div class="dk-dep-set"><div class="dk-dep-limh"><small>${T("Sizing and pump scalp settings")}</small><span data-m="sby"></span></div>
+          <div class="dk-set-grid">${SETF.map(([k, label, unit]) => `<label><span>${T(label)}</span><span class="dk-set-in"><input type="number" step="any" inputmode="decimal" data-s="${k}" aria-label="${T(label)}"><em data-no-i18n>${unit}</em></span><small data-sb="${k}" data-no-i18n></small></label>`).join("")}</div>
+          <div class="dk-dep-row"><button type="button" class="dk-dep-max" data-m="sset">${T("Sign and save")}</button><button type="button" class="dk-dep-p" data-m="sdef">${T("Back to defaults")}</button></div>
+          <p class="dk-small">${T("Signed by the owner wallet (no gas). They change how much a buy spends and which pump scalps pass — they can't make her trade. Used from her next run.")}</p></div>
+        <details class="dk-dep-post"><summary>${T("Daily post draft")}</summary><textarea data-m="post" rows="7" data-no-i18n readonly></textarea><div class="dk-dep-row"><button type="button" class="dk-dep-p" data-m="pcopy">${T("Copy")}</button></div></details>
+        <p class="dk-small">${T("The desk records deposits and withdrawals on its next run (about a minute). Neither counts as profit or loss.")}</p>
+        <p class="dk-dep-msg" aria-live="polite"></p>`;
+      $("dk-proof").insertAdjacentElement("afterend", rhBox);
+      const $m = (k) => rhBox.querySelector(`[data-m=${k}]`);
+      const msg = (h, k) => { const m = rhBox.querySelector(".dk-dep-msg"); m.className = "dk-dep-msg" + (k ? " " + k : ""); m.innerHTML = h; };
+      $m("copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(rhLast.desk); msg(T("Copied."), "ok"); } catch { msg(esc(rhLast.desk)); } });
+      $m("pcopy").addEventListener("click", async () => { const t = $m("post"); try { await navigator.clipboard.writeText(t.value); msg(T("Copied."), "ok"); } catch { t.removeAttribute("readonly"); t.select(); } });
+      rhBox.querySelectorAll("[data-s]").forEach((i) => i.addEventListener("input", () => { i.dataset.dirty = "1"; }));
+      async function saveSet(v) {
+        const busy = (on) => rhBox.querySelectorAll("button").forEach((x) => { x.disabled = on; });
+        busy(true);
+        try {
+          if (!state.signer && typeof connectWallet === "function") await connectWallet();
+          if (!state.signer) throw new Error(T("Connect the owner wallet first."));
+          if (String(state.account).toLowerCase() !== String(rhLast.owner).toLowerCase()) throw new Error(T("Only the desk's owner wallet can do this."));
+          for (const [k, label] of SETF) {
+            const bd = rhLast.settings && rhLast.settings.bounds[k];
+            if (!isFinite(v[k]) || (bd && (v[k] < bd[0] || v[k] > bd[1]))) { msg(`${T(label)}: ${bd ? `${bd[0]}–${bd[1]}` : "?"}`, "bad"); return; }
+          }
+          const issued = new Date().toISOString();
+          msg(T("Sign in your wallet…"));
+          const signature = await state.signer.signMessage(setMsg(rhLast.desk, v, issued));
+          const r = await fetch("/api/desk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "settings", chain: "rh", values: v, issued, signature }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || !j.ok) { msg(esc(j.error || T("Couldn't save — try again.")), "bad"); return; }
+          rhBox.querySelectorAll("[data-s]").forEach((i) => { delete i.dataset.dirty; if (j.settings.values[i.dataset.s] != null) i.value = j.settings.values[i.dataset.s]; });
+          rhLast.settings = { ...rhLast.settings, values: { ...rhLast.settings.values, ...j.settings.values }, at: j.settings.at, by: j.settings.by };
+          msg(T("Saved. She uses them from her next run."), "ok");
+          setTimeout(load, 25000);
+        } catch (err) { msg(err && (err.code === "ACTION_REJECTED" || err.code === 4001) ? T("Cancelled in your wallet.") : esc(String((err && (err.shortMessage || err.message)) || "")).slice(0, 200), "bad"); }
+        finally { busy(false); }
+      }
+      $m("sset").addEventListener("click", () => saveSet(Object.fromEntries(SETF.map(([k]) => [k, Number(rhBox.querySelector(`[data-s="${k}"]`).value)]))));
+      $m("sdef").addEventListener("click", () => saveSet({ ...rhLast.settings.defaults }));
+    }
+    rhBox.hidden = !show;
+    if (!show) return;
+    const c = d.chain || {};
+    rhBox.querySelector("[data-m=bal]").textContent = c.weth == null ? "—" : eth(c.weth, 6);
+    rhBox.querySelector("[data-m=addr]").textContent = d.desk;
+    rhBox.querySelector("[data-m=write]").href = `${d.explorer}/address/${d.desk}?tab=write_contract`;
+    const ps = rhBox.querySelector("[data-m=pst]");
+    ps.className = "dk-st " + (d.paused ? "bench" : "on");
+    ps.textContent = d.paused == null ? "—" : tr(d.paused ? "Paused — no new buys" : "Trading");
+    const st = d.settings;
+    if (st) {
+      for (const [k] of SETF) {
+        const i = rhBox.querySelector(`[data-s="${k}"]`), bd = st.bounds && st.bounds[k];
+        if (bd) { i.min = bd[0]; i.max = bd[1]; rhBox.querySelector(`[data-sb="${k}"]`).textContent = `${bd[0]}–${bd[1]} · ${tr("default value")} ${st.defaults[k]}`; }
+        if (!i.dataset.dirty && document.activeElement !== i) i.value = st.values[k];
+      }
+      rhBox.querySelector("[data-m=sby]").innerHTML = st.at ? `${T("last saved")} <b data-no-i18n>${when(st.at)} UTC</b>` : T("defaults");
+    }
+    rhBox.querySelector("[data-m=post]").value = (d.risk && d.risk.postDraft) || tr("Starts once the desk is funded.");
+  }
+  /// show the other desk: the page is rebuilt for it (its numbers, links and owner panel are its own)
+  function switchNet(k, fromClick) {
+    if (k !== "rh") k = "arc";
+    if (k === S.net && S.booted) return;
+    S.net = k;
+    try { localStorage.setItem("dk-net", k); } catch { /* fine */ }
+    if (fromClick && history.replaceState) history.replaceState(null, "", location.pathname + location.search + (k === "rh" ? "#desk?chain=rh" : "#desk"));
+    S.d = null; S.shown = {}; S.seenLog = null; S.toastSeen = null; S.lastUpd = null; S.drawn = false;
+    if (depBox) { depBox.remove(); depBox = null; } if (rhBox) { rhBox.remove(); rhBox = null; }
+    deskOwner = null; ownerAsked = false; depLast = null; rhLast = null; chain = { bal: null, paused: null, at: 0 };
+    if (!S.booted) return;
+    frame();
+    $("dk-filt").dataset.ready = "";
+    load();
+  }
   function filters(d) {
     const el = $("dk-filt");
     if (el.dataset.ready) return;
@@ -604,7 +717,8 @@
   }
   const pbTag = (k, name) => `<span class="dk-pb" style="--pb:${PBCOL[k] || "#8c98a6"}">${T(name || k)}</span>`;
   const pbName = (k) => { const p = (S.d.learn.playbooks || []).find((x) => x.k === k); return p ? p.name : k; };
-  const tokenLink = (t, sym) => `<a class="dk-tok" href="/arc#scanner?t=${esc(t)}" title="${T("Open in Token Scanner")}" data-no-i18n>${esc(sym || short(t))}</a>`;
+  const tokenLink = (t, sym) => (S.d && S.d.net === "rh" ? `<a class="dk-tok" href="${EXPL("token", esc(t))}" target="_blank" rel="noopener" title="${T("Open on Robinhood Chain's explorer")}" data-no-i18n>${esc(sym || short(t))}</a>`
+    : `<a class="dk-tok" href="/arc#scanner?t=${esc(t)}" title="${T("Open in Token Scanner")}" data-no-i18n>${esc(sym || short(t))}</a>`);
   function openPos(d) {
     const el = $("dk-open");
     if (!d.open.length) {
@@ -657,7 +771,7 @@
     requestAnimationFrame(() => dr.classList.add("on"));
     body.innerHTML = `<div class="dk-skel"><i></i><i></i></div>`;
     let j = null;
-    try { const r = await fetch(`/api/desk?day=${encodeURIComponent(day)}&trade=${encodeURIComponent(id)}`); j = r.ok ? await r.json() : null; } catch { j = null; }
+    try { const r = await fetch(api(`day=${encodeURIComponent(day)}&trade=${encodeURIComponent(id)}`)); j = r.ok ? await r.json() : null; } catch { j = null; }
     if (!j || !j.trade) { body.innerHTML = `<div class="dk-empty-s">${T("Couldn't load this trade.")}</div>`; return; }
     const t = j.trade;
     body.innerHTML = `
@@ -755,8 +869,8 @@
   };
   function watch(d) {
     const el = $("dk-watch");
-    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T("No Argus launches in the last three days yet.")}</div>`; return; }
-    el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
+    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T(d.net === "rh" ? "No pons launches in the last three days yet." : "No Argus launches in the last three days yet.")}</div>`; return; }
+    el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${d.net === "rh" ? (c.top10 != null ? `${tr("top 10")} ${c.top10}%` : "—") : c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
   }
   function rej(d) {
     const el = $("dk-rej");
@@ -792,6 +906,7 @@
   }
   function burns(d) {
     const el = $("dk-burns");
+    if (d.net === "rh") return;
     const pct = d.rules.risk.burnPct;
     const head = `<p class="dk-small">${T("Once a day,")} <b data-no-i18n>${pct}%</b> ${T("of new profit above the desk's previous high buys $ARCIRCLE and sends it to 0x…dEaD, through the desk contract.")}</p>`;
     el.innerHTML = head + (d.burns.length ? `<div class="dk-rows">` + d.burns.slice(0, 8).map((b) => `<div class="dk-row"><span data-no-i18n>${esc(b.day)}</span><span data-no-i18n>${num(b.tok)} $ARCIRCLE</span><small data-no-i18n>${usd(b.usd)}</small>${txa(b.tx, "tx")}</div>`).join("") + `</div>` : `<div class="dk-empty-s">${T("No burn yet — it starts with the first profitable day.")}</div>`);
@@ -802,10 +917,10 @@
       <div class="dk-h"><h3>${T("The rules she can't learn away")}</h3></div>
       <div class="dk-rule-grid">
         <div><b>${T("Safety gates")}</b><ul>
-          <li>${T("No Token Scanner critical flag")}</li><li>${T("Launched at least")} <span data-no-i18n>${g.minAgeMin}</span> ${T("minutes ago, at most 3 days")}</li>
+          <li>${T(d.net === "rh" ? "Holders read from every transfer since launch (young tokens)" : "No Token Scanner critical flag")}</li><li>${T("Launched at least")} <span data-no-i18n>${g.minAgeMin}</span> ${T("minutes ago, at most 3 days")}</li>
           <li>${T("Liquidity at least")} <span data-no-i18n>$${g.minLiq}</span></li><li>${T("A buy and an immediate sell lose at most")} <span data-no-i18n>${g.maxRoundTrip}%</span></li>
           <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
-          <li>${T("Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
+          <li>${T(d.net === "rh" ? "pons tokens are the factory's own fixed-supply tokens — no taxes, no owner switches, nothing that can block selling; what's left is who holds them" : "Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
           ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp:")} <span data-no-i18n>${sv.scalpFloorX}×</span>${T("), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span> ${T("(the pump scalp:")} <span data-no-i18n>${sv.scalpMaxDump}%</span>)${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
           ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
@@ -814,16 +929,20 @@
           <li>${T("Half size after 3 losses in a row, when the last 20 real trades lost money in dollars, or once the day is down 5%; the minimum size when they lost twice what they made")}</li>
           ${sv.earlyFailPct > 0 ? `<li>${T("A pump scalp down")} <span data-no-i18n>${sv.earlyFailPct}%</span> ${T("in the first")} <span data-no-i18n>${sv.earlyFailMin}</span> ${T("minutes after the buy is sold at once")}</li>` : ""}
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
-          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("Contract limits")}: ${(() => { const c = d.rules.caps; if (!c) return T("each buy and each day's buys are capped; only the owner can withdraw"); const v = (x) => (x === null ? T("no limit") : x === undefined ? "—" : `<span data-no-i18n>$${Number(x).toLocaleString("en-US")}</span>`); return `${T("per buy")} ${v(c.perBuy)} · ${T("per day")} ${v(c.perDay)} · ${T("only the owner can withdraw")}`; })()}</li></ul></div>
+          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("Contract limits")}: ${(() => { const c = d.rules.caps; if (!c) return T("each buy and each day's buys are capped; only the owner can withdraw"); const v = (x, e) => (x === null ? T("no limit") : x === undefined ? "—" : `<span data-no-i18n>$${Number(x).toLocaleString("en-US")}${e != null ? ` (${eth(e, 6)})` : ""}</span>`); return `${T("per buy")} ${v(c.perBuy, c.perBuyEth)} · ${T("per day")} ${v(c.perDay, c.perDayEth)} · ${T("only the owner can withdraw")}`; })()}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
-          <li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
-          <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li><li>${T("No message, chat or command can make it trade")}</li></ul></div>
+          ${d.net === "rh" ? `<li>${T("Only new coins launched on pons (Robinhood Chain), in their Uniswap v3 pools paired with WETH")}</li><li>${T("The money is held as ETH (WETH): returns and the day's result are counted in ETH, so ETH's own price moves aren't wins or losses; dollars are shown at the current ETH price")}</li><li>${T("No burn on this chain")}</li>`
+            : `<li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
+          <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li>`}<li>${T("No message, chat or command can make it trade")}</li></ul></div>
       </div>
       <p class="dk-disc">${T("ARCIA DESK is an experiment with a small amount of the team's own money. New coins are the riskiest thing on-chain and most lose value; ARCIA will lose trades. Nothing here is financial advice, and nobody can deposit into or copy the desk.")}</p>`;
   }
 
   function show() {
     if (!S.booted) {
+      let n0 = netFromHash();
+      if (!n0) { try { n0 = localStorage.getItem("dk-net"); } catch { /* fine */ } }
+      S.net = n0 === "rh" ? "rh" : "arc";
       S.booted = true;
       try { const v = localStorage.getItem("dk-view"); if (v) S.view = v; } catch { /* fine */ }
       frame();
@@ -837,8 +956,9 @@
     S.timer = setInterval(() => { if (panel.classList.contains("active") && !document.hidden) load(); }, 15000);
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "desk") show(); else clearInterval(S.timer); });
+  window.addEventListener("hashchange", () => { const n = netFromHash(); if (S.booted && n && n !== S.net) switchNet(n); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && panel.classList.contains("active")) load(); });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); $("dk-filt").dataset.ready = ""; paint(); } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
-  window.arcDesk = { load, state: S };
+  window.arcDesk = { load, state: S, switchNet };
 })();

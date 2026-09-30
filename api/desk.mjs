@@ -14,10 +14,14 @@
 //   GET /api/desk?agent=take&t=0x…       ARCIA's words on a token (after its report; Claude, cached an hour)
 //   POST /api/desk {action:"agent-mode", vault, mode, issued, signature}   a vault owner's strategy (dip / steady / volume)
 //   GET /api/desk?agenttick=1&key=<CRON_SECRET>   grade calls + work the vaults (also runs after every desk tick)
-// There is no endpoint that makes the desk buy or sell: trades only come from the tick's rules.
+// ARCIA DESK on Robinhood Chain (pons launches; the engine is api/_desk-rh.mjs): the same routes with &chain=rh —
+//   GET /api/desk?chain=rh · ?chain=rh&day=… · ?chain=rh&tick=1&key=<CRON_SECRET> (its own cron-job.org entry, every minute)
+//   POST {action:"settings", chain:"rh", …} (signed by the RH desk contract's owner)
+// There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { tick, view, dayTrades, tradeDetail, saveSettings } from "./_desk.mjs";
+import * as RH from "./_desk-rh.mjs";
 import * as agent from "./_agent.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
@@ -27,6 +31,7 @@ const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k
 export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
+  if (q.chain === "rh") return rhGET(q, req, st);
   if (q.tick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
@@ -62,6 +67,21 @@ export async function GET(req) {
   } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
 }
 
+/// ARCIA DESK on Robinhood Chain: its tick (no ARCIA AGENT after it — that lives on Arc) and its read-only views
+async function rhGET(q, req, st) {
+  if (q.tick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
+    try { return json(await RH.tick(st)); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
+  try {
+    if (q.day && q.trade) return json(await RH.tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");
+    if (q.day) return json(await RH.dayTrades(st, q.day, q.paper === "1"), 200, "public, max-age=30, s-maxage=60");
+    return json(await RH.view(st), 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60");
+  } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+}
+
 const te = new TextEncoder();
 const hits = new Map();
 /// 12 fresh reports a minute per IP (cached ones are served by the CDN)
@@ -85,7 +105,7 @@ export async function POST(req) {
   try { b = await req.json(); } catch { return json({ error: "bad json" }, 400); }
   if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
-  try { const r = await saveSettings(store(), b, recoverSigner); return json(r.body, r.status); }
+  try { const r = await (b.chain === "rh" ? RH.saveSettings : saveSettings)(store(), b, recoverSigner); return json(r.body, r.status); }
   catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
 }
 export function OPTIONS() {
