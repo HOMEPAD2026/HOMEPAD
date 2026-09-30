@@ -283,7 +283,8 @@
     const top = $("bp-gov-top");
     if (!top || !feed) return;
     let box = $("gv-burnfeed");
-    if (!box) { box = document.createElement("section"); box.id = "gv-burnfeed"; box.className = "gv-feed"; top.insertAdjacentElement("afterend", box); }
+    // the burn feed closes the tab: the vote (and the pre-vote) come first, the record of burns after
+    if (!box) { box = document.createElement("section"); box.id = "gv-burnfeed"; box.className = "gv-feed"; (top.parentNode || top).appendChild(box); }
     // nothing burned yet: the stepper already says so — the feed appears with the first vote
     box.hidden = !feed.events.length;
     const t = feed.totals, topShare = t.votes > 0 && feed.top.length ? Math.round((feed.top[0].votes / t.votes) * 100) : 0;

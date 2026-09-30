@@ -146,9 +146,10 @@
     // once the ballot is set the board folds away — still one tap to read
     const folded = allPublished() && !open;
     host.classList.toggle("folded", folded);
-    // once the ballot is set, the ideas move under the vote
+    // once candidates are out, the vote comes first and the pre-vote (for what's left) moves under it
     const catsEl = document.getElementById("bp-gov-categories");
-    if (allPublished() && catsEl && host.previousElementSibling !== catsEl) catsEl.insertAdjacentElement("afterend", host);
+    const anyPublished = [0, 1, 2, 3, 4].some(published);
+    if (anyPublished && catsEl && host.previousElementSibling !== catsEl) catsEl.insertAdjacentElement("afterend", host);
     if (!host.querySelector(".gvi-head")) {
       host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Step 1 · Pre-vote</small><h3>Suggest and vote — open to everyone</h3><p>Add ideas for the name, ticker, logo, roadmap and launch date, and vote for as many as you like — or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them.</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
         <div class="gvi-tabs" role="tablist"></div><div class="gvi-formwrap"></div><div class="gvi-list"></div>`;
