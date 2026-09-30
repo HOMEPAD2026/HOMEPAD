@@ -137,7 +137,7 @@
           "<li><b>Prices</b><span>Each chain has its own market. When prices drift apart, buying where it's cheaper and selling where it's higher pulls them together.</span></li>" +
         '</ol><p class="om-foot">Built on LayerZero V2 OFT: an adapter on Arc for the existing token, mint/burn OFTs on the other chains. Robinhood Chain comes first, Solana later. Not decided yet: pool size and the launch date.</p></section>' +
         (LIVE ? '<section class="om-card om-contracts"><h3>Official contracts</h3><ul>' + contractRows() + "</ul>" +
-          '<p class="om-foot">Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc. Any other address called $ARCIRCLE on Robinhood Chain is not ours.</p></section>' : "") +
+          '<p class="om-foot">Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is the same coin, not a second one: it is minted only when $ARCIRCLE is locked on Arc, 1 for 1, so both chains share one supply of 1,000,000,000. Any other address called $ARCIRCLE on Robinhood Chain is not ours.</p></section>' : "") +
         '<section class="om-card om-hist" hidden><h3>Your transfers</h3><ul data-om="hist"></ul></section>' +
       "</div>";
     wire();
@@ -153,10 +153,16 @@
       ["robinhood", "$ARCIRCLE on Robinhood Chain", O.ROBINHOOD_OFT, RH_EX + "/token/" + O.ROBINHOOD_OFT],
       ["arc", "Owner Safe (Arc + Robinhood)", O.SAFE, "https://app.safe.global/home?safe=arc:" + O.SAFE],
     ];
-    return rows.filter(function (r) { return isAddr(r[2]); }).map(function (r) {
+    var out = rows.filter(function (r) { return isAddr(r[2]); }).map(function (r) {
       return '<li>' + CHAIN_ICO[r[0]] + '<span class="om-c-n">' + esc(tr(r[1])) + '</span><code data-no-i18n>' + esc(r[2]) + "</code>" +
         '<span class="om-c-a"><button type="button" class="om-copy" data-copy="' + esc(r[2]) + '">' + esc(tr("Copy")) + '</button><a href="' + esc(r[3]) + '" target="_blank" rel="noopener">' + esc(tr("View")) + " ↗</a></span></li>";
     }).join("");
+    // the official pool on Robinhood Chain (a Uniswap v4 pool id, not an address)
+    if (/^0x[0-9a-fA-F]{64}$/.test(O.ROBINHOOD_POOL || "")) {
+      out += '<li>' + CHAIN_ICO.robinhood + '<span class="om-c-n">' + esc(tr("$ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4, liquidity still small)")) + '</span><code data-no-i18n>' + esc(O.ROBINHOOD_POOL.slice(0, 10) + "…" + O.ROBINHOOD_POOL.slice(-8)) + "</code>" +
+        '<span class="om-c-a"><a href="https://dexscreener.com/robinhood/' + esc(O.ROBINHOOD_POOL) + '" target="_blank" rel="noopener">' + esc(tr("Chart")) + " ↗</a></span></li>";
+    }
+    return out;
   }
   function paintChips() {
     ["from", "to"].forEach(function (side) {

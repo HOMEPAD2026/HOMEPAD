@@ -216,6 +216,8 @@ const CONFIG = {
   OMNI: {
     ADAPTER: "0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6", // Arc · ArcircleOFTAdapter (the lockbox)
     ROBINHOOD_OFT: "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4", // Robinhood Chain · ArcircleOFT
+    // the official $ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4, pool id) — new, liquidity still small
+    ROBINHOOD_POOL: "0x1bbed8ae8485bd75d46c3bdb830d47aca49b6ccb4fad57e6263903d0c1f10a50",
     SOLANA_MINT: "", // Solana · SPL mint from the OFT program
     SOLANA_OFT_STORE: "",
     SAFE: "0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd", // owner Safe 2-of-3 (same address on Arc and Robinhood Chain)

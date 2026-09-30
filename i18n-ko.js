@@ -4958,6 +4958,13 @@
     "Until the raise closes. The round wallet signs the candidates from the community's ideas; anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date, and every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "모금 마감까지. 라운드 지갑이 커뮤니티 아이디어에서 후보를 골라 서명하고, $ARCIRCLE 보유자 누구나 이름·티커·로고·로드맵·런칭일에 투표해요. 한 표마다 1,000 $ARCIRCLE이 0x…dEaD로 바로 소각돼요. 새 컨트랙트 없이 Arc의 소각 기록으로 표를 집계해요.",
     "$ARCIRCLE (burn-to-vote)": "$ARCIRCLE (소각 투표)",
     "No vote contract this round: a vote is a transfer to 0x…dEaD, 1,000 $ARCIRCLE per vote, the choice coded in the amount's last 12 decimals": "이번 라운드는 투표 컨트랙트가 없어요: 투표는 0x…dEaD로 보내는 전송이고, 1표당 1,000 $ARCIRCLE, 선택은 금액의 마지막 12자리 소수에 담겨요",
+    "Contract · Robinhood": "컨트랙트 · Robinhood",
+    "Explorer ↗": "익스플로러 ↗",
+    "Same $ARCIRCLE on both chains, not a second coin. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc, 1 for 1, so there is one supply of 1,000,000,000. Its $ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4) is new and liquidity is still small; the main market is on Arc. Any other address using the $ARCIRCLE name is not ours.": "두 체인 모두 같은 $ARCIRCLE이에요. 다른 코인이 아니에요. Robinhood Chain의 $ARCIRCLE은 Arc에서 $ARCIRCLE이 잠길 때만 1:1로 발행되기 때문에 전체 공급량은 하나, 1,000,000,000개예요. Robinhood Chain의 $ARCIRCLE/ETH 풀(Uniswap v4)은 새로 만들어져 아직 유동성이 작고, 메인 시장은 Arc예요. $ARCIRCLE 이름을 쓰는 다른 주소는 저희 것이 아니에요.",
+    "How ARCIRCLE OMNI works →": "ARCIRCLE OMNI 작동 방식 →",
+    "$ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4, liquidity still small)": "Robinhood Chain의 $ARCIRCLE/ETH 풀 (Uniswap v4, 아직 유동성 작음)",
+    "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is the same coin, not a second one: it is minted only when $ARCIRCLE is locked on Arc, 1 for 1, so both chains share one supply of 1,000,000,000. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "2-of-3 Safe가 소유해요. Robinhood Chain의 $ARCIRCLE은 다른 코인이 아니라 같은 코인이에요. Arc에서 $ARCIRCLE이 잠길 때만 1:1로 발행되므로 두 체인이 하나의 공급량 1,000,000,000개를 나눠 가져요. Robinhood Chain에서 $ARCIRCLE이라고 하는 다른 주소는 저희 것이 아니에요.",
+    "Copy the Robinhood Chain contract address": "Robinhood Chain 컨트랙트 주소 복사",
   };
 
 

@@ -5110,6 +5110,13 @@
     "Until the raise closes. The round wallet signs the candidates from the community's ideas; anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date, and every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "直到募集结束。轮次钱包从社区想法中签名确定候选;任何持有 $ARCIRCLE 的人都可以对名称、代码、Logo、路线图和上线日期投票,每票直接向 0x…dEaD 销毁 1,000 $ARCIRCLE。不部署新合约:票数按 Arc 上的这些销毁统计。",
     "$ARCIRCLE (burn-to-vote)": "$ARCIRCLE(销毁投票)",
     "No vote contract this round: a vote is a transfer to 0x…dEaD, 1,000 $ARCIRCLE per vote, the choice coded in the amount's last 12 decimals": "本轮没有投票合约:投票就是转账到 0x…dEaD,每票 1,000 $ARCIRCLE,所选项编码在金额的最后 12 位小数中",
+    "Contract · Robinhood": "合约 · Robinhood",
+    "Explorer ↗": "浏览器 ↗",
+    "Same $ARCIRCLE on both chains, not a second coin. Robinhood Chain $ARCIRCLE is minted only when $ARCIRCLE is locked on Arc, 1 for 1, so there is one supply of 1,000,000,000. Its $ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4) is new and liquidity is still small; the main market is on Arc. Any other address using the $ARCIRCLE name is not ours.": "两条链上是同一个 $ARCIRCLE,不是另一个币。Robinhood Chain 上的 $ARCIRCLE 只在 $ARCIRCLE 于 Arc 上锁定时 1:1 铸造,因此总供应量只有一份:1,000,000,000。Robinhood Chain 上的 $ARCIRCLE/ETH 池(Uniswap v4)刚建立,流动性仍然很小;主要市场在 Arc。任何其他使用 $ARCIRCLE 名称的地址都不是我们的。",
+    "How ARCIRCLE OMNI works →": "ARCIRCLE OMNI 如何运作 →",
+    "$ARCIRCLE/ETH pool on Robinhood Chain (Uniswap v4, liquidity still small)": "Robinhood Chain 上的 $ARCIRCLE/ETH 池(Uniswap v4,流动性仍小)",
+    "Owned by a 2-of-3 Safe. Robinhood Chain $ARCIRCLE is the same coin, not a second one: it is minted only when $ARCIRCLE is locked on Arc, 1 for 1, so both chains share one supply of 1,000,000,000. Any other address called $ARCIRCLE on Robinhood Chain is not ours.": "由 2-of-3 Safe 持有。Robinhood Chain 上的 $ARCIRCLE 是同一个币,不是另一个:只有在 Arc 上锁定 $ARCIRCLE 时才会 1:1 铸造,因此两条链共享同一份 1,000,000,000 的供应量。Robinhood Chain 上其他叫 $ARCIRCLE 的地址都不是我们的。",
+    "Copy the Robinhood Chain contract address": "复制 Robinhood Chain 合约地址",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

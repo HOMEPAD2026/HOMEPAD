@@ -8,6 +8,7 @@ export const OMNI = {
   ARCIRCLE: "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7",
   ADAPTER: "0x075e5DC585efFe0bfdC1a0d452499Ce7AFe2faB6", // Arc · ArcircleOFTAdapter
   ROBINHOOD_OFT: "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4", // Robinhood Chain · ArcircleOFT
+  ROBINHOOD_POOL: "0x1bbed8ae8485bd75d46c3bdb830d47aca49b6ccb4fad57e6263903d0c1f10a50", // the official $ARCIRCLE/ETH Uniswap v4 pool there (config-arc.js)
   SOLANA_MINT: "", // Solana · SPL mint created by the OFT program
   SAFE: "0xA4101562b2C6fd5e422A0F78B2fE166dF84A48Fd", // the owner Safe 2-of-3 on Arc — its burns of lockbox rewards show as "OMNI rewards"
   ROBINHOOD_RPC: "https://rpc.mainnet.chain.robinhood.com",
