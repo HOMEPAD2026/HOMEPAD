@@ -317,7 +317,9 @@
   //   pause    — ArciaDesk.setPaused: stops new buys; selling (her exits) keeps working
   // The desk records deposits and withdrawals on its next run; neither counts as profit or loss.
   const USDC20 = "0x3600000000000000000000000000000000000000";
-  const DESK_ABI = ["function owner() view returns (address)", "function paused() view returns (bool)", "function withdraw(address,uint256)", "function setPaused(bool)"];
+  const DESK_ABI = ["function owner() view returns (address)", "function paused() view returns (bool)", "function withdraw(address,uint256)", "function setPaused(bool)",
+    "function maxTrade() view returns (uint256)", "function dailyCap() view returns (uint256)", "function burnCap() view returns (uint256)", "function setCaps(uint256,uint256,uint256)"];
+  const NOLIMIT = 2n ** 256n - 1n, isOpenEnded = (x) => x != null && x >= 2n ** 128n;
   const U20_ABI = ["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
   let depBox = null, deskOwner = null, ownerAsked = false, depLast = null, chain = { bal: null, paused: null, at: 0 };
   // the page only repaints when the desk's numbers change, so a wallet that connects later is checked here
@@ -326,8 +328,10 @@
   async function readChain(d) {
     if (typeof readProvider !== "function") return;
     const rp = readProvider();
-    const [bal, paused] = await Promise.all([new ethers.Contract(USDC20, U20_ABI, rp).balanceOf(d.desk).catch(() => null), new ethers.Contract(d.desk, DESK_ABI, rp).paused().catch(() => null)]);
-    chain = { bal, paused, at: Date.now() };
+    const dk = new ethers.Contract(d.desk, DESK_ABI, rp);
+    const [bal, paused, perBuy, perDay, burnCap] = await Promise.all([new ethers.Contract(USDC20, U20_ABI, rp).balanceOf(d.desk).catch(() => null), dk.paused().catch(() => null),
+      dk.maxTrade().catch(() => null), dk.dailyCap().catch(() => null), dk.burnCap().catch(() => null)]);
+    chain = { bal, paused, perBuy, perDay, burnCap, at: Date.now() };
     paintMoney(d);
   }
   function paintMoney(d) {
@@ -341,6 +345,10 @@
     ps.textContent = chain.paused == null ? "—" : T(chain.paused ? "Paused — no new buys" : "Trading");
     pb.textContent = T(chain.paused ? "Resume buying" : "Pause new buys");
     pb.disabled = chain.paused == null;
+    const lim = (x) => (x == null ? "—" : isOpenEnded(x) ? T("no limit") : fmt6(x) + " USDC");
+    depBox.querySelector("[data-m=lbuy]").textContent = lim(chain.perBuy);
+    depBox.querySelector("[data-m=lday]").textContent = lim(chain.perDay);
+    depBox.querySelector("[data-m=lfree]").disabled = chain.burnCap == null || (isOpenEnded(chain.perBuy) && isOpenEnded(chain.perDay));
   }
   function deposit(d) {
     depLast = d;
@@ -363,6 +371,9 @@
             <p class="dk-small">${T("From the desk contract to the owner wallet — any amount, any time, paused or not.")}</p></div>
         </div>
         <p class="dk-dep-warn" data-m="open" hidden></p>
+        <div class="dk-dep-lim"><div class="dk-dep-limh"><small>${T("Contract limits")}</small><span>${T("per buy")} <b data-m="lbuy" data-no-i18n>—</b> · ${T("per day")} <b data-m="lday" data-no-i18n>—</b></span></div>
+          <div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per buy")}" aria-label="${T("USDC per buy")}" data-m="lb"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per day")}" aria-label="${T("USDC per day")}" data-m="ld"><button type="button" class="dk-dep-max" data-m="lset">${T("Set")}</button><button type="button" class="dk-dep-p" data-m="lfree">${T("Remove limits")}</button></div>
+          <p class="dk-small">${T("Each buy is 6% of the desk (at least $3); these only cap it. They are also the most the trading key could spend in a day if it ever leaked — with no limit, the whole desk.")}</p></div>
         <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><button type="button" class="dk-dep-p" data-m="pause" disabled>—</button><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
         <p class="dk-small">${T("The desk records deposits and withdrawals on its next run (about a minute). Neither counts as profit or loss.")}</p>
         <p class="dk-dep-msg" aria-live="polite"></p>`;
@@ -407,6 +418,26 @@
         await tx.wait();
         $m("win").value = "";
         msg(`${T("Withdrew")} <b data-no-i18n>${fmt6(amt)} USDC</b> ${T("to the owner wallet.")} ${txLink(tx.hash)}`, "ok");
+      }));
+      async function setCaps(buy, day) {
+        if (chain.burnCap == null) throw new Error(T("Couldn't read the contract — try again."));
+        const dk = new ethers.Contract(depLast.desk, DESK_ABI, await signer());
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.setCaps(buy, day, chain.burnCap); // the daily burn cap stays as it is
+        await tx.wait();
+        return tx;
+      }
+      $m("lset").addEventListener("click", () => run(async () => {
+        const b = amountOf("lb"), dd = amountOf("ld");
+        if (!(b > 0n) || !(dd > 0n)) { msg(T("Enter both limits in USDC."), "bad"); return; }
+        if (dd < b) { msg(T("The day's limit can't be below one buy."), "bad"); return; }
+        const tx = await setCaps(b, dd);
+        $m("lb").value = ""; $m("ld").value = "";
+        msg(`${T("Limits set")}: ${T("per buy")} <b data-no-i18n>${fmt6(b)}</b> · ${T("per day")} <b data-no-i18n>${fmt6(dd)}</b> USDC. ${txLink(tx.hash)}`, "ok");
+      }));
+      $m("lfree").addEventListener("click", () => run(async () => {
+        const tx = await setCaps(NOLIMIT, NOLIMIT);
+        msg(`${T("Limits removed: a buy is now 6% of the desk with no cap, and there's no daily limit.")} ${txLink(tx.hash)}`, "ok");
       }));
       $m("pause").addEventListener("click", () => run(async () => {
         const next = !chain.paused;
@@ -643,9 +674,9 @@
           ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp: 15×), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span>${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
           ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
-          <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>)${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
+          <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (${r.maxTrade == null ? `${T("at least")} <span data-no-i18n>$${r.minTrade}</span>` : `<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>`})${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
-          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("The contract caps each buy and each day's buys; only the owner can withdraw")}</li></ul></div>
+          ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("Contract limits")}: ${(() => { const c = d.rules.caps; if (!c) return T("each buy and each day's buys are capped; only the owner can withdraw"); const v = (x) => (x === null ? T("no limit") : x === undefined ? "—" : `<span data-no-i18n>$${Number(x).toLocaleString("en-US")}</span>`); return `${T("per buy")} ${v(c.perBuy)} · ${T("per day")} ${v(c.perDay)} · ${T("only the owner can withdraw")}`; })()}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
           <li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
           <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li><li>${T("No message, chat or command can make it trade")}</li></ul></div>

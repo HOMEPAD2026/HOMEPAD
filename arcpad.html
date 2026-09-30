@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790732837"></script>
+<script src="arc-log.js?v=1790733169"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790732837">
+<link rel="stylesheet" href="style.css?v=1790733169">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1387,7 +1387,7 @@
           <h2 id="dk-guide-h">ARCIA DESK guide</h2>
           <details open><summary><h3>What is ARCIA DESK?</h3></summary>
             <p>ARCIA's own trading desk. She trades only coins that were just launched on Argus on Arc (Uniswap v4 pools paired with USDC), with a small wallet the team funds — about $100 to start. Every buy and sell is an Arc transaction listed on this page with its price, amount and result.</p>
-            <p>The money sits in the ArciaDesk contract. Only ARCIA's trading key can trade with it, only the owner (the team's wallet) can withdraw, one buy is capped at 12 USDC and a day's buys at 200 USDC, and tokens can only leave by being sold for USDC, burned as $ARCIRCLE or withdrawn by the owner.</p>
+            <p>The money sits in the ArciaDesk contract. Only ARCIA's trading key can trade with it, only the owner (the team's wallet) can withdraw, each buy and each day's buys are capped by limits the owner sets (shown in Rules, and can be lifted), and tokens can only leave by being sold for USDC, burned as $ARCIRCLE or withdrawn by the owner.</p>
           </details>
           <details><summary><h3>How ARCIA picks a trade</h3></summary>
             <ol>
@@ -1412,7 +1412,7 @@
           </details>
           <details><summary><h3>Money limits and the $ARCIRCLE burn</h3></summary>
             <ul>
-              <li>6% of the desk per trade, between $3 and $10; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. Each DCA tranche is $2. Since 30 Sep 2026 real money goes only through the Pump scalp, sized at 6% of the desk ($3–$10) from the first trade; the other playbooks keep trading on paper so the desk keeps learning from them.</li>
+              <li>6% of the desk per trade, at least $3, with no cap above that beyond the contract's limits; at most 10 positions open and 8 buys an hour; $2 always stays in cash. During the warm-up (the first 25 real trades): $3 a trade and at most 6 buys an hour. Each DCA tranche is $2. Since 30 Sep 2026 real money goes only through the Pump scalp, sized at 6% of the desk from the first trade; the other playbooks keep trading on paper so the desk keeps learning from them.</li>
               <li>After losing 15% in a day, no new real trades until the next UTC day (paper trading continues).</li>
               <li>Under a $5k market cap, a position is never held longer than 30 minutes; a crash-buy DCA position under a $10k market cap is sold after 1 hour.</li>
               <li>Once a day, 20% of new profit above the desk's previous high buys $ARCIRCLE and sends it to 0x…dEaD through the contract. Deposits are not counted as profit. The share may change later — not decided.</li>
@@ -1711,6 +1711,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790732837"></script>
+<script src="arcpad.bundle.js?v=1790733169"></script>
 </body>
 </html>

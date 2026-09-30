@@ -288,7 +288,9 @@ const nearest = (list, v) => list.reduce((a, b) => (Math.abs(b - v) < Math.abs(a
 // ---------------------------------------------------------------- sizing and limits
 export const RISK = {
   tradePct: 6, // of equity per real trade
-  minTrade: 3, maxTrade: 10, // USD
+  // USD. maxTrade null = no cap of the site's own (30 Sep 2026): a buy is 6% of the desk, bounded only by the
+  // contract's maxTrade / dailyCap, which the owner sets (ArcDesk.setCaps; the Rules tab's owner panel)
+  minTrade: 3, maxTrade: null,
   maxOpen: 10,
   maxPerHour: 8,
   dailyLossPct: 15, // stop opening new trades for the rest of the UTC day
@@ -299,7 +301,7 @@ export const RISK = {
   burnPct: 20, // of new profit above the high-water mark, each day
 };
 export function tradeSize(equity, cash) {
-  const s = clamp((equity * RISK.tradePct) / 100, RISK.minTrade, RISK.maxTrade);
+  const s = clamp((equity * RISK.tradePct) / 100, RISK.minTrade, RISK.maxTrade == null ? Infinity : RISK.maxTrade);
   return cash - RISK.keepCash >= s ? Math.floor(s * 100) / 100 : 0;
 }
 

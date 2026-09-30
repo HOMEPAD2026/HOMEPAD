@@ -1101,8 +1101,16 @@ export async function view(st) {
   // the last 7 days of real trades
   const wk = ((rec && rec.items) || []).filter((r) => r.real && r.exitTs >= (S.lastTick || 0) - 7 * 86400);
   // on-chain proof: the desk contract's USDC balance, read now (cash the page shows is the tick's figure)
-  let chainUsdc = null;
-  if (CFG.desk()) { try { const [h] = await ethCalls([{ to: CFG.usdc, data: SEL.balanceOf + pad(CFG.desk()) }]); if (h && h !== "0x") chainUsdc = r2(Number(BigInt(h)) / 1e6, 4); } catch { /* shown as unknown */ } }
+  let chainUsdc = null, caps = null;
+  if (CFG.desk()) {
+    try {
+      const [h, mt, dc] = await ethCalls([{ to: CFG.usdc, data: SEL.balanceOf + pad(CFG.desk()) }, { to: CFG.desk(), data: SEL.maxTrade }, { to: CFG.desk(), data: SEL.dailyCap }]);
+      if (h && h !== "0x") chainUsdc = r2(Number(BigInt(h)) / 1e6, 4);
+      // the contract's limits; null = no limit (the owner set them to the maximum)
+      const cap = (x) => (x && x !== "0x" ? (BigInt(x) >= 2n ** 128n ? null : r2(Number(BigInt(x)) / 1e6, 2)) : undefined);
+      if (mt && dc) caps = { perBuy: cap(mt), perDay: cap(dc) };
+    } catch { /* shown as unknown */ }
+  }
   const byPb = s.byPb || {};
   return {
     v: DESK_VERSION, brain: B.BRAIN_VERSION, mode: S.mode || "paper", desk: CFG.desk(), updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
@@ -1141,7 +1149,7 @@ export async function view(st) {
     sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
-    rules: { realPlaybooks: realPbs, gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
+    rules: { realPlaybooks: realPbs, caps, gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
 }
 /// one closed trade in full (gates, Claude's check, every sell) and, while it's still in memory, the coin's
