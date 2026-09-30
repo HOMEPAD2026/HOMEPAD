@@ -309,20 +309,45 @@
       <p class="dk-small">${T("Open positions are held as tokens in the same contract; their value is what an exact sell quote from the contract says right now.")}</p>`;
     deposit(d);
   }
-  // ---- the owner's "Add USDC": a plain ERC-20 transfer of Arc's USDC (0x3600…) to the desk contract. Shown only
-  // to the desk's owner wallet (anyone else's USDC could only be taken out by the owner). A native USDC send would
-  // fail — the contract has no receive() — so this is the way to top the desk up without the explorer.
+  // ---- the owner's money panel (Rules → On-chain check): deposit, withdraw, pause. Shown only to the desk's owner
+  // wallet — the contract lets only the owner withdraw or pause, and anyone else's deposit could only be taken
+  // out by the owner.
+  //   deposit  — an ERC-20 transfer of Arc's USDC (0x3600…) to the desk (a native USDC send would fail: no receive())
+  //   withdraw — ArciaDesk.withdraw(USDC, amount): always to the owner; works at any time, paused or not
+  //   pause    — ArciaDesk.setPaused: stops new buys; selling (her exits) keeps working
+  // The desk records deposits and withdrawals on its next run; neither counts as profit or loss.
   const USDC20 = "0x3600000000000000000000000000000000000000";
-  let depBox = null, deskOwner = null, ownerAsked = false;
-  let depLast = null;
+  const DESK_ABI = ["function owner() view returns (address)", "function paused() view returns (bool)", "function withdraw(address,uint256)", "function setPaused(bool)"];
+  const U20_ABI = ["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
+  let depBox = null, deskOwner = null, ownerAsked = false, depLast = null, chain = { bal: null, paused: null, at: 0 };
   // the page only repaints when the desk's numbers change, so a wallet that connects later is checked here
   setInterval(() => { if (depLast && !document.hidden) deposit(depLast); }, 3000);
+  const fmt6 = (x) => Number(ethers.formatUnits(x, 6)).toLocaleString("en-US", { maximumFractionDigits: 6 });
+  async function readChain(d) {
+    if (typeof readProvider !== "function") return;
+    const rp = readProvider();
+    const [bal, paused] = await Promise.all([new ethers.Contract(USDC20, U20_ABI, rp).balanceOf(d.desk).catch(() => null), new ethers.Contract(d.desk, DESK_ABI, rp).paused().catch(() => null)]);
+    chain = { bal, paused, at: Date.now() };
+    paintMoney(d);
+  }
+  function paintMoney(d) {
+    if (!depBox) return;
+    const b = depBox.querySelector("[data-m=bal]"), ps = depBox.querySelector("[data-m=pst]"), pb = depBox.querySelector("[data-m=pause]");
+    b.textContent = chain.bal == null ? "—" : fmt6(chain.bal) + " USDC";
+    const open = (d.open || []).length;
+    depBox.querySelector("[data-m=open]").hidden = !open;
+    depBox.querySelector("[data-m=open]").textContent = open ? `${open} ${T(open === 1 ? "position is open — its coins aren't USDC yet. Pause first and wait for it to close to take everything out." : "positions are open — their coins aren't USDC yet. Pause first and wait for them to close to take everything out.")}` : "";
+    ps.className = "dk-st " + (chain.paused ? "bench" : "on");
+    ps.textContent = chain.paused == null ? "—" : T(chain.paused ? "Paused — no new buys" : "Trading");
+    pb.textContent = T(chain.paused ? "Resume buying" : "Pause new buys");
+    pb.disabled = chain.paused == null;
+  }
   function deposit(d) {
     depLast = d;
     if (!d.desk || typeof ethers === "undefined") return;
     if (!ownerAsked && typeof readProvider === "function") {
       ownerAsked = true;
-      new ethers.Contract(d.desk, ["function owner() view returns (address)"], readProvider()).owner().then((o) => { deskOwner = String(o).toLowerCase(); deposit(d); }).catch(() => { ownerAsked = false; });
+      new ethers.Contract(d.desk, DESK_ABI, readProvider()).owner().then((o) => { deskOwner = String(o).toLowerCase(); deposit(d); }).catch(() => { ownerAsked = false; });
     }
     const me = typeof state !== "undefined" && state.account ? String(state.account).toLowerCase() : null;
     const show = !!(me && deskOwner && me === deskOwner);
@@ -330,37 +355,72 @@
       if (!show) return;
       depBox = document.createElement("div");
       depBox.className = "dk-dep"; depBox.id = "dk-dep";
-      depBox.innerHTML = `<div class="dk-dep-h"><b>${T("Add USDC to the desk")}</b><span class="dk-st on">${T("Owner")}</span></div>
-        <div class="dk-dep-row"><input type="number" min="1" step="any" inputmode="decimal" placeholder="USDC" aria-label="${T("USDC to add")}"><button type="button" class="dk-dep-go">${T("Deposit")}</button></div>
-        <p class="dk-small">${T("Sends USDC from this wallet to the desk contract on Arc as a token transfer. Only the owner wallet can take it out, at any time. The desk records it as a deposit, not profit, within a minute.")}</p>
+      depBox.innerHTML = `<div class="dk-dep-h"><b>${T("Desk money")}</b><span class="dk-st on">${T("Owner")}</span><span class="dk-dep-bal"><small>${T("USDC in the contract")}</small><b data-m="bal" data-no-i18n>—</b></span></div>
+        <div class="dk-dep-grid">
+          <div class="dk-dep-col"><small>${T("Deposit")}</small><div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="USDC" aria-label="${T("USDC to add")}" data-m="din"><button type="button" class="dk-dep-go" data-m="dgo">${T("Deposit")}</button></div>
+            <p class="dk-small">${T("From this wallet to the desk contract, as a USDC token transfer.")}</p></div>
+          <div class="dk-dep-col"><small>${T("Withdraw")}</small><div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="USDC" aria-label="${T("USDC to take out")}" data-m="win"><button type="button" class="dk-dep-max" data-m="max">${T("Max")}</button><button type="button" class="dk-dep-go dk-dep-out" data-m="wgo">${T("Withdraw")}</button></div>
+            <p class="dk-small">${T("From the desk contract to the owner wallet — any amount, any time, paused or not.")}</p></div>
+        </div>
+        <p class="dk-dep-warn" data-m="open" hidden></p>
+        <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><button type="button" class="dk-dep-p" data-m="pause" disabled>—</button><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
+        <p class="dk-small">${T("The desk records deposits and withdrawals on its next run (about a minute). Neither counts as profit or loss.")}</p>
         <p class="dk-dep-msg" aria-live="polite"></p>`;
       $("dk-proof").insertAdjacentElement("afterend", depBox);
+      const $m = (k) => depBox.querySelector(`[data-m=${k}]`);
       const msg = (h, k) => { const m = depBox.querySelector(".dk-dep-msg"); m.className = "dk-dep-msg" + (k ? " " + k : ""); m.innerHTML = h; };
-      depBox.querySelector(".dk-dep-go").addEventListener("click", async () => {
-        const btn = depBox.querySelector(".dk-dep-go"), v = String(depBox.querySelector("input").value || "").trim();
-        let amt; try { amt = ethers.parseUnits(v, 6); } catch { amt = 0n; }
+      const txLink = (h) => `<a href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${short(h)} ↗</a>`;
+      const errText = (err) => (err && (err.code === "ACTION_REJECTED" || err.code === 4001) ? T("Cancelled in your wallet.") : esc(String((err && (err.shortMessage || err.reason || err.message)) || T("The transaction didn't go through."))).slice(0, 200));
+      const busy = (on) => depBox.querySelectorAll("button").forEach((x) => { x.disabled = on; });
+      async function signer() {
+        if (!state.signer && typeof connectWallet === "function") await connectWallet();
+        if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
+        if (!state.signer) throw new Error(T("Connect the owner wallet first."));
+        if (String(state.account).toLowerCase() !== deskOwner) throw new Error(T("Only the desk's owner wallet can do this."));
+        return state.signer;
+      }
+      const amountOf = (k) => { let a; try { a = ethers.parseUnits(String($m(k).value || "").trim(), 6); } catch { a = 0n; } return a; };
+      async function run(fn) { busy(true); try { await fn(); } catch (err) { msg(errText(err), "bad"); } finally { busy(false); await readChain(depLast).catch(() => {}); } }
+      $m("dgo").addEventListener("click", () => run(async () => {
+        const amt = amountOf("din");
         if (!(amt > 0n)) { msg(T("Enter an amount of USDC."), "bad"); return; }
-        btn.disabled = true;
-        try {
-          if (!state.signer && typeof connectWallet === "function") await connectWallet();
-          if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
-          if (!state.signer) throw new Error(T("Connect the owner wallet first."));
-          const u = new ethers.Contract(USDC20, ["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"], state.signer);
-          const bal = await u.balanceOf(state.account);
-          if (bal < amt) throw new Error(`${T("This wallet holds")} ${ethers.formatUnits(bal, 6)} USDC.`);
-          msg(T("Confirm in your wallet…"));
-          const tx = await u.transfer(d.desk, amt);
-          msg(`${T("Sending…")} <a href="${EXPL("tx", tx.hash)}" target="_blank" rel="noopener" data-no-i18n>${short(tx.hash)} ↗</a>`);
-          await tx.wait();
-          depBox.querySelector("input").value = "";
-          msg(`${T("Added")} <b data-no-i18n>${ethers.formatUnits(amt, 6)} USDC</b>. ${T("The desk picks it up on its next run.")} <a href="${EXPL("tx", tx.hash)}" target="_blank" rel="noopener" data-no-i18n>${short(tx.hash)} ↗</a>`, "ok");
-        } catch (err) {
-          const t = err && (err.code === "ACTION_REJECTED" || err.code === 4001) ? T("Cancelled in your wallet.") : (err && (err.shortMessage || err.message)) || T("The transfer didn't go through.");
-          msg(esc(String(t)).slice(0, 200), "bad");
-        } finally { btn.disabled = false; }
-      });
+        const u = new ethers.Contract(USDC20, U20_ABI, await signer());
+        const bal = await u.balanceOf(state.account);
+        if (bal < amt) { msg(`${T("This wallet holds")} ${fmt6(bal)} USDC.`, "bad"); return; }
+        msg(T("Confirm in your wallet…"));
+        const tx = await u.transfer(depLast.desk, amt);
+        msg(`${T("Sending…")} ${txLink(tx.hash)}`);
+        await tx.wait();
+        $m("din").value = "";
+        msg(`${T("Added")} <b data-no-i18n>${fmt6(amt)} USDC</b>. ${T("The desk picks it up on its next run.")} ${txLink(tx.hash)}`, "ok");
+      }));
+      $m("max").addEventListener("click", () => { if (chain.bal != null) $m("win").value = ethers.formatUnits(chain.bal, 6); });
+      $m("wgo").addEventListener("click", () => run(async () => {
+        const amt = amountOf("win");
+        if (!(amt > 0n)) { msg(T("Enter an amount of USDC."), "bad"); return; }
+        const dk = new ethers.Contract(depLast.desk, DESK_ABI, await signer());
+        const have = await new ethers.Contract(USDC20, U20_ABI, readProvider()).balanceOf(depLast.desk);
+        if (have < amt) { msg(`${T("The desk holds")} ${fmt6(have)} USDC.`, "bad"); return; }
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.withdraw(USDC20, amt);
+        msg(`${T("Withdrawing…")} ${txLink(tx.hash)}`);
+        await tx.wait();
+        $m("win").value = "";
+        msg(`${T("Withdrew")} <b data-no-i18n>${fmt6(amt)} USDC</b> ${T("to the owner wallet.")} ${txLink(tx.hash)}`, "ok");
+      }));
+      $m("pause").addEventListener("click", () => run(async () => {
+        const next = !chain.paused;
+        const dk = new ethers.Contract(depLast.desk, DESK_ABI, await signer());
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.setPaused(next);
+        await tx.wait();
+        msg(`${T(next ? "Paused: no new buys. She keeps selling what she holds." : "Resumed: she can buy again.")} ${txLink(tx.hash)}`, "ok");
+      }));
+      readChain(d).catch(() => {});
     }
     depBox.hidden = !show;
+    if (show && Date.now() - chain.at > 20000) readChain(d).catch(() => {});
+    else if (show) paintMoney(d);
   }
   function filters(d) {
     const el = $("dk-filt");

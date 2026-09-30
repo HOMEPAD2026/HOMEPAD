@@ -11972,3 +11972,19 @@ body.dk-noscroll{overflow:hidden;}
 .dk-dep-msg{margin:8px 0 0;font-size:.82rem;color:#b9c7d2;}
 .dk-dep-msg.ok{color:#8fe9bd;}.dk-dep-msg.bad{color:#ff9b7a;}
 .dk-dep-msg a{color:inherit;text-decoration:underline;}
+/* the owner's money panel: deposit | withdraw, then pause */
+.dk-dep-h{flex-wrap:wrap;}
+.dk-dep-bal{margin-left:auto;display:flex;align-items:baseline;gap:8px;}
+.dk-dep-bal small{font-size:.72rem;color:#9fb0bd;}
+.dk-dep-bal b{font-size:1.05rem;}
+.dk-dep-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.dk-dep-col > small{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#9fb0bd;margin-bottom:6px;}
+.dk-dep-max{flex:0 0 auto;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:none;color:#dbe6ee;font-weight:600;cursor:pointer;}
+.dk-dep-out{background:#ffb27a;color:#1a0d04;}
+.dk-dep-warn{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:rgba(255,178,122,.08);border:1px solid rgba(255,178,122,.3);color:#ffd2b0;font-size:.82rem;}
+.dk-dep-warn[hidden]{display:none;}
+.dk-dep-pause{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);}
+.dk-dep-pause small{font-size:.76rem;color:#9fb0bd;}
+.dk-dep-p{padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;font-weight:600;cursor:pointer;}
+.dk-dep-p:disabled,.dk-dep-max:disabled{opacity:.5;cursor:default;}
+@media (max-width:640px){.dk-dep-grid{grid-template-columns:1fr;}.dk-dep-bal{margin-left:0;width:100%;}}
