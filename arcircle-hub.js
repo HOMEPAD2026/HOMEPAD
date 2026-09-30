@@ -166,8 +166,12 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
   UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new Argus launches live — every trade public", status: "Beta", acc: "#39ff88", href: "/arc#desk",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
+  // page 4: ARCIA AGENT first, then what's still being built
+  var UTILS4 = [
+    { id: "agent", name: "ARCIA AGENT", sub: "Paste an Arc token — ARCIA reads it, calls it, and burns it from its vault", status: "New", acc: "#5b8cff", href: "/arc#agent",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
+  ];
   var NEXT = [
-    { id: "next-13", sub: "In development" },
     { id: "next-14", sub: "In development" },
     { id: "next-15", sub: "In development" },
     { id: "next-16", sub: "In development" },
@@ -289,7 +293,7 @@
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 4" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 4" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 4" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 4" data-page="3">' + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length); }).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 4" data-page="3">' + UTILS4.map(tile).join("") + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
@@ -424,7 +428,7 @@
     });
     window.addEventListener("resize", function () { if (open) place(); });
     document.addEventListener("arcpad:tab", function () { hide(false); });
-    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2, UTILS3), page: function (n) { if (n == null) return page; goPage(n); } };
+    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2, UTILS3, UTILS4), page: function (n) { if (n == null) return page; goPage(n); } };
   }
 
   // ---- Dock: the "you are here" highlight slides from the page you came
