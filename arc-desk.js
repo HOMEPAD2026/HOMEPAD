@@ -42,7 +42,7 @@
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m` : `${Math.floor(d / 86400)}d`; };
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
   const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
-  const WHY = { tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "Time limit at a low market cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
+  const WHY = { early: "Early exit (fell right after the buy)", tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "Time limit at a low market cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
   const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0", scalp: "#ff7ac4", dipdca: "#ff9b5a" };
   const S = { d: null, booted: false, timer: 0, tab: "real", shown: {}, seenLog: null, hover: null, view: "overview", f: { pb: "all", res: "all" }, lastVal: {}, drawn: false, cd: 0 };
   const AV = "/images/arcia-avatar-96.jpg";
@@ -72,6 +72,7 @@
       <div class="dk-health" id="dk-health" hidden></div>
       <div class="dk-hero2" id="dk-hero2"></div>
       <div class="dk-status" id="dk-status"></div>
+      <div class="dk-sum" id="dk-sum"></div>
       <div class="dk-nav" role="tablist" aria-label="${T("ARCIA DESK sections")}">${tab("overview", "Overview")}${tab("positions", "Positions")}${tab("history", "History")}${tab("playbooks", "Playbooks")}${tab("learning", "Learning")}${tab("rules", "Rules")}</div>
       <div class="dk-view" data-view="overview">
         <div class="dk-kpis" id="dk-kpis"><div class="dk-skel"><i></i><i></i><i></i><i></i></div></div>
@@ -82,6 +83,7 @@
             <div class="ams-card"><div class="dk-h"><h3>${T("Live log")}</h3><span class="dk-sub">${T("buys, sells and burns, on-chain")}</span></div><div id="dk-log"></div></div>
           </div>
           <div class="dk-side">
+            <div class="ams-card dk-riskc"><div class="dk-h"><h3>${T("Risk now")}</h3><span class="dk-sub">${T("how much a buy spends, and why")}</span></div><div id="dk-risk"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Better than taking every setup?")}</h3></div><div id="dk-base"></div></div>
             <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T("new Argus launches")}</span></div><div id="dk-watch"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Passed on")}</h3><span class="dk-sub" id="dk-rej-sub">${T("and what happened next")}</span></div><div id="dk-rej"></div></div>
@@ -100,6 +102,10 @@
       </div>
       <div class="dk-view" data-view="playbooks" hidden>
         <div class="ams-card"><div class="dk-h"><h3>${T("Playbook leaderboard")}</h3><span class="dk-sub">${T("real money, every cost included")}</span></div><div id="dk-board"></div></div>
+        <div class="dk-grid dk-grid2">
+          <div class="ams-card"><div class="dk-h"><h3>${T("Results by trade size")}</h3><span class="dk-sub">${T("real trades, in dollars")}</span></div><div id="dk-coh"></div></div>
+          <div class="ams-card"><div class="dk-h"><h3>${T("Pump scalp exits, replayed")}</h3><span class="dk-sub">${T("average return per trade")}</span></div><div id="dk-grid"></div></div>
+        </div>
       </div>
       <div class="dk-view" data-view="learning" hidden>
         <div class="dk-grid">
@@ -140,6 +146,7 @@
     });
     $("dk-hist").addEventListener("keydown", (e) => { const r = e.target.closest("[data-dk-trade]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openTrade(r.dataset.dkTrade); } });
     $("dk-drawer").addEventListener("click", (e) => { if (e.target.closest("[data-dk-close]")) closeTrade(); });
+    $("dk-toasts").addEventListener("click", (e) => { const b = e.target.closest("[data-dk-goto]"); if (!b) return; const nb = panel.querySelector(`[data-dk-view="${b.dataset.dkGoto}"]`); if (nb) nb.click(); b.closest(".dk-toast").remove(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("dk-drawer").hidden) closeTrade(); });
     const eq = $("dk-eq");
     eq.addEventListener("pointermove", (e) => { const r = eq.getBoundingClientRect(); S.hover = (e.clientX - r.left) / r.width; chart(); });
@@ -165,7 +172,7 @@
   function paint() {
     const d = S.d;
     if (!d) return;
-    health(d); hero(d); status(d); kpis(d); chart(); calendar(d); baseline(d); openPos(d); filters(d); hist(); logRows(d); board(d); learning(d); journal(d); reviewsCard(d); watch(d); rej(d); burns(d); proof(d); rules(d); toasts(d);
+    health(d); hero(d); status(d); summary(d); riskCard(d); cohorts(d); replayGrid(d); kpis(d); chart(); calendar(d); baseline(d); openPos(d); filters(d); hist(); logRows(d); board(d); learning(d); journal(d); reviewsCard(d); watch(d); rej(d); burns(d); proof(d); rules(d); toasts(d);
   }
   const staleMin = (d) => (d && d.updated ? Math.floor((Date.now() / 1000 - d.updated) / 60) : null);
   function health(d) {
@@ -178,10 +185,23 @@
   function mood(d) {
     const m = staleMin(d);
     if (m != null && m >= 10) return ["rest", "Taking a break"];
+    const rk = (d.risk && d.risk.ramp) || {};
+    if (d.mode === "live" && rk.dayPct != null && rk.dayPct <= -5) return ["careful", "Trading smaller today"];
+    if (d.mode === "live" && rk.streak >= 3) return ["careful", "Slowing down after losses"];
     const last = (d.log || []).find((x) => x.side !== "buy");
     if (last && last.side === "burn") return ["burn", "Burning $ARCIRCLE"];
     if (last && Date.now() / 1000 - last.ts < 3 * 3600) return last.ret > 0 ? ["happy", "Feeling good"] : ["focus", "Staying focused"];
     return d.open.length ? ["focus", "Watching her trades"] : ["calm", "Scanning new launches"];
+  }
+  /// what ARCIA says under her mood: the reason her sizes are down, when they are
+  function say(d) {
+    const rk = (d.risk && d.risk.ramp) || {};
+    if (d.mode !== "live") return "Practising on paper — no money moves";
+    if (rk.dayPct != null && rk.dayPct <= -5) return "A rough day — I'm buying at half size until tomorrow.";
+    if (rk.streak >= 3) return "A few losses in a row — half size until I win one back.";
+    if (rk.n >= 8 && rk.pf != null && rk.pf !== "inf" && rk.pf < 0.5) return "My recent trades lost more than they made — minimum size while I learn.";
+    if (rk.n >= 8 && rk.pf != null && rk.pf !== "inf" && rk.pf < 1) return "My recent trades are slightly down — half size until they recover.";
+    return "Trading real money, every trade on-chain";
   }
   function hero(d) {
     const [mk, ml] = mood(d), live = d.mode === "live", m = d.money;
@@ -195,9 +215,79 @@
     const need = live && m.hwm != null ? Math.max(0, (m.hwm || 0) + 0.5 - (m.pnl || 0)) : null;
     $("dk-hero2").innerHTML = `
       <div class="dk-av dk-m-${mk}"><img src="${AV}" alt="" width="64" height="64" loading="lazy"><i></i></div>
-      <div class="dk-hero-t"><small>${T("ARCIA at her desk")}</small><b>${T(ml)}</b><span>${live ? T("Trading real money, every trade on-chain") : T("Practising on paper — no money moves")}</span></div>
+      <div class="dk-hero-t"><small>${T("ARCIA at her desk")}</small><b>${T(ml)}</b><span class="dk-say">${T(say(d))}</span></div>
       <div class="dk-hero-v"><small>${T("Desk value")}</small><b data-no-i18n>${live ? usd(m.equity) : "—"}</b><em class="${cls(m.pnl)}" data-no-i18n>${live ? `${sgnUsd(m.pnl)} ${m.pnlPct != null ? "(" + pc(m.pnlPct) + ")" : ""}` : ""}</em>${spark}</div>
       <div class="dk-hero-b"><small>${T("Next $ARCIRCLE burn")}</small>${need == null ? `<span>${T("after the first profitable day")}</span>` : need <= 0 ? `<span class="up">${T("due at the next daily run")}</span>` : `<span><b data-no-i18n>+${usd(need)}</b> ${T("more profit to go")}</span>`}<em>${T("share of new profit above her best level")}: <span data-no-i18n>${d.rules.risk.burnPct}%</span></em></div>`;
+    // a scan line across the hero each time a new run lands
+    const h = $("dk-hero2");
+    if (!reduce && S.lastUpd != null && d.updated !== S.lastUpd) { h.classList.remove("dk-scan"); void h.offsetWidth; h.classList.add("dk-scan"); }
+    S.lastUpd = d.updated;
+  }
+  // ---------------- the top summary line ----------------
+  /// the sizing ramp's state: normal / half / minimum
+  function rampMode(rk) {
+    if (!rk) return null;
+    const why = (rk.sample && rk.sample.why) || [];
+    if (why.some((w) => /minimum size/.test(w))) return ["Minimum size", "bad"];
+    if (why.some((w) => /half size/.test(w))) return ["Half size", "warn"];
+    return ["Normal size", "on"];
+  }
+  function summary(d) {
+    const el = $("dk-sum"), live = d.mode === "live";
+    el.hidden = !live;
+    if (!live) return;
+    const m = d.money, dd = d.drawdown || {}, rk = d.risk || {}, today = (d.daily || []).find((x) => x.day === dayOfTs(Date.now() / 1000));
+    const b = rk.burn, md = rampMode(rk.ramp);
+    const it = (label, val, c = "") => `<span class="dk-sum-i"><small>${T(label)}</small><b class="${c}" data-no-i18n>${val}</b></span>`;
+    el.innerHTML = it("Total", `${sgnUsd(m.pnl)}${m.pnlPct != null ? ` · ${pc(m.pnlPct)}` : ""}`, cls(m.pnl)) +
+      it("Today", `${today ? sgnUsd(today.pnl) : "—"}${rk.ramp && rk.ramp.dayPct != null ? ` · ${pc(rk.ramp.dayPct)}` : ""}`, cls(today && today.pnl)) +
+      it("Deepest drop", dd.max ? "−" + usd(dd.max) : usd(0), dd.max ? "dn" : "") +
+      it("Next burn", b ? (b.needed <= 0 ? tr("due now") : `+${usd(b.needed)} ${tr("more profit")}`) : "—", b && b.needed <= 0 ? "up" : "") +
+      (md ? `<span class="dk-sum-i"><small>${T("Buy size")}</small><span class="dk-st ${md[1]}">${T(md[0])}</span></span>` : "");
+  }
+  // ---------------- risk now: next buy size, open exposure, the burn gauge ----------------
+  function riskCard(d) {
+    const el = $("dk-risk"), rk = d.risk;
+    if (!rk || !rk.ramp) { el.innerHTML = `<div class="dk-empty-s">${T("Starts once the desk is funded.")}</div>`; return; }
+    const r = rk.ramp || {}, sm = r.sample, e = rk.exposure || {}, b = rk.burn || {}, set = (d.settings && d.settings.values) || {};
+    const live = d.mode === "live";
+    const why = [];
+    if (r.n >= r.rules.minN && r.pf != null && r.pf !== "inf" && r.pf < 1) why.push(`<li>${T("Last real trades")} <b data-no-i18n>${r.n}</b> · ${T("profit factor")} <b class="dn" data-no-i18n>${r.pf.toFixed(2)}</b> → ${T(r.pf < 0.5 ? "minimum size" : "half size")}</li>`);
+    if (r.streak >= r.rules.streak) why.push(`<li><b data-no-i18n>${r.streak}</b> ${T("losses in a row")} → ${T("half size")}</li>`);
+    if (r.dayPct != null && r.dayPct <= -r.rules.dayCutPct) why.push(`<li>${T("Today")} <b class="dn" data-no-i18n>${pc(r.dayPct)}</b> → ${T("half size")}</li>`);
+    const md = rampMode(r) || ["Normal size", "on"];
+    const dd = (d.drawdown || {}).max || 0;
+    const fill = b.needed <= 0 ? 1 : Math.max(0.03, Math.min(1, 1 - b.needed / (dd + 0.5)));
+    el.innerHTML = `
+      <div class="dk-rk-next"><div><small>${T("Next pump scalp buy")}</small><b data-no-i18n>${live && sm ? (sm.ok ? usd(sm.size) : "—") : "—"}</b></div><span class="dk-st ${md[1]}">${T(md[0])}</span></div>
+      ${live && sm && !sm.ok ? `<p class="dk-small">${T("Too little to trade right now — the desk waits.")}</p>` : ""}
+      <ul class="dk-rk-why">${why.join("") || `<li>${T("Recent real trades aren't in a losing run")} → <b data-no-i18n>${set.tradePct}%</b> ${T("of the desk per buy")}</li>`}
+        <li>${T("A buy may lose at most")} <b data-no-i18n>${set.maxLossPct}%</b> ${T("of the desk if the coin falls back to its launch floor")}</li>${sm ? `<li>${T("At the pump scalp's floor limit")} <b data-no-i18n>(${sm.atFloorX}×)</b>: ${T("a buy of at most")} <b data-no-i18n>${usd(sm.cap)}</b></li>` : ""}</ul>
+      <div class="dk-rk-exp"><div><small>${T("Open now")}</small><b data-no-i18n>${usd(e.open)}</b><span><span data-no-i18n>${e.n || 0}</span> ${T("open positions")}</span></div>
+        <div><small>${T("If every one fell to its launch floor")}</small><b class="${e.toFloor > 0 ? "dn" : ""}" data-no-i18n>${e.toFloor > 0 ? "−" + usd(e.toFloor) : usd(0)}</b><span>${T("the worst case, before any stop-loss")}</span></div></div>
+      <div class="dk-rk-burn ${b.needed <= 0 ? "due" : ""}"><div class="dk-rk-bh"><small>${T("To the next $ARCIRCLE burn")}</small><b data-no-i18n>${b.needed <= 0 ? tr("due at the next daily run") : "+" + usd(b.needed)}</b></div>
+        <div class="dk-rk-bar"><i style="width:${(fill * 100).toFixed(1)}%"></i>${b.needed <= 0 ? `<em class="dk-flame-i" aria-hidden="true"></em>` : ""}</div>
+        <p class="dk-small">${T("A burn needs profit above the desk's best level so far.")}</p></div>`;
+  }
+  function cohorts(d) {
+    const el = $("dk-coh"), c = (d.risk && d.risk.cohorts) || [];
+    if (!c.some((x) => x.n)) { el.innerHTML = `<div class="dk-empty-s">${T("Shown once real trades have closed.")}</div>`; return; }
+    const max = Math.max(0.01, ...c.map((x) => Math.abs(x.pnl)));
+    el.innerHTML = `<div class="dk-coh">${c.map((x) => `<div class="dk-coh-r"><span data-no-i18n>${esc(x.label)}</span><small><span data-no-i18n>${x.n}</span> ${T("trades")} · <span data-no-i18n>${x.wins}</span> ${T("wins")}${x.pf != null ? ` · PF <span data-no-i18n>${x.pf.toFixed(2)}</span>` : ""}</small>
+      <div class="dk-bl-bar"><i class="${x.pnl >= 0 ? "up" : "dn"}" style="${x.pnl >= 0 ? "left:50%" : "right:50%"};width:${((Math.abs(x.pnl) / max) * 50).toFixed(1)}%"></i></div><b class="${cls(x.pnl)}" data-no-i18n>${x.n ? sgnUsd(x.pnl) : "—"}</b></div>`).join("")}</div>
+      <p class="dk-small">${T("The last 80 closed trades. A high win rate can still lose money if the losses are bigger than the wins — this shows it in dollars.")}</p>`;
+  }
+  function replayGrid(d) {
+    const el = $("dk-grid"), g = d.risk && d.risk.replay;
+    if (!g) { el.innerHTML = `<div class="dk-empty-s">${T("Shown once pump scalps have closed.")}</div>`; return; }
+    const max = Math.max(1, ...g.cells.flat().map(Math.abs));
+    const near = (list, v) => list.reduce((a, x) => (Math.abs(x - v) < Math.abs(a - v) ? x : a), list[0]);
+    const cur = g.cur ? { tp: near(g.tps, g.cur.tp), sl: near(g.sls, g.cur.sl) } : null;
+    el.innerHTML = `<div class="dk-tbl-w"><table class="dk-rg"><thead><tr><th><span data-no-i18n>TP ↓ · SL →</span></th>${g.sls.map((sl) => `<th data-no-i18n>−${sl}%</th>`).join("")}</tr></thead><tbody>` +
+      g.tps.map((tp, i) => `<tr><th data-no-i18n>+${tp}%</th>${g.sls.map((sl, j) => { const v = g.cells[i][j], a = Math.min(1, Math.abs(v) / max);
+        const k = (cur && cur.tp === tp && cur.sl === sl ? " cur" : "") + (g.best && g.best.tp === tp && g.best.sl === sl ? " best" : "");
+        return `<td class="${v >= 0 ? "up" : "dn"}${k}" style="--a:${(0.12 + a * 0.6).toFixed(2)}" title="TP +${tp}% · SL −${sl}% · ${pc(v)}" data-no-i18n>${pc(v)}</td>`; }).join("")}</tr>`).join("") + `</tbody></table></div>
+      <p class="dk-small"><span data-no-i18n>${g.n}</span> ${T("recent pump scalps (real and paper), replayed with a plain take-profit and stop-loss, no runner.")} <span class="dk-rg-k cur"></span>${T("current exits")} <span class="dk-rg-k best"></span>${T("best in the grid")}</p>`;
   }
   function status(d) {
     const live = d.mode === "live";
@@ -321,6 +411,10 @@
     "function maxTrade() view returns (uint256)", "function dailyCap() view returns (uint256)", "function burnCap() view returns (uint256)", "function setCaps(uint256,uint256,uint256)"];
   const NOLIMIT = 2n ** 256n - 1n, isOpenEnded = (x) => x != null && x >= 2n ** 128n;
   const U20_ABI = ["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
+  // the owner's settings (api/desk.mjs POST): the same keys, order and message as api/_desk.mjs settingsMessage
+  const SETF = [["tradePct", "Buy size", "% of desk"], ["maxLossPct", "Most a buy may lose at the launch floor", "% of desk"], ["scalpFloorX", "Pump scalp: at most", "× launch floor"],
+    ["scalpMaxDump", "Pump scalp: top-10 dump under", "%"], ["earlyFailPct", "Early exit: down", "%"], ["earlyFailMin", "Early exit: in the first", "min"]];
+  const setMsg = (desk, v, issued) => `ARCIRCLE PAD — ARCIA DESK settings\nDesk: ${String(desk).toLowerCase()}\nSettings: ${JSON.stringify(Object.fromEntries(SETF.map(([k]) => [k, Number(v[k])])))}\nIssued: ${issued}`;
   let depBox = null, deskOwner = null, ownerAsked = false, depLast = null, chain = { bal: null, paused: null, at: 0 };
   // the page only repaints when the desk's numbers change, so a wallet that connects later is checked here
   setInterval(() => { if (depLast && !document.hidden) deposit(depLast); }, 3000);
@@ -349,6 +443,17 @@
     depBox.querySelector("[data-m=lbuy]").textContent = lim(chain.perBuy);
     depBox.querySelector("[data-m=lday]").textContent = lim(chain.perDay);
     depBox.querySelector("[data-m=lfree]").disabled = chain.burnCap == null || (isOpenEnded(chain.perBuy) && isOpenEnded(chain.perDay));
+    const st = d.settings;
+    if (st) {
+      for (const [k] of SETF) {
+        const i = depBox.querySelector(`[data-s="${k}"]`), bd = st.bounds && st.bounds[k];
+        if (bd) { i.min = bd[0]; i.max = bd[1]; depBox.querySelector(`[data-sb="${k}"]`).textContent = `${bd[0]}–${bd[1]} · ${tr("default value")} ${st.defaults[k]}`; }
+        if (!i.dataset.dirty && document.activeElement !== i) i.value = st.values[k];
+      }
+      depBox.querySelector("[data-m=sby]").innerHTML = st.at ? `${T("last saved")} <b data-no-i18n>${when(st.at)} UTC</b>` : T("defaults");
+    }
+    const post = depBox.querySelector("[data-m=post]");
+    post.value = (d.risk && d.risk.postDraft) || tr("Starts once the desk is funded.");
   }
   function deposit(d) {
     depLast = d;
@@ -373,7 +478,13 @@
         <p class="dk-dep-warn" data-m="open" hidden></p>
         <div class="dk-dep-lim"><div class="dk-dep-limh"><small>${T("Contract limits")}</small><span>${T("per buy")} <b data-m="lbuy" data-no-i18n>—</b> · ${T("per day")} <b data-m="lday" data-no-i18n>—</b></span></div>
           <div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per buy")}" aria-label="${T("USDC per buy")}" data-m="lb"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per day")}" aria-label="${T("USDC per day")}" data-m="ld"><button type="button" class="dk-dep-max" data-m="lset">${T("Set")}</button><button type="button" class="dk-dep-p" data-m="lfree">${T("Remove limits")}</button></div>
-          <p class="dk-small">${T("Each buy is 6% of the desk (at least $3); these only cap it. They are also the most the trading key could spend in a day if it ever leaked — with no limit, the whole desk.")}</p></div>
+          <p class="dk-small">${T("A buy's size comes from the settings below (at least $3); these only cap it. They are also the most the trading key could spend in a day if it ever leaked — with no limit, the whole desk.")}</p></div>
+        <div class="dk-dep-set"><div class="dk-dep-limh"><small>${T("Sizing and pump scalp settings")}</small><span data-m="sby"></span></div>
+          <div class="dk-set-grid">${SETF.map(([k, label, unit]) => `<label><span>${T(label)}</span><span class="dk-set-in"><input type="number" step="any" inputmode="decimal" data-s="${k}" aria-label="${T(label)}"><em data-no-i18n>${unit}</em></span><small data-sb="${k}" data-no-i18n></small></label>`).join("")}</div>
+          <div class="dk-dep-row"><button type="button" class="dk-dep-max" data-m="sset">${T("Sign and save")}</button><button type="button" class="dk-dep-p" data-m="sdef">${T("Back to defaults")}</button></div>
+          <p class="dk-small">${T("Signed by the owner wallet (no gas). They change how much a buy spends and which pump scalps pass — they can't make her trade. Used from her next run.")}</p></div>
+        <details class="dk-dep-post"><summary>${T("Daily post draft")}</summary><textarea data-m="post" rows="7" data-no-i18n readonly></textarea><div class="dk-dep-row"><button type="button" class="dk-dep-p" data-m="pcopy">${T("Copy")}</button></div>
+          <p class="dk-small">${T("Real numbers from the desk right now. Edit before posting.")}</p></details>
         <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><button type="button" class="dk-dep-p" data-m="pause" disabled>—</button><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
         <p class="dk-small">${T("The desk records deposits and withdrawals on its next run (about a minute). Neither counts as profit or loss.")}</p>
         <p class="dk-dep-msg" aria-live="polite"></p>`;
@@ -437,7 +548,7 @@
       }));
       $m("lfree").addEventListener("click", () => run(async () => {
         const tx = await setCaps(NOLIMIT, NOLIMIT);
-        msg(`${T("Limits removed: a buy is now 6% of the desk with no cap, and there's no daily limit.")} ${txLink(tx.hash)}`, "ok");
+        msg(`${T("Limits removed: a buy is sized by the desk's settings with no cap, and there's no daily limit.")} ${txLink(tx.hash)}`, "ok");
       }));
       $m("pause").addEventListener("click", () => run(async () => {
         const next = !chain.paused;
@@ -447,6 +558,27 @@
         await tx.wait();
         msg(`${T(next ? "Paused: no new buys. She keeps selling what she holds." : "Resumed: she can buy again.")} ${txLink(tx.hash)}`, "ok");
       }));
+      depBox.querySelectorAll("[data-s]").forEach((i) => i.addEventListener("input", () => { i.dataset.dirty = "1"; }));
+      async function saveSet(v) {
+        const sg = await signer();
+        for (const [k, label] of SETF) {
+          const bd = depLast.settings && depLast.settings.bounds[k];
+          if (!isFinite(v[k]) || (bd && (v[k] < bd[0] || v[k] > bd[1]))) { msg(`${T(label)}: ${bd ? `${bd[0]}–${bd[1]}` : "?"}`, "bad"); return; }
+        }
+        const issued = new Date().toISOString();
+        msg(T("Sign in your wallet…"));
+        const signature = await sg.signMessage(setMsg(depLast.desk, v, issued));
+        const r = await fetch("/api/desk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "settings", values: v, issued, signature }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) { msg(esc(j.error || T("Couldn't save — try again.")), "bad"); return; }
+        depBox.querySelectorAll("[data-s]").forEach((i) => { delete i.dataset.dirty; if (j.settings.values[i.dataset.s] != null) i.value = j.settings.values[i.dataset.s]; });
+        depLast.settings = { ...depLast.settings, values: { ...depLast.settings.values, ...j.settings.values }, at: j.settings.at, by: j.settings.by };
+        msg(T("Saved. She uses them from her next run."), "ok");
+        setTimeout(load, 25000); // the page's copy of /api/desk is cached for about 20 seconds
+      }
+      $m("sset").addEventListener("click", () => run(() => saveSet(Object.fromEntries(SETF.map(([k]) => [k, Number(depBox.querySelector(`[data-s="${k}"]`).value)])))));
+      $m("sdef").addEventListener("click", () => run(() => saveSet({ ...depLast.settings.defaults })));
+      $m("pcopy").addEventListener("click", async () => { const t = $m("post"); try { await navigator.clipboard.writeText(t.value); msg(T("Copied."), "ok"); } catch { t.removeAttribute("readonly"); t.select(); } });
       readChain(d).catch(() => {});
     }
     depBox.hidden = !show;
@@ -481,7 +613,7 @@
     }
     const moved = (p) => { const prev = S.lastVal[p.id]; S.lastVal[p.id] = p.value; return prev != null && p.value != null && prev !== p.value ? (p.value > prev ? " dk-pulse-up" : " dk-pulse-dn") : ""; };
     el.innerHTML = `<div class="dk-pos">` + d.open.map((p) => `
-      <div class="dk-p ${cls(p.ret)}${reduce ? "" : moved(p)}">
+      <div class="dk-p ${cls(p.ret)}${reduce ? "" : moved(p)}${!p.tpHit && p.ret != null && p.ret <= -0.6 * p.sl ? " dk-near" : ""}">
         <div class="dk-p-top">${tokenLink(p.t, p.sym)} ${pbTag(p.pb, pbName(p.pb))}${p.tpHit ? `<span class="dk-flag">${T("profit taken")}</span>` : ""}${p.pending ? `<span class="dk-flag">${T("confirming")}</span>` : ""}
           <b class="dk-p-ret" data-no-i18n>${pc(p.ret)}</b></div>
         <div class="dk-p-grid">
@@ -514,7 +646,7 @@
         <div class="dk-h-a">${tokenLink(r.t, r.sym)} ${pbTag(r.pb, pbName(r.pb))}<small>${T(WHY[r.why] || r.why)} · <span data-no-i18n>${dur(r.mins)}</span> · <span data-no-i18n>${when(r.exitTs)}</span></small></div>
         <div class="dk-h-b"><small>${T("Buy")}</small><span data-no-i18n>${px(r.entryPx)}</span>${r.real ? `<em>${txa(r.buyTx, "tx")} <span data-no-i18n>${usd(r.usdIn)}</span></em>` : `<em data-no-i18n>${when(r.entryTs)}</em>`}</div>
         <div class="dk-h-b"><small>${T("Sell")}</small><span data-no-i18n>${px(r.exitPx)}</span>${r.real ? `<em>${(r.sells || []).map((s) => txa(s.tx, s.pct + "%")).join(" ")} <span data-no-i18n>${usd(r.usdOut)}</span></em>` : `<em data-no-i18n>${when(r.exitTs)}</em>`}</div>
-        <div class="dk-h-c"><b data-no-i18n>${pc(r.ret)}</b><small data-no-i18n>${r.real ? sgnUsd(r.pnl) : ""}</small></div>
+        ${r.real ? `<div class="dk-h-c dk-h-usd"><b data-no-i18n>${sgnUsd(r.pnl)}</b><small data-no-i18n>${pc(r.ret)}</small></div>` : `<div class="dk-h-c"><b data-no-i18n>${pc(r.ret)}</b><small></small></div>`}
       </div>`).join("") + `</div>`;
   }
   // ---------------- the trade drawer ----------------
@@ -592,6 +724,7 @@
           <div class="dk-pbc-h"><b>${T(p.name)}${p.realOn === false ? ` <span class="dk-st">${T("Paper only")}</span>` : p.benched ? ` <span class="dk-st bench">${T("Benched")}</span>` : p.realOn ? ` <span class="dk-st on">${T("Real money")}</span>` : ""}</b><span class="${cls(p.mean)}" data-no-i18n>${p.n ? pc(p.mean) : "—"}</span></div>
           <p>${T(p.why)}</p>
           <div class="dk-pbc-s"><span>${T("trades")} <b data-no-i18n>${p.real}</b>+<b data-no-i18n>${p.paper}</b> ${T("paper")}</span><span>${T("wins")} <b data-no-i18n>${p.winRate == null ? "—" : p.winRate + "%"}</b></span></div>
+          <div class="dk-pbc-sz">${p.realOn ? `${T("Real size")} <b data-no-i18n>${(d.settings && d.settings.values.tradePct) || 6}%</b> ${T("of the desk, cut by the risk rules")}` : T("Paper only — no money")}</div>
           <div class="dk-pbc-x" data-no-i18n>TP +${p.exits.tp}% (${p.exits.tp1Pct ?? 35}%) · 2× (${p.exits.tp2Pct ?? 25}%) · ${tr("runner")} −${p.exits.runTrail ?? 30}% ${tr("from peak")} · SL −${p.exits.sl}% · ${p.exits.maxH}h</div>
         </div>`).join("")}</div>
       ${L.tails && L.tails.n ? `<h4>${T("Big runs seen")}</h4><div class="dk-tails"><span><b data-no-i18n>${L.tails.x2}</b>${T("doubled")}</span><span><b data-no-i18n>${L.tails.x4}</b>${T("went 4×")}</span><span><b data-no-i18n>${L.tails.x11}</b>${T("went 11×+")}</span><small>${T("out of")} <span data-no-i18n>${L.tails.n}</span> ${T("trades, counting what happened after they closed — the runner is there for these")}</small></div>` : ""}
@@ -645,13 +778,15 @@
     if (!seen) return; // first load: nothing to announce
     const fresh = (d.log || []).filter((x) => !seen.has(x.tx + x.side)).slice(0, 3);
     for (const x of fresh) {
-      const [k, txt] = x.side === "buy" ? ["buy", `${tr("ARCIA bought")} ${x.sym} · ${usd(x.usd)}`] : x.side === "sell" ? [x.ret > 0 ? "win" : "loss", `${tr("ARCIA sold")} ${x.sym} ${pc(x.ret)}`] : ["burn", `${tr("ARCIA burned")} ${num(x.tokens)} $ARCIRCLE`];
+      const [k, txt] = x.side === "buy" ? ["buy", `${tr("ARCIA bought")} ${x.sym} · ${usd(x.usd)}`] : x.side === "sell" ? [x.ret > 0 ? "win" : "loss", x.ret > 0 ? `${tr("ARCIA sold")} ${x.sym} ${pc(x.ret)}` : `${tr("ARCIA closed")} ${x.sym} ${pc(x.ret)} — ${tr("a loss, inside her rules")}`] : ["burn", `${tr("ARCIA burned")} ${num(x.tokens)} $ARCIRCLE`];
       const t = document.createElement("div");
       t.className = `dk-toast ${k}`;
-      t.innerHTML = `<img src="${AV}" alt="" width="32" height="32"><span data-no-i18n>${esc(txt)}</span>${k === "win" || k === "burn" ? `<i class="dk-spark" aria-hidden="true"></i>` : ""}`;
+      // a bigger loss gets a review from Claude (Learning → Loss reviews)
+      const rv = k === "loss" && x.ret <= -30 && d.ai;
+      t.innerHTML = `<img src="${AV}" alt="" width="32" height="32"><span data-no-i18n>${esc(txt)}</span>${k === "win" || k === "burn" ? `<i class="dk-spark" aria-hidden="true"></i>` : ""}${rv ? `<button type="button" class="dk-t-why" data-dk-goto="learning">${T("See why")}</button>` : ""}`;
       box.appendChild(t);
-      setTimeout(() => t.classList.add("out"), 5200);
-      setTimeout(() => t.remove(), 5800);
+      setTimeout(() => t.classList.add("out"), rv ? 9000 : 5200);
+      setTimeout(() => t.remove(), rv ? 9600 : 5800);
       if (k === "burn") { const b = panel.querySelector(".dk-kpi.dk-burn"); if (b && !reduce) { b.classList.remove("dk-flame"); void b.offsetWidth; b.classList.add("dk-flame"); } }
     }
   }
@@ -662,7 +797,7 @@
     el.innerHTML = head + (d.burns.length ? `<div class="dk-rows">` + d.burns.slice(0, 8).map((b) => `<div class="dk-row"><span data-no-i18n>${esc(b.day)}</span><span data-no-i18n>${num(b.tok)} $ARCIRCLE</span><small data-no-i18n>${usd(b.usd)}</small>${txa(b.tx, "tx")}</div>`).join("") + `</div>` : `<div class="dk-empty-s">${T("No burn yet — it starts with the first profitable day.")}</div>`);
   }
   function rules(d) {
-    const g = d.rules.gates, r = d.rules.risk;
+    const g = d.rules.gates, r = d.rules.risk, sv = (d.settings && d.settings.values) || { tradePct: r.tradePct, maxLossPct: 1.25, scalpFloorX: 7, scalpMaxDump: 60, earlyFailPct: 5, earlyFailMin: 2 };
     $("dk-rules").innerHTML = `
       <div class="dk-h"><h3>${T("The rules she can't learn away")}</h3></div>
       <div class="dk-rule-grid">
@@ -671,10 +806,13 @@
           <li>${T("Liquidity at least")} <span data-no-i18n>$${g.minLiq}</span></li><li>${T("A buy and an immediate sell lose at most")} <span data-no-i18n>${g.maxRoundTrip}%</span></li>
           <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
           <li>${T("Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
-          ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp: 15×), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span>${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
+          ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp:")} <span data-no-i18n>${sv.scalpFloorX}×</span>${T("), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span> ${T("(the pump scalp:")} <span data-no-i18n>${sv.scalpMaxDump}%</span>)${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
           ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
-          <li><span data-no-i18n>${r.tradePct}%</span> ${T("of the desk per trade")} (${r.maxTrade == null ? `${T("at least")} <span data-no-i18n>$${r.minTrade}</span>` : `<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>`})${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
+          <li><span data-no-i18n>${sv.tradePct}%</span> ${T("of the desk per trade")} (${r.maxTrade == null ? `${T("at least")} <span data-no-i18n>$${r.minTrade}</span>` : `<span data-no-i18n>$${r.minTrade}–$${r.maxTrade}</span>`})${r.warmTrade ? ` · ${T("warm-up:")} <span data-no-i18n>$${r.warmTrade}</span>, <span data-no-i18n>${r.warmPerHour}</span> ${T("buys an hour")}` : ""}</li><li>${T("At most")} <span data-no-i18n>${r.maxOpen}</span> ${T("open, and")} <span data-no-i18n>${r.maxPerHour}</span> ${T("buys an hour")}</li>
+          <li>${T("A buy may lose at most")} <span data-no-i18n>${sv.maxLossPct}%</span> ${T("of the desk if the coin falls back to its launch floor — the closer the floor, the bigger the buy can be")}</li>
+          <li>${T("Half size after 3 losses in a row, when the last 20 real trades lost money in dollars, or once the day is down 5%; the minimum size when they lost twice what they made")}</li>
+          ${sv.earlyFailPct > 0 ? `<li>${T("A pump scalp down")} <span data-no-i18n>${sv.earlyFailPct}%</span> ${T("in the first")} <span data-no-i18n>${sv.earlyFailMin}</span> ${T("minutes after the buy is sold at once")}</li>` : ""}
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
           ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("Contract limits")}: ${(() => { const c = d.rules.caps; if (!c) return T("each buy and each day's buys are capped; only the owner can withdraw"); const v = (x) => (x === null ? T("no limit") : x === undefined ? "—" : `<span data-no-i18n>$${Number(x).toLocaleString("en-US")}</span>`); return `${T("per buy")} ${v(c.perBuy)} · ${T("per day")} ${v(c.perDay)} · ${T("only the owner can withdraw")}`; })()}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>

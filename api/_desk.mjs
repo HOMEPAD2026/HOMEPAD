@@ -64,7 +64,7 @@ const SEL = {
   quote: sel(`quote(${KT},bool,uint256)`), rt: sel(`quoteRoundTrip(${KT},uint256)`), buy: sel(`buy(${KT},uint256,uint256)`),
   sell: sel(`sell(${KT},uint256,uint256)`), burn: sel(`buyAndBurn(${KT},uint256,uint256)`),
   paused: sel("paused()"), maxTrade: sel("maxTrade()"), dailyCap: sel("dailyCap()"), spent: sel("spentToday()"), day: sel("day()"),
-  burnCap: sel("burnCap()"), burnSpent: sel("burnSpentToday()"), operator: sel("operator()"),
+  burnCap: sel("burnCap()"), burnSpent: sel("burnSpentToday()"), operator: sel("operator()"), owner: sel("owner()"),
   balanceOf: sel("balanceOf(address)"), decimals: "0x313ce567", symbol: "0x95d89b41", totalSupply: "0x18160ddd",
   extsload: "0x1e2eaeaf", launches: sel("launches(address)"), payoutSplit: sel("payoutSplit(address)"),
 };
@@ -142,6 +142,7 @@ const human = (raw, dec) => Number(BigInt(raw)) / 10 ** dec;
 const K = {
   state: "desk/state", cands: "desk/cands", paper: "desk/paper", ghosts: "desk/ghosts", log: "desk/log", recent: "desk/recent",
   rejects: "desk/rejects", equity: "desk/equity", journal: "desk/journal", burns: "desk/burns", reviews: "desk/reviews", closed: (d) => `desk/closed-${d}`,
+  settings: "desk/settings", // the owner's signed settings (api/desk.mjs POST)
 };
 const mem = new Map(); // no store: one instance's memory (paper runs and tests)
 function memStore() { return { get: async (k) => mem.get(k) || null, getMany: async (ks) => Object.fromEntries(ks.map((k) => [k, mem.get(k) || null])), set: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } }; }
@@ -490,6 +491,7 @@ function learnFrom(S, rec) {
     // what trading cost: the buy + sell loss measured by a round-trip quote at entry (taxes and price impact)
     if (rec.rt != null) { s.costUsd = r2((s.costUsd || 0) + ((rec.usdIn || 0) * rec.rt) / 100, 4); s.costN = (s.costN || 0) + 1; }
     pbAdd((s.byPb = s.byPb || {}), rec);
+    S.realTail = [...(S.realTail || []), { pnl: rec.pnl || 0, usd: rec.usdIn || 0, ts: rec.exitTs }].slice(-40);
   }
   else { s.paperClosed++; if (rec.ret > 0) s.paperWins++; s.paperSum += rec.ret; }
   if (s.best == null || rec.ret > s.best.ret) s.best = { ret: rec.ret, sym: rec.sym, real: rec.real };
@@ -516,9 +518,16 @@ export async function tick(st, opts = {}) {
   const fetchJson = opts.fetchJson || (async (url, ms) => { const r = await fetch(url, { signal: AbortSignal.timeout(ms || 8000) }); return r.ok ? r.json() : null; });
   const scan = opts.scan || ((t) => defaultScan(t, opts.scanStore === undefined ? st : opts.scanStore));
   const notes = [];
-  let [S, cd, pp, gh] = await load(st, [K.state, K.cands, K.paper, K.ghosts]);
+  let [S, cd, pp, gh, sv] = await load(st, [K.state, K.cands, K.paper, K.ghosts, K.settings]);
   S = S && S.v === DESK_VERSION ? S : newState();
   B.ensureLearn(S.learn);
+  const SET = B.settingsOf(sv && sv.values);
+  const realPbs = SET.realPlaybooks && SET.realPlaybooks.length ? SET.realPlaybooks : CFG.realPlaybooks();
+  // the dollar record of recent real trades (sizing ramp); rebuilt once from the recent list
+  if (!Array.isArray(S.realTail)) {
+    const rc = (unpack(await st.get(K.recent).catch(() => null)) || {}).items || [];
+    S.realTail = rc.filter((r) => r.real).sort((a, b) => a.exitTs - b.exitTs).slice(-40).map((r) => ({ pnl: r.pnl || 0, usd: r.usdIn || 0, ts: r.exitTs }));
+  }
   if (S.busy && Date.now() - S.busy < 65e3 && !opts.force) return { skipped: "another tick is running" };
   S.busy = Date.now();
   await save(st, K.state, S);
@@ -650,8 +659,8 @@ export async function tick(st, opts = {}) {
       if (c && c.px) p.lastPx = c.px;
       if (crit || dump || (p.qFail || 0) >= 3) { sellsDue.push({ p, pct: 100, why: crit ? "emergency" : dump ? "crash" : "unquotable", urgent: true }); continue; }
       if (p.ret == null) continue;
-      const e0 = B.exitCheck(p, p.ret, nowS), e = lowCapDue(p, nowS) ? { action: "lowcap", sellPct: 100 } : e0;
-      if (e.action) sellsDue.push({ p, pct: e.sellPct, why: e.action });
+      const e0 = B.exitCheck(p, p.ret, nowS), e = B.earlyFail(p, p.ret, nowS, SET) ? { action: "early", sellPct: 100 } : lowCapDue(p, nowS) ? { action: "lowcap", sellPct: 100 } : e0;
+      if (e.action) sellsDue.push({ p, pct: e.sellPct, why: e.action, urgent: e.action === "early" || e.action === "sl" });
     }
     sellsDue.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
     /// sells part or all of a real position; true when a sale went through
@@ -714,7 +723,7 @@ export async function tick(st, opts = {}) {
         if (lvl != null && fp.buysM5 >= 1) { p.tr.push({ px: c.px, usd: p.tr[0].usd }); p.usdIn += p.tr[0].usd; p.dcaDone = [...(p.dcaDone || []), lvl]; p.ret = r2(pret(p, c.px)); }
       }
       const crit = c.scan && c.scan.crit && c.scan.crit.length && !p.critAtEntry;
-      const e0 = B.exitCheck(p, p.ret, nowS), e = crit ? { action: "emergency", sellPct: 100 } : lowCapDue(p, nowS) ? { action: "lowcap", sellPct: 100 } : e0;
+      const e0 = B.exitCheck(p, p.ret, nowS), e = crit ? { action: "emergency", sellPct: 100 } : B.earlyFail(p, p.ret, nowS, SET) ? { action: "early", sellPct: 100 } : lowCapDue(p, nowS) ? { action: "lowcap", sellPct: 100 } : e0;
       if (!e.action) continue;
       const leftPct = 100 - p.parts.reduce((t, x) => t + x.pct, 0);
       if ((e.action === "tp" || e.action === "tp2") && e.sellPct < leftPct) { p.parts.push({ pct: e.sellPct, ret: p.ret, why: e.action, px: c.px, ts: nowS }); if (e.action === "tp") p.tpHit = true; else p.tp2Hit = true; continue; }
@@ -789,8 +798,7 @@ export async function tick(st, opts = {}) {
         out.opened.push(`paper ${c.sym} ${pb}`);
       }
       if (live && !S.open.some((p) => p.t === c.t) && !S.cool[c.t]) {
-        const realPbs = CFG.realPlaybooks();
-        const ds = w.pbs.filter((pb) => realPbs.includes(pb)).map((pb) => ({ pb, d: B.decide({ pb, x, state: S, ...(opts.rand ? { rand: opts.rand } : {}) }), rg: B.realGate(f, c, nowS, pb) })).filter((z) => z.d.go)
+        const ds = w.pbs.filter((pb) => realPbs.includes(pb)).map((pb) => ({ pb, d: B.decide({ pb, x, state: S, ...(opts.rand ? { rand: opts.rand } : {}) }), rg: B.realGate(f, c, nowS, pb, SET) })).filter((z) => z.d.go)
           .sort((a, b) => b.d.draw + (b.d.p - 0.5) * 20 - (a.d.draw + (a.d.p - 0.5) * 20));
         const pick = ds.find((z) => !z.rg.length);
         if (pick) realCands.push({ c, f, x, pb: pick.pb, d: pick.d });
@@ -862,7 +870,11 @@ export async function tick(st, opts = {}) {
       if (S.open.some((p) => p.t === c.t || (p.sym && c.sym && String(p.sym).toLowerCase() === String(c.sym).toLowerCase()))) continue;
       const pbk = B.PLAYBOOKS[pb];
       const eqNow = S.cash + S.open.reduce((t, p) => t + (p.value || p.usdIn), 0);
-      let size = Math.min(pbk.sizeUsd ? Math.min(pbk.sizeUsd, S.cash - B.RISK.keepCash) : warm && !pbk.fullSize ? Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash) : B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);
+      // the size: what the desk can afford to lose if the pool falls back to its launch floor, ramped by the
+      // dollar record of the last real trades (B.sizePlan); the crash-buy DCA keeps its fixed tranches
+      const plan = pbk.sizeUsd || (warm && !pbk.fullSize) ? null : B.sizePlan({ equity: eqNow, cash: S.cash, floorDrop: f.floorDrop, tail: S.realTail, dayLossPct: dayLossAdj, set: SET });
+      let size = Math.min(pbk.sizeUsd ? Math.min(pbk.sizeUsd, S.cash - B.RISK.keepCash) : plan ? plan.size : Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash), D.maxTrade, D.dailyLeft);
+      if (plan && !plan.ok) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: [plan.why[plan.why.length - 1] || "no safe size"], paper: true }); S.cool[`${c.t}|${pb}`] = nowS + 600; continue; }
       if (!(size >= (pbk.sizeUsd ? 1 : B.RISK.warmTrade))) continue;
       size = Math.floor(size * 100) / 100;
       // a second opinion from Claude on real money (it can only say no); the pump scalp skips it for speed
@@ -887,6 +899,7 @@ export async function tick(st, opts = {}) {
         entryPx: r2(size / human(tokens, c.dec || 18), 12), p0: c.px, rt: f.rtLoss || 0, tx: r.hash, exits: { ...S.learn.exits[pb] }, x: round3(x), p: d.p, why0: d.why, parts: [],
         critAtEntry: (c.scan && c.scan.crit && c.scan.crit[0]) || null, lastPx: c.px, ...(r.ok ? {} : { pending: r.hash }),
         gate: { score: c.scan ? c.scan.score : null, scanAge: c.scanAt ? nowS - c.scanAt : null, floorX: f.floorX != null ? r2(f.floorX, 2) : null, dump: f.dumpTop10 },
+        floorDrop: f.floorDrop != null ? r2(f.floorDrop, 1) : null, ...(plan ? { sizing: { why: plan.why, cap: plan.cap } } : {}),
         ...(rv ? { review: { go: rv.go, reason: rv.reason, conf: rv.confidence, model: rv.model } } : {}) };
       S.open.push(pos); S.buys.push(nowS); S.cash -= size; D.dailyLeft -= size;
       log.push({ ts: nowS, side: "buy", t: c.t, sym: c.sym, pb, usd: size, tokens: human(tokens, c.dec || 18), px: pos.entryPx, tx: r.hash, why: d.why });
@@ -894,7 +907,8 @@ export async function tick(st, opts = {}) {
     }
 
     // ---- 5b. keep watching what's held for the rest of the minute (the next tick is a minute away)
-    const watchMs = opts.watchMs ?? 10000;
+    // every 10 s — every 3 s while a pump scalp is held (its stop was being hit 5–10 points late)
+    const watchMs = opts.watchMs ?? (S.open.some((p) => p.pb === "scalp" && !p.pending) ? 3000 : 10000);
     while (live && S.open.some((p) => !p.pending) && left() > 16000 && watchMs > 0) {
       await new Promise((r) => setTimeout(r, watchMs));
       const held = S.open.filter((p) => !p.pending);
@@ -906,8 +920,8 @@ export async function tick(st, opts = {}) {
         const value = human(v, 6), prev = p.value;
         p.value = value; p.ret = r2((value / p.basis - 1) * 100, 2);
         const crash = prev && value < prev * 0.6;
-        const e0 = B.exitCheck(p, p.ret, when), e = crash ? { action: "crash", sellPct: 100 } : lowCapDue(p, when) ? { action: "lowcap", sellPct: 100 } : e0;
-        if (e.action) await sellNow({ p, pct: e.sellPct, why: e.action, urgent: e.action === "crash" || e.action === "sl" }, when);
+        const e0 = B.exitCheck(p, p.ret, when), e = crash ? { action: "crash", sellPct: 100 } : B.earlyFail(p, p.ret, when, SET) ? { action: "early", sellPct: 100 } : lowCapDue(p, when) ? { action: "lowcap", sellPct: 100 } : e0;
+        if (e.action) await sellNow({ p, pct: e.sellPct, why: e.action, urgent: e.action === "crash" || e.action === "sl" || e.action === "early" }, when);
       }
       closeDone(when);
       out.watched = (out.watched || 0) + 1;
@@ -928,6 +942,12 @@ export async function tick(st, opts = {}) {
       try { const D2 = await deskInfo(desk, key, nowS); if (D2) S.cash = D2.cash; } catch { /* keep the running figure */ }
       S.eq = r2(S.cash + S.open.reduce((t, p) => t + (p.value ?? p.usdIn), 0), 4);
       if (S.dayStartEq == null) S.dayStartEq = S.eq;
+      // owner alerts: a bad day, a losing streak, a trade that fell apart
+      const flowsT = (S.flows || []).filter((fl) => dayOf(fl.ts) === today && fl.kind !== "start").reduce((t, fl) => t + fl.usd, 0);
+      const dayPct = S.dayStartEq ? ((S.eq - flowsT - S.dayStartEq) / S.dayStartEq) * 100 : null;
+      const ra = B.riskAlerts(S.alerts, { day: today, dayPct, tail: S.realTail, closed: closed.filter((r) => r.real) });
+      S.alerts = ra.mem;
+      if (ra.msgs.length) alarm(`ARCIA DESK — heads up\n${ra.msgs.join("\n")}\n\nhttps://www.arcircle.app/arc#desk`);
     }
     const writes = [save(st, K.cands, { items: C }), save(st, K.paper, { open: P2 }), save(st, K.ghosts, { items: G2 })];
     if (live && nowS - (S.eqAt || 0) >= 300) {
@@ -965,7 +985,8 @@ function addEdges(S, p, rec) {
 function predictP(S, x) { return r2(B.predict(S.learn.model, x), 3); }
 export const pnlOf = (S) => (S.eq == null ? 0 : S.eq + (S.burnedUsd || 0) - (S.netIn || 0));
 const slim = (r) => ({ id: r.id, t: r.t, sym: r.sym, pb: r.pb, real: r.real, entryTs: r.entryTs, exitTs: r.exitTs, usdIn: r.usdIn, usdOut: r.usdOut, pnl: r.pnl, ret: r.ret, why: r.why, day: r.day, rt: r.rt ?? null,
-  entryPx: r.entryPx, exitPx: r.exitPx, buyTx: r.buyTx, sells: r.parts.filter((p) => p.tx).map((p) => ({ tx: p.tx, px: p.px, pct: p.pct, ret: p.ret, why: p.why })), peak: r.peak, low: r.low, mins: r.mins });
+  entryPx: r.entryPx, exitPx: r.exitPx, buyTx: r.buyTx, sells: r.parts.filter((p) => p.tx).map((p) => ({ tx: p.tx, px: p.px, pct: p.pct, ret: p.ret, why: p.why })), peak: r.peak, low: r.low, mins: r.mins,
+  up: r.up || {}, dn: r.dn || {} }); // first-crossing minutes, for the exit replay on the page
 /// newest first (a time series — field "pts" — stays oldest first)
 async function appendList(st, key, field, add, max, uniqBy = null) {
   const d = unpack(await st.get(key).catch(() => null)) || {};
@@ -1077,10 +1098,11 @@ async function daily(st, S, { yday, nowS, D, live, desk, key, notes, ask }) {
 
 // ---------------------------------------------------------------- the public view (GET /api/desk)
 export async function view(st) {
-  const realPbs = CFG.realPlaybooks();
   st = st || memStore();
-  const [S0, P, rec, lg, rj, jr, bu, eq, cd, rvw] = await load(st, [K.state, K.paper, K.recent, K.log, K.rejects, K.journal, K.burns, K.equity, K.cands, K.reviews]);
+  const [S0, P, rec, lg, rj, jr, bu, eq, cd, rvw, sv] = await load(st, [K.state, K.paper, K.recent, K.log, K.rejects, K.journal, K.burns, K.equity, K.cands, K.reviews, K.settings]);
   const S = S0 || newState();
+  const SET = B.settingsOf(sv && sv.values);
+  const realPbs = SET.realPlaybooks && SET.realPlaybooks.length ? SET.realPlaybooks : CFG.realPlaybooks();
   const L = S.learn, s = S.stats;
   const nReal = s.realClosed || 0;
   const pts = ((eq && eq.pts) || []);
@@ -1112,6 +1134,39 @@ export async function view(st) {
     } catch { /* shown as unknown */ }
   }
   const byPb = s.byPb || {};
+  // risk at a glance: what the open real positions lose if every pool falls back to its launch floor
+  const openV = (S.open || []).map((p) => ({ v: p.value ?? p.usdIn ?? 0, d: p.floorDrop != null ? p.floorDrop : 90 }));
+  const exposure = { open: r2(openV.reduce((t, o) => t + o.v, 0), 4), toFloor: r2(openV.reduce((t, o) => t + (o.v * o.d) / 100, 0), 4), n: openV.length };
+  // real trades by size, so dollars (not only win rate) show where it works
+  const recReal = ((rec && rec.items) || []).filter((r) => r.real);
+  const COH = [["< $5", 0, 5], ["$5–10", 5, 10], ["$10+", 10, Infinity]];
+  const cohorts = COH.map(([label, lo, hi]) => { const l = recReal.filter((r) => (r.usdIn || 0) >= lo && (r.usdIn || 0) < hi); const gw = l.reduce((t, r) => t + Math.max(0, r.pnl || 0), 0), gl = l.reduce((t, r) => t - Math.min(0, r.pnl || 0), 0);
+    return { label, n: l.length, wins: l.filter((r) => r.ret > 0).length, pnl: r2(gw - gl, 4), pf: gl > 0 ? r2(gw / gl, 2) : null }; });
+  // the sizing ramp now, and what a buy would be at the scalp's floor limit
+  const eqNow = S.eq || 0;
+  const flowsT = (S.flows || []).filter((fl) => dayOf(fl.ts) === dayOf(S.lastTick || 0) && fl.kind !== "start").reduce((t, fl) => t + fl.usd, 0);
+  const dayPct = S.dayStartEq ? r2(((eqNow - flowsT - S.dayStartEq) / S.dayStartEq) * 100) : null;
+  const ts = B.tailStats(S.realTail);
+  const sample = eqNow > 0 ? B.sizePlan({ equity: eqNow, cash: S.cash || 0, floorDrop: (1 - 1 / SET.scalpFloorX) * 100, tail: S.realTail, dayLossPct: dayPct || 0, set: SET }) : null;
+  const ramp = { n: ts.n, pf: ts.pf == null || !isFinite(ts.pf) ? ts.pf === Infinity ? "inf" : null : r2(ts.pf, 2), pnl: r2(ts.pnl, 4), streak: ts.streak, dayPct, rules: B.RAMP,
+    sample: sample ? { size: sample.size, ok: sample.ok, why: sample.why, cap: sample.cap, atFloorX: SET.scalpFloorX } : null };
+  // how much profit before the next burn (a burn needs profit above the high-water mark, +$0.50)
+  const burnGauge = { pnl: r2(pnl, 4), hwm: r2(S.hwm || 0, 4), needed: r2(Math.max(0, (S.hwm || 0) + 0.5 - pnl), 4), pct: CFG.burnPct() };
+  // the scalp's exits replayed over its recent trades (real and paper)
+  const scalpRecent = ((rec && rec.items) || []).filter((r) => r.pb === "scalp").slice(0, 120);
+  const grid = B.replayGrid(scalpRecent);
+  const replayG = grid ? { ...grid, cur: L.exits.scalp ? { tp: L.exits.scalp.tp, sl: L.exits.scalp.sl } : null } : null;
+  // a plain daily post with real numbers (the owner edits it before posting)
+  const nToday = recReal.filter((r) => dayOf(r.exitTs) === dayOf(S.lastTick || 0));
+  const usd$ = (n) => (n < 0 ? "-$" : "+$") + Math.abs(n).toFixed(2);
+  const postDraft = S.netIn > 0 ? [
+    `ARCIA DESK update — ${new Date((S.lastTick || 0) * 1000).toISOString().slice(0, 10)}`,
+    `Desk: $${r2(eqNow, 2)} · total ${usd$(pnl)} (${pnl >= 0 ? "+" : ""}${r2((pnl / S.netIn) * 100, 1)}%)${dayPct != null ? ` · today ${dayPct >= 0 ? "+" : ""}${dayPct}%` : ""}`,
+    `Real trades today: ${nToday.length} (${nToday.filter((r) => r.ret > 0).length} wins, ${usd$(nToday.reduce((t, r) => t + (r.pnl || 0), 0))})`,
+    ts.n >= B.RAMP.minN ? `Last ${ts.n} real trades: ${usd$(ts.pnl)}${ramp.pf != null && ramp.pf !== "inf" ? `, profit factor ${ramp.pf}` : ""}` : null,
+    S.burnedUsd > 0 ? `Burned so far: ${Math.round(S.burnedTok || 0).toLocaleString("en-US")} $ARCIRCLE ($${r2(S.burnedUsd, 2)})` : `Next burn after ${usd$(burnGauge.needed).replace("+", "")} more profit`,
+    `Every trade on-chain: arcircle.app/arc#desk`,
+  ].filter(Boolean).join("\n") : null;
   return {
     v: DESK_VERSION, brain: B.BRAIN_VERSION, mode: S.mode || "paper", desk: CFG.desk(), updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
     ai: AI.aiEnabled(), reviews: ((rvw && rvw.items) || []).slice(0, 10),
@@ -1149,8 +1204,44 @@ export async function view(st) {
     sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
+    settings: { values: SET, defaults: B.SETTINGS_DEFAULTS, bounds: B.SET_BOUNDS, by: (sv && sv.by) || null, at: (sv && sv.at) || null },
+    risk: { exposure, cohorts, ramp, burn: burnGauge, replay: replayG, postDraft },
     rules: { realPlaybooks: realPbs, caps, gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
+}
+// ---------------------------------------------------------------- the owner's settings (POST /api/desk, signed)
+// Only the desk contract's owner() can change them; each value must sit inside B.SET_BOUNDS. They change how much a
+// real buy spends and which pump scalps pass — never a trade by themselves (there is still no endpoint that trades).
+export const SETTING_KEYS = ["tradePct", "maxLossPct", "scalpFloorX", "scalpMaxDump", "earlyFailPct", "earlyFailMin"];
+export const settingsCanon = (v) => Object.fromEntries(SETTING_KEYS.map((k) => [k, Number(v && v[k] != null ? v[k] : B.SETTINGS_DEFAULTS[k])]));
+export const settingsMessage = (desk, values, issued) =>
+  `ARCIRCLE PAD — ARCIA DESK settings\nDesk: ${lc(desk)}\nSettings: ${JSON.stringify(settingsCanon(values))}\nIssued: ${issued}`;
+async function deskOwner(desk) {
+  const [h] = await ethCalls([{ to: desk, data: SEL.owner }]);
+  return h && strip(h).length >= 64 ? "0x" + strip(h).slice(-40).toLowerCase() : null;
+}
+export async function saveSettings(st, b, recover, ownerOf = deskOwner) {
+  const desk = CFG.desk();
+  if (!desk) return { status: 503, body: { error: "the desk contract isn't set" } };
+  if (!st) return { status: 503, body: { error: "the store isn't configured" } };
+  const values = settingsCanon(b && b.values);
+  for (const k of SETTING_KEYS) {
+    const [lo, hi] = B.SET_BOUNDS[k];
+    if (!Number.isFinite(values[k]) || values[k] < lo || values[k] > hi) return { status: 400, body: { error: `${k} must be between ${lo} and ${hi}` } };
+  }
+  const issued = String((b && b.issued) || "");
+  const t = Date.parse(issued);
+  if (!Number.isFinite(t) || new Date(t).toISOString() !== issued || t > Date.now() + 120e3 || Date.now() - t > 10 * 60e3) return { status: 400, body: { error: "the signature is too old — sign again" } };
+  let signer;
+  try { signer = lc(recover(settingsMessage(desk, values, issued), String((b && b.signature) || ""))); } catch { return { status: 400, body: { error: "bad signature" } }; }
+  const owner = await ownerOf(desk).catch(() => null);
+  if (!owner) return { status: 502, body: { error: "couldn't read the desk's owner — try again" } };
+  if (signer !== owner) return { status: 403, body: { error: "only the desk's owner wallet can change its settings" } };
+  const prev = unpack(await st.get(K.settings).catch(() => null));
+  const doc = { values, by: signer, at: Math.floor(Date.now() / 1000), issued, sig: String(b.signature), prev: prev && prev.values ? prev.values : null };
+  await save(st, K.settings, doc);
+  alarm(`ARCIA DESK — the owner changed the settings\n${SETTING_KEYS.map((k) => `${k}: ${values[k]}`).join("\n")}`);
+  return { status: 200, body: { ok: true, settings: { values: B.settingsOf(values), by: signer, at: doc.at } } };
 }
 /// one closed trade in full (gates, Claude's check, every sell) and, while it's still in memory, the coin's
 /// price by the minute around it — for the trade drawer on the page

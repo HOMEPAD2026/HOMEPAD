@@ -57,7 +57,7 @@ export const PLAYBOOKS = {
     exits: { tp: 22, sl: 12, trailAt: 10, trail: 7, maxH: 0.34, tp1Pct: 75, tp2: 60, tp2Pct: 25, runTrail: 20, runTrailWide: 25, maxRunH: 0.5 },
     // 30 Sep 2026: the one real-money playbook, sized like the others — 6% of the desk ($3–$10), also in the
     // warm-up — instead of a fixed $2; fast exits stay its risk control
-    fullSize: true, maxFloorX: 15, review: false, // speed over a second opinion
+    fullSize: true, maxFloorX: 7, review: false, // speed over a second opinion; the gate's limits come from the owner's settings
   },
   dipdca: {
     name: "Crash buy + DCA", why: "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.",
@@ -98,11 +98,12 @@ export const REAL_GATES = {
   maxDump: 80, // % the price drops if the top 10 wallets sell everything
   flagHours: 6, // a token that showed a critical flag stays off-limits this long
 };
-export function realGate(f, c, nowS, pb) {
+export function realGate(f, c, nowS, pb, set = SETTINGS_DEFAULTS) {
   const r = [];
-  const maxX = (pb && PLAYBOOKS[pb] && PLAYBOOKS[pb].maxFloorX) || REAL_GATES.maxFloorX;
+  const maxX = pb === "scalp" ? set.scalpFloorX : (pb && PLAYBOOKS[pb] && PLAYBOOKS[pb].maxFloorX) || REAL_GATES.maxFloorX;
+  const maxDump = pb === "scalp" ? set.scalpMaxDump : REAL_GATES.maxDump;
   if (f.floorX != null && f.floorX > maxX) r.push(`${Math.round(f.floorDrop)}% above-floor risk (price ${f.floorX.toFixed(1)}× its launch floor)`);
-  if (f.dumpTop10 != null && f.dumpTop10 > REAL_GATES.maxDump && pb !== "dipdca") r.push(`top 10 selling would drop it ${Math.round(f.dumpTop10)}%`);
+  if (f.dumpTop10 != null && f.dumpTop10 > maxDump && pb !== "dipdca") r.push(`top 10 selling would drop it ${Math.round(f.dumpTop10)}%`);
   if (c.flagUntil && c.flagUntil > nowS) r.push(`flagged earlier: ${c.flagWhy || "critical flag"}`);
   if (f.reused) r.push("its website / X / Telegram link is also used by another launch");
   return r;
@@ -300,6 +301,86 @@ export const RISK = {
   lowCapUsd: 5000, lowCapMin: 30, // under a $5k market cap, never hold longer than 30 minutes
   burnPct: 20, // of new profit above the high-water mark, each day
 };
+// ---------------------------------------------------------------- the owner's settings + risk-based sizing (30 Sep 2026)
+// After the size went up on Day 2, four scalps lost ~$25 — one rug alone −87% on $20 — while twelve $2 wins had made
+// $4.66: the % win rate looked fine, the dollars didn't. A pump can fall back to its launch floor in one block, and a
+// stop-loss can't help with that, so the size now comes from what the desk can afford to lose if it does.
+/// Owner-tunable (Rules → Desk money → Settings, signed by the owner wallet); every value is clamped to these bounds.
+export const SETTINGS_DEFAULTS = {
+  tradePct: 6,        // % of the desk a trade starts from
+  maxLossPct: 1.25,   // % of the desk a trade may lose if the pool falls back to its launch floor
+  scalpFloorX: 7,     // the pump scalp buys at most this many × the launch floor (was 15)
+  scalpMaxDump: 60,   // …and only if the top 10 wallets selling would drop it less than this % (was 80)
+  earlyFailPct: 5,    // a scalp down this much within earlyFailMin minutes of the buy is sold (0 = off)
+  earlyFailMin: 2,
+  realPlaybooks: null, // null = REAL_PLAYBOOKS / the ARCIA_DESK_PLAYBOOKS env
+};
+export const SET_BOUNDS = { tradePct: [1, 15], maxLossPct: [0.25, 5], scalpFloorX: [2, 20], scalpMaxDump: [30, 90], earlyFailPct: [0, 20], earlyFailMin: [1, 10] };
+export function settingsOf(stored) {
+  const o = { ...SETTINGS_DEFAULTS };
+  for (const [k, [lo, hi]] of Object.entries(SET_BOUNDS)) {
+    const v = stored && stored[k] != null ? Number(stored[k]) : null;
+    if (v != null && Number.isFinite(v)) o[k] = Math.max(lo, Math.min(hi, v));
+  }
+  if (stored && Array.isArray(stored.realPlaybooks)) { const l = stored.realPlaybooks.filter((k) => PB_KEYS.includes(k)); o.realPlaybooks = l; }
+  return o;
+}
+/// the dollar record of the last real trades (newest last): profit factor, losing streak
+export const RAMP = { window: 20, minN: 8, streak: 3, dayCutPct: 5 };
+export function tailStats(tail) {
+  const t = (tail || []).slice(-RAMP.window);
+  let gw = 0, gl = 0, streak = 0;
+  for (const r of t) { if (r.pnl > 0) gw += r.pnl; else gl -= r.pnl; }
+  for (let i = t.length - 1; i >= 0 && t[i].pnl <= 0; i--) streak++;
+  return { n: t.length, gw, gl, pf: gl > 0 ? gw / gl : gw > 0 ? Infinity : null, pnl: gw - gl, streak };
+}
+/// How much a real buy spends, and why:
+///   start       tradePct of the desk (at least minTrade)
+///   ramp        × 0.5 when the last 20 real trades lost money in dollars (profit factor < 1), minimum size when it's
+///               under 0.5; × 0.5 after 3 losses in a row; × 0.5 once the day is down 5% (the day stops at 15%)
+///   floor risk  at most maxLossPct of the desk lost if the price falls back to its launch floor
+export function sizePlan({ equity, cash, floorDrop, tail, dayLossPct = 0, set = SETTINGS_DEFAULTS }) {
+  const why = [];
+  let size = Math.max(RISK.minTrade, (equity * set.tradePct) / 100);
+  const ts = tailStats(tail);
+  if (ts.n >= RAMP.minN && ts.pf != null && ts.pf < 0.5) { size = RISK.minTrade; why.push(`last ${ts.n} real trades: profit factor ${ts.pf.toFixed(2)} — minimum size`); }
+  else if (ts.n >= RAMP.minN && ts.pf != null && ts.pf < 1) { size *= 0.5; why.push(`last ${ts.n} real trades: profit factor ${ts.pf.toFixed(2)} — half size`); }
+  if (ts.streak >= RAMP.streak) { size *= 0.5; why.push(`${ts.streak} losses in a row — half size`); }
+  if (dayLossPct <= -RAMP.dayCutPct) { size *= 0.5; why.push(`down ${(-dayLossPct).toFixed(1)}% today — half size`); }
+  size = Math.max(RISK.minTrade, size); // the ramp never goes below the minimum trade; only the floor risk can
+  const drop = floorDrop != null && floorDrop > 0 ? Math.min(100, floorDrop) : 90; // unknown floor: assume a 90% fall
+  const cap = ((equity * set.maxLossPct) / 100) / (drop / 100);
+  if (cap < size) { size = cap; why.push(`floor risk: back to its launch floor would lose ${drop.toFixed(0)}% — capped at ${set.maxLossPct}% of the desk`); }
+  size = Math.min(size, cash - RISK.keepCash);
+  size = Math.floor(size * 100) / 100;
+  return { size, ok: size >= RISK.minTrade, why, cap: Math.floor(cap * 100) / 100, tail: ts };
+}
+/// a pump scalp that goes the wrong way right after the buy is sold at once (earlyFailPct within earlyFailMin minutes)
+export function earlyFail(pos, ret, nowTs, set = SETTINGS_DEFAULTS) {
+  if (pos.pb !== "scalp" || !(set.earlyFailPct > 0) || pos.tpHit || ret == null) return false;
+  return (nowTs - pos.entryTs) / 60 <= set.earlyFailMin && ret <= -set.earlyFailPct;
+}
+/// owner alerts (Telegram): the day down 5% and 10% (once each), 3+ real losses in a row, a real trade closed at −50% or worse
+export function riskAlerts(mem, { day, dayPct, tail, closed }) {
+  const m = mem && mem.day === day ? { ...mem } : { day, d5: 0, d10: 0, streak: (mem && mem.streak) || 0 };
+  const msgs = [];
+  if (dayPct != null && dayPct <= -10 && !m.d10) { m.d10 = 1; m.d5 = 1; msgs.push(`down ${(-dayPct).toFixed(1)}% today — sizes halved; new real trades stop at -${RISK.dailyLossPct}%`); }
+  else if (dayPct != null && dayPct <= -RAMP.dayCutPct && !m.d5) { m.d5 = 1; msgs.push(`down ${(-dayPct).toFixed(1)}% today — real trade sizes are halved`); }
+  const ts = tailStats(tail);
+  if (ts.streak >= RAMP.streak && ts.streak > (m.streak || 0)) msgs.push(`${ts.streak} real losses in a row — sizes are halved until a win`);
+  m.streak = ts.streak >= RAMP.streak ? Math.max(m.streak || 0, ts.streak) : 0;
+  for (const r of closed || []) if (r.real && r.ret <= -50) msgs.push(`${r.sym} closed at ${r.ret.toFixed(1)}% (${r.pnl < 0 ? "-" : ""}$${Math.abs(r.pnl || 0).toFixed(2)})`);
+  return { mem: m, msgs };
+}
+/// the exit replay grid for the page: mean return of recent trades under each take-profit / stop-loss pair
+export function replayGrid(trades, tps = [10, 15, 20, 25, 30, 40], sls = [5, 10, 15, 20, 25]) {
+  const t = (trades || []).filter((r) => r && (r.up || r.dn) && r.ret != null).map((r) => ({ up: r.up || {}, dn: r.dn || {}, final: r.ret }));
+  if (!t.length) return null;
+  const cells = tps.map((tp) => sls.map((sl) => Math.round((t.reduce((s, r) => s + replay(r, tp, sl), 0) / t.length) * 10) / 10));
+  let best = null;
+  tps.forEach((tp, i) => sls.forEach((sl, j) => { if (!best || cells[i][j] > best.m) best = { tp, sl, m: cells[i][j] }; }));
+  return { n: t.length, tps, sls, cells, best };
+}
 export function tradeSize(equity, cash) {
   const s = clamp((equity * RISK.tradePct) / 100, RISK.minTrade, RISK.maxTrade == null ? Infinity : RISK.maxTrade);
   return cash - RISK.keepCash >= s ? Math.floor(s * 100) / 100 : 0;
