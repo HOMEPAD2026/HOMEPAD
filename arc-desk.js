@@ -307,6 +307,60 @@
       <div><small>${T("Cash on this page")}</small><b data-no-i18n>${usd(c.cash)}</b><span>${T("from her last run")}</span></div>
       <div class="dk-pf ${diff == null ? "" : okM ? "ok" : "warn"}">${diff == null ? T("Couldn't read the chain just now.") : okM ? T("They match.") : `${T("They differ by")} <b data-no-i18n>${usd(Math.abs(diff))}</b> — ${T("usually a trade settling between runs.")}`}</div></div>
       <p class="dk-small">${T("Open positions are held as tokens in the same contract; their value is what an exact sell quote from the contract says right now.")}</p>`;
+    deposit(d);
+  }
+  // ---- the owner's "Add USDC": a plain ERC-20 transfer of Arc's USDC (0x3600…) to the desk contract. Shown only
+  // to the desk's owner wallet (anyone else's USDC could only be taken out by the owner). A native USDC send would
+  // fail — the contract has no receive() — so this is the way to top the desk up without the explorer.
+  const USDC20 = "0x3600000000000000000000000000000000000000";
+  let depBox = null, deskOwner = null, ownerAsked = false;
+  let depLast = null;
+  // the page only repaints when the desk's numbers change, so a wallet that connects later is checked here
+  setInterval(() => { if (depLast && !document.hidden) deposit(depLast); }, 3000);
+  function deposit(d) {
+    depLast = d;
+    if (!d.desk || typeof ethers === "undefined") return;
+    if (!ownerAsked && typeof readProvider === "function") {
+      ownerAsked = true;
+      new ethers.Contract(d.desk, ["function owner() view returns (address)"], readProvider()).owner().then((o) => { deskOwner = String(o).toLowerCase(); deposit(d); }).catch(() => { ownerAsked = false; });
+    }
+    const me = typeof state !== "undefined" && state.account ? String(state.account).toLowerCase() : null;
+    const show = !!(me && deskOwner && me === deskOwner);
+    if (!depBox) {
+      if (!show) return;
+      depBox = document.createElement("div");
+      depBox.className = "dk-dep"; depBox.id = "dk-dep";
+      depBox.innerHTML = `<div class="dk-dep-h"><b>${T("Add USDC to the desk")}</b><span class="dk-st on">${T("Owner")}</span></div>
+        <div class="dk-dep-row"><input type="number" min="1" step="any" inputmode="decimal" placeholder="USDC" aria-label="${T("USDC to add")}"><button type="button" class="dk-dep-go">${T("Deposit")}</button></div>
+        <p class="dk-small">${T("Sends USDC from this wallet to the desk contract on Arc as a token transfer. Only the owner wallet can take it out, at any time. The desk records it as a deposit, not profit, within a minute.")}</p>
+        <p class="dk-dep-msg" aria-live="polite"></p>`;
+      $("dk-proof").insertAdjacentElement("afterend", depBox);
+      const msg = (h, k) => { const m = depBox.querySelector(".dk-dep-msg"); m.className = "dk-dep-msg" + (k ? " " + k : ""); m.innerHTML = h; };
+      depBox.querySelector(".dk-dep-go").addEventListener("click", async () => {
+        const btn = depBox.querySelector(".dk-dep-go"), v = String(depBox.querySelector("input").value || "").trim();
+        let amt; try { amt = ethers.parseUnits(v, 6); } catch { amt = 0n; }
+        if (!(amt > 0n)) { msg(T("Enter an amount of USDC."), "bad"); return; }
+        btn.disabled = true;
+        try {
+          if (!state.signer && typeof connectWallet === "function") await connectWallet();
+          if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
+          if (!state.signer) throw new Error(T("Connect the owner wallet first."));
+          const u = new ethers.Contract(USDC20, ["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"], state.signer);
+          const bal = await u.balanceOf(state.account);
+          if (bal < amt) throw new Error(`${T("This wallet holds")} ${ethers.formatUnits(bal, 6)} USDC.`);
+          msg(T("Confirm in your wallet…"));
+          const tx = await u.transfer(d.desk, amt);
+          msg(`${T("Sending…")} <a href="${EXPL("tx", tx.hash)}" target="_blank" rel="noopener" data-no-i18n>${short(tx.hash)} ↗</a>`);
+          await tx.wait();
+          depBox.querySelector("input").value = "";
+          msg(`${T("Added")} <b data-no-i18n>${ethers.formatUnits(amt, 6)} USDC</b>. ${T("The desk picks it up on its next run.")} <a href="${EXPL("tx", tx.hash)}" target="_blank" rel="noopener" data-no-i18n>${short(tx.hash)} ↗</a>`, "ok");
+        } catch (err) {
+          const t = err && (err.code === "ACTION_REJECTED" || err.code === 4001) ? T("Cancelled in your wallet.") : (err && (err.shortMessage || err.message)) || T("The transfer didn't go through.");
+          msg(esc(String(t)).slice(0, 200), "bad");
+        } finally { btn.disabled = false; }
+      });
+    }
+    depBox.hidden = !show;
   }
   function filters(d) {
     const el = $("dk-filt");

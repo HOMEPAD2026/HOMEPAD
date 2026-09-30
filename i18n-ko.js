@@ -4997,6 +4997,14 @@
     "Real money": "실전",
     "Real money goes only through": "실제 돈은 이 플레이북으로만 거래해요:",
     "The other playbooks keep trading on paper, so the desk keeps learning from them and any of them can be switched back on.": "나머지 플레이북은 페이퍼(가상)로만 계속 거래해서 데스크가 계속 배우고, 언제든 다시 켤 수 있어요.",
+    "Add USDC to the desk": "데스크에 USDC 추가",
+    "USDC to add": "추가할 USDC",
+    "Sends USDC from this wallet to the desk contract on Arc as a token transfer. Only the owner wallet can take it out, at any time. The desk records it as a deposit, not profit, within a minute.": "이 지갑의 USDC를 Arc의 데스크 컨트랙트로 토큰 전송해요. 출금은 owner 지갑만, 언제든 할 수 있어요. 데스크는 1분 안에 이걸 수익이 아닌 입금으로 기록해요.",
+    "Enter an amount of USDC.": "USDC 금액을 입력하세요.",
+    "Connect the owner wallet first.": "먼저 owner 지갑을 연결하세요.",
+    "This wallet holds": "이 지갑 잔액:",
+    "The desk picks it up on its next run.": "데스크가 다음 실행 때 반영해요.",
+    "The transfer didn't go through.": "전송이 완료되지 않았어요.",
   };
 
 

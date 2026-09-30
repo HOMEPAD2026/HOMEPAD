@@ -5149,6 +5149,14 @@
     "Real money": "真实资金",
     "Real money goes only through": "真实资金只通过以下策略交易:",
     "The other playbooks keep trading on paper, so the desk keeps learning from them and any of them can be switched back on.": "其他策略继续以模拟方式交易,所以桌台仍在从中学习,随时可以重新开启。",
+    "Add USDC to the desk": "向交易台添加 USDC",
+    "USDC to add": "要添加的 USDC",
+    "Sends USDC from this wallet to the desk contract on Arc as a token transfer. Only the owner wallet can take it out, at any time. The desk records it as a deposit, not profit, within a minute.": "以代币转账方式把此钱包的 USDC 发送到 Arc 上的交易台合约。只有 owner 钱包可以随时取出。交易台会在一分钟内将其记为存入,而不是利润。",
+    "Enter an amount of USDC.": "请输入 USDC 数量。",
+    "Connect the owner wallet first.": "请先连接 owner 钱包。",
+    "This wallet holds": "此钱包持有",
+    "The desk picks it up on its next run.": "交易台会在下一次运行时计入。",
+    "The transfer didn't go through.": "转账未完成。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
