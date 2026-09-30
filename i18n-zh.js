@@ -5192,6 +5192,8 @@
     "The day's limit can't be below one buy.": "每日限额不能低于单笔限额。",
     "Limits set": "限额已设置",
     "Limits removed: a buy is now 6% of the desk with no cap, and there's no daily limit.": "限额已解除:每笔买入为交易台资金的 6% 且无上限,也没有每日限额。",
+    "Closed for now": "暂时关闭",
+    "closed for now — sending this way is switched off.": "暂时关闭 — 这个方向的发送已关闭。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

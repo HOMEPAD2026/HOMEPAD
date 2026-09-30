@@ -5040,6 +5040,8 @@
     "The day's limit can't be below one buy.": "하루 한도는 1회 한도보다 작을 수 없어요.",
     "Limits set": "한도 설정 완료",
     "Limits removed: a buy is now 6% of the desk with no cap, and there's no daily limit.": "한도를 해제했어요: 이제 매수는 데스크의 6%이고 상한이 없으며, 하루 한도도 없어요.",
+    "Closed for now": "지금은 닫힘",
+    "closed for now — sending this way is switched off.": "지금은 닫혀 있어요 — 이 방향 전송은 꺼져 있어요.",
   };
 
 

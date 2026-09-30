@@ -31,6 +31,7 @@
     "function send((uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd) p, (uint256 nativeFee, uint256 lzTokenFee) fee, address refundAddress) payable returns (tuple(bytes32 guid, uint64 nonce, tuple(uint256 nativeFee, uint256 lzTokenFee) fee), tuple(uint256 amountSentLD, uint256 amountReceivedLD))",
     "function paused() view returns (bool)",
     "function getAmountCanBeSent(uint32 dstEid) view returns (uint256 currentAmountInFlight, uint256 amountCanBeSent)",
+    "function rateLimits(uint32 dstEid) view returns (uint192 amountInFlight, uint64 lastUpdated, uint192 limit, uint64 window)",
   ];
   var ERC20 = ["function balanceOf(address) view returns (uint256)", "function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"];
 
@@ -288,12 +289,19 @@
       fee.textContent = Number(ethers.formatEther(quote.nativeFee)).toLocaleString("en-US", { maximumFractionDigits: 6 }) + " " + ((C[S.from] && C[S.from].gas) || "");
     }).catch(function () { if (seq === quoteSeq) fee.textContent = tr("Couldn't quote"); });
   }
+  // a route whose limit the owner Safe set to 0 is closed (the contract refuses any amount): say so, don't let it quote a send
+  var closedRoute = {};
   function loadLeft(addr, p) {
-    var el = $('[data-om="s-left"]'), dst = C[S.to] && C[S.to].eid;
+    var el = $('[data-om="s-left"]'), dst = C[S.to] && C[S.to].eid, key = S.from + ">" + S.to;
     if (!dst) { el.textContent = "—"; return; }
-    new ethers.Contract(addr, OFT_ABI, p).getAmountCanBeSent(dst).then(function (r) {
+    var c = new ethers.Contract(addr, OFT_ABI, p);
+    Promise.all([c.getAmountCanBeSent(dst), c.rateLimits(dst).catch(function () { return null; })]).then(function (res) {
+      var r = res[0], rl = res[1];
       var left = r.amountCanBeSent !== undefined ? r.amountCanBeSent : r[1];
-      el.textContent = fmtAmt(Math.floor(Number(ethers.formatUnits(left, 18)))) + " ARCIRCLE";
+      var lim = rl ? (rl.limit !== undefined ? rl.limit : rl[2]) : null;
+      closedRoute[key] = lim != null && BigInt(lim) === 0n;
+      el.textContent = closedRoute[key] ? tr("Closed for now") : fmtAmt(Math.floor(Number(ethers.formatUnits(left, 18)))) + " ARCIRCLE";
+      if (closedRoute[key] && key === S.from + ">" + S.to) setMsg(chainName(S.from) + " → " + chainName(S.to) + ": " + tr("closed for now — sending this way is switched off."), "bad");
     }).catch(function () { el.textContent = "—"; });
   }
   function sendParam(w, to) {
@@ -358,6 +366,7 @@
     if (!me()) { if (typeof connectWallet === "function") connectWallet(); return; }
     var w = parseAmt(S.amt), to = S.to_addr || (S.to !== "solana" ? me() : ""), addr = contractOn(S.from);
     if (!w || !isAddr(addr) || !(S.to === "solana" ? isSol(to) : isAddr(to))) return;
+    if (closedRoute[S.from + ">" + S.to]) { setMsg(chainName(S.from) + " → " + chainName(S.to) + ": " + tr("closed for now — sending this way is switched off."), "bad"); return; }
     busy = true; paintButton(); setMsg("", "");
     ls.set("omni-form", S);
     holdChain(true);
