@@ -5304,6 +5304,13 @@
     "Open the contract": "컨트랙트 열기",
     "Utility · ARCIA trades on Arc and Robinhood Chain": "유틸리티 · ARCIA가 Arc와 Robinhood Chain에서 거래",
     "ARCIA trades new coins — Argus launches on Arc, pons launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA는 Arc의 Argus 런칭과 Robinhood Chain의 pons 런칭 같은 새 코인을 자기 소액 지갑으로 거래하고, 거래할 때마다 배워요. 모든 매수·매도는 온체인 트랜잭션이고 일어나는 즉시 여기에 표시돼요. Arc에서는 매일 새 수익의 일부로 $ARCIRCLE을 사서 소각해요.",
+    "today's limit is used up — buying again after 00:00 UTC": "오늘 한도를 다 썼어요 — 00:00 UTC 이후 다시 매수",
+    "the per-buy limit is under the $0.50 minimum": "1회 한도가 최소 $0.50보다 작아요",
+    "Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund": "Arc 토큰 주소를 넣으면 ARCIA가 읽고, 24시간 안전 판정을 내리고, 누구나 채울 수 있는 볼트로 소각해요",
+    "safety calls": "안전 판정",
+    "burn vault": "소각 볼트",
+    "burn vaults": "소각 볼트",
+    "buy-and-burns": "매수·소각",
   };
 
 

@@ -11428,10 +11428,11 @@ body.dk-noscroll{overflow:hidden;}
 }
 @media (prefers-reduced-motion:reduce){.dk-av,.dk-av img,.dk-radar::after,.dk-vin,.dk-toast,.dk-spark,.dk-kpi.dk-flame,.dk-p.dk-pulse-up,.dk-p.dk-pulse-dn,.dk-drawin .dk-line{animation:none!important;}.dk-drawin .dk-line{stroke-dashoffset:0;}.dk-dr,.dk-dr-bg{transition:none;}}
 /* ARCIA page: her other utilities */
-.aa-fam{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 26px 22px;}
+.aa-fam{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 26px 22px;}
+@media (max-width:1180px) and (min-width:901px){.aa-fam{grid-template-columns:1fr 1fr;}.aa-fam-c.agent{grid-column:1 / -1;}}
 .aa-fam-c{position:relative;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;text-decoration:none;color:inherit;overflow:hidden;
   background:linear-gradient(135deg,color-mix(in srgb,var(--fc) 12%,transparent),rgba(255,255,255,.02));border:1px solid color-mix(in srgb,var(--fc) 38%,transparent);transition:transform .2s,box-shadow .2s,border-color .2s;}
-.aa-fam-c.a402{--fc:#4d9fff;}.aa-fam-c.desk{--fc:#39ff88;}
+.aa-fam-c.a402{--fc:#4d9fff;}.aa-fam-c.desk{--fc:#39ff88;}.aa-fam-c.agent{--fc:#35d8d0;}
 .aa-fam-c:hover{transform:translateY(-2px);border-color:var(--fc);box-shadow:0 10px 30px -12px var(--fc);}
 .aa-fam-ico{flex-shrink:0;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--fc) 16%,transparent);color:var(--fc);}
 .aa-fam-ico svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}

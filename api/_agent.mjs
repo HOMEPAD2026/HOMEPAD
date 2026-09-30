@@ -323,6 +323,9 @@ export async function decide(v, doc, { t = now(), q = quoteOf, rt = rtOf } = {})
   const pts = [...((doc && doc.pts) || []).filter((p) => t - p[0] <= 3600), [t, px]].slice(-90);
   doc.pts = pts;
   if (v.lastBuyAt && t < v.lastBuyAt + v.cooldown) return { go: false, why: "cooling down between buys", quiet: true };
+  // the vault's own limits come before the pool: a used-up day isn't a thin pool
+  if (v.spendable < RULES.minBuy) return { go: false, why: "today's limit is used up — buying again after 00:00 UTC", quiet: true };
+  if (v.maxBuy < RULES.minBuy) return { go: false, why: "the per-buy limit is under the $0.50 minimum", quiet: true };
   const mode = MODES.includes(doc.mode) ? doc.mode : "dip";
   if (mode !== "steady") {
     if (pts.length < RULES.needPts) return { go: false, why: "watching the price before the first buy", quiet: true };

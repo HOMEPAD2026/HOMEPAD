@@ -5456,6 +5456,13 @@
     "Open the contract": "打开合约",
     "Utility · ARCIA trades on Arc and Robinhood Chain": "工具 · ARCIA 在 Arc 和 Robinhood Chain 上交易",
     "ARCIA trades new coins — Argus launches on Arc, pons launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA 用自己的小钱包交易新币——Arc 上的 Argus 新币和 Robinhood Chain 上的 pons 新币——并从每笔交易中学习。每一笔买卖都是链上交易，发生时即在此显示；在 Arc 上，每天新增利润的一部分会买入并销毁 $ARCIRCLE。",
+    "today's limit is used up — buying again after 00:00 UTC": "今天的额度已用完——00:00 UTC 后再买入",
+    "the per-buy limit is under the $0.50 minimum": "单次限额低于最低 $0.50",
+    "Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund": "粘贴一个 Arc 代币：她读取它、给出 24 小时安全判断，并用任何人都能充值的金库回购销毁",
+    "safety calls": "次安全判断",
+    "burn vault": "个销毁金库",
+    "burn vaults": "个销毁金库",
+    "buy-and-burns": "次回购销毁",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

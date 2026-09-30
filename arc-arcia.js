@@ -1054,6 +1054,16 @@
       var live = d.mode === "live", n = (d.stats.realClosed || 0) + (d.open ? d.open.length : 0), p = d.money && d.money.pnl;
       put("desk", '<i class="' + (live ? "on" : "") + '"></i><span>' + esc(tr(live ? "Live" : "Paper")) + "</span> · <b data-no-i18n>" + n + "</b> " + esc(tr("real trades")) + (live && p != null ? ' · <b data-no-i18n class="' + (p >= 0 ? "up" : "down") + '">' + (p >= 0 ? "+" : "") + money(p) + "</b>" : "") + " · <span>" + esc(tr("learning")) + "</span>");
     }).catch(function () {});
+    // ARCIA AGENT: her safety calls and the burn vaults' buy-and-burns
+    var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    Promise.all([j("/api/desk?agent=vaults"), j("/api/desk?agent=record")]).then(function (a) {
+      var v = a[0], rc = a[1];
+      if (!v && !rc) return;
+      var vs = (v && v.vaults) || [], buys = vs.reduce(function (t, x) { return t + (Number(x.buys) || 0); }, 0);
+      var on = !!(v && v.live && v.health && v.health.match), calls = rc && rc.stats ? rc.stats.total || 0 : 0;
+      put("agent", '<i class="' + (on ? "on" : "") + '"></i><span>' + esc(tr(on ? "Live" : "Setting up")) + "</span> · <b data-no-i18n>" + calls + "</b> " + esc(tr("safety calls")) +
+        " · <b data-no-i18n>" + vs.length + "</b> " + esc(tr(vs.length === 1 ? "burn vault" : "burn vaults")) + " · <b data-no-i18n>" + buys + "</b> " + esc(tr("buy-and-burns")));
+    });
   }
 
 
@@ -1188,6 +1198,8 @@
               '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+            '<a class="aa-fam-c agent" href="/arc#agent" data-arc-tab="agent"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span>' +
+              '<span class="aa-fam-t"><b>ARCIA AGENT <span class="aa-fam-beta" data-no-i18n>New</span></b><small>Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund</small><em class="aa-fam-live" data-fam="agent"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
           "</div>" +
         "</div>" +
         '<div class="aa-stage">' +
