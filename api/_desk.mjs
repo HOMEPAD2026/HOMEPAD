@@ -48,6 +48,8 @@ export const CFG = {
   burnPct: () => { const n = Number(env("ARCIA_DESK_BURN_PCT")); return env("ARCIA_DESK_BURN_PCT") !== "" && n >= 0 && n <= 50 ? n : B.RISK.burnPct; },
   tgChat: () => env("ARCIA_DESK_TG_CHAT"),
   tgTrades: () => env("ARCIA_DESK_TG_TRADES") === "1", // every real buy / sell / burn to ARCIA_DESK_TG_CHAT
+  // playbooks that may trade real money (the rest run on paper only): ARCIA_DESK_PLAYBOOKS, else B.REAL_PLAYBOOKS
+  realPlaybooks: () => { const l = String(env("ARCIA_DESK_PLAYBOOKS") || "").split(",").map((s) => s.trim()).filter((k) => B.PB_KEYS.includes(k)); return l.length ? l : B.REAL_PLAYBOOKS; },
 
   budgetMs: 52000,
 };
@@ -787,7 +789,8 @@ export async function tick(st, opts = {}) {
         out.opened.push(`paper ${c.sym} ${pb}`);
       }
       if (live && !S.open.some((p) => p.t === c.t) && !S.cool[c.t]) {
-        const ds = w.pbs.map((pb) => ({ pb, d: B.decide({ pb, x, state: S, ...(opts.rand ? { rand: opts.rand } : {}) }), rg: B.realGate(f, c, nowS, pb) })).filter((z) => z.d.go)
+        const realPbs = CFG.realPlaybooks();
+        const ds = w.pbs.filter((pb) => realPbs.includes(pb)).map((pb) => ({ pb, d: B.decide({ pb, x, state: S, ...(opts.rand ? { rand: opts.rand } : {}) }), rg: B.realGate(f, c, nowS, pb) })).filter((z) => z.d.go)
           .sort((a, b) => b.d.draw + (b.d.p - 0.5) * 20 - (a.d.draw + (a.d.p - 0.5) * 20));
         const pick = ds.find((z) => !z.rg.length);
         if (pick) realCands.push({ c, f, x, pb: pick.pb, d: pick.d });
@@ -859,7 +862,7 @@ export async function tick(st, opts = {}) {
       if (S.open.some((p) => p.t === c.t || (p.sym && c.sym && String(p.sym).toLowerCase() === String(c.sym).toLowerCase()))) continue;
       const pbk = B.PLAYBOOKS[pb];
       const eqNow = S.cash + S.open.reduce((t, p) => t + (p.value || p.usdIn), 0);
-      let size = Math.min(pbk.sizeUsd ? Math.min(pbk.sizeUsd, S.cash - B.RISK.keepCash) : warm ? Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash) : B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);
+      let size = Math.min(pbk.sizeUsd ? Math.min(pbk.sizeUsd, S.cash - B.RISK.keepCash) : warm && !pbk.fullSize ? Math.min(B.RISK.warmTrade, S.cash - B.RISK.keepCash) : B.tradeSize(eqNow, S.cash), D.maxTrade, D.dailyLeft);
       if (!(size >= (pbk.sizeUsd ? 1 : B.RISK.warmTrade))) continue;
       size = Math.floor(size * 100) / 100;
       // a second opinion from Claude on real money (it can only say no); the pump scalp skips it for speed
@@ -1074,6 +1077,7 @@ async function daily(st, S, { yday, nowS, D, live, desk, key, notes, ask }) {
 
 // ---------------------------------------------------------------- the public view (GET /api/desk)
 export async function view(st) {
+  const realPbs = CFG.realPlaybooks();
   st = st || memStore();
   const [S0, P, rec, lg, rj, jr, bu, eq, cd, rvw] = await load(st, [K.state, K.paper, K.recent, K.log, K.rejects, K.journal, K.burns, K.equity, K.cands, K.reviews]);
   const S = S0 || newState();
@@ -1113,7 +1117,7 @@ export async function view(st) {
     chain: { usdc: chainUsdc, cash: r2(S.cash, 4) },
     leaderboard: B.PB_KEYS.map((k) => { const b = byPb[k] || { n: 0, wins: 0, pnl: 0, sumRet: 0, mins: 0, gw: 0, gl: 0, cost: 0 }; const bd = L.bandit[k] || {};
       return { k, name: B.PLAYBOOKS[k].name, real: b.n, wins: b.wins, winRate: b.n ? r2((b.wins / b.n) * 100, 1) : null, pnl: b.pnl, avgRet: b.n ? r2(b.sumRet / b.n) : null, pf: b.gl > 0 ? r2(b.gw / b.gl, 2) : null, hold: b.n ? Math.round(b.mins / b.n) : null, cost: b.cost,
-        all: { n: r2(bd.n || 0, 1), mean: r2(bd.mean || 0) }, benched: (s.realClosed || 0) >= (L.warmup || 25) && B.benched(bd) }; }),
+        all: { n: r2(bd.n || 0, 1), mean: r2(bd.mean || 0) }, benched: (s.realClosed || 0) >= (L.warmup || 25) && B.benched(bd), realOn: realPbs.includes(k) }; }),
     open: (S.open || []).map((p) => ({ id: p.id, t: p.t, sym: p.sym, pb: p.pb, entryTs: p.entryTs, usdIn: r2(p.usdIn, 4), value: r2(p.value, 4), ret: p.ret, entryPx: p.entryPx, nowPx: p.nowPx ? r2(p.nowPx, 12) : null,
       tokens: p.tokens ? human(p.tokens, p.dec || 18) : null, tp: p.exits.tp, sl: p.exits.sl, trailAt: p.exits.trailAt, trail: p.exits.trail, maxH: p.exits.maxH, peak: r2(p.peak), tpHit: !!p.tpHit, tp2Hit: !!p.tp2Hit,
       tp2: (p.exits.tp2 ?? B.RUN.tp2), runTrail: (p.peak >= 400 ? (p.exits.runTrailWide ?? B.RUN.runTrailWide) : (p.exits.runTrail ?? B.RUN.runTrail)), tx: p.tx, pending: !!p.pending,
@@ -1127,7 +1131,7 @@ export async function view(st) {
     equity: pts.filter((_, i) => i % step === 0 || i === pts.length - 1).map((x) => x.split("|").map(Number)),
     learn: {
       warmup: { done: Math.min(nReal, L.warmup || 25), need: L.warmup || 25 }, explore: nReal < (L.warmup || 25) ? 1 : r2(B.exploreRate(nReal), 3), modelN: L.model.n, bench: B.BENCH,
-      playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k], benched: nReal >= (L.warmup || 25) && B.benched(b) }; }),
+      playbooks: B.PB_KEYS.map((k) => { const b = L.bandit[k] || {}; return { k, name: B.PLAYBOOKS[k].name, why: B.PLAYBOOKS[k].why, n: r2(b.n || 0, 1), mean: r2(b.mean || 0), winRate: b.n ? r2(((b.wins || 0) / b.n) * 100, 1) : null, real: b.real || 0, paper: b.paper || 0, exits: L.exits[k], benched: nReal >= (L.warmup || 25) && B.benched(b), realOn: realPbs.includes(k) }; }),
       weights: B.topWeights(L.model, 8).map(([k, w]) => ({ k, name: B.featureName(k), w: r2(w, 3) })),
       history: (L.history || []).slice(-14).map((h) => ({ day: h.day, n: h.n, means: h.means, changes: h.changes })),
       tails: S.stats.tails || { n: 0, x2: 0, x4: 0, x11: 0 }, runner: B.RUN,
@@ -1137,7 +1141,7 @@ export async function view(st) {
     sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: !!c.own,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
-    rules: { gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
+    rules: { realPlaybooks: realPbs, gates: B.GATES, realGates: B.REAL_GATES, risk: { ...B.RISK, burnPct: CFG.burnPct() }, tradeArcPad: CFG.tradeOwn(), ai: AI.aiEnabled(), playbooks: Object.fromEntries(B.PB_KEYS.map((k) => [k, B.PLAYBOOKS[k].exits])) },
   };
 }
 /// one closed trade in full (gates, Claude's check, every sell) and, while it's still in memory, the coin's

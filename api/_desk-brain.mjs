@@ -55,7 +55,9 @@ export const PLAYBOOKS = {
     name: "Pump scalp", why: "A sudden burst of buying (or a fresh Dex payment): in fast, out at +20–25%, small size.",
     when: (f) => f.ageMin >= 2 && f.flowM5 >= 0.35 && ((f.chgM5 >= 15 && f.chgM5 <= 150 && f.buysM5 >= 6) || (f.dexPaid && f.dexPaidMin <= 10 && f.buysM5 >= 3 && f.chgSincePaid <= 30)),
     exits: { tp: 22, sl: 12, trailAt: 10, trail: 7, maxH: 0.34, tp1Pct: 75, tp2: 60, tp2Pct: 25, runTrail: 20, runTrailWide: 25, maxRunH: 0.5 },
-    sizeUsd: 2, maxFloorX: 15, review: false, // speed over a second opinion; the size is the risk control
+    // 30 Sep 2026: the one real-money playbook, sized like the others — 6% of the desk ($3–$10), also in the
+    // warm-up — instead of a fixed $2; fast exits stay its risk control
+    fullSize: true, maxFloorX: 15, review: false, // speed over a second opinion
   },
   dipdca: {
     name: "Crash buy + DCA", why: "It crashed 55%+ off its high but still trades: buy a little, buy again at -15% and -30%, sell into the bounce.",
@@ -70,6 +72,10 @@ export const PLAYBOOKS = {
   },
 };
 export const PB_KEYS = Object.keys(PLAYBOOKS);
+/// The playbooks allowed to spend real money (30 Sep 2026: the Pump scalp only). Every playbook still opens
+/// PAPER trades and keeps learning, so any of them can be switched back on without starting from zero.
+/// Overridden by the ARCIA_DESK_PLAYBOOKS env (comma list of keys, e.g. "scalp,dexpaid").
+export const REAL_PLAYBOOKS = ["scalp"];
 
 // ---------------------------------------------------------------- hard gates (never learned)
 export const GATES = {
