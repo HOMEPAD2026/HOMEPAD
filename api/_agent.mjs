@@ -204,7 +204,7 @@ const S = {
   owner: sel("owner()"), token: sel("token()"), agentOn: sel("agentOn()"), maxBuy: sel("maxBuy()"), dailyCap: sel("dailyCap()"), cooldown: sel("cooldown()"),
   lastBuyAt: sel("lastBuyAt()"), spendable: sel("spendableToday()"), totalSpent: sel("totalSpent()"), totalBurned: sel("totalBurned()"), buys: sel("buys()"),
   pending: sel("pending()"), poolId: sel("poolId()"), balanceOf: sel("balanceOf(address)"),
-  quote: sel("quote(uint256)"), rt: sel("quoteRoundTrip(uint256)"), burn: sel("buyAndBurn(uint256,uint256)"),
+  quote: sel("quote(uint256)"), rt: sel("quoteRoundTrip(uint256)"), burn: sel("buyAndBurn(uint256,uint256)"), apply: sel("applyLimits()"),
 };
 const ERR = { quote: sel("QuoteResult(uint256)"), rt: sel("RoundTripResult(uint256,uint256)") };
 function addrList(h) { if (!h) return []; const n = Number(W(h, 1)); return Array.from({ length: Math.min(n, 500) }, (_, i) => lc(A(h, 2 + i))); }
@@ -408,6 +408,16 @@ export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, clock =
     if (doc.mode === "volume" && (!doc.volAt || clock() - doc.volAt > 1800)) {
       const m = await scanCore.readMarket(scanner.io, v.token).catch(() => null);
       doc.vol24 = m && m.pairs ? m.pairs.reduce((a, x) => a + (x.vol || 0), 0) : null; doc.volAt = clock();
+    }
+    // an owner's looser limits (queued an hour): ARCIA applies them herself once they're due (anyone may)
+    if (v.pending && v.pending.readyAt && v.pending.readyAt <= clock() && opOk && left() > 8000) {
+      const r = await send({ to: v.vault, data: S.apply, key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      if (r.ok) {
+        const spentToday = Math.max(0, v.dailyCap - v.spendable);
+        v.maxBuy = v.pending.maxBuy; v.dailyCap = v.pending.dailyCap; v.cooldown = v.pending.cooldown;
+        v.spendable = Math.max(0, v.dailyCap - spentToday); v.pending = null;
+        (out.applied = out.applied || []).push({ vault: v.vault, tx: r.hash });
+      }
     }
     const d = await decide(v, doc, { t: clock() }).catch((e) => ({ go: false, why: "error: " + String(e.message || e).slice(0, 80) }));
     doc.status = { at: clock(), why: d.why, go: !!d.go };
