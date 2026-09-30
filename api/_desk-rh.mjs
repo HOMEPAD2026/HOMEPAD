@@ -150,7 +150,8 @@ export function newState() {
 
 // ---------------------------------------------------------------- 1. discovery
 async function discover(S, C, latest, left) {
-  if (!S.hi) S.hi = Math.max(0, latest.number - Math.ceil((B.GATES.maxAgeMin * 60) / S.spb));
+  if (S.discV !== 1) { S.discV = 1; S.hi = 0; S.disc = null; } // 1 Oct 2026: read the last 3 days again, counting what's seen
+  if (!S.hi) { S.hi = Math.max(0, latest.number - Math.ceil((B.GATES.maxAgeMin * 60) / S.spb)); S.hi0 = S.hi; }
   const found = [];
   while (S.hi < latest.number && left() > 30000) {
     const CH = S.ch || 9000;
@@ -168,7 +169,15 @@ async function discover(S, C, latest, left) {
       // TokenLaunched(token, deployer, dexFactory indexed; pairToken, pool, dexId, launchConfigId, positionId, restrictionsEndBlock, initialBuyAmount)
       const t = "0x" + strip(l.topics[1]).slice(24), dexF = "0x" + strip(l.topics[3]).slice(24);
       const pair = wA(l.data, 0), pool = wA(l.data, 1);
-      if (pair !== CFG.weth || dexF !== CFG.v3Factory || C[t]) continue;
+      // what discovery sees, for the page (sync): every launch log, and why one was left out
+      const D = (S.disc = S.disc || { logs: 0, kept: 0, notWeth: 0, otherDex: 0, last: null });
+      D.logs++; D.last = { b: parseInt(l.blockNumber, 16), t };
+      if (pair !== CFG.weth) { D.notWeth++; continue; }
+      // a pool from another dex factory is kept (the desk contract refuses any pool that isn't the v3 factory's own,
+      // so it can never be bought — its quotes fail and the gates say so), but counted
+      if (dexF !== CFG.v3Factory) D.otherDex++;
+      if (C[t]) continue;
+      D.kept++;
       C[t] = { t, id: pool, pool, t0: BigInt(t) < BigInt(CFG.weth), b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0, rEnd: Number(W(l.data, 5)), f: lc(l.address) };
       found.push(t);
     }
@@ -1174,7 +1183,7 @@ export async function view(st) {
       adds: Object.entries(B.ADD_KINDS).map(([k, name]) => { const a = (L.adds || {})[k] || { n: 0, mean: 0, helped: 0 }; return { k, name, n: a.n, edge: r2(a.mean), helped: a.n ? r2((a.helped / a.n) * 100, 1) : null, live: B.addAllowed(L.adds, k) }; }),
     },
     // how far discovery has read, for checking it's keeping up
-    sync: { block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
+    sync: { disc: S.disc || null, spb: S.spb || null, from: S.hi0 || null, block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: false, top10: c.scan ? c.scan.top10 ?? null : null,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
     settings: { values: SET, defaults: B.SETTINGS_DEFAULTS, bounds: B.SET_BOUNDS, by: (sv && sv.by) || null, at: (sv && sv.at) || null },

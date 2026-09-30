@@ -616,13 +616,20 @@
       rhBox = document.createElement("div");
       rhBox.className = "dk-dep"; rhBox.id = "dk-dep-rh";
       rhBox.innerHTML = `<div class="dk-dep-h"><b>${T("Desk money")}</b><span class="dk-st on">${T("Owner")}</span><span class="dk-dep-bal"><small>${T("WETH in the contract")}</small><b data-m="bal" data-no-i18n>—</b></span></div>
+        <p class="dk-small dk-rh-net">${T("These send transactions on Robinhood Chain: your wallet is asked to switch to it first.")}</p>
         <div class="dk-dep-grid">
-          <div class="dk-dep-col"><small>${T("Deposit")}</small><p class="dk-small">${T("Send ETH on Robinhood Chain from your wallet to the desk contract — it becomes WETH there.")}</p>
+          <div class="dk-dep-col"><small>${T("Deposit")}</small><div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="ETH" aria-label="${T("ETH to add")}" data-m="din"><button type="button" class="dk-dep-go" data-m="dgo">${T("Deposit")}</button></div>
+            <p class="dk-small">${T("ETH from this wallet to the desk contract — it becomes WETH there.")}</p>
             <div class="dk-dep-row"><code class="dk-addr-c" data-m="addr" data-no-i18n></code><button type="button" class="dk-dep-max" data-m="copy">${T("Copy")}</button></div></div>
-          <div class="dk-dep-col"><small>${T("Withdraw, pause, limits")}</small><p class="dk-small">${T("In the contract's Write tab on the explorer, from the owner wallet: withdrawETH (always to the owner), setPaused, setCaps (in wei).")}</p>
-            <div class="dk-dep-row"><a class="dk-dep-go" data-m="write" target="_blank" rel="noopener">${T("Open the contract")} ↗</a></div></div>
+          <div class="dk-dep-col"><small>${T("Withdraw")}</small><div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="ETH" aria-label="${T("ETH to take out")}" data-m="win"><button type="button" class="dk-dep-max" data-m="max">${T("Max")}</button><button type="button" class="dk-dep-go dk-dep-out" data-m="wgo">${T("Withdraw")}</button></div>
+            <p class="dk-small">${T("From the desk contract to the owner wallet, as ETH — any amount, any time, paused or not.")}</p></div>
         </div>
-        <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
+        <p class="dk-dep-warn" data-m="open" hidden></p>
+        <div class="dk-dep-lim"><div class="dk-dep-limh"><small>${T("Contract limits")}</small><span>${T("per buy")} <b data-m="lbuy" data-no-i18n>—</b> · ${T("per day")} <b data-m="lday" data-no-i18n>—</b></span></div>
+          <div class="dk-dep-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per buy")} (ETH)" aria-label="${T("ETH per buy")}" data-m="lb"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${T("per day")} (ETH)" aria-label="${T("ETH per day")}" data-m="ld"><button type="button" class="dk-dep-max" data-m="lset">${T("Set")}</button></div>
+          <p class="dk-small">${T("A buy's size comes from the settings below; these only cap it. They are also the most the trading key could spend in a day if it ever leaked.")}</p></div>
+        <div class="dk-dep-pause"><span class="dk-st" data-m="pst">—</span><button type="button" class="dk-dep-p" data-m="pause" disabled>—</button><small>${T("Pausing stops new buys only; she still sells what she holds.")}</small></div>
+        <p class="dk-small">${T("Other tokens held in the contract can be taken out from its Write tab on the explorer (withdraw).")} <a data-m="write" target="_blank" rel="noopener">${T("Open the contract")} ↗</a></p>
         <div class="dk-dep-set"><div class="dk-dep-limh"><small>${T("Sizing and pump scalp settings")}</small><span data-m="sby"></span></div>
           <div class="dk-set-grid">${SETF.map(([k, label, unit]) => `<label><span>${T(label)}</span><span class="dk-set-in"><input type="number" step="any" inputmode="decimal" data-s="${k}" aria-label="${T(label)}"><em data-no-i18n>${unit}</em></span><small data-sb="${k}" data-no-i18n></small></label>`).join("")}</div>
           <div class="dk-dep-row"><button type="button" class="dk-dep-max" data-m="sset">${T("Sign and save")}</button><button type="button" class="dk-dep-p" data-m="sdef">${T("Back to defaults")}</button></div>
@@ -636,6 +643,80 @@
       $m("copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(rhLast.desk); msg(T("Copied."), "ok"); } catch { msg(esc(rhLast.desk)); } });
       $m("pcopy").addEventListener("click", async () => { const t = $m("post"); try { await navigator.clipboard.writeText(t.value); msg(T("Copied."), "ok"); } catch { t.removeAttribute("readonly"); t.select(); } });
       rhBox.querySelectorAll("[data-s]").forEach((i) => i.addEventListener("input", () => { i.dataset.dirty = "1"; }));
+      // ---- wallet transactions on Robinhood Chain (chain 4663): switch the wallet there, then sign as the owner
+      const RH_ADD = { chainId: "0x1237", chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } };
+      const RH_ABI = ["function withdrawETH(uint256)", "function setPaused(bool)", "function setCaps(uint256,uint256)"];
+      const rhTx = (h) => `<a href="${rhLast.explorer}/tx/${h}" target="_blank" rel="noopener" data-no-i18n>${short(h)} ↗</a>`;
+      const errText = (err) => (err && (err.code === "ACTION_REJECTED" || err.code === 4001) ? T("Cancelled in your wallet.") : esc(String((err && (err.shortMessage || err.reason || err.message)) || T("The transaction didn't go through."))).slice(0, 220));
+      async function rhSigner() {
+        if (typeof ethers === "undefined") throw new Error(T("The wallet library hasn't loaded yet — try again."));
+        if (!state.account && typeof connectWallet === "function") await connectWallet();
+        const eip = state.walletProvider || window.ethereum;
+        if (!state.account || !eip) throw new Error(T("Connect the owner wallet first."));
+        if (String(state.account).toLowerCase() !== String(rhLast.owner).toLowerCase()) throw new Error(T("Only the desk's owner wallet can do this."));
+        window.arcChainSwitching = true; // the site mustn't pull the wallet back to Arc meanwhile
+        try { await eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: RH_ADD.chainId }] }); }
+        catch (e) {
+          if (e && (e.code === 4902 || /unrecognized|not been added|unknown chain|not added/i.test(String(e.message)))) await eip.request({ method: "wallet_addEthereumChain", params: [RH_ADD] });
+          else throw e;
+        }
+        const bp = new ethers.BrowserProvider(eip);
+        if (Number((await bp.getNetwork()).chainId) !== 4663) throw new Error(T("Switch your wallet to Robinhood Chain and try again."));
+        return bp.getSigner(state.account);
+      }
+      const ethIn = (k) => { let a; try { a = ethers.parseEther(String($m(k).value || "").trim()); } catch { a = 0n; } return a; };
+      async function rhRun(fn) {
+        const bs = rhBox.querySelectorAll("button"); bs.forEach((x) => { x.disabled = true; });
+        try { await fn(); setTimeout(load, 4000); setTimeout(load, 25000); } catch (err) { msg(errText(err), "bad"); }
+        finally { window.arcChainSwitching = false; bs.forEach((x) => { x.disabled = false; }); }
+      }
+      $m("dgo").addEventListener("click", () => rhRun(async () => {
+        const amt = ethIn("din");
+        if (!(amt > 0n)) { msg(T("Enter an amount of ETH."), "bad"); return; }
+        const sg = await rhSigner();
+        const bal = await sg.provider.getBalance(state.account);
+        if (bal < amt) { msg(`${T("This wallet holds")} ${eth(Number(ethers.formatEther(bal)), 6)}.`, "bad"); return; }
+        msg(T("Confirm in your wallet…"));
+        const tx = await sg.sendTransaction({ to: rhLast.desk, value: amt });
+        msg(`${T("Sending…")} ${rhTx(tx.hash)}`);
+        await tx.wait();
+        $m("din").value = "";
+        msg(`${T("Added")} <b data-no-i18n>${eth(Number(ethers.formatEther(amt)), 6)}</b>. ${T("The desk picks it up on its next run.")} ${rhTx(tx.hash)}`, "ok");
+      }));
+      $m("max").addEventListener("click", () => { const c = rhLast.chain || {}; if (c.weth != null) $m("win").value = String(c.weth); });
+      $m("wgo").addEventListener("click", () => rhRun(async () => {
+        const amt = ethIn("win");
+        if (!(amt > 0n)) { msg(T("Enter an amount of ETH."), "bad"); return; }
+        const have = rhLast.chain && rhLast.chain.weth != null ? ethers.parseEther(String(rhLast.chain.weth)) : null;
+        if (have != null && amt > have) { msg(`${T("The desk holds")} ${eth(rhLast.chain.weth, 6)}.`, "bad"); return; }
+        const dk = new ethers.Contract(rhLast.desk, RH_ABI, await rhSigner());
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.withdrawETH(amt);
+        msg(`${T("Withdrawing…")} ${rhTx(tx.hash)}`);
+        await tx.wait();
+        $m("win").value = "";
+        msg(`${T("Withdrew")} <b data-no-i18n>${eth(Number(ethers.formatEther(amt)), 6)}</b> ${T("to the owner wallet.")} ${rhTx(tx.hash)}`, "ok");
+      }));
+      $m("lset").addEventListener("click", () => rhRun(async () => {
+        const b = ethIn("lb"), dd = ethIn("ld");
+        if (!(b > 0n) || !(dd > 0n)) { msg(T("Enter both limits in ETH."), "bad"); return; }
+        if (dd < b) { msg(T("The day's limit can't be below one buy."), "bad"); return; }
+        const dk = new ethers.Contract(rhLast.desk, RH_ABI, await rhSigner());
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.setCaps(b, dd);
+        await tx.wait();
+        $m("lb").value = ""; $m("ld").value = "";
+        msg(`${T("Limits set")}: ${T("per buy")} <b data-no-i18n>${eth(Number(ethers.formatEther(b)), 6)}</b> · ${T("per day")} <b data-no-i18n>${eth(Number(ethers.formatEther(dd)), 6)}</b>. ${rhTx(tx.hash)}`, "ok");
+      }));
+      $m("pause").addEventListener("click", () => rhRun(async () => {
+        const next = !rhLast.paused;
+        const dk = new ethers.Contract(rhLast.desk, RH_ABI, await rhSigner());
+        msg(T("Confirm in your wallet…"));
+        const tx = await dk.setPaused(next);
+        await tx.wait();
+        rhLast.paused = next; depositRH(rhLast);
+        msg(`${T(next ? "Paused: no new buys. She keeps selling what she holds." : "Resumed: she can buy again.")} ${rhTx(tx.hash)}`, "ok");
+      }));
       async function saveSet(v) {
         const busy = (on) => rhBox.querySelectorAll("button").forEach((x) => { x.disabled = on; });
         busy(true);
@@ -669,9 +750,16 @@
     rhBox.querySelector("[data-m=bal]").textContent = c.weth == null ? "—" : eth(c.weth, 6);
     rhBox.querySelector("[data-m=addr]").textContent = d.desk;
     rhBox.querySelector("[data-m=write]").href = `${d.explorer}/address/${d.desk}?tab=write_contract`;
-    const ps = rhBox.querySelector("[data-m=pst]");
+    const ps = rhBox.querySelector("[data-m=pst]"), pb = rhBox.querySelector("[data-m=pause]");
     ps.className = "dk-st " + (d.paused ? "bench" : "on");
     ps.textContent = d.paused == null ? "—" : tr(d.paused ? "Paused — no new buys" : "Trading");
+    pb.textContent = tr(d.paused ? "Resume buying" : "Pause new buys"); pb.disabled = d.paused == null;
+    const cp = (d.rules && d.rules.caps) || {};
+    rhBox.querySelector("[data-m=lbuy]").textContent = cp.perBuyEth === null ? tr("no limit") : cp.perBuyEth == null ? "—" : eth(cp.perBuyEth, 6);
+    rhBox.querySelector("[data-m=lday]").textContent = cp.perDayEth === null ? tr("no limit") : cp.perDayEth == null ? "—" : eth(cp.perDayEth, 6);
+    const open = (d.open || []).length, ow = rhBox.querySelector("[data-m=open]");
+    ow.hidden = !open;
+    ow.textContent = open ? `${open} ${tr(open === 1 ? "position is open — its coins aren't ETH yet. Pause first and wait for it to close to take everything out." : "positions are open — their coins aren't ETH yet. Pause first and wait for them to close to take everything out.")}` : "";
     const st = d.settings;
     if (st) {
       for (const [k] of SETF) {

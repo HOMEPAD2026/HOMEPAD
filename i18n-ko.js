@@ -5311,6 +5311,21 @@
     "burn vault": "소각 볼트",
     "burn vaults": "소각 볼트",
     "buy-and-burns": "매수·소각",
+    "These send transactions on Robinhood Chain: your wallet is asked to switch to it first.": "아래 버튼은 Robinhood Chain에서 트랜잭션을 보내요. 먼저 지갑을 Robinhood Chain으로 바꾸라는 요청이 떠요.",
+    "ETH to add": "넣을 ETH",
+    "ETH to take out": "뺄 ETH",
+    "ETH per buy": "1회당 ETH",
+    "ETH per day": "하루 ETH",
+    "ETH from this wallet to the desk contract — it becomes WETH there.": "이 지갑의 ETH를 데스크 컨트랙트로 보내요. 컨트랙트에서 WETH로 바뀌어요.",
+    "From the desk contract to the owner wallet, as ETH — any amount, any time, paused or not.": "데스크 컨트랙트에서 오너 지갑으로 ETH로 출금해요. 금액과 시간 제한이 없고, 일시정지 중에도 돼요.",
+    "A buy's size comes from the settings below; these only cap it. They are also the most the trading key could spend in a day if it ever leaked.": "매수 금액은 아래 설정으로 정해지고, 이 한도는 상한일 뿐이에요. 매매 키가 유출되더라도 하루에 쓸 수 있는 최대 금액이기도 해요.",
+    "Other tokens held in the contract can be taken out from its Write tab on the explorer (withdraw).": "컨트랙트에 있는 다른 토큰은 익스플로러의 Write 탭에서 withdraw로 뺄 수 있어요.",
+    "The wallet library hasn't loaded yet — try again.": "지갑 라이브러리가 아직 로드되지 않았어요. 다시 시도해 주세요.",
+    "Switch your wallet to Robinhood Chain and try again.": "지갑을 Robinhood Chain으로 바꾼 뒤 다시 시도해 주세요.",
+    "Enter an amount of ETH.": "ETH 금액을 입력하세요.",
+    "Enter both limits in ETH.": "두 한도를 모두 ETH로 입력하세요.",
+    "position is open — its coins aren't ETH yet. Pause first and wait for it to close to take everything out.": "개 포지션이 열려 있어요. 아직 ETH가 아니에요. 전부 빼려면 먼저 일시정지하고 포지션이 닫힐 때까지 기다리세요.",
+    "positions are open — their coins aren't ETH yet. Pause first and wait for them to close to take everything out.": "개 포지션이 열려 있어요. 아직 ETH가 아니에요. 전부 빼려면 먼저 일시정지하고 포지션이 닫힐 때까지 기다리세요.",
   };
 
 

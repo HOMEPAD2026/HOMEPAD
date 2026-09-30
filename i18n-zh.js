@@ -5463,6 +5463,21 @@
     "burn vault": "个销毁金库",
     "burn vaults": "个销毁金库",
     "buy-and-burns": "次回购销毁",
+    "These send transactions on Robinhood Chain: your wallet is asked to switch to it first.": "这些操作在 Robinhood Chain 上发送交易：钱包会先请求切换到该网络。",
+    "ETH to add": "要存入的 ETH",
+    "ETH to take out": "要取出的 ETH",
+    "ETH per buy": "每次买入 ETH",
+    "ETH per day": "每天 ETH",
+    "ETH from this wallet to the desk contract — it becomes WETH there.": "把此钱包的 ETH 存入交易台合约——在那里会变成 WETH。",
+    "From the desk contract to the owner wallet, as ETH — any amount, any time, paused or not.": "从交易台合约以 ETH 取回到所有者钱包——任意金额、任意时间，暂停与否都可以。",
+    "A buy's size comes from the settings below; these only cap it. They are also the most the trading key could spend in a day if it ever leaked.": "买入金额由下面的设置决定，这里只是上限。万一交易密钥泄露，这也是它一天最多能花的金额。",
+    "Other tokens held in the contract can be taken out from its Write tab on the explorer (withdraw).": "合约中的其他代币可以在浏览器的 Write 标签页用 withdraw 取出。",
+    "The wallet library hasn't loaded yet — try again.": "钱包库尚未加载——请重试。",
+    "Switch your wallet to Robinhood Chain and try again.": "请把钱包切换到 Robinhood Chain 后重试。",
+    "Enter an amount of ETH.": "请输入 ETH 数量。",
+    "Enter both limits in ETH.": "请以 ETH 输入两个限额。",
+    "position is open — its coins aren't ETH yet. Pause first and wait for it to close to take everything out.": "个仓位未平——它的代币还不是 ETH。要全部取出，请先暂停并等它平仓。",
+    "positions are open — their coins aren't ETH yet. Pause first and wait for them to close to take everything out.": "个仓位未平——它们的代币还不是 ETH。要全部取出，请先暂停并等它们平仓。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
