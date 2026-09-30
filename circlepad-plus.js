@@ -231,6 +231,9 @@
   trust.className = "cpx-trust"; trust.id = "cpx-trust";
   const anchor = $("cp-flowcard") || $("bp-featured");
   if (anchor) anchor.insertAdjacentElement("afterend", trust);
+  // "How Round #N closes" at the bottom of Home said the same as this card and its questions: one place for it
+  const howCloses = document.querySelector("#bp-panel-home > .bp-nextcard");
+  if (howCloses) howCloses.hidden = true;
   const verified = CONFIG.CIRCLEPAD_ESCROW_VERIFIED === true;
   function faq() {
     const note = String(CONFIG.CIRCLEPAD_ALLOCATION_NOTE || "").trim();
@@ -238,7 +241,7 @@
       ["Can I get my USDC back?", "Yes — any amount, any time until the 72 hours are up. \"Withdraw my contribution\" sends it straight back from the escrow; nobody else can move your USDC while the raise is open."],
       ["What happens when the 72 hours end?", "Contributions and withdrawals stop. Everything the escrow holds is then split in one transaction: 80% to the recipient wallet, 15% to the treasury wallet and 5% to the platform wallet — the addresses above, fixed in the contract."],
       ["Who can split it, and can it happen early?", "Only the recipient wallet can call the split, and the contract refuses it until the raise has closed."],
-      ["How is the new coin shared with contributors?", note || "Not decided yet — it will be announced here before the raise opens. The list of contributors at the close is public on-chain, so anyone can check who was in and how much."],
+      ["How is the new coin shared with contributors?", note || "Not decided yet — the team announces it here. The list of contributors at the close is public on-chain, so anyone can check who was in and how much."],
       ["Is the contract's code public?", verified ? "Yes — the escrow's source is verified on the explorer, so what it does can be read line by line." : "The source hasn't been verified on the explorer yet. The code is in the project's repository (contracts/BigPadEscrow.sol); this note changes once it is verified."],
     ];
     return `<div class="cpx-faq"><h4>${esc(tr("After the close — questions"))}</h4>${Q.map(([q, a], i) => `<details${i === 0 ? " open" : ""}><summary>${esc(tr(q))}</summary><p>${esc(tr(a))}</p></details>`).join("")}</div>`;
@@ -325,7 +328,7 @@
     const lp = L.pts.map(([x, y], i) => `${i ? "L" : "M"}${(x * 100).toFixed(1)} ${(100 - y * 100).toFixed(1)}`).join("");
     const bal = S ? toNum(S.balance) : 0;
     const w = wallets || {};
-    const wl = (label, pct, a) => `<li><span>${esc(tr(label))}</span><b data-no-i18n>${pct}%</b>${a ? `<a href="${ex("address", a)}" target="_blank" rel="noopener" data-no-i18n>${sh(a)} ↗</a>` : `<em>—</em>`}</li>`;
+    const wl = (label, pct, a) => `<li><span>${esc(tr(label))}</span><b data-no-i18n>${pct}%</b>${bal > 0 ? `<small class="cpx-amt" data-no-i18n>≈ ${fmt((bal * pct) / 100)} USDC</small>` : ""}${a ? `<a href="${ex("address", a)}" target="_blank" rel="noopener" data-no-i18n>${sh(a)} ↗</a>` : `<em>—</em>`}</li>`;
     const same = w.recipient && w.platform && lc(w.recipient) === lc(w.platform);
     trust.innerHTML = `
       <div class="cpx-trust-head"><h3>${esc(tr("Transparency"))} <span class="cpx-live"><i></i>${esc(tr("Live"))}</span></h3><p>${esc(tr("Everything here is read from the chain — the escrow's balance, its payout wallets and every contribution."))}</p></div>

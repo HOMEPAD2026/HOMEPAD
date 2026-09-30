@@ -816,13 +816,13 @@
   (function sectionDots() {
     const home = $("bp-panel-home");
     if (!home || !("IntersectionObserver" in window)) return;
-    const SECS = [["#bp-featured", "The round"], [".cp-timeline", "Launch process"], [".bp-row3", "Governance & leaderboard"], ["#cp-qa", "Round Q&A"], [".bp-nextcard", "At close"]];
+    const SECS = [["#bp-featured", "The round"], [".cp-timeline", "Launch process"], [".bp-row3", "Governance & leaderboard"], ["#cp-qa", "Round Q&A"], ["#cpx-trust", "Transparency"], [".bp-nextcard", "At close"]];
     const nav = document.createElement("nav");
     nav.className = "cp-dots"; nav.setAttribute("aria-label", "Sections");
     document.body.appendChild(nav);
     let io = null;
     const build = () => {
-      const items = SECS.map(([sel, label]) => [home.querySelector(sel), label]).filter(([el]) => el);
+      const items = SECS.map(([sel, label]) => [home.querySelector(sel), label]).filter(([el]) => el && !el.hidden);
       nav.innerHTML = items.map(([, label], i) => `<button type="button" data-i="${i}" aria-label="${tr(label)}"><i></i><span>${tr(label)}</span></button>`).join("");
       nav.onclick = (e) => { const b = e.target.closest("[data-i]"); if (b) items[+b.dataset.i][0].scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); };
       if (io) io.disconnect();

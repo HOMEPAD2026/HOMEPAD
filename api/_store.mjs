@@ -119,7 +119,8 @@ export async function setDoc(path, data) {
   const { ok, status, j } = await call("PATCH", api(docName(path)), { fields: encFields(data) });
   if (!ok) throw new StoreError("set", status, j);
 }
-/// Atomic batch. writes: [{ create: path, data } | { set: path, data } | { inc: path, fields: {name: n}, min?: {name: n} }]
+/// Atomic batch. writes: [{ create: path, data } | { set: path, data } | { del: path } | { inc: path, fields: {name: n}, min?: {name: n} }]
+/// `del` only succeeds when the document exists (a conflict otherwise), so a paired `inc` can't run twice.
 /// `min` keeps the smaller of the stored value and n (and sets it when the field is missing) — e.g. "first seen at".
 /// Returns { ok, conflict } — conflict when a `create` target already existed.
 export async function commit(writes) {
@@ -127,6 +128,7 @@ export async function commit(writes) {
     writes: writes.map((w) => {
       if (w.create) return { update: { name: docName(w.create), fields: encFields(w.data) }, currentDocument: { exists: false } };
       if (w.set) return { update: { name: docName(w.set), fields: encFields(w.data) } };
+      if (w.del) return { delete: docName(w.del), currentDocument: { exists: true } };
       if (w.inc) return { transform: { document: docName(w.inc), fieldTransforms: [
         ...Object.entries(w.fields || {}).map(([fieldPath, n]) => ({ fieldPath, increment: { integerValue: String(n) } })),
         ...Object.entries(w.min || {}).map(([fieldPath, n]) => ({ fieldPath, minimum: { integerValue: String(n) } })),

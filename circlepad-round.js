@@ -15,6 +15,9 @@
   const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const T = (s) => esc(tr(s));
+  // "Round #1" in copy → this round's number (circlepad-boot.js cpRT)
+  const TR = (s) => esc(window.cpRT ? window.cpRT(s) : tr(s));
+  const RN = () => (window.cpRN ? window.cpRN() : 1);
   const reduce = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const explorer = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
@@ -122,7 +125,7 @@
       const buy = String(CONFIG.ARCIRCLE_BUY_URL || "");
       hero.className = "cp-phero upcoming";
       hero.innerHTML = `<div class="cp-phero-copy">
-          <span class="cp-phero-eyebrow">${T("Round #1 · next up: burn-to-vote")}</span>
+          <span class="cp-phero-eyebrow">${TR("Round #1 · next up: burn-to-vote")}</span>
           <h2>${T("$ARCIRCLE holders vote on the coin while the raise runs.")}</h2>
           <p class="cp-phero-lede">${T("1 vote = 1,000 $ARCIRCLE, sent to 0x…dEaD for good. Anyone holding $ARCIRCLE can vote until the raise closes.")}</p>
           <div class="cp-phero-cta">${buy ? `<a class="bp-btn-primary" href="${esc(buy)}" target="_blank" rel="noopener">${T("Get $ARCIRCLE")}</a>` : ""}<button type="button" class="bp-btn-ghost" data-cp-go="governance">${T("See the candidates")}</button>${dl > nowS() ? `<span class="cp-phero-clock"><small>${T("Voting opens in")}</small><b data-no-i18n data-cp-to="${dl}">${left(dl - nowS())}</b></span>` : ""}</div>
@@ -131,24 +134,39 @@
           <dl><div><dt>${T("Burn address")}</dt><dd data-no-i18n>0x…dEaD</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>${published}/5</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
       return;
     }
+    const g0 = G(), pub = g0 && Array.isArray(g0.categories) ? g0.categories.filter((c) => c.set).length : 0;
+    if (ph === "voting" && pub === 0) {
+      // step 1: the pre-vote — free, open to everyone, before any candidates are out
+      const pv = (window.circlepadIdeas && window.circlepadIdeas.stats) || { ideas: 0, votes: 0 };
+      hero.className = "cp-phero voting prevote";
+      hero.innerHTML = `<div class="cp-phero-copy">
+          <span class="cp-phero-eyebrow">${TR("Round #1 · pre-vote is open")}</span>
+          <h2>${T("Suggest and vote on the coin — free, open to everyone.")}</h2>
+          <p class="cp-phero-lede">${T("Ideas for the name, ticker, logo, roadmap and launch date, voted up by anyone with a wallet — no tokens needed. The round wallet picks the candidates from the top, then $ARCIRCLE holders burn-to-vote on them until the raise closes.")}</p>
+          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Join the pre-vote")}</button><span class="cp-phero-clock"><small>${T("Raise and voting close in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
+        </div>
+        <div class="cp-phero-side"><div class="cp-wc cp-wc-burn"><div><b data-no-i18n>${num(pv.ideas)}</b><span>${T("ideas")}</span></div>
+          <dl><div><dt>${T("Pre-votes")}</dt><dd data-no-i18n>${num(pv.votes)}</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>0/5</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
+      return;
+    }
     if (ph === "voting") {
       hero.className = "cp-phero voting";
       hero.innerHTML = `<div class="cp-phero-copy">
-          <span class="cp-phero-eyebrow">${T("Round #1 · burn-to-vote is open")}</span>
+          <span class="cp-phero-eyebrow">${TR("Round #1 · burn-to-vote is open")}</span>
           <h2>${T("Vote on the coin. Every vote burns 1,000 $ARCIRCLE.")}</h2>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned so far")}</span></div>
-          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><button type="button" class="bp-btn-ghost" data-cp-live>${T("Live screen")}</button><a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a><span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
+          <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Burn & vote")}</button><button type="button" class="bp-btn-ghost" data-cp-live>${T("Live screen")}</button>${RN() === 1 ? `<a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a>` : ""}<span class="cp-phero-clock"><small>${T("Voting closes in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
         </div>
         <div class="cp-phero-side"><small class="cp-k">${T("Leading now")}</small>${w.any ? coinCard(w, false) : `<div class="cp-wc cp-wc-empty"><span class="cp-flame" aria-hidden="true"></span><p>${T("No votes yet — the first burn sets the lead.")}</p></div>`}</div>`;
     } else {
       const launchAt = w.date ? Math.floor(w.date.getTime() / 1000) : 0;
       hero.className = "cp-phero result";
       hero.innerHTML = `<div class="cp-phero-copy">
-          <span class="cp-phero-eyebrow">${T("Round #1 · the vote is in")}</span>
+          <span class="cp-phero-eyebrow">${TR("Round #1 · the vote is in")}</span>
           <h2>${T("This is the coin the circle chose.")}</h2>
           <p class="cp-phero-split ${R() && R().distributed ? "ok" : "wait"}"><i></i>${T(R() && R().distributed ? "Split sent — 80 / 15 / 5 paid out from the escrow." : "Settling — the recipient sends the 80 / 15 / 5 split from the escrow next.")}</p>
           <div class="cp-phero-burn"><span class="cp-flame" aria-hidden="true"></span><b data-no-i18n>${tok(burnedTotal())}</b><span>${T("$ARCIRCLE burned to decide it")}</span></div>
-          <div class="cp-phero-cta">${launchAt > nowS() ? `<span class="cp-phero-clock"><small>${T("Launches in")}</small><b data-no-i18n data-cp-to="${launchAt}">${left(launchAt - nowS())}</b></span>` : ""}<button type="button" class="bp-btn-ghost" data-cp-reveal>${T("Replay the reveal")}</button><a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a></div>
+          <div class="cp-phero-cta">${launchAt > nowS() ? `<span class="cp-phero-clock"><small>${T("Launches in")}</small><b data-no-i18n data-cp-to="${launchAt}">${left(launchAt - nowS())}</b></span>` : ""}<button type="button" class="bp-btn-ghost" data-cp-reveal>${T("Replay the reveal")}</button>${RN() === 1 ? `<a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a>` : ""}</div>
         </div>
         <div class="cp-phero-side"><small class="cp-k">${T("The result")}</small>${coinCard(w, true)}</div>`;
     }
@@ -180,6 +198,7 @@
   if (anchor) anchor.insertAdjacentElement("beforebegin", nextHome); else home.appendChild(nextHome);
   function paintNext() {
     const body = nextHtml();
+    nextHome.hidden = !!document.querySelector(".cp-timeline"); // Home: the Launch process strip already walks through it (Docs keeps this list)
     nextHome.innerHTML = `<div class="cp-next-head"><h3>${T("What happens next")}</h3><small data-no-i18n>${esc(window.cpRT ? window.cpRT("Round #1 — what's fixed, what's planned, what isn't decided") : tr("Round #1 — what's fixed, what's planned, what isn't decided"))}</small></div>${body}`;
     const docs = $("cp-next-docs");
     if (docs) docs.innerHTML = body;
@@ -265,6 +284,8 @@
     if (!top || !feed) return;
     let box = $("gv-burnfeed");
     if (!box) { box = document.createElement("section"); box.id = "gv-burnfeed"; box.className = "gv-feed"; top.insertAdjacentElement("afterend", box); }
+    // nothing burned yet: the stepper already says so — the feed appears with the first vote
+    box.hidden = !feed.events.length;
     const t = feed.totals, topShare = t.votes > 0 && feed.top.length ? Math.round((feed.top[0].votes / t.votes) * 100) : 0;
     box.innerHTML = `<div class="gv-feed-stats">
         <div><small>${T("Burned by votes")}</small><b data-no-i18n>${tok(t.burned)}</b><span>$ARCIRCLE</span></div>
@@ -384,7 +405,7 @@
     ov.innerHTML = `<div class="cp-rv-box"><span class="cp-phero-eyebrow">${T("CirclePad Round #1 · the vote is in")}</span>
       <div class="cp-rv-grid">${cards.join("")}</div>
       <div class="cp-rv-final" style="--k:${cards.length}">${coinCard(w, true)}</div>
-      <div class="cp-rv-acts">${w.any ? `<a class="bp-btn-ghost" href="https://x.com/intent/post?text=${encodeURIComponent(`CirclePad Round #1 is decided: ${w.name || ""}${w.ticker ? " ($" + w.ticker + ")" : ""}${w.date ? ", launching " + govFmtDate(w.date) : ""}. Chosen by $ARCIRCLE holders — every vote burned 1,000 $ARCIRCLE.`)}&url=${encodeURIComponent("https://www.arcircle.app/circle")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share the result")}</a>` : ""}<a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a><button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div></div>`;
+      <div class="cp-rv-acts">${w.any ? `<a class="bp-btn-ghost" href="https://x.com/intent/post?text=${encodeURIComponent(`CirclePad Round #1 is decided: ${w.name || ""}${w.ticker ? " ($" + w.ticker + ")" : ""}${w.date ? ", launching " + govFmtDate(w.date) : ""}. Chosen by $ARCIRCLE holders — every vote burned 1,000 $ARCIRCLE.`)}&url=${encodeURIComponent("https://www.arcircle.app/circle")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">${T("Share the result")}</a>` : ""}${RN() === 1 ? `<a class="bp-btn-ghost" href="/circle/round/1">${T("Round report")}</a>` : ""}<button type="button" class="bp-btn-primary cp-rv-close">${T("See the result")}</button></div></div>`;
     document.body.appendChild(ov);
     if (reduce()) ov.classList.add("still");
     requestAnimationFrame(() => ov.classList.add("in"));
@@ -612,6 +633,7 @@
   }
   document.addEventListener("circlepad:state", paintAll);
   document.addEventListener("circlepad:lb", paintAll);
+  document.addEventListener("circlepad:prevote", () => paintHero());
   document.addEventListener("circlepad:gov", () => { paintAll(); if (feed) paintFeed(); if (phase() === "result") setTimeout(() => reveal(false), 600); });
   document.addEventListener("circlepad:govpaint", () => { paintBallotNav(); if (feed) paintFeed(); });
   document.addEventListener("arc:lang", paintAll);

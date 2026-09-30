@@ -1,9 +1,10 @@
 /* global state, ethers, connectWallet, cpToast, cpErrText, CONFIG, govOptionHtml, govLogoUrl, govDate, govFmtDate */
-// circlepad-ideas.js — the community's candidate ideas for Round #1's vote.
+// circlepad-ideas.js — the pre-vote: step 1 of a round's governance.
 // Anyone with a wallet can suggest a name, ticker, logo, roadmap or launch
-// date (a free signature, no transaction); everyone sees them and backs the
-// ones they like; the recipient wallet can pull an idea straight into the
-// candidates editor. Stored off-chain through /api/social (api/_circle.mjs);
+// date and vote for as many ideas as they like, or take a vote back (a free
+// signature, no transaction, no tokens). A category's pre-vote closes when the
+// round wallet publishes its candidates — picked from the top of the pre-vote —
+// and $ARCIRCLE holders then burn-to-vote on those (circlepad.js). Stored off-chain through /api/social (api/_circle.mjs);
 // the signed messages below must match that file byte for byte.
 (function () {
   "use strict";
@@ -28,6 +29,8 @@
   // ---- messages: identical to api/_circle.mjs ----
   const ideaMessage = (wallet, cat, text, note, issued) => `ARCIRCLE PAD — CirclePad idea\nRound: ${ESCROW}\nWallet: ${lc(wallet)}\nCategory: ${CATS[cat]}\nIssued: ${issued}\nContent: ${kec(JSON.stringify([text, note]))}`;
   const upMessage = (wallet, id) => `ARCIRCLE PAD — back a CirclePad idea\nIdea: ${id}\nWallet: ${lc(wallet)}`;
+  const unvoteMessage = (wallet, id) => `ARCIRCLE PAD — withdraw a CirclePad pre-vote\nIdea: ${id}\nWallet: ${lc(wallet)}`;
+  const PICK = 8; // the most candidates a category can publish (circlepad.js GOV_MAX_OPTIONS)
   const hideMessage = (wallet, id, issued) => `ARCIRCLE PAD — CirclePad moderation\nRound: ${ESCROW}\nHide idea: ${id}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
 
   let D = { ideas: [], myUps: [] }, loaded = false, off = false;
@@ -50,7 +53,7 @@
       const r = await fetch(`${API}?circle=ideas&round=${ESCROW}${me() ? `&wallet=${me()}` : ""}`, { cache: "no-store" });
       const j = await r.json();
       if (!j || j.enabled === false) { off = true; render(); return; }
-      if (Array.isArray(j.ideas)) { D = { ideas: j.ideas, myUps: j.myUps || [] }; loaded = true; }
+      if (Array.isArray(j.ideas)) { D = { ideas: j.ideas, myUps: j.myUps || [] }; loaded = true; document.dispatchEvent(new CustomEvent("circlepad:prevote", { detail: stats() })); }
     } catch (e) { /* keep what we have */ }
     render();
   }
@@ -84,7 +87,7 @@
     return `<div class="gvi-form">
       <div class="gvi-row">${inputHtml(cat)}</div>
       <input id="gvi-note" type="text" maxlength="140" placeholder="${esc(tr("Why this one? (optional)"))}">
-      <div class="gvi-foot"><small>Free — you sign with your wallet, no transaction. Up to 5 ideas a day.</small>
+      <div class="gvi-foot"><small>Free — you sign with your wallet, no transaction, no tokens. Up to 10 ideas a day.</small>
         <button type="button" class="bp-btn-primary" id="gvi-go">Suggest</button></div>
     </div>`;
   }
@@ -111,11 +114,15 @@
     if (!loaded) return `<div class="bp-empty">Loading…</div>`;
     if (!list.length) return `<div class="bp-empty">${published(cat) ? "No ideas were posted for this one." : "No ideas yet — be the first."}</div>`;
     const rec = isRecipient() && !published(cat);
+    const closed = published(cat);
     const shown = more.has(cat) ? list : list.slice(0, SHOW);
     const rest = list.length - shown.length;
+    const sum = list.reduce((a, i) => a + (i.up || 0), 0);
     return shown.map((i, n) => {
       const mine = D.myUps.includes(i.id);
-      return `<div class="gvi-item${onBallot(i) ? " ballot" : ""}" data-id="${esc(i.id)}">
+      const pct = sum ? Math.round(((i.up || 0) / sum) * 100) : 0;
+      const top = !closed && n < PICK && (i.up || 0) > 0;
+      return `<div class="gvi-item${onBallot(i) ? " ballot" : ""}${top ? " top" : ""}" data-id="${esc(i.id)}" style="--pv:${pct}%">
         <span class="gvi-rank" data-no-i18n>${n + 1}</span>
         <div class="gvi-body">
           <div class="gvi-text" data-no-i18n>${govOptionHtml(CATS[cat], i.text)}</div>
@@ -123,7 +130,8 @@
           <div class="gvi-meta"><span class="cp-av" style="--h:${hue(i.wallet)};--s:16px" aria-hidden="true"></span><span data-no-i18n>${esc(short(i.wallet))}</span>${i.team ? `<span class="gvi-team">Team</span>` : ""}<span data-no-i18n>· ${ago(i.at)}</span>${onBallot(i) ? `<span class="gvi-ok">On the ballot</span>` : ""}</div>
         </div>
         <div class="gvi-acts">
-          <button type="button" class="gvi-up-btn${mine ? " on" : ""}" data-up="${esc(i.id)}" ${mine ? "disabled" : ""} aria-label="${esc(tr("Back this idea"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><b data-no-i18n>${i.up}</b></button>
+          <button type="button" class="gvi-up-btn${mine ? " on" : ""}" data-up="${esc(i.id)}"${mine ? ' data-mine="1"' : ""} ${closed ? "disabled" : ""} aria-pressed="${mine}" aria-label="${esc(tr(mine ? "Take my pre-vote back" : "Pre-vote for this idea"))}" title="${esc(tr(closed ? "Pre-vote closed — its candidates are out" : mine ? "Voted — tap to take it back" : "Vote"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5l7 8h-4.5v6h-5v-6H5z"/></svg><b data-no-i18n>${i.up}</b></button>
+          ${sum ? `<span class="gvi-pct" data-no-i18n>${pct}%</span>` : ""}
           ${rec ? `<button type="button" class="gvi-use" data-use="${esc(i.id)}">Use</button><button type="button" class="gvi-hide" data-hide="${esc(i.id)}" aria-label="${esc(tr("Hide"))}">Hide</button>` : ""}
         </div>
       </div>`;
@@ -142,7 +150,7 @@
     const catsEl = document.getElementById("bp-gov-categories");
     if (allPublished() && catsEl && host.previousElementSibling !== catsEl) catsEl.insertAdjacentElement("afterend", host);
     if (!host.querySelector(".gvi-head")) {
-      host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Community ideas</small><h3>Suggest a candidate</h3><p>Anyone can suggest a name, ticker, logo, roadmap or launch date. Back the ones you like — the recipient picks the candidates from here.</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
+      host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Step 1 · Pre-vote</small><h3>Suggest and vote — open to everyone</h3><p>Add ideas for the name, ticker, logo, roadmap and launch date, and vote for as many as you like — or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them.</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
         <div class="gvi-tabs" role="tablist"></div><div class="gvi-formwrap"></div><div class="gvi-list"></div>`;
     }
     const tgl = host.querySelector("#gvi-toggle");
@@ -154,7 +162,7 @@
     const openCats = [0, 1, 2, 3, 4].filter((c) => !published(c));
     if (isRecipient() && loaded && openCats.length && D.ideas.length) {
       if (!fill) { fill = document.createElement("div"); fill.className = "gvi-fill"; host.querySelector(".gvi-tabs").insertAdjacentElement("beforebegin", fill); }
-      const html = `<div><b>${esc(tr("Recipient"))}</b><span>${esc(tr("Put every idea into the candidate lists below — you check each list and publish it (one wallet signature per category).") )}</span></div><button type="button" class="bp-btn-primary" data-fill-all>${esc(tr("Fill every category from the ideas"))}</button>`;
+      const html = `<div><b>${esc(tr("Round wallet"))}</b><span>${esc(tr("Put the top of the pre-vote (up to 8 per category) into the candidate lists below — you check each list, change it if you like, and publish it (one wallet signature per category). Publishing closes that category's pre-vote."))}</span></div><button type="button" class="bp-btn-primary" data-fill-all>${esc(tr("Pick the top of the pre-vote"))}</button>`;
       if (fill.__html !== html) { fill.innerHTML = html; fill.__html = html; }
     } else if (fill) fill.remove();
     const fk = `${tab}|${published(tab)}|${off}|${phaseRaise}`;
@@ -189,7 +197,9 @@
         list.filter((t) => !ok(t)).forEach((t) => skipped.push(t));
         list = list.filter(ok);
       }
-      list = list.concat(Array.isArray(extra[c]) ? extra[c] : []);
+      // the most pre-voted first, up to the ballot's 8 (team additions only fill spare places)
+      list = list.slice(0, PICK);
+      list = list.concat((Array.isArray(extra[c]) ? extra[c] : []).slice(0, Math.max(0, PICK - list.length)));
       const n = window.circlepadGovFill(c, list);
       filled.push(`${tr(LABEL[c])} ${n}`);
     });
@@ -208,12 +218,14 @@
     if (up && !busy) {
       busy = true;
       try {
-        const id = up.dataset.up;
-        const sig = await sign((w) => upMessage(w, id));
+        const id = up.dataset.up, back = !!up.dataset.mine;
+        const sig = await sign((w) => (back ? unvoteMessage(w, id) : upMessage(w, id)));
         if (!sig) return;
-        const r = await post({ action: "cidea-up", wallet: me(), id, signature: sig });
-        if (r.ok || r.j.already) { if (!D.myUps.includes(id)) D.myUps.push(id); const it = D.ideas.find((x) => x.id === id); if (it && r.ok) it.up = r.j.up; render(); }
-        else toast(r.j.error || "Couldn't back that idea.", "bad");
+        const r = await post({ action: back ? "cidea-unvote" : "cidea-up", wallet: me(), id, signature: sig });
+        const it = D.ideas.find((x) => x.id === id);
+        if (back && (r.ok || r.j.none)) { D.myUps = D.myUps.filter((x) => x !== id); if (it && r.ok) it.up = r.j.up; render(); toast("Pre-vote taken back.", "ok"); }
+        else if (!back && (r.ok || r.j.already)) { if (!D.myUps.includes(id)) D.myUps.push(id); if (it && r.ok) it.up = r.j.up; render(); }
+        else toast(r.j.error || "Couldn't record that vote.", "bad");
       } catch (err) { toast(typeof cpErrText === "function" ? cpErrText(err, "Signing was cancelled.") : "Signing was cancelled.", "bad"); }
       finally { busy = false; }
       return;
@@ -281,7 +293,10 @@
     if (inp) { inp.value = url; inp.dispatchEvent(new Event("input", { bubbles: true })); }
   });
 
+  // the pre-vote in numbers, for the Home hero and the Governance stepper
+  const stats = () => ({ ideas: D.ideas.length, votes: D.ideas.reduce((a, i) => a + (i.up || 0), 0), loaded });
   window.circlepadIdeas = {
+    get stats() { return stats(); },
     open(cat) { tab = cat; open = true; render(); host.scrollIntoView({ behavior: "smooth", block: "start" }); setTimeout(() => { const i = document.getElementById("gvi-text"); if (i) i.focus({ preventScroll: true }); }, 400); },
     reload: load,
     get data() { return D; },

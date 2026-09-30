@@ -1192,7 +1192,10 @@ async function initCirclepadGovernance() {
   if (live) live.style.display = "block";
 
   const desc = document.getElementById("bp-featured-desc");
-  if (desc) desc.textContent = govBurnMode()
+  const rg = (CONFIG.CIRCLEPAD_ROUND || 1) > 1 ? CONFIG.CIRCLEPAD_ROUND_GOV || {} : null;
+  if (desc) desc.textContent = govBurnMode() && rg
+    ? `USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. While the raise runs, anyone can suggest and pre-vote on ideas for free, then $ARCIRCLE holders burn-to-vote on the candidates. At the close it splits 80 / 15 / 5${rg.top === true ? " and the top contributor receives the 15% over 3 days" : ""}. Contributor airdrop: ${rg.airdrop || "not decided yet."}`
+    : govBurnMode()
     ? "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. While the raise runs, $ARCIRCLE holders burn-to-vote on the coin's identity. At the close it splits 80 / 15 / 5, the top contributor receives the 15% over 3 days and every contributor gets an airdrop."
     : "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap runs in a separate contract — see the Governance tab.";
 
@@ -1368,9 +1371,16 @@ function renderCirclepadGovernance(g) {
   const votesAll = bLive && g.burn.totalVotes != null ? BigInt(g.burn.totalVotes) : 0n;
   const buyUrl = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "";
 
+  // step 1 is the pre-vote (circlepad-ideas.js): open until a category's candidates are published
+  const preOpen = published < 5 && phase !== "closed";
+  const pv = (window.circlepadIdeas && window.circlepadIdeas.stats) || { ideas: 0, votes: 0 };
   const statusEl = document.getElementById("bp-gov-live-status");
   if (statusEl) {
-    statusEl.textContent = bm
+    statusEl.textContent = bm && preOpen && published === 0
+      ? "Pre-vote first: anyone can suggest ideas and vote for free. The round wallet then picks the candidates from the top, and $ARCIRCLE holders burn-to-vote on them until the raise closes."
+      : bm && preOpen && phase === "voting"
+        ? "Burn-to-vote is open for the categories whose candidates are out; the others are still in the pre-vote below."
+        : bm
       ? (phase === "raise"
         ? "Candidates go up first. Voting runs until the raise closes: 1 vote = 1,000 $ARCIRCLE, burned for good."
         : phase === "voting" ? (bLive ? "Voting is open until the raise closes. Anyone holding $ARCIRCLE can vote — every vote burns 1,000 $ARCIRCLE." : "Voting opens as soon as the burn-vote contract is live.")
@@ -1428,7 +1438,7 @@ function renderCirclepadGovernance(g) {
       meHtml = `<p>Only wallets that contributed to the raise can vote.</p>`;
     }
 
-    top.innerHTML = `
+    top.innerHTML = `${published === 0 && phase !== "closed" ? "" : `
         <div class="gv-coin gv-coin-hero${phase === "closed" ? " final" : ""}" data-coin-key="${govEsc([nameL, tickL, logo || "", dateL].join("|"))}">
           <div class="gv-coin-top"><small class="gv-k">${phase === "closed" ? "The result" : "The coin being decided"}</small>${phase === "voting" && ends ? `<span class="gv-coin-clock"><span>Decided in</span> <b data-no-i18n data-gv-to="${ends}">${govLeft(ends - govNow())}</b></span>` : ""}</div>
           <div class="gv-coin-row">
@@ -1441,17 +1451,18 @@ function renderCirclepadGovernance(g) {
           </dl>
           ${anyLead ? "" : `<p class="gv-coin-empty">${phase === "raise" ? "Fills in as votes come in once voting opens." : "No votes yet."}</p>`}
           ${shareText ? `<a class="bp-btn-ghost gv-share" href="https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent("https://www.arcircle.app/circle#governance")}&via=ARCIRCLEonArc" target="_blank" rel="noopener">Share the result</a>` : ""}
-        </div>
+        </div>`}
       <div class="gv-bar">
         <div class="gv-phases">
-          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 || phase !== "raise" ? "done" : "now")}
-          ${ph("vote", "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" ? "now" : phase === "closed" ? "done" : "")}
+          ${ph("pre", "Pre-vote", pv.ideas ? `<span data-no-i18n>${pv.ideas}</span> <span>ideas</span> · <span data-no-i18n>${pv.votes}</span> <span>votes</span>` : "Open to everyone, free", preOpen ? "now" : "done")}
+          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 ? "done" : published > 0 || (phase !== "raise" && !preOpen) ? "now" : "")}
+          ${ph("vote", bm ? "Burn-to-vote" : "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" && published > 0 ? "now" : phase === "closed" ? "done" : "")}
           ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
         </div>
         ${clock ? `<div class="gv-clock">${clock}</div>` : ""}
         ${bm ? `<div class="gv-burned"><span>$ARCIRCLE burned</span><b data-no-i18n>${fmtEth(burnedAll, 0)}</b><small><span data-no-i18n>${votesAll.toString()}</span> <span>votes</span> · <span>1 vote = 1,000</span></small></div>` : ""}
       </div>
-      <div class="gv-grid gv-grid-me">
+      <div class="gv-grid gv-grid-me"${bm && published === 0 && phase !== "closed" ? ' style="display:none"' : ""}>
         <div class="gv-me">
           <small class="gv-k">Your vote</small>
           ${meHtml}
@@ -1576,6 +1587,8 @@ function govBurnPanel(b, avail, info) {
   </div>`;
 }
 function govRepaint() { if (_govLast) renderCirclepadGovernance(_govLast); }
+// the pre-vote's counts feed the Governance stepper (circlepad-ideas.js)
+document.addEventListener("circlepad:prevote", () => govRepaint());
 async function castBurnVote() {
   const b = _govBurn, g = _govLast;
   if (!b || !g) return;

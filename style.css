@@ -11947,3 +11947,17 @@ body.dk-noscroll{overflow:hidden;}
 /* phones: two contract rows (Arc, Robinhood Chain) — keep each one's chain on a line of its own */
 @media (max-width:480px){.ax-ca{flex-wrap:wrap;}.ax-ca .ax-ca-label{display:block;flex:0 0 100%;margin:0 0 -4px;}}
 @media (min-width:481px){.ax-ca-rh{flex-wrap:nowrap;}.ax-ca-rh code{flex:1 1 auto;min-width:0;}.ax-ca-rh .ax-ca-scan{padding-left:4px;padding-right:4px;}}
+/* CirclePad pre-vote (circlepad-ideas.js): each idea's share of its category's votes as a soft bar,
+   a vote that can be taken back, the top 8 marked as the likely candidates */
+.gvi-item{position:relative;overflow:hidden;}
+.gvi-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--pv,0%);background:linear-gradient(90deg,rgba(57,255,136,.10),rgba(57,255,136,.02));pointer-events:none;transition:width .6s ease;}
+.gvi-item > *{position:relative;}
+.gvi-item.top .gvi-rank{border-color:rgba(57,255,136,.55);color:#8dffc0;}
+.gvi-up-btn.on{cursor:pointer;}
+.gvi-up-btn.on:hover:not(:disabled){border-color:#ff9b7a;color:#ffb39a;background:rgba(255,120,90,.06);}
+.gvi-up-btn:disabled{opacity:.55;cursor:default;}
+.gvi-pct{display:block;text-align:center;font-size:.68rem;font-weight:700;color:#9fb098;}
+/* Governance before any candidates: the pre-vote is the action — no empty per-category cards for visitors */
+#bp-gov-categories .gv-unset:not([data-keep="editor"]){display:none;}
+#gv-burnfeed[hidden],#cp-next-home[hidden],#bp-panel-home > .bp-nextcard[hidden]{display:none!important;}
+.cpx-wallets li .cpx-amt{grid-column:1 / -1;font-size:.72rem;color:#9fb098;}

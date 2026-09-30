@@ -85,7 +85,7 @@
     const lis = tl.querySelectorAll(".bp-steps > li");
     const set = (i, title, body) => { const li = lis[i]; if (!li) return; const s = li.querySelector("strong"), p = li.querySelector("p"); if (s && title) s.textContent = tr(title); if (p) p.textContent = tr(body); };
     const G = CONFIG.CIRCLEPAD_ROUND_GOV || {};
-    if (G.voteOn) set(1, "Burn-to-vote", "$ARCIRCLE holders vote on name, ticker, logo, roadmap, date — every vote burns 1,000 $ARCIRCLE.");
+    if (G.voteOn) set(1, "Pre-vote, then burn-to-vote", "Anyone suggests and pre-votes on ideas for free; the round wallet picks the candidates from the top; $ARCIRCLE holders burn-to-vote on them — 1,000 $ARCIRCLE per vote.");
     else set(1, "Burn-to-vote", "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.");
     set(3, "", G.top === true ? "The largest contributor at the close receives the 15%, over 3 days." : "Whether the top contributor receives the 15% this round: not decided yet.");
     set(4, "", G.airdrop ? "The coin launches on the date the vote picks. " + G.airdrop : "The coin launches on the date the vote picks. The airdrop for this round: not decided yet.");

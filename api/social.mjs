@@ -39,7 +39,7 @@
 //   GET  /api/social?lockbadge=<token>          Locker: embeddable SVG badge (/lockbadge/<token>)
 //   GET  /api/social?liqsafe=<token>             Liquidity Manager: scanner verdict + trade/tax checks
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
-//   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up", … }  (api/_circle.mjs)
+//   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
 //   GET  /api/social?coin=arcia                  $ARCIA market, holders and burned (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
@@ -530,6 +530,7 @@ export async function POST(req) {
     if (b.action === "chide") return await circle.hide(b, recoverSigner, json);
     if (b.action === "cidea") return await circle.ideaPost(b, recoverSigner, json);
     if (b.action === "cidea-up") return await circle.ideaUp(b, recoverSigner, json);
+    if (b.action === "cidea-unvote") return await circle.ideaUnvote(b, recoverSigner, json);
     if (b.action === "cgov-cands") return await burnvote.publishCands(b, recoverSigner, json);
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "cstage") return await rounds.stagePost(b, recoverSigner, json);

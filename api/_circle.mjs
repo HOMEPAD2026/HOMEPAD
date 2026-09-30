@@ -28,6 +28,8 @@ export const upMessage = (wallet, id) => `ARCIRCLE PAD — upvote CirclePad prop
 export const IDEA_CATS = ["name", "ticker", "logo", "roadmap", "date"];
 export const ideaMessage = (wallet, cat, text, note, issued, round = ESCROW) => `ARCIRCLE PAD — CirclePad idea\nRound: ${round}\nWallet: ${lc(wallet)}\nCategory: ${IDEA_CATS[cat]}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([text, note]))}`;
 export const ideaUpMessage = (wallet, id) => `ARCIRCLE PAD — back a CirclePad idea\nIdea: ${id}\nWallet: ${lc(wallet)}`;
+// taking a pre-vote back (the vote itself is ideaUpMessage: "back an idea" = a pre-vote)
+export const ideaUnvoteMessage = (wallet, id) => `ARCIRCLE PAD — withdraw a CirclePad pre-vote\nIdea: ${id}\nWallet: ${lc(wallet)}`;
 export const hideMessage = (wallet, kind, id, issued, round = ESCROW) => `ARCIRCLE PAD — CirclePad moderation\nRound: ${round}\nHide ${kind}: ${id}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
 
 // ---- chain reads ----
@@ -172,7 +174,7 @@ export async function propUp(b, recover, json) {
 
 // ---- governance ideas ----
 const IDEA_MAX = [32, 10, 300, 400, 30];
-const IDEAS_PER_DAY = 5;
+const IDEAS_PER_DAY = 10; // the pre-vote is open to everyone: room to suggest, still no flooding
 /// Normalises one suggestion for its category, or returns { error }.
 export function ideaText(cat, raw) {
   let t = String(raw || "").replace(/\r/g, "").trim();
@@ -259,9 +261,28 @@ export async function ideaUp(b, recover, json) {
   if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
   const cur = (await getDocs([`circleIdeas/${id}`]))[`circleIdeas/${id}`];
   if (!cur || cur.hidden) return json(404, { error: "that idea is gone" });
+  if (await preVoteClosed(cur)) return json(409, { error: "the pre-vote for this one has closed — its candidates are out", closed: true });
   const r = await commit([{ create: `circleIdeaVotes/${id}_${wallet}`, data: { id, wallet, at: Date.now() } }, { inc: `circleIdeas/${id}`, fields: { up: 1 } }]);
-  if (r.conflict) return json(409, { error: "you already backed this one", already: true });
+  if (r.conflict) return json(409, { error: "you already voted for this one", already: true });
   return json(200, { ok: true, up: (cur.up || 0) + 1 });
+}
+/// The pre-vote is free and open: a wallet can take its vote back while that category is still open.
+export async function ideaUnvote(b, recover, json) {
+  const wallet = lc(b.wallet), id = String(b.id || "");
+  if (!isAddr(wallet) || !/^[0-9a-f]{16}$/.test(id)) return json(400, { error: "bad request" });
+  let signer; try { signer = recover(ideaUnvoteMessage(wallet, id), b.signature); } catch { return json(400, { error: "invalid signature" }); }
+  if (signer !== wallet) return json(403, { error: "signature doesn't match the wallet" });
+  const cur = (await getDocs([`circleIdeas/${id}`]))[`circleIdeas/${id}`];
+  if (!cur) return json(404, { error: "that idea is gone" });
+  if (await preVoteClosed(cur)) return json(409, { error: "the pre-vote for this one has closed — its candidates are out", closed: true });
+  const r = await commit([{ del: `circleIdeaVotes/${id}_${wallet}` }, { inc: `circleIdeas/${id}`, fields: { up: -1 } }]);
+  if (r.conflict) return json(409, { error: "you haven't voted for this one", none: true });
+  return json(200, { ok: true, up: Math.max(0, (cur.up || 0) - 1) });
+}
+// a category's pre-vote ends when the round wallet publishes its candidates (the tally at that moment stays as it was)
+async function preVoteClosed(idea) {
+  const R = ideasTarget(idea.round);
+  return !!R && (await ballotSet(Number(idea.cat), R.ballot, R).catch(() => false));
 }
 
 /// The round's recipient wallet can hide a Q&A post, a proposal or an idea.
