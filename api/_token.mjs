@@ -283,10 +283,12 @@ async function liveReads(wallets) {
 // unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), omni (the OMNI Safe burning the
 // rewards its Arc lockbox earned — omni/README.md), buyback (a swap paid straight to 0x…dEaD), team (a team or
 // treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
-export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "omni", "buyback", "team", "wallet"];
+export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "agent", "omni", "buyback", "team", "wallet"];
 const BURNVOTE = "0x54121a7894d90a02ea973ab45eef424c2716eeb2";
 const MINE = () => lc(process.env.BUILDER_MINE_ADDRESS || "0x1538c76917dE5911D71c5C397ff18cA09d52B019");
 const DESK = () => lc(process.env.ARCIA_DESK_ADDRESS || "0xc30f1694203f4fc671ec769b90149e67ce3a1f03");
+// ARCIA AGENT's burn vaults (contracts/contracts/ArciaAgent.sol): a $ARCIRCLE vault's buy & burn is sent by the vault
+const AGENT_FACTORY = () => lc(process.env.ARCIA_AGENT_FACTORY || "0x5eb92464aeb3bcb9fa6e6065ee05131cdbbfb4b9");
 // the OMNI owner Safe on Arc (api/_omni.mjs OMNI.SAFE; empty until the Safe exists)
 const OMNI_SAFE = () => lc(process.env.OMNI_SAFE_ADDRESS || OMNI.SAFE);
 const TEAM = new Set([TREASURY, "0x1a35a754a4251e46971184046ac57e8ad621672e"]); // + the factory's treasury wallets
@@ -295,6 +297,7 @@ export function kindOf(x, txTo, marks = {}, team = TEAM) {
   if (to === BURNVOTE) return "vote";
   if (to === MINE()) return "mine";
   if (to === DESK() || fr === DESK()) return "desk";
+  if (marks.agent) return "agent";
   if (marks.scanner) return "scanner";
   if (marks.secret) return "secret";
   const safe = OMNI_SAFE();
@@ -320,10 +323,18 @@ async function classifyBurns(W, teamSet, budgetMs = 3500) {
     try { docs = await getDocs(direct.flatMap((x) => [`scanBurn/${lc(x.h)}`, `arciaSecretTx/${lc(x.h)}`])); } catch { docs = null; }
   }
   if (docs === null) return 0; // the store didn't answer: try again later rather than guess
+  // which of the transactions' targets are ARCIA AGENT vaults (the factory's isVault)
+  const agentTo = new Set();
+  const cand = [...new Set(todo.map((x) => txs.get(x.h)).filter((a) => a && a !== ARCIRCLE && a !== BURNVOTE && a !== MINE() && a !== DESK()))].slice(0, 10);
+  if (cand.length && AGENT_FACTORY()) {
+    const isV = "0x" + keccakHex(Array.from(new TextEncoder().encode("isVault(address)"), (b) => b.toString(16).padStart(2, "0")).join("")).slice(2, 10);
+    const r = await ethCalls(cand.map((a) => ({ to: AGENT_FACTORY(), data: isV + a.slice(2).padStart(64, "0") }))).catch(() => []);
+    cand.forEach((a, i) => { if (r[i] && BigInt(r[i]) === 1n) agentTo.add(a); });
+  }
   let n = 0;
   for (const x of todo) {
     if (!txs.has(x.h)) continue;
-    x.k = kindOf(x, txs.get(x.h), { scanner: !!docs[`scanBurn/${lc(x.h)}`], secret: !!docs[`arciaSecretTx/${lc(x.h)}`] }, teamSet);
+    x.k = kindOf(x, txs.get(x.h), { scanner: !!docs[`scanBurn/${lc(x.h)}`], secret: !!docs[`arciaSecretTx/${lc(x.h)}`], agent: agentTo.has(txs.get(x.h)) }, teamSet);
     n++;
   }
   return n;

@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790766411"></script>
+<script src="arc-log.js?v=1790768830"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790766411">
+<link rel="stylesheet" href="style.css?v=1790768830">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -279,6 +279,7 @@
                 <button type="button" class="ac2-chip-btn apc-ic" id="apc-copy-ca" aria-label="Copy address"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.4"/><path d="M15.5 8.5V6.9A2.4 2.4 0 0 0 13.1 4.5H6.9A2.4 2.4 0 0 0 4.5 6.9v6.2a2.4 2.4 0 0 0 2.4 2.4h1.6"/></svg><span>Copy</span></button>
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
                 <a class="ac2-chip-btn ac2-safety" id="apc-safety" href="#scanner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
+                <a class="ac2-chip-btn ac2-agent" id="apc-agent" href="#agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>ARCIA AGENT</span></a>
                 <a class="ac2-chip-btn" id="apc-liqmgr" href="#liquidity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/></svg><span>Liquidity</span></a>
                 <button type="button" class="ac2-chip-btn ap-star-btn apc-ic" id="apc-star" aria-pressed="false" aria-label="Watch"><svg><use href="#i-star" xlink:href="#i-star"/></svg><span>Watch</span></button>
                 <button type="button" class="ac2-chip-btn ac2-share-btn apc-ic" data-share="coin" aria-label="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg><span>Share</span></button>
@@ -1451,6 +1452,7 @@
           <details><summary><h3>Safety calls, graded in public</h3></summary>
             <p>Every report comes with a call for the next 24 hours: Safe, Caution or Risky. The call is recorded with a hash before the outcome exists, then graded from the market: it "went bad" if the price fell 60% or more, or the liquidity 50% or more. A Safe call is right if it didn't go bad; a Risky call is right if it did. Caution isn't graded. One call per token every 12 hours. The Record tab shows every call and the hit rate.</p>
             <p>A call is about risk, never about price direction. It's not a signal to buy or sell anything.</p>
+            <p>Once a day, ARCIA writes the previous day's call hashes on Arc as one root, from her own wallet. The Record tab re-computes that root in your browser and compares it with the transaction, so anyone can check the calls were made before their outcomes.</p>
           </details>
           <details><summary><h3>Burn vaults</h3></summary>
             <ul>
@@ -1459,6 +1461,7 @@
               <li>She buys in dips: she watches the price first, never buys after a +8% move in 15 minutes or +20% in an hour, sizes each buy so it moves the price at most 3%, and stops if a buy-and-sell round trip would lose more than 30% (a hostile tax).</li>
               <li>The vault's owner sets the limits: most per buy, most per UTC day, and time between buys (at least a minute). Tighter limits apply at once; looser ones wait an hour.</li>
               <li>The owner can pause the vault, turn ARCIA off, and withdraw the USDC at any time — always to the owner's own wallet. The team can stop every vault at once but can't touch anyone's money, and a new ARCIA key only takes effect 24 hours after it's announced.</li>
+              <li>Each vault has a strategy its owner signs (no gas): Dips only (the default), Steady (one buy each interval, whatever the price did) or By volume (each buy at most 2% of the token's hourly trading volume).</li>
             </ul>
           </details>
           <details><summary><h3>Honest risks</h3></summary>
@@ -1754,6 +1757,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790766411"></script>
+<script src="arcpad.bundle.js?v=1790768830"></script>
 </body>
 </html>

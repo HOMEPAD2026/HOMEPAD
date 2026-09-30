@@ -25,7 +25,7 @@
   const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* blocked */ } } };
   const KIND = {
     vote: ["Burn-to-vote", "#39ff88"], mine: ["Builder Mine", "#ffc861"], scanner: ["Token Scanner", "#4d9fff"], secret: ["ARCIA's secret file", "#ff8fc7"],
-    desk: ["ARCIA DESK", "#b58bff"], omni: ["OMNI rewards", "#e46bff"], buyback: ["Buyback", "#35d8d0"], team: ["Team & treasury", "#dfe8f1"], wallet: ["Direct burn", "#ff8a4c"], pending: ["Burn", "#ff8a4c"],
+    desk: ["ARCIA DESK", "#b58bff"], agent: ["ARCIA AGENT vaults", "#5b8cff"], omni: ["OMNI rewards", "#e46bff"], buyback: ["Buyback", "#35d8d0"], team: ["Team & treasury", "#dfe8f1"], wallet: ["Direct burn", "#ff8a4c"], pending: ["Burn", "#ff8a4c"],
   };
   const kind = (k) => KIND[k] || KIND.pending;
   // wallets people will recognize in the top-holder list
@@ -45,7 +45,7 @@
     qa(".ac-use[data-use]").forEach((el) => {
       const u = el.getAttribute("data-use"), n = q(".ac-use-n", el);
       if (u === "relay") return;
-      if (u === "engine") { const t = ["scanner", "mine", "secret", "desk", "omni"].reduce((s, k) => s + (by[k] ? by[k].tokens : 0), 0); n.textContent = t > 0 ? num(t) + " " + tr("burned by utilities so far") : ""; return; }
+      if (u === "engine") { const t = ["scanner", "mine", "secret", "desk", "agent", "omni"].reduce((s, k) => s + (by[k] ? by[k].tokens : 0), 0); n.textContent = t > 0 ? num(t) + " " + tr("burned by utilities so far") : ""; return; }
       const o = by[u];
       n.textContent = o && o.tokens > 0 ? num(o.tokens) + " " + tr("burned") + " · " + o.n.toLocaleString("en-US") + " " + tr(o.n === 1 ? "time" : "times") : "";
     });

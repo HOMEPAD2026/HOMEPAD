@@ -9,7 +9,7 @@
 //   tick(st)            runs after each ARCIA DESK tick: grades due calls and works the vaults (buy & burn, in dips,
 //                       sized to the pool, never chasing a pump), every action recorded with its reason
 // Nothing here trades for profit, and no message or command can make ARCIA act: a vault acts only on these rules.
-import { ethCalls, isAddr, pad, strip, keccakHex, rpc } from "./_arc.mjs";
+import { ethCalls, isAddr, pad, strip, keccakHex, rpc, rpcCall } from "./_arc.mjs";
 import { sendTx, addressOfKey } from "./_x402.mjs";
 import * as scanner from "./_scan.mjs";
 import * as scanCore from "./_scan-core.mjs";
@@ -37,7 +37,7 @@ export function configure(o) { Object.assign(CFG, o); }
 // ---------------------------------------------------------------- store (one JSON string per doc, like the desk)
 const pack = (o) => ({ j: JSON.stringify(o) });
 const unpack = (d) => { if (!d) return null; if (typeof d.j === "string") { try { return JSON.parse(d.j); } catch { return null; } } return d; };
-const K = { rep: (t) => `agentRep/${t}`, call: (t) => `agentCall/${t}`, calls: "agent/calls", vault: (v) => `agentVault/${v}`, acts: "agent/acts", cursor: "agent/cursor" };
+const K = { rep: (t) => `agentRep/${t}`, call: (t) => `agentCall/${t}`, calls: "agent/calls", vault: (v) => `agentVault/${v}`, acts: "agent/acts", cursor: "agent/cursor", anchors: "agent/anchors" };
 const getJ = async (st, k) => (st ? unpack(await st.get(k).catch(() => null)) : null);
 const putJ = (st, k, v) => (st ? st.set(k, pack(v)) : Promise.resolve());
 export function memStore() { const m = new Map(); return { get: async (k) => m.get(k) ?? null, getMany: async (ks) => Object.fromEntries(ks.map((k) => [k, m.get(k) ?? null])), set: async (k, v) => { m.set(k, v); } }; }
@@ -82,11 +82,13 @@ async function marketOf(token, st) {
 }
 
 // ---------------------------------------------------------------- the report
-export async function report(st, token, { ask = null, maxAgeS = 600 } = {}) {
+export async function report(st, token, { maxAgeS = 600 } = {}) {
   token = lc(token);
   if (!isAddr(token)) return { error: "paste an Arc token address (0x…)" };
   const hit = await getJ(st, K.rep(token));
-  if (hit && now() - hit.at < maxAgeS && hit.v === AGENT_VERSION) return { ...hit, cached: true, call: await currentCall(st, token, hit) };
+  // a report still waiting for the holders is only kept for 45 s, so the next visit reads further
+  const fresh = hit && hit.v === AGENT_VERSION && now() - hit.at < (hit.holdersPending ? 45 : maxAgeS);
+  if (fresh) return { ...hit, cached: true, call: await currentCall(st, token, hit) };
   const scan = await scanner.apiResult(token, { store: st });
   if (!scan || !scan.verdict) return { error: "that address isn't a token ARCIA can read on Arc", token };
   const m = scan.market || {}, h = scan.holders || {};
@@ -94,11 +96,30 @@ export async function report(st, token, { ask = null, maxAgeS = 600 } = {}) {
     top10: h.top10_pct ?? null, holders: h.count ?? null, linked: h.linked_top_pct ?? null, created: m.pool_created ?? null, sections: scan.sections || {}, confidence: scan.confidence ?? null };
   const rep = { v: AGENT_VERSION, t: token, at: now(), name: scan.name || "", sym: scan.symbol || "", dec: scan.decimals ?? 18, facts,
     reasons: (scan.reasons || []).slice(0, 6), checks: (scan.checks || []).filter((c) => c.status !== "ok").slice(0, 10).map((c) => ({ group: c.group, status: c.status, title: c.title, detail: c.detail })),
-    summary: scan.summary || "", page: scan.page };
-  const c0 = callOf(facts);
-  rep.take = await takeOf(rep, c0, ask).catch(() => null);
+    summary: scan.summary || "", page: scan.page, take: hit && hit.take && hit.t === token && now() - (hit.takeAt || 0) < 3600 ? hit.take : null, takeAt: hit ? hit.takeAt || 0 : 0 };
+  // the holders: a big token's balance sheet is read over several visits; the call waits for it (at most 10 minutes)
+  if (facts.top10 == null && !facts.critical.length) {
+    rep.pendSince = (hit && hit.pendSince) || now();
+    if (now() - rep.pendSince < 600) {
+      rep.holdersPending = true;
+      scanner.holderScan(token, { store: st, budgetMs: 2500 }).catch(() => null);
+    }
+  }
   await putJ(st, K.rep(token), rep).catch(() => {});
-  return { ...rep, call: await makeCall(st, rep, c0) };
+  const open = await getJ(st, K.call(token));
+  const call = open && now() - open.at < CALL.every ? open : rep.holdersPending ? { pending: true, why: ["reading the holders first"], at: rep.pendSince } : await makeCall(st, rep, callOf(facts));
+  return { ...rep, call };
+}
+/// ARCIA's words, asked for after the report is on screen (GET ?agent=take&t=): cached an hour with the report
+export async function take(st, token, { ask = null } = {}) {
+  token = lc(token);
+  const rep = await getJ(st, K.rep(token));
+  if (!rep) return { error: "read the token first" };
+  if (rep.take && now() - (rep.takeAt || 0) < 3600) return { take: rep.take };
+  const c = (await getJ(st, K.call(token))) || callOf(rep.facts);
+  const t = await takeOf(rep, { call: c.call || "caution", why: c.why || [] }, ask).catch(() => null);
+  if (t) { rep.take = t; rep.takeAt = now(); await putJ(st, K.rep(token), rep).catch(() => {}); }
+  return { take: t };
 }
 /// ARCIA's own words about the token: Claude when the key is set, else a plain line from the rules
 async function takeOf(rep, c0, ask) {
@@ -132,7 +153,12 @@ async function makeCall(st, rep, c0) {
   await putJ(st, K.calls, L).catch(() => {});
   return c;
 }
-async function currentCall(st, token, rep) { return (await getJ(st, K.call(token))) || makeCall(st, rep, callOf(rep.facts)); }
+async function currentCall(st, token, rep) {
+  const c = await getJ(st, K.call(token));
+  if (c && now() - c.at < CALL.every) return c;
+  if (rep.holdersPending) return { pending: true, why: ["reading the holders first"], at: rep.pendSince };
+  return makeCall(st, rep, callOf(rep.facts));
+}
 
 /// grade the calls whose 24 hours are up (a few per run)
 export async function gradeDue(st, { max = 3, market = marketOf } = {}) {
@@ -150,11 +176,26 @@ export async function gradeDue(st, { max = 3, market = marketOf } = {}) {
   if (n) await putJ(st, K.calls, L);
   return n;
 }
-export async function record(st) {
+export async function record(st, { day = null } = {}) {
   const L = (await getJ(st, K.calls)) || { items: [] };
   const items = L.items || [];
+  if (day != null) {
+    // one day's calls, in the anchor's order, to check its root
+    const A = ((await getJ(st, K.anchors)) || { items: [] }).items || [];
+    const row = A.find((x) => x.day === Number(day));
+    const byId = new Map(items.map((c) => [c.id, c]));
+    const list = row ? row.ids.map((id) => byId.get(id)).filter(Boolean) : items.filter((c) => Math.floor(c.at / 86400) === Number(day)).sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : 1));
+    return { day: Number(day), anchor: row || null, dayCalls: list.map((c) => ({ id: c.id, t: c.t, sym: c.sym, call: c.call, at: c.at, hash: c.hash })) };
+  }
   const g = (k) => { const x = items.filter((c) => c.call === k && c.graded && c.graded.right != null); return { n: x.length, right: x.filter((c) => c.graded.right).length }; };
-  return { calls: items.slice(0, 60), stats: { total: items.length, open: items.filter((c) => !c.graded).length, safe: g("safe"), risky: g("risky") }, rules: CALL };
+  // how often tokens went bad, by the scanner score at the call (Caution included — every call has an outcome)
+  const out = items.filter((c) => c.graded && !c.graded.void && c.graded.bad != null);
+  const B = [["75+", 75, 101], ["50–74", 50, 75], ["<50", -1, 50]].map(([label, lo, hi]) => { const x = out.filter((c) => (c.score0 ?? -1) >= lo && (c.score0 ?? -1) < hi); return { label, n: x.length, bad: x.filter((c) => c.graded.bad).length }; });
+  // the hit rate as calls were graded (Safe + Risky), oldest first
+  const gr = items.filter((c) => c.graded && c.graded.right != null).sort((a, b) => a.graded.at - b.graded.at);
+  let ok = 0; const series = gr.map((c, i) => { if (c.graded.right) ok++; return [c.graded.at, Math.round((ok / (i + 1)) * 1000) / 10]; });
+  const A = ((await getJ(st, K.anchors)) || { items: [] }).items || [];
+  return { calls: items.slice(0, 60), stats: { total: items.length, open: items.filter((c) => !c.graded).length, safe: g("safe"), risky: g("risky") }, buckets: B, series: series.slice(-120), anchors: A.slice(0, 30), rules: CALL };
 }
 
 // ---------------------------------------------------------------- vaults (reads)
@@ -184,6 +225,21 @@ export async function vaultState(addrs) {
       poolId: g("poolId") ? lc(g("poolId")) : null, usdc: x[per - 1] ? Number(W(x[per - 1], 0)) / 1e6 : 0 };
   }).filter(Boolean);
 }
+/// symbol and decimals of each vault's token (for the lists)
+async function tokenMeta(tokens) {
+  const u = [...new Set(tokens)];
+  const r = await ethCalls(u.flatMap((t) => [{ to: t, data: "0x95d89b41" }, { to: t, data: "0x313ce567" }]), { timeoutMs: 8000 }).catch(() => []);
+  const str = (h) => { try { const x = strip(h); const len = Number(BigInt("0x" + x.slice(64, 128))); return new TextDecoder().decode(Uint8Array.from((x.slice(128, 128 + len * 2).match(/../g) || []).map((b) => parseInt(b, 16)))).replace(/[^\x20-\x7e]/g, "").slice(0, 16); } catch { return ""; } };
+  return Object.fromEntries(u.map((t, i) => [t, { sym: r[i * 2] ? str(r[i * 2]) : "", dec: r[i * 2 + 1] ? Number(W(r[i * 2 + 1], 0)) : 18 }]));
+}
+/// is ARCIA's key on this server the factory's operator, and does it have gas (USDC is Arc's gas, 18 decimals natively)
+async function keyHealth(operator) {
+  const key = CFG.key();
+  const me = key ? lc(addressOfKey(key) || "") : "";
+  let gas = null;
+  if (operator) { try { gas = Number(BigInt(await rpcCall("eth_getBalance", [operator, "latest"]))) / 1e18; } catch { gas = null; } }
+  return { key: !!key, match: !!me && me === operator, gas: gas == null ? null : Math.round(gas * 1000) / 1000, low: gas != null && gas < 0.5 };
+}
 export async function vaults(st, { token = "", vault = "" } = {}) {
   const f = CFG.factory();
   if (!f) return { live: false, vaults: [], note: "Vaults open once the ARCIA AGENT factory is deployed." };
@@ -193,9 +249,37 @@ export async function vaults(st, { token = "", vault = "" } = {}) {
   const vs = await vaultState(addrs.slice(0, 60));
   const acts = ((await getJ(st, K.acts)) || { items: [] }).items || [];
   const docs = await Promise.all(vs.map((v) => getJ(st, K.vault(v.vault))));
-  return { live: true, factory: f, paused: fp ? W(fp, 0) === 1n : null, operator: fop ? lc(A(fop, 0)) : null, createBurn: fcb ? W(fcb, 0).toString() : "0",
-    vaults: vs.map((v, i) => ({ ...v, status: (docs[i] && docs[i].status) || null, acts: acts.filter((a) => a.vault === v.vault).slice(0, 20) })),
-    recent: token ? acts.filter((a) => a.token === lc(token)).slice(0, 20) : acts.slice(0, 30) };
+  const operator = fop ? lc(A(fop, 0)) : null;
+  const [meta, health] = await Promise.all([tokenMeta(vs.map((v) => v.token)), keyHealth(operator)]);
+  return { live: true, factory: f, paused: fp ? W(fp, 0) === 1n : null, operator, createBurn: fcb ? W(fcb, 0).toString() : "0", health, modes: MODES,
+    vaults: vs.map((v, i) => ({ ...v, ...(meta[v.token] || {}), mode: (docs[i] && docs[i].mode) || "dip", status: (docs[i] && docs[i].status) || null, acts: acts.filter((a) => a.vault === v.vault).slice(0, 20) })),
+    recent: (token ? acts.filter((a) => a.token === lc(token)) : acts).slice(0, 30).map((a) => ({ ...a, ...(meta[a.token] || {}) })) };
+}
+
+// ---------------------------------------------------------------- each vault's strategy (its owner signs it)
+/// dip — buys only in pullbacks (never after +8%/15m or +20%/1h) · steady — one buy each cooldown whatever the price
+/// did (still sized to the pool and stopped by a hostile tax) · volume — like dip, but each buy is at most 2% of the
+/// token's hourly volume, so busy tokens get more and quiet ones less
+export const MODES = ["dip", "steady", "volume"];
+export const modeMessage = (vault, mode, issued) => `ARCIRCLE PAD — ARCIA AGENT vault strategy\nVault: ${lc(vault)}\nStrategy: ${mode}\nIssued: ${issued}`;
+export async function saveMode(st, b, recover) {
+  const vault = lc(b && b.vault), mode = String((b && b.mode) || "");
+  if (!isAddr(vault) || !MODES.includes(mode)) return { status: 400, body: { error: "unknown vault or strategy" } };
+  const issued = String((b && b.issued) || ""), t = Date.parse(issued);
+  if (!Number.isFinite(t) || new Date(t).toISOString() !== issued || t > Date.now() + 120e3 || Date.now() - t > 10 * 60e3) return { status: 400, body: { error: "the signature is too old — sign again" } };
+  let signer;
+  try { signer = lc(recover(modeMessage(vault, mode, issued), String(b.signature || ""))); } catch { return { status: 400, body: { error: "bad signature" } }; }
+  const f = CFG.factory();
+  if (!f) return { status: 503, body: { error: "vaults aren't open yet" } };
+  const [isV] = await ethCalls([{ to: f, data: sel("isVault(address)") + pad(vault) }]);
+  if (!isV || W(isV, 0) !== 1n) return { status: 404, body: { error: "not an ARCIA AGENT vault" } };
+  const [ow] = await ethCalls([{ to: vault, data: S.owner }]);
+  if (!ow || lc(A(ow, 0)) !== signer) return { status: 403, body: { error: "only the vault's owner can change its strategy" } };
+  if (!st) return { status: 503, body: { error: "the store isn't configured" } };
+  const doc = (await getJ(st, K.vault(vault))) || {};
+  doc.mode = mode; doc.modeBy = signer; doc.modeAt = now();
+  await putJ(st, K.vault(vault), doc);
+  return { status: 200, body: { ok: true, mode } };
 }
 
 // ---------------------------------------------------------------- the agent's rules for a vault
@@ -238,10 +322,13 @@ export async function decide(v, doc, { t = now(), q = quoteOf, rt = rtOf } = {})
   const pts = [...((doc && doc.pts) || []).filter((p) => t - p[0] <= 3600), [t, px]].slice(-90);
   doc.pts = pts;
   if (v.lastBuyAt && t < v.lastBuyAt + v.cooldown) return { go: false, why: "cooling down between buys", quiet: true };
-  if (pts.length < RULES.needPts) return { go: false, why: "watching the price before the first buy", quiet: true };
-  const lo15 = Math.min(...pts.filter((p) => t - p[0] <= 900).map((p) => p[1])), first60 = pts[0][1];
-  const up15 = (px / lo15 - 1) * 100, up60 = (px / first60 - 1) * 100;
-  if (up15 >= RULES.chase15 || up60 >= RULES.chase60) return { go: false, why: `up ${r2(Math.max(up15, up60), 1)}% — waiting for a pullback, not chasing` };
+  const mode = MODES.includes(doc.mode) ? doc.mode : "dip";
+  if (mode !== "steady") {
+    if (pts.length < RULES.needPts) return { go: false, why: "watching the price before the first buy", quiet: true };
+    const lo15 = Math.min(...pts.filter((p) => t - p[0] <= 900).map((p) => p[1])), first60 = pts[0][1];
+    const up15 = (px / lo15 - 1) * 100, up60 = (px / first60 - 1) * 100;
+    if (up15 >= RULES.chase15 || up60 >= RULES.chase60) return { go: false, why: `up ${r2(Math.max(up15, up60), 1)}% — waiting for a pullback, not chasing` };
+  }
   if (!doc.taxAt || t - doc.taxAt > 6 * 3600) {
     const r = await rt(v.vault, 1);
     doc.taxAt = t;
@@ -249,15 +336,43 @@ export async function decide(v, doc, { t = now(), q = quoteOf, rt = rtOf } = {})
   }
   if (doc.tax != null && doc.tax > RULES.maxTaxPct) return { go: false, why: `a buy-and-sell round trip loses ${doc.tax}% — hostile tax, not buying` };
   let usd = Math.min(v.maxBuy, v.spendable, v.usdc);
+  if (mode === "volume") {
+    const hourly = doc.vol24 != null ? doc.vol24 / 24 : null;
+    if (hourly == null) return { go: false, why: "waiting for the token's trading volume", quiet: true };
+    usd = Math.min(usd, Math.max(RULES.minBuy, hourly * 0.02));
+  }
   let out = null;
   for (let i = 0; i < 5 && usd >= RULES.minBuy; i++) {
     out = await q(v.vault, usd);
     if (!out) return { go: false, why: "the pool can't be quoted right now" };
     const impact = (1 - (Number(out) / usd) / (Number(probe) / RULES.probeUsd)) * 100;
-    if (impact <= RULES.maxImpactPct) return { go: true, usd: Math.floor(usd * 100) / 100, out, minOut: (out * BigInt(100 - RULES.slipPct)) / 100n, why: `dip-safe buy · impact ${r2(Math.max(0, impact), 1)}%` };
+    if (impact <= RULES.maxImpactPct) return { go: true, usd: Math.floor(usd * 100) / 100, out, minOut: (out * BigInt(100 - RULES.slipPct)) / 100n, why: `${mode === "steady" ? "steady buy" : mode === "volume" ? "volume-sized buy" : "dip-safe buy"} · impact ${r2(Math.max(0, impact), 1)}%` };
     usd = usd / 2;
   }
   return { go: false, why: "the pool is too thin for even a small buy" };
+}
+
+// ---------------------------------------------------------------- proof the calls came first
+/// one root for a day's calls: keccak256 of their hashes in the order they were made
+export const rootOf = (hashes) => keccakHex(hashes.map((h) => strip(h)).join(""));
+export const anchorData = (date, root) => "0x" + hexOf(`ARCIA AGENT calls ${date}:`) + strip(root);
+export async function anchorDay(st, { key, send = sendTx, clock = now } = {}) {
+  const d = Math.floor(clock() / 86400) - 1, date = new Date(d * 86400e3).toISOString().slice(0, 10);
+  const Adoc = (await getJ(st, K.anchors)) || { items: [] };
+  if ((Adoc.items || []).some((x) => x.day === d)) return null;
+  const L = (await getJ(st, K.calls)) || { items: [] };
+  const cs = (L.items || []).filter((c) => c.hash && Math.floor(c.at / 86400) === d).sort((a, b) => a.at - b.at || (a.id < b.id ? -1 : 1));
+  const row = { day: d, date, n: cs.length, root: null, tx: null, ids: cs.map((c) => c.id) };
+  if (cs.length) {
+    row.root = rootOf(cs.map((c) => c.hash));
+    const me = addressOfKey(key);
+    const r = await send({ to: me, data: anchorData(date, row.root), key });
+    if (!r || !r.ok) return { error: "the anchor transaction didn't go through" };
+    row.tx = r.hash;
+  }
+  Adoc.items = [row, ...(Adoc.items || [])].slice(0, 120);
+  await putJ(st, K.anchors, Adoc);
+  return row;
 }
 
 // ---------------------------------------------------------------- the run (after each desk tick)
@@ -271,6 +386,8 @@ export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, clock =
   if (fp && W(fp, 0) === 1n) { out.skipped.push("all vaults paused by the team"); return out; }
   const me = key ? lc(addressOfKey(key)) : null;
   const opOk = !!me && fop && lc(A(fop, 0)) === me;
+  // once a day: yesterday's call hashes, written on Arc by ARCIA's key
+  if (opOk && left() > 8000) out.anchor = await anchorDay(st, { key, send, clock }).catch((e) => ({ error: String(e.message || e).slice(0, 120) }));
   const addrs = addrList(list);
   if (!addrs.length) return out;
   // round-robin: a different slice each run
@@ -284,6 +401,10 @@ export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, clock =
   for (const v of vs) {
     if (left() < 5000) break;
     const doc = (await getJ(st, K.vault(v.vault))) || {};
+    if (doc.mode === "volume" && (!doc.volAt || clock() - doc.volAt > 1800)) {
+      const m = await scanCore.readMarket(scanner.io, v.token).catch(() => null);
+      doc.vol24 = m && m.pairs ? m.pairs.reduce((a, x) => a + (x.vol || 0), 0) : null; doc.volAt = clock();
+    }
     const d = await decide(v, doc, { t: clock() }).catch((e) => ({ go: false, why: "error: " + String(e.message || e).slice(0, 80) }));
     doc.status = { at: clock(), why: d.why, go: !!d.go };
     if (d.go && opOk && sent < RULES.perTick) {
@@ -302,4 +423,4 @@ export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, clock =
   out.acts = acts;
   return out;
 }
-export const _test = { K, unpack, pack, S };
+export const _test = { K, unpack, pack, S, keyHealth };

@@ -11,6 +11,8 @@
 //   GET /api/desk?agent=0x…              ARCIA's report on an Arc token + her 24h safety call
 //   GET /api/desk?agent=record           every safety call and how it was graded
 //   GET /api/desk?agent=vaults[&t=0x…]   the burn vaults (all, or one token's) and ARCIA's actions
+//   GET /api/desk?agent=take&t=0x…       ARCIA's words on a token (after its report; Claude, cached an hour)
+//   POST /api/desk {action:"agent-mode", vault, mode, issued, signature}   a vault owner's strategy (dip / steady / volume)
 //   GET /api/desk?agenttick=1&key=<CRON_SECRET>   grade calls + work the vaults (also runs after every desk tick)
 // There is no endpoint that makes the desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
@@ -43,12 +45,14 @@ export async function GET(req) {
   }
   if (q.agent) {
     try {
-      if (q.agent === "record") return json(await agent.record(st), 200, "public, max-age=30, s-maxage=60");
+      if (q.agent === "record") return json(await agent.record(st, { day: q.day != null && /^\d{1,6}$/.test(q.day) ? Number(q.day) : null }), 200, "public, max-age=30, s-maxage=60");
       if (q.agent === "vaults") return json(await agent.vaults(st, { token: q.t || "", vault: q.v || "" }), 200, "public, max-age=10, s-maxage=20");
+      if (q.agent === "take") { const r = await agent.take(st, String(q.t || "")); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=60, s-maxage=300"); }
       const ip = req.headers.get("x-forwarded-for") || "?";
       if (agentLimited(ip)) return json({ error: "slow down — ARCIA reads one token at a time" }, 429);
       const r = await agent.report(st, q.agent);
-      return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=60, s-maxage=120");
+      // a report still reading the holders is asked again soon: keep it out of the CDN's cache for long
+      return json(r, r.error ? 400 : 200, r.error ? "no-store" : r.holdersPending ? "public, max-age=5, s-maxage=10" : "public, max-age=60, s-maxage=120");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   try {
@@ -79,6 +83,7 @@ export function recoverSigner(message, signature) {
 export async function POST(req) {
   let b;
   try { b = await req.json(); } catch { return json({ error: "bad json" }, 400); }
+  if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
   try { const r = await saveSettings(store(), b, recoverSigner); return json(r.body, r.status); }
   catch (e) { return json({ error: String((e && e.message) || e) }, 500); }

@@ -427,6 +427,7 @@
       <button type="button" data-act="watch" aria-pressed="${watching}"><svg viewBox="0 0 24 24" aria-hidden="true" class="bell"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/></svg>${esc(tr(watching ? "Watching" : "Watch"))}</button>
       <button type="button" data-act="tg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.2M21 4l-3.5 16-6.5-5.5M21 4 9 13.2v5.3l2.8-3.5"/></svg>${esc(tr("Telegram alerts"))}</button>
       <button type="button" data-act="arcia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H9l-5 4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>${esc(tr("Ask ARCIA"))}</button>
+      <button type="button" data-act="agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>${esc(tr("ARCIA AGENT"))}</button>
       <button type="button" data-act="embed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>${esc(tr("Embed badge"))}</button>
       <button type="button" data-act="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></svg>${esc(tr("Freeze a report"))}<em class="asc-tier t-p2">Plus</em></button>
       <button type="button" data-act="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>${esc(tr(compareBase && lc(compareBase.addr) !== lc(cur.addr) ? "Compare" : "Compare with…"))}</button>`;
@@ -1193,6 +1194,7 @@
     else if (a === "embed") embedBox(act);
     else if (a === "tg") tgWatch(act);
     else if (a === "arcia") askArcia();
+    else if (a === "agent" && cur) location.hash = "#agent?t=" + cur.addr;
     else if (a === "compare") {
       if (compareBase && lc(compareBase.addr) !== lc(cur.addr)) { compareMaybe(); $("asc-compare").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); return; }
       compareBase = snapshot();

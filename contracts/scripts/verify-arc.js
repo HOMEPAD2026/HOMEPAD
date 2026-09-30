@@ -10,7 +10,9 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens,agent
+//   (agent = ARCIA AGENT's factory and every vault it opened; their constructor arguments are read from the
+//   events of the transactions that created them)
 //
 // Get a free key at https://etherscan.io/myapikey (one key covers every chain
 // on Etherscan's v2 API, Arc included). Optional: ARC_MAINNET_RPC to read the
@@ -43,6 +45,8 @@ const ADDR = {
   lplock: "0x674E7010Dab5cCb519e06df72b1D4c063952f45B",
   burnvote: "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2", // ArcircleBurnVote (CirclePad burn-to-vote)
   lock: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
+  agent: "0x5eb92464AEB3bCB9fA6e6065EE05131cdBbfB4b9", // ArciaAgentFactory (ARCIA AGENT burn vaults)
+  agentBlock: 23531741, // its deploy block
 };
 const ART = path.join(__dirname, "..", "artifacts");
 
@@ -85,7 +89,7 @@ async function verify(provider, { label, address, art, args }) {
     return "mismatch";
   }
   const ctor = art.abi.find((x) => x.type === "constructor");
-  const encoded = ctor && ctor.inputs.length ? ethers.AbiCoder.defaultAbiCoder().encode(ctor.inputs.map((i) => i.type), args).slice(2) : "";
+  const encoded = ctor && ctor.inputs.length ? ethers.AbiCoder.defaultAbiCoder().encode(ctor.inputs.map((i) => ethers.ParamType.from(i)), args).slice(2) : "";
   console.log(`  source matches · ${art.fq} · ${art.compiler}`);
   if (ctor && ctor.inputs.length) console.log(`  constructor: ${ctor.inputs.map((i, k) => `${i.name}=${args[k]}`).join(", ")}`);
   if (!KEY) { console.log("  (no ARC_ETHERSCAN_API_KEY — stopping before the API)"); return "nokey"; }
@@ -171,6 +175,25 @@ async function main() {
       const [name, symbol] = await Promise.all([tok.name(), tok.symbol()]);
       results.push(await verify(provider, { label: `LaunchToken #${i + 1} $${symbol}`, address: l.token, art: tArt, args: [name, symbol, supply, ADDR.factory] }));
       await sleep(600); // stay under the free API tier's rate limit
+    }
+  }
+  if (want("agent") && ADDR.agent) {
+    const aArt = artifact("ArciaAgent.sol", "ArciaAgentFactory"), vArt = artifact("ArciaAgent.sol", "ArciaAgentVault");
+    const fac = new ethers.Contract(ADDR.agent, aArt.abi, provider);
+    // the owner and operator it was deployed with: the first OwnerSet / OperatorSet, emitted by the constructor
+    const first = async (c, ev, from, to) => { const l = await c.queryFilter(c.filters[ev](), from, to); return l.length ? l[0].args[0] : null; };
+    const fOwner = await first(fac, "OwnerSet", ADDR.agentBlock, ADDR.agentBlock);
+    const fOp = await first(fac, "OperatorSet", ADDR.agentBlock, ADDR.agentBlock);
+    results.push(await verify(provider, { label: "ArciaAgentFactory (ARCIA AGENT)", address: ADDR.agent, art: aArt, args: [await fac.poolManager(), await fac.usdc(), await fac.arcircle(), fOwner, fOp] }));
+    const made = await fac.queryFilter(fac.filters.VaultCreated(), ADDR.agentBlock, "latest");
+    for (const ev of made) {
+      const v = new ethers.Contract(ev.args.vault, vArt.abi, provider);
+      const b = ev.blockNumber;
+      const [lim] = await v.queryFilter(v.filters.Limits(), b, b);
+      const key = await v.poolKey();
+      const args = [await v.poolManager(), await v.usdc(), ev.args.owner, [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks], lim.args[0], lim.args[1], lim.args[2]];
+      results.push(await verify(provider, { label: `ArciaAgentVault for ${ev.args.token}`, address: ev.args.vault, art: vArt, args }));
+      await sleep(600);
     }
   }
   const tally = results.reduce((m, r) => ((m[r] = (m[r] || 0) + 1), m), {});
