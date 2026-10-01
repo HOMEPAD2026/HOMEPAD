@@ -55,15 +55,25 @@ export function evmChain({ rpcs, chainId, timeoutMs = 8000 }) {
     }
   }
   async function latestBlock() { const b = await rpcCall("eth_getBlockByNumber", ["latest", false]); return { number: parseInt(b.number, 16), ts: parseInt(b.timestamp, 16) }; }
-  /// eth_calls in batches of 40 → hex results (null on error or empty)
+  /// eth_calls in batches of 40 → hex results (null on error or empty). A node that refuses a batch that big (or is
+  /// busy) gets it again in tens; only when every batch fails does the whole read fail.
   async function ethCalls(calls, { timeoutMs: t = 6000 } = {}) {
     const out = [];
-    for (let i = 0; i < calls.length; i += 40) {
-      const part = calls.slice(i, i + 40);
+    let okAny = false, lastErr = null;
+    const one = async (part) => {
       const res = await rpc(part.map((c, id) => ({ jsonrpc: "2.0", id, method: "eth_call", params: [{ to: c.to, data: c.data }, "latest"] })), { timeoutMs: t });
       const by = new Map((Array.isArray(res) ? res : [res]).map((x) => [x && x.id, x]));
-      part.forEach((_, k) => { const x = by.get(k); out.push(x && x.result && x.result !== "0x" ? x.result : null); });
+      return part.map((_, k) => { const x = by.get(k); return x && x.result && x.result !== "0x" ? x.result : null; });
+    };
+    for (let i = 0; i < calls.length; i += 40) {
+      const part = calls.slice(i, i + 40);
+      try { out.push(...(await one(part))); okAny = true; continue; } catch (e) { lastErr = e; }
+      for (let j = 0; j < part.length; j += 10) {
+        const sub = part.slice(j, j + 10);
+        try { out.push(...(await one(sub))); okAny = true; } catch (e) { lastErr = e; out.push(...sub.map(() => null)); }
+      }
     }
+    if (calls.length && !okAny) throw lastErr || new Error("eth_call failed");
     return out;
   }
   /// eth_calls expected to revert (quotes) → [{ ok, data }] with the revert data

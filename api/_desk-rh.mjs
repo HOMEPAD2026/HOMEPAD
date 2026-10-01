@@ -5,8 +5,10 @@
 // as WETH. (1 Oct 2026: was pons-only, ArciaDeskRH.)
 //
 // Every minute (GET /api/desk?chain=rh&tick=1&key=<CRON_SECRET>, from cron-job.org):
-//   1. discover   every new pool: the v4 PoolManager's Initialize logs and the v3 factory's PoolCreated logs (the same
-//                 new pairs Dexscreener shows), plus Dexscreener's newest profiles / boosts on Robinhood Chain
+//   1. discover   every new pool (the v4 PoolManager's Initialize logs, the v3 factory's PoolCreated logs) goes to a
+//                 fresh list for 3 hours; every swap on the chain is counted against it, and a pool that really trades
+//                 (6+ swaps, 4+ buys, 0.05+ ETH) becomes a candidate — Dexscreener's new-pairs list, read from the chain.
+//                 Plus Dexscreener's newest profiles / boosts / takeovers / ads on Robinhood Chain
 //   2. read       the pools' Swap logs (buys / sells / volume / price per minute), the pool price, Dexscreener
 //                 (liquidity, market cap, socials, paid profile, boosts) and a light holder read of young tokens
 //   3–5.          exits, entries (paper for every trigger, real for the playbooks allowed), learning: as on Arc
@@ -155,6 +157,7 @@ const K = {
   state: "deskrh/state", cands: "deskrh/cands", paper: "deskrh/paper", ghosts: "deskrh/ghosts", log: "deskrh/log", recent: "deskrh/recent",
   rejects: "deskrh/rejects", equity: "deskrh/equity", journal: "deskrh/journal", reviews: "deskrh/reviews", closed: (d) => `deskrh/closed-${d}`,
   settings: "deskrh/settings", // the owner's signed settings (api/desk.mjs POST, chain "rh")
+  fresh: "deskrh/fresh", // every new ETH pool of the last few hours and its trading so far (most never trade)
 };
 const mem = new Map(); // no store: one instance's memory (paper runs and tests)
 function memStore() { return { get: async (k) => mem.get(k) || null, getMany: async (ks) => Object.fromEntries(ks.map((k) => [k, mem.get(k) || null])), set: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } }; }
@@ -196,10 +199,16 @@ function candOf(l, D) {
   return null;
 }
 const discStats = (S) => (S.disc = S.disc && S.disc.v4 != null ? S.disc : { logs: 0, kept: 0, v3: 0, v4: 0, notEth: 0, hooked: 0, dex: 0, last: null });
-async function discover(S, C, latest, left) {
-  // 1 Oct 2026: every new launch on the chain (v4 + v3), no longer pons only — read the last 3 days again
-  if (S.discV !== 2) { S.discV = 2; S.hi = 0; S.disc = null; }
-  if (!S.hi) { S.hi = Math.max(0, latest.number - Math.ceil((B.GATES.maxAgeMin * 60) / S.spb)); S.hi0 = S.hi; }
+async function discover(S, C, F, latest, left) {
+  // 1 Oct 2026: every new launch on the chain (v4 + v3), no longer pons only. Thousands of pools open every day and
+  // most never trade, so a new pool waits in the fresh list (F) until it does (flow()); only the last few hours are read.
+  if (S.discV !== 3) {
+    S.discV = 3; S.hi = 0; S.disc = null; S.flHi = 0;
+    for (const k of Object.keys(F)) delete F[k];
+    const held = new Set((S.open || []).map((p) => p.t)); // start the watch list over (held coins stay)
+    for (const t of Object.keys(C)) if (!held.has(t)) delete C[t];
+  }
+  if (!S.hi) { S.hi = Math.max(0, latest.number - Math.ceil((FRESH_H * 3600) / S.spb)); S.hi0 = S.hi; }
   const found = [];
   while (S.hi < latest.number && left() > 30000) {
     const CH = S.ch || 9000;
@@ -221,22 +230,22 @@ async function discover(S, C, latest, left) {
       const c = candOf(l, D);
       if (!c) continue;
       D.last = { b: parseInt(l.blockNumber, 16), t: c.t };
-      if (C[c.t]) continue; // a token's first pool is its launch pool
+      if (C[c.t] || F[c.id]) continue; // a token's first pool is its launch pool
       D.kept++;
-      C[c.t] = { ...c, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0 };
-      found.push(c.t);
+      F[c.id] = { t: c.t, v: c.v, t0: c.t0, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ...(c.v === 4 ? { k: [c.k.c0, c.k.c1, c.k.fee, c.k.ts, c.k.hooks], sq0: c.sq0 } : {}), n: 0, bu: 0, e: 0 };
     }
     S.hi = ranges[ranges.length - 1][1];
   }
   // decimals / symbol / supply / the creator's links; the launch floor from the pool's Initialize log in the launch tx
-  const pend = Object.values(C).filter((c) => c.ok == null).slice(0, 10);
+  const pend = [...Object.values(C).filter((c) => c.ok == null), ...Object.values(C).filter((c) => c.ok === 1 && c.sym === "?" && (c.mt || 0) < 4)].slice(0, 10);
   if (pend.length && left() > 25000) {
     const rcs = await Promise.all(pend.map((c) => (c.sq0 || !c.tx ? { logs: [] } : rpcCall("eth_getTransactionReceipt", [c.tx]).catch(() => null))));
     const meta = await ethCalls(pend.flatMap((c) => [{ to: c.t, data: SEL.decimals }, { to: c.t, data: SEL.symbol }, { to: c.t, data: SEL.totalSupply }, { to: c.t, data: SEL.socials }])).catch(() => []);
     const times = await blockTimes(pend.map((c) => c.b), latest, S.spb);
     pend.forEach((c, i) => {
       const rc = rcs[i];
-      if (!rc) { c.tries = (c.tries || 0) + 1; if (c.tries > 5) c.ok = 0; c.ts = c.ts || latest.ts; return; }
+      if (c.ok === 1) c.mt = (c.mt || 0) + 1;
+      if (!rc || !meta.length) { c.tries = (c.tries || 0) + 1; if (c.tries > 5 && c.ok !== 1) c.ok = 0; c.ts = c.ts || latest.ts; return; }
       c.ok = 1;
       const init = !c.sq0 && (rc.logs || []).find((l) => lc(l.address) === c.pool && l.topics[0] === TOPIC.init);
       if (init) c.sq0 = W(init.data, 0).toString();
@@ -267,12 +276,57 @@ async function discover(S, C, latest, left) {
   }
   return found;
 }
+const FRESH_H = 3; // hours a new pool is watched for its first real trading
+const PROMOTE = { n: 6, buys: 4, eth: 0.05 }; // swaps, buys and ETH traded (since the pool opened) that make it a candidate
+/// every v4 PoolManager swap and every v3 swap since the last tick → the fresh pools' trading so far; the ones that
+/// really trade (the same new pairs that climb Dexscreener's new-pairs list) become candidates, busiest first
+async function flow(S, C, F, latest, left) {
+  const D = discStats(S);
+  const oldest = Math.max(1, latest.number - Math.ceil((FRESH_H * 3600) / S.spb));
+  for (const [id, f] of Object.entries(F)) if (f.b < oldest) delete F[id];
+  const ids = Object.keys(F);
+  if (ids.length > 900) ids.sort((a, b) => F[b].b - F[a].b).slice(900).forEach((id) => delete F[id]);
+  if (!S.flHi || S.flHi < oldest) S.flHi = Math.max(oldest, S.hi0 || oldest);
+  let steps = 0;
+  while (S.flHi < latest.number && left() > 28000 && steps < 16) {
+    const CH = S.flCh || 3000, a = S.flHi + 1, b = Math.min(latest.number, a + CH - 1);
+    let logs;
+    try {
+      logs = (await Promise.all([getLogs({ address: CFG.pm, topics: [TOPIC.swap4], fromBlock: toQty(a), toBlock: toQty(b) }, 2), getLogs({ topics: [TOPIC.swap], fromBlock: toQty(a), toBlock: toQty(b) }, 2)])).flat();
+      S.flErr = null;
+    } catch (e) {
+      S.flErr = String((e && e.message) || e).slice(0, 160);
+      if (/range|too many|limit|10000|exceed|block|size/i.test(S.flErr) && CH > 200) { S.flCh = Math.floor(CH / 2); continue; }
+      break;
+    }
+    for (const l of logs) {
+      const v4 = lc(l.address) === CFG.pm, f = F[v4 ? lc(l.topics[1]) : lc(l.address)];
+      if (!f) continue;
+      const a0 = BigInt.asIntN(256, W(l.data, 0)), a1 = BigInt.asIntN(256, W(l.data, 1));
+      const eth = f.t0 ? a1 : a0; // the ETH side
+      f.n++; if (v4 ? eth < 0n : eth > 0n) f.bu++;
+      f.e = Math.round((f.e + Math.abs(Number(eth)) / 1e18) * 1e6) / 1e6;
+    }
+    S.flHi = b; steps++;
+    if (logs.length < CH / 4 && CH < 9000) S.flCh = Math.min(9000, CH * 2);
+  }
+  const ready = Object.entries(F).filter(([, f]) => f.n >= PROMOTE.n && f.bu >= PROMOTE.buys && f.e >= PROMOTE.eth && !C[f.t]).sort((x, y) => y[1].e - x[1].e).slice(0, 8);
+  for (const [id, f] of ready) {
+    const k = f.k ? { c0: f.k[0], c1: f.k[1], fee: f.k[2], ts: f.k[3], hooks: f.k[4] } : null;
+    C[f.t] = { t: f.t, v: f.v, id, pool: k ? v4Pool(k) : id, ...(k ? { k, sq0: f.sq0 } : {}), t0: f.t0, b: f.b, tx: f.tx, ok: null, bk: [], hi: 0, src: "chain" };
+    delete F[id];
+    D.promoted = (D.promoted || 0) + 1;
+  }
+  D.fresh = Object.keys(F).length;
+  return ready.length;
+}
 /// Dexscreener's newest token profiles and boosts on Robinhood Chain: a coin with a young pool the chain read hasn't
 /// picked up (or has dropped) joins the watch list — its v3 pool straight from Dexscreener, its v4 key from the pool's
 /// Initialize log near the time Dexscreener gives
 async function dexFeed(S, C, latest, fetchJson, left, nowS) {
   const chain = CFG.dexChain();
-  const lists = await Promise.all(["https://api.dexscreener.com/token-profiles/latest/v1", "https://api.dexscreener.com/token-boosts/latest/v1", "https://api.dexscreener.com/token-boosts/top/v1"]
+  const lists = await Promise.all(["https://api.dexscreener.com/token-profiles/latest/v1", "https://api.dexscreener.com/token-boosts/latest/v1", "https://api.dexscreener.com/token-boosts/top/v1",
+    "https://api.dexscreener.com/community-takeovers/latest/v1", "https://api.dexscreener.com/ads/latest/v1"]
     .map((x) => fetchJson(x, 6000).catch(() => null)));
   const seen = (S.dexSeen = S.dexSeen || {});
   for (const [k, v] of Object.entries(seen)) if (nowS - v > 6 * 3600) delete seen[k];
@@ -631,7 +685,7 @@ export async function tick(st, opts = {}) {
   const fetchJson = opts.fetchJson || (async (url, ms) => { const r = await fetch(url, { signal: AbortSignal.timeout(ms || 8000) }); return r.ok ? r.json() : null; });
   const scan = opts.scan || ((c, x) => rhScan(c, x.S, x.latest, x.desk));
   const notes = [];
-  let [S, cd, pp, gh, sv] = await load(st, [K.state, K.cands, K.paper, K.ghosts, K.settings]);
+  let [S, cd, pp, gh, sv, fr] = await load(st, [K.state, K.cands, K.paper, K.ghosts, K.settings, K.fresh]);
   S = S && S.v === DESK_VERSION ? S : newState();
   B.ensureLearn(S.learn);
   const SET = B.settingsOf(sv && sv.values);
@@ -645,6 +699,7 @@ export async function tick(st, opts = {}) {
   S.busy = Date.now();
   await save(st, K.state, S);
   const C = (cd && cd.items) || {};
+  const F = (fr && fr.items) || {};
   const P = (pp && pp.open) || [];
   const G = (gh && gh.items) || [];
   const out = { discovered: 0, scanned: [], opened: [], closed: [], real: [], errors: [] };
@@ -682,7 +737,11 @@ export async function tick(st, opts = {}) {
 
     // ---- 1–2. discover, read the chain, the market and the scanner
     S.lastBlock = latest.number;
-    out.discovered = (await discover(S, C, latest, left)).length;
+    await discover(S, C, F, latest, left);
+    out.discovered = await flow(S, C, F, latest, left).catch((e) => { out.errors.push(`flow: ${String(e.message || e).slice(0, 80)}`); return 0; });
+    // the ones that just became candidates: their symbol, decimals and launch floor now (discover's second half;
+    // the block range is already read, so no new log reads)
+    if (out.discovered && left() > 25000) await discover(S, C, F, latest, left);
     if (left() > 30000) out.discovered += await dexFeed(S, C, latest, fetchJson, left, nowS).catch(() => 0);
     await readSwaps(S, C, latest, left);
     const liveC = Object.values(C).filter((c) => c.ok === 1);
@@ -1065,7 +1124,7 @@ export async function tick(st, opts = {}) {
       S.alerts = ra.mem;
       if (ra.msgs.length) alarm(`ARCIA DESK (Robinhood) — heads up\n${ra.msgs.join("\n")}\n\nhttps://www.arcircle.app/arc#desk?chain=rh`);
     }
-    const writes = [save(st, K.cands, { items: C }), save(st, K.paper, { open: P2 }), save(st, K.ghosts, { items: G2 })];
+    const writes = [save(st, K.cands, { items: C }), save(st, K.paper, { open: P2 }), save(st, K.ghosts, { items: G2 }), save(st, K.fresh, { items: F })];
     if (live && nowS - (S.eqAt || 0) >= 300) {
       S.eqAt = nowS;
       writes.push(appendList(st, K.equity, "pts", [`${nowS}|${S.eq}|${r2(pnlOf(S), 4)}`], 8640));
@@ -1295,7 +1354,7 @@ export async function view(st) {
       adds: Object.entries(B.ADD_KINDS).map(([k, name]) => { const a = (L.adds || {})[k] || { n: 0, mean: 0, helped: 0 }; return { k, name, n: a.n, edge: r2(a.mean), helped: a.n ? r2((a.helped / a.n) * 100, 1) : null, live: B.addAllowed(L.adds, k) }; }),
     },
     // how far discovery has read, for checking it's keeping up
-    sync: { disc: S.disc || null, spb: S.spb || null, from: S.hi0 || null, block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
+    sync: { disc: S.disc || null, spb: S.spb || null, from: S.hi0 || null, block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, flow: S.flHi || null, flowErr: S.flErr || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
     watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, v: c.v || 3, dex: c.src === "dex", px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: false, top10: c.scan ? c.scan.top10 ?? null : null,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
     settings: { values: SET, defaults: B.SETTINGS_DEFAULTS, bounds: B.SET_BOUNDS, by: (sv && sv.by) || null, at: (sv && sv.at) || null },
