@@ -5303,7 +5303,7 @@
     "In the contract's Write tab on the explorer, from the owner wallet: withdrawETH (always to the owner), setPaused, setCaps (in wei).": "익스플로러의 컨트랙트 Write 탭에서 오너 지갑으로: withdrawETH(항상 오너에게), setPaused, setCaps(wei 단위).",
     "Open the contract": "컨트랙트 열기",
     "Utility · ARCIA trades on Arc and Robinhood Chain": "유틸리티 · ARCIA가 Arc와 Robinhood Chain에서 거래",
-    "ARCIA trades new coins — Argus launches on Arc, pons launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA는 Arc의 Argus 런칭과 Robinhood Chain의 pons 런칭 같은 새 코인을 자기 소액 지갑으로 거래하고, 거래할 때마다 배워요. 모든 매수·매도는 온체인 트랜잭션이고 일어나는 즉시 여기에 표시돼요. Arc에서는 매일 새 수익의 일부로 $ARCIRCLE을 사서 소각해요.",
+    "ARCIA trades new coins — Argus launches on Arc, new launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA는 Arc의 Argus 런칭과 Robinhood Chain의 새 런칭 같은 새 코인을 자기 소액 지갑으로 거래하고, 거래할 때마다 배워요. 모든 매수·매도는 온체인 트랜잭션이고 일어나는 즉시 여기에 표시돼요. Arc에서는 매일 새 수익의 일부로 $ARCIRCLE을 사서 소각해요.",
     "today's limit is used up — buying again after 00:00 UTC": "오늘 한도를 다 썼어요 — 00:00 UTC 이후 다시 매수",
     "the per-buy limit is under the $0.50 minimum": "1회 한도가 최소 $0.50보다 작아요",
     "Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund": "Arc 토큰 주소를 넣으면 ARCIA가 읽고, 24시간 안전 판정을 내리고, 누구나 채울 수 있는 볼트로 소각해요",
@@ -5326,6 +5326,11 @@
     "Enter both limits in ETH.": "두 한도를 모두 ETH로 입력하세요.",
     "position is open — its coins aren't ETH yet. Pause first and wait for it to close to take everything out.": "개 포지션이 열려 있어요. 아직 ETH가 아니에요. 전부 빼려면 먼저 일시정지하고 포지션이 닫힐 때까지 기다리세요.",
     "positions are open — their coins aren't ETH yet. Pause first and wait for them to close to take everything out.": "개 포지션이 열려 있어요. 아직 ETH가 아니에요. 전부 빼려면 먼저 일시정지하고 포지션이 닫힐 때까지 기다리세요.",
+    "ETH · new launches": "ETH · 새 런칭",
+    "new Robinhood Chain launches": "Robinhood Chain 새 런칭",
+    "No new launches in the last three days yet.": "최근 3일간 새 런칭이 아직 없어요.",
+    "Before every buy the desk buys and sells straight back in a dry run: a token that taxes or can't be sold back shows there and isn't bought": "매수 전마다 데스크가 사고 바로 되파는 모의 거래를 돌립니다: 세금이 붙거나 되팔 수 없는 토큰은 여기서 드러나고 매수하지 않아요",
+    "Any new coin launched on Robinhood Chain — the new pairs Dexscreener lists there (pools.trade, Bags, pons and others): Uniswap v4 pools paired with ETH and v3 pools paired with WETH": "Robinhood Chain에서 새로 런칭된 모든 코인 — Dexscreener에 올라오는 새 페어 (pools.trade, Bags, pons 등): ETH 페어 Uniswap v4 풀과 WETH 페어 v3 풀",
   };
 
 

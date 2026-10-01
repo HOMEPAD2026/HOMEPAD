@@ -1,12 +1,14 @@
 // api/_desk-rh.mjs — ARCIA DESK on Robinhood Chain: the same desk (api/_desk.mjs) and the same brain
-// (api/_desk-brain.mjs), trading NEW coins launched on pons (ponsfamily.com/launchpad): Uniswap v3 pools
-// paired with WETH (1% fee), no bonding curve, no migration. Its money sits in the ArciaDeskRH contract
-// (contracts/contracts/ArciaDeskRH.sol) as WETH.
+// (api/_desk-brain.mjs), trading ANY new coin launched on Robinhood Chain — the new pairs Dexscreener lists there:
+// Uniswap v4 pools paired with native ETH or WETH (pools.trade, Bags, …: no hook or an approved one) and Uniswap v3
+// pools paired with WETH (pons, …). Its money sits in the ArciaDeskRH2 contract (contracts/contracts/ArciaDeskRH2.sol)
+// as WETH. (1 Oct 2026: was pons-only, ArciaDeskRH.)
 //
 // Every minute (GET /api/desk?chain=rh&tick=1&key=<CRON_SECRET>, from cron-job.org):
-//   1. discover   pons factory TokenLaunched logs (active + legacy factory) → token, its WETH pool, the launch floor
-//   2. read       the pools' v3 Swap logs (buys / sells / volume / price per minute), slot0, the pool's WETH,
-//                 Dexscreener (market cap, socials) and a light holder read of young tokens (top 10 share)
+//   1. discover   every new pool: the v4 PoolManager's Initialize logs and the v3 factory's PoolCreated logs (the same
+//                 new pairs Dexscreener shows), plus Dexscreener's newest profiles / boosts on Robinhood Chain
+//   2. read       the pools' Swap logs (buys / sells / volume / price per minute), the pool price, Dexscreener
+//                 (liquidity, market cap, socials, paid profile, boosts) and a light holder read of young tokens
 //   3–5.          exits, entries (paper for every trigger, real for the playbooks allowed), learning: as on Arc
 // Money: the contract holds ETH (WETH). Returns and the day's result are measured in ETH, so ETH's own price
 // moves don't count as wins or losses; dollar figures are ETH × the ETH price of that tick (Coinbase spot).
@@ -16,7 +18,7 @@
 // Sensitive — when unset, ARCIA_DESK_KEY is used, so the Arc desk's trader wallet can operate both). Without them
 // the desk runs on paper only. Optional: ROBINHOOD_RPC_URL, ARCIA_DESK_RH_PLAYBOOKS (else ARCIA_DESK_PLAYBOOKS),
 // ARCIA_DESK_TG_CHAT / ARCIA_DESK_TG_TRADES (alerts, shared with the Arc desk), ARCIA_DESK_RH_DEX_CHAIN
-// (Dexscreener's chain id, default "robinhood").
+// (Dexscreener's chain id, default "robinhood"), ARCIA_DESK_RH_HOOKS (v4 hooks to watch besides none; default: Bags).
 // No command, message or page can make it trade: only this schedule and these rules.
 import { evmChain, addressOfKey, toQty } from "./_evm.mjs";
 import * as B from "./_desk-brain.mjs";
@@ -39,8 +41,12 @@ const wA = (h, i) => "0x" + strip(h).slice(i * 64 + 24, i * 64 + 64).toLowerCase
 // ---------------------------------------------------------------- config (tests swap the addresses)
 export const PONS = { factories: ["0xa5aab3f0c6eeadf30ef1d3eb997108e976351feb", "0x0c37a24f5d23a486fa692d1500881d698b1f77a4"], locker: "0x736d76699c26d0d966744cae304c000d471f7f35",
   v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa", weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73" };
+/// Uniswap v4 on Robinhood Chain (pools.trade and Bags launch into it); Bags' singleton hook takes its 2% fee
+export const RH = { pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951", bagsHook: "0x2380abf72c17aabab76480244759ac7e2932eecc" };
 export const CFG = {
-  factories: PONS.factories, v3Factory: PONS.v3Factory, weth: PONS.weth, locker: PONS.locker, chainId: 4663,
+  factories: PONS.factories, v3Factory: PONS.v3Factory, weth: PONS.weth, locker: PONS.locker, chainId: 4663, pm: RH.pm,
+  // v4 hooks watched besides "no hook" (the desk contract must allow the same ones)
+  hooks: () => { const l = env("ARCIA_DESK_RH_HOOKS"); return (l ? l.split(",") : [RH.bagsHook]).map((h) => lc(h.trim())).filter(isAddr); },
   rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
   desk: () => (isAddr(env("ARCIA_DESK_RH_ADDRESS")) ? lc(env("ARCIA_DESK_RH_ADDRESS")) : null),
   key: () => env("ARCIA_DESK_RH_KEY") || env("ARCIA_DESK_KEY") || null,
@@ -59,8 +65,11 @@ export function configure(o) { Object.assign(CFG, o); chainMemo = null; }
 const hexOf = (s) => Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("");
 const sig = (s) => keccakHex(hexOf(s));
 const sel = (s) => sig(s).slice(0, 10);
+const KT = "(address,address,uint24,int24,address)";
 const SEL = {
   quote: sel("quote(address,bool,uint256)"), rt: sel("quoteRoundTrip(address,uint256)"), buy: sel("buy(address,uint256,uint256)"), sell: sel("sell(address,uint256,uint256)"),
+  quote4: sel(`quote4(${KT},bool,uint256)`), rt4: sel(`quoteRoundTrip4(${KT},uint256)`), buy4: sel(`buy4(${KT},uint256,uint256)`), sell4: sel(`sell4(${KT},uint256,uint256)`),
+  pm: sel("poolManager()"), extsload: "0x1e2eaeaf",
   paused: sel("paused()"), maxTrade: sel("maxTrade()"), dailyCap: sel("dailyCap()"), spent: sel("spentToday()"), day: sel("day()"), operator: sel("operator()"), owner: sel("owner()"),
   balanceOf: sel("balanceOf(address)"), decimals: "0x313ce567", symbol: "0x95d89b41", totalSupply: "0x18160ddd", slot0: "0x3850c7bd", liquidity: "0x1a686502",
   socials: sel("socials()"),
@@ -70,9 +79,20 @@ const TOPIC = {
   launched: sig("TokenLaunched(address,address,address,address,address,uint256,uint256,uint256,uint256,uint256)"), // 0xdb51ea9a…
   swap: sig("Swap(address,address,int256,int256,uint160,uint128,int24)"), // Uniswap v3 pool, 0xc42079f9…
   init: sig("Initialize(uint160,int24)"), transfer: sig("Transfer(address,address,uint256)"),
+  created: sig("PoolCreated(address,address,uint24,int24,address)"), // the v3 factory
+  init4: sig("Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)"), // the v4 PoolManager
+  swap4: sig("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)"),
   trade: sig("Trade(address,bool,uint256,uint256)"),
 };
 const u = (n) => BigInt(n).toString(16).padStart(64, "0");
+const i24 = (n) => BigInt.asUintN(256, BigInt(n)).toString(16).padStart(64, "0");
+// a candidate's pool, as one string: a v3 pool address, or a v4 key "v4:currency0:currency1:fee:tickSpacing:hooks"
+export const encKey = (k) => pad(k.c0) + pad(k.c1) + u(k.fee) + i24(k.ts) + pad(k.hooks);
+export const poolIdOfKey = (k) => lc(keccakHex(encKey(k)));
+export const v4Pool = (k) => `v4:${lc(k.c0)}:${lc(k.c1)}:${k.fee}:${k.ts}:${lc(k.hooks)}`;
+export const keyOfPool = (p) => { const [, c0, c1, fee, ts, hooks] = String(p).split(":"); return { c0, c1, fee: Number(fee), ts: Number(ts), hooks }; };
+const isV4 = (p) => String(p || "").startsWith("v4:");
+const venue = (p) => (isV4(p) ? encKey(keyOfPool(p)) : pad(p));
 const DEAD = "0x000000000000000000000000000000000000dead", ZERO = "0x" + "0".repeat(40);
 
 // ---------------------------------------------------------------- chain helpers
@@ -92,8 +112,10 @@ const callsRaw = (calls) => ch().callsRaw(calls);
 const ethCalls = (calls) => ch().ethCalls(calls);
 const rpcCall = (m, p) => ch().rpcCall(m, p);
 const getLogs = (f, tries) => ch().getLogs(f, tries);
-const quoteCall = (desk, pool, isBuy, amt) => ({ to: desk, data: SEL.quote + pad(pool) + u(isBuy ? 1 : 0) + u(amt) });
-const rtCall = (desk, pool, amt) => ({ to: desk, data: SEL.rt + pad(pool) + u(amt) });
+const quoteCall = (desk, pool, isBuy, amt) => ({ to: desk, data: (isV4(pool) ? SEL.quote4 : SEL.quote) + venue(pool) + u(isBuy ? 1 : 0) + u(amt) });
+const rtCall = (desk, pool, amt) => ({ to: desk, data: (isV4(pool) ? SEL.rt4 : SEL.rt) + venue(pool) + u(amt) });
+const buyData = (pool, wei, minOut) => (isV4(pool) ? SEL.buy4 : SEL.buy) + venue(pool) + u(wei) + u(minOut);
+const sellData = (pool, amt, minOut) => (isV4(pool) ? SEL.sell4 : SEL.sell) + venue(pool) + u(amt) + u(minOut);
 /// timestamps of blocks: exact for up to 40 of them, the rest interpolated from the latest block
 async function blockTimes(nums, latest, spb) {
   const uniq = [...new Set(nums)];
@@ -149,8 +171,34 @@ export function newState() {
 }
 
 // ---------------------------------------------------------------- 1. discovery
+/// one new pool from a log → a candidate (or the reason it's left out, counted for the page)
+function candOf(l, D) {
+  const at = lc(l.address), t0x = l.topics[0];
+  if (at === CFG.v3Factory && t0x === TOPIC.created) {
+    // PoolCreated(token0, token1, fee indexed; tickSpacing, pool)
+    const a0 = "0x" + strip(l.topics[1]).slice(24), a1 = "0x" + strip(l.topics[2]).slice(24), pool = wA(l.data, 1);
+    if (a0 !== CFG.weth && a1 !== CFG.weth) { D.notEth++; return null; }
+    const t = a0 === CFG.weth ? a1 : a0;
+    D.v3++;
+    return { t, v: 3, id: pool, pool, t0: t === a0 };
+  }
+  if (at === CFG.pm && t0x === TOPIC.init4) {
+    // Initialize(id, currency0, currency1 indexed; fee, tickSpacing, hooks, sqrtPriceX96, tick)
+    const c0 = "0x" + strip(l.topics[2]).slice(24), c1 = "0x" + strip(l.topics[3]).slice(24), hooks = wA(l.data, 2);
+    const ethSide = c0 === ZERO || c0 === CFG.weth ? c0 : c1 === CFG.weth ? c1 : null;
+    const t = ethSide === c0 ? c1 : c0;
+    if (!ethSide || t === CFG.weth || t === ZERO) { D.notEth++; return null; }
+    if (hooks !== ZERO && !CFG.hooks().includes(hooks)) { D.hooked++; return null; }
+    const k = { c0, c1, fee: Number(W(l.data, 0)), ts: Number(BigInt.asIntN(24, W(l.data, 1))), hooks };
+    D.v4++;
+    return { t, v: 4, id: lc(l.topics[1]), pool: v4Pool(k), k, t0: t === c0, sq0: W(l.data, 3).toString() };
+  }
+  return null;
+}
+const discStats = (S) => (S.disc = S.disc && S.disc.v4 != null ? S.disc : { logs: 0, kept: 0, v3: 0, v4: 0, notEth: 0, hooked: 0, dex: 0, last: null });
 async function discover(S, C, latest, left) {
-  if (S.discV !== 1) { S.discV = 1; S.hi = 0; S.disc = null; } // 1 Oct 2026: read the last 3 days again, counting what's seen
+  // 1 Oct 2026: every new launch on the chain (v4 + v3), no longer pons only — read the last 3 days again
+  if (S.discV !== 2) { S.discV = 2; S.hi = 0; S.disc = null; }
   if (!S.hi) { S.hi = Math.max(0, latest.number - Math.ceil((B.GATES.maxAgeMin * 60) / S.spb)); S.hi0 = S.hi; }
   const found = [];
   while (S.hi < latest.number && left() > 30000) {
@@ -158,42 +206,39 @@ async function discover(S, C, latest, left) {
     const ranges = []; let a = S.hi + 1;
     for (let k = 0; k < 8 && a <= latest.number; k++) { const b = Math.min(latest.number, a + CH - 1); ranges.push([a, b]); a = b + 1; }
     let logs;
-    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.factories, topics: [TOPIC.launched], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); S.discErr = null; } catch (e) {
+    try { logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: [CFG.pm, CFG.v3Factory], topics: [[TOPIC.init4, TOPIC.created]], fromBlock: toQty(x), toBlock: toQty(y) }, 2)))).flat(); S.discErr = null; } catch (e) {
       S.discErr = String((e && e.message) || e).slice(0, 160);
       // the node caps the block range: smaller steps next time
       if (/range|too many|limit|10000|exceed|block/i.test(S.discErr) && CH > 500) { S.ch = Math.floor(CH / 2); continue; }
       if (/prun|history|not available|too old|missing/i.test(S.discErr) && S.hi < latest.number - 1) { S.hi = Math.min(latest.number - 1, S.hi + Math.max(CH, Math.ceil((latest.number - S.hi) / 2))); continue; }
       break;
     }
+    logs.sort((x, y) => parseInt(x.blockNumber, 16) - parseInt(y.blockNumber, 16) || parseInt(x.logIndex, 16) - parseInt(y.logIndex, 16));
     for (const l of logs) {
-      // TokenLaunched(token, deployer, dexFactory indexed; pairToken, pool, dexId, launchConfigId, positionId, restrictionsEndBlock, initialBuyAmount)
-      const t = "0x" + strip(l.topics[1]).slice(24), dexF = "0x" + strip(l.topics[3]).slice(24);
-      const pair = wA(l.data, 0), pool = wA(l.data, 1);
-      // what discovery sees, for the page (sync): every launch log, and why one was left out
-      const D = (S.disc = S.disc || { logs: 0, kept: 0, notWeth: 0, otherDex: 0, last: null });
-      D.logs++; D.last = { b: parseInt(l.blockNumber, 16), t };
-      if (pair !== CFG.weth) { D.notWeth++; continue; }
-      // a pool from another dex factory is kept (the desk contract refuses any pool that isn't the v3 factory's own,
-      // so it can never be bought — its quotes fail and the gates say so), but counted
-      if (dexF !== CFG.v3Factory) D.otherDex++;
-      if (C[t]) continue;
+      // what discovery sees, for the page (sync): every new pool, and why one was left out
+      const D = discStats(S);
+      D.logs++;
+      const c = candOf(l, D);
+      if (!c) continue;
+      D.last = { b: parseInt(l.blockNumber, 16), t: c.t };
+      if (C[c.t]) continue; // a token's first pool is its launch pool
       D.kept++;
-      C[t] = { t, id: pool, pool, t0: BigInt(t) < BigInt(CFG.weth), b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0, rEnd: Number(W(l.data, 5)), f: lc(l.address) };
-      found.push(t);
+      C[c.t] = { ...c, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), ok: null, bk: [], hi: 0 };
+      found.push(c.t);
     }
     S.hi = ranges[ranges.length - 1][1];
   }
   // decimals / symbol / supply / the creator's links; the launch floor from the pool's Initialize log in the launch tx
   const pend = Object.values(C).filter((c) => c.ok == null).slice(0, 10);
   if (pend.length && left() > 25000) {
-    const rcs = await Promise.all(pend.map((c) => rpcCall("eth_getTransactionReceipt", [c.tx]).catch(() => null)));
+    const rcs = await Promise.all(pend.map((c) => (c.sq0 || !c.tx ? { logs: [] } : rpcCall("eth_getTransactionReceipt", [c.tx]).catch(() => null))));
     const meta = await ethCalls(pend.flatMap((c) => [{ to: c.t, data: SEL.decimals }, { to: c.t, data: SEL.symbol }, { to: c.t, data: SEL.totalSupply }, { to: c.t, data: SEL.socials }])).catch(() => []);
     const times = await blockTimes(pend.map((c) => c.b), latest, S.spb);
     pend.forEach((c, i) => {
       const rc = rcs[i];
       if (!rc) { c.tries = (c.tries || 0) + 1; if (c.tries > 5) c.ok = 0; c.ts = c.ts || latest.ts; return; }
       c.ok = 1;
-      const init = (rc.logs || []).find((l) => lc(l.address) === c.pool && l.topics[0] === TOPIC.init);
+      const init = !c.sq0 && (rc.logs || []).find((l) => lc(l.address) === c.pool && l.topics[0] === TOPIC.init);
       if (init) c.sq0 = W(init.data, 0).toString();
       const d = meta[4 * i], s2 = meta[4 * i + 1], sup = meta[4 * i + 2], so = meta[4 * i + 3];
       c.dec = d ? Number(BigInt(d)) : 18;
@@ -201,7 +246,7 @@ async function discover(S, C, latest, left) {
       c.sup = sup ? human(BigInt(sup), c.dec) : null;
       // socials() → (twitter, telegram, discord, website, farcaster)
       if (so) c.meta = { x: strAt(so, 0), tg: strAt(so, 1), web: strAt(so, 3) };
-      c.ts = times.get(c.b) || latest.ts;
+      c.ts = c.ts || times.get(c.b) || latest.ts;
     });
   }
   for (const c of Object.values(C)) if (c.sq0 && c.dec != null && !c.floorEth) { const f = priceOf(BigInt(c.sq0), c.t0, c.dec); if (f) c.floorEth = f / ETHUSD; }
@@ -212,10 +257,55 @@ async function discover(S, C, latest, left) {
     if (c.ok === 0) { delete C[t]; continue; }
     if (!held.has(t) && c.ts && latest.ts - c.ts > B.GATES.maxAgeMin * 60 + 3600) delete C[t];
   }
-  // keep the doc small: the 80 newest (and anything held)
+  // keep the doc small: what's held, the 45 newest and the 45 busiest of the last hour (many pools open every day)
   const all = Object.values(C).sort((a, b) => (b.b || 0) - (a.b || 0));
-  for (const c of all.slice(80)) if (!held.has(c.t)) delete C[c.t];
+  if (all.length > 90) {
+    const m = Math.floor(latest.ts / 60);
+    const act = (c) => (c.bk || []).map(parseBk).filter((o) => o.m > m - 60).reduce((t, o) => t + o.v + o.b + o.s, 0) + ((c.dex && c.dex.liq) || 0) / 1000;
+    const keep = new Set([...held, ...all.slice(0, 45).map((c) => c.t), ...all.slice().sort((x, y) => act(y) - act(x)).slice(0, 45).map((c) => c.t)]);
+    for (const c of all) if (!keep.has(c.t)) delete C[c.t];
+  }
   return found;
+}
+/// Dexscreener's newest token profiles and boosts on Robinhood Chain: a coin with a young pool the chain read hasn't
+/// picked up (or has dropped) joins the watch list — its v3 pool straight from Dexscreener, its v4 key from the pool's
+/// Initialize log near the time Dexscreener gives
+async function dexFeed(S, C, latest, fetchJson, left, nowS) {
+  const chain = CFG.dexChain();
+  const lists = await Promise.all(["https://api.dexscreener.com/token-profiles/latest/v1", "https://api.dexscreener.com/token-boosts/latest/v1", "https://api.dexscreener.com/token-boosts/top/v1"]
+    .map((x) => fetchJson(x, 6000).catch(() => null)));
+  const seen = (S.dexSeen = S.dexSeen || {});
+  for (const [k, v] of Object.entries(seen)) if (nowS - v > 6 * 3600) delete seen[k];
+  const want = [...new Set(lists.flatMap((l) => (Array.isArray(l) ? l : [])).filter((x) => x && x.chainId === chain && isAddr(x.tokenAddress)).map((x) => lc(x.tokenAddress)))]
+    .filter((t) => !C[t] && !seen[t]).slice(0, 4);
+  let added = 0;
+  for (const t of want) {
+    if (left() < 26000) break;
+    seen[t] = nowS;
+    const ps = await fetchJson(`https://api.dexscreener.com/token-pairs/v1/${chain}/${t}`, 6000).catch(() => null);
+    const pairs = (Array.isArray(ps) ? ps : []).filter((p) => p && p.chainId === chain && lc(p.baseToken && p.baseToken.address) === t && p.pairCreatedAt && nowS - p.pairCreatedAt / 1000 < B.GATES.maxAgeMin * 60)
+      .sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0));
+    for (const p of pairs.slice(0, 3)) {
+      const id = lc(p.pairAddress), created = Math.floor(p.pairCreatedAt / 1000);
+      const b = Math.max(0, Math.round(latest.number - (latest.ts - created) / S.spb));
+      let c = null;
+      if (/^0x[0-9a-f]{64}$/.test(id)) { const l = await findInit(id, b, latest, S).catch(() => null); if (l) c = candOf(l, discStats(S)); }
+      else if (isAddr(id) && lc(p.quoteToken && p.quoteToken.address) === CFG.weth) c = { t, v: 3, id, pool: id, t0: BigInt(t) < BigInt(CFG.weth) };
+      if (!c || c.t !== t) continue;
+      discStats(S).dex++;
+      C[t] = { ...c, b, ts: created, tx: null, ok: null, bk: [], hi: 0, src: "dex" };
+      added++;
+      break;
+    }
+  }
+  return added;
+}
+/// a v4 pool's Initialize log, searched around block `b`
+async function findInit(id, b, latest, S) {
+  const CH = S.ch || 9000, ranges = [];
+  for (let k = -3; k < 3; k++) { const x = Math.max(0, b + k * CH), y = Math.min(latest.number, x + CH - 1); if (x <= y) ranges.push([x, y]); }
+  const logs = (await Promise.all(ranges.map(([x, y]) => getLogs({ address: CFG.pm, topics: [TOPIC.init4, id], fromBlock: toQty(x), toBlock: toQty(y) }, 2).catch(() => [])))).flat();
+  return logs[0] || null;
 }
 function strAt(hex, i) {
   try {
@@ -250,11 +340,12 @@ function applySwaps(c, logs, times) {
   const by = new Map((c.bk || []).map((s) => { const o = parseBk(s); return [o.m, o]; }));
   for (const l of logs) {
     // v3 Swap data: amount0, amount1 (the pool's side: positive = paid in), sqrtPriceX96, liquidity, tick
+    // v4 Swap data: amount0, amount1 (the swapper's side: negative = paid in), sqrtPriceX96, liquidity, tick, fee
     const a0 = BigInt.asIntN(256, W(l.data, 0)), a1 = BigInt.asIntN(256, W(l.data, 1)), sq = W(l.data, 2), L = W(l.data, 3);
-    const wd = c.t0 ? a1 : a0; // WETH into the pool = a buy
+    const wd = c.t0 ? a1 : a0; // the ETH side
     const m = Math.floor((times.get(parseInt(l.blockNumber, 16)) || 0) / 60);
     const o = by.get(m) || { m, b: 0, s: 0, v: 0, p: 0 };
-    if (wd > 0n) o.b++; else o.s++;
+    if (c.v === 4 ? wd < 0n : wd > 0n) o.b++; else o.s++; // ETH into the pool = a buy
     o.v += (Math.abs(Number(wd)) / 1e18) * ETHUSD;
     const p = priceOf(sq, c.t0, c.dec || 18);
     if (p) { o.p = Number(p.toPrecision(6)); if (p > (c.hi || 0)) c.hi = p; c.px = p; c.L = L.toString(); c.sq = sq.toString(); }
@@ -267,8 +358,15 @@ async function readSwaps(S, C, latest, left) {
   if (!S.swHi) S.swHi = latest.number;
   const live = Object.values(C).filter((c) => c.ok === 1);
   const logsOf = async (cands, from, to) => {
-    const out = [];
-    for (let a = from; a <= to; a += CH) out.push(...(await getLogs({ address: cands.map((c) => c.pool), topics: [TOPIC.swap], fromBlock: toQty(a), toBlock: toQty(Math.min(to, a + CH - 1)) }, 2)));
+    const out = [], v3 = cands.filter((c) => c.v !== 4), v4 = cands.filter((c) => c.v === 4);
+    for (let a = from; a <= to; a += CH) {
+      const r = { fromBlock: toQty(a), toBlock: toQty(Math.min(to, a + CH - 1)) };
+      const parts = await Promise.all([
+        v3.length ? getLogs({ address: v3.map((c) => c.pool), topics: [TOPIC.swap], ...r }, 2) : [],
+        v4.length ? getLogs({ address: CFG.pm, topics: [TOPIC.swap4, v4.map((c) => c.id)], ...r }, 2) : [],
+      ]);
+      out.push(...parts.flat());
+    }
     return out;
   };
   // new ones: the last hour of their pool (or since launch)
@@ -292,18 +390,30 @@ async function readSwaps(S, C, latest, left) {
 }
 async function route(logs, cands, latest, spb) {
   if (!logs.length) return;
-  const byPool = new Map(cands.map((c) => [c.pool, c]));
+  const byPool = new Map(cands.map((c) => [c.v === 4 ? c.id : c.pool, c]));
   const times = await blockTimes(logs.map((l) => parseInt(l.blockNumber, 16)), latest, spb);
   const groups = new Map();
-  for (const l of logs) { const c = byPool.get(lc(l.address)); if (c) { if (!groups.has(c)) groups.set(c, []); groups.get(c).push(l); } }
+  for (const l of logs) { const c = byPool.get(lc(l.address) === CFG.pm ? lc(l.topics[1]) : lc(l.address)); if (c) { if (!groups.has(c)) groups.set(c, []); groups.get(c).push(l); } }
   for (const [c, ls] of groups) { ls.sort((a, b) => parseInt(a.blockNumber, 16) - parseInt(b.blockNumber, 16) || parseInt(a.logIndex, 16) - parseInt(b.logIndex, 16)); applySwaps(c, ls, times); }
 }
-/// current prices from each pool's slot0, and the WETH each pool holds (its real depth)
+/// current prices: a v3 pool's slot0 and the WETH it holds (its real depth); a v4 pool's slot0 and liquidity from the
+/// PoolManager's storage (extsload), its ETH depth estimated from them (one side of the in-range liquidity, doubled later)
+const v4Slot = (id, plus = 0) => "0x" + (BigInt(keccakHex(strip(id) + pad("6"))) + BigInt(plus)).toString(16).padStart(64, "0");
 async function readPrices(list) {
   if (!list.length) return;
-  const r = await ethCalls(list.flatMap((c) => [{ to: c.pool, data: SEL.slot0 }, { to: CFG.weth, data: SEL.balanceOf + pad(c.pool) }])).catch(() => []);
+  const r = await ethCalls(list.flatMap((c) => (c.v === 4
+    ? [{ to: CFG.pm, data: SEL.extsload + strip(v4Slot(c.id)) }, { to: CFG.pm, data: SEL.extsload + strip(v4Slot(c.id, 3)) }]
+    : [{ to: c.pool, data: SEL.slot0 }, { to: CFG.weth, data: SEL.balanceOf + pad(c.pool) }]))).catch(() => []);
   list.forEach((c, i) => {
     const s0 = r[2 * i], wb = r[2 * i + 1];
+    if (c.v === 4) {
+      if (!s0) return;
+      const sq = BigInt(s0) & ((1n << 160n) - 1n), L = wb ? BigInt(wb) & ((1n << 128n) - 1n) : 0n;
+      if (sq > 0n && L > 0n) c.wethEth = c.t0 ? Number((L * sq) >> 96n) / 1e18 : Number((L << 96n) / sq) / 1e18;
+      const p = sq > 0n ? priceOf(sq, c.t0, c.dec || 18) : null;
+      if (p) { c.px = p; c.sq = sq.toString(); if (p > (c.hi || 0)) c.hi = p; }
+      return;
+    }
     if (wb) c.wethEth = ethOf(BigInt(wb));
     if (!s0) return;
     const sq = W(s0, 0);
@@ -362,9 +472,9 @@ async function readPaid(C, liveC, fetchJson, nowS, left) {
 }
 
 // ---------------------------------------------------------------- holders (a light read; the Token Scanner is Arc's)
-// pons tokens are the factory's own fixed-supply ERC-20s (no owner switches, no taxes), so the risk that's left is who
-// holds them: every Transfer since launch → the top 10 wallets' share (the pool, the locker and 0x…dEaD aside) and
-// what they'd do to the price if they all sold (a sell quote from the desk). Young tokens only (≤ 12 h of logs).
+// Who holds it: every Transfer since launch → the top 10 wallets' share (the pool / PoolManager, the pons locker and
+// 0x…dEaD aside) and what they'd do to the price if they all sold (a sell quote from the desk). Young tokens only
+// (≤ 12 h of logs). Taxes and tokens that can't be sold back show in the desk's round-trip quote before any buy.
 async function rhScan(c, S, latest, desk) {
   if (!c.b || !c.ts || latest.ts - c.ts > 12 * 3600) return null;
   const CH = S.ch || 9000, bal = new Map();
@@ -378,7 +488,7 @@ async function rhScan(c, S, latest, desk) {
       bal.set(to, (bal.get(to) || 0n) + v);
     }
   }
-  const skip = new Set([c.pool, CFG.locker, DEAD, ZERO, ...CFG.factories, ...(desk ? [desk] : [])]);
+  const skip = new Set([c.pool, CFG.pm, CFG.locker, DEAD, ZERO, ...CFG.factories, ...(desk ? [desk] : [])]);
   const holders = [...bal.entries()].filter(([a, v]) => v > 0n && !skip.has(a)).sort((x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0));
   const supply = c.sup ? BigInt(Math.round(c.sup)) * 10n ** BigInt(c.dec || 18) : null;
   const top = holders.slice(0, 10).reduce((t, [, v]) => t + v, 0n);
@@ -425,7 +535,7 @@ const round3 = (x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, M
 async function deskInfo(desk, key, nowS) {
   const r = await ethCalls([
     { to: CFG.weth, data: SEL.balanceOf + pad(desk) }, { to: desk, data: SEL.paused }, { to: desk, data: SEL.maxTrade }, { to: desk, data: SEL.dailyCap },
-    { to: desk, data: SEL.spent }, { to: desk, data: SEL.day }, { to: desk, data: SEL.operator },
+    { to: desk, data: SEL.spent }, { to: desk, data: SEL.day }, { to: desk, data: SEL.operator }, { to: desk, data: SEL.pm },
   ]);
   if (!r[6]) return null;
   const n = (i) => (r[i] ? BigInt(r[i]) : 0n);
@@ -434,7 +544,8 @@ async function deskInfo(desk, key, nowS) {
   const op = wA(r[6], 0);
   const cashEth = ethOf(n(0));
   return { cashEth, cash: cashEth * ETHUSD, paused: n(1) === 1n, maxTradeRaw: n(2), dailyLeftRaw: left > 0n ? left : 0n,
-    maxTrade: ethOf(n(2)) * ETHUSD, dailyLeft: ethOf(left > 0n ? left : 0n) * ETHUSD, operator: op, operatorOk: !!key && addressOfKey(key) === op };
+    maxTrade: ethOf(n(2)) * ETHUSD, dailyLeft: ethOf(left > 0n ? left : 0n) * ETHUSD, operator: op, operatorOk: !!key && addressOfKey(key) === op,
+    v2: !!r[7] && wA(r[7], 0) === CFG.pm }; // ArciaDeskRH2 (any launch, v3 + v4); the first desk traded pons v3 pools only
 }
 async function balancesOf(desk, tokens) {
   const r = await ethCalls(tokens.map((t) => ({ to: t, data: SEL.balanceOf + pad(desk) }))).catch(() => []);
@@ -550,9 +661,8 @@ export async function tick(st, opts = {}) {
     const today = dayOf(nowS);
     const desk = CFG.desk(), key = CFG.key();
     let D = desk ? await deskInfo(desk, key, nowS).catch(() => null) : null;
-    const live = !!(D && D.operatorOk);
-    S.mode = live ? "live" : desk ? "paper (the desk key isn't the operator)" : "paper";
-    if (desk && !D) S.mode = "paper (couldn't read the desk)";
+    const live = !!(D && D.operatorOk && D.v2);
+    S.mode = live ? "live" : !desk ? "paper" : !D ? "paper (couldn't read the desk)" : !D.v2 ? "paper (the desk contract is the first, pons-only one — deploy ArciaDeskRH2)" : "paper (the desk key isn't the operator)";
 
     // ---- the daily job, on the first tick of a new UTC day
     if (S.day && S.day !== today && !opts.skipDaily) {
@@ -573,6 +683,7 @@ export async function tick(st, opts = {}) {
     // ---- 1–2. discover, read the chain, the market and the scanner
     S.lastBlock = latest.number;
     out.discovered = (await discover(S, C, latest, left)).length;
+    if (left() > 30000) out.discovered += await dexFeed(S, C, latest, fetchJson, left, nowS).catch(() => 0);
     await readSwaps(S, C, latest, left);
     const liveC = Object.values(C).filter((c) => c.ok === 1);
     await readPrices(liveC);
@@ -682,7 +793,7 @@ export async function tick(st, opts = {}) {
       const minOut = q == null ? 0n : (q * ladder[step]) / 100n;
       if (q == null && !s.urgent) return false;
       txs++;
-      const r = await sendTx({ to: desk, data: SEL.sell + pad(p.pool) + u(amt) + u(minOut), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const r = await sendTx({ to: desk, data: sellData(p.pool, amt, minOut), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
       if (!r.ok || !tl) { p.sellFails = (p.sellFails || 0) + 1; out.errors.push(`sell ${p.sym}: ${r.err || (r.ok === null ? "no receipt yet" : "reverted")}`); if (s.urgent) alarm(`ARCIA DESK (Robinhood): trying to get out of ${p.sym} (${s.why}) — sell failed ${p.sellFails}×`); return false; }
       p.sellFails = 0;
@@ -775,7 +886,7 @@ export async function tick(st, opts = {}) {
     // exact round-trip cost at trade size, for the ones that triggered (the desk's quote; paper-only: estimated)
     const size0 = live ? B.tradeSize(equity, S.cash) || B.RISK.minTrade : 5;
     if (want.length) {
-      if (desk) {
+      if (desk && D && D.v2) {
         const need = want.filter((w) => !w.c.rt || nowS - w.c.rt.at > 120);
         const w0 = weiOf(size0, null);
         const q = await callsRaw(need.map((w) => rtCall(desk, w.c.pool, w0)));
@@ -831,7 +942,7 @@ export async function tick(st, opts = {}) {
       const qb = decodeQuote((await callsRaw([quoteCall(desk, p.pool, true, wei)]))[0]);
       if (qb == null || qb === 0n) continue;
       txs++;
-      const r = await sendTx({ to: desk, data: SEL.buy + pad(p.pool) + u(wei) + u((qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const r = await sendTx({ to: desk, data: buyData(p.pool, wei, (qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
       if (!tl) { out.errors.push(`dca ${p.sym}: ${r.err || "reverted"}`); continue; }
       p.tokens = (BigInt(p.tokens) + tl.amountOut).toString(); p.basis += size; p.basisEth = (p.basisEth || 0) + ethOf(wei); p.usdIn += size;
@@ -854,7 +965,7 @@ export async function tick(st, opts = {}) {
       const qb = decodeQuote((await callsRaw([quoteCall(desk, p.pool, true, wei)]))[0]);
       if (qb == null || qb === 0n) continue;
       txs++;
-      const r = await sendTx({ to: desk, data: SEL.buy + pad(p.pool) + u(wei) + u((qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const r = await sendTx({ to: desk, data: buyData(p.pool, wei, (qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
       if (!tl) { out.errors.push(`add ${p.sym}: ${r.err || "reverted"}`); p.added = { kind: k, failed: true, ts: nowS }; continue; }
       p.tokens = (BigInt(p.tokens) + tl.amountOut).toString(); p.basis += size; p.basisEth = (p.basisEth || 0) + ethOf(wei); p.usdIn += size;
@@ -895,7 +1006,7 @@ export async function tick(st, opts = {}) {
       const qb = decodeQuote((await callsRaw([quoteCall(desk, c.pool, true, wei)]))[0]);
       if (qb == null || qb === 0n) { rejects.push({ ts: nowS, t: c.t, sym: c.sym, pb, why: ["no buy quote at trade size"] }); continue; }
       txs++;
-      const r = await sendTx({ to: desk, data: SEL.buy + pad(c.pool) + u(wei) + u((qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
+      const r = await sendTx({ to: desk, data: buyData(c.pool, wei, (qb * 95n) / 100n), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
       if (r.ok === false || (r.ok && !tradeLog(r.receipt, desk))) { out.errors.push(`buy ${c.sym}: ${r.err || "reverted"}`); S.cool[c.t] = nowS + 900; continue; }
       const tl = r.ok ? tradeLog(r.receipt, desk) : null;
       const tokens = tl ? tl.amountOut : qb;
@@ -1062,7 +1173,7 @@ async function daily(st, S, { yday, nowS, ask }) {
   try {
     const askFn = ask || (await import("./_arcia-brain.mjs")).askClaude;
     text = await askFn({ L: null, maxTokens: 350, messages: [{ role: "user", content:
-      `You are ARCIA writing the daily journal of your trading desk on Robinhood Chain (new pons launches, money in ETH) for ${yday} (UTC). Write 4–6 short sentences in first person, plain English, honest and calm: what you traded, what worked, what didn't, what you're changing. No hype, no promises, no advice to anyone, no emojis. Numbers only from this data:\n` +
+      `You are ARCIA writing the daily journal of your trading desk on Robinhood Chain (new launches there, money in ETH) for ${yday} (UTC). Write 4–6 short sentences in first person, plain English, honest and calm: what you traded, what worked, what didn't, what you're changing. No hype, no promises, no advice to anyone, no emojis. Numbers only from this data:\n` +
       JSON.stringify({ stats, lessons, best: closedY.slice().sort((a, b) => b.ret - a.ret).slice(0, 3).map((r) => ({ sym: r.sym, pb: r.pb, ret: r.ret, real: r.real, why: r.why })), worst: closedY.slice().sort((a, b) => a.ret - b.ret).slice(0, 3).map((r) => ({ sym: r.sym, pb: r.pb, ret: r.ret, real: r.real, why: r.why })), exitChanges: changes, warmupLeft: Math.max(0, (S.learn.warmup || 25) - S.stats.realClosed) }) }] });
   } catch { text = null; }
   const entry = { day: yday, text: text ? String(text).slice(0, 1400) : null, lessons, stats, changes };
@@ -1101,12 +1212,13 @@ export async function view(st) {
   const wk = ((rec && rec.items) || []).filter((r) => r.real && r.exitTs >= (S.lastTick || 0) - 7 * 86400);
   // on-chain proof: the desk contract's WETH, read now (cash the page shows is the tick's figure)
   const px = S.ethUsd || 0;
-  let chainWeth = null, caps = null, owner = null, paused = null;
+  let chainWeth = null, caps = null, owner = null, paused = null, deskV2 = null;
   if (CFG.desk()) {
     try {
-      const [h, mt, dc, ow, pz] = await ethCalls([{ to: CFG.weth, data: SEL.balanceOf + pad(CFG.desk()) }, { to: CFG.desk(), data: SEL.maxTrade }, { to: CFG.desk(), data: SEL.dailyCap },
-        { to: CFG.desk(), data: SEL.owner }, { to: CFG.desk(), data: SEL.paused }]);
+      const [h, mt, dc, ow, pz, pm] = await ethCalls([{ to: CFG.weth, data: SEL.balanceOf + pad(CFG.desk()) }, { to: CFG.desk(), data: SEL.maxTrade }, { to: CFG.desk(), data: SEL.dailyCap },
+        { to: CFG.desk(), data: SEL.owner }, { to: CFG.desk(), data: SEL.paused }, { to: CFG.desk(), data: SEL.pm }]);
       if (h) chainWeth = r2(ethOf(BigInt(h)), 8);
+      deskV2 = !!pm && wA(pm, 0) === CFG.pm;
       if (ow) owner = wA(ow, 0);
       if (pz) paused = BigInt(pz) === 1n;
       // the contract's limits in dollars (at the last ETH price) and in ETH; null = no limit
@@ -1149,7 +1261,7 @@ export async function view(st) {
     `Every trade on-chain: arcircle.app/arc#desk?chain=rh`,
   ].filter(Boolean).join("\n") : null;
   return {
-    v: DESK_VERSION, brain: B.BRAIN_VERSION, net: CHAIN, unit: "ETH", ethUsd: S.ethUsd || null, explorer: "https://robinhoodchain.blockscout.com", mode: S.mode || "paper", desk: CFG.desk(), owner, paused, updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
+    v: DESK_VERSION, brain: B.BRAIN_VERSION, net: CHAIN, unit: "ETH", ethUsd: S.ethUsd || null, explorer: "https://robinhoodchain.blockscout.com", mode: S.mode || "paper", desk: CFG.desk(), deskV2, owner, paused, updated: S.lastTick || null, tickMs: S.lastDur || null, lastErr: S.lastErr || null, notes: (S.notes || []).slice(0, 8),
     ai: AI.aiEnabled(), reviews: ((rvw && rvw.items) || []).slice(0, 10),
     money: { cash: r2(S.cash, 4), equity: S.eq, netIn: r2(S.netIn, 4), pnl: r2(pnl, 4), pnlPct: S.netInEth > 0 ? r2((pnlEthOf(S) / S.netInEth) * 100) : null, burnedUsd: 0, burnedTok: 0, hwm: r2(S.hwm, 4), dayStart: S.dayStartEq, flows: (S.flows || []).slice(0, 10),
       cashEth: r2(S.cashEth, 8), equityEth: r2(S.eqEth, 8), netInEth: r2(S.netInEth, 8), pnlEth: r2(pnlEthOf(S), 8), pnlPctEth: S.netInEth > 0 ? r2((pnlEthOf(S) / S.netInEth) * 100) : null },
@@ -1184,7 +1296,7 @@ export async function view(st) {
     },
     // how far discovery has read, for checking it's keeping up
     sync: { disc: S.disc || null, spb: S.spb || null, from: S.hi0 || null, block: S.hi || null, latest: S.lastBlock || null, swaps: S.swHi || null, pools: Object.values(C).filter((c) => c.ok === 1).length, pending: Object.values(C).filter((c) => c.ok == null).length, err: S.discErr || null },
-    watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: false, top10: c.scan ? c.scan.top10 ?? null : null,
+    watching: Object.values(C).filter((c) => c.ok === 1).sort((a, b) => b.ts - a.ts).slice(0, 12).map((c) => ({ t: c.t, sym: c.sym, ts: c.ts, v: c.v || 3, dex: c.src === "dex", px: c.px ? Number(c.px.toPrecision(6)) : null, score: c.scan ? c.scan.score ?? null : null, crit: c.scan && c.scan.crit ? c.scan.crit.length : 0, own: false, top10: c.scan ? c.scan.top10 ?? null : null,
       paid: !!c.paid, links: (() => { const l = linksOf(c); return { web: !!l.web, x: !!l.x, tg: !!l.tg }; })(), reused: !!c.reused })),
     settings: { values: SET, defaults: B.SETTINGS_DEFAULTS, bounds: B.SET_BOUNDS, by: (sv && sv.by) || null, at: (sv && sv.at) || null },
     risk: { exposure, cohorts, ramp, burn: burnGauge, replay: replayG, postDraft },

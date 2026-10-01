@@ -5455,7 +5455,7 @@
     "In the contract's Write tab on the explorer, from the owner wallet: withdrawETH (always to the owner), setPaused, setCaps (in wei).": "在浏览器合约的 Write 标签页中，用所有者钱包操作：withdrawETH（总是转给所有者）、setPaused、setCaps（以 wei 为单位）。",
     "Open the contract": "打开合约",
     "Utility · ARCIA trades on Arc and Robinhood Chain": "工具 · ARCIA 在 Arc 和 Robinhood Chain 上交易",
-    "ARCIA trades new coins — Argus launches on Arc, pons launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA 用自己的小钱包交易新币——Arc 上的 Argus 新币和 Robinhood Chain 上的 pons 新币——并从每笔交易中学习。每一笔买卖都是链上交易，发生时即在此显示；在 Arc 上，每天新增利润的一部分会买入并销毁 $ARCIRCLE。",
+    "ARCIA trades new coins — Argus launches on Arc, new launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.": "ARCIA 用自己的小钱包交易新币——Arc 上的 Argus 新币和 Robinhood Chain 上的新发行币——并从每笔交易中学习。每一笔买卖都是链上交易，发生时即在此显示；在 Arc 上，每天新增利润的一部分会买入并销毁 $ARCIRCLE。",
     "today's limit is used up — buying again after 00:00 UTC": "今天的额度已用完——00:00 UTC 后再买入",
     "the per-buy limit is under the $0.50 minimum": "单次限额低于最低 $0.50",
     "Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund": "粘贴一个 Arc 代币：她读取它、给出 24 小时安全判断，并用任何人都能充值的金库回购销毁",
@@ -5478,6 +5478,11 @@
     "Enter both limits in ETH.": "请以 ETH 输入两个限额。",
     "position is open — its coins aren't ETH yet. Pause first and wait for it to close to take everything out.": "个仓位未平——它的代币还不是 ETH。要全部取出，请先暂停并等它平仓。",
     "positions are open — their coins aren't ETH yet. Pause first and wait for them to close to take everything out.": "个仓位未平——它们的代币还不是 ETH。要全部取出，请先暂停并等它们平仓。",
+    "ETH · new launches": "ETH · 新发行",
+    "new Robinhood Chain launches": "Robinhood Chain 新发行",
+    "No new launches in the last three days yet.": "最近三天还没有新发行。",
+    "Before every buy the desk buys and sells straight back in a dry run: a token that taxes or can't be sold back shows there and isn't bought": "每次买入前，交易台都会模拟买入后立即卖回：收税或无法卖回的代币会在这里暴露，不会被买入",
+    "Any new coin launched on Robinhood Chain — the new pairs Dexscreener lists there (pools.trade, Bags, pons and others): Uniswap v4 pools paired with ETH and v3 pools paired with WETH": "Robinhood Chain 上任何新发行的币 —— Dexscreener 上列出的新交易对（pools.trade、Bags、pons 等）：与 ETH 配对的 Uniswap v4 池和与 WETH 配对的 v3 池",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

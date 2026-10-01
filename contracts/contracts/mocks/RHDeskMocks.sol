@@ -64,3 +64,27 @@ contract V3Helper {
         if (a1 > 0) IERC20(IV3PoolMint(msg.sender).token1()).transferFrom(payer, msg.sender, uint256(a1));
     }
 }
+
+/// test-only: a honeypot — only approved senders can move it, so whoever buys can never send it back to sell
+contract MockHoneyToken is ERC20 {
+    mapping(address => bool) public free;
+    constructor() ERC20("Honey", "HONEY") { free[msg.sender] = true; _mint(msg.sender, 1e30); }
+    function setFree(address a, bool f) external { free[a] = f; }
+    function _update(address from, address to, uint256 value) internal override {
+        if (from != address(0) && !free[from]) revert("honeypot");
+        super._update(from, to, value);
+    }
+}
+
+/// test-only: a transfer-tax token (bps burned on every transfer) whose deployer is exempt, like most tax tokens
+contract MockFeeToken is ERC20 {
+    uint256 public immutable bps;
+    address public immutable dev;
+    constructor(uint256 _bps) ERC20("Fee", "FEE") { bps = _bps; dev = msg.sender; _mint(msg.sender, 1e30); }
+    function _update(address from, address to, uint256 value) internal override {
+        if (from == address(0) || to == address(0) || from == dev || to == dev) return super._update(from, to, value);
+        uint256 cut = (value * bps) / 10000;
+        super._update(from, address(0xdead), cut);
+        super._update(from, to, value - cut);
+    }
+}

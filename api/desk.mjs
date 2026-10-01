@@ -14,7 +14,7 @@
 //   GET /api/desk?agent=take&t=0x…       ARCIA's words on a token (after its report; Claude, cached an hour)
 //   POST /api/desk {action:"agent-mode", vault, mode, issued, signature}   a vault owner's strategy (dip / steady / volume)
 //   GET /api/desk?agenttick=1&key=<CRON_SECRET>   grade calls + work the vaults (also runs after every desk tick)
-// ARCIA DESK on Robinhood Chain (pons launches; the engine is api/_desk-rh.mjs): the same routes with &chain=rh —
+// ARCIA DESK on Robinhood Chain (every new launch there; the engine is api/_desk-rh.mjs): the same routes with &chain=rh —
 //   GET /api/desk?chain=rh · ?chain=rh&day=… · ?chain=rh&tick=1&key=<CRON_SECRET> (its own cron-job.org entry, every minute)
 //   POST {action:"settings", chain:"rh", …} (signed by the RH desk contract's owner)
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.

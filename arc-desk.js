@@ -14,7 +14,7 @@
 // History / Playbooks / Learning / Rules), more KPIs (today, trading costs, best / worst, Claude's vetoes),
 // daily P&L calendar, drawdown, "every setup" baseline, playbook leaderboard with benched playbooks,
 // a trade drawer, what happened after she passed, the on-chain cash check, the next burn, toasts.
-// v3 (1 Oct 2026): two desks — Arc (USDC, Argus launches) and Robinhood Chain (ETH, pons launches; /api/desk?chain=rh),
+// v3 (1 Oct 2026): two desks — Arc (USDC, Argus launches) and Robinhood Chain (ETH, every new launch there: v4 + v3; /api/desk?chain=rh),
 // switched at the top or by #desk?chain=rh; the Robinhood one shows ETH beside dollars, no burn, and its owner panel
 // points to the chain (a plain ETH send to deposit, the explorer's Write tab for withdraw / pause / limits).
 (function () {
@@ -27,7 +27,7 @@
   const T = (s) => esc(tr(s));
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // the desk shown: Arc (USDC, Argus launches) or Robinhood Chain (ETH, pons launches) — #desk / #desk?chain=rh
+  // the desk shown: Arc (USDC, Argus launches) or Robinhood Chain (ETH, new launches) — #desk / #desk?chain=rh
   const EXPL = (kind, x) => `${(S.d && S.d.net === "rh" && S.d.explorer) || (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
   const isRH = () => S.net === "rh";
   const netFromHash = () => (/^#desk\?(?:.*&)?chain=rh\b/.test(location.hash) ? "rh" : /^#desk\b/.test(location.hash) && /chain=arc\b/.test(location.hash) ? "arc" : null);
@@ -81,7 +81,7 @@
     const tab = (k, label) => `<button type="button" role="tab" data-dk-view="${k}" aria-selected="${S.view === k}">${T(label)}</button>`;
     const nb = (k, label, sub) => `<button type="button" role="tab" data-dk-net="${k}" aria-selected="${S.net === k}"><b>${T(label)}</b><small>${T(sub)}</small></button>`;
     $("dk-body").innerHTML = `
-      <div class="dk-net" role="tablist" aria-label="${T("Which desk")}">${nb("arc", "Arc", "USDC · Argus launches")}${nb("rh", "Robinhood Chain", "ETH · pons launches")}</div>
+      <div class="dk-net" role="tablist" aria-label="${T("Which desk")}">${nb("arc", "Arc", "USDC · Argus launches")}${nb("rh", "Robinhood Chain", "ETH · new launches")}</div>
       <div class="dk-health" id="dk-health" hidden></div>
       <div class="dk-hero2" id="dk-hero2"></div>
       <div class="dk-status" id="dk-status"></div>
@@ -98,7 +98,7 @@
           <div class="dk-side">
             <div class="ams-card dk-riskc"><div class="dk-h"><h3>${T("Risk now")}</h3><span class="dk-sub">${T("how much a buy spends, and why")}</span></div><div id="dk-risk"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Better than taking every setup?")}</h3></div><div id="dk-base"></div></div>
-            <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T(isRH() ? "new pons launches" : "new Argus launches")}</span></div><div id="dk-watch"></div></div>
+            <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T(isRH() ? "new Robinhood Chain launches" : "new Argus launches")}</span></div><div id="dk-watch"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Passed on")}</h3><span class="dk-sub" id="dk-rej-sub">${T("and what happened next")}</span></div><div id="dk-rej"></div></div>
             <div class="ams-card"${isRH() ? " hidden" : ""}><div class="dk-h"><h3>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
           </div>
@@ -957,7 +957,7 @@
   };
   function watch(d) {
     const el = $("dk-watch");
-    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T(d.net === "rh" ? "No pons launches in the last three days yet." : "No Argus launches in the last three days yet.")}</div>`; return; }
+    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T(d.net === "rh" ? "No new launches in the last three days yet." : "No Argus launches in the last three days yet.")}</div>`; return; }
     el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${d.net === "rh" ? (c.top10 != null ? `${tr("top 10")} ${c.top10}%` : "—") : c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
   }
   function rej(d) {
@@ -1008,7 +1008,7 @@
           <li>${T(d.net === "rh" ? "Holders read from every transfer since launch (young tokens)" : "No Token Scanner critical flag")}</li><li>${T("Launched at least")} <span data-no-i18n>${g.minAgeMin}</span> ${T("minutes ago, at most 3 days")}</li>
           <li>${T("Liquidity at least")} <span data-no-i18n>$${g.minLiq}</span></li><li>${T("A buy and an immediate sell lose at most")} <span data-no-i18n>${g.maxRoundTrip}%</span></li>
           <li>${T("Taxes at most")} <span data-no-i18n>${g.maxTax}%</span> · ${T("top 10 wallets at most")} <span data-no-i18n>${g.maxTop10}%</span></li>
-          <li>${T(d.net === "rh" ? "pons tokens are the factory's own fixed-supply tokens — no taxes, no owner switches, nothing that can block selling; what's left is who holds them" : "Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
+          <li>${T(d.net === "rh" ? "Before every buy the desk buys and sells straight back in a dry run: a token that taxes or can't be sold back shows there and isn't bought" : "Token Scanner: shown and learned from, but only a critical flag blocks a buy (an Argus launch can't block selling)")}</li>
           ${d.rules.realGates ? `<li>${T("Real money only: price at most")} <span data-no-i18n>${d.rules.realGates.maxFloorX}×</span> ${T("its launch floor (the pump scalp:")} <span data-no-i18n>${sv.scalpFloorX}×</span>${T("), a top-10 dump under")} <span data-no-i18n>${d.rules.realGates.maxDump}%</span> ${T("(the pump scalp:")} <span data-no-i18n>${sv.scalpMaxDump}%</span>)${T(", and never a token with a critical flag in the last 6 hours")}</li>` : ""}
           ${d.rules.ai ? `<li>${T("A second opinion from Claude before every real buy — it can only say no")}</li>` : ""}</ul></div>
         <div><b>${T("Money limits")}</b><ul>
@@ -1019,7 +1019,7 @@
           <li>${T("Down")} <span data-no-i18n>${r.dailyLossPct}%</span> ${T("in a day: no new trades until the next day")}</li>
           ${r.lowCapUsd ? `<li>${T("Under a")} <span data-no-i18n>$${(r.lowCapUsd / 1000).toFixed(0)}k</span> ${T("market cap, never held longer than")} <span data-no-i18n>${r.lowCapMin}</span> ${T("minutes (crash-buy DCA: under $10k, 1 hour)")}</li>` : ""}<li>${T("Contract limits")}: ${(() => { const c = d.rules.caps; if (!c) return T("each buy and each day's buys are capped; only the owner can withdraw"); const v = (x, e) => (x === null ? T("no limit") : x === undefined ? "—" : `<span data-no-i18n>$${Number(x).toLocaleString("en-US")}${e != null ? ` (${eth(e, 6)})` : ""}</span>`); return `${T("per buy")} ${v(c.perBuy, c.perBuyEth)} · ${T("per day")} ${v(c.perDay, c.perDayEth)} · ${T("only the owner can withdraw")}`; })()}</li></ul></div>
         <div><b>${T("What it trades")}</b><ul>
-          ${d.net === "rh" ? `<li>${T("Only new coins launched on pons (Robinhood Chain), in their Uniswap v3 pools paired with WETH")}</li><li>${T("The money is held as ETH (WETH): returns and the day's result are counted in ETH, so ETH's own price moves aren't wins or losses; dollars are shown at the current ETH price")}</li><li>${T("No burn on this chain")}</li>`
+          ${d.net === "rh" ? `<li>${T("Any new coin launched on Robinhood Chain — the new pairs Dexscreener lists there (pools.trade, Bags, pons and others): Uniswap v4 pools paired with ETH and v3 pools paired with WETH")}</li><li>${T("The money is held as ETH (WETH): returns and the day's result are counted in ETH, so ETH's own price moves aren't wins or losses; dollars are shown at the current ETH price")}</li><li>${T("No burn on this chain")}</li>`
             : `<li>${T("Only new coins launched on Argus, paired with USDC")}</li><li>${T("Never $ARCIRCLE itself")}</li>
           <li>${d.rules.tradeArcPad ? T("ArcPad's own Argus launches are included") : T("Not ArcPad's own Argus launches — the platform earns their fees")}</li>`}<li>${T("No message, chat or command can make it trade")}</li></ul></div>
       </div>
