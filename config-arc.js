@@ -179,6 +179,8 @@ const CONFIG = {
   // ARCIRCLE Orders (contracts/contracts/ArcircleOrders.sol, arc-orders.js): empty = preview until it's deployed on Arc.
   // Keep api/_orders.mjs CFG.address in step.
   ORDERS_ADDRESS: "",
+  ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
+  ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.

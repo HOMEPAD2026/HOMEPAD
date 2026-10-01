@@ -12846,3 +12846,6 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 }
 @media (max-width:720px){ #bp-panel-orders.active .aor-dock{margin-right:56px;} }
 #bp-panel-orders [hidden]{display:none !important;}
+.aor-free{margin-top:4px;padding:6px 9px;border-radius:8px;font-size:.66rem;line-height:1.45;color:#c9d4de;background:rgba(57,255,136,.05);border:1px dashed rgba(57,255,136,.28);}
+.aor-free b{font-family:var(--or-mono);color:#7dffb8;}
+.aor-free a{color:#7dffb8;text-decoration:none;font-weight:700;margin-left:2px;}

@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790871956"></script>
+<script src="arc-log.js?v=1790872780"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790871956">
+<link rel="stylesheet" href="style.css?v=1790872780">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1529,7 +1529,7 @@
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Limit orders on Arc</span>
             <h1>ARCIRCLE Orders <span class="asc-ver" title="New">New<i>Limit · stop · TP/SL · DCA</i></span></h1>
-            <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee.</p>
+            <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee — none at all for holders of 100,000 $ARCIRCLE or more.</p>
           </div>
         </div>
         <div id="aor-body"></div>
@@ -1554,14 +1554,15 @@
           </details>
           <details><summary><h3>Your tokens stay yours</h3></summary>
             <ul>
-              <li>Placing an order needs one approval for the ARCIRCLE Orders contract and a signature. Nothing leaves your wallet until the order fills.</li>
+              <li>Placing an order needs one approval for the ARCIRCLE Orders contract and a signature. Nothing leaves your wallet until the order fills. If your wallet already approved Uniswap's Permit2 for the token, the approval is a signature too — no gas.</li>
               <li>The contract can only carry out an order you signed, at its price or better, up to its amount. Signatures are never published — the book shows price levels, not orders.</li>
               <li>Cancel is free (a signed message). For a cancel that's final even if this site were offline, cancel on-chain — one order, or every order you've signed with "Cancel all on-chain".</li>
               <li>If your balance or approval drops below an order, it waits as "Needs balance or approval" until you top it up, and fills from where it left off.</li>
             </ul>
           </details>
           <details><summary><h3>Fees and the $ARCIRCLE burn</h3></summary>
-            <p>0.1% of what each side receives, for every order type. Fees go to the ARCIRCLE Orders fee burn: once an hour half of the USDC fees buys $ARCIRCLE and sends it to 0x…dEaD, and the other half goes to the ARCIRCLE PAD treasury; $ARCIRCLE fees are half burned straight away. The burns show on the Reward page as "ARCIRCLE Orders fees".</p>
+            <p>Hold 100,000 $ARCIRCLE or more in the wallet that trades and every order is fee-free — limit, stop, TP / SL, trailing, timed and market alike. It's checked at each fill, on-chain.</p>
+            <p>Everyone else pays 0.1% of what each side receives, for every order type. Fees go to the ARCIRCLE Orders fee burn: once an hour half of the USDC fees buys $ARCIRCLE and sends it to 0x…dEaD, and the other half goes to the ARCIRCLE PAD treasury; $ARCIRCLE fees are half burned straight away. The burns show on the Reward page as "ARCIRCLE Orders fees".</p>
             <p>The pool's own fee (and a token's tax, if it has one) applies when an order fills from the pool — the market bar shows the round-trip cost. Wallet-to-wallet matches don't pay it. The executor pays the gas for every fill except your own market orders.</p>
           </details>
           <details><summary><h3>Privacy, alerts and the executor</h3></summary>
@@ -1868,6 +1869,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790871956"></script>
+<script src="arcpad.bundle.js?v=1790872780"></script>
 </body>
 </html>

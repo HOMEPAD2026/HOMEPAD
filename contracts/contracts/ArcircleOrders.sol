@@ -16,6 +16,16 @@ import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 
+/// Uniswap's Permit2 (AllowanceTransfer): makers who approved Permit2 once can allow this contract with a signature
+interface IPermit2Transfer {
+    function transferFrom(address from, address to, uint160 amount, address token) external;
+}
+
+/// who trades without the fee (ArcircleFeeBurn: holders of enough $ARCIRCLE)
+interface IFeePolicy {
+    function feeFree(address who) external view returns (bool);
+}
+
 /// @title ARCIRCLE Orders — limit, stop and market orders for any token with a Uniswap v4 pool on Arc
 /// @notice Non-custodial. A maker signs an order (EIP-712): "sell `sellAmount` of `sell` for at least `buyAmount` of
 ///         `buy`, after the fee". Their tokens stay in their wallet; the only thing this contract can ever do with
@@ -29,7 +39,9 @@ import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 ///         one to fill takes the group, and the others revert from then on.
 ///         `swapMarket` is a plain market order from the caller's own wallet.
 ///         Every fill pays 0.1% of what each side receives (`FEE_BPS`) to `treasury` — ArcircleFeeBurn, which buys and
-///         burns $ARCIRCLE with part of it and passes the rest to the ARCIRCLE PAD treasury.
+///         burns $ARCIRCLE with part of it and passes the rest to the ARCIRCLE PAD treasury. Whoever `feePolicy` says
+///         is fee-free (holders of enough $ARCIRCLE) pays nothing; the policy can only waive the fee, never raise it.
+///         Tokens are pulled with a plain approval to this contract or, failing that, through Permit2.
 ///         Orders fill in parts; a maker can cancel one order (`cancel`) or all of them at once (`cancelAll`).
 ///         No owner, no admin, no pause, no upgrades.
 contract ArcircleOrders is EIP712, IUnlockCallback {
@@ -64,6 +76,8 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
 
     IPoolManager public immutable poolManager;
     address public immutable treasury;
+    IPermit2Transfer public immutable permit2; // address(0) = plain approvals only
+    IFeePolicy public immutable feePolicy; // address(0) = everyone pays the fee
 
     mapping(bytes32 => uint256) public filled; // of sellAmount
     mapping(bytes32 => bool) public cancelled;
@@ -101,10 +115,12 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         lock = 1;
     }
 
-    constructor(IPoolManager _poolManager, address _treasury) EIP712("ARCIRCLE Orders", "1") {
+    constructor(IPoolManager _poolManager, address _treasury, IPermit2Transfer _permit2, IFeePolicy _feePolicy) EIP712("ARCIRCLE Orders", "1") {
         if (address(_poolManager) == address(0) || _treasury == address(0)) revert ZeroAddress();
         poolManager = _poolManager;
         treasury = _treasury;
+        permit2 = _permit2;
+        feePolicy = _feePolicy;
     }
 
     // ------------------------------------------------------------------ views
@@ -136,6 +152,16 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
     /// @notice The least the maker must receive, after the fee, for `amount` of their order's `sellAmount`.
     function owed(Order calldata o, uint256 amount) public pure returns (uint256) {
         return Math.mulDiv(amount, o.buyAmount, o.sellAmount, Math.Rounding.Ceil);
+    }
+
+    /// @notice The fee on `amount` received by `who`: 0.1%, or nothing if the fee policy says they're fee-free. A policy
+    ///         that reverts or runs out of its gas never blocks a fill — the fee is simply charged.
+    function feeOf(address who, uint256 amount) public view returns (uint256) {
+        if (address(feePolicy) != address(0)) {
+            (bool ok, bytes memory r) = address(feePolicy).staticcall{gas: 60_000}(abi.encodeCall(IFeePolicy.feeFree, (who)));
+            if (ok && r.length >= 32 && abi.decode(r, (bool))) return 0;
+        }
+        return (amount * FEE_BPS) / 10_000;
     }
 
     function domainSeparator() external view returns (bytes32) {
@@ -172,7 +198,7 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
             if (o.triggerBelow ? sqrtP > o.triggerSqrtP : sqrtP < o.triggerSqrtP) revert NotTriggered();
         }
         uint256 fee;
-        (net, fee) = _swapFor(o.maker, key, o.sell, o.buy, amount);
+        (net, fee) = _swapFor(o.maker, key, o.sell, o.buy, amount, o.maker);
         uint256 need = owed(o, amount);
         if (net < need) revert PriceNotMet(net, need);
         _pay(o.buy, o.maker, net, fee);
@@ -189,8 +215,8 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         bytes32 hb = _take(b, sb, bAmount);
         uint256 gotA = _pull(a.sell, a.maker, aAmount); // what arrived of a.sell (= b.buy)
         uint256 gotB = _pull(b.sell, b.maker, bAmount); // what arrived of b.sell (= a.buy)
-        uint256 feeToA = (gotB * FEE_BPS) / 10_000;
-        uint256 feeToB = (gotA * FEE_BPS) / 10_000;
+        uint256 feeToA = feeOf(a.maker, gotB);
+        uint256 feeToB = feeOf(b.maker, gotA);
         uint256 netA = gotB - feeToA;
         uint256 netB = gotA - feeToB;
         uint256 needA = owed(a, aAmount);
@@ -208,7 +234,7 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
     function swapMarket(PoolKey calldata key, address sell, address buy, uint256 amountIn, uint256 minNet) external once returns (uint256 net) {
         _pairOf(key, sell, buy);
         uint256 fee;
-        (net, fee) = _swapFor(msg.sender, key, sell, buy, amountIn);
+        (net, fee) = _swapFor(msg.sender, key, sell, buy, amountIn, msg.sender);
         if (net < minNet) revert PriceNotMet(net, minNet);
         _pay(buy, msg.sender, net, fee);
         emit Filled(bytes32(0), msg.sender, sell, buy, amountIn, net, fee, VIA_MARKET);
@@ -249,16 +275,22 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         if (!((c0 == sell && c1 == buy) || (c0 == buy && c1 == sell))) revert WrongPair();
     }
 
-    /// pulls from `from` and returns what actually arrived (a token with a transfer tax delivers less)
+    /// pulls from `from` — with their approval to this contract, else through Permit2 — and returns what actually
+    /// arrived (a token with a transfer tax delivers less)
     function _pull(address token, address from, uint256 amount) internal returns (uint256) {
         uint256 b0 = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransferFrom(from, address(this), amount);
+        if (address(permit2) == address(0) || IERC20(token).allowance(from, address(this)) >= amount) {
+            IERC20(token).safeTransferFrom(from, address(this), amount);
+        } else {
+            if (amount > type(uint160).max) revert OverFill(amount);
+            permit2.transferFrom(from, address(this), uint160(amount), token);
+        }
         return IERC20(token).balanceOf(address(this)) - b0;
     }
 
     /// pulls `amount` of `sell` from `from`, swaps what arrived through `key`, refunds any input the pool didn't use;
     /// returns (net to the receiver, fee) of `buy`
-    function _swapFor(address from, PoolKey calldata key, address sell, address buy, uint256 amount) internal returns (uint256 net, uint256 fee) {
+    function _swapFor(address from, PoolKey calldata key, address sell, address buy, uint256 amount, address payee) internal returns (uint256 net, uint256 fee) {
         uint256 got = _pull(sell, from, amount);
         uint256 s0 = IERC20(sell).balanceOf(address(this));
         uint256 b0 = IERC20(buy).balanceOf(address(this));
@@ -266,7 +298,7 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         uint256 used = s0 - IERC20(sell).balanceOf(address(this));
         if (used < got) IERC20(sell).safeTransfer(from, got - used);
         uint256 out = IERC20(buy).balanceOf(address(this)) - b0;
-        fee = (out * FEE_BPS) / 10_000;
+        fee = feeOf(payee, out);
         net = out - fee;
     }
 

@@ -31,6 +31,8 @@
   const ARCIRCLE = () => lc(CFG().ARCIRCLE_TOKEN || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7");
   const CHAIN = () => Number(CFG().CHAIN_ID_DECIMAL || 5042);
   const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951";
+  const PERMIT2 = () => lc(CFG().ORDERS_PERMIT2 || "0x000000000022D473030F116dDEE9F6B43aC78BA3");
+  const FREE_HOLD = () => Number(CFG().ORDERS_FREE_HOLD || 100000); // $ARCIRCLE held for no fee (the contract's policy has the real number)
   const EXPL = (kind, x) => `${CFG().BLOCK_EXPLORER || "https://arc.etherscan.io"}/${kind}/${x}`;
   const txa = (h, label) => (h ? `<a class="aor-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
   const API = "/api/social";
@@ -83,8 +85,10 @@
   const ORDERS_ABI = [
     "function epochOf(address) view returns (uint32)", `function cancel(${ORDER_T})`, "function cancelAll()",
     `function swapMarket(${KEY_T},address,address,uint256,uint256) returns (uint256)`, `function quote(${KEY_T},address,uint256)`,
-    "error QuoteResult(uint256 out)",
+    "error QuoteResult(uint256 out)", "function feeOf(address,uint256) view returns (uint256)", "function feePolicy() view returns (address)",
   ];
+  const P2_ABI = ["function allowance(address,address,address) view returns (uint160 amount, uint48 expiration, uint48 nonce)"];
+  const P2_TYPES = { PermitDetails: [{ name: "token", type: "address" }, { name: "amount", type: "uint160" }, { name: "expiration", type: "uint48" }, { name: "nonce", type: "uint48" }], PermitSingle: [{ name: "details", type: "PermitDetails" }, { name: "spender", type: "address" }, { name: "sigDeadline", type: "uint256" }] };
   const ERC20 = ["function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)", "function balanceOf(address) view returns (uint256)"];
   const TYPES = { Order: [["maker", "address"], ["sell", "address"], ["buy", "address"], ["sellAmount", "uint256"], ["buyAmount", "uint256"], ["triggerSqrtP", "uint160"], ["triggerBelow", "bool"], ["poolId", "bytes32"], ["expiry", "uint64"], ["start", "uint64"], ["duration", "uint32"], ["group", "uint256"], ["epoch", "uint32"], ["salt", "uint256"]].map(([name, type]) => ({ name, type })) };
   const IFACE = () => new ethers.Interface(ORDERS_ABI);
@@ -359,6 +363,20 @@
     try {
       const [bt, bq] = await Promise.all([S.tok.address, S.quote.address].map((t) => new ethers.Contract(t, ERC20, prov).balanceOf(a)));
       S.bal = { [S.tok.address]: bt, [S.quote.address]: bq };
+    } catch { /* keep */ }
+    loadFee();
+  }
+  /// fee-free? (the contract's feeOf) and the threshold (its policy's discountMin)
+  async function loadFee() {
+    const a = me();
+    if (!LIVE() || !a) { S.feeFree = false; return; }
+    try {
+      const c = new ethers.Contract(ORDERS(), ORDERS_ABI, rp());
+      const [f, pol] = await Promise.all([c.feeOf(a, 10000n), S.freeMin ? null : c.feePolicy().catch(() => null)]);
+      const was = S.feeFree;
+      S.feeFree = f === 0n;
+      if (pol && pol !== ethers.ZeroAddress) { const m = await new ethers.Contract(pol, ["function discountMin() view returns (uint256)"], rp()).discountMin().catch(() => null); if (m != null) S.freeMin = Number(ethers.formatEther(m)); }
+      if (was !== S.feeFree) { const sum = $("aor-sum"); if (sum) sum.innerHTML = summary(); }
     } catch { /* keep */ }
   }
   async function loadMine() {
@@ -734,7 +752,7 @@
       return { legs: [{ o, body: {} }], kind: taker ? "taker" : "maker", rows: [
         row(buy ? "You pay" : "You sell", `${fmtU(o.sellAmount, buy ? qd : td)} ${sym(buy ? q : tk)}`),
         row("You receive at least", `${fmtU(o.buyAmount, buy ? td : qd)} ${sym(buy ? tk : q)}`),
-        row("Fee", "0.1% · " + tr("of what you receive")),
+        feeRow(),
         ...(S.spot ? [row("vs pool price", pc(((P - S.spot) / S.spot) * 100), "dim")] : []),
       ], warn };
     }
@@ -754,7 +772,7 @@
       if (tax / 2 > slip * 100) warn.push({ k: "slip", t: `${tr("Raise the slippage limit above")} ${(tax / 2).toFixed(1)}% — ${tr("this pool's fee and token tax take that much.")}` });
       return { legs: [{ o, body: { triggerPrice: Pt } }], rows: [
         row(buy ? "You pay up to" : "You sell", `${fmtU(o.sellAmount, buy ? qd : td)} ${sym(buy ? q : tk)}`),
-        row("You receive at least", `${fmtU(o.buyAmount, buy ? td : qd)} ${sym(buy ? tk : q)}`), row("Fee", "0.1% · " + tr("of what you receive")),
+        row("You receive at least", `${fmtU(o.buyAmount, buy ? td : qd)} ${sym(buy ? tk : q)}`), feeRow(),
       ], warn };
     }
     if (ty === "tpsl") {
@@ -772,7 +790,7 @@
         row("You sell", `${fmtU(amt, td)} ${sym(tk)}`),
         row("Take profit: at least", `${fmtU(tpO.buyAmount, qd)} ${q.symbol}`, "up"),
         row("Stop loss: at least", `${fmtU(slO.buyAmount, qd)} ${q.symbol}`, "dn"),
-        row("Fee", "0.1% · " + tr("of what you receive")),
+        feeRow(),
       ], warn };
     }
     if (ty === "trail") {
@@ -784,7 +802,7 @@
       return { legs: [{ o, body: { trail: pct } }], rows: [
         row("You sell", `${fmtU(amt, td)} ${sym(tk)}`), row("Sells when the price falls", `${pct}% ${tr("under its peak")}`),
         ...(S.spot ? [row("Today that's", `${fp(S.spot * (1 - pct / 100))} ${q.symbol}`, "dim")] : []),
-        row("You receive at least", `${fmtU(o.buyAmount, qd)} ${q.symbol}`), row("Fee", "0.1% · " + tr("of what you receive")),
+        row("You receive at least", `${fmtU(o.buyAmount, qd)} ${q.symbol}`), feeRow(),
       ], warn };
     }
     // timed (DCA / TWAP)
@@ -800,27 +818,31 @@
     return { legs: [{ o, body: { parts } }], timed: true, rows: [
       row(buy ? "You spend" : "You sell", `${fmtU(amt, buy ? qd : td)} ${sym(buy ? q : tk)}`),
       row("Each part", `≈ ${num(each)} ${sym(buy ? q : tk)} · ${tr("every")} ${dur / parts >= 3600 ? (dur / parts / 3600).toFixed(1) + "h" : Math.round(dur / parts / 60) + "m"}`),
-      row(buy ? "Never above" : "Never below", `${fp(cap)} ${q.symbol}`), row("Fee", "0.1% · " + tr("of what you receive")),
+      row(buy ? "Never above" : "Never below", `${fp(cap)} ${q.symbol}`), feeRow(),
     ], warn };
   }
+  /// the fee line: 0% for holders of enough $ARCIRCLE (the contract's fee policy), else 0.1% with how to get to 0
+  const feeRow = () => (S.feeFree ? { k: "Fee", v: `0% · ${tr("you hold")} ${num(S.freeMin || FREE_HOLD())}+ $ARCIRCLE`, cls: "up" } : { k: "Fee", v: "0.1% · " + tr("of what you receive"), cls: "", hint: true });
+  const feeHint = () => (S.feeFree ? "" : `<div class="aor-free">${T("Hold")} <b data-no-i18n>${num(S.freeMin || FREE_HOLD())} $ARCIRCLE</b> ${T("and every order is fee-free.")} <a href="#arcircle" data-no-i18n>$ARCIRCLE →</a></div>`);
+  const net = (out) => (S.feeFree ? out : (out * 999n) / 1000n);
   function summary() {
     if (!S.tok) return "";
     const o = build();
-    if (o.err !== undefined) return `<div class="aor-sl"><span>${T("You receive at least")}</span><b>—</b></div><div class="aor-sl"><span>${T("Fee")}</span><b data-no-i18n>0.1%</b></div>`;
+    if (o.err !== undefined) return `<div class="aor-sl"><span>${T("You receive at least")}</span><b>—</b></div><div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}`;
     const sym = (t) => (t === S.tok ? "$" + t.symbol : t.symbol);
     if (o.market) {
       const est = S.quoteOut != null && S.quoteFor === `${o.sell.address}:${o.sellAmount}` ? S.quoteOut : null;
       const impact = est != null && S.spot ? (() => { const inH = human(o.sellAmount, o.sell.decimals), outH = human(est, o.buy.decimals); const px = o.sell === S.quote ? inH / outH : outH / inH; return ((px - S.spot) / S.spot) * 100 * (o.sell === S.quote ? 1 : -1); })() : null;
-      return `<div class="aor-sl"><span>${T("Estimated")}</span><b data-no-i18n>${est != null ? `${fmtU((est * 999n) / 1000n, o.buy.decimals)} ${esc(sym(o.buy))}` : "…"}</b></div>
+      return `<div class="aor-sl"><span>${T("Estimated")}</span><b data-no-i18n>${est != null ? `${fmtU(net(est), o.buy.decimals)} ${esc(sym(o.buy))}` : "…"}</b></div>
         <div class="aor-sl"><span>${T("You receive at least")}</span><b data-no-i18n>${est != null ? `${fmtU(minNet(est, o.slip), o.buy.decimals)} ${esc(sym(o.buy))}` : "—"}</b></div>
         ${impact != null ? `<div class="aor-sl dim"><span>${T("Price impact")}</span><b data-no-i18n class="${impact > 5 ? "warn" : ""}">${pc(impact)}</b></div>` : ""}
-        <div class="aor-sl"><span>${T("Fee")}</span><b data-no-i18n>0.1%</b></div>`;
+        <div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}`;
     }
     const kind = o.kind ? `<div class="aor-kind ${o.kind}"><i></i><span>${T(o.kind === "taker" ? "Fills now (taker)" : "Waits in the book (maker)")}</span>${o.kind === "taker" ? `<button type="button" class="aor-link" data-type="market">${T("Use Market instead")}</button>` : ""}</div>` : "";
-    return kind + o.rows.map((r) => `<div class="aor-sl ${r.cls}"><span>${T(r.k)}</span><b data-no-i18n>${esc(r.v)}</b></div>`).join("") +
+    return kind + o.rows.map((r) => `<div class="aor-sl ${r.cls}"><span>${T(r.k)}</span><b data-no-i18n>${esc(r.v)}</b></div>`).join("") + feeHint() +
       (o.warn || []).map((w) => `<div class="aor-warn">${T(w.t)}</div>`).join("");
   }
-  const minNet = (out, slip) => ((out * 999n) / 1000n) * BigInt(Math.round((1 - slip) * 10000)) / 10000n;
+  const minNet = (out, slip) => (net(out) * BigInt(Math.round((1 - slip) * 10000))) / 10000n;
   let qTimer = 0;
   function requote() {
     clearTimeout(qTimer);
@@ -836,14 +858,30 @@
   }
 
   // ---------------- placing ----------------
-  async function ensureAllowance(s, token, need) {
-    const a = await new ethers.Contract(token.address, ERC20, rp()).allowance(me(), ORDERS());
-    if (a >= need) return false;
+  /// the contract may pull `need` of `token`: already (an approval, or a Permit2 allowance), with a Permit2 signature
+  /// (no gas — for wallets that approved Permit2 before, as Uniswap asks), or with an approval transaction.
+  /// Returns a signed permit to send with the order, or null.
+  async function ensureAllowance(s, token, need, { permitOk = false, until = 0 } = {}) {
+    const c = new ethers.Contract(token.address, ERC20, rp());
+    const a = await c.allowance(me(), ORDERS());
+    if (a >= need) return null;
+    const toP2 = await c.allowance(me(), PERMIT2()).catch(() => 0n);
+    if (toP2 >= need) {
+      const al = await new ethers.Contract(PERMIT2(), P2_ABI, rp()).allowance(me(), token.address, ORDERS()).catch(() => null);
+      if (al && al.amount >= need && Number(al.expiration) > now() + 120) return null;
+      if (permitOk && al) {
+        S.busy = "Sign the Permit2 allowance in your wallet…"; form();
+        const exp = Math.max(now() + 180 * 86400, until + 86400);
+        const permit = { details: { token: token.address, amount: F.approveMore ? (1n << 160n) - 1n : need, expiration: exp, nonce: Number(al.nonce) }, spender: ORDERS(), sigDeadline: exp };
+        const sig = await s.signTypedData({ name: "Permit2", chainId: CHAIN(), verifyingContract: PERMIT2() }, P2_TYPES, permit);
+        return { details: { ...permit.details, amount: permit.details.amount.toString() }, spender: permit.spender, sigDeadline: String(permit.sigDeadline), sig };
+      }
+    }
     S.busy = "Approve in your wallet…"; form();
     const tx = await new ethers.Contract(token.address, ERC20, s).approve(ORDERS(), F.approveMore ? ethers.MaxUint256 : need);
     S.busy = "Waiting for the approval…"; form();
     await tx.wait();
-    return true;
+    return null;
   }
   /// what the maker's other open orders already need from this token (the approval covers them all)
   function openNeed(tokenAddr) {
@@ -892,11 +930,12 @@
         const need = legs.reduce((m, l) => (l.o.sellAmount > m ? l.o.sellAmount : m), 0n);
         const bal = await new ethers.Contract(sellTok.address, ERC20, rp()).balanceOf(maker);
         if (bal < need) throw new Error(tr("Not enough balance for this order."));
-        await ensureAllowance(s, sellTok, need + openNeed(sellTok.address) - (S.editing ? BigInt(S.editing.rem || 0) : 0n));
+        const exp0 = now() + Number(F.expiry || 604800);
+        const permit = await ensureAllowance(s, sellTok, need + openNeed(sellTok.address) - (S.editing ? BigInt(S.editing.rem || 0) : 0n), { permitOk: true, until: b.timed ? Number(legs[0].o.expiry) : exp0 });
         setStep(1);
         const epoch = Number(await new ethers.Contract(ORDERS(), ORDERS_ABI, rp()).epochOf(maker));
         const grp = b.group ? BigInt(ethers.hexlify(ethers.randomBytes(8))) : 0n;
-        const exp = BigInt(now() + Number(F.expiry || 604800));
+        const exp = BigInt(exp0);
         const signed = [];
         for (const [i, l] of legs.entries()) {
           S.busy = legs.length > 1 ? (i ? "Sign the stop-loss in your wallet…" : "Sign the take-profit in your wallet…") : "Sign the order in your wallet…"; form();
@@ -906,7 +945,7 @@
           setStep(1 + i + 1);
         }
         S.busy = "Placing…"; form();
-        for (const x of signed) await post({ action: "orderplace", token: S.t, key: keyOf(p), sig: x.sig, order: jsonOrder(x.order), ...x.body });
+        for (const x of signed) await post({ action: "orderplace", token: S.t, key: keyOf(p), sig: x.sig, order: jsonOrder(x.order), ...x.body, ...(permit ? { permit } : {}) });
         setStep(list.length - (S.editing ? 1 : 0));
         if (S.editing) {
           S.busy = "Sign to cancel the old order…"; form();

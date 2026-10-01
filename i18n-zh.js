@@ -5809,6 +5809,13 @@
     "The executor checks every market every minute. The chip in the market bar shows when it last ran; if a fill keeps failing (a tax or a thin pool), it waits longer between tries.": "执行器每分钟检查所有市场。市场栏的标签显示上次运行时间；若成交持续失败（税或池太浅），会拉长重试间隔。",
     "For bots and builders": "面向机器人和开发者",
     "The book is public: GET /api/social?orders=book&token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain \"ARCIRCLE Orders\", version 1, chain 5042).": "订单簿是公开的：GET /api/social?orders=book&token=0x… 返回价位、最近成交和24小时数据；?orders=markets 列出所有市场；?orders=candles&pool=0x… 提供任意 Arc v4 池3天的5分钟K线。下单使用签名的 EIP-712 订单（域 \"ARCIRCLE Orders\"，版本 1，链 5042）。",
+    "you hold": "持有",
+    "and every order is fee-free.": "即可所有订单免手续费。",
+    "Sign the Permit2 allowance in your wallet…": "请在钱包中签署 Permit2 授权…",
+    "Set the price you want to buy or sell at, like on an exchange — for any Arc token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee — none at all for holders of 100,000 $ARCIRCLE or more.": "像交易所一样设定你想买入或卖出的价格——适用于任何有 Uniswap v4 池的 Arc 代币。订单在钱包中签署，成交前代币一直留在你的钱包里：两笔订单价格交叉时钱包对钱包成交，否则在池价格到达时由池成交。手续费 0.1%——持有 100,000 枚以上 $ARCIRCLE 的用户免手续费。",
+    "Placing an order needs one approval for the ARCIRCLE Orders contract and a signature. Nothing leaves your wallet until the order fills. If your wallet already approved Uniswap's Permit2 for the token, the approval is a signature too — no gas.": "下单需要为 ARCIRCLE Orders 合约授权一次并签名。订单成交前，钱包里的资产不会转出。如果你的钱包已为该代币授权过 Uniswap 的 Permit2，授权也只需签名——无需 gas。",
+    "Hold 100,000 $ARCIRCLE or more in the wallet that trades and every order is fee-free — limit, stop, TP / SL, trailing, timed and market alike. It's checked at each fill, on-chain.": "交易钱包持有 100,000 枚以上 $ARCIRCLE，所有订单免手续费——限价、止损、止盈/止损、追踪、定投和市价均适用。每次成交时在链上检查。",
+    "Everyone else pays 0.1% of what each side receives, for every order type. Fees go to the ARCIRCLE Orders fee burn: once an hour half of the USDC fees buys $ARCIRCLE and sends it to 0x…dEaD, and the other half goes to the ARCIRCLE PAD treasury; $ARCIRCLE fees are half burned straight away. The burns show on the Reward page as \"ARCIRCLE Orders fees\".": "其他用户所有订单类型均按各方所得收取 0.1%。手续费进入 ARCIRCLE Orders 手续费销毁合约：每小时用一半 USDC 手续费买入 $ARCIRCLE 并发送到 0x…dEaD，另一半进入 ARCIRCLE PAD 金库；以 $ARCIRCLE 收取的手续费立即销毁一半。销毁记录在 Reward 页面显示为“ARCIRCLE Orders 手续费”。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

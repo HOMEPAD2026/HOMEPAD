@@ -31,6 +31,7 @@ export const CFG = {
   address: "", // ArcircleOrders on Arc (set after it's deployed; env ARCIRCLE_ORDERS_ADDRESS overrides)
   feeBurn: "", // ArcircleFeeBurn on Arc (env ARCIRCLE_FEEBURN_ADDRESS overrides)
   usdc: "0x3600000000000000000000000000000000000000",
+  permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap's Permit2: makers can allow ArcircleOrders with a signature
   chainId: 5042,
   rpcs: () => [env("ARC_RPC_URL"), ...RPCS].filter(Boolean),
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
@@ -120,6 +121,8 @@ const SEL = {
   matchOrders: sel(`matchOrders(${ORDER_TUPLE},bytes,${ORDER_TUPLE},bytes,uint256,uint256)`),
   quote: sel(`quote(${KEY_TUPLE},address,uint256)`),
   filled: sel("filled(bytes32)"), cancelled: sel("cancelled(bytes32)"), epochOf: sel("epochOf(address)"), groupTakenBy: sel("groupTakenBy(address,uint256)"),
+  feeOf: sel("feeOf(address,uint256)"), p2allowance: sel("allowance(address,address,address)"),
+  p2permit: sel("permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)"),
   burn: sel("burn(uint256)"), flush: sel("flush(address)"), fbQuote: sel("quote(uint256)"), burnBps: sel("burnBps()"),
   balanceOf: sel("balanceOf(address)"), allowance: sel("allowance(address,address)"),
   decimals: sel("decimals()"), symbol: sel("symbol()"), extsload: sel("extsload(bytes32)"),
@@ -135,6 +138,15 @@ export function encFillPool(o, sig, amount, key) {
 export function encMatch(a, sa, b, sb, aAmt, bAmt) {
   const tailA = encBytes(sa), offA = (FIELDS.length * 2 + 4) * 32, offB = offA + tailA.length / 2;
   return SEL.matchOrders + encOrder(a) + w(offA) + encOrder(b) + w(offB) + w(aAmt) + w(bAmt) + tailA + encBytes(sb);
+}
+/// Permit2's permit(owner, PermitSingle, sig) — the executor sends a maker's signed allowance before their first fill
+const encPermit = (owner, p) => SEL.p2permit + w(owner) + w(p.details.token) + w(p.details.amount) + w(p.details.expiration) + w(p.details.nonce) + w(p.spender) + w(p.sigDeadline) + w(8 * 32) + encBytes(p.sig);
+function normPermit(p) {
+  if (!p || typeof p !== "object" || !p.details || !/^0x[0-9a-fA-F]{130}$/.test(String(p.sig || ""))) return null;
+  const d = p.details, n = (v, bits) => { const x = big(v); return x != null && x >= 0n && x < 1n << BigInt(bits) ? x.toString() : null; };
+  const out = { details: { token: lc(d.token), amount: n(d.amount, 160), expiration: n(d.expiration, 48), nonce: n(d.nonce, 48) }, spender: lc(p.spender), sigDeadline: n(p.sigDeadline, 256), sig: String(p.sig) };
+  if (!isAddr(out.details.token) || !isAddr(out.spender) || [out.details.amount, out.details.expiration, out.details.nonce, out.sigDeadline].some((v) => v == null)) return null;
+  return out;
 }
 const str1 = (hex) => { try { const h = strip(hex), off = Number(BigInt("0x" + h.slice(0, 64))) * 2, len = Number(BigInt("0x" + h.slice(off, off + 64))) * 2; return new TextDecoder().decode(hexToBytes(h.slice(off + 64, off + 64 + len))); } catch { return ""; } };
 
@@ -255,16 +267,26 @@ export async function place(body, { store } = {}) {
   }
   const h = lc(orderHash(o));
   if (lc(recover(h, sig)) !== o.maker) return { status: 401, body: { error: "the signature isn't the maker's" } };
-  const [ep, bal, alw, fl, cx] = await calls([
+  const P2 = lc(CFG.permit2);
+  const [ep, bal, alw, fl, cx, toP2, p2a] = await calls([
     { to: S, data: SEL.epochOf + w(o.maker) }, { to: o.sell, data: SEL.balanceOf + w(o.maker) }, { to: o.sell, data: SEL.allowance + w(o.maker) + w(S) },
     { to: S, data: SEL.filled + strip(h) }, { to: S, data: SEL.cancelled + strip(h) },
-  ]).catch(() => [null, null, null, null, null]);
+    { to: o.sell, data: SEL.allowance + w(o.maker) + w(P2) }, { to: P2, data: SEL.p2allowance + w(o.maker) + w(o.sell) + w(S) },
+  ]).catch(() => [null, null, null, null, null, null, null]);
   if (ep == null) return { status: 502, body: { error: "couldn't read Arc right now" } };
   if (W(ep, 0).toString() !== o.epoch) return { status: 409, body: { error: "this order was signed before your last cancel-all" } };
   if (cx && W(cx, 0) === 1n) return { status: 409, body: { error: "this order is cancelled" } };
   if (fl && W(fl, 0) >= BigInt(o.sellAmount)) return { status: 409, body: { error: "this order is already filled" } };
   if (!bal || W(bal, 0) < BigInt(o.sellAmount)) return { status: 409, body: { error: "not enough balance for this order" } };
-  if (!alw || W(alw, 0) < BigInt(o.sellAmount)) return { status: 409, body: { error: "approve ARCIRCLE Orders for this amount first" } };
+  const need = BigInt(o.sellAmount), viaP2 = toP2 && W(toP2, 0) >= need;
+  const p2ok = viaP2 && p2a && W(p2a, 0) >= need && Number(W(p2a, 1)) > now + 60;
+  let permit = null;
+  if (!(alw && W(alw, 0) >= need) && !p2ok) {
+    permit = normPermit(body.permit);
+    const pOk = permit && viaP2 && permit.spender === S && permit.details.token === o.sell && BigInt(permit.details.amount) >= need && Number(permit.details.expiration) > now + 60 && Number(permit.sigDeadline) > now + 60;
+    const [dry] = pOk ? await chain().callsRaw([{ to: P2, data: encPermit(o.maker, permit) }]) : [null];
+    if (!pOk || !dry || !dry.ok) return { status: 409, body: { error: "approve ARCIRCLE Orders for this amount first" } };
+  }
   const s0 = await slot0Of(poolId).catch(() => null);
   if (!s0 || s0.sqrtP === 0n) return { status: 409, body: { error: "that pool doesn't exist on Arc" } };
   let m = await sget(store, marketKey(token));
@@ -285,6 +307,7 @@ export async function place(body, { store } = {}) {
   if (twap) rec.parts = parts;
   if (trail) { const sp = priceOf(s0.sqrtP, key.currency0 === token, key.currency0 === token ? m.token.decimals : m.quote.decimals, key.currency0 === token ? m.quote.decimals : m.token.decimals); rec.trail = { pct: trailPct, peak: sp, armed: false }; }
   if (o.group !== "0") { rec.group = o.group; rec.leg = ["tp", "sl"].includes(body.leg) ? body.leg : null; }
+  if (permit) rec.permit = permit; // sent by the executor before the first fill
   m.orders.push(rec);
   m = await saveMarket(store, m);
   await addTo(store, INDEX, "tokens", token);
@@ -465,15 +488,16 @@ async function refresh(m) {
   for (const x of open) {
     at.push(cs.length);
     cs.push({ to: S, data: SEL.filled + strip(x.h) }, { to: S, data: SEL.cancelled + strip(x.h) }, { to: S, data: SEL.epochOf + w(x.o.maker) },
-      { to: x.o.sell, data: SEL.balanceOf + w(x.o.maker) }, { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(S) });
+      { to: x.o.sell, data: SEL.balanceOf + w(x.o.maker) }, { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(S) },
+      { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(CFG.permit2) }, { to: CFG.permit2, data: SEL.p2allowance + w(x.o.maker) + w(x.o.sell) + w(S) });
     if (x.group) cs.push({ to: S, data: SEL.groupTakenBy + w(x.o.maker) + w(x.group) });
   }
   const r = [];
   for (let i = 0; i < cs.length; i += 40) r.push(...(await calls(cs.slice(i, i + 40), { timeoutMs: 8000 })));
   open.forEach((x, i) => {
     const k = at[i];
-    const [fl, cx, ep, bal, alw] = r.slice(k, k + 5);
-    const grp = x.group ? r[k + 5] : null;
+    const [fl, cx, ep, bal, alw, toP2, p2a] = r.slice(k, k + 7);
+    const grp = x.group ? r[k + 7] : null;
     if (fl) x.filled = W(fl, 0).toString();
     const rem = remOf(x);
     if (cx && W(cx, 0) === 1n) x.status = "cancelled";
@@ -481,33 +505,40 @@ async function refresh(m) {
     else if (rem <= 0n) x.status = "filled";
     else if (grp && W(grp, 0) !== 0n && lc("0x" + strip(grp).slice(0, 64)) !== x.h) { x.status = "cancelled"; x.note = "oco"; }
     else if (Number(x.o.expiry) && Number(x.o.expiry) < now) x.status = "expired";
-    else if ((bal && W(bal, 0) < rem) || (alw && W(alw, 0) < rem)) x.status = "unfunded";
-    else x.status = "open";
+    else {
+      // allowed: approved to the contract, or through Permit2 (an allowance already set, or a signed permit to send)
+      const direct = alw && W(alw, 0) >= rem, viaP2 = toP2 && W(toP2, 0) >= rem;
+      const p2set = viaP2 && p2a && W(p2a, 0) >= rem && Number(W(p2a, 1)) > now + 30;
+      const p2sig = viaP2 && x.permit && !x.permit.used && Number(x.permit.sigDeadline) > now + 30 && BigInt(x.permit.details.amount) >= rem;
+      x.needPermit = !direct && !p2set && !!p2sig;
+      x.status = (bal && W(bal, 0) < rem) || !(direct || p2set || p2sig) ? "unfunded" : "open";
+    }
     if (x.status !== "open" && x.status !== "unfunded") x.last = now;
   });
 }
 /// crossing orders, wallet to wallet: the older order's price; both sides checked exactly as the contract does
-export function planMatch(a, b, m) {
-  // a: a sell (token → quote), b: a buy (quote → token)
+export function planMatch(a, b, m, free = new Set()) {
+  // a: a sell (token → quote), b: a buy (quote → token); `free`: makers the fee policy waives
   const remA = remOf(a), remB = remOf(b);
   if (remA <= 0n || remB <= 0n) return null;
-  const netOf2 = (g) => g - (g * FEE_BPS) / 10000n;
-  const grossFor = (need) => { let g = ceilDiv(need * 10000n, 10000n - FEE_BPS); while (netOf2(g) < need) g++; return g; };
+  const netFor = (maker) => (g) => (free.has(maker) ? g : g - (g * FEE_BPS) / 10000n);
+  const grossFor = (maker) => (need) => { if (free.has(maker)) return need; const n = netFor(maker); let g = ceilDiv(need * 10000n, 10000n - FEE_BPS); while (n(g) < need) g++; return g; };
+  const gA = grossFor(a.o.maker), gB = grossFor(b.o.maker);
   let t, q;
   if (a.at <= b.at) { // the ask was there first: its price
-    t = remA; q = grossFor(owed(a.o, t));
-    if (q > remB) { t = (t * remB) / q; q = grossFor(owed(a.o, t)); while (q > remB && t > 0n) { t--; q = grossFor(owed(a.o, t)); } }
+    t = remA; q = gA(owed(a.o, t));
+    if (q > remB) { t = (t * remB) / q; q = gA(owed(a.o, t)); while (q > remB && t > 0n) { t--; q = gA(owed(a.o, t)); } }
   } else { // the bid was there first
-    q = remB; t = grossFor(owed(b.o, q));
-    if (t > remA) { q = (q * remA) / t; t = grossFor(owed(b.o, q)); while (t > remA && q > 0n) { q--; t = grossFor(owed(b.o, q)); } }
+    q = remB; t = gB(owed(b.o, q));
+    if (t > remA) { q = (q * remA) / t; t = gB(owed(b.o, q)); while (t > remA && q > 0n) { q--; t = gB(owed(b.o, q)); } }
   }
   if (t <= 0n || q <= 0n) return null;
-  if (netOf2(q) < owed(a.o, t) || netOf2(t) < owed(b.o, q)) return null; // inside the fees: no match
+  if (netFor(a.o.maker)(q) < owed(a.o, t) || netFor(b.o.maker)(t) < owed(b.o, q)) return null; // inside the fees: no match
   return { a, b, t, q };
 }
 /// the most of order `x` (up to `cap`) the pool fills at its price now (0n if none)
-async function poolAmount(x, cap = remOf(x)) {
-  const ok = async (amt) => { const out = await quoteOut(x.key, x.o.sell, amt).catch(() => null); return out != null && netOf(out) >= owed(x.o, amt); };
+async function poolAmount(x, cap = remOf(x), free = false) {
+  const ok = async (amt) => { const out = await quoteOut(x.key, x.o.sell, amt).catch(() => null); return out != null && (free ? out : netOf(out)) >= owed(x.o, amt); };
   if (cap <= 0n) return 0n;
   if (await ok(cap)) return cap;
   if (x.type === "stop" || x.type === "trail") return 0n; // a stop sells all of it or waits
@@ -591,14 +622,30 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
     out.markets++;
     try { await refresh(m); } catch (e) { out.errors.push("refresh: " + String((e && e.message) || e).slice(0, 80)); }
     const now = CFG.now();
+    // which makers the fee policy waives (holders of enough $ARCIRCLE)
+    const makers = [...new Set(m.orders.filter((x) => x.status === "open").map((x) => x.o.maker))].slice(0, 60);
+    const fr = makers.length ? await calls(makers.map((a) => ({ to: S, data: SEL.feeOf + w(a) + w(10000) }))).catch(() => []) : [];
+    const free = new Set(makers.filter((a, i) => fr[i] && W(fr[i], 0) === 0n));
+    /// a maker who allowed us with a Permit2 signature: send it (the biggest one of theirs for that token) first
+    const permitFor = async (x) => {
+      if (!x.needPermit || !x.permit) return true;
+      const same = m.orders.filter((y) => y.o.maker === x.o.maker && y.o.sell === x.o.sell && y.permit && !y.permit.used && y.permit.details.nonce === x.permit.details.nonce);
+      const best = same.sort((p, q) => (BigInt(q.permit.details.amount) > BigInt(p.permit.details.amount) ? 1 : -1))[0] || x;
+      const r = await send(encPermit(x.o.maker, best.permit), "permit", CFG.permit2);
+      if (r.rc || r.fail) for (const y of same) y.permit.used = true; // sent, or no longer valid (a newer nonce): either way done with it
+      if (r.rc) { for (const y of m.orders.filter((z) => z.o.maker === x.o.maker && z.o.sell === x.o.sell)) y.needPermit = false; return true; }
+      if (r.fail) backoff(x, r.fail);
+      return false;
+    };
     const waiting = (x) => x.nextTry && x.nextTry > now;
     const live = (side) => m.orders.filter((x) => x.status === "open" && x.type === "limit" && x.side === side && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
     // 1) wallet to wallet
     for (let guard = 0; guard < 8 && key; guard++) {
       const asks = live("sell").sort((a, b) => a.price - b.price || a.at - b.at), bids = live("buy").sort((a, b) => b.price - a.price || a.at - b.at);
       let plan = null;
-      for (const a of asks.slice(0, 6)) { for (const b of bids.slice(0, 6)) { if (a.o.maker === b.o.maker || b.price < a.price * 0.999) continue; plan = planMatch(a, b, m); if (plan) break; } if (plan) break; }
+      for (const a of asks.slice(0, 6)) { for (const b of bids.slice(0, 6)) { if (a.o.maker === b.o.maker || b.price < a.price * 0.999) continue; plan = planMatch(a, b, m, free); if (plan) break; } if (plan) break; }
       if (!plan) break;
+      if (!(await permitFor(plan.a)) || !(await permitFor(plan.b))) break;
       const r = await send(encMatch(plan.a.o, plan.a.sig, plan.b.o, plan.b.sig, plan.t, plan.q), "match");
       if (r.fail) { backoff(plan.a, r.fail); backoff(plan.b, r.fail); }
       if (!r.rc) break;
@@ -644,8 +691,9 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
           cap = avail < cap ? avail : cap;
         }
       }
-      const amt = await poolAmount(x, cap);
+      const amt = await poolAmount(x, cap, free.has(x.o.maker));
       if (amt <= 0n) continue;
+      if (!(await permitFor(x))) continue;
       const r = await send(encFillPool(x.o, x.sig, amt, x.key), "fill");
       if (r.fail) backoff(x, r.fail);
       if (r.rc) out.filled += recordFills(m, r.rc, "pool", evs).length;

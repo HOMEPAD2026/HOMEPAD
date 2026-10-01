@@ -63,7 +63,7 @@ describe("ArcircleOrders", function () {
     await network.provider.send("hardhat_setCode", [HOOK_ADDR, await ethers.provider.getCode(await hook.getAddress())]);
     key = await pool(T.meme, NOHOOK, 0.0001);
     taxKey = await pool(T.meme, HOOK_ADDR, 0.0001);
-    ob = await (await ethers.getContractFactory("ArcircleOrders")).deploy(await pm.getAddress(), treasury.address);
+    ob = await (await ethers.getContractFactory("ArcircleOrders")).deploy(await pm.getAddress(), treasury.address, ethers.ZeroAddress, ethers.ZeroAddress);
     domain = { name: "ARCIRCLE Orders", version: "1", chainId: (await ethers.provider.getNetwork()).chainId, verifyingContract: await ob.getAddress() };
     await meme.mint(alice.address, E(10_000_000)); await usdc.mint(alice.address, U(10_000));
     await meme.mint(bob.address, E(10_000_000)); await usdc.mint(bob.address, U(10_000));
@@ -220,6 +220,65 @@ describe("ArcircleOrders", function () {
     const fns = ob.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name).sort();
     expect(fns).to.deep.equal(["cancel", "cancelAll", "fillPool", "matchOrders", "quote", "swapMarket", "unlockCallback"]);
   });
+
+  describe("with a fee policy and Permit2", function () {
+    let fb, ob2, p2, carol, d2;
+    const big = (n) => E(n);
+    beforeEach(async function () {
+      carol = (await ethers.getSigners())[6];
+      // the meme token stands in for $ARCIRCLE: 50,000,000 held = fee-free
+      fb = await (await ethers.getContractFactory("ArcircleFeeBurn")).deploy(await pm.getAddress(), T.usdc, T.meme, treasury.address, 5000, key, keeper.address, big(50_000_000));
+      p2 = await (await ethers.getContractFactory("Permit2")).deploy();
+      ob2 = await (await ethers.getContractFactory("ArcircleOrders")).deploy(await pm.getAddress(), treasury.address, await p2.getAddress(), await fb.getAddress());
+      d2 = { ...domain, verifyingContract: await ob2.getAddress() };
+      for (const s of [alice, bob]) { await meme.connect(s).approve(await ob2.getAddress(), ethers.MaxUint256); await usdc.connect(s).approve(await ob2.getAddress(), ethers.MaxUint256); }
+    });
+    const sign2 = async (maker, o) => { const order = { maker: maker.address, triggerSqrtP: 0n, triggerBelow: false, poolId: ZERO32, expiry: 0n, start: 0n, duration: 0, group: 0n, epoch: 0, salt: salt++, ...o }; return { order, sig: await maker.signTypedData(d2, TYPES, order) }; };
+    it("holders of enough $ARCIRCLE pay no fee; everyone else 0.1%", async function () {
+      expect(await fb.feeFree(alice.address)).to.equal(false);
+      await meme.mint(alice.address, big(50_000_000));
+      expect(await fb.feeFree(alice.address)).to.equal(true);
+      expect(await ob2.feeOf(alice.address, 10_000n)).to.equal(0n);
+      expect(await ob2.feeOf(bob.address, 10_000n)).to.equal(10n);
+      // a match: alice (fee-free) gets all of bob's USDC; bob pays the fee on his tokens
+      const a = await sign2(alice, { sell: T.meme, buy: T.usdc, sellAmount: E(1_000_000), buyAmount: U(99.9) });
+      const b = await sign2(bob, { sell: T.usdc, buy: T.meme, sellAmount: U(100), buyAmount: E(990_000) });
+      const [au0, bm0, tu0, tm0] = await Promise.all([usdc.balanceOf(alice.address), meme.balanceOf(bob.address), usdc.balanceOf(treasury.address), meme.balanceOf(treasury.address)]);
+      await ob2.connect(keeper).matchOrders(a.order, a.sig, b.order, b.sig, E(1_000_000), U(100));
+      expect((await usdc.balanceOf(alice.address)) - au0).to.equal(U(100));
+      expect((await usdc.balanceOf(treasury.address)) - tu0).to.equal(0n);
+      expect((await meme.balanceOf(bob.address)) - bm0).to.equal(E(999_000));
+      expect((await meme.balanceOf(treasury.address)) - tm0).to.equal(E(1_000));
+      // a market order from a holder: no fee either
+      const q = await quote(key, T.usdc, U(10));
+      const m0 = await meme.balanceOf(alice.address);
+      await ob2.connect(alice).swapMarket(key, T.usdc, T.meme, U(10), q);
+      expect((await meme.balanceOf(alice.address)) - m0).to.equal(q);
+      // the owner can move the threshold; 0 turns the discount off
+      await fb.setDiscountMin(0);
+      expect(await ob2.feeOf(alice.address, 10_000n)).to.equal(10n);
+      await expect(fb.connect(alice).setDiscountMin(1)).to.be.revertedWithCustomError(fb, "NotOwner");
+    });
+    it("a fee policy that misbehaves never blocks a fill", async function () {
+      const ob3 = await (await ethers.getContractFactory("ArcircleOrders")).deploy(await pm.getAddress(), treasury.address, ethers.ZeroAddress, T.usdc); // not a policy
+      expect(await ob3.feeOf(alice.address, 10_000n)).to.equal(10n);
+    });
+    it("pulls through Permit2 when the maker signed a permit instead of approving", async function () {
+      await meme.mint(carol.address, E(1_000_000));
+      await meme.connect(carol).approve(await p2.getAddress(), ethers.MaxUint256); // once, for every app that uses Permit2
+      const o = await sign2(carol, { sell: T.meme, buy: T.usdc, sellAmount: E(100_000), buyAmount: U(9) });
+      await expect(ob2.fillPool(o.order, o.sig, E(100_000), key)).to.be.reverted; // no allowance yet
+      const now = (await ethers.provider.getBlock("latest")).timestamp;
+      const permit = { details: { token: T.meme, amount: E(100_000), expiration: now + 86400, nonce: 0 }, spender: await ob2.getAddress(), sigDeadline: now + 3600 };
+      const PT = { PermitDetails: [{ name: "token", type: "address" }, { name: "amount", type: "uint160" }, { name: "expiration", type: "uint48" }, { name: "nonce", type: "uint48" }], PermitSingle: [{ name: "details", type: "PermitDetails" }, { name: "spender", type: "address" }, { name: "sigDeadline", type: "uint256" }] };
+      const psig = await carol.signTypedData({ name: "Permit2", chainId: (await ethers.provider.getNetwork()).chainId, verifyingContract: await p2.getAddress() }, PT, permit);
+      await p2.connect(keeper)["permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)"](carol.address, permit, psig);
+      const u0 = await usdc.balanceOf(carol.address);
+      await expect(ob2.connect(keeper).fillPool(o.order, o.sig, E(100_000), key)).to.emit(ob2, "Filled");
+      expect((await usdc.balanceOf(carol.address)) - u0).to.be.gte(U(9));
+      expect(await meme.allowance(carol.address, await ob2.getAddress())).to.equal(0n); // never approved directly
+    });
+  });
 });
 
 describe("ArcircleFeeBurn", function () {
@@ -237,7 +296,7 @@ describe("ArcircleFeeBurn", function () {
     key = { currency0: c0, currency1: c1, fee: 3000, tickSpacing: 60, hooks: NOHOOK };
     await pm.initialize(key, sqrtFor(0.00004, c0 === a));
     await liq.modifyLiquidity(key, { tickLower: -887220, tickUpper: 887220, liquidityDelta: E(20), salt: ZERO32 }, "0x");
-    fb = await (await ethers.getContractFactory("ArcircleFeeBurn")).deploy(await pm.getAddress(), u, a, treasury.address, 5000, key, op.address);
+    fb = await (await ethers.getContractFactory("ArcircleFeeBurn")).deploy(await pm.getAddress(), u, a, treasury.address, 5000, key, op.address, E(100_000));
   });
   it("burns half of the USDC fees as $ARCIRCLE, sends the rest to the treasury", async function () {
     await usdc.mint(await fb.getAddress(), U(10));
@@ -269,6 +328,6 @@ describe("ArcircleFeeBurn", function () {
     await fb.setOwner(ethers.ZeroAddress);
     await expect(fb.setOperator(owner.address)).to.be.revertedWithCustomError(fb, "NotOwner");
     const fns = fb.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name).sort();
-    expect(fns).to.deep.equal(["burn", "flush", "quote", "setOperator", "setOwner", "unlockCallback"]);
+    expect(fns).to.deep.equal(["burn", "flush", "quote", "setDiscountMin", "setOperator", "setOwner", "unlockCallback"]);
   });
 });

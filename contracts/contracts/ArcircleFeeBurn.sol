@@ -18,7 +18,10 @@ import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 ///           • $ARCIRCLE: `burnBps` straight to 0x…dEaD, the rest to the treasury (`flush`);
 ///           • any other token: all of it to the treasury (`flush`).
 ///         Nothing here can send fees anywhere else. `burn` takes a minimum out, so only the operator (the ARCIRCLE
-///         Orders executor) calls it; anyone can `flush`. The owner can only change the operator (or give up ownership).
+///         Orders executor) calls it; anyone can `flush`.
+///         It's also ARCIRCLE Orders' fee policy: a wallet holding at least `discountMin` $ARCIRCLE trades fee-free.
+///         The owner can change the operator and that threshold (a fee can only ever be waived, never raised), or give
+///         up ownership.
 contract ArcircleFeeBurn is IUnlockCallback {
     using SafeERC20 for IERC20;
 
@@ -32,6 +35,7 @@ contract ArcircleFeeBurn is IUnlockCallback {
 
     address public owner;
     address public operator;
+    uint256 public discountMin; // $ARCIRCLE (raw) a wallet holds to trade fee-free; 0 = no discount
     uint256 public totalUsdcSpent;
     uint256 public totalBurned;
 
@@ -39,6 +43,7 @@ contract ArcircleFeeBurn is IUnlockCallback {
     event Flushed(address indexed token, uint256 burned, uint256 toTreasury);
     event OperatorSet(address operator);
     event OwnerSet(address owner);
+    event DiscountSet(uint256 discountMin);
 
     error ZeroAddress();
     error BadPool();
@@ -50,7 +55,7 @@ contract ArcircleFeeBurn is IUnlockCallback {
     error Slippage(uint256 out, uint256 minOut);
     error QuoteResult(uint256 out);
 
-    constructor(IPoolManager _pm, address _usdc, address _arcircle, address _treasury, uint256 _burnBps, PoolKey memory key, address _operator) {
+    constructor(IPoolManager _pm, address _usdc, address _arcircle, address _treasury, uint256 _burnBps, PoolKey memory key, address _operator, uint256 _discountMin) {
         if (address(_pm) == address(0) || _usdc == address(0) || _arcircle == address(0) || _treasury == address(0)) revert ZeroAddress();
         if (_burnBps > 10_000) revert BadShare();
         address c0 = Currency.unwrap(key.currency0);
@@ -64,11 +69,25 @@ contract ArcircleFeeBurn is IUnlockCallback {
         _key = key;
         owner = msg.sender;
         operator = _operator;
+        discountMin = _discountMin;
         emit OwnerSet(msg.sender);
         emit OperatorSet(_operator);
+        emit DiscountSet(_discountMin);
     }
 
     function poolKey() external view returns (PoolKey memory) { return _key; }
+
+    /// @notice ARCIRCLE Orders asks this before taking its fee.
+    function feeFree(address who) external view returns (bool) {
+        uint256 m = discountMin;
+        return m != 0 && IERC20(arcircle).balanceOf(who) >= m;
+    }
+
+    function setDiscountMin(uint256 m) external {
+        if (msg.sender != owner) revert NotOwner();
+        discountMin = m;
+        emit DiscountSet(m);
+    }
 
     /// @notice Spends `burnBps` of the USDC held on $ARCIRCLE (at least `minOut`) and burns it; the rest of the USDC goes
     ///         to the treasury.
