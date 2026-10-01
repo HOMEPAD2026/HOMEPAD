@@ -5707,6 +5707,11 @@
     "Arc: locked tokens and LP positions can count too.": "Arc: 락업된 토큰과 LP 포지션도 포함할 수 있어요.",
     "This token has too many holders for a snapshot on Robinhood Chain.": "이 토큰은 홀더가 너무 많아 Robinhood Chain에서 스냅샷을 만들 수 없어요.",
     "That isn't an ERC-20 token on Robinhood Chain.": "Robinhood Chain의 ERC-20 토큰이 아니에요.",
+    "Stake $ARCIRCLE — in the works": "$ARCIRCLE 스테이킹 — 준비 중",
+    "Coming": "준비 중",
+    "Staking for $ARCIRCLE is being planned. How it works, what it pays and when it opens will be announced here and on X first.": "$ARCIRCLE 스테이킹을 준비하고 있어요. 어떻게 작동하는지, 무엇을 받는지, 언제 열리는지는 여기와 X에서 먼저 알려드릴게요.",
+    "Follow for updates": "소식 받기",
+    "Got it": "확인",
   };
 
 

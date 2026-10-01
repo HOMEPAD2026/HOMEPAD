@@ -127,7 +127,7 @@ def utilities():
     rows = re.findall(r'id: "([a-z-]+)", name: "([^"]+)", sub: "([^"]+)"[^}]*?href: "([^"]+)"', s)
     if not rows:
         return []
-    text = "ARCIRCLE PAD utilities (free, open from the ∞+ button on any page): " + "; ".join(f"{n} — {sub} ({h})" for _, n, sub, h in rows) + ". ARCIRCLE OMNI (one $ARCIRCLE across Arc, Solana and Robinhood Chain) is in preview: its contracts are not deployed yet. Two more utilities are in development."
+    text = "ARCIRCLE PAD utilities (free, open from the ∞+ button on any page): " + "; ".join(f"{n} — {sub} ({h})" for _, n, sub, h in rows) + ". ARCIRCLE OMNI (one $ARCIRCLE across Arc, Solana and Robinhood Chain) is in preview: its contracts are not deployed yet. ARCIRCLE Staking (staking for $ARCIRCLE) is only being planned: its tile on page 4 opens a coming-soon card, there is nothing to stake yet, and how it works, what it pays and when it opens haven't been announced. One more utility is in development."
     return [{"page": "Utilities", "title": "Utilities", "url": "/arc", "text": text}]
 
 

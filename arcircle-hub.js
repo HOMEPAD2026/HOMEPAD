@@ -69,6 +69,48 @@
   // leftover [data-reward] button — are sent there.
   function openReward() { location.href = "/reward"; }
 
+  // ---- ARCIRCLE Staking: planned, not built — a "coming soon" card from its utilities tile ----
+  function openStakingSoon() {
+    var old = document.getElementById("ax-stk");
+    if (old) old.remove();
+    var tr = function (x) { return (window.arcI18n && window.arcI18n.get && window.arcI18n.get() !== "en" && window.arcI18n.translate && window.arcI18n.translate(x)) || x; };
+    var before = document.activeElement;
+    var wrap = document.createElement("div");
+    wrap.id = "ax-stk";
+    wrap.className = "ax-stk";
+    wrap.innerHTML =
+      '<div class="ax-stk-scrim" data-stk-close></div>' +
+      '<div class="ax-stk-card" role="dialog" aria-modal="true" aria-labelledby="ax-stk-h" tabindex="-1">' +
+        '<button type="button" class="ax-stk-x" data-stk-close aria-label="' + tr("Close") + '">' + ICON_PLUS + "</button>" +
+        '<div class="ax-stk-art"><i class="ax-stk-glow" aria-hidden="true"></i><img src="/images/arcircle-staking-320.webp" alt="ARCIRCLE Staking" width="200" height="200" decoding="async"></div>' +
+        '<span class="ax-stk-kick"><i aria-hidden="true"></i>' + tr("Coming soon") + "</span>" +
+        '<h2 id="ax-stk-h">ARCIRCLE Staking</h2>' +
+        "<p>" + tr("Staking for $ARCIRCLE is being planned. How it works, what it pays and when it opens will be announced here and on X first.") + "</p>" +
+        '<div class="ax-stk-acts"><a class="ax-stk-go" href="https://x.com/ARCIRCLEonArc" target="_blank" rel="noopener">' + tr("Follow for updates") + ' ↗</a>' +
+        '<button type="button" class="ax-stk-ok" data-stk-close>' + tr("Got it") + "</button></div>" +
+      "</div>";
+    document.body.appendChild(wrap);
+    var card = wrap.querySelector(".ax-stk-card");
+    requestAnimationFrame(function () { wrap.classList.add("in"); card.focus({ preventScroll: true }); });
+    var close = function () {
+      wrap.classList.remove("in");
+      document.removeEventListener("keydown", onKey, true);
+      setTimeout(function () { wrap.remove(); }, 260);
+      if (before && before.focus) { try { before.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
+    };
+    var onKey = function (e) {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "Tab") return;
+      var f = [].slice.call(card.querySelectorAll("a[href], button"));
+      var i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    wrap.addEventListener("click", function (e) { if (e.target.closest("[data-stk-close]")) close(); });
+  }
+  window.arcStakingSoon = openStakingSoon;
+
   function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
     return new Promise(function (resolve, reject) {
@@ -173,8 +215,10 @@
   ];
   UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop and market orders on Arc — set your own price", status: "New", acc: "#4dd4ff", href: "/arc#orders",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
+  // ARCIRCLE Staking: still being planned — the tile opens a "coming soon" card (openStakingSoon), nothing else yet
+  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Stake $ARCIRCLE — in the works", status: "Coming", acc: "#b58bff", soonPop: true,
+    img: "/images/arcircle-staking-96.webp" });
   var NEXT = [
-    { id: "next-15", sub: "In development" },
     { id: "next-16", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
@@ -273,6 +317,12 @@
     panel.setAttribute("tabindex", "-1");
     panel.hidden = true;
     var tile = function (u, i) {
+      if (u.soonPop) {
+        return '<div class="ax-util-tile is-coming" role="button" tabindex="0" aria-haspopup="dialog" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '">' +
+          '<span class="ax-util-ico ax-util-img"><img src="' + u.img + '" alt="" width="38" height="38" loading="lazy" decoding="async"></span>' +
+          '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
+          '<em class="ax-util-st">' + u.status + "</em></div>";
+      }
       var tag = u.href ? "a" : "div";
       return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
         (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
@@ -413,9 +463,14 @@
     panel.querySelector(".ax-util-x").addEventListener("click", function () { hide(true); });
     panel.addEventListener("click", function (e) {
       if (e.target.closest && e.target.closest("a.ax-util-tile")) { hide(false); return; }
+      if (e.target.closest && e.target.closest('[data-util="staking"]')) { hide(false); openStakingSoon(); return; }
       var t = e.target.closest && e.target.closest(".ax-util-tile.is-off");
       if (!t) return;
       t.classList.remove("nudge"); void t.offsetWidth; t.classList.add("nudge");
+    });
+    panel.addEventListener("keydown", function (e) {
+      var t = e.target.closest && e.target.closest('[data-util="staking"]');
+      if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); hide(false); openStakingSoon(); }
     });
     document.addEventListener("keydown", function (e) {
       if (!open) return;

@@ -5860,6 +5860,11 @@
     "Arc: locked tokens and LP positions can count too.": "Arc：锁仓代币和 LP 头寸也可以计入。",
     "This token has too many holders for a snapshot on Robinhood Chain.": "该代币持有人过多，无法在 Robinhood Chain 上生成快照。",
     "That isn't an ERC-20 token on Robinhood Chain.": "这不是 Robinhood Chain 上的 ERC-20 代币。",
+    "Stake $ARCIRCLE — in the works": "质押 $ARCIRCLE —— 筹备中",
+    "Coming": "即将推出",
+    "Staking for $ARCIRCLE is being planned. How it works, what it pays and when it opens will be announced here and on X first.": "$ARCIRCLE 质押正在筹备中。运作方式、收益和开放时间会先在这里和 X 上公布。",
+    "Follow for updates": "关注最新消息",
+    "Got it": "知道了",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
