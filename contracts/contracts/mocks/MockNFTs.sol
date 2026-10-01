@@ -17,3 +17,16 @@ contract MockNFT1155 is ERC1155 {
 
 /// @notice A contract that refuses NFTs (no receiver hook).
 contract NoReceiver {}
+
+interface IMultiSendETH { function sendETH(address[] calldata to, uint256[] calldata amounts) external payable returns (uint256); }
+
+/// test-only: a recipient that tries to call sendETH again while being paid
+contract ReenterMultiSend {
+    IMultiSendETH private immutable ms;
+    constructor(address ms_) { ms = IMultiSendETH(ms_); }
+    receive() external payable {
+        address[] memory to = new address[](1); to[0] = address(this);
+        uint256[] memory a = new uint256[](1); a[0] = msg.value;
+        ms.sendETH{value: msg.value}(to, a);
+    }
+}

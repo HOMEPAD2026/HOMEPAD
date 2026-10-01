@@ -13,6 +13,8 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 ///                                approval transaction (USDC and most newer tokens)
 ///           • sendMulti        — a different token on every row
 ///           • sendERC721 / sendERC1155 — NFTs to many wallets
+///           • sendETH / sendETHSame — the chain's native coin (ETH on Robinhood
+///                                Chain), sent with the call itself
 ///         Tokens always go straight from the caller's wallet to each
 ///         recipient; the contract never holds any and only ever pulls from
 ///         whoever calls it. Each batch is all-or-nothing.
@@ -33,6 +35,12 @@ contract ArcMultiSendV2 {
     error TooMany();
     error ZeroAddress();
     error ZeroAmount();
+    error WrongValue();
+    error PayFailed(address to);
+    error Reentered();
+
+    uint256 private lock = 1;
+    modifier once() { if (lock != 1) revert Reentered(); lock = 2; _; lock = 1; }
 
     // ---------------- ERC-20 ----------------
 
@@ -85,6 +93,41 @@ contract ArcMultiSendV2 {
         emit SentMulti(msg.sender, n);
     }
 
+    // ---------------- the native coin ----------------
+
+    /// @notice Send `amounts[i]` of the native coin to `to[i]`; `msg.value` must be exactly the total.
+    ///         A wallet that refuses it fails the whole batch — nothing stays in this contract.
+    function sendETH(address[] calldata to, uint256[] calldata amounts) external payable once returns (uint256 total) {
+        uint256 n = to.length;
+        if (n == 0 || n != amounts.length) revert BadInput();
+        if (n > MAX_RECIPIENTS) revert TooMany();
+        for (uint256 i; i < n; ++i) total += amounts[i];
+        if (msg.value != total) revert WrongValue();
+        for (uint256 i; i < n; ++i) {
+            if (to[i] == address(0)) revert ZeroAddress();
+            if (amounts[i] == 0) revert ZeroAmount();
+            _pay(to[i], amounts[i]);
+        }
+        _count(n);
+        emit Sent(address(0), msg.sender, n, total);
+    }
+
+    /// @notice The same `amount` of the native coin to everyone in `to`; `msg.value` must be `amount × to.length`.
+    function sendETHSame(address[] calldata to, uint256 amount) external payable once returns (uint256 total) {
+        uint256 n = to.length;
+        if (n == 0) revert BadInput();
+        if (n > MAX_RECIPIENTS) revert TooMany();
+        if (amount == 0) revert ZeroAmount();
+        total = amount * n;
+        if (msg.value != total) revert WrongValue();
+        for (uint256 i; i < n; ++i) {
+            if (to[i] == address(0)) revert ZeroAddress();
+            _pay(to[i], amount);
+        }
+        _count(n);
+        emit Sent(address(0), msg.sender, n, total);
+    }
+
     // ---------------- NFTs ----------------
 
     /// @notice ERC-721: token `ids[i]` of `nft` → `to[i]`. Needs setApprovalForAll.
@@ -131,6 +174,11 @@ contract ArcMultiSendV2 {
             total += amounts[i];
         }
         _count(n);
+    }
+
+    function _pay(address to, uint256 amount) private {
+        (bool ok, ) = to.call{value: amount}("");
+        if (!ok) revert PayFailed(to);
     }
 
     function _count(uint256 n) private {

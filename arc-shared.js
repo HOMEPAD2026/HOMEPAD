@@ -499,8 +499,10 @@ var ARC_ALT_NET = (() => {
   if (!P || !P.CHAIN_ID || !P.RPC) return null;
   return { id: Number(P.CHAIN_ID), hex: "0x" + Number(P.CHAIN_ID).toString(16), name: "Robinhood Chain", short: "Robinhood", rpc: P.RPC, explorer: P.EXPLORER, native: { name: "Ether", symbol: "ETH", decimals: 18 } };
 })();
-async function switchToAltNetwork() {
-  if (!ARC_ALT_NET || switchingNetwork || !state.account) return;
+async function switchToAltNetwork(opts) {
+  const strict = !!(opts && opts.strict); // a write is waiting on it: report failure by throwing
+  if (!ARC_ALT_NET || !state.account) { if (strict) throw new Error("Connect a wallet first."); return; }
+  if (switchingNetwork) { if (strict) throw new Error("Your wallet is already switching networks — try again in a moment."); return; }
   switchingNetwork = true;
   const N = ARC_ALT_NET;
   const note = document.getElementById("wallet-dropdown-note");
@@ -541,12 +543,30 @@ async function switchToAltNetwork() {
   } catch (err) {
     const msg = String(err && (err.shortMessage || err.message) || err);
     setNote(rejected(err) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
+    if (strict) throw err;
   } finally {
     switchingNetwork = false;
     if (net) net.classList.remove("busy");
     switchToAltNetwork.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000); // late chainChanged events land inside the hold
     updateNetworkBadge();
   }
+}
+
+/// The Robinhood Chain twin of ensureArcForWrite (a Multisender send on Robinhood Chain): switch the wallet there if
+/// it isn't, and return a signer that is on it.
+async function ensureAltForWrite() {
+  if (!ARC_ALT_NET) throw new Error("Robinhood Chain isn't set up on this page.");
+  const N = ARC_ALT_NET, eip = state.walletProvider || window.ethereum;
+  if (!state.account || !eip) throw new Error("Connect a wallet first.");
+  let on = null;
+  try { on = Number.parseInt(await eip.request({ method: "eth_chainId" }), 16); } catch (e) { on = null; }
+  if (on !== N.id) await switchToAltNetwork({ strict: true });
+  const bp = new ethers.BrowserProvider(eip, "any");
+  for (let i = 0; i < 8; i++) { // some wallets report the new chain a moment after the switch resolves
+    if (Number((await bp.getNetwork()).chainId) === N.id) { state.chainId = N.id; state.signer = await bp.getSigner(state.account); return state.signer; }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Your wallet is still on another network — switch it to ${N.name} and try again.`);
 }
 
 /// Called right before every transaction on ArcPad / CirclePad: if the

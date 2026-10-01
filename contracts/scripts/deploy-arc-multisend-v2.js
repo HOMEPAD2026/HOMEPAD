@@ -1,7 +1,8 @@
-// Deploys ArcMultiSendV2 — the Multisender's v2 contract (permit, a token per row, NFTs).
+// Deploys ArcMultiSendV2 — the Multisender's v2 contract (permit, a token per row, NFTs, the native coin).
 // No constructor arguments, no owner, no admin: nothing to configure.
 //
 //   npx hardhat run scripts/deploy-arc-multisend-v2.js --network arcMainnet
+//   npx hardhat run scripts/deploy-arc-multisend-v2.js --network robinhoodMainnet   (Multisender on Robinhood Chain)
 //
 // Needs DEPLOYER_PRIVATE_KEY (a wallet with a little USDC for gas on Arc)
 // and, for source verification, ARC_ETHERSCAN_API_KEY in contracts/.env.
@@ -14,6 +15,8 @@ const { verifyIfPossible } = require("./lib/verify");
 async function main() {
   const [deployer] = await ethers.getSigners();
   if (!deployer) throw new Error("Set DEPLOYER_PRIVATE_KEY in contracts/.env first.");
+  if (deployer.address.toLowerCase() === "0x80e18846cb2ed34bdf1e3a8a8689fd5d4c9e8bc7") throw new Error("That's the old deployer, whose key was exposed. Use another wallet.");
+  const rh = hre.network.config.chainId === 4663;
   console.log("Deploying ArcMultiSendV2 on", hre.network.name, "from", deployer.address, "...");
   const F = await ethers.getContractFactory("ArcMultiSendV2");
   const c = await F.deploy();
@@ -22,6 +25,6 @@ async function main() {
   console.log("ArcMultiSendV2 deployed:", address);
   console.log("\nVerifying source on the explorer...");
   await verifyIfPossible(hre, { name: "ArcMultiSendV2", address, contract: "contracts/ArcMultiSendV2.sol:ArcMultiSendV2", constructorArgs: [] });
-  console.log(`\nDone. In config-arc.js set:\n  MULTISEND_V2_ADDRESS: "${address}",`);
+  console.log(rh ? `\nDone. Send this address back — it goes into config-arc.js as MULTISEND_RH_ADDRESS: "${address}"` : `\nDone. In config-arc.js set:\n  MULTISEND_V2_ADDRESS: "${address}",`);
 }
 main().catch((e) => { console.error(e); process.exitCode = 1; });

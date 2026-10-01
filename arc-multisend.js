@@ -22,12 +22,23 @@
 // Addresses come from config-arc.js: MULTISEND_ADDRESS (v1),
 // MULTISEND_V2_ADDRESS (permit, a token per row, NFTs), DROP_ADDRESS (claim drops).
 // With none set the page runs as a preview.
+// Robinhood Chain: an Arc | Robinhood Chain switch at the top runs the same page against MULTISEND_RH_ADDRESS
+// (ArcMultiSendV2 deployed there): ETH (sendETH / sendETHSame, no approval), any ERC-20 or NFT. Claim drops,
+// holder lists, receipts and the recent-airdrops feed stay on Arc; a Robinhood send links to Blockscout.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-multisend");
   if (!panel || typeof CONFIG === "undefined") return;
   const addrOr = (v) => (/^0x[0-9a-fA-F]{40}$/.test(v || "") ? v : "");
-  const V1 = () => addrOr(CONFIG.MULTISEND_ADDRESS), V2 = () => addrOr(CONFIG.MULTISEND_V2_ADDRESS), DROPC = () => addrOr(CONFIG.DROP_ADDRESS);
+  // the network this page sends on: "arc" or "rh" (Robinhood Chain, arc-shared.js ARC_ALT_NET)
+  const RHC = typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET ? ARC_ALT_NET : null;
+  const CHAIN_KEY = "arcircle.multisend.chain";
+  let chain = "arc";
+  try { const c = localStorage.getItem(CHAIN_KEY); if (RHC && (c === "rh" || (!c && document.documentElement.dataset.walletNet === "alt"))) chain = "rh"; } catch { /* Arc */ }
+  const onRh = () => chain === "rh";
+  const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"; // the chain's own coin (ETH on Robinhood Chain) in the token slot
+  const nativeSym = () => (onRh() ? "ETH" : "USDC");
+  const V1 = () => (onRh() ? "" : addrOr(CONFIG.MULTISEND_ADDRESS)), V2 = () => (onRh() ? addrOr(CONFIG.MULTISEND_RH_ADDRESS) : addrOr(CONFIG.MULTISEND_V2_ADDRESS)), DROPC = () => (onRh() ? "" : addrOr(CONFIG.DROP_ADDRESS));
   const SENDER = () => V2() || V1();
   const ABI = [
     "function send(address token, address[] to, uint256[] amounts) returns (uint256)",
@@ -36,6 +47,7 @@
     "function sendMulti(address[] tokens, address[] to, uint256[] amounts)",
     "function sendERC721(address nft, address[] to, uint256[] ids)",
     "function sendERC1155(address nft, address[] to, uint256[] ids, uint256[] amounts)",
+    "function sendETH(address[] to, uint256[] amounts) payable returns (uint256)", "function sendETHSame(address[] to, uint256 amount) payable returns (uint256)",
     "function batches() view returns (uint256)", "function transfers() view returns (uint256)",
   ];
   const DROP_ABI = [
@@ -62,7 +74,7 @@
     "function name() view returns (string)", "function version() view returns (string)",
   ];
   const MAX_CHUNK = 200, NFT_CHUNK = 100, MAX_ROWS = 5000, DROP_MAX = 20000;
-  const GAS_PER = 30000n, GAS_BASE = 60000n; // a new holder costs ≈ 28k (contracts/test/arc-multisend.test.js)
+  const GAS_PER_ERC20 = 30000n, GAS_PER_ETH = 36000n, GAS_BASE = 60000n; // a new holder costs ≈ 28k (contracts/test/arc-multisend.test.js)
   const JOB = "arcircle.multisend.job.v2", HIST = "arcircle.multisend.hist.v1", LISTS = "arcircle.multisend.lists.v1";
   const ARCIRCLE = String(CONFIG.ARCIRCLE_TOKEN || "").toLowerCase();
   const USDC = String(CONFIG.USDC_ADDRESS || "0x3600000000000000000000000000000000000000").toLowerCase();
@@ -75,12 +87,31 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
-  const explorer = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  const explorerOn = (ch, kind, x) => `${ch === "rh" && RHC ? RHC.explorer : CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  const explorer = (kind, x) => explorerOn(chain, kind, x);
   const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const plural = (n, one, many) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
   const isTx = (h) => /^0x[0-9a-fA-F]{64}$/.test(String(h || ""));
-  const lr = () => readProvider();
+  let rhRp = null;
+  const lr = () => (onRh() ? (rhRp = rhRp || new ethers.JsonRpcProvider(RHC.rpc, ethers.Network.from(RHC.id), { staticNetwork: true })) : readProvider());
+  const isNative = (info) => !!((info || F.info) && (info || F.info).native);
+  const GAS_PER = () => (isNative() ? GAS_PER_ETH : GAS_PER_ERC20);
+  // an ERC-20's name, symbol and decimals on Robinhood Chain (Arc uses arcQuoteMeta, which also knows its pools)
+  async function tokenMeta(addr) {
+    if (!onRh()) return arcQuoteMeta(addr);
+    const a = ethers.getAddress(addr), c = new ethers.Contract(a, ["function name() view returns (string)", "function symbol() view returns (string)", "function decimals() view returns (uint8)"], lr());
+    if ((await lr().getCode(a)) === "0x") throw new Error("There's no token contract at that address on Robinhood Chain.");
+    const [name, symbol, decimals] = await Promise.all([c.name().catch(() => "Token"), c.symbol().catch(() => "TOKEN"), c.decimals().catch(() => null)]);
+    if (decimals == null) throw new Error("That contract isn't an ERC-20 token.");
+    return { address: a, name: String(name).replace(/[<>"'`&]/g, "").slice(0, 40), symbol: String(symbol).replace(/[^\w$.-]/g, "").slice(0, 16) || "TOKEN", decimals: Number(decimals) };
+  }
+  const nativeInfo = () => ({ address: NATIVE, name: "Ether · Robinhood Chain", symbol: "ETH", decimals: 18, native: true });
+  // fees in the chain's own coin: USDC on Arc (2 decimals is plenty), ETH on Robinhood Chain (tiny numbers)
+  function feeText(v) {
+    if (!onRh()) return v < 0.01 ? "< 0.01" : "≈ " + v.toLocaleString("en-US", { maximumFractionDigits: 3 });
+    return v < 0.000001 ? "< 0.000001" : "≈ " + Number(v.toPrecision(2)).toLocaleString("en-US", { maximumFractionDigits: 8 });
+  }
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   function fmt(raw, dec) {
     const n = Number(ethers.formatUnits(raw, dec));
@@ -285,8 +316,8 @@
     if (label) b[lc(a)] = label; else delete b[lc(a)];
     try { localStorage.setItem(BOOK, JSON.stringify(b)); } catch { /* private mode */ }
   }
-  const listOpts = () => ({ am: F.am, value: $("ams-same").value, mixed: F.mode === "token" && !!V2() && $("ams-mixed").checked, nft: F.mode === "nft" && F.info ? F.info.kind : null, decs: F.decs, token: F.info && F.info.address });
-  const symOf = (info) => { info = info || F.info; return info ? (lc(info.address) === USDC ? "USDC" : info.kind ? info.symbol : "$" + info.symbol) : ""; };
+  const listOpts = () => ({ am: F.am, value: $("ams-same").value, mixed: F.mode === "token" && !!V2() && !isNative() && $("ams-mixed").checked, nft: F.mode === "nft" && F.info ? F.info.kind : null, decs: F.decs, token: F.info && F.info.address });
+  const symOf = (info) => { info = info || F.info; return info ? (info.native ? info.symbol : !onRh() && lc(info.address) === USDC ? "USDC" : info.kind ? info.symbol : "$" + info.symbol) : ""; };
   const decOf = () => (F.info && !F.info.kind ? F.info.decimals : 0);
 
   // ---------- modes ----------
@@ -300,7 +331,7 @@
     note.hidden = F.mode === "token";
     note.textContent = F.mode === "nft" ? tr("Send ERC-721 or ERC-1155 NFTs — one line per wallet: address, token ID (and copies for ERC-1155).")
       : F.mode === "drop" ? tr("For very long lists: deposit the total once and share a claim link — each wallet claims its own share and pays its own gas.") : "";
-    $("ams-mixed-row").hidden = !(F.mode === "token" && nft);
+    $("ams-mixed-row").hidden = !(F.mode === "token" && nft && !isNative());
     $("ams-amodes").hidden = F.mode === "nft";
     $("ams-drop-opts").hidden = F.mode !== "drop";
     $("ams-token-h").textContent = tr(F.mode === "nft" ? "NFT collection" : "Token");
@@ -317,18 +348,28 @@
   }
 
   // ---------- 1. token ----------
-  function launchOf(addr) { return ((typeof ARC !== "undefined" && ARC.launches) || []).find((l) => lc(l.token) === lc(addr)) || null; }
+  function launchOf(addr) { return (onRh() ? (window.arcPons ? window.arcPons.rows() : []) : (typeof ARC !== "undefined" && ARC.launches) || []).find((l) => lc(l.token) === lc(addr)) || null; }
   function renderChips() {
     const box = $("ams-quick");
-    const chips = F.mode === "nft" ? [] : [{ a: USDC, s: "USDC" }].concat(ARCIRCLE ? [{ a: ARCIRCLE, s: "$ARCIRCLE" }] : []);
-    if (state.account && F.mode !== "nft") ((typeof ARC !== "undefined" && ARC.launches) || []).filter((l) => lc(l.creator) === lc(state.account)).slice(0, 6).forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol, mine: true }));
+    let chips;
+    if (onRh()) {
+      // ETH, $ARCIRCLE on Robinhood Chain (OMNI), and coins you launched on Pons through ArcPad
+      const oft = (CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "";
+      chips = F.mode === "nft" ? [] : [{ a: NATIVE, s: "ETH" }].concat(oft ? [{ a: oft, s: "$ARCIRCLE" }] : []);
+      if (state.account && F.mode !== "nft" && window.arcPons) window.arcPons.rows().filter((l) => lc(l.creator) === lc(state.account)).slice(0, 6).forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol, mine: true }));
+    } else {
+      chips = F.mode === "nft" ? [] : [{ a: USDC, s: "USDC" }].concat(ARCIRCLE ? [{ a: ARCIRCLE, s: "$ARCIRCLE" }] : []);
+      if (state.account && F.mode !== "nft") ((typeof ARC !== "undefined" && ARC.launches) || []).filter((l) => lc(l.creator) === lc(state.account)).slice(0, 6).forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol, mine: true }));
+    }
     const html = chips.map((c) => `<button type="button" class="ams-chip${c.mine ? " mine" : ""}${F.info && lc(F.info.address) === lc(c.a) ? " on" : ""}" data-token="${esc(c.a)}" data-no-i18n>${esc(c.s)}</button>`).join("");
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
     box.hidden = !chips.length;
   }
   function avatar(info) {
+    if (info.native) return `<span class="ams-logo ams-eth" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5l6 9.7-6 3.6-6-3.6z"/><path d="M12 17.1l6-3.6-6 8-6-8z" opacity=".7"/></svg></span>`;
     const l = launchOf(info.address);
-    const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl : lc(info.address) === ARCIRCLE ? "images/arcircle-mark-sm.png" : "";
+    const oft = lc(CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT);
+    const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl : lc(info.address) === ARCIRCLE || (onRh() && oft && lc(info.address) === oft) ? "images/arcircle-mark-sm.png" : "";
     if (logo) return `<img class="ams-logo" src="${esc(logo)}" alt="">`;
     const bg = typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(info.address) : "";
     return `<span class="ams-logo ph" style="${bg}">${esc(String(info.symbol || "?").replace(/^\$/, "").slice(0, 1).toUpperCase())}</span>`;
@@ -349,20 +390,21 @@
     card.hidden = false;
     card.innerHTML = `<div class="ams-load"><i></i><span>${esc(tr("Reading the token…"))}</span></div>`;
     try {
-      const info = F.mode === "nft" ? await nftMeta(addr) : await arcQuoteMeta(addr);
+      const info = F.mode === "nft" ? await nftMeta(addr) : lc(addr) === NATIVE ? (onRh() ? nativeInfo() : Promise.reject(new Error("Pick USDC — on Arc it's the network's own coin."))) : await tokenMeta(addr);
       if (my !== pickSeq) return;
       F.info = info;
       renderChips();
-      if (lc($("ams-token").value.trim()) !== lc(info.address)) $("ams-token").value = info.address;
+      if (lc($("ams-token").value.trim()) !== lc(info.address)) $("ams-token").value = info.native ? "" : info.address;
+      renderModes();
       await readBalance();
       if (my !== pickSeq) return;
       const sym = symOf(info);
-      card.innerHTML = `${avatar(info)}<div class="ams-tok-txt"><b data-no-i18n>${esc(sym)}</b><small data-no-i18n>${esc(info.name)} · ${short(info.address)} · ${info.kind ? "ERC-" + info.kind : info.decimals + " " + esc(tr("decimals"))}</small></div>
+      card.innerHTML = `${avatar(info)}<div class="ams-tok-txt"><b data-no-i18n>${esc(sym)}</b><small data-no-i18n>${esc(info.name)}${info.native ? "" : " · " + short(info.address)} · ${info.native ? esc(tr("no approval needed")) : info.kind ? "ERC-" + info.kind : info.decimals + " " + esc(tr("decimals"))}</small></div>
         <div class="ams-tok-bal"><small>${esc(tr(info.kind ? "You hold" : "Your balance"))}</small><b data-no-i18n id="ams-tok-bal">${balText()}</b></div>
-        ${info.kind ? "" : `<a class="ams-scanlink" href="#scanner?t=${esc(info.address)}">${esc(tr("Scan"))} →</a>`}`;
+        ${info.kind || onRh() ? "" : `<a class="ams-scanlink" href="#scanner?t=${esc(info.address)}">${esc(tr("Scan"))} →</a>`}`;
       card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");
       collapseToken(true);
-      if (!info.kind) arcQuotePriceUsd(info.address).then((p) => { if (F.info === info) { F.price = p && p.price > 0 ? p.price : null; update(); } }).catch(() => {});
+      if (!info.kind && !onRh()) arcQuotePriceUsd(info.address).then((p) => { if (F.info === info) { F.price = p && p.price > 0 ? p.price : null; update(); } }).catch(() => {});
     } catch (err) {
       if (my !== pickSeq) return;
       card.innerHTML = `<p class="ams-err">${esc(tr((err && err.message) || "Couldn't read that token."))}</p>`;
@@ -374,7 +416,7 @@
   async function readBalance() {
     if (!F.info || !state.account) { F.bal = null; return; }
     if (F.info.kind === 1155) { F.bal = null; return; }
-    F.bal = await withRetry(() => new ethers.Contract(F.info.address, TOK_ABI, lr()).balanceOf(state.account)).catch(() => null);
+    F.bal = await withRetry(() => (F.info.native ? lr().getBalance(state.account) : new ethers.Contract(F.info.address, TOK_ABI, lr()).balanceOf(state.account))).catch(() => null);
     const el = $("ams-tok-bal");
     if (el) el.textContent = balText();
   }
@@ -584,7 +626,7 @@
   async function loadDecs(tokens) {
     const todo = tokens.filter((t) => !F.decs.has(t)).slice(0, 12);
     if (!todo.length) return;
-    await Promise.all(todo.map((t) => arcQuoteMeta(t).then((m) => F.decs.set(t, m.decimals)).catch(() => F.decs.set(t, 18))));
+    await Promise.all(todo.map((t) => tokenMeta(t).then((m) => F.decs.set(t, m.decimals)).catch(() => F.decs.set(t, 18))));
     reparse();
   }
   // which recipients are contracts (a multisig is fine, an exchange or a pool isn't)
@@ -617,7 +659,7 @@
   async function dryRun() {
     const P = F.P, my = ++checkSeq;
     F.checks = null;
-    if (!P || !F.info || F.info.kind || !state.account || P.errors.length || P.valueErr || !P.rows.length || (P.byToken && P.byToken.size > 1)) { paintChecks(); return; }
+    if (!P || !F.info || F.info.kind || F.info.native || !state.account || P.errors.length || P.valueErr || !P.rows.length || (P.byToken && P.byToken.size > 1)) { paintChecks(); return; }
     const rows = P.rows.filter((r) => r.amount != null);
     const pick = new Map();
     rows.slice(0, 10).forEach((r) => pick.set(r.line, r));
@@ -702,10 +744,10 @@
     const g = await gasPrice();
     if (my !== gasSeq) return;
     if (!g) { el.textContent = "—"; return; }
-    const gas = F.mode === "drop" ? 250000n : GAS_PER * BigInt(n) + GAS_BASE * BigInt(k) + 50000n;
+    const gas = F.mode === "drop" ? 250000n : GAS_PER() * BigInt(n) + GAS_BASE * BigInt(k) + 50000n;
     F.fee = gas * g.v;
-    const usd = Number(ethers.formatUnits(F.fee, (CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.decimals) || 18));
-    el.textContent = usd < 0.01 ? "< 0.01 USDC" : `≈ ${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })} USDC`;
+    const v = Number(ethers.formatUnits(F.fee, (CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.decimals) || 18));
+    el.textContent = `${feeText(v)} ${nativeSym()}`;
     warnings();
   }
   // the batches a send will take — each one's wallets and network fee; live while sending
@@ -721,10 +763,10 @@
     if (job) job.txs.forEach((h, i) => { const k = Math.min(size, total - at); list.push({ i, a: at, n: k, st: "ok", tx: h }); at += k; });
     for (let i = list.length; at < total; i++) { const k = Math.min(size, total - at); list.push({ i, a: at, n: k, st: job && job.running && i === job.txs.length ? "on" : "" }); at += k; }
     if (job && job.sent >= total) list.forEach((b) => { b.st = "ok"; });
-    const fee = (k) => { if (!g) return "—"; const v = Number(ethers.formatUnits((GAS_PER * BigInt(k) + GAS_BASE + 50000n) * g.v, (CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.decimals) || 18)); return v < 0.01 ? "< 0.01" : "≈ " + v.toLocaleString("en-US", { maximumFractionDigits: 3 }); };
+    const fee = (k) => { if (!g) return "—"; return feeText(Number(ethers.formatUnits((GAS_PER() * BigInt(k) + GAS_BASE + 50000n) * g.v, (CONFIG.NATIVE_CURRENCY && CONFIG.NATIVE_CURRENCY.decimals) || 18))); };
     box.hidden = list.length < 2 && !job;
     const open = box.open;
-    box.innerHTML = `<summary>${esc(tr(list.length === 1 ? "1 transaction" : `${list.length} batches`))}<small>${esc(tr("wallets · fee in USDC"))}</small></summary>
+    box.innerHTML = `<summary>${esc(tr(list.length === 1 ? "1 transaction" : `${list.length} batches`))}<small>${esc(tr(onRh() ? "wallets · fee in ETH" : "wallets · fee in USDC"))}</small></summary>
       <ol>${list.slice(0, 40).map((b) => `<li class="${b.st}"><span class="ams-tick" aria-hidden="true"></span><b data-no-i18n>${list.length === 1 ? esc(tr("Send")) : "#" + (b.i + 1)}</b><span data-no-i18n>${(b.a + 1).toLocaleString("en-US")}–${(b.a + b.n).toLocaleString("en-US")}</span><em data-no-i18n>${b.tx ? `<a href="${explorer("tx", b.tx)}" target="_blank" rel="noopener">tx ↗</a>` : fee(b.n)}</em></li>`).join("")}${list.length > 40 ? `<li class="more">+${list.length - 40}</li>` : ""}</ol>`;
     box.open = open || !!job;
   }
@@ -732,7 +774,8 @@
     const box = $("ams-warn"), P = F.P;
     const out = [];
     if (F.info && !F.info.kind && P && P.total != null && P.rows.length && F.bal != null && P.total > F.bal) out.push(tr(`That's more than your balance — you're ${fmt(P.total - F.bal, F.info.decimals)} ${symOf()} short.`));
-    else if (F.info && lc(F.info.address) === USDC && P && P.total != null && F.bal != null && F.fee != null && P.total + F.fee / 10n ** 12n > F.bal) out.push(tr("Leave a little USDC for gas — on Arc the network fee is paid in USDC too."));
+    else if (F.info && !onRh() && lc(F.info.address) === USDC && P && P.total != null && F.bal != null && F.fee != null && P.total + F.fee / 10n ** 12n > F.bal) out.push(tr("Leave a little USDC for gas — on Arc the network fee is paid in USDC too."));
+    else if (isNative() && P && P.total != null && F.bal != null && F.fee != null && P.total + F.fee > F.bal) out.push(tr("Leave a little ETH for gas — the network fee is paid in ETH too."));
     if (F.mode === "drop" && F.info && P && P.rows.length) out.push(tr("Tokens that take a fee on transfer can't be used for a claim drop."));
     box.hidden = !out.length;
     box.innerHTML = out.map((t) => `<p>${esc(t)}</p>`).join("");
@@ -753,7 +796,7 @@
     $("ams-s-n").textContent = rows.length ? rows.length.toLocaleString("en-US") : "—";
     $("ams-s-total").textContent = sumText();
     $("ams-s-bal").textContent = F.info && F.bal != null ? `${balText()} ${symOf()}` : "—";
-    $("ams-s-tx").textContent = !k ? "—" : F.mode === "drop" ? tr("1 deposit + 1 approval") : tr(k === 1 ? "1 send + 1 approval" : `${k} batches + 1 approval`);
+    $("ams-s-tx").textContent = !k ? "—" : F.mode === "drop" ? tr("1 deposit + 1 approval") : isNative() ? tr(k === 1 ? "1 send" : `${k} batches`) : tr(k === 1 ? "1 send + 1 approval" : `${k} batches + 1 approval`);
     $("ams-s-usd").textContent = F.price && P && P.total ? money(Number(ethers.formatUnits(P.total, F.info.decimals)) * F.price) : "—";
     paintGas(ok ? rows.length : 0, k);
     if (!F.busy) paintBatches(ok ? rows.length : 0, null);
@@ -834,7 +877,8 @@
   function saveJob(job) { try { if (job) localStorage.setItem(JOB, JSON.stringify(job)); else localStorage.removeItem(JOB); } catch { /* private mode */ } }
   function loadJob() { try { const j = JSON.parse(localStorage.getItem(JOB) || "null"); return j && j.v === 2 ? j : null; } catch { return null; } }
   function errText(err) {
-    const m = typeof apcErrText === "function" ? apcErrText(err) : String((err && (err.shortMessage || err.reason || err.message)) || err || "");
+    // apcErrText speaks Arc (USDC gas); on Robinhood Chain the wallet's own words are clearer
+    const m = !onRh() && typeof apcErrText === "function" ? apcErrText(err) : /insufficient funds/i.test(String((err && err.message) || "")) ? "Not enough ETH for the amount plus the network fee." : String((err && (err.shortMessage || err.reason || err.message)) || err || "");
     return tr(m.length > 200 ? m.slice(0, 200) + "…" : m || "Something went wrong.");
   }
   const rejected = (e) => e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.message || e.shortMessage || "")));
@@ -844,7 +888,7 @@
     const P = F.P;
     if (!F.info || !P || !P.rows.length || P.errors.length) return;
     const job = {
-      v: 2, id: Date.now().toString(36), at: Date.now(), account: lc(state.account), mode: F.mode, kind: F.info.kind || null,
+      v: 2, id: Date.now().toString(36), at: Date.now(), account: lc(state.account), mode: F.mode, kind: F.info.kind || null, chain, native: isNative(),
       token: F.info.address, sym: symOf(), dec: decOf(), mixed: !!(P.byToken && P.byToken.size),
       rows: P.rows.map((r) => [r.addr, r.amount.toString(), r.token || (r.id != null ? String(r.id) : ""), r.line]),
       total: P.total != null ? P.total.toString() : null, sent: 0, txs: [], endsIn: Number($("ams-drop-end").value || 0),
@@ -876,7 +920,7 @@
     try {
       const c = new ethers.Contract(token, PERMIT_ABI, lr());
       const [ds] = await Promise.all([c.DOMAIN_SEPARATOR(), c.nonces(state.account)]);
-      const chainId = BigInt(CONFIG.CHAIN_ID_DECIMAL);
+      const chainId = BigInt(onRh() ? RHC.id : CONFIG.CHAIN_ID_DECIMAL);
       const cands = [];
       try { const d = await c.eip712Domain(); cands.push({ name: d.name, version: d.version, chainId: d.chainId, verifyingContract: d.verifyingContract }); } catch { /* not EIP-5267 */ }
       const name = await c.name().catch(() => null);
@@ -912,8 +956,9 @@
     return { k: bad - 1, reason };
   }
   async function run(job) {
-    const nft = job.mode === "nft", multi = job.mixed;
-    const addr = nft || multi ? V2() : SENDER();
+    const nft = job.mode === "nft", multi = job.mixed, native = !!job.native;
+    if ((job.chain || "arc") !== chain) setChain(job.chain || "arc", true);
+    const addr = nft || multi || native ? V2() : SENDER();
     if (!addr) return;
     F.busy = true;
     $("ams-go").disabled = true;
@@ -923,12 +968,12 @@
     const size = () => job.chunk || chunkFor();
     const labels = () => {
       const k = job.sent >= rows.length ? job.txs.length : job.txs.length + Math.ceil((rows.length - job.sent) / size());
-      return [["approve", tr(nft ? "Allow" : job.permit ? "Permit" : "Approve")]].concat(Array.from({ length: k }, (_, i) => [String(i), k === 1 ? tr("Send") : tr(`Batch ${i + 1}`)]));
+      return (native ? [] : [["approve", tr(nft ? "Allow" : job.permit ? "Permit" : "Approve")]]).concat(Array.from({ length: k }, (_, i) => [String(i), k === 1 ? tr("Send") : tr(`Batch ${i + 1}`)]));
     };
-    const done = () => (job.approved ? ["approve"] : []).concat(job.txs.map((_, i) => String(i)));
-    let active = "approve";
+    const done = () => (job.approved && !native ? ["approve"] : []).concat(job.txs.map((_, i) => String(i)));
+    let active = native ? "0" : "approve";
     try {
-      await ensureArcForWrite();
+      if (job.chain === "rh") await ensureAltForWrite(); else await ensureArcForWrite();
       if (!state.signer) throw new Error("Wallet isn't ready — reconnect and try again.");
       if (lc(state.account) !== job.account) throw new Error("Switch back to the wallet that started this send.");
       await gasPrice();
@@ -937,7 +982,12 @@
       steps(labels(), done(), active);
       // 1) balances and approvals for whatever is still to go
       let permit = null;
-      if (nft) {
+      if (native) {
+        // the coin itself goes with each batch — no approval; it needs the total plus the fees
+        const need = left.reduce((s, r) => s + r.amount, 0n);
+        const bal = await lr().getBalance(state.account);
+        if (bal < need) throw new Error(tr(`Not enough ${job.sym} — this needs ${fmt(need, 18)}, you have ${fmt(bal, 18)}.`));
+      } else if (nft) {
         const c = new ethers.Contract(job.token, NFT_ABI, state.signer);
         if (job.kind === 721) {
           const owners = await Promise.all(left.slice(0, 400).map((r) => c.ownerOf(r.id).catch(() => null)));
@@ -978,6 +1028,7 @@
         const call = (p, how) => {
           const to = p.map((r) => r.addr);
           const f = (name, ...args) => (how === "static" ? ms[name].staticCall(...args) : how === "estimate" ? ms[name].estimateGas(...args) : ms[name](...args));
+          if (native) { const value = p.reduce((s, r) => s + r.amount, 0n); return same && p.every((r) => r.amount === p[0].amount) ? f("sendETHSame", to, p[0].amount, { value }) : f("sendETH", to, p.map((r) => r.amount), { value }); }
           if (nft) return job.kind === 721 ? f("sendERC721", job.token, to, p.map((r) => r.id)) : f("sendERC1155", job.token, to, p.map((r) => r.id), p.map((r) => r.amount));
           if (multi) return f("sendMulti", p.map((r) => r.token), to, p.map((r) => r.amount));
           if (permit && !job.permitUsed) return f("sendWithPermit", job.token, to, p.map((r) => r.amount), permit.value, permit.deadline, permit.v, permit.r, permit.s);
@@ -996,8 +1047,10 @@
         // too heavy for half a block: halve the batch and go again
         if (part.length > 10) {
           let gas = null;
-          try { gas = await call(part, "estimate"); } catch (e) { if (/gas/i.test(String((e && (e.shortMessage || e.message)) || ""))) gas = -1n; }
-          const cap = F.gasPrice ? F.gasPrice.limit / 2n : 15000000n;
+          // the dry run above passed, so an estimate that fails here is the size (a block or a per-transaction gas cap)
+          try { gas = await call(part, "estimate"); } catch { gas = -1n; }
+          let cap = F.gasPrice ? F.gasPrice.limit / 2n : 15000000n;
+          if (cap > 16000000n) cap = 16000000n; // EIP-7825: one transaction can't use more than 2^24 gas
           if (gas === -1n || (gas != null && gas > cap)) { job.chunk = Math.max(10, Math.floor(part.length / 2)); saveJob(job); continue; }
         }
         job.running = true; paintBatches(0, job);
@@ -1094,21 +1147,22 @@
   function finish(job) {
     saveJob(null);
     const hist = loadHist();
-    hist.unshift({ id: job.id, at: Date.now(), mode: job.mode, kind: job.kind, token: job.token, sym: job.sym, dec: job.dec, n: job.rows.length, total: job.total, txs: job.txs, drop: job.dropId, rows: job.rows.length <= 2000 ? job.rows.map((r) => r.slice(0, 3)) : null });
+    hist.unshift({ id: job.id, at: Date.now(), chain: job.chain || "arc", mode: job.mode, kind: job.kind, token: job.token, sym: job.sym, dec: job.dec, n: job.rows.length, total: job.total, txs: job.txs, drop: job.dropId, rows: job.rows.length <= 2000 ? job.rows.map((r) => r.slice(0, 3)) : null });
     try { localStorage.setItem(HIST, JSON.stringify(hist.slice(0, 15))); } catch { /* private mode */ }
     renderHist();
     paintResume();
     const n = job.rows.length;
     const what = job.mode === "nft" ? plural(n, "NFT", "NFTs") : job.total ? `${fmt(BigInt(job.total), job.dec)} ${job.sym}` : tr("Tokens");
-    const shareUrl = job.mode === "drop" ? `${location.origin}/claim/${job.dropId}` : `${location.origin}/drop/${job.txs.join(",")}`;
+    const rh = job.chain === "rh";
+    const shareUrl = job.mode === "drop" ? `${location.origin}/claim/${job.dropId}` : rh ? explorerOn("rh", "tx", job.txs[0]) : `${location.origin}/drop/${job.txs.join(",")}`;
     const tweet = job.mode === "drop"
       ? `Airdrop: ${what} for ${n.toLocaleString("en-US")} wallets on @ARCIRCLEonArc — claim yours:`
-      : `Just airdropped ${what} to ${n.toLocaleString("en-US")} wallets on Arc with the @ARCIRCLEonArc Multisender 💚`;
+      : `Just airdropped ${what} to ${n.toLocaleString("en-US")} wallets on ${rh ? "Robinhood Chain" : "Arc"} with the @ARCIRCLEonArc Multisender 💚`;
     const head = job.mode === "drop" ? tr(`Drop #${job.dropId} is live — ${what} for ${plural(n, "wallet", "wallets")}.`) : tr(`Sent ${what} to ${plural(n, "wallet", "wallets")}.`);
     say("ok", `<div class="ams-done"><span class="ams-stamp" aria-hidden="true">${esc(tr(job.mode === "drop" ? "Live" : "Sent"))}</span><span class="ams-done-ico" aria-hidden="true"></span><div><b><span class="ams-count" data-n="${n}">0</span> <span>${esc(head)}</span></b>
       <span>${job.txs.map((h, i) => `<a href="${explorer("tx", h)}" target="_blank" rel="noopener">${esc(job.txs.length === 1 ? "tx" : tr(`batch ${i + 1}`))} ↗</a>`).join(" ")}</span>
-      <span>${job.mode === "drop" ? `<a class="ams-mini" href="#multisend?claim=${job.dropId}">${esc(tr("Open the claim page"))}</a>` : `<a class="ams-mini" href="#multisend?receipt=${job.txs.join(",")}">${esc(tr("View receipt"))}</a>`}
-        <button type="button" class="ams-mini" data-copy-link="${esc(shareUrl)}">${esc(tr(job.mode === "drop" ? "Copy claim link" : "Copy receipt link"))}</button>
+      <span>${job.mode === "drop" ? `<a class="ams-mini" href="#multisend?claim=${job.dropId}">${esc(tr("Open the claim page"))}</a>` : rh ? "" : `<a class="ams-mini" href="#multisend?receipt=${job.txs.join(",")}">${esc(tr("View receipt"))}</a>`}
+        <button type="button" class="ams-mini" data-copy-link="${esc(shareUrl)}">${esc(tr(job.mode === "drop" ? "Copy claim link" : rh ? "Copy transaction link" : "Copy receipt link"))}</button>
         <a class="ams-mini" href="https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a>
         ${job.rows.length <= 2000 && job.mode !== "drop" ? `<button type="button" class="ams-mini" data-receipt="${esc(job.id)}">CSV</button>` : ""}
         <button type="button" class="ams-mini" data-new>${esc(tr("New send"))}</button></span></div></div>`);
@@ -1131,7 +1185,7 @@
     if (!job || !(job.sent || job.approved || job.dropId != null)) { box.hidden = true; box.innerHTML = ""; return; }
     const n = job.rows.length;
     box.hidden = false;
-    const what = job.mode === "drop" ? tr(`Drop #${job.dropId} is deposited — its claim list isn't published yet.`) : tr(`${job.sym} to ${plural(n, "wallet", "wallets")} — ${job.sent.toLocaleString("en-US")} of ${n.toLocaleString("en-US")} sent.`);
+    const what = (job.mode === "drop" ? tr(`Drop #${job.dropId} is deposited — its claim list isn't published yet.`) : tr(`${job.sym} to ${plural(n, "wallet", "wallets")} — ${job.sent.toLocaleString("en-US")} of ${n.toLocaleString("en-US")} sent.`)) + (job.chain === "rh" ? " · Robinhood Chain" : "");
     box.innerHTML = `<div><b>${esc(tr("You have an unfinished send"))}</b><span>${esc(what)}</span></div>
       <button type="button" class="ams-btn" data-resume>${esc(tr("Resume"))}</button><button type="button" class="ams-mini" data-discard>${esc(tr("Discard"))}</button>`;
   }
@@ -1151,9 +1205,10 @@
     if (!h.length) { box.innerHTML = `<p class="ams-empty">${esc(tr("Nothing sent yet. Your sends show up here with their transactions and a receipt."))}</p>`; return; }
     box.innerHTML = `<ul class="ams-hlist">${h.map((x) => {
       const amt = x.mode === "nft" ? plural(x.n, "NFT", "NFTs") : x.total ? `${fmt(BigInt(x.total), x.dec)} ${esc(x.sym)}` : esc(x.sym);
-      const link = x.mode === "drop" ? `#multisend?claim=${x.drop}` : `#multisend?receipt=${(x.txs || []).join(",")}`;
-      return `<li><div><b data-no-i18n>${amt}</b><small>${esc(tr(x.mode === "drop" ? `claim drop · ${plural(x.n, "wallet", "wallets")}` : `to ${plural(x.n, "wallet", "wallets")}`))} · <span>${esc(tr(ago(x.at)))}</span></small></div>
-        <span><a href="${esc(link)}">${esc(tr(x.mode === "drop" ? "Claim page" : "Receipt"))}</a>${x.rows ? ` <button type="button" class="ams-mini" data-receipt="${esc(x.id)}">CSV</button>` : ""}</span></li>`;
+      const rh = x.chain === "rh";
+      const link = x.mode === "drop" ? `#multisend?claim=${x.drop}` : rh ? explorerOn("rh", "tx", (x.txs || [])[0]) : `#multisend?receipt=${(x.txs || []).join(",")}`;
+      return `<li><div><b data-no-i18n>${amt}</b><small>${esc(tr(x.mode === "drop" ? `claim drop · ${plural(x.n, "wallet", "wallets")}` : `to ${plural(x.n, "wallet", "wallets")}`))}${rh ? " · Robinhood" : ""} · <span>${esc(tr(ago(x.at)))}</span></small></div>
+        <span><a href="${esc(link)}"${rh ? ' target="_blank" rel="noopener"' : ""}>${rh ? "Blockscout ↗" : esc(tr(x.mode === "drop" ? "Claim page" : "Receipt"))}</a>${x.rows ? ` <button type="button" class="ams-mini" data-receipt="${esc(x.id)}">CSV</button>` : ""}</span></li>`;
     }).join("")}</ul>`;
   }
   async function loadChainHist() {
@@ -1392,6 +1447,7 @@
     const m = /^#multisend\?(.+)$/.exec(location.hash);
     if (!m) return;
     const q = new URLSearchParams(m[1]);
+    if (RHC && (q.get("chain") === "rh" || q.get("chain") === "arc") && q.get("chain") !== chain) setChain(q.get("chain"));
     if (q.get("receipt")) showReceipt(q.get("receipt").split(",").filter(isTx).slice(0, 25).join(","));
     else if (q.get("claim") && /^\d+$/.test(q.get("claim"))) showClaim(Number(q.get("claim")));
     else if (isAddr(q.get("token")) && (!F.info || lc(F.info.address) !== lc(q.get("token")))) { $("ams-token").value = q.get("token"); pickToken(q.get("token")); }
@@ -1528,10 +1584,42 @@
   }
 
   // ================= wiring =================
+  // ---------- the network: Arc or Robinhood Chain ----------
+  const LEDE = {
+    arc: "Send one Arc token to many wallets at once — an airdrop, rewards, payroll in USDC. Paste a list, check it, approve once, and it goes out in as few transactions as possible, straight from your wallet.",
+    rh: "Send ETH or any Robinhood Chain token to many wallets at once — an airdrop, rewards, a payout. Paste a list, check it, and it goes out in as few transactions as possible, straight from your wallet.",
+  };
+  function paintChain() {
+    const box = $("ams-chain");
+    if (box) { box.hidden = !RHC; box.querySelectorAll("[data-chain]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.chain === chain))); }
+    panel.dataset.chain = chain;
+    const ct = $("ams-contract"), snd = SENDER() || V2();
+    if (ct) { ct.hidden = !snd; if (snd) ct.href = explorer("address", snd); ct.textContent = onRh() ? "Blockscout ↗" : "ArcScan ↗"; }
+    $("ams-preview").hidden = !!snd;
+    const pv = $("ams-preview").querySelector("div span");
+    if (pv) pv.textContent = tr(onRh() ? "The Multisender contract isn't live on Robinhood Chain yet. You can already load and check a list — sending switches on as soon as it's deployed." : "The Multisender contract isn't live on Arc yet. You can already load and check a list — sending switches on as soon as it's deployed.");
+    const lede = panel.querySelector(".ams-hero .bp-lede");
+    if (lede) lede.textContent = tr(LEDE[chain]);
+    panel.querySelectorAll('[data-open="holders"],[data-open="circle"]').forEach((b) => { b.hidden = onRh(); });
+  }
+  function setChain(c, quiet) {
+    if (!RHC || (c !== "arc" && c !== "rh") || (F.busy && !quiet)) return;
+    if (c === chain && !quiet) return;
+    chain = c;
+    try { localStorage.setItem(CHAIN_KEY, c); } catch { /* this visit */ }
+    if (quiet) { paintChain(); return; } // a resumed send: keep its token and list
+    if (F.mode === "drop" || (F.mode === "nft" && !V2())) F.mode = "token";
+    F.info = null; F.bal = null; F.price = null; F.checks = null; F.gasPrice = null; F.fee = null;
+    F.code = new Map(); F.decs = new Map(); // contracts and tokens differ between the chains
+    $("ams-token").value = ""; $("ams-tokcard").hidden = true; $("ams-tokcard").innerHTML = "";
+    say("", ""); steps(null); collapseToken(false);
+    statsAt = 0;
+    paintChain(); renderModes(); renderAm(); renderChips(); reparse(); bumpStats(true);
+    if (history.replaceState && /^#multisend/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search + (onRh() ? "#multisend?chain=rh" : "#multisend"));
+  }
+
   function init() {
-    const ct = $("ams-contract");
-    if (SENDER() && ct) { ct.href = explorer("address", SENDER()); ct.hidden = false; }
-    $("ams-preview").hidden = !!SENDER();
+    paintChain();
     renderModes(); renderAm();
     let tT;
     $("ams-token").addEventListener("input", (e) => {
@@ -1603,6 +1691,7 @@
     });
     sheet.addEventListener("change", (e) => { if (e.target.id === "ams-s-noc") { S.noContracts = e.target.checked; paintSheet(); } if (e.target.id === "ams-s-nome") { S.noMe = e.target.checked; paintSheet(); } });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+    document.addEventListener("arc:lang", paintChain);
     document.addEventListener("click", (e) => { const m = $("ams-lists"); if (m && !m.contains(e.target) && e.target !== $("ams-lists-btn")) m.remove(); });
     panel.addEventListener("submit", (e) => {
       const f = e.target.closest("[data-save-list]");
@@ -1622,6 +1711,8 @@
     panel.addEventListener("click", (e) => {
       const t = e.target;
       if (!t.closest || t.closest("#ams-sheet")) return;
+      const chb = t.closest("#ams-chain [data-chain]");
+      if (chb) { setChain(chb.dataset.chain); return; }
       const md = t.closest("[data-mode]");
       if (md) { setMode(md.dataset.mode); return; }
       const amb = t.closest("[data-am]");
@@ -1687,7 +1778,7 @@
       if (ll) { const l = loadLists()[Number(ll.dataset.loadList)]; if (l) { F.am = l.am || "line"; renderAm(); setList(l.text, tr(`Loaded "${l.name}".`)); } const m = $("ams-lists"); if (m) m.remove(); return; }
       const dl = t.closest("[data-del-list]");
       if (dl) { const lists = loadLists(); lists.splice(Number(dl.dataset.delList), 1); try { localStorage.setItem(LISTS, JSON.stringify(lists)); } catch { /* ignore */ } $("ams-lists").remove(); listsMenu(); return; }
-      if (t.closest("[data-resume]")) { const j = loadJob(); if (j) (j.mode === "drop" ? runDrop(j) : run(j)); return; }
+      if (t.closest("[data-resume]")) { const j = loadJob(); if (j) { if ((j.chain || "arc") !== chain) setChain(j.chain || "arc", true); j.mode === "drop" ? runDrop(j) : run(j); } return; }
       if (t.closest("[data-discard]")) { saveJob(null); paintResume(); return; }
       if (t.closest("[data-skipfail]")) {
         const j = loadJob();

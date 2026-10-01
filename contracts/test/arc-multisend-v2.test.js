@@ -89,6 +89,40 @@ describe("ArcMultiSendV2", function () {
     await ms.connect(sender).send(coin.target, w, Array(4).fill(ethers.parseEther("1")));
     expect(await coin.balanceOf(w[3])).to.equal(ethers.parseEther("2"));
     const fns = ms.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name).sort();
-    expect(fns).to.deep.equal(["send", "sendERC1155", "sendERC721", "sendMulti", "sendSame", "sendWithPermit"]);
+    expect(fns).to.deep.equal(["send", "sendERC1155", "sendERC721", "sendETH", "sendETHSame", "sendMulti", "sendSame", "sendWithPermit"]);
+  });
+
+  it("sendETH / sendETHSame: the native coin to many wallets, exact value, all-or-nothing", async function () {
+    const { sender, ms, w } = await deploy();
+    const E = (x) => ethers.parseEther(x);
+    const before = await Promise.all(w.slice(0, 3).map((a) => ethers.provider.getBalance(a)));
+    await expect(ms.connect(sender).sendETH(w.slice(0, 3), [E("1"), E("2"), E("0.5")], { value: E("3.5") }))
+      .to.emit(ms, "Sent").withArgs(ethers.ZeroAddress, sender.address, 3, E("3.5"));
+    const after = await Promise.all(w.slice(0, 3).map((a) => ethers.provider.getBalance(a)));
+    expect(after.map((b, i) => b - before[i])).to.deep.equal([E("1"), E("2"), E("0.5")]);
+    await ms.connect(sender).sendETHSame(w.slice(0, 2), E("0.25"), { value: E("0.5") });
+    expect(await ethers.provider.getBalance(w[0])).to.equal(E("1.25"));
+    expect(await ethers.provider.getBalance(ms.target)).to.equal(0n);
+    // the value must be exactly the total
+    await expect(ms.connect(sender).sendETH(w.slice(0, 2), [E("1"), E("1")], { value: E("3") })).to.be.revertedWithCustomError(ms, "WrongValue");
+    await expect(ms.connect(sender).sendETH(w.slice(0, 2), [E("1"), E("1")], { value: E("1") })).to.be.revertedWithCustomError(ms, "WrongValue");
+    await expect(ms.connect(sender).sendETHSame(w.slice(0, 2), E("1"), { value: E("1") })).to.be.revertedWithCustomError(ms, "WrongValue");
+    await expect(ms.connect(sender).sendETH(w.slice(0, 2), [E("1"), 0n], { value: E("1") })).to.be.revertedWithCustomError(ms, "ZeroAmount");
+    await expect(ms.connect(sender).sendETH([w[0], ethers.ZeroAddress], [E("1"), E("1")], { value: E("2") })).to.be.revertedWithCustomError(ms, "ZeroAddress");
+    // a wallet that refuses ETH fails the batch; nobody is paid
+    const b0 = await ethers.provider.getBalance(w[3]);
+    const rf = await (await ethers.getContractFactory("RefusesEth")).deploy();
+    await expect(ms.connect(sender).sendETH([w[3], rf.target], [E("1"), E("1")], { value: E("2") })).to.be.revertedWithCustomError(ms, "PayFailed");
+    expect(await ethers.provider.getBalance(w[3])).to.equal(b0);
+    // plain ETH sent to the contract is refused (nothing can get stuck there)
+    await expect(sender.sendTransaction({ to: ms.target, value: 1n })).to.be.reverted;
+  });
+
+  it("sendETH: a recipient that calls back in can't reenter", async function () {
+    const { sender, ms } = await deploy();
+    const re = await (await ethers.getContractFactory("ReenterMultiSend")).deploy(ms.target);
+    const E = (x) => ethers.parseEther(x);
+    await expect(ms.connect(sender).sendETH([re.target], [E("1")], { value: E("1") })).to.be.revertedWithCustomError(ms, "PayFailed");
+    expect(await ethers.provider.getBalance(ms.target)).to.equal(0n);
   });
 });

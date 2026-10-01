@@ -5396,6 +5396,19 @@
     "waiting": "대기 중",
     "70% to you": "70%가 내 몫",
     "Your wallet switches to Robinhood Chain for the launch and back to Arc after — unless you picked Robinhood Chain in the wallet menu.": "런치하는 동안 지갑이 Robinhood Chain으로 전환되고, 끝나면 Arc로 돌아와요 — 지갑 메뉴에서 Robinhood Chain을 골라 둔 경우엔 그대로 있어요.",
+    "USDC and Arc tokens": "USDC와 Arc 토큰",
+    "ETH and Robinhood tokens": "ETH와 Robinhood 토큰",
+    "Send ETH or any Robinhood Chain token to many wallets at once — an airdrop, rewards, a payout. Paste a list, check it, and it goes out in as few transactions as possible, straight from your wallet.": "ETH나 Robinhood Chain 토큰을 여러 지갑에 한 번에 보내요 — 에어드롭, 리워드, 지급. 목록을 붙여넣고 확인하면, 내 지갑에서 바로 최소한의 트랜잭션으로 나가요.",
+    "The Multisender contract isn't live on Robinhood Chain yet. You can already load and check a list — sending switches on as soon as it's deployed.": "멀티센더 컨트랙트가 아직 Robinhood Chain에 올라가지 않았어요. 목록을 불러와 확인하는 건 지금도 되고, 배포되는 즉시 전송이 켜져요.",
+    "wallets · fee in ETH": "지갑 · 수수료(ETH)",
+    "Leave a little ETH for gas — the network fee is paid in ETH too.": "가스비용 ETH를 조금 남겨 두세요 — 네트워크 수수료도 ETH로 내요.",
+    "no approval needed": "승인 필요 없음",
+    "Copy transaction link": "트랜잭션 링크 복사",
+    "1 send": "전송 1건",
+    "There's no token contract at that address on Robinhood Chain.": "Robinhood Chain의 그 주소에는 토큰 컨트랙트가 없어요.",
+    "That contract isn't an ERC-20 token.": "그 컨트랙트는 ERC-20 토큰이 아니에요.",
+    "Pick USDC — on Arc it's the network's own coin.": "USDC를 골라 주세요 — Arc에서는 USDC가 네트워크 기본 코인이에요.",
+    "Not enough ETH for the amount plus the network fee.": "금액과 네트워크 수수료를 합친 만큼의 ETH가 부족해요.",
   };
 
 
@@ -5622,6 +5635,7 @@
     [/^Found (\d+) (?:transfer|transfers) so far\.$/, "지금까지 전송 $1건을 찾았습니다."],
     // ---- Multisender (2026-09-26) ----
     [/^(\d+) batches \+ 1 approval$/, "묶음 $1건 + 승인 1건"],
+    [/^(\d+) batches$/, "묶음 $1건"],
     [/^Send to ([\d,]+) (?:wallet|wallets)$/, "지갑 $1개에 보내기"],
     [/^Fix ([\d,]+) (?:line|lines) first$/, "먼저 $1줄을 고치세요"],
     [/^Not enough (\S+)$/, "$1 부족"],

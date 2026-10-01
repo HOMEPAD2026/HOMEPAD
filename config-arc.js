@@ -172,6 +172,10 @@ const CONFIG = {
   // run — their modes stay hidden until then. Keep api/_drop.mjs in step.
   MULTISEND_V2_ADDRESS: "",
   DROP_ADDRESS: "",
+  // The Multisender on Robinhood Chain (the page's Arc | Robinhood Chain switch): ArcMultiSendV2 deployed there with
+  // deploy-arc-multisend-v2.js --network robinhoodMainnet — ETH and any ERC-20 or NFT. Empty: Robinhood Chain shows
+  // as "opening soon" (a list can be loaded and checked, not sent).
+  MULTISEND_RH_ADDRESS: "",
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.

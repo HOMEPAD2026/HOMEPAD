@@ -225,6 +225,7 @@
     [/^Found (\d+) (?:transfer|transfers) so far\.$/, "目前已找到 $1 笔转账。"],
     // ---- Multisender (2026-09-26) ----
     [/^(\d+) batches \+ 1 approval$/, "$1 批 + 1 次批准"],
+    [/^(\d+) batches$/, "$1 批"],
     [/^Send to ([\d,]+) (?:wallet|wallets)$/, "发送给 $1 个钱包"],
     [/^Fix ([\d,]+) (?:line|lines) first$/, "请先修正 $1 行"],
     [/^Not enough (\S+)$/, "$1 不足"],
@@ -5548,6 +5549,19 @@
     "waiting": "待领取",
     "70% to you": "70% 归你",
     "Your wallet switches to Robinhood Chain for the launch and back to Arc after — unless you picked Robinhood Chain in the wallet menu.": "发射时钱包会切换到 Robinhood Chain，完成后切回 Arc——如果你已在钱包菜单中选择了 Robinhood Chain，则保持不变。",
+    "USDC and Arc tokens": "USDC 和 Arc 代币",
+    "ETH and Robinhood tokens": "ETH 和 Robinhood 代币",
+    "Send ETH or any Robinhood Chain token to many wallets at once — an airdrop, rewards, a payout. Paste a list, check it, and it goes out in as few transactions as possible, straight from your wallet.": "一次把 ETH 或任意 Robinhood Chain 代币发送到多个钱包——空投、奖励、发放。粘贴名单并检查，即可直接从你的钱包以尽量少的交易发出。",
+    "The Multisender contract isn't live on Robinhood Chain yet. You can already load and check a list — sending switches on as soon as it's deployed.": "多发送器合约尚未在 Robinhood Chain 上线。现在已可载入并检查名单——部署后即开放发送。",
+    "wallets · fee in ETH": "钱包 · 手续费（ETH）",
+    "Leave a little ETH for gas — the network fee is paid in ETH too.": "请留一点 ETH 作为 Gas——网络手续费也用 ETH 支付。",
+    "no approval needed": "无需授权",
+    "Copy transaction link": "复制交易链接",
+    "1 send": "1 次发送",
+    "There's no token contract at that address on Robinhood Chain.": "Robinhood Chain 上该地址没有代币合约。",
+    "That contract isn't an ERC-20 token.": "该合约不是 ERC-20 代币。",
+    "Pick USDC — on Arc it's the network's own coin.": "请选择 USDC——在 Arc 上它就是网络原生币。",
+    "Not enough ETH for the amount plus the network fee.": "ETH 不足以支付金额加网络手续费。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
