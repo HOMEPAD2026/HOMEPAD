@@ -477,7 +477,7 @@
       <div class="aor-asks">${pad(asks.length)}${asks.map((l, i) => row(l, askCum[i], "sell", i)).reverse().join("")}</div>
       <div class="aor-mid"><b data-no-i18n class="${dir}">${fp(S.spot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><small>${T("pool price")}</small>${b.last ? `<span class="aor-midlast">${T("last")} <span data-no-i18n>${fp(b.last)}</span></span>` : ""}${spread != null ? `<em>${T("spread")} <span data-no-i18n>${spread.toFixed(2)}%</span></em>` : ""}</div>
       <div class="aor-bids">${bids.map((l, i) => row(l, bidCum[i], "buy", i)).join("")}${pad(bids.length)}</div>
-      ${empty ? `<div class="aor-first"><b>${T("Be the first to place an order in this market")}</b><span>${T("Suggested, from the pool price:")}</span><div>${S.spot ? [[-5, "buy"], [-10, "buy"], [5, "sell"], [10, "sell"]].map(([k, sd]) => `<button type="button" class="aor-sug ${sd === "buy" ? "up" : "dn"}" data-sug="${sd}" data-price="${S.spot * (1 + k / 100)}">${T(sd === "buy" ? "Buy" : "Sell")} <span data-no-i18n>${pc(k, 0)}</span></button>`).join("") : ""}</div></div>`
+      ${empty ? `<div class="aor-first"><b>${T("Be the first to place an order in this market")}</b><span>${T("Suggested, from the pool price:")}</span><div>${S.spot ? [[-5, "buy"], [-10, "buy"], [5, "sell"], [10, "sell"]].map(([k, sd]) => `<button type="button" class="aor-sug ${sd === "buy" ? "up" : "dn"}" data-sug="${sd}" data-price="${Number((S.spot * (1 + k / 100)).toPrecision(4))}">${T(sd === "buy" ? "Buy" : "Sell")} <span data-no-i18n>${pc(k, 0)}</span></button>`).join("") : ""}</div></div>`
         : `<p class="aor-foot">${T("Orders below the ask and above the bid fill from the pool as soon as its price gets there.")}</p>`}`;
     S.prevLevels = seen;
     emblem(ca, cb);
@@ -1208,7 +1208,7 @@
     if (d.quick) {
       const k = Number(d.k), base = S.spot;
       if (!base) return;
-      const v = dstr(base * (1 + k / 100));
+      const v = dstr(Number((base * (1 + k / 100)).toPrecision(4))); // four significant figures, like the book
       F[d.quick] = v; if (d.quick === "price") syncTotal("price");
       form(); return;
     }
