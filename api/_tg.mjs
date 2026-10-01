@@ -58,3 +58,48 @@ export async function announceArgus(c) {
   if (!res.ok) res = await tg("sendMessage", { text: post.caption, reply_markup: post.reply_markup, link_preview_options: { url: post.link, prefer_large_media: true, show_above_text: true } });
   return res.ok ? { ok: true } : { ok: false, error: "telegram rejected the message" + (res.description ? ": " + res.description : "") };
 }
+
+/// the card for a Pons V2 launch (Robinhood Chain) listed through ArcPad (an item from api/_pons-arcpad.mjs)
+export function ponsPost(c) {
+  const sym = c.symbol || "COIN";
+  const page = `${SITE}/arc#explore?plat=pons&coin=${c.token}`;
+  const trade = `https://www.ponsfamily.com/launchpad/${c.token}`;
+  const RH = "https://robinhoodchain.blockscout.com";
+  const desc = String(c.description || "").replace(/\s+/g, " ").trim();
+  const title = `<b>$${h(sym)}</b>${c.name && c.name !== sym ? `  —  ${h(c.name)}` : ""}`
+    + (desc ? `\n<blockquote>${h(desc.length > 220 ? desc.slice(0, 219) + "…" : desc)}</blockquote>` : "");
+  const stats = [
+    `▸ Market cap   <b>${h(fmtUsd(c.mcapUsd))}</b>`,
+    `▸ Chain   <b>Robinhood Chain</b> · bonding curve in ETH, then Uniswap v4`,
+    `▸ Creator fees   <b>70% creator · 30% ARCIRCLE PAD</b>`,
+    `▸ Creator   <a href="${RH}/address/${c.creator}">${short(c.creator)}</a>`,
+  ].join("\n");
+  const caption = [
+    `<b>NEW LAUNCH</b>  ·  Pons via ArcPad 💚`,
+    title,
+    stats,
+    `<b>CA</b>  <i>(tap to copy)</i>\n<code>${c.token}</code>`,
+    `<i>Launched on Pons V2 through ArcPad, on Robinhood Chain. Dexscreener info support from a $20K market cap, marketing support from $100K.</i>`,
+  ].join("\n\n");
+  const shareText = `$${sym} just launched on Pons through ArcPad, on Robinhood Chain 💚`;
+  const reply_markup = {
+    inline_keyboard: [
+      [{ text: `Trade $${sym} on Pons`, url: trade }],
+      [{ text: "See it on ArcPad", url: page }, { text: "Blockscout", url: `${RH}/token/${c.token}` }],
+      [{ text: "Share on X", url: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(page)}&via=ARCIRCLEonArc` }, { text: "Community chat", url: "https://t.me/ARCIRCLEonarc" }],
+    ],
+  };
+  return { caption, reply_markup, photo: /^https:\/\//i.test(c.image || "") ? c.image : null, link: page };
+}
+export async function announcePons(c) {
+  const bot = process.env.TG_BOT_TOKEN, chat = process.env.TG_CHAT_ID;
+  if (!bot || !chat) return { ok: false, error: "telegram is off (TG_BOT_TOKEN / TG_CHAT_ID)" };
+  const post = ponsPost(c);
+  const tg = (method, payload) => fetch(`https://api.telegram.org/bot${bot}/${method}`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", ...payload }),
+    signal: AbortSignal.timeout(12000),
+  }).then((r) => r.json().catch(() => ({ ok: false }))).catch(() => ({ ok: false }));
+  let res = post.photo ? await tg("sendPhoto", { photo: post.photo, caption: post.caption, reply_markup: post.reply_markup }) : { ok: false };
+  if (!res.ok) res = await tg("sendMessage", { text: post.caption, reply_markup: post.reply_markup, link_preview_options: { is_disabled: true } });
+  return res.ok ? { ok: true } : { ok: false, error: "telegram rejected the message" + (res.description ? ": " + res.description : "") };
+}

@@ -11,7 +11,7 @@
   const DEF = { plat: "all", pair: "all", age: "all", mcap: "all" };
   const MCAP = { lt10k: [0, 1e4], "10k": [1e4, 1e5], "100k": [1e5, 1e6], gt1m: [1e6, Infinity] };
   const AGE = { "1h": 3600, "24h": 86400, "7d": 7 * 86400 };
-  const VALID = { plat: ["all", "arcpad", "argus"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
+  const VALID = { plat: ["all", "arcpad", "argus", "pons"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
   let F = { ...DEF };
   try { F = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || "{}"), plat: "all" }; } catch (e) { /* private mode */ }
   // A shared link — /arc#explore?pair=arcircle&age=24h — wins over the saved
@@ -40,7 +40,8 @@
 
   window.arcFiltersActive = () => count() > 0;
   window.arcFilterPass = function (l) {
-    if (F.plat === "arcpad" && l.platform === "argus") return false;
+    if (F.plat === "arcpad" && (l.platform === "argus" || l.platform === "pons")) return false;
+    if (F.plat === "pons" && l.platform !== "pons") return false;
     if (F.plat === "argus" && l.platform !== "argus") return false;
     const q = String(l.quoteToken || "").toLowerCase();
     if (F.pair === "usdc" && q !== USDC) return false;
@@ -76,13 +77,14 @@
     // the platform: its own always-visible chips (launched on the ArcPad factory, or on Argus through ArcPad)
     const plats = document.createElement("div");
     plats.className = "flt-plat"; plats.setAttribute("role", "radiogroup"); plats.setAttribute("aria-label", "Platform");
-    plats.innerHTML = [["all", "All"], ["arcpad", "ArcPad"], ["argus", "Argus"]].map(([v, t]) => `<button type="button" role="radio" data-plat-f="${v}">${t}</button>`).join("");
+    plats.innerHTML = [["all", "All"], ["arcpad", "ArcPad"], ["argus", "Argus"]].concat(typeof CONFIG !== "undefined" && CONFIG.PONS ? [["pons", "Pons"]] : []).map(([v, t]) => `<button type="button" role="radio" data-plat-f="${v}">${t}</button>`).join("");
     bar.insertBefore(plats, btn);
     plats.addEventListener("click", (e) => {
       const b = e.target.closest("[data-plat-f]");
       if (!b) return;
       F.plat = b.dataset.platF; save(); paint(); toHash();
       if (F.plat !== "arcpad" && window.arcArgus) window.arcArgus.load();
+      if (F.plat !== "arcpad" && window.arcPons) window.arcPons.load();
       if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
     });
     const paint = () => {

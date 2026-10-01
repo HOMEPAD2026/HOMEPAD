@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790830107"></script>
+<script src="arc-log.js?v=1790853684"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790830107">
+<link rel="stylesheet" href="style.css?v=1790853684">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -228,7 +228,7 @@
       <!-- ============ EXPLORE ============ -->
       <section class="bp-panel" id="bp-panel-explore">
         <h1>Explore</h1>
-        <p class="bp-lede">Every coin launched through ArcPad — on the ArcPad factory or on Argus — read live from Arc.</p>
+        <p class="bp-lede">Every coin launched through ArcPad — on the ArcPad factory, on Argus, or on Pons on Robinhood Chain — read live from the chain.</p>
         <div class="cn-explore-toolbar">
           <input class="world-search" id="ap-explore-search" placeholder="Search launches by name or symbol…" autocomplete="off">
           <div class="cn-sort-group" id="ap-sort-group">
@@ -689,6 +689,7 @@
         <div class="agl-plat" id="agl-plat" role="radiogroup" aria-label="Launch platform">
           <button type="button" role="radio" aria-checked="true" data-plat="arcpad"><b>ArcPad</b><small>ArcPad pool · 1 USDC fee · your own add-on fee</small></button>
           <button type="button" role="radio" aria-checked="false" data-plat="argus"><b>Argus</b><small>Argus Portal #8 · buy / sell tax · 70% of creator fees to you</small></button>
+          <button type="button" role="radio" aria-checked="false" data-plat="pons"><b>Pons</b><small>Robinhood Chain · bonding curve → Uniswap v4 · 70% of creator fees to you</small></button>
         </div>
         <div class="agl-resume" id="agl-resume" hidden></div>
         <div class="ap-launch-fee-note ap-only">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
@@ -718,7 +719,7 @@
           <div class="field-row three">
             <input id="ap-twitter" placeholder="X / Twitter URL" maxlength="200">
             <input id="ap-telegram" placeholder="Telegram URL" maxlength="200">
-            <input id="ap-discord" class="ap-only" placeholder="Discord URL" maxlength="200">
+            <input id="ap-discord" class="agl-hide" placeholder="Discord URL" maxlength="200">
           </div>
 
           <div class="ap-only-group">
@@ -792,6 +793,38 @@
             <ol class="agl-steps" id="agl-steps" hidden></ol>
           </div>
 
+          <!-- Pons (arc-pons.js): shown when the platform switch is on Pons -->
+          <div class="agl-fields pon-fields" id="pon-fields" hidden>
+            <div class="agl-intro pon-intro">
+              <b>Launched on Pons, on Robinhood Chain, from your own wallet</b>
+              <span>Your coin goes live on Pons V2: it trades on a bonding curve in ETH and, once the curve fills, graduates into a locked Uniswap v4 pool. Pons takes its own fees as usual. Every creator fee and creator tax goes to your ArcPad fee splitter — 70% to you, 30% to the ARCIRCLE PAD treasury — set in the launch itself, one signature.</span>
+            </div>
+            <div class="pon-gate" id="pon-gate" aria-live="polite"></div>
+            <label><span>Creator tax</span> <span class="optional">optional, on top of Pons's fee</span></label>
+            <div class="agl-tax pon-tax">
+              <label class="agl-num"><span>Tax</span><span class="agl-in"><input id="pon-tax" type="number" inputmode="decimal" min="0" max="10" step="0.5" value="0" autocomplete="off"><em>%</em></span></label>
+            </div>
+            <p class="hint" id="pon-tax-hint">An extra fee on every trade, on top of Pons's own, paid to the coin's fee recipient — 70% you, 30% ARCIRCLE PAD. Fixed at launch.</p>
+            <label class="agl-agree pon-bb"><input type="checkbox" id="pon-buyback"> <span>Buyback &amp; lock — part of the creator fees buys the coin back and locks it (Pons's buyback). Off by default; you can switch it later from the coin's fee splitter.</span></label>
+            <div class="agl-flow pon-flow">
+              <small>Of every 1 ETH of creator fees</small>
+              <div class="agl-flow-bar"><i class="you" style="flex-grow:70"></i><i class="plat" style="flex-grow:30"></i></div>
+              <ul><li class="you"><i aria-hidden="true"></i><span>To you</span><b data-no-i18n>0.7 ETH</b></li><li class="plat"><i aria-hidden="true"></i><span>ARCIRCLE PAD</span><b data-no-i18n>0.3 ETH</b></li></ul>
+              <p class="hint">Fees wait in Pons's fee escrow until claimed. Claim from the coin's card in Explore: one transaction pays both sides.</p>
+            </div>
+            <div class="agl-support">
+              <b>ArcPad support for coins launched here</b>
+              <ul>
+                <li><i>$20K</i><span>At a $20K market cap we help update the coin's Dexscreener info — logo, links and description.</span></li>
+                <li><i>$100K</i><span>At a $100K market cap we add marketing support, decided case by case — boosts, calls and promotion.</span></li>
+                <li class="warn"><i>!</i><span>Support may be refused if our Token Scanner finds signs of manipulation — snipers, bundled buys, wash trading or similar.</span></li>
+              </ul>
+              <small>This is ARCIRCLE PAD's own support policy, not a contract, and it can change. The coin's fees follow Pons's rules. Pons V2 is new and unaudited.</small>
+            </div>
+            <label class="agl-agree"><input type="checkbox" id="pon-agree"> <span>I understand: one signature on Robinhood Chain plus Pons's launch fee in ETH, the 70 / 30 creator-fee split is permanent, and Pons V2 is unaudited.</span></label>
+            <ol class="agl-steps" id="pon-steps" hidden></ol>
+          </div>
+
           <div class="ap-launch-preview ap-only" id="ap-launch-preview"><small>Preview</small><div class="ap-lp-card" id="ap-lp-card"></div></div>
 
           <div id="ap-launch-status"></div>
@@ -800,11 +833,14 @@
             <span class="ap-launch-btn-label">Launch coin</span>
             <span class="ap-launch-btn-fee ap-only">1 USDC fee</span>
             <span class="ap-launch-btn-fee agl-only">70% of fees to you</span>
+            <span class="ap-launch-btn-fee pon-only">Robinhood Chain · 70% to you</span>
           </button>
           <p class="ap-launch-balance ap-only" id="ap-launch-balance" aria-live="polite"></p>
           <p class="ap-launch-balance agl-only" id="agl-balance" aria-live="polite"></p>
+          <p class="ap-launch-balance pon-only" id="pon-balance" aria-live="polite"></p>
           <p class="ap-launch-btn-note ap-only">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
           <p class="ap-launch-btn-note agl-only">Your coin goes live on Argus the moment the launch confirms; the fee split is the second signature.</p>
+          <p class="ap-launch-btn-note pon-only">Your wallet switches to Robinhood Chain for the launch and back to Arc after.</p>
         </form>
       </section>
 
@@ -1761,6 +1797,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790830107"></script>
+<script src="arcpad.bundle.js?v=1790853684"></script>
 </body>
 </html>

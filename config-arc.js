@@ -210,6 +210,22 @@ const CONFIG = {
     MIN_CREATOR_ALLOC_BPS: 5000, // the creator share must be at least half of the allocation
     SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // ARCIRCLE PAD's own support policy (not on-chain)
   },
+  // ArcPad × Pons (arc-pons.js, api/_pons-arcpad.mjs): a coin launched on Pons V2 (Robinhood Chain) from the creator's
+  // own wallet, its creatorFeeRecipient set to the creator's ArcPadPonsSplitter (contracts/contracts/ArcPadPonsSplits.sol):
+  // 70% the creator, 30% the ARCIRCLE PAD treasury, for the life of the coin. SPLITS stays empty until ArcPadPonsSplits
+  // is deployed — until then the Pons option shows but can't launch. Keep api/_pons-arcpad.mjs in step.
+  PONS: {
+    FACTORY: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e", // PonsV2LaunchFactory (pons-labs README, verified)
+    FEE_ESCROW: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+    SPLITS: "", // ArcPadPonsSplits — set after deploying contracts/scripts/deploy-arcpad-pons-splits.js
+    TREASURY: "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8", // the same ARCIRCLE PAD treasury as Argus
+    PLATFORM_BPS: 3000,
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+    APP: "https://www.ponsfamily.com/launchpad", // a coin's page: APP + "/" + token
+    SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus
+  },
   // ARCIRCLE OMNI — $ARCIRCLE on Arc, Robinhood Chain and Solana through LayerZero V2 (omni/README.md).
   // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses
   // keep the OMNI page in preview for that chain. Keep api/_omni.mjs in step.

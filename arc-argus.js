@@ -91,8 +91,10 @@
 
   // ---------------- state ----------------
   let plat = "arcpad";
-  try { if (localStorage.getItem("arcircle.launch.platform") === "argus") plat = "argus"; } catch { /* default */ }
-  if (/[?&]platform=argus/.test(location.hash)) plat = "argus";
+  // a third choice, Pons (Robinhood Chain), is run by arc-pons.js; this switch only shows its fields
+  const PLATS = ["arcpad", "argus"].concat(CONFIG.PONS ? ["pons"] : []);
+  try { const s = localStorage.getItem("arcircle.launch.platform"); if (PLATS.includes(s)) plat = s; } catch { /* default */ }
+  { const h = /[?&]platform=(argus|pons)\b/.exec(location.hash); if (h && PLATS.includes(h[1])) plat = h[1]; }
   const A = { creator: 70, burn: 10, dividend: 10, liquidity: 10 };
   let ctx = null, ctxAt = 0, busy = false;
   const me = () => (typeof state !== "undefined" && state && state.account ? lc(state.account) : "");
@@ -117,15 +119,16 @@
 
   // ---------------- the platform switch ----------------
   function setPlat(p, quiet) {
-    plat = p === "argus" ? "argus" : "arcpad";
+    plat = PLATS.includes(p) ? p : "arcpad";
     panel.dataset.plat = plat;
     try { localStorage.setItem("arcircle.launch.platform", plat); } catch { /* this visit */ }
     panel.querySelectorAll("#agl-plat [data-plat]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.plat === plat)));
     $("agl-fields").hidden = plat !== "argus";
     const h1 = panel.querySelector("h1");
-    if (h1) h1.textContent = tr(plat === "argus" ? "Launch on Argus via ArcPad" : "Launch on ArcPad");
+    if (h1) h1.textContent = tr(plat === "argus" ? "Launch on Argus via ArcPad" : plat === "pons" ? "Launch on Pons via ArcPad" : "Launch on ArcPad");
     const lbl = panel.querySelector("#ap-launch-submit .ap-launch-btn-label");
-    if (lbl && !busy) lbl.textContent = tr(plat === "argus" ? "Launch on Argus" : "Launch coin");
+    if (lbl && !busy) lbl.textContent = tr(plat === "argus" ? "Launch on Argus" : plat === "pons" ? "Launch on Pons" : "Launch coin");
+    if (window.arcPons && typeof window.arcPons.onPlat === "function") window.arcPons.onPlat(plat, quiet);
     if (plat === "argus") { paintAlloc(); paintFlow(); seedHint(); resumeCard(); balance(); }
     else $("agl-resume").hidden = true;
     if (!quiet && !reduce) { const f = $("agl-fields"); if (plat === "argus") { f.classList.remove("in"); void f.offsetWidth; f.classList.add("in"); } }
@@ -563,6 +566,6 @@ self.postMessage({done:true});};`;
   window.arcArgus = { active: () => plat === "argus" && !$("agl-fields").hidden, submit, rows: () => AR.items, load: loadList, openSheet, setPlatform: setPlat, progress: progressHtml };
   wire();
   window.addEventListener("hashchange", () => { if (/[?&]coin=0x/.test(location.hash)) { if (AR.items.length) deepLink(); else loadList(); } });
-  document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { if (/[?&]platform=argus/.test(location.hash)) setPlat("argus"); resumeCard(); } });
+  document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { const h = /[?&]platform=(argus|pons)\b/.exec(location.hash); if (h) setPlat(h[1]); resumeCard(); } });
   setTimeout(loadList, 1200);
 })();

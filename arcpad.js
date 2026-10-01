@@ -215,6 +215,8 @@ function launchCardHtml(l) {
   const img = safe
     ? `<img class="ap-card-logo" src="${arcEscHtml(l.imageUrl)}" alt="" onerror="this.style.visibility='hidden'">`
     : `<span class="ap-card-logo ph" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(l.token) : ""}">${arcEscHtml(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
+  // a coin launched on Pons (Robinhood Chain) through ArcPad (arc-pons.js): its own card
+  if (l.platform === "pons" && window.arcPons) return window.arcPons.card(l, img);
   // a coin launched on Argus through ArcPad (arc-argus.js): same card, its own tag, no ArcPad pool stats
   if (l.platform === "argus") {
     return `
@@ -307,7 +309,7 @@ function renderArcpadExploreGrid() {
   const q = (document.getElementById("ap-explore-search").value || "").trim().toLowerCase();
   const qs = q.replace(/^\$/, "");
   // ArcPad launches plus coins launched on Argus through ArcPad (arc-argus.js); the platform chips pick
-  const all = ARC.launches.concat(window.arcArgus ? window.arcArgus.rows() : []);
+  const all = ARC.launches.concat(window.arcArgus ? window.arcArgus.rows() : [], window.arcPons ? window.arcPons.rows() : []);
   let rows = all.filter((l) => !qs || l.name.toLowerCase().includes(qs) || l.symbol.toLowerCase().includes(qs) || (qs.startsWith("0x") && l.token.toLowerCase().startsWith(qs)));
   if (arcExploreSort === "watch") rows = rows.filter((l) => typeof arcIsWatched === "function" && arcIsWatched(l.token));
   if (typeof arcFilterPass === "function") rows = rows.filter(arcFilterPass);
@@ -339,6 +341,8 @@ function renderArcpadExploreGrid() {
 function wireLaunchCardClicks(root) {
   root.querySelectorAll(".ap-launch-card").forEach((card) => {
     card.addEventListener("click", () => {
+      // Pons coins live on Robinhood Chain: their own sheet (arc-pons.js)
+      if (card.dataset.platform === "pons" && window.arcPons) { window.arcPons.openSheet(card.dataset.token); return; }
       // Argus coins open the same full coin page (arcpad-coin.js knows them)
       if (typeof openArcCoin === "function") openArcCoin(card.dataset.token);
       else if (card.dataset.platform === "argus" && window.arcArgus) { window.arcArgus.openSheet(card.dataset.token); return; }
@@ -595,7 +599,7 @@ function arcpadRenderPair() {
   } else if (pr.loading) hint.textContent = "Working out the opening reserve for this pair…";
   else if (pr.error) hint.textContent = "Choose a pair token with a known price to set the opening reserve.";
   const btnLabel = document.querySelector("#ap-launch-submit .ap-launch-btn-label");
-  if (btnLabel && !document.getElementById("ap-launch-submit").classList.contains("is-busy") && !(window.arcArgus && window.arcArgus.active())) btnLabel.textContent = m && !m.isUsdc && pr.reserveRaw ? `Launch coin / ${sym}` : "Launch coin";
+  if (btnLabel && !document.getElementById("ap-launch-submit").classList.contains("is-busy") && !(window.arcArgus && window.arcArgus.active()) && !(window.arcPons && window.arcPons.active())) btnLabel.textContent = m && !m.isUsdc && pr.reserveRaw ? `Launch coin / ${sym}` : "Launch coin";
   updateArcpadDevBuyPreview();
   updateArcpadLaunchBalance();
 }
@@ -687,6 +691,8 @@ async function submitArcpadLaunch(ev) {
   ev.preventDefault();
   // the platform switch on Argus: arc-argus.js runs the Argus Portal #8 launch
   if (window.arcArgus && window.arcArgus.active()) return window.arcArgus.submit();
+  // and on Pons: arc-pons.js runs the Pons V2 launch on Robinhood Chain
+  if (window.arcPons && window.arcPons.active()) return window.arcPons.submit();
   const statusEl = document.getElementById("ap-launch-status");
   const btn = document.getElementById("ap-launch-submit");
   const name = document.getElementById("ap-name").value.trim();
