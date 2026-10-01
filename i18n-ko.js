@@ -5697,6 +5697,7 @@
     "The same fee policy: hold 100,000 $ARCIRCLE on Robinhood Chain and every order is fee-free. Fees there are WETH: once an hour half buys $ARCIRCLE in the $ARCIRCLE / ETH pool and burns it, the other half goes to the ARCIRCLE PAD treasury.": "수수료 정책은 같아요: Robinhood Chain에서 $ARCIRCLE을 100,000개 보유하면 모든 주문이 무료예요. 그곳 수수료는 WETH로 쌓이고, 한 시간마다 절반은 $ARCIRCLE / ETH 풀에서 $ARCIRCLE을 사서 소각하고, 나머지 절반은 ARCIRCLE PAD 트레저리로 가요.",
     "The contracts are ArcircleOrdersNative and ArcircleFeeBurnNative: the same orders and rules as on Arc, plus the wrapping. Until they're live on Robinhood Chain its side is a preview.": "컨트랙트는 ArcircleOrdersNative와 ArcircleFeeBurnNative예요: Arc와 같은 주문·규칙에 래핑만 더했어요. Robinhood Chain에 배포되기 전까지는 미리보기로 보여요.",
     "The book is public: GET /api/social?orders=book&token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain \"ARCIRCLE Orders\", version 1, chain 5042). Add &chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&token=0x… lists a token's ETH pools there).": "호가창은 공개예요: GET /api/social?orders=book&token=0x…는 가격대, 최근 체결, 24시간 수치를 돌려주고, ?orders=markets는 모든 마켓을, ?orders=candles&pool=0x…는 모든 Arc v4 풀의 3일치 5분봉을 줘요. 주문은 서명한 EIP-712 주문으로 넣어요 (도메인 \"ARCIRCLE Orders\", 버전 1, 체인 5042). Robinhood Chain은 어디에든 &chain=rh를 붙이세요 (체인 4663; ?orders=pools&token=0x…는 그 토큰의 ETH 풀 목록이에요).",
+    "Wrap": "래핑",
   };
 
 

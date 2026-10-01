@@ -5850,6 +5850,7 @@
     "The same fee policy: hold 100,000 $ARCIRCLE on Robinhood Chain and every order is fee-free. Fees there are WETH: once an hour half buys $ARCIRCLE in the $ARCIRCLE / ETH pool and burns it, the other half goes to the ARCIRCLE PAD treasury.": "手续费政策相同：在 Robinhood Chain 上持有 100,000 枚 $ARCIRCLE，所有订单免手续费。那里的手续费为 WETH：每小时一半在 $ARCIRCLE / ETH 池买入 $ARCIRCLE 并销毁，另一半进入 ARCIRCLE PAD 金库。",
     "The contracts are ArcircleOrdersNative and ArcircleFeeBurnNative: the same orders and rules as on Arc, plus the wrapping. Until they're live on Robinhood Chain its side is a preview.": "合约为 ArcircleOrdersNative 和 ArcircleFeeBurnNative：与 Arc 上的订单和规则相同，只是多了包装。在 Robinhood Chain 上线前，该链一侧为预览。",
     "The book is public: GET /api/social?orders=book&token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain \"ARCIRCLE Orders\", version 1, chain 5042). Add &chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&token=0x… lists a token's ETH pools there).": "订单簿是公开的：GET /api/social?orders=book&token=0x… 返回价位、最近成交和24小时数据；?orders=markets 列出所有市场；?orders=candles&pool=0x… 提供任意 Arc v4 池3天的5分钟K线。下单使用签名的 EIP-712 订单（域 \"ARCIRCLE Orders\"，版本 1，链 5042）。对 Robinhood Chain，在任意请求后加 &chain=rh（链 4663；?orders=pools&token=0x… 列出该代币在那里的 ETH 池）。",
+    "Wrap": "包装",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -991,7 +991,7 @@
           wrap = need - bal;
         }
         const w0 = wrap > 0n ? 1 : 0;
-        const list = [...(w0 ? ["Wrap ETH"] : []), "Approve", ...(legs.length > 1 ? legs.map((l) => "Sign the " + l.name) : ["Sign"]), "Place", ...(S.editing ? ["Cancel the old order"] : [])];
+        const list = [...(w0 ? ["Wrap"] : []), "Approve", ...(legs.length > 1 ? legs.map((l) => "Sign the " + l.name) : ["Sign"]), "Place", ...(S.editing ? ["Cancel the old order"] : [])];
         S.steps = { list, at: 0 }; form();
         if (w0) {
           S.busy = "Wrap ETH in your wallet…"; form();
