@@ -5698,6 +5698,15 @@
     "The contracts are ArcircleOrdersNative and ArcircleFeeBurnNative: the same orders and rules as on Arc, plus the wrapping. Until they're live on Robinhood Chain its side is a preview.": "컨트랙트는 ArcircleOrdersNative와 ArcircleFeeBurnNative예요: Arc와 같은 주문·규칙에 래핑만 더했어요. Robinhood Chain에 배포되기 전까지는 미리보기로 보여요.",
     "The book is public: GET /api/social?orders=book&token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain \"ARCIRCLE Orders\", version 1, chain 5042). Add &chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&token=0x… lists a token's ETH pools there).": "호가창은 공개예요: GET /api/social?orders=book&token=0x…는 가격대, 최근 체결, 24시간 수치를 돌려주고, ?orders=markets는 모든 마켓을, ?orders=candles&pool=0x…는 모든 Arc v4 풀의 3일치 5분봉을 줘요. 주문은 서명한 EIP-712 주문으로 넣어요 (도메인 \"ARCIRCLE Orders\", 버전 1, 체인 5042). Robinhood Chain은 어디에든 &chain=rh를 붙이세요 (체인 4663; ?orders=pools&token=0x…는 그 토큰의 ETH 풀 목록이에요).",
     "Wrap": "래핑",
+    "Every holder of an Arc or Robinhood Chain token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps.": "한 블록 시점의 Arc·Robinhood Chain 토큰 홀더 전체 — 지금이든 그 이전 어느 때든. 락업된 토큰도 계산하고, 보유 기간 조건을 걸고, 누구나 검증할 수 있는 핑거프린트 목록을 공개하고, 두 번의 탭으로 에어드롭하세요.",
+    "Pick a token and a moment. The list is read from the token's own transfer history on Arc or Robinhood Chain — nothing to sign, nothing to pay.": "토큰과 시점을 고르세요. 목록은 Arc 또는 Robinhood Chain에 있는 토큰 자체의 전송 기록에서 읽어요 — 서명도, 비용도 없습니다.",
+    "Balances come from the token's Transfer events on Arc or Robinhood Chain, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.": "잔액은 Arc 또는 Robinhood Chain에 기록된 토큰의 Transfer 이벤트로 계산하며, 탐색기에서 확인할 수 있는 블록까지 읽습니다. 리베이스되거나 전송 없이 잔액이 바뀌는 토큰은 다를 수 있어요 — 그런 경우 페이지에 표시됩니다. 핑거프린트는 CSV의 keccak256 값입니다.",
+    "Couldn't read that as an ERC-20 token on Robinhood Chain.": "Robinhood Chain의 ERC-20 토큰으로 읽을 수 없어요.",
+    "Couldn't build it right now — try again in a moment.": "지금은 만들 수 없어요 — 잠시 후 다시 시도해 주세요.",
+    "Robinhood Chain: built from the token's whole Transfer history — the first one can take a little longer.": "Robinhood Chain: 토큰의 전체 Transfer 기록으로 만들어요 — 처음 한 번은 조금 더 걸릴 수 있어요.",
+    "Arc: locked tokens and LP positions can count too.": "Arc: 락업된 토큰과 LP 포지션도 포함할 수 있어요.",
+    "This token has too many holders for a snapshot on Robinhood Chain.": "이 토큰은 홀더가 너무 많아 Robinhood Chain에서 스냅샷을 만들 수 없어요.",
+    "That isn't an ERC-20 token on Robinhood Chain.": "Robinhood Chain의 ERC-20 토큰이 아니에요.",
   };
 
 

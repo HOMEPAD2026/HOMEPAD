@@ -5851,6 +5851,15 @@
     "The contracts are ArcircleOrdersNative and ArcircleFeeBurnNative: the same orders and rules as on Arc, plus the wrapping. Until they're live on Robinhood Chain its side is a preview.": "合约为 ArcircleOrdersNative 和 ArcircleFeeBurnNative：与 Arc 上的订单和规则相同，只是多了包装。在 Robinhood Chain 上线前，该链一侧为预览。",
     "The book is public: GET /api/social?orders=book&token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain \"ARCIRCLE Orders\", version 1, chain 5042). Add &chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&token=0x… lists a token's ETH pools there).": "订单簿是公开的：GET /api/social?orders=book&token=0x… 返回价位、最近成交和24小时数据；?orders=markets 列出所有市场；?orders=candles&pool=0x… 提供任意 Arc v4 池3天的5分钟K线。下单使用签名的 EIP-712 订单（域 \"ARCIRCLE Orders\"，版本 1，链 5042）。对 Robinhood Chain，在任意请求后加 &chain=rh（链 4663；?orders=pools&token=0x… 列出该代币在那里的 ETH 池）。",
     "Wrap": "包装",
+    "Every holder of an Arc or Robinhood Chain token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps.": "某一区块时 Arc 或 Robinhood Chain 代币的全部持有人 —— 现在或之前任意时刻。计入锁仓代币，要求持有期，发布任何人都能核对的带指纹名单，两步即可空投。",
+    "Pick a token and a moment. The list is read from the token's own transfer history on Arc or Robinhood Chain — nothing to sign, nothing to pay.": "选择代币和时间点。名单直接读取该代币在 Arc 或 Robinhood Chain 上的转账记录 —— 无需签名，无需付费。",
+    "Balances come from the token's Transfer events on Arc or Robinhood Chain, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.": "余额由该代币在 Arc 或 Robinhood Chain 上的 Transfer 事件计算，读取到可在浏览器中核对的区块。会 rebase 或不经转账改变余额的代币可能有差异 —— 页面发现时会提示。指纹是 CSV 的 keccak256。",
+    "Couldn't read that as an ERC-20 token on Robinhood Chain.": "无法将其读取为 Robinhood Chain 上的 ERC-20 代币。",
+    "Couldn't build it right now — try again in a moment.": "现在无法生成 —— 请稍后再试。",
+    "Robinhood Chain: built from the token's whole Transfer history — the first one can take a little longer.": "Robinhood Chain：根据代币的全部 Transfer 记录生成 —— 第一次可能稍慢。",
+    "Arc: locked tokens and LP positions can count too.": "Arc：锁仓代币和 LP 头寸也可以计入。",
+    "This token has too many holders for a snapshot on Robinhood Chain.": "该代币持有人过多，无法在 Robinhood Chain 上生成快照。",
+    "That isn't an ERC-20 token on Robinhood Chain.": "这不是 Robinhood Chain 上的 ERC-20 代币。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

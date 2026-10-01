@@ -74,7 +74,10 @@
   /// A job: undo every Transfer of `token` after block B, from the base at `hi`,
   /// down to block H (H = B without a hold period).
   function newJob({ token, hi, B, H, locks }) {
-    return { v: SNAP_VERSION, token: lcs(token), hi, B, H: H == null ? B : Math.min(H, B), locks: !!locks, cursor: hi, d: {}, dB: null, w: {}, mint: "0", burn: "0", logs: 0, done: hi <= (H == null ? B : Math.min(H, B)) };
+    const done = hi <= (H == null ? B : Math.min(H, B));
+    // a job that starts done (a snapshot at the base's own block) has nothing after B yet: dB starts empty, not unset,
+    // so when the base moves on and extendJob folds newer transfers in, they're counted as "after B"
+    return { v: SNAP_VERSION, token: lcs(token), hi, B, H: H == null ? B : Math.min(H, B), locks: !!locks, cursor: hi, d: {}, dB: done ? {} : null, w: {}, mint: "0", burn: "0", logs: 0, done };
   }
   const toMap = (o) => new Map(Object.entries(o || {}).map(([k, v]) => [k, BigInt(v)]));
   const toObj = (m) => { const o = {}; m.forEach((v, k) => { if (v !== 0n) o[k] = v.toString(); }); return o; };

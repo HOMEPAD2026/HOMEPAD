@@ -15,7 +15,7 @@
 //   GET  /api/social?watchtick=1                 Telegram watch check (x-watch-key header)
 //   GET  /api/social?bridgehist=0x…              a wallet's CCTP transfers seen on Arc (api/_bridge.mjs)
 //   GET  /api/social?bridgestats=1               bridged through ARCIRCLE PAD
-//   GET  /api/social?holdersnap=0x…              every holder of a token (Multisender airdrop to holders)
+//   GET  /api/social?holdersnap=0x…              every holder of a token (Multisender airdrop to holders); &chain=rh: Robinhood Chain
 //   GET  /api/social?drops=recent                recent + biggest Multisender sends (api/_drop.mjs)
 //   GET  /api/social?dropreceipt=0x…[,0x…]       what a Multisender send delivered (receipt page)
 //   GET  /api/social?received=0x…                airdrops a wallet got / can claim
@@ -326,7 +326,11 @@ export async function GET(req) {
     const t = String(url.searchParams.get("holdersnap") || "");
     if (!isAddr(t)) return json(400, { error: "token must be an address" });
     if (scanner.limited(`hs:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
-    try { const out = await scanner.holderSnapshot(t, { store: scanStore(), limit: url.searchParams.get("limit") }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
+    try {
+      // Robinhood Chain (Holder Snapshot's chain=rh): its own balance sheet, built from the Transfer log
+      if (url.searchParams.get("chain") === "rh") { const out = await snap.chainOf("rh").base(t, { store: scanStore(), budgetMs: 7000 }); const lim = Math.max(1, Math.min(10000, Number(url.searchParams.get("limit")) || 5000)); return json(200, { ...out, holders: out.holders.slice(0, lim) }, out.complete ? "public, max-age=60, s-maxage=120" : "no-store"); }
+      const out = await scanner.holderSnapshot(t, { store: scanStore(), limit: url.searchParams.get("limit") }); return json(200, out, out.complete ? "public, max-age=60, s-maxage=120" : "no-store");
+    }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   // Locker (arc-locker.js): certificate, dashboard, badge
@@ -391,7 +395,7 @@ export async function GET(req) {
     if (scanner.limited(`sr:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
     const q = url.searchParams;
     try {
-      const out = await snap.run({ token: q.get("snaprun"), block: q.get("b"), at: q.get("at"), hold: q.get("hold"), locks: q.get("locks") !== "0", lp: q.get("lp") === "1" }, { store: scanStore(), budgetMs: 8500 });
+      const out = await snap.run({ token: q.get("snaprun"), block: q.get("b"), at: q.get("at"), hold: q.get("hold"), locks: q.get("locks") !== "0", lp: q.get("lp") === "1", chain: q.get("chain") }, { store: scanStore(), budgetMs: 8500 });
       return json(200, out.done ? { ...out, rows: snap.packRows(out.rows) } : out, "no-store");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }

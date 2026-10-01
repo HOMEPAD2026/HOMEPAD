@@ -484,9 +484,9 @@ async function snapPage(url) {
   try { const r = await fetch(`${SITE}/api/social?snapview=${id}`); d = r.ok ? await r.json() : null; } catch { d = null; }
   const sym = d && d.symbol ? "$" + d.symbol : "a token";
   const title = !d ? "Holder Snapshot — ARCIRCLE PAD" : d.status === "done"
-    ? `${d.title ? d.title + " — " : ""}${Number(d.count).toLocaleString("en-US")} holders of ${sym} at block #${d.block}`
+    ? `${d.title ? d.title + " — " : ""}${Number(d.count).toLocaleString("en-US")} holders of ${sym} at block #${d.block}${d.chain === "rh" ? " on Robinhood Chain" : ""}`
     : `${d.title ? d.title + " — " : ""}${sym} snapshot scheduled for ${new Date(d.at * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  const desc = !d ? "Every holder of an Arc token at one block." : d.status === "done"
+  const desc = !d ? "Every holder of an Arc or Robinhood Chain token at one block." : d.status === "done"
     ? `Fingerprint ${d.fp.slice(0, 18)}… — check whether your wallet is on the list.` : "The list is built from the chain at that moment. Check back to see whether your wallet made it.";
   const target = `/arc#snapshot?id=${id}`;
   const image = `${SITE}/api/og?snap=${id}`;

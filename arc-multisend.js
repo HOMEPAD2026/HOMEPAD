@@ -1835,6 +1835,7 @@
   // A list from another utility (Snapshot): opens the list step with it.
   function load(text, am, note, opts) {
     if (!booted) { booted = true; init(); }
+    if (opts && (opts.chain === "rh" || opts.chain === "arc") && opts.chain !== chain) setChain(opts.chain); // the list's chain (Snapshot on Robinhood Chain)
     const want = opts && opts.mode === "drop" ? "drop" : "token";
     if (F.mode !== want) { const b = $("ams-modes").querySelector(`[data-mode="${want}"]`); if (b && !b.hidden) b.click(); }
     if (opts && isAddr(opts.token) && (!F.info || lc(F.info.address) !== lc(opts.token))) { $("ams-token").value = opts.token; pickToken(opts.token); }

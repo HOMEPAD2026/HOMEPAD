@@ -1,4 +1,4 @@
-/* global ethers, CONFIG, state, readProvider, withRetry, blockAtOrAfter, arcQuoteMeta */
+/* global ethers, CONFIG, state, readProvider, withRetry, blockAtOrAfter, arcQuoteMeta, ARC_ALT_NET */
 // arc-snapshot.js — Holder Snapshot, an ARCIRCLE PAD utility (arcpad.html#snapshot).
 // Every holder of an Arc token at one block — the engine is snap-core.js
 // (generated from api/_snap-core.mjs), the same code the server runs, so a
@@ -14,6 +14,10 @@
 //   Tabs       Holders · Distribution (Lorenz curve, Gini, tiers) ·
 //              Airdrop (calculator → Multisender / claim drop / Merkle root) ·
 //              Compare (two moments) · Publish (/snap/<id>, schedule, verify)
+//   Chains     Arc | Robinhood switch on the token card. Robinhood Chain's
+//              balance sheet is built on the server from the token's Transfer
+//              log (api/_snap-rh.mjs, ?chain=rh); ArcLock, LP positions,
+//              CirclePad and claim drops are Arc's, so they're off there.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-snapshot");
@@ -22,7 +26,17 @@
   if (!C) return;
 
   const PAGE = 50, HIST = "arcircle.snapshot.hist.v2", MAX_DAYS = 30;
-  const ARCIRCLE = String(CONFIG.ARCIRCLE_TOKEN || "").toLowerCase();
+  // ---------------- the chain: Arc or Robinhood Chain ----------------
+  const CK = "arcircle.snapshot.chain";
+  const ALT = () => (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" };
+  let CH = /[?&]c=rh\b/.test(location.hash) ? "rh" : (() => { try { return localStorage.getItem(CK) === "rh" && !/[?&](t|token|id)=/.test(location.hash) ? "rh" : "arc"; } catch { return "arc"; } })();
+  const RH = () => CH === "rh";
+  const CHAIN_NAME = () => (RH() ? "Robinhood Chain" : "Arc");
+  const CQ = () => (RH() ? "&chain=rh" : "");
+  const withChain = (b) => (RH() ? { ...b, chain: "rh" } : b);
+  const ARC_ARCIRCLE = String(CONFIG.ARCIRCLE_TOKEN || "").toLowerCase();
+  const RH_ARCIRCLE = String((CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4").toLowerCase();
+  let ARCIRCLE = RH() ? RH_ARCIRCLE : ARC_ARCIRCLE;
   const USDC = String(CONFIG.USDC_ADDRESS || "0x3600000000000000000000000000000000000000").toLowerCase();
   const TOK_ABI = ["function name() view returns (string)", "function symbol() view returns (string)", "function decimals() view returns (uint8)", "function totalSupply() view returns (uint256)"];
   const HOLDP = [0, 86400, 259200, 604800, 2592000];
@@ -33,9 +47,11 @@
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
-  const explorer = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  const explorerOn = (c) => (kind, x) => `${c === "rh" ? ALT().explorer : CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  const explorer = (kind, x) => explorerOn(CH)(kind, x);
   const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const lr = () => readProvider();
+  let rhProv = null;
+  const lr = () => (RH() ? (rhProv = rhProv || new ethers.JsonRpcProvider(ALT().rpc, Number(ALT().id || 4663), { staticNetwork: true })) : readProvider());
   const num = (n) => Number(n).toLocaleString("en-US");
   const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -165,6 +181,7 @@
   async function build(p, alive, onProgress) {
     const qs = new URLSearchParams({ snaprun: p.token, hold: String(p.hold || 0), locks: p.locks ? "1" : "0", lp: p.lp ? "1" : "0" });
     if (p.block) qs.set("b", String(p.block)); else if (p.at) qs.set("at", String(p.at));
+    if (RH()) qs.set("chain", "rh");
     let fails = 0;
     for (let i = 0; i < 400; i++) {
       const r = await fetchJson(`/api/social?${qs}`, 30000);
@@ -176,6 +193,8 @@
       if (++fails >= 2) break;
       await sleep(800);
     }
+    // Robinhood Chain's balance sheet lives on the server only
+    if (RH()) throw new Error(tr("Couldn't build it right now — try again in a moment."));
     return runLocal(p, alive, onProgress);
   }
 
@@ -187,10 +206,10 @@
       retry(() => c.decimals()).catch(() => null), retry(() => c.totalSupply()).catch(() => null),
     ]);
     if (supply == null || decimals == null) return null;
-    return { address: cs(addr), name: String(name || "").slice(0, 60), symbol: String(symbol || "").slice(0, 20), decimals: Number(decimals), supply: BigInt(supply) };
+    return { chain: CH, address: cs(addr), name: String(name || "").slice(0, 60), symbol: String(symbol || "").slice(0, 20), decimals: Number(decimals), supply: BigInt(supply) };
   }
   const symOf = () => (F.tok && F.tok.symbol ? "$" + F.tok.symbol : tr("tokens"));
-  const launches = () => (typeof ARC !== "undefined" && ARC.launches) || [];
+  const launches = () => (!RH() && typeof ARC !== "undefined" && ARC.launches) || [];
   function logoOf(a) {
     a = lc(a);
     if (a === ARCIRCLE) return "images/arcircle-mark-sm.png";
@@ -201,8 +220,8 @@
     // price (Dexscreener) and the holder-count history — both optional
     const out = { price: null, hist: [], count: null };
     const [px, hs] = await Promise.all([
-      fetchJson(`https://api.dexscreener.com/tokens/v1/arc/${addr}`, 7000),
-      fetchJson(`/api/social?holdersnap=${addr}&limit=1`, 20000),
+      fetchJson(`https://api.dexscreener.com/tokens/v1/${RH() ? "robinhood" : "arc"}/${addr}`, 7000),
+      fetchJson(`/api/social?holdersnap=${addr}&limit=1${CQ()}`, 20000),
     ]);
     if (px.ok && Array.isArray(px.j) && px.j.length) {
       const best = px.j.slice().sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0];
@@ -224,7 +243,7 @@
     status("wait", tr("Reading the token…"));
     const tok = await readToken(addr).catch(() => null);
     if (run !== F.run) return;
-    if (!tok) { status("bad", tr("Couldn't read that as an ERC-20 token on Arc.")); return; }
+    if (!tok) { status("bad", tr(RH() ? "Couldn't read that as an ERC-20 token on Robinhood Chain." : "Couldn't read that as an ERC-20 token on Arc.")); return; }
     F.tok = tok;
     if (!F.calc.token) F.calc.meta = null;
     paintToken(true); writeFilters();
@@ -235,7 +254,7 @@
 
   // ---------------- taking the snapshot ----------------
   function params(block) {
-    const p = { token: lc(F.tok.address), hold: F.hold, locks: F.locks, lp: F.lp };
+    const p = { token: lc(F.tok.address), hold: F.hold, locks: !RH() && F.locks, lp: !RH() && F.lp };
     if (block) p.block = block;
     else if (F.mode === "past") {
       if (F.pastBlock) p.block = F.pastBlock;
@@ -336,6 +355,7 @@
   }
   function shareUrl() {
     const q = new URLSearchParams({ t: F.tok.address });
+    if (RH()) q.set("c", "rh");
     if (F.res && F.res.block < F.res.hi) q.set("b", String(F.res.block));
     const f = normFilters();
     if (f.min) q.set("min", f.min);
@@ -357,7 +377,7 @@
     fly(opts && opts.from);
     setTimeout(() => {
       if (typeof window.arcpadShowTab === "function") window.arcpadShowTab("multisend"); else location.hash = "#multisend";
-      setTimeout(() => window.arcMultisend.load(text, am, note, opts), 60);
+      setTimeout(() => window.arcMultisend.load(text, am, note, { ...(opts || {}), chain: CH }), 60);
     }, reduce ? 0 : 380);
   }
 
@@ -370,7 +390,11 @@
   async function setCalcToken(addr) {
     F.calc.token = addr || ""; F.calc.meta = null;
     if (addr && (!F.tok || lc(addr) !== lc(F.tok.address))) {
-      try { const m = await arcQuoteMeta(addr); F.calc.meta = { address: cs(addr), symbol: m.symbol, decimals: Number(m.decimals) }; } catch { F.calc.meta = null; toast(tr("Couldn't read that token.")); }
+      try {
+        const m = RH() ? await readToken(addr) : await arcQuoteMeta(addr);
+        if (!m) throw new Error("no token");
+        F.calc.meta = { address: cs(addr), symbol: m.symbol, decimals: Number(m.decimals) };
+      } catch { F.calc.meta = null; toast(tr("Couldn't read that token.")); }
     }
     paintAirdrop(true);
   }
@@ -394,7 +418,7 @@
     const run = ++F.cmp.run;
     F.cmp.busy = true; F.cmp.res = null; F.cmp.diff = null; paintCompare();
     try {
-      const p = { token: lc(F.tok.address), hold: F.res.hold, locks: F.res.locks, lp: F.res.lp };
+      const p = { token: lc(F.tok.address), hold: F.res.hold, locks: !RH() && F.res.locks, lp: !RH() && F.res.lp };
       if (F.cmp.ago === "now") { /* the latest block */ }
       else if (F.cmp.ago === "custom") { const t = new Date(F.cmp.at).getTime(); if (!isFinite(t)) throw new Error(tr("Pick a date and time first.")); p.at = Math.floor(t / 1000); }
       else p.at = F.res.ts - Number(F.cmp.ago) * 3600;
@@ -419,7 +443,7 @@
     F.pub.busy = true; paintPublish();
     try {
       const f = normFilters(), title = String(F.pub.title || "").trim().slice(0, 80);
-      const body = { action: "snappublish", token: lc(F.tok.address), block: F.res.block, filters: f, title };
+      const body = withChain({ action: "snappublish", token: lc(F.tok.address), block: F.res.block, filters: f, title });
       if (F.pub.sign) {
         if (!state.account || !state.signer) throw new Error(tr("Connect a wallet to sign."));
         body.by = lc(state.account);
@@ -451,7 +475,7 @@
       const done = [];
       for (let k = 0; k < times; k++) {
         const at = at0 + k * gap * 86400;
-        const body = { action: "snapschedule", token: lc(F.tok.address), at, filters: f, title };
+        const body = withChain({ action: "snapschedule", token: lc(F.tok.address), at, filters: f, title });
         if (F.pub.sign) {
           if (!state.account || !state.signer) throw new Error(tr("Connect a wallet to sign."));
           body.by = lc(state.account);
@@ -500,8 +524,8 @@
   function hist() { try { const h = JSON.parse(localStorage.getItem(HIST) || "[]"); return Array.isArray(h) ? h : []; } catch { return []; } }
   function remember() {
     const r = F.res;
-    const item = { t: F.tok.address, s: F.tok.symbol, b: r.block < r.hi ? r.block : null, ts: r.ts, n: r.rows.length, at: Date.now() };
-    const h = hist().filter((x) => !(lc(x.t) === lc(item.t) && x.b === item.b));
+    const item = { t: F.tok.address, s: F.tok.symbol, b: r.block < r.hi ? r.block : null, ts: r.ts, n: r.rows.length, at: Date.now(), ...(RH() ? { c: "rh" } : {}) };
+    const h = hist().filter((x) => !(lc(x.t) === lc(item.t) && x.b === item.b && (x.c || "arc") === CH));
     h.unshift(item);
     try { localStorage.setItem(HIST, JSON.stringify(h.slice(0, 8))); } catch { /* private mode */ }
     paintChips();
@@ -517,7 +541,7 @@
   const mineIds = () => { try { const a = JSON.parse(localStorage.getItem(MINE) || "[]"); return Array.isArray(a) ? a : []; } catch { return []; } };
   async function logTake(run) {
     if (F.also.mode || !F.res || !F.tok) return;
-    const body = { action: "snaplog", token: lc(F.tok.address), block: F.res.block, filters: normFilters() };
+    const body = withChain({ action: "snaplog", token: lc(F.tok.address), block: F.res.block, filters: normFilters() });
     const key = `${body.token}:${body.block}:${JSON.stringify(body.filters)}`;
     if (LG.last === key) return;
     LG.last = key;
@@ -550,7 +574,7 @@
     const all = LG.items || [];
     const list = LG.mine ? all.filter((x) => mine.has(x.id)) : all;
     const rows = list.slice(0, LG.shown).map((x) => `<button type="button" class="asn-log-row${mine.has(x.id) ? " mine" : ""}${F.view && F.view.id === x.id ? " on" : ""}" data-snaplog="${esc(x.id)}">
-        <span class="asn-log-sym" data-no-i18n>$${esc(x.symbol || "?")}</span>
+        <span class="asn-log-sym" data-no-i18n>$${esc(x.symbol || "?")}${x.chain === "rh" ? ` <em class="asn-rh">Robinhood</em>` : ""}</span>
         <span class="asn-log-b"><b data-no-i18n>#${num(x.block)}</b><small data-no-i18n>${esc(utc(x.ts))}</small></span>
         <span class="asn-log-n"><b data-no-i18n>${num(x.count)}</b><small>${esc(tr("Holders"))}</small></span>
         <code class="asn-log-fp" data-no-i18n>${esc(String(x.fp || "").slice(0, 10))}…</code>
@@ -682,10 +706,10 @@
   }
   function paintChips() {
     const chips = [];
-    if (ARCIRCLE) chips.push(`<button type="button" class="ams-chip" data-t="${esc(CONFIG.ARCIRCLE_TOKEN)}" data-no-i18n>$ARCIRCLE</button>`);
+    if (ARCIRCLE) chips.push(`<button type="button" class="ams-chip" data-t="${esc(RH() ? RH_ARCIRCLE : CONFIG.ARCIRCLE_TOKEN)}" data-no-i18n>$ARCIRCLE</button>`);
     launches().slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0)).slice(0, 3)
       .forEach((l) => { if (lc(l.token) !== ARCIRCLE) chips.push(`<button type="button" class="ams-chip" data-t="${esc(l.token)}" data-no-i18n>$${esc(l.symbol)}</button>`); });
-    const h = hist().slice(0, 4);
+    const h = hist().filter((x) => (x.c || "arc") === CH).slice(0, 4);
     const recent = h.length ? `<span class="asn-chips-l">${esc(tr("Recent"))}</span>` + h.map((x) => `<button type="button" class="ams-chip mine" data-t="${esc(x.t)}"${x.b ? ` data-b="${x.b}"` : ""} title="${esc(x.b ? `#${x.b}` : tr("Now"))}"><span data-no-i18n>$${esc(x.s || "?")}</span>${x.b ? ` · ${esc(new Date((x.ts || 0) * 1000).toLocaleDateString(loc(), { month: "short", day: "numeric" }))}` : ""}</button>`).join("") : "";
     const html = (chips.length ? `<span class="asn-chips-l">${esc(tr("Try"))}</span>${chips.join("")}` : "") + recent;
     const box = $("asn-chips");
@@ -700,7 +724,7 @@
     el.innerHTML = `${logo ? `<img class="asn-tok-img" src="${esc(logo)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'asn-tok-ico',textContent:${JSON.stringify((t.symbol || "?").slice(0, 1))}}))">` : `<span class="asn-tok-ico" aria-hidden="true">${esc((t.symbol || "?").slice(0, 1))}</span>`}
       <div class="asn-tok-txt"><b data-no-i18n>${esc(t.name || t.symbol || short(t.address))} <small>$${esc(t.symbol)}</small></b>
       <span>${esc(tr("Supply"))} ${esc(fmt(t.supply, t.decimals))}${info.count ? ` · ${esc(tr(plural(info.count, "holder", "holders")))}` : ""}${info.price ? ` · <span data-no-i18n>${esc(usd(info.price))}</span>` : ""} · <a href="${explorer("token", t.address)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(t.address))} ↗</a></span></div>
-      <a class="asn-badge" href="/arc#scanner?t=${esc(t.address)}" title="${esc(tr("Token Scanner"))}"><img src="/api/social?badge=${esc(t.address)}" alt="" loading="lazy" onerror="this.parentNode.remove()"></a>`;
+      ${RH() ? "" : `<a class="asn-badge" href="/arc#scanner?t=${esc(t.address)}" title="${esc(tr("Token Scanner"))}"><img src="/api/social?badge=${esc(t.address)}" alt="" loading="lazy" onerror="this.parentNode.remove()"></a>`}`;
     if (pop && !reduce) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
   }
   function paintSpark() {
@@ -828,7 +852,7 @@
   }
   // $ARCIRCLE holders are who Relay Launch pays: say so, and whether this wallet makes the cut
   function relayNote(mine) {
-    if (!F.tok || lc(F.tok.address) !== ARCIRCLE || !CONFIG.RELAY) return "";
+    if (RH() || !F.tok || lc(F.tok.address) !== ARCIRCLE || !CONFIG.RELAY) return "";
     const min = C.parseUnits(String(CONFIG.RELAY.MIN_ARCIRCLE || "0"), F.res.decimals) || 0n;
     const txt = mine == null ? tr("Relay Launch pays $ARCIRCLE holders — this is the kind of list it uses.")
       : mine >= min ? tr("You hold enough $ARCIRCLE for the next Relay Launch.") : tr("You need {n} more $ARCIRCLE for the next Relay Launch (locked tokens count).").replace("{n}", fmt(min - mine, F.res.decimals));
@@ -937,12 +961,12 @@
     const sum = got.reduce((s, [, v]) => s + v, 0n);
     const vs = got.map(([, v]) => v).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const med = vs.length ? vs[Math.floor(vs.length / 2)] : 0n;
-    const drop = /^0x[0-9a-fA-F]{40}$/.test(CONFIG.DROP_ADDRESS || "");
+    const drop = !RH() && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.DROP_ADDRESS || ""); // claim drops are on Arc
     const methods = [["prop", "By holding", "More tokens held, more received"], ["sqrt", "Square root", "Softens the whales' share"], ["equal", "Equal", "Everyone gets the same"], ["tiers", "Tiers", "A fixed amount per holding band"]];
     pane.innerHTML = `
       <div class="asn-calc">
         <div class="asn-calc-row"><span class="asn-lbl">${esc(tr("Send"))}</span>
-          <div class="ams-chips">${[["", F.tok ? "$" + F.tok.symbol : "?"], [USDC, "USDC"], ...(ARCIRCLE && (!F.tok || lc(F.tok.address) !== ARCIRCLE) ? [[CONFIG.ARCIRCLE_TOKEN, "$ARCIRCLE"]] : [])].map(([a, l]) => `<button type="button" class="ams-chip${lc(c.token) === lc(a) || (!a && !c.token) ? " on" : ""}" data-calc-tok="${esc(a)}" data-no-i18n>${esc(l)}</button>`).join("")}
+          <div class="ams-chips">${[["", F.tok ? "$" + F.tok.symbol : "?"], ...(RH() ? [] : [[USDC, "USDC"]]), ...(ARCIRCLE && (!F.tok || lc(F.tok.address) !== ARCIRCLE) ? [[RH() ? RH_ARCIRCLE : CONFIG.ARCIRCLE_TOKEN, "$ARCIRCLE"]] : [])].map(([a, l]) => `<button type="button" class="ams-chip${lc(c.token) === lc(a) || (!a && !c.token) ? " on" : ""}" data-calc-tok="${esc(a)}" data-no-i18n>${esc(l)}</button>`).join("")}
             <input id="asn-c-tok" class="asn-c-tok" type="text" spellcheck="false" placeholder="${esc(tr("or a token address"))}" value="${esc(c.token && ![USDC, ARCIRCLE].includes(lc(c.token)) ? c.token : "")}"></div></div>
         <div class="asn-tpl"><span class="asn-lbl">${esc(tr("Quick rules"))}</span>${TPL.map(([k, l, sub]) => `<button type="button" data-tpl="${k}"${k === "lockx2" ? ` aria-pressed="${!!c.lockX2}"` : k === "hold7" ? ` aria-pressed="${F.res.hold >= 604800}"` : ""}><b>${esc(tr(l))}</b><small>${esc(tr(sub))}</small></button>`).join("")}</div>
         <div class="asn-seg asn-methods" role="radiogroup" aria-label="${esc(tr("How to split"))}">${methods.map(([k, l, s]) => `<button type="button" role="radio" data-method="${k}" aria-checked="${c.method === k}"><b>${esc(tr(l))}</b><span>${esc(tr(s))}</span></button>`).join("")}</div>
@@ -1046,6 +1070,7 @@
     if (!v) return;
     if (v.err) { box.innerHTML = `<div class="asn-pubview"><b>${esc(v.err)}</b> <button type="button" class="ams-mini" data-act="view-close">×</button></div>`; return; }
     const d = v.d, done = d.status === "done";
+    const explorer = explorerOn(d.chain === "rh" ? "rh" : "arc"); // the snapshot's own chain
     const nowS = Date.now() / 1000, left = Math.max(0, (d.at || 0) - nowS);
     const cd = (s) => { const dd = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60), ss = Math.floor(s % 60); return `${dd ? dd + "d " : ""}${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`; };
     const dec = d.decimals || 18;
@@ -1054,7 +1079,7 @@
     box.innerHTML = `<div class="asn-pubview${done ? " done" : ""}">
       <button type="button" class="asn-x" data-act="view-close" aria-label="${esc(tr("Close"))}">×</button>
       <span class="asn-kick">${esc(tr(done ? (d.auto ? "Snapshot record" : "Published snapshot") : d.status === "building" ? "Building now" : "Scheduled snapshot"))}</span>
-      <h2>${d.title ? esc(d.title) : esc(tr("Holder snapshot"))} <small data-no-i18n>$${esc(d.symbol || "?")}</small></h2>
+      <h2>${d.title ? esc(d.title) : esc(tr("Holder snapshot"))} <small data-no-i18n>$${esc(d.symbol || "?")}${d.chain === "rh" ? " · Robinhood Chain" : ""}</small></h2>
       ${d.by ? `<p class="asn-signed ${d.verified ? "ok" : "bad"}">${esc(tr(d.verified ? "Signed by" : "Signature doesn't check out:"))} <a href="${explorer("address", d.by)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(cs(d.by)))}</a></p>` : ""}
       ${rules.length ? `<p class="asn-rules">${rules.map((x) => `<span>${esc(x)}</span>`).join("")}</p>` : ""}
       ${done ? `<div class="asn-stats">
@@ -1120,6 +1145,27 @@
     F.f.noC = $("asn-noc").checked; F.f.skip = $("asn-skip").value;
     F.locks = $("asn-locks").checked; F.lp = $("asn-lp").checked;
   }
+  /// the chain switch, and what only Arc has: ArcLock, LP positions, CirclePad
+  function paintChain() {
+    const sw = $("asn-chain");
+    if (sw) { sw.dataset.chain = CH; sw.querySelectorAll("[data-snapchain]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.snapchain === CH))); }
+    for (const id of ["asn-locks", "asn-lp"]) { const el = $(id); if (el && el.closest("label")) el.closest("label").hidden = RH(); }
+    const ck = $("asn-also-kind");
+    if (ck) { const o = ck.querySelector('option[value="circle"]'); if (o) { o.hidden = RH(); o.disabled = RH(); } if (RH() && ck.value === "circle") ck.value = "token"; }
+    const note = $("asn-chainnote");
+    if (note) note.textContent = tr(RH() ? "Robinhood Chain: built from the token's whole Transfer history — the first one can take a little longer." : "Arc: locked tokens and LP positions can count too.");
+  }
+  function setChain(c, { keep = false } = {}) {
+    c = c === "rh" ? "rh" : "arc";
+    if (c === CH) return;
+    CH = c; ARCIRCLE = RH() ? RH_ARCIRCLE : ARC_ARCIRCLE;
+    try { localStorage.setItem(CK, c); } catch { /* this visit */ }
+    F.run++; F.busy = false; F.tok = null; F.info = null; F.res = null; F.list = []; F.cmp.res = null; F.cmp.diff = null; F.also = { mode: "", kind: "token", token: "", min: "", set: null, label: "" };
+    F.calc.token = ""; F.calc.meta = null; F.pub.last = null; F.pub.sched = null; F.pub.scheds = null;
+    if (RH()) { F.locks = false; F.lp = false; } else F.locks = true;
+    if (!keep) { $("asn-addr").value = ""; status("", ""); }
+    writeFilters(); paintChain(); paintChips(); paintToken(); paintResult(); paintBusy(); shutter("open");
+  }
   function writeFilters() {
     $("asn-min").value = F.f.min; $("asn-max").value = F.f.max; $("asn-top").value = F.f.top;
     $("asn-noc").checked = F.f.noC; $("asn-skip").value = F.f.skip;
@@ -1134,7 +1180,7 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   function labels() {
-    $("asn-addr").setAttribute("placeholder", tr("Paste a token contract address (0x…)"));
+    $("asn-addr").setAttribute("placeholder", tr(RH() ? "Paste a Robinhood Chain token address (0x…)" : "Paste a token contract address (0x…)"));
     $("asn-skip").setAttribute("placeholder", tr("0x… one per line — team, exchanges, anyone else"));
     $("asn-skip").setAttribute("aria-label", tr("Wallets to leave out"));
     $("asn-also-token").setAttribute("placeholder", tr("Token contract address (0x…)"));
@@ -1151,12 +1197,12 @@
       } else {
         const t = $("asn-also-token").value.trim();
         if (!isAddr(t)) throw new Error(tr("That isn't a token contract address."));
-        const r = await fetchJson(`/api/social?holdersnap=${t}&limit=8000`);
+        const r = await fetchJson(`/api/social?holdersnap=${t}&limit=8000${CQ()}`);
         if (!r.ok || !r.j || !Array.isArray(r.j.holders)) throw new Error(tr("Couldn't read the holders right now — try again in a moment."));
         const min = C.parseUnits($("asn-also-min").value, r.j.decimals || 18) || 0n;
         F.also.set = new Set(r.j.holders.filter(([, v]) => BigInt(v) >= min && BigInt(v) > 0n).map(([a]) => lc(a)));
         let sym = "";
-        try { sym = (await arcQuoteMeta(t)).symbol; } catch { /* unnamed */ }
+        try { sym = RH() ? ((await readToken(t)) || {}).symbol || "" : (await arcQuoteMeta(t)).symbol; } catch { /* unnamed */ }
         F.also.label = tr(`holders of ${sym ? "$" + sym : short(t)}`);
       }
       note.textContent = tr(plural(F.also.set.size, "wallet on that list", "wallets on that list"));
@@ -1223,6 +1269,7 @@
     const t = e.target.closest("button, [data-t], a[data-copy]");
     if (!t || !panel.contains(t)) return;
     if (t.dataset.copy) { e.preventDefault(); copy(t.dataset.copy, t); return; }
+    if (t.dataset.snapchain) { setChain(t.dataset.snapchain); labels(); if (history.replaceState && /^#snapshot/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search + (RH() ? "#snapshot?c=rh" : "#snapshot")); return; }
     if (t.dataset.snaplog) {
       const id = t.dataset.snaplog;
       if (history.replaceState) history.replaceState(null, "", location.pathname + location.search + "#snapshot?id=" + id);
@@ -1316,6 +1363,7 @@
       F.f = { min: f.min || "", max: f.max || "", top: f.top ? String(f.top) : "", noC: f.noC !== false, since: f.since || "any", skip: (f.skip || []).join("\n") };
       F.hold = f.hold || 0; F.locks = f.locks !== false; F.lp = !!f.lp; F.mode = "past"; F.pastBlock = d.block; F.expect = d.fp; F.expectFor = `${lc(d.token)}:${d.block}`;
       F.also = { mode: "", kind: "token", token: "", min: "", set: null, label: "" };
+      if ((d.chain === "rh" ? "rh" : "arc") !== CH) { setChain(d.chain === "rh" ? "rh" : "arc", { keep: true }); labels(); F.f = { min: f.min || "", max: f.max || "", top: f.top ? String(f.top) : "", noC: f.noC !== false, since: f.since || "any", skip: (f.skip || []).join("\n") }; F.hold = f.hold || 0; F.mode = "past"; F.pastBlock = d.block; F.expect = d.fp; F.expectFor = `${lc(d.token)}:${d.block}`; }
       writeFilters(); paintWhen();
       pick(d.token, { go: true, block: d.block });
     }
@@ -1326,7 +1374,8 @@
     const q = new URLSearchParams(m[1]);
     if (/^[0-9a-f]{12}$/.test(q.get("id") || "")) { openView(q.get("id"), state && state.account ? lc(state.account) : ""); return; }
     const t = q.get("t") || q.get("token");
-    if (!isAddr(t)) return;
+    if (!isAddr(t)) { if (q.get("c") === "rh" && !RH()) { setChain("rh"); labels(); } return; }
+    if ((q.get("c") === "rh" ? "rh" : "arc") !== CH) { setChain(q.get("c") === "rh" ? "rh" : "arc", { keep: true }); labels(); }
     F.f.min = q.get("min") || ""; F.f.max = q.get("max") || ""; F.f.top = q.get("top") || "";
     F.f.noC = q.get("nc") !== "0"; F.f.since = ["some", "all"].includes(q.get("since") || q.get("hold")) ? (q.get("since") || q.get("hold")) : "any";
     F.hold = HOLDP.includes(Number(q.get("hold"))) ? Number(q.get("hold")) : 0;
@@ -1338,20 +1387,20 @@
     pick(t, { go: true, block: b || null });
   }
   function onShow() {
-    if (!booted) { booted = true; init(); }
+    if (!booted) { booted = true; init(); paintChain(); }
     paintChips();
     loadLog(false);
     fromHash();
     if (!F.tok && !reduce && !/[?&](id|t|token)=/.test(location.hash)) setTimeout(() => { if (panel.classList.contains("active")) $("asn-addr").focus({ preventScroll: true }); }, 250);
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "snapshot") onShow(); else $("asn-sticky").hidden = true; });
-  document.addEventListener("arc:lang", () => { if (!booted) return; labels(); paintChips(); paintLog(); paintToken(); if (F.res) { $("asn-out").innerHTML = ""; paintResult(false); } paintView(); });
+  document.addEventListener("arc:lang", () => { if (!booted) return; labels(); paintChain(); paintChips(); paintLog(); paintToken(); if (F.res) { $("asn-out").innerHTML = ""; paintResult(false); } paintView(); });
   window.addEventListener("hashchange", () => { if (booted && /^#snapshot\?/.test(location.hash)) fromHash(); });
   if (panel.classList.contains("active")) setTimeout(onShow, 0);
   let seen = state && state.account;
   setInterval(() => { if (booted && state && state.account !== seen) { seen = state.account; if (F.res) paintResult(false); if (F.view && F.view.d) paintView(); } }, 1500);
   window.arcSnapshot = {
-    pick, state: F, csv: () => (F.res ? csv() : ""), fingerprint: () => (F.res ? fingerprint() : ""), core: C,
+    pick, state: F, csv: () => (F.res ? csv() : ""), fingerprint: () => (F.res ? fingerprint() : ""), core: C, setChain: (c) => { setChain(c); labels(); }, chain: () => CH,
     take: () => { F.run++; return take(F.run); },
   };
 })();

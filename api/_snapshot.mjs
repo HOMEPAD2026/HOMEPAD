@@ -12,9 +12,12 @@
 //   record(body)        every snapshot taken in the tool is kept like a published one (its
 //                       block, time, fingerprint, list) and listed in recent() — proof of
 //                       who held what, and when
+// Two chains: Arc (the scanner's balance sheet, ArcLock, v4 LP) and Robinhood Chain (chain: "rh" — its own balance
+// sheet from api/_snap-rh.mjs; no ArcLock or LP there). Robinhood Chain's working docs carry "rh-" in their keys.
 import { rpc, getLogs, latestBlock, blockTs, pool, toQty, isAddr, keccakHex } from "./_arc.mjs";
 import * as core from "./_snap-core.mjs";
 import * as scanner from "./_scan.mjs";
+import * as rh from "./_snap-rh.mjs";
 
 const lc = (a) => String(a || "").toLowerCase();
 export const io = {
@@ -33,6 +36,10 @@ export const io = {
     return out;
   },
 };
+/// the chain a snapshot runs on: how it reads logs, calls and blocks, and where its balance sheet comes from
+const ARCX = { id: "arc", io: null, rpc, latestBlock, blockTs, base: (t, o) => scanner.holderSnapshot(t, o), extras: true, k: (s) => s, tsCache: new Map() };
+const RHX = { id: "rh", io: rh.io, rpc: rh.rpc, latestBlock: rh.latestBlock, blockTs: rh.blockTs, base: (t, o) => rh.holderSnapshot(t, o), extras: false, k: (s) => s.replace(/^([a-z]+)\//, "$1/rh-"), tsCache: new Map() };
+export const chainOf = (c) => (String(c || "").toLowerCase() === "rh" ? RHX : ARCX);
 const err = (status, message) => Object.assign(new Error(message), { status });
 const mem = new Map();
 const memSet = (k, v) => { mem.set(k, v); if (mem.size > 200) mem.delete(mem.keys().next().value); };
@@ -45,38 +52,39 @@ const unpackJob = (j) => (j ? { ...j, d: unpackMap(j.d), dB: j.dB ? unpackMap(j.
 const { packRows, unpackRows } = core;
 export { packRows, unpackRows };
 
+ARCX.io = io;
 // ---- time → block (the last block before `ts`) ----
-const tsCache = new Map();
-async function tsOf(n) { if (tsCache.has(n)) return tsCache.get(n); const t = await blockTs(n); tsCache.set(n, t); if (tsCache.size > 5000) tsCache.clear(); return t; }
-export async function blockBefore(ts, latest) {
-  latest = latest || await latestBlock();
+async function tsOf(n, X = ARCX) { const c = X.tsCache; if (c.has(n)) return c.get(n); const t = await X.blockTs(n); c.set(n, t); if (c.size > 5000) c.clear(); return t; }
+export async function blockBefore(ts, latest, X = ARCX) {
+  const tsOfX = (n) => tsOf(n, X);
+  latest = latest || await X.latestBlock();
   if (ts > latest.ts) return latest.number;
-  const probeN = Math.max(0, latest.number - 400000), probeT = await tsOf(probeN);
+  const probeN = Math.max(0, latest.number - 400000), probeT = await tsOfX(probeN);
   const spb = Math.max(0.01, (latest.ts - probeT) / Math.max(1, latest.number - probeN));
   let guess = Math.round(latest.number - (latest.ts - ts) / spb);
   guess = Math.max(0, Math.min(latest.number, guess));
   let span = 4000, lo, hi;
   for (let k = 0; k < 12; k++) {
     lo = Math.max(0, guess - span); hi = Math.min(latest.number, guess + span);
-    const [a, b] = await Promise.all([tsOf(lo), tsOf(hi)]);
+    const [a, b] = await Promise.all([tsOfX(lo), tsOfX(hi)]);
     if ((a < ts || lo === 0) && (b >= ts || hi === latest.number)) break;
     span *= 4;
   }
-  if (await tsOf(hi) < ts) return hi;
-  while (hi - lo > 1) { const mid = Math.floor((lo + hi) / 2); if (await tsOf(mid) < ts) lo = mid; else hi = mid; }
+  if (await tsOfX(hi) < ts) return hi;
+  while (hi - lo > 1) { const mid = Math.floor((lo + hi) / 2); if (await tsOfX(mid) < ts) lo = mid; else hi = mid; }
   return lo;
 }
 
 // ---- contracts among the holders (cached per token) ----
-async function contractsOf(store, token, addrs, known, left) {
-  const key = `snapcode/${token}`;
+async function contractsOf(store, token, addrs, known, left, X = ARCX) {
+  const key = X.k(`snapcode/${token}`);
   const doc = (await sget(store, key)) || { c: [], n: [] };
   const C = new Set([...(doc.c || []), ...known]), N = new Set(doc.n || []);
   const need = addrs.filter((a) => !C.has(a) && !N.has(a)).slice(0, 4000);
   for (let i = 0; i < need.length && left() > 1200; i += 100) {
     const part = need.slice(i, i + 100);
     try {
-      const r = await rpc(part.map((a, id) => ({ jsonrpc: "2.0", id, method: "eth_getCode", params: [a, "latest"] })), { timeoutMs: 8000 });
+      const r = await X.rpc(part.map((a, id) => ({ jsonrpc: "2.0", id, method: "eth_getCode", params: [a, "latest"] })), { timeoutMs: 8000 });
       const byId = new Map((Array.isArray(r) ? r : [r]).map((x) => [x.id, x.result]));
       part.forEach((a, k) => { const c = byId.get(k); if (c == null) return; if (c !== "0x") C.add(a); else N.add(a); });
     } catch { break; }
@@ -85,16 +93,18 @@ async function contractsOf(store, token, addrs, known, left) {
   return C;
 }
 
-/// params: { token, block?, at? (unix), hold? (seconds), locks?, lp? } → { done:false, progress, stage } | { done:true, ... }
+/// params: { token, block?, at? (unix), hold? (seconds), locks?, lp?, chain? ("rh") } → { done:false, progress, stage } | { done:true, ... }
 export async function run(params, { store = null, budgetMs = 8000 } = {}) {
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
+  const X = chainOf(params.chain), io = X.io;
   const token = lc(params.token);
   if (!isAddr(token)) throw err(400, "token must be an address");
   const hold = Math.max(0, Math.min(90 * 86400, Number(params.hold) || 0));
-  const locks = params.locks !== false && params.locks !== "0", lp = params.lp === true || params.lp === "1";
-  const base = await scanner.holderSnapshot(token, { store, limit: 8000, budgetMs: Math.min(5000, budgetMs / 2) });
+  const locks = X.extras && params.locks !== false && params.locks !== "0", lp = X.extras && (params.lp === true || params.lp === "1");
+  const base = await X.base(token, { store, limit: 8000, budgetMs: Math.min(X.extras ? 5000 : 6500, budgetMs * (X.extras ? 0.5 : 0.75)) });
   if (!base.complete || base.lite) {
-    if (base.more) return { done: false, stage: "history", progress: 0, holders: base.holderCount };
+    if (base.more) return { done: false, stage: "history", progress: base.progress || 0, holders: base.holderCount };
+    if (base.lite && !X.extras) throw err(422, "this token has too many holders for a snapshot on Robinhood Chain");
     if (params.block || params.at || hold) throw err(422, "this token has too many holders to rebuild an earlier moment");
   }
   const hi = base.block;
@@ -104,16 +114,16 @@ export async function run(params, { store = null, budgetMs = 8000 } = {}) {
   else if (params.at) {
     const at = Number(params.at);
     if (!(at > 0)) throw err(400, "bad time");
-    const latest = await latestBlock();
+    const latest = await X.latestBlock();
     if (at > latest.ts) throw err(409, "that moment hasn't come yet");
-    B = Math.min(hi, await blockBefore(at, latest));
+    B = Math.min(hi, await blockBefore(at, latest, X));
   }
-  const tsB = await tsOf(B);
-  const H = hold ? Math.min(B, await blockBefore(tsB - hold)) : B;
-  const rkey = `snapres/${token}-${B}-${H}-${locks ? 1 : 0}${lp ? 1 : 0}`;
+  const tsB = await tsOf(B, X);
+  const H = hold ? Math.min(B, await blockBefore(tsB - hold, null, X)) : B;
+  const rkey = X.k(`snapres/${token}-${B}-${H}-${locks ? 1 : 0}${lp ? 1 : 0}`);
   const cached = await sget(store, rkey);
   if (cached && cached.v === core.SNAP_VERSION) return { done: true, ...cached, rows: unpackRows(cached.rows) };
-  const jkey = `snapjob/${token}-${B}-${H}-${locks ? 1 : 0}`;
+  const jkey = X.k(`snapjob/${token}-${B}-${H}-${locks ? 1 : 0}`);
   let job = unpackJob(await sget(store, jkey));
   if (!job || job.v !== core.SNAP_VERSION) job = core.newJob({ token, hi, B, H, locks });
   if (job.hi > hi) return { done: false, stage: "catching up", progress: 0 };
@@ -141,10 +151,10 @@ export async function run(params, { store = null, budgetMs = 8000 } = {}) {
   const baseMap = new Map(base.holders.map(([a, v]) => [lc(a), BigInt(v)]));
   const { rows, supply } = core.finishRows(job, baseMap, { supplyNow: base.supply, locked, lp: lpRes && lpRes.byOwner });
   const known = base.holders.filter((h) => h[2]).map((h) => lc(h[0]));
-  const contracts = await contractsOf(store, token, rows.slice(0, 8000).map((x) => x.a), known, left);
+  const contracts = await contractsOf(store, token, rows.slice(0, 8000).map((x) => x.a), known, left, X);
   const out = {
-    v: core.SNAP_VERSION, token, decimals: base.decimals, supply: supply.toString(), supplyNow: base.supply,
-    block: B, ts: tsB, hold, holdBlock: H, holdTs: H === B ? tsB : await tsOf(H), hi, locks, lp,
+    v: core.SNAP_VERSION, token, ...(X.extras ? {} : { chain: X.id }), decimals: base.decimals, supply: supply.toString(), supplyNow: base.supply,
+    block: B, ts: tsB, hold, holdBlock: H, holdTs: H === B ? tsB : await tsOf(H, X), hi, locks, lp,
     lockCount, lpCount: lpRes ? lpRes.positions.length : 0, lpApprox: !!(lpRes && lpRes.approx), odd: rows.some((x) => x.odd),
     holdClipped: !!(hold && base.firstMint && base.firstMint.ts && tsB - hold < base.firstMint.ts), launchTs: base.firstMint ? base.firstMint.ts : null,
     contracts: rows.filter((x) => contracts.has(x.a)).map((x) => x.a), deployer: base.deployer || null, holderCount: base.holderCount, hist: base.hist || [],
@@ -165,9 +175,9 @@ export function listOf(res, f) {
   const csv = core.toCsv(list, { decimals: dec, supply: res.supply, hold: res.hold > 0, keccak: io.keccak });
   return { list, why, csv, fp: core.fingerprint(csv, io.keccak) };
 }
-async function symbolOf(token) {
+async function symbolOf(token, X = ARCX) {
   try {
-    const [h] = await io.calls([{ to: token, data: "0x95d89b41" }]);
+    const [h] = await X.io.calls([{ to: token, data: "0x95d89b41" }]);
     if (!h) return "";
     const len = Number(BigInt("0x" + h.slice(66, 130)));
     const bytes = h.slice(130, 130 + len * 2);
@@ -180,20 +190,20 @@ function signer(kind, d, sig, by, recover) {
   try { return lc(recover(core.sigText(kind, d), sig)) === by ? { by, sig } : { by: null, sig: null }; } catch { return { by: null, sig: null }; }
 }
 function meta(res, f, extra) {
-  return { v: 1, token: res.token, decimals: res.decimals, supply: res.supply, block: res.block, ts: res.ts, hold: res.hold, holdTs: res.holdTs, hi: res.hi,
+  return { v: 1, token: res.token, ...(res.chain ? { chain: res.chain } : {}), decimals: res.decimals, supply: res.supply, block: res.block, ts: res.ts, hold: res.hold, holdTs: res.holdTs, hi: res.hi,
     locks: res.locks, lp: res.lp, f, ...extra };
 }
 export async function publish(body, { store, recover = null }) {
   if (!store) throw err(503, "publishing isn't available right now");
-  const f = clean(body.filters), token = lc(body.token);
-  const res = await run({ token, block: Number(body.block) || 0, hold: f.hold, locks: f.locks, lp: f.lp }, { store, budgetMs: 8500 });
+  const f = clean(body.filters), token = lc(body.token), X = chainOf(body.chain);
+  const res = await run({ token, block: Number(body.block) || 0, hold: f.hold, locks: f.locks, lp: f.lp, chain: X.id }, { store, budgetMs: 8500 });
   if (!res.done) return { pending: true, progress: res.progress, stage: res.stage };
   const { list, csv, fp } = listOf(res, f);
   if (!list.length) throw err(422, "no wallets left after these filters");
   const id = fp.slice(2, 14);
   const title = String(body.title || "").replace(/[<>]/g, "").slice(0, 80);
   const { by, sig } = signer("publish", { token, block: res.block, f, title }, /^0x[0-9a-f]{130}$/i.test(body.sig || "") ? body.sig : null, isAddr(body.by) ? lc(body.by) : null, recover);
-  const doc = meta(res, f, { id, symbol: await symbolOf(token), status: "done", fp, count: list.length, total: list.reduce((s, x) => s + (f.hold ? x.min : x.v), 0n).toString(), title, by, sig, created: Date.now(), bytes: csv.length, rows: packRows(list), ...(body.auto ? { auto: true } : {}) });
+  const doc = meta(res, f, { id, symbol: await symbolOf(token, X), status: "done", fp, count: list.length, total: list.reduce((s, x) => s + (f.hold ? x.min : x.v), 0n).toString(), title, by, sig, created: Date.now(), bytes: csv.length, rows: packRows(list), ...(body.auto ? { auto: true } : {}) });
   const prev = await sget(store, `snap/${id}`);
   if (!prev) await sset(store, `snap/${id}`, doc);
   const kept = prev || doc;
@@ -208,12 +218,12 @@ export async function record(body, { store }) {
   if (!store) throw err(503, "the snapshot record isn't available right now");
   const token = lc(body.token), block = Math.floor(Number(body.block) || 0);
   if (!isAddr(token) || !(block > 0)) throw err(400, "token and block are needed");
-  const r = await publish({ token, block, filters: body.filters, title: "", auto: true }, { store });
+  const r = await publish({ token, block, filters: body.filters, title: "", auto: true, chain: body.chain }, { store });
   if (r.pending) return r;
   const items = await readLog(store);
   if (!items.some((x) => x.id === r.id)) {
     const f = clean(body.filters);
-    items.unshift({ id: r.id, token, symbol: r.symbol || "", block: r.block, ts: r.ts, count: r.count, fp: r.fp, created: r.created || Date.now(), at: Date.now(), hold: f.hold, locks: f.locks, lp: f.lp,
+    items.unshift({ id: r.id, token, ...(chainOf(body.chain).extras ? {} : { chain: "rh" }), symbol: r.symbol || "", block: r.block, ts: r.ts, count: r.count, fp: r.fp, created: r.created || Date.now(), at: Date.now(), hold: f.hold, locks: f.locks, lp: f.lp,
       rules: !!(f.min || f.max || f.top || f.skip.length || f.since !== "any") });
     const doc = { items: items.slice(0, 300), at: Date.now() };
     mem.set(LOG, doc);
@@ -237,14 +247,15 @@ export async function schedule(body, { store, recover = null }) {
   const f = clean(body.filters);
   const title = String(body.title || "").replace(/[<>]/g, "").slice(0, 80);
   const { by, sig } = signer("schedule", { token, at, f, title }, /^0x[0-9a-f]{130}$/i.test(body.sig || "") ? body.sig : null, isAddr(body.by) ? lc(body.by) : null, recover);
-  const id = io.keccak("0x" + Buffer.from(JSON.stringify([token, at, f, title, by])).toString("hex")).slice(2, 14);
+  const X = chainOf(body.chain);
+  const id = io.keccak("0x" + Buffer.from(JSON.stringify(X.extras ? [token, at, f, title, by] : [token, at, f, title, by, X.id])).toString("hex")).slice(2, 14);
   const prev = await sget(store, `snap/${id}`);
-  if (!prev) await sset(store, `snap/${id}`, { v: 1, id, status: "scheduled", token, symbol: await symbolOf(token), at, f, title, by, sig, created: Date.now() });
+  if (!prev) await sset(store, `snap/${id}`, { v: 1, id, status: "scheduled", token, ...(X.extras ? {} : { chain: X.id }), symbol: await symbolOf(token, X), at, f, title, by, sig, created: Date.now() });
   return { id, at };
 }
 async function finalize(doc, store) {
   // a scheduled snapshot whose moment has passed: build it (over a few visits if it's long)
-  const res = await run({ token: doc.token, at: doc.at, hold: doc.f.hold, locks: doc.f.locks, lp: doc.f.lp }, { store, budgetMs: 8000 });
+  const res = await run({ token: doc.token, at: doc.at, hold: doc.f.hold, locks: doc.f.locks, lp: doc.f.lp, chain: doc.chain }, { store, budgetMs: 8000 });
   if (!res.done) return { ...doc, status: "building", progress: res.progress };
   const { list, csv, fp } = listOf(res, doc.f);
   const done = { ...doc, ...meta(res, doc.f, {}), status: "done", fp, count: list.length, total: list.reduce((s, x) => s + (doc.f.hold ? x.min : x.v), 0n).toString(), bytes: csv.length, rows: packRows(list), builtAt: Date.now() };
@@ -277,13 +288,13 @@ export async function csvOf(id, { store }) {
 }
 /// The public API: /api/v1/snapshot/<token>?block=&at=&hold=&locks=&lp=&min=&max=&top=&contracts=
 export async function api(q, { store }) {
-  const res = await run({ token: q.token, block: q.block, at: q.at, hold: q.hold, locks: q.locks !== "0", lp: q.lp === "1" }, { store, budgetMs: 8500 });
+  const res = await run({ token: q.token, block: q.block, at: q.at, hold: q.hold, locks: q.locks !== "0", lp: q.lp === "1", chain: q.chain }, { store, budgetMs: 8500 });
   if (!res.done) return { pending: true, progress: Math.round((res.progress || 0) * 100), stage: res.stage, retry_after: 3 };
   const f = clean({ min: q.min, max: q.max, top: q.top, noC: q.contracts !== "1", since: q.since, hold: res.hold, locks: res.locks, lp: res.lp, skip: String(q.skip || "").split(",") });
   const { list, fp } = listOf(res, f);
   const hold = res.hold > 0;
   return {
-    token: res.token, block: res.block, timestamp: res.ts, decimals: res.decimals, supply: res.supply,
+    token: res.token, chain: res.chain === "rh" ? "robinhood" : "arc", block: res.block, timestamp: res.ts, decimals: res.decimals, supply: res.supply,
     hold_seconds: res.hold, hold_from_block: res.holdBlock, locks_counted: res.locks, lp_counted: res.lp, fingerprint: fp, count: list.length,
     holders: list.map((x, i) => ({ rank: i + 1, address: core.checksum(x.a, io.keccak), balance: core.units(x.v, res.decimals), ...(hold ? { held_throughout: core.units(x.min, res.decimals) } : {}), percent: core.pctOf(x.v, BigInt(res.supply)) })),
   };

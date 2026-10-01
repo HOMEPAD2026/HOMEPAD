@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790894516"></script>
+<script src="arc-log.js?v=1790896592"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790894516">
+<link rel="stylesheet" href="style.css?v=1790896592">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1648,7 +1648,7 @@
             <span class="ams-kicker">Utility · Holder snapshot</span>
             <h1>Snapshot <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>
           </div>
-          <p class="bp-lede asn-lede">Every holder of an Arc token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps.</p>
+          <p class="bp-lede asn-lede">Every holder of an Arc or Robinhood Chain token at one block — now or any moment before. Count locked tokens, ask for a holding period, publish a fingerprinted list anyone can check, and airdrop to it in two taps.</p>
         </div>
 
         <div class="asn-pub" id="asn-pub" hidden></div>
@@ -1659,6 +1659,8 @@
             <div class="asn-setup-body">
               <div class="ams-card">
                 <div class="ams-card-head"><span class="ams-num">1</span><h2>Token</h2></div>
+                <div class="aor-chain asn-chainsw" id="asn-chain" role="radiogroup" aria-label="Chain" data-chain="arc"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-snapchain="arc" aria-checked="true"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span></button><button type="button" role="radio" data-snapchain="rh" aria-checked="false"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span></button></div>
+                <p class="asn-note asn-chainnote" id="asn-chainnote"></p>
                 <form id="asn-form" class="asn-form" autocomplete="off">
                   <input id="asn-addr" type="text" spellcheck="false" aria-label="Token contract address">
                   <button type="submit" class="ams-mini">Load</button>
@@ -1745,7 +1747,7 @@
               <div class="asn-empty" id="asn-empty">
                 <div class="asn-demo" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b><b></b><b></b><b></b></div>
                 <b>No snapshot yet</b>
-                <span>Pick a token and a moment. The list is read from the token's own transfer history on Arc — nothing to sign, nothing to pay.</span>
+                <span>Pick a token and a moment. The list is read from the token's own transfer history on Arc or Robinhood Chain — nothing to sign, nothing to pay.</span>
                 <ul><li>Airdrops and rewards for holders</li><li>Allowlists for a mint or a round</li><li>Proof of who held before an announcement</li></ul>
               </div>
               <div class="asn-out" id="asn-out" hidden></div>
@@ -1759,7 +1761,7 @@
           <button type="button" class="ams-mini" data-act="csv">CSV</button>
           <button type="button" class="ams-btn sm asn-primary" data-go-tab="airdrop">Airdrop</button>
         </div>
-        <p class="asc-foot">Balances come from the token's Transfer events on Arc, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.</p>
+        <p class="asc-foot">Balances come from the token's Transfer events on Arc or Robinhood Chain, read to a block you can check on the explorer. Tokens that rebase or change balances without a transfer can differ — the page says so when it sees it. The fingerprint is keccak256 of the CSV.</p>
       </section>
 
       <section class="bp-panel" id="bp-panel-docs">
@@ -1882,6 +1884,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790894516"></script>
+<script src="arcpad.bundle.js?v=1790896592"></script>
 </body>
 </html>
