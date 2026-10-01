@@ -284,8 +284,8 @@ async function liveReads(wallets) {
 // rewards its Arc lockbox earned — omni/README.md), orders (ARCIRCLE Orders' fee burn), buyback (a swap paid straight to 0x…dEaD), team (a team or
 // treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
 export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "agent", "orders", "omni", "buyback", "team", "wallet"];
-// ARCIRCLE Orders' fee burn (contracts/ArcircleFeeBurn.sol): half of every fee buys $ARCIRCLE and burns it (empty until deployed)
-const ORDERS_BURN = () => lc(process.env.ARCIRCLE_FEEBURN_ADDRESS || "");
+// ARCIRCLE Orders' fee burn (contracts/ArcircleFeeBurn.sol): half of every fee buys $ARCIRCLE and burns it
+const ORDERS_BURN = () => lc(process.env.ARCIRCLE_FEEBURN_ADDRESS || "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034");
 const BURNVOTE = "0x54121a7894d90a02ea973ab45eef424c2716eeb2";
 const MINE = () => lc(process.env.BUILDER_MINE_ADDRESS || "0x1538c76917dE5911D71c5C397ff18cA09d52B019");
 const DESK = () => lc(process.env.ARCIA_DESK_ADDRESS || "0xc30f1694203f4fc671ec769b90149e67ce3a1f03");

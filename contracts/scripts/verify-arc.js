@@ -10,7 +10,7 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens,agent
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens,agent,orders
 //   (agent = ARCIA AGENT's factory and every vault it opened; their constructor arguments are read from the
 //   events of the transactions that created them)
 //
@@ -47,6 +47,9 @@ const ADDR = {
   lock: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
   agent: "0x5eb92464AEB3bCB9fA6e6065EE05131cdBbfB4b9", // ArciaAgentFactory (ARCIA AGENT burn vaults)
   agentBlock: 23531741, // its deploy block
+  orders: "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e", // ArcircleOrders (ARCIRCLE Orders)
+  feeBurn: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn (its fees, the $ARCIRCLE burn, the fee-free policy)
+  feeBurnBlock: 23739974,
 };
 const ART = path.join(__dirname, "..", "artifacts");
 
@@ -195,6 +198,17 @@ async function main() {
       results.push(await verify(provider, { label: `ArciaAgentVault for ${ev.args.token}`, address: ev.args.vault, art: vArt, args }));
       await sleep(600);
     }
+  }
+  if (want("orders") && ADDR.orders) {
+    const fArt = artifact("ArcircleFeeBurn.sol", "ArcircleFeeBurn"), oArt = artifact("ArcircleOrders.sol", "ArcircleOrders");
+    const fb = new ethers.Contract(ADDR.feeBurn, fArt.abi, provider);
+    // the operator and threshold it was deployed with: the constructor's OperatorSet / DiscountSet
+    const firstArg = async (ev) => { const l = await fb.queryFilter(fb.filters[ev](), ADDR.feeBurnBlock, ADDR.feeBurnBlock); return l.length ? l[0].args[0] : null; };
+    const key = await fb.poolKey();
+    results.push(await verify(provider, { label: "ArcircleFeeBurn (ARCIRCLE Orders fees)", address: ADDR.feeBurn, art: fArt,
+      args: [await fb.poolManager(), await fb.usdc(), await fb.arcircle(), await fb.treasury(), await fb.burnBps(), [key.currency0, key.currency1, key.fee, key.tickSpacing, key.hooks], await firstArg("OperatorSet"), await firstArg("DiscountSet")] }));
+    const ob = new ethers.Contract(ADDR.orders, oArt.abi, provider);
+    results.push(await verify(provider, { label: "ArcircleOrders", address: ADDR.orders, art: oArt, args: [await ob.poolManager(), await ob.treasury(), await ob.permit2(), await ob.feePolicy()] }));
   }
   const tally = results.reduce((m, r) => ((m[r] = (m[r] || 0) + 1), m), {});
   console.log("\nSummary:", JSON.stringify(tally));

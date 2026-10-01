@@ -28,8 +28,8 @@ import { poolSlot, decodeSlot0, poolIdOf, priceOf } from "./_liq-core.mjs";
 
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 export const CFG = {
-  address: "", // ArcircleOrders on Arc (set after it's deployed; env ARCIRCLE_ORDERS_ADDRESS overrides)
-  feeBurn: "", // ArcircleFeeBurn on Arc (env ARCIRCLE_FEEBURN_ADDRESS overrides)
+  address: "0x1a31c2539d6e3fbdf276e8d74ba67aec4de9008e", // ArcircleOrders on Arc, block 23739979 (env ARCIRCLE_ORDERS_ADDRESS overrides)
+  feeBurn: "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034", // ArcircleFeeBurn on Arc, block 23739974 (env ARCIRCLE_FEEBURN_ADDRESS overrides)
   usdc: "0x3600000000000000000000000000000000000000",
   permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap's Permit2: makers can allow ArcircleOrders with a signature
   chainId: 5042,
