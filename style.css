@@ -12420,3 +12420,26 @@ a.dk-dep-go{display:inline-flex;align-items:center;text-decoration:none;}
   .agl-plat:has(> :nth-child(3)){grid-template-columns:1fr;}
   .pon-gate-cells{grid-template-columns:1fr 1fr;}
 }
+/* the launch form on a phone: the agree / buyback boxes stay beside their text, the Pons button stays one line */
+body.arcpad-page .adv-launch-form label.agl-agree{flex-wrap:nowrap;align-items:flex-start;}
+body.arcpad-page .adv-launch-form label.agl-agree > input{flex:0 0 auto;width:18px;height:18px;margin:2px 0 0;}
+body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width:0;}
+.ap-launch-btn-label{min-width:0;}
+@media (max-width:640px){
+  .pon-btn-chain{display:none;}
+  #bp-panel-launch[data-plat="pons"] .ap-launch-btn-label,#bp-panel-launch[data-plat="argus"] .ap-launch-btn-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem;}
+  #bp-panel-launch .ap-launch-btn-fee{font-size:.66rem;padding:5px 8px;}
+  .pon-gate-cells b{font-size:.8rem;}
+}
+/* wallet menu: Arc / Robinhood Chain */
+.wd-net{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:2px 10px 8px;padding:3px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
+.wd-net button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:8px 6px;border:0;border-radius:9px;background:transparent;color:var(--ink-dim);font:600 .74rem 'Sora',sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .2s,color .2s;}
+.wd-net button i{width:7px;height:7px;border-radius:50%;flex:none;background:rgba(255,255,255,.25);}
+.wd-net button[data-net="arc"][aria-checked="true"]{background:rgba(91,140,255,.18);color:#fff;}
+.wd-net button[data-net="arc"][aria-checked="true"] i{background:#5b8cff;box-shadow:0 0 6px rgba(91,140,255,.8);}
+.wd-net button[data-net="alt"][aria-checked="true"]{background:rgba(199,242,74,.16);color:#fff;}
+.wd-net button[data-net="alt"][aria-checked="true"] i{background:#c7f24a;box-shadow:0 0 6px rgba(199,242,74,.8);}
+.wd-net.busy{opacity:.6;pointer-events:none;}
+.network-badge.network-alt{color:#dcf78f;background:rgba(199,242,74,.1);border-color:rgba(199,242,74,.38);}
+.network-badge.network-alt::before{background:#c7f24a;box-shadow:0 0 6px rgba(199,242,74,.7);}
+#bp-panel-launch[data-plat="argus"] #ap-launch-balance,#bp-panel-launch[data-plat="pons"] #ap-launch-balance{display:none !important;}

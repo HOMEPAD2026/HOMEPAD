@@ -5546,6 +5546,8 @@
     "is the creator's": "归创作者",
     "optional, on top of Pons's fee": "可选，在 Pons 费用之外",
     "waiting": "待领取",
+    "70% to you": "70% 归你",
+    "Your wallet switches to Robinhood Chain for the launch and back to Arc after — unless you picked Robinhood Chain in the wallet menu.": "发射时钱包会切换到 Robinhood Chain，完成后切回 Arc——如果你已在钱包菜单中选择了 Robinhood Chain，则保持不变。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

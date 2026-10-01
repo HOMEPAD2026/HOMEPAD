@@ -168,16 +168,24 @@
 
   // ================= wallet menu =================
   const ARCIRCLE_TOKEN = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""; // "" while not live
+  // on Robinhood Chain (the wallet menu's second network): ETH for gas, and $ARCIRCLE's OMNI token there
+  let altRp = null;
+  const ALT = typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET ? ARC_ALT_NET : null;
+  const altToken = (typeof CONFIG !== "undefined" && CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "";
   async function fillBalances(box) {
     if (!state.account || !box) return;
     const acct = state.account;
+    const onAlt = !!ALT && Number(state.chainId) === ALT.id;
+    const lab = box.querySelector("[data-wl=gas]");
+    if (lab) lab.innerHTML = onAlt ? 'ETH <small>Robinhood</small>' : 'USDC <small>gas</small>';
     try {
-      const p = readProvider();
-      const tok = ARCIRCLE_TOKEN ? new ethers.Contract(ARCIRCLE_TOKEN, ERC20_ABI, p) : null;
+      const p = onAlt ? (altRp = altRp || new ethers.JsonRpcProvider(ALT.rpc, ethers.Network.from(ALT.id), { staticNetwork: true })) : readProvider();
+      const tokAddr = onAlt ? altToken : ARCIRCLE_TOKEN;
+      const tok = tokAddr ? new ethers.Contract(tokAddr, ERC20_ABI, p) : null;
       const [nat, arc] = await Promise.all([p.getBalance(acct).catch(() => null), tok ? tok.balanceOf(acct).catch(() => null) : null]);
       if (state.account !== acct) return;
-      const f = (v, d) => v == null ? "—" : Number(ethers.formatUnits(v, d)).toLocaleString("en-US", { maximumFractionDigits: 2 });
-      box.querySelector("[data-wb=usdc]").textContent = f(nat, 18);
+      const f = (v, d, m) => v == null ? "—" : Number(ethers.formatUnits(v, d)).toLocaleString("en-US", { maximumFractionDigits: m || 2 });
+      box.querySelector("[data-wb=usdc]").textContent = f(nat, 18, onAlt ? 5 : 2);
       const ab = box.querySelector("[data-wb=arc]");
       if (ab) ab.textContent = f(arc, 18);
     } catch { /* leave dashes */ }
@@ -189,7 +197,7 @@
     const addr = dd.querySelector(".wallet-dropdown-address");
     const bal = document.createElement("div");
     bal.className = "wd-bal";
-    bal.innerHTML = `<div><span>USDC <small>gas</small></span><b data-wb="usdc">…</b></div>` + (ARCIRCLE_TOKEN ? `<div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>` : "");
+    bal.innerHTML = `<div><span data-wl="gas">USDC <small>gas</small></span><b data-wb="usdc">…</b></div>` + (ARCIRCLE_TOKEN ? `<div><span>$ARCIRCLE</span><b data-wb="arc">…</b></div>` : "");
     if (addr) addr.insertAdjacentElement("afterend", bal);
     const copy = $("wallet-dropdown-copy");
     if (copy) copy.onclick = (e) => {
@@ -226,6 +234,7 @@
     const pill = $("wallet-pill-btn");
     if (pill) pill.addEventListener("click", () => fillBalances(bal));
     fillBalances(bal);
+    if (!enhanceWallet.net) { enhanceWallet.net = true; document.addEventListener("arc:walletnet", () => { const b = document.querySelector("#wallet-dropdown .wd-bal"); if (b) fillBalances(b); }); }
   }
   if (typeof renderHeader === "function") {
     const orig = renderHeader;

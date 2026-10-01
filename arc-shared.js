@@ -406,6 +406,7 @@ function renderHeader() {
               <span class="btn-mini" id="wallet-dropdown-copy" style="cursor:pointer">Copy</span>
             </div>
             <div class="wallet-dropdown-network" id="wallet-dropdown-network">…</div>
+            ${ARC_ALT_NET ? `<div class="wd-net" id="wallet-dropdown-net" role="radiogroup" aria-label="Wallet network"><button type="button" role="radio" data-net="arc" aria-checked="false"><i aria-hidden="true"></i>${CONFIG.CHAIN_NAME}</button><button type="button" role="radio" data-net="alt" aria-checked="false"><i aria-hidden="true"></i>${ARC_ALT_NET.short}</button></div>` : ""}
             <button type="button" class="wallet-dropdown-switch" id="wallet-dropdown-switch" hidden>Switch to ${CONFIG.CHAIN_NAME}</button>
             <div class="wallet-dropdown-note" id="wallet-dropdown-note" hidden></div>
             <a class="wallet-dropdown-item" href="${CONFIG.BLOCK_EXPLORER}/address/${state.account}" target="_blank">View on Explorer ↗</a>
@@ -429,6 +430,13 @@ function renderHeader() {
       disconnectWallet();
     };
     document.getElementById("wallet-dropdown-switch").onclick = (e) => { e.stopPropagation(); switchToArcNetwork(); };
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.onclick = (e) => {
+      e.stopPropagation();
+      const b = e.target.closest("[data-net]");
+      if (!b || b.getAttribute("aria-checked") === "true") return;
+      if (b.dataset.net === "arc") switchToArcNetwork(); else switchToAltNetwork();
+    };
     dropdown.onclick = (e) => e.stopPropagation();
     if (!renderHeader._outsideClose) {
       renderHeader._outsideClose = true;
@@ -453,6 +461,9 @@ let switchingNetwork = false;
 async function switchToArcNetwork() {
   if (switchingNetwork) return;
   switchingNetwork = true;
+  // keep the session through the switch (no reload): the chainChanged handler picks up a signer on Arc instead
+  clearTimeout(switchToAltNetwork.t);
+  window.arcChainSwitching = true;
   const note = document.getElementById("wallet-dropdown-note");
   const btn = document.getElementById("wallet-dropdown-switch");
   const badge = document.getElementById("network-badge");
@@ -466,14 +477,74 @@ async function switchToArcNetwork() {
   try {
     await request;
     setNote("");
-    if (!usingAppKit) state.chainId = CONFIG.CHAIN_ID_DECIMAL;
+    if (!usingAppKit) { state.chainId = CONFIG.CHAIN_ID_DECIMAL; try { state.signer = await new ethers.BrowserProvider(window.ethereum, "any").getSigner(); } catch (e) { /* next write asks */ } }
+    document.dispatchEvent(new CustomEvent("arc:walletnet", { detail: { chainId: CONFIG.CHAIN_ID_DECIMAL } }));
   } catch (err) {
     const msg = String(err && (err.shortMessage || err.message) || err);
     setNote(/reject|denied|cancel/i.test(msg) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
   } finally {
     switchingNetwork = false;
+    switchToAltNetwork.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000);
     if (btn) { btn.disabled = false; btn.textContent = `Switch to ${CONFIG.CHAIN_NAME}`; }
     if (badge) badge.classList.remove("network-busy");
+    updateNetworkBadge();
+  }
+}
+
+/// The wallet menu's second network: Robinhood Chain (Pons launches, OMNI, the desk). Choosing it switches the wallet
+/// there and keeps the page from pulling it back to Arc; anything that writes on Arc still switches back first
+/// (ensureArcForWrite), and Arc in the same menu switches back on demand.
+var ARC_ALT_NET = (() => {
+  const P = typeof CONFIG !== "undefined" && CONFIG.PONS;
+  if (!P || !P.CHAIN_ID || !P.RPC) return null;
+  return { id: Number(P.CHAIN_ID), hex: "0x" + Number(P.CHAIN_ID).toString(16), name: "Robinhood Chain", short: "Robinhood", rpc: P.RPC, explorer: P.EXPLORER, native: { name: "Ether", symbol: "ETH", decimals: 18 } };
+})();
+async function switchToAltNetwork() {
+  if (!ARC_ALT_NET || switchingNetwork || !state.account) return;
+  switchingNetwork = true;
+  const N = ARC_ALT_NET;
+  const note = document.getElementById("wallet-dropdown-note");
+  const net = document.getElementById("wallet-dropdown-net");
+  const setNote = (text, bad) => { if (note) { note.hidden = !text; note.textContent = text || ""; note.classList.toggle("bad", !!bad); } };
+  const add = { chainId: N.hex, chainName: N.name, rpcUrls: [N.rpc], blockExplorerUrls: [N.explorer], nativeCurrency: N.native };
+  const rejected = (e) => e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.shortMessage || e.message || "")));
+  // the page must not reload (arc-shared chainChanged) or AppKit switch it back (wallet-appkit) meanwhile
+  clearTimeout(switchToAltNetwork.t);
+  window.arcChainSwitching = true;
+  try { sessionStorage.setItem("wallet.autoSwitch." + state.account, "1"); } catch (e) { /* fine */ }
+  const usingAppKit = typeof appKitReady !== "undefined" && appKitReady && !(typeof IN_APP_WALLET_BROWSER !== "undefined" && IN_APP_WALLET_BROWSER);
+  const jumped = usingAppKit && typeof openConnectedWalletApp === "function" && openConnectedWalletApp();
+  if (net) net.classList.add("busy");
+  setNote(jumped ? `Approve the switch to ${N.name} in your wallet app, then come back here.` : `Approve the switch to ${N.name} in your wallet.`);
+  try {
+    let done = false;
+    if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
+      try {
+        const acc = WagmiCoreRef.getAccount(wagmiConfigRef);
+        if (acc && acc.isConnected) { if (Number(acc.chainId) !== N.id) await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: N.id, addEthereumChainParameter: add }); done = true; }
+      } catch (e) { if (rejected(e)) throw e; /* the wallet's own provider below */ }
+    }
+    const eip = state.walletProvider || window.ethereum;
+    if (!done) {
+      if (!eip) throw new Error("No wallet connected.");
+      try { await eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: N.hex }] }); }
+      catch (e) {
+        if (rejected(e)) throw e;
+        await eip.request({ method: "wallet_addEthereumChain", params: [add] });
+        await eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: N.hex }] }).catch(() => {});
+      }
+    }
+    state.chainId = N.id;
+    if (eip) { try { state.signer = await new ethers.BrowserProvider(eip, "any").getSigner(state.account); } catch (e) { /* the next write asks again */ } }
+    setNote("");
+    document.dispatchEvent(new CustomEvent("arc:walletnet", { detail: { chainId: N.id } }));
+  } catch (err) {
+    const msg = String(err && (err.shortMessage || err.message) || err);
+    setNote(rejected(err) ? "Switch cancelled in the wallet." : msg.slice(0, 260), true);
+  } finally {
+    switchingNetwork = false;
+    if (net) net.classList.remove("busy");
+    switchToAltNetwork.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000); // late chainChanged events land inside the hold
     updateNetworkBadge();
   }
 }
@@ -509,7 +580,22 @@ async function updateNetworkBadge() {
   try {
     const chainId = await currentChainId();
     if (chainId == null) throw new Error("unknown");
-    const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL;
+    const onAlt = !!ARC_ALT_NET && chainId === ARC_ALT_NET.id;
+    const isCorrect = chainId === CONFIG.CHAIN_ID_DECIMAL || onAlt;
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.querySelectorAll("[data-net]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.net === (onAlt ? "alt" : chainId === CONFIG.CHAIN_ID_DECIMAL ? "arc" : ""))));
+    badge.classList.toggle("network-alt", onAlt);
+    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"]');
+    if (ex) ex.href = `${onAlt ? ARC_ALT_NET.explorer : CONFIG.BLOCK_EXPLORER}/address/${state.account}`;
+    if (onAlt) {
+      badge.textContent = ARC_ALT_NET.short; badge.title = `Connected to ${ARC_ALT_NET.name}`;
+      badge.classList.remove("network-bad"); badge.style.cursor = ""; badge.onclick = null;
+      if (line) { line.textContent = `Connected to ${ARC_ALT_NET.name}`; line.classList.remove("network-bad"); line.classList.add("network-ok"); }
+      if (btn) btn.hidden = true;
+      document.documentElement.dataset.walletNet = "alt";
+      return;
+    }
+    document.documentElement.dataset.walletNet = isCorrect ? "arc" : "other";
     badge.textContent = isCorrect ? CONFIG.CHAIN_NAME : `Switch to ${CONFIG.CHAIN_NAME}`;
     badge.title = isCorrect ? `Connected to ${CONFIG.CHAIN_NAME}` : `Your wallet is on chain ${chainId} — tap to switch to ${CONFIG.CHAIN_NAME}`;
     badge.classList.toggle("network-bad", !isCorrect);
@@ -520,7 +606,7 @@ async function updateNetworkBadge() {
       line.classList.toggle("network-bad", !isCorrect);
       line.classList.toggle("network-ok", isCorrect);
     }
-    if (btn) btn.hidden = isCorrect;
+    if (btn) btn.hidden = isCorrect || !!net;
   } catch (err) {
     badge.textContent = "Network?";
     if (line) line.textContent = "Network unknown";

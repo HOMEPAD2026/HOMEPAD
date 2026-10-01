@@ -5394,6 +5394,8 @@
     "is the creator's": "가 크리에이터 몫",
     "optional, on top of Pons's fee": "선택, Pons 수수료와 별도",
     "waiting": "대기 중",
+    "70% to you": "70%가 내 몫",
+    "Your wallet switches to Robinhood Chain for the launch and back to Arc after — unless you picked Robinhood Chain in the wallet menu.": "런치하는 동안 지갑이 Robinhood Chain으로 전환되고, 끝나면 Arc로 돌아와요 — 지갑 메뉴에서 Robinhood Chain을 골라 둔 경우엔 그대로 있어요.",
   };
 
 

@@ -123,6 +123,8 @@
     }
     throw new Error(tr("Your wallet is still on another network — switch it to Robinhood Chain and try again."));
   }
+  // back to Arc after a launch or claim — unless the wallet was already on Robinhood Chain (the wallet menu's choice)
+  async function startedOnRh() { try { const p = walletProv(); return !!p && Number.parseInt(await p.request({ method: "eth_chainId" }), 16) === CHAIN; } catch { return false; } }
   async function backToArc() { try { if (typeof ensureArcForWrite === "function") await ensureArcForWrite(); } catch { /* the wallet stays on Robinhood Chain; the next Arc action asks */ } }
 
   // ---------------- what Pons and ArcPadPonsSplits say ----------------
@@ -234,6 +236,7 @@
     btn.disabled = true; btn.classList.add("is-busy"); if (lbl) lbl.textContent = tr("Launching…");
     steps(true); status("");
     let cur = "read", switched = false;
+    const stay = await startedOnRh();
     try {
       const creator = ethers.getAddress(me());
       step("read", "doing");
@@ -252,6 +255,7 @@
       cur = "switch"; step("switch", "doing", tr("Confirm in your wallet if it asks…"));
       holdChain(true); switched = true;
       const sg = await rhSigner();
+      if (typeof state !== "undefined") state.chainId = CHAIN;
       step("switch", "ok");
 
       cur = "launch"; step("launch", "doing", tr("Checking…"));
@@ -287,7 +291,7 @@
       step(cur, "bad", why(e));
       status(esc(why(e)), "error");
     } finally {
-      if (switched) { await backToArc(); holdChain(false); }
+      if (switched) { if (!stay) await backToArc(); else if (typeof updateNetworkBadge === "function") updateNetworkBadge(); holdChain(false); }
       busy = false; btn.disabled = false; btn.classList.remove("is-busy");
       if (lbl) lbl.textContent = tr(active() ? "Launch on Pons" : "Launch coin");
       balance();
@@ -432,6 +436,7 @@
     const msg = (h, k) => { const el = $("pon-fees-msg"); if (el) { el.className = "pon-fees-msg " + (k || ""); el.innerHTML = h; } };
     if (!l || busy || !ready()) return;
     if (me() !== l.creator) { msg(T("Connect the wallet that launched this coin."), "bad"); return; }
+    const stay = await startedOnRh();
     busy = true; holdChain(true);
     const b = sheet.querySelector("[data-pon-claim]"); if (b) b.disabled = true;
     try {
@@ -446,7 +451,7 @@
       msg(`${T("Paid out: 70% to you, 30% to ARCIRCLE PAD.")} <a href="${esc(EXPL("tx", tx.hash))}" target="_blank" rel="noopener">Blockscout ↗</a>`, "ok");
       pendingFees(l);
     } catch (e) { msg(esc(why(e)), "bad"); if (b) b.disabled = false; }
-    finally { await backToArc(); holdChain(false); busy = false; }
+    finally { if (!stay) await backToArc(); else if (typeof updateNetworkBadge === "function") updateNetworkBadge(); holdChain(false); busy = false; }
   }
 
   // ---------------- wiring ----------------
