@@ -22,8 +22,8 @@ const env = (k) => (typeof process !== "undefined" && process.env ? process.env[
 // keep in step with config-arc.js CONFIG.PONS
 export const CFG = {
   factory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // PonsV2LaunchFactory
-  splits: "", // ArcPadPonsSplits (set after it's deployed; env ARCPAD_PONS_SPLITS overrides)
-  fromBlock: 0, // the block ArcPadPonsSplits was deployed in (the scan starts there)
+  splits: "0x41149f8ce23d9b4e737e51c97ffe14bbb4c09ce6", // ArcPadPonsSplits on Robinhood Chain (env ARCPAD_PONS_SPLITS overrides)
+  fromBlock: 77341424, // the block ArcPadPonsSplits was deployed in (the scan starts there)
   rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
   ethUsd: null, // tests pin the ETH price
 };

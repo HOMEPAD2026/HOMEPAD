@@ -212,12 +212,12 @@ const CONFIG = {
   },
   // ArcPad × Pons (arc-pons.js, api/_pons-arcpad.mjs): a coin launched on Pons V2 (Robinhood Chain) from the creator's
   // own wallet, its creatorFeeRecipient set to the creator's ArcPadPonsSplitter (contracts/contracts/ArcPadPonsSplits.sol):
-  // 70% the creator, 30% the ARCIRCLE PAD treasury, for the life of the coin. SPLITS stays empty until ArcPadPonsSplits
-  // is deployed — until then the Pons option shows but can't launch. Keep api/_pons-arcpad.mjs in step.
+  // 70% the creator, 30% the ARCIRCLE PAD treasury, for the life of the coin. With SPLITS empty the Pons option
+  // shows "Being set up" and can't launch. Keep api/_pons-arcpad.mjs in step.
   PONS: {
     FACTORY: "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e", // PonsV2LaunchFactory (pons-labs README, verified)
     FEE_ESCROW: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
-    SPLITS: "", // ArcPadPonsSplits — set after deploying contracts/scripts/deploy-arcpad-pons-splits.js
+    SPLITS: "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6", // ArcPadPonsSplits (contracts/scripts/deploy-arcpad-pons-splits.js, block 77341424)
     TREASURY: "0xa066e6C5D1ac561A4065B9D6B00feF89C0bD02F8", // the same ARCIRCLE PAD treasury as Argus
     PLATFORM_BPS: 3000,
     CHAIN_ID: 4663,
