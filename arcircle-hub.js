@@ -153,7 +153,7 @@
   UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
   // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
-  // Page 4: four slots in development.
+  // Page 4: ARCIA AGENT, ARCIRCLE Orders, then two in development.
   // Four tiles a page, always — a fifth would make every page as tall as three rows.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
   var UTILS3 = [
@@ -166,13 +166,14 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
   UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new Argus launches live — every trade public", status: "Beta", acc: "#39ff88", href: "/arc#desk",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
-  // page 4: ARCIA AGENT first, then what's still being built
+  // page 4: ARCIA AGENT, ARCIRCLE Orders, then what's still being built
   var UTILS4 = [
     { id: "agent", name: "ARCIA AGENT", sub: "Paste an Arc token — ARCIA reads it, calls it, and burns it from its vault", status: "New", acc: "#5b8cff", href: "/arc#agent",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
   ];
+  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop and market orders on Arc — set your own price", status: "New", acc: "#4dd4ff", href: "/arc#orders",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
   var NEXT = [
-    { id: "next-14", sub: "In development" },
     { id: "next-15", sub: "In development" },
     { id: "next-16", sub: "In development" },
   ];

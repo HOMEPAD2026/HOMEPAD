@@ -69,6 +69,7 @@ import * as liquidity from "./_liquidity.mjs";
 import * as locker from "./_locker.mjs";
 import * as argusArc from "./_argus-arcpad.mjs";
 import * as ponsArc from "./_pons-arcpad.mjs";
+import * as orders from "./_orders.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -452,6 +453,16 @@ export async function GET(req) {
   }
   // coins launched on Argus through ArcPad (arc-argus.js): the list for Explore
   // coins launched on Pons V2 (Robinhood Chain) through ArcPad (arc-pons.js): the list for Explore
+  // ARCIRCLE Orders (arc-orders.js, api/_orders.mjs): the book of one market, a wallet's orders, the markets
+  if (url.searchParams.get("orders")) {
+    const k = url.searchParams.get("orders");
+    try {
+      if (k === "book") { const v = await orders.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
+      if (k === "mine") { const v = await orders.mine(url.searchParams.get("wallet"), { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" }); }
+      if (k === "markets") return json(200, await orders.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
+      return json(400, { error: "unknown orders view" });
+    } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
+  }
   if (url.searchParams.get("ponsarc") === "list") {
     try { return json(200, await ponsArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { console.error("ponsarc", err && err.message || err); return json(502, { error: "couldn't read the Pons launches right now" }); }
@@ -569,6 +580,13 @@ export async function POST(req) {
       const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };
       try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+    }
+    if (b.action === "orderplace" || b.action === "ordercancel") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
+      try { const r = await (b.action === "orderplace" ? orders.place(b, { store: st }) : orders.cancel(b, { store: st })); return json(r.status, r.body); }
+      catch (err) { return json(502, { error: "couldn't reach Arc right now: " + String(err && err.message || err).slice(0, 120) }); }
     }
     if (b.action === "ponsreg") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";

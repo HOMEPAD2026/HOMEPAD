@@ -176,6 +176,9 @@ const CONFIG = {
   // deploy-arc-multisend-v2.js --network robinhoodMainnet — ETH and any ERC-20 or NFT. Empty: Robinhood Chain shows
   // as "opening soon" (a list can be loaded and checked, not sent).
   MULTISEND_RH_ADDRESS: "0x07Ec525DC675206618C3e5E7fd92C7C0707df6C4", // ArcMultiSendV2 on Robinhood Chain (2026-10-01)
+  // ARCIRCLE Orders (contracts/contracts/ArcircleOrders.sol, arc-orders.js): empty = preview until it's deployed on Arc.
+  // Keep api/_orders.mjs CFG.address in step.
+  ORDERS_ADDRESS: "",
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
