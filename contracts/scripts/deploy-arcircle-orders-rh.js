@@ -44,19 +44,32 @@ async function poolKey() {
     const [c0, c1, fee, ts, hooks] = env.split(",").map((x) => x.trim());
     return { currency0: ethers.getAddress(c0), currency1: ethers.getAddress(c1), fee: Number(fee), tickSpacing: Number(ts), hooks: ethers.getAddress(hooks) };
   }
-  // 1. the RPC, all the way back
-  try {
-    const logs = await ethers.provider.getLogs({ address: POOL_MANAGER, topics: [INIT_TOPIC, ARCIRCLE_POOL_ID], fromBlock: 0, toBlock: "latest" });
-    if (logs.length) return keyOfLog(logs[0]);
-  } catch (e) {
-    console.log("  the RPC wouldn't search the whole chain:", String((e && e.message) || e).split("\n")[0].slice(0, 120));
+  // 1. the RPC, newest blocks first, in windows it accepts (Robinhood Chain's caps a search at 10,000,000 blocks)
+  const head = await ethers.provider.getBlockNumber();
+  let step = 9_000_000;
+  console.log(`  looking for the $ARCIRCLE / ETH pool's Initialize log (chain head ${head})…`);
+  for (let to = head; to >= 0;) {
+    const from = Math.max(0, to - step + 1);
+    try {
+      const logs = await ethers.provider.getLogs({ address: POOL_MANAGER, topics: [INIT_TOPIC, ARCIRCLE_POOL_ID], fromBlock: from, toBlock: to });
+      if (logs.length) { console.log(`  found it in block ${logs[0].blockNumber}`); return keyOfLog(logs[0]); }
+      to = from - 1;
+    } catch (e) {
+      const m = String((e && e.message) || e);
+      if (step > 100_000 && /range|allowed|narrow|limit|too many|exceed/i.test(m)) { step = Math.floor(step / 4); continue; } // a smaller window
+      console.log("  the RPC search stopped:", m.split("\n")[0].slice(0, 140));
+      break;
+    }
   }
   // 2. Blockscout's logs API
-  const u = `${BLOCKSCOUT}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${POOL_MANAGER}&topic0=${INIT_TOPIC}&topic1=${ARCIRCLE_POOL_ID}&topic0_1_opr=and`;
-  const r = await fetch(u, { headers: { accept: "application/json" } });
-  const j = await r.json().catch(() => null);
-  const l = j && Array.isArray(j.result) && j.result[0];
-  if (l) return keyOfLog({ topics: l.topics.filter(Boolean), data: l.data });
+  try {
+    const u = `${BLOCKSCOUT}?module=logs&action=getLogs&fromBlock=0&toBlock=${head}&address=${POOL_MANAGER}&topic0=${INIT_TOPIC}&topic1=${ARCIRCLE_POOL_ID}&topic0_1_opr=and`;
+    const r = await fetch(u, { headers: { accept: "application/json" } });
+    const j = await r.json().catch(() => null);
+    const l = j && Array.isArray(j.result) && j.result[0];
+    if (l) return keyOfLog({ topics: l.topics.filter(Boolean), data: l.data });
+    console.log("  Blockscout had no answer either:", r.status, j && (j.message || j.status));
+  } catch (e) { console.log("  Blockscout didn't answer:", String((e && e.message) || e).slice(0, 120)); }
   throw new Error("Couldn't read the $ARCIRCLE / ETH pool key. Pass it as ARCIRCLE_RH_POOL_KEY=currency0,currency1,fee,tickSpacing,hooks");
 }
 
