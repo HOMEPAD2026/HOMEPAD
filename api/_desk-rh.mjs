@@ -287,6 +287,9 @@ async function flow(S, C, F, latest, left) {
   const ids = Object.keys(F);
   if (ids.length > 900) ids.sort((a, b) => F[b].b - F[a].b).slice(900).forEach((id) => delete F[id]);
   if (!S.flHi || S.flHi < oldest) S.flHi = Math.max(oldest, S.hi0 || oldest);
+  // fallen far behind (a rate-limited node): what's trading now matters more than an hour ago — jump to the last 20 minutes
+  const lagMax = Math.ceil(1800 / S.spb);
+  if (latest.number - S.flHi > lagMax) { S.flHi = latest.number - Math.ceil(1200 / S.spb); D.skips = (D.skips || 0) + 1; }
   let steps = 0;
   while (S.flHi < latest.number && left() > 28000 && steps < 16) {
     const CH = S.flCh || 3000, a = S.flHi + 1, b = Math.min(latest.number, a + CH - 1);
@@ -296,6 +299,7 @@ async function flow(S, C, F, latest, left) {
       S.flErr = null;
     } catch (e) {
       S.flErr = String((e && e.message) || e).slice(0, 160);
+      if (/429|rate/i.test(S.flErr)) break; // the node is busy: next tick
       if (/range|too many|limit|10000|exceed|block|size/i.test(S.flErr) && CH > 200) { S.flCh = Math.floor(CH / 2); continue; }
       break;
     }
