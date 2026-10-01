@@ -12849,3 +12849,8 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .aor-free{margin-top:4px;padding:6px 9px;border-radius:8px;font-size:.66rem;line-height:1.45;color:#c9d4de;background:rgba(57,255,136,.05);border:1px dashed rgba(57,255,136,.28);}
 .aor-free b{font-family:var(--or-mono);color:#7dffb8;}
 .aor-free a{color:#7dffb8;text-decoration:none;font-weight:700;margin-left:2px;}
+.aor-contracts{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;margin-top:10px;font-size:.72rem;color:#9fb0bd;}
+.aor-contracts svg{width:15px;height:15px;fill:none;stroke:#39ff88;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.aor-contracts a{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;color:#c8ffe0;text-decoration:none;background:rgba(57,255,136,.06);border:1px solid rgba(57,255,136,.25);}
+.aor-contracts a:hover{background:rgba(57,255,136,.12);}
+.aor-contracts code{font-size:.68rem;color:#7dffb8;}

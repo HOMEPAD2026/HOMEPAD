@@ -62,6 +62,8 @@
     ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
     ["LP lock", "0x674E7010Dab5cCb519e06df72b1D4c063952f45B"],
     ["Builder Mine", (typeof CONFIG !== "undefined" && CONFIG.BUILDER_MINE_ADDRESS) || ""],
+    ["ARCIRCLE Orders", "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e"],
+    ["Orders fee burn", "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034"],
   ];
   var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
   function build() {
