@@ -11,6 +11,7 @@ const TYPES = { Order: [
   { name: "maker", type: "address" }, { name: "sell", type: "address" }, { name: "buy", type: "address" },
   { name: "sellAmount", type: "uint256" }, { name: "buyAmount", type: "uint256" }, { name: "triggerSqrtP", type: "uint160" },
   { name: "triggerBelow", type: "bool" }, { name: "poolId", type: "bytes32" }, { name: "expiry", type: "uint64" },
+  { name: "start", type: "uint64" }, { name: "duration", type: "uint32" }, { name: "group", type: "uint256" },
   { name: "epoch", type: "uint32" }, { name: "salt", type: "uint256" },
 ] };
 
@@ -34,7 +35,7 @@ describe("ArcircleOrders", function () {
   }
   let salt = 1n;
   async function sign(maker, o) {
-    const order = { maker: maker.address, triggerSqrtP: 0n, triggerBelow: false, poolId: ZERO32, expiry: 0n, epoch: 0, salt: salt++, ...o };
+    const order = { maker: maker.address, triggerSqrtP: 0n, triggerBelow: false, poolId: ZERO32, expiry: 0n, start: 0n, duration: 0, group: 0n, epoch: 0, salt: salt++, ...o };
     const sig = await maker.signTypedData(domain, TYPES, order);
     return { order, sig };
   }
@@ -184,8 +185,90 @@ describe("ArcircleOrders", function () {
     expect((await meme.balanceOf(bob.address)) - m0).to.equal(net);
   });
 
+  it("one-cancels-other: the first order of a group to fill takes it", async function () {
+    await buyToken(owner, U(150_000)); // MEME up: a take-profit at 0.00011 can fill
+    const tp = await sign(alice, { sell: T.meme, buy: T.usdc, sellAmount: E(100_000), buyAmount: U(10.9), group: 7n });
+    const sl = await sign(alice, { sell: T.meme, buy: T.usdc, sellAmount: E(100_000), buyAmount: U(1), group: 7n });
+    await ob.fillPool(tp.order, tp.sig, E(40_000), key); // part of the take-profit
+    expect(await ob.groupTakenBy(alice.address, 7n)).to.equal(await ob.hashOrder(tp.order));
+    await expect(ob.fillPool(sl.order, sl.sig, E(1000), key)).to.be.revertedWithCustomError(ob, "GroupTaken");
+    expect(await ob.remaining(sl.order)).to.equal(0n);
+    await ob.fillPool(tp.order, tp.sig, E(60_000), key); // the rest of it still fills
+    // another group, or no group, is untouched
+    const other = await sign(alice, { sell: T.meme, buy: T.usdc, sellAmount: E(1000), buyAmount: 1n, group: 8n });
+    await expect(ob.fillPool(other.order, other.sig, E(1000), key)).to.emit(ob, "Filled");
+  });
+
+  it("a timed order (TWAP / DCA) only fills what has been released", async function () {
+    const now = (await ethers.provider.getBlock("latest")).timestamp;
+    // 100 USDC into MEME over 1000 s, any price above 0.00005 per MEME… (≥ 2,000,000 MEME for all of it)
+    const { order, sig } = await sign(bob, { sell: T.usdc, buy: T.meme, sellAmount: U(100), buyAmount: E(500_000), start: BigInt(now + 100), duration: 1000 });
+    await expect(ob.fillPool(order, sig, U(1), key)).to.be.revertedWithCustomError(ob, "NotReleased");
+    expect(await ob.remaining(order)).to.equal(0n);
+    await network.provider.send("evm_setNextBlockTimestamp", [now + 100 + 250]); await network.provider.send("evm_mine");
+    expect(await ob.released(order)).to.equal(U(25));
+    await expect(ob.fillPool(order, sig, U(26), key)).to.be.revertedWithCustomError(ob, "NotReleased");
+    await network.provider.send("evm_setNextBlockTimestamp", [now + 100 + 300]);
+    await ob.fillPool(order, sig, U(30), key); // at t = 300: 30 released
+    await network.provider.send("evm_setNextBlockTimestamp", [now + 100 + 2000]); await network.provider.send("evm_mine");
+    expect(await ob.remaining(order)).to.equal(U(70));
+    await ob.fillPool(order, sig, U(70), key);
+    expect(await ob.remaining(order)).to.equal(0n);
+  });
+
   it("has no owner or admin functions", async function () {
     const fns = ob.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name).sort();
     expect(fns).to.deep.equal(["cancel", "cancelAll", "fillPool", "matchOrders", "quote", "swapMarket", "unlockCallback"]);
+  });
+});
+
+describe("ArcircleFeeBurn", function () {
+  let pm, liq, swp, usdc, arc, other, fb, owner, op, treasury, key;
+  beforeEach(async function () {
+    [owner, op, treasury] = await ethers.getSigners();
+    pm = await (await ethers.getContractFactory("PoolManager")).deploy(owner.address);
+    liq = await (await ethers.getContractFactory("PoolModifyLiquidityTest")).deploy(await pm.getAddress());
+    swp = await (await ethers.getContractFactory("PoolSwapTest")).deploy(await pm.getAddress());
+    const Tok = await ethers.getContractFactory("TestToken");
+    usdc = await Tok.deploy("USD Coin", "USDC", 6); arc = await Tok.deploy("ARCIRCLE", "ARCIRCLE", 18); other = await Tok.deploy("Other", "OTH", 18);
+    for (const t of [usdc, arc]) { await t.mint(owner.address, t === usdc ? U(1e8) : E(1e13)); await t.approve(await liq.getAddress(), ethers.MaxUint256); }
+    const [u, a] = [await usdc.getAddress(), await arc.getAddress()];
+    const [c0, c1] = BigInt(u) < BigInt(a) ? [u, a] : [a, u];
+    key = { currency0: c0, currency1: c1, fee: 3000, tickSpacing: 60, hooks: NOHOOK };
+    await pm.initialize(key, sqrtFor(0.00004, c0 === a));
+    await liq.modifyLiquidity(key, { tickLower: -887220, tickUpper: 887220, liquidityDelta: E(20), salt: ZERO32 }, "0x");
+    fb = await (await ethers.getContractFactory("ArcircleFeeBurn")).deploy(await pm.getAddress(), u, a, treasury.address, 5000, key, op.address);
+  });
+  it("burns half of the USDC fees as $ARCIRCLE, sends the rest to the treasury", async function () {
+    await usdc.mint(await fb.getAddress(), U(10));
+    let q; try { await fb.quote.staticCall(U(5)); } catch (e) { q = fb.interface.decodeErrorResult("QuoteResult", e.data)[0]; }
+    expect(q).to.be.gt(E(100_000));
+    await expect(fb.connect(treasury).burn(0)).to.be.revertedWithCustomError(fb, "NotOperator");
+    await expect(fb.connect(op).burn(q + 1n)).to.be.revertedWithCustomError(fb, "Slippage");
+    const d0 = await arc.balanceOf("0x000000000000000000000000000000000000dEaD");
+    await expect(fb.connect(op).burn((q * 99n) / 100n)).to.emit(fb, "Burned");
+    expect((await arc.balanceOf("0x000000000000000000000000000000000000dEaD")) - d0).to.equal(q);
+    expect(await usdc.balanceOf(treasury.address)).to.equal(U(5));
+    expect(await usdc.balanceOf(await fb.getAddress())).to.equal(0n);
+    expect(await fb.totalBurned()).to.equal(q);
+    await expect(fb.connect(op).burn(0)).to.be.revertedWithCustomError(fb, "Nothing");
+  });
+  it("flush: $ARCIRCLE half burned, other tokens all to the treasury, USDC only through burn", async function () {
+    await arc.mint(await fb.getAddress(), E(1000)); await other.mint(await fb.getAddress(), E(7));
+    await fb.flush(await arc.getAddress());
+    expect(await arc.balanceOf("0x000000000000000000000000000000000000dEaD")).to.equal(E(500));
+    expect(await arc.balanceOf(treasury.address)).to.equal(E(500));
+    await fb.flush(await other.getAddress());
+    expect(await other.balanceOf(treasury.address)).to.equal(E(7));
+    await expect(fb.flush(await usdc.getAddress())).to.be.revertedWithCustomError(fb, "UseBurn");
+  });
+  it("the owner can only change the operator or step down", async function () {
+    await expect(fb.connect(op).setOperator(op.address)).to.be.revertedWithCustomError(fb, "NotOwner");
+    await fb.setOperator(treasury.address);
+    expect(await fb.operator()).to.equal(treasury.address);
+    await fb.setOwner(ethers.ZeroAddress);
+    await expect(fb.setOperator(owner.address)).to.be.revertedWithCustomError(fb, "NotOwner");
+    const fns = fb.interface.fragments.filter((f) => f.type === "function" && f.stateMutability !== "view" && f.stateMutability !== "pure").map((f) => f.name).sort();
+    expect(fns).to.deep.equal(["burn", "flush", "quote", "setOperator", "setOwner", "unlockCallback"]);
   });
 });

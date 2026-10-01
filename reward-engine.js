@@ -23,6 +23,8 @@
     scanner: { name: "Token Scanner", acc: "#4d9fff" },
     secret: { name: "ARCIA's secret file", acc: "#ff8fc7" },
     desk: { name: "ARCIA DESK", acc: "#b58bff" },
+    agent: { name: "ARCIA AGENT vaults", acc: "#5b8cff" },
+    orders: { name: "ARCIRCLE Orders fees", acc: "#4dd4ff" },
     omni: { name: "OMNI rewards", acc: "#e46bff" },
     buyback: { name: "Buyback", acc: "#35d8d0" },
     team: { name: "Team & treasury", acc: "#dfe8f1" },

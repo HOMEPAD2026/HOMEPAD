@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790869477"></script>
+<script src="arc-log.js?v=1790871956"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790869477">
+<link rel="stylesheet" href="style.css?v=1790871956">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -282,6 +282,7 @@
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
                 <a class="ac2-chip-btn ac2-safety" id="apc-safety" href="#scanner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
                 <a class="ac2-chip-btn ac2-agent" id="apc-agent" href="#agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>ARCIA AGENT</span></a>
+                <a class="ac2-chip-btn ac2-orders" id="apc-orders" href="#orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg><span>Limit order</span></a>
                 <a class="ac2-chip-btn" id="apc-liqmgr" href="#liquidity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/></svg><span>Liquidity</span></a>
                 <button type="button" class="ac2-chip-btn ap-star-btn apc-ic" id="apc-star" aria-pressed="false" aria-label="Watch"><svg><use href="#i-star" xlink:href="#i-star"/></svg><span>Watch</span></button>
                 <button type="button" class="ac2-chip-btn ac2-share-btn apc-ic" data-share="coin" aria-label="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.5h3.3l-7.2 8.2 8.5 10.8h-6.6l-5.2-6.6-5.9 6.6H1.8l7.7-8.8L1.3 2.5h6.8l4.7 6.1zm-1.2 17h1.8L7.1 4.4H5.2z"/></svg><span>Share</span></button>
@@ -1527,7 +1528,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Limit orders on Arc</span>
-            <h1>ARCIRCLE Orders <span class="asc-ver" title="New">New<i>Limit · stop · market</i></span></h1>
+            <h1>ARCIRCLE Orders <span class="asc-ver" title="New">New<i>Limit · stop · TP/SL · DCA</i></span></h1>
             <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee.</p>
           </div>
         </div>
@@ -1543,6 +1544,9 @@
               <li>Limit — buy or sell at your price or better. Signed in your wallet, no gas. It stays in the book until it fills, you cancel it, or it expires (1 to 90 days).</li>
               <li>Market — swaps right away through the pool, from your wallet, with a slippage limit: if the price moves past it, nothing is swapped.</li>
               <li>Stop — waits until the pool's price crosses a trigger, then sells (stop-loss) or buys (breakout) at market, never below its slippage limit. Stops don't show in the book.</li>
+              <li>TP / SL — a take-profit and a stop-loss on the same tokens, signed together. When one fills, the other is cancelled by the contract itself, so both can never fill.</li>
+              <li>Trailing stop — follows the pool price up and sells once it falls back by your trail (3% to 20%). The executor tracks the peak; the lowest price you'd accept is signed, so it never sells below it.</li>
+              <li>Timed (DCA) — buy or sell an amount evenly over 1 hour to 30 days, in 4 to 48 parts, never above (or below) your price limit. One signature; the contract only lets each part fill once it's released.</li>
             </ul>
           </details>
           <details><summary><h3>How orders fill</h3></summary>
@@ -1556,8 +1560,20 @@
               <li>If your balance or approval drops below an order, it waits as "Needs balance or approval" until you top it up, and fills from where it left off.</li>
             </ul>
           </details>
-          <details><summary><h3>Fees</h3></summary>
-            <p>0.1% of what each side receives goes to the ARCIRCLE PAD treasury, for limit, stop and market orders alike. The pool's own fee (and a token's tax, if it has one) applies when an order fills from the pool. The executor pays the gas for limit and stop fills.</p>
+          <details><summary><h3>Fees and the $ARCIRCLE burn</h3></summary>
+            <p>0.1% of what each side receives, for every order type. Fees go to the ARCIRCLE Orders fee burn: once an hour half of the USDC fees buys $ARCIRCLE and sends it to 0x…dEaD, and the other half goes to the ARCIRCLE PAD treasury; $ARCIRCLE fees are half burned straight away. The burns show on the Reward page as "ARCIRCLE Orders fees".</p>
+            <p>The pool's own fee (and a token's tax, if it has one) applies when an order fills from the pool — the market bar shows the round-trip cost. Wallet-to-wallet matches don't pay it. The executor pays the gas for every fill except your own market orders.</p>
+          </details>
+          <details><summary><h3>Privacy, alerts and the executor</h3></summary>
+            <ul>
+              <li>Your orders aren't public: the book shows price levels only. To see your own orders here, sign one message (free) and they open for 30 days on that browser.</li>
+              <li>Fills, triggered stops and cancelled TP / SL legs: turn on "Notify me" for browser notifications, or send /orderalerts on to @ARCIAonArc_bot on Telegram after linking your wallet with /link. /orders lists your open orders there.</li>
+              <li>Price alerts are kept in this browser and fire when the pool price crosses them.</li>
+              <li>The executor checks every market every minute. The chip in the market bar shows when it last ran; if a fill keeps failing (a tax or a thin pool), it waits longer between tries.</li>
+            </ul>
+          </details>
+          <details><summary><h3>For bots and builders</h3></summary>
+            <p>The book is public: GET /api/social?orders=book&amp;token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&amp;pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain "ARCIRCLE Orders", version 1, chain 5042).</p>
           </details>
           <details><summary><h3>Honest risks</h3></summary>
             <p>The contract is new and unaudited. A limit order fills only if a wallet or the pool meets its price — there's no promise it will. Stop orders fill at market once triggered and can get less than the trigger price, down to their slippage limit. Nothing here is financial advice.</p>
@@ -1852,6 +1868,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790869477"></script>
+<script src="arcpad.bundle.js?v=1790871956"></script>
 </body>
 </html>

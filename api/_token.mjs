@@ -281,9 +281,11 @@ async function liveReads(wallets) {
 // Read once per burn (the transaction's `to`, and for a plain transfer the unlock records) and kept in the
 // state: vote (CirclePad burn-to-vote: Round #1's contract, or a direct round's coded transfer), mine (Builder Mine joins and shop), scanner (Token Scanner Plus/Pro
 // unlocks), secret (ARCIA's secret file), desk (ARCIA DESK's buy-and-burn), omni (the OMNI Safe burning the
-// rewards its Arc lockbox earned — omni/README.md), buyback (a swap paid straight to 0x…dEaD), team (a team or
+// rewards its Arc lockbox earned — omni/README.md), orders (ARCIRCLE Orders' fee burn), buyback (a swap paid straight to 0x…dEaD), team (a team or
 // treasury wallet), wallet (anyone sending $ARCIRCLE to 0x…dEaD themselves).
-export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "agent", "omni", "buyback", "team", "wallet"];
+export const BURN_KINDS = ["vote", "mine", "scanner", "secret", "desk", "agent", "orders", "omni", "buyback", "team", "wallet"];
+// ARCIRCLE Orders' fee burn (contracts/ArcircleFeeBurn.sol): half of every fee buys $ARCIRCLE and burns it (empty until deployed)
+const ORDERS_BURN = () => lc(process.env.ARCIRCLE_FEEBURN_ADDRESS || "");
 const BURNVOTE = "0x54121a7894d90a02ea973ab45eef424c2716eeb2";
 const MINE = () => lc(process.env.BUILDER_MINE_ADDRESS || "0x1538c76917dE5911D71c5C397ff18cA09d52B019");
 const DESK = () => lc(process.env.ARCIA_DESK_ADDRESS || "0xc30f1694203f4fc671ec769b90149e67ce3a1f03");
@@ -298,6 +300,7 @@ export function kindOf(x, txTo, marks = {}, team = TEAM) {
   if (to === MINE()) return "mine";
   if (to === DESK() || fr === DESK()) return "desk";
   if (marks.agent) return "agent";
+  if (ORDERS_BURN() && to === ORDERS_BURN()) return "orders";
   if (marks.scanner) return "scanner";
   if (marks.secret) return "secret";
   const safe = OMNI_SAFE();

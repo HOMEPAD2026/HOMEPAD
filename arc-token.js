@@ -187,7 +187,7 @@
       if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · Round #2 next";
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
-    if (id === "util") return d.burned && d.burned.bySource ? (function (b) { var t = ["scanner", "mine", "secret", "desk", "agent"].reduce(function (x, k) { return x + (b[k] ? b[k].tokens : 0); }, 0); return t > 0 ? num(t) + " $ARCIRCLE burned by utilities so far" : ""; })(d.burned.bySource) : "";
+    if (id === "util") return d.burned && d.burned.bySource ? (function (b) { var t = ["scanner", "mine", "secret", "desk", "agent", "orders"].reduce(function (x, k) { return x + (b[k] ? b[k].tokens : 0); }, 0); return t > 0 ? num(t) + " $ARCIRCLE burned by utilities so far" : ""; })(d.burned.bySource) : "";
     if (id === "tax") return rv.creatorTax != null ? usd(rv.creatorTax) + " earned since launch" : d.live === false ? "Starts when $ARCIRCLE is live"
       : rv.curveVolume != null ? usd(rv.curveVolume) + " traded since launch" : "";
     return "";

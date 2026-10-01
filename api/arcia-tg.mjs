@@ -12,7 +12,7 @@
 //   GET  /api/arcia-tg?tick=1&key=<CRON_SECRET>  every ~5 min (cron-job.org): alerts, watched wallets,
 //                                                price history, X → Telegram mirror, scheduled posts
 //
-// Everyone — /price /scan /coin /round /drops /launches /books (cards with a Refresh button), /me /link
+// Everyone — /price /scan /coin /round /drops /launches /books (cards with a Refresh button), /orders /orderalerts, /me /link
 //   /unlink, /alerts, /watch /unwatch, /gm /gmtop, /lucky, /report (reply), /lang (DM), /help; chat in a
 //   DM, or in a group when @mentioned / replied to; photos too. Inline: "@ARCIAonArc_bot 0x…" anywhere.
 // Group safety (when she's an admin there) — deletes private keys and seed phrases anywhere, scam links,
@@ -33,6 +33,7 @@ import { roundState } from "./_round.mjs";
 import { voteRounds } from "./_burnvote.mjs";
 import { postTweet, recentPosts } from "./arcia-x.mjs";
 import * as BB from "./_tg-buybot.mjs";
+import * as ORD from "./_orders.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -81,7 +82,8 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
-  ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
+  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -121,7 +123,7 @@ const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</c
 const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5" };
 // /burns: everything burned so far, where it came from, and the latest burns (the Reward page's numbers)
 const BURN_NAMES = { vote: ["Burn-to-vote", "소각 투표", "销毁投票"], mine: ["Builder Mine", "빌더 마인", "Builder Mine"], scanner: ["Token Scanner", "토큰 스캐너", "代币扫描器"],
-  secret: ["ARCIA's secret file", "ARCIA 시크릿 파일", "ARCIA 秘密档案"], desk: ["ARCIA DESK", "ARCIA DESK", "ARCIA DESK"], buyback: ["Buyback", "바이백", "回购"],
+  secret: ["ARCIA's secret file", "ARCIA 시크릿 파일", "ARCIA 秘密档案"], desk: ["ARCIA DESK", "ARCIA DESK", "ARCIA DESK"], agent: ["ARCIA AGENT vaults", "ARCIA AGENT 볼트", "ARCIA AGENT 金库"], orders: ["ARCIRCLE Orders fees", "ARCIRCLE Orders 수수료", "ARCIRCLE Orders 手续费"], buyback: ["Buyback", "바이백", "回购"],
   team: ["Team & treasury", "팀 · 트레저리", "团队与金库"], wallet: ["Direct burn", "직접 소각", "直接销毁"], pending: ["Being labeled", "분류 중", "标注中"] };
 async function cardBurns(lang) {
   let d = null;
@@ -654,6 +656,8 @@ async function onMessage(m, channel) {
       case "books": return sendCard(m.chat.id, await cardBooks(lang), { replyTo: group ? m.message_id : undefined });
       case "mine": return mineList(m);
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
+      case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
+      case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
       case "me": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardMe(u, lang));
       case "link": return startLink(m, lang);
       case "unlink": { if (group) return say(m, w("dmOnly", lang)); delete u.wallet; await saveUser(u); return say(m, "✓ Unlinked."); }
@@ -937,6 +941,62 @@ async function mineList(m) {
   const lines = list.map((x) => `• <b>$${h(x.token.symbol)}</b>${x.info && x.info.name ? " — " + h(x.info.name) : ""} · layer ${x.layer + 1}/6 · ${x.builders} builders · ${x.status === "soon" ? "opens in " + left(x.start - Math.floor(Date.now() / 1000)) : left(x.end - Math.floor(Date.now() / 1000)) + " left"}`);
   return say(m, `⛏ <b>Builder Mine</b>\n${lines.join("\n")}\n\nJoin with 1 USDC worth of $ARCIRCLE (burned) and dig in your browser.`, kb(list.slice(0, 3).map((x) => [{ text: `Enter $${x.token.symbol}`, url: `${SITE}/mine/${x.id}` }])));
 }
+// ---------------- ARCIRCLE Orders (api/_orders.mjs): read-only — nothing here places, fills or cancels an order ----------------
+const ORDER_TYPE = { limit: "Limit", stop: "Stop", trail: "Trailing stop", twap: "Timed" };
+async function cardOrders(u, lang) {
+  if (!u.wallet) return { text: T3(lang, "Link your wallet first — /link (one signature, no transaction).", "먼저 지갑을 연결해 주세요 — /link (서명 한 번, 거래 없음)", "请先绑定钱包 — /link(一次签名,无交易)") };
+  const d = await ORD.mine(u.wallet, { store: store() }).catch(() => null);
+  const open = ((d && d.orders) || []).filter((o) => o.status === "open" || o.status === "unfunded");
+  const amt = (o) => (o.side === "sell" ? Number(o.sellAmount) : Number(o.buyAmount) / 0.999) / 10 ** ((o.token && o.token.decimals) || 18);
+  const lines = open.slice(0, 8).map((o) => `• ${o.side === "buy" ? "Buy" : "Sell"} · ${ORDER_TYPE[o.type] || o.type} · ${compact(amt(o))} $${h((o.token && o.token.symbol) || "?")} @ ${fmtPrice(o.trigger && o.trigger.price ? o.trigger.price : o.price)}${o.filledPct ? ` · ${o.filledPct}% filled` : ""}${o.status === "unfunded" ? " · ⚠️ needs balance or approval" : ""}`);
+  return {
+    text: [`📒 <b>ARCIRCLE Orders</b> · <code>${short(u.wallet)}</code>`, open.length ? `${open.length} ${T3(lang, "open", "개 열림", "个挂单")}` : T3(lang, "No open orders.", "열린 주문이 없어요.", "暂无挂单。"), ...lines,
+      "", `<i>${T3(lang, "Fill alerts: /orderalerts on", "체결 알림: /orderalerts on", "成交提醒:/orderalerts on")}</i>`].join("\n"),
+    buttons: [[{ text: "ARCIRCLE Orders", url: `${SITE}/arc#orders` }]],
+  };
+}
+async function setOrderAlerts(m, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const u = await loadUser(m.from.id);
+  if (on && !u.wallet) return startLink(m, lang);
+  const s = await subs(), wa = lc(u.wallet || "");
+  s.orders = s.orders || {};
+  for (const k of Object.keys(s.orders)) { s.orders[k] = s.orders[k].filter((x) => x !== m.from.id); if (!s.orders[k].length) delete s.orders[k]; }
+  if (on && wa) s.orders[wa] = [...(s.orders[wa] || []), m.from.id];
+  await putDoc(DOC.subs, s);
+  return say(m, on ? `📒 ${T3(lang, "Order alerts on for", "주문 알림을 켰어요:", "已为此钱包开启订单提醒:")} <code>${short(wa)}</code> — ${T3(lang, "fills, triggered stops and cancelled legs. /orderalerts off to stop.", "체결, 스탑 발동, 취소된 반대 주문을 알려드려요. 끄려면 /orderalerts off", "成交、止损触发和被取消的另一腿都会通知你。/orderalerts off 关闭")}` : `📒 ${T3(lang, "Order alerts off.", "주문 알림을 껐어요.", "订单提醒已关闭。")}`);
+}
+/// the executor's events → DMs to the makers who asked; and the team hears when the executor is low on gas or stuck
+async function ordersNotify(T, s, c, out) {
+  const ev = await ORD.events({ store: store(), since: T.ordersSeq || 0 }).catch(() => null);
+  if (ev) {
+    if (T.ordersSeq == null) T.ordersSeq = ev.seq; // first look: start from now
+    else {
+      const subsO = s.orders || {};
+      for (const e of ev.list.slice(-30)) {
+        const ids = subsO[lc(e.maker)];
+        if (!ids || !ids.length) continue;
+        const sym = `$${h(e.sym || "?")}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order";
+        const text = e.kind === "fill" ? `✅ <b>${e.done ? "Filled" : "Part filled"}</b> · ${side} ${sym} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})\n${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")}${e.done ? "" : ` · ${e.pct}% so far`}`
+          : e.kind === "stop" ? `🛑 <b>Stop triggered</b> · ${sym} at ${fmtPrice(e.price)} — selling at market, never below your limit`
+          : e.kind === "trail" ? `📉 <b>Trailing stop triggered</b> · ${sym} fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now`
+          : e.kind === "oco" ? `↔️ <b>Other leg cancelled</b> · ${sym} ${e.leg === "sl" ? "stop-loss" : e.leg === "tp" ? "take-profit" : "order"} — its pair filled`
+          : null;
+        if (!text) continue;
+        for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[...(e.tx ? [{ text: "Transaction", url: `https://arc.etherscan.io/tx/${e.tx}` }] : []), { text: "My orders", url: `${SITE}/arc#orders?t=${e.token}` }]]) }).catch(() => null); out.orderAlerts = (out.orderAlerts || 0) + 1; }
+      }
+      T.ordersSeq = ev.seq;
+    }
+  }
+  const st = await ORD.status({ store: store() }).catch(() => null);
+  if (st && st.live && (st.low || (st.ago != null && st.ago > 900)) && Date.now() - (T.ordersWarnAt || 0) > 12 * 3600e3) {
+    T.ordersWarnAt = Date.now();
+    const why = st.low ? `its wallet has ${st.gas != null ? st.gas.toFixed(2) : "?"} USDC of gas left — top up <code>${h(st.keeper || "")}</code>` : `it hasn't run for ${Math.round(st.ago / 60)} minutes — check the cron and ORDERS_KEEPER_KEY`;
+    for (const a of c.admins) await tg("sendMessage", { chat_id: a, parse_mode: "HTML", text: `⚠️ <b>ARCIRCLE Orders executor</b>: ${why}` }).catch(() => null);
+    out.ordersWarn = true;
+  }
+}
+
 /// claim alerts for one's own linked wallet: a new root gives them something to claim, or the claim window is closing
 async function setMineAlerts(m, on, lang) {
   if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
@@ -1091,6 +1151,7 @@ async function tick() {
   if (due.length) { sc.list = sc.list.filter((x) => x.at > now); await putDoc(DOC.sched, sc); for (const x of due) out.scheduled = (out.scheduled || 0) + await postToTargets(c, { text: x.text }); }
   T.at = now;
   try { await mineTick(T, s, out); } catch (e) { out.mineTick = String(e.message || e).slice(0, 120); }
+  try { await ordersNotify(T, s, c, out); } catch (e) { out.ordersNotify = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

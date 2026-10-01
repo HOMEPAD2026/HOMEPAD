@@ -249,7 +249,7 @@
       </div>
       ${f.critical && f.critical.length ? `<div class="ag-crit"><b>${T("Critical")}</b>${f.critical.map((c) => `<span>${T(c)}</span>`).join("")}</div>` : ""}
       ${(r.checks || []).length ? `<h4>${T("What ARCIA would watch")}</h4><ul class="ag-issues">${r.checks.map((c) => `<li class="s-${esc(c.status)}"><b>${T(c.title)}</b>${c.detail ? `<small>${T(c.detail)}</small>` : ""}</li>`).join("")}</ul>` : `<p class="ag-small">${T("No warnings from the scanner.")}</p>`}
-      <p class="ag-small"><a href="/arc#scanner?t=${esc(r.t)}" data-arc-tab="scanner">${T("Open the full Token Scanner report")} →</a> · ${T("read by ARCIA")} <span data-no-i18n>${ago(r.at)}</span></p>`;
+      <p class="ag-small"><a href="/arc#scanner?t=${esc(r.t)}" data-arc-tab="scanner">${T("Open the full Token Scanner report")} →</a> · <a href="/arc#orders?t=${esc(r.t)}">${T("Set a limit order")} →</a> · ${T("read by ARCIA")} <span data-no-i18n>${ago(r.at)}</span></p>`;
     if (!reduce) requestAnimationFrame(() => el.querySelector(".ag-r-fg").classList.add("on"));
     else el.querySelector(".ag-r-fg").classList.add("on");
     // the number counts up with the ring

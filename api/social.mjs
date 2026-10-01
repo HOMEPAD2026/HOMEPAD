@@ -32,6 +32,11 @@
 //   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
 //   GET  /api/social?circle=csv&round=N          a round's leaderboard as CSV (?circle=lb&round=N for JSON)
 //   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
+//   GET  /api/social?orders=book&token=0x…       ARCIRCLE Orders (api/_orders.mjs): one market's price levels and fills
+//   GET  /api/social?orders=markets | status     every market · the executor's last run
+//   GET  /api/social?orders=candles&pool=0x…     5-minute candles of an Arc v4 pool (3 days)
+//   GET  /api/social?orders=mine&wallet=&until=&sig=   a wallet's orders (signed: orders.viewMessage)
+//   POST /api/social  { action: "orderplace" | "ordercancel" | "ordercancelall" | "orderfilled", … }
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
 //   GET  /api/social?lock=<id>                  Locker: one ArcLock lock (/lock/<id> certificate)
@@ -458,8 +463,15 @@ export async function GET(req) {
     const k = url.searchParams.get("orders");
     try {
       if (k === "book") { const v = await orders.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
-      if (k === "mine") { const v = await orders.mine(url.searchParams.get("wallet"), { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" }); }
+      if (k === "mine") {
+        // a wallet's orders aren't public: one signature (viewMessage) opens them for up to 30 days
+        const wa = url.searchParams.get("wallet");
+        if (!orders.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your orders", locked: true });
+        const v = await orders.mine(wa, { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" });
+      }
       if (k === "markets") return json(200, await orders.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
+      if (k === "status") return json(200, await orders.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
+      if (k === "candles") { const v = await orders.candles(url.searchParams.get("pool"), { store: scanStore() }); return v ? json(200, v, "public, max-age=20, s-maxage=30") : json(400, { error: "pool is needed" }); }
       return json(400, { error: "unknown orders view" });
     } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
   }
@@ -581,11 +593,12 @@ export async function POST(req) {
       try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
-    if (b.action === "orderplace" || b.action === "ordercancel") {
+    if (b.action === "orderplace" || b.action === "ordercancel" || b.action === "ordercancelall" || b.action === "orderfilled") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
-      try { const r = await (b.action === "orderplace" ? orders.place(b, { store: st }) : orders.cancel(b, { store: st })); return json(r.status, r.body); }
+      const fn = { orderplace: orders.place, ordercancel: orders.cancel, ordercancelall: orders.cancelMarket, orderfilled: (x, o) => orders.noteMarketTx(x.tx, o) }[b.action];
+      try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: "couldn't reach Arc right now: " + String(err && err.message || err).slice(0, 120) }); }
     }
     if (b.action === "ponsreg") {

@@ -23,8 +23,13 @@ import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 ///           • against a Uniswap v4 pool (`fillPool`) once the pool reaches the maker's price, or
 ///           • against another signed order (`matchOrders`), wallet to wallet, both at their price or better.
 ///         A stop order (`triggerSqrtP`) only fills when its pool's price has crossed the trigger.
+///         A timed order (`duration`) releases its `sellAmount` evenly from `start` to `start + duration` (TWAP / DCA):
+///         at any moment only the released part can have been filled.
+///         Orders that share a `group` (one-cancels-other, e.g. a take-profit and a stop-loss) can't both fill: the first
+///         one to fill takes the group, and the others revert from then on.
 ///         `swapMarket` is a plain market order from the caller's own wallet.
-///         Every fill pays 0.1% of what each side receives to the ARCIRCLE PAD treasury (`FEE_BPS`).
+///         Every fill pays 0.1% of what each side receives (`FEE_BPS`) to `treasury` — ArcircleFeeBurn, which buys and
+///         burns $ARCIRCLE with part of it and passes the rest to the ARCIRCLE PAD treasury.
 ///         Orders fill in parts; a maker can cancel one order (`cancel`) or all of them at once (`cancelAll`).
 ///         No owner, no admin, no pause, no upgrades.
 contract ArcircleOrders is EIP712, IUnlockCallback {
@@ -42,12 +47,15 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         bool triggerBelow; // stop: fill only while the pool's sqrtPriceX96 is ≤ (true) / ≥ (false) the trigger
         bytes32 poolId; // 0 = any pool of the pair; else only this pool
         uint64 expiry; // 0 = no expiry
+        uint64 start; // timed orders: when the release begins
+        uint32 duration; // 0 = all at once; else released evenly over this many seconds from `start`
+        uint256 group; // 0 = none; else one-cancels-other with the maker's other orders of the same group
         uint32 epoch; // must equal epochOf[maker] (cancelAll moves it on)
         uint256 salt;
     }
 
     bytes32 public constant ORDER_TYPEHASH = keccak256(
-        "Order(address maker,address sell,address buy,uint256 sellAmount,uint256 buyAmount,uint160 triggerSqrtP,bool triggerBelow,bytes32 poolId,uint64 expiry,uint32 epoch,uint256 salt)"
+        "Order(address maker,address sell,address buy,uint256 sellAmount,uint256 buyAmount,uint160 triggerSqrtP,bool triggerBelow,bytes32 poolId,uint64 expiry,uint64 start,uint32 duration,uint256 group,uint32 epoch,uint256 salt)"
     );
     uint256 public constant FEE_BPS = 10; // 0.1%
     uint8 internal constant VIA_POOL = 0;
@@ -60,6 +68,7 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
     mapping(bytes32 => uint256) public filled; // of sellAmount
     mapping(bytes32 => bool) public cancelled;
     mapping(address => uint32) public epochOf;
+    mapping(address => mapping(uint256 => bytes32)) public groupTakenBy; // maker → group → the order that filled first
 
     uint256 private lock = 1;
 
@@ -82,6 +91,8 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
     error NotMaker();
     error NativeNotSupported();
     error QuoteResult(uint256 out);
+    error NotReleased(uint256 released);
+    error GroupTaken(bytes32 by);
 
     modifier once() {
         if (lock != 1) revert Reentered();
@@ -99,17 +110,27 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
     // ------------------------------------------------------------------ views
 
     function hashOrder(Order calldata o) public view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(
-            ORDER_TYPEHASH, o.maker, o.sell, o.buy, o.sellAmount, o.buyAmount, o.triggerSqrtP, o.triggerBelow, o.poolId, o.expiry, o.epoch, o.salt
-        )));
+        // every field is a static type, so the struct encodes exactly as its members one after another (EIP-712 encodeData)
+        return _hashTypedDataV4(keccak256(abi.encode(ORDER_TYPEHASH, o)));
     }
 
-    /// @notice How much of `sellAmount` can still be filled (0 once cancelled, expired or replaced by cancelAll).
+    /// @notice How much of `sellAmount` can be filled right now (0 once cancelled, expired, replaced by cancelAll or
+    ///         beaten by another order of its group; a timed order only counts what's been released).
     function remaining(Order calldata o) external view returns (uint256) {
         bytes32 h = hashOrder(o);
         if (cancelled[h] || o.epoch != epochOf[o.maker] || (o.expiry != 0 && block.timestamp > o.expiry)) return 0;
+        if (o.group != 0) { bytes32 g = groupTakenBy[o.maker][o.group]; if (g != bytes32(0) && g != h) return 0; }
         uint256 f = filled[h];
-        return f >= o.sellAmount ? 0 : o.sellAmount - f;
+        uint256 r = released(o);
+        return f >= r ? 0 : r - f;
+    }
+
+    /// @notice How much of a timed order's `sellAmount` has been released by now (all of it for other orders).
+    function released(Order calldata o) public view returns (uint256) {
+        if (o.duration == 0) return o.sellAmount;
+        if (block.timestamp <= o.start) return 0;
+        uint256 t = block.timestamp - o.start;
+        return t >= o.duration ? o.sellAmount : Math.mulDiv(o.sellAmount, t, o.duration);
     }
 
     /// @notice The least the maker must receive, after the fee, for `amount` of their order's `sellAmount`.
@@ -211,7 +232,13 @@ contract ArcircleOrders is EIP712, IUnlockCallback {
         if (o.maker == address(0) || o.sellAmount == 0) revert ZeroAddress();
         uint256 f = filled[h];
         if (amount == 0 || f + amount > o.sellAmount) revert OverFill(o.sellAmount - f);
+        if (o.duration != 0) { uint256 r = released(o); if (f + amount > r) revert NotReleased(r); }
         if (!SignatureChecker.isValidSignatureNow(o.maker, h, sig)) revert BadSignature();
+        if (o.group != 0) {
+            bytes32 g = groupTakenBy[o.maker][o.group];
+            if (g == bytes32(0)) groupTakenBy[o.maker][o.group] = h;
+            else if (g != h) revert GroupTaken(g);
+        }
         filled[h] = f + amount;
     }
 

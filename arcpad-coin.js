@@ -410,6 +410,7 @@ function apcRenderHeader() {
   apc$("apc-scan-link").href = apcExplorer("token", l.token);
   if (apc$("apc-safety")) { apc$("apc-safety").href = `#scanner?t=${l.token}`; apcSafetyScore(l.token); }
   if (apc$("apc-agent")) apc$("apc-agent").href = `#agent?t=${l.token}`;
+  if (apc$("apc-orders")) apc$("apc-orders").href = `#orders?t=${l.token}`;
   if (apc$("apc-liqmgr")) apc$("apc-liqmgr").href = `#liquidity?token=${l.token}`;
   const desc = apc$("apc-desc");
   if (l.description) { desc.textContent = l.description; desc.hidden = false; } else desc.hidden = true;
@@ -484,7 +485,7 @@ function apcArgusToggle(on) {
       <h3>Trade ${apcEsc(sym)} on Argus</h3>
       <p>Swaps for this coin happen on Argus. Its creator fees are split on-chain: 70% to the creator, 30% to ARCIRCLE PAD.</p>
       <a class="bp-btn-primary apc-ag-go" href="https://argus.world/token/${apcEsc(l.token)}" target="_blank" rel="noopener">Trade on Argus ↗</a>
-      <div class="apc-ag-acts"><a href="https://dexscreener.com/arc/${apcEsc(l.token)}" target="_blank" rel="noopener">Chart ↗</a><a href="#scanner?t=${apcEsc(l.token)}">Scan it</a><a href="#liquidity?token=${apcEsc(l.token)}">Liquidity</a><a href="#agent?t=${apcEsc(l.token)}">ARCIA AGENT</a></div>`;
+      <div class="apc-ag-acts"><a href="https://dexscreener.com/arc/${apcEsc(l.token)}" target="_blank" rel="noopener">Chart ↗</a><a href="#scanner?t=${apcEsc(l.token)}">Scan it</a><a href="#liquidity?token=${apcEsc(l.token)}">Liquidity</a><a href="#agent?t=${apcEsc(l.token)}">ARCIA AGENT</a><a href="#orders?t=${apcEsc(l.token)}">Limit order</a></div>`;
   }
 }
 function apcRenderArgus(spot) {

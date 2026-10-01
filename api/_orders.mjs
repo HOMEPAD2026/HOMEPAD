@@ -10,11 +10,17 @@
 //   book(token)     price levels (asks / bids), recent fills, the order count — no signatures
 //   mine(wallet)    a wallet's orders across every market
 //   tick(store)     the executor (ORDERS_KEEPER_KEY): matches crossing orders wallet to wallet (matchOrders), then fills
-//                   what the pool can fill at each maker's price (fillPool), stop orders once their trigger is crossed.
+//                   what the pool can fill at each maker's price (fillPool): stop orders once their trigger is crossed,
+//                   trailing stops once the price falls back from its peak, timed (TWAP/DCA) orders as they're released,
+//                   one-cancels-other legs until one of them fills. Failed fills back off. It also records market
+//                   orders (swapMarket) from the chain, keeps a status for the page, an event feed for Telegram, and
+//                   spends the fee burn's USDC on $ARCIRCLE once an hour (ArcircleFeeBurn).
 //                   Runs after every ARCIA DESK tick on Arc (api/desk.mjs) and on its own (?orderstick=1).
+//   candles(pool)   5-minute candles for any Arc v4 pool from its Swap logs (the page's own chart)
 // Docs (Firestore through the caller's store; memory otherwise): orders/<token> (the market), orders/_index (markets),
-// orders/m_<maker> (a maker's markets).
-import { evmChain } from "./_evm.mjs";
+// orders/m_<maker> (a maker's markets), orders/_status (the executor), orders/_events (fills for Telegram),
+// orders/_scan (the market-order log cursor), orders/c_<poolId> (candles).
+import { evmChain, addressOfKey } from "./_evm.mjs";
 import { RPCS } from "./_arc.mjs";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -23,6 +29,8 @@ import { poolSlot, decodeSlot0, poolIdOf, priceOf } from "./_liq-core.mjs";
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 export const CFG = {
   address: "", // ArcircleOrders on Arc (set after it's deployed; env ARCIRCLE_ORDERS_ADDRESS overrides)
+  feeBurn: "", // ArcircleFeeBurn on Arc (env ARCIRCLE_FEEBURN_ADDRESS overrides)
+  usdc: "0x3600000000000000000000000000000000000000",
   chainId: 5042,
   rpcs: () => [env("ARC_RPC_URL"), ...RPCS].filter(Boolean),
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
@@ -34,6 +42,7 @@ let ch = null;
 export function configure(o) { Object.assign(CFG, o); ch = null; mem.clear(); }
 const chain = () => (ch = ch || evmChain({ rpcs: CFG.rpcs, chainId: CFG.chainId }));
 const ordersAddr = () => lc(env("ARCIRCLE_ORDERS_ADDRESS") || CFG.address);
+const feeBurnAddr = () => lc(env("ARCIRCLE_FEEBURN_ADDRESS") || CFG.feeBurn);
 export const FEE_BPS = 10n;
 const MAX_OPEN_PER_MAKER = 30, MAX_OPEN_PER_MARKET = 500, KEEP_FILLS = 200, KEEP_DONE = 300;
 
@@ -53,13 +62,13 @@ const ceilDiv = (a, b) => (a + b - 1n) / b;
 const big = (v) => { try { return BigInt(v); } catch { return null; } };
 
 // ---------------------------------------------------------------- EIP-712
-const ORDER_T = "Order(address maker,address sell,address buy,uint256 sellAmount,uint256 buyAmount,uint160 triggerSqrtP,bool triggerBelow,bytes32 poolId,uint64 expiry,uint32 epoch,uint256 salt)";
+const ORDER_T = "Order(address maker,address sell,address buy,uint256 sellAmount,uint256 buyAmount,uint160 triggerSqrtP,bool triggerBelow,bytes32 poolId,uint64 expiry,uint64 start,uint32 duration,uint256 group,uint32 epoch,uint256 salt)";
 const ORDER_TYPEHASH = keccakText(ORDER_T);
 const DOMAIN_TYPEHASH = keccakText("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 export function domainSeparator(address = ordersAddr(), chainId = CFG.chainId) {
   return keccak("0x" + strip(DOMAIN_TYPEHASH) + strip(keccakText("ARCIRCLE Orders")) + strip(keccakText("1")) + w(chainId) + w(address));
 }
-const FIELDS = ["maker", "sell", "buy", "sellAmount", "buyAmount", "triggerSqrtP", "triggerBelow", "poolId", "expiry", "epoch", "salt"];
+const FIELDS = ["maker", "sell", "buy", "sellAmount", "buyAmount", "triggerSqrtP", "triggerBelow", "poolId", "expiry", "start", "duration", "group", "epoch", "salt"];
 const encOrder = (o) => FIELDS.map((f) => (f === "triggerBelow" ? w(o[f] ? 1 : 0) : w(o[f]))).join("");
 export function orderHash(o, address = ordersAddr(), chainId = CFG.chainId) {
   const sh = keccak("0x" + strip(ORDER_TYPEHASH) + encOrder(o));
@@ -80,41 +89,51 @@ export function recover(digest, sig) {
 }
 const personalDigest = (msg) => { const m = new TextEncoder().encode(msg); return bytesToHex(keccak_256(new Uint8Array([...new TextEncoder().encode(`\x19Ethereum Signed Message:\n${m.length}`), ...m]))); };
 export const cancelMessage = (h) => `Cancel ARCIRCLE order ${lc(h)}`;
+/// one signature shows a wallet its own orders for up to 30 days (orders aren't public until they fill)
+export const viewMessage = (wallet, until) => `ARCIRCLE Orders: show my orders\n${lc(wallet)}\nuntil ${Number(until)}`;
+export const cancelMarketMessage = (token, maker, at) => `Cancel all my ARCIRCLE orders in ${lc(token)}\n${lc(maker)}\n${Number(at)}`;
+export function viewOk(wallet, until, sig) {
+  const now = CFG.now(), u = Number(until);
+  if (!isAddr(wallet) || !(u > now) || u > now + 31 * 86400 || !/^0x[0-9a-fA-F]{130}$/.test(String(sig || ""))) return false;
+  return lc(recover(personalDigest(viewMessage(wallet, u)), sig)) === lc(wallet);
+}
 
 /// normalise an order from JSON: every number a decimal string, addresses lower-case
 export function normOrder(o) {
   if (!o || typeof o !== "object") return null;
   const out = {};
   for (const f of ["maker", "sell", "buy"]) { if (!isAddr(o[f])) return null; out[f] = lc(o[f]); }
-  for (const f of ["sellAmount", "buyAmount", "triggerSqrtP", "expiry", "epoch", "salt"]) { const v = big(o[f] == null ? 0 : o[f]); if (v == null || v < 0n) return null; out[f] = v.toString(); }
+  for (const f of ["sellAmount", "buyAmount", "triggerSqrtP", "expiry", "start", "duration", "group", "epoch", "salt"]) { const v = big(o[f] == null ? 0 : o[f]); if (v == null || v < 0n) return null; out[f] = v.toString(); }
   out.triggerBelow = o.triggerBelow === true || o.triggerBelow === "true";
   out.poolId = isH32(o.poolId) ? lc(o.poolId) : "0x" + "0".repeat(64);
-  if (BigInt(out.triggerSqrtP) >= 1n << 160n || BigInt(out.expiry) >= 1n << 64n || BigInt(out.epoch) >= 1n << 32n || BigInt(out.sellAmount) >= 1n << 255n || BigInt(out.buyAmount) >= 1n << 255n) return null;
+  if (BigInt(out.triggerSqrtP) >= 1n << 160n || BigInt(out.expiry) >= 1n << 64n || BigInt(out.start) >= 1n << 64n || BigInt(out.duration) >= 1n << 32n || BigInt(out.group) >= 1n << 256n || BigInt(out.epoch) >= 1n << 32n || BigInt(out.sellAmount) >= 1n << 255n || BigInt(out.buyAmount) >= 1n << 255n) return null;
   return out;
 }
 const normKey = (k) => (k && isAddr(k.currency0) && isAddr(k.currency1) && isAddr(k.hooks) && Number.isInteger(Number(k.fee)) && Number.isInteger(Number(k.tickSpacing))
   ? { currency0: lc(k.currency0), currency1: lc(k.currency1), fee: Number(k.fee), tickSpacing: Number(k.tickSpacing), hooks: lc(k.hooks) } : null);
 
 // ---------------------------------------------------------------- ABI
-const ORDER_TUPLE = "(address,address,address,uint256,uint256,uint160,bool,bytes32,uint64,uint32,uint256)";
+const ORDER_TUPLE = "(address,address,address,uint256,uint256,uint160,bool,bytes32,uint64,uint64,uint32,uint256,uint32,uint256)";
 const KEY_TUPLE = "(address,address,uint24,int24,address)";
 const SEL = {
   fillPool: sel(`fillPool(${ORDER_TUPLE},bytes,uint256,${KEY_TUPLE})`),
   matchOrders: sel(`matchOrders(${ORDER_TUPLE},bytes,${ORDER_TUPLE},bytes,uint256,uint256)`),
   quote: sel(`quote(${KEY_TUPLE},address,uint256)`),
-  filled: sel("filled(bytes32)"), cancelled: sel("cancelled(bytes32)"), epochOf: sel("epochOf(address)"),
+  filled: sel("filled(bytes32)"), cancelled: sel("cancelled(bytes32)"), epochOf: sel("epochOf(address)"), groupTakenBy: sel("groupTakenBy(address,uint256)"),
+  burn: sel("burn(uint256)"), flush: sel("flush(address)"), fbQuote: sel("quote(uint256)"), burnBps: sel("burnBps()"),
   balanceOf: sel("balanceOf(address)"), allowance: sel("allowance(address,address)"),
   decimals: sel("decimals()"), symbol: sel("symbol()"), extsload: sel("extsload(bytes32)"),
 };
 const QUOTE_RESULT = sel("QuoteResult(uint256)");
 export const TOPIC_FILLED = keccakText("Filled(bytes32,address,address,address,uint256,uint256,uint256,uint8)");
+const TOPIC_SWAP = keccakText("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)");
 const encKey = (k) => w(k.currency0) + w(k.currency1) + w(k.fee) + w(BigInt.asUintN(256, BigInt(k.tickSpacing))) + w(k.hooks);
 const encBytes = (sig) => { const b = strip(sig); const n = b.length / 2; return w(n) + b.padEnd(Math.ceil(b.length / 64) * 64, "0"); };
 export function encFillPool(o, sig, amount, key) {
-  return SEL.fillPool + encOrder(o) + w(18 * 32) + w(amount) + encKey(key) + encBytes(sig);
+  return SEL.fillPool + encOrder(o) + w((FIELDS.length + 7) * 32) + w(amount) + encKey(key) + encBytes(sig);
 }
 export function encMatch(a, sa, b, sb, aAmt, bAmt) {
-  const tailA = encBytes(sa), offA = 26 * 32, offB = offA + tailA.length / 2;
+  const tailA = encBytes(sa), offA = (FIELDS.length * 2 + 4) * 32, offB = offA + tailA.length / 2;
   return SEL.matchOrders + encOrder(a) + w(offA) + encOrder(b) + w(offB) + w(aAmt) + w(bAmt) + tailA + encBytes(sb);
 }
 const str1 = (hex) => { try { const h = strip(hex), off = Number(BigInt("0x" + h.slice(0, 64))) * 2, len = Number(BigInt("0x" + h.slice(off, off + 64))) * 2; return new TextDecoder().decode(hexToBytes(h.slice(off + 64, off + 64 + len))); } catch { return ""; } };
@@ -190,6 +209,13 @@ const askPrice = (o, m) => human(BigInt(o.buyAmount), m.quote.decimals) / (1 - 0
 /// a buy order (quote → token): the price per token it pays, before the fee
 const bidPrice = (o, m) => human(BigInt(o.sellAmount), m.quote.decimals) / (human(BigInt(o.buyAmount), m.token.decimals) / (1 - 0.001));
 const remOf = (x) => BigInt(x.o.sellAmount) - BigInt(x.filled || 0);
+/// what a timed order has released by now (all of it for other orders) — the contract's released()
+function releasedOf(o, now = CFG.now()) {
+  const sell = BigInt(o.sellAmount), d = BigInt(o.duration || 0), st = BigInt(o.start || 0), t = BigInt(now);
+  if (d === 0n) return sell;
+  if (t <= st) return 0n;
+  return t - st >= d ? sell : (sell * (t - st)) / d;
+}
 
 // ---------------------------------------------------------------- place / cancel
 export async function place(body, { store } = {}) {
@@ -209,6 +235,24 @@ export async function place(body, { store } = {}) {
   const stop = o.triggerSqrtP !== "0";
   if (stop && o.poolId !== poolId) return { status: 400, body: { error: "a stop order names its pool" } };
   if (!stop && o.poolId !== "0x" + "0".repeat(64) && o.poolId !== poolId) return { status: 400, body: { error: "the order names another pool" } };
+  const side0 = o.sell === token ? "sell" : "buy";
+  const twap = o.duration !== "0", trail = body.trail != null && body.trail !== "";
+  let parts = 0, trailPct = 0;
+  if (twap) {
+    if (stop || trail) return { status: 400, body: { error: "a timed order can't also be a stop" } };
+    parts = Math.round(Number(body.parts));
+    if (!(parts >= 2 && parts <= 200)) return { status: 400, body: { error: "a timed order is split into 2 to 200 parts" } };
+    if (Number(o.duration) < 300 || Number(o.duration) > 90 * 86400) return { status: 400, body: { error: "a timed order runs for 5 minutes to 90 days" } };
+    if (Number(o.start) < now - 600 || Number(o.start) > now + 30 * 86400) return { status: 400, body: { error: "a timed order starts within 30 days" } };
+    if (o.expiry !== "0" && Number(o.expiry) < Number(o.start) + Number(o.duration)) return { status: 400, body: { error: "the order expires before it's fully released" } };
+  }
+  if (trail) {
+    trailPct = Number(body.trail);
+    if (stop) return { status: 400, body: { error: "a trailing stop has no fixed trigger" } };
+    if (!(trailPct >= 0.5 && trailPct <= 50)) return { status: 400, body: { error: "a trailing stop trails by 0.5% to 50%" } };
+    if (o.poolId !== poolId) return { status: 400, body: { error: "a trailing stop names its pool" } };
+    if (side0 !== "sell") return { status: 400, body: { error: "trailing stops sell" } };
+  }
   const h = lc(orderHash(o));
   if (lc(recover(h, sig)) !== o.maker) return { status: 401, body: { error: "the signature isn't the maker's" } };
   const [ep, bal, alw, fl, cx] = await calls([
@@ -229,14 +273,18 @@ export async function place(body, { store } = {}) {
     m = { token: tm, quote: qm, key, poolId, tokenIs0: key.currency0 === token, orders: [], fills: [] };
   }
   if (m.quote.address !== quote) return { status: 409, body: { error: `this market trades against ${m.quote.symbol}` } };
+  if (!m.key) Object.assign(m, { key, poolId, tokenIs0: key.currency0 === token }); // a market that so far only had market orders
   if (m.orders.some((x) => x.h === h)) return { status: 200, body: { ok: true, hash: h, already: true } };
   const open = m.orders.filter((x) => x.status === "open" || x.status === "unfunded");
   if (open.length >= MAX_OPEN_PER_MARKET) return { status: 429, body: { error: "this market's book is full right now" } };
   if (open.filter((x) => x.o.maker === o.maker).length >= MAX_OPEN_PER_MAKER) return { status: 429, body: { error: `at most ${MAX_OPEN_PER_MAKER} open orders per wallet in one market` } };
-  const side = o.sell === token ? "sell" : "buy";
-  const rec = { h, o, sig, key, poolId, side, type: stop ? "stop" : "limit", status: "open", filled: fl ? W(fl, 0).toString() : "0", at: now, last: now };
+  const side = side0;
+  const rec = { h, o, sig, key, poolId, side, type: stop ? "stop" : twap ? "twap" : trail ? "trail" : "limit", status: "open", filled: fl ? W(fl, 0).toString() : "0", at: now, last: now };
   rec.price = side === "sell" ? askPrice(o, m) : bidPrice(o, m);
   if (stop && Number(body.triggerPrice) > 0) rec.triggerPrice = Number(body.triggerPrice); // for display only
+  if (twap) rec.parts = parts;
+  if (trail) { const sp = priceOf(s0.sqrtP, key.currency0 === token, key.currency0 === token ? m.token.decimals : m.quote.decimals, key.currency0 === token ? m.quote.decimals : m.token.decimals); rec.trail = { pct: trailPct, peak: sp, armed: false }; }
+  if (o.group !== "0") { rec.group = o.group; rec.leg = ["tp", "sl"].includes(body.leg) ? body.leg : null; }
   m.orders.push(rec);
   m = await saveMarket(store, m);
   await addTo(store, INDEX, "tokens", token);
@@ -256,6 +304,19 @@ export async function cancel(body, { store } = {}) {
   mem.delete("book:" + token);
   return { status: 200, body: { ok: true, hash: h } };
 }
+/// every open order of one maker in one market, with one signed message
+export async function cancelMarket(body, { store } = {}) {
+  const token = lc(body && body.token), maker = lc(body && body.maker), at = Number(body && body.at), sig = String((body && body.sig) || "");
+  if (!isAddr(token) || !isAddr(maker) || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "token, maker, at and sig are needed" } };
+  if (!(Math.abs(CFG.now() - at) < 600)) return { status: 400, body: { error: "that signature is too old — try again" } };
+  if (lc(recover(personalDigest(cancelMarketMessage(token, maker, at)), sig)) !== maker) return { status: 401, body: { error: "only the maker can cancel these" } };
+  const m = await sget(store, marketKey(token));
+  const mine = m ? m.orders.filter((x) => x.o.maker === maker && (x.status === "open" || x.status === "unfunded")) : [];
+  for (const x of mine) { x.status = "cancelled"; x.cancelledOff = true; x.last = CFG.now(); }
+  if (mine.length) await saveMarket(store, { ...m, orders: mine, fills: [] });
+  mem.delete("book:" + token);
+  return { status: 200, body: { ok: true, cancelled: mine.length } };
+}
 
 // ---------------------------------------------------------------- views
 const sigFig = (p) => { if (!(p > 0)) return 0; const e = Math.floor(Math.log10(p)) - 3; return Math.round(p / 10 ** e) * 10 ** e; };
@@ -266,7 +327,11 @@ const pub = (x, m) => {
     hash: x.h, maker: x.o.maker, side: x.side, type: x.type, status: x.status, price: x.price, at: x.at, last: x.last,
     sellAmount: x.o.sellAmount, buyAmount: x.o.buyAmount, filled: x.filled || "0", filledPct: sell > 0n ? Number((BigInt(x.filled || 0) * 10000n) / sell) / 100 : 0,
     remainingToken: tokenRem.toString(), expiry: Number(x.o.expiry), trigger: x.type === "stop" ? { sqrtP: x.o.triggerSqrtP, below: x.o.triggerBelow, price: x.triggerPrice || null } : null,
-    poolId: x.poolId, unfunded: x.status === "unfunded",
+    poolId: x.poolId, unfunded: x.status === "unfunded", note: x.note || null,
+    trail: x.trail ? { pct: x.trail.pct, peak: x.trail.peak, at: x.trail.peak * (1 - x.trail.pct / 100), armed: !!x.trail.armed } : null,
+    twap: x.type === "twap" ? { parts: x.parts, start: Number(x.o.start), duration: Number(x.o.duration), releasedPct: Math.round(Number((releasedOf(x.o) * 10000n) / sell)) / 100 } : null,
+    group: x.group || null, leg: x.leg || null,
+    retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
   };
 };
 export async function book(token, { store } = {}) {
@@ -278,6 +343,7 @@ export async function book(token, { store } = {}) {
   if (!m) return { token, live: isAddr(ordersAddr()), asks: [], bids: [], fills: [], open: 0 };
   const now = CFG.now();
   const open = m.orders.filter((o) => o.status === "open" && o.type === "limit" && !(Number(o.o.expiry) && Number(o.o.expiry) < now));
+  const kinds = (t) => m.orders.filter((o) => o.status === "open" && o.type === t).length;
   const levels = (side) => {
     const g = new Map();
     for (const x of open.filter((o) => o.side === side)) {
@@ -292,11 +358,12 @@ export async function book(token, { store } = {}) {
   const v = {
     token: m.token, quote: m.quote, key: m.key, poolId: m.poolId, live: isAddr(ordersAddr()),
     asks: levels("sell"), bids: levels("buy"), open: m.orders.filter((o) => o.status === "open").length,
-    stops: m.orders.filter((o) => o.status === "open" && o.type === "stop").length,
+    stops: kinds("stop"), trails: kinds("trail"), twaps: kinds("twap"),
     fills: (m.fills || []).slice(0, 40).map((f) => ({ at: f.at, side: f.side, price: f.price, amount: f.amount, quote: f.quote, via: f.via, tx: f.tx })),
     day: { trades: fills24.length, volume: fills24.reduce((s, f) => s + (f.quote || 0), 0), high: fills24.length ? Math.max(...fills24.map((f) => f.price)) : null, low: fills24.length ? Math.min(...fills24.map((f) => f.price)) : null },
-    last: (m.fills && m.fills[0] && m.fills[0].price) || null, at: m.at,
+    last: (m.fills && m.fills[0] && m.fills[0].price) || null, at: m.at, spot: m.spot || null,
   };
+  v.dayChange = (() => { const old = fills24.length ? fills24[fills24.length - 1].price : null; return old && v.last ? ((v.last - old) / old) * 100 : null; })();
   mem.set("book:" + token, { t: Date.now(), v });
   return v;
 }
@@ -324,15 +391,44 @@ export async function markets({ store } = {}) {
     if (!m) continue;
     const open = m.orders.filter((o) => o.status === "open");
     if (!open.length && !(m.fills || []).length) continue;
-    out.push({ token: m.token, quote: m.quote, open: open.length, last: (m.fills && m.fills[0] && m.fills[0].price) || null, at: m.at });
+    const now = CFG.now(), live = open.filter((o) => o.type === "limit" && o.status === "open");
+    const asks = live.filter((o) => o.side === "sell").map((o) => o.price), bids = live.filter((o) => o.side === "buy").map((o) => o.price);
+    const f24 = (m.fills || []).filter((f) => f.at >= now - 86400);
+    out.push({ token: m.token, quote: m.quote, open: open.length, last: (m.fills && m.fills[0] && m.fills[0].price) || null, at: m.at,
+      bestAsk: asks.length ? Math.min(...asks) : null, bestBid: bids.length ? Math.max(...bids) : null, spot: m.spot || null,
+      vol24: f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: f24.length, poolId: m.poolId || null });
   }
   return { markets: out.sort((a, b) => b.open - a.open) };
 }
 
+// ---------------------------------------------------------------- events and status
+const EVENTS = "orders/_events", STATUS = "orders/_status", SCAN = "orders/_scan";
+const ZERO32 = "0x" + "0".repeat(64);
+async function pushEvents(store, list) {
+  if (!list.length) return;
+  const d = (await sget(store, EVENTS)) || { list: [], seq: 0 };
+  for (const e of list) { d.seq = (d.seq || 0) + 1; d.list.unshift({ id: d.seq, ...e }); }
+  d.list = d.list.slice(0, 300);
+  await sset(store, EVENTS, d);
+}
+/// fills, triggered stops and one-cancels-other cancels after `since` (Telegram's alerts read these)
+export async function events({ store, since = 0 } = {}) {
+  const d = (await sget(store, EVENTS)) || { list: [], seq: 0 };
+  return { seq: d.seq || 0, list: d.list.filter((e) => e.id > since).reverse() };
+}
+/// the executor's last run: when, its wallet's gas, what it did, the fee burn
+export async function status({ store } = {}) {
+  const d = (await sget(store, STATUS)) || {};
+  const now = CFG.now();
+  return { live: isAddr(ordersAddr()), at: d.at || 0, ago: d.at ? now - d.at : null, ok: !!d.at && now - d.at < 300 && !d.low, low: !!d.low, gas: d.gas ?? null,
+    keeper: d.keeper || null, last: d.last || null, burn: d.burn || null, feeBurn: feeBurnAddr() || null };
+}
+
 // ---------------------------------------------------------------- the executor
-/// after a fill transaction: its Filled events → fills in the market (and the orders' filled amounts)
-function recordFills(m, rc, via) {
+/// after a fill transaction: its Filled events → fills in the market (and the orders' filled amounts), plus events
+function recordFills(m, rc, via, evs = []) {
   const out = [];
+  const now = CFG.now();
   for (const l of (rc && rc.logs) || []) {
     if (lc(l.address) !== ordersAddr() || !l.topics || lc(l.topics[0]) !== TOPIC_FILLED) continue;
     const h = lc(l.topics[1]);
@@ -342,34 +438,48 @@ function recordFills(m, rc, via) {
     const gross = received + fee;
     const tokenRaw = x.side === "sell" ? sold : gross, quoteRaw = x.side === "sell" ? gross : sold;
     const amount = human(tokenRaw, m.token.decimals), quote = human(quoteRaw, m.quote.decimals);
-    out.push({ at: CFG.now(), h, side: x.side, price: amount > 0 ? quote / amount : 0, amount, quote, via, tx: lc(rc.transactionHash) });
-    x.filled = (BigInt(x.filled || 0) + sold).toString(); x.last = CFG.now();
+    out.push({ at: now, h, side: x.side, price: amount > 0 ? quote / amount : 0, amount, quote, via, tx: lc(rc.transactionHash) });
+    x.filled = (BigInt(x.filled || 0) + sold).toString(); x.last = now; x.fails = 0; x.nextTry = 0; x.lastErr = null;
     if (BigInt(x.filled) >= BigInt(x.o.sellAmount)) x.status = "filled";
+    evs.push({ at: now, kind: "fill", maker: x.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: x.side, type: x.type, leg: x.leg || null,
+      amount, quote, price: amount > 0 ? quote / amount : 0, done: x.status === "filled", pct: Number((BigInt(x.filled) * 10000n) / BigInt(x.o.sellAmount)) / 100, via, tx: lc(rc.transactionHash), h });
+    // one-cancels-other: the other legs of its group can't fill any more (the contract refuses them too)
+    if (x.group) for (const y of m.orders) {
+      if (y.h === x.h || y.group !== x.group || y.o.maker !== x.o.maker || !(y.status === "open" || y.status === "unfunded")) continue;
+      y.status = "cancelled"; y.note = "oco"; y.last = now;
+      evs.push({ at: now, kind: "oco", maker: y.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: y.side, type: y.type, leg: y.leg || null, h: y.h });
+    }
   }
   // a match fills two orders in one trade: the tape shows it once (the sell side)
   const tape = via === "match" ? out.filter((f) => f.side === "sell") : out;
   m.fills = [...tape, ...(m.fills || [])].slice(0, KEEP_FILLS);
   return out;
 }
-/// the on-chain state of every open order: filled, cancelled, cancel-all, expiry, and whether the maker still holds
-/// and has approved what's left
+/// the on-chain state of every open order: filled, cancelled, cancel-all, its group, expiry, and whether the maker
+/// still holds and has approved what's left
 async function refresh(m) {
   const S = ordersAddr(), now = CFG.now();
   const open = m.orders.filter((o) => o.status === "open" || o.status === "unfunded");
   if (!open.length) return;
-  const cs = open.flatMap((x) => [
-    { to: S, data: SEL.filled + strip(x.h) }, { to: S, data: SEL.cancelled + strip(x.h) }, { to: S, data: SEL.epochOf + w(x.o.maker) },
-    { to: x.o.sell, data: SEL.balanceOf + w(x.o.maker) }, { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(S) },
-  ]);
+  const cs = [], at = [];
+  for (const x of open) {
+    at.push(cs.length);
+    cs.push({ to: S, data: SEL.filled + strip(x.h) }, { to: S, data: SEL.cancelled + strip(x.h) }, { to: S, data: SEL.epochOf + w(x.o.maker) },
+      { to: x.o.sell, data: SEL.balanceOf + w(x.o.maker) }, { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(S) });
+    if (x.group) cs.push({ to: S, data: SEL.groupTakenBy + w(x.o.maker) + w(x.group) });
+  }
   const r = [];
   for (let i = 0; i < cs.length; i += 40) r.push(...(await calls(cs.slice(i, i + 40), { timeoutMs: 8000 })));
   open.forEach((x, i) => {
-    const [fl, cx, ep, bal, alw] = r.slice(5 * i, 5 * i + 5);
+    const k = at[i];
+    const [fl, cx, ep, bal, alw] = r.slice(k, k + 5);
+    const grp = x.group ? r[k + 5] : null;
     if (fl) x.filled = W(fl, 0).toString();
     const rem = remOf(x);
     if (cx && W(cx, 0) === 1n) x.status = "cancelled";
     else if (ep && W(ep, 0).toString() !== x.o.epoch) x.status = "cancelled";
     else if (rem <= 0n) x.status = "filled";
+    else if (grp && W(grp, 0) !== 0n && lc("0x" + strip(grp).slice(0, 64)) !== x.h) { x.status = "cancelled"; x.note = "oco"; }
     else if (Number(x.o.expiry) && Number(x.o.expiry) < now) x.status = "expired";
     else if ((bal && W(bal, 0) < rem) || (alw && W(alw, 0) < rem)) x.status = "unfunded";
     else x.status = "open";
@@ -395,79 +505,258 @@ export function planMatch(a, b, m) {
   if (netOf2(q) < owed(a.o, t) || netOf2(t) < owed(b.o, q)) return null; // inside the fees: no match
   return { a, b, t, q };
 }
-/// the most of order `x` the pool fills at its price now (0n if none)
-async function poolAmount(x) {
-  const rem = remOf(x);
+/// the most of order `x` (up to `cap`) the pool fills at its price now (0n if none)
+async function poolAmount(x, cap = remOf(x)) {
   const ok = async (amt) => { const out = await quoteOut(x.key, x.o.sell, amt).catch(() => null); return out != null && netOf(out) >= owed(x.o, amt); };
-  if (await ok(rem)) return rem;
-  if (x.type === "stop") return 0n; // a stop sells all of it or waits
-  let lo = rem / 64n;
+  if (cap <= 0n) return 0n;
+  if (await ok(cap)) return cap;
+  if (x.type === "stop" || x.type === "trail") return 0n; // a stop sells all of it or waits
+  let lo = cap / 64n;
   if (lo === 0n || !(await ok(lo))) return 0n;
-  let hi = rem;
+  let hi = cap;
   for (let i = 0; i < 6; i++) { const mid = (lo + hi) / 2n; if (await ok(mid)) lo = mid; else hi = mid; }
   return lo;
 }
+const priceIn = (m, key, sqrtP) => { const t0 = key.currency0 === m.token.address; return priceOf(sqrtP, t0, t0 ? m.token.decimals : m.quote.decimals, t0 ? m.quote.decimals : m.token.decimals); };
+const backoff = (x, why) => { const now = CFG.now(); x.fails = (x.fails || 0) + 1; x.nextTry = now + Math.min(3600, 60 * 2 ** Math.min(x.fails, 6)); x.lastErr = String(why || "").slice(0, 120); };
+
+/// market orders (swapMarket) from their Filled events: into the market's tape, once each
+async function recordMarket(store, logs) {
+  const S = ordersAddr(), usdc = lc(CFG.usdc);
+  const byToken = new Map();
+  for (const l of logs || []) {
+    if (lc(l.address) !== S || !l.topics || lc(l.topics[0]) !== TOPIC_FILLED || lc(l.topics[1]) !== ZERO32) continue;
+    const sell = lc("0x" + strip(l.topics[3]).slice(24)), buy = lc("0x" + strip(l.data).slice(24, 64));
+    const side = sell === usdc ? "buy" : buy === usdc ? "sell" : null;
+    if (!side) continue;
+    const token = side === "buy" ? buy : sell;
+    if (!byToken.has(token)) byToken.set(token, []);
+    byToken.get(token).push({ l, side, sold: W(l.data, 1), received: W(l.data, 2), fee: W(l.data, 3) });
+  }
+  let n = 0;
+  for (const [token, list] of byToken) {
+    let m = await sget(store, marketKey(token));
+    if (!m) { const [tm, qm] = await tokenMeta([token, usdc]); m = { token: tm, quote: qm, key: null, poolId: null, tokenIs0: null, orders: [], fills: [] }; }
+    const seen = new Set((m.fills || []).map((f) => f.tx + ":" + (f.li ?? "")));
+    const add = [];
+    for (const { l, side, sold, received, fee } of list) {
+      const tx = lc(l.transactionHash), li = parseInt(l.logIndex, 16);
+      if (seen.has(tx + ":" + li)) continue;
+      const gross = received + fee;
+      const amount = human(side === "sell" ? sold : gross, m.token.decimals), quote = human(side === "sell" ? gross : sold, m.quote.decimals);
+      add.push({ at: l.blockTimestamp ? parseInt(l.blockTimestamp, 16) : CFG.now(), h: ZERO32, side, price: amount > 0 ? quote / amount : 0, amount, quote, via: "market", tx, li });
+    }
+    if (!add.length) continue;
+    m.fills = [...add.reverse(), ...(m.fills || [])].slice(0, KEEP_FILLS);
+    await saveMarket(store, m);
+    await addTo(store, INDEX, "tokens", token);
+    mem.delete("book:" + token);
+    n += add.length;
+  }
+  return n;
+}
+/// right after a market order: the page sends its transaction so the tape shows it at once
+export async function noteMarketTx(tx, { store } = {}) {
+  if (!isH32(tx) || !isAddr(ordersAddr())) return { status: 400, body: { error: "tx is needed" } };
+  const rc = await chain().rpcCall("eth_getTransactionReceipt", [lc(tx)]).catch(() => null);
+  if (!rc || rc.status !== "0x1") return { status: 404, body: { error: "no such transaction yet" } };
+  const n = await recordMarket(store, rc.logs);
+  return { status: 200, body: { ok: true, recorded: n } };
+}
+
 export async function tick(store, { budgetMs = 12000, token = null } = {}) {
   const t0 = Date.now(), S = ordersAddr(), key = CFG.keeperKey();
   const out = { markets: 0, matched: 0, filled: 0, txs: [], errors: [] };
   if (!isAddr(S)) return { ...out, skipped: "no ArcircleOrders address" };
+  const evs = [];
   const idx = await sget(store, INDEX);
   let tokens = token ? [lc(token)] : ((idx && idx.tokens) || []);
   if (!token && tokens.length > 1) { const c = Number((idx && idx.cursor) || 0) % tokens.length; tokens = [...tokens.slice(c), ...tokens.slice(0, c)]; await sset(store, INDEX, { ...idx, cursor: c + 1 }); }
-  const send = async (data, what) => {
-    if (!key) return null;
-    if (out.txs.length >= CFG.maxTx || Date.now() - t0 > budgetMs) return null;
-    const [pre] = await chain().callsRaw([{ to: S, data }]);
-    if (!pre || !pre.ok) { out.errors.push(`${what}: dry run failed`); return null; }
-    const r = await chain().sendTx({ to: S, data, key }).catch((e) => ({ ok: false, err: String((e && e.message) || e) }));
+  /// one transaction from the executor: { rc } once it's in, { fail } when it would revert or didn't go through,
+  /// { skip } when this run is out of room
+  const send = async (data, what, to = S) => {
+    if (!key) return { skip: true };
+    if (out.txs.length >= CFG.maxTx || Date.now() - t0 > budgetMs) return { skip: true };
+    const [pre] = await chain().callsRaw([{ to, data }]);
+    if (!pre || !pre.ok) { out.errors.push(`${what}: dry run failed`); return { fail: "would revert" }; }
+    const r = await chain().sendTx({ to, data, key }).catch((e) => ({ ok: false, err: String((e && e.message) || e) }));
     if (r && r.hash) out.txs.push(r.hash);
-    if (!r || !r.ok) { out.errors.push(`${what}: ${(r && r.err) || "not confirmed"}`.slice(0, 160)); return null; }
-    return r.receipt;
+    if (!r || !r.ok) { const err = `${(r && r.err) || "not confirmed"}`.slice(0, 160); out.errors.push(`${what}: ${err}`); return { fail: err }; }
+    return { rc: r.receipt };
   };
   for (const t of tokens) {
     if (Date.now() - t0 > budgetMs) break;
     let m = await sget(store, marketKey(t));
-    if (!m) continue;
+    if (!m || !m.orders || !m.orders.length) continue;
     out.markets++;
     try { await refresh(m); } catch (e) { out.errors.push("refresh: " + String((e && e.message) || e).slice(0, 80)); }
     const now = CFG.now();
-    const live = (side) => m.orders.filter((x) => x.status === "open" && x.type === "limit" && x.side === side && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
+    const waiting = (x) => x.nextTry && x.nextTry > now;
+    const live = (side) => m.orders.filter((x) => x.status === "open" && x.type === "limit" && x.side === side && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
     // 1) wallet to wallet
     for (let guard = 0; guard < 8 && key; guard++) {
       const asks = live("sell").sort((a, b) => a.price - b.price || a.at - b.at), bids = live("buy").sort((a, b) => b.price - a.price || a.at - b.at);
       let plan = null;
       for (const a of asks.slice(0, 6)) { for (const b of bids.slice(0, 6)) { if (a.o.maker === b.o.maker || b.price < a.price * 0.999) continue; plan = planMatch(a, b, m); if (plan) break; } if (plan) break; }
       if (!plan) break;
-      const rc = await send(encMatch(plan.a.o, plan.a.sig, plan.b.o, plan.b.sig, plan.t, plan.q), "match");
-      if (!rc) break;
-      out.matched += recordFills(m, rc, "match").length / 2;
+      const r = await send(encMatch(plan.a.o, plan.a.sig, plan.b.o, plan.b.sig, plan.t, plan.q), "match");
+      if (r.fail) { backoff(plan.a, r.fail); backoff(plan.b, r.fail); }
+      if (!r.rc) break;
+      out.matched += recordFills(m, r.rc, "match", evs).length / 2;
     }
-    // 2) against the pool: limit orders at their price, stop orders once triggered
-    const s0 = m.poolId ? await slot0Of(m.poolId).catch(() => null) : null;
-    if (s0) m.spot = priceOf(s0.sqrtP, m.tokenIs0, m.tokenIs0 ? m.token.decimals : m.quote.decimals, m.tokenIs0 ? m.quote.decimals : m.token.decimals);
-    const cands = m.orders.filter((x) => x.status === "open" && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
+    // 2) against the pool: stops and trailing stops first (they're about time), then limits and timed orders
+    const slots = new Map();
+    const slotOf = async (id) => { if (!id) return null; if (!slots.has(id)) slots.set(id, await slot0Of(id).catch(() => null)); return slots.get(id); };
+    const s0 = await slotOf(m.poolId);
+    if (s0 && m.key) m.spot = priceIn(m, m.key, s0.sqrtP);
+    const rank = { stop: 0, trail: 0, twap: 1, limit: 2 };
+    const cands = m.orders.filter((x) => x.status === "open" && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now)).sort((a, b) => (rank[a.type] ?? 3) - (rank[b.type] ?? 3));
     for (const x of cands) {
       if (!key || out.txs.length >= CFG.maxTx || Date.now() - t0 > budgetMs) break;
+      let cap = remOf(x);
       if (x.type === "stop") {
-        const st = x.poolId === m.poolId ? s0 : await slot0Of(x.poolId).catch(() => null);
+        const st = await slotOf(x.poolId);
         if (!st) continue;
         const trig = BigInt(x.o.triggerSqrtP);
         if (x.o.triggerBelow ? st.sqrtP > trig : st.sqrtP < trig) continue;
-      } else if (m.spot && x.price) {
+        if (!x.triggered) { x.triggered = now; evs.push({ at: now, kind: "stop", maker: x.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: x.side, type: x.type, leg: x.leg || null, price: priceIn(m, x.key, st.sqrtP), h: x.h }); }
+      } else if (x.type === "trail") {
+        const st = await slotOf(x.poolId);
+        if (!st) continue;
+        const p = priceIn(m, x.key, st.sqrtP);
+        if (!(p > 0)) continue;
+        if (!x.trail.armed) {
+          if (p > x.trail.peak) x.trail.peak = p;
+          if (p > x.trail.peak * (1 - x.trail.pct / 100)) continue;
+          x.trail.armed = now;
+          evs.push({ at: now, kind: "trail", maker: x.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: x.side, type: x.type, price: p, peak: x.trail.peak, h: x.h });
+        }
+      } else {
         // nowhere near: skip the quote (a sell above spot, a buy below it)
-        if (x.side === "sell" && x.price > m.spot * 1.02) continue;
-        if (x.side === "buy" && x.price < m.spot * 0.98) continue;
+        if (m.spot && x.price) {
+          if (x.side === "sell" && x.price > m.spot * 1.02) continue;
+          if (x.side === "buy" && x.price < m.spot * 0.98) continue;
+        }
+        if (x.type === "twap") {
+          // 15 s behind our clock: the chain's may run a little late, and a fill past the release would revert
+          const rel = releasedOf(x.o, now - 15), avail = rel - BigInt(x.filled || 0), chunk = BigInt(x.o.sellAmount) / BigInt(x.parts || 10);
+          if (avail <= 0n || (avail < chunk && rel < BigInt(x.o.sellAmount))) continue;
+          cap = avail < cap ? avail : cap;
+        }
       }
-      const amt = await poolAmount(x);
+      const amt = await poolAmount(x, cap);
       if (amt <= 0n) continue;
-      const rc = await send(encFillPool(x.o, x.sig, amt, x.key), "fill");
-      if (rc) out.filled += recordFills(m, rc, "pool").length;
+      const r = await send(encFillPool(x.o, x.sig, amt, x.key), "fill");
+      if (r.fail) backoff(x, r.fail);
+      if (r.rc) out.filled += recordFills(m, r.rc, "pool", evs).length;
     }
     m = await saveMarket(store, m);
     mem.delete("book:" + t);
   }
+  // 3) market orders from the chain (the page also reports its own right away)
+  try {
+    const sc = (await sget(store, SCAN)) || {};
+    const head = await chain().latestBlock();
+    let from = sc.to ? sc.to + 1 : Math.max(0, head.number - 2000);
+    for (let k = 0; k < 3 && from <= head.number && Date.now() - t0 < budgetMs + 4000; k++) {
+      const to = Math.min(head.number, from + 8999);
+      const logs = await chain().getLogs({ address: S, topics: [TOPIC_FILLED, ZERO32], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }, 2);
+      out.market = (out.market || 0) + (await recordMarket(store, logs));
+      sc.to = to; from = to + 1;
+    }
+    await sset(store, SCAN, sc);
+  } catch (e) { out.errors.push("market scan: " + String((e && e.message) || e).slice(0, 80)); }
+  // 4) the fee burn, once an hour: USDC → $ARCIRCLE → 0x…dEaD (half), the rest to the treasury; other tokens flushed
+  const st = (await sget(store, STATUS)) || {};
+  const FB = feeBurnAddr();
+  if (key && isAddr(FB) && CFG.now() - (st.burnAt || 0) > 3600 && Date.now() - t0 < budgetMs) {
+    st.burnAt = CFG.now();
+    try {
+      const [ub, bps] = await calls([{ to: CFG.usdc, data: SEL.balanceOf + w(FB) }, { to: FB, data: SEL.burnBps }]);
+      const bal = ub ? W(ub, 0) : 0n, spend = (bal * (bps ? W(bps, 0) : 0n)) / 10000n;
+      if (bal >= 5_000_000n && spend > 0n) {
+        const [q] = await chain().callsRaw([{ to: FB, data: SEL.fbQuote + w(spend) }]);
+        const d = q && q.data ? String(q.data) : "";
+        const got = d.startsWith(QUOTE_RESULT) ? W(d.slice(10), 0) : 0n;
+        if (got > 0n) {
+          const r = await send(SEL.burn + w((got * 97n) / 100n), "fee burn", FB);
+          if (r.rc) st.burn = { at: CFG.now(), usdc: Number(spend) / 1e6, arcircle: Number(got) / 1e18, tx: lc(r.rc.transactionHash) };
+        }
+      }
+      const toks = ((idx && idx.tokens) || []).filter((x) => x !== lc(CFG.usdc)).slice(0, 12);
+      const bals = toks.length ? await calls(toks.map((x) => ({ to: x, data: SEL.balanceOf + w(FB) }))) : [];
+      let flushed = 0;
+      for (let i = 0; i < toks.length && flushed < 2; i++) if (bals[i] && W(bals[i], 0) > 0n) { const r = await send(SEL.flush + w(toks[i]), "fee flush", FB); if (r.rc) flushed++; }
+    } catch (e) { out.errors.push("fee burn: " + String((e && e.message) || e).slice(0, 80)); }
+  }
+  await pushEvents(store, evs).catch(() => null);
+  // 5) the status the page and Telegram show
+  if (key) {
+    const me = addressOfKey(key);
+    const gas = me ? await chain().balance(me).catch(() => null) : null;
+    st.keeper = me; st.gas = gas == null ? null : Number(gas) / 1e18; st.low = gas != null && gas < 10n ** 18n; // under 1 USDC of gas
+  } else { st.keeper = null; st.low = false; }
+  st.at = CFG.now(); st.last = { matched: out.matched, filled: out.filled, txs: out.txs.length, errors: out.errors.slice(0, 3) };
+  await sset(store, STATUS, st);
   if (!key) out.skipped = "no ORDERS_KEEPER_KEY";
+  out.events = evs.length;
   return out;
 }
 
-export const _test = { mem, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
+// ---------------------------------------------------------------- candles (the page's own chart)
+/// 5-minute OHLC for any Arc v4 pool from its Swap logs, kept for 3 days: [t, open, high, low, close, vol0, vol1] in
+/// raw currency1-per-currency0 (the page turns it into quote per token). Filled forwards first, then backwards.
+export async function candles(poolId, { store, budgetMs = 5000 } = {}) {
+  poolId = lc(poolId);
+  if (!isH32(poolId)) return null;
+  const hit = mem.get("cnd:" + poolId);
+  if (hit && Date.now() - hit.t < 15000) return hit.v;
+  const k = `orders/c_${poolId}`, t0 = Date.now(), ch = chain();
+  const d = (await sget(store, k)) || { lo: 0, hi: 0, c: {} };
+  const head = await ch.latestBlock();
+  if (!d.spb || CFG.now() - (d.spbAt || 0) > 86400) {
+    const n = Math.max(1, head.number - 200000);
+    const b = await ch.rpcCall("eth_getBlockByNumber", ["0x" + n.toString(16), false]).catch(() => null);
+    d.spb = b ? Math.max(0.05, (head.ts - parseInt(b.timestamp, 16)) / Math.max(1, head.number - n)) : 0.5;
+    d.spbAt = CFG.now();
+  }
+  const tsAt = (n) => head.ts - (head.number - n) * d.spb;
+  const RANGE = 9000, WINDOW = Math.ceil((3 * 86400) / d.spb), edge = Math.max(0, head.number - WINDOW);
+  const i128 = (x) => { const v = BigInt.asIntN(128, x); return v < 0n ? -v : v; };
+  let changed = false;
+  const add = (logs) => {
+    for (const l of logs || []) {
+      if (l.removed) continue;
+      const n = parseInt(l.blockNumber, 16), li = parseInt(l.logIndex, 16), kk = n * 100000 + li;
+      const ts = l.blockTimestamp ? parseInt(l.blockTimestamp, 16) : tsAt(n);
+      const b = String(Math.floor(ts / 300) * 300);
+      const sp = Number(W(l.data, 2)) / 2 ** 96, p = sp * sp;
+      if (!(p > 0)) continue;
+      const v0 = Number(i128(W(l.data, 0))), v1 = Number(i128(W(l.data, 1)));
+      const c = d.c[b];
+      if (!c) d.c[b] = [p, p, p, p, v0, v1, kk, kk];
+      else {
+        if (kk < c[6]) { c[0] = p; c[6] = kk; }
+        if (kk > c[7]) { c[3] = p; c[7] = kk; }
+        c[1] = Math.max(c[1], p); c[2] = Math.min(c[2], p); c[4] += v0; c[5] += v1;
+      }
+      changed = true;
+    }
+  };
+  const get = (from, to) => ch.getLogs({ address: CFG.pm, topics: [TOPIC_SWAP, poolId], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }, 2);
+  try {
+    let from = Math.max(d.hi ? d.hi + 1 : head.number - RANGE * 2, edge);
+    if (!d.hi) d.lo = from;
+    while (from <= head.number && Date.now() - t0 < budgetMs) { const to = Math.min(head.number, from + RANGE - 1); add(await get(from, to)); d.hi = to; from = to + 1; changed = true; }
+    while (d.lo > edge && Date.now() - t0 < budgetMs) { const to = d.lo - 1, fr = Math.max(edge, to - RANGE + 1); add(await get(fr, to)); d.lo = fr; changed = true; }
+  } catch { /* what we have so far */ }
+  const cut = head.ts - 3 * 86400;
+  for (const b of Object.keys(d.c)) if (Number(b) < cut - 300) { delete d.c[b]; changed = true; }
+  if (changed) await sset(store, k, d);
+  const v = { poolId, tf: 300, from: Math.round(tsAt(d.lo)), to: head.ts, complete: d.lo <= edge,
+    candles: Object.keys(d.c).map(Number).sort((a, b) => a - b).map((b) => [b, ...d.c[String(b)].slice(0, 6)]) };
+  mem.set("cnd:" + poolId, { t: Date.now(), v });
+  return v;
+}
+
+export const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
