@@ -181,6 +181,12 @@ const CONFIG = {
   ORDERS_ADDRESS: "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e",
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
+  // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
+  // empty until deployed — the Robinhood side of arcpad.html#orders is a preview until then. Permit2 only once confirmed there.
+  ORDERS_RH_ADDRESS: "",
+  ORDERS_RH_FEEBURN: "",
+  ORDERS_RH_PERMIT2: "",
+  ORDERS_RH_WETH: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.

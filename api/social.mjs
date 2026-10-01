@@ -37,6 +37,8 @@
 //   GET  /api/social?orders=candles&pool=0x…     5-minute candles of an Arc v4 pool (3 days)
 //   GET  /api/social?orders=mine&wallet=&until=&sig=   a wallet's orders (signed: orders.viewMessage)
 //   POST /api/social  { action: "orderplace" | "ordercancel" | "ordercancelall" | "orderfilled", … }
+//   GET  /api/social?orders=pools&token=0x…&chain=rh   a Robinhood Chain token's v4 pools against ETH (keys, prices)
+//   every orders route takes chain=rh (query or body) for Robinhood Chain's book (ArcircleOrdersNative)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
 //   GET  /api/social?lock=<id>                  Locker: one ArcLock lock (/lock/<id> certificate)
@@ -460,18 +462,19 @@ export async function GET(req) {
   // coins launched on Pons V2 (Robinhood Chain) through ArcPad (arc-pons.js): the list for Explore
   // ARCIRCLE Orders (arc-orders.js, api/_orders.mjs): the book of one market, a wallet's orders, the markets
   if (url.searchParams.get("orders")) {
-    const k = url.searchParams.get("orders");
+    const k = url.searchParams.get("orders"), OX = orders.forChain(url.searchParams.get("chain"));
     try {
-      if (k === "book") { const v = await orders.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
+      if (k === "book") { const v = await OX.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
       if (k === "mine") {
         // a wallet's orders aren't public: one signature (viewMessage) opens them for up to 30 days
         const wa = url.searchParams.get("wallet");
-        if (!orders.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your orders", locked: true });
-        const v = await orders.mine(wa, { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" });
+        if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your orders", locked: true });
+        const v = await OX.mine(wa, { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" });
       }
-      if (k === "markets") return json(200, await orders.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
-      if (k === "status") return json(200, await orders.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
-      if (k === "candles") { const v = await orders.candles(url.searchParams.get("pool"), { store: scanStore() }); return v ? json(200, v, "public, max-age=20, s-maxage=30") : json(400, { error: "pool is needed" }); }
+      if (k === "pools") { const v = await OX.pools(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=30, s-maxage=60") : json(400, { error: "token is needed" }); }
+      if (k === "markets") return json(200, await OX.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
+      if (k === "status") return json(200, await OX.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
+      if (k === "candles") { const v = await OX.candles(url.searchParams.get("pool"), { store: scanStore() }); return v ? json(200, v, "public, max-age=20, s-maxage=30") : json(400, { error: "pool is needed" }); }
       return json(400, { error: "unknown orders view" });
     } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
   }
@@ -597,9 +600,10 @@ export async function POST(req) {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
-      const fn = { orderplace: orders.place, ordercancel: orders.cancel, ordercancelall: orders.cancelMarket, orderfilled: (x, o) => orders.noteMarketTx(x.tx, o) }[b.action];
+      const OX = orders.forChain(b.chain);
+      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o) }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
-      catch (err) { return json(502, { error: "couldn't reach Arc right now: " + String(err && err.message || err).slice(0, 120) }); }
+      catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
     }
     if (b.action === "ponsreg") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";

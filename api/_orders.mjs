@@ -17,9 +17,11 @@
 //                   spends the fee burn's USDC on $ARCIRCLE once an hour (ArcircleFeeBurn).
 //                   Runs after every ARCIA DESK tick on Arc (api/desk.mjs) and on its own (?orderstick=1).
 //   candles(pool)   5-minute candles for any Arc v4 pool from its Swap logs (the page's own chart)
-// Docs (Firestore through the caller's store; memory otherwise): orders/<token> (the market), orders/_index (markets),
-// orders/m_<maker> (a maker's markets), orders/_status (the executor), orders/_events (fills for Telegram),
-// orders/_scan (the market-order log cursor), orders/c_<poolId> (candles).
+// Two chains, one module (makeOrders): ARC (ArcircleOrders, markets against USDC — the named exports, as before) and
+// RH, Robinhood Chain (ArcircleOrdersNative, markets against ETH: orders name WETH, pools may be native ETH). forChain().
+// Docs (Firestore through the caller's store; memory otherwise), under orders/ on Arc and ordersrh/ on Robinhood Chain:
+// <p>/<token> (the market), <p>/_index (markets), <p>/m_<maker> (a maker's markets), <p>/_status (the executor),
+// <p>/_events (fills for Telegram), <p>/_scan (the market-order log cursor), <p>/c_<poolId> (candles).
 import { evmChain, addressOfKey } from "./_evm.mjs";
 import { RPCS } from "./_arc.mjs";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
@@ -27,25 +29,60 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { poolSlot, decodeSlot0, poolIdOf, priceOf } from "./_liq-core.mjs";
 
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
-export const CFG = {
+const ZERO_ADDR = "0x" + "0".repeat(40);
+/// Arc: ArcircleOrders + ArcircleFeeBurn, markets against USDC
+const ARC_CFG = {
+  id: "arc", name: "Arc", prefix: "orders", msgTag: "",
   address: "0x1a31c2539d6e3fbdf276e8d74ba67aec4de9008e", // ArcircleOrders on Arc, block 23739979 (env ARCIRCLE_ORDERS_ADDRESS overrides)
   feeBurn: "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034", // ArcircleFeeBurn on Arc, block 23739974 (env ARCIRCLE_FEEBURN_ADDRESS overrides)
-  usdc: "0x3600000000000000000000000000000000000000",
+  addressEnv: "ARCIRCLE_ORDERS_ADDRESS", feeBurnEnv: "ARCIRCLE_FEEBURN_ADDRESS",
+  base: "0x3600000000000000000000000000000000000000", baseDec: 6, baseSym: "USDC", // what markets trade against and fees burn from
+  weth: null, // native currency 0x0 in a pool key stands for this (none on Arc)
   permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap's Permit2: makers can allow ArcircleOrders with a signature
   chainId: 5042,
   rpcs: () => [env("ARC_RPC_URL"), ...RPCS].filter(Boolean),
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
   keeperKey: () => env("ORDERS_KEEPER_KEY") || null,
+  burnMin: 5_000_000n, // 5 USDC before the hourly burn bothers
+  lowGas: 10n ** 18n, gasSym: "USDC", // under 1 USDC of gas: the executor is low
   maxTx: 6, // transactions per tick
   now: () => Math.floor(Date.now() / 1000),
 };
-let ch = null;
-export function configure(o) { Object.assign(CFG, o); ch = null; mem.clear(); }
-const chain = () => (ch = ch || evmChain({ rpcs: CFG.rpcs, chainId: CFG.chainId }));
-const ordersAddr = () => lc(env("ARCIRCLE_ORDERS_ADDRESS") || CFG.address);
-const feeBurnAddr = () => lc(env("ARCIRCLE_FEEBURN_ADDRESS") || CFG.feeBurn);
+/// Robinhood Chain: ArcircleOrdersNative + ArcircleFeeBurnNative, markets against ETH (orders name WETH; pools may be
+/// native ETH). Empty addresses until it's deployed (env ARCIRCLE_ORDERS_RH_ADDRESS / ARCIRCLE_FEEBURN_RH_ADDRESS).
+const RH_CFG = {
+  id: "rh", name: "Robinhood Chain", prefix: "ordersrh", msgTag: " on Robinhood Chain",
+  address: "", feeBurn: "",
+  addressEnv: "ARCIRCLE_ORDERS_RH_ADDRESS", feeBurnEnv: "ARCIRCLE_FEEBURN_RH_ADDRESS",
+  base: "0x0bd7d308f8e1639fab988df18a8011f41eacad73", baseDec: 18, baseSym: "ETH",
+  weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+  permit2: "", // set once Permit2 is confirmed on Robinhood Chain (env ARCIRCLE_ORDERS_RH_PERMIT2); plain approvals until then
+  permit2Env: "ARCIRCLE_ORDERS_RH_PERMIT2",
+  chainId: 4663,
+  rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
+  pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  keeperKey: () => env("ORDERS_KEEPER_RH_KEY") || env("ORDERS_KEEPER_KEY") || null,
+  dexChain: "robinhood", explorerApi: "https://robinhoodchain.blockscout.com/api", // where pools() looks a token's pools up
+  burnMin: 2n * 10n ** 15n, // 0.002 ETH
+  lowGas: 5n * 10n ** 14n, gasSym: "ETH", // under 0.0005 ETH
+  maxTx: 6,
+  now: () => Math.floor(Date.now() / 1000),
+};
 export const FEE_BPS = 10n;
 const MAX_OPEN_PER_MAKER = 30, MAX_OPEN_PER_MARKET = 500, KEEP_FILLS = 200, KEEP_DONE = 300;
+
+/// one chain's ARCIRCLE Orders: its contracts, its executor and its own docs (`<prefix>/…`)
+function makeOrders(CFG) {
+let ch = null;
+function configure(o) { Object.assign(CFG, o); ch = null; mem.clear(); }
+const chain = () => (ch = ch || evmChain({ rpcs: CFG.rpcs, chainId: CFG.chainId }));
+const ordersAddr = () => lc(env(CFG.addressEnv) || CFG.address);
+const feeBurnAddr = () => lc(env(CFG.feeBurnEnv) || CFG.feeBurn);
+const P2 = () => lc((CFG.permit2Env && env(CFG.permit2Env)) || CFG.permit2 || ZERO_ADDR);
+const hasP2 = () => P2() !== ZERO_ADDR;
+/// a pool currency as orders name it: native ETH (0x0) is WETH
+const cur = (a) => (lc(a) === ZERO_ADDR && CFG.weth ? CFG.weth : lc(a));
+const P = CFG.prefix;
 
 // ---------------------------------------------------------------- bits
 const lc = (a) => String(a || "").toLowerCase();
@@ -66,17 +103,17 @@ const big = (v) => { try { return BigInt(v); } catch { return null; } };
 const ORDER_T = "Order(address maker,address sell,address buy,uint256 sellAmount,uint256 buyAmount,uint160 triggerSqrtP,bool triggerBelow,bytes32 poolId,uint64 expiry,uint64 start,uint32 duration,uint256 group,uint32 epoch,uint256 salt)";
 const ORDER_TYPEHASH = keccakText(ORDER_T);
 const DOMAIN_TYPEHASH = keccakText("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-export function domainSeparator(address = ordersAddr(), chainId = CFG.chainId) {
+function domainSeparator(address = ordersAddr(), chainId = CFG.chainId) {
   return keccak("0x" + strip(DOMAIN_TYPEHASH) + strip(keccakText("ARCIRCLE Orders")) + strip(keccakText("1")) + w(chainId) + w(address));
 }
 const FIELDS = ["maker", "sell", "buy", "sellAmount", "buyAmount", "triggerSqrtP", "triggerBelow", "poolId", "expiry", "start", "duration", "group", "epoch", "salt"];
 const encOrder = (o) => FIELDS.map((f) => (f === "triggerBelow" ? w(o[f] ? 1 : 0) : w(o[f]))).join("");
-export function orderHash(o, address = ordersAddr(), chainId = CFG.chainId) {
+function orderHash(o, address = ordersAddr(), chainId = CFG.chainId) {
   const sh = keccak("0x" + strip(ORDER_TYPEHASH) + encOrder(o));
   return keccak("0x1901" + strip(domainSeparator(address, chainId)) + strip(sh));
 }
 /// a 65-byte r‖s‖v signature over a 32-byte digest → the signer's address (null if it doesn't parse)
-export function recover(digest, sig) {
+function recover(digest, sig) {
   try {
     const b = hexToBytes(sig);
     if (b.length !== 65) return null;
@@ -89,18 +126,18 @@ export function recover(digest, sig) {
   } catch { return null; }
 }
 const personalDigest = (msg) => { const m = new TextEncoder().encode(msg); return bytesToHex(keccak_256(new Uint8Array([...new TextEncoder().encode(`\x19Ethereum Signed Message:\n${m.length}`), ...m]))); };
-export const cancelMessage = (h) => `Cancel ARCIRCLE order ${lc(h)}`;
+const cancelMessage = (h) => `Cancel ARCIRCLE order ${lc(h)}`;
 /// one signature shows a wallet its own orders for up to 30 days (orders aren't public until they fill)
-export const viewMessage = (wallet, until) => `ARCIRCLE Orders: show my orders\n${lc(wallet)}\nuntil ${Number(until)}`;
-export const cancelMarketMessage = (token, maker, at) => `Cancel all my ARCIRCLE orders in ${lc(token)}\n${lc(maker)}\n${Number(at)}`;
-export function viewOk(wallet, until, sig) {
+const viewMessage = (wallet, until) => `ARCIRCLE Orders: show my orders\n${lc(wallet)}\nuntil ${Number(until)}`;
+const cancelMarketMessage = (token, maker, at) => `Cancel all my ARCIRCLE orders in ${lc(token)}${CFG.msgTag}\n${lc(maker)}\n${Number(at)}`;
+function viewOk(wallet, until, sig) {
   const now = CFG.now(), u = Number(until);
   if (!isAddr(wallet) || !(u > now) || u > now + 31 * 86400 || !/^0x[0-9a-fA-F]{130}$/.test(String(sig || ""))) return false;
   return lc(recover(personalDigest(viewMessage(wallet, u)), sig)) === lc(wallet);
 }
 
 /// normalise an order from JSON: every number a decimal string, addresses lower-case
-export function normOrder(o) {
+function normOrder(o) {
   if (!o || typeof o !== "object") return null;
   const out = {};
   for (const f of ["maker", "sell", "buy"]) { if (!isAddr(o[f])) return null; out[f] = lc(o[f]); }
@@ -128,14 +165,14 @@ const SEL = {
   decimals: sel("decimals()"), symbol: sel("symbol()"), extsload: sel("extsload(bytes32)"),
 };
 const QUOTE_RESULT = sel("QuoteResult(uint256)");
-export const TOPIC_FILLED = keccakText("Filled(bytes32,address,address,address,uint256,uint256,uint256,uint8)");
+const TOPIC_FILLED = keccakText("Filled(bytes32,address,address,address,uint256,uint256,uint256,uint8)");
 const TOPIC_SWAP = keccakText("Swap(bytes32,address,int128,int128,uint160,uint128,int24,uint24)");
 const encKey = (k) => w(k.currency0) + w(k.currency1) + w(k.fee) + w(BigInt.asUintN(256, BigInt(k.tickSpacing))) + w(k.hooks);
 const encBytes = (sig) => { const b = strip(sig); const n = b.length / 2; return w(n) + b.padEnd(Math.ceil(b.length / 64) * 64, "0"); };
-export function encFillPool(o, sig, amount, key) {
+function encFillPool(o, sig, amount, key) {
   return SEL.fillPool + encOrder(o) + w((FIELDS.length + 7) * 32) + w(amount) + encKey(key) + encBytes(sig);
 }
-export function encMatch(a, sa, b, sb, aAmt, bAmt) {
+function encMatch(a, sa, b, sb, aAmt, bAmt) {
   const tailA = encBytes(sa), offA = (FIELDS.length * 2 + 4) * 32, offB = offA + tailA.length / 2;
   return SEL.matchOrders + encOrder(a) + w(offA) + encOrder(b) + w(offB) + w(aAmt) + w(bAmt) + tailA + encBytes(sb);
 }
@@ -154,7 +191,8 @@ const str1 = (hex) => { try { const h = strip(hex), off = Number(BigInt("0x" + h
 const calls = (cs, o) => chain().ethCalls(cs, o);
 async function tokenMeta(addrs) {
   const r = await calls(addrs.flatMap((a) => [{ to: a, data: SEL.decimals }, { to: a, data: SEL.symbol }]));
-  return addrs.map((a, i) => ({ address: lc(a), decimals: r[2 * i] ? Number(W(r[2 * i], 0)) : 18, symbol: (str1(r[2 * i + 1]) || "TOKEN").replace(/[^\w$.-]/g, "").slice(0, 16) }));
+  // WETH shows as ETH: on Robinhood Chain it's the ETH side of every market (native ETH pools included)
+  return addrs.map((a, i) => ({ address: lc(a), decimals: r[2 * i] ? Number(W(r[2 * i], 0)) : 18, symbol: CFG.weth && lc(a) === CFG.weth ? "ETH" : (str1(r[2 * i + 1]) || "TOKEN").replace(/[^\w$.-]/g, "").slice(0, 16) }));
 }
 async function slot0Of(poolId) {
   const [s] = await calls([{ to: CFG.pm, data: SEL.extsload + strip(poolSlot(poolId, keccak)) }]);
@@ -177,9 +215,9 @@ async function sget(store, k) {
   return mem.get(k) || null;
 }
 async function sset(store, k, d) { mem.set(k, d); if (store) await store.set(k, d).catch(() => null); }
-const marketKey = (t) => `orders/${lc(t)}`;
-const makerKey = (m) => `orders/m_${lc(m)}`;
-const INDEX = "orders/_index";
+const marketKey = (t) => `${P}/${lc(t)}`;
+const makerKey = (m) => `${P}/m_${lc(m)}`;
+const INDEX = `${P}/_index`;
 /// write a market back, merging with what's there now (a placement and the executor may overlap)
 async function saveMarket(store, m) {
   const tk = typeof m.token === "string" ? m.token : m.token.address;
@@ -230,14 +268,14 @@ function releasedOf(o, now = CFG.now()) {
 }
 
 // ---------------------------------------------------------------- place / cancel
-export async function place(body, { store } = {}) {
+async function place(body, { store } = {}) {
   const S = ordersAddr();
   if (!isAddr(S)) return { status: 503, body: { error: "ARCIRCLE Orders isn't live yet" } };
   const o = normOrder(body && body.order), key = normKey(body && body.key), sig = String((body && body.sig) || "");
   if (!o || !key || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "order, sig and key are needed" } };
   const token = lc(body.token);
   if (!isAddr(token)) return { status: 400, body: { error: "token is needed" } };
-  const pair = [key.currency0, key.currency1];
+  const pair = [cur(key.currency0), cur(key.currency1)];
   if (!pair.includes(token) || !pair.includes(o.sell) || !pair.includes(o.buy) || o.sell === o.buy) return { status: 400, body: { error: "the order isn't for this pool's pair" } };
   const quote = pair.find((c) => c !== token);
   if (BigInt(o.sellAmount) === 0n || BigInt(o.buyAmount) === 0n) return { status: 400, body: { error: "amounts must be above zero" } };
@@ -267,28 +305,28 @@ export async function place(body, { store } = {}) {
   }
   const h = lc(orderHash(o));
   if (lc(recover(h, sig)) !== o.maker) return { status: 401, body: { error: "the signature isn't the maker's" } };
-  const P2 = lc(CFG.permit2);
+  const P2a = P2();
   const [ep, bal, alw, fl, cx, toP2, p2a] = await calls([
     { to: S, data: SEL.epochOf + w(o.maker) }, { to: o.sell, data: SEL.balanceOf + w(o.maker) }, { to: o.sell, data: SEL.allowance + w(o.maker) + w(S) },
     { to: S, data: SEL.filled + strip(h) }, { to: S, data: SEL.cancelled + strip(h) },
-    { to: o.sell, data: SEL.allowance + w(o.maker) + w(P2) }, { to: P2, data: SEL.p2allowance + w(o.maker) + w(o.sell) + w(S) },
+    { to: o.sell, data: SEL.allowance + w(o.maker) + w(P2a) }, { to: P2a, data: SEL.p2allowance + w(o.maker) + w(o.sell) + w(S) },
   ]).catch(() => [null, null, null, null, null, null, null]);
-  if (ep == null) return { status: 502, body: { error: "couldn't read Arc right now" } };
+  if (ep == null) return { status: 502, body: { error: `couldn't read ${CFG.name} right now` } };
   if (W(ep, 0).toString() !== o.epoch) return { status: 409, body: { error: "this order was signed before your last cancel-all" } };
   if (cx && W(cx, 0) === 1n) return { status: 409, body: { error: "this order is cancelled" } };
   if (fl && W(fl, 0) >= BigInt(o.sellAmount)) return { status: 409, body: { error: "this order is already filled" } };
   if (!bal || W(bal, 0) < BigInt(o.sellAmount)) return { status: 409, body: { error: "not enough balance for this order" } };
-  const need = BigInt(o.sellAmount), viaP2 = toP2 && W(toP2, 0) >= need;
+  const need = BigInt(o.sellAmount), viaP2 = hasP2() && toP2 && W(toP2, 0) >= need;
   const p2ok = viaP2 && p2a && W(p2a, 0) >= need && Number(W(p2a, 1)) > now + 60;
   let permit = null;
   if (!(alw && W(alw, 0) >= need) && !p2ok) {
     permit = normPermit(body.permit);
     const pOk = permit && viaP2 && permit.spender === S && permit.details.token === o.sell && BigInt(permit.details.amount) >= need && Number(permit.details.expiration) > now + 60 && Number(permit.sigDeadline) > now + 60;
-    const [dry] = pOk ? await chain().callsRaw([{ to: P2, data: encPermit(o.maker, permit) }]) : [null];
+    const [dry] = pOk ? await chain().callsRaw([{ to: P2a, data: encPermit(o.maker, permit) }]) : [null];
     if (!pOk || !dry || !dry.ok) return { status: 409, body: { error: "approve ARCIRCLE Orders for this amount first" } };
   }
   const s0 = await slot0Of(poolId).catch(() => null);
-  if (!s0 || s0.sqrtP === 0n) return { status: 409, body: { error: "that pool doesn't exist on Arc" } };
+  if (!s0 || s0.sqrtP === 0n) return { status: 409, body: { error: `that pool doesn't exist on ${CFG.name}` } };
   let m = await sget(store, marketKey(token));
   if (!m) {
     const [tm, qm] = await tokenMeta([token, quote]);
@@ -315,7 +353,7 @@ export async function place(body, { store } = {}) {
   mem.delete("book:" + token);
   return { status: 200, body: { ok: true, hash: h, side, type: rec.type, price: rec.price } };
 }
-export async function cancel(body, { store } = {}) {
+async function cancel(body, { store } = {}) {
   const token = lc(body && body.token), h = lc(body && body.hash), sig = String((body && body.sig) || "");
   if (!isAddr(token) || !isH32(h) || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "token, hash and sig are needed" } };
   const m = await sget(store, marketKey(token));
@@ -328,7 +366,7 @@ export async function cancel(body, { store } = {}) {
   return { status: 200, body: { ok: true, hash: h } };
 }
 /// every open order of one maker in one market, with one signed message
-export async function cancelMarket(body, { store } = {}) {
+async function cancelMarket(body, { store } = {}) {
   const token = lc(body && body.token), maker = lc(body && body.maker), at = Number(body && body.at), sig = String((body && body.sig) || "");
   if (!isAddr(token) || !isAddr(maker) || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "token, maker, at and sig are needed" } };
   if (!(Math.abs(CFG.now() - at) < 600)) return { status: 400, body: { error: "that signature is too old — try again" } };
@@ -357,7 +395,7 @@ const pub = (x, m) => {
     retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
   };
 };
-export async function book(token, { store } = {}) {
+async function book(token, { store } = {}) {
   token = lc(token);
   if (!isAddr(token)) return null;
   const c = mem.get("book:" + token);
@@ -390,7 +428,7 @@ export async function book(token, { store } = {}) {
   mem.set("book:" + token, { t: Date.now(), v });
   return v;
 }
-export async function mine(wallet, { store } = {}) {
+async function mine(wallet, { store } = {}) {
   wallet = lc(wallet);
   if (!isAddr(wallet)) return null;
   const idx = await sget(store, makerKey(wallet));
@@ -405,7 +443,7 @@ export async function mine(wallet, { store } = {}) {
   out.sort((a, b) => (b.last || b.at) - (a.last || a.at));
   return { wallet, orders: out.slice(0, 200) };
 }
-export async function markets({ store } = {}) {
+async function markets({ store } = {}) {
   const idx = await sget(store, INDEX);
   const tokens = ((idx && idx.tokens) || []).slice(0, 40);
   const out = [];
@@ -425,7 +463,7 @@ export async function markets({ store } = {}) {
 }
 
 // ---------------------------------------------------------------- events and status
-const EVENTS = "orders/_events", STATUS = "orders/_status", SCAN = "orders/_scan";
+const EVENTS = `${P}/_events`, STATUS = `${P}/_status`, SCAN = `${P}/_scan`;
 const ZERO32 = "0x" + "0".repeat(64);
 async function pushEvents(store, list) {
   if (!list.length) return;
@@ -435,16 +473,16 @@ async function pushEvents(store, list) {
   await sset(store, EVENTS, d);
 }
 /// fills, triggered stops and one-cancels-other cancels after `since` (Telegram's alerts read these)
-export async function events({ store, since = 0 } = {}) {
+async function events({ store, since = 0 } = {}) {
   const d = (await sget(store, EVENTS)) || { list: [], seq: 0 };
   return { seq: d.seq || 0, list: d.list.filter((e) => e.id > since).reverse() };
 }
 /// the executor's last run: when, its wallet's gas, what it did, the fee burn
-export async function status({ store } = {}) {
+async function status({ store } = {}) {
   const d = (await sget(store, STATUS)) || {};
   const now = CFG.now();
-  return { live: isAddr(ordersAddr()), at: d.at || 0, ago: d.at ? now - d.at : null, ok: !!d.at && now - d.at < 300 && !d.low, low: !!d.low, gas: d.gas ?? null,
-    keeper: d.keeper || null, last: d.last || null, burn: d.burn || null, feeBurn: feeBurnAddr() || null };
+  return { chain: CFG.id, live: isAddr(ordersAddr()), at: d.at || 0, ago: d.at ? now - d.at : null, ok: !!d.at && now - d.at < 300 && !d.low, low: !!d.low, gas: d.gas ?? null,
+    keeper: d.keeper || null, gasSym: CFG.gasSym, last: d.last || null, burn: d.burn || null, feeBurn: feeBurnAddr() || null, orders: ordersAddr() || null };
 }
 
 // ---------------------------------------------------------------- the executor
@@ -489,7 +527,7 @@ async function refresh(m) {
     at.push(cs.length);
     cs.push({ to: S, data: SEL.filled + strip(x.h) }, { to: S, data: SEL.cancelled + strip(x.h) }, { to: S, data: SEL.epochOf + w(x.o.maker) },
       { to: x.o.sell, data: SEL.balanceOf + w(x.o.maker) }, { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(S) },
-      { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(CFG.permit2) }, { to: CFG.permit2, data: SEL.p2allowance + w(x.o.maker) + w(x.o.sell) + w(S) });
+      { to: x.o.sell, data: SEL.allowance + w(x.o.maker) + w(P2()) }, { to: P2(), data: SEL.p2allowance + w(x.o.maker) + w(x.o.sell) + w(S) });
     if (x.group) cs.push({ to: S, data: SEL.groupTakenBy + w(x.o.maker) + w(x.group) });
   }
   const r = [];
@@ -507,7 +545,7 @@ async function refresh(m) {
     else if (Number(x.o.expiry) && Number(x.o.expiry) < now) x.status = "expired";
     else {
       // allowed: approved to the contract, or through Permit2 (an allowance already set, or a signed permit to send)
-      const direct = alw && W(alw, 0) >= rem, viaP2 = toP2 && W(toP2, 0) >= rem;
+      const direct = alw && W(alw, 0) >= rem, viaP2 = hasP2() && toP2 && W(toP2, 0) >= rem;
       const p2set = viaP2 && p2a && W(p2a, 0) >= rem && Number(W(p2a, 1)) > now + 30;
       const p2sig = viaP2 && x.permit && !x.permit.used && Number(x.permit.sigDeadline) > now + 30 && BigInt(x.permit.details.amount) >= rem;
       x.needPermit = !direct && !p2set && !!p2sig;
@@ -517,7 +555,7 @@ async function refresh(m) {
   });
 }
 /// crossing orders, wallet to wallet: the older order's price; both sides checked exactly as the contract does
-export function planMatch(a, b, m, free = new Set()) {
+function planMatch(a, b, m, free = new Set()) {
   // a: a sell (token → quote), b: a buy (quote → token); `free`: makers the fee policy waives
   const remA = remOf(a), remB = remOf(b);
   if (remA <= 0n || remB <= 0n) return null;
@@ -548,12 +586,12 @@ async function poolAmount(x, cap = remOf(x), free = false) {
   for (let i = 0; i < 6; i++) { const mid = (lo + hi) / 2n; if (await ok(mid)) lo = mid; else hi = mid; }
   return lo;
 }
-const priceIn = (m, key, sqrtP) => { const t0 = key.currency0 === m.token.address; return priceOf(sqrtP, t0, t0 ? m.token.decimals : m.quote.decimals, t0 ? m.quote.decimals : m.token.decimals); };
+const priceIn = (m, key, sqrtP) => { const t0 = cur(key.currency0) === m.token.address; return priceOf(sqrtP, t0, t0 ? m.token.decimals : m.quote.decimals, t0 ? m.quote.decimals : m.token.decimals); };
 const backoff = (x, why) => { const now = CFG.now(); x.fails = (x.fails || 0) + 1; x.nextTry = now + Math.min(3600, 60 * 2 ** Math.min(x.fails, 6)); x.lastErr = String(why || "").slice(0, 120); };
 
 /// market orders (swapMarket) from their Filled events: into the market's tape, once each
 async function recordMarket(store, logs) {
-  const S = ordersAddr(), usdc = lc(CFG.usdc);
+  const S = ordersAddr(), usdc = lc(CFG.base);
   const byToken = new Map();
   for (const l of logs || []) {
     if (lc(l.address) !== S || !l.topics || lc(l.topics[0]) !== TOPIC_FILLED || lc(l.topics[1]) !== ZERO32) continue;
@@ -587,7 +625,7 @@ async function recordMarket(store, logs) {
   return n;
 }
 /// right after a market order: the page sends its transaction so the tape shows it at once
-export async function noteMarketTx(tx, { store } = {}) {
+async function noteMarketTx(tx, { store } = {}) {
   if (!isH32(tx) || !isAddr(ordersAddr())) return { status: 400, body: { error: "tx is needed" } };
   const rc = await chain().rpcCall("eth_getTransactionReceipt", [lc(tx)]).catch(() => null);
   if (!rc || rc.status !== "0x1") return { status: 404, body: { error: "no such transaction yet" } };
@@ -595,7 +633,7 @@ export async function noteMarketTx(tx, { store } = {}) {
   return { status: 200, body: { ok: true, recorded: n } };
 }
 
-export async function tick(store, { budgetMs = 12000, token = null } = {}) {
+async function tick(store, { budgetMs = 12000, token = null } = {}) {
   const t0 = Date.now(), S = ordersAddr(), key = CFG.keeperKey();
   const out = { markets: 0, matched: 0, filled: 0, txs: [], errors: [] };
   if (!isAddr(S)) return { ...out, skipped: "no ArcircleOrders address" };
@@ -631,7 +669,7 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
       if (!x.needPermit || !x.permit) return true;
       const same = m.orders.filter((y) => y.o.maker === x.o.maker && y.o.sell === x.o.sell && y.permit && !y.permit.used && y.permit.details.nonce === x.permit.details.nonce);
       const best = same.sort((p, q) => (BigInt(q.permit.details.amount) > BigInt(p.permit.details.amount) ? 1 : -1))[0] || x;
-      const r = await send(encPermit(x.o.maker, best.permit), "permit", CFG.permit2);
+      const r = await send(encPermit(x.o.maker, best.permit), "permit", P2());
       if (r.rc || r.fail) for (const y of same) y.permit.used = true; // sent, or no longer valid (a newer nonce): either way done with it
       if (r.rc) { for (const y of m.orders.filter((z) => z.o.maker === x.o.maker && z.o.sell === x.o.sell)) y.needPermit = false; return true; }
       if (r.fail) backoff(x, r.fail);
@@ -714,24 +752,24 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
     }
     await sset(store, SCAN, sc);
   } catch (e) { out.errors.push("market scan: " + String((e && e.message) || e).slice(0, 80)); }
-  // 4) the fee burn, once an hour: USDC → $ARCIRCLE → 0x…dEaD (half), the rest to the treasury; other tokens flushed
+  // 4) the fee burn, once an hour: USDC (WETH on Robinhood Chain) → $ARCIRCLE → 0x…dEaD (half), the rest to the treasury; other tokens flushed
   const st = (await sget(store, STATUS)) || {};
   const FB = feeBurnAddr();
   if (key && isAddr(FB) && CFG.now() - (st.burnAt || 0) > 3600 && Date.now() - t0 < budgetMs) {
     st.burnAt = CFG.now();
     try {
-      const [ub, bps] = await calls([{ to: CFG.usdc, data: SEL.balanceOf + w(FB) }, { to: FB, data: SEL.burnBps }]);
+      const [ub, bps] = await calls([{ to: CFG.base, data: SEL.balanceOf + w(FB) }, { to: FB, data: SEL.burnBps }]);
       const bal = ub ? W(ub, 0) : 0n, spend = (bal * (bps ? W(bps, 0) : 0n)) / 10000n;
-      if (bal >= 5_000_000n && spend > 0n) {
+      if (bal >= CFG.burnMin && spend > 0n) {
         const [q] = await chain().callsRaw([{ to: FB, data: SEL.fbQuote + w(spend) }]);
         const d = q && q.data ? String(q.data) : "";
         const got = d.startsWith(QUOTE_RESULT) ? W(d.slice(10), 0) : 0n;
         if (got > 0n) {
           const r = await send(SEL.burn + w((got * 97n) / 100n), "fee burn", FB);
-          if (r.rc) st.burn = { at: CFG.now(), usdc: Number(spend) / 1e6, arcircle: Number(got) / 1e18, tx: lc(r.rc.transactionHash) };
+          if (r.rc) st.burn = { at: CFG.now(), [CFG.baseSym.toLowerCase()]: Number(spend) / 10 ** CFG.baseDec, arcircle: Number(got) / 1e18, tx: lc(r.rc.transactionHash) };
         }
       }
-      const toks = ((idx && idx.tokens) || []).filter((x) => x !== lc(CFG.usdc)).slice(0, 12);
+      const toks = ((idx && idx.tokens) || []).filter((x) => x !== lc(CFG.base)).slice(0, 12);
       const bals = toks.length ? await calls(toks.map((x) => ({ to: x, data: SEL.balanceOf + w(FB) }))) : [];
       let flushed = 0;
       for (let i = 0; i < toks.length && flushed < 2; i++) if (bals[i] && W(bals[i], 0) > 0n) { const r = await send(SEL.flush + w(toks[i]), "fee flush", FB); if (r.rc) flushed++; }
@@ -742,7 +780,7 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
   if (key) {
     const me = addressOfKey(key);
     const gas = me ? await chain().balance(me).catch(() => null) : null;
-    st.keeper = me; st.gas = gas == null ? null : Number(gas) / 1e18; st.low = gas != null && gas < 10n ** 18n; // under 1 USDC of gas
+    st.keeper = me; st.gas = gas == null ? null : Number(gas) / 1e18; st.gasSym = CFG.gasSym; st.low = gas != null && gas < CFG.lowGas;
   } else { st.keeper = null; st.low = false; }
   st.at = CFG.now(); st.last = { matched: out.matched, filled: out.filled, txs: out.txs.length, errors: out.errors.slice(0, 3) };
   await sset(store, STATUS, st);
@@ -751,15 +789,96 @@ export async function tick(store, { budgetMs = 12000, token = null } = {}) {
   return out;
 }
 
+// ---------------------------------------------------------------- pools (Robinhood Chain's market picker)
+/// a token's Uniswap v4 pools against ETH / WETH: Dexscreener names them, the PoolManager's Initialize log gives each
+/// key (Blockscout's log search, else a search around the pool's creation block), slot0 the price. Cached a day.
+const TOPIC_INIT = keccakText("Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)");
+async function getJson(u, ms = 6000) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(u, { signal: ctl.signal, headers: { accept: "application/json" } }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(tm); }
+}
+const dexPairs = async (token) => {
+  if (CFG.dexPairs) return CFG.dexPairs(token);
+  const j = await getJson(`https://api.dexscreener.com/token-pairs/v1/${CFG.dexChain}/${token}`);
+  return Array.isArray(j) ? j : [];
+};
+/// the first block at or after `ts` (binary search on block timestamps)
+async function blockAt(ts, head) {
+  let lo = 0, hi = head.number;
+  for (let i = 0; i < 40 && lo < hi; i++) {
+    const mid = Math.floor((lo + hi) / 2);
+    const b = await chain().rpcCall("eth_getBlockByNumber", ["0x" + mid.toString(16), false]).catch(() => null);
+    if (!b) break;
+    if (parseInt(b.timestamp, 16) < ts) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+async function initLog(id, createdTs, head) {
+  if (CFG.explorerApi) {
+    const j = await getJson(`${CFG.explorerApi}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${CFG.pm}&topic0=${TOPIC_INIT}&topic1=${id}&topic0_1_opr=and`, 6000);
+    const l = j && Array.isArray(j.result) && j.result[0];
+    if (l && l.topics) return { topics: l.topics.filter(Boolean), data: l.data };
+  }
+  const b = createdTs ? await blockAt(createdTs - 120, head) : Math.max(0, head.number - 9000);
+  for (let k = 0; k < 4; k++) {
+    const from = b + k * 4000, to = Math.min(head.number, from + 3999);
+    if (from > head.number) break;
+    const logs = await chain().getLogs({ address: CFG.pm, topics: [TOPIC_INIT, id], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }, 2).catch(() => []);
+    if (logs && logs[0]) return logs[0];
+  }
+  return null;
+}
+async function pools(token, { store } = {}) {
+  token = lc(token);
+  if (!isAddr(token)) return null;
+  const hit = mem.get("pools:" + token);
+  if (hit && Date.now() - hit.t < 60000) return hit.v;
+  const k = `${P}/p_${token}`;
+  const c = await sget(store, k);
+  if (c && CFG.now() - (c.at || 0) < 86400 && c.pools && c.pools.length) return fresh(c);
+  const ethSide = (a) => lc(a) === ZERO_ADDR || lc(a) === CFG.weth;
+  const pairs = (await dexPairs(token)).filter((p) => p && /^0x[0-9a-fA-F]{64}$/.test(String(p.pairAddress || "")) && [lc(p.baseToken && p.baseToken.address), lc(p.quoteToken && p.quoteToken.address)].includes(token))
+    .sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0)).slice(0, 4);
+  const head = await chain().latestBlock();
+  const out = [];
+  let info = null;
+  for (const p of pairs) {
+    const id = lc(p.pairAddress);
+    const l = await initLog(id, p.pairCreatedAt ? Math.floor(p.pairCreatedAt / 1000) : 0, head);
+    if (!l) continue;
+    const key = { currency0: lc("0x" + strip(l.topics[2]).slice(24)), currency1: lc("0x" + strip(l.topics[3]).slice(24)), fee: Number(W(l.data, 0)), tickSpacing: Number(BigInt.asIntN(24, W(l.data, 1))), hooks: lc("0x" + strip(l.data).slice(128 + 24, 192)) };
+    if (lc(poolIdOf(key, keccak)) !== id) continue;
+    const other = key.currency0 === token ? key.currency1 : key.currency1 === token ? key.currency0 : null;
+    if (!other || !ethSide(other)) continue;
+    out.push({ id, key, tokenIs0: key.currency0 === token, venue: [p.dexId ? p.dexId[0].toUpperCase() + p.dexId.slice(1) : "Uniswap", (p.labels || []).join(" ") || "v4", key.currency0 === ZERO_ADDR ? "ETH" : "WETH"].join(" "),
+      dex: { liqUsd: (p.liquidity && p.liquidity.usd) || null, url: p.url || null }, feePct: key.fee === 0x800000 ? null : key.fee / 10000 });
+    info = info || (p.info ? { logo: p.info.imageUrl || null } : null);
+  }
+  const [tm] = await tokenMeta([token]);
+  const v = { token: { ...tm, logo: (info && info.logo) || null }, quote: { address: CFG.weth || CFG.base, symbol: "ETH", decimals: 18 }, pools: out, at: CFG.now() };
+  if (out.length) await sset(store, k, v);
+  return fresh(v);
+  // the price now, from each pool's slot0
+  async function fresh(v0) {
+    const v1 = { ...v0, done: true, pools: await Promise.all(v0.pools.map(async (x) => {
+      const s0 = await slot0Of(x.id).catch(() => null);
+      const td = v0.token.decimals;
+      return { ...x, quote: v0.quote, price: s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, x.tokenIs0, x.tokenIs0 ? td : 18, x.tokenIs0 ? 18 : td) : null };
+    })) };
+    mem.set("pools:" + token, { t: Date.now(), v: v1 });
+    return v1;
+  }
+}
+
 // ---------------------------------------------------------------- candles (the page's own chart)
 /// 5-minute OHLC for any Arc v4 pool from its Swap logs, kept for 3 days: [t, open, high, low, close, vol0, vol1] in
 /// raw currency1-per-currency0 (the page turns it into quote per token). Filled forwards first, then backwards.
-export async function candles(poolId, { store, budgetMs = 5000 } = {}) {
+async function candles(poolId, { store, budgetMs = 5000 } = {}) {
   poolId = lc(poolId);
   if (!isH32(poolId)) return null;
   const hit = mem.get("cnd:" + poolId);
   if (hit && Date.now() - hit.t < 15000) return hit.v;
-  const k = `orders/c_${poolId}`, t0 = Date.now(), ch = chain();
+  const k = `${P}/c_${poolId}`, t0 = Date.now(), ch = chain();
   const d = (await sget(store, k)) || { lo: 0, hi: 0, c: {} };
   const head = await ch.latestBlock();
   if (!d.spb || CFG.now() - (d.spbAt || 0) > 86400) {
@@ -807,4 +926,15 @@ export async function candles(poolId, { store, budgetMs = 5000 } = {}) {
   return v;
 }
 
-export const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
+const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
+return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
+  TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools, _test };
+}
+
+export const ARC = makeOrders(ARC_CFG);
+export const RH = makeOrders(RH_CFG);
+/// ?chain=rh (or 4663) → Robinhood Chain; anything else → Arc
+export const forChain = (c) => (String(c || "").toLowerCase() === "rh" || String(c) === "4663" ? RH : ARC);
+// Arc's, as before
+export const { CFG, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
+  TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, _test } = ARC;

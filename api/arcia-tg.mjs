@@ -945,10 +945,12 @@ async function mineList(m) {
 const ORDER_TYPE = { limit: "Limit", stop: "Stop", trail: "Trailing stop", twap: "Timed" };
 async function cardOrders(u, lang) {
   if (!u.wallet) return { text: T3(lang, "Link your wallet first — /link (one signature, no transaction).", "먼저 지갑을 연결해 주세요 — /link (서명 한 번, 거래 없음)", "请先绑定钱包 — /link(一次签名,无交易)") };
-  const d = await ORD.mine(u.wallet, { store: store() }).catch(() => null);
-  const open = ((d && d.orders) || []).filter((o) => o.status === "open" || o.status === "unfunded");
+  // both chains: Arc, and Robinhood Chain (ArcircleOrdersNative)
+  const [da, dr] = await Promise.all([ORD.ARC, ORD.RH].map((X) => X.mine(u.wallet, { store: store() }).catch(() => null)));
+  const tag = (l, rh) => l.map((o) => ({ ...o, rh }));
+  const open = [...tag((da && da.orders) || [], false), ...tag((dr && dr.orders) || [], true)].filter((o) => o.status === "open" || o.status === "unfunded");
   const amt = (o) => (o.side === "sell" ? Number(o.sellAmount) : Number(o.buyAmount) / 0.999) / 10 ** ((o.token && o.token.decimals) || 18);
-  const lines = open.slice(0, 8).map((o) => `• ${o.side === "buy" ? "Buy" : "Sell"} · ${ORDER_TYPE[o.type] || o.type} · ${compact(amt(o))} $${h((o.token && o.token.symbol) || "?")} @ ${fmtPrice(o.trigger && o.trigger.price ? o.trigger.price : o.price)}${o.filledPct ? ` · ${o.filledPct}% filled` : ""}${o.status === "unfunded" ? " · ⚠️ needs balance or approval" : ""}`);
+  const lines = open.slice(0, 8).map((o) => `• ${o.side === "buy" ? "Buy" : "Sell"} · ${ORDER_TYPE[o.type] || o.type} · ${compact(amt(o))} $${h((o.token && o.token.symbol) || "?")} @ ${fmtPrice(o.trigger && o.trigger.price ? o.trigger.price : o.price)}${o.rh ? " ETH · Robinhood" : ""}${o.filledPct ? ` · ${o.filledPct}% filled` : ""}${o.status === "unfunded" ? " · ⚠️ needs balance or approval" : ""}`);
   return {
     text: [`📒 <b>ARCIRCLE Orders</b> · <code>${short(u.wallet)}</code>`, open.length ? `${open.length} ${T3(lang, "open", "개 열림", "个挂单")}` : T3(lang, "No open orders.", "열린 주문이 없어요.", "暂无挂单。"), ...lines,
       "", `<i>${T3(lang, "Fill alerts: /orderalerts on", "체결 알림: /orderalerts on", "成交提醒:/orderalerts on")}</i>`].join("\n"),
@@ -968,31 +970,36 @@ async function setOrderAlerts(m, on, lang) {
 }
 /// the executor's events → DMs to the makers who asked; and the team hears when the executor is low on gas or stuck
 async function ordersNotify(T, s, c, out) {
-  const ev = await ORD.events({ store: store(), since: T.ordersSeq || 0 }).catch(() => null);
+  for (const X of [ORD.ARC, ORD.RH]) await ordersNotifyOn(X, T, s, c, out);
+}
+async function ordersNotifyOn(X, T, s, c, out) {
+  const rh = X.id === "rh", SEQ = rh ? "ordersSeqRh" : "ordersSeq", WARN = rh ? "ordersWarnRhAt" : "ordersWarnAt";
+  const txUrl = (tx) => (rh ? `https://robinhoodchain.blockscout.com/tx/${tx}` : `https://arc.etherscan.io/tx/${tx}`);
+  const ev = await X.events({ store: store(), since: T[SEQ] || 0 }).catch(() => null);
   if (ev) {
-    if (T.ordersSeq == null) T.ordersSeq = ev.seq; // first look: start from now
+    if (T[SEQ] == null) T[SEQ] = ev.seq; // first look: start from now
     else {
       const subsO = s.orders || {};
       for (const e of ev.list.slice(-30)) {
         const ids = subsO[lc(e.maker)];
         if (!ids || !ids.length) continue;
-        const sym = `$${h(e.sym || "?")}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order";
+        const sym = `$${h(e.sym || "?")}${rh ? " (Robinhood)" : ""}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order";
         const text = e.kind === "fill" ? `✅ <b>${e.done ? "Filled" : "Part filled"}</b> · ${side} ${sym} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})\n${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")}${e.done ? "" : ` · ${e.pct}% so far`}`
           : e.kind === "stop" ? `🛑 <b>Stop triggered</b> · ${sym} at ${fmtPrice(e.price)} — selling at market, never below your limit`
           : e.kind === "trail" ? `📉 <b>Trailing stop triggered</b> · ${sym} fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now`
           : e.kind === "oco" ? `↔️ <b>Other leg cancelled</b> · ${sym} ${e.leg === "sl" ? "stop-loss" : e.leg === "tp" ? "take-profit" : "order"} — its pair filled`
           : null;
         if (!text) continue;
-        for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[...(e.tx ? [{ text: "Transaction", url: `https://arc.etherscan.io/tx/${e.tx}` }] : []), { text: "My orders", url: `${SITE}/arc#orders?t=${e.token}` }]]) }).catch(() => null); out.orderAlerts = (out.orderAlerts || 0) + 1; }
+        for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[...(e.tx ? [{ text: "Transaction", url: txUrl(e.tx) }] : []), { text: "My orders", url: `${SITE}/arc#orders?t=${e.token}${rh ? "&c=rh" : ""}` }]]) }).catch(() => null); out.orderAlerts = (out.orderAlerts || 0) + 1; }
       }
-      T.ordersSeq = ev.seq;
+      T[SEQ] = ev.seq;
     }
   }
-  const st = await ORD.status({ store: store() }).catch(() => null);
-  if (st && st.live && (st.low || (st.ago != null && st.ago > 900)) && Date.now() - (T.ordersWarnAt || 0) > 12 * 3600e3) {
-    T.ordersWarnAt = Date.now();
-    const why = st.low ? `its wallet has ${st.gas != null ? st.gas.toFixed(2) : "?"} USDC of gas left — top up <code>${h(st.keeper || "")}</code>` : `it hasn't run for ${Math.round(st.ago / 60)} minutes — check the cron and ORDERS_KEEPER_KEY`;
-    for (const a of c.admins) await tg("sendMessage", { chat_id: a, parse_mode: "HTML", text: `⚠️ <b>ARCIRCLE Orders executor</b>: ${why}` }).catch(() => null);
+  const st = await X.status({ store: store() }).catch(() => null);
+  if (st && st.live && (st.low || (st.ago != null && st.ago > 900)) && Date.now() - (T[WARN] || 0) > 12 * 3600e3) {
+    T[WARN] = Date.now();
+    const why = st.low ? `its wallet has ${st.gas != null ? st.gas.toFixed(rh ? 5 : 2) : "?"} ${st.gasSym || "USDC"} of gas left — top up <code>${h(st.keeper || "")}</code>` : `it hasn't run for ${Math.round(st.ago / 60)} minutes — check the cron (${rh ? "?chain=rh&orderstick=1" : "?orderstick=1"}) and ${rh ? "ORDERS_KEEPER_RH_KEY / " : ""}ORDERS_KEEPER_KEY`;
+    for (const a of c.admins) await tg("sendMessage", { chat_id: a, parse_mode: "HTML", text: `⚠️ <b>ARCIRCLE Orders executor${rh ? " · Robinhood Chain" : ""}</b>: ${why}` }).catch(() => null);
     out.ordersWarn = true;
   }
 }

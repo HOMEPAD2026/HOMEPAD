@@ -1,4 +1,4 @@
-/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, readProvider */
+/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, ensureAltForWrite, readProvider, ARC_ALT_NET */
 // arc-orders.js — ARCIRCLE Orders, an ARCIRCLE PAD utility (arcpad.html#orders; api/_orders.mjs; contracts
 // ArcircleOrders.sol + ArcircleFeeBurn.sol). Exchange-style orders on Arc's Uniswap v4 pools, without giving up custody:
 //   · limit    sign "sell X for at least Y" (EIP-712, no gas). Tokens stay in the wallet; the executor matches it with
@@ -9,8 +9,10 @@
 //   · trailing a stop that follows the price up and sells a set % under the peak (the floor is signed)
 //   · timed    DCA / TWAP: released evenly over a period (the contract's `start` / `duration`), filled in parts
 // 0.1% of what each side receives goes to ArcircleFeeBurn: half buys and burns $ARCIRCLE, half to the treasury.
-// Arc only, any token with a Uniswap v4 pool. The book shows price levels — signatures never leave the server, and a
-// wallet's own orders open with one signature (30 days).
+// Two chains (the Arc | Robinhood switch): Arc, against USDC (ArcircleOrders), and Robinhood Chain, against ETH
+// (ArcircleOrdersNative: orders name WETH, native ETH pools work; ETH is wrapped for you when an order needs WETH, and
+// market orders take and pay plain ETH). Any token with a Uniswap v4 pool. The book shows price levels — signatures
+// never leave the server, and a wallet's own orders open with one signature (30 days).
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-orders");
@@ -25,15 +27,28 @@
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const CFG = () => (typeof CONFIG !== "undefined" ? CONFIG : {});
-  const ORDERS = () => lc(CFG().ORDERS_ADDRESS || "");
+  // ---------------- the chain: Arc (USDC markets) or Robinhood Chain (ETH markets) ----------------
+  const CK = "arcircle.orders.chain";
+  let CH = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=arc\b/.test(location.hash) ? "arc" : (() => { try { return localStorage.getItem(CK) === "rh" ? "rh" : "arc"; } catch { return "arc"; } })();
+  const RH = () => CH === "rh";
+  const ALT = () => (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com", name: "Robinhood Chain" };
+  const CHAIN_NAME = () => (RH() ? "Robinhood Chain" : "Arc");
+  const WETH = () => lc(CFG().ORDERS_RH_WETH || "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73");
+  const ORDERS = () => lc((RH() ? CFG().ORDERS_RH_ADDRESS : CFG().ORDERS_ADDRESS) || "");
   const LIVE = () => isAddr(ORDERS());
   const USDC = () => lc(CFG().USDC_ADDRESS || "0x3600000000000000000000000000000000000000");
-  const ARCIRCLE = () => lc(CFG().ARCIRCLE_TOKEN || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7");
-  const CHAIN = () => Number(CFG().CHAIN_ID_DECIMAL || 5042);
-  const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951";
-  const PERMIT2 = () => lc(CFG().ORDERS_PERMIT2 || "0x000000000022D473030F116dDEE9F6B43aC78BA3");
+  const BASE = () => (RH() ? WETH() : USDC()); // what every market trades against
+  const ARCIRCLE = () => lc(RH() ? (CFG().OMNI && CFG().OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4" : CFG().ARCIRCLE_TOKEN || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7");
+  const CHAIN = () => (RH() ? Number(ALT().id || 4663) : Number(CFG().CHAIN_ID_DECIMAL || 5042));
+  const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951"; // Uniswap v4's PoolManager: the same address on both chains
+  const PERMIT2 = () => lc((RH() ? CFG().ORDERS_RH_PERMIT2 : CFG().ORDERS_PERMIT2 || "0x000000000022D473030F116dDEE9F6B43aC78BA3") || "");
   const FREE_HOLD = () => Number(CFG().ORDERS_FREE_HOLD || 100000); // $ARCIRCLE held for no fee (the contract's policy has the real number)
-  const EXPL = (kind, x) => `${CFG().BLOCK_EXPLORER || "https://arc.etherscan.io"}/${kind}/${x}`;
+  const EXPL = (kind, x) => `${RH() ? ALT().explorer : CFG().BLOCK_EXPLORER || "https://arc.etherscan.io"}/${kind}/${x}`;
+  const CQ = () => (RH() ? "&chain=rh" : ""); // the API's chain parameter
+  const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+  const GAS_KEEP = 3n * 10n ** 14n; // ETH left for gas when ETH pays for an order on Robinhood Chain
+  /// a volume in the quote: dollars on Arc, ETH on Robinhood Chain
+  const qv = (n) => (RH() ? (n == null || !isFinite(n) || !n ? "—" : num(n) + " ETH") : usd(n));
   const txa = (h, label) => (h ? `<a class="aor-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
   const API = "/api/social";
   const FEE = 0.001;
@@ -86,15 +101,22 @@
     "function epochOf(address) view returns (uint32)", `function cancel(${ORDER_T})`, "function cancelAll()",
     `function swapMarket(${KEY_T},address,address,uint256,uint256) returns (uint256)`, `function quote(${KEY_T},address,uint256)`,
     "error QuoteResult(uint256 out)", "function feeOf(address,uint256) view returns (uint256)", "function feePolicy() view returns (address)",
+    `function swapMarketNative(${KEY_T},address,address,uint256,uint256,bool) payable returns (uint256)`,
   ];
+  const WETH_ABI = ["function deposit() payable", "function withdraw(uint256)"];
   const P2_ABI = ["function allowance(address,address,address) view returns (uint160 amount, uint48 expiration, uint48 nonce)"];
   const P2_TYPES = { PermitDetails: [{ name: "token", type: "address" }, { name: "amount", type: "uint160" }, { name: "expiration", type: "uint48" }, { name: "nonce", type: "uint48" }], PermitSingle: [{ name: "details", type: "PermitDetails" }, { name: "spender", type: "address" }, { name: "sigDeadline", type: "uint256" }] };
   const ERC20 = ["function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)", "function balanceOf(address) view returns (uint256)"];
   const TYPES = { Order: [["maker", "address"], ["sell", "address"], ["buy", "address"], ["sellAmount", "uint256"], ["buyAmount", "uint256"], ["triggerSqrtP", "uint160"], ["triggerBelow", "bool"], ["poolId", "bytes32"], ["expiry", "uint64"], ["start", "uint64"], ["duration", "uint32"], ["group", "uint256"], ["epoch", "uint32"], ["salt", "uint256"]].map(([name, type]) => ({ name, type })) };
   const IFACE = () => new ethers.Interface(ORDERS_ABI);
-  const rp = () => (typeof readProvider === "function" ? readProvider() : null);
+  let rhProv = null;
+  const rp = () => (RH() ? (rhProv = rhProv || new ethers.JsonRpcProvider(ALT().rpc, Number(ALT().id || 4663), { staticNetwork: true })) : typeof readProvider === "function" ? readProvider() : null);
   async function signer() {
     if ((typeof state === "undefined" || !state.signer) && typeof connectWallet === "function") await connectWallet();
+    if (RH()) {
+      if (typeof ensureAltForWrite !== "function") throw new Error(tr("Switch your wallet to Robinhood Chain and try again."));
+      return await ensureAltForWrite();
+    }
     if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
     if (typeof state === "undefined" || !state.signer) throw new Error(tr("Connect a wallet first."));
     return state.signer;
@@ -133,9 +155,10 @@
   };
   const F = { price: "", amount: "", total: "", trigger: "", expiry: "604800", slip: "3", tp: "", sl: "", trail: "10", floor: "", dur: "86400", parts: "12", cap: "", approveMore: store.get("arcircle.orders.approvemore", false) };
   const pool = () => S.pools[S.pi] || null;
-  const RK = "arcircle.orders.recent", AK = "arcircle.orders.alerts", NK = "arcircle.orders.notify";
-  const recent = () => store.get(RK, []).filter((x) => x && isAddr(x.t));
-  const addRecent = (t, sym) => store.set(RK, [{ t, sym }, ...recent().filter((x) => x.t !== t)].slice(0, 6));
+  const AK = "arcircle.orders.alerts", NK = "arcircle.orders.notify";
+  const RK0 = "arcircle.orders.recent", RKr = () => (RH() ? RK0 + ".rh" : RK0);
+  const recent = () => store.get(RKr(), []).filter((x) => x && isAddr(x.t));
+  const addRecent = (t, sym) => store.set(RKr(), [{ t, sym }, ...recent().filter((x) => x.t !== t)].slice(0, 6));
   const viewKey = (w) => `arcircle.orders.view.${lc(w)}`;
   const viewOf = (w) => { const v = store.get(viewKey(w), null); return v && v.until > now() + 60 ? v : null; };
   const notifyOn = () => store.get(NK, false) === true;
@@ -148,13 +171,27 @@
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
     check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="aor-ck" d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   };
+  /// the hero's "verified source" links follow the chain: ArcScan on Arc, Blockscout on Robinhood Chain (hidden until live)
+  function heroContracts() {
+    const el = panel.querySelector(".aor-contracts"); if (!el) return;
+    if (el.dataset.arc == null) el.dataset.arc = el.innerHTML;
+    const fb = lc(CFG().ORDERS_RH_FEEBURN || "");
+    if (!RH()) { el.innerHTML = el.dataset.arc; el.hidden = false; return; }
+    el.hidden = !LIVE();
+    if (!LIVE()) return;
+    const a = (name, x) => `<a href="${EXPL("address", x)}?tab=contract" target="_blank" rel="noopener">${name} <code data-no-i18n>${x.slice(0, 6)}…${x.slice(-4)}</code> ↗</a>`;
+    el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("Verified source on Blockscout:")}</span>${a("ArcircleOrdersNative", ORDERS())}${isAddr(fb) ? a("ArcircleFeeBurnNative", fb) : ""}`;
+  }
   function frame() {
+    heroContracts();
     $("aor-body").innerHTML = `
-      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T("Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
+      <div class="aor-chainrow"><div class="aor-chain" role="radiogroup" aria-label="${T("Chain")}" data-chain="${CH}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-setchain="arc" aria-checked="${!RH()}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span><small data-no-i18n>USDC</small></button><button type="button" role="radio" data-setchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span><small data-no-i18n>ETH</small></button></div>
+        <span class="aor-chainnote">${T(RH() ? "Markets against ETH on Robinhood Chain — ETH is wrapped for you when an order needs WETH." : "Markets against USDC on Arc.")}</span></div>
+      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
       <div class="ams-card aor-bar">
         <div class="aor-pickrow">
           <form class="aor-pick" id="aor-form" autocomplete="off">
-            <input id="aor-in" type="text" spellcheck="false" placeholder="${T("Paste an Arc token address (0x…)")}" aria-label="${T("Arc token address")}">
+            <input id="aor-in" type="text" spellcheck="false" placeholder="${T(RH() ? "Paste a Robinhood Chain token address (0x…)" : "Paste an Arc token address (0x…)")}" aria-label="${T(RH() ? "Robinhood Chain token address" : "Arc token address")}">
             <button type="submit" class="aor-btn go">${T("Open market")}</button>
           </form>
           <button type="button" class="aor-btn ghost aor-mkbtn" data-act="markets" aria-expanded="false">${ICON.list}<span>${T("All markets")}</span></button>
@@ -202,7 +239,8 @@
 
   // ---------------- markets: chips, the list, the bar ----------------
   async function loadMarkets() {
-    try { const r = await fetch(`${API}?orders=markets`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; S.markets = (j && j.markets) || []; } catch { /* keep */ }
+    const c0 = CH;
+    try { const r = await fetch(`${API}?orders=markets${CQ()}`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; if (c0 === CH) S.markets = (j && j.markets) || []; } catch { /* keep */ }
     chips(); if (S.showMarkets) marketsView();
   }
   function chips() {
@@ -219,12 +257,12 @@
     el.hidden = !S.showMarkets;
     const b = panel.querySelector('[data-act="markets"]'); if (b) b.setAttribute("aria-expanded", String(S.showMarkets));
     if (!S.showMarkets) return;
-    if (!S.markets.length) { el.innerHTML = `<div class="aor-empty">${T("No markets with orders yet — open any Arc token above and place the first one.")}</div>`; return; }
+    if (!S.markets.length) { el.innerHTML = `<div class="aor-empty">${T(RH() ? "No markets with orders yet — open any Robinhood Chain token above and place the first one." : "No markets with orders yet — open any Arc token above and place the first one.")}</div>`; return; }
     el.innerHTML = `<div class="aor-ml-h"><span>${T("Market")}</span><span>${T("Price")}</span><span>${T("Best bid")}</span><span>${T("Best ask")}</span><span>${T("Spread")}</span><span>${T("24h volume")}</span><span>${T("Orders")}</span></div>` +
       S.markets.map((m) => {
         const t = lc(m.token.address || m.token), px = m.spot || m.last;
         const spread = m.bestAsk && m.bestBid ? ((m.bestAsk - m.bestBid) / ((m.bestAsk + m.bestBid) / 2)) * 100 : null;
-        return `<button type="button" class="aor-ml-r${t === S.t ? " on" : ""}" data-t="${t}"><b data-no-i18n>$${esc(m.token.symbol)}<i>/${esc(m.quote.symbol)}</i></b><span data-no-i18n>${fp(px)}</span><span class="up" data-no-i18n>${fp(m.bestBid)}</span><span class="dn" data-no-i18n>${fp(m.bestAsk)}</span><span data-no-i18n>${spread != null ? spread.toFixed(2) + "%" : "—"}</span><span data-no-i18n>${m.vol24 ? usd(m.vol24) : "—"}</span><span data-no-i18n>${m.open}</span></button>`;
+        return `<button type="button" class="aor-ml-r${t === S.t ? " on" : ""}" data-t="${t}"><b data-no-i18n>$${esc(m.token.symbol)}<i>/${esc(m.quote.symbol)}</i></b><span data-no-i18n>${fp(px)}</span><span class="up" data-no-i18n>${fp(m.bestBid)}</span><span class="dn" data-no-i18n>${fp(m.bestAsk)}</span><span data-no-i18n>${spread != null ? spread.toFixed(2) + "%" : "—"}</span><span data-no-i18n>${m.vol24 ? qv(m.vol24) : "—"}</span><span data-no-i18n>${m.open}</span></button>`;
       }).join("");
   }
   const dayChange = () => {
@@ -235,9 +273,9 @@
   };
   function market() {
     const el = $("aor-mkt"); if (!el) return;
-    if (!S.t) { el.innerHTML = `<p class="aor-hint">${T("Pick a market above — any Arc token with a Uniswap v4 pool (Argus, ArcPad or a plain pool).")}</p>`; return; }
-    if (S.loadingMkt) { el.innerHTML = `<p class="aor-hint"><span class="aor-spin"></span>${T("Reading the token's pools on Arc…")}</p>`; return; }
-    if (!S.tok) { el.innerHTML = `<p class="aor-hint bad">${T(S.err || "No Uniswap v4 pool found for this token on Arc.")}</p>`; return; }
+    if (!S.t) { el.innerHTML = `<p class="aor-hint">${T(RH() ? "Pick a market above — any Robinhood Chain token with a Uniswap v4 pool against ETH." : "Pick a market above — any Arc token with a Uniswap v4 pool (Argus, ArcPad or a plain pool).")}</p>`; return; }
+    if (S.loadingMkt) { el.innerHTML = `<p class="aor-hint"><span class="aor-spin"></span>${T(RH() ? "Reading the token's pools on Robinhood Chain…" : "Reading the token's pools on Arc…")}</p>`; return; }
+    if (!S.tok) { el.innerHTML = `<p class="aor-hint bad">${T(S.err || (RH() ? "No Uniswap v4 pool against ETH found for this token on Robinhood Chain." : "No Uniswap v4 pool found for this token on Arc."))}</p>`; return; }
     const p = pool(), b = S.book || {}, d = b.day || {}, ch = dayChange();
     const dir = S.prevSpot && S.spot ? (S.spot > S.prevSpot ? "up" : S.spot < S.prevSpot ? "dn" : "") : "";
     const call = S.agentCall;
@@ -252,7 +290,7 @@
         <div class="aor-stat"><small>${T("Last fill")}</small><b data-no-i18n>${fp(b.last)}</b></div>
         <div class="aor-stat"><small>${T("24h high")}</small><b data-no-i18n>${fp(d.high)}</b></div>
         <div class="aor-stat"><small>${T("24h low")}</small><b data-no-i18n>${fp(d.low)}</b></div>
-        <div class="aor-stat"><small>${T("24h volume")}</small><b data-no-i18n>${d.volume ? usd(d.volume) : "—"}</b></div>
+        <div class="aor-stat"><small>${T("24h volume")}</small><b data-no-i18n>${d.volume ? qv(d.volume) : "—"}</b></div>
         <div class="aor-stat"><small>${T("Open orders")}</small><b data-no-i18n>${b.open || 0}</b>${b.stops || b.trails || b.twaps ? `<span>${[b.stops ? `${b.stops} ${tr("stops")}` : "", b.trails ? `${b.trails} ${tr("trailing")}` : "", b.twaps ? `${b.twaps} ${tr("timed")}` : ""].filter(Boolean).map(esc).join(" · ")}</span>` : ""}</div>
         ${S.pools.length > 1 ? `<label class="aor-stat aor-poolsel"><small>${T("Pool")}</small><select id="aor-pool" aria-label="${T("Pool")}">${S.pools.map((x, i) => `<option value="${i}"${i === S.pi ? " selected" : ""} data-no-i18n>${esc(x.venue)} · ${x.dex && x.dex.liqUsd ? usd(x.dex.liqUsd) : esc(x.id.slice(0, 8))}</option>`).join("")}</select></label>`
           : `<div class="aor-stat"><small>${T("Pool")}</small><b data-no-i18n>${esc(p.venue || "Uniswap v4")}</b>${p.dex && p.dex.liqUsd ? `<span data-no-i18n>${usd(p.dex.liqUsd)}</span>` : ""}</div>`}
@@ -269,7 +307,7 @@
     if (!LIVE() || !st) return "";
     const k = !st.at ? "off" : st.low || st.ago > 900 ? "bad" : st.ago > 180 ? "warn" : "ok";
     const txt = !st.at ? tr("Executor not running yet") : `${tr("Executor")} · ${tr("checked")} ${ago(st.at)}${st.low ? " · " + tr("low on gas") : ""}`;
-    const tip = st.burn ? `${tr("Last fee burn")}: ${num(st.burn.arcircle)} $ARCIRCLE (${usd(st.burn.usdc)})` : tr("Fills orders every minute");
+    const tip = st.burn ? `${tr("Last fee burn")}: ${num(st.burn.arcircle)} $ARCIRCLE (${st.burn.eth != null ? num(st.burn.eth) + " ETH" : usd(st.burn.usdc)})` : tr("Fills orders every minute");
     return `<span class="aor-exec ${k}" title="${esc(tip)}"><i></i><span data-no-i18n>${esc(txt)}</span></span>`;
   }
 
@@ -301,48 +339,53 @@
   async function open(addr) {
     addr = lc(addr);
     if (!isAddr(addr)) { S.msg = { k: "bad", t: "Paste a token contract address (0x…)." }; form(); return; }
-    if (addr === USDC()) { S.msg = { k: "bad", t: "USDC is the quote — pick the token you want to trade." }; form(); return; }
+    if (addr === BASE() || (RH() && addr === ZERO_ADDR)) { S.msg = { k: "bad", t: RH() ? "ETH is the quote — pick the token you want to trade." : "USDC is the quote — pick the token you want to trade." }; form(); return; }
+    const c0 = CH;
     Object.assign(S, { t: addr, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, err: null, loadingMkt: true, msg: null, candles: null, tax: null, agentCall: null, editing: null, alertsOpen: false });
     S.prevLevels = new Map();
     if ($("aor-in")) $("aor-in").value = addr;
-    if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders?t=${addr}`);
+    if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders?t=${addr}${RH() ? "&c=rh" : ""}`);
     chips(); market(); bookView(); chartView(); form(); mineView();
     try {
       let j = null;
       for (let i = 0; i < 20; i++) {
-        const r = await fetch(`${API}?liq=${addr}`, { cache: "no-store" });
+        // Arc: the Liquidity Manager's pool reader; Robinhood Chain: its own (Dexscreener + the pool's Initialize log)
+        const r = await fetch(RH() ? `${API}?orders=pools&token=${addr}&chain=rh` : `${API}?liq=${addr}`, { cache: "no-store" });
         j = await r.json().catch(() => null);
-        if (S.t !== addr) return;
+        if (S.t !== addr || c0 !== CH) return;
         if (r.status === 503 || (j && !j.done && !(j.pools && j.pools.length))) { await new Promise((res) => setTimeout(res, 1500)); continue; }
         if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
         break;
       }
-      const pools = ((j && j.pools) || []).filter((p) => p.key && p.quote && isAddr(p.quote.address) && lc(p.key.currency0) !== "0x0000000000000000000000000000000000000000");
-      pools.sort((a, b) => (lc(b.quote.address) === USDC()) - (lc(a.quote.address) === USDC()) || ((b.dex && b.dex.liqUsd) || 0) - ((a.dex && a.dex.liqUsd) || 0) || Number(BigInt(b.liquidity || 0) > BigInt(a.liquidity || 0)) - Number(BigInt(b.liquidity || 0) < BigInt(a.liquidity || 0)));
+      // Arc's books trade against ERC-20s; Robinhood Chain's against ETH, native (currency 0x0) or WETH
+      const pools = ((j && j.pools) || []).filter((p) => p.key && p.quote && isAddr(p.quote.address) && (RH() || lc(p.key.currency0) !== ZERO_ADDR));
+      pools.sort((a, b) => (lc(b.quote.address) === BASE()) - (lc(a.quote.address) === BASE()) || ((b.dex && b.dex.liqUsd) || 0) - ((a.dex && a.dex.liqUsd) || 0) || Number(BigInt(b.liquidity || 0) > BigInt(a.liquidity || 0)) - Number(BigInt(b.liquidity || 0) < BigInt(a.liquidity || 0)));
       const q = pools[0] && lc(pools[0].quote.address);
       S.pools = pools.filter((p) => lc(p.quote.address) === q); // one book per token: one quote
-      if (!S.pools.length) throw new Error("No Uniswap v4 pool found for this token on Arc.");
+      if (!S.pools.length) throw new Error(RH() ? "No Uniswap v4 pool against ETH found for this token on Robinhood Chain." : "No Uniswap v4 pool found for this token on Arc.");
       S.tok = { address: addr, symbol: (j.token && j.token.symbol) || "TOKEN", decimals: Number((j.token && j.token.decimals) ?? 18), logo: (j.token && j.token.logo) || null };
-      S.quote = { address: q, symbol: pools[0].quote.symbol || "USDC", decimals: Number(pools[0].quote.decimals ?? 6) };
+      S.quote = { address: q, symbol: pools[0].quote.symbol || (RH() ? "ETH" : "USDC"), decimals: Number(pools[0].quote.decimals ?? (RH() ? 18 : 6)) };
       S.spot = pools[0].price || null;
       addRecent(addr, S.tok.symbol);
     } catch (e) {
       S.err = String((e && e.message) || e);
     }
+    if (c0 !== CH) return;
     S.loadingMkt = false;
     chips(); market(); chartView(); form();
     if (!S.tok) return;
     await Promise.all([loadBook(), loadSpot(), loadBal(), loadCandles()]);
-    if (S.t !== addr) return;
+    if (S.t !== addr || c0 !== CH) return;
     market(); bookView(); chartView(); form(); mineView();
     loadTax().then(() => { market(); form(); });
-    loadAgent().then(() => market());
+    if (!RH()) loadAgent().then(() => market()); // ARCIA AGENT's calls are on Arc
   }
 
   // ---------------- live data ----------------
   async function loadBook() {
     if (!S.t) return;
-    try { const r = await fetch(`${API}?orders=book&token=${S.t}`, { cache: "no-store" }); if (r.ok) S.book = await r.json(); } catch { /* keep */ }
+    const t = S.t, c0 = CH;
+    try { const r = await fetch(`${API}?orders=book&token=${t}${CQ()}`, { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (t === S.t && c0 === CH) S.book = j; } } catch { /* keep */ }
   }
   async function loadSpot() {
     const p = pool(); const L = window.ArcLiqCore; const prov = rp();
@@ -358,11 +401,14 @@
     } catch { /* keep the last price */ }
   }
   async function loadBal() {
-    const a = me(), prov = rp();
-    if (!a || !S.tok || !prov) { S.bal = {}; return; }
+    const a = me(), prov = rp(), c0 = CH;
+    if (!a || !S.tok || !prov) { S.bal = {}; S.weth = null; S.eth = null; return; }
     try {
-      const [bt, bq] = await Promise.all([S.tok.address, S.quote.address].map((t) => new ethers.Contract(t, ERC20, prov).balanceOf(a)));
+      const [bt, bq, eth] = await Promise.all([...[S.tok.address, S.quote.address].map((t) => new ethers.Contract(t, ERC20, prov).balanceOf(a)), RH() ? prov.getBalance(a) : null]);
+      if (c0 !== CH) return;
       S.bal = { [S.tok.address]: bt, [S.quote.address]: bq };
+      // Robinhood Chain: what can pay for a buy is WETH plus ETH (wrapped when the order needs it), less a little for gas
+      if (RH()) { S.weth = bq; S.eth = eth; S.bal[S.quote.address] = bq + (eth > GAS_KEEP ? eth - GAS_KEEP : 0n); } else { S.weth = null; S.eth = null; }
     } catch { /* keep */ }
     loadFee();
   }
@@ -385,19 +431,22 @@
     const v = viewOf(a);
     if (!v) { S.mine = null; S.locked = true; return; }
     try {
-      const r = await fetch(`${API}?orders=mine&wallet=${a}&until=${v.until}&sig=${v.sig}`, { cache: "no-store" });
+      const c0 = CH;
+      const r = await fetch(`${API}?orders=mine&wallet=${a}&until=${v.until}&sig=${v.sig}${CQ()}`, { cache: "no-store" });
+      if (c0 !== CH) return;
       if (r.status === 401) { store.set(viewKey(a), null); S.locked = true; S.mine = null; return; }
       if (r.ok) { const j = await r.json(); diffMine(S.mine, j); S.mine = j; S.locked = false; }
     } catch { /* keep */ }
   }
   async function loadStatus() {
     if (!LIVE()) return;
-    try { const r = await fetch(`${API}?orders=status`, { cache: "no-store" }); if (r.ok) S.status = await r.json(); } catch { /* keep */ }
+    const c0 = CH;
+    try { const r = await fetch(`${API}?orders=status${CQ()}`, { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (c0 === CH) S.status = j; } } catch { /* keep */ }
   }
   async function loadCandles() {
     const p = pool(); if (!p) return;
     try {
-      const r = await fetch(`${API}?orders=candles&pool=${p.id}`, { cache: "no-store" });
+      const r = await fetch(`${API}?orders=candles&pool=${p.id}${CQ()}`, { cache: "no-store" });
       const j = r.ok ? await r.json() : null;
       if (!j || pool() !== p) return;
       // raw currency1-per-currency0 → quote per token; quote volume
@@ -410,11 +459,11 @@
       }) };
     } catch { /* keep */ }
   }
-  /// a $10 buy and sell straight back through the pool: the pool fee both ways plus any token tax
+  /// a $10 (0.005 ETH) buy and sell straight back through the pool: the pool fee both ways plus any token tax
   async function loadTax() {
     const p = pool(); if (!LIVE() || !p || !S.tok) return;
     try {
-      const x = 10n * 10n ** BigInt(S.quote.decimals);
+      const x = RH() ? 5n * 10n ** 15n : 10n * 10n ** BigInt(S.quote.decimals);
       const got = await quoteOut(p, S.quote.address, x);
       const back = got ? await quoteOut(p, S.tok.address, got) : null;
       if (back != null) S.tax = Math.max(0, (1 - Number(back) / Number(x)) * 100);
@@ -506,7 +555,7 @@
     if (S.center === "dex") {
       if (el.dataset.pool === "dex:" + p.id && el.querySelector("iframe")) return;
       el.dataset.pool = "dex:" + p.id;
-      el.innerHTML = `<iframe title="${T("Price chart")}" loading="lazy" src="https://dexscreener.com/arc/${encodeURIComponent(p.id)}?embed=1&loadChartSettings=0&trades=0&tabs=0&info=0&chartLeftToolbar=0&chartTheme=dark&theme=dark&chartStyle=1&chartType=usd&interval=15"></iframe>`;
+      el.innerHTML = `<iframe title="${T("Price chart")}" loading="lazy" src="https://dexscreener.com/${RH() ? "robinhood" : "arc"}/${encodeURIComponent(p.id)}?embed=1&loadChartSettings=0&trades=0&tabs=0&info=0&chartLeftToolbar=0&chartTheme=dark&theme=dark&chartStyle=1&chartType=usd&interval=15"></iframe>`;
       return;
     }
     if (el.dataset.pool !== "c:" + p.id || !el.querySelector("canvas")) {
@@ -611,7 +660,7 @@
       if (tip && d) {
         const ch = d[1] ? ((d[4] - d[1]) / d[1]) * 100 : 0, dt = new Date(d[0] * 1000);
         tip.hidden = false;
-        tip.innerHTML = `<b data-no-i18n>${dt.toLocaleDateString()} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}</b><span>O <i data-no-i18n>${fp(d[1])}</i></span><span>H <i data-no-i18n>${fp(d[2])}</i></span><span>L <i data-no-i18n>${fp(d[3])}</i></span><span>C <i data-no-i18n>${fp(d[4])}</i></span><span class="${ch >= 0 ? "up" : "dn"}" data-no-i18n>${pc(ch)}</span><span>${T("Vol")} <i data-no-i18n>${usd(d[5])}</i></span>`;
+        tip.innerHTML = `<b data-no-i18n>${dt.toLocaleDateString()} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}</b><span>O <i data-no-i18n>${fp(d[1])}</i></span><span>H <i data-no-i18n>${fp(d[2])}</i></span><span>L <i data-no-i18n>${fp(d[3])}</i></span><span>C <i data-no-i18n>${fp(d[4])}</i></span><span class="${ch >= 0 ? "up" : "dn"}" data-no-i18n>${pc(ch)}</span><span>${T("Vol")} <i data-no-i18n>${qv(d[5])}</i></span>`;
         tip.style.left = (S.hover.x > W / 2 ? 8 : W - AX - tip.offsetWidth - 8) + "px";
       }
     } else if (tip) tip.hidden = true;
@@ -706,7 +755,8 @@
       ${S.editing ? `<div class="aor-editing"><span>${T("Editing an order — placing this one cancels the old one.")}</span><button type="button" class="aor-link" data-act="editcancel">${T("Stop editing")}</button></div>` : ""}
       <div class="aor-side" role="radiogroup" aria-label="${T("Side")}" data-side="${S.side}"><i class="aor-side-pill" aria-hidden="true"></i><button type="button" role="radio" class="buy" data-setside="buy" aria-checked="${buy}"${sellOnly(ty) ? " disabled" : ""}>${T("Buy")}</button><button type="button" role="radio" class="sell" data-setside="sell" aria-checked="${!buy}">${T("Sell")}</button></div>
       <div class="aor-types" role="tablist">${TYPES_UI.map(([k, l]) => `<button type="button" role="tab" data-type="${k}" aria-selected="${ty === k}">${T(l)}</button>`).join("")}</div>
-      <button type="button" class="aor-avail" data-pct="100" title="${T("Use all of it")}"><small>${T("Available")}</small><b data-no-i18n>${bal != null ? `${fmtU(bal, sellTok.decimals)} ${esc(sellTok === tk ? sym : qs)}` : "—"}</b></button>
+      <button type="button" class="aor-avail" data-pct="100" title="${esc(RH() && sellTok === q && S.weth != null ? `WETH ${fmtU(S.weth, 18)} + ETH ${fmtU(S.eth || 0n, 18)}` : tr("Use all of it"))}"><small>${T("Available")}</small><b data-no-i18n>${bal != null ? `${fmtU(bal, sellTok.decimals)} ${esc(sellTok === tk ? sym : qs)}` : "—"}</b></button>
+      ${RH() && LIVE() && S.weth != null && S.weth - openNeed(WETH()) > 10n ** 12n ? `<button type="button" class="aor-link aor-unwrap" data-act="unwrap">${T("Unwrap")} <span data-no-i18n>${fmtU(S.weth - openNeed(WETH()), 18)} WETH</span> ${T("to ETH")}</button>` : ""}
       ${fields}
       ${opts ? `<div class="aor-row2">${opts}</div>` : ""}
       <div class="aor-sum" id="aor-sum">${summary()}</div>
@@ -865,7 +915,7 @@
     const c = new ethers.Contract(token.address, ERC20, rp());
     const a = await c.allowance(me(), ORDERS());
     if (a >= need) return null;
-    const toP2 = await c.allowance(me(), PERMIT2()).catch(() => 0n);
+    const toP2 = isAddr(PERMIT2()) ? await c.allowance(me(), PERMIT2()).catch(() => 0n) : 0n;
     if (toP2 >= need) {
       const al = await new ethers.Contract(PERMIT2(), P2_ABI, rp()).allowance(me(), token.address, ORDERS()).catch(() => null);
       if (al && al.amount >= need && Number(al.expiration) > now() + 120) return null;
@@ -890,7 +940,7 @@
     return n;
   }
   const post = async (body) => {
-    const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(RH() ? { ...body, chain: "rh" } : body) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error ? tr(j.error) : `HTTP ${r.status}`);
     return j;
@@ -906,33 +956,55 @@
       const s = await signer();
       const maker = me();
       if (b.market) {
-        S.steps = { list: ["Approve", "Swap"], at: 0 }; form();
-        const bal = await new ethers.Contract(b.sell.address, ERC20, rp()).balanceOf(maker);
-        if (bal < b.sellAmount) throw new Error(tr("Not enough balance for this order."));
-        await ensureAllowance(s, b.sell, b.sellAmount);
-        setStep(1);
+        // Robinhood Chain: a buy pays in ETH straight from the wallet when there's enough, and a sell pays out ETH
+        const useEth = RH() && b.sell === S.quote && (await rp().getBalance(maker)) >= b.sellAmount + GAS_KEEP;
+        S.steps = { list: useEth ? ["Swap"] : ["Approve", "Swap"], at: 0 }; form();
+        if (!useEth) {
+          const bal = await new ethers.Contract(b.sell.address, ERC20, rp()).balanceOf(maker);
+          if (bal < b.sellAmount) throw new Error(tr(RH() && b.sell === S.quote ? "Not enough ETH (or WETH) for this order." : "Not enough balance for this order."));
+          await ensureAllowance(s, b.sell, b.sellAmount);
+          setStep(1);
+        }
         S.busy = "Getting the price…"; form();
         const out = await quoteOut(p, b.sell.address, b.sellAmount);
         if (out == null) throw new Error(tr("Couldn't read a price from the pool right now."));
         S.busy = "Confirm the swap in your wallet…"; form();
-        const tx = await new ethers.Contract(ORDERS(), ORDERS_ABI, s).swapMarket(keyOf(p), b.sell.address, b.buy.address, b.sellAmount, minNet(out, b.slip));
+        const oc = new ethers.Contract(ORDERS(), ORDERS_ABI, s);
+        const tx = RH() ? await oc.swapMarketNative(keyOf(p), b.sell.address, b.buy.address, b.sellAmount, minNet(out, b.slip), b.buy === S.quote, { value: useEth ? b.sellAmount : 0n })
+          : await oc.swapMarket(keyOf(p), b.sell.address, b.buy.address, b.sellAmount, minNet(out, b.slip));
         S.busy = "Swapping…"; form();
         const rc = await tx.wait();
-        setStep(2);
+        setStep(useEth ? 1 : 2);
         post({ action: "orderfilled", tx: rc.hash || tx.hash }).catch(() => null);
         S.msg = { k: "ok", html: `${T("Swapped.")} ${txa(rc.hash || tx.hash, tr("View transaction"))}` };
         F.amount = ""; F.total = ""; S.pct = 0;
         celebrate();
       } else {
         const legs = b.legs, sellTok = lc(legs[0].o.sell) === S.tok.address ? S.tok : S.quote;
-        const list = ["Approve", ...(legs.length > 1 ? legs.map((l) => "Sign the " + l.name) : ["Sign"]), "Place", ...(S.editing ? ["Cancel the old order"] : [])];
-        S.steps = { list, at: 0 }; form();
         const need = legs.reduce((m, l) => (l.o.sellAmount > m ? l.o.sellAmount : m), 0n);
-        const bal = await new ethers.Contract(sellTok.address, ERC20, rp()).balanceOf(maker);
+        let bal = await new ethers.Contract(sellTok.address, ERC20, rp()).balanceOf(maker);
+        // Robinhood Chain: a buy order sells WETH — wrap the ETH it's short of first
+        let wrap = 0n;
+        if (RH() && sellTok === S.quote && bal < need) {
+          const eth = await rp().getBalance(maker);
+          if (bal + (eth > GAS_KEEP ? eth - GAS_KEEP : 0n) < need) throw new Error(tr("Not enough ETH (or WETH) for this order."));
+          wrap = need - bal;
+        }
+        const w0 = wrap > 0n ? 1 : 0;
+        const list = [...(w0 ? ["Wrap ETH"] : []), "Approve", ...(legs.length > 1 ? legs.map((l) => "Sign the " + l.name) : ["Sign"]), "Place", ...(S.editing ? ["Cancel the old order"] : [])];
+        S.steps = { list, at: 0 }; form();
+        if (w0) {
+          S.busy = "Wrap ETH in your wallet…"; form();
+          const wt = await new ethers.Contract(WETH(), WETH_ABI, s).deposit({ value: wrap });
+          S.busy = "Wrapping…"; form();
+          await wt.wait();
+          bal += wrap;
+          setStep(1);
+        }
         if (bal < need) throw new Error(tr("Not enough balance for this order."));
         const exp0 = now() + Number(F.expiry || 604800);
-        const permit = await ensureAllowance(s, sellTok, need + openNeed(sellTok.address) - (S.editing ? BigInt(S.editing.rem || 0) : 0n), { permitOk: true, until: b.timed ? Number(legs[0].o.expiry) : exp0 });
-        setStep(1);
+        const permit = await ensureAllowance(s, sellTok, need + openNeed(sellTok.address) - (S.editing ? BigInt(S.editing.rem || 0) : 0n), { permitOk: !!isAddr(PERMIT2()), until: b.timed ? Number(legs[0].o.expiry) : exp0 });
+        setStep(w0 + 1);
         const epoch = Number(await new ethers.Contract(ORDERS(), ORDERS_ABI, rp()).epochOf(maker));
         const grp = b.group ? BigInt(ethers.hexlify(ethers.randomBytes(8))) : 0n;
         const exp = BigInt(exp0);
@@ -942,7 +1014,7 @@
           const order = { maker, triggerSqrtP: 0n, triggerBelow: false, poolId: ZERO32, expiry: exp, start: 0n, duration: 0, group: grp, epoch, salt: BigInt(ethers.hexlify(ethers.randomBytes(16))), ...l.o };
           const sig = await s.signTypedData({ name: "ARCIRCLE Orders", version: "1", chainId: CHAIN(), verifyingContract: ORDERS() }, TYPES, order);
           signed.push({ order, sig, body: l.body });
-          setStep(1 + i + 1);
+          setStep(w0 + 1 + i + 1);
         }
         S.busy = "Placing…"; form();
         for (const x of signed) await post({ action: "orderplace", token: S.t, key: keyOf(p), sig: x.sig, order: jsonOrder(x.order), ...x.body, ...(permit ? { permit } : {}) });
@@ -1043,7 +1115,7 @@
       const s = await signer();
       if (onchain) {
         const tx = await new ethers.Contract(ORDERS(), ORDERS_ABI, s).cancel(o.order);
-        S.msg = { k: "", t: "Cancelling on Arc…" }; form();
+        S.msg = { k: "", t: RH() ? "Cancelling on Robinhood Chain…" : "Cancelling on Arc…" }; form();
         await tx.wait();
         S.msg = { k: "ok", html: `${T("Cancelled on-chain.")} ${txa(tx.hash, tr("View transaction"))}` };
       } else {
@@ -1058,7 +1130,7 @@
   async function cancelMarketAll() {
     try {
       const s = await signer(), w = me(), at = now();
-      const sig = await s.signMessage(`Cancel all my ARCIRCLE orders in ${S.t}\n${w}\n${at}`);
+      const sig = await s.signMessage(`Cancel all my ARCIRCLE orders in ${S.t}${RH() ? " on Robinhood Chain" : ""}\n${w}\n${at}`);
       const j = await post({ action: "ordercancelall", token: S.t, maker: w, at, sig });
       S.msg = { k: "ok", html: `${T("Cancelled your orders in this market:")} <b data-no-i18n>${j.cancelled}</b>` };
     } catch (e) { S.msg = { k: "bad", t: errText(e) }; }
@@ -1101,13 +1173,52 @@
     const amt = o.side === "sell" ? human(o.filled, tk.decimals) : human(BigInt(o.buyAmount) * BigInt(Math.round(o.filledPct * 100)) / 10000n, tk.decimals) / (1 - FEE);
     g.fillStyle = "#eef3f7"; g.font = "600 44px Inter, sans-serif"; g.fillText(`${num(amt)} $${tk.symbol} at ${fp(o.price)} ${q.symbol}`, 80, 340);
     g.fillStyle = "#9fb0bd"; g.font = "500 30px Inter, sans-serif"; g.fillText(`${TYPE_NAME[o.type] || "Limit"} order · ${o.filledPct}% filled · ${new Date((o.last || o.at) * 1000).toLocaleDateString()}`, 80, 400);
-    g.fillStyle = "#6f7e8a"; g.font = "500 24px Inter, sans-serif"; g.fillText("arcircle.app/arc#orders · signed in the wallet, filled on Arc · not financial advice", 80, 560);
+    g.fillStyle = "#6f7e8a"; g.font = "500 24px Inter, sans-serif"; g.fillText(`arcircle.app/arc#orders · signed in the wallet, filled on ${CHAIN_NAME()} · not financial advice`, 80, 560);
     cv.toBlob(async (blob) => {
       if (!blob) return;
       const file = new File([blob], `arcircle-orders-${(tk.symbol || "fill").toLowerCase()}.png`, { type: "image/png" });
       try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; } } catch { /* fall back to a download */ }
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
     }, "image/png");
+  }
+
+  /// Robinhood Chain: filled sells pay WETH — back to ETH, keeping what open buy orders still need
+  async function unwrap() {
+    if (S.busy) return;
+    try {
+      const s = await signer();
+      const w = await new ethers.Contract(WETH(), ERC20, rp()).balanceOf(me());
+      const amt = w - openNeed(WETH());
+      if (!(amt > 0n)) return;
+      S.busy = "Unwrap in your wallet…"; form();
+      const tx = await new ethers.Contract(WETH(), WETH_ABI, s).withdraw(amt);
+      S.busy = "Unwrapping…"; form();
+      await tx.wait();
+      S.msg = { k: "ok", html: `${T("Unwrapped to ETH.")} ${txa(tx.hash, tr("View transaction"))}` };
+    } catch (e) { S.msg = { k: "bad", t: errText(e) }; }
+    S.busy = false;
+    await loadBal(); form();
+  }
+
+  // ---------------- the chain switch ----------------
+  function setChain(c, { reopen = null } = {}) {
+    c = c === "rh" ? "rh" : "arc";
+    if (c === CH || S.busy) return;
+    const pill = panel.querySelector(".aor-chain");
+    if (pill) { pill.dataset.chain = c; pill.querySelectorAll("[data-setchain]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.setchain === c))); }
+    CH = c;
+    try { localStorage.setItem(CK, c); } catch { /* private window */ }
+    Object.assign(S, { t: null, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, mine: null, markets: [], status: null, candles: null, tax: null, agentCall: null,
+      editing: null, msg: null, steps: null, feeFree: false, freeMin: null, bal: {}, weth: null, eth: null, quoteOut: null, quoteFor: null, showMarkets: false, alertsOpen: false });
+    S.prevLevels = new Map(); S.prevFill = new Map();
+    F.price = ""; F.amount = ""; F.total = ""; F.trigger = ""; F.tp = ""; F.sl = ""; F.floor = ""; F.cap = ""; S.pct = 0;
+    if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders${c === "rh" ? "?c=rh" : ""}`);
+    setTimeout(() => {
+      frame();
+      loadMarkets(); loadStatus().then(market);
+      open(reopen || ARCIRCLE());
+      loadMine().then(mineView);
+    }, reduce ? 0 : 230);
   }
 
   // ---------------- notifications ----------------
@@ -1200,6 +1311,7 @@
   function onClick(e) {
     const b = e.target.closest("button, a"); if (!b || !panel.contains(b)) return;
     const d = b.dataset;
+    if (d.setchain) { setChain(d.setchain); return; }
     if (d.t && b.tagName === "BUTTON") { open(d.t); if (S.showMarkets) { S.showMarkets = false; marketsView(); } return; }
     if (d.setside) { S.side = d.setside; S.msg = null; form(); requote(); return; }
     if (d.sheet) { S.side = d.sheet; if (sellOnly(S.type) && d.sheet === "buy") S.type = "limit"; form(); sheet(true); return; }
@@ -1252,6 +1364,7 @@
       return;
     }
     if (act === "cancelmarket") { cancelMarketAll(); return; }
+    if (act === "unwrap") { unwrap(); return; }
     if (act === "cancelall") { cancelAll(); return; }
   }
   document.addEventListener("click", (e) => { if (S.sheet && e.target && e.target.id === "aor-scrim") sheet(false); });
@@ -1284,8 +1397,13 @@
     S.timer = setInterval(() => tick(++n), 5000);
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "orders") show(); else { clearInterval(S.timer); if (S.sheet) sheet(false); } });
-  window.addEventListener("hashchange", () => { const m = /^#orders\?t=(0x[0-9a-fA-F]{40})/.exec(location.hash); if (m && S.booted && lc(m[1]) !== S.t) open(m[1]); });
+  window.addEventListener("hashchange", () => {
+    if (!S.booted || !/^#orders/.test(location.hash)) return;
+    const m = /[?&]t=(0x[0-9a-fA-F]{40})/.exec(location.hash), c = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=arc\b/.test(location.hash) ? "arc" : CH;
+    if (c !== CH) { setChain(c, { reopen: m ? m[1] : null }); return; }
+    if (m && lc(m[1]) !== S.t) open(m[1]);
+  });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (S.t) { market(); bookView(); form(); } } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
-  window.arcOrders = { open, state: S, form: F, lang };
+  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH };
 })();

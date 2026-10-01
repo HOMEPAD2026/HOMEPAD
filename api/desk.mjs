@@ -20,6 +20,8 @@
 // ARCIRCLE Orders' executor (api/_orders.mjs) — fills signed limit / stop orders at their makers' prices:
 //   GET /api/desk?orderstick=1&key=<CRON_SECRET>   (its own cron-job.org entry, every minute; it also runs after
 //                                                   a desk tick that leaves enough of the minute)
+//   GET /api/desk?chain=rh&orderstick=1&key=…     the same on Robinhood Chain (ArcircleOrdersNative; also runs after
+//                                                   the Robinhood desk's tick)
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -83,11 +85,23 @@ export async function GET(req) {
 
 /// ARCIA DESK on Robinhood Chain: its tick (no ARCIA AGENT after it — that lives on Arc) and its read-only views
 async function rhGET(q, req, st) {
+  if (q.orderstick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
+    try { return json(await orders.RH.tick(st, { budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
   if (q.tick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    try { return json(await RH.tick(st)); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now();
+    let out;
+    try { out = await RH.tick(st); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    // ARCIRCLE Orders on Robinhood Chain in whatever is left of the minute
+    const left = 55000 - (Date.now() - t0);
+    if (left > 8000 && out && typeof out === "object") { try { out.orders = await orders.RH.tick(st, { budgetMs: left - 3000 }); } catch (e) { out.orders = { error: String((e && e.message) || e).slice(0, 200) }; } }
+    return json(out);
   }
   try {
     if (q.day && q.trade) return json(await RH.tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");

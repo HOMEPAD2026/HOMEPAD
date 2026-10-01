@@ -12502,6 +12502,24 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .aor-x svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
 .up{--c:var(--or-up);}.dn{--c:var(--or-dn);}
 
+/* the chain switch: Arc (USDC) | Robinhood (ETH) */
+.aor-chainrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.aor-chain{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.08);isolation:isolate;min-width:290px;}
+.aor-chain-pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 6px);border-radius:10px;z-index:-1;background:linear-gradient(135deg,rgba(77,212,255,.28),rgba(77,212,255,.12));box-shadow:inset 0 0 0 1px rgba(77,212,255,.55),0 0 18px rgba(77,212,255,.18);transition:transform .38s cubic-bezier(.3,1.3,.5,1),background .38s,box-shadow .38s;}
+.aor-chain[data-chain="rh"] .aor-chain-pill{transform:translateX(calc(100% + 4px));background:linear-gradient(135deg,rgba(204,255,0,.26),rgba(204,255,0,.1));box-shadow:inset 0 0 0 1px rgba(204,255,0,.55),0 0 18px rgba(204,255,0,.16);}
+.aor-chain button{display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 12px;border:0;border-radius:10px;background:none;color:#9fb0bd;font:700 .82rem Sora,sans-serif;cursor:pointer;transition:color .3s;}
+.aor-chain button small{font:600 .62rem var(--or-mono);padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.06);color:#8c98a6;transition:color .3s,background .3s;}
+.aor-chain button[aria-checked="true"]{color:#fff;}
+.aor-chain button[aria-checked="true"] small{color:#e8f4fb;background:rgba(255,255,255,.12);}
+.aor-chain button:focus-visible{outline:2px solid var(--or-acc);outline-offset:2px;}
+.aor-cdot{width:9px;height:9px;border-radius:50%;flex:none;}
+.aor-cdot.arc{background:#4dd4ff;box-shadow:0 0 8px rgba(77,212,255,.7);}
+.aor-cdot.rh{background:#ccff00;box-shadow:0 0 8px rgba(204,255,0,.6);}
+.aor-chainnote{font-size:.72rem;color:#8c98a6;line-height:1.4;}
+.aor-unwrap{display:block;margin:-4px 0 10px;font-size:.7rem;}
+@media (max-width:720px){ .aor-chain{min-width:0;width:100%;} .aor-chainnote{flex-basis:100%;} }
+@media (prefers-reduced-motion:reduce){ .aor-chain-pill{transition:none !important;} }
+
 /* the market bar */
 .aor-bar{display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
 .aor-pickrow{display:flex;gap:8px;align-items:center;}

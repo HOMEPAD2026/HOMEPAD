@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790874207"></script>
+<script src="arc-log.js?v=1790891325"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790874207">
+<link rel="stylesheet" href="style.css?v=1790891325">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1527,9 +1527,9 @@
               <path class="aor-e-mid" d="M32 8v48"/><circle class="aor-e-dot" cx="32" cy="31.5" r="3.4"/></svg>
           </div>
           <div class="ams-hero-txt">
-            <span class="ams-kicker">Utility · Limit orders on Arc</span>
+            <span class="ams-kicker">Utility · Limit orders on Arc and Robinhood Chain</span>
             <h1>ARCIRCLE Orders <span class="asc-ver" title="New">New<i>Limit · stop · TP/SL · DCA</i></span></h1>
-            <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee — none at all for holders of 100,000 $ARCIRCLE or more.</p>
+            <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc or Robinhood Chain token with a Uniswap v4 pool. Orders are signed in your wallet and your tokens stay with you until one fills: wallet to wallet when two orders cross, or from the pool once its price gets there. 0.1% fee — none at all for holders of 100,000 $ARCIRCLE or more.</p>
             <div class="aor-contracts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Verified source on ArcScan:</span>
               <a href="https://arc.etherscan.io/address/0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e#code" target="_blank" rel="noopener">ArcircleOrders <code data-no-i18n>0x1A31…008e</code> ↗</a>
               <a href="https://arc.etherscan.io/address/0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034#code" target="_blank" rel="noopener">ArcircleFeeBurn <code data-no-i18n>0x7F53…3034</code> ↗</a></div>
@@ -1540,7 +1540,16 @@
         <section class="asc-guide aor-guide" aria-labelledby="aor-guide-h">
           <h2 id="aor-guide-h">ARCIRCLE Orders guide</h2>
           <details open><summary><h3>What is ARCIRCLE Orders?</h3></summary>
-            <p>An order book for Arc tokens that trade on Uniswap v4 pools (Argus, ArcPad or plain pools). Instead of taking the pool's price right now, you set your own: buy if the price comes down to X, sell if it goes up to Y, or sell if it falls below a stop. Arc only for now, priced in the token's pool currency (usually USDC).</p>
+            <p>An order book for tokens that trade on Uniswap v4 pools. Instead of taking the pool's price right now, you set your own: buy if the price comes down to X, sell if it goes up to Y, or sell if it falls below a stop. Two chains — switch with Arc | Robinhood at the top: on Arc (Argus, ArcPad or plain pools) prices are in USDC; on Robinhood Chain they're in ETH.</p>
+          </details>
+          <details><summary><h3>On Robinhood Chain</h3></summary>
+            <ul>
+              <li>Markets trade against ETH, in pools paired with native ETH or with WETH alike.</li>
+              <li>Orders are signed over WETH, the wrapped ETH. A buy order that needs more WETH than you hold wraps the difference first (one transaction). Filled sell orders pay WETH; "Unwrap" turns it back into ETH and keeps what your open buy orders still need.</li>
+              <li>Market orders pay and receive plain ETH.</li>
+              <li>The same fee policy: hold 100,000 $ARCIRCLE on Robinhood Chain and every order is fee-free. Fees there are WETH: once an hour half buys $ARCIRCLE in the $ARCIRCLE / ETH pool and burns it, the other half goes to the ARCIRCLE PAD treasury.</li>
+              <li>The contracts are ArcircleOrdersNative and ArcircleFeeBurnNative: the same orders and rules as on Arc, plus the wrapping. Until they're live on Robinhood Chain its side is a preview.</li>
+            </ul>
           </details>
           <details><summary><h3>Order types</h3></summary>
             <ul>
@@ -1578,7 +1587,7 @@
             </ul>
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
-            <p>The book is public: GET /api/social?orders=book&amp;token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&amp;pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain "ARCIRCLE Orders", version 1, chain 5042).</p>
+            <p>The book is public: GET /api/social?orders=book&amp;token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&amp;pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain "ARCIRCLE Orders", version 1, chain 5042). Add &amp;chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&amp;token=0x… lists a token's ETH pools there).</p>
           </details>
           <details><summary><h3>Honest risks</h3></summary>
             <p>The contracts are new and unaudited (their source is public on ArcScan). A limit order fills only if a wallet or the pool meets its price — there's no promise it will. Stop orders fill at market once triggered and can get less than the trigger price, down to their slippage limit. Nothing here is financial advice.</p>
@@ -1873,6 +1882,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790874207"></script>
+<script src="arcpad.bundle.js?v=1790891325"></script>
 </body>
 </html>
