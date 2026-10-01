@@ -12457,3 +12457,7 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 #bp-panel-multisend [data-open][hidden]{display:none !important;}
 .ams-logo.ams-eth{display:grid;place-items:center;background:linear-gradient(135deg,#627eea,#8aa0f2);}
 .ams-logo.ams-eth svg{width:58%;height:58%;fill:#fff;}
+/* the coin sheet's fee box: the amount on its own line (a phone has no room beside the text) */
+.pon-fees{grid-template-columns:minmax(0,1fr);}
+.pon-fees-v{text-align:left;font-size:1.05rem;}
+.pon-fees-v small{margin-top:2px;}
