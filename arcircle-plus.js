@@ -25,7 +25,7 @@
   const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* blocked */ } } };
   const KIND = {
     vote: ["Burn-to-vote", "#39ff88"], mine: ["Builder Mine", "#ffc861"], scanner: ["Token Scanner", "#4d9fff"], secret: ["ARCIA's secret file", "#ff8fc7"],
-    desk: ["ARCIA DESK", "#b58bff"], agent: ["ARCIA AGENT vaults", "#5b8cff"], orders: ["ARCIRCLE Orders fees", "#4dd4ff"], omni: ["OMNI rewards", "#e46bff"], buyback: ["Buyback", "#35d8d0"], team: ["Team & treasury", "#dfe8f1"], wallet: ["Direct burn", "#ff8a4c"], pending: ["Burn", "#ff8a4c"],
+    desk: ["ARCIA DESK", "#b58bff"], agent: ["ARCIA AGENT vaults", "#5b8cff"], orders: ["Orders & Predict fees", "#4dd4ff"], omni: ["OMNI rewards", "#e46bff"], buyback: ["Buyback", "#35d8d0"], team: ["Team & treasury", "#dfe8f1"], wallet: ["Direct burn", "#ff8a4c"], pending: ["Burn", "#ff8a4c"],
   };
   const kind = (k) => KIND[k] || KIND.pending;
   // wallets people will recognize in the top-holder list

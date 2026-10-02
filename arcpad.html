@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790934610"></script>
+<script src="arc-log.js?v=1790937778"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790934610">
+<link rel="stylesheet" href="style.css?v=1790937778">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1663,7 +1663,7 @@
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · UP or DOWN on Arc tokens, in USDC</span>
             <h1>ARCIRCLE Predict <span class="asc-ver" title="New">New<i>Rounds · USDC · on-chain</i></span></h1>
-            <p class="bp-lede">Pick a token and call its next minutes: UP or DOWN against the price to beat. Each round reads the token's own Uniswap v4 pool at the start and at the end, and the winning side splits the pot — all settled by a contract on Arc, paid in USDC.</p>
+            <p class="bp-lede">Pick a token and call its next minutes: UP or DOWN against the price to beat. Each round reads the token's own Uniswap v4 pool at the start and at the end, and the winning side splits the pot — all settled by a contract on Arc, paid in USDC, with a new round always open.</p>
           </div>
         </div>
         <div id="pd-body"></div>
@@ -1671,32 +1671,38 @@
         <section class="asc-guide pd-guide" aria-labelledby="pd-guide-h">
           <h2 id="pd-guide-h">ARCIRCLE Predict guide</h2>
           <details open><summary><h3>What is ARCIRCLE Predict?</h3></summary>
-            <p>Short prediction rounds on Arc tokens. Every market follows one token's Uniswap v4 pool against USDC and runs rounds back to back — 5 minutes, 15 minutes or an hour. In each round you put USDC on UP (the price ends higher than the price to beat) or DOWN (it ends lower). Everything is paid in Arc's own USDC, straight from your wallet; there's nothing to bridge or approve.</p>
+            <p>Short prediction rounds on Arc tokens. Every market follows one token's Uniswap v4 pool against USDC and runs rounds back to back on a fixed schedule — 5 minutes, 15 minutes or an hour. In each round you put USDC on UP (the price ends higher than the price to beat) or DOWN (it ends lower). Bets are Arc's own USDC, straight from your wallet: no approval, nothing to bridge.</p>
           </details>
           <details><summary><h3>How a round works</h3></summary>
             <ul>
-              <li>The round opens with a price to beat: the token's price in its pool when the round starts.</li>
-              <li>Bets are open until 30 seconds before the end. One side per wallet per round; each wallet can put up to $5 into a round (the smallest bet is $0.50).</li>
-              <li>When the round ends, the pool is read again. The winning side splits the whole pot in proportion to what each wallet put in, after a 2% fee. The multiplier next to each side shows what a dollar would return if the round ended now.</li>
-              <li>The next round opens on the same price the last one closed on, so there is always a round to join.</li>
+              <li>Each round starts with a price to beat: the token's price in its pool at the moment the round starts.</li>
+              <li>Bets close before the round ends — 30 seconds before for 5-minute rounds, 2 minutes for 15-minute rounds, 10 minutes for 1-hour rounds — and the next round opens for bets at that same moment, so there is always a round to join. A bet on the next round is placed before its price to beat is known.</li>
+              <li>One side per wallet per round; each wallet can put up to $5 into a round (the smallest bet is $0.50).</li>
+              <li>When the round ends, the pool is read again. The winning side splits the whole pot in proportion to what each wallet put in, after a 2% fee. The multiplier next to each side shows what a dollar would return if the round ended now; the buttons show what your amount would pay.</li>
               <li>Winnings are claimed from "Your bets" with one transaction, any time — they never expire.</li>
             </ul>
           </details>
           <details><summary><h3>Prices and fairness</h3></summary>
-            <p>Prices come only from the token's pool on Arc, read by the contract itself — never from a server or an exchange. After a round ends, the keeper reads the pool three times in different blocks and the contract closes the round on the median, so one block's spike doesn't decide it. The keeper chooses when to look, never what it sees. Small caps per round keep pushing a pool not worth the cost.</p>
+            <p>Prices come only from the token's pool on Arc, read by the contract itself — never from a server or an exchange. At every round boundary the keeper reads the pool three times in different blocks within two minutes, and the contract takes the median, so one block's spike doesn't decide a round. That price closes one round and is the price to beat of the next. The keeper chooses when to look, never what it sees. Small caps per round keep pushing a pool not worth the cost.</p>
           </details>
           <details><summary><h3>Refunds</h3></summary>
             <ul>
               <li>Nobody bet on the other side: everyone gets their stake back, with no fee.</li>
               <li>The price ended exactly where it started: everyone gets their stake back, with no fee.</li>
-              <li>The round wasn't settled within 15 minutes of its end: everyone can claim their stake back, even before anyone settles it.</li>
+              <li>The pool wasn't read within two minutes of a boundary: the rounds on either side of it refund, and new bets on a round without a price to beat are refused.</li>
+              <li>A round not settled within 15 minutes of its end: everyone can claim their stake back, even before anyone settles it.</li>
             </ul>
           </details>
-          <details><summary><h3>Fees</h3></summary>
-            <p>2% of the pot of a round that has a winner; no fee on a refund. The fee can never be more than 3%, and a change only applies to rounds that start after it. Fees go to the ARCIRCLE PAD treasury.</p>
+          <details><summary><h3>Fees and referrals</h3></summary>
+            <p>2% of the pot of a round that has a winner; no fee on a refund. The fee can never be more than 3%, and a change only applies to rounds that start after it.</p>
+            <p>Invite people with your link (the Invite tab). When a wallet's first bet comes through your link, you earn 25% of the fee it pays on every round with a winner, for good — claimable any time.</p>
+            <p>The rest of the fee goes to the ARCIRCLE fee burn: half of it buys $ARCIRCLE and sends it to 0x…dEaD, half goes to the ARCIRCLE PAD treasury.</p>
+          </details>
+          <details><summary><h3>Open a market</h3></summary>
+            <p>Anyone can open a market for an Arc token by burning $ARCIRCLE. The token needs a Uniswap v4 pool against USDC with at least $5,000 of USDC in range, without a hook or with an Argus or ArcPad hook. Rounds of 5 minutes, 15 minutes or an hour, starting right away. The team can stop a market whose token turns bad (its open round still finishes).</p>
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
-            <p>GET /api/desk?predict=state returns every market, its running round (price to beat, the pools on each side, the times) and its last results; ?predict=mine&amp;u=0x… returns a wallet's bets and what it can claim. Bets are a plain call to the contract: bet(roundId, up) with the USDC as the transaction's value (18 decimals, Arc's native USDC).</p>
+            <p>GET /api/desk?predict=state returns every market, its live round and the round open for bets (price to beat, pools, times) and its last results; ?predict=mine&amp;u=0x… a wallet's bets, claims, referrals and stats; ?predict=chart&amp;m=&lt;id&gt; the pool's price through the live round; ?predict=feed the latest bets; ?predict=lb the leaderboard. A bet is a plain call: bet(market, round, up, referrer) with the USDC as the transaction's value (18 decimals, Arc's native USDC).</p>
           </details>
           <details><summary><h3>Honest risks</h3></summary>
             <p>You can lose what you put into a round. Short-term token prices are close to random, and thin pools can be moved by traders. The contract is new and unaudited. Predictions with money are restricted in some countries — only take part where it's legal for you. Nothing here is financial advice.</p>
@@ -1993,6 +1999,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790934610"></script>
+<script src="arcpad.bundle.js?v=1790937778"></script>
 </body>
 </html>

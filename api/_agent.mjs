@@ -192,6 +192,12 @@ async function currentCall(st, token, rep) {
   return makeCall(st, rep, callOf(rep.facts));
 }
 
+/// ARCIA's latest safety call on a token, if it's less than a day old (ARCIRCLE Predict shows it on its markets)
+export async function lastCall(st, token, chain = "arc") {
+  const c = await getJ(st, K.call(lc(token), chainOf(chain))).catch(() => null);
+  return c && c.call && now() - c.at < 86400 ? { call: c.call, at: c.at } : null;
+}
+
 /// grade the calls whose 24 hours are up (a few per run)
 export async function gradeDue(st, { max = 3, market = marketOf } = {}) {
   const L = (await getJ(st, K.calls)) || { items: [] };

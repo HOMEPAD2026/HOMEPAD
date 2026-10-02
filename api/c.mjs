@@ -12,6 +12,7 @@
 //   /snap/<id>          a published / scheduled Holder Snapshot: its card, then the snapshot in the app
 //   /bx/<src>/<tx>      Bridge receipt: one CCTP transfer in or out of Arc (Circle's own record), then the Bridge
 //   /lock/<id>          Locker certificate: one ArcLock lock's card, then the lock in the app
+//   /predict/<round>    ARCIRCLE Predict: one round's result card (?u=0x… for a wallet's bet), then the market in the app
 //   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
@@ -19,6 +20,7 @@ import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport, forRound } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
+import { roundCard as predictRound } from "./_predict.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 
 export const config = { runtime: "edge" };
@@ -37,6 +39,7 @@ export default async function handler(req) {
   if (view === "snap") return snapPage(url);
   if (view === "lplock") return lplockPage(url);
   if (view === "lock") return lockPage(url);
+  if (view === "predict") return predictPage(url);
   if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
@@ -643,6 +646,48 @@ async function lockPage(url) {
 <p>Opening the <a href="${esc(target)}">lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- ARCIRCLE Predict round card (/predict/<round>[?u=0x…]) ----
+async function predictPage(url) {
+  const id = String(url.searchParams.get("id") || ""), u = String(url.searchParams.get("u") || "");
+  if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#predict">`, "public, max-age=300");
+  let d = null;
+  try { d = await predictRound(id, /^0x[0-9a-fA-F]{40}$/.test(u) ? u : ""); } catch { d = null; }
+  const dur = d ? (d.duration % 3600 === 0 ? `${d.duration / 3600}h` : `${d.duration / 60}m`) : "";
+  const res = d && d.result !== "open" ? (d.result === "refund" ? "refunded" : `${d.result.toUpperCase()} won`) : "live";
+  const title = d ? `$${d.sym} ${dur} round #${d.id} — ${res}` : "ARCIRCLE Predict";
+  const desc = d && d.bet ? `${d.bet.side.toUpperCase()} with $${d.bet.stake.toFixed(2)}${d.bet.won ? ` → $${d.bet.payout.toFixed(2)}` : ""}. Call UP or DOWN on Arc tokens — paid in USDC.` : "Call UP or DOWN on an Arc token's next minutes. The pool decides; winners split the pot, in USDC.";
+  const target = d ? `/arc#predict?m=${d.market}` : "/arc#predict";
+  const qs = /^0x[0-9a-fA-F]{40}$/.test(u) ? `&u=${u.toLowerCase()}` : "";
+  const image = `${SITE}/api/og?predict=${id}${qs}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/predict/${id}${qs ? "?" + qs.slice(1) : ""}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#39ff88}</style>
+</head><body>
+<p>Opening <a href="${esc(target)}">ARCIRCLE Predict</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, d && d.result !== "open" ? "public, max-age=0, s-maxage=86400" : "public, max-age=0, s-maxage=60");
 }
 
 // ---- CirclePad burn-to-vote share page (/vote/<tx>) ----

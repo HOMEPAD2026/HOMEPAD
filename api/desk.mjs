@@ -26,7 +26,9 @@
 //   GET /api/desk?chain=sol&orderstick=1&key=…    the Solana keeper (api/_orders-sol.mjs; its own cron entry, every minute)
 // ARCIRCLE Predict (api/_predict.mjs, contracts/ArcPredict.sol) — UP / DOWN rounds on Arc tokens, in USDC:
 //   GET /api/desk?predict=state              every market, its running round and its last results
-//   GET /api/desk?predict=mine&u=0x…         a wallet's bets and what it can claim
+//   GET /api/desk?predict=mine&u=0x…         a wallet's bets, what it can claim, its referrals and stats
+//   GET /api/desk?predict=chart&m=<id>       the pool's price through the live round · ?predict=feed the latest bets
+//   GET /api/desk?predict=lb                 leaderboard (this week, all time, streaks) · ?predict=status the keeper
 //   GET /api/desk?predicttick=1&key=<CRON_SECRET>   the keeper: samples ended rounds' pools and settles them (its own
 //                                                   cron-job.org entry, every minute)
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
@@ -50,12 +52,16 @@ export async function GET(req) {
   if (q.predicttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { return json(await predict.tick({ budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    try { return json(await predict.tick({ budgetMs: 45000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   if (q.predict) {
     try {
-      if (q.predict === "mine") { const r = await predict.mine(String(q.u || "")); return json(r, r.error ? 400 : 200); }
-      return json(await predict.state(), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "mine") { const r = await predict.mine(String(q.u || ""), { store: st }); return json(r, r.error ? 400 : 200); }
+      if (q.predict === "chart") return json(await predict.chart(q.m), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "feed") return json(await predict.feed(), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "lb") return json(await predict.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
+      if (q.predict === "status") return json((await predict.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
+      return json(await predict.state({ store: st }), 200, "public, max-age=2, s-maxage=3");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)

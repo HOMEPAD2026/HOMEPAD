@@ -169,6 +169,10 @@
       "destination": "/api/c?view=lock&id=:id"
     },
     {
+      "source": "/predict/:id",
+      "destination": "/api/c?view=predict&id=:id"
+    },
+    {
       "source": "/mine/:id",
       "destination": "/api/mine?view=page&page=:id"
     },
