@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790921425"></script>
+<script src="arc-log.js?v=1790922058"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790921425">
+<link rel="stylesheet" href="style.css?v=1790922058">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -914,7 +914,7 @@
           <div class="lkr-hero-txt">
             <span class="lkr-kicker">Utility</span>
             <h1>Locker <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Updated regularly</i></span></h1>
-            <p class="bp-lede">Lock any Arc token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.</p>
+            <p class="bp-lede">Lock any Arc or Robinhood Chain token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.</p>
             <p class="lkr-lp-note">Locking a Uniswap v4 LP position? That's in the <a href="#liquidity">Liquidity Manager</a>.</p>
           </div>
           <div class="lkr-stats">
@@ -924,6 +924,9 @@
             <div><small>Fee</small><b>None</b></div>
           </div>
         </div>
+
+        <div class="aor-chain lkr-chainsw" id="lkr-chain" role="radiogroup" aria-label="Chain" data-chain="arc"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-lockchain="arc" aria-checked="true"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span></button><button type="button" role="radio" data-lockchain="rh" aria-checked="false"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span></button></div>
+        <p class="lkr-chainnote" id="lkr-chainnote" hidden></p>
 
         <div class="lkr-grid">
           <div class="lkr-card lkr-new">
@@ -991,7 +994,7 @@
           </div>
         </div>
 
-        <p class="lkr-foot">Runs on ArcLock <a id="lkr-contract" href="#" target="_blank" rel="noopener" data-no-i18n>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. You pay only Arc gas. Tokens that take a fee on transfer are recorded at the amount that actually arrives.</p>
+        <p class="lkr-foot">Runs on ArcLock <a id="lkr-contract" href="#" target="_blank" rel="noopener" data-no-i18n>ArcScan ↗</a> — no owner, no admin, no fee, no upgrades. <span id="lkr-gas">You pay only Arc gas.</span> Tokens that take a fee on transfer are recorded at the amount that actually arrives.</p>
       </section>
 
       <!-- ============ BRIDGE (arc-bridge.js) — USDC in and out of Arc with Circle's CCTP ============ -->
@@ -1936,6 +1939,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790921425"></script>
+<script src="arcpad.bundle.js?v=1790922058"></script>
 </body>
 </html>

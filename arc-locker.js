@@ -1,4 +1,4 @@
-/* global ethers, CONFIG, ARC, state, readProvider, withRetry, connectWallet, ensureArcForWrite, arcQuoteMeta, apcErrText, refreshAccountDependentViews */
+/* global ethers, CONFIG, ARC, ARC_ALT_NET, state, readProvider, withRetry, connectWallet, ensureArcForWrite, ensureAltForWrite, arcQuoteMeta, apcErrText, refreshAccountDependentViews */
 // arc-locker.js — Locker, the first ARCIRCLE PAD utility (arcpad.html#locker).
 // Lock any Arc token until a date you pick, using ArcLock (contracts/ArcLock.sol,
 // already live on Arc mainnet): no owner, no admin, no fee; nobody — the
@@ -13,11 +13,31 @@
 // the share of supply as a ring, an embeddable badge (/lockbadge/<token>) and
 // a live overview of every lock (/api/social?locks=overview).
 // arc-lock.js keeps the creator "Locked" badge and the coin-page modal.
+// Two chains (Oct 2026): an Arc | Robinhood switch at the top runs the same page against ArcLock on Robinhood Chain
+// (CONFIG.ARCLOCK_RH_ADDRESS — the same contract, deployed there). Until that's set Robinhood Chain is "opening soon":
+// tokens can be read, nothing can be locked. Deep link: #locker?c=rh&token=0x…; certificates /lock/<id>?c=rh.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-locker");
   if (!panel || typeof CONFIG === "undefined" || !CONFIG.ARCLOCK_ADDRESS) return;
-  const LOCK = CONFIG.ARCLOCK_ADDRESS;
+  // ---------- the chain: Arc or Robinhood Chain ----------
+  const addrOr = (v) => (/^0x[0-9a-fA-F]{40}$/.test(v || "") ? v : "");
+  const RHC = (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com", name: "Robinhood Chain" };
+  const CK = "arcircle.locker.chain";
+  let CH = /^#locker\?(?:.*&)?c=rh\b/.test(location.hash) ? "rh" : (() => { try { return localStorage.getItem(CK) === "rh" && !/^#locker\?(?:.*&)?token=/.test(location.hash) ? "rh" : "arc"; } catch { return "arc"; } })();
+  const RH = () => CH === "rh";
+  const CQ = () => (RH() ? "&chain=rh" : "");
+  const LOCK_OF = () => (RH() ? addrOr(CONFIG.ARCLOCK_RH_ADDRESS) : CONFIG.ARCLOCK_ADDRESS);
+  const LIVE = () => !!LOCK_OF();
+  const CNAME = () => (RH() ? "Robinhood Chain" : "Arc");
+  const RH_ARCIRCLE = String((CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4").toLowerCase();
+  let rhProv = null;
+  const rp = () => (RH() ? (rhProv = rhProv || new ethers.JsonRpcProvider(RHC.rpc, Number(RHC.id || 4663), { staticNetwork: true })) : readProvider());
+  const certPath = (id) => `/lock/${id}${RH() ? "?c=rh" : ""}`;
+  const certUrl = (id) => location.origin + certPath(id);
+  const findHash = (a, id) => `#locker?${RH() ? "c=rh&" : ""}token=${a}${id != null ? `&lock=${id}` : ""}`;
+  const ensureWrite = () => (RH() ? ensureAltForWrite() : ensureArcForWrite());
+  const waitingTxt = () => tr(RH() ? "Waiting for Robinhood Chain…" : "Waiting for Arc…");
   const ABI = [
     "function lock(address token, uint256 amount, uint64 unlockAt) returns (uint256)",
     "function withdraw(uint256 id)",
@@ -39,7 +59,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
-  const explorer = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  const explorer = (kind, x) => `${RH() ? RHC.explorer : CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const now = () => Math.floor(Date.now() / 1000);
   const date = (ts) => new Date(ts * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -68,20 +88,33 @@
     const t = p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(p >= 0.01 ? 3 : 4);
     return t.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") || "0";
   }
-  const lockR = () => new ethers.Contract(LOCK, ABI, readProvider());
+  const lockR = () => new ethers.Contract(LOCK_OF(), ABI, rp());
 
   // ---------- token info (symbol / decimals / supply / logo) ----------
   const metaCache = new Map();
-  function launchOf(addr) { return ((typeof ARC !== "undefined" && ARC.launches) || []).find((l) => lc(l.token) === lc(addr)) || null; }
+  function launchOf(addr) { return RH() ? null : ((typeof ARC !== "undefined" && ARC.launches) || []).find((l) => lc(l.token) === lc(addr)) || null; }
+  /// Robinhood Chain: the token's basics straight from its contract
+  async function rhMeta(addr) {
+    if (!addr || !ethers.isAddress(String(addr).trim())) throw new Error("That isn't a valid contract address.");
+    const a = ethers.getAddress(String(addr).trim()), P = rp();
+    const code = await withRetry(() => P.getCode(a)).catch(() => null);
+    if (code == null) throw new Error("Couldn't reach Robinhood Chain to read that token — try again in a moment.");
+    if (code === "0x") throw new Error("There's no contract at that address on Robinhood Chain.");
+    const t = new ethers.Contract(a, ["function decimals() view returns (uint8)", "function symbol() view returns (string)", "function name() view returns (string)"], P);
+    const decimals = Number(await withRetry(() => t.decimals(), { tries: 3 }).catch(() => { throw new Error("That contract doesn't look like an ERC-20 token (no decimals())."); }));
+    if (!(decimals >= 0 && decimals <= 36)) throw new Error("That token reports unusual decimals — not supported.");
+    const [symbol, name] = await Promise.all([withRetry(() => t.symbol(), { tries: 3 }).catch(() => "TOKEN"), withRetry(() => t.name(), { tries: 3 }).catch(() => "")]);
+    return { address: a, symbol: String(symbol).slice(0, 24), name: String(name).slice(0, 60), decimals };
+  }
   async function tokenInfo(addr) {
-    const k = lc(addr);
+    const k = CH + ":" + lc(addr), ch = CH;
     if (metaCache.has(k)) return metaCache.get(k);
     const p = (async () => {
-      const m = await arcQuoteMeta(addr);
-      const supply = await withRetry(() => new ethers.Contract(m.address, TOK_ABI, readProvider()).totalSupply()).catch(() => 0n);
+      const m = ch === "rh" ? await rhMeta(addr) : await arcQuoteMeta(addr);
+      const supply = await withRetry(() => new ethers.Contract(m.address, TOK_ABI, rp()).totalSupply()).catch(() => 0n);
       const l = launchOf(m.address);
       const logo = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl) ? l.imageUrl
-        : ARCIRCLE && k === ARCIRCLE ? "images/arcircle-mark-sm.png" : "";
+        : (ch === "rh" ? lc(addr) === RH_ARCIRCLE : ARCIRCLE && lc(addr) === ARCIRCLE) ? "images/arcircle-mark-sm.png" : "";
       return { ...m, supply, logo, creator: l ? lc(l.creator) : null, arcpad: !!l };
     })();
     p.catch(() => metaCache.delete(k));
@@ -126,8 +159,8 @@
   function renderChips() {
     const box = $("lkr-quick");
     if (!box) return;
-    const chips = (ARCIRCLE ? [{ a: ARCIRCLE, s: "$ARCIRCLE" }] : []).concat([{ a: CONFIG.USDC_ADDRESS, s: "USDC" }]);
-    if (state.account) {
+    const chips = RH() ? [{ a: RH_ARCIRCLE, s: "$ARCIRCLE" }] : (ARCIRCLE ? [{ a: ARCIRCLE, s: "$ARCIRCLE" }] : []).concat([{ a: CONFIG.USDC_ADDRESS, s: "USDC" }]);
+    if (state.account && !RH()) {
       ((typeof ARC !== "undefined" && ARC.launches) || []).filter((l) => lc(l.creator) === lc(state.account)).slice(0, 6)
         .forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol, mine: true }));
     }
@@ -149,7 +182,7 @@
       F.token = info.address; F.info = info;
       renderChips();
       let bal = null;
-      if (state.account) bal = await withRetry(() => new ethers.Contract(info.address, TOK_ABI, readProvider()).balanceOf(state.account)).catch(() => null);
+      if (state.account) bal = await withRetry(() => new ethers.Contract(info.address, TOK_ABI, rp()).balanceOf(state.account)).catch(() => null);
       if (my !== pickSeq) return;
       F.bal = bal;
       card.innerHTML = `${avatar(info, info.address)}<div class="lkr-tok-txt"><b data-no-i18n>$${esc(info.symbol)}</b><small data-no-i18n>${esc(info.name)} · ${short(info.address)}</small></div>
@@ -174,7 +207,8 @@
     $("lkr-days").textContent = daysBetween(now(), until) + " " + (daysBetween(now(), until) === 1 ? "day" : "days");
     const amt = amountRaw();
     let msg = "", ok = false;
-    if (!F.info) msg = "Pick a token to lock.";
+    if (!LIVE()) msg = "Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet.";
+    else if (!F.info) msg = "Pick a token to lock.";
     else if (amt == null) msg = "That amount isn't a number.";
     else if (amt <= 0n) msg = "Enter an amount.";
     else if (F.bal != null && amt > F.bal) msg = "That's more than your balance.";
@@ -200,8 +234,8 @@
     const bar = $("lkr-bar");
     if (bar) bar.style.setProperty("--w", Math.max(4, Math.min(100, (daysBetween(now(), until) / 365) * 100)) + "%");
     if (go && !F.busy) {
-      go.disabled = state.account ? !ok : false;
-      go.textContent = !state.account ? tr("Connect wallet") : F.split ? `${tr("Approve & lock")} · ${F.n} ${tr("tranches")}` : tr("Approve & lock");
+      go.disabled = !LIVE() || (state.account ? !ok : false);
+      go.textContent = !LIVE() ? tr("Opening soon") : !state.account ? tr("Connect wallet") : F.split ? `${tr("Approve & lock")} · ${F.n} ${tr("tranches")}` : tr("Approve & lock");
     }
     queueTax(ok ? amt : null);
   }
@@ -212,7 +246,7 @@
   function queueTax(amt) {
     const box = $("lkr-tax");
     if (!box) return;
-    const key = F.info && amt && state.account ? `${F.info.address}:${amt}:${state.account}` : "";
+    const key = F.info && amt && state.account && LIVE() ? `${CH}:${F.info.address}:${amt}:${state.account}` : "";
     if (key === taxKey) return;
     taxKey = key; F.tax = null; box.hidden = true; box.innerHTML = "";
     clearTimeout(taxT);
@@ -222,9 +256,9 @@
       const K = window.ArcScanCore;
       if (!K || !K.PROBE_CODE || (F.bal != null && amt > F.bal)) return;
       const from = state.account;
-      const data = "0xdd8e5ec9" + ethers.zeroPadValue(F.info.address, 32).slice(2) + ethers.zeroPadValue(LOCK, 32).slice(2) + ethers.toBeHex(amt, 32).slice(2);
+      const data = "0xdd8e5ec9" + ethers.zeroPadValue(F.info.address, 32).slice(2) + ethers.zeroPadValue(LOCK_OF(), 32).slice(2) + ethers.toBeHex(amt, 32).slice(2);
       try {
-        const out = await readProvider().send("eth_call", [{ from, to: from, data, gas: "0x1c9c380" }, "latest", { [from]: { code: K.PROBE_CODE } }]);
+        const out = await rp().send("eth_call", [{ from, to: from, data, gas: "0x1c9c380" }, "latest", { [from]: { code: K.PROBE_CODE } }]);
         if (my !== taxSeq) return;
         const [okT, sent, received] = ethers.AbiCoder.defaultAbiCoder().decode(["bool", "uint256", "uint256", "bytes"], out);
         if (!okT) { F.tax = { fail: true }; box.className = "lkr-taxnote bad"; box.innerHTML = `<b>${esc(tr("A test transfer of this amount fails."))}</b> ${esc(tr("The token may block transfers to contracts or have a max-transaction limit — the lock would fail too."))}`; box.hidden = false; return; }
@@ -251,6 +285,7 @@
   function say(cls, html) { const s = $("lkr-status"); if (s) { s.className = "lkr-status " + (cls || ""); s.innerHTML = html || ""; } }
   async function doLock() {
     if (F.busy) return;
+    if (!LIVE()) return paintSummary();
     if (!state.account) { if (typeof connectWallet === "function") await connectWallet(); paintSummary(); return; }
     const amt = amountRaw();
     if (!F.info || !amt || amt <= 0n) return paintSummary();
@@ -259,16 +294,16 @@
     F.busy = true;
     const go = $("lkr-go"); go.disabled = true;
     try {
-      await ensureArcForWrite();
+      await ensureWrite();
       if (!state.signer) throw new Error("Wallet isn't ready — reconnect and try again.");
       const tok = new ethers.Contract(F.info.address, TOK_ABI, state.signer);
       const plan = schedule(amt);
-      const allowance = await tok.allowance(state.account, LOCK);
+      const allowance = await tok.allowance(state.account, LOCK_OF());
       if (allowance < amt) {
         setStep(1); say("wait", esc(tr("Step 1 of 2 — approve in your wallet…")));
-        await (await tok.approve(LOCK, amt)).wait();
+        await (await tok.approve(LOCK_OF(), amt)).wait();
       }
-      const lk = new ethers.Contract(LOCK, ABI, state.signer);
+      const lk = new ethers.Contract(LOCK_OF(), ABI, state.signer);
       const ids = [];
       let tx = null;
       for (let i = 0; i < plan.length; i++) {
@@ -277,17 +312,17 @@
         say("wait", esc(plan.length > 1 ? `${tr("Step 2 of 2 — confirm the lock in your wallet…").replace(/…$/, "")} (${i + 1}/${plan.length})…` : tr("Step 2 of 2 — confirm the lock in your wallet…")));
         await lk.lock.staticCall(F.info.address, part.amount, part.at);
         tx = await lk.lock(F.info.address, part.amount, part.at);
-        say("wait", `${esc(tr("Waiting for Arc…"))} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
+        say("wait", `${esc(waitingTxt())} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
         const rc = await tx.wait();
-        const ev = (rc.logs || []).find((l) => lc(l.address) === lc(LOCK) && l.topics && l.topics[0] === LOCKED_TOPIC);
+        const ev = (rc.logs || []).find((l) => lc(l.address) === lc(LOCK_OF()) && l.topics && l.topics[0] === LOCKED_TOPIC);
         if (ev) ids.push(Number(BigInt(ev.topics[1])));
       }
       setStep(3);
       celebrate();
       vault();
-      const cert = ids.length ? `${location.origin}/lock/${ids[0]}` : `${location.origin}/arc#locker?token=${F.info.address}`;
-      const certs = ids.map((id) => `<a href="/lock/${id}" target="_blank" rel="noopener" data-no-i18n>#${id}</a>`).join(" ");
-      say("ok", `<b>${esc(tr("Locked."))}</b> ${ids.length ? `${esc(tr(ids.length > 1 ? "Certificates:" : "Certificate:"))} ${certs}` : ""} · <a href="#locker?token=${esc(F.info.address)}" data-lkr-find="${esc(F.info.address)}">${esc(tr("see all locks for"))} <span data-no-i18n>$${esc(F.info.symbol)}</span></a>
+      const cert = ids.length ? certUrl(ids[0]) : `${location.origin}/arc${findHash(F.info.address)}`;
+      const certs = ids.map((id) => `<a href="${certPath(id)}" target="_blank" rel="noopener" data-no-i18n>#${id}</a>`).join(" ");
+      say("ok", `<b>${esc(tr("Locked."))}</b> ${ids.length ? `${esc(tr(ids.length > 1 ? "Certificates:" : "Certificate:"))} ${certs}` : ""} · <a href="${findHash(F.info.address)}" data-lkr-find="${esc(F.info.address)}">${esc(tr("see all locks for"))} <span data-no-i18n>$${esc(F.info.symbol)}</span></a>
         <button type="button" class="lkr-mini" data-copy-link="${esc(cert)}">${esc(tr("Copy link"))}</button> ${ids.length ? `<a class="lkr-mini" href="${esc(shareX(ids[0], F.info.symbol))}" target="_blank" rel="noopener">${esc(tr("Share on X"))}</a>` : ""} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
       loadDash(true);
       if (typeof window.arcFeedback === "function") window.arcFeedback("milestone");
@@ -322,14 +357,14 @@
     v.hidden = false; v.classList.remove("go"); void v.offsetWidth; v.classList.add("go");
     setTimeout(() => { v.classList.remove("go"); v.hidden = true; }, 2100);
   }
-  const shareX = (id, sym) => `https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is locked on ARCIRCLE PAD — nobody can move it before the date.`)}&url=${encodeURIComponent(`${location.origin}/lock/${id}`)}`;
+  const shareX = (id, sym) => `https://x.com/intent/post?text=${encodeURIComponent(`$${sym} is locked on ARCIRCLE PAD${RH() ? " (Robinhood Chain)" : ""} — nobody can move it before the date.`)}&url=${encodeURIComponent(certUrl(id))}`;
   // a calendar reminder for the unlock (and a day before it)
   function ics(l, sym) {
     const d = (ts) => new Date(ts * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
     const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//Locker//EN", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
       `UID:arclock-${l.id}@arcircle.app`, `DTSTAMP:${d(now())}`, `DTSTART:${d(l.unlockAt)}`, `DTEND:${d(l.unlockAt + 1800)}`,
-      `SUMMARY:${sym} lock #${l.id} unlocks`, `DESCRIPTION:ArcLock #${l.id} on Arc can be withdrawn from now on. https://www.arcircle.app/lock/${l.id}`,
-      `URL:https://www.arcircle.app/lock/${l.id}`, "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Lock unlocks tomorrow", "TRIGGER:-P1D", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      `SUMMARY:${sym} lock #${l.id} unlocks`, `DESCRIPTION:ArcLock #${l.id} on ${CNAME()} can be withdrawn from now on. https://www.arcircle.app${certPath(l.id)}`,
+      `URL:https://www.arcircle.app${certPath(l.id)}`, "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Lock unlocks tomorrow", "TRIGGER:-P1D", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([body], { type: "text/calendar" }));
     a.download = `arclock-${l.id}.ics`;
@@ -351,7 +386,8 @@
     if (!ethers.isAddress(addr)) { out.innerHTML = `<p class="lkr-err">${esc(tr("Paste a token contract address (0x…)."))}</p>`; return; }
     out.innerHTML = `<div class="lkr-tok-load"><i></i><span>${esc(tr("Reading every lock for this token…"))}</span></div>`;
     try {
-      const [info, r] = await Promise.all([tokenInfo(addr), withRetry(() => lockR().locksOfToken(addr))]);
+      // Robinhood Chain before ArcLock is deployed there: the token reads, no locks yet
+      const [info, r] = await Promise.all([tokenInfo(addr), LIVE() ? withRetry(() => lockR().locksOfToken(addr)) : [[], []]]);
       if (my !== findSeq) return;
       const t = now();
       const locks = r[0].map((id, i) => ({ id: Number(id), owner: lc(r[1][i].owner), amount: r[1][i].amount, lockedAt: Number(r[1][i].lockedAt), unlockAt: Number(r[1][i].unlockAt), withdrawn: r[1][i].withdrawn }));
@@ -366,17 +402,17 @@
         const prog = l.withdrawn ? 100 : Math.max(0, Math.min(100, ((t - l.lockedAt) / Math.max(1, l.unlockAt - l.lockedAt)) * 100));
         return `<div class="lkr-row" data-lock="${l.id}" style="--i:${Math.min(i, 12)}"><span class="lkr-row-ico${l.withdrawn || l.unlockAt <= t ? " open" : ""}">${l.withdrawn || l.unlockAt <= t ? OPEN_ICO : LOCK_ICO}</span>
           <div class="lkr-row-main"><b data-no-i18n>${fmtAmt(l.amount, info.decimals)}${pctOf(l.amount, info.supply) ? ` <em>${pctOf(l.amount, info.supply)}%</em>` : ""}</b>
-          <small><a href="${explorer("address", l.owner)}" target="_blank" rel="noopener" data-no-i18n>${short(l.owner)}</a>${who(l.owner)} · <span data-no-i18n>${esc(date(l.unlockAt))}</span> · <a href="/lock/${l.id}" target="_blank" rel="noopener" data-no-i18n>#${l.id}</a></small>
+          <small><a href="${explorer("address", l.owner)}" target="_blank" rel="noopener" data-no-i18n>${short(l.owner)}</a>${who(l.owner)} · <span data-no-i18n>${esc(date(l.unlockAt))}</span> · <a href="${certPath(l.id)}" target="_blank" rel="noopener" data-no-i18n>#${l.id}</a></small>
           <span class="lkr-prog"><i style="--p:${prog.toFixed(1)}%"></i></span></div>${st}</div>`;
       }).join("");
       const html = `<div class="lkr-find-head">${avatar(info, info.address)}<div><b data-no-i18n>$${esc(info.symbol)}</b><small data-no-i18n>${esc(info.name)} · <a href="${explorer("token", info.address)}" target="_blank" rel="noopener">${short(info.address)} ↗</a></small></div>
-          <button type="button" class="lkr-mini" data-copy-link="${esc(location.origin + "/arc#locker?token=" + info.address)}">${esc(tr("Copy link"))}</button></div>
+          <button type="button" class="lkr-mini" data-copy-link="${esc(location.origin + "/arc" + findHash(info.address))}">${esc(tr("Copy link"))}</button></div>
         <div class="lkr-find-stats">
           <div class="lkr-ringcell">${ring(p)}<div><small>${esc(tr("Locked now"))}</small><b data-no-i18n>${total > 0n ? fmtAmt(total, info.decimals) : "0"}</b>${p ? `<em data-no-i18n>${p}% ${esc(tr("of supply"))}</em>` : ""}</div></div>
           <div><small>${esc(tr("Active locks"))}</small><b data-no-i18n>${active.length}</b><em data-no-i18n>${locks.length} ${esc(tr("ever"))}</em></div>
           <div><small>${esc(tr("Next unlock"))}</small><b data-no-i18n>${next ? esc(date(next)) : "—"}</b>${next ? `<em data-no-i18n>${esc(leftLabel(next))}</em>` : ""}</div>
         </div>
-        ${locks.length ? `<div class="lkr-rows">${rows}</div>` : `<p class="lkr-empty">${esc(tr("No one has locked this token yet."))}</p>`}
+        ${locks.length ? `<div class="lkr-rows">${rows}</div>` : `<p class="lkr-empty">${esc(tr(LIVE() ? "No one has locked this token yet." : "Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet."))}</p>`}
         ${active.length ? embedBox(info) : ""}
         ${info.arcpad ? `<a class="lkr-coin-link" href="/arc#coin/${esc(info.address)}">${esc(tr("Open the coin on ArcPad →"))}</a>` : ""}`;
       out.innerHTML = html;
@@ -384,7 +420,7 @@
       if (hl) { const row = out.querySelector(`[data-lock="${hl[1]}"]`); if (row) { row.classList.add("hl"); setTimeout(() => row.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }), 250); } }
       if (!reduce) { const f = out.querySelector(".lkr-ring .fg"); if (f) { f.classList.add("from0"); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove("from0"))); } }
       if (!reduce) out.querySelectorAll(".lkr-prog i").forEach((el) => { el.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => { el.style.width = ""; })); });
-      if (history.replaceState && location.hash.split("?")[0] === "#locker" && !/[?&]lock=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search + "#locker?token=" + info.address);
+      if (history.replaceState && location.hash.split("?")[0] === "#locker" && !/[?&]lock=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search + findHash(info.address));
     } catch (err) {
       if (my !== findSeq) return;
       out.innerHTML = `<p class="lkr-err">${esc(tr((err && err.message) || "Couldn't read locks right now."))}</p>`;
@@ -393,11 +429,11 @@
 
   // "Locked on ARCIRCLE" badge for a project's site or README
   function embedBox(info) {
-    const src = `${location.origin}/lockbadge/${info.address}`, href = `${location.origin}/arc#locker?token=${info.address}`;
+    const src = `${location.origin}/lockbadge/${info.address}${RH() ? "?chain=rh" : ""}`, href = `${location.origin}/arc${findHash(info.address)}`;
     const md = `[![Locked on ARCIRCLE](${src})](${href})`;
     const htm = `<a href="${href}"><img src="${src}" alt="Locked on ARCIRCLE"></a>`;
     return `<details class="lkr-embed"><summary>${esc(tr("Embed a badge on your site"))}</summary>
-      <div class="lkr-embed-in"><img src="/lockbadge/${esc(info.address)}" alt="" loading="lazy" height="22">
+      <div class="lkr-embed-in"><img src="/lockbadge/${esc(info.address)}${RH() ? "?chain=rh" : ""}" alt="" loading="lazy" height="22">
       <div class="lkr-embed-code"><code data-no-i18n>${esc(md)}</code><button type="button" class="lkr-mini" data-copy-link="${esc(md)}">${esc(tr("Copy Markdown"))}</button></div>
       <div class="lkr-embed-code"><code data-no-i18n>${esc(htm)}</code><button type="button" class="lkr-mini" data-copy-link="${esc(htm)}">${esc(tr("Copy HTML"))}</button></div>
       <small>${esc(tr("It updates by itself: the share of supply locked and the last unlock date."))}</small></div></details>`;
@@ -412,21 +448,22 @@
       box.innerHTML = `<div class="lkr-empty-cta"><span>${LOCK_ICO}</span><p>${esc(tr("Connect a wallet to see and manage your locks."))}</p><button type="button" class="lkr-btn ghost" data-lkr-connect>${esc(tr("Connect wallet"))}</button></div>`;
       return;
     }
-    const acct = lc(state.account), my = ++mineSeq;
-    if (!mineCache || fresh || mineCache.acct !== acct) {
+    if (!LIVE()) { box.innerHTML = `<div class="lkr-empty-cta"><span>${LOCK_ICO}</span><p>${esc(tr("Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet."))}</p></div>`; return; }
+    const acct = lc(state.account), my = ++mineSeq, ch = CH;
+    if (!mineCache || fresh || mineCache.acct !== acct || mineCache.ch !== ch) {
       box.innerHTML = `<div class="lkr-tok-load"><i></i><span>${esc(tr("Loading your locks…"))}</span></div>`;
       try {
         const c = lockR();
         const ids = (await withRetry(() => c.lockIdsOfOwner(acct))).slice(-60);
         const locks = await Promise.all(ids.map((id) => withRetry(() => c.getLock(id)).then((r) => ({ id: Number(id), token: r.token, amount: r.amount, lockedAt: Number(r.lockedAt), unlockAt: Number(r.unlockAt), withdrawn: r.withdrawn }))));
         const infos = await Promise.all([...new Set(locks.map((l) => lc(l.token)))].map((a) => tokenInfo(a).then((i) => [a, i]).catch(() => [a, null])));
-        mineCache = { acct, locks, info: new Map(infos) };
+        mineCache = { acct, ch, locks, info: new Map(infos) };
       } catch (err) {
         if (my === mineSeq) box.innerHTML = `<p class="lkr-err">${esc(tr("Couldn't read your locks right now."))}</p>`;
         return;
       }
     }
-    if (my !== mineSeq || lc(state.account) !== acct) return;
+    if (my !== mineSeq || lc(state.account) !== acct || ch !== CH) return;
     const t = now();
     const rank = (l) => (l.withdrawn ? 2 : l.unlockAt <= t ? 0 : 1); // ready to withdraw first, then by date, withdrawn last
     const locks = mineCache.locks.slice().sort((a, b) => (rank(a) - rank(b)) || (a.unlockAt - b.unlockAt));
@@ -445,10 +482,10 @@
         : `<div class="lkr-acts">${ready ? `<button type="button" class="lkr-btn sm lkr-wd" data-withdraw="${l.id}">${OPEN_ICO}${esc(tr("Withdraw"))}</button>` : `<span class="lkr-st${l.unlockAt - t <= 7 * DAY ? " soon" : ""}" data-no-i18n>${esc(leftLabel(l.unlockAt))}</span>`}
             <button type="button" class="lkr-mini" data-extend="${l.id}" data-at="${l.unlockAt}" data-add="30">+30d</button><button type="button" class="lkr-mini" data-extend="${l.id}" data-at="${l.unlockAt}" data-add="90">+90d</button>
             ${ready ? "" : `<button type="button" class="lkr-mini" data-ics="${l.id}" title="${esc(tr("Add the unlock date to your calendar"))}">${esc(tr("Calendar"))}</button>`}
-            <button type="button" class="lkr-mini" data-copy-link="${esc(location.origin + "/lock/" + l.id)}">${esc(tr("Copy link"))}</button></div>`;
+            <button type="button" class="lkr-mini" data-copy-link="${esc(certUrl(l.id))}">${esc(tr("Copy link"))}</button></div>`;
       return `<div class="lkr-row${ready ? " ready" : ""}" data-lock="${l.id}" style="--i:${Math.min(i, 12)}">${avatar(info, l.token)}
-        <div class="lkr-row-main"><b data-no-i18n>${fmtAmt(l.amount, dec)} ${esc(sym)} <a class="lkr-id" href="/lock/${l.id}" target="_blank" rel="noopener">#${l.id}</a></b>
-          <small>${esc(l.withdrawn ? tr("Withdrawn") : ready ? tr("Unlocked on") : tr("Unlocks on"))} <span data-no-i18n>${esc(date(l.unlockAt))}</span> · <a href="#locker?token=${esc(l.token)}" data-lkr-find="${esc(l.token)}">${esc(tr("all locks"))}</a></small>
+        <div class="lkr-row-main"><b data-no-i18n>${fmtAmt(l.amount, dec)} ${esc(sym)} <a class="lkr-id" href="${certPath(l.id)}" target="_blank" rel="noopener">#${l.id}</a></b>
+          <small>${esc(l.withdrawn ? tr("Withdrawn") : ready ? tr("Unlocked on") : tr("Unlocks on"))} <span data-no-i18n>${esc(date(l.unlockAt))}</span> · <a href="${findHash(l.token)}" data-lkr-find="${esc(l.token)}">${esc(tr("all locks"))}</a></small>
           <span class="lkr-prog lkr-tl${ready ? " full" : ""}"><i style="--p:${prog.toFixed(1)}%"></i>${l.withdrawn || ready ? "" : `<u style="--p:${prog.toFixed(1)}%"></u>`}</span>
           <span class="lkr-tl-d" data-no-i18n><span>${esc(date(l.lockedAt))}</span><span>${esc(date(l.unlockAt))}</span></span></div>${acts}</div>`;
     }).join("") + `</div><p class="lkr-note-sm">${esc(tr("Extending only ever moves the date later. An unlocked lock that you extend is locked again from today."))}</p>`;
@@ -460,14 +497,14 @@
     const note = $("lkr-mine-status");
     const put = (cls, h) => { if (note) { note.className = "lkr-status " + cls; note.innerHTML = h; } };
     try {
-      await ensureArcForWrite();
+      await ensureWrite();
       if (!state.signer) throw new Error("Wallet isn't ready — reconnect and try again.");
       const next = Math.max(at, now() + 120) + add * DAY;
-      const c = new ethers.Contract(LOCK, ABI, state.signer);
+      const c = new ethers.Contract(LOCK_OF(), ABI, state.signer);
       put("wait", esc(tr("Confirm the new unlock date in your wallet…")));
       await c.extend.staticCall(id, next);
       const tx = await c.extend(id, next);
-      put("wait", `${esc(tr("Waiting for Arc…"))} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
+      put("wait", `${esc(waitingTxt())} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
       await tx.wait();
       put("ok", `${esc(tr("Extended — now unlocks on"))} <b data-no-i18n>${esc(date(next))}</b>`);
       celebrate();
@@ -492,9 +529,9 @@
     const note = $("lkr-mine-status");
     const put = (cls, h) => { if (note) { note.className = "lkr-status " + cls; note.innerHTML = h; } };
     try {
-      await ensureArcForWrite();
-      const tx = await new ethers.Contract(LOCK, ABI, state.signer).withdraw(id);
-      put("wait", `${esc(tr("Waiting for Arc…"))} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
+      await ensureWrite();
+      const tx = await new ethers.Contract(LOCK_OF(), ABI, state.signer).withdraw(id);
+      put("wait", `${esc(waitingTxt())} <a href="${explorer("tx", tx.hash)}" target="_blank" rel="noopener">tx ↗</a>`);
       await tx.wait();
       put("ok", esc(tr("Withdrawn to your wallet.")));
       const row = btn.closest(".lkr-row");
@@ -512,10 +549,13 @@
     const top = $("lkr-dash-top");
     if (!top || dashBusy || (!force && Date.now() - dashAt < 60e3)) return;
     dashBusy = true;
+    const ch = CH;
     try {
-      const r = await fetch("/api/social?locks=overview", { cache: force ? "no-store" : "default" });
+      if (!LIVE()) { dashAt = Date.now(); paintDash({ live: false, tvlUsd: null, activeLocks: 0, tokens: 0, locksEver: 0, top: [], soon: [] }); return; }
+      const r = await fetch(`/api/social?locks=overview${CQ()}`, { cache: force ? "no-store" : "default" });
       const d = r.ok ? await r.json() : null;
       if (!d || d.error) throw new Error("overview");
+      if (ch !== CH) return;
       dashAt = Date.now();
       paintDash(d);
     } catch (e) {
@@ -528,14 +568,14 @@
     const st = $("lkr-dash-stats");
     st.innerHTML = cells.map(([k, v, sub]) => `<div><small>${esc(k)}</small><b data-no-i18n data-v="${esc(v)}">${esc(v)}</b>${sub ? `<em>${esc(sub)}</em>` : ""}</div>`).join("");
     if (typeof window.arcCountUp === "function" && !reduce) st.querySelectorAll("b").forEach((b) => { const n = Number(b.dataset.v); if (Number.isFinite(n) && n > 0) window.arcCountUp(b, n, (x) => String(Math.round(x))); });
-    const logo = (m) => { const l = launchOf(m.address); const ok = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl); return avatar(ok ? { logo: l.imageUrl } : ARCIRCLE && lc(m.address) === ARCIRCLE ? { logo: "images/arcircle-mark-sm.png" } : { symbol: m.symbol }, m.address); };
+    const logo = (m) => { const l = launchOf(m.address); const ok = l && typeof l.imageUrl === "string" && /^(https:\/\/|data:image\/)/.test(l.imageUrl); return avatar(ok ? { logo: l.imageUrl } : (RH() ? lc(m.address) === RH_ARCIRCLE : ARCIRCLE && lc(m.address) === ARCIRCLE) ? { logo: "images/arcircle-mark-sm.png" } : { symbol: m.symbol }, m.address); };
     const pc = (p) => (p == null ? "" : `${(p >= 10 ? p.toFixed(1) : p >= 1 ? p.toFixed(2) : p.toFixed(3)).replace(/\.?0+$/, "")}%`);
     const t = now();
     $("lkr-dash-top").innerHTML = d.top.length ? `<div class="lkr-rank">${d.top.map((x, i) => `<button type="button" class="lkr-rank-row" data-lkr-find="${esc(x.token.address)}" style="--i:${i};--w:${Math.max(2, Math.min(100, x.pctOfSupply || 0))}%">
         <span class="n" data-no-i18n>${i + 1}</span>${logo(x.token)}<span class="m"><b data-no-i18n>$${esc(x.token.symbol)}</b><small data-no-i18n>${fmtAmt(BigInt(x.locked), x.token.decimals)} · ${x.active} ${esc(tr(x.active === 1 ? "active lock" : "active locks"))}</small><i></i></span>
         <span class="v" data-no-i18n><b>${esc(pc(x.pctOfSupply) || "—")}</b><small>${x.usd != null ? esc(usdFmt(x.usd)) : esc(tr("of supply"))}</small></span></button>`).join("")}</div>`
-      : `<p class="lkr-empty">${esc(tr("Nothing is locked right now."))}</p>`;
-    $("lkr-dash-soon").innerHTML = d.soon.length ? `<div class="lkr-soon">${d.soon.map((l, i) => `<a class="lkr-soon-row" href="#locker?token=${esc(l.token)}&lock=${l.id}" data-lkr-find="${esc(l.token)}" data-lkr-lock="${l.id}" style="--i:${i}">
+      : `<p class="lkr-empty">${esc(tr(d.live === false ? "Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet." : "Nothing is locked right now."))}</p>`;
+    $("lkr-dash-soon").innerHTML = d.soon.length ? `<div class="lkr-soon">${d.soon.map((l, i) => `<a class="lkr-soon-row" href="${findHash(l.token, l.id)}" data-lkr-find="${esc(l.token)}" data-lkr-lock="${l.id}" style="--i:${i}">
         <span class="d" data-no-i18n><b>${new Date(l.unlockAt * 1000).getDate()}</b><small>${new Date(l.unlockAt * 1000).toLocaleDateString("en-US", { month: "short" })}</small></span>
         <span class="m"><b data-no-i18n>${fmtAmt(BigInt(l.amount), l.decimals)} $${esc(l.symbol)}</b><small data-no-i18n>${pc(l.pctOfSupply) ? pc(l.pctOfSupply) + " · " : ""}#${l.id}</small></span>
         <span class="lkr-st${l.unlockAt - t <= 7 * DAY ? " soon" : ""}" data-no-i18n>${esc(leftLabel(l.unlockAt))}</span></a>`).join("")}</div>`
@@ -547,8 +587,11 @@
   async function bumpCount() {
     const el = $("lkr-count");
     if (!el) return;
+    if (!LIVE()) { el.classList.remove("arc-skel", "arc-skel-i"); el.textContent = tr("Soon"); countShown = null; return; }
+    const ch = CH;
     try {
       const n = Number(await withRetry(() => lockR().lockCount()));
+      if (ch !== CH) return;
       if (typeof window.arcCountUp === "function" && countShown !== n) window.arcCountUp(el, n, (v) => String(Math.round(v)));
       else el.textContent = String(n);
       countShown = n;
@@ -556,9 +599,39 @@
   }
 
   // ================= wiring =================
-  function init() {
+  // ---------- the chain switch ----------
+  function paintChain() {
+    const sw = $("lkr-chain");
+    if (sw) { sw.dataset.chain = CH; sw.querySelectorAll("[data-lockchain]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lockchain === CH))); }
+    const note = $("lkr-chainnote");
+    if (note) {
+      note.hidden = !RH();
+      note.textContent = tr(LIVE() ? "Robinhood Chain: the same ArcLock contract, deployed there. You pay Robinhood Chain gas in ETH." : "Robinhood Chain: opening soon — ArcLock isn't deployed there yet. You can already look tokens up.");
+      note.classList.toggle("soon", RH() && !LIVE());
+    }
     const ct = $("lkr-contract");
-    if (ct) ct.href = explorer("address", LOCK);
+    if (ct) { if (LIVE()) { ct.hidden = false; ct.href = explorer("address", LOCK_OF()); ct.textContent = RH() ? "Blockscout ↗" : "ArcScan ↗"; } else ct.hidden = true; }
+    const gas = $("lkr-gas");
+    if (gas) gas.textContent = tr(RH() ? "You pay only Robinhood Chain gas (ETH)." : "You pay only Arc gas.");
+    panel.dataset.chain = CH;
+  }
+  function setChain(c) {
+    c = c === "rh" ? "rh" : "arc";
+    if (c === CH) { paintChain(); return; }
+    CH = c;
+    try { localStorage.setItem(CK, CH); } catch { /* private mode */ }
+    pickSeq++; findSeq++; mineSeq++; taxKey = ""; mineCache = null; dashAt = 0;
+    F.token = null; F.info = null; F.bal = null;
+    const a = $("lkr-addr"); if (a) a.value = "";
+    const fa = $("lkr-find-addr"); if (fa) fa.value = "";
+    const tk = $("lkr-token"); if (tk) { tk.innerHTML = ""; tk.hidden = true; }
+    const fo = $("lkr-find-out"); if (fo) fo.innerHTML = `<p class="lkr-empty">${esc(tr("Paste a token address, or pick one of your locks below."))}</p>`;
+    say("", ""); setStep(0);
+    const tx = $("lkr-tax"); if (tx) { tx.hidden = true; tx.innerHTML = ""; }
+    paintChain(); renderChips(); paintSummary(); renderMine(true); loadDash(true); bumpCount();
+  }
+  function init() {
+    paintChain();
     // durations
     const durs = $("lkr-durs");
     durs.innerHTML = DURS.map(([d, l]) => `<button type="button" class="lkr-chip${d === F.days ? " on" : ""}" data-d="${d}">${l}</button>`).join("") +
@@ -568,6 +641,8 @@
     setBounds();
     panel.addEventListener("click", (e) => {
       const t = e.target;
+      const sw = t.closest("[data-lockchain]");
+      if (sw) { setChain(sw.dataset.lockchain); if (history.replaceState) history.replaceState(null, "", location.pathname + location.search + (RH() ? "#locker?c=rh" : "#locker")); return; }
       const d = t.closest("[data-d]");
       if (d) {
         F.days = Number(d.dataset.d); F.custom = null; dateIn.value = "";
@@ -584,7 +659,7 @@
       const fl = t.closest("[data-lkr-find]");
       if (fl) {
         e.preventDefault();
-        if (fl.dataset.lkrLock && history.replaceState) history.replaceState(null, "", location.pathname + location.search + `#locker?token=${fl.dataset.lkrFind}&lock=${fl.dataset.lkrLock}`);
+        if (fl.dataset.lkrLock && history.replaceState) history.replaceState(null, "", location.pathname + location.search + findHash(fl.dataset.lkrFind, fl.dataset.lkrLock));
         $("lkr-find-addr").value = fl.dataset.lkrFind; lookup(fl.dataset.lkrFind); $("lkr-find").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); return;
       }
       const sn = t.closest("[data-split-n]");
@@ -645,9 +720,12 @@
     renderChips();
     renderMine();
     loadDash();
+    // a link names its chain (#locker?c=rh&token=…); a token link without one is Arc's
+    if (/^#locker\?/.test(location.hash)) { const want = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]token=/.test(location.hash) ? "arc" : CH; if (want !== CH) setChain(want); }
     const m = /[?&]token=(0x[0-9a-fA-F]{40})/.exec(location.hash);
     if (m) { $("lkr-find-addr").value = m[1]; lookup(m[1]); }
   }
+  window.addEventListener("hashchange", () => { if (booted && active() && /^#locker/.test(location.hash)) onShow(); });
   const active = () => panel.classList.contains("active");
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "locker") onShow(); });
   if (active()) onShow();

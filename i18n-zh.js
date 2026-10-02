@@ -6037,6 +6037,15 @@
     "A Pons bonding curve — read from the chain because Dexscreener hasn't listed it yet.": "Pons 联合曲线——Dexscreener 尚未收录，因此直接从链上读取。",
     "A Uniswap v4 pool Pons created when it left the curve — read from the chain because Dexscreener hasn't listed it yet.": "离开曲线时 Pons 创建的 Uniswap v4 池——Dexscreener 尚未收录，因此直接从链上读取。",
     "Dexscreener doesn't list a pool for it on Robinhood Chain, so there may be no way to buy or sell.": "Dexscreener 未列出它在 Robinhood Chain 上的池子，可能无法买卖。",
+    "Lock any Arc or Robinhood Chain token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.": "将任意 Arc 或 Robinhood Chain 代币锁定到你选择的日期。在此之前谁都无法转移——包括你自己。日期只能延后、不能提前，每个锁定都在链上公开。",
+    "Robinhood Chain: the same ArcLock contract, deployed there. You pay Robinhood Chain gas in ETH.": "Robinhood Chain：部署在该链上的同一个 ArcLock 合约。Gas 以 Robinhood Chain 的 ETH 支付。",
+    "Robinhood Chain: opening soon — ArcLock isn't deployed there yet. You can already look tokens up.": "Robinhood Chain：即将开放——ArcLock 尚未在该链部署。现在已可查询代币。",
+    "Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet.": "Robinhood Chain 上的锁定即将开放——ArcLock 尚未在该链部署。",
+    "Waiting for Robinhood Chain…": "等待 Robinhood Chain 确认…",
+    "You pay only Robinhood Chain gas (ETH).": "只需支付 Robinhood Chain 的 Gas（ETH）。",
+    "You pay only Arc gas.": "只需支付 Arc 的 Gas。",
+    "There's no contract at that address on Robinhood Chain.": "Robinhood Chain 上该地址没有合约。",
+    "Couldn't reach Robinhood Chain to read that token — try again in a moment.": "无法连接 Robinhood Chain 读取该代币——请稍后再试。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

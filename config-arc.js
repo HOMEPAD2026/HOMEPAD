@@ -158,6 +158,10 @@ const CONFIG = {
   // Empty until contracts/scripts/deploy-arc-lock.js runs on arcMainnet;
   // the lock button and badge stay hidden while it's empty.
   ARCLOCK_ADDRESS: "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006",
+  // ArcLock on Robinhood Chain (the Locker's Arc | Robinhood switch): the same contract, deployed there with
+  // deploy-arc-lock.js --network robinhoodMainnet. Empty: Robinhood Chain shows as "opening soon" (tokens can be
+  // looked up, nothing can be locked). Keep api/_locker.mjs ARCLOCK_RH_DEFAULT in step.
+  ARCLOCK_RH_ADDRESS: "",
   // ArcLPLock (contracts/ArcLPLock.sol, scripts/deploy-arc-lplock.js): time locks
   // for Uniswap v4 LP positions, used by the Liquidity Manager. Deployed 27 Sep 2026 —
   // keep api/_liq-core.mjs LIQ_ADDR.lplock in step.

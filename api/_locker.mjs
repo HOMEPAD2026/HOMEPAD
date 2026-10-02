@@ -2,10 +2,27 @@
 // (/lock/<id>, its share card and the embeddable badge) and the Locker dashboard
 // (every lock ever made, grouped by token). ArcLock has no events we need here:
 // lockCount() + getLock(id) cover everything, batched into JSON-RPC calls.
-import { ethCalls, getCoin, isAddr, keccakHex, pad, strip, wAddr, wBig, latestBlock } from "./_arc.mjs";
+// Two chains (Oct 2026): Arc, and Robinhood Chain (chain "rh") — the same ArcLock contract deployed there
+// (config-arc.js ARCLOCK_RH_ADDRESS, or env ARCLOCK_RH_ADDRESS). Until it's set, Robinhood Chain answers
+// "not live" (live: false) and the page shows it as opening soon.
+import { ethCalls as arcCalls, getCoin, isAddr, keccakHex, pad, strip, wAddr, wBig, latestBlock as arcLatest } from "./_arc.mjs";
 import { ARCIRCLE_TOKEN, ARCIRCLE_POOL_ID, arcircleUsd } from "./_arcircle.mjs";
+import { evmChain } from "./_evm.mjs";
+import { RH_CFG } from "./_snap-rh.mjs";
 
 export const ARCLOCK = "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"; // config-arc.js ARCLOCK_ADDRESS
+export const ARCLOCK_RH_DEFAULT = ""; // config-arc.js ARCLOCK_RH_ADDRESS — keep in step
+const envOf = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
+let rhCh = null;
+const rh = () => (rhCh = rhCh || evmChain({ rpcs: () => RH_CFG.rpcs(), chainId: 4663, timeoutMs: 12000 }));
+/// the chain's ArcLock and its reads
+export function chainOf(c) {
+  if (c === "rh") {
+    const a = envOf("ARCLOCK_RH_ADDRESS") || ARCLOCK_RH_DEFAULT;
+    return { id: "rh", pre: "rh:", lock: isAddr(a) ? a : "", ethCalls: (calls, o) => rh().ethCalls(calls, o), latestBlock: () => rh().latestBlock() };
+  }
+  return { id: "arc", pre: "", lock: ARCLOCK, ethCalls: arcCalls, latestBlock: arcLatest };
+}
 const USDC = "0x3600000000000000000000000000000000000000";
 const PM = "0x8366a39CC670B4001A1121B8F6A443A643e40951";
 const lc = (a) => String(a || "").toLowerCase();
@@ -31,22 +48,34 @@ const decodeLock = (hex, id) => (hex && strip(hex).length >= 384 ? {
 } : null);
 
 /// symbol / name / decimals / supply of a token (cached 10 min)
-export function tokenMeta(token) {
+export function tokenMeta(token, chain = "arc") {
   token = lc(token);
-  return cached(`meta:${token}`, 600e3, async () => {
-    const [sy, nm, dc, ts] = await ethCalls([{ to: token, data: S.symbol }, { to: token, data: S.name }, { to: token, data: S.decimals }, { to: token, data: S.totalSupply }]);
+  const C = chainOf(chain);
+  return cached(`${C.pre}meta:${token}`, 600e3, async () => {
+    const [sy, nm, dc, ts] = await C.ethCalls([{ to: token, data: S.symbol }, { to: token, data: S.name }, { to: token, data: S.decimals }, { to: token, data: S.totalSupply }]);
     return { address: token, symbol: str(sy) || "TOKEN", name: str(nm) || "", decimals: dc ? Number(BigInt(dc)) : 18, supply: ts ? BigInt(ts).toString() : "0" };
   });
 }
-/// USD price of one token, or null: USDC, $ARCIRCLE (its Argus pool) and ArcPad coins (their pool)
-export function priceUsd(token) {
+/// Robinhood Chain: the deepest Dexscreener pair's USD price, or null
+async function dexUsd(token) {
+  try {
+    const r = await fetch(`https://api.dexscreener.com/token-pairs/v1/robinhood/${token}`, { signal: AbortSignal.timeout(5000) });
+    const j = r.ok ? await r.json() : null;
+    const p = (Array.isArray(j) ? j : []).filter((x) => x && x.priceUsd && x.baseToken && lc(x.baseToken.address) === token)
+      .sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0];
+    return p ? Number(p.priceUsd) || null : null;
+  } catch { return null; }
+}
+/// USD price of one token, or null: USDC, $ARCIRCLE (its Argus pool) and ArcPad coins (their pool); Dexscreener on Robinhood Chain
+export function priceUsd(token, chain = "arc") {
   token = lc(token);
+  if (chain === "rh") return cached(`rh:px:${token}`, 60e3, () => dexUsd(token));
   if (token === lc(USDC)) return Promise.resolve(1);
   return cached(`px:${token}`, 60e3, async () => {
     try {
       if (token === lc(ARCIRCLE_TOKEN)) {
         const slot = keccakHex(strip(ARCIRCLE_POOL_ID) + pad("6"));
-        const [s0] = await ethCalls([{ to: PM, data: S.extsload + strip(slot) }]);
+        const [s0] = await arcCalls([{ to: PM, data: S.extsload + strip(slot) }]);
         return s0 ? arcircleUsd(BigInt(s0) & ((1n << 160n) - 1n)) : null;
       }
       const c = await getCoin(token);
@@ -58,27 +87,30 @@ const pct = (amount, supply) => { const s = BigInt(supply || 0); return s > 0n ?
 const units = (raw, dec) => Number(BigInt(raw || 0)) / 10 ** dec;
 
 /// One lock → { id, token{…}, owner, amount, lockedAt, unlockAt, withdrawn, active, now, pctOfSupply, usd }
-export async function lockInfo(idIn) {
+export async function lockInfo(idIn, chain = "arc") {
   const id = Number(idIn);
   if (!Number.isInteger(id) || id < 0 || id > 1e9) return null;
-  return cached(`lock:${id}`, 30e3, async () => {
-    const [[hex], head] = await Promise.all([ethCalls([{ to: ARCLOCK, data: S.getLock + pad(id.toString(16)) }]), latestBlock().catch(() => null)]);
+  const C = chainOf(chain);
+  if (!C.lock) return null;
+  return cached(`${C.pre}lock:${id}`, 30e3, async () => {
+    const [[hex], head] = await Promise.all([C.ethCalls([{ to: C.lock, data: S.getLock + pad(id.toString(16)) }]), C.latestBlock().catch(() => null)]);
     const l = decodeLock(hex, id);
     if (!l) return null;
-    const [token, px] = await Promise.all([tokenMeta(l.token), priceUsd(l.token)]);
+    const [token, px] = await Promise.all([tokenMeta(l.token, C.id), priceUsd(l.token, C.id)]);
     const now = head && head.ts ? head.ts : Math.floor(Date.now() / 1000);
     const usd = px != null ? units(l.amount, token.decimals) * px : null;
-    return { ...l, token, now, active: !l.withdrawn && l.unlockAt > now, pctOfSupply: pct(l.amount, token.supply), usd };
+    return { ...l, chain: C.id, token, now, active: !l.withdrawn && l.unlockAt > now, pctOfSupply: pct(l.amount, token.supply), usd };
   });
 }
 
 /// Every lock of one token, with the totals the badge shows
-export async function tokenLocks(tokenIn) {
+export async function tokenLocks(tokenIn, chain = "arc") {
   const token = lc(tokenIn);
   if (!isAddr(token)) return null;
-  return cached(`tok:${token}`, 60e3, async () => {
-    const [hex] = await ethCalls([{ to: ARCLOCK, data: S.locksOfToken + pad(token) }]);
-    const meta = await tokenMeta(token);
+  const C = chainOf(chain);
+  return cached(`${C.pre}tok:${token}`, 60e3, async () => {
+    const [hex] = C.lock ? await C.ethCalls([{ to: C.lock, data: S.locksOfToken + pad(token) }]) : [null];
+    const meta = await tokenMeta(token, C.id);
     const now = Math.floor(Date.now() / 1000);
     const locks = [];
     if (hex) {
@@ -96,19 +128,21 @@ export async function tokenLocks(tokenIn) {
     const total = active.reduce((s, l) => s + BigInt(l.amount), 0n);
     const next = active.length ? Math.min(...active.map((l) => l.unlockAt)) : 0;
     const last = active.length ? Math.max(...active.map((l) => l.unlockAt)) : 0;
-    return { token: meta, locks: locks.length, active: active.length, locked: total.toString(), pctOfSupply: pct(total, meta.supply), nextUnlock: next, lastUnlock: last };
+    return { chain: C.id, live: !!C.lock, token: meta, locks: locks.length, active: active.length, locked: total.toString(), pctOfSupply: pct(total, meta.supply), nextUnlock: next, lastUnlock: last };
   });
 }
 
 /// The Locker dashboard: every lock grouped by token, the biggest (by share of supply), and what unlocks in 30 days
-export async function overview() {
-  return cached("overview", 60e3, async () => {
-    const [cnt] = await ethCalls([{ to: ARCLOCK, data: S.lockCount }]);
+export async function overview(chain = "arc") {
+  const C = chainOf(chain);
+  if (!C.lock) return { chain: C.id, live: false, at: Math.floor(Date.now() / 1000), locksEver: 0, activeLocks: 0, tokens: 0, tvlUsd: null, top: [], soon: [] };
+  return cached(`${C.pre}overview`, 60e3, async () => {
+    const [cnt] = await C.ethCalls([{ to: C.lock, data: S.lockCount }]);
     const n = cnt ? Number(BigInt(cnt)) : 0;
     const all = [];
     for (let s = 0; s < Math.min(n, 2000); s += 100) {
       const ids = Array.from({ length: Math.min(100, n - s) }, (_, k) => s + k);
-      const r = await ethCalls(ids.map((i) => ({ to: ARCLOCK, data: S.getLock + pad(i.toString(16)) })), { timeoutMs: 9000 });
+      const r = await C.ethCalls(ids.map((i) => ({ to: C.lock, data: S.getLock + pad(i.toString(16)) })), { timeoutMs: 9000 });
       r.forEach((hex, k) => { const l = decodeLock(hex, ids[k]); if (l) all.push(l); });
     }
     const now = Math.floor(Date.now() / 1000);
@@ -120,8 +154,8 @@ export async function overview() {
       byTok.set(l.token, t);
     }
     const toks = [...byTok.values()];
-    const metas = new Map(await Promise.all(toks.map(async (t) => [t.token, await tokenMeta(t.token).catch(() => null)])));
-    const prices = new Map(await Promise.all(toks.filter((t) => t.active).map(async (t) => [t.token, await priceUsd(t.token)])));
+    const metas = new Map(await Promise.all(toks.map(async (t) => [t.token, await tokenMeta(t.token, C.id).catch(() => null)])));
+    const prices = new Map(await Promise.all(toks.filter((t) => t.active).map(async (t) => [t.token, await priceUsd(t.token, C.id)])));
     let tvl = 0, priced = 0;
     const rows = toks.map((t) => {
       const m = metas.get(t.token) || { address: t.token, symbol: "TOKEN", name: "", decimals: 18, supply: "0" };
@@ -133,7 +167,7 @@ export async function overview() {
     const soon = all.filter((l) => !l.withdrawn && l.unlockAt > now && l.unlockAt <= now + 30 * 86400).sort((a, b) => a.unlockAt - b.unlockAt).slice(0, 12)
       .map((l) => { const m = metas.get(l.token); return { ...l, symbol: m ? m.symbol : "TOKEN", decimals: m ? m.decimals : 18, pctOfSupply: m ? pct(l.amount, m.supply) : null }; });
     return {
-      at: now, locksEver: n, activeLocks: all.filter((l) => !l.withdrawn && l.unlockAt > now).length,
+      chain: C.id, live: true, at: now, locksEver: n, activeLocks: all.filter((l) => !l.withdrawn && l.unlockAt > now).length,
       tokens: rows.filter((r) => r.active).length, tvlUsd: priced ? tvl : null,
       top: rows.filter((r) => r.active).sort((a, b) => (b.usd || 0) - (a.usd || 0) || (b.pctOfSupply || 0) - (a.pctOfSupply || 0)).slice(0, 10),
       soon,

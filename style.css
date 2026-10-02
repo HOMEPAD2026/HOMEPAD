@@ -12559,6 +12559,12 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .asc-chainsw{display:inline-grid;min-width:260px;margin:0 0 10px;}
 .asc-chainsw button{padding:7px 12px;font-size:.8rem;}
 .asc-chainnote{margin:-4px 0 10px;font-size:.74rem;color:#8c98a6;line-height:1.45;}
+/* Locker's chain switch (Arc / Robinhood Chain) */
+.lkr-chainsw{display:inline-grid;min-width:260px;margin:4px 0 10px;}
+.lkr-chainsw button{padding:7px 12px;font-size:.8rem;}
+.lkr-chainnote{margin:-4px 0 12px;font-size:.76rem;color:#8c98a6;line-height:1.45;}
+.lkr-chainnote.soon{color:#d9f27a;}
+@media (max-width:720px){ .lkr-chainsw{display:grid;width:100%;min-width:0;} }
 .asc-chaintag{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;color:#d9f27a;}
 .asc-scard b .aor-cdot{display:inline-block;width:7px;height:7px;vertical-align:middle;margin-left:2px;}
 @media (max-width:720px){ .asc-chainsw{display:grid;width:100%;min-width:0;} }

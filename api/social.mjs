@@ -337,10 +337,11 @@ export async function GET(req) {
     }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
-  // Locker (arc-locker.js): certificate, dashboard, badge
+  // Locker (arc-locker.js): certificate, dashboard, badge — &chain=rh reads ArcLock on Robinhood Chain
+  const lockChain = url.searchParams.get("chain") === "rh" ? "rh" : "arc";
   if (url.searchParams.has("lock")) {
     try {
-      const v = await locker.lockInfo(url.searchParams.get("lock"));
+      const v = await locker.lockInfo(url.searchParams.get("lock"), lockChain);
       return v ? json(200, v, v.active ? "public, max-age=30, s-maxage=60" : "public, max-age=300, s-maxage=600") : json(404, { error: "no such lock" });
     } catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
@@ -349,15 +350,15 @@ export async function GET(req) {
     const q = String(url.searchParams.get("locks") || "");
     if (scanner.limited(`lk:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
     try {
-      if (q === "overview") return json(200, await locker.overview(), "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
+      if (q === "overview") return json(200, await locker.overview(lockChain), "public, max-age=60, s-maxage=120, stale-while-revalidate=600");
       if (!isAddr(q)) return json(400, { error: "locks must be overview or a token address" });
-      return json(200, await locker.tokenLocks(q), "public, max-age=60, s-maxage=120");
+      return json(200, await locker.tokenLocks(q, lockChain), "public, max-age=60, s-maxage=120");
     } catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.has("lockbadge")) {
     const t = String(url.searchParams.get("lockbadge") || "");
     let d = null;
-    if (isAddr(t) && !scanner.limited(`lkb:${ip}`, 60, 60e3)) d = await locker.tokenLocks(t).catch(() => null);
+    if (isAddr(t) && !scanner.limited(`lkb:${ip}`, 60, 60e3)) d = await locker.tokenLocks(t, lockChain).catch(() => null);
     return new Response(locker.lockBadgeSvg(d), { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400", "access-control-allow-origin": "*" } });
   }
   // Liquidity Manager (arc-liquidity.js): pools, positions and locks for one token

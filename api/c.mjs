@@ -602,19 +602,20 @@ async function bridgePage(url) {
 </body></html>`, m && m.status === "complete" ? "public, max-age=0, s-maxage=86400" : "public, max-age=0, s-maxage=60");
 }
 
-// ---- Locker certificate (/lock/<id>) ----
+// ---- Locker certificate (/lock/<id>; Robinhood Chain: /lock/<id>?c=rh) ----
 async function lockPage(url) {
   const id = String(url.searchParams.get("id") || "");
-  if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#locker">`, "public, max-age=300");
+  const rh = url.searchParams.get("c") === "rh", cq = rh ? "?c=rh" : "", CN = rh ? "Robinhood Chain" : "Arc";
+  if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#locker${rh ? "?c=rh" : ""}">`, "public, max-age=300");
   let d = null;
-  try { d = await lockInfo(id); } catch { d = null; }
+  try { d = await lockInfo(id, rh ? "rh" : "arc"); } catch { d = null; }
   const sym = d ? "$" + d.token.symbol : "a token";
   const until = d ? new Date(d.unlockAt * 1000).toISOString().slice(0, 10) : "";
   const share = d && d.pctOfSupply != null ? ` — ${d.pctOfSupply >= 1 ? d.pctOfSupply.toFixed(2) : d.pctOfSupply.toFixed(3)}% of supply` : "";
   const title = !d ? "Locker — ARCIRCLE PAD" : d.active ? `${fmtAmt(d.amount, d.token.decimals)} ${sym} locked until ${until}` : d.withdrawn ? `${sym} lock #${id} — withdrawn` : `${sym} lock #${id} — unlocked ${until}`;
-  const desc = !d ? "Lock any Arc token until a date you pick. No owner, no admin, no fee." : `${fmtAmt(d.amount, d.token.decimals)} ${sym}${share}, locked in ArcLock on Arc. Nobody — not even the locker — can move it before ${until}.`;
-  const target = d ? `/arc#locker?token=${d.token.address}&lock=${id}` : "/arc#locker";
-  const image = `${SITE}/api/og?lock=${id}`;
+  const desc = !d ? `Lock any ${CN} token until a date you pick. No owner, no admin, no fee.` : `${fmtAmt(d.amount, d.token.decimals)} ${sym}${share}, locked in ArcLock on ${CN}. Nobody — not even the locker — can move it before ${until}.`;
+  const target = d ? `/arc#locker?${rh ? "c=rh&" : ""}token=${d.token.address}&lock=${id}` : `/arc#locker${rh ? "?c=rh" : ""}`;
+  const image = `${SITE}/api/og?lock=${id}${rh ? "&c=rh" : ""}`;
   return html(`<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -626,7 +627,7 @@ async function lockPage(url) {
 <meta property="og:site_name" content="ARCIRCLE PAD">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
-<meta property="og:url" content="${esc(`${SITE}/lock/${id}`)}">
+<meta property="og:url" content="${esc(`${SITE}/lock/${id}${cq}`)}">
 <meta property="og:image" content="${esc(image)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">

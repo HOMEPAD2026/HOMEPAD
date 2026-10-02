@@ -2,6 +2,7 @@
 // No constructor arguments, no owner, no admin: nothing to configure.
 //
 //   npx hardhat run scripts/deploy-arc-lock.js --network arcMainnet
+//   npx hardhat run scripts/deploy-arc-lock.js --network robinhoodMainnet   (the Locker on Robinhood Chain; gas in ETH)
 //
 // Needs DEPLOYER_PRIVATE_KEY (a wallet with a little USDC for gas on Arc)
 // and, for source verification, ARC_ETHERSCAN_API_KEY in contracts/.env.
@@ -21,6 +22,7 @@ async function main() {
   console.log("ArcLock deployed:", address);
   console.log("\nVerifying source on the explorer...");
   await verifyIfPossible(hre, { name: "ArcLock", address, contract: "contracts/ArcLock.sol:ArcLock", constructorArgs: [] });
-  console.log(`\nDone. In config-arc.js set:\n  LOCK_ADDRESS: "${address}",`);
+  const rh = /robinhood/i.test(hre.network.name);
+  console.log(`\nDone. In config-arc.js set:\n  ${rh ? "ARCLOCK_RH_ADDRESS" : "ARCLOCK_ADDRESS"}: "${address}",${rh ? `\nand in api/_locker.mjs ARCLOCK_RH_DEFAULT = "${address}" (or the Vercel env ARCLOCK_RH_ADDRESS).` : ""}`);
 }
 main().catch((e) => { console.error(e); process.exitCode = 1; });

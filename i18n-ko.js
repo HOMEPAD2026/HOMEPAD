@@ -5884,6 +5884,15 @@
     "A Pons bonding curve — read from the chain because Dexscreener hasn't listed it yet.": "Pons 본딩 커브 — Dexscreener에 아직 등록되지 않아 체인에서 직접 읽었어요.",
     "A Uniswap v4 pool Pons created when it left the curve — read from the chain because Dexscreener hasn't listed it yet.": "커브를 졸업할 때 Pons가 만든 Uniswap v4 풀 — Dexscreener에 아직 등록되지 않아 체인에서 직접 읽었어요.",
     "Dexscreener doesn't list a pool for it on Robinhood Chain, so there may be no way to buy or sell.": "Dexscreener에 로빈후드 체인 풀이 없어서 사고팔 방법이 없을 수도 있어요.",
+    "Lock any Arc or Robinhood Chain token until a date you pick. Nobody can move it before then — not even you. You can push the date later, never earlier, and every lock is public on-chain.": "Arc 또는 로빈후드 체인 토큰을 원하는 날짜까지 잠그세요. 그 전에는 아무도 — 본인도 — 옮길 수 없습니다. 날짜는 늦출 수만 있고 앞당길 수는 없으며, 모든 락은 온체인에 공개됩니다.",
+    "Robinhood Chain: the same ArcLock contract, deployed there. You pay Robinhood Chain gas in ETH.": "로빈후드 체인: 같은 ArcLock 컨트랙트를 그쪽에 배포했어요. 가스는 로빈후드 체인 ETH로 내요.",
+    "Robinhood Chain: opening soon — ArcLock isn't deployed there yet. You can already look tokens up.": "로빈후드 체인: 곧 열려요 — ArcLock이 아직 배포되지 않았어요. 토큰 조회는 지금도 돼요.",
+    "Locking on Robinhood Chain opens soon — ArcLock isn't deployed there yet.": "로빈후드 체인 락은 곧 열려요 — ArcLock이 아직 배포되지 않았어요.",
+    "Waiting for Robinhood Chain…": "로빈후드 체인 확인 대기 중…",
+    "You pay only Robinhood Chain gas (ETH).": "로빈후드 체인 가스(ETH)만 내면 돼요.",
+    "You pay only Arc gas.": "Arc 가스만 내면 돼요.",
+    "There's no contract at that address on Robinhood Chain.": "로빈후드 체인의 그 주소에는 컨트랙트가 없어요.",
+    "Couldn't reach Robinhood Chain to read that token — try again in a moment.": "로빈후드 체인에 연결하지 못해 토큰을 읽지 못했어요 — 잠시 후 다시 시도해 주세요.",
   };
 
 
