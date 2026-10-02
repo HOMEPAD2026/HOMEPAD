@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790983380"></script>
+<script src="arc-log.js?v=1790985202"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790983380">
+<link rel="stylesheet" href="style.css?v=1790985202">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1729,27 +1729,32 @@
         <section class="asc-guide stk-guide" aria-labelledby="stk-guide-h">
           <h2 id="stk-guide-h">ARCIRCLE Staking guide</h2>
           <details open><summary><h3>What is veARCIRCLE?</h3></summary>
-            <p>Lock $ARCIRCLE for anywhere from a week to a year and you get veARCIRCLE: your share of the weekly USDC and your weight in the weekly pool vote. veARCIRCLE = the amount locked × the time left until it unlocks ÷ one year. 1,000 $ARCIRCLE locked for a year starts at about 1,000 veARCIRCLE; locked for three months, about 250. It runs down to zero as the unlock date gets closer — extend the lock to keep it up. veARCIRCLE can't be sent or sold.</p>
+            <p>Lock $ARCIRCLE for anywhere from a week to a year and you get veARCIRCLE: your share of the weekly USDC and your weight in the weekly pool vote. veARCIRCLE = the amount locked × the time left until it unlocks ÷ one year. 1,000 $ARCIRCLE locked for a year starts at about 1,000 veARCIRCLE; locked for three months, about 250. It runs down to zero as the unlock date gets closer — extend the lock to keep it up, or make it a max lock. veARCIRCLE can't be sent or sold.</p>
           </details>
           <details><summary><h3>Locks</h3></summary>
             <ul>
               <li>One lock per wallet. Add more $ARCIRCLE to it, or push its unlock date out, any time.</li>
               <li>Unlock dates fall on the weekly boundary (Thursday 00:00 UTC), at most a year ahead.</li>
               <li>There is no early exit: the $ARCIRCLE stays locked until the unlock date, then you withdraw all of it in one transaction.</li>
+              <li>The page draws your veARCIRCLE over the next year, and shows what an extension or a top-up would change before you sign.</li>
             </ul>
+          </details>
+          <details><summary><h3>Max lock</h3></summary>
+            <p>A max lock is always worth a full year: its veARCIRCLE equals the $ARCIRCLE in it and never runs down, so you don't have to keep extending. Start one with the Max lock switch, or turn a running lock into one. When you want your $ARCIRCLE back, turn max off: the lock then unlocks a year later (on the weekly boundary) and runs down like any other. You can switch it back to max any time before then.</p>
           </details>
           <details><summary><h3>Weekly USDC</h3></summary>
             <p>ARCIRCLE Orders and ARCIRCLE Predict fees go to the ARCIRCLE fee burn: half buys $ARCIRCLE and burns it, half goes to the ARCIRCLE PAD treasury. Half of the treasury's half goes to stakers. The treasury funds it week by week, and the page shows what has come in, what is due and what has been funded.</p>
             <p>A week's USDC is shared by everyone who held veARCIRCLE when that week began, in proportion to their veARCIRCLE then. It becomes claimable once the week is over and never expires. A lock made mid-week starts earning from the next week.</p>
+            <p>"Claim and add to my lock" claims your USDC, swaps it for $ARCIRCLE through ARCIRCLE Orders in $ARCIRCLE's own pool (0.1% fee, at most 3% below the quote) and adds it to your lock, one wallet step at a time. The yearly rate shown is last week's USDC per veARCIRCLE × 52 against the $ARCIRCLE price, for a max lock — it moves every week with the fees. Your last eight weeks, with your share of each, download as a CSV.</p>
           </details>
           <details><summary><h3>The pool vote</h3></summary>
-            <p>Each week, split your veARCIRCLE across up to 8 pools: ARCIRCLE PAD launches, ARCIRCLE Predict markets and $ARCIRCLE's own pool. Voting costs nothing but gas, and voting again replaces your vote for that week. The result tells ARCIRCLE PAD where to focus — markets, promotion, listings. Rewards for liquidity providers in the chosen pools are planned for a later version.</p>
+            <p>Each week, split your veARCIRCLE across up to 8 pools: ARCIRCLE PAD launches, ARCIRCLE Predict markets and $ARCIRCLE's own pool. Voting costs nothing but gas, and voting again replaces your vote for that week. The result tells ARCIRCLE PAD where to focus — markets, promotion, listings. The week's #1 pool gets an ARCIRCLE Predict market, a feature post from ARCIA on X and Telegram, and first place in line for a Builder Mine. "Repeat last week" fills in your previous split, and "Equal split" spreads your picks evenly. Rewards for liquidity providers in the chosen pools are planned for a later version.</p>
           </details>
           <details><summary><h3>Safety</h3></summary>
             <p>The contract has no owner and no admin: nobody can move locked $ARCIRCLE or the funded USDC, change the rules or pause it. It follows Curve's veCRV design. It is new, though, so lock what you're comfortable holding until the unlock date. The USDC depends on ARCIRCLE Orders and Predict fees, so it goes up and down with how much they're used.</p>
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
-            <p>GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&amp;u=0x… returns a wallet's lock, veARCIRCLE, claimable USDC and this week's vote.</p>
+            <p>GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&amp;u=0x… returns a wallet's lock, veARCIRCLE, tier, claimable USDC, this week's and last week's vote and its last eight weeks. arcircle.app/stake/0x… is a wallet's share card. On Telegram, /stakealerts in a DM with ARCIA (after linking your wallet) sends your claimable USDC each new week and a reminder a week before your unlock date; /stakealerts off stops it.</p>
           </details>
         </section>
       </section>
@@ -2043,6 +2048,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790983380"></script>
+<script src="arcpad.bundle.js?v=1790985202"></script>
 </body>
 </html>

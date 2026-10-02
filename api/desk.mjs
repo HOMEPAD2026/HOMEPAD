@@ -26,7 +26,8 @@
 //   GET /api/desk?chain=sol&orderstick=1&key=…    the Solana keeper (api/_orders-sol.mjs; its own cron entry, every minute)
 // ARCIRCLE Staking (api/_stake.mjs, contracts/ArcircleStaking.sol) — veARCIRCLE:
 //   GET /api/desk?stake=state                totals, weekly rewards, pool votes, stakers, what the treasury owes stakers
-//   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC and this week's vote
+//   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC, this and last week's vote, 8 weeks' earnings
+//   GET /api/desk?stake=card&u=0x…           a wallet's lock for its share card (/stake/<wallet>)
 // ARCIRCLE Predict (api/_predict.mjs, contracts/ArcPredict.sol) — UP / DOWN rounds on Arc tokens, in USDC:
 //   GET /api/desk?predict=state              every market, its running round and its last results
 //   GET /api/desk?predict=mine&u=0x…         a wallet's bets, what it can claim, its referrals and stats
@@ -56,6 +57,7 @@ export async function GET(req) {
   if (q.stake) {
     try {
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
+      if (q.stake === "card") { const r = await stake.card(String(q.u || "")); return json(r || { error: "no lock" }, r ? 200 : 404, "public, max-age=30, s-maxage=60"); }
       return json(await stake.state({ store: st }), 200, "public, max-age=5, s-maxage=10");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }

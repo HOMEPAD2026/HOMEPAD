@@ -1,4 +1,5 @@
-// Deploys ArcircleStaking — veARCIRCLE: lock $ARCIRCLE up to a year, weekly USDC rewards, weekly pool votes
+// Deploys ArcircleStaking — veARCIRCLE: lock $ARCIRCLE up to a year (or a max lock that never runs down), weekly USDC
+// rewards, weekly pool votes
 // (contracts/ArcircleStaking.sol).
 //
 //   npx hardhat run scripts/deploy-arcircle-staking.js --network arcMainnet

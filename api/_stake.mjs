@@ -5,7 +5,7 @@
 //   me(user)    a wallet's lock, veARCIRCLE, claimable USDC and this week's vote
 // Read-only: nobody's key is used here. Contract: env STAKING_ADDRESS ("none" turns it off), else STAKING_DEFAULT.
 import { evmChain } from "./_evm.mjs";
-import { RPCS, allPools } from "./_arc.mjs";
+import { RPCS, allPools, getCoin } from "./_arc.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
 export const STAKING_DEFAULT = ""; // set once deployed (contracts/scripts/deploy-arcircle-staking.js)
@@ -30,6 +30,8 @@ export const CFG = {
   predictMarkets: async () => { try { const p = await import("./_predict.mjs"); const s = await p.state(); return (s.markets || []).map((m) => ({ poolId: m.poolId, token: m.token })); } catch { return []; } },
   arcpadPools: async () => { try { return (await allPools()).map((p) => ({ poolId: p.poolId, token: p.token })); } catch { return []; } },
   now: () => Math.floor(Date.now() / 1000),
+  pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  logos: true, // token pictures (ArcPad records, Dexscreener) — off in tests
 };
 export function configure(o) { Object.assign(CFG, o); ch = null; mem.clear(); }
 let ch = null;
@@ -74,7 +76,7 @@ async function scan(store) {
     ]);
     for (const l of mine || []) {
       const t0 = l.topics[0], who = l.topics[1] ? "0x" + l.topics[1].slice(26) : "";
-      if (t0 === T.Locked) st.locks[who] = { a: W(l.data, 1).toString(), end: Number(W(l.data, 2)), b: parseInt(l.blockNumber, 16) };
+      if (t0 === T.Locked) st.locks[who] = { a: W(l.data, 1).toString(), end: Number(W(l.data, 2)), b: parseInt(l.blockNumber, 16) }; // end 0 = a max lock
       else if (t0 === T.Withdrawn) delete st.locks[who];
       else if (t0 === T.Funded) st.funded.unshift({ w: Number(BigInt(l.topics[1])), by: "0x" + l.topics[2].slice(26), a: W(l.data, 0).toString(), tx: l.transactionHash });
       else if (t0 === T.Voted) { const w = String(Number(BigInt(l.topics[1]))), p = l.topics[3]; (st.votes[w] = st.votes[w] || []).includes(p) || st.votes[w].push(p); }
@@ -118,8 +120,71 @@ async function directory() {
   for (const p of CFG.extraPools()) add(p.poolId, p.token, p.src || "extra");
   const meta = await tokenMeta(list.map((x) => x.token)).catch(() => ({}));
   for (const x of list) Object.assign(x, meta[x.token] || {});
+  const logos = await Promise.all(list.map((x) => logoOf(x.token).catch(() => null)));
+  list.forEach((x, i) => { x.logo = logos[i] || null; });
   mem.set("dir", { at: Date.now(), v: list });
   return list;
+}
+/// a staker's badge: by veARCIRCLE, and whether it's a max lock
+export function tierOf(ve, max) {
+  const t = ve >= 1e6 ? "Diamond" : ve >= 1e5 ? "Gold" : ve >= 1e4 ? "Silver" : ve >= 1e3 ? "Bronze" : ve > 0 ? "Member" : null;
+  return t ? { name: t, max: !!max } : null;
+}
+const logoCache = new Map();
+async function logoOf(token) {
+  token = lc(token);
+  if (token === ARCIRCLE) return "/images/arcircle-mark-sm.png";
+  if (!CFG.logos) return null;
+  const h = logoCache.get(token);
+  if (h && Date.now() - h.t < 86400e3) return h.v;
+  let v = null;
+  try { const c = await getCoin(token); if (c && /^https?:\/\//.test(c.imageUrl || "")) v = c.imageUrl; } catch { /* next */ }
+  if (!v) {
+    try {
+      const r = await fetch(`https://api.dexscreener.com/token-pairs/v1/arc/${token}`, { signal: AbortSignal.timeout(4000) });
+      const j = r.ok ? await r.json() : null;
+      const p = Array.isArray(j) ? j.find((x) => x && x.info && x.info.imageUrl) : null;
+      v = p ? p.info.imageUrl : null;
+    } catch { /* none */ }
+  }
+  logoCache.set(token, { t: Date.now(), v });
+  return v;
+}
+/// $ARCIRCLE's own pool key (the fee burn's): the page's "claim and add to my lock" swaps through it
+async function arcPoolKey() {
+  const hit = mem.get("pk");
+  if (hit) return hit.v;
+  let v = null;
+  try {
+    const [k] = await chain().ethCalls([call(CFG.feeBurn, "poolKey()")]);
+    if (k) { const h = strip(k); const wd = (i) => h.slice(i * 64, (i + 1) * 64); const sint = (x, bits) => { let n = BigInt("0x" + x); const m = 1n << BigInt(bits); n &= m - 1n; return Number(n >= m / 2n ? n - m : n); };
+      v = { currency0: "0x" + wd(0).slice(24), currency1: "0x" + wd(1).slice(24), fee: Number(BigInt("0x" + wd(2))), tickSpacing: sint(wd(3), 24), hooks: "0x" + wd(4).slice(24) }; }
+  } catch { v = null; }
+  if (v) mem.set("pk", { v });
+  return v;
+}
+/// $ARCIRCLE's price in USDC from its own pool (the one the fee burn trades in)
+async function arcPrice() {
+  const hit = mem.get("px");
+  if (hit && Date.now() - hit.at < 60e3) return hit.v;
+  let v = null;
+  try {
+    const [k] = await chain().ethCalls([call(CFG.feeBurn, "poolKey()")]);
+    if (k) {
+      const c0 = lc("0x" + strip(k).slice(24, 64)), c1 = lc("0x" + strip(k).slice(88, 128));
+      const id = kec0(strip(k).slice(0, 5 * 64));
+      const slot = kec0(strip(id).padStart(64, "0") + "6".padStart(64, "0"));
+      const [w] = await chain().ethCalls([{ to: CFG.pm, data: sel("extsload(bytes32)") + strip(slot) }]);
+      const sq = Number(BigInt(w || "0x0") & ((1n << 160n) - 1n)) / 2 ** 96;
+      const tokenIs0 = c0 === ARCIRCLE, quote = tokenIs0 ? c1 : c0;
+      const qd = quote === "0x0000000000000000000000000000000000000000" ? 18 : 6;
+      const raw = sq * sq; // currency1 per currency0, raw
+      const human = tokenIs0 ? raw * 10 ** (18 - qd) : raw > 0 ? 1 / (raw * 10 ** (qd - 18)) : 0;
+      v = human > 0 && isFinite(human) ? human : null;
+    }
+  } catch { v = null; }
+  mem.set("px", { at: Date.now(), v });
+  return v;
 }
 function kec0(hex) { const b = Uint8Array.from((hex.match(/../g) || []).map((x) => parseInt(x, 16))); return "0x" + Array.from(keccak_256(b), (x) => x.toString(16).padStart(2, "0")).join(""); }
 
@@ -144,45 +209,75 @@ export async function state({ store } = {}) {
   const byId = new Map(dir.map((d) => [d.poolId, d]));
   const votes = vweeks.map((w, k) => {
     const pools = vq.map((x, i) => ({ ...x, ve: num(W(vr[i], 0), 18) })).filter((x) => x.w === w && x.ve > 0)
-      .map((x) => { const d = byId.get(lc(x.p)) || {}; return { poolId: lc(x.p), token: d.token || null, sym: d.sym || null, ve: x.ve }; })
+      .map((x) => { const d = byId.get(lc(x.p)) || {}; return { poolId: lc(x.p), token: d.token || null, sym: d.sym || null, logo: d.logo || null, ve: x.ve }; })
       .sort((a, b) => b.ve - a.ve);
     return { week: w, total: num(W(vr[vq.length + k], 0), 18), pools };
   });
-  const stakers = Object.entries(st.locks).map(([a, x]) => ({ a, amount: num(BigInt(x.a), 18), end: x.end })).filter((x) => x.amount > 0).sort((a, b) => b.amount - a.amount);
+  const tnow = head.ts;
+  const stakers = Object.entries(st.locks).map(([a, x]) => { const amount = num(BigInt(x.a), 18), max = x.end === 0; const ve = max ? amount : x.end > tnow ? (amount * (x.end - tnow)) / (365 * 86400) : 0; return { a, amount, end: x.end, max, ve, tier: tierOf(ve, max) }; })
+    .filter((x) => x.amount > 0).sort((a, b) => b.ve - a.ve || b.amount - a.amount);
+  const price = await arcPrice();
+  const arcPool = await arcPoolKey();
+  const last = wk.find((w) => !w.open && w.usdc > 0) || null;
+  // what a full week paid per veARCIRCLE, as a yearly rate on $ARCIRCLE in a max lock (1 $ARCIRCLE = 1 veARCIRCLE)
+  const apr = last && last.ve > 0 && price ? ((last.usdc / last.ve) * 52) / price * 100 : null;
   // the treasury's share of the fees since staking opened, half of it promised to stakers
   const feesIn = num(BigInt(st.fees), 6), funded = num(v.totalFunded, 6);
   const due = feesIn / 2;
   const out = {
     live: true, address: A, chainId: CFG.chainId, now: head.ts, week: cur, startWeek: start, nextWeek: cur + WEEK,
     totals: { locked: num(v.totalLocked, 18), ve: num(v.totalSupply, 18), funded, claimed: num(v.totalClaimed, 6), stakers: stakers.length },
-    weeks: wk, votes,
+    weeks: wk, votes, price, apr, arcPool, pot: wk[0] && wk[0].open ? wk[0].usdc : 0, last: last ? { week: last.week, usdc: last.usdc, ve: last.ve } : null,
     treasury: { feesIn, due, funded, owed: Math.max(0, Math.round((due - funded) * 1e6) / 1e6), fills: st.feesN },
     funded: st.funded.slice(0, 12).map((f) => ({ ...f, a: num(BigInt(f.a), 6) })),
     stakers: stakers.slice(0, 20),
-    pools: dir.map((d) => ({ poolId: d.poolId, token: d.token, sym: d.sym, name: d.name, src: d.src })),
+    pools: dir.map((d) => ({ poolId: d.poolId, token: d.token, sym: d.sym, name: d.name, src: d.src, logo: d.logo || null })),
     rules: { maxLockDays: 365, week: WEEK, rewards: "USDC", share: "half of the treasury's share of ARCIRCLE Orders and Predict fees" },
   };
   mem.set("state", { at: Date.now(), v: out });
   return out;
 }
 
+async function voteOf(A, week, u) {
+  const vp = await chain().ethCalls([call(A, "votedPools(uint256,address)", week, u)]);
+  const h = strip(vp[0] || "");
+  let pools = [];
+  try { const n = Number(BigInt("0x" + h.slice(64, 128))); pools = Array.from({ length: n }, (_, i) => "0x" + h.slice(128 + i * 64, 192 + i * 64)); } catch { pools = []; }
+  const pv = pools.length ? await chain().ethCalls(pools.map((p) => call(A, "userPoolVote(uint256,address,bytes32)", week, u, p))) : [];
+  return pools.map((p, i) => ({ poolId: lc(p), ve: num(W(pv[i], 0), 18) }));
+}
 export async function me(user) {
   const A = CFG.address();
   if (!A) return { live: false };
   if (!isAddr(user)) return { error: "u must be an address" };
   const u = lc(user);
-  const [lk, bal, cl, nw, cw] = await chain().ethCalls([call(A, "locked(address)", u), call(A, "balanceOf(address)", u), call(A, "claimable(address)", u), call(A, "nextClaimWeek(address)", u), { to: A, data: S.currentWeek }]);
-  const cur = Number(W(cw, 0));
-  const vp = await chain().ethCalls([call(A, "votedPools(uint256,address)", cur, u)]);
-  const h = strip(vp[0] || "");
-  let pools = [];
-  try { const n = Number(BigInt("0x" + h.slice(64, 128))); pools = Array.from({ length: n }, (_, i) => "0x" + h.slice(128 + i * 64, 192 + i * 64)); } catch { pools = []; }
-  const pv = pools.length ? await chain().ethCalls(pools.map((p) => call(A, "userPoolVote(uint256,address,bytes32)", cur, u, p))) : [];
+  const [lk, bal, cl, nw, cw, sw] = await chain().ethCalls([call(A, "locked(address)", u), call(A, "balanceOf(address)", u), call(A, "claimable(address)", u), call(A, "nextClaimWeek(address)", u), { to: A, data: S.currentWeek }, { to: A, data: S.startWeek }]);
+  const cur = Number(W(cw, 0)), start = Number(W(sw, 0));
+  // the last 8 finished weeks: what each paid in all, and this wallet's part of it
+  const weeks = [];
+  for (let k = 1; k <= 8; k++) { const w = cur - k * WEEK; if (w < start) break; weeks.push(w); }
+  const hr = weeks.length ? await chain().ethCalls(weeks.flatMap((w) => [call(A, "tokensPerWeek(uint256)", w), call(A, "weekSupply(uint256)", w), call(A, "balanceOfAt(address,uint256)", u, w)])) : [];
+  const history = weeks.map((w, i) => {
+    const tpw = W(hr[i * 3], 0), sup = W(hr[i * 3 + 1], 0), b = W(hr[i * 3 + 2], 0);
+    return { week: w, paid: num(tpw, 6), ve: num(b, 18), share: sup > 0n ? Number((b * 1000000n) / sup) / 1e4 : 0, earned: sup > 0n ? num((tpw * b) / sup, 6) : 0 };
+  });
+  const [vote, lastVote] = await Promise.all([voteOf(A, cur, u), voteOf(A, cur - WEEK, u)]);
+  const lock = { amount: num(W(lk, 0), 18), end: Number(W(lk, 1)), max: W(lk, 2) === 1n };
+  const ve = num(W(bal, 0), 18);
   return {
     live: true, user: u, week: cur,
-    lock: { amount: num(W(lk, 0), 18), end: Number(W(lk, 1)) },
-    ve: num(W(bal, 0), 18),
+    lock, ve, tier: tierOf(ve, lock.max),
     claimable: num(W(cl, 0), 6), claimUntil: Number(W(cl, 1)), nextClaimWeek: Number(W(nw, 0)),
-    vote: pools.map((p, i) => ({ poolId: lc(p), ve: num(W(pv[i], 0), 18) })),
+    vote, lastVote, history,
   };
+}
+
+/// one wallet's lock for its share card (/stake/<wallet>)
+export async function card(user) {
+  if (!isAddr(user)) return null;
+  const [m, st] = await Promise.all([me(user), state().catch(() => null)]);
+  if (!m || !m.live) return null;
+  const rank = st && st.stakers ? st.stakers.findIndex((x) => x.a === lc(user)) + 1 : 0;
+  return { user: lc(user), lock: m.lock, ve: m.ve, tier: m.tier, rank: rank || null, stakers: st ? st.totals.stakers : null,
+    earned: m.history.reduce((a, h) => a + h.earned, 0), apr: st ? st.apr : null };
 }

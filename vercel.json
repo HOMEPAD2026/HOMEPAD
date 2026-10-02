@@ -173,6 +173,10 @@
       "destination": "/api/c?view=predict&id=:id"
     },
     {
+      "source": "/stake/:id",
+      "destination": "/api/c?view=stake&id=:id"
+    },
+    {
       "source": "/mine/:id",
       "destination": "/api/mine?view=page&page=:id"
     },

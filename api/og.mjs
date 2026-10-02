@@ -13,6 +13,7 @@ import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx } from "./_burnvote.mjs";
 import { lockInfo } from "./_locker.mjs";
 import { roundCard as predictRound } from "./_predict.mjs";
+import { card as stakeCardOf } from "./_stake.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
@@ -142,6 +143,13 @@ export async function GET(req) {
     return new ImageResponse(await mineCard(await markP, url.searchParams.get("mine"), url.searchParams.get("w"), url.searchParams.get("c"), url.searchParams.get("k")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
+    });
+  }
+  if (url.searchParams.has("stake")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await stakeCard(await markP, url.searchParams.get("stake")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" },
     });
   }
   if (url.searchParams.has("predict")) {
@@ -774,6 +782,39 @@ async function voteCard(mark, tx) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "Burn to vote · no refunds, no changes"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, "arcircle.app/circle")),
+  ]);
+}
+
+// ---- ARCIRCLE Staking: one wallet's lock (/stake/<wallet>) ----
+async function stakeCard(mark, user) {
+  let d = null;
+  try { d = await stakeCardOf(user); } catch { d = null; }
+  const v = "#b58bff", g = "#39ff88";
+  const big = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : n.toFixed(0));
+  if (!d || !(d.lock && d.lock.amount > 0)) {
+    return frame([
+      brandRow(mark, pill("STAKING", v), "ARCIRCLE Staking · Circle's Arc"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 92, fontWeight: 800, lineHeight: 1.02 }, "Lock $ARCIRCLE."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Earn USDC every week. Vote on where ARCIRCLE PAD goes.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#staking"),
+    ]);
+  }
+  const L = d.lock;
+  const until = L.max ? "Max lock" : new Date(L.end * 1000).toISOString().slice(0, 10);
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 38, fontWeight: 800, color }, value));
+  return frame([
+    brandRow(mark, pill(d.tier ? d.tier.name.toUpperCase() + (L.max ? " · MAX" : "") : "STAKER", v), "ARCIRCLE Staking · Circle's Arc"),
+    h("div", { flexDirection: "column", gap: 10 },
+      h("div", { fontSize: 32, color: v, fontWeight: 700 }, L.max ? "Locked for good, at full power" : `Locked until ${until}`),
+      h("div", { fontSize: 104, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `${big(L.amount)} $ARCIRCLE`),
+      h("div", { fontSize: 30, color: "#b9c8b3" }, `${big(d.ve)} veARCIRCLE · USDC every week · a say in the pool vote`)),
+    h("div", { gap: 16 },
+      box("Rank", d.rank ? `#${d.rank}${d.stakers ? ` of ${d.stakers}` : ""}` : "—"),
+      box("Earned (8 weeks)", `$${(d.earned || 0).toFixed(2)}`, g),
+      box("Lock", until, v)),
   ]);
 }
 

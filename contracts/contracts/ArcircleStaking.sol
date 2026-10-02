@@ -10,6 +10,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 ///         long, and runs down to zero as the unlock date gets closer (amount × time left ÷ 1 year).
 ///           • one lock per wallet: add to it or push its unlock date out at any time; withdraw only after it ends —
 ///             there is no early exit
+///           • or a max lock: veARCIRCLE stays at the full amount (a year's worth) and never runs down. Turning it off
+///             starts a normal one-year lock from that moment
 ///           • rewards in USDC: anyone can fund a week (the ARCIRCLE PAD treasury sends half of what it receives from
 ///             ARCIRCLE Orders and Predict fees). Week w's rewards go to whoever held veARCIRCLE when week w began,
 ///             pro rata, and are claimable once week w is over
@@ -29,11 +31,12 @@ contract ArcircleStaking is ReentrancyGuard {
     IERC20 public immutable reward; // USDC (Arc's ERC-20 face, 6 decimals)
     uint256 public immutable startWeek; // the first week rewards can be funded for
 
-    struct Lock { uint128 amount; uint64 end; }
-    struct Point { int128 bias; int128 slope; uint64 ts; }
+    struct Lock { uint128 amount; uint64 end; bool permanent; } // a max lock has end 0
+    struct Point { int128 bias; int128 slope; uint64 ts; uint128 perm; } // perm: max-locked $ARCIRCLE (counts 1:1)
 
     mapping(address => Lock) public locked;
     uint256 public totalLocked;
+    uint256 public permanentTotal; // $ARCIRCLE in max locks
 
     uint256 public epoch;
     mapping(uint256 => Point) public pointHistory; // global
@@ -55,6 +58,7 @@ contract ArcircleStaking is ReentrancyGuard {
 
     event Locked(address indexed user, uint256 added, uint256 amount, uint256 end);
     event Withdrawn(address indexed user, uint256 amount);
+    event MaxLock(address indexed user, bool on, uint256 end);
     event Funded(uint256 indexed week, address indexed from, uint256 amount);
     event Claimed(address indexed user, uint256 amount, uint256 untilWeek);
     event Voted(uint256 indexed week, address indexed user, bytes32 indexed pool, uint256 weight);
@@ -69,12 +73,14 @@ contract ArcircleStaking is ReentrancyGuard {
     error NoStakers();
     error TooEarly();
     error BadVote();
+    error MaxLocked();
+    error NotMaxLocked();
 
     constructor(IERC20 _token, IERC20 _reward) {
         token = _token;
         reward = _reward;
         startWeek = (block.timestamp / WEEK) * WEEK;
-        pointHistory[0] = Point(0, 0, uint64(block.timestamp));
+        pointHistory[0] = Point(0, 0, uint64(block.timestamp), 0);
     }
 
     // ================================================================ locks
@@ -85,37 +91,67 @@ contract ArcircleStaking is ReentrancyGuard {
         uint256 end = (unlockTime / WEEK) * WEEK;
         if (end <= block.timestamp || end > block.timestamp + MAXTIME) revert BadUnlock();
         uint256 got = _pull(amount);
-        _update(msg.sender, old, Lock(uint128(got), uint64(end)), got);
+        _update(msg.sender, old, Lock(uint128(got), uint64(end), false), got);
     }
 
-    /// @notice Add `amount` $ARCIRCLE to a running lock (same unlock date).
+    /// @notice Lock `amount` $ARCIRCLE as a max lock: veARCIRCLE equals the amount and doesn't run down.
+    function createMaxLock(uint256 amount) external nonReentrant {
+        Lock memory old = locked[msg.sender];
+        if (old.amount > 0) revert LockExists();
+        uint256 got = _pull(amount);
+        _update(msg.sender, old, Lock(uint128(got), 0, true), got);
+        emit MaxLock(msg.sender, true, 0);
+    }
+
+    /// @notice Add `amount` $ARCIRCLE to a running lock (same unlock date, or still a max lock).
     function increaseAmount(uint256 amount) external nonReentrant {
         Lock memory old = locked[msg.sender];
         if (old.amount == 0) revert NoLock();
-        if (old.end <= block.timestamp) revert LockExpired();
+        if (!old.permanent && old.end <= block.timestamp) revert LockExpired();
         uint256 got = _pull(amount);
-        _update(msg.sender, old, Lock(old.amount + uint128(got), old.end), got);
+        _update(msg.sender, old, Lock(old.amount + uint128(got), old.end, old.permanent), got);
     }
 
     /// @notice Push a running lock's unlock date out to `unlockTime` (rounded down to a week; at most a year from now).
     function increaseUnlockTime(uint256 unlockTime) external nonReentrant {
         Lock memory old = locked[msg.sender];
         if (old.amount == 0) revert NoLock();
+        if (old.permanent) revert MaxLocked();
         if (old.end <= block.timestamp) revert LockExpired();
         uint256 end = (unlockTime / WEEK) * WEEK;
         if (end <= old.end) revert NotLonger();
         if (end > block.timestamp + MAXTIME) revert BadUnlock();
-        _update(msg.sender, old, Lock(old.amount, uint64(end)), 0);
+        _update(msg.sender, old, Lock(old.amount, uint64(end), false), 0);
+    }
+
+    /// @notice Turn a running lock into a max lock: veARCIRCLE goes to the full amount and stays there.
+    function lockMax() external nonReentrant {
+        Lock memory old = locked[msg.sender];
+        if (old.amount == 0) revert NoLock();
+        if (old.permanent) revert MaxLocked();
+        if (old.end <= block.timestamp) revert LockExpired();
+        _update(msg.sender, old, Lock(old.amount, 0, true), 0);
+        emit MaxLock(msg.sender, true, 0);
+    }
+
+    /// @notice Turn a max lock back into a normal lock that unlocks a year from now (rounded down to a week).
+    function unlockMax() external nonReentrant {
+        Lock memory old = locked[msg.sender];
+        if (!old.permanent) revert NotMaxLocked();
+        uint256 end = ((block.timestamp + MAXTIME) / WEEK) * WEEK;
+        _update(msg.sender, old, Lock(old.amount, uint64(end), false), 0);
+        emit MaxLock(msg.sender, false, end);
     }
 
     /// @notice Take the whole lock back once it has ended. Claim rewards first or after — they stay claimable.
     function withdraw() external nonReentrant {
         Lock memory old = locked[msg.sender];
         if (old.amount == 0) revert NoLock();
+        if (old.permanent) revert MaxLocked();
         if (old.end > block.timestamp) revert LockNotOver();
-        locked[msg.sender] = Lock(0, 0);
+        locked[msg.sender] = Lock(0, 0, false);
         totalLocked -= old.amount;
-        _checkpoint(msg.sender, old, Lock(0, 0));
+        _checkpoint(msg.sender, old, Lock(0, 0, false));
         token.safeTransfer(msg.sender, old.amount);
         emit Withdrawn(msg.sender, old.amount);
     }
@@ -155,6 +191,8 @@ contract ArcircleStaking is ReentrancyGuard {
             oldDslope = slopeChanges[oldL.end];
             if (newL.end != 0) newDslope = newL.end == oldL.end ? oldDslope : slopeChanges[newL.end];
         }
+        uint256 oldPerm = oldL.permanent ? oldL.amount : 0;
+        uint256 newPerm = newL.permanent ? newL.amount : 0;
         Point memory last = pointHistory[epoch];
         uint256 lastTs = last.ts;
         uint256 ti = (lastTs / WEEK) * WEEK;
@@ -180,6 +218,8 @@ contract ArcircleStaking is ReentrancyGuard {
             last.bias += uNew.bias - uOld.bias;
             if (last.slope < 0) last.slope = 0;
             if (last.bias < 0) last.bias = 0;
+            last.perm = uint128(uint256(last.perm) + newPerm - oldPerm);
+            permanentTotal = last.perm;
         }
         pointHistory[e] = last;
         if (user != address(0)) {
@@ -193,12 +233,13 @@ contract ArcircleStaking is ReentrancyGuard {
                 slopeChanges[newL.end] = newDslope;
             }
             uNew.ts = uint64(t);
+            uNew.perm = uint128(newPerm);
             _userPoints[user].push(uNew);
         }
     }
 
     /// @notice Bring the global history up to date (anyone; the lock functions do it too).
-    function checkpoint() external { _checkpoint(address(0), Lock(0, 0), Lock(0, 0)); }
+    function checkpoint() external { _checkpoint(address(0), Lock(0, 0, false), Lock(0, 0, false)); }
 
     // ================================================================ voting power
     function balanceOf(address user) public view returns (uint256) { return balanceOfAt(user, block.timestamp); }
@@ -217,6 +258,7 @@ contract ArcircleStaking is ReentrancyGuard {
             else hi = mid - 1;
         }
         Point memory p = ps[lo];
+        if (p.perm > 0) return p.perm;
         int128 b = p.bias - p.slope * int128(uint128(t - p.ts));
         return b > 0 ? uint256(uint128(b)) : 0;
     }
@@ -243,7 +285,7 @@ contract ArcircleStaking is ReentrancyGuard {
             last.slope += dSlope;
             last.ts = uint64(ti);
         }
-        return last.bias > 0 ? uint256(uint128(last.bias)) : 0;
+        return (last.bias > 0 ? uint256(uint128(last.bias)) : 0) + last.perm;
     }
 
     function userPointCount(address user) external view returns (uint256) { return _userPoints[user].length; }
@@ -270,7 +312,7 @@ contract ArcircleStaking is ReentrancyGuard {
         if (amount == 0) revert ZeroAmount();
         uint256 w = currentWeek();
         if (w < startWeek) revert TooEarly();
-        _checkpoint(address(0), Lock(0, 0), Lock(0, 0));
+        _checkpoint(address(0), Lock(0, 0, false), Lock(0, 0, false));
         if (_weekSupply(w) == 0) revert NoStakers(); // nobody to pay this week: the USDC would be stuck
         uint256 before = reward.balanceOf(address(this));
         reward.safeTransferFrom(msg.sender, address(this), amount);
@@ -303,7 +345,7 @@ contract ArcircleStaking is ReentrancyGuard {
         if (w == 0) return 0;
         if (w < startWeek) w = startWeek;
         uint256 cur = currentWeek();
-        _checkpoint(address(0), Lock(0, 0), Lock(0, 0));
+        _checkpoint(address(0), Lock(0, 0, false), Lock(0, 0, false));
         for (uint256 i = 0; i < MAX_CLAIM_WEEKS && w < cur; i++) {
             uint256 tpw = tokensPerWeek[w];
             if (tpw > 0) {

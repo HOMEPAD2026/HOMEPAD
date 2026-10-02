@@ -148,4 +148,55 @@ describe("ArcircleStaking", function () {
     await to(Number(w) + WEEK + 1);
     expect(await st.poolVotes(await st.currentWeek(), P2)).to.equal(0n); // a fresh week
   });
+
+  it("max locks: full power that doesn't run down, back to a one-year lock on demand", async () => {
+    await st.connect(a).createMaxLock(E(1000));
+    expect(await st.balanceOf(a.address)).to.equal(E(1000));
+    expect(await st.permanentTotal()).to.equal(E(1000));
+    await expect(st.connect(a).withdraw()).to.be.revertedWithCustomError(st, "MaxLocked");
+    await expect(st.connect(a).increaseUnlockTime((await now()) + 30 * WEEK)).to.be.revertedWithCustomError(st, "MaxLocked");
+    await st.connect(b).createLock(E(1000), (await now()) + 52 * WEEK);
+    await jump(20 * WEEK);
+    expect(await st.balanceOf(a.address)).to.equal(E(1000));
+    expect((await st.balanceOf(b.address)) < E(700)).to.equal(true);
+    await st.connect(a).increaseAmount(E(500));
+    expect(await st.balanceOf(a.address)).to.equal(E(1500));
+    // b turns his lock into a max lock
+    await st.connect(b).lockMax();
+    expect(await st.balanceOf(b.address)).to.equal(E(1000));
+    expect(await st.permanentTotal()).to.equal(E(2500));
+    const tot = await st.totalSupply();
+    expect(tot).to.equal(E(2500));
+    // past values stay right
+    const w = wk(await now());
+    expect((await st.balanceOfAt(a.address, w)) + (await st.balanceOfAt(b.address, w))).to.be.closeTo(await st.totalSupplyAt(w), 10n ** 6n);
+    // a turns it off: a normal lock a year out, running down from there
+    await st.connect(a).unlockMax();
+    const l = await st.locked(a.address);
+    expect(l.permanent).to.equal(false);
+    expect(Number(l.end)).to.be.lessThanOrEqual((await now()) + YEAR);
+    expect(await st.permanentTotal()).to.equal(E(1000));
+    const p0 = await st.balanceOf(a.address);
+    expect(p0 <= E(1500) && p0 > E(1450)).to.equal(true);
+    await jump(10 * WEEK);
+    expect((await st.balanceOf(a.address)) < p0).to.equal(true);
+    for (let k = 0; k < 4; k++) {
+      const sum = (await st.balanceOf(a.address)) + (await st.balanceOf(b.address));
+      expect(sum).to.be.closeTo(await st.totalSupply(), 10n ** 6n);
+      await jump(9 * WEEK);
+    }
+    await expect(st.connect(c).lockMax()).to.be.revertedWithCustomError(st, "NoLock");
+    await expect(st.connect(c).unlockMax()).to.be.revertedWithCustomError(st, "NotMaxLocked");
+  });
+
+  it("max locks earn rewards like any lock", async () => {
+    await st.connect(a).createMaxLock(E(1000));
+    await st.connect(b).createLock(E(1000), (await now()) + 52 * WEEK);
+    await to(wk(await now()) + WEEK + 5);
+    await st.connect(fund).fund(U(100));
+    await to(wk(await now()) + WEEK + 5);
+    const [ca] = await st.claimable(a.address), [cb] = await st.claimable(b.address);
+    expect(ca + cb).to.be.closeTo(U(100), 5n);
+    expect(ca > cb).to.equal(true);
+  });
 });

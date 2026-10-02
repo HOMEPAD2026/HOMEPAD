@@ -34,6 +34,7 @@ import { voteRounds } from "./_burnvote.mjs";
 import { postTweet, recentPosts } from "./arcia-x.mjs";
 import * as BB from "./_tg-buybot.mjs";
 import * as ORD from "./_orders.mjs";
+import * as STK from "./_stake.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -83,7 +84,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
-  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -658,6 +659,7 @@ async function onMessage(m, channel) {
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
       case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
+      case "stakealerts": return setStakeAlerts(m, !/^off$/i.test(arg), lang);
       case "me": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardMe(u, lang));
       case "link": return startLink(m, lang);
       case "unlink": { if (group) return say(m, w("dmOnly", lang)); delete u.wallet; await saveUser(u); return say(m, "✓ Unlinked."); }
@@ -968,6 +970,53 @@ async function setOrderAlerts(m, on, lang) {
   await putDoc(DOC.subs, s);
   return say(m, on ? `📒 ${T3(lang, "Order alerts on for", "주문 알림을 켰어요:", "已为此钱包开启订单提醒:")} <code>${short(wa)}</code> — ${T3(lang, "fills, triggered stops and cancelled legs. /orderalerts off to stop.", "체결, 스탑 발동, 취소된 반대 주문을 알려드려요. 끄려면 /orderalerts off", "成交、止损触发和被取消的另一腿都会通知你。/orderalerts off 关闭")}` : `📒 ${T3(lang, "Order alerts off.", "주문 알림을 껐어요.", "订单提醒已关闭。")}`);
 }
+async function setStakeAlerts(m, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const u = await loadUser(m.from.id);
+  if (on && !u.wallet) return startLink(m, lang);
+  const s = await subs(), wa = lc(u.wallet || "");
+  s.stake = s.stake || {};
+  for (const k of Object.keys(s.stake)) { s.stake[k] = s.stake[k].filter((x) => x !== m.from.id); if (!s.stake[k].length) delete s.stake[k]; }
+  if (on && wa) s.stake[wa] = [...(s.stake[wa] || []), m.from.id];
+  await putDoc(DOC.subs, s);
+  return say(m, on ? `🔒 ${T3(lang, "Staking alerts on for", "스테이킹 알림을 켰어요:", "已为此钱包开启质押提醒:")} <code>${short(wa)}</code> — ${T3(lang, "your USDC each new week and a reminder a week before your lock ends. /stakealerts off to stop.", "새 주마다 받을 USDC와 락업 종료 1주 전 알림을 보내드려요. 끄려면 /stakealerts off", "每周可领取的 USDC,以及锁仓到期前一周的提醒。/stakealerts off 关闭")}` : `🔒 ${T3(lang, "Staking alerts off.", "스테이킹 알림을 껐어요.", "质押提醒已关闭。")}`);
+}
+/// ARCIRCLE Staking: when a new week starts, the week that ended in one line to the alert list, and to each
+/// subscribed staker what they can claim; a week before a lock ends, a reminder (once per unlock date)
+async function stakeNotify(T, s, out) {
+  const st = await STK.state().catch(() => null);
+  if (!st || !st.live) return;
+  T.stake = T.stake || {};
+  const first = !T.stake.week;
+  if (T.stake.week !== st.week) {
+    const prevWeek = T.stake.week;
+    T.stake.week = st.week;
+    if (!first) {
+      const ended = (st.weeks || []).find((x) => x.week === prevWeek) || null;
+      const res = st.votes && st.votes[1] && st.votes[1].pools[0];
+      const lines = [`🔒 <b>ARCIRCLE Staking · a new week</b>`,
+        ended && ended.usdc > 0 ? `Last week paid <b>$${ended.usdc.toFixed(2)}</b> to veARCIRCLE holders.` : null,
+        res ? `Pool vote winner: <b>${res.sym ? "$" + h(res.sym) : short(res.poolId)}</b>` : null,
+        `${num(Math.round(st.totals.locked))} $ARCIRCLE locked · ${st.totals.stakers} stakers`,
+        `This week's vote is open.`].filter(Boolean);
+      out.stakeWeek = await toSubs(s.alerts || [], { text: lines.join("\n"), ...kb([[{ text: "Stake / vote", url: `${SITE}/arc#staking` }]]) });
+      for (const [wa, ids] of Object.entries(s.stake || {}).slice(0, 300)) {
+        const me = await STK.me(wa).catch(() => null);
+        if (!me || !(me.claimable > 0.005)) continue;
+        for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `💵 <b>$${me.claimable.toFixed(2)} USDC</b> to claim from ARCIRCLE Staking — <code>${short(wa)}</code>`, ...kb([[{ text: "Claim", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
+      }
+    }
+  }
+  // a week before a lock ends (not for max locks)
+  T.stake.rem = T.stake.rem || {};
+  const now = Math.floor(Date.now() / 1000);
+  for (const [wa, ids] of Object.entries(s.stake || {}).slice(0, 300)) {
+    const x = (st.stakers || []).find((y) => y.a === wa);
+    if (!x || x.max || !x.end || x.end - now > 7 * 86400 || x.end <= now || T.stake.rem[wa] === x.end) continue;
+    T.stake.rem[wa] = x.end;
+    for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends in a week. Extend it to keep your veARCIRCLE, or withdraw after it ends.`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
+  }
+}
 /// the executor's events → DMs to the makers who asked; and the team hears when the executor is low on gas or stuck
 async function ordersNotify(T, s, c, out) {
   for (const X of [ORD.ARC, ORD.RH]) await ordersNotifyOn(X, T, s, c, out);
@@ -1159,6 +1208,7 @@ async function tick() {
   T.at = now;
   try { await mineTick(T, s, out); } catch (e) { out.mineTick = String(e.message || e).slice(0, 120); }
   try { await ordersNotify(T, s, c, out); } catch (e) { out.ordersNotify = String(e.message || e).slice(0, 120); }
+  try { await stakeNotify(T, s, out); } catch (e) { out.stakeNotify = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

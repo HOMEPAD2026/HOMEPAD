@@ -252,6 +252,27 @@ async function deskWeekPost(origin, st) {
   ]) }];
 }
 
+// ARCIRCLE Staking's week in one post, once a new week has started (Thursday 00:00 UTC; posted from 01:00 UTC)
+async function stakeWeekPost(origin, st) {
+  const t = now();
+  const r = await fetch(origin + "/api/desk?stake=state").catch(() => null);
+  const d = r && r.ok ? await r.json().catch(() => null) : null;
+  if (!d || !d.live || t - d.week < 3600) return [];
+  const id = "stake:" + d.week;
+  if (st.sent[id]) return [];
+  const ended = (d.weeks || []).find((x) => x.week === d.week - 7 * 86400) || null;
+  const win = d.votes && d.votes[1] && d.votes[1].pools[0];
+  if (!(ended && ended.usdc > 0) && !win) return [];
+  return [{ id, text: fit([
+    "A new ARCIRCLE Staking week 💙💚", "",
+    ended && ended.usdc > 0 ? `Last week: $${ended.usdc.toFixed(2)} in USDC to veARCIRCLE holders` : null,
+    win ? `Pool vote winner: ${win.sym ? "$" + win.sym : "a pool"}` : null,
+    `${num(Math.round(d.totals.locked))} $ARCIRCLE locked by ${d.totals.stakers} stakers`, "",
+    "This week's vote is open~",
+    `${SITE}/arc#staking`,
+  ]) }];
+}
+
 // If ARCIA DESK's own every-minute schedule stops (a scheduler that gave up after errors), start a tick from
 // here. Checked every fifth minute; only when the desk has been quiet for 5+ minutes and isn't mid-tick.
 // It starts the same scheduled tick with the same rules — it can't make the desk trade anything else.
@@ -276,7 +297,8 @@ async function plan(origin, st) {
   const daily = dailyPost(d, st);
   const books = await booksPost(st).catch(() => []);
   const deskWeek = await deskWeekPost(origin, st).catch(() => []);
-  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books, ...deskWeek], pending: coins.pending };
+  const stakeWeek = await stakeWeekPost(origin, st).catch(() => []);
+  return { posts: [...round, ...burns, ...coins.out, ...daily, ...books, ...deskWeek, ...stakeWeek], pending: coins.pending };
 }
 
 async function loadState() {

@@ -39,6 +39,7 @@ export default async function handler(req) {
   if (view === "lplock") return lplockPage(url);
   if (view === "lock") return lockPage(url);
   if (view === "predict") return predictPage(url);
+  if (view === "stake") return stakePage(url);
   if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
@@ -645,6 +646,47 @@ async function lockPage(url) {
 <p>Opening the <a href="${esc(target)}">lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- ARCIRCLE Staking share page (/stake/<wallet>) ----
+async function stakePage(url) {
+  const u = String(url.searchParams.get("id") || "").toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(u)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#staking">`, "public, max-age=300");
+  let d = null;
+  // read through the Node function: api/_stake.mjs pulls in modules an Edge function can't bundle
+  try { const r = await fetch(`${SITE}/api/desk?stake=card&u=${u}`, { signal: AbortSignal.timeout(6000) }); d = r.ok ? await r.json() : null; if (d && d.error) d = null; } catch { d = null; }
+  const amt = d && d.lock ? Math.round(d.lock.amount).toLocaleString("en-US") : "";
+  const title = d && d.lock && d.lock.amount > 0 ? `${amt} $ARCIRCLE locked${d.lock.max ? " for good" : ""} — ARCIRCLE Staking` : "ARCIRCLE Staking";
+  const desc = "Lock $ARCIRCLE for up to a year: USDC every week from ARCIRCLE Orders and Predict fees, and a vote on which pools ARCIRCLE PAD backs.";
+  const target = "/arc#staking";
+  const image = `${SITE}/api/og?stake=${u}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/stake/${u}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#b58bff}</style>
+</head><body>
+<p>Opening <a href="${esc(target)}">ARCIRCLE Staking</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=600");
 }
 
 // ---- ARCIRCLE Predict round card (/predict/<round>[?u=0x…]) ----
