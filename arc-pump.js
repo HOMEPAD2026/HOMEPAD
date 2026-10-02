@@ -2,7 +2,7 @@
 // arc-pump.js — "Launch on Pump.fun" through ArcPad (Solana), and those coins in Explore.
 //
 // The launch form's platform switch (arc-argus.js) has a fourth choice, Pump.fun. It launches an ordinary Pump.fun coin
-// (create_v2: a bonding curve in SOL that graduates to PumpSwap) from the creator's own Solana wallet — Phantom, Solflare
+// (create_v2: a bonding curve in SOL that graduates to PumpSwap) from the creator's own Solana wallet — Phantom, Solflare, MetaMask
 // or Backpack; the Arc wallet isn't involved. The only ArcPad part is the coin's creator fees: they're shared through
 // Pump.fun's own fee-sharing program, create_fee_sharing_config then update_fee_shares_v2 with [creator 70%, ARCIRCLE PAD
 // treasury 30%]. update_fee_shares_v2 revokes the config's admin, so the split is fixed for the life of the coin.
@@ -81,8 +81,8 @@
       const here = encodeURIComponent(location.href), ref = encodeURIComponent(location.origin);
       box.innerHTML = `<span><small>${T("Solana wallet")}</small><b>${T(mobile() ? "Open this page in a Solana wallet's browser" : "No Solana wallet found in this browser")}</b></span><div class="pmp-wallet-btns">` +
         (mobile()
-          ? `<a class="ams-mini" href="https://phantom.app/ul/browse/${here}?ref=${ref}">${esc(tr("Open in {w}").replace("{w}", "Phantom"))}</a><a class="ams-mini" href="https://solflare.com/ul/v1/browse/${here}?ref=${ref}">${esc(tr("Open in {w}").replace("{w}", "Solflare"))}</a>`
-          : `<a class="ams-mini" href="https://phantom.com/download" target="_blank" rel="noopener">${esc(tr("Get {w}").replace("{w}", "Phantom"))} ↗</a><a class="ams-mini" href="https://solflare.com/download" target="_blank" rel="noopener">${esc(tr("Get {w}").replace("{w}", "Solflare"))} ↗</a>`) + `</div>`;
+          ? ["Phantom", "Solflare", "MetaMask"].map((w) => `<a class="ams-mini" href="${esc(W.openIn ? W.openIn(w) : "")}">${esc(tr("Open in {w}").replace("{w}", w))}</a>`).join("")
+          : `<a class="ams-mini" href="https://phantom.com/download" target="_blank" rel="noopener">${esc(tr("Get {w}").replace("{w}", "Phantom"))} ↗</a><a class="ams-mini" href="https://solflare.com/download" target="_blank" rel="noopener">${esc(tr("Get {w}").replace("{w}", "Solflare"))} ↗</a><a class="ams-mini" href="https://metamask.io/download" target="_blank" rel="noopener">${esc(tr("Get {w}").replace("{w}", "MetaMask"))} ↗</a>`) + `</div>`;
     }
   }
   fields.addEventListener("click", async (e) => {
@@ -266,7 +266,7 @@
     const f = r.f;
     if (!W.key) {
       status(T("Connect a Solana wallet first…"));
-      try { if (!(await connect(0))) { status(T("No Solana wallet found — open this page in Phantom or Solflare."), "error"); paintWallet(); return; } }
+      try { if (!(await connect(0))) { status(T("No Solana wallet found — open this page in Phantom, Solflare or MetaMask."), "error"); paintWallet(); return; } }
       catch (e) { status(esc(why(e)), "error"); return; }
     }
     busy = true;
@@ -292,6 +292,8 @@
 
       cur = "sign"; step("sign", "doing", T(b.txs.length > 1 ? "Two transactions, one prompt — confirm in your wallet…" : "Confirm in your wallet…"));
       const signed = await sign(b.txs);
+      // a wallet that adjusted the create transaction (a priority fee, say) voids the mint's signature: sign it again
+      try { const t0 = K.Transaction.from(raw(signed[0])); if (!t0.verifySignatures(true)) { t0.partialSign(mint); signed[0] = t0; } } catch { /* sent as it came */ }
       step("sign", "ok", T("Signed"));
       setPending(creator, { mint: mintKey, symbol: f.symbol, name: f.name, at: Date.now() });
 
@@ -492,7 +494,7 @@
     const b = sheet.querySelector("[data-pmp-pay]");
     busy = true; if (b) b.disabled = true;
     try {
-      if (!W.key) { msg(T("Connect a Solana wallet…")); if (!(await connect(0))) throw new Error(tr("No Solana wallet found — open this page in Phantom or Solflare.")); }
+      if (!W.key) { msg(T("Connect a Solana wallet…")); if (!(await connect(0))) throw new Error(tr("No Solana wallet found — open this page in Phantom, Solflare or MetaMask.")); }
       const K = await kit(), c = await conn();
       const mint = new K.PublicKey(l.token);
       const sc = await c.getAccountInfo(K.feeSharingConfigPda(mint));

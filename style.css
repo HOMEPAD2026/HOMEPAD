@@ -12958,3 +12958,5 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .wd-net:has(> :nth-child(3)) button{padding:8px 1px;gap:4px;font-size:.66rem;letter-spacing:-.015em;}
 .wd-net:has(> :nth-child(3)) button i{display:none;}
 .wd-sol code{white-space:nowrap;flex:1 0 100%;}
+.wd-sol-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.wd-sol-pick .btn-mini{cursor:pointer;}

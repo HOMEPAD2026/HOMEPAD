@@ -5954,6 +5954,10 @@
     "Approve the connection in Phantom.": "请在 Phantom 中批准连接。",
     "Approve the connection in Solflare.": "请在 Solflare 中批准连接。",
     "Approve the connection in Backpack.": "请在 Backpack 中批准连接。",
+    "No Solana wallet found — open this page in Phantom, Solflare or MetaMask.": "未找到 Solana 钱包 — 请在 Phantom、Solflare 或 MetaMask 中打开此页面。",
+    "Signed in your Solana wallet (Phantom, Solflare, Backpack or MetaMask) — your Arc wallet isn't used.": "在你的 Solana 钱包（Phantom、Solflare、Backpack 或 MetaMask）中签名 — 不使用 Arc 钱包。",
+    "Which Solana wallet?": "使用哪个 Solana 钱包？",
+    "Approve the connection in MetaMask.": "请在 MetaMask 中批准连接。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

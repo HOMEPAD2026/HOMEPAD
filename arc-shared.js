@@ -438,6 +438,8 @@ function renderHeader() {
       if (!b || b.getAttribute("aria-checked") === "true") return;
       if (b.dataset.net === "arc") switchToArcNetwork(); else if (b.dataset.net === "sol") switchToSolana(); else switchToAltNetwork();
     };
+    const noteEl = document.getElementById("wallet-dropdown-note");
+    if (noteEl && window.arcSol) noteEl.onclick = (e) => { const b = e.target.closest("[data-sol-pick]"); if (b) { e.stopPropagation(); switchToSolana(b.dataset.solPick); } };
     const solBox = document.getElementById("wallet-dropdown-sol");
     if (solBox) solBox.onclick = (e) => {
       e.stopPropagation();
@@ -562,30 +564,36 @@ async function switchToAltNetwork(opts) {
 }
 
 /// The wallet menu's third choice: Solana (ArcPad × Pump.fun). Not a network the EVM wallet can switch to — it connects
-/// the Solana wallet (arc-solwallet.js: Phantom, Solflare, Backpack) beside it and shows that one in the menu. The EVM
-/// wallet stays where it is, and Arc / Robinhood Chain writes keep using it.
-async function switchToSolana() {
+/// the Solana wallet (arc-solwallet.js: Phantom, Solflare, Backpack, MetaMask through the Wallet Standard) beside it and
+/// shows that one in the menu. The EVM wallet stays where it is, and Arc / Robinhood Chain writes keep using it.
+/// With more than one Solana wallet in the browser the menu asks which (`pick` is the answer).
+async function switchToSolana(pick) {
   const S = window.arcSol;
   if (!S) return;
   const note = document.getElementById("wallet-dropdown-note");
   const net = document.getElementById("wallet-dropdown-net");
   const setNote = (html, bad) => { if (note) { note.hidden = !html; note.innerHTML = html || ""; note.classList.toggle("bad", !!bad); } };
-  if (!S.key) {
-    if (!(await S.quiet())) {
-      const list = S.providers();
-      if (!list.length) {
-        const a = (w, href) => `<a href="${href}"${S.mobile() ? "" : ' target="_blank" rel="noopener"'}>${w}</a>`;
-        setNote(S.mobile()
-          ? `No Solana wallet in this browser — open this page in ${a("Phantom", S.openIn("Phantom"))} or ${a("Solflare", S.openIn("Solflare"))}.`
-          : `No Solana wallet in this browser — install ${a("Phantom", "https://phantom.com/download")} or ${a("Solflare", "https://solflare.com/download")}.`, true);
-        return;
-      }
-      if (net) net.classList.add("busy");
-      setNote(`Approve the connection in ${list[0].name}.`);
-      try { await S.connect(0); }
-      catch (err) { const m = String((err && err.message) || err); setNote(/reject|denied|cancel/i.test(m) || err.code === 4001 ? "Connection cancelled in the wallet." : m.slice(0, 200).replace(/[<>&]/g, ""), true); return; }
-      finally { if (net) net.classList.remove("busy"); }
+  const safe = (t) => String(t).replace(/[<>&"]/g, "");
+  if (!S.key && (pick != null || !(await S.quiet()))) {
+    const list = S.providers();
+    if (!list.length) {
+      const a = (w, href) => `<a href="${href}"${S.mobile() ? "" : ' target="_blank" rel="noopener"'}>${w}</a>`;
+      setNote(S.mobile()
+        ? `No Solana wallet in this browser — open this page in ${a("Phantom", S.openIn("Phantom"))}, ${a("Solflare", S.openIn("Solflare"))} or ${a("MetaMask", S.openIn("MetaMask"))}.`
+        : `No Solana wallet in this browser — install ${a("Phantom", "https://phantom.com/download")} or ${a("Solflare", "https://solflare.com/download")}, or turn on Solana in ${a("MetaMask", "https://metamask.io/download")}.`, true);
+      return;
     }
+    if (pick == null && list.length > 1) {
+      setNote(`Which Solana wallet? <span class="wd-sol-pick">${list.map((x, i) => `<button type="button" class="btn-mini" data-sol-pick="${i}">${safe(x.name)}</button>`).join("")}</span>`);
+      return;
+    }
+    const i = pick == null ? 0 : Number(pick);
+    if (!list[i]) return;
+    if (net) net.classList.add("busy");
+    setNote(`Approve the connection in ${safe(list[i].name)}.`);
+    try { await S.connect(i); }
+    catch (err) { const m = String((err && err.message) || err); setNote(/reject|denied|cancel/i.test(m) || (err && err.code === 4001) ? "Connection cancelled in the wallet." : safe(m.slice(0, 200)), true); return; }
+    finally { if (net) net.classList.remove("busy"); }
   }
   setNote("");
   S.select(true);

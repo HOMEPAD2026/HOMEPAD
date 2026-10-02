@@ -5801,6 +5801,10 @@
     "Approve the connection in Phantom.": "Phantom에서 연결을 승인해 주세요.",
     "Approve the connection in Solflare.": "Solflare에서 연결을 승인해 주세요.",
     "Approve the connection in Backpack.": "Backpack에서 연결을 승인해 주세요.",
+    "No Solana wallet found — open this page in Phantom, Solflare or MetaMask.": "Solana 지갑을 찾지 못했어요 — Phantom, Solflare 또는 MetaMask에서 이 페이지를 열어 주세요.",
+    "Signed in your Solana wallet (Phantom, Solflare, Backpack or MetaMask) — your Arc wallet isn't used.": "Solana 지갑(Phantom, Solflare, Backpack, MetaMask)에서 서명해요 — Arc 지갑은 사용하지 않아요.",
+    "Which Solana wallet?": "어떤 Solana 지갑을 쓸까요?",
+    "Approve the connection in MetaMask.": "MetaMask에서 연결을 승인해 주세요.",
   };
 
 
