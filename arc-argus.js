@@ -91,10 +91,11 @@
 
   // ---------------- state ----------------
   let plat = "arcpad";
-  // a third choice, Pons (Robinhood Chain), is run by arc-pons.js; this switch only shows its fields
-  const PLATS = ["arcpad", "argus"].concat(CONFIG.PONS ? ["pons"] : []);
+  // a third choice, Pons (Robinhood Chain), is run by arc-pons.js, a fourth, Pump.fun (Solana), by arc-pump.js;
+  // this switch only shows their fields
+  const PLATS = ["arcpad", "argus"].concat(CONFIG.PONS ? ["pons"] : [], CONFIG.PUMP ? ["pump"] : []);
   try { const s = localStorage.getItem("arcircle.launch.platform"); if (PLATS.includes(s)) plat = s; } catch { /* default */ }
-  { const h = /[?&]platform=(argus|pons)\b/.exec(location.hash); if (h && PLATS.includes(h[1])) plat = h[1]; }
+  { const h = /[?&]platform=(argus|pons|pump)\b/.exec(location.hash); if (h && PLATS.includes(h[1])) plat = h[1]; }
   const A = { creator: 70, burn: 10, dividend: 10, liquidity: 10 };
   let ctx = null, ctxAt = 0, busy = false;
   const me = () => (typeof state !== "undefined" && state && state.account ? lc(state.account) : "");
@@ -125,10 +126,17 @@
     panel.querySelectorAll("#agl-plat [data-plat]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.plat === plat)));
     $("agl-fields").hidden = plat !== "argus";
     const h1 = panel.querySelector("h1");
-    if (h1) h1.textContent = tr(plat === "argus" ? "Launch on Argus via ArcPad" : plat === "pons" ? "Launch on Pons via ArcPad" : "Launch on ArcPad");
+    if (h1) h1.textContent = tr(plat === "argus" ? "Launch on Argus via ArcPad" : plat === "pons" ? "Launch on Pons via ArcPad" : plat === "pump" ? "Launch on Pump.fun via ArcPad" : "Launch on ArcPad");
+    // the lede is about ArcPad's own pools; the other-chain venues say what they are instead
+    const lede = panel.querySelector(".bp-lede");
+    if (lede) {
+      const L = { pons: "Launch on Pons V2, on Robinhood Chain, from your own wallet — 70% of the creator fees to you, 30% to ARCIRCLE PAD.", pump: "Launch on Pump.fun, on Solana, from your own Solana wallet — 70% of the creator fees to you, 30% to ARCIRCLE PAD, locked for good." }[plat];
+      lede.textContent = tr(L || "Every launch gets a real Uniswap v4 pool in the same transaction — paired with USDC, Arc's own native currency, or with any Arc token you choose.");
+    }
     const lbl = panel.querySelector("#ap-launch-submit .ap-launch-btn-label");
-    if (lbl && !busy) lbl.textContent = tr(plat === "argus" ? "Launch on Argus" : plat === "pons" ? "Launch on Pons" : "Launch coin");
+    if (lbl && !busy) lbl.textContent = tr(plat === "argus" ? "Launch on Argus" : plat === "pons" ? "Launch on Pons" : plat === "pump" ? "Launch on Pump.fun" : "Launch coin");
     if (window.arcPons && typeof window.arcPons.onPlat === "function") window.arcPons.onPlat(plat, quiet);
+    if (window.arcPump && typeof window.arcPump.onPlat === "function") window.arcPump.onPlat(plat, quiet);
     if (plat === "argus") { paintAlloc(); paintFlow(); seedHint(); resumeCard(); balance(); }
     else $("agl-resume").hidden = true;
     if (!quiet && !reduce) { const f = $("agl-fields"); if (plat === "argus") { f.classList.remove("in"); void f.offsetWidth; f.classList.add("in"); } }
@@ -566,6 +574,6 @@ self.postMessage({done:true});};`;
   window.arcArgus = { active: () => plat === "argus" && !$("agl-fields").hidden, submit, rows: () => AR.items, load: loadList, openSheet, setPlatform: setPlat, progress: progressHtml };
   wire();
   window.addEventListener("hashchange", () => { if (/[?&]coin=0x/.test(location.hash)) { if (AR.items.length) deepLink(); else loadList(); } });
-  document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { const h = /[?&]platform=(argus|pons)\b/.exec(location.hash); if (h) setPlat(h[1]); resumeCard(); } });
+  document.addEventListener("arcpad:tab", (e) => { const t = e.detail && e.detail.tab; if (t === "explore" || t === "home") loadList(); if (t === "launch") { const h = /[?&]platform=(argus|pons|pump)\b/.exec(location.hash); if (h) setPlat(h[1]); resumeCard(); } });
   setTimeout(loadList, 1200);
 })();

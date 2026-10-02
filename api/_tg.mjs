@@ -1,4 +1,4 @@
-// api/_tg.mjs — the Telegram launch channel for coins launched on Argus through ArcPad.
+// api/_tg.mjs — the Telegram launch channel for coins launched on Argus, Pons and Pump.fun through ArcPad.
 // Same bot and channel as ArcPad's own launches (api/tg-launch.mjs): TG_BOT_TOKEN and
 // TG_CHAT_ID in Vercel. Off (quietly) when either is missing.
 import { fmtUsd, SITE } from "./_arc.mjs";
@@ -95,6 +95,51 @@ export async function announcePons(c) {
   const bot = process.env.TG_BOT_TOKEN, chat = process.env.TG_CHAT_ID;
   if (!bot || !chat) return { ok: false, error: "telegram is off (TG_BOT_TOKEN / TG_CHAT_ID)" };
   const post = ponsPost(c);
+  const tg = (method, payload) => fetch(`https://api.telegram.org/bot${bot}/${method}`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", ...payload }),
+    signal: AbortSignal.timeout(12000),
+  }).then((r) => r.json().catch(() => ({ ok: false }))).catch(() => ({ ok: false }));
+  let res = post.photo ? await tg("sendPhoto", { photo: post.photo, caption: post.caption, reply_markup: post.reply_markup }) : { ok: false };
+  if (!res.ok) res = await tg("sendMessage", { text: post.caption, reply_markup: post.reply_markup, link_preview_options: { is_disabled: true } });
+  return res.ok ? { ok: true } : { ok: false, error: "telegram rejected the message" + (res.description ? ": " + res.description : "") };
+}
+
+/// the card for a Pump.fun launch (Solana) listed through ArcPad (an item from api/_pump-arcpad.mjs)
+export function pumpPost(c) {
+  const sym = c.symbol || "COIN";
+  const page = `${SITE}/arc#explore?plat=pump&coin=${c.mint}`;
+  const trade = `https://pump.fun/coin/${c.mint}`;
+  const SS = "https://solscan.io";
+  const desc = String(c.description || "").replace(/\s+/g, " ").trim();
+  const title = `<b>$${h(sym)}</b>${c.name && c.name !== sym ? `  —  ${h(c.name)}` : ""}`
+    + (desc ? `\n<blockquote>${h(desc.length > 220 ? desc.slice(0, 219) + "…" : desc)}</blockquote>` : "");
+  const stats = [
+    `▸ Market cap   <b>${h(fmtUsd(c.mcapUsd))}</b>`,
+    `▸ Chain   <b>Solana</b> · Pump.fun bonding curve in SOL, then PumpSwap`,
+    `▸ Creator fees   <b>70% creator · 30% ARCIRCLE PAD</b>`,
+    `▸ Creator   <a href="${SS}/account/${c.creator}">${short(c.creator)}</a>`,
+  ].join("\n");
+  const caption = [
+    `<b>NEW LAUNCH</b>  ·  Pump.fun via ArcPad 💚`,
+    title,
+    stats,
+    `<b>CA</b>  <i>(tap to copy)</i>\n<code>${c.mint}</code>`,
+    `<i>Launched on Pump.fun through ArcPad, on Solana. Dexscreener info support from a $20K market cap, marketing support from $100K.</i>`,
+  ].join("\n\n");
+  const shareText = `$${sym} just launched on Pump.fun through ArcPad 💚`;
+  const reply_markup = {
+    inline_keyboard: [
+      [{ text: `Trade $${sym} on Pump.fun`, url: trade }],
+      [{ text: "See it on ArcPad", url: page }, { text: "Solscan", url: `${SS}/token/${c.mint}` }],
+      [{ text: "Share on X", url: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(page)}&via=ARCIRCLEonArc` }, { text: "Community chat", url: "https://t.me/ARCIRCLEonarc" }],
+    ],
+  };
+  return { caption, reply_markup, photo: /^https:\/\//i.test(c.image || "") ? c.image : null, link: page };
+}
+export async function announcePump(c) {
+  const bot = process.env.TG_BOT_TOKEN, chat = process.env.TG_CHAT_ID;
+  if (!bot || !chat) return { ok: false, error: "telegram is off (TG_BOT_TOKEN / TG_CHAT_ID)" };
+  const post = pumpPost(c);
   const tg = (method, payload) => fetch(`https://api.telegram.org/bot${bot}/${method}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", ...payload }),
     signal: AbortSignal.timeout(12000),

@@ -5,6 +5,7 @@
 //   GET  /api/social?creators=0x…,0x…         { x: { creator: handle } } for badges
 //   POST /api/social  { action: "profile" | "x-verify" | "vote" | "logo", … }
 //   GET  /logo/<sha256>.webp  (→ /api/social?logo=…)  hosted coin logos
+//   GET  /pm/<id>  (→ /api/social?pm=…)  a Pump.fun coin's metadata JSON (api/_pump-arcpad.mjs); POST /api/social?solrpc  Solana RPC relay
 //   GET  /api/social?circle=1[&wallet=0x…]      CirclePad pledges, Q&A, proposals, referrals
 //   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
 //   GET  /api/social?scan=0x…[&sym=X]           Token Scanner holders + history (api/_scan.mjs)
@@ -76,6 +77,7 @@ import * as liquidity from "./_liquidity.mjs";
 import * as locker from "./_locker.mjs";
 import * as argusArc from "./_argus-arcpad.mjs";
 import * as ponsArc from "./_pons-arcpad.mjs";
+import * as pumpArc from "./_pump-arcpad.mjs";
 import * as orders from "./_orders.mjs";
 
 const te = new TextEncoder();
@@ -482,6 +484,12 @@ export async function GET(req) {
       return json(400, { error: "unknown orders view" });
     } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
   }
+  // coins launched on Pump.fun (Solana) through ArcPad (arc-pump.js): the list for Explore, and their metadata JSON
+  if (url.searchParams.get("pumparc") === "list") {
+    try { return json(200, await pumpArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=45, stale-while-revalidate=300"); }
+    catch (err) { console.error("pumparc", err && err.message || err); return json(502, { error: "couldn't read the Pump.fun launches right now" }); }
+  }
+  if (url.searchParams.has("pm")) return servePumpMeta(url.searchParams.get("pm"));
   if (url.searchParams.get("ponsarc") === "list") {
     try { return json(200, await ponsArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { console.error("ponsarc", err && err.message || err); return json(502, { error: "couldn't read the Pons launches right now" }); }
@@ -551,6 +559,14 @@ export async function GET(req) {
 
 // ================= POST =================
 export async function POST(req) {
+  // ArcPad × Pump.fun: the launch page's Solana JSON-RPC relay (api/_pump-arcpad.mjs keeps it to the calls it makes)
+  if (new URL(req.url).searchParams.has("solrpc")) {
+    const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+    if (scanner.limited(`solrpc:${ip}`, 240, 60e3)) return json(429, { jsonrpc: "2.0", id: null, error: { code: 429, message: "slow down" } });
+    let q = null;
+    try { q = await req.json(); } catch { return json(400, { jsonrpc: "2.0", id: null, error: { code: -32700, message: "bad JSON" } }); }
+    return json(200, await pumpArc.proxy(q));
+  }
   if (!storeEnabled()) return json(503, { enabled: false, error: "community features aren't switched on yet" });
   let b = {};
   try { b = (await req.json()) || {}; } catch { return json(400, { error: "bad JSON" }); }
@@ -609,6 +625,14 @@ export async function POST(req) {
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
     }
+    if (b.action === "pumpreg") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`pumpreg:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
+      const st = { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) };
+      try { const r = await pumpArc.register(b, { store: st }); return json(r.status, r.body); }
+      catch (err) { return json(502, { error: "couldn't read Solana right now: " + String(err && err.message || err).slice(0, 120) }); }
+    }
+    if (b.action === "pumpmeta") return await savePumpMeta(b, req);
     if (b.action === "ponsreg") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`ponsreg:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
@@ -727,6 +751,28 @@ async function vote(b) {
   if (r.conflict) return json(409, { error: "you already voted on this coin today", already: true });
   const s = (await getDocs([`sentiment/${coin}_${b.day}`]))[`sentiment/${coin}_${b.day}`] || {};
   return json(200, { ok: true, side, holder, today: { bull: s.bull || 0, bear: s.bear || 0, hbull: s.hbull || 0, hbear: s.hbear || 0 } });
+}
+
+// ================= Pump.fun metadata (arc-pump.js) =================
+// create_v2 stores only a uri; pump.fun and wallets read the coin's name, image and links from the JSON there.
+// Stored under its own hash (api/_pump-arcpad.mjs metaDoc) and served forever from /pm/<id>.
+async function servePumpMeta(id) {
+  id = String(id || "").toLowerCase().replace(/\.json$/, "");
+  if (!pumpArc.META_ID.test(id)) return new Response("bad id", { status: 400 });
+  if (!storeEnabled()) return new Response("not found", { status: 404 });
+  try {
+    const d = (await getDocs([`pumpmeta/${id}`]))[`pumpmeta/${id}`];
+    if (!d || !d.body) return new Response("not found", { status: 404, headers: { "cache-control": "public, max-age=60" } });
+    return new Response(d.body, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=31536000, s-maxage=31536000, immutable", "access-control-allow-origin": "*", "x-content-type-options": "nosniff" } });
+  } catch (err) { console.error("pumpmeta GET", err && err.message || err); return new Response("unavailable", { status: 503 }); }
+}
+async function savePumpMeta(b, req) {
+  const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+  if (scanner.limited(`pumpmeta:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+  const m = pumpArc.metaDoc(b);
+  if (m.error) return json(400, { error: m.error });
+  await setDoc(`pumpmeta/${m.id}`, { body: m.body, at: Date.now() });
+  return json(200, { ok: true, id: m.id, uri: m.uri, doc: m.doc });
 }
 
 // ================= hosted logos =================

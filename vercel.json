@@ -81,6 +81,10 @@
       "destination": "/api/social?logo=:id"
     },
     {
+      "source": "/pm/:id",
+      "destination": "/api/social?pm=:id"
+    },
+    {
       "source": "/coin/:addr",
       "destination": "/api/c?addr=:addr&view=page"
     },

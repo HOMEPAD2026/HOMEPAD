@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790897028"></script>
+<script src="arc-log.js?v=1790899612"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790897028">
+<link rel="stylesheet" href="style.css?v=1790899612">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -230,7 +230,7 @@
       <!-- ============ EXPLORE ============ -->
       <section class="bp-panel" id="bp-panel-explore">
         <h1>Explore</h1>
-        <p class="bp-lede">Every coin launched through ArcPad — on the ArcPad factory, on Argus, or on Pons on Robinhood Chain — read live from the chain.</p>
+        <p class="bp-lede">Every coin launched through ArcPad — on the ArcPad factory, on Argus, on Pons on Robinhood Chain, or on Pump.fun on Solana — read live from the chain.</p>
         <div class="cn-explore-toolbar">
           <input class="world-search" id="ap-explore-search" placeholder="Search launches by name or symbol…" autocomplete="off">
           <div class="cn-sort-group" id="ap-sort-group">
@@ -693,6 +693,7 @@
           <button type="button" role="radio" aria-checked="true" data-plat="arcpad"><b>ArcPad</b><small>ArcPad pool · 1 USDC fee · your own add-on fee</small></button>
           <button type="button" role="radio" aria-checked="false" data-plat="argus"><b>Argus</b><small>Argus Portal #8 · buy / sell tax · 70% of creator fees to you</small></button>
           <button type="button" role="radio" aria-checked="false" data-plat="pons"><b>Pons</b><small>Robinhood Chain · bonding curve → Uniswap v4 · 70% of creator fees to you</small></button>
+          <button type="button" role="radio" aria-checked="false" data-plat="pump"><b>Pump.fun</b><small>Solana · bonding curve → PumpSwap · 70% of creator fees to you</small></button>
         </div>
         <div class="agl-resume" id="agl-resume" hidden></div>
         <div class="ap-launch-fee-note ap-only">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
@@ -828,6 +829,41 @@
             <ol class="agl-steps" id="pon-steps" hidden></ol>
           </div>
 
+          <!-- Pump.fun (arc-pump.js): shown when the platform switch is on Pump.fun -->
+          <div class="agl-fields pmp-fields" id="pmp-fields" hidden>
+            <div class="agl-intro pmp-intro">
+              <b>Launched on Pump.fun, on Solana, from your own Solana wallet</b>
+              <span>Your coin goes live on Pump.fun: it trades on its bonding curve in SOL and, once the curve fills, graduates to PumpSwap. Pump.fun takes its own fees as usual. The coin's creator fees are shared through Pump.fun's own fee-sharing program — 70% to you, 30% to the ARCIRCLE PAD treasury — and the split is locked for good in the same signing.</span>
+            </div>
+            <div class="agl-resume pmp-resume" id="pmp-resume" hidden></div>
+            <div class="pmp-wallet" id="pmp-wallet" aria-live="polite"></div>
+            <div class="pon-gate pmp-gate" id="pmp-gate" aria-live="polite"></div>
+            <label><span>Dev buy</span> <span class="optional">optional, in SOL — bought in the launch itself, before anyone else</span>
+              <div class="cn-input-suffix-wrap">
+                <input id="pmp-devbuy" type="number" inputmode="decimal" min="0" max="85" step="any" placeholder="0.0" autocomplete="off">
+                <span class="cn-input-suffix">SOL</span>
+              </div>
+            </label>
+            <p class="hint" id="pmp-devbuy-hint">Leave blank to skip. Pump.fun's trading fee applies to it like any buy.</p>
+            <div class="agl-flow pon-flow pmp-flow">
+              <small>Of every 1 SOL of creator fees</small>
+              <div class="agl-flow-bar"><i class="you" style="flex-grow:70"></i><i class="plat" style="flex-grow:30"></i></div>
+              <ul><li class="you"><i aria-hidden="true"></i><span>To you</span><b data-no-i18n>0.7 SOL</b></li><li class="plat"><i aria-hidden="true"></i><span>ARCIRCLE PAD</span><b data-no-i18n>0.3 SOL</b></li></ul>
+              <p class="hint">Fees wait in the coin's Pump.fun creator vault. Anyone can pay them out from the coin's card in Explore — one transaction sends 70% to you and 30% to ARCIRCLE PAD, straight to both wallets.</p>
+            </div>
+            <div class="agl-support">
+              <b>ArcPad support for coins launched here</b>
+              <ul>
+                <li><i>$20K</i><span>At a $20K market cap we help update the coin's Dexscreener info — logo, links and description.</span></li>
+                <li><i>$100K</i><span>At a $100K market cap we add marketing support, decided case by case — boosts, calls and promotion.</span></li>
+                <li class="warn"><i>!</i><span>Support may be refused if our Token Scanner finds signs of manipulation — snipers, bundled buys, wash trading or similar.</span></li>
+              </ul>
+              <small>This is ARCIRCLE PAD's own support policy, not a contract, and it can change. The coin's fees follow Pump.fun's rules.</small>
+            </div>
+            <label class="agl-agree"><input type="checkbox" id="pmp-agree"> <span>I understand: my Solana wallet signs the launch and the 70 / 30 creator-fee split together, the split is permanent, and the coin follows Pump.fun's rules.</span></label>
+            <ol class="agl-steps" id="pmp-steps" hidden></ol>
+          </div>
+
           <div class="ap-launch-preview ap-only" id="ap-launch-preview"><small>Preview</small><div class="ap-lp-card" id="ap-lp-card"></div></div>
 
           <div id="ap-launch-status"></div>
@@ -837,13 +873,16 @@
             <span class="ap-launch-btn-fee ap-only">1 USDC fee</span>
             <span class="ap-launch-btn-fee agl-only">70% of fees to you</span>
             <span class="ap-launch-btn-fee pon-only"><span class="pon-btn-chain">Robinhood Chain · </span>70% to you</span>
+            <span class="ap-launch-btn-fee pmp-only"><span class="pon-btn-chain">Solana · </span>70% to you</span>
           </button>
           <p class="ap-launch-balance ap-only" id="ap-launch-balance" aria-live="polite"></p>
           <p class="ap-launch-balance agl-only" id="agl-balance" aria-live="polite"></p>
           <p class="ap-launch-balance pon-only" id="pon-balance" aria-live="polite"></p>
+          <p class="ap-launch-balance pmp-only" id="pmp-balance" aria-live="polite"></p>
           <p class="ap-launch-btn-note ap-only">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
           <p class="ap-launch-btn-note agl-only">Your coin goes live on Argus the moment the launch confirms; the fee split is the second signature.</p>
           <p class="ap-launch-btn-note pon-only">Your wallet switches to Robinhood Chain for the launch and back to Arc after — unless you picked Robinhood Chain in the wallet menu.</p>
+          <p class="ap-launch-btn-note pmp-only">Signed in your Solana wallet (Phantom, Solflare or Backpack) — your Arc wallet isn't used.</p>
         </form>
       </section>
 
@@ -1884,6 +1923,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790897028"></script>
+<script src="arcpad.bundle.js?v=1790899612"></script>
 </body>
 </html>

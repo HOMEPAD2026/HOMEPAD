@@ -1,5 +1,5 @@
 /* global renderArcpadExploreGrid, CONFIG */
-// arc-filters.js — Explore filters: platform (All / ArcPad / Argus, always visible), pair token,
+// arc-filters.js — Explore filters: platform (All / ArcPad / Argus / Pons / Pump.fun, always visible), pair token,
 // launch age and market-cap range.
 // Adds a "Filters" button to the Explore toolbar that opens a chip panel;
 // renderArcpadExploreGrid() asks arcFilterPass(l) for every coin.
@@ -11,7 +11,7 @@
   const DEF = { plat: "all", pair: "all", age: "all", mcap: "all" };
   const MCAP = { lt10k: [0, 1e4], "10k": [1e4, 1e5], "100k": [1e5, 1e6], gt1m: [1e6, Infinity] };
   const AGE = { "1h": 3600, "24h": 86400, "7d": 7 * 86400 };
-  const VALID = { plat: ["all", "arcpad", "argus", "pons"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
+  const VALID = { plat: ["all", "arcpad", "argus", "pons", "pump"], pair: ["all", "usdc", "arcircle", "other"], age: ["all", "1h", "24h", "7d"], mcap: ["all", "lt10k", "10k", "100k", "gt1m"] };
   let F = { ...DEF };
   try { F = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || "{}"), plat: "all" }; } catch (e) { /* private mode */ }
   // A shared link — /arc#explore?pair=arcircle&age=24h — wins over the saved
@@ -29,7 +29,7 @@
     const q = new URLSearchParams();
     for (const k of Object.keys(DEF)) if (F[k] !== "all") q.set(k, F[k]);
     // one coin's sheet linked from outside (the Telegram launch card) keeps its coin=
-    const coin = /[?&]coin=(0x[0-9a-fA-F]{40})/.exec(location.hash);
+    const coin = /[?&]coin=(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})\b/.exec(location.hash);
     if (coin) q.set("coin", coin[1]);
     const want = "#explore" + (q.toString() ? "?" + q.toString() : "");
     if (location.hash !== want) history.replaceState(null, "", location.pathname + location.search + want);
@@ -40,8 +40,9 @@
 
   window.arcFiltersActive = () => count() > 0;
   window.arcFilterPass = function (l) {
-    if (F.plat === "arcpad" && (l.platform === "argus" || l.platform === "pons")) return false;
+    if (F.plat === "arcpad" && (l.platform === "argus" || l.platform === "pons" || l.platform === "pump")) return false;
     if (F.plat === "pons" && l.platform !== "pons") return false;
+    if (F.plat === "pump" && l.platform !== "pump") return false;
     if (F.plat === "argus" && l.platform !== "argus") return false;
     const q = String(l.quoteToken || "").toLowerCase();
     if (F.pair === "usdc" && q !== USDC) return false;
@@ -77,7 +78,7 @@
     // the platform: its own always-visible chips (launched on the ArcPad factory, or on Argus through ArcPad)
     const plats = document.createElement("div");
     plats.className = "flt-plat"; plats.setAttribute("role", "radiogroup"); plats.setAttribute("aria-label", "Platform");
-    plats.innerHTML = [["all", "All"], ["arcpad", "ArcPad"], ["argus", "Argus"]].concat(typeof CONFIG !== "undefined" && CONFIG.PONS ? [["pons", "Pons"]] : []).map(([v, t]) => `<button type="button" role="radio" data-plat-f="${v}">${t}</button>`).join("");
+    plats.innerHTML = [["all", "All"], ["arcpad", "ArcPad"], ["argus", "Argus"]].concat(typeof CONFIG !== "undefined" && CONFIG.PONS ? [["pons", "Pons"]] : []).concat(typeof CONFIG !== "undefined" && CONFIG.PUMP ? [["pump", "Pump.fun"]] : []).map(([v, t]) => `<button type="button" role="radio" data-plat-f="${v}">${t}</button>`).join("");
     bar.insertBefore(plats, btn);
     plats.addEventListener("click", (e) => {
       const b = e.target.closest("[data-plat-f]");
@@ -85,6 +86,7 @@
       F.plat = b.dataset.platF; save(); paint(); toHash();
       if (F.plat !== "arcpad" && window.arcArgus) window.arcArgus.load();
       if (F.plat !== "arcpad" && window.arcPons) window.arcPons.load();
+      if (F.plat !== "arcpad" && window.arcPump) window.arcPump.load();
       if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
     });
     const paint = () => {

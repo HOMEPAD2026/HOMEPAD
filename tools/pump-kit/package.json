@@ -1,0 +1,16 @@
+{
+  "name": "arcircle-pump-kit",
+  "private": true,
+  "description": "Builds vendor/pump-kit.js for arc-pump.js (ArcPad × Pump.fun). Not deployed: only the built file is.",
+  "scripts": {
+    "build": "esbuild entry.mjs --bundle --minify --format=iife --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"' --define:global=globalThis --inject:./shim.mjs --legal-comments=none --outfile=../../vendor/pump-kit.js"
+  },
+  "dependencies": {
+    "@pump-fun/pump-sdk": "2.0.0",
+    "@solana/spl-token": "0.4.15",
+    "@solana/web3.js": "1.99.0",
+    "bn.js": "5.2.5",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": { "esbuild": "0.28.2" }
+}
