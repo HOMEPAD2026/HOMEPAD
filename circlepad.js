@@ -380,12 +380,12 @@ function applyCirclepadState(s, { accountUnknown = false } = {}) {
   const labelEl = document.getElementById("bp-round-progress-label");
   if (capUncapped) {
     if (progressBarEl) progressBarEl.style.display = "none";
-    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} USDC</span><span class="bp-raised-suffix">raised so far — uncapped</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} USDC</span>${cpAlt(s.totalRaised, "cp-alt-raised")}<span class="bp-raised-suffix">raised so far — uncapped</span>`;
   } else {
     const pct = s.cap > 0n ? Math.min(100, Number((s.totalRaised * 10000n) / s.cap) / 100) : 0;
     if (progressBarEl) progressBarEl.style.display = "";
     if (fillEl) fillEl.style.width = pct + "%";
-    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} USDC</span><span class="bp-raised-suffix">of <strong>${fmtEth(s.cap)} USDC</strong> goal</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="bp-raised-big">${fmtEth(s.totalRaised)} USDC</span>${cpAlt(s.totalRaised, "cp-alt-raised")}<span class="bp-raised-suffix">of <strong>${fmtEth(s.cap)} USDC</strong> goal</span>`;
   }
 
   const lengthEl = document.getElementById("bp-stat-length");
@@ -468,8 +468,8 @@ function applyCirclepadState(s, { accountUnknown = false } = {}) {
       if (mineStat) mineStat.textContent = "0 USDC";
       if (shareStat) shareStat.textContent = "0%";
     } else {
-      if (positionEl) { positionEl.className = ""; positionEl.innerHTML = `You've contributed <strong>${fmtEth(mine)} USDC</strong> — <strong>${pct}%</strong> of the raise so far.`; }
-      if (sideEl) sideEl.innerHTML = `Your contribution: <strong>${fmtEth(mine)} USDC</strong> (${pct}%)`;
+      if (positionEl) { positionEl.className = ""; positionEl.innerHTML = `You've contributed <strong>${fmtEth(mine)} USDC</strong> ${cpAlt(mine)} — <strong>${pct}%</strong> of the raise so far.`; }
+      if (sideEl) sideEl.innerHTML = `Your contribution: <strong>${fmtEth(mine)} USDC</strong> ${cpAlt(mine)} (${pct}%)`;
       if (mineStat) mineStat.textContent = fmtEth(mine) + " USDC";
       if (shareStat) shareStat.textContent = pct + "%";
     }
@@ -606,6 +606,9 @@ async function initCirclepadRound() {
   }, 15000);
 }
 
+// "≈ 0.04 ETH" / "≈ 0.6 SOL" next to a USDC amount (circlepad-conv.js; the raise itself stays in USDC)
+function cpAlt(v, cls) { return window.cpConv ? window.cpConv.html(v, cls) : ""; }
+
 // Full Leaderboard panel AND the Home teaser both use this — adds a
 // deposited/withdrawn breakdown line, but only for addresses that have
 // actually withdrawn something. Someone who only ever contributed sees
@@ -620,7 +623,7 @@ function circlepadLbRowDetailedHtml(r, i, pctFn) {
       <span class="bp-lb-addr">${short(r.address)}</span>
       ${flows}
     </div>
-    <span class="bp-lb-amount">${fmtEth(r.amount)} USDC</span>
+    <span class="bp-lb-amount">${fmtEth(r.amount)} USDC${cpAlt(r.amount, "cp-alt-sm")}</span>
     <span class="bp-lb-pct">${pctFn(r.amount)}%</span>
     <a class="bp-lb-ext" href="${CONFIG.BLOCK_EXPLORER}/address/${r.address}" target="_blank" rel="noopener" title="View on explorer"><svg><use href="#i-ext" xlink:href="#i-ext"/></svg></a>
   </div>`;
@@ -994,6 +997,7 @@ function wireCirclepadContribute() {
       if (spendable < amount) amount = spendable;
       // two decimals is plenty for a USDC amount
       input.value = amount > 0n ? String(Math.floor(Number(ethers.formatEther(amount)) * 100) / 100) : "0";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
     } catch (err) {
       console.error("CirclePad: failed to compute max contribution", err);
     }

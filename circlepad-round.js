@@ -24,6 +24,7 @@
   const burnOn = () => typeof govBurnMode === "function" && govBurnMode();
   const BURN = String(CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS || "");
   const usdc = (wei, d = 2) => (typeof fmtEth === "function" ? fmtEth(wei, d) : String(wei));
+  const ALT = (v, c) => (window.cpConv ? window.cpConv.html(v, c) : ""); // "≈ 0.04 ETH" under a USDC amount (circlepad-conv.js)
   const num = (n) => Number(n || 0).toLocaleString("en-US");
   const tok = (raw) => Math.round(Number(BigInt(raw || 0) / 10n ** 18n)).toLocaleString("en-US");
   const nowS = () => Math.floor(Date.now() / 1000) + (window.circlepadGovSkew || 0);
@@ -90,7 +91,7 @@
     const clock = ph === "raise" ? ["Raise closes in", deadline()] : ph === "voting" ? [both ? "Raise & voting close in" : "Voting closes in", votingEnds()] : null;
     const label = ph === "raise" ? "Raising" : ph === "voting" ? (r.isOpen ? "Raising · voting" : "Voting") : ph === "result" ? "Result" : "Closed";
     strip.innerHTML = `<span class="cp-strip-ph ${ph}"><i></i>${T(label)}</span>
-      <span class="cp-strip-raised"><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span>
+      <span class="cp-strip-raised"><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b>${ALT(r.totalRaised || 0n, "cp-alt-sm")}</span>
       <span class="cp-strip-n"><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>
       ${burnOn() ? `<span class="cp-strip-burn"><small>${T("Burned by votes")}</small><b data-no-i18n data-cp-burned>${tok(burnedTotal())}</b></span>` : ""}
       ${clock ? `<span class="cp-strip-clock"><small>${T(clock[0])}</small><b data-no-i18n data-cp-to="${clock[1]}">${clock[1] > nowS() ? left(clock[1] - nowS()) : T("Closing…")}</b></span>` : ""}
@@ -233,7 +234,7 @@
     card.innerHTML = `<div class="cp-rc-top"><span class="cp-rc-badge ${ph}">${T(badge)}</span><span class="cp-rc-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad Round #1") : tr("CirclePad Round #1"))}</span></div>
       <div class="cp-rc-main"><span class="cp-coin-logo">${w.logo ? `<img src="${esc(w.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${esc((w.name || "#" + (window.cpRN ? window.cpRN() : 1)).slice(0, 2))}</em>`}</span>
         <div><b data-no-i18n>${esc(w.name || tr((window.cpRN ? window.cpRN() : 1) > 1 ? "Name not decided yet" : "Name decided by the vote"))}</b><span data-no-i18n>${w.ticker ? "$" + esc(w.ticker) : "$TBD"}</span></div></div>
-      <div class="cp-rc-stats"><span><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b></span><span><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>${burnOn() ? `<span><small>${T("Burned by votes")}</small><b data-no-i18n>${tok(burnedTotal())}</b></span>` : ""}</div>
+      <div class="cp-rc-stats"><span><small>${T("Raised")}</small><b data-no-i18n>${usdc(r.totalRaised || 0n, 0)} USDC</b>${ALT(r.totalRaised || 0n, "cp-alt-sm")}</span><span><small>${T("Contributors")}</small><b data-no-i18n>${num(rows().length)}</b></span>${burnOn() ? `<span><small>${T("Burned by votes")}</small><b data-no-i18n>${tok(burnedTotal())}</b></span>` : ""}</div>
       <div class="cp-rc-acts"><button type="button" class="bp-btn-primary" data-cp-go="${ph === "raise" ? "home" : "governance"}">${T(ph === "raise" ? "Contribute" : ph === "voting" ? "Burn & vote" : "See the result")}</button></div>`;
   }
 
@@ -249,9 +250,9 @@
     const total = BigInt(r.totalRaised || 0n), done = !!r.distributed, top = rows()[0];
     const row = (pct, name, who, note, cls) => `<div class="cp-tr-row ${cls}"><div class="cp-tr-top"><b>${T(name)}</b><span data-no-i18n>${pct}%</span></div>
       <div class="cp-tr-bar"><i style="--w:${pct}%"></i></div>
-      <div class="cp-tr-amt"><b data-no-i18n>≈ ${usdc((total * BigInt(pct)) / 100n, 2)} USDC</b>${who ? `<a href="${explorer("address", who)}" target="_blank" rel="noopener" data-no-i18n>${short(who)} ↗</a>` : ""}</div>
+      <div class="cp-tr-amt"><b data-no-i18n>≈ ${usdc((total * BigInt(pct)) / 100n, 2)} USDC</b>${ALT((total * BigInt(pct)) / 100n, "cp-alt-sm")}${who ? `<a href="${explorer("address", who)}" target="_blank" rel="noopener" data-no-i18n>${short(who)} ↗</a>` : ""}</div>
       <small>${T(note)}</small></div>`;
-    box.innerHTML = `<div class="cp-tr-head"><b>${T(done ? "Split at the close" : "If the round closed now")}</b><span data-no-i18n>${usdc(total, 2)} USDC</span></div>
+    box.innerHTML = `<div class="cp-tr-head"><b>${T(done ? "Split at the close" : "If the round closed now")}</b><span data-no-i18n>${usdc(total, 2)} USDC</span>${ALT(total, "cp-alt-sm")}</div>
       ${row(80, "Recipient wallet", wallets && wallets.recipient, "The project's funds", "a")}
       ${row(15, "Treasury wallet", wallets && wallets.treasury, "Paid to the top contributor over 3 days", "c")}
       ${row(5, "Platform wallet", wallets && wallets.platform, "$ARCIRCLE buybacks and promotion", "b")}

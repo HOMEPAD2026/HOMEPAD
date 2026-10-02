@@ -96,6 +96,7 @@
       <h3 id="cpx-sheet-h">${esc(tr("Join the circle"))}</h3>
       <p class="cpx-sheet-bal" id="cpx-sheet-bal"></p>
       <div class="cpx-sheet-in"><input id="cpx-sheet-amt" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" aria-label="${esc(tr("USDC amount"))}"><span>USDC</span></div>
+      <div class="cp-conv-in" data-cp-conv-in="cpx-sheet-amt" data-no-i18n></div>
       ${chipsHtml("cpx-sheet-chips")}
       <button type="button" class="bp-btn-primary bp-btn-block cpx-sheet-go" id="cpx-sheet-go">${esc(tr("Contribute USDC"))}</button>
       <p class="cpx-sheet-note">${esc(tr("You can withdraw your own USDC any time before the raise closes."))}</p>

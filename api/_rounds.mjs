@@ -13,6 +13,7 @@ import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { ESCROW, VOTE, S, big, roundState, forgetRound } from "./_round.mjs";
 import { leaderboard } from "./_circle.mjs";
 import { ballotReport, forRound } from "./_burnvote.mjs";
+import { prices } from "./_fx.mjs";
 
 // keccak256 of circlepad-escrow-code.js's CP_ESCROW_CODE (BigPadEscrow creation code, solc 0.8.26 / 200 runs / viaIR / cancun)
 export const ESCROW_CODE_HASH = "0xf4691a923fed8a3b40db2cd952a065d72b0a7385432fd7053d8fd1a2daaca57a";
@@ -241,18 +242,30 @@ export async function summary(n) {
 }
 
 // ---- the leaderboard as CSV (exact amounts, 18-decimal native USDC) ----
+// in: "eth" or "sol" adds each amount converted at today's price (USDC counted as $1), the price used and when —
+// the USDC columns stay the exact on-chain amounts. Throws when that price can't be read (no guessed numbers).
 const dec18 = (wei) => { const v = BigInt(wei || 0), neg = v < 0n, a = neg ? -v : v; const i = a / 10n ** 18n, f = (a % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, ""); return (neg ? "-" : "") + i.toString() + (f ? "." + f : ""); };
-export async function leaderboardCsv(n) {
+export async function leaderboardCsv(n, { in: unit = "" } = {}) {
   const r = await roundByN(n);
   if (!r) return null;
+  unit = unit === "eth" || unit === "sol" ? unit : "";
   forgetRound(r.escrow);
-  const [st, lb] = await Promise.all([roundState(r.escrow), leaderboard(null, r.escrow)]);
+  const [st, lb, px] = await Promise.all([roundState(r.escrow), leaderboard(null, r.escrow), unit ? prices() : null]);
+  const usdPer = unit ? px && px[unit] : null;
+  if (unit && !usdPer) throw new Error(`couldn't read the ${unit.toUpperCase()} price right now`);
   const total = st.totalRaised;
-  const lines = ["rank,wallet,contributed_usdc,share_pct,deposited_usdc,withdrawn_usdc"];
-  (lb.rows || []).forEach((x, i) => lines.push([i + 1, x.address, dec18(x.amount), pct(BigInt(x.amount), total).toFixed(4), dec18(x.depositedTotal), dec18(x.withdrawnTotal)].join(",")));
+  const D = unit === "sol" ? 9 : 8; // SOL has 9 decimals; ETH to 8 is well below a cent
+  const cv = (wei) => (Number(dec18(wei)) / usdPer).toFixed(D);
+  const U = unit;
+  const head = ["rank", "wallet", "contributed_usdc", ...(U ? [`contributed_${U}`] : []), "share_pct", "deposited_usdc", ...(U ? [`deposited_${U}`] : []), "withdrawn_usdc", ...(U ? [`withdrawn_${U}`] : []),
+    ...(U ? [`${U}_usd_price`, "priced_at_utc"] : [])];
+  const at = U ? new Date(px.at * 1000).toISOString().replace(/\.\d{3}Z$/, "Z") : "";
+  const lines = [head.join(",")];
+  (lb.rows || []).forEach((x, i) => lines.push([i + 1, x.address, dec18(x.amount), ...(U ? [cv(x.amount)] : []), pct(BigInt(x.amount), total).toFixed(4),
+    dec18(x.depositedTotal), ...(U ? [cv(x.depositedTotal)] : []), dec18(x.withdrawnTotal), ...(U ? [cv(x.withdrawnTotal)] : []), ...(U ? [usdPer, at] : [])].join(",")));
   const closed = st.started && now() >= st.deadline;
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/g, "").replace("T", "-");
-  return { csv: lines.join("\n") + "\n", filename: `circlepad-round-${r.n}-leaderboard${closed ? "-final" : "-" + stamp + "Z"}.csv`, complete: !!lb.complete, closed };
+  return { csv: lines.join("\n") + "\n", filename: `circlepad-round-${r.n}-leaderboard${closed ? "-final" : "-" + stamp + "Z"}${U ? "-in-" + U : ""}.csv`, complete: !!lb.complete, closed, unit: U || "usdc" };
 }
 
 export const _test = { useStore: (s) => { testStore = s; regMem = null; }, dec18, skew: (s) => { skew = s; } };

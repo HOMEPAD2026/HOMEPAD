@@ -6046,6 +6046,10 @@
     "You pay only Arc gas.": "只需支付 Arc 的 Gas。",
     "There's no contract at that address on Robinhood Chain.": "Robinhood Chain 上该地址没有合约。",
     "Couldn't reach Robinhood Chain to read that token — try again in a moment.": "无法连接 Robinhood Chain 读取该代币——请稍后再试。",
+    "Also in": "折合",
+    "Also show amounts in": "金额折合单位",
+    "Price loading…": "正在读取价格…",
+    "Rank, wallet, USDC and share of the raise — exact on-chain amounts. The ETH and SOL files add each amount at today's price (USDC counted as $1) and the price used.": "排名、钱包、USDC 和占募资比例——链上精确金额。ETH 和 SOL 文件会按今日价格（USDC 按 $1 计）加上每笔金额的折合值及所用价格。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

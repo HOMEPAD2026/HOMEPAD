@@ -23,6 +23,8 @@
   const fmt = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 0 : n >= 1 ? 2 : 4 });
   const short$ = (n) => (n >= 1e6 ? `${n / 1e6}M` : n >= 1e3 ? `${n / 1e3}K` : String(n));
   const clickTab = (tab) => { const b = document.querySelector(`.bp-nav-item[data-tab="${tab}"]`); if (b) b.click(); };
+  // a leaderboard row's USDC amount (not the "≈ ETH" line under it, which moves with the price)
+  const lbAmt = (r) => { const el = r.querySelector(".bp-lb-amount"); return el && el.firstChild ? el.firstChild.textContent : ""; };
   const MILESTONES = [250, 500, 1e3, 5e3, 1e4, 25e3, 5e4, 1e5, 25e4, 5e5, 1e6, 25e5, 5e6, 1e7];
   let S = null; // last state painted
 
@@ -59,12 +61,14 @@
         <circle class="cp-ring-glint" cx="100" cy="100" r="${R}" stroke-dasharray="18 ${(C - 18).toFixed(1)}"/>
         <circle class="cp-ring-inner" cx="100" cy="100" r="66"/>
       </svg>
-      <div class="cp-ring-center"><b class="cp-ring-amt" data-no-i18n>0</b><span class="cp-ring-unit">USDC</span><small class="cp-ring-sub">raised</small></div>`;
+      <div class="cp-ring-center"><b class="cp-ring-amt" data-no-i18n>0</b><span class="cp-ring-unit">USDC</span><span class="cp-alt cp-ring-alt" data-usd="0" data-no-i18n hidden></span><small class="cp-ring-sub">raised</small></div>`;
     metaEl = document.createElement("div");
     metaEl.className = "cp-ring-meta";
     const status = $("bp-round-status");
     (status || panel.firstChild).insertAdjacentElement(status ? "afterend" : "beforebegin", ring);
     ring.insertAdjacentElement("afterend", metaEl);
+    // the ETH | SOL choice for every "≈" line on the page, with the rate it uses
+    if (window.cpConv) { const u = document.createElement("div"); u.className = "cp-ring-unitsw"; u.innerHTML = window.cpConv.toggleHtml(); metaEl.insertAdjacentElement("afterend", u); }
     amtEl = ring.querySelector(".cp-ring-amt"); subEl = ring.querySelector(".cp-ring-sub");
     panel.classList.add("cp-has-ring");
   }
@@ -110,6 +114,8 @@
     subEl.textContent = sub;
     if (metaEl.__html !== meta) { metaEl.innerHTML = meta; metaEl.__html = meta; }
     countTo(!s.started && pledged > 0 ? pledged : raised);
+    const alt = ring.querySelector(".cp-ring-alt");
+    if (alt) { alt.dataset.usd = String(!s.started && pledged > 0 ? pledged : raised); if (window.cpConv) window.cpConv.refresh(ring); }
     // Someone else moved money while you watch: the ring surges (or dips
     // for a withdrawal) and the difference floats up out of it.
     if (ringLive && S && S.started && s.started) {
@@ -549,7 +555,7 @@
     const snap = () => {
       const m = new Map();
       document.querySelectorAll("#bp-full-leaderboard .bp-lb-row, #bp-home-leaderboard .bp-lb-row").forEach((r) => {
-        const k = keyOf(r); if (k) m.set(r.closest("#bp-full-leaderboard") ? "f" + k : "h" + k, { top: r.getBoundingClientRect().top, amt: (r.querySelector(".bp-lb-amount") || {}).textContent });
+        const k = keyOf(r); if (k) m.set(r.closest("#bp-full-leaderboard") ? "f" + k : "h" + k, { top: r.getBoundingClientRect().top, amt: lbAmt(r) });
       });
       return m;
     };
@@ -572,7 +578,7 @@
           requestAnimationFrame(() => requestAnimationFrame(() => { r.style.transition = "transform .55s cubic-bezier(.2,.8,.2,1)"; r.style.transform = ""; }));
           if (dy > 0) r.classList.add("cp-row-up");
         }
-        if (was.amt && was.amt !== (r.querySelector(".bp-lb-amount") || {}).textContent) r.classList.add("cp-row-changed");
+        if (was.amt && was.amt !== lbAmt(r)) r.classList.add("cp-row-changed");
       });
     };
   }

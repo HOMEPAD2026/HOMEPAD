@@ -22,6 +22,7 @@
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const ex = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
   const usdc = (w, d = 2) => (typeof fmtEth === "function" ? fmtEth(BigInt(w || 0), d) : String(w));
+  const ALT = (v, c) => (window.cpConv ? window.cpConv.html(v, c) : ""); // "≈ 0.04 ETH" under a USDC amount (circlepad-conv.js)
   const tok = (w) => Math.round(Number(BigInt(w || 0) / 10n ** 18n)).toLocaleString("en-US");
   const num = (x) => Number(x || 0).toLocaleString("en-US");
   const pct = (x) => `${Number(x || 0).toFixed(2)}%`;
@@ -31,7 +32,9 @@
   const N = () => CONFIG.CIRCLEPAD_ROUND || 1;
   const me = () => (typeof state !== "undefined" && state && state.account ? String(state.account).toLowerCase() : "");
   const STEPS = ["72h raise", "Burn-to-vote", "Close & split", "Top contributor", "Launch & airdrop"];
-  const csvUrl = (n) => `${API}?circle=csv&round=${n}`;
+  const csvUrl = (n, u) => `${API}?circle=csv&round=${n}${u ? `&in=${u}` : ""}`;
+  /// the three downloads: exact USDC, and the same with ETH or SOL columns at today's price
+  const csvLinks = (n) => `<a class="bp-btn-ghost" href="${csvUrl(n)}" download>${T("Download CSV")}</a><a class="bp-btn-ghost cp-csv-alt" href="${csvUrl(n, "eth")}" download data-no-i18n>CSV · ETH</a><a class="bp-btn-ghost cp-csv-alt" href="${csvUrl(n, "sol")}" download data-no-i18n>CSV · SOL</a>`;
   window.cpRoundCards = true;
 
   let data = null; // ?circle=rounds
@@ -178,15 +181,15 @@
         <dl><div><dt>${T("Launch date")}</dt><dd data-no-i18n>${date && typeof govFmtDate === "function" ? esc(govFmtDate(date)) : "—"}</dd></div><div><dt>${T("Roadmap")}</dt><dd data-no-i18n>${esc(road || "—")}</dd></div></dl></div>` : "";
     const stat = (k, val, sub) => `<div><small>${T(k)}</small><b data-no-i18n>${val}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
     const stats = [
-      stat("Raised", `${usdc(total, 2)} USDC`, v.board.flow ? `<span data-no-i18n>${usdc(v.board.flow.in, 0)}</span> ${T("in")} · <span data-no-i18n>${usdc(v.board.flow.out, 0)}</span> ${T("withdrawn")}` : ""),
+      stat("Raised", `${usdc(total, 2)} USDC${ALT(total, "cp-alt-sm")}`, v.board.flow ? `<span data-no-i18n>${usdc(v.board.flow.in, 0)}</span> ${T("in")} · <span data-no-i18n>${usdc(v.board.flow.out, 0)}</span> ${T("withdrawn")}` : ""),
       stat("Contributors", num(v.board.contributors), v.board.flow ? `<span data-no-i18n>${num(v.board.flow.wallets)}</span> ${T("wallets took part")}` : ""),
       stat("Top contributor", top ? short(top.address) : "—", top ? `<span data-no-i18n>${usdc(top.amount, 2)} USDC · ${pct(top.share)}</span>` : ""),
       b ? stat("Burned by votes", `${tok(b.burned)} $ARCIRCLE`, `<span data-no-i18n>${num(b.votes)}</span> ${T("votes")} · <span data-no-i18n>${num(b.voters)}</span> ${T("voters")}`) : "",
     ].join("");
     const split = `<div class="cp-sum-split ${st.distributed ? "ok" : "wait"}">
-        <div><small>${T("Recipient")} · 80%</small><b data-no-i18n>${usdc(v.split.recipient, 2)} USDC</b>${v.wallets ? `<a href="${ex("address", v.wallets.recipient)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.recipient)} ↗</a>` : ""}</div>
-        <div><small>${T("Treasury")} · 15%</small><b data-no-i18n>${usdc(v.split.treasury, 2)} USDC</b>${v.wallets ? `<a href="${ex("address", v.wallets.treasury)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.treasury)} ↗</a>` : ""}</div>
-        <div><small>${T("Platform")} · 5%</small><b data-no-i18n>${usdc(v.split.platform, 2)} USDC</b>${v.wallets ? `<a href="${ex("address", v.wallets.platform)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.platform)} ↗</a>` : ""}</div>
+        <div><small>${T("Recipient")} · 80%</small><b data-no-i18n>${usdc(v.split.recipient, 2)} USDC</b>${ALT(v.split.recipient, "cp-alt-sm")}${v.wallets ? `<a href="${ex("address", v.wallets.recipient)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.recipient)} ↗</a>` : ""}</div>
+        <div><small>${T("Treasury")} · 15%</small><b data-no-i18n>${usdc(v.split.treasury, 2)} USDC</b>${ALT(v.split.treasury, "cp-alt-sm")}${v.wallets ? `<a href="${ex("address", v.wallets.treasury)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.treasury)} ↗</a>` : ""}</div>
+        <div><small>${T("Platform")} · 5%</small><b data-no-i18n>${usdc(v.split.platform, 2)} USDC</b>${ALT(v.split.platform, "cp-alt-sm")}${v.wallets ? `<a href="${ex("address", v.wallets.platform)}" target="_blank" rel="noopener" data-no-i18n>${short(v.wallets.platform)} ↗</a>` : ""}</div>
         <p><i></i>${T(st.distributed ? "Split sent from the escrow." : "Not sent yet — the round wallet sends it from the escrow.")}</p></div>`;
     const votes = b && b.winners ? `<details class="cp-sum-sec"><summary>${T("Vote results")}</summary><table class="cp-sum-vote"><thead><tr><th>${T("Category")}</th><th>${T("Chosen")}</th><th>${T("Votes")}</th></tr></thead><tbody>${b.winners.map((c) => {
       const w = c.winner, text = w ? (c.id === 2 ? (govLogoUrl && govLogoUrl(w.text) ? `<img src="${esc(govLogoUrl(w.text))}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : esc(w.text)) : c.id === 4 && govDate(w.text) ? esc(govFmtDate(govDate(w.text))) : c.id === 3 ? esc(String(w.text).split("\n")[0]) : esc(w.text)) : "—";
@@ -194,7 +197,7 @@
     }).join("")}</tbody></table></details>` : "";
     const board = `<details class="cp-sum-sec" open><summary>${T("Leaderboard")} <span data-no-i18n>(${num(rows.length)})</span></summary>
         <ol class="cp-sum-board">${shown.map((r) => `<li><span class="cp-sb-r" data-no-i18n>#${r.rank}</span><a href="${ex("address", r.address)}" target="_blank" rel="noopener" data-no-i18n>${short(r.address)}</a><span class="cp-sb-bar"><i style="width:${Math.max(1, Math.min(100, r.share)).toFixed(2)}%"></i></span><b data-no-i18n>${usdc(r.amount, 2)}</b><em data-no-i18n>${pct(r.share)}</em></li>`).join("")}</ol>
-        <div class="cp-sum-board-acts">${rows.length > 10 ? `<button type="button" class="bp-btn-ghost" data-cp-board="${n}">${T(all ? "Show the top 10" : "Show everyone")}</button>` : ""}<a class="bp-btn-ghost" href="${csvUrl(n)}" download>${T("Download CSV")}</a></div></details>`;
+        <div class="cp-sum-board-acts">${rows.length > 10 ? `<button type="button" class="bp-btn-ghost" data-cp-board="${n}">${T(all ? "Show the top 10" : "Show everyone")}</button>` : ""}${csvLinks(n)}</div></details>`;
     const links = [
       v.report ? `<a href="${esc(v.report)}">${T("Round report")} →</a>` : "",
       `<a href="${ex("address", v.escrow)}" target="_blank" rel="noopener">${T("Escrow contract")} ↗</a>`,
@@ -277,7 +280,7 @@
     let row = $("cp-lb-tools");
     if (!row) { row = document.createElement("div"); row.id = "cp-lb-tools"; row.className = "cp-lb-tools"; p.insertAdjacentElement("afterend", row); }
     const s = typeof _circlepadState !== "undefined" ? _circlepadState : null;
-    const html = s && s.started ? `<a class="bp-btn-ghost" href="${csvUrl(N())}" download>${T("Download CSV")}</a><small>${T("Rank, wallet, USDC and share of the raise — exact on-chain amounts.")}</small>` : "";
+    const html = s && s.started ? `${csvLinks(N())}<small>${T("Rank, wallet, USDC and share of the raise — exact on-chain amounts. The ETH and SOL files add each amount at today's price (USDC counted as $1) and the price used.")}</small>` : "";
     if (row.__h !== html) { row.innerHTML = html; row.__h = html; }
     row.hidden = !html;
   }

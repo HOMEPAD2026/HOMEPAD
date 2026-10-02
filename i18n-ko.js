@@ -5893,6 +5893,10 @@
     "You pay only Arc gas.": "Arc 가스만 내면 돼요.",
     "There's no contract at that address on Robinhood Chain.": "로빈후드 체인의 그 주소에는 컨트랙트가 없어요.",
     "Couldn't reach Robinhood Chain to read that token — try again in a moment.": "로빈후드 체인에 연결하지 못해 토큰을 읽지 못했어요 — 잠시 후 다시 시도해 주세요.",
+    "Also in": "환산",
+    "Also show amounts in": "금액 환산 단위",
+    "Price loading…": "시세 불러오는 중…",
+    "Rank, wallet, USDC and share of the raise — exact on-chain amounts. The ETH and SOL files add each amount at today's price (USDC counted as $1) and the price used.": "순위, 지갑, USDC, 모금 비중 — 온체인 정확한 금액이에요. ETH·SOL 파일은 각 금액을 오늘 시세로 환산한 값(USDC = $1 기준)과 사용한 시세를 함께 담아요.",
   };
 
 

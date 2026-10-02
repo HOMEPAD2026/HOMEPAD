@@ -13046,3 +13046,23 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 @media (max-width:720px){ .aos-row{grid-template-columns:48px minmax(0,1fr) auto;} .aos-row > span:nth-child(4),.aos-row > span:nth-child(5){display:none;} }
 .aos-note{margin:0;font-size:.72rem;color:#8c98a6;line-height:1.5;}
 @media (max-width:900px){ .aos-formc{order:-1;} }
+/* CirclePad: USDC amounts also as "≈ ETH" / "≈ SOL" (circlepad-conv.js) */
+.cp-alt{font-size:.74em;font-weight:600;color:#9fb7c9;font-variant-numeric:tabular-nums;letter-spacing:0;white-space:nowrap;}
+.cp-alt[hidden]{display:none !important;}
+.cp-alt-sm{display:block;font-size:.7rem;font-weight:600;margin-top:1px;}
+.cp-alt-raised{display:block;font-size:.82rem;margin:2px 0 4px;}
+.cp-ring-alt{display:block;margin-top:2px;font-size:.72rem;}
+.bp-lb-amount .cp-alt{display:block;font-size:.68rem;font-weight:500;text-align:right;}
+.cp-ring-unitsw{display:flex;justify-content:center;margin:6px 0 2px;}
+.cp-unit{display:inline-flex;align-items:center;gap:4px;padding:3px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);font-size:.7rem;}
+.cp-unit-l{padding:0 6px 0 8px;color:var(--ink-dim,#8c98a6);}
+.cp-unit button{border:0;border-radius:999px;padding:4px 10px;background:none;color:#9fb0bd;font:700 .7rem Sora,sans-serif;cursor:pointer;}
+.cp-unit button[aria-pressed="true"]{background:linear-gradient(135deg,rgba(77,212,255,.28),rgba(57,255,136,.18));color:#fff;box-shadow:inset 0 0 0 1px rgba(77,212,255,.5);}
+.cp-unit button:focus-visible{outline:2px solid #4dd4ff;outline-offset:2px;}
+.cp-unit-rate{padding:0 8px 0 4px;color:var(--ink-dim,#8c98a6);font-size:.66rem;white-space:nowrap;}
+.cp-conv-in{min-height:1em;margin:4px 2px 8px;font-size:.74rem;color:#9fb7c9;font-variant-numeric:tabular-nums;}
+.cp-conv-in:empty{margin:0;min-height:0;}
+.cpx-sheet .cp-conv-in{text-align:center;}
+.cp-lb-tools .cp-csv-alt,.cp-sum-board-acts .cp-csv-alt{margin-left:6px;}
+@media (max-width:520px){ .cp-unit-rate{display:none;} }
+

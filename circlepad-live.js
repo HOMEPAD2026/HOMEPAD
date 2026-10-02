@@ -20,6 +20,7 @@
   const T = (s) => esc(tr(s));
   const reduce = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const usdc = (wei, d = 2) => (typeof fmtEth === "function" ? fmtEth(wei, d) : String(wei));
+  const ALT = (v, c) => (window.cpConv ? window.cpConv.html(v, c) : ""); // "≈ 0.04 ETH" under a USDC amount (circlepad-conv.js)
   const num = (n) => Number(n || 0).toLocaleString("en-US");
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const RD = () => window.circlepadRound || null;
@@ -97,7 +98,7 @@
     const tile = (k, v, sub, cls = "") => `<div class="cp-pos-t ${cls}"><small>${T(k)}</small><div class="cp-pos-v">${v}</div><span class="cp-pos-s">${sub}</span></div>`;
     const html = `<div class="cp-pos-head"><span class="cp-pos-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad Round #1") : tr("CirclePad Round #1"))}</span><span class="cp-pos-w" data-no-i18n>${short(n.w)}</span></div>
       <div class="cp-pos-grid">
-        ${tile("My contribution", `<b data-no-i18n>${usdc(n.mine)}</b> <span data-no-i18n>USDC</span>`, n.mine > 0n ? `<span data-no-i18n>${pct}%</span> <span>${T("of the raise")}</span>` : T("Nothing in yet"), "mine")}
+        ${tile("My contribution", `<b data-no-i18n>${usdc(n.mine)}</b> <span data-no-i18n>USDC</span>${n.mine > 0n ? ALT(n.mine, "cp-alt-sm") : ""}`, n.mine > 0n ? `<span data-no-i18n>${pct}%</span> <span>${T("of the raise")}</span>` : T("Nothing in yet"), "mine")}
         ${tile("My rank", n.rank ? `<b data-no-i18n>#${n.rank}</b>` : "<b>—</b>", n.rank ? `<span>${T("of")}</span> <span data-no-i18n>${num(n.list.length)}</span> <span>${T("contributors")}</span>` : T("Contribute to get a rank"), isTop ? "top" : "")}
         ${tile("Race for #1 (the 15%)", race[0], race[1], isTop ? "top" : "")}
         ${tile("My votes", `<b data-no-i18n>${num(n.votes.toString())}</b>`, n.votes > 0n ? `<span>${T("in")}</span> <span data-no-i18n>${n.cats}/5</span> <span>${T("categories")}</span>` : T(ph === "voting" ? "Voting is open" : "No votes yet"))}
@@ -162,7 +163,7 @@
     }).join("") : "";
     const top = rows()[0];
     const html = `<div class="cp-ls-stats">
-        <div><small>${T("Raised")}</small><b data-no-i18n>${r ? usdc(r.totalRaised || 0n, 0) : "0"}</b><span>USDC</span></div>
+        <div><small>${T("Raised")}</small><b data-no-i18n>${r ? usdc(r.totalRaised || 0n, 0) : "0"}</b><span>USDC</span>${r ? ALT(r.totalRaised || 0n, "cp-alt-sm") : ""}</div>
         <div class="burn"><small>${T("Burned by votes")}</small><b data-no-i18n data-cp-burned>${num((burned / 10n ** 18n).toString())}</b><span>$ARCIRCLE</span></div>
         <div><small>${T("Votes")}</small><b data-no-i18n>${num(votes.toString())}</b><span>${T("1 vote = 1,000 $ARCIRCLE")}</span></div>
         <div><small>${T("Top contributor")}</small><b data-no-i18n>${top ? short(top.address) : "—"}</b><span data-no-i18n>${top ? usdc(top.amount) + " USDC" : ""}</span></div>

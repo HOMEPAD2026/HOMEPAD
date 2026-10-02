@@ -32,7 +32,8 @@
 //   GET  /api/social?circle=rounds[&fresh=1]     every CirclePad round + its launch process (api/_rounds.mjs)
 //   GET  /api/social?circle=boot                 /circle's <head> script: which round the page runs
 //   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
-//   GET  /api/social?circle=csv&round=N          a round's leaderboard as CSV (?circle=lb&round=N for JSON)
+//   GET  /api/social?circle=csv&round=N[&in=eth|sol]  a round's leaderboard as CSV (?circle=lb&round=N for JSON); in= adds ETH / SOL columns
+//   GET  /api/social?fx=1                        ETH and SOL in dollars (api/_fx.mjs)
 //   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
 //   GET  /api/social?orders=book&token=0x…       ARCIRCLE Orders (api/_orders.mjs): one market's price levels and fills
 //   GET  /api/social?orders=markets | status     every market · the executor's last run
@@ -203,11 +204,17 @@ export async function GET(req) {
       return v ? json(200, v, v.board.complete ? "public, max-age=15, s-maxage=30, stale-while-revalidate=120" : "no-store") : json(404, { error: "no such round" });
     } catch (err) { console.error("circle summary", err && err.message || err); return json(502, { error: "couldn't read the round" }); }
   }
+  // ETH and SOL in dollars (CirclePad's "≈ ETH / ≈ SOL" next to USDC amounts)
+  if (url.searchParams.get("fx") === "1") {
+    try { const { prices } = await import("./_fx.mjs"); const p = await prices(); return json(p.eth || p.sol ? 200 : 502, p, "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
+    catch (err) { return json(502, { error: "couldn't read prices" }); }
+  }
   if (url.searchParams.get("circle") === "csv") {
     try {
-      const v = await rounds.leaderboardCsv(url.searchParams.get("round") || 1);
+      const v = await rounds.leaderboardCsv(url.searchParams.get("round") || 1, { in: url.searchParams.get("in") || "" });
       if (!v) return json(404, { error: "no such round" });
-      return new Response(v.csv, { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${v.filename}"`, "cache-control": v.closed && v.complete ? "public, max-age=60, s-maxage=300" : "no-store", "access-control-allow-origin": "*" } });
+      // converted ones carry today's price: never cached long
+      return new Response(v.csv, { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${v.filename}"`, "cache-control": v.unit !== "usdc" ? "public, max-age=30, s-maxage=60" : v.closed && v.complete ? "public, max-age=60, s-maxage=300" : "no-store", "access-control-allow-origin": "*" } });
     } catch (err) { console.error("circle csv", err && err.message || err); return json(502, { error: "couldn't read the leaderboard" }); }
   }
   if (url.searchParams.get("circle") === "lb") {
