@@ -6239,6 +6239,10 @@
     "ARCIA reads any Arc token, calls it and burns it": "ARCIA 读取任意 Arc 代币、给出判定并销毁",
     "Limit, stop and market orders on Arc": "Arc 上的限价、止损和市价单",
     "UP or DOWN on Arc tokens, in USDC": "Arc 代币 UP 或 DOWN，以 USDC 结算",
+    "refund if no DOWN": "无人押 DOWN 则退款",
+    "refund if no UP": "无人押 UP 则退款",
+    "full refund unless someone takes DOWN": "若无人押 DOWN 则全额退款",
+    "full refund unless someone takes UP": "若无人押 UP 则全额退款",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

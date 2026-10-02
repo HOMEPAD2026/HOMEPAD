@@ -6086,6 +6086,10 @@
     "ARCIA reads any Arc token, calls it and burns it": "ARCIA가 Arc 토큰을 읽고, 판정하고, 소각합니다",
     "Limit, stop and market orders on Arc": "Arc 지정가·스톱·시장가 주문",
     "UP or DOWN on Arc tokens, in USDC": "Arc 토큰 UP 또는 DOWN, USDC로",
+    "refund if no DOWN": "DOWN 없으면 환불",
+    "refund if no UP": "UP 없으면 환불",
+    "full refund unless someone takes DOWN": "DOWN에 거는 사람이 없으면 전액 환불",
+    "full refund unless someone takes UP": "UP에 거는 사람이 없으면 전액 환불",
   };
 
 

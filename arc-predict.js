@@ -163,7 +163,10 @@
     if (t < r.endAt) return { k: "locked", label: tr("Locked — ends in"), left: r.endAt - t, frac: (t - r.startAt) / Math.max(1, r.endAt - r.startAt) };
     return { k: "settling", label: tr("Ended — reading the pool…"), left: 0, frac: 1 };
   }
-  const mult = (up, down, fee, side) => { const pot = up + down, s = side === "up" ? up : down; return s > 0 ? (pot * (1 - fee)) / s : null; };
+  const mult = (up, down, fee, side) => { const pot = up + down, s = side === "up" ? up : down; return s > 0 && pot > s ? (pot * (1 - fee)) / s : null; };
+  /// a round with one side empty refunds everyone in full (no fee), so there's no "win" to show yet
+  const lone = (up, down, side) => (side === "up" ? down : up) <= 0;
+  const posLine = (p, up, down) => { const x = mult(up, down, S.st.feeBps / 10000, p.side), o = p.side === "up" ? "DOWN" : "UP"; return `${T("You're in")} <b data-no-i18n>${p.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(p.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(p.stake * x)}</b>` : lone(up, down, p.side) ? ` · ${T(o === "DOWN" ? "full refund unless someone takes DOWN" : "full refund unless someone takes UP")}` : ""}`; };
   /// what `amt` on `side` would pay if that side won and nobody else came in
   const payout = (up, down, fee, side, amt) => (amt > 0 ? (amt * (up + down + amt) * (1 - fee)) / ((side === "up" ? up : down) + amt) : null);
   function card() {
@@ -241,7 +244,7 @@
     const lp = myBet(r.id);
     const lpe = K("livepos");
     // the round open for bets shows its own position line; the live one only when they're different rounds
-    if (lpe) { lpe.hidden = !lp || (br && br.id && br.id === r.id); if (lp && !lpe.hidden) { const x = mult(up, down, fee, lp.side); lpe.className = "pd-pos " + lp.side; lpe.innerHTML = `${T("You're in")} <b data-no-i18n>${lp.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(lp.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(lp.stake * x)}</b>` : ""}`; } }
+    if (lpe) { lpe.hidden = !lp || (br && br.id && br.id === r.id); if (lp && !lpe.hidden) { lpe.className = "pd-pos " + lp.side; lpe.innerHTML = posLine(lp, up, down); } }
     chartDraw(m);
     // the betting box
     const bb = K("betbox");
@@ -252,13 +255,13 @@
       const mp = K("betpools");
       if (mp) mp.innerHTML = br.kind === "next" ? `<span>UP <b data-no-i18n>${usd(bu)}</b></span><span>DOWN <b data-no-i18n>${usd(bd)}</b></span>` : "";
       const pu = payout(bu, bd, fee, "up", amt), pdn = payout(bu, bd, fee, "down", amt);
-      setT("payUp", pu ? `${tr("wins ≈")} ${usd(pu)}` : tr("price ends higher"));
-      setT("payDown", pdn ? `${tr("wins ≈")} ${usd(pdn)}` : tr("price ends lower"));
+      setT("payUp", pu ? (lone(bu, bd, "up") ? tr("refund if no DOWN") : `${tr("wins ≈")} ${usd(pu)}`) : tr("price ends higher"));
+      setT("payDown", pdn ? (lone(bu, bd, "down") ? tr("refund if no UP") : `${tr("wins ≈")} ${usd(pdn)}`) : tr("price ends lower"));
       const can = !S.st.paused && nowC() < br.lockAt;
       panel.querySelectorAll("#pd-round [data-pd-bet]").forEach((b) => { b.disabled = !can || (bp && bp.side !== b.dataset.pdBet); });
       if (bb) bb.classList.toggle("dis", !can);
       const bpe = K("betpos");
-      if (bpe) { bpe.hidden = !bp; if (bp) { const x = mult(bu, bd, fee, bp.side); bpe.className = "pd-pos " + bp.side; bpe.innerHTML = `${T("You're in")} <b data-no-i18n>${bp.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(bp.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(bp.stake * x)}</b>` : ""}`; } }
+      if (bpe) { bpe.hidden = !bp; if (bp) { bpe.className = "pd-pos " + bp.side; bpe.innerHTML = posLine(bp, bu, bd); } }
       // the same bet again, on the round now open, when the last one was on an earlier round of this market
       const again = K("again"), L = S.lastBet;
       if (again) {

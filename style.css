@@ -13340,8 +13340,6 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
   .pd-prices{grid-template-columns:1fr 1fr;}
   .pd-prices .pd-ring{grid-column:1/-1;justify-self:center;width:64px;height:64px;}
   .pd-chart{height:120px;}
-  /* the betting box stays in reach above the dock while the round is on screen */
-  .pd-bet{position:sticky;bottom:calc(var(--ax-float-space,96px) - 8px);z-index:2;background:rgba(9,13,12,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 -8px 24px rgba(0,0,0,.35);}
   .pd-bet{gap:8px;padding:10px;}
   .pd-bet .pd-small,.pd-bet .pd-mini{display:none;}
   .pd-go button{padding:10px 8px;}
