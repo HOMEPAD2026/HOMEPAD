@@ -6254,6 +6254,7 @@
     "Add ideas for the name, ticker, logo, roadmap and launch date, and pick the launch chain — vote for as many as you like, or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them.": "为名称、代码、Logo、路线图和上线日期提交想法,并选择上线链 — 想投几票都可以,也可以撤回。免费:只需钱包签名,无需代币和 Gas。轮次钱包从预投票靠前的想法中选出候选,然后 $ARCIRCLE 持有者对其进行销毁投票。",
     "Where should the coin launch? The choices are set — vote for one or more below. Free, as for the rest.": "这枚币在哪条链上线?选项已固定 — 在下方投一个或多个。和其他项目一样免费。",
     "Pick each launch chain from the list.": "请从列表中选择上线链。",
+    "Until the raise closes. The team published Round #3's candidates — five per category, with Round #2's $TIE picks among them — plus the launch chain: Arc, Robinhood Chain or Solana. Anyone holding $ARCIRCLE burn-to-votes on them — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "持续到募集结束。团队公布了第 3 轮的候选 — 每个类别 5 个,其中包括第 2 轮选出的 $TIE — 以及上线链:Arc、Robinhood Chain 或 Solana。任何持有 $ARCIRCLE 的人都可以进行销毁投票 — 每票直接销毁 1,000 $ARCIRCLE 到 0x…dEaD。无需新合约:投票按 Arc 上的销毁记录统计。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

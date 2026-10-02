@@ -6101,6 +6101,7 @@
     "Add ideas for the name, ticker, logo, roadmap and launch date, and pick the launch chain — vote for as many as you like, or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them.": "이름·티커·로고·로드맵·런칭일 아이디어를 내고 런칭 체인도 골라 주세요 — 원하는 만큼 투표하고, 투표를 취소할 수도 있어요. 무료: 지갑 서명만, 토큰·가스 없음. 라운드 지갑이 사전투표 상위에서 후보를 고르면, $ARCIRCLE 보유자가 그 후보에 소각 투표를 해요.",
     "Where should the coin launch? The choices are set — vote for one or more below. Free, as for the rest.": "코인을 어느 체인에서 런칭할까요? 선택지는 정해져 있어요 — 아래에서 하나 이상 투표해 주세요. 다른 항목처럼 무료예요.",
     "Pick each launch chain from the list.": "런칭 체인은 목록에서 골라 주세요.",
+    "Until the raise closes. The team published Round #3's candidates — five per category, with Round #2's $TIE picks among them — plus the launch chain: Arc, Robinhood Chain or Solana. Anyone holding $ARCIRCLE burn-to-votes on them — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.": "모금이 끝날 때까지 진행돼요. 팀이 라운드 #3 후보를 항목마다 5개씩 공개했어요 — 라운드 #2에서 뽑힌 $TIE 항목도 포함돼 있어요 — 그리고 런칭 체인: Arc, Robinhood Chain, Solana. $ARCIRCLE 보유자 누구나 소각 투표를 할 수 있어요 — 한 표마다 1,000 $ARCIRCLE이 0x…dEaD로 바로 소각돼요. 새 컨트랙트 없음: 투표는 Arc의 소각 기록으로 집계돼요.",
   };
 
 

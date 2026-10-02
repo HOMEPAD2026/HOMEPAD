@@ -25,7 +25,33 @@ export const GOV = {
   // Round #3 (started 2 Oct 2026; Round #2 merged into it on 3 Oct): Round #2's rules plus a sixth category, the
   // launch chain. Its three choices start in the free pre-vote like everything else (api/_circle.mjs seeds them);
   // the round wallet then publishes them as candidates, and burn-to-vote opens for it as for the others.
-  3: { escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"] },
+  // 3 Oct 2026: the team published Round #3's candidates here (cands, from candsAt) — five per category with Round #2's
+  // $TIE picks first (its launch date had passed, so five new dates), and the three chains — so burn-to-vote opens
+  // at once. A category with candidates here can't be published again; the signed route stays for anything not here.
+  3: {
+    escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"],
+    candsAt: 1790963400,
+    cands: {
+      0: ["Trade. Invest. Earn.", "Arc Tide", "Trio", "Builder Bull", "Loop"],
+      1: ["TIE", "TIDE", "TRIO", "BULL", "LOOP"],
+      2: [
+        "https://www.arcircle.app/logo/209878d3275e679275c500cbedfa9be3486c68fc13df0e6b664aa91999a87ef0.webp",
+        "https://www.arcircle.app/images/circlepad/r3/tide.webp",
+        "https://www.arcircle.app/images/circlepad/r3/trio.webp",
+        "https://www.arcircle.app/images/circlepad/r3/bull.webp",
+        "https://www.arcircle.app/images/circlepad/r3/loop.webp",
+      ],
+      3: [
+        "Trade. Invest. Earn.",
+        "Phase 1 — launch with the round's liquidity and airdrop every contributor pro rata. Phase 2 — ARCIRCLE Predict and Orders markets for the coin. Phase 3 — bridge it to the other chains through ARCIRCLE OMNI.",
+        "Phase 1 — launch and airdrop. Phase 2 — a Builder Mine for the coin: holders mine it, unmined supply is burned. Phase 3 — ARCIA shares its stats and news on X and Telegram every day.",
+        "Phase 1 — launch and airdrop. Phase 2 — part of the coin's trading fees buys back and burns $ARCIRCLE. Phase 3 — holders vote on the next utility every month through CirclePad.",
+        "Community first: every next step is proposed and voted on through CirclePad, and each milestone is shown on ARCIRCLE PAD.",
+      ],
+      4: ["2026-10-06T09:30:00Z", "2026-10-06T11:30:00Z", "2026-10-07T09:30:00Z", "2026-10-07T11:30:00Z", "2026-10-08T11:30:00Z"],
+      5: ["Arc", "Robinhood Chain", "Solana"],
+    },
+  },
 };
 const isA = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
 export const isDirect = (A) => !!A && A.mode === "direct";
@@ -107,12 +133,14 @@ async function candDocs(A) {
   } catch { return paths.map(() => null); }
 }
 const candMem = new Map();
+/// candidates the team put in GOV[n].cands (published from the site's code, not by a signature)
+const teamCands = (A, c) => (A && A.cands && Array.isArray(A.cands[c]) && A.cands[c].length ? { options: A.cands[c].slice(), at: Number(A.candsAt) || 0, by: "team", sig: null, team: true } : null);
 /// per category: { options, at (unix s), by, sig } or null while unpublished
 export async function directBallot(A, fresh = false) {
   const m = candMem.get(A.escrow);
   if (!fresh && m && Date.now() - m.at < 15e3) return m.v;
   const docs = await candDocs(A);
-  const v = docs.slice(0, catsOf(A).length).map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
+  const v = docs.slice(0, catsOf(A).length).map((d, c) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : teamCands(A, c)));
   candMem.set(A.escrow, { at: Date.now(), v });
   return v;
 }
@@ -157,6 +185,7 @@ export async function publishCands(b, recover, json) {
   if (!st.started) return json(409, { error: "the round hasn't started" });
   const head = await latestBlock();
   if (st.deadline && head.ts >= st.deadline) return json(409, { error: "the raise has closed" });
+  if ((await directBallot(A, true))[cat]) return json(409, { error: "these candidates are already published" });
   const data = { round: A.escrow, n: A.n, cat, options, raw, by: signer, sig: String(b.signature), at: Date.now() };
   const path = candPath(A.escrow, cat);
   if (!S || !S.create) return json(503, { error: "candidates can't be stored right now" });
@@ -168,6 +197,7 @@ export async function publishCands(b, recover, json) {
 export async function candProof(A, cat) {
   const docs = await candDocs(A);
   const d = docs[cat];
+  if (!d && teamCands(A, cat)) return { team: true, options: A.cands[cat].slice(), message: `Published by the ARCIRCLE team in the site's code (api/_burnvote.mjs, GOV[${A.n}].cands)` };
   return d ? { message: candMessage(A.n, A.escrow, cat, d.raw || d.options), signature: d.sig, by: d.by } : null;
 }
 
