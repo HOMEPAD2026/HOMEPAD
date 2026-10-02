@@ -23,8 +23,9 @@ export const GOV = {
   // until the raise closes — without new contracts.
   2: { escrow: "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", mode: "direct", ballot: "", burnvote: "", from: 0 },
   // Round #3 (started 2 Oct 2026; Round #2 merged into it on 3 Oct): Round #2's rules plus a sixth category, the
-  // launch chain, whose three candidates are fixed here (no pre-vote, nothing to sign) and take votes from the start.
-  3: { escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"], chainAt: 1790961012 },
+  // launch chain. Its three choices start in the free pre-vote like everything else (api/_circle.mjs seeds them);
+  // the round wallet then publishes them as candidates, and burn-to-vote opens for it as for the others.
+  3: { escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"] },
 };
 const isA = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
 export const isDirect = (A) => !!A && A.mode === "direct";
@@ -58,7 +59,7 @@ const word = (h, i) => strip(h).slice(i * 64, (i + 1) * 64);
 const big = (h) => { try { return BigInt(h && h !== "0x" ? h : 0); } catch { return 0n; } };
 const pad = (n) => BigInt(n).toString(16).padStart(64, "0");
 export const CATS = ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"];
-/// the sixth category (Round #3 on): where the coin launches — fixed candidates (GOV[n].chain)
+/// the sixth category (Round #3 on): where the coin launches — its candidates come from GOV[n].chain only
 export const CHAIN_CAT = 5;
 export const ALL_CATS = [...CATS, "Launch chain"];
 /// the categories a round votes on
@@ -85,9 +86,9 @@ const T_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df5
 const DEAD_TOPIC = "0x000000000000000000000000000000000000000000000000000000000000dead";
 
 // the round wallet's signed candidates: one store doc per category, created once
-const CAND_MAX = [32, 10, 300, 400, 40];
+const CAND_MAX = [32, 10, 300, 400, 40, 20];
 export const candMessage = (n, escrow, cat, options) =>
-  `ARCIRCLE PAD — CirclePad Round #${n} candidates\nRound: ${String(escrow).toLowerCase()}\nCategory: ${CATS[cat]}\n` + options.map((o, i) => `${i + 1}. ${o}`).join("\n");
+  `ARCIRCLE PAD — CirclePad Round #${n} candidates\nRound: ${String(escrow).toLowerCase()}\nCategory: ${ALL_CATS[cat]}\n` + options.map((o, i) => `${i + 1}. ${o}`).join("\n");
 // The store is handed in by the Node functions (api/_circle.mjs → useCandStore): this module is also bundled into
 // Edge functions (api/c.mjs), which can't load api/_store.mjs (node:crypto). Without a store, candidates are read
 // from the site's own /api/social?circle=gov (read-only).
@@ -95,13 +96,14 @@ let CONFIGURED = null, S = null; // { getMany(paths) → docs[], create(path, da
 export function useCandStore(store) { CONFIGURED = store; S = store; candMem.clear(); }
 const candPath = (escrow, cat) => `cgovCands/${String(escrow).toLowerCase()}_${cat}`;
 async function candDocs(A) {
-  const paths = CATS.map((_, c) => candPath(A.escrow, c));
+  const C = catsOf(A);
+  const paths = C.map((_, c) => candPath(A.escrow, c));
   if (S && S.getMany) return S.getMany(paths);
   if (S && S.get) return Promise.all(paths.map((p) => S.get(p)));
   try {
     const r = await fetch(`${SITE}/api/social?circle=gov&round=${A.n}`, { headers: { accept: "application/json" } });
     const j = r.ok ? await r.json() : null;
-    return CATS.map((_, c) => { const x = j && j.categories && j.categories[c]; return x && x.set ? { options: x.options, at: (x.at || 0) * 1000 } : null; });
+    return C.map((_, c) => { const x = j && j.categories && j.categories[c]; return x && x.set ? { options: x.options, at: (x.at || 0) * 1000 } : null; });
   } catch { return paths.map(() => null); }
 }
 const candMem = new Map();
@@ -110,18 +112,18 @@ export async function directBallot(A, fresh = false) {
   const m = candMem.get(A.escrow);
   if (!fresh && m && Date.now() - m.at < 15e3) return m.v;
   const docs = await candDocs(A);
-  const v = docs.slice(0, CATS.length).map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
-  if (catsOf(A) === ALL_CATS) v[CHAIN_CAT] = { options: A.chain.slice(), at: Number(A.chainAt) || 0, by: "fixed", sig: null, fixed: true };
+  const v = docs.slice(0, catsOf(A).length).map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
   candMem.set(A.escrow, { at: Date.now(), v });
   return v;
 }
-function tidyCand(cat, t) {
+function tidyCand(cat, t, A = null) {
   let s = String(t ?? "").replace(/\r/g, "").trim();
+  if (cat === CHAIN_CAT && A && Array.isArray(A.chain)) { const k = s.replace(/\s+/g, " ").toLowerCase(); return A.chain.find((x) => x.toLowerCase() === k) || s; }
   if (cat !== 3) s = s.replace(/\s+/g, " ");
   if (cat === 1) s = s.replace(/^\$/, "").toUpperCase();
   return s;
 }
-function candError(cat, list) {
+function candError(cat, list, A = null) {
   if (!Array.isArray(list) || list.length < 2) return "publish at least two candidates";
   if (list.length > MAX_CANDS) return `at most ${MAX_CANDS} candidates`;
   const seen = new Set();
@@ -131,6 +133,7 @@ function candError(cat, list) {
     if (cat === 1 && !/^[A-Z0-9]{1,10}$/.test(o)) return "tickers are letters and digits only";
     if (cat === 2 && !/^(https:\/\/[^\s"'<>`]+|ipfs:\/\/[A-Za-z0-9./_-]+)$/i.test(o)) return "each logo is an https:// or ipfs:// link";
     if (cat === 4 && !Number.isFinite(Date.parse(o))) return "each launch date needs a date and time";
+    if (cat === CHAIN_CAT && !(A && Array.isArray(A.chain) && A.chain.includes(o))) return `the launch chain is one of ${A && A.chain ? A.chain.join(", ") : "the round's chains"}`;
     const k = o.toLowerCase();
     if (seen.has(k)) return "the same candidate twice";
     seen.add(k);
@@ -142,10 +145,10 @@ export async function publishCands(b, recover, json) {
   const A = ballotRounds().find((g) => isDirect(g) && g.escrow === String(b.round || "").toLowerCase());
   if (!A) return json(400, { error: "that round doesn't take signed candidates" });
   const cat = Number(b.cat);
-  if (!Number.isInteger(cat) || cat < 0 || cat >= CATS.length) return json(400, { error: "pick a category" });
+  if (!Number.isInteger(cat) || cat < 0 || cat >= catsOf(A).length) return json(400, { error: "pick a category" });
   const raw = Array.isArray(b.options) ? b.options.map(String) : [];
-  const options = raw.map((o) => tidyCand(cat, o));
-  const bad = candError(cat, options);
+  const options = raw.map((o) => tidyCand(cat, o, A));
+  const bad = candError(cat, options, A);
   if (bad) return json(400, { error: bad });
   let signer; try { signer = recover(candMessage(A.n, A.escrow, cat, raw), b.signature); } catch { return json(400, { error: "invalid signature" }); }
   forgetRound(A.escrow); // read it fresh: publishing is rare and the start/close matter
@@ -163,7 +166,6 @@ export async function publishCands(b, recover, json) {
 }
 /// the signed text for a published category, so anyone can check the signature
 export async function candProof(A, cat) {
-  if (cat === CHAIN_CAT && catsOf(A) === ALL_CATS) return { fixed: true, options: A.chain.slice(), message: "Fixed by the site for this round: " + A.chain.join(" / ") };
   const docs = await candDocs(A);
   const d = docs[cat];
   return d ? { message: candMessage(A.n, A.escrow, cat, d.raw || d.options), signature: d.sig, by: d.by } : null;
@@ -240,7 +242,7 @@ export async function directState(store, A, voter = null) {
     deadline, now: latest.ts, opensAt: Number.isFinite(opens) ? opens : null, votingEnds: deadline,
     votingOpen: !!rs && rs.started && latest.ts < deadline,
     done: st.hi >= latest.number, hi: st.hi, anchor: { block: latest.number, ts: latest.ts },
-    categories: C.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c], ...(bal[c] && bal[c].fixed ? { fixed: true } : {}) })),
+    categories: C.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c] })),
     totals: { burned: (BigInt(votes) * VOTE_UNIT).toString(), votes, voters: by.size },
     top: [...by].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([voter, votes]) => ({ voter, votes })),
     events: ev.slice(0, 60).map((e) => ({ b: e.b, i: e.i, tx: e.tx, cat: e.cat, voter: e.voter, opt: e.opt, votes: e.votes, text: bal[e.cat] ? bal[e.cat].options[e.opt] || "" : "" })),

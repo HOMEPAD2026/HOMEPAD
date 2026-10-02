@@ -13,9 +13,13 @@
   if (!host) return;
   const API = "/api/social";
   const ESCROW = CONFIG.CIRCLEPAD_ESCROW_ADDRESS.toLowerCase();
-  const CATS = ["name", "ticker", "logo", "roadmap", "date"];
-  const LABEL = ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"];
-  const MAX = [32, 10, 300, 400, 30];
+  // Round #3 on: a sixth tab, the launch chain — its choices are already on the board (the team posts them), so
+  // there's nothing to suggest there, only to vote for
+  const CHAINS = CONFIG.CIRCLEPAD_GOV_DIRECT === true && CONFIG.CIRCLEPAD_ROUND_GOV && Array.isArray(CONFIG.CIRCLEPAD_ROUND_GOV.chain) ? CONFIG.CIRCLEPAD_ROUND_GOV.chain : [];
+  const CATS = ["name", "ticker", "logo", "roadmap", "date"].concat(CHAINS.length ? ["chain"] : []);
+  const LABEL = ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"].concat(CHAINS.length ? ["Launch chain"] : []);
+  const MAX = [32, 10, 300, 400, 30, 20];
+  const IDX = CATS.map((_, i) => i);
   const lc = (a) => String(a || "").toLowerCase();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
@@ -38,7 +42,7 @@
   const SHOW = 8; const more = new Set(); // categories showing every idea
   const gov = () => window.circlepadGov || null;
   const published = (cat) => { const g = gov(); return !!(g && g.categories && g.categories[cat] && g.categories[cat].set); };
-  const allPublished = () => [0, 1, 2, 3, 4].every(published);
+  const allPublished = () => IDX.every(published);
   const isRecipient = () => { const g = gov(); return !!(me() && g && g.recipient && lc(g.recipient) === me()); };
   // an idea "made the ballot" when the recipient published the same text
   const onBallot = (i) => {
@@ -84,6 +88,7 @@
   function formHtml(cat) {
     if (off) return `<p class="gvi-closed">Ideas aren't switched on right now.</p>`;
     if (published(cat)) return `<p class="gvi-closed">The candidates for this one are on the ballot, so new ideas are closed.</p>`;
+    if (CATS[cat] === "chain") return `<p class="gvi-closed">Where should the coin launch? The choices are set — vote for one or more below. Free, as for the rest.</p>`;
     return `<div class="gvi-form">
       <div class="gvi-row">${inputHtml(cat)}</div>
       <input id="gvi-note" type="text" maxlength="140" placeholder="${esc(tr("Why this one? (optional)"))}">
@@ -141,17 +146,17 @@
   function render() {
     const g = gov();
     const phaseRaise = !g || !g.votingOpen && !(Number(g.votingEnds || 0) && Math.floor(Date.now() / 1000) >= Number(g.votingEnds));
-    const counts = [0, 1, 2, 3, 4].map((c) => D.ideas.filter((i) => i.cat === c).length);
+    const counts = IDX.map((c) => D.ideas.filter((i) => i.cat === c).length);
     const total = counts.reduce((a, b) => a + b, 0);
     // once the ballot is set the board folds away — still one tap to read
     const folded = allPublished() && !open;
     host.classList.toggle("folded", folded);
     // once candidates are out, the vote comes first and the pre-vote (for what's left) moves under it
     const catsEl = document.getElementById("bp-gov-categories");
-    const anyPublished = [0, 1, 2, 3, 4].some(published);
+    const anyPublished = IDX.some(published);
     if (anyPublished && catsEl && host.previousElementSibling !== catsEl) catsEl.insertAdjacentElement("afterend", host);
     if (!host.querySelector(".gvi-head")) {
-      host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Step 1 · Pre-vote</small><h3>Suggest and vote — open to everyone</h3><p>Add ideas for the name, ticker, logo, roadmap and launch date, and vote for as many as you like — or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them.</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
+      host.innerHTML = `<div class="gvi-head"><div><small class="gv-k">Step 1 · Pre-vote</small><h3>Suggest and vote — open to everyone</h3><p>${CHAINS.length ? "Add ideas for the name, ticker, logo, roadmap and launch date, and pick the launch chain — vote for as many as you like, or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them." : "Add ideas for the name, ticker, logo, roadmap and launch date, and vote for as many as you like — or take a vote back. Free: a wallet signature, no tokens, no gas. The round wallet picks the candidates from the top of the pre-vote; then $ARCIRCLE holders burn-to-vote on them."}</p></div><button type="button" class="gvi-toggle" id="gvi-toggle"></button></div>
         <div class="gvi-tabs" role="tablist"></div><div class="gvi-formwrap"></div><div class="gvi-list"></div>`;
     }
     const tgl = host.querySelector("#gvi-toggle");
@@ -160,7 +165,7 @@
     host.querySelector(".gvi-tabs").innerHTML = LABEL.map((l, i) => `<button type="button" role="tab" aria-selected="${i === tab}" class="${i === tab ? "on" : ""}${published(i) ? " set" : ""}" data-tab="${i}"><span>${esc(tr(l))}</span><b data-no-i18n>${counts[i]}</b></button>`).join("");
     // the recipient: one tap puts every idea into the candidate editors
     let fill = host.querySelector(".gvi-fill");
-    const openCats = [0, 1, 2, 3, 4].filter((c) => !published(c));
+    const openCats = IDX.filter((c) => !published(c));
     if (isRecipient() && loaded && openCats.length && D.ideas.length) {
       if (!fill) { fill = document.createElement("div"); fill.className = "gvi-fill"; host.querySelector(".gvi-tabs").insertAdjacentElement("beforebegin", fill); }
       const html = `<div><b>${esc(tr("Round wallet"))}</b><span>${esc(tr("Put the top of the pre-vote (up to 8 per category) into the candidate lists below — you check each list, change it if you like, and publish it (one wallet signature per category). Publishing closes that category's pre-vote."))}</span></div><button type="button" class="bp-btn-primary" data-fill-all>${esc(tr("Pick the top of the pre-vote"))}</button>`;
@@ -191,7 +196,7 @@
     const ends = g ? Number(g.votingEnds || 0) : 0;
     const extra = (typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_EXTRA_CANDIDATES) || {};
     const filled = [], skipped = [];
-    [0, 1, 2, 3, 4].filter((c) => !published(c)).forEach((c) => {
+    IDX.filter((c) => !published(c)).forEach((c) => {
       let list = D.ideas.filter((i) => i.cat === c).sort((a, b) => b.up - a.up || a.at - b.at).map((i) => i.text);
       if (CATS[c] === "date") {
         const ok = (t) => { const d = govDate(t); return d && (!ends || d.getTime() / 1000 > ends); };

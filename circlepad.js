@@ -1062,14 +1062,15 @@ function wireCirclepadContribute() {
 // name, a ticker, an image link for the logo, a short plan for the roadmap
 // and a moment in time for the launch date. The contract only stores
 // strings, so the kind decides how a candidate is typed in and shown.
+function govChains() { return typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_GOV_DIRECT === true && CONFIG.CIRCLEPAD_ROUND_GOV && Array.isArray(CONFIG.CIRCLEPAD_ROUND_GOV.chain) ? CONFIG.CIRCLEPAD_ROUND_GOV.chain : []; }
 const CIRCLEPAD_VOTE_CATEGORIES = [
   { id: 0, label: "Coin name", kind: "name", max: 32 },
   { id: 1, label: "Ticker", kind: "ticker", max: 10 },
   { id: 2, label: "Logo", kind: "logo", max: 300 },
   { id: 3, label: "Roadmap", kind: "roadmap", max: 400 },
   { id: 4, label: "Launch date", kind: "date", max: 40 },
-  // Round #3 on: where the coin launches — fixed candidates (CONFIG.CIRCLEPAD_GOV[n].chain), no pre-vote
-  ...(typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ROUND_GOV && Array.isArray(CONFIG.CIRCLEPAD_ROUND_GOV.chain) && CONFIG.CIRCLEPAD_GOV_DIRECT === true ? [{ id: 5, label: "Launch chain", kind: "chain", max: 40, fixed: true }] : []),
+  // Round #3 on: where the coin launches — one of CONFIG.CIRCLEPAD_GOV[n].chain, pre-voted then published like the rest
+  ...(govChains().length ? [{ id: 5, label: "Launch chain", kind: "chain", max: 20 }] : []),
 ];
 const GOV_MAX_OPTIONS = 8;
 /// how many categories this round votes on (5, or 6 with the launch chain)
@@ -1657,6 +1658,7 @@ function govEditorHtml(def) {
     if (def.kind === "roadmap") input = `<textarea rows="3" maxlength="${def.max}" data-i="${i}" placeholder="Phase 1 — what gets built first">${govEsc(v)}</textarea>`;
     else if (def.kind === "date") input = `<input type="datetime-local" data-i="${i}" value="${govEsc(v)}">`;
     else if (def.kind === "logo") input = `<input type="url" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="https://… or ipfs://… (square image)"><label class="gvi-up"><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-gv-up="${i}"><span>Upload</span></label><span class="gv-ed-prev">${govLogoUrl(v) ? `<img src="${govEsc(govLogoUrl(v))}" alt="" referrerpolicy="no-referrer">` : ""}</span>`;
+    else if (def.kind === "chain") input = `<select data-i="${i}"><option value="">—</option>${govChains().map((c) => `<option value="${govEsc(c)}"${c === v ? " selected" : ""}>${govEsc(c)}</option>`).join("")}</select>`;
     else input = `<input type="text" maxlength="${def.max}" data-i="${i}" value="${govEsc(v)}" placeholder="${def.kind === "ticker" ? "TICKER" : "Coin name"}"${def.kind === "ticker" ? ' autocapitalize="characters" spellcheck="false"' : ""}>`;
     return `<div class="gv-ed-row"><span class="gv-ed-n" data-no-i18n>${i + 1}</span>${input}${drafts.length > 2 ? `<button type="button" class="gv-ed-x" data-gv="del" data-i="${i}" aria-label="Remove">×</button>` : ""}</div>`;
   };
@@ -1692,6 +1694,7 @@ function govValidate(def, opts) {
     if (o.length > def.max) return "One candidate is too long.";
     if (def.kind === "ticker" && !/^[A-Z0-9]{1,10}$/.test(o)) return "Tickers use letters and numbers only, up to 10.";
     if (def.kind === "logo" && !govLogoUrl(o)) return "Each logo needs an https:// or ipfs:// image link.";
+    if (def.kind === "chain" && !govChains().includes(o)) return "Pick each launch chain from the list.";
     if (def.kind === "date") { const d = govDate(o); if (!d) return "Pick a date and time for each candidate."; if (d.getTime() / 1000 < govNow()) return "Launch dates need to be in the future."; }
   }
   return null;

@@ -31,7 +31,7 @@ export const propMessage = (wallet, p, issued) => `ARCIRCLE PAD — CirclePad pr
 export const upMessage = (wallet, id) => `ARCIRCLE PAD — upvote CirclePad proposal\nProposal: ${id}\nWallet: ${lc(wallet)}`;
 // Round #1 governance: anyone with a wallet can suggest a candidate for one of
 // the five categories the vote decides; the recipient picks from them.
-export const IDEA_CATS = ["name", "ticker", "logo", "roadmap", "date"];
+export const IDEA_CATS = ["name", "ticker", "logo", "roadmap", "date", "chain"];
 export const ideaMessage = (wallet, cat, text, note, issued, round = ESCROW) => `ARCIRCLE PAD — CirclePad idea\nRound: ${round}\nWallet: ${lc(wallet)}\nCategory: ${IDEA_CATS[cat]}\nIssued: ${issued}\nContent: ${textHash(JSON.stringify([text, note]))}`;
 export const ideaUpMessage = (wallet, id) => `ARCIRCLE PAD — back a CirclePad idea\nIdea: ${id}\nWallet: ${lc(wallet)}`;
 // taking a pre-vote back (the vote itself is ideaUpMessage: "back an idea" = a pre-vote)
@@ -179,7 +179,22 @@ export async function propUp(b, recover, json) {
 }
 
 // ---- governance ideas ----
-const IDEA_MAX = [32, 10, 300, 400, 30];
+const IDEA_MAX = [32, 10, 300, 400, 30, 20];
+/// Round #3 on: the launch chain's choices (api/_burnvote.mjs GOV[n].chain) sit on the pre-vote board from the start,
+/// posted once by the team — nobody suggests a fourth chain, everyone votes for one of these (free, as for the rest)
+const seeded = new Set();
+async function seedChains(R) {
+  const g = R && R.direct;
+  if (!g || !Array.isArray(g.chain) || seeded.has(g.escrow)) return;
+  const st = await roundState(g.escrow).catch(() => null);
+  if (!st || !st.started) return;
+  for (const [k, text] of g.chain.entries()) {
+    const id = kec(`${g.escrow}|5|${text.toLowerCase()}`).slice(2, 18);
+    try { await commit([{ create: `circleIdeas/${id}`, data: { id, round: g.escrow, cat: 5, wallet: st.recipient, text, note: "", up: 0, at: Date.now() - (g.chain.length - k) * 1000, hidden: false, team: true } }]); }
+    catch { return; } // the store is down: try again next read
+  }
+  seeded.add(g.escrow);
+}
 const IDEAS_PER_DAY = 10; // the pre-vote is open to everyone: room to suggest, still no flooding
 /// Normalises one suggestion for its category, or returns { error }.
 export function ideaText(cat, raw) {
@@ -220,10 +235,12 @@ export async function ideasData(wallet, round) {
   const R = ideasTarget(round);
   if (!R) return { enabled: false, round: lc(round), ideas: [], myUps: [] };
   const ESCROW = R.escrow;
+  await seedChains(R).catch(() => {});
   const docs = await queryDocs("circleIdeas", "round", ESCROW, 600);
   const live = docs.filter((d) => !d.hidden).sort((a, b) => (b.up || 0) - (a.up || 0) || a.at - b.at);
-  const per = [0, 0, 0, 0, 0];
-  const ideas = live.filter((d) => d.cat >= 0 && d.cat < 5 && per[d.cat]++ < 60)
+  const nCats = R.direct && Array.isArray(R.direct.chain) ? 6 : 5;
+  const per = [0, 0, 0, 0, 0, 0];
+  const ideas = live.filter((d) => d.cat >= 0 && d.cat < nCats && per[d.cat]++ < 60)
     .map((d) => ({ id: d.id, cat: d.cat, wallet: d.wallet, text: d.text, note: d.note || "", up: d.up || 0, at: d.at, team: !!d.team }));
   const out = { enabled: true, round: ESCROW, ideas, myUps: [] };
   if (isAddr(wallet) && ideas.length) {
@@ -239,6 +256,7 @@ export async function ideaPost(b, recover, json) {
   if (!R) return json(400, { error: "that round has no ideas board" });
   const ESCROW = R.escrow;
   if (!isAddr(wallet)) return json(400, { error: "wallet must be an address" });
+  if (cat === 5 && R.direct && Array.isArray(R.direct.chain)) return json(409, { error: `the launch chain is one of ${R.direct.chain.join(", ")} — they're all on the board, vote for one` });
   if (!Number.isInteger(cat) || cat < 0 || cat > 4) return json(400, { error: "pick a category" });
   // the signature covers exactly what was typed; the check below works on the tidied form
   const rawText = String(b.text || ""), rawNote = String(b.note || "");
