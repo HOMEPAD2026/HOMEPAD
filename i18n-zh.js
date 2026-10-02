@@ -6014,6 +6014,8 @@
     "Market orders are a Jupiter swap from your wallet, with a 1% slippage limit.": "市价单是从你的钱包通过 Jupiter 兑换，滑点上限 1%。",
     "0.1% of the SOL side goes to the ARCIRCLE PAD treasury. Cancelling is free apart from the network fee, and the order's rent comes back.": "SOL 一侧的 0.1% 归 ARCIRCLE PAD 金库。取消除网络费外免费，订单租金会退回。",
     "The program is new and unaudited, and each order has a cap while it's in its first weeks — start small. Until it's live its side is a preview.": "该程序新上线且未审计，最初几周每笔订单有上限 — 请从小额开始。上线前此侧为预览。",
+    "Utility · Limit orders on Arc, Robinhood Chain and Solana": "工具 · Arc、Robinhood Chain 和 Solana 上的限价单",
+    "Set the price you want to buy or sell at, like on an exchange — for any Arc or Robinhood Chain token with a Uniswap v4 pool, or any Solana token. Your tokens stay with you until an order fills: wallet to wallet when two orders cross, or from the pool once its price gets there (on Solana, through Jupiter). 0.1% fee — none at all on Arc and Robinhood Chain for holders of 100,000 $ARCIRCLE or more.": "像在交易所一样设定买卖价格 — 适用于任何拥有 Uniswap v4 池的 Arc 或 Robinhood Chain 代币，以及任何 Solana 代币。订单成交前代币一直在你手中：两笔订单撮合时钱包对钱包成交，或在池价格到达时从池中成交（Solana 通过 Jupiter）。手续费 0.1% — 在 Arc 和 Robinhood Chain 上持有 100,000 枚 $ARCIRCLE 以上者免手续费。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

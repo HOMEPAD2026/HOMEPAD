@@ -5861,6 +5861,8 @@
     "Market orders are a Jupiter swap from your wallet, with a 1% slippage limit.": "시장가 주문은 내 지갑에서 Jupiter로 스왑해요. 슬리피지 한도 1%.",
     "0.1% of the SOL side goes to the ARCIRCLE PAD treasury. Cancelling is free apart from the network fee, and the order's rent comes back.": "SOL 쪽의 0.1%는 ARCIRCLE PAD 트레저리로 가요. 취소는 네트워크 수수료 말고는 무료이고, 주문 렌트는 돌아와요.",
     "The program is new and unaudited, and each order has a cap while it's in its first weeks — start small. Until it's live its side is a preview.": "프로그램은 새로 나왔고 감사 전이며, 처음 몇 주는 주문당 한도가 있어요 — 소액으로 시작하세요. 배포 전까지 이 쪽은 미리보기예요.",
+    "Utility · Limit orders on Arc, Robinhood Chain and Solana": "유틸리티 · Arc, Robinhood Chain, Solana 지정가 주문",
+    "Set the price you want to buy or sell at, like on an exchange — for any Arc or Robinhood Chain token with a Uniswap v4 pool, or any Solana token. Your tokens stay with you until an order fills: wallet to wallet when two orders cross, or from the pool once its price gets there (on Solana, through Jupiter). 0.1% fee — none at all on Arc and Robinhood Chain for holders of 100,000 $ARCIRCLE or more.": "거래소처럼 사고팔 가격을 직접 정하세요 — Uniswap v4 풀이 있는 Arc·Robinhood Chain 토큰, 또는 모든 Solana 토큰. 주문이 체결될 때까지 토큰은 내 지갑에 있어요: 두 주문이 맞으면 지갑 대 지갑으로, 아니면 풀 가격이 닿을 때 풀에서(Solana는 Jupiter로) 체결돼요. 수수료 0.1% — Arc와 Robinhood Chain에서는 $ARCIRCLE 10만 개 이상 보유 시 무료.",
   };
 
 
