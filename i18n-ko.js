@@ -6083,6 +6083,9 @@
     "wins ≈": "이기면 ≈",
     "One moment — your last transaction is still confirming.": "잠시만요 — 직전 트랜잭션이 아직 확인 중입니다.",
     "Contract on ArcScan:": "ArcScan의 컨트랙트:",
+    "ARCIA reads any Arc token, calls it and burns it": "ARCIA가 Arc 토큰을 읽고, 판정하고, 소각합니다",
+    "Limit, stop and market orders on Arc": "Arc 지정가·스톱·시장가 주문",
+    "UP or DOWN on Arc tokens, in USDC": "Arc 토큰 UP 또는 DOWN, USDC로",
   };
 
 

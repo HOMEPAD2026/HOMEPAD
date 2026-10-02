@@ -6236,6 +6236,9 @@
     "wins ≈": "若赢 ≈",
     "One moment — your last transaction is still confirming.": "请稍候——上一笔交易仍在确认中。",
     "Contract on ArcScan:": "ArcScan 上的合约：",
+    "ARCIA reads any Arc token, calls it and burns it": "ARCIA 读取任意 Arc 代币、给出判定并销毁",
+    "Limit, stop and market orders on Arc": "Arc 上的限价、止损和市价单",
+    "UP or DOWN on Arc tokens, in USDC": "Arc 代币 UP 或 DOWN，以 USDC 结算",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

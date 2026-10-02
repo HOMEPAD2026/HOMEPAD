@@ -210,16 +210,16 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
   // page 4: ARCIA AGENT, ARCIRCLE Orders, then what's still being built
   var UTILS4 = [
-    { id: "agent", name: "ARCIA AGENT", sub: "Paste an Arc token — ARCIA reads it, calls it, and burns it from its vault", status: "New", acc: "#5b8cff", href: "/arc#agent",
+    { id: "agent", name: "ARCIA AGENT", sub: "ARCIA reads any Arc token, calls it and burns it", status: "New", acc: "#5b8cff", href: "/arc#agent",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
   ];
-  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop and market orders on Arc — set your own price", status: "New", acc: "#4dd4ff", href: "/arc#orders",
+  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop and market orders on Arc", status: "New", acc: "#4dd4ff", href: "/arc#orders",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
   // ARCIRCLE Staking: still being planned — the tile opens a "coming soon" card (openStakingSoon), nothing else yet
   UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Stake $ARCIRCLE — in the works", status: "Coming", acc: "#b58bff", soonPop: true,
     img: "/images/arcircle-staking-96.webp" });
   // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
-  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "Call UP or DOWN on an Arc token's next minutes — paid in USDC", status: "New", acc: "#39ff88", href: "/arc#predict",
+  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc tokens, in USDC", status: "New", acc: "#39ff88", href: "/arc#predict",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
   // page 5: what's still being built
   var NEXT = [
@@ -384,7 +384,16 @@
       pages.forEach(function (g, i) { if (i === page) g.removeAttribute("inert"); else g.setAttribute("inert", ""); g.classList.toggle("on", i === page); });
       panel.querySelectorAll("[data-go-page]").forEach(function (b) { b.setAttribute("aria-selected", String(Number(b.getAttribute("data-go-page")) === page)); });
       panel.classList.toggle("on-p2", page >= 1);
+      fit(instant);
     }
+    // the pages area takes the height of the page on show (a page of short tiles doesn't leave an empty band)
+    function fit(instant) {
+      var vp0 = panel.querySelector(".ax-util-pages"), g = pages[page];
+      if (!vp0 || !g || panel.hidden) return;
+      vp0.classList.toggle("instant", !!instant || reduce);
+      vp0.style.height = g.offsetHeight + "px";
+    }
+    window.addEventListener("resize", function () { fit(true); });
     goPage(0, true);
     panel.querySelector(".ax-util-pager").addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("[data-go-page]");

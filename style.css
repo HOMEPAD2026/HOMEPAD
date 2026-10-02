@@ -4449,7 +4449,9 @@ a.ax-util-tile:hover{border-color:color-mix(in srgb,var(--acc) 55%,transparent);
 /* two pages of utilities: a sliding track, page numbers below */
 .ax-util-pages{position:relative;overflow:hidden;margin:0 -6px;padding:0;touch-action:pan-y;cursor:grab;}
 .ax-util-pages:active{cursor:grabbing;}
-.ax-util-track{display:flex;transition:transform .42s cubic-bezier(.2,.8,.2,1);will-change:transform;}
+.ax-util-track{display:flex;align-items:flex-start;transition:transform .42s cubic-bezier(.2,.8,.2,1);will-change:transform;}
+.ax-util-pages{transition:height .38s cubic-bezier(.2,.8,.2,1);}
+.ax-util-pages.instant{transition:none;}
 .ax-util-track.instant{transition:none;}
 .ax-util-track>.ax-util-grid{flex:0 0 100%;min-width:0;box-sizing:border-box;padding:2px 6px 4px;user-select:none;-webkit-user-select:none;}
 .ax-util-track a,.ax-util-track img{-webkit-user-drag:none;}
@@ -13327,8 +13329,8 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .pd-toast b{color:#39ff88;font:800 .84rem Sora,sans-serif;}
 .pd-toast.out{opacity:0;transform:translateY(-8px);}
 /* the utilities tile: its line keeps drawing */
-.ax-util-tile[data-util="predict"] .ax-util-ico path:first-child{stroke-dasharray:30;animation:pdTile 3.4s ease-in-out infinite;}
-@keyframes pdTile{0%{stroke-dashoffset:30;}45%,85%{stroke-dashoffset:0;}100%{stroke-dashoffset:-30;}}
+.ax-util-tile[data-util="predict"] .ax-util-ico path:first-child{stroke-dasharray:30;animation:pdTile 4s ease-in-out infinite;}
+@keyframes pdTile{0%{stroke-dashoffset:30;}25%,100%{stroke-dashoffset:0;}}
 .pd-guide .ams-kicker{display:none;}
 @media (max-width:900px){ .pd-main{grid-template-columns:1fr;} }
 @media (max-width:720px){
