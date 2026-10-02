@@ -1,0 +1,31 @@
+[package]
+name = "arcircle-orders"
+version = "0.1.0"
+description = "ARCIRCLE Orders on Solana: limit orders that stay in the owner's wallet (SPL delegate) until a fill"
+edition = "2021"
+rust-version = "1.84"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "arcircle_orders"
+
+[dependencies]
+anchor-lang = "0.31.1"
+anchor-spl = { version = "0.31.1", default-features = false, features = ["token", "token_2022", "associated_token"] }
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+idl-build = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+no-log-ix-name = []
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+opt-level = "z"

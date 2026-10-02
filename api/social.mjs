@@ -468,6 +468,18 @@ export async function GET(req) {
   // coins launched on Pons V2 (Robinhood Chain) through ArcPad (arc-pons.js): the list for Explore
   // ARCIRCLE Orders (arc-orders.js, api/_orders.mjs): the book of one market, a wallet's orders, the markets
   if (url.searchParams.get("orders")) {
+    // Solana (api/_orders-sol.mjs: orders are program accounts, read live)
+    if (url.searchParams.get("chain") === "sol") {
+      const k = url.searchParams.get("orders");
+      try {
+        const SOL = await import("./_orders-sol.mjs");
+        if (k === "book") { const v = await SOL.book(url.searchParams.get("token")); return v ? json(v.error ? 400 : 200, v, "public, max-age=4, s-maxage=6") : json(400, { error: "token is needed" }); }
+        if (k === "mine") { const v = await SOL.mine(url.searchParams.get("wallet"), { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" }); }
+        if (k === "markets") return json(200, await SOL.markets({ store: scanStore() }), "public, max-age=20, s-maxage=30");
+        if (k === "status") return json(200, await SOL.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
+        return json(400, { error: "unknown orders view" });
+      } catch (err) { console.error("orders sol", err && err.message || err); return json(502, { error: "couldn't read Solana right now" }); }
+    }
     const k = url.searchParams.get("orders"), OX = orders.forChain(url.searchParams.get("chain"));
     try {
       if (k === "book") { const v = await OX.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
@@ -624,6 +636,13 @@ export async function POST(req) {
       const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o) }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
+    }
+    // ARCIRCLE Orders on Solana: a market order is a Jupiter swap built here (the API key stays on the server)
+    if (b.action === "solswap") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`solswap:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+      try { const SOL = await import("./_orders-sol.mjs"); const r = await SOL.swapTx(b); return json(r.status, r.body); }
+      catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
     if (b.action === "pumpreg") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";

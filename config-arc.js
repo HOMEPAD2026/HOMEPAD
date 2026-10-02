@@ -250,10 +250,18 @@ const CONFIG = {
     TREASURY: "DHu2grfJTNV9ipJWkfLXiRR6yLWQWvg4aVDcZJTERmLR", // ARCIRCLE PAD's Solana wallet (base58) — receives 30% of every ArcPad Pump.fun coin's creator fees
     PLATFORM_BPS: 3000,
     RPC: "/api/social?solrpc=1", // the Solana JSON-RPC relay (env SOLANA_RPC_URL on the server picks the node)
-    KIT: "/vendor/pump-kit.js?v=b1f3ddc1aa",
+    KIT: "/vendor/pump-kit.js?v=6c17cca6da",
     APP: "https://pump.fun/coin", // a coin's page: APP + "/" + mint
     EXPLORER: "https://solscan.io",
     SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus and Pons
+  },
+  // ARCIRCLE Orders on Solana (arc-orders-sol.js, api/_orders-sol.mjs, the program in solana/arcircle-orders): limit
+  // orders that stay in the owner's Solana wallet until the keeper fills them through Jupiter, and market swaps. With
+  // PROGRAM empty the Solana side is a preview. Keep api/_orders-sol.mjs CFG.program (or Vercel env ORDERS_SOL_PROGRAM)
+  // in step.
+  ORDERS_SOL: {
+    PROGRAM: "", // the program id (base58)
+    EXPLORER: "https://solscan.io",
   },
   // ARCIRCLE OMNI — $ARCIRCLE on Arc, Robinhood Chain and Solana through LayerZero V2 (omni/README.md).
   // Arc keeps the one canonical token; the adapter locks it, the other chains mint/burn. Empty addresses

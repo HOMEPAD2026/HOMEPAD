@@ -29,8 +29,11 @@
   const CFG = () => (typeof CONFIG !== "undefined" ? CONFIG : {});
   // ---------------- the chain: Arc (USDC markets) or Robinhood Chain (ETH markets) ----------------
   const CK = "arcircle.orders.chain";
-  let CH = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=arc\b/.test(location.hash) ? "arc" : (() => { try { return localStorage.getItem(CK) === "rh" ? "rh" : "arc"; } catch { return "arc"; } })();
+  const SOL_ON = () => !!(window.arcOrdersSol && typeof CONFIG !== "undefined" && CONFIG.ORDERS_SOL);
+  let CH = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=sol\b/.test(location.hash) && SOL_ON() ? "sol" : /[?&]c=arc\b/.test(location.hash) ? "arc" : (() => { try { const v = localStorage.getItem(CK); return v === "rh" ? "rh" : v === "sol" && SOL_ON() ? "sol" : "arc"; } catch { return "arc"; } })();
   const RH = () => CH === "rh";
+  // Solana: a third side, run by arc-orders-sol.js (its own program, book and form)
+  const SOLC = () => CH === "sol";
   const ALT = () => (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com", name: "Robinhood Chain" };
   const CHAIN_NAME = () => (RH() ? "Robinhood Chain" : "Arc");
   const WETH = () => lc(CFG().ORDERS_RH_WETH || "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73");
@@ -182,11 +185,23 @@
     const a = (name, x) => `<a href="${EXPL("address", x)}?tab=contract" target="_blank" rel="noopener">${name} <code data-no-i18n>${x.slice(0, 6)}…${x.slice(-4)}</code> ↗</a>`;
     el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("Verified source on Blockscout:")}</span>${a("ArcircleOrdersNative", ORDERS())}${isAddr(fb) ? a("ArcircleFeeBurnNative", fb) : ""}`;
   }
+  function chainRow() {
+    return `<div class="aor-chainrow"><div class="aor-chain${SOL_ON() ? " three" : ""}" role="radiogroup" aria-label="${T("Chain")}" data-chain="${CH}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-setchain="arc" aria-checked="${CH === "arc"}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span><small data-no-i18n>USDC</small></button><button type="button" role="radio" data-setchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span><small data-no-i18n>ETH</small></button>${SOL_ON() ? `<button type="button" role="radio" data-setchain="sol" aria-checked="${SOLC()}"><span class="aor-cdot sol" aria-hidden="true"></span><span data-no-i18n>Solana</span><small data-no-i18n>SOL</small></button>` : ""}</div>
+        <span class="aor-chainnote">${T(SOLC() ? "Markets against SOL on Solana — orders stay in your Solana wallet until they fill." : RH() ? "Markets against ETH on Robinhood Chain — ETH is wrapped for you when an order needs WETH." : "Markets against USDC on Arc.")}</span></div>`;
+  }
   function frame() {
+    if (SOLC()) {
+      const el = panel.querySelector(".aor-contracts");
+      if (el) { if (el.dataset.arc == null) el.dataset.arc = el.innerHTML; const pid = window.arcOrdersSol.program(); el.hidden = !pid; if (pid) el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("The program on Solscan:")}</span><a href="https://solscan.io/account/${esc(pid)}" target="_blank" rel="noopener">ARCIRCLE Orders <code data-no-i18n>${esc(pid.slice(0, 4))}…${esc(pid.slice(-4))}</code> ↗</a>`; }
+      $("aor-body").innerHTML = `${chainRow()}<div class="aor-sol" id="aor-sol"></div>`;
+      if (!S.wired) { S.wired = true; panel.addEventListener("click", onClick); panel.addEventListener("input", onInput); panel.addEventListener("change", onInput); panel.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet) sheet(false); }); }
+      window.arcOrdersSol.mount($("aor-sol"));
+      return;
+    }
+    if (window.arcOrdersSol) window.arcOrdersSol.unmount();
     heroContracts();
     $("aor-body").innerHTML = `
-      <div class="aor-chainrow"><div class="aor-chain" role="radiogroup" aria-label="${T("Chain")}" data-chain="${CH}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-setchain="arc" aria-checked="${!RH()}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span><small data-no-i18n>USDC</small></button><button type="button" role="radio" data-setchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span><small data-no-i18n>ETH</small></button></div>
-        <span class="aor-chainnote">${T(RH() ? "Markets against ETH on Robinhood Chain — ETH is wrapped for you when an order needs WETH." : "Markets against USDC on Arc.")}</span></div>
+      ${chainRow()}
       <div class="ams-preview aor-preview" id="aor-preview"${LIVE() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
       <div class="ams-card aor-bar">
         <div class="aor-pickrow">
@@ -1202,7 +1217,7 @@
 
   // ---------------- the chain switch ----------------
   function setChain(c, { reopen = null } = {}) {
-    c = c === "rh" ? "rh" : "arc";
+    c = c === "rh" ? "rh" : c === "sol" && SOL_ON() ? "sol" : "arc";
     if (c === CH || S.busy) return;
     const pill = panel.querySelector(".aor-chain");
     if (pill) { pill.dataset.chain = c; pill.querySelectorAll("[data-setchain]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.setchain === c))); }
@@ -1212,9 +1227,10 @@
       editing: null, msg: null, steps: null, feeFree: false, freeMin: null, bal: {}, weth: null, eth: null, quoteOut: null, quoteFor: null, showMarkets: false, alertsOpen: false });
     S.prevLevels = new Map(); S.prevFill = new Map();
     F.price = ""; F.amount = ""; F.total = ""; F.trigger = ""; F.tp = ""; F.sl = ""; F.floor = ""; F.cap = ""; S.pct = 0;
-    if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders${c === "rh" ? "?c=rh" : ""}`);
+    if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders${c === "rh" ? "?c=rh" : c === "sol" ? "?c=sol" : ""}`);
     setTimeout(() => {
       frame();
+      if (SOLC()) return;
       loadMarkets(); loadStatus().then(market);
       open(reopen || ARCIRCLE());
       loadMine().then(mineView);
@@ -1281,6 +1297,7 @@
     else if ((from === "amount" || from === "price") && P > 0 && A > 0) F.total = dstr(P * A, S.quote ? S.quote.decimals : 6);
   }
   function onInput(e) {
+    if (SOLC()) return;
     const id = e.target.id;
     if (id === "aor-pool") { S.pi = Number(e.target.value) || 0; S.spot = pool().price; S.candles = null; S.tax = null; Promise.all([loadSpot(), loadCandles()]).then(() => { market(); bookView(); chartView(); form(); loadTax().then(() => { market(); form(); }); }); return; }
     if (id === "aor-prec") { S.prec = Number(e.target.value) || 0; S.prevLevels = new Map(); bookView(); if (S.center === "depth") chartView(); return; }
@@ -1312,6 +1329,7 @@
     const b = e.target.closest("button, a"); if (!b || !panel.contains(b)) return;
     const d = b.dataset;
     if (d.setchain) { setChain(d.setchain); return; }
+    if (SOLC()) return; // the Solana side handles its own clicks
     if (d.t && b.tagName === "BUTTON") { open(d.t); if (S.showMarkets) { S.showMarkets = false; marketsView(); } return; }
     if (d.setside) { S.side = d.setside; S.msg = null; form(); requote(); return; }
     if (d.sheet) { S.side = d.sheet; if (sellOnly(S.type) && d.sheet === "buy") S.type = "limit"; form(); sheet(true); return; }
@@ -1371,6 +1389,7 @@
 
   // ---------------- boot ----------------
   async function tick(n) {
+    if (SOLC()) return; // arc-orders-sol.js refreshes its own side
     if (!panel.classList.contains("active") || document.hidden) return;
     const acct = me();
     if (acct !== S.acct) { S.acct = acct; await Promise.all([loadBal(), loadMine()]); form(); mineView(); }
@@ -1387,6 +1406,7 @@
     if (!S.booted) {
       S.booted = true;
       frame();
+      if (SOLC()) return;
       loadMarkets(); loadStatus().then(market);
       const m = /[?&]t=(0x[0-9a-fA-F]{40})/.exec(location.hash);
       open(m ? m[1] : ARCIRCLE());
@@ -1399,11 +1419,12 @@
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "orders") show(); else { clearInterval(S.timer); if (S.sheet) sheet(false); } });
   window.addEventListener("hashchange", () => {
     if (!S.booted || !/^#orders/.test(location.hash)) return;
-    const m = /[?&]t=(0x[0-9a-fA-F]{40})/.exec(location.hash), c = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=arc\b/.test(location.hash) ? "arc" : CH;
+    const m = /[?&]t=(0x[0-9a-fA-F]{40})/.exec(location.hash), c = /[?&]c=rh\b/.test(location.hash) ? "rh" : /[?&]c=sol\b/.test(location.hash) ? "sol" : /[?&]c=arc\b/.test(location.hash) ? "arc" : CH;
     if (c !== CH) { setChain(c, { reopen: m ? m[1] : null }); return; }
+    if (SOLC()) { const sm = /[?&]t=([1-9A-HJ-NP-Za-km-z]{32,44})/.exec(location.hash); if (sm && window.arcOrdersSol && window.arcOrdersSol.state.mint !== sm[1]) window.arcOrdersSol.open(sm[1]); return; }
     if (m && lc(m[1]) !== S.t) open(m[1]);
   });
-  document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (S.t) { market(); bookView(); form(); } } });
+  document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (!SOLC() && S.t) { market(); bookView(); form(); } } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
   window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH };
 })();

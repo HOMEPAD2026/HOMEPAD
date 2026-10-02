@@ -8,8 +8,9 @@
 //   splitTx     the split alone (a launch whose second transaction didn't land)
 //   distributeTx  pays out a coin's waiting creator fees to the shareholders (permissionless); a graduated coin's
 //               PumpSwap fees are swept into the curve's vault first
-import { Connection, PublicKey, Keypair, Transaction, ComputeBudgetProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction, VersionedTransaction, SystemProgram, ComputeBudgetProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction, createApproveCheckedInstruction, createRevokeInstruction, createSyncNativeInstruction, createCloseAccountInstruction, unpackAccount } from "@solana/spl-token";
+import { ordersSol } from "./orders-sol.mjs";
 import BN from "bn.js";
 import { Buffer } from "buffer";
 import { PUMP_SDK, OnlinePumpSdk, getBuyTokenAmountFromSolAmount, feeSharingConfigPda, bondingCurvePda, canonicalPumpPoolPda, PUMP_PROGRAM_ID, PUMP_FEE_PROGRAM_ID } from "@pump-fun/pump-sdk";
@@ -81,10 +82,13 @@ export async function distributeTx({ payer, mint, sharingConfig, graduated, bloc
   return txOf([...budget(200000, cuPrice), ...ixs], payer, blockhash);
 }
 
+// ARCIRCLE Orders on Solana (arc-orders-sol.js): the program's client and the token instructions an order needs
+const spl = { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction, createApproveCheckedInstruction, createRevokeInstruction, createSyncNativeInstruction, createCloseAccountInstruction, unpackAccount };
+const orders = (programId) => ordersSol({ web3: { PublicKey, TransactionInstruction, SystemProgram }, spl, programId });
 const kit = {
-  Buffer, Connection, PublicKey, Keypair, Transaction, LAMPORTS_PER_SOL, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, BN,
+  Buffer, Connection, PublicKey, Keypair, Transaction, VersionedTransaction, SystemProgram, LAMPORTS_PER_SOL, NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, BN, spl,
   PUMP_SDK, OnlinePumpSdk, feeSharingConfigPda, bondingCurvePda, canonicalPumpPoolPda, PUMP_PROGRAM_ID, PUMP_FEE_PROGRAM_ID,
-  launchTxs, splitTx, distributeTx, wireSize, v: "pump-sdk 2.0.0",
+  launchTxs, splitTx, distributeTx, wireSize, orders, v: "pump-sdk 2.0.0",
 };
 if (typeof window !== "undefined") window.ArcPumpKit = kit;
 else globalThis.ArcPumpKit = kit;

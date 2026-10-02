@@ -22,6 +22,7 @@
 //                                                   a desk tick that leaves enough of the minute)
 //   GET /api/desk?chain=rh&orderstick=1&key=…     the same on Robinhood Chain (ArcircleOrdersNative; also runs after
 //                                                   the Robinhood desk's tick)
+//   GET /api/desk?chain=sol&orderstick=1&key=…    the Solana keeper (api/_orders-sol.mjs; its own cron entry, every minute)
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -38,6 +39,12 @@ export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
   if (q.chain === "rh") return rhGET(q, req, st);
+  // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)
+  if (q.chain === "sol" && q.orderstick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    try { const SOL = await import("./_orders-sol.mjs"); return json(await SOL.tick(st, { budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
   if (q.orderstick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
