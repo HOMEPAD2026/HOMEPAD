@@ -240,7 +240,8 @@
     const lov = K("lockov"); if (lov) lov.hidden = ph.k === "open" || !br || br.kind !== "next";
     const lp = myBet(r.id);
     const lpe = K("livepos");
-    if (lpe) { lpe.hidden = !lp; if (lp) { const x = mult(up, down, fee, lp.side); lpe.className = "pd-pos " + lp.side; lpe.innerHTML = `${T("You're in")} <b data-no-i18n>${lp.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(lp.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(lp.stake * x)}</b>` : ""}`; } }
+    // the round open for bets shows its own position line; the live one only when they're different rounds
+    if (lpe) { lpe.hidden = !lp || (br && br.id && br.id === r.id); if (lp && !lpe.hidden) { const x = mult(up, down, fee, lp.side); lpe.className = "pd-pos " + lp.side; lpe.innerHTML = `${T("You're in")} <b data-no-i18n>${lp.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(lp.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(lp.stake * x)}</b>` : ""}`; } }
     chartDraw(m);
     // the betting box
     const bb = K("betbox");
@@ -322,8 +323,10 @@
     const k = p.result === "up" ? "up" : p.result === "down" ? "down" : "refund";
     const mine = myBet(p.id);
     const won = mine && mine.side === p.result;
+    const winSide = p.result === "up" ? p.up : p.down;
+    const profit = won && winSide > 0 ? (mine.stake * (p.up + p.down) * (1 - (p.feeBps || 0) / 10000)) / winSide - mine.stake : 0;
     st.className = `pd-stamp ${k}${reduce() ? " still" : ""}`;
-    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${usd(mine.claimable - mine.stake > 0 ? mine.claimable - mine.stake : mine.claimable)}</em>` : ""}`;
+    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${usd(profit)}</em>` : ""}`;
     st.hidden = false;
     if (won && !reduce()) confetti(st);
     clearTimeout(S.stampT);
@@ -689,9 +692,12 @@
   async function refresh() {
     if (document.hidden || !panel.classList.contains("active")) return;
     n++;
+    const before = market() && market().past && market().past[0] ? market().past[0].id : null;
     await load();
+    const after = market() && market().past && market().past[0] ? market().past[0].id : null;
     const jobs = [];
-    if (acct() !== S.acct || n % 3 === 0) jobs.push(loadMine());
+    // a round just settled (or a new wallet): the bets and claims now, so the result shows what you won
+    if (acct() !== S.acct || n % 3 === 0 || before !== after) jobs.push(loadMine());
     if (S.view === "market") jobs.push(loadChart());
     if (S.side === "feed" || n % 5 === 0) jobs.push(loadFeed());
     if (S.view === "lb" && n % 10 === 0) jobs.push(loadLb());

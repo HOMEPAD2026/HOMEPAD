@@ -20,7 +20,6 @@ import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx, ballotReport, forRound } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
-import { roundCard as predictRound } from "./_predict.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 
 export const config = { runtime: "edge" };
@@ -653,7 +652,8 @@ async function predictPage(url) {
   const id = String(url.searchParams.get("id") || ""), u = String(url.searchParams.get("u") || "");
   if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#predict">`, "public, max-age=300");
   let d = null;
-  try { d = await predictRound(id, /^0x[0-9a-fA-F]{40}$/.test(u) ? u : ""); } catch { d = null; }
+  // read through the Node function: api/_predict.mjs pulls in modules an Edge function can't bundle
+  try { const r = await fetch(`${SITE}/api/desk?predict=card&id=${id}${/^0x[0-9a-fA-F]{40}$/.test(u) ? "&u=" + u : ""}`, { signal: AbortSignal.timeout(6000) }); d = r.ok ? await r.json() : null; if (d && (d.error || !d.id)) d = null; } catch { d = null; }
   const dur = d ? (d.duration % 3600 === 0 ? `${d.duration / 3600}h` : `${d.duration / 60}m`) : "";
   const res = d && d.result !== "open" ? (d.result === "refund" ? "refunded" : `${d.result.toUpperCase()} won`) : "live";
   const title = d ? `$${d.sym} ${dur} round #${d.id} — ${res}` : "ARCIRCLE Predict";

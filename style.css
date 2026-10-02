@@ -13220,7 +13220,7 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 /* the result stamp */
 .pd-stamp{position:absolute;inset:0;z-index:3;display:grid;place-content:center;justify-items:center;gap:6px;background:rgba(5,8,5,.72);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:pdStampBg 3.6s ease forwards;pointer-events:none;}
 .pd-stamp[hidden]{display:none;}
-.pd-stamp b{font:900 2.2rem Sora,sans-serif;letter-spacing:.06em;padding:8px 22px;border:4px solid currentColor;border-radius:14px;transform:rotate(-8deg);animation:pdStamp .5s cubic-bezier(.2,1.6,.4,1) both;}
+.pd-stamp b{font:900 2.2rem Sora,sans-serif;letter-spacing:.06em;padding:8px 22px;margin-bottom:18px;border:4px solid currentColor;border-radius:14px;transform:rotate(-8deg);animation:pdStamp .5s cubic-bezier(.2,1.6,.4,1) both;}
 .pd-stamp span{font:600 .8rem var(--ams-mono,ui-monospace,monospace);color:#dfe8f1;}
 .pd-stamp em{font-style:normal;font:900 1.6rem Sora,sans-serif;color:#39ff88;animation:pdFloat 1.6s ease-out .3s both;}
 .pd-stamp.up b{color:#39ff88;}.pd-stamp.down b{color:#ff5c8a;}.pd-stamp.refund b{color:#8fc7ff;}

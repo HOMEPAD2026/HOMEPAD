@@ -60,6 +60,7 @@ export async function GET(req) {
       if (q.predict === "chart") return json(await predict.chart(q.m), 200, "public, max-age=2, s-maxage=3");
       if (q.predict === "feed") return json(await predict.feed(), 200, "public, max-age=2, s-maxage=3");
       if (q.predict === "lb") return json(await predict.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
+      if (q.predict === "card") { const r = await predict.roundCard(String(q.id || ""), String(q.u || "")); return json(r || { error: "no such round" }, r ? 200 : 404, r && r.result !== "open" ? "public, max-age=60, s-maxage=86400" : "public, max-age=10, s-maxage=30"); }
       if (q.predict === "status") return json((await predict.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
       return json(await predict.state({ store: st }), 200, "public, max-age=2, s-maxage=3");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
