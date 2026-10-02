@@ -11,7 +11,7 @@ import { evmChain } from "./_evm.mjs";
 import { RH_CFG } from "./_snap-rh.mjs";
 
 export const ARCLOCK = "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"; // config-arc.js ARCLOCK_ADDRESS
-export const ARCLOCK_RH_DEFAULT = ""; // config-arc.js ARCLOCK_RH_ADDRESS — keep in step
+export const ARCLOCK_RH_DEFAULT = "0x301E1e8dcB43cDddD3244889063aD4220536b38A"; // config-arc.js ARCLOCK_RH_ADDRESS — keep in step (deployed 2026-10-02)
 const envOf = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 let rhCh = null;
 const rh = () => (rhCh = rhCh || evmChain({ rpcs: () => RH_CFG.rpcs(), chainId: 4663, timeoutMs: 12000 }));
