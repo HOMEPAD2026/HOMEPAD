@@ -6050,6 +6050,14 @@
     "Also show amounts in": "金额折合单位",
     "Price loading…": "正在读取价格…",
     "Rank, wallet, USDC and share of the raise — exact on-chain amounts. The ETH and SOL files add each amount at today's price (USDC counted as $1) and the price used.": "排名、钱包、USDC 和占募资比例——链上精确金额。ETH 和 SOL 文件会按今日价格（USDC 按 $1 计）加上每笔金额的折合值及所用价格。",
+    "No Uniswap pool against ETH found for this token.": "未找到该代币与 ETH 配对的 Uniswap 池。",
+    "This wallet doesn't hold that much ETH.": "该钱包没有这么多 ETH。",
+    "Anyone funds the vault with ETH.": "任何人都可以用 ETH 为金库注资。",
+    "ETH ready": "可用 ETH",
+    "Find its ETH pools": "查找其 ETH 池",
+    "On Robinhood Chain they open once ARCIA AGENT's Robinhood contracts are deployed — funded with ETH. The report and the safety call work now.": "在 Robinhood Chain 上，ARCIA AGENT 的 Robinhood 合约部署后即开放——以 ETH 注资。报告和安全判定现在即可使用。",
+    "Utility · ARCIA works on Arc and Robinhood Chain tokens": "实用工具 · ARCIA 支持 Arc 和 Robinhood Chain 代币",
+    "Paste a token's address — Arc or Robinhood Chain — and ARCIA goes to work on it: she reads the whole token, makes a safety call for the next 24 hours that's graded in public, and — from a vault anyone can fund — buys it back and burns it, in dips, never chasing a pump.": "粘贴代币地址（Arc 或 Robinhood Chain），ARCIA 就开始工作：她通读整个代币，给出公开评分的 24 小时安全判定，并用任何人都可注资的金库回购并销毁它——只在回调时买入，从不追涨。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

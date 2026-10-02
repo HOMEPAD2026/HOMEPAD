@@ -12568,6 +12568,13 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .asc-chaintag{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;color:#d9f27a;}
 .asc-scard b .aor-cdot{display:inline-block;width:7px;height:7px;vertical-align:middle;margin-left:2px;}
 @media (max-width:720px){ .asc-chainsw{display:grid;width:100%;min-width:0;} }
+/* ARCIA AGENT's chain switch (Arc / Robinhood Chain) */
+.ag-chainsw{display:inline-grid;min-width:260px;margin:0 0 10px;}
+.ag-chainsw button{padding:7px 12px;font-size:.8rem;}
+.ag-chtag{display:inline-flex;align-items:center;gap:4px;font-style:normal;font:600 .58rem var(--ams-mono,ui-monospace,monospace);padding:1px 5px;border-radius:5px;background:rgba(204,255,0,.12);color:#d9ff4d;vertical-align:middle;margin-left:4px;}
+.ag-chtag .aor-cdot{display:inline-block;width:6px;height:6px;}
+.ag-usd{font-size:.72em;color:#8c98a6;font-weight:400;margin-left:2px;}
+@media (max-width:720px){ .ag-chainsw{display:grid;width:100%;min-width:0;} }
 .asn-rh{font-style:normal;font:600 .58rem var(--ams-mono,ui-monospace,monospace);padding:1px 5px;border-radius:5px;background:rgba(204,255,0,.12);color:#d9ff4d;vertical-align:middle;}
 @media (max-width:720px){ .aor-chain{min-width:0;width:100%;} .aor-chainnote{flex-basis:100%;} }
 @media (prefers-reduced-motion:reduce){ .aor-chain-pill{transition:none !important;} }

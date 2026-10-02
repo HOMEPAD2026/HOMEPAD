@@ -5897,6 +5897,14 @@
     "Also show amounts in": "금액 환산 단위",
     "Price loading…": "시세 불러오는 중…",
     "Rank, wallet, USDC and share of the raise — exact on-chain amounts. The ETH and SOL files add each amount at today's price (USDC counted as $1) and the price used.": "순위, 지갑, USDC, 모금 비중 — 온체인 정확한 금액이에요. ETH·SOL 파일은 각 금액을 오늘 시세로 환산한 값(USDC = $1 기준)과 사용한 시세를 함께 담아요.",
+    "No Uniswap pool against ETH found for this token.": "이 토큰의 ETH 상대 Uniswap 풀을 찾지 못했습니다.",
+    "This wallet doesn't hold that much ETH.": "이 지갑에 ETH가 그만큼 없습니다.",
+    "Anyone funds the vault with ETH.": "누구나 ETH로 볼트에 자금을 넣을 수 있습니다.",
+    "ETH ready": "준비된 ETH",
+    "Find its ETH pools": "ETH 풀 찾기",
+    "On Robinhood Chain they open once ARCIA AGENT's Robinhood contracts are deployed — funded with ETH. The report and the safety call work now.": "로빈후드 체인에서는 ARCIA AGENT의 로빈후드 컨트랙트가 배포되면 열립니다 — ETH로 자금을 넣습니다. 리포트와 안전성 판정은 지금 바로 쓸 수 있습니다.",
+    "Utility · ARCIA works on Arc and Robinhood Chain tokens": "유틸리티 · ARCIA가 Arc와 로빈후드 체인 토큰을 맡습니다",
+    "Paste a token's address — Arc or Robinhood Chain — and ARCIA goes to work on it: she reads the whole token, makes a safety call for the next 24 hours that's graded in public, and — from a vault anyone can fund — buys it back and burns it, in dips, never chasing a pump.": "토큰 주소(Arc 또는 로빈후드 체인)를 붙여넣으면 ARCIA가 일을 시작합니다: 토큰 전체를 읽고, 공개 채점되는 24시간 안전 콜을 하고, 누구나 채울 수 있는 금고로 그 토큰을 되사서 소각합니다 — 눌림에서만, 급등은 쫓지 않아요.",
   };
 
 

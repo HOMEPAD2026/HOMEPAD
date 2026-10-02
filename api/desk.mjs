@@ -12,6 +12,7 @@
 //   GET /api/desk?agent=record           every safety call and how it was graded
 //   GET /api/desk?agent=vaults[&t=0x…]   the burn vaults (all, or one token's) and ARCIA's actions
 //   GET /api/desk?agent=take&t=0x…       ARCIA's words on a token (after its report; Claude, cached an hour)
+//   …&chain=rh on the report, take and vaults: Robinhood Chain (ArciaAgentRH vaults) · ?agent=pools&t=0x…&chain=rh where a vault can buy
 //   POST /api/desk {action:"agent-mode", vault, mode, issued, signature}   a vault owner's strategy (dip / steady / volume)
 //   GET /api/desk?agenttick=1&key=<CRON_SECRET>   grade calls + work the vaults (also runs after every desk tick)
 // ARCIA DESK on Robinhood Chain (every new launch there; the engine is api/_desk-rh.mjs): the same routes with &chain=rh —
@@ -38,7 +39,7 @@ const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k
 export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
-  if (q.chain === "rh") return rhGET(q, req, st);
+  if (q.chain === "rh" && !q.agent) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
   // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)
   if (q.chain === "sol" && q.orderstick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
@@ -73,12 +74,14 @@ export async function GET(req) {
   }
   if (q.agent) {
     try {
+      const chain = q.chain === "rh" ? "rh" : "arc";
       if (q.agent === "record") return json(await agent.record(st, { day: q.day != null && /^\d{1,6}$/.test(q.day) ? Number(q.day) : null }), 200, "public, max-age=30, s-maxage=60");
-      if (q.agent === "vaults") return json(await agent.vaults(st, { token: q.t || "", vault: q.v || "" }), 200, "public, max-age=10, s-maxage=20");
-      if (q.agent === "take") { const r = await agent.take(st, String(q.t || "")); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=60, s-maxage=300"); }
+      if (q.agent === "vaults") return json(await agent.vaults(st, { token: q.t || "", vault: q.v || "", chain }), 200, "public, max-age=10, s-maxage=20");
+      if (q.agent === "take") { const r = await agent.take(st, String(q.t || ""), { chain }); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=60, s-maxage=300"); }
+      if (q.agent === "pools") { const r = await agent.poolsRh(String(q.t || ""), { store: st }); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=30, s-maxage=60"); }
       const ip = req.headers.get("x-forwarded-for") || "?";
       if (agentLimited(ip)) return json({ error: "slow down — ARCIA reads one token at a time" }, 429);
-      const r = await agent.report(st, q.agent);
+      const r = await agent.report(st, q.agent, { chain });
       // a report still reading the holders is asked again soon: keep it out of the CDN's cache for long
       return json(r, r.error ? 400 : 200, r.error ? "no-store" : r.holdersPending ? "public, max-age=5, s-maxage=10" : "public, max-age=60, s-maxage=120");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }

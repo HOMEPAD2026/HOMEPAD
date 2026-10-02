@@ -1,4 +1,4 @@
-/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, readProvider */
+/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, ensureAltForWrite, readProvider, ARC_ALT_NET */
 // arc-agent.js — ARCIA AGENT, an ARCIRCLE PAD utility (arcpad.html#agent).
 // Paste an Arc token's address and ARCIA works on it:
 //   · report     Token Scanner v3 read in full, ARCIA's own take, the numbers that matter (GET /api/desk?agent=0x…)
@@ -8,6 +8,9 @@
 //                pause, turn ARCIA off or withdraw at any time
 //   · actions    every buy & burn ARCIA made for the token, with its transaction
 // Nothing on this page can make ARCIA buy: only a vault's on-chain limits and the agent's rules (api/_agent.mjs) do.
+// Robinhood Chain (Oct 2026): an Arc | Robinhood switch over the address box. The same report and call (chain=rh), and
+// vaults from ArciaAgentRH.sol funded with ETH, buying in the token's Uniswap v3 (WETH) or v4 (ETH / WETH) pool.
+// Deep link: #agent?c=rh&t=0x… · the record holds both chains' calls, each with its chain.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-agent");
@@ -20,9 +23,17 @@
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const EXPL = (kind, x) => `${(typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
-  const txa = (h, label) => (h ? `<a class="ag-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
+  // ---------------- the chain: Arc or Robinhood Chain ----------------
+  const RHN = (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { explorer: "https://robinhoodchain.blockscout.com" };
+  const CK = "arcircle.agent.chain";
+  let CH = /^#agent\?(?:.*&)?c=rh\b/.test(location.hash) ? "rh" : (() => { try { return localStorage.getItem(CK) === "rh" && !/^#agent\?(?:.*&)?t=/.test(location.hash) ? "rh" : "arc"; } catch { return "arc"; } })();
+  const RH = () => CH === "rh";
+  const CQ = (c = CH) => (c === "rh" ? "&chain=rh" : "");
+  const EXPLon = (c) => (kind, x) => `${c === "rh" ? RHN.explorer : (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
+  const EXPL = (kind, x) => EXPLon(CH)(kind, x);
+  const txa = (h, label, c) => (h ? `<a class="ag-tx" href="${EXPLon(c || CH)("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
   const addrA = (a) => (a ? `<a class="ag-tx" href="${EXPL("address", a)}" target="_blank" rel="noopener" data-no-i18n>${short(a)} ↗</a>` : "—");
+  const rhTag = (c) => (c === "rh" ? `<i class="ag-chtag" title="Robinhood Chain" data-no-i18n><b class="aor-cdot rh" aria-hidden="true"></b>RH</i>` : "");
   const usd = (n, d = 2) => (n == null || !isFinite(n) ? "—" : "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }));
   const big$ = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e6 ? "$" + (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? "$" + (n / 1e3).toFixed(1) + "K" : usd(n, n < 10 ? 2 : 0));
   const num = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 }));
@@ -31,7 +42,13 @@
   const inT = (s) => { const d = Math.max(0, s - Date.now() / 1000); return d < 3600 ? `${Math.ceil(d / 60)}m` : `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m`; };
   const API = "/api/desk";
   const USDC = lc((typeof CONFIG !== "undefined" && CONFIG.USDC_ADDRESS) || "0x3600000000000000000000000000000000000000");
-  const ARCIRCLE = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
+  const ARCIRCLE_ARC = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
+  const ARCIRCLE_RH = (typeof CONFIG !== "undefined" && CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4";
+  const arcircleOf = () => (RH() ? ARCIRCLE_RH : ARCIRCLE_ARC);
+  // money in a vault's own unit: USDC on Arc, ETH on Robinhood Chain (with its dollars)
+  const ethTxt = (n) => (n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 3 : n >= 0.01 ? 4 : 6 }) + " ETH");
+  const money = (n, V) => (V && V.unit === "ETH" ? ethTxt(n) : usd(n));
+  const moneyUsd = (n, V) => (V && V.unit === "ETH" && V.ethUsd && n != null ? ` <small class="ag-usd" data-no-i18n>≈ ${usd(n * V.ethUsd, n * V.ethUsd < 10 ? 2 : 0)}</small>` : "");
   const AV = "/images/arcia-avatar-96.jpg";
   const CALLS = { safe: ["Safe", "safe"], caution: ["Caution", "caution"], risky: ["Risky", "risky"] };
   const S = { t: null, rep: null, rec: null, vs: null, tab: "overview", busy: false, booted: false, timer: 0, seenActs: null, liq: null, ownOpen: new Set(), lastStatus: {} };
@@ -49,8 +66,9 @@
     $("ag-body").innerHTML = `
       <div class="ag-summon" id="ag-summon">
         <div class="ag-sum-av"><img src="${AV}" alt="" width="56" height="56"><i></i></div>
+        <div class="aor-chain ag-chainsw" id="ag-chain" role="radiogroup" aria-label="Chain" data-chain="${CH}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-agchain="arc" aria-checked="${!RH()}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span></button><button type="button" role="radio" data-agchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span></button></div>
         <form class="ag-form" id="ag-form" autocomplete="off">
-          <input id="ag-in" type="text" inputmode="text" spellcheck="false" placeholder="${T("Paste an Arc token address (0x…)")}" aria-label="${T("Arc token address")}">
+          <input id="ag-in" type="text" inputmode="text" spellcheck="false" placeholder="${T(RH() ? "Paste a Robinhood Chain token address (0x…)" : "Paste an Arc token address (0x…)")}" aria-label="${T(RH() ? "Robinhood Chain token address" : "Arc token address")}">
           <button type="submit" class="ag-go" id="ag-go"><span>${T("Wake ARCIA")}</span></button>
         </form>
         <div class="ag-chips" id="ag-chips"></div>
@@ -81,7 +99,7 @@
       try { localStorage.setItem(NK, e.target.checked ? "1" : "0"); } catch { /* private window */ }
     });
     try {
-      const r = await fetch("/api/social?scans=top");
+      const r = await fetch(`/api/social?scans=top${CQ()}`);
       const j = r.ok ? await r.json() : null;
       const top = ((j && j.top) || []).slice(0, 8);
       if (top.length) $("ag-trend").innerHTML = `<small>${T("Read most this week")}</small>` + top.map((x) => `<button type="button" class="ag-chip" data-ag-t="${esc(x.token)}"><span data-no-i18n>${esc(x.symbol || short(x.token))}</span></button>`).join("");
@@ -92,22 +110,24 @@
     const el = $("ag-vboard");
     if (!el) return;
     let V = null;
-    try { const r = await fetch(`${API}?agent=vaults`); V = r.ok ? await r.json() : null; } catch { V = null; }
+    try { const r = await fetch(`${API}?agent=vaults${CQ()}`); V = r.ok ? await r.json() : null; } catch { V = null; }
     if (!V || !V.live || !V.vaults.length) { el.hidden = true; return; }
     el.hidden = false;
     const list = V.vaults.slice().sort((a, b) => b.spent - a.spent).slice(0, 10);
     el.innerHTML = `<div class="dk-h"><h3>${T("Burn vaults")}</h3><span class="dk-sub">${T("by what ARCIA has burned")}</span></div>
-      <div class="ag-vlist">${list.map((v, i) => `<button type="button" class="ag-vrow" data-ag-t="${esc(v.token)}"><em data-no-i18n>${i + 1}</em><b data-no-i18n>${esc(v.sym || short(v.token))}</b><span data-no-i18n>${num(Number(v.burned) / 10 ** (v.dec || 18))}</span><small><span data-no-i18n>${usd(v.spent)}</span> · <span data-no-i18n>${v.buys}</span> ${T("buys")}</small><i class="ag-pill ${v.paused || !v.agentOn ? "off" : "on"}">${T(v.paused ? "Paused" : v.agentOn ? "ARCIA on" : "ARCIA off")}</i></button>`).join("")}</div>
-      ${V.recent.length ? `<h4>${T("Latest burns")}</h4><div class="ag-acts">${V.recent.slice(0, 6).map((a) => `<div class="ag-act"><i class="ag-flame" aria-hidden="true"></i><div><b><span data-no-i18n>${num(Number(a.burned) / 10 ** (a.dec || 18))} ${esc(a.sym || "")}</span></b><small><span data-no-i18n>${usd(a.usd)}</span> · <span data-no-i18n>${ago(a.ts)}</span></small></div>${txa(a.tx, "tx")}</div>`).join("")}</div>` : ""}`;
+      <div class="ag-vlist">${list.map((v, i) => `<button type="button" class="ag-vrow" data-ag-t="${esc(v.token)}"><em data-no-i18n>${i + 1}</em><b data-no-i18n>${esc(v.sym || short(v.token))}</b><span data-no-i18n>${num(Number(v.burned) / 10 ** (v.dec || 18))}</span><small><span data-no-i18n>${money(v.spent, V)}</span> · <span data-no-i18n>${v.buys}</span> ${T("buys")}</small><i class="ag-pill ${v.paused || !v.agentOn ? "off" : "on"}">${T(v.paused ? "Paused" : v.agentOn ? "ARCIA on" : "ARCIA off")}</i></button>`).join("")}</div>
+      ${V.recent.length ? `<h4>${T("Latest burns")}</h4><div class="ag-acts">${V.recent.slice(0, 6).map((a) => `<div class="ag-act"><i class="ag-flame" aria-hidden="true"></i><div><b><span data-no-i18n>${num(Number(a.burned) / 10 ** (a.dec || 18))} ${esc(a.sym || "")}</span></b><small><span data-no-i18n>${usd(a.usd)}</span> · <span data-no-i18n>${ago(a.ts)}</span></small></div>${txa(a.tx, "tx", a.ch)}</div>`).join("")}</div>` : ""}`;
   }
   function chips() {
     const l = watch();
-    $("ag-chips").innerHTML = `<button type="button" class="ag-chip ag-chip-arc" data-ag-t="${ARCIRCLE}" data-no-i18n>$ARCIRCLE</button>` +
-      l.map((w) => `<button type="button" class="ag-chip ${w.call ? "c-" + w.call : ""}" data-ag-t="${esc(w.t)}"><span data-no-i18n>${esc(w.sym || short(w.t))}</span>${w.call ? `<i>${T(CALLS[w.call] ? CALLS[w.call][0] : w.call)}</i>` : ""}</button>`).join("");
+    $("ag-chips").innerHTML = `<button type="button" class="ag-chip ag-chip-arc" data-ag-t="${arcircleOf()}" data-ag-c="${CH}" data-no-i18n>$ARCIRCLE</button>` +
+      l.map((w) => `<button type="button" class="ag-chip ${w.call ? "c-" + w.call : ""}" data-ag-t="${esc(w.t)}" data-ag-c="${w.ch === "rh" ? "rh" : "arc"}"><span data-no-i18n>${esc(w.sym || short(w.t))}</span>${rhTag(w.ch)}${w.call ? `<i>${T(CALLS[w.call] ? CALLS[w.call][0] : w.call)}</i>` : ""}</button>`).join("");
   }
   function onClick(e) {
+    const sw = e.target.closest("[data-agchain]");
+    if (sw) { setChain(sw.dataset.agchain); try { history.replaceState(null, "", RH() ? "#agent?c=rh" : "#agent"); } catch { /* fine */ } return; }
     const t = e.target.closest("[data-ag-t]");
-    if (t) { $("ag-in").value = t.dataset.agT; wake(t.dataset.agT); return; }
+    if (t) { const c = t.dataset.agC || CH; if (c !== CH) setChain(c); $("ag-in").value = t.dataset.agT; wake(t.dataset.agT); return; }
     const tab = e.target.closest("[data-ag-tab]");
     if (tab) { S.tab = tab.dataset.agTab; tabs(); return; }
     const f = e.target.closest("[data-ag-follow]");
@@ -127,7 +147,7 @@
     if (!S.rep) return;
     let l = watch();
     if (watching(S.t)) l = l.filter((w) => w.t !== S.t);
-    else l = [{ t: S.t, sym: S.rep.sym, call: S.rep.call && S.rep.call.call, at: Date.now() }, ...l];
+    else l = [{ t: S.t, ...(RH() ? { ch: "rh" } : {}), sym: S.rep.sym, call: S.rep.call && S.rep.call.call, at: Date.now() }, ...l];
     saveWatch(l); chips(); card();
   }
 
@@ -139,14 +159,14 @@
     if (!isAddr(t)) { think([], "Paste a token's contract address — 0x followed by 40 characters."); return; }
     if (S.busy) return;
     S.busy = true; S.t = lc(t); S.rep = null; S.vs = null; S.seenActs = null;
-    try { history.replaceState(null, "", "#agent?t=" + S.t); } catch { /* fine */ }
+    try { history.replaceState(null, "", `#agent?${RH() ? "c=rh&" : ""}t=${S.t}`); } catch { /* fine */ }
     $("ag-res").innerHTML = ""; $("ag-summon").classList.add("waking");
     let i = 0;
     const tick = setInterval(() => { i = Math.min(THOUGHTS.length - 1, i + 1); think(THOUGHTS.slice(0, i + 1)); }, reduce ? 50 : 650);
     think(THOUGHTS.slice(0, 1));
     let rep = null, err = null;
     try {
-      const [r1, r2] = await Promise.all([fetch(`${API}?agent=${S.t}`), fetch(`${API}?agent=vaults&t=${S.t}`).catch(() => null)]);
+      const [r1, r2] = await Promise.all([fetch(`${API}?agent=${S.t}${CQ()}`), fetch(`${API}?agent=vaults&t=${S.t}${CQ()}`).catch(() => null)]);
       rep = await r1.json().catch(() => null);
       S.vs = r2 && r2.ok ? await r2.json().catch(() => null) : null;
       if (!r1.ok || !rep || rep.error) err = (rep && rep.error) || "ARCIA couldn't read that token right now.";
@@ -165,13 +185,13 @@
     const t = S.t, r = S.rep;
     if (!r) return;
     if (!r.take) {
-      try { const x = await fetch(`${API}?agent=take&t=${t}`); const j = x.ok ? await x.json() : null; if (S.t === t && j && j.take) { S.rep.take = j.take; typeTake(j.take.text); } } catch { /* the rules line stays */ }
+      try { const x = await fetch(`${API}?agent=take&t=${t}${CQ()}`); const j = x.ok ? await x.json() : null; if (S.t === t && j && j.take) { S.rep.take = j.take; typeTake(j.take.text); } } catch { /* the rules line stays */ }
     }
     clearTimeout(S.retry);
     if (r.call && r.call.pending && (S.tries = (S.tries || 0) + 1) <= 12) {
       S.retry = setTimeout(async () => {
         if (S.t !== t) return;
-        try { const x = await fetch(`${API}?agent=${t}&n=${S.tries}`); const j = x.ok ? await x.json() : null; if (j && !j.error && S.t === t) { const tk = S.rep.take; S.rep = j; if (!j.take) S.rep.take = tk; card(); if (S.tab === "overview") tabs(); afterRender(); } } catch { /* next time */ }
+        try { const x = await fetch(`${API}?agent=${t}&n=${S.tries}${CQ()}`); const j = x.ok ? await x.json() : null; if (j && !j.error && S.t === t) { const tk = S.rep.take; S.rep = j; if (!j.take) S.rep.take = tk; card(); if (S.tab === "overview") tabs(); afterRender(); } } catch { /* next time */ }
       }, 15000);
     } else if (!(r.call && r.call.pending)) S.tries = 0;
   }
@@ -201,7 +221,7 @@
     el.className = `ams-card ag-card k-${k[1]}`;
     el.innerHTML = `
       <div class="ag-c-top"><div class="ag-av k-${k[1]} mood-${k[1]}"><img src="${AV}" alt="" width="64" height="64"></div>
-        <div class="ag-c-id"><b data-no-i18n>${esc(r.sym || short(r.t))}</b><small data-no-i18n>${esc(r.name || "")}</small>${addrA(r.t)}</div>
+        <div class="ag-c-id"><b data-no-i18n>${esc(r.sym || short(r.t))}${rhTag(r.ch)}</b><small data-no-i18n>${esc(r.name || "")}</small>${addrA(r.t)}</div>
         <button type="button" class="ag-follow ${watching(r.t) ? "on" : ""}" data-ag-follow aria-pressed="${watching(r.t)}">${T(watching(r.t) ? "Following" : "Follow")}</button></div>
       <div class="ag-call"><span class="ag-stamp k-${k[1]}">${c.pending ? `<i class="ag-spin" aria-hidden="true"></i>` : ""}${T(k[0])}</span><div><small>${T(c.pending ? "The call waits for the holders" : "ARCIA's 24-hour safety call")}</small><ul>${(c.why || []).map((w) => `<li>${T(w)}</li>`).join("")}</ul></div></div>
       <p class="ag-take" id="ag-take" data-no-i18n></p>
@@ -249,7 +269,7 @@
       </div>
       ${f.critical && f.critical.length ? `<div class="ag-crit"><b>${T("Critical")}</b>${f.critical.map((c) => `<span>${T(c)}</span>`).join("")}</div>` : ""}
       ${(r.checks || []).length ? `<h4>${T("What ARCIA would watch")}</h4><ul class="ag-issues">${r.checks.map((c) => `<li class="s-${esc(c.status)}"><b>${T(c.title)}</b>${c.detail ? `<small>${T(c.detail)}</small>` : ""}</li>`).join("")}</ul>` : `<p class="ag-small">${T("No warnings from the scanner.")}</p>`}
-      <p class="ag-small"><a href="/arc#scanner?t=${esc(r.t)}" data-arc-tab="scanner">${T("Open the full Token Scanner report")} →</a> · <a href="/arc#orders?t=${esc(r.t)}">${T("Set a limit order")} →</a> · ${T("read by ARCIA")} <span data-no-i18n>${ago(r.at)}</span></p>`;
+      <p class="ag-small"><a href="/arc#scanner?${RH() ? "c=rh&" : ""}t=${esc(r.t)}" data-arc-tab="scanner">${T("Open the full Token Scanner report")} →</a>${RH() ? "" : ` · <a href="/arc#orders?t=${esc(r.t)}">${T("Set a limit order")} →</a>`} · ${T("read by ARCIA")} <span data-no-i18n>${ago(r.at)}</span></p>`;
     if (!reduce) requestAnimationFrame(() => el.querySelector(".ag-r-fg").classList.add("on"));
     else el.querySelector(".ag-r-fg").classList.add("on");
     // the number counts up with the ring
@@ -271,7 +291,7 @@
     const k = CALLS[c.call] || ["—", ""], g = c.graded;
     const res = !g ? `<em class="ag-wait">${T("still open")} · <span data-no-i18n>${inT(c.until)}</span></em>` : g.void ? `<em>${T("no market to grade")}</em>` : g.right == null ? `<em>${T("not graded")}</em>`
       : `<em class="${g.right ? "up" : "dn"}">${T(g.right ? "called right" : "called wrong")} <span data-no-i18n>${pc(g.dPx, 0)}</span></em>`;
-    return `<button type="button" class="ag-callrow ${g ? "flip" : ""}" data-ag-t="${esc(c.t)}"><span class="ag-stamp sm k-${k[1]}">${T(k[0])}</span><b data-no-i18n>${esc(c.sym || short(c.t))}</b><small data-no-i18n>${ago(c.at)}</small>${res}</button>`;
+    return `<button type="button" class="ag-callrow ${g ? "flip" : ""}" data-ag-t="${esc(c.t)}" data-ag-c="${c.ch === "rh" ? "rh" : "arc"}"><span class="ag-stamp sm k-${k[1]}">${T(k[0])}</span><b data-no-i18n>${esc(c.sym || short(c.t))}${rhTag(c.ch)}</b><small data-no-i18n>${ago(c.at)}</small>${res}</button>`;
   }
   async function record(el) {
     el.innerHTML = `<div class="ag-skel"><i></i><i></i></div>`;
@@ -279,7 +299,7 @@
     if (S.tab !== "record") return;
     const R = S.rec;
     if (!R) { el.innerHTML = `<div class="ag-empty">${T("The record isn't reachable right now.")}</div>`; return; }
-    const mine = R.calls.filter((c) => c.t === S.t);
+    const mine = R.calls.filter((c) => c.t === S.t && (c.ch === "rh" ? "rh" : "arc") === CH);
     el.innerHTML = statLine(R.stats) + series(R.series) + buckets(R.buckets) +
       (mine.length ? `<h4>${T("This token")}</h4><div class="ag-calls">${mine.map(callRow).join("")}</div>` : "") +
       `<h4>${T("Latest calls")}</h4><div class="ag-calls">${R.calls.slice(0, 20).map(callRow).join("") || `<div class="ag-empty">${T("No calls yet.")}</div>`}</div>
@@ -303,7 +323,7 @@
   function anchors(A) {
     const rows = (A || []).filter((a) => a.tx);
     if (!rows.length) return `<p class="ag-small">${T("Once a day, ARCIA writes the day's call hashes on Arc as one root, so anyone can check the calls came before their outcomes. The first one is written the day after the first calls.")}</p>`;
-    return `<h4>${T("Written on Arc")}</h4><div class="ag-anc">${rows.slice(0, 7).map((a) => `<div class="ag-anc-r"><b data-no-i18n>${esc(a.date)}</b><span><span data-no-i18n>${a.n}</span> ${T("calls")}</span>${txa(a.tx, "tx")}<button type="button" class="ag-btn sm" data-ag-verify="${esc(a.day)}">${T("Check")}</button><em class="ag-anc-m" data-no-i18n></em></div>`).join("")}</div>`;
+    return `<h4>${T("Written on Arc")}</h4><div class="ag-anc">${rows.slice(0, 7).map((a) => `<div class="ag-anc-r"><b data-no-i18n>${esc(a.date)}</b><span><span data-no-i18n>${a.n}</span> ${T("calls")}</span>${txa(a.tx, "tx", "arc")}<button type="button" class="ag-btn sm" data-ag-verify="${esc(a.day)}">${T("Check")}</button><em class="ag-anc-m" data-no-i18n></em></div>`).join("")}</div>`;
   }
   async function verifyAnchor(b) {
     const day = Number(b.dataset.agVerify), a = (S.rec.anchors || []).find((x) => x.day === day), out = b.parentElement.querySelector(".ag-anc-m");
@@ -330,20 +350,27 @@
   // ---------------- vaults ----------------
   const FACT_ABI = ["function createVault((address,address,uint24,int24,address),uint256,uint256,uint256) returns (address)", "function createBurn() view returns (uint256)"];
   const VAULT_ABI = ["function fund(uint256)", "function setPaused(bool)", "function setAgentOn(bool)", "function setLimits(uint256,uint256,uint256)", "function applyLimits()", "function withdraw(address,uint256)"];
+  // Robinhood Chain (ArciaAgentRH.sol): ETH in, a v3 pool or a v4 key
+  const FACT_RH_ABI = ["function createVault3(address,uint256,uint256,uint256) returns (address)", "function createVault4((address,address,uint24,int24,address),uint256,uint256,uint256) returns (address)"];
+  const VAULT_RH_ABI = ["function fund() payable", "function setPaused(bool)", "function setAgentOn(bool)", "function setLimits(uint256,uint256,uint256)", "function applyLimits()", "function withdrawETH(uint256)"];
+  const isRhV = () => !!(S.vs && S.vs.chain === "rh");
+  const parseAmt = (v) => (isRhV() ? parse18(v) : parse6(v));
   const ERC20 = ["function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)", "function balanceOf(address) view returns (uint256)"];
   const me = () => (typeof state !== "undefined" && state.account ? lc(state.account) : null);
   async function signer() {
     if ((typeof state === "undefined" || !state.signer) && typeof connectWallet === "function") await connectWallet();
-    if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
+    if (RH()) { if (typeof ensureAltForWrite === "function") await ensureAltForWrite(); }
+    else if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
     if (typeof state === "undefined" || !state.signer) throw new Error(tr("Connect a wallet first."));
     return state.signer;
   }
   const errText = (e) => (e && (e.code === "ACTION_REJECTED" || e.code === 4001) ? tr("Cancelled in your wallet.") : String((e && (e.shortMessage || e.reason || e.message)) || tr("The transaction didn't go through.")).slice(0, 180));
   const parse6 = (v) => { try { const a = ethers.parseUnits(String(v || "").trim() || "0", 6); return a > 0n ? a : null; } catch { return null; } };
-  async function loadVaults() { try { const r = await fetch(`${API}?agent=vaults&t=${S.t}`, { cache: "no-store" }); S.vs = r.ok ? await r.json() : S.vs; } catch { /* keep */ } }
+  const parse18 = (v) => { try { const a = ethers.parseEther(String(v || "").trim() || "0"); return a > 0n ? a : null; } catch { return null; } };
+  async function loadVaults() { try { const r = await fetch(`${API}?agent=vaults&t=${S.t}${CQ()}`, { cache: "no-store" }); S.vs = r.ok ? await r.json() : S.vs; } catch { /* keep */ } }
   function tank(v) {
     const full = Math.max(v.dailyCap * 2, v.usdc, 1), f = Math.min(1, v.usdc / full);
-    return `<div class="ag-tank" style="--f:${(f * 100).toFixed(1)}%"><i></i><b data-no-i18n>${usd(v.usdc)}</b><small>${T("USDC ready")}</small></div>`;
+    return `<div class="ag-tank" style="--f:${(f * 100).toFixed(1)}%"><i></i><b data-no-i18n>${v.unit === "ETH" ? ethTxt(v.usdc) + moneyUsd(v.usdc, S.vs) : usd(v.usdc)}</b><small>${T(v.unit === "ETH" ? "ETH ready" : "USDC ready")}</small></div>`;
   }
   const MODE_TXT = { dip: ["Dips only", "never after a pump"], steady: ["Steady", "one buy each interval"], volume: ["By volume", "each buy ≤ 2% of hourly volume"] };
   function vaultCard(v) {
@@ -362,19 +389,19 @@
       <div class="ag-v-h"><b>${T("Vault")} ${addrA(v.vault)}</b><span class="ag-pill ${v.paused ? "off" : v.agentOn ? "on" : "off"}">${T(v.paused ? "Paused" : v.agentOn ? "ARCIA on" : "ARCIA off")}</span><small>${T("owner")} ${addrA(v.owner)}${mine ? ` <em>${T("you")}</em>` : ""}</small></div>
       <div class="ag-v-body">${tank(v)}
         <div class="ag-v-st"><div><small>${T("Burned so far")}</small><b data-no-i18n>${num(burned)}</b><span data-no-i18n>${esc(v.sym || (S.rep && S.rep.sym) || "")}</span></div>
-          <div><small>${T("Spent")}</small><b data-no-i18n>${usd(v.spent)}</b><span><span data-no-i18n>${v.buys}</span> ${T("buys")}</span></div>
-          <div><small>${T("Vault limits")}</small><b data-no-i18n>${usd(v.maxBuy, 0)} / ${usd(v.dailyCap, 0)}</b><span>${T("per buy / per day")} · ${T("one buy every")} <span data-no-i18n>${Math.round(v.cooldown / 60)}m</span></span></div></div></div>
+          <div><small>${T("Spent")}</small><b data-no-i18n>${money(v.spent, v.unit === "ETH" ? S.vs : null)}</b><span><span data-no-i18n>${v.buys}</span> ${T("buys")}</span></div>
+          <div><small>${T("Vault limits")}</small><b data-no-i18n>${v.unit === "ETH" ? `${ethTxt(v.maxBuy)} / ${ethTxt(v.dailyCap)}` : `${usd(v.maxBuy, 0)} / ${usd(v.dailyCap, 0)}`}</b><span>${T("per buy / per day")} · ${T("one buy every")} <span data-no-i18n>${Math.round(v.cooldown / 60)}m</span></span></div></div></div>
       <div class="ag-v-meta"><span class="ag-mode">${T("Strategy")}: <b>${T(m[0])}</b> <small>${T(m[1])}</small></span>${next > Date.now() / 1000 ? `<span>${T("Next buy possible in")} <b data-no-i18n data-ag-cd="${next}">${inT(next)}</b></span>` : `<span>${T("Can buy now")}</span>`}</div>
       ${st ? `<div class="ag-v-why"><img src="${AV}" alt="" width="20" height="20"><span>${T(st.why)}</span><em>${T("checked")} <span data-no-i18n>${ago(st.at)}</span></em></div>` : ""}
-      ${pend ? `<div class="ag-v-pend">${T("Looser limits queued")}: <b data-no-i18n>${usd(pend.maxBuy, 0)} / ${usd(pend.dailyCap, 0)} · ${Math.round(pend.cooldown / 60)}m</b> — ${due ? `<button type="button" class="ag-btn sm" data-vact="apply">${T("Apply now")}</button>` : `${T("from")} <span data-no-i18n>${inT(pend.readyAt)}</span>`}</div>` : ""}
-      <div class="ag-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="USDC" data-vin="fund" aria-label="${T("USDC to add")}"><button type="button" class="ag-btn go" data-vact="fund">${T("Fund vault")}</button>${v.buys ? `<button type="button" class="ag-btn" data-ag-share="vault" data-v="${esc(v.vault)}">${T("Save image")}</button>` : ""}</div>
+      ${pend ? `<div class="ag-v-pend">${T("Looser limits queued")}: <b data-no-i18n>${v.unit === "ETH" ? `${ethTxt(pend.maxBuy)} / ${ethTxt(pend.dailyCap)}` : `${usd(pend.maxBuy, 0)} / ${usd(pend.dailyCap, 0)}`} · ${Math.round(pend.cooldown / 60)}m</b> — ${due ? `<button type="button" class="ag-btn sm" data-vact="apply">${T("Apply now")}</button>` : `${T("from")} <span data-no-i18n>${inT(pend.readyAt)}</span>`}</div>` : ""}
+      <div class="ag-row"><input type="number" min="0" step="any" inputmode="decimal" placeholder="${v.unit === "ETH" ? "ETH" : "USDC"}" data-vin="fund" aria-label="${T(v.unit === "ETH" ? "ETH to add" : "USDC to add")}"><button type="button" class="ag-btn go" data-vact="fund">${T("Fund vault")}</button>${v.buys ? `<button type="button" class="ag-btn" data-ag-share="vault" data-v="${esc(v.vault)}">${T("Save image")}</button>` : ""}</div>
       ${mine ? `<details class="ag-own"${S.ownOpen.has(v.vault) ? " open" : ""}><summary>${T("Owner controls")}</summary>
         <div class="ag-row"><button type="button" class="ag-btn" data-vact="pause">${T(v.paused ? "Resume" : "Pause")}</button><button type="button" class="ag-btn" data-vact="agent">${T(v.agentOn ? "Turn ARCIA off" : "Turn ARCIA on")}</button></div>
         <div class="ag-row ag-modes">${Object.keys(MODE_TXT).map((k) => `<button type="button" class="ag-btn${v.mode === k || (!v.mode && k === "dip") ? " on" : ""}" data-vact="mode" data-mode="${k}">${T(MODE_TXT[k][0])}</button>`).join("")}</div>
         <p class="ag-small">${T("Strategy is signed by your wallet (no gas).")}</p>
         <div class="ag-row"><input type="number" min="0" step="any" placeholder="${T("per buy")}" data-vin="lb"><input type="number" min="0" step="any" placeholder="${T("per day")}" data-vin="ld"><input type="number" min="1" step="1" placeholder="${T("minutes")}" data-vin="lc"><button type="button" class="ag-btn" data-vact="limits">${T("Set limits")}</button></div>
         <p class="ag-small">${T("Tighter limits apply at once; looser ones wait an hour.")}</p>
-        <div class="ag-row"><input type="number" min="0" step="any" placeholder="USDC" data-vin="wd"><button type="button" class="ag-btn" data-vact="max">${T("Max")}</button><button type="button" class="ag-btn out" data-vact="withdraw">${T("Withdraw")}</button></div>
+        <div class="ag-row"><input type="number" min="0" step="any" placeholder="${v.unit === "ETH" ? "ETH" : "USDC"}" data-vin="wd"><button type="button" class="ag-btn" data-vact="max">${T("Max")}</button><button type="button" class="ag-btn out" data-vact="withdraw">${T("Withdraw")}</button></div>
         <p class="ag-small">${T("Always to your own wallet, at any time, paused or not.")}</p></details>` : ""}
       ${msgOf(v.vault)}</div>`;
   }
@@ -383,24 +410,24 @@
   function vaults(el) {
     const V = S.vs;
     if (!V || !V.live) {
-      el.innerHTML = `<div class="ag-empty ag-soon"><b>${T("Burn vaults are coming")}</b><span>${T("They open once the ARCIA AGENT contracts are deployed on Arc — the date isn't decided yet. Everything else here works now.")}</span></div>` + vaultHow();
+      el.innerHTML = `<div class="ag-empty ag-soon"><b>${T("Burn vaults are coming")}</b><span>${T(RH() ? "On Robinhood Chain they open once ARCIA AGENT's Robinhood contracts are deployed — funded with ETH. The report and the safety call work now." : "They open once the ARCIA AGENT contracts are deployed on Arc — the date isn't decided yet. Everything else here works now.")}</span></div>` + vaultHow();
       return;
     }
     const h = V.health || {};
     const hb = !h.key || !h.match ? `<div class="ag-health bad"><i></i><span>${T("ARCIA's key isn't connected on the server yet — vaults wait until it is.")}${h.key ? ` <small>${!h.valid ? T("The server's ARCIA_AGENT_KEY isn't a valid private key (64 hex characters, no quotes or spaces).") : `${T("The server's key belongs to")} <b data-no-i18n>${esc(h.keyAddr)}</b>, ${T("not ARCIA's operator")} <b data-no-i18n>${short(V.operator)}</b>.`}</small>` : ""}</span></div>`
-      : h.low ? `<div class="ag-health warn"><i></i><span>${T("ARCIA is connected, but her wallet is low on gas")} <b data-no-i18n>(${h.gas} USDC)</b></span></div>`
-      : `<div class="ag-health ok"><i></i><span>${T("ARCIA is connected")}</span><small data-no-i18n>${short(V.operator)} · ${h.gas} USDC gas</small></div>`;
+      : h.low ? `<div class="ag-health warn"><i></i><span>${T("ARCIA is connected, but her wallet is low on gas")} <b data-no-i18n>(${h.gas} ${h.unit || "USDC"})</b></span></div>`
+      : `<div class="ag-health ok"><i></i><span>${T("ARCIA is connected")}</span><small data-no-i18n>${short(V.operator)} · ${h.gas} ${h.unit || "USDC"} gas</small></div>`;
     el.innerHTML = hb + (V.paused ? `<div class="ag-crit"><b>${T("Paused by the team")}</b><span>${T("Every vault waits; owners can still withdraw.")}</span></div>` : "") +
       (V.vaults.length ? V.vaults.map(vaultCard).join("") : `<div class="ag-empty">${T("No vault for this token yet.")}</div>`) +
       `<div class="ag-open" id="ag-open">${openForm()}</div>` + vaultHow();
     wireVaults(el);
   }
-  const vaultHow = () => `<ol class="ag-how"><li>${T("Anyone funds the vault with USDC.")}</li><li>${T("ARCIA watches the price and buys in dips — never after a pump, never more than a 3% price move.")}</li><li>${T("Everything she buys goes straight to 0x…dEaD. The vault can't sell.")}</li></ol>`;
+  const vaultHow = () => `<ol class="ag-how"><li>${T(RH() ? "Anyone funds the vault with ETH." : "Anyone funds the vault with USDC.")}</li><li>${T("ARCIA watches the price and buys in dips — never after a pump, never more than a 3% price move.")}</li><li>${T("Everything she buys goes straight to 0x…dEaD. The vault can't sell.")}</li></ol>`;
   function openForm() {
     const fee = S.vs && S.vs.createBurn && S.vs.createBurn !== "0" ? Number(ethers.formatEther(S.vs.createBurn)) : 0;
     return `<details${S.vs && S.vs.vaults.length ? "" : " open"}><summary>${T("Open a burn vault for this token")}</summary>
-      <div class="ag-pools" id="ag-pools"><button type="button" class="ag-btn" data-vact="pools">${T("Find its USDC pool")}</button></div>
-      <div class="ag-row"><label>${T("per buy")}<input type="number" min="0" step="any" value="5" data-oin="b"></label><label>${T("per day")}<input type="number" min="0" step="any" value="25" data-oin="d"></label><label>${T("every (minutes)")}<input type="number" min="1" step="1" value="10" data-oin="c"></label></div>
+      <div class="ag-pools" id="ag-pools"><button type="button" class="ag-btn" data-vact="pools">${T(isRhV() ? "Find its ETH pools" : "Find its USDC pool")}</button></div>
+      <div class="ag-row"><label>${T("per buy")}${isRhV() ? " (ETH)" : ""}<input type="number" min="0" step="any" value="${isRhV() ? "0.005" : "5"}" data-oin="b"></label><label>${T("per day")}${isRhV() ? " (ETH)" : ""}<input type="number" min="0" step="any" value="${isRhV() ? "0.025" : "25"}" data-oin="d"></label><label>${T("every (minutes)")}<input type="number" min="1" step="1" value="10" data-oin="c"></label></div>
       ${fee ? `<p class="ag-small">${T("Opening a vault burns")} <b data-no-i18n>${num(fee)} $ARCIRCLE</b>.</p>` : ""}
       <button type="button" class="ag-btn go" data-vact="create" disabled>${T("Open vault")}</button>${msgOf("open")}</details>`;
   }
@@ -413,6 +440,17 @@
   }
   async function findPools(box) {
     box.innerHTML = `<div class="ag-skel"><i></i></div>`;
+    if (isRhV()) {
+      // Robinhood Chain: its v3 WETH pools and its v4 ETH / WETH pools (api/_agent.mjs poolsRh)
+      let r = null;
+      try { const x = await fetch(`${API}?agent=pools&t=${S.t}&chain=rh`, { cache: "no-store" }); r = x.ok ? await x.json() : null; } catch { r = null; }
+      const pools = (r && r.pools) || [];
+      S.liq = pools;
+      if (!pools.length) { box.innerHTML = `<div class="ag-empty">${T("No Uniswap pool against ETH found for this token.")}</div>`; return; }
+      box.innerHTML = pools.map((p, i) => `<label class="ag-pool"><input type="radio" name="ag-pool" value="${i}"${i === 0 ? " checked" : ""}><b>${T(p.venue || (p.v === 3 ? "Uniswap v3" : "Uniswap v4"))}</b><span data-no-i18n>${p.feePct != null ? p.feePct + "%" : ""}${p.liqUsd ? " · " + big$(p.liqUsd) : ""}</span><small data-no-i18n>${short(p.v === 3 ? p.pool : p.id)}</small></label>`).join("");
+      const c = panel.querySelector('[data-vact="create"]'); if (c) c.disabled = false;
+      return;
+    }
     let j = null;
     for (let i = 0; i < 8; i++) {
       try { const r = await fetch(`/api/social?liq=${S.t}`, { cache: "no-store" }); j = r.ok ? await r.json() : null; } catch { j = null; }
@@ -443,7 +481,7 @@
         const mode = b.dataset.mode, issued = new Date().toISOString();
         msg(T("Sign in your wallet…"));
         const signature = await sg.signMessage(`ARCIRCLE PAD — ARCIA AGENT vault strategy\nVault: ${lc(v)}\nStrategy: ${mode}\nIssued: ${issued}`);
-        const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "agent-mode", vault: v, mode, issued, signature }) });
+        const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "agent-mode", vault: v, mode, issued, signature, ...(isRhV() ? { chain: "rh" } : {}) }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) { msg(esc(j.error || T("Couldn't save — try again.")), "bad"); return; }
         const x = S.vs.vaults.find((y) => y.vault === v); if (x) x.mode = mode;
@@ -453,22 +491,32 @@
       }
       if (k === "create") {
         const p = S.liq && S.liq[Number((panel.querySelector('input[name="ag-pool"]:checked') || {}).value || 0)];
-        const mb = parse6(val("b")), md = parse6(val("d")), cd = Math.round(Number(val("c")) * 60);
+        const mb = parseAmt(val("b")), md = parseAmt(val("d")), cd = Math.round(Number(val("c")) * 60);
         if (!p || !mb || !md || !(cd >= 60)) { msg(T("Pick a pool and set the limits (at least 1 minute between buys)."), "bad"); return; }
         if (md < mb) { msg(T("The day's limit can't be below one buy."), "bad"); return; }
-        const f = new ethers.Contract(S.vs.factory, FACT_ABI, sg);
+        const f = new ethers.Contract(S.vs.factory, isRhV() ? FACT_RH_ABI : FACT_ABI, sg);
         const fee = BigInt(S.vs.createBurn || "0");
         if (fee > 0n) {
-          const a = new ethers.Contract(ARCIRCLE, ERC20, sg);
+          const a = new ethers.Contract(arcircleOf(), ERC20, sg);
           if ((await a.allowance(state.account, S.vs.factory)) < fee) { msg(T("Approve the $ARCIRCLE to burn in your wallet…")); await (await a.approve(S.vs.factory, fee)).wait(); }
         }
         msg(T("Confirm in your wallet…"));
-        const key = [p.key.currency0, p.key.currency1, p.key.fee, p.key.tickSpacing, p.key.hooks];
-        const tx = await f.createVault(key, mb, md, cd);
+        const key = p.key ? [p.key.currency0, p.key.currency1, p.key.fee, p.key.tickSpacing, p.key.hooks] : null;
+        const tx = isRhV() ? (p.v === 3 ? await f.createVault3(p.pool, mb, md, cd) : await f.createVault4(key, mb, md, cd)) : await f.createVault(key, mb, md, cd);
         msg(`${T("Opening…")} ${txa(tx.hash)}`);
         await tx.wait();
         msg(`${T("Vault open. Fund it and ARCIA starts watching.")} ${txa(tx.hash)}`, "ok");
         vboard();
+      } else if (k === "fund" && isRhV()) {
+        // Robinhood Chain: ETH straight in (the vault keeps it as WETH)
+        const amt = parse18(val("fund"));
+        if (!amt) { msg(T("Enter an amount of ETH."), "bad"); return; }
+        if ((await sg.provider.getBalance(state.account)) < amt) { msg(T("This wallet doesn't hold that much ETH."), "bad"); return; }
+        msg(T("Confirm in your wallet…"));
+        const tx = await new ethers.Contract(v, VAULT_RH_ABI, sg).fund({ value: amt });
+        await tx.wait();
+        msg(`${T("Added.")} ${txa(tx.hash)}`, "ok");
+        S.splash = v;
       } else if (k === "fund") {
         const amt = parse6(val("fund"));
         if (!amt) { msg(T("Enter an amount of USDC."), "bad"); return; }
@@ -481,20 +529,20 @@
         msg(`${T("Added.")} ${txa(tx.hash)}`, "ok");
         S.splash = v;
       } else {
-        const c = new ethers.Contract(v, VAULT_ABI, sg), x = S.vs.vaults.find((y) => y.vault === v);
+        const c = new ethers.Contract(v, isRhV() ? VAULT_RH_ABI : VAULT_ABI, sg), x = S.vs.vaults.find((y) => y.vault === v);
         let tx;
         msg(T("Confirm in your wallet…"));
         if (k === "pause") tx = await c.setPaused(!x.paused);
         else if (k === "agent") tx = await c.setAgentOn(!x.agentOn);
         else if (k === "apply") tx = await c.applyLimits();
         else if (k === "limits") {
-          const mb = parse6(val("lb")), md = parse6(val("ld")), cd = Math.round(Number(val("lc")) * 60);
+          const mb = parseAmt(val("lb")), md = parseAmt(val("ld")), cd = Math.round(Number(val("lc")) * 60);
           if (!mb || !md || !(cd >= 60) || md < mb) { msg(T("Per buy, per day (not below one buy) and at least 1 minute between buys."), "bad"); return; }
           tx = await c.setLimits(mb, md, cd);
         } else if (k === "withdraw") {
-          const amt = parse6(val("wd"));
-          if (!amt) { msg(T("Enter an amount of USDC."), "bad"); return; }
-          tx = await c.withdraw((typeof CONFIG !== "undefined" && CONFIG.USDC_ADDRESS) || USDC, amt);
+          const amt = parseAmt(val("wd"));
+          if (!amt) { msg(T(isRhV() ? "Enter an amount of ETH." : "Enter an amount of USDC."), "bad"); return; }
+          tx = isRhV() ? await c.withdrawETH(amt) : await c.withdraw((typeof CONFIG !== "undefined" && CONFIG.USDC_ADDRESS) || USDC, amt);
         }
         if (tx) { await tx.wait(); msg(`${T("Done.")} ${txa(tx.hash)}`, "ok"); }
       }
@@ -515,7 +563,7 @@
     const seen = S.seenActs; S.seenActs = new Set(acts.map((a) => a.tx));
     if (!acts.length) { el.innerHTML = `<div class="ag-empty">${T(S.vs && S.vs.live ? "No buy & burn yet for this token. Once a vault is funded, ARCIA's buys show here with their transactions." : "ARCIA's buys & burns show here once vaults are open.")}</div>`; return; }
     const fresh = seen ? acts.filter((a) => !seen.has(a.tx)) : [];
-    el.innerHTML = `<div class="ag-acts">${acts.map((a) => `<div class="ag-act${seen && !seen.has(a.tx) && !reduce ? " fresh" : ""}"><i class="ag-flame" aria-hidden="true"></i><div><b>${T("Bought and burned")} <span data-no-i18n>${num(Number(a.burned) / 10 ** dec)} ${esc((S.rep && S.rep.sym) || "")}</span></b><small><span data-no-i18n>${usd(a.usd)}</span> · ${T(String(a.why || "").split(" · ")[0])} · <span data-no-i18n>${ago(a.ts)}</span></small></div>${txa(a.tx, "tx")}</div>`).join("")}</div>`;
+    el.innerHTML = `<div class="ag-acts">${acts.map((a) => `<div class="ag-act${seen && !seen.has(a.tx) && !reduce ? " fresh" : ""}"><i class="ag-flame" aria-hidden="true"></i><div><b>${T("Bought and burned")} <span data-no-i18n>${num(Number(a.burned) / 10 ** dec)} ${esc((S.rep && S.rep.sym) || "")}</span></b><small><span data-no-i18n>${usd(a.usd)}${a.eth ? " · " + ethTxt(a.eth) : ""}</span> · ${T(String(a.why || "").split(" · ")[0])} · <span data-no-i18n>${ago(a.ts)}</span></small></div>${txa(a.tx, "tx", a.ch)}</div>`).join("")}</div>`;
     // the token's very first burn gets a little celebration
     if (fresh.length && acts.length === fresh.length && !reduce) confetti(el);
   }
@@ -548,7 +596,7 @@
       const burned = Number(v.burned || 0) / 10 ** (v.dec || r.dec || 18);
       g.fillStyle = "#ffc861"; g.font = "800 92px Sora, sans-serif"; g.fillText(num(burned), 80, 360);
       g.fillStyle = "#dbe6ee"; g.font = "600 34px Inter, sans-serif"; g.fillText(`$${r.sym} bought and burned by ARCIA`, 80, 414);
-      g.fillStyle = "#9fb0bd"; g.font = "500 28px Inter, sans-serif"; g.fillText(`${usd(v.spent)} spent · ${v.buys || 0} buys · every token sent to 0x…dEaD`, 80, 466);
+      g.fillStyle = "#9fb0bd"; g.font = "500 28px Inter, sans-serif"; g.fillText(`${v.unit === "ETH" ? ethTxt(v.spent) : usd(v.spent)} spent · ${v.buys || 0} buys · every token sent to 0x…dEaD`, 80, 466);
     } else {
       g.lineWidth = 6; g.strokeStyle = col; g.fillStyle = "rgba(255,255,255,.04)";
       const txt = tr(k[0]).toUpperCase(); g.font = "800 60px Sora, sans-serif"; const tw = g.measureText(txt).width;
@@ -579,16 +627,22 @@
     let seen = {}; try { seen = JSON.parse(localStorage.getItem(SK) || "{}") || {}; } catch { seen = {}; }
     const first = !seen.init;
     let R = null, V = null;
-    try { const [a, b] = await Promise.all([fetch(`${API}?agent=record`), fetch(`${API}?agent=vaults`)]); R = a.ok ? await a.json() : null; V = b.ok ? await b.json() : null; } catch { return; }
+    try {
+      const [a, b, c] = await Promise.all([fetch(`${API}?agent=record`), fetch(`${API}?agent=vaults`), l.some((w) => w.ch === "rh") ? fetch(`${API}?agent=vaults&chain=rh`) : null]);
+      R = a.ok ? await a.json() : null; V = b.ok ? await b.json() : null;
+      const V2 = c && c.ok ? await c.json() : null;
+      if (V2 && V2.live) V = { live: true, recent: [...((V && V.live && V.recent) || []), ...V2.recent.map((x) => ({ ...x, ch: "rh" }))] };
+    } catch { return; }
     const out = [];
     for (const w of l) {
-      const c = R && R.calls.find((x) => x.t === w.t);
+      const wc = w.ch === "rh" ? "rh" : "arc";
+      const c = R && R.calls.find((x) => x.t === w.t && (x.ch === "rh" ? "rh" : "arc") === wc);
       if (c) {
         const key = c.id + (c.graded ? ":g" : "");
         if (!first && seen["c:" + w.t] !== key) out.push(c.graded ? `${c.sym || short(w.t)}: ${tr("ARCIA's call was graded")} — ${tr(c.graded.right ? "called right" : c.graded.right === false ? "called wrong" : "not graded")}` : `${c.sym || short(w.t)}: ${tr("new safety call")} — ${tr((CALLS[c.call] || [c.call])[0])}`);
         seen["c:" + w.t] = key;
       }
-      const acts = V && V.live ? V.recent.filter((a) => a.token === w.t) : [];
+      const acts = V && V.live ? V.recent.filter((a) => a.token === w.t && (a.ch === "rh" ? "rh" : "arc") === wc) : [];
       if (acts.length) {
         if (!first && seen["a:" + w.t] !== acts[0].tx) out.push(`${acts[0].sym || short(w.t)}: ${tr("ARCIA bought and burned")} ${num(Number(acts[0].burned) / 10 ** (acts[0].dec || 18))}`);
         seen["a:" + w.t] = acts[0].tx;
@@ -625,8 +679,25 @@
   }
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "agent") show(); else clearInterval(S.timer); });
   // another page sends a token here (/arc#agent?t=0x…: the scanner, a coin page)
-  window.addEventListener("hashchange", () => { const m = /^#agent\?t=(0x[0-9a-fA-F]{40})/.exec(location.hash); if (m && S.booted && lc(m[1]) !== S.t) { $("ag-in").value = m[1]; wake(m[1]); } });
+  window.addEventListener("hashchange", () => {
+    const m = /^#agent\?(.*)$/.exec(location.hash);
+    if (!m || !S.booted) return;
+    const q = new URLSearchParams(m[1]), t = q.get("t"), c = q.get("c") === "rh" ? "rh" : "arc";
+    if (!t || !isAddr(t)) { if (c === "rh" && !RH()) setChain("rh"); return; }
+    if (c !== CH) setChain(c);
+    if (lc(t) !== S.t || !S.rep) { $("ag-in").value = t; wake(t); }
+  });
+  /// the switch: a different chain starts a fresh page (the record stays the same — it holds both)
+  function setChain(c) {
+    c = c === "rh" ? "rh" : "arc";
+    if (c === CH) return;
+    CH = c;
+    try { localStorage.setItem(CK, CH); } catch { /* private window */ }
+    clearTimeout(S.retry);
+    S.t = null; S.rep = null; S.vs = null; S.liq = null; S.seenActs = null; S.tries = 0; S.busy = false; S.vmsg = null;
+    if (S.booted) frame();
+  }
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (S.rep) render(); } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
-  window.arcAgent = { wake, state: S };
+  window.arcAgent = { wake, state: S, setChain, chain: () => CH };
 })();
