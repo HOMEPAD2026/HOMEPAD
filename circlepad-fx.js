@@ -247,7 +247,7 @@
   }
   // contributions (USDC) and burn votes ($ARCIRCLE) in one line, newest first
   let lastActivity = [];
-  const CATS = ["Name", "Ticker", "Logo", "Roadmap", "Date"];
+  const CATS = ["Name", "Ticker", "Logo", "Roadmap", "Date", "Chain"];
   function burnItems() {
     const f = window.circlepadBurns;
     if (!f || !Array.isArray(f.events) || !f.anchor) return [];

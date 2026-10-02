@@ -38,6 +38,7 @@
   // ---- what we know, from the other scripts ----
   const R = () => (typeof _circlepadState !== "undefined" && _circlepadState) || null;
   const G = () => window.circlepadGov || null;
+  const NC = () => (window.cpCatCount ? window.cpCatCount() : 5);
   const rows = () => window.circlepadLbRows || [];
   let feed = null; // /api/social?circle=burns
   let wallets = null; // { recipient, platform, treasury }
@@ -132,10 +133,11 @@
           <div class="cp-phero-cta">${buy ? `<a class="bp-btn-primary" href="${esc(buy)}" target="_blank" rel="noopener">${T("Get $ARCIRCLE")}</a>` : ""}<button type="button" class="bp-btn-ghost" data-cp-go="governance">${T("See the candidates")}</button>${dl > nowS() ? `<span class="cp-phero-clock"><small>${T("Voting opens in")}</small><b data-no-i18n data-cp-to="${dl}">${left(dl - nowS())}</b></span>` : ""}</div>
         </div>
         <div class="cp-phero-side"><div class="cp-wc cp-wc-burn"><span class="cp-flame" aria-hidden="true"></span><div><b data-no-i18n>1,000 $ARCIRCLE</b><span>${T("burned per vote")}</span></div>
-          <dl><div><dt>${T("Burn address")}</dt><dd data-no-i18n>0x…dEaD</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>${published}/5</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
+          <dl><div><dt>${T("Burn address")}</dt><dd data-no-i18n>0x…dEaD</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>${published}/${NC()}</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
       return;
     }
-    const g0 = G(), pub = g0 && Array.isArray(g0.categories) ? g0.categories.filter((c) => c.set).length : 0;
+    const g0 = G(), pub = g0 && Array.isArray(g0.categories) ? g0.categories.filter((c) => c.set && !c.fixed).length : 0; // fixed categories (the launch chain) don't end the pre-vote
+    const pubAll = g0 && Array.isArray(g0.categories) ? g0.categories.filter((c) => c.set).length : 0;
     if (ph === "voting" && pub === 0) {
       // step 1: the pre-vote — free, open to everyone, before any candidates are out
       const pv = (window.circlepadIdeas && window.circlepadIdeas.stats) || { ideas: 0, votes: 0 };
@@ -147,7 +149,7 @@
           <div class="cp-phero-cta"><button type="button" class="bp-btn-primary" data-cp-go="governance">${T("Join the pre-vote")}</button><span class="cp-phero-clock"><small>${T("Raise and voting close in")}</small><b data-no-i18n data-cp-to="${votingEnds()}">${left(votingEnds() - nowS())}</b></span></div>
         </div>
         <div class="cp-phero-side"><div class="cp-wc cp-wc-burn"><div><b data-no-i18n>${num(pv.ideas)}</b><span>${T("ideas")}</span></div>
-          <dl><div><dt>${T("Pre-votes")}</dt><dd data-no-i18n>${num(pv.votes)}</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>0/5</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
+          <dl><div><dt>${T("Pre-votes")}</dt><dd data-no-i18n>${num(pv.votes)}</dd></div><div><dt>${T("Candidates")}</dt><dd><span data-no-i18n>${pubAll}/${NC()}</span> <span>${T("published")}</span></dd></div></dl></div></div>`;
       return;
     }
     if (ph === "voting") {
@@ -277,7 +279,7 @@
       document.dispatchEvent(new CustomEvent("circlepad:burns", { detail: j }));
     } catch { /* next poll */ }
   }
-  const catName = (c) => ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"][c] || "";
+  const catName = (c) => ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date", "Launch chain"][c] || "";
   const optLabel = (e) => (e.cat === 1 ? "$" + String(e.text || "").replace(/^\$/, "") : e.cat === 2 ? tr("a logo") : e.cat === 4 && typeof govDate === "function" && govDate(e.text) ? govFmtDate(govDate(e.text)) : e.cat === 3 ? String(e.text || "").split("\n")[0].slice(0, 40) : String(e.text || ""));
   const ago = (b) => { if (!feed) return ""; const s = Math.max(0, (feed.anchor.block - b) * 0.5); return s < 90 ? tr("just now") : s < 5400 ? `${Math.round(s / 60)}${tr("m ago")}` : `${Math.round(s / 3600)}${tr("h ago")}`; };
   function paintFeed(fresh = []) {

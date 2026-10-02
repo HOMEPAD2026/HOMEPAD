@@ -22,6 +22,9 @@ export const GOV = {
   // Round #2 (started 30 Sep 2026): Round #1's rules — community ideas, the round wallet's candidates, burn-to-vote
   // until the raise closes — without new contracts.
   2: { escrow: "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", mode: "direct", ballot: "", burnvote: "", from: 0 },
+  // Round #3 (started 2 Oct 2026; Round #2 merged into it on 3 Oct): Round #2's rules plus a sixth category, the
+  // launch chain, whose three candidates are fixed here (no pre-vote, nothing to sign) and take votes from the start.
+  3: { escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"], chainAt: 1790961012 },
 };
 const isA = (a) => /^0x[0-9a-f]{40}$/.test(String(a || ""));
 export const isDirect = (A) => !!A && A.mode === "direct";
@@ -33,7 +36,7 @@ export const ballotRounds = () => Object.keys(GOV).map(gov).filter(hasBallot).so
 /// rounds whose burn-to-vote exists, newest first
 export const voteRounds = () => Object.keys(GOV).map(gov).filter(hasVote).sort((a, b) => b.n - a.n);
 // The CURRENT burn-to-vote (the newest round that has one). Mutable only so tests can point it elsewhere.
-export const ADDR = (() => { const c = voteRounds()[0]; return { n: c.n, mode: c.mode, escrow: c.escrow, burnvote: c.burnvote, ballot: c.ballot, from: c.from }; })();
+export const ADDR = (() => { const c = voteRounds()[0]; return { ...c, n: c.n, mode: c.mode, escrow: c.escrow, burnvote: c.burnvote, ballot: c.ballot, from: c.from }; })();
 /// the burn-to-vote of round n, or null when that round has none
 export function forRound(n) {
   n = Number(n);
@@ -55,6 +58,11 @@ const word = (h, i) => strip(h).slice(i * 64, (i + 1) * 64);
 const big = (h) => { try { return BigInt(h && h !== "0x" ? h : 0); } catch { return 0n; } };
 const pad = (n) => BigInt(n).toString(16).padStart(64, "0");
 export const CATS = ["Coin name", "Ticker", "Logo", "Roadmap", "Launch date"];
+/// the sixth category (Round #3 on): where the coin launches — fixed candidates (GOV[n].chain)
+export const CHAIN_CAT = 5;
+export const ALL_CATS = [...CATS, "Launch chain"];
+/// the categories a round votes on
+export const catsOf = (A) => (A && Array.isArray(A.chain) && A.chain.length ? ALL_CATS : CATS);
 
 // ---- direct rounds: the vote code in the amount ----
 export const VOTE_UNIT = 1000n * 10n ** 18n; // 1 vote = 1,000 $ARCIRCLE
@@ -68,7 +76,7 @@ export function readVoteAmount(v) {
   const d = x % DUST, base = x - d;
   if (base < VOTE_UNIT || base % VOTE_UNIT !== 0n) return null;
   const round = Number(d / 1000000n), cat = Number((d / 1000n) % 1000n) - 1, opt = Number(d % 1000n) - 1;
-  if (round < 2 || cat < 0 || cat >= CATS.length || opt < 0 || opt >= MAX_CANDS) return null;
+  if (round < 2 || cat < 0 || cat >= ALL_CATS.length || opt < 0 || opt >= MAX_CANDS) return null;
   return { round, cat, opt, votes: Number(base / VOTE_UNIT) };
 }
 const TOKEN_OVERRIDE = { v: "" };
@@ -102,7 +110,8 @@ export async function directBallot(A, fresh = false) {
   const m = candMem.get(A.escrow);
   if (!fresh && m && Date.now() - m.at < 15e3) return m.v;
   const docs = await candDocs(A);
-  const v = docs.map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
+  const v = docs.slice(0, CATS.length).map((d) => (d && Array.isArray(d.options) ? { options: d.options.map(String), at: Math.floor(Number(d.at) / 1000), by: d.by, sig: d.sig } : null));
+  if (catsOf(A) === ALL_CATS) v[CHAIN_CAT] = { options: A.chain.slice(), at: Number(A.chainAt) || 0, by: "fixed", sig: null, fixed: true };
   candMem.set(A.escrow, { at: Date.now(), v });
   return v;
 }
@@ -154,6 +163,7 @@ export async function publishCands(b, recover, json) {
 }
 /// the signed text for a published category, so anyone can check the signature
 export async function candProof(A, cat) {
+  if (cat === CHAIN_CAT && catsOf(A) === ALL_CATS) return { fixed: true, options: A.chain.slice(), message: "Fixed by the site for this round: " + A.chain.join(" / ") };
   const docs = await candDocs(A);
   const d = docs[cat];
   return d ? { message: candMessage(A.n, A.escrow, cat, d.raw || d.options), signature: d.sig, by: d.by } : null;
@@ -212,11 +222,13 @@ export async function directState(store, A, voter = null) {
   const all = st.ev.map(evOf).sort((x, y) => (y.b - x.b) || (y.i - x.i));
   const ev = all.filter((e) => counts(e, bal, deadline));
   const v = voter ? lc(voter) : null;
-  const tallies = CATS.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
-  const mine = CATS.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
+  const C = catsOf(A);
+  const tallies = C.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
+  const mine = C.map((_, c) => (bal[c] ? bal[c].options.map(() => 0) : []));
   const by = new Map();
   let votes = 0;
   for (const e of ev) {
+    if (!tallies[e.cat]) continue;
     tallies[e.cat][e.opt] += e.votes; votes += e.votes;
     by.set(e.voter, (by.get(e.voter) || 0) + e.votes);
     if (v && e.voter === v) mine[e.cat][e.opt] += e.votes;
@@ -228,7 +240,7 @@ export async function directState(store, A, voter = null) {
     deadline, now: latest.ts, opensAt: Number.isFinite(opens) ? opens : null, votingEnds: deadline,
     votingOpen: !!rs && rs.started && latest.ts < deadline,
     done: st.hi >= latest.number, hi: st.hi, anchor: { block: latest.number, ts: latest.ts },
-    categories: CATS.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c] })),
+    categories: C.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c], ...(bal[c] && bal[c].fixed ? { fixed: true } : {}) })),
     totals: { burned: (BigInt(votes) * VOTE_UNIT).toString(), votes, voters: by.size },
     top: [...by].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([voter, votes]) => ({ voter, votes })),
     events: ev.slice(0, 60).map((e) => ({ b: e.b, i: e.i, tx: e.tx, cat: e.cat, voter: e.voter, opt: e.opt, votes: e.votes, text: bal[e.cat] ? bal[e.cat].options[e.opt] || "" : "" })),
@@ -333,7 +345,7 @@ export async function voteTx(tx) {
     const votes = items.reduce((a, e) => a + e.votes, 0);
     return {
       tx, round: DA.n, voter: items[0].voter, block: parseInt(rc.blockNumber, 16), ts, votes, burned: (BigInt(votes) * 1000n).toString(),
-      items: items.map((e) => ({ cat: e.cat, category: CATS[e.cat] || "", opt: e.opt, text: bal[e.cat].options[e.opt] || "", votes: e.votes })),
+      items: items.map((e) => ({ cat: e.cat, category: ALL_CATS[e.cat] || "", opt: e.opt, text: bal[e.cat].options[e.opt] || "", votes: e.votes })),
     };
   }
   const A = known.find((g) => (rc.logs || []).some((l) => lc(l.address) === g.burnvote && l.topics && l.topics[0] === T_VOTED));

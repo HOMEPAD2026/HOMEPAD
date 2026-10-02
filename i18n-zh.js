@@ -6243,6 +6243,13 @@
     "refund if no UP": "无人押 UP 则退款",
     "full refund unless someone takes DOWN": "若无人押 DOWN 则全额退款",
     "full refund unless someone takes UP": "若无人押 UP 则全额退款",
+    "Launch chain": "上线链",
+    "Merged into Round #1": "并入第 1 轮",
+    "This round didn't launch on its own. Its whole raise went into Round #1, and its contributors get their share of Round #1 pro rata, from this round's list below.": "本轮没有单独上线。全部募集资金已转入第 1 轮,本轮贡献者将按下方名单在第 1 轮中按比例获得份额。",
+    "Go to Round #1": "前往第 1 轮",
+    "Until the raise closes. First a free pre-vote: anyone suggests ideas and votes on them with a wallet signature. The round wallet picks the candidates from the top, then anyone holding $ARCIRCLE burn-to-votes on name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc. New this round: the launch chain — Arc, Robinhood Chain or Solana — is on the ballot from the start.": "持续到募集结束。先是免费的预投票:任何人都可以提交想法,并用钱包签名投票。轮次钱包从排名靠前的想法中选出候选,然后任何持有 $ARCIRCLE 的人都可以对名称、代码、Logo、路线图和上线日期进行销毁投票 — 每票直接销毁 1,000 $ARCIRCLE 到 0x…dEaD。无需新合约:投票按 Arc 上的销毁记录统计。本轮新增:上线链 — Arc、Robinhood Chain 或 Solana — 从一开始就可投票。",
+    "On the launch date and the chain the vote picks (Arc, Robinhood Chain or Solana), with the name, ticker and logo the vote picks.": "在投票选出的上线日期和链(Arc、Robinhood Chain 或 Solana)上,以投票选出的名称、代码和 Logo 上线。",
+    "Pro rata to each contributor's share. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are paid from Round #2's list.": "按每位贡献者的份额比例发放。第 2 轮的 1,999.62 USDC 已转入本轮,因此第 2 轮的贡献者按第 2 轮名单发放。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

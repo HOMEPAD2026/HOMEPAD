@@ -26,6 +26,7 @@
     const G = (CONFIG.CIRCLEPAD_GOV && CONFIG.CIRCLEPAD_GOV[cur.n]) || {};
     // direct: no vote contracts — signed candidates and coded burns to 0x…dEaD (circlepad.js govDirect)
     const direct = G.mode === "direct";
+    const chain = direct && Array.isArray(G.chain) && G.chain.length ? G.chain.join(" / ") : "";
     const voteOn = direct || (isAddr(G.vote) && isAddr(G.burnvote));
     CONFIG.CIRCLEPAD_ESCROW_ADDRESS = cur.escrow;
     CONFIG.CIRCLEPAD_ROUND = cur.n;
@@ -42,13 +43,15 @@
     CONFIG.CIRCLEPAD_NEXT = [
       voteOn
         ? direct
-          ? { id: "vote", title: "Burn-to-vote, as in Round #1", body: "Until the raise closes. First a free pre-vote: anyone suggests ideas and votes on them with a wallet signature. The round wallet picks the candidates from the top, then anyone holding $ARCIRCLE burn-to-votes on name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.", status: "policy" }
+          ? { id: "vote", title: "Burn-to-vote, as in Round #1", body: chain ? "Until the raise closes. First a free pre-vote: anyone suggests ideas and votes on them with a wallet signature. The round wallet picks the candidates from the top, then anyone holding $ARCIRCLE burn-to-votes on name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc. New this round: the launch chain — Arc, Robinhood Chain or Solana — is on the ballot from the start." : "Until the raise closes. First a free pre-vote: anyone suggests ideas and votes on them with a wallet signature. The round wallet picks the candidates from the top, then anyone holding $ARCIRCLE burn-to-votes on name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc.", status: "policy" }
           : { id: "vote", title: "Burn-to-vote", body: "Until the raise closes. Anyone holding $ARCIRCLE votes on name, ticker, logo, roadmap and launch date; every vote burns 1,000 $ARCIRCLE.", status: "set" }
         : { id: "vote", title: "Governance, as in Round #1", body: "First the community suggests ideas, then the round wallet publishes the candidates and $ARCIRCLE holders burn-to-vote on name, ticker, logo, roadmap and launch date until the raise closes. Opens soon.", status: "policy" },
       { id: "close", title: "The raise closes", body: "Contributions, withdrawals and voting stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
       G.top === true ? { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.", status: "policy" }
         : { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
-      { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
+      chain
+        ? { id: "launch", title: "The coin launches", body: "On the launch date and the chain the vote picks (Arc, Robinhood Chain or Solana), with the name, ticker and logo the vote picks.", status: "policy" }
+        : { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
       { id: "airdrop", title: "Contributor airdrop", body: G.airdrop || "Not decided yet.", status: G.airdrop ? "policy" : "open" },
     ];
     document.documentElement.setAttribute("data-cp-round", String(cur.n));

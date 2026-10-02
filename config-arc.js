@@ -99,6 +99,9 @@ const CONFIG = {
   // airdrop: the contributor airdrop's text, or "" = not decided.
   CIRCLEPAD_GOV: {
     2: { mode: "direct", top: true, airdrop: "" },
+    // Round #2 merged into Round #3 (3 Oct 2026). chain: a sixth category, the launch chain, with these fixed
+    // candidates (keep api/_burnvote.mjs GOV[3].chain the same).
+    3: { mode: "direct", top: null, airdrop: "Pro rata to each contributor's share. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are paid from Round #2's list.", chain: ["Arc", "Robinhood Chain", "Solana"] },
   },
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an

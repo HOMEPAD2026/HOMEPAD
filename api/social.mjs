@@ -243,7 +243,7 @@ export async function GET(req) {
     const v = String(url.searchParams.get("voter") || "");
     if (url.searchParams.has("proof")) {
       const c = Number(url.searchParams.get("proof"));
-      if (!(c >= 0 && c < burnvote.CATS.length)) return json(400, { error: "bad category" });
+      if (!(c >= 0 && c < burnvote.catsOf(A).length)) return json(400, { error: "bad category" });
       try { const p = await burnvote.candProof(A, c); return p ? json(200, p, "public, max-age=60, s-maxage=3600") : json(404, { error: "not published" }, "public, max-age=10"); }
       catch (err) { return json(502, { error: "couldn't read the candidates" }); }
     }

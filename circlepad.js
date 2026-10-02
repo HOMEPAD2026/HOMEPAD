@@ -1068,8 +1068,12 @@ const CIRCLEPAD_VOTE_CATEGORIES = [
   { id: 2, label: "Logo", kind: "logo", max: 300 },
   { id: 3, label: "Roadmap", kind: "roadmap", max: 400 },
   { id: 4, label: "Launch date", kind: "date", max: 40 },
+  // Round #3 on: where the coin launches — fixed candidates (CONFIG.CIRCLEPAD_GOV[n].chain), no pre-vote
+  ...(typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_ROUND_GOV && Array.isArray(CONFIG.CIRCLEPAD_ROUND_GOV.chain) && CONFIG.CIRCLEPAD_GOV_DIRECT === true ? [{ id: 5, label: "Launch chain", kind: "chain", max: 40, fixed: true }] : []),
 ];
 const GOV_MAX_OPTIONS = 8;
+/// how many categories this round votes on (5, or 6 with the launch chain)
+window.cpCatCount = () => CIRCLEPAD_VOTE_CATEGORIES.length;
 
 let _circlepadGovPollTimer = null;
 let _govClockTimer = null;
@@ -1171,7 +1175,9 @@ function govLeft(sec) {
   if (h) return `${h}h ${m}m ${s}s`;
   return `${m}m ${s}s`;
 }
+const GOV_CHAIN_HUE = { arc: "#4f8cff", "robinhood chain": "#39ff88", robinhood: "#39ff88", solana: "#b46cff" };
 function govOptionHtml(kind, text) {
+  if (kind === "chain") return `<span class="gv-o gv-o-chain"><i style="--c:${GOV_CHAIN_HUE[String(text).toLowerCase()] || "#8aa0b4"}"></i>${govEsc(text)}</span>`;
   if (kind === "ticker") return `<span class="gv-o gv-o-ticker">$${govEsc(String(text).replace(/^\$/, ""))}</span>`;
   if (kind === "logo") {
     const u = govLogoUrl(text);
@@ -1234,7 +1240,7 @@ async function fetchDirectGovernanceState() {
     const x = (d.categories || [])[c.id] || {};
     const mv = (x.mine || []).map((v) => BigInt(v || 0));
     let best = null; mv.forEach((v, j) => { if (v > 0n && (best === null || v > mv[best])) best = j; });
-    return { id: c.id, label: c.label, set: !!x.set, options: (x.options || []).map((text, j) => ({ text, weight: BigInt((x.tallies || [])[j] || 0), mine: mv[j] ?? 0n })), myVoteIndex: best };
+    return { id: c.id, label: c.label, set: !!x.set, fixed: !!c.fixed, options: (x.options || []).map((text, j) => ({ text, weight: BigInt((x.tallies || [])[j] || 0), mine: mv[j] ?? 0n })), myVoteIndex: best };
   });
   const burn = {
     live: true, direct: true, totalBurned: BigInt(d.totals ? d.totals.burned : 0), totalVotes: BigInt(d.totals ? d.totals.votes : 0), voterCount: BigInt(d.totals ? d.totals.voters : 0),
@@ -1363,6 +1369,8 @@ function renderCirclepadGovernance(g) {
   const mine = state.account ? (s.myContribution || 0n) : 0n;
   const isRecipient = !!(state.account && g.recipient && state.account.toLowerCase() === g.recipient.toLowerCase());
   const published = g.categories.filter((c) => c.set).length;
+  const NC = CIRCLEPAD_VOTE_CATEGORIES.length, NP = CIRCLEPAD_VOTE_CATEGORIES.filter((c) => !c.fixed).length; // fixed categories skip the pre-vote
+  const prePub = g.categories.filter((c) => c.set && !(CIRCLEPAD_VOTE_CATEGORIES[c.id] || {}).fixed).length;
   const votedIn = g.categories.filter((c) => c.myVoteIndex !== null).length;
   // burn-to-vote: what this wallet can still cast, what it has cast, what's burned overall
   const bm = govBurnMode(), bLive = !!(bm && g.burn && g.burn.live);
@@ -1376,7 +1384,7 @@ function renderCirclepadGovernance(g) {
   const buyUrl = (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_BUY_URL) || "";
 
   // step 1 is the pre-vote (circlepad-ideas.js): open until a category's candidates are published
-  const preOpen = published < 5 && phase !== "closed";
+  const preOpen = prePub < NP && phase !== "closed";
   const pv = (window.circlepadIdeas && window.circlepadIdeas.stats) || { ideas: 0, votes: 0 };
   const statusEl = document.getElementById("bp-gov-live-status");
   if (statusEl) {
@@ -1435,7 +1443,7 @@ function renderCirclepadGovernance(g) {
       const pct = total > 0n ? (Number((mine * 10000n) / total) / 100).toFixed(2) : "0.00";
       const dots = CIRCLEPAD_VOTE_CATEGORIES.map((c) => `<i class="${g.categories[c.id].myVoteIndex !== null ? "on" : ""}" title="${govEsc(c.label)}"></i>`).join("");
       meHtml = `<div class="gv-me-w"><b data-no-i18n>${fmtEth(mine)} USDC</b><span data-no-i18n>${pct}%</span></div><small>${phase === "raise" ? "Your weight locks in when the raise closes." : phase === "voting" ? "You can change a vote until voting closes." : "Thanks for voting."}</small>
-        <div class="gv-me-dots">${dots}<span><span data-no-i18n>${votedIn}/5</span> <span>voted</span></span></div>`;
+        <div class="gv-me-dots">${dots}<span><span data-no-i18n>${votedIn}/${NC}</span> <span>voted</span></span></div>`;
     } else if (phase === "raise") {
       meHtml = `<p>Contribute to get a vote — your weight is the USDC you put in.</p><button type="button" class="bp-btn-primary gv-me-btn" data-gv="contribute">Contribute</button>`;
     } else {
@@ -1459,7 +1467,7 @@ function renderCirclepadGovernance(g) {
       <div class="gv-bar">
         <div class="gv-phases">
           ${ph("pre", "Pre-vote", pv.ideas ? `<span data-no-i18n>${pv.ideas}</span> <span>ideas</span> · <span data-no-i18n>${pv.votes}</span> <span>votes</span>` : "Open to everyone, free", preOpen ? "now" : "done")}
-          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/5</span> <span>published</span>`, published === 5 ? "done" : published > 0 || (phase !== "raise" && !preOpen) ? "now" : "")}
+          ${ph("cands", "Candidates", `<span data-no-i18n>${published}/${NC}</span> <span>published</span>`, published === NC ? "done" : published > 0 || (phase !== "raise" && !preOpen) ? "now" : "")}
           ${ph("vote", bm ? "Burn-to-vote" : "Voting", bm ? "Until the raise closes" : "48 hours after the close", phase === "voting" && published > 0 ? "now" : phase === "closed" ? "done" : "")}
           ${ph("result", "Result", "The top option in each", phase === "closed" ? "now" : "")}
         </div>

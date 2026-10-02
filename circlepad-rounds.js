@@ -100,7 +100,7 @@
     if (!m) return "";
     const link = proofLink(m.proof);
     const when = m.at ? ` · <span data-no-i18n>${esc(dt(Math.floor(m.at / 1000)))}</span>` : "";
-    return `<em class="cp-tl-mark"><i></i>${T(m.exception ? "Done · this round's exception" : what)}${when}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${T("Proof")} ↗</a>` : ""}</em>`;
+    return `<em class="cp-tl-mark"><i></i>${m.merged ? RT("Merged into Round #1", m.merged) : T(m.exception ? "Done · this round's exception" : what)}${when}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${T("Proof")} ↗</a>` : ""}</em>`;
   }
   function paintTimeline() {
     const tl = $("cp-timeline");
@@ -131,7 +131,7 @@
     else if (at >= 3) {
       // steps 4 and 5 run side by side: the top contributor is paid over 3 days while the coin launches
       const row = (step, k, label, doneLabel) => (m && m[step]
-        ? `<div class="cp-admin-row"><span class="cp-admin-done">${T(m[step].exception ? "Step " + k + " done — this round's exception" : doneLabel)}</span>${m[step].fixed ? "" : undo(step, "Undo step " + k)}</div>`
+        ? `<div class="cp-admin-row"><span class="cp-admin-done">${m[step].merged ? RT("Merged into Round #1", m[step].merged) : T(m[step].exception ? "Step " + k + " done — this round's exception" : doneLabel)}</span>${m[step].fixed ? "" : undo(step, "Undo step " + k)}</div>`
         : `<div class="cp-admin-row"><button type="button" class="bp-btn-primary" data-cp-stage="${n}" data-step="${step}">${T("Mark step " + k + " done")}</button><span class="cp-admin-what">${T(label)}</span></div>`);
       body = at === 5 ? `<p>${T("Every step is done.")}</p>` : `<p>${T("Mark each step when it's done — they can be done in either order. A proof link is optional.")}</p><div class="cp-admin-row">${proof}</div>`;
       body += row("top", 4, "Top contributor has received the 15%", "Step 4 done — top contributor paid") + row("launch", 5, "Coin launched and airdrop sent", "Step 5 done — launched");
@@ -155,13 +155,13 @@
       const label = n > 1 && i === 1 ? "Coin identity" : s;
       const mk = i === 3 && m && m.top ? m.top : i === 4 && m && m.launch ? m.launch : null;
       const link = mk ? proofLink(mk.proof) : "";
-      const bits = [mk && mk.exception ? esc(tr("This round's exception")) : mk && mk.at ? esc(dt(Math.floor(mk.at / 1000))) : "", link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(tr("Proof"))} ↗</a>` : ""].filter(Boolean);
+      const bits = [mk && mk.merged ? RT("Merged into Round #1", mk.merged) : mk && mk.exception ? esc(tr("This round's exception")) : mk && mk.at ? esc(dt(Math.floor(mk.at / 1000))) : "", link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(tr("Proof"))} ↗</a>` : ""].filter(Boolean);
       return `<li class="${cls}"><span class="cp-ms-n">${i + 1}</span><b>${T(label)}</b>${bits.length ? `<small data-no-i18n>${bits.join(" · ")}</small>` : ""}</li>`;
     }).join("")}</ol>`;
   }
   function badgeOf(v) {
     const at = stepFrom(v.state, v.marks);
-    if (at === 5) return ["done", "Complete"];
+    if (v.marks && v.marks.merged) return ["done", RTraw("Merged into Round #1", v.marks.merged.into)];
     if (at >= 3 && v.marks && v.marks.launch) return ["done", "Launched"];
     return at === 2 ? ["wait", "Settling the split"] : at === 3 ? ["ok", "Split sent"] : at === 4 ? ["ok", "Top contributor paid"] : ["ok", "Closed"];
   }
@@ -208,6 +208,7 @@
     return `<article class="cp-sum" id="cp-sum-${n}">
       <div class="cp-sum-top"><span class="cp-rc-badge ${bcls}">${T(blabel)}</span><span class="cp-sum-k">${RT("CirclePad Round #1", n)}</span><span class="cp-sum-dates" data-no-i18n>${v.startedAt ? `${esc(dt(v.startedAt))} → ${esc(dt(st.deadline))}` : ""}</span></div>
       ${coin}
+      ${mergedHtml(v)}
       <div class="cp-sum-stats">${stats}</div>
       ${split}
       <div class="cp-sum-steps-w"><small class="cp-sum-h">${T("Launch process")}</small>${miniSteps(at, v.marks, n)}</div>
@@ -216,6 +217,14 @@
       ${board}
       <div class="cp-sum-links">${links}</div>
     </article>`;
+  }
+  /// a round folded into a later one: where its raise went and how its contributors are paid
+  function mergedHtml(v) {
+    const g = v.marks && v.marks.merged;
+    if (!g) return "";
+    const into = Number(g.into);
+    const amt = g.usdc ? Number(g.usdc).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+    return `<div class="cp-sum-merged"><b>${RT("Merged into Round #1", into)}</b><p>${esc(RTraw("This round didn't launch on its own. Its whole raise went into Round #1, and its contributors get their share of Round #1 pro rata, from this round's list below.", into))}${amt ? ` <span data-no-i18n>(${esc(amt)} USDC)</span>` : ""}</p><button type="button" class="bp-btn-ghost" data-cp-go="governance">${RT("Go to Round #1", into)}</button></div>`;
   }
   function nextHtml(nx, pending, where) {
     const n = pending ? pending.n : nx.n;

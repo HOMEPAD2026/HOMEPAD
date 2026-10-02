@@ -101,7 +101,7 @@
         ${tile("My contribution", `<b data-no-i18n>${usdc(n.mine)}</b> <span data-no-i18n>USDC</span>${n.mine > 0n ? ALT(n.mine, "cp-alt-sm") : ""}`, n.mine > 0n ? `<span data-no-i18n>${pct}%</span> <span>${T("of the raise")}</span>` : T("Nothing in yet"), "mine")}
         ${tile("My rank", n.rank ? `<b data-no-i18n>#${n.rank}</b>` : "<b>—</b>", n.rank ? `<span>${T("of")}</span> <span data-no-i18n>${num(n.list.length)}</span> <span>${T("contributors")}</span>` : T("Contribute to get a rank"), isTop ? "top" : "")}
         ${tile("Race for #1 (the 15%)", race[0], race[1], isTop ? "top" : "")}
-        ${tile("My votes", `<b data-no-i18n>${num(n.votes.toString())}</b>`, n.votes > 0n ? `<span>${T("in")}</span> <span data-no-i18n>${n.cats}/5</span> <span>${T("categories")}</span>` : T(ph === "voting" ? "Voting is open" : "No votes yet"))}
+        ${tile("My votes", `<b data-no-i18n>${num(n.votes.toString())}</b>`, n.votes > 0n ? `<span>${T("in")}</span> <span data-no-i18n>${n.cats}/${window.cpCatCount ? window.cpCatCount() : 5}</span> <span>${T("categories")}</span>` : T(ph === "voting" ? "Voting is open" : "No votes yet"))}
         ${tile("Burned by me", `<b data-no-i18n>${num((n.votes * 1000n).toString())}</b> <span data-no-i18n>$ARCIRCLE</span>`, n.bal != null ? `<span>${T("Wallet:")}</span> <span data-no-i18n>${num((n.bal / 10n ** 18n).toString())} $ARCIRCLE</span>` : T("1 vote = 1,000 $ARCIRCLE"), "burn")}
         ${tile("Airdrop", `<b>${T(eligible ? "Eligible" : "Not yet")}</b>`, eligible ? T("Size not decided yet") : T("Contribute before the close"), eligible ? "ok" : "")}
       </div>

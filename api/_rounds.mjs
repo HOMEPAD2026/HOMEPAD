@@ -70,10 +70,19 @@ export async function walletsOf(escrow) {
 // Round #1 is settled: step 4 was this round's exception (the team settled it, so it counts as done) and
 // step 5 is $ARCIA's launch on Argus. These marks are fixed: the round wallet can't undo or re-mark them.
 export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
+const ROUND2_ESCROW = "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", ROUND3_ESCROW = "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4";
 const FIXED = {
   [lc(ESCROW)]: {
     top: { at: null, proof: null, by: "team", exception: true, fixed: true },
     launch: { at: null, proof: `https://argus.world/token/${ARCIA_CA}`, by: "team", fixed: true },
+  },
+  // Round #2 ($TIE) didn't launch on its own: on 3 Oct 2026 it was merged into Round #3 — its whole raise
+  // (1,999.62 USDC) went back in as Round #3's, and Round #2's contributors get their share of Round #3 pro rata,
+  // from Round #2's list. Steps 4–5 are settled by the merge.
+  [ROUND2_ESCROW]: {
+    merged: { into: 3, usdc: "1999.62", by: "team", fixed: true },
+    top: { at: null, proof: null, by: "team", merged: 3, fixed: true },
+    launch: { at: null, proof: `https://arc.etherscan.io/address/${ROUND3_ESCROW}`, by: "team", merged: 3, fixed: true },
   },
 };
 async function storedStagesOf(escrow) {
@@ -81,7 +90,7 @@ async function storedStagesOf(escrow) {
   try { return (await store.get(`circleStage/${lc(escrow)}`)) || {}; } catch { return {}; }
 }
 async function stagesOf(escrow) {
-  return { ...(FIXED[lc(escrow)] || {}), ...(await storedStagesOf(escrow)) };
+  return { ...(await storedStagesOf(escrow)), ...(FIXED[lc(escrow)] || {}) }; // a settled mark always wins
 }
 /// 0 raise · 1 burn-to-vote · 2 close & split · 3 top contributor · 4 launch & airdrop · 5 all done
 /// Steps 4 and 5 run side by side (the top contributor is paid over 3 days while the coin launches), so

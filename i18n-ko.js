@@ -6090,6 +6090,13 @@
     "refund if no UP": "UP 없으면 환불",
     "full refund unless someone takes DOWN": "DOWN에 거는 사람이 없으면 전액 환불",
     "full refund unless someone takes UP": "UP에 거는 사람이 없으면 전액 환불",
+    "Launch chain": "런칭 체인",
+    "Merged into Round #1": "라운드 #1에 편입",
+    "This round didn't launch on its own. Its whole raise went into Round #1, and its contributors get their share of Round #1 pro rata, from this round's list below.": "이 라운드는 단독으로 런칭하지 않았어요. 모금액 전액이 라운드 #1로 들어갔고, 이 라운드의 기여자는 아래 명단 그대로 라운드 #1에서 비율에 따라 받아요.",
+    "Go to Round #1": "라운드 #1로 가기",
+    "Until the raise closes. First a free pre-vote: anyone suggests ideas and votes on them with a wallet signature. The round wallet picks the candidates from the top, then anyone holding $ARCIRCLE burn-to-votes on name, ticker, logo, roadmap and launch date — every vote burns 1,000 $ARCIRCLE straight to 0x…dEaD. No new contract: the votes are counted from those burns on Arc. New this round: the launch chain — Arc, Robinhood Chain or Solana — is on the ballot from the start.": "모금이 끝날 때까지 진행돼요. 먼저 무료 사전투표: 누구나 아이디어를 제안하고 지갑 서명으로 투표해요. 라운드 지갑이 상위 아이디어에서 후보를 고르면, $ARCIRCLE 보유자 누구나 이름·티커·로고·로드맵·런칭일에 소각 투표를 해요 — 한 표마다 1,000 $ARCIRCLE이 0x…dEaD로 바로 소각돼요. 새 컨트랙트 없음: 투표는 Arc의 소각 기록으로 집계돼요. 이번 라운드 새 항목: 런칭 체인 — Arc, Robinhood Chain, Solana — 처음부터 투표할 수 있어요.",
+    "On the launch date and the chain the vote picks (Arc, Robinhood Chain or Solana), with the name, ticker and logo the vote picks.": "투표로 정해진 런칭일과 체인(Arc, Robinhood Chain, Solana 중)에서, 투표로 정해진 이름·티커·로고로 런칭해요.",
+    "Pro rata to each contributor's share. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are paid from Round #2's list.": "각 기여자의 비율대로 지급돼요. 라운드 #2의 1,999.62 USDC가 이번 라운드로 들어왔기 때문에, 라운드 #2 기여자는 라운드 #2 명단대로 지급받아요.",
   };
 
 
