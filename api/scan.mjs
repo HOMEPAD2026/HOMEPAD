@@ -44,17 +44,17 @@ export async function GET(req) {
     if (q.src != null) {
       if (!isAddr(q.src)) return json({ error: "src must be an address" }, 400);
       if (scanner.limited(`src:${ip}`, 40, 60e3)) return json({ error: "slow down" }, 429);
-      const r = await scanner.sourceOf(q.src, isAddr(q.impl) ? q.impl : null, st);
+      const r = await scanner.sourceOf(q.src, isAddr(q.impl) ? q.impl : null, st, q.chain === "rh" ? "rh" : "arc");
       return json(r || { unknown: true }, 200, r ? "public, max-age=600, s-maxage=3600" : "no-store");
     }
     if (q.dep != null) {
       if (!isAddr(q.dep)) return json({ error: "dep must be an address" }, 400);
       if (scanner.limited(`dep:${ip}`, 30, 60e3)) return json({ error: "slow down" }, 429);
-      const r = await scanner.deployerOf(q.dep, q.not || "", st);
+      const r = await scanner.deployerOf(q.dep, q.not || "", st, q.chain === "rh" ? "rh" : "arc");
       return json(r || { unknown: true }, 200, r ? "public, max-age=300, s-maxage=1800" : "no-store");
     }
     if (q.fp != null) {
-      const r = await scanner.clonesOf(q.fp, q.t || "", st);
+      const r = await scanner.clonesOf(q.fp, q.t || "", st, q.chain === "rh" ? "rh" : "arc");
       return json(r || { items: [] }, 200, "public, max-age=300, s-maxage=900");
     }
     if (q.note != null) return json({ note: await P.noteGet(q.note) }, 200, "public, max-age=30, s-maxage=60");

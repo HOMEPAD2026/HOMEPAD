@@ -209,13 +209,15 @@
     ["take", "take", "ARCIA's take", "The result in plain words, and the one thing to check before buying."],
   ];
   let lastAddr = null;
+  // Robinhood Chain: the free tools only (Plus and Pro unlock against Arc's $ARCIRCLE and read Arc's pools)
+  const cardsFor = (cur) => (cur && cur.ch === "rh" ? CARDS.filter(([k]) => k === "sim" || k === "prebuy") : CARDS);
   function paintTools() {
     const box = $("asc-x"), cur = A.state;
     if (!box || !cur || !cur.res || cur.res.notToken) { if (box) box.innerHTML = ""; return; }
-    const addr = lc(cur.addr);
-    if (lastAddr !== addr) { box.innerHTML = ""; lastAddr = addr; }
+    const addr = lc(cur.addr), CARDS = cardsFor(cur);
+    if (lastAddr !== (cur.ch || "arc") + addr) { box.innerHTML = ""; lastAddr = (cur.ch || "arc") + addr; }
     if (!box.querySelector(".ascx-grid")) {
-      box.innerHTML = `<div class="ascx-head"><h3>${esc(tr("Tools"))}</h3><span>${esc(tr("Free ones open right away; Plus and Pro ones open for 24 hours per token."))}</span></div>
+      box.innerHTML = `<div class="ascx-head"><h3>${esc(tr("Tools"))}</h3><span>${esc(tr(cur.ch === "rh" ? "Plus and Pro tools are on Arc for now." : "Free ones open right away; Plus and Pro ones open for 24 hours per token."))}</span></div>
         <div class="ascx-grid">${CARDS.map(([k, f, t, sub]) => `<section class="asc-card ascx-card c-${k}" data-card="${k}"><div class="ascx-ch"><h4>${esc(tr(t))}${f ? " " + tierBadge(FEAT[f][0]) : ` <em class="asc-tier t-p1">${esc(tr("Free"))}</em>`}</h4><small>${esc(tr(sub))}</small></div><div class="ascx-body"></div></section>`).join("")}</div>`;
     }
     CARDS.forEach(([k, f]) => {
@@ -248,7 +250,7 @@
   const RENDER = {
     sim(body, cur) {
       const L = (cur.sim && cur.sim.legs) || null;
-      if (!cur.sim || !cur.sim.supported || !L) { body.innerHTML = `<p class="asc-hnote">${esc(tr(cur.sim && !cur.sim.supported ? "The Arc RPC didn't accept the dry run this time." : "There was no holder the dry run could act as."))}</p>`; return; }
+      if (!cur.sim || !cur.sim.supported || !L) { body.innerHTML = `<p class="asc-hnote">${esc(tr(cur.sim && !cur.sim.supported ? (cur.ch === "rh" ? "The Robinhood Chain RPC didn't accept the dry run this time." : "The Arc RPC didn't accept the dry run this time.") : "There was no holder the dry run could act as."))}</p>`; return; }
       const f = L.fresh, tw = L.twice;
       body.innerHTML = `<ul class="ascx-lanes">
         ${(L.buy || []).map((l) => lane("Buy", l, l.k)).join("")}

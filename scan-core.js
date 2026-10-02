@@ -44,12 +44,31 @@
     lplock: "0x674e7010dab5ccb519e06df72b1d4c063952f45b",
     builderMine: "0x1538c76917de5911d71c5c397ff18ca09d52b019",
   };
+  /// Robinhood Chain (4663): the same Uniswap v4 PoolManager address, Uniswap v3 (pons) and the Pons launchpads.
+  const ADDR_RH = {
+    weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+    v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
+    ponsV2: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // PonsV2LaunchFactory: getLaunchedToken(token)
+    ponsFactories: ["0xa5aab3f0c6eeadf30ef1d3eb997108e976351feb", "0x0c37a24f5d23a486fa692d1500881d698b1f77a4"],
+    ponsLocker: "0x736d76699c26d0d966744cae304c000d471f7f35",
+    bagsHook: "0x2380abf72c17aabab76480244759ac7e2932eecc",
+  };
+  /// The chains the scanner reads: io.chain picks one ("arc" when it's not set).
+  const CHAINS = {
+    arc: { id: "arc", name: "Arc", chainId: 5042, dex: "arc" },
+    rh: { id: "rh", name: "Robinhood Chain", chainId: 4663, dex: "robinhood" },
+  };
+  const chainOf = (io) => (io && io.chain === "rh" ? "rh" : "arc");
   const BURN = ["0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead", "0xdead000000000000000042069420694206942069"];
   /// Addresses that aren't "people": left out of holder concentration.
+  /// extra: { address: { name, kind } } — pools found for this token (Robinhood Chain's v3 pools, a Pons curve)
   function labelOf(a, extra) {
     const k = String(a || "").toLowerCase();
     if (BURN.includes(k)) return { name: "Burned", kind: "burn" };
     if (k === ADDR.poolManager) return { name: "Uniswap v4 pools", kind: "pool" };
+    if (k === ADDR_RH.ponsV2 || ADDR_RH.ponsFactories.includes(k)) return { name: "Pons", kind: "infra" };
+    if (k === ADDR_RH.ponsLocker) return { name: "Pons locker", kind: "lock" };
+    if (k === ADDR_RH.bagsHook) return { name: "Bags", kind: "infra" };
     if (k === ADDR.uniPositions) return { name: "Uniswap positions", kind: "pool" };
     if (k === ADDR.arclock) return { name: "ArcLock (locked)", kind: "lock" };
     if (k === ADDR.arcpadFactory || k === ADDR.arcpadHook || k === ADDR.arcpadRouter) return { name: "ArcPad", kind: "infra" };
@@ -361,11 +380,30 @@
     } catch { return { locked: "0", count: 0, schedule: [] }; }
   }
 
-  /// Dexscreener pairs on Arc, deepest first (null if it didn't answer).
+  /// Robinhood Chain: the Pons V2 launch record (bonding curve, creator, creator fee, phase), or null.
+  const PONS_PHASE = ["curve", "swept", "pool", "rescued"];
+  async function readPons(io, addr) {
+    if (chainOf(io) !== "rh") return null;
+    const h = strip(await call(io, ADDR_RH.ponsV2, "0x3cf28b5a" + pad(addr)));
+    if (h.length < 15 * 64 || wBig(h, 14) !== 1n || wAddr(h, 0) !== String(addr).toLowerCase()) return null;
+    return {
+      curve: wAddr(h, 1), creator: wAddr(h, 2), recipient: wAddr(h, 3), pairToken: wAddr(h, 4),
+      poolFee: Number(wBig(h, 6)), creatorTaxBps: Number(wBig(h, 8)), phase: PONS_PHASE[Number(wBig(h, 10))] || "curve",
+    };
+  }
+  /// The launchpad records for the token's chain: { arcpad, argus, locks } on Arc, { pons } on Robinhood Chain.
+  async function readLaunch(io, addr) {
+    if (chainOf(io) === "rh") return { arcpad: null, argus: null, locks: null, pons: await readPons(io, addr).catch(() => null) };
+    const [arcpad, argus, locks] = await Promise.all([readArcPad(io, addr).catch(() => null), readArgus(io, addr).catch(() => null), readLocks(io, addr).catch(() => null)]);
+    return { arcpad, argus, locks, pons: null };
+  }
+
+  /// Dexscreener pairs on the token's chain, deepest first (null if it didn't answer).
   async function readMarket(io, addr) {
     const j = await io.fetchJson(`https://api.dexscreener.com/latest/dex/tokens/${addr}`, 9000);
     if (!j) return null;
-    const pairs = (j.pairs || []).filter((p) => p && p.chainId === "arc").map((p) => {
+    const dex = CHAINS[chainOf(io)].dex;
+    const pairs = (j.pairs || []).filter((p) => p && p.chainId === dex).map((p) => {
       const info = p.info || {};
       return {
         dex: (p.dexId === "uniswap" ? "Uniswap" : cap1(p.dexId)) + ((p.labels || []).length ? " " + p.labels.join(" ") : ""),
@@ -384,15 +422,15 @@
     return { source: "dex", pairs };
   }
 
-  /// Other Arc tokens with the same ticker on Dexscreener (a copycat check), deepest first.
+  /// Other tokens on the same chain with the same ticker on Dexscreener (a copycat check), deepest first.
   async function readCopies(io, addr, symbol) {
     const sym = String(symbol || "").trim();
     if (!sym || sym.length > 20) return [];
     const j = await io.fetchJson(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(sym)}`, 8000);
     if (!j || !Array.isArray(j.pairs)) return null;
-    const me = String(addr).toLowerCase(), by = new Map();
+    const me = String(addr).toLowerCase(), by = new Map(), dex = CHAINS[chainOf(io)].dex;
     for (const p of j.pairs) {
-      if (!p || p.chainId !== "arc" || !p.baseToken) continue;
+      if (!p || p.chainId !== dex || !p.baseToken) continue;
       const a = String(p.baseToken.address || "").toLowerCase();
       if (!isAddr(a) || a === me || String(p.baseToken.symbol || "").toLowerCase() !== sym.toLowerCase()) continue;
       const liq = (p.liquidity && Number(p.liquidity.usd)) || 0;
@@ -468,9 +506,11 @@
   /// Share-of-supply sizes the dry run trades at: small, medium, large (each capped by what the holder / pool has).
   const SIM_SIZES = [["small", 10000n], ["mid", 1000n], ["large", 100n]]; // supply / n → 0.01%, 0.1%, 1%
   /// → { supported, v: 3, legs: { sell: [..], buy: [..], send, fresh, twice }, holder }
-  async function simulate(io, token, { holder, holderBal, poolBal, supply }) {
+  /// pool: where sells go and buys come from (Arc: the Uniswap v4 PoolManager; Robinhood Chain: the token's main pool).
+  async function simulate(io, token, { holder, holderBal, poolBal, supply, pool }) {
     token = String(token).toLowerCase();
-    const out = { supported: true, v: 3, legs: { sell: [], buy: [], send: null, fresh: null, twice: null }, holder: holder || null };
+    const P = isAddr(pool) ? String(pool).toLowerCase() : ADDR.poolManager;
+    const out = { supported: true, v: 3, legs: { sell: [], buy: [], send: null, fresh: null, twice: null }, holder: holder || null, pool: P };
     const s = toBig(supply), hb = toBig(holderBal), pb = toBig(poolBal);
     const sizes = (bal, capFrac) => {
       const res = [];
@@ -484,17 +524,17 @@
     const jobs = [];
     if (holder && hb > 0n) {
       const sz = sizes(hb, 90n);
-      sz.forEach(({ k, amt }, i) => jobs.push(probeLeg(io, token, holder, ADDR.poolManager, amt).then((r) => { out.legs.sell[i] = { k, ...r }; })));
+      sz.forEach(({ k, amt }, i) => jobs.push(probeLeg(io, token, holder, P, amt).then((r) => { out.legs.sell[i] = { k, ...r }; })));
       const small = sz[0] ? sz[0].amt : 0n;
       if (small > 0n) {
         jobs.push(probeLeg(io, token, holder, FRESH, small).then((r) => { out.legs.send = r; }));
-        jobs.push(twiceLeg(io, token, holder, ADDR.poolManager, small).then((r) => { out.legs.twice = r; }));
+        jobs.push(twiceLeg(io, token, holder, P, small).then((r) => { out.legs.twice = r; }));
       }
     }
     if (pb > 0n) {
       const sz = sizes(pb, 50n);
-      sz.forEach(({ k, amt }, i) => jobs.push(probeLeg(io, token, ADDR.poolManager, FRESH, amt).then((r) => { out.legs.buy[i] = { k, ...r }; })));
-      if (sz[0]) jobs.push(hopLeg(io, token, ADDR.poolManager, FRESH2, ADDR.poolManager, sz[0].amt).then((r) => { out.legs.fresh = r; }));
+      sz.forEach(({ k, amt }, i) => jobs.push(probeLeg(io, token, P, FRESH, amt).then((r) => { out.legs.buy[i] = { k, ...r }; })));
+      if (sz[0]) jobs.push(hopLeg(io, token, P, FRESH2, P, sz[0].amt).then((r) => { out.legs.fresh = r; }));
     }
     await Promise.all(jobs);
     const all = [...out.legs.sell, ...out.legs.buy, out.legs.send, out.legs.fresh, out.legs.twice].filter(Boolean);
@@ -594,17 +634,19 @@
     addr = String(addr).toLowerCase();
     const { c, x = {}, m = null, h = null, sim = null } = data;
     const now = data.now || Date.now() / 1000;
+    const rh = data.chain === "rh", CN = CHAINS[rh ? "rh" : "arc"].name;
+    const LB = (a) => labelOf(a, h && h.labels);
     const rows = [];
     const add = (group, status, id, title, detail, more) => rows.push({ group, status, id, title, detail, pts: WEIGHT[status] || 0, src: SRC_OF[id] || "chain", ...(more || {}) });
     let cap = 100;
     const capWhy = [];
     const capAt = (n, why) => { if (n < cap) cap = n; if (why) capWhy.push(why); };
 
-    if (!c || !c.contract) { add("contract", "risk", "token", "No contract at this address", "Nothing is deployed here on Arc — it isn't a token."); return { rows, score: 0, notToken: true, verdict: verdictOf(0), version: CORE_VERSION }; }
+    if (!c || !c.contract) { add("contract", "risk", "token", "No contract at this address", `Nothing is deployed here on ${CN} — it isn't a token.`); return { rows, score: 0, notToken: true, verdict: verdictOf(0), version: CORE_VERSION }; }
     if (!c.token) { add("contract", "risk", "token", "Not a standard token", "It doesn't answer the basic ERC-20 calls (name, symbol, decimals, supply)."); return { rows, score: 0, notToken: true, verdict: verdictOf(0), version: CORE_VERSION }; }
     const dec = c.decimals, S = units(c.supply, dec);
-    const isArc = addr === ADDR.arcircle;
-    const launchpad = isArc || !!x.arcpad || !!x.argus;
+    const isArc = !rh && addr === ADDR.arcircle;
+    const launchpad = isArc || !!x.arcpad || !!x.argus || !!x.pons;
 
     // ---- contract ----
     add("contract", "pass", "token", "Standard ERC-20 token", `${c.name} ($${c.symbol}) · ${dec} decimals · ${compact(S)} supply`);
@@ -627,7 +669,8 @@
     if (isArc) add("contract", "pass", "origin", "ARCIRCLE PAD core coin", "$ARCIRCLE, launched on Argus — one pool, supply in a single locked position.");
     else if (x.arcpad) add("contract", "pass", "origin", "Launched on ArcPad", "The standard ArcPad token, launched through the ArcPad factory with its pool created in the same transaction.");
     else if (x.argus) add("contract", "pass", "origin", "Launched on Argus", "Launched through an Argus portal: a Uniswap v4 pool with the supply in one locked position.");
-    else add("contract", "info", "origin", "Not a launchpad token", "Not launched through ArcPad or Argus, so every check below is the generic one.");
+    else if (x.pons) add("contract", "pass", "origin", "Launched on Pons", x.pons.phase === "curve" ? "The standard Pons token, still trading on its Pons bonding curve." : "The standard Pons token; it has left its bonding curve for a Uniswap v4 pool.");
+    else add("contract", "info", "origin", "Not a launchpad token", rh ? "Not launched through Pons, so every check below is the generic one." : "Not launched through ArcPad or Argus, so every check below is the generic one.");
     // code: opcodes + fingerprint
     const ops = c.ops || {};
     if (!launchpad) {
@@ -715,12 +758,16 @@
         else add("trade", "pass", "twice", "No wait between sells", "Two sells in a row both went through.");
       }
       if (!sells.length && !buys.length && !L.send) add("trade", launchpad ? "info" : "unknown", "sim", "No trade simulation", "There was no holder the dry run could act as.");
-    } else if (sim && !sim.supported) add("trade", launchpad ? "info" : "unknown", "sim", "Trade simulation unavailable", "The Arc RPC didn't accept the dry run, so buying and selling weren't simulated.");
+    } else if (sim && !sim.supported) add("trade", launchpad ? "info" : "unknown", "sim", "Trade simulation unavailable", `The ${CN} RPC didn't accept the dry run, so buying and selling weren't simulated.`);
     else add("trade", launchpad ? "info" : "unknown", "sim", "Trades weren't simulated", "The dry-run trades didn't finish — try the scan again.");
     if (launchpad) sellKnown = true; // the template's sell path is known
     if (x.arcpad && x.arcpad.extraFeeBps != null) {
       const total = 1 + x.arcpad.extraFeeBps / 100;
       add("trade", total > 5 ? "warn" : "pass", "fee", `Trade fee ${pct(total)}`, `ArcPad's 1% pool fee${x.arcpad.extraFeeBps ? ` + ${pct(x.arcpad.extraFeeBps / 100)} to the creator` : ""}, taken on every buy and sell.`, { src: "chain" });
+    }
+    if (x.pons && x.pons.creatorTaxBps > 0) {
+      const t = x.pons.creatorTaxBps / 100;
+      add("trade", t > 5 ? "warn" : "info", "fee", `Creator fee ${pct(t)}`, "Set in the token's Pons launch record and taken for its creator on trades.", { addr: x.pons.recipient, pre: "Goes to:", src: "chain" });
     }
     if (x.argus) {
       const b = x.argus.buyTaxBps / 100, s = x.argus.sellTaxBps / 100;
@@ -770,13 +817,17 @@
       }
       const links = (m.links || []).filter((l) => /^https:\/\//.test(l.u || ""));
       if (links.length) add("market", "pass", "links", "Website and socials listed", "", { links: links.map((l) => ({ href: l.u, label: l.t })), src: "chain" });
+    } else if (m && m.source === "pons") {
+      market = { ...m, source: "pons" };
+      add("market", "pass", "pool", m.phase === "curve" ? "Trades on its Pons curve" : "Trades in its Pons pool",
+        m.phase === "curve" ? "A Pons bonding curve — read from the chain because Dexscreener hasn't listed it yet." : "A Uniswap v4 pool Pons created when it left the curve — read from the chain because Dexscreener hasn't listed it yet.", { src: "chain" });
     } else if (!m) add("market", "unknown", "pool", "Market data unavailable", "Dexscreener didn't answer — try the scan again in a moment.");
-    else { add("market", "risk", "pool", "No trading pool found", "Dexscreener doesn't list a pool for it on Arc, so there may be no way to buy or sell."); capAt(40, "pool"); }
+    else { add("market", "risk", "pool", "No trading pool found", `Dexscreener doesn't list a pool for it on ${CN}, so there may be no way to buy or sell.`); capAt(40, "pool"); }
     // copycats: the same ticker with more money behind it
     const copies = data.copies;
     if (Array.isArray(copies) && copies.length) {
       const bigger = copies.filter((k) => k.liq > ((pair && pair.liq) || 0) * 2 && k.liq >= 5000);
-      if (bigger.length) add("market", "warn", "copy", `Another $${c.symbol} has more liquidity`, `${copies.length} other Arc token${copies.length === 1 ? " uses" : "s use"} this ticker; the biggest has ${usd(bigger[0].liq)} in its pool. Make sure this is the contract you meant.`, { addr: bigger[0].token, pre: "The other one:" });
+      if (bigger.length) add("market", "warn", "copy", `Another $${c.symbol} has more liquidity`, `${copies.length} other ${CN} token${copies.length === 1 ? " uses" : "s use"} this ticker; the biggest has ${usd(bigger[0].liq)} in its pool. Make sure this is the contract you meant.`, { addr: bigger[0].token, pre: "The other one:" });
       else add("market", "info", "copy", `${copies.length} other token${copies.length === 1 ? "" : "s"} use this ticker`, "Smaller ones — still, check the contract address before you buy.");
     }
     // who does the trading (from the token's own transfers with the pool)
@@ -810,7 +861,7 @@
       const people = [];
       for (const row of h.top || []) {
         const [a, v, flags] = row;
-        const k = labelOf(a), amt = n(v);
+        const k = LB(a), amt = n(v);
         if (k && k.kind === "pool") inPool += amt;
         else if (k && k.kind === "burn") burned += amt;
         else if (k && k.kind === "lock") lockedIn += amt;
@@ -854,7 +905,7 @@
         const next = sch[0] ? sch[0][0] - now : null;
         add("holders", "pass", "holders", "Tokens locked", `${pct((locked / S) * 100)} is locked in ArcLock${x.locks && x.locks.count ? ` (${x.locks.count} lock${x.locks.count === 1 ? "" : "s"})` : ""}${next != null && next > 0 ? `; the next unlock is in ${ageText(next)}` : ""}.`, { links: [{ href: `/arc#locker?token=${addr}`, label: "See locks", internal: true }] });
       }
-      if (inPool > 0) add("holders", "info", "holders", "In the trading pool", `${pct((inPool / S) * 100)} of the supply is liquidity in Uniswap v4 pools.`);
+      if (inPool > 0) add("holders", "info", "holders", "In the trading pool", rh ? `${pct((inPool / S) * 100)} of the supply sits in its trading pools.` : `${pct((inPool / S) * 100)} of the supply is liquidity in Uniswap v4 pools.`);
       // ---- launch: the first minutes of trading (api/_scan.mjs earlyLook) ----
       const e = h.early;
       if (e && e.lb != null) {
@@ -912,7 +963,7 @@
     if (!m) missing.push("market");
     if (!h) missing.push("holders");
     if (!launchpad && !(src && src.verified != null)) missing.push("source");
-    if (pair && !launchpad && !lp) missing.push("lp");
+    if (pair && !launchpad && !lp && !rh) missing.push("lp"); // the Liquidity Manager reads Arc's pools only
     const confidence = missing.length === 0 ? "high" : missing.length <= 1 ? "medium" : "low";
     if (!sellKnown) capAt(70, "unverified sell");
     if (confidence === "low") capAt(60, "low confidence");
@@ -954,7 +1005,7 @@
       const s0 = sim.legs.sell[0], b0 = (sim.legs.buy || [])[0];
       const tax = Math.max(s0 && s0.ok ? s0.tax : 0, b0 && b0.ok ? b0.tax : 0);
       out.push(tax > 0.01 ? { t: "You can buy and sell it; about {x} is taken per trade.", x: pct(tax) } : { t: "You can buy and sell it, with no tax in the dry run." });
-    } else if (x.arcpad || x.argus || res.market) out.push({ t: "It trades in a normal pool; the dry run didn't run this time." });
+    } else if (x.arcpad || x.argus || x.pons || res.market) out.push({ t: "It trades in a normal pool; the dry run didn't run this time." });
     const hidden = has("hidden", "warn");
     if (R("proxy").some((r) => r.status === "risk")) out.push({ t: "One wallet can replace its code at any time." });
     else if (R("power").some((r) => r.status === "risk")) out.push({ t: "Someone still holds keys that can mint, pause or block wallets." });
@@ -1067,24 +1118,25 @@
     addr = String(addr).toLowerCase();
     if (!isAddr(addr)) throw new Error("not an address");
     const c = await readContract(io, addr);
-    if (!c.contract || !c.token) return { c, res: evaluate(addr, { c }) };
-    const [arcpad, argus, locks, dex, h, src, copies, cl] = await Promise.all([
-      readArcPad(io, addr).catch(() => null), readArgus(io, addr).catch(() => null), readLocks(io, addr).catch(() => null),
+    if (!c.contract || !c.token) return { c, res: evaluate(addr, { c, chain: chainOf(io) }) };
+    const [L, dex, h, src, copies, cl] = await Promise.all([
+      readLaunch(io, addr).catch(() => ({})),
       readMarket(io, addr).catch(() => null), holders ? within(holders(addr), 14000) : null,
       within(readSource(io, addr, c.proxy && c.proxy.impl), 8000), within(readCopies(io, addr, c.symbol), 8000),
       clones && c.fp ? within(clones(c.fp, addr), 5000) : null,
     ]);
+    const { arcpad = null, argus = null, locks = null, pons = null } = L || {};
     let m = dex;
-    if ((!m || !m.pairs.length) && marketFallback) m = (await marketFallback(addr, { arcpad, argus }).catch(() => null)) || m;
-    const depAddr = (h && h.deployer) || (arcpad && arcpad.creator) || (argus && argus.creator) || null;
+    if ((!m || !m.pairs.length) && marketFallback) m = (await marketFallback(addr, { arcpad, argus, pons }).catch(() => null)) || m;
+    const depAddr = (h && h.deployer) || (arcpad && arcpad.creator) || (argus && argus.creator) || (pons && pons.creator) || null;
     const [sim, lpv, dep, blk] = await Promise.all([
       within(simulateFor(io, addr, c, h), 12000),
       lp ? within(lp, 6000) : null,
       deployer && depAddr ? within(deployer(depAddr, addr), 7000) : null,
       block ? within(typeof block === "function" ? block() : block, 3000) : null,
     ]);
-    const x = { arcpad, argus, locks };
-    return { c, h, x, sim, m, res: evaluate(addr, { c, x, m, h, sim, lp: lpv, lpTried: !!lp, src, copies, clones: cl, dep, block: blk }) };
+    const x = { arcpad, argus, locks, pons };
+    return { c, h, x, sim, m, res: evaluate(addr, { c, x, m, h, sim, lp: lpv, lpTried: !!lp, src, copies, clones: cl, dep, block: blk, chain: chainOf(io) }) };
   }
   /// Picks the holder to act as (largest wallet that isn't a contract or a pool) and runs the dry runs.
   async function simulateFor(io, addr, c, h) {
@@ -1092,17 +1144,19 @@
     // Owners and deployers are often exempt from fees, so an ordinary holder
     // gives the honest answer; they're only the fallback.
     const insiders = [c.owner, h.deployer].filter(Boolean).map((a) => String(a).toLowerCase());
-    let holder = null, holderBal = "0", poolBal = "0", fallback = null;
+    const rh = chainOf(io) === "rh";
+    let holder = null, holderBal = "0", poolBal = "0", pool = ADDR.poolManager, fallback = null;
     for (const [a, v, f] of h.top) {
-      const k = labelOf(a), al = String(a).toLowerCase();
-      if (k && k.kind === "pool" && al === ADDR.poolManager) poolBal = v;
+      const k = labelOf(a, h.labels), al = String(a).toLowerCase();
+      // Arc: the v4 PoolManager. Robinhood Chain: the pool holding the most (a v3 pool, the PoolManager or a Pons curve).
+      if (k && k.kind === "pool" && (rh ? al !== ADDR.uniPositions && toBig(v) > toBig(poolBal) : al === ADDR.poolManager)) { poolBal = v; pool = al; }
       if (k || (f && f.c) || toBig(v) === 0n) continue;
       if (insiders.includes(al)) { if (!fallback) fallback = [al, v]; continue; }
       if (!holder) { holder = al; holderBal = v; }
     }
     if (!holder && fallback) [holder, holderBal] = fallback;
-    return simulate(io, addr, { holder, holderBal, poolBal, supply: c.supply });
+    return simulate(io, addr, { holder, holderBal, poolBal, supply: c.supply, pool });
   }
 
-  window.ArcScanCore = { CORE_VERSION, SCANNER_VERSION, ADDR, BURN, labelOf, toBig, units, compact, usd, tinyNum, pct, ageText, short, POWERS, selectorsOf, dispatchOf, opcodesOf, controlOf, controlKind, readContract, readArcPad, readArgus, readLocks, readMarket, readCopies, readSource, PROBE_CODE, SIM_SIZES, simulate, clustersOf, HELP, SECTIONS, evaluate, verdictOf, summaryOf, summaryText, stressOf, preBuy, feesOf, compactOf, diffOf, lpSummary, scanAll, simulateFor };
+  window.ArcScanCore = { CORE_VERSION, SCANNER_VERSION, ADDR, ADDR_RH, CHAINS, chainOf, BURN, labelOf, toBig, units, compact, usd, tinyNum, pct, ageText, short, POWERS, selectorsOf, dispatchOf, opcodesOf, controlOf, controlKind, readContract, readArcPad, readArgus, readLocks, readPons, readLaunch, readMarket, readCopies, readSource, PROBE_CODE, SIM_SIZES, simulate, clustersOf, HELP, SECTIONS, evaluate, verdictOf, summaryOf, summaryText, stressOf, preBuy, feesOf, compactOf, diffOf, lpSummary, scanAll, simulateFor };
 })();

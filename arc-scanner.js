@@ -19,7 +19,10 @@
 // who really controls a proxy / owner, published source, same-code tokens, copycat
 // tickers, linked wallets, who trades, the deployer's other contracts, a plain-words
 // summary and a source chip on every check. The Plus / Pro tools live in arc-scanner-x.js.
-// Deep link: /arc#scanner?t=0x…   Recent scans and watches: this browser only.
+// Two chains (Oct 2026): Arc and Robinhood Chain — the switch above the address box; the same engine reads
+// whichever is picked (io.chain), the server's half takes &chain=rh. Liquidity locks and the Plus / Pro
+// tools stay Arc's.
+// Deep link: /arc#scanner?t=0x… (Robinhood Chain: #scanner?c=rh&t=0x…)   Recent scans and watches: this browser only.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-scanner");
@@ -32,14 +35,23 @@
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
-  const ex = (kind, x) => `${CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  // ---------- the chain: Arc or Robinhood Chain ----------
+  const CK = "arcircle.scanner.chain";
+  const ALT = () => (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com", explorer: "https://robinhoodchain.blockscout.com" };
+  let CH = /^#scanner\?(?:.*&)?c=rh\b/.test(location.hash) ? "rh" : (() => { try { return localStorage.getItem(CK) === "rh" && !/^#scanner\?(?:.*&)?(t|token)=/.test(location.hash) ? "rh" : "arc"; } catch { return "arc"; } })();
+  const RH = () => CH === "rh";
+  const CQ = (c = CH) => (c === "rh" ? "&chain=rh" : "");
+  const RH_ARCIRCLE = String((CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4").toLowerCase();
+  const ex = (kind, x) => `${RH() ? ALT().explorer : CONFIG.BLOCK_EXPLORER}/${kind}/${x}`;
+  /// where a scan can be shared: Arc has its own page (/s/<address>), Robinhood Chain links back here
+  const shareUrl = (a) => (RH() ? `${location.origin}/arc#scanner?c=rh&t=${a}` : `${location.origin}/s/${a}`);
   const short = K.short;
   const hueOf = (a) => (parseInt(String(a).slice(2, 8), 16) || 0) % 360;
   const haptic = (k) => { if (typeof window.arcHaptic === "function") window.arcHaptic(k); };
   const toast = (m) => { if (typeof window.arcToast === "function") window.arcToast(m); };
   const ARCIRCLE = lc(CONFIG.ARCIRCLE_TOKEN);
   const RECENT = "arcircle.scanner.v1", WATCH = "arcircle.scanner.watch.v1";
-  const launches = () => (typeof ARC !== "undefined" && ARC.launches) || [];
+  const launches = () => (!RH() && typeof ARC !== "undefined" && ARC.launches) || [];
   const launchOf = (a) => launches().find((l) => lc(l.token) === lc(a)) || null;
 
   // ---------- reads (same engine as the server) ----------
@@ -47,10 +59,10 @@
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
     try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); }
   }
-  // The dry-run trades need eth_call's state-override argument: try each Arc endpoint until one takes it.
-  async function rpcSim(method, params) {
+  // The dry-run trades need eth_call's state-override argument: try each endpoint of the chain until one takes it.
+  async function rpcSimOn(c, method, params) {
     let last;
-    for (const url of [CONFIG.RPC_URL, ...(CONFIG.RPC_FALLBACKS || [])].filter(Boolean)) {
+    for (const url of (c === "rh" ? [ALT().rpc] : [CONFIG.RPC_URL, ...(CONFIG.RPC_FALLBACKS || [])]).filter(Boolean)) {
       try {
         const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
         const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: ctl.signal }).finally(() => clearTimeout(t));
@@ -61,18 +73,24 @@
     }
     throw last || new Error("no rpc");
   }
-  const io = { rpc: (m, p) => readProvider().send(m, p), rpcSim, fetchJson, keccak: (h) => ethers.keccak256(String(h).startsWith("0x") ? h : "0x" + h),
-    // published source code: the server asks the explorer (and keeps the answer a day)
-    source: async (a, impl) => { const j = await fetchJson(`/api/scan?src=${a}${impl ? `&impl=${impl}` : ""}`, 12000); return j && typeof j.verified === "boolean" ? j : null; } };
+  let rhProv = null;
+  const rhProvider = () => (rhProv = rhProv || new ethers.JsonRpcProvider(ALT().rpc, Number(ALT().id || 4663), { staticNetwork: true }));
+  const ioFor = (c) => ({ chain: c, rpc: (m, p) => (c === "rh" ? rhProvider() : readProvider()).send(m, p), rpcSim: (m, p) => rpcSimOn(c, m, p), fetchJson,
+    keccak: (h) => ethers.keccak256(String(h).startsWith("0x") ? h : "0x" + h),
+    // published source code: the server asks the chain's explorer (and keeps the answer a day)
+    source: async (a, impl) => { const j = await fetchJson(`/api/scan?src=${a}${impl ? `&impl=${impl}` : ""}${CQ(c)}`, 12000); return j && typeof j.verified === "boolean" ? j : null; } });
+  const IO = { arc: ioFor("arc"), rh: ioFor("rh") };
+  let io = IO[CH];
   const within = (p, ms) => Promise.race([Promise.resolve(p).catch(() => null), new Promise((r) => setTimeout(() => r(null), ms))]);
   async function fetchHolders(addr, sym) {
-    const a = await fetchJson(`/api/social?scan=${addr}${sym ? `&sym=${encodeURIComponent(sym)}` : ""}`, 20000);
+    const a = await fetchJson(`/api/social?scan=${addr}${sym ? `&sym=${encodeURIComponent(sym)}` : ""}${CQ()}`, 20000);
     if (a && Array.isArray(a.top)) return a;
-    const b = await fetchJson(`/api/holders?scan=${addr}`, 28000);
+    const b = await fetchJson(`/api/holders?scan=${addr}${CQ()}`, 28000);
     if (b && Array.isArray(b.top)) return b;
     throw new Error("holder scan failed");
   }
   async function marketFallback(addr, x) {
+    if (x.pons) return { source: "pons", pairs: [], phase: x.pons.phase || "curve" };
     if (x.arcpad) {
       const l = launchOf(addr);
       const links = [["Website", (x.arcpad && x.arcpad.website) || (l && l.website)], ["Twitter", (x.arcpad && x.arcpad.twitter) || (l && l.twitter)], ["Telegram", (x.arcpad && x.arcpad.telegram) || (l && l.telegram)]]
@@ -90,22 +108,23 @@
   const PARTS = ["contract", "extras", "market", "holders", "trade"];
   const STEPS = [["contract", "Reading the contract"], ["extras", "Checking who controls it and its code"], ["market", "Looking for trading pools and copycats"], ["holders", "Counting holders and linked wallets"], ["trade", "Dry-run buys and sells at three sizes"]];
 
-  async function scan(input) {
+  async function scan(input, chain) {
     const raw = String(input || "").trim();
+    if (chain && (chain === "rh" ? "rh" : "arc") !== CH) setChain(chain);
     if (!isAddr(raw)) { message("That isn't a token address — it should start with 0x and be 42 characters long."); return; }
     const addr = ethers.getAddress(raw);
     const my = ++seq;
-    const prev = recent().find((r) => lc(r.a) === lc(addr));
-    cur = { addr, my, done: {}, c: null, x: {}, m: null, h: null, sim: null, res: null, prevScore: prev ? prev.sc : null, t0: performance.now() };
+    const prev = recent().find((r) => lc(r.a) === lc(addr) && (r.c || "arc") === CH);
+    cur = { addr, ch: CH, my, done: {}, c: null, x: {}, m: null, h: null, sim: null, res: null, prevScore: prev ? prev.sc : null, t0: performance.now() };
     $("asc-addr").value = addr;
-    if (history.replaceState) history.replaceState(null, "", `${location.pathname}${location.search}#scanner?t=${addr}`);
+    if (history.replaceState) history.replaceState(null, "", `${location.pathname}${location.search}#scanner?${RH() ? "c=rh&" : ""}t=${addr}`);
     $("asc-go").disabled = true;
     $("asc-intro").hidden = true;
     progress(true);
     shell();
     const alive = () => my === seq;
     // the server's last score for it (instant, and it keeps the daily history)
-    fetchJson(`/api/social?scores=${lc(addr)}`, 12000).then((j) => {
+    fetchJson(`/api/social?scores=${lc(addr)}${CQ()}`, 12000).then((j) => {
       if (!alive() || !j || !j.scores) return;
       cur.server = j.scores[lc(addr)] || null;
       paintServer();
@@ -113,27 +132,33 @@
     const mark = (part, ok) => { if (!alive()) return; cur.done[part] = true; stepDone(part, ok); paint(); };
 
     // 1. contract (everything else needs to know it's a token)
-    try { cur.c = await K.readContract(io, addr); } catch (e) { console.warn("scanner", e); if (alive()) { progress(false); $("asc-go").disabled = false; message("Couldn't read that address from Arc right now — try again in a moment."); } return; }
+    try { cur.c = await K.readContract(io, addr); } catch (e) { console.warn("scanner", e); if (alive()) { progress(false); $("asc-go").disabled = false; message(RH() ? "Couldn't read that address from Robinhood Chain right now — try again in a moment." : "Couldn't read that address from Arc right now — try again in a moment."); } return; }
     if (!alive()) return;
-    if (!cur.c.contract) { progress(false); $("asc-go").disabled = false; walletMode(addr); return; }
+    if (!cur.c.contract) {
+      progress(false); $("asc-go").disabled = false;
+      if (RH()) message("That's a wallet, not a token contract — paste a Robinhood Chain token's address.");
+      else walletMode(addr);
+      return;
+    }
     mark("contract", true);
     if (!cur.c.token) { PARTS.forEach((p) => { cur.done[p] = true; }); return finish(); }
 
     // 2. the rest side by side; each paints as it lands
-    const xP = Promise.all([K.readArcPad(io, addr).catch(() => null), K.readArgus(io, addr).catch(() => null), K.readLocks(io, addr).catch(() => null),
+    // the launchpad records of its chain (Arc: ArcPad, Argus, ArcLock · Robinhood Chain: Pons)
+    const xP = Promise.all([K.readLaunch(io, addr).catch(() => ({})),
       within(K.readSource(io, addr, cur.c.proxy && cur.c.proxy.impl), 12000),
-      cur.c.fp ? fetchJson(`/api/scan?fp=${cur.c.fp}&t=${lc(addr)}`, 8000) : null])
-      .then(([arcpad, argus, locks, src, clones]) => { if (!alive()) return; cur.x = { arcpad, argus, locks }; cur.src = src; cur.clones = clones; mark("extras", true); });
+      cur.c.fp ? fetchJson(`/api/scan?fp=${cur.c.fp}&t=${lc(addr)}${CQ()}`, 8000) : null])
+      .then(([L, src, clones]) => { if (!alive()) return; L = L || {}; cur.x = { arcpad: L.arcpad || null, argus: L.argus || null, locks: L.locks || null, pons: L.pons || null }; cur.src = src; cur.clones = clones; mark("extras", true); });
     io.rpc("eth_blockNumber", []).then((b) => { if (alive()) cur.block = parseInt(b, 16); }).catch(() => null);
     const mP = K.readMarket(io, addr).catch(() => null).then(async (m) => {
       await xP;
       if (!alive()) return;
-      if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus)) m = (await marketFallback(addr, cur.x)) || m;
+      if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus || cur.x.pons)) m = (await marketFallback(addr, cur.x)) || m;
       cur.copies = await within(K.readCopies(io, addr, cur.c.symbol), 8000);
       cur.m = m; mark("market", !!m);
     });
-    // the Liquidity Manager's read of the pool: how much of its liquidity is locked (lands whenever it's ready)
-    (async () => {
+    // the Liquidity Manager's read of the pool: how much of its liquidity is locked (lands whenever it's ready) — Arc's pools only
+    if (!RH()) (async () => {
       for (let i = 0; i < 6 && alive(); i++) {
         const j = await fetch(`/api/social?liq=${addr}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
         if (!j || !alive()) return;
@@ -145,8 +170,8 @@
     await Promise.all([xP, hP]);
     if (!alive()) return;
     // the deployer's other contracts (explorer, via the server), side by side with the dry runs
-    const depAddr = (cur.h && cur.h.deployer) || (cur.x.arcpad && cur.x.arcpad.creator) || (cur.x.argus && cur.x.argus.creator) || null;
-    const dP = depAddr ? fetchJson(`/api/scan?dep=${lc(depAddr)}&not=${lc(addr)}`, 12000).then((j) => { if (alive()) cur.dep = j && !j.unknown && j.addr ? j : null; }) : Promise.resolve();
+    const depAddr = (cur.h && cur.h.deployer) || (cur.x.arcpad && cur.x.arcpad.creator) || (cur.x.argus && cur.x.argus.creator) || (cur.x.pons && cur.x.pons.creator) || null;
+    const dP = depAddr ? fetchJson(`/api/scan?dep=${lc(depAddr)}&not=${lc(addr)}${CQ()}`, 12000).then((j) => { if (alive()) cur.dep = j && !j.unknown && j.addr ? j : null; }) : Promise.resolve();
     // 3. dry-run trades need a holder to act as
     cur.sim = await K.simulateFor(io, addr, cur.c, cur.h).catch(() => null);
     await within(dP, 6000);
@@ -271,7 +296,7 @@
     if (!cur || !cur.c) return;
     const d = cur.done;
     cur.res = K.evaluate(cur.addr, { c: cur.c, x: cur.x, m: cur.m, h: cur.h, sim: cur.sim, lp: cur.lp || null, lpTried: !!cur.lpTried,
-      src: cur.src || null, copies: cur.copies || null, clones: cur.clones || null, dep: cur.dep || null, block: cur.block || null });
+      src: cur.src || null, copies: cur.copies || null, clones: cur.clones || null, dep: cur.dep || null, block: cur.block || null, chain: cur.ch || "arc" });
     const res = cur.res;
     if (res.notToken) { renderNotToken(res); return; }
     if (!historyOnly) head();
@@ -342,7 +367,7 @@
   function quickFacts(res) {
     const L = (cur.sim && cur.sim.legs) || {};
     const s0 = (L.sell || [])[0], b0 = (L.buy || [])[0], f = L.fresh;
-    const launchpad = !!(cur.x.arcpad || cur.x.argus || lc(cur.addr) === ARCIRCLE);
+    const launchpad = !!(cur.x.arcpad || cur.x.argus || cur.x.pons || (!RH() && lc(cur.addr) === ARCIRCLE));
     let sell;
     if ((s0 && !s0.ok) || (f && f.ok1 && !f.ok2)) sell = ["risk", "Sell fails", ICON.risk];
     else if (s0 && s0.ok) sell = ["pass", "Can sell", ICON.pass];
@@ -380,7 +405,7 @@
     const c = cur.c, res = cur.res, m = res.market;
     const logo = (m && m.image) || (cur.x.arcpad && /^(https:\/\/|data:image\/)/.test(cur.x.arcpad.imageUrl || "") && cur.x.arcpad.imageUrl)
       || (launchOf(cur.addr) && /^(https:\/\/|data:image\/)/.test(launchOf(cur.addr).imageUrl || "") && launchOf(cur.addr).imageUrl)
-      || (lc(cur.addr) === ARCIRCLE ? "images/arcircle-mark-sm.png" : "");
+      || (lc(cur.addr) === (RH() ? RH_ARCIRCLE : ARCIRCLE) ? "images/arcircle-mark-sm.png" : "");
     const idHtml = `${logo ? `<img class="asc-logo" src="${esc(logo)}" alt="">` : `<span class="asc-logo ph" style="--h:${hueOf(cur.addr)}">${esc(String(c.symbol || "?").charAt(0).toUpperCase())}</span>`}
       <div class="asc-id-txt">
         <h2 data-no-i18n>${esc(c.name || "Unnamed")} <span>$${esc(c.symbol || "?")}</span></h2>
@@ -388,8 +413,8 @@
         <div class="asc-links">
           <a href="${ex("token", cur.addr)}" target="_blank" rel="noopener">${esc(tr("Explorer"))} ↗</a>
           ${m && m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Dexscreener ↗</a>` : ""}
-          <a href="#liquidity?token=${esc(cur.addr)}">${esc(tr("Liquidity & LP locks"))} →</a>
-          ${lc(cur.addr) === ARCIRCLE ? `<a class="asc-act" href="/arc#arcircle">${esc(tr("Trade $ARCIRCLE"))} →</a>` : cur.x.arcpad ? `<a class="asc-act" href="/arc#coin/${esc(cur.addr)}">${esc(tr("Open on ArcPad"))} →</a>` : ""}
+          ${RH() ? `<span class="asc-chaintag" data-no-i18n><i class="aor-cdot rh" aria-hidden="true"></i>Robinhood Chain</span>` : `<a href="#liquidity?token=${esc(cur.addr)}">${esc(tr("Liquidity & LP locks"))} →</a>`}
+          ${RH() ? "" : lc(cur.addr) === ARCIRCLE ? `<a class="asc-act" href="/arc#arcircle">${esc(tr("Trade $ARCIRCLE"))} →</a>` : cur.x.arcpad ? `<a class="asc-act" href="/arc#coin/${esc(cur.addr)}">${esc(tr("Open on ArcPad"))} →</a>` : ""}
         </div>
       </div>`;
     const id = h.querySelector(".asc-id");
@@ -425,12 +450,12 @@
       <button type="button" data-act="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m3.5 15 5-4.5 4 3.5 3-2.5 5 4"/></svg>${esc(tr("Save card"))}</button>
       <button type="button" data-act="link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>${esc(tr("Copy link"))}</button>
       <button type="button" data-act="watch" aria-pressed="${watching}"><svg viewBox="0 0 24 24" aria-hidden="true" class="bell"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/></svg>${esc(tr(watching ? "Watching" : "Watch"))}</button>
-      <button type="button" data-act="tg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.2M21 4l-3.5 16-6.5-5.5M21 4 9 13.2v5.3l2.8-3.5"/></svg>${esc(tr("Telegram alerts"))}</button>
+      ${RH() ? "" : `<button type="button" data-act="tg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2.2M21 4l-3.5 16-6.5-5.5M21 4 9 13.2v5.3l2.8-3.5"/></svg>${esc(tr("Telegram alerts"))}</button>`}
       <button type="button" data-act="arcia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10H9l-5 4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>${esc(tr("Ask ARCIA"))}</button>
-      <button type="button" data-act="agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>${esc(tr("ARCIA AGENT"))}</button>
-      <button type="button" data-act="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>${esc(tr("Limit order"))}</button>
+      ${RH() ? "" : `<button type="button" data-act="agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>${esc(tr("ARCIA AGENT"))}</button>
+      <button type="button" data-act="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>${esc(tr("Limit order"))}</button>`}
       <button type="button" data-act="embed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg>${esc(tr("Embed badge"))}</button>
-      <button type="button" data-act="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></svg>${esc(tr("Freeze a report"))}<em class="asc-tier t-p2">Plus</em></button>
+      ${RH() ? "" : `<button type="button" data-act="report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></svg>${esc(tr("Freeze a report"))}<em class="asc-tier t-p2">Plus</em></button>`}
       <button type="button" data-act="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>${esc(tr(compareBase && lc(compareBase.addr) !== lc(cur.addr) ? "Compare" : "Compare with…"))}</button>`;
   }
   // the ring fills while its colour runs red → amber → green to where the score lands; the needle follows
@@ -682,7 +707,7 @@
   function deployerCard(d) {
     const side = $("asc-side");
     if (!side || !cur) return;
-    const creator = (cur.x.arcpad && cur.x.arcpad.creator) || (cur.x.argus && cur.x.argus.creator) || null;
+    const creator = (cur.x.arcpad && cur.x.arcpad.creator) || (cur.x.argus && cur.x.argus.creator) || (cur.x.pons && cur.x.pons.creator) || null;
     const dep = (d && d.deployer) || creator;
     let box = $("asc-deployer");
     if (!dep) { if (box) box.remove(); return; }
@@ -696,18 +721,18 @@
       <dl class="asc-dl">
         <div><dt>${esc(tr("Still holds"))}</dt><dd data-no-i18n>${d ? (held ? K.pct((held.v / d.S) * 100) : "0%") : "—"}</dd></div>
         ${when ? `<div><dt>${esc(tr("Created"))}</dt><dd data-no-i18n>${esc(when)}</dd></div>` : ""}
-        <div><dt>${esc(tr("Other ArcPad coins"))}</dt><dd data-no-i18n>${others.length}</dd></div>
+        ${RH() ? "" : `<div><dt>${esc(tr("Other ArcPad coins"))}</dt><dd data-no-i18n>${others.length}</dd></div>`}
         ${cur.dep ? `<div><dt>${esc(tr("Contracts it deployed"))}</dt><dd data-no-i18n>${cur.dep.created}${cur.dep.capped ? "+" : ""}</dd></div>` : ""}
         ${cur.dep && cur.dep.nonce != null ? `<div><dt>${esc(tr("Transactions sent"))}</dt><dd data-no-i18n>${cur.dep.nonce.toLocaleString("en-US")}</dd></div>` : ""}
       </dl>
       ${others.length ? `<h4>${esc(tr("Their other coins"))}</h4><ul class="asc-dep-coins">${others.map((l) => { const sc = depScores.get(lc(l.token)); return `<li><button type="button" data-t="${esc(l.token)}"><b data-no-i18n>$${esc(l.symbol)}</b><small data-no-i18n>${l.marketCapUsd != null ? K.usd(l.marketCapUsd) + " " + esc(tr("market cap")) : ""}${l.launchedAt ? " · " + K.ageText(Date.now() / 1000 - l.launchedAt) : ""}</small>${sc ? miniRing(sc.score) : `<i class="asc-dep-wait"></i>`}</button></li>`; }).join("")}</ul>` : ""}
       ${depOther.length ? `<h4>${esc(tr("Other contracts it deployed"))}</h4><ul class="asc-dep-coins">${depOther.map((t) => { const sc = depScores.get(lc(t.token)); const v = sc || (t.score != null ? t : null); return `<li><button type="button" data-t="${esc(t.token)}"><b data-no-i18n>${t.sym ? "$" + esc(t.sym) : short(t.token)}</b><small data-no-i18n>${t.ts ? K.ageText(Date.now() / 1000 - t.ts) + " " + esc(tr("ago")) : ""}</small>${v ? miniRing(v.score) : `<i class="asc-dep-wait"></i>`}</button></li>`; }).join("")}</ul>` : ""}
-      <p class="asc-hnote">${esc(tr(cur.dep ? "Contracts from the explorer, scores from the scanner's own scans." : "From ArcPad's launch records."))}</p>`;
+      <p class="asc-hnote">${esc(tr(cur.dep ? "Contracts from the explorer, scores from the scanner's own scans." : RH() ? "From the token's own history." : "From ArcPad's launch records."))}</p>`;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
     const need = [...others.map((l) => lc(l.token)), ...depOther.filter((t) => t.score == null).map((t) => lc(t.token))].filter((a) => !depScores.has(a)).slice(0, 20);
     if (need.length) {
       need.forEach((a) => depScores.set(a, null));
-      fetchJson(`/api/social?scores=${need.join(",")}`, 15000).then((j) => {
+      fetchJson(`/api/social?scores=${need.join(",")}${CQ()}`, 15000).then((j) => {
         if (j && j.scores) Object.entries(j.scores).forEach(([a, v]) => depScores.set(a, v));
         if (cur && cur.res && cur.res.dist) deployerCard(cur.res.dist);
       });
@@ -804,9 +829,10 @@
   }
   function watched() { try { return JSON.parse(localStorage.getItem(WATCH) || "[]"); } catch { return []; } }
   function saveWatched(list) { try { localStorage.setItem(WATCH, JSON.stringify(list.slice(0, 8))); } catch { /* private mode */ } }
-  async function watchSnap(a) {
-    const c = await K.readContract(io, a);
-    const m = await K.readMarket(io, a).catch(() => null);
+  async function watchSnap(a, ch) {
+    const io2 = IO[ch === "rh" ? "rh" : "arc"];
+    const c = await K.readContract(io2, a);
+    const m = await K.readMarket(io2, a).catch(() => null);
     const p = m && m.pairs && m.pairs[0];
     return { owner: c.owner || null, supply: c.supply, liq: p ? p.liq : null };
   }
@@ -817,7 +843,7 @@
     if (on) list = list.filter((w) => lc(w.a) !== lc(cur.addr));
     else {
       const m = cur.res && cur.res.market;
-      list.unshift({ a: cur.addr, s: cur.c.symbol, snap: { owner: cur.c.owner || null, supply: cur.c.supply, liq: m && m.liq != null ? m.liq : null }, at: Date.now() });
+      list.unshift({ a: cur.addr, s: cur.c.symbol, ...(cur.ch === "rh" ? { c: "rh" } : {}), snap: { owner: cur.c.owner || null, supply: cur.c.supply, liq: m && m.liq != null ? m.liq : null }, at: Date.now() });
       try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch { /* fine */ }
       toast(tr("Watching — you'll get an alert here if the owner, supply or liquidity changes."));
     }
@@ -831,7 +857,7 @@
     let changed = false;
     for (const w of list.slice(0, 5)) {
       let s;
-      try { s = await watchSnap(w.a); } catch { continue; }
+      try { s = await watchSnap(w.a, w.c); } catch { continue; }
       const old = w.snap || {};
       const R = w.rules || { owner: true, supply: true, liq: 30, score: false };
       const alerts = [];
@@ -839,7 +865,7 @@
       if (R.supply && old.supply && s.supply !== old.supply) alerts.push(BigInt(s.supply) > BigInt(old.supply) ? "new tokens were minted" : "supply went down");
       if (R.liq && old.liq && s.liq != null && s.liq < old.liq * (1 - R.liq / 100)) alerts.push(`liquidity fell ${Math.round((1 - s.liq / old.liq) * 100)}%`);
       if (R.score) {
-        const j = await fetchJson(`/api/social?scores=${lc(w.a)}`, 12000);
+        const j = await fetchJson(`/api/social?scores=${lc(w.a)}${CQ(w.c)}`, 12000);
         const sc = j && j.scores && j.scores[lc(w.a)];
         if (sc && sc.score != null) { if (old.score != null && sc.score <= old.score - 10) alerts.push(`the scanner score dropped from ${old.score} to ${sc.score}`); s.score = sc.score; }
         else if (old.score != null) s.score = old.score;
@@ -861,6 +887,7 @@
   async function tgWatch(btn) {
     if (botName === undefined) { const j = await fetchJson("/api/tg-launch?bot=1", 8000); botName = j && j.enabled && j.username ? j.username : null; }
     if (!botName) { toast(tr("Telegram alerts aren't switched on yet — use Watch for alerts in this browser.")); return; }
+    if (RH()) return;
     window.open(`https://t.me/${botName}?start=watch_${cur.addr}`, "_blank", "noopener");
     btn.classList.add("ok");
   }
@@ -876,7 +903,7 @@
     const text = `$${cur.c.symbol} — scanned by ARCIRCLE: ${r.score}/100 · ${r.verdict.t}\n${r.reasons.map((x) => (x.status === "pass" ? "✓ " : "• ") + x.title).join("\n")}`;
     // signed in for Pro: the link carries the wallet, so the post can count as today's share
     const by = window.arcScanX && typeof window.arcScanX.wallet === "function" ? window.arcScanX.wallet() : null;
-    const url = `${location.origin}/s/${cur.addr}${by ? `?by=${by}` : ""}`;
+    const url = RH() ? shareUrl(cur.addr) : `${location.origin}/s/${cur.addr}${by ? `?by=${by}` : ""}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
   }
   // A 1200×630 picture of the result, drawn here — for posts that need an image.
@@ -920,7 +947,7 @@
     g.fillStyle = col; g.font = "800 40px Sora, system-ui, sans-serif"; g.fillText(tr(r.verdict.t), 950, 460);
     g.fillStyle = "rgba(222,233,244,.6)"; g.font = "600 20px Sora, system-ui, sans-serif"; g.fillText(`${tr("Confidence")}: ${tr({ high: "High", medium: "Medium", low: "Low" }[r.confidence] || "—")}`, 950, 498);
     g.textAlign = "left"; g.fillStyle = "rgba(222,233,244,.45)"; g.font = "500 20px Sora, system-ui, sans-serif";
-    g.fillText(`arcircle.app/s/${short(cur.addr)} · ${new Date().toISOString().slice(0, 10)}${r.block ? ` · #${r.block}` : ""} · not financial advice`, 60, 590);
+    g.fillText(`${RH() ? "arcircle.app · Robinhood Chain" : `arcircle.app/s/${short(cur.addr)}`} · ${new Date().toISOString().slice(0, 10)}${r.block ? ` · #${r.block}` : ""} · not financial advice`, 60, 590);
     cv.toBlob((blob) => {
       if (!blob) return;
       const a = document.createElement("a");
@@ -935,8 +962,8 @@
   // =====================================================================
   function recent() { try { return JSON.parse(localStorage.getItem(RECENT) || "[]"); } catch { return []; } }
   function remember(addr, sym, score) {
-    const list = recent().filter((r) => lc(r.a) !== lc(addr));
-    list.unshift({ a: addr, s: sym, sc: score, at: Date.now() });
+    const list = recent().filter((r) => !(lc(r.a) === lc(addr) && (r.c || "arc") === CH));
+    list.unshift({ a: addr, s: sym, sc: score, at: Date.now(), ...(RH() ? { c: "rh" } : {}) });
     try { localStorage.setItem(RECENT, JSON.stringify(list.slice(0, 8))); } catch { /* private mode */ }
   }
   let topList = [];
@@ -948,17 +975,19 @@
     const box = $("asc-shelf");
     if (!box) return;
     const rec = recent().slice(0, 4), w = watched().slice(0, 6);
-    const card = (r) => `<button type="button" class="asc-scard" data-t="${esc(r.a)}">${miniRing(r.sc || 0)}<span><b data-no-i18n>$${esc(r.s || "?")}</b><small>${esc(tr(K.verdictOf(r.sc || 0).t))}</small></span></button>`;
+    const tagRh = '<i class="aor-cdot rh" aria-hidden="true" title="Robinhood Chain"></i>';
+    const card = (r) => `<button type="button" class="asc-scard" data-t="${esc(r.a)}" data-c="${r.c === "rh" ? "rh" : "arc"}">${miniRing(r.sc || 0)}<span><b data-no-i18n>$${esc(r.s || "?")}${r.c === "rh" ? " " + tagRh : ""}</b><small>${esc(tr(K.verdictOf(r.sc || 0).t))}</small></span></button>`;
     const html = (rec.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Your recent scans"))}</h3><div class="asc-scards">${rec.map(card).join("")}</div></div>` : "")
-      + (topList.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Most scanned this week"))}</h3><div class="asc-chips-in">${topList.slice(0, 8).map((t) => `<button type="button" class="asc-chip" data-t="${esc(t.token)}" data-no-i18n>${t.symbol ? "$" + esc(t.symbol) : short(t.token)} <i>${t.scans}</i></button>`).join("")}</div></div>` : "")
-      + (w.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Watching"))}</h3><div class="asc-chips-in">${w.map((x) => `<button type="button" class="asc-chip watch${x.alert && Date.now() - x.alert.at < 86400e3 ? " alert" : ""}" data-t="${esc(x.a)}" data-no-i18n title="${esc(x.alert ? x.alert.msg : "")}"><i class="dot"></i>$${esc(x.s)}</button>`).join("")}</div></div>` : "");
+      + (topList.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Most scanned this week"))}</h3><div class="asc-chips-in">${topList.slice(0, 8).map((t) => `<button type="button" class="asc-chip" data-t="${esc(t.token)}" data-c="${CH}" data-no-i18n>${t.symbol ? "$" + esc(t.symbol) : short(t.token)} <i>${t.scans}</i></button>`).join("")}</div></div>` : "")
+      + (w.length ? `<div class="asc-shelf-col"><h3>${esc(tr("Watching"))}</h3><div class="asc-chips-in">${w.map((x) => `<button type="button" class="asc-chip watch${x.alert && Date.now() - x.alert.at < 86400e3 ? " alert" : ""}" data-t="${esc(x.a)}" data-c="${x.c === "rh" ? "rh" : "arc"}" data-no-i18n title="${esc(x.alert ? x.alert.msg : "")}"><i class="dot"></i>$${esc(x.s)}</button>`).join("")}</div></div>` : "");
     box.hidden = !html;
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
   }
   function renderChips() {
     const box = $("asc-chips");
     const chips = [];
-    if (ARCIRCLE) chips.push({ a: CONFIG.ARCIRCLE_TOKEN, s: "$ARCIRCLE" });
+    if (RH()) chips.push({ a: RH_ARCIRCLE, s: "$ARCIRCLE" });
+    else if (ARCIRCLE) chips.push({ a: CONFIG.ARCIRCLE_TOKEN, s: "$ARCIRCLE" });
     launches().slice().sort((a, b) => (b.launchedAt || 0) - (a.launchedAt || 0)).slice(0, 4).forEach((l) => chips.push({ a: l.token, s: "$" + l.symbol }));
     const html = chips.length ? `<span class="asc-chips-l">${esc(tr("Try"))}</span>${chips.map((c) => `<button type="button" class="asc-chip" data-t="${esc(c.a)}" data-no-i18n>${esc(c.s)}</button>`).join("")}` : "";
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
@@ -1054,7 +1083,7 @@
   }
   function paintEmbed(box) {
     const st = box.dataset.style, fmt = box.dataset.fmt;
-    const img = `${location.origin}/badge/${cur.addr}${st === "card" ? "?style=card" : ""}`, link = `${location.origin}/s/${cur.addr}`;
+    const img = `${location.origin}/badge/${cur.addr}${st === "card" ? "?style=card" : ""}${RH() ? (st === "card" ? "&" : "?") + "chain=rh" : ""}`, link = shareUrl(cur.addr);
     const hgt = st === "card" ? 76 : 22, alt = "Scanned by ARCIRCLE";
     const live = `${location.origin}/embed/scan/${cur.addr}`;
     const code = st === "live" ? (fmt === "url" ? live : `<iframe src="${live}" width="380" height="112" style="border:0;border-radius:14px;max-width:100%" loading="lazy" title="Token Scanner"></iframe>`)
@@ -1062,7 +1091,7 @@
     const seg = (key, cur2, opts) => `<div class="asc-seg" role="group">${opts.map(([v, l]) => `<button type="button" data-embed-${key}="${v}" aria-pressed="${v === cur2}">${esc(tr(l))}</button>`).join("")}</div>`;
     box.innerHTML = `<div class="asc-embed-top"><b>${esc(tr("Show this score on your site, README or docs"))}</b></div>
       <div class="asc-embed-prev">${st === "live" ? `<iframe src="${esc(live)}" width="380" height="112" style="border:0;border-radius:14px;max-width:100%" loading="lazy" title="Token Scanner"></iframe>` : `<img src="${esc(img)}" alt="" height="${hgt}">`}</div>
-      <div class="asc-embed-opts">${seg("style", st, [["pill", "Badge"], ["card", "Card"], ["live", "Live card · Pro"]])}${seg("fmt", fmt, st === "live" ? [["html", "HTML"], ["url", "Link"]] : [["html", "HTML"], ["md", "Markdown"], ["url", "Image link"]])}</div>
+      <div class="asc-embed-opts">${seg("style", st, [["pill", "Badge"], ["card", "Card"], ...(RH() ? [] : [["live", "Live card · Pro"]])])}${seg("fmt", fmt, st === "live" ? [["html", "HTML"], ["url", "Link"]] : [["html", "HTML"], ["md", "Markdown"], ["url", "Image link"]])}</div>
       <code data-no-i18n>${esc(code)}</code><div class="asc-embed-foot"><button type="button" data-copy="${esc(code)}">${esc(tr("Copy code"))}</button><span>${esc(tr("It links back to this scan and updates by itself — the token is re-scanned every few hours."))}</span></div>`;
   }
   document.addEventListener("click", (e) => {
@@ -1126,7 +1155,9 @@
   });
   panel.addEventListener("click", async (e) => {
     const t = e.target.closest("[data-t]");
-    if (t && !t.closest("#asc-form")) { window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); scan(t.dataset.t); return; }
+    const sw = e.target.closest("[data-scanchain]");
+    if (sw) { setChain(sw.dataset.scanchain); if (history.replaceState && /^#scanner/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search + (RH() ? "#scanner?c=rh" : "#scanner")); return; }
+    if (t && !t.closest("#asc-form")) { window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); scan(t.dataset.t, t.dataset.c || CH); return; }
     const q = e.target.closest(".asc-q");
     if (q) { const help = q.closest(".asc-row").querySelector(".asc-help"); const open = help.hidden; help.hidden = !open; q.setAttribute("aria-expanded", String(open)); q.classList.toggle("on", open); return; }
     const more = e.target.closest("[data-more]");
@@ -1175,7 +1206,7 @@
     const addr = cur.addr, my = cur.my;
     try {
       if (id === "source") cur.src = await within(K.readSource(io, addr, cur.c.proxy && cur.c.proxy.impl), 12000);
-      else if (id === "pool") { let m = await K.readMarket(io, addr).catch(() => null); if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus)) m = (await marketFallback(addr, cur.x)) || m; cur.m = m; }
+      else if (id === "pool") { let m = await K.readMarket(io, addr).catch(() => null); if ((!m || !m.pairs.length) && (cur.x.arcpad || cur.x.argus || cur.x.pons)) m = (await marketFallback(addr, cur.x)) || m; cur.m = m; }
       else if (id === "holders") { cur.h = await fetchHolders(addr, cur.c.symbol).catch(() => cur.h); }
       else if (id === "sim") cur.sim = await K.simulateFor(io, addr, cur.c, cur.h).catch(() => cur.sim);
       else if (id === "lplock") { const j = await fetchJson(`/api/social?liq=${addr}`, 15000); if (j && j.done) cur.lp = K.lpSummary(j); }
@@ -1190,7 +1221,7 @@
     if (a === "rescan") scan(cur.addr);
     else if (a === "x") shareX();
     else if (a === "card") saveCard();
-    else if (a === "link") { try { await navigator.clipboard.writeText(`${location.origin}/s/${cur.addr}`); act.classList.add("ok"); toast(tr("Link copied")); } catch { /* denied */ } }
+    else if (a === "link") { try { await navigator.clipboard.writeText(shareUrl(cur.addr)); act.classList.add("ok"); toast(tr("Link copied")); } catch { /* denied */ } }
     else if (a === "watch") { toggleWatch(); act.classList.remove("ring"); void act.offsetWidth; act.classList.add("ring"); haptic("tap"); }
     else if (a === "embed") embedBox(act);
     else if (a === "tg") tgWatch(act);
@@ -1206,8 +1237,32 @@
     else document.dispatchEvent(new CustomEvent("arcscan:act", { detail: { act: a, el: act, cur } })); // v3 tools (arc-scanner-x.js)
   }
   function fromHash() {
-    const m = /^#scanner\?(?:t|token)=(0x[0-9a-fA-F]{40})/.exec(location.hash);
-    if (m && (!cur || lc(cur.addr) !== lc(m[1]))) scan(m[1]);
+    const m = /^#scanner\?(.*)$/.exec(location.hash);
+    if (!m) return;
+    const q = new URLSearchParams(m[1]), t = q.get("t") || q.get("token"), c = q.get("c") === "rh" ? "rh" : "arc";
+    if (!t || !isAddr(t)) { if (c === "rh" && !RH()) setChain("rh"); return; }
+    if (!cur || lc(cur.addr) !== lc(t) || c !== CH) scan(t, c);
+  }
+  // ---- the chain switch ----
+  function paintChain() {
+    const sw = $("asc-chain");
+    if (sw) { sw.dataset.chain = CH; sw.querySelectorAll("[data-scanchain]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.scanchain === CH))); }
+    const note = $("asc-chainnote");
+    if (note) { note.hidden = !RH(); note.textContent = tr("Robinhood Chain: the same checks, read from Robinhood Chain. Liquidity locks and the Plus and Pro tools are on Arc for now."); }
+    $("asc-addr").setAttribute("placeholder", tr(RH() ? "Robinhood Chain token address (0x…)" : "Token address (0x…) — or a name with Pro"));
+    panel.dataset.chain = CH;
+  }
+  function loadTop() { const c = CH; fetchJson(`/api/social?scans=top${CQ()}`, 6000).then((j) => { if (c === CH && j && Array.isArray(j.top)) { topList = j.top; shelf(); } }); }
+  function setChain(c) {
+    c = c === "rh" ? "rh" : "arc";
+    if (c === CH) { paintChain(); return; }
+    CH = c; io = IO[CH]; seq++; cur = null;
+    try { localStorage.setItem(CK, CH); } catch { /* private mode */ }
+    progress(false); $("asc-go").disabled = false;
+    $("asc-out").innerHTML = ""; $("asc-out").classList.remove("in"); $("asc-intro").hidden = false; $("asc-addr").value = "";
+    if (stickyEl) stickyEl.hidden = true;
+    topList = []; paintChain(); renderChips(); shelf(); loadTop();
+    document.dispatchEvent(new CustomEvent("arcscan:chain", { detail: { chain: CH } }));
   }
   window.addEventListener("hashchange", fromHash);
   document.addEventListener("arcpad:tab", (e) => {
@@ -1216,10 +1271,10 @@
   document.addEventListener("arcscan:redraw-holders", () => { const box = $("asc-holders"); if (box && cur && cur.res && cur.res.dist) { box.__html = ""; holdersCard(cur.res.dist); } });
   // countdowns (liquidity locks) tick once a minute
   setInterval(() => { panel.querySelectorAll("[data-countdown]").forEach((el) => { const left = Number(el.dataset.countdown) - Date.now() / 1000; const b = el.querySelector("b"); if (b && left > 0) b.textContent = K.ageText(left); }); }, 60000);
-  fetchJson("/api/social?scans=top", 6000).then((j) => { if (j && Array.isArray(j.top)) { topList = j.top; shelf(); } });
-  renderChips(); shelf(); fromHash();
+  loadTop();
+  paintChain(); renderChips(); shelf(); fromHash();
   let tries = 0;
   const chipT = setInterval(() => { renderChips(); if (++tries > 10 || launches().length) clearInterval(chipT); }, 1500);
   // arc-scanner-x.js (the v3 tools) works through this
-  window.arcScanner = { scan, get state() { return cur; }, K, io, fetchJson, tr, esc, ex, short, lc, hueOf, reduce, haptic, toast, SECTIONS, ICON, isAddr, watched, saveWatched, launches, launchOf, within };
+  window.arcScanner = { scan, get state() { return cur; }, K, get io() { return io; }, chain: () => CH, setChain, fetchJson, tr, esc, ex, short, lc, hueOf, reduce, haptic, toast, SECTIONS, ICON, isAddr, watched, saveWatched, launches, launchOf, within };
 })();

@@ -25,7 +25,7 @@ async function argusItem(token) {
 
 export default async function handler(req) {
   const params = new URL(req.url).searchParams;
-  if (params.has("scan")) return scan(params.get("scan") || "");
+  if (params.has("scan")) return scan(params.get("scan") || "", params.get("chain") === "rh" ? "rh" : "arc");
   const token = params.get("token") || "";
   if (!isAddr(token)) return json(400, { error: "token must be an address" });
   try {
@@ -89,11 +89,11 @@ export default async function handler(req) {
 }
 
 // ---------------------------------------------------------------------------
-// GET /api/holders?scan=0x…  — holder picture for ANY Arc ERC-20 (Token Scanner),
-// one pass with nothing kept (the store-backed version is /api/social?scan=).
-async function scan(token) {
+// GET /api/holders?scan=0x…[&chain=rh]  — holder picture for ANY Arc (or Robinhood Chain) ERC-20
+// (Token Scanner), one pass with nothing kept (the store-backed version is /api/social?scan=).
+async function scan(token, chain) {
   try {
-    const out = await holderScan(token, { store: null, budgetMs: 15000 });
+    const out = await holderScan(token, { store: null, budgetMs: 15000, chain });
     return json(200, out, "public, max-age=30, s-maxage=120, stale-while-revalidate=600");
   } catch (err) {
     return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 200) });

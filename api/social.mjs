@@ -9,6 +9,7 @@
 //   GET  /api/social?circle=1[&wallet=0x…]      CirclePad pledges, Q&A, proposals, referrals
 //   GET  /api/social?circle=badges&addrs=0x…,…  leaderboard chips ($ARCIRCLE holder, ArcPad creator)
 //   GET  /api/social?scan=0x…[&sym=X]           Token Scanner holders + history (api/_scan.mjs)
+//        (scan, scans=top, scores, badge, scanapi: &chain=rh reads Robinhood Chain)
 //   GET  /api/social?scans=top                   most scanned tokens this week
 //   GET  /api/social?scores=0x…,0x…              cached Token Scanner scores (Explore badges)
 //   GET  /api/social?badge=0x…[&style=card]      embeddable SVG badge   (/badge/<address>[?style=card])
@@ -266,13 +267,14 @@ export async function GET(req) {
   // each scan only reads new blocks (and reaches further back until complete).
   const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
   const scanStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null);
+  const scanChain = url.searchParams.get("chain") === "rh" ? "rh" : "arc";
   if (url.searchParams.has("scan")) {
     const t = String(url.searchParams.get("scan") || "");
     const st = scanStore();
     if (scanner.limited(`scan:${ip}`, 20, 60e3)) return json(429, { error: "too many scans — wait a minute" });
     try {
-      const out = await scanner.holderScan(t, { store: st, budgetMs: 6500 });
-      scanner.bumpScan(st, out.token, url.searchParams.get("sym")).catch(() => {});
+      const out = await scanner.holderScan(t, { store: st, budgetMs: 6500, chain: scanChain });
+      scanner.bumpScan(st, out.token, url.searchParams.get("sym"), scanChain).catch(() => {});
       return json(200, out, out.more ? "no-store" : "public, max-age=20, s-maxage=60, stale-while-revalidate=300");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 200) }); }
   }
@@ -282,7 +284,7 @@ export async function GET(req) {
     return json(200, { checks: (d.rows || []).map((x) => { const [n, ...t] = String(x).split("|"); return { title: t.join("|"), n: Number(n) || 0 }; }).slice(0, 60) }, "public, max-age=300, s-maxage=900");
   }
   if (url.searchParams.get("scans") === "top") {
-    return json(200, { top: await scanner.scanTop(scanStore()) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
+    return json(200, { top: await scanner.scanTop(scanStore(), scanChain) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
   }
   // Explore badges: cached server scores for up to 24 tokens; at most two
   // missing ones are scanned per request, the rest fill in on later visits.
@@ -293,8 +295,8 @@ export async function GET(req) {
     const out = {};
     let fresh = 0;
     for (const t of list) {
-      let d = await scanner.scoreOf(t, { store: st, compute: false }).catch(() => null);
-      if ((!d || d.stale || Date.now() - d.at > 6 * 3600e3) && fresh < 2) { fresh++; d = await scanner.scoreOf(t, { store: st }).catch(() => d); }
+      let d = await scanner.scoreOf(t, { store: st, compute: false, chain: scanChain }).catch(() => null);
+      if ((!d || d.stale || Date.now() - d.at > 6 * 3600e3) && fresh < 2) { fresh++; d = await scanner.scoreOf(t, { store: st, chain: scanChain }).catch(() => d); }
       // v3: critical flags ride along (Explore badges, Builder Mine, CirclePad); one token also gets its history and last snapshot
       if (d && !d.notToken && d.score != null) out[t] = list.length === 1 ? { score: d.score, k: d.k, t: d.t, at: d.at || null, hist: d.hist || [], crit: d.crit || [], conf: d.conf || null, sub: d.sub || null, prev: d.prev || null, v: d.v || null }
         : { score: d.score, k: d.k, t: d.t, crit: d.crit || [], conf: d.conf || null };
@@ -305,7 +307,7 @@ export async function GET(req) {
   if (url.searchParams.has("badge")) {
     const t = lc(url.searchParams.get("badge"));
     let d = null;
-    if (isAddr(t) && !scanner.limited(`badge:${ip}`, 60, 60e3)) d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3 }).catch(() => null);
+    if (isAddr(t) && !scanner.limited(`badge:${ip}`, 60, 60e3)) d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3, chain: scanChain }).catch(() => null);
     return new Response(scanner.badgeSvg(d, url.searchParams.get("style") === "card" ? "card" : "pill"), { status: 200, headers: { "content-type": "image/svg+xml; charset=utf-8", "cache-control": "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400", "access-control-allow-origin": "*" } });
   }
   // Public JSON: /api/v1/scan/<address>
@@ -313,7 +315,7 @@ export async function GET(req) {
     const t = lc(url.searchParams.get("scanapi"));
     if (!isAddr(t)) return json(400, { error: "token must be an address" });
     if (scanner.limited(`api:${ip}`, 30, 60e3)) return json(429, { error: "rate limit: 30 scans a minute" });
-    try { return json(200, await scanner.apiResult(t, { store: scanStore() }), "public, max-age=120, s-maxage=600, stale-while-revalidate=1800"); }
+    try { return json(200, await scanner.apiResult(t, { store: scanStore(), chain: scanChain }), "public, max-age=120, s-maxage=600, stale-while-revalidate=1800"); }
     catch (err) { return json(502, { error: "couldn't scan right now", detail: String(err && err.message || err).slice(0, 120) }); }
   }
   // Bridge: a wallet's CCTP transfers seen on Arc (rebuilds "Your transfers" on any device)
