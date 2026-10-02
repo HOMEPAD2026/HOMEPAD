@@ -244,10 +244,10 @@ const CONFIG = {
   // ArcPad × Pump.fun (arc-pump.js, api/_pump-arcpad.mjs, the kit in tools/pump-kit → vendor/pump-kit.js): an ordinary
   // Pump.fun coin launched from the creator's own Solana wallet, its creator fees shared through Pump's own fee-sharing
   // program — 70% the creator, 30% the ARCIRCLE PAD treasury — and the split locked for good in the same signing
-  // (update_fee_shares_v2 revokes the config's admin). With TREASURY empty the Pump.fun option shows "Being set up"
+  // (update_fee_shares_v2 revokes the config's admin). With TREASURY empty the Pump.fun option would show "Being set up"
   // and can't launch. Keep api/_pump-arcpad.mjs CFG.treasury (or Vercel env PUMP_TREASURY) in step.
   PUMP: {
-    TREASURY: "", // ARCIRCLE PAD's Solana wallet (base58) — receives 30% of every ArcPad Pump.fun coin's creator fees
+    TREASURY: "DHu2grfJTNV9ipJWkfLXiRR6yLWQWvg4aVDcZJTERmLR", // ARCIRCLE PAD's Solana wallet (base58) — receives 30% of every ArcPad Pump.fun coin's creator fees
     PLATFORM_BPS: 3000,
     RPC: "/api/social?solrpc=1", // the Solana JSON-RPC relay (env SOLANA_RPC_URL on the server picks the node)
     KIT: "/vendor/pump-kit.js?v=b1f3ddc1aa",

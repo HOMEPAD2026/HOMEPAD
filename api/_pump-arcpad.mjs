@@ -22,7 +22,7 @@ import { announcePump } from "./_tg.mjs";
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 // keep in step with config-arc.js CONFIG.PUMP
 export const CFG = {
-  treasury: "", // ARCIRCLE PAD's Solana wallet (env PUMP_TREASURY overrides) — empty: listing is closed
+  treasury: "DHu2grfJTNV9ipJWkfLXiRR6yLWQWvg4aVDcZJTERmLR", // ARCIRCLE PAD's Solana wallet (env PUMP_TREASURY overrides; empty closes listing)
   rpcs: () => [env("SOLANA_RPC_URL"), "https://api.mainnet-beta.solana.com"].filter(Boolean),
   rpc: null, // tests: (method, params) => result
   solUsd: null, // tests pin the SOL price
