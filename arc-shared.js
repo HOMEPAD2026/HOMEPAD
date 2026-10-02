@@ -406,7 +406,8 @@ function renderHeader() {
               <span class="btn-mini" id="wallet-dropdown-copy" style="cursor:pointer">Copy</span>
             </div>
             <div class="wallet-dropdown-network" id="wallet-dropdown-network">…</div>
-            ${ARC_ALT_NET ? `<div class="wd-net" id="wallet-dropdown-net" role="radiogroup" aria-label="Wallet network"><button type="button" role="radio" data-net="arc" aria-checked="false"><i aria-hidden="true"></i>${CONFIG.CHAIN_NAME}</button><button type="button" role="radio" data-net="alt" aria-checked="false"><i aria-hidden="true"></i>${ARC_ALT_NET.short}</button></div>` : ""}
+            ${ARC_ALT_NET ? `<div class="wd-net" id="wallet-dropdown-net" role="radiogroup" aria-label="Wallet network"><button type="button" role="radio" data-net="arc" aria-checked="false"><i aria-hidden="true"></i>${CONFIG.CHAIN_NAME}</button><button type="button" role="radio" data-net="alt" aria-checked="false"><i aria-hidden="true"></i>${ARC_ALT_NET.short}</button>${window.arcSol ? `<button type="button" role="radio" data-net="sol" aria-checked="false"><i aria-hidden="true"></i>Solana</button>` : ""}</div>` : ""}
+            ${window.arcSol ? `<div class="wd-sol" id="wallet-dropdown-sol" hidden></div>` : ""}
             <button type="button" class="wallet-dropdown-switch" id="wallet-dropdown-switch" hidden>Switch to ${CONFIG.CHAIN_NAME}</button>
             <div class="wallet-dropdown-note" id="wallet-dropdown-note" hidden></div>
             <a class="wallet-dropdown-item" href="${CONFIG.BLOCK_EXPLORER}/address/${state.account}" target="_blank">View on Explorer ↗</a>
@@ -435,7 +436,13 @@ function renderHeader() {
       e.stopPropagation();
       const b = e.target.closest("[data-net]");
       if (!b || b.getAttribute("aria-checked") === "true") return;
-      if (b.dataset.net === "arc") switchToArcNetwork(); else switchToAltNetwork();
+      if (b.dataset.net === "arc") switchToArcNetwork(); else if (b.dataset.net === "sol") switchToSolana(); else switchToAltNetwork();
+    };
+    const solBox = document.getElementById("wallet-dropdown-sol");
+    if (solBox) solBox.onclick = (e) => {
+      e.stopPropagation();
+      if (e.target.closest("[data-sol-copy]") && window.arcSol.key) navigator.clipboard.writeText(window.arcSol.key);
+      if (e.target.closest("[data-sol-off]")) window.arcSol.disconnect();
     };
     dropdown.onclick = (e) => e.stopPropagation();
     if (!renderHeader._outsideClose) {
@@ -461,6 +468,7 @@ let switchingNetwork = false;
 async function switchToArcNetwork() {
   if (switchingNetwork) return;
   switchingNetwork = true;
+  if (window.arcSol && window.arcSol.selected()) window.arcSol.select(false); // the menu shows the EVM wallet again
   // keep the session through the switch (no reload): the chainChanged handler picks up a signer on Arc instead
   clearTimeout(switchToAltNetwork.t);
   window.arcChainSwitching = true;
@@ -504,6 +512,7 @@ async function switchToAltNetwork(opts) {
   if (!ARC_ALT_NET || !state.account) { if (strict) throw new Error("Connect a wallet first."); return; }
   if (switchingNetwork) { if (strict) throw new Error("Your wallet is already switching networks — try again in a moment."); return; }
   switchingNetwork = true;
+  if (window.arcSol && window.arcSol.selected()) window.arcSol.select(false);
   const N = ARC_ALT_NET;
   const note = document.getElementById("wallet-dropdown-note");
   const net = document.getElementById("wallet-dropdown-net");
@@ -552,6 +561,37 @@ async function switchToAltNetwork(opts) {
   }
 }
 
+/// The wallet menu's third choice: Solana (ArcPad × Pump.fun). Not a network the EVM wallet can switch to — it connects
+/// the Solana wallet (arc-solwallet.js: Phantom, Solflare, Backpack) beside it and shows that one in the menu. The EVM
+/// wallet stays where it is, and Arc / Robinhood Chain writes keep using it.
+async function switchToSolana() {
+  const S = window.arcSol;
+  if (!S) return;
+  const note = document.getElementById("wallet-dropdown-note");
+  const net = document.getElementById("wallet-dropdown-net");
+  const setNote = (html, bad) => { if (note) { note.hidden = !html; note.innerHTML = html || ""; note.classList.toggle("bad", !!bad); } };
+  if (!S.key) {
+    if (!(await S.quiet())) {
+      const list = S.providers();
+      if (!list.length) {
+        const a = (w, href) => `<a href="${href}"${S.mobile() ? "" : ' target="_blank" rel="noopener"'}>${w}</a>`;
+        setNote(S.mobile()
+          ? `No Solana wallet in this browser — open this page in ${a("Phantom", S.openIn("Phantom"))} or ${a("Solflare", S.openIn("Solflare"))}.`
+          : `No Solana wallet in this browser — install ${a("Phantom", "https://phantom.com/download")} or ${a("Solflare", "https://solflare.com/download")}.`, true);
+        return;
+      }
+      if (net) net.classList.add("busy");
+      setNote(`Approve the connection in ${list[0].name}.`);
+      try { await S.connect(0); }
+      catch (err) { const m = String((err && err.message) || err); setNote(/reject|denied|cancel/i.test(m) || err.code === 4001 ? "Connection cancelled in the wallet." : m.slice(0, 200).replace(/[<>&]/g, ""), true); return; }
+      finally { if (net) net.classList.remove("busy"); }
+    }
+  }
+  setNote("");
+  S.select(true);
+}
+document.addEventListener("arc:solwallet", () => { if (typeof updateNetworkBadge === "function") updateNetworkBadge(); });
+
 /// The Robinhood Chain twin of ensureArcForWrite (a Multisender send on Robinhood Chain): switch the wallet there if
 /// it isn't, and return a signer that is on it.
 async function ensureAltForWrite() {
@@ -597,6 +637,26 @@ async function updateNetworkBadge() {
   if (!badge || !state.account) return;
   const line = document.getElementById("wallet-dropdown-network");
   const btn = document.getElementById("wallet-dropdown-switch");
+  // Solana picked in the menu (and its wallet connected): the menu shows that wallet
+  const S = window.arcSol, sol = document.getElementById("wallet-dropdown-sol");
+  const onSol = !!(S && S.selected() && S.key);
+  if (sol) {
+    sol.hidden = !onSol;
+    if (onSol) sol.innerHTML = `<small>Solana · ${S.name}</small><code>${S.key.slice(0, 4)}…${S.key.slice(-4)}</code><span class="btn-mini" data-sol-copy style="cursor:pointer">Copy</span><span class="btn-mini" data-sol-off style="cursor:pointer">Disconnect</span>`;
+  }
+  if (onSol) {
+    const net = document.getElementById("wallet-dropdown-net");
+    if (net) net.querySelectorAll("[data-net]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.net === "sol")));
+    badge.classList.remove("network-alt", "network-bad"); badge.classList.add("network-sol");
+    badge.textContent = "Solana"; badge.title = `Solana wallet ${S.key}`; badge.style.cursor = ""; badge.onclick = null;
+    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');
+    if (ex) ex.href = `https://solscan.io/account/${S.key}`;
+    if (line) { line.textContent = `Solana wallet connected — your ${CONFIG.CHAIN_NAME} wallet stays as it is`; line.classList.remove("network-bad"); line.classList.add("network-ok"); }
+    if (btn) btn.hidden = true;
+    document.documentElement.dataset.walletNet = "sol";
+    return;
+  }
+  badge.classList.remove("network-sol");
   try {
     const chainId = await currentChainId();
     if (chainId == null) throw new Error("unknown");
@@ -605,7 +665,7 @@ async function updateNetworkBadge() {
     const net = document.getElementById("wallet-dropdown-net");
     if (net) net.querySelectorAll("[data-net]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.net === (onAlt ? "alt" : chainId === CONFIG.CHAIN_ID_DECIMAL ? "arc" : ""))));
     badge.classList.toggle("network-alt", onAlt);
-    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"]');
+    const ex = document.querySelector('#wallet-dropdown a.wallet-dropdown-item[href*="/address/"], #wallet-dropdown a.wallet-dropdown-item[href*="/account/"]');
     if (ex) ex.href = `${onAlt ? ARC_ALT_NET.explorer : CONFIG.BLOCK_EXPLORER}/address/${state.account}`;
     if (onAlt) {
       badge.textContent = ARC_ALT_NET.short; badge.title = `Connected to ${ARC_ALT_NET.name}`;

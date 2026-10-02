@@ -55,45 +55,16 @@
   let connP = null;
   const conn = () => (connP = connP || kit().then((K) => new K.Connection(new URL(P.RPC || "/api/social?solrpc=1", location.origin).href, { commitment: "confirmed", disableRetryOnRateLimit: true })));
 
-  // ---------------- the Solana wallet ----------------
-  // injected providers: Phantom, Solflare, Backpack, then anything else that speaks the same API
-  function providers() {
-    const out = [], seen = new Set();
-    const add = (name, p) => { if (p && !seen.has(p) && typeof p.connect === "function" && (typeof p.signAllTransactions === "function" || typeof p.signTransaction === "function")) { seen.add(p); out.push({ name, p }); } };
-    add("Phantom", window.phantom && window.phantom.solana);
-    add("Solflare", window.solflare);
-    add("Backpack", window.backpack && (window.backpack.solana || window.backpack));
-    add("Solana wallet", window.solana);
-    return out;
-  }
-  const W = { p: null, name: "", key: "" };
-  const pubOf = (p) => { try { return p && p.publicKey ? p.publicKey.toString() : ""; } catch { return ""; } };
+  // ---------------- the Solana wallet (arc-solwallet.js: shared with the wallet menu's Solana choice) ----------------
+  const W = window.arcSol || { p: null, name: "", key: "", providers: () => [], connect: async () => false, quiet: async () => false, disconnect: async () => {} };
+  const providers = () => W.providers();
   async function connect(i) {
-    const list = providers();
-    const pick = list[i || 0];
-    if (!pick) return false;
-    await pick.p.connect();
-    const key = pubOf(pick.p);
-    if (!isMint(key)) throw new Error(tr("The wallet didn't share an address."));
-    W.p = pick.p; W.name = pick.name; W.key = key;
-    try { localStorage.setItem("arcircle.pump.wallet", pick.name); } catch { /* this visit */ }
-    if (typeof pick.p.on === "function" && !pick.p.__arcPump) {
-      pick.p.__arcPump = 1;
-      pick.p.on("accountChanged", (k) => { W.key = k ? k.toString() : pubOf(pick.p); paintWallet(); balance(); resume(); });
-      pick.p.on("disconnect", () => { if (W.p === pick.p) { W.p = null; W.key = ""; paintWallet(); balance(); } });
-    }
-    paintWallet(); balance(); resume();
-    return true;
+    try { return await W.connect(i); } catch (e) { throw new Error(/share an address/.test(String(e && e.message)) ? tr("The wallet didn't share an address.") : (e && e.message) || String(e)); }
   }
-  // a wallet that already trusts this site reconnects without a prompt
-  async function quietConnect() {
-    let want = ""; try { want = localStorage.getItem("arcircle.pump.wallet") || ""; } catch { /* none */ }
-    const list = providers(), i = list.findIndex((x) => x.name === want);
-    if (i < 0 || W.p) return;
-    try { await list[i].p.connect({ onlyIfTrusted: true }); const k = pubOf(list[i].p); if (isMint(k)) { W.p = list[i].p; W.name = list[i].name; W.key = k; paintWallet(); balance(); resume(); } } catch { /* asks on click */ }
-  }
-  async function disconnect() { try { if (W.p && typeof W.p.disconnect === "function") await W.p.disconnect(); } catch { /* fine */ } W.p = null; W.key = ""; try { localStorage.removeItem("arcircle.pump.wallet"); } catch { /* fine */ } paintWallet(); balance(); }
-  const mobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  const quietConnect = () => W.quiet();
+  const disconnect = () => W.disconnect();
+  document.addEventListener("arc:solwallet", () => { if (active()) { paintWallet(); balance(); resume(); } });
+  const mobile = () => (W.mobile ? W.mobile() : /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || ""));
   function paintWallet() {
     const box = $("pmp-wallet");
     if (!box) return;

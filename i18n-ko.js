@@ -5796,6 +5796,11 @@
     "Open in {w}": "{w}에서 열기",
     "Get {w}": "{w} 설치",
     "Connect {w}": "{w} 연결",
+    "Solana wallet connected — your Arc wallet stays as it is": "Solana 지갑 연결됨 — Arc 지갑은 그대로 유지돼요",
+    "Connection cancelled in the wallet.": "지갑에서 연결을 취소했어요.",
+    "Approve the connection in Phantom.": "Phantom에서 연결을 승인해 주세요.",
+    "Approve the connection in Solflare.": "Solflare에서 연결을 승인해 주세요.",
+    "Approve the connection in Backpack.": "Backpack에서 연결을 승인해 주세요.",
   };
 
 

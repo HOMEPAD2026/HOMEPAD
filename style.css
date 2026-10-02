@@ -12944,3 +12944,17 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
   .agl-plat:has(> :nth-child(4)){grid-template-columns:1fr;}
   #bp-panel-launch[data-plat="pump"] .ap-launch-btn-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem;}
 }
+/* wallet menu: the third choice, Solana (a second wallet beside the EVM one: arc-solwallet.js) */
+.wd-net:has(> :nth-child(3)){grid-template-columns:repeat(3,minmax(0,1fr));}
+.wd-net button[data-net="sol"][aria-checked="true"]{background:linear-gradient(135deg,rgba(153,69,255,.22),rgba(20,241,149,.14));color:#fff;}
+.wd-net button[data-net="sol"][aria-checked="true"] i{background:#14f195;box-shadow:0 0 6px rgba(20,241,149,.8);}
+.wd-sol{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 10px 8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(20,241,149,.3);background:rgba(20,241,149,.05);}
+.wd-sol[hidden]{display:none;}
+.wd-sol small{flex:1 0 100%;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:#8ff5c7;}
+.wd-sol code{flex:1;min-width:0;font-size:.78rem;}
+.network-badge.network-sol{color:#c9ffe6;background:linear-gradient(135deg,rgba(153,69,255,.16),rgba(20,241,149,.1));border-color:rgba(20,241,149,.38);}
+.network-badge.network-sol::before{background:#14f195;box-shadow:0 0 6px rgba(20,241,149,.7);}
+.wallet-dropdown-note a{color:#8ff5c7;text-decoration:underline;}
+.wd-net:has(> :nth-child(3)) button{padding:8px 1px;gap:4px;font-size:.66rem;letter-spacing:-.015em;}
+.wd-net:has(> :nth-child(3)) button i{display:none;}
+.wd-sol code{white-space:nowrap;flex:1 0 100%;}

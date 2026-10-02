@@ -5949,6 +5949,11 @@
     "Open in {w}": "在 {w} 中打开",
     "Get {w}": "获取 {w}",
     "Connect {w}": "连接 {w}",
+    "Solana wallet connected — your Arc wallet stays as it is": "已连接 Solana 钱包 — 你的 Arc 钱包保持不变",
+    "Connection cancelled in the wallet.": "已在钱包中取消连接。",
+    "Approve the connection in Phantom.": "请在 Phantom 中批准连接。",
+    "Approve the connection in Solflare.": "请在 Solflare 中批准连接。",
+    "Approve the connection in Backpack.": "请在 Backpack 中批准连接。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
