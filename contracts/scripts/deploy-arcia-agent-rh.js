@@ -11,8 +11,9 @@
 // Vaults buy where Robinhood Chain coins trade: the Uniswap v3 factory's WETH pools (pons) and v4 pools paired with
 // native ETH or WETH — no hook, or the Bags hook (allowed here, like ARCIA DESK RH).
 // After deploying:
-//   1. Vercel: ARCIA_AGENT_RH_FACTORY = the address it prints (and ARCIA_AGENT_RH_KEY only if the operator isn't
-//      ARCIA_AGENT_KEY's wallet), Redeploy — the site reads the factory from the server, nothing to change in the code;
+//   1. api/_agent.mjs ARCIA_AGENT_RH_DEFAULT = the address it prints (or Vercel ARCIA_AGENT_RH_FACTORY, which overrides
+//      it); ARCIA_AGENT_RH_KEY on Vercel only if the operator isn't ARCIA_AGENT_KEY's wallet;
+//   Live: 0x4c24092CB1319fE503F4342dE97b443e64321112 (2026-10-02).
 //   2. delete contracts/.env.
 const hre = require("hardhat");
 const { ethers } = hre;

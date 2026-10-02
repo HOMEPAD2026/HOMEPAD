@@ -33,13 +33,16 @@ const A = (h, i) => "0x" + strip(h || "0x").slice(i * 64 + 24, i * 64 + 64);
 
 export const USDC = "0x3600000000000000000000000000000000000000";
 export const AGENT_VERSION = 1;
+export const ARCIA_AGENT_RH_DEFAULT = "0x4c24092cb1319fe503f4342de97b443e64321112";
 export const CFG = {
   factory: () => (isAddr(env("ARCIA_AGENT_FACTORY")) ? lc(env("ARCIA_AGENT_FACTORY")) : null),
   key: () => env("ARCIA_AGENT_KEY") || null,
   usdc: USDC,
   budgetMs: 15000,
   // Robinhood Chain
-  rhFactory: () => (isAddr(env("ARCIA_AGENT_RH_FACTORY")) ? lc(env("ARCIA_AGENT_RH_FACTORY")) : null),
+  // ArciaAgentFactoryRH on Robinhood Chain (deployed 2026-10-02, block 78103976); env ARCIA_AGENT_RH_FACTORY overrides,
+  // "none" turns the vaults off
+  rhFactory: () => { const e = env("ARCIA_AGENT_RH_FACTORY"); if (e === "none") return null; return isAddr(e) ? lc(e) : ARCIA_AGENT_RH_DEFAULT; },
   rhKey: () => env("ARCIA_AGENT_RH_KEY") || env("ARCIA_AGENT_KEY") || null,
   weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
   v3Factory: "0x1f7d7550b1b028f7571e69a784071f0205fd2efa",
