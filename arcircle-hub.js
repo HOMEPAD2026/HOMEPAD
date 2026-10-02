@@ -394,6 +394,9 @@
       vp0.style.height = g.offsetHeight + "px";
     }
     window.addEventListener("resize", function () { fit(true); });
+    // a page can change height after it's measured (fonts arriving, the panel placed narrower, another language):
+    // follow it
+    if (window.ResizeObserver) { var pro = new ResizeObserver(function () { fit(true); }); pages.forEach(function (g) { pro.observe(g); }); }
     goPage(0, true);
     panel.querySelector(".ax-util-pager").addEventListener("click", function (e) {
       var b = e.target.closest && e.target.closest("[data-go-page]");
@@ -461,6 +464,7 @@
       Array.prototype.forEach.call(panel.querySelectorAll(".ax-util-tile[href]"), function (a) { if (a === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
       goPage(cur ? Number(cur.parentNode.getAttribute("data-page")) || 0 : 0, true);
       place();
+      fit(true); // measured again once the panel has its final width
       void panel.offsetWidth;
       panel.classList.add("in"); scrim.classList.add("in");
       // focus moves into the panel itself (keyboard users Tab on from there)
