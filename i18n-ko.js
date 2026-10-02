@@ -6082,6 +6082,7 @@
     "to open a market for any Arc token's Uniswap v4 USDC pool with at least": "를 소각하면 Arc 토큰의 Uniswap v4 USDC 풀로 마켓을 열 수 있습니다. 풀에는 최소",
     "wins ≈": "이기면 ≈",
     "One moment — your last transaction is still confirming.": "잠시만요 — 직전 트랜잭션이 아직 확인 중입니다.",
+    "Contract on ArcScan:": "ArcScan의 컨트랙트:",
   };
 
 

@@ -10,14 +10,14 @@
 //                    boundary it samples the pool three times in different blocks, then settles — the contract finalizes
 //                    the boundary on the median. Prices only come from the pool. Once an hour it pushes the fees to the
 //                    fee burn, it keeps the leaderboard, and it posts big rounds to Telegram (PREDICT_TG_CHAT).
-// Contract: env PREDICT_ADDRESS, else PREDICT_DEFAULT below (set once it's deployed).
+// Contract: env PREDICT_ADDRESS ("none" turns it off), else PREDICT_DEFAULT below.
 import { evmChain, addressOfKey } from "./_evm.mjs";
 import { RPCS } from "./_arc.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { priceOf } from "./_liq-core.mjs";
 
-export const PREDICT_DEFAULT = "";
-export const PREDICT_DEFAULT_BLOCK = 0; // its deployment block (the leaderboard starts there)
+export const PREDICT_DEFAULT = "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6"; // ArcPredict on Arc (deployed 2026-10-02)
+export const PREDICT_DEFAULT_BLOCK = 23867674; // its deployment block (the leaderboard starts there)
 const env = (k) => String(process.env[k] || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();

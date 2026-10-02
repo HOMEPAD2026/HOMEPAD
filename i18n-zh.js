@@ -6235,6 +6235,7 @@
     "to open a market for any Arc token's Uniswap v4 USDC pool with at least": "即可为任意 Arc 代币的 Uniswap v4 USDC 池开设市场，池中至少需有",
     "wins ≈": "若赢 ≈",
     "One moment — your last transaction is still confirming.": "请稍候——上一笔交易仍在确认中。",
+    "Contract on ArcScan:": "ArcScan 上的合约：",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

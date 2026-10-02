@@ -12,6 +12,7 @@
 //   PREDICT_LIST_BURN      optional: $ARCIRCLE anyone burns to open a market (default 50000; 0 = free; "off" = team only)
 // Fees: 2% of a pot with a winner; 25% of that goes to referrers, the rest to ArcircleFeeBurn (the one ARCIRCLE Orders
 // uses) — half of it buys $ARCIRCLE and burns it, half goes to the treasury, once an hour by the Orders keeper.
+// Live: 0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6 (block 23867674, 2026-10-02) — the default in api/_predict.mjs.
 // After deploying:
 //   1. Vercel: PREDICT_ADDRESS = the address it prints (PREDICT_KEEPER_KEY only if the operator isn't ORDERS_KEEPER_KEY's
 //      wallet), Redeploy;
