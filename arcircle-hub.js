@@ -215,8 +215,8 @@
   ];
   UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop and market orders on Arc", status: "New", acc: "#4dd4ff", href: "/arc#orders",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
-  // ARCIRCLE Staking: still being planned — the tile opens a "coming soon" card (openStakingSoon), nothing else yet
-  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Stake $ARCIRCLE — in the works", status: "Coming", acc: "#b58bff", soonPop: true,
+  // ARCIRCLE Staking: veARCIRCLE — lock $ARCIRCLE, weekly USDC, pool votes (arc-staking.js)
+  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "New", acc: "#b58bff", href: "/arc#staking",
     img: "/images/arcircle-staking-96.webp" });
   // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
   UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc tokens, in USDC", status: "New", acc: "#39ff88", href: "/arc#predict",

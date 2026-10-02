@@ -24,6 +24,9 @@
 //   GET /api/desk?chain=rh&orderstick=1&key=…     the same on Robinhood Chain (ArcircleOrdersNative; also runs after
 //                                                   the Robinhood desk's tick)
 //   GET /api/desk?chain=sol&orderstick=1&key=…    the Solana keeper (api/_orders-sol.mjs; its own cron entry, every minute)
+// ARCIRCLE Staking (api/_stake.mjs, contracts/ArcircleStaking.sol) — veARCIRCLE:
+//   GET /api/desk?stake=state                totals, weekly rewards, pool votes, stakers, what the treasury owes stakers
+//   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC and this week's vote
 // ARCIRCLE Predict (api/_predict.mjs, contracts/ArcPredict.sol) — UP / DOWN rounds on Arc tokens, in USDC:
 //   GET /api/desk?predict=state              every market, its running round and its last results
 //   GET /api/desk?predict=mine&u=0x…         a wallet's bets, what it can claim, its referrals and stats
@@ -39,6 +42,7 @@ import * as RH from "./_desk-rh.mjs";
 import * as agent from "./_agent.mjs";
 import * as orders from "./_orders.mjs";
 import * as predict from "./_predict.mjs";
+import * as stake from "./_stake.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
@@ -48,6 +52,13 @@ export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
   if (q.chain === "rh" && !q.agent) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
+  // ARCIRCLE Staking (api/_stake.mjs): ?stake=state · ?stake=me&u=0x…
+  if (q.stake) {
+    try {
+      if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
+      return json(await stake.state({ store: st }), 200, "public, max-age=5, s-maxage=10");
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
   // ARCIRCLE Predict (api/_predict.mjs)
   if (q.predicttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();

@@ -186,6 +186,9 @@ const CONFIG = {
   // ARCIRCLE Orders (contracts/contracts/ArcircleOrders.sol, arc-orders.js), deployed on Arc 2026-10-02 (block 23739979).
   // Its fees go to ArcircleFeeBurn 0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034. Keep api/_orders.mjs CFG in step.
   ORDERS_ADDRESS: "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e",
+  // ARCIRCLE Staking (veARCIRCLE, contracts/ArcircleStaking.sol): "" until deployed — the page itself reads the
+  // address from /api/desk?stake=state (api/_stake.mjs STAKING_DEFAULT / env STAKING_ADDRESS); this one is for the footer.
+  STAKING_ADDRESS: "",
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
   // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):

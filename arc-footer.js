@@ -65,6 +65,7 @@
     ["ARCIRCLE Orders", "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e"],
     ["Orders fee burn", "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034"],
     ["ARCIRCLE Predict", "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6"],
+    ["ARCIRCLE Staking", (typeof CONFIG !== "undefined" && CONFIG.STAKING_ADDRESS) || ""],
   ];
   var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
   function build() {
