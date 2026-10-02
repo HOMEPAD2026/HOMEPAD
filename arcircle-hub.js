@@ -195,7 +195,7 @@
   UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
   // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
-  // Page 4: ARCIA AGENT, ARCIRCLE Orders, then two in development.
+  // Page 4: ARCIA AGENT, ARCIRCLE Orders, ARCIRCLE Staking, ARCIRCLE Predict. Page 5: four in development.
   // Four tiles a page, always — a fifth would make every page as tall as three rows.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
   var UTILS3 = [
@@ -218,8 +218,15 @@
   // ARCIRCLE Staking: still being planned — the tile opens a "coming soon" card (openStakingSoon), nothing else yet
   UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Stake $ARCIRCLE — in the works", status: "Coming", acc: "#b58bff", soonPop: true,
     img: "/images/arcircle-staking-96.webp" });
+  // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
+  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "Call UP or DOWN on an Arc token's next minutes — paid in USDC", status: "New", acc: "#39ff88", href: "/arc#predict",
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
+  // page 5: what's still being built
   var NEXT = [
-    { id: "next-16", sub: "In development" },
+    { id: "next-17", sub: "In development" },
+    { id: "next-18", sub: "In development" },
+    { id: "next-19", sub: "In development" },
+    { id: "next-20", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';
 
@@ -341,16 +348,18 @@
       '<button type="button" class="ax-util-x" aria-label="Close">' + ICON_PLUS + "</button></div>" +
       '<div class="ax-util-pages" aria-roledescription="carousel">' +
         '<div class="ax-util-track">' +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 4" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 4" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 4" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 4" data-page="3">' + UTILS4.map(tile).join("") + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 1 of 5" data-page="0">' + UTILS.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 5" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 5" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 5" data-page="3">' + UTILS4.map(tile).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 5 of 5" data-page="4">' + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +
         '<button type="button" role="tab" data-go-page="1" aria-selected="false" aria-label="Page 2">2</button>' +
         '<button type="button" role="tab" data-go-page="2" aria-selected="false" aria-label="Page 3">3</button>' +
         '<button type="button" role="tab" data-go-page="3" aria-selected="false" aria-label="Page 4">4</button>' +
+        '<button type="button" role="tab" data-go-page="4" aria-selected="false" aria-label="Page 5">5</button>' +
       "</div>";
     document.body.appendChild(scrim);
     document.body.appendChild(panel);

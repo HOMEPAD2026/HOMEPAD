@@ -24,6 +24,11 @@
 //   GET /api/desk?chain=rh&orderstick=1&key=…     the same on Robinhood Chain (ArcircleOrdersNative; also runs after
 //                                                   the Robinhood desk's tick)
 //   GET /api/desk?chain=sol&orderstick=1&key=…    the Solana keeper (api/_orders-sol.mjs; its own cron entry, every minute)
+// ARCIRCLE Predict (api/_predict.mjs, contracts/ArcPredict.sol) — UP / DOWN rounds on Arc tokens, in USDC:
+//   GET /api/desk?predict=state              every market, its running round and its last results
+//   GET /api/desk?predict=mine&u=0x…         a wallet's bets and what it can claim
+//   GET /api/desk?predicttick=1&key=<CRON_SECRET>   the keeper: samples ended rounds' pools and settles them (its own
+//                                                   cron-job.org entry, every minute)
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -31,6 +36,7 @@ import { tick, view, dayTrades, tradeDetail, saveSettings } from "./_desk.mjs";
 import * as RH from "./_desk-rh.mjs";
 import * as agent from "./_agent.mjs";
 import * as orders from "./_orders.mjs";
+import * as predict from "./_predict.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
@@ -40,6 +46,18 @@ export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
   if (q.chain === "rh" && !q.agent) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
+  // ARCIRCLE Predict (api/_predict.mjs)
+  if (q.predicttick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    try { return json(await predict.tick({ budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
+  if (q.predict) {
+    try {
+      if (q.predict === "mine") { const r = await predict.mine(String(q.u || "")); return json(r, r.error ? 400 : 200); }
+      return json(await predict.state(), 200, "public, max-age=2, s-maxage=3");
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
   // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)
   if (q.chain === "sol" && q.orderstick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
