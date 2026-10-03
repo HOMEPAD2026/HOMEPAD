@@ -14,8 +14,8 @@ import { evmChain, addressOfKey } from "./_evm.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import * as M from "./_merkle.mjs";
 
-export const NFT_VAULT_DEFAULT = ""; // set once deployed (contracts/scripts/deploy-arcircle-nft.js)
-export const NFT_ROUTER_DEFAULT = "";
+export const NFT_VAULT_DEFAULT = "0x2eE3ae4140A08930Dc9cEde5cde86f3bC906c304"; // contracts/scripts/deploy-arcircle-nft.js, 2026-10-03, block 78683625
+export const NFT_ROUTER_DEFAULT = "0x95B56477722dF40021797121f2faDe759dc88f65"; // block 78683679
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();

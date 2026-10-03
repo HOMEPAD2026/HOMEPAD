@@ -254,10 +254,10 @@ const CONFIG = {
   // ARCIRCLE NFT Vault (arc-nft.js, api/_nft.mjs, contracts/ArcircleNft.sol) on Robinhood Chain: a coin's Pons creator fees
   // go to ROUTER (50% the vault, 50% the treasury); the vault buys NFTs and raffles them to $ARCIRCLE holders. The page
   // reads the live addresses from /api/desk?nft=state; ROUTER here is for the Pons launch option, offered only to the
-  // team wallets in LAUNCHERS. Empty until deployed (contracts/scripts/deploy-arcircle-nft.js).
+  // team wallets in LAUNCHERS. Deployed 2026-10-03 (contracts/scripts/deploy-arcircle-nft.js).
   NFT: {
-    VAULT: "",
-    ROUTER: "",
+    VAULT: "0x2eE3ae4140A08930Dc9cEde5cde86f3bC906c304", // ArcircleNftVault (block 78683625)
+    ROUTER: "0x95B56477722dF40021797121f2faDe759dc88f65", // ArcircleNftRouter — a team Pons launch names it as the fee recipient
     LAUNCHERS: ["0x809E486817ADcBdF244060f4C8C24B4c694AF749"],
     CHAIN_ID: 4663,
     RPC: "https://rpc.mainnet.chain.robinhood.com",
