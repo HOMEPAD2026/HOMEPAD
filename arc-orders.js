@@ -43,6 +43,9 @@
   const BASE = () => (RH() ? WETH() : USDC()); // what every market trades against
   const ARCIRCLE = () => lc(RH() ? (CFG().OMNI && CFG().OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4" : CFG().ARCIRCLE_TOKEN || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7");
   const CHAIN = () => (RH() ? Number(ALT().id || 4663) : Number(CFG().CHAIN_ID_DECIMAL || 5042));
+  // the market a chain opens on: $ARCIRCLE on Arc, $ARCIA on Robinhood Chain (her Pons launch, ETH pools)
+  const ARCIA_RH = () => lc(CFG().ARCIA_RH_TOKEN || "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25");
+  const DEFAULT_MKT = () => (RH() ? ARCIA_RH() : ARCIRCLE());
   const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951"; // Uniswap v4's PoolManager: the same address on both chains
   const PERMIT2 = () => lc((RH() ? CFG().ORDERS_RH_PERMIT2 : CFG().ORDERS_PERMIT2 || "0x000000000022D473030F116dDEE9F6B43aC78BA3") || "");
   const FREE_HOLD = () => Number(CFG().ORDERS_FREE_HOLD || 100000); // $ARCIRCLE held for no fee (the contract's policy has the real number)
@@ -346,8 +349,9 @@
     const el = $("aor-chips"); if (!el) return;
     const seen = new Set(), list = [];
     const add = (t, sym, n, fav) => { t = lc(t); if (!isAddr(t) || seen.has(t)) return; seen.add(t); list.push({ t, sym, n, fav }); };
-    const symOf = (t) => { const m = S.markets.find((x) => lc(x.token.address || x.token) === t); const r = recent().find((x) => x.t === t); return (m && m.token.symbol) || (r && r.sym) || (t === ARCIRCLE() ? "ARCIRCLE" : null); };
+    const symOf = (t) => { const m = S.markets.find((x) => lc(x.token.address || x.token) === t); const r = recent().find((x) => x.t === t); return (m && m.token.symbol) || (r && r.sym) || (t === ARCIRCLE() ? "ARCIRCLE" : RH() && t === ARCIA_RH() ? "ARCIA" : null); };
     for (const f of favs()) add(f, symOf(f), null, true);
+    if (RH()) add(ARCIA_RH(), "ARCIA");
     add(ARCIRCLE(), "ARCIRCLE");
     for (const m of S.markets) add(m.token.address || m.token, m.token.symbol, m.open);
     for (const r of recent()) add(r.t, r.sym);
@@ -1727,7 +1731,7 @@
       frame();
       if (SOLC()) return;
       loadMarkets(); loadStatus().then(market);
-      open(reopen || ARCIRCLE());
+      open(reopen || DEFAULT_MKT());
       loadMine().then(mineView);
     }, reduce ? 0 : 230);
   }
@@ -2001,7 +2005,7 @@
       if (SOLC()) return;
       loadMarkets(); loadStatus().then(market);
       const m = /[?&]t=(0x[0-9a-fA-F]{40})/.exec(location.hash);
-      open(m ? m[1] : ARCIRCLE());
+      open(m ? m[1] : DEFAULT_MKT());
       S.acct = me(); loadMine().then(mineView);
     }
     clearInterval(S.timer);

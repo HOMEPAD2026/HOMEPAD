@@ -160,6 +160,7 @@
   // utilities panel upwards. Launch / Explore go to ArcPad; on ArcPad itself
   // they switch tabs in place.
   var ICON_ROCKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>';
+  var ICON_ORDERS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>';
   var ICON_NFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/></svg>';
   var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>';
   // A drawn lemniscate (not the emoji): gradient stroke with a light that
@@ -241,7 +242,7 @@
     bar.innerHTML =
       '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
       '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>' +
-      '<a class="ax-quick-item ax-quick-nft" href="/arc#nft" data-arc-tab="nft"><span class="ax-quick-ico">' + ICON_NFT + '</span><span>NFT</span></a>' +
+      '<a class="ax-quick-item ax-quick-orders" href="/arc#orders" data-arc-tab="orders"><span class="ax-quick-ico">' + ICON_ORDERS + '</span><span>Orders</span></a>' +
       '<button type="button" class="ax-quick-util" aria-haspopup="dialog" aria-expanded="false" aria-controls="ax-util" aria-label="Utilities" title="Utilities">' + ICON_INFINITY + '<span class="ax-plus-wrap">' + ICON_PLUS + "</span></button>";
     dock.parentNode.insertBefore(bar, dock);
 

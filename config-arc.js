@@ -197,6 +197,7 @@ const CONFIG = {
   ORDERS_RH_FEEBURN: "",
   ORDERS_RH_PERMIT2: "",
   ORDERS_RH_WETH: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+  ARCIA_RH_TOKEN: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", // $ARCIA on Robinhood Chain (Pons): the market Orders opens there
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
