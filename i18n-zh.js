@@ -6594,6 +6594,14 @@
     "Find the pools worth providing to on Arc and Robinhood Chain, then every Uniswap v4 pool a token trades in — price, depth, every LP position and how much of it is locked. Add liquidity with two coins or just one, in a shape, and see what your positions are worth and earn.": "在 Arc 和 Robinhood Chain 上找到值得提供流动性的池子，再查看代币交易的每个 Uniswap v4 池子 —— 价格、深度、每个 LP 仓位及锁定比例。用两种币或单一币种按形状添加流动性，并查看仓位的价值与收益。",
     "Today's price": "当前价格",
     "the dashed line": "虚线处",
+    "$ARCIA is CirclePad Round #1's coin, named after ARCIA and chosen by the community. It joins $ARCIRCLE in the reward contract's automated buyback-and-burn. Its contract on Arc:": "$ARCIA 是 CirclePad 第 1 轮的代币，以 ARCIA 命名、由社区选出。它将与 $ARCIRCLE 一起加入奖励合约的自动回购销毁。Arc 上的合约：",
+    ". ARCIA also launched her own $ARCIA on Robinhood Chain through Pons:": "。ARCIA 也通过 Pons 在 Robinhood Chain 上发行了自己的 $ARCIA：",
+    "Robinhood Chain · Pons": "Robinhood Chain · Pons",
+    "Buy on Pons ↗": "在 Pons 购买 ↗",
+    "Buy on Pons": "在 Pons 购买",
+    "$ARCIA CA · Arc": "$ARCIA CA · Arc",
+    "$ARCIA CA · Robinhood Chain": "$ARCIA CA · Robinhood Chain",
+    "$ARCIA · Robinhood Chain": "$ARCIA · Robinhood Chain",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

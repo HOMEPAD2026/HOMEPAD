@@ -11,7 +11,9 @@ export const CA = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
 // + ARCIRCLE OMNI: $ARCIRCLE on Robinhood Chain and the Arc lockbox — ours, never flagged as a fake CA
 export const OMNI_CAS = ["0x6f9ebd0dfc6de9ed47eec18efeb69a9b97c71ee4", "0x075e5dc585effe0bfdc1a0d452499ce7afe2fab6"];
-export const OUR_CAS = [CA, ARCIA_CA, ...OMNI_CAS];
+export const ARCIA_RH_CA = "0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25"; // $ARCIA on Robinhood Chain (Pons, 3 Oct 2026)
+export const ARCIA_RH_BUY = "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25";
+export const OUR_CAS = [CA, ARCIA_CA, ARCIA_RH_CA, ...OMNI_CAS];
 export const env = (k) => String(process.env[k] || "").trim();
 export const h = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const lc = (a) => String(a || "").toLowerCase();

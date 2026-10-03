@@ -6441,6 +6441,14 @@
     "Find the pools worth providing to on Arc and Robinhood Chain, then every Uniswap v4 pool a token trades in — price, depth, every LP position and how much of it is locked. Add liquidity with two coins or just one, in a shape, and see what your positions are worth and earn.": "Arc와 Robinhood Chain에서 유동성을 공급할 만한 풀을 찾고, 토큰이 거래되는 모든 Uniswap v4 풀의 가격·깊이·모든 LP 포지션과 잠긴 비율을 확인하세요. 코인 두 개 또는 하나로 모양을 정해 유동성을 추가하고, 내 포지션의 가치와 수익을 확인하세요.",
     "Today's price": "현재 가격",
     "the dashed line": "점선",
+    "$ARCIA is CirclePad Round #1's coin, named after ARCIA and chosen by the community. It joins $ARCIRCLE in the reward contract's automated buyback-and-burn. Its contract on Arc:": "$ARCIA는 CirclePad 라운드 #1의 코인으로, ARCIA의 이름을 따 커뮤니티가 선택했어요. 리워드 컨트랙트의 자동 바이백·소각에 $ARCIRCLE과 함께 참여해요. Arc 컨트랙트:",
+    ". ARCIA also launched her own $ARCIA on Robinhood Chain through Pons:": ". ARCIA는 Pons를 통해 Robinhood Chain에도 자신의 $ARCIA를 런칭했어요:",
+    "Robinhood Chain · Pons": "Robinhood Chain · Pons",
+    "Buy on Pons ↗": "Pons에서 구매 ↗",
+    "Buy on Pons": "Pons에서 구매",
+    "$ARCIA CA · Arc": "$ARCIA CA · Arc",
+    "$ARCIA CA · Robinhood Chain": "$ARCIA CA · Robinhood Chain",
+    "$ARCIA · Robinhood Chain": "$ARCIA · Robinhood Chain",
   };
 
 

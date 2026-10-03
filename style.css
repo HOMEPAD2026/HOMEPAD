@@ -8738,6 +8738,11 @@ html.ck-open{overflow:hidden;}
 .aa-coin-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .aa-coin .aa-mini{margin:10px 0 0;}
 .aa-rc-k2{display:block;margin-top:12px;}
+.aa-coin-k2{margin-top:12px;color:#d9ff7a;}
+.rw-coin-net{display:block;margin:10px 0 4px;font:700 .62rem 'Sora',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7fd8ff;}
+.rw-coin-net.rh{color:#d9ff7a;}
+.rw-coin-buy{display:inline-block;margin-top:8px;font:600 .78rem 'Sora',sans-serif;color:#d9ff7a;text-decoration:none;}
+.rw-coin-buy:hover{text-decoration:underline;}
 .aa-remind .aa-mini{flex-basis:100%;margin:2px 0 0;}
 .aa-more{display:inline-block;margin-top:10px;font-size:.8rem;color:#8fb6ff;}
 .aa-xhead{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:.78rem;color:var(--ink-dim);}

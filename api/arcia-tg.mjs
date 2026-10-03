@@ -37,7 +37,7 @@ import * as ORD from "./_orders.mjs";
 import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
 import {
-  SITE, BOT_URL, CA, ARCIA_CA, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
+  SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
   linkMessage, personalSigner, secretIn, scamReason,
 } from "./_tg-lib.mjs";
@@ -121,8 +121,8 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 
 // ---------------- cards ----------------
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
-const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b>:\n<code>${h(CHECKSUM.arcia)}</code>`;
-const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5" };
+const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b>:\n<code>${h(CHECKSUM.arcia)}</code>\n\n🏹 <b>$ARCIA on Robinhood Chain</b>:\n<code>${h(CHECKSUM.arciaRh)}</code>`;
+const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5", arciaRh: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" };
 // /burns: everything burned so far, where it came from, and the latest burns (the Reward page's numbers)
 const BURN_NAMES = { vote: ["Burn-to-vote", "소각 투표", "销毁投票"], mine: ["Builder Mine", "빌더 마인", "Builder Mine"], scanner: ["Token Scanner", "토큰 스캐너", "代币扫描器"],
   secret: ["ARCIA's secret file", "ARCIA 시크릿 파일", "ARCIA 秘密档案"], desk: ["ARCIA DESK", "ARCIA DESK", "ARCIA DESK"], agent: ["ARCIA AGENT vaults", "ARCIA AGENT 볼트", "ARCIA AGENT 金库"], orders: ["ARCIRCLE Orders fees", "ARCIRCLE Orders 수수료", "ARCIRCLE Orders 手续费"], buyback: ["Buyback", "바이백", "回购"],
@@ -647,7 +647,7 @@ async function onMessage(m, channel) {
       case "help": return help(c, m, lang);
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
-      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }]]));
+      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }], [{ text: "$ARCIA · Robinhood Chain (Pons)", url: ARCIA_RH_BUY }]]));
       case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
