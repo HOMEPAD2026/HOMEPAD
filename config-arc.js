@@ -188,7 +188,7 @@ const CONFIG = {
   ORDERS_ADDRESS: "0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e",
   // ARCIRCLE Staking (veARCIRCLE, contracts/ArcircleStaking.sol): "" until deployed — the page itself reads the
   // address from /api/desk?stake=state (api/_stake.mjs STAKING_DEFAULT / env STAKING_ADDRESS); this one is for the footer.
-  STAKING_ADDRESS: "",
+  STAKING_ADDRESS: "0x301E1e8dcB43cDddD3244889063aD4220536b38A",
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
   // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
