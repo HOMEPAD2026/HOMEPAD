@@ -12664,6 +12664,7 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .aor-pair{display:flex;align-items:center;gap:10px;}
 .aor-logo{position:relative;flex-shrink:0;width:34px;height:34px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,rgba(77,212,255,.3),rgba(57,255,136,.2));border:1px solid rgba(255,255,255,.12);}
 .aor-logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.aor-logo img.mark{object-fit:contain;padding:6px;background:#06101a;}
 .aor-logo i{font-style:normal;font:800 .72rem Sora,sans-serif;color:#fff;text-transform:uppercase;}
 .aor-pair-n{display:block;font:800 1.2rem Sora,sans-serif;color:#fff;}
 .aor-pair-n i{font-style:normal;font-weight:600;color:#8c98a6;margin-left:6px;font-size:.95rem;}

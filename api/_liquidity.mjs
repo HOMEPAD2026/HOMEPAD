@@ -198,7 +198,44 @@ async function ponsPool(X, token) {
   return { creator: lc(wAddr(h, 2)), phase, key };
 }
 
-export async function run(token, { store = null, wallet = "", budgetMs = 8000, extra = [], chain = "arc" } = {}) {
+// ---------------------------------------------------------------- the token's logo
+// An ArcPad launch keeps its logo in its launch record, a Dexscreener listing may have one, and an Argus launch
+// writes it once in a LaunchMetadata event in its launch transaction — the same block its pool was created in, so
+// one narrow eth_getLogs right after the pool's first block finds it. Cached per token (a miss is retried daily).
+const ARGUS_META = "LaunchMetadata(address,string,string,string,string,string)";
+const ARGUS_V5_PORTAL = "0xeed7559b8a6abf64427dc41cb5cc6400109c5d93";
+const httpsUrl = (u) => (/^https:\/\/[^\s"'<>]{4,400}$/.test(String(u || "").trim()) ? String(u).trim() : null);
+async function tokenLogo(X, store, token, { arcpad, dex, poolId, budget }) {
+  const a = httpsUrl(arcpad && arcpad.imageUrl);
+  if (a) return a;
+  // a pair's image is its base token's — only pairs where this token is the base
+  const d = ((dex && dex.pairs) || []).find((p) => p.baseAddr === token && httpsUrl(p.image));
+  if (d) return d.image;
+  if (X.c !== "arc" || !poolId) return null;
+  const k = `${X.pre}logo/${token}`;
+  const c = await sget(store, k);
+  if (c && (c.url || Date.now() - (c.at || 0) < 86400e3)) return c.url || null;
+  if (budget() < 2500) return null;
+  let url = null, sure = false;
+  try {
+    const head = await chainHead(X);
+    const from = await initBlock(poolId, head.number, -1, X);
+    if (from >= 0) {
+      const topic = io.keccak(ascii(ARGUS_META));
+      const logs = await X.C.getLogs({ address: [...scanCore.ADDR.argusPortals, ARGUS_V5_PORTAL], topics: [topic, "0x" + pad(token)], fromBlock: toQty(from), toBlock: toQty(Math.min(head.number, from + 2200)) });
+      sure = true;
+      for (const l of logs || []) {
+        const x = strip(l.data), off = Number(BigInt("0x" + x.slice(0, 64))) * 2, len = Number(BigInt("0x" + x.slice(off, off + 64))) * 2;
+        url = httpsUrl(utf8(x.slice(off + 64, off + 64 + len)));
+        if (url) break;
+      }
+    }
+  } catch { /* try again next time */ }
+  if (url || sure) await sset(store, k, { url, at: Date.now() });
+  return url;
+}
+
+export async function run(token, { store = null, wallet = "", budgetMs = 8000, extra = [], chain = "arc", lite = false } = {}) {
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
   const X = ctx(chain), io = X.io, rh = X.c === "rh";
   token = lc(token); wallet = lc(wallet);
@@ -260,9 +297,26 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
 
   // ---- currencies ----
   const cur = await meta([token, ...pools.flatMap((p) => (p.key ? [p.key.currency0, p.key.currency1] : []))], X);
-  const tokenMeta = cur.get(token);
+  const tokenMeta = { ...cur.get(token) };
 
   if (pools.length) await remember(store, token, pools.filter((p) => p.key).map((p) => p.id), X).catch(() => null);
+  const deepest = pools.filter((p) => p.key).sort((a, b) => ((dexBy.get(b.id) || {}).liq || 0) - ((dexBy.get(a.id) || {}).liq || 0) || (b.liquidity > a.liquidity ? 1 : -1))[0];
+  tokenMeta.logo = await tokenLogo(X, store, token, { arcpad, dex, poolId: deepest && deepest.id, budget: left }).catch(() => null);
+
+  // lite: the pools, their keys and prices only (ARCIRCLE Orders) — no position log, so a pool with a long history
+  // answers at once instead of after its log has been read
+  if (lite) {
+    const outLite = pools.filter((p) => p.key).map((p) => {
+      const k = p.key, tokenIs0 = k.currency0 === token, quote = cur.get(tokenIs0 ? k.currency1 : k.currency0);
+      const venue = argus && argus.hook && lc(argus.hook) === k.hooks ? "Argus" : X.A.arcpadHook && k.hooks === X.A.arcpadHook ? "ArcPad"
+        : ponsKey && k.hooks === ponsKey.hooks ? "Pons" : X.A.bagsHook && k.hooks === X.A.bagsHook ? "Bags" : k.hooks !== L.ZERO_ADDR ? "Uniswap v4 · hook" : "Uniswap v4";
+      const dx = dexBy.get(p.id);
+      return { id: p.id, venue, key: k, tokenIs0, quote, tick: p.tick, sqrtP: p.sqrtP.toString(), feePct: L.feePct(k.fee),
+        price: L.priceOf(p.sqrtP, tokenIs0, cur.get(k.currency0).decimals, cur.get(k.currency1).decimals), liquidity: p.liquidity.toString(),
+        dex: dx ? { liqUsd: dx.liq, vol: dx.vol, url: dx.url, price: dx.price } : null };
+    }).sort((a, b) => ((b.dex && b.dex.liqUsd) || 0) - ((a.dex && a.dex.liqUsd) || 0) || (big(b.liquidity) > big(a.liquidity) ? 1 : -1));
+    return { done: true, lite: true, chain: X.c, token: tokenMeta, pools: outLite, launch: arcpad ? { venue: "ArcPad" } : argus ? { venue: "Argus" } : pons ? { venue: "Pons" } : null };
+  }
 
   // ---- positions in those pools: each pool's own ModifyLiquidity log ----
   const latestH = await chainHead(X);

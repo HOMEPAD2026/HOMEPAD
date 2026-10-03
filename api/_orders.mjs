@@ -855,7 +855,8 @@ async function pools(token, { store } = {}) {
     if (!other || !ethSide(other)) continue;
     out.push({ id, key, tokenIs0: key.currency0 === token, venue: [p.dexId ? p.dexId[0].toUpperCase() + p.dexId.slice(1) : "Uniswap", (p.labels || []).join(" ") || "v4", key.currency0 === ZERO_ADDR ? "ETH" : "WETH"].join(" "),
       dex: { liqUsd: (p.liquidity && p.liquidity.usd) || null, url: p.url || null }, feePct: key.fee === 0x800000 ? null : key.fee / 10000 });
-    info = info || (p.info ? { logo: p.info.imageUrl || null } : null);
+    // the logo on a pair is its base token's: only a pair where this token is the base has this token's
+    if (!info && p.info && p.info.imageUrl && lc(p.baseToken && p.baseToken.address) === token) info = { logo: p.info.imageUrl };
   }
   const [tm] = await tokenMeta([token]);
   const v = { token: { ...tm, logo: (info && info.logo) || null }, quote: { address: CFG.weth || CFG.base, symbol: "ETH", decimals: 18 }, pools: out, at: CFG.now() };

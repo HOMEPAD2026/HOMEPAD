@@ -34,7 +34,7 @@
 //   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
 //   GET  /api/social?circle=csv&round=N[&in=eth|sol]  a round's leaderboard as CSV (?circle=lb&round=N for JSON); in= adds ETH / SOL columns
 //   GET  /api/social?fx=1                        ETH and SOL in dollars (api/_fx.mjs)
-//   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs)
+//   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs); &lite=1: pools and prices only (Orders)
 //   GET  /api/social?orders=book&token=0x…       ARCIRCLE Orders (api/_orders.mjs): one market's price levels and fills
 //   GET  /api/social?orders=markets | status     every market · the executor's last run
 //   GET  /api/social?orders=candles&pool=0x…     5-minute candles of an Arc v4 pool (3 days)
@@ -391,7 +391,7 @@ export async function GET(req) {
   if (url.searchParams.has("liq")) {
     if (scanner.limited(`lq:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
     try {
-      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000, extra: String(url.searchParams.get("pools") || "").split(",").filter(Boolean).slice(0, 6), chain: url.searchParams.get("chain") || "arc" });
+      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000, extra: String(url.searchParams.get("pools") || "").split(",").filter(Boolean).slice(0, 6), chain: url.searchParams.get("chain") || "arc", lite: url.searchParams.get("lite") === "1" });
       return json(200, out, "no-store");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }

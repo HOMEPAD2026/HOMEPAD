@@ -1,4 +1,4 @@
-/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, ensureAltForWrite, readProvider, ARC_ALT_NET */
+/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, ensureAltForWrite, readProvider, ARC_ALT_NET, ARC */
 // arc-orders.js — ARCIRCLE Orders, an ARCIRCLE PAD utility (arcpad.html#orders; api/_orders.mjs; contracts
 // ArcircleOrders.sol + ArcircleFeeBurn.sol). Exchange-style orders on Arc's Uniswap v4 pools, without giving up custody:
 //   · limit    sign "sell X for at least Y" (EIP-712, no gas). Tokens stay in the wallet; the executor matches it with
@@ -403,7 +403,7 @@
     const call = S.agentCall;
     el.innerHTML = `
       <div class="aor-pair">
-        <span class="aor-logo" aria-hidden="true">${S.tok.logo ? `<img src="${esc(S.tok.logo)}" alt="" width="34" height="34" loading="lazy" onerror="this.remove()">` : ""}<i data-no-i18n>${esc((S.tok.symbol || "?").slice(0, 2))}</i></span>
+        <span class="aor-logo" aria-hidden="true">${S.tok.logo ? `<img src="${esc(S.tok.logo)}" alt="" width="34" height="34" loading="lazy"${/arcircle-mark/.test(S.tok.logo) ? ' class="mark"' : ""} onerror="this.remove()">` : ""}<i data-no-i18n>${esc((S.tok.symbol || "?").slice(0, 2))}</i></span>
         <div><span class="aor-pair-n" data-no-i18n>$${esc(S.tok.symbol)}<i>/ ${esc(S.quote.symbol)}</i><button type="button" class="aor-fav${favs().includes(S.t) ? " on" : ""}" data-fav="${S.t}" aria-pressed="${favs().includes(S.t)}" aria-label="${T("Favorite")}" title="${T("★ keeps a market at the front")}">★</button></span>
         <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call ? `<a class="aor-call ${esc(call.call)}" href="#agent?t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : ""}</span></div>
       </div>
@@ -466,6 +466,12 @@
     if (keep.length !== all.length) { store.set(AK, keep); market(); }
   }
 
+  /// a logo the page already knows: $ARCIRCLE's own, or an ArcPad launch's (Explore's list)
+  function localLogo(a) {
+    if (a === ARCIRCLE()) return "/images/arcircle-mark-sm.png";
+    const l = !RH() && typeof ARC !== "undefined" && Array.isArray(ARC.launches) ? ARC.launches.find((x) => lc(x.token) === a) : null;
+    return l && /^https:\/\//i.test(l.imageUrl || "") ? l.imageUrl : null;
+  }
   // ---------------- open a market ----------------
   async function open(addr) {
     addr = lc(addr);
@@ -483,7 +489,7 @@
       let j = null;
       for (let i = 0; i < 20; i++) {
         // Arc: the Liquidity Manager's pool reader; Robinhood Chain: its own (Dexscreener + the pool's Initialize log)
-        const r = await fetch(RH() ? `${API}?orders=pools&token=${addr}&chain=rh` : `${API}?liq=${addr}`, { cache: "no-store" });
+        const r = await fetch(RH() ? `${API}?orders=pools&token=${addr}&chain=rh` : `${API}?liq=${addr}&lite=1`, { cache: "no-store" }); // lite: pools and prices only, no position history
         j = await r.json().catch(() => null);
         if (S.t !== addr || c0 !== CH) return;
         if (r.status === 503 || (j && !j.done && !(j.pools && j.pools.length))) { await new Promise((res) => setTimeout(res, 1500)); continue; }
@@ -496,7 +502,7 @@
       const q = pools[0] && lc(pools[0].quote.address);
       S.pools = pools.filter((p) => lc(p.quote.address) === q); // one book per token: one quote
       if (!S.pools.length) throw new Error(RH() ? "No Uniswap v4 pool against ETH found for this token on Robinhood Chain." : "No Uniswap v4 pool found for this token on Arc.");
-      S.tok = { address: addr, symbol: (j.token && j.token.symbol) || "TOKEN", decimals: Number((j.token && j.token.decimals) ?? 18), logo: (j.token && j.token.logo) || null };
+      S.tok = { address: addr, symbol: (j.token && j.token.symbol) || "TOKEN", decimals: Number((j.token && j.token.decimals) ?? 18), logo: (j.token && j.token.logo) || localLogo(addr) };
       S.quote = { address: q, symbol: pools[0].quote.symbol || (RH() ? "ETH" : "USDC"), decimals: Number(pools[0].quote.decimals ?? (RH() ? 18 : 6)) };
       S.spot = pools[0].price || null;
       addRecent(addr, S.tok.symbol);

@@ -406,6 +406,7 @@ export async function readMarket(io, addr) {
       dex: (p.dexId === "uniswap" ? "Uniswap" : cap1(p.dexId)) + ((p.labels || []).length ? " " + p.labels.join(" ") : ""),
       url: /^https:\/\//.test(p.url || "") ? p.url : null, pair: p.pairAddress || null,
       base: (p.baseToken && p.baseToken.symbol) || "", quote: (p.quoteToken && p.quoteToken.symbol) || "",
+      baseAddr: String((p.baseToken && p.baseToken.address) || "").toLowerCase(),
       price: p.priceUsd != null ? Number(p.priceUsd) : null, liq: (p.liquidity && Number(p.liquidity.usd)) || 0,
       mcap: Number(p.marketCap || p.fdv || 0) || null, created: p.pairCreatedAt ? Number(p.pairCreatedAt) / 1000 : null,
       buys: (p.txns && p.txns.h24 && p.txns.h24.buys) || 0, sells: (p.txns && p.txns.h24 && p.txns.h24.sells) || 0,
