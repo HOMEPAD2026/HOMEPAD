@@ -13347,6 +13347,14 @@ a.aor-tg svg{width:14px;height:14px;fill:#4dd4ff;}
   @keyframes aorDockIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
   .aor-mine{margin-bottom:84px;}
 }
+/* phones: the chart's tabs take the row, the timeframes sit under them on the right (no sideways overflow) */
+@media (max-width:720px){
+  .aor-charth{flex-wrap:wrap;gap:6px;}
+  .aor-charth .aor-seg{flex:1 1 100%;min-width:0;}
+  .aor-charth .aor-seg button{padding:6px 4px;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .aor-tfs{margin-left:auto;}
+  .aor-tfs button{padding:5px 9px;}
+}
 /* Simple: no price-step picker */
 #bp-panel-orders.aor-simple .aor-prec{display:none;}
 @media (prefers-reduced-motion:reduce){
