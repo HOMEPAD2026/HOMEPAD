@@ -233,7 +233,7 @@
   function loadArcia() {
     fetch("/api/social?coin=arcia").then((r) => (r.ok ? r.json() : null)).then((a) => {
       const el = q('[data-ac="arcia-price"]');
-      if (el && a && a.price != null) el.textContent = price(a.price) + (a.mcap != null ? " · " + tr("market cap") + " " + usd(a.mcap) : "");
+      if (el && a && a.price != null) el.textContent = price(a.price) + (a.mcap != null ? " · " + tr("market cap") + " " + usd(a.mcap) : "") + (a.chain === "rh" ? " · " + tr("on Robinhood Chain") : "");
     }).catch(() => {});
   }
 
@@ -315,7 +315,7 @@
   function init() {
     sectionNav();
     if (T()) T().subscribe(onStats);
-    loadScore(); loadArcia(); setInterval(loadArcia, 90000);
+    loadScore(); loadArcia(); setInterval(loadArcia, 30000);
     if (window.ethereum && window.ethereum.request) qa("[data-ac-add]").forEach((b) => { b.hidden = false; });
     prefillWallet();
     qa(".ac-range button").forEach((b) => b.setAttribute("aria-pressed", b.getAttribute("data-range") === range ? "true" : "false"));

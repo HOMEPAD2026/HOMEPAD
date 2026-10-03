@@ -697,13 +697,18 @@
     LIVE = L;
     var box = panel.querySelector(".aa-live-rows");
     if (!box) return;
-    if (!box.querySelector("[data-k]")) {
-      box.innerHTML = [["price", "$ARCIA"], ["mcap", "Market cap"], ["holders", "Holders"], ["vol", "24h volume"], ["liq", "Liquidity"]].map(function (r) {
+    // the Live tab follows $ARCIA on Robinhood Chain (L.arcia, from /api/arcia: Pons on-chain price); $ARCIRCLE's numbers stay on /stats
+    var A = L.arcia || {}, curve = A.phase === "curve";
+    var rows = [["price", "$ARCIA"], ["mcap", "Market cap"], ["holders", "Holders"], ["vol", "24h volume"], [curve ? "grad" : "liq", curve ? "To graduation" : "Liquidity"], ["liq2", curve ? "ETH in the curve" : ""]].filter(function (r) { return r[1]; });
+    var sig = rows.map(function (r) { return r[0]; }).join(",");
+    if (box.getAttribute("data-rows") !== sig) {
+      box.setAttribute("data-rows", sig);
+      box.innerHTML = rows.map(function (r) {
         return "<div><dt>" + esc(tr(r[1])) + '</dt><dd data-no-i18n><span data-k="' + r[0] + '">—</span>' + (r[0] === "price" ? ' <em class="aa-chg"></em>' : "") + "</dd></div>";
       }).join("");
     }
-    // the Live tab follows $ARCIA (L.arcia, from /api/arcia); $ARCIRCLE's numbers stay on /stats
-    var A = L.arcia || {};
+    var src = panel.querySelector(".aa-live-src");
+    if (src) src.innerHTML = '<span class="aa-live-chain">' + esc(tr("Robinhood Chain")) + "</span> " + esc(tr(curve ? "Pons · on its bonding curve" : A.phase === "pool" ? "Pons · Uniswap v4 pool" : "Pons"));
     var q = function (k) { return box.querySelector('[data-k="' + k + '"]'); };
     var usd = function (v) { return v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + v.toFixed(2); };
     if (A.price != null) roll(q("price"), "aprice", A.price, function (v) { return F.price ? F.price(v) : "$" + v.toPrecision(3); });
@@ -712,7 +717,9 @@
     if (A.mcap != null) roll(q("mcap"), "amcap", A.mcap, usd);
     if (A.holders != null) roll(q("holders"), "aholders", Number(A.holders), function (v) { return Math.round(v).toLocaleString("en-US"); });
     if (A.volume24h != null) roll(q("vol"), "avol", A.volume24h, usd);
-    if (A.liquidity != null) roll(q("liq"), "aliq", A.liquidity, usd);
+    if (A.liquidity != null && q("liq")) roll(q("liq"), "aliq", A.liquidity, usd);
+    if (A.liquidity != null && q("liq2")) roll(q("liq2"), "aliq2", A.liquidity, usd);
+    if (A.progress != null && q("grad")) roll(q("grad"), "agrad", A.progress, function (v) { return v.toFixed(1) + "%"; });
     clock(); paintRemind();
   }
   function clock() {
@@ -1231,15 +1238,15 @@
               Object.keys(TABS).map(function (t, i) {
                 return '<button type="button" role="tab" id="aa-t-' + t + '" aria-controls="aa-p-' + t + '" aria-selected="' + (i ? "false" : "true") + '" tabindex="' + (i ? "-1" : "0") + '" data-t="' + t + '" data-no-i18n>' + esc(T(TABS[t])) + "</button>";
               }).join("") + "</div>" +
-            '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl>' +
-              '<div class="aa-coin"><span class="aa-coin-k">$ARCIA CA · Arc</span><code data-no-i18n>' + ARCIA_CA + '</code>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><p class="aa-live-src"></p><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl>' +
+              '<div class="aa-coin"><span class="aa-coin-k rh">$ARCIA CA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code>' +
+              '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
+              '<a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Buy on Pons</a></div>' +
+              '<span class="aa-coin-k aa-coin-k2 arc">$ARCIA CA · Arc</span><code data-no-i18n>' + ARCIA_CA + '</code>' +
               '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
               '<a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Buy on Argus</a>' +
               '<a class="aa-rc-btn ghost" href="https://dexscreener.com/arc/' + ARCIA_POOL + '" target="_blank" rel="noopener">Chart</a></div>' +
-              '<span class="aa-coin-k aa-coin-k2">$ARCIA CA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code>' +
-              '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
-              '<a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Buy on Pons</a></div>' +
-              '<p class="aa-mini">Market numbers from Dexscreener, holders from the Token Scanner. New coins are risky — scan before you buy.</p></div>' +
+              '<p class="aa-mini">The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.</p></div>' +
               '<a class="aa-more" href="/circle/round/1">Round #1 results →</a></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-x" aria-labelledby="aa-t-x" hidden><h3>ARCIA on X</h3><p class="aa-xhead"></p><ul class="aa-xfeed"><li class="aa-empty">Loading…</li></ul>' +
               '<a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow @ARCIAonArc</span></a></div>" +
@@ -1500,7 +1507,7 @@
     setInterval(function () { if (panel.classList.contains("active") && !document.hidden) loadHearts(); }, 20000);
     setTimeout(checkWallet, 1200);
     setInterval(function () { if (panel.classList.contains("active")) checkWallet(); }, 5000);
-    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 60000);
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 20000);
     setInterval(function () { if (panel.classList.contains("active")) clock(); }, 1000);
   }
   // Other utilities hand ARCIA a question ("Ask ARCIA" buttons): open her tab and send it.

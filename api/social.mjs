@@ -53,7 +53,7 @@
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
-//   GET  /api/social?coin=arcia                  $ARCIA market, holders and burned (api/_arcia-coin.mjs)
+//   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders; the Arc coin under arc; burned on Arc (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
 //   GET  /api/social?cctp=fees|msg&src=…        Bridge: Circle CCTP fee quotes / transfer status (api/_cctp.mjs)
 //
@@ -258,7 +258,8 @@ export async function GET(req) {
       return v ? json(200, v, "public, max-age=300, s-maxage=86400") : json(404, { error: "no CirclePad vote in that transaction" }, "public, max-age=30");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
-  // $ARCIA for the Reward page: market (Dexscreener), holders (Token Scanner) and what sits at 0x…dEaD
+  // $ARCIA for the Reward and $ARCIRCLE pages: the Robinhood Chain price (Pons, on-chain), holders, the Arc coin's market
+  // under arc, and what sits at 0x…dEaD on Arc
   if (url.searchParams.get("coin") === "arcia") {
     try {
       const [m, b] = await Promise.all([arciaCoin(url.origin).catch(() => null), arciaBurned().catch(() => null)]);

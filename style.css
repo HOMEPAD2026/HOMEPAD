@@ -8739,6 +8739,11 @@ html.ck-open{overflow:hidden;}
 .aa-coin .aa-mini{margin:10px 0 0;}
 .aa-rc-k2{display:block;margin-top:12px;}
 .aa-coin-k2{margin-top:12px;color:#d9ff7a;}
+.aa-coin-k.rh{color:#d9ff7a;}
+.aa-coin-k2.arc{color:#8fe9bd;}
+.aa-live-src{margin:-4px 0 8px;font-size:.74rem;color:#8c98a6;}
+.aa-live-src:empty{display:none;}
+.aa-live-chain{display:inline-block;padding:2px 8px;margin-right:4px;border-radius:99px;border:1px solid rgba(204,255,0,.45);background:rgba(204,255,0,.08);color:#e4ff8a;font-weight:700;font-size:.68rem;}
 .rw-coin-net{display:block;margin:10px 0 4px;font:700 .62rem 'Sora',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7fd8ff;}
 .rw-coin-net.rh{color:#d9ff7a;}
 .rw-coin-buy{display:inline-block;margin-top:8px;font:600 .78rem 'Sora',sans-serif;color:#d9ff7a;text-decoration:none;}

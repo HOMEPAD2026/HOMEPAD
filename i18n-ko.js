@@ -6449,6 +6449,14 @@
     "$ARCIA CA · Arc": "$ARCIA CA · Arc",
     "$ARCIA CA · Robinhood Chain": "$ARCIA CA · Robinhood Chain",
     "$ARCIA · Robinhood Chain": "$ARCIA · Robinhood Chain",
+    "ETH in the curve": "커브 속 ETH",
+    "Pons · on its bonding curve": "Pons · 본딩커브 진행 중",
+    "Pons · Uniswap v4 pool": "Pons · Uniswap v4 풀",
+    "on Robinhood Chain": "Robinhood Chain 기준",
+    "Burned on Arc": "Arc에서 소각",
+    "Price · Robinhood": "가격 · Robinhood",
+    "Market cap · Robinhood": "시가총액 · Robinhood",
+    "The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.": "위 가격은 Robinhood Chain의 $ARCIA를 Pons에서 온체인으로 읽은 값이에요. 홀더 수는 Token Scanner 기준이에요. 새 코인은 위험해요 — 사기 전에 스캔하세요.",
   };
 
 

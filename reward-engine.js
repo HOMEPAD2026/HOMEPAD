@@ -314,7 +314,7 @@
     const saved = ls.get("rw-burn-last");
     if (saved && saved.burned) { paintMeter(saved.burned, saved.price, 0); paintFeed(saved.burned.list, saved.at); if (saved.burned.bySource) paintSources(saved.burned.bySource); }
     if (T()) T().subscribe(onStats);
-    loadArcia(); setInterval(loadArcia, 60000);
+    loadArcia(); setInterval(loadArcia, 30000);
     drawFlow(); hoverFlow();
     let rt = 0;
     window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawFlow, 120); });

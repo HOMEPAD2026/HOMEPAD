@@ -6602,6 +6602,14 @@
     "$ARCIA CA · Arc": "$ARCIA CA · Arc",
     "$ARCIA CA · Robinhood Chain": "$ARCIA CA · Robinhood Chain",
     "$ARCIA · Robinhood Chain": "$ARCIA · Robinhood Chain",
+    "ETH in the curve": "曲线中的 ETH",
+    "Pons · on its bonding curve": "Pons · 联合曲线阶段",
+    "Pons · Uniswap v4 pool": "Pons · Uniswap v4 池",
+    "on Robinhood Chain": "Robinhood Chain 价格",
+    "Burned on Arc": "Arc 上已销毁",
+    "Price · Robinhood": "价格 · Robinhood",
+    "Market cap · Robinhood": "市值 · Robinhood",
+    "The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.": "上方价格为 Robinhood Chain 上的 $ARCIA，直接从 Pons 链上读取；持有人数来自 Token Scanner。新币风险很高 —— 购买前请先扫描。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

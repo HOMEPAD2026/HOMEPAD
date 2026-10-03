@@ -198,6 +198,7 @@ async function withPrices(items) {
     const priceUsd = priceEth != null && eth ? priceEth * eth : null;
     return {
       ...x, phase, graduated: phase === "pool" || phase === "swept", progress: progress != null ? Math.round(progress * 10) / 10 : null,
+      realEth: phase === "curve" && real ? Number(W(real, 0)) / 1e18 : null,
       priceEth, priceUsd, mcapUsd: priceUsd != null ? priceUsd * supply : null, ethUsd: eth || null,
       active: L ? L.recipient === splitter : true, recipientChecked: !!L,
     };
@@ -267,6 +268,21 @@ export async function coin(token, { store } = {}) {
   const x = (await readList(store)).find((i) => i.token === token);
   return x ? (await withPrices([x]))[0] : null;
 }
+/// any Pons V2 coin paired with native ETH, live — listed through ArcPad or not (e.g. $ARCIA on Robinhood Chain):
+/// phase, price in ETH and USD, market cap, ETH in the curve and progress to graduation; null if it isn't a Pons coin
+export async function livePons(token) {
+  token = lc(token);
+  if (!isAddr(token)) return null;
+  const [lt] = await ethCalls([{ to: CFG.factory, data: SEL.launched + pad(token) }]);
+  const L = decodeLaunched(lt);
+  if (!L || !L.exists || L.token !== token) return null;
+  if (lc(L.pairToken || ZERO) !== ZERO) return { token, phase: L.phase, priceEth: null, priceUsd: null, mcapUsd: null, error: "not paired with ETH" };
+  const [v] = await withPrices([{ token, curve: L.curve, creator: L.deployer, splitter: null, pairToken: ZERO, graduationThreshold: L.graduationThreshold,
+    poolFee: L.poolFee, tickSpacing: L.tickSpacing, creatorTaxBps: L.creatorTaxBps, supply: "1000000000000000000000000000", phase: L.phase }]);
+  return { token, phase: v.phase, graduated: v.graduated, progress: v.progress, priceEth: v.priceEth, priceUsd: v.priceUsd, mcapUsd: v.mcapUsd, ethUsd: v.ethUsd,
+    curveEth: v.realEth, curveUsd: v.realEth != null && v.ethUsd ? v.realEth * v.ethUsd : null, creatorTaxBps: L.creatorTaxBps };
+}
+
 /// POST {action:"ponsreg", token, tx} → list a Pons V2 launch whose fee recipient is the creator's ArcPad splitter
 export async function register({ token, tx }, { store } = {}) {
   token = lc(token); tx = lc(tx);
