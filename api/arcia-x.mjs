@@ -16,7 +16,9 @@
 //   · ARCIA 402's books for the day before (revenue, expenses, tips, net) — only when she sold or hired
 //   · replies: when someone mentions @ARCIAonArc or replies to her, she answers as herself (Claude,
 //     same mind as the chat on the site) — up to 5 per run, 25 a day (no per-person limit); spam, scams,
-//     abuse and bait are skipped. Off with ARCIA_X_REPLIES=0. Needs ANTHROPIC_API_KEY.
+//     abuse and bait are skipped. A SKIP gets a second look before a post is left; bare tags (an @, an image,
+//     a GIF) get a short line; every page of new mentions is read. ?status=1 lists what was skipped and why.
+//     Off with ARCIA_X_REPLIES=0. Needs ANTHROPIC_API_KEY.
 // At most 12 posts a day. X bills per use: a post with a link costs far more than one without, so
 // coin posts carry the contract address instead of a link, and replies never include links.
 //
@@ -327,7 +329,15 @@ async function mentions(meId, sinceId, max = 20) {
   const q = { max_results: String(Math.max(5, Math.min(100, max))), "tweet.fields": "author_id,created_at,conversation_id,lang,referenced_tweets,note_tweet",
     expansions: "author_id", "user.fields": "username,name" };
   if (sinceId) q.since_id = sinceId;
-  const j = await xGet(`https://api.x.com/2/users/${meId}/mentions`, q);
+  // newest first: when more than one page arrived since the cursor, read the older pages too (up to 4), or
+  // the cursor would move past mentions that never showed up
+  let j = await xGet(`https://api.x.com/2/users/${meId}/mentions`, q);
+  const data = [...(j.data || [])], inc = [...((j.includes && j.includes.users) || [])];
+  for (let page = 1; sinceId && j.meta && j.meta.next_token && page < 4; page++) {
+    j = await xGet(`https://api.x.com/2/users/${meId}/mentions`, { ...q, pagination_token: j.meta.next_token });
+    data.push(...(j.data || [])); inc.push(...((j.includes && j.includes.users) || []));
+  }
+  j = { data, includes: { users: inc } };
   const users = Object.fromEntries(((j.includes && j.includes.users) || []).map((u) => [u.id, u]));
   return (j.data || []).map((t) => ({ id: t.id, text: (t.note_tweet && t.note_tweet.text) || t.text, author: t.author_id, username: (users[t.author_id] || {}).username || "", name: (users[t.author_id] || {}).name || "",
     rt: (t.referenced_tweets || []).some((r) => r.type === "retweeted") })).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
@@ -339,14 +349,23 @@ Customer-service on X: this is a public thread — if someone has a problem (tok
 Friendly posts, shout-outs and cheers get a warm thank-you in your own words. Short reactions — one word ("Noice", "gm", "LFG"), an emoji, or just a GIF or image (it shows as a bare link) — are friendly too: answer with a short playful line of your own, never SKIP them. Every post by your own team (@ARCIRCLEonArc) — announcements, updates, teasers, milestones, words about you — always gets a reply, never SKIP: a short, excited reaction from you as the idol, like an idol reacting to her agency ("Yay, it's official~ come talk to me!"), never a repeat of what they said.
 Teasing, cheeky jokes and FUD ("rug?", "scam?", "wen moon", "down bad", playful roasts) are NOT a reason to SKIP: reply with a quick, good-humored comeback plus one real fact when it fits. Stay kind and classy — never insult back. Flirting gets a witty idol deflection, never romance.
 Questions about ARCIRCLE's own airdrops, relays and rounds (the ♾️ airdrop to $ARCIRCLE holders, the CirclePad airdrop, Relay Launch, Round #2) are genuine questions: answer them from your facts, and where details aren't decided yet say they're coming soon from the team — never promise amounts or dates.
-Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), hateful abuse or slurs, sexual or political content, requests to promote or "check out" another token, and requests for money, DMs or keys.`;
+Your own coins are never "another token": $ARCIRCLE (Arc, and on Robinhood Chain through OMNI) and $ARCIA (on Arc, and your own launch on Robinhood Chain through Pons) — posts about them, their CAs, Pons, Robinhood Chain, buying, holding, charts or price always get a reply (no price promises).
+Output exactly SKIP only for: spam, scams, bait for other projects' giveaways or airdrops ("drop your wallet", follow-to-win), hateful abuse or slurs, sexual or political content, requests to promote or "check out" a token that isn't one of yours, and requests for money, DMs or keys. When in doubt, reply.`;
+// a second look before a post is left without a reply: SKIP has to name one of the real reasons
+const SECOND_LOOK = "\n\n(Your first answer was SKIP. Look again: SKIP is only for spam, scams, giveaway or airdrop bait for other projects, hateful abuse, sexual or political content, shilling a token that isn't yours, or asking for money, DMs or keys. A comment, a cheer, a question, a joke or FUD, a bare tag, an emoji or image, or anything about $ARCIRCLE or $ARCIA on any chain gets a reply. If it really is one of those SKIP cases, answer exactly SKIP; otherwise write the reply.)";
 async function draftReply(m, L) {
   const clean = m.text.replace(/(^|\s)@\w+/g, " ").replace(/\s+/g, " ").trim();
-  if (!clean || m.rt) return { skip: "empty or repost" };
+  if (m.rt) return { skip: "repost" };
+  // a bare tag (only @mentions, or the image/GIF link X puts in the text) is a friendly ping: a short playful line
+  const bare = !clean || /^(https?:\/\/t\.co\/\w+\s*)+$/.test(clean);
   const team = /^arcircleonarc$/i.test(m.username || "");
-  const ask = (note = "") => askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text}${team ? "\n\n(This is your own team replying to or mentioning you — react to it; SKIP isn't an option.)" : ""}${note}` }], L, extra: REPLY_BRIEF, maxTokens: 260, timeoutMs: 15000, model: process.env.ARCIA_X_MODEL || "" });
+  const ask = (note = "") => askClaude({ messages: [{ role: "user", content: `@${m.username}${m.name ? ` (${m.name})` : ""} wrote:\n${m.text || "(no words — they just tagged you)"}${bare ? "\n\n(They only tagged you, maybe with an image or GIF — reply with one short playful line; SKIP isn't an option.)" : ""}${team ? "\n\n(This is your own team replying to or mentioning you — react to it; SKIP isn't an option.)" : ""}${note}` }], L, extra: REPLY_BRIEF, maxTokens: 260, timeoutMs: 15000, model: process.env.ARCIA_X_MODEL || "" });
   let t = await ask();
   if (!t) return { skip: "model unavailable", retry: true };
+  if (/^\s*["'“]?SKIP\b/i.test(t)) {
+    t = await ask(SECOND_LOOK);
+    if (!t) return { skip: "model unavailable", retry: true };
+  }
   // a public reply never carries an address she wasn't given (a made-up or mistyped CA): one retry, then no reply
   if (!checkAddresses(t, m.text).ok) {
     t = await ask("\n\n(Your last draft had a contract address that isn't in FACTS. Use only the exact addresses in FACTS, or none.)");
@@ -383,7 +402,7 @@ const replyDone = (st, id) => { const r = st.sent["reply:" + id]; return !!r && 
 /// the last handled mentions and what happened to each (public: ids, handles, reasons — nothing secret)
 function recentReplies(st) {
   return Object.entries(st.sent || {}).filter(([k]) => k.startsWith("reply:")).map(([k, v]) => ({ id: k.slice(6), t: v && v.t, from: v && v.from ? "@" + v.from : undefined,
-    result: !v || !v.x ? "handled" : /^(skip|cap|dup|retry)$/.test(v.x) ? v.x : "replied", why: v && v.why })).sort((a, b) => (b.t || 0) - (a.t || 0)).slice(0, 12);
+    result: !v || !v.x ? "handled" : /^(skip|cap|dup|retry)$/.test(v.x) ? v.x : "replied", why: v && v.why, said: v && v.said })).sort((a, b) => (b.t || 0) - (a.t || 0)).slice(0, 12);
 }
 async function replyRun(origin, st, { dry = false, preview = false } = {}) {
   const results = [];
@@ -420,12 +439,12 @@ async function replyRun(origin, st, { dry = false, preview = false } = {}) {
     if (d.skip) {
       row.skip = d.skip;
       // a model hiccup isn't a verdict: tried again on the next runs (3 tries), then left
-      if (!preview && !dry) { const prev = st.sent["reply:" + m.id]; st.sent["reply:" + m.id] = d.retry ? { t: now(), x: "retry", n: ((prev && prev.n) || 0) + 1, why: d.skip, from: m.username } : { t: now(), x: "skip", why: d.skip, from: m.username }; }
+      if (!preview && !dry) { const prev = st.sent["reply:" + m.id], said = m.text.replace(/\s+/g, " ").slice(0, 120); st.sent["reply:" + m.id] = d.retry ? { t: now(), x: "retry", n: ((prev && prev.n) || 0) + 1, why: d.skip, from: m.username, said } : { t: now(), x: "skip", why: d.skip, from: m.username, said }; }
       results.push(row); continue;
     }
     row.reply = d.text;
     if (preview || dry) { row.dry = true; results.push(row); continue; }
-    if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap" }; results.push(row); continue; }
+    if ((st.replyDays[day] || 0) >= REPLY_DAY_CAP) { row.skip = "daily reply cap"; st.sent["reply:" + m.id] = { t: now(), x: "cap", from: m.username, said: m.text.replace(/\s+/g, " ").slice(0, 120) }; results.push(row); continue; }
     try {
       row.posted = await xPost(d.text, m.id);
       st.sent["reply:" + m.id] = { t: now(), x: row.posted || "" };
@@ -564,4 +583,4 @@ export async function GET(req) {
   if (enabled() && hasKeys()) { prune(st); await setDoc(STATE, stripTemp(st)); }
   return json(200, { enabled: enabled(), posts: postsOn(), firstRun, results, replies });
 }
-export const _test = { teamPosts, draftReply };
+export const _test = { teamPosts, draftReply, mentions };
