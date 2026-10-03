@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791038245"></script>
+<script src="arc-log.js?v=1791039438"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791038245">
+<link rel="stylesheet" href="style.css?v=1791039438">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -123,7 +123,7 @@
       <button type="button" class="bp-nav-item" data-tab="arcia"><svg><use href="#i-arcia" xlink:href="#i-arcia"/></svg>ARCIA<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="arcia402"><svg><use href="#i-a402" xlink:href="#i-a402"/></svg>ARCIA 402<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="mine"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
-      <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v bp-nav-new" data-no-i18n>Beta</em></button>
+      <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v2</em></button>
@@ -1475,7 +1475,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · ARCIA trades on Arc and Robinhood Chain</span>
-            <h1>ARCIA DESK <span class="asc-ver" title="Beta — the desk is learning">Beta<i>Learning every day</i></span></h1>
+            <h1>ARCIA DESK <span class="asc-ver" title="Version 3 — new features are added regularly">v3<i>Learning every day</i></span></h1>
             <p class="bp-lede">ARCIA trades new coins — Argus launches on Arc, new launches on Robinhood Chain — with her own small wallets and learns from every trade. Every buy and sell is an on-chain transaction, shown here the moment it happens — and on Arc, part of each day's new profit buys and burns $ARCIRCLE.</p>
           </div>
         </div>
@@ -1486,6 +1486,19 @@
           <details open><summary><h3>What is ARCIA DESK?</h3></summary>
             <p>ARCIA's own trading desk. She trades only coins that were just launched on Argus on Arc (Uniswap v4 pools paired with USDC), with a small wallet the team funds — about $100 to start. Every buy and sell is an Arc transaction listed on this page with its price, amount and result.</p>
             <p>The money sits in the ArciaDesk contract. Only ARCIA's trading key can trade with it, only the owner (the team's wallet) can withdraw, each buy and each day's buys are capped by limits the owner sets (shown in Rules, and can be lifted), and tokens can only leave by being sold for USDC, burned as $ARCIRCLE or withdrawn by the owner.</p>
+          </details>
+          <details><summary><h3>New in v3</h3></summary>
+            <ul>
+              <li>The switch at the top is the same pill as Orders and Predict, with a third side: Both — the Arc and Robinhood Chain desks side by side, their total in dollars and one live log.</li>
+              <li>"ARCIA right now" shows what the desk is doing: scanning new pools, the launch she is considering (with the checks this page can see — age, critical flags, links), what she holds, and her last move.</li>
+              <li>One status line: live or paper, the warm-up, when she last checked and a countdown to the next check. The ⓘ buttons explain the words (warm-up, paper, playbook, profit factor, Claude said no). The bell sends a browser notification when she buys, sells or burns.</li>
+              <li>Four headline numbers instead of eight: win rate with the average win, average loss and profit factor; best and worst; Claude's vetoes; $ARCIRCLE burned (or the profit in ETH). The rest is under More stats.</li>
+              <li>ARCIA's week: the last 7 days' profit, trades, wins and best trade, with her latest lessons — and a button that saves it as an image. Profit by day is a heat map: tap a day to see its trades.</li>
+              <li>Positions start with an exposure map: each open position by its size, coloured by how far it has gone toward its stop-loss or take-profit. Positions near the take-profit glow; each has a link to its market in ARCIRCLE Orders (to look, not a tip).</li>
+              <li>History switches between UTC and your own time and downloads as a CSV. A trade opens with why she sold, a button to ask ARCIA about it, and a share image. Tapping a playbook opens its own page: its profit curve, results, exits and last trades.</li>
+              <li>Watching, Passed on and the live log fold to their first rows ("Show all"); Passed on starts with how many she dodged and how many runs she missed. The burns card has a running-total chart; Rules lists the money put in and taken out.</li>
+              <li>Livelier: the desk value rolls when it changes, ARCIA's line types itself, she reacts to a buy, a win or a loss, the profit line ends in a live dot, and the section tabs have a sliding underline.</li>
+            </ul>
           </details>
           <details><summary><h3>ARCIA DESK on Robinhood Chain</h3></summary>
             <p>A second desk, switched at the top of this page: the same ARCIA, the same playbooks and learning, trading any new coin launched on Robinhood Chain — the new pairs Dexscreener lists there, from pools.trade, Bags, pons and others. She reads every new Uniswap v4 pool paired with ETH and every new v3 pool paired with WETH as it opens, plus Dexscreener's newest listings, and trades in that same pool.</p>
@@ -2133,6 +2146,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791038245"></script>
+<script src="arcpad.bundle.js?v=1791039438"></script>
 </body>
 </html>

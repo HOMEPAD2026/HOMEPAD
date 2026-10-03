@@ -30,7 +30,7 @@
   // the desk shown: Arc (USDC, Argus launches) or Robinhood Chain (ETH, new launches) — #desk / #desk?chain=rh
   const EXPL = (kind, x) => `${(S.d && S.d.net === "rh" && S.d.explorer) || (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
   const isRH = () => S.net === "rh";
-  const netFromHash = () => (/^#desk\?(?:.*&)?chain=rh\b/.test(location.hash) ? "rh" : /^#desk\b/.test(location.hash) && /chain=arc\b/.test(location.hash) ? "arc" : null);
+  const netFromHash = () => (/^#desk\?(?:.*&)?chain=rh\b/.test(location.hash) ? "rh" : /^#desk\?(?:.*&)?chain=both\b/.test(location.hash) ? "both" : /^#desk\b/.test(location.hash) && /chain=arc\b/.test(location.hash) ? "arc" : null);
   const api = (q = "") => "/api/desk" + (isRH() ? "?chain=rh" + (q ? "&" + q : "") : q ? "?" + q : "");
   const eth = (n, d = 4) => (n == null || !isFinite(n) ? "—" : (n < 0 ? "−" : "") + Math.abs(Number(n)).toLocaleString("en-US", { maximumFractionDigits: d }) + " ETH");
   const sgnEth = (n, d = 5) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : "") + eth(n, d));
@@ -50,10 +50,15 @@
   }
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m` : `${Math.floor(d / 86400)}d`; };
   const dur = (m) => (m == null ? "—" : m < 60 ? `${m}m` : m < 1440 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`);
-  const when = (s) => (s ? new Date(s * 1000).toISOString().slice(5, 16).replace("T", " ") : "—");
+  /// a time as MM-DD HH:MM — UTC, or the viewer's own time zone (History's UTC | Local switch)
+  const when = (s) => { if (!s) return "—"; if (S.tz !== "local") return new Date(s * 1000).toISOString().slice(5, 16).replace("T", " "); const d = new Date(s * 1000), z = (n) => String(n).padStart(2, "0"); return `${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; };
+  const TZ = () => (S.tz === "local" ? tr("local") : "UTC");
   const WHY = { early: "Early exit (fell right after the buy)", tp: "Take-profit", tp2: "Second take-profit (2×)", runner: "Runner trailing stop", lowcap: "Time limit at a low market cap", sl: "Stop-loss", trail: "Trailing stop", time: "Time limit", be: "Back to entry", emergency: "Emergency: critical flag", crash: "Emergency: price crash", unquotable: "Emergency: can't quote" };
   const PBCOL = { momentum: "#39ff88", pullback: "#4d9fff", breakout: "#ffc861", steady: "#b58bff", dexpaid: "#35d8d0", scalp: "#ff7ac4", dipdca: "#ff9b5a" };
-  const S = { net: "arc", d: null, booted: false, timer: 0, tab: "real", shown: {}, seenLog: null, hover: null, view: "overview", f: { pb: "all", res: "all" }, lastVal: {}, drawn: false, cd: 0 };
+  const S = { net: "arc", d: null, booted: false, timer: 0, tab: "real", shown: {}, seenLog: null, hover: null, view: "overview", f: { pb: "all", res: "all" }, lastVal: {}, drawn: false, cd: 0,
+    tz: (() => { try { return localStorage.getItem("dk-tz") === "local" ? "local" : "utc"; } catch { return "utc"; } })(), more: {}, both: null, calDay: null, lastSay: null };
+  const NK = "dk-notify";
+  const notifyOn = () => { try { return localStorage.getItem(NK) === "1"; } catch { return false; } };
   const AV = "/images/arcia-avatar-96.jpg";
   const dayOfTs = (s) => new Date(s * 1000).toISOString().slice(0, 10);
   const TIP = {
@@ -66,6 +71,7 @@
   const abbr = (k, label) => `<abbr class="dk-ab" title="${T(TIP[k])}">${esc(label)}</abbr>`;
 
   async function load() {
+    if (S.net === "both") return loadBoth();
     try {
       const net = S.net;
       const r = await fetch(api(), { cache: "no-store" });
@@ -79,42 +85,55 @@
   // ---------------- skeleton ----------------
   function frame() {
     const tab = (k, label) => `<button type="button" role="tab" data-dk-view="${k}" aria-selected="${S.view === k}">${T(label)}</button>`;
-    const nb = (k, label, sub) => `<button type="button" role="tab" data-dk-net="${k}" aria-selected="${S.net === k}"><b>${T(label)}</b><small>${T(sub)}</small></button>`;
+    // v3: the chain switch is the same pill as Orders / Predict, with a third side: both desks at once
+    const nb = (k, label, sub) => `<button type="button" role="radio" data-dk-net="${k}" aria-checked="${S.net === k}" aria-selected="${S.net === k}"><span class="aor-cdot ${k === "both" ? "both" : k}" aria-hidden="true"></span><span>${T(label)}</span><small>${T(sub)}</small></button>`;
+    const sw = `<div class="dk-chainrow"><div class="aor-chain three dk-chainsw" role="radiogroup" aria-label="${T("Which desk")}" data-chain="${S.net}"><i class="aor-chain-pill" aria-hidden="true"></i>${nb("arc", "Arc", "USDC")}${nb("rh", "Robinhood", "ETH")}${nb("both", "Both", "total")}</div>
+      <span class="dk-chainnote">${T(S.net === "both" ? "Both desks side by side, with their total in dollars." : S.net === "rh" ? "ETH · every new launch on Robinhood Chain · no $ARCIRCLE burn on this chain" : "USDC · new Argus launches · part of each day's new profit burns $ARCIRCLE")}</span></div>`;
+    if (S.net === "both") {
+      $("dk-body").innerHTML = `${sw}<div class="dk-both" id="dk-both"><div class="dk-skel dk-skel-h"><i></i><i></i><i></i></div></div><div class="dk-pop" id="dk-pop" hidden role="tooltip"></div>`;
+      wireSwitch();
+      return;
+    }
     $("dk-body").innerHTML = `
-      <div class="dk-net" role="tablist" aria-label="${T("Which desk")}">${nb("arc", "Arc", "USDC · Argus launches")}${nb("rh", "Robinhood Chain", "ETH · new launches")}</div>
+      ${sw}
       <div class="dk-health" id="dk-health" hidden></div>
-      <div class="dk-hero2" id="dk-hero2"></div>
+      <div class="dk-hero2" id="dk-hero2"><div class="dk-skel dk-skel-h"><i></i><i></i><i></i></div></div>
       <div class="dk-status" id="dk-status"></div>
       <div class="dk-sum" id="dk-sum"></div>
-      <div class="dk-nav" role="tablist" aria-label="${T("ARCIA DESK sections")}">${tab("overview", "Overview")}${tab("positions", "Positions")}${tab("history", "History")}${tab("playbooks", "Playbooks")}${tab("learning", "Learning")}${tab("rules", "Rules")}</div>
+      <div class="dk-nav" role="tablist" aria-label="${T("ARCIA DESK sections")}">${tab("overview", "Overview")}${tab("positions", "Positions")}${tab("history", "History")}${tab("playbooks", "Playbooks")}${tab("learning", "Learning")}${tab("rules", "Rules")}<i class="dk-nav-ind" aria-hidden="true"></i></div>
       <div class="dk-view" data-view="overview">
         <div class="dk-kpis" id="dk-kpis"><div class="dk-skel"><i></i><i></i><i></i><i></i></div></div>
+        <details class="dk-more" id="dk-more"><summary>${T("More stats")}</summary><div class="dk-kpis dk-kpis-more" id="dk-kpis2"></div></details>
         <div class="dk-grid">
           <div class="dk-main">
             <div class="ams-card dk-eqc"><div class="dk-h"><h3>${T("Profit over time")}</h3><span class="dk-sub" id="dk-eq-sub"></span></div><div class="dk-eq" id="dk-eq"></div><div class="dk-dd" id="dk-dd"></div></div>
+            <div class="ams-card dk-weekc"><div class="dk-h"><h3>${T("ARCIA's week")}</h3><span class="dk-sub">${T("the last 7 days, real money")}</span></div><div id="dk-week"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Profit by day")}</h3><span class="dk-sub">${T("UTC days, real money")}</span></div><div id="dk-cal"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Live log")}</h3><span class="dk-sub">${T("buys, sells and burns, on-chain")}</span></div><div id="dk-log"></div></div>
           </div>
           <div class="dk-side">
+            <div class="ams-card dk-nowc"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("ARCIA right now")}</h3><span class="dk-sub">${T("what the desk is doing")}</span></div><div id="dk-now"></div></div>
             <div class="ams-card dk-riskc"><div class="dk-h"><h3>${T("Risk now")}</h3><span class="dk-sub">${T("how much a buy spends, and why")}</span></div><div id="dk-risk"></div></div>
-            <div class="ams-card"><div class="dk-h"><h3>${T("Better than taking every setup?")}</h3></div><div id="dk-base"></div></div>
-            <div class="ams-card"><div class="dk-h"><h3 class="dk-radar-h"><i class="dk-radar" aria-hidden="true"></i>${T("Watching now")}</h3><span class="dk-sub">${T(isRH() ? "new Robinhood Chain launches" : "new Argus launches")}</span></div><div id="dk-watch"></div></div>
+            <div class="ams-card"><div class="dk-h"><h3>${T("Watching now")}</h3><span class="dk-sub">${T(isRH() ? "new Robinhood Chain launches" : "new Argus launches")}</span></div><div id="dk-watch"></div></div>
             <div class="ams-card"><div class="dk-h"><h3>${T("Passed on")}</h3><span class="dk-sub" id="dk-rej-sub">${T("and what happened next")}</span></div><div id="dk-rej"></div></div>
-            <div class="ams-card"${isRH() ? " hidden" : ""}><div class="dk-h"><h3>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
+            <div class="ams-card"><div class="dk-h"><h3>${T("Better than taking every setup?")}</h3></div><div id="dk-base"></div></div>
+            <div class="ams-card dk-burnc"${isRH() ? " hidden" : ""}><div class="dk-h"><h3><i class="dk-flame-h" aria-hidden="true"></i>${T("$ARCIRCLE burns")}</h3></div><div id="dk-burns"></div></div>
           </div>
         </div>
       </div>
       <div class="dk-view" data-view="positions" hidden>
+        <div class="ams-card dk-expc"><div class="dk-h"><h3>${T("Exposure map")}</h3><span class="dk-sub">${T("each open position: its size, and how close it is to its stop-loss or take-profit")}</span></div><div id="dk-exp"></div></div>
         <div class="ams-card"><div class="dk-h"><h3>${T("Open positions")}</h3><span class="dk-live"><i></i>${T("Live")}</span></div><div id="dk-open"></div></div>
       </div>
       <div class="dk-view" data-view="history" hidden>
         <div class="ams-card"><div class="dk-h"><h3>${T("Trade history")}</h3>
-          <div class="dk-tabs" role="tablist"><button type="button" role="tab" data-dk-tab="real">${T("Real")}</button><button type="button" role="tab" data-dk-tab="paper">${T("Paper")}</button></div></div>
+          <div class="dk-tabs" role="tablist"><button type="button" role="tab" data-dk-tab="real">${T("Real")}</button><button type="button" role="tab" data-dk-tab="paper">${T("Paper")}</button></div>
+          <div class="dk-hacts"><span class="dk-tz" role="radiogroup" aria-label="${T("Time zone")}"><button type="button" role="radio" data-dk-tz="utc" aria-checked="${S.tz !== "local"}" data-no-i18n>UTC</button><button type="button" role="radio" data-dk-tz="local" aria-checked="${S.tz === "local"}">${T("Local")}</button></span><button type="button" class="dk-csv" data-dk-csv>${T("Download CSV")}</button></div></div>
           <div class="dk-filt" id="dk-filt"></div>
           <div id="dk-hist"></div></div>
       </div>
       <div class="dk-view" data-view="playbooks" hidden>
-        <div class="ams-card"><div class="dk-h"><h3>${T("Playbook leaderboard")}</h3><span class="dk-sub">${T("real money, every cost included")}</span></div><div id="dk-board"></div></div>
+        <div class="ams-card"><div class="dk-h"><h3>${T("Playbook leaderboard")}</h3><span class="dk-sub">${T("real money, every cost included · tap a playbook for its details")}</span></div><div id="dk-board"></div></div>
         <div class="dk-grid dk-grid2">
           <div class="ams-card"><div class="dk-h"><h3>${T("Results by trade size")}</h3><span class="dk-sub">${T("real trades, in dollars")}</span></div><div id="dk-coh"></div></div>
           <div class="ams-card"><div class="dk-h"><h3>${T("Pump scalp exits, replayed")}</h3><span class="dk-sub">${T("average return per trade")}</span></div><div id="dk-grid"></div></div>
@@ -131,11 +150,13 @@
       </div>
       <div class="dk-view" data-view="rules" hidden>
         <div class="ams-card dk-proofc"><div class="dk-h"><h3>${T("On-chain check")}</h3><span class="dk-sub">${T("the desk contract, read just now")}</span></div><div id="dk-proof"></div></div>
+        <div class="ams-card"><div class="dk-h"><h3>${T("Money in and out")}</h3><span class="dk-sub">${T("deposits and withdrawals, never counted as profit or loss")}</span></div><div id="dk-flows"></div></div>
         <div class="ams-card dk-rules" id="dk-rules"></div>
       </div>
       <div class="dk-toasts" id="dk-toasts" aria-live="polite"></div>
+      <div class="dk-pop" id="dk-pop" hidden role="tooltip"></div>
       <div class="dk-drawer" id="dk-drawer" hidden><div class="dk-dr-bg" data-dk-close></div><aside class="dk-dr" role="dialog" aria-modal="true" aria-label="${T("Trade details")}"><button type="button" class="dk-dr-x" data-dk-close aria-label="${T("Close")}">×</button><div id="dk-dr-body"></div></aside></div>`;
-    panel.querySelector(".dk-net").addEventListener("click", (e) => { const b = e.target.closest("[data-dk-net]"); if (b) switchNet(b.dataset.dkNet, true); });
+    wireSwitch();
     panel.querySelector(".dk-nav").addEventListener("click", (e) => {
       const b = e.target.closest("[data-dk-view]");
       if (!b) return;
@@ -144,13 +165,18 @@
       showView();
       // when the tab bar is stuck to the top, bring the new section's start into view just under it
       const nav = panel.querySelector(".dk-nav"), v = panel.querySelector(`.dk-view[data-view="${S.view}"]`);
-      const nb = nav.getBoundingClientRect(), vt = v.getBoundingClientRect().top;
-      if (vt < nb.bottom) window.scrollBy({ top: vt - nb.bottom - 10, behavior: reduce ? "auto" : "smooth" });
+      const nb2 = nav.getBoundingClientRect(), vt = v.getBoundingClientRect().top;
+      if (vt < nb2.bottom) window.scrollBy({ top: vt - nb2.bottom - 10, behavior: reduce ? "auto" : "smooth" });
     });
     panel.querySelector(".dk-tabs").addEventListener("click", (e) => {
       const b = e.target.closest("[data-dk-tab]");
       if (!b) return;
       S.tab = b.dataset.dkTab; hist();
+    });
+    panel.querySelector(".dk-hacts").addEventListener("click", (e) => {
+      const z = e.target.closest("[data-dk-tz]");
+      if (z) { S.tz = z.dataset.dkTz; try { localStorage.setItem("dk-tz", S.tz); } catch { /* fine */ } panel.querySelectorAll("[data-dk-tz]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.dkTz === S.tz))); paint(); return; }
+      if (e.target.closest("[data-dk-csv]")) csv();
     });
     $("dk-filt").addEventListener("change", (e) => { const k = e.target.dataset.f; if (k) { S.f[k] = e.target.value; hist(); } });
     $("dk-hist").addEventListener("click", (e) => {
@@ -159,9 +185,11 @@
       if (r) openTrade(r.dataset.dkTrade);
     });
     $("dk-hist").addEventListener("keydown", (e) => { const r = e.target.closest("[data-dk-trade]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openTrade(r.dataset.dkTrade); } });
-    $("dk-drawer").addEventListener("click", (e) => { if (e.target.closest("[data-dk-close]")) closeTrade(); });
-    $("dk-toasts").addEventListener("click", (e) => { const b = e.target.closest("[data-dk-goto]"); if (!b) return; const nb = panel.querySelector(`[data-dk-view="${b.dataset.dkGoto}"]`); if (nb) nb.click(); b.closest(".dk-toast").remove(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("dk-drawer").hidden) closeTrade(); });
+    $("dk-board").addEventListener("click", (e) => { const r = e.target.closest("[data-dk-pb]"); if (r) openPb(r.dataset.dkPb); });
+    $("dk-board").addEventListener("keydown", (e) => { const r = e.target.closest("[data-dk-pb]"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openPb(r.dataset.dkPb); } });
+    $("dk-drawer").addEventListener("click", (e) => { if (e.target.closest("[data-dk-close]")) closeTrade(); const a = e.target.closest("[data-dk-ask]"); if (a) askArcia(a.dataset.dkAsk); const sh = e.target.closest("[data-dk-share]"); if (sh) shareTrade(); });
+    $("dk-toasts").addEventListener("click", (e) => { const b = e.target.closest("[data-dk-goto]"); if (!b) return; const nb2 = panel.querySelector(`[data-dk-view="${b.dataset.dkGoto}"]`); if (nb2) nb2.click(); b.closest(".dk-toast").remove(); });
+    if (!S.keyed) { S.keyed = true; document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("dk-drawer") && !$("dk-drawer").hidden) closeTrade(); if (e.key === "Escape") pop(null); }); }
     const eq = $("dk-eq");
     eq.addEventListener("pointermove", (e) => { const r = eq.getBoundingClientRect(); S.hover = (e.clientX - r.left) / r.width; chart(); });
     eq.addEventListener("pointerleave", () => { S.hover = null; chart(); });
@@ -172,21 +200,84 @@
       const head = document.querySelector(".bp-topbar") || document.querySelector(".ax-top");
       const top = el && el !== document.body ? 0 : head ? Math.round(head.getBoundingClientRect().height) + 6 : 8;
       panel.style.setProperty("--dk-sticky", top + "px");
+      navInd();
     };
     setTop(); window.addEventListener("resize", setTop);
     showView();
+  }
+  /// the chain pill, the "show more" buttons, the ⓘ popovers and the notify bell — wired once per frame
+  function wireSwitch() {
+    const sw = panel.querySelector(".dk-chainsw");
+    if (sw) sw.addEventListener("click", (e) => { const b = e.target.closest("[data-dk-net]"); if (b) switchNet(b.dataset.dkNet, true); });
+    if (S.bodyWired) return;
+    S.bodyWired = true; // #dk-body stays the same element across frames: one listener for all of them
+    $("dk-body").addEventListener("click", (e) => {
+      const m = e.target.closest("[data-dk-more]");
+      if (m) { const k = m.dataset.dkMore; S.more[k] = !S.more[k]; if (k === "both") paintBoth(); else if (S.d) ({ watch, rej, log: logRows })[k](S.d); return; }
+      const i = e.target.closest("[data-dk-info]");
+      if (i) { e.stopPropagation(); pop(i); return; }
+      const n = e.target.closest("[data-dk-notify]");
+      if (n) { toggleNotify(); return; }
+      const c = e.target.closest("[data-dk-cal]");
+      if (c) { S.calDay = S.calDay === c.dataset.dkCal ? null : c.dataset.dkCal; calendar(S.d); return; }
+      const w = e.target.closest("[data-dk-weekimg]");
+      if (w) { weekImage(); return; }
+      const o = e.target.closest("[data-dk-open]");
+      if (o) { switchNet(o.dataset.dkOpen, true); return; }
+    });
+  }
+  /// the sliding underline under the selected section tab
+  function navInd() {
+    const nav = panel.querySelector(".dk-nav"), ind = nav && nav.querySelector(".dk-nav-ind"), b = nav && nav.querySelector('[aria-selected="true"]');
+    if (!ind || !b) return;
+    ind.style.width = b.offsetWidth + "px"; ind.style.transform = `translateX(${b.offsetLeft}px)`;
+  }
+  // ---------------- v3: ⓘ — what a word on this page means ----------------
+  const INFO = {
+    warmup: "Warm-up: her first 25 real trades are small, on every setup that passes the safety gates, so she learns fast.",
+    paper: "Paper: a practice trade — priced and closed like a real one, but no money moves. Paper results count half in what she learns.",
+    playbook: "Playbook: one kind of setup she trades (a launch's early momentum, a pullback, a breakout…), each with its own exits.",
+    veto: "Claude said no: before every real buy a second opinion from Claude can only stop it, never start one.",
+    pf: "Profit factor: what the winning trades made ÷ what the losing ones lost. Above 1 makes money, under 1 loses it.",
+    next: "She checks the market every minute; this is when the next check is due.",
+  };
+  const info = (k) => `<button type="button" class="dk-i" data-dk-info="${k}" aria-label="${T("What's this?")}">i</button>`;
+  function pop(btn) {
+    const el = $("dk-pop"); if (!el) return;
+    if (!btn || S.popFor === btn) { el.hidden = true; S.popFor = null; return; }
+    S.popFor = btn; S.popAt = Date.now();
+    el.textContent = tr(INFO[btn.dataset.dkInfo] || "");
+    el.hidden = false;
+    const r = btn.getBoundingClientRect(), w = Math.min(300, innerWidth - 24);
+    el.style.width = w + "px";
+    el.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + "px";
+    el.style.top = r.bottom + 8 + "px";
+  }
+  document.addEventListener("click", (e) => { if (S.popFor && !e.target.closest("[data-dk-info]") && !e.target.closest("#dk-pop")) pop(null); });
+  window.addEventListener("scroll", () => { if (S.popFor && Date.now() - (S.popAt || 0) > 500) pop(null); }, { passive: true });
+  // ---------------- v3: tell me when ARCIA trades (this browser) ----------------
+  function toggleNotify() {
+    const on = !notifyOn();
+    try { localStorage.setItem(NK, on ? "1" : "0"); } catch { /* fine */ }
+    if (on && "Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch { /* fine */ } }
+    if (S.d) status(S.d);
+  }
+  function notify(text) {
+    if (!notifyOn() || !("Notification" in window) || Notification.permission !== "granted" || !document.hidden) return;
+    try { new Notification("ARCIA DESK", { body: text, icon: AV }); } catch { /* fine */ }
   }
   function showView() {
     panel.querySelectorAll("[data-dk-view]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.dkView === S.view)));
     panel.querySelectorAll(".dk-view").forEach((v) => { const on = v.dataset.view === S.view; v.hidden = !on; if (on && !reduce) { v.classList.remove("dk-vin"); void v.offsetWidth; v.classList.add("dk-vin"); } });
     if (S.view === "overview") { S.drawn = false; chart(); }
+    navInd();
   }
 
   // ---------------- paint ----------------
   function paint() {
     const d = S.d;
     if (!d) return;
-    health(d); hero(d); status(d); summary(d); riskCard(d); cohorts(d); replayGrid(d); kpis(d); chart(); calendar(d); baseline(d); openPos(d); filters(d); hist(); logRows(d); board(d); learning(d); journal(d); reviewsCard(d); watch(d); rej(d); burns(d); proof(d); rules(d); toasts(d);
+    health(d); hero(d); status(d); summary(d); nowCard(d); riskCard(d); cohorts(d); replayGrid(d); kpis(d); chart(); weekCard(d); calendar(d); baseline(d); exposure(d); openPos(d); filters(d); hist(); logRows(d); board(d); learning(d); journal(d); reviewsCard(d); watch(d); rej(d); burns(d); proof(d); flows(d); rules(d); toasts(d);
   }
   const staleMin = (d) => (d && d.updated ? Math.floor((Date.now() / 1000 - d.updated) / 60) : null);
   function health(d) {
@@ -217,21 +308,43 @@
     if (rk.n >= 8 && rk.pf != null && rk.pf !== "inf" && rk.pf < 1) return "My recent trades are slightly down — half size until they recover.";
     return "Trading real money, every trade on-chain";
   }
+  /// a number whose changed digits roll in (the hero's desk value)
+  function rollTxt(key, txt, up) {
+    const prev = S.rolled && S.rolled[key];
+    S.rolled = S.rolled || {}; S.rolled[key] = txt;
+    if (reduce || prev == null || prev === txt) return esc(txt);
+    let i = 0; while (i < txt.length && txt[i] === prev[i]) i++;
+    return esc(txt.slice(0, i)) + [...txt.slice(i)].map((c, k) => `<span class="dk-rl ${up ? "up" : "dn"}" style="animation-delay:${k * 35}ms">${esc(c)}</span>`).join("");
+  }
+  /// her line types itself out when it changes
+  function typeSay(el, text) {
+    if (!el) return;
+    if (reduce || S.lastSay === text) { el.textContent = text; S.lastSay = text; return; }
+    S.lastSay = text; el.textContent = ""; el.classList.add("typing");
+    let i = 0; clearInterval(S.typeT);
+    S.typeT = setInterval(() => { i += 2; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(S.typeT); el.classList.remove("typing"); } }, 18);
+  }
   function hero(d) {
     const [mk, ml] = mood(d), live = d.mode === "live", m = d.money;
     const pts = (d.equity || []).slice(-60), ys = pts.map((p) => p[2]);
     let spark = "";
     if (ys.length > 1) {
-      const lo = Math.min(...ys), hi = Math.max(...ys), W = 160, H = 40;
-      const X = (i) => (i / (ys.length - 1)) * W, Y = (v) => H - 3 - ((v - lo) / (hi - lo || 1)) * (H - 6);
-      spark = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path class="${ys[ys.length - 1] >= ys[0] ? "up" : "dn"}" d="${ys.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("")}"/></svg>`;
+      // v3: the zero line (deposits back, no profit) and where it is now
+      const lo = Math.min(0, ...ys), hi = Math.max(0, ...ys), W = 160, H = 44;
+      const X = (i) => (i / (ys.length - 1)) * (W - 6), Y = (v) => H - 4 - ((v - lo) / (hi - lo || 1)) * (H - 8);
+      const up = ys[ys.length - 1] >= 0;
+      spark = `<svg class="dk-hspark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line class="z" x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/><path class="${up ? "up" : "dn"}" d="${ys.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("")}"/><circle class="${up ? "up" : "dn"}" cx="${X(ys.length - 1).toFixed(1)}" cy="${Y(ys[ys.length - 1]).toFixed(1)}" r="3"/></svg><small class="dk-hspark-l" data-no-i18n>${esc(when(pts[0][0]))} → ${esc(tr("now"))}</small>`;
     }
     const need = live && m.hwm != null ? Math.max(0, (m.hwm || 0) + 0.5 - (m.pnl || 0)) : null;
+    const prevEq = S.heroEq; S.heroEq = live ? m.equity : null;
+    const eqTxt = live ? usd(m.equity) : "—";
+    const av = $("dk-hero2").querySelector(".dk-av");
     $("dk-hero2").innerHTML = `
-      <div class="dk-av dk-m-${mk}"><img src="${AV}" alt="" width="64" height="64" loading="lazy"><i></i></div>
-      <div class="dk-hero-t"><small>${T("ARCIA at her desk")}</small><b>${T(ml)}</b><span class="dk-say">${T(say(d))}</span></div>
-      <div class="dk-hero-v"><small>${T("Desk value")}</small><b data-no-i18n>${live ? usd(m.equity) : "—"}</b><em class="${cls(m.pnl)}" data-no-i18n>${live ? `${sgnUsd(m.pnl)} ${m.pnlPct != null ? "(" + pc(m.pnlPct) + ")" : ""}` : ""}</em>${spark}</div>
-      ${d.net === "rh" ? `<div class="dk-hero-b"><small>${T("In ETH")}</small><span><b data-no-i18n>${live ? eth(m.equityEth) : "—"}</b></span><em>${live ? `<span class="${cls(m.pnlEth)}" data-no-i18n>${sgnEth(m.pnlEth)}</span> · ` : ""}${T("ETH at")} <span data-no-i18n>${d.ethUsd ? usd(d.ethUsd) : "—"}</span></em></div>` : `<div class="dk-hero-b"><small>${T("Next $ARCIRCLE burn")}</small>${need == null ? `<span>${T("after the first profitable day")}</span>` : need <= 0 ? `<span class="up">${T("due at the next daily run")}</span>` : `<span><b data-no-i18n>+${usd(need)}</b> ${T("more profit to go")}</span>`}<em>${T("share of new profit above her best level")}: <span data-no-i18n>${d.rules.risk.burnPct}%</span></em></div>`}`;
+      <div class="dk-av dk-m-${mk}${av && av.classList.contains("dk-react") ? " dk-react" : ""}"><img src="${AV}" alt="" width="64" height="64" loading="lazy"><i></i></div>
+      <div class="dk-hero-t"><small>${T("ARCIA at her desk")}</small><b>${T(ml)}</b><span class="dk-say"></span></div>
+      <div class="dk-hero-v"><small>${T("Desk value")}</small><b data-no-i18n>${live ? rollTxt("eq", eqTxt, prevEq == null || m.equity >= prevEq) : "—"}</b><em class="${cls(m.pnl)}" data-no-i18n>${live ? `${sgnUsd(m.pnl)} ${m.pnlPct != null ? "(" + pc(m.pnlPct) + ")" : ""}` : ""}</em>${spark}</div>
+      ${d.net === "rh" ? `<div class="dk-hero-b"><small>${T("In ETH")}</small><span><b data-no-i18n>${live ? eth(m.equityEth) : "—"}</b></span><em>${live ? `<span class="${cls(m.pnlEth)}" data-no-i18n>${sgnEth(m.pnlEth)}</span> · ` : ""}${T("ETH at")} <span data-no-i18n>${d.ethUsd ? usd(d.ethUsd) : "—"}</span></em><em class="dk-noburn">${T("No $ARCIRCLE burn on this chain")}</em></div>` : `<div class="dk-hero-b"><small>${T("Next $ARCIRCLE burn")}</small>${need == null ? `<span>${T("after the first profitable day")}</span>` : need <= 0 ? `<span class="up">${T("due at the next daily run")}</span>` : `<span><b data-no-i18n>+${usd(need)}</b> ${T("more profit to go")}</span>`}<em>${T("share of new profit above her best level")}: <span data-no-i18n>${d.rules.risk.burnPct}%</span></em></div>`}`;
+    typeSay($("dk-hero2").querySelector(".dk-say"), tr(say(d)));
     // a scan line across the hero each time a new run lands
     const h = $("dk-hero2");
     if (!reduce && S.lastUpd != null && d.updated !== S.lastUpd) { h.classList.remove("dk-scan"); void h.offsetWidth; h.classList.add("dk-scan"); }
@@ -303,16 +416,21 @@
         return `<td class="${v >= 0 ? "up" : "dn"}${k}" style="--a:${(0.12 + a * 0.6).toFixed(2)}" title="TP +${tp}% · SL −${sl}% · ${pc(v)}" data-no-i18n>${pc(v)}</td>`; }).join("")}</tr>`).join("") + `</tbody></table></div>
       <p class="dk-small"><span data-no-i18n>${g.n}</span> ${T("recent pump scalps (real and paper), replayed with a plain take-profit and stop-loss, no runner.")} <span class="dk-rg-k cur"></span>${T("current exits")} <span class="dk-rg-k best"></span>${T("best in the grid")}</p>`;
   }
+  /// when the next minute's check is due: "0:42", or "any moment"
+  const nextIn = (ts) => { const s = Math.round(ts - Date.now() / 1000); return s > 0 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : tr("any moment"); };
   function status(d) {
     const live = d.mode === "live";
     const reason = !live && /\(/.test(d.mode) ? d.mode.replace(/^paper \(|\)$/g, "") : "";
-    const w = d.learn.warmup;
+    const w = d.learn.warmup, nx = (d.updated || 0) + 60;
+    const bell = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>';
+    // v3: one line — mode, warm-up, last check and the next, the contract, and the bell
     $("dk-status").innerHTML = `
-      <span class="dk-mode ${live ? "on" : ""}"><i></i>${live ? T("Live — real trades") : T("Paper — practising, no money moves")}</span>
+      <span class="dk-mode ${live ? "on" : ""}"><i></i>${live ? T("Live — real trades") : T("Paper — practising, no money moves")}${live ? "" : info("paper")}</span>
       ${reason ? `<span class="dk-note">${T(reason)}</span>` : ""}
-      <span class="dk-chip">${T("Warm-up")} <b data-no-i18n>${w.done}/${w.need}</b></span>
-      <span class="dk-chip">${T("Updated")} <b data-no-i18n>${ago(d.updated)}</b></span>
-      ${d.desk ? `<a class="dk-chip dk-addr" href="${EXPL("address", d.desk)}" target="_blank" rel="noopener">${T("Desk contract")} <b data-no-i18n>${short(d.desk)} ↗</b></a>` : ""}`;
+      <span class="dk-chip">${T("Warm-up")} <b data-no-i18n>${w.done}/${w.need}</b>${info("warmup")}</span>
+      <span class="dk-chip">${T("Checked")} <b data-no-i18n>${ago(d.updated)}</b> · ${T("next")} <b data-no-i18n data-dk-next="${nx}">${nextIn(nx)}</b>${info("next")}</span>
+      ${d.desk ? `<a class="dk-chip dk-addr" href="${EXPL("address", d.desk)}" target="_blank" rel="noopener">${T("Desk contract")} <b data-no-i18n>${short(d.desk)} ↗</b></a>` : ""}
+      <button type="button" class="dk-chip dk-bell${notifyOn() ? " on" : ""}" data-dk-notify aria-pressed="${notifyOn()}" title="${T("A browser notification when ARCIA buys, sells or burns (while this tab is open)")}">${bell}<span>${T(notifyOn() ? "Alerts on" : "Alert me")}</span></button>`;
   }
   function countUp(el, key, to, fmt) {
     const from = S.shown[key];
@@ -324,28 +442,37 @@
     const box = el.closest(".dk-kpi");
     if (box) { box.classList.remove("dk-flash-up", "dk-flash-dn"); void box.offsetWidth; box.classList.add(to >= from ? "dk-flash-up" : "dk-flash-dn"); }
   }
+  /// real trades' average win, average loss and profit factor (what a win rate alone hides)
+  function realEdge(d) {
+    const r = (d.recent || []).filter((x) => x.real && x.pnl != null);
+    const w = r.filter((x) => x.pnl > 0), l = r.filter((x) => x.pnl <= 0);
+    const gw = w.reduce((t, x) => t + x.pnl, 0), gl = -l.reduce((t, x) => t + x.pnl, 0);
+    return { n: r.length, avgWin: w.length ? w.reduce((t, x) => t + x.ret, 0) / w.length : null, avgLoss: l.length ? l.reduce((t, x) => t + x.ret, 0) / l.length : null, pf: gl > 0 ? gw / gl : w.length ? Infinity : null };
+  }
   function kpis(d) {
     const m = d.money, s = d.stats;
     const live = d.mode === "live";
-    const today = (d.daily || []).find((x) => x.day === dayOfTs(Date.now() / 1000));
     const c = s.cost || { usd: 0, n: 0 };
-    const tile = (key, label, val, sub, extra = "") => `<div class="dk-kpi ${extra}"><small>${T(label)}</small><b data-no-i18n data-k="${key}">—</b><span>${sub}</span></div>`;
+    const ed = realEdge(d), wk = s.week || null;
+    const tile = (key, label, sub, extra = "", inf = "") => `<div class="dk-kpi ${extra}"><small>${T(label)}${inf}</small><b data-no-i18n data-k="${key}">—</b><span>${sub}</span></div>`;
+    // v3: four tiles (the desk's value and its profit are in the hero and the line above) — the rest under "More stats"
     $("dk-kpis").innerHTML =
-      tile("eq", "Desk value", 0, live ? `${T("cash")} <em data-no-i18n>${usd(m.cash)}</em> · ${T("put in")} <em data-no-i18n>${usd(m.netIn)}</em>` : T("starts when the desk is funded")) +
-      tile("pnl", "Profit / loss", 0, `<span data-no-i18n>${live && m.pnlPct != null ? pc(m.pnlPct) : ""}</span>`, cls(m.pnl)) +
-      tile("today", "Today", 0, `${T("UTC day")}`, cls(today && today.pnl)) +
-      tile("win", "Win rate (real)", 0, `${s.realClosed} ${T("real")} · ${s.paperClosed} ${T("paper")} · ${T("avg")} <em data-no-i18n>${pc(s.avgRet)}</em>`) +
-      tile("cost", "Trading costs", 0, c.n ? `${T("taxes and price impact on")} <em data-no-i18n>${c.n}</em> ${T("trades")}` : T("counted from the next trade")) +
-      tile("best", "Best / worst", 0, s.best ? `<span data-no-i18n>${esc(s.best.sym)} ${pc(s.best.ret)} · ${esc(s.worst.sym)} ${pc(s.worst.ret)}</span>` : "—") +
-      tile("veto", "Claude said no", 0, T("real buys stopped by the second opinion")) +
-      (d.net === "rh" ? tile("ethp", "Profit in ETH", 0, `${T("put in")} <em data-no-i18n>${eth(m.netInEth)}</em> · ${T("ETH's own price moves left out")}`, cls(m.pnlEth))
-        : tile("burn", "$ARCIRCLE burned", 0, `${T("bought with")} <em data-no-i18n>${usd(m.burnedUsd || 0)}</em> ${T("of profit")}`, "dk-burn"));
+      tile("win", "Win rate (real)", `<span data-no-i18n>${s.realClosed}</span> ${T("real")} · ${T("avg win")} <em class="up" data-no-i18n>${pc(ed.avgWin)}</em> · ${T("avg loss")} <em class="dn" data-no-i18n>${pc(ed.avgLoss)}</em> · PF <em class="${ed.pf != null && ed.pf >= 1 ? "up" : "dn"}" data-no-i18n>${ed.pf == null ? "—" : ed.pf === Infinity ? "∞" : ed.pf.toFixed(2)}</em>`, "", info("pf")) +
+      tile("best", "Best / worst", s.best ? `<span data-no-i18n>${esc(s.best.sym)} ${pc(s.best.ret)} · ${esc(s.worst.sym)} ${pc(s.worst.ret)}</span>` : "—") +
+      tile("veto", "Claude said no", T("real buys stopped by the second opinion"), "", info("veto")) +
+      (d.net === "rh" ? tile("ethp", "Profit in ETH", `${T("put in")} <em data-no-i18n>${eth(m.netInEth)}</em> · ${T("ETH's own price moves left out")}`, cls(m.pnlEth))
+        : tile("burn", "$ARCIRCLE burned", `${T("bought with")} <em data-no-i18n>${usd(m.burnedUsd || 0)}</em> ${T("of profit")}`, "dk-burn"));
+    $("dk-kpis2").innerHTML =
+      tile("eq", "Desk value", live ? `${T("cash")} <em data-no-i18n>${usd(m.cash)}</em> · ${T("put in")} <em data-no-i18n>${usd(m.netIn)}</em>` : T("starts when the desk is funded")) +
+      tile("cost", "Trading costs", c.n ? `${T("taxes and price impact on")} <em data-no-i18n>${c.n}</em> ${T("trades")}` : T("counted from the next trade")) +
+      tile("week", "This week", wk ? `<span data-no-i18n>${wk.n}</span> ${T("real trades")} · <span data-no-i18n>${wk.wins}</span> ${T("wins")}` : "—", cls(wk && wk.pnl)) +
+      tile("paper", "Paper results", `<span data-no-i18n>${s.paperClosed}</span> ${T("paper trades")} · ${T("avg")} <em data-no-i18n>${pc(s.paperAvg)}</em>`, "", info("paper"));
     const put = (k, v, fmt) => { const el = panel.querySelector(`[data-k="${k}"]`); if (el) countUp(el, k, v, fmt); };
     put("eq", live ? m.equity : null, (v) => (live ? usd(v) : "—"));
-    put("pnl", live ? m.pnl : null, (v) => (live ? sgnUsd(v) : "—"));
-    put("today", today ? today.pnl : null, (v) => (v == null ? "—" : sgnUsd(v)));
     put("win", s.winRate, (v) => (v == null ? "—" : v.toFixed(1) + "%"));
     put("cost", c.n ? c.usd : null, (v) => (v == null ? "—" : usd(v)));
+    put("week", wk ? wk.pnl : null, (v) => (v == null ? "—" : sgnUsd(v)));
+    put("paper", s.paperWinRate, (v) => (v == null ? "—" : v.toFixed(1) + "%"));
     const bestEl = panel.querySelector('[data-k="best"]'); if (bestEl) bestEl.textContent = s.best ? pc(s.best.ret) : "—";
     put("veto", s.vetoes || 0, (v) => String(Math.round(v)));
     if (d.net === "rh") { const el = panel.querySelector('[data-k="ethp"]'); if (el) el.textContent = live ? sgnEth(m.pnlEth) : "—"; }
@@ -355,7 +482,7 @@
     const d = S.d, el = $("dk-eq");
     if (!d || !el) return;
     const pts = d.equity || [];
-    $("dk-eq-sub").textContent = pts.length ? `${tr("profit after deposits, since")} ${when(pts[0][0])} UTC` : "";
+    $("dk-eq-sub").textContent = pts.length ? `${tr("profit after deposits, since")} ${when(pts[0][0])} ${TZ()}` : "";
     if (pts.length < 2) { el.innerHTML = `<div class="dk-empty-s">${T("The chart starts with the first funded tick.")}</div>`; return; }
     const W = 640, H = 190, P = { l: 8, r: 8, t: 14, b: 22 };
     // the line is profit / loss (deposits and withdrawals don't move it); the hover also shows the desk's value
@@ -371,7 +498,7 @@
       let k = 0; for (let i = 0; i < xs.length; i++) if (Math.abs(xs[i] - tx) < Math.abs(xs[k] - tx)) k = i;
       const cx = X(xs[k]), cy = Y(ys[k]);
       tip = `<line class="dk-cross" x1="${cx}" x2="${cx}" y1="${P.t}" y2="${H - P.b}"/><circle class="dk-dot" cx="${cx}" cy="${cy}" r="4.5"/>`;
-      el.dataset.tip = `${when(xs[k])} UTC · ${sgnUsd(ys[k])} · ${tr("desk")} ${usd(val[k])}`;
+      el.dataset.tip = `${when(xs[k])} ${TZ()} · ${sgnUsd(ys[k])} · ${tr("desk")} ${usd(val[k])}`;
     } else delete el.dataset.tip;
     const dd = d.drawdown || {};
     $("dk-dd").innerHTML = dd.max ? `<span>${T("Deepest drop from a high")} <b class="dn" data-no-i18n>−${usd(dd.max)}</b></span><span>${T("Below the high now")} <b class="${dd.now > 0 ? "dn" : "up"}" data-no-i18n>${dd.now > 0 ? "−" + usd(dd.now) : usd(0)}</b></span>` : "";
@@ -380,15 +507,9 @@
       <defs><linearGradient id="dkFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${up ? "#39ff88" : "#ff6e5a"}" stop-opacity=".22"/><stop offset="1" stop-color="${up ? "#39ff88" : "#ff6e5a"}" stop-opacity="0"/></linearGradient></defs>
       <line class="dk-zero" x1="${P.l}" x2="${W - P.r}" y1="${Y(0)}" y2="${Y(0)}"/>
       <path d="${line}L${X(x1)},${Y(0)}L${X(x0)},${Y(0)}Z" fill="url(#dkFill)"/>
-      <path class="dk-line ${up ? "up" : "dn"}" d="${line}"/>${tip}
+      <path class="dk-line ${up ? "up" : "dn"}" d="${line}"/>${S.hover == null ? `<circle class="dk-livedot ${up ? "up" : "dn"}" cx="${X(x1).toFixed(1)}" cy="${Y(ys[ys.length - 1]).toFixed(1)}" r="4"/>` : ""}${tip}
       <text class="dk-ax" x="${W - P.r}" y="${Y(0) - 5}" text-anchor="end">$0</text>${hi > 0 ? `<text class="dk-ax" x="${W - P.r}" y="${Y(hi) + 4}" text-anchor="end">${esc(sgnUsd(hi))}</text>` : ""}${lo < 0 ? `<text class="dk-ax" x="${W - P.r}" y="${Y(lo) - 4}" text-anchor="end">${esc(sgnUsd(lo))}</text>` : ""}
     </svg>${el.dataset.tip ? `<div class="dk-tip" data-no-i18n>${esc(el.dataset.tip)}</div>` : ""}`;
-  }
-  function calendar(d) {
-    const el = $("dk-cal"), days = d.daily || [];
-    if (!days.length) { el.innerHTML = `<div class="dk-empty-s">${T("Starts with the first funded day.")}</div>`; return; }
-    const max = Math.max(0.5, ...days.map((x) => Math.abs(x.pnl)));
-    el.innerHTML = `<div class="dk-cal">${days.map((x) => { const a = Math.min(1, Math.abs(x.pnl) / max); return `<div class="dk-cd ${x.pnl > 0 ? "up" : x.pnl < 0 ? "dn" : ""}" style="--a:${(0.18 + a * 0.82).toFixed(2)}" title="${esc(x.day)} · ${esc(sgnUsd(x.pnl))}"><small data-no-i18n>${esc(x.day.slice(5))}</small><b data-no-i18n>${sgnUsd(x.pnl)}</b></div>`; }).join("")}</div>`;
   }
   function baseline(d) {
     const s = d.stats, el = $("dk-base");
@@ -402,7 +523,7 @@
     const el = $("dk-board"), rows = (d.leaderboard || []).slice().sort((x, y) => (y.pnl || 0) - (x.pnl || 0));
     if (!rows.length) { el.innerHTML = ""; return; }
     el.innerHTML = `<div class="dk-tbl-w"><table class="dk-tbl"><thead><tr><th>${T("Playbook")}</th><th>${T("Real trades")}</th><th>${T("Win rate")}</th><th>${T("Avg per trade")}</th><th>${T("P&L")}</th><th title="${T("gross wins ÷ gross losses")}">${T("Profit factor")}</th><th>${T("Avg hold")}</th><th>${T("All trades avg")}</th><th>${T("Status")}</th></tr></thead><tbody>` +
-      rows.map((r) => `<tr class="${r.benched ? "dk-bench" : ""}"><td>${pbTag(r.k, r.name)}</td><td data-no-i18n>${r.real}</td><td data-no-i18n>${r.winRate == null ? "—" : r.winRate + "%"}</td><td class="${cls(r.avgRet)}" data-no-i18n>${pc(r.avgRet)}</td><td class="${cls(r.pnl)}" data-no-i18n>${r.real ? sgnUsd(r.pnl) : "—"}</td><td data-no-i18n>${r.pf == null ? "—" : r.pf.toFixed(2)}</td><td data-no-i18n>${dur(r.hold)}</td><td class="${cls(r.all.mean)}" data-no-i18n>${r.all.n ? pc(r.all.mean) : "—"}</td><td>${r.realOn === false ? `<span class="dk-st">${T("Paper only")}</span>` : r.benched ? `<span class="dk-st bench">${T("Benched")}</span>` : r.all.n ? `<span class="dk-st on">${T("Active")}</span>` : `<span class="dk-st on">${T("Real money")}</span>`}</td></tr>`).join("") + `</tbody></table></div>` +
+      rows.map((r) => `<tr class="dk-pbrow${r.benched ? " dk-bench" : ""}" data-dk-pb="${esc(r.k)}" tabindex="0" role="button" aria-label="${T("Playbook details")} ${esc(tr(r.name))}"><td>${pbTag(r.k, r.name)}</td><td data-no-i18n>${r.real}</td><td data-no-i18n>${r.winRate == null ? "—" : r.winRate + "%"}</td><td class="${cls(r.avgRet)}" data-no-i18n>${pc(r.avgRet)}</td><td class="${cls(r.pnl)}" data-no-i18n>${r.real ? sgnUsd(r.pnl) : "—"}</td><td data-no-i18n>${r.pf == null ? "—" : r.pf.toFixed(2)}</td><td data-no-i18n>${dur(r.hold)}</td><td class="${cls(r.all.mean)}" data-no-i18n>${r.all.n ? pc(r.all.mean) : "—"}</td><td>${r.realOn === false ? `<span class="dk-st">${T("Paper only")}</span>` : r.benched ? `<span class="dk-st bench">${T("Benched")}</span>` : r.all.n ? `<span class="dk-st on">${T("Active")}</span>` : `<span class="dk-st on">${T("Real money")}</span>`}</td></tr>`).join("") + `</tbody></table></div>` +
       `<p class="dk-small">${T("A playbook is benched when it has clearly lost money: 20+ trades averaging −1% or worse, or 10+ averaging −10% or worse. It keeps trading on paper and comes back to real money on its own when those results recover. All trades avg counts paper trades at half weight.")}</p>`;
   }
   function proof(d) {
@@ -773,17 +894,17 @@
   }
   /// show the other desk: the page is rebuilt for it (its numbers, links and owner panel are its own)
   function switchNet(k, fromClick) {
-    if (k !== "rh") k = "arc";
+    if (k !== "rh" && k !== "both") k = "arc";
     if (k === S.net && S.booted) return;
     S.net = k;
     try { localStorage.setItem("dk-net", k); } catch { /* fine */ }
-    if (fromClick && history.replaceState) history.replaceState(null, "", location.pathname + location.search + (k === "rh" ? "#desk?chain=rh" : "#desk"));
-    S.d = null; S.shown = {}; S.seenLog = null; S.toastSeen = null; S.lastUpd = null; S.drawn = false;
+    if (fromClick && history.replaceState) history.replaceState(null, "", location.pathname + location.search + (k === "rh" ? "#desk?chain=rh" : k === "both" ? "#desk?chain=both" : "#desk"));
+    S.d = null; S.shown = {}; S.seenLog = null; S.toastSeen = null; S.lastUpd = null; S.drawn = false; S.both = null; S.lastSay = null;
     if (depBox) { depBox.remove(); depBox = null; } if (rhBox) { rhBox.remove(); rhBox = null; }
     deskOwner = null; ownerAsked = false; depLast = null; rhLast = null; chain = { bal: null, paused: null, at: 0 };
     if (!S.booted) return;
     frame();
-    $("dk-filt").dataset.ready = "";
+    if ($("dk-filt")) $("dk-filt").dataset.ready = "";
     load();
   }
   function filters(d) {
@@ -815,8 +936,8 @@
     }
     const moved = (p) => { const prev = S.lastVal[p.id]; S.lastVal[p.id] = p.value; return prev != null && p.value != null && prev !== p.value ? (p.value > prev ? " dk-pulse-up" : " dk-pulse-dn") : ""; };
     el.innerHTML = `<div class="dk-pos">` + d.open.map((p) => `
-      <div class="dk-p ${cls(p.ret)}${reduce ? "" : moved(p)}${!p.tpHit && p.ret != null && p.ret <= -0.6 * p.sl ? " dk-near" : ""}">
-        <div class="dk-p-top">${tokenLink(p.t, p.sym)} ${pbTag(p.pb, pbName(p.pb))}${p.tpHit ? `<span class="dk-flag">${T("profit taken")}</span>` : ""}${p.pending ? `<span class="dk-flag">${T("confirming")}</span>` : ""}
+      <div class="dk-p ${cls(p.ret)}${reduce ? "" : moved(p)}${!p.tpHit && p.ret != null && p.ret <= -0.6 * p.sl ? " dk-near" : ""}${!p.tpHit && p.ret != null && p.ret >= 0.7 * p.tp ? " dk-neartp" : ""}">
+        <div class="dk-p-top">${tokenLink(p.t, p.sym)} ${pbTag(p.pb, pbName(p.pb))}${ordersLink(p.t)}${p.tpHit ? `<span class="dk-flag">${T("profit taken")}</span>` : ""}${p.pending ? `<span class="dk-flag">${T("confirming")}</span>` : ""}
           <b class="dk-p-ret" data-no-i18n>${pc(p.ret)}</b></div>
         <div class="dk-p-grid">
           <div><small>${T("Bought")}</small><span data-no-i18n>${px(p.entryPx)}</span><em>${txa(p.tx, "tx")} · <span data-no-i18n>${ago(p.entryTs)}</span></em></div>
@@ -862,9 +983,11 @@
     try { const r = await fetch(api(`day=${encodeURIComponent(day)}&trade=${encodeURIComponent(id)}`)); j = r.ok ? await r.json() : null; } catch { j = null; }
     if (!j || !j.trade) { body.innerHTML = `<div class="dk-empty-s">${T("Couldn't load this trade.")}</div>`; return; }
     const t = j.trade;
+    S.trade = { ...t, mins: t.mins }; S.pb = null;
+    const lastPart = (t.parts || []).slice(-1)[0];
     body.innerHTML = `
       <div class="dk-dr-h">${tokenLink(t.t, t.sym)} ${pbTag(t.pb, j.name)}<b class="${cls(t.ret)}" data-no-i18n>${pc(t.ret)}</b></div>
-      <p class="dk-small">${t.real ? T("Real trade") : T("Paper trade")} · ${T(WHY[t.why] || t.why)} · <span data-no-i18n>${dur(t.mins)}</span> · <span data-no-i18n>${when(t.entryTs)} → ${when(t.exitTs)} UTC</span></p>
+      <p class="dk-small">${t.real ? T("Real trade") : T("Paper trade")} · ${T(WHY[t.why] || t.why)} · <span data-no-i18n>${dur(t.mins)}</span> · <span data-no-i18n>${when(t.entryTs)} → ${when(t.exitTs)} ${esc(TZ())}</span></p>
       ${tradeChart(t, j.series)}
       <div class="dk-dr-grid">
         <div><small>${T("In")}</small><b data-no-i18n>${usd(t.usdIn)}</b></div>
@@ -878,7 +1001,9 @@
       ${t.gate ? `<h4>${T("At entry")}</h4><div class="dk-p-g">${T("Scanner score")} <b data-no-i18n>${t.gate.score ?? "—"}</b> · ${T("Launch floor")} <b data-no-i18n>${t.gate.floorX ?? "—"}×</b>${t.gate.dump != null ? ` · ${T("top-10 dump")} <b data-no-i18n>−${Math.round(t.gate.dump)}%</b>` : ""}</div>` : ""}
       ${t.review ? `<h4>${T("Claude's check")}</h4><div class="dk-p-rv"><b>${T(t.review.go ? "OK" : "No")}</b><span data-no-i18n>${esc(t.review.reason)}</span></div>` : ""}
       <h4>${T("Exits")}</h4><div class="dk-rows">${(t.parts || []).map((p) => `<div class="dk-row"><span>${T(WHY[p.why] || p.why)}</span><span data-no-i18n>${p.pct}%</span><b class="${cls(p.ret)}" data-no-i18n>${pc(p.ret)}</b>${p.tx ? txa(p.tx, "tx") : ""}</div>`).join("") || `<div class="dk-empty-s">—</div>`}</div>
-      ${t.buyTx ? `<p class="dk-small">${T("Buy transaction")} ${txa(t.buyTx)}</p>` : ""}`;
+      ${lastPart ? `<h4>${T("Why she sold")}</h4><p class="dk-small">${T(WHY[lastPart.why] || lastPart.why)} · <span class="${cls(lastPart.ret)}" data-no-i18n>${pc(lastPart.ret)}</span></p>` : ""}
+      ${t.buyTx ? `<p class="dk-small">${T("Buy transaction")} ${txa(t.buyTx)}</p>` : ""}
+      <div class="dk-dr-acts"><button type="button" class="dk-btn" data-dk-ask="trade">${T("Ask ARCIA about this trade")}</button><button type="button" class="dk-btn ghost" data-dk-share>${T("Save image")}</button></div>`;
   }
   function tradeChart(t, series) {
     if (!series || series.length < 3) return `<div class="dk-empty-s dk-dr-nochart">${T("The minute-by-minute price is only kept for about two hours, so this older trade shows its numbers without a chart.")}</div>`;
@@ -894,20 +1019,6 @@
     const dr = $("dk-drawer");
     dr.classList.remove("on"); document.body.classList.remove("dk-noscroll");
     setTimeout(() => { dr.hidden = true; }, reduce ? 0 : 220);
-  }
-  function logRows(d) {
-    const el = $("dk-log");
-    if (!d.log.length) { el.innerHTML = `<div class="dk-empty-s">${T("Nothing yet. Every buy, sell and burn will appear here with its transaction.")}</div>`; return; }
-    const seen = S.seenLog;
-    S.seenLog = new Set(d.log.map((x) => x.tx + x.side));
-    el.innerHTML = `<div class="dk-log">` + d.log.slice(0, 30).map((x) => `
-      <div class="dk-l ${x.side}${seen && !seen.has(x.tx + x.side) ? " dk-new" : ""}">
-        <span class="dk-l-side">${T(x.side === "buy" ? "Buy" : x.side === "sell" ? "Sell" : "Burn")}</span>
-        <span class="dk-l-tok" data-no-i18n>${esc(x.sym)}</span>
-        <span class="dk-l-amt" data-no-i18n>${usd(x.usd)}${x.px ? ` @ ${px(x.px)}` : ""}${x.side === "burn" ? ` → ${num(x.tokens)} $ARCIRCLE` : ""}</span>
-        <span class="dk-l-why">${x.side === "sell" ? `${T(WHY[x.why] || x.why)} <b class="${cls(x.ret)}" data-no-i18n>${pc(x.ret)}</b>` : x.side === "buy" ? T(pbName(x.pb)) : T("share of new profit")}</span>
-        <span class="dk-l-t" data-no-i18n>${ago(x.ts)}</span>${txa(x.tx, "tx")}
-      </div>`).join("") + `</div>`;
   }
   function learning(d) {
     const L = d.learn, w = L.warmup;
@@ -955,50 +1066,6 @@
     const l = c.links || {}, t = [l.web ? "web" : "", l.x ? "X" : "", l.tg ? "TG" : ""].filter(Boolean);
     return (t.length ? `<span class="dk-tags" data-no-i18n>${t.join(" · ")}</span>` : "") + (c.paid ? `<span class="dk-flag dk-paid">${T("Dex paid")}</span>` : "") + (c.reused ? `<span class="dk-flag dk-warn">${T("reused links")}</span>` : "");
   };
-  function watch(d) {
-    const el = $("dk-watch");
-    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T(d.net === "rh" ? "No new launches in the last three days yet." : "No Argus launches in the last three days yet.")}</div>`; return; }
-    el.innerHTML = `<div class="dk-rows">` + d.watching.map((c) => `<div class="dk-row">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : `<small data-no-i18n>${d.net === "rh" ? (c.top10 != null ? `${tr("top 10")} ${c.top10}%` : "—") : c.score == null ? tr("scanning") : c.score + "/100"} · ${ago(c.ts)}</small>`}</div>`).join("") + `</div>`;
-  }
-  function rej(d) {
-    const el = $("dk-rej");
-    if (!d.rejects.length) { el.innerHTML = `<div class="dk-empty-s">${T("Setups that fail a safety gate show up here.")}</div>`; return; }
-    let dodged = 0, missed = 0;
-    const rows = d.rejects.slice(0, 12).map((r) => {
-      const mv = r.px && r.nowPx ? (r.nowPx / r.px - 1) * 100 : null;
-      if (mv != null) { if (mv <= -30) dodged++; else if (mv >= 100) missed++; }
-      const veto = r.why.some((x) => /^risk review/.test(x));
-      return `<div class="dk-row dk-rj">${tokenLink(r.t, r.sym)}${veto ? `<span class="dk-flag dk-claude">${T("Claude said no")}</span>` : ""}${r.paper ? `<span class="dk-flag">${T("paper only")}</span>` : ""}${mv != null ? `<span class="dk-mv ${cls(mv)}" data-no-i18n>${T("since")} ${pc(mv, 0)}</span>` : ""}<small>${r.why.map((x) => T(x.replace(/^risk review: /, ""))).join(" · ")}</small><em data-no-i18n>${ago(r.ts)}</em></div>`;
-    });
-    $("dk-rej-sub").innerHTML = dodged || missed ? `${T("dodged")} <b data-no-i18n>${dodged}</b> · ${T("missed runs")} <b data-no-i18n>${missed}</b>` : T("and what happened next");
-    el.innerHTML = `<div class="dk-rows">${rows.join("")}</div><small class="dk-legend">${T("\"since\" is the price now against the price when she passed. Dodged: down 30%+ since. Missed run: up 100%+ since.")}</small>`;
-  }
-  // ---------------- toasts: what happened since the last refresh ----------------
-  function toasts(d) {
-    const box = $("dk-toasts"), seen = S.toastSeen;
-    S.toastSeen = new Set((d.log || []).map((x) => x.tx + x.side));
-    if (!seen) return; // first load: nothing to announce
-    const fresh = (d.log || []).filter((x) => !seen.has(x.tx + x.side)).slice(0, 3);
-    for (const x of fresh) {
-      const [k, txt] = x.side === "buy" ? ["buy", `${tr("ARCIA bought")} ${x.sym} · ${usd(x.usd)}`] : x.side === "sell" ? [x.ret > 0 ? "win" : "loss", x.ret > 0 ? `${tr("ARCIA sold")} ${x.sym} ${pc(x.ret)}` : `${tr("ARCIA closed")} ${x.sym} ${pc(x.ret)} — ${tr("a loss, inside her rules")}`] : ["burn", `${tr("ARCIA burned")} ${num(x.tokens)} $ARCIRCLE`];
-      const t = document.createElement("div");
-      t.className = `dk-toast ${k}`;
-      // a bigger loss gets a review from Claude (Learning → Loss reviews)
-      const rv = k === "loss" && x.ret <= -30 && d.ai;
-      t.innerHTML = `<img src="${AV}" alt="" width="32" height="32"><span data-no-i18n>${esc(txt)}</span>${k === "win" || k === "burn" ? `<i class="dk-spark" aria-hidden="true"></i>` : ""}${rv ? `<button type="button" class="dk-t-why" data-dk-goto="learning">${T("See why")}</button>` : ""}`;
-      box.appendChild(t);
-      setTimeout(() => t.classList.add("out"), rv ? 9000 : 5200);
-      setTimeout(() => t.remove(), rv ? 9600 : 5800);
-      if (k === "burn") { const b = panel.querySelector(".dk-kpi.dk-burn"); if (b && !reduce) { b.classList.remove("dk-flame"); void b.offsetWidth; b.classList.add("dk-flame"); } }
-    }
-  }
-  function burns(d) {
-    const el = $("dk-burns");
-    if (d.net === "rh") return;
-    const pct = d.rules.risk.burnPct;
-    const head = `<p class="dk-small">${T("Once a day,")} <b data-no-i18n>${pct}%</b> ${T("of new profit above the desk's previous high buys $ARCIRCLE and sends it to 0x…dEaD, through the desk contract.")}</p>`;
-    el.innerHTML = head + (d.burns.length ? `<div class="dk-rows">` + d.burns.slice(0, 8).map((b) => `<div class="dk-row"><span data-no-i18n>${esc(b.day)}</span><span data-no-i18n>${num(b.tok)} $ARCIRCLE</span><small data-no-i18n>${usd(b.usd)}</small>${txa(b.tx, "tx")}</div>`).join("") + `</div>` : `<div class="dk-empty-s">${T("No burn yet — it starts with the first profitable day.")}</div>`);
-  }
   function rules(d) {
     const g = d.rules.gates, r = d.rules.risk, sv = (d.settings && d.settings.values) || { tradePct: r.tradePct, maxLossPct: 1.25, scalpFloorX: 7, scalpMaxDump: 60, earlyFailPct: 5, earlyFailMin: 2 };
     $("dk-rules").innerHTML = `
@@ -1026,18 +1093,312 @@
       <p class="dk-disc">${T("ARCIA DESK is an experiment with a small amount of the team's own money. New coins are the riskiest thing on-chain and most lose value; ARCIA will lose trades. Nothing here is financial advice, and nobody can deposit into or copy the desk.")}</p>`;
   }
 
+  // ---------------- v3: ARCIA right now — scanning, considering, holding, the last move ----------------
+  function nowCard(d) {
+    const el = $("dk-now"); if (!el) return;
+    const g = (d.rules && d.rules.gates) || {}, nowS = Date.now() / 1000;
+    const seen = new Set(), cands = (d.watching || []).filter((c) => !seen.has(c.t) && seen.add(c.t));
+    const c = cands.find((x) => !x.own) || null, open = d.open || [], last = (d.log || [])[0];
+    const stage = open.length ? "hold" : c ? "consider" : "scan";
+    const ck = (ok, txt) => `<li class="${ok === true ? "ok" : ok === false ? "no" : "wait"}"><i aria-hidden="true"></i><span>${txt}</span></li>`;
+    let list = "";
+    if (c) {
+      const ageMin = (nowS - c.ts) / 60, l = c.links || {};
+      list = `<ul class="dk-ck">` +
+        ck(ageMin >= (g.minAgeMin || 0) ? true : null, ageMin >= (g.minAgeMin || 0) ? `${T("Old enough")} <em data-no-i18n>(${ago(c.ts)})</em>` : `${T("Too new — she waits")} <em data-no-i18n>${Math.ceil((g.minAgeMin || 0) - ageMin)}m</em>`) +
+        (d.net === "rh" ? ck(c.top10 == null ? null : c.top10 <= (g.maxTop10 || 100), `${T("Top 10 wallets")} <em data-no-i18n>${c.top10 == null ? "—" : c.top10 + "%"}</em>`) : ck(!c.crit, c.crit ? `${T("Critical flag in the Token Scanner")}` : `${T("No critical flag")}${c.score != null ? ` · ${T("score")} <em data-no-i18n>${c.score}/100</em>` : ""}`)) +
+        ck(!!(l.web || l.x || l.tg), l.web || l.x || l.tg ? `${T("Has links")} <em data-no-i18n>${[l.web ? "web" : "", l.x ? "X" : "", l.tg ? "TG" : ""].filter(Boolean).join(" · ")}</em>` : T("No website, X or Telegram")) +
+        ck(!c.reused, c.reused ? T("Its links are reused from another token") : T("Its links are its own")) +
+        `</ul><p class="dk-small">${T("What this page can see. Liquidity, taxes and a test buy-and-sell are checked right before a buy.")}</p>`;
+    }
+    const step = (k, label, body) => `<div class="dk-ns ${stage === k ? "on" : ""}"><i aria-hidden="true"></i><div><b>${T(label)}</b>${body}</div></div>`;
+    el.innerHTML = `<div class="dk-now">` +
+      step("scan", "Scanning", `<span><span data-no-i18n>${(d.sync && d.sync.pools) || cands.length}</span> ${T(d.net === "rh" ? "new pools watched" : "new Argus pools watched")} · ${T("checked")} <span data-no-i18n>${ago(d.updated)}</span></span>`) +
+      step("consider", "Considering", c ? `<span>${tokenLink(c.t, c.sym)} <span data-no-i18n>${px(c.px)}</span> · <span data-no-i18n>${ago(c.ts)}</span></span>${list}` : `<span>${T("Nothing new right now")}</span>`) +
+      step("hold", "Holding", open.length ? `<span><span data-no-i18n>${open.length}</span> ${T(open.length === 1 ? "position" : "positions")} · <span data-no-i18n>${usd(open.reduce((t, p) => t + (p.value || 0), 0))}</span> · ${open.slice(0, 3).map((p) => `<span class="${cls(p.ret)}" data-no-i18n>${esc(p.sym)} ${pc(p.ret)}</span>`).join(" · ")}</span>` : `<span>${T("No open positions")}</span>`) +
+      step("last", "Last move", last ? `<span>${T(last.side === "buy" ? "Bought" : last.side === "sell" ? "Sold" : "Burned")} <b data-no-i18n>${esc(last.sym)}</b>${last.side === "sell" ? ` <span class="${cls(last.ret)}" data-no-i18n>${pc(last.ret)}</span>` : ""} · <span data-no-i18n>${ago(last.ts)}</span></span>` : `<span>—</span>`) +
+      `</div>`;
+  }
+  // ---------------- v3: ARCIA's week (and a picture of it) ----------------
+  function weekCard(d) {
+    const el = $("dk-week"); if (!el) return;
+    const w = d.stats && d.stats.week, j = (d.journal || [])[0];
+    if (!w || !w.n) { el.innerHTML = `<div class="dk-empty-s">${T("Her week shows here once a real trade has closed in the last 7 days.")}</div>`; return; }
+    el.innerHTML = `<div class="dk-week"><div><small>${T("Profit")}</small><b class="${cls(w.pnl)}" data-no-i18n>${sgnUsd(w.pnl)}</b></div><div><small>${T("Real trades")}</small><b data-no-i18n>${w.n}</b></div><div><small>${T("Wins")}</small><b data-no-i18n>${w.wins} <em>(${Math.round((w.wins / w.n) * 100)}%)</em></b></div><div><small>${T("Best")}</small><b data-no-i18n>${w.best ? `${esc(w.best.sym)} ${pc(w.best.ret)}` : "—"}</b></div></div>
+      ${j && j.lessons && j.lessons.length ? `<ul class="dk-week-l">${j.lessons.slice(0, 2).map((l) => `<li>${T(l)}</li>`).join("")}</ul>` : ""}
+      <button type="button" class="dk-btn" data-dk-weekimg>${T("Save the week as an image")}</button>`;
+  }
+  // ---------------- profit by day: a heat map; a day opens its trades ----------------
+  function calendar(d) {
+    const el = $("dk-cal"); if (!el || !d) return;
+    const days = d.daily || [];
+    if (!days.length) { el.innerHTML = `<div class="dk-empty-s">${T("Starts with the first funded day.")}</div>`; return; }
+    const max = Math.max(0.5, ...days.map((x) => Math.abs(x.pnl)));
+    const sel = S.calDay && days.find((x) => x.day === S.calDay);
+    const tr0 = sel ? (d.recent || []).filter((r) => r.real && (r.day || dayOfTs(r.exitTs)) === sel.day) : [];
+    el.innerHTML = `<div class="dk-heat">${days.map((x) => { const a = Math.min(1, Math.abs(x.pnl) / max); return `<button type="button" class="dk-hc ${x.pnl > 0 ? "up" : x.pnl < 0 ? "dn" : ""}${S.calDay === x.day ? " on" : ""}" style="--a:${(0.2 + a * 0.8).toFixed(2)}" data-dk-cal="${esc(x.day)}" title="${esc(x.day)} · ${esc(sgnUsd(x.pnl))}"><small data-no-i18n>${esc(x.day.slice(8))}</small></button>`; }).join("")}</div>
+      <div class="dk-heat-k"><span>${T("loss")}</span><i class="dn"></i><i></i><i class="up"></i><span>${T("profit")}</span></div>
+      ${sel ? `<div class="dk-heat-d"><b data-no-i18n>${esc(sel.day)}</b> <span class="${cls(sel.pnl)}" data-no-i18n>${sgnUsd(sel.pnl)}</span> · <span data-no-i18n>${tr0.length}</span> ${T("real trades closed")}${tr0.length ? `<div class="dk-rows">${tr0.slice(0, 6).map((r) => `<div class="dk-row">${tokenLink(r.t, r.sym)}${pbTag(r.pb, pbName(r.pb))}<b class="${cls(r.pnl)}" data-no-i18n>${sgnUsd(r.pnl)}</b><small data-no-i18n>${pc(r.ret)}</small></div>`).join("")}</div>` : ""}</div>` : `<p class="dk-small">${T("Tap a day to see its trades.")}</p>`}`;
+  }
+  // ---------------- v3: exposure map — every open position by size, coloured by where it sits ----------------
+  function exposure(d) {
+    const el = $("dk-exp"); if (!el) return;
+    const o = d.open || [];
+    if (!o.length) { el.innerHTML = `<div class="dk-empty-s">${T("No open positions — nothing at risk right now.")}</div>`; return; }
+    const tot = o.reduce((t, p) => t + Math.max(0.01, p.value || p.usdIn || 0), 0);
+    el.innerHTML = `<div class="dk-expm">${o.map((p) => {
+      const sz = Math.max(0.01, p.value || p.usdIn || 0), r = p.ret || 0;
+      const k = r < 0 ? Math.min(1, -r / Math.max(1, p.sl)) : Math.min(1, r / Math.max(1, p.tp));
+      const tag = !p.tpHit && r <= -0.6 * p.sl ? "near stop" : !p.tpHit && r >= 0.7 * p.tp ? "near take-profit" : p.tpHit ? "profit taken" : "";
+      return `<div class="dk-ex ${r >= 0 ? "up" : "dn"}" style="flex-grow:${(sz / tot * 100).toFixed(1)};--a:${(0.15 + k * 0.7).toFixed(2)}" title="${esc(p.sym)} · ${esc(usd(p.value))} · ${esc(pc(r))}"><b data-no-i18n>${esc(p.sym)}</b><span data-no-i18n>${usd(p.value)} · ${pc(r)}</span>${tag ? `<em>${T(tag)}</em>` : ""}</div>`;
+    }).join("")}</div><p class="dk-small">${T("Width: its share of what's open. Colour: how far it has gone toward its stop-loss (red) or take-profit (green).")}</p>`;
+  }
+  // ---------------- v3: money in and out of the desk ----------------
+  function flows(d) {
+    const el = $("dk-flows"); if (!el) return;
+    const f = (d.money && d.money.flows) || [];
+    if (!f.length) { el.innerHTML = `<div class="dk-empty-s">${T("No deposits or withdrawals recorded yet.")}</div>`; return; }
+    const rh = d.net === "rh";
+    el.innerHTML = `<div class="dk-rows">${f.map((x) => `<div class="dk-row dk-flow ${x.kind}"><span>${T(x.kind === "start" ? "Starting balance" : x.kind === "deposit" ? "Deposit" : "Withdrawal")}</span><b class="${x.kind === "withdrawal" ? "dn" : "up"}" data-no-i18n>${x.kind === "withdrawal" ? "−" : "+"}${rh && x.eth != null ? eth(Math.abs(x.eth)) : usd(Math.abs(x.usd))}</b><small data-no-i18n>${when(x.ts)} ${esc(TZ())}</small></div>`).join("")}</div>`;
+  }
+  function burns(d) {
+    const el = $("dk-burns");
+    if (!el || d.net === "rh") return;
+    const pct = d.rules.risk.burnPct;
+    const head = `<p class="dk-small">${T("Once a day,")} <b data-no-i18n>${pct}%</b> ${T("of new profit above the desk's previous high buys $ARCIRCLE and sends it to 0x…dEaD, through the desk contract.")}</p>`;
+    const list = (d.burns || []).slice().reverse();
+    let chartH = "";
+    if (list.length) {
+      // the running total, one bar per burn
+      let cum = 0; const pts = list.map((b) => (cum += b.tok || 0)), W = 300, H = 60, n = pts.length, bw = Math.max(4, Math.min(28, (W - 8) / n - 4));
+      chartH = `<svg class="dk-burnch" viewBox="0 0 ${W} ${H + 14}" aria-label="${T("$ARCIRCLE burned in total")}" role="img">${pts.map((v, i) => { const h = Math.max(2, (v / cum) * H); return `<rect x="${(4 + i * ((W - 8) / n)).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" style="animation-delay:${i * 40}ms"><title>${esc(list[i].day)} · ${esc(num(v))}</title></rect>`; }).join("")}<text x="${W - 4}" y="${H + 12}" text-anchor="end">${esc(num(cum))} $ARCIRCLE</text></svg>`;
+    }
+    const due = d.risk && d.risk.burn && d.risk.burn.needed <= 0;
+    const card = el.closest(".dk-burnc"); if (card) card.classList.toggle("due", !!due);
+    el.innerHTML = head + chartH + (d.burns.length ? `<div class="dk-rows">` + d.burns.slice(0, 8).map((b) => `<div class="dk-row"><span data-no-i18n>${esc(b.day)}</span><span data-no-i18n>${num(b.tok)} $ARCIRCLE</span><small data-no-i18n>${usd(b.usd)}</small>${txa(b.tx, "tx")}</div>`).join("") + `</div>` : `<div class="dk-empty-s">${T("No burn yet — it starts with the first profitable day.")}</div>`);
+  }
+  // ---------------- lists that fold on long pages ----------------
+  const MORE_N = 5;
+  const moreBtn = (k, n, total) => (total > n ? `<button type="button" class="dk-moreb" data-dk-more="${k}" aria-expanded="${!!S.more[k]}">${S.more[k] ? T("Show less") : `${T("Show all")} <span data-no-i18n>(${total})</span>`}</button>` : "");
+  const ordersLink = (t) => `<a class="dk-ord" href="/arc#orders?t=${esc(t)}${S.net === "rh" ? "&c=rh" : ""}" title="${T("Open this market in ARCIRCLE Orders")}">${T("Orders")}</a>`;
+  function watch(d) {
+    const el = $("dk-watch"); if (!el) return;
+    if (!d.watching.length) { el.innerHTML = `<div class="dk-empty-s">${T(d.net === "rh" ? "No new launches in the last three days yet." : "No Argus launches in the last three days yet.")}</div>`; return; }
+    const seen = new Set(), list = d.watching.filter((c) => !seen.has(c.t) && seen.add(c.t));
+    const shown = S.more.watch ? list : list.slice(0, MORE_N);
+    el.innerHTML = `<div class="dk-rows">` + shown.map((c) => `<div class="dk-row dk-wr">${tokenLink(c.t, c.sym)}<span data-no-i18n>${px(c.px)}</span>${watchTags(c)}${c.own ? `<small>${T("ArcPad launch — skipped")}</small>` : c.crit ? `<small class="dn">${T("critical flag")}</small>` : d.net === "rh" ? `<small data-no-i18n>${c.top10 != null ? `${tr("top 10")} ${c.top10}%` : "—"} · ${ago(c.ts)}</small>` : `<span class="dk-score" title="${T("Token Scanner score")}"><i style="width:${c.score == null ? 0 : Math.max(4, c.score)}%"></i><em data-no-i18n>${c.score == null ? tr("scanning") : c.score}</em></span><small data-no-i18n>${ago(c.ts)}</small>`}${c.own ? "" : ordersLink(c.t)}</div>`).join("") + `</div>` + moreBtn("watch", MORE_N, list.length);
+  }
+  function rej(d) {
+    const el = $("dk-rej"); if (!el) return;
+    if (!d.rejects.length) { el.innerHTML = `<div class="dk-empty-s">${T("Setups that fail a safety gate show up here.")}</div>`; return; }
+    let dodged = 0, missed = 0;
+    const all = d.rejects.slice(0, 25).map((r) => {
+      const mv = r.px && r.nowPx ? (r.nowPx / r.px - 1) * 100 : null;
+      if (mv != null) { if (mv <= -30) dodged++; else if (mv >= 100) missed++; }
+      const veto = r.why.some((x) => /^risk review/.test(x));
+      return `<div class="dk-row dk-rj">${tokenLink(r.t, r.sym)}${veto ? `<span class="dk-flag dk-claude">${T("Claude said no")}</span>` : ""}${r.paper ? `<span class="dk-flag">${T("paper only")}</span>` : ""}${mv != null ? `<span class="dk-mv ${cls(mv)}" data-no-i18n>${T("since")} ${pc(mv, 0)}</span>` : ""}<small>${r.why.map((x) => T(x.replace(/^risk review: /, ""))).join(" · ")}</small><em data-no-i18n>${ago(r.ts)}</em></div>`;
+    });
+    $("dk-rej-sub").innerHTML = T("and what happened next");
+    el.innerHTML = `<div class="dk-rjsum"><span class="up"><b data-no-i18n>${dodged}</b> ${T("dodged")}</span><span class="dn"><b data-no-i18n>${missed}</b> ${T("missed runs")}</span><span><b data-no-i18n>${all.length}</b> ${T("passed")}</span></div><div class="dk-rows">${(S.more.rej ? all : all.slice(0, MORE_N)).join("")}</div>${moreBtn("rej", MORE_N, all.length)}<small class="dk-legend">${T("\"since\" is the price now against the price when she passed. Dodged: down 30%+ since. Missed run: up 100%+ since.")}</small>`;
+  }
+  function logRows(d) {
+    const el = $("dk-log"); if (!el) return;
+    if (!d.log.length) { el.innerHTML = `<div class="dk-empty-s">${T("Nothing yet. Every buy, sell and burn will appear here with its transaction.")}</div>`; return; }
+    const seen = S.seenLog;
+    S.seenLog = new Set(d.log.map((x) => x.tx + x.side));
+    const N = S.more.log ? 30 : 8;
+    el.innerHTML = `<div class="dk-log">` + d.log.slice(0, N).map((x) => `
+      <div class="dk-l ${x.side}${seen && !seen.has(x.tx + x.side) ? " dk-new" : ""}">
+        <span class="dk-l-side">${T(x.side === "buy" ? "Buy" : x.side === "sell" ? "Sell" : "Burn")}</span>
+        <span class="dk-l-tok" data-no-i18n>${esc(x.sym)}</span>
+        <span class="dk-l-amt" data-no-i18n>${usd(x.usd)}${x.px ? ` @ ${px(x.px)}` : ""}${x.side === "burn" ? ` → ${num(x.tokens)} $ARCIRCLE` : ""}</span>
+        <span class="dk-l-why">${x.side === "sell" ? `${T(WHY[x.why] || x.why)} <b class="${cls(x.ret)}" data-no-i18n>${pc(x.ret)}</b>` : x.side === "buy" ? T(pbName(x.pb)) : T("share of new profit")}</span>
+        <span class="dk-l-t" data-no-i18n>${ago(x.ts)}</span>${txa(x.tx, "tx")}
+      </div>`).join("") + `</div>` + moreBtn("log", 8, Math.min(30, d.log.length));
+  }
+  // ---------------- toasts: what happened since the last refresh (and a notification, and ARCIA reacts) ----------------
+  function toasts(d) {
+    const box = $("dk-toasts"), seen = S.toastSeen;
+    S.toastSeen = new Set((d.log || []).map((x) => x.tx + x.side));
+    if (!seen || !box) return; // first load: nothing to announce
+    const fresh = (d.log || []).filter((x) => !seen.has(x.tx + x.side)).slice(0, 3);
+    for (const x of fresh) {
+      const [k, txt] = x.side === "buy" ? ["buy", `${tr("ARCIA bought")} ${x.sym} · ${usd(x.usd)}`] : x.side === "sell" ? [x.ret > 0 ? "win" : "loss", x.ret > 0 ? `${tr("ARCIA sold")} ${x.sym} ${pc(x.ret)}` : `${tr("ARCIA closed")} ${x.sym} ${pc(x.ret)} — ${tr("a loss, inside her rules")}`] : ["burn", `${tr("ARCIA burned")} ${num(x.tokens)} $ARCIRCLE`];
+      const t = document.createElement("div");
+      t.className = `dk-toast ${k}`;
+      // a bigger loss gets a review from Claude (Learning → Loss reviews)
+      const rv = k === "loss" && x.ret <= -30 && d.ai;
+      t.innerHTML = `<img src="${AV}" alt="" width="32" height="32"><span data-no-i18n>${esc(txt)}</span>${k === "win" || k === "burn" ? `<i class="dk-spark" aria-hidden="true"></i>` : ""}${rv ? `<button type="button" class="dk-t-why" data-dk-goto="learning">${T("See why")}</button>` : ""}`;
+      box.appendChild(t);
+      setTimeout(() => t.classList.add("out"), rv ? 9000 : 5200);
+      setTimeout(() => t.remove(), rv ? 9600 : 5800);
+      notify(txt);
+      if (k === "burn") { const b = panel.querySelector(".dk-kpi.dk-burn"); if (b && !reduce) { b.classList.remove("dk-flame"); void b.offsetWidth; b.classList.add("dk-flame"); } }
+    }
+    // ARCIA reacts: a hop on a win or a burn, a small shake on a loss, a nod on a buy
+    if (fresh.length && !reduce) {
+      const av = panel.querySelector(".dk-hero2 .dk-av"), x = fresh[0];
+      const k = x.side === "buy" ? "nod" : x.side === "burn" || x.ret > 0 ? "hop" : "shake";
+      if (av) { av.classList.remove("dk-react", "nod", "hop", "shake"); void av.offsetWidth; av.classList.add("dk-react", k); setTimeout(() => av.classList.remove("dk-react", k), 1400); }
+    }
+  }
+  // ---------------- v3: History as a CSV file ----------------
+  function csv() {
+    const d = S.d; if (!d) return;
+    const rows = d.recent.filter((r) => (S.tab === "real" ? r.real : !r.real) && (S.f.pb === "all" || r.pb === S.f.pb) && (S.f.res === "all" || (S.f.res === "win" ? r.ret > 0 : r.ret <= 0)));
+    const q = (v) => { const x = String(v == null ? "" : v); return /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+    const iso = (s) => (s ? new Date(s * 1000).toISOString() : "");
+    const head = ["symbol", "token", "playbook", "real", "entry_time_utc", "exit_time_utc", "entry_price_usd", "exit_price_usd", "usd_in", "usd_out", "pnl_usd", "return_pct", "exit_reason", "buy_tx"];
+    const body = rows.map((r) => [r.sym, r.t, pbName(r.pb), r.real ? 1 : 0, iso(r.entryTs), iso(r.exitTs), r.entryPx, r.exitPx, r.usdIn, r.usdOut, r.pnl, r.ret, WHY[r.why] || r.why, r.buyTx || ""].map(q).join(","));
+    const blob = new Blob([[head.join(","), ...body].join("\n")], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `arcia-desk-${S.net}-${S.tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  // ---------------- v3: a playbook's own page (in the drawer) ----------------
+  function openPb(k) {
+    const d = S.d; if (!d) return;
+    const row = (d.leaderboard || []).find((x) => x.k === k), lp = (d.learn.playbooks || []).find((x) => x.k === k);
+    if (!row && !lp) return;
+    const dr = $("dk-drawer"), body = $("dk-dr-body");
+    dr.hidden = false; document.body.classList.add("dk-noscroll");
+    requestAnimationFrame(() => dr.classList.add("on"));
+    S.trade = null; S.pb = k;
+    const tr0 = (d.recent || []).filter((r) => r.pb === k && r.real).sort((a, b) => a.exitTs - b.exitTs);
+    let cum = 0; const pts = tr0.map((r) => [r.exitTs, (cum += r.pnl || 0)]);
+    let curve = `<div class="dk-empty-s">${T("No real trades closed with this playbook yet.")}</div>`;
+    if (pts.length > 1) {
+      const W = 520, H = 140, lo = Math.min(0, ...pts.map((p) => p[1])), hi = Math.max(0, ...pts.map((p) => p[1]));
+      const X = (i) => 6 + (i / (pts.length - 1)) * (W - 12), Y = (v) => 8 + (1 - (v - lo) / (hi - lo || 1)) * (H - 16);
+      curve = `<div class="dk-dr-chart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${T("Profit over its real trades")}" class="dk-drawin"><line class="dk-zero" x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}"/><path class="dk-line ${cum >= 0 ? "up" : "dn"}" d="${pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("")}"/></svg><div class="dk-dr-leg"><span>${T("Profit over its real trades")} <b class="${cls(cum)}" data-no-i18n>${sgnUsd(cum)}</b></span></div></div>`;
+    }
+    const ex = lp && lp.exits;
+    body.innerHTML = `
+      <div class="dk-dr-h">${pbTag(k, (row && row.name) || (lp && lp.name))}${row && row.benched ? `<span class="dk-st bench">${T("Benched")}</span>` : row && row.realOn === false ? `<span class="dk-st">${T("Paper only")}</span>` : `<span class="dk-st on">${T("Real money")}</span>`}</div>
+      ${lp && lp.why ? `<p class="dk-small">${T(lp.why)}</p>` : ""}
+      ${curve}
+      <div class="dk-dr-grid">
+        <div><small>${T("Real trades")}</small><b data-no-i18n>${row ? row.real : 0}</b></div>
+        <div><small>${T("Win rate")}</small><b data-no-i18n>${row && row.winRate != null ? row.winRate + "%" : "—"}</b></div>
+        <div><small>${T("P&L")}</small><b class="${cls(row && row.pnl)}" data-no-i18n>${row && row.real ? sgnUsd(row.pnl) : "—"}</b></div>
+        <div><small>${T("Profit factor")}</small><b data-no-i18n>${row && row.pf != null ? row.pf.toFixed(2) : "—"}</b></div>
+        <div><small>${T("Avg hold")}</small><b data-no-i18n>${row ? dur(row.hold) : "—"}</b></div>
+        <div><small>${T("All trades avg")}</small><b class="${cls(row && row.all.mean)}" data-no-i18n>${row && row.all.n ? pc(row.all.mean) : "—"}</b></div>
+      </div>
+      ${ex ? `<h4>${T("Exits now")}</h4><p class="dk-small" data-no-i18n>TP +${ex.tp}% (${ex.tp1Pct ?? 35}%) · 2× (${ex.tp2Pct ?? 25}%) · ${tr("runner")} −${ex.runTrail ?? 30}% ${tr("from peak")} · SL −${ex.sl}% · ${ex.maxH}h</p>` : ""}
+      <h4>${T("Its last real trades")}</h4>
+      <div class="dk-rows">${tr0.slice(-8).reverse().map((r) => `<div class="dk-row dk-click" data-dk-trade="${esc(r.id)}|${esc(r.day || dayOfTs(r.exitTs))}" role="button" tabindex="0"><span data-no-i18n>${esc(r.sym)}</span><b class="${cls(r.pnl)}" data-no-i18n>${sgnUsd(r.pnl)}</b><small data-no-i18n>${pc(r.ret)} · ${when(r.exitTs)}</small></div>`).join("") || `<div class="dk-empty-s">—</div>`}</div>
+      <div class="dk-dr-acts"><button type="button" class="dk-btn" data-dk-ask="pb">${T("Ask ARCIA about this playbook")}</button></div>`;
+    body.querySelectorAll("[data-dk-trade]").forEach((r) => r.addEventListener("click", () => openTrade(r.dataset.dkTrade)));
+  }
+  // ---------------- v3: ask ARCIA (her chat), with the trade or playbook in the question ----------------
+  function askArcia(kind) {
+    const d = S.d; if (!d) return;
+    const chain = d.net === "rh" ? "Robinhood Chain" : "Arc";
+    let q = "";
+    if (kind === "pb" && S.pb) { const r = (d.leaderboard || []).find((x) => x.k === S.pb); q = `How is your ${pbName(S.pb)} playbook doing on the ${chain} desk${r && r.real ? ` (${r.real} real trades, ${sgnUsd(r.pnl)})` : ""}, and what are you changing?`; }
+    else if (S.trade) { const t = S.trade; q = `About your ${chain} desk trade in ${t.sym} (${pbName(t.pb)}, ${pc(t.ret)}, exit: ${WHY[t.why] || t.why}): why did you buy it, and what did you learn from it?`; }
+    if (!q) return;
+    closeTrade();
+    if (window.arcArcia && typeof window.arcArcia.ask === "function") window.arcArcia.ask(q);
+    else location.hash = "#arcia";
+  }
+  // ---------------- v3: pictures to share — a trade, a week ----------------
+  function card(draw, name) {
+    const cv = document.createElement("canvas"); cv.width = 1200; cv.height = 630;
+    const g = cv.getContext("2d");
+    const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, "#050b0a"); bg.addColorStop(1, "#0b1f19"); g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+    g.strokeStyle = "rgba(57,255,136,.3)"; g.lineWidth = 2; g.strokeRect(30, 30, 1140, 570);
+    const img = new Image(); img.src = AV;
+    const done = () => {
+      try { g.save(); g.beginPath(); g.arc(1050, 140, 70, 0, Math.PI * 2); g.clip(); g.drawImage(img, 980, 70, 140, 140); g.restore(); g.strokeStyle = "#39ff88"; g.lineWidth = 4; g.beginPath(); g.arc(1050, 140, 72, 0, Math.PI * 2); g.stroke(); } catch { /* no avatar */ }
+      g.fillStyle = "#39ff88"; g.font = "700 30px Sora, sans-serif"; g.fillText("ARCIA DESK", 80, 105);
+      draw(g);
+      g.fillStyle = "#6f7e8a"; g.font = "500 22px Inter, sans-serif"; g.fillText("arcircle.app/arc#desk · ARCIA's own small wallet, every trade on-chain · not financial advice", 80, 565);
+      cv.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], name, { type: "image/png" });
+        try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; } } catch { /* download instead */ }
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      }, "image/png");
+    };
+    if (img.complete) done(); else { img.onload = done; img.onerror = done; }
+  }
+  function shareTrade() {
+    const t = S.trade, d = S.d; if (!t || !d) return;
+    card((g) => {
+      const up = t.ret >= 0;
+      g.fillStyle = "#9fb0bd"; g.font = "600 24px Inter, sans-serif"; g.fillText(`${d.net === "rh" ? "Robinhood Chain" : "Arc"} · ${pbName(t.pb)} · ${t.real ? "real trade" : "paper trade"}`, 80, 145);
+      g.fillStyle = "#eef3f7"; g.font = "800 76px Sora, sans-serif"; g.fillText(`$${t.sym}`, 80, 250);
+      g.fillStyle = up ? "#39ff88" : "#ff6e5a"; g.font = "800 92px Sora, sans-serif"; g.fillText(pc(t.ret), 80, 360);
+      g.fillStyle = "#c9d4de"; g.font = "600 32px Inter, sans-serif"; g.fillText(t.real ? `${usd(t.usdIn)} in → ${t.usdOut == null ? "—" : usd(t.usdOut)} out · ${sgnUsd(t.pnl)}` : "practice: no money moved", 80, 425);
+      g.fillStyle = "#9fb0bd"; g.font = "500 26px Inter, sans-serif"; g.fillText(`${WHY[t.why] || t.why} · held ${dur(t.mins)} · ${new Date(t.exitTs * 1000).toISOString().slice(0, 10)}`, 80, 475);
+    }, `arcia-desk-${(t.sym || "trade").toLowerCase()}.png`);
+  }
+  function weekImage() {
+    const d = S.d, w = d && d.stats && d.stats.week; if (!w) return;
+    card((g) => {
+      g.fillStyle = "#9fb0bd"; g.font = "600 26px Inter, sans-serif"; g.fillText(`${d.net === "rh" ? "Robinhood Chain" : "Arc"} desk · the last 7 days`, 80, 145);
+      g.fillStyle = w.pnl >= 0 ? "#39ff88" : "#ff6e5a"; g.font = "800 96px Sora, sans-serif"; g.fillText(sgnUsd(w.pnl), 80, 270);
+      g.fillStyle = "#eef3f7"; g.font = "600 36px Inter, sans-serif"; g.fillText(`${w.n} real trades · ${w.wins} wins (${Math.round((w.wins / Math.max(1, w.n)) * 100)}%)`, 80, 345);
+      if (w.best) { g.fillStyle = "#c9d4de"; g.font = "600 30px Inter, sans-serif"; g.fillText(`Best: $${w.best.sym} ${pc(w.best.ret)}`, 80, 400); }
+      const j = (d.journal || [])[0], l = j && j.lessons && j.lessons[0];
+      if (l) { g.fillStyle = "#9fb0bd"; g.font = "italic 500 24px Inter, sans-serif"; g.fillText(`"${String(l).slice(0, 84)}${String(l).length > 84 ? "…" : ""}"`, 80, 460); }
+    }, `arcia-desk-week-${new Date().toISOString().slice(0, 10)}.png`);
+  }
+  // ---------------- v3: both desks at once ----------------
+  async function loadBoth() {
+    const get = async (q) => { try { const r = await fetch("/api/desk" + q, { cache: "no-store" }); const j = r.ok ? await r.json() : null; return j && !j.error ? j : null; } catch { return null; } };
+    const [a, r] = await Promise.all([get(""), get("?chain=rh")]);
+    if (S.net !== "both") return;
+    S.both = { arc: a, rh: r };
+    paintBoth();
+  }
+  function paintBoth() {
+    const el = $("dk-both"); if (!el) return;
+    const B = S.both;
+    if (!B) return;
+    if (!B.arc && !B.rh) { el.innerHTML = `<div class="ams-card dk-empty">${T("ARCIA DESK isn't reachable right now. Try again in a minute.")}</div>`; return; }
+    const todayOf = (d) => { const x = d && (d.daily || []).find((y) => y.day === dayOfTs(Date.now() / 1000)); return x ? x.pnl : 0; };
+    const live = (d) => d && d.mode === "live";
+    const sum = (f) => [B.arc, B.rh].filter(live).reduce((t, d) => t + (f(d) || 0), 0);
+    const val = sum((d) => d.money.equity), pnl = sum((d) => d.money.pnl), put = sum((d) => d.money.netIn), today = sum(todayOf);
+    const nOpen = [B.arc, B.rh].reduce((t, d) => t + ((d && d.open) || []).length, 0), nReal = [B.arc, B.rh].reduce((t, d) => t + ((d && d.stats.realClosed) || 0), 0);
+    const spark = (d) => { const ys = ((d && d.equity) || []).slice(-60).map((p) => p[2]); if (ys.length < 2) return ""; const lo = Math.min(0, ...ys), hi = Math.max(0, ...ys), W = 200, H = 46, X = (i) => (i / (ys.length - 1)) * W, Y = (v) => H - 3 - ((v - lo) / (hi - lo || 1)) * (H - 6); return `<svg class="dk-hspark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line class="z" x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/><path class="${ys[ys.length - 1] >= 0 ? "up" : "dn"}" d="${ys.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("")}"/></svg>`; };
+    const deskCard = (k, d) => {
+      const nm = k === "rh" ? "Robinhood Chain" : "Arc";
+      if (!d) return `<div class="ams-card dk-bc ${k}"><b>${T(nm)}</b><div class="dk-empty-s">${T("Not reachable right now.")}</div></div>`;
+      const last = (d.log || [])[0], m = d.money, lv = live(d);
+      return `<div class="ams-card dk-bc ${k}"><div class="dk-bc-h"><span class="aor-cdot ${k}" aria-hidden="true"></span><b>${T(nm)}</b><span class="dk-mode ${lv ? "on" : ""}"><i></i>${T(lv ? "Live" : "Paper")}</span></div>
+        <div class="dk-bc-v"><small>${T("Desk value")}</small><b data-no-i18n>${lv ? usd(m.equity) : "—"}</b><em class="${cls(m.pnl)}" data-no-i18n>${lv ? `${sgnUsd(m.pnl)}${m.pnlPct != null ? ` (${pc(m.pnlPct)})` : ""}` : ""}</em>${k === "rh" && lv ? `<em data-no-i18n>${eth(m.equityEth)}</em>` : ""}</div>${spark(d)}
+        <div class="dk-bc-s"><span>${T("Today")} <b class="${cls(todayOf(d))}" data-no-i18n>${sgnUsd(todayOf(d))}</b></span><span>${T("Win rate")} <b data-no-i18n>${d.stats.winRate == null ? "—" : d.stats.winRate + "%"}</b></span><span>${T("Open")} <b data-no-i18n>${(d.open || []).length}</b></span><span>${T("Real trades")} <b data-no-i18n>${d.stats.realClosed}</b></span></div>
+        ${last ? `<p class="dk-small">${T("Last move")}: ${T(last.side === "buy" ? "Bought" : last.side === "sell" ? "Sold" : "Burned")} <b data-no-i18n>${esc(last.sym)}</b>${last.side === "sell" ? ` <span class="${cls(last.ret)}" data-no-i18n>${pc(last.ret)}</span>` : ""} · <span data-no-i18n>${ago(last.ts)}</span></p>` : ""}
+        <button type="button" class="dk-btn" data-dk-open="${k}">${T("Open this desk")} →</button></div>`;
+    };
+    const expl = (k) => (k === "rh" ? (B.rh && B.rh.explorer) || "https://robinhoodchain.blockscout.com" : (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io");
+    const log = [...((B.arc && B.arc.log) || []).map((x) => ({ ...x, k: "arc" })), ...((B.rh && B.rh.log) || []).map((x) => ({ ...x, k: "rh" }))].sort((a, b) => b.ts - a.ts);
+    const N = S.more.both ? 30 : 10;
+    el.innerHTML = `
+      <div class="ams-card dk-bsum"><div><small>${T("Both desks")}</small><b data-no-i18n>${usd(val)}</b><em class="${cls(pnl)}" data-no-i18n>${sgnUsd(pnl)}${put > 0 ? ` (${pc((pnl / put) * 100)})` : ""}</em></div>
+        <div><small>${T("Today")}</small><b class="${cls(today)}" data-no-i18n>${sgnUsd(today)}</b></div><div><small>${T("Open positions")}</small><b data-no-i18n>${nOpen}</b></div><div><small>${T("Real trades")}</small><b data-no-i18n>${nReal}</b></div>
+        <p class="dk-small">${T("In dollars at today's prices; the Robinhood desk counts its own results in ETH.")}</p></div>
+      <div class="dk-bgrid">${deskCard("arc", B.arc)}${deskCard("rh", B.rh)}</div>
+      <div class="ams-card"><div class="dk-h"><h3>${T("Live log, both desks")}</h3></div><div class="dk-log">${log.slice(0, N).map((x) => `<div class="dk-l ${x.side}"><span class="dk-l-side">${T(x.side === "buy" ? "Buy" : x.side === "sell" ? "Sell" : "Burn")}</span><span class="dk-l-tok" data-no-i18n><span class="aor-cdot ${x.k}" aria-hidden="true"></span>${esc(x.sym)}</span><span class="dk-l-amt" data-no-i18n>${usd(x.usd)}</span><span class="dk-l-why">${x.side === "sell" ? `<b class="${cls(x.ret)}" data-no-i18n>${pc(x.ret)}</b>` : ""}</span><span class="dk-l-t" data-no-i18n>${ago(x.ts)}</span>${x.tx ? `<a class="dk-tx" href="${expl(x.k)}/tx/${esc(x.tx)}" target="_blank" rel="noopener" data-no-i18n>tx ↗</a>` : ""}</div>`).join("") || `<div class="dk-empty-s">—</div>`}</div>${moreBtn("both", 10, Math.min(30, log.length))}</div>`;
+  }
+
   function show() {
     if (!S.booted) {
       let n0 = netFromHash();
       if (!n0) { try { n0 = localStorage.getItem("dk-net"); } catch { /* fine */ } }
-      S.net = n0 === "rh" ? "rh" : "arc";
+      S.net = n0 === "rh" ? "rh" : n0 === "both" ? "both" : "arc";
       S.booted = true;
       try { const v = localStorage.getItem("dk-view"); if (v) S.view = v; } catch { /* fine */ }
       frame();
       S.cd = setInterval(() => {
         panel.querySelectorAll("[data-dk-cd]").forEach((el) => { el.textContent = dur(Math.max(0, Math.round((Number(el.dataset.dkCd) - Date.now() / 1000) / 60))); });
-        if (S.d) { const m = staleMin(S.d); $("dk-health").hidden = !(m != null && m >= 10); }
+        if (S.d && $("dk-health")) { const m = staleMin(S.d); $("dk-health").hidden = !(m != null && m >= 10); }
       }, 30000);
+      // the next minute's check counts down every second
+      setInterval(() => { if (!panel.classList.contains("active") || document.hidden) return; panel.querySelectorAll("[data-dk-next]").forEach((el) => { el.textContent = nextIn(Number(el.dataset.dkNext)); }); }, 1000);
     }
     load();
     clearInterval(S.timer);
@@ -1046,7 +1407,7 @@
   document.addEventListener("arcpad:tab", (e) => { if (e.detail && e.detail.tab === "desk") show(); else clearInterval(S.timer); });
   window.addEventListener("hashchange", () => { const n = netFromHash(); if (S.booted && n && n !== S.net) switchNet(n); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && panel.classList.contains("active")) load(); });
-  document.addEventListener("arc:lang", () => { if (S.booted) { frame(); $("dk-filt").dataset.ready = ""; paint(); } });
+  document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if ($("dk-filt")) $("dk-filt").dataset.ready = ""; if (S.net === "both") paintBoth(); else paint(); } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
   window.arcDesk = { load, state: S, switchNet };
 })();

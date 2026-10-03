@@ -208,7 +208,7 @@
   ];
   UTILS3.push({ id: "mine", name: "Builder Mine", sub: "Open a mine for your token — builders dig it, the rest is burned", status: "v1", acc: "#ffc861", href: "/arc#mine",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19.5 14.5 10"/><path d="M8.5 6.2c4-2.6 8.6-2.4 12 .6-3.3-.5-6.3.4-8.5 2.6"/><path d="M4 21h6M14.5 16.5l2 2M19 13l1.5 1.5"/></svg>' });
-  UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new Argus launches live — every trade public", status: "Beta", acc: "#39ff88", href: "/arc#desk",
+  UTILS3.push({ id: "desk", name: "ARCIA DESK", sub: "ARCIA trades new launches on Arc and Robinhood Chain — every trade public", status: "v3", acc: "#39ff88", href: "/arc#desk",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
   // page 4: ARCIA AGENT, ARCIRCLE Orders, then what's still being built
   var UTILS4 = [
