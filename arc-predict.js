@@ -497,7 +497,7 @@
       ${oy ? `<g clip-path="url(#${id}a)"><path class="pd-c-line up" d="${d}"/></g><g clip-path="url(#${id}b)"><path class="pd-c-line down" d="${d}"/></g><line class="pd-c-open" x1="0" x2="${Wd}" y1="${oy}" y2="${oy}"/>` : `<path class="pd-c-line" d="${d}"/>`}
       ${bets}<circle class="pd-c-dot" cx="${lastX}" cy="${Y(m.price).toFixed(1)}" r="4"/></svg>
       ${oy ? `<span class="pd-c-tag" style="top:${((oy / Hd) * 100).toFixed(1)}%" data-no-i18n>${esc(px(r.open))}</span>` : ""}
-      <div class="pd-c-axis" data-no-i18n>${[[r.startAt, tr("start")], [r.lockAt, tr("bets close")], [r.endAt, tr("end")]].map(([t, l]) => `<span style="left:${((X(t) / Wd) * 100).toFixed(1)}%"><b>${esc(l)}</b>${clock(t)}</span>`).join("")}</div>`;
+      <div class="pd-c-axis" data-no-i18n>${[[r.startAt, tr("start")], ...((r.endAt - r.lockAt) / Math.max(1, x1 - x0) > 0.18 ? [[r.lockAt, tr("bets close")]] : []), [r.endAt, tr("end")]].map(([t, l]) => `<span style="left:${((X(t) / Wd) * 100).toFixed(1)}%"><b>${esc(l)}</b>${clock(t)}</span>`).join("")}</div>`;
   }
   const clock = (t) => new Date((t - S.skew) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   /// a round of this market just settled: its result stamped on the card; a win of yours floats up

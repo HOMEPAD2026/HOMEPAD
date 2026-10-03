@@ -6525,6 +6525,7 @@
     "The last 10 results sit under the token's name, with a dot where ARCIA's call was scored. Reactions (hot, to the moon, cold, watching) can be left on the live round.": "토큰 이름 아래에 최근 10라운드 결과가 보이고, ARCIA의 예측이 채점된 곳에 점이 찍혀요. 진행 중인 라운드에 반응(뜨거움, 투더문, 차가움, 지켜보는 중)을 남길 수 있어요.",
     "The bell on a market reminds you 30 seconds before bets close, every round, in this browser. Badges come with your first call, first win, streaks of 3, 5 and 10, and 10, 50 and 100 rounds.": "마켓의 종 버튼을 누르면 이 브라우저에서 매 라운드 베팅 마감 30초 전에 알려줘요. 첫 예측, 첫 승리, 3·5·10연승, 10·50·100라운드에 배지를 받아요.",
     "All markets lets you bet straight from a tile with your amount. The weekly leaderboard is a season that resets every Monday 00:00 UTC. In Telegram, /predict lists the live rounds.": "All markets에서 내 금액으로 타일에서 바로 베팅할 수 있어요. 주간 리더보드는 매주 월요일 00:00 UTC에 초기화되는 시즌이에요. 텔레그램에서 /predict로 진행 중인 라운드를 볼 수 있어요.",
+    "before the end": "종료 전",
   };
 
 

@@ -6678,6 +6678,7 @@
     "The last 10 results sit under the token's name, with a dot where ARCIA's call was scored. Reactions (hot, to the moon, cold, watching) can be left on the live round.": "代币名称下方显示最近 10 回合结果，ARCIA 的判断被计分处会有圆点。可以对进行中的回合留下反应（火热、冲上月球、冷淡、围观）。",
     "The bell on a market reminds you 30 seconds before bets close, every round, in this browser. Badges come with your first call, first win, streaks of 3, 5 and 10, and 10, 50 and 100 rounds.": "点击市场上的铃铛，此浏览器会在每回合下注截止前 30 秒提醒你。首次预测、首胜、3/5/10 连胜、10/50/100 回合可获得徽章。",
     "All markets lets you bet straight from a tile with your amount. The weekly leaderboard is a season that resets every Monday 00:00 UTC. In Telegram, /predict lists the live rounds.": "在 All markets 中可直接用你的金额从卡片下注。每周排行榜是每周一 00:00 UTC 重置的赛季。在 Telegram 中用 /predict 查看进行中的回合。",
+    "before the end": "结束前",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
