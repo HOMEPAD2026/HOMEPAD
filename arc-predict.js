@@ -43,7 +43,7 @@
   const moneyU = (n) => (isRH() && uUsd() && n != null && isFinite(n) ? `${ethS(n)} <small class="pd-usd">≈${usd(n * uUsd())}</small>` : money(n));
   const bigM = (n) => (isRH() ? money(n) : big$(n));
   /// "≈$1" for a chip
-  const dl = (x) => "≈$" + (x >= 10 ? Math.round(x) : Number(x.toPrecision(2)));
+  const dl = (x) => "≈$" + (x >= 2 ? Math.round(x) : Number(x.toPrecision(2)));
   const sig2 = (x) => Number(x.toPrecision(2));
   const SUB = "₀₁₂₃₄₅₆₇₈₉";
   /// $0.0₃5426 for tiny prices (the subscript counts the zeros after the point)
@@ -255,8 +255,10 @@
   function chips(lim) {
     if (!isRH()) return [1, 2, lim.maxBet].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => [v, "$" + v]);
     const u = uUsd();
-    const vs = u ? [1, 2, 5].map((d) => Math.min(lim.maxBet, Math.max(lim.minBet, sig2(d / u)))) : [lim.minBet, sig2(lim.maxBet / 2), lim.maxBet];
-    return vs.filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => [v, u ? dl(v * u) : ethS(v)]);
+    if (!u) return [lim.minBet, sig2(lim.maxBet / 2), lim.maxBet].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => [v, ethS(v)]);
+    // the dollar target names the chip unless the limits moved it
+    const vs = [1, 2, 5].map((d) => { const raw = sig2(d / u), v = Math.min(lim.maxBet, Math.max(lim.minBet, raw)); return [v, v === raw ? "≈$" + d : dl(v * u)]; });
+    return vs.filter((x, i, a) => x[0] > 0 && a.findIndex((y) => y[0] === x[0]) === i);
   }
   const K = (k) => panel.querySelector(`#pd-round [data-k="${k}"]`);
   const setT = (k, v) => { const e = K(k); if (e && e.textContent !== v) e.textContent = v; return e; };

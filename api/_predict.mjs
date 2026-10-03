@@ -277,6 +277,8 @@ export function makePredict(over) {
     }
     const lbd = await lbDoc(store).catch(() => null);
     const st = lbd && lbd.users ? lbd.users[lc(user)] || null : null;
+    // wallets that came through this one's link (from the bets the keeper has read), not rounds
+    if (lbd && lbd.refBy) ref.invited = Math.max(Object.values(lbd.refBy).filter((r) => r === lc(user)).length, ref.invited ? 1 : 0);
     return { live: true, ...head0(), unitUsd: await unitUsd(), items, claimable: items.reduce((s, x) => s + x.claimable, 0), claimIds: items.filter((x) => x.claimable > 0).map((x) => x.round), ref,
       stats: st ? { pnl: st.pnl, vol: st.vol, n: st.n, wins: st.w, losses: st.l, streak: st.s, best: st.b, week: (st.wk && st.wk[weekKey(CFG.now())]) || { pnl: 0, vol: 0 } } : null };
   }
@@ -356,7 +358,12 @@ export function makePredict(over) {
       logs.sort((a, b) => parseInt(a.blockNumber, 16) - parseInt(b.blockNumber, 16) || parseInt(a.logIndex, 16) - parseInt(b.logIndex, 16));
       for (const l of logs) {
         const rid = String(BigInt(l.topics[1]));
-        if (l.topics[0] === TOPIC.bet) (d.pend[rid] = d.pend[rid] || []).push([lc("0x" + l.topics[2].slice(26)), W(l.data, 1) === 1n ? 1 : 0, amt(W(l.data, 2))]);
+        if (l.topics[0] === TOPIC.bet) {
+          const u = lc("0x" + l.topics[2].slice(26));
+          (d.pend[rid] = d.pend[rid] || []).push([u, W(l.data, 1) === 1n ? 1 : 0, amt(W(l.data, 2))]);
+          // who came through whose link (a wallet's referrer is set once, on its first bet)
+          if (W(l.data, 3) > 0n) { d.refBy = d.refBy || {}; if (!d.refBy[u]) d.refBy[u] = lc(A(l.data, 3)); }
+        }
         else {
           const res = Number(W(l.data, 1)), up = amt(W(l.data, 4)), down = amt(W(l.data, 5)), fee = amt(W(l.data, 6));
           const bets = d.pend[rid] || [];
