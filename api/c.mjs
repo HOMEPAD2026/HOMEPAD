@@ -402,7 +402,13 @@ async function scanPage(url) {
   if (!sol && !isAddr(addr)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#scanner">`, "public, max-age=300");
   let sym = "";
   if (sol) {
-    try { const SOL = await import("./_scan-sol.mjs"); const r = await SOL.scanSol(addr); sym = (r && r.symbol) || ""; } catch { sym = ""; }
+    // edge runtime: no Solana kit here (api/_scan-sol.mjs needs Node), so the ticker comes from Dexscreener
+    try {
+      const r = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${addr}`, { signal: AbortSignal.timeout(2500) });
+      const list = r.ok ? await r.json() : [];
+      const pair = (Array.isArray(list) ? list : []).find((x) => x && x.baseToken && x.baseToken.address === addr);
+      sym = (pair && pair.baseToken.symbol) || "";
+    } catch { sym = ""; }
   } else try {
     const [h] = rh ? [null] : await ethCalls([{ to: addr, data: "0x95d89b41" }]);
     const x = String(h || "").replace(/^0x/, "");
