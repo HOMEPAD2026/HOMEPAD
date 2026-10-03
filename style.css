@@ -7221,6 +7221,48 @@ tr.alq-focus td{background:rgba(57,208,255,.12) !important;}
 .alq-score.bad{border-color:rgba(255,107,107,.5);color:#ff8b8b !important;}
 @media (max-width:700px){.alq-path ol{grid-template-columns:1fr 1fr;row-gap:14px;}.alq-path ol::before,.alq-path ol::after{display:none;}.alq-rebal{grid-template-columns:1fr;}}
 @media (prefers-reduced-motion:reduce){.alq-mine-card.in,.alq-earn::before,.alq-depth rect.mine,.alq-coin,.alq-path li.next > i,.alq-il-rows i::after{animation:none !important;}}
+/* Liquidity Manager v2: chain switch, pools dashboard, one-coin shapes, the ledger */
+.alq-status[hidden],#alq-top[hidden],#alq-out[hidden]{display:none !important;}
+.alq-chainsw{display:inline-grid;min-width:260px;margin:0 0 12px;}
+.alq-chainsw button{padding:7px 12px;font-size:.8rem;}
+.alq-chaintag.arc{border-color:rgba(77,212,255,.4);color:#9fe8ff;}
+.alq-chaintag.rh{border-color:rgba(204,255,0,.45);color:#e4ff8a;}
+.ams-chip.alq-allchip{border-color:rgba(57,255,136,.35);color:#9dffc6;}
+.alq-dash{margin:0 0 16px;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);}
+.alq-dash-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+.alq-dash-h b{display:block;font:700 1rem 'Sora',sans-serif;color:#fff;}
+.alq-dash-h small{font-size:.72rem;color:#8c98a6;}
+.alq-dash-tabs{flex:none;min-width:240px;}
+.alq-dash-tabs button[aria-selected="true"]{background:#fff;color:#061015;border-color:#fff;}
+.alq-dash .alq-fine{margin:4px 0 10px;}
+.alq-dash-t tbody tr{cursor:pointer;}
+.alq-dash-t tbody tr:hover td,.alq-dash-t tbody tr:focus-visible td{background:rgba(57,208,255,.06);}
+.alq-dash-t tbody tr:focus-visible{outline:2px solid #39d0ff;outline-offset:-2px;}
+.alq-dash-t tr.thin td{opacity:.62;}
+.alq-dash-t th button{all:unset;cursor:pointer;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;}
+.alq-dash-t th button[aria-pressed="true"]{color:#fff;}
+.alq-dash-t th button:focus-visible{outline:2px solid #39d0ff;outline-offset:2px;border-radius:4px;}
+.alq-dash-t small.up{color:#39ff88;}.alq-dash-t small.down{color:#ff8b8b;}
+.alq-thin{font-style:normal;font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:rgba(255,200,97,.12);color:#ffc861;}
+.alq-modes{margin-bottom:12px;}
+.alq-shapes button{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.alq-shapes svg{width:30px;height:18px;fill:currentColor;opacity:.75;}
+.alq-shape-prev{margin:10px 0 12px;padding:10px 12px 6px;border-radius:14px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.07);}
+.alq-shape-prev svg{display:block;width:100%;height:96px;}
+.alq-shape-prev rect.tok{fill:#39d0ff;}
+.alq-shape-prev rect.q{fill:#39ff88;}
+.alq-shape-prev line.now{stroke:#fff;stroke-width:1.5;stroke-dasharray:3 3;}
+.alq-shape-prev line.base{stroke:rgba(255,255,255,.18);stroke-width:1;}
+.alq-shape-prev .alq-range{margin:6px 0 0;}
+#alq-one .alq-lab{display:block;margin:10px 0 6px;}
+.alq-ledger{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:6px;}
+.alq-ledger div{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);}
+.alq-ledger small{font-size:.6rem;color:#8c98a6;text-transform:uppercase;letter-spacing:.06em;}
+.alq-ledger b{font:700 .84rem 'Sora',sans-serif;color:#fff;}
+.alq-ledger b.down{color:#ff8b8b;}
+.alq-mine-tot{display:inline-flex;gap:12px;flex-wrap:wrap;margin-left:auto;font:500 .74rem Inter,sans-serif;color:#8c98a6;}
+.alq-mine h3 .alq-mine-tot b{padding:0;background:none;font:700 .82rem 'Sora',sans-serif;color:#fff;}
+@media (max-width:720px){.alq-chainsw{display:grid;width:100%;min-width:0;}.alq-dash-tabs{min-width:0;width:100%;}.alq-mine h3{flex-wrap:wrap;}.alq-mine-tot{margin-left:0;width:100%;}}
 /* CirclePad burn-to-vote */
 .gv-burned{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:16px;border-left:1px solid var(--line);}
 .gv-burned span{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#ffb38a;}

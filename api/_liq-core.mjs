@@ -17,6 +17,22 @@ export const LIQ_ADDR = {
   // ArcLPLock (contracts/ArcLPLock.sol); keep config-arc.js LPLOCK_ADDRESS in step
   lplock: "0x674e7010dab5ccb519e06df72b1d4c063952f45b",
 };
+// Robinhood Chain (chain 4663): the same PoolManager address, its own PositionManager (Uniswap's v4 deployments list)
+export const LIQ_ADDR_RH = {
+  poolManager: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  positions: "0x58daec3116aae6d93017baaea7749052e8a04fa7",
+  permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3",
+  weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
+  ponsFactory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // PonsV2LaunchFactory: getLaunchedToken(token), memeHook()
+  ponsLocker: "0x736d76699c26d0d966744cae304c000d471f7f35", // holds a graduated Pons coin's pool position, for good
+  bagsHook: "0x2380abf72c17aabab76480244759ac7e2932eecc",
+  lplock: "",
+};
+/// the two chains the Liquidity Manager works on: native gas coin, explorer, Uniswap v4 addresses
+export const LIQ_CHAINS = {
+  arc: { id: "arc", chainId: 5042, name: "Arc", native: "USDC", nativeDecimals: 18, explorer: "https://arc.etherscan.io", dex: "arc", gt: "arc", addr: LIQ_ADDR },
+  rh: { id: "rh", chainId: 4663, name: "Robinhood Chain", native: "ETH", nativeDecimals: 18, explorer: "https://robinhoodchain.blockscout.com", dex: "robinhood", gt: "robinhood", addr: LIQ_ADDR_RH },
+};
 export const LIQ_BURN = ["0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead", "0xdead000000000000000042069420694206942069"];
 export const MIN_TICK = -887272, MAX_TICK = 887272;
 const Q96 = 1n << 96n, MAXU = (1n << 256n) - 1n;
@@ -105,6 +121,46 @@ export function rangeAround(tick, pct, ts) {
   const d2 = Math.log(1 / (1 - Math.min(pct, 99.9) / 100)) / Math.log(1.0001);
   const lo = alignTick(Math.floor(tick - d2), ts), hi = alignTick(Math.ceil(tick + d), ts, true);
   return [lo, hi > lo ? hi : lo + ts];
+}
+
+// ---------------------------------------------------------------- shaped one-coin liquidity
+// One coin only means the liquidity sits on one side of the price: currency0 above the current tick (it is sold
+// as the price rises), currency1 below it. The range runs from the first usable tick past the price out to a
+// `widthX` move in price, cut into bands; the shape weights how much of the deposit each band gets:
+//   even   one position over the whole range
+//   curve  most of it next to the price, less further out
+//   bidask most of it at the far end, less next to the price
+export const SHAPES = ["even", "curve", "bidask"];
+export function shapeBands({ tick, ts, side01, widthX, shape = "even", n = 5 }) {
+  const d = Math.max(ts, Math.round(Math.log(Math.max(1.0001, widthX)) / Math.log(1.0001)));
+  let lo, hi;
+  if (side01 === 0) { lo = Math.floor(tick / ts) * ts + ts; hi = alignTick(lo + d, ts, true); }
+  else { hi = Math.floor(tick / ts) * ts; lo = alignTick(hi - d, ts); }
+  lo = Math.max(minUsable(ts), lo); hi = Math.min(maxUsable(ts), hi);
+  if (hi - lo < ts) return [];
+  const bands = shape === "even" ? 1 : Math.max(1, Math.min(n, Math.floor((hi - lo) / ts)));
+  const out = [];
+  for (let i = 0; i < bands; i++) {
+    const a = lo + Math.round(((hi - lo) / ts) * (i / bands)) * ts, b = i === bands - 1 ? hi : lo + Math.round(((hi - lo) / ts) * ((i + 1) / bands)) * ts;
+    if (b > a) out.push([a, b]);
+  }
+  // band 0 is nearest the price: the lowest one for currency0, the highest for currency1
+  const near = side01 === 0 ? out : out.slice().reverse();
+  const k = near.length;
+  return near.map(([a, b], i) => ({ tl: a, tu: b, w: shape === "curve" ? k - i : shape === "bidask" ? i + 1 : 1 }));
+}
+/// Split `amount` of the one coin over the bands by weight → each band's liquidity and exact amounts.
+export function shapePlan(sqrtP, bands, side01, amount) {
+  const W = bands.reduce((s, b) => s + b.w, 0);
+  if (!W || amount <= 0n) return [];
+  let left = amount;
+  return bands.map((b, i) => {
+    const part = i === bands.length - 1 ? left : (amount * BigInt(b.w)) / BigInt(W);
+    left -= part;
+    const liq = side01 === 0 ? liquidityFor(sqrtP, b.tl, b.tu, part, 0n) : liquidityFor(sqrtP, b.tl, b.tu, 0n, part);
+    const [a0, a1] = amountsFor(sqrtP, b.tl, b.tu, liq);
+    return { tl: b.tl, tu: b.tu, w: b.w, liquidity: liq, amount0: a0, amount1: a1 };
+  }).filter((x) => x.liquidity > 0n);
 }
 
 // ---------------------------------------------------------------- pool state

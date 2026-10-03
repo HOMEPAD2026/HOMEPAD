@@ -44,6 +44,8 @@
 //   every orders route takes chain=rh (query or body) for Robinhood Chain's book (ArcircleOrdersNative)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
+//   GET  /api/social?liqtop=arc|rh               Liquidity Manager: trending / established pools with fee yields
+//        (liq, liqfeed, liqmine, liqsafe take &chain=rh for Robinhood Chain)
 //   GET  /api/social?lock=<id>                  Locker: one ArcLock lock (/lock/<id> certificate)
 //   GET  /api/social?locks=overview|<token>     Locker: dashboard (every lock by token) / one token's totals
 //   GET  /api/social?lockbadge=<token>          Locker: embeddable SVG badge (/lockbadge/<token>)
@@ -388,18 +390,24 @@ export async function GET(req) {
   if (url.searchParams.has("liq")) {
     if (scanner.limited(`lq:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
     try {
-      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000, extra: String(url.searchParams.get("pools") || "").split(",").filter(Boolean).slice(0, 6) });
+      const out = await liquidity.run(url.searchParams.get("liq"), { store: scanStore(), wallet: url.searchParams.get("wallet") || "", budgetMs: 8000, extra: String(url.searchParams.get("pools") || "").split(",").filter(Boolean).slice(0, 6), chain: url.searchParams.get("chain") || "arc" });
       return json(200, out, "no-store");
     } catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.has("liqfeed")) {
     if (scanner.limited(`lf:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
-    try { return json(200, await liquidity.feed(String(url.searchParams.get("liqfeed") || "").split(","), { hours: url.searchParams.get("h") }), "public, max-age=15, s-maxage=30, stale-while-revalidate=120"); }
+    try { return json(200, await liquidity.feed(String(url.searchParams.get("liqfeed") || "").split(","), { hours: url.searchParams.get("h"), chain: url.searchParams.get("chain") || "arc" }), "public, max-age=15, s-maxage=30, stale-while-revalidate=120"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   if (url.searchParams.has("liqmine")) {
     if (scanner.limited(`lm:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
-    try { return json(200, await liquidity.mine(url.searchParams.get("liqmine"), { store: scanStore(), budgetMs: 8000 }), "no-store"); }
+    try { return json(200, await liquidity.mine(url.searchParams.get("liqmine"), { store: scanStore(), budgetMs: 8000, chain: url.searchParams.get("chain") || "arc" }), "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  // the chain's busiest pools (GeckoTerminal) with v4 fee yields — the Liquidity Manager's dashboard
+  if (url.searchParams.has("liqtop")) {
+    if (scanner.limited(`lt:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await liquidity.top(url.searchParams.get("liqtop") || "arc", { store: scanStore() }), "public, max-age=60, s-maxage=120, stale-while-revalidate=600"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   // the Token Scanner's verdict + trade checks (taxes) for the add-liquidity warning
@@ -408,7 +416,7 @@ export async function GET(req) {
     if (!isAddr(t)) return json(400, { error: "token must be an address" });
     if (scanner.limited(`ls:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
     try {
-      const d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3 });
+      const d = await scanner.scoreOf(t, { store: scanStore(), maxAgeMs: 6 * 3600e3, chain: url.searchParams.get("chain") === "rh" ? "rh" : "arc" });
       return json(200, d && !d.notToken ? { score: d.score, k: d.k, t: d.t, trade: d.trade || null, reasons: d.reasons || [], crit: d.crit || [] } : { score: null }, "public, max-age=60, s-maxage=300");
     } catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
   }

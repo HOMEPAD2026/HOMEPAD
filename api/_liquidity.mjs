@@ -12,18 +12,33 @@
 // record, and Dexscreener's pair list. Liquidity that isn't an NFT (an ArcPad
 // launch position sits in the PoolManager under the factory's own name) shows
 // up as the part of the active liquidity no known position accounts for.
-import { isAddr, getLogs, latestBlock, blockTs, pool, toQty, rpc } from "./_arc.mjs";
+import { isAddr, pool, toQty } from "./_arc.mjs";
 import * as snapCore from "./_snap-core.mjs";
 import * as scanCore from "./_scan-core.mjs";
 import * as L from "./_liq-core.mjs";
 import { io as snapIo } from "./_snapshot.mjs";
-import { io as scanIo } from "./_scan.mjs";
+import { ioOf, ctxOf } from "./_scan.mjs";
+
+// ---------------------------------------------------------------- the chain: Arc (default) or Robinhood Chain
+// Everything below reads through one chain's context X: its RPC (the Token Scanner's chain context), its Uniswap v4
+// addresses (api/_liq-core.mjs LIQ_CHAINS), and store keys of its own ("rh-lppool/…" on Robinhood Chain).
+const OVR = { arc: {}, rh: {} }; // tests: other addresses (a local PositionManager, Permit2…)
+export function configure(o = {}) { for (const c of ["arc", "rh"]) if (o[c]) Object.assign(OVR[c], o[c]); mem.clear(); headMem.clear(); }
+const chainKey = (c) => (String(c || "").toLowerCase() === "rh" ? "rh" : "arc");
+function ctx(chain) {
+  const c = chainKey(chain), C = ctxOf(c), K = L.LIQ_CHAINS[c];
+  const A = { ...K.addr, ...OVR[c] };
+  const X = { c, C, K, A, pre: c === "rh" ? "rh-" : "", name: K.name, chunk: c === "rh" ? 50000 : 9000, spb: c === "rh" ? 0.25 : 0.4 };
+  X.io = { ...ioOf(c), keccak: snapIo.keccak, calls: (calls, tag) => rcalls(calls, tag, C) };
+  return X;
+}
+const busy = (X) => Object.assign(new Error(`${X.name}'s RPC is busy — try again in a moment`), { status: 503 });
 
 // eth_call batches that survive a busy RPC: an item that comes back with an
 // error other than a revert (rate limits, timeouts) is asked again, so a
 // flaky answer is never mistaken for "nothing there". out.failed counts the
 // ones that still didn't answer. A call may carry its own block tag.
-async function rcalls(calls, tag = "latest") {
+async function rcalls(calls, tag = "latest", C = ctxOf("arc")) {
   const out = new Array(calls.length).fill(null);
   let todo = calls.map((_, i) => i), failed = 0;
   for (let attempt = 0; attempt < 6 && todo.length; attempt++) {
@@ -32,7 +47,7 @@ async function rcalls(calls, tag = "latest") {
     const again = [];
     await pool(groups, 3, async (g) => {
       let res;
-      try { res = await rpc(g.map((k, id) => ({ jsonrpc: "2.0", id, method: "eth_call", params: [{ to: calls[k].to, data: calls[k].data }, calls[k].tag || tag] })), { timeoutMs: 9000 }); }
+      try { res = await C.rpc(g.map((k, id) => ({ jsonrpc: "2.0", id, method: "eth_call", params: [{ to: calls[k].to, data: calls[k].data }, calls[k].tag || tag] })), { timeoutMs: 9000 }); }
       catch { again.push(...g); return; }
       const byId = new Map((Array.isArray(res) ? res : [res]).map((x) => [x && x.id, x]));
       g.forEach((k, j) => {
@@ -48,7 +63,7 @@ async function rcalls(calls, tag = "latest") {
   out.failed = failed;
   return out;
 }
-const io = { ...scanIo, ...snapIo, calls: rcalls };
+const io = { ...ioOf("arc"), keccak: snapIo.keccak, calls: rcalls }; // keccak and selectors (chain-free)
 const lc = (a) => String(a || "").toLowerCase();
 const big = (x) => { try { return BigInt(x || 0); } catch { return 0n; } };
 const strip = (h) => String(h || "").replace(/^0x/, "");
@@ -70,13 +85,13 @@ const memSet = (k, v) => { mem.set(k, v); if (mem.size > 200) mem.delete(mem.key
 async function sget(store, k) { if (mem.has(k)) return mem.get(k); if (!store) return null; try { const d = await store.get(k); if (d) memSet(k, d); return d || null; } catch { return null; } }
 async function sset(store, k, d) { memSet(k, d); if (store) { try { await store.set(k, d); } catch { /* too big: this instance keeps it */ } } }
 
-async function meta(addrs) {
+async function meta(addrs, X = ctx("arc")) {
   const out = new Map();
   const list = [...new Set(addrs.map(lc))];
   const erc = list.filter((a) => a !== L.ZERO_ADDR);
-  const r = await io.calls(erc.flatMap((a) => [{ to: a, data: sel("symbol()") }, { to: a, data: sel("name()") }, { to: a, data: sel("decimals()") }]));
+  const r = await X.io.calls(erc.flatMap((a) => [{ to: a, data: sel("symbol()") }, { to: a, data: sel("name()") }, { to: a, data: sel("decimals()") }]));
   erc.forEach((a, i) => out.set(a, { address: a, symbol: str(r[3 * i]) || "?", name: str(r[3 * i + 1]) || "", decimals: r[3 * i + 2] ? Number(big(r[3 * i + 2])) : 18 }));
-  if (list.includes(L.ZERO_ADDR)) out.set(L.ZERO_ADDR, { address: L.ZERO_ADDR, symbol: "USDC", name: "USDC (native)", decimals: 18, native: true });
+  if (list.includes(L.ZERO_ADDR)) out.set(L.ZERO_ADDR, { address: L.ZERO_ADDR, symbol: X.K.native, name: X.K.native === "ETH" ? "Ether" : "USDC (native)", decimals: X.K.nativeDecimals, native: true });
   return out;
 }
 
@@ -91,19 +106,20 @@ const LOG_CHUNK = 9000;
 const T_MODIFY_SIG = "ModifyLiquidity(bytes32,address,int24,int24,int256,bytes32)";
 const ascii = (x) => "0x" + Array.from(new TextEncoder().encode(x), (b) => b.toString(16).padStart(2, "0")).join("");
 const s24h = (h) => Number(BigInt.asIntN(24, BigInt("0x" + h.slice(-6))));
-let headMem = null; // { at, v }
-async function chainHead() {
-  if (headMem && Date.now() - headMem.at < 3000) return headMem.v;
-  const v = await latestBlock(); headMem = { at: Date.now(), v }; return v;
+const headMem = new Map(); // chain → { at, v }
+async function chainHead(X = ctx("arc")) {
+  const h = headMem.get(X.c);
+  if (h && Date.now() - h.at < 3000) return h.v;
+  const v = await X.C.latestBlock(); headMem.set(X.c, { at: Date.now(), v }); return v;
 }
 /// The first block where the pool exists: a 16-way search on its slot0 in past blocks.
-async function initBlock(id, latestN, fallback) {
+async function initBlock(id, latestN, fallback, X = ctx("arc")) {
   const data = sel("extsload(bytes32)") + strip(L.poolSlot(id, io.keccak));
   let lo = 0, hi = latestN;
   try {
     while (hi - lo > 2000) {
       const pts = []; for (let k = 1; k < 16; k++) pts.push(Math.floor(lo + ((hi - lo) * k) / 16));
-      const r = await rcalls(pts.map((b) => ({ to: L.LIQ_ADDR.poolManager, data, tag: toQty(b) })));
+      const r = await rcalls(pts.map((b) => ({ to: X.A.poolManager, data, tag: toQty(b) })), "latest", X.C);
       if (r.failed) throw new Error("no history");
       const k = pts.findIndex((_, j) => big(r[j]) !== 0n);
       if (k < 0) lo = pts[14]; else { hi = pts[k]; if (k > 0) lo = pts[k - 1]; }
@@ -112,26 +128,27 @@ async function initBlock(id, latestN, fallback) {
   } catch { return fallback; }
 }
 /// → { done, progress, st } ; st = { from, hi, pos: ["id|tl|tu|liquidity"], direct: ["sender|tl|tu|salt|liquidity"] }
-export async function poolLog(id, { store = null, until = () => false, startHint = null } = {}) {
-  const key = `lppool/${id}`;
+export async function poolLog(id, { store = null, until = () => false, startHint = null, chain = "arc" } = {}) {
+  const X = typeof chain === "object" ? chain : ctx(chain);
+  const key = `${X.pre}lppool/${id}`;
   let st = await sget(store, key);
-  const latest = await chainHead();
+  const latest = await chainHead(X);
   if (!st || !Array.isArray(st.pos)) {
-    const from = await initBlock(id, latest.number, startHint != null ? startHint : 0);
+    const from = await initBlock(id, latest.number, startHint != null ? startHint : 0, X);
     st = { from, hi: from - 1, pos: [], direct: [] };
   }
   if (st.hi >= latest.number) return { done: true, progress: 1, st };
   const pm = new Map(st.pos.map((r) => { const [i, tl, tu, l] = r.split("|"); return [i, [Number(tl), Number(tu), BigInt(l)]]; }));
   const dm = new Map(st.direct.map((r) => { const x = r.split("|"); return [x.slice(0, 4).join("|"), BigInt(x[4])]; }));
-  const tM = io.keccak(ascii(T_MODIFY_SIG)), posm = lc(L.LIQ_ADDR.positions);
-  let moved = false;
+  const tM = io.keccak(ascii(T_MODIFY_SIG)), posm = lc(X.A.positions);
+  let moved = false, chunk = st.chunk || X.chunk || LOG_CHUNK;
   while (st.hi < latest.number && !until()) {
     const ranges = [];
     let a = st.hi + 1;
-    for (let k = 0; k < 8 && a <= latest.number; k++) { const b = Math.min(latest.number, a + LOG_CHUNK - 1); ranges.push([a, b]); a = b + 1; }
+    for (let k = 0; k < 8 && a <= latest.number; k++) { const b = Math.min(latest.number, a + chunk - 1); ranges.push([a, b]); a = b + 1; }
     let logs;
-    try { logs = (await pool(ranges, 8, ([x, y]) => getLogs({ address: L.LIQ_ADDR.poolManager, topics: [tM, id], fromBlock: toQty(x), toBlock: toQty(y) }))).flat(); }
-    catch { break; } // try again next time from the same block
+    try { logs = (await pool(ranges, 8, ([x, y]) => X.C.getLogs({ address: X.A.poolManager, topics: [tM, id], fromBlock: toQty(x), toBlock: toQty(y) }))).flat(); }
+    catch { if (chunk > 2000) { chunk = Math.max(2000, Math.floor(chunk / 4)); st.chunk = chunk; continue; } break; } // a node that refuses wide windows gets narrower ones; else try again next time
     for (const l of logs) {
       const d = strip(l.data), w = (k) => d.slice(k * 64, (k + 1) * 64);
       const delta = BigInt.asIntN(256, BigInt("0x" + w(2)));
@@ -155,28 +172,45 @@ export async function poolLog(id, { store = null, until = () => false, startHint
   return { done: st.hi >= latest.number, progress: Math.min(0.99, Math.max(0, (st.hi - st.from) / span)), st };
 }
 // pools seen for a token, and every pool indexed (for "your liquidity")
-async function remember(store, token, ids) {
-  const k = `lptok/${token}`, d = (await sget(store, k)) || { pools: [] };
+async function remember(store, token, ids, X = ctx("arc")) {
+  const k = `${X.pre}lptok/${token}`, d = (await sget(store, k)) || { pools: [] };
   const add = ids.filter((x) => !d.pools.includes(x));
   if (add.length) await sset(store, k, { pools: [...d.pools, ...add].slice(-24) });
-  const g = (await sget(store, "lppools/all")) || { pools: [] };
+  const g = (await sget(store, `${X.pre}lppools/all`)) || { pools: [] };
   const add2 = ids.filter((x) => !g.pools.includes(x));
-  if (add2.length) await sset(store, "lppools/all", { pools: [...g.pools, ...add2].slice(-1500) });
+  if (add2.length) await sset(store, `${X.pre}lppools/all`, { pools: [...g.pools, ...add2].slice(-1500) });
 }
 
 /// → { done:false, stage, progress } while a pool's position log catches up, then the full picture.
 /// extra: pool ids the page already knows for this token (e.g. one it just created) — checked here.
-export async function run(token, { store = null, wallet = "", budgetMs = 8000, extra = [] } = {}) {
+/// A Pons V2 coin on Robinhood Chain: its creator, phase and — once graduated — its Uniswap v4 pool key
+/// (currency0 native ETH, the factory's meme hook). getLaunchedToken words: deployer 2, pairToken 4, poolFee 6,
+/// tickSpacing 7, phase 10, exists 14.
+async function ponsPool(X, token) {
+  const f = X.A.ponsFactory;
+  if (!f) return null;
+  const [h, hk] = await X.io.calls([{ to: f, data: sel("getLaunchedToken(address)") + pad(token) }, { to: f, data: sel("memeHook()") }]);
+  if (!h || strip(h).length < 15 * 64 || wBig(h, 14) !== 1n || lc(wAddr(h, 0)) !== token) return null;
+  const phase = ["curve", "swept", "pool", "rescued"][Number(wBig(h, 10))] || "curve";
+  let ts = Number(wBig(h, 7) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
+  const q = lc(wAddr(h, 4)), [c0, c1] = q < token ? [q, token] : [token, q];
+  const key = phase === "pool" && hk && ts > 0 ? { currency0: c0, currency1: c1, fee: Number(wBig(h, 6)), tickSpacing: ts, hooks: lc(wAddr(hk, 0)) } : null;
+  return { creator: lc(wAddr(h, 2)), phase, key };
+}
+
+export async function run(token, { store = null, wallet = "", budgetMs = 8000, extra = [], chain = "arc" } = {}) {
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
+  const X = ctx(chain), io = X.io, rh = X.c === "rh";
   token = lc(token); wallet = lc(wallet);
   if (!isAddr(token)) throw Object.assign(new Error("token must be an address"), { status: 400 });
 
   // ---- which pools ----
-  const [arcpad, argus, dex, seen] = await Promise.all([
-    scanCore.readArcPad(io, token).catch(() => null),
-    scanCore.readArgus(io, token).catch(() => null),
+  const [arcpad, argus, dex, seen, pons] = await Promise.all([
+    rh ? null : scanCore.readArcPad(io, token).catch(() => null),
+    rh ? null : scanCore.readArgus(io, token).catch(() => null),
     scanCore.readMarket(io, token).catch(() => null),
-    sget(store, `lptok/${token}`),
+    sget(store, `${X.pre}lptok/${token}`),
+    rh ? ponsPool(X, token).catch(() => null) : null,
   ]);
   const ids = new Set([...((seen && seen.pools) || []), ...(extra || [])].map(lc).filter((x) => /^0x[0-9a-f]{64}$/.test(x)));
   const dexBy = new Map();
@@ -186,11 +220,14 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
   }
   let arcpadKey = null;
   if (arcpad && arcpad.quote) {
-    const [tsH] = await io.calls([{ to: L.LIQ_ADDR.arcpadFactory, data: sel("tickSpacing()") }]);
+    const [tsH] = await io.calls([{ to: X.A.arcpadFactory, data: sel("tickSpacing()") }]);
     const q = lc(arcpad.quote), [c0, c1] = q < token ? [q, token] : [token, q];
     let ts = tsH ? Number(big(tsH)) : 0; if (ts & 0x800000) ts -= 0x1000000;
-    if (ts > 0) { arcpadKey = { currency0: c0, currency1: c1, fee: 0, tickSpacing: ts, hooks: L.LIQ_ADDR.arcpadHook }; ids.add(lc(L.poolIdOf(arcpadKey, io.keccak))); }
+    if (ts > 0) { arcpadKey = { currency0: c0, currency1: c1, fee: 0, tickSpacing: ts, hooks: X.A.arcpadHook }; ids.add(lc(L.poolIdOf(arcpadKey, io.keccak))); }
   }
+  // a graduated Pons coin's pool (Robinhood Chain): its key comes from the Pons factory, not the PositionManager
+  const ponsKey = pons && pons.key ? pons.key : null;
+  if (ponsKey) ids.add(lc(L.poolIdOf(ponsKey, io.keccak)));
   const poolIds = [...ids].slice(0, 12);
 
   // ---- keys, prices, active liquidity ----
@@ -198,13 +235,13 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
   const calls = poolIds.flatMap((id) => {
     const slot = L.poolSlot(id, io.keccak);
     return [
-      { to: L.LIQ_ADDR.positions, data: selKeys + strip(id).slice(0, 50).padEnd(64, "0") },
-      { to: L.LIQ_ADDR.poolManager, data: selX + strip(slot) },
-      { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(slot, 3)) },
+      { to: X.A.positions, data: selKeys + strip(id).slice(0, 50).padEnd(64, "0") },
+      { to: X.A.poolManager, data: selX + strip(slot) },
+      { to: X.A.poolManager, data: selX + strip(L.plusSlot(slot, 3)) },
     ];
   });
   const r = poolIds.length ? await io.calls(calls) : [];
-  if (r.failed) throw Object.assign(new Error("Arc's RPC is busy — try again in a moment"), { status: 503 });
+  if (r.failed) throw busy(X);
   const pools = [];
   poolIds.forEach((id, i) => {
     const kh = r[3 * i], s0 = r[3 * i + 1], lh = r[3 * i + 2];
@@ -214,6 +251,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
       if (ts) key = { currency0: lc(wAddr(kh, 0)), currency1: lc(wAddr(kh, 1)), fee: Number(wBig(kh, 2)), tickSpacing: ts, hooks: lc(wAddr(kh, 4)) };
     }
     if (!key && arcpadKey && lc(L.poolIdOf(arcpadKey, io.keccak)) === id) key = arcpadKey;
+    if (!key && ponsKey && lc(L.poolIdOf(ponsKey, io.keccak)) === id) key = ponsKey;
     const st = L.decodeSlot0(s0);
     if (!st.sqrtP) return; // not initialised
     if (key && key.currency0 !== token && key.currency1 !== token) return;
@@ -221,35 +259,35 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
   });
 
   // ---- currencies ----
-  const cur = await meta([token, ...pools.flatMap((p) => (p.key ? [p.key.currency0, p.key.currency1] : []))]);
+  const cur = await meta([token, ...pools.flatMap((p) => (p.key ? [p.key.currency0, p.key.currency1] : []))], X);
   const tokenMeta = cur.get(token);
 
-  if (pools.length) await remember(store, token, pools.filter((p) => p.key).map((p) => p.id)).catch(() => null);
+  if (pools.length) await remember(store, token, pools.filter((p) => p.key).map((p) => p.id), X).catch(() => null);
 
   // ---- positions in those pools: each pool's own ModifyLiquidity log ----
-  const latestH = await chainHead();
+  const latestH = await chainHead(X);
   const hint = (p) => { // where to start if the past can't be searched: the pair's age on Dexscreener
     const dx = dexBy.get(p.id);
-    return dx && dx.created ? Math.max(0, latestH.number - Math.ceil((latestH.ts - dx.created + 86400) / 0.4)) : 0;
+    return dx && dx.created ? Math.max(0, latestH.number - Math.ceil((latestH.ts - dx.created + 86400) / X.spb)) : 0;
   };
   const logs = [];
   let slow = 0;
   for (const p of pools.filter((x) => x.key)) {
-    const r = await poolLog(p.id, { store, until: () => left() < Math.min(3000, budgetMs * 0.4), startHint: hint(p) });
+    const r = await poolLog(p.id, { store, until: () => left() < Math.min(3000, budgetMs * 0.4), startHint: hint(p), chain: X });
     logs.push([p, r]);
     if (!r.done) slow += 1 - r.progress;
   }
   if (logs.some(([, r]) => !r.done)) return { done: false, stage: "positions", progress: Math.max(0.01, 1 - slow / logs.length) };
   const inPools = logs.flatMap(([p, r]) => r.st.pos.map((row) => { const [id, tl, tu, l] = row.split("|"); return { id: Number(id), poolId: p.id, tl: Number(tl), tu: Number(tu), liquidity: BigInt(l) }; }))
     .sort((a, b) => (b.liquidity > a.liquidity ? 1 : -1)).slice(0, 400);
-  const own = inPools.length ? await io.calls(inPools.map((q) => ({ to: L.LIQ_ADDR.positions, data: sel("ownerOf(uint256)") + pad(q.id) }))) : [];
-  if (own.failed) throw Object.assign(new Error("Arc's RPC is busy — try again in a moment"), { status: 503 });
+  const own = inPools.length ? await io.calls(inPools.map((q) => ({ to: X.A.positions, data: sel("ownerOf(uint256)") + pad(q.id) }))) : [];
+  if (own.failed) throw busy(X);
   const pos = inPools.map((q, j) => (own[j] ? { ...q, owner: lc(wAddr(own[j], 0)) } : null)).filter(Boolean);
   // Argus V5 keeps a launch's position in its own locker contract, which has no way
   // out: it answers positionId() with the NFT it holds and hook() with the pool's hook.
   const owners = [...new Set(pos.map((q) => q.owner))];
   const oc = owners.length ? await io.calls(owners.flatMap((o) => [{ to: o, data: sel("positionId()") }, { to: o, data: sel("hook()") }])) : [];
-  if (oc.failed) throw Object.assign(new Error("Arc's RPC is busy — try again in a moment"), { status: 503 });
+  if (oc.failed) throw busy(X);
   const v5 = new Map(); // owner → { positionId, hook }
   owners.forEach((o, j) => { const pid = oc[2 * j], hk = oc[2 * j + 1]; if (pid && strip(pid).length === 64 && hk && strip(hk).length === 64) v5.set(o, { positionId: Number(big(pid)), hook: lc(wAddr(hk, 0)) }); });
   // ---- fees each position has earned and not collected yet ----
@@ -263,17 +301,17 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
     const tickSlot = (base, t) => io.keccak("0x" + sgn(t) + strip(L.plusSlot(base, 4)));
     const posSlot = (base, q) => {
       const t24 = (t) => (BigInt.asUintN(24, BigInt(t))).toString(16).padStart(6, "0");
-      const key = io.keccak("0x" + strip(L.LIQ_ADDR.positions) + t24(q.tl) + t24(q.tu) + pad(q.id));
+      const key = io.keccak("0x" + strip(X.A.positions) + t24(q.tl) + t24(q.tu) + pad(q.id));
       return io.keccak(key + strip(L.plusSlot(base, 6)));
     };
     const calls = [], meta = [];
     const bases = new Map(pools.map((p) => [p.id, L.poolSlot(p.id, io.keccak)]));
-    for (const p of pools) { const b = bases.get(p.id); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(b, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(b, 2)) }); meta.push(["g", p.id]); }
+    for (const p of pools) { const b = bases.get(p.id); calls.push({ to: X.A.poolManager, data: selX + strip(L.plusSlot(b, 1)) }, { to: X.A.poolManager, data: selX + strip(L.plusSlot(b, 2)) }); meta.push(["g", p.id]); }
     const tickKeys = new Set();
     for (const q of pos) { const pid = lc(q.poolId); tickKeys.add(pid + "|" + q.tl); tickKeys.add(pid + "|" + q.tu); }
     const tickList = [...tickKeys];
-    for (const k of tickList) { const [pid, t] = k.split("|"); const ts = tickSlot(bases.get(pid), Number(t)); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ts, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ts, 2)) }); }
-    for (const q of pos) { const ps = posSlot(bases.get(lc(q.poolId)), q); calls.push({ to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ps, 1)) }, { to: L.LIQ_ADDR.poolManager, data: selX + strip(L.plusSlot(ps, 2)) }); }
+    for (const k of tickList) { const [pid, t] = k.split("|"); const ts = tickSlot(bases.get(pid), Number(t)); calls.push({ to: X.A.poolManager, data: selX + strip(L.plusSlot(ts, 1)) }, { to: X.A.poolManager, data: selX + strip(L.plusSlot(ts, 2)) }); }
+    for (const q of pos) { const ps = posSlot(bases.get(lc(q.poolId)), q); calls.push({ to: X.A.poolManager, data: selX + strip(L.plusSlot(ps, 1)) }, { to: X.A.poolManager, data: selX + strip(L.plusSlot(ps, 2)) }); }
     const r = calls.length ? await io.calls(calls) : [];
     if (r.failed) throw new Error("fees");
     let i = 0;
@@ -310,7 +348,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
       const words = []; for (let w = lo; w <= hi; w++) words.push(w);
       plan.push({ p, ts, base, words, partial });
     }
-    const wr = plan.length ? await io.calls(plan.flatMap((x) => x.words.map((w) => ({ to: L.LIQ_ADDR.poolManager, data: selX + strip(io.keccak("0x" + sgn(w) + strip(L.plusSlot(x.base, 5)))) })))) : [];
+    const wr = plan.length ? await io.calls(plan.flatMap((x) => x.words.map((w) => ({ to: X.A.poolManager, data: selX + strip(io.keccak("0x" + sgn(w) + strip(L.plusSlot(x.base, 5)))) })))) : [];
     if (wr.failed) throw new Error("bitmap");
     let i = 0;
     for (const x of plan) {
@@ -326,7 +364,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
       }
     }
     const nCalls = plan.reduce((a, x) => a + x.ticks.length, 0);
-    const nr = !nCalls ? [] : await io.calls(plan.flatMap((x) => x.ticks.map((t) => ({ to: L.LIQ_ADDR.poolManager, data: selX + strip(io.keccak("0x" + sgn(t) + strip(L.plusSlot(x.base, 4)))) }))));
+    const nr = !nCalls ? [] : await io.calls(plan.flatMap((x) => x.ticks.map((t) => ({ to: X.A.poolManager, data: selX + strip(io.keccak("0x" + sgn(t) + strip(L.plusSlot(x.base, 4)))) }))));
     if (nr.failed) throw new Error("ticks");
     i = 0;
     for (const x of plan) {
@@ -349,12 +387,12 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
   } catch (e) { /* the chart falls back to the position NFTs */ }
   // locks held in ArcLPLock
   const lockBy = new Map();
-  const lp = L.LIQ_ADDR.lplock;
+  const lp = X.A.lplock || "";
   const inLock = lp ? pos.filter((p) => p.owner === lc(lp)) : [];
   if (inLock.length) {
     const data = sel("locksOfPositions(uint256[])") + pad(32) + pad(inLock.length) + inLock.map((p) => pad(p.id)).join("");
     const lr = await io.calls([{ to: lp, data }]);
-    if (lr.failed) throw Object.assign(new Error("Arc's RPC is busy — try again in a moment"), { status: 503 });
+    if (lr.failed) throw busy(X);
     const h = lr[0];
     if (h) {
       const x = strip(h), n = inLock.length;
@@ -378,7 +416,8 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
     const quote = quoteAddr ? cur.get(quoteAddr) : null;
     const d0 = k ? cur.get(k.currency0).decimals : 18, d1 = k ? cur.get(k.currency1).decimals : 18;
     const argusHere = k && [...v5].some(([o, x]) => x.hook === k.hooks && pos.some((q) => q.owner === o && q.id === x.positionId && lc(q.poolId) === p.id));
-    const venue = k && ((argus && argus.hook && lc(argus.hook) === k.hooks) || argusHere) ? "Argus" : k && k.hooks === L.LIQ_ADDR.arcpadHook ? "ArcPad" : k && k.hooks !== L.ZERO_ADDR ? "Uniswap v4 · hook" : "Uniswap v4";
+    const venue = k && ((argus && argus.hook && lc(argus.hook) === k.hooks) || argusHere) ? "Argus" : k && X.A.arcpadHook && k.hooks === X.A.arcpadHook ? "ArcPad"
+      : k && ponsKey && k.hooks === ponsKey.hooks ? "Pons" : k && X.A.bagsHook && k.hooks === X.A.bagsHook ? "Bags" : k && k.hooks !== L.ZERO_ADDR ? "Uniswap v4 · hook" : "Uniswap v4";
     const shares = { locked: 0n, burned: 0n, free: 0n, launch: 0n, other: 0n };
     let known = 0n;
     const plist = pos.filter((q) => lc(q.poolId) === p.id).map((q) => {
@@ -388,6 +427,7 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
       if (L.LIQ_BURN.includes(q.owner)) kind = "burn";
       else if (lp && q.owner === lc(lp)) { lock = lockBy.get(q.id) || null; kind = lock && lock.unlockAt > now ? "locked" : "unlocking"; }
       else if (argusLocker && q.owner === argusLocker) { kind = "forever"; label = "Argus locker"; }
+      else if (X.A.ponsLocker && q.owner === X.A.ponsLocker) { kind = "forever"; label = "Pons locker"; }
       else if (v5.has(q.owner) && v5.get(q.owner).positionId === q.id && k && v5.get(q.owner).hook === k.hooks) { kind = "forever"; label = "Argus locker"; }
       if (inRange) {
         known += q.liquidity;
@@ -423,8 +463,9 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
 
   const external = ((dex && dex.pairs) || []).filter((p) => !/^0x[0-9a-f]{64}$/i.test(String(p.pair || ""))).map((p) => ({ dex: p.dex, pair: p.pair, url: p.url, liqUsd: p.liq, quote: p.quote }));
   return {
-    done: true, token: tokenMeta, pools: outPools, external,
+    done: true, chain: X.c, token: tokenMeta, pools: outPools, external,
     launch: arcpad ? { venue: "ArcPad", creator: arcpad.creator || null } : argus ? { venue: "Argus", creator: argus.creator || null, locker: argusLocker }
+      : pons ? { venue: "Pons", creator: pons.creator || null, phase: pons.phase }
       : outPools.some((p) => p.venue === "Argus") ? { venue: "Argus", creator: null, locker: (pos.find((q) => v5.has(q.owner)) || {}).owner || null } : null,
     lplock: lp || null, at: now,
   };
@@ -433,7 +474,8 @@ export async function run(token, { store = null, wallet = "", budgetMs = 8000, e
 /// One ArcLPLock lock, for its certificate page and share card (/lplock/<id>).
 /// → { id, owner, tokenId, lockedAt, unlockAt, withdrawn, active, pair, token, quote, amounts, poolShare } or null
 export async function lockInfo(lockId, { store = null } = {}) {
-  const lp = L.LIQ_ADDR.lplock;
+  const X = ctx("arc"), io = X.io;
+  const lp = X.A.lplock;
   const id = Number(lockId);
   if (!lp || !Number.isInteger(id) || id < 0) return null;
   const ck = `lplockinfo/${id}`;
@@ -446,8 +488,8 @@ export async function lockInfo(lockId, { store = null } = {}) {
   if (!lh || strip(lh).length < 320) return null;
   const owner = lc(wAddr(lh, 0)), tokenId = Number(wBig(lh, 1)), lockedAt = Number(wBig(lh, 2)), unlockAt = Number(wBig(lh, 3)), withdrawn = wBig(lh, 4) !== 0n;
   const [ph, lqh] = await io.calls([
-    { to: L.LIQ_ADDR.positions, data: sel("getPoolAndPositionInfo(uint256)") + pad(tokenId) },
-    { to: L.LIQ_ADDR.positions, data: sel("getPositionLiquidity(uint256)") + pad(tokenId) },
+    { to: X.A.positions, data: sel("getPoolAndPositionInfo(uint256)") + pad(tokenId) },
+    { to: X.A.positions, data: sel("getPositionLiquidity(uint256)") + pad(tokenId) },
   ]);
   if (!ph || strip(ph).length < 64 * 6) return null;
   let ts = Number(wBig(ph, 3) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
@@ -457,13 +499,13 @@ export async function lockInfo(lockId, { store = null } = {}) {
   const tl = s24(Number((info >> 8n) & 0xffffffn)), tu = s24(Number((info >> 32n) & 0xffffffn));
   const poolId = L.poolIdOf(key, io.keccak);
   const slot = L.poolSlot(poolId, io.keccak);
-  const [s0, lq] = await io.calls([{ to: L.LIQ_ADDR.poolManager, data: sel("extsload(bytes32)") + strip(slot) }, { to: L.LIQ_ADDR.poolManager, data: sel("extsload(bytes32)") + strip(L.plusSlot(slot, 3)) }]);
+  const [s0, lq] = await io.calls([{ to: X.A.poolManager, data: sel("extsload(bytes32)") + strip(slot) }, { to: X.A.poolManager, data: sel("extsload(bytes32)") + strip(L.plusSlot(slot, 3)) }]);
   const st = L.decodeSlot0(s0);
   const active = lq ? big(lq) & ((1n << 128n) - 1n) : 0n;
   const liq = big(lqh);
-  const cur = await meta([key.currency0, key.currency1]);
+  const cur = await meta([key.currency0, key.currency1], X);
   // the "token" is the side that isn't USDC
-  const usdcLike = (a) => a === L.LIQ_ADDR.usdc || a === L.ZERO_ADDR;
+  const usdcLike = (a) => a === X.A.usdc || a === L.ZERO_ADDR;
   // the quote is USDC when there is one; otherwise the side with fewer decimals (stablecoins use 6)
   const m0 = cur.get(key.currency0), m1 = cur.get(key.currency1);
   const tokenIs0 = usdcLike(key.currency1) ? true : usdcLike(key.currency0) ? false : m1.decimals < m0.decimals ? true : m0.decimals < m1.decimals ? false : true;
@@ -487,29 +529,31 @@ export async function lockInfo(lockId, { store = null } = {}) {
 const T_MODIFY = "ModifyLiquidity(bytes32,address,int24,int24,int256,bytes32)";
 const T_LOCKED = "Locked(uint256,address,uint256,uint64)", T_WITHDRAWN = "Withdrawn(uint256,address,uint256)", T_EXTENDED = "Extended(uint256,uint64)";
 const FEED_CHUNK = 9000;
-export async function feed(poolIds, { hours = 24 } = {}) {
+export async function feed(poolIds, { hours = 24, chain = "arc" } = {}) {
+  const X = ctx(chain), io = X.io;
   const ids = [...new Set((poolIds || []).map(lc).filter((x) => /^0x[0-9a-f]{64}$/.test(x)))].slice(0, 12);
   if (!ids.length) throw Object.assign(new Error("pools must be pool ids"), { status: 400 });
   hours = Math.max(1, Math.min(72, Number(hours) || 24));
-  const latest = await latestBlock();
+  const latest = await X.C.latestBlock();
   let spb = 0.5;
   try {
-    const back = Math.max(0, latest.number - 20000), ts = await blockTs(back);
+    const back = Math.max(0, latest.number - 20000), ts = await X.C.blockTs(back);
     const m = (latest.ts - ts) / Math.max(1, latest.number - back);
     if (m > 0.05 && m < 20) spb = m;
   } catch { /* default */ }
   const lo = Math.max(0, latest.number - Math.ceil((hours * 3600) / spb));
   const ranges = [];
-  for (let a = lo; a <= latest.number; a += FEED_CHUNK) ranges.push([a, Math.min(latest.number, a + FEED_CHUNK - 1)]);
+  const CH = X.c === "rh" ? 50000 : FEED_CHUNK;
+  for (let a = lo; a <= latest.number; a += CH) ranges.push([a, Math.min(latest.number, a + CH - 1)]);
   const topic = (s) => io.keccak("0x" + Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join(""));
   const [tM, tL, tW, tE] = [T_MODIFY, T_LOCKED, T_WITHDRAWN, T_EXTENDED].map(topic);
-  const lp = L.LIQ_ADDR.lplock;
+  const lp = X.A.lplock || "";
   const [mods, locks] = await Promise.all([
-    pool(ranges, 8, ([a, b]) => getLogs({ address: L.LIQ_ADDR.poolManager, topics: [tM, ids], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()),
-    lp ? pool(ranges, 8, ([a, b]) => getLogs({ address: lp, topics: [[tL, tW, tE]], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()) : [],
+    pool(ranges, 8, ([a, b]) => X.C.getLogs({ address: X.A.poolManager, topics: [tM, ids], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()),
+    lp ? pool(ranges, 8, ([a, b]) => X.C.getLogs({ address: lp, topics: [[tL, tW, tE]], fromBlock: toQty(a), toBlock: toQty(b) })).then((x) => x.flat()) : [],
   ]);
   const s24 = (h) => { const v = BigInt.asIntN(24, BigInt("0x" + h.slice(-6))); return Number(v); };
-  const pos = lc(L.LIQ_ADDR.positions);
+  const pos = lc(X.A.positions);
   const out = [];
   for (const l of mods) {
     const d = strip(l.data), w = (k) => d.slice(k * 64, (k + 1) * 64);
@@ -527,7 +571,7 @@ export async function feed(poolIds, { hours = 24 } = {}) {
     else if (t0 === tE) out.push({ ...e, k: "extend", unlockAt: Number(BigInt("0x" + d.slice(0, 64))) });
   }
   out.sort((x, y) => (y.b - x.b) || (y.i - x.i));
-  return { pools: ids, hours, lo, hi: latest.number, anchor: { block: latest.number, ts: latest.ts }, spb, events: out.slice(0, 80) };
+  return { chain: X.c, pools: ids, hours, lo, hi: latest.number, anchor: { block: latest.number, ts: latest.ts }, spb, events: out.slice(0, 80) };
 }
 
 // ---------------------------------------------------------------- one wallet's positions, every token
@@ -535,30 +579,31 @@ export async function feed(poolIds, { hours = 24 } = {}) {
 // token looked up here): the live NFTs from each pool's log, then ownerOf —
 // kept for a couple of minutes per instance.
 const ownerMem = new Map(); // id → [owner, at]
-export async function mine(wallet, { store = null, budgetMs = 8000 } = {}) {
+export async function mine(wallet, { store = null, budgetMs = 8000, chain = "arc" } = {}) {
+  const X = ctx(chain), io = X.io;
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
   wallet = lc(wallet);
   if (!isAddr(wallet)) throw Object.assign(new Error("wallet must be an address"), { status: 400 });
-  const reg = ((await sget(store, "lppools/all")) || { pools: [] }).pools;
-  const states = store && store.getMany ? await store.getMany(reg.map((id) => `lppool/${id}`)).catch(() => ({})) : {};
+  const reg = ((await sget(store, `${X.pre}lppools/all`)) || { pools: [] }).pools;
+  const states = store && store.getMany ? await store.getMany(reg.map((id) => `${X.pre}lppool/${id}`)).catch(() => ({})) : {};
   const rows = [];
   for (const id of reg) {
-    const st = states[`lppool/${id}`] || mem.get(`lppool/${id}`);
+    const st = states[`${X.pre}lppool/${id}`] || mem.get(`${X.pre}lppool/${id}`);
     if (st && Array.isArray(st.pos)) for (const r of st.pos) { const [nid, tl, tu, l] = r.split("|"); rows.push({ id: Number(nid), poolId: id, tl: Number(tl), tu: Number(tu), liquidity: BigInt(l) }); }
   }
   const fresh = Date.now() - 120e3;
-  const need = rows.filter((r) => { const o = ownerMem.get(r.id); return !o || o[1] < fresh; });
+  const need = rows.filter((r) => { const o = ownerMem.get(X.pre + r.id); return !o || o[1] < fresh; });
   const selO = sel("ownerOf(uint256)");
   for (let i = 0; i < need.length && left() > 1500; i += 400) {
     const part = need.slice(i, i + 400);
-    const res = await io.calls(part.map((r) => ({ to: L.LIQ_ADDR.positions, data: selO + pad(r.id) })));
-    part.forEach((r, j) => { if (res[j] || !res.failed) ownerMem.set(r.id, [res[j] ? lc(wAddr(res[j], 0)) : "", Date.now()]); });
+    const res = await io.calls(part.map((r) => ({ to: X.A.positions, data: selO + pad(r.id) })));
+    part.forEach((r, j) => { if (res[j] || !res.failed) ownerMem.set(X.pre + r.id, [res[j] ? lc(wAddr(res[j], 0)) : "", Date.now()]); });
   }
-  const done = rows.filter((r) => { const o = ownerMem.get(r.id); return o && o[1] >= fresh; }).length;
+  const done = rows.filter((r) => { const o = ownerMem.get(X.pre + r.id); return o && o[1] >= fresh; }).length;
   if (done < rows.length) return { done: false, progress: done / Math.max(1, rows.length) };
   // positions sitting in ArcLPLock under this wallet's name
   const locked = new Map();
-  const lp = L.LIQ_ADDR.lplock;
+  const lp = X.A.lplock || "";
   if (lp) {
     const [h] = await io.calls([{ to: lp, data: sel("locksOfOwner(address)") + pad(wallet) }]);
     if (h) {
@@ -570,16 +615,16 @@ export async function mine(wallet, { store = null, budgetMs = 8000 } = {}) {
       }
     }
   }
-  const live = rows.filter((r) => ownerMem.get(r.id)[0] === wallet || locked.has(r.id));
+  const live = rows.filter((r) => ownerMem.get(X.pre + r.id)[0] === wallet || locked.has(r.id));
   // the pools' keys
   const pids = [...new Set(live.map((r) => r.poolId))];
-  const kr = pids.length ? await io.calls(pids.map((id) => ({ to: L.LIQ_ADDR.positions, data: sel("poolKeys(bytes25)") + strip(id).slice(0, 50).padEnd(64, "0") }))) : [];
+  const kr = pids.length ? await io.calls(pids.map((id) => ({ to: X.A.positions, data: sel("poolKeys(bytes25)") + strip(id).slice(0, 50).padEnd(64, "0") }))) : [];
   const keyBy = new Map();
   pids.forEach((id, j) => { const kh = kr[j]; if (kh && strip(kh).length >= 320) keyBy.set(id, { currency0: lc(wAddr(kh, 0)), currency1: lc(wAddr(kh, 1)), fee: Number(wBig(kh, 2)) }); });
   for (const r of live) { const k = keyBy.get(r.poolId); if (k) { r.c0 = k.currency0; r.c1 = k.currency1; r.key = k; } }
   const liveK = live.filter((r) => r.key);
-  const cur = await meta(liveK.flatMap((r) => [r.c0, r.c1]));
-  const QUOTES = [L.ZERO_ADDR, "0x3600000000000000000000000000000000000000"];
+  const cur = await meta(liveK.flatMap((r) => [r.c0, r.c1]), X);
+  const QUOTES = [L.ZERO_ADDR, "0x3600000000000000000000000000000000000000", X.A.weth || ""].filter(Boolean);
   const byPool = new Map();
   for (const r of liveK) {
     const g = byPool.get(r.poolId) || { poolId: r.poolId, fee: r.key.fee, positions: 0, locked: 0, c0: cur.get(lc(r.c0)), c1: cur.get(lc(r.c1)) };
@@ -592,5 +637,59 @@ export async function mine(wallet, { store = null, budgetMs = 8000 } = {}) {
     const quoteSide = tokenSide === g.c0 ? g.c1 : g.c0;
     return { poolId: g.poolId, feePct: L.feePct(g.fee), positions: g.positions, locked: g.locked, token: tokenSide, quote: quoteSide };
   }).sort((a, b) => b.positions - a.positions);
-  return { done: true, wallet, pools };
+  return { done: true, chain: X.c, wallet, pools };
+}
+
+// ---------------------------------------------------------------- pools dashboard
+// The chain's busiest pools from GeckoTerminal (CoinGecko's on-chain data): "trending" (its trending list) and
+// "established" (the top pools by 24h volume that are at least a week old). Uniswap v4 pools (a 32-byte pool id)
+// get their LP fee from the PositionManager, so a fee yield can be worked out: 24h volume × fee × 365 ÷ liquidity.
+const GT = "https://api.geckoterminal.com/api/v2";
+const topMem = new Map(); // chain → { at, v }
+const num = (x) => (x == null || x === "" ? null : Number(x));
+export async function top(chain = "arc", { store = null } = {}) {
+  const X = ctx(chain);
+  const h = topMem.get(X.c);
+  if (h && Date.now() - h.at < 120e3) return h.v;
+  const key = `${X.pre}lpdash`;
+  const saved = await sget(store, key);
+  if (saved && saved.at && Date.now() - saved.at < 120e3) { topMem.set(X.c, { at: saved.at, v: saved }); return saved; }
+  const net = X.K.gt, inc = "include=base_token,quote_token,dex";
+  const [tr, vol] = await Promise.all([
+    X.io.fetchJson(`${GT}/networks/${net}/trending_pools?${inc}&page=1`, 9000),
+    X.io.fetchJson(`${GT}/networks/${net}/pools?${inc}&page=1&sort=h24_volume_usd_desc`, 9000),
+  ]);
+  if (!tr && !vol) { if (saved) return saved; throw Object.assign(new Error("GeckoTerminal didn't answer — try again in a minute"), { status: 502 }); }
+  const incl = new Map();
+  for (const j of [tr, vol]) for (const x of (j && j.included) || []) incl.set(x.id, x);
+  const addrOf = (rel) => { const id = rel && rel.data && rel.data.id; const x = id && incl.get(id); return x && x.attributes ? lc(x.attributes.address) : id ? lc(String(id).split("_").pop()) : null; };
+  const symOf = (rel) => { const id = rel && rel.data && rel.data.id; const x = id && incl.get(id); return x && x.attributes ? x.attributes.symbol || "?" : "?"; };
+  const dexOf = (rel) => { const id = rel && rel.data && rel.data.id; const x = id && incl.get(id); return (x && x.attributes && x.attributes.name) || id || ""; };
+  const row = (p) => {
+    const a = p.attributes || {}, r = p.relationships || {};
+    const tx = a.transactions && a.transactions.h24 ? (a.transactions.h24.buys || 0) + (a.transactions.h24.sells || 0) : null;
+    const created = a.pool_created_at ? Math.floor(Date.parse(a.pool_created_at) / 1000) : null;
+    return { id: lc(a.address), name: a.name || "", base: { address: addrOf(r.base_token), symbol: symOf(r.base_token) }, quote: { address: addrOf(r.quote_token), symbol: symOf(r.quote_token) },
+      dex: dexOf(r.dex), price: num(a.base_token_price_usd), mcap: num(a.market_cap_usd) || num(a.fdv_usd), liqUsd: num(a.reserve_in_usd),
+      vol: a.volume_usd ? num(a.volume_usd.h24) : null, tx, change: a.price_change_percentage ? num(a.price_change_percentage.h24) : null, created };
+  };
+  const trending = ((tr && tr.data) || []).map(row).slice(0, 20);
+  const now = Math.floor(Date.now() / 1000);
+  const established = ((vol && vol.data) || []).map(row).filter((x) => x.created && now - x.created >= 7 * 86400).slice(0, 20);
+  // LP fees of the v4 pools (PositionManager.poolKeys knows every pool something was minted in through it)
+  const v4 = [...new Set([...trending, ...established].map((x) => x.id).filter((id) => /^0x[0-9a-f]{64}$/.test(id)))];
+  const kr = v4.length ? await X.io.calls(v4.map((id) => ({ to: X.A.positions, data: sel("poolKeys(bytes25)") + strip(id).slice(0, 50).padEnd(64, "0") }))).catch(() => []) : [];
+  const feeBy = new Map();
+  v4.forEach((id, j) => { const kh = kr[j]; if (kh && strip(kh).length >= 320) { const fee = Number(wBig(kh, 2)); if (fee !== 0x800000) feeBy.set(id, fee / 10000); } });
+  const fill = (x) => {
+    // the LP fee: PositionManager.poolKeys for a v4 pool; otherwise GeckoTerminal's pool name ("A / B 0.3%")
+    const nm = /\s(\d{1,2}(?:\.\d+)?)%\s*$/.exec(x.name || "");
+    const v4p = /^0x[0-9a-f]{64}$/.test(x.id), feePct = feeBy.has(x.id) ? feeBy.get(x.id) : nm && Number(nm[1]) <= 10 ? Number(nm[1]) : null;
+    const fees = feePct != null && x.vol != null ? x.vol * (feePct / 100) : null;
+    return { ...x, v4: v4p, feePct, fees24: fees, apr: fees != null && x.liqUsd > 0 ? (fees * 365 * 100) / x.liqUsd : null };
+  };
+  const v = { chain: X.c, at: Date.now(), trending: trending.map(fill), established: established.map(fill) };
+  topMem.set(X.c, { at: v.at, v });
+  await sset(store, key, v);
+  return v;
 }
