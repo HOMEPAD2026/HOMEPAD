@@ -13154,6 +13154,7 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .aor-fav.on{animation:aorStar .35s cubic-bezier(.3,1.6,.5,1);}
 @keyframes aorStar{from{transform:scale(.6);}to{transform:scale(1);}}
 .aor-ml-r .aor-fav{margin:0 6px 0 0;vertical-align:0;}
+.aor-ml-r>b{display:flex;align-items:center;white-space:nowrap;min-width:0;}
 .aor-chip .aor-star{font-style:normal;color:#ffc861;font-size:.7rem;}
 .aor-chip.fav{border-color:rgba(255,200,97,.35);}
 /* the markets list: search, 24h change and a sparkline */

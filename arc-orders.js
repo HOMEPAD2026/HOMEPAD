@@ -1082,7 +1082,7 @@
       const sellT = lc(b.legs[0].o.sell), need = needOf(b);
       if (RH() && sellT === lc(S.quote.address) && S.weth != null && S.weth < need) steps.push(["Wrap", false]);
       steps.push(["Approve", allowOk(sellT, need + openNeed(sellT))]);
-      steps.push([b.legs.length > 1 ? "Sign the orders" : "Sign", false], ["Place", false]);
+      steps.push(["Sign", false], ["Place", false]);
     }
     return `<ol class="aor-steps preview">${steps.map(([s, ok], i) => `<li class="${ok ? "done" : ""}"><i>${ok ? ICON.check : `<span data-no-i18n>${i + 1}</span>`}</i><span>${T(ok ? "Approved" : s)}</span></li>`).join("")}</ol>`;
   }
@@ -1250,7 +1250,7 @@
     const kind = o.kind ? `<div class="aor-kind ${o.kind}"><i></i><span>${T(o.kind === "taker" ? "Fills now (taker)" : "Waits in the book (maker)")}</span>${o.kind === "taker" ? `<button type="button" class="aor-link" data-type="market">${T("Use Market instead")}</button>` : ""}</div>` : "";
     // v2: where the fee goes (half buys and burns $ARCIRCLE) — or what a holder saves
     const qs = S.quote.symbol, fee = o.notional > 0 ? o.notional * FEE : 0;
-    const qamt = (v) => (RH() ? `${num(v)} ${qs}` : usd(v));
+    const qamt = (v) => (RH() ? `${num(v)} ${qs}` : v > 0 && v < 0.01 ? "<$0.01" : usd(v));
     const feeLine = fee > 0 ? (S.feeFree ? `<div class="aor-sl up"><span>${T("Fee saved")}</span><b data-no-i18n>≈ ${qamt(fee)}</b></div>` : `<div class="aor-sl dim aor-burn"><span>${T("Half the fee buys and burns $ARCIRCLE")}</span><b data-no-i18n>≈ ${qamt(fee / 2)}</b></div>`) : "";
     // Robinhood Chain: a buy order is signed over WETH — what gets wrapped first
     let wrapLine = "";
@@ -1590,7 +1590,7 @@
     // the fee side: 0.1% of what each fill received, half of it buys and burns $ARCIRCLE (an estimate: a holder pays none)
     const vol = os.reduce((s, o) => { const tk = o.token, f = (o.filledPct || 0) / 100; const t = o.side === "buy" ? (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f : human(o.sellAmount, tk.decimals) * f; return s + t * (o.price || 0); }, 0);
     if (vol > 0) {
-      const qs = RH() ? " ETH" : "", amt = (v) => (RH() ? num(v) + qs : usd(v));
+      const qs = RH() ? " ETH" : "", amt = (v) => (RH() ? num(v) + qs : v > 0 && v < 0.01 ? "<$0.01" : usd(v));
       html += `<div class="aor-burnc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.4 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2.2-4.6.2 1.8 1 2.6 1.8 3C11 9 11.5 6 12 3z"/></svg><span>${T("Filled through ARCIRCLE Orders")} <i data-no-i18n>${amt(vol)}</i> · ${S.feeFree ? `${T("as a holder you pay no fee — about")} <i data-no-i18n>${amt(vol * FEE)}</i> ${T("saved at today's rate")}` : `${T("about")} <i data-no-i18n>${amt(vol * FEE / 2)}</i> ${T("of fees went to buy and burn $ARCIRCLE")}`}</span></div>`;
     }
     el.innerHTML = html;
