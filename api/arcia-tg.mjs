@@ -35,6 +35,7 @@ import { postTweet, recentPosts } from "./arcia-x.mjs";
 import * as BB from "./_tg-buybot.mjs";
 import * as ORD from "./_orders.mjs";
 import * as STK from "./_stake.mjs";
+import * as NFTV from "./_nft.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -1017,6 +1018,23 @@ async function stakeNotify(T, s, out) {
     for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends in a week. Extend it to keep your veARCIRCLE, or withdraw after it ends.`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
   }
 }
+/// ARCIRCLE NFT Vault: the keeper's events (an NFT bought, a raffle open, a winner) to the alert list
+async function nftNotify(T, s, out) {
+  if (!NFTV.CFG.vault()) return;
+  const store = { get: async (k) => (await getDocs([k]))[k] };
+  const since = T.nftAt || Math.floor(Date.now() / 1000) - 3600;
+  const evs = await NFTV.events(store, since);
+  if (!evs.length) return;
+  T.nftAt = Math.max(...evs.map((e) => e.at));
+  const tx = (h) => `https://robinhoodchain.blockscout.com/tx/${h}`;
+  for (const e of evs.slice(-3)) {
+    const text = e.k === "buy" ? `🖼 <b>ARCIRCLE NFT Vault</b> bought <b>#${h(String(e.id))}</b> for <b>${Number(e.eth).toFixed(4)} ETH</b> — trading fees at work. A raffle for $ARCIRCLE holders opens next.`
+      : e.k === "open" ? `🎟 <b>NFT raffle #${e.i} is open</b> — ${e.n} $ARCIRCLE wallets are in it, weighted by what they hold and lock. The draw is in 6 hours.`
+      : e.k === "won" ? `🏆 <b>NFT raffle #${e.i}</b> — won by <code>${short(e.a)}</code>. The NFT is already in their wallet on Robinhood Chain.` : null;
+    if (!text) continue;
+    out.nft = (out.nft || 0) + await toSubs(s.alerts || [], { text: text + (e.tx ? `\n<a href="${tx(e.tx)}">tx ↗</a>` : ""), ...kb([[{ text: "NFT Vault", url: `${SITE}/arc#nft` }]]) });
+  }
+}
 /// the executor's events → DMs to the makers who asked; and the team hears when the executor is low on gas or stuck
 async function ordersNotify(T, s, c, out) {
   for (const X of [ORD.ARC, ORD.RH]) await ordersNotifyOn(X, T, s, c, out);
@@ -1209,6 +1227,7 @@ async function tick() {
   try { await mineTick(T, s, out); } catch (e) { out.mineTick = String(e.message || e).slice(0, 120); }
   try { await ordersNotify(T, s, c, out); } catch (e) { out.ordersNotify = String(e.message || e).slice(0, 120); }
   try { await stakeNotify(T, s, out); } catch (e) { out.stakeNotify = String(e.message || e).slice(0, 120); }
+  try { await nftNotify(T, s, out); } catch (e) { out.nftNotify = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

@@ -94,6 +94,19 @@ async function scan(store) {
   return { st, head };
 }
 
+/// every lock still in the contract: [{ a, amount, end, max, ve }] (wei; ve at `at`, default the chain's head) — the NFT
+/// raffle counts locked $ARCIRCLE as held, and veARCIRCLE as a boost
+export async function allLocks({ store = null, at = 0 } = {}) {
+  if (!CFG.address()) return [];
+  const { st, head } = await scan(store);
+  const t = at || head.ts, Y = BigInt(365 * 86400);
+  return Object.entries(st.locks).map(([a, x]) => {
+    const amount = BigInt(x.a), max = x.end === 0;
+    const ve = max ? amount : x.end > t ? (amount * BigInt(x.end - t)) / Y : 0n;
+    return { a: lc(a), amount, end: x.end, max, ve };
+  }).filter((x) => x.amount > 0n);
+}
+
 // ---- pools: a directory of pools people can vote for, and token names ----
 const metaCache = new Map();
 async function tokenMeta(tokens) {

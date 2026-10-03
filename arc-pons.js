@@ -38,6 +38,11 @@
   const PONS_URL = (t) => `${P.APP}/${t}`;
   const ADD = { chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: [P.RPC], blockExplorerUrls: [P.EXPLORER], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } };
   const ready = () => isAddr(SPLITS);
+  // a team launch can name the ARCIRCLE NFT Vault router as the fee recipient (50% NFTs for $ARCIRCLE holders, 50% treasury)
+  const NFTC = (typeof CONFIG !== "undefined" && CONFIG.NFT) || {};
+  const NFT_ROUTER = isAddr(NFTC.ROUTER) ? NFTC.ROUTER : "";
+  const nftLauncher = () => !!(NFT_ROUTER && me() && (NFTC.LAUNCHERS || []).some((a) => lc(a) === lc(me())));
+  const toNft = () => nftLauncher() && !!($("pon-nft") || {}).checked;
 
   // ---------------- ABIs (pons-labs contractsV2/src/v2, ArcPadPonsSplits.sol) ----------------
   const SOCIALS_T = "tuple(string twitter, string telegram, string discord, string website, string farcaster)";
@@ -154,6 +159,7 @@
   function paintGate() {
     const box = $("pon-gate");
     if (!box) return;
+    const nw = $("pon-nft-wrap"); if (nw) nw.hidden = !nftLauncher();
     if (!ready()) { box.className = "pon-gate wait"; box.innerHTML = `<b>${T("Being set up")}</b><span>${T("ArcPad's fee splitter for Pons is being deployed. The Pons option opens here as soon as it's live.")}</span>`; return; }
     box.className = "pon-gate";
     box.innerHTML = `<span class="pon-gate-l">${T("Reading Pons…")}</span>`;
@@ -250,7 +256,10 @@
       ]);
       if (!can) throw new Error(tr("Pons only lets whitelisted wallets launch right now — this wallet isn't on its list."));
       if (BigInt(bal) <= c.fee) throw new Error(tr("Not enough ETH on Robinhood Chain for the launch fee and gas."));
-      step("read", "ok", tr("Fee recipient: your ArcPad splitter {a} · 70% you, 30% ARCIRCLE PAD").replace("{a}", short(splitter)));
+      const nft = toNft();
+      const recipient = nft ? ethers.getAddress(NFT_ROUTER) : ethers.getAddress(splitter);
+      step("read", "ok", nft ? tr("Fee recipient: the ARCIRCLE NFT Vault router {a} · 50% NFTs for $ARCIRCLE holders, 50% treasury").replace("{a}", short(recipient))
+        : tr("Fee recipient: your ArcPad splitter {a} · 70% you, 30% ARCIRCLE PAD").replace("{a}", short(splitter)));
 
       cur = "switch"; step("switch", "doing", tr("Confirm in your wallet if it asks…"));
       holdChain(true); switched = true;
@@ -262,7 +271,7 @@
       const params = {
         name: f.name, symbol: f.symbol, logo: f.logo, description: f.description,
         socials: { twitter: f.twitter, telegram: f.telegram, discord: f.discord, website: f.website, farcaster: "" },
-        creatorFeeRecipient: ethers.getAddress(splitter), creatorTaxBps: f.tax, buybackEnabled: f.buyback, expectedEconomics: econ,
+        creatorFeeRecipient: recipient, creatorTaxBps: f.tax, buybackEnabled: f.buyback, expectedEconomics: econ,
         salt: ethers.hexlify(crypto.getRandomValues(new Uint8Array(32))),
       };
       const data = FI.encodeFunctionData("launchToken", [params, c.cfg.id, ethers.ZeroAddress]);
@@ -276,6 +285,12 @@
       step("launch", "ok", `$${f.symbol} · ${short(token)}`);
 
       cur = "list"; step("list", "doing");
+      if (nft) {
+        const res = await fetch(`/api/desk?nft=addcoin&token=${token}`, { cache: "no-store" }).catch(() => null);
+        step("list", res && res.ok ? "ok" : "bad", tr(res && res.ok ? "On the ARCIRCLE NFT Vault page" : "The NFT Vault page will pick it up — or open /api/desk?nft=addcoin&token=… later"));
+        done(token, f.symbol, tx.hash, true);
+        return;
+      }
       let ok = false, last = "";
       for (let i = 0; i < 4 && !ok; i++) {
         if (i) await new Promise((res) => setTimeout(res, 3000));
@@ -312,8 +327,8 @@
     }
     return null;
   }
-  function done(token, sym, tx) {
-    status(`<b>${T("Your coin is live on Pons.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${T("It trades on its Pons bonding curve until it graduates into a locked Uniswap v4 pool. Your 70% of the creator fees is claimed from the coin's card in Explore.")}
+  function done(token, sym, tx, nft) {
+    status(`<b>${T("Your coin is live on Pons.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${nft ? T("Its creator fees go to the ARCIRCLE NFT Vault router: 50% buys NFTs raffled to $ARCIRCLE holders, 50% the treasury.") : T("It trades on its Pons bonding curve until it graduates into a locked Uniswap v4 pool. Your 70% of the creator fees is claimed from the coin's card in Explore.")}
       <span class="agl-links"><a href="${esc(PONS_URL(token))}" target="_blank" rel="noopener">Pons ↗</a><a href="#explore?plat=pons&coin=${esc(token)}">${T("See it in Explore")}</a><a href="${esc(EXPL("tx", tx))}" target="_blank" rel="noopener">Blockscout ↗</a></span>`, "success");
     if (typeof window.arcConfetti === "function") window.arcConfetti();
   }

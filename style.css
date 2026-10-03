@@ -13599,3 +13599,122 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
   .stk-topl li{grid-template-columns:30px minmax(0,1fr) auto;}
   .stk-topl li em,.stk-topl .stk-tier{display:none;}
 }
+/* ---- ARCIRCLE NFT Vault (arc-nft.js) ---- */
+.nft-emblem{width:96px;height:96px;border-radius:26px;display:grid;place-items:center;color:#ff8bd8;background:radial-gradient(circle at 40% 35%,rgba(255,139,216,.28),rgba(255,139,216,.04));box-shadow:0 0 40px rgba(255,139,216,.25);}
+.nft-emblem svg{width:52px;height:52px;}
+#nft-body{display:grid;gap:16px;margin:18px 0 28px;}
+.nft-soon{display:grid;gap:4px;padding:14px 18px;border-radius:16px;border:1px dashed rgba(255,139,216,.5);background:rgba(255,139,216,.07);}
+.nft-soon b{font-family:Sora,sans-serif;color:#ffc2ea;}.nft-soon span{color:#c4c9d6;font-size:.88rem;line-height:1.5;}
+.nft-hd{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;}
+.nft-vault{position:relative;display:grid;gap:8px;align-content:start;padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(255,139,216,.13),rgba(181,139,255,.06));border:1px solid rgba(255,139,216,.32);}
+.nft-vault small,.nft-next small,.nft-chip small{font-size:.7rem;color:#c9a9bf;text-transform:uppercase;letter-spacing:.07em;}
+.nft-vault>b{font:800 2rem Sora,sans-serif;color:#fff;line-height:1.05;}
+.nft-vault>span{font-size:.82rem;color:#b8bfcc;}.nft-vault>span b{color:#ffc2ea;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.nft-gauge{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.nft-gauge i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff8bd8,#b58bff,#4dd4ff);transition:width 1s cubic-bezier(.2,.8,.2,1);}
+.nft-vault.grew{animation:nft-grew 1.5s ease-out;}
+@keyframes nft-grew{0%{box-shadow:0 0 0 0 rgba(255,139,216,.55)}60%{box-shadow:0 0 0 14px rgba(255,139,216,0)}}
+.nft-next{display:flex;gap:14px;align-items:center;padding:14px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);min-width:0;}
+.nft-next-img{flex:none;width:96px;height:96px;border-radius:16px;overflow:hidden;background:rgba(255,255,255,.05);display:grid;place-items:center;}
+.nft-next-img img{width:100%;height:100%;object-fit:cover;}
+.nft-ph{display:grid;place-items:center;width:100%;height:100%;color:#7d6f86;}
+.nft-ph svg,.nft-empty .nft-ph svg{width:40%;height:40%;min-width:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.nft-next-t{display:grid;gap:4px;min-width:0;}
+.nft-next-t b{font:700 1rem Sora,sans-serif;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nft-next-t span{font-size:.8rem;color:#9fb0bf;line-height:1.4;}.nft-next-t span b{font:700 .84rem 'JetBrains Mono',monospace;color:#ffc2ea;}
+.nft-chips{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+.nft-chip{padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:grid;gap:2px;min-width:0;}
+.nft-chip small{color:#8fa0b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nft-chip b{font:700 .98rem 'JetBrains Mono',monospace;color:#fff;}
+.nft-card h3{font:700 1.08rem Sora,sans-serif;margin:0 0 12px;}
+.nft-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:start;}
+.nft-flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;counter-reset:f;}
+.nft-flow li{position:relative;display:grid;gap:3px;padding:12px 10px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);text-align:center;animation:nft-in .5s calc(var(--i)*70ms) both;}
+.nft-flow li b{font:700 .88rem Sora,sans-serif;color:#fff;}
+.nft-flow li b a{color:#ffc2ea;}
+.nft-flow li small{font-size:.72rem;color:#9fb0bf;}
+.nft-flow li:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:#ff8bd8;font-weight:800;z-index:1;}
+.nft-flow li:last-child{border-color:rgba(57,255,136,.4);background:rgba(57,255,136,.06);}
+@keyframes nft-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.nft-pend{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(255,211,107,.06);border:1px solid rgba(255,211,107,.3);font-size:.84rem;color:#cfd8e2;}
+.nft-pend b{font-family:'JetBrains Mono',monospace;color:#ffd36b;}
+.nft-note{font-size:.84rem;line-height:1.55;color:#a9b6c3;margin:10px 0;}
+.nft-note.sm{font-size:.76rem;color:#8fa0b0;}
+.nft-note a{color:#ffc2ea;}
+.nft-btn{padding:12px 18px;border-radius:13px;border:1px solid rgba(255,255,255,.12);font:700 .9rem Sora,sans-serif;cursor:pointer;background:rgba(255,255,255,.07);color:#e6edf3;}
+.nft-btn.go{background:linear-gradient(135deg,#ff8bd8,#b58bff);color:#14051a;border:0;}
+.nft-btn.sm{padding:7px 13px;font-size:.78rem;}
+.nft-btn:disabled{opacity:.4;cursor:not-allowed;}
+.nft-msg{margin:8px 0 0;font-size:.84rem;color:#c7d2dd;min-height:1px;}
+.nft-msg:empty{display:none;}
+.nft-msg.ok{color:#39ff88;}.nft-msg.err{color:#ff7b8a;}.nft-msg a{color:inherit;}
+.nft-chance{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.nft-chance div{padding:12px 14px;border-radius:14px;background:rgba(255,139,216,.07);border:1px solid rgba(255,139,216,.25);display:grid;gap:2px;}
+.nft-chance small{font-size:.7rem;color:#c9a9bf;text-transform:uppercase;letter-spacing:.06em;}
+.nft-chance b{font:800 1.45rem Sora,sans-serif;color:#fff;}
+.nft-wbar{display:flex;gap:2px;height:10px;border-radius:99px;overflow:hidden;margin:12px 0 8px;background:rgba(255,255,255,.06);}
+.nft-wbar i{display:block;min-width:2px;}
+.nft-wbar .p0,.nft-wleg .p0{background:#4dd4ff;}.nft-wbar .p1,.nft-wleg .p1{background:#b58bff;}.nft-wbar .p2,.nft-wleg .p2{background:#ff8bd8;}
+.nft-wleg{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.8rem;color:#cfd8e2;}
+.nft-wleg li{display:grid;grid-template-columns:12px 1fr auto 44px;gap:8px;align-items:center;}
+.nft-wleg li i{width:10px;height:10px;border-radius:3px;}
+.nft-wleg b{font-family:'JetBrains Mono',monospace;}.nft-wleg em{font-style:normal;color:#8fa0b0;text-align:right;font-family:'JetBrains Mono',monospace;font-size:.74rem;}
+.nft-out{display:grid;gap:4px;padding:12px 14px;border-radius:14px;border:1px dashed rgba(255,255,255,.18);font-size:.84rem;color:#a9b6c3;}
+.nft-out>b{color:#fff;font-family:Sora,sans-serif;}.nft-out span b{color:#ffc2ea;}
+.nft-won{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:.82rem;}
+.nft-won b{color:#39ff88;font-family:Sora,sans-serif;}
+.nft-won span{padding:3px 10px;border-radius:99px;background:rgba(57,255,136,.1);border:1px solid rgba(57,255,136,.3);color:#c8ffde;}
+.nft-prizes{display:grid;gap:10px;max-height:560px;overflow:auto;}
+.nft-prize{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;padding:10px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);}
+.nft-prize.won{border-color:rgba(57,255,136,.35);}
+.nft-prize.open,.nft-prize.drawing{border-color:rgba(255,139,216,.45);}
+.nft-pimg{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.05);}
+.nft-pimg img{width:100%;height:100%;object-fit:cover;}
+.nft-pimg em{position:absolute;left:6px;top:6px;padding:1px 7px;border-radius:99px;background:rgba(0,0,0,.6);color:#fff;font:700 .68rem 'JetBrains Mono',monospace;font-style:normal;}
+.nft-pt{display:grid;gap:4px;align-content:start;min-width:0;font-size:.8rem;color:#9fb0bf;}
+.nft-pt>b{font:700 .95rem Sora,sans-serif;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nft-pt span b[data-no-i18n]{font-family:'JetBrains Mono',monospace;}
+.nft-st{justify-self:start;padding:3px 10px;border-radius:99px;font-weight:700;font-size:.74rem;background:rgba(255,255,255,.07);color:#cfd8e2;}
+.nft-st.open,.nft-st.drawing{background:rgba(255,139,216,.14);color:#ffc2ea;}
+.nft-st.drawing{animation:nft-pulse 1.4s ease-in-out infinite;}
+.nft-st.drawn{background:rgba(255,211,107,.14);color:#ffd36b;}
+.nft-st.won{background:rgba(57,255,136,.12);color:#9dffc4;}.nft-st a{color:inherit;}
+@keyframes nft-pulse{50%{opacity:.55}}
+.nft-pl{font-size:.74rem;color:#8fa0b0;}.nft-pl a,a.nft-pl{color:#7fb4ff;font-family:'JetBrains Mono',monospace;}
+.nft-empty{display:flex;gap:14px;align-items:center;padding:16px;border-radius:14px;border:1px dashed rgba(255,255,255,.14);color:#9fb0bf;font-size:.86rem;line-height:1.5;}
+.nft-empty .nft-ph{flex:none;width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,.04);}
+.nft-cl{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+.nft-cl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:#9fb0bf;}
+.nft-cl li b{color:#fff;font-family:Sora,sans-serif;}.nft-cl li span b{font-family:'JetBrains Mono',monospace;color:#ffc2ea;}
+.nft-cl li a{color:#7fb4ff;font-family:'JetBrains Mono',monospace;justify-self:end;}
+.nft-cl li em{font-style:normal;justify-self:end;font-weight:700;}
+.nft-cl li.on em{color:#39ff88;}.nft-cl li.wait em{color:#ffd36b;}.nft-cl li.off{opacity:.55;}
+.nft-f{display:grid;gap:6px;margin:8px 0;}
+.nft-f small{font-size:.76rem;color:#9fb0bf;}
+.nft-f input,.nft-in{width:100%;padding:11px 14px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);color:#fff;font:600 .9rem 'JetBrains Mono',monospace;outline:0;}
+.nft-in{display:flex;align-items:center;gap:8px;padding:0 14px;}
+.nft-in input,.nft-in input:focus{flex:1;min-width:0;background:none;border:0;outline:0;box-shadow:none;padding:11px 0;color:#fff;font:inherit;}
+.nft-in em{font-style:normal;color:#9fb0bf;font-size:.8rem;}
+.nft-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px;}
+.pon-nft[hidden]{display:none !important;}
+.pon-nft span{color:#ffc2ea;}
+@media (prefers-reduced-motion:reduce){.nft-flow li,.nft-vault.grew,.nft-st.drawing{animation:none;}.nft-gauge i{transition:none;}}
+@media (max-width:900px){.nft-hd,.nft-grid{grid-template-columns:minmax(0,1fr);}.nft-chips{grid-template-columns:repeat(3,minmax(0,1fr));}.nft-flow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:14px;}.nft-flow li:nth-child(3)::after{display:none;}}
+@media (max-width:560px){
+  .nft-hero .bp-lede{font-size:.88rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}
+  .nft-hero .bp-lede.open{display:block;}
+  .nft-emblem{width:64px;height:64px;border-radius:18px;}.nft-emblem svg{width:36px;height:36px;}
+  .nft-vault>b{font-size:1.6rem;}
+  .nft-chips{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:2px;}
+  .nft-chips::-webkit-scrollbar{display:none;}
+  .nft-chip{flex:none;min-width:140px;scroll-snap-align:start;}
+  .nft-flow{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .nft-flow li::after{display:none;}
+  .nft-prize{grid-template-columns:76px minmax(0,1fr);}.nft-pimg{width:76px;height:76px;}
+  .nft-next-img{width:72px;height:72px;}
+}
+/* the bottom bar with four buttons: a little tighter on phones */
+@media (max-width:440px){
+  .ax-quick-item{gap:6px;padding:4px 11px 4px 4px;font-size:.74rem;}
+  .ax-quick-ico{width:24px;height:24px;}
+}

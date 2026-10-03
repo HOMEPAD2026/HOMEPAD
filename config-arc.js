@@ -251,6 +251,18 @@ const CONFIG = {
     APP: "https://www.ponsfamily.com/launchpad", // a coin's page: APP + "/" + token
     SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus
   },
+  // ARCIRCLE NFT Vault (arc-nft.js, api/_nft.mjs, contracts/ArcircleNft.sol) on Robinhood Chain: a coin's Pons creator fees
+  // go to ROUTER (50% the vault, 50% the treasury); the vault buys NFTs and raffles them to $ARCIRCLE holders. The page
+  // reads the live addresses from /api/desk?nft=state; ROUTER here is for the Pons launch option, offered only to the
+  // team wallets in LAUNCHERS. Empty until deployed (contracts/scripts/deploy-arcircle-nft.js).
+  NFT: {
+    VAULT: "",
+    ROUTER: "",
+    LAUNCHERS: ["0x809E486817ADcBdF244060f4C8C24B4c694AF749"],
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+  },
   // ArcPad × Pump.fun (arc-pump.js, api/_pump-arcpad.mjs, the kit in tools/pump-kit → vendor/pump-kit.js): an ordinary
   // Pump.fun coin launched from the creator's own Solana wallet, its creator fees shared through Pump's own fee-sharing
   // program — 70% the creator, 30% the ARCIRCLE PAD treasury — and the split locked for good in the same signing

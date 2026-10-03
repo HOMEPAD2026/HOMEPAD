@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1790986188"></script>
+<script src="arc-log.js?v=1790989139"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1790986188">
+<link rel="stylesheet" href="style.css?v=1790989139">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -68,6 +68,7 @@
 <symbol id="i-agent" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></g></symbol>
 <symbol id="i-orders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></g></symbol>
 <symbol id="i-predict" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></g></symbol>
+<symbol id="i-nft" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/></g></symbol>
 <symbol id="i-stake" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/><path d="M12 14v2.5"/></g></symbol>
 <symbol id="i-a402" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></g></symbol>
 <symbol id="i-relay" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></g></symbol>
@@ -127,6 +128,7 @@
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
+      <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="omni"><svg><use href="#i-omni" xlink:href="#i-omni"/></svg>OMNI</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
@@ -814,6 +816,7 @@
             </div>
             <p class="hint" id="pon-tax-hint">An extra fee on every trade, on top of Pons's own, paid to the coin's fee recipient — 70% you, 30% ARCIRCLE PAD. Fixed at launch.</p>
             <label class="agl-agree pon-bb"><input type="checkbox" id="pon-buyback"> <span>Buyback &amp; lock — part of the creator fees buys the coin back and locks it (Pons's buyback). Off by default; you can switch it later from the coin's fee splitter.</span></label>
+            <label class="agl-agree pon-nft" id="pon-nft-wrap" hidden><input type="checkbox" id="pon-nft"> <span>Team launch: send this coin's creator fees to the ARCIRCLE NFT Vault router — 50% buys NFTs raffled to $ARCIRCLE holders, 50% goes to the treasury. Fixed at launch.</span></label>
             <div class="agl-flow pon-flow">
               <small>Of every 1 ETH of creator fees</small>
               <div class="agl-flow-bar"><i class="you" style="flex-grow:70"></i><i class="plat" style="flex-grow:30"></i></div>
@@ -1715,6 +1718,48 @@
       </section>
 
       <!-- ============ ARCIRCLE Staking (arc-staking.js + api/desk.mjs?stake=, engine api/_stake.mjs, contract ArcircleStaking.sol) — veARCIRCLE: lock, weekly USDC, pool votes ============ -->
+      <section class="bp-panel" id="bp-panel-nft">
+        <div class="ams-hero nft-hero">
+          <div class="ams-emblem nft-emblem" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-nft" xlink:href="#i-nft"/></svg></div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Utility · trading fees buy NFTs for $ARCIRCLE holders</span>
+            <h1>ARCIRCLE NFT Vault <span class="asc-ver" title="New">New<i>Robinhood Chain · on-chain raffles</i></span></h1>
+            <p class="bp-lede">Half of a coin's trading fees fill a vault that can only buy NFTs. Every NFT it buys is raffled to $ARCIRCLE holders — the more you hold and lock, the better your odds — drawn on-chain and sent straight to the winner.</p>
+          </div>
+        </div>
+        <div id="nft-body"></div>
+        <!-- ARCIRCLE NFT Vault guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
+        <section class="asc-guide nft-guide" aria-labelledby="nft-guide-h">
+          <h2 id="nft-guide-h">ARCIRCLE NFT Vault guide</h2>
+          <details open><summary><h3>How it works</h3></summary>
+            <p>A coin launched by the ARCIRCLE PAD team on Pons (Robinhood Chain) names the ARCIRCLE NFT router as its creator fee recipient. Pons fixes that at launch, so it can't be changed later. Anyone can trigger the router: it pulls the coin's creator fees out of Pons and sends 50% to the ARCIRCLE NFT Vault and 50% to the ARCIRCLE PAD treasury. When the vault holds enough, it buys an NFT, and that NFT is raffled to $ARCIRCLE holders. The first coin is CirclePad Round #3's; more fee sources can join later.</p>
+          </details>
+          <details><summary><h3>The vault</h3></summary>
+            <ul>
+              <li>It has no withdraw function. ETH leaves only to buy an NFT through Seaport, and the purchase reverts unless the NFT arrives in the vault in the same transaction.</li>
+              <li>It only buys collections the team has listed, under each collection's price cap. A new collection (or a higher cap) waits 24 hours before it can be bought, so everyone sees it first.</li>
+              <li>NFTs leave only through a settled raffle, to the winning wallet. NFTs of listed collections sent to the vault become prizes too.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Who can win</h3></summary>
+            <p>Every $ARCIRCLE wallet on Arc with at least 1,000 $ARCIRCLE (held plus locked). Your weight is your wallet balance (ArcLock locks count) plus your $ARCIRCLE locked in ARCIRCLE Staking plus your veARCIRCLE, so locking in ARCIRCLE Staking raises your odds and a max lock counts double. Contracts, burn addresses and team wallets are left out. The NFT is sent on Robinhood Chain to the same address that holds your $ARCIRCLE on Arc — the same wallet works on both chains.</p>
+          </details>
+          <details><summary><h3>The draw</h3></summary>
+            <ol>
+              <li>Snapshot: the keeper takes the holder list and posts its Merkle root on-chain, with a link to the full list. Each wallet gets a ticket range as wide as its weight.</li>
+              <li>Challenge window: the draw can't happen for 6 hours, so anyone can check the list.</li>
+              <li>Draw: the keeper commits to a secret, then reveals it after the next block; the seed mixes the secret with that block's hash, so nobody can steer it. Every attempt is counted on-chain.</li>
+              <li>Settle: anyone can send the NFT to the wallet whose range holds the drawn ticket — the contract checks the proof. If no draw happens within a week of the draw time, anyone can draw.</li>
+            </ol>
+          </details>
+          <details><summary><h3>Safety</h3></summary>
+            <p>The router's 50 / 50 split, the vault and the treasury are fixed in the contract. The team can list collections, lower caps and name the keeper; it can't take the ETH or the NFTs. The contracts are new and unaudited, and how fast the vault fills depends on how much the coin trades.</p>
+          </details>
+          <details><summary><h3>For bots and builders</h3></summary>
+            <p>GET /api/desk?nft=state returns the vault, the fees, the collections, the next NFT and every raffle. GET /api/desk?nft=me&amp;u=0x… returns a wallet's weight and odds. GET /api/desk?nft=list&amp;prize=N returns a raffle's full list (add &amp;u=0x… for that wallet's Merkle proof).</p>
+          </details>
+        </section>
+      </section>
       <section class="bp-panel" id="bp-panel-staking">
         <div class="ams-hero stk-hero">
           <div class="ams-emblem stk-emblem" aria-hidden="true"><img src="images/arcircle-staking-320.webp" alt="" width="96" height="96" decoding="async"></div>
@@ -2048,6 +2093,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1790986188"></script>
+<script src="arcpad.bundle.js?v=1790989139"></script>
 </body>
 </html>

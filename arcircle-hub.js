@@ -160,6 +160,7 @@
   // utilities panel upwards. Launch / Explore go to ArcPad; on ArcPad itself
   // they switch tabs in place.
   var ICON_ROCKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2 4.5 5.4 4.5 9 0 2-.5 3.7-1.2 5l-3.3 3-3.3-3c-.7-1.3-1.2-3-1.2-5 0-3.6 1.5-7 4.5-9z"/><circle cx="12" cy="10.5" r="2"/><path d="M8 15.5l-3 1 .8-3.3M16 15.5l3 1-.8-3.3"/></svg>';
+  var ICON_NFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.8"/><path d="M4 17.5l4.6-4.4 3.4 3 3.2-3.6 4.8 5"/></svg>';
   var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>';
   // A drawn lemniscate (not the emoji): gradient stroke with a light that
   // travels round the loop, and a small plus that turns into a close mark.
@@ -195,7 +196,7 @@
   UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
   // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
-  // Page 4: ARCIA AGENT, ARCIRCLE Orders, ARCIRCLE Staking, ARCIRCLE Predict. Page 5: four in development.
+  // Page 4: ARCIA AGENT, ARCIRCLE Orders, ARCIRCLE Staking, ARCIRCLE Predict. Page 5: ARCIRCLE NFT Vault, three in development.
   // Four tiles a page, always — a fifth would make every page as tall as three rows.
   var omniLive = typeof CONFIG !== "undefined" && CONFIG.OMNI && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.OMNI.ADAPTER || "");
   var UTILS3 = [
@@ -223,7 +224,8 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
   // page 5: what's still being built
   var NEXT = [
-    { id: "next-17", sub: "In development" },
+    // ARCIRCLE NFT Vault: a coin's trading fees buy NFTs, raffled to $ARCIRCLE holders (arc-nft.js)
+    { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Trading fees buy NFTs for $ARCIRCLE holders", status: "New", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
     { id: "next-18", sub: "In development" },
     { id: "next-19", sub: "In development" },
     { id: "next-20", sub: "In development" },
@@ -239,6 +241,7 @@
     bar.innerHTML =
       '<a class="ax-quick-item ax-quick-launch" href="/arc#launch" data-arc-tab="launch"><span class="ax-quick-ico">' + ICON_ROCKET + '</span><span>Launch</span></a>' +
       '<a class="ax-quick-item" href="/arc#explore" data-arc-tab="explore"><span class="ax-quick-ico">' + ICON_GRID + '</span><span>Explore</span></a>' +
+      '<a class="ax-quick-item ax-quick-nft" href="/arc#nft" data-arc-tab="nft"><span class="ax-quick-ico">' + ICON_NFT + '</span><span>NFT</span></a>' +
       '<button type="button" class="ax-quick-util" aria-haspopup="dialog" aria-expanded="false" aria-controls="ax-util" aria-label="Utilities" title="Utilities">' + ICON_INFINITY + '<span class="ax-plus-wrap">' + ICON_PLUS + "</span></button>";
     dock.parentNode.insertBefore(bar, dock);
 
@@ -352,7 +355,7 @@
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 2 of 5" data-page="1">' + UTILS2.map(tile).join("") + "</div>" +
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 3 of 5" data-page="2">' + UTILS3.map(tile).join("") + "</div>" +
           '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 4 of 5" data-page="3">' + UTILS4.map(tile).join("") + "</div>" +
-          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 5 of 5" data-page="4">' + NEXT.map(function (u, i) { return next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
+          '<div class="ax-util-grid" role="group" aria-roledescription="page" aria-label="Utilities 5 of 5" data-page="4">' + NEXT.map(function (u, i) { return u.href ? tile(u, i) : next(u, i + UTILS.length + UTILS2.length + UTILS3.length + UTILS4.length); }).join("") + "</div>" +
         "</div></div>" +
       '<div class="ax-util-pager" role="tablist" aria-label="Pages">' +
         '<button type="button" role="tab" data-go-page="0" aria-selected="true" aria-label="Page 1">1</button>' +

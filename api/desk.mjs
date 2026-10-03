@@ -28,6 +28,10 @@
 //   GET /api/desk?stake=state                totals, weekly rewards, pool votes, stakers, what the treasury owes stakers
 //   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC, this and last week's vote, 8 weeks' earnings
 //   GET /api/desk?stake=card&u=0x…           a wallet's lock for its share card (/stake/<wallet>)
+// ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
+//   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
+//   GET /api/desk?nft=addcoin&token=0x…        a Pons coin whose fee recipient is the NFT router joins the page's list (checked on-chain)
+//   GET /api/desk?nfttick=1&key=<CRON_SECRET>   the keeper (its own cron-job.org entry, every 5 minutes)
 // ARCIRCLE Predict (api/_predict.mjs, contracts/ArcPredict.sol) — UP / DOWN rounds on Arc tokens, in USDC:
 //   GET /api/desk?predict=state              every market, its running round and its last results
 //   GET /api/desk?predict=mine&u=0x…         a wallet's bets, what it can claim, its referrals and stats
@@ -44,6 +48,7 @@ import * as agent from "./_agent.mjs";
 import * as orders from "./_orders.mjs";
 import * as predict from "./_predict.mjs";
 import * as stake from "./_stake.mjs";
+import * as nft from "./_nft.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
@@ -59,6 +64,21 @@ export async function GET(req) {
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
       if (q.stake === "card") { const r = await stake.card(String(q.u || "")); return json(r || { error: "no lock" }, r ? 200 : 404, "public, max-age=30, s-maxage=60"); }
       return json(await stake.state({ store: st }), 200, "public, max-age=5, s-maxage=10");
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
+  // ARCIRCLE NFT Vault (api/_nft.mjs, Robinhood Chain): ?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] · ?nft=status
+  if (q.nfttick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    try { return json(await nft.tick({ budgetMs: 50000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
+  if (q.nft) {
+    try {
+      if (q.nft === "me") { const r = await nft.me(String(q.u || ""), { store: st }); return json(r, r.error ? 400 : 200); }
+      if (q.nft === "list") { const r = await nft.list(Number(q.prize), { store: st, user: String(q.u || "") }); return json(r || { error: "no such list" }, r ? 200 : 404, r ? "public, max-age=60, s-maxage=600" : "no-store"); }
+      if (q.nft === "status") return json((await nft.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
+      if (q.nft === "addcoin") { const r = await nft.addCoin(String(q.token || ""), { store: st }); return json(r.body, r.status); }
+      return json(await nft.state({ store: st }), 200, "public, max-age=10, s-maxage=20");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE Predict (api/_predict.mjs)
