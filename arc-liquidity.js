@@ -229,7 +229,7 @@
       const ch = x.change != null && isFinite(x.change) ? `<small class="${x.change >= 0 ? "up" : "down"}" data-no-i18n>${x.change >= 0 ? "+" : ""}${x.change.toFixed(1)}%</small>` : "";
       return `<tr data-ttok="${esc(x.base.address || "")}" tabindex="0" class="${thin ? "thin" : ""}">
         <td${L("Pool")}><b data-no-i18n>${esc(x.base.symbol)} / ${esc(x.quote.symbol)}</b> <small data-no-i18n>${esc(x.dex)}${x.feePct != null ? ` · ${x.feePct}%` : ""}</small></td>
-        <td${L("Price")} data-no-i18n>${x.price ? usd(x.price) : "—"} ${ch}</td>
+        <td${L("Price")} data-no-i18n>${x.price ? "$" + fmtPrice(x.price).replace(/(\.\d*?[1-9])0+$/, "$1") : "—"} ${ch}</td>
         <td${L("Liquidity")} data-no-i18n>${x.liqUsd != null ? usd(x.liqUsd) : "—"}</td>
         <td${L("24h volume")} data-no-i18n>${x.vol != null ? usd(x.vol) : "—"}</td>
         <td${L("24h fees")} data-no-i18n>${x.fees24 != null ? (x.fees24 > 0 && x.fees24 < 0.01 ? "<$0.01" : usd(x.fees24)) : "—"}</td>
