@@ -8,7 +8,7 @@ import { evmChain } from "./_evm.mjs";
 import { RPCS, allPools, getCoin } from "./_arc.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
-export const STAKING_DEFAULT = "0x301e1e8dcb43cddd3244889063ad4220536b38a"; // contracts/scripts/deploy-arcircle-staking.js, 2026-10-03
+export const STAKING_DEFAULT = "0x301e1e8dcb43cdddd3244889063ad4220536b38a"; // contracts/scripts/deploy-arcircle-staking.js, 2026-10-03
 export const STAKING_DEFAULT_BLOCK = 23962189;
 const env = (k) => String(process.env[k] || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
