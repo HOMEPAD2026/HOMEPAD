@@ -1,6 +1,7 @@
-/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite */
+/* global CONFIG, ethers, state, connectWallet, ensureArcForWrite, WagmiCoreRef, wagmiConfigRef, updateNetworkBadge */
 // arc-predict.js — ARCIRCLE Predict, an ARCIRCLE PAD utility (arcpad.html#predict).
-// UP / DOWN rounds on Arc tokens, paid in native USDC (contracts/contracts/ArcPredict.sol, server api/_predict.mjs).
+// UP / DOWN rounds on Arc tokens paid in native USDC, and on graduated Pons coins on Robinhood Chain paid in ETH — one
+// ArcPredict contract per chain (contracts/contracts/ArcPredict.sol, server api/_predict.mjs; ?chain=rh for Robinhood).
 // Rounds run on a fixed schedule; betting on the next round opens the moment the live one locks.
 //   · Market view   the live round (price to beat, live chart from the pool's swaps, countdown ring, UP / DOWN pools),
 //                   the round open for bets with what a bet would pay, and a side panel: my bets + stats, last
@@ -8,8 +9,10 @@
 //   · All markets   every live round at once, sorted by time left or pot
 //   · Leaderboard   this week and all time, by PnL, with streaks
 //   · Open a market anyone burns $ARCIRCLE to list a token's pool (5m / 15m / 1h); the team lists free and can stop one
-// Reads: GET /api/desk?predict=state|mine|chart|feed|lb|status. Writes go from the wallet.
-// Deep links: #predict?m=<market> · #predict?ref=0x… (kept in this browser, used on the first bet) · #predict?view=lb
+// Reads: GET /api/desk?predict=state|mine|chart|feed|lb|status[&chain=rh]. Writes go from the wallet (on Robinhood
+// Chain the wallet is switched there for the write and stays there).
+// Deep links: #predict?m=<market> · #predict?c=rh (Robinhood Chain) · #predict?ref=0x… (kept in this browser, used on the
+// first bet) · #predict?view=lb
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-predict");
@@ -22,19 +25,36 @@
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const reduce = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const EXPL = (kind, x) => `${(typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
+  // the chain: Arc (bets in USDC) or Robinhood Chain (bets in ETH)
+  const RHC = (typeof CONFIG !== "undefined" && CONFIG.NFT) || {};
+  const RH_CHAIN = 4663, RH_HEX = "0x" + RH_CHAIN.toString(16), RH_EXPL = RHC.EXPLORER || "https://robinhoodchain.blockscout.com";
+  const RH_ADD = { chainId: RH_HEX, chainName: "Robinhood Chain", rpcUrls: [RHC.RPC || "https://rpc.mainnet.chain.robinhood.com"], blockExplorerUrls: [RH_EXPL], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } };
+  const isRH = () => S.chain === "rh";
+  const EXPL = (kind, x) => `${isRH() ? RH_EXPL : (typeof CONFIG !== "undefined" && CONFIG.BLOCK_EXPLORER) || "https://arc.etherscan.io"}/${kind}/${x}`;
+  const UNIT = () => (isRH() ? "ETH" : "USDC");
+  const cq = () => (isRH() ? "c=rh&" : ""); // in a #predict? link
   const txa = (h) => (h ? ` <a class="pd-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${short(h)} ↗</a>` : "");
   const usd = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n < 0 ? "−" : "") + "$" + Math.abs(Number(n)).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }));
   const big$ = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e6 ? "$" + (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? "$" + (n / 1e3).toFixed(1) + "K" : usd(n, n < 100 ? 2 : 0));
+  /// an amount in the bet unit: dollars on Arc (USDC), ETH on Robinhood Chain (with "≈ $" where it helps)
+  const ethS = (n) => { const a = Math.abs(n), d = a === 0 ? 0 : a >= 1 ? 3 : a >= 0.01 ? 4 : a >= 0.0001 ? 6 : 8; return (n < 0 ? "−" : "") + a.toLocaleString("en-US", { maximumFractionDigits: d }) + " ETH"; };
+  const uUsd = () => (S.st && S.st.unitUsd) || null;
+  const money = (n, d = 2) => (!isRH() ? usd(n, d) : n == null || !isFinite(n) ? "—" : ethS(n));
+  const moneyU = (n) => (isRH() && uUsd() && n != null && isFinite(n) ? `${ethS(n)} <small class="pd-usd">≈${usd(n * uUsd())}</small>` : money(n));
+  const bigM = (n) => (isRH() ? money(n) : big$(n));
+  /// "≈$1" for a chip
+  const dl = (x) => "≈$" + (x >= 10 ? Math.round(x) : Number(x.toPrecision(2)));
+  const sig2 = (x) => Number(x.toPrecision(2));
   const SUB = "₀₁₂₃₄₅₆₇₈₉";
   /// $0.0₃5426 for tiny prices (the subscript counts the zeros after the point)
   function px(n) {
     if (n == null || !isFinite(n) || n <= 0) return "—";
-    if (n >= 1) return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    const e = S.st && S.st.pxUnit === "ETH", pre = e ? "" : "$", suf = e ? " ETH" : "";
+    if (n >= 1) return pre + n.toLocaleString("en-US", { maximumFractionDigits: 4 }) + suf;
     const s = n.toFixed(20).slice(2), z = s.match(/^0*/)[0].length;
     const digits = s.slice(z, z + 4).replace(/0+$/, "") || "0";
-    if (z < 3) return "$0." + "0".repeat(z) + digits;
-    return "$0.0" + String(z).split("").map((d) => SUB[d]).join("") + digits;
+    if (z < 3) return pre + "0." + "0".repeat(z) + digits + suf;
+    return pre + "0.0" + String(z).split("").map((d) => SUB[d]).join("") + digits + suf;
   }
   const pc = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(d) + "%");
   const dur = (s) => (s % 3600 === 0 ? `${s / 3600}h` : s % 60 === 0 ? `${s / 60}m` : `${s}s`);
@@ -53,13 +73,16 @@
   ];
   const ERC20 = ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
   const DURS = [[300, "5 minutes"], [900, "15 minutes"], [3600, "1 hour"]];
-  const LS = { amt: "arcircle.predict.amt", ref: "arcircle.predict.ref", notify: "arcircle.predict.notify", view: "arcircle.predict.view" };
+  const LS = { amt: "arcircle.predict.amt", ref: "arcircle.predict.ref", notify: "arcircle.predict.notify", view: "arcircle.predict.view", chain: "arcircle.predict.chain" };
   const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* this visit only */ } } };
   const S = {
+    chain: /[?&]c=rh\b/.test(location.hash) ? "rh" : /^#predict\?/.test(location.hash) ? "arc" : ls.get(LS.chain) === "rh" ? "rh" : "arc",
     st: null, m: null, view: ls.get(LS.view) === "all" ? "all" : "market", side: "bets", sort: "time", lbTab: "week",
-    mine: null, feed: null, lb: null, chart: null, kstat: null, amt: ls.get(LS.amt) || "", busy: false, msg: null, smsg: null, list: null,
+    mine: null, feed: null, lb: null, chart: null, kstat: null, amt: "", busy: false, msg: null, smsg: null, list: null,
     booted: false, timer: 0, tick: 0, skew: 0, acct: null, cardKey: null, listKey: null, sideKey: null, lastPx: {}, lastPast: {}, notified: new Set(), lastBet: null, title0: null, claimable0: null,
   };
+  const amtKey = () => LS.amt + (isRH() ? ".rh" : "");
+  S.amt = ls.get(amtKey()) || "";
   const nowC = () => Date.now() / 1000 + S.skew; // chain time
   (function grabRef() { const m = /[?&]ref=(0x[0-9a-fA-F]{40})/.exec(location.hash); if (m) ls.set(LS.ref, lc(m[1])); })();
   (function grabView() { const m = /[?&]view=(lb|all)\b/.exec(location.hash); if (m) S.view = m[1]; })();
@@ -68,6 +91,9 @@
   function frame() {
     S.cardKey = S.listKey = S.sideKey = null;
     $("pd-body").innerHTML = `
+      <div class="pd-chains" role="tablist" aria-label="${T("Chain")}">
+        ${[["arc", "Arc", "USDC"], ["rh", "Robinhood Chain", "ETH"]].map(([k, l, u]) => `<button type="button" role="tab" class="pd-chain ${k}" data-pd-chain="${k}" aria-selected="${S.chain === k}"><i aria-hidden="true"></i><b data-no-i18n>${l}</b><small>${T("bets in")} <span data-no-i18n>${u}</span></small></button>`).join("")}
+      </div>
       <div class="pd-strip" id="pd-strip"></div>
       <div class="pd-views" role="tablist" aria-label="${T("View")}">
         ${[["market", "Market"], ["all", "All markets"], ["lb", "Leaderboard"]].map(([k, l]) => `<button type="button" role="tab" data-pd-view="${k}" aria-selected="${S.view === k}">${T(l)}</button>`).join("")}
@@ -87,10 +113,12 @@
   const skel = () => `<div class="pd-skel"><i></i><i></i><i></i></div>`;
 
   // ---------------- data ----------------
-  const getJ = async (q) => { try { const r = await fetch(`${API}?${q}`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; return j && !j.error ? j : null; } catch { return null; } };
+  /// a read for the chain picked now (a reply that lands after a switch is dropped)
+  const getJ = async (q) => { const c = S.chain; try { const r = await fetch(`${API}?${q}${c === "rh" ? "&chain=rh" : ""}`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; return j && !j.error && c === S.chain && (!j.chain || j.chain === c) ? j : null; } catch { return null; } };
   async function load() {
     const j = await getJ("predict=state");
-    if (j) { S.st = j; if (j.now) S.skew = j.now - Date.now() / 1000; }
+    const c = S.chain;
+    if (j && c === S.chain && (j.chain || "arc") === c) { S.st = j; if (j.now) S.skew = j.now - Date.now() / 1000; }
   }
   const acct = () => (typeof state !== "undefined" && state.account ? lc(state.account) : null);
   async function loadMine() { const a = acct(); S.acct = a; if (!a || !S.st || !S.st.live) { S.mine = null; return; } const j = await getJ(`predict=mine&u=${a}`); if (j) S.mine = j; }
@@ -130,18 +158,20 @@
   function soon() {
     $("pd-strip").innerHTML = "";
     $("pd-mkts").innerHTML = "";
-    $("pd-round").innerHTML = `<div class="pd-soon"><b>${T("ARCIRCLE Predict opens soon")}</b><span>${T("Rounds start once its contract is deployed on Arc. Here is how a round will work:")}</span></div>${how()}`;
+    $("pd-round").innerHTML = `<div class="pd-soon"><b>${T(isRH() ? "ARCIRCLE Predict on Robinhood Chain opens soon" : "ARCIRCLE Predict opens soon")}</b><span>${T(isRH() ? "Rounds on graduated Pons coins start once its contract is deployed on Robinhood Chain. Here is how a round will work:" : "Rounds start once its contract is deployed on Arc. Here is how a round will work:")}</span></div>${how()}`;
     $("pd-side").innerHTML = `<h3>${T("Your bets")}</h3><p class="pd-empty">${T("Nothing yet.")}</p>`;
     $("pd-list").hidden = true;
   }
-  const how = () => `<ol class="pd-how"><li>${T("Each round opens with a price to beat: the token's price in its Uniswap v4 USDC pool.")}</li><li>${T("Put USDC on UP or DOWN. Bets for the next round open the moment the live one locks.")}</li><li>${T("At the end the pool is read again — the winning side splits the whole pot, after a 2% fee.")}</li><li>${T("Nobody on the other side, or no move? Everyone gets their stake back.")}</li></ol>`;
+  const how = () => isRH() ? `<ol class="pd-how"><li>${T("Each round opens with a price to beat: the coin's price in its Uniswap v4 ETH pool, after it graduated from Pons.")}</li><li>${T("Put ETH on UP or DOWN. Bets for the next round open the moment the live one locks.")}</li><li>${T("At the end the pool is read again — the winning side splits the whole pot, after a 2% fee.")}</li><li>${T("Nobody on the other side, or no move? Everyone gets their stake back.")}</li></ol>` : `<ol class="pd-how"><li>${T("Each round opens with a price to beat: the token's price in its Uniswap v4 USDC pool.")}</li><li>${T("Put USDC on UP or DOWN. Bets for the next round open the moment the live one locks.")}</li><li>${T("At the end the pool is read again — the winning side splits the whole pot, after a 2% fee.")}</li><li>${T("Nobody on the other side, or no move? Everyone gets their stake back.")}</li></ol>`;
   function strip() {
     const st = S.st, live = st.markets.filter((m) => !m.stopped).length, k = S.kstat;
     const ago = k && k.at ? Math.max(0, Math.round(nowC() - k.at)) : null;
     $("pd-strip").innerHTML = [
-      [String(live), "markets live"], [String(st.rounds), "rounds played"], [big$(st.volume), "volume"], [`${(st.feeBps / 100).toFixed(st.feeBps % 100 ? 1 : 0)}%`, "fee on wins"],
+      [String(live), "markets live"], [String(st.rounds), "rounds played"], [bigM(st.volume), "volume"], [`${(st.feeBps / 100).toFixed(st.feeBps % 100 ? 1 : 0)}%`, "fee on wins"],
     ].map(([v, l]) => `<span class="pd-chip"><b data-no-i18n>${esc(v)}</b> ${T(l)}</span>`).join("") +
       (ago != null ? `<span class="pd-chip pd-keeper${ago > 180 ? " late" : ""}" title="${T("The keeper reads the pools at every round boundary")}"><i aria-hidden="true"></i>${T("keeper")} <b data-no-i18n>${ago < 60 ? ago + "s" : Math.round(ago / 60) + "m"}</b> ${T("ago")}</span>` : "") +
+      (isRH() && st.address ? `<a class="pd-chip pd-ca" href="${EXPL("address", st.address)}" target="_blank" rel="noopener">${T("contract")} <b data-no-i18n>${short(st.address)} ↗</b></a>` : "") +
+      (isRH() && uUsd() ? `<span class="pd-chip" title="${T("Prices are the pool's ETH price × ETH/USD")}"><b data-no-i18n>ETH ${usd(uUsd(), 0)}</b></span>` : "") +
       (st.paused ? `<span class="pd-chip pd-paused">${T("New bets are paused by the team. Running rounds still settle and every claim works.")}</span>` : "");
   }
   const logo = (m, cls = "") => `<span class="pd-logo ${cls}" aria-hidden="true">${m.logo ? `<img src="${esc(m.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<i data-no-i18n>${esc((m.sym || "?").slice(0, 2))}</i></span>`;
@@ -166,7 +196,7 @@
   const mult = (up, down, fee, side) => { const pot = up + down, s = side === "up" ? up : down; return s > 0 && pot > s ? (pot * (1 - fee)) / s : null; };
   /// a round with one side empty refunds everyone in full (no fee), so there's no "win" to show yet
   const lone = (up, down, side) => (side === "up" ? down : up) <= 0;
-  const posLine = (p, up, down) => { const x = mult(up, down, S.st.feeBps / 10000, p.side), o = p.side === "up" ? "DOWN" : "UP"; return `${T("You're in")} <b data-no-i18n>${p.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(p.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${usd(p.stake * x)}</b>` : lone(up, down, p.side) ? ` · ${T(o === "DOWN" ? "full refund unless someone takes DOWN" : "full refund unless someone takes UP")}` : ""}`; };
+  const posLine = (p, up, down) => { const x = mult(up, down, S.st.feeBps / 10000, p.side), o = p.side === "up" ? "DOWN" : "UP"; return `${T("You're in")} <b data-no-i18n>${p.side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${money(p.stake)}</b>${x ? ` · ${T("if it wins ≈")} <b data-no-i18n>${money(p.stake * x)}</b>` : lone(up, down, p.side) ? ` · ${T(o === "DOWN" ? "full refund unless someone takes DOWN" : "full refund unless someone takes UP")}` : ""}`; };
   /// what `amt` on `side` would pay if that side won and nobody else came in
   const payout = (up, down, fee, side, amt) => (amt > 0 ? (amt * (up + down + amt) * (1 - fee)) / ((side === "up" ? up : down) + amt) : null);
   function card() {
@@ -210,16 +240,23 @@
       <div class="pd-bet${br && !S.st.paused ? "" : " dis"}" data-k="betbox">
         <div class="pd-bet-h"><b>${br ? (br.kind === "next" ? `${T("Next round")} <span data-no-i18n>#${br.epoch + 1}</span>` : `${T("This round")} <span data-no-i18n>#${br.epoch + 1}</span>`) : T("No round open for bets")}</b><small data-k="bethint"></small></div>
         <div class="pd-mini" data-k="betpools"></div>
-        <div class="pd-amt"><input id="pd-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="USDC" value="${esc(S.amt)}" aria-label="${T("USDC to put in")}"${br ? "" : " disabled"}>
-          <div class="pd-chips">${[1, 2, lim.maxBet].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => `<button type="button" data-pd-amt="${v}"${br ? "" : " disabled"} data-no-i18n>$${v}</button>`).join("")}</div></div>
+        <div class="pd-amt"><input id="pd-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="${UNIT()}" value="${esc(S.amt)}" aria-label="${T(isRH() ? "ETH to put in" : "USDC to put in")}"${br ? "" : " disabled"}>${isRH() ? `<small class="pd-amtusd" data-k="amtusd" data-no-i18n></small>` : ""}
+          <div class="pd-chips">${chips(lim).map(([v, l]) => `<button type="button" data-pd-amt="${v}"${br ? "" : " disabled"} title="${esc(money(v))}" data-no-i18n>${esc(l)}</button>`).join("")}</div></div>
         <div class="pd-go"><button type="button" class="pd-up" data-pd-bet="up"><span>UP <i aria-hidden="true">▲</i></span><small data-k="payUp"></small></button>
           <button type="button" class="pd-down" data-pd-bet="down"><span>DOWN <i aria-hidden="true">▼</i></span><small data-k="payDown"></small></button></div>
         <div class="pd-pos" data-k="betpos" hidden></div>
         <button type="button" class="pd-again" data-pd-act="again" data-k="again" hidden></button>
-        <p class="pd-small"><span data-no-i18n>${usd(lim.minBet)}–${usd(lim.maxBet)}</span> ${T("a round per wallet · one side per round · paid out in USDC on Arc")} · ${T("no approval needed")}</p>
+        <p class="pd-small"><span data-no-i18n>${money(lim.minBet)}–${money(lim.maxBet)}${isRH() && uUsd() ? ` (≈${usd(lim.minBet * uUsd())}–${usd(lim.maxBet * uUsd())})` : ""}</span> ${T(isRH() ? "a round per wallet · one side per round · paid out in ETH on Robinhood Chain" : "a round per wallet · one side per round · paid out in USDC on Arc")} · ${T("no approval needed")}</p>
         <p class="pd-msg${S.msg ? " " + S.msg.cls : ""}" aria-live="polite">${S.msg ? S.msg.h : ""}</p>
       </div>
       <div class="pd-stamp" data-k="stamp" aria-live="polite" hidden></div>`;
+  }
+  /// quick amounts: $1 / $2 / the max on Arc; on Robinhood Chain about $1 / $2 / $5 in ETH (within the limits)
+  function chips(lim) {
+    if (!isRH()) return [1, 2, lim.maxBet].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => [v, "$" + v]);
+    const u = uUsd();
+    const vs = u ? [1, 2, 5].map((d) => Math.min(lim.maxBet, Math.max(lim.minBet, sig2(d / u)))) : [lim.minBet, sig2(lim.maxBet / 2), lim.maxBet];
+    return vs.filter((v, i, a) => v > 0 && a.indexOf(v) === i).map((v) => [v, u ? dl(v * u) : ethS(v)]);
   }
   const K = (k) => panel.querySelector(`#pd-round [data-k="${k}"]`);
   const setT = (k, v) => { const e = K(k); if (e && e.textContent !== v) e.textContent = v; return e; };
@@ -235,7 +272,7 @@
     const nb = K("nowbox"); if (nb) nb.className = "pd-pr now " + (ch > 0 ? "up" : ch < 0 ? "down" : "");
     ring(m, ph);
     const up = r.up, down = r.down, pot = up + down, upPct = pot > 0 ? (up / pot) * 100 : 50;
-    setT("upAmt", usd(up)); setT("downAmt", usd(down));
+    setT("upAmt", money(up)); setT("downAmt", money(down));
     setT("upPct", pot > 0 ? Math.round(upPct) + "%" : ""); setT("downPct", pot > 0 ? Math.round(100 - upPct) + "%" : "");
     const mu = mult(up, down, fee, "up"), md = mult(up, down, fee, "down");
     setT("upX", mu ? mu.toFixed(2) + "×" : "—"); setT("downX", md ? md.toFixed(2) + "×" : "—");
@@ -249,14 +286,15 @@
     // the betting box
     const bb = K("betbox");
     const amt = Number(String(($("pd-amt") || {}).value || S.amt || "").replace(/,/g, ""));
+    if (isRH()) setT("amtusd", amt > 0 && uUsd() ? "≈" + usd(amt * uUsd()) : "");
     if (br) {
       const bu = br.up, bd = br.down, bp = myBet(br.id);
       setT("bethint", br.kind === "next" ? `${tr("starts in")} ${mmss(br.startAt - nowC())} · ${tr("price to beat set when it starts")}` : `${tr("bets close in")} ${mmss(br.lockAt - nowC())}`);
       const mp = K("betpools");
-      if (mp) mp.innerHTML = br.kind === "next" ? `<span>UP <b data-no-i18n>${usd(bu)}</b></span><span>DOWN <b data-no-i18n>${usd(bd)}</b></span>` : "";
+      if (mp) mp.innerHTML = br.kind === "next" ? `<span>UP <b data-no-i18n>${money(bu)}</b></span><span>DOWN <b data-no-i18n>${money(bd)}</b></span>` : "";
       const pu = payout(bu, bd, fee, "up", amt), pdn = payout(bu, bd, fee, "down", amt);
-      setT("payUp", pu ? (lone(bu, bd, "up") ? tr("refund if no DOWN") : `${tr("wins ≈")} ${usd(pu)}`) : tr("price ends higher"));
-      setT("payDown", pdn ? (lone(bu, bd, "down") ? tr("refund if no UP") : `${tr("wins ≈")} ${usd(pdn)}`) : tr("price ends lower"));
+      setT("payUp", pu ? (lone(bu, bd, "up") ? tr("refund if no DOWN") : `${tr("wins ≈")} ${money(pu)}`) : tr("price ends higher"));
+      setT("payDown", pdn ? (lone(bu, bd, "down") ? tr("refund if no UP") : `${tr("wins ≈")} ${money(pdn)}`) : tr("price ends lower"));
       const can = !S.st.paused && nowC() < br.lockAt;
       panel.querySelectorAll("#pd-round [data-pd-bet]").forEach((b) => { b.disabled = !can || (bp && bp.side !== b.dataset.pdBet); });
       if (bb) bb.classList.toggle("dis", !can);
@@ -267,7 +305,7 @@
       if (again) {
         const show = L && L.m === m.id && L.epoch < br.epoch && !bp && can;
         again.hidden = !show;
-        if (show) again.innerHTML = `↻ ${T("Same bet on this round")}: <b data-no-i18n>${L.side.toUpperCase()} ${usd(L.amt)}</b>`;
+        if (show) again.innerHTML = `↻ ${T("Same bet on this round")}: <b data-no-i18n>${L.side.toUpperCase()} ${money(L.amt)}</b>`;
       }
     } else {
       setT("bethint", m.stopped ? tr("This market is stopped.") : "");
@@ -329,7 +367,7 @@
     const winSide = p.result === "up" ? p.up : p.down;
     const profit = won && winSide > 0 ? (mine.stake * (p.up + p.down) * (1 - (p.feeBps || 0) / 10000)) / winSide - mine.stake : 0;
     st.className = `pd-stamp ${k}${reduce() ? " still" : ""}`;
-    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${usd(profit)}</em>` : ""}`;
+    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${money(profit)}</em>` : ""}`;
     st.hidden = false;
     if (won && !reduce()) confetti(st);
     clearTimeout(S.stampT);
@@ -364,9 +402,9 @@
     const st = M.stats;
     const items = (M.items || []).slice(0, 12);
     const res = (x) => x.result === "open" ? `<em class="pd-live">${T("live")}</em>` : x.result === "refund" ? `<em>${T("refund")}</em>` : x.result === x.side ? `<em class="win">${T("won")}</em>` : `<em class="lost">${T("lost")}</em>`;
-    return (M.claimable > 0 ? `<div class="pd-claim glow"><div><small>${T("Ready to claim")}</small><b data-no-i18n>${usd(M.claimable)}</b></div><button type="button" class="pd-btn go" data-pd-act="claim">${T("Claim")}</button></div>` : "") +
-      (st ? `<div class="pd-stats4"><div><small>${T("PnL")}</small><b class="${st.pnl >= 0 ? "up" : "down"}" data-no-i18n>${st.pnl >= 0 ? "+" : ""}${usd(st.pnl)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${st.wins + st.losses ? Math.round((st.wins / (st.wins + st.losses)) * 100) + "%" : "—"}</b></div><div><small>${T("Streak")}</small><b data-no-i18n>${st.streak} · ${T("best")} ${st.best}</b></div><div><small>${T("Volume")}</small><b data-no-i18n>${big$(st.vol)}</b></div></div>` : "") +
-      (items.length ? `<div class="pd-bets">${items.map((x) => `<div class="pd-b ${x.side}"><span data-no-i18n>#${x.epoch != null ? x.epoch + 1 : x.round}</span><b data-no-i18n>${esc(mkName(x.market))}</b><i data-no-i18n>${x.side.toUpperCase()}</i><span data-no-i18n>${usd(x.stake)}</span>${res(x)}${x.claimable > 0 ? `<small class="win" data-no-i18n>+${usd(x.claimable)}</small>` : x.claimed ? `<small>${T("claimed")}</small>` : "<small></small>"}${x.result !== "open" ? `<button type="button" class="pd-ico sm" data-pd-share="${x.round}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button>` : "<span></span>"}</div>`).join("")}</div>` : `<p class="pd-empty">${T("No bets in the recent rounds.")}</p>${how()}`);
+    return (M.claimable > 0 ? `<div class="pd-claim glow"><div><small>${T("Ready to claim")}</small><b data-no-i18n>${moneyU(M.claimable)}</b></div><button type="button" class="pd-btn go" data-pd-act="claim">${T("Claim")}</button></div>` : "") +
+      (st ? `<div class="pd-stats4"><div><small>${T("PnL")}</small><b class="${st.pnl >= 0 ? "up" : "down"}" data-no-i18n>${st.pnl >= 0 ? "+" : ""}${money(st.pnl)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${st.wins + st.losses ? Math.round((st.wins / (st.wins + st.losses)) * 100) + "%" : "—"}</b></div><div><small>${T("Streak")}</small><b data-no-i18n>${st.streak} · ${T("best")} ${st.best}</b></div><div><small>${T("Volume")}</small><b data-no-i18n>${bigM(st.vol)}</b></div></div>` : "") +
+      (items.length ? `<div class="pd-bets">${items.map((x) => `<div class="pd-b ${x.side}"><span data-no-i18n>#${x.epoch != null ? x.epoch + 1 : x.round}</span><b data-no-i18n>${esc(mkName(x.market))}</b><i data-no-i18n>${x.side.toUpperCase()}</i><span data-no-i18n>${money(x.stake)}</span>${res(x)}${x.claimable > 0 ? `<small class="win" data-no-i18n>+${money(x.claimable)}</small>` : x.claimed ? `<small>${T("claimed")}</small>` : "<small></small>"}${x.result !== "open" ? `<button type="button" class="pd-ico sm" data-pd-share="${x.round}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button>` : "<span></span>"}</div>`).join("")}</div>` : `<p class="pd-empty">${T("No bets in the recent rounds.")}</p>${how()}`);
   }
   function sidePast() {
     const m = market();
@@ -374,23 +412,23 @@
     return rows.length ? `<div class="pd-hist">${rows.map((r) => {
       const ch = r.open && r.close ? (r.close / r.open - 1) * 100 : null;
       const k = r.result === "up" ? "up" : r.result === "down" ? "down" : "refund";
-      return `<div class="pd-h ${k}"><i aria-hidden="true">${k === "up" ? "▲" : k === "down" ? "▼" : "↺"}</i><span data-no-i18n>#${r.epoch + 1}</span><b>${T(k === "refund" ? "Refund" : k.toUpperCase())}</b><em data-no-i18n>${ch == null ? "" : pc(ch)}</em><small data-no-i18n>${usd(r.up + r.down)}</small><button type="button" class="pd-ico sm" data-pd-share="${r.id}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button></div>`;
+      return `<div class="pd-h ${k}"><i aria-hidden="true">${k === "up" ? "▲" : k === "down" ? "▼" : "↺"}</i><span data-no-i18n>#${r.epoch + 1}</span><b>${T(k === "refund" ? "Refund" : k.toUpperCase())}</b><em data-no-i18n>${ch == null ? "" : pc(ch)}</em><small data-no-i18n>${money(r.up + r.down)}</small><button type="button" class="pd-ico sm" data-pd-share="${r.id}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button></div>`;
     }).join("")}</div>` : `<p class="pd-empty">${T("No settled rounds with bets yet.")}</p>${how()}`;
   }
   function sideFeed() {
     const it = (S.feed && S.feed.items) || [];
     if (!it.length) return `<p class="pd-empty">${T("No bets in the last hour.")}</p>`;
     const ago = (t) => { const d = Math.max(0, nowC() - t); return d < 60 ? `${Math.round(d)}s` : d < 3600 ? `${Math.round(d / 60)}m` : `${Math.round(d / 3600)}h`; };
-    return `<div class="pd-feed">${it.map((x) => `<div class="pd-f ${x.up ? "up" : "down"}"><i aria-hidden="true">${x.up ? "▲" : "▼"}</i><span data-no-i18n>${short(x.user)}</span><b data-no-i18n>${x.up ? "UP" : "DOWN"} ${usd(x.amount)}</b><em data-no-i18n>${esc(mkName(x.market))}</em><small data-no-i18n>${ago(x.t)}</small></div>`).join("")}</div>`;
+    return `<div class="pd-feed">${it.map((x) => `<div class="pd-f ${x.up ? "up" : "down"}"><i aria-hidden="true">${x.up ? "▲" : "▼"}</i><span data-no-i18n>${short(x.user)}</span><b data-no-i18n>${x.up ? "UP" : "DOWN"} ${money(x.amount)}</b><em data-no-i18n>${esc(mkName(x.market))}</em><small data-no-i18n>${ago(x.t)}</small></div>`).join("")}</div>`;
   }
   function sideInvite() {
     const a = acct(), share = (S.st.refShare / 100).toFixed(0);
     const intro = `<p class="pd-small pd-lead">${T("Share your link. When a wallet's first bet comes through it, you earn")} <b data-no-i18n>${share}%</b> ${T("of the fee it pays on every round with a winner — forever, claimable any time.")}</p>`;
     if (!a) return intro + `<button type="button" class="pd-btn" data-pd-act="connect">${T("Connect wallet")}</button>`;
-    const link = `${SITE}/arc#predict?ref=${a}`;
+    const link = `${SITE}/arc#predict?${cq()}ref=${a}`;
     const R = (S.mine && S.mine.ref) || {};
     return intro + `<div class="pd-row"><input type="text" readonly value="${esc(link)}" id="pd-reflink" aria-label="${T("Your invite link")}" data-no-i18n><button type="button" class="pd-btn" data-pd-act="copyref">${T("Copy")}</button><button type="button" class="pd-btn" data-pd-act="xref">${T("Post on X")}</button></div>
-      <div class="pd-stats4"><div><small>${T("Wallets via you")}</small><b data-no-i18n>${R.invited || 0}</b></div><div><small>${T("Earned")}</small><b data-no-i18n>${usd(R.earned || 0)}</b></div><div><small>${T("To claim")}</small><b class="up" data-no-i18n>${usd(R.claimable || 0)}</b></div><div><small>${T("Your referrer")}</small><b data-no-i18n>${R.referrer ? short(R.referrer) : "—"}</b></div></div>
+      <div class="pd-stats4"><div><small>${T("Wallets via you")}</small><b data-no-i18n>${R.invited || 0}</b></div><div><small>${T("Earned")}</small><b data-no-i18n>${money(R.earned || 0)}</b></div><div><small>${T("To claim")}</small><b class="up" data-no-i18n>${money(R.claimable || 0)}</b></div><div><small>${T("Your referrer")}</small><b data-no-i18n>${R.referrer ? short(R.referrer) : "—"}</b></div></div>
       ${R.claimable > 0 ? `<button type="button" class="pd-btn go" data-pd-act="claimref">${T("Claim referral earnings")}</button>` : ""}`;
   }
 
@@ -408,7 +446,7 @@
           <span class="pd-ring sm pd-ph-${ph.k}" style="--f:${(Math.min(1, Math.max(0, ph.frac || 0)) * 100).toFixed(1)}"><svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" cx="22" cy="22" r="19" pathLength="100"/></svg><b data-pd-tleft="${m.id}" data-no-i18n>${ph.left ? mmss(ph.left) : "…"}</b></span>
           <span class="pd-tile-px"><b data-no-i18n>${px(m.price)}</b><i class="${ch > 0 ? "up" : ch < 0 ? "down" : ""}" data-no-i18n>${ch == null ? "" : pc(ch)}</i></span>
           <span class="pd-tile-bar" style="--up:${upPct.toFixed(1)}%"><i></i></span>
-          <span class="pd-tile-f"><span data-no-i18n>UP ${usd(m.live.up)}</span><span data-no-i18n>${usd(m.live.down)} DOWN</span></span></button>`;
+          <span class="pd-tile-f"><span data-no-i18n>UP ${money(m.live.up)}</span><span data-no-i18n>${money(m.live.down)} DOWN</span></span></button>`;
       }).join("") || `<p class="pd-empty">${T("No market yet")}</p>`}</div>`;
   }
 
@@ -419,7 +457,7 @@
     const rows = (L[S.lbTab] || []).slice(0, 25), a = acct();
     el.innerHTML = `<div class="pd-all-h"><h3>${T("Leaderboard")}</h3><div class="pd-sort">${[["week", "This week"], ["all", "All time"]].map(([k, l]) => `<button type="button" class="pd-btn${S.lbTab === k ? " on" : ""}" data-pd-lb="${k}">${T(l)}</button>`).join("")}</div></div>
       <p class="pd-small">${T("Profit and loss from settled rounds (winnings minus stakes). Refunds don't count.")} <span data-no-i18n>${L.players || 0}</span> ${T("players")} · <span data-no-i18n>${L.rounds || 0}</span> ${T("rounds")}</p>
-      ${rows.length ? `<div class="pd-lb"><div class="pd-lb-r head"><span>#</span><span>${T("Wallet")}</span><span>${T("PnL")}</span><span>${T("Volume")}</span><span>${T("W / L")}</span></div>${rows.map((r, i) => `<div class="pd-lb-r${r.user === a ? " me" : ""}${i < 3 ? " top" : ""}"><span class="pd-rank r${i + 1}" data-no-i18n>${i + 1}</span><a href="${EXPL("address", r.user)}" target="_blank" rel="noopener" data-no-i18n>${short(r.user)}</a><b class="${r.pnl >= 0 ? "up" : "down"}" data-no-i18n>${r.pnl >= 0 ? "+" : ""}${usd(r.pnl)}</b><span data-no-i18n>${big$(r.vol)}</span><span data-no-i18n>${r.wins}/${r.losses}</span></div>`).join("")}</div>` : `<p class="pd-empty">${T("Nobody yet — the first settled rounds fill this in.")}</p>`}
+      ${rows.length ? `<div class="pd-lb"><div class="pd-lb-r head"><span>#</span><span>${T("Wallet")}</span><span>${T("PnL")}</span><span>${T("Volume")}</span><span>${T("W / L")}</span></div>${rows.map((r, i) => `<div class="pd-lb-r${r.user === a ? " me" : ""}${i < 3 ? " top" : ""}"><span class="pd-rank r${i + 1}" data-no-i18n>${i + 1}</span><a href="${EXPL("address", r.user)}" target="_blank" rel="noopener" data-no-i18n>${short(r.user)}</a><b class="${r.pnl >= 0 ? "up" : "down"}" data-no-i18n>${r.pnl >= 0 ? "+" : ""}${money(r.pnl)}</b><span data-no-i18n>${bigM(r.vol)}</span><span data-no-i18n>${r.wins}/${r.losses}</span></div>`).join("")}</div>` : `<p class="pd-empty">${T("Nobody yet — the first settled rounds fill this in.")}</p>`}
       ${L.streaks && L.streaks.length && L.streaks[0].best > 1 ? `<h4>${T("Longest win streaks")}</h4><div class="pd-streaks">${L.streaks.filter((s) => s.best > 1).slice(0, 5).map((s) => `<span class="pd-chip"><b data-no-i18n>${s.best}</b> <span data-no-i18n>${short(s.user)}</span></span>`).join("")}</div>` : ""}`;
   }
 
@@ -433,11 +471,12 @@
     if (el.hidden || key === S.listKey) return;
     S.listKey = key;
     const m = market();
+    if (isRH()) { el.innerHTML = listPanelRH(staff, a, L, m); return; }
     const warn = L.badge && (L.badge.call === "risky" || (L.badge.score != null && L.badge.score < 40));
     el.innerHTML = `<h3>${T("Open a market")} ${staff ? `<small data-no-i18n>${a === st.owner ? "owner" : "operator"}</small>` : ""}</h3>
-      <p class="pd-small">${staff ? T("The team lists free, with any round length and lock.") : `${T("Burn")} <b data-no-i18n>${Number(st.listing.burn).toLocaleString("en-US")} $ARCIRCLE</b> ${T("to open a market for any Arc token's Uniswap v4 USDC pool with at least")} <b data-no-i18n>${big$(st.listing.minUsdc || 0)}</b> ${T("of USDC in range. Its rounds start right away.")}`}</p>
+      <p class="pd-small">${staff ? T("The team lists free, with any round length and lock.") : `${T("Burn")} <b data-no-i18n>${Number(st.listing.burn).toLocaleString("en-US")} $ARCIRCLE</b> ${T("to open a market for any Arc token's Uniswap v4 USDC pool with at least")} <b data-no-i18n>${bigM(st.listing.minUsdc || 0)}</b> ${T("of USDC in range. Its rounds start right away.")}`}</p>
       <div class="pd-row"><input type="text" id="pd-lt" placeholder="${T("Arc token address (0x…)")}" value="${esc(L.t || "")}" spellcheck="false"><button type="button" class="pd-btn" data-pd-act="pools">${T("Find its USDC pools")}</button></div>
-      ${L.pools ? (L.pools.length ? `<div class="pd-pools-l">${L.pools.map((p, i) => `<label class="pd-pl"><input type="radio" name="pd-pl" value="${i}"${i === (L.pick || 0) ? " checked" : ""}><b>${esc(p.venue || "Uniswap v4")}</b><span data-no-i18n>${p.feePct != null ? p.feePct + "%" : ""}${p.dex && p.dex.liqUsd ? " · " + big$(p.dex.liqUsd) : ""}</span><small data-no-i18n>${short(p.id)}</small></label>`).join("")}</div>` : `<p class="pd-empty">${T("No Uniswap v4 pool against USDC found for this token.")}</p>`) : ""}
+      ${L.pools ? (L.pools.length ? `<div class="pd-pools-l">${L.pools.map((p, i) => `<label class="pd-pl"><input type="radio" name="pd-pl" value="${i}"${i === (L.pick || 0) ? " checked" : ""}><b>${esc(p.venue || "Uniswap v4")}</b><span data-no-i18n>${p.feePct != null ? p.feePct + "%" : ""}${p.dex && p.dex.liqUsd ? " · " + bigM(p.dex.liqUsd) : ""}</span><small data-no-i18n>${short(p.id)}</small></label>`).join("")}</div>` : `<p class="pd-empty">${T("No Uniswap v4 pool against USDC found for this token.")}</p>`) : ""}
       ${L.badge ? `<div class="pd-tags">${scoreTag(L.badge)}${callTag(L.badge)}</div>${warn ? `<p class="pd-warn">${T("Token Scanner or ARCIA flags this token. Think twice before opening rounds on it.")}</p>` : ""}` : ""}
       <div class="pd-row pd-durs">${DURS.map(([s, l]) => `<button type="button" class="pd-btn${(L.d || 300) === s ? " on" : ""}" data-pd-dur="${s}">${T(l)}</button>`).join("")}</div>
       <button type="button" class="pd-btn go" data-pd-act="add"${L.pools && L.pools.length && !(warn && !staff && L.badge.call === "risky") ? "" : " disabled"}>${staff ? T("List it") : T("Burn and open it")}</button>
@@ -445,8 +484,68 @@
       <p class="pd-msg${S.smsg ? " " + S.smsg.cls : ""}" aria-live="polite">${S.smsg ? S.smsg.h : ""}</p>`;
   }
 
+  /// Robinhood Chain: the team lists a graduated Pons coin (its pool key comes from the Pons factory, server-side)
+  function listPanelRH(staff, a, L, m) {
+    const st = S.st, P = L.pons;
+    const staffRow = staff && m ? `<div class="pd-staff2"><span>${T("This market")}: <b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b> · ${T(m.stopped ? "stopped" : "running")}</span>${m.stopped ? "" : `<button type="button" class="pd-btn" data-pd-act="stop">${T("Stop after the round open for bets")}</button>`}<button type="button" class="pd-btn" data-pd-act="fees">${T("Send fees to the treasury")}</button><a href="${EXPL("address", st.address)}" target="_blank" rel="noopener" data-no-i18n>${short(st.address)} ↗</a></div>` : "";
+    return `<h3>${T("List a Pons coin")} <small data-no-i18n>${a === st.owner ? "owner" : "operator"}</small></h3>
+      <p class="pd-small">${T("Graduated Pons V2 coins only — the coin's Uniswap v4 pool against ETH. Coins still on their bonding curve can't be listed.")}</p>
+      <div class="pd-row"><input type="text" id="pd-lt" placeholder="${T("Pons coin address (0x…)")}" value="${esc(L.t || "")}" spellcheck="false"><button type="button" class="pd-btn" data-pd-act="pons">${T("Check it")}</button></div>
+      ${P ? `<div class="pd-pons">${P.image ? `<img src="${esc(P.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<b data-no-i18n>$${esc(P.symbol || "?")}</b><span data-no-i18n>${esc(P.name || "")}</span><em data-no-i18n>${P.priceUsd != null ? "$" + Number(P.priceUsd).toPrecision(3) : P.priceEth != null ? ethS(P.priceEth) : ""}</em><small data-no-i18n>${short(P.poolId)}</small></div>` : ""}
+      <div class="pd-row pd-durs">${DURS.map(([sec, l]) => `<button type="button" class="pd-btn${(L.d || 300) === sec ? " on" : ""}" data-pd-dur="${sec}">${T(l)}</button>`).join("")}</div>
+      <button type="button" class="pd-btn go" data-pd-act="add"${P && staff ? "" : " disabled"}>${T("List it")}</button>
+      ${staffRow}
+      <p class="pd-msg${S.smsg ? " " + S.smsg.cls : ""}" aria-live="polite">${S.smsg ? S.smsg.h : ""}</p>`;
+  }
+  async function checkPons() {
+    const t = String(($("pd-lt") || {}).value || "").trim();
+    S.list = Object.assign({}, S.list, { t, pons: null });
+    S.listKey = null;
+    if (!isAddr(t)) { listPanel(); sayList(T("Paste a Pons coin address (0x…)."), "err"); return; }
+    listPanel();
+    sayList(T("Reading it from Pons…"));
+    let j = null;
+    try { const r = await fetch(`${API}?chain=rh&predict=pons&token=${t}`, { cache: "no-store" }); j = await r.json(); } catch { j = null; }
+    S.listKey = null;
+    if (!j || j.error) { listPanel(); sayList(esc(j && j.error ? tr(j.error) : tr("Couldn't read it — try again.")), "err"); return; }
+    S.list = Object.assign({}, S.list, { pons: j });
+    S.smsg = null;
+    listPanel();
+  }
+
   // ---------------- writes ----------------
+  // keeps the page from reloading (arc-shared.js) while the wallet moves to Robinhood Chain
+  function holdChain(on) {
+    if (on) { clearTimeout(holdChain.t); window.arcChainSwitching = true; try { sessionStorage.setItem("wallet.autoSwitch." + acct(), "1"); } catch { /* fine */ } }
+    else holdChain.t = setTimeout(() => { window.arcChainSwitching = false; }, 4000);
+  }
+  const walletProv = () => (typeof state !== "undefined" && state && state.walletProvider) || window.ethereum || null;
+  const rejected = (e) => e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.message || e.shortMessage || "")));
+  async function rhSigner() {
+    if ((typeof state === "undefined" || !state.account) && typeof connectWallet === "function") await connectWallet();
+    if (!acct()) throw new Error(tr("Connect a wallet first."));
+    holdChain(true);
+    try {
+      let done = false;
+      if (typeof WagmiCoreRef !== "undefined" && WagmiCoreRef && typeof wagmiConfigRef !== "undefined" && wagmiConfigRef) {
+        try { const ac = WagmiCoreRef.getAccount(wagmiConfigRef); if (ac && ac.isConnected) { if (Number(ac.chainId) !== RH_CHAIN) await WagmiCoreRef.switchChain(wagmiConfigRef, { chainId: RH_CHAIN, addEthereumChainParameter: RH_ADD }); done = true; } } catch (e) { if (rejected(e)) throw e; }
+      }
+      const p = walletProv();
+      if (!p) throw new Error(tr("Switch your wallet to Robinhood Chain and try again."));
+      if (!done && Number.parseInt(await p.request({ method: "eth_chainId" }), 16) !== RH_CHAIN) {
+        try { await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: RH_HEX }] }); }
+        catch (e) { if (rejected(e)) throw e; await p.request({ method: "wallet_addEthereumChain", params: [RH_ADD] }); await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: RH_HEX }] }).catch(() => {}); }
+      }
+      const bp = new ethers.BrowserProvider(p, "any");
+      for (let i = 0; i < 6; i++) {
+        if (Number((await bp.getNetwork()).chainId) === RH_CHAIN) { try { if (typeof updateNetworkBadge === "function") updateNetworkBadge(); } catch { /* fine */ } return bp.getSigner(acct()); }
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      throw new Error(tr("Your wallet is still on another network — switch it to Robinhood Chain and try again."));
+    } finally { holdChain(false); }
+  }
   async function signer() {
+    if (isRH()) return rhSigner();
     if ((typeof state === "undefined" || !state.signer) && typeof connectWallet === "function") await connectWallet();
     if (typeof ensureArcForWrite === "function") await ensureArcForWrite();
     if (typeof state === "undefined" || !state.signer) throw new Error(tr("Connect a wallet first."));
@@ -455,7 +554,7 @@
   const errText = (e) => {
     if (e && (e.code === "ACTION_REJECTED" || e.code === 4001)) return tr("Cancelled in your wallet.");
     const s = String((e && (e.shortMessage || e.reason || e.message)) || "");
-    const map = { NotOpen: "Bets for this round are closed.", NoPriceToBeat: "This round has no price to beat (the pool wasn't read in time) — bet on the next one.", OverMaxBet: "That's over the most a wallet can put in one round.", OverMaxSide: "This side of the round is full.", OtherSide: "You already bet on the other side of this round.", TooSmall: "That's under the smallest bet.", IsPaused: "New bets are paused.", NothingToClaim: "Nothing to claim right now.", TooThin: "This pool holds too little USDC to open a market.", HookNotAllowed: "This pool's hook isn't accepted.", AlreadyListed: "This pool already has a market of that length.", ListingClosed: "Opening markets is closed right now.", NotQuotePool: "That pool isn't paired with USDC." };
+    const map = { NotOpen: "Bets for this round are closed.", NoPriceToBeat: "This round has no price to beat (the pool wasn't read in time) — bet on the next one.", OverMaxBet: "That's over the most a wallet can put in one round.", OverMaxSide: "This side of the round is full.", OtherSide: "You already bet on the other side of this round.", TooSmall: "That's under the smallest bet.", IsPaused: "New bets are paused.", NothingToClaim: "Nothing to claim right now.", TooThin: "This pool holds too little USDC to open a market.", HookNotAllowed: "This pool's hook isn't accepted.", AlreadyListed: "This pool already has a market of that length.", ListingClosed: "Opening markets is closed right now.", NotQuotePool: isRH() ? "That pool isn't paired with ETH." : "That pool isn't paired with USDC.", PoolNotLive: "That pool has no price yet.", NotAllowed: "Only the owner or operator wallet can do that.", "insufficient funds": isRH() ? "Not enough ETH on Robinhood Chain for this and its gas." : "Not enough USDC for this and its gas." };
     for (const k of Object.keys(map)) if (s.includes(k)) return tr(map[k]);
     return (s || tr("The transaction didn't go through.")).slice(0, 180);
   };
@@ -469,18 +568,18 @@
     if (!br) return;
     const v = amtIn != null ? amtIn : Number(String(($("pd-amt") || {}).value || "").replace(/,/g, ""));
     const lim = S.st.limits;
-    if (!(v > 0)) { say(T("Enter an amount of USDC."), "err"); return; }
-    if (v < lim.minBet) { say(`${T("The smallest bet is")} <b data-no-i18n>${usd(lim.minBet)}</b>.`, "err"); return; }
+    if (!(v > 0)) { say(T(isRH() ? "Enter an amount of ETH." : "Enter an amount of USDC."), "err"); return; }
+    if (v < lim.minBet - 1e-12) { say(`${T("The smallest bet is")} <b data-no-i18n>${moneyU(lim.minBet)}</b>.`, "err"); return; }
     const mine0 = myBet(br.id);
-    if (v + (mine0 ? mine0.stake : 0) > lim.maxBet + 1e-9) { say(`${T("A wallet can put at most")} <b data-no-i18n>${usd(lim.maxBet)}</b> ${T("in one round.")}`, "err"); return; }
+    if (v + (mine0 ? mine0.stake : 0) > lim.maxBet + 1e-12) { say(`${T("A wallet can put at most")} <b data-no-i18n>${moneyU(lim.maxBet)}</b> ${T("in one round.")}`, "err"); return; }
     S.busy = true;
     const btn = panel.querySelector(`#pd-round [data-pd-bet="${side}"]`);
     try {
       const sg = await signer();
       const me = await sg.getAddress();
-      const wei = ethers.parseEther(String(v));
+      const wei = ethers.parseEther(v.toFixed(18));
       const bal = await sg.provider.getBalance(me).catch(() => null);
-      if (bal != null && bal < wei + ethers.parseEther("0.02")) throw new Error(tr("This wallet doesn't hold that much USDC (keep a little for gas)."));
+      if (bal != null && bal < wei + ethers.parseEther(isRH() ? "0.00002" : "0.02")) throw new Error(tr(isRH() ? "This wallet doesn't hold that much ETH on Robinhood Chain (keep a little for gas)." : "This wallet doesn't hold that much USDC (keep a little for gas)."));
       if (nowC() >= br.lockAt - 2) throw new Error(tr("Bets for this round are closed."));
       say(T("Confirm in your wallet…"));
       const tx = await contract(sg).bet(m.id, br.epoch, side === "up", refOf(me), { value: wei });
@@ -488,8 +587,8 @@
       await tx.wait();
       coinFly(btn, side);
       try { if (navigator.vibrate && !reduce()) navigator.vibrate(30); } catch { /* fine */ }
-      say(`${T("You're in")} <b data-no-i18n>${side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${usd(v)}</b>.${txa(tx.hash)}`, "ok");
-      S.amt = String(v); ls.set(LS.amt, S.amt);
+      say(`${T("You're in")} <b data-no-i18n>${side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${money(v)}</b>.${txa(tx.hash)}`, "ok");
+      S.amt = String(v); ls.set(amtKey(), S.amt);
       S.lastBet = { m: m.id, epoch: br.epoch, side, amt: v };
       await Promise.all([load(), loadMine(), loadFeed()]);
       render();
@@ -519,20 +618,21 @@
       say(`${T("Claiming…")}${txa(tx.hash)}`);
       await tx.wait();
       await loadMine(); S.sideKey = null; render();
-      say(`${T(ref ? "Referral earnings claimed — the USDC is in your wallet." : "Claimed — the USDC is in your wallet.")}${txa(tx.hash)}`, "ok");
+      say(`${T(isRH() ? (ref ? "Referral earnings claimed — the ETH is in your wallet." : "Claimed — the ETH is in your wallet.") : ref ? "Referral earnings claimed — the USDC is in your wallet." : "Claimed — the USDC is in your wallet.")}${txa(tx.hash)}`, "ok");
     } catch (e) { say(esc(errText(e)), "err"); } finally { S.busy = false; }
   }
   function shareRound(id) {
     const a = acct();
-    const url = `${SITE}/predict/${id}${a ? "?u=" + a : ""}`;
-    const text = tr("I called it on ARCIRCLE Predict — UP or DOWN on Arc tokens, paid in USDC.");
+    const q = [a ? "u=" + a : "", isRH() ? "c=rh" : ""].filter(Boolean).join("&");
+    const url = `${SITE}/predict/${id}${q ? "?" + q : ""}`;
+    const text = tr(isRH() ? "I called it on ARCIRCLE Predict — UP or DOWN on Pons coins on Robinhood Chain, paid in ETH." : "I called it on ARCIRCLE Predict — UP or DOWN on Arc tokens, paid in USDC.");
     window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
   }
   function shareMarket() {
     const m = market(); if (!m) return;
     const a = acct();
-    const url = `${SITE}/arc#predict?m=${m.id}${a ? "&ref=" + a : ""}`;
-    const text = `${tr("UP or DOWN?")} $${m.sym} ${dur(m.duration)} ${tr("rounds on ARCIRCLE Predict, paid in USDC.")}`;
+    const url = `${SITE}/arc#predict?${cq()}m=${m.id}${a ? "&ref=" + a : ""}`;
+    const text = `${tr("UP or DOWN?")} $${m.sym} ${dur(m.duration)} ${tr(isRH() ? "rounds on ARCIRCLE Predict, paid in ETH on Robinhood Chain." : "rounds on ARCIRCLE Predict, paid in USDC.")}`;
     window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
   }
   async function findPools() {
@@ -557,7 +657,7 @@
   }
   async function addMarket() {
     const L = S.list || {}, st = S.st, a = acct();
-    const p = L.pools && L.pools[L.pick || 0];
+    const p = isRH() ? L.pons : L.pools && L.pools[L.pick || 0];
     if (!p) return;
     const staff = a && (a === st.owner || a === st.operator);
     try {
@@ -582,6 +682,19 @@
       render();
       sayList(`${T("Opened. Its first round is live — the keeper reads the pool within a minute or two.")}${txa(tx.hash)}`, "ok");
     } catch (e) { sayList(esc(errText(e)), "err"); }
+  }
+  /// Arc ↔ Robinhood Chain: each has its own contract, markets, bets and leaderboard
+  async function setChain(c) {
+    if (c === S.chain || S.busy) return;
+    S.chain = c; ls.set(LS.chain, c);
+    Object.assign(S, { st: null, m: null, mine: null, feed: null, lb: null, chart: null, kstat: null, list: null, msg: null, smsg: null, lastPx: {}, lastPast: {}, lastBet: null, claimable0: null, amt: ls.get(amtKey()) || "" });
+    try { history.replaceState(null, "", "#predict" + (c === "rh" ? "?c=rh" : "")); } catch { /* fine */ }
+    frame();
+    render();
+    await load();
+    pickDefault();
+    await Promise.all([loadMine(), loadChart(), loadFeed(), loadStatus(), S.view === "lb" ? loadLb() : null]);
+    if (S.chain === c) render();
   }
   async function staffTx(kind) {
     try {
@@ -618,20 +731,21 @@
       const m = market(x.market);
       if (!m || m.live.id !== x.round) continue;
       const left = m.live.endAt - nowC();
-      if (left > 0 && left <= 30 && !S.notified.has("e" + x.round)) { S.notified.add("e" + x.round); notify(`${tr("30 seconds left")} · ${m.sym} ${dur(m.duration)}`, `${tr("You're in")} ${x.side.toUpperCase()} ${tr("with")} ${usd(x.stake)}`); }
+      if (left > 0 && left <= 30 && !S.notified.has("e" + x.round)) { S.notified.add("e" + x.round); notify(`${tr("30 seconds left")} · ${m.sym} ${dur(m.duration)}`, `${tr("You're in")} ${x.side.toUpperCase()} ${tr("with")} ${money(x.stake)}`); }
     }
     const c = M.claimable || 0;
-    if (S.claimable0 != null && c > S.claimable0 + 1e-9) notify(tr("You won — claim it"), `${usd(c - S.claimable0)} ${tr("is ready in Your bets.")}`);
+    if (S.claimable0 != null && c > S.claimable0 + 1e-9) notify(tr("You won — claim it"), `${money(c - S.claimable0)} ${tr("is ready in Your bets.")}`);
     S.claimable0 = c;
   }
 
   // ---------------- events ----------------
   panel.addEventListener("click", (e) => {
-    const t = e.target.closest && e.target.closest("[data-pd-m],[data-pd-amt],[data-pd-bet],[data-pd-act],[data-pd-dur],[data-pd-view],[data-pd-side],[data-pd-sort],[data-pd-lb],[data-pd-go],[data-pd-share]");
+    const t = e.target.closest && e.target.closest("[data-pd-m],[data-pd-amt],[data-pd-bet],[data-pd-act],[data-pd-dur],[data-pd-view],[data-pd-side],[data-pd-sort],[data-pd-lb],[data-pd-go],[data-pd-share],[data-pd-chain]");
     if (!t) return;
+    if (t.dataset.pdChain) { setChain(t.dataset.pdChain); return; }
     if (t.dataset.pdM != null || t.dataset.pdGo != null) {
       S.m = Number(t.dataset.pdM != null ? t.dataset.pdM : t.dataset.pdGo); S.msg = null; S.chart = null; S.view = "market";
-      try { history.replaceState(null, "", `#predict?m=${S.m}`); } catch { /* fine */ }
+      try { history.replaceState(null, "", `#predict?${cq()}m=${S.m}`); } catch { /* fine */ }
       render(); loadChart().then(() => { if (S.view === "market") card(); }); return;
     }
     if (t.dataset.pdView) { S.view = t.dataset.pdView; ls.set(LS.view, S.view === "all" ? "all" : "market"); if (S.view === "lb" && !S.lb) loadLb().then(render); render(); return; }
@@ -639,7 +753,7 @@
     if (t.dataset.pdSort) { S.sort = t.dataset.pdSort; all(); return; }
     if (t.dataset.pdLb) { S.lbTab = t.dataset.pdLb; lbView(); return; }
     if (t.dataset.pdShare) { shareRound(t.dataset.pdShare); return; }
-    if (t.dataset.pdAmt) { const i = $("pd-amt"); if (i) { i.value = t.dataset.pdAmt; S.amt = i.value; const m = market(); if (m) patch(m, betRound(m)); } return; }
+    if (t.dataset.pdAmt) { const i = $("pd-amt"); if (i) { i.value = String(Number(t.dataset.pdAmt)); S.amt = i.value; const m = market(); if (m) patch(m, betRound(m)); } return; }
     if (t.dataset.pdBet) { placeBet(t.dataset.pdBet); return; }
     if (t.dataset.pdDur) { S.list = Object.assign({}, S.list, { d: Number(t.dataset.pdDur), t: String(($("pd-lt") || {}).value || "") }); listPanel(); return; }
     const a = t.dataset.pdAct;
@@ -649,8 +763,9 @@
     else if (a === "again") { const L = S.lastBet; if (L) placeBet(L.side, L.amt); }
     else if (a === "sharem") shareMarket();
     else if (a === "copyref") { const i = $("pd-reflink"); if (i) { try { navigator.clipboard.writeText(i.value); t.textContent = tr("Copied"); } catch { i.select(); } } }
-    else if (a === "xref") { const i = $("pd-reflink"); if (i) window.open(`https://x.com/intent/post?text=${encodeURIComponent(tr("UP or DOWN on Arc tokens, paid in USDC. Join me on ARCIRCLE Predict:"))}&url=${encodeURIComponent(i.value)}`, "_blank", "noopener"); }
+    else if (a === "xref") { const i = $("pd-reflink"); if (i) window.open(`https://x.com/intent/post?text=${encodeURIComponent(tr(isRH() ? "UP or DOWN on Pons coins on Robinhood Chain, paid in ETH. Join me on ARCIRCLE Predict:" : "UP or DOWN on Arc tokens, paid in USDC. Join me on ARCIRCLE Predict:"))}&url=${encodeURIComponent(i.value)}`, "_blank", "noopener"); }
     else if (a === "pools") findPools();
+    else if (a === "pons") checkPons();
     else if (a === "add") addMarket();
     else if (a === "stop" || a === "fees") staffTx(a);
   });
@@ -730,9 +845,13 @@
     const m = /^#predict\?(?:.*&)?m=(\d+)/.exec(location.hash);
     const r = /[?&]ref=(0x[0-9a-fA-F]{40})/.exec(location.hash);
     if (r) ls.set(LS.ref, lc(r[1]));
+    if (/^#predict/.test(location.hash) && S.booted) {
+      const c = /[?&]c=rh\b/.test(location.hash) ? "rh" : /^#predict\?/.test(location.hash) ? "arc" : S.chain;
+      if (c !== S.chain) { setChain(c).then(() => { if (m) { S.m = Number(m[1]); render(); loadChart().then(() => card()); } }); return; }
+    }
     if (m && S.booted) { S.m = Number(m[1]); S.view = "market"; render(); loadChart().then(() => card()); }
   });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); render(); } });
   if (panel.classList.contains("active")) show();
-  window.arcPredict = { state: () => S.st, market: () => S.m, refresh: () => refresh(), _px: px, _s: () => ({ busy: S.busy, ids: S.mine && S.mine.claimIds, msg: S.msg }) };
+  window.arcPredict = { state: () => S.st, market: () => S.m, chain: () => S.chain, setChain: (c) => setChain(c), refresh: () => refresh(), _px: px, _s: () => ({ busy: S.busy, ids: S.mine && S.mine.claimIds, msg: S.msg }) };
 })();

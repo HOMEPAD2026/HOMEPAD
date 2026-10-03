@@ -12,7 +12,7 @@ import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx } from "./_burnvote.mjs";
 import { lockInfo } from "./_locker.mjs";
-import { roundCard as predictRound } from "./_predict.mjs";
+import { forChain as predictFor } from "./_predict.mjs";
 import { card as stakeCardOf } from "./_stake.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -154,7 +154,7 @@ export async function GET(req) {
   }
   if (url.searchParams.has("predict")) {
     const fonts = (await fontsP).filter(Boolean);
-    return new ImageResponse(await predictCard(await markP, url.searchParams.get("predict"), url.searchParams.get("u")), {
+    return new ImageResponse(await predictCard(await markP, url.searchParams.get("predict"), url.searchParams.get("u"), url.searchParams.get("c")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=300, s-maxage=86400, stale-while-revalidate=86400" },
     });
@@ -819,16 +819,19 @@ async function stakeCard(mark, user) {
 }
 
 // ---- ARCIRCLE Predict: one round's result (/predict/<round>?u=0x…) ----
-async function predictCard(mark, id, user) {
+async function predictCard(mark, id, user, c) {
   let d = null;
-  try { d = await predictRound(id, user); } catch { d = null; }
+  try { d = await predictFor(c).roundCard(id, user); } catch { d = null; }
   const up = "#39ff88", down = "#ff5c8a";
+  const rh = c === "rh", where = rh ? "ARCIRCLE Predict · Robinhood Chain" : where;
+  // amounts: dollars on Arc (USDC); ETH on Robinhood Chain
+  const money = (x, dp = 2) => (rh ? `${Number(x || 0).toLocaleString("en-US", { maximumFractionDigits: x >= 1 ? 3 : 5 })} ETH` : `$${Number(x || 0).toFixed(dp)}`);
   if (!d || d.result === "open") {
     return frame([
-      brandRow(mark, pill("PREDICT", up), "ARCIRCLE Predict · Circle's Arc"),
+      brandRow(mark, pill("PREDICT", up), where),
       h("div", { flexDirection: "column", gap: 16 },
         h("div", { fontSize: 92, fontWeight: 800, lineHeight: 1.02 }, d ? `$${clip(d.sym, 12)} — round live` : "UP or DOWN?"),
-        h("div", { fontSize: 34, color: "#9fb098" }, "Call an Arc token's next minutes. The pool decides. Paid in USDC.")),
+        h("div", { fontSize: 34, color: "#9fb098" }, rh ? "Call a Pons coin's next minutes. The pool decides. Paid in ETH." : "Call an Arc token's next minutes. The pool decides. Paid in USDC.")),
       h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#predict"),
     ]);
   }
@@ -837,19 +840,19 @@ async function predictCard(mark, id, user) {
   const won = d.result === "up" ? up : d.result === "down" ? down : "#8fc7ff";
   const stamp = d.result === "refund" ? "REFUND" : `${d.result === "up" ? "UP" : "DOWN"} WON`;
   const me = d.bet;
-  const headline = me ? (d.result === "refund" ? "Stake back" : me.won ? `+$${(me.payout - me.stake).toFixed(2)}` : `Called ${me.side.toUpperCase()}`) : stamp;
+  const headline = me ? (d.result === "refund" ? "Stake back" : me.won ? `+${money(me.payout - me.stake)}` : `Called ${me.side.toUpperCase()}`) : stamp;
   const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
     h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
     h("div", { fontSize: 38, fontWeight: 800, color }, value));
   return frame([
-    brandRow(mark, pill(stamp, won), "ARCIRCLE Predict · Circle's Arc"),
+    brandRow(mark, pill(stamp, won), where),
     h("div", { flexDirection: "column", gap: 10 },
       h("div", { fontSize: 32, color: won, fontWeight: 700 }, `$${clip(d.sym, 14)} · ${dur} round #${d.id}`),
       h("div", { fontSize: 104, fontWeight: 800, lineHeight: 1, letterSpacing: -2, color: me && me.won ? up : "#eaf2e6" }, headline),
-      h("div", { fontSize: 30, color: "#b9c8b3" }, me ? `${me.side.toUpperCase()} with $${me.stake.toFixed(2)}${me.won ? ` · paid $${me.payout.toFixed(2)}` : ""}` : "The pool decided. Winners split the pot.")),
+      h("div", { fontSize: 30, color: "#b9c8b3" }, me ? `${me.side.toUpperCase()} with ${money(me.stake)}${me.won ? ` · paid ${money(me.payout)}` : ""}` : "The pool decided. Winners split the pot.")),
     h("div", { gap: 16 },
       box("Move", ch == null ? "—" : `${ch >= 0 ? "+" : "−"}${Math.abs(ch).toFixed(2)}%`, ch == null ? "#eaf2e6" : ch >= 0 ? up : down),
-      box("Pot", `$${d.pot.toFixed(2)}`),
-      box("UP / DOWN", `$${d.up.toFixed(0)} / $${d.down.toFixed(0)}`)),
+      box("Pot", money(d.pot)),
+      box("UP / DOWN", rh ? `${Math.round((d.up / Math.max(1e-18, d.up + d.down)) * 100)}% / ${Math.round((d.down / Math.max(1e-18, d.up + d.down)) * 100)}%` : `$${d.up.toFixed(0)} / $${d.down.toFixed(0)}`)),
   ]);
 }

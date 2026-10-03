@@ -39,6 +39,9 @@
 //   GET /api/desk?predict=lb                 leaderboard (this week, all time, streaks) · ?predict=status the keeper
 //   GET /api/desk?predicttick=1&key=<CRON_SECRET>   the keeper: samples ended rounds' pools and settles them (its own
 //                                                   cron-job.org entry, every minute)
+//   …&chain=rh on any of these: the same on Robinhood Chain — bets in ETH, markets on graduated Pons V2 coins (its keeper
+//   is its own cron-job.org entry: ?chain=rh&predicttick=1&key=<CRON_SECRET>)
+//   GET /api/desk?chain=rh&predict=pons&token=0x…   a graduated Pons coin's pool key, for the team to list it
 // There is no endpoint that makes a desk buy or sell: trades only come from the tick's rules.
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
@@ -57,7 +60,7 @@ const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k
 export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
-  if (q.chain === "rh" && !q.agent) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
+  if (q.chain === "rh" && !q.agent && !q.predict && !q.predicttick) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
   // ARCIRCLE Staking (api/_stake.mjs): ?stake=state · ?stake=me&u=0x…
   if (q.stake) {
     try {
@@ -85,17 +88,24 @@ export async function GET(req) {
   if (q.predicttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { return json(await predict.tick({ budgetMs: 45000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    try { return json(await predict.forChain(q.chain).tick({ budgetMs: 45000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   if (q.predict) {
+    const P = predict.forChain(q.chain);
     try {
-      if (q.predict === "mine") { const r = await predict.mine(String(q.u || ""), { store: st }); return json(r, r.error ? 400 : 200); }
-      if (q.predict === "chart") return json(await predict.chart(q.m), 200, "public, max-age=2, s-maxage=3");
-      if (q.predict === "feed") return json(await predict.feed(), 200, "public, max-age=2, s-maxage=3");
-      if (q.predict === "lb") return json(await predict.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
-      if (q.predict === "card") { const r = await predict.roundCard(String(q.id || ""), String(q.u || "")); return json(r || { error: "no such round" }, r ? 200 : 404, r && r.result !== "open" ? "public, max-age=60, s-maxage=86400" : "public, max-age=10, s-maxage=30"); }
-      if (q.predict === "status") return json((await predict.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
-      return json(await predict.state({ store: st }), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "pons") {
+        if (q.chain !== "rh") return json({ error: "Pons coins are on Robinhood Chain (chain=rh)" }, 400);
+        const { graduatedPool } = await import("./_pons-arcpad.mjs");
+        const r = await graduatedPool(String(q.token || ""));
+        return json(r, r.error ? 409 : 200, "public, max-age=10, s-maxage=30");
+      }
+      if (q.predict === "mine") { const r = await P.mine(String(q.u || ""), { store: st }); return json(r, r.error ? 400 : 200); }
+      if (q.predict === "chart") return json(await P.chart(q.m), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "feed") return json(await P.feed(), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "lb") return json(await P.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
+      if (q.predict === "card") { const r = await P.roundCard(String(q.id || ""), String(q.u || "")); return json(r || { error: "no such round" }, r ? 200 : 404, r && r.result !== "open" ? "public, max-age=60, s-maxage=86400" : "public, max-age=10, s-maxage=30"); }
+      if (q.predict === "status") return json((await P.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
+      return json(await P.state({ store: st }), 200, "public, max-age=2, s-maxage=3");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)

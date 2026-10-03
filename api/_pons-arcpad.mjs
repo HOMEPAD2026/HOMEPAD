@@ -98,7 +98,7 @@ export function poolIdOf(token, pairToken, fee, ts, hook) {
 
 // ---- the ETH price (Coinbase, else CoinGecko), cached a minute
 const px = { usd: null, at: 0 };
-async function ethUsd() {
+export async function ethUsd() {
   if (CFG.ethUsd) return CFG.ethUsd;
   if (px.usd && Date.now() - px.at < 60e3) return px.usd;
   const get = (u) => fetch(u, { signal: AbortSignal.timeout(5000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -285,6 +285,28 @@ export async function register({ token, tx }, { store } = {}) {
   await writeList(store, items);
   mem.view = null;
   return { status: 200, body: { ok: true, token, splitter: c.splitter, tg } };
+}
+
+/// a graduated Pons V2 coin's Uniswap v4 pool, for an ARCIRCLE Predict market on Robinhood Chain (api/_predict.mjs RH):
+/// its pool key, live price and name — or why it can't be listed (still on its curve, not a Pons coin, no live pool)
+export async function graduatedPool(token) {
+  token = lc(token);
+  if (!isAddr(token)) return { error: "a token address (0x…)" };
+  const [lt] = await ethCalls([{ to: CFG.factory, data: SEL.launched + pad(token) }]);
+  const L = decodeLaunched(lt);
+  if (!L || !L.exists) return { error: "that isn't a Pons V2 coin" };
+  if (L.phase !== "pool") return { error: L.phase === "curve" ? "still on its bonding curve — it can be listed once it graduates" : `its pool isn't live (${L.phase})`, phase: L.phase };
+  const k = await consts();
+  const q = lc(L.pairToken || ZERO), t0 = BigInt(token) < BigInt(q);
+  const key = { currency0: t0 ? token : q, currency1: t0 ? q : token, fee: L.poolFee, tickSpacing: L.tickSpacing, hooks: k.hook };
+  const p = poolIdOf(token, q, L.poolFee, L.tickSpacing, k.hook);
+  const [[s0], m, eth] = await Promise.all([ethCalls([{ to: k.pm, data: SEL.extsload + strip(keccakHex(strip(p.id) + pad("6"))) }]), meta(token).catch(() => ({})), ethUsd().catch(() => null)]);
+  const sq = s0 ? BigInt(s0) & ((1n << 160n) - 1n) : 0n;
+  if (!sq) return { error: "its pool has no price yet", phase: L.phase };
+  const raw = (Number(sq) / 2 ** 96) ** 2;
+  const priceEth = q === ZERO ? (t0 ? raw : 1 / raw) : null; // native ETH pairs: both sides 18 decimals
+  return { ok: true, token, key, poolId: p.id, tokenIs0: t0, pm: k.pm, pairToken: q, symbol: m.symbol || "", name: m.name || "", image: m.image || "",
+    priceEth, priceUsd: priceEth != null && eth ? priceEth * eth : null, ethUsd: eth || null };
 }
 
 export const _test = { decodeLaunched, decodeSocials, poolIdOf, check, mem };

@@ -691,17 +691,19 @@ async function stakePage(url) {
 
 // ---- ARCIRCLE Predict round card (/predict/<round>[?u=0x…]) ----
 async function predictPage(url) {
-  const id = String(url.searchParams.get("id") || ""), u = String(url.searchParams.get("u") || "");
+  const id = String(url.searchParams.get("id") || ""), u = String(url.searchParams.get("u") || ""), rh = url.searchParams.get("c") === "rh";
   if (!/^\d{1,9}$/.test(id)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#predict">`, "public, max-age=300");
   let d = null;
   // read through the Node function: api/_predict.mjs pulls in modules an Edge function can't bundle
-  try { const r = await fetch(`${SITE}/api/desk?predict=card&id=${id}${/^0x[0-9a-fA-F]{40}$/.test(u) ? "&u=" + u : ""}`, { signal: AbortSignal.timeout(6000) }); d = r.ok ? await r.json() : null; if (d && (d.error || !d.id)) d = null; } catch { d = null; }
+  try { const r = await fetch(`${SITE}/api/desk?predict=card${rh ? "&chain=rh" : ""}&id=${id}${/^0x[0-9a-fA-F]{40}$/.test(u) ? "&u=" + u : ""}`, { signal: AbortSignal.timeout(6000) }); d = r.ok ? await r.json() : null; if (d && (d.error || !d.id)) d = null; } catch { d = null; }
   const dur = d ? (d.duration % 3600 === 0 ? `${d.duration / 3600}h` : `${d.duration / 60}m`) : "";
   const res = d && d.result !== "open" ? (d.result === "refund" ? "refunded" : `${d.result.toUpperCase()} won`) : "live";
   const title = d ? `$${d.sym} ${dur} round #${d.id} — ${res}` : "ARCIRCLE Predict";
-  const desc = d && d.bet ? `${d.bet.side.toUpperCase()} with $${d.bet.stake.toFixed(2)}${d.bet.won ? ` → $${d.bet.payout.toFixed(2)}` : ""}. Call UP or DOWN on Arc tokens — paid in USDC.` : "Call UP or DOWN on an Arc token's next minutes. The pool decides; winners split the pot, in USDC.";
-  const target = d ? `/arc#predict?m=${d.market}` : "/arc#predict";
-  const qs = /^0x[0-9a-fA-F]{40}$/.test(u) ? `&u=${u.toLowerCase()}` : "";
+  const money = (x) => (rh ? `${Number(x || 0).toLocaleString("en-US", { maximumFractionDigits: x >= 1 ? 3 : 5 })} ETH` : `$${Number(x || 0).toFixed(2)}`);
+  const pitch = rh ? "Call UP or DOWN on graduated Pons coins on Robinhood Chain — paid in ETH." : "Call UP or DOWN on Arc tokens — paid in USDC.";
+  const desc = d && d.bet ? `${d.bet.side.toUpperCase()} with ${money(d.bet.stake)}${d.bet.won ? ` → ${money(d.bet.payout)}` : ""}. ${pitch}` : rh ? "Call UP or DOWN on a Pons coin's next minutes. The pool decides; winners split the pot, in ETH." : "Call UP or DOWN on an Arc token's next minutes. The pool decides; winners split the pot, in USDC.";
+  const target = d ? `/arc#predict?${rh ? "c=rh&" : ""}m=${d.market}` : rh ? "/arc#predict?c=rh" : "/arc#predict";
+  const qs = (/^0x[0-9a-fA-F]{40}$/.test(u) ? `&u=${u.toLowerCase()}` : "") + (rh ? "&c=rh" : "");
   const image = `${SITE}/api/og?predict=${id}${qs}`;
   return html(`<!doctype html>
 <html lang="en"><head>
