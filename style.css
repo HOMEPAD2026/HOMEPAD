@@ -13376,6 +13376,7 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .stk-f small{font-size:.78rem;color:#9fb0bf;}
 .stk-in{display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);}
 .stk-in:focus-within{border-color:rgba(181,139,255,.6);}
+.stk-in input,.stk-in input:focus,.stk-in input:focus-visible{box-shadow:none;border-radius:0;outline:0;border:0;background:none;}
 .stk-in input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font:600 1.05rem 'JetBrains Mono',monospace;padding:12px 0;text-align:right;}
 .stk-in em{font-style:normal;color:#9fb0bf;font-size:.82rem;font-weight:600;}
 .stk-pct,.stk-durs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px;}
