@@ -14534,3 +14534,6 @@ body.asc-on #arc-toasts{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 1
 #asc-x:not(:empty){margin-top:18px;}
 .asc-chips-l.hint{text-transform:none;letter-spacing:0;font-family:inherit;font-size:.74rem;color:rgba(222,233,244,.55);}
 .asc-moremenu{top:auto;bottom:calc(100% + 6px);max-height:min(420px,70vh);overflow-y:auto;} @keyframes ascMenu{from{opacity:0;transform:translateY(4px) scale(.98);}to{opacity:1;transform:none;}}
+.ascx-appr-in{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);}
+.ascx-appr-in h3{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:.95rem;}
+@media (min-width:901px){.asc-head .asc-v-txt{max-width:540px;}}

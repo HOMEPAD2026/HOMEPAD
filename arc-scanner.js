@@ -123,8 +123,9 @@
   async function scan(input, chain) {
     const raw = String(input || "").trim();
     if (chain && normC(chain) !== CH) setChain(chain);
-    // a Solana mint pasted on Arc or Robinhood Chain: switch to Solana
+    // a Solana mint pasted on Arc or Robinhood Chain: switch to Solana; a 0x address pasted on Solana: back to Arc
     if (isMintS(raw) && !SOLC()) setChain("sol");
+    else if (isAddr(raw) && SOLC()) setChain("arc");
     if (SOLC()) return scanSolana(raw);
     if (!isAddr(raw)) { message("That isn't a token address — it should start with 0x and be 42 characters long."); return; }
     const addr = ethers.getAddress(raw);
@@ -1068,7 +1069,7 @@
       rows: [
         ["Score", `${r.score} / 100`], ["Verdict", tr(r.verdict.t)], ["Chain", cur.ch === "rh" ? "Robinhood Chain" : "Arc"], ["Owner", ownerRow ? tr(ownerRow.title) : "—"], ["Selling", sell ? tr(sell.title) : "—"],
         ["Liquidity", m && m.liq != null ? K.usd(m.liq) : "—"], ["Market cap", m ? K.usd(m.mcap) : "—"],
-        ["Holders", d ? `${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}` : "—"], ["Top 10 wallets", d ? K.pct((d.top10 / d.S) * 100) : "—"],
+        ["Holder count", d ? `${d.exact ? "" : "≥"}${(d.holders || 0).toLocaleString("en-US")}` : "—"], ["Top 10 wallets", d ? K.pct((d.top10 / d.S) * 100) : "—"],
         ["Pool age", m && m.created ? K.ageText(Date.now() / 1000 - m.created) : "—"], ["Risks", String(r.rows.filter((x) => x.status === "risk").length)],
         ["Critical flags", String((r.critical || []).length)], ["Confidence", tr({ high: "High", medium: "Medium", low: "Low" }[r.confidence] || "—")],
         ...SECTIONS.map(([k, t]) => [t, r.sub && r.sub[k] && r.sub[k].score != null ? String(r.sub[k].score) : "—"]),
@@ -1088,7 +1089,7 @@
     if (cols.length < 2) { box.hidden = true; return; }
     // which column is best, per row (higher is better for scores and money, lower for risks and concentration)
     const num = (x) => { const n = parseFloat(String(x).replace(/[$,%≥]/g, "").replace(/K$/, "e3").replace(/M$/, "e6").replace(/B$/, "e9")); return isFinite(n) ? n : null; };
-    const LOWER = new Set(["Top 10 wallets", "Risks", "Critical flags"]), TEXT = new Set(["Verdict", "Owner", "Selling", "Confidence", "Chain"]);
+    const LOWER = new Set(["Top 10 wallets", "Risks", "Critical flags"]), TEXT = new Set(["Verdict", "Owner", "Selling", "Confidence", "Chain", "Pool age"]);
     const keys = [...new Set(cols.flatMap((c) => c.rows.map(([k]) => k)))];
     const val = (c, k) => { const r = c.rows.find(([x]) => x === k); return r ? r[1] : "—"; };
     const best = (k) => { if (TEXT.has(k)) return -1; const ns = cols.map((c) => num(val(c, k))); if (ns.some((n) => n == null) || new Set(ns).size === 1) return -1; const b = LOWER.has(k) ? Math.min(...ns) : Math.max(...ns); return ns.indexOf(b); };
