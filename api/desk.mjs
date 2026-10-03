@@ -37,6 +37,8 @@
 //   GET /api/desk?predict=mine&u=0x…         a wallet's bets, what it can claim, its referrals and stats
 //   GET /api/desk?predict=chart&m=<id>       the pool's price through the live round · ?predict=feed the latest bets
 //   GET /api/desk?predict=lb                 leaderboard (this week, all time, streaks) · ?predict=status the keeper
+//   state also carries calls: ARCIA's call on each round open for bets (for fun) and her record vs the crowd
+//   GET /api/desk?predict=rx&m=<id>          reactions on a market's last rounds · POST {action:"predict-react", chain, m, epoch, kind}
 //   GET /api/desk?predicttick=1&key=<CRON_SECRET>   the keeper: samples ended rounds' pools and settles them (its own
 //                                                   cron-job.org entry, every minute)
 //   …&chain=rh on any of these: the same on Robinhood Chain — bets in ETH, markets on graduated Pons V2 coins (its keeper
@@ -105,7 +107,11 @@ export async function GET(req) {
       if (q.predict === "lb") return json(await P.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
       if (q.predict === "card") { const r = await P.roundCard(String(q.id || ""), String(q.u || "")); return json(r || { error: "no such round" }, r ? 200 : 404, r && r.result !== "open" ? "public, max-age=60, s-maxage=86400" : "public, max-age=10, s-maxage=30"); }
       if (q.predict === "status") return json((await P.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
-      return json(await P.state({ store: st }), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "rx") return json(await P.reacts(q.m, { store: st }), 200, "public, max-age=3, s-maxage=4");
+      const S0 = await P.state({ store: st });
+      // ARCIA's call on each round open for bets, written down before it locks (for fun, not advice)
+      const calls = S0 && S0.live ? await P.calls(S0, { store: st }).catch(() => null) : null;
+      return json(calls ? { ...S0, calls } : S0, 200, "public, max-age=2, s-maxage=3");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE Orders on Solana's keeper (api/_orders-sol.mjs)
@@ -209,6 +215,14 @@ export function recoverSigner(message, signature) {
 export async function POST(req) {
   let b;
   try { b = await req.json(); } catch { return json({ error: "bad json" }, 400); }
+  // ARCIRCLE Predict: a reaction on a round ({ action: "predict-react", chain, m, epoch, kind: fire|rocket|ice|eyes })
+  if (b && b.action === "predict-react") {
+    try {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      const r = await predict.forChain(b.chain).react({ m: b.m, epoch: b.epoch, kind: b.kind, ip }, { store: store() });
+      return json(r.body, r.status);
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
   if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
   try { const r = await (b.chain === "rh" ? RH.saveSettings : saveSettings)(store(), b, recoverSigner); return json(r.body, r.status); }

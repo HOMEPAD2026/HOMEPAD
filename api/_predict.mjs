@@ -507,7 +507,116 @@ export function makePredict(over) {
       pot: amt(r.up + r.down), up: amt(r.up), down: amt(r.down), bet };
   }
 
-  return { CFG, configure, state, mine, chart, feed, lbScan, leaderboard, tick, status, roundCard, _chain: chain, _pxFn: pxFn };
+  // ---------------- ARCIA's call (for fun) and round reactions ----------------
+  // ARCIA calls every round open for bets — UP if the coin is above its live round's price to beat, DOWN if below,
+  // else the side the last result didn't go — and the call is written down before the round locks, then scored
+  // against the result, next to "the crowd" (the side with more money). Entertainment, not advice.
+  const callsKey = () => CFG.lbKey.replace(/\/lb$/, "/calls");
+  let callsMem = null; // { t, d }
+  const callsRead = async (store) => {
+    let d = null;
+    if (store) { const x = await store.get(callsKey()).catch(() => null); if (x) d = typeof x.j === "string" ? JSON.parse(x.j) : x; }
+    return d && d.picks ? d : { picks: {}, base: { arcia: { w: 0, l: 0 }, crowd: { w: 0, l: 0 } } };
+  };
+  async function callsLoad(store) {
+    if (callsMem && Date.now() - callsMem.t < 15e3) return callsMem.d;
+    const d = await callsRead(store);
+    callsMem = { t: Date.now(), d };
+    return d;
+  }
+  /// the record is counted from the picks themselves (never incremented), so two servers writing at once can't
+  /// count a round twice; a pick, once written, is never replaced
+  function tally(d) {
+    const t = { arcia: { ...d.base.arcia }, crowd: { ...d.base.crowd } };
+    const done = Object.values(d.picks).filter((x) => x.s).sort((x, y) => x.e - y.e || x.t - y.t);
+    for (const x of done) { t.arcia[x.s]++; if (x.c) t.crowd[x.c]++; }
+    let streak = 0;
+    for (let i = done.length - 1; i >= 0; i--) { const v = done[i].s === "w" ? 1 : -1; if (streak && Math.sign(streak) !== v) break; streak += v; }
+    return { ...t, streak };
+  }
+  /// the state's markets → ARCIA's call on each round open for bets, the last calls' hits and the running record
+  async function calls(st, { store = null, now = CFG.now(), readOnly = false } = {}) {
+    if (!st || !st.live || !st.markets) return null;
+    const d = await callsLoad(store);
+    if (readOnly) return callsView(st, d);
+    const add = {}, score = {};
+    const betOf = (m) => (m.next && m.next.epoch === m.betting ? m.next : m.live.epoch === m.betting ? m.live : null);
+    for (const m of st.markets) {
+      if (m.stopped) continue;
+      const br = betOf(m);
+      if (br && now < br.lockAt - 1) {
+        const k = `${m.id}:${br.epoch}`;
+        if (!d.picks[k]) {
+          const ref = m.live && m.live.open ? m.live.open : null;
+          const last = m.past && m.past[0] ? m.past[0].result : null;
+          add[k] = { p: ref && m.price && m.price !== ref ? (m.price > ref ? "up" : "down") : last === "up" ? "down" : "up", t: now, e: m.live.endAt };
+        }
+      }
+      for (const r of m.past || []) {
+        const k = `${m.id}:${r.epoch}`, c = d.picks[k];
+        if (!c || c.s || (r.result !== "up" && r.result !== "down")) continue;
+        const crowd = r.up > r.down ? "up" : r.down > r.up ? "down" : null;
+        score[k] = { s: c.p === r.result ? "w" : "l", c: crowd ? (crowd === r.result ? "w" : "l") : null, e: r.endAt };
+      }
+    }
+    if (Object.keys(add).length || Object.keys(score).length) {
+      // merge into what's stored now: new picks only where none exists, scores only where none is set
+      const fresh = store ? await callsRead(store) : d;
+      for (const [k, v] of Object.entries(add)) if (!fresh.picks[k]) fresh.picks[k] = v;
+      for (const [k, v] of Object.entries(score)) if (fresh.picks[k] && !fresh.picks[k].s) Object.assign(fresh.picks[k], v);
+      const cut = now - 2 * 86400;
+      for (const [k, v] of Object.entries(fresh.picks)) if (v.t < cut) { if (v.s) { fresh.base.arcia[v.s]++; if (v.c) fresh.base.crowd[v.c]++; } delete fresh.picks[k]; }
+      callsMem = { t: Date.now(), d: fresh };
+      if (store) await store.set(callsKey(), { j: JSON.stringify(fresh) }).catch(() => null);
+      return callsView(st, fresh);
+    }
+    return callsView(st, d);
+  }
+  function callsView(st, d) {
+    const open = {};
+    for (const m of st.markets) {
+      const br = m.next && m.next.epoch === m.betting ? m.next : m.live.epoch === m.betting ? m.live : null;
+      const c = br && d.picks[`${m.id}:${br.epoch}`];
+      const recent = (m.past || []).map((r) => { const x = d.picks[`${m.id}:${r.epoch}`]; return x && x.s ? x.s : null; });
+      if (c || recent.some(Boolean)) open[m.id] = { epoch: c ? br.epoch : null, pick: c ? c.p : null, recent };
+    }
+    return { open, ...tally(d) };
+  }
+
+  // reactions: four icons per round, counted per market (the last 12 rounds), at most 4 taps a round from one address
+  const RX = ["fire", "rocket", "ice", "eyes"];
+  const rxKey = (m) => CFG.lbKey.replace(/\/lb$/, "/rx") + Number(m);
+  const rxMem = new Map(), rxIp = new Map();
+  async function reacts(m, { store = null } = {}) {
+    m = Number(m);
+    if (!Number.isInteger(m) || m < 0) return { error: "market id" };
+    const h = rxMem.get(m);
+    if (h && Date.now() - h.t < 4000) return h.d;
+    let d = null;
+    if (store) { const x = await store.get(rxKey(m)).catch(() => null); if (x) d = typeof x.j === "string" ? JSON.parse(x.j) : x; }
+    d = d && d.r ? d : { r: {} };
+    rxMem.set(m, { t: Date.now(), d });
+    return d;
+  }
+  async function react({ m, epoch, kind, ip = "anon" }, { store = null } = {}) {
+    m = Number(m); epoch = Number(epoch);
+    if (!RX.includes(kind) || !Number.isInteger(m) || !Number.isInteger(epoch) || m < 0 || epoch < 0) return { status: 400, body: { error: "bad reaction" } };
+    const k = `${ip}|${m}|${epoch}`, n = rxIp.get(k) || 0;
+    if (n >= 4) return { status: 429, body: { error: "that's enough for this round" } };
+    rxIp.set(k, n + 1);
+    if (rxIp.size > 5000) rxIp.clear();
+    rxMem.delete(m);
+    const d = await reacts(m, { store });
+    const r = (d.r[epoch] = d.r[epoch] || {});
+    r[kind] = (r[kind] || 0) + 1;
+    const keep = Object.keys(d.r).map(Number).sort((a, b) => b - a).slice(0, 12);
+    for (const e of Object.keys(d.r)) if (!keep.includes(Number(e))) delete d.r[e];
+    rxMem.set(m, { t: Date.now(), d });
+    if (store) await store.set(rxKey(m), { j: JSON.stringify(d) }).catch(() => null);
+    return { status: 200, body: { ok: true, r } };
+  }
+
+  return { CFG, configure, state, mine, chart, feed, lbScan, leaderboard, tick, status, roundCard, calls, reacts, react, _chain: chain, _pxFn: pxFn };
 }
 
 // ---------------------------------------------------------------- Arc (the default exports)

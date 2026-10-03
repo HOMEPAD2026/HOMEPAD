@@ -220,7 +220,7 @@
   UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "New", acc: "#b58bff", href: "/arc#staking",
     img: "/images/arcircle-staking-96.webp" });
   // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
-  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc tokens, in USDC", status: "New", acc: "#39ff88", href: "/arc#predict",
+  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc and Robinhood Chain coins", status: "v2", acc: "#39ff88", href: "/arc#predict",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
   // page 5: what's still being built
   var NEXT = [

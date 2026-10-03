@@ -83,7 +83,7 @@ const w = (k, lang, vars = {}) => W[k][L3(lang)].replace(/\{(\w+)\}/g, (_, x) =>
 const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
-  ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
+  ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
   ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
@@ -257,6 +257,37 @@ async function cardBooks(lang) {
     buttons: [[{ text: "ARCIA 402", url: `${SITE}/arc#arcia402` }]], refresh: "books",
   };
 }
+/// /predict — ARCIRCLE Predict's live rounds on Arc and Robinhood Chain: time left to bet, pot, ARCIA's call
+async function cardPredict(lang) {
+  const P = await import("./_predict.mjs");
+  const now = Math.floor(Date.now() / 1000);
+  const rows = [], btns = [];
+  for (const [c, P1] of [["arc", P.ARC], ["rh", P.RH]]) {
+    const st = await P1.state().catch(() => null);
+    if (!st || !st.live || !st.markets) continue;
+    const calls = await P1.calls(st, { store: { get: (k) => getDoc(k, 15) }, readOnly: true }).catch(() => null);
+    const unit = st.unit || (c === "rh" ? "ETH" : "USDC");
+    const money = (x) => (unit === "USDC" ? "$" + x.toFixed(2) : x.toLocaleString("en-US", { maximumFractionDigits: 5 }) + " ETH");
+    const lines = [];
+    for (const m of st.markets.filter((x) => !x.stopped).slice(0, 6)) {
+      const br = m.next && m.next.epoch === m.betting ? m.next : m.live.epoch === m.betting ? m.live : null;
+      const left = br ? br.lockAt - now : 0;
+      const mm = left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "—";
+      const pick = calls && calls.open && calls.open[m.id] && br && calls.open[m.id].epoch === br.epoch ? calls.open[m.id].pick : null;
+      const d = m.duration % 3600 === 0 ? m.duration / 3600 + "h" : m.duration / 60 + "m";
+      lines.push(`• <b>$${h(m.sym)}</b> ${d} · ${T3(lang, "bets close in", "마감까지", "距截止")} <b>${mm}</b> · UP ${h(money(br ? br.up : 0))} / DOWN ${h(money(br ? br.down : 0))}${pick ? ` · ARCIA ${pick === "up" ? "▲" : "▼"}` : ""}`);
+    }
+    if (!lines.length) continue;
+    rows.push(`<b>${c === "rh" ? "Robinhood Chain · ETH" : "Arc · USDC"}</b>`, ...lines, "");
+    btns.push({ text: c === "rh" ? "Predict · Robinhood" : "Predict · Arc", url: `${SITE}/arc#predict${c === "rh" ? "?c=rh" : ""}` });
+  }
+  if (!rows.length) return T3(lang, "No ARCIRCLE Predict round is open right now.", "지금 열린 ARCIRCLE Predict 라운드가 없어요.", "目前没有开放的 ARCIRCLE Predict 回合。");
+  return {
+    text: [`🔮 <b>ARCIRCLE Predict</b> — ${T3(lang, "UP or DOWN, live now", "지금 진행 중인 UP / DOWN", "正在进行的 UP / DOWN")}`, "", ...rows,
+      `<i>${T3(lang, "ARCIA's call is for fun, not advice. Only bet what you can afford to lose.", "ARCIA의 선택은 재미용이에요, 투자 조언이 아니에요. 잃어도 괜찮은 만큼만 거세요.", "ARCIA 的选择仅供娱乐，不是投资建议。只用你能承受损失的金额。")}</i>`].join("\n"),
+    buttons: [btns], refresh: "predict",
+  };
+}
 async function cardMe(u, lang) {
   if (!u.wallet) return { text: T3(lang, "Link your wallet first — /link (one signature, no transaction).", "먼저 지갑을 연결해 주세요 — /link (서명 한 번, 거래 없음)", "请先绑定钱包 — /link(一次签名,无交易)") };
   const [L, d] = await Promise.all([live(SITE, u.wallet).catch(() => null), dropsOf(u.wallet).catch(() => null)]);
@@ -278,6 +309,7 @@ async function cardFor(kind, arg, lang, uid) {
   if (kind === "round") return cardRound(lang);
   if (kind === "drops") return cardDrops(arg, lang);
   if (kind === "books") return cardBooks(lang);
+  if (kind === "predict") return cardPredict(lang);
   if (kind === "me") return cardMe(await loadUser(uid), lang);
   return null;
 }
@@ -656,6 +688,7 @@ async function onMessage(m, channel) {
       case "drops": { const wa = addrOf(arg) || (u && u.wallet); return wa ? sendCard(m.chat.id, await cardDrops(wa, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needWallet", lang, { cmd: "drops" })); }
       case "launches": return sendCard(m.chat.id, await cardLaunches(0, lang), { replyTo: group ? m.message_id : undefined });
       case "books": return sendCard(m.chat.id, await cardBooks(lang), { replyTo: group ? m.message_id : undefined });
+      case "predict": return sendCard(m.chat.id, await cardPredict(lang), { replyTo: group ? m.message_id : undefined });
       case "mine": return mineList(m);
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
