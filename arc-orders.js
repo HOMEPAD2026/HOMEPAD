@@ -227,7 +227,7 @@
     heroContracts();
     heroFold();
     $("aor-body").innerHTML = `
-      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
+      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() || RH() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
       <div class="aor-grid" id="aor-grid" data-mt="chart">
       <div class="ams-card aor-bar">
         <div class="aor-pickrow">
