@@ -263,6 +263,16 @@ export async function GET(req) {
       return json(200, { ...(m || {}), burned: b ? b.burned : null, burnedPct: b ? b.pct : null, supply: b ? b.supply : null }, "public, max-age=20, s-maxage=30, stale-while-revalidate=300");
     } catch (err) { return json(502, { error: "couldn't read $ARCIA right now" }); }
   }
+  // $ARCIRCLE supply for CoinGecko / CoinMarketCap (api/_supply.mjs): JSON, or one plain number with &q=total|circulating|max|burned
+  if (url.searchParams.get("supply") === "arcircle") {
+    try {
+      const { supply } = await import("./_supply.mjs");
+      const v = await supply(), q = url.searchParams.get("q");
+      const cache = "public, max-age=60, s-maxage=300, stale-while-revalidate=3600";
+      if (q && ["total", "circulating", "max", "burned"].includes(q)) return new Response(String(v[q]), { status: 200, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": cache, "access-control-allow-origin": "*" } });
+      return json(200, v, cache);
+    } catch (err) { return json(502, { error: "couldn't read $ARCIRCLE's supply right now" }); }
+  }
   if (url.searchParams.get("token") === "arcircle") {
     try {
       const w = lc(url.searchParams.get("wallet"));
