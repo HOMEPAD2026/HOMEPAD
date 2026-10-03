@@ -12546,8 +12546,9 @@ body.dk-noscroll{overflow:hidden;}
 .dk-ns:not(:last-child)::before{content:"";position:absolute;left:8px;top:16px;bottom:0;width:2px;background:rgba(255,255,255,.08);}
 .dk-ns>i{width:12px;height:12px;margin:3px 0 0 3px;border-radius:50%;background:rgba(255,255,255,.15);box-shadow:0 0 0 3px rgba(255,255,255,.04);}
 .dk-ns.on>i{background:#39ff88;box-shadow:0 0 0 3px rgba(57,255,136,.18);animation:dk-ping 1.8s infinite;}
-.dk-ns b{display:block;font:700 .8rem Sora,sans-serif;color:#eef3f7;}
-.dk-ns.on b{color:#9dffc6;}
+.dk-ns>div>b{display:block;font:700 .8rem Sora,sans-serif;color:#eef3f7;}
+.dk-ns span b{color:#dfe7ee;font-weight:600;}
+.dk-ns.on>div>b{color:#9dffc6;}
 .dk-ns span{font-size:.74rem;color:var(--ink-dim,#8c98a6);line-height:1.5;}
 .dk-ck{list-style:none;margin:6px 0 4px;padding:0;display:grid;gap:4px;}
 .dk-ck li{display:flex;gap:7px;align-items:baseline;font-size:.72rem;color:#c9d4de;}
