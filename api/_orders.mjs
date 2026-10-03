@@ -457,7 +457,10 @@ async function markets({ store } = {}) {
     const f24 = (m.fills || []).filter((f) => f.at >= now - 86400);
     out.push({ token: m.token, quote: m.quote, open: open.length, last: (m.fills && m.fills[0] && m.fills[0].price) || null, at: m.at,
       bestAsk: asks.length ? Math.min(...asks) : null, bestBid: bids.length ? Math.max(...bids) : null, spot: m.spot || null,
-      vol24: f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: f24.length, poolId: m.poolId || null });
+      vol24: f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: f24.length, poolId: m.poolId || null,
+      // the last day's fill prices, oldest first (the markets list draws a line), and the change across them
+      spark: f24.slice(0, 24).map((f) => f.price).filter((p) => p > 0).reverse(),
+      change24: f24.length > 1 && f24[f24.length - 1].price > 0 ? ((f24[0].price - f24[f24.length - 1].price) / f24[f24.length - 1].price) * 100 : null });
   }
   return { markets: out.sort((a, b) => b.open - a.open) };
 }
