@@ -158,7 +158,27 @@ async function cardPrice(lang) {
   };
 }
 const addrOf = (s) => ((String(s || "").match(ADDR_RE) || [])[0] || "").toLowerCase();
+const SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+/// v4: a Solana token (api/_scan-sol.mjs) — the same card shape
+async function cardScanSol(mint, lang) {
+  const SOL = await import("./_scan-sol.mjs");
+  const r = await SOL.scanSol(mint, { store: store() }).catch(() => null);
+  if (!r || r.error) return w("err", lang);
+  if (r.notMint) return { text: `<code>${h(mint)}</code>\n${T3(lang, "That address isn't a Solana token.", "솔라나 토큰 주소가 아니에요.", "这不是 Solana 代币地址。")}` };
+  const crit = (r.critical || []).slice(0, 3).map((x) => `🛑 <b>${h(T3(lang, "Critical", "치명", "严重"))}:</b> ${h(x.title)}`);
+  const reasons = (r.reasons || []).filter((x) => !(r.critical || []).some((c) => c.title === x.title)).slice(0, 3).map((x) => `${x.status === "pass" ? "✓" : "•"} ${h(x.title)}`);
+  const summary = (r.summary || []).map((p) => String(p.t).replace("{x}", p.x == null ? "" : p.x)).join(" ");
+  return {
+    photo: `${SITE}/api/og?solscan=${mint}&t=${minute()}`,
+    text: [`🔍 <b>${h(r.symbol ? "$" + r.symbol : mint.slice(0, 6) + "…")}</b>${r.name ? ` · ${h(r.name)}` : ""} <i>Solana</i>`, `${T3(lang, "Score", "점수", "评分")}: <b>${r.score}/100</b> · ${h(r.verdict.t)}`,
+      ...crit, ...reasons, summary ? `\n${h(summary)}` : null, `${T3(lang, "Confidence", "신뢰도", "可信度")}: ${h(r.confidence)}`,
+      `<i>${T3(lang, "Not financial advice. DYOR.", "투자 조언이 아니에요. 직접 확인하세요.", "非投资建议,请自行研究。")}</i>`].filter(Boolean).join("\n"),
+    buttons: [[{ text: T3(lang, "Full report", "전체 리포트", "完整报告"), url: `${SITE}/s/${mint}` }]],
+    refresh: `scan:${mint}`,
+  };
+}
 async function cardScan(ca, lang) {
+  if (SOL_RE.test(String(ca || "")) && !/^0x/i.test(String(ca))) return cardScanSol(String(ca), lang);
   const r = await scanner.apiResult(ca, { store: store() }).catch(() => null);
   if (!r) return w("err", lang);
   if (r.score == null) return { text: `<code>${h(ca)}</code>\n${T3(lang, "That address isn't a token on Arc.", "Arc의 토큰이 아니에요.", "这不是 Arc 上的代币。")}` };
@@ -682,7 +702,7 @@ async function onMessage(m, channel) {
       case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }], [{ text: "$ARCIA · Robinhood Chain (Pons)", url: ARCIA_RH_BUY }]]));
       case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
-      case "scan": { const ca = addrOf(arg); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
+      case "scan": { const ca = addrOf(arg) || ((String(arg || "").trim().match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/) || [])[0] || ""); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
       case "coin": { const ca = addrOf(arg); return ca ? sendCard(m.chat.id, await cardCoin(ca, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needCA", lang, { cmd: "coin" })); }
       case "round": return sendCard(m.chat.id, await cardRound(lang), { replyTo: group ? m.message_id : undefined });
       case "drops": { const wa = addrOf(arg) || (u && u.wallet); return wa ? sendCard(m.chat.id, await cardDrops(wa, lang), { replyTo: group ? m.message_id : undefined }) : say(m, w("needWallet", lang, { cmd: "drops" })); }

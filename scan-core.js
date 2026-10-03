@@ -23,7 +23,7 @@
   // plain-language helpers: summaryOf, stressOf, preBuy, compactOf, diffOf.
 
   const CORE_VERSION = 5;
-  const SCANNER_VERSION = "v3";
+  const SCANNER_VERSION = "v4";
 
   // ---------------------------------------------------------------- addresses
   const ADDR = {

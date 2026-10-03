@@ -9,6 +9,9 @@
 //   GET  /api/scan?reppage=<id>                a frozen report (page)     (/scan-report/<id>)
 //   GET  /api/scan?embed=0x…                   the live embed card        (/embed/scan/<address>)
 //   GET  /api/scan?msg=signin&w=0x…&t=<unix>   the text to sign to log in
+//   GET  /api/scan?sol=<mint>                  v4: a Solana token (api/_scan-sol.mjs)
+//   GET  /api/scan?drops=1[&chain=rh|sol]      v4: tokens whose score dropped 10+ in the last 3 days
+//   GET  /api/scan?wtok=0x…[&chain=rh]         v4: the tokens a wallet holds, with their scores
 // Plus / Pro (a signed-in wallet with the tool unlocked for 24 h):
 //   POST /api/scan {action:"auth", w, t, sig}                 → session token (7 days)
 //   GET  /api/scan?ent=1&w=0x…&s=<session>                    today's free unlocks, what's open
@@ -25,6 +28,7 @@
 //   POST /api/scan {action:"hook", w, s, op, token, url, events, id}  (Pro) webhooks
 import * as P from "./_scan-pro.mjs";
 import * as scanner from "./_scan.mjs";
+import * as SOL from "./_scan-sol.mjs";
 import { isAddr } from "./_arc.mjs";
 
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type, x-scan-wallet, x-scan-session" };
@@ -56,6 +60,21 @@ export async function GET(req) {
     if (q.fp != null) {
       const r = await scanner.clonesOf(q.fp, q.t || "", st, q.chain === "rh" ? "rh" : "arc");
       return json(r || { items: [] }, 200, "public, max-age=300, s-maxage=900");
+    }
+    // v4: Solana tokens, recent score drops, the tokens a wallet holds
+    if (q.sol != null) {
+      if (!SOL.isMint(q.sol)) return json({ error: "That isn't a Solana token address." }, 400);
+      if (scanner.limited(`sol:${ip}`, 20, 60e3)) return json({ error: "too many scans — wait a minute" }, 429);
+      const r = await SOL.scanSol(q.sol, { store: st });
+      if (r && r.prevScore != null && r.score != null && r.prevScore - r.score >= 10) scanner.recordDrop(st, "sol", r.mint, r.symbol, r.prevScore, r.score, (r.critical || []).map((x) => x.title)).catch(() => null);
+      return json(r, 200, r && !r.error ? "public, max-age=60, s-maxage=120" : "no-store");
+    }
+    if (q.drops != null) return json({ drops: await scanner.scanDrops(st, q.chain === "rh" ? "rh" : q.chain === "sol" ? "sol" : "arc") }, 200, "public, max-age=60, s-maxage=300");
+    if (q.wtok != null) {
+      if (!isAddr(q.wtok)) return json({ error: "That isn't a wallet address." }, 400);
+      if (scanner.limited(`wtok:${ip}`, 12, 60e3)) return json({ error: "slow down" }, 429);
+      const r = await scanner.walletTokens(q.wtok, st, q.chain === "rh" ? "rh" : "arc");
+      return json(r || { error: "The explorer isn't answering right now." }, r ? 200 : 502, r ? "public, max-age=60, s-maxage=120" : "no-store");
     }
     if (q.note != null) return json({ note: await P.noteGet(q.note) }, 200, "public, max-age=30, s-maxage=60");
     if (q.rep != null) { const r = await P.reportGet(q.rep); return r ? json(r, 200, "public, max-age=3600, s-maxage=86400") : json({ error: "no such report" }, 404); }

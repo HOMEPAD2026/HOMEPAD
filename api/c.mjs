@@ -394,19 +394,26 @@ async function roundPage(url) {
 // /s/<address> — a Token Scanner result to share. The card image runs the scan
 // itself (/api/og?scan=), so nobody can post a score the chain didn't give.
 async function scanPage(url) {
-  const addr = String(url.searchParams.get("addr") || "").toLowerCase();
-  if (!isAddr(addr)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#scanner">`, "public, max-age=300");
+  const raw = String(url.searchParams.get("addr") || "");
+  // v4: a Solana mint (base58) gets its own card; ?c=rh is a Robinhood Chain token
+  const sol = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(raw) && !/^0x/i.test(raw);
+  const rh = url.searchParams.get("c") === "rh";
+  const addr = sol ? raw : raw.toLowerCase();
+  if (!sol && !isAddr(addr)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#scanner">`, "public, max-age=300");
   let sym = "";
-  try {
-    const [h] = await ethCalls([{ to: addr, data: "0x95d89b41" }]);
+  if (sol) {
+    try { const SOL = await import("./_scan-sol.mjs"); const r = await SOL.scanSol(addr); sym = (r && r.symbol) || ""; } catch { sym = ""; }
+  } else try {
+    const [h] = rh ? [null] : await ethCalls([{ to: addr, data: "0x95d89b41" }]);
     const x = String(h || "").replace(/^0x/, "");
     if (x.length >= 192) { const len = parseInt(x.slice(64, 128), 16); sym = decodeURIComponent(x.slice(128, 128 + len * 2).replace(/(..)/g, "%$1")); }
   } catch { sym = ""; }
   sym = sym.replace(/[^\w$.-]/g, "").slice(0, 16);
   const title = `${sym ? "$" + sym : "Token"} — Token Scanner result on ARCIRCLE PAD`;
-  const desc = "Token Scanner v3: who really controls it, dry-run trades at three sizes, liquidity and holders, read from Circle's Arc — one score, critical flags apart, and how sure it is. An automated check, not advice.";
-  const target = `/arc#scanner?t=${addr}`;
-  const image = `${SITE}/api/og?scan=${addr}`;
+  const desc = sol ? "Token Scanner v4 on Solana: mint and freeze authority, Token-2022 extensions, pump.fun's curve, sell routes and holders — one score, critical flags apart. An automated check, not advice."
+    : `Token Scanner v4: who really controls it, dry-run trades at three sizes, liquidity and holders, read from ${rh ? "Robinhood Chain" : "Circle's Arc"} — one score, critical flags apart, and how sure it is. An automated check, not advice.`;
+  const target = `/arc#scanner?${sol ? "c=sol&" : rh ? "c=rh&" : ""}t=${addr}`;
+  const image = sol ? `${SITE}/api/og?solscan=${addr}` : `${SITE}/api/og?scan=${addr}${rh ? "&chain=rh" : ""}`;
   return html(`<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -419,7 +426,7 @@ async function scanPage(url) {
 <meta property="og:site_name" content="ARCIRCLE PAD">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
-<meta property="og:url" content="${esc(`${SITE}/s/${addr}`)}">
+<meta property="og:url" content="${esc(`${SITE}/s/${addr}${rh ? "?c=rh" : ""}`)}">
 <meta property="og:image" content="${esc(image)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">

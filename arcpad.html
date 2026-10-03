@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791040840"></script>
+<script src="arc-log.js?v=1791068928"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791040840">
+<link rel="stylesheet" href="style.css?v=1791068928">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -116,7 +116,7 @@
       <button type="button" class="bp-nav-item" data-tab="creators"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Creators</button>
       <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge<em class="bp-nav-v" data-no-i18n>v2</em></button>
-      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v3</em></button>
+      <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v4</em></button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="relay"><svg><use href="#i-relay" xlink:href="#i-relay"/></svg>Relay Launch<em class="bp-nav-v" data-no-i18n>v1</em></button>
@@ -1099,12 +1099,12 @@
           </div>
           <div class="asc-hero-txt">
             <span class="asc-kicker">Utility · On-chain check</span>
-            <h1>Token Scanner <span class="asc-ver" title="Version 3 — new features are added regularly">v3<i>Updated regularly</i></span></h1>
-            <p class="bp-lede">Paste any Arc or Robinhood Chain token. The scanner reads its contract and who really controls it, tries buys and sells at three sizes, checks where it trades and who holds it — then sums it up in one score, with critical flags and how sure it is. It reads the chain; it can't promise a token is safe.</p>
+            <h1>Token Scanner <span class="asc-ver" title="Version 4 — new features are added regularly">v4<i>Updated regularly</i></span></h1>
+            <p class="bp-lede">Paste any token on Arc, Robinhood Chain or Solana. The scanner reads who really controls it, tries sells at three sizes, checks where it trades and who holds it — then sums it up in one score, with critical flags and how sure it is. It reads the chain; it can't promise a token is safe.</p>
           </div>
         </div>
 
-        <div class="aor-chain asc-chainsw" id="asc-chain" role="radiogroup" aria-label="Chain" data-chain="arc"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-scanchain="arc" aria-checked="true"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span></button><button type="button" role="radio" data-scanchain="rh" aria-checked="false"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span></button></div>
+        <div class="aor-chain three asc-chainsw" id="asc-chain" role="radiogroup" aria-label="Chain" data-chain="arc"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-scanchain="arc" aria-checked="true"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span></button><button type="button" role="radio" data-scanchain="rh" aria-checked="false"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span></button><button type="button" role="radio" data-scanchain="sol" aria-checked="false"><span class="aor-cdot sol" aria-hidden="true"></span><span data-no-i18n>Solana</span></button></div>
         <p class="asc-chainnote" id="asc-chainnote" hidden></p>
 
         <form class="asc-search" id="asc-form" autocomplete="off">
@@ -1126,6 +1126,7 @@
 
         <div class="asc-intro" id="asc-intro">
           <div class="asc-shelf" id="asc-shelf" hidden></div>
+          <div class="asc-card asc-watchp" id="asc-watchp" hidden></div>
           <div class="asc-card">
             <h2>What it checks</h2>
             <ul class="asc-what">
@@ -1135,16 +1136,18 @@
               <li><b>Market</b><span>Where it trades, how deep and how locked the pool is, whether people really sell, who does the trading, and copycats with the same ticker.</span></li>
               <li><b>Holders</b><span>How spread out the supply is, wallets that look like one owner, who deployed it and what else that wallet made.</span></li>
               <li><b>History</b><span>Mints after launch, ownership changes, pauses and big moves — from the token's own log.</span></li>
+              <li><b>Solana</b><span>Mint and freeze authority, Token-2022 fees, hooks and delegates, pump.fun's bonding curve, sell routes through Jupiter, and the largest holders.</span></li>
             </ul>
           </div>
           <div class="asc-card asc-next">
-            <h2>New in v3 <span class="asc-ver sm">v3</span></h2>
+            <h2>New in v4 <span class="asc-ver sm">v4</span></h2>
             <ul>
-              <li>Critical flags apart from the score, a confidence level and section scores</li>
-              <li>Dry runs at three sizes, a new buyer's sell and a cooldown check</li>
-              <li>Published source, proxy admins, multisigs and timelocks, hidden admins</li>
-              <li>Linked wallets, who trades, copycat tickers, the deployer's other contracts</li>
-              <li>Pre-buy and stress tests, a price chart with events, wallet approvals, frozen reports</li>
+              <li>Solana tokens, pump.fun's bonding curve and Jupiter sell quotes</li>
+              <li>Checks before tools, all-good sections folded into one line, three main actions with the rest under More</li>
+              <li>"?" on a check says what it means, where it's been seen before, and lets you tell us it's wrong</li>
+              <li>What ARCIA DESK did with the token, and what changed since your last scan</li>
+              <li>Every token a wallet holds with its score, score drops on the front page, your watch list</li>
+              <li>Compare up to three tokens and save the table as a picture; share pages for every chain</li>
             </ul>
           </div>
           <div class="asc-card asc-dev">
@@ -1158,7 +1161,17 @@
         </div>
         <section class="asc-guide" aria-labelledby="asc-guide-h">
           <h2 id="asc-guide-h">Token Scanner guide</h2>
-          <p class="asc-guide-lede"><span>How the v3 scanner reads a token, what the score means, and what Free, Plus and Pro include.</span></p>
+          <p class="asc-guide-lede"><span>How the v4 scanner reads a token, what the score means, and what Free, Plus and Pro include.</span></p>
+          <details><summary><h3>New in v4</h3></summary>
+            <ul>
+              <li>Solana: paste a token's mint (or pick Solana above the box). The scanner reads the mint — can anyone still mint or freeze wallets — Token-2022 extensions (transfer fees, transfer hooks, permanent delegates, frozen-by-default accounts), whether the name and logo can still change, pump.fun's bonding curve and how far it is from graduating, Jupiter's price to sell 0.01%, 0.1% and 1% of the supply, Dexscreener's pools, and the 20 largest holders with pools, the curve and program accounts left out. A critical flag caps the score at 44.</li>
+              <li>The checks come first, then the tools. Sections where everything passed fold into one "All good" line. Tools you haven't opened are one short list instead of blurred cards.</li>
+              <li>The "?" on a check says what it means and, for warnings and risks, where the same thing has shown up before — with "Is this wrong? Tell us" inside.</li>
+              <li>If ARCIA DESK held, traded, passed on or is watching the token, a card says so (her own small wallet — not a tip). Scan a token again and checks that changed since your last scan are marked "Was: …".</li>
+              <li>Paste a wallet and every token it holds is listed with its score and critical flags; "Score the rest" scans the ones not scored yet. The front page shows the week's most scanned tokens, scores that dropped 10 points or more in the last three days, and your watch list with each token's latest score.</li>
+              <li>Three actions up front (Share on X, Watch, Ask ARCIA) and the rest under More. Compare up to three tokens — across chains too — and save the table as a picture. Share links work for Robinhood Chain and Solana scans, with a picture of the result.</li>
+            </ul>
+          </details>
           <details open><summary><h3>Reading a result</h3></summary>
             <p>The score runs from 0 to 100: 75 and up is Looks OK, 45 to 74 is Be careful, below 45 is High risk. Critical flags sit apart from the score in red — a sell that fails, new buyers who can't sell, a tax that jumps on big sells, a wallet that can still mint, one wallet that can swap the code, liquidity that can be pulled.</p>
             <p>Confidence says how much of what matters was actually read: the dry-run sell, market data, holders, the source code and the liquidity locks. A part the scanner couldn't read shows as "Couldn't check" with a Try again button; it never counts as good or bad. Every check carries a chip saying where its answer came from: on-chain, a dry run, Dexscreener, the explorer or the scanner's own index.</p>
@@ -2146,6 +2159,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791040840"></script>
+<script src="arcpad.bundle.js?v=1791068928"></script>
 </body>
 </html>

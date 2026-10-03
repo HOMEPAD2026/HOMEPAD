@@ -520,6 +520,45 @@ export async function scanTop(store, chain = "arc") {
   } catch { return []; }
 }
 
+// ---- v4: recent score drops (the scanner's front page) ----
+const dropKey = (chain) => (chain === "rh" ? "scanDrops/rh" : chain === "sol" ? "scanDrops/sol" : "scanDrops/v1");
+/// keeps the last 20 drops of 10+ points from the last 3 days, one per token
+export async function recordDrop(store, chain, token, sym, from, to, crit = []) {
+  if (!store) return;
+  const doc = (await store.get(dropKey(chain)).catch(() => null)) || { items: [] };
+  const since = Date.now() - 3 * 86400e3;
+  const items = (doc.items || []).map((x) => String(x).split("|")).filter((x) => Number(x[4]) > since && x[0] !== String(token));
+  items.unshift([String(token), String(sym || "").replace(/\|/g, "").slice(0, 16), from, to, Date.now(), String((crit || [])[0] || "").replace(/\|/g, "").slice(0, 60)]);
+  await store.set(dropKey(chain), { items: items.slice(0, 20).map((x) => x.join("|")) });
+}
+export async function scanDrops(store, chain = "arc") {
+  if (!store) return [];
+  try {
+    const doc = await store.get(dropKey(chain));
+    const since = Date.now() - 3 * 86400e3;
+    return ((doc && doc.items) || []).map((s2) => { const [t, sym, from, to, at, crit] = String(s2).split("|"); return { token: t, symbol: sym, from: Number(from), to: Number(to), at: Number(at), crit: crit || "" }; })
+      .filter((x) => x.at > since && x.token).slice(0, 12);
+  } catch { return []; }
+}
+/// v4: the ERC-20 tokens a wallet holds (the chain's Blockscout), with their cached scanner scores
+export async function walletTokens(wallet, store, chain = "arc") {
+  const C = ctxOf(chain);
+  const j = await fetchJson(`${C.explorer}/api/v2/addresses/${lc(wallet)}/tokens?type=ERC-20`, 9000);
+  if (!j || !Array.isArray(j.items)) return null;
+  const list = j.items.map((it) => {
+    const t = it.token || {}, addr = lc(t.address_hash || t.address || "");
+    const dec = Number(t.decimals || 18), bal = Number(it.value || 0) / 10 ** dec;
+    const rate = t.exchange_rate != null ? Number(t.exchange_rate) : null;
+    return { token: addr, symbol: String(t.symbol || "").slice(0, 16), name: String(t.name || "").slice(0, 40), bal, usd: rate != null && isFinite(rate) ? bal * rate : null };
+  }).filter((x) => isAddr(x.token) && x.bal > 0).slice(0, 60);
+  await Promise.all(list.map(async (x) => {
+    const d = await scoreOf(x.token, { store, compute: false, chain: C.id }).catch(() => null);
+    if (d && !d.notToken && d.score != null) { x.score = d.score; x.k = d.k; x.t = d.t; x.crit = d.crit || []; }
+  }));
+  list.sort((a, b) => (b.usd || 0) - (a.usd || 0) || (a.score == null) - (b.score == null));
+  return { wallet: lc(wallet), chain: C.id, tokens: list };
+}
+
 // ---- cached server scores: Explore badges, the embeddable badge, the public API ----
 const scoreMem = new Map();
 /// → { score, k, t (verdict), sym, at, crit, conf, sub, cmp, prev } — from the store when fresh, else a new server scan.
@@ -552,6 +591,8 @@ export async function rememberScore(token, out, { store = null, hit = undefined,
       hist: ((hit && hit.hist) || []).filter((x) => String(x).split("|")[0] !== today).concat([`${today}|${r.score}`]).slice(-60) };
   scoreMem.set(mk, doc);
   if (scoreMem.size > 2000) scoreMem.delete(scoreMem.keys().next().value);
+  // v4: a big drop goes on the "score drops" list on the scanner's front page
+  if (!r.notToken && hit && hit.score != null && hit.score - r.score >= 10) recordDrop(store, C.id, token, doc.sym, hit.score, r.score, doc.crit).catch(() => null);
   if (store) { try { await store.set(key, doc); } catch { /* memory copy */ } }
   const codeCrit = (r.critical || []).find((x) => ["sim", "fresh", "size", "power", "proxy"].includes(x.id));
   if (!r.notToken && out.c && out.c.fp && !(out.x && (out.x.arcpad || out.x.argus || out.x.pons))) fpRemember(store, out.c.fp, token, out.c.symbol, r.score, codeCrit ? codeCrit.title : "", C.id);

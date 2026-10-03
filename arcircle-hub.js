@@ -177,7 +177,7 @@
   var UTILS = [
     { id: "locker", name: "Locker", sub: "Lock any Arc token until a date you pick", status: "v2", acc: "#35d8d0", href: "/arc#locker",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/><circle cx="12" cy="15.5" r="1.4"/></svg>' },
-    { id: "scanner", name: "Token Scanner", sub: "Check any Arc token before you buy", status: "v3", acc: "#4d9fff", href: "/arc#scanner",
+    { id: "scanner", name: "Token Scanner", sub: "Check any token on Arc, Robinhood Chain or Solana before you buy", status: "v4", acc: "#4d9fff", href: "/arc#scanner",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><circle cx="11.5" cy="11.5" r="3"/><path d="M13.7 13.7l2.3 2.3"/></svg>' },
     { id: "multisender", name: "Multisender", sub: "Send a token to many wallets in one go", acc: "#39ff88", href: "/arc#multisend",
       status: typeof CONFIG !== "undefined" && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.MULTISEND_ADDRESS || "") ? "v2" : "Preview",

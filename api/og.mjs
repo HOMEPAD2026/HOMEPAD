@@ -194,9 +194,16 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=3600, s-maxage=86400" },
     });
   }
+  if (url.searchParams.has("solscan")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await solScanCard(await markP, url.searchParams.get("solscan")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" },
+    });
+  }
   if (url.searchParams.has("scan")) {
     const fonts = (await fontsP).filter(Boolean);
-    return new ImageResponse(await scanCard(await markP, url.searchParams.get("scan")), {
+    return new ImageResponse(await scanCard(await markP, url.searchParams.get("scan"), url.searchParams.get("chain") === "rh" ? "rh" : "arc"), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" },
     });
@@ -292,16 +299,17 @@ async function roundCard(mark, w) {
 // ---------------- Token Scanner result card ----------------
 // The same engine as the page (api/_scan-core.mjs), run here, so the picture
 // an X post shows is the chain's answer — not a number anyone typed in.
-async function scanCard(mark, addr) {
+async function scanCard(mark, addr, chain = "arc") {
   let out = null;
   if (isAddr(addr)) {
     const store = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
-    try { out = await scanToken(addr, { store, budgetMs: 4500 }); } catch { out = null; }
+    try { out = await scanToken(addr, { store, budgetMs: 4500, chain }); } catch { out = null; }
   }
+  const NET = chain === "rh" ? "Robinhood Chain" : "Circle's Arc";
   const res = out && out.res, c = out && out.c;
   if (!res || res.notToken || !c) {
     return frame([
-      brandRow(mark, pill("TOKEN SCANNER V3", "#4d9fff"), "Token Scanner · Circle's Arc"),
+      brandRow(mark, pill("TOKEN SCANNER V4", "#4d9fff"), `Token Scanner · ${NET}`),
       h("div", { flexDirection: "column", gap: 16 },
         h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "Check any Arc token."),
         h("div", { fontSize: 34, color: "#9fb098" }, "Who really controls it, dry-run trades at three sizes, liquidity and holders — one score, critical flags apart.")),
@@ -330,7 +338,7 @@ async function scanCard(mark, addr) {
     h("div", { fontSize: 26, color: "#9fb098" }, "/ 100"),
     h("div", { fontSize: 20, color: "#b9c8b3", marginTop: 6 }, `confidence ${res.confidence || "—"}`));
   return frame([
-    brandRow(mark, pill(res.verdict.t.toUpperCase(), col), "Token Scanner · Circle's Arc"),
+    brandRow(mark, pill(res.verdict.t.toUpperCase(), col), `Token Scanner · ${NET}`),
     h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
       h("div", { flexDirection: "column", gap: 14, maxWidth: 700 },
         h("div", { fontSize: sym.length > 8 ? 84 : 100, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `$${sym}`),
@@ -338,7 +346,44 @@ async function scanCard(mark, addr) {
         ...reasons, bars),
       ring),
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
-      h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · Scanner v3 · automated check, not advice`),
+      h("div", {}, `arcircle.app/s/${addr.slice(0, 6)}…${addr.slice(-4)} · Scanner v4 · automated check, not advice`),
+      h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 10))),
+  ]);
+}
+
+// ---------------- Token Scanner v4: a Solana token ----------------
+async function solScanCard(mark, mint) {
+  let r = null;
+  try { const SOL = await import("./_scan-sol.mjs"); if (SOL.isMint(mint)) r = await SOL.scanSol(mint); } catch { r = null; }
+  if (!r || r.notMint || r.error || r.score == null) {
+    return frame([
+      brandRow(mark, pill("TOKEN SCANNER V4", "#4d9fff"), "Token Scanner · Solana"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.05 }, "Check any Solana token."),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Mint and freeze authority, Token-2022 extensions, pump.fun's curve, sell routes and holders — one score.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/scanner"),
+    ]);
+  }
+  const col = r.verdict.k === "ok" ? "#39ff88" : r.verdict.k === "care" ? "#ffc861" : "#ff6e5a";
+  const sym = clip(r.symbol || "TOKEN", 12);
+  const crit = (r.critical || []).slice(0, 2);
+  const lines = [...crit.map((x) => h("div", { alignItems: "center", gap: 12, fontSize: 28, fontWeight: 700, color: "#ffc2b8", padding: "8px 18px", borderRadius: 14, border: "2px solid rgba(255,110,90,0.85)", backgroundColor: "rgba(255,110,90,0.16)" },
+      h("div", { fontSize: 18, fontWeight: 800, color: "#2a0905", backgroundColor: "#ff6e5a", padding: "2px 8px", borderRadius: 6 }, "CRITICAL"), h("div", {}, clip(x.title, 30)))),
+    ...(r.reasons || []).filter((x) => !crit.some((c2) => c2.title === x.title)).slice(0, 3 - crit.length).map((x) => h("div", { alignItems: "center", gap: 16, fontSize: 32, color: "#eaf2e6" },
+      h("div", { width: 18, height: 18, borderRadius: 99, backgroundColor: x.status === "risk" ? "#ff6e5a" : x.status === "warn" ? "#ffc861" : "#39ff88" }), h("div", {}, clip(x.title, 34))))];
+  const ring = h("div", { width: 300, height: 300, borderRadius: 999, alignItems: "center", justifyContent: "center", flexDirection: "column", border: `22px solid ${col}`, boxShadow: `0 0 60px ${col}55`, backgroundColor: "rgba(0,0,0,0.35)" },
+    h("div", { fontSize: 110, fontWeight: 800, letterSpacing: -3, lineHeight: 1 }, String(r.score)),
+    h("div", { fontSize: 26, color: "#9fb098" }, "/ 100"),
+    h("div", { fontSize: 20, color: "#b9c8b3", marginTop: 6 }, `confidence ${r.confidence || "—"}`));
+  return frame([
+    brandRow(mark, pill(r.verdict.t.toUpperCase(), col), "Token Scanner · Solana"),
+    h("div", { alignItems: "center", justifyContent: "space-between", width: "100%" },
+      h("div", { flexDirection: "column", gap: 14, maxWidth: 700 },
+        h("div", { fontSize: sym.length > 8 ? 84 : 100, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `$${sym}`),
+        h("div", { fontSize: 30, color: "#b9c8b3", marginBottom: 14 }, clip(r.name || "", 34)), ...lines),
+      ring),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" },
+      h("div", {}, `arcircle.app/s/${mint.slice(0, 5)}…${mint.slice(-4)} · Scanner v4 · Solana · not advice`),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, new Date().toISOString().slice(0, 10))),
   ]);
 }

@@ -20,7 +20,7 @@
 // plain-language helpers: summaryOf, stressOf, preBuy, compactOf, diffOf.
 
 export const CORE_VERSION = 5;
-export const SCANNER_VERSION = "v3";
+export const SCANNER_VERSION = "v4";
 
 // ---------------------------------------------------------------- addresses
 export const ADDR = {

@@ -170,7 +170,7 @@
   }
   function plansHtml() {
     return `<div class="asc-card asc-plans" id="asc-plans">
-      <h2>${esc(tr("Free, Plus and Pro"))} <span class="asc-ver sm">v3</span></h2>
+      <h2>${esc(tr("Free, Plus and Pro"))} <span class="asc-ver sm">v4</span></h2>
       <div class="asc-plan-grid">
         <div class="asc-plan p1"><h3>${esc(tr("Free"))}</h3><p>${esc(tr("Every check, the score, critical flags and confidence. Dry-run trades at three sizes, pre-buy, the deployer's other tokens, same-code tokens, copycats. No login."))}</p></div>
         <div class="asc-plan p2"><h3>${tierBadge("p2")}</h3><p>${esc(tr("Sign in with a wallet. 3 free unlocks a day per wallet, then 1,000 $ARCIRCLE burned per unlock."))}</p>
@@ -207,43 +207,60 @@
     ["alerts", "alerts", "Alert rules", "Pick what you get told about while this token is on your watch list."],
     ["note", null, "From the project", "A note the token's owner, deployer or launchpad creator signed with their wallet."],
     ["take", "take", "ARCIA's take", "The result in plain words, and the one thing to check before buying."],
+    ["solq", null, "Sell quotes", "Jupiter's price to sell 0.01%, 0.1% and 1% of the supply for SOL — nothing is signed or sent."],
   ];
   let lastAddr = null;
   // Robinhood Chain: the free tools only (Plus and Pro unlock against Arc's $ARCIRCLE and read Arc's pools)
-  const cardsFor = (cur) => (cur && cur.ch === "rh" ? CARDS.filter(([k]) => k === "sim" || k === "prebuy") : CARDS);
+  const cardsFor = (cur) => (cur && cur.ch === "sol" ? CARDS.filter(([k]) => k === "solq") : cur && cur.ch === "rh" ? CARDS.filter(([k]) => k === "sim" || k === "prebuy") : CARDS.filter(([k]) => k !== "solq"));
+  const unfolded = new Set();
+  // v4: tools that are open (free, or unlocked) are cards; locked ones are one short list under them
   function paintTools() {
     const box = $("asc-x"), cur = A.state;
     if (!box || !cur || !cur.res || cur.res.notToken) { if (box) box.innerHTML = ""; return; }
     const addr = lc(cur.addr), CARDS = cardsFor(cur);
     if (lastAddr !== (cur.ch || "arc") + addr) { box.innerHTML = ""; lastAddr = (cur.ch || "arc") + addr; }
     if (!box.querySelector(".ascx-grid")) {
-      box.innerHTML = `<div class="ascx-head"><h3>${esc(tr("Tools"))}</h3><span>${esc(tr(cur.ch === "rh" ? "Plus and Pro tools are on Arc for now." : "Free ones open right away; Plus and Pro ones open for 24 hours per token."))}</span></div>
-        <div class="ascx-grid">${CARDS.map(([k, f, t, sub]) => `<section class="asc-card ascx-card c-${k}" data-card="${k}"><div class="ascx-ch"><h4>${esc(tr(t))}${f ? " " + tierBadge(FEAT[f][0]) : ` <em class="asc-tier t-p1">${esc(tr("Free"))}</em>`}</h4><small>${esc(tr(sub))}</small></div><div class="ascx-body"></div></section>`).join("")}</div>`;
+      box.innerHTML = `<div class="ascx-head"><h3>${esc(tr("Tools"))}</h3><span>${esc(tr(cur.ch === "rh" || cur.ch === "sol" ? "Plus and Pro tools are on Arc for now." : "Free ones open right away; Plus and Pro ones open for 24 hours per token."))}</span></div>
+        <div class="ascx-grid"></div><details class="ascx-locked" hidden><summary></summary><ul class="ascx-locklist"></ul></details>`;
     }
-    CARDS.forEach(([k, f]) => {
-      const sec = box.querySelector(`[data-card="${k}"]`), body = sec.querySelector(".ascx-body");
-      if (f && !has(f, addr)) {
-        if (body.dataset.state !== "lock" || body.__who !== `${X.w}|${X.ent ? X.ent.p2.left + "|" + X.ent.p3.left + "|" + X.ent.p3.shared : ""}`) {
-          body.dataset.state = "lock"; body.__who = `${X.w}|${X.ent ? X.ent.p2.left + "|" + X.ent.p3.left + "|" + X.ent.p3.shared : ""}`;
-          body.innerHTML = `<div class="ascx-preview p-${k}" aria-hidden="true"><i></i><i></i><i></i></div>${lockHtml(f, addr)}`;
-        }
-        sec.classList.add("locked");
-        return;
+    const grid = box.querySelector(".ascx-grid"), lockBox = box.querySelector(".ascx-locked"), lockList = lockBox.querySelector(".ascx-locklist");
+    const locked = [];
+    CARDS.forEach(([k, f, t, sub]) => {
+      if (f && !has(f, addr)) { locked.push([k, f, t, sub]); const old = grid.querySelector(`[data-card="${k}"]`); if (old) old.remove(); return; }
+      let sec = grid.querySelector(`[data-card="${k}"]`);
+      if (!sec) {
+        sec = document.createElement("section");
+        sec.className = `asc-card ascx-card c-${k}`; sec.dataset.card = k;
+        sec.innerHTML = `<div class="ascx-ch"><h4>${esc(tr(t))}${f ? " " + tierBadge(FEAT[f][0]) : ` <em class="asc-tier t-p1">${esc(tr("Free"))}</em>`}</h4><small>${esc(tr(sub))}</small></div><div class="ascx-body"></div>`;
+        // keep the cards in their list order
+        const after = CARDS.slice(0, CARDS.findIndex((x) => x[0] === k)).map((x) => grid.querySelector(`[data-card="${x[0]}"]`)).filter(Boolean).pop();
+        if (after) after.insertAdjacentElement("afterend", sec); else grid.prepend(sec);
+        if (unfolded.has(k + addr) && !reduce) { sec.classList.add("unfold"); unfolded.delete(k + addr); }
       }
-      sec.classList.remove("locked");
+      const body = sec.querySelector(".ascx-body");
       if (body.dataset.state === addr + ":" + cur.res.score + ":" + (cur.lp ? 1 : 0)) return;
       body.dataset.state = addr + ":" + cur.res.score + ":" + (cur.lp ? 1 : 0);
       try { RENDER[k](body, cur); } catch (e) { console.warn("scanner tool", k, e); body.innerHTML = `<p class="asc-hnote">${esc(tr("Couldn't draw this right now."))}</p>`; }
     });
+    lockBox.hidden = !locked.length;
+    if (locked.length) {
+      const who = `${X.w}|${X.ent ? X.ent.p2.left + "|" + X.ent.p3.left + "|" + X.ent.p3.shared : ""}|${locked.map((x) => x[0]).join(",")}`;
+      lockBox.querySelector("summary").innerHTML = `<span class="ascx-lk-i" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span><b>${esc(tr("More tools"))} <span data-no-i18n>${locked.length}</span></b><span>${[...new Set(locked.map(([, f]) => FEAT[f][0]))].map(tierBadge).join(" ")}</span><small>${esc(tr(signedIn() ? "Open one for 24 hours on this token." : "Sign in with a wallet to open them."))}</small>`;
+      if (lockList.__who !== who) {
+        lockList.__who = who;
+        lockList.innerHTML = locked.map(([k, f, t, sub], i) => `<li style="--i:${i}"><div><b>${esc(tr(t))} ${tierBadge(FEAT[f][0])}</b><small>${esc(tr(sub))}</small></div><button type="button" class="ascx-btn pri" data-unlock="${f}" data-subj="${esc(addr)}" data-card-k="${k}">${esc(tr(signedIn() ? "Unlock for 24 hours" : "Sign in and unlock"))}</button></li>`).join("");
+      }
+    }
   }
 
   // ---- Free: dry-run trades, as moving coins ----
   const sizeLbl = { small: "0.01%", mid: "0.1%", large: "1%" };
+  let laneI = 0;
   function lane(name, leg, sizeK, extra) {
     const st = !leg ? "skip" : leg.ok === false || leg.ok2 === false ? "fail" : "ok";
     const tax = leg && leg.tax > 0.01 ? K.pct(leg.tax) : null;
     const res = st === "skip" ? tr("not tried") : st === "fail" ? tr("refused") : tax ? `${tr("arrived")} −${tax}` : tr("went through");
-    return `<li class="ln-${st}"><span class="nm">${esc(tr(name))}${sizeK ? ` <small data-no-i18n>${sizeLbl[sizeK] || ""}</small>` : ""}</span>
+    return `<li class="ln-${st}" style="--i:${laneI++}"><span class="nm">${esc(tr(name))}${sizeK ? ` <small data-no-i18n>${sizeLbl[sizeK] || ""}</small>` : ""}</span>
       <span class="track" aria-hidden="true"><i class="coin"></i>${tax ? `<b class="drop" data-no-i18n>−${tax}</b>` : ""}${st === "fail" ? `<b class="lock">${ICON.risk}</b>` : ""}</span>
       <span class="rs">${esc(res)}${extra ? ` <small>${esc(extra)}</small>` : ""}</span></li>`;
   }
@@ -252,6 +269,7 @@
       const L = (cur.sim && cur.sim.legs) || null;
       if (!cur.sim || !cur.sim.supported || !L) { body.innerHTML = `<p class="asc-hnote">${esc(tr(cur.sim && !cur.sim.supported ? (cur.ch === "rh" ? "The Robinhood Chain RPC didn't accept the dry run this time." : "The Arc RPC didn't accept the dry run this time.") : "There was no holder the dry run could act as."))}</p>`; return; }
       const f = L.fresh, tw = L.twice;
+      laneI = 0;
       body.innerHTML = `<ul class="ascx-lanes">
         ${(L.buy || []).map((l) => lane("Buy", l, l.k)).join("")}
         ${(L.sell || []).map((l) => lane("Sell", l, l.k)).join("")}
@@ -259,6 +277,15 @@
         ${tw ? lane("Second sell right after", tw.ok1 ? { ok: tw.ok2 } : null) : ""}
         ${L.send ? lane("Send to a wallet", L.send) : ""}
       </ul><p class="asc-hnote">${esc(tr("Sizes are shares of the supply. A pretend transfer on the latest block — nothing is signed or spent."))}</p>`;
+    },
+    // v4, Solana: Jupiter's quotes at three sizes
+    solq(body, cur) {
+      const q = (cur.sol && cur.sol.quotes) || [];
+      if (!q.length || q.every((x) => x.ok == null)) { body.innerHTML = `<p class="asc-hnote">${esc(tr("Jupiter didn't answer just now — scan again in a moment."))}</p>`; return; }
+      laneI = 0;
+      body.innerHTML = `<ul class="ascx-lanes">${q.map((x) => lane("Sell", x.ok == null ? null : { ok: x.ok, tax: 0 }, x.k, x.ok ? `${tr("price")} −${K.pct(x.impact || 0)}` : x.ok === false ? tr("no route") : "")).join("")}</ul>
+        ${q.find((x) => x.ok && x.via && x.via.length) ? `<p class="asc-hnote">${esc(tr("Route"))}: <span data-no-i18n>${esc(q.find((x) => x.ok && x.via && x.via.length).via.join(", "))}</span></p>` : ""}
+        <p class="asc-hnote">${esc(tr("Sizes are shares of the supply. A price quote from Jupiter — nothing is signed or sent."))}</p>`;
     },
     prebuy(body, cur) {
       const res = cur.res, fees = K.feesOf(res, cur.x, cur.sim);
@@ -435,10 +462,12 @@
     const intro = $("asc-intro");
     if (!intro) return;
     let host = $("ascx-intro");
-    if (!host) { host = document.createElement("div"); host.id = "ascx-intro"; host.className = "ascx-intro"; intro.insertBefore(host, intro.children[1] || null); }
+    if (!host) { host = document.createElement("div"); host.id = "ascx-intro"; host.className = "ascx-intro"; const what = intro.querySelector(".asc-dev"); if (what) what.insertAdjacentElement("afterend", host); else intro.appendChild(host); }
+    let plans = $("ascx-plans");
+    if (!plans) { plans = document.createElement("div"); plans.id = "ascx-plans"; plans.className = "ascx-plans"; intro.appendChild(plans); }
+    plans.innerHTML = plansHtml();
     const block = (id, f, title, sub, inner) => `<section class="asc-card ascx-icard" id="${id}"><div class="ascx-ch"><h2>${esc(tr(title))} ${tierBadge(FEAT[f][0])}</h2><small>${esc(tr(sub))}</small></div><div class="ascx-body">${has(f, "all") || f === "approvals" ? inner : lockHtml(f, "all")}</div></section>`;
-    host.innerHTML = plansHtml()
-      + block("ascx-feed", "feed", "New on Arc", "New pools on Arc with their scanner scores, newest first.", `<div class="ascx-feed-list"><div class="asc-skel-rows"><i></i><i></i><i></i></div></div>`)
+    host.innerHTML = block("ascx-feed", "feed", "New on Arc", "New pools on Arc with their scanner scores, newest first.", `<div class="ascx-feed-list"><div class="asc-skel-rows"><i></i><i></i><i></i></div></div>`)
       + block("ascx-appr", "approvals", "Wallet approvals", "Which contracts can move tokens out of a wallet — and revoke them.", `<form class="ascx-appr-form"><input type="text" placeholder="${esc(tr("Wallet address (0x…)"))}" value="${esc(state.account || "")}" data-appr-w spellcheck="false"><button type="submit" class="ascx-btn pri">${esc(tr("Check approvals"))}</button></form><div class="ascx-appr-out"></div>`)
       + block("ascx-batch", "batch", "Batch scan", "Up to 25 tokens at once, as a table you can download.", `<form class="ascx-batch-form"><textarea rows="3" placeholder="0x…&#10;0x…" data-batch spellcheck="false"></textarea><button type="submit" class="ascx-btn pri">${esc(tr("Scan them"))}</button></form><div class="ascx-batch-out"></div>`)
       + block("ascx-hooks", "webhook", "Webhooks", "Get a signed POST when a token's owner, supply, liquidity or score changes.", `<div class="ascx-hooks-out"><div class="asc-skel-rows"><i></i></div></div>`);
@@ -543,7 +572,8 @@
     inp.addEventListener("input", () => {
       const v = inp.value.trim();
       clearTimeout(st);
-      if (!v || /^0x/i.test(v) || v.length < 2) { dd.hidden = true; return; }
+      // addresses (0x… or a Solana mint) and the Solana side don't search by name
+      if (!v || /^0x/i.test(v) || v.length < 2 || (A.isMintS && A.isMintS(v)) || (A.SOLC && A.SOLC())) { dd.hidden = true; return; }
       st = setTimeout(() => runSearch(v, dd), 280);
     });
     inp.addEventListener("keydown", (e) => { if (e.key === "Escape") dd.hidden = true; });
@@ -602,7 +632,7 @@
   });
   panel.addEventListener("click", async (e) => {
     const u = e.target.closest("[data-unlock]");
-    if (u) { e.preventDefault(); u.disabled = true; const ok = await unlock(u.dataset.unlock, u.dataset.subj); u.disabled = false; if (ok) { paintTools(); paintIntro(); const dd = $("ascx-dd"); if (dd && !dd.hidden) runSearch($("asc-addr").value.trim(), dd); } return; }
+    if (u) { e.preventDefault(); u.disabled = true; const ok = await unlock(u.dataset.unlock, u.dataset.subj); u.disabled = false; if (ok && u.dataset.cardK) unfolded.add(u.dataset.cardK + lc(u.dataset.subj)); if (ok) { paintTools(); paintIntro(); const dd = $("ascx-dd"); if (dd && !dd.hidden) runSearch($("asc-addr").value.trim(), dd); } return; }
     const xa = e.target.closest("[data-xact]");
     if (xa) { const a = xa.dataset.xact; if (a === "login") { if (await login()) { paintTools(); paintIntro(); } } else if (a === "logout") logout(); else if (a === "note") postNote(); return; }
     const rv = e.target.closest("[data-revoke]");
