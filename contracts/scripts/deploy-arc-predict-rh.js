@@ -17,6 +17,7 @@
 // Fees: 2% of a pot with a winner; 25% of that goes to referrers, the rest to the ARCIRCLE PAD treasury (in ETH), pushed
 // there once an hour by the keeper. Markets: the team lists graduated Pons coins from /arc#predict (Robinhood Chain tab);
 // community listing stays closed (it burns $ARCIRCLE, which lives on Arc).
+// Live: 0x774730acdb1446512E763148B2cbb63B3c7FAFDB (block 78758781, 2026-10-03) — the default in api/_predict.mjs.
 // After deploying:
 //   1. Vercel: PREDICT_RH_ADDRESS = the address it prints (PREDICT_RH_KEEPER_KEY only if the operator isn't
 //      ORDERS_KEEPER_RH_KEY's wallet), Redeploy;
@@ -43,8 +44,7 @@ async function ethUsd() {
 /// dollars → wei at `px`, rounded to 2 significant figures (0.000137 → 0.00014 ETH)
 function usdToWei(usd, px) {
   const eth = usd / px;
-  const mag = 10 ** (Math.floor(Math.log10(eth)) - 1);
-  return ethers.parseEther((Math.round(eth / mag) * mag).toFixed(18));
+  return ethers.parseEther(eth.toFixed(Math.max(0, 1 - Math.floor(Math.log10(eth))))); // two significant figures, no float tail
 }
 
 async function main() {

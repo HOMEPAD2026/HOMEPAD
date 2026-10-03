@@ -24,8 +24,8 @@ import { priceOf } from "./_liq-core.mjs";
 
 export const PREDICT_DEFAULT = "0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6"; // ArcPredict on Arc (deployed 2026-10-02)
 export const PREDICT_DEFAULT_BLOCK = 23867674; // its deployment block (the leaderboard starts there)
-export const PREDICT_RH_DEFAULT = ""; // ArcPredict on Robinhood Chain (set once deployed)
-export const PREDICT_RH_DEFAULT_BLOCK = 0;
+export const PREDICT_RH_DEFAULT = "0x774730acdb1446512E763148B2cbb63B3c7FAFDB"; // ArcPredict on Robinhood Chain (deployed 2026-10-03)
+export const PREDICT_RH_DEFAULT_BLOCK = 78758781; // its deployment block
 const env = (k) => String(process.env[k] || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();
