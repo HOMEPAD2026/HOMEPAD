@@ -177,7 +177,7 @@
   var UTIL_FALLBACK = [
     ["Locker", "Lock any Arc token until a date you pick", "/arc#locker", "#35d8d0"], ["Token Scanner", "Check any Arc token before you buy", "/arc#scanner", "#4d9fff"],
     ["Multisender", "Send a token to many wallets in one go", "/arc#multisend", "#39ff88"], ["Bridge", "Move USDC between Arc and 14 chains", "/arc#bridge", "#ffc861"],
-    ["Snapshot", "Every holder of a token at one moment", "/arc#snapshot", "#b58bff"], ["Liquidity", "Pools, LP positions and LP locks for any token", "/arc#liquidity", "#39d0ff"],
+    ["Snapshot", "Every holder of a token at one moment", "/arc#snapshot", "#b58bff"], ["Liquidity", "Pool dashboard, one-coin shapes and LP locks — Arc and Robinhood", "/arc#liquidity", "#39d0ff"],
     ["Relay Launch", "CirclePad round → Argus coin, relayed to holders", "/arc#relay", "#35d8d0"],
   ];
   function paintUtils() {

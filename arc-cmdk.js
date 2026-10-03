@@ -48,7 +48,7 @@
     if (!l.length) l = [
       { name: "Locker", sub: "Lock any Arc token", href: "/arc#locker" }, { name: "Token Scanner", sub: "Check any Arc token", href: "/arc#scanner" },
       { name: "Multisender", sub: "Send a token to many wallets", href: "/arc#multisend" }, { name: "Snapshot", sub: "Every holder at one moment", href: "/arc#snapshot" },
-      { name: "Liquidity", sub: "Pools, LP positions and LP locks", href: "/arc#liquidity" }, { name: "Bridge", sub: "Move USDC to Arc", href: "/arc#bridge" },
+      { name: "Liquidity", sub: "Pool dashboard, one-coin shapes, LP locks", href: "/arc#liquidity" }, { name: "Bridge", sub: "Move USDC to Arc", href: "/arc#bridge" },
     ];
     return l.filter(function (u) { return u.href; }).map(function (u) { return [u.name, u.sub || "", u.href, "util"]; });
   }

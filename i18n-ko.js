@@ -6457,6 +6457,8 @@
     "Price · Robinhood": "가격 · Robinhood",
     "Market cap · Robinhood": "시가총액 · Robinhood",
     "The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.": "위 가격은 Robinhood Chain의 $ARCIA를 Pons에서 온체인으로 읽은 값이에요. 홀더 수는 Token Scanner 기준이에요. 새 코인은 위험해요 — 사기 전에 스캔하세요.",
+    "Pool dashboard, one-coin shapes and LP locks — Arc and Robinhood": "풀 대시보드, 코인 하나 모양 예치, LP 잠금 — Arc와 Robinhood",
+    "Pool dashboard, one-coin shapes, LP locks": "풀 대시보드, 코인 하나 모양 예치, LP 잠금",
   };
 
 
