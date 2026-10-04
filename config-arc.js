@@ -198,10 +198,10 @@ const CONFIG = {
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
   // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
-  // empty until deployed — the Robinhood side of arcpad.html#orders is a preview until then. Permit2 only once confirmed there.
-  ORDERS_RH_ADDRESS: "",
-  ORDERS_RH_FEEBURN: "",
-  ORDERS_RH_PERMIT2: "",
+  // live since 4 Oct 2026 (block 79560003); Uniswap's Permit2 is on Robinhood Chain too.
+  ORDERS_RH_ADDRESS: "0xa53dBd06d8c604107e1Fe1B5936EFCf32D895eE3",
+  ORDERS_RH_FEEBURN: "0x88bE9A0E1B13f5A10Bf155e052CB0327fd6C88D1",
+  ORDERS_RH_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   ORDERS_RH_WETH: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
   ARCIA_RH_TOKEN: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", // $ARCIA on Robinhood Chain (Pons): the market Orders opens there
 

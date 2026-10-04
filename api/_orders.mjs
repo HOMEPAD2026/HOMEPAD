@@ -56,15 +56,15 @@ const ARC_CFG = {
   now: () => Math.floor(Date.now() / 1000),
 };
 /// Robinhood Chain: ArcircleOrdersNative + ArcircleFeeBurnNative, markets against ETH (orders name WETH; pools may be
-/// native ETH). Empty addresses until it's deployed (env ARCIRCLE_ORDERS_RH_ADDRESS / ARCIRCLE_FEEBURN_RH_ADDRESS).
+/// native ETH). Live since 4 Oct 2026 (env ARCIRCLE_ORDERS_RH_ADDRESS / ARCIRCLE_FEEBURN_RH_ADDRESS override).
 const RH_CFG = {
   id: "rh", name: "Robinhood Chain", prefix: "ordersrh", msgTag: " on Robinhood Chain",
-  address: "", feeBurn: "",
+  address: "0xa53dbd06d8c604107e1fe1b5936efcf32d895ee3", feeBurn: "0x88be9a0e1b13f5a10bf155e052cb0327fd6c88d1", // contracts/scripts/deploy-arcircle-orders-rh.js
   addressEnv: "ARCIRCLE_ORDERS_RH_ADDRESS", feeBurnEnv: "ARCIRCLE_FEEBURN_RH_ADDRESS",
-  feeBurnFrom: 0, logRange: 50000, // set feeBurnFrom (env ARCIRCLE_FEEBURN_RH_FROM) to its deploy block once it's live
+  feeBurnFrom: 79560003, logRange: 50000, // ArcircleFeeBurnNative's deploy block (env ARCIRCLE_FEEBURN_RH_FROM)
   base: "0x0bd7d308f8e1639fab988df18a8011f41eacad73", baseDec: 18, baseSym: "ETH",
   weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
-  permit2: "", // set once Permit2 is confirmed on Robinhood Chain (env ARCIRCLE_ORDERS_RH_PERMIT2); plain approvals until then
+  permit2: "0x000000000022d473030f116ddee9f6b43ac78ba3", // Uniswap's Permit2, confirmed at deploy (env ARCIRCLE_ORDERS_RH_PERMIT2)
   permit2Env: "ARCIRCLE_ORDERS_RH_PERMIT2",
   chainId: 4663,
   rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),

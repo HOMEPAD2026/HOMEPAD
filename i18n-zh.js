@@ -7338,6 +7338,7 @@
     "your open orders": "你的挂单",
     "Half of every Orders fee buys $ARCIRCLE and burns it — see the Reward page": "每笔 Orders 手续费的一半用于买入并销毁 $ARCIRCLE — 查看奖励页",
     "burned by Orders fees": "由 Orders 手续费销毁",
+    "Contracts on Blockscout:": "Blockscout 上的合约：",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

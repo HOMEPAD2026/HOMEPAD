@@ -7168,6 +7168,7 @@
     "your open orders": "내 미체결 주문",
     "Half of every Orders fee buys $ARCIRCLE and burns it — see the Reward page": "Orders 수수료의 절반으로 $ARCIRCLE을 사서 소각해요 — 리워드 페이지 보기",
     "burned by Orders fees": "Orders 수수료로 소각",
+    "Contracts on Blockscout:": "Blockscout의 계약:",
   };
 
 
