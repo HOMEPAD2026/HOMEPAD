@@ -16227,5 +16227,61 @@ body.cp5-modal-open{overflow:hidden;}
 .ag-badge.k-safe{color:#39ff88;border-color:rgba(57,255,136,.5);background:rgba(57,255,136,.08)}.ag-badge.k-caution{color:#ffc861;border-color:rgba(255,200,97,.5);background:rgba(255,200,97,.08)}.ag-badge.k-risky{color:#ff8a7a;border-color:rgba(255,110,90,.55);background:rgba(255,110,90,.1)}
 .ag-badge.k-none{color:#9dcbff;border-color:rgba(91,140,255,.4);background:rgba(91,140,255,.06)}
 .aor-call.none{color:#9dcbff;border-color:rgba(91,140,255,.4);background:rgba(91,140,255,.06);}
-.ap-card-top .ap-ag{margin-left:6px;padding:2px 7px;font-size:.56rem}
+.ap-launch-card .ap-ag{align-self:flex-start;margin:6px 0 2px;padding:2px 8px;font-size:.56rem}
+#ap-explore-grid,#ap-home-track{min-width:0}
+.ap-launch-card{min-width:0;max-width:100%}
+.ap-launch-card .ap-card-top{min-width:0;flex-wrap:wrap;row-gap:4px}
 @media (max-width:560px){.ag-summon{grid-template-columns:minmax(0,1fr)}.ag-bar .ag-form{flex-direction:column}.ag-tot{padding:12px 14px}}
+/* ARCIA · veARCIA, featured: the stream (pool → rewards → stakers), the payout counter and stakers earning live */
+.aa-fam-c.vea.wide{grid-column:1 / -1}
+.aa-vf{display:flex;flex-direction:column;gap:10px;margin-top:8px;width:100%}
+.aa-vf:empty{display:none}
+.aa-vf-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+.aa-vf-ring{position:relative;width:64px;height:64px;display:grid;place-items:center}
+.aa-vf-ring svg{position:absolute;inset:0;width:64px;height:64px;transform:rotate(-90deg)}
+.aa-vf-ring circle{fill:none;stroke-width:6}
+.aa-vf-ring .trk{stroke:rgba(255,255,255,.08)}
+.aa-vf-ring .val{stroke:#ff8bd8;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(255,139,216,.55));transition:stroke-dashoffset 1s}
+.aa-vf-ring b{position:relative;font:800 .8rem 'JetBrains Mono',monospace;color:#fff}
+.aa-vf-stream{position:relative;height:24px;border-radius:99px;background:linear-gradient(90deg,rgba(255,139,216,.14),rgba(77,212,255,.1));overflow:hidden}
+.aa-vf-stream i{position:absolute;top:50%;left:-8px;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#ffc4ec;box-shadow:0 0 8px #ff8bd8;animation:aa-vf-flow 2.4s linear infinite;animation-delay:calc(var(--d) * -.4s)}
+.aa-vf-stream.paused i{animation-play-state:paused;opacity:.25}
+@keyframes aa-vf-flow{to{left:100%}}
+.aa-vf-crowd{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.aa-vf-av{display:flex}
+.aa-vf-av i{width:22px;height:22px;margin-left:-7px;border-radius:50%;border:2px solid #0b1119;animation:aa-vf-bob 2.4s ease-in-out infinite;animation-delay:calc(var(--i) * .25s)}
+.aa-vf-av i.ghost{background:rgba(255,255,255,.08)}
+@keyframes aa-vf-bob{50%{transform:translateY(-3px)}}
+.aa-vf-crowd b{font:800 .86rem Sora,sans-serif;color:#fff}.aa-vf-crowd b i{font-style:normal;color:#ffc4ec;font-size:.7rem}
+.aa-vf-crowd small{font-size:.64rem;color:#9fb0bd}
+.aa-vf-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:12px;background:rgba(255,139,216,.08);border:1px solid rgba(255,139,216,.25)}
+.aa-vf-big i{width:8px;height:8px;border-radius:50%;background:#ff8bd8;align-self:center}
+.aa-vf-big i.on{animation:dk-ping 1.8s infinite}
+.aa-vf-big b{font:800 1.3rem 'JetBrains Mono',monospace;color:#ffc4ec;font-variant-numeric:tabular-nums}
+.aa-vf-big small{font-size:.72rem;color:#c9d4de}
+.aa-vf-top{display:flex;flex-direction:column;gap:5px}
+.aa-vf-top .h{font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:#8c98a6}
+.aa-vs{display:grid;grid-template-columns:20px minmax(0,1fr) auto;grid-template-areas:"av a e" "av s d";column-gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.03)}
+.aa-vs > i{grid-area:av;width:20px;height:20px;border-radius:50%}
+.aa-vs > b{grid-area:a;font:700 .74rem 'JetBrains Mono',monospace;color:#e6eef4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aa-vs > small{grid-area:s;font-size:.64rem;color:#9fb0bd}
+.aa-vs > em{grid-area:e;font-style:normal;font:800 .8rem 'JetBrains Mono',monospace;color:#39ff88;font-variant-numeric:tabular-nums;text-align:right}
+.aa-vs > small.pd{grid-area:d;text-align:right}
+@media (max-width:900px){
+  .aa-fam .aa-fam-c.vea.wide{flex-direction:row;align-items:flex-start;gap:10px;padding:12px}
+  .aa-fam .aa-fam-c.vea.wide small{display:block}
+  .aa-fam .aa-fam-c.vea.wide .aa-fam-live{display:flex;-webkit-line-clamp:unset;font-size:.7rem;overflow:visible}
+  .aa-fam .aa-fam-c.vea.wide .aa-fam-t b{font-size:.95rem}
+  .aa-vf-row{gap:8px}.aa-vf-ring,.aa-vf-ring svg{width:54px;height:54px}
+}
+@media (prefers-reduced-motion:reduce){.aa-vf-stream i,.aa-vf-av i,.aa-vf-big i.on{animation:none}}
+/* phones: the floating header gets a solid, blurred backing so text scrolling under it doesn't show through */
+@media (max-width:720px){.ax-page header.ax-top{background:rgba(4,6,10,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06)}}
+/* phones: the $ARCIRCLE page's section nav stays inside the page (it scrolls itself); long addresses in text wrap */
+.ac-nav{min-width:0;max-width:100%}
+.ax-page p code,.ax-page li code{overflow-wrap:anywhere;word-break:break-all}
+.aa-fam-c.vea.wide{align-items:flex-start}
+@media (min-width:901px){.aa-vf-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.aa-vf-top .h{grid-column:1 / -1}}
+/* the quick bar never runs past a narrow phone's edge */
+:is(.ax-page,.ax-dock-host) nav.ax-quick{max-width:calc(100vw - 12px)}
+@media (max-width:380px){:is(.ax-page,.ax-dock-host) .ax-quick .ax-quick-util{padding-left:8px;padding-right:8px}}

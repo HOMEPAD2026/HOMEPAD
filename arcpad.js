@@ -362,7 +362,9 @@ async function arcAgentBadges(grid) {
     a.className = `ag-badge ap-ag k-${x.call}`; a.setAttribute("data-no-i18n", "");
     a.title = "ARCIA AGENT's 24-hour safety call — about risk, not price";
     a.innerHTML = `<i></i>${x.call === "safe" ? "Safe" : x.call === "risky" ? "Risky" : "Caution"}`;
-    (c.querySelector(".ap-card-top") || c).appendChild(a);
+    // under the name, its own line (the top row is full on narrow cards: logo, platform, age, HOT, star)
+    const nm = c.querySelector(".name");
+    if (nm) nm.insertAdjacentElement("afterend", a); else c.appendChild(a);
   }
 }
 

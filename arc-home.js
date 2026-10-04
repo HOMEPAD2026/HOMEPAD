@@ -184,7 +184,7 @@
     var grid = $("#hm-utils-grid");
     if (!grid) return;
     var list = window.arcUtilities && Array.isArray(window.arcUtilities.list) && window.arcUtilities.list.length
-      ? window.arcUtilities.list.filter(function (u) { return u.href; }).map(function (u) { return [u.name, u.sub, u.href, u.acc, u.ico, u.status]; })
+      ? window.arcUtilities.list.filter(function (u) { return u.href; }).map(function (u) { return [u.name, u.sub, u.href, u.acc, u.ico || (u.img ? '<img src="' + esc(u.img) + '" alt="" width="32" height="32" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">' : ""), u.status]; })
       : UTIL_FALLBACK;
     grid.innerHTML = list.map(function (u, i) {
       return '<a class="hm-util" href="' + esc(u[2]) + '" style="--acc:' + esc(u[3]) + ";--i:" + i + '"><span class="hm-util-ico">' + (u[4] || "") + '</span><span class="hm-util-t"><b>' + esc(tr(u[0])) + "</b><small>" + esc(tr(u[1])) + "</small></span>" + (u[5] ? '<em>' + esc(tr(u[5])) + "</em>" : "") + '<i class="hm-util-arrow" aria-hidden="true">→</i></a>';

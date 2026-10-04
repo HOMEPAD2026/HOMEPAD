@@ -220,7 +220,9 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
   // ARCIRCLE Staking: veARCIRCLE — lock $ARCIRCLE, weekly USDC, pool votes (arc-staking.js)
   UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "New", acc: "#b58bff", href: "/arc#staking",
-    img: "/images/arcircle-staking-96.webp" });
+    img: "/images/arcircle-staking-96.webp",
+    // a lock over stacked coins (the tiles draw this icon; the image is only for places that show pictures)
+    ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="11" height="9" rx="2"/><path d="M6.8 10.5V8a2.7 2.7 0 0 1 5.4 0v2.5"/><ellipse cx="18" cy="9" rx="2.8" ry="1.3"/><path d="M15.2 9v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3V9M15.2 12.2v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3v-3.2"/></svg>' });
   // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
   UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc and Robinhood Chain coins", status: "v2", acc: "#39ff88", href: "/arc#predict",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
@@ -229,7 +231,8 @@
     // ARCIRCLE NFT Vault: a coin's trading fees buy NFTs, raffled to $ARCIRCLE holders (arc-nft.js)
     { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Fees buy NFTs, holders win them — every draw checkable on-chain", status: "v2", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
     // veARCIA: stake $ARCIA on Robinhood Chain, $ARCIA rewards, the $ARCIRCLE boost (arc-vearcia.js)
-    { id: "vearcia", name: "veARCIA", sub: "Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it", status: "New", acc: "#ff8bd8", href: "/arc#vearcia", img: "/images/arcia-avatar-96.jpg" },
+    { id: "vearcia", name: "veARCIA", sub: "Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it", status: "New", acc: "#ff8bd8", href: "/arc#vearcia", img: "/images/arcia-avatar-96.jpg",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg>' },
     { id: "next-19", sub: "In development" },
     { id: "next-20", sub: "In development" },
   ];
@@ -340,7 +343,7 @@
       var tag = u.href ? "a" : "div";
       return "<" + tag + ' class="ax-util-tile' + (u.soon ? " is-soon" : "") + (u.href ? "" : " is-off") + '" data-util="' + u.id + '" style="--acc:' + u.acc + ";--i:" + i + '"' +
         (u.href ? ' href="' + u.href + '"' : ' aria-disabled="true"') + ">" +
-        '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" +
+        (u.ico || !u.img ? '<span class="ax-util-ico">' + (u.ico || ICON_SOON) + "</span>" : '<span class="ax-util-ico ax-util-img"><img src="' + u.img + '" alt="" width="38" height="38" decoding="async"></span>') +
         '<span class="ax-util-txt"><strong>' + u.name + "</strong><small>" + u.sub + "</small></span>" +
         '<em class="ax-util-st">' + u.status + "</em></" + tag + ">";
     };

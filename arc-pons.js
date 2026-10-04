@@ -375,9 +375,11 @@
   }
   // graduation: the curve's real ETH against Pons's threshold; a graduated coin trades in its v4 pool
   function gradHtml(l, kind) {
+    // a progress the server couldn't read this time is "—", never a misleading 0%
+    const known = l.graduated || (l.progress != null && isFinite(Number(l.progress)));
     const p = l.graduated ? 100 : Math.max(0, Math.min(100, Number(l.progress) || 0));
     const thr = l.graduationThreshold ? Number(BigInt(l.graduationThreshold)) / 1e18 : null;
-    const lab = l.graduated ? tr("Graduated · Uniswap v4") : `${p.toFixed(p < 10 ? 1 : 0)}% ${tr("to graduation")}`;
+    const lab = l.graduated ? tr("Graduated · Uniswap v4") : known ? `${p.toFixed(p < 10 ? 1 : 0)}% ${tr("to graduation")}` : `— ${tr("to graduation")}`;
     return `<div class="pon-grad ${kind || ""}${l.graduated ? " done" : ""}" style="--p:${p.toFixed(1)}%" role="img" aria-label="${esc(lab)}"><div class="trk"><i></i></div><small><span>${esc(lab)}</span>${thr && kind === "lg" && !l.graduated ? `<span data-no-i18n>${(thr * p / 100).toFixed(3)} / ${thr.toFixed(2)} ETH</span>` : ""}</small></div>`;
   }
   function cardHtml(l, img) {

@@ -1339,11 +1339,37 @@
     parts.push('<b data-no-i18n data-k="n">' + n + "</b> " + L(n === 1 ? { en: "staker", ko: "명 참여", zh: "位质押者" } : { en: "stakers", ko: "명 참여", zh: "位质押者" }));
     if (lo != null) { var ap = T({ en: "up to {v} a year", ko: "연 최대 {v}", zh: "年化最高 {v}" }).split("{v}"); parts.push((ap[0] ? L({ en: ap[0].trim() }) + " " : "") + '<b data-no-i18n data-k="apr">' + veaPct(lo * 4) + "</b>" + (ap[1] ? " " + L({ en: ap[1].trim() }) : "")); }
     else if ((Number(t.pool) || 0) > 0) parts.push('<b data-no-i18n data-k="pool">' + veaN(t.pool) + "</b> " + L({ en: "$ARCIA in rewards, waiting for the first staker", ko: "$ARCIA 보상이 첫 참여자를 기다리는 중", zh: "$ARCIA 奖励等待第一位质押者" }));
-    if (streamed > 0) parts.push('<b data-no-i18n class="aa-vea-tick" data-k="streamed">' + veaFmtS(streamed) + "</b> " + L({ en: "paid out so far", ko: "지금까지 지급", zh: "累计发放" }));
+    // (the featured card shows the payout as its big counter; the line keeps it only where that card isn't on the page)
+    if (streamed > 0 && !panel.querySelector("[data-veaflow]")) parts.push('<b data-no-i18n class="aa-vea-tick" data-k="streamed">' + veaFmtS(streamed) + "</b> " + L({ en: "paid out so far", ko: "지금까지 지급", zh: "累计发放" }));
     // only the numbers change on a repaint: flash the ones that moved (except the ticking counter)
     var old = {}; el.querySelectorAll("b[data-k]").forEach(function (b) { old[b.getAttribute("data-k")] = b.textContent; });
     el.innerHTML = parts.map(function (x) { return '<span class="aa-vea-p">' + x + "</span>"; }).join('<span class="aa-vea-sep" aria-hidden="true">·</span>');
     el.querySelectorAll("b[data-k]").forEach(function (b) { var k = b.getAttribute("data-k"); if (k !== "streamed" && old[k] != null && old[k] !== b.textContent) { b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } });
+    veaFlow(run, streamed);
+  }
+  // the stream, like the veARCIA tab: the pool (days left) → rewards flowing → the stakers, each earning live
+  var veaSeen = { at: 0 };
+  function veaFlow(run, streamed) {
+    var box = panel.querySelector("[data-veaflow]"), d = vea.st;
+    if (!box) return;
+    if (!d || !d.live) { box.innerHTML = ""; return; }
+    var t = d.totals || {}, now = veaNow(), daysLeft = Number(t.finish) > now ? (Number(t.finish) - now) / 86400 : 0;
+    var R = 26, C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, daysLeft / 20));
+    var top = (d.top || []).slice(0, 3), weight = Number(t.weight) || 0, perDay = Number(t.perDay) || 0;
+    var bg = function (a) { return typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(a) : "background:linear-gradient(135deg,#ff8bd8,#4dd4ff)"; };
+    var short = function (a) { a = String(a || ""); return a.slice(0, 6) + "…" + a.slice(-4); };
+    if (!veaSeen.at) veaSeen.at = Date.now();
+    var avs = (d.top || []).slice(0, 5).map(function (x, i) { return '<i style="--i:' + i + ';' + bg(x.a) + '"></i>'; }).join("") || '<i class="ghost"></i><i class="ghost"></i>';
+    var rows = top.map(function (x) {
+      var day = weight > 0 ? (Number(x.ve) || 0) / weight * perDay : 0;
+      return '<span class="aa-vs"><i style="' + bg(x.a) + '"></i><b data-no-i18n>#' + x.rank + " " + esc(short(x.a)) + '</b><small data-no-i18n>' + veaN(x.amount) + " · " + (x.lockDays || "?") + "d</small>" +
+        '<em data-no-i18n data-vs="' + (day / 86400) + '">+' + veaFmtS(run ? day / 86400 * (Date.now() - veaSeen.at) / 1000 : 0) + '</em><small class="pd" data-no-i18n>' + veaN(day) + "/" + esc(T({ en: "day", ko: "일", zh: "天" })) + "</small></span>";
+    }).join("");
+    box.innerHTML = '<span class="aa-vf-row"><span class="aa-vf-ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="' + R + '" class="trk"/><circle cx="32" cy="32" r="' + R + '" class="val" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - frac)).toFixed(1) + '"/></svg><b data-no-i18n>' + (daysLeft > 0 ? "D-" + Math.ceil(daysLeft) : "—") + "</b></span>" +
+      '<span class="aa-vf-stream' + (run ? "" : " paused") + '" aria-hidden="true">' + [0, 1, 2, 3, 4, 5].map(function (i) { return '<i style="--d:' + i + '"></i>'; }).join("") + "</span>" +
+      '<span class="aa-vf-crowd"><span class="aa-vf-av">' + avs + '</span><b data-no-i18n>' + veaN(perDay) + ' <i>$ARCIA</i></b><small data-no-i18n>' + esc(T(run ? { en: "a day, every second", ko: "매일, 매초 지급", zh: "每天，每秒发放" } : { en: "the stream waits for stakers", ko: "참여자를 기다리는 중", zh: "等待质押者" })) + "</small></span></span>" +
+      '<span class="aa-vf-big"><i class="' + (run ? "on" : "") + '"></i><b data-no-i18n data-k2="streamed">' + veaFmtS(streamed) + '</b><small data-no-i18n>$ARCIA ' + esc(T({ en: "paid out so far", ko: "지금까지 지급", zh: "累计发放" })) + "</small></span>" +
+      (rows ? '<span class="aa-vf-top"><small class="h" data-no-i18n>' + esc(T({ en: "Stakers earning right now", ko: "지금 보상받는 스테이커", zh: "正在获得奖励的质押者" })) + "</small>" + rows + "</span>" : "");
   }
   function veaLoad() {
     if (!window.fetch) return;
@@ -1359,6 +1385,10 @@
       if (!panel.classList.contains("active") || document.hidden || !vea.st || !vea.st.live) return;
       var b = panel.querySelector('[data-fam="vea"] b[data-k="streamed"]');
       if (b && veaRun()) b.textContent = veaFmtS(veaStreamed()); // only the number: the live dot keeps its pulse
+      // the featured card: the big counter and each staker's rewards since this page opened
+      var b2 = panel.querySelector('[data-veaflow] b[data-k2="streamed"]');
+      if (b2 && veaRun()) b2.textContent = veaFmtS(veaStreamed());
+      if (veaRun()) panel.querySelectorAll("[data-veaflow] em[data-vs]").forEach(function (e) { e.textContent = "+" + veaFmtS(Number(e.getAttribute("data-vs")) * (Date.now() - veaSeen.at) / 1000); });
     }, 1000);
   }
 
@@ -1776,14 +1806,14 @@
           // ARCIA's other utilities, in one place
           // a div, not <nav>: the site's global nav rules (full-bleed width, side padding, scrolling) would pull it out of the hero on phones
           '<div class="aa-fam" role="navigation" aria-label="More from ARCIA">' +
-            '<a class="aa-fam-c vea" href="/arc#vearcia" data-arc-tab="vearcia"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg></span>' +
-              '<span class="aa-fam-t"><b>veARCIA <span class="aa-fam-beta" data-no-i18n>New</span></b><small>Stake $ARCIA for 1–20 days and earn $ARCIA every second — $ARCIRCLE holders boost up to 2.0x</small><em class="aa-fam-live" data-fam="vea"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+            '<a class="aa-fam-c vea wide" href="/arc#vearcia" data-arc-tab="vearcia"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg></span>' +
+              '<span class="aa-fam-t"><b>veARCIA <span class="aa-fam-beta" data-no-i18n>New</span></b><small>Stake $ARCIA for 1–20 days and earn $ARCIA every second — $ARCIRCLE holders boost up to 2.0x</small><em class="aa-fam-live" data-fam="vea"></em><span class="aa-vf" data-veaflow></span></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA DESK <span class="aa-fam-beta">Beta</span></b><small>She trades new Argus launches with her own small wallet and learns from every trade</small><em class="aa-fam-live" data-fam="desk"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c agent" href="/arc#agent" data-arc-tab="agent"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span>' +
-              '<span class="aa-fam-t"><b>ARCIA AGENT <span class="aa-fam-beta" data-no-i18n>New</span></b><small>Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund</small><em class="aa-fam-live" data-fam="agent"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
+              '<span class="aa-fam-t"><b>ARCIA AGENT <span class="aa-fam-beta" data-no-i18n>v2</span></b><small>Paste an Arc token: she reads it, makes a 24-hour safety call and burns it from vaults anyone can fund</small><em class="aa-fam-live" data-fam="agent"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
           "</div>" +
         "</div>" +
         '<div class="aa-stage">' +
