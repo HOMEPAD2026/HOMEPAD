@@ -17,6 +17,7 @@
 import { evmChain } from "./_evm.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { announcePons } from "./_tg.mjs";
+import { withDexStats } from "./_dexstats.mjs";
 
 const env = (k) => (typeof process !== "undefined" && process.env ? process.env[k] : undefined);
 // keep in step with config-arc.js CONFIG.PONS
@@ -257,7 +258,8 @@ export async function list({ store = null, budgetMs = 4000 } = {}) {
   if (mem.view && Date.now() - mem.view.at < 60e3) return mem.view;
   const items = await readList(store);
   await scan(store, items, budgetMs).catch(() => 0);
-  const view = await withPrices(items);
+  // v6: each coin's last 24h from Dexscreener (volume, change, trades), for Explore, the ticker and HOT
+  const view = await withDexStats("robinhood", await withPrices(items), "token");
   mem.view = { items: view, splits: splitsAddr() || null, at: Date.now() };
   return mem.view;
 }

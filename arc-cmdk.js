@@ -14,7 +14,7 @@
     ["Home", "ARCIRCLE PAD", "/", "page"],
     ["ArcPad", "Launch a coin in one transaction", "/arc", "page"],
     ["Launch a coin", "ArcPad launch form", "/arc#launch", "page"],
-    ["CirclePad", "Community-funded launches · Round #2 next", "/circle", "page"],
+    ["CirclePad", "Community-funded launches · Round #3: $ARCIA + Round #4 on Solana", "/circle", "page"],
     ["$ARCIRCLE", "Price, holders, burns and buybacks", "/arcircle", "page"],
     ["Relay Launch", "Every CirclePad coin relayed to holders", "/relay", "page"],
     ["Reward", "Holder rewards", "/reward", "page"],

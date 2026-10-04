@@ -85,6 +85,7 @@ import * as argusArc from "./_argus-arcpad.mjs";
 import * as ponsArc from "./_pons-arcpad.mjs";
 import * as pumpArc from "./_pump-arcpad.mjs";
 import * as orders from "./_orders.mjs";
+import * as v6mod from "./_arcpad-v6.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -188,9 +189,21 @@ export async function readTweet(id, handleHint) {
 
 // ================= GET =================
 const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
+// ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
+let V6 = null;
+const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)),
+  argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
 export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("health")) return json(200, await storeHealth());
+  if (url.searchParams.has("comments") || url.searchParams.has("refstats") || url.searchParams.has("launchplans")) {
+    if (!storeEnabled()) return json(200, { enabled: false, items: [] });
+    try {
+      if (url.searchParams.has("comments")) return await v6().comments(url.searchParams.get("comments"));
+      if (url.searchParams.has("refstats")) return await v6().refStats(url.searchParams.get("refstats"));
+      return await v6().plans();
+    } catch (err) { console.error("v6 GET", err && err.message || err); return json(502, { error: "couldn't read that right now" }); }
+  }
   if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
   // CirclePad rounds (api/_rounds.mjs): the list + launch process, the boot script for /circle, a round's summary and CSV
   if (url.searchParams.get("circle") === "rounds") {
@@ -622,6 +635,13 @@ export async function POST(req) {
   let b = {};
   try { b = (await req.json()) || {}; } catch { return json(400, { error: "bad JSON" }); }
   try {
+    if (["comment", "commentpin", "refnote", "launchplan"].includes(b.action)) {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (b.action === "comment") return await v6().comment(b, ip);
+      if (b.action === "commentpin") return await v6().pin(b);
+      if (b.action === "refnote") return await v6().refNote(b, ip);
+      return await v6().plan(b, ip);
+    }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
     if (b.action === "vote") return await vote(b);

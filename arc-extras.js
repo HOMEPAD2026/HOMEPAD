@@ -30,7 +30,7 @@
   const safeImg = (u) => /^https?:\/\//i.test(u || "") || /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u || "");
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.6l6-.9z"/></svg>';
   const SUPPLY = 1_000_000_000;
-  const TREASURY = "0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8";
+  const TREASURY = String((typeof CONFIG !== "undefined" && ((CONFIG.ARGUS && CONFIG.ARGUS.PLATFORM_WALLET) || (CONFIG.PONS && CONFIG.PONS.TREASURY))) || "0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8").toLowerCase();
   const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
 
   // ================= toasts =================
@@ -63,7 +63,6 @@
   watchStatus("ap-launch-status", ".status.success", "Your coin is live", null);
   watchStatus("apc-status", ".ac2-msg.success", "Trade confirmed", () => (typeof APC !== "undefined" && APC.side === "sell" ? "sell" : "buy"));
   watchStatus("ac2-status", ".ac2-msg.success", "Trade confirmed", () => (typeof AC2 !== "undefined" && AC2.side === "sell" ? "sell" : "buy"));
-  watchStatus("ap-trade-status", ".status.success", "Trade confirmed", () => (ARC.tradeSide === "sell" ? "sell" : "buy"));
 
   // ================= watchlist =================
   const WL_KEY = "arcpad.watchlist.v1";
@@ -140,10 +139,13 @@
   let hotMemo = { stats: null, set: new Set() };
   function hotSet() {
     if (typeof ACT === "undefined") return hotMemo.set;
-    if (hotMemo.stats === ACT.stats) return hotMemo.set;
-    const rows = [...ACT.stats.entries()].filter(([, s]) => (s.trades1h || 0) >= 2 && (s.vol1h || 0) > 0)
+    const n = typeof arcAllCoins === "function" ? arcAllCoins().length : 0;
+    if (hotMemo.stats === ACT.stats && hotMemo.n === n && Date.now() - (hotMemo.at || 0) < 30e3) return hotMemo.set;
+    // v6: Pons and Pump.fun coins too (their numbers come from the server's Dexscreener read)
+    const all = typeof arcAllCoins === "function" ? arcAllCoins().map((l) => [l.platform === "pump" ? String(l.token) : lc(l.token), arcAnyStats(l)]) : [...ACT.stats.entries()];
+    const rows = all.filter(([, s]) => s && (s.trades1h || 0) >= 2 && (s.vol1h || 0) > 0)
       .sort((a, b) => b[1].vol1h - a[1].vol1h).slice(0, 3).map(([k]) => k);
-    hotMemo = { stats: ACT.stats, set: new Set(rows) };
+    hotMemo = { stats: ACT.stats, n, at: Date.now(), set: new Set(rows) };
     return hotMemo.set;
   }
 
@@ -162,7 +164,7 @@
     const star = card.querySelector("[data-star]");
     if (star) { const on = isWatched(token); star.classList.toggle("on", on); star.setAttribute("aria-pressed", on ? "true" : "false"); }
     // HOT
-    const hot = hotSet().has(lc(token));
+    const hot = hotSet().has(card.dataset.platform === "pump" ? String(token) : lc(token));
     let hb = card.querySelector(".ap-hot");
     if (hot && !hb && top) { hb = document.createElement("span"); hb.className = "ap-hot"; hb.textContent = "HOT"; hb.title = "Among the most-traded coins in the last hour"; top.insertBefore(hb, top.querySelector(".ap-card-age")); }
     else if (!hot && hb) hb.remove();
@@ -347,7 +349,9 @@
     const native = await p.getBalance(account).catch(() => null);
     const n = launches.length;
     const res = arcLive && CONFIG.ARCIRCLE_CURVE ? r[n + 1] : null;
-    const arcPrice = res ? Number(ethers.formatUnits(res[0], 6)) / Number(ethers.formatUnits(res[1], 18)) : null;
+    // $ARCIRCLE trades in its Argus Uniswap v4 pool now (arc-quote.js prices it); the old curve only if one is configured
+    let arcPrice = res ? Number(ethers.formatUnits(res[0], 6)) / Number(ethers.formatUnits(res[1], 18)) : null;
+    if (arcPrice == null && arcLive && typeof arcQuotePriceUsd === "function") { try { arcPrice = (await arcQuotePriceUsd(ARCIRCLE_TOKEN())).price; } catch { arcPrice = null; } }
     const rows = launches.map((l, i) => {
       const amt = r[i] != null ? Number(ethers.formatUnits(r[i], 18)) : 0;
       return { l, amt, value: l.priceUsdc != null ? amt * l.priceUsdc : null };
@@ -412,7 +416,8 @@
     const mineHtml = mine.map((l) => {
       const s = st(l);
       const argus = l.platform === "argus";
-      const fee = argus ? 0 : (s.vol || 0) * (0.007 + (l.extraFeeBps || 0) / 10000);
+      // the creator's share of the base fee (70% of ARC.baseFeeBps, read from the factory) plus the add-on
+      const fee = argus ? 0 : (s.vol || 0) * ((((ARC.baseFeeBps != null ? ARC.baseFeeBps : 100) * 0.7) + (l.extraFeeBps || 0)) / 10000);
       feeTotal += fee;
       const img = safeImg(l.imageUrl) ? `<img class="pf-logo" src="${esc(l.imageUrl)}" alt="">` : `<span class="pf-logo ph" style="${avatarBg(l.token)}">${esc(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`;
       return `<a class="pf-launch" href="/arc#coin/${l.token}">

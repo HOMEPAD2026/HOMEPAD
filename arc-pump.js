@@ -340,6 +340,7 @@
     return sendAndConfirm(s, bh.lastValidBlockHeight);
   }
   function done(mint, sym, sig) {
+    if (typeof window.arcLaunchLive === "function") setTimeout(() => window.arcLaunchLive({ platform: "pump", token: mint, symbol: sym, venue: APP(mint) }), 400);
     status(`<b>${T("Your coin is live on Pump.fun.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${T("It trades on its Pump.fun bonding curve until it graduates to PumpSwap. Creator fees are paid out 70% to you, 30% to ARCIRCLE PAD — from the coin's card in Explore.")}
       <span class="agl-links"><a href="${esc(APP(mint))}" target="_blank" rel="noopener">Pump.fun ↗</a><a href="#explore?plat=pump&coin=${esc(mint)}">${T("See it in Explore")}</a><a href="${esc(SCAN("tx", sig))}" target="_blank" rel="noopener">Solscan ↗</a></span>`, "success");
     if (typeof window.arcConfetti === "function") window.arcConfetti();
@@ -406,7 +407,7 @@
       platform: "pump", chain: "solana", token: x.mint, name: x.name || "", symbol: x.symbol || "", creator: x.creator, sharingConfig: x.sharingConfig, curve: x.curve,
       quoteToken: "solana", imageUrl: x.image || "", description: x.description || "", launchedAt: x.launchedAt || 0,
       twitter: x.twitter || "", telegram: x.telegram || "", discord: "", website: x.website || "",
-      quoteSymbol: "SOL", quoteDecimals: 9, quoteIsUsdc: false, priceUsdc: x.priceUsd, priceInQuote: x.priceSol, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null,
+      quoteSymbol: "SOL", quoteDecimals: 9, quoteIsUsdc: false, priceUsdc: x.priceUsd, priceInQuote: x.priceSol, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null, stats: x.stats || null,
       progress: x.progress, graduated: !!x.graduated, feesWaiting: x.feesWaitingLamports, sig: x.sig, active: x.active,
     };
   }

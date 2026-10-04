@@ -328,6 +328,7 @@
     return null;
   }
   function done(token, sym, tx, nft) {
+    if (typeof window.arcLaunchLive === "function") setTimeout(() => window.arcLaunchLive({ platform: "pons", token, symbol: sym, venue: PONS_URL(token) }), 400);
     status(`<b>${T("Your coin is live on Pons.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${nft ? T("Its creator fees go to the ARCIRCLE NFT Vault router: 50% buys NFTs raffled to $ARCIRCLE holders, 50% the treasury.") : T("It trades on its Pons bonding curve until it graduates into a locked Uniswap v4 pool. Your 70% of the creator fees is claimed from the coin's card in Explore.")}
       <span class="agl-links"><a href="${esc(PONS_URL(token))}" target="_blank" rel="noopener">Pons ↗</a><a href="#explore?plat=pons&coin=${esc(token)}">${T("See it in Explore")}</a><a href="${esc(EXPL("tx", tx))}" target="_blank" rel="noopener">Blockscout ↗</a></span>`, "success");
     if (typeof window.arcConfetti === "function") window.arcConfetti();
@@ -351,7 +352,7 @@
       platform: "pons", chain: "robinhood", token: lc(x.token), name: x.name || "", symbol: x.symbol || "", creator: lc(x.creator), splitter: lc(x.splitter), curve: lc(x.curve),
       quoteToken: ethers.ZeroAddress, imageUrl: x.image || "", description: x.description || "", launchedAt: x.launchedAt || 0,
       twitter: x.twitter || "", telegram: x.telegram || "", discord: "", website: x.website || "",
-      quoteSymbol: "ETH", quoteDecimals: 18, quoteIsUsdc: false, priceUsdc: x.priceUsd, priceInQuote: x.priceEth, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null,
+      quoteSymbol: "ETH", quoteDecimals: 18, quoteIsUsdc: false, priceUsdc: x.priceUsd, priceInQuote: x.priceEth, marketCapUsd: x.mcapUsd, isLivePrice: x.priceUsd != null, stats: x.stats || null,
       progress: x.progress, graduated: !!x.graduated, phase: x.phase, graduationThreshold: x.graduationThreshold, creatorTaxBps: x.creatorTaxBps, tx: x.tx, active: x.active,
     };
   }
@@ -401,7 +402,14 @@
       sheet.className = "agl-sheet pon-sheet"; sheet.hidden = true;
       sheet.innerHTML = `<div class="agl-sh-bg" data-sh-close></div><div class="agl-sh-box" role="dialog" aria-modal="true" aria-labelledby="pon-sh-t"></div>`;
       document.body.appendChild(sheet);
-      sheet.addEventListener("click", (e) => { if (e.target.closest("[data-sh-close]")) closeSheet(); const c = e.target.closest("[data-pon-claim]"); if (c) claim(c.dataset.ponClaim); });
+      sheet.addEventListener("click", (e) => {
+        if (e.target.closest("[data-sh-close]")) closeSheet();
+        const c = e.target.closest("[data-pon-claim]"); if (c) claim(c.dataset.ponClaim);
+        const sd = e.target.closest("[data-pt-side]"); if (sd) { PT.side = sd.dataset.ptSide; paintTrade(); }
+        const q = e.target.closest("[data-pt-q]"); if (q) ptQuick(q.dataset.ptQ);
+        if (e.target.closest("[data-pt-go]")) ptGo();
+      });
+      sheet.addEventListener("input", (e) => { if (e.target.id === "pt-amt") { clearTimeout(PT.qt); PT.qt = setTimeout(ptQuote, 300); } });
       document.addEventListener("keydown", (e) => { if (e.key === "Escape" && sheet && !sheet.hidden) closeSheet(); });
     }
     const m = l.marketCapUsd, lo = SUP.DEX_INFO_MCAP, hi = SUP.MARKETING_MCAP;
@@ -413,6 +421,7 @@
       <div class="agl-sh-h"><div class="agl-sh-logo">${logo}</div><div><h3 id="pon-sh-t" data-no-i18n>$${esc(l.symbol)} <small>${esc(l.name)}</small></h3><span class="agl-sh-tag">${T("Launched on Pons via ArcPad · Robinhood Chain")}</span></div></div>
       <div class="agl-sh-stats"><div><small>${T("Price")}</small><b data-no-i18n>${l.priceUsdc != null ? usd(l.priceUsdc) : "—"}</b></div><div><small>${T("Market cap")}</small><b data-no-i18n>${usd(m)}</b></div><div><small>${T("Creator")}</small><b data-no-i18n><a href="${esc(EXPL("address", l.creator))}" target="_blank" rel="noopener">${esc(short(l.creator))}</a></b></div></div>
       ${gradHtml(l, "lg")}
+      ${tradeBoxHtml(l)}
       <div class="pon-fees" id="pon-fees"><div><b>${T("Creator fees")}</b><small>${T("Paid to this coin's ArcPad splitter: 70% the creator, 30% ARCIRCLE PAD — set at launch, for good.")}</small></div><span class="pon-fees-v" id="pon-fees-v" data-no-i18n>…</span>${mine ? `<button type="button" class="ams-mini" data-pon-claim="${esc(l.token)}">${T("Claim my 70%")}</button>` : ""}</div>
       <p class="pon-fees-msg" id="pon-fees-msg" aria-live="polite"></p>
       ${window.arcArgus && window.arcArgus.progress ? window.arcArgus.progress(m, "lg") : ""}
@@ -424,7 +433,96 @@
     document.documentElement.classList.add("agl-sh-open");
     requestAnimationFrame(() => sheet.classList.add("in"));
     pendingFees(l);
+    PT.l = l; PT.out = null; ptBal();
     return true;
+  }
+  // ---------------- v6: buy and sell on the coin's Pons curve, right here (before it graduates) ----------------
+  // A graduated coin trades in its Uniswap v4 pool: ARCIRCLE Orders' Robinhood side does market and limit orders there.
+  const PT = { side: "buy", l: null, out: null, bal: null, busy: false, qt: 0 };
+  const PONS_CURVE_ABI = ["function buy(uint256 quoteIn, uint256 minTokensOut, address recipient) payable returns (uint256 tokensOut)", "function sell(uint256 tokensIn, uint256 minQuoteOut, address recipient) returns (uint256 quoteOut)"];
+  function tradeBoxHtml(l) {
+    if (l.graduated) return `<div class="pt-box pt-grad"><b>${T("Graduated to Uniswap v4")}</b><span>${T("Trade it with market and limit orders on ARCIRCLE Orders' Robinhood side.")}</span><a class="bp-btn-primary" href="#orders?c=rh&t=${esc(l.token)}" data-sh-close>${T("Trade on ARCIRCLE Orders")} →</a></div>`;
+    if (!isAddr(l.curve)) return "";
+    return `<div class="pt-box" id="pt-box"><div class="pt-tabs" role="radiogroup"><button type="button" role="radio" data-pt-side="buy" aria-checked="true">${T("Buy")}</button><button type="button" role="radio" data-pt-side="sell" aria-checked="false">${T("Sell")}</button></div>
+      <label class="pt-in"><input id="pt-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0"><span id="pt-unit" data-no-i18n>ETH</span></label>
+      <div class="pt-quick" id="pt-quick"></div>
+      <p class="pt-q" id="pt-q" aria-live="polite"></p>
+      <button type="button" class="bp-btn-primary pt-go" data-pt-go id="pt-go">${T("Buy")}</button>
+      <p class="pt-msg" id="pt-msg" aria-live="polite"></p>
+      <small class="pt-note">${T("On the coin's Pons bonding curve, Robinhood Chain · 3% slippage limit · your wallet switches to Robinhood Chain for it.")}</small></div>`;
+  }
+  async function ptBal() {
+    const l = PT.l; PT.bal = null;
+    if (!l || l.graduated || !me()) { paintTrade(); return; }
+    try { const [eth, tok] = await Promise.all([rpc().getBalance(me()), retry(() => rd(l.token, ["function balanceOf(address) view returns (uint256)"]).balanceOf(me()))]); PT.bal = { eth: BigInt(eth), tok: BigInt(tok) }; } catch { PT.bal = null; }
+    paintTrade();
+  }
+  function paintTrade() {
+    if (!sheet || !$("pt-box")) return;
+    const buy = PT.side === "buy", l = PT.l;
+    sheet.querySelectorAll("[data-pt-side]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.ptSide === PT.side)));
+    $("pt-box").classList.toggle("sell", !buy);
+    $("pt-unit").textContent = buy ? "ETH" : "$" + (l.symbol || "");
+    $("pt-quick").innerHTML = (buy ? ["0.001", "0.005", "0.01", "0.05"] : ["25%", "50%", "100%"]).map((v) => `<button type="button" data-pt-q="${v}" data-no-i18n>${v}${buy ? " ETH" : ""}</button>`).join("");
+    const b = $("pt-go");
+    if (b && !PT.busy) b.textContent = !me() ? tr("Connect wallet") : tr(buy ? "Buy" : "Sell") + " $" + (l.symbol || "");
+    const q = $("pt-q");
+    if (q) q.innerHTML = PT.bal ? `${T("Balance")} <span data-no-i18n>${buy ? ethS(PT.bal.eth, 5) + " ETH" : Number(ethers.formatUnits(PT.bal.tok, 18)).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " $" + esc(l.symbol || "")}</span>${PT.out != null ? ` · ${T("you get about")} <b data-no-i18n>${buy ? Number(ethers.formatUnits(PT.out, 18)).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " $" + esc(l.symbol || "") : ethS(PT.out, 6) + " ETH"}</b>` : ""}` : "";
+  }
+  function ptQuick(v) {
+    const inp = $("pt-amt"); if (!inp) return;
+    if (/%$/.test(v)) { if (!PT.bal) return; const raw = (PT.bal.tok * BigInt(parseInt(v, 10))) / 100n; inp.value = ethers.formatUnits(raw, 18); }
+    else inp.value = v;
+    ptQuote();
+  }
+  const ptAmt = () => { const s = String(($("pt-amt") || {}).value || "").trim().replace(/,/g, ""); try { return s && Number(s) > 0 ? ethers.parseUnits(s, 18) : null; } catch { return null; } };
+  async function ptQuote() {
+    const l = PT.l, amt = ptAmt();
+    PT.out = null;
+    if (l && amt && me()) {
+      const C = new ethers.Interface(PONS_CURVE_ABI);
+      try {
+        const buy = PT.side === "buy";
+        const data = buy ? C.encodeFunctionData("buy", [amt, 0n, me()]) : C.encodeFunctionData("sell", [amt, 0n, me()]);
+        const r = await rpc().call({ from: me(), to: l.curve, data, value: buy ? amt : 0n });
+        PT.out = BigInt(C.decodeFunctionResult(buy ? "buy" : "sell", r)[0]);
+      } catch { PT.out = null; }
+    }
+    paintTrade();
+  }
+  async function ptGo() {
+    const l = PT.l, msg = (h, k) => { const el = $("pt-msg"); if (el) { el.className = "pt-msg " + (k || ""); el.innerHTML = h; } };
+    if (!l || PT.busy) return;
+    if (!me()) { if (typeof connectWallet === "function") await connectWallet(); ptBal(); return; }
+    const amt = ptAmt();
+    if (!amt) { msg(T("Enter an amount."), "bad"); return; }
+    const buy = PT.side === "buy";
+    if (PT.bal && (buy ? amt > PT.bal.eth : amt > PT.bal.tok)) { msg(T(buy ? "Not enough ETH." : "Not enough tokens."), "bad"); return; }
+    const stay = await startedOnRh();
+    PT.busy = true; holdChain(true);
+    const b = $("pt-go"); if (b) b.disabled = true;
+    try {
+      msg(T("Switch your wallet to Robinhood Chain if it asks…"));
+      const sg = await rhSigner();
+      await ptQuote();
+      if (PT.out == null) throw new Error(tr("Couldn't price that trade on the curve right now."));
+      const min = (PT.out * 97n) / 100n;
+      const curve = new ethers.Contract(l.curve, PONS_CURVE_ABI, sg);
+      if (!buy) {
+        const tok = new ethers.Contract(l.token, ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], sg);
+        const al = BigInt(await retry(() => rd(l.token, ["function allowance(address,address) view returns (uint256)"]).allowance(me(), l.curve)));
+        if (al < amt) { msg(T("Approve the tokens for the curve — confirm in your wallet…")); await waitTx(await tok.approve(l.curve, amt)); }
+      }
+      msg(T("Confirm in your wallet…"));
+      const tx = buy ? await curve.buy(amt, min, me(), { value: amt }) : await curve.sell(amt, min, me());
+      msg(`${T(buy ? "Buying…" : "Selling…")} <a href="${esc(EXPL("tx", tx.hash))}" target="_blank" rel="noopener">tx ↗</a>`);
+      await waitTx(tx);
+      msg(`${T(buy ? "Bought." : "Sold.")} <a href="${esc(EXPL("tx", tx.hash))}" target="_blank" rel="noopener">Blockscout ↗</a>`, "ok");
+      if (typeof window.arcConfetti === "function" && buy) window.arcConfetti();
+      $("pt-amt").value = ""; PT.out = null;
+      PN.at = 0; loadList(); ptBal();
+    } catch (e) { msg(esc(why(e)), "bad"); }
+    finally { if (!stay) await backToArc(); else if (typeof updateNetworkBadge === "function") updateNetworkBadge(); holdChain(false); PT.busy = false; if (b) b.disabled = false; paintTrade(); }
   }
   function closeSheet() {
     if (!sheet) return;

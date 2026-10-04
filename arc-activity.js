@@ -40,9 +40,10 @@ window.arcTickerEvent = function (ev) {
 };
 function actEvents() {
   const now = Date.now() / 1000, ev = [];
-  const argus = window.arcArgus && typeof window.arcArgus.rows === "function" ? window.arcArgus.rows() : [];
-  for (const l of (ARC.launches || []).concat(argus)) {
-    if (l.launchedAt && now - l.launchedAt < ACT_WINDOW_SEC) ev.push({ kind: "launch", ts: l.launchedAt, sym: l.symbol, token: String(l.token).toLowerCase(), img: l.imageUrl, argus: l.platform === "argus" });
+  const rowsOf = (m) => (m && typeof m.rows === "function" ? m.rows() : []);
+  // v6: every platform's new launches — ArcPad, Argus, Pons (Robinhood Chain) and Pump.fun (Solana)
+  for (const l of (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump))) {
+    if (l.launchedAt && now - l.launchedAt < ACT_WINDOW_SEC) ev.push({ kind: "launch", ts: l.launchedAt, sym: l.symbol, token: l.platform === "pump" ? String(l.token) : String(l.token).toLowerCase(), img: l.imageUrl, argus: l.platform === "argus", plat: l.platform || "arcpad" });
   }
   for (const d of ACT.drops || []) if (d.ts && now - d.ts < ACT_WINDOW_SEC) ev.push({ kind: "airdrop", ts: d.ts, sym: d.sym, token: d.token, n: d.n, total: d.total, dec: d.dec, tx: d.tx });
   ACT.events = ev.concat(ACT.pushed.filter((x) => now - x.ts < ACT_WINDOW_SEC));
@@ -61,8 +62,8 @@ function actTickerEventHtml(t) {
   const sym = `$${actEsc(t.sym || "?")}`;
   const img = /^https?:\/\//i.test(t.img || "") || /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(t.img || "")
     ? `<img src="${actEsc(t.img)}" alt="">` : `<span class="tk-ph" style="${t.token && typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(t.token) : ""}">${actEsc(String(t.sym || "?").slice(0, 1))}</span>`;
-  const coinHref = `/arc#coin/${t.token}`;
-  if (t.kind === "launch") return `<a class="tk-item tk-ev tk-launch" href="${coinHref}"><span class="tk-badge">NEW</span>${img}<b>${sym}</b><span class="tk-side">${t.argus ? "on Argus" : "launched"}</span><time>${actAgo(t.ts)}</time></a>`;
+  const coinHref = t.plat === "pons" || t.plat === "pump" ? `/arc#explore?plat=${t.plat}&coin=${t.token}` : `/arc#coin/${t.token}`;
+  if (t.kind === "launch") return `<a class="tk-item tk-ev tk-launch" href="${coinHref}"><span class="tk-badge">NEW</span>${img}<b>${sym}</b><span class="tk-side">${t.argus ? "on Argus" : t.plat === "pons" ? "on Pons" : t.plat === "pump" ? "on Pump.fun" : "launched"}</span><time>${actAgo(t.ts)}</time></a>`;
   if (t.kind === "milestone") return `<a class="tk-item tk-ev tk-ms" href="${coinHref}"><span class="tk-badge">${actEsc(t.text)}</span>${img}<b>${sym}</b><span class="tk-side">mcap reached</span><time>${actAgo(t.ts)}</time></a>`;
   let amt = "";
   try { amt = t.total ? actCompactUnits(BigInt(t.total), t.dec ?? 18) + " " : ""; } catch { amt = ""; }
@@ -127,6 +128,22 @@ function arcChangeSinceLaunch(l) {
   return Math.abs(c) < 0.0005 ? 0 : c;
 }
 function arcActStats(token) { return ACT.stats.get(String(token).toLowerCase()) || null; }
+/// v6: one shape of 24h stats for every platform — Arc pools from the Swap logs above, Pons and Pump.fun coins from
+/// the server's Dexscreener numbers (row.stats): { vol, trades, vol1h, trades1h, chg24 }
+function arcAnyStats(l) {
+  if (!l) return null;
+  if (l.platform === "pons" || l.platform === "pump") {
+    const s = l.stats;
+    return s ? { vol: s.vol24 || 0, trades: (s.buys24 || 0) + (s.sells24 || 0), vol1h: s.vol1h || 0, trades1h: s.trades1h || 0, chg24: s.chg24, spark: [] } : null;
+  }
+  return arcActStats(l.token);
+}
+/// every coin ArcPad lists, on every platform
+function arcAllCoins() {
+  const rowsOf = (m) => (m && typeof m.rows === "function" ? m.rows() : []);
+  return (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump));
+}
+window.arcAnyStats = arcAnyStats; window.arcAllCoins = arcAllCoins;
 function arcLaunchAge(l) { return l && l.launchedAt ? actAgo(l.launchedAt) : ""; }
 
 // ---------- pool ids ----------
@@ -474,8 +491,9 @@ function arcShareText(kind) {
   const mcap = ((document.getElementById("apc-mcap") || {}).textContent || "").trim();
   const token = typeof APC !== "undefined" && APC.token ? APC.token : "";
   const tag = sym ? (sym.startsWith("$") ? sym : `$${sym}`) : name;
+  const argus = typeof APC !== "undefined" && APC.l && APC.l.platform === "argus";
   return {
-    text: `${tag}${name && sym ? ` (${name})` : ""} is live on ArcPad — a real Uniswap v4 pool on Circle's Arc 💚\n${price && price !== "—" ? `Price ${price} · MC ${mcap}\n` : ""}`,
+    text: `${tag}${name && sym ? ` (${name})` : ""} is live ${argus ? "on Argus, launched through ArcPad — its own Uniswap v4 pool" : "on ArcPad — a real Uniswap v4 pool"} on Circle's Arc 💚\n${price && price !== "—" ? `Price ${price} · MC ${mcap}\n` : ""}`,
     url: arcCoinShareUrl(token),
   };
 }

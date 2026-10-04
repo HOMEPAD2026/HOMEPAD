@@ -420,6 +420,7 @@ self.postMessage({done:true});};`;
     status(`<b>${T("Your coin is live on Argus.")}</b> <span data-no-i18n>$${esc(sym || "")}</span> · ${T("Claim your 70% of the creator fees any time at argus.world/claim.")}
       <span class="agl-links"><a href="https://argus.world/token/${esc(token)}" target="_blank" rel="noopener">Argus ↗</a><a href="#scanner?t=${esc(token)}">${T("Scan it")}</a><a href="#liquidity?token=${esc(token)}">${T("Liquidity")}</a><a href="#explore">${T("See it in Explore")}</a><a href="${esc(EXPL("token", token))}" target="_blank" rel="noopener">${T("Explorer")} ↗</a></span>`, "success");
     if (typeof window.arcConfetti === "function") window.arcConfetti();
+    if (typeof window.arcLaunchLive === "function") window.arcLaunchLive({ platform: "argus", token, symbol: sym, venue: `https://argus.world/token/${token}` });
   }
   // a launch that went out but whose split step didn't finish (closed tab, rejected, out of gas)
   async function resumeCard() {

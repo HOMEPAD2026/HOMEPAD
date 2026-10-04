@@ -18,6 +18,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { announcePump } from "./_tg.mjs";
+import { withDexStats } from "./_dexstats.mjs";
 
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 // keep in step with config-arc.js CONFIG.PUMP
@@ -265,7 +266,7 @@ async function maybeAnnounce(item, { force = false } = {}) {
 export async function list({ store = null } = {}) {
   if (mem.view && Date.now() - mem.view.at < 45e3) return mem.view;
   const items = await readList(store);
-  const view = await withPrices(items);
+  const view = await withDexStats("solana", await withPrices(items), "mint");
   mem.view = { items: view, treasury: treasury() || null, platformBps: PLATFORM_BPS, at: Date.now() };
   return mem.view;
 }

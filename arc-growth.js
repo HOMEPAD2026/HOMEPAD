@@ -87,10 +87,11 @@
   const creatorsActive = () => { const p = $("bp-panel-creators"); return !!(p && p.classList.contains("active")); };
   function creatorRows() {
     const by = new Map();
-    for (const l of ARC.launches) {
+    // v6: every platform ArcPad launches on (Pons and Pump.fun numbers come from the server's Dexscreener read)
+    for (const l of (typeof arcAllCoins === "function" ? arcAllCoins() : ARC.launches)) {
       const k = lc(l.creator);
-      if (!k) continue;
-      const s = (typeof arcActStats === "function" && arcActStats(l.token)) || { vol: 0, trades: 0 };
+      if (!k || !/^0x[0-9a-f]{40}$/.test(k)) continue;
+      const s = (typeof arcAnyStats === "function" ? arcAnyStats(l) : typeof arcActStats === "function" && arcActStats(l.token)) || { vol: 0, trades: 0 };
       const boost = l.quoteToken && lc(l.quoteToken) === lc(ARCIRCLE.token) ? 1.25 : 1;
       const coinScore = ((s.vol || 0) + 5 * (s.trades || 0)) * boost;
       if (!by.has(k)) by.set(k, { creator: l.creator, coins: [], vol: 0, trades: 0, score: 0, boosted: false });
@@ -111,7 +112,7 @@
       ${rows.map((r, i) => `<div class="cr-row${lc(r.creator) === me ? " is-me" : ""}${i < 3 && r.score > 0 ? ` top${i + 1}` : ""}">
         <span class="cr-rank">${i + 1}</span>
         <span class="cr-who"><a href="${explorer("address", r.creator)}" target="_blank" rel="noopener" data-no-i18n>${short(r.creator)}</a>${lc(r.creator) === me ? ' <span class="ac2-you">you</span>' : ""}</span>
-        <span class="cr-coins">${r.coins.slice(0, 4).map((l) => `<a class="cr-coin" href="/arc#coin/${l.token}">$${esc(l.symbol)}</a>`).join("")}${r.coins.length > 4 ? `<span class="cr-more">+${r.coins.length - 4}</span>` : ""}</span>
+        <span class="cr-coins">${r.coins.slice(0, 4).map((l) => `<a class="cr-coin${l.platform === "pons" || l.platform === "pump" ? " ext" : ""}" href="${l.platform === "pons" || l.platform === "pump" ? `/arc#explore?plat=${l.platform}&coin=${l.token}` : `/arc#coin/${l.token}`}">$${esc(l.symbol)}</a>`).join("")}${r.coins.length > 4 ? `<span class="cr-more">+${r.coins.length - 4}</span>` : ""}</span>
         <span class="r">${scanning ? "…" : usd(r.vol)}</span>
         <span class="r">${scanning ? "…" : r.trades}</span>
         <span class="r cr-score">${scanning ? "…" : Math.round(r.score).toLocaleString("en-US")}${r.boosted ? '<i title="$ARCIRCLE-paired boost">×1.25</i>' : ""}</span>

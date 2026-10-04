@@ -348,9 +348,7 @@ function wireLaunchCardClicks(root) {
       // and Pump.fun coins on Solana (arc-pump.js)
       if (card.dataset.platform === "pump" && window.arcPump) { window.arcPump.openSheet(card.dataset.token); return; }
       // Argus coins open the same full coin page (arcpad-coin.js knows them)
-      if (typeof openArcCoin === "function") openArcCoin(card.dataset.token);
-      else if (card.dataset.platform === "argus" && window.arcArgus) { window.arcArgus.openSheet(card.dataset.token); return; }
-      else openTradeModal(card.dataset.token);
+      openArcCoin(card.dataset.token);
     });
   });
 }
@@ -832,161 +830,11 @@ async function submitArcpadLaunch(ev) {
   }
 }
 
-// ---------- Trade modal (Buy / Sell) ----------
-function openTradeModal(tokenAddr) {
-  const l = ARC.launches.find((x) => x.token.toLowerCase() === tokenAddr.toLowerCase());
-  if (!l) return;
-  ARC.tradeToken = l;
-  ARC.tradeSide = "buy";
-  document.getElementById("ap-trade-img").src = l.imageUrl || "";
-  document.getElementById("ap-trade-img").style.display = l.imageUrl ? "" : "none";
-  document.getElementById("ap-trade-name").textContent = l.name;
-  document.getElementById("ap-trade-sym").textContent = "$" + l.symbol;
-  document.getElementById("ap-trade-price").textContent = l.priceUsdc != null ? "$" + l.priceUsdc.toPrecision(4) : "—";
-  document.getElementById("ap-trade-mcap").textContent = l.marketCapUsd != null ? fmtUsd(l.marketCapUsd) : "—";
-  document.getElementById("ap-trade-explorer-link").href = `${CONFIG.BLOCK_EXPLORER}/address/${l.token}`;
-  document.getElementById("ap-trade-amount").value = "";
-  document.getElementById("ap-trade-status").innerHTML = "";
-  setTradeTab("buy");
-  document.getElementById("ap-trade-modal").classList.remove("hidden");
-  refreshTradeBalance();
-}
-function closeTradeModal() {
-  document.getElementById("ap-trade-modal").classList.add("hidden");
-  ARC.tradeToken = null;
-}
-
-function setTradeTab(side) {
-  ARC.tradeSide = side;
-  document.getElementById("ap-tab-buy").classList.toggle("active", side === "buy");
-  document.getElementById("ap-tab-sell").classList.toggle("active", side === "sell");
-  document.getElementById("ap-trade-amount").value = "";
-  document.getElementById("ap-trade-preview").textContent = "";
-  refreshTradeBalance();
-  updateTradeSubmitLabel();
-}
-
-async function refreshTradeBalance() {
-  const label = document.getElementById("ap-trade-balance-label");
-  if (!ARC.tradeToken) return;
-  if (!state.account) { label.textContent = "Connect a wallet to see your balance"; return; }
-  try {
-    const addr = ARC.tradeSide === "buy" ? CONFIG.USDC_ADDRESS : ARC.tradeToken.token;
-    const dec = ARC.tradeSide === "buy" ? ARC_QUOTE_DECIMALS : ARC_TOKEN_DECIMALS;
-    const bal = await tokenRead(addr).balanceOf(state.account);
-    const human = Number(ethers.formatUnits(bal, dec));
-    label.textContent = `Balance: ${fmtCompact(human)} ${ARC.tradeSide === "buy" ? "USDC" : ARC.tradeToken.symbol}`;
-    label.dataset.raw = bal.toString();
-  } catch (err) {
-    console.warn("refreshTradeBalance failed", err);
-    label.textContent = "Balance: —";
-  }
-}
-
-function updateTradePreview() {
-  const el = document.getElementById("ap-trade-preview");
-  const amountStr = document.getElementById("ap-trade-amount").value.trim();
-  if (!ARC.tradeToken || !amountStr || Number(amountStr) <= 0 || ARC.tradeToken.priceUsdc == null) { el.textContent = ""; return; }
-  const amount = Number(amountStr);
-  const totalFeeBps = (ARC.baseFeeBps ?? 100) + ARC.tradeToken.extraFeeBps;
-  const feeMult = 1 - totalFeeBps / 10000;
-  if (ARC.tradeSide === "buy") {
-    const tokensOut = (amount / ARC.tradeToken.priceUsdc) * feeMult;
-    el.textContent = `≈ ${fmtCompact(tokensOut)} $${ARC.tradeToken.symbol} — estimate, before price impact. Actual output is protected by a 5% slippage floor.`;
-  } else {
-    const usdcOut = amount * ARC.tradeToken.priceUsdc * feeMult;
-    el.textContent = `≈ ${fmtCompact(usdcOut)} USDC — estimate, before price impact. Actual output is protected by a 5% slippage floor.`;
-  }
-}
-
-function updateTradeSubmitLabel() {
-  const btn = document.getElementById("ap-trade-submit");
-  if (!state.account) { btn.textContent = "Connect wallet"; return; }
-  btn.textContent = ARC.tradeSide === "buy" ? "Buy" : "Sell";
-}
-
-async function submitTrade() {
-  const statusEl = document.getElementById("ap-trade-status");
-  const btn = document.getElementById("ap-trade-submit");
-  if (!state.account) { await connectWallet(); updateTradeSubmitLabel(); if (!state.account) return; }
-  const amountStr = document.getElementById("ap-trade-amount").value.trim();
-  if (!amountStr || Number(amountStr) <= 0) { statusEl.innerHTML = `<div class="status error">Enter an amount.</div>`; return; }
-  const l = ARC.tradeToken;
-  if (!l) return;
-
-  btn.disabled = true;
-  try {
-    await ensureArcForWrite();
-    const router = arcpadRouterWrite();
-    if (ARC.tradeSide === "buy") {
-      const quoteAmount = ethers.parseUnits(amountStr, ARC_QUOTE_DECIMALS);
-      const allowance = await tokenRead(CONFIG.USDC_ADDRESS).allowance(state.account, CONFIG.ARCPAD_ROUTER_ADDRESS);
-      if (allowance < quoteAmount) {
-        statusEl.innerHTML = `<div class="status pending">Approve USDC for the router…</div>`;
-        const tx = await tokenWrite(CONFIG.USDC_ADDRESS).approve(CONFIG.ARCPAD_ROUTER_ADDRESS, quoteAmount);
-        await tx.wait();
-      }
-      // Simulate the exact swap first (eth_call of the real buy) so the
-      // slippage floor is 5% under what the pool would ACTUALLY return right
-      // now — price impact included — rather than 5% under the spot price,
-      // which made any buy big enough to move the price >5% revert with
-      // "slippage". Falls back to the spot estimate only if the simulation
-      // itself can't run.
-      let minTokensOut = 0n;
-      try {
-        const simOut = await router.buy.staticCall(l.token, quoteAmount, 0n);
-        minTokensOut = (simOut * 95n) / 100n;
-      } catch (simErr) {
-        console.warn("buy simulation failed — falling back to spot estimate", simErr);
-        const estTokensOut = l.priceUsdc ? (Number(amountStr) / l.priceUsdc) : 0;
-        minTokensOut = ethers.parseUnits((estTokensOut * 0.95).toFixed(18), ARC_TOKEN_DECIMALS);
-      }
-      statusEl.innerHTML = `<div class="status pending">Confirm the buy in your wallet…</div>`;
-      const tx = await router.buy(l.token, quoteAmount, minTokensOut > 0n ? minTokensOut : 0n);
-      statusEl.innerHTML = `<div class="status pending">Buying… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
-      const receipt = await tx.wait();
-      statusEl.innerHTML = `<div class="status success">Bought! <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
-    } else {
-      const tokenAmount = ethers.parseUnits(amountStr, ARC_TOKEN_DECIMALS);
-      const allowance = await tokenRead(l.token).allowance(state.account, CONFIG.ARCPAD_ROUTER_ADDRESS);
-      if (allowance < tokenAmount) {
-        statusEl.innerHTML = `<div class="status pending">Approve $${l.symbol} for the router…</div>`;
-        const tx = await tokenWrite(l.token).approve(CONFIG.ARCPAD_ROUTER_ADDRESS, tokenAmount);
-        await tx.wait();
-      }
-      let minQuoteOut = 0n;
-      try {
-        const simOut = await router.sell.staticCall(l.token, tokenAmount, 0n);
-        minQuoteOut = (simOut * 95n) / 100n;
-      } catch (simErr) {
-        console.warn("sell simulation failed — falling back to spot estimate", simErr);
-        const estUsdcOut = l.priceUsdc ? Number(amountStr) * l.priceUsdc : 0;
-        minQuoteOut = ethers.parseUnits((estUsdcOut * 0.95).toFixed(6), ARC_QUOTE_DECIMALS);
-      }
-      statusEl.innerHTML = `<div class="status pending">Confirm the sell in your wallet…</div>`;
-      const tx = await router.sell(l.token, tokenAmount, minQuoteOut > 0n ? minQuoteOut : 0n);
-      statusEl.innerHTML = `<div class="status pending">Selling… <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${tx.hash}" target="_blank">tx ↗</a></div>`;
-      const receipt = await tx.wait();
-      statusEl.innerHTML = `<div class="status success">Sold! <a class="mono-link" href="${CONFIG.BLOCK_EXPLORER}/tx/${receipt.hash}" target="_blank">tx ↗</a></div>`;
-    }
-    document.getElementById("ap-trade-amount").value = "";
-    refreshTradeBalance();
-    loadArcpadLaunches().catch((err) => console.error(err));
-  } catch (err) {
-    console.error(err);
-    statusEl.innerHTML = `<div class="status error">${arcpadTxErrorText(err)}</div>`;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 // This page's own version of app.js's global refreshAccountDependentViews()
 // — arc-shared.js is a shared library across ARCPAD and CIRCLEPAD, so it
 // doesn't know which page-specific refresh functions exist.
 function refreshAccountDependentViews() {
   updateArcpadLaunchBalance();
-  updateTradeSubmitLabel();
-  if (ARC.tradeToken) refreshTradeBalance();
 }
 
 // ---------- Boot ----------
@@ -1089,30 +937,6 @@ function refreshAccountDependentViews() {
   wireArcpadImageUpload();
   wireArcpadPair();
   wireArcpadFeePreview();
-
-  // Trade modal
-  document.getElementById("ap-trade-modal-close").addEventListener("click", closeTradeModal);
-  document.getElementById("ap-trade-modal").addEventListener("click", (e) => { if (e.target.id === "ap-trade-modal") closeTradeModal(); });
-  document.getElementById("ap-tab-buy").addEventListener("click", () => setTradeTab("buy"));
-  document.getElementById("ap-tab-sell").addEventListener("click", () => setTradeTab("sell"));
-  document.getElementById("ap-trade-amount").addEventListener("input", updateTradePreview);
-  document.getElementById("ap-trade-submit").addEventListener("click", submitTrade);
-  document.getElementById("ap-trade-max").addEventListener("click", () => {
-    const label = document.getElementById("ap-trade-balance-label");
-    const raw = label.dataset.raw;
-    if (!raw) return;
-    const dec = ARC.tradeSide === "buy" ? ARC_QUOTE_DECIMALS : ARC_TOKEN_DECIMALS;
-    let amount = BigInt(raw);
-    // On Arc the USDC you spend IS the gas token, so "Max" on a buy has to
-    // leave room for the approve + swap gas (~0.01 USDC at today's fees) or
-    // the transaction fails for insufficient funds. 0.05 USDC is ample.
-    if (ARC.tradeSide === "buy") {
-      const reserve = ethers.parseUnits("0.05", ARC_QUOTE_DECIMALS);
-      amount = amount > reserve ? amount - reserve : 0n;
-    }
-    document.getElementById("ap-trade-amount").value = ethers.formatUnits(amount, dec);
-    updateTradePreview();
-  });
 
   // Deep links: arcpad.html#launch / #explore / #docs open that tab directly
   // (the splash page's EXPLORE / LAUNCH nav uses these). Falls back to Home

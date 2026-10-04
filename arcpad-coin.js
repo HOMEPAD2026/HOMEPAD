@@ -423,6 +423,8 @@ function apcRenderHeader() {
   apc$("apc-about-token").innerHTML = `<a href="${apcExplorer("token", l.token)}" target="_blank" rel="noopener">${apcShort(l.token)} ↗</a>`;
   apc$("apc-about-creator").innerHTML = l.creator ? `<a href="${apcExplorer("address", l.creator)}" target="_blank" rel="noopener">${apcShort(l.creator)} ↗</a>` : "—";
   apc$("apc-about-fee").textContent = l.platform === "argus" ? "Set by Argus · creator fees 70% creator, 30% ARCIRCLE PAD" : `${Number(APC.feeBps) / 100}% per trade${l.extraFeeBps ? ` (incl. ${l.extraFeeBps / 100}% creator add-on)` : ""}`;
+  const ps = apc$("apc-about-poolsup");
+  if (ps) ps.textContent = l.platform === "argus" ? "Set by the Argus Portal at launch" : "920,000,000 (92%)";
   if (l.platform === "argus") apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on Argus through ArcPad and trades in its own Uniswap v4 pool on Arc, paired with USDC. Trades happen on Argus; everything on this page is read from Arc.`;
   apcArgusToggle(l.platform === "argus");
   apc$("apc-about-pool").innerHTML = `<a href="${apcExplorer("address", CONFIG.POOL_MANAGER_ADDRESS)}" target="_blank" rel="noopener" title="${APC.poolId}">v4 · ${apcShort(APC.poolId)}</a>`;
@@ -565,7 +567,7 @@ function apcRenderHolders() {
     [CONFIG.POOL_MANAGER_ADDRESS.toLowerCase()]: "Pool",
     [CONFIG.ARCPAD_HOOK_ADDRESS.toLowerCase()]: "Fee hook",
     [CONFIG.ARCPAD_FACTORY_ADDRESS.toLowerCase()]: "Factory",
-    ["0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8"]: "Platform treasury",
+    [String((CONFIG.ARGUS && CONFIG.ARGUS.PLATFORM_WALLET) || (CONFIG.PONS && CONFIG.PONS.TREASURY) || "0xa066e6c5d1ac561a4065b9d6b00fef89c0bd02f8").toLowerCase()]: "Platform treasury",
   };
   const creator = APC.l && APC.l.creator ? APC.l.creator.toLowerCase() : "";
   const me = state.account && state.account.toLowerCase();

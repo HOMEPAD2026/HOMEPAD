@@ -390,6 +390,20 @@ async function cheer(b, ip) {
   return json({ ok: true, counted: give, today: memToday(), goal: HEART_GOAL() });
 }
 
+// ---------- v6: coin name and ticker ideas for the launch form (arcpad-v6.js) ----------
+const NAMES_BRIEF = "The user is about to launch a meme coin on ArcPad and wants ideas. Reply with ONLY a JSON array (no prose, no code fence) of 6 objects {\"name\": string up to 32 chars, \"symbol\": 3-8 uppercase letters or digits, \"why\": up to 60 chars}. Fun, original, no real brands, no real people, nothing offensive. Don't promise prices or returns.";
+async function nameIdeas(b, ip) {
+  if (memHit("n:" + ip, 3600000, 20)) return json({ error: "that's a lot of ideas — try again later" }, 429);
+  const theme = String(b.theme || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 120) || "anything fun on Circle's Arc";
+  const text = await askClaude({ messages: [{ role: "user", content: `Theme: ${theme}` }], L: null, extra: NAMES_BRIEF, maxTokens: 400, timeoutMs: 15000 });
+  if (!text) return json({ error: "no ideas right now — try again" }, 503);
+  let list = [];
+  try { const m = /\[[\s\S]*\]/.exec(text); list = JSON.parse(m ? m[0] : text); } catch { list = []; }
+  list = (Array.isArray(list) ? list : []).map((x) => ({ name: String((x && x.name) || "").slice(0, 32), symbol: String((x && x.symbol) || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8), why: String((x && x.why) || "").slice(0, 80) }))
+    .filter((x) => x.name && x.symbol.length >= 2).slice(0, 6);
+  return json({ ideas: list });
+}
+
 // ---------- her voice (api/_arcia-tts.mjs) ----------
 async function tts(body, ip, lang) {
   if (!ttsProvider()) return json({ error: "voice is off" }, 503);
@@ -431,6 +445,7 @@ export async function POST(req) {
   try { body = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
   const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
   if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
+  if (body && body.action === "names") { try { return await nameIdeas(body, ip); } catch (e) { return json({ error: "no ideas right now — try again" }, 502); } }
   if (body && body.action === "cheer") { try { return await cheer(body, ip); } catch (e) { return json({ error: "couldn't send it" }, 502); } }
   if (body && body.action === "tts") { try { return await tts(body, ip, lang); } catch (e) { console.error("arcia tts", String(e.message || e)); return json({ error: "voice unavailable" }, e.status || 502); } }
   if (body && body.action === "secret-open") { try { return await secret.open(body, json); } catch (e) { console.error("arcia secret", String(e.message || e)); return json({ error: "couldn't check the burn — try again" }, 502); } }
