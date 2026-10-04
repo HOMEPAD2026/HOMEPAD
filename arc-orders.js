@@ -454,7 +454,7 @@
       <div class="aor-pair">
         <span class="aor-logo" aria-hidden="true">${S.tok.logo ? `<img src="${esc(S.tok.logo)}" alt="" width="34" height="34" loading="lazy"${/arcircle-mark/.test(S.tok.logo) ? ' class="mark"' : ""} onerror="this.remove()">` : ""}<i data-no-i18n>${esc((S.tok.symbol || "?").slice(0, 2))}</i></span>
         <div><span class="aor-pair-n" data-no-i18n>$${esc(S.tok.symbol)}<i>/ ${esc(S.quote.symbol)}</i><button type="button" class="aor-fav${favs().includes(S.t) ? " on" : ""}" data-fav="${S.t}" aria-pressed="${favs().includes(S.t)}" aria-label="${T("Favorite")}" title="${T("★ keeps a market at the front")}">★</button></span>
-        <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call ? `<a class="aor-call ${esc(call.call)}" href="#agent?t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : ""}${scanChip()}${deskChip()}</span></div>
+        <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call && call.call ? `<a class="aor-call ${esc(call.call)}" href="#agent?${RH() ? "c=rh&" : ""}t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}${call.why && call.why.length ? " · " + esc(call.why.join(" · ")) : ""}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : call && call.none ? `<a class="aor-call none" href="#agent?${RH() ? "c=rh&" : ""}t=${S.t}" title="${T("Ask ARCIA AGENT for her 24-hour safety call")}"><span data-no-i18n>ARCIA</span> ${T("Get her call")}</a>` : ""}${scanChip()}${deskChip()}</span></div>
       </div>
       <div class="aor-stats${S.statsMore ? " more" : ""}">
         <div class="aor-stat big${fresh && dir ? " tick-" + dir : ""}"><small>${T("Pool price")}</small><b data-no-i18n id="aor-spot" class="${fresh ? dir : ""}">${S.pending ? "—" : roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b>${S.pending ? `<span>${T("opens when it graduates")}</span>` : `<span data-no-i18n class="${ch == null ? "" : ch >= 0 ? "up" : "dn"}">${ch == null ? esc(S.quote.symbol) : pc(ch) + " 24h"}</span>${usdTag(S.spot)}`}</div>
@@ -634,7 +634,7 @@
     market(); bookView(); chartView(); form(); mineView(); dockState(); strip();
     if (!S.pending) loadTax().then(() => { market(); form(); });
     Promise.all([loadScan(), loadDesk()]).then(() => { if (S.t === addr && c0 === CH) { market(); form(); } });
-    if (!RH()) loadAgent().then(() => market()); // ARCIA AGENT's calls are on Arc
+    if (CH !== "sol") loadAgent().then(() => market()); // ARCIA AGENT v2: her calls on Arc and Robinhood Chain
   }
 
   // ---------------- live data ----------------
@@ -742,10 +742,13 @@
   }
   async function loadAgent() {
     try {
-      const r = await fetch("/api/desk?agent=record", { cache: "no-store" });
+      // ARCIA AGENT v2: this chain's call, if it's under a day old (else a link to ask her)
+      const t = S.t, c0 = CH;
+      const r = await fetch(`/api/desk?agent=lasts&ts=${t}${RH() ? "&chain=rh" : ""}`, { cache: "no-store" });
       const j = r.ok ? await r.json() : null;
-      const c = j && (j.calls || []).filter((x) => lc(x.t) === S.t).sort((a, b) => (b.at || 0) - (a.at || 0))[0];
-      S.agentCall = c && c.call ? { call: c.call, at: c.at } : null;
+      if (t !== S.t || c0 !== CH) return;
+      const c = j && j.calls && j.calls[t];
+      S.agentCall = c && c.call ? { call: c.call, at: c.at, why: c.why || [] } : { none: true };
     } catch { S.agentCall = null; }
   }
 

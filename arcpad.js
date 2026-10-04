@@ -338,6 +338,32 @@ function renderArcpadExploreGrid() {
   if (es) es.addEventListener("click", (e) => { e.stopPropagation(); const b = document.querySelector(`#ap-sort-group [data-sort="${es.dataset.emptySort}"]`); if (b) b.click(); });
   wireLaunchCardClicks(grid);
   if (typeof arcPaintCard === "function") grid.querySelectorAll(".ap-launch-card").forEach(arcPaintCard);
+  arcAgentBadges(grid);
+}
+/// ARCIA AGENT v2: her 24-hour call (when she has one) on the first coin cards — Arc and Argus coins on Arc, Pons coins on
+/// Robinhood Chain; one request per chain, kept a minute
+const arcAgentCache = { at: 0, calls: {} };
+async function arcAgentBadges(grid) {
+  const cards = [...grid.querySelectorAll(".ap-launch-card")].slice(0, 40);
+  const by = { arc: [], rh: [] };
+  for (const c of cards) { const t = String(c.dataset.token || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(t)) continue; (c.dataset.platform === "pons" ? by.rh : c.dataset.platform === "pump" ? [] : by.arc).push(t); }
+  if (Date.now() - arcAgentCache.at > 60e3) { arcAgentCache.at = Date.now(); arcAgentCache.calls = {}; }
+  for (const ch of ["arc", "rh"]) {
+    const need = by[ch].filter((t) => !(ch + t in arcAgentCache.calls));
+    if (need.length) {
+      try { const r = await fetch(`/api/desk?agent=lasts&ts=${need.join(",")}${ch === "rh" ? "&chain=rh" : ""}`); const j = r.ok ? await r.json() : null; need.forEach((t) => { arcAgentCache.calls[ch + t] = (j && j.calls && j.calls[t]) || null; }); } catch { /* no badges */ }
+    }
+  }
+  for (const c of cards) {
+    const t = String(c.dataset.token || "").toLowerCase(), ch = c.dataset.platform === "pons" ? "rh" : "arc", x = arcAgentCache.calls[ch + t];
+    if (!x || !x.call || c.querySelector(".ag-badge")) continue;
+    // a label, not a link (the card itself is a button and opens the coin)
+    const a = document.createElement("span");
+    a.className = `ag-badge ap-ag k-${x.call}`; a.setAttribute("data-no-i18n", "");
+    a.title = "ARCIA AGENT's 24-hour safety call — about risk, not price";
+    a.innerHTML = `<i></i>${x.call === "safe" ? "Safe" : x.call === "risky" ? "Risky" : "Caution"}`;
+    (c.querySelector(".ap-card-top") || c).appendChild(a);
+  }
 }
 
 function wireLaunchCardClicks(root) {

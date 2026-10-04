@@ -213,7 +213,7 @@
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg>' });
   // page 4: ARCIA AGENT, ARCIRCLE Orders, then what's still being built
   var UTILS4 = [
-    { id: "agent", name: "ARCIA AGENT", sub: "ARCIA reads any Arc token, calls it and burns it", status: "New", acc: "#5b8cff", href: "/arc#agent",
+    { id: "agent", name: "ARCIA AGENT", sub: "ARCIA reads any Arc token, calls it and burns it", status: "v2", acc: "#5b8cff", href: "/arc#agent",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
   ];
   UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop, TP/SL and scaled orders — Arc, Robinhood and Solana", status: "v4", acc: "#4dd4ff", href: "/arc#orders",

@@ -409,7 +409,16 @@ function apcRenderHeader() {
   apc$("apc-ca-short").textContent = apcShort(l.token);
   apc$("apc-scan-link").href = apcExplorer("token", l.token);
   if (apc$("apc-safety")) { apc$("apc-safety").href = `#scanner?t=${l.token}`; apcSafetyScore(l.token); }
-  if (apc$("apc-agent")) apc$("apc-agent").href = `#agent?t=${l.token}`;
+  if (apc$("apc-agent")) {
+    apc$("apc-agent").href = `#agent?t=${l.token}`;
+    // ARCIA AGENT v2: her 24-hour call on the button, when she has one
+    const ab = apc$("apc-agent"); const old = ab.querySelector(".ag-badge"); if (old) old.remove();
+    fetch(`/api/desk?agent=lasts&ts=${l.token}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      const c = j && j.calls && j.calls[String(l.token).toLowerCase()];
+      if (!c || !c.call || !document.body.contains(ab)) return;
+      ab.insertAdjacentHTML("beforeend", `<i class="ag-badge k-${c.call}" data-no-i18n><i></i>${c.call === "safe" ? "Safe" : c.call === "risky" ? "Risky" : "Caution"}</i>`);
+    }).catch(() => {});
+  }
   if (apc$("apc-orders")) apc$("apc-orders").href = `#orders?t=${l.token}`;
   if (apc$("apc-liqmgr")) apc$("apc-liqmgr").href = `#liquidity?token=${l.token}`;
   const desc = apc$("apc-desc");

@@ -19,6 +19,7 @@ import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
 import { mineView, meView, cardFacts as mineCardFacts, GAME as MINE_GAME } from "./_mine.mjs";
+import { week as agentWeek } from "./_agent.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -216,6 +217,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" },
     });
   }
+  if (url.searchParams.has("agentweek")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await agentWeekCard(await markP, await fetchImage(`${SITE}/images/arcia-avatar.jpg`)), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=600, s-maxage=3600" },
+    });
+  }
   if (url.searchParams.has("scan")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await scanCard(await markP, url.searchParams.get("scan"), url.searchParams.get("chain") === "rh" ? "rh" : "arc"), {
@@ -314,6 +322,25 @@ async function roundCard(mark, w) {
 // ---------------- Token Scanner result card ----------------
 // The same engine as the page (api/_scan-core.mjs), run here, so the picture
 // an X post shows is the chain's answer — not a number anyone typed in.
+/// ARCIA AGENT's week (v2): her calls by kind, how they were graded, and what the burn vaults bought and burned
+async function agentWeekCard(mark, av) {
+  const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+  const w = await agentWeek(st).catch(() => null);
+  const box = (label, value, color = "#eaf2e6", sub = "") => h("div", { flexDirection: "column", gap: 6, padding: "20px 24px", borderRadius: 20, border: "2px solid rgba(255,255,255,0.1)", backgroundColor: "rgba(255,255,255,0.04)", width: 250 },
+    h("div", { fontSize: 18, fontWeight: 700, color: "#9fb098", letterSpacing: 2 }, label.toUpperCase()), h("div", { fontSize: 48, fontWeight: 800, color }, value), sub ? h("div", { fontSize: 20, color: "#9fb098" }, sub) : null);
+  const c = (w && w.calls) || { total: 0, safe: 0, caution: 0, risky: 0 }, g = (w && w.graded) || {};
+  const frac = (a, b) => (b ? `${a}/${b}` : "—");
+  const burnLine = w && w.burns.length ? w.burns.slice(0, 2).map((b) => `${compactN(Number(BigInt(b.burned)) / 1e18)} burned ${b.ch === "rh" ? "on Robinhood Chain" : "on Arc"} · $${b.usd}`).join("   ·   ") : "The burn vaults wait for funding";
+  return frame([
+    brandRow(mark, pill("ARCIA AGENT · WEEKLY", "#39ff88"), "Arc · Robinhood Chain"),
+    h("div", { alignItems: "center", gap: 28 },
+      av ? img(av, { width: 132, height: 132, borderRadius: 999, border: "5px solid #39ff88" }) : null,
+      h("div", { flexDirection: "column", gap: 8 }, h("div", { fontSize: 66, fontWeight: 800, lineHeight: 1.05 }, "My week, graded in public"), h("div", { fontSize: 28, color: "#9fb098" }, `${c.total} safety calls · every hash written on Arc first`))),
+    h("div", { gap: 18 }, box("Safe", String(c.safe), "#39ff88", `right ${frac(g.safeRight, g.safe)}`), box("Caution", String(c.caution), "#ffc861", `held ${frac(g.cautionHeld, g.caution)}`), box("Risky", String(c.risky), "#ff6e5a", `right ${frac(g.riskyRight, g.risky)}`), box("Buy & burns", String((w && w.buys) || 0), "#ffd88a", "from the vaults")),
+    h("div", { justifyContent: "space-between", width: "100%", fontSize: 24, color: "#9fb098" }, h("div", {}, burnLine), h("div", {}, "arcircle.app/arc#agent")),
+  ]);
+}
+const compactN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(Math.round(n)));
 async function scanCard(mark, addr, chain = "arc") {
   let out = null;
   if (isAddr(addr)) {

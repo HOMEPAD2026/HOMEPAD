@@ -12,6 +12,8 @@
 //   GET /api/desk?agent=record           every safety call and how it was graded
 //   GET /api/desk?agent=vaults[&t=0x…]   the burn vaults (all, or one token's) and ARCIA's actions
 //   GET /api/desk?agent=take&t=0x…       ARCIA's words on a token (after its report; Claude, cached an hour)
+//   GET /api/desk?agent=lasts&ts=0x…,0x…[&chain=rh]   v2: the latest call (if under a day old) of up to 40 tokens
+//   GET /api/desk?agent=week             v2: the last 7 days — calls, how they were graded, what the vaults burned
 //   …&chain=rh on the report, take and vaults: Robinhood Chain (ArciaAgentRH vaults) · ?agent=pools&t=0x…&chain=rh where a vault can buy
 //   POST /api/desk {action:"agent-mode", vault, mode, issued, signature}   a vault owner's strategy (dip / steady / volume)
 //   GET /api/desk?agenttick=1&key=<CRON_SECRET>   grade calls + work the vaults (also runs after every desk tick)
@@ -171,6 +173,9 @@ export async function GET(req) {
       if (q.agent === "record") return json(await agent.record(st, { day: q.day != null && /^\d{1,6}$/.test(q.day) ? Number(q.day) : null }), 200, "public, max-age=30, s-maxage=60");
       if (q.agent === "vaults") return json(await agent.vaults(st, { token: q.t || "", vault: q.v || "", chain }), 200, "public, max-age=10, s-maxage=20");
       if (q.agent === "take") { const r = await agent.take(st, String(q.t || ""), { chain }); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=60, s-maxage=300"); }
+      // v2: the latest calls of several tokens (Orders, Explore, coin pages) and the week in numbers
+      if (q.agent === "lasts") return json({ calls: await agent.lastCalls(st, String(q.ts || "").split(",").slice(0, 40), chain) }, 200, "public, max-age=30, s-maxage=60");
+      if (q.agent === "week") return json(await agent.week(st), 200, "public, max-age=300, s-maxage=600");
       if (q.agent === "pools") { const r = await agent.poolsRh(String(q.t || ""), { store: st }); return json(r, r.error ? 400 : 200, r.error ? "no-store" : "public, max-age=30, s-maxage=60"); }
       const ip = req.headers.get("x-forwarded-for") || "?";
       if (agentLimited(ip)) return json({ error: "slow down — ARCIA reads one token at a time" }, 429);

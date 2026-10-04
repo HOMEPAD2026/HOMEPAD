@@ -65,13 +65,28 @@ function net(c) {
 const pack = (o) => ({ j: JSON.stringify(o) });
 const unpack = (d) => { if (!d) return null; if (typeof d.j === "string") { try { return JSON.parse(d.j); } catch { return null; } } return d; };
 // Robinhood Chain reports and calls: agentRep/rh-…, agentCall/rh-… (one list of calls for both, each call names its chain)
-const K = { rep: (t, c) => `agentRep/${c === "rh" ? "rh-" : ""}${t}`, call: (t, c) => `agentCall/${c === "rh" ? "rh-" : ""}${t}`, calls: "agent/calls", vault: (v) => `agentVault/${v}`, acts: "agent/acts", cursor: "agent/cursor", cursorRh: "agent/cursor-rh", anchors: "agent/anchors" };
+const K = { rep: (t, c) => `agentRep/${c === "rh" ? "rh-" : ""}${t}`, call: (t, c) => `agentCall/${c === "rh" ? "rh-" : ""}${t}`, calls: "agent/calls", vault: (v) => `agentVault/${v}`, acts: "agent/acts", cursor: "agent/cursor", cursorRh: "agent/cursor-rh", anchors: "agent/anchors",
+  events: "agent/events", funders: (c) => `agent/funders-${c === "rh" ? "rh" : "arc"}` };
 const getJ = async (st, k) => (st ? unpack(await st.get(k).catch(() => null)) : null);
 const putJ = (st, k, v) => (st ? st.set(k, pack(v)) : Promise.resolve());
+// ---------------------------------------------------------------- news for followers (v2): new calls, grades, burns, empty vaults
+/// the latest 200 events, newest first; ARCIA's Telegram bot and Web Push read them (api/arcia-tg.mjs agentNotify)
+export async function addEvents(st, evs) {
+  if (!st || !evs.length) return;
+  const L = (await getJ(st, K.events)) || { items: [], n: 0 };
+  let n = L.n || 0;
+  const add = evs.map((e) => ({ id: ++n, at: now(), ...e }));
+  L.items = [...add.reverse(), ...(L.items || [])].slice(0, 200); L.n = n;
+  await putJ(st, K.events, L).catch(() => {});
+}
+/// events after `since` (an id), oldest first
+export async function events(st, since = 0) { const L = (await getJ(st, K.events)) || { items: [], n: 0 }; return { n: L.n || 0, items: (L.items || []).filter((e) => e.id > since).reverse() }; }
 export function memStore() { const m = new Map(); return { get: async (k) => m.get(k) ?? null, getMany: async (ks) => Object.fromEntries(ks.map((k) => [k, m.get(k) ?? null])), set: async (k, v) => { m.set(k, v); } }; }
 
 // ---------------------------------------------------------------- the safety call
 export const CALL = { hours: 24, badPx: -60, badLiq: -50, every: 12 * 3600 };
+/// a hit rate is shown as a percentage only from this many graded calls (fewer: "n calls · too few to rate")
+export const MIN_SAMPLE = 5;
 /// safe / caution / risky from the scan, with the reasons shown to people
 export function callOf(s) {
   const why = [];
@@ -183,6 +198,7 @@ async function makeCall(st, rep, c0) {
   const L = (await getJ(st, K.calls)) || { items: [] };
   L.items = [c, ...(L.items || [])].slice(0, 400);
   await putJ(st, K.calls, L).catch(() => {});
+  await addEvents(st, [{ kind: "call", ch, t: c.t, sym: c.sym, call: c.call, why: c.why }]).catch(() => {});
   return c;
 }
 async function currentCall(st, token, rep) {
@@ -197,12 +213,36 @@ export async function lastCall(st, token, chain = "arc") {
   const c = await getJ(st, K.call(lc(token), chainOf(chain))).catch(() => null);
   return c && c.call && now() - c.at < 86400 ? { call: c.call, at: c.at } : null;
 }
+/// v2: the latest calls of up to 40 tokens at once (ARCIRCLE Orders' market header, Explore's coin cards, coin pages)
+export async function lastCalls(st, tokens, chain = "arc") {
+  const ch = chainOf(chain), ts = [...new Set((tokens || []).map(lc).filter(isAddr))].slice(0, 40);
+  if (!st || !ts.length) return {};
+  const keys = ts.map((t) => K.call(t, ch));
+  const docs = st.getMany ? await st.getMany(keys).catch(() => ({})) : Object.fromEntries(await Promise.all(keys.map(async (k) => [k, await st.get(k).catch(() => null)])));
+  const out = {};
+  ts.forEach((t, i) => { const c = unpack(docs[keys[i]]); if (c && c.call && now() - c.at < 86400) out[t] = { call: c.call, at: c.at, until: c.until, why: (c.why || []).slice(0, 3) }; });
+  return out;
+}
+/// v2: the week in numbers — calls by kind and how they were graded, and what the vaults bought and burned (the
+/// Telegram bot's Monday post and its image, api/og.mjs ?agentweek)
+export async function week(st, { clock = now } = {}) {
+  const t1 = clock(), t0 = t1 - 7 * 86400;
+  const items = ((await getJ(st, K.calls)) || { items: [] }).items || [];
+  const made = items.filter((c) => c.at >= t0), graded = items.filter((c) => c.graded && c.graded.at >= t0 && !c.graded.void);
+  const by = (k) => made.filter((c) => c.call === k).length;
+  const acts = (((await getJ(st, K.acts)) || { items: [] }).items || []).filter((a) => a.ts >= t0);
+  const burns = {};
+  for (const a of acts) { const k = `${chainOf(a.ch)}:${a.token}`; const b = (burns[k] = burns[k] || { ch: chainOf(a.ch), token: a.token, burned: 0n, usd: 0, buys: 0 }); b.burned += BigInt(a.burned || "0"); b.usd += a.usd || 0; b.buys++; }
+  return { from: t0, to: t1, calls: { total: made.length, safe: by("safe"), caution: by("caution"), risky: by("risky") },
+    graded: { safe: graded.filter((c) => c.call === "safe").length, safeRight: graded.filter((c) => c.call === "safe" && c.graded.right).length, risky: graded.filter((c) => c.call === "risky").length, riskyRight: graded.filter((c) => c.call === "risky" && c.graded.right).length, caution: graded.filter((c) => c.call === "caution").length, cautionHeld: graded.filter((c) => c.call === "caution" && !c.graded.bad).length },
+    burns: Object.values(burns).map((b) => ({ ...b, burned: b.burned.toString(), usd: r2(b.usd) })), buys: acts.length };
+}
 
 /// grade the calls whose 24 hours are up (a few per run)
 export async function gradeDue(st, { max = 3, market = marketOf } = {}) {
   const L = (await getJ(st, K.calls)) || { items: [] };
   const due = (L.items || []).filter((c) => !c.graded && now() >= c.until).slice(0, max);
-  let n = 0;
+  let n = 0; const evs = [];
   for (const c of due) {
     const m = await market(c.t, st, chainOf(c.ch)).catch(() => null);
     const o = outcomeOf(c, m);
@@ -210,8 +250,9 @@ export async function gradeDue(st, { max = 3, market = marketOf } = {}) {
     if (!o && now() < c.until + 48 * 3600) continue;
     c.graded = { at: now(), px: m ? m.px : null, liq: m ? m.liq : null, ...(o || { void: true }), right: o ? gradeOf(c, o) : null };
     n++;
+    if (o) evs.push({ kind: "graded", ch: chainOf(c.ch), t: c.t, sym: c.sym, call: c.call, right: c.graded.right, bad: o.bad, dPx: o.dPx });
   }
-  if (n) await putJ(st, K.calls, L);
+  if (n) { await putJ(st, K.calls, L); await addEvents(st, evs).catch(() => {}); }
   return n;
 }
 export async function record(st, { day = null } = {}) {
@@ -233,7 +274,10 @@ export async function record(st, { day = null } = {}) {
   const gr = items.filter((c) => c.graded && c.graded.right != null).sort((a, b) => a.graded.at - b.graded.at);
   let ok = 0; const series = gr.map((c, i) => { if (c.graded.right) ok++; return [c.graded.at, Math.round((ok / (i + 1)) * 1000) / 10]; });
   const A = ((await getJ(st, K.anchors)) || { items: [] }).items || [];
-  return { calls: items.slice(0, 60), stats: { total: items.length, open: items.filter((c) => !c.graded).length, safe: g("safe"), risky: g("risky") }, buckets: B, series: series.slice(-120), anchors: A.slice(0, 30), rules: CALL };
+  // v2: Caution has no right or wrong, but every graded one has an outcome — it held, or it went bad
+  const cg = items.filter((c) => c.call === "caution" && c.graded && !c.graded.void && c.graded.bad != null);
+  const caution = { n: cg.length, held: cg.filter((c) => !c.graded.bad).length, bad: cg.filter((c) => c.graded.bad).length, open: items.filter((c) => c.call === "caution" && !c.graded).length };
+  return { calls: items.slice(0, 60), stats: { total: items.length, open: items.filter((c) => !c.graded).length, safe: g("safe"), risky: g("risky"), caution, minSample: MIN_SAMPLE }, buckets: B, series: series.slice(-120), anchors: A.slice(0, 30), rules: CALL };
 }
 
 // ---------------------------------------------------------------- vaults (reads)
@@ -270,9 +314,10 @@ export async function vaultState(addrs, chain = "arc") {
 /// symbol and decimals of each vault's token (for the lists)
 async function tokenMeta(tokens, chain = "arc") {
   const u = [...new Set(tokens)];
-  const r = await net(chain).ethCalls(u.flatMap((t) => [{ to: t, data: "0x95d89b41" }, { to: t, data: "0x313ce567" }]), { timeoutMs: 8000 }).catch(() => []);
+  const r = await net(chain).ethCalls(u.flatMap((t) => [{ to: t, data: "0x95d89b41" }, { to: t, data: "0x313ce567" }, { to: t, data: "0x18160ddd" }]), { timeoutMs: 8000 }).catch(() => []);
   const str = (h) => { try { const x = strip(h); const len = Number(BigInt("0x" + x.slice(64, 128))); return new TextDecoder().decode(Uint8Array.from((x.slice(128, 128 + len * 2).match(/../g) || []).map((b) => parseInt(b, 16)))).replace(/[^\x20-\x7e]/g, "").slice(0, 16); } catch { return ""; } };
-  return Object.fromEntries(u.map((t, i) => [t, { sym: r[i * 2] ? str(r[i * 2]) : "", dec: r[i * 2 + 1] ? Number(W(r[i * 2 + 1], 0)) : 18 }]));
+  // v2: the total supply too (what's burned as a share of it)
+  return Object.fromEntries(u.map((t, i) => [t, { sym: r[i * 3] ? str(r[i * 3]) : "", dec: r[i * 3 + 1] ? Number(W(r[i * 3 + 1], 0)) : 18, supply: r[i * 3 + 2] ? W(r[i * 3 + 2], 0).toString() : null }]));
 }
 /// is ARCIA's key on this server the factory's operator, and does it have gas (Arc: USDC, 18 decimals natively; Robinhood Chain: ETH)
 async function keyHealth(operator, chain = "arc") {
@@ -295,9 +340,14 @@ export async function vaults(st, { token = "", vault = "", chain = "arc" } = {})
   const acts = (((await getJ(st, K.acts)) || { items: [] }).items || []).filter((a) => chainOf(a.ch) === N.ch);
   const docs = await Promise.all(vs.map((v) => getJ(st, K.vault(v.vault))));
   const operator = fop ? lc(A(fop, 0)) : null;
-  const [meta, health, px] = await Promise.all([tokenMeta(vs.map((v) => v.token), N.ch), keyHealth(operator, N.ch), N.ch === "rh" ? ethUsd() : null]);
+  const [meta, health, px, fund] = await Promise.all([tokenMeta(vs.map((v) => v.token), N.ch), keyHealth(operator, N.ch), N.ch === "rh" ? ethUsd() : null, getJ(st, K.funders(N.ch))]);
+  const D = N.ch === "rh" ? 1e18 : 1e6;
+  // v2: who funded each vault (from its Funded events, read by the tick), most first
+  const fundersOf = (v) => Object.entries(((fund && fund.by) || {})[v] || {}).map(([a, amt]) => ({ a, amt: Number(BigInt(amt)) / D })).sort((x, y) => y.amt - x.amt).slice(0, 5);
   return { live: true, chain: N.ch, unit: N.ch === "rh" ? "ETH" : "USDC", ...(N.ch === "rh" ? { ethUsd: px } : {}), factory: f, paused: fp ? W(fp, 0) === 1n : null, operator, createBurn: fcb ? W(fcb, 0).toString() : "0", health, modes: MODES,
-    vaults: vs.map((v, i) => ({ ...v, ...(meta[v.token] || {}), mode: (docs[i] && docs[i].mode) || "dip", status: (docs[i] && docs[i].status) || null, acts: acts.filter((a) => a.vault === v.vault).slice(0, 20) })),
+    vaults: vs.map((v, i) => ({ ...v, ...(meta[v.token] || {}), mode: (docs[i] && docs[i].mode) || "dip", status: (docs[i] && docs[i].status) || null, acts: acts.filter((a) => a.vault === v.vault).slice(0, 20),
+      funders: fundersOf(v.vault), funded: fund && fund.tot && fund.tot[v.vault] ? Number(BigInt(fund.tot[v.vault])) / D : null, empty: v.usdc * (N.ch === "rh" ? px || 0 : 1) < RULES.minBuy })),
+    fundersAt: fund ? fund.at || null : null,
     recent: (token ? acts.filter((a) => a.token === lc(token)) : acts).slice(0, 30).map((a) => ({ ...a, ...(meta[a.token] || {}) })) };
 }
 /// Robinhood Chain: where a vault can buy the token — its Uniswap v3 pools with WETH (each fee tier) and its v4 pools with
@@ -449,6 +499,48 @@ export async function anchorDay(st, { key, send = sendTx, clock = now } = {}) {
   return row;
 }
 
+// ---------------------------------------------------------------- v2: who funded each vault (Funded(address indexed from, uint256 amount))
+export const FUNDED = keccakHex(hexOf("Funded(address,uint256)"));
+/// where the scan starts: the factories' deploy blocks (Robinhood Chain known; Arc found by time, 29 Sep 2026)
+export const FUND_FROM = { rh: 78103976, arc: null, arcTs: 1790640000 };
+const FUND_CHUNK = { arc: 9000, rh: 50000 };
+async function blockNo(N) { return Number(BigInt(await N.rpcCall("eth_blockNumber", []))); }
+async function blockTsOf(N, n) { const b = await N.rpcCall("eth_getBlockByNumber", ["0x" + n.toString(16), false]); return b ? Number(BigInt(b.timestamp)) : null; }
+async function blockAtTs(N, ts, head) {
+  let lo = 0, hi = head;
+  for (let k = 0; k < 40 && lo < hi; k++) { const mid = Math.floor((lo + hi + 1) / 2); const t = await blockTsOf(N, mid); if (t != null && t <= ts) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+export async function scanFunders(st, ch, { left = () => 20000, maxChunks = 24 } = {}) {
+  const N = net(ch), f = N.factory;
+  if (!f || !st) return null;
+  const doc = (await getJ(st, K.funders(N.ch))) || { hi: null, by: {}, tot: {} };
+  const [list] = await N.ethCalls([{ to: f, data: S.allVaults }]);
+  const addrs = addrList(list);
+  if (!addrs.length) return { vaults: 0 };
+  const head = await blockNo(N);
+  if (doc.hi == null) doc.hi = (N.ch === "rh" ? FUND_FROM.rh : FUND_FROM.arc || (await blockAtTs(N, FUND_FROM.arcTs, head))) - 1;
+  const C = FUND_CHUNK[N.ch];
+  let n = 0, logs = 0;
+  while (doc.hi < head && n < maxChunks && left() > 4000) {
+    const ranges = [];
+    for (let k = 0, a = doc.hi + 1; k < 6 && a <= head && n < maxChunks; k++, n++) { const b = Math.min(head, a + C - 1); ranges.push([a, b]); a = b + 1; }
+    let got;
+    try { got = await Promise.all(ranges.map(([a, b]) => N.rpcCall("eth_getLogs", [{ address: addrs, topics: [FUNDED], fromBlock: "0x" + a.toString(16), toBlock: "0x" + b.toString(16) }]))); } catch { break; }
+    for (const l of got.flat()) {
+      const v = lc(l.address), who = lc("0x" + String(l.topics[1]).slice(26)), amt = BigInt(l.data && l.data !== "0x" ? l.data.slice(0, 66) : "0x0");
+      doc.by[v] = doc.by[v] || {};
+      doc.by[v][who] = (BigInt(doc.by[v][who] || "0") + amt).toString();
+      doc.tot[v] = (BigInt(doc.tot[v] || "0") + amt).toString();
+      logs++;
+    }
+    doc.hi = ranges[ranges.length - 1][1];
+  }
+  doc.at = now();
+  await putJ(st, K.funders(N.ch), doc).catch(() => {});
+  return { vaults: addrs.length, chunks: n, logs, hi: doc.hi, head };
+}
+
 // ---------------------------------------------------------------- the run (after each desk tick)
 export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, sendRh = null, clock = now } = {}) {
   const t0 = Date.now(), left = () => budgetMs - (Date.now() - t0);
@@ -462,6 +554,8 @@ export async function tick(st, { budgetMs = CFG.budgetMs, send = sendTx, sendRh 
     await work(st, "rh", { left, send: sendRh || net("rh").send, clock, out: out.rh });
     out.acts.push(...out.rh.acts);
   }
+  // v2: who funded the vaults, read from their Funded events in what time is left
+  for (const ch of ["arc", "rh"]) if ((ch === "arc" ? CFG.factory() : CFG.rhFactory()) && left() > 5000) out["funders_" + ch] = await scanFunders(st, ch, { left }).catch((e) => ({ error: String(e.message || e).slice(0, 100) }));
   return out;
 }
 async function work(st, ch, { left, send, clock, out, anchor = false }) {
@@ -484,7 +578,7 @@ async function work(st, ch, { left, send, clock, out, anchor = false }) {
   const vs = await vaultState(order, N.ch);
   out.vaults = vs.length;
   let sent = 0;
-  const acts = [];
+  const acts = [], evs = [];
   for (const v of vs) {
     if (left() < 5000) break;
     const doc = (await getJ(st, K.vault(v.vault))) || {};
@@ -508,6 +602,10 @@ async function work(st, ch, { left, send, clock, out, anchor = false }) {
     const rt = (a, usd) => rtOf(a, isRh ? Math.min(usd, vd.usdc * 0.9) : usd, N.ch, px); // a v3 round trip spends the vault's own WETH inside the call
     const d = await decide(vd, doc, { t: clock(), q, rt }).catch((e) => ({ go: false, why: "error: " + String(e.message || e).slice(0, 80) }));
     doc.status = { at: clock(), why: d.why, go: !!d.go };
+    // v2: a vault running dry is news once (its followers can refill it); funding it again resets that
+    const dry = vd.usdc < RULES.minBuy && v.buys > 0;
+    if (dry && !doc.emptyAt) { doc.emptyAt = clock(); evs.push({ kind: "empty", ch: N.ch, t: v.token, vault: v.vault, buys: v.buys }); }
+    else if (!dry && doc.emptyAt) delete doc.emptyAt;
     if (d.go && opOk && sent < RULES.perTick) {
       const amt = unitsOf(d.usd, px);
       const r = await send({ to: v.vault, data: S.burn + u(amt) + u(d.minOut), key }).catch((e) => ({ ok: false, err: String(e.message || e) }));
@@ -519,9 +617,14 @@ async function work(st, ch, { left, send, clock, out, anchor = false }) {
   }
   if (acts.length) {
     const L = (await getJ(st, K.acts)) || { items: [] };
-    L.items = [...acts.reverse(), ...(L.items || [])].slice(0, 500);
+    L.items = [...acts.slice().reverse(), ...(L.items || [])].slice(0, 500);
     await putJ(st, K.acts, L).catch(() => {});
+    // one "bought and burned" event per token per run
+    const per = {};
+    for (const a of acts) { const b = (per[a.token] = per[a.token] || { kind: "burn", ch: N.ch, t: a.token, burned: 0n, usd: 0, n: 0, tx: a.tx }); b.burned += BigInt(a.burned); b.usd += a.usd; b.n++; }
+    evs.push(...Object.values(per).map((b) => ({ ...b, burned: b.burned.toString(), usd: r2(b.usd) })));
   }
+  if (evs.length) await addEvents(st, evs).catch(() => {});
   out.acts = acts;
 }
 export const _test = { K, unpack, pack, S, keyHealth, unitsOf, quoteOf, rtOf };

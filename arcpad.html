@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791106417"></script>
+<script src="arc-log.js?v=1791108906"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791106417">
+<link rel="stylesheet" href="style.css?v=1791108906">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -125,7 +125,7 @@
       <button type="button" class="bp-nav-item" data-tab="arcia402"><svg><use href="#i-a402" xlink:href="#i-a402"/></svg>ARCIA 402<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="mine"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
-      <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
+      <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v4</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
@@ -1565,8 +1565,9 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · ARCIA works on Arc and Robinhood Chain tokens</span>
-            <h1>ARCIA AGENT <span class="asc-ver" title="New">New<i>Reads · calls · burns</i></span></h1>
+            <h1>ARCIA AGENT <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Reads · calls · burns</i></span></h1>
             <p class="bp-lede">Paste a token's address — Arc or Robinhood Chain — and ARCIA goes to work on it: she reads the whole token, makes a safety call for the next 24 hours that's graded in public, and — from a vault anyone can fund — buys it back and burns it, in dips, never chasing a pump.</p>
+            <button type="button" class="ag-lede-more" id="ag-lede-more">More</button>
           </div>
         </div>
         <div id="ag-body"></div>
@@ -1575,6 +1576,9 @@
           <h2 id="ag-guide-h">ARCIA AGENT guide</h2>
           <details open><summary><h3>What is ARCIA AGENT?</h3></summary>
             <p>ARCIA's agent for any token on Arc. Paste a token's contract address and she reads it end to end with Token Scanner v3 (contract, holders, liquidity, market), tells you in plain words what stands out, and makes a safety call. Tokens with a burn vault get her as their buyer: she decides when to buy and burns everything she buys.</p>
+          </details>
+          <details><summary><h3>New in v2</h3></summary>
+            <p>ARCIA AGENT v2 adds: the total ARCIA has burned on Arc and on Robinhood Chain, rolling up at the top; Caution calls graded too (did the token hold, or go bad); hit rates shown as a percentage only once five calls are graded; each token's history over her calls (scanner score and liquidity); an Empty state with quick top-ups and a preview of how many buys a top-up makes and over how long; each vault's top funders and its burn as a share of the supply; follow news by Web Push with the tab closed, or by DM with /agentwatch 0x… on the ARCIA bot (and /agent 0x… for a call in Telegram); a weekly report card; and her call on ARCIRCLE Orders' market header, coin pages and in ARCIA's chat ("scan 0x…").</p>
           </details>
           <details><summary><h3>Safety calls, graded in public</h3></summary>
             <p>Every report comes with a call for the next 24 hours: Safe, Caution or Risky. The call is recorded with a hash before the outcome exists, then graded from the market: it "went bad" if the price fell 60% or more, or the liquidity 50% or more. A Safe call is right if it didn't go bad; a Risky call is right if it did. Caution isn't graded. One call per token every 12 hours. The Record tab shows every call and the hit rate.</p>
@@ -2219,6 +2223,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791106417"></script>
+<script src="arcpad.bundle.js?v=1791108906"></script>
 </body>
 </html>

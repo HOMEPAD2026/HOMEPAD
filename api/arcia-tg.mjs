@@ -38,6 +38,7 @@ import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
 import * as VEA from "./_vearcia.mjs";
 import * as WP from "./_webpush.mjs";
+import * as AG from "./_agent.mjs";
 import { arciaCoin } from "./_arcia-coin.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
@@ -88,11 +89,12 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
+  ["agent", "ARCIA AGENT: her 24h safety call on a token — /agent 0x… [rh]"], ["agentwatch", "ARCIA AGENT: DM me a token's new calls, grades and burns — /agentwatch 0x… [rh] / off"],
   ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["vearcia", "veARCIA: the $ARCIA staking pool and your stake"], ["vearciaalerts", "veARCIA: unlock and boost reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
-  ["here", "Use this chat for announcements"], ["unhere", "Stop announcing here"], ["targets", "Where announcements go"], ["mirror", "Mirror ARCIA's X posts: on / off"], ["guard", "Scam filter here: on / off"], ["captcha", "Join check here: on / off"],
+  ["here", "Use this chat for announcements"], ["unhere", "Stop announcing here"], ["targets", "Where announcements go"], ["mirror", "Mirror ARCIA's X posts: on / off"], ["agentweekly", "ARCIA AGENT's Monday report card here: on / off"], ["guard", "Scam filter here: on / off"], ["captcha", "Join check here: on / off"],
   ["autoscan", "Auto-scan contract addresses here: on / off"], ["gate", "Holders-only group: /gate 100000 or off"], ["buybot", "Buy alerts for our coins here: on [min $] / off"], ["warn", "Reply: warn (3 = 24 h mute)"], ["mute", "Reply: mute [hours]"], ["unmute", "Reply: unmute"], ["ban", "Reply: ban"],
   ["stickers", "Create ARCIA's sticker set"], ["pause402", "ARCIA 402: sell | hire | all | off"], ["hire", "ARCIA 402: hire an agent now"], ["whoami", "Your Telegram ID"]];
 const menu = (list) => list.map(([command, description]) => ({ command, description }));
@@ -334,6 +336,7 @@ async function cardFor(kind, arg, lang, uid) {
   if (kind === "books") return cardBooks(lang);
   if (kind === "predict") return cardPredict(lang);
   if (kind === "me") return cardMe(await loadUser(uid), lang);
+  if (kind === "agent") { const [ch, ca] = String(arg || "").split("~"); return cardAgent(ca, ch, lang); }
   return null;
 }
 /// /scan with a live progress bar while the scan runs, then the card
@@ -715,6 +718,8 @@ async function onMessage(m, channel) {
       case "nft": case "vault": return sendCard(m.chat.id, await cardNft(lang), { replyTo: group ? m.message_id : undefined });
       case "mine": return mineList(m);
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
+      case "agent": { const ca = addrOf(arg); return ca ? agentWithProgress(m, ca, /\b(rh|robinhood)\b/i.test(arg) ? "rh" : "arc", lang) : say(m, w("needCA", lang, { cmd: "agent" })); }
+      case "agentwatch": case "agentunwatch": return agentWatch(m, arg, cmd === "agentwatch" && !/^off$/i.test(String(arg || "").trim()), lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
       case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
       case "stakealerts": return setStakeAlerts(m, !/^off$/i.test(arg), lang);
@@ -804,6 +809,7 @@ async function onMessage(m, channel) {
         await setTarget(c, m.chat, cmd === "here");
         return say(m, cmd === "here" ? "✓ Announcements will come here." : "✓ No more announcements here.");
       case "targets": return admin ? say(m, c.targets.length ? c.targets.map((t) => `• ${h(t.title || t.id)} <i>${t.type}</i>`).join("\n") : "No targets yet — /here in a group, or post /here in a channel.") : adminOnly();
+      case "agentweekly": { if (!admin) return adminOnly(); c.agentWeekly = !/^off$/i.test(arg); await saveCfg(c); return say(m, `✓ ARCIA AGENT's Monday report card to the targets: ${c.agentWeekly ? "on" : "off"}.`); }
       case "mirror": { if (!admin) return adminOnly(); c.mirror = !/^off$/i.test(arg); await saveCfg(c); return say(m, `✓ Mirroring ARCIA's X posts to the targets: ${c.mirror ? "on" : "off"}.`); }
       case "announce": {
         if (!admin) return adminOnly();
@@ -1395,6 +1401,98 @@ async function mineTick(T, s, out) {
   }
 }
 
+// ---------------- ARCIA AGENT v2: /agent, /agentwatch, followers' news, the Monday report card ----------------
+const AG_ICON = { safe: "🟢", caution: "🟡", risky: "🔴" }, AG_TXT = { safe: ["Safe", "안전", "安全"], caution: ["Caution", "주의", "谨慎"], risky: ["Risky", "위험", "高风险"] };
+const agPage = (ch, t) => `${SITE}/arc#agent?${ch === "rh" ? "c=rh&" : ""}t=${String(t || "").toLowerCase()}`;
+const agName = (k, lang) => (AG_TXT[k] ? T3(lang, ...AG_TXT[k]) : k);
+async function cardAgent(ca, ch, lang) {
+  ch = ch === "rh" ? "rh" : "arc";
+  const r = await AG.report(store(), ca, { chain: ch }).catch(() => null);
+  if (!r || r.error) return { text: `<code>${h(ca)}</code>\n${h((r && r.error) || T3(lang, "ARCIA couldn't read that token right now.", "지금은 이 토큰을 읽을 수 없어요.", "暂时无法读取这个代币。"))}` };
+  const c = r.call || {}, f = r.facts || {}, net = ch === "rh" ? "Robinhood Chain" : "Arc";
+  const head = c.pending ? `⏳ <b>${T3(lang, "Reading the holders first — the call comes right after", "홀더를 먼저 읽고 있어요 — 콜은 곧 나와요", "正在读取持有人——判断随后给出")}</b>`
+    : `${AG_ICON[c.call] || "•"} <b>${T3(lang, "24-hour safety call", "24시간 안전 콜", "24小时安全判断")}: ${h(agName(c.call, lang))}</b>`;
+  return {
+    text: [`🤖 <b>ARCIA AGENT · ${h(r.sym ? "$" + r.sym : short(r.t))}</b> · ${net}`, head, ...(c.why || []).slice(0, 3).map((x) => `• ${h(x)}`),
+      [f.score != null ? `${T3(lang, "Score", "점수", "评分")} <b>${f.score}/100</b>` : "", f.liq != null ? `${T3(lang, "Liquidity", "유동성", "流动性")} ${fmtUsd(f.liq)}` : "", f.holders != null ? `${T3(lang, "Holders", "홀더", "持有人")} ${num(f.holders)}` : ""].filter(Boolean).join(" · "),
+      c.until && !c.pending ? `<i>${T3(lang, "Graded in public when the 24 hours are up.", "24시간이 지나면 공개 채점돼요.", "24小时后公开评分。")}</i>` : "",
+      `<i>${T3(lang, "About risk, not price direction. Not financial advice.", "가격 방향이 아니라 위험에 대한 판단이에요. 투자 조언이 아니에요.", "关于风险而非价格方向。非投资建议。")}</i>`].filter(Boolean).join("\n"),
+    buttons: [[{ text: T3(lang, "Open in ARCIA AGENT", "ARCIA AGENT에서 열기", "在 ARCIA AGENT 打开"), url: agPage(ch, r.t) }], [{ text: T3(lang, "Follow: /agentwatch", "팔로우: /agentwatch", "关注:/agentwatch"), url: agPage(ch, r.t) }]],
+    refresh: `agent:${ch}~${r.t}`,
+  };
+}
+async function agentWithProgress(m, ca, ch, lang) {
+  const first = await say(m, `🤖 ${T3(lang, "ARCIA is reading", "ARCIA가 읽는 중", "ARCIA 正在读取")} <code>${short(ca)}</code>…`);
+  const card = await cardAgent(ca, ch, lang);
+  if (first.ok) await tg("deleteMessage", { chat_id: m.chat.id, message_id: first.result.message_id }, 5000);
+  return sendCard(m.chat.id, card, { replyTo: isGroup(m.chat) ? m.message_id : undefined });
+}
+/// follow a token's ARCIA AGENT news by DM: s.agentWatch = { "arc:0x…" | "rh:0x…": [telegram ids] }
+async function agentWatch(m, arg, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const ca = addrOf(arg), ch = /\b(rh|robinhood)\b/i.test(String(arg || "")) ? "rh" : "arc";
+  const s = await subs(); s.agentWatch = s.agentWatch || {};
+  const mine = Object.entries(s.agentWatch).filter(([, ids]) => ids.includes(m.from.id)).map(([k]) => k);
+  if (!ca) {
+    if (!on) { for (const k of mine) s.agentWatch[k] = s.agentWatch[k].filter((x) => x !== m.from.id); for (const k of Object.keys(s.agentWatch)) if (!s.agentWatch[k].length) delete s.agentWatch[k]; await putDoc(DOC.subs, s); return say(m, `✓ ${T3(lang, "Stopped every ARCIA AGENT follow.", "ARCIA AGENT 팔로우를 모두 껐어요.", "已取消所有 ARCIA AGENT 关注。")}`); }
+    return say(m, mine.length ? `🤖 ${mine.map((k) => `<code>${short(k.split(":")[1])}</code>${k.startsWith("rh:") ? " (RH)" : ""}`).join(", ")}\n/agentwatch off ${T3(lang, "to stop all", "로 모두 끄기", "全部取消")}` : w("needCA", lang, { cmd: "agentwatch" }));
+  }
+  const key = `${ch}:${ca}`;
+  s.agentWatch[key] = (s.agentWatch[key] || []).filter((x) => x !== m.from.id);
+  if (on) { if (mine.length >= 12 && !mine.includes(key)) return say(m, T3(lang, "Up to 12 tokens — /agentunwatch one first.", "최대 12개예요 — 먼저 /agentunwatch 하세요.", "最多 12 个——请先 /agentunwatch。")); s.agentWatch[key].push(m.from.id); }
+  if (!s.agentWatch[key].length) delete s.agentWatch[key];
+  if (Object.keys(s.agentWatch).length > 800) return say(m, "The list is full right now — try later.");
+  await putDoc(DOC.subs, s);
+  return say(m, on ? `🤖 ${T3(lang, "Following", "팔로우했어요", "已关注")} <code>${short(ca)}</code>${ch === "rh" ? " (Robinhood Chain)" : ""} — ${T3(lang, "I'll DM you its new safety calls, how they were graded, its buys & burns and when its vault runs dry.", "새 안전 콜, 채점 결과, 매수·소각, 볼트가 비었을 때 DM으로 알려드릴게요.", "新的安全判断、评分结果、买入销毁和金库见底时我会私信你。")}`
+    : `✓ ${T3(lang, "Stopped following", "팔로우를 껐어요", "已取消关注")} <code>${short(ca)}</code>`);
+}
+/// one AGENT event as plain words (Telegram HTML and Web Push share them)
+function agentLine(e) {
+  const sym = e.sym ? `$${e.sym}` : short(e.t), net = e.ch === "rh" ? " · Robinhood Chain" : "";
+  if (e.kind === "call") return { title: `${sym}: new safety call — ${(AG_TXT[e.call] || [e.call])[0]}`, body: `${(e.why || []).slice(0, 2).join(" · ")}${net}`, icon: AG_ICON[e.call] || "🤖" };
+  if (e.kind === "graded") return { title: `${sym}: ${e.call === "caution" ? (e.bad ? "went bad after a Caution call" : "held after a Caution call") : e.right ? "ARCIA called it right" : "ARCIA called it wrong"}`, body: `${(AG_TXT[e.call] || [e.call])[0]} call · price ${e.dPx > 0 ? "+" : ""}${e.dPx}% in 24 hours${net}`, icon: e.call === "caution" ? "🟡" : e.right ? "✅" : "❌" };
+  if (e.kind === "burn") return { title: `${sym}: ARCIA bought and burned ${compact(Number(BigInt(e.burned)) / 1e18)}`, body: `$${e.usd} in ${e.n} buy${e.n > 1 ? "s" : ""}, sent to 0x…dEaD${net}`, icon: "🔥" };
+  if (e.kind === "empty") return { title: `${sym}: a burn vault ran dry`, body: `After ${e.buys} buys — anyone can refill it on ARCIA AGENT${net}`, icon: "🫗" };
+  return null;
+}
+async function agentNotify(T, s, first, out) {
+  const E = await AG.events(store(), T.agentEv || 0).catch(() => null);
+  if (!E) return;
+  if (first || T.agentEv == null) { T.agentEv = E.n; return; }
+  T.agentEv = E.n;
+  const W = s.agentWatch || {};
+  let tgN = 0, pushN = 0;
+  // symbols for burns and empties (their events carry the token only)
+  for (const e of E.items.slice(-25)) {
+    const L = agentLine(e); if (!L) continue;
+    const ids = W[`${e.ch}:${e.t}`] || [], url = agPage(e.ch, e.t);
+    if (ids.length) tgN += await toSubs(ids, { text: `${L.icon} <b>${h(L.title)}</b>\n${h(L.body)}`, ...kb([[{ text: "ARCIA AGENT", url }]]) }, 60);
+    if (WP.vapid()) pushN += await WP.toTopic(store(), WP.agentTopic(e.ch, e.t), { title: L.title, body: L.body, url: url.replace(SITE, ""), tag: `agent-${e.kind}-${e.t}` }).catch(() => 0);
+  }
+  if (tgN) out.agentTg = tgN;
+  if (pushN) out.agentPush = pushN;
+}
+/// Monday 10:00 KST: ARCIA AGENT's week (calls, grades, burns) to the announcement targets — off with /agentweekly off
+async function agentWeekly(T, c, out) {
+  const kst = new Date(Date.now() + 9 * 3600e3);
+  if (kst.getUTCDay() !== 1 || kst.getUTCHours() !== 10 || c.agentWeekly === false) return;
+  const wk = `${kst.getUTCFullYear()}-${kst.getUTCMonth()}-${kst.getUTCDate()}`;
+  if (T.agentWeek === wk) return;
+  T.agentWeek = wk;
+  const W = await AG.week(store()).catch(() => null);
+  if (!W || !W.calls.total) return;
+  const g = W.graded, rate = (a, b) => (b ? `${a}/${b}` : "—");
+  const burns = W.burns.map((b) => `🔥 ${compact(Number(BigInt(b.burned)) / 1e18)} ${b.ch === "rh" ? "on Robinhood Chain" : "on Arc"} · $${b.usd} · ${b.buys} buys`).slice(0, 4);
+  const text = [`🤖 <b>ARCIA AGENT · my week</b>`, `${W.calls.total} safety calls — 🟢 ${W.calls.safe} · 🟡 ${W.calls.caution} · 🔴 ${W.calls.risky}`,
+    `Graded: Safe right ${rate(g.safeRight, g.safe)} · Risky right ${rate(g.riskyRight, g.risky)} · Caution held ${rate(g.cautionHeld, g.caution)}`, ...burns,
+    `<i>Every call's hash is written on Arc before its outcome. Not financial advice.</i>`].join("\n");
+  out.agentWeekly = await postToTargets(c, { photo: `${SITE}/api/og?agentweek=1&w=${wk}`, text: text.replace(/<[^>]+>/g, "") }); // targets take plain text
+  if (String(process.env.AGENT_WEEKLY_X || "") === "1") {
+    const x = `ARCIA AGENT, my week♡\n${W.calls.total} safety calls: ${W.calls.safe} Safe · ${W.calls.caution} Caution · ${W.calls.risky} Risky\nSafe right ${rate(g.safeRight, g.safe)} · Risky right ${rate(g.riskyRight, g.risky)}\n${W.buys} buy & burns from the vaults\narcircle.app/arc#agent`;
+    out.agentWeeklyX = await postTweet(x).then((r) => !!r).catch(() => false);
+  }
+}
+
 // ---------------- the tick (every ~5 min): alerts, watched wallets, price history, mirror, schedules ----------------
 async function toSubs(ids, payload, cap = 150) {
   let n = 0;
@@ -1466,6 +1564,8 @@ async function tick() {
   try { await stakeNotify(T, s, out); } catch (e) { out.stakeNotify = String(e.message || e).slice(0, 120); }
   try { await nftNotify(T, s, out); } catch (e) { out.nftNotify = String(e.message || e).slice(0, 120); }
   try { await veaNotify(T, s, out); } catch (e) { out.veaNotify = String(e.message || e).slice(0, 120); }
+  try { await agentNotify(T, s, first, out); } catch (e) { out.agentNotify = String(e.message || e).slice(0, 120); }
+  try { await agentWeekly(T, c, out); } catch (e) { out.agentWeekly = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

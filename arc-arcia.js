@@ -318,6 +318,8 @@
     if (/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(text)) { location.href = "/me" + (account() ? "?w=" + account() : ""); return; }
     var oi = orderIntent(text);
     if (oi) { orderChat(text, oi); return; }
+    var si = scanIntent(text);
+    if (si) { scanChat(text, si); return; }
     mission("ask");
     busy = true; sendBtn.disabled = true;
     var now = Date.now();
@@ -424,6 +426,47 @@
         if (talk.on) speak(reply, el);
       } });
     }, reduce ? 0 : 450);
+  }
+  // ---------------- ARCIA AGENT v2 in the chat: "scan 0x…" (or "check" / "read", "on robinhood" / "rh") → her call, right here ----------------
+  function scanIntent(text) {
+    var m = /^\s*(?:scan|check|read|agent)\s+(0x[0-9a-fA-F]{40})\b(.*)$/i.exec(text);
+    // "scan $ARCIA" → $ARCIA on Robinhood Chain; "scan $ARCIRCLE" → $ARCIRCLE on Arc
+    var n = !m && /^\s*(?:scan|check|read)\s+\$?(arcia|arcircle)\b(?:\s+for me)?\s*[?!.]*$/i.exec(text);
+    if (n) return /^arcia$/i.test(n[1]) ? { t: ARCIA_RH_TOKEN_LC, chain: "rh" } : { t: "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7", chain: "arc" };
+    if (!m) return null;
+    return { t: m[1].toLowerCase(), chain: /\b(rh|robinhood)\b/i.test(m[2]) || m[1].toLowerCase() === ARCIA_RH_TOKEN_LC ? "rh" : "arc" };
+  }
+  var ARCIA_RH_TOKEN_LC = "0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25";
+  function scanChat(text, si) {
+    var now = Date.now(), chainName = si.chain === "rh" ? "Robinhood Chain" : "Arc";
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    dropStarter();
+    bubble("user", text, { t: now });
+    input.value = ""; grow(); sfx("tap"); mission("ask");
+    typing(true);
+    fetch("/api/desk?agent=" + si.t + (si.chain === "rh" ? "&chain=rh" : "")).then(function (r) { return r.json(); }).catch(function () { return null; }).then(function (rep) {
+      typing(false);
+      var ok = rep && !rep.error, c = (rep && rep.call) || {}, f = (rep && rep.facts) || {}, sym = rep && rep.sym ? "$" + rep.sym : si.t.slice(0, 6) + "…" + si.t.slice(-4);
+      var K = { safe: T({ en: "Safe", ko: "안전", zh: "安全" }), caution: T({ en: "Caution", ko: "주의", zh: "谨慎" }), risky: T({ en: "Risky", ko: "위험", zh: "高风险" }) };
+      var reply = !ok ? T({ en: "Hmm, I couldn't read that one on {c} right now~ check the address and try again?", ko: "음, 지금 {c}에서 그 토큰을 못 읽었어요~ 주소 확인하고 다시 해 볼래요?", zh: "嗯，我现在没能在 {c} 上读取它~ 检查一下地址再试一次？" }).replace("{c}", chainName)
+        : c.pending ? T({ en: "I'm reading {s}'s holders first — my call comes in a moment. Open it in ARCIA AGENT and I'll show you there♡", ko: "{s}의 홀더를 먼저 읽고 있어요 — 콜은 곧 나와요. ARCIA AGENT에서 열면 거기서 보여 줄게요♡", zh: "我先读取 {s} 的持有人——判断马上就来。在 ARCIA AGENT 打开，我在那里给你看♡" }).replace("{s}", sym)
+        : T({ en: "My 24-hour safety call on {s} ({c}): {k}. It's about risk, not price — and I grade myself in public♡", ko: "{s}({c})에 대한 24시간 안전 콜: {k}. 가격이 아니라 위험에 대한 판단이고, 공개로 채점돼요♡", zh: "我对 {s}（{c}）的 24 小时安全判断：{k}。这是关于风险而非价格——并且公开评分♡" }).replace("{s}", sym).replace("{c}", chainName).replace("{k}", K[c.call] || c.call);
+      var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+      ls.set(KEY2, msgs.slice(-30));
+      var li = null;
+      li = bubble("assistant", reply, { type: true, t: Date.now(), i: i, done: function () {
+        var el = li || [].slice.call(log.querySelectorAll(".aa-m.her")).pop();
+        if (!el || !ok) return;
+        li = el; el._text = reply;
+        var href = "/arc#agent?" + (si.chain === "rh" ? "c=rh&" : "") + "t=" + si.t;
+        var why = (c.why || []).slice(0, 3).map(function (w) { return "<li>" + esc(w) + "</li>"; }).join("");
+        el.querySelector(".aa-mc").insertAdjacentHTML("beforeend", '<div class="aa-rc aa-rc-agent"><span class="aa-rc-k" data-no-i18n>ARCIA AGENT · ' + esc(chainName) + '</span>' +
+          '<div class="aa-rc-agrow"><span class="aa-ag-stamp k-' + esc(c.pending ? "pending" : c.call || "") + '">' + esc(c.pending ? tr("Reading") : K[c.call] || "—") + '</span><b data-no-i18n>' + esc(sym) + '</b>' + (f.score != null ? '<em data-no-i18n>' + f.score + '/100</em>' : "") + '</div>' +
+          (why ? '<ul>' + why + '</ul>' : "") + '<div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(href) + '" data-ord="1"><span>' + esc(tr("Open in ARCIA AGENT")) + '</span> →</a></div><span class="aa-rc-sub">' + esc(tr("A call is about risk over the next 24 hours, never about price direction — not a signal to buy or sell.")) + '</span></div>');
+        got(); scroll(); fx(el, "sparkle");
+        if (talk.on) speak(reply, el);
+      } });
+    });
   }
   // long answers fold to their first lines, with "Show more"
   function fold(el, text) {
@@ -555,6 +598,7 @@
     locker: { en: "How does the Locker work?", ko: "락커는 어떻게 써?", zh: "Locker 怎么用？" },
     circlepad: { en: "How do I join this round?", ko: "이번 라운드는 어떻게 참여해?", zh: "怎么参加这一轮？" },
     desk: { en: "What is ARCIA DESK trading?", ko: "ARCIA DESK는 뭘 거래해?", zh: "ARCIA DESK 在交易什么？" },
+    agent: { en: "Scan $ARCIA for me", ko: "Scan $ARCIA for me", zh: "Scan $ARCIA for me" },
   };
   function ctxChips() {
     var out = [], A = (LIVE && LIVE.arcia) || {};
