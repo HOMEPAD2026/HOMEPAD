@@ -777,16 +777,26 @@
         if (x.roundRect) { x.beginPath(); x.roundRect(W - 60 - tw, 56, tw, 54, 27); x.fill(); } else x.fillRect(W - 60 - tw, 56, tw, 54);
         x.fillStyle = "#1a1206"; x.fillText(tag, W - 60 - tw + 24, 94);
       }
-      x.font = "800 92px Sora, 'Segoe UI', sans-serif"; x.fillStyle = edge; x.fillText("ARCIA", 70, 870);
-      x.font = "600 30px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#9fb6d9"; x.fillText("Virtual idol of $ARCIRCLE", 76, 918);
+      // the quote's size follows its length, so a long reply never runs into the numbers and the footer below it
       var clean = String(text).replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim();
-      x.font = "500 40px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";
-      var lines = wrapLines(x, "“" + clean + "”", W - 160, 6);
+      var BOT = H - 140, TOP0 = 960, TOPMIN = 720, fsz = 40, lh = 56, lines = [], top = TOP0;
+      [40, 36, 32, 29].some(function (f) {
+        fsz = f; lh = Math.round(f * 1.4);
+        x.font = "500 " + f + "px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";
+        lines = wrapLines(x, "\u201c" + clean + "\u201d", W - 160, 99);
+        return BOT - (lines.length * lh + 44) >= TOPMIN;
+      });
+      var fit = Math.floor((BOT - TOPMIN - 44) / lh);
+      if (lines.length > fit) lines = wrapLines(x, "\u201c" + clean + "\u201d", W - 160, fit);
+      var bh = lines.length * lh + 44;
+      top = Math.min(TOP0, BOT - bh);
+      x.font = "800 92px Sora, 'Segoe UI', sans-serif"; x.fillStyle = edge; x.fillText("ARCIA", 70, top - 90);
+      x.font = "600 30px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#9fb6d9"; x.fillText("Virtual idol of $ARCIRCLE", 76, top - 42);
+      x.font = "500 " + fsz + "px 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif";
       x.fillStyle = "rgba(255,255,255,.05)"; x.strokeStyle = rar === "common" ? "rgba(91,140,255,.35)" : edge; x.lineWidth = 2;
-      var top = 960, bh = lines.length * 56 + 56;
       if (x.roundRect) { x.beginPath(); x.roundRect(56, top, W - 112, bh, 28); x.fill(); x.stroke(); } else x.fillRect(56, top, W - 112, bh);
       x.fillStyle = "#eef3ff";
-      lines.forEach(function (l, k2) { x.fillText(l, 84, top + 70 + k2 * 56); });
+      lines.forEach(function (l, k2) { x.fillText(l, 84, top + 22 + fsz + k2 * lh); });
       // v4: the day's numbers on the card — $ARCIA on Robinhood Chain and today's hearts
       var A0 = (LIVE && LIVE.arcia) || {}, nums = [];
       if (A0.mcap != null) nums.push("$ARCIA mcap $" + (A0.mcap >= 1e6 ? (A0.mcap / 1e6).toFixed(2) + "M" : (A0.mcap / 1e3).toFixed(1) + "K"));
