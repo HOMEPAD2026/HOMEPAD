@@ -1347,29 +1347,21 @@
     el.querySelectorAll("b[data-k]").forEach(function (b) { var k = b.getAttribute("data-k"); if (k !== "streamed" && old[k] != null && old[k] !== b.textContent) { b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } });
     veaFlow(run, streamed);
   }
-  // the stream, like the veARCIA tab: the pool (days left) → rewards flowing → the stakers, each earning live
-  var veaSeen = { at: 0 };
+  // the stream, like the veARCIA tab: the pool (days left) → rewards flowing → the stakers, and the payout counter
   function veaFlow(run, streamed) {
     var box = panel.querySelector("[data-veaflow]"), d = vea.st;
     if (!box) return;
     if (!d || !d.live) { box.innerHTML = ""; return; }
     var t = d.totals || {}, now = veaNow(), daysLeft = Number(t.finish) > now ? (Number(t.finish) - now) / 86400 : 0;
     var R = 26, C = 2 * Math.PI * R, frac = Math.max(0, Math.min(1, daysLeft / 20));
-    var top = (d.top || []).slice(0, 3), weight = Number(t.weight) || 0, perDay = Number(t.perDay) || 0;
+    var perDay = Number(t.perDay) || 0;
     var bg = function (a) { return typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(a) : "background:linear-gradient(135deg,#ff8bd8,#4dd4ff)"; };
-    var short = function (a) { a = String(a || ""); return a.slice(0, 6) + "…" + a.slice(-4); };
-    if (!veaSeen.at) veaSeen.at = Date.now();
     var avs = (d.top || []).slice(0, 5).map(function (x, i) { return '<i style="--i:' + i + ';' + bg(x.a) + '"></i>'; }).join("") || '<i class="ghost"></i><i class="ghost"></i>';
-    var rows = top.map(function (x) {
-      var day = weight > 0 ? (Number(x.ve) || 0) / weight * perDay : 0;
-      return '<span class="aa-vs"><i style="' + bg(x.a) + '"></i><b data-no-i18n>#' + x.rank + " " + esc(short(x.a)) + '</b><small data-no-i18n>' + veaN(x.amount) + " · " + (x.lockDays || "?") + "d</small>" +
-        '<em data-no-i18n data-vs="' + (day / 86400) + '">+' + veaFmtS(run ? day / 86400 * (Date.now() - veaSeen.at) / 1000 : 0) + '</em><small class="pd" data-no-i18n>' + veaN(day) + "/" + esc(T({ en: "day", ko: "일", zh: "天" })) + "</small></span>";
-    }).join("");
     box.innerHTML = '<span class="aa-vf-row"><span class="aa-vf-ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="' + R + '" class="trk"/><circle cx="32" cy="32" r="' + R + '" class="val" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - frac)).toFixed(1) + '"/></svg><b data-no-i18n>' + (daysLeft > 0 ? "D-" + Math.ceil(daysLeft) : "—") + "</b></span>" +
       '<span class="aa-vf-stream' + (run ? "" : " paused") + '" aria-hidden="true">' + [0, 1, 2, 3, 4, 5].map(function (i) { return '<i style="--d:' + i + '"></i>'; }).join("") + "</span>" +
       '<span class="aa-vf-crowd"><span class="aa-vf-av">' + avs + '</span><b data-no-i18n>' + veaN(perDay) + ' <i>$ARCIA</i></b><small data-no-i18n>' + esc(T(run ? { en: "a day, every second", ko: "매일, 매초 지급", zh: "每天，每秒发放" } : { en: "the stream waits for stakers", ko: "참여자를 기다리는 중", zh: "等待质押者" })) + "</small></span></span>" +
       '<span class="aa-vf-big"><i class="' + (run ? "on" : "") + '"></i><b data-no-i18n data-k2="streamed">' + veaFmtS(streamed) + '</b><small data-no-i18n>$ARCIA ' + esc(T({ en: "paid out so far", ko: "지금까지 지급", zh: "累计发放" })) + "</small></span>" +
-      (rows ? '<span class="aa-vf-top"><small class="h" data-no-i18n>' + esc(T({ en: "Stakers earning right now", ko: "지금 보상받는 스테이커", zh: "正在获得奖励的质押者" })) + "</small>" + rows + "</span>" : "");
+      "";
   }
   function veaLoad() {
     if (!window.fetch) return;
@@ -1388,7 +1380,6 @@
       // the featured card: the big counter and each staker's rewards since this page opened
       var b2 = panel.querySelector('[data-veaflow] b[data-k2="streamed"]');
       if (b2 && veaRun()) b2.textContent = veaFmtS(veaStreamed());
-      if (veaRun()) panel.querySelectorAll("[data-veaflow] em[data-vs]").forEach(function (e) { e.textContent = "+" + veaFmtS(Number(e.getAttribute("data-vs")) * (Date.now() - veaSeen.at) / 1000); });
     }, 1000);
   }
 
