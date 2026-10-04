@@ -184,8 +184,10 @@
     if (S.pending && (p.type !== "limit" || p.side !== "buy")) { A.toast(tr("Only a limit buy can wait for the graduation."), "bad"); return false; }
     if (!A.PRO() && !["limit", "market"].includes(p.type)) A.setMode("pro");
     S.side = p.side; S.type = p.type; S.msg = null; S.editing = null; S.pct = 0;
-    const d = (v) => (v > 0 ? String(Number(v.toPrecision(10))) : "");
-    for (const k of ["price", "trigger", "tp", "sl", "lo", "hi", "cap"]) if (p[k] != null) F[k] = d(p[k]);
+    // ten significant figures as a plain decimal (never 4.5e-9: the form reads digits and one point)
+    const d = (v) => { if (!(v > 0) || !isFinite(v)) return ""; const n = Number(v.toPrecision(10)); return n.toFixed(Math.min(20, Math.max(0, 9 - Math.floor(Math.log10(n))))).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); };
+    const d6 = (v) => d(Number(v.toPrecision(6))); // a price: six significant figures, like the book's
+    for (const k of ["price", "trigger", "tp", "sl", "lo", "hi", "cap"]) if (p[k] != null) F[k] = d6(p[k]);
     for (const k of ["expiry", "dur", "parts", "trail", "n"]) if (p[k] != null) F[k] = p[k];
     F.amount = ""; F.total = "";
     if (p.amount) F.amount = d(p.amount);

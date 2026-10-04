@@ -15915,3 +15915,5 @@ body.cp5-modal-open{overflow:hidden;}
   .aor-stat.big.tick-up,.aor-stat.big.tick-dn,.aor-lv.grow::before,.aor-mr.done,.aor-mr.near,.aor-flame,.aor-burnct.rolling .aor-flame,.aor-wr-d.hot,.aor-dca,.aor-rmenu,.aor-gpane,.aor-strip{animation:none !important;}
   .aor-submit{transition:none;}
 }
+/* the "type an order" box: the label is the field (no inner box from the site's input styles) */
+.aor-typeo-in input,.aor-typeo-in input:focus{border:0 !important;box-shadow:none !important;outline:none !important;border-radius:0 !important;padding:0 !important;background:none !important;}
