@@ -124,6 +124,9 @@ const CONFIG = {
   //     (shown in the "after the close" questions; empty = "not decided yet")
   CIRCLEPAD_OPENS_AT: 0,
   CIRCLEPAD_ESCROW_VERIFIED: false,
+  // Round escrows whose source shows on ArcScan (checked 4 Oct 2026: Round #2 exact match, Round #3 similar match to
+  // Round #2 — the same code). circlepad-v5.js uses this when the live explorer check doesn't answer.
+  CIRCLEPAD_VERIFIED_ESCROWS: ["0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4"],
   CIRCLEPAD_ALLOCATION_NOTE: "Every contributor gets an airdrop of the new coin — its size and timing aren't decided yet. The top contributor at the close also receives the 15% share, over 3 days.",
   // Team additions to the Round #1 ballot, added by "Fill every category from
   // the ideas" (circlepad-ideas.js) after the community's ideas. Keyed by

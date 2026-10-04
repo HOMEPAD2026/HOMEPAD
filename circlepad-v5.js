@@ -71,7 +71,9 @@
     if (!/^0x[0-9a-f]{40}$/.test(e)) return;
     try {
       const r = await fetch(`/api/social?circle=src&escrow=${e}`);
-      const j = r.ok ? await r.json() : null;
+      let j = r.ok ? await r.json() : null;
+      // the explorer didn't answer: the escrows already checked on ArcScan (config-arc.js)
+      if ((!j || j.verified == null) && (CONFIG.CIRCLEPAD_VERIFIED_ESCROWS || []).map((x) => String(x).toLowerCase()).includes(e)) j = { verified: true };
       if (!j || j.verified == null) return;
       window.cpEscrowVerified = !!j.verified;
       try { keys(); } catch { /* next paint */ }
