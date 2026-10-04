@@ -13,6 +13,12 @@
 // (ArcircleOrdersNative: orders name WETH, native ETH pools work; ETH is wrapped for you when an order needs WETH, and
 // market orders take and pay plain ETH). Any token with a Uniswap v4 pool. The book shows price levels — signatures
 // never leave the server, and a wallet's own orders open with one signature (30 days).
+// v3 (4 Oct 2026): tiny prices with subscript zeros (0.0₆1088) and dollar values on Robinhood Chain, Preview tags
+// on chains not live yet, the Token Scanner's score and ARCIA DESK's record on the market, a buy of a flagged token
+// asks twice, "Limit · Market · More" types, a one-line order sentence, dollars in on Robinhood Chain, my orders
+// across both chains with CSV, expiring orders extended in one step, P&L across markets, price alerts on Telegram,
+// my average buy and my fills on the chart, lines that glow near their trigger, my orders beside the chart.
+// arc-orders-x.js adds the live tape across markets, the fee burn's total, and swipe-to-cancel on phones.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-orders");
@@ -67,14 +73,23 @@
   };
 
   // ---------------- numbers ----------------
-  /// a price with four significant figures, never in exponent form (0.00003835)
+  /// a price with four significant figures, never in exponent form (0.00003835); v3: four or more zeros after the
+  /// point fold into a subscript count, 0.0000001088 → 0.0₆1088
+  const SUBD = "₀₁₂₃₄₅₆₇₈₉";
   function fp(p) {
     if (p == null || !isFinite(p) || p <= 0) return "—";
     if (p >= 1000) return p.toLocaleString("en-US", { maximumFractionDigits: 2 });
     if (p >= 1) return p.toLocaleString("en-US", { maximumFractionDigits: 4 });
+    const [m, e] = p.toExponential(3).split("e"), zeros = -Number(e) - 1;
+    if (zeros >= 4) return "0.0" + [...String(zeros)].map((d) => SUBD[d]).join("") + m.replace(".", "").replace(/0+$/, "");
     const d = Math.min(14, -Math.floor(Math.log10(p)) + 3);
     return p.toFixed(d).replace(/0+$/, "").replace(/\.$/, "");
   }
+  /// v3: a quote amount in dollars — Robinhood Chain's markets are in ETH (S.ethUsd from the executor's status); Arc's
+  /// USDC already is dollars
+  const usdOf = (q) => (RH() && S.ethUsd > 0 && q != null && isFinite(q) ? q * S.ethUsd : null);
+  const usdS = (u) => (u == null ? "" : u >= 1 ? usd(u) : "$" + fp(u));
+  const usdTag = (q, cls = "") => { const u = usdOf(q); return u == null ? "" : `<small class="aor-usd ${cls}" data-no-i18n>≈ ${esc(usdS(u))}</small>`; };
   const num = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Number(n).toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 6 : 2 }));
   const usd = (n) => (n == null || !isFinite(n) ? "—" : "$" + (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
   const pc = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(d) + "%");
@@ -159,7 +174,10 @@
     busy: false, steps: null, booted: false, acct: null, bal: {}, msg: null, loadingMkt: false, err: null, tax: null, agentCall: null,
     editing: null, locked: false, prevLevels: new Map(), prevFill: new Map(), sheet: false, showMarkets: false,
     histF: "all", showCx: false, mq: "", allow: {}, fatOk: null, drag: null, cxArm: null,
+    // v3
+    ethUsd: null, scan: null, desk: null, other: null, usdIn: false, typesOpen: false, riskOk: new Set(), beat: 0, swiped: null, nearRaf: 0,
   };
+  S.usdIn = (() => { try { return localStorage.getItem("arcircle.orders.usdin") === "1"; } catch { return false; } })();
   const F = { price: "", amount: "", total: "", trigger: "", expiry: "604800", slip: "3", tp: "", sl: "", trail: "10", floor: "", dur: "86400", parts: "12", cap: "", approveMore: store.get("arcircle.orders.approvemore", false),
     lo: "", hi: "", n: "5", brk: false, btp: "", bsl: "" };
   // v2: Simple (Limit and Market up front) or Pro (every type, the price step, keys) — phones start Simple
@@ -199,8 +217,11 @@
     el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("Verified source on Blockscout:")}</span>${a("ArcircleOrdersNative", ORDERS())}${isAddr(fb) ? a("ArcircleFeeBurnNative", fb) : ""}`;
   }
   const chainNote = () => T(SOLC() ? "Markets against SOL on Solana — orders stay in your Solana wallet until they fill." : RH() ? "Markets against ETH on Robinhood Chain — ETH is wrapped for you when an order needs WETH." : "Markets against USDC on Arc.");
+  /// v3: is a chain's ARCIRCLE Orders live yet (its contract / program set in config-arc.js)
+  const liveOn = (c) => (c === "rh" ? isAddr(CFG().ORDERS_RH_ADDRESS) : c === "sol" ? !!(window.arcOrdersSol && window.arcOrdersSol.program && window.arcOrdersSol.program()) : isAddr(CFG().ORDERS_ADDRESS));
+  const prevTag = (c) => (liveOn(c) ? "" : `<em class="aor-cprev">${T("Preview")}</em>`);
   function chainSwitch() {
-    return `<div class="aor-chain${SOL_ON() ? " three" : ""}" role="radiogroup" aria-label="${T("Chain")}" data-chain="${CH}" title="${chainNote()}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-setchain="arc" aria-checked="${CH === "arc"}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span><small data-no-i18n>USDC</small></button><button type="button" role="radio" data-setchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span><small data-no-i18n>ETH</small></button>${SOL_ON() ? `<button type="button" role="radio" data-setchain="sol" aria-checked="${SOLC()}"><span class="aor-cdot sol" aria-hidden="true"></span><span data-no-i18n>Solana</span><small data-no-i18n>SOL</small></button>` : ""}</div>`;
+    return `<div class="aor-chain${SOL_ON() ? " three" : ""}" role="radiogroup" aria-label="${T("Chain")}" data-chain="${CH}" title="${chainNote()}"><i class="aor-chain-pill" aria-hidden="true"></i><button type="button" role="radio" data-setchain="arc" aria-checked="${CH === "arc"}"><span class="aor-cdot arc" aria-hidden="true"></span><span data-no-i18n>Arc</span><small data-no-i18n>USDC</small>${prevTag("arc")}</button><button type="button" role="radio" data-setchain="rh" aria-checked="${RH()}"><span class="aor-cdot rh" aria-hidden="true"></span><span data-no-i18n>Robinhood</span><small data-no-i18n>ETH</small>${prevTag("rh")}</button>${SOL_ON() ? `<button type="button" role="radio" data-setchain="sol" aria-checked="${SOLC()}"><span class="aor-cdot sol" aria-hidden="true"></span><span data-no-i18n>Solana</span><small data-no-i18n>SOL</small>${prevTag("sol")}</button>` : ""}</div>`;
   }
   function chainRow() {
     return `<div class="aor-chainrow">${chainSwitch()}<span class="aor-chainnote">${chainNote()}</span></div>`;
@@ -227,7 +248,8 @@
     heroContracts();
     heroFold();
     $("aor-body").innerHTML = `
-      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() || RH() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
+      <div class="ams-preview aor-preview" id="aor-preview"${LIVE() ? " hidden" : ""}><i class="ams-preview-ico"></i><div><b>${T(RH() ? "Preview — ARCIRCLE Orders opens on Robinhood Chain once its contract is live there" : "Preview — ARCIRCLE Orders opens once its contract is live on Arc")}</b><span>${T("You can browse markets, the book and the pool price now; placing orders turns on with the contract.")}</span></div></div>
+      <div class="aor-tapew" id="aor-tapew" hidden><div class="aor-tape" id="aor-tape" aria-label="${T("Latest fills across markets")}"></div><a class="aor-burnct" id="aor-burnct" href="/reward" hidden></a></div>
       <div class="aor-grid" id="aor-grid" data-mt="chart">
       <div class="ams-card aor-bar">
         <div class="aor-pickrow">
@@ -256,16 +278,17 @@
           <div id="aor-chart" class="aor-chart"></div>
         </section>
         <section class="ams-card aor-formc" id="aor-formc" aria-label="${T("Place an order")}"></section>
-      </div>
-      <section class="ams-card aor-mine">
+      <section class="ams-card aor-mine" id="aor-minec">
         <div class="aor-mine-h"><div class="aor-seg" role="tablist"><button type="button" data-my="open" aria-selected="true">${T("Open orders")} <em id="aor-n-open" data-no-i18n></em></button><button type="button" data-my="history" aria-selected="false">${T("History")} <em id="aor-n-hist" data-no-i18n></em></button></div>
-          <div class="aor-scope" role="radiogroup"><button type="button" data-scope="market" aria-checked="true">${T("This market")}</button><button type="button" data-scope="all" aria-checked="false">${T("All")}</button></div>
+          <div class="aor-scope" role="radiogroup"><button type="button" data-scope="market" aria-checked="${S.myScope === "market"}">${T("This market")}</button><button type="button" data-scope="all" aria-checked="${S.myScope === "all"}">${T(RH() ? "All on Robinhood" : "All on Arc")}</button><button type="button" data-scope="both" aria-checked="${S.myScope === "both"}">${T("Both chains")}</button></div>
+          <button type="button" class="aor-btn sm ghost aor-csv" data-act="csv" title="${T("Download your orders as a CSV file")}">${T("Export CSV")}</button>
           <label class="aor-ntf"><input type="checkbox" id="aor-notify"${notifyOn() ? " checked" : ""}> <span>${T("Notify me")}</span></label>
           <span class="aor-mine-acts"><button type="button" class="aor-btn sm ghost" data-act="cancelmarket" id="aor-cxmkt" hidden>${T("Cancel all here")}</button><button type="button" class="aor-btn sm ghost" data-act="cancelall" id="aor-cxall" hidden>${T("Cancel all on-chain")}</button></span></div>
         <div id="aor-mine"></div>
         <div class="aor-mine-foot" id="aor-mfoot"></div>
-        <a class="aor-tg" href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11.2l6.2 2.1L19 7l-7.6 8.1.1 4.9 3.1-3.7 4.2 3.1z"/></svg><span>${T("Fill alerts on Telegram")}</span><code data-no-i18n>/orderalerts on</code><code data-no-i18n>/orders</code></a>
+        <a class="aor-tg" href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11.2l6.2 2.1L19 7l-7.6 8.1.1 4.9 3.1-3.7 4.2 3.1z"/></svg><span>${T("Fill and price alerts on Telegram")}</span><code data-no-i18n>/orderalerts on</code><code data-no-i18n>/orders</code></a>
       </section>
+      </div>
       <div class="aor-dock" id="aor-dock" hidden><button type="button" class="aor-dbuy" data-sheet="buy">${T("Buy")}</button><button type="button" class="aor-dsell" data-sheet="sell">${T("Sell")}</button></div>
       <div class="aor-strip" id="aor-strip" hidden></div>
       <div class="aor-scrim" id="aor-scrim" data-act="sheetclose" hidden></div>`;
@@ -280,6 +303,7 @@
     panel.classList.toggle("aor-simple", !PRO());
     if (!S.keys) { S.keys = true; document.addEventListener("keydown", onKey); }
     chips(); market(); bookView(); chartView(); form(); mineView(); watchDock();
+    if (window.arcOrdersX) window.arcOrdersX.frame();
   }
   // ---------------- v2: keys, the phone's Buy / Sell bar, the sticky price strip ----------------
   /// B / S pick the side, Enter places (from the form), / goes to the token box, Esc closes the sheet
@@ -349,13 +373,16 @@
     const el = $("aor-chips"); if (!el) return;
     const seen = new Set(), list = [];
     const add = (t, sym, n, fav) => { t = lc(t); if (!isAddr(t) || seen.has(t)) return; seen.add(t); list.push({ t, sym, n, fav }); };
+    // v3: each chip carries its 24h change and how many of my orders are open there
+    const chOf = (t) => { const m = S.markets.find((x) => lc(x.token.address || x.token) === t); return m && m.change24 != null ? m.change24 : null; };
+    const mineN = (t) => ((S.mine && S.mine.orders) || []).filter((o) => lc(o.token.address || o.token) === t && (o.status === "open" || o.status === "unfunded")).length;
     const symOf = (t) => { const m = S.markets.find((x) => lc(x.token.address || x.token) === t); const r = recent().find((x) => x.t === t); return (m && m.token.symbol) || (r && r.sym) || (t === ARCIRCLE() ? "ARCIRCLE" : RH() && t === ARCIA_RH() ? "ARCIA" : null); };
     for (const f of favs()) add(f, symOf(f), null, true);
     if (RH()) add(ARCIA_RH(), "ARCIA");
     add(ARCIRCLE(), "ARCIRCLE");
     for (const m of S.markets) add(m.token.address || m.token, m.token.symbol, m.open);
     for (const r of recent()) add(r.t, r.sym);
-    el.innerHTML = list.slice(0, 10).map((x) => `<button type="button" class="aor-chip${x.t === S.t ? " on" : ""}${x.fav ? " fav" : ""}" data-t="${x.t}">${x.fav ? '<i class="aor-star" aria-hidden="true">★</i>' : ""}<b data-no-i18n>$${esc(x.sym || short(x.t))}</b>${x.n ? `<em data-no-i18n>${x.n}</em>` : ""}</button>`).join("");
+    el.innerHTML = list.slice(0, 10).map((x) => `<button type="button" class="aor-chip${x.t === S.t ? " on" : ""}${x.fav ? " fav" : ""}" data-t="${x.t}">${x.fav ? '<i class="aor-star" aria-hidden="true">★</i>' : ""}<b data-no-i18n>$${esc(x.sym || short(x.t))}</b>${chOf(x.t) != null ? `<small class="aor-chip-ch ${chOf(x.t) >= 0 ? "up" : "dn"}" data-no-i18n>${pc(chOf(x.t), 1)}</small>` : ""}${x.n ? `<em data-no-i18n title="${T("open orders in the book")}">${x.n}</em>` : ""}${mineN(x.t) ? `<i class="aor-chip-me" data-no-i18n title="${T("your open orders")}">${mineN(x.t)}</i>` : ""}</button>`).join("");
   }
   /// a little line of a market's fills over the last day (the server sends up to 24 prices)
   function spark(pts, w = 64, h = 20) {
@@ -398,7 +425,7 @@
   function market() {
     const el = $("aor-mkt"); if (!el) return;
     if (!S.t) { el.innerHTML = `<p class="aor-hint">${T(RH() ? "Pick a market above — any Robinhood Chain token with a Uniswap v4 pool against ETH." : "Pick a market above — any Arc token with a Uniswap v4 pool (Argus, ArcPad or a plain pool).")}</p>`; return; }
-    if (S.loadingMkt) { el.innerHTML = `<p class="aor-hint"><span class="aor-spin"></span>${T(RH() ? "Reading the token's pools on Robinhood Chain…" : "Reading the token's pools on Arc…")}</p>`; return; }
+    if (S.loadingMkt) { el.innerHTML = `<div class="aor-mkskel" aria-hidden="true"><i class="lg"></i><i></i><i></i><i></i><i></i><i></i></div><p class="aor-hint"><span class="aor-spin"></span>${T(RH() ? "Reading the token's pools on Robinhood Chain…" : "Reading the token's pools on Arc…")}</p>`; return; }
     if (!S.tok) { el.innerHTML = `<p class="aor-hint bad">${T(S.err || (RH() ? "No Uniswap v4 pool against ETH found for this token on Robinhood Chain." : "No Uniswap v4 pool found for this token on Arc."))}</p>`; return; }
     const p = pool(), b = S.book || {}, d = b.day || {}, ch = dayChange();
     const dir = S.prevSpot && S.spot ? (S.spot > S.prevSpot ? "up" : S.spot < S.prevSpot ? "dn" : "") : "";
@@ -409,10 +436,10 @@
       <div class="aor-pair">
         <span class="aor-logo" aria-hidden="true">${S.tok.logo ? `<img src="${esc(S.tok.logo)}" alt="" width="34" height="34" loading="lazy"${/arcircle-mark/.test(S.tok.logo) ? ' class="mark"' : ""} onerror="this.remove()">` : ""}<i data-no-i18n>${esc((S.tok.symbol || "?").slice(0, 2))}</i></span>
         <div><span class="aor-pair-n" data-no-i18n>$${esc(S.tok.symbol)}<i>/ ${esc(S.quote.symbol)}</i><button type="button" class="aor-fav${favs().includes(S.t) ? " on" : ""}" data-fav="${S.t}" aria-pressed="${favs().includes(S.t)}" aria-label="${T("Favorite")}" title="${T("★ keeps a market at the front")}">★</button></span>
-        <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call ? `<a class="aor-call ${esc(call.call)}" href="#agent?t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : ""}</span></div>
+        <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call ? `<a class="aor-call ${esc(call.call)}" href="#agent?t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : ""}${scanChip()}${deskChip()}</span></div>
       </div>
       <div class="aor-stats">
-        <div class="aor-stat big"><small>${T("Pool price")}</small><b data-no-i18n id="aor-spot" class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><span data-no-i18n class="${ch == null ? "" : ch >= 0 ? "up" : "dn"}">${ch == null ? esc(S.quote.symbol) : pc(ch) + " 24h"}</span></div>
+        <div class="aor-stat big"><small>${T("Pool price")}</small><b data-no-i18n id="aor-spot" class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><span data-no-i18n class="${ch == null ? "" : ch >= 0 ? "up" : "dn"}">${ch == null ? esc(S.quote.symbol) : pc(ch) + " 24h"}</span>${usdTag(S.spot)}</div>
         <div class="aor-stat"><small>${T("Last fill")}</small><b data-no-i18n>${fp(b.last)}</b></div>
         <div class="aor-stat"><small>${T("24h high")}</small><b data-no-i18n>${fp(d.high)}</b></div>
         <div class="aor-stat"><small>${T("24h low")}</small><b data-no-i18n>${fp(d.low)}</b></div>
@@ -443,7 +470,43 @@
     const k = !st.at ? "off" : st.low || st.ago > 900 ? "bad" : st.ago > 180 ? "warn" : "ok";
     const txt = !st.at ? tr("Executor not running yet") : `${tr("Executor")} · ${tr("checked")} ${ago(st.at)}${st.low ? " · " + tr("low on gas") : ""}`;
     const tip = st.burn ? `${tr("Last fee burn")}: ${num(st.burn.arcircle)} $ARCIRCLE (${st.burn.eth != null ? num(st.burn.eth) + " ETH" : usd(st.burn.usdc)})` : tr("Fills orders every minute");
-    return `<span class="aor-exec ${k}" title="${esc(tip)}"><i></i><span data-no-i18n>${esc(txt)}</span></span>`;
+    const beat = S.beat && Date.now() - S.beat < 4000 && !reduce ? " beat" : "";
+    return `<span class="aor-exec ${k}${beat}" title="${esc(tip)}"><i></i><span data-no-i18n>${esc(txt)}</span></span>`;
+  }
+  // ---------------- v3: the Token Scanner's score and ARCIA DESK's record for this token ----------------
+  async function loadScan() {
+    const t = S.t, c0 = CH;
+    if (!t) return;
+    try {
+      const r = await fetch(`${API}?scores=${t}${RH() ? "&chain=rh" : ""}`, { cache: "no-store" });
+      const j = r.ok ? await r.json() : null;
+      if (t !== S.t || c0 !== CH) return;
+      const d = j && j.scores && j.scores[t];
+      S.scan = d ? { score: d.score, k: d.k, crit: d.crit || [], t: d.t } : null;
+    } catch { S.scan = null; }
+  }
+  const SCAN_K = { ok: "OK", caution: "Caution", warn: "Caution", risk: "Risky", bad: "Risky" };
+  function scanChip() {
+    const s = S.scan;
+    if (!s || s.score == null) return S.t ? `<a class="aor-scan none" href="#scanner?${RH() ? "c=rh&" : ""}t=${S.t}" title="${T("Check it in the Token Scanner")}">${T("Scan it")}</a>` : "";
+    const k = s.crit && s.crit.length ? "risk" : s.k === "ok" ? "ok" : s.k === "risk" || s.k === "bad" ? "risk" : "warn";
+    return `<a class="aor-scan ${k}" href="#scanner?${RH() ? "c=rh&" : ""}t=${S.t}" title="${T("Token Scanner score — an automated check, not advice")}${s.crit && s.crit.length ? " · " + esc(s.crit.slice(0, 2).map((c) => c.title || c).join(" · ")) : ""}"><span data-no-i18n>${Math.round(s.score)}</span> ${T(s.crit && s.crit.length ? "Critical flag" : SCAN_K[s.k] || "Caution")}</a>`;
+  }
+  async function loadDesk() {
+    const t = S.t, c0 = CH;
+    if (!t) return;
+    try {
+      if (!S.deskAll || S.deskAll.ch !== CH || Date.now() - S.deskAll.at > 120e3) { const r = await fetch(`/api/desk${RH() ? "?chain=rh" : ""}`, { cache: "no-store" }); S.deskAll = { ch: CH, at: Date.now(), v: r.ok ? await r.json() : null }; }
+      if (t !== S.t || c0 !== CH) return;
+      const v = (S.deskAll && S.deskAll.v) || {};
+      const open = (v.open || []).find((x) => lc(x.t) === t), rec = (v.recent || []).filter((x) => lc(x.t) === t), rej = (v.rejects || []).find((x) => lc(x.t) === t);
+      S.desk = open ? { k: "held" } : rec.length ? { k: "traded", n: rec.length } : rej ? { k: "passed" } : null;
+    } catch { S.desk = null; }
+  }
+  function deskChip() {
+    const d = S.desk; if (!d) return "";
+    const txt = d.k === "held" ? "ARCIA DESK holds it" : d.k === "traded" ? "ARCIA DESK traded it" : "ARCIA DESK passed on it";
+    return `<a class="aor-deskc ${d.k}" href="#desk${RH() ? "?chain=rh" : ""}" title="${T("ARCIA's own small trading wallet — not a tip")}">${T(txt)}</a>`;
   }
 
   // ---------------- price alerts (this browser) ----------------
@@ -454,8 +517,33 @@
     return `<div class="aor-alerts" id="aor-alerts">
       <div class="aor-al-row"><span class="aor-in"><input id="aor-al-price" type="text" inputmode="decimal" placeholder="${esc(fp(S.spot))}" aria-label="${T("Alert price")}"><i data-no-i18n>${esc(S.quote.symbol)}</i></span><button type="button" class="aor-btn go sm" data-act="alertadd">${T("Alert me")}</button></div>
       <p class="aor-note">${T("This browser tells you when the pool price crosses it — keep the tab open, or turn on notifications.")}</p>
-      ${list.length ? `<ul>${list.map((a, i) => `<li><span>${T(a.dir === "up" ? "rises to" : "falls to")} <b data-no-i18n>${fp(a.price)}</b></span><button type="button" class="aor-x" data-alertdel="${i}" aria-label="${T("Remove")}">${ICON.close}</button></li>`).join("")}</ul>` : ""}
+      ${me() ? `<button type="button" class="aor-altg${tgOn() ? " on" : ""}" data-act="altg" role="switch" aria-checked="${tgOn()}"><i aria-hidden="true"></i><span>${T("Also on Telegram")}</span><small>${T(tgOn() ? "New alerts here go to the ARCIA bot too — send it /orderalerts on" : "Your wallet's alerts, sent by the ARCIA bot even with this tab closed")}</small></button>` : ""}
+      ${list.length ? `<ul>${list.map((a, i) => `<li><span>${T(a.dir === "up" ? "rises to" : "falls to")} <b data-no-i18n>${fp(a.price)}</b>${a.tg ? ` <em class="aor-tgmark" title="${T("Also on Telegram")}" data-no-i18n>TG</em>` : ""}</span><button type="button" class="aor-x" data-alertdel="${i}" aria-label="${T("Remove")}">${ICON.close}</button></li>`).join("")}</ul>` : ""}
     </div>`;
+  }
+  // v3: price alerts mirrored to the server (signed with the orders view signature), DM'd by the ARCIA bot
+  const TGK = "arcircle.orders.altg";
+  const tgOn = () => store.get(TGK, false) === true && !!(me() && viewOf(me()));
+  async function tgSync(a, remove) {
+    const w = me(), v = w && viewOf(w), p0 = pool();
+    if (!v || !p0 || !S.tok || !S.quote) return false;
+    try {
+      const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "orderalert", wallet: w, until: v.until, sig: v.sig, token: a.t, sym: a.sym, price: a.price, dir: a.dir, poolId: p0.id, tokenIs0: !!p0.tokenIs0, td: S.tok.decimals, qd: S.quote.decimals, chain: RH() ? "rh" : undefined, ...(remove ? { remove: true } : {}) }) });
+      return r.ok;
+    } catch { return false; }
+  }
+  async function altg() {
+    const w = me(); if (!w) return;
+    if (!viewOf(w)) { await unlock(); if (!viewOf(w)) return; }
+    const on = !(store.get(TGK, false) === true);
+    store.set(TGK, on);
+    if (on) { // what's already set in this browser for this market goes along
+      const all = alertsAll(); let n = 0;
+      for (const a of all) if (a.t === S.t && !a.tg && (await tgSync(a))) { a.tg = true; n++; }
+      store.set(AK, all);
+      toast(tr("Telegram alerts on"), "fill", `${n ? `${n} ${tr(n === 1 ? "alert sent along" : "alerts sent along")} · ` : ""}${tr("send /orderalerts on to the ARCIA bot")}`);
+    }
+    market();
   }
   function checkAlerts() {
     if (!S.spot || !S.t) return;
@@ -484,7 +572,7 @@
     const c0 = CH;
     // prices belong to one market: a new market starts the price fields empty
     if (addr !== S.t) { for (const k of ["price", "amount", "total", "trigger", "tp", "sl", "floor", "cap", "lo", "hi", "btp", "bsl"]) F[k] = ""; F.brk = false; S.fatArm = null; }
-    Object.assign(S, { t: addr, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, err: null, loadingMkt: true, msg: null, candles: null, tax: null, agentCall: null, editing: null, alertsOpen: false });
+    Object.assign(S, { t: addr, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, err: null, loadingMkt: true, msg: null, candles: null, tax: null, agentCall: null, editing: null, alertsOpen: false, scan: null, desk: null });
     S.prevLevels = new Map();
     if ($("aor-in")) $("aor-in").value = addr;
     if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders?t=${addr}${RH() ? "&c=rh" : ""}`);
@@ -521,6 +609,7 @@
     if (S.t !== addr || c0 !== CH) return;
     market(); bookView(); chartView(); form(); mineView(); dockState(); strip();
     loadTax().then(() => { market(); form(); });
+    Promise.all([loadScan(), loadDesk()]).then(() => { if (S.t === addr && c0 === CH) { market(); form(); } });
     if (!RH()) loadAgent().then(() => market()); // ARCIA AGENT's calls are on Arc
   }
 
@@ -587,9 +676,9 @@
     } catch { /* keep */ }
   }
   async function loadStatus() {
-    if (!LIVE()) return;
+    if (!LIVE() && !RH()) return;
     const c0 = CH;
-    try { const r = await fetch(`${API}?orders=status${CQ()}`, { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (c0 === CH) S.status = j; } } catch { /* keep */ }
+    try { const r = await fetch(`${API}?orders=status${CQ()}`, { cache: "no-store" }); if (r.ok) { const j = await r.json(); if (c0 === CH) { if (S.status && j.at && j.at !== S.status.at) S.beat = Date.now(); S.status = j; if (j.ethUsd > 0) S.ethUsd = j.ethUsd; } } } catch { /* keep */ }
   }
   async function loadCandles() {
     const p = pool(); if (!p) return;
@@ -677,7 +766,7 @@
     const ghost = (side) => !S.spot ? "" : [1, 2, 3, 5, 10].map((k) => { const pr = Number((S.spot * (1 + (side === "sell" ? k : -k) / 100)).toPrecision(4)); return `<button type="button" class="aor-lv ${side === "sell" ? "dn" : "up"} ghost" data-price="${pr}" data-sug="${side === "sell" ? "sell" : "buy"}" title="${T(side === "sell" ? "Sell" : "Buy")} ${side === "sell" ? "+" : "−"}${k}%"><b data-no-i18n>${fp(pr)}</b><span data-no-i18n>${side === "sell" ? "+" : "−"}${k}%</span><em>${T(side === "sell" ? "Sell here" : "Buy here")}</em></button>`; });
     el.innerHTML = `<div class="aor-th"><span>${T("Price")} <i data-no-i18n>${esc(S.quote.symbol)}</i></span><span>${T("Amount")}</span><span>${T("Total")}</span></div>
       <div class="aor-asks">${empty ? pad(ROWS - 5) + ghost("sell").reverse().join("") : pad(asks.length) + asks.map((l, i) => row(l, askCum[i], "sell", i)).reverse().join("")}</div>
-      <div class="aor-mid"><b data-no-i18n class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><small>${T("pool price")}</small>${b.last ? `<span class="aor-midlast">${T("last")} <span data-no-i18n>${fp(b.last)}</span></span>` : ""}${spread != null ? `<em>${T("spread")} <span data-no-i18n>${spread.toFixed(2)}%</span><small data-no-i18n>${fp(bestAsk - bestBid)}</small></em>` : ""}</div>
+      <div class="aor-mid"><b data-no-i18n class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><small>${T("pool price")}</small>${usdTag(S.spot, "mid")}${b.last ? `<span class="aor-midlast">${T("last")} <span data-no-i18n>${fp(b.last)}</span></span>` : ""}${spread != null ? `<em>${T("spread")} <span data-no-i18n>${spread.toFixed(2)}%</span><small data-no-i18n>${fp(bestAsk - bestBid)}</small></em>` : ""}</div>
       <div class="aor-bids">${empty ? ghost("buy").join("") + pad(ROWS - 5) : bids.map((l, i) => row(l, bidCum[i], "buy", i)).join("") + pad(bids.length)}</div>
       ${empty ? `<p class="aor-first"><b>${T("No orders here yet — be the first.")}</b> <span>${T("The faint rows are prices around the pool: tap one to start an order there.")}</span></p>`
         : `<p class="aor-foot">${T("Orders below the ask and above the bid fill from the pool as soon as its price gets there.")}</p>`}`;
@@ -776,8 +865,9 @@
     if (msg) msg.hidden = true;
     const AX = 66, VB = 0.18, PADT = 14, PADB = 22;
     const cw = W - AX, ph = (H - PADT - PADB) * (1 - VB), vt = PADT + ph + 6, vh = (H - PADT - PADB) * VB - 6;
-    const lines = orderLines();
+    const lines = orderLines(), mf = myFills();
     let lo = Math.min(...data.map((d) => d[3])), hi = Math.max(...data.map((d) => d[2]));
+    if (mf.avg && mf.avg > lo * 0.7 && mf.avg < hi * 1.3) { lo = Math.min(lo, mf.avg); hi = Math.max(hi, mf.avg); }
     for (const l of lines) if (l.p > lo * 0.7 && l.p < hi * 1.3) { lo = Math.min(lo, l.p); hi = Math.max(hi, l.p); }
     if (S.spot) { lo = Math.min(lo, S.spot); hi = Math.max(hi, S.spot); }
     if (hi === lo) { hi *= 1.01; lo *= 0.99; }
@@ -830,11 +920,23 @@
       if (buy) { g.moveTo(xx, yy + 4); g.lineTo(xx - 4, yy + 10); g.lineTo(xx + 4, yy + 10); } else { g.moveTo(xx, yy - 4); g.lineTo(xx - 4, yy - 10); g.lineTo(xx + 4, yy - 10); }
       g.fill();
     }
+    // v3: my own fills as rings
+    for (const f of mf.fills) {
+      if (!(f.at >= t0 && f.at < tEnd) || !(f.p > lo && f.p < hi)) continue;
+      const i = Math.min(n - 1, Math.floor((f.at - t0) / S.tf));
+      g.beginPath(); g.arc(x(i), y(f.p), 5.5, 0, Math.PI * 2); g.lineWidth = 2; g.strokeStyle = f.buy ? UP : DN; g.fillStyle = "rgba(6,16,26,.75)"; g.fill(); g.stroke();
+    }
     // my orders, stop triggers, trailing lines (and their peak), and the pool price
     g.setLineDash([5, 4]); g.textBaseline = "middle"; g.textAlign = "left";
     const tag = (yy, label, c, ink = "#06101a", xx = 4) => { g.font = "600 10px Inter, sans-serif"; const tw = g.measureText(label).width + 10; g.fillStyle = c; g.fillRect(xx, yy - 8, tw, 16); g.fillStyle = ink; g.fillText(label, xx + 5, yy); return tw; };
+    // v3: my average buy here, dashed
+    if (mf.avg && mf.avg > lo && mf.avg < hi) { const ay = y(mf.avg); g.strokeStyle = "rgba(201,168,255,.7)"; g.setLineDash([2, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(0, ay); g.lineTo(cw, ay); g.stroke(); g.setLineDash([5, 4]); g.font = "600 9px Inter, sans-serif"; g.fillStyle = "rgba(201,168,255,.9)"; g.textAlign = "right"; g.fillText(`${tr("Avg buy")} ${fp(mf.avg)}`, cw - 6, ay - 7); g.textAlign = "left"; }
+    // v3: a line the price is within 1% of glows (the loop below keeps it breathing while it's that close)
+    let near = false;
     for (const l of lines) {
       const dragging = S.drag && l.h === S.drag.h;
+      const close = S.spot && Math.abs(l.p - S.spot) / S.spot < 0.01 && !dragging;
+      if (close && l.p > lo && l.p < hi) { near = true; const a = reduce ? 0.5 : 0.35 + 0.35 * Math.sin(Date.now() / 260); g.save(); g.setLineDash([]); g.strokeStyle = l.c; g.globalAlpha = a; g.lineWidth = 6; g.shadowColor = l.c; g.shadowBlur = 14; g.beginPath(); g.moveTo(0, y(l.p)); g.lineTo(cw, y(l.p)); g.stroke(); g.restore(); }
       if (l.peak && l.peak > lo && l.peak < hi) { const py = y(l.peak); g.strokeStyle = "rgba(255,178,122,.35)"; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(0, py); g.lineTo(cw, py); g.stroke(); g.setLineDash([5, 4]); g.fillStyle = "rgba(255,178,122,.75)"; g.font = "600 9px Inter, sans-serif"; g.fillText(`${tr("peak")} ${fp(l.peak)}`, cw - 110, py - 7); }
       if (!(l.p > lo && l.p < hi)) continue;
       const yy = y(l.p);
@@ -846,7 +948,7 @@
     }
     if (S.drag && S.drag.y > PADT && S.drag.y < PADT + ph) {
       const l = lines.find((q) => q.h === S.drag.h), yy = S.drag.y, np = pAt(yy);
-      if (l) { g.strokeStyle = l.c; g.lineWidth = 1.5; g.setLineDash([6, 3]); g.beginPath(); g.moveTo(0, yy); g.lineTo(cw, yy); g.stroke(); tag(yy, `${l.label} → ${fp(np)}`, l.c); g.fillStyle = l.c; g.fillRect(cw + 1, yy - 8, AX - 2, 16); g.fillStyle = "#06101a"; g.font = "700 10px 'JetBrains Mono', monospace"; g.fillText(fp(np), cw + 5, yy); }
+      if (l) { g.strokeStyle = l.c; g.lineWidth = 1.5; g.setLineDash([6, 3]); g.beginPath(); g.moveTo(0, yy); g.lineTo(cw, yy); g.stroke(); tag(yy, `${l.label} → ${fp(np)}${S.spot ? ` (${pc(((np - S.spot) / S.spot) * 100, 1)} ${tr("vs pool")})` : ""}`, l.c); g.fillStyle = l.c; g.fillRect(cw + 1, yy - 8, AX - 2, 16); g.fillStyle = "#06101a"; g.font = "700 10px 'JetBrains Mono', monospace"; g.fillText(fp(np), cw + 5, yy); }
     }
     if (S.spot && S.spot > lo && S.spot < hi) {
       const yy = y(S.spot);
@@ -854,6 +956,7 @@
       g.setLineDash([]); g.fillStyle = "#8fdcff"; g.fillRect(cw + 1, yy - 8, AX - 2, 16); g.fillStyle = "#04121c"; g.font = "700 10px 'JetBrains Mono', monospace"; g.fillText(fp(S.spot), cw + 5, yy);
     }
     g.setLineDash([]);
+    if (near && !reduce && !S.nearRaf) { const loop = () => { S.nearRaf = 0; if (panel.classList.contains("active") && !document.hidden) draw(); }; S.nearRaf = setTimeout(() => requestAnimationFrame(loop), 50); }
     // crosshair
     const tip = $("aor-tip");
     if (S.hover && S.hover.x < cw && !S.drag) {
@@ -868,6 +971,19 @@
         tip.style.left = (S.hover.x > W / 2 ? 8 : W - AX - tip.offsetWidth - 8) + "px";
       }
     } else if (tip) tip.hidden = true;
+  }
+  /// v3: my filled orders in this market — the average buy and each fill's time and price
+  function myFills() {
+    const out = { fills: [], avg: null };
+    if (!S.tok) return out;
+    let bT = 0, bQ = 0;
+    for (const o of ((S.mine && S.mine.orders) || [])) {
+      if (lc(o.token.address || o.token) !== S.t || !(o.filledPct > 0) || !(o.price > 0)) continue;
+      out.fills.push({ at: o.last || o.at, p: o.price, buy: o.side === "buy" });
+      if (o.side === "buy") { const x = (human(o.buyAmount, S.tok.decimals) / (1 - FEE)) * (o.filledPct / 100); bT += x; bQ += x * o.price; }
+    }
+    out.avg = bT ? bQ / bT : null;
+    return out;
   }
   /// lines to draw: my open orders (limit price, stop trigger, trailing line, take-profit / stop-loss); limit lines carry
   /// their hash, so they can be dragged to a new price (that's an edit: a new order, then the old one cancelled)
@@ -940,6 +1056,8 @@
   // ---------------- the order form ----------------
   const TYPES_UI = [["limit", "Limit"], ["market", "Market"], ["stop", "Stop order"], ["tpsl", "TP / SL"], ["trail", "Trailing stop"], ["scaled", "Scaled"], ["twap", "Timed (DCA)"]];
   const SIMPLE_TYPES = ["limit", "market"];
+  // v3: Pro keeps Limit and Market up front; the rest open from "More types ▾", each with a one-line tag
+  const TYPE_TAG = { stop: "Trigger, then market", tpsl: "Profit and stop together", trail: "Follows the price up", scaled: "A ladder of limit orders", twap: "Equal parts over time" };
   const sellOnly = (t) => t === "tpsl" || t === "trail";
   /// a small drawing of how each order type works (beside one line that says it)
   function explainSvg(ty, buy) {
@@ -1015,18 +1133,24 @@
     const sellTok = tk ? (buy ? q : tk) : null;
     const bal = sellTok && S.bal[sellTok.address] != null ? S.bal[sellTok.address] : null;
     const field = (id, label, unit, val, ph, extra = "", badge = "") => `<label class="aor-f"><small><span>${T(label)}</span>${badge}</small><span class="aor-in"><input id="${id}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="${esc(ph || "0")}" value="${esc(val)}"><i data-no-i18n>${esc(unit)}</i></span>${extra}</label>`;
+    // v3: on Robinhood Chain the Total / Spend field can take dollars (converted at the server's ETH price)
+    const usdOk = RH() && S.ethUsd > 0, usdOn = usdOk && S.usdIn;
+    const totalField = (label) => {
+      const unit = usdOk ? `<button type="button" class="aor-unit${usdOn ? " on" : ""}" data-act="usdin" title="${T(usdOn ? "Enter in ETH" : "Enter in dollars")}"><span data-no-i18n>${usdOn ? "USD" : esc(qs)}</span><i aria-hidden="true">⇄</i></button>` : `<i data-no-i18n>${esc(qs)}</i>`;
+      return `<label class="aor-f"><small><span>${T(label)}</span></small><span class="aor-in"><input id="aor-total" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="${esc(totalShown())}">${unit}</span><span id="aor-totx">${totalSub()}</span></label>`;
+    };
     const pctRow = () => `<div class="aor-pctw"><input type="range" id="aor-slider" min="0" max="100" step="1" value="${esc(S.pct || 0)}" aria-label="${T("Share of your balance")}" style="--v:${S.pct || 0}%"><div class="aor-pct">${[25, 50, 75, 100].map((p) => `<button type="button" data-pct="${p}" aria-pressed="${Number(S.pct) === p}">${p}%</button>`).join("")}</div></div>`;
     const quick = (target, list) => S.spot ? `<div class="aor-quick">${list.map(([k, l]) => `<button type="button" data-quick="${target}" data-k="${k}">${esc(l)}</button>`).join("")}</div>` : "";
     const qLimit = quick("price", buy ? [[0, tr("Pool")], [-2, "−2%"], [-5, "−5%"], [-10, "−10%"]] : [[0, tr("Pool")], [2, "+2%"], [5, "+5%"], [10, "+10%"]]) + lvlChips("price", buy ? "low" : "high");
     let fields = "";
     if (ty === "limit") {
-      fields = field("aor-price", "Price", qs, F.price, S.spot ? fp(S.spot) : "0", qLimit, distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow() + field("aor-total", "Total", qs, F.total);
+      fields = field("aor-price", "Price", qs, F.price, S.spot ? fp(S.spot) : "0", qLimit, distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow() + totalField("Total");
       // a bracket: once this buy fills, the page asks you to sign a take-profit and a stop-loss on what it bought
       if (buy && pro) {
         const base = Number(F.price) || S.spot;
         fields += `<div class="aor-brk${F.brk ? " on" : ""}"><label class="aor-more"><input type="checkbox" id="aor-brk"${F.brk ? " checked" : ""}> <span>${T("Add a take-profit and stop-loss when it fills")}</span></label>${F.brk ? `<div class="aor-row2">${field("aor-btp", "Take profit at", qs, F.btp, base ? fp(base * 1.25) : "0", quick("btp", [[10, "+10%"], [25, "+25%"], [50, "+50%"]]))}${field("aor-bsl", "Stop loss at", qs, F.bsl, base ? fp(base * 0.9) : "0", quick("bsl", [[-5, "−5%"], [-10, "−10%"], [-20, "−20%"]]))}</div><p class="aor-note">${T("When the buy fills, this page shows a button to sign both — this browser keeps them until then.")}</p>` : ""}</div>`;
       }
-    } else if (ty === "market") fields = (buy ? field("aor-total", "Spend", qs, F.total) : field("aor-amount", "Sell", sym, F.amount)) + pctRow();
+    } else if (ty === "market") fields = (buy ? totalField("Spend") : field("aor-amount", "Sell", sym, F.amount)) + pctRow();
     else if (ty === "stop") fields = field("aor-trigger", buy ? "Buy when the price rises to" : "Sell when the price falls to", qs, F.trigger, S.spot ? fp(S.spot) : "0", quick("trigger", buy ? [[5, "+5%"], [10, "+10%"], [20, "+20%"]] : [[-5, "−5%"], [-10, "−10%"], [-20, "−20%"]]) + lvlChips("trigger", buy ? "high" : "low"), distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow();
     else if (ty === "tpsl") fields = field("aor-amount", "Amount", sym, F.amount) + pctRow() +
       field("aor-tp", "Take profit at", qs, F.tp, S.spot ? fp(S.spot * 1.2) : "0", quick("tp", [[10, "+10%"], [25, "+25%"], [50, "+50%"], [100, "+100%"]]) + lvlChips("tp", "high")) +
@@ -1038,7 +1162,7 @@
       `${S.spot ? `<div class="aor-quick aor-range">${(buy ? [[-1, -5], [-2, -10], [-5, -20]] : [[1, 5], [2, 10], [5, 20]]).map(([a, b]) => `<button type="button" data-range="${a},${b}" data-no-i18n>${pc(a, 0)} → ${pc(b, 0)}</button>`).join("")}</div>` : ""}` +
       `<label class="aor-f"><small>${T("Orders")}</small><div class="aor-quick wide">${["3", "5", "8", "10"].map((v) => `<button type="button" data-n="${v}" aria-pressed="${F.n === v}" data-no-i18n>${v}</button>`).join("")}</div></label>` +
       field("aor-amount", "Amount in total", sym, F.amount) + pctRow();
-    else if (ty === "twap") fields = (buy ? field("aor-total", "Spend in total", qs, F.total) : field("aor-amount", "Sell in total", sym, F.amount)) + pctRow() +
+    else if (ty === "twap") fields = (buy ? totalField("Spend in total") : field("aor-amount", "Sell in total", sym, F.amount)) + pctRow() +
       `<div class="aor-row2"><label class="aor-f half"><small>${T("Over")}</small><select id="aor-dur">${[["3600", "1 hour"], ["21600", "6 hours"], ["86400", "24 hours"], ["259200", "3 days"], ["604800", "7 days"], ["2592000", "30 days"]].map(([v, l]) => `<option value="${v}"${F.dur === v ? " selected" : ""}>${T(l)}</option>`).join("")}</select></label>
         <label class="aor-f half"><small>${T("In parts")}</small><select id="aor-parts">${["4", "6", "12", "24", "48"].map((v) => `<option value="${v}"${F.parts === v ? " selected" : ""} data-no-i18n>${v}</option>`).join("")}</select></label></div>` +
       field("aor-cap", buy ? "Never pay more than" : "Never sell below", qs, F.cap, S.spot ? fp(S.spot * (buy ? 1.5 : 0.6)) : "0");
@@ -1048,13 +1172,14 @@
     const connected = !!me();
     const adv = [ty === "stop" || ty === "tpsl" ? slipChips : "", LIVE() && connected && ty !== "market" ? `<label class="aor-more"><input type="checkbox" id="aor-approvemore"${F.approveMore ? " checked" : ""}> <span>${T("Approve a larger amount so later orders skip this step")}</span></label>` : ""].join("");
     const b0 = tk ? build() : { err: "" };
-    const fat = b0 && b0.warn && b0.warn.find((w) => w.k === "fat");
+    const fat = armOf(b0);
     const armed = fat && S.fatArm === fat.key;
+    const prog = S.steps && S.busy ? Math.round((S.steps.at / Math.max(1, S.steps.list.length)) * 100) : 0;
     const label = ty === "tpsl" ? tr("Place take-profit and stop-loss") : ty === "trail" ? tr("Place trailing stop") : ty === "twap" ? `${tr(buy ? "Start buying" : "Start selling")} ${sym}` : ty === "scaled" ? `${tr(buy ? "Place buy orders" : "Place sell orders")} · ${F.n}` : `${tr(buy ? "Buy" : "Sell")} ${sym}`;
     const btn = !tk ? `<button type="button" class="aor-submit" disabled>${T("Open a market first")}</button>`
       : !LIVE() ? `<button type="button" class="aor-submit" disabled>${T("Opens once the contract is live")}</button>`
         : !connected ? `<button type="button" class="aor-submit go" data-act="connect">${T("Connect wallet")}</button>`
-          : `<button type="button" class="aor-submit ${buy ? "buy" : "sell"}${armed ? " armed" : ""}" data-act="submit" id="aor-submit"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="aor-spin"></span>${T(S.busy)}` : armed ? `${T("Place anyway —")} <span data-no-i18n>${pc(distInfo() ? distInfo().d : 0, 1)}</span> ${T("vs pool")}` : `${S.editing ? T("Replace order") : esc(label)}`}</button>`;
+          : `<button type="button" class="aor-submit ${buy ? "buy" : "sell"}${armed ? " armed" : ""}${S.busy && S.steps ? " prog" : ""}" data-act="submit" id="aor-submit"${S.busy ? ` disabled style="--p:${prog}%"` : ""}>${S.busy ? `<span class="aor-spin"></span>${T(S.busy)}` : armed && fat.k === "risk" ? T("Buy anyway — the scanner flagged it") : armed ? `${T("Place anyway —")} <span data-no-i18n>${pc(distInfo() ? distInfo().d : 0, 1)}</span> ${T("vs pool")}` : `${S.editing ? T("Replace order") : esc(label)}`}</button>`;
     const st = S.status, execBad = LIVE() && st && ty !== "market" && (!st.at || st.ago > 900 || st.low);
     const ex = EXPLAIN[ty] ? EXPLAIN[ty][buy ? 0 : 1] || EXPLAIN[ty][1] : "";
     el.innerHTML = `
@@ -1063,7 +1188,7 @@
       ${S.editing ? `<div class="aor-editing"><span>${T("Editing an order — placing this one cancels the old one.")}</span><button type="button" class="aor-link" data-act="editcancel">${T("Stop editing")}</button></div>` : ""}
       ${presetRow()}
       <div class="aor-side" role="radiogroup" aria-label="${T("Side")}" data-side="${S.side}"><i class="aor-side-pill" aria-hidden="true"></i><button type="button" role="radio" class="buy" data-setside="buy" aria-checked="${buy}"${sellOnly(ty) ? " disabled" : ""}>${T("Buy")}</button><button type="button" role="radio" class="sell" data-setside="sell" aria-checked="${!buy}">${T("Sell")}</button></div>
-      <div class="aor-types${pro ? "" : " simple"}" role="tablist">${TYPES_UI.filter(([k]) => pro || SIMPLE_TYPES.includes(k) || k === ty).map(([k, l]) => `<button type="button" role="tab" data-type="${k}" aria-selected="${ty === k}">${T(l)}</button>`).join("")}${pro ? "" : `<button type="button" class="aor-moretypes" data-mode="pro">${T("More types")} <span aria-hidden="true">+5</span></button>`}</div>
+      <div class="aor-types${pro ? "" : " simple"}" role="tablist">${TYPES_UI.filter(([k]) => SIMPLE_TYPES.includes(k) || k === ty).map(([k, l]) => `<button type="button" role="tab" data-type="${k}" aria-selected="${ty === k}">${T(l)}</button>`).join("")}${pro ? `<span class="aor-typew"><button type="button" class="aor-moretypes pro" data-act="types" aria-haspopup="menu" aria-expanded="${!!S.typesOpen}">${T("More types")} <span aria-hidden="true">▾</span></button>${S.typesOpen ? `<div class="aor-typepop" role="menu">${TYPES_UI.filter(([k]) => !SIMPLE_TYPES.includes(k)).map(([k, l]) => `<button type="button" role="menuitem" data-type="${k}" aria-selected="${ty === k}"><b>${T(l)}</b><small>${T(TYPE_TAG[k])}</small></button>`).join("")}</div>` : ""}</span>` : `<button type="button" class="aor-moretypes" data-mode="pro">${T("More types")} <span aria-hidden="true">+5</span></button>`}</div>
       ${ex ? `<div class="aor-ex">${explainSvg(ty, buy)}<span>${T(ex)}</span></div>` : ""}
       <button type="button" class="aor-avail" data-pct="100" title="${esc(RH() && sellTok === q && S.weth != null ? `WETH ${fmtU(S.weth, 18)} + ETH ${fmtU(S.eth || 0n, 18)}` : tr("Use all of it"))}"><small>${T("Available")}</small><b data-no-i18n>${bal != null ? `${fmtU(bal, sellTok.decimals)} ${esc(sellTok === tk ? sym : qs)}` : "—"}</b></button>
       ${RH() && LIVE() && S.weth != null && S.weth - openNeed(WETH()) > 10n ** 12n ? `<button type="button" class="aor-link aor-unwrap" data-act="unwrap">${T("Unwrap")} <span data-no-i18n>${fmtU(S.weth - openNeed(WETH()), 18)} WETH</span> ${T("to ETH")}</button>` : ""}
@@ -1080,6 +1205,14 @@
     // on a phone the form lives in a sheet: results of actions taken outside it come as a toast
     if (S.msg && S.msg !== S.toasted && innerWidth <= 720 && !S.sheet && (S.msg.k === "ok" || S.msg.k === "bad")) { S.toasted = S.msg; const d = document.createElement("div"); d.innerHTML = S.msg.html || T(S.msg.t); toast(d.textContent, S.msg.k === "bad" ? "bad" : "fill"); }
   }
+  // v3 helpers: the Total field in dollars, the scanner's flag
+  function totalShown() { return RH() && S.ethUsd > 0 && S.usdIn ? (Number(F.total) > 0 ? String(Number((Number(F.total) * S.ethUsd).toFixed(2))) : "") : F.total; }
+  function totalSub() {
+    const v = Number(F.total); if (!(v > 0) || !S.quote) return "";
+    return RH() && S.ethUsd > 0 && S.usdIn ? `<small class="aor-usd" data-no-i18n>≈ ${esc(num(v))} ${esc(S.quote.symbol)}</small>` : usdTag(v);
+  }
+  const riskOn = () => !!(S.scan && ((S.scan.crit && S.scan.crit.length) || S.scan.k === "risk" || S.scan.k === "bad"));
+  const armOf = (b) => ((b && b.warn) || []).find((w) => w.k === "fat" || (w.k === "risk" && w.arm));
   /// before placing: the steps it will take, with the ones already done ticked (an approval that covers it, WETH on hand)
   function pathHtml(b) {
     if (!S.tok || !LIVE() || !me() || !b || b.err !== undefined) return "";
@@ -1106,6 +1239,12 @@
 
   /// what the form builds right now: { legs: [{ o, body }], rows, warn } or { err }; amounts in raw units
   function build() {
+    const b = build0();
+    // v3: a buy of a token the Token Scanner flags asks for a second press (once per token per visit)
+    if (b && b.err === undefined && S.side === "buy" && riskOn()) (b.warn = b.warn || []).unshift({ k: "risk", key: `risk:${S.t}`, arm: !S.riskOk.has(S.t), t: "The Token Scanner flags this token — read its scan before you buy. This is an automated check, not advice." });
+    return b;
+  }
+  function build0() {
     const tk = S.tok, q = S.quote, p = pool();
     if (!tk || !p) return { err: "" };
     const buy = S.side === "buy", ty = S.type, td = tk.decimals, qd = q.decimals;
@@ -1244,18 +1383,36 @@
   const feeRow = () => (S.feeFree ? { k: "Fee", v: `0% · ${tr("you hold")} ${num(S.freeMin || FREE_HOLD())}+ $ARCIRCLE`, cls: "up" } : { k: "Fee", v: "0.1% · " + tr("of what you receive"), cls: "", hint: true });
   const feeHint = () => (S.feeFree ? "" : `<div class="aor-free">${T("Hold")} <b data-no-i18n>${num(S.freeMin || FREE_HOLD())} $ARCIRCLE</b> ${T("and every order is fee-free.")} <a href="#arcircle" data-no-i18n>$ARCIRCLE →</a></div>`);
   const net = (out) => (S.feeFree ? out : (out * 999n) / 1000n);
+  /// v3: the order in one plain sentence, above the numbers
+  function say() {
+    const buy = S.side === "buy", ty = S.type, sym = "$" + S.tok.symbol, qs = S.quote.symbol;
+    const B = (v) => `<b data-no-i18n>${esc(v)}</b>`, n = (v) => Number(String(v || "").replace(/,/g, "")) || 0;
+    const amt = B(`${num(n(F.amount))} ${sym}`), px = (v) => B(`${fp(n(v))} ${qs}`), tot = B(`${num(n(F.total))} ${qs}`);
+    const exp = ` · ${T("expires in")} ${B(Math.round(n(F.expiry) / 86400) + "d")}`;
+    const DUR = { 3600: "1 hour", 21600: "6 hours", 86400: "24 hours", 259200: "3 days", 604800: "7 days", 2592000: "30 days" };
+    let s = "";
+    if (ty === "limit") s = `${T(buy ? "Buy" : "Sell")} ${amt} ${T(buy ? "at or below" : "at or above")} ${px(F.price)}${exp}`;
+    else if (ty === "market") s = buy ? `${T("Buy now with")} ${tot}` : `${T("Sell now")} ${amt}`;
+    else if (ty === "stop") s = `${T(buy ? "Buy" : "Sell")} ${amt} ${T(buy ? "once the price rises to" : "once the price falls to")} ${px(F.trigger)}${exp}`;
+    else if (ty === "tpsl") s = `${T("Sell")} ${amt} · ${T("Take profit at")} ${px(F.tp)} · ${T("Stop loss at")} ${px(F.sl)}${exp}`;
+    else if (ty === "trail") s = `${T("Sell")} ${amt} · ${T("Trail by")} ${B(F.trail + "%")}${n(F.floor) > 0 ? ` · ${T("Never sell below")} ${px(F.floor)}` : ""}${exp}`;
+    else if (ty === "scaled") s = `${T(buy ? "Buy" : "Sell")} ${amt} · ${B(F.n + " ×")} · ${px(F.lo)} → ${px(F.hi)}${exp}`;
+    else if (ty === "twap") s = `${buy ? `${T("Spend in total")} ${tot}` : `${T("Sell in total")} ${amt}`} · ${T("Over")} ${B(tr(DUR[F.dur] || ""))}`;
+    return s ? `<p class="aor-say ${buy ? "up" : "dn"}">${s}</p>` : "";
+  }
   function summary() {
     if (!S.tok) return "";
     const o = build();
     if (o.err !== undefined) return `<div class="aor-sl"><span>${T("You receive at least")}</span><b>—</b></div><div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}`;
     const sym = (t) => (t === S.tok ? "$" + t.symbol : t.symbol);
+    const warns = (o.warn || []).map((w) => `<div class="aor-warn${w.k === "fat" ? " fat" : w.k === "risk" ? " risk" : ""}">${T(w.t)}${w.k === "risk" ? ` <a href="#scanner?${RH() ? "c=rh&" : ""}t=${S.t}">${T("Open the scan")} →</a>` : ""}</div>`).join("");
     if (o.market) {
       const est = S.quoteOut != null && S.quoteFor === `${o.sell.address}:${o.sellAmount}` ? S.quoteOut : null;
       const impact = est != null && S.spot ? (() => { const inH = human(o.sellAmount, o.sell.decimals), outH = human(est, o.buy.decimals); const px = o.sell === S.quote ? inH / outH : outH / inH; return ((px - S.spot) / S.spot) * 100 * (o.sell === S.quote ? 1 : -1); })() : null;
-      return `<div class="aor-sl"><span>${T("Estimated")}</span><b data-no-i18n>${est != null ? `${fmtU(net(est), o.buy.decimals)} ${esc(sym(o.buy))}` : "…"}</b></div>
+      return `${say()}<div class="aor-sl"><span>${T("Estimated")}</span><b data-no-i18n>${est != null ? `${fmtU(net(est), o.buy.decimals)} ${esc(sym(o.buy))}` : "…"}</b></div>
         <div class="aor-sl"><span>${T("You receive at least")}</span><b data-no-i18n>${est != null ? `${fmtU(minNet(est, o.slip), o.buy.decimals)} ${esc(sym(o.buy))}` : "—"}</b></div>
         ${impact != null ? `<div class="aor-sl dim"><span>${T("Price impact")}</span><b data-no-i18n class="${impact > 5 ? "warn" : ""}">${pc(impact)}</b></div>` : ""}
-        <div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}`;
+        <div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}${warns}`;
     }
     const kind = o.kind ? `<div class="aor-kind ${o.kind}"><i></i><span>${T(o.kind === "taker" ? "Fills now (taker)" : "Waits in the book (maker)")}</span>${o.kind === "taker" ? `<button type="button" class="aor-link" data-type="market">${T("Use Market instead")}</button>` : ""}</div>` : "";
     // v2: where the fee goes (half buys and burns $ARCIRCLE) — or what a holder saves
@@ -1269,8 +1426,7 @@
       wrapLine = `<div class="aor-sl dim"><span>${T(short0 > 0n ? "Wraps first (one transaction)" : "Paid from your WETH")}</span><b data-no-i18n>${short0 > 0n ? `${fmtU(short0, 18)} ETH → WETH` : `${fmtU(need, 18)} WETH`}</b></div>`;
     }
     const ladder = o.ladder && S.spot ? ladderSvg(o.ladder) : "";
-    return kind + ladder + o.rows.map((r) => `<div class="aor-sl ${r.cls}"><span>${T(r.k)}</span><b data-no-i18n>${esc(r.v)}</b></div>`).join("") + feeLine + wrapLine + feeHint() +
-      (o.warn || []).map((w) => `<div class="aor-warn${w.k === "fat" ? " fat" : ""}">${T(w.t)}</div>`).join("");
+    return say() + kind + ladder + o.rows.map((r) => `<div class="aor-sl ${r.cls}"><span>${T(r.k)}</span><b data-no-i18n>${esc(r.v)}</b></div>`).join("") + feeLine + wrapLine + feeHint() + warns;
   }
   /// a scaled order's prices against the pool's, as ticks on one line
   function ladderSvg(list) {
@@ -1338,8 +1494,9 @@
     const b = build();
     if (b.err !== undefined) { S.msg = { k: "bad", t: b.err || "Open a market first." }; form(); return; }
     // a price far on the wrong side of the pool asks for a second press
-    const fat = (b.warn || []).find((w) => w.k === "fat");
+    const fat = armOf(b);
     if (fat && S.fatArm !== fat.key) { S.fatArm = fat.key; S.msg = null; form(); return; }
+    if (fat && fat.k === "risk") S.riskOk.add(S.t);
     S.fatArm = null;
     const p = pool();
     S.msg = null;
@@ -1504,7 +1661,9 @@
       if (cx) cx.hidden = !LIVE(); if (cm) cm.hidden = true; return;
     }
     if (!S.mine) { el.innerHTML = skel(4); return; }
-    const all = ((S.mine && S.mine.orders) || []).filter((o) => S.myScope === "all" || lc(o.token.address || o.token) === S.t);
+    const here = ((S.mine && S.mine.orders) || []).filter((o) => S.myScope !== "market" || lc(o.token.address || o.token) === S.t);
+    const all = S.myScope === "both" && S.other && S.other.ch !== CH ? [...here, ...S.other.orders].sort((a, b) => (b.at || 0) - (a.at || 0)) : here;
+    const soon = (o) => (o.status === "open" && !o._ch && o.expiry && o.expiry > now() && o.expiry - now() < 86400 ? o.expiry - now() : 0);
     const isOpen = (o) => o.status === "open" || o.status === "unfunded";
     const stOf = (o) => (o.expiry && o.expiry < now() && o.status === "open" ? "expired" : o.status);
     const open = all.filter(isOpen), hist = all.filter((o) => !isOpen(o));
@@ -1520,6 +1679,10 @@
       if (S.histF !== "all") list = hist.filter((o) => stOf(o) === S.histF);
       else if (!S.showCx) { const keep = hist.filter((o) => stOf(o) !== "cancelled" || o.filledPct > 0); hidden = hist.length - keep.length; list = keep; }
     }
+    S.lastList = list;
+    // v3: once a day, a nudge when an open order runs out within 24 hours
+    const nSoon = open.filter((o) => soon(o)).length;
+    if (nSoon && store.get("arcircle.orders.expnote", "") !== new Date().toDateString()) { store.set("arcircle.orders.expnote", new Date().toDateString()); toast(`${nSoon} ${tr(nSoon === 1 ? "order expires within a day" : "orders expire within a day")}`, "alert", tr("Extend it 7 days from your open orders.")); }
     if (!list.length) { el.innerHTML = filt + `<div class="aor-empty">${T(S.myTab === "open" ? "No open orders." : hidden ? "Only cancelled orders here." : "Nothing here yet.")}${hidden ? ` <button type="button" class="aor-link" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : ""}</div>`; mineFoot(); return; }
     el.innerHTML = filt + `<div class="aor-mt"><div class="aor-mt-h"><span>${T("Market")}</span><span>${T("Type")}</span><span>${T("Price")}</span><span>${T("Amount")}</span><span>${T("Filled")}</span><span>${T("Status")}</span><span></span></div>${list.map((o) => {
       const tk = o.token || {}, q = o.quote || {};
@@ -1532,14 +1695,15 @@
       const leg = o.leg ? `<em class="aor-leg ${o.leg}" data-no-i18n>${o.leg === "tp" ? "TP" : "SL"}</em>` : "";
       const brk = brackets().some((x) => x.h === o.hash) ? `<em class="aor-leg brk" title="${T("A take-profit and stop-loss wait for this buy to fill")}" data-no-i18n>TP/SL</em>` : "";
       const pf = S.prevPct && S.prevPct.get(o.hash);
-      return `<div class="aor-mr${S.pulse && S.pulse.has(o.hash) ? " pulse" : ""}" data-h="${esc(o.hash)}" data-tk="${esc(tk.address)}">
-        <span class="aor-mr-m"><button type="button" class="aor-link" data-t="${esc(tk.address)}" data-no-i18n>$${esc(tk.symbol)}/${esc(q.symbol)}</button><small>${ago(o.at)}</small></span>
+      const oc = o._ch, ex = soon(o), chTag = S.myScope === "both" ? `<em class="aor-chtag ${oc || CH}" data-no-i18n>${(oc || CH) === "rh" ? "RH" : "ARC"}</em>` : "";
+      return `<div class="aor-mr${S.pulse && S.pulse.has(o.hash) ? " pulse" : ""}${oc ? " other" : ""}${ex ? " soon" : ""}" data-h="${esc(o.hash)}" data-tk="${esc(tk.address)}">
+        <span class="aor-mr-m">${oc ? `<button type="button" class="aor-link" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}" data-no-i18n>$${esc(tk.symbol)}/${esc(q.symbol)}</button>` : `<button type="button" class="aor-link" data-t="${esc(tk.address)}" data-no-i18n>$${esc(tk.symbol)}/${esc(q.symbol)}</button>`}<small>${chTag}${ago(o.at)}</small></span>
         <span class="aor-mr-t ${o.side === "buy" ? "up" : "dn"}">${T(o.side === "buy" ? "Buy" : "Sell")} · ${T(TYPE_NAME[o.type] || o.type)}${leg}${brk}</span>
         <span data-no-i18n>${fp(px)}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
         <span data-no-i18n>${num(amt)}${amtSym ? ` ${esc(amtSym)}` : ""}</span>
         <span class="aor-mr-f">${o.type === "twap" && o.twap ? twapBar(o) : `${ring(o.filledPct, pf)}<small data-no-i18n>${(o.filledPct || 0).toFixed(o.filledPct > 0 && o.filledPct < 1 ? 2 : 0)}%</small>`}</span>
-        <span class="aor-st ${st}">${T(STATUS[st] || st)}${note ? `<small>${esc(note)}</small>` : ""}</span>
-        <span class="aor-mr-a">${isOpen(o) && st !== "expired" ? `${o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm ghost" data-act="edit">${T("Edit")}</button>` : ""}<button type="button" class="aor-btn sm" data-act="cancel">${T("Cancel")}</button>${LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("On-chain")}</button>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
+        <span class="aor-st ${st}">${T(STATUS[st] || st)}${ex ? `<em class="aor-soon">${T("expires in")} <span data-no-i18n>${inT(o.expiry)}</span></em>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</span>
+        <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}${o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm ghost" data-act="edit">${T("Edit")}</button>` : ""}<button type="button" class="aor-btn sm" data-act="cancel">${T("Cancel")}</button>${LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("On-chain")}</button>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
       </div>`;
     }).join("")}</div>${hidden ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : S.myTab === "history" && S.showCx && S.histF === "all" ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Hide cancelled")}</button>` : ""}`;
     S.prevPct = new Map(all.map((o) => [o.hash, o.filledPct || 0]));
@@ -1580,7 +1744,23 @@
     const os = (S.mine.orders || []).filter((o) => (o.filledPct || 0) > 0);
     if (!os.length) return;
     let html = "";
-    if (S.tok && S.spot) {
+    // v3: every market's fills side by side (All / Both chains), each against that market's latest price
+    if (S.myScope !== "market") {
+      const by = new Map();
+      for (const o of os) {
+        const t = lc(o.token.address || o.token), tk = o.token, f = (o.filledPct || 0) / 100;
+        const g = by.get(t) || { t, sym: tk.symbol, bT: 0, bQ: 0, sT: 0, sQ: 0 };
+        if (o.side === "buy") { const x = (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f; g.bT += x; g.bQ += x * o.price; } else { const x = human(o.sellAmount, tk.decimals) * f; g.sT += x; g.sQ += x * o.price; }
+        by.set(t, g);
+      }
+      const pxOf = (t) => { if (t === S.t && S.spot) return S.spot; const m = S.markets.find((x) => lc(x.token.address || x.token) === t); return m ? m.spot || m.last || null : null; };
+      const rows = [...by.values()].sort((a, b) => b.bQ + b.sQ - (a.bQ + a.sQ)).slice(0, 8);
+      if (rows.length) html += `<div class="aor-pnlall"><b>${T("Your fills by market")}</b><div class="aor-pnlt"><span>${T("Market")}</span><span>${T("Avg buy")}</span><span>${T("Avg sell")}</span><span>${T("Now vs avg buy")}</span></div>${rows.map((g) => {
+        const ab = g.bT ? g.bQ / g.bT : null, as = g.sT ? g.sQ / g.sT : null, px = pxOf(g.t), vs = ab && px ? ((px - ab) / ab) * 100 : null;
+        return `<div class="aor-pnlt"><button type="button" class="aor-link" data-t="${esc(g.t)}" data-no-i18n>$${esc(g.sym)}</button><span data-no-i18n>${ab ? fp(ab) : "—"}</span><span data-no-i18n>${as ? fp(as) : "—"}</span><span class="${vs == null ? "" : vs >= 0 ? "up" : "dn"}" data-no-i18n>${vs == null ? "—" : pc(vs)}</span></div>`;
+      }).join("")}<small>${T("From your filled orders on this chain only — not swaps made elsewhere. Not advice.")}</small></div>`;
+    }
+    if (S.tok && S.spot && S.myScope === "market") {
       let bT = 0, bQ = 0, sT = 0, sQ = 0;
       for (const o of os.filter((x) => lc(x.token.address || x.token) === S.t)) {
         const tk = o.token, f = (o.filledPct || 0) / 100;
@@ -1656,13 +1836,45 @@
   function edit(h, opt = {}) {
     const o = ((S.mine && S.mine.orders) || []).find((x) => x.hash === h);
     if (!o) return;
-    if (lc(o.token.address) !== S.t) { open(o.token.address).then(() => edit(h, opt)); return; }
+    if (lc(o.token.address) !== S.t) return open(o.token.address).then(() => edit(h, opt));
     S.type = "limit"; S.side = o.side;
     const tok = human(o.side === "sell" ? BigInt(o.sellAmount) - BigInt(o.filled || 0) : BigInt(o.remainingToken || 0), S.tok.decimals);
     F.price = dstr(opt.price > 0 ? opt.price : o.price); F.amount = dstr(tok, Math.min(8, S.tok.decimals)); syncTotal("amount");
     S.editing = { hash: o.hash, token: o.token.address, rem: BigInt(o.order ? BigInt(o.order.sellAmount) - BigInt(o.filled || 0) : 0n) };
     S.msg = null; F.brk = false; form(); flashField();
     if (innerWidth <= 720) sheet(true); else if (!opt.quiet) $("aor-formc").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    return Promise.resolve();
+  }
+  /// v3: an order about to expire, renewed for 7 days at the same price (a new signature; the old one is cancelled)
+  function extend(h) {
+    const o = ((S.mine && S.mine.orders) || []).find((x) => x.hash === h);
+    if (!o || S.busy) return;
+    Promise.resolve(edit(h, { quiet: true })).then(() => { if (!S.editing || S.editing.hash !== h) return; F.expiry = "604800"; form(); submit(); });
+  }
+  /// v3: your orders on the other chain, with the same view signature ("Both chains")
+  async function loadOther() {
+    const a = me(), v = a && viewOf(a), oc = RH() ? "arc" : "rh";
+    if (!v) { S.other = null; return; }
+    try {
+      const r = await fetch(`${API}?orders=mine&wallet=${a}&until=${v.until}&sig=${v.sig}${oc === "rh" ? "&chain=rh" : ""}`, { cache: "no-store" });
+      const j = r.ok ? await r.json() : null;
+      S.other = { ch: oc, orders: ((j && j.orders) || []).map((o) => ({ ...o, _ch: oc })), at: Date.now() };
+    } catch { S.other = { ch: oc, orders: [], at: Date.now() }; }
+  }
+  /// v3: the orders listed (this scope and tab) as a CSV file
+  function csv() {
+    const rows = S.lastList || [];
+    if (!rows.length) { toast(tr("Nothing to export here."), ""); return; }
+    const q = (v) => { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const head = ["chain", "market", "side", "type", "price", "amount", "filled_pct", "status", "placed", "expires", "hash"];
+    const out = rows.map((o) => {
+      const tk = o.token || {}, qt = o.quote || {};
+      const amt = o.side === "sell" ? human(o.sellAmount, tk.decimals) : o.type === "twap" ? human(o.sellAmount, qt.decimals) : human(o.buyAmount, tk.decimals) / (1 - FEE);
+      return [o._ch || CH, `${tk.symbol}/${qt.symbol}`, o.side, o.type, o.price, amt, o.filledPct || 0, o.status, o.at ? new Date(o.at * 1000).toISOString() : "", o.expiry ? new Date(o.expiry * 1000).toISOString() : "", o.hash].map(q).join(",");
+    });
+    const blob = new Blob([[head.join(","), ...out].join("\n") + "\n"], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `arcircle-orders-${S.myTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   /// a share card for a filled order
   function shareImg(h) {
@@ -1723,7 +1935,7 @@
     CH = c;
     try { localStorage.setItem(CK, c); } catch { /* private window */ }
     Object.assign(S, { t: null, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, mine: null, markets: [], status: null, candles: null, tax: null, agentCall: null,
-      editing: null, msg: null, steps: null, feeFree: false, freeMin: null, bal: {}, weth: null, eth: null, quoteOut: null, quoteFor: null, showMarkets: false, alertsOpen: false });
+      editing: null, msg: null, steps: null, other: null, scan: null, desk: null, feeFree: false, freeMin: null, bal: {}, weth: null, eth: null, quoteOut: null, quoteFor: null, showMarkets: false, alertsOpen: false });
     S.prevLevels = new Map(); S.prevFill = new Map();
     F.price = ""; F.amount = ""; F.total = ""; F.trigger = ""; F.tp = ""; F.sl = ""; F.floor = ""; F.cap = ""; S.pct = 0;
     if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders${c === "rh" ? "?c=rh" : c === "sol" ? "?c=sol" : ""}`);
@@ -1876,12 +2088,14 @@
     }
     const map = { "aor-price": "price", "aor-amount": "amount", "aor-total": "total", "aor-trigger": "trigger", "aor-tp": "tp", "aor-sl": "sl", "aor-floor": "floor", "aor-cap": "cap", "aor-lo": "lo", "aor-hi": "hi", "aor-btp": "btp", "aor-bsl": "bsl" };
     if (!map[id] || e.type !== "input") return;
-    F[map[id]] = e.target.value;
+    if (id === "aor-total" && RH() && S.ethUsd > 0 && S.usdIn) { const u = Number(String(e.target.value).replace(/,/g, "")); F.total = u > 0 ? dstr(u / S.ethUsd, S.quote ? S.quote.decimals : 18) : ""; }
+    else F[map[id]] = e.target.value;
     if (S.fatArm) { S.fatArm = null; const sb = $("aor-submit"); if (sb && sb.classList.contains("armed")) { sb.classList.remove("armed"); sb.textContent = tr("Check the price, then place"); } }
     if (map[id] === "price" || map[id] === "trigger") distPaint();
     if (map[id] === "amount" || map[id] === "total") S.pct = 0;
     syncTotal(map[id]);
-    if (S.type === "limit") { if (map[id] !== "total" && $("aor-total")) $("aor-total").value = F.total; if (map[id] === "total" && $("aor-amount")) $("aor-amount").value = F.amount; }
+    if (S.type === "limit") { if (map[id] !== "total" && $("aor-total")) $("aor-total").value = totalShown(); if (map[id] === "total" && $("aor-amount")) $("aor-amount").value = F.amount; }
+    if ($("aor-totx")) $("aor-totx").innerHTML = totalSub();
     const s = $("aor-sum"); if (s) s.innerHTML = summary();
     requote();
   }
@@ -1909,7 +2123,7 @@
     if (d.t && b.tagName === "BUTTON") { open(d.t); if (S.showMarkets) { S.showMarkets = false; marketsView(); } return; }
     if (d.setside) { S.side = d.setside; S.msg = null; form(); requote(); return; }
     if (d.sheet) { S.side = d.sheet; if (sellOnly(S.type) && d.sheet === "buy") S.type = "limit"; form(); sheet(true); return; }
-    if (d.type) { S.type = d.type; S.msg = null; if (sellOnly(S.type)) S.side = "sell"; form(); requote(); return; }
+    if (d.type) { S.type = d.type; S.msg = null; S.typesOpen = false; if (sellOnly(S.type)) S.side = "sell"; form(); requote(); return; }
     if (d.pct) { setPct(Number(d.pct)); return; }
     if (d.quick) {
       const k = Number(d.k), base = d.quick === "btp" || d.quick === "bsl" ? Number(F.price) || S.spot : S.spot;
@@ -1930,20 +2144,28 @@
     if (d.center) { S.center = d.center; seg("center", d.center); chartView(); return; }
     if (d.tf) { S.tf = Number(d.tf); panel.querySelectorAll("[data-tf]").forEach((x) => x.setAttribute("aria-pressed", String(Number(x.dataset.tf) === S.tf))); draw(); return; }
     if (d.my) { S.myTab = d.my; seg("my", d.my); mineView(); return; }
-    if (d.scope) { S.myScope = d.scope; panel.querySelectorAll("[data-scope]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.scope === S.myScope))); mineView(); return; }
+    if (d.scope) { S.myScope = d.scope; panel.querySelectorAll("[data-scope]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.scope === S.myScope))); mineView(); if (d.scope === "both") loadOther().then(mineView); return; }
     if (d.mt) {
       seg("mt", d.mt); $("aor-grid").dataset.mt = d.mt;
       if (d.mt === "trades" || d.mt === "book") { S.left = d.mt; seg("left", d.mt); bookView(); } else draw();
       return;
     }
-    if (d.alertdel != null) { const list = alertsFor(S.t), x = list[Number(d.alertdel)]; store.set(AK, alertsAll().filter((a) => a !== x && !(a.t === x.t && a.price === x.price && a.dir === x.dir))); market(); return; }
+    if (d.alertdel != null) { const list = alertsFor(S.t), x = list[Number(d.alertdel)]; if (x && x.tg) tgSync(x, true); store.set(AK, alertsAll().filter((a) => a !== x && !(a.t === x.t && a.price === x.price && a.dir === x.dir))); market(); return; }
     const act = d.act;
+    if (act === "types") { S.typesOpen = !S.typesOpen; form(); return; }
+    if (act === "usdin") { S.usdIn = !S.usdIn; try { localStorage.setItem("arcircle.orders.usdin", S.usdIn ? "1" : "0"); } catch { /* fine */ } form(); const t0 = $("aor-total"); if (t0) t0.focus(); return; }
+    if (act === "csv") { csv(); return; }
+    if (act === "extend") { const r = b.closest("[data-h]"); if (r) extend(r.dataset.h); return; }
+    if (act === "openother") { setChain(d.ch, { reopen: d.tk }); return; }
+    if (act === "altg") { altg(); return; }
     if (act === "markets") { S.showMarkets = !S.showMarkets; marketsView(); if (S.showMarkets) loadMarkets(); return; }
     if (act === "alerts") { S.alertsOpen = !S.alertsOpen; S.alDraft = null; market(); if (S.alertsOpen && $("aor-al-price")) $("aor-al-price").focus(); return; }
     if (act === "alertadd") {
       const v = Number(String(($("aor-al-price") || {}).value || "").replace(/,/g, ""));
       if (!(v > 0) || !S.spot) return;
-      store.set(AK, [...alertsAll(), { t: S.t, sym: S.tok.symbol, price: v, dir: v >= S.spot ? "up" : "down" }].slice(-30));
+      const na = { t: S.t, sym: S.tok.symbol, price: v, dir: v >= S.spot ? "up" : "down" };
+      store.set(AK, [...alertsAll(), na].slice(-30));
+      if (tgOn()) tgSync(na).then((ok) => { if (ok) { store.set(AK, alertsAll().map((x) => (x.t === na.t && x.price === na.price && x.dir === na.dir ? { ...x, tg: true } : x))); market(); } });
       $("aor-al-price").value = ""; S.alDraft = null;
       if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch { /* fine */ } }
       market(); return;
@@ -1981,6 +2203,7 @@
     if (S.sheet && e.target && e.target.id === "aor-scrim") sheet(false);
     // the price-alert popover closes on a click elsewhere
     if (S.alertsOpen && e.target && e.target.isConnected && !e.target.closest(".aor-alertw")) { S.alertsOpen = false; S.alDraft = null; market(); }
+    if (S.typesOpen && e.target && e.target.isConnected && !e.target.closest(".aor-typew")) { S.typesOpen = false; form(); }
   });
 
   // ---------------- boot ----------------
@@ -1992,8 +2215,9 @@
     if (!S.tok) return;
     await loadBook();
     if (n % 2 === 0) { await loadSpot(); checkAlerts(); }
-    if (n % 3 === 0 && acct) { await Promise.all([loadMine(), loadBal()]); mineView(); if (!S.busy && !panel.querySelector(".aor-formc input:focus")) form(); }
+    if (n % 3 === 0 && acct) { await Promise.all([loadMine(), loadBal(), S.myScope === "both" && (!S.other || Date.now() - S.other.at > 60e3) ? loadOther() : null]); mineView(); if (!S.busy && !panel.querySelector(".aor-formc input:focus")) form(); }
     if (n % 6 === 0) { await Promise.all([loadCandles(), loadStatus()]); }
+    if (n % 60 === 0) { await Promise.all([loadScan(), loadDesk()]); }
     if (n % 12 === 0) loadMarkets();
     market(); bookView(); draw(); strip();
     if (S.center === "depth") chartView();
@@ -2022,5 +2246,5 @@
   });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (!SOLC() && S.t) { market(); bookView(); form(); } } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
-  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH };
+  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH, fp, num, toast, live: LIVE };
 })();

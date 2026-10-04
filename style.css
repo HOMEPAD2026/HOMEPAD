@@ -14847,3 +14847,124 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 .rw-coin-more summary::before{content:"+ ";color:#7fd8ff;}
 .rw-coin-more[open] summary::before{content:"– ";}
 .rw-coin-more .rw-coin-ca{margin-top:8px;}
+
+/* ============ ARCIRCLE Orders v3 (arc-orders.js + arc-orders-x.js): tape, scanner and desk chips, dollars, More types, sentence, my orders beside the chart ============ */
+.aor-grid{grid-template-areas:"bar bar form" "book chart form" "mine mine form";}
+.aor-grid>.aor-mine{grid-area:mine;margin:0;min-width:0;}
+@media (max-width:1200px){ .aor-grid{grid-template-areas:"bar bar" "chart chart" "book form" "mine mine";} }
+@media (max-width:720px){ .aor-grid{grid-template-areas:"bar" "tabs" "chart" "book" "mine";} .aor-grid>.aor-mine{margin-bottom:84px;} }
+@media (min-width:1201px){ .aor-toasts{top:92px;bottom:auto;} }
+/* chain buttons: "Preview" where the contract isn't live yet */
+.aor-cprev{margin-left:6px;font-style:normal;font:700 .56rem Sora,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:99px;color:#ffd58a;background:rgba(255,200,97,.12);border:1px solid rgba(255,200,97,.3);vertical-align:1px;}
+/* chips: 24h change and my open orders */
+.aor-chip-ch{font:700 .62rem var(--or-mono);}
+.aor-chip-ch.up{color:var(--or-up);}.aor-chip-ch.dn{color:var(--or-dn);}
+.aor-chip-me{font-style:normal;display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:99px;font:800 .58rem var(--or-mono);color:#04120a;background:#ffc861;}
+/* market loading skeleton */
+.aor-mkskel{display:flex;gap:12px;align-items:center;padding-top:10px;}
+.aor-mkskel i{flex:1 1 0;display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:aorShimmer 1.4s linear infinite;}
+.aor-mkskel i.lg{flex:none;width:44px;height:44px;border-radius:50%;}
+/* the Token Scanner's score and ARCIA DESK's record */
+.aor-scan,.aor-deskc{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font:700 .64rem Sora,sans-serif;text-decoration:none;border:1px solid rgba(255,255,255,.12);color:#c9d4de;background:rgba(255,255,255,.03);transition:border-color .2s,background .2s;white-space:nowrap;}
+.aor-scan span{font-family:var(--or-mono);}
+.aor-scan.ok{color:#9dffc4;border-color:rgba(57,255,136,.35);background:rgba(57,255,136,.07);}
+.aor-scan.warn{color:#ffe2a6;border-color:rgba(255,200,97,.35);background:rgba(255,200,97,.07);}
+.aor-scan.risk{color:#ffb2a6;border-color:rgba(255,110,90,.45);background:rgba(255,110,90,.09);}
+.aor-scan.none{color:#8fdcff;border-style:dashed;}
+.aor-deskc{color:#d9c2ff;border-color:rgba(184,140,255,.35);background:rgba(184,140,255,.07);}
+.aor-deskc.passed{color:#a9b4bf;border-color:rgba(255,255,255,.14);background:none;}
+.aor-scan:hover,.aor-deskc:hover{border-color:rgba(255,255,255,.35);}
+/* dollars beside ETH */
+.aor-usd{display:block;font:600 .64rem var(--or-mono);color:#8c98a6;margin-top:2px;}
+.aor-usd.mid{display:inline;margin:0;}
+.aor-f .aor-usd{margin-top:4px;text-align:right;}
+.aor-unit{display:inline-flex;align-items:center;gap:4px;margin-right:6px;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#c9d4de;font:700 .68rem Sora,sans-serif;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s,color .2s;}
+.aor-unit i{font-style:normal;font-size:.7rem;opacity:.7;}
+.aor-unit:hover{border-color:rgba(77,212,255,.5);color:#fff;}
+.aor-unit.on{color:#04120a;background:#8fdcff;border-color:#8fdcff;}
+/* the executor's heartbeat */
+.aor-exec.beat i{animation:aorBeat .9s ease-out 2;}
+@keyframes aorBeat{0%{transform:scale(1);}35%{transform:scale(1.9);box-shadow:0 0 0 6px rgba(57,255,136,.25);}100%{transform:scale(1);}}
+/* Limit · Market · More types ▾ */
+.aor-typew{position:relative;display:flex;flex:1 1 auto;}
+.aor-typew>.aor-moretypes{flex:1 1 auto;}
+.aor-types .aor-moretypes.pro[aria-expanded="true"]{color:#fff;border-color:rgba(77,212,255,.45);}
+.aor-typepop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:min(280px,82vw);display:grid;gap:4px;padding:6px;border-radius:14px;background:#0b141c;border:1px solid rgba(77,212,255,.3);box-shadow:0 18px 40px rgba(0,0,0,.5);animation:aorDrop .18s ease-out;}
+.aor-types .aor-typepop button{display:grid;gap:2px;text-align:left;padding:8px 10px;border-radius:10px;white-space:normal;}
+.aor-typepop b{font:700 .74rem Sora,sans-serif;color:#eef3f7;}
+.aor-typepop small{font:500 .66rem Inter,sans-serif;color:#8c98a6;}
+.aor-types .aor-typepop button[aria-selected="true"]{box-shadow:inset 3px 0 0 #4dd4ff;}
+/* the order in one sentence */
+.aor-say{margin:0 0 8px;padding:9px 11px;border-radius:10px;font:500 .78rem/1.55 Inter,sans-serif;color:#dfe8f1;background:rgba(255,255,255,.03);border-left:3px solid rgba(77,212,255,.6);}
+.aor-say.up{border-left-color:var(--or-up);}.aor-say.dn{border-left-color:var(--or-dn);}
+.aor-say b{font-family:var(--or-mono);font-weight:700;color:#fff;white-space:nowrap;}
+/* a flagged token */
+.aor-warn.risk{color:#ffc9bf;background:rgba(255,110,90,.09);border-color:rgba(255,110,90,.4);}
+.aor-warn.risk a{color:#ff9b8a;font-weight:700;white-space:nowrap;}
+/* the button fills as the steps go by */
+.aor-submit.prog::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--p,0%);background:rgba(255,255,255,.28);transition:width .5s cubic-bezier(.2,.8,.2,1);}
+/* my orders: chain tags, the other chain's rows, expiring soon */
+.aor-chtag{font-style:normal;margin-right:5px;padding:0 5px;border-radius:5px;font:800 .54rem Sora,sans-serif;letter-spacing:.04em;color:#04120a;background:#8fdcff;}
+.aor-chtag.rh{background:#c8ff5a;}
+.aor-mr.other{opacity:.82;}
+.aor-mr.soon{background:linear-gradient(90deg,rgba(255,200,97,.07),transparent 60%);}
+.aor-soon{display:block;font-style:normal;font:700 .6rem Sora,sans-serif;color:#ffc861;margin-top:2px;}
+.aor-mine-h .aor-scope{display:flex;flex-wrap:wrap;gap:4px;}
+.aor-csv{white-space:nowrap;}
+/* P&L across markets */
+.aor-pnlall{display:grid;gap:4px;margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);font-size:.74rem;color:#c9d4de;}
+.aor-pnlall>b{font:700 .76rem Sora,sans-serif;color:#eef3f7;margin-bottom:2px;}
+.aor-pnlt{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:8px;align-items:center;font:500 .72rem var(--or-mono);}
+.aor-pnlt:first-of-type{font:600 .62rem Sora,sans-serif;color:#7f8d99;text-transform:uppercase;letter-spacing:.04em;}
+.aor-pnlt .up{color:var(--or-up);}.aor-pnlt .dn{color:var(--or-dn);}
+.aor-pnlall small{color:#7f8d99;font-size:.64rem;margin-top:4px;}
+/* price alerts on Telegram */
+.aor-altg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 9px;align-items:center;width:100%;margin-top:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);color:#dfe8f1;font:600 .74rem Sora,sans-serif;text-align:left;cursor:pointer;}
+.aor-altg i{grid-row:span 2;position:relative;width:30px;height:17px;border-radius:99px;background:rgba(255,255,255,.14);transition:background .2s;}
+.aor-altg i::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#dfe8f1;transition:transform .2s;}
+.aor-altg.on i{background:#4dd4ff;}.aor-altg.on i::after{transform:translateX(13px);}
+.aor-altg small{font:500 .64rem Inter,sans-serif;color:#8c98a6;}
+.aor-tgmark{font-style:normal;margin-left:6px;padding:0 5px;border-radius:5px;font:800 .56rem Sora,sans-serif;color:#04120a;background:#8fdcff;}
+/* the live tape and the fee burn */
+.aor-tapew{display:flex;align-items:stretch;gap:10px;margin:0 0 12px;min-width:0;}
+.aor-tapew[hidden]{display:none;}
+.aor-tape{flex:1 1 auto;display:flex;align-items:center;gap:10px;min-width:0;padding:6px 10px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);}
+.aor-tape[hidden]{display:none;}
+.aor-tape-l{flex:none;display:inline-flex;align-items:center;gap:6px;font:700 .64rem Sora,sans-serif;color:#9fb0bd;text-transform:uppercase;letter-spacing:.05em;}
+.aor-tape-l i{width:7px;height:7px;border-radius:50%;background:#39ff88;box-shadow:0 0 0 3px rgba(57,255,136,.18);animation:aorPulse 2s infinite;}
+.aor-tape-v{flex:1 1 auto;min-width:0;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);}
+.aor-tape-r{display:flex;gap:8px;width:max-content;}
+.aor-tape-r.loop{animation:aorTape calc(var(--n) * 3.2s) linear infinite;}
+.aor-tape-v:hover .aor-tape-r{animation-play-state:paused;}
+.aor-tape-dup{display:flex;gap:8px;}
+@keyframes aorTape{from{transform:translateX(0);}to{transform:translateX(calc(-50% - 4px));}}
+.aor-tk{flex:none;display:inline-flex;align-items:baseline;gap:6px;padding:3px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#dfe8f1;font:600 .68rem Sora,sans-serif;cursor:pointer;transition:border-color .2s;}
+.aor-tk:hover{border-color:rgba(77,212,255,.5);}
+.aor-tk i{font-style:normal;font-size:.62rem;}
+.aor-tk.up i{color:var(--or-up);}.aor-tk.dn i{color:var(--or-dn);}
+.aor-tk span{font-family:var(--or-mono);}
+.aor-tk small{font:500 .6rem var(--or-mono);color:#7f8d99;}
+.aor-tk.fresh{animation:aorTkIn .9s ease-out;}
+@keyframes aorTkIn{0%{background:rgba(77,212,255,.3);border-color:#4dd4ff;}100%{background:rgba(255,255,255,.03);}}
+.aor-burnct{flex:none;display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:12px;text-decoration:none;color:#ffd9c7;background:linear-gradient(95deg,rgba(255,110,90,.12),rgba(255,200,97,.08));border:1px solid rgba(255,140,90,.35);font:600 .7rem Sora,sans-serif;transition:border-color .2s;}
+.aor-burnct[hidden]{display:none;}
+.aor-burnct:hover{border-color:rgba(255,160,110,.7);}
+.aor-burnct svg{width:15px;height:15px;fill:#ff9b6a;}
+.aor-burnct b{font-family:var(--or-mono);color:#fff;}
+.aor-burnct small{font:600 .6rem var(--or-mono);color:#c99a86;}
+@media (max-width:720px){ .aor-tapew{flex-direction:column;gap:6px;} .aor-tape-l span{display:none;} .aor-burnct{justify-content:center;} }
+/* swipe-to-cancel (phones) */
+@media (max-width:720px){
+  .aor-mr{position:relative;transform:translateX(var(--sx,0px));transition:transform .25s cubic-bezier(.2,.8,.2,1);}
+  .aor-mr.swiping{transition:none;}
+  .aor-mr.swiping::after{content:"Cancel";position:absolute;top:0;bottom:0;left:100%;width:150px;display:grid;place-items:center start;padding-left:16px;font:800 .74rem Sora,sans-serif;color:#ffb2a6;background:rgba(255,110,90,.12);border-radius:0 8px 8px 0;}
+  html.lang-ko .aor-mr.swiping::after{content:"취소";}
+  html.lang-zh .aor-mr.swiping::after{content:"取消";}
+  .aor-mr.swipe-go::after{color:#1a0604;background:var(--or-dn);}
+  .aor-mine{overflow-x:hidden;}
+}
+@media (prefers-reduced-motion:reduce){
+  .aor-tape-r.loop,.aor-tk.fresh,.aor-exec.beat i,.aor-typepop{animation:none;}
+  .aor-tape-v{overflow-x:auto;}
+  .aor-submit.prog::before,.aor-mr{transition:none;}
+}

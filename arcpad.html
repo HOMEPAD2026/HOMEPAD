@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791074190"></script>
+<script src="arc-log.js?v=1791076585"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791074190">
+<link rel="stylesheet" href="style.css?v=1791076585">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -125,7 +125,7 @@
       <button type="button" class="bp-nav-item" data-tab="mine"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
-      <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
@@ -1606,8 +1606,8 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Limit orders on Arc, Robinhood Chain and Solana</span>
-            <h1>ARCIRCLE Orders <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Limit · stop · TP/SL · scaled · DCA</i></span></h1>
-            <p class="bp-lede">Set the price you want to buy or sell at, like on an exchange — for any Arc or Robinhood Chain token with a Uniswap v4 pool, or any Solana token. Your tokens stay with you until an order fills: wallet to wallet when two orders cross, or from the pool once its price gets there (on Solana, through Jupiter). 0.1% fee — none at all on Arc and Robinhood Chain for holders of 100,000 $ARCIRCLE or more.</p>
+            <h1>ARCIRCLE Orders <span class="asc-ver" title="Version 3 — new features are added regularly">v3<i>Limit · stop · TP/SL · scaled · DCA</i></span></h1>
+            <p class="bp-lede">Your price, like on an exchange — for any token with a Uniswap v4 pool on Arc or Robinhood Chain, or any Solana token. Your tokens stay in your wallet until the order fills. 0.1% fee, none for holders of 100,000 $ARCIRCLE.</p>
             <div class="aor-contracts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Verified source on ArcScan:</span>
               <a href="https://arc.etherscan.io/address/0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e#code" target="_blank" rel="noopener">ArcircleOrders <code data-no-i18n>0x1A31…008e</code> ↗</a>
               <a href="https://arc.etherscan.io/address/0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034#code" target="_blank" rel="noopener">ArcircleFeeBurn <code data-no-i18n>0x7F53…3034</code> ↗</a></div>
@@ -1619,6 +1619,18 @@
           <h2 id="aor-guide-h">ARCIRCLE Orders guide</h2>
           <details open><summary><h3>What is ARCIRCLE Orders?</h3></summary>
             <p>An order book for tokens that trade on Uniswap v4 pools. Instead of taking the pool's price right now, you set your own: buy if the price comes down to X, sell if it goes up to Y, or sell if it falls below a stop. Three chains — switch at the top: on Arc (Argus, ArcPad or plain pools) prices are in USDC; on Robinhood Chain they're in ETH; on Solana they're in SOL.</p>
+          </details>
+          <details><summary><h3>New in v3</h3></summary>
+            <ul>
+              <li>A live tape across the top shows the latest fills in every market on the chain (tap one to open it), next to how much $ARCIRCLE Orders' fees have burned so far.</li>
+              <li>Each market shows its Token Scanner score and whether ARCIA DESK holds, traded or passed on the token. Buying a token the scanner flags asks for a second press — it's an automated check, not advice.</li>
+              <li>Tiny prices are easier to read: 0.0₆1088 means five more zeros after "0.0" before 1088. On Robinhood Chain prices and totals also show dollars, and the Total box can take dollars (tap ETH ⇄ USD).</li>
+              <li>Pro shows Limit and Market up front; Stop, TP / SL, Trailing, Scaled and Timed open from More types, each with one line on what it does. Above the numbers, the order is written out in one sentence.</li>
+              <li>Your orders sit right under the book and chart. They can show this market, the whole chain or both chains, and download as a CSV file. An order expiring within a day gets a badge and an Extend 7d button (a new signature at the same price; the old one is cancelled).</li>
+              <li>All markets: your average buy, average sell and how the price now compares, market by market. On the chart, your average buy is a dashed line, your fills are rings, and a line the price is within 1% of glows. Dragging a line shows how far the new price is from the pool.</li>
+              <li>Price alerts can go to Telegram too: turn on Also on Telegram under the alert, then send /orderalerts on to the ARCIA bot — it messages you when the price crosses, even with the page closed.</li>
+              <li>The chain switch marks a chain whose Orders contract isn't live yet as Preview. On a phone, slide an open order left to cancel it.</li>
+            </ul>
           </details>
           <details><summary><h3>New in v2</h3></summary>
             <ul>
@@ -2174,6 +2186,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791074190"></script>
+<script src="arcpad.bundle.js?v=1791076585"></script>
 </body>
 </html>

@@ -85,7 +85,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
-  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -1132,6 +1132,17 @@ async function ordersNotifyOn(X, T, s, c, out) {
         for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[...(e.tx ? [{ text: "Transaction", url: txUrl(e.tx) }] : []), { text: "My orders", url: `${SITE}/arc#orders?t=${e.token}${rh ? "&c=rh" : ""}` }]]) }).catch(() => null); out.orderAlerts = (out.orderAlerts || 0) + 1; }
       }
       T[SEQ] = ev.seq;
+    }
+  }
+  // v3: price alerts set on the Orders page, for wallets with /orderalerts on (each fires once)
+  const subsA = Object.keys(s.orders || {});
+  if (subsA.length) {
+    const due = await X.alertsDue(subsA, { store: store() }).catch(() => []);
+    for (const a of due.slice(0, 40)) {
+      const sym = `$${h(a.sym || "?")}${rh ? " (Robinhood)" : ""}`, q = rh ? "ETH" : "USDC";
+      const text = `🔔 <b>Price alert</b> · ${sym} ${a.dir === "up" ? "rose to" : "fell to"} <b>${fmtPrice(a.now)} ${q}</b>\nYour alert: ${a.dir === "up" ? "at or above" : "at or below"} ${fmtPrice(a.price)} ${q}`;
+      for (const id of (s.orders || {})[a.wallet] || []) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[{ text: "Open the market", url: `${SITE}/arc#orders?t=${a.t}${rh ? "&c=rh" : ""}` }]]) }).catch(() => null);
+      out.priceAlerts = (out.priceAlerts || 0) + 1;
     }
   }
   const st = await X.status({ store: store() }).catch(() => null);

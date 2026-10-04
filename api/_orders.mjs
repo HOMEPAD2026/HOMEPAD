@@ -17,6 +17,12 @@
 //                   spends the fee burn's USDC on $ARCIRCLE once an hour (ArcircleFeeBurn).
 //                   Runs after every ARCIA DESK tick on Arc (api/desk.mjs) and on its own (?orderstick=1).
 //   candles(pool)   5-minute candles for any Arc v4 pool from its Swap logs (the page's own chart)
+//   v3 (4 Oct 2026):
+//   recent()        the latest fills across every market (the page's live tape)
+//   burns()         every Burned event of the fee burn since it was deployed: $ARCIRCLE burned, quote spent, count
+//   alerts / alertSet / alertsDue   price alerts a wallet keeps here (opened with its 30-day view signature); the
+//                   Telegram bot (api/arcia-tg.mjs) checks them for wallets with /orderalerts on and sends a DM
+//   ethUsd()        Robinhood Chain: the ETH price, for the page's dollar values
 // Two chains, one module (makeOrders): ARC (ArcircleOrders, markets against USDC — the named exports, as before) and
 // RH, Robinhood Chain (ArcircleOrdersNative, markets against ETH: orders name WETH, pools may be native ETH). forChain().
 // Docs (Firestore through the caller's store; memory otherwise), under orders/ on Arc and ordersrh/ on Robinhood Chain:
@@ -35,6 +41,7 @@ const ARC_CFG = {
   id: "arc", name: "Arc", prefix: "orders", msgTag: "",
   address: "0x1a31c2539d6e3fbdf276e8d74ba67aec4de9008e", // ArcircleOrders on Arc, block 23739979 (env ARCIRCLE_ORDERS_ADDRESS overrides)
   feeBurn: "0x7f53f5014bc2cfe52ed8fb9370f2bcd497b93034", // ArcircleFeeBurn on Arc, block 23739974 (env ARCIRCLE_FEEBURN_ADDRESS overrides)
+  feeBurnFrom: 23739974, logRange: 9000, // Arc's RPC refuses wider eth_getLogs
   addressEnv: "ARCIRCLE_ORDERS_ADDRESS", feeBurnEnv: "ARCIRCLE_FEEBURN_ADDRESS",
   base: "0x3600000000000000000000000000000000000000", baseDec: 6, baseSym: "USDC", // what markets trade against and fees burn from
   weth: null, // native currency 0x0 in a pool key stands for this (none on Arc)
@@ -54,6 +61,7 @@ const RH_CFG = {
   id: "rh", name: "Robinhood Chain", prefix: "ordersrh", msgTag: " on Robinhood Chain",
   address: "", feeBurn: "",
   addressEnv: "ARCIRCLE_ORDERS_RH_ADDRESS", feeBurnEnv: "ARCIRCLE_FEEBURN_RH_ADDRESS",
+  feeBurnFrom: 0, logRange: 50000, // set feeBurnFrom (env ARCIRCLE_FEEBURN_RH_FROM) to its deploy block once it's live
   base: "0x0bd7d308f8e1639fab988df18a8011f41eacad73", baseDec: 18, baseSym: "ETH",
   weth: "0x0bd7d308f8e1639fab988df18a8011f41eacad73",
   permit2: "", // set once Permit2 is confirmed on Robinhood Chain (env ARCIRCLE_ORDERS_RH_PERMIT2); plain approvals until then
@@ -930,9 +938,111 @@ async function candles(poolId, { store, budgetMs = 5000 } = {}) {
   return v;
 }
 
+// ---------------------------------------------------------------- v3: the tape, the burn, alerts, ETH
+/// the latest fills across every market, newest first
+async function recent({ store } = {}) {
+  const c = mem.get("recent");
+  if (c && Date.now() - c.t < 10000) return c.v;
+  const idx = await sget(store, INDEX);
+  const tokens = ((idx && idx.tokens) || []).slice(0, 40);
+  const docs = store && store.getMany ? await store.getMany(tokens.map(marketKey)).catch(() => null) : null;
+  const out = [];
+  for (const t of tokens) {
+    const m = (docs && docs[marketKey(t)]) || (await sget(store, marketKey(t)));
+    if (!m || !m.token) continue;
+    for (const f of (m.fills || []).slice(0, 12)) out.push({ token: m.token.address, sym: m.token.symbol, quote: m.quote && m.quote.symbol, at: f.at, side: f.side, price: f.price, amount: f.amount, value: f.quote || null, via: f.via, tx: f.tx });
+  }
+  out.sort((a, b) => b.at - a.at);
+  const v = { chain: CFG.id, fills: out.slice(0, 30) };
+  mem.set("recent", { t: Date.now(), v });
+  return v;
+}
+const TOPIC_BURNED = keccakText("Burned(uint256,uint256,uint256)"); // ArcircleFeeBurn and ArcircleFeeBurnNative alike
+/// every Burned event of the fee burn: the quote it spent, the $ARCIRCLE it burned, what went to the treasury (read forward from a cursor)
+async function burns({ store, chunks = 24 } = {}) {
+  const FB = feeBurnAddr(), from0 = Number(env(CFG.id === "rh" ? "ARCIRCLE_FEEBURN_RH_FROM" : "ARCIRCLE_FEEBURN_FROM")) || CFG.feeBurnFrom;
+  if (!isAddr(FB) || !from0) return { chain: CFG.id, live: false };
+  const c = mem.get("burns");
+  if (c && Date.now() - c.t < 30000) return c.v;
+  const key = `${P}/_burns`;
+  const d = (await sget(store, key)) || { hi: from0 - 1, n: 0, arcircle: 0, quote: 0, treasury: 0, last: null };
+  const head = (await chain().latestBlock()).number;
+  let k = 0, moved = false;
+  while (d.hi < head && k < chunks) {
+    const a = d.hi + 1, b = Math.min(head, a + CFG.logRange - 1);
+    const logs = await chain().getLogs({ address: FB, topics: [TOPIC_BURNED], fromBlock: "0x" + a.toString(16), toBlock: "0x" + b.toString(16) });
+    for (const l of logs || []) {
+      d.n++; d.quote += Number(W(l.data, 0)) / 10 ** CFG.baseDec; d.arcircle += Number(W(l.data, 1)) / 1e18; d.treasury += Number(W(l.data, 2)) / 10 ** CFG.baseDec;
+      d.last = { block: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), arcircle: Number(W(l.data, 1)) / 1e18 };
+    }
+    d.hi = b; k++; moved = true;
+  }
+  if (moved) await sset(store, key, d);
+  const v = { chain: CFG.id, live: true, n: d.n, arcircle: d.arcircle, quote: d.quote, quoteSym: CFG.baseSym, treasury: d.treasury, last: d.last, done: d.hi >= head, feeBurn: FB };
+  mem.set("burns", { t: Date.now(), v });
+  return v;
+}
+/// Robinhood Chain: dollars per ETH (null on Arc, where the quote is USDC)
+async function ethUsd() {
+  if (CFG.id !== "rh") return null;
+  try { const P0 = await import("./_pons-arcpad.mjs"); return await P0.ethUsd(); } catch { return null; }
+}
+// price alerts: { t, sym, price, dir: "up"|"down", poolId, tokenIs0, td, qd, at } per wallet, at most 20
+const alertKey = (wa) => `${P}/al_${lc(wa)}`;
+const ALERTS_IDX = `${P}/_alerts`;
+async function alerts(wallet, { store } = {}) {
+  if (!isAddr(wallet)) return null;
+  const d = (await sget(store, alertKey(wallet))) || { list: [] };
+  return { wallet: lc(wallet), list: d.list || [] };
+}
+/// add or remove one (the wallet's view signature authorizes it, the same one that opens its orders)
+async function alertSet(body, { store } = {}) {
+  const wa = lc(body.wallet);
+  if (!viewOk(wa, body.until, body.sig)) return { status: 401, body: { error: "sign once to manage your alerts" } };
+  const d = (await sget(store, alertKey(wa))) || { list: [] };
+  if (body.remove != null) {
+    d.list = d.list.filter((a) => !(a.t === lc(body.token) && Math.abs(a.price - Number(body.price)) <= Math.abs(a.price) * 1e-9));
+  } else {
+    const t = lc(body.token), price = Number(body.price), dir = body.dir === "down" ? "down" : "up";
+    if (!isAddr(t) || !(price > 0) || !isH32(body.poolId)) return { status: 400, body: { error: "token, price and pool are needed" } };
+    d.list = [{ t, sym: String(body.sym || "").replace(/[^\w$.-]/g, "").slice(0, 16), price, dir, poolId: lc(body.poolId), tokenIs0: !!body.tokenIs0, td: Number(body.td) || 18, qd: Number(body.qd) || (CFG.baseDec), at: CFG.now() },
+      ...d.list.filter((a) => !(a.t === t && a.price === price && a.dir === dir))].slice(0, 20);
+  }
+  await sset(store, alertKey(wa), d);
+  const ix = (await sget(store, ALERTS_IDX)) || { wallets: [] };
+  const has = ix.wallets.includes(wa);
+  if (d.list.length && !has) { ix.wallets = [wa, ...ix.wallets].slice(0, 2000); await sset(store, ALERTS_IDX, ix); }
+  else if (!d.list.length && has) { ix.wallets = ix.wallets.filter((x) => x !== wa); await sset(store, ALERTS_IDX, ix); }
+  return { status: 200, body: { ok: true, list: d.list } };
+}
+/// the alerts whose price has been crossed, for these wallets (each fires once and is removed)
+async function alertsDue(wallets, { store } = {}) {
+  const out = [];
+  const want = new Set((wallets || []).map(lc));
+  const ix = (await sget(store, ALERTS_IDX)) || { wallets: [] };
+  const px = new Map();
+  for (const wa of ix.wallets.filter((x) => want.has(x)).slice(0, 200)) {
+    const d = await sget(store, alertKey(wa));
+    if (!d || !d.list || !d.list.length) continue;
+    const keep = [];
+    for (const a of d.list) {
+      let p = px.get(a.poolId);
+      if (p === undefined) {
+        try { const s0 = await slot0Of(a.poolId); p = s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, a.tokenIs0, a.tokenIs0 ? a.td : a.qd, a.tokenIs0 ? a.qd : a.td) : null; } catch { p = null; }
+        px.set(a.poolId, p);
+      }
+      if (p != null && ((a.dir === "up" && p >= a.price) || (a.dir === "down" && p <= a.price))) out.push({ wallet: wa, ...a, now: p });
+      else keep.push(a);
+    }
+    if (keep.length !== d.list.length) await sset(store, alertKey(wa), { ...d, list: keep });
+  }
+  return out;
+}
+
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
-  TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools, _test };
+  TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);

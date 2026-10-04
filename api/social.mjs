@@ -39,7 +39,9 @@
 //   GET  /api/social?orders=markets | status     every market · the executor's last run
 //   GET  /api/social?orders=candles&pool=0x…     5-minute candles of an Arc v4 pool (3 days)
 //   GET  /api/social?orders=mine&wallet=&until=&sig=   a wallet's orders (signed: orders.viewMessage)
-//   POST /api/social  { action: "orderplace" | "ordercancel" | "ordercancelall" | "orderfilled", … }
+//   POST /api/social  { action: "orderplace" | "ordercancel" | "ordercancelall" | "orderfilled" | "orderalert", … }
+//   GET  /api/social?orders=recent | burns [&chain=rh]   v3: the live tape across markets · the fee burn's totals
+//   GET  /api/social?orders=alerts&wallet=&until=&sig=  a wallet's price alerts (Telegram DMs them with /orderalerts on)
 //   GET  /api/social?orders=pools&token=0x…&chain=rh   a Robinhood Chain token's v4 pools against ETH (keys, prices)
 //   every orders route takes chain=rh (query or body) for Robinhood Chain's book (ArcircleOrdersNative)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
@@ -520,7 +522,15 @@ export async function GET(req) {
       }
       if (k === "pools") { const v = await OX.pools(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=30, s-maxage=60") : json(400, { error: "token is needed" }); }
       if (k === "markets") return json(200, await OX.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
-      if (k === "status") return json(200, await OX.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
+      if (k === "status") { const [st, eu] = await Promise.all([OX.status({ store: scanStore() }), OX.ethUsd().catch(() => null)]); return json(200, { ...st, ethUsd: eu }, "public, max-age=20, s-maxage=30"); }
+      // v3: the live tape across markets, the fee burn's totals, a wallet's price alerts (its view signature opens them)
+      if (k === "recent") return json(200, await OX.recent({ store: scanStore() }), "public, max-age=8, s-maxage=10");
+      if (k === "burns") return json(200, await OX.burns({ store: scanStore() }), "public, max-age=30, s-maxage=60");
+      if (k === "alerts") {
+        const wa = url.searchParams.get("wallet");
+        if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your alerts", locked: true });
+        return json(200, await OX.alerts(wa, { store: scanStore() }), "no-store");
+      }
       if (k === "candles") { const v = await OX.candles(url.searchParams.get("pool"), { store: scanStore() }); return v ? json(200, v, "public, max-age=20, s-maxage=30") : json(400, { error: "pool is needed" }); }
       return json(400, { error: "unknown orders view" });
     } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
@@ -657,12 +667,12 @@ export async function POST(req) {
       try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
-    if (b.action === "orderplace" || b.action === "ordercancel" || b.action === "ordercancelall" || b.action === "orderfilled") {
+    if (b.action === "orderplace" || b.action === "ordercancel" || b.action === "ordercancelall" || b.action === "orderfilled" || b.action === "orderalert") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
       const OX = orders.forChain(b.chain);
-      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o) }[b.action];
+      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
     }
