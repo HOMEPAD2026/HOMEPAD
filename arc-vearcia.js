@@ -45,7 +45,7 @@
   const F = (w) => (w == null ? null : Number(ethers.formatEther(w)));
   const fmt = (n, d = 2) => (n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("en-US", { maximumFractionDigits: d }));
   const big = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e9 ? fmt(n / 1e9, 2) + "B" : n >= 1e6 ? fmt(n / 1e6, 2) + "M" : n >= 1e4 ? fmt(n / 1e3, 1) + "K" : fmt(n, n < 1 ? 4 : 2));
-  const pct = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e4 ? fmt(n / 1000, 0) + "K%" : fmt(n, n < 10 ? 2 : 1) + "%");
+  const pct = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e4 ? fmt(n / 1000, 0) + "K%" : fmt(n, n >= 1000 ? 0 : n < 10 ? 2 : 1) + "%"); // 2,285% rather than 2,285.2%: the range has to fit one stat box
   const mult = (bps) => (bps / BPS).toFixed(2).replace(/0$/, "") + "x";
   const rejected = (e) => e && (e.code === 4001 || e.code === "ACTION_REJECTED" || /reject|denied|cancel/i.test(String(e.message || e.shortMessage || "")));
   const ABI = [
@@ -388,7 +388,7 @@
     const top = (S.srv && S.srv.top) || [], u = me();
     const rows = top.length ? top.map((x) => `<li class="${x.a === u ? "me" : ""}"><em data-no-i18n>${x.rank}</em><span class="vea-avs" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(x.a) : ""}"></span><a href="${esc(EXPL())}/address/${esc(x.a)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(x.a))}</a>${x.veTier ? `<span class="vea-tb t${x.veTier}">${esc(VT[x.veTier][0])}</span>` : ""}<b data-no-i18n>${big(x.ve)}</b><small data-no-i18n>${x.auto ? tr("auto") : x.lockDays + "d"}${x.tier ? " · " + mult(BOOST[x.tier]) : ""}</small></li>`).join("")
       : `<li class="vea-none">${T(live ? "The first stakers show here." : "Opens soon.")}</li>`;
-    return `<section class="ams-card vea-card vea-top" data-vt="top"><h3>${T("Top veARCIA")} ${S.srv ? `<small data-no-i18n>${S.srv.totals.stakers} ${tr("stakers")}</small>` : ""}</h3><ol class="vea-lb">${rows}</ol></section>`;
+    return `<section class="ams-card vea-card vea-top" data-vt="top"><h3>${T("Top veARCIA")} ${S.srv ? `<small data-no-i18n>${S.srv.totals.stakers} ${tr(S.srv.totals.stakers === 1 ? "staker" : "stakers")}</small>` : ""}</h3><ol class="vea-lb">${rows}</ol></section>`;
   }
   function historyCard(live) {
     const pools = ((S.srv && S.srv.pools) || []).filter((p) => p.t);
