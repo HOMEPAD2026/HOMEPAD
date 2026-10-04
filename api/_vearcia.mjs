@@ -19,8 +19,8 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 
-export const VEARCIA_DEFAULT = ""; // contracts/scripts/deploy-arcia-staking-rh.js — filled in once deployed
-export const VEARCIA_DEFAULT_BLOCK = 0;
+export const VEARCIA_DEFAULT = "0x29c010620f6720582c310afa8d8115026ec73a7e"; // contracts/scripts/deploy-arcia-staking-rh.js, 2026-10-04
+export const VEARCIA_DEFAULT_BLOCK = 79655827;
 const env = (k) => String(process.env[k] || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();

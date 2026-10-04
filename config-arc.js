@@ -206,7 +206,7 @@ const CONFIG = {
   ARCIA_RH_TOKEN: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", // $ARCIA on Robinhood Chain (Pons): the market Orders opens there
   // veARCIA (contracts/ArciaStaking.sol on Robinhood Chain, arc-vearcia.js, api/_vearcia.mjs): "" until deployed — the page
   // previews the numbers and checks the $ARCIRCLE boost with its buttons off. Keep api/_vearcia.mjs VEARCIA_DEFAULT in step.
-  VEARCIA_ADDRESS: "",
+  VEARCIA_ADDRESS: "0x29C010620f6720582c310aFa8D8115026eC73a7e", // deployed 2026-10-04, block 79655827
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.
