@@ -1051,8 +1051,67 @@
     return true;
   }
 
+  // ---------------- veARCIA, live: what's staked, by how many, the rate, and the rewards streaming out second by second ----------------
+  var vea = { st: null, at: 0, t: null };
+  var veaN = function (n) {
+    n = Number(n) || 0; var a = Math.abs(n);
+    if (a >= 1e9) return (n / 1e9).toFixed(a >= 1e10 ? 1 : 2) + "B";
+    if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
+    if (a >= 1e4) return (n / 1e3).toFixed(1) + "K";
+    return n.toLocaleString("en-US", { maximumFractionDigits: a >= 100 ? 0 : 2 });
+  };
+  var veaPct = function (p) { return p >= 1000 ? Math.round(p).toLocaleString("en-US") + "%" : p >= 100 ? p.toFixed(0) + "%" : p.toFixed(1) + "%"; };
+  // the chain's clock now, from the server's reading plus the time since
+  var veaNow = function () { var d = vea.st; return (Number(d && d.now) || Date.now() / 1000) + (Date.now() - vea.at) / 1000; };
+  var veaRun = function () { var t = (vea.st && vea.st.totals) || {}; return Number(t.weight) > 0 && Number(t.perDay) > 0 && veaNow() < (Number(t.finish) || 0); };
+  var veaStreamed = function () {
+    var d = vea.st, t = (d && d.totals) || {};
+    var x = Number(t.streamed) || 0;
+    if (veaRun()) x += (Number(t.perDay) || 0) * Math.max(0, veaNow() - (Number(d.now) || 0)) / 86400;
+    return x;
+  };
+  var veaFmtS = function (x) { var big = x >= 1e5; return x.toLocaleString("en-US", { maximumFractionDigits: big ? 0 : 2, minimumFractionDigits: big ? 0 : 2 }); };
+  function veaPaint() {
+    var el = panel.querySelector('[data-fam="vea"]'), d = vea.st;
+    if (!el) return;
+    if (!d) { el.innerHTML = ""; return; }
+    if (!d.live) { el.innerHTML = '<i></i><span data-no-i18n>' + esc(T({ en: "Opening soon on Robinhood Chain", ko: "로빈후드 체인에서 곧 오픈", zh: "即将在 Robinhood Chain 开放" })) + "</span>"; return; }
+    var t = d.totals || {}, staked = Number(t.staked) || 0, weight = Number(t.weight) || 0, perDay = Number(t.perDay) || 0, n = Number(t.stakers) || 0;
+    // rewards streamed so far, ticking: the contract streams perDay ÷ 86,400 a second while there's weight and the stream hasn't finished
+    var run = veaRun(), streamed = veaStreamed();
+    var lo = weight > 0 && perDay > 0 ? perDay * 365 / weight * 100 : null;
+    var L = function (o) { return '<span data-no-i18n>' + esc(T(o)) + "</span>"; };
+    var parts = ['<i class="' + (run ? "on" : "") + '"></i>' + L(run ? { en: "Live", ko: "실시간", zh: "实时" } : { en: "Open", ko: "오픈", zh: "开放中" })];
+    parts.push('<b data-no-i18n data-k="staked">' + veaN(staked) + "</b> " + L({ en: "$ARCIA staked", ko: "$ARCIA 스테이킹", zh: "$ARCIA 已质押" }));
+    parts.push('<b data-no-i18n data-k="n">' + n + "</b> " + L(n === 1 ? { en: "staker", ko: "명 참여", zh: "位质押者" } : { en: "stakers", ko: "명 참여", zh: "位质押者" }));
+    if (lo != null) { var ap = T({ en: "up to {v} a year", ko: "연 최대 {v}", zh: "年化最高 {v}" }).split("{v}"); parts.push((ap[0] ? L({ en: ap[0].trim() }) + " " : "") + '<b data-no-i18n data-k="apr">' + veaPct(lo * 4) + "</b>" + (ap[1] ? " " + L({ en: ap[1].trim() }) : "")); }
+    else if ((Number(t.pool) || 0) > 0) parts.push('<b data-no-i18n data-k="pool">' + veaN(t.pool) + "</b> " + L({ en: "$ARCIA in rewards, waiting for the first staker", ko: "$ARCIA 보상이 첫 참여자를 기다리는 중", zh: "$ARCIA 奖励等待第一位质押者" }));
+    if (streamed > 0) parts.push('<b data-no-i18n class="aa-vea-tick" data-k="streamed">' + veaFmtS(streamed) + "</b> " + L({ en: "paid out so far", ko: "지금까지 지급", zh: "累计发放" }));
+    // only the numbers change on a repaint: flash the ones that moved (except the ticking counter)
+    var old = {}; el.querySelectorAll("b[data-k]").forEach(function (b) { old[b.getAttribute("data-k")] = b.textContent; });
+    el.innerHTML = parts.map(function (x) { return '<span class="aa-vea-p">' + x + "</span>"; }).join('<span class="aa-vea-sep" aria-hidden="true">·</span>');
+    el.querySelectorAll("b[data-k]").forEach(function (b) { var k = b.getAttribute("data-k"); if (k !== "streamed" && old[k] != null && old[k] !== b.textContent) { b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash"); } });
+  }
+  function veaLoad() {
+    if (!window.fetch) return;
+    fetch("/api/desk?vearcia=state").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d) return;
+      vea.st = d; vea.at = Date.now(); veaPaint();
+    }).catch(function () {});
+  }
+  function veaTick() {
+    // the streamed counter moves every second while ARCIA's panel is on screen
+    if (vea.t) return;
+    vea.t = setInterval(function () {
+      if (!panel.classList.contains("active") || document.hidden || !vea.st || !vea.st.live) return;
+      var b = panel.querySelector('[data-fam="vea"] b[data-k="streamed"]');
+      if (b && veaRun()) b.textContent = veaFmtS(veaStreamed()); // only the number: the live dot keeps its pulse
+    }, 1000);
+  }
+
   // ---------------- ARCIA's other utilities: one live line each ----------------
   function famLoad() {
+    veaLoad(); veaTick();
     if (!window.fetch) return;
     var put = function (k, html) { var el = panel.querySelector('[data-fam="' + k + '"]'); if (el && html) el.innerHTML = html; };
     var money = function (n) { return (n < 0 ? "−$" : "$") + Math.abs(Number(n) || 0).toFixed(2); };
@@ -1205,6 +1264,8 @@
           // ARCIA's other utilities, in one place
           // a div, not <nav>: the site's global nav rules (full-bleed width, side padding, scrolling) would pull it out of the hero on phones
           '<div class="aa-fam" role="navigation" aria-label="More from ARCIA">' +
+            '<a class="aa-fam-c vea" href="/arc#vearcia" data-arc-tab="vearcia"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg></span>' +
+              '<span class="aa-fam-t"><b>veARCIA <span class="aa-fam-beta" data-no-i18n>New</span></b><small>Stake $ARCIA for 1–20 days and earn $ARCIA every second — $ARCIRCLE holders boost up to 2.0x</small><em class="aa-fam-live" data-fam="vea"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c a402" href="/arc#arcia402" data-arc-tab="arcia402"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5.5"/><path d="M9 9.3v5.4M10.7 10.2c-.4-.6-1-.9-1.7-.9-.9 0-1.6.5-1.6 1.2 0 1.5 3.4.9 3.4 2.4 0 .7-.8 1.2-1.7 1.2-.8 0-1.4-.3-1.8-.9"/><path d="M15.5 7.5a5.5 5.5 0 0 1 0 9M18 5.5a8.5 8.5 0 0 1 0 13"/></svg></span>' +
               '<span class="aa-fam-t"><b>ARCIA 402</b><small>She earns and pays in USDC with x402 on Arc — every dollar on public books</small><em class="aa-fam-live" data-fam="402"></em></span><i class="aa-fam-go" aria-hidden="true">→</i></a>' +
             '<a class="aa-fam-c desk" href="/arc#desk" data-arc-tab="desk"><span class="aa-fam-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M6.5 16V11M10.5 16V7.5M14.5 16v-6M18.5 16V5"/><path d="M5 9.5l4.5-4 4 3 5.5-5"/></svg></span>' +
@@ -1508,6 +1569,7 @@
     setTimeout(checkWallet, 1200);
     setInterval(function () { if (panel.classList.contains("active")) checkWallet(); }, 5000);
     setInterval(function () { if (panel.classList.contains("active") && !document.hidden) refreshLive(); }, 20000);
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) veaLoad(); }, 30000);
     setInterval(function () { if (panel.classList.contains("active")) clock(); }, 1000);
   }
   // Other utilities hand ARCIA a question ("Ask ARCIA" buttons): open her tab and send it.
