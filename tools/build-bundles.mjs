@@ -35,7 +35,7 @@ export const BUNDLES = {
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
   // It runs after arcpad.bundle.js and shares its globals (ethers, CONFIG, state, the ABIs).
   "arcpad-tools.bundle.js": [
-    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-scanner-x.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "arc-arcia402.js", "arc-mine.js", "arc-desk.js", "arc-agent.js", "liq-core.js", "arc-orders-sol.js", "arc-orders.js", "arc-orders-x.js", "arc-orders-v4.js", "arc-predict.js", "arc-staking.js", "arc-nft.js", "arc-vearcia.js", "arc-liquidity.js", "arc-omni.js", "arc-uhub.js",
+    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-scanner-x.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "arc-arcia402.js", "arc-mine.js", "arc-desk.js", "arc-agent.js", "liq-core.js", "arc-orders-sol.js", "arc-orders.js", "arc-orders-x.js", "arc-order-line.js", "arc-orders-v4.js", "arc-predict.js", "arc-staking.js", "arc-nft.js", "arc-vearcia.js", "arc-liquidity.js", "arc-omni.js", "arc-uhub.js",
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad-boot.js", "circlepad-plan.js", "circlepad.js", "circlepad-conv.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
@@ -54,7 +54,7 @@ export const BUNDLES = {
   ],
   // ARCIA on pages other than ArcPad: arc-arcia-fab.js loads this on the first tap of "Ask ARCIA"
   // (ArcPad itself gets her from arcpad-tools.bundle.js).
-  "arcia.bundle.js": ["arc-arcia.js"],
+  "arcia.bundle.js": ["arc-order-line.js", "arc-arcia.js"],
   // /me, /stats, /roadmap, /brand, /start — small standalone pages (ethers from vendor/).
   "pages.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",

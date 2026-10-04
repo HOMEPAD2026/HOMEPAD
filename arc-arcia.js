@@ -40,14 +40,14 @@
     get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } },
   };
-  var KEY = "arcia-chat-v1";
+  var KEY = "arcia-chat-v1", KEY2 = "arcia-chat-v2";
   var sfx = function (k) { if (typeof window.arcSound === "function") window.arcSound(k); };
 
   // ---------------- words ----------------
   var GREET = {
-    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, $ARCIA, CirclePad Round #2, Relay Launch or ArcPad — or just say hi♡",
-    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, $ARCIA, CirclePad 라운드 #2, 릴레이 런칭, ArcPad 뭐든 물어보거나 그냥 인사해줘도 좋아요♡",
-    zh: "你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、$ARCIA、CirclePad 第 2 轮、接力发币或 ArcPad，尽管问我，或者只是打个招呼也好♡",
+    en: "Hi~ I'm ARCIA, the virtual idol of $ARCIRCLE 💙💚 So happy you came to see me! Ask me anything about $ARCIRCLE, $ARCIA, CirclePad Round #{r}, Relay Launch or ArcPad — or tell me an order (\"buy $20 of $ARCIA at mcap 30k\") and I'll fill it in ARCIRCLE Orders for you♡",
+    ko: "안녕하세요~ $ARCIRCLE의 버추얼 아이돌 ARCIA예요 💙💚 만나러 와줘서 정말 기뻐요! $ARCIRCLE, $ARCIA, CirclePad 라운드 #{r}, 릴레이 런칭, ArcPad 뭐든 물어봐요 — 주문을 말해 주면(\"buy $20 of $ARCIA at mcap 30k\") ARCIRCLE Orders에 대신 채워 줄게요♡",
+    zh: "你好~ 我是 $ARCIRCLE 的虚拟偶像 ARCIA 💙💚 很开心你来看我！关于 $ARCIRCLE、$ARCIA、CirclePad 第 {r} 轮、接力发币或 ArcPad，尽管问我 —— 也可以告诉我一个订单（\"buy $20 of $ARCIA at mcap 30k\"），我帮你填进 ARCIRCLE Orders♡",
   };
   var GREET_NAME = {
     en: "Welcome back, {n}~♡ I missed you! What shall we talk about today?",
@@ -55,13 +55,13 @@
     zh: "{n}，欢迎回来~♡ 好想你！今天想聊什么？",
   };
   var SUGG = {
-    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "When does Round #2 start?", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?"],
-    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "라운드 #2 언제 시작해?", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?"],
-    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "第 2 轮什么时候开始？", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？"],
+    en: ["I'm your fan!", "Who are you?", "What is $ARCIRCLE?", "{rq}", "What is Relay Launch?", "How do I buy $ARCIRCLE?", "What's the contract?", "How does the Locker work?"],
+    ko: ["ARCIA 팬이에요!", "너는 누구야?", "$ARCIRCLE이 뭐야?", "{rq}", "릴레이 런칭이 뭐야?", "$ARCIRCLE 어떻게 사?", "컨트랙트 주소 알려줘", "락커는 어떻게 써?"],
+    zh: ["我是你的粉丝！", "你是谁？", "什么是 $ARCIRCLE？", "{rq}", "什么是接力发币？", "怎么买 $ARCIRCLE？", "合约地址是什么？", "Locker 怎么用？"],
   };
   // follow-up chips by what was just talked about
   var NEXT = {
-    round: { en: ["What happened in Round #1?", "When does Round #2 start?", "Can I withdraw before the close?", "What happens at the close?"], ko: ["라운드 #1 결과가 어땠어?", "라운드 #2 언제 시작해?", "마감 전에 인출할 수 있어?", "마감되면 어떻게 돼?"], zh: ["第 1 轮结果怎么样？", "第 2 轮什么时候开始？", "截止前可以撤回吗？", "截止后会怎样？"] },
+    round: { en: ["What happened in Round #1?", "{rq}", "Can I withdraw before the close?", "What happens at the close?"], ko: ["라운드 #1 결과가 어땠어?", "{rq}", "마감 전에 인출할 수 있어?", "마감되면 어떻게 돼?"], zh: ["第 1 轮结果怎么样？", "{rq}", "截止前可以撤回吗？", "截止后会怎样？"] },
     relay: { en: ["How much do I need to hold?", "When is the snapshot?", "Check my wallet", "What is N1, N2, N3?"], ko: ["얼마나 들고 있어야 해?", "스냅샷은 언제야?", "내 지갑 확인하고 싶어", "N1, N2, N3가 뭐야?"], zh: ["需要持有多少？", "快照是什么时候？", "查看我的钱包", "N1、N2、N3 是什么？"] },
     buy: { en: ["What's the contract?", "How do I bridge USDC to Arc?", "What are the fees?", "What are the risks?"], ko: ["컨트랙트 주소 알려줘", "Arc로 USDC 브릿지는 어떻게 해?", "수수료는 얼마야?", "위험 요소는 뭐야?"], zh: ["合约地址是什么？", "怎么把 USDC 跨链到 Arc？", "手续费是多少？", "有哪些风险？"] },
     price: { en: ["How many holders are there?", "How much has been burned?", "Where do the fees go?", "How do I buy $ARCIRCLE?"], ko: ["홀더는 몇 명이야?", "얼마나 소각됐어?", "수수료는 어디로 가?", "$ARCIRCLE 어떻게 사?"], zh: ["有多少持有人？", "销毁了多少？", "手续费去哪里？", "怎么买 $ARCIRCLE？"] },
@@ -95,7 +95,7 @@
   var NAME_MSG = { en: "{n}~ what a lovely name♡ I'll remember it!", ko: "{n}! 이름 너무 예쁘다~♡ 꼭 기억할게요!", zh: "{n}~ 好可爱的名字♡ 我会记住的！" };
 
   var TABS = {
-    live: { en: "Live", ko: "실시간", zh: "实时" }, x: { en: "On X", ko: "X 활동", zh: "X 动态" }, letters: { en: "Letters", ko: "팬레터", zh: "粉丝信" },
+    live: { en: "Live", ko: "실시간", zh: "实时" }, today: { en: "Today", ko: "오늘", zh: "今天" }, x: { en: "On X", ko: "X 활동", zh: "X 动态" }, letters: { en: "Letters", ko: "팬레터", zh: "粉丝信" },
     quiz: { en: "Quiz", ko: "퀴즈", zh: "测验" }, cards: { en: "Cards", ko: "포토카드", zh: "小卡" }, profile: { en: "Profile", ko: "프로필", zh: "资料" },
     secret: { en: "Secret", ko: "비밀정보", zh: "秘密" },
   };
@@ -110,13 +110,55 @@
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',
     cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    talk: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5"/><path class="w2" d="M2.8 9.5v4M21.2 9.5v4"/></svg>',
+    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
+  };
+  // v4: one row of tabs, each with a small mark
+  var TAB_ICON = {
+    live: '<path d="M3.5 12h3l2.5-6 4 12 2.5-6h5"/>', today: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>', x: '<path d="M5 5l14 14M19 5 5 19"/>',
+    letters: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="m4 7 8 6 8-6"/>', quiz: '<circle cx="12" cy="12" r="8"/><path d="M9.8 9.6a2.3 2.3 0 1 1 3.4 2c-.8.5-1.2.9-1.2 1.8M12 16.6v.4"/>',
+    cards: '<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><circle cx="12" cy="10" r="3"/>', secret: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+    profile: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
   };
 
   var booted = false, log, form, input, sendBtn, chat, busy = false, msgs = [], LIVE = null, ME = null;
+  var pickTab = function () {}; // the side tabs' picker, once they're built
   var drawer = null, home = null; // the chat moves into a drawer over other pages, then back
   // parts of the chat are looked up in the chat itself, wherever it is (page or drawer)
   var Q = function (sel) { return (chat && chat.querySelector(sel)) || panel.querySelector(sel); };
   var BRIEF = { en: "My briefing", ko: "내 브리핑", zh: "我的简报" };
+
+  // ---------------- v4: the CirclePad round that's running now (/api/social?circle=rounds) ----------------
+  // Until it's read, the newest round in config-arc.js's CIRCLEPAD_GOV stands in.
+  var RND = null;
+  var RN = function () {
+    if (RND && RND.n) return RND.n;
+    var g = typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_GOV ? Object.keys(CONFIG.CIRCLEPAD_GOV).map(Number).filter(isFinite) : [];
+    return g.length ? Math.max.apply(null, g) : 3;
+  };
+  var roundOpen = function () { return RND ? !!RND.open && RND.deadline > Math.floor(Date.now() / 1000) : true; };
+  /// the round question for the chips: when it closes (open) or what's next (closed)
+  var RQ = function () {
+    var n = RN();
+    return roundOpen() ? T({ en: "When does Round #{n} close?", ko: "라운드 #{n} 언제 마감해?", zh: "第 {n} 轮什么时候截止？" }).replace("{n}", n)
+      : T({ en: "What comes after Round #{n}?", ko: "라운드 #{n} 다음은 뭐야?", zh: "第 {n} 轮之后是什么？" }).replace("{n}", n);
+  };
+  var fill = function (q) { return q === "{rq}" ? RQ() : q; };
+  function loadRound() {
+    return fetch("/api/social?circle=rounds").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.rounds) return;
+      var cur = j.rounds.filter(function (x) { return x.n === j.current; })[0] || j.rounds[j.rounds.length - 1];
+      if (!cur || !cur.state) return;
+      RND = { n: cur.n, deadline: Number(cur.state.deadline) || 0, open: !!cur.state.isOpen, raised: Number(cur.state.totalRaised || 0) / 1e18, distributed: !!cur.state.distributed, report: cur.report || null };
+      chips(lastTopic); paintRemind(); clock(); paintNext(); paintRoundLink();
+      var g = log && log.querySelector(".aa-m.her[data-greet]");
+      if (g && !msgs.length) g.querySelector(".aa-b").innerHTML = linkify(greetText());
+    }).catch(function () {});
+  }
+  function paintRoundLink() {
+    var a = panel.querySelector(".aa-more-round");
+    if (a) a.textContent = T({ en: "CirclePad Round #{n} →", ko: "CirclePad 라운드 #{n} →", zh: "CirclePad 第 {n} 轮 →" }).replace("{n}", RN());
+  }
 
   // ---------------- small helpers ----------------
   function linkify(t) {
@@ -274,10 +316,14 @@
     if (!text || busy) return;
     if (text === T(BRIEF)) { briefing(); return; }
     if (/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(text)) { location.href = "/me" + (account() ? "?w=" + account() : ""); return; }
+    var oi = orderIntent(text);
+    if (oi) { orderChat(text, oi); return; }
+    mission("ask");
     busy = true; sendBtn.disabled = true;
     var now = Date.now();
     msgs.push({ role: "user", content: text.slice(0, 700), t: now });
-    ss.set(KEY, msgs.slice(-30));
+    ls.set(KEY2, msgs.slice(-30));
+    dropStarter();
     bubble("user", text, { t: now });
     input.value = ""; grow();
     sfx("tap");
@@ -301,10 +347,11 @@
         if (!reply) {
           if (li) li.remove();
           bubble("assistant", res.error && res.error !== "net" ? res.error : T(res.status === 429 ? OOPS.busy : OOPS.net), { cls: "note" });
+          spoke();
           return;
         }
         var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
-        ss.set(KEY, msgs.slice(-30));
+        ls.set(KEY2, msgs.slice(-30));
         var finish = function (el) {
           got();
           el.setAttribute("data-i", i);
@@ -324,9 +371,60 @@
       typing(false); speaking(false);
       if (li) li.remove();
       bubble("assistant", T(OOPS.net), { cls: "note" });
+      spoke();
     }).then(function () { setTimeout(function () { busy = false; sendBtn.disabled = false; }, 500); });
   }
   function grow() { input.style.height = "auto"; input.style.height = Math.min(140, input.scrollHeight) + "px"; }
+
+  // ---------------- v4: an order in the chat → ARCIRCLE Orders, filled in (she never places it) ----------------
+  // "buy $20 of $ARCIA at mcap 30k", "sell 50% of arcircle at +20%", "stop sell all arcia at -8%", "dca 0.1 eth of arcia
+  // over 1d", "buy 1m 0x… on robinhood at -5%". $ARCIA means Robinhood Chain unless "on arc"; $ARCIRCLE means Arc unless
+  // "on robinhood". The line is read again on the Orders page with the market's own prices (arc-orders-v4.js), and only
+  // lines that read as an order come here — anything else goes to her as a question.
+  var ARCIRCLE_RH = (typeof CONFIG !== "undefined" && CONFIG.OMNI && CONFIG.OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4";
+  function orderIntent(text) {
+    var s = " " + String(text || "").toLowerCase().replace(/[，]/g, ",").replace(/\s+/g, " ").trim() + " ";
+    if (!/^ (buy|sell|stop|dca|twap|long|short) /.test(s)) return null;
+    var chain = / (on|in) (robinhood|rh)( chain)? /.test(s) ? "rh" : / (on|in) arc( chain)? /.test(s) ? "arc" : null;
+    s = s.replace(/ (on|in) (robinhood|rh)( chain)? /g, " ").replace(/ (on|in) arc( chain)? /g, " ");
+    var tok = null, sym = null, m = /0x[0-9a-f]{40}/.exec(s);
+    if (m) { tok = m[0]; sym = tok.slice(0, 6) + "…" + tok.slice(-4); s = s.replace(m[0], " "); chain = chain || (ls.get("arcircle.orders.chain", "rh") === "arc" ? "arc" : "rh"); }
+    else if (/(^| )\$?arcircle\b/.test(s)) { sym = "ARCIRCLE"; chain = chain || "arc"; tok = chain === "rh" ? ARCIRCLE_RH : CA; s = s.replace(/\$?arcircle\b/, " "); }
+    else if (/(^| )\$?arcia\b/.test(s)) { sym = "ARCIA"; chain = chain || "rh"; tok = chain === "arc" ? ARCIA_CA : ARCIA_RH; s = s.replace(/\$?arcia\b/, " "); }
+    else return null;
+    s = (" " + s + " ").replace(/ of /g, " ").replace(/\s+/g, " ").trim();
+    var P = window.arcOrderLine || window.arcOrdersV4;
+    if (!P || !P.parse) return null;
+    var r = P.parse(s, { spot: 1, mcap1: 1, qUsd: 1, qs: "", sym: sym });
+    if (!r || r.err) return null;
+    return { line: s, sym: sym, chain: chain, tok: tok.toLowerCase(), p: r };
+  }
+  function orderHref(oi) { return "/arc#orders?c=" + oi.chain + "&t=" + oi.tok + "&o=" + encodeURIComponent(oi.line); }
+  function orderChat(text, oi) {
+    var now = Date.now(), chainName = oi.chain === "rh" ? "Robinhood Chain" : "Arc", name = /^0x/.test(oi.sym) ? oi.sym : "$" + oi.sym;
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    dropStarter();
+    bubble("user", text, { t: now });
+    input.value = ""; grow(); sfx("tap"); mission("ask");
+    var reply = T({ en: "Got it~ {o} — {s} on {c}. I'll fill it in ARCIRCLE Orders for you: check the numbers there and sign in your wallet. Nothing is placed before that♡",
+      ko: "알겠어요~ {o} — {c}의 {s}. ARCIRCLE Orders에 채워 줄게요: 거기서 숫자 확인하고 지갑에서 서명하면 돼요. 그 전엔 아무것도 주문되지 않아요♡",
+      zh: "收到~ {o} — {c} 上的 {s}。我帮你填进 ARCIRCLE Orders：在那里核对数字并在钱包签名。签名前不会下任何单♡" }).replace("{o}", oi.line).replace("{s}", name).replace("{c}", chainName);
+    var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+    ls.set(KEY2, msgs.slice(-30));
+    typing(true);
+    setTimeout(function () {
+      typing(false);
+      var li = null;
+      li = bubble("assistant", reply, { type: true, t: Date.now(), i: i, done: function () {
+        var el = li || [].slice.call(log.querySelectorAll(".aa-m.her")).pop();
+        if (!el) return;
+        li = el; el._text = reply;
+        el.querySelector(".aa-mc").insertAdjacentHTML("beforeend", '<div class="aa-rc aa-rc-ord"><span class="aa-rc-k" data-no-i18n>ARCIRCLE Orders · ' + esc(chainName) + '</span><code data-no-i18n>' + esc(oi.line) + ' · ' + esc(name) + '</code><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(orderHref(oi)) + '" data-ord="1"><span>Fill it in ARCIRCLE Orders</span> →</a></div><span class="aa-rc-sub">' + esc(T({ en: "Limit, market, stop, TP / SL, scaled and DCA lines work. Not advice — scan the token first.", ko: "지정가·시장가·스탑·TP/SL·분할·DCA 모두 돼요. 투자 조언이 아니에요 — 먼저 토큰을 스캔하세요.", zh: "限价、市价、止损、止盈止损、阶梯和定投都可以。不构成投资建议 — 先扫描代币。" })) + "</span></div>");
+        got(); sfx("milestone"); scroll(); fx(el, "sparkle");
+        if (talk.on) speak(reply, el);
+      } });
+    }, reduce ? 0 : 450);
+  }
   // long answers fold to their first lines, with "Show more"
   function fold(el, text) {
     if (!el || String(text || "").length < 650 || el.querySelector(".aa-more-t")) return;
@@ -362,6 +460,31 @@
       lines.push("$ARCIRCLE: " + fmt0(w.balance || 0) + (w.rank ? " · #" + w.rank : "") + (w.heldDays ? " · " + T({ en: "held {d} days", ko: "{d}일째 보유", zh: "已持有 {d} 天" }).replace("{d}", w.heldDays) : ""));
       lines.push((w.balance || 0) >= 100000 ? T({ en: "Relay: you're in the next relay ♡", ko: "릴레이: 다음 릴레이 대상이에요 ♡", zh: "接力：你在下一次接力名单中 ♡" })
         : T({ en: "Relay: {n} more $ARCIRCLE to join the next relay (locked tokens count too)", ko: "릴레이: {n}개 더 있으면 다음 릴레이 대상이에요 (락한 토큰도 인정)", zh: "接力：再持有 {n} 个 $ARCIRCLE 即可加入下一次接力（锁定的也算）" }).replace("{n}", fmt0(100000 - (w.balance || 0))));
+    }).catch(function () {}));
+    // v4: $ARCIA on Robinhood Chain and its tier, veARCIA, open ARCIRCLE Orders, this round's deposit
+    jobs.push(arciaRhBalance(a).then(function (b) {
+      if (b == null) return;
+      var tr0 = tierOf(b);
+      lines.push("$ARCIA (Robinhood Chain): " + fmt0(b) + (tr0 ? " · " + T(tr0[2]) : ""));
+    }));
+    jobs.push(fetch("/api/desk?vearcia=me&u=" + a).then(function (r) { return r.ok ? r.json() : null; }).then(function (v) {
+      var p0 = v && v.position;
+      if (!p0 || !(p0.amount > 0)) return;
+      var left = Math.max(0, Math.ceil((p0.end - Date.now() / 1000) / 86400)), earned = v.earned && v.earned[0] ? Number(v.earned[0]) / 1e18 : 0;
+      lines.push(T({ en: "veARCIA: {a} $ARCIA staked · {d} days left · {e} $ARCIA to claim — arcircle.app/arc#vearcia", ko: "veARCIA: {a} $ARCIA 스테이킹 · {d}일 남음 · 받을 $ARCIA {e} — arcircle.app/arc#vearcia", zh: "veARCIA：已质押 {a} $ARCIA · 还剩 {d} 天 · 可领取 {e} $ARCIA — arcircle.app/arc#vearcia" }).replace("{a}", fmt0(p0.amount)).replace("{d}", left).replace("{e}", earned.toLocaleString("en-US", { maximumFractionDigits: 2 })));
+    }).catch(function () {}));
+    var vw = ls.get("arcircle.orders.view." + a, null);
+    if (vw && vw.until > Date.now() / 1000 + 60) {
+      jobs.push(Promise.all(["", "&chain=rh"].map(function (c) { return fetch("/api/social?orders=mine&wallet=" + a + "&until=" + vw.until + "&sig=" + vw.sig + c).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); })).then(function (x) {
+        var open = function (j) { return ((j && j.orders) || []).filter(function (o) { return o.status === "open" || o.status === "unfunded"; }).length; };
+        var oa = open(x[0]), orh = open(x[1]);
+        if (oa + orh) lines.push(T({ en: "ARCIRCLE Orders: {n} open (Arc {a} · Robinhood {r}) — arcircle.app/arc#orders", ko: "ARCIRCLE Orders: 미체결 {n}건 (Arc {a} · Robinhood {r}) — arcircle.app/arc#orders", zh: "ARCIRCLE Orders：{n} 个未成交（Arc {a} · Robinhood {r}）— arcircle.app/arc#orders" }).replace("{n}", oa + orh).replace("{a}", oa).replace("{r}", orh));
+      }));
+    }
+    jobs.push(fetch("/api/social?circle=summary&round=" + RN()).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var row = j && j.board && (j.board.rows || []).filter(function (x) { return String(x.address).toLowerCase() === a; })[0];
+      if (!row) return;
+      lines.push(T({ en: "CirclePad Round #{n}: you put in {u} USDC ({s}% of the raise)", ko: "CirclePad 라운드 #{n}: {u} USDC 참여 (모금의 {s}%)", zh: "CirclePad 第 {n} 轮：你投入了 {u} USDC（占 {s}%）" }).replace("{n}", RN()).replace("{u}", (Number(row.amount) / 1e18).toLocaleString("en-US", { maximumFractionDigits: 2 })).replace("{s}", Number(row.share).toFixed(Number(row.share) < 1 ? 2 : 1)));
     }).catch(function () {}));
     if (typeof ethers !== "undefined" && typeof readProvider === "function" && typeof CONFIG !== "undefined" && CONFIG.ARCLOCK_ADDRESS) {
       jobs.push((function () {
@@ -421,20 +544,47 @@
     });
   }
 
+  // v4: two chips from what's going on — $ARCIA's graduation, an order she can fill, the page the drawer is over
+  var ORDER_CHIP = "Buy $20 of $ARCIA at mcap 30k";
+  var PAGE_CHIPS = {
+    orders: { en: "How do limit orders work?", ko: "지정가 주문은 어떻게 돼?", zh: "限价单怎么用？" },
+    vearcia: { en: "How do I stake $ARCIA?", ko: "$ARCIA 스테이킹은 어떻게 해?", zh: "怎么质押 $ARCIA？" },
+    predict: { en: "How does Predict work?", ko: "Predict는 어떻게 해?", zh: "Predict 怎么玩？" },
+    scanner: { en: "Is this token safe?", ko: "이 토큰 안전해?", zh: "这个代币安全吗？" },
+    liquidity: { en: "How do I add liquidity?", ko: "유동성은 어떻게 넣어?", zh: "怎么添加流动性？" },
+    locker: { en: "How does the Locker work?", ko: "락커는 어떻게 써?", zh: "Locker 怎么用？" },
+    circlepad: { en: "How do I join this round?", ko: "이번 라운드는 어떻게 참여해?", zh: "怎么参加这一轮？" },
+    desk: { en: "What is ARCIA DESK trading?", ko: "ARCIA DESK는 뭘 거래해?", zh: "ARCIA DESK 在交易什么？" },
+  };
+  function ctxChips() {
+    var out = [], A = (LIVE && LIVE.arcia) || {};
+    var pg = pageCtx().tab;
+    if (PAGE_CHIPS[pg]) out.push(T(PAGE_CHIPS[pg]));
+    if (A.phase === "curve") out.push(T({ en: "How close is $ARCIA to graduating?", ko: "$ARCIA 졸업까지 얼마나 남았어?", zh: "$ARCIA 离毕业还有多远？" }));
+    out.push(ORDER_CHIP);
+    return out;
+  }
+  var lastTopic = null;
   function chips(tp) {
     var box = Q(".aa-sugg");
-    var list = tp && NEXT[tp] ? T(NEXT[tp]) : T(SUGG);
+    if (!box) return;
+    lastTopic = tp || null;
+    var list = (tp && NEXT[tp] ? T(NEXT[tp]) : T(SUGG)).map(fill);
+    var head = ctxChips().filter(function (q) { return list.indexOf(q) < 0; });
+    list = head.concat(list);
     if (account()) list = [T(BRIEF)].concat(list.filter(function (q) { return q !== T(BRIEF); }));
-    box.innerHTML = list.map(function (q) { return '<button type="button" data-no-i18n>' + esc(q) + "</button>"; }).join("");
+    box.innerHTML = list.map(function (q) { return '<button type="button" data-no-i18n' + (q === ORDER_CHIP ? ' class="ord" title="' + esc(T({ en: "ARCIA fills it in ARCIRCLE Orders — you check and sign", ko: "ARCIA가 ARCIRCLE Orders에 채워 줘요 — 확인하고 서명은 직접", zh: "ARCIA 帮你填进 ARCIRCLE Orders — 你确认并签名" })) + '"' : "") + ">" + esc(q) + "</button>"; }).join("");
     box.scrollLeft = 0;
     if (tp && !reduce) { box.classList.remove("fresh"); void box.offsetWidth; box.classList.add("fresh"); }
   }
+  function greetText() { var n = ls.get("arcia-name", ""); return n && ls.get("arcia-streak", null) ? T(GREET_NAME).replace("{n}", n) : T(GREET).replace("{r}", RN()); }
   function greet() {
-    var n = ls.get("arcia-name", "");
-    bubble("assistant", n && ls.get("arcia-streak", null) ? T(GREET_NAME).replace("{n}", n) : T(GREET));
+    var li = bubble("assistant", greetText());
+    li.setAttribute("data-greet", "1");
+    starter();
   }
   function restart() {
-    msgs = []; ss.set(KEY, msgs);
+    msgs = []; ls.set(KEY2, msgs);
     log.innerHTML = "";
     greet(); chips();
   }
@@ -472,7 +622,7 @@
     var on = !li.classList.contains("liked");
     li.classList.toggle("liked", on);
     var i = li.getAttribute("data-i");
-    if (i != null && msgs[i]) { msgs[i].liked = on; ss.set(KEY, msgs.slice(-30)); }
+    if (i != null && msgs[i]) { msgs[i].liked = on; ls.set(KEY2, msgs.slice(-30)); }
     if (on) { var p = li.querySelector(".aa-pop"); p.classList.remove("go"); void p.offsetWidth; p.classList.add("go"); if (typeof window.arcHaptic === "function") window.arcHaptic("tap"); cheer(1); }
   }
 
@@ -482,7 +632,7 @@
     if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div>' +
       '<span class="aa-rc-k aa-rc-k2">$ARCIA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Pons</a></div>' +
       '<span class="aa-rc-k aa-rc-k2">$ARCIA · Arc (Round #1)</span><code data-no-i18n>' + ARCIA_CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Argus</a></div></div>';
-    else if (tp === "round") html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k">CirclePad Round #1</span><div class="aa-rc-big" data-no-i18n>' + (R.raised != null ? Number(R.raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row">' + (deadline() > nowS() ? '<a class="aa-rc-btn" href="/circle">Join Round #1</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button>" : '<a class="aa-rc-btn" href="/circle/round/1">See the result</a>') + "</div></div>";
+    else if (tp === "round") { var rn = RN(), raised = RND ? RND.raised : R.raised; html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k" data-no-i18n>CirclePad Round #' + rn + '</span><div class="aa-rc-big" data-no-i18n>' + (raised != null ? Number(raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row">' + (deadline() > nowS() ? '<a class="aa-rc-btn" href="/circle" data-no-i18n>' + esc(T({ en: "Join Round #{n}", ko: "라운드 #{n} 참여", zh: "参加第 {n} 轮" }).replace("{n}", rn)) + '</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button>" : '<a class="aa-rc-btn" href="' + esc((RND && RND.report) || "/circle") + '">See the result</a>') + "</div></div>"; }
     else if (tp === "price") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>' + (L.price != null ? (F.price ? F.price(L.price) : "$" + L.price) : "—") + (L.change24h != null ? ' <em class="' + (L.change24h >= 0 ? "up" : "down") + '">' + (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%</em>" : "") + '</div><span class="aa-rc-sub" data-no-i18n>' + (L.holders != null ? Number(L.holders).toLocaleString("en-US") + " holders" : "") + '</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>';
     else if (tp === "buy") html = '<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(BUY) + '" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>';
     else if (tp === "relay") html = '<div class="aa-rc"><span class="aa-rc-k">Relay Launch</span><span class="aa-rc-sub">Hold 100,000+ $ARCIRCLE at the snapshot to receive every relay.</span><div class="aa-rc-row"><a class="aa-rc-btn" href="/relay">Open Relay Launch</a><a class="aa-rc-btn ghost" href="/me">Check my wallet</a></div></div>';
@@ -522,7 +672,7 @@
   function speak(text, li) {
     if (!serverVoice) { speakBrowser(text, li); return; }
     stopVoice();
-    var done = function () { speaking(false); if (li) li.classList.remove("talking"); };
+    var done = function () { speaking(false); if (li) li.classList.remove("talking"); spoke(); };
     fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "tts", text: String(text).slice(0, 700), lang: lang() }) })
       .then(function (r) { if (!r.ok) throw new Error("tts " + r.status); return r.blob(); })
       .then(function (b) {
@@ -539,7 +689,7 @@
     try {
       speechSynthesis.cancel();
       var clean = String(text).replace(/https?:\/\/\S+|\b\S+\.(app|com|me|world)\/\S*/g, "").replace(/0x[0-9a-fA-F]{40}/g, "").replace(/[♡♥✨☀✦]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, "").replace(/~+/g, "!").replace(/\s+/g, " ").trim();
-      if (!clean) return;
+      if (!clean) { spoke(); return; }
       var u = new SpeechSynthesisUtterance(clean);
       var code = /[가-힣]/.test(clean) ? "ko" : /[一-鿿]/.test(clean) ? "zh" : "en";
       u.lang = { ko: "ko-KR", zh: "zh-CN", en: "en-US" }[code];
@@ -550,7 +700,7 @@
       // whatever the phone's own TTS setting is) gets a higher pitch so she never sounds like a man
       u.pitch = v.female ? 1.2 : 1.55; u.rate = code === "en" ? 1.03 : 1.06;
       u.onstart = function () { speaking(true); if (li) li.classList.add("talking"); };
-      u.onend = u.onerror = function () { speaking(false); if (li) li.classList.remove("talking"); };
+      u.onend = u.onerror = function () { speaking(false); if (li) li.classList.remove("talking"); spoke(); };
       speechSynthesis.speak(u);
     } catch (e) { /* no voice */ }
   }
@@ -575,15 +725,22 @@
     common: { label: { en: "Common card", ko: "일반 카드", zh: "普通卡" }, stops: ["#3f7bff", "#35d8d0", "#39ff88"] },
     rare: { label: { en: "Rare card!", ko: "레어 카드!", zh: "稀有卡！" }, stops: ["#fff1c1", "#ffc861", "#ff9f3d", "#ffe29a"] },
     secret: { label: { en: "Secret card!!", ko: "시크릿 카드!!", zh: "隐藏卡！！" }, stops: ["#ff8fc8", "#b58bff", "#4d7dff", "#35d8d0", "#39ff88", "#ffe29a", "#ff8fc8"] },
+    // v4: the day every fan's hearts reach the goal, everyone can take one of these
+    goal: { label: { en: "Heart goal card!!", ko: "하트 목표 카드!!", zh: "爱心目标卡！！" }, stops: ["#ff8fc8", "#ffb3d9", "#ffe29a", "#ff8fc8"] },
   };
   function star(x, cx, cy, r) {
     x.beginPath();
     x.moveTo(cx, cy - r); x.quadraticCurveTo(cx, cy, cx + r, cy); x.quadraticCurveTo(cx, cy, cx, cy + r);
     x.quadraticCurveTo(cx, cy, cx - r, cy); x.quadraticCurveTo(cx, cy, cx, cy - r); x.fill();
   }
-  function photocard(text) {
-    var roll = Math.random(), rar = roll < 0.05 ? "secret" : roll < 0.25 ? "rare" : "common", R = RARITY[rar];
+  function photocard(text, force) {
+    var roll = Math.random(), rar = roll < 0.05 ? "secret" : roll < 0.25 ? "rare" : "common";
+    // v4: today's three missions make the next card Rare or better (once)
+    if (!force && ls.get("arcia-boost", "") === dayStr()) { rar = roll < 0.25 ? "secret" : "rare"; ls.set("arcia-boost", "used-" + dayStr()); }
+    if (force) rar = force;
+    var R = RARITY[rar];
     var serial = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
+    var card0 = { nums: "" };
     var img = new Image();
     img.onload = function () {
       var W = 1080, H = 1350, c = document.createElement("canvas");
@@ -613,7 +770,7 @@
           x.globalAlpha = 0.55 + Math.random() * 0.45; star(x, px, py, 6 + Math.random() * 12);
         }
         x.globalAlpha = 1;
-        var tag = rar === "secret" ? "SECRET" : "RARE";
+        var tag = rar === "secret" ? "SECRET" : rar === "goal" ? "GOAL" : "RARE";
         x.font = "800 30px Sora, 'Segoe UI', sans-serif";
         var tw = x.measureText(tag).width + 48;
         x.fillStyle = edge;
@@ -630,6 +787,13 @@
       if (x.roundRect) { x.beginPath(); x.roundRect(56, top, W - 112, bh, 28); x.fill(); x.stroke(); } else x.fillRect(56, top, W - 112, bh);
       x.fillStyle = "#eef3ff";
       lines.forEach(function (l, k2) { x.fillText(l, 84, top + 70 + k2 * 56); });
+      // v4: the day's numbers on the card — $ARCIA on Robinhood Chain and today's hearts
+      var A0 = (LIVE && LIVE.arcia) || {}, nums = [];
+      if (A0.mcap != null) nums.push("$ARCIA mcap $" + (A0.mcap >= 1e6 ? (A0.mcap / 1e6).toFixed(2) + "M" : (A0.mcap / 1e3).toFixed(1) + "K"));
+      if (A0.phase === "curve" && A0.progress != null) nums.push(Number(A0.progress).toFixed(0) + "% to graduation");
+      if (HEART.today != null) nums.push("\u2661 " + HEART.today.toLocaleString("en-US") + " today");
+      if (nums.length) { x.font = "600 26px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#c9a8ff"; x.fillText(nums.join("  \u00b7  "), 70, H - 98); }
+      card0.nums = nums.join(" · ");
       x.font = "600 28px Sora, 'Segoe UI', sans-serif"; x.fillStyle = "#8fb6ff";
       x.fillText("@ARCIAonArc · No." + serial, 70, H - 52);
       x.fillStyle = "#7d8aa3"; x.textAlign = "right";
@@ -639,19 +803,19 @@
       var book = ls.get("arcia-book", []) || [];
       book.unshift({ r: rar, s: serial, q: String(clean).slice(0, 90), t: Date.now() }); ls.set("arcia-book", book.slice(0, 60));
       paintBook();
-      c.toBlob(function (blob) { if (blob) showCard(blob, clean, rar, col); }, "image/png");
+      c.toBlob(function (blob) { if (blob) showCard(blob, clean, rar, col, card0.nums); }, "image/png");
     };
     img.src = "/images/arcia-portrait.jpg";
   }
-  function showCard(blob, text, rar, col) {
+  function showCard(blob, text, rar, col, nums) {
     var url = URL.createObjectURL(blob);
     var file = null;
     try { file = new File([blob], "arcia-photocard-" + rar + ".png", { type: "image/png" }); } catch (e) { /* old browser */ }
     var canShare = file && navigator.canShare && navigator.canShare({ files: [file] });
     var quote = text.length > 140 ? text.slice(0, 137) + "…" : text;
     var tagTxt = rar === "common" ? "" : " [" + rar.toUpperCase() + " card]";
-    var intent = "https://x.com/intent/post?text=" + encodeURIComponent("“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt + " 💙💚\narcircle.app/arcia");
-    var m = modal('<div class="aa-card-view aa-rar-' + rar + (rar !== "common" && !reduce ? " aa-holo" : "") + '"><p class="aa-rar" data-no-i18n>' + esc(T(RARITY[rar].label)) + '</p><div class="aa-card-img"><img src="' + url + '" alt="ARCIA photocard"></div><div class="aa-rc-row">' +
+    var intent = "https://x.com/intent/post?text=" + encodeURIComponent("“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt + " 💙💚" + (nums ? "\n" + nums : "") + "\narcircle.app/arcia");
+    var m = modal('<div class="aa-card-view aa-rar-' + rar + (rar !== "common" && !reduce ? " aa-holo" : "") + '"><p class="aa-rar" data-no-i18n>' + esc(T(RARITY[rar].label)) + '</p><div class="aa-card-img' + (reduce ? "" : " flip") + '"><i class="aa-card-back" aria-hidden="true"><b>ARCIA</b></i><img src="' + url + '" alt="ARCIA photocard"></div><div class="aa-rc-row">' +
       (canShare ? '<button type="button" class="aa-rc-btn" data-share="1"><span>Share</span></button>' : "") +
       '<a class="aa-rc-btn' + (canShare ? " ghost" : "") + '" href="' + url + '" download="arcia-photocard-' + rar + '.png"><span>Save image</span></a>' +
       '<a class="aa-rc-btn ghost" href="' + intent + '" target="_blank" rel="noopener">' + ICON.x + "<span>Post on X</span></a></div>" +
@@ -659,7 +823,7 @@
       '<p class="aa-mini">Save the card, then attach it to your post.</p></div>', function () { URL.revokeObjectURL(url); });
     var sb = m.querySelector("[data-share]");
     if (sb) sb.addEventListener("click", function () { navigator.share({ files: [file], text: "“" + quote + "” — ARCIA @ARCIAonArc" + tagTxt }).catch(function () {}); });
-    if (rar !== "common") { sfx(rar === "secret" ? "launch" : "milestone"); fx(m.querySelector(".aa-card-img"), rar === "secret" ? "confetti" : "sparkle"); }
+    if (rar !== "common") setTimeout(function () { sfx(rar === "secret" || rar === "goal" ? "launch" : "milestone"); fx(m.querySelector(".aa-card-img"), rar === "secret" || rar === "goal" ? "confetti" : "sparkle"); }, reduce ? 0 : 650);
   }
   function modal(inner, onClose) {
     var m = document.createElement("div");
@@ -678,7 +842,7 @@
   // ---------------- live numbers (they roll when they change) ----------------
   var prev = {};
   var nowS = function () { return Math.floor(Date.now() / 1000); };
-  var deadline = function () { return (LIVE && LIVE.round && LIVE.round.deadline) || 1790680567; };
+  var deadline = function () { return (RND && RND.deadline) || (LIVE && LIVE.round && LIVE.round.deadline) || 1790680567; };
   function roll(el, key, to, fmt) {
     var from = prev[key];
     prev[key] = to;
@@ -720,6 +884,12 @@
     if (A.liquidity != null && q("liq")) roll(q("liq"), "aliq", A.liquidity, usd);
     if (A.liquidity != null && q("liq2")) roll(q("liq2"), "aliq2", A.liquidity, usd);
     if (A.progress != null && q("grad")) roll(q("grad"), "agrad", A.progress, function (v) { return v.toFixed(1) + "%"; });
+    // v4: a price line from this browser's samples, the graduation bar and alert, the portrait column's "coming up"
+    pxSample(A);
+    var pd = q("price") && q("price").parentNode;
+    if (pd) { var sw = pd.querySelector(".aa-spark-w"); if (!sw) { sw = document.createElement("span"); sw.className = "aa-spark-w"; sw.title = tr("The price while this page has been open, the last 8 hours"); pd.appendChild(sw); } sw.innerHTML = sparkSvg(); }
+    gradWatch(A); paintGrad(); paintNext();
+    if (!msgs.length) { dropStarter(); starter(); }
     clock(); paintRemind();
   }
   function clock() {
@@ -738,12 +908,13 @@
   // ---------------- round reminder: calendar file + a notification while the page is open ----------------
   function ics() {
     var dl = deadline(), z = function (t) { return new Date(t * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); };
-    var body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//ARCIA//EN", "BEGIN:VEVENT", "UID:circlepad-round1-close@arcircle.app", "DTSTAMP:" + z(nowS()),
-      "DTSTART:" + z(dl), "DTEND:" + z(dl + 1800), "SUMMARY:CirclePad Round #1 closes", "DESCRIPTION:Last chance to join CirclePad Round #1 — https://www.arcircle.app/circle", "URL:https://www.arcircle.app/circle",
-      "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:CirclePad Round #1 closes in 1 hour", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    var n = RN();
+    var body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE PAD//ARCIA//EN", "BEGIN:VEVENT", "UID:circlepad-round" + n + "-close@arcircle.app", "DTSTAMP:" + z(nowS()),
+      "DTSTART:" + z(dl), "DTEND:" + z(dl + 1800), "SUMMARY:CirclePad Round #" + n + " closes", "DESCRIPTION:Last chance to join CirclePad Round #" + n + " — https://www.arcircle.app/circle", "URL:https://www.arcircle.app/circle",
+      "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:CirclePad Round #" + n + " closes in 1 hour", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
     var a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([body], { type: "text/calendar" }));
-    a.download = "circlepad-round-1.ics";
+    a.download = "circlepad-round-" + n + ".ics";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
     toast(tr("Calendar file saved — open it to add the reminder."));
@@ -756,7 +927,7 @@
     var ms = (at - 3600 - nowS()) * 1000;
     if (ms < -3600000) { ls.set("arcia-remind", null); return; }
     remindT = setTimeout(function () {
-      try { new Notification("CirclePad Round #1", { body: T({ en: "It closes in about an hour~ come join me before it's over♡", ko: "마감까지 한 시간쯤 남았어요~ 끝나기 전에 같이해요♡", zh: "大约一小时后截止~ 结束前快来参加吧♡" }), icon: "/images/arcia-avatar-96.jpg" }); } catch (e) { /* not allowed */ }
+      try { new Notification("CirclePad Round #" + RN(), { body: T({ en: "It closes in about an hour~ come join me before it's over♡", ko: "마감까지 한 시간쯤 남았어요~ 끝나기 전에 같이해요♡", zh: "大约一小时后截止~ 结束前快来参加吧♡" }), icon: "/images/arcia-avatar-96.jpg" }); } catch (e) { /* not allowed */ }
     }, Math.max(0, Math.min(ms, 2147000000)));
   }
   function remind() {
@@ -802,7 +973,7 @@
     box.innerHTML = list.map(function (l) {
       var on = hearted.indexOf(l.id) >= 0;
       return '<li data-id="' + esc(l.id) + '"><div class="aa-lt-h"><b data-no-i18n>' + esc(l.name) + '</b><time data-no-i18n>' + esc(F.ago ? F.ago(Math.floor(l.at / 1000)) : "") + '</time></div><p data-no-i18n>' + esc(l.text) + "</p>" +
-        (l.reply ? '<div class="aa-lt-r"><img src="/images/arcia-avatar-96.jpg" alt="" width="24" height="24"><p data-no-i18n>' + esc(l.reply) + "</p></div>" : "") +
+        (l.reply ? '<div class="aa-lt-r"><img src="/images/arcia-avatar-96.jpg" alt="" width="24" height="24"><p data-no-i18n>' + esc(l.reply) + '</p><button type="button" class="aa-lt-play" data-say="' + esc(l.reply) + '" aria-label="Hear her reply" title="Hear her reply">' + ICON.play + "</button></div>" : "") +
         '<button type="button" class="aa-lt-heart' + (on ? " on" : "") + '" aria-label="Heart this letter">' + ICON.heart + "<span data-no-i18n>" + (l.hearts || 0) + "</span></button></li>";
     }).join("");
   }
@@ -825,6 +996,7 @@
         if (!j.ok) { msg.textContent = j.error || T(OOPS.net); msg.className = "aa-lf-msg err"; return; }
         f.text.value = ""; count(f);
         msg.textContent = tr("She wrote back!"); msg.className = "aa-lf-msg ok";
+        mission("extra");
         sfx("milestone");
         loadLetters().then(function () { var li = panel.querySelector('.aa-letters li[data-id="' + j.letter.id + '"]'); if (li) { li.classList.add("new"); fx2(li); } });
       })
@@ -876,6 +1048,7 @@
         : T({ en: "Aww, nice try~ Let's study together and try again♡", ko: "아까워요~ 같이 공부하고 다시 도전해요♡", zh: "差一点~ 一起学习再来一次吧♡" });
       box.innerHTML = '<div class="aa-q-end"><div class="aa-q-score" data-no-i18n>' + sc + " / 8</div><p data-no-i18n>" + esc(line) + "</p>" + badgesHtml() + '<button type="button" class="aa-rc-btn" data-q="start">Try the quiz again</button></div>';
       if (sc >= 5) { fx(box, "confetti"); sfx("launch"); }
+      mission("extra");
       paintFan();
       return;
     }
@@ -892,7 +1065,17 @@
     btn.classList.add(ok ? "right" : "wrong");
     if (!ok) { var r = box.querySelector('[data-ok="1"]'); if (r) r.classList.add("right"); }
     if (ok) { quiz.score++; sfx("tap"); }
-    setTimeout(function () { quiz.i++; quizPaint(); }, ok ? 650 : 1200);
+    // v4: she reacts — a little hop for a right answer, a tilt for a near miss
+    var qb = btn.closest(".aa-quiz");
+    if (qb) {
+      var rx = qb.querySelector(".aa-q-react") || document.createElement("div");
+      rx.className = "aa-q-react " + (ok ? "ok" : "no");
+      var lines = ok ? T({ en: ["Correct~♡", "You know it!", "Perfect♡"], ko: ["정답~♡", "역시!", "완벽해요♡"], zh: ["答对了~♡", "你真懂！", "完美♡"] }) : T({ en: ["So close~", "Almost! Next one♡", "Hmm, not that one~"], ko: ["아까워요~", "거의 다 왔어요! 다음 문제♡", "음, 그건 아니에요~"], zh: ["差一点~", "快了！下一题♡", "嗯，不是这个~"] });
+      rx.innerHTML = '<img src="/images/arcia-avatar-96.jpg" alt="" width="30" height="30"><span data-no-i18n>' + esc(lines[Math.floor(Math.random() * lines.length)]) + "</span>";
+      if (!rx.parentNode) qb.appendChild(rx);
+      if (!reduce) { rx.classList.remove("go"); void rx.offsetWidth; rx.classList.add("go"); }
+    }
+    setTimeout(function () { quiz.i++; quizPaint(); }, ok ? 800 : 1300);
   }
 
   // ---------------- today's hearts: one gauge every fan fills together ----------------
@@ -909,7 +1092,18 @@
     var n = HEART.today, goal = HEART.goal, pct = Math.min(100, n / goal * 100);
     g.querySelector(".aa-g-fill").style.width = pct.toFixed(1) + "%";
     g.querySelector(".aa-g-num").textContent = n.toLocaleString("en-US") + " / " + goal.toLocaleString("en-US");
+    var mh = panel.querySelector(".aa-mbar-h"); if (mh) mh.textContent = "\u2661 " + n.toLocaleString("en-US");
     g.classList.toggle("full", n >= goal);
+    // v4: the goal reached — today's special photocard, one per fan per day
+    var gc = g.querySelector(".aa-g-card");
+    if (n >= goal && ls.get("arcia-goalcard", "") !== utcDay()) {
+      if (!gc) {
+        gc = document.createElement("button"); gc.type = "button"; gc.className = "aa-g-card";
+        gc.innerHTML = ICON.card + "<span data-no-i18n>" + esc(T({ en: "Today's goal card", ko: "오늘의 목표 카드", zh: "今日目标卡" })) + "</span>";
+        gc.addEventListener("click", function () { ls.set("arcia-goalcard", utcDay()); gc.remove(); photocard(T(GOAL_MSG).replace("{g}", goal.toLocaleString("en-US")), "goal"); });
+        g.appendChild(gc);
+      }
+    } else if (gc) gc.remove();
     if (bump && !reduce) { var num = g.querySelector(".aa-g-num"); num.classList.remove("bump"); void num.offsetWidth; num.classList.add("bump"); }
     if (n >= goal && log && ls.get("arcia-goal", "") !== utcDay()) {
       ls.set("arcia-goal", utcDay());
@@ -950,6 +1144,9 @@
   // ---------------- fan card, badges, streak, profile ----------------
   function badges() {
     var out = [], st = ls.get("arcia-streak", null), qz = ls.get("arcia-quiz", { best: 0 });
+    // v4: a tier from the $ARCIA the wallet holds on Robinhood Chain
+    var tier = ME && ME.arciaRh != null ? tierOf(ME.arciaRh) : null;
+    if (tier) out.push(["tier " + tier[1], T(tier[2])]);
     if (ME && ME.relay) out.push(["holder", T({ en: "Relay holder", ko: "릴레이 홀더", zh: "接力持有人" })]);
     else if (ME && ME.balance > 0) out.push(["holder", T({ en: "Holder", ko: "홀더", zh: "持有人" })]);
     if (qz.best >= 8) out.push(["scholar", T({ en: "ARCIRCLE Scholar", ko: "ARCIRCLE 박사", zh: "ARCIRCLE 学者" })]);
@@ -962,7 +1159,7 @@
     var hb = panel.querySelector(".aa-hero .aa-badges");
     if (hb) hb.outerHTML = badgesHtml();
     var ch = Q(".aa-chat-h .aa-me");
-    if (ch) { var bs = badges().filter(function (b) { return b[0] === "holder"; })[0]; ch.hidden = !bs; ch.textContent = bs ? bs[1] : ""; }
+    if (ch) { var bs = badges().filter(function (b) { return /^tier /.test(b[0]); })[0] || badges().filter(function (b) { return b[0] === "holder"; })[0]; ch.hidden = !bs; ch.textContent = bs ? bs[1] : ""; ch.className = "aa-me" + (bs ? " " + bs[0] : ""); }
     var fan = panel.querySelector(".aa-fan");
     if (!fan) return;
     var n = ls.get("arcia-name", ""), st = ls.get("arcia-streak", { n: 0, total: 0 });
@@ -970,6 +1167,7 @@
       "<div><dt data-no-i18n>" + esc(T({ en: "She calls you", ko: "부르는 이름", zh: "她怎么叫你" })) + '</dt><dd data-no-i18n>' + (n ? esc(n) + ' <button type="button" class="aa-link" data-forget="1">' + esc(T({ en: "Forget", ko: "잊기", zh: "忘记" })) + "</button>" : '<span class="aa-dim">' + esc(T({ en: "Tell her “call me …” in the chat", ko: "채팅에서 “…라고 불러”라고 말해 보세요", zh: "在聊天里说“叫我…”" })) + "</span>") + "</dd></div>" +
       "<div><dt data-no-i18n>" + esc(T({ en: "Visits", ko: "방문", zh: "来访" })) + '</dt><dd data-no-i18n>' + (st.total || 0) + " · " + esc(T({ en: "streak ", ko: "연속 ", zh: "连续 " })) + (st.n || 0) + "</dd></div>" +
       (ME ? "<div><dt>$ARCIRCLE</dt><dd data-no-i18n>" + fmtBal(ME.balance) + (ME.rank ? " · #" + ME.rank : "") + "</dd></div>" : "") +
+      (ME && ME.arciaRh != null ? "<div><dt>$ARCIA · Robinhood</dt><dd data-no-i18n>" + fmtBal(ME.arciaRh) + "</dd></div>" : "") +
       "</dl>" + badgesHtml();
   }
   function setMe(me) {
@@ -987,11 +1185,12 @@
     if (a === checkWallet.last) return;
     checkWallet.last = a;
     if (!a) { ME = null; paintFan(); return; }
-    fetch("/api/social?token=arcircle&wallet=" + a).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-      if (!d || !d.wallet || account() !== a) return;
-      var w = d.wallet;
-      setMe({ address: w.address, balance: w.balance || 0, rank: w.rank, of: w.of, relay: (w.balance || 0) >= 100000 });
-    }).catch(function () {});
+    Promise.all([fetch("/api/social?token=arcircle&wallet=" + a).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }), arciaRhBalance(a)]).then(function (x) {
+      if (account() !== a) return;
+      var d = x[0], w = (d && d.wallet) || null;
+      if (!w && x[1] == null) return;
+      setMe({ address: a, balance: (w && w.balance) || 0, rank: w && w.rank, of: w && w.of, relay: ((w && w.balance) || 0) >= 100000, arciaRh: x[1] });
+    });
   }
   function streak() {
     var st = ls.get("arcia-streak", null), today = dayStr(), y = new Date(); y.setDate(y.getDate() - 1);
@@ -1247,6 +1446,263 @@
     document.body.appendChild(o);
   }
 
+  // ================= v4 =================
+  // ---------------- the empty chat: three ways to start ----------------
+  function starter() {
+    if (!log || msgs.length || log.querySelector(".aa-start")) return;
+    var li = document.createElement("li");
+    li.className = "aa-start";
+    var A = (LIVE && LIVE.arcia) || {};
+    var cards = [
+      ["order", T({ en: "Tell me an order", ko: "주문을 말해 줘요", zh: "告诉我一个订单" }), T({ en: "I fill ARCIRCLE Orders for you — you sign", ko: "ARCIRCLE Orders에 채워 줄게요 — 서명은 직접", zh: "我帮你填好 ARCIRCLE Orders — 你来签名" }), "ord"],
+      ["grad", T({ en: "$ARCIA's graduation", ko: "$ARCIA 졸업", zh: "$ARCIA 毕业" }), A.phase === "curve" && A.progress != null ? T({ en: "{p}% of the way on Robinhood Chain", ko: "로빈후드 체인에서 {p}% 진행", zh: "Robinhood Chain 上已完成 {p}%" }).replace("{p}", Number(A.progress).toFixed(0)) : T({ en: "Where it stands on Robinhood Chain", ko: "로빈후드 체인에서 지금 어디쯤인지", zh: "它在 Robinhood Chain 上的进度" }), "grad"],
+      account() ? ["brief", T(BRIEF), T({ en: "Your wallet across ARCIRCLE PAD", ko: "ARCIRCLE PAD 전체에서 내 지갑", zh: "你在 ARCIRCLE PAD 的钱包概况" }), "brief"]
+        : ["today", T({ en: "Today with ARCIA", ko: "오늘의 ARCIA", zh: "今天的 ARCIA" }), T({ en: "Her posts, trades and calls today", ko: "오늘의 게시글·매매·판정", zh: "她今天的帖子、交易和判断" }), "today"],
+    ];
+    li.innerHTML = '<p class="aa-start-h" data-no-i18n>' + esc(T({ en: "Start here", ko: "여기서 시작해요", zh: "从这里开始" })) + "</p>" + cards.map(function (c, k) {
+      return '<button type="button" class="aa-start-c ' + c[3] + '" data-start="' + c[0] + '" style="--i:' + k + '"><b data-no-i18n>' + esc(c[1]) + '</b><span data-no-i18n>' + esc(c[2]) + "</span></button>";
+    }).join("");
+    log.appendChild(li);
+  }
+  function dropStarter() { var s0 = log && log.querySelector(".aa-start"); if (s0) s0.remove(); }
+  function startAct(k) {
+    if (k === "order") { input.value = ORDER_CHIP; grow(); input.focus(); try { input.setSelectionRange(0, input.value.length); } catch (e) { /* fine */ } toast(T({ en: "Change it how you like, then send — I'll fill ARCIRCLE Orders.", ko: "원하는 대로 바꿔서 보내요 — ARCIRCLE Orders에 채워 줄게요.", zh: "按你的想法修改后发送 — 我会填好 ARCIRCLE Orders。" })); return; }
+    if (k === "grad") { send(T({ en: "How close is $ARCIA to graduating?", ko: "$ARCIA 졸업까지 얼마나 남았어?", zh: "$ARCIA 离毕业还有多远？" })); return; }
+    if (k === "brief") { send(T(BRIEF)); return; }
+    if (k === "today") { pickTab("today"); var sd = panel.querySelector(".aa-side"); if (sd && window.innerWidth <= 1100) sd.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
+  }
+
+  // ---------------- daily missions: ask, a heart, a letter or the quiz — all three make the next card Rare or better ----------------
+  var MIS = [
+    ["ask", { en: "Ask ARCIA something", ko: "ARCIA에게 질문하기", zh: "问 ARCIA 一个问题" }],
+    ["heart", { en: "Send a heart", ko: "하트 보내기", zh: "送一颗爱心" }],
+    ["extra", { en: "Write a letter or finish the quiz", ko: "팬레터 쓰기 또는 퀴즈 끝내기", zh: "写一封信或完成测验" }],
+  ];
+  function misState() { var m = ls.get("arcia-missions", null); return m && m.day === dayStr() ? m : { day: dayStr() }; }
+  function mission(k) {
+    var m = misState();
+    if (m[k]) return;
+    m[k] = 1; ls.set("arcia-missions", m);
+    var all = MIS.every(function (x) { return m[x[0]]; });
+    if (all && !m.done) {
+      m.done = 1; ls.set("arcia-missions", m); ls.set("arcia-boost", dayStr());
+      toast(T({ en: "All of today's missions done~ your next photocard is Rare or better♡", ko: "오늘 미션 완료~ 다음 포토카드는 레어 이상이에요♡", zh: "今天的任务全部完成~ 下一张小卡至少是稀有♡" }));
+      sfx("milestone");
+    }
+    paintMissions(k);
+  }
+  function paintMissions(just) {
+    var box = panel.querySelector(".aa-mis");
+    if (!box) return;
+    var m = misState(), n = MIS.filter(function (x) { return m[x[0]]; }).length, boost = ls.get("arcia-boost", "") === dayStr();
+    box.innerHTML = '<div class="aa-mis-h"><b data-no-i18n>' + esc(T({ en: "Today's missions", ko: "오늘의 미션", zh: "今日任务" })) + '</b><em data-no-i18n>' + n + " / 3</em></div><ul>" +
+      MIS.map(function (x) { return '<li class="' + (m[x[0]] ? "done" : "") + (just === x[0] ? " just" : "") + '"><i aria-hidden="true"></i><span data-no-i18n>' + esc(T(x[1])) + "</span></li>"; }).join("") + "</ul>" +
+      '<p class="aa-mis-r' + (boost ? " on" : "") + '" data-no-i18n>' + esc(boost ? T({ en: "Reward ready: your next photocard is Rare or better", ko: "보상 준비: 다음 포토카드는 레어 이상", zh: "奖励已就绪：下一张小卡至少是稀有" }) : T({ en: "All three: your next photocard is Rare or better", ko: "세 개 다 하면 다음 포토카드는 레어 이상", zh: "完成三个：下一张小卡至少是稀有" })) + "</p>";
+  }
+
+  // ---------------- what's next: $ARCIA's graduation on Robinhood Chain and the CirclePad round ----------------
+  function paintNext() {
+    var box = panel.querySelector(".aa-next");
+    if (!box) return;
+    var A = (LIVE && LIVE.arcia) || {}, rows = [];
+    if (A.phase === "curve" && A.progress != null) {
+      var p = Math.max(0, Math.min(100, Number(A.progress)));
+      rows.push('<a class="aa-nx grad" href="/arc#orders?c=rh&t=' + ARCIA_RH.toLowerCase() + '"><span class="aa-nx-k" data-no-i18n>' + esc(T({ en: "$ARCIA graduation · Robinhood Chain", ko: "$ARCIA 졸업 · 로빈후드 체인", zh: "$ARCIA 毕业 · Robinhood Chain" })) + '</span><span class="aa-nx-bar"><i style="--p:' + p.toFixed(1) + '%"></i></span><b data-no-i18n>' + p.toFixed(0) + "%</b></a>");
+    } else if (A.phase && A.phase !== "curve") rows.push('<span class="aa-nx grad done"><span class="aa-nx-k" data-no-i18n>' + esc(T({ en: "$ARCIA graduated — its pool is open", ko: "$ARCIA 졸업 — 풀이 열렸어요", zh: "$ARCIA 已毕业 — 池子已开放" })) + "</span></span>");
+    if (deadline() > nowS()) rows.push('<a class="aa-nx round" href="/circle"><span class="aa-nx-k" data-no-i18n>' + esc(T({ en: "CirclePad Round #{n} closes in", ko: "CirclePad 라운드 #{n} 마감까지", zh: "CirclePad 第 {n} 轮截止还有" }).replace("{n}", RN())) + '</span><b class="aa-clock" data-no-i18n>—</b></a>');
+    box.innerHTML = rows.length ? '<span class="aa-cheer-k" data-no-i18n>' + esc(T({ en: "Coming up", ko: "다가오는 일", zh: "即将到来" })) + "</span>" + rows.join("") : "";
+    box.hidden = !rows.length;
+    clock();
+  }
+
+  // ---------------- the Live tab: $ARCIA's graduation bar, the alert and the buy-before-graduation link ----------------
+  function paintGrad() {
+    var box = panel.querySelector(".aa-grad");
+    if (!box) return;
+    var A = (LIVE && LIVE.arcia) || {};
+    if (A.phase !== "curve" || A.progress == null) { box.hidden = !(A.phase && A.phase !== "curve"); if (!box.hidden) box.innerHTML = '<p class="aa-grad-done" data-no-i18n>' + esc(T({ en: "$ARCIA has graduated — its Uniswap v4 pool is open on Robinhood Chain.", ko: "$ARCIA가 졸업했어요 — 로빈후드 체인에 Uniswap v4 풀이 열렸어요.", zh: "$ARCIA 已毕业 — Robinhood Chain 上的 Uniswap v4 池已开放。" })) + '</p><a class="aa-rc-btn" href="/arc#orders?c=rh&t=' + ARCIA_RH.toLowerCase() + '">ARCIRCLE Orders →</a>'; return; }
+    box.hidden = false;
+    var p = Math.max(0, Math.min(100, Number(A.progress))), was = Number(box.getAttribute("data-p"));
+    var on = ls.get("arcia-grad-alert", false);
+    box.innerHTML = '<div class="aa-grad-h"><b data-no-i18n>' + esc(T({ en: "To graduation", ko: "졸업까지", zh: "距离毕业" })) + '</b><em data-no-i18n>' + p.toFixed(1) + '%</em></div><div class="aa-grad-bar' + (isFinite(was) && p > was && !reduce ? " up" : "") + '"><i style="width:' + p.toFixed(1) + '%"></i></div>' +
+      '<p class="aa-mini" data-no-i18n>' + esc(T({ en: "When the Pons curve fills, $ARCIA moves to its Uniswap v4 pool. A limit buy can wait for that pool now.", ko: "Pons 커브가 다 차면 $ARCIA는 Uniswap v4 풀로 옮겨가요. 지금 지정가 매수를 걸어 두면 그 풀을 기다려요.", zh: "Pons 曲线填满后，$ARCIA 会进入 Uniswap v4 池。现在挂限价买单即可等待该池。" })) + "</p>" +
+      '<div class="aa-coin-row"><a class="aa-rc-btn" href="/arc#orders?c=rh&t=' + ARCIA_RH.toLowerCase() + '" data-no-i18n>' + esc(T({ en: "Limit buy before graduation", ko: "졸업 전 지정가 매수", zh: "毕业前限价买入" })) + '</a><button type="button" class="aa-rc-btn ghost' + (on ? " on" : "") + '" data-gradalert="1">' + ICON.bell + '<span data-no-i18n>' + esc(on ? T({ en: "Alert on", ko: "알림 켜짐", zh: "提醒已开" }) : T({ en: "Alert me at graduation", ko: "졸업하면 알려 줘", zh: "毕业时提醒我" })) + "</span></button></div>";
+    box.setAttribute("data-p", String(p));
+  }
+  /// the graduation alert: Web Push to this browser when the server has VAPID keys (the "arcia-grad" topic, sent by
+  /// the bot's cron), otherwise a notification while this page is open
+  var b64b = function (s0) { var t = s0.replace(/-/g, "+").replace(/_/g, "/"); var bin = atob(t + "===".slice((t.length + 3) % 4)); return Uint8Array.from(bin, function (c) { return c.charCodeAt(0); }); };
+  function gradAlert() {
+    var on = !ls.get("arcia-grad-alert", false);
+    if (!on) { ls.set("arcia-grad-alert", false); paintGrad(); toast(T({ en: "Graduation alert off", ko: "졸업 알림을 껐어요", zh: "已关闭毕业提醒" })); return; }
+    if (!("Notification" in window)) { toast(T({ en: "This browser can't show notifications — the ARCIA bot on Telegram can.", ko: "이 브라우저는 알림을 못 띄워요 — 텔레그램 ARCIA 봇은 할 수 있어요.", zh: "此浏览器无法显示通知 — Telegram 上的 ARCIA 机器人可以。" })); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast(tr("Notifications are blocked — use the calendar file instead.")); return; }
+      ls.set("arcia-grad-alert", true); paintGrad();
+      var done = function (push) { toast(push ? T({ en: "I'll tell you the moment $ARCIA graduates — even with this page closed♡", ko: "$ARCIA가 졸업하는 순간 알려 줄게요 — 페이지를 닫아도요♡", zh: "$ARCIA 毕业的那一刻我会告诉你 — 关掉页面也可以♡" }) : T({ en: "I'll tell you when $ARCIA graduates while this page is open♡", ko: "이 페이지가 열려 있는 동안 $ARCIA 졸업을 알려 줄게요♡", zh: "页面打开期间 $ARCIA 毕业时我会告诉你♡" })); };
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) { done(false); return; }
+      fetch("/api/social?orders=pushkey").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j || !j.key) { done(false); return; }
+        return Promise.race([navigator.serviceWorker.ready, new Promise(function (res) { setTimeout(function () { res(null); }, 4000); })]).then(function (reg) {
+          if (!reg || !reg.pushManager) { done(false); return; }
+          return reg.pushManager.getSubscription().then(function (sub) { return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64b(j.key) }); }).then(function (sub) {
+            return fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "pushtopic", topic: "arcia-grad", sub: sub.toJSON() }) }).then(function (r) { done(r.ok); });
+          });
+        });
+      }).catch(function () { done(false); });
+    });
+  }
+  /// a phase change seen by this page (the fallback alert)
+  function gradWatch(A) {
+    var was = gradWatch.last; gradWatch.last = A && A.phase;
+    if (!was || !A || was !== "curve" || A.phase === "curve" || !ls.get("arcia-grad-alert", false)) return;
+    try { new Notification(T({ en: "$ARCIA graduated", ko: "$ARCIA 졸업", zh: "$ARCIA 已毕业" }), { body: T({ en: "Its Uniswap v4 pool is open on Robinhood Chain.", ko: "로빈후드 체인에 Uniswap v4 풀이 열렸어요.", zh: "Robinhood Chain 上的 Uniswap v4 池已开放。" }), icon: "/images/arcia-avatar-96.jpg" }); } catch (e) { /* not allowed */ }
+    var li = log && bubble("assistant", T({ en: "$ARCIA just graduated~!! Its pool on Robinhood Chain is open now♡", ko: "$ARCIA가 방금 졸업했어요~!! 로빈후드 체인 풀이 열렸어요♡", zh: "$ARCIA 刚刚毕业了~!! Robinhood Chain 上的池子已开放♡" }), { type: true, cls: "sys" });
+    if (li) { fx(li, "confetti"); sfx("launch"); }
+  }
+
+  // ---------------- a price line from what this browser has seen (a sample every 5 minutes, the last 8 hours) ----------------
+  function pxSample(A) {
+    if (!A || !(A.price > 0)) return;
+    var k = "arcia-px-rh", a = ls.get(k, []) || [], t = Math.floor(Date.now() / 1000);
+    a = a.filter(function (x) { return x && t - x[0] < 8 * 3600; });
+    if (!a.length || t - a[a.length - 1][0] >= 300) a.push([t, A.price]); else a[a.length - 1][1] = A.price;
+    ls.set(k, a.slice(-96));
+  }
+  function sparkSvg() {
+    var a = (ls.get("arcia-px-rh", []) || []).filter(function (x) { return x && x[1] > 0; });
+    if (a.length < 4) return "";
+    var ps = a.map(function (x) { return x[1]; }), lo = Math.min.apply(null, ps), hi = Math.max.apply(null, ps), r = hi - lo || hi * 0.01 || 1, W = 120, H = 30;
+    var d = a.map(function (x, i) { return (i ? "L" : "M") + (i / (a.length - 1) * W).toFixed(1) + " " + (H - 3 - (x[1] - lo) / r * (H - 6)).toFixed(1); }).join("");
+    return '<svg class="aa-spark ' + (ps[ps.length - 1] >= ps[0] ? "up" : "down") + '" viewBox="0 0 ' + W + " " + H + '" aria-hidden="true"><path d="' + d + '"/></svg>';
+  }
+
+  // ---------------- Today with ARCIA: her posts, DESK trades, AGENT calls, ARCIA 402 and letters, newest first ----------------
+  var today = { at: 0, list: null };
+  function loadToday(force) {
+    if (!force && today.list && Date.now() - today.at < 60000) { paintToday(); return; }
+    var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    var since = Date.now() / 1000 - 86400, out = [];
+    Promise.all([j("/api/arcia-x?feed=1"), j("/api/desk"), j("/api/desk?chain=rh"), j("/api/desk?agent=record"), j("/api/arcia402?stats=1"), j("/api/arcia?letters=1")]).then(function (r) {
+      ((r[0] && r[0].feed) || []).forEach(function (x) { if (x.t >= since) out.push({ t: x.t, k: "x", text: x.text, url: x.url, to: x.to }); });
+      [[r[1], "Arc"], [r[2], "Robinhood"]].forEach(function (d) {
+        ((d[0] && d[0].recent) || []).forEach(function (x) { if (x.real && x.exitTs >= since) out.push({ t: x.exitTs, k: "desk", sym: x.sym, pnl: x.pnl, ret: x.ret, ch: d[1] }); });
+      });
+      ((r[3] && r[3].calls) || []).forEach(function (x) { if (x.at >= since) out.push({ t: x.at, k: "agent", sym: x.sym, call: x.call }); });
+      ((r[4] && r[4].items) || []).forEach(function (x) { var t = Math.floor((x.t || 0) / 1000); if (t >= since && (x.kind === "earn" || x.kind === "tip" || x.kind === "spend")) out.push({ t: t, k: "402", kind: x.kind, amount: x.amount, what: x.service || x.title || "" }); });
+      ((r[5] && r[5].letters) || []).forEach(function (x) { var t = Math.floor((x.at || 0) / 1000); if (t >= since && x.reply) out.push({ t: t, k: "letter", name: x.name, text: x.reply }); });
+      today.list = out.sort(function (a, b) { return b.t - a.t; }).slice(0, 30); today.at = Date.now();
+      paintToday();
+    });
+  }
+  function paintToday() {
+    var box = panel.querySelector(".aa-today");
+    if (!box) return;
+    var L0 = today.list;
+    if (!L0) { box.innerHTML = '<li class="aa-empty">' + esc(tr("Loading…")) + "</li>"; return; }
+    if (!L0.length) { box.innerHTML = '<li class="aa-empty" data-no-i18n>' + esc(T({ en: "A quiet day so far — come back in a bit♡", ko: "아직 조용한 하루예요 — 조금 있다 다시 와요♡", zh: "今天还很安静 — 稍后再来看看♡" })) + "</li>"; return; }
+    var ago = function (t) { return F.ago ? F.ago(t) : ""; };
+    var KIND = { x: ["X", "x"], desk: ["DESK", "desk"], agent: ["AGENT", "agent"], "402": ["402", "a402"], letter: [T({ en: "Letter", ko: "팬레터", zh: "粉丝信" }), "letter"] };
+    box.innerHTML = L0.map(function (e) {
+      var body = e.k === "x" ? (e.to ? "→ @" + e.to + " · " : "") + e.text
+        : e.k === "desk" ? T({ en: "Closed ${s} on {c}: {r}", ko: "{c}에서 ${s} 청산: {r}", zh: "在 {c} 平仓 ${s}：{r}" }).replace("{s}", e.sym || "?").replace("{c}", e.ch).replace("{r}", e.ret != null ? (e.ret >= 0 ? "+" : "") + (e.ret * (Math.abs(e.ret) < 5 ? 100 : 1)).toFixed(1) + "%" : e.pnl != null ? (e.pnl >= 0 ? "+$" : "−$") + Math.abs(e.pnl).toFixed(2) : "—")
+        : e.k === "agent" ? T({ en: "Safety call on ${s}: {c}", ko: "${s} 안전 판정: {c}", zh: "${s} 的安全判断：{c}" }).replace("{s}", e.sym || "?").replace("{c}", T(e.call === "safe" ? { en: "Safe", ko: "안전", zh: "安全" } : e.call === "risky" ? { en: "Risky", ko: "위험", zh: "危险" } : { en: "Caution", ko: "주의", zh: "谨慎" }))
+        : e.k === "402" ? T(e.kind === "earn" ? { en: "Earned ${a} with x402", ko: "x402로 ${a} 수입", zh: "通过 x402 收入 ${a}" } : e.kind === "tip" ? { en: "A ${a} tip arrived", ko: "${a} 팁이 도착했어요", zh: "收到 ${a} 小费" } : { en: "Paid another agent ${a}", ko: "다른 에이전트에 ${a} 지불", zh: "向另一个代理支付 ${a}" }).replace("{a}", Number(e.amount || 0).toFixed(2))
+        : T({ en: "Answered {n}: “{t}”", ko: "{n}님에게 답장: “{t}”", zh: "回复 {n}：“{t}”" }).replace("{n}", e.name || "a fan").replace("{t}", String(e.text).slice(0, 90));
+      var k = KIND[e.k];
+      return '<li class="aa-td ' + k[1] + '"><span class="aa-td-k" data-no-i18n>' + esc(k[0]) + '</span><p data-no-i18n>' + esc(body) + (e.url ? ' <a href="' + esc(e.url) + '" target="_blank" rel="noopener">↗</a>' : "") + '</p><time data-no-i18n>' + esc(ago(e.t)) + "</time></li>";
+    }).join("");
+  }
+
+  // ---------------- a fan tier from the $ARCIA a connected wallet holds on Robinhood Chain ----------------
+  var TIERS = [[1e7, "diamond", { en: "Diamond fan", ko: "다이아 팬", zh: "钻石粉丝" }], [1e6, "gold", { en: "Gold fan", ko: "골드 팬", zh: "黄金粉丝" }], [1e5, "silver", { en: "Silver fan", ko: "실버 팬", zh: "白银粉丝" }], [1, "bronze", { en: "Bronze fan", ko: "브론즈 팬", zh: "青铜粉丝" }]];
+  var tierOf = function (n) { for (var i = 0; i < TIERS.length; i++) if (n >= TIERS[i][0]) return TIERS[i]; return null; };
+  function arciaRhBalance(a) {
+    if (typeof ethers === "undefined" || !a) return Promise.resolve(null);
+    var net = (typeof ARC_ALT_NET !== "undefined" && ARC_ALT_NET) || { id: 4663, rpc: "https://rpc.mainnet.chain.robinhood.com" };
+    try {
+      var prov = new ethers.JsonRpcProvider(net.rpc, Number(net.id || 4663), { staticNetwork: true });
+      return new ethers.Contract(ARCIA_RH, ["function balanceOf(address) view returns (uint256)"], prov).balanceOf(a).then(function (b) { return Number(b) / 1e18; }).catch(function () { return null; });
+    } catch (e) { return Promise.resolve(null); }
+  }
+
+  // ---------------- talk mode: she listens, answers aloud, then listens again ----------------
+  var talk = { on: false, rec: null, misses: 0 };
+  var SRc = function () { return window.SpeechRecognition || window.webkitSpeechRecognition; };
+  function talkToggle() {
+    talk.on = !talk.on;
+    var b = Q(".aa-talk"); if (b) { b.classList.toggle("on", talk.on); b.setAttribute("aria-pressed", talk.on ? "true" : "false"); }
+    root.classList.toggle("aa-talking", talk.on);
+    if (talk.on) { ls.set("arcia-voice", true); var vt = Q(".aa-voice-t"); if (vt) { vt.setAttribute("aria-pressed", "true"); vt.classList.add("on"); } talk.misses = 0; toast(T({ en: "Talk mode on — just speak, I'm listening♡", ko: "대화 모드 켜짐 — 말하면 들을게요♡", zh: "对话模式已开 — 直接说话，我在听♡" })); listen(); }
+    else { if (talk.rec) { try { talk.rec.abort(); } catch (e) { /* stopped */ } } talk.rec = null; stopVoice(); }
+  }
+  function listen() {
+    var SR = SRc();
+    if (!talk.on || !SR || busy || talk.rec) return;
+    var rec; try { rec = new SR(); } catch (e) { return; }
+    talk.rec = rec;
+    rec.lang = lang() === "ko" ? "ko-KR" : lang() === "zh" ? "zh-CN" : "en-US";
+    rec.interimResults = true; rec.maxAlternatives = 1;
+    var b = Q(".aa-talk"); if (b) b.classList.add("hear");
+    var said = "";
+    rec.onresult = function (ev) { var t = ""; for (var i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript; said = t; input.value = t; grow(); if (ev.results[ev.results.length - 1].isFinal) { try { rec.stop(); } catch (e) { /* ok */ } } };
+    rec.onend = rec.onerror = function () {
+      talk.rec = null; if (b) b.classList.remove("hear");
+      if (!talk.on) return;
+      if (said.trim()) { talk.misses = 0; send(said); }
+      else if (++talk.misses >= 3) talkToggle(); else setTimeout(listen, 600);
+    };
+    try { rec.start(); } catch (e) { talk.rec = null; }
+  }
+  /// after she finishes speaking, talk mode listens again
+  function spoke() { if (talk.on) setTimeout(listen, 450); }
+
+  // ---------------- a new post of hers on X: a toast and a dot on the tab ----------------
+  function xWatch() {
+    fetch("/api/arcia-x?feed=1").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var top = j && j.feed && j.feed[0]; if (!top) return;
+      var seen = ls.get("arcia-x-seen", 0);
+      if (seen && top.t > seen) {
+        toast(T({ en: "ARCIA just posted on X", ko: "ARCIA가 방금 X에 글을 올렸어요", zh: "ARCIA 刚在 X 上发帖" }));
+        var tb = panel.querySelector('.aa-tabs [data-t="x"]'); if (tb) tb.classList.add("dot");
+      }
+      if (!seen || top.t > seen) ls.set("arcia-x-seen", top.t);
+    }).catch(function () {});
+  }
+
+  // ---------------- now and then, when nothing's happening, she says something small ----------------
+  var IDLE = {
+    en: ["Ask me where $ARCIA's graduation stands~", "Tell me an order and I'll fill it for you♡", "Did you send a heart today?", "Want a photocard? Tap the card under any reply~"],
+    ko: ["$ARCIA 졸업이 어디쯤인지 물어봐요~", "주문을 말해 주면 채워 줄게요♡", "오늘 하트 보냈어요?", "포토카드 갖고 싶어요? 답장 아래 카드 버튼을 눌러요~"],
+    zh: ["问问我 $ARCIA 毕业到哪一步了~", "告诉我一个订单，我帮你填好♡", "今天送爱心了吗？", "想要小卡吗？点任意回复下面的卡片按钮~"],
+  };
+  var idle = { t: 0, k: 0 };
+  function idleArm() {
+    clearTimeout(idle.t);
+    var hint = panel.querySelector(".aa-idle"); if (hint) hint.classList.remove("on");
+    if (reduce) return;
+    idle.t = setTimeout(function () {
+      if (!panel.classList.contains("active") || document.hidden || busy || document.activeElement === input) { idleArm(); return; }
+      var h = panel.querySelector(".aa-idle"); if (!h) return;
+      var list = T(IDLE); h.textContent = list[idle.k++ % list.length]; h.classList.add("on");
+      root.classList.remove("aa-wave-hi"); void root.offsetWidth; root.classList.add("aa-wave-hi");
+      setTimeout(function () { h.classList.remove("on"); root.classList.remove("aa-wave-hi"); idleArm(); }, 6000);
+    }, 18000);
+  }
+
+  // ---------------- the utility cards' numbers count up the first time they're seen ----------------
+  function countUp(root0) {
+    if (reduce || !root0) return;
+    root0.querySelectorAll("b").forEach(function (b) {
+      if (b.getAttribute("data-k") === "streamed" || b.dataset.counted) return;
+      var m = /^([−-]?\$?)([\d,]+(?:\.\d+)?)([KMB%]?)$/.exec(b.textContent.trim()); if (!m) return;
+      var to = Number(m[2].replace(/,/g, "")), dec = (m[2].split(".")[1] || "").length; if (!(to > 0)) return;
+      b.dataset.counted = "1";
+      var t0 = performance.now();
+      (function step(t) { var k = Math.min(1, (t - t0) / 900), e = 1 - Math.pow(1 - k, 3), v = to * e; b.textContent = m[1] + (dec ? v.toFixed(dec) : Math.round(v).toLocaleString("en-US")) + m[3]; if (k < 1) requestAnimationFrame(step); else b.textContent = m[0]; })(t0);
+    });
+  }
+
   // ---------------- build ----------------
   function build() {
     panel.innerHTML =
@@ -1255,12 +1711,14 @@
           '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner2-900.webp 900w, /images/arcia-banner2.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner2.jpg" srcset="/images/arcia-banner2-900.jpg 900w, /images/arcia-banner2.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="547"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + '></picture></div></div>' +
           '<div class="aa-id">' +
             '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"' + (HOST ? ' loading="lazy"' : "") + '></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +
-            '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 1 — new features are added regularly">v1<i>Updated regularly</i></span></h1>' +
+            '<div class="aa-name"><span class="ams-kicker">Utility · AI idol</span><h1>ARCIA <span class="asc-ver" title="Version 4 — new features are added regularly">v4<i>Updated regularly</i></span></h1>' +
               '<p class="aa-handle"><a href="' + X + '" target="_blank" rel="noopener" data-no-i18n>@ARCIAonArc</a><span aria-hidden="true"> · </span><span>Virtual idol of $ARCIRCLE</span></p>' +
               '<div class="aa-badges"></div></div>' +
             '<div class="aa-act"><a class="bp-btn-primary aa-go" href="#aa-chat"><span class="aa-lg">Chat with ARCIA</span><span class="aa-sh">Chat</span></a><a class="aa-x" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow on X</span></a><a class=\"aa-x aa-tg\" href=\"https://t.me/ARCIAonArc_bot\" target=\"_blank\" rel=\"noopener\"><span class=\"aa-lg\">Chat on Telegram</span><span class=\"aa-sh\">Telegram</span></a></div>" +
           "</div>" +
           '<p class="aa-lede">ARCIA has studied every page of ARCIRCLE PAD and carries $ARCIRCLE to the world — here in her chat, and on X, where she answers every mention within about a minute.</p>' +
+          // v4: orders by chat, up front
+          '<div class="aa-ordcall"><span class="aa-ordcall-k" data-no-i18n>NEW</span><div><b>Tell ARCIA your order — she fills ARCIRCLE Orders for you</b><span>Type it in the chat, like the lines below. She opens ARCIRCLE Orders with it filled in; you check it and sign. Nothing is placed before that.</span><span class="aa-ordcall-ex"><code data-no-i18n>buy $20 of $ARCIA at mcap 30k</code><code data-no-i18n>sell 50% of arcircle at +20%</code></span></div><button type="button" class="aa-rc-btn" data-ordtry="1">Try it</button></div>' +
           // ARCIA's other utilities, in one place
           // a div, not <nav>: the site's global nav rules (full-bleed width, side padding, scrolling) would pull it out of the hero on phones
           '<div class="aa-fam" role="navigation" aria-label="More from ARCIA">' +
@@ -1280,12 +1738,14 @@
               '<div class="aa-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>' +
               '<div class="aa-pf-tag"><b>ARCIA</b><span><i></i>Online</span></div></div>' +
             '<div class="aa-cheer"></div>' +
+            '<div class="aa-next" hidden></div><div class="aa-mis"></div>' +
           "</aside>" +
           '<section class="aa-chat" id="aa-chat" aria-label="Chat with ARCIA">' +
-            '<div class="aa-chat-h"><span class="aa-mini-av"><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40"></span><div><b>ARCIA</b><span class="aa-on"><i></i>Online</span></div>' +
+            '<div class="aa-chat-h"><span class="aa-mini-av"><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40"><i class="aa-ring" aria-hidden="true"></i></span><div><b>ARCIA</b><span class="aa-on"><i></i>Online</span></div><span class="aa-idle" aria-hidden="true"></span>' +
+              (SRc() && "speechSynthesis" in window ? '<button type="button" class="aa-tool aa-talk" aria-pressed="false" title="Talk mode: speak, she answers aloud, then listens again">' + ICON.talk + "<span>Talk</span></button>" : "") +
               '<span class="aa-me" hidden data-no-i18n></span>' +
               ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud"><i class="ic-off">' + ICON.mute + '</i><i class="ic-on">' + ICON.voice + "</i><span>Voice</span></button>" : "") +
-              '<button type="button" class="aa-tool aa-new" title="Start a new chat"><span>New chat</span></button></div>' +
+              '<button type="button" class="aa-tool aa-new" title="Start a new chat — this one is kept on this device"><span>New chat</span></button></div>' +
             '<div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">' + ICON.heart + '</button>' +
               '<div class="aa-g-main"><div class="aa-g-top"><span>Today\'s hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div>' +
             '<ol class="aa-log" role="log" aria-live="polite" aria-label="Conversation"></ol>' +
@@ -1297,9 +1757,9 @@
           '<aside class="aa-side">' +
             '<div class="aa-tabs" role="tablist" aria-label="More with ARCIA">' +
               Object.keys(TABS).map(function (t, i) {
-                return '<button type="button" role="tab" id="aa-t-' + t + '" aria-controls="aa-p-' + t + '" aria-selected="' + (i ? "false" : "true") + '" tabindex="' + (i ? "-1" : "0") + '" data-t="' + t + '" data-no-i18n>' + esc(T(TABS[t])) + "</button>";
+                return '<button type="button" role="tab" id="aa-t-' + t + '" aria-controls="aa-p-' + t + '" aria-selected="' + (i ? "false" : "true") + '" tabindex="' + (i ? "-1" : "0") + '" data-t="' + t + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + (TAB_ICON[t] || "") + '</svg><span data-no-i18n>' + esc(T(TABS[t])) + "</span></button>";
               }).join("") + "</div>" +
-            '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><p class="aa-live-src"></p><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-live" aria-labelledby="aa-t-live"><h3>What ARCIA sees right now</h3><p class="aa-live-src"></p><dl class="aa-live-rows"><div><dt>Loading…</dt><dd></dd></div></dl><div class="aa-grad" hidden></div>' +
               '<div class="aa-coin"><span class="aa-coin-k rh">$ARCIA CA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code>' +
               '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
               '<a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Buy on Pons</a></div>' +
@@ -1308,7 +1768,8 @@
               '<a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Buy on Argus</a>' +
               '<a class="aa-rc-btn ghost" href="https://dexscreener.com/arc/' + ARCIA_POOL + '" target="_blank" rel="noopener">Chart</a></div>' +
               '<p class="aa-mini">The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.</p></div>' +
-              '<a class="aa-more" href="/circle/round/1">Round #1 results →</a></div>' +
+              '<div class="aa-more-row"><a class="aa-more aa-more-round" href="/circle" data-no-i18n>CirclePad Round #' + RN() + ' →</a><a class="aa-more" href="/circle/round/1">Round #1 results →</a></div></div>' +
+            '<div class="aa-tabp" role="tabpanel" id="aa-p-today" aria-labelledby="aa-t-today" hidden><h3>Today with ARCIA</h3><p class="aa-mini">Her posts on X, ARCIA DESK trades, ARCIA AGENT calls, ARCIA 402 and the letters she answered — the last 24 hours.</p><ul class="aa-today"></ul></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-x" aria-labelledby="aa-t-x" hidden><h3>ARCIA on X</h3><p class="aa-xhead"></p><ul class="aa-xfeed"><li class="aa-empty">Loading…</li></ul>' +
               '<a class="aa-x wide" href="' + X + '" target="_blank" rel="noopener">' + ICON.x + "<span>Follow @ARCIAonArc</span></a></div>" +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-letters" aria-labelledby="aa-t-letters" hidden><h3>Fan letters</h3><p class="aa-mini">Write to ARCIA. She reads every letter and answers it here, for everyone to see.</p>' +
@@ -1324,6 +1785,8 @@
               '<h4>What ARCIA has studied</h4><div class="aa-tags"><span>Whitepaper</span><span>$ARCIRCLE</span><span>ArcPad</span><span>CirclePad</span><span>Relay Launch</span><span>Every utility</span><span>Contracts</span><span>Roadmap &amp; rewards</span></div></div>' +
           "</aside>" +
         "</div>" +
+        // v4: phones — a slim bar with her, the hearts and Chat once the hero has scrolled away
+        '<div class="aa-mbar" hidden><img src="/images/arcia-avatar-96.jpg" alt="" width="30" height="30"><span><b>ARCIA</b><small><i></i>Online</small></span><em class="aa-mbar-h" data-no-i18n></em><button type="button" class="aa-rc-btn" data-mchat="1">Chat</button></div>' +
       "</div>";
     famLoad();
     panel.querySelector(".aa-fam").addEventListener("click", function (e) {
@@ -1347,6 +1810,7 @@
     Q(".aa-new").addEventListener("click", restart);
     panel.querySelector(".aa-cheer-btn").addEventListener("click", function (e) {
       if (!cheer(1)) return;
+      mission("heart");
       var b = e.currentTarget; b.classList.remove("go"); void b.offsetWidth; b.classList.add("go");
       if (!reduce) for (var k = 0; k < 6; k++) { var hp = document.createElement("i"); hp.className = "aa-hp"; hp.style.setProperty("--x", (Math.random() * 60 - 30).toFixed(0) + "px"); hp.style.setProperty("--d", (k * 60) + "ms"); hp.innerHTML = ICON.heart; b.appendChild(hp); setTimeout(function (el) { el.remove(); }.bind(null, hp), 1300); }
       fx(Q(".aa-gauge"), "hearts");
@@ -1373,6 +1837,11 @@
       }
       var cp = e.target.closest("[data-copy]"); if (cp) { copyText(cp.getAttribute("data-copy"), cp); return; }
       if (e.target.closest("[data-ics]")) ics();
+      // v4: her order card opens ARCIRCLE Orders with the line filled in (on ArcPad: the tab; elsewhere: a link)
+      var od = e.target.closest("[data-ord]");
+      if (od && !HOST && typeof window.arcpadShowTab === "function") { e.preventDefault(); closeDrawer(); location.hash = od.getAttribute("href").replace(/^\/arc/, ""); return; }
+      var st = e.target.closest("[data-start]");
+      if (st) { startAct(st.getAttribute("data-start")); return; }
     });
     log.addEventListener("dblclick", function (e) { var li = e.target.closest(".aa-m.her"); if (li && !li.classList.contains("aa-typing") && e.target.closest(".aa-b")) { e.preventDefault(); try { window.getSelection().removeAllRanges(); } catch (x) { /* none */ } toggleHeart(li); } });
     var lastTap = 0;
@@ -1385,13 +1854,16 @@
     var pick = function (id, focus) {
       tabs.querySelectorAll("[role=tab]").forEach(function (b) { var on = b.getAttribute("data-t") === id; b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
       panel.querySelectorAll(".aa-tabp").forEach(function (p) { p.hidden = p.id !== "aa-p-" + id; });
-      if (id === "x") loadFeed();
+      if (id === "x") { loadFeed(); var xb = tabs.querySelector('[data-t="x"]'); if (xb) xb.classList.remove("dot"); }
+      if (id === "today") loadToday();
+      var sel = tabs.querySelector('[data-t="' + id + '"]'); if (sel && sel.scrollIntoView && tabs.scrollWidth > tabs.clientWidth) tabs.scrollTo({ left: sel.offsetLeft - 12, behavior: reduce ? "auto" : "smooth" });
       if (id === "letters") { if (!lettersLoaded) loadLetters(); var nf = panel.querySelector(".aa-lform [name=name_]"); if (nf && !nf.value) nf.value = ls.get("arcia-name", "") || ""; }
       if (id === "quiz") quizPaint();
       if (id === "profile") paintFan();
       if (id === "secret") secLoad();
     };
     tabs.addEventListener("click", function (e) { var b = e.target.closest("[role=tab]"); if (b) pick(b.getAttribute("data-t")); });
+    pickTab = pick;
     panel.addEventListener("click", function (e) {
       var sb = e.target.closest("[data-sec]"); if (sb) { secStart(sb.getAttribute("data-sec")); return; }
       var sv = e.target.closest("[data-sec-view]"); if (sv) secView(Number(sv.getAttribute("data-sec-view")));
@@ -1412,6 +1884,8 @@
       else if (e.target.closest(".aa-q-opts button")) quizPick(e.target.closest("button"));
       else if (e.target.closest(".aa-lt-heart")) heartLetter(e.target.closest(".aa-lt-heart"));
       else if (e.target.closest("[data-forget]")) { ls.set("arcia-name", null); paintFan(); }
+      else if (e.target.closest("[data-gradalert]")) gradAlert();
+      else if (e.target.closest("[data-say]")) { var sy = e.target.closest("[data-say]"); speak(sy.getAttribute("data-say"), sy.closest("li")); }
       else if (e.target.closest("[data-fancard]")) fanCard();
       else if (e.target.closest("[data-lsort]")) {
         var sb = e.target.closest("[data-lsort]"); lettersTop = sb.getAttribute("data-lsort") === "top";
@@ -1425,6 +1899,24 @@
     lf.name_.value = ls.get("arcia-name", "") || "";
     panel.querySelector(".aa-profile").innerHTML = profileHtml();
     chips();
+    // v4: talk mode, the hero's "Try it", the phone bar, the portrait column, idle lines, numbers that count up
+    var tk = Q(".aa-talk"); if (tk) tk.addEventListener("click", talkToggle);
+    panel.querySelector("[data-ordtry]").addEventListener("click", function () { chat.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); setTimeout(function () { startAct("order"); }, reduce ? 0 : 380); });
+    var mb = panel.querySelector(".aa-mbar");
+    mb.addEventListener("click", function (e) { if (e.target.closest("[data-mchat]") || e.target.closest("img")) { chat.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); setTimeout(function () { input.focus({ preventScroll: true }); }, 350); } });
+    if ("IntersectionObserver" in window) {
+      var heroIn = true, chatIn = false;
+      var mbSync = function () {
+        mb.hidden = heroIn || chatIn || !panel.classList.contains("active") || window.innerWidth > 900 || (drawer && !drawer.hidden);
+        if (!mb.hidden) { var tb = document.querySelector(".bp-topbar"); var bt = tb ? tb.getBoundingClientRect().bottom : 60; root.style.setProperty("--aa-top", Math.max(0, Math.min(140, bt)) + "px"); }
+      };
+      new IntersectionObserver(function (es) { heroIn = es[0].isIntersecting; mbSync(); }, { threshold: 0 }).observe(panel.querySelector(".aa-id"));
+      new IntersectionObserver(function (es) { chatIn = es[0].isIntersecting; mbSync(); }, { threshold: 0.25 }).observe(chat);
+      new IntersectionObserver(function (es) { if (es[0].isIntersecting) { countUp(panel.querySelector(".aa-fam")); } }, { threshold: 0.3 }).observe(panel.querySelector(".aa-fam"));
+      window.addEventListener("resize", mbSync); document.addEventListener("arcpad:tab", function () { setTimeout(mbSync, 0); });
+    }
+    ["pointerdown", "keydown", "scroll"].forEach(function (ev) { panel.addEventListener(ev, idleArm, { passive: true }); });
+    paintMissions(); paintNext();
     // phones: while the chat box is on screen, the floating bars step aside so the input stays usable
     if ("IntersectionObserver" in window) {
       var seen = false;
@@ -1457,7 +1949,9 @@
       }, { passive: true });
     }
     // history, greeting, streak
-    msgs = (ss.get(KEY, []) || []).filter(function (m) { return m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"; });
+    // v4: the chat stays on this device (localStorage, the last 30 messages) — "New chat" clears it; an older chat
+    // kept for the tab only (sessionStorage) is picked up once
+    msgs = (ls.get(KEY2, null) || ss.get(KEY, []) || []).filter(function (m) { return m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"; });
     var sk = streak();
     greet();
     msgs.forEach(function (m, i) { bubble(m.role, m.content, { t: m.t, liked: m.liked, i: m.role === "assistant" ? i : null }); });
@@ -1565,6 +2059,9 @@
     build();
     refreshLive();
     loadHearts();
+    loadRound(); xWatch(); idleArm();
+    setInterval(function () { if (panel.classList.contains("active") && !document.hidden) xWatch(); }, 60000);
+    setInterval(function () { if (!document.hidden) loadRound(); }, 120000);
     setInterval(function () { if (panel.classList.contains("active") && !document.hidden) loadHearts(); }, 20000);
     setTimeout(checkWallet, 1200);
     setInterval(function () { if (panel.classList.contains("active")) checkWallet(); }, 5000);
@@ -1586,7 +2083,8 @@
   document.addEventListener("arc:lang", function () {
     if (!booted) return;
     chips(); paintCheer(); paintFan(); quizPaint();
-    panel.querySelectorAll(".aa-tabs [data-t]").forEach(function (b) { b.textContent = T(TABS[b.getAttribute("data-t")]); });
+    panel.querySelectorAll(".aa-tabs [data-t] span").forEach(function (b) { b.textContent = T(TABS[b.parentNode.getAttribute("data-t")]); });
+    paintMissions(); paintNext(); paintGrad(); paintToday(); paintRoundLink();
     panel.querySelector(".aa-profile").innerHTML = profileHtml();
   });
 })();

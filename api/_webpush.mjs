@@ -114,3 +114,35 @@ export async function toWallet(store, wallet, payload, o = {}) {
   if (keep.length !== d.list.length) await set(store, k, { ...d, list: keep });
   return n;
 }
+
+// ---------------- topics: browsers that asked for one piece of news, no wallet needed (v4: "arcia-grad") ----------------
+export const TOPICS = ["arcia-grad"];
+const topicKey = (t) => `push/topic_${t}`;
+/// add (or remove) this browser on a topic's list (at most 5,000 browsers per topic, newest kept)
+export async function topicSet(body, { store } = {}) {
+  const t = String((body && body.topic) || "");
+  if (!TOPICS.includes(t)) return { status: 400, body: { error: "unknown topic" } };
+  const s = normSub(body.sub);
+  if (!s) return { status: 400, body: { error: "that isn't a browser push subscription" } };
+  if (!store) return { status: 503, body: { error: "notifications aren't set up on this server yet" } };
+  const d = (await get(store, topicKey(t))) || { list: [] };
+  d.list = (d.list || []).filter((x) => x.endpoint !== s.endpoint);
+  if (!body.remove) d.list = [{ ...s, at: Math.floor(Date.now() / 1000), lang: String(body.lang || "en").slice(0, 5) }, ...d.list].slice(0, 5000);
+  await set(store, topicKey(t), d);
+  return { status: 200, body: { ok: true } };
+}
+/// one message to every browser on a topic; gone ones are dropped. Returns how many went out.
+export async function toTopic(store, topic, payload, o = {}) {
+  const v = o.v || vapid();
+  if (!v || !TOPICS.includes(topic)) return 0;
+  const k = topicKey(topic), d = await get(store, k);
+  if (!d || !d.list || !d.list.length) return 0;
+  let n = 0; const keep = [];
+  for (const s of d.list) {
+    const r = await send(s, payload, { v, fetchImpl: o.fetchImpl || fetch }).catch(() => ({ ok: false, gone: false }));
+    if (r.ok) n++;
+    if (!r.gone) keep.push(s);
+  }
+  if (keep.length !== d.list.length) await set(store, k, { ...d, list: keep });
+  return n;
+}

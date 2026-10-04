@@ -752,6 +752,14 @@ export async function POST(req) {
       try { const r = await webpush.subSet(b, { store: st, viewOk: orders.ARC.viewOk }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 120) }); }
     }
+    // v4 (ARCIA): this browser on a news topic — "arcia-grad", $ARCIA graduating on Robinhood Chain (no wallet needed)
+    if (b.action === "pushtopic") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`pushtopic:${ip}`, 10, 60e3)) return json(429, { error: "slow down" });
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+      try { const r = await webpush.topicSet(b, { store: st }); return json(r.status, r.body); }
+      catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 120) }); }
+    }
     // ARCIRCLE Orders on Solana: a market order is a Jupiter swap built here (the API key stays on the server)
     if (b.action === "solswap") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";

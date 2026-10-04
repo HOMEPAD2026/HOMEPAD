@@ -2359,6 +2359,9 @@
   function show() {
     if (!S.booted) {
       S.booted = true;
+      // the chain in the link wins (a link from ARCIA's chat names it: #orders?c=rh&t=…)
+      const hc = /[?&]c=(rh|arc|sol)\b/.exec(location.hash);
+      if (hc && (hc[1] !== "sol" || SOL_ON()) && hc[1] !== CH) { CH = hc[1]; try { localStorage.setItem(CK, CH); } catch { /* private window */ } }
       frame();
       if (SOLC()) return;
       loadMarkets(); loadStatus().then(market);

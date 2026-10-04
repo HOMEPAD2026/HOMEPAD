@@ -38,6 +38,7 @@ import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
 import * as VEA from "./_vearcia.mjs";
 import * as WP from "./_webpush.mjs";
+import { arciaCoin } from "./_arcia-coin.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -1282,6 +1283,27 @@ async function ordersNotifyOn(X, T, s, c, out) {
   }
 }
 
+/// v4 (ARCIA): $ARCIA's graduation on Robinhood Chain — the alert list on Telegram and the browsers on the
+/// "arcia-grad" Web Push topic hear it when the curve passes 90% and when the pool opens (each once)
+const ARCIA_RH_TOKEN = "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25";
+async function arciaGradNotify(T, s, first, out) {
+  const A = await arciaCoin(SITE).catch(() => null);
+  if (!A || !A.phase) return;
+  const was = T.arciaPhase, p = Number(A.progress) || 0;
+  T.arciaPhase = A.phase;
+  if (first || was == null) { T.arciaNear = A.phase !== "curve" || p >= 90; return; }
+  const page = `${SITE}/arc#orders?c=rh&t=${String(A.token || ARCIA_RH_TOKEN).toLowerCase()}`;
+  if (A.phase === "curve" && p >= 90 && !T.arciaNear) {
+    T.arciaNear = true;
+    out.arciaNear = await toSubs(s.alerts || [], { text: `💚 <b>$ARCIA is ${p.toFixed(0)}% of the way to graduating</b> on Robinhood Chain. When the Pons curve fills, it moves to its Uniswap v4 pool — a limit buy on ARCIRCLE Orders can wait for that pool now.`, ...kb([[{ text: "ARCIRCLE Orders", url: page }]]) });
+    if (WP.vapid()) out.arciaNearPush = await WP.toTopic(store(), "arcia-grad", { title: `$ARCIA is ${p.toFixed(0)}% to graduation`, body: "The Pons curve is almost full on Robinhood Chain.", url: "/arc#arcia", tag: "arcia-grad" }).catch(() => 0);
+  }
+  if (was === "curve" && A.phase !== "curve") {
+    out.arciaGrad = await toSubs(s.alerts || [], { text: `🎓 <b>$ARCIA graduated</b> on Robinhood Chain — its Uniswap v4 pool is open. Limit buys placed before the graduation on ARCIRCLE Orders fill from it at their price or better.`, ...kb([[{ text: "ARCIRCLE Orders", url: page }]]) });
+    if (WP.vapid()) out.arciaGradPush = await WP.toTopic(store(), "arcia-grad", { title: "$ARCIA graduated", body: "Its Uniswap v4 pool is open on Robinhood Chain.", url: page.replace(SITE, ""), tag: "arcia-grad" }).catch(() => 0);
+  }
+}
+
 /// v4: one executor event as a Web Push message (plain text — the same news the Telegram DM carries)
 async function pushOrderEvent(e, rh) {
   const sym = `$${e.sym || "?"}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order", chain = rh ? " · Robinhood Chain" : "";
@@ -1408,6 +1430,8 @@ async function tick() {
   }
   // CirclePad round alerts: the round that's running now (api/_rounds.mjs), each moment once per round
   try { await circleNotify(T, s, c, first, out); } catch (e) { out.circleNotify = String(e.message || e).slice(0, 120); }
+  // v4 (ARCIA): $ARCIA graduating from its Pons curve on Robinhood Chain — once at 90%, once when it's done
+  try { await arciaGradNotify(T, s, first, out); } catch (e) { out.arciaGrad = String(e.message || e).slice(0, 120); }
   // new airdrops (the Multisender feed) and watched wallets
   const feed = await drop.feed(store()).catch(() => null);
   if (feed) {

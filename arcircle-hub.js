@@ -195,7 +195,7 @@
   ];
   UTILS2.push({ id: "relay", name: "Relay Launch", sub: "CirclePad round → Argus coin, relayed to holders", status: "v1", acc: "#35d8d0", href: "/arc#relay",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="18.5" cy="12" r="2.6"/><path d="M8.1 12h1.3M14.6 12h1.3"/><path d="M4 6.5c2.5-2.3 13.5-2.3 16 0M4 17.5c2.5 2.3 13.5 2.3 16 0"/></svg>' });
-  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v1", acc: "#5b8cff", href: "/arc#arcia",
+  UTILS2.push({ id: "arcia", name: "ARCIA", sub: "Chat with the AI idol of $ARCIRCLE", status: "v4", acc: "#5b8cff", href: "/arc#arcia",
     ico: '<img class="ax-util-av" src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40">' });
   // Page 3: ARCIRCLE OMNI (preview until its contracts are deployed), ARCIA 402, Builder Mine, ARCIA DESK.
   // Page 4: ARCIA AGENT, ARCIRCLE Orders, ARCIRCLE Staking, ARCIRCLE Predict. Page 5: ARCIRCLE NFT Vault, three in development.
