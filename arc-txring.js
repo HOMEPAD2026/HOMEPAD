@@ -46,8 +46,10 @@
     function close(ms) { clearTimeout(timer); timer = setTimeout(function () { el.classList.remove("in"); el.classList.add("out"); setTimeout(function () { el.remove(); }, 350); }, ms); }
     el.querySelector(".txr-x").addEventListener("click", function () { close(0); });
     set(0.18, "Confirm in your wallet", esc(tr("Waiting for your signature")));
-    var link = function (h) { return '<a href="' + esc(EXPL + "/tx/" + h) + '" target="_blank" rel="noopener">' + esc(h.slice(0, 10) + "…" + h.slice(-6)) + " ↗</a>"; };
+    var ex = EXPL; // the transaction's own chain's explorer (Robinhood Chain for veARCIA, Pons, Orders RH…)
+    var link = function (h) { return '<a href="' + esc(ex + "/tx/" + h) + '" target="_blank" rel="noopener">' + esc(h.slice(0, 10) + "…" + h.slice(-6)) + " ↗</a>"; };
     return {
+      chain: function (cid) { if (Number(cid) === 4663) ex = (typeof CONFIG !== "undefined" && CONFIG.PONS && CONFIG.PONS.EXPLORER) || "https://robinhoodchain.blockscout.com"; },
       sent: function (h) { if (done) return; set(0.55, "Transaction submitted", esc(tr("Waiting for a block")) + " · " + link(h), "sent"); },
       mined: function (h) { if (done) return; done = true; set(1, "Transaction confirmed", link(h), "ok"); el.querySelector(".txr-mark").innerHTML = CHECK; if (typeof window.arcHaptic === "function") window.arcHaptic("milestone"); close(4200); },
       failed: function (h, why) { if (done) return; done = true; set(1, why === "rejected" ? "Cancelled in wallet" : "Transaction failed", h ? link(h) : esc(tr(why === "rejected" ? "Nothing was sent." : "Nothing changed — you can try again."))); el.classList.add(why === "rejected" ? "cancel" : "bad"); el.querySelector(".txr-mark").innerHTML = CROSS; close(why === "rejected" ? 2600 : 6000); },
@@ -63,6 +65,7 @@
       var r = ring();
       return orig.apply(this, arguments).then(function (resp) {
         var h = resp && resp.hash;
+        if (resp && resp.chainId != null) r.chain(resp.chainId);
         if (h) r.sent(h);
         if (resp && typeof resp.wait === "function") {
           resp.wait().then(function (rc) { if (rc && rc.status === 1) r.mined(h); else r.failed(h, "reverted"); }, function (e) { r.failed(h, rejected(e) ? "rejected" : "reverted"); });

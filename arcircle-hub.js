@@ -228,7 +228,8 @@
   var NEXT = [
     // ARCIRCLE NFT Vault: a coin's trading fees buy NFTs, raffled to $ARCIRCLE holders (arc-nft.js)
     { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Fees buy NFTs, holders win them — every draw checkable on-chain", status: "v2", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
-    { id: "next-18", sub: "In development" },
+    // veARCIA: stake $ARCIA on Robinhood Chain, $ARCIA rewards, the $ARCIRCLE boost (arc-vearcia.js)
+    { id: "vearcia", name: "veARCIA", sub: "Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it", status: "New", acc: "#ff8bd8", href: "/arc#vearcia", img: "/images/arcia-avatar-96.jpg" },
     { id: "next-19", sub: "In development" },
     { id: "next-20", sub: "In development" },
   ];
@@ -512,7 +513,7 @@
     });
     window.addEventListener("resize", function () { if (open) place(); });
     document.addEventListener("arcpad:tab", function () { hide(false); });
-    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2, UTILS3, UTILS4), page: function (n) { if (n == null) return page; goPage(n); } };
+    window.arcUtilities = { open: show, close: hide, list: UTILS.concat(UTILS2, UTILS3, UTILS4, NEXT.filter(function (u) { return !!u.href; })), page: function (n) { if (n == null) return page; goPage(n); } };
   }
 
   // ---- Dock: the "you are here" highlight slides from the page you came

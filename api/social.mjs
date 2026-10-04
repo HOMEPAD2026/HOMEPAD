@@ -86,6 +86,7 @@ import * as ponsArc from "./_pons-arcpad.mjs";
 import * as pumpArc from "./_pump-arcpad.mjs";
 import * as orders from "./_orders.mjs";
 import * as v6mod from "./_arcpad-v6.mjs";
+import * as vearcia from "./_vearcia.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -303,6 +304,12 @@ export async function GET(req) {
   const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
   const scanStore = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null);
   const scanChain = url.searchParams.get("chain") === "rh" ? "rh" : "arc";
+  // veARCIA (api/_vearcia.mjs): the wallet's $ARCIRCLE holding and its signed boost note
+  if (url.searchParams.has("veboost")) {
+    if (scanner.limited(`veboost:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+    try { const out = await vearcia.boostNote(String(url.searchParams.get("veboost") || "")); return json(out.ok ? 200 : 400, out, "no-store"); }
+    catch (err) { console.error("veboost", err && err.message || err); return json(502, { error: "couldn't check the holding right now" }); }
+  }
   if (url.searchParams.has("scan")) {
     const t = String(url.searchParams.get("scan") || "");
     const st = scanStore();
