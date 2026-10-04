@@ -17,16 +17,20 @@ import { kindOf } from "./_token.mjs";
 import { getDocs } from "./_store.mjs";
 import { ARCIRCLE_TOKEN, ARCIRCLE_POOL_ID, ARCIRCLE_QUOTE } from "./_arcircle.mjs";
 import { SITE, h, lc, short, compact, sleep, tg, kb, getDoc, putDoc } from "./_tg-lib.mjs";
+import * as RHB from "./_tg-buybot-rh.mjs";
 
 const KEY = "tgArcia/buybot";
 // the chain's addresses (tests point these at a local chain)
-// main: the coin every buy alert follows — $ARCIA (CirclePad Round #1's coin) and its Uniswap v4 pool on Arc
+// main: the coin every buy alert follows — $ARCIA on Robinhood Chain since 4 Oct 2026 (api/_tg-buybot-rh.mjs reads it);
+// the Arc $ARCIA (CirclePad Round #1's coin, arcArcia) is followed only if a bot admin adds it with /buybot add
 const CFG = {
   pm: PM_ADDRESS, usdc: lc(ARCIRCLE_QUOTE),
-  main: "0x9da6d5ce413e94264ea411372459413334a83be5", mainPool: "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b", mainSym: "ARCIA",
+  main: RHB.ARCIA_RH, mainSym: "ARCIA", arcArcia: "0x9da6d5ce413e94264ea411372459413334a83be5",
   arcircle: lc(ARCIRCLE_TOKEN || ""), arcirclePool: lc(ARCIRCLE_POOL_ID || ""),
 };
-const EMOJI = (tk) => (tk.t === CFG.main ? "💙💚" : "♾");
+const EMOJI = (tk) => (tk.t === CFG.main || tk.t === CFG.arcArcia ? "💙💚" : "♾");
+const RH_EXPLORER = "https://robinhoodchain.blockscout.com";
+const explorerOf = (tk) => (tk && tk.chain === "rh" ? RH_EXPLORER : EXPLORER);
 const EXPLORER = "https://arc.etherscan.io";
 const MAX_RANGE = 9000; // Arc's RPC refuses wider eth_getLogs
 const SEL = { decimals: "0x313ce567", symbol: "0x95d89b41", totalSupply: "0x18160ddd", balanceOf: "0x70a08231" };
@@ -38,15 +42,17 @@ export async function load() {
   const tokens = Array.isArray(d.tokens) ? d.tokens : [];
   // $ARCIRCLE used to be followed by default: keep it only if a bot admin added it with /buybot add
   for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && tokens[i].t === CFG.arcircle && !tokens[i].added) tokens.splice(i, 1);
-  // $ARCIA is always followed, first
+  // the Arc $ARCIA used to be the followed coin: keep it only if a bot admin added it with /buybot add
+  for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && tokens[i].t === CFG.arcArcia && !tokens[i].added) tokens.splice(i, 1);
+  // $ARCIA on Robinhood Chain is always followed, first
   const at = tokens.findIndex((t) => t && t.t === CFG.main);
-  const main = at >= 0 ? tokens.splice(at, 1)[0] : { t: CFG.main, pool: CFG.mainPool, sym: CFG.mainSym };
-  if (!main.pool) main.pool = CFG.mainPool;
+  const main = at >= 0 ? tokens.splice(at, 1)[0] : { t: CFG.main, sym: CFG.mainSym, symFixed: true };
+  main.chain = "rh"; delete main.pool;
   tokens.unshift(main);
   // $ARCIRCLE's burns are always posted, even when its buys aren't followed
   if (CFG.arcircle && !tokens.some((t) => t && t.t === CFG.arcircle)) tokens.push({ t: CFG.arcircle, pool: CFG.arcirclePool, sym: "ARCIRCLE", burnsOnly: true });
   return { tokens, chats: d.chats || {}, hi: d.hi || 0, anim: d.anim || "", seen: Array.isArray(d.seen) ? d.seen : [], err: d.err || "", last: d.last || null, lastPost: d.lastPost || null, lastPostErr: d.lastPostErr || null,
-    burnPend: d.burnPend || {}, burnAt: d.burnAt || 0, burnMs: d.burnMs || {}, burnSeen: Array.isArray(d.burnSeen) ? d.burnSeen : [] };
+    burnPend: d.burnPend || {}, burnAt: d.burnAt || 0, burnMs: d.burnMs || {}, burnSeen: Array.isArray(d.burnSeen) ? d.burnSeen : [], rh: d.rh || null };
 }
 export const save = (s) => putDoc(KEY, s);
 
@@ -113,27 +119,31 @@ const CHEER_NEW = ["Welcome to the ARCIRCLE family~ 💙💚", "A new fan joined
 const CHEER = ["Thank you for the love~ 💙💚", "Keep building. Keep shining. ♾", "The circle keeps growing~ ✨", "You made my day~ 😉"];
 const pick = (list, seed) => list[Math.abs(parseInt(String(seed).slice(-6), 16) || 0) % list.length];
 export function message(b, { test = false } = {}) {
-  const n = Math.max(2, Math.min(16, Math.round(b.usd / 5))); // 💙💚 per $10, up to a phone-width line
+  const rh = b.tk.chain === "rh", EX = explorerOf(b.tk);
+  const n = Math.max(2, Math.min(16, Math.round((b.usd || 0) / 5))); // 💙💚 per $10, up to a phone-width line
   const bar = Array.from({ length: n }, (_, i) => (i % 2 ? "💚" : "💙")).join("");
-  const mc = b.tk.supply ? (Number(BigInt(b.tk.supply)) / 10 ** b.tk.dec) * b.px : null;
-  const tier = b.usd >= 500 ? "🐳 WHALE BUY" : b.usd >= 100 ? "🔥 BIG BUY" : "🚀 NEW BUY";
+  const mc = b.tk.supply && b.px != null ? (Number(BigInt(b.tk.supply)) / 10 ** b.tk.dec) * b.px : null;
+  const tier = (b.usd || 0) >= 500 ? "🐳 WHALE BUY" : (b.usd || 0) >= 100 ? "🔥 BIG BUY" : "🚀 NEW BUY";
+  const ethS = (x) => x.toLocaleString("en-US", { maximumFractionDigits: x < 0.01 ? 6 : 4 });
   const prev = b.held != null ? b.held - b.tokens : null;
   const pos = b.fresh ? "✨ <b>New holder!</b>" : prev > 0 ? `📊 Position <b>+${Math.min(9999, (b.tokens / prev) * 100).toFixed(prev < b.tokens ? 0 : 1)}%</b>` : "";
   const text = [
-    `${EMOJI(b.tk)} <b>$${h(b.tk.sym)}</b>  ${tier}!${test ? "  <i>(test)</i>" : ""}`,
+    `${EMOJI(b.tk)} <b>$${h(b.tk.sym)}</b>  ${tier}!${rh ? "  <i>Robinhood Chain</i>" : ""}${test ? "  <i>(test)</i>" : ""}`,
     bar,
     "",
-    `💵 <b>Spent</b>   ${money(b.usd)} USDC`,
+    rh ? `💵 <b>Spent</b>   ${ethS(b.eth)} ETH${b.usd != null ? ` (${money(b.usd)})` : ""}` : `💵 <b>Spent</b>   ${money(b.usd)} USDC`,
     `🪙 <b>Got</b>   ${compact(b.tokens)} $${h(b.tk.sym)}`,
-    `👤 <b>Buyer</b>   <a href="${EXPLORER}/address/${b.buyer}">${short(b.buyer)}</a>`,
+    `👤 <b>Buyer</b>   <a href="${EX}/address/${b.buyer}">${short(b.buyer)}</a>`,
     pos,
-    `💲 <b>Price</b>   ${pxFmt(b.px)}`,
+    b.px != null ? `💲 <b>Price</b>   ${pxFmt(b.px)}` : "",
     mc ? `💎 <b>Market cap</b>   ${money(mc)}` : "",
     "",
     `<i>💬 ARCIA: ${h(pick(b.fresh ? CHEER_NEW : CHEER, b.tx))}</i>`,
   ].filter((x, i, a) => x !== "" || (a[i - 1] !== "" && i > 0)).join("\n");
-  const buttons = [[{ text: `🛒 Buy $${b.tk.sym}`, url: `https://argus.world/token/${b.tk.t}` }, { text: "📈 Chart", url: `https://dexscreener.com/arc/${b.tk.pool}` }],
-    [{ text: "🔍 Transaction", url: `${EXPLORER}/tx/${b.tx}` }, { text: "♾ ARCIRCLE PAD", url: `${SITE}/arc` }]];
+  const buttons = rh
+    ? [[{ text: `🛒 Buy $${b.tk.sym} on Pons`, url: RHB.CFG.buyUrl }, { text: "📈 Chart", url: RHB.CFG.chartUrl }], [{ text: "🔍 Transaction", url: `${EX}/tx/${b.tx}` }, { text: "♾ ARCIRCLE PAD", url: `${SITE}/arc` }]]
+    : [[{ text: `🛒 Buy $${b.tk.sym}`, url: `https://argus.world/token/${b.tk.t}` }, { text: "📈 Chart", url: `https://dexscreener.com/arc/${b.tk.pool}` }],
+      [{ text: "🔍 Transaction", url: `${EX}/tx/${b.tx}` }, { text: "♾ ARCIRCLE PAD", url: `${SITE}/arc` }]];
   return { text, buttons };
 }
 async function post(S, chatId, b, opts) {
@@ -157,7 +167,7 @@ const DEAD_TOPIC = "0x" + DEAD.slice(2).padStart(64, "0");
 const BURN_EVERY = 120e3;
 export const BURN_MS = [15, 20, 25, 30, 40, 50, 60, 75, 90];
 const KIND_NAME = { vote: "Burn-to-vote", mine: "Builder Mine", scanner: "Token Scanner", secret: "ARCIA's secret file", desk: "ARCIA DESK", buyback: "Buyback", team: "Team & treasury", wallet: "Direct burn" };
-function burnTokens(S) { return S.tokens.filter((t) => t.dec != null); }
+function burnTokens(S) { return S.tokens.filter((t) => t.dec != null && t.chain !== "rh"); } // Arc coins (Robinhood Chain's: api/_tg-buybot-rh.mjs)
 async function gatherBurns(S, logs) {
   for (const l of logs) {
     const key = `${l.transactionHash}:${parseInt(l.logIndex, 16)}`;
@@ -187,7 +197,7 @@ export function burnMessage(tk, p, from, totalPct, milestone) {
   const n = Math.max(1, Math.min(12, Math.round(Math.log10(Math.max(10, p.tok)) * 2)));
   const text = [
     milestone ? `🏆 <b>MILESTONE: ${milestone}% of $${h(tk.sym)} burned forever</b>` : null,
-    `🔥 <b>$${h(tk.sym)} BURNED</b>`,
+    `🔥 <b>$${h(tk.sym)} BURNED</b>${tk.chain === "rh" ? "  <i>Robinhood Chain</i>" : ""}`,
     "🔥".repeat(n),
     "",
     `🪙 <b>Burned</b>   ${compact(p.tok)} $${h(tk.sym)}${p.n > 1 ? ` (${p.n} burns)` : ""}`,
@@ -197,7 +207,7 @@ export function burnMessage(tk, p, from, totalPct, milestone) {
     `<i>💬 ARCIA: ${milestone ? "A new milestone~ thank you for burning with me 💙💚" : "Gone forever~ the burn engine keeps going 💙💚"}</i>`,
   ].filter((x) => x !== null).join("\n");
   const last = p.txs[p.txs.length - 1];
-  const buttons = [[{ text: "🔥 Burn engine", url: `${SITE}/reward` }, ...(last ? [{ text: "🔍 Transaction", url: `${EXPLORER}/tx/${last}` }] : [])]];
+  const buttons = [[{ text: "🔥 Burn engine", url: `${SITE}/reward` }, ...(last ? [{ text: "🔍 Transaction", url: `${explorerOf(tk)}/tx/${last}` }] : [])]];
   return { text, buttons };
 }
 async function flushBurns(S, out, force = false) {
@@ -210,13 +220,16 @@ async function flushBurns(S, out, force = false) {
     delete S.burnPend[t];
     if (!tk) continue;
     let pct = null;
-    try { const [b] = await ethCalls([{ to: t, data: SEL.balanceOf + pad(DEAD) }]); if (b && tk.supply) pct = (Number(BigInt(b)) / Number(BigInt(tk.supply))) * 100; } catch { /* no total this time */ }
+    try {
+      if (tk.chain === "rh") pct = await RHB.burnedPct(tk);
+      else { const [b] = await ethCalls([{ to: t, data: SEL.balanceOf + pad(DEAD) }]); if (b && tk.supply) pct = (Number(BigInt(b)) / Number(BigInt(tk.supply))) * 100; }
+    } catch { /* no total this time */ }
     let ms = null;
     if (pct != null) {
       const hit = BURN_MS.filter((m) => pct >= m && !(S.burnMs[t] || []).includes(m));
       if (hit.length) { S.burnMs[t] = [...(S.burnMs[t] || []), ...hit]; ms = S.burnMs[t].length === hit.length && hit.length > 1 ? null : hit[hit.length - 1]; } // first run: remember, don't announce old milestones
     }
-    const from = await burnKinds(p).catch(() => "");
+    const from = tk.chain === "rh" ? "" : await burnKinds(p).catch(() => "");
     const { text, buttons } = burnMessage(tk, p, from, pct, ms);
     for (const [id, cc] of Object.entries(S.chats)) {
       if (cc.burns === false) continue;
@@ -233,19 +246,32 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
   const S = await load();
   const out = { posted: 0, buys: 0, chats: Object.keys(S.chats).length, polls: 0 };
   if (!out.chats) { S.last = { at: Date.now(), note: "no group has /buybot on" }; await save(S); return { ...out, note: "no group has /buybot on" }; }
-  for (const tk of S.tokens) { try { await fill(tk); } catch { /* next run */ } }
-  const pools = S.tokens.filter((t) => t.pool && t.dec != null && !t.burnsOnly).map((t) => t.pool);
-  if (!pools.length) return out;
+  for (const tk of S.tokens) { try { if (tk.chain === "rh") await RHB.fill(tk); else await fill(tk); } catch { /* next run */ } }
+  const pools = S.tokens.filter((t) => t.pool && t.dec != null && !t.burnsOnly && t.chain !== "rh").map((t) => t.pool);
+  const send = async (b) => {
+    for (const [id, cc] of Object.entries(S.chats)) {
+      if ((b.usd || 0) < (cc.min || 0)) continue;
+      if (cc.n && cc.n >= 20 && cc.nMin === Math.floor(Date.now() / 60000)) continue; // Telegram: 20 messages a minute per group
+      const r = await post(S, id, b);
+      if (!r.ok) S.lastPostErr = { at: Date.now(), error: String(r.description || "").slice(0, 160) };
+      if (r.ok) { out.posted++; S.lastPost = { at: Date.now(), sym: b.tk.sym, usd: Math.round((b.usd || 0) * 100) / 100 }; const m = Math.floor(Date.now() / 60000); cc.n = cc.nMin === m ? (cc.n || 0) + 1 : 1; cc.nMin = m; }
+    }
+  };
   do {
     out.polls++;
     let head;
     try { head = (await latestBlock()).number; } catch (e) { S.err = String(e.message || e).slice(0, 160); break; }
     let from = S.hi ? S.hi + 1 : head - 20;
     if (head - from > MAX_RANGE) from = head - 600; // far behind (downtime): old buys aren't news
+    // $ARCIA on Robinhood Chain: its buys and burns
+    try { const rb = await RHB.pass(S); out.buys += rb.length; for (const b of rb) await send(b); }
+    catch (e) { S.err = "robinhood: " + String(e.message || e).slice(0, 140); }
     if (from <= head) {
       let logs = [];
-      try { logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, pools], fromBlock: toQty(from), toBlock: toQty(head) }, 2); }
-      catch (e) { S.err = String(e.message || e).slice(0, 160); break; }
+      if (pools.length) {
+        try { logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, pools], fromBlock: toQty(from), toBlock: toQty(head) }, 2); }
+        catch (e) { S.err = String(e.message || e).slice(0, 160); break; }
+      }
       // burns of our coins in the same range
       const bt = burnTokens(S).map((t) => t.t);
       if (bt.length) {
@@ -256,15 +282,9 @@ export async function run({ budgetMs = 45000, everyMs = 8000 } = {}) {
       out.buys += buys.length;
       for (const b of buys) {
         S.seen = [...S.seen, `${b.tx}:${b.idx}`].slice(-200);
-        for (const [id, cc] of Object.entries(S.chats)) {
-          if (b.usd < (cc.min || 0)) continue;
-          if (cc.n && cc.n >= 20 && cc.nMin === Math.floor(Date.now() / 60000)) continue; // Telegram: 20 messages a minute per group
-          const r = await post(S, id, b);
-          if (!r.ok) S.lastPostErr = { at: Date.now(), error: String(r.description || "").slice(0, 160) };
-          if (r.ok) { out.posted++; S.lastPost = { at: Date.now(), sym: b.tk.sym, usd: Math.round(b.usd * 100) / 100 }; const m = Math.floor(Date.now() / 60000); cc.n = cc.nMin === m ? (cc.n || 0) + 1 : 1; cc.nMin = m; }
-        }
+        await send(b);
       }
-      S.hi = head; S.err = "";
+      S.hi = head; if (!/^robinhood/.test(S.err)) S.err = "";
       await flushBurns(S, out).catch((e) => { S.err = "burns: " + String(e.message || e).slice(0, 120); });
     }
     if (Date.now() - t0 + everyMs > budgetMs) break;
@@ -328,7 +348,7 @@ export async function addToken(token, pool) {
 }
 export async function removeToken(token) {
   const S = await load();
-  if (lc(token) === CFG.main) return { error: "$ARCIA is always followed." };
+  if (lc(token) === CFG.main) return { error: "$ARCIA on Robinhood Chain is always followed." };
   const n = S.tokens.length;
   S.tokens = S.tokens.filter((t) => t.t !== lc(token));
   if (S.tokens.length === n) return { error: "Not following that coin." };
@@ -338,10 +358,13 @@ export async function removeToken(token) {
 /// the latest buy of the first coin that had one in the last ~20k blocks, posted to chatId as a test
 export async function test(chatId) {
   const S = await load();
-  for (const tk of S.tokens) { try { await fill(tk); } catch { /* skip */ } }
+  try { const b = await RHB.latestBuy(S); if (b) { const r = await post(S, chatId, b, { test: true }); if (S.dirty) { delete S.dirty; await save(S); } return r.ok ? { ok: true } : { error: r.description || "couldn't post" }; } } catch { /* try Arc */ }
+  for (const tk of S.tokens) { try { if (tk.chain !== "rh") await fill(tk); } catch { /* skip */ } }
   const head = (await latestBlock()).number;
   for (let to = head, k = 0; k < 3; k++, to -= MAX_RANGE) {
-    const logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, S.tokens.filter((t) => !t.burnsOnly).map((t) => t.pool)], fromBlock: toQty(Math.max(0, to - MAX_RANGE + 1)), toBlock: toQty(to) }, 2);
+    const arcPools = S.tokens.filter((t) => !t.burnsOnly && t.pool && t.chain !== "rh").map((t) => t.pool);
+    if (!arcPools.length) break;
+    const logs = await getLogs({ address: CFG.pm, topics: [TOPIC.swap, arcPools], fromBlock: toQty(Math.max(0, to - MAX_RANGE + 1)), toBlock: toQty(to) }, 2);
     const buys = await toBuys(S, logs.slice(-40));
     if (buys.length) { const r = await post(S, chatId, buys[buys.length - 1], { test: true }); if (S.dirty) { delete S.dirty; await save(S); } return r.ok ? { ok: true } : { error: r.description || "couldn't post" }; }
   }

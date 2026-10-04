@@ -7277,6 +7277,14 @@
     "Round #4 on Solana": "第 4 轮在 Solana",
     "Round #4's token launches on Solana — not revealed yet. Round #3's contributors get an allocation of it by their share, new contributors included.": "第 4 轮代币将在 Solana 上发行——尚未公布。第 3 轮参与者按出资比例获得分配，新参与者也包括在内。",
     "Locked $ARCIRCLE counts in every raffle — a max lock counts double.": "锁仓的 $ARCIRCLE 也计入每次抽奖——最长锁仓按双倍计算。",
+    "Burned on Robinhood": "Robinhood 上已销毁",
+    "$ARCIA on Arc · CirclePad Round #1's coin": "Arc 上的 $ARCIA · CirclePad 第 1 轮代币",
+    "ARCIA's coin on Robinhood Chain": "ARCIA 在 Robinhood Chain 上的代币",
+    "ARCIA's own coin on Robinhood Chain, the flagship of the ARCIRCLE NFT ecosystem. Joining the reward contract with $ARCIRCLE.": "ARCIA 在 Robinhood Chain 上的代币，也是 ARCIRCLE NFT 生态的旗舰代币。将与 $ARCIRCLE 一起加入奖励合约。",
+    "Arc · CirclePad Round #1's coin": "Arc · CirclePad 第 1 轮代币",
+    "$ARCIA is ARCIA's own coin on Robinhood Chain, launched through Pons:": "$ARCIA 是 ARCIA 通过 Pons 在 Robinhood Chain 上发行的代币：",
+    ". It's the $ARCIA every price, burn and alert on ARCIRCLE PAD follows, the flagship of the ARCIRCLE NFT ecosystem, and it joins $ARCIRCLE in the reward contract's automated buyback-and-burn. The first $ARCIA was CirclePad Round #1's coin on Arc, chosen by the community:": "。ARCIRCLE PAD 上所有价格、销毁和提醒都以这个 $ARCIA 为准，它是 ARCIRCLE NFT 生态的旗舰代币，并与 $ARCIRCLE 一起加入奖励合约的自动回购销毁。最早的 $ARCIA 是社区在 Arc 上选出的 CirclePad 第 1 轮代币：",
+    "$ARCIA · Arc (Round #1)": "$ARCIA · Arc（第 1 轮）",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

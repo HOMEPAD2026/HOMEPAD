@@ -53,7 +53,7 @@
 //   POST /api/social  { action: "cstage" }  the round wallet marks a launch step done; { action: "cround", tx } registers the next round's escrow
 //   POST /api/social  { action: "pledge" | "cqa" | "cprop" | "cprop-up" | "chide" | "cref" | "cidea" | "cidea-up" | "cidea-unvote", … }  (api/_circle.mjs)
 //   GET  /api/social?token=arcircle[&wallet=0x…] $ARCIRCLE stats, buybacks, burns by source, revenue, a wallet's holding (api/_token.mjs)
-//   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders; the Arc coin under arc; burned on Arc (api/_arcia-coin.mjs)
+//   GET  /api/social?coin=arcia                  $ARCIA live: Robinhood Chain price (Pons), market, holders, burned on Robinhood Chain; the Arc coin under arc (api/_arcia-coin.mjs)
 //   GET  /api/social?poll=rewards[&wallet=0x…]  Reward page poll; POST { action: "rpoll", … }
 //   GET  /api/social?cctp=fees|msg&src=…        Bridge: Circle CCTP fee quotes / transfer status (api/_cctp.mjs)
 //

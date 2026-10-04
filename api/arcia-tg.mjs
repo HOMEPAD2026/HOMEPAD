@@ -121,7 +121,7 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 
 // ---------------- cards ----------------
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
-const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b>:\n<code>${h(CHECKSUM.arcia)}</code>\n\n🏹 <b>$ARCIA on Robinhood Chain</b>:\n<code>${h(CHECKSUM.arciaRh)}</code>`;
+const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b> (Robinhood Chain):\n<code>${h(CHECKSUM.arciaRh)}</code>\n\n🔵 <b>$ARCIA on Arc</b> (CirclePad Round #1):\n<code>${h(CHECKSUM.arcia)}</code>`;
 const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5", arciaRh: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" };
 // /burns: everything burned so far, where it came from, and the latest burns (the Reward page's numbers)
 const BURN_NAMES = { vote: ["Burn-to-vote", "소각 투표", "销毁投票"], mine: ["Builder Mine", "빌더 마인", "Builder Mine"], scanner: ["Token Scanner", "토큰 스캐너", "代币扫描器"],
@@ -699,7 +699,7 @@ async function onMessage(m, channel) {
       case "help": return help(c, m, lang);
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
-      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA", url: `https://argus.world/token/${ARCIA_CA}` }], [{ text: "$ARCIA · Robinhood Chain (Pons)", url: ARCIA_RH_BUY }]]));
+      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "$ARCIA on Arc (Round #1)", url: `https://argus.world/token/${ARCIA_CA}` }]]));
       case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg) || ((String(arg || "").trim().match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/) || [])[0] || ""); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }

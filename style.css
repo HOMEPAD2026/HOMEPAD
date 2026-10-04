@@ -14841,3 +14841,9 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 .nft-mini-i{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:rgba(255,139,216,.14);color:#ff8bd8;}
 .nft-mini-i svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 @media (max-width:560px){.nft-mini{flex-wrap:wrap;}.nft-mini em{margin-left:42px;}}
+.rw-coin-more{margin-top:10px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px;}
+.rw-coin-more summary{cursor:pointer;font:600 .74rem 'Sora',sans-serif;color:#8fa0b0;list-style:none;}
+.rw-coin-more summary::-webkit-details-marker{display:none;}
+.rw-coin-more summary::before{content:"+ ";color:#7fd8ff;}
+.rw-coin-more[open] summary::before{content:"– ";}
+.rw-coin-more .rw-coin-ca{margin-top:8px;}

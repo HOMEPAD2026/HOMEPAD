@@ -1,9 +1,11 @@
 // api/_arcia-coin.mjs — $ARCIA right now. Since 3 Oct 2026 the live price follows $ARCIA on Robinhood Chain (ARCIA's
 // own launch through Pons): price, market cap and graduation progress read on-chain from Pons (its bonding curve, or
 // its Uniswap v4 pool once it graduates), 24h change / volume from Dexscreener when it lists it, holders from the
-// Token Scanner on Robinhood Chain. The Arc $ARCIA (CirclePad Round #1's coin) is kept alongside as `arc`, and its
-// burns (arciaBurned) stay on Arc. Used by ARCIA (api/_arcia-brain.mjs) and /api/social?coin=arcia.
-import { ethCalls, pad } from "./_arc.mjs";
+// Token Scanner on Robinhood Chain. The Arc $ARCIA (CirclePad Round #1's coin) is kept alongside as `arc`. Since 4 Oct
+// 2026 every $ARCIA default is Robinhood Chain's, its burns (arciaBurned) too: what sits at 0x…dEaD there.
+// Used by ARCIA (api/_arcia-brain.mjs) and /api/social?coin=arcia.
+import { pad } from "./_arc.mjs";
+import { evmChain } from "./_evm.mjs";
 
 export const ARCIA_CA = "0x9da6d5ce413e94264Ea411372459413334a83bE5";
 export const ARCIA_RH = "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25";
@@ -52,15 +54,20 @@ export async function arciaCoin(origin) {
 
 const DEAD = "0x000000000000000000000000000000000000dead";
 let burnMem = null;
-/// $ARCIA's supply and what sits at 0x…dEaD (cached 60 s).
+const rhEnv = () => String((typeof process !== "undefined" && process.env && process.env.ROBINHOOD_RPC_URL) || "").trim();
+let rhChain = null;
+export const RH = { rpcs: () => [rhEnv(), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean) };
+export function configureRh(o) { Object.assign(RH, o || {}); rhChain = null; burnMem = null; }
+/// $ARCIA's supply on Robinhood Chain and what sits at 0x…dEaD there (cached 60 s).
 export async function arciaBurned() {
   if (burnMem && Date.now() - burnMem.at < 60e3) return burnMem.v;
-  const [sup, dead, dec] = await ethCalls([
-    { to: ARCIA_CA, data: "0x18160ddd" }, { to: ARCIA_CA, data: "0x70a08231" + pad(DEAD) }, { to: ARCIA_CA, data: "0x313ce567" },
+  rhChain = rhChain || evmChain({ rpcs: RH.rpcs, chainId: 4663 });
+  const [sup, dead, dec] = await rhChain.ethCalls([
+    { to: ARCIA_RH, data: "0x18160ddd" }, { to: ARCIA_RH, data: "0x70a08231" + pad(DEAD) }, { to: ARCIA_RH, data: "0x313ce567" },
   ]);
   const d = dec ? Number(BigInt(dec)) : 18, n = (h) => (h ? Number(BigInt(h)) / 10 ** d : null);
   const supply = n(sup), burned = n(dead);
-  const v = { supply, burned, pct: supply && burned != null ? Number(((burned / supply) * 100).toFixed(3)) : null };
+  const v = { chain: "rh", token: ARCIA_RH, supply, burned, pct: supply && burned != null ? Number(((burned / supply) * 100).toFixed(3)) : null };
   if (supply) burnMem = { at: Date.now(), v };
   return v;
 }

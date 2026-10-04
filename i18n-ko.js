@@ -7107,6 +7107,14 @@
     "Round #4 on Solana": "Solana의 Round #4",
     "Round #4's token launches on Solana — not revealed yet. Round #3's contributors get an allocation of it by their share, new contributors included.": "Round #4 토큰은 Solana에서 출시돼요 — 아직 공개 전이에요. Round #3 참여자는 기여 비율대로 배정받고, 새로 참여한 사람도 포함돼요.",
     "Locked $ARCIRCLE counts in every raffle — a max lock counts double.": "락업한 $ARCIRCLE도 모든 추첨에 반영돼요 — 맥스 락은 두 배로 계산돼요.",
+    "Burned on Robinhood": "Robinhood에서 소각",
+    "$ARCIA on Arc · CirclePad Round #1's coin": "Arc의 $ARCIA · CirclePad 라운드 #1 코인",
+    "ARCIA's coin on Robinhood Chain": "Robinhood Chain의 ARCIA 코인",
+    "ARCIA's own coin on Robinhood Chain, the flagship of the ARCIRCLE NFT ecosystem. Joining the reward contract with $ARCIRCLE.": "Robinhood Chain에 있는 ARCIA의 코인이자 ARCIRCLE NFT 생태계의 대표 토큰. $ARCIRCLE과 함께 리워드 컨트랙트에 합류해요.",
+    "Arc · CirclePad Round #1's coin": "Arc · CirclePad 라운드 #1 코인",
+    "$ARCIA is ARCIA's own coin on Robinhood Chain, launched through Pons:": "$ARCIA는 Pons로 출시한 Robinhood Chain의 ARCIA 코인이에요:",
+    ". It's the $ARCIA every price, burn and alert on ARCIRCLE PAD follows, the flagship of the ARCIRCLE NFT ecosystem, and it joins $ARCIRCLE in the reward contract's automated buyback-and-burn. The first $ARCIA was CirclePad Round #1's coin on Arc, chosen by the community:": ". ARCIRCLE PAD의 모든 가격, 소각, 알림이 이 $ARCIA를 기준으로 하고, ARCIRCLE NFT 생태계의 대표 토큰이며, $ARCIRCLE과 함께 리워드 컨트랙트의 자동 바이백·소각에 합류해요. 첫 $ARCIA는 커뮤니티가 고른 Arc의 CirclePad 라운드 #1 코인이었어요:",
+    "$ARCIA · Arc (Round #1)": "$ARCIA · Arc (라운드 #1)",
   };
 
 
