@@ -256,7 +256,7 @@
           ${chainSwitch()}
           <form class="aor-pick" id="aor-form" autocomplete="off">
             <input id="aor-in" type="text" spellcheck="false" placeholder="${T(RH() ? "Paste a Robinhood Chain token address (0x…)" : "Paste an Arc token address (0x…)")}" aria-label="${T(RH() ? "Robinhood Chain token address" : "Arc token address")}">
-            <button type="submit" class="aor-btn go">${T("Open market")}</button>
+            <button type="submit" class="aor-btn go aor-openbtn" aria-label="${T("Open market")}"><span>${T("Open market")}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           </form>
           <button type="button" class="aor-btn ghost aor-mkbtn" data-act="markets" aria-expanded="false">${ICON.list}<span>${T("All markets")}</span></button>
         </div>
