@@ -61,8 +61,12 @@ import * as stake from "./_stake.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
+import { cronBudget, within, cronOut } from "./_cron.mjs";
 
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
+// a keeper's answer to cron-job.org: short, timed, inside its timeout (api/_cron.mjs)
+const cron = (q, out, t0, status = 200) => json(cronOut(q, out, t0), status);
+const cronErr = (q, e, t0) => cron(q, { error: String((e && e.message) || e).slice(0, 300) }, t0, 500);
 const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null);
 
 export async function GET(req) {
@@ -81,7 +85,8 @@ export async function GET(req) {
   if (q.veatick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { return json(await vearcia.tick()); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now();
+    try { return cron(q, await vearcia.tick(), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.vearcia) {
     try {
@@ -95,7 +100,8 @@ export async function GET(req) {
   if (q.nfttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { return json(await nft.tick({ budgetMs: 50000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await nft.tick({ budgetMs: within(B - 2000, 50000), store: st }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.nft) {
     try {
@@ -111,7 +117,8 @@ export async function GET(req) {
   if (q.predicttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { return json(await predict.forChain(q.chain).tick({ budgetMs: 45000, store: st })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await predict.forChain(q.chain).tick({ budgetMs: within(B - 2000, 45000), store: st }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.predict) {
     const P = predict.forChain(q.chain);
@@ -139,33 +146,36 @@ export async function GET(req) {
   if (q.chain === "sol" && q.orderstick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
-    try { const SOL = await import("./_orders-sol.mjs"); return json(await SOL.tick(st, { budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { const SOL = await import("./_orders-sol.mjs"); return cron(q, await SOL.tick(st, { budgetMs: within(B - 2000, 45000) }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.orderstick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    try { return json(await orders.tick(st, { budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await orders.tick(st, { budgetMs: within(B - 2000, 45000) }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.tick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    const t0 = Date.now();
+    const t0 = Date.now(), B = cronBudget(q), left = () => B - (Date.now() - t0);
     let out;
-    try { out = await tick(st); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
-    // ARCIA AGENT runs after the desk, in what's left of the minute; its failures never touch the desk's answer
-    try { out.agent = await agent.tick(st, { budgetMs: 15000 }); } catch (e) { out.agent = { error: String((e && e.message) || e).slice(0, 200) }; }
-    // ARCIRCLE Orders in whatever is left of the minute
-    const left = 55000 - (Date.now() - t0);
-    if (left > 8000) { try { out.orders = await orders.tick(st, { budgetMs: left - 3000 }); } catch (e) { out.orders = { error: String((e && e.message) || e).slice(0, 200) }; } }
-    return json(out);
+    // the desk first (a bit over half the call), then ARCIA AGENT, then ARCIRCLE Orders in what's left
+    try { out = await tick(st, { budgetMs: within(Math.round(B * 0.55), 52000) }); } catch (e) { return cronErr(q, e, t0); }
+    if (!out || typeof out !== "object") out = { result: out };
+    // ARCIA AGENT's failures never touch the desk's answer
+    if (left() > 6000) { try { out.agent = await agent.tick(st, { budgetMs: within(left() - 4000, 15000) }); } catch (e) { out.agent = { error: String((e && e.message) || e).slice(0, 200) }; } }
+    if (left() > 5000) { try { out.orders = await orders.tick(st, { budgetMs: left() - 2000 }); } catch (e) { out.orders = { error: String((e && e.message) || e).slice(0, 200) }; } }
+    return cron(q, out, t0);
   }
   if (q.agenttick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    try { return json(await agent.tick(st, { budgetMs: 40000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await agent.tick(st, { budgetMs: within(B - 2000, 40000) }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.agent) {
     try {
@@ -197,19 +207,19 @@ async function rhGET(q, req, st) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    try { return json(await orders.RH.tick(st, { budgetMs: 45000 })); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await orders.RH.tick(st, { budgetMs: within(B - 2000, 45000) }), t0); } catch (e) { return cronErr(q, e, t0); }
   }
   if (q.tick) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     if (!st) return json({ error: "the store isn't configured (FIREBASE_SERVICE_ACCOUNT)" }, 503);
-    const t0 = Date.now();
+    const t0 = Date.now(), B = cronBudget(q), left = () => B - (Date.now() - t0);
     let out;
-    try { out = await RH.tick(st); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
-    // ARCIRCLE Orders on Robinhood Chain in whatever is left of the minute
-    const left = 55000 - (Date.now() - t0);
-    if (left > 8000 && out && typeof out === "object") { try { out.orders = await orders.RH.tick(st, { budgetMs: left - 3000 }); } catch (e) { out.orders = { error: String((e && e.message) || e).slice(0, 200) }; } }
-    return json(out);
+    try { out = await RH.tick(st, { budgetMs: within(Math.round(B * 0.65), 52000) }); } catch (e) { return cronErr(q, e, t0); }
+    // ARCIRCLE Orders on Robinhood Chain in what's left of the call
+    if (left() > 5000 && out && typeof out === "object") { try { out.orders = await orders.RH.tick(st, { budgetMs: left() - 2000 }); } catch (e) { out.orders = { error: String((e && e.message) || e).slice(0, 200) }; } }
+    return cron(q, out, t0);
   }
   try {
     if (q.day && q.trade) return json(await RH.tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");

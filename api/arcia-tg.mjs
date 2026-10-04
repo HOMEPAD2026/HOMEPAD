@@ -40,6 +40,7 @@ import * as VEA from "./_vearcia.mjs";
 import * as WP from "./_webpush.mjs";
 import * as AG from "./_agent.mjs";
 import { arciaCoin } from "./_arcia-coin.mjs";
+import { cronBudget, within, cronOut } from "./_cron.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -1610,8 +1611,9 @@ export async function GET(req) {
   if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json(401, { error: "unauthorized" });
   try {
     if (q.setup) return json(200, await setup());
-    if (q.tick) return json(200, await tick());
-    if (q.buys) return json(200, await BB.run());
+    // cron-job.org: short answers inside its timeout (api/_cron.mjs)
+    if (q.tick) { const t0 = Date.now(); return json(200, cronOut(q, await tick(), t0)); }
+    if (q.buys) { const t0 = Date.now(); return json(200, cronOut(q, await BB.run({ budgetMs: within(cronBudget(q) - 3000, 45000) }), t0)); }
     if (q.claim) {
       const c = await loadCfg();
       const code = String(Math.floor(10000000 + Math.random() * 89999999));
