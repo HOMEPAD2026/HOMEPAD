@@ -71,6 +71,7 @@ const RH_CFG = {
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
   keeperKey: () => env("ORDERS_KEEPER_RH_KEY") || env("ORDERS_KEEPER_KEY") || null,
   dexChain: "robinhood", explorerApi: "https://robinhoodchain.blockscout.com/api", // where pools() looks a token's pools up
+  ponsFactory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // v4: PonsV2LaunchFactory — a curve token's pool is known before it graduates
   burnMin: 2n * 10n ** 15n, // 0.002 ETH
   lowGas: 5n * 10n ** 14n, gasSym: "ETH", // under 0.0005 ETH
   maxTx: 6,
@@ -171,6 +172,7 @@ const SEL = {
   burn: sel("burn(uint256)"), flush: sel("flush(address)"), fbQuote: sel("quote(uint256)"), burnBps: sel("burnBps()"),
   balanceOf: sel("balanceOf(address)"), allowance: sel("allowance(address,address)"),
   decimals: sel("decimals()"), symbol: sel("symbol()"), extsload: sel("extsload(bytes32)"),
+  launched: sel("getLaunchedToken(address)"), memeHook: sel("memeHook()"),
 };
 const QUOTE_RESULT = sel("QuoteResult(uint256)");
 const TOPIC_FILLED = keccakText("Filled(bytes32,address,address,address,uint256,uint256,uint256,uint8)");
@@ -205,6 +207,28 @@ async function tokenMeta(addrs) {
 async function slot0Of(poolId) {
   const [s] = await calls([{ to: CFG.pm, data: SEL.extsload + strip(poolSlot(poolId, keccak)) }]);
   return s ? decodeSlot0(s) : null;
+}
+/// v4: a Robinhood Chain token still on its Pons bonding curve. The pool it graduates into is known already —
+/// getLaunchedToken's pair token (word 4), pool fee (6) and tick spacing (7) with the factory's memeHook() — so a
+/// limit buy can wait for it. { phase: curve | swept | pool | rescued, key, poolId } or null (not a Pons launch)
+async function ponsKey(token) {
+  token = lc(token);
+  if (!CFG.ponsFactory || !isAddr(token)) return null;
+  const hit = mem.get("pons:" + token);
+  if (hit && Date.now() - hit.t < 60000) return hit.v;
+  const [h, hk] = await calls([{ to: CFG.ponsFactory, data: SEL.launched + w(token) }, { to: CFG.ponsFactory, data: SEL.memeHook }]).catch(() => [null, null]);
+  let v = null;
+  const word = (i) => strip(h).slice(i * 64, i * 64 + 64);
+  if (h && strip(h).length >= 15 * 64 && W(h, 14) === 1n && lc("0x" + word(0).slice(24)) === token) {
+    const phase = ["curve", "swept", "pool", "rescued"][Number(W(h, 10))] || "curve";
+    let ts = Number(W(h, 7) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
+    const q = lc("0x" + word(4).slice(24)), [c0, c1] = q < token ? [q, token] : [token, q];
+    const ethQ = q === ZERO_ADDR || q === CFG.weth;
+    const key = ethQ && hk && strip(hk).length >= 64 && ts > 0 ? { currency0: c0, currency1: c1, fee: Number(W(h, 6)), tickSpacing: ts, hooks: lc("0x" + strip(hk).slice(24, 64)) } : null;
+    v = { phase, key, poolId: key ? lc(poolIdOf(key, keccak)) : null };
+  }
+  mem.set("pons:" + token, { t: Date.now(), v });
+  return v;
 }
 /// what `amount` of `sell` brings from pool `key` before the fee (the contract's quote(), which always reverts)
 async function quoteOut(key, sell, amount) {
@@ -334,7 +358,13 @@ async function place(body, { store } = {}) {
     if (!pOk || !dry || !dry.ok) return { status: 409, body: { error: "approve ARCIRCLE Orders for this amount first" } };
   }
   const s0 = await slot0Of(poolId).catch(() => null);
-  if (!s0 || s0.sqrtP === 0n) return { status: 409, body: { error: `that pool doesn't exist on ${CFG.name}` } };
+  let pending = false;
+  if (!s0 || s0.sqrtP === 0n) {
+    // v4: a limit buy may wait for a Pons token's pool before it exists — only the exact pool it graduates into
+    const pk = s0 && CFG.ponsFactory ? await ponsKey(token).catch(() => null) : null;
+    if (!(pk && pk.phase === "curve" && pk.poolId === poolId && !stop && !twap && !trail && side0 === "buy")) return { status: 409, body: { error: `that pool doesn't exist on ${CFG.name}` } };
+    pending = true;
+  }
   let m = await sget(store, marketKey(token));
   if (!m) {
     const [tm, qm] = await tokenMeta([token, quote]);
@@ -354,6 +384,7 @@ async function place(body, { store } = {}) {
   if (trail) { const sp = priceOf(s0.sqrtP, key.currency0 === token, key.currency0 === token ? m.token.decimals : m.quote.decimals, key.currency0 === token ? m.quote.decimals : m.token.decimals); rec.trail = { pct: trailPct, peak: sp, armed: false }; }
   if (o.group !== "0") { rec.group = o.group; rec.leg = ["tp", "sl"].includes(body.leg) ? body.leg : null; }
   if (permit) rec.permit = permit; // sent by the executor before the first fill
+  if (pending) { rec.pending = true; m.pending = true; }
   m.orders.push(rec);
   m = await saveMarket(store, m);
   await addTo(store, INDEX, "tokens", token);
@@ -399,7 +430,7 @@ const pub = (x, m) => {
     poolId: x.poolId, unfunded: x.status === "unfunded", note: x.note || null,
     trail: x.trail ? { pct: x.trail.pct, peak: x.trail.peak, at: x.trail.peak * (1 - x.trail.pct / 100), armed: !!x.trail.armed } : null,
     twap: x.type === "twap" ? { parts: x.parts, start: Number(x.o.start), duration: Number(x.o.duration), releasedPct: Math.round(Number((releasedOf(x.o) * 10000n) / sell)) / 100 } : null,
-    group: x.group || null, leg: x.leg || null,
+    group: x.group || null, leg: x.leg || null, pending: !!(x.pending && m.pending),
     retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
   };
 };
@@ -703,8 +734,19 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
     // 2) against the pool: stops and trailing stops first (they're about time), then limits and timed orders
     const slots = new Map();
     const slotOf = async (id) => { if (!id) return null; if (!slots.has(id)) slots.set(id, await slot0Of(id).catch(() => null)); return slots.get(id); };
-    const s0 = await slotOf(m.poolId);
-    if (s0 && m.key) m.spot = priceIn(m, m.key, s0.sqrtP);
+    let s0 = await slotOf(m.poolId);
+    // v4: a market waiting for a Pons graduation — if the pool it opened is another one, its waiting orders follow it
+    if (s0 && s0.sqrtP === 0n && m.pending && CFG.ponsFactory && m.key) {
+      const pk = await ponsKey(m.token.address).catch(() => null);
+      if (pk && pk.phase !== "curve" && pk.key && pk.poolId !== m.poolId) {
+        const old = m.poolId;
+        Object.assign(m, { key: pk.key, poolId: pk.poolId, tokenIs0: pk.key.currency0 === m.token.address });
+        for (const x of m.orders) if (x.poolId === old && x.type === "limit" && x.o.poolId === "0x" + "0".repeat(64)) { x.key = pk.key; x.poolId = pk.poolId; }
+        s0 = await slotOf(m.poolId);
+      }
+      if (pk && pk.phase !== "curve" && s0 && s0.sqrtP > 0n) m.pending = false;
+    } else if (s0 && s0.sqrtP > 0n && m.pending) m.pending = false;
+    if (s0 && s0.sqrtP > 0n && m.key) m.spot = priceIn(m, m.key, s0.sqrtP);
     const rank = { stop: 0, trail: 0, twap: 1, limit: 2 };
     const cands = m.orders.filter((x) => x.status === "open" && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now)).sort((a, b) => (rank[a.type] ?? 3) - (rank[b.type] ?? 3));
     for (const x of cands) {
@@ -728,6 +770,9 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
           evs.push({ at: now, kind: "trail", maker: x.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: x.side, type: x.type, price: p, peak: x.trail.peak, h: x.h });
         }
       } else {
+        // v4: its pool isn't there yet (a buy waiting for a Pons graduation)
+        const sx = x.poolId ? await slotOf(x.poolId) : null;
+        if (sx && sx.sqrtP === 0n) continue;
         // nowhere near: skip the quote (a sell above spot, a buy below it)
         if (m.spot && x.price) {
           if (x.side === "sell" && x.price > m.spot * 1.02) continue;
@@ -891,6 +936,15 @@ async function pools(token, { store } = {}) {
       const td = v0.token.decimals;
       return { ...x, quote: v0.quote, price: s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, x.tokenIs0, x.tokenIs0 ? td : 18, x.tokenIs0 ? 18 : td) : null };
     })) };
+    // v4: no pool yet, but a Pons token on its bonding curve: the pool it graduates into, marked pending (limit buys wait for it)
+    if (!v1.pools.length && CFG.ponsFactory) {
+      const pk = await ponsKey(token).catch(() => null);
+      if (pk && pk.phase === "curve" && pk.key) {
+        const s0 = await slot0Of(pk.poolId).catch(() => null);
+        if (s0 && s0.sqrtP === 0n) v1.pools = [{ id: pk.poolId, key: pk.key, tokenIs0: pk.key.currency0 === token, venue: "Pons · after graduation", pending: true, dex: null, feePct: pk.key.fee === 0x800000 ? null : pk.key.fee / 10000, quote: v0.quote, price: null }];
+        v1.pons = { phase: pk.phase };
+      }
+    }
     mem.set("pools:" + token, { t: Date.now(), v: v1 });
     return v1;
   }
@@ -1056,7 +1110,7 @@ async function alertsDue(wallets, { store } = {}) {
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
   TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
-  recent, burns, ethUsd, alerts, alertSet, alertsDue, _test };
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);

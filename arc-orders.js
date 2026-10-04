@@ -19,6 +19,11 @@
 // across both chains with CSV, expiring orders extended in one step, P&L across markets, price alerts on Telegram,
 // my average buy and my fills on the chart, lines that glow near their trigger, my orders beside the chart.
 // arc-orders-x.js adds the live tape across markets, the fee burn's total, and swipe-to-cancel on phones.
+// v4 (4 Oct 2026): market-cap prices (MCAP $ ⇄ the quote), limit buys that wait for a Pons token's graduation on
+// Robinhood Chain, the pool's own liquidity on the depth chart, a Timed (DCA) suggestion when a market order moves the
+// price, how often a price traded in the last 24 hours, one row of tabs on a phone, a compact market bar, Cancel up
+// front with the rest under ⋯, chain colours, and motion: a fill's row, a new line dropping onto the chart, the price
+// tick, the book's bars, the Buy / Sell pill. arc-orders-v4.js adds the watchlist, "type an order", Web Push.
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-orders");
@@ -176,7 +181,10 @@
     histF: "all", showCx: false, mq: "", allow: {}, fatOk: null, drag: null, cxArm: null,
     // v3
     ethUsd: null, scan: null, desk: null, other: null, usdIn: false, typesOpen: false, riskOk: new Set(), beat: 0, swiped: null, nearRaf: 0,
+    // v4
+    supply: null, mcapIn: false, pending: false, statsMore: false, rowMenu: null, drop: null, poolL: null, prevSide: null, prevBar: new Map(),
   };
+  S.mcapIn = store.get("arcircle.orders.mcapin", false) === true;
   S.usdIn = (() => { try { return localStorage.getItem("arcircle.orders.usdin") === "1"; } catch { return false; } })();
   const F = { price: "", amount: "", total: "", trigger: "", expiry: "604800", slip: "3", tp: "", sl: "", trail: "10", floor: "", dur: "86400", parts: "12", cap: "", approveMore: store.get("arcircle.orders.approvemore", false),
     lo: "", hi: "", n: "5", brk: false, btp: "", bsl: "" };
@@ -239,6 +247,7 @@
     if (SOLC()) {
       const el = panel.querySelector(".aor-contracts");
       if (el) { if (el.dataset.arc == null) el.dataset.arc = el.innerHTML; const pid = window.arcOrdersSol.program(); el.hidden = !pid; if (pid) el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("The program on Solscan:")}</span><a href="https://solscan.io/account/${esc(pid)}" target="_blank" rel="noopener">ARCIRCLE Orders <code data-no-i18n>${esc(pid.slice(0, 4))}…${esc(pid.slice(-4))}</code> ↗</a>`; }
+      panel.dataset.ch = "sol";
       $("aor-body").innerHTML = `${chainRow()}<div class="aor-sol" id="aor-sol"></div>`;
       if (!S.wired) { S.wired = true; panel.addEventListener("click", onClick); panel.addEventListener("input", onInput); panel.addEventListener("change", onInput); panel.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.sheet) sheet(false); }); }
       window.arcOrdersSol.mount($("aor-sol"));
@@ -262,10 +271,11 @@
         </div>
         <div class="aor-mlist" id="aor-mlist" hidden></div>
         <div class="aor-chips" id="aor-chips"></div>
+        <div class="aor-watch" id="aor-watch" hidden></div>
         <div class="aor-mkt" id="aor-mkt"></div>
       </div>
       <div class="aor-mtabs" role="tablist" aria-label="${T("Market view")}">
-        <button type="button" role="tab" data-mt="chart" aria-selected="true">${T("Chart")}</button><button type="button" role="tab" data-mt="book" aria-selected="false">${T("Order book")}</button><button type="button" role="tab" data-mt="trades" aria-selected="false">${T("Trades")}</button>
+        <button type="button" role="tab" data-mt="chart" aria-selected="${S.center !== "depth"}">${T("Chart")}</button><button type="button" role="tab" data-mt="depth" aria-selected="${S.center === "depth"}">${T("Depth")}</button><button type="button" role="tab" data-mt="book" aria-selected="false">${T("Book")}</button><button type="button" role="tab" data-mt="trades" aria-selected="false">${T("Trades")}</button><a class="aor-mt-dex" id="aor-mt-dex" href="#" target="_blank" rel="noopener" data-no-i18n hidden>Dexscreener ↗</a>
       </div>
         <section class="ams-card aor-bookc">
           <div class="aor-bookh"><div class="aor-seg" role="tablist"><button type="button" data-left="book" aria-selected="true">${T("Order book")}</button><button type="button" data-left="trades" aria-selected="false">${T("Trades")}</button></div>
@@ -301,6 +311,7 @@
       panel.addEventListener("toggle", (e) => { if (e.target.classList && e.target.classList.contains("aor-adv")) S.advOpen = e.target.open; }, true);
     }
     panel.classList.toggle("aor-simple", !PRO());
+    panel.dataset.ch = CH; // v4: chain colours (Arc blue, Robinhood lime, Solana purple)
     if (!S.keys) { S.keys = true; document.addEventListener("keydown", onKey); }
     chips(); market(); bookView(); chartView(); form(); mineView(); watchDock();
     if (window.arcOrdersX) window.arcOrdersX.frame();
@@ -351,8 +362,15 @@
   function strip() {
     const el = $("aor-strip"); if (!el) return;
     const show = !mktIn && !!S.tok && panel.classList.contains("active") && !S.sheet;
-    if (show && el.hidden) el.style.top = hdrBottom() + 8 + "px";
+    if (show && el.hidden) {
+      el.style.top = hdrBottom() + (innerWidth <= 720 ? 0 : 8) + "px";
+      // v4: a bar across the content (the whole width on a phone), and the sticky form steps down under it
+      const r = panel.getBoundingClientRect();
+      el.style.left = innerWidth <= 720 ? "0px" : Math.max(0, r.left) + "px"; el.style.right = innerWidth <= 720 ? "0px" : Math.max(0, innerWidth - r.right) + "px";
+      document.documentElement.style.setProperty("--aor-cl", Math.max(0, r.left) + "px");
+    }
     el.hidden = !show;
+    panel.style.setProperty("--aor-sh", show && innerWidth > 720 ? el.offsetHeight + 8 + "px" : "0px");
     if (!show) return;
     const ch = dayChange(), b = S.book || {}, a = b.asks && b.asks[0], bd = b.bids && b.bids[0];
     const spr = a && bd ? ((a.price - bd.price) / ((a.price + bd.price) / 2)) * 100 : null;
@@ -438,17 +456,20 @@
         <div><span class="aor-pair-n" data-no-i18n>$${esc(S.tok.symbol)}<i>/ ${esc(S.quote.symbol)}</i><button type="button" class="aor-fav${favs().includes(S.t) ? " on" : ""}" data-fav="${S.t}" aria-pressed="${favs().includes(S.t)}" aria-label="${T("Favorite")}" title="${T("★ keeps a market at the front")}">★</button></span>
         <span class="aor-pair-s"><a class="aor-tx" href="${EXPL("token", S.t)}" target="_blank" rel="noopener" data-no-i18n>${short(S.t)} ↗</a>${call ? `<a class="aor-call ${esc(call.call)}" href="#agent?t=${S.t}" title="${T("ARCIA AGENT's safety call for the next 24 hours")}"><span data-no-i18n>ARCIA</span> ${T(call.call === "safe" ? "Safe" : call.call === "risky" ? "Risky" : "Caution")}</a>` : ""}${scanChip()}${deskChip()}</span></div>
       </div>
-      <div class="aor-stats">
-        <div class="aor-stat big"><small>${T("Pool price")}</small><b data-no-i18n id="aor-spot" class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><span data-no-i18n class="${ch == null ? "" : ch >= 0 ? "up" : "dn"}">${ch == null ? esc(S.quote.symbol) : pc(ch) + " 24h"}</span>${usdTag(S.spot)}</div>
-        <div class="aor-stat"><small>${T("Last fill")}</small><b data-no-i18n>${fp(b.last)}</b></div>
-        <div class="aor-stat"><small>${T("24h high")}</small><b data-no-i18n>${fp(d.high)}</b></div>
-        <div class="aor-stat"><small>${T("24h low")}</small><b data-no-i18n>${fp(d.low)}</b></div>
+      <div class="aor-stats${S.statsMore ? " more" : ""}">
+        <div class="aor-stat big${fresh && dir ? " tick-" + dir : ""}"><small>${T("Pool price")}</small><b data-no-i18n id="aor-spot" class="${fresh ? dir : ""}">${S.pending ? "—" : roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b>${S.pending ? `<span>${T("opens when it graduates")}</span>` : `<span data-no-i18n class="${ch == null ? "" : ch >= 0 ? "up" : "dn"}">${ch == null ? esc(S.quote.symbol) : pc(ch) + " 24h"}</span>${usdTag(S.spot)}`}</div>
+        ${mcapOf(S.spot) != null ? `<div class="aor-stat"><small>${T("Market cap")}</small><b data-no-i18n>${esc(usdBig(mcapOf(S.spot)))}</b></div>` : ""}
+        <div class="aor-stat x"><small>${T("Last fill")}</small><b data-no-i18n>${fp(b.last)}</b></div>
+        <div class="aor-stat x"><small>${T("24h high")}</small><b data-no-i18n>${fp(d.high)}</b></div>
+        <div class="aor-stat x"><small>${T("24h low")}</small><b data-no-i18n>${fp(d.low)}</b></div>
         <div class="aor-stat"><small>${T("24h volume")}</small><b data-no-i18n>${d.volume ? qv(d.volume) : "—"}</b></div>
         <div class="aor-stat"><small>${T("Open orders")}</small><b data-no-i18n>${b.open || 0}</b>${b.stops || b.trails || b.twaps ? `<span>${[b.stops ? `${b.stops} ${tr("stops")}` : "", b.trails ? `${b.trails} ${tr("trailing")}` : "", b.twaps ? `${b.twaps} ${tr("timed")}` : ""].filter(Boolean).map(esc).join(" · ")}</span>` : ""}</div>
-        ${S.pools.length > 1 ? `<label class="aor-stat aor-poolsel"><small>${T("Pool")}</small><select id="aor-pool" aria-label="${T("Pool")}">${S.pools.map((x, i) => `<option value="${i}"${i === S.pi ? " selected" : ""} data-no-i18n>${esc(x.venue)} · ${x.dex && x.dex.liqUsd ? usd(x.dex.liqUsd) : esc(x.id.slice(0, 8))}</option>`).join("")}</select></label>`
-          : `<div class="aor-stat"><small>${T("Pool")}</small><b data-no-i18n>${esc(p.venue || "Uniswap v4")}</b>${p.dex && p.dex.liqUsd ? `<span data-no-i18n>${usd(p.dex.liqUsd)}</span>` : ""}</div>`}
-        <div class="aor-stat"><small>${T(S.tax != null ? "Round trip" : "Pool fee")}</small><b data-no-i18n class="${S.tax != null && S.tax > 5 ? "warn" : ""}">${S.tax != null ? S.tax.toFixed(2) + "%" : p.feePct != null ? p.feePct + "%" : p.key && p.key.fee === 0x800000 ? tr("dynamic") : "—"}</b>${S.tax != null ? `<span>${T("pool fee + tax")}</span>` : ""}</div>
+        ${S.pools.length > 1 ? `<label class="aor-stat x aor-poolsel"><small>${T("Pool")}</small><select id="aor-pool" aria-label="${T("Pool")}">${S.pools.map((x, i) => `<option value="${i}"${i === S.pi ? " selected" : ""} data-no-i18n>${esc(x.venue)} · ${x.dex && x.dex.liqUsd ? usd(x.dex.liqUsd) : esc(x.id.slice(0, 8))}</option>`).join("")}</select></label>`
+          : `<div class="aor-stat x"><small>${T("Pool")}</small><b data-no-i18n>${esc(p.venue || "Uniswap v4")}</b>${p.dex && p.dex.liqUsd ? `<span data-no-i18n>${usd(p.dex.liqUsd)}</span>` : ""}</div>`}
+        <div class="aor-stat x"><small>${T(S.tax != null ? "Round trip" : "Pool fee")}</small><b data-no-i18n class="${S.tax != null && S.tax > 5 ? "warn" : ""}">${S.tax != null ? S.tax.toFixed(2) + "%" : p.feePct != null ? p.feePct + "%" : p.key && p.key.fee === 0x800000 ? tr("dynamic") : "—"}</b>${S.tax != null ? `<span>${T("pool fee + tax")}</span>` : ""}</div>
+        <button type="button" class="aor-statmore" data-act="statmore" aria-expanded="${!!S.statsMore}">${T(S.statsMore ? "Less" : "More")} <span aria-hidden="true">${S.statsMore ? "▴" : "▾"}</span></button>
       </div>
+      ${S.pending ? `<div class="aor-grad"><b>${T("On its Pons bonding curve")}</b><span>${T("Its Uniswap v4 pool opens when it graduates. Place a limit buy now — it waits, and fills from the new pool at your price or better.")}</span></div>` : ""}
       <div class="aor-side-tools">
         ${execChip()}
         <span class="aor-alertw"><button type="button" class="aor-btn sm ghost aor-alertbtn" data-act="alerts" aria-expanded="${!!S.alertsOpen}">${ICON.bell}<span>${T("Price alert")}</span>${alertsFor(S.t).length ? `<em data-no-i18n>${alertsFor(S.t).length}</em>` : ""}</button>${S.alertsOpen ? alertsBox() : ""}</span>
@@ -572,7 +593,7 @@
     const c0 = CH;
     // prices belong to one market: a new market starts the price fields empty
     if (addr !== S.t) { for (const k of ["price", "amount", "total", "trigger", "tp", "sl", "floor", "cap", "lo", "hi", "btp", "bsl"]) F[k] = ""; F.brk = false; S.fatArm = null; }
-    Object.assign(S, { t: addr, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, err: null, loadingMkt: true, msg: null, candles: null, tax: null, agentCall: null, editing: null, alertsOpen: false, scan: null, desk: null });
+    Object.assign(S, { t: addr, tok: null, quote: null, pools: [], pi: 0, spot: null, prevSpot: null, book: null, err: null, loadingMkt: true, msg: null, candles: null, tax: null, agentCall: null, editing: null, alertsOpen: false, scan: null, desk: null, supply: null, pending: false, poolL: null, drop: null });
     S.prevLevels = new Map();
     if ($("aor-in")) $("aor-in").value = addr;
     if (history.replaceState && panel.classList.contains("active")) history.replaceState(null, "", `${location.pathname}${location.search}#orders?t=${addr}${RH() ? "&c=rh" : ""}`);
@@ -597,6 +618,9 @@
       S.tok = { address: addr, symbol: (j.token && j.token.symbol) || "TOKEN", decimals: Number((j.token && j.token.decimals) ?? 18), logo: (j.token && j.token.logo) || localLogo(addr) };
       S.quote = { address: q, symbol: pools[0].quote.symbol || (RH() ? "ETH" : "USDC"), decimals: Number(pools[0].quote.decimals ?? (RH() ? 18 : 6)) };
       S.spot = pools[0].price || null;
+      // v4: a Pons token still on its bonding curve — the pool it graduates into, not open yet (limit buys wait for it)
+      S.pending = !!pools[0].pending;
+      if (S.pending) { S.type = "limit"; S.side = "buy"; }
       addRecent(addr, S.tok.symbol);
     } catch (e) {
       S.err = String((e && e.message) || e);
@@ -605,10 +629,10 @@
     S.loadingMkt = false;
     chips(); market(); chartView(); form();
     if (!S.tok) return;
-    await Promise.all([loadBook(), loadSpot(), loadBal(), loadCandles()]);
+    await Promise.all([loadBook(), loadSpot(), loadBal(), loadCandles(), loadSupply(), loadPoolL()]);
     if (S.t !== addr || c0 !== CH) return;
     market(); bookView(); chartView(); form(); mineView(); dockState(); strip();
-    loadTax().then(() => { market(); form(); });
+    if (!S.pending) loadTax().then(() => { market(); form(); });
     Promise.all([loadScan(), loadDesk()]).then(() => { if (S.t === addr && c0 === CH) { market(); form(); } });
     if (!RH()) loadAgent().then(() => market()); // ARCIA AGENT's calls are on Arc
   }
@@ -631,6 +655,16 @@
         S.spot = v;
       }
     } catch { /* keep the last price */ }
+  }
+  /// v4: the pool's active liquidity (Uniswap v4 State.liquidity, three slots after slot0) — the depth chart's pool curve
+  async function loadPoolL() {
+    const p = pool(); const L = window.ArcLiqCore; const prov = rp();
+    if (!p || !L || !prov || S.pending) { S.poolL = null; return; }
+    try {
+      const slot = BigInt(L.poolSlot(p.id, ethers.keccak256)) + 3n;
+      const h = await new ethers.Contract(PM, ["function extsload(bytes32) view returns (bytes32)"], prov).extsload(ethers.toBeHex(slot, 32));
+      if (pool() === p) S.poolL = { id: p.id, L: BigInt.asUintN(128, BigInt(h)) };
+    } catch { S.poolL = null; }
   }
   async function loadBal() {
     const a = me(), prov = rp(), c0 = CH;
@@ -748,13 +782,17 @@
     let ca = 0, cb = 0;
     const askCum = asks.map((l) => (ca += l.amount)), bidCum = bids.map((l) => (cb += l.amount));
     const max = Math.max(ca, cb, 1e-18), big = Math.max(1e-18, ...asks.map((l) => l.amount), ...bids.map((l) => l.amount));
-    const seen = new Map();
+    const seen = new Map(), bars = new Map();
     const row = (l, cum, side, i) => {
       const key = side + ":" + l.price, prev = S.prevLevels.get(key);
       seen.set(key, l.amount);
       const fl = reduce || prev === undefined ? (S.prevLevels.size ? " fl-new" : "") : l.amount > prev + 1e-12 ? " fl-up" : l.amount < prev - 1e-12 ? " fl-dn" : "";
       const dist = S.spot ? ((l.price - S.spot) / S.spot) * 100 : null;
-      return `<button type="button" class="aor-lv ${side === "sell" ? "dn" : "up"}${i === 0 ? " best" : ""}${mine.has(side + ":" + l.price) ? " mine" : ""}${fl}" data-price="${l.price}" data-side="${side}" style="--d:${((cum / max) * 100).toFixed(1)}%;--h:${(0.15 + (l.amount / big) * 0.85).toFixed(2)}" title="${l.orders} ${esc(tr(l.orders === 1 ? "order" : "orders"))}${dist != null ? ` · ${pc(dist)} ${esc(tr("vs pool"))}` : ""}"><b data-no-i18n>${fp(l.price)}</b><span data-no-i18n>${num(l.amount)}</span><em data-no-i18n>${num(l.amount * l.price)}</em></button>`;
+      // v4: a depth bar grows (or shrinks) from the width it had on the last read
+      const dw = (cum / max) * 100, d0 = S.prevBar.get(key);
+      bars.set(key, dw);
+      const grow = !reduce && d0 != null && Math.abs(d0 - dw) > 0.5 ? ` grow" data-d0="1` : "";
+      return `<button type="button" class="aor-lv ${side === "sell" ? "dn" : "up"}${i === 0 ? " best" : ""}${mine.has(side + ":" + l.price) ? " mine" : ""}${fl}${grow}" data-price="${l.price}" data-side="${side}" style="--d:${dw.toFixed(1)}%;${d0 != null ? `--d0:${d0.toFixed(1)}%;` : ""}--h:${(0.15 + (l.amount / big) * 0.85).toFixed(2)}" title="${l.orders} ${esc(tr(l.orders === 1 ? "order" : "orders"))}${dist != null ? ` · ${pc(dist)} ${esc(tr("vs pool"))}` : ""}"><b data-no-i18n>${fp(l.price)}</b><span data-no-i18n>${num(l.amount)}</span><em data-no-i18n>${num(l.amount * l.price)}</em></button>`;
     };
     const pad = (n) => Array.from({ length: Math.max(0, ROWS - n) }, () => '<div class="aor-lv ph" aria-hidden="true"></div>').join("");
     const bestAsk = asks[0] && asks[0].price, bestBid = bids[0] && bids[0].price;
@@ -763,14 +801,14 @@
     const fresh = S.spotChg && Date.now() - S.spotChg < 2500;
     const empty = !asks.length && !bids.length;
     // an empty book: a faint ladder around the pool price, one tap from a price
-    const ghost = (side) => !S.spot ? "" : [1, 2, 3, 5, 10].map((k) => { const pr = Number((S.spot * (1 + (side === "sell" ? k : -k) / 100)).toPrecision(4)); return `<button type="button" class="aor-lv ${side === "sell" ? "dn" : "up"} ghost" data-price="${pr}" data-sug="${side === "sell" ? "sell" : "buy"}" title="${T(side === "sell" ? "Sell" : "Buy")} ${side === "sell" ? "+" : "−"}${k}%"><b data-no-i18n>${fp(pr)}</b><span data-no-i18n>${side === "sell" ? "+" : "−"}${k}%</span><em>${T(side === "sell" ? "Sell here" : "Buy here")}</em></button>`; });
+    const ghost = (side) => !S.spot ? [] : [1, 2, 3, 5, 10].map((k) => { const pr = Number((S.spot * (1 + (side === "sell" ? k : -k) / 100)).toPrecision(4)); return `<button type="button" class="aor-lv ${side === "sell" ? "dn" : "up"} ghost" data-price="${pr}" data-sug="${side === "sell" ? "sell" : "buy"}" title="${T(side === "sell" ? "Sell" : "Buy")} ${side === "sell" ? "+" : "−"}${k}%"><b data-no-i18n>${fp(pr)}</b><span data-no-i18n>${side === "sell" ? "+" : "−"}${k}%</span><em>${T(side === "sell" ? "Sell here" : "Buy here")}</em></button>`; });
     el.innerHTML = `<div class="aor-th"><span>${T("Price")} <i data-no-i18n>${esc(S.quote.symbol)}</i></span><span>${T("Amount")}</span><span>${T("Total")}</span></div>
       <div class="aor-asks">${empty ? pad(ROWS - 5) + ghost("sell").reverse().join("") : pad(asks.length) + asks.map((l, i) => row(l, askCum[i], "sell", i)).reverse().join("")}</div>
       <div class="aor-mid"><b data-no-i18n class="${fresh ? dir : ""}">${roll(S.spot, S.prevSpot)}<i class="aor-arrow ${dir}" aria-hidden="true"></i></b><small>${T("pool price")}</small>${usdTag(S.spot, "mid")}${b.last ? `<span class="aor-midlast">${T("last")} <span data-no-i18n>${fp(b.last)}</span></span>` : ""}${spread != null ? `<em>${T("spread")} <span data-no-i18n>${spread.toFixed(2)}%</span><small data-no-i18n>${fp(bestAsk - bestBid)}</small></em>` : ""}</div>
       <div class="aor-bids">${empty ? ghost("buy").join("") + pad(ROWS - 5) : bids.map((l, i) => row(l, bidCum[i], "buy", i)).join("") + pad(bids.length)}</div>
-      ${empty ? `<p class="aor-first"><b>${T("No orders here yet — be the first.")}</b> <span>${T("The faint rows are prices around the pool: tap one to start an order there.")}</span></p>`
+      ${empty ? `<p class="aor-first"><b>${T("No orders here yet — be the first.")}</b> <span>${T(S.pending ? "Limit buys placed now wait here for the pool to open." : "The faint rows are prices around the pool: tap one to start an order there.")}</span></p>`
         : `<p class="aor-foot">${T("Orders below the ask and above the bid fill from the pool as soon as its price gets there.")}</p>`}`;
-    S.prevLevels = seen;
+    S.prevLevels = seen; S.prevBar = bars;
     emblem(ca, cb);
   }
   /// loading rows that shimmer
@@ -794,6 +832,7 @@
     const el = $("aor-chart"); if (!el) return;
     const tfs = $("aor-tfs"); if (tfs) tfs.hidden = S.center !== "chart";
     const p = pool();
+    const dl = $("aor-mt-dex"); if (dl) { dl.hidden = !p || !!p.pending; if (p) dl.href = `https://dexscreener.com/${RH() ? "robinhood" : "arc"}/${encodeURIComponent(p.id)}`; }
     if (!p) { el.innerHTML = `<div class="aor-empty">${T(S.t && S.loadingMkt ? "…" : "The chart shows up when a market is open.")}</div>`; delete el.dataset.pool; return; }
     if (S.center === "depth") { el.innerHTML = depthSvg(); delete el.dataset.pool; return; }
     if (S.center === "dex") {
@@ -859,7 +898,7 @@
     const data = series(), msg = $("aor-cmsg");
     if (!data.length) {
       S.cmap = null;
-      if (msg) { msg.hidden = false; msg.innerHTML = S.candles ? `${T("No trades in this pool in the last 3 days.")} <button type="button" class="aor-link" data-center="dex" data-no-i18n>Dexscreener</button>` : `<div class="aor-cskel" aria-hidden="true">${Array.from({ length: 24 }, (_, i) => `<i style="--h:${30 + ((i * 53) % 55)}%;animation-delay:${(i % 8) * 80}ms"></i>`).join("")}</div><span class="aor-cskel-t"><span class="aor-spin"></span>${T("Reading the pool's trades…")}</span>`; }
+      if (msg) { msg.hidden = false; msg.innerHTML = S.pending ? `${T("Its pool opens when it graduates from the Pons curve — the chart starts with its first trade.")}` : S.candles ? `${T("No trades in this pool in the last 3 days.")} <button type="button" class="aor-link" data-center="dex" data-no-i18n>Dexscreener</button>` : `<div class="aor-cskel" aria-hidden="true">${Array.from({ length: 24 }, (_, i) => `<i style="--h:${30 + ((i * 53) % 55)}%;animation-delay:${(i % 8) * 80}ms"></i>`).join("")}</div><span class="aor-cskel-t"><span class="aor-spin"></span>${T("Reading the pool's trades…")}</span>`; }
       return;
     }
     if (msg) msg.hidden = true;
@@ -932,15 +971,23 @@
     // v3: my average buy here, dashed
     if (mf.avg && mf.avg > lo && mf.avg < hi) { const ay = y(mf.avg); g.strokeStyle = "rgba(201,168,255,.7)"; g.setLineDash([2, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(0, ay); g.lineTo(cw, ay); g.stroke(); g.setLineDash([5, 4]); g.font = "600 9px Inter, sans-serif"; g.fillStyle = "rgba(201,168,255,.9)"; g.textAlign = "right"; g.fillText(`${tr("Avg buy")} ${fp(mf.avg)}`, cw - 6, ay - 7); g.textAlign = "left"; }
     // v3: a line the price is within 1% of glows (the loop below keeps it breathing while it's that close)
-    let near = false;
+    let near = false, dropping = false;
+    if (S.drop && Date.now() - S.drop.at > 15000) S.drop = null;
     for (const l of lines) {
       const dragging = S.drag && l.h === S.drag.h;
       const close = S.spot && Math.abs(l.p - S.spot) / S.spot < 0.01 && !dragging;
       if (close && l.p > lo && l.p < hi) { near = true; const a = reduce ? 0.5 : 0.35 + 0.35 * Math.sin(Date.now() / 260); g.save(); g.setLineDash([]); g.strokeStyle = l.c; g.globalAlpha = a; g.lineWidth = 6; g.shadowColor = l.c; g.shadowBlur = 14; g.beginPath(); g.moveTo(0, y(l.p)); g.lineTo(cw, y(l.p)); g.stroke(); g.restore(); }
       if (l.peak && l.peak > lo && l.peak < hi) { const py = y(l.peak); g.strokeStyle = "rgba(255,178,122,.35)"; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(0, py); g.lineTo(cw, py); g.stroke(); g.setLineDash([5, 4]); g.fillStyle = "rgba(255,178,122,.75)"; g.font = "600 9px Inter, sans-serif"; g.fillText(`${tr("peak")} ${fp(l.peak)}`, cw - 110, py - 7); }
       if (!(l.p > lo && l.p < hi)) continue;
-      const yy = y(l.p);
+      let yy = y(l.p);
       g.globalAlpha = dragging ? 0.35 : 1;
+      // v4: a just-placed order's line drops in from the top
+      if (S.drop && !reduce && !dragging && Math.abs(l.p - S.drop.p) <= l.p * 0.005) {
+        if (!S.drop.t0) S.drop.t0 = performance.now();
+        const k = Math.min(1, (performance.now() - S.drop.t0) / 700), ez = 1 - Math.pow(1 - k, 3) + (k < 1 ? Math.sin(k * Math.PI) * 0.06 : 0);
+        yy = PADT + (yy - PADT) * ez; g.globalAlpha = 0.35 + 0.65 * k;
+        if (k < 1) dropping = true; else S.drop = null;
+      }
       g.strokeStyle = l.c; g.lineWidth = 1; g.beginPath(); g.moveTo(0, yy); g.lineTo(cw, yy); g.stroke();
       const tw = tag(yy, l.label, l.c);
       if (l.h) { g.fillStyle = "rgba(6,16,26,.6)"; g.fillRect(4 + tw + 2, yy - 8, 12, 16); g.fillStyle = l.c; for (const dy of [-3, 0, 3]) g.fillRect(4 + tw + 5, yy + dy - 0.5, 6, 1); }
@@ -956,6 +1003,7 @@
       g.setLineDash([]); g.fillStyle = "#8fdcff"; g.fillRect(cw + 1, yy - 8, AX - 2, 16); g.fillStyle = "#04121c"; g.font = "700 10px 'JetBrains Mono', monospace"; g.fillText(fp(S.spot), cw + 5, yy);
     }
     g.setLineDash([]);
+    if (dropping) requestAnimationFrame(() => draw());
     if (near && !reduce && !S.nearRaf) { const loop = () => { S.nearRaf = 0; if (panel.classList.contains("active") && !document.hidden) draw(); }; S.nearRaf = setTimeout(() => requestAnimationFrame(loop), 50); }
     // crosshair
     const tip = $("aor-tip");
@@ -1022,18 +1070,31 @@
     const box = f && f.closest(".aor-in"); if (!box) return;
     box.classList.remove("aor-flash"); void box.offsetWidth; box.classList.add("aor-flash");
   }
+  /// v4: what the pool itself trades between its price now and ±10%, in tokens — its active liquidity held constant
+  /// (exact inside the current tick range, approximate past it): tokens it sells as the price rises, buys as it falls
+  function poolDepth() {
+    const p = pool(), pl = S.poolL;
+    if (!p || !pl || pl.id !== p.id || !(pl.L > 0n) || !(S.spot > 0) || !S.tok || !S.quote) return null;
+    const td = S.tok.decimals, qd = S.quote.decimals, Lf = Number(pl.L);
+    const raw = (P) => (p.tokenIs0 ? P * 10 ** (qd - td) : 1 / (P * 10 ** (qd - td)));
+    const tokBetween = (P0, P1) => { const a = Math.sqrt(raw(P0)), c = Math.sqrt(raw(P1)); return (p.tokenIs0 ? Lf * Math.abs(1 / a - 1 / c) : Lf * Math.abs(a - c)) / 10 ** td; };
+    const N = 14, asks = [], bids = [];
+    for (let i = 1; i <= N; i++) { const k = (i / N) * 0.1; asks.push([S.spot * (1 + k), tokBetween(S.spot, S.spot * (1 + k))]); bids.push([S.spot * (1 - k), tokBetween(S.spot, S.spot * (1 - k))]); }
+    return asks.every((x) => isFinite(x[1])) && bids.every((x) => isFinite(x[1])) ? { asks, bids } : null;
+  }
   function depthSvg() {
     const b = S.book || {};
     const asks = levels(b.asks, "sell").slice(0, 30), bids = levels(b.bids, "buy").slice(0, 30);
-    if (!asks.length && !bids.length) return `<div class="aor-empty">${T("No orders in the book yet — the depth chart fills in as orders come.")}</div>`;
+    const pd = poolDepth();
+    if (!asks.length && !bids.length && !pd) return `<div class="aor-empty">${T(S.pending ? "Its pool opens when it graduates — the depth chart starts then." : "No orders in the book yet — the depth chart fills in as orders come.")}</div>`;
     const W = 600, H = 340, pad = 24;
-    const prices = [...asks, ...bids].map((l) => l.price).concat(S.spot ? [S.spot] : []);
+    const prices = [...asks, ...bids].map((l) => l.price).concat(S.spot ? [S.spot] : []).concat(pd ? [pd.asks[pd.asks.length - 1][0], pd.bids[pd.bids.length - 1][0]] : []);
     let lo = Math.min(...prices), hi = Math.max(...prices);
     if (hi === lo) { lo *= 0.9; hi *= 1.1; }
     const span = hi - lo; lo -= span * 0.05; hi += span * 0.05;
     let c = 0; const bc = bids.map((l) => [l.price, (c += l.amount)]); const bmax = c;
     c = 0; const ac = asks.map((l) => [l.price, (c += l.amount)]); const amax = c;
-    const ymax = Math.max(bmax, amax, 1e-18);
+    const ymax = Math.max(bmax, amax, pd ? pd.asks[pd.asks.length - 1][1] : 0, pd ? pd.bids[pd.bids.length - 1][1] : 0, 1e-18);
     const x = (p) => pad + ((p - lo) / (hi - lo)) * (W - pad * 2);
     const y = (v) => H - pad - (v / ymax) * (H - pad * 2);
     // a fixed number of points, so one shape morphs into the next (CSS d transitions)
@@ -1045,12 +1106,14 @@
       return "M" + P.map(([a, bb]) => `${a.toFixed(1)},${bb.toFixed(1)}`).join(" L") + " Z";
     };
     const sx = S.spot ? x(S.spot) : null, dB = step(bc, true), dA = step(ac, false);
+    const pline = (pts) => "M" + [[S.spot, 0], ...pts].map(([pp, v]) => `${x(pp).toFixed(1)},${y(v).toFixed(1)}`).join(" L");
+    const poolSvg = pd ? `<path class="aor-d-pool" d="${pline(pd.bids)}"/><path class="aor-d-pool" d="${pline(pd.asks)}"/>` : "";
     return `<svg class="aor-depth" viewBox="0 0 ${W} ${H}" role="img" aria-label="${T("Depth")}">
       <line class="aor-d-base" x1="${pad}" x2="${W - pad}" y1="${H - pad}" y2="${H - pad}"/>
-      <path class="aor-d-bid" d="${dB}" style="d:path('${dB}')"/><path class="aor-d-ask" d="${dA}" style="d:path('${dA}')"/>
+      ${poolSvg}<path class="aor-d-bid" d="${dB}" style="d:path('${dB}')"/><path class="aor-d-ask" d="${dA}" style="d:path('${dA}')"/>
       ${sx != null ? `<line class="aor-d-spot" x1="${sx.toFixed(1)}" x2="${sx.toFixed(1)}" y1="${pad / 2}" y2="${H - pad}"/><text class="aor-d-lbl" x="${Math.min(W - 90, sx + 6).toFixed(1)}" y="${pad}" data-no-i18n>${esc(fp(S.spot))}</text>` : ""}
       <text class="aor-d-lbl" x="${pad}" y="${H - 6}" data-no-i18n>${esc(fp(lo))}</text><text class="aor-d-lbl end" x="${W - pad}" y="${H - 6}" data-no-i18n>${esc(fp(hi))}</text>
-    </svg><div class="aor-d-key"><span class="up">${T("Buy orders")}</span><span class="dn">${T("Sell orders")}</span><small>${T("cumulative, in")} <span data-no-i18n>$${esc(S.tok.symbol)}</span></small></div>`;
+    </svg><div class="aor-d-key"><span class="up">${T("Buy orders")}</span><span class="dn">${T("Sell orders")}</span>${pd ? `<span class="pool" title="${T("From the pool's active liquidity, held constant over ±10% — approximate past its current range")}">${T("Pool, ±10% (approx.)")}</span>` : ""}<small>${T("cumulative, in")} <span data-no-i18n>$${esc(S.tok.symbol)}</span></small></div>`;
   }
 
   // ---------------- the order form ----------------
@@ -1105,11 +1168,20 @@
     const P = Number(String(S.type === "stop" ? F.trigger : F.price).replace(/,/g, ""));
     if (!(P > 0) || (S.type !== "limit" && S.type !== "stop")) return null;
     const d = ((P - S.spot) / S.spot) * 100, buy = S.side === "buy";
-    if (S.type === "stop") return { d, k: "", t: "vs pool" };
+    if (S.type === "stop") return { d, k: "", t: "vs pool", n: touches(P) };
     const taker = buy ? d > 0.05 : d < -0.05;
-    return { d, k: Math.abs(d) < 0.05 ? "at" : taker ? (Math.abs(d) > 10 ? "fat" : "taker") : Math.abs(d) > 40 ? "far" : "maker", t: Math.abs(d) < 0.05 ? "at the pool price" : taker ? "fills now" : Math.abs(d) > 40 ? "far — may take a while" : "vs pool" };
+    return { n: touches(P), d, k: Math.abs(d) < 0.05 ? "at" : taker ? (Math.abs(d) > 10 ? "fat" : "taker") : Math.abs(d) > 40 ? "far" : "maker", t: Math.abs(d) < 0.05 ? "at the pool price" : taker ? "fills now" : Math.abs(d) > 40 ? "far — may take a while" : "vs pool" };
   }
-  const distHtml = () => { const x = distInfo(); return x ? `<em class="aor-dist ${x.k}" id="aor-dist"><span data-no-i18n>${pc(x.d, Math.abs(x.d) < 10 ? 2 : 1)}</span> ${T(x.t)}</em>` : `<em class="aor-dist" id="aor-dist" hidden></em>`; };
+  /// v4: how many 5-minute candles of the last 24 hours traded through a price (null without candles)
+  function touches(P) {
+    const c = S.candles && S.candles.list;
+    if (!c || !c.length || !(P > 0)) return null;
+    const t24 = now() - 86400;
+    return c.filter((x) => x[0] >= t24 && x[3] <= P && P <= x[2]).length;
+  }
+  const L3 = (en, ko, zh) => (lang() === "ko" ? ko : lang() === "zh" ? zh : en); // a sentence with a number in it
+  const touchHtml = (n) => (n == null ? "" : `<small class="aor-touch${n ? "" : " none"}" title="${T("5-minute candles of the last 24 hours that traded through this price")}" data-no-i18n>${n ? L3(`touched <b>${n}×</b> in 24h`, `24시간 동안 <b>${n}번</b> 닿음`, `24小时内触及 <b>${n} 次</b>`) : esc(L3("not reached in 24h", "24시간 동안 닿지 않음", "24小时内未触及"))}</small>`);
+  const distHtml = () => { const x = distInfo(); return x ? `<em class="aor-dist ${x.k}" id="aor-dist"><span data-no-i18n>${pc(x.d, Math.abs(x.d) < 10 ? 2 : 1)}</span> ${T(x.t)}${touchHtml(x.n)}</em>` : `<em class="aor-dist" id="aor-dist" hidden></em>`; };
   function distPaint() { const el = $("aor-dist"); if (!el) return; const t = document.createElement("div"); t.innerHTML = distHtml(); el.replaceWith(t.firstChild); }
   const presetLabel = (x) => `${tr(x.side === "buy" ? "Buy" : "Sell")} · ${tr((TYPES_UI.find(([k]) => k === x.type) || [0, x.type])[1])}${x.off != null ? ` ${pc(x.off, Math.abs(x.off) % 1 ? 1 : 0)}` : ""}${x.pct ? ` · ${x.pct}%` : ""}${x.expiry && x.type !== "market" && x.type !== "twap" ? ` · ${Math.round(Number(x.expiry) / 86400)}d` : ""}`;
   function lastOrder() { const l = store.get(LASTK, null); return l && l.chain === CH && l.type && l.side ? l : null; }
@@ -1125,6 +1197,7 @@
   }
   function form() {
     const el = $("aor-formc"); if (!el) return;
+    if (S.pending) { S.type = "limit"; S.side = "buy"; } // v4: before a Pons graduation only a limit buy can wait
     if (sellOnly(S.type) && S.side !== "sell") S.side = "sell";
     const pro = PRO();
     const tk = S.tok, q = S.quote;
@@ -1133,6 +1206,12 @@
     const sellTok = tk ? (buy ? q : tk) : null;
     const bal = sellTok && S.bal[sellTok.address] != null ? S.bal[sellTok.address] : null;
     const field = (id, label, unit, val, ph, extra = "", badge = "") => `<label class="aor-f"><small><span>${T(label)}</span>${badge}</small><span class="aor-in"><input id="${id}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="${esc(ph || "0")}" value="${esc(val)}"><i data-no-i18n>${esc(unit)}</i></span>${extra}</label>`;
+    // v4: a price box that can take a market cap instead (MCAP $ ⇄ the quote)
+    const pfield = (id, label, k, ph, extra = "", badge = "") => {
+      if (!mcOk()) return field(id, label, qs, F[k], ph, extra, badge);
+      const on = !!S.mcapIn, php = on ? (S.spot ? String(Number(mcapOf(S.spot).toPrecision(4))) : "0") : ph;
+      return `<label class="aor-f"><small><span>${T(on ? (k === "trigger" ? "Trigger at market cap" : "At market cap") : label)}</span>${badge}</small><span class="aor-in"><input id="${id}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="${esc(php || "0")}" value="${esc(pxShown(k))}"><button type="button" class="aor-unit mc${on ? " on" : ""}" data-act="mcapin" title="${T(on ? "Enter a price per token" : "Enter a market cap in dollars")}"><span data-no-i18n>${on ? "MCAP $" : esc(qs)}</span><i aria-hidden="true">⇄</i></button></span><span class="aor-mcx" id="${id}-mc">${pxSub(k)}</span>${extra}</label>`;
+    };
     // v3: on Robinhood Chain the Total / Spend field can take dollars (converted at the server's ETH price)
     const usdOk = RH() && S.ethUsd > 0, usdOn = usdOk && S.usdIn;
     const totalField = (label) => {
@@ -1144,14 +1223,14 @@
     const qLimit = quick("price", buy ? [[0, tr("Pool")], [-2, "−2%"], [-5, "−5%"], [-10, "−10%"]] : [[0, tr("Pool")], [2, "+2%"], [5, "+5%"], [10, "+10%"]]) + lvlChips("price", buy ? "low" : "high");
     let fields = "";
     if (ty === "limit") {
-      fields = field("aor-price", "Price", qs, F.price, S.spot ? fp(S.spot) : "0", qLimit, distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow() + totalField("Total");
+      fields = pfield("aor-price", "Price", "price", S.spot ? fp(S.spot) : "0", qLimit, distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow() + totalField("Total");
       // a bracket: once this buy fills, the page asks you to sign a take-profit and a stop-loss on what it bought
       if (buy && pro) {
         const base = Number(F.price) || S.spot;
         fields += `<div class="aor-brk${F.brk ? " on" : ""}"><label class="aor-more"><input type="checkbox" id="aor-brk"${F.brk ? " checked" : ""}> <span>${T("Add a take-profit and stop-loss when it fills")}</span></label>${F.brk ? `<div class="aor-row2">${field("aor-btp", "Take profit at", qs, F.btp, base ? fp(base * 1.25) : "0", quick("btp", [[10, "+10%"], [25, "+25%"], [50, "+50%"]]))}${field("aor-bsl", "Stop loss at", qs, F.bsl, base ? fp(base * 0.9) : "0", quick("bsl", [[-5, "−5%"], [-10, "−10%"], [-20, "−20%"]]))}</div><p class="aor-note">${T("When the buy fills, this page shows a button to sign both — this browser keeps them until then.")}</p>` : ""}</div>`;
       }
     } else if (ty === "market") fields = (buy ? totalField("Spend") : field("aor-amount", "Sell", sym, F.amount)) + pctRow();
-    else if (ty === "stop") fields = field("aor-trigger", buy ? "Buy when the price rises to" : "Sell when the price falls to", qs, F.trigger, S.spot ? fp(S.spot) : "0", quick("trigger", buy ? [[5, "+5%"], [10, "+10%"], [20, "+20%"]] : [[-5, "−5%"], [-10, "−10%"], [-20, "−20%"]]) + lvlChips("trigger", buy ? "high" : "low"), distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow();
+    else if (ty === "stop") fields = pfield("aor-trigger", buy ? "Buy when the price rises to" : "Sell when the price falls to", "trigger", S.spot ? fp(S.spot) : "0", quick("trigger", buy ? [[5, "+5%"], [10, "+10%"], [20, "+20%"]] : [[-5, "−5%"], [-10, "−10%"], [-20, "−20%"]]) + lvlChips("trigger", buy ? "high" : "low"), distHtml()) + field("aor-amount", "Amount", sym, F.amount) + pctRow();
     else if (ty === "tpsl") fields = field("aor-amount", "Amount", sym, F.amount) + pctRow() +
       field("aor-tp", "Take profit at", qs, F.tp, S.spot ? fp(S.spot * 1.2) : "0", quick("tp", [[10, "+10%"], [25, "+25%"], [50, "+50%"], [100, "+100%"]]) + lvlChips("tp", "high")) +
       field("aor-sl", "Stop loss at", qs, F.sl, S.spot ? fp(S.spot * 0.85) : "0", quick("sl", [[-5, "−5%"], [-10, "−10%"], [-15, "−15%"], [-25, "−25%"]]) + lvlChips("sl", "low"));
@@ -1174,6 +1253,9 @@
     const b0 = tk ? build() : { err: "" };
     const fat = armOf(b0);
     const armed = fat && S.fatArm === fat.key;
+    // v4: the side pill slides from where it was (the form is drawn anew on every change)
+    const slideFrom = !reduce && S.prevSide && S.prevSide !== S.side ? S.prevSide : null;
+    S.prevSide = S.side;
     const prog = S.steps && S.busy ? Math.round((S.steps.at / Math.max(1, S.steps.list.length)) * 100) : 0;
     const label = ty === "tpsl" ? tr("Place take-profit and stop-loss") : ty === "trail" ? tr("Place trailing stop") : ty === "twap" ? `${tr(buy ? "Start buying" : "Start selling")} ${sym}` : ty === "scaled" ? `${tr(buy ? "Place buy orders" : "Place sell orders")} · ${F.n}` : `${tr(buy ? "Buy" : "Sell")} ${sym}`;
     const btn = !tk ? `<button type="button" class="aor-submit" disabled>${T("Open a market first")}</button>`
@@ -1187,8 +1269,10 @@
       ${bracketDue()}
       ${S.editing ? `<div class="aor-editing"><span>${T("Editing an order — placing this one cancels the old one.")}</span><button type="button" class="aor-link" data-act="editcancel">${T("Stop editing")}</button></div>` : ""}
       ${presetRow()}
-      <div class="aor-side" role="radiogroup" aria-label="${T("Side")}" data-side="${S.side}"><i class="aor-side-pill" aria-hidden="true"></i><button type="button" role="radio" class="buy" data-setside="buy" aria-checked="${buy}"${sellOnly(ty) ? " disabled" : ""}>${T("Buy")}</button><button type="button" role="radio" class="sell" data-setside="sell" aria-checked="${!buy}">${T("Sell")}</button></div>
-      <div class="aor-types${pro ? "" : " simple"}" role="tablist">${TYPES_UI.filter(([k]) => SIMPLE_TYPES.includes(k) || k === ty).map(([k, l]) => `<button type="button" role="tab" data-type="${k}" aria-selected="${ty === k}">${T(l)}</button>`).join("")}${pro ? `<span class="aor-typew"><button type="button" class="aor-moretypes pro" data-act="types" aria-haspopup="menu" aria-expanded="${!!S.typesOpen}">${T("More types")} <span aria-hidden="true">▾</span></button>${S.typesOpen ? `<div class="aor-typepop" role="menu">${TYPES_UI.filter(([k]) => !SIMPLE_TYPES.includes(k)).map(([k, l]) => `<button type="button" role="menuitem" data-type="${k}" aria-selected="${ty === k}"><b>${T(l)}</b><small>${T(TYPE_TAG[k])}</small></button>`).join("")}</div>` : ""}</span>` : `<button type="button" class="aor-moretypes" data-mode="pro">${T("More types")} <span aria-hidden="true">+5</span></button>`}</div>
+      ${window.arcOrdersV4 ? window.arcOrdersV4.typeBox() : ""}
+      <div class="aor-side" role="radiogroup" aria-label="${T("Side")}" data-side="${slideFrom || S.side}"><i class="aor-side-pill" aria-hidden="true"></i><button type="button" role="radio" class="buy" data-setside="buy" aria-checked="${buy}"${sellOnly(ty) ? " disabled" : ""}>${T("Buy")}</button><button type="button" role="radio" class="sell" data-setside="sell" aria-checked="${!buy}"${S.pending ? " disabled" : ""}>${T("Sell")}</button></div>
+      ${S.pending ? `<div class="aor-gradf">${T("Limit buys only until it graduates — the pool's first price can be far from the curve's. Set the most you'd pay.")}</div>` : ""}
+      <div class="aor-types${pro ? "" : " simple"}${S.pending ? " pend" : ""}" role="tablist">${TYPES_UI.filter(([k]) => (SIMPLE_TYPES.includes(k) || k === ty) && (!S.pending || k === "limit")).map(([k, l]) => `<button type="button" role="tab" data-type="${k}" aria-selected="${ty === k}">${T(l)}</button>`).join("")}${S.pending ? "" : pro ? `<span class="aor-typew"><button type="button" class="aor-moretypes pro" data-act="types" aria-haspopup="menu" aria-expanded="${!!S.typesOpen}">${T("More types")} <span aria-hidden="true">▾</span></button>${S.typesOpen ? `<div class="aor-typepop" role="menu">${TYPES_UI.filter(([k]) => !SIMPLE_TYPES.includes(k)).map(([k, l]) => `<button type="button" role="menuitem" data-type="${k}" aria-selected="${ty === k}"><b>${T(l)}</b><small>${T(TYPE_TAG[k])}</small></button>`).join("")}</div>` : ""}</span>` : `<button type="button" class="aor-moretypes" data-mode="pro">${T("More types")} <span aria-hidden="true">+5</span></button>`}</div>
       ${ex ? `<div class="aor-ex">${explainSvg(ty, buy)}<span>${T(ex)}</span></div>` : ""}
       <button type="button" class="aor-avail" data-pct="100" title="${esc(RH() && sellTok === q && S.weth != null ? `WETH ${fmtU(S.weth, 18)} + ETH ${fmtU(S.eth || 0n, 18)}` : tr("Use all of it"))}"><small>${T("Available")}</small><b data-no-i18n>${bal != null ? `${fmtU(bal, sellTok.decimals)} ${esc(sellTok === tk ? sym : qs)}` : "—"}</b></button>
       ${RH() && LIVE() && S.weth != null && S.weth - openNeed(WETH()) > 10n ** 12n ? `<button type="button" class="aor-link aor-unwrap" data-act="unwrap">${T("Unwrap")} <span data-no-i18n>${fmtU(S.weth - openNeed(WETH()), 18)} WETH</span> ${T("to ETH")}</button>` : ""}
@@ -1202,6 +1286,7 @@
       <div class="aor-ffoot">${tk && LIVE() && connected ? `<button type="button" class="aor-link" data-act="presetsave">${T("Save as preset")}</button>` : ""}${pro && innerWidth > 720 ? `<span class="aor-keys" title="${T("Keyboard")}"><kbd>B</kbd><kbd>S</kbd> ${T("side")} · <kbd>Enter</kbd> ${T("place")} · <kbd>/</kbd> ${T("token")}</span>` : ""}</div>
       <div id="aor-msg">${S.msg ? `<div class="aor-msg ${S.msg.k}">${S.msg.html || T(S.msg.t)}</div>` : ""}</div>`;
     const sl = $("aor-slider"); if (sl) sl.style.setProperty("--v", (S.pct || 0) + "%");
+    if (slideFrom) { const sd = el.querySelector(".aor-side"), sb = $("aor-submit"); if (sb) sb.classList.add("from-" + slideFrom); requestAnimationFrame(() => requestAnimationFrame(() => { if (sd) sd.dataset.side = S.side; if (sb) sb.classList.remove("from-" + slideFrom); })); }
     // on a phone the form lives in a sheet: results of actions taken outside it come as a toast
     if (S.msg && S.msg !== S.toasted && innerWidth <= 720 && !S.sheet && (S.msg.k === "ok" || S.msg.k === "bad")) { S.toasted = S.msg; const d = document.createElement("div"); d.innerHTML = S.msg.html || T(S.msg.t); toast(d.textContent, S.msg.k === "bad" ? "bad" : "fill"); }
   }
@@ -1210,6 +1295,36 @@
   function totalSub() {
     const v = Number(F.total); if (!(v > 0) || !S.quote) return "";
     return RH() && S.ethUsd > 0 && S.usdIn ? `<small class="aor-usd" data-no-i18n>≈ ${esc(num(v))} ${esc(S.quote.symbol)}</small>` : usdTag(v);
+  }
+  // v4: market-cap prices — the token's supply times the price, in dollars (USDC on Arc; ETH at the server's rate on
+  // Robinhood Chain). The order itself is still signed at a price per token.
+  const qUsd = () => (RH() ? (S.ethUsd > 0 ? S.ethUsd : null) : 1);
+  const mcapOf = (p) => (p > 0 && S.supply > 0 && qUsd() ? p * S.supply * qUsd() : null);
+  const mcOk = () => mcapOf(1) != null;
+  const usdBig = (n) => (n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : usd(n));
+  const pxShown = (k) => (S.mcapIn && mcOk() ? (Number(F[k]) > 0 ? String(Number(mcapOf(Number(F[k])).toPrecision(6))) : "") : F[k]);
+  const pxSub = (k) => {
+    const v = Number(F[k]);
+    if (!(v > 0) || !mcOk()) return "";
+    const L3 = (en, ko, zh) => (lang() === "ko" ? ko : lang() === "zh" ? zh : en);
+    return S.mcapIn ? `<small class="aor-usd" data-no-i18n>= ${esc(fp(v))} ${esc(S.quote.symbol)} ${esc(L3("per token", "(토큰당)", "（每个代币）"))}</small>` : `<small class="aor-usd" data-no-i18n>${esc(L3("market cap", "시가총액", "市值"))} ≈ ${esc(usdBig(mcapOf(v)))}</small>`;
+  };
+  async function loadSupply() {
+    const t = S.t, prov = rp();
+    if (!S.tok || !prov) return;
+    try {
+      const v = await new ethers.Contract(S.tok.address, ["function totalSupply() view returns (uint256)"], prov).totalSupply();
+      if (t === S.t) S.supply = human(v, S.tok.decimals);
+    } catch { /* no market cap for this one */ }
+  }
+  /// v4: a market order with a large price impact, as a timed order instead (same amount, 12 parts over 6 hours)
+  function toDca() {
+    const buy = S.side === "buy";
+    if (!PRO()) { store.set(MK, "pro"); panel.classList.remove("aor-simple"); }
+    S.type = "twap"; F.dur = "21600"; F.parts = "12"; F.cap = ""; S.msg = null;
+    if (!buy && !F.amount) F.amount = "";
+    form(); requote(); flashField();
+    toast(tr("Switched to Timed (DCA)"), "", tr("12 parts over 6 hours — change it below."));
   }
   const riskOn = () => !!(S.scan && ((S.scan.crit && S.scan.crit.length) || S.scan.k === "risk" || S.scan.k === "bad"));
   const armOf = (b) => ((b && b.warn) || []).find((w) => w.k === "fat" || (w.k === "risk" && w.arm));
@@ -1412,6 +1527,7 @@
       return `${say()}<div class="aor-sl"><span>${T("Estimated")}</span><b data-no-i18n>${est != null ? `${fmtU(net(est), o.buy.decimals)} ${esc(sym(o.buy))}` : "…"}</b></div>
         <div class="aor-sl"><span>${T("You receive at least")}</span><b data-no-i18n>${est != null ? `${fmtU(minNet(est, o.slip), o.buy.decimals)} ${esc(sym(o.buy))}` : "—"}</b></div>
         ${impact != null ? `<div class="aor-sl dim"><span>${T("Price impact")}</span><b data-no-i18n class="${impact > 5 ? "warn" : ""}">${pc(impact)}</b></div>` : ""}
+        ${impact != null && impact > 3 ? `<div class="aor-dca"><span>${T("That moves the price a lot. Split it into 12 parts over 6 hours instead?")}</span><button type="button" class="aor-btn sm go" data-act="todca">${T("Use Timed (DCA)")}</button></div>` : ""}
         <div class="aor-sl ${feeRow().cls}"><span>${T("Fee")}</span><b data-no-i18n>${esc(feeRow().v)}</b></div>${feeHint()}${warns}`;
     }
     const kind = o.kind ? `<div class="aor-kind ${o.kind}"><i></i><span>${T(o.kind === "taker" ? "Fills now (taker)" : "Waits in the book (maker)")}</span>${o.kind === "taker" ? `<button type="button" class="aor-link" data-type="market">${T("Use Market instead")}</button>` : ""}</div>` : "";
@@ -1589,6 +1705,7 @@
         S.msg = { k: "ok", t: { stop: "Stop order placed — it waits for its trigger.", tpsl: "Take-profit and stop-loss placed — when one fills, the other is cancelled.", trail: "Trailing stop placed — it follows the price up.", twap: "Timed order placed — the first part fills once it's released.", scaled: "Scaled orders placed — each fills as soon as a wallet or the pool meets its price." }[S.type] || (F.brk && S.side === "buy" ? "Order placed — when it fills, set its take-profit and stop-loss here." : "Order placed — it fills as soon as a wallet or the pool meets your price.") };
         store.set(LASTK, snap);
         const flyPrice = S.type === "limit" ? Number(F.price) : null;
+        if (flyPrice > 0) S.drop = { p: flyPrice, at: Date.now(), t0: 0 };
         F.amount = ""; F.total = ""; S.pct = 0;
         if (S.tpslFrom) { store.set(BRK, brackets().filter((x) => x.h !== S.tpslFrom)); S.tpslFrom = null; }
         flyToMine(flyPrice);
@@ -1696,14 +1813,17 @@
       const brk = brackets().some((x) => x.h === o.hash) ? `<em class="aor-leg brk" title="${T("A take-profit and stop-loss wait for this buy to fill")}" data-no-i18n>TP/SL</em>` : "";
       const pf = S.prevPct && S.prevPct.get(o.hash);
       const oc = o._ch, ex = soon(o), chTag = S.myScope === "both" ? `<em class="aor-chtag ${oc || CH}" data-no-i18n>${(oc || CH) === "rh" ? "RH" : "ARC"}</em>` : "";
-      return `<div class="aor-mr${S.pulse && S.pulse.has(o.hash) ? " pulse" : ""}${oc ? " other" : ""}${ex ? " soon" : ""}" data-h="${esc(o.hash)}" data-tk="${esc(tk.address)}">
+      // v4: an open order whose price is within 1% of the pool's breathes
+      const near = isOpen(o) && !oc && S.spot && px > 0 && lc(tk.address) === S.t && (o.type === "limit" || o.type === "stop" || o.type === "trail") && Math.abs(px - S.spot) / S.spot < 0.01;
+      const menu = isOpen(o) && st !== "expired" && !oc ? [o.type === "limit" && !o.group && LIVE() && !ex ? `<button type="button" class="aor-btn sm ghost" role="menuitem" data-act="edit">${T("Edit")}</button>` : "", LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" role="menuitem" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("Cancel on-chain")}</button>` : ""].join("") : "";
+      return `<div class="aor-mr${S.pulse && S.pulse.has(o.hash) ? " pulse" : ""}${S.pulse && S.pulse.has(o.hash) && o.status === "filled" ? " done" : ""}${oc ? " other " + oc : ""}${ex ? " soon" : ""}${near ? " near" : ""}${S.rowMenu === o.hash ? " menu-open" : ""}" data-h="${esc(o.hash)}" data-tk="${esc(tk.address)}">
         <span class="aor-mr-m">${oc ? `<button type="button" class="aor-link" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}" data-no-i18n>$${esc(tk.symbol)}/${esc(q.symbol)}</button>` : `<button type="button" class="aor-link" data-t="${esc(tk.address)}" data-no-i18n>$${esc(tk.symbol)}/${esc(q.symbol)}</button>`}<small>${chTag}${ago(o.at)}</small></span>
         <span class="aor-mr-t ${o.side === "buy" ? "up" : "dn"}">${T(o.side === "buy" ? "Buy" : "Sell")} · ${T(TYPE_NAME[o.type] || o.type)}${leg}${brk}</span>
         <span data-no-i18n>${fp(px)}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
         <span data-no-i18n>${num(amt)}${amtSym ? ` ${esc(amtSym)}` : ""}</span>
         <span class="aor-mr-f">${o.type === "twap" && o.twap ? twapBar(o) : `${ring(o.filledPct, pf)}<small data-no-i18n>${(o.filledPct || 0).toFixed(o.filledPct > 0 && o.filledPct < 1 ? 2 : 0)}%</small>`}</span>
         <span class="aor-st ${st}">${T(STATUS[st] || st)}${ex ? `<em class="aor-soon">${T("expires in")} <span data-no-i18n>${inT(o.expiry)}</span></em>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</span>
-        <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}${o.type === "limit" && !o.group && LIVE() && !ex ? `<button type="button" class="aor-btn sm ghost" data-act="edit">${T("Edit")}</button>` : ""}<button type="button" class="aor-btn sm" data-act="cancel">${T("Cancel")}</button>${LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("On-chain")}</button>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
+        <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}<button type="button" class="aor-btn sm aor-cx1" data-act="cancel">${T("Cancel")}</button>${menu ? `<span class="aor-rmw"><button type="button" class="aor-btn sm ghost aor-rm" data-act="rowmenu" aria-haspopup="menu" aria-expanded="${S.rowMenu === o.hash}" aria-label="${T("More actions")}" title="${T("More actions")}"><span aria-hidden="true">⋯</span></button><span class="aor-rmenu" role="menu"${S.rowMenu === o.hash ? "" : " hidden"}>${menu}</span></span>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
       </div>`;
     }).join("")}</div>${hidden ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : S.myTab === "history" && S.showCx && S.histF === "all" ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Hide cancelled")}</button>` : ""}`;
     S.prevPct = new Map(all.map((o) => [o.hash, o.filledPct || 0]));
@@ -1712,6 +1832,7 @@
   /// why an order isn't filling (or didn't)
   function whyNot(o, st) {
     if (o.note === "oco") return tr("its pair filled");
+    if (o.pending && st === "open") return tr("waits for its pool — it opens when the token graduates from Pons");
     if (st === "unfunded") return tr("top up the balance or the approval — it fills from where it left off");
     if (o.retry && st === "open") return `${tr("retrying in")} ${inT(o.retry.next)}${o.retry.why ? " · " + String(o.retry.why).slice(0, 60) : ""}`;
     if (st === "expired" && !(o.filledPct > 0)) return tr(o.type === "stop" ? "the price never reached the trigger" : o.type === "limit" ? "the price never reached it" : "it ran out of time");
@@ -1963,6 +2084,8 @@
       else if (o.trail && o.trail.armed && !(b.trail && b.trail.armed)) msg = `${sym}: ${tr("trailing stop triggered — selling")}`;
       if (msg) { S.pulse.add(o.hash); toast(msg, "fill", (o.filledPct || 0) > (b.filledPct || 0) ? fillLine(o, b) : ""); notify("ARCIRCLE Orders", msg); }
       if ((o.filledPct || 0) > (b.filledPct || 0) && !reduce) S.burst = true;
+      // v4: the fill moment — a sound / haptic where the site has them (arcFeedback), the row lights up below
+      if ((o.filledPct || 0) > (b.filledPct || 0) && typeof window.arcFeedback === "function") { try { window.arcFeedback(o.status === "filled" ? "milestone" : o.side === "buy" ? "buy" : "sell"); } catch { /* fine */ } }
     }
     bracketCheck(next);
     if (S.burst) { S.burst = false; setTimeout(() => { const t = document.querySelector("#aor-toasts .aor-toast.fill:last-child"); const r = t ? t.getBoundingClientRect() : null; confetti(r ? r.left + 24 : innerWidth - 60, r ? r.top + 10 : innerHeight - 120); celebrate(); }, 60); }
@@ -2068,7 +2191,7 @@
   function onInput(e) {
     if (SOLC()) return;
     const id = e.target.id;
-    if (id === "aor-pool") { S.pi = Number(e.target.value) || 0; S.spot = pool().price; S.candles = null; S.tax = null; Promise.all([loadSpot(), loadCandles()]).then(() => { market(); bookView(); chartView(); form(); loadTax().then(() => { market(); form(); }); }); return; }
+    if (id === "aor-pool") { S.pi = Number(e.target.value) || 0; S.spot = pool().price; S.candles = null; S.tax = null; Promise.all([loadSpot(), loadCandles(), loadPoolL()]).then(() => { market(); bookView(); chartView(); form(); loadTax().then(() => { market(); form(); }); }); return; }
     if (id === "aor-prec") { S.prec = Number(e.target.value) || 0; S.prevLevels = new Map(); bookView(); if (S.center === "depth") chartView(); return; }
     if (id === "aor-exp") { F.expiry = e.target.value; return; }
     if (id === "aor-mq") { if (e.type !== "input") return; S.mq = e.target.value; marketsView(); return; }
@@ -2090,7 +2213,9 @@
     const map = { "aor-price": "price", "aor-amount": "amount", "aor-total": "total", "aor-trigger": "trigger", "aor-tp": "tp", "aor-sl": "sl", "aor-floor": "floor", "aor-cap": "cap", "aor-lo": "lo", "aor-hi": "hi", "aor-btp": "btp", "aor-bsl": "bsl" };
     if (!map[id] || e.type !== "input") return;
     if (id === "aor-total" && RH() && S.ethUsd > 0 && S.usdIn) { const u = Number(String(e.target.value).replace(/,/g, "")); F.total = u > 0 ? dstr(u / S.ethUsd, S.quote ? S.quote.decimals : 18) : ""; }
+    else if ((id === "aor-price" || id === "aor-trigger") && S.mcapIn && mcOk()) { const m = Number(String(e.target.value).replace(/,/g, "")); F[map[id]] = m > 0 ? dstr(m / S.supply / qUsd()) : ""; }
     else F[map[id]] = e.target.value;
+    if (id === "aor-price" || id === "aor-trigger") { const mc = $(id + "-mc"); if (mc) mc.innerHTML = pxSub(map[id]); }
     if (S.fatArm) { S.fatArm = null; const sb = $("aor-submit"); if (sb && sb.classList.contains("armed")) { sb.classList.remove("armed"); sb.textContent = tr("Check the price, then place"); } }
     if (map[id] === "price" || map[id] === "trigger") distPaint();
     if (map[id] === "amount" || map[id] === "total") S.pct = 0;
@@ -2142,18 +2267,24 @@
       return;
     }
     if (d.left) { S.left = d.left; seg("left", d.left); bookView(); return; }
-    if (d.center) { S.center = d.center; seg("center", d.center); chartView(); return; }
+    if (d.center) { S.center = d.center; seg("center", d.center); if (d.center !== "dex") { panel.querySelectorAll("button[data-mt]").forEach((x) => { if (x.dataset.mt === "chart" || x.dataset.mt === "depth") x.setAttribute("aria-selected", String(x.dataset.mt === d.center)); }); } chartView(); return; }
     if (d.tf) { S.tf = Number(d.tf); panel.querySelectorAll("[data-tf]").forEach((x) => x.setAttribute("aria-pressed", String(Number(x.dataset.tf) === S.tf))); draw(); return; }
     if (d.my) { S.myTab = d.my; seg("my", d.my); mineView(); return; }
     if (d.scope) { S.myScope = d.scope; panel.querySelectorAll("[data-scope]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.scope === S.myScope))); mineView(); if (d.scope === "both") loadOther().then(mineView); return; }
     if (d.mt) {
-      seg("mt", d.mt); $("aor-grid").dataset.mt = d.mt;
-      if (d.mt === "trades" || d.mt === "book") { S.left = d.mt; seg("left", d.mt); bookView(); } else draw();
+      // v4: one row on a phone — Chart and Depth share the chart card, Book and Trades the book's
+      seg("mt", d.mt); $("aor-grid").dataset.mt = d.mt === "depth" ? "chart" : d.mt;
+      if (d.mt === "trades" || d.mt === "book") { S.left = d.mt; seg("left", d.mt); bookView(); }
+      else { S.center = d.mt === "depth" ? "depth" : "chart"; seg("center", S.center); chartView(); }
       return;
     }
     if (d.alertdel != null) { const list = alertsFor(S.t), x = list[Number(d.alertdel)]; if (x && x.tg) tgSync(x, true); store.set(AK, alertsAll().filter((a) => a !== x && !(a.t === x.t && a.price === x.price && a.dir === x.dir))); market(); return; }
     const act = d.act;
     if (act === "types") { S.typesOpen = !S.typesOpen; form(); return; }
+    if (act === "statmore") { S.statsMore = !S.statsMore; market(); return; }
+    if (act === "mcapin") { S.mcapIn = !S.mcapIn; store.set("arcircle.orders.mcapin", S.mcapIn); form(); const f0 = $(S.type === "stop" ? "aor-trigger" : "aor-price"); if (f0) f0.focus(); return; }
+    if (act === "todca") { toDca(); return; }
+    if (act === "rowmenu") { const r = b.closest("[data-h]"); S.rowMenu = r && S.rowMenu !== r.dataset.h ? r.dataset.h : null; mineView(); return; }
     if (act === "usdin") { S.usdIn = !S.usdIn; try { localStorage.setItem("arcircle.orders.usdin", S.usdIn ? "1" : "0"); } catch { /* fine */ } form(); const t0 = $("aor-total"); if (t0) t0.focus(); return; }
     if (act === "csv") { csv(); return; }
     if (act === "extend") { const r = b.closest("[data-h]"); if (r) extend(r.dataset.h); return; }
@@ -2178,6 +2309,7 @@
     if (act === "editcancel") { S.editing = null; form(); return; }
     if (act === "cancel" || act === "cancelchain" || act === "edit" || act === "share") {
       const r = b.closest("[data-h]"); if (!r) return;
+      S.rowMenu = null;
       if (act === "edit") edit(r.dataset.h); else if (act === "share") shareImg(r.dataset.h); else cancel(r.dataset.h, act === "cancelchain");
       return;
     }
@@ -2205,6 +2337,7 @@
     // the price-alert popover closes on a click elsewhere
     if (S.alertsOpen && e.target && e.target.isConnected && !e.target.closest(".aor-alertw")) { S.alertsOpen = false; S.alDraft = null; market(); }
     if (S.typesOpen && e.target && e.target.isConnected && !e.target.closest(".aor-typew")) { S.typesOpen = false; form(); }
+    if (S.rowMenu && e.target && e.target.isConnected && !e.target.closest(".aor-rmw")) { S.rowMenu = null; mineView(); }
   });
 
   // ---------------- boot ----------------
@@ -2217,7 +2350,7 @@
     await loadBook();
     if (n % 2 === 0) { await loadSpot(); checkAlerts(); }
     if (n % 3 === 0 && acct) { await Promise.all([loadMine(), loadBal(), S.myScope === "both" && (!S.other || Date.now() - S.other.at > 60e3) ? loadOther() : null]); mineView(); if (!S.busy && !panel.querySelector(".aor-formc input:focus")) form(); }
-    if (n % 6 === 0) { await Promise.all([loadCandles(), loadStatus()]); }
+    if (n % 6 === 0) { await Promise.all([loadCandles(), loadStatus(), S.center === "depth" ? loadPoolL() : null]); }
     if (n % 60 === 0) { await Promise.all([loadScan(), loadDesk()]); }
     if (n % 12 === 0) loadMarkets();
     market(); bookView(); draw(); strip();
@@ -2247,5 +2380,7 @@
   });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (!SOLC() && S.t) { market(); bookView(); form(); } } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
-  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH, fp, num, toast, live: LIVE };
+  // v4: arc-orders-v4.js (watchlist, "type an order", Web Push, the phone's layout) works through these
+  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH, fp, num, toast, live: LIVE,
+    render: () => { form(); requote(); }, redraw: () => { market(); bookView(); chartView(); mineView(); }, favs, recent, me, viewOf, unlock, pc, usd, mcapOf, qUsd, sellOnly, PRO, setMode: (m) => { store.set(MK, m); panel.classList.toggle("aor-simple", m !== "pro"); } };
 })();

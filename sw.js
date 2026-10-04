@@ -3,6 +3,7 @@
 //   ?v= files  cache first — the version in the URL changes on every deploy, so they never go stale;
 //              older versions of the same file are dropped when a new one is stored
 //   /api/*, wallet and chain traffic, other sites: never touched
+//   push       v4: ARCIRCLE Orders notifications (fills, stops, price alerts), a tap opens the market
 const CACHE = "arc-sw-1";
 const OFFLINE = "/offline.html";
 self.addEventListener("install", (e) => {
@@ -36,4 +37,23 @@ self.addEventListener("fetch", (e) => {
       return res;
     }))));
   }
+});
+// v4 (ARCIRCLE Orders): Web Push — a fill, a triggered stop or a price alert from the executor (api/_webpush.mjs).
+// Only same-site paths open on a tap.
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; }
+  const url = typeof d.url === "string" && d.url.startsWith("/") && !d.url.startsWith("//") ? d.url : "/arc#orders";
+  e.waitUntil(self.registration.showNotification(String(d.title || "ARCIRCLE Orders").slice(0, 120), {
+    body: String(d.body || "").slice(0, 300), icon: "/images/icon-192.png", badge: "/images/icon-192.png", tag: d.tag ? String(d.tag).slice(0, 80) : undefined, renotify: !!d.tag, data: { url },
+  }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/arc#orders";
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+    const hit = cs.find((c) => new URL(c.url).origin === location.origin);
+    if (hit) { hit.focus(); return hit.navigate ? hit.navigate(url).catch(() => null) : null; }
+    return self.clients.openWindow(url);
+  }));
 });

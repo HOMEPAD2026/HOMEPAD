@@ -37,6 +37,7 @@ import * as ORD from "./_orders.mjs";
 import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
 import * as VEA from "./_vearcia.mjs";
+import * as WP from "./_webpush.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -1237,8 +1238,14 @@ async function ordersNotifyOn(X, T, s, c, out) {
     if (T[SEQ] == null) T[SEQ] = ev.seq; // first look: start from now
     else {
       const subsO = s.orders || {};
+      // v4: makers whose browsers subscribed to Web Push get the same news there (VAPID keys set in Vercel)
+      const wp = WP.vapid() ? new Set(await WP.wallets(store()).catch(() => [])) : new Set();
       for (const e of ev.list.slice(-30)) {
         const ids = subsO[lc(e.maker)];
+        if (wp.has(lc(e.maker))) {
+          const n = await pushOrderEvent(e, rh).catch(() => 0);
+          out.orderPush = (out.orderPush || 0) + n;
+        }
         if (!ids || !ids.length) continue;
         const sym = `$${h(e.sym || "?")}${rh ? " (Robinhood)" : ""}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order";
         const text = e.kind === "fill" ? `✅ <b>${e.done ? "Filled" : "Part filled"}</b> · ${side} ${sym} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})\n${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")}${e.done ? "" : ` · ${e.pct}% so far`}`
@@ -1252,12 +1259,15 @@ async function ordersNotifyOn(X, T, s, c, out) {
       T[SEQ] = ev.seq;
     }
   }
-  // v3: price alerts set on the Orders page, for wallets with /orderalerts on (each fires once)
-  const subsA = Object.keys(s.orders || {});
+  // v3: price alerts set on the Orders page, for wallets with /orderalerts on (each fires once); v4: and wallets
+  // whose browsers subscribed to Web Push
+  const wpA = WP.vapid() ? await WP.wallets(store()).catch(() => []) : [];
+  const subsA = [...new Set([...Object.keys(s.orders || {}), ...wpA])];
   if (subsA.length) {
     const due = await X.alertsDue(subsA, { store: store() }).catch(() => []);
     for (const a of due.slice(0, 40)) {
       const sym = `$${h(a.sym || "?")}${rh ? " (Robinhood)" : ""}`, q = rh ? "ETH" : "USDC";
+      if (wpA.includes(a.wallet)) out.orderPush = (out.orderPush || 0) + await WP.toWallet(store(), a.wallet, { title: `Price alert · $${a.sym || "?"}`, body: `${a.dir === "up" ? "Rose to" : "Fell to"} ${fmtPrice(a.now)} ${q}${rh ? " on Robinhood Chain" : ""} — your alert was ${a.dir === "up" ? "at or above" : "at or below"} ${fmtPrice(a.price)}`, url: `/arc#orders?t=${a.t}${rh ? "&c=rh" : ""}`, tag: `al-${a.t}` }).catch(() => 0);
       const text = `🔔 <b>Price alert</b> · ${sym} ${a.dir === "up" ? "rose to" : "fell to"} <b>${fmtPrice(a.now)} ${q}</b>\nYour alert: ${a.dir === "up" ? "at or above" : "at or below"} ${fmtPrice(a.price)} ${q}`;
       for (const id of (s.orders || {})[a.wallet] || []) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[{ text: "Open the market", url: `${SITE}/arc#orders?t=${a.t}${rh ? "&c=rh" : ""}` }]]) }).catch(() => null);
       out.priceAlerts = (out.priceAlerts || 0) + 1;
@@ -1270,6 +1280,17 @@ async function ordersNotifyOn(X, T, s, c, out) {
     for (const a of c.admins) await tg("sendMessage", { chat_id: a, parse_mode: "HTML", text: `⚠️ <b>ARCIRCLE Orders executor${rh ? " · Robinhood Chain" : ""}</b>: ${why}` }).catch(() => null);
     out.ordersWarn = true;
   }
+}
+
+/// v4: one executor event as a Web Push message (plain text — the same news the Telegram DM carries)
+async function pushOrderEvent(e, rh) {
+  const sym = `$${e.sym || "?"}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order", chain = rh ? " · Robinhood Chain" : "";
+  const m = e.kind === "fill" ? { title: `${e.done ? "Filled" : "Part filled"} · ${side} ${sym}`, body: `${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${e.qsym || ""} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})${e.done ? "" : ` · ${e.pct}% so far`}${chain}` }
+    : e.kind === "stop" ? { title: `Stop triggered · ${sym}`, body: `At ${fmtPrice(e.price)} — selling at market, never below your limit${chain}` }
+    : e.kind === "trail" ? { title: `Trailing stop triggered · ${sym}`, body: `Fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now${chain}` }
+    : e.kind === "oco" ? { title: `Other leg cancelled · ${sym}`, body: `Its pair filled${chain}` } : null;
+  if (!m) return 0;
+  return WP.toWallet(store(), e.maker, { ...m, url: `/arc#orders?t=${e.token}${rh ? "&c=rh" : ""}`, tag: `${e.kind}-${e.h || e.token}` });
 }
 
 /// claim alerts for one's own linked wallet: a new root gives them something to claim, or the claim window is closing

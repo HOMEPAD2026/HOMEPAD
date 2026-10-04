@@ -15755,3 +15755,163 @@ body.cp5-modal-open{overflow:hidden;}
   .cp5-keys-v.ok{color:#9dffc6;}
   .cp5-keys-v::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:currentColor;vertical-align:1px;}
 }
+/* ============ ARCIRCLE Orders v4 (arc-orders.js, arc-orders-v4.js) ============ */
+/* chain colours: Arc blue, Robinhood lime, Solana purple */
+#bp-panel-orders{--aor-ch:#4dd4ff;--aor-ch-a:rgba(77,212,255,.28);}
+#bp-panel-orders[data-ch="rh"]{--aor-ch:#c6ff3d;--aor-ch-a:rgba(198,255,61,.26);}
+#bp-panel-orders[data-ch="sol"]{--aor-ch:#a970ff;--aor-ch-a:rgba(169,112,255,.3);}
+#bp-panel-orders .aor-bar{box-shadow:inset 0 2px 0 var(--aor-ch-a);}
+#bp-panel-orders .aor-chip.on{border-color:var(--aor-ch);box-shadow:0 0 0 1px var(--aor-ch-a);}
+#bp-panel-orders .aor-tape-l i{background:var(--aor-ch);box-shadow:0 0 0 3px var(--aor-ch-a);}
+#bp-panel-orders .aor-tk{border-left:2px solid var(--aor-ch-a);}
+.aor-chtag.arc{background:#4dd4ff;}.aor-chtag.rh{background:#c6ff3d;}.aor-chtag.sol{background:#a970ff;color:#fff;}
+.aor-mr.other.arc{box-shadow:inset 3px 0 0 rgba(77,212,255,.7);}
+.aor-mr.other.rh{box-shadow:inset 3px 0 0 rgba(198,255,61,.7);}
+/* the price strip: a full-width bar under the site header, not a floating pill over section titles */
+.aor-strip{left:0;right:0;max-width:none !important;transform:none;border-radius:0;border-width:0 0 1px;border-color:var(--aor-ch-a,rgba(77,212,255,.25));background:rgba(5,12,19,.96);padding:7px max(16px,calc((100vw - 1240px) / 2));box-shadow:0 10px 24px rgba(0,0,0,.4);animation:aorStripIn4 .28s cubic-bezier(.2,.9,.3,1);}
+@keyframes aorStripIn4{from{opacity:0;transform:translateY(-100%);}to{opacity:1;transform:none;}}
+.aor-strip .aor-strip-go{margin-left:auto;}
+/* toasts: at the bottom on every width, above the floating bars — never over the hero; on a wide screen at the
+   content's left (over the book's lower rows, not the order form) */
+.aor-toasts{top:auto;bottom:calc(max(var(--ax-float-space,24px),84px) + 8px);}
+@media (min-width:1201px){ .aor-toasts{top:auto;right:auto;left:calc(var(--aor-cl,252px) + 4px);bottom:calc(max(var(--ax-float-space,24px),84px) + 8px);} }
+/* the sticky order form leaves room for the price strip when it's showing */
+@media (min-width:901px){ .aor-formc{top:calc(88px + var(--aor-sh,0px)) !important;max-height:calc(100vh - 104px - var(--aor-sh,0px)) !important;transition:top .25s ease;} }
+/* the market bar: compact on narrow screens, the rest behind More */
+.aor-statmore{display:none;align-self:center;justify-self:start;padding:5px 10px;border-radius:99px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#c9d4de;font:700 .66rem Sora,sans-serif;cursor:pointer;}
+.aor-statmore:hover{border-color:var(--aor-ch);color:#fff;}
+@media (max-width:900px){ .aor-stats:not(.more) .aor-stat.x{display:none;} .aor-statmore{display:inline-flex;gap:4px;} }
+.aor-stat.big{border-radius:10px;}
+.aor-stat.big.tick-up{animation:aorTickUp 1.1s ease-out;}
+.aor-stat.big.tick-dn{animation:aorTickDn 1.1s ease-out;}
+@keyframes aorTickUp{0%{background:rgba(57,255,136,.2);box-shadow:0 0 0 6px rgba(57,255,136,.2);}100%{background:transparent;box-shadow:0 0 0 6px transparent;}}
+@keyframes aorTickDn{0%{background:rgba(255,110,90,.2);box-shadow:0 0 0 6px rgba(255,110,90,.2);}100%{background:transparent;box-shadow:0 0 0 6px transparent;}}
+/* a Pons token before its graduation */
+.aor-grad,.aor-gradf{display:grid;gap:3px;margin-top:10px;padding:10px 12px;border-radius:12px;font-size:.74rem;line-height:1.45;color:#e9ffd0;background:linear-gradient(95deg,rgba(198,255,61,.1),rgba(57,255,136,.05));border:1px solid rgba(198,255,61,.3);}
+.aor-grad b{font:800 .78rem Sora,sans-serif;color:#d9ff8a;}
+.aor-mkt>.aor-grad{grid-column:1 / -1;margin-top:0;}
+.aor-gradf{margin:0 0 10px;}
+.aor-types.pend{grid-template-columns:1fr;}
+/* market-cap prices, how often a price traded, the DCA suggestion */
+.aor-unit.mc{white-space:nowrap;}
+.aor-mcx{display:block;min-height:0;margin-top:3px;}
+.aor-mcx:empty{display:none;}
+.aor-mcx small,.aor-touch{font:600 .64rem var(--or-mono);color:#8fa3b3;}
+.aor-touch{display:inline-block;margin-left:6px;font-family:Inter,sans-serif;}
+.aor-touch b{font:700 .64rem var(--or-mono);color:#dfe8f1;}
+.aor-touch.none{color:#c9a46a;}
+.aor-dca{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0;padding:9px 10px;border-radius:11px;font-size:.72rem;line-height:1.4;color:#ffe2b3;background:rgba(255,200,97,.08);border:1px solid rgba(255,200,97,.35);animation:aorPopIn .3s ease-out;}
+.aor-dca .aor-btn{flex:none;}
+@keyframes aorPopIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+/* "type an order" */
+.aor-typeo{margin:0 0 10px;}
+.aor-typeo-in{display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:11px;background:rgba(0,0,0,.28);border:1px dashed rgba(255,255,255,.14);transition:border-color .2s,background .2s;}
+.aor-typeo-in:focus-within{border-style:solid;border-color:var(--aor-ch);background:rgba(0,0,0,.4);}
+.aor-typeo-in svg{flex:none;width:15px;height:15px;fill:none;stroke:#8fa3b3;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.aor-typeo-in input{flex:1;min-width:0;height:34px;border:0;background:none;color:#eef3f7;font:500 .76rem var(--or-mono);outline:none;}
+.aor-typeo-in input::placeholder{color:#6f7e8a;font-family:Inter,sans-serif;}
+.aor-typeo-p{min-height:0;padding:4px 2px 0;font-size:.68rem;line-height:1.45;color:#8fa3b3;}
+.aor-typeo-p:empty{display:none;}
+.aor-typeo-p .ok{color:#bfe9ff;}.aor-typeo-p .ok b{color:#fff;}
+.aor-typeo-p .bad{color:#ffb4a8;}
+.aor-typeo-p code{margin-right:4px;padding:1px 5px;border-radius:5px;background:rgba(255,255,255,.06);color:#cfe3ef;font-size:.64rem;}
+/* the watchlist */
+.aor-watch{margin-top:10px;border-radius:13px;border:1px solid rgba(255,214,102,.18);background:rgba(255,214,102,.03);overflow:hidden;}
+.aor-watch[hidden]{display:none;}
+.aor-watch-h{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:0;background:none;color:#e9eef2;font:700 .74rem Sora,sans-serif;cursor:pointer;text-align:left;}
+.aor-watch-h .aor-star{color:#ffd666;font-style:normal;}
+.aor-watch-h em{font-style:normal;font:700 .62rem var(--or-mono);padding:1px 6px;border-radius:99px;background:rgba(255,214,102,.14);color:#ffe7a3;}
+.aor-watch-h small{flex:1;font:500 .62rem Inter,sans-serif;color:#7f8d99;}
+.aor-watch-l{display:grid;border-top:1px solid rgba(255,255,255,.05);}
+.aor-wr{display:grid;grid-template-columns:minmax(70px,1.2fr) 1fr .7fr 1fr .7fr;gap:8px;align-items:center;padding:7px 12px;border:0;border-top:1px solid rgba(255,255,255,.04);background:none;color:#dfe8f1;font:500 .72rem var(--or-mono);text-align:left;cursor:pointer;transition:background .2s;}
+.aor-wr:first-child{border-top:0;}
+.aor-wr:hover,.aor-wr.on{background:rgba(255,255,255,.04);}
+.aor-wr.on{box-shadow:inset 2px 0 0 var(--aor-ch);}
+.aor-wr b{font:800 .74rem Sora,sans-serif;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.aor-wr-p i{font-style:normal;margin-left:3px;color:#7f8d99;}
+.aor-wr em{font-style:normal;}.aor-wr em.up{color:var(--or-up);}.aor-wr em.dn{color:var(--or-dn);}
+.aor-wr-n{font-family:Inter,sans-serif;font-size:.66rem;color:#9fb0bd;}
+.aor-wr-n i{font-style:normal;font:700 .7rem var(--or-mono);color:#fff;}
+.aor-wr-n small{color:#6f7e8a;}
+.aor-wr-d{text-align:right;color:#9fb0bd;}
+.aor-wr-d.up{color:var(--or-up);}.aor-wr-d.dn{color:var(--or-dn);}
+.aor-wr-d.hot{color:#ffd666;animation:aorHot 1.4s ease-in-out infinite;}
+@keyframes aorHot{50%{opacity:.45;}}
+@media (max-width:720px){ .aor-watch-h small{display:none;} .aor-wr{grid-template-columns:minmax(0,1.1fr) 1fr .8fr .7fr;} .aor-wr-n{display:none;} }
+/* the depth chart's pool curve */
+.aor-d-pool{fill:none;stroke:#8fdcff;stroke-width:1.6;stroke-dasharray:5 4;opacity:.75;}
+.aor-d-key .pool{color:#8fdcff;}
+.aor-d-key .pool::before{content:"";display:inline-block;width:14px;height:0;margin-right:6px;vertical-align:3px;border-top:2px dashed #8fdcff;}
+/* the book's bars grow from their last width */
+.aor-lv.grow::before{animation:aorBarGrow .55s cubic-bezier(.2,.8,.2,1);}
+@keyframes aorBarGrow{from{width:var(--d0,0);}}
+/* the Buy / Sell pill slides and the button changes colour */
+.aor-submit{transition:transform .15s,filter .2s,background-color .35s ease,color .35s ease;}
+.aor-submit.sell.from-buy{background:var(--or-up);color:#04120a;}
+.aor-submit.buy.from-sell{background:var(--or-dn);color:#1a0604;}
+/* my orders: Cancel up front, the rest under ⋯; a fill lights its row; an order near its price breathes */
+.aor-cx1{border-color:rgba(255,110,90,.45) !important;color:#ffc3b8 !important;}
+.aor-cx1:hover{background:rgba(255,110,90,.14) !important;}
+.aor-rmw{position:relative;display:inline-flex;}
+.aor-rm{min-width:30px;padding-left:8px !important;padding-right:8px !important;font-weight:900;letter-spacing:.08em;}
+.aor-rmenu{position:absolute;right:calc(100% + 6px);top:50%;z-index:30;display:flex;gap:5px;padding:5px;border-radius:12px;background:#0b141c;border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 30px rgba(0,0,0,.55);transform:translateY(-50%);white-space:nowrap;animation:aorMenuIn .18s ease-out;}
+.aor-rmenu[hidden]{display:none;}
+@keyframes aorMenuIn{from{opacity:0;transform:translate(6px,-50%);}to{opacity:1;transform:translate(0,-50%);}}
+.aor-mr-a{position:relative;}
+.aor-mr.menu-open{z-index:5;position:relative;}
+.aor-mr.done{animation:aorRowDone 1.8s ease-out;}
+@keyframes aorRowDone{0%{background:rgba(57,255,136,.28);box-shadow:inset 0 0 0 1px rgba(57,255,136,.6);}100%{background:transparent;box-shadow:inset 0 0 0 1px transparent;}}
+.aor-mr.near{animation:aorNear 1.8s ease-in-out infinite;}
+@keyframes aorNear{0%,100%{box-shadow:inset 0 0 0 1px rgba(255,214,102,.15);}50%{box-shadow:inset 0 0 0 1px rgba(255,214,102,.65),0 0 14px rgba(255,214,102,.18);}}
+/* the fee burn: the total rolls up, the flame flares */
+.aor-flame{transform-origin:50% 90%;animation:aorFlame 2.4s ease-in-out infinite;}
+.aor-burnct.rolling .aor-flame{animation:aorFlameUp .35s ease-in-out infinite alternate;}
+@keyframes aorFlame{0%,100%{transform:scale(1);}50%{transform:scale(1.08,1.14);}}
+@keyframes aorFlameUp{from{transform:scale(1);filter:drop-shadow(0 0 0 #ff9b6a);}to{transform:scale(1.18,1.3);filter:drop-shadow(0 0 6px #ffb26a);}}
+/* the hero's ⓘ for the verified contracts (phones) */
+.aor-cinfo{display:none;grid-column:1 / -1;justify-self:start;white-space:nowrap;align-items:center;gap:6px;margin-top:8px;padding:5px 10px;border-radius:99px;border:1px solid rgba(57,255,136,.25);background:rgba(57,255,136,.06);color:#c8ffe0;font:600 .68rem Inter,sans-serif;cursor:pointer;}
+.aor-cinfo[hidden]{display:none !important;}
+.aor-cinfo svg{width:13px;height:13px;fill:none;stroke:#39ff88;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.aor-cinfo i{font-style:normal;opacity:.75;}
+.aor-hero.ci-open .aor-cinfo{background:rgba(57,255,136,.14);}
+/* phone tabs: Chart · Depth · Book · Trades in one row (the cards' own switches step aside), Dexscreener as a link */
+.aor-mt-dex{flex:0 0 auto;align-self:center;padding:0 6px 0 4px;font:700 .64rem Sora,sans-serif;color:#8fdcff;text-decoration:none;white-space:nowrap;}
+.aor-mt-dex[hidden]{display:none;}
+.aor-mtabs button[data-mt]{min-width:0;}
+@media (max-width:720px){
+  .aor-chartc .aor-charth .aor-seg,.aor-bookc .aor-bookh .aor-seg{display:none;}
+  .aor-chartc .aor-charth{justify-content:flex-end;}
+  .aor-bookc .aor-bookh{justify-content:flex-end;}
+  .aor-mtabs{gap:2px;}
+  .aor-mtabs button{padding:6px 4px;font-size:.7rem;}
+  /* the first screen: a compact hero, the contracts behind ⓘ */
+  .aor-hero .ams-kicker{font-size:.56rem;letter-spacing:.14em;}
+  .aor-hero .bp-lede.aor-fold:not(.open){-webkit-line-clamp:2;}
+  .aor-hero .aor-contracts{display:none;}
+  .aor-hero.ci-open .aor-contracts:not([hidden]){display:flex;animation:aorPopIn .25s ease-out;}
+  .aor-cinfo{display:inline-flex;}
+  .aor-hero h1 .asc-ver i{display:none;}
+  /* Solana's Preview tag: an amber dot, not a label over its name */
+  .aor-chain .aor-cprev{position:absolute;top:4px;right:5px;width:6px;height:6px;margin:0;padding:0;border:0;border-radius:50%;font-size:0;line-height:0;letter-spacing:0;color:transparent;background:#ffc861;box-shadow:0 0 6px rgba(255,200,97,.7);overflow:hidden;}
+  /* the bottom: on the Orders tab only the Buy / Sell bar sits over the site's dock; ARCIA tucks in at the edge */
+  html.aor-live nav.ax-quick{display:none !important;}
+  html.aor-live #bp-panel-orders.active .aor-dock{left:10px;right:10px;margin:0;bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 12px)) + var(--ax-dock-h,64px) + 10px);}
+  html.aor-live .aa-fab{bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 12px)) + var(--ax-dock-h,64px) + 84px);transform:translateX(calc(100% - 14px));opacity:.7;}
+  html.aor-live .aa-fab:hover,html.aor-live .aa-fab:focus-visible{transform:none;opacity:1;}
+}
+/* 901–1200px: the order form runs down the right and stays in view, like on a wide screen */
+@media (min-width:901px) and (max-width:1200px){
+  .aor-grid{grid-template-columns:minmax(0,1fr) minmax(290px,330px);grid-template-areas:"bar form" "chart form" "book form" "mine form";}
+  .aor-formc{position:sticky;top:88px;max-height:calc(100vh - 104px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;}
+}
+/* the guide in three tabs */
+.aor-gtabs{display:flex;gap:4px;margin:0 0 14px;padding:4px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);}
+.aor-gtabs[hidden]{display:none;}
+.aor-gtabs button{flex:1;padding:8px 10px;border:0;border-radius:9px;background:none;color:#9fb0bd;font:700 .76rem Sora,sans-serif;cursor:pointer;transition:background .25s,color .25s;}
+.aor-gtabs button[aria-selected="true"]{background:linear-gradient(95deg,rgba(77,212,255,.24),rgba(57,255,136,.14));color:#fff;}
+.aor-guide.tabs-on .aor-gpane[hidden]{display:none;}
+.aor-gpane{animation:aorPopIn .25s ease-out;}
+@media (prefers-reduced-motion: reduce){
+  .aor-stat.big.tick-up,.aor-stat.big.tick-dn,.aor-lv.grow::before,.aor-mr.done,.aor-mr.near,.aor-flame,.aor-burnct.rolling .aor-flame,.aor-wr-d.hot,.aor-dca,.aor-rmenu,.aor-gpane,.aor-strip{animation:none !important;}
+  .aor-submit{transition:none;}
+}

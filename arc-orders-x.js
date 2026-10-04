@@ -70,7 +70,16 @@
     if (!b || !b.live || !(b.arcircle > 0)) { a.hidden = true; paintTape(); return; }
     a.hidden = false;
     a.title = tr("Half of every Orders fee buys $ARCIRCLE and burns it — see the Reward page");
-    a.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.4 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2.2-4.6.2 1.8 1 2.6 1.8 3C11 9 11.5 6 12 3z"/></svg><b data-no-i18n>${esc(big(b.arcircle))} $ARCIRCLE</b><span>${T("burned by Orders fees")}</span><small data-no-i18n>${esc(String(b.n || 0))} ×</small>`;
+    // v4: the total rolls up from where it was (from 0 the first time), and the flame flares while it does
+    const from = X.burnShown != null ? X.burnShown : 0, to = b.arcircle;
+    a.innerHTML = `<svg class="aor-flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.4 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2.2-4.6.2 1.8 1 2.6 1.8 3C11 9 11.5 6 12 3z"/></svg><b data-no-i18n><span class="aor-burnn">${esc(big(reduce || from === to ? to : from))}</span> $ARCIRCLE</b><span>${T("burned by Orders fees")}</span><small data-no-i18n>${esc(String(b.n || 0))} ×</small>`;
+    X.burnShown = to;
+    if (!reduce && from !== to) {
+      a.classList.add("rolling");
+      const el = a.querySelector(".aor-burnn"), t0 = performance.now(), D = from ? 900 : 1400;
+      const step = (t) => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); if (el && el.isConnected) el.textContent = big(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); else a.classList.remove("rolling"); };
+      requestAnimationFrame(step);
+    }
     paintTape();
   }
 
@@ -114,7 +123,7 @@
   }
   function frame() {
     if (CH() === "sol") { clearInterval(X.timer); return; }
-    if (X.ch !== CH()) { X.ch = CH(); X.tape = null; X.burns = null; X.seen = new Set(); }
+    if (X.ch !== CH()) { X.ch = CH(); X.tape = null; X.burns = null; X.seen = new Set(); X.burnShown = null; }
     paintBurns(); paintTape();
     loadTape(); X.bAt = Date.now(); loadBurns();
     poll();

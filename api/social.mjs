@@ -45,6 +45,7 @@
 //   GET  /api/social?orders=recent | burns [&chain=rh]   v3: the live tape across markets · the fee burn's totals
 //   GET  /api/social?orders=alerts&wallet=&until=&sig=  a wallet's price alerts (Telegram DMs them with /orderalerts on)
 //   GET  /api/social?orders=pools&token=0x…&chain=rh   a Robinhood Chain token's v4 pools against ETH (keys, prices)
+//   GET  /api/social?orders=pushkey                  v4: the VAPID key for Web Push (POST { action: "pushsub", wallet, until, sig, sub })
 //   every orders route takes chain=rh (query or body) for Robinhood Chain's book (ArcircleOrdersNative)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
@@ -87,6 +88,7 @@ import * as argusArc from "./_argus-arcpad.mjs";
 import * as ponsArc from "./_pons-arcpad.mjs";
 import * as pumpArc from "./_pump-arcpad.mjs";
 import * as orders from "./_orders.mjs";
+import * as webpush from "./_webpush.mjs";
 import * as v6mod from "./_arcpad-v6.mjs";
 import * as vearcia from "./_vearcia.mjs";
 
@@ -557,6 +559,8 @@ export async function GET(req) {
   // ARCIRCLE Orders (arc-orders.js, api/_orders.mjs): the book of one market, a wallet's orders, the markets
   if (url.searchParams.get("orders")) {
     // Solana (api/_orders-sol.mjs: orders are program accounts, read live)
+    // v4: the VAPID public key a browser subscribes to Web Push with (null until VAPID_PUBLIC_KEY / _PRIVATE_KEY are set)
+    if (url.searchParams.get("orders") === "pushkey") return json(200, { key: webpush.publicKey() }, "public, max-age=300, s-maxage=600");
     if (url.searchParams.get("chain") === "sol") {
       const k = url.searchParams.get("orders");
       try {
@@ -739,6 +743,14 @@ export async function POST(req) {
       const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
+    }
+    // v4: this browser's Web Push subscription for a wallet's fills and alerts (the wallet's orders view signature)
+    if (b.action === "pushsub") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`pushsub:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+      const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null;
+      try { const r = await webpush.subSet(b, { store: st, viewOk: orders.ARC.viewOk }); return json(r.status, r.body); }
+      catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 120) }); }
     }
     // ARCIRCLE Orders on Solana: a market order is a Jupiter swap built here (the API key stays on the server)
     if (b.action === "solswap") {
