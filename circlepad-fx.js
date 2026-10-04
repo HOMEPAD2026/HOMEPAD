@@ -346,8 +346,8 @@
     if (!ring) return;
     ring.classList.remove("cp-milestone"); void ring.offsetWidth; ring.classList.add("cp-milestone");
     if (typeof window.arcToast === "function") window.arcToast(`${tr("The raise just passed")} $${short$(m)}`);
-    // the big ones (10K, 50K, 100K and up) get the ring lit up and a real burst
-    const big = m >= 1e4 && [1e4, 5e4, 1e5, 25e4, 5e5, 1e6].includes(m);
+    // the big ones (1K, 5K, 10K, 50K, 100K and up) get the ring lit up and a real burst
+    const big = [1e3, 5e3, 1e4, 5e4, 1e5, 25e4, 5e5, 1e6].includes(m);
     // every milestone flashes its number in the ring; the big ones also light it up
     if (!reduce) flash(`$${short$(m)}`, "cp-flash-ms" + (big ? "" : " sm"));
     if (big) { ring.classList.remove("cp-ms-big"); void ring.offsetWidth; ring.classList.add("cp-ms-big"); }

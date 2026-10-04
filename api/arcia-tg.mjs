@@ -1163,6 +1163,51 @@ async function cardNft(lang) {
   ].filter((x) => x !== "");
   return { text: lines.join("\n"), photo: `${SITE}/api/og?nft=${open ? open.i : "vault"}`, buttons: [[{ text: "NFT Vault", url: `${SITE}/nft/vault` }, ...(open ? [{ text: `${T3(lang, "Raffle", "추첨", "抽奖")} #${open.i}`, url: `${SITE}/nft/${open.i}` }] : [])]] };
 }
+/// CirclePad: the current round's moments — open, 24 h / 6 h / 1 h left, closed, split, top contributor paid, launch &
+/// airdrop done — to /alerts subscribers; the open, last hour, close and delivery also go to the announcement chats.
+/// Flags are kept per round (T.cpr[n]), so Round #3's reminders don't depend on Round #1's.
+async function circleNotify(T, s, c, first, out) {
+  const R = await import("./_rounds.mjs");
+  const d = await R.roundsData();
+  const cur = d.rounds.find((r) => r.n === d.current);
+  if (!cur || !cur.state || !cur.state.started) return;
+  const st = cur.state, n = cur.n, nowS = Math.floor(Date.now() / 1000);
+  T.cpr = T.cpr || {};
+  // Round #1's alerts ran under the old single set of flags: don't repeat them
+  if (!T.cpr[1] && T.round) T.cpr[1] = { open: 1, "24h": 1, "6h": 1, "1h": 1, closed: 1, split: 1, top: 1, launch: 1 };
+  const F = (T.cpr[n] = T.cpr[n] || {});
+  const raised = num(Number(BigInt(st.totalRaised || 0) / 10n ** 16n) / 100);
+  const left = Number(st.deadline) - nowS;
+  const page = `${SITE}/circle`;
+  const plan = (n === 3) ? "The raise buys $ARCIA on Robinhood Chain for its contributors, plus an allocation of Round #4's Solana token." : "";
+  const moments = [];
+  if (left > 0) {
+    if (!F.open && left > 70 * 3600 - 1800) moments.push(["open", `🟢 <b>CirclePad Round #${n} is open</b> — 72 hours, USDC on Arc. ${plan}`.trim(), true]);
+    else if (!F.open) F.open = 1; // joined late: the start is old news
+    // the tightest window we're in; the wider ones count as passed (no "24h left" with 40 minutes to go)
+    const win = [["1h", 3600], ["6h", 6 * 3600], ["24h", 86400]].find(([, lim]) => left <= lim);
+    if (win && !F[win[0]]) {
+      const k = win[0];
+      for (const w of ["24h", "6h", "1h"]) { if (w === k) break; F[w] = 1; }
+      moments.push([k, `⏳ <b>${k} left</b> in CirclePad Round #${n} · ${raised} USDC raised`, k === "1h"]);
+    }
+  } else {
+    for (const k of ["24h", "6h", "1h"]) F[k] = 1;
+    if (!F.closed && left > -86400) moments.push(["closed", `🟢 <b>CirclePad Round #${n} has closed</b> — ${raised} USDC raised. Thank you 💙💚`, true]);
+    else F.closed = 1;
+    if (st.distributed && !F.split) moments.push(["split", `🔀 <b>Round #${n}: the escrow has split</b> — 80% recipient · 15% treasury · 5% platform, on-chain.`, false]);
+    const m = cur.marks || {};
+    if (m.top && !F.top) moments.push(["top", `🏅 <b>Round #${n}: the top contributor has been paid.</b>`, false]);
+    if (m.launch && !F.launch) moments.push(["launch", `🎉 <b>Round #${n} is delivered</b> — ${n === 3 ? "$ARCIA is on its way to every contributor by their share" : "the coin is out and the airdrop is done"}. Check My Position on CirclePad.`, true]);
+  }
+  for (const [k, text, loud] of moments) {
+    F[k] = 1;
+    if (first) continue;
+    const body = { text, ...kb([[{ text: "CirclePad", url: page }]]) };
+    out["cp" + k] = await toSubs(s.alerts || [], body);
+    if (loud && c && Array.isArray(c.targets) && c.targets.length) out["cp" + k + "Chats"] = await postToTargets(c, { text: text.replace(/<[^>]+>/g, "") + `\n\n${page}` });
+  }
+}
 /// ARCIRCLE NFT Vault: the keeper's events (an NFT bought, a raffle open, a winner) to the alert list
 async function nftNotify(T, s, out) {
   if (!NFTV.CFG.vault()) return;
@@ -1340,17 +1385,8 @@ async function tick() {
     }
     if (launches.length) T.launchSince = Math.max(T.launchSince, ...launches.slice(0, 20).map((x) => x.t));
   }
-  // CirclePad round reminders
-  const st = await roundState().catch(() => null);
-  if (st && st.deadline) {
-    T.round = T.round || {};
-    const leftS = st.deadline - Math.floor(now / 1000);
-    const step = leftS <= 0 && leftS > -86400 ? "closed" : leftS > 0 && leftS <= 3600 ? "1h" : leftS > 0 && leftS <= 6 * 3600 ? "6h" : leftS > 0 && leftS <= 24 * 3600 ? "24h" : null;
-    if (step && !T.round[step]) {
-      for (const k of ["24h", "6h", "1h", "closed"]) { T.round[k] = true; if (k === step) break; }
-      if (!first) out.round = await toSubs(s.alerts, { photo: `${SITE}/api/og?round=1&t=${minute()}`, caption: step === "closed" ? `🟢 <b>CirclePad Round #1 has closed</b> — ${num(Number(st.totalRaised / 10n ** 16n) / 100)} USDC raised. Thank you 💙💚` : `🟢 <b>${step} left</b> in CirclePad Round #1 · ${num(Number(st.totalRaised / 10n ** 16n) / 100)} USDC raised`, ...kb([[{ text: "CirclePad", url: `${SITE}/circle` }]]) });
-    }
-  }
+  // CirclePad round alerts: the round that's running now (api/_rounds.mjs), each moment once per round
+  try { await circleNotify(T, s, c, first, out); } catch (e) { out.circleNotify = String(e.message || e).slice(0, 120); }
   // new airdrops (the Multisender feed) and watched wallets
   const feed = await drop.feed(store()).catch(() => null);
   if (feed) {

@@ -419,6 +419,14 @@ async function etherscanVerified(a, chainid = 5042) {
   if (!r) return null;
   return { verified: !!(r.SourceCode && String(r.SourceCode).length > 0), name: r.ContractName || "", compiler: r.CompilerVersion || "", impls: isAddr(r.Implementation) ? [lc(r.Implementation)] : [] };
 }
+/// the explorer's answer right now, no cache (CirclePad's "source verified" badge): true / false, or null when no explorer answered
+export async function verifiedNow(addr, chain = "arc") {
+  addr = lc(addr);
+  if (!isAddr(addr)) return null;
+  const C = ctxOf(chain);
+  const r = (await blockscoutVerified(addr, C.explorer).catch(() => null)) || (await etherscanVerified(addr, C.etherscanId).catch(() => null));
+  return r ? !!r.verified : null;
+}
 /// → { verified, name, compiler, impl?: { verified, name } } or null when no explorer answered
 export async function sourceOf(addr, impl, store = null, chain = "arc") {
   addr = lc(addr);

@@ -235,7 +235,8 @@
   // "How Round #N closes" at the bottom of Home said the same as this card and its questions: one place for it
   const howCloses = document.querySelector("#bp-panel-home > .bp-nextcard");
   if (howCloses) howCloses.hidden = true;
-  const verified = CONFIG.CIRCLEPAD_ESCROW_VERIFIED === true;
+  // circlepad-v5.js asks the explorer about the running round's escrow (window.cpEscrowVerified); the flag is Round #1's
+  const isVerified = () => window.cpEscrowVerified != null ? window.cpEscrowVerified === true : CONFIG.CIRCLEPAD_ESCROW_VERIFIED === true && (CONFIG.CIRCLEPAD_ROUND || 1) === 1;
   function faq() {
     const note = String(CONFIG.CIRCLEPAD_ALLOCATION_NOTE || "").trim();
     const Q = [
@@ -243,7 +244,7 @@
       ["What happens when the 72 hours end?", "Contributions and withdrawals stop. Everything the escrow holds is then split in one transaction: 80% to the recipient wallet, 15% to the treasury wallet and 5% to the platform wallet — the addresses above, fixed in the contract."],
       ["Who can split it, and can it happen early?", "Only the recipient wallet can call the split, and the contract refuses it until the raise has closed."],
       ["How is the new coin shared with contributors?", note || "Not decided yet — the team announces it here. The list of contributors at the close is public on-chain, so anyone can check who was in and how much."],
-      ["Is the contract's code public?", verified ? "Yes — the escrow's source is verified on the explorer, so what it does can be read line by line." : "The source hasn't been verified on the explorer yet. The code is in the project's repository (contracts/BigPadEscrow.sol); this note changes once it is verified."],
+      ["Is the contract's code public?", isVerified() ? "Yes — the escrow's source is verified on the explorer, so what it does can be read line by line." : "The source hasn't been verified on the explorer yet. The code is in the project's repository (contracts/BigPadEscrow.sol); this note changes once it is verified."],
     ];
     return `<div class="cpx-faq"><h4>${esc(tr("After the close — questions"))}</h4>${Q.map(([q, a], i) => `<details${i === 0 ? " open" : ""}><summary>${esc(tr(q))}</summary><p>${esc(tr(a))}</p></details>`).join("")}</div>`;
   }
@@ -338,7 +339,7 @@
           <small>${esc(tr("Held by the escrow"))}</small>
           <b class="cpx-bal" data-no-i18n>${fmt(bal)} <span>USDC</span></b>
           <a href="${ex("address", ESCROW)}" target="_blank" rel="noopener" class="cpx-addr" data-no-i18n>${sh(ESCROW)} ↗</a>
-          <span class="cpx-badge ${verified ? "ok" : "no"}">${esc(tr(verified ? "Source verified" : "Source not verified yet"))}</span>
+          <span class="cpx-badge ${isVerified() ? "ok" : "no"}">${esc(tr(isVerified() ? "Source verified" : "Source not verified yet"))}</span>
           <a class="cpx-code" href="${ex("address", ESCROW)}#code" target="_blank" rel="noopener">${esc(tr("Read the contract"))} ↗</a>
         </div>
         <div class="cpx-tc cpx-wallets">

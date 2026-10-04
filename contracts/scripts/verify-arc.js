@@ -10,7 +10,8 @@
 //   npx hardhat compile          # builds artifacts/build-info (same settings as the deploy)
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js            # everything
 //   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --dry-run  # checks only, sends nothing
-//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,vote,burnvote,lplock,lock,tokens,agent,orders
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=factory,hook,router,escrow,rounds,vote,burnvote,lplock,lock,tokens,agent,orders
+//   ARC_ETHERSCAN_API_KEY=<key> node scripts/verify-arc.js --only=rounds   # CirclePad Round #2, #3, … escrows (list from arcircle.app)
 //   (agent = ARCIA AGENT's factory and every vault it opened; their constructor arguments are read from the
 //   events of the transactions that created them)
 //
@@ -148,6 +149,25 @@ async function main() {
     const esc = new ethers.Contract(ADDR.escrow, eArt.abi, provider);
     const args = [await esc.recipient(), await esc.platformWallet(), await esc.treasuryWallet(), await esc.cap()];
     results.push(await verify(provider, { label: "BigPadEscrow (CirclePad round #1)", address: ADDR.escrow, art: eArt, args }));
+  }
+  // every later round's escrow (Round #2, #3, …): the same BigPadEscrow code, deployed by the round wallet from /circle.
+  // The list comes from the site (the rounds registry); ROUND_ESCROWS=0x…,0x… overrides it.
+  if (want("rounds")) {
+    const eArt = artifact("BigPadEscrow.sol", "BigPadEscrow");
+    let list = String(process.env.ROUND_ESCROWS || "").split(",").map((x) => x.trim()).filter(Boolean).map((e, i) => ({ n: "?", escrow: e }));
+    if (!list.length) {
+      try {
+        const js = await (await fetch("https://www.arcircle.app/api/social?circle=boot")).text();
+        const v = JSON.parse(js.replace(/^\s*window\.CP_ROUNDS\s*=\s*/, "").replace(/;\s*$/, ""));
+        list = ((v && v.list) || []).filter((r) => r.n > 1);
+      } catch (e) { console.log("  couldn't read the rounds list from arcircle.app — set ROUND_ESCROWS=0x…,0x…"); }
+    }
+    for (const r of list) {
+      if (!ethers.isAddress(r.escrow)) continue;
+      const esc = new ethers.Contract(r.escrow, eArt.abi, provider);
+      const args = [await esc.recipient(), await esc.platformWallet(), await esc.treasuryWallet(), await esc.cap()];
+      results.push(await verify(provider, { label: `BigPadEscrow (CirclePad round #${r.n})`, address: ethers.getAddress(r.escrow), art: eArt, args }));
+    }
   }
   if (want("vote")) {
     const vArt = artifact("BigPadVote.sol", "BigPadVote");

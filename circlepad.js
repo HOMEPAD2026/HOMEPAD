@@ -1033,6 +1033,8 @@ function wireCirclepadContribute() {
       await tx.wait();
       input.value = "";
       cpToast("Contribution confirmed.", "ok");
+      // circlepad-v5.js: the USDC coin drops into the circle
+      try { document.dispatchEvent(new CustomEvent("circlepad:contributed", { detail: { amount: Number(ethers.formatEther(amount)), tx: tx.hash } })); } catch { /* fine */ }
       if (ref) { try { fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "cref", tx: tx.hash }), keepalive: true }).catch(() => {}); } catch { /* best effort */ } }
       await Promise.all([refreshCirclepadCore(), refreshCirclepadLeaderboard()]);
     } catch (err) {

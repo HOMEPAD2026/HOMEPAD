@@ -104,10 +104,17 @@ const CONFIG = {
     // 4 Oct 2026: Round #3 launches no new coin (the $TIE plan was dropped). The raise buys $ARCIA on Robinhood Chain for
     // its contributors, who also get an allocation of Round #4's Solana token. mode "plan": no vote on the page (the
     // burn-to-vote closed — api/_burnvote.mjs GOV[3].closedAt — and its record stays), circlepad-plan.js shows the plan.
-    3: { mode: "plan", top: null, closedAt: 1791072000,
+    3: { mode: "plan", top: null, closedAt: 1791072000, accent: "#ff8bd8", // circlepad-v5.js: the round's accent ($ARCIA pink)
       airdrop: "Two allocations, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and Round #4's token on Solana ($TBA). Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.",
       plan: { buy: { sym: "ARCIA", chain: "Robinhood Chain", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", url: "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25" },
         also: { round: 4, chain: "Solana", sym: "TBA" } } },
+  },
+  // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
+  // { merged: n } for a round that went into another one.
+  CIRCLEPAD_RESULTS: {
+    1: { sym: "ARCIA", chain: "arc", token: "0x9da6d5ce413e94264Ea411372459413334a83bE5" },
+    2: { merged: 3 },
+    3: { sym: "ARCIA", chain: "rh", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" },
   },
   // Optional, shown on /circle (circlepad-plus.js):
   //   CIRCLEPAD_OPENS_AT — the announced opening time (unix seconds): an

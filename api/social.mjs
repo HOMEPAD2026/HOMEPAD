@@ -25,6 +25,8 @@
 //   GET  /api/social?dropproof=<id>&wallet=0x…   ArcDrop claim proof
 //   POST /api/social  { action: "scanreport" | "tgwatch" | "bridgelog" | "dropsave", … }
 //   GET  /api/social?circle=ideas[&wallet=0x…][&round=<escrow>]   a round's governance ideas (api/_circle.mjs)
+//   GET  /api/social?circle=src&escrow=0x…       is a round's escrow source-verified on Arc's explorer
+//   GET  /api/social?cctp=fees&src=6 · ?cctp=msg&src=6&tx=0x…   CirclePad's USDC bridge-in (Circle CCTP → Arc)
 //   GET  /api/social?circle=burns[&round=n]      CirclePad burn-to-vote feed + totals (api/_burnvote.mjs)
 //   GET  /api/social?circle=vote&tx=0x…          one burn-vote transaction (/vote/<tx>)
 //   GET  /api/social?circle=gov&round=n[&voter=0x…][&proof=cat]   a direct round's governance (no vote contracts)
@@ -119,6 +121,7 @@ export const voteMessage = (coin, side, day) =>
   `ARCIRCLE PAD — daily sentiment\nCoin: ${coin.toLowerCase()}\nVote: ${side === "bull" ? "Bullish" : "Bearish"}\nDay: ${day} (UTC)`;
 
 const utcDay = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
+const srcMem = new Map(); // CirclePad escrow → { at, v } (?circle=src)
 const json = (status, body, cache = "no-store") => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": cache, "access-control-allow-origin": "*" },
 });
@@ -215,6 +218,40 @@ export async function GET(req) {
     let js = "window.CP_ROUNDS=null;";
     try { js = await rounds.bootScript(); } catch { /* the page falls back to Round #1 */ }
     return new Response(js, { status: 200, headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "public, max-age=20, s-maxage=20, stale-while-revalidate=300", "access-control-allow-origin": "*" } });
+  }
+  // CirclePad "Bring USDC from another chain": Circle's CCTP API (Iris), only the two reads the page needs.
+  //   ?cctp=fees&src=<domain>            the fee tiers (fast / standard) to Arc (domain 26) with the Forwarding Service
+  //   ?cctp=msg&src=<domain>&tx=0x…      a burn's attestation and the forwarded mint on Arc (forwardTxHash)
+  if (url.searchParams.has("cctp")) {
+    const k = url.searchParams.get("cctp"), src = Number(url.searchParams.get("src"));
+    const SRC = [0, 1, 2, 3, 6, 7]; // Ethereum, Avalanche, OP, Arbitrum, Base, Polygon
+    if (!SRC.includes(src)) return json(400, { error: "unsupported source chain" });
+    const IRIS = "https://iris-api.circle.com/v2";
+    const get = async (u) => { try { const r = await fetch(u, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) }); const j = await r.json().catch(() => null); return { status: r.status, j }; } catch { return { status: 502, j: null }; } };
+    if (k === "fees") {
+      const r = await get(`${IRIS}/burn/USDC/fees/${src}/26?forward=true`);
+      return r.j ? json(200, { src, dst: 26, fees: r.j }, "public, max-age=30, s-maxage=60") : json(502, { error: "Circle's fee API didn't answer" });
+    }
+    if (k === "msg") {
+      const tx = String(url.searchParams.get("tx") || "");
+      if (!/^0x[0-9a-fA-F]{64}$/.test(tx)) return json(400, { error: "tx must be a transaction hash" });
+      const r = await get(`${IRIS}/messages/${src}?transactionHash=${tx}`);
+      if (r.status === 404) return json(200, { pending: true, messages: [] });
+      const m = r.j && Array.isArray(r.j.messages) ? r.j.messages : [];
+      return json(200, { pending: !m.length, messages: m.map((x) => ({ status: x.status || null, forwardState: x.forwardState || null, forwardTxHash: x.forwardTxHash || null, delayReason: x.delayReason || null, decoded: x.decodedMessage && x.decodedMessage.decodedMessageBody ? { amount: x.decodedMessage.decodedMessageBody.amount || null, feeExecuted: x.decodedMessage.decodedMessageBody.feeExecuted || null, mintRecipient: x.decodedMessage.decodedMessageBody.mintRecipient || null } : null })) });
+    }
+    return json(400, { error: "use cctp=fees or cctp=msg" });
+  }
+  // is a round's escrow source-verified on Arc's explorer? (the Transparency badge) — kept 10 minutes per instance
+  if (url.searchParams.get("circle") === "src") {
+    const e = String(url.searchParams.get("escrow") || "").toLowerCase();
+    if (!/^0x[0-9a-f]{40}$/.test(e)) return json(400, { error: "escrow must be an address" });
+    const hit = srcMem.get(e);
+    if (hit && Date.now() - hit.at < 600e3) return json(200, { escrow: e, verified: hit.v }, "public, max-age=60, s-maxage=600");
+    let v = null;
+    try { const { verifiedNow } = await import("./_scan.mjs"); v = await verifiedNow(e, "arc"); } catch { v = null; }
+    if (v != null) srcMem.set(e, { at: Date.now(), v });
+    return json(200, { escrow: e, verified: v }, v == null ? "no-store" : "public, max-age=60, s-maxage=600");
   }
   if (url.searchParams.get("circle") === "summary") {
     try {

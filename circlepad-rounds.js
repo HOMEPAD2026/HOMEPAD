@@ -68,6 +68,9 @@
       }
       await Promise.all(j.rounds.filter((x) => x.state && x.state.started && nowS() >= Number(x.state.deadline)).map((x) => loadSummary(x.n, fresh)));
       paintAll();
+      // for circlepad-v5.js (round results, the sidebar status): the rounds and each closed round's summary
+      window.cpRoundsData = { ...j, sums: Object.fromEntries([...sums.entries()].map(([k, v]) => [k, v.v])) };
+      document.dispatchEvent(new CustomEvent("circlepad:rounds", { detail: window.cpRoundsData }));
     } catch (e) { console.warn("circlepad-rounds", e); }
   }
   async function loadSummary(n, fresh) {

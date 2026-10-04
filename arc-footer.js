@@ -56,7 +56,8 @@
     ["Fee hook", "0x484D416E73Eb44d276DDeF04cDBAdf2f4907c044"],
     // $ARCIRCLE comes from config-arc.js; "" (not live, relaunching) shows "Not live"
     ["$ARCIRCLE", (typeof CONFIG !== "undefined" && CONFIG.ARCIRCLE_TOKEN) || ""],
-    ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703"],
+    // the running round's escrow (filled from the rounds list below); Round #1 until that's known
+    ["CirclePad escrow", "0xC5998d7cE728FDd6f77217fdE775aAb90Ec61703", "cp-escrow"],
     ["CirclePad vote", "0x23c376615a58F059FC4bc83A38eB4aCdF8d39ff2"],
     ["CirclePad burn vote", "0x54121a7894d90a02eA973Ab45EEF424C2716EeB2"],
     ["Creator lock", "0x64F893947Fe2c4fe7058CFba899eA269CBa9F006"],
@@ -82,7 +83,7 @@
         '<div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a><a href="/start">Get started</a><a href="/stats">Stats</a><a href="/roadmap">Roadmap</a><a href="/brand">Brand kit</a></div>' +
         '<div class="axf-col axf-contracts"><h4>Contracts</h4>' + CONTRACTS.map(function (c) {
           if (!c[1]) return '<div class="axf-ca"><span>' + c[0] + '</span><em class="axf-nl">Not live</em></div>';
-          return '<div class="axf-ca"><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
+          return '<div class="axf-ca"' + (c[2] ? ' data-axf="' + c[2] + '"' : '') + '><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
             '<button type="button" class="axf-copy" data-copy-ca="' + c[1] + '" aria-label="Copy address">Copy</button></div>';
         }).join("") + '</div>' +
       '</div>' +
@@ -111,8 +112,41 @@
       window.arcFeedback("tap");
     });
     paint();
+    rounds(f);
     netStatus();
     setInterval(function () { if (!document.hidden) netStatus(); }, 30000);
+  }
+
+  // CirclePad: the escrow of the round that's running now, and the earlier rounds' escrows folded under it.
+  // /circle already has the list (window.CP_ROUNDS); other pages read the same small script once.
+  function rounds(f) {
+    var row = f.querySelector('[data-axf="cp-escrow"]');
+    if (!row) return;
+    var put = function (v) {
+      var list = (v && v.list) || [];
+      if (!list.length) return;
+      var started = list.filter(function (r) { return r.started; });
+      var cur = started[started.length - 1] || list[0];
+      var ok = function (a) { return /^0x[0-9a-fA-F]{40}$/.test(a || ""); };
+      if (!ok(cur.escrow)) return;
+      var link = function (r) { return '<a href="' + EXPLORER + '/address/' + r.escrow + '" target="_blank" rel="noopener" data-no-i18n>#' + r.n + ' ' + short(r.escrow) + ' ↗</a>'; };
+      var past = list.filter(function (r) { return r !== cur && ok(r.escrow); }).reverse();
+      row.innerHTML = '<span>CirclePad escrow <em class="axf-rn" data-no-i18n>#' + cur.n + '</em></span><a href="' + EXPLORER + '/address/' + cur.escrow + '" target="_blank" rel="noopener" data-no-i18n>' + short(cur.escrow) + ' ↗</a>' +
+        '<button type="button" class="axf-copy" data-copy-ca="' + cur.escrow + '" aria-label="Copy address">Copy</button>' +
+        (past.length ? '<details class="axf-past"><summary>Earlier rounds</summary>' + past.map(link).join("") + '</details>' : '');
+    };
+    if (window.CP_ROUNDS) { put(window.CP_ROUNDS); return; }
+    var go = function () {
+      fetch("/api/social?circle=boot").then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
+        var m = /window\.CP_ROUNDS\s*=\s*(\{[\s\S]*\})\s*;?\s*$/.exec(t || "");
+        if (m) { try { put(JSON.parse(m[1])); } catch (e) { /* keep Round #1 */ } }
+      }).catch(function () {});
+    };
+    // only when the footer comes near the screen: most visits never scroll that far
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); go(); } }, { rootMargin: "400px" });
+      io.observe(f);
+    } else go();
   }
 
   // Latest block + round-trip time, straight from the RPC (no ethers needed).
