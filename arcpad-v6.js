@@ -319,7 +319,7 @@
     const w = me();
     if (!w) { box.innerHTML = `<h3>${T("Your position")}</h3><p class="v6-muted">${T("Connect a wallet to see what you paid and your P&L on this coin.")}</p>`; return; }
     const P = pnlOf(APC.trades || [], w, typeof apcSpot === "function" ? apcSpot() : null);
-    const q = (v) => (v == null ? "—" : APC.q.usd != null ? usd(v * APC.q.usd) : `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${esc(APC.q.symbol)}`);
+    const q = (v) => (v == null ? "—" : APC.q.usd != null ? (Math.abs(v * APC.q.usd) < 1000 ? "$" + (v * APC.q.usd).toFixed(2) : usd(v * APC.q.usd)) : `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${esc(APC.q.symbol)}`);
     if (!P) { box.innerHTML = `<h3>${T("Your position")}</h3><p class="v6-muted">${T("No trades from this wallet on this coin yet.")}</p>`; return; }
     const cls = (v) => (v == null ? "" : v >= 0 ? "up" : "down");
     box.innerHTML = `<h3>${T("Your position")} <small data-no-i18n>${P.n} ${esc(tr(P.n === 1 ? "trade" : "trades"))}</small></h3>
