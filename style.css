@@ -16163,6 +16163,9 @@ body.cp5-modal-open{overflow:hidden;}
 .aor-feat{color:#06101a;background:linear-gradient(95deg,#4dd4ff,#39ff88);}
 .aor-thin{color:#1a1204;background:#ffc861;}
 .aor-ml-r.feat{box-shadow:inset 2px 0 0 var(--aor-ch,#4dd4ff);}
+.aor-ml-r>b{display:flex;flex-wrap:wrap;align-items:center;row-gap:3px;min-width:0;}
+.aor-ml-r>b .aor-feat,.aor-ml-r>b .aor-thin{margin-left:6px;}
+.aor-pf-still .aor-pf-r{animation:none;}
 /* the book: one side empty, levels that leave fold away, the mid price */
 .aor-cta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px;padding:3px 6px;margin:2px 0;border-radius:6px;font-size:.66rem;color:#9fb0bd;background:rgba(255,255,255,.025);border:1px dashed rgba(255,255,255,.1);}
 .aor-cta.up{border-color:rgba(57,255,136,.28);}.aor-cta.dn{border-color:rgba(255,110,90,.28);}
@@ -16207,8 +16210,9 @@ body.cp5-modal-open{overflow:hidden;}
 .aor-dsh.near b:nth-child(1){height:12px;}.aor-dsh.near b:nth-child(2){height:9px;}.aor-dsh.near b:nth-child(3){height:6px;}.aor-dsh.near b:nth-child(4){height:3px;}
 .aor-cond{margin:4px 0 8px;}
 .aor-cond.on{padding:8px 10px;border-radius:11px;background:rgba(169,112,255,.06);border:1px solid rgba(169,112,255,.28);}
-.aor-cond-row{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:6px;margin-top:6px;}
-.aor-cond-row select{min-width:0;height:34px;padding:0 8px;border-radius:9px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);color:#eef3f7;font:600 .72rem Inter,sans-serif;}
+.aor-cond-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
+.aor-cond-row select{width:100%;min-width:0;height:34px;padding:0 24px 0 10px !important;border-radius:9px;background-color:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);color:#eef3f7;font:600 .74rem Inter,sans-serif;text-overflow:ellipsis;}
+.aor-cond-row .aor-in{grid-column:1 / -1;}
 .aor-cond .aor-note{margin:6px 0 0;}
 .aor-sl.cond b{color:#d6c2ff;}
 .aor-avail.none b{border:0;color:#8fdcff;font-family:Inter,sans-serif;}
@@ -16329,8 +16333,6 @@ body.cp5-modal-open{overflow:hidden;}
   .aor-mtabs{position:sticky;top:calc(var(--aor-tabs-top,56px));z-index:20;background:rgba(5,12,19,.94);backdrop-filter:blur(8px);}
   .aor-dock.in{animation:aorDockIn .35s cubic-bezier(.2,.8,.2,1);}
   .aor-mvbar{bottom:8px;font-size:.66rem;}
-  .aor-cond-row{grid-template-columns:1fr 1fr;}
-  .aor-cond-row .aor-in{grid-column:1 / -1;}
 }
 @keyframes aorDockIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion: reduce){

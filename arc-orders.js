@@ -108,7 +108,8 @@
     try { const r = ethers.parseUnits(s, dec); return r > 0n ? r : null; } catch { return null; }
   }
   /// a positive Number → a plain decimal string ethers can parse
-  const dstr = (n, d = 18) => (n > 0 && isFinite(n) ? n.toFixed(Math.min(d, 18)).replace(/0+$/, "").replace(/\.$/, "") : "0");
+  // v5: twelve significant figures at most — 0.109224, never 0.10922400000000000002
+  const dstr = (n, d = 18) => { if (!(n > 0) || !isFinite(n)) return "0"; const v = Number(n.toPrecision(12)); return v.toFixed(Math.min(d, 20, Math.max(0, 11 - Math.floor(Math.log10(v))))).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); };
   const fmtU = (raw, dec, max = 6) => { const n = human(raw, dec); return n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 2 : max }); };
   const ago = (s) => { if (!s) return "—"; const d = Math.max(0, now() - s); return d < 60 ? tr("just now") : d < 3600 ? `${Math.floor(d / 60)}m` : d < 86400 ? `${Math.floor(d / 3600)}h` : `${Math.floor(d / 86400)}d`; };
   const inT = (s) => { const d = Math.max(0, s - now()); return d < 60 ? `${d}s` : d < 3600 ? `${Math.ceil(d / 60)}m` : `${Math.floor(d / 3600)}h ${Math.floor((d % 3600) / 60)}m`; };
@@ -1932,6 +1933,7 @@
     }
     // v5: Portfolio — what this wallet holds on this chain (arc-orders-v5.js)
     if (S.myTab === "port") { if (cx) cx.hidden = true; if (cm) cm.hidden = true; if (window.arcOrdersV5) window.arcOrdersV5.portfolio(el); else el.innerHTML = ""; return; }
+    delete el.dataset.pf;
     if (!S.mine) { el.innerHTML = skel(4); return; }
     const here = ((S.mine && S.mine.orders) || []).filter((o) => S.myScope !== "market" || lc(o.token.address || o.token) === S.t);
     const all = S.myScope === "both" && S.other && S.other.ch !== CH ? [...here, ...S.other.orders].sort((a, b) => (b.at || 0) - (a.at || 0)) : here;

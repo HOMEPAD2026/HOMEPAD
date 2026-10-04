@@ -93,7 +93,7 @@
     }).sort((a, b) => (b.val || 0) - (a.val || 0));
     if (!rows.length) { el.innerHTML = `<div class="aor-empty arcia">${ARCIA_ART}<span>${T(CH() === "rh" ? "No tokens from these markets in this wallet on Robinhood Chain yet." : "No tokens from these markets in this wallet on Arc yet.")}</span></div>`; return; }
     const tot = rows.reduce((s, r) => s + (r.val || 0), 0), usd = (q) => (q != null && qUsd ? A.usd(q * qUsd) : "");
-    el.innerHTML = `<div class="aor-pf">
+    const html = `<div class="aor-pf">
       <div class="aor-pf-sum"><small>${T("Held here, at the pool price")}</small><b data-no-i18n>${esc(A.qv(tot))}</b>${CH() === "rh" && usd(tot) ? `<span data-no-i18n>≈ ${esc(usd(tot))}</span>` : ""}<button type="button" class="aor-link" data-pfre>${T("Refresh")}</button></div>
       <div class="aor-pf-h"><span>${T("Token")}</span><span>${T("Balance")}</span><span>${T("Value")}</span><span>${T("Avg buy")}</span><span>${T("Now vs avg buy")}</span><span></span></div>
       ${rows.map((r) => `<div class="aor-pf-r${r.t === S.t ? " on" : ""}" data-pft="${esc(r.t)}">
@@ -106,6 +106,10 @@
       </div>`).join("")}
       <small class="aor-pf-n">${T("Balances read from the chain; average buy from your filled Orders buys only (not swaps made elsewhere). Not advice.")}</small>
     </div>`;
+    // redrawn only when something changed (the rows slide in once, not on every refresh)
+    if (el.dataset.pf === html && el.querySelector(".aor-pf")) return;
+    if (el.querySelector(".aor-pf")) el.classList.add("aor-pf-still"); else el.classList.remove("aor-pf-still");
+    el.dataset.pf = html; el.innerHTML = html;
   }
   /// a take-profit +25% and a stop-loss −15% from the pool price on all of a held token — filled in, never placed
   function protect(t) {
