@@ -14,8 +14,12 @@
 // v2 (Oct 2026): a sticky UP / DOWN bar on phones, what a bet would pay before it's placed, a 3-2-1 round finish,
 // market chips with time left / pot / sparkline, ARCIA's call on every round (for fun) and her record vs the crowd,
 // the last 10 results, reactions, per-market reminders, badges, quick bets from All markets.
+// v3 (Oct 2026): a gauge and a Bet → Live → Settle band on the round card, how the odds moved, a heat map of the last 50
+// results, practice mode (no money), alerts by Web Push and Telegram (/predictalerts), claims across both chains, a
+// stats card to share, weekly season podiums, fan tiers, end dates for listed markets, Robinhood Chain listings by
+// anyone (when open), ARCIA filling in a bet from her chat ("UP $2 on ARCIRCLE 5m").
 // Deep links: #predict?m=<market> · #predict?c=rh (Robinhood Chain) · #predict?ref=0x… (kept in this browser, used on the
-// first bet) · #predict?view=lb
+// first bet) · #predict?view=lb · #predict?m=0&side=up&amt=2 (a bet filled in, never placed: you tap and sign)
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-predict");
@@ -24,6 +28,8 @@
   const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const T = (s) => esc(tr(s));
+  /// a short label with its own translations (single words would clash with other pages in the shared dictionary)
+  const L3 = (o) => { const l = window.arcI18n ? window.arcI18n.get() : "en"; return esc(o[l] || o.en); };
   const lc = (a) => String(a || "").toLowerCase();
   const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
@@ -61,6 +67,7 @@
   }
   const pc = (n, d = 2) => (n == null || !isFinite(n) ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(d) + "%");
   const dur = (s) => (s % 3600 === 0 ? `${s / 3600}h` : s % 60 === 0 ? `${s / 60}m` : `${s}s`);
+  const endsIn = (t) => { const d = Math.max(0, t - Date.now() / 1000); return d >= 86400 ? `${Math.round(d / 86400)}d` : d >= 3600 ? `${Math.round(d / 3600)}h` : `${Math.max(1, Math.round(d / 60))}m`; };
   const mmss = (s) => { s = Math.max(0, Math.floor(s)); return s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
   const API = "/api/desk";
   const SITE = "https://www.arcircle.app";
@@ -76,7 +83,8 @@
   ];
   const ERC20 = ["function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"];
   const DURS = [[300, "5 minutes"], [900, "15 minutes"], [3600, "1 hour"]];
-  const LS = { amt: "arcircle.predict.amt", ref: "arcircle.predict.ref", notify: "arcircle.predict.notify", view: "arcircle.predict.view", chain: "arcircle.predict.chain", watch: "arcircle.predict.watch", last: "arcircle.predict.last", badges: "arcircle.predict.badges", rx: "arcircle.predict.rx" };
+  const ENDS = [[0, "No end"], [1, "1 day"], [7, "7 days"], [30, "30 days"]];
+  const LS = { amt: "arcircle.predict.amt", ref: "arcircle.predict.ref", notify: "arcircle.predict.notify", view: "arcircle.predict.view", chain: "arcircle.predict.chain", watch: "arcircle.predict.watch", last: "arcircle.predict.last", badges: "arcircle.predict.badges", rx: "arcircle.predict.rx", practice: "arcircle.predict.practice", paper: "arcircle.predict.paper" };
   const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* this visit only */ } } };
   const S = {
     chain: /[?&]c=rh\b/.test(location.hash) ? "rh" : /^#predict\?/.test(location.hash) ? "arc" : ls.get(LS.chain) === "rh" ? "rh" : "arc",
@@ -84,6 +92,8 @@
     mine: null, feed: null, lb: null, chart: null, kstat: null, amt: "", busy: false, msg: null, smsg: null, list: null,
     booted: false, timer: 0, tick: 0, skew: 0, acct: null, cardKey: null, listKey: null, sideKey: null, lastPx: {}, lastPast: {}, notified: new Set(), lastBet: null, title0: null, claimable0: null,
     rx: null, rxM: null, feedSeen: null, wchain: null, rolls: {},
+    // v3
+    fails: 0, kseen: false, mineOther: null, heat: null, heatM: null, practice: ls.get(LS.practice) === "1", sugg: null, roundVis: true, leadK: {}, potPrev: {},
   };
   const jget = (k, d) => { try { const v = JSON.parse(ls.get(k) || "null"); return v == null ? d : v; } catch { return d; } };
   const lastKey = () => LS.last + (isRH() ? ".rh" : "");
@@ -98,6 +108,13 @@
     ice: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5"/></svg>',
     eyes: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="8" cy="12" rx="4" ry="5"/><ellipse cx="16" cy="12" rx="4" ry="5"/><circle cx="9" cy="13" r="1.6"/><circle cx="17" cy="13" r="1.6"/></svg>',
     flame: '<svg class="pd-flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.2 5 10a5 5 0 0 1-10 0c0-2.2 1-3.6 2.2-4.8.2 1.6.9 2.6 1.8 3 0-3 .3-5.6 1-8.2z"/></svg>',
+    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="5"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="17.5" cy="13.8" r="1"/></svg>',
+    // side panel tabs (icons on phones)
+    bets: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+    past: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>',
+    feed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>',
+    invite: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M18 8v6M15 11h6"/></svg>',
+    tg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4 3 11l6 2 2 6 3-4 5 4z"/><path d="m9 13 8-6"/></svg>',
   };
   const RXK = [["fire", "Hot"], ["rocket", "To the moon"], ["ice", "Cold"], ["eyes", "Watching"]];
   const amtKey = () => LS.amt + (isRH() ? ".rh" : "");
@@ -105,6 +122,15 @@
   const nowC = () => Date.now() / 1000 + S.skew; // chain time
   (function grabRef() { const m = /[?&]ref=(0x[0-9a-fA-F]{40})/.exec(location.hash); if (m) ls.set(LS.ref, lc(m[1])); })();
   (function grabView() { const m = /[?&]view=(lb|all)\b/.exec(location.hash); if (m) S.view = m[1]; })();
+  /// a bet filled in from a link (ARCIA's chat): the amount goes in the box and the side glows — nothing is placed
+  function grabSugg() {
+    const sd = /[?&]side=(up|down)\b/i.exec(location.hash), am = /[?&]amt=(\d+(?:\.\d+)?)\b/.exec(location.hash);
+    if (!sd && !am) return;
+    S.sugg = { side: sd ? sd[1].toLowerCase() : null, amt: am ? Number(am[1]) : null, at: Date.now() };
+    if (S.sugg.amt > 0) { S.amt = String(S.sugg.amt); }
+    S.view = "market";
+  }
+  grabSugg();
 
   // ---------------- skeleton ----------------
   function frame() {
@@ -113,9 +139,10 @@
       <div class="pd-chains" role="tablist" aria-label="${T("Chain")}">
         ${[["arc", "Arc", "USDC"], ["rh", "Robinhood Chain", "ETH"]].map(([k, l, u]) => `<button type="button" role="tab" class="pd-chain ${k}" data-pd-chain="${k}" aria-selected="${S.chain === k}"><i aria-hidden="true"></i><b data-no-i18n>${l}</b><small>${T("bets in")} <span data-no-i18n>${u}</span></small></button>`).join("")}
       </div>
-      <div class="pd-strip" id="pd-strip"></div>
+      <div class="pd-strip${phone() ? " in-hero" : ""}" id="pd-strip"></div>
       <div class="pd-views" role="tablist" aria-label="${T("View")}">
         ${[["market", "Market"], ["all", "All markets"], ["lb", "Leaderboard"]].map(([k, l]) => `<button type="button" role="tab" data-pd-view="${k}" aria-selected="${S.view === k}">${T(l)}</button>`).join("")}
+        <button type="button" class="pd-practice" data-pd-act="practice" aria-pressed="${S.practice}" title="${T("Bet with play money on the real rounds — nothing leaves your wallet")}">${ICO.play}<span>${T("Practice")}</span></button>
         <button type="button" class="pd-notify" data-pd-act="notify" aria-pressed="${ls.get(LS.notify) === "1"}" title="${T("Alerts in this browser: 30 seconds left in your rounds, and wins to claim")}">${ICO.bell}<span>${T("Alerts")}</span></button>
       </div>
       <div id="pd-view-market">
@@ -130,7 +157,12 @@
       <div class="ams-card pd-list" id="pd-list"></div>
       <div class="pd-sticky" id="pd-sticky" hidden></div>`;
     stickyWatch();
+    // phones: the live numbers sit inside the hero card, one block instead of two
+    const hs = panel.querySelector(".pd-hero .ams-hero-txt"), sp = $("pd-body").querySelector("#pd-strip");
+    panel.querySelectorAll(".pd-hero #pd-strip").forEach((x) => { if (x !== sp) x.remove(); });
+    if (phone() && hs && sp) hs.appendChild(sp);
   }
+  const phone = () => !!(window.matchMedia && matchMedia("(max-width: 720px)").matches);
   const skel = () => `<div class="pd-skel"><i></i><i></i><i></i></div>`;
 
   // ---------------- data ----------------
@@ -139,14 +171,22 @@
   async function load() {
     const j = await getJ("predict=state");
     const c = S.chain;
-    if (j && c === S.chain && (j.chain || "arc") === c) { S.st = j; if (j.now) S.skew = j.now - Date.now() / 1000; }
+    if (j && c === S.chain && (j.chain || "arc") === c) { S.st = j; S.fails = 0; if (j.now) S.skew = j.now - Date.now() / 1000; }
+    else if (!j && c === S.chain) S.fails++;
   }
   const acct = () => (typeof state !== "undefined" && state.account ? lc(state.account) : null);
   async function loadMine() { const a = acct(); S.acct = a; if (!a || !S.st || !S.st.live) { S.mine = null; return; } const j = await getJ(`predict=mine&u=${a}`); if (j) S.mine = j; }
+  /// v3: what this wallet can claim on the other chain (one "claim everything" box)
+  async function loadMineOther() {
+    const a = acct(), oc = isRH() ? "arc" : "rh", c = S.chain;
+    if (!a) { S.mineOther = null; return; }
+    try { const r = await fetch(`${API}?predict=mine&u=${a}${oc === "rh" ? "&chain=rh" : ""}`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; if (c === S.chain) S.mineOther = j && !j.error ? { chain: oc, claimable: j.claimable || 0, n: (j.claimIds || []).length, unitUsd: j.unitUsd } : null; } catch { /* keep */ }
+  }
+  async function loadHeat() { if (S.m == null || !S.st || !S.st.live) return; const m = S.m, j = await getJ(`predict=heat&m=${m}`); if (j && j.items && m === S.m) { S.heat = j.items; S.heatM = m; } }
   async function loadChart() { if (S.m == null || !S.st || !S.st.live) return; const j = await getJ(`predict=chart&m=${S.m}`); if (j && j.points) S.chart = j; }
   async function loadFeed() { const j = await getJ("predict=feed"); if (j) S.feed = j; }
   async function loadLb() { const j = await getJ("predict=lb"); if (j) S.lb = j; }
-  async function loadStatus() { const j = await getJ("predict=status"); if (j) S.kstat = j; }
+  async function loadStatus() { const j = await getJ("predict=status"); if (j) { S.kstat = j; S.kseen = true; } }
   const market = (id = S.m) => (S.st && S.st.markets ? S.st.markets.find((m) => m.id === id) || null : null);
   function pickDefault() {
     const ms = (S.st && S.st.markets) || [];
@@ -163,7 +203,10 @@
   // ---------------- render ----------------
   function render() {
     const st = S.st;
-    if (!st) { $("pd-round").innerHTML = skel(); return; }
+    if (!st) {
+      $("pd-round").innerHTML = S.fails >= 2 ? `<div class="pd-soon pd-fail"><b>${T(isRH() ? "Robinhood Chain isn't answering right now" : "Arc isn't answering right now")}</b><span>${T("Trying again every few seconds — bets already placed stay in their rounds.")}</span><button type="button" class="pd-btn" data-pd-act="retry">${T("Try again")}</button></div>${how()}` : skel();
+      return;
+    }
     if (!st.live) { soon(); return; }
     pickDefault();
     strip();
@@ -187,10 +230,14 @@
   function strip() {
     const st = S.st, live = st.markets.filter((m) => !m.stopped).length, k = S.kstat;
     const ago = k && k.at ? Math.max(0, Math.round(nowC() - k.at)) : null;
+    // what the keeper last said went wrong (it skips without a key, or a sample / settle didn't go through)
+    const issue = k ? (k.error && k.error.msg && (!k.at || k.error.at >= k.at - 5) ? k.error.msg : k.skipped && k.skipped.msg && (!k.at || k.skipped.at > k.at) ? k.skipped.msg : "") : "";
+    const late = ago != null && ago > 300;
     $("pd-strip").innerHTML = [
       [String(live), "markets live"], [String(st.rounds), "rounds played"], [bigM(st.volume), "volume"], [`${(st.feeBps / 100).toFixed(st.feeBps % 100 ? 1 : 0)}%`, "fee on wins"],
     ].map(([v, l]) => `<span class="pd-chip"><b data-no-i18n>${esc(v)}</b> ${T(l)}</span>`).join("") +
-      (ago != null ? `<span class="pd-chip pd-keeper${ago > 180 ? " late" : ""}" title="${T("The keeper reads the pools at every round boundary")}"><i aria-hidden="true"></i>${T("keeper")} <b data-no-i18n>${ago < 60 ? ago + "s" : Math.round(ago / 60) + "m"}</b> ${T("ago")}</span>` : "") +
+      (ago != null ? `<span class="pd-chip pd-keeper${late ? " late" : ""}${issue ? " warn" : ""}" title="${esc(issue ? tr("The keeper reported") + ": " + issue : tr("The keeper reads the pools at every round boundary"))}"><i aria-hidden="true"></i>${T(late ? "keeper late" : "keeper")} <b data-no-i18n>${ago < 60 ? ago + "s" : ago < 7200 ? Math.round(ago / 60) + "m" : Math.round(ago / 3600) + "h"}</b> ${T("ago")}</span>`
+        : S.kseen && st.markets.length ? `<span class="pd-chip pd-keeper late warn" title="${esc(issue || tr("The keeper hasn't reported on this chain yet — rounds wait for it to read the pools."))}"><i aria-hidden="true"></i>${T("keeper not reporting")}</span>` : "") +
       (isRH() && st.address ? `<a class="pd-chip pd-ca" href="${EXPL("address", st.address)}" target="_blank" rel="noopener">${T("contract")} <b data-no-i18n>${short(st.address)} ↗</b></a>` : "") +
       (isRH() && uUsd() ? `<span class="pd-chip" title="${T("Prices are the pool's ETH price × ETH/USD")}"><b data-no-i18n>ETH ${usd(uUsd(), 0)}</b></span>` : "") +
       (st.paused ? `<span class="pd-chip pd-paused">${T("New bets are paused by the team. Running rounds still settle and every claim works.")}</span>` : "");
@@ -213,7 +260,7 @@
       const br = betRound(m), pot = br ? br.up + br.down : 0;
       return `<button type="button" role="tab" class="pd-mk${m.id === S.m ? " on" : ""}${m.stopped ? " off" : ""}" data-pd-m="${m.id}" aria-selected="${m.id === S.m}">
         ${logo(m)}<span class="pd-mk-t"><span class="pd-mk-a"><b data-no-i18n>${esc(m.sym)}</b><em data-no-i18n>${dur(m.duration)}</em><span class="pd-mk-ch ${ch > 0 ? "up" : ch < 0 ? "down" : ""}" data-no-i18n>${ch == null ? "" : pc(ch)}</span></span>
-        <span class="pd-mk-b"><i class="pd-mk-left" data-pd-mleft="${m.id}" data-no-i18n></i>${pot > 0 ? `<i class="pd-mk-pot" data-no-i18n>${esc(bigM(pot))}</i>` : ""}</span></span>${spark(m)}${m.badge && m.badge.call === "risky" ? `<i class="pd-mk-risk" title="${T("ARCIA called it Risky")}">!</i>` : ""}${watched(m.id) ? `<i class="pd-mk-bell" title="${T("Reminder on")}">${ICO.bell}</i>` : ""}</button>`;
+        <span class="pd-mk-b"><i class="pd-mk-net ${S.chain}" data-no-i18n>${isRH() ? "RH" : "Arc"}</i><i class="pd-mk-left" data-pd-mleft="${m.id}" data-no-i18n></i>${pot > 0 ? `<i class="pd-mk-pot" data-no-i18n>${esc(bigM(pot))}</i>` : ""}${m.endsAt ? `<i class="pd-mk-end" title="${T("Ends")}" data-no-i18n>${esc(endsIn(m.endsAt))}</i>` : ""}</span></span>${spark(m)}${m.badge && m.badge.call === "risky" ? `<i class="pd-mk-risk" title="${T("ARCIA called it Risky")}">!</i>` : ""}${watched(m.id) ? `<i class="pd-mk-bell" title="${T("Reminder on")}">${ICO.bell}</i>` : ""}</button>`;
     }).join("") || `<p class="pd-empty">${T("No market yet")}</p>`;
     chipClock();
   }
@@ -225,7 +272,7 @@
       const left = br.lockAt - nowC();
       el.textContent = left > 0 ? mmss(left) : "";
       const chip = el.closest(".pd-mk");
-      if (chip) chip.classList.toggle("soon", left > 0 && left <= 30 && !m.stopped);
+      if (chip) { chip.classList.toggle("soon", left > 0 && left <= 30 && !m.stopped); chip.classList.toggle("last", left > 0 && left <= 10 && !m.stopped); }
     });
   }
 
@@ -262,9 +309,10 @@
     const lim = S.st.limits;
     const share = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg>`;
     el.innerHTML = `
+      <ol class="pd-steps" data-k="steps" aria-label="${T("Round stage")}"><li data-s="open" data-no-i18n><i aria-hidden="true"></i>${L3({ en: "Bet", ko: "베팅", zh: "下注" })}</li><li data-s="locked" data-no-i18n><i aria-hidden="true"></i>${L3({ en: "Live", ko: "진행", zh: "进行" })}</li><li data-s="settling" data-no-i18n><i aria-hidden="true"></i>${L3({ en: "Settle", ko: "정산", zh: "结算" })}</li></ol>
       <div class="pd-r-head">
         <div class="pd-r-tok">${logo(m, "lg")}<div><b data-no-i18n>${esc(m.sym)}</b><small><span data-no-i18n>${esc(m.name)}</span> · <a href="${EXPL("token", m.token)}" target="_blank" rel="noopener" data-no-i18n>${short(m.token)} ↗</a></small><div class="pd-tags">${scoreTag(m.badge)}${callTag(m.badge)}</div></div></div>
-        <div class="pd-r-id">${T("Round")} <b data-no-i18n>#${m.live.epoch + 1}</b><em data-no-i18n>${dur(m.duration)}</em>${m.stopped ? `<i class="pd-off">${T("Stopped")}</i>` : ""}<button type="button" class="pd-ico${watched(m.id) ? " on" : ""}" data-pd-act="watch" aria-pressed="${watched(m.id)}" title="${T("Remind me 30 seconds before bets close, every round of this market")}" aria-label="${T("Reminder")}">${ICO.bell}</button><button type="button" class="pd-ico" data-pd-act="sharem" title="${T("Share this market")}" aria-label="${T("Share this market")}">${share}</button></div>
+        <div class="pd-r-id">${T("Round")} <b data-no-i18n>#${m.live.epoch + 1}</b><em data-no-i18n>${dur(m.duration)}</em>${m.stopped ? `<i class="pd-off">${T("Stopped")}</i>` : ""}${m.endsAt ? `<i class="pd-ends" title="${T("The wallet that listed it set an end date")}">${T("ends in")} <span data-no-i18n>${esc(endsIn(m.endsAt))}</span></i>` : ""}<button type="button" class="pd-ico${watched(m.id) ? " on" : ""}" data-pd-act="watch" aria-pressed="${watched(m.id)}" title="${T("Remind me 30 seconds before bets close, every round of this market")}" aria-label="${T("Reminder")}">${ICO.bell}</button><button type="button" class="pd-ico" data-pd-act="sharem" title="${T("Share this market")}" aria-label="${T("Share this market")}">${share}</button></div>
       </div>
       <div class="pd-res" data-k="res"></div>
       <p class="pd-late" data-k="late" hidden></p>
@@ -274,20 +322,27 @@
           <div class="pd-pr now" data-k="nowbox"><small>${T("Now")}</small><b data-k="now" data-no-i18n></b><span data-k="ch" data-no-i18n></span></div>
           <div class="pd-ring" data-k="ring" aria-hidden="true"><svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" cx="22" cy="22" r="19" pathLength="100"/></svg><b data-k="left" data-no-i18n></b></div>
         </div>
+        <div class="pd-gauge" data-k="gauge" aria-hidden="true">
+          <svg viewBox="0 0 120 68"><path class="g-dn" d="M10 62 A50 50 0 0 1 60 12"/><path class="g-up" d="M60 12 A50 50 0 0 1 110 62"/><line class="g-tick" x1="60" y1="8" x2="60" y2="18"/><g class="g-needle" data-k="needle"><line x1="60" y1="62" x2="60" y2="20"/></g><circle class="g-hub" cx="60" cy="62" r="5"/></svg>
+          <div class="pd-diff"><small>${T("vs the price to beat")}</small><b data-k="diffv" data-no-i18n></b><span class="pd-diffbar"><i data-k="diffbar"></i></span></div>
+        </div>
         <div class="pd-phase"><span data-k="phase"></span> <b data-k="phaseT" data-no-i18n></b><em class="pd-lead" data-k="lead" hidden></em></div>
         <div class="pd-pools" data-k="pools">
           <div class="pd-pool up"><small>UP <i data-k="upPct" data-no-i18n></i></small><b data-k="upAmt" data-no-i18n></b><em data-k="upX" data-no-i18n></em><span class="pd-you" data-k="youUp" hidden></span></div>
-          <div class="pd-bar" aria-hidden="true"><i data-k="bar"></i></div>
+          <div class="pd-bar" aria-hidden="true"><i data-k="bar"></i><em class="pd-bar-me" data-k="barme" hidden>${T("You")}</em></div>
           <div class="pd-pool down"><small><i data-k="downPct" data-no-i18n></i> DOWN</small><b data-k="downAmt" data-no-i18n></b><em data-k="downX" data-no-i18n></em><span class="pd-you" data-k="youDown" hidden></span></div>
           <div class="pd-lockov" data-k="lockov" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/></svg><b>LOCKED</b><span>${T("Bets are on the next round")}</span></div>
         </div>
+        <div class="pd-flow" data-k="flow" hidden></div>
         <div class="pd-pos" data-k="livepos" hidden></div>
       </div>
       <div class="pd-bet${br && !S.st.paused ? "" : " dis"}" data-k="betbox">
         <div class="pd-bet-h"><b>${br ? (br.kind === "next" ? `${T("Next round")} <span data-no-i18n>#${br.epoch + 1}</span>` : `${T("This round")} <span data-no-i18n>#${br.epoch + 1}</span>`) : T("No round open for bets")}</b><small data-k="bethint"></small></div>
+        <div class="pd-prac" data-k="prac" hidden></div>
+        <p class="pd-sugg" data-k="sugg" hidden></p>
         <div class="pd-arcia" data-k="arcia" hidden></div>
         <div class="pd-mini" data-k="betpools"></div>
-        <p class="pd-first" data-k="first" hidden></p>
+        <div class="pd-first" data-k="first" hidden><img src="/images/arcia-avatar-96.jpg" alt="" width="40" height="40" loading="lazy"><div><b data-k="firstT"></b><span data-k="firstB"></span></div></div>
         <div class="pd-amt"><input id="pd-amt" type="number" min="0" step="any" inputmode="decimal" placeholder="${UNIT()}" value="${esc(S.amt)}" aria-label="${T(isRH() ? "ETH to put in" : "USDC to put in")}"${br ? "" : " disabled"}>${isRH() ? `<small class="pd-amtusd" data-k="amtusd" data-no-i18n></small>` : ""}
           <div class="pd-chips">${chips(lim).map(([v, l]) => `<button type="button" data-pd-amt="${v}"${br ? "" : " disabled"} title="${esc(money(v))}" data-no-i18n>${esc(l)}</button>`).join("")}</div></div>
         <p class="pd-preview" data-k="preview" hidden></p>
@@ -296,7 +351,7 @@
         <button type="button" class="pd-btn pd-rhsw" data-pd-act="rhswitch" data-k="rhsw" hidden>${T("Switch your wallet to Robinhood Chain first")}</button>
         <div class="pd-pos" data-k="betpos" hidden></div>
         <button type="button" class="pd-again" data-pd-act="again" data-k="again" hidden></button>
-        <p class="pd-small"><span data-no-i18n>${money(lim.minBet)}–${money(lim.maxBet)}${isRH() && uUsd() ? ` (≈${usd(lim.minBet * uUsd())}–${usd(lim.maxBet * uUsd())})` : ""}</span> ${T(isRH() ? "a round per wallet · one side per round · paid out in ETH on Robinhood Chain" : "a round per wallet · one side per round · paid out in USDC on Arc")} · ${T("no approval needed")}</p>
+        <p class="pd-small"><span data-no-i18n>${S.practice ? tr("Practice — no money moves") + " · " : ""}${money(lim.minBet)}–${money(lim.maxBet)}${isRH() && uUsd() ? ` (≈${usd(lim.minBet * uUsd())}–${usd(lim.maxBet * uUsd())})` : ""}</span> ${T(isRH() ? "a round per wallet · one side per round · paid out in ETH on Robinhood Chain" : "a round per wallet · one side per round · paid out in USDC on Arc")} · ${T("no approval needed")}</p>
         <p class="pd-msg${S.msg ? " " + S.msg.cls : ""}" aria-live="polite">${S.msg ? S.msg.h : ""}</p>
       </div>
       <div class="pd-chart" data-k="chart" aria-label="${T("Price through this round")}"></div>
@@ -331,6 +386,95 @@
     requestAnimationFrame(step);
     e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump");
   }
+  const fmtX = (v) => (v && isFinite(v) ? v.toFixed(2) + "×" : "—");
+  /// your stake in a round: the real one, or the practice one in practice mode
+  const mineIn = (rid, mid, ep) => (S.practice ? paperOf(mid, ep) : myBet(rid));
+  /// the gauge: how far the price is from the price to beat — the needle swings up to ±80°, softly saturating
+  /// (±1% fills most of it on a 5-minute market, ±2% on 15 minutes, ±4% on an hour)
+  function gauge(m, ch) {
+    const nd = K("needle"), dv = K("diffv"), db = K("diffbar"), g = K("gauge");
+    if (!nd) return;
+    const R = m.duration <= 300 ? 1 : m.duration <= 900 ? 2 : 4, k = ch == null || !isFinite(ch) ? 0 : Math.tanh(ch / R);
+    nd.style.transform = `rotate(${(k * 80).toFixed(1)}deg)`;
+    if (dv) { const t = ch == null ? tr("set at the start") : (ch > 0 ? "▲ " : ch < 0 ? "▼ " : "") + pc(ch); if (dv.textContent !== t) dv.textContent = t; }
+    if (db) { db.style.width = (Math.abs(k) * 50).toFixed(1) + "%"; db.style.left = k >= 0 ? "50%" : (50 - Math.abs(k) * 50).toFixed(1) + "%"; db.className = k > 0 ? "up" : k < 0 ? "down" : ""; }
+    if (g) g.className = "pd-gauge " + (ch > 0 ? "up" : ch < 0 ? "down" : "");
+  }
+  /// a coin drops into a pool when someone's bet lands on it
+  function dropCoin(side) {
+    const b = K(side === "up" ? "upAmt" : "downAmt"), pool = b && b.closest(".pd-pool");
+    if (!pool) return;
+    const c = document.createElement("i");
+    c.className = `pd-drop ${side}`;
+    c.style.setProperty("--x", (Math.random() * 40 - 20).toFixed(0) + "px");
+    pool.appendChild(c);
+    setTimeout(() => c.remove(), 1000);
+  }
+  /// how the UP / DOWN split moved as bets came into the live round (from the chart read)
+  function flowDraw(m) {
+    const el = K("flow");
+    if (!el) return;
+    const c = S.chart && S.chart.market === m.id ? S.chart : null, f = c && c.flow ? c.flow[m.live.id] : null;
+    if (!f || f.length < 2) { if (!el.hidden) el.hidden = true; return; }
+    const r = m.live, t0 = f[0][0], t1 = Math.max(f[f.length - 1][0] + 1, Math.min(nowC(), r.endAt)), Wd = 300, Hd = 34;
+    const sh = (u, d) => u / Math.max(1e-18, u + d);
+    const pts = f.map(([t, u, d]) => [((t - t0) / Math.max(1, t1 - t0)) * Wd, Hd - sh(u, d) * Hd]);
+    pts.push([Wd, pts[pts.length - 1][1]]);
+    let d = `M0 ${Hd} V${pts[0][1].toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) d += ` H${pts[i][0].toFixed(1)} V${pts[i][1].toFixed(1)}`;
+    d += ` V${Hd} Z`;
+    const a = Math.round(sh(f[0][1], f[0][2]) * 100), z = Math.round(sh(f[f.length - 1][1], f[f.length - 1][2]) * 100);
+    const h = `<small>${T("How the split moved")} · <span data-no-i18n>${f.length}</span></small><svg viewBox="0 0 ${Wd} ${Hd}" preserveAspectRatio="none" aria-hidden="true"><rect class="f-dn" x="0" y="0" width="${Wd}" height="${Hd}"/><path class="f-up" d="${d}"/><line class="f-mid" x1="0" x2="${Wd}" y1="${Hd / 2}" y2="${Hd / 2}"/></svg><b data-no-i18n>UP ${a}% → ${z}%</b>`;
+    el.hidden = false;
+    if (el.innerHTML !== h) el.innerHTML = h;
+  }
+
+  // ---- practice mode (v3): play money on the real rounds, kept in this browser ----
+  const PSTART = () => (isRH() ? 0.05 : 100);
+  const paperK = () => `${LS.paper}.${S.chain}`;
+  function paper() { const p = jget(paperK(), null); return p && Array.isArray(p.bets) ? p : { bal: PSTART(), bets: [], w: 0, l: 0 }; }
+  const paperSave = (p) => { p.bets = p.bets.slice(0, 60); ls.set(paperK(), JSON.stringify(p)); };
+  const paperOf = (mid, ep) => { const b = paper().bets.find((x) => x.m === mid && x.e === ep); return b ? { side: b.side, stake: b.amt, paper: true } : null; };
+  function paperBet(side, v, m, br) {
+    const p = paper();
+    if (p.bal + 1e-12 < v) { say(T("Not enough play balance — reset it to start over."), "err"); return false; }
+    const had = p.bets.find((x) => x.m === m.id && x.e === br.epoch);
+    if (had && had.side !== side) { say(T("You already bet on the other side of this round."), "err"); return false; }
+    if ((had ? had.amt : 0) + v > S.st.limits.maxBet + 1e-12) { say(`${T("A wallet can put at most")} <b data-no-i18n>${moneyU(S.st.limits.maxBet)}</b> ${T("in one round.")}`, "err"); return false; }
+    p.bal -= v;
+    if (had) had.amt += v; else p.bets.unshift({ m: m.id, sym: m.sym, d: m.duration, e: br.epoch, side, amt: v, at: Math.round(nowC()), end: br.endAt });
+    paperSave(p);
+    return true;
+  }
+  /// practice bets settle on the round's real result when it had real bets; otherwise on the prices this page saw
+  /// (the round's price to beat, and the next round's — which is this round's close). With nobody on the other side,
+  /// practice plays an even pot so a right call still pays.
+  function paperTick() {
+    if (!S.st || !S.st.markets) return;
+    const p = paper(), fee = S.st.feeBps / 10000;
+    let ch = false;
+    for (const b of p.bets) {
+      if (b.res) continue;
+      const m = market(b.m);
+      if (!m) continue;
+      if (m.live.epoch === b.e && !m.live.openPending && m.live.open && !b.open) { b.open = m.live.open; ch = true; }
+      if (m.live.epoch === b.e + 1 && !m.live.openPending && m.live.open && !b.close) { b.close = m.live.open; ch = true; }
+      const r = (m.past || []).find((x) => x.epoch === b.e);
+      const cmp = (o, c) => (o && c ? (c > o ? "up" : c < o ? "down" : "refund") : null);
+      let res = r ? (r.result !== "refund" ? r.result : cmp(r.open, r.close) || "refund") : cmp(b.open, b.close);
+      if (!res && nowC() > b.end + Math.max(600, b.d * 2)) res = "refund"; // the page never saw its end
+      if (!res) continue;
+      const upP = (r ? r.up : 0) + (b.side === "up" ? b.amt : 0), dnP = (r ? r.down : 0) + (b.side === "down" ? b.amt : 0);
+      const mine = b.side === "up" ? upP : dnP, other = b.side === "up" ? dnP : upP;
+      b.res = res === "refund" ? "refund" : res === b.side ? "won" : "lost";
+      b.pay = b.res === "refund" ? b.amt : b.res === "won" ? (b.amt * (mine + Math.max(other, mine)) * (1 - fee)) / mine : 0;
+      p.bal += b.pay; if (b.res === "won") p.w++; else if (b.res === "lost") p.l++;
+      ch = true;
+      if (S.practice) toast(tr(b.res === "won" ? "Practice win" : b.res === "lost" ? "Practice loss" : "Practice refund"), `${b.sym} ${dur(b.d)} #${b.e + 1} · ${b.side.toUpperCase()} ${money(b.amt)}${b.res === "won" ? " → " + money(b.pay) : ""}`, true);
+    }
+    if (ch) paperSave(p);
+  }
+
   /// the last 10 results, newest on the right, with ARCIA's calls on them
   function results(m) {
     const el = K("res");
@@ -353,20 +497,36 @@
     const nb = K("nowbox"); if (nb) nb.className = "pd-pr now " + (ch > 0 ? "up" : ch < 0 ? "down" : "");
     // which side is ahead right now: the card is tinted that way
     const lead = K("lead"), card0 = $("pd-round"), leadK = ch > 0 ? "up" : ch < 0 ? "down" : "";
-    if (lead) { lead.hidden = !leadK || ph.k === "settling"; lead.className = "pd-lead " + leadK; lead.textContent = leadK ? `${leadK === "up" ? "▲ UP" : "▼ DOWN"} ${tr("is winning")} ${pc(ch)}` : ""; }
+    if (lead) {
+      lead.hidden = !leadK || ph.k === "settling"; lead.className = "pd-lead " + leadK; lead.textContent = leadK ? `${leadK === "up" ? "▲ UP" : "▼ DOWN"} ${tr("is winning")} ${pc(ch)}` : "";
+      // the lead changed hands: the pill flips over to its new colour
+      const was = S.leadK[m.id];
+      if (was && leadK && was !== leadK && !reduce()) { void lead.offsetWidth; lead.classList.add("flip"); }
+      if (leadK) S.leadK[m.id] = leadK;
+    }
     if (card0) { card0.classList.toggle("lead-up", leadK === "up"); card0.classList.toggle("lead-down", leadK === "down"); }
     ring(m, ph);
     results(m);
+    gauge(m, ch);
     const up = r.up, down = r.down, pot = up + down, upPct = pot > 0 ? (up / pot) * 100 : 50;
+    // a new bet came in: a coin drops into its side (4-2)
+    const pk = `${m.id}:${r.epoch}`, pv = S.potPrev[pk];
+    if (pv && !reduce()) { if (up > pv.up + 1e-12) dropCoin("up"); if (down > pv.down + 1e-12) dropCoin("down"); }
+    S.potPrev[pk] = { up, down };
     roll("upAmt", up, money); roll("downAmt", down, money);
     setT("upPct", pot > 0 ? Math.round(upPct) + "%" : ""); setT("downPct", pot > 0 ? Math.round(100 - upPct) + "%" : "");
     const mu = mult(up, down, fee, "up"), md = mult(up, down, fee, "down");
-    setT("upX", mu ? mu.toFixed(2) + "×" : "—"); setT("downX", md ? md.toFixed(2) + "×" : "—");
+    // the payout multiples roll as they change (1.59× → 1.62×)
+    roll("upX", mu || NaN, fmtX); roll("downX", md || NaN, fmtX);
     const bar = K("bar"); if (bar) bar.style.width = upPct.toFixed(1) + "%";
     const lov = K("lockov"); if (lov) lov.hidden = ph.k === "open" || !br || br.kind !== "next";
-    const lp = myBet(r.id);
+    const lp = mineIn(r.id, m.id, r.epoch);
+    // "You" on the pool bar, in the middle of your side
+    const bm = K("barme");
+    if (bm) { bm.hidden = !lp; if (lp) { bm.style.left = (lp.side === "up" ? upPct / 2 : upPct + (100 - upPct) / 2).toFixed(1) + "%"; bm.className = "pd-bar-me " + lp.side; } }
+    flowDraw(m);
     // "You" on your side of the live round's pools
-    for (const sd of ["up", "down"]) { const y = K(sd === "up" ? "youUp" : "youDown"); if (y) { const on = !!lp && lp.side === sd; y.hidden = !on; if (on) y.textContent = `${tr("You")} · ${money(lp.stake)}`; } }
+    for (const sd of ["up", "down"]) { const y = K(sd === "up" ? "youUp" : "youDown"); if (y) { const on = !!lp && lp.side === sd; y.hidden = !on; if (on) y.textContent = `${tr(lp.paper ? "You (practice)" : "You")} · ${money(lp.stake)}`; } }
     const lpe = K("livepos");
     // the round open for bets shows its own position line; the live one only when they're different rounds
     if (lpe) { lpe.hidden = !lp || (br && br.id && br.id === r.id); if (lp && !lpe.hidden) { lpe.className = "pd-pos " + lp.side; lpe.innerHTML = posLine(lp, up, down); } }
@@ -381,16 +541,25 @@
     const lim = S.st.limits, bad = amt > 0 && (amt < lim.minBet - 1e-12 || amt > lim.maxBet + 1e-12);
     const inp = $("pd-amt"); if (inp) inp.classList.toggle("bad", bad);
     if (br) {
-      const bu = br.up, bd = br.down, bp = myBet(br.id);
+      const bu = br.up, bd = br.down, bp = mineIn(br.id, m.id, br.epoch);
       setT("bethint", br.kind === "next" ? `${tr("starts in")} ${mmss(br.startAt - nowC())} · ${tr("price to beat set when it starts")}` : `${tr("bets close in")} ${mmss(br.lockAt - nowC())}`);
       const mp = K("betpools");
       if (mp) mp.innerHTML = br.kind === "next" ? `<span>UP <b data-no-i18n>${money(bu)}</b></span><span>DOWN <b data-no-i18n>${money(bd)}</b></span>` : "";
       // nobody in yet / one side empty: what happens then
       const first = K("first");
       if (first) {
-        const msg = bu + bd <= 0 ? tr("Be the first in this round. If nobody takes the other side, everyone gets their stake back.") : bd <= 0 ? tr("Nobody on DOWN yet — if nobody comes, UP bets are refunded in full.") : bu <= 0 ? tr("Nobody on UP yet — if nobody comes, DOWN bets are refunded in full.") : "";
-        first.hidden = !msg || !!bp; first.textContent = msg;
+        const empty = bu + bd <= 0;
+        const t = empty ? tr("The first bet sets the odds") : bd <= 0 ? tr("Nobody on DOWN yet") : bu <= 0 ? tr("Nobody on UP yet") : "";
+        const b = empty ? tr("Nobody on the other side by the lock? Everyone gets their full stake back — no fee.") : bd <= 0 ? tr("If nobody takes DOWN, UP bets are refunded in full.") : bu <= 0 ? tr("If nobody takes UP, DOWN bets are refunded in full.") : "";
+        first.hidden = !t || !!bp; setT("firstT", t); setT("firstB", b); first.classList.toggle("big", empty);
       }
+      // a bet ARCIA filled in from her chat: the amount is in the box and its side glows (nothing is placed)
+      const SG = S.sugg && Date.now() - S.sugg.at < 10 * 60e3 ? S.sugg : null, sgEl = K("sugg");
+      if (sgEl) { sgEl.hidden = !SG || !!bp; if (SG && !bp) { const h = `<img src="/images/arcia-avatar-96.jpg" alt="" width="22" height="22"><span>${T("ARCIA filled this in")}: <b data-no-i18n>${SG.side ? SG.side.toUpperCase() + " " : ""}${SG.amt ? esc(money(SG.amt)) : ""}</b> — ${T("check it, then tap and sign in your wallet.")}</span>`; if (sgEl.innerHTML !== h) sgEl.innerHTML = h; } }
+      panel.querySelectorAll("#pd-round [data-pd-bet]").forEach((b) => b.classList.toggle("pd-suggest", !!SG && !bp && SG.side === b.dataset.pdBet));
+      // practice mode: its balance and record
+      const prEl = K("prac");
+      if (prEl) { prEl.hidden = !S.practice; if (S.practice) { const P = paper(); const h = `<b>${T("Practice mode")}</b><span>${T("play balance")} <b data-no-i18n>${esc(money(P.bal))}</b> · <span data-no-i18n>${P.w}–${P.l}</span></span><button type="button" class="pd-btn sm" data-pd-act="pracreset">${T("Reset")}</button><button type="button" class="pd-btn sm" data-pd-act="practice">${T("Leave")}</button>`; if (prEl.innerHTML !== h) prEl.innerHTML = h; } }
       // ARCIA's call on this round (for fun)
       const ac = K("arcia"), C = S.st.calls, mc = C && C.open && C.open[m.id];
       if (ac) {
@@ -416,7 +585,7 @@
           pv.className = "pd-preview"; pv.innerHTML = `<span>${line("up", pu)}</span><span>${line("down", pdn)}</span><small>${T("if nobody else bets after you")}</small>`;
         }
       }
-      const can = !S.st.paused && nowC() < br.lockAt;
+      const can = (S.practice || !S.st.paused) && nowC() < br.lockAt;
       panel.querySelectorAll("#pd-round [data-pd-bet]").forEach((b) => { b.disabled = !can || bad || (bp && bp.side !== b.dataset.pdBet); });
       if (bb) bb.classList.toggle("dis", !can);
       const bpe = K("betpos");
@@ -444,6 +613,9 @@
     setT("left", ph.left ? mmss(ph.left) : "…");
     setT("phase", ph.label);
     setT("phaseT", ph.left ? mmss(ph.left) : "");
+    // Bet → Live → Settle
+    const stp = K("steps");
+    if (stp && stp.dataset.on !== ph.k) { stp.dataset.on = ph.k; const O = ["open", "locked", "settling"], at = O.indexOf(ph.k); stp.querySelectorAll("li").forEach((li) => { const i = O.indexOf(li.dataset.s); li.className = i < at ? "done" : i === at ? "on" : ""; }); }
     // the last 10 seconds before bets close: the card glows
     const c = $("pd-round"); if (c) c.classList.toggle("pd-hot", ph.k === "open" && ph.left > 0 && ph.left <= 10 && !reduce());
     countdown(m, ph);
@@ -495,7 +667,7 @@
       <line class="pd-c-lock" x1="${X(r.lockAt).toFixed(1)}" x2="${X(r.lockAt).toFixed(1)}" y1="0" y2="${Hd}"/>
       ${oy ? `<path d="${area}" fill="url(#${id}g)" clip-path="url(#${id}a)"/><path d="${area}" fill="url(#${id}r)" clip-path="url(#${id}b)"/>` : ""}
       ${oy ? `<g clip-path="url(#${id}a)"><path class="pd-c-line up" d="${d}"/></g><g clip-path="url(#${id}b)"><path class="pd-c-line down" d="${d}"/></g><line class="pd-c-open" x1="0" x2="${Wd}" y1="${oy}" y2="${oy}"/>` : `<path class="pd-c-line" d="${d}"/>`}
-      ${bets}<circle class="pd-c-dot" cx="${lastX}" cy="${Y(m.price).toFixed(1)}" r="4"/></svg>
+      ${bets}${series.slice(-5, -1).map((p, i, a) => `<circle class="pd-c-trail" cx="${X(Math.max(x0, p[0])).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${(1.6 + i * 0.5).toFixed(1)}" style="opacity:${((i + 1) / (a.length + 1) * 0.55).toFixed(2)}"/>`).join("")}<circle class="pd-c-dot" cx="${lastX}" cy="${Y(m.price).toFixed(1)}" r="4"/></svg>
       ${oy ? `<span class="pd-c-tag" style="top:${((oy / Hd) * 100).toFixed(1)}%" data-no-i18n>${esc(px(r.open))}</span>` : ""}
       <div class="pd-c-axis" data-no-i18n>${[[r.startAt, tr("start")], ...((r.endAt - r.lockAt) / Math.max(1, x1 - x0) > 0.18 ? [[r.lockAt, tr("bets close")]] : []), [r.endAt, tr("end")]].map(([t, l]) => `<span style="left:${((X(t) / Wd) * 100).toFixed(1)}%"><b>${esc(l)}</b>${clock(t)}</span>`).join("")}</div>`;
   }
@@ -514,8 +686,11 @@
     const winSide = p.result === "up" ? p.up : p.down;
     const profit = won && winSide > 0 ? (mine.stake * (p.up + p.down) * (1 - (p.feeBps || 0) / 10000)) / winSide - mine.stake : 0;
     st.className = `pd-stamp ${k}${reduce() ? " still" : ""}`;
-    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${money(profit)}</em>` : ""}`;
+    st.innerHTML = `<b>${k === "refund" ? T("REFUND") : `${k === "up" ? "▲ UP" : "▼ DOWN"} ${T("WINS")}`}</b><span data-no-i18n>#${p.epoch + 1} · ${px(p.open)} → ${px(p.close)}</span>${won ? `<em data-no-i18n>+${money(reduce() ? profit : 0)}</em>` : ""}`;
     st.hidden = false;
+    // your winnings count up; a loss shakes; the phone buzzes either way
+    if (won && !reduce()) { const em = st.querySelector("em"), t0 = performance.now(); const step = (t) => { const k2 = Math.min(1, (t - t0) / 900); if (em) em.textContent = "+" + money(profit * (1 - Math.pow(1 - k2, 3))); if (k2 < 1 && em && em.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+    if (mine) buzz(won ? [20, 40, 60] : k === "refund" ? 20 : 90);
     const cd = K("cd"); if (cd) { cd.hidden = true; cd.dataset.n = ""; }
     const pools = K("pools");
     if (pools && !reduce() && k !== "refund") { pools.classList.remove("win-up", "win-down"); void pools.offsetWidth; pools.classList.add("win-" + k); setTimeout(() => pools.classList.remove("win-up", "win-down"), 2600); }
@@ -533,18 +708,22 @@
   }
 
   // ---- phones: UP / DOWN pinned to the bottom while the betting box is off screen ----
-  let stickyObs = null, betVisible = true;
+  let stickyObs = null, cardObs = null, betVisible = true;
   function stickyWatch() {
     if (stickyObs) { stickyObs.disconnect(); stickyObs = null; }
-    const bb = K("betbox");
+    if (cardObs) { cardObs.disconnect(); cardObs = null; }
+    const bb = K("betbox"), rc = $("pd-round");
     if (!bb || !("IntersectionObserver" in window)) return;
-    stickyObs = new IntersectionObserver((es) => { betVisible = es.some((e) => e.isIntersecting); const m = market(); if (m) sticky(m, betRound(m)); }, { threshold: 0.25 });
+    const again = () => { const m = market(); if (m && S.st && S.st.live) sticky(m, betRound(m)); };
+    stickyObs = new IntersectionObserver((es) => { betVisible = es.some((e) => e.isIntersecting); again(); }, { threshold: 0.25 });
     stickyObs.observe(bb);
+    // v3: the bar only while the round card itself is on screen (not over the guide or the footer)
+    if (rc) { cardObs = new IntersectionObserver((es) => { S.roundVis = es.some((e) => e.isIntersecting); again(); }, { threshold: 0.05 }); cardObs.observe(rc); }
   }
   function sticky(m, br) {
     const el = $("pd-sticky");
     if (!el) return;
-    const show = S.view === "market" && panel.classList.contains("active") && !!br && !betVisible && !S.st.paused && !myBet(br.id) && nowC() < br.lockAt;
+    const show = S.view === "market" && panel.classList.contains("active") && !!br && !betVisible && S.roundVis && (S.practice || !S.st.paused) && !mineIn(br.id, m.id, br.epoch) && nowC() < br.lockAt;
     el.hidden = !show;
     document.body.classList.toggle("pd-sticky-on", show);
     if (!show) return;
@@ -553,9 +732,11 @@
     const key = `${m.id}|${br.epoch}|${amt}|${br.up}|${br.down}|${Math.floor(Math.max(0, br.lockAt - nowC()))}`;
     if (el.dataset.k === key) return;
     el.dataset.k = key;
-    el.innerHTML = `<div class="pd-st-h"><b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b><span>${T("bets close in")} <b data-no-i18n>${mmss(br.lockAt - nowC())}</b></span></div>
-      <div class="pd-st-amt">${chips(S.st.limits).map(([v, l]) => `<button type="button" data-pd-amt="${v}" class="${Math.abs(v - amt) < 1e-12 ? "on" : ""}" data-no-i18n>${esc(l)}</button>`).join("")}</div>
-      <div class="pd-st-go"><button type="button" class="pd-up" data-pd-bet="up"${amt > 0 ? "" : " disabled"}><span>UP ▲</span><small data-no-i18n>${pu && !lone(br.up, br.down, "up") ? "≈" + money(pu) : amt > 0 ? money(amt) : tr("pick an amount")}</small></button><button type="button" class="pd-down" data-pd-bet="down"${amt > 0 ? "" : " disabled"}><span>DOWN ▼</span><small data-no-i18n>${pdn && !lone(br.up, br.down, "down") ? "≈" + money(pdn) : amt > 0 ? money(amt) : tr("pick an amount")}</small></button></div>`;
+    // one row: the market and time left · the amount (a tap cycles the quick amounts) · UP · DOWN
+    const cs = chips(S.st.limits), cur = cs.find(([v]) => Math.abs(v - amt) < 1e-12);
+    el.innerHTML = `<span class="pd-st-t"><b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b><small data-no-i18n>${mmss(br.lockAt - nowC())}</small></span>
+      <button type="button" class="pd-st-amtc${amt > 0 ? " on" : ""}" data-pd-act="stamt" title="${T("Tap to change the amount")}" data-no-i18n>${esc(amt > 0 ? (cur ? cur[1] : money(amt)) : tr("Amount"))}</button>
+      <button type="button" class="pd-up" data-pd-bet="up"${amt > 0 ? "" : " disabled"}><span>▲ UP</span><small data-no-i18n>${pu && !lone(br.up, br.down, "up") ? "≈" + money(pu) : ""}</small></button><button type="button" class="pd-down" data-pd-bet="down"${amt > 0 ? "" : " disabled"}><span>▼ DOWN</span><small data-no-i18n>${pdn && !lone(br.up, br.down, "down") ? "≈" + money(pdn) : ""}</small></button>`;
   }
   window.addEventListener("resize", () => { const m = market(); if (m && S.st && S.st.live) sticky(m, betRound(m)); });
 
@@ -632,9 +813,9 @@
   // ---- side panel: my bets · last rounds · live bets · invite ----
   function side() {
     const el = $("pd-side");
-    const tabsH = `<div class="pd-stabs" role="tablist">${[["bets", "Your bets"], ["past", "Last rounds"], ["feed", "Live bets"], ["invite", "Invite"]].map(([k, l]) => `<button type="button" role="tab" data-pd-side="${k}" aria-selected="${S.side === k}">${T(l)}${k === "bets" && S.mine && S.mine.claimable > 0 ? ` <i class="pd-dot" aria-hidden="true"></i>` : ""}</button>`).join("")}</div>`;
+    const tabsH = `<div class="pd-stabs" role="tablist">${[["bets", S.practice ? "Practice bets" : "Your bets"], ["past", "Last rounds"], ["feed", "Live bets"], ["invite", "Invite"]].map(([k, l]) => `<button type="button" role="tab" data-pd-side="${k}" aria-selected="${S.side === k}" title="${T(l)}">${ICO[k]}<span>${T(l)}</span>${k === "bets" && ((S.mine && S.mine.claimable > 0) || (S.mineOther && S.mineOther.claimable > 0)) ? ` <i class="pd-dot" aria-hidden="true"></i>` : ""}</button>`).join("")}</div>`;
     let body = "";
-    if (S.side === "bets") body = sideBets();
+    if (S.side === "bets") body = S.practice ? sidePractice() : sideBets();
     else if (S.side === "past") body = sidePast();
     else if (S.side === "feed") body = sideFeed();
     else body = sideInvite();
@@ -650,22 +831,52 @@
     const st = M.stats;
     const items = (M.items || []).slice(0, 12);
     const res = (x) => x.result === "open" ? `<em class="pd-live">${T("live")}</em>` : x.result === "refund" ? `<em>${T("refund")}</em>` : x.result === x.side ? `<em class="win">${T("won")}</em>` : `<em class="lost">${T("lost")}</em>`;
-    return (M.claimable > 0 ? `<div class="pd-claim glow"><div><small>${T("Ready to claim")}</small><b data-no-i18n>${moneyU(M.claimable)}</b></div><button type="button" class="pd-btn go" data-pd-act="claim">${T("Claim")}</button></div>` : "") +
-      (st ? `<div class="pd-stats4"><div><small>${T("PnL")}</small><b class="${st.pnl >= 0 ? "up" : "down"}" data-no-i18n>${st.pnl >= 0 ? "+" : ""}${money(st.pnl)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${st.wins + st.losses ? Math.round((st.wins / (st.wins + st.losses)) * 100) + "%" : "—"}</b></div><div><small>${T("Streak")}</small><b data-no-i18n class="${st.streak >= 3 ? "pd-hotstreak" : ""}">${st.streak >= 2 ? ICO.flame : ""}${st.streak} · ${T("best")} ${st.best}</b></div><div><small>${T("Volume")}</small><b data-no-i18n>${bigM(st.vol)}</b></div></div>${badges(st)}` : "") +
+    // everything this wallet can claim, on both chains (the other chain's is one tap: switch, then claim)
+    const O = S.mineOther, oName = O && O.chain === "rh" ? "Robinhood Chain" : "Arc";
+    const oAmt = O ? (O.chain === "rh" ? `${ethS(O.claimable)}${O.unitUsd ? ` <small class="pd-usd">≈${usd(O.claimable * O.unitUsd)}</small>` : ""}` : usd(O.claimable)) : "";
+    const claimBox = M.claimable > 0 || (O && O.claimable > 0) ? `<div class="pd-claim glow"><div><small>${T("Ready to claim")}</small>${M.claimable > 0 ? `<b data-no-i18n>${moneyU(M.claimable)}</b>` : ""}${O && O.claimable > 0 ? `<span class="pd-claim-o" data-no-i18n>${M.claimable > 0 ? "+ " : ""}<b>${oAmt}</b> ${L3({ en: "on {c}", ko: "{c}에서", zh: "在 {c}" }).replace("{c}", oName)}</span>` : ""}</div><div class="pd-claim-b">${M.claimable > 0 ? `<button type="button" class="pd-btn go" data-pd-act="claim">${T("Claim")}</button>` : ""}${O && O.claimable > 0 ? `<button type="button" class="pd-btn" data-pd-act="claimother">${T("Switch and claim")} <span data-no-i18n>${O.chain === "rh" ? "RH" : "Arc"}</span></button>` : ""}</div></div>` : "";
+    const pod = st && st.podiums && st.podiums.some(Boolean) ? `<div class="pd-pods">${T("Weekly podiums")}: ${["1st", "2nd", "3rd"].map((l, i) => (st.podiums[i] ? `<span class="pd-pod p${i + 1}" data-no-i18n>${l} ×${st.podiums[i]}</span>` : "")).join("")}</div>` : "";
+    return claimBox +
+      (st ? `<div class="pd-stats4"><div><small>${T("PnL")}</small><b class="${st.pnl >= 0 ? "up" : "down"}" data-no-i18n>${st.pnl >= 0 ? "+" : ""}${money(st.pnl)}</b>${pnlSpark(st.days)}</div><div><small>${T("Win rate")}</small><b data-no-i18n>${st.wins + st.losses ? Math.round((st.wins / (st.wins + st.losses)) * 100) + "%" : "—"}</b></div><div><small>${T("Streak")}</small><b data-no-i18n class="${st.streak >= 3 ? "pd-hotstreak" : ""}" style="--s:${Math.min(10, st.streak)}">${st.streak >= 2 ? ICO.flame : ""}${st.streak} · ${T("best")} ${st.best}</b></div><div><small>${T("Volume")}</small><b data-no-i18n>${bigM(st.vol)}</b></div></div>${pod}${badges(st)}
+        <div class="pd-row pd-mestats"><button type="button" class="pd-btn" data-pd-act="sharestats">${T("Share my stats card")}</button><a class="pd-btn pd-tgalert" href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener" title="${T("Send /predictalerts with your wallet to ARCIA's bot")}">${ICO.tg}<span>${T("Alerts on Telegram")}</span></a></div>` : "") +
       (items.length ? `<div class="pd-bets">${items.map((x) => `<div class="pd-b ${x.side}"><span data-no-i18n>#${x.epoch != null ? x.epoch + 1 : x.round}</span><b data-no-i18n>${esc(mkName(x.market))}</b><i data-no-i18n>${x.side.toUpperCase()}</i><span data-no-i18n>${money(x.stake)}</span>${res(x)}${x.claimable > 0 ? `<small class="win" data-no-i18n>+${money(x.claimable)}</small>` : x.claimed ? `<small>${T("claimed")}</small>` : "<small></small>"}${x.result !== "open" ? `<button type="button" class="pd-ico sm" data-pd-share="${x.round}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button>` : "<span></span>"}</div>`).join("")}</div>` : `<p class="pd-empty">${T("No bets in the recent rounds.")}</p>${how()}`);
+  }
+  /// the PnL of the last days as a tiny line (running total)
+  function pnlSpark(days) {
+    if (!days || days.length < 2) return "";
+    let run = 0; const v = days.map(([, x]) => (run += x));
+    const lo = Math.min(0, ...v), hi = Math.max(0, ...v), Wd = 64, Hd = 18, X = (i) => (i / (v.length - 1)) * Wd, Y = (x) => Hd - 1 - ((x - lo) / Math.max(1e-12, hi - lo)) * (Hd - 2);
+    return `<svg class="pd-pnlsp ${run >= 0 ? "up" : "down"}" viewBox="0 0 ${Wd} ${Hd}" aria-hidden="true"><line x1="0" x2="${Wd}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/><polyline points="${v.map((x, i) => `${X(i).toFixed(1)},${Y(x).toFixed(1)}`).join(" ")}"/></svg>`;
+  }
+  /// practice mode's side panel: the play balance, the record and the practice bets
+  function sidePractice() {
+    paperTick();
+    const P = paper(), n = P.w + P.l;
+    const rows = P.bets.slice(0, 14).map((b) => `<div class="pd-b ${b.side}"><span data-no-i18n>#${b.e + 1}</span><b data-no-i18n>${esc(b.sym)} ${dur(b.d)}</b><i data-no-i18n>${b.side.toUpperCase()}</i><span data-no-i18n>${money(b.amt)}</span>${b.res ? `<em class="${b.res === "won" ? "win" : b.res === "lost" ? "lost" : ""}">${T(b.res === "won" ? "won" : b.res === "lost" ? "lost" : "refund")}</em>` : `<em class="pd-live">${T("live")}</em>`}<small class="${b.res === "won" ? "win" : ""}" data-no-i18n>${b.res === "won" ? "+" + money(b.pay - b.amt) : ""}</small><span></span></div>`).join("");
+    return `<div class="pd-prac-side"><div class="pd-stats4"><div><small>${T("Play balance")}</small><b data-no-i18n>${money(P.bal)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${n ? Math.round((P.w / n) * 100) + "%" : "—"}</b></div><div><small>${T("Won / lost")}</small><b data-no-i18n>${P.w} / ${P.l}</b></div><div><small>${T("Started with")}</small><b data-no-i18n>${money(PSTART())}</b></div></div>
+      <p class="pd-small">${T("Practice bets go on the real rounds with play money and settle on the real result. Nothing leaves your wallet. With nobody on the other side, practice pays an even pot.")}</p>
+      ${rows ? `<div class="pd-bets">${rows}</div>` : `<p class="pd-empty">${T("No practice bets yet — pick UP or DOWN on the round.")}</p>`}
+      <div class="pd-row"><button type="button" class="pd-btn" data-pd-act="pracreset">${T("Reset the play balance")}</button><button type="button" class="pd-btn go" data-pd-act="practice">${T("Play for real")}</button></div></div>`;
+  }
+  /// the last 50 results of this market as a grid (oldest top left, newest bottom right)
+  function heatGrid() {
+    const it = S.heatM === S.m && S.heat ? S.heat : null;
+    if (!it || !it.length) return "";
+    const ups = it.filter((x) => x.r === "u").length, dns = it.filter((x) => x.r === "d").length;
+    return `<div class="pd-heat"><div class="pd-heat-h"><b data-no-i18n>${L3({ en: "Last {n} results", ko: "최근 {n}개 결과", zh: "最近 {n} 个结果" }).replace("{n}", it.length)}</b><span data-no-i18n><i class="u"></i>UP ${ups} · <i class="d"></i>DOWN ${dns}${it.length - ups - dns ? ` · <i class="x"></i>${it.length - ups - dns}` : ""}</span></div><div class="pd-heat-g">${it.slice().reverse().map((x) => `<i class="${x.r}" title="#${x.e + 1} · ${x.r === "u" ? "UP" : x.r === "d" ? "DOWN" : "refund"} · ${esc(money(x.pot))}"></i>`).join("")}</div></div>`;
   }
   function sidePast() {
     const m = market();
     const rows = (m && m.past) || [];
-    return rows.length ? `<div class="pd-hist">${rows.map((r) => {
+    return heatGrid() + (rows.length ? `<div class="pd-hist">${rows.map((r) => {
       const ch = r.open && r.close ? (r.close / r.open - 1) * 100 : null;
       const k = r.result === "up" ? "up" : r.result === "down" ? "down" : "refund";
       return `<div class="pd-h ${k}"><i aria-hidden="true">${k === "up" ? "▲" : k === "down" ? "▼" : "↺"}</i><span data-no-i18n>#${r.epoch + 1}</span><b>${T(k === "refund" ? "Refund" : k.toUpperCase())}</b><em data-no-i18n>${ch == null ? "" : pc(ch)}</em><small data-no-i18n>${money(r.up + r.down)}</small><button type="button" class="pd-ico sm" data-pd-share="${r.id}" title="${T("Share")}" aria-label="${T("Share")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v12M7.5 7.5 12 3l4.5 4.5"/></svg></button></div>`;
-    }).join("")}</div>` : `<p class="pd-empty">${T("No settled rounds with bets yet.")}</p>${how()}`;
+    }).join("")}</div>` : `<p class="pd-empty">${T("No settled rounds with bets yet.")}</p>${how()}`);
   }
   function sideFeed() {
     const it = (S.feed && S.feed.items) || [];
-    if (!it.length) return `<p class="pd-empty">${T("No bets in the last hour.")}</p>`;
+    if (!it.length) return `<p class="pd-empty">${T("No bets yet.")}</p>`;
     const ago = (t) => { const d = Math.max(0, nowC() - t); return d < 60 ? `${Math.round(d)}s` : d < 3600 ? `${Math.round(d / 60)}m` : `${Math.round(d / 3600)}h`; };
     return `<div class="pd-feed">${it.map((x) => `<div class="pd-f ${x.up ? "up" : "down"}"><i aria-hidden="true">${x.up ? "▲" : "▼"}</i><span data-no-i18n>${short(x.user)}</span><b data-no-i18n>${x.up ? "UP" : "DOWN"} ${money(x.amount)}</b><em data-no-i18n>${esc(mkName(x.market))}</em><small data-no-i18n>${ago(x.t)}</small></div>`).join("")}</div>`;
   }
@@ -692,7 +903,8 @@
         const br = betRound(m), qa = Number(String(S.amt || "").replace(/,/g, "")) || 0, qOk = br && qa > 0 && !S.st.paused && t < br.lockAt - 2 && !myBet(br.id);
         return `<div class="pd-tile${br && br.lockAt - t <= 30 && br.lockAt > t ? " soon" : ""}" role="button" tabindex="0" data-pd-go="${m.id}">
           <span class="pd-tile-h">${logo(m)}<b data-no-i18n>${esc(m.sym)}</b><em data-no-i18n>${dur(m.duration)}</em></span>
-          <span class="pd-ring sm pd-ph-${ph.k}" style="--f:${(Math.min(1, Math.max(0, ph.frac || 0)) * 100).toFixed(1)}"><svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" cx="22" cy="22" r="19" pathLength="100"/></svg><b data-pd-tleft="${m.id}" data-no-i18n>${ph.left ? mmss(ph.left) : "…"}</b></span>
+          <span class="pd-tile-pot"><small data-no-i18n>${L3({ en: "pot", ko: "팟", zh: "奖池" })}</small><b data-no-i18n>${pot > 0 ? esc(bigM(pot)) : "—"}</b></span>
+          <span class="pd-ring md pd-ph-${ph.k}" style="--f:${(Math.min(1, Math.max(0, ph.frac || 0)) * 100).toFixed(1)}"><svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" cx="22" cy="22" r="19" pathLength="100"/></svg><b data-pd-tleft="${m.id}" data-no-i18n>${ph.left ? mmss(ph.left) : "…"}</b></span>
           <span class="pd-tile-px"><b data-no-i18n>${px(m.price)}</b><i class="${ch > 0 ? "up" : ch < 0 ? "down" : ""}" data-no-i18n>${ch == null ? "" : pc(ch)}</i></span>
           <span class="pd-tile-bar" style="--up:${upPct.toFixed(1)}%"><i></i></span>
           <span class="pd-tile-f"><span data-no-i18n>UP ${money(m.live.up)}</span><span data-no-i18n>${money(m.live.down)} DOWN</span></span>
@@ -704,11 +916,19 @@
   function lbView() {
     const el = $("pd-view-lb"), L = S.lb;
     if (!L) { el.innerHTML = skel(); return; }
-    const rows = (L[S.lbTab] || []).slice(0, 25), a = acct();
+    const rows = (L[S.lbTab] || []).slice(0, 25), a = acct(), F = L.fan || {}, PD = L.podiums || {};
+    const FAN = { diamond: "Diamond", gold: "Gold", silver: "Silver", bronze: "Bronze" };
+    const fanB = (u) => (F[u] ? `<i class="pd-fan ${F[u]}" title="${T("Fan tier from the $ARCIA held on Robinhood Chain")}">${T(FAN[F[u]])}</i>` : "");
+    const podB = (u) => { const p = PD[u]; return p ? p.map((n, i) => (n ? `<i class="pd-pod p${i + 1}" title="${T("Weekly podiums")}" data-no-i18n>${["1st", "2nd", "3rd"][i]}${n > 1 ? " ×" + n : ""}</i>` : "")).join("") : ""; };
+    const top3 = rows.slice(0, 3);
+    const podium = top3.length && top3[0].pnl > 0 ? `<div class="pd-podium">${[1, 0, 2].map((i) => top3[i] ? `<div class="pd-pdm r${i + 1}${top3[i].user === a ? " me" : ""}"><span class="pd-pdm-av" style="--h:${parseInt(top3[i].user.slice(2, 6), 16) % 360}" aria-hidden="true"></span><a href="${EXPL("address", top3[i].user)}" target="_blank" rel="noopener" data-no-i18n>${short(top3[i].user)}</a>${fanB(top3[i].user)}<b class="${top3[i].pnl >= 0 ? "up" : "down"}" data-no-i18n>${top3[i].pnl >= 0 ? "+" : ""}${money(top3[i].pnl)}</b><span class="pd-pdm-step" data-no-i18n>${i + 1}</span></div>` : "").join("")}</div>` : "";
+    const seasons = (L.seasons || []).filter((x) => x.top && x.top.length);
     el.innerHTML = `<div class="pd-all-h"><h3>${T("Leaderboard")}</h3><div class="pd-sort">${[["week", "This week"], ["all", "All time"]].map(([k, l]) => `<button type="button" class="pd-btn${S.lbTab === k ? " on" : ""}" data-pd-lb="${k}">${T(l)}</button>`).join("")}</div></div>
       ${S.lbTab === "week" ? (() => { const t = nowC(), d = new Date(t * 1000), dow = (d.getUTCDay() + 6) % 7, mon = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow) / 1000, end = mon + 7 * 86400, left = end - t; return `<p class="pd-season">${T("Season")} <b data-no-i18n>${new Date(mon * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })} – ${new Date((end - 1) * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}</b> · ${T("resets in")} <b data-no-i18n>${Math.floor(left / 86400)}d ${Math.floor((left % 86400) / 3600)}h</b> <small>(${T("Monday 00:00 UTC")})</small></p>`; })() : ""}
       <p class="pd-small">${T("Profit and loss from settled rounds (winnings minus stakes). Refunds don't count.")} <span data-no-i18n>${L.players || 0}</span> ${T("players")} · <span data-no-i18n>${L.rounds || 0}</span> ${T("rounds")}</p>
-      ${rows.length ? `<div class="pd-lb"><div class="pd-lb-r head"><span>#</span><span>${T("Wallet")}</span><span>${T("PnL")}</span><span>${T("Volume")}</span><span>${T("W / L")}</span></div>${rows.map((r, i) => `<div class="pd-lb-r${r.user === a ? " me" : ""}${i < 3 ? " top" : ""}"><span class="pd-rank r${i + 1}" data-no-i18n>${i + 1}</span><a href="${EXPL("address", r.user)}" target="_blank" rel="noopener" data-no-i18n>${short(r.user)}</a><b class="${r.pnl >= 0 ? "up" : "down"}" data-no-i18n>${r.pnl >= 0 ? "+" : ""}${money(r.pnl)}</b><span data-no-i18n>${bigM(r.vol)}</span><span data-no-i18n>${r.wins}/${r.losses}</span></div>`).join("")}</div>` : `<p class="pd-empty">${T("Nobody yet — the first settled rounds fill this in.")}</p>`}
+      ${podium}
+      ${rows.length ? `<div class="pd-lb"><div class="pd-lb-r head"><span>#</span><span>${T("Wallet")}</span><span>${T("PnL")}</span><span>${T("Volume")}</span><span>${T("W / L")}</span></div>${rows.map((r, i) => `<div class="pd-lb-r${r.user === a ? " me" : ""}${i < 3 ? " top" : ""}"><span class="pd-rank r${i + 1}" data-no-i18n>${i + 1}</span><span class="pd-lb-u"><a href="${EXPL("address", r.user)}" target="_blank" rel="noopener" data-no-i18n>${short(r.user)}</a>${fanB(r.user)}${podB(r.user)}</span><b class="${r.pnl >= 0 ? "up" : "down"}" data-no-i18n>${r.pnl >= 0 ? "+" : ""}${money(r.pnl)}</b><span data-no-i18n>${bigM(r.vol)}</span><span data-no-i18n>${r.wins}/${r.losses}</span></div>`).join("")}</div>` : `<p class="pd-empty">${T("Nobody yet — the first settled rounds fill this in.")}</p>`}
+      ${seasons.length ? `<h4>${T("Past seasons")}</h4><div class="pd-seasons">${seasons.map((x) => `<div class="pd-sea"><span data-no-i18n>${new Date(x.week + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}</span>${x.top.map((r, i) => `<em class="p${i + 1}"><i data-no-i18n>${i + 1}</i><a href="${EXPL("address", r.user)}" target="_blank" rel="noopener" data-no-i18n>${short(r.user)}</a><b class="${r.pnl >= 0 ? "up" : "down"}" data-no-i18n>${r.pnl >= 0 ? "+" : ""}${money(r.pnl)}</b></em>`).join("")}</div>`).join("")}</div>` : ""}
       ${L.streaks && L.streaks.length && L.streaks[0].best > 1 ? `<h4>${T("Longest win streaks")}</h4><div class="pd-streaks">${L.streaks.filter((s) => s.best > 1).slice(0, 5).map((s) => `<span class="pd-chip"><b data-no-i18n>${s.best}</b> <span data-no-i18n>${short(s.user)}</span></span>`).join("")}</div>` : ""}`;
   }
 
@@ -717,11 +937,14 @@
     const el = $("pd-list"), st = S.st, a = acct();
     const staff = a && (a === st.owner || a === st.operator);
     const L = S.list || {};
-    const key = `${a}|${st.listing.open}|${st.listing.burn}|${JSON.stringify(L)}|${S.view}|${S.m}`;
-    el.hidden = !(st.listing.open || staff);
+    const m = market();
+    const lister = !!(a && m && m.lister === a);
+    const key = `${a}|${st.listing.open}|${st.listing.burn}|${JSON.stringify(L)}|${S.view}|${S.m}|${m && m.endsAt}`;
+    el.hidden = !(st.listing.open || staff || lister);
     if (el.hidden || key === S.listKey) return;
     S.listKey = key;
-    const m = market();
+    // the wallet that listed this market (not the team, listing closed): only its end date
+    if (!st.listing.open && !staff) { el.innerHTML = `<h3>${T("Your market")}</h3>${endRow(m, true)}<p class="pd-msg${S.smsg ? " " + S.smsg.cls : ""}" aria-live="polite">${S.smsg ? S.smsg.h : ""}</p>`; return; }
     if (isRH()) { el.innerHTML = listPanelRH(staff, a, L, m); return; }
     const warn = L.badge && (L.badge.call === "risky" || (L.badge.score != null && L.badge.score < 40));
     el.innerHTML = `<h3>${T("Open a market")} ${staff ? `<small data-no-i18n>${a === st.owner ? "owner" : "operator"}</small>` : ""}</h3>
@@ -730,7 +953,9 @@
       ${L.pools ? (L.pools.length ? `<div class="pd-pools-l">${L.pools.map((p, i) => `<label class="pd-pl"><input type="radio" name="pd-pl" value="${i}"${i === (L.pick || 0) ? " checked" : ""}><b>${esc(p.venue || "Uniswap v4")}</b><span data-no-i18n>${p.feePct != null ? p.feePct + "%" : ""}${p.dex && p.dex.liqUsd ? " · " + bigM(p.dex.liqUsd) : ""}</span><small data-no-i18n>${short(p.id)}</small></label>`).join("")}</div>` : `<p class="pd-empty">${T("No Uniswap v4 pool against USDC found for this token.")}</p>`) : ""}
       ${L.badge ? `<div class="pd-tags">${scoreTag(L.badge)}${callTag(L.badge)}</div>${warn ? `<p class="pd-warn">${T("Token Scanner or ARCIA flags this token. Think twice before opening rounds on it.")}</p>` : ""}` : ""}
       <div class="pd-row pd-durs">${DURS.map(([s, l]) => `<button type="button" class="pd-btn${(L.d || 300) === s ? " on" : ""}" data-pd-dur="${s}">${T(l)}</button>`).join("")}</div>
+      ${endPick(L)}
       <button type="button" class="pd-btn go" data-pd-act="add"${L.pools && L.pools.length && !(warn && !staff && L.badge.call === "risky") ? "" : " disabled"}>${staff ? T("List it") : T("Burn and open it")}</button>
+      ${m && (staff || m.lister === a) ? endRow(m, false) : ""}
       ${staff && m ? `<div class="pd-staff2"><span>${T("This market")}: <b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b> · ${T(m.stopped ? "stopped" : "running")}</span>${m.stopped ? "" : `<button type="button" class="pd-btn" data-pd-act="stop">${T("Stop after the round open for bets")}</button>`}<button type="button" class="pd-btn" data-pd-act="fees">${T("Send fees to the fee burn")}</button><a href="${EXPL("address", st.address)}" target="_blank" rel="noopener" data-no-i18n>${short(st.address)} ↗</a></div>` : ""}
       <p class="pd-msg${S.smsg ? " " + S.smsg.cls : ""}" aria-live="polite">${S.smsg ? S.smsg.h : ""}</p>`;
   }
@@ -739,14 +964,39 @@
   function listPanelRH(staff, a, L, m) {
     const st = S.st, P = L.pons;
     const staffRow = staff && m ? `<div class="pd-staff2"><span>${T("This market")}: <b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b> · ${T(m.stopped ? "stopped" : "running")}</span>${m.stopped ? "" : `<button type="button" class="pd-btn" data-pd-act="stop">${T("Stop after the round open for bets")}</button>`}<button type="button" class="pd-btn" data-pd-act="fees">${T("Send fees to the treasury")}</button><a href="${EXPL("address", st.address)}" target="_blank" rel="noopener" data-no-i18n>${short(st.address)} ↗</a></div>` : "";
-    return `<h3>${T("List a Pons coin")} <small data-no-i18n>${a === st.owner ? "owner" : "operator"}</small></h3>
-      <p class="pd-small">${T("Graduated Pons V2 coins only — the coin's Uniswap v4 pool against ETH. Coins still on their bonding curve can't be listed.")}</p>
+    const open = st.listing.open && !staff;
+    return `<h3>${T("List a Pons coin")} ${staff ? `<small data-no-i18n>${a === st.owner ? "owner" : "operator"}</small>` : ""}</h3>
+      <p class="pd-small">${T("Graduated Pons V2 coins only — the coin's Uniswap v4 pool against ETH. Coins still on their bonding curve can't be listed.")}${open && st.listing.burn > 0 ? ` ${T("Listing burns")} <b data-no-i18n>${Number(st.listing.burn).toLocaleString("en-US")} $ARCIRCLE</b> ${T("on Robinhood Chain.")}` : ""}</p>
       <div class="pd-row"><input type="text" id="pd-lt" placeholder="${T("Pons coin address (0x…)")}" value="${esc(L.t || "")}" spellcheck="false"><button type="button" class="pd-btn" data-pd-act="pons">${T("Check it")}</button></div>
       ${P ? `<div class="pd-pons">${P.image ? `<img src="${esc(P.image)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<b data-no-i18n>$${esc(P.symbol || "?")}</b><span data-no-i18n>${esc(P.name || "")}</span><em data-no-i18n>${P.priceUsd != null ? "$" + Number(P.priceUsd).toPrecision(3) : P.priceEth != null ? ethS(P.priceEth) : ""}</em><small data-no-i18n>${short(P.poolId)}</small></div>` : ""}
       <div class="pd-row pd-durs">${DURS.map(([sec, l]) => `<button type="button" class="pd-btn${(L.d || 300) === sec ? " on" : ""}" data-pd-dur="${sec}">${T(l)}</button>`).join("")}</div>
-      <button type="button" class="pd-btn go" data-pd-act="add"${P && staff ? "" : " disabled"}>${T("List it")}</button>
+      ${endPick(L)}
+      <button type="button" class="pd-btn go" data-pd-act="add"${P && (staff || st.listing.open) ? "" : " disabled"}>${T(staff || !(st.listing.burn > 0) ? "List it" : "Burn and list it")}</button>
+      ${m && (staff || m.lister === a) ? endRow(m, false) : ""}
       ${staffRow}
       <p class="pd-msg${S.smsg ? " " + S.smsg.cls : ""}" aria-live="polite">${S.smsg ? S.smsg.h : ""}</p>`;
+  }
+  /// when a new market ends (picked before listing; signed right after it opens)
+  const endPick = (L) => `<div class="pd-row pd-ends-pick"><small>${T("Ends")}</small>${ENDS.map(([d, l]) => `<button type="button" class="pd-btn sm${(L.ex || 0) === d ? " on" : ""}" data-pd-exnew="${d}">${T(l)}</button>`).join("")}</div>`;
+  /// the listing wallet (or the team) moves the end of a running market
+  function endRow(m, solo) {
+    if (!m || m.stopped) return solo ? `<p class="pd-small">${T("This market is stopped.")}</p>` : "";
+    const cur = m.endsAt ? Math.max(1, Math.round((m.endsAt - Date.now() / 1000) / 86400)) : 0;
+    return `<div class="pd-endrow"><span>${T("End date for")} <b data-no-i18n>${esc(m.sym)} ${dur(m.duration)}</b>: <b data-no-i18n>${m.endsAt ? esc(endsIn(m.endsAt)) : L3({ en: "none", ko: "없음", zh: "无" })}</b></span><div class="pd-row">${ENDS.map(([d, l]) => `<button type="button" class="pd-btn sm${(m.endsAt ? cur === d || (d && Math.abs(cur - d) < 1) : d === 0) ? " on" : ""}" data-pd-ex="${d}">${T(l)}</button>`).join("")}</div><small class="pd-small">${T("A signature, no gas. The keeper stops it then — the round open for bets still runs and settles.")}</small></div>`;
+  }
+  async function setEnd(mid, days) {
+    try {
+      const sg = await signer();
+      const at = Math.floor(Date.now() / 1000);
+      const msg = `ARCIRCLE Predict · ${isRH() ? "Robinhood Chain" : "Arc"}\nEnd market #${mid} ${days ? `in ${days} day${days > 1 ? "s" : ""}` : "never (no end date)"}\n${at}`;
+      sayList(T("Sign the end date in your wallet (no gas)…"));
+      const sig = await sg.signMessage(msg);
+      const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "predict-expiry", chain: S.chain, m: mid, days, at, sig }) });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j || j.error) throw new Error(tr((j && j.error) || "Couldn't save it — try again."));
+      await load(); S.listKey = null; render();
+      sayList(days ? L3({ en: "It ends in {d} day(s).", ko: "{d}일 후에 끝나요.", zh: "{d} 天后结束。" }).replace("{d}", days) : T("No end date — it runs until the team stops it."), "ok");
+    } catch (e) { sayList(esc(errText(e)), "err"); }
   }
   async function checkPons() {
     const t = String(($("pd-lt") || {}).value || "").trim();
@@ -821,6 +1071,16 @@
     const lim = S.st.limits;
     if (!(v > 0)) { say(T(isRH() ? "Enter an amount of ETH." : "Enter an amount of USDC."), "err"); return; }
     if (v < lim.minBet - 1e-12) { say(`${T("The smallest bet is")} <b data-no-i18n>${moneyU(lim.minBet)}</b>.`, "err"); return; }
+    if (S.practice) {
+      if (nowC() >= br.lockAt - 1) { say(T("Bets for this round are closed."), "err"); return; }
+      if (!paperBet(side, v, m, br)) return;
+      const btn0 = (!$("pd-sticky").hidden && panel.querySelector(`#pd-sticky [data-pd-bet="${side}"]`)) || panel.querySelector(`#pd-round [data-pd-bet="${side}"]`);
+      coinFly(btn0, side); buzz(25);
+      say(`${T("Practice bet")}: <b data-no-i18n>${side.toUpperCase()} ${money(v)}</b> — ${T("no money moved.")}`, "ok");
+      S.amt = String(v); ls.set(amtKey(), S.amt); S.sugg = null;
+      render();
+      return;
+    }
     const mine0 = myBet(br.id);
     if (v + (mine0 ? mine0.stake : 0) > lim.maxBet + 1e-12) { say(`${T("A wallet can put at most")} <b data-no-i18n>${moneyU(lim.maxBet)}</b> ${T("in one round.")}`, "err"); return; }
     S.busy = true;
@@ -837,7 +1097,8 @@
       say(`${T("Placing your bet…")}${txa(tx.hash)}`);
       await tx.wait();
       coinFly(btn, side);
-      try { if (navigator.vibrate && !reduce()) navigator.vibrate(30); } catch { /* fine */ }
+      buzz(30);
+      S.sugg = null;
       say(`${T("You're in")} <b data-no-i18n>${side.toUpperCase()}</b> ${T("with")} <b data-no-i18n>${money(v)}</b>.${txa(tx.hash)}`, "ok");
       if (S.view !== "market") toast(`${tr("You're in")} ${side.toUpperCase()} · ${m.sym} ${dur(m.duration)}`, money(v), true);
       S.amt = String(v); ls.set(amtKey(), S.amt);
@@ -847,6 +1108,8 @@
       render();
     } catch (e) { say(esc(errText(e)), "err"); if (S.view !== "market") toast(tr("Bet not placed"), errText(e), true); } finally { S.busy = false; }
   }
+  /// a short buzz on phones (a bet confirmed, a result): never with reduced motion
+  const buzz = (p) => { try { if (navigator.vibrate && !reduce()) navigator.vibrate(p); } catch { /* fine */ } };
   function coinFly(from, side) {
     if (!from || reduce()) return;
     const to = panel.querySelector(`#pd-round .pd-pool.${side}`) || from;
@@ -937,9 +1200,9 @@
       let tx;
       if (staff) { sayList(T("Confirm in your wallet…")); tx = await contract(sg).addMarket(key, d, 0); }
       else {
-        const burn = ethers.parseEther(String(st.listing.burn || 0));
+        const burn = ethers.parseEther(Number(st.listing.burn || 0).toLocaleString("en-US", { useGrouping: false, maximumFractionDigits: 18 }));
         if (burn > 0n) {
-          const arc = new ethers.Contract(ARCIRCLE(), ERC20, sg);
+          const arc = new ethers.Contract(st.listing.token || ARCIRCLE(), ERC20, sg);
           const me = await sg.getAddress();
           if ((await arc.balanceOf(me)) < burn) throw new Error(`${tr("This wallet doesn't hold")} ${Number(st.listing.burn).toLocaleString("en-US")} $ARCIRCLE.`);
           if ((await arc.allowance(me, st.address)) < burn) { sayList(T("Approve the $ARCIRCLE to burn in your wallet…")); await (await arc.approve(st.address, burn)).wait(); }
@@ -948,24 +1211,27 @@
         tx = await contract(sg).listMarket(key, d);
       }
       await tx.wait();
+      const ex = L.ex || 0;
       S.list = null;
       await load(); S.m = S.st.markets.length ? S.st.markets[S.st.markets.length - 1].id : S.m; S.view = "market";
       render();
       sayList(`${T("Opened. Its first round is live — the keeper reads the pool within a minute or two.")}${txa(tx.hash)}`, "ok");
+      if (ex > 0 && S.m != null) await setEnd(S.m, ex);
     } catch (e) { sayList(esc(errText(e)), "err"); }
   }
   /// Arc ↔ Robinhood Chain: each has its own contract, markets, bets and leaderboard
   async function setChain(c) {
     if (c === S.chain || S.busy) return;
     S.chain = c; ls.set(LS.chain, c);
-    Object.assign(S, { st: null, m: null, mine: null, feed: null, lb: null, chart: null, kstat: null, list: null, msg: null, smsg: null, lastPx: {}, lastPast: {}, lastBet: null, claimable0: null, amt: ls.get(amtKey()) || "", rx: null, rxM: null, feedSeen: null, wchain: null, rolls: {} });
+    Object.assign(S, { st: null, m: null, mine: null, feed: null, lb: null, chart: null, kstat: null, list: null, msg: null, smsg: null, lastPx: {}, lastPast: {}, lastBet: null, claimable0: null, amt: ls.get(amtKey()) || "", rx: null, rxM: null, feedSeen: null, wchain: null, rolls: {},
+      fails: 0, kseen: false, mineOther: null, heat: null, heatM: null, leadK: {}, potPrev: {} });
     S.lastBet = jget(lastKey(), null);
     try { history.replaceState(null, "", "#predict" + (c === "rh" ? "?c=rh" : "")); } catch { /* fine */ }
     frame();
     render();
     await load();
     pickDefault();
-    await Promise.all([loadMine(), loadChart(), loadFeed(), loadStatus(), S.view === "lb" ? loadLb() : null]);
+    await Promise.all([loadMine(), loadChart(), loadFeed(), loadStatus(), loadMineOther(), S.view === "lb" ? loadLb() : null]);
     if (S.chain === c) render();
   }
   async function staffTx(kind) {
@@ -979,6 +1245,23 @@
     } catch (e) { sayList(esc(errText(e)), "err"); }
   }
 
+  // ---------------- v3: Web Push for a wallet's rounds (topic predict-<chain>-0x…) ----------------
+  const predTopic = (c, w) => `predict-${c === "rh" ? "rh" : "arc"}-${lc(w)}`;
+  const b64b = (x) => { const t = String(x).replace(/-/g, "+").replace(/_/g, "/"); const b = atob(t + "===".slice((t.length + 3) % 4)); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+  let pushKey;
+  async function pushSub() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+    if (pushKey === undefined) { try { const r = await fetch("/api/social?orders=pushkey"); pushKey = r.ok ? (await r.json()).key || null : null; } catch { pushKey = null; } }
+    if (!pushKey) return null;
+    const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((res) => setTimeout(() => res(null), 4000))]);
+    if (!reg || !reg.pushManager) return null;
+    const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64b(pushKey) }));
+    return sub ? sub.toJSON() : null;
+  }
+  async function pushTopic(topic, remove) {
+    try { const sub = await pushSub(); if (!sub) return false; const r = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "pushtopic", topic, sub, ...(remove ? { remove: true } : {}) }) }); return r.ok; } catch { return false; }
+  }
+
   // ---------------- notifications (this browser only) ----------------
   const notifyOn = () => ls.get(LS.notify) === "1";
   function notify(title, body) {
@@ -987,6 +1270,7 @@
   }
   function toast(title, body, force) {
     if (!notifyOn() && !force) return;
+    document.querySelectorAll(".pd-toast").forEach((x, i, all) => { if (i < all.length - 1) x.remove(); });
     const t = document.createElement("div");
     t.className = "pd-toast";
     t.setAttribute("role", "status");
@@ -1036,8 +1320,10 @@
 
   // ---------------- events ----------------
   panel.addEventListener("click", (e) => {
-    const t = e.target.closest && e.target.closest("[data-pd-qb],[data-pd-rx],[data-pd-m],[data-pd-amt],[data-pd-bet],[data-pd-act],[data-pd-dur],[data-pd-view],[data-pd-side],[data-pd-sort],[data-pd-lb],[data-pd-go],[data-pd-share],[data-pd-chain]");
+    const t = e.target.closest && e.target.closest("[data-pd-qb],[data-pd-rx],[data-pd-m],[data-pd-amt],[data-pd-bet],[data-pd-act],[data-pd-dur],[data-pd-view],[data-pd-side],[data-pd-sort],[data-pd-lb],[data-pd-go],[data-pd-share],[data-pd-chain],[data-pd-ex],[data-pd-exnew]");
     if (!t) return;
+    if (t.dataset.pdEx != null) { setEnd(S.m, Number(t.dataset.pdEx)); return; }
+    if (t.dataset.pdExnew != null) { S.list = Object.assign({}, S.list, { ex: Number(t.dataset.pdExnew), t: String(($("pd-lt") || {}).value || (S.list || {}).t || "") }); S.listKey = null; listPanel(); return; }
     if (t.dataset.pdQb) { e.stopPropagation(); placeBet(t.dataset.pdQb, Number(S.amt), Number(t.dataset.pdQm)).then(() => { if (S.view === "all") all(); }); return; }
     if (t.dataset.pdRx) { react(t.dataset.pdRx, t); return; }
     if (t.dataset.pdChain) { setChain(t.dataset.pdChain); return; }
@@ -1047,7 +1333,7 @@
       render(); Promise.all([loadChart(), loadRx()]).then(() => { if (S.view === "market") card(); }); return;
     }
     if (t.dataset.pdView) { S.view = t.dataset.pdView; ls.set(LS.view, S.view === "all" ? "all" : "market"); if (S.view === "lb" && !S.lb) loadLb().then(render); render(); return; }
-    if (t.dataset.pdSide) { S.side = t.dataset.pdSide; if (S.side === "feed") loadFeed().then(side); side(); return; }
+    if (t.dataset.pdSide) { S.side = t.dataset.pdSide; if (S.side === "feed") loadFeed().then(side); if (S.side === "past") loadHeat().then(side); side(); return; }
     if (t.dataset.pdSort) { S.sort = t.dataset.pdSort; all(); return; }
     if (t.dataset.pdLb) { S.lbTab = t.dataset.pdLb; lbView(); return; }
     if (t.dataset.pdShare) { shareRound(t.dataset.pdShare); return; }
@@ -1064,6 +1350,26 @@
       ls.set(LS.notify, on ? "1" : "0"); t.setAttribute("aria-pressed", String(on));
       if (on && "Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch { /* fine */ } }
       toast(tr(on ? "Alerts on" : "Alerts off"), tr(on ? "30 seconds left in your rounds, and wins to claim — in this browser." : "You can turn them back on any time."), true);
+      // v3: with a wallet, the results also come with the tab closed (Web Push) — and on Telegram with /predictalerts
+      const w = acct();
+      if (w) pushTopic(predTopic(S.chain, w), !on).then((ok) => { if (on) toast(tr(ok ? "Push alerts on" : "Alerts in this tab"), ok ? `${tr("Your rounds' results reach this device even with the tab closed.")} ${tr("Telegram too: send")} /predictalerts ${short(w)}${isRH() ? " rh" : ""} ${tr("to @ARCIAonArc_bot")}` : `${tr("This browser can't take push alerts. On Telegram, send")} /predictalerts ${short(w)}${isRH() ? " rh" : ""} ${tr("to @ARCIAonArc_bot")}`, true); });
+    }
+    else if (a === "retry") { S.fails = 0; render(); load().then(() => { pickDefault(); render(); }); }
+    else if (a === "practice") {
+      S.practice = !S.practice; ls.set(LS.practice, S.practice ? "1" : "0");
+      panel.querySelectorAll('[data-pd-act="practice"].pd-practice').forEach((b) => b.setAttribute("aria-pressed", String(S.practice)));
+      S.cardKey = null; S.sideKey = null; S.msg = null; if (S.practice) S.side = "bets";
+      toast(tr(S.practice ? "Practice mode" : "Practice off"), tr(S.practice ? "Play money on the real rounds — nothing leaves your wallet." : "Bets are real again."), true);
+      render();
+    }
+    else if (a === "pracreset") { ls.set(paperK(), ""); S.cardKey = null; S.sideKey = null; toast(tr("Play balance reset"), money(PSTART()), true); render(); }
+    else if (a === "claimother") { const O = S.mineOther; if (O) setChain(O.chain).then(() => { S.side = "bets"; render(); if (S.mine && S.mine.claimable > 0) claimAll(false); }); }
+    else if (a === "sharestats") { const w = acct(); if (w) window.open(`https://x.com/intent/post?text=${encodeURIComponent(tr(isRH() ? "My ARCIRCLE Predict card — UP or DOWN on Pons coins on Robinhood Chain, paid in ETH." : "My ARCIRCLE Predict card — UP or DOWN on Arc tokens, paid in USDC."))}&url=${encodeURIComponent(`${SITE}/predict/me/${w}${isRH() ? "?c=rh" : ""}`)}`, "_blank", "noopener"); }
+    else if (a === "stamt") {
+      // the sticky bar's amount: each tap moves to the next quick amount
+      const cs = chips(S.st.limits).map(([v]) => v), cur = Number(S.amt) || 0, i = cs.findIndex((v) => Math.abs(v - cur) < 1e-12);
+      S.amt = String(cs[(i + 1) % cs.length]); ls.set(amtKey(), S.amt); const inp = $("pd-amt"); if (inp) inp.value = S.amt;
+      const m = market(); if (m) patch(m, betRound(m));
     }
     else if (a === "watch") {
       const on = toggleWatch(S.m); t.classList.toggle("on", on); t.setAttribute("aria-pressed", String(on));
@@ -1083,7 +1389,13 @@
   panel.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target && e.target.classList && e.target.classList.contains("pd-tile")) { e.preventDefault(); e.target.click(); } });
   // the hero's paragraph is cut to two lines on a phone; a tap opens it
   const lede = panel.querySelector(".pd-hero .bp-lede");
-  if (lede) lede.addEventListener("click", () => lede.classList.toggle("open"));
+  if (lede) {
+    const more = document.createElement("button");
+    more.type = "button"; more.className = "pd-more"; more.setAttribute("aria-expanded", "false"); more.textContent = tr("More");
+    lede.insertAdjacentElement("afterend", more);
+    const flip = () => { const o = lede.classList.toggle("open"); more.setAttribute("aria-expanded", String(o)); more.textContent = tr(o ? "Less" : "More"); };
+    lede.addEventListener("click", flip); more.addEventListener("click", flip);
+  }
   panel.addEventListener("input", (e) => {
     if (e.target && e.target.id === "pd-amt") { S.amt = e.target.value; const m = market(); if (m) patch(m, betRound(m)); }
     if (e.target && e.target.id === "pd-lt") S.list = Object.assign({}, S.list, { t: e.target.value });
@@ -1134,7 +1446,10 @@
     if (isRH() && n % 4 === 0) jobs.push(walletChain());
     if (S.view === "lb" && n % 10 === 0) jobs.push(loadLb());
     if (n % 10 === 1) jobs.push(loadStatus());
+    if (acct() && n % 10 === 2) jobs.push(loadMineOther());
+    if (S.view === "market" && S.side === "past" && (n % 5 === 0 || S.heatM !== S.m)) jobs.push(loadHeat());
     await Promise.all(jobs);
+    paperTick();
     render();
   }
   async function show() {
@@ -1144,7 +1459,7 @@
       render();
       await load();
       pickDefault();
-      await Promise.all([loadMine(), loadChart(), loadFeed(), loadStatus(), S.view === "lb" ? loadLb() : null]);
+      await Promise.all([loadMine(), loadChart(), loadFeed(), loadStatus(), loadMineOther(), S.view === "lb" ? loadLb() : null]);
       render();
     }
     clearInterval(S.timer); clearInterval(S.tick);
@@ -1163,7 +1478,7 @@
       const c = /[?&]c=rh\b/.test(location.hash) ? "rh" : /^#predict\?/.test(location.hash) ? "arc" : S.chain;
       if (c !== S.chain) { setChain(c).then(() => { if (m) { S.m = Number(m[1]); render(); loadChart().then(() => card()); } }); return; }
     }
-    if (m && S.booted) { S.m = Number(m[1]); S.view = "market"; render(); loadChart().then(() => card()); }
+    if (m && S.booted) { grabSugg(); S.m = Number(m[1]); S.view = "market"; S.cardKey = null; render(); loadChart().then(() => card()); }
   });
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); render(); } });
   if (panel.classList.contains("active")) show();

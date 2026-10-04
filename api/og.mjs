@@ -168,6 +168,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" },
     });
   }
+  if (url.searchParams.has("predictme")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await predictMeCard(await markP, url.searchParams.get("predictme"), url.searchParams.get("c")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=86400" },
+    });
+  }
   if (url.searchParams.has("predict")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await predictCard(await markP, url.searchParams.get("predict"), url.searchParams.get("u"), url.searchParams.get("c")), {
@@ -979,11 +986,64 @@ async function nftCard(mark, id) {
 }
 
 // ---- ARCIRCLE Predict: one round's result (/predict/<round>?u=0x…) ----
+/// ARCIRCLE Predict v3: a wallet's stats card — win rate, PnL with its last 30 days, best streak, podiums
+async function predictMeCard(mark, user, c) {
+  const rh = c === "rh", where = rh ? "ARCIRCLE Predict · Robinhood Chain" : "ARCIRCLE Predict · Arc";
+  const up = "#39ff88", down = "#ff5c8a";
+  const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k] } : null;
+  let d = null;
+  try { d = isAddr(user) ? await predictFor(c).mine(user, { store: st, rounds: 4 }) : null; } catch { d = null; }
+  const S = d && d.stats;
+  const money = (x) => (rh ? `${x < 0 ? "−" : x > 0 ? "+" : ""}${Math.abs(Number(x || 0)).toLocaleString("en-US", { maximumFractionDigits: Math.abs(x) >= 1 ? 3 : 5 })} ETH` : `${x < 0 ? "−" : x > 0 ? "+" : ""}$${Math.abs(Number(x || 0)).toFixed(2)}`);
+  const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  if (!S) {
+    return frame([
+      brandRow(mark, pill("PREDICT", up), where),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.02 }, "UP or DOWN?"),
+        h("div", { fontSize: 34, color: "#9fb098" }, isAddr(user) ? `${short(user)} hasn't finished a round yet.` : "Call a token's next minutes. The pool decides.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#predict"),
+    ]);
+  }
+  const done = S.wins + S.losses, rate = done ? Math.round((S.wins / done) * 100) : 0;
+  // the PnL line: the running total over the days kept (up to 30)
+  let run = 0;
+  const pts = (S.days || []).map(([, v]) => (run += v));
+  const Wd = 520, Hd = 150, lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), span = hi - lo || 1;
+  const xy = pts.map((v, i) => [pts.length > 1 ? (i / (pts.length - 1)) * Wd : Wd, Hd - ((v - lo) / span) * (Hd - 10) - 5]);
+  const path = xy.length > 1 ? xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ") : `M0 ${Hd / 2} L${Wd} ${Hd / 2}`;
+  const zero = Hd - ((0 - lo) / span) * (Hd - 10) - 5, col = S.pnl >= 0 ? up : down;
+  const svg = { type: "svg", props: { width: Wd, height: Hd, viewBox: `0 0 ${Wd} ${Hd}`, children: [
+    { type: "path", props: { d: `M0 ${zero.toFixed(1)} L${Wd} ${zero.toFixed(1)}`, stroke: "rgba(255,255,255,0.18)", strokeWidth: 2, strokeDasharray: "6 6", fill: "none" } },
+    { type: "path", props: { d: path, stroke: col, strokeWidth: 5, fill: "none", strokeLinejoin: "round", strokeLinecap: "round" } },
+  ] } };
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "14px 22px", borderRadius: 20, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 19, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 36, fontWeight: 800, color }, value));
+  const pod = S.podiums || [0, 0, 0];
+  return frame([
+    brandRow(mark, pill(`${done} ROUNDS`, up), where),
+    h("div", { justifyContent: "space-between", alignItems: "center", width: "100%" },
+      h("div", { flexDirection: "column", gap: 8 },
+        h("div", { fontSize: 30, color: "#9fb098" }, short(user)),
+        h("div", { fontSize: 120, fontWeight: 800, lineHeight: 1, letterSpacing: -3, color: col }, `${rate}%`),
+        h("div", { fontSize: 30, color: "#b9c8b3" }, `win rate · ${S.wins} won · ${S.losses} lost`)),
+      h("div", { flexDirection: "column", alignItems: "flex-end", gap: 6 },
+        h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, "PnL, last 30 days"),
+        svg)),
+    h("div", { gap: 16 },
+      box("PnL", money(S.pnl), col),
+      box("Best streak", `${S.best} in a row`),
+      box("Volume", money(S.vol).replace(/^\+/, "")),
+      pod.some(Boolean) ? box("Weekly podiums", pod.map((n, i) => (n ? `${["1st", "2nd", "3rd"][i]} ×${n}` : null)).filter(Boolean).join(" · "), "#ffd76a") : null),
+  ]);
+}
+
 async function predictCard(mark, id, user, c) {
   let d = null;
   try { d = await predictFor(c).roundCard(id, user); } catch { d = null; }
   const up = "#39ff88", down = "#ff5c8a";
-  const rh = c === "rh", where = rh ? "ARCIRCLE Predict · Robinhood Chain" : where;
+  const rh = c === "rh", where = rh ? "ARCIRCLE Predict · Robinhood Chain" : "ARCIRCLE Predict · Arc";
   // amounts: dollars on Arc (USDC); ETH on Robinhood Chain
   const money = (x, dp = 2) => (rh ? `${Number(x || 0).toLocaleString("en-US", { maximumFractionDigits: x >= 1 ? 3 : 5 })} ETH` : `$${Number(x || 0).toFixed(dp)}`);
   if (!d || d.result === "open") {

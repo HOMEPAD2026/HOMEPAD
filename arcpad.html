@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791127711"></script>
+<script src="arc-log.js?v=1791129656"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791127711">
+<link rel="stylesheet" href="style.css?v=1791129656">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -127,7 +127,7 @@
       <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v4</em></button>
-      <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="vearcia"><svg><use href="#i-vea" xlink:href="#i-vea"/></svg>veARCIA<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
@@ -1756,7 +1756,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · UP or DOWN on Arc tokens in USDC, and on Pons coins in ETH</span>
-            <h1>ARCIRCLE Predict <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>Arc · Robinhood Chain · on-chain</i></span></h1>
+            <h1>ARCIRCLE Predict <span class="asc-ver" title="Version 3 — new features are added regularly">v3<i>Arc · Robinhood Chain · on-chain</i></span></h1>
             <p class="bp-lede">Pick a token and call its next minutes: UP or DOWN against the price to beat. Each round reads the token's own Uniswap v4 pool at the start and at the end, and the winning side splits the pot — settled by a contract, with a new round always open. On Arc you play in USDC; on Robinhood Chain, graduated Pons coins in ETH.</p>
             <div class="aor-contracts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Contract on ArcScan:</span>
               <a href="https://arc.etherscan.io/address/0x41149F8ce23d9B4E737e51C97fFE14bBb4C09ce6#code" target="_blank" rel="noopener">ArcPredict <code data-no-i18n>0x4114…9ce6</code> ↗</a>
@@ -1777,6 +1777,20 @@
               <li>One side per wallet per round; each wallet can put up to $5 into a round (the smallest bet is $0.50).</li>
               <li>When the round ends, the pool is read again. The winning side splits the whole pot in proportion to what each wallet put in, after a 2% fee. The multiplier next to each side shows what a dollar would return if the round ended now; the buttons show what your amount would pay.</li>
               <li>Winnings are claimed from "Your bets" with one transaction, any time — they never expire.</li>
+            </ul>
+          </details>
+          <details open><summary><h3>New in v3</h3></summary>
+            <ul>
+              <li>The round card opens with a Bet → Live → Settle band and a gauge: its needle shows how far the price is from the price to beat, with a bar for the gap. Your stake is marked on the pool bar, a coin drops into a side when a bet lands, the payout multiples roll as they change, and the "is winning" pill flips over when the lead changes hands.</li>
+              <li>Under the pools, a small chart shows how the UP / DOWN split moved as bets came in. A round with no bets yet says it plainly: the first bet sets the odds, and with nobody on the other side everyone gets their stake back.</li>
+              <li>Practice mode: bet play money on the real rounds ($100 on Arc, 0.05 ETH on Robinhood Chain), settled on the real result. Nothing leaves your wallet; with nobody on the other side, practice pays an even pot.</li>
+              <li>Alerts follow you: with a wallet connected, the bell also sends your rounds' results to this device with the tab closed, and on Telegram, /predictalerts 0x… (add rh for Robinhood Chain) DMs you wins, losses, refunds, a side losing the lead and winnings still unclaimed after 6 hours.</li>
+              <li>"Your bets" collects what you can claim on both chains — the other chain is one tap (switch, then claim). Your PnL comes with its last 30 days as a line, and "Share my stats card" posts a card with your win rate, PnL, best streak and weekly podiums.</li>
+              <li>Last rounds opens with a heat map of the market's last 50 results. Live bets keeps the last 30 bets even in a quiet hour.</li>
+              <li>The leaderboard shows the top 3 on a podium, each wallet's fan tier (from the $ARCIA it holds on Robinhood Chain) and its weekly podiums. Every finished week keeps its top 3 under Past seasons.</li>
+              <li>Tell ARCIA a bet in her chat — "UP $2 on ARCIRCLE 5m", "down 1 usdc arcircle 15m", "up 0.001 eth arcia on rh" — and she opens Predict with the market, side and amount filled in. You check it and sign; nothing is placed before that.</li>
+              <li>The wallet that lists a market can give it an end date (1, 7 or 30 days, a signature, no gas); the keeper stops it then. On Robinhood Chain anyone can list a graduated Pons coin when the team opens listing. The keeper also keeps $ARCIA markets open on both chains (5m, 15m and 1h) — on Robinhood Chain once $ARCIA graduates.</li>
+              <li>The keeper chip turns amber when the keeper is 5 minutes late or reports a problem, and the page keeps trying when a chain doesn't answer instead of going blank.</li>
             </ul>
           </details>
           <details><summary><h3>New in v2</h3></summary>
@@ -2223,6 +2237,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791127711"></script>
+<script src="arcpad.bundle.js?v=1791129656"></script>
 </body>
 </html>

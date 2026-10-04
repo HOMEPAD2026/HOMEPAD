@@ -90,7 +90,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
-  ["agent", "ARCIA AGENT: her 24h safety call on a token — /agent 0x… [rh]"], ["agentwatch", "ARCIA AGENT: DM me a token's new calls, grades and burns — /agentwatch 0x… [rh] / off"],
+  ["agent", "ARCIA AGENT: her 24h safety call on a token — /agent 0x… [rh]"], ["agentwatch", "ARCIA AGENT: DM me a token's new calls, grades and burns — /agentwatch 0x… [rh] / off"], ["predictalerts", "ARCIRCLE Predict: DM me my rounds' results — /predictalerts 0x… [rh] / off"],
   ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["vearcia", "veARCIA: the $ARCIA staking pool and your stake"], ["vearciaalerts", "veARCIA: unlock and boost reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
@@ -721,6 +721,7 @@ async function onMessage(m, channel) {
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
       case "agent": { const ca = addrOf(arg); return ca ? agentWithProgress(m, ca, /\b(rh|robinhood)\b/i.test(arg) ? "rh" : "arc", lang) : say(m, w("needCA", lang, { cmd: "agent" })); }
       case "agentwatch": case "agentunwatch": return agentWatch(m, arg, cmd === "agentwatch" && !/^off$/i.test(String(arg || "").trim()), lang);
+      case "predictalerts": return predictWatch(m, arg, lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
       case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
       case "stakealerts": return setStakeAlerts(m, !/^off$/i.test(arg), lang);
@@ -1447,6 +1448,77 @@ async function agentWatch(m, arg, on, lang) {
   return say(m, on ? `🤖 ${T3(lang, "Following", "팔로우했어요", "已关注")} <code>${short(ca)}</code>${ch === "rh" ? " (Robinhood Chain)" : ""} — ${T3(lang, "I'll DM you its new safety calls, how they were graded, its buys & burns and when its vault runs dry.", "새 안전 콜, 채점 결과, 매수·소각, 볼트가 비었을 때 DM으로 알려드릴게요.", "新的安全判断、评分结果、买入销毁和金库见底时我会私信你。")}`
     : `✓ ${T3(lang, "Stopped following", "팔로우를 껐어요", "已取消关注")} <code>${short(ca)}</code>`);
 }
+// ---------------- ARCIRCLE Predict v3: /predictalerts and a wallet's round news (Telegram DM + Web Push) ----------------
+/// s.predictWatch = { "arc:0x…" | "rh:0x…": [telegram ids] } — a wallet's rounds: won, lost, refunded, its side losing the lead
+async function predictWatch(m, arg, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const a = String(arg || "").trim(), ca = addrOf(a), ch = /\b(rh|robinhood)\b/i.test(a) ? "rh" : "arc", off = /\boff\b/i.test(a);
+  const s = await subs(); s.predictWatch = s.predictWatch || {};
+  const mine = Object.entries(s.predictWatch).filter(([, ids]) => ids.includes(m.from.id)).map(([k]) => k);
+  const drop = (k) => { s.predictWatch[k] = (s.predictWatch[k] || []).filter((x) => x !== m.from.id); if (!s.predictWatch[k].length) delete s.predictWatch[k]; };
+  if (!ca) {
+    if (off) { mine.forEach(drop); await putDoc(DOC.subs, s); return say(m, `✓ ${T3(lang, "ARCIRCLE Predict alerts are off.", "ARCIRCLE Predict 알림을 껐어요.", "已关闭 ARCIRCLE Predict 提醒。")}`); }
+    return say(m, mine.length ? `🎯 ${mine.map((k) => `<code>${short(k.split(":")[1])}</code>${k.startsWith("rh:") ? " (RH)" : ""}`).join(", ")}\n/predictalerts off ${T3(lang, "to stop all", "로 모두 끄기", "全部取消")}`
+      : T3(lang, "Send your wallet: /predictalerts 0x… (add rh for Robinhood Chain). I'll DM you when your rounds win, lose or refund, and when your side loses the lead.", "지갑 주소를 보내 주세요: /predictalerts 0x… (Robinhood Chain은 rh 추가). 라운드가 이기거나 지거나 환불될 때, 내 쪽이 역전당할 때 DM으로 알려드려요.", "发送你的钱包:/predictalerts 0x…(Robinhood Chain 加 rh)。你的回合输赢、退款或被反超时我会私信你。"));
+  }
+  const key = `${ch}:${ca}`;
+  if (off) { drop(key); await putDoc(DOC.subs, s); return say(m, `✓ ${T3(lang, "Stopped alerts for", "알림을 껐어요:", "已关闭提醒:")} <code>${short(ca)}</code>`); }
+  if (mine.length >= 5 && !mine.includes(key)) return say(m, T3(lang, "Up to 5 wallets — /predictalerts off first.", "최대 5개 지갑이에요 — 먼저 /predictalerts off 하세요.", "最多 5 个钱包——请先 /predictalerts off。"));
+  s.predictWatch[key] = [...(s.predictWatch[key] || []).filter((x) => x !== m.from.id), m.from.id];
+  if (Object.keys(s.predictWatch).length > 1500) return say(m, "The list is full right now — try later.");
+  await putDoc(DOC.subs, s);
+  return say(m, `🎯 ${T3(lang, "Alerts on for", "알림을 켰어요:", "已开启提醒:")} <code>${short(ca)}</code>${ch === "rh" ? " (Robinhood Chain)" : ""} — ${T3(lang, "your rounds' results, winnings you haven't claimed after 6 hours, and when your side loses the lead.", "라운드 결과, 6시간 지나도 안 받은 상금, 내 쪽이 역전당할 때 알려드려요.", "回合结果、6 小时未领取的奖金、以及你这边被反超时。")}`);
+}
+/// one Predict event as plain words; `mk` is its market from the state (symbol and round length)
+function predictLine(e, mk) {
+  const money = (x) => (e.ch === "rh" ? `${Number(x || 0).toLocaleString("en-US", { maximumFractionDigits: x >= 1 ? 3 : 6 })} ETH` : `$${Number(x || 0).toFixed(2)}`);
+  const name = mk ? `$${mk.sym} ${mk.duration % 3600 === 0 ? mk.duration / 3600 + "h" : mk.duration / 60 + "m"}` : e.sym ? `$${e.sym}` : `market #${e.m}`;
+  const where = e.ch === "rh" ? " · Robinhood Chain" : "", side = String(e.side || "").toUpperCase();
+  if (e.k === "won") return { icon: "✅", title: `You won · ${name} #${e.e + 1}`, body: `${side} paid ${money(e.pay)} (+${money(e.pay - e.amt)}) — claim it on ARCIRCLE Predict${where}` };
+  if (e.k === "lost") return { icon: "❌", title: `${name} #${e.e + 1} went ${side === "UP" ? "DOWN" : "UP"}`, body: `Your ${side} ${money(e.amt)} lost this one${where}` };
+  if (e.k === "refund") return { icon: "↩️", title: `${name} #${e.e + 1} refunded`, body: `Your ${money(e.amt)} is back to claim (no one on the other side, or no move)${where}` };
+  if (e.k === "cross") { const ok = e.lead === e.side; return { icon: ok ? "📈" : "⚡", title: `${name}: ${String(e.lead).toUpperCase()} took the lead`, body: `You're in ${side} with ${money(e.amt)} — ${ok ? "now winning" : "now behind"}${isFinite(e.pc) ? ` (${e.pc >= 0 ? "+" : ""}${Number(e.pc).toFixed(2)}% vs the price to beat)` : ""}${where}` }; }
+  return null;
+}
+const PRED_PAGE = (ch, m) => `${SITE}/arc#predict?${ch === "rh" ? "c=rh&" : ""}m=${m}`;
+async function predictNotify(T, s, out) {
+  const P = await import("./_predict.mjs");
+  const W = s.predictWatch || {};
+  T.predEv = T.predEv || {};
+  let tgN = 0, pushN = 0;
+  for (const ch of ["arc", "rh"]) {
+    const I = P.forChain(ch);
+    const E = await I.events(store(), T.predEv[ch] || 0).catch(() => null);
+    if (!E) continue;
+    if (T.predEv[ch] == null) { T.predEv[ch] = E.n; continue; } // the first look: no backlog
+    T.predEv[ch] = E.n;
+    if (!E.items.length) continue;
+    const st = await I.state({ store: store() }).catch(() => null);
+    for (const e of E.items.slice(-60)) {
+      const mk = st && st.markets ? st.markets.find((x) => x.id === e.m) : null;
+      const L = predictLine(e, mk); if (!L) continue;
+      const ids = W[`${ch}:${e.u}`] || [], url = PRED_PAGE(ch, e.m);
+      if (ids.length) tgN += await toSubs(ids, { text: `${L.icon} <b>${h(L.title)}</b>\n${h(L.body)}`, ...kb([[{ text: "ARCIRCLE Predict", url }]]) }, 60);
+      if (WP.vapid()) pushN += await WP.toTopic(store(), WP.predictTopic(ch, e.u), { title: L.title, body: L.body, url: url.replace(SITE, ""), tag: `predict-${e.k}-${e.r}` }).catch(() => 0);
+      // a win to remind about in 6 hours if it's still unclaimed
+      if (e.k === "won" && (ids.length || WP.vapid())) { T.predRemind = (T.predRemind || []).concat([{ ch, u: e.u, r: e.r, m: e.m, at: Date.now() }]).slice(-200); }
+    }
+  }
+  // winnings still unclaimed after 6 hours: one reminder each
+  const due = (T.predRemind || []).filter((x) => Date.now() - x.at > 6 * 3600e3).slice(0, 10);
+  for (const x of due) {
+    T.predRemind = T.predRemind.filter((y) => y !== x);
+    const c = await P.forChain(x.ch).claimableOne(x.r, x.u).catch(() => 0);
+    if (!(c > 0)) continue;
+    const amt = x.ch === "rh" ? `${c.toLocaleString("en-US", { maximumFractionDigits: 6 })} ETH` : `$${c.toFixed(2)}`;
+    const title = `Unclaimed: ${amt} on ARCIRCLE Predict`, body = `Round #${x.r} paid you — it waits in Your bets until you claim it.`, url = PRED_PAGE(x.ch, x.m);
+    const ids = W[`${x.ch}:${x.u}`] || [];
+    if (ids.length) tgN += await toSubs(ids, { text: `💰 <b>${h(title)}</b>\n${h(body)}`, ...kb([[{ text: "Claim on ARCIRCLE Predict", url }]]) }, 60);
+    if (WP.vapid()) pushN += await WP.toTopic(store(), WP.predictTopic(x.ch, x.u), { title, body, url: url.replace(SITE, ""), tag: `predict-claim-${x.r}` }).catch(() => 0);
+  }
+  if (tgN) out.predictTg = tgN;
+  if (pushN) out.predictPush = pushN;
+}
 /// one AGENT event as plain words (Telegram HTML and Web Push share them)
 function agentLine(e) {
   const sym = e.sym ? `$${e.sym}` : short(e.t), net = e.ch === "rh" ? " · Robinhood Chain" : "";
@@ -1567,6 +1639,7 @@ async function tick() {
   try { await veaNotify(T, s, out); } catch (e) { out.veaNotify = String(e.message || e).slice(0, 120); }
   try { await agentNotify(T, s, first, out); } catch (e) { out.agentNotify = String(e.message || e).slice(0, 120); }
   try { await agentWeekly(T, c, out); } catch (e) { out.agentWeekly = String(e.message || e).slice(0, 120); }
+  try { await predictNotify(T, s, out); } catch (e) { out.predictNotify = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

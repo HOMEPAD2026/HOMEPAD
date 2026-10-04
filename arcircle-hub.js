@@ -224,7 +224,7 @@
     // a lock over stacked coins (the tiles draw this icon; the image is only for places that show pictures)
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="11" height="9" rx="2"/><path d="M6.8 10.5V8a2.7 2.7 0 0 1 5.4 0v2.5"/><ellipse cx="18" cy="9" rx="2.8" ry="1.3"/><path d="M15.2 9v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3V9M15.2 12.2v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3v-3.2"/></svg>' });
   // ARCIRCLE Predict: UP / DOWN rounds on Arc tokens, paid in USDC (arc-predict.js)
-  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc and Robinhood Chain coins", status: "v2", acc: "#39ff88", href: "/arc#predict",
+  UTILS4.push({ id: "predict", name: "ARCIRCLE Predict", sub: "UP or DOWN on Arc and Robinhood Chain coins", status: "v3", acc: "#39ff88", href: "/arc#predict",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5l5-6 3.5 3 6.5-8.5"/><path d="M14.5 7h4v4"/><path d="M3.5 21h17"/></svg>' });
   // page 5: what's still being built
   var NEXT = [

@@ -316,6 +316,8 @@
     if (!text || busy) return;
     if (text === T(BRIEF)) { briefing(); return; }
     if (/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(text)) { location.href = "/me" + (account() ? "?w=" + account() : ""); return; }
+    var bi = betIntent(text);
+    if (bi) { betChat(text, bi); return; }
     var oi = orderIntent(text);
     if (oi) { orderChat(text, oi); return; }
     var si = scanIntent(text);
@@ -426,6 +428,64 @@
         if (talk.on) speak(reply, el);
       } });
     }, reduce ? 0 : 450);
+  }
+  // ---------------- ARCIRCLE Predict v3: "UP $2 on ARCIRCLE 5m" → Predict with the bet filled in (she never places it) ----------------
+  // "up $2 on arcircle", "down 1 usdc arcircle 15m", "up 0.001 eth arcia 1h on rh". A dollar amount on Robinhood Chain becomes
+  // ETH at the page's ETH price. The round, the side and the amount wait on the Predict card; the person taps and signs.
+  function betIntent(text) {
+    var s = String(text || "").toLowerCase().replace(/\s+/g, " ").trim();
+    var m = /^(?:bet\s+)?(up|down)\s+(\$)?(\d+(?:\.\d+)?)\s*(usdc|eth|dollars?|\$)?\s+(?:on\s+)?\$?([a-z0-9]{2,14})(?:\s+(5\s?m(?:in)?|15\s?m(?:in)?|1\s?h(?:our)?|60\s?m(?:in)?))?(?:\s+(?:on|in)\s+(arc|rh|robinhood)(?:\s+chain)?)?\s*[.!?]*$/.exec(s);
+    if (!m) return null;
+    var amt = Number(m[3]);
+    if (!(amt > 0)) return null;
+    var unit = m[4] === "eth" ? "eth" : m[4] === "usdc" ? "usdc" : "$";
+    var d = m[6] ? (/^(1\s?h|60)/.test(m[6]) ? 3600 : /^15/.test(m[6]) ? 900 : 300) : null;
+    var chain = m[7] ? (m[7] === "arc" ? "arc" : "rh") : unit === "eth" ? "rh" : unit === "usdc" ? "arc" : null;
+    return { side: m[1], amt: amt, unit: unit, sym: m[5].toUpperCase(), d: d, chain: chain };
+  }
+  function betChat(text, bi) {
+    var now = Date.now();
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    dropStarter();
+    bubble("user", text, { t: now });
+    input.value = ""; grow(); sfx("tap"); mission("ask");
+    typing(true);
+    var chains = bi.chain ? [bi.chain] : ["arc", "rh"];
+    Promise.all(chains.map(function (c) { return fetch("/api/desk?predict=state" + (c === "rh" ? "&chain=rh" : "")).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); })).then(function (sts) {
+      typing(false);
+      var hit = null;
+      sts.forEach(function (st, i) {
+        if (hit || !st || !st.live || !st.markets) return;
+        var ms = st.markets.filter(function (m) { return !m.stopped && String(m.sym || "").toUpperCase() === bi.sym && (!bi.d || m.duration === bi.d); }).sort(function (a, b) { return a.duration - b.duration; });
+        if (ms.length) hit = { c: chains[i], st: st, m: ms[0] };
+      });
+      var reply, card = "";
+      if (!hit) {
+        reply = T({ en: "Hmm, I don't see a ${s} market on ARCIRCLE Predict right now~ the live ones are on its page, or open one there♡", ko: "음, 지금 ARCIRCLE Predict에 ${s} 마켓이 안 보여요~ 열려 있는 마켓은 페이지에서 볼 수 있고, 직접 열 수도 있어요♡", zh: "嗯，现在 ARCIRCLE Predict 上没有 ${s} 的市场~ 页面上有正在进行的市场，也可以自己开一个♡" }).replace("${s}", "$" + bi.sym);
+      } else {
+        var rh = hit.c === "rh", m = hit.m, st = hit.st, u = st.unitUsd || null;
+        var amt = rh && bi.unit !== "eth" ? (u ? Number((bi.amt / u).toPrecision(2)) : null) : bi.amt;
+        var dur = m.duration % 3600 === 0 ? m.duration / 3600 + "h" : m.duration / 60 + "m";
+        var shown = amt == null ? "" : rh ? amt + " ETH" + (bi.unit !== "eth" ? " (≈$" + bi.amt + ")" : "") : "$" + amt;
+        var mc = st.calls && st.calls.open && st.calls.open[m.id], call = mc && mc.pick ? mc.pick.toUpperCase() : null;
+        var href = "/arc#predict?" + (rh ? "c=rh&" : "") + "m=" + m.id + "&side=" + bi.side + (amt ? "&amt=" + amt : "");
+        reply = T({ en: "Got it~ {b} on ${s} {d}{c}. I filled it in on ARCIRCLE Predict — check it there and sign in your wallet. Nothing is placed before that♡", ko: "알겠어요~ ${s} {d}에 {b}{c}. ARCIRCLE Predict에 채워 뒀어요 — 거기서 확인하고 지갑에서 서명하면 돼요. 그 전엔 아무것도 걸리지 않아요♡", zh: "收到~ ${s} {d} 押 {b}{c}。我已在 ARCIRCLE Predict 填好——在那里核对并在钱包签名。签名前不会下注♡" })
+          .replace("{b}", bi.side.toUpperCase() + (shown ? " " + shown : "")).replace("${s}", "$" + m.sym).replace("{d}", dur)
+          .replace("{c}", call ? T({ en: " (my call on this round is {p}, just for fun)", ko: " (이번 라운드 제 콜은 {p}, 재미로만요)", zh: "（我这轮的判断是 {p}，仅供娱乐）" }).replace("{p}", call) : "");
+        card = '<div class="aa-rc aa-rc-ord aa-rc-pd"><span class="aa-rc-k" data-no-i18n>ARCIRCLE Predict · ' + (rh ? "Robinhood Chain" : "Arc") + '</span><code data-no-i18n>' + esc(bi.side.toUpperCase() + (shown ? " " + shown : "") + " · $" + m.sym + " " + dur) + '</code><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(href) + '" data-ord="1"><span>' + esc(tr("Fill it in on ARCIRCLE Predict")) + '</span> →</a></div><span class="aa-rc-sub">' + esc(T({ en: "You check it and sign — nothing is placed before that. For fun, not advice.", ko: "확인하고 서명하는 건 본인이에요 — 그 전엔 아무것도 걸리지 않아요. 재미로만, 투자 조언이 아니에요.", zh: "由你核对并签名——签名前不会下注。仅供娱乐，不构成建议。" })) + "</span></div>";
+      }
+      var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+      ls.set(KEY2, msgs.slice(-30));
+      var li = null;
+      li = bubble("assistant", reply, { type: true, t: Date.now(), i: i, done: function () {
+        var el = li || [].slice.call(log.querySelectorAll(".aa-m.her")).pop();
+        if (!el) return;
+        li = el; el._text = reply;
+        if (card) el.querySelector(".aa-mc").insertAdjacentHTML("beforeend", card);
+        got(); sfx("milestone"); scroll(); fx(el, "sparkle");
+        if (talk.on) speak(reply, el);
+      } });
+    });
   }
   // ---------------- ARCIA AGENT v2 in the chat: "scan 0x…" (or "check" / "read", "on robinhood" / "rh") → her call, right here ----------------
   function scanIntent(text) {

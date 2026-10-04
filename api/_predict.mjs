@@ -8,6 +8,9 @@
 //   chart(m)         the pool's price through the live round (its swaps), for the round card's chart
 //   feed()           the latest bets on every market
 //   leaderboard()    this week's and all-time PnL / volume leaders (kept up to date by the keeper)
+//   heat(m)          a market's last 50 results (the heat map) · claimableOne(round, user) one round's winnings
+//   events(store)    news for alerts (a wallet's round won / lost / refunded, its side taking or losing the lead)
+//   setExpiry()      a market's lister picks when it ends (signed); the keeper stops it then
 //   tick()           the keeper (the contract's operator): at every round boundary it samples the pool three times in
 //                    different blocks, then settles — the contract finalizes the boundary on the median. Prices only come
 //                    from the pool. Once an hour it pushes the fees to feeTo, it keeps the leaderboard, and it posts big
@@ -15,6 +18,8 @@
 // Amounts (bets, pots, volume) are in the chain's bet unit (`unit`: USDC or ETH, `unitUsd` its dollar price); token prices
 // are in dollars (on Robinhood Chain the pool's ETH price × ETH/USD, or in ETH when that price isn't known: `pxUnit`).
 // Arc:  env PREDICT_ADDRESS ("none" turns it off), else PREDICT_DEFAULT; keeper PREDICT_KEEPER_KEY, else ORDERS_KEEPER_KEY.
+// Markets the keeper opens itself (v3): PREDICT_AUTO / PREDICT_RH_AUTO (comma-separated tokens, "none" for none),
+//       else $ARCIA on each chain — 5m, 15m and 1h, as soon as its pool is live (on Robinhood Chain: once it graduates).
 // RH:   env PREDICT_RH_ADDRESS ("none" turns it off), else PREDICT_RH_DEFAULT; keeper PREDICT_RH_KEEPER_KEY, else
 //       ORDERS_KEEPER_RH_KEY; Telegram PREDICT_RH_TG_CHAT, else PREDICT_TG_CHAT.
 import { evmChain, addressOfKey } from "./_evm.mjs";
@@ -32,6 +37,10 @@ const lc = (a) => String(a || "").toLowerCase();
 const USDC = "0x3600000000000000000000000000000000000000";
 const RH_WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73";
 const ARCIRCLE = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
+export const ARCIA_ARC = "0x9da6d5ce413e94264Ea411372459413334a83bE5"; // $ARCIA on Arc (Argus)
+export const ARCIA_RH = "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25"; // $ARCIA on Robinhood Chain (Pons)
+const AUTO_DURS = [300, 900, 3600];
+const U64 = 2n ** 63n; // a market's stopEpoch at or above this: running
 const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951"; // Uniswap v4 PoolManager (the same address on Arc and Robinhood Chain)
 const SITE = "https://www.arcircle.app";
 export function memStore() { const m = new Map(); return { get: async (k) => m.get(k) ?? null, set: async (k, v) => { m.set(k, JSON.parse(JSON.stringify(v))); } }; }
@@ -52,6 +61,7 @@ const S = {
   owner: sel("owner()"), operator: sel("operator()"), feeTo: sel("feeTo()"), listOpen: sel("listOpen()"), listBurn: sel("listBurn()"), minQuote: sel("minQuote(address)"),
   sample: sel("sample(uint256[])"), settle: sel("settle(uint256[])"), payFees: sel("payFees()"),
   symbol: sel("symbol()"), name: sel("name()"), decimals: sel("decimals()"), logo: sel("logo()"),
+  arcircle: sel("arcircle()"), addMarket: sel("addMarket((address,address,uint24,int24,address),uint32,uint32)"), stop: sel("stop(uint256)"),
 };
 const TOPIC = {
   bet: topic("BetPlaced(uint256,address,uint256,uint64,bool,uint256,address)"),
@@ -64,6 +74,8 @@ const wa = (a) => strip(a).toLowerCase().padStart(64, "0");
 const W = (h, i) => { const s = strip(h).slice(i * 64, i * 64 + 64); return s ? BigInt("0x" + s) : 0n; };
 const A = (h, i) => "0x" + strip(h).slice(i * 64 + 24, i * 64 + 64);
 const encIds = (ids) => w(32) + w(ids.length) + ids.map(w).join("");
+const encKey = (k) => wa(k.currency0) + wa(k.currency1) + w(k.fee) + w(BigInt.asUintN(256, BigInt(k.tickSpacing))) + wa(k.hooks);
+const dayKey = (t) => new Date(t * 1000).toISOString().slice(0, 10);
 function str(h) { // an ABI string (or a bytes32 one)
   try {
     const s = strip(h);
@@ -109,6 +121,8 @@ export function makePredict(over) {
     extras: true, // badges and logos (scanner, ARCIA, coin images) — off in tests
     badges: false,
     coinLogo: null, // async (token) → an image URL the chain's launchpad knows
+    autoMarkets: () => [], // tokens the keeper opens 5m / 15m / 1h markets on by itself
+    poolKeyOf: async () => null, // async (token) → the pool key a market on it uses (null: not ready)
     ...over,
   };
   let ch = null;
@@ -152,8 +166,9 @@ export function makePredict(over) {
   async function badgeOf(token, store) {
     const out = {};
     if (!CFG.badges) return out;
-    try { const sc = await import("./_scan.mjs"); const s = await sc.scoreOf(token, { store, compute: false }); if (s && s.score != null) out.score = s.score; } catch { /* none */ }
-    try { const ag = await import("./_agent.mjs"); const c = await ag.lastCall(store, token); if (c) out.call = c.call; } catch { /* none */ }
+    // Token Scanner reads Arc; ARCIA AGENT calls on both chains
+    if (CFG.id === "arc") { try { const sc = await import("./_scan.mjs"); const s = await sc.scoreOf(token, { store, compute: false }); if (s && s.score != null) out.score = s.score; } catch { /* none */ } }
+    try { const ag = await import("./_agent.mjs"); const c = await ag.lastCall(store, token, CFG.id === "rh" ? "rh" : "arc"); if (c) out.call = c.call; } catch { /* none */ }
     return out;
   }
 
@@ -211,7 +226,8 @@ export function makePredict(over) {
     const addr = CFG.address();
     if (!addr) return { live: false, ...head0(), note: `ARCIRCLE Predict opens on ${CFG.chainName} once its contract is deployed.` };
     if (!fresh) { const h = mem.get("state"); if (h && Date.now() - h.t < CFG.cacheMs) return h.v; }
-    const g = await reads(addr, ["roundCount", "paused", "feeBps", "refShare", "minBet", "maxBet", "maxSide", "volume", "feesOwed", "feesPaid", "owner", "operator", "feeTo", "listOpen", "listBurn"]);
+    const g = await reads(addr, ["roundCount", "paused", "feeBps", "refShare", "minBet", "maxBet", "maxSide", "volume", "feesOwed", "feesPaid", "owner", "operator", "feeTo", "listOpen", "listBurn", "arcircle"]);
+    const ex = await expiryDoc(store).catch(() => ({}));
     const mq = CFG.unit === "USDC" ? await chain().ethCalls([call(addr, S.minQuote + wa(CFG.usdc))]) : [null];
     const ms = await marketsRaw(addr);
     for (const m of ms) Object.assign(m, (await tokenMeta([m.token]))[m.token] || { sym: "?", name: "", dec: 18 });
@@ -230,7 +246,7 @@ export function makePredict(over) {
       limits: { minBet: amt(W(g.minBet, 0)), maxBet: amt(W(g.maxBet, 0)), maxSide: amt(W(g.maxSide, 0)) },
       volume: amt(W(g.volume, 0)), fees: amt(W(g.feesOwed, 0) + W(g.feesPaid, 0)), rounds: Number(W(g.roundCount, 0)),
       owner: g.owner ? lc(A(g.owner, 0)) : null, operator: g.operator ? lc(A(g.operator, 0)) : null, feeTo: g.feeTo ? lc(A(g.feeTo, 0)) : null,
-      listing: { open: g.listOpen ? W(g.listOpen, 0) === 1n : false, burn: g.listBurn ? Number(W(g.listBurn, 0) / 10n ** 14n) / 1e4 : 0, minUsdc: mq[0] ? Number(W(mq[0], 0)) / 1e6 : null },
+      listing: { open: g.listOpen ? W(g.listOpen, 0) === 1n : false, burn: g.listBurn ? Number(W(g.listBurn, 0) / 10n ** 14n) / 1e4 : 0, minUsdc: mq[0] ? Number(W(mq[0], 0)) / 1e6 : null, token: g.arcircle ? lc(A(g.arcircle, 0)) : null },
       markets: ms.map((m, i) => {
         const px = pxFn(m, sc.scale);
         const at = (e) => m.start + e * m.duration;
@@ -249,6 +265,7 @@ export function makePredict(over) {
           id: r.id, epoch: r.epoch, result: r.result, endAt: at(r.epoch + 1), open: px(r.openP), close: px(r.closeP), up: amt(r.up), down: amt(r.down), feeBps: r.feeBps }));
         return { id: m.id, token: m.token, sym: m.sym, name: m.name, dec: m.dec, logo: extras[i].logo || null, badge: extras[i].badge || {}, lister: m.lister,
           duration: m.duration, lock: m.lock, start: m.start, stopped, poolId: m.poolId, key: m.key, price: px(m.priceP), rounds: m.rounds,
+          endsAt: !stopped && ex[m.id] && ex[m.id].at ? ex[m.id].at : null,
           betting: stopped && BigInt(m.betting) >= m.stopEpoch ? null : m.betting, live, next: nx, past };
       }),
     };
@@ -291,7 +308,8 @@ export function makePredict(over) {
     // wallets that came through this one's link (from the bets the keeper has read), not rounds
     if (lbd && lbd.refBy) ref.invited = Math.max(Object.values(lbd.refBy).filter((r) => r === lc(user)).length, ref.invited ? 1 : 0);
     return { live: true, ...head0(), unitUsd: await unitUsd(), items, claimable: items.reduce((s, x) => s + x.claimable, 0), claimIds: items.filter((x) => x.claimable > 0).map((x) => x.round), ref,
-      stats: st ? { pnl: st.pnl, vol: st.vol, n: st.n, wins: st.w, losses: st.l, streak: st.s, best: st.b, week: (st.wk && st.wk[weekKey(CFG.now())]) || { pnl: 0, vol: 0 } } : null };
+      stats: st ? { pnl: st.pnl, vol: st.vol, n: st.n, wins: st.w, losses: st.l, streak: st.s, best: st.b, week: (st.wk && st.wk[weekKey(CFG.now())]) || { pnl: 0, vol: 0 },
+        days: Object.entries(st.d || {}).sort((a, b) => (a[0] < b[0] ? -1 : 1)), podiums: podiumsOf(lbd, lc(user)) } : null };
   }
 
   // ---------------------------------------------------------------- block ↔ time
@@ -330,21 +348,62 @@ export function makePredict(over) {
       const logs = await logsRange({ address: CFG.poolManager, topics: [TOPIC.swap, mk.poolId] }, blockAt(head, rate, from), head.number).catch(() => []);
       const px = pxFn({ ...mk, tokenIs0: mk.key ? lc(mk.key.currency0) === mk.token : false }, sc.scale);
       const points = logs.map((l) => [timeAt(head, rate, parseInt(l.blockNumber, 16)), px(W(l.data, 2))]).filter((p) => p[1] > 0);
-      return { live: true, chain: CFG.id, market: m, from, now: head.ts, open: mk.live.open, price: mk.price, pxUnit: sc.pxUnit, startAt: mk.live.startAt, endAt: mk.live.endAt, points: points.slice(-400) };
+      // v3: how the UP / DOWN split moved as bets came in (the live round and the one open for bets)
+      const rids = [mk.live.id, mk.next && mk.next.id].filter(Boolean);
+      const flow = {};
+      if (rids.length) {
+        const bl = await logsRange({ address: addr, topics: [TOPIC.bet, rids.map((id) => "0x" + w(id))] }, blockAt(head, rate, from - mk.duration), head.number).catch(() => []);
+        for (const l of bl) {
+          const rid = Number(BigInt(l.topics[1])), f = (flow[rid] = flow[rid] || []), last = f[f.length - 1] || [0, 0, 0];
+          const up = W(l.data, 1) === 1n, a = amt(W(l.data, 2));
+          f.push([timeAt(head, rate, parseInt(l.blockNumber, 16)), last[1] + (up ? a : 0), last[2] + (up ? 0 : a)]);
+        }
+      }
+      return { live: true, chain: CFG.id, market: m, from, now: head.ts, open: mk.live.open, price: mk.price, pxUnit: sc.pxUnit, startAt: mk.live.startAt, endAt: mk.live.endAt, points: points.slice(-400), flow };
     });
   }
 
   /// the latest bets on every market
-  async function feed({ limit = 30 } = {}) {
+  async function feed({ limit = 30, store = null } = {}) {
     const addr = CFG.address();
     if (!addr) return { live: false, items: [] };
     return cached("feed", CFG.cacheMs, async () => {
       const [head, rate] = await Promise.all([headTime(), blockRate()]);
       const logs = await logsRange({ address: addr, topics: [TOPIC.bet] }, Math.max(0, head.number - Math.max(2000, Math.round(3600 / rate))), head.number).catch(() => []);
-      const items = logs.slice(-limit).reverse().map((l) => ({ round: Number(BigInt(l.topics[1])), user: lc("0x" + l.topics[2].slice(26)), market: Number(BigInt(l.topics[3])),
-        epoch: Number(W(l.data, 0)), up: W(l.data, 1) === 1n, amount: amt(W(l.data, 2)), t: timeAt(head, rate, parseInt(l.blockNumber, 16)), tx: lc(l.transactionHash) }));
+      let items = logs.slice(-limit).reverse().map((l) => betRow(l, timeAt(head, rate, parseInt(l.blockNumber, 16))));
+      if (items.length < limit) {
+        const d = await lbDoc(store).catch(() => null), seen = new Set(items.map((x) => `${x.tx}|${x.user}|${x.round}`));
+        for (const x of (d && d.recent) || []) if (!seen.has(`${x.tx}|${x.user}|${x.round}`)) items.push(x);
+        items = items.sort((a, b) => b.t - a.t).slice(0, limit);
+      }
       return { live: true, chain: CFG.id, unit: CFG.unit, items };
     });
+  }
+  const betRow = (l, t) => ({ round: Number(BigInt(l.topics[1])), user: lc("0x" + l.topics[2].slice(26)), market: Number(BigInt(l.topics[3])),
+    epoch: Number(W(l.data, 0)), up: W(l.data, 1) === 1n, amount: amt(W(l.data, 2)), t, tx: lc(l.transactionHash) });
+
+  /// a market's last results (up to 50 rounds with bets), newest first: the heat map
+  async function heat(m, { n = 50 } = {}) {
+    const addr = CFG.address();
+    if (!addr) return { live: false, items: [] };
+    m = Number(m);
+    if (!Number.isInteger(m) || m < 0) return { error: "market id" };
+    return cached("heat" + m, 15e3, async () => {
+      const [h] = await chain().ethCalls([call(addr, S.roundsOf + w(m) + w(0) + w(n + 2))]);
+      if (!h) return { error: "no such market" };
+      const ids = [...Array(Number(W(h, 1))).keys()].map((j) => Number(W(h, 2 + j)));
+      const rr = ids.length ? await chain().ethCalls(ids.map((id) => call(addr, S.round + w(id)))) : [];
+      const items = ids.map((id, i) => decRound(id, rr[i])).filter((r) => r && r.result !== "open").slice(0, n)
+        .map((r) => ({ id: r.id, e: r.epoch, r: r.result === "up" ? "u" : r.result === "down" ? "d" : "x", pot: amt(r.up + r.down) }));
+      return { live: true, chain: CFG.id, market: m, items };
+    });
+  }
+  /// what one wallet can still claim from one round
+  async function claimableOne(id, user) {
+    const addr = CFG.address();
+    if (!addr || !isAddr(user)) return 0;
+    const [c] = await chain().ethCalls([call(addr, S.claimable + w(id) + wa(user))]);
+    return c ? amt(W(c, 0)) : 0;
   }
 
   // ---------------------------------------------------------------- leaderboard
@@ -354,28 +413,33 @@ export function makePredict(over) {
     return lbMem;
   }
   async function lbSave(store, d) { lbMem = d; if (store) await store.set(CFG.lbKey, { j: JSON.stringify(d) }).catch(() => null); }
-  /// read new BetPlaced / RoundSettled logs and fold settled rounds into each wallet's numbers (in the bet unit)
+  /// read new BetPlaced / RoundSettled logs and fold settled rounds into each wallet's numbers (in the bet unit).
+  /// v3: weeks and days come from each log's own time; the last 30 bets are kept for the live feed; finished weeks
+  /// leave a season record (the top 3); every settled bet becomes an alert event for its wallet.
   async function lbScan(store, { budgetMs = 8000 } = {}) {
     const addr = CFG.address();
     if (!addr) return null;
     const t0 = Date.now();
-    const head = await chain().latestBlock();
+    const [head, rate] = await Promise.all([chain().latestBlock(), blockRate()]);
     let d = await lbDoc(store);
     if (!d || d.addr !== addr) d = { addr, cursor: Math.max(0, (CFG.fromBlock() || head.number - 50000) - 1), users: {}, pend: {}, rounds: 0 };
-    const wk = weekKey(CFG.now());
+    d.recent = d.recent || [];
+    const evs = [];
     while (d.cursor < head.number && Date.now() - t0 < budgetMs) {
       const to = Math.min(head.number, d.cursor + CFG.logChunk);
       const logs = (await chain().getLogs({ address: addr, topics: [[TOPIC.bet, TOPIC.settled]], fromBlock: "0x" + (d.cursor + 1).toString(16), toBlock: "0x" + to.toString(16) })) || [];
       logs.sort((a, b) => parseInt(a.blockNumber, 16) - parseInt(b.blockNumber, 16) || parseInt(a.logIndex, 16) - parseInt(b.logIndex, 16));
       for (const l of logs) {
-        const rid = String(BigInt(l.topics[1]));
+        const rid = String(BigInt(l.topics[1])), t = timeAt(head, rate, parseInt(l.blockNumber, 16)), wk = weekKey(t), dk = dayKey(t);
         if (l.topics[0] === TOPIC.bet) {
           const u = lc("0x" + l.topics[2].slice(26));
           (d.pend[rid] = d.pend[rid] || []).push([u, W(l.data, 1) === 1n ? 1 : 0, amt(W(l.data, 2))]);
           // who came through whose link (a wallet's referrer is set once, on its first bet)
           if (W(l.data, 3) > 0n) { d.refBy = d.refBy || {}; if (!d.refBy[u]) d.refBy[u] = lc(A(l.data, 3)); }
+          d.recent.unshift(betRow(l, t));
         }
         else {
+          const market = Number(BigInt(l.topics[2])), epoch = Number(W(l.data, 0));
           const res = Number(W(l.data, 1)), up = amt(W(l.data, 4)), down = amt(W(l.data, 5)), fee = amt(W(l.data, 6));
           const bets = d.pend[rid] || [];
           delete d.pend[rid];
@@ -383,29 +447,54 @@ export function makePredict(over) {
           for (const [u, side, a] of bets) {
             const x = (d.users[u] = d.users[u] || { pnl: 0, vol: 0, n: 0, w: 0, l: 0, s: 0, b: 0, wk: {} });
             const k = (x.wk[wk] = x.wk[wk] || { pnl: 0, vol: 0 });
+            x.d = x.d || {};
             x.vol += a; x.n += 1; k.vol += a;
+            let pnl = 0, kind = "refund";
             if (res === 1 || res === 2) {
               const won = (res === 1) === (side === 1);
               const winPot = res === 1 ? up : down;
-              const pnl = won ? (a * (up + down - fee)) / winPot - a : -a;
+              pnl = won ? (a * (up + down - fee)) / winPot - a : -a;
               x.pnl += pnl; k.pnl += pnl;
+              x.d[dk] = (x.d[dk] || 0) + pnl;
               if (won) { x.w += 1; x.s += 1; x.b = Math.max(x.b, x.s); } else { x.l += 1; x.s = 0; }
+              kind = won ? "won" : "lost";
             }
+            evs.push({ k: kind, u, r: Number(rid), m: market, e: epoch, side: side ? "up" : "down", amt: a, pay: kind === "won" ? a + pnl : kind === "refund" ? a : 0, t });
             for (const key of Object.keys(x.wk)) if (key < weekKey(CFG.now() - 14 * 86400)) delete x.wk[key];
+            for (const key of Object.keys(x.d)) if (key < dayKey(CFG.now() - 30 * 86400)) delete x.d[key];
           }
         }
       }
       d.cursor = to;
     }
+    d.recent = d.recent.slice(0, 30);
+    // a finished week (the scan is past its end) leaves its top 3 for good
+    d.seasons = d.seasons || {};
+    const cur = weekKey(CFG.now()), scanned = timeAt(head, rate, d.cursor);
+    const done = new Set(Object.values(d.users).flatMap((x) => Object.keys(x.wk || {})).filter((k) => k < cur && !d.seasons[k] && Date.parse(k + "T00:00:00Z") / 1000 + 7 * 86400 <= scanned));
+    for (const k of done) {
+      d.seasons[k] = Object.entries(d.users).map(([u, x]) => ({ u, pnl: (x.wk[k] || {}).pnl || 0, vol: (x.wk[k] || {}).vol || 0 })).filter((r) => r.vol > 0)
+        .sort((a, b) => b.pnl - a.pnl).slice(0, 3).map((r) => ({ u: r.u, pnl: Math.round(r.pnl * 1e8) / 1e8 }));
+    }
+    for (const k of Object.keys(d.seasons).sort().slice(0, -26)) delete d.seasons[k];
     // keep the doc small: the 1,500 busiest wallets
     const us = Object.entries(d.users);
     if (us.length > 1500) d.users = Object.fromEntries(us.sort((a, b) => b[1].vol - a[1].vol).slice(0, 1500));
     d.at = CFG.now();
     await lbSave(store, d);
+    if (evs.length) await addEvents(store, evs).catch(() => null);
     return d;
   }
+  /// a wallet's podiums: [1st, 2nd, 3rd] counts over the kept seasons
+  const podiumsOf = (d, u) => { const p = [0, 0, 0]; for (const top of Object.values((d && d.seasons) || {})) top.forEach((r, i) => { if (r.u === u) p[i]++; }); return p; };
+  let lbFallAt = 0;
   async function leaderboard(store) {
-    const d = await lbDoc(store);
+    let d = await lbDoc(store);
+    // the keeper is behind (or never ran): catch up here, at most once a minute per server
+    if ((!d || CFG.now() - (d.at || 0) > 600) && CFG.address() && Date.now() - lbFallAt > 60e3) {
+      lbFallAt = Date.now();
+      try { d = (await lbScan(store, { budgetMs: 4000 })) || d; } catch { /* the stored one */ }
+    }
     if (!d) return { live: !!CFG.address(), ...head0(), week: [], all: [], at: null };
     const wk = weekKey(CFG.now());
     const row = ([u, x], wkOnly) => ({ user: u, pnl: wkOnly ? (x.wk[wk] || {}).pnl || 0 : x.pnl, vol: wkOnly ? (x.wk[wk] || {}).vol || 0 : x.vol, n: x.n, wins: x.w, losses: x.l, best: x.b });
@@ -413,7 +502,59 @@ export function makePredict(over) {
     const week = us.map((e) => row(e, true)).filter((r) => r.vol > 0).sort((a, b) => b.pnl - a.pnl).slice(0, 25);
     const all = us.map((e) => row(e, false)).sort((a, b) => b.pnl - a.pnl).slice(0, 25);
     const streaks = us.map(([u, x]) => ({ user: u, best: x.b, streak: x.s })).sort((a, b) => b.best - a.best).slice(0, 10);
-    return { live: true, ...head0(), unitUsd: await unitUsd(), weekOf: wk, week, all, streaks, players: us.length, rounds: d.rounds, at: d.at };
+    const seasons = Object.entries(d.seasons || {}).sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 8).map(([k, top]) => ({ week: k, top: top.map((r) => ({ user: r.u, pnl: r.pnl })) }));
+    const podiums = {};
+    for (const r of [...week, ...all]) if (!podiums[r.user]) { const p = podiumsOf(d, r.user); if (p.some(Boolean)) podiums[r.user] = p; }
+    const fan = await fanTiers([...new Set([...week, ...all].map((r) => r.user))]).catch(() => ({}));
+    return { live: true, ...head0(), unitUsd: await unitUsd(), weekOf: wk, week, all, streaks, seasons, podiums, fan, players: us.length, rounds: d.rounds, at: d.at };
+  }
+
+  // ---------------------------------------------------------------- alert events (v3)
+  // won / lost / refund for every settled bet, and "cross" when a live round's leader flips under a wallet's bet.
+  // api/arcia-tg.mjs reads them every minute and sends them to Telegram (/predictalerts) and Web Push (predict-<chain>-0x…).
+  const evKey = () => CFG.lbKey.replace(/\/lb$/, "/events");
+  async function addEvents(store, evs) {
+    if (!store || !evs.length) return;
+    const x = (await store.get(evKey()).catch(() => null)) || {};
+    const d = typeof x.j === "string" ? JSON.parse(x.j) : { n: 0, items: [] };
+    const seen = new Set(d.items.map((e) => `${e.k}:${e.r}:${e.u}:${e.lead || ""}:${e.t}`));
+    for (const e of evs) { const k = `${e.k}:${e.r}:${e.u}:${e.lead || ""}:${e.t}`; if (seen.has(k)) continue; seen.add(k); d.n += 1; d.items.push({ ...e, n: d.n, ch: CFG.id }); }
+    d.items = d.items.slice(-300);
+    await store.set(evKey(), { j: JSON.stringify(d) });
+  }
+  /// events after `since` (an event number); { n: the latest number, items }
+  async function events(store, since = 0) {
+    const x = store ? await store.get(evKey()).catch(() => null) : null;
+    const d = x && typeof x.j === "string" ? JSON.parse(x.j) : { n: 0, items: [] };
+    return { n: d.n, items: d.items.filter((e) => e.n > since) };
+  }
+
+  // ---------------------------------------------------------------- end dates (v3)
+  // The wallet that listed a market (or the team) picks when it ends — signed, so nobody else can — and the keeper stops it
+  // then; the round open for bets at that moment still runs and settles.
+  const exKey = () => CFG.lbKey.replace(/\/lb$/, "/expiry");
+  async function expiryDoc(store) { const x = store ? await store.get(exKey()).catch(() => null) : null; return (x && x.m) || {}; }
+  const EX_DAYS = [0, 1, 3, 7, 14, 30];
+  const expiryMsg = (m, days, at) => `ARCIRCLE Predict · ${CFG.chainName}\nEnd market #${m} ${days ? `in ${days} day${days > 1 ? "s" : ""}` : "never (no end date)"}\n${at}`;
+  /// { m, days, at, sig } signed by the market's lister (or the owner / operator); `recover(message, sig)` → the signer
+  async function setExpiry({ m, days, at, sig }, { store = null, recover } = {}) {
+    const addr = CFG.address();
+    m = Number(m); days = Number(days); at = Number(at);
+    if (!addr || !store) return { status: 503, body: { error: "not available" } };
+    if (!Number.isInteger(m) || m < 0 || !EX_DAYS.includes(days)) return { status: 400, body: { error: "days must be one of " + EX_DAYS.join(", ") } };
+    if (!(Math.abs(CFG.now() - at) < 600)) return { status: 400, body: { error: "the signature is too old — sign again" } };
+    let signer = null;
+    try { signer = lc(recover(expiryMsg(m, days, at), String(sig || ""))); } catch { signer = null; }
+    if (!isAddr(signer)) return { status: 400, body: { error: "bad signature" } };
+    const [h, o, op] = await chain().ethCalls([call(addr, S.market + w(m)), call(addr, S.owner), call(addr, S.operator)]);
+    if (!h) return { status: 404, body: { error: "no such market" } };
+    const lister = lc(A(h, 1));
+    if (signer !== lister && signer !== lc(A(o, 0)) && signer !== lc(A(op, 0))) return { status: 403, body: { error: "only the wallet that listed this market can set its end" } };
+    const x = (await store.get(exKey()).catch(() => null)) || {}, ex = x.m || {};
+    if (days) ex[m] = { at: CFG.now() + days * 86400, by: signer, set: CFG.now() }; else delete ex[m];
+    await store.set(exKey(), { m: ex });
+    mem.delete("state");
+    return { status: 200, body: { ok: true, market: m, endsAt: days ? ex[m].at : null } };
   }
 
   // ---------------------------------------------------------------- the keeper
@@ -474,6 +615,22 @@ export function makePredict(over) {
       if (r.ok) st.fees = { at: CFG.now(), amount: amt(W(g.feesOwed, 0)), unit: CFG.unit, usdc: CFG.unit === "USDC" ? amt(W(g.feesOwed, 0)) : undefined, tx: r.hash };
     }
     if (Date.now() - t0 < budgetMs - 3000) { try { await lbScan(store, { budgetMs: Math.min(8000, budgetMs - (Date.now() - t0) - 2000) }); } catch (e) { out.lbError = String((e && e.message) || e).slice(0, 120); } }
+    const left = () => budgetMs - (Date.now() - t0);
+    // v3: markets whose lister set an end date that has passed
+    if (store && left() > 4000) {
+      const ex = await expiryDoc(store).catch(() => ({}));
+      for (const m of ms) {
+        const e = ex[m.id];
+        if (e && e.at && lb.ts >= e.at && m.stopEpoch >= U64 && left() > 4000) { const r = await send(S.stop + w(m.id), "stop"); if (r.ok) out.stopped = (out.stopped || 0) + 1; }
+      }
+    }
+    // v3: the markets the keeper keeps open itself ($ARCIA by default), checked every 10 minutes
+    if (CFG.now() - (st.autoAt || 0) > 600 && left() > 8000) {
+      st.autoAt = CFG.now();
+      try { const a = await autoMarkets(ms, send, left); if (a) { out.auto = a; st.auto = { at: CFG.now(), ...a }; } } catch (e) { st.auto = { at: CFG.now(), error: String((e && e.message) || e).slice(0, 160) }; }
+    }
+    // v3: a live round's leader flipped under someone's bet — an alert for them (at most 3 flips a round)
+    if (store && left() > 5000) { try { await crossings(store, st); } catch (e) { out.crossError = String((e && e.message) || e).slice(0, 120); } }
     st.at = lb.ts; st.keeper = me; st.chain = CFG.id; st.last = { due: out.due, sampled: out.sampled, settled: out.settled };
     const bad = out.txs.filter((x) => !x.ok);
     st.error = bad.length ? { at: CFG.now(), msg: `${bad[0].kind}: ${bad[0].err || "failed"}`.slice(0, 200) } : null;
@@ -483,6 +640,51 @@ export function makePredict(over) {
     out.status = st;
     mem.clear();
     return out;
+  }
+  /// open 5m / 15m / 1h on each auto token that lacks one; its pool comes from CFG.poolKeyOf (null: not live yet)
+  async function autoMarkets(ms, send, left) {
+    const toks = (CFG.autoMarkets() || []).map(lc).filter(isAddr);
+    if (!toks.length) return null;
+    const out = { opened: [], waiting: [] };
+    for (const t of toks) {
+      const have = new Set(ms.filter((m) => m.token === t && m.stopEpoch >= U64).map((m) => m.duration));
+      const miss = AUTO_DURS.filter((d) => !have.has(d));
+      if (!miss.length) continue;
+      if (left() < 8000) break;
+      const key = await CFG.poolKeyOf(t).catch(() => null);
+      if (!key) { out.waiting.push(t); continue; }
+      for (const d of miss) {
+        if (left() < 5000) break;
+        const r = await send(S.addMarket + encKey(key) + w(d) + w(0), "addmarket");
+        if (r.ok) out.opened.push(`${t.slice(0, 8)}:${d}`);
+      }
+    }
+    return out.opened.length || out.waiting.length ? out : null;
+  }
+  /// the live rounds with bets: who's ahead now vs the last look; a flip is an alert for every wallet in the round
+  async function crossings(store, st) {
+    const sv = await stateRun({ fresh: true, store });
+    const d = await lbDoc(store);
+    const cross = st.cross || {}, evs = [], live = new Set();
+    for (const m of sv.markets || []) {
+      const r = m.live;
+      if (!r || !r.id || !r.open || !m.price) continue;
+      live.add(String(r.id));
+      const bets = (d && d.pend && d.pend[String(r.id)]) || [];
+      if (!bets.length) continue;
+      const sg = m.price > r.open ? 1 : m.price < r.open ? -1 : 0;
+      if (!sg) continue;
+      const c = cross[r.id] || { s: 0, n: 0 };
+      if (c.s && c.s !== sg && c.n < 3) {
+        c.n += 1;
+        const seen = new Set();
+        for (const [u, side, a] of bets) { if (seen.has(u)) continue; seen.add(u); evs.push({ k: "cross", u, r: r.id, m: m.id, e: r.epoch, side: side ? "up" : "down", amt: a, lead: sg > 0 ? "up" : "down", sym: m.sym, d: m.duration, pc: Math.round((m.price / r.open - 1) * 1e4) / 100, t: CFG.now() }); }
+      }
+      c.s = sg; cross[r.id] = c;
+    }
+    for (const k of Object.keys(cross)) if (!live.has(k)) delete cross[k];
+    st.cross = cross;
+    if (evs.length) await addEvents(store, evs);
   }
   async function status(store) { return (store && (await store.get(CFG.statusKey).catch(() => null))) || null; }
 
@@ -646,7 +848,7 @@ export function makePredict(over) {
     return { status: 200, body: { ok: true, r } };
   }
 
-  return { CFG, configure, state, mine, chart, feed, lbScan, leaderboard, tick, status, roundCard, calls, reacts, react, _chain: chain, _pxFn: pxFn };
+  return { CFG, configure, state, mine, chart, feed, heat, claimableOne, lbScan, leaderboard, tick, status, roundCard, calls, reacts, react, events, setExpiry, expiryMsg, _chain: chain, _pxFn: pxFn };
 }
 
 // ---------------------------------------------------------------- Arc (the default exports)
@@ -666,8 +868,32 @@ export const ARC = makePredict({
   link: (m) => `${SITE}/arc#predict?m=${m}`,
   dexChain: "arc", badges: true,
   coinLogo: async (token) => { const { getCoin } = await import("./_arc.mjs"); const c = await getCoin(token); return c && /^https?:\/\//.test(c.imageUrl || "") ? c.imageUrl : null; },
+  autoMarkets: () => autoList("PREDICT_AUTO", ARCIA_ARC),
+  // its deepest Uniswap v4 pool against USDC (Argus, ArcPad or plain v4)
+  poolKeyOf: async (token) => {
+    const L = await import("./_liquidity.mjs");
+    const r = await L.run(token, { lite: true, budgetMs: 6000 });
+    const p = ((r && r.pools) || []).find((x) => x.key && [x.key.currency0, x.key.currency1].map(lc).some((c) => c === USDC || c === "0x0000000000000000000000000000000000000000"));
+    return p ? p.key : null;
+  },
 });
 export const { CFG, configure, state, mine, chart, feed, lbScan, leaderboard, tick, status, roundCard } = ARC;
+/// v3: fan tiers from the $ARCIA a wallet holds on Robinhood Chain (the same tiers as ARCIA's page): Bronze (any),
+/// Silver 100K+, Gold 1M+, Diamond 10M+ — read for the leaderboard's wallets, kept 10 minutes
+const fanMem = new Map();
+async function fanTiers(users) {
+  const need = users.filter((u) => isAddr(u) && !(fanMem.has(u) && Date.now() - fanMem.get(u).t < 600e3)).slice(0, 60);
+  if (need.length) {
+    const bal = sel("balanceOf(address)");
+    const r = await RH._chain().ethCalls(need.map((u) => call(ARCIA_RH, bal + wa(u))));
+    need.forEach((u, i) => { const b = r[i] ? Number(W(r[i], 0) / 10n ** 18n) : 0; fanMem.set(u, { t: Date.now(), v: b >= 1e7 ? "diamond" : b >= 1e6 ? "gold" : b >= 1e5 ? "silver" : b > 0 ? "bronze" : null }); });
+  }
+  const out = {};
+  for (const u of users) { const x = fanMem.get(u); if (x && x.v) out[u] = x.v; }
+  return out;
+}
+/// the keeper's own markets: env list (comma-separated, "none" = none), else the chain's $ARCIA
+function autoList(k, dflt) { const e = env(k); if (e === "none") return []; return e ? e.split(",").map((x) => x.trim()).filter(isAddr) : [dflt]; }
 
 // ---------------------------------------------------------------- Robinhood Chain
 /// a Pons V2 coin's own logo() (an https or ipfs URL)
@@ -692,8 +918,11 @@ export const RH = makePredict({
   tgMinUsd: 10, feeMin: 5n * 10n ** 15n, // 0.005 ETH
   lbKey: "predict-rh/lb", statusKey: "predict-rh/status",
   link: (m) => `${SITE}/arc#predict?c=rh&m=${m}`,
-  dexChain: "robinhood", badges: false,
+  dexChain: "robinhood", badges: true,
   coinLogo: ponsLogo,
+  autoMarkets: () => autoList("PREDICT_RH_AUTO", ARCIA_RH),
+  // a graduated Pons coin's native-ETH pool (null while it's still on its bonding curve)
+  poolKeyOf: async (token) => { const p = await import("./_pons-arcpad.mjs"); const g = await p.graduatedPool(token); return g && g.ok ? g.key : null; },
 });
 
 /// the instance for a request: ?chain=rh → Robinhood Chain, else Arc

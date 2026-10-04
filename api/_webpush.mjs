@@ -118,8 +118,10 @@ export async function toWallet(store, wallet, payload, o = {}) {
 // ---------------- topics: browsers that asked for one piece of news, no wallet needed (v4: "arcia-grad") ----------------
 export const TOPICS = ["arcia-grad"];
 /// v2 (ARCIA AGENT): one topic per followed token and chain — agent-arc-0x… / agent-rh-0x…
-export const topicOk = (t) => TOPICS.includes(t) || /^agent-(arc|rh)-0x[0-9a-f]{40}$/.test(t);
+/// v3 (ARCIRCLE Predict): one topic per wallet and chain — predict-arc-0x… / predict-rh-0x… (its rounds' results, a lead flip)
+export const topicOk = (t) => TOPICS.includes(t) || /^(agent|predict)-(arc|rh)-0x[0-9a-f]{40}$/.test(t);
 export const agentTopic = (ch, token) => `agent-${ch === "rh" ? "rh" : "arc"}-${String(token || "").toLowerCase()}`;
+export const predictTopic = (ch, wallet) => `predict-${ch === "rh" ? "rh" : "arc"}-${String(wallet || "").toLowerCase()}`;
 const topicKey = (t) => `push/topic_${t}`;
 /// add (or remove) this browser on a topic's list (at most 5,000 browsers per topic, newest kept)
 export async function topicSet(body, { store } = {}) {

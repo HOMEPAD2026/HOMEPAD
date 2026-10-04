@@ -44,6 +44,8 @@
 //   GET /api/desk?predict=lb                 leaderboard (this week, all time, streaks) · ?predict=status the keeper
 //   state also carries calls: ARCIA's call on each round open for bets (for fun) and her record vs the crowd
 //   GET /api/desk?predict=rx&m=<id>          reactions on a market's last rounds · POST {action:"predict-react", chain, m, epoch, kind}
+//   GET /api/desk?predict=heat&m=<id>        a market's last 50 results (v3) · POST {action:"predict-expiry", chain, m, days, at, sig}
+//                                            the lister picks when its market ends (0, 1, 3, 7, 14 or 30 days; signed)
 //   GET /api/desk?predicttick=1&key=<CRON_SECRET>   the keeper: samples ended rounds' pools and settles them (its own
 //                                                   cron-job.org entry, every minute)
 //   …&chain=rh on any of these: the same on Robinhood Chain — bets in ETH, markets on graduated Pons V2 coins (its keeper
@@ -136,7 +138,8 @@ export async function GET(req) {
       }
       if (q.predict === "mine") { const r = await P.mine(String(q.u || ""), { store: st }); return json(r, r.error ? 400 : 200); }
       if (q.predict === "chart") return json(await P.chart(q.m), 200, "public, max-age=2, s-maxage=3");
-      if (q.predict === "feed") return json(await P.feed(), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "feed") return json(await P.feed({ store: st }), 200, "public, max-age=2, s-maxage=3");
+      if (q.predict === "heat") { const r = await P.heat(q.m); return json(r, r.error ? 400 : 200, "public, max-age=10, s-maxage=15"); }
       if (q.predict === "lb") return json(await P.leaderboard(st), 200, "public, max-age=30, s-maxage=60");
       if (q.predict === "card") { const r = await P.roundCard(String(q.id || ""), String(q.u || "")); return json(r || { error: "no such round" }, r ? 200 : 404, r && r.result !== "open" ? "public, max-age=60, s-maxage=86400" : "public, max-age=10, s-maxage=30"); }
       if (q.predict === "status") return json((await P.status(st)) || {}, 200, "public, max-age=10, s-maxage=20");
@@ -261,6 +264,10 @@ export async function POST(req) {
       const r = await predict.forChain(b.chain).react({ m: b.m, epoch: b.epoch, kind: b.kind, ip }, { store: store() });
       return json(r.body, r.status);
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
+  }
+  if (b && b.action === "predict-expiry") {
+    try { const r = await predict.forChain(b.chain).setExpiry(b, { store: store(), recover: recoverSigner }); return json(r.body, r.status); }
+    catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
