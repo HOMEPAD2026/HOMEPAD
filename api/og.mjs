@@ -20,6 +20,7 @@ import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
 import { mineView, meView, cardFacts as mineCardFacts, GAME as MINE_GAME } from "./_mine.mjs";
 import { week as agentWeek } from "./_agent.mjs";
+import { forChain as ordersFor } from "./_orders.mjs";
 
 // Node.js runtime, not edge: @vercel/og's edge build compiles its WebAssembly
 // renderer at runtime, which Vercel's edge sandbox refuses outside Next.js
@@ -166,6 +167,13 @@ export async function GET(req) {
     return new ImageResponse(await stakeCard(await markP, url.searchParams.get("stake")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" },
+    });
+  }
+  if (url.searchParams.has("ordfill")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await ordFillCard(await markP, url.searchParams.get("ordfill"), url.searchParams.get("t"), url.searchParams.get("c")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=600, s-maxage=86400, stale-while-revalidate=86400" },
     });
   }
   if (url.searchParams.has("predictme")) {
@@ -987,6 +995,43 @@ async function nftCard(mark, id) {
 
 // ---- ARCIRCLE Predict: one round's result (/predict/<round>?u=0x…) ----
 /// ARCIRCLE Predict v3: a wallet's stats card — win rate, PnL with its last 30 days, best streak, podiums
+/// ARCIRCLE Orders v5: one fill's card (/orders/fill/<tx>?t=<token>[&c=rh]) — the side, the amount, the price, how it filled
+async function ordFillCard(mark, tx, token, c) {
+  const rh = c === "rh", where = rh ? "ARCIRCLE Orders · Robinhood Chain" : "ARCIRCLE Orders · Arc";
+  const up = "#39ff88", down = "#ff6e5a";
+  const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k] } : null;
+  let b = null;
+  try { b = /^0x[0-9a-fA-F]{64}$/.test(String(tx || "")) && isAddr(token) ? await ordersFor(c).book(token, { store: st }) : null; } catch { b = null; }
+  const f = b && (b.fills || []).find((x) => String(x.tx).toLowerCase() === String(tx).toLowerCase());
+  const sym = b && b.token ? clip(b.token.symbol, 12) : "TOKEN", q = b && b.quote ? b.quote.symbol : rh ? "ETH" : "USDC";
+  const fp = (p) => { if (!(p > 0)) return "—"; if (p >= 1) return p.toLocaleString("en-US", { maximumFractionDigits: 4 }); const [m, e] = p.toExponential(3).split("e"), z = -Number(e) - 1; return z >= 4 ? `0.0(${z})${m.replace(".", "").replace(/0+$/, "")}` : p.toFixed(Math.min(14, z + 4)).replace(/0+$/, "").replace(/\.$/, ""); };
+  const big = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: n < 1 ? 6 : 2 }));
+  if (!f) {
+    return frame([
+      brandRow(mark, pill("ORDERS", up), where),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 88, fontWeight: 800, lineHeight: 1.02 }, "Limit orders, no custody"),
+        h("div", { fontSize: 34, color: "#9fb098" }, "Sign it in your wallet. It fills at your price or better.")),
+      h("div", { fontSize: 26, color: "#9fb098" }, "arcircle.app/arc#orders"),
+    ]);
+  }
+  const buy = f.side === "buy", col = buy ? up : down;
+  const how = f.via === "match" ? "Wallet to wallet" : f.via === "market" ? "Market order" : "Filled from the pool";
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "14px 22px", borderRadius: 20, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 19, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 36, fontWeight: 800, color }, value));
+  return frame([
+    brandRow(mark, pill(buy ? "BOUGHT" : "SOLD", col), where),
+    h("div", { flexDirection: "column", gap: 10 },
+      h("div", { fontSize: 32, color: col, fontWeight: 700 }, `$${sym} / ${q}`),
+      h("div", { fontSize: 104, fontWeight: 800, lineHeight: 1, letterSpacing: -2, color: col }, `${buy ? "Bought" : "Sold"} ${big(f.amount)}`),
+      h("div", { fontSize: 32, color: "#b9c8b3" }, `at ${fp(f.price)} ${q} · ${how}`)),
+    h("div", { gap: 16 },
+      box("Value", rh ? `${big(f.quote)} ETH` : `$${Number(f.quote || 0).toFixed(2)}`),
+      box("Filled", new Date(f.at * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC"),
+      box("Fee · half burns $ARCIRCLE", "0.1%", "#ffd76a")),
+  ]);
+}
 async function predictMeCard(mark, user, c) {
   const rh = c === "rh", where = rh ? "ARCIRCLE Predict · Robinhood Chain" : "ARCIRCLE Predict · Arc";
   const up = "#39ff88", down = "#ff5c8a";

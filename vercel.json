@@ -173,6 +173,10 @@
       "destination": "/api/c?view=predictme&u=:u"
     },
     {
+      "source": "/orders/fill/:tx",
+      "destination": "/api/c?view=ordfill&tx=:tx"
+    },
+    {
       "source": "/predict/:id",
       "destination": "/api/c?view=predict&id=:id"
     },

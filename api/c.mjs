@@ -15,6 +15,7 @@
 //   /predict/<round>    ARCIRCLE Predict: one round's result card (?u=0x… for a wallet's bet), then the market in the app
 //                       (v3: the sharer's wallet rides along as the invite: #predict?ref=0x…)
 //   /predict/me/<0x…>   ARCIRCLE Predict v3: a wallet's stats card (?c=rh), then Predict with that wallet as the invite
+//   /orders/fill/<tx>   ARCIRCLE Orders v5: one fill's card (?t=<token>[&c=rh]), then that market in the app
 //   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
@@ -42,6 +43,7 @@ export default async function handler(req) {
   if (view === "lock") return lockPage(url);
   if (view === "predict") return predictPage(url);
   if (view === "predictme") return predictMePage(url);
+  if (view === "ordfill") return ordFillPage(url);
   if (view === "stake") return stakePage(url);
   if (view === "vearcia") return veaPage(url);
   if (view === "nft") return nftPage(url);
@@ -783,6 +785,43 @@ async function stakePage(url) {
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#b58bff}</style>
 </head><body>
 <p>Opening <a href="${esc(target)}">ARCIRCLE Staking</a>…</p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=600");
+}
+
+// ---- ARCIRCLE Orders v5: one fill's card (/orders/fill/<tx>?t=<token>[&c=rh]) ----
+function ordFillPage(url) {
+  const tx = String(url.searchParams.get("tx") || "").toLowerCase(), t = String(url.searchParams.get("t") || "").toLowerCase(), rh = url.searchParams.get("c") === "rh";
+  const target = `/arc#orders${isAddr(t) ? `?t=${t}${rh ? "&c=rh" : ""}` : rh ? "?c=rh" : ""}`;
+  if (!/^0x[0-9a-f]{64}$/.test(tx) || !isAddr(t)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=${esc(target)}">`, "public, max-age=300");
+  const image = `${SITE}/api/og?ordfill=${tx}&t=${t}${rh ? "&c=rh" : ""}`;
+  const title = `A fill on ARCIRCLE Orders${rh ? " · Robinhood Chain" : " · Arc"}`;
+  const desc = "Limit, stop, take-profit and DCA orders signed in the wallet — no custody, no gas to place. 0.1% fee, half buys and burns $ARCIRCLE.";
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/orders/fill/${tx}?t=${t}${rh ? "&c=rh" : ""}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050805;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#4dd4ff}</style>
+</head><body>
+<p>Opening <a href="${esc(target)}">ARCIRCLE Orders</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, "public, max-age=0, s-maxage=600");
 }

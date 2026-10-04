@@ -29,6 +29,7 @@
       const j = r.ok ? await r.json() : null;
       if (c0 !== CH()) return;
       X.tape = (j && j.fills) || [];
+      X.lastFill = (j && j.lastFill) || null;
     } catch { /* keep the last */ }
     paintTape();
   }
@@ -43,12 +44,16 @@
     el.hidden = false;
     const item = (f) => {
       const k = `${f.tx || ""}:${f.at}:${f.price}`, fresh = X.seen.size && !X.seen.has(k);
-      return `<button type="button" class="aor-tk ${f.side === "buy" ? "up" : "dn"}${fresh ? " fresh" : ""}" data-tapet="${esc(f.token)}" title="${T(f.via === "p2p" ? "Wallet to wallet" : "Filled from the pool")}"><b data-no-i18n>$${esc(f.sym || "?")}</b><i>${T(f.side === "buy" ? "Buy" : "Sell")}</i><span data-no-i18n>${esc(fp(f.price))}</span><small data-no-i18n>${esc(ago(f.at))}</small></button>`;
+      // v5: the pools' own swaps run in the tape too (dimmer, a ◇), Orders' fills stand out (●)
+      const sw = f.via === "swap";
+      return `<button type="button" class="aor-tk ${f.side === "buy" ? "up" : "dn"}${sw ? " sw" : ""}${fresh ? " fresh" : ""}" data-tapet="${esc(f.token)}" title="${T(sw ? "A swap in the pool" : f.via === "match" ? "Wallet to wallet" : f.via === "market" ? "Market order" : "Filled from the pool")}"><em class="aor-tk-k" aria-hidden="true">${sw ? "◇" : "●"}</em><b data-no-i18n>$${esc(f.sym || "?")}</b><i>${T(f.side === "buy" ? "Buy" : "Sell")}</i><span data-no-i18n>${esc(fp(f.price))}</span><small data-no-i18n>${esc(ago(f.at))}</small></button>`;
     };
     const row = list.map(item).join("");
     // a long list scrolls by itself (twice over, so the loop has no seam); a short one just sits
     const loop = !reduce && list.length >= 6;
-    el.innerHTML = `<span class="aor-tape-l"><i aria-hidden="true"></i>${T("Live fills")}</span><div class="aor-tape-v"><div class="aor-tape-r${loop ? " loop" : ""}" style="--n:${list.length}">${row}${loop ? `<span aria-hidden="true" class="aor-tape-dup">${row}</span>` : ""}</div></div>`;
+    const lf = X.lastFill, l3 = (en, ko, zh) => { const l = O() ? O().lang() : "en"; return l === "ko" ? ko : l === "zh" ? zh : en; };
+    const lastTxt = lf && lf.at ? l3(`last Orders fill ${ago(lf.at)}${ago(lf.at) === tr("just now") ? "" : " ago"}`, `마지막 Orders 체결 ${ago(lf.at)}${ago(lf.at) === tr("just now") ? "" : " 전"}`, `最近一笔 Orders 成交 ${ago(lf.at)}${ago(lf.at) === tr("just now") ? "" : "前"}`) : "";
+    el.innerHTML = `<span class="aor-tape-l"><i aria-hidden="true"></i>${T("Live trades")}${lastTxt ? `<small data-no-i18n>${esc(lastTxt)}</small>` : ""}</span><div class="aor-tape-v"><div class="aor-tape-r${loop ? " loop" : ""}" style="--n:${list.length}">${row}${loop ? `<span aria-hidden="true" class="aor-tape-dup">${row}</span>` : ""}</div></div>`;
     X.seen = new Set(list.map((f) => `${f.tx || ""}:${f.at}:${f.price}`));
   }
 

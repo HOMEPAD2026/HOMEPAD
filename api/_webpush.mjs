@@ -116,7 +116,7 @@ export async function toWallet(store, wallet, payload, o = {}) {
 }
 
 // ---------------- topics: browsers that asked for one piece of news, no wallet needed (v4: "arcia-grad") ----------------
-export const TOPICS = ["arcia-grad"];
+export const TOPICS = ["arcia-grad", "orders-sol"]; // v5: "orders-sol" — ARCIRCLE Orders opening on Solana
 /// v2 (ARCIA AGENT): one topic per followed token and chain — agent-arc-0x… / agent-rh-0x…
 /// v3 (ARCIRCLE Predict): one topic per wallet and chain — predict-arc-0x… / predict-rh-0x… (its rounds' results, a lead flip)
 export const topicOk = (t) => TOPICS.includes(t) || /^(agent|predict)-(arc|rh)-0x[0-9a-f]{40}$/.test(t);
