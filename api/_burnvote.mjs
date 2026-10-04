@@ -29,7 +29,10 @@ export const GOV = {
   // $TIE picks first (its launch date had passed, so five new dates), and the three chains — so burn-to-vote opens
   // at once. A category with candidates here can't be published again; the signed route stays for anything not here.
   3: {
-    escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"],
+    // 4 Oct 2026: Round #3 launches no new coin — its raise buys $ARCIA (Robinhood Chain) and its contributors also get
+    // Round #4's Solana token — so its burn-to-vote closed at closedAt: later burns aren't counted, nothing more is
+    // published, and the votes cast before stay on record (config-arc.js CIRCLEPAD_GOV[3]).
+    escrow: "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4", mode: "direct", ballot: "", burnvote: "", from: 0, chain: ["Arc", "Robinhood Chain", "Solana"], closedAt: 1791072000,
     candsAt: 1790963400,
     cands: {
       0: ["Trade. Invest. Earn.", "Arc Tide", "Trio", "Builder Bull", "Loop"],
@@ -185,6 +188,7 @@ export async function publishCands(b, recover, json) {
   if (!st.started) return json(409, { error: "the round hasn't started" });
   const head = await latestBlock();
   if (st.deadline && head.ts >= st.deadline) return json(409, { error: "the raise has closed" });
+  if (A.closedAt && head.ts >= A.closedAt) return json(409, { error: "this round's vote is closed" });
   if ((await directBallot(A, true))[cat]) return json(409, { error: "these candidates are already published" });
   const data = { round: A.escrow, n: A.n, cat, options, raw, by: signer, sig: String(b.signature), at: Date.now() };
   const path = candPath(A.escrow, cat);
@@ -250,7 +254,7 @@ const counts = (e, bal, deadline) => { const c = bal[e.cat]; return !!c && e.opt
 export async function directState(store, A, voter = null) {
   const bal = await directBallot(A);
   const [{ st, latest }, rs] = await Promise.all([directScan(store, A, bal), roundState(A.escrow).catch(() => null)]);
-  const deadline = rs ? rs.deadline : 0;
+  const deadline = A.closedAt ? (rs && rs.deadline ? Math.min(rs.deadline, A.closedAt) : A.closedAt) : rs ? rs.deadline : 0;
   const all = st.ev.map(evOf).sort((x, y) => (y.b - x.b) || (y.i - x.i));
   const ev = all.filter((e) => counts(e, bal, deadline));
   const v = voter ? lc(voter) : null;
@@ -270,7 +274,7 @@ export async function directState(store, A, voter = null) {
     mode: "direct", round: A.n, escrow: A.escrow, token: tokenAddr(), recipient: rs ? rs.recipient : null,
     // as in Round #1, voting runs from the start to the close; each category takes votes once its candidates are out
     deadline, now: latest.ts, opensAt: Number.isFinite(opens) ? opens : null, votingEnds: deadline,
-    votingOpen: !!rs && rs.started && latest.ts < deadline,
+    votingOpen: !!rs && rs.started && latest.ts < deadline, closed: A.closedAt && latest.ts >= A.closedAt ? "plan" : null,
     done: st.hi >= latest.number, hi: st.hi, anchor: { block: latest.number, ts: latest.ts },
     categories: C.map((label, c) => ({ id: c, label, set: !!bal[c], at: bal[c] ? bal[c].at : null, options: bal[c] ? bal[c].options : [], tallies: tallies[c], mine: mine[c] })),
     totals: { burned: (BigInt(votes) * VOTE_UNIT).toString(), votes, voters: by.size },
@@ -322,7 +326,7 @@ const mem = new Map();
 export async function burnFeed(store, A = ADDR) {
   if (isDirect(A)) {
     const d = await directState(store, A);
-    return { contract: null, mode: "direct", token: d.token, round: A.n, done: d.done, hi: d.hi, anchor: d.anchor, totals: d.totals, events: d.events, top: d.top };
+    return { contract: null, mode: "direct", token: d.token, round: A.n, done: d.done, hi: d.hi, anchor: d.anchor, totals: d.totals, events: d.events, top: d.top, closedAt: A.closedAt || null };
   }
   const key = `cburn/feed/${A.burnvote}`; // one feed per vote contract
   let st = mem.get(key) || null;

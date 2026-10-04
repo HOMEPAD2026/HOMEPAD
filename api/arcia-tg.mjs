@@ -83,7 +83,7 @@ const w = (k, lang, vars = {}) => W[k][L3(lang)].replace(/\{(\w+)\}/g, (_, x) =>
 const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
-  ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
+  ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
   ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
@@ -709,6 +709,7 @@ async function onMessage(m, channel) {
       case "launches": return sendCard(m.chat.id, await cardLaunches(0, lang), { replyTo: group ? m.message_id : undefined });
       case "books": return sendCard(m.chat.id, await cardBooks(lang), { replyTo: group ? m.message_id : undefined });
       case "predict": return sendCard(m.chat.id, await cardPredict(lang), { replyTo: group ? m.message_id : undefined });
+      case "nft": case "vault": return sendCard(m.chat.id, await cardNft(lang), { replyTo: group ? m.message_id : undefined });
       case "mine": return mineList(m);
       case "minealerts": return setMineAlerts(m, !/^off$/i.test(arg), lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
@@ -1071,6 +1072,24 @@ async function stakeNotify(T, s, out) {
     for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends in a week. Extend it to keep your veARCIRCLE, or withdraw after it ends.`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
   }
 }
+/// /nft — the ARCIRCLE NFT Vault: what's in it, the next NFT, the open raffle, the last winner
+async function cardNft(lang) {
+  const st = await NFTV.state({ store: { get: async (k) => (await getDocs([k]))[k] } }).catch(() => null);
+  if (!st || !st.live) return { text: `🖼 <b>ARCIRCLE NFT Vault</b>\n${T3(lang, "Opens soon on Robinhood Chain.", "Robinhood Chain에서 곧 열려요.", "即将在 Robinhood Chain 开放。")}`, buttons: [[{ text: "NFT Vault", url: `${SITE}/arc#nft` }]] };
+  const e4 = (n) => `${Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: n > 0 && n < 0.01 ? 5 : 4 })} ETH`;
+  const open = (st.prizes || []).find((p) => p.status === "open"), won = (st.prizes || []).find((p) => p.status === "won");
+  const left = open && open.raffle ? open.raffle.drawAfter - st.now : 0;
+  const lines = [
+    `🖼 <b>ARCIRCLE NFT Vault</b> · Robinhood Chain`,
+    `${T3(lang, "In the vault", "볼트 잔액", "金库余额")}: <b>${e4(st.balance)}</b>${st.next ? ` / ${e4(st.next.price)} (${Math.round(Math.min(1, st.balance / (st.next.price || 1)) * 100)}%)` : ""}`,
+    st.next ? `${T3(lang, "Next NFT", "다음 NFT", "下一个 NFT")}: <b>${h(st.next.name || short(st.next.collection))}${st.next.tokenId ? " #" + h(st.next.tokenId) : ""}</b>` : T3(lang, "Next NFT: the first collection is being chosen.", "다음 NFT: 첫 컬렉션을 고르는 중이에요.", "下一个 NFT:正在挑选第一个系列。"),
+    `${T3(lang, "Fees in", "들어온 수수료", "累计手续费")}: ${e4(st.fees ? st.fees.total : 0)} · ${T3(lang, "bought", "구매", "已购")} ${st.bought || 0} · ${T3(lang, "won", "당첨", "已中奖")} ${st.won || 0}`,
+    open ? `🎟 ${T3(lang, "Raffle", "추첨", "抽奖")} #${open.i}: ${left > 0 ? `${T3(lang, "draw in", "추첨까지", "距开奖")} <b>${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m</b>` : T3(lang, "drawing now", "지금 추첨 중", "正在开奖")}${open.raffle.holders ? ` · ${open.raffle.holders} ${T3(lang, "wallets", "지갑", "个钱包")}` : ""}` : "",
+    won ? `🏆 ${T3(lang, "Last winner", "최근 당첨", "最近中奖")}: <code>${short(won.raffle && won.raffle.winner)}</code> · ${h(won.title || (won.name || "NFT") + " #" + won.tokenId)}` : "",
+    "", T3(lang, "Hold or lock 1,000+ $ARCIRCLE on Arc to be in every draw — ARCIRCLE Staking raises your odds. $ARCIA is the NFT ecosystem's flagship token.", "Arc에서 $ARCIRCLE을 1,000개 이상 보유하거나 락업하면 모든 추첨에 들어가요 — ARCIRCLE Staking으로 확률이 올라가요. $ARCIA는 NFT 생태계의 대표 토큰이에요.", "在 Arc 上持有或锁仓 1,000+ $ARCIRCLE 即可参加每次抽奖——ARCIRCLE Staking 可提高中奖率。$ARCIA 是 NFT 生态的旗舰代币。"),
+  ].filter((x) => x !== "");
+  return { text: lines.join("\n"), photo: `${SITE}/api/og?nft=${open ? open.i : "vault"}`, buttons: [[{ text: "NFT Vault", url: `${SITE}/nft/vault` }, ...(open ? [{ text: `${T3(lang, "Raffle", "추첨", "抽奖")} #${open.i}`, url: `${SITE}/nft/${open.i}` }] : [])]] };
+}
 /// ARCIRCLE NFT Vault: the keeper's events (an NFT bought, a raffle open, a winner) to the alert list
 async function nftNotify(T, s, out) {
   if (!NFTV.CFG.vault()) return;
@@ -1085,7 +1104,7 @@ async function nftNotify(T, s, out) {
       : e.k === "open" ? `🎟 <b>NFT raffle #${e.i} is open</b> — ${e.n} $ARCIRCLE wallets are in it, weighted by what they hold and lock. The draw is in 6 hours.`
       : e.k === "won" ? `🏆 <b>NFT raffle #${e.i}</b> — won by <code>${short(e.a)}</code>. The NFT is already in their wallet on Robinhood Chain.` : null;
     if (!text) continue;
-    out.nft = (out.nft || 0) + await toSubs(s.alerts || [], { text: text + (e.tx ? `\n<a href="${tx(e.tx)}">tx ↗</a>` : ""), ...kb([[{ text: "NFT Vault", url: `${SITE}/arc#nft` }]]) });
+    out.nft = (out.nft || 0) + await toSubs(s.alerts || [], { text: text + (e.tx ? `\n<a href="${tx(e.tx)}">tx ↗</a>` : ""), ...kb([[{ text: "NFT Vault", url: e.i != null ? `${SITE}/nft/${e.i}` : `${SITE}/arc#nft` }]]) });
   }
 }
 /// the executor's events → DMs to the makers who asked; and the team hears when the executor is low on gas or stuck

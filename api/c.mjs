@@ -40,6 +40,7 @@ export default async function handler(req) {
   if (view === "lock") return lockPage(url);
   if (view === "predict") return predictPage(url);
   if (view === "stake") return stakePage(url);
+  if (view === "nft") return nftPage(url);
   if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
   if (view === "report") return reportPage(url);
@@ -662,6 +663,46 @@ async function lockPage(url) {
 }
 
 // ---- ARCIRCLE Staking share page (/stake/<wallet>) ----
+// /nft/<n> — an ARCIRCLE NFT Vault raffle (or /nft/vault): the card image reads the vault itself (/api/og?nft=)
+async function nftPage(url) {
+  const id = String(url.searchParams.get("id") || "vault");
+  const n = /^\d{1,6}$/.test(id) ? Number(id) : null;
+  let s = null;
+  try { const r = await fetch(`${SITE}/api/desk?nft=state`, { signal: AbortSignal.timeout(6000) }); s = r.ok ? await r.json() : null; } catch { s = null; }
+  const p = s && n != null && Array.isArray(s.prizes) ? s.prizes.find((x) => x.i === n) : null;
+  const name = p ? String(p.title || `${p.name || "NFT"} #${p.tokenId}`).slice(0, 60) : "";
+  const title = p ? (p.status === "won" ? `${name} — won in the ARCIRCLE NFT Vault raffle #${n}` : `${name} — ARCIRCLE NFT Vault raffle #${n}`) : "ARCIRCLE NFT Vault";
+  const desc = "Trading fees fill a vault that can only buy NFTs. Every NFT is raffled to $ARCIRCLE holders — the more you hold and lock, the better your odds — drawn on-chain on Robinhood Chain.";
+  const target = `/arc#nft${n != null ? `?prize=${n}` : ""}`;
+  const image = `${SITE}/api/og?nft=${n != null ? n : "vault"}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/nft/${n != null ? n : "vault"}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<link rel="canonical" href="${esc(SITE + target)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+</head><body>
+<p><a href="${esc(target)}">${esc(title)}</a></p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=120, stale-while-revalidate=600");
+}
+
 async function stakePage(url) {
   const u = String(url.searchParams.get("id") || "").toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(u)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#staking">`, "public, max-age=300");

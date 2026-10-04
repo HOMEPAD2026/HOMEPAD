@@ -25,6 +25,8 @@
   if (cur) {
     const G = (CONFIG.CIRCLEPAD_GOV && CONFIG.CIRCLEPAD_GOV[cur.n]) || {};
     // direct: no vote contracts — signed candidates and coded burns to 0x…dEaD (circlepad.js govDirect)
+    // plan: the round launches no new coin, so there's no vote on the page — circlepad-plan.js shows what the raise does
+    const plan = G.mode === "plan" && G.plan ? G.plan : null;
     const direct = G.mode === "direct";
     const chain = direct && Array.isArray(G.chain) && G.chain.length ? G.chain.join(" / ") : "";
     const voteOn = direct || (isAddr(G.vote) && isAddr(G.burnvote));
@@ -32,6 +34,7 @@
     CONFIG.CIRCLEPAD_ROUND = cur.n;
     CONFIG.CIRCLEPAD_ROUND_GOV = { ...G, voteOn, ballotOn: direct || isAddr(G.vote) };
     CONFIG.CIRCLEPAD_GOV_DIRECT = direct;
+    CONFIG.CIRCLEPAD_ROUND_PLAN = plan;
     // the round's own ballot (the ideas board and candidates) and burn-to-vote, once they're deployed
     CONFIG.CIRCLEPAD_VOTE_ADDRESS = !direct && isAddr(G.vote) ? G.vote : "";
     CONFIG.CIRCLEPAD_BURNVOTE_ADDRESS = !direct && voteOn ? G.burnvote : "";
@@ -54,7 +57,21 @@
         : { id: "launch", title: "The coin launches", body: "On the launch date the vote picks, with the name, ticker and logo the vote picks. Where and how it launches: not decided yet.", status: "open" },
       { id: "airdrop", title: "Contributor airdrop", body: G.airdrop || "Not decided yet.", status: G.airdrop ? "policy" : "open" },
     ];
+    if (plan) {
+      const b = plan.buy || {}, a = plan.also || {};
+      CONFIG.CIRCLEPAD_ALLOCATION_NOTE = G.airdrop || "";
+      CONFIG.CIRCLEPAD_NEXT = [
+        { id: "vote", title: "No vote this round", body: `Round #${cur.n} launches no new coin, so its burn-to-vote closed on 4 Oct 2026. The votes cast before stay on record, and their $ARCIRCLE stays burned.`, status: "policy" },
+        { id: "close", title: "The raise closes", body: "Contributions and withdrawals stop. The escrow splits everything: 80% recipient, 15% treasury, 5% platform.", status: "set" },
+        G.top === true ? { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.", status: "policy" }
+          : { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
+        { id: "launch", title: `$${b.sym || "ARCIA"} is bought`, body: `After the split, the round wallet buys $${b.sym || "ARCIA"} on ${b.chain || "Robinhood Chain"} with the raise — ARCIA's own coin, the flagship of the ARCIRCLE NFT ecosystem.`, status: "policy" },
+        { id: "airdrop", title: "Two allocations", body: G.airdrop || "", status: "policy" },
+        { id: "r4", title: `Round #${a.round || cur.n + 1} on ${a.chain || "Solana"}`, body: `Round #${a.round || cur.n + 1}'s token launches on ${a.chain || "Solana"} — not revealed yet. Round #${cur.n}'s contributors get an allocation of it by their share, new contributors included.`, status: "policy" },
+      ];
+    }
     document.documentElement.setAttribute("data-cp-round", String(cur.n));
+    if (plan) document.documentElement.setAttribute("data-cp-plan", "1");
   }
   // "Round #1" in page copy → this round's number (English "#1", Chinese "第 1 轮")
   window.cpRN = () => CONFIG.CIRCLEPAD_ROUND || 1;

@@ -117,6 +117,11 @@
     const ph = phase();
     document.body.classList.toggle("cp-ph-voting", ph === "voting");
     document.body.classList.toggle("cp-ph-result", ph === "result");
+    if (CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan) { // a round with no vote: its plan (circlepad-plan.js)
+      const h = window.cpPlan.hero(ph, R());
+      hero.hidden = !h; if (h) { hero.className = "cp-phero plan"; if (hero.dataset.planH !== h) { hero.innerHTML = h; hero.dataset.planH = h; } }
+      return;
+    }
     if (!burnOn() || (ph !== "raise" && ph !== "voting" && ph !== "result")) { hero.hidden = true; return; }
     hero.hidden = false;
     const w = winner();
@@ -231,7 +236,7 @@
     // once the round has closed, circlepad-rounds.js shows its full summary card instead
     if (deadline() && nowS() >= deadline() && window.cpRoundCards) { if (card) card.remove(); return; }
     if (!card) { card = document.createElement("div"); card.id = "cp-round-card"; card.className = "cp-round-card"; const h1 = wrap.querySelector("h1"); if (h1) h1.insertAdjacentElement("afterend", card); else wrap.prepend(card); }
-    const ph = phase(), w = winner();
+    const ph = phase(), w = CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan ? window.cpPlan.coin() : winner();
     const badge = ph === "raise" ? "Raising" : ph === "voting" ? "Voting" : ph === "result" ? "Decided" : "Closed";
     card.innerHTML = `<div class="cp-rc-top"><span class="cp-rc-badge ${ph}">${T(badge)}</span><span class="cp-rc-k" data-no-i18n>${esc(window.cpRT ? window.cpRT("CirclePad Round #1") : tr("CirclePad Round #1"))}</span></div>
       <div class="cp-rc-main"><span class="cp-coin-logo">${w.logo ? `<img src="${esc(w.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<em data-no-i18n>${esc((w.name || "#" + (window.cpRN ? window.cpRN() : 1)).slice(0, 2))}</em>`}</span>

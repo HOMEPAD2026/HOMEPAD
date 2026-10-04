@@ -552,7 +552,8 @@ async function initCirclepadRound() {
   // vesting mechanism the rest of this page documents, so the copy that
   // assumed that mechanism was live needs to say so plainly instead.
   // Once the separate vote contract is configured, the governance code owns these lines.
-  if (!circlepadVoteConfigured()) {
+  if (CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan) window.cpPlan.copy(); // a round with no vote (circlepad-plan.js)
+  else if (!circlepadVoteConfigured()) {
     const desc = document.getElementById("bp-featured-desc");
     if (desc) desc.textContent = "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.";
     const govNote = document.getElementById("bp-gov-note");

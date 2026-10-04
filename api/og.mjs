@@ -145,6 +145,13 @@ export async function GET(req) {
       headers: { "cache-control": "public, max-age=120, s-maxage=300, stale-while-revalidate=3600" },
     });
   }
+  if (url.searchParams.has("nft")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await nftCard(await markP, url.searchParams.get("nft")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" },
+    });
+  }
   if (url.searchParams.has("stake")) {
     const fonts = (await fontsP).filter(Boolean);
     return new ImageResponse(await stakeCard(await markP, url.searchParams.get("stake")), {
@@ -860,6 +867,46 @@ async function stakeCard(mark, user) {
       box("Rank", d.rank ? `#${d.rank}${d.stakers ? ` of ${d.stakers}` : ""}` : "—"),
       box("Earned (8 weeks)", `$${(d.earned || 0).toFixed(2)}`, g),
       box("Lock", until, v)),
+  ]);
+}
+
+// ---- ARCIRCLE NFT Vault: a raffle (/nft/<n>) or the vault (/nft/vault) ----
+async function nftCard(mark, id) {
+  const pink = "#ff8bd8", g = "#39ff88";
+  let s = null;
+  try { const N = await import("./_nft.mjs"); s = await N.state({ store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }); } catch { s = null; }
+  const eth = (n) => (n == null ? "—" : `${Number(n).toFixed(n > 0 && n < 0.01 ? 4 : 3)} ETH`);
+  const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" },
+    h("div", { fontSize: 20, color: "#9fb098", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 36, fontWeight: 800, color }, value));
+  const p = s && Array.isArray(s.prizes) && /^\d+$/.test(String(id)) ? s.prizes.find((x) => x.i === Number(id)) : null;
+  if (!p) {
+    return frame([
+      brandRow(mark, pill("NFT VAULT", pink), "ARCIRCLE NFT Vault · Robinhood Chain"),
+      h("div", { flexDirection: "column", gap: 14 },
+        h("div", { fontSize: 30, color: pink, fontWeight: 700 }, "Trading fees buy NFTs. Holders win them."),
+        h("div", { fontSize: 112, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, s && s.live ? eth(s.balance) : "NFT Vault"),
+        h("div", { fontSize: 30, color: "#b9c8b3" }, s && s.next ? `in the vault · next NFT up to ${eth(s.next.price)}` : "in the vault · raffled to $ARCIRCLE holders, drawn on-chain")),
+      h("div", { gap: 16 }, box("NFTs bought", String(s ? s.bought || 0 : 0)), box("NFTs won", String(s ? s.won || 0 : 0), g), box("Flagship", "$ARCIA", "#d9ff7a")),
+    ]);
+  }
+  const pic = p.image ? (await fetchImage(p.image, 3500)) || (await coinLogo(p.image)) : null;
+  const r = p.raffle || {};
+  const title = clip(p.title || `${p.name || short(p.collection)} #${p.tokenId}`, 26);
+  const status = p.status === "won" ? ["WON", g] : p.status === "open" ? ["RAFFLE OPEN", pink] : p.status === "drawn" ? ["DRAWN", "#ffd166"] : ["IN THE VAULT", "#9fb098"];
+  const left = r.drawAfter && s.now ? Math.max(0, r.drawAfter - s.now) : 0;
+  const line = p.status === "won" ? `Won by ${short(r.winner)} · drawn on-chain` : p.status === "open" ? (left > 0 ? `Draw in ${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m · ${r.holders || "—"} wallets in` : "Drawing now") : "Raffled to $ARCIRCLE holders next";
+  return frame([
+    brandRow(mark, pill(status[0], status[1]), `ARCIRCLE NFT Vault · raffle #${p.i}`),
+    h("div", { gap: 40, alignItems: "center" },
+      h("div", { width: 300, height: 300, borderRadius: 32, overflow: "hidden", border: `3px solid ${status[1]}`, backgroundColor: "rgba(255,139,216,0.08)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+        pic ? img(pic, { width: 300, height: 300, objectFit: "cover" }) : h("div", { fontSize: 90, fontWeight: 800, color: pink }, `#${p.tokenId}`)),
+      h("div", { flexDirection: "column", gap: 14, flex: 1 },
+        h("div", { fontSize: 72, fontWeight: 800, lineHeight: 1.05, letterSpacing: -1 }, title),
+        h("div", { fontSize: 32, color: status[1], fontWeight: 700 }, line),
+        h("div", { gap: 14, marginTop: 8 }, box("Bought for", p.donated ? "Donated" : eth(p.paid)), box("Wallets", r.holders != null ? String(r.holders) : "—")))),
+    h("div", { fontSize: 24, color: "#9fb098" }, "arcircle.app/arc#nft · trading fees buy it, a holder wins it"),
   ]);
 }
 

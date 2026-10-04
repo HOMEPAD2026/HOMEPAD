@@ -88,6 +88,7 @@
     const lis = tl.querySelectorAll(".bp-steps > li");
     const set = (i, title, body) => { const li = lis[i]; if (!li) return; const s = li.querySelector("strong"), p = li.querySelector("p"); if (s && title) s.textContent = tr(title); if (p) p.textContent = tr(body); };
     const G = CONFIG.CIRCLEPAD_ROUND_GOV || {};
+    if (CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan) { window.cpPlan.steps(set); const nt = tl.querySelector(".cp-tl-note"); if (nt) nt.textContent = tr("The raise and the 80 / 15 / 5 split are enforced by the escrow contract. The steps after the split are the team's, marked done here by the round wallet."); return; }
     if (G.voteOn) set(1, "Pre-vote, then burn-to-vote", "Anyone suggests and pre-votes on ideas for free; the round wallet picks the candidates from the top; $ARCIRCLE holders burn-to-vote on them — 1,000 $ARCIRCLE per vote.");
     else set(1, "Burn-to-vote", "As in Round #1: ideas first, then burn-to-vote with $ARCIRCLE on name, ticker, logo, roadmap and date. Opens soon.");
     set(3, "", G.top === true ? "The largest contributor at the close receives the 15%, over 3 days." : "Whether the top contributor receives the 15% this round: not decided yet.");
@@ -423,7 +424,8 @@
   function relabel() {
     if (N() === 1) return;
     const note = $("bp-gov-panel-note"), G = CONFIG.CIRCLEPAD_ROUND_GOV || {};
-    if (note && !G.voteOn) note.textContent = tr("Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.");
+    if (CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan) window.cpPlan.copy();
+    else if (note && !G.voteOn) note.textContent = tr("Governance for this round opens soon, as in Round #1: first the community's ideas, then burn-to-vote with $ARCIRCLE until the raise closes. Round #1's result is on Projects.");
     const h2 = document.querySelector("#bp-featured .bp-featured-info h2");
     if (h2 && h2.firstChild && h2.firstChild.nodeType === 3) { h2.setAttribute("data-no-i18n", ""); h2.firstChild.textContent = RTraw("CirclePad Round #1", N()) + " "; }
     const tag = document.querySelector(".cp-tl-tag");

@@ -226,7 +226,7 @@
   // page 5: what's still being built
   var NEXT = [
     // ARCIRCLE NFT Vault: a coin's trading fees buy NFTs, raffled to $ARCIRCLE holders (arc-nft.js)
-    { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Trading fees buy NFTs for $ARCIRCLE holders", status: "New", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
+    { id: "nft", name: "ARCIRCLE NFT Vault", sub: "Fees buy NFTs, holders win them — every draw checkable on-chain", status: "v2", acc: "#ff8bd8", href: "/arc#nft", ico: ICON_NFT },
     { id: "next-18", sub: "In development" },
     { id: "next-19", sub: "In development" },
     { id: "next-20", sub: "In development" },

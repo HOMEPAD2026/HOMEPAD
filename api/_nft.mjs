@@ -5,6 +5,9 @@
 //   me(user)      a wallet's raffle weight in the latest list: wallet $ARCIRCLE + locked in ARCIRCLE Staking + veARCIRCLE
 //   list(prize)   a raffle's whole list (wallet, ticket range, weight parts) — what the vault's Merkle root commits to;
 //                 with ?u= also that wallet's proof
+//   v2: state() also carries the vault's on-chain event log (vaultLog: every purchase, raffle step and listing with
+//                 its tx), the fee rate (Funded events → last 7 days + a cumulative series), floor samples per
+//                 collection, and the keeper's last run (status, note, gas); col(c) checks a collection for the curator
 //   tick()        the keeper (NFT_KEEPER_KEY, else ORDERS_KEEPER_RH_KEY — the vault's keeper or curator):
 //                 claims the router's fees, buys the cheapest listed NFT the vault can afford (OpenSea's listings,
 //                 OPENSEA_API_KEY), takes the holder snapshot and opens each raffle, then commits, reveals and settles
@@ -16,6 +19,7 @@ import * as M from "./_merkle.mjs";
 
 export const NFT_VAULT_DEFAULT = "0x2eE3ae4140A08930Dc9cEde5cde86f3bC906c304"; // contracts/scripts/deploy-arcircle-nft.js, 2026-10-03, block 78683625
 export const NFT_ROUTER_DEFAULT = "0x95B56477722dF40021797121f2faDe759dc88f65"; // block 78683679
+export const NFT_VAULT_FROM = 78683625; // the vault's deploy block: its event log starts here
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();
@@ -50,6 +54,10 @@ export const CFG = {
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
   random32: () => { const b = new Uint8Array(32); crypto.getRandomValues(b); return "0x" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join(""); },
   cacheMs: 15000,
+  logFrom: () => NFT_VAULT_FROM, // where the vault's event log starts (its deploy block)
+  logChunk: 50000, // blocks per eth_getLogs
+  logChunks: 12, // chunks per read (the log catches up over a few reads)
+  sampleEvery: 3600, // a floor sample per collection, at most hourly
 };
 export function configure(o) { Object.assign(CFG, o || {}); ch = null; mem.clear(); }
 let ch = null;
@@ -245,6 +253,8 @@ export async function state({ store = null } = {}) {
   }));
   const pv = await sget(store, PREVIEW());
   const st = (await sget(store, "nft/status")) || {};
+  const lg = await vaultLog(store).catch(() => null);
+  const floors = await floorSamples(store, collections, now).catch(() => null);
   const out = {
     live: true, chainId: CFG.chainId, explorer: CFG.explorer, vault: V, router: r ? r.address : null, now, block: v.block,
     balance: eth(v.bal), totalIn: eth(v.totalIn), totalSpent: eth(v.totalSpent),
@@ -253,7 +263,12 @@ export async function state({ store = null } = {}) {
     collections, next, prizes: prizes.reverse(),
     bought: v.prizes.filter((p) => !p.donated).length, won: v.prizes.filter((p) => p.status === "won").length,
     holders: pv ? { count: pv.count, total: pv.total, block: pv.block, ts: pv.ts, at: pv.at } : null,
-    coins: await coinsOf(store), keeperAt: st.at || 0, rules: { minHold: 1000, weight: "wallet + locked in ARCIRCLE Staking + veARCIRCLE", challengeHours: 6, split: "50% NFT Vault / 50% treasury" },
+    coins: await coinsOf(store), keeperAt: st.at || 0,
+    keeperRun: { at: st.at || 0, note: st.note || null, last: Array.isArray(st.last) ? st.last.slice(0, 6) : [], gas: st.gas != null ? st.gas : null, wallet: st.keeper || null },
+    log: lg ? { events: lg.events.slice(-80).reverse(), hi: lg.hi, done: lg.done } : null,
+    flow: lg ? flowOf(lg.events, now) : null,
+    floors,
+    rules: { minHold: 1000, weight: "wallet + locked in ARCIRCLE Staking + veARCIRCLE", challengeHours: 6, split: "50% NFT Vault / 50% treasury" },
   };
   mem.set("state", { at: Date.now(), v: out });
   return out;
@@ -286,6 +301,114 @@ export async function list(prize, { store = null, user = "" } = {}) {
   const out = { prize: Number(prize), root: t.root, total: t.total.toString(), block: L.block, ts: L.ts, count: L.count, rows };
   if (isAddr(user)) { const i = t.ranges.findIndex((r) => r.a === lc(user)); if (i >= 0) out.proof = { i, start: rows[i].start, end: rows[i].end, proof: M.proofOf(t, i) }; }
   return out;
+}
+
+// ---- v2: the vault's own event log ----
+const EV = {
+  "Funded(address,uint256)": "funded",
+  "CollectionProposed(address,uint256,uint256)": "listed",
+  "CollectionCapLowered(address,uint256)": "capLowered",
+  "CollectionRemoved(address)": "removed",
+  "KeeperSet(address)": "keeper",
+  "CuratorSet(address)": "curator",
+  "Bought(uint256,address,uint256,uint256)": "bought",
+  "Donated(uint256,address,uint256,address)": "donated",
+  "RaffleOpened(uint256,bytes32,uint256,uint256,uint256,string)": "opened",
+  "RaffleCancelled(uint256)": "cancelled",
+  "Committed(uint256,bytes32,uint256,uint256)": "committed",
+  "Drawn(uint256,bytes32,uint256,bool)": "drawn",
+  "Won(uint256,address,address,uint256)": "won",
+};
+let TOP = null;
+const topics = () => (TOP = TOP || Object.fromEntries(Object.entries(EV).map(([s, k]) => [kec(s), k])));
+const tA = (t) => lc("0x" + strip(t).slice(24));
+/// one log → a small record: { k, b, tx, li, prize?, a?, c?, id?, eth?, ... }
+export function parseVaultLog(l) {
+  const k = topics()[lc(l.topics && l.topics[0])];
+  if (!k) return null;
+  const t = l.topics, d = l.data, e = { k, b: parseInt(l.blockNumber, 16), tx: lc(l.transactionHash), li: parseInt(l.logIndex, 16) };
+  if (k === "funded") { e.a = tA(t[1]); e.eth = eth(W(d, 0)); }
+  else if (k === "listed") { e.c = tA(t[1]); e.cap = eth(W(d, 0)); e.activeAt = Number(W(d, 1)); }
+  else if (k === "capLowered") { e.c = tA(t[1]); e.cap = eth(W(d, 0)); }
+  else if (k === "removed") e.c = tA(t[1]);
+  else if (k === "keeper" || k === "curator") e.a = tA(t[1]);
+  else if (k === "bought") { e.prize = Number(BigInt(t[1])); e.c = tA(t[2]); e.id = BigInt(t[3]).toString(); e.eth = eth(W(d, 0)); }
+  else if (k === "donated") { e.prize = Number(BigInt(t[1])); e.c = tA(t[2]); e.id = BigInt(t[3]).toString(); e.a = lc(A(d, 0)); }
+  else if (k === "opened") { e.prize = Number(BigInt(t[1])); e.root = "0x" + strip(d).slice(0, 64); e.total = W(d, 1).toString(); e.snap = Number(W(d, 2)); e.drawAfter = Number(W(d, 3)); }
+  else if (k === "cancelled") e.prize = Number(BigInt(t[1]));
+  else if (k === "committed") { e.prize = Number(BigInt(t[1])); e.hash = "0x" + strip(d).slice(0, 64); e.attempt = Number(W(d, 2)); }
+  else if (k === "drawn") { e.prize = Number(BigInt(t[1])); e.seed = "0x" + strip(d).slice(0, 64); e.ticket = W(d, 1).toString(); e.forced = W(d, 2) === 1n; }
+  else if (k === "won") { e.prize = Number(BigInt(t[1])); e.a = tA(t[2]); e.c = lc(A(d, 0)); e.id = W(d, 1).toString(); }
+  return e;
+}
+/// the vault's events since its deploy block, kept in the store and read forward from where it stopped
+export async function vaultLog(store) {
+  const V = CFG.vault();
+  if (!V) return null;
+  const key = `nft/log/${V}`;
+  const hit = mem.get("log");
+  if (hit && Date.now() - hit.at < CFG.cacheMs) return hit.v;
+  const d = (await sget(store, key)) || { hi: CFG.logFrom() - 1, events: [] };
+  const head = await chain().latestBlock();
+  let n = 0, moved = false;
+  while (d.hi < head.number && n < CFG.logChunks) {
+    const from = d.hi + 1, to = Math.min(head.number, from + CFG.logChunk - 1);
+    const logs = await chain().getLogs({ address: V, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) });
+    const fresh = (logs || []).map(parseVaultLog).filter(Boolean);
+    if (fresh.length) {
+      const blocks = [...new Set(fresh.map((e) => e.b))];
+      const ts = new Map();
+      for (let i = 0; i < blocks.length; i += 40) {
+        const part = blocks.slice(i, i + 40);
+        const r = await chain().rpc(part.map((b, id) => ({ jsonrpc: "2.0", id, method: "eth_getBlockByNumber", params: ["0x" + b.toString(16), false] }))).catch(() => []);
+        for (const x of Array.isArray(r) ? r : [r]) if (x && x.result) ts.set(part[x.id], parseInt(x.result.timestamp, 16));
+      }
+      for (const e of fresh) { e.ts = ts.get(e.b) || 0; d.events.push(e); }
+    }
+    d.hi = to; n++; moved = true;
+  }
+  if (d.events.length > 600) d.events = d.events.filter((e) => e.k !== "funded").concat(d.events.filter((e) => e.k === "funded").slice(-300)).sort((x, y) => x.b - y.b || x.li - y.li);
+  if (moved) await sset(store, key, d);
+  const v = { events: d.events, hi: d.hi, done: d.hi >= head.number };
+  mem.set("log", { at: Date.now(), v });
+  return v;
+}
+/// ETH into the vault: the last 7 days, a per-day rate, and a cumulative series (for the sparkline and the ETA)
+export function flowOf(events, now) {
+  const f = events.filter((e) => e.k === "funded" && e.ts);
+  let cum = 0;
+  const series = f.map((e) => [e.ts, (cum += e.eth)]);
+  const d7 = f.filter((e) => e.ts >= now - 7 * 86400).reduce((s, e) => s + e.eth, 0);
+  const first = f.length ? f[0].ts : 0;
+  const days = first ? Math.max(1, Math.min(7, (now - first) / 86400)) : 0;
+  return { d7, perDay: days ? d7 / days : 0, total: cum, series: series.slice(-60), first };
+}
+/// a floor sample per collection, at most hourly (kept 14 days)
+async function floorSamples(store, cols, now) {
+  const V = CFG.vault();
+  const key = `nft/floors/${V}`;
+  const d = (await sget(store, key)) || { at: 0, c: {} };
+  const have = cols.filter((c) => c.floor != null);
+  if (have.length && now - (d.at || 0) >= CFG.sampleEvery) {
+    for (const c of have) d.c[c.address] = [...(d.c[c.address] || []), [now, c.floor]].filter((x) => x[0] >= now - 14 * 86400).slice(-336);
+    d.at = now;
+    await sset(store, key, d);
+  }
+  return d.c;
+}
+/// the curator's check before listing: is it an ERC-721 on Robinhood Chain, its name, and its floor
+export async function col(c) {
+  if (!isAddr(c)) return { error: "c must be an address" };
+  const a = lc(c);
+  const [code, iface] = await Promise.all([chain().rpcCall("eth_getCode", [a, "latest"]).catch(() => "0x"), chain().ethCalls([call(a, "supportsInterface(bytes4)", "80ac58cd" + "0".repeat(56))]).catch(() => [null])]);
+  if (!code || code === "0x") return { address: a, contract: false };
+  const m = await collectionMeta(a);
+  let floor = null, listings = null;
+  if (CFG.opensea().key) { try { const ls = await listings(a); listings = ls.length; floor = ls[0] ? eth(ls[0].price) : null; } catch { /* no listings */ } }
+  const V = CFG.vault();
+  let listed = null;
+  if (V) { try { const [r] = await chain().ethCalls([call(V, "collections(address)", a)]); listed = r ? { maxPrice: eth(W(r, 0)), activeAt: Number(W(r, 1)), listed: W(r, 2) === 1n } : null; } catch { listed = null; } }
+  return { address: a, contract: true, erc721: !!(iface[0] && W(iface[0], 0) === 1n), ...m, floor, listings, opensea: !!CFG.opensea().key, vault: listed };
 }
 
 // ---- the coins whose fees feed the vault ----
@@ -427,4 +550,4 @@ export async function tick({ store = null, budgetMs = 45000 } = {}) {
 export async function status(store) { const s = (await sget(store, "nft/status")) || null; if (s) delete s.secrets; return s; }
 /// the keeper's latest events (bought / raffle open / won) for ARCIA's posts
 export async function events(store, since = 0) { const s = (await sget(store, "nft/status")) || {}; return (s.events || []).filter((e) => e.at > since).reverse(); }
-export const _test = { encodeBasicOrder, packList, unpackList, sel };
+export const _test = { encodeBasicOrder, packList, unpackList, sel, kec };

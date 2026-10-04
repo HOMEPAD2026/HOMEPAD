@@ -173,6 +173,10 @@
       "destination": "/api/c?view=predict&id=:id"
     },
     {
+      "source": "/nft/:id",
+      "destination": "/api/c?view=nft&id=:id"
+    },
+    {
       "source": "/stake/:id",
       "destination": "/api/c?view=stake&id=:id"
     },

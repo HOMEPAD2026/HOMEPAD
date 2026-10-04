@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791069841"></script>
+<script src="arc-log.js?v=1791073509"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791069841">
+<link rel="stylesheet" href="style.css?v=1791073509">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -128,7 +128,7 @@
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
-      <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
+      <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="omni"><svg><use href="#i-omni" xlink:href="#i-omni"/></svg>OMNI</button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
@@ -1693,7 +1693,7 @@
           <details><summary><h3>ARCIRCLE Predict on Robinhood Chain</h3></summary>
             <p>The same rounds run on Robinhood Chain, on coins that graduated from their Pons bonding curve into a Uniswap v4 pool against ETH. Switch to "Robinhood Chain" at the top of Predict. Bets there are native ETH (bets of about $0.50 to $5, shown with their dollar value), and winnings are paid in ETH on Robinhood Chain. Your wallet is switched to Robinhood Chain for a bet or a claim.</p>
             <ul>
-              <li>Markets are listed by the team: the biggest graduated Pons coins, and $TIE once it graduates. Coins still on their bonding curve can't be listed — a round needs a real pool price.</li>
+              <li>Markets are listed by the team: the biggest graduated Pons coins, and $ARCIA once it graduates. Coins still on their bonding curve can't be listed — a round needs a real pool price.</li>
               <li>Prices are the coin's ETH price read from its pool, shown in dollars at the current ETH price. UP and DOWN are decided by the pool's ETH price alone, so a move in ETH itself never decides a round.</li>
               <li>Fee: 2% of the pot of a round with a winner. Referrers get 25% of it (paid in ETH), and the rest goes to the ARCIRCLE PAD treasury in ETH.</li>
               <li>Same contract as on Arc (ArcPredict), with its own rounds, leaderboard and referrals on Robinhood Chain.</li>
@@ -1787,8 +1787,8 @@
           <div class="ams-emblem nft-emblem" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-nft" xlink:href="#i-nft"/></svg></div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · trading fees buy NFTs for $ARCIRCLE holders</span>
-            <h1>ARCIRCLE NFT Vault <span class="asc-ver" title="New">New<i>Robinhood Chain · on-chain raffles</i></span></h1>
-            <p class="bp-lede">Half of a coin's trading fees fill a vault that can only buy NFTs. Every NFT it buys is raffled to $ARCIRCLE holders — the more you hold and lock, the better your odds — drawn on-chain and sent straight to the winner.</p>
+            <h1>ARCIRCLE NFT Vault <span class="asc-ver" title="v2">v2<i>Robinhood Chain · on-chain raffles</i></span></h1>
+            <p class="bp-lede">Half of a coin's trading fees fill a vault that can only buy NFTs. Every NFT it buys is raffled to $ARCIRCLE holders — the more you hold and lock, the better your odds — drawn on-chain and sent straight to the winner. $ARCIA is the flagship token of the ARCIRCLE NFT ecosystem.</p>
           </div>
         </div>
         <div id="nft-body"></div>
@@ -1796,7 +1796,14 @@
         <section class="asc-guide nft-guide" aria-labelledby="nft-guide-h">
           <h2 id="nft-guide-h">ARCIRCLE NFT Vault guide</h2>
           <details open><summary><h3>How it works</h3></summary>
-            <p>A coin launched by the ARCIRCLE PAD team on Pons (Robinhood Chain) names the ARCIRCLE NFT router as its creator fee recipient. Pons fixes that at launch, so it can't be changed later. Anyone can trigger the router: it pulls the coin's creator fees out of Pons and sends 50% to the ARCIRCLE NFT Vault and 50% to the ARCIRCLE PAD treasury. When the vault holds enough, it buys an NFT, and that NFT is raffled to $ARCIRCLE holders. The first coin is CirclePad Round #3's; more fee sources can join later.</p>
+            <p>A coin launched by the ARCIRCLE PAD team on Pons (Robinhood Chain) names the ARCIRCLE NFT router as its creator fee recipient. Pons fixes that at launch, so it can't be changed later. Anyone can trigger the router: it pulls the coin's creator fees out of Pons and sends 50% to the ARCIRCLE NFT Vault and 50% to the ARCIRCLE PAD treasury. When the vault holds enough, it buys an NFT, and that NFT is raffled to $ARCIRCLE holders. Fee sources join as the team launches them; $ARCIA — ARCIA's own coin on Robinhood Chain — is the flagship token of the ARCIRCLE NFT ecosystem.</p>
+            <figure class="nft-diagram" aria-label="Fees to the router, half to the NFT Vault and half to the treasury; the vault buys an NFT, a raffle picks a holder">
+              <svg viewBox="0 0 720 150" role="img"><title>From trading fees to a winner</title>
+                <g class="b"><rect x="6" y="46" width="112" height="56" rx="14"/><rect x="152" y="46" width="112" height="56" rx="14"/><rect x="298" y="20" width="120" height="44" rx="12"/><rect x="298" y="86" width="120" height="44" rx="12" class="dim"/><rect x="452" y="20" width="112" height="44" rx="12"/><rect x="598" y="20" width="116" height="44" rx="12" class="g"/></g>
+                <g class="w"><path d="M118 74H152"/><path d="M264 66L298 42"/><path d="M264 82L298 108"/><path d="M418 42H452"/><path d="M564 42H598"/></g>
+                <g class="t"><text x="62" y="70">Pons coin</text><text x="62" y="88" class="s">trades</text><text x="208" y="70">Router</text><text x="208" y="88" class="s">50 / 50</text><text x="358" y="47">NFT Vault</text><text x="358" y="113" class="s">Treasury</text><text x="508" y="47">Raffle</text><text x="656" y="47">Holder</text></g>
+              </svg>
+            </figure>
           </details>
           <details><summary><h3>The vault</h3></summary>
             <ul>
@@ -1816,11 +1823,18 @@
               <li>Settle: anyone can send the NFT to the wallet whose range holds the drawn ticket — the contract checks the proof. If no draw happens within a week of the draw time, anyone can draw.</li>
             </ol>
           </details>
+          <details><summary><h3>Check a draw yourself</h3></summary>
+            <ul>
+              <li>Every raffle on the page has "How this draw ran": the purchase, the holder snapshot with its Merkle root, the 6-hour challenge window, the commit, the reveal with the drawn ticket and the transfer to the winner — each with its transaction on Robinhood Chain.</li>
+              <li>"Check my ticket" fetches your Merkle proof and checks it in your browser against the root the vault holds on-chain, then shows your ticket range and whether the drawn ticket is yours.</li>
+              <li>"The list (JSON)" downloads the whole list the root commits to: every wallet, its ticket range and its weight (held, locked, veARCIRCLE).</li>
+            </ul>
+          </details>
           <details><summary><h3>Safety</h3></summary>
             <p>The router's 50 / 50 split, the vault and the treasury are fixed in the contract. The team can list collections, lower caps and name the keeper; it can't take the ETH or the NFTs. The contracts are new and unaudited, and how fast the vault fills depends on how much the coin trades.</p>
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
-            <p>GET /api/desk?nft=state returns the vault, the fees, the collections, the next NFT and every raffle. GET /api/desk?nft=me&amp;u=0x… returns a wallet's weight and odds. GET /api/desk?nft=list&amp;prize=N returns a raffle's full list (add &amp;u=0x… for that wallet's Merkle proof).</p>
+            <p>GET /api/desk?nft=state returns the vault, the fees, the collections, the next NFT, every raffle, the vault's on-chain events (log), the fee flow (7 days, per day, cumulative), floor samples and the keeper's last run. GET /api/desk?nft=me&amp;u=0x… returns a wallet's weight and odds. GET /api/desk?nft=list&amp;prize=N returns a raffle's full list (add &amp;u=0x… for that wallet's Merkle proof). GET /api/desk?nft=col&amp;c=0x… checks a collection (ERC-721, name, floor, the vault's listing). Share cards: arcircle.app/nft/N for raffle N, arcircle.app/nft/vault for the vault. On Telegram, /nft on @ARCIAonArc_bot shows the vault, and /alerts on brings a message when an NFT is bought, a raffle opens or someone wins.</p>
           </details>
         </section>
       </section>
@@ -1833,6 +1847,7 @@
             <p class="bp-lede">Lock $ARCIRCLE for up to a year and get veARCIRCLE. Every week, veARCIRCLE holders share USDC from ARCIRCLE Orders and Predict fees, and vote on which pools ARCIRCLE PAD should back. The longer the lock, the bigger your share and your vote.</p>
           </div>
         </div>
+        <a class="nft-mini" id="nft-mini" href="/arc#nft" data-arc-tab="nft" hidden></a>
         <div id="stk-body"></div>
         <!-- ARCIRCLE Staking guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
         <section class="asc-guide stk-guide" aria-labelledby="stk-guide-h">
@@ -2159,6 +2174,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791069841"></script>
+<script src="arcpad.bundle.js?v=1791073509"></script>
 </body>
 </html>
