@@ -214,7 +214,7 @@
     el.hidden = !LIVE();
     if (!LIVE()) return;
     const a = (name, x) => `<a href="${EXPL("address", x)}?tab=contract" target="_blank" rel="noopener">${name} <code data-no-i18n>${x.slice(0, 6)}…${x.slice(-4)}</code> ↗</a>`;
-    el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("Contracts on Blockscout:")}</span>${a("ArcircleOrdersNative", ORDERS())}${isAddr(fb) ? a("ArcircleFeeBurnNative", fb) : ""}`;
+    el.innerHTML = `${el.dataset.arc.split("<span")[0]}<span>${T("Verified source on Blockscout:")}</span>${a("ArcircleOrdersNative", ORDERS())}${isAddr(fb) ? a("ArcircleFeeBurnNative", fb) : ""}`;
   }
   const chainNote = () => T(SOLC() ? "Markets against SOL on Solana — orders stay in your Solana wallet until they fill." : RH() ? "Markets against ETH on Robinhood Chain — ETH is wrapped for you when an order needs WETH." : "Markets against USDC on Arc.");
   /// v3: is a chain's ARCIRCLE Orders live yet (its contract / program set in config-arc.js)
