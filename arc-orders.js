@@ -1703,7 +1703,7 @@
         <span data-no-i18n>${num(amt)}${amtSym ? ` ${esc(amtSym)}` : ""}</span>
         <span class="aor-mr-f">${o.type === "twap" && o.twap ? twapBar(o) : `${ring(o.filledPct, pf)}<small data-no-i18n>${(o.filledPct || 0).toFixed(o.filledPct > 0 && o.filledPct < 1 ? 2 : 0)}%</small>`}</span>
         <span class="aor-st ${st}">${T(STATUS[st] || st)}${ex ? `<em class="aor-soon">${T("expires in")} <span data-no-i18n>${inT(o.expiry)}</span></em>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</span>
-        <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}${o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm ghost" data-act="edit">${T("Edit")}</button>` : ""}<button type="button" class="aor-btn sm" data-act="cancel">${T("Cancel")}</button>${LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("On-chain")}</button>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
+        <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}${o.type === "limit" && !o.group && LIVE() && !ex ? `<button type="button" class="aor-btn sm ghost" data-act="edit">${T("Edit")}</button>` : ""}<button type="button" class="aor-btn sm" data-act="cancel">${T("Cancel")}</button>${LIVE() && o.order ? `<button type="button" class="aor-btn sm ghost" data-act="cancelchain" title="${T("Cancel on-chain: final even if this site were offline (costs a little gas)")}">${T("On-chain")}</button>` : ""}` : o.filledPct > 0 ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
       </div>`;
     }).join("")}</div>${hidden ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : S.myTab === "history" && S.showCx && S.histF === "all" ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Hide cancelled")}</button>` : ""}`;
     S.prevPct = new Map(all.map((o) => [o.hash, o.filledPct || 0]));
@@ -2061,8 +2061,9 @@
   function syncTotal(from) {
     if (S.type !== "limit") return;
     const P = Number(F.price), A = Number(F.amount), Q = Number(F.total);
-    if (from === "total" && P > 0 && Q > 0) F.amount = dstr(Q / P, Math.min(S.tok ? S.tok.decimals : 18, 8));
-    else if ((from === "amount" || from === "price") && P > 0 && A > 0) F.total = dstr(P * A, S.quote ? S.quote.decimals : 6);
+    // twelve significant figures: 1,000,000 × 0.00000008 is 0.08, not 0.0800000000000000002
+    if (from === "total" && P > 0 && Q > 0) F.amount = dstr(Number((Q / P).toPrecision(12)), Math.min(S.tok ? S.tok.decimals : 18, 8));
+    else if ((from === "amount" || from === "price") && P > 0 && A > 0) F.total = dstr(Number((P * A).toPrecision(12)), S.quote ? S.quote.decimals : 6);
   }
   function onInput(e) {
     if (SOLC()) return;
