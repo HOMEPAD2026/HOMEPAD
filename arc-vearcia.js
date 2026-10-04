@@ -422,7 +422,7 @@
     if (prev === s) return;
     el.dataset.v = s;
     if (reduce() || !prev || prev.length !== s.length) { el.textContent = s; return; }
-    el.innerHTML = [...s].map((c, i) => (c !== prev[i] ? `<i class="r">${esc(c)}</i>` : esc(c))).join("");
+    el.innerHTML = [...s].map((c, i) => (c !== prev[i] ? `<b class="r">${esc(c)}</b>` : esc(c))).join("");
   }
   function tick() {
     const v = big(liveEarned());

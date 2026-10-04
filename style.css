@@ -15571,3 +15571,18 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
   .vea-tabs button{flex:1 1 auto;padding:8px 6px;font-size:.72rem;}
   .vea-tabclaim{padding:7px 9px;}
 }
+/* veARCIA: the timeline keeps its proportions at any width; the ring's label fits inside */
+.vea-tl svg{height:auto;aspect-ratio:300/56;}
+.vea-ring span{font-size:.52rem;letter-spacing:.04em;max-width:74px;line-height:1.2;}
+.vea-curve{height:auto;aspect-ratio:300/64;}
+/* veARCIA on phones: the withdraw block stays inside its card; the earned number never breaks */
+.vea-wd{grid-template-columns:minmax(0,1fr);}
+.vea-claim b{white-space:nowrap;}
+@media (max-width:560px){
+  .vea-claim{flex-wrap:wrap;}
+  .vea-claim>div:first-child{flex:1 1 100%;}
+  .vea-claim-b{flex:1 1 100%;}
+  .vea-claim-b .vea-go{flex:1;}
+}
+#vea-earned span.r,.vea-earned-mini span.r{display:inline-block;animation:veaRoll .35s cubic-bezier(.2,.8,.2,1);}
+#vea-earned b.r,.vea-earned-mini b.r{display:inline-block;font:inherit;color:inherit;animation:veaRoll .35s cubic-bezier(.2,.8,.2,1);}
