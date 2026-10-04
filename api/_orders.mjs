@@ -802,7 +802,8 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
 
 // ---------------------------------------------------------------- pools (Robinhood Chain's market picker)
 /// a token's Uniswap v4 pools against ETH / WETH: Dexscreener names them, the PoolManager's Initialize log gives each
-/// key (Blockscout's log search, else a search around the pool's creation block), slot0 the price. Cached a day.
+/// key (Blockscout's log search, else a search around the pool's creation block), slot0 the price. Keys are kept a day;
+/// Dexscreener is checked on every look-up, so a new pair shows up right away (and liquidity stays current).
 const TOPIC_INIT = keccakText("Initialize(bytes32,address,address,uint24,int24,address,uint160,int24)");
 async function getJson(u, ms = 6000) {
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ms);
@@ -846,33 +847,46 @@ async function pools(token, { store } = {}) {
   if (hit && Date.now() - hit.t < 60000) return hit.v;
   const k = `${P}/p_${token}`;
   const c = await sget(store, k);
-  if (c && CFG.now() - (c.at || 0) < 86400 && c.pools && c.pools.length) return fresh(c);
   const ethSide = (a) => lc(a) === ZERO_ADDR || lc(a) === CFG.weth;
-  const pairs = (await dexPairs(token)).filter((p) => p && /^0x[0-9a-fA-F]{64}$/.test(String(p.pairAddress || "")) && [lc(p.baseToken && p.baseToken.address), lc(p.quoteToken && p.quoteToken.address)].includes(token))
-    .sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0)).slice(0, 4);
-  const head = await chain().latestBlock();
-  const out = [];
-  let info = null;
-  for (const p of pairs) {
+  // Dexscreener is asked every time (one cheap call): a pair created after the last look-up is picked up at once,
+  // and every pool's liquidity is current. Only the pairs not resolved yet cost Initialize-log look-ups.
+  const all = (await dexPairs(token)).filter((p) => p && /^0x[0-9a-fA-F]{64}$/.test(String(p.pairAddress || "")) && [lc(p.baseToken && p.baseToken.address), lc(p.quoteToken && p.quoteToken.address)].includes(token));
+  const ethPairs = all.filter((p) => [p.baseToken && p.baseToken.address, p.quoteToken && p.quoteToken.address].some((a) => a && lc(a) !== token && ethSide(a)))
+    .sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0)).slice(0, 8);
+  const fresh0 = c && CFG.now() - (c.at || 0) < 86400 && Array.isArray(c.pools);
+  const known = new Map((fresh0 ? c.pools : []).map((x) => [x.id, x]));
+  const skip = (fresh0 && c.skip) || {}; // pairs whose key couldn't be read: retried after 15 minutes
+  const todo = ethPairs.filter((p) => { const id = lc(p.pairAddress); return !known.has(id) && !(skip[id] && CFG.now() - skip[id] < 900); });
+  if (fresh0 && c.pools.length && !todo.length && !ethPairs.length) return fresh(c); // Dexscreener didn't answer: keep what we have
+  const head = todo.length ? await chain().latestBlock() : null;
+  let info = (fresh0 && c.token && c.token.logo) ? { logo: c.token.logo } : null;
+  const nskip = { ...skip };
+  for (const p of todo) {
     const id = lc(p.pairAddress);
     const l = await initLog(id, p.pairCreatedAt ? Math.floor(p.pairCreatedAt / 1000) : 0, head);
-    if (!l) continue;
+    if (!l) { nskip[id] = CFG.now(); continue; }
     const key = { currency0: lc("0x" + strip(l.topics[2]).slice(24)), currency1: lc("0x" + strip(l.topics[3]).slice(24)), fee: Number(W(l.data, 0)), tickSpacing: Number(BigInt.asIntN(24, W(l.data, 1))), hooks: lc("0x" + strip(l.data).slice(128 + 24, 192)) };
-    if (lc(poolIdOf(key, keccak)) !== id) continue;
+    if (lc(poolIdOf(key, keccak)) !== id) { nskip[id] = CFG.now(); continue; }
     const other = key.currency0 === token ? key.currency1 : key.currency1 === token ? key.currency0 : null;
-    if (!other || !ethSide(other)) continue;
-    out.push({ id, key, tokenIs0: key.currency0 === token, venue: [p.dexId ? p.dexId[0].toUpperCase() + p.dexId.slice(1) : "Uniswap", (p.labels || []).join(" ") || "v4", key.currency0 === ZERO_ADDR ? "ETH" : "WETH"].join(" "),
+    if (!other || !ethSide(other)) { nskip[id] = CFG.now(); continue; }
+    delete nskip[id];
+    known.set(id, { id, key, tokenIs0: key.currency0 === token, venue: [p.dexId ? p.dexId[0].toUpperCase() + p.dexId.slice(1) : "Uniswap", (p.labels || []).join(" ") || "v4", key.currency0 === ZERO_ADDR ? "ETH" : "WETH"].join(" "),
       dex: { liqUsd: (p.liquidity && p.liquidity.usd) || null, url: p.url || null }, feePct: key.fee === 0x800000 ? null : key.fee / 10000 });
     // the logo on a pair is its base token's: only a pair where this token is the base has this token's
     if (!info && p.info && p.info.imageUrl && lc(p.baseToken && p.baseToken.address) === token) info = { logo: p.info.imageUrl };
   }
-  const [tm] = await tokenMeta([token]);
-  const v = { token: { ...tm, logo: (info && info.logo) || null }, quote: { address: CFG.weth || CFG.base, symbol: "ETH", decimals: 18 }, pools: out, at: CFG.now() };
-  if (out.length) await sset(store, k, v);
+  // today's liquidity on every known pool, deepest first
+  const out = [...known.values()].map((x) => { const p = all.find((q) => lc(q.pairAddress) === x.id); return p ? { ...x, dex: { liqUsd: (p.liquidity && p.liquidity.usd) || null, url: p.url || (x.dex && x.dex.url) || null } } : x; })
+    .sort((a, b) => ((b.dex && b.dex.liqUsd) || 0) - ((a.dex && a.dex.liqUsd) || 0));
+  const tm = fresh0 && c.token && c.token.decimals != null ? c.token : (await tokenMeta([token]))[0];
+  const v = { token: { ...tm, logo: (info && info.logo) || (tm && tm.logo) || null }, quote: { address: CFG.weth || CFG.base, symbol: "ETH", decimals: 18 }, pools: out,
+    at: fresh0 && c.pools.length && todo.length === 0 ? c.at : CFG.now(), skip: nskip };
+  if (out.length || Object.keys(nskip).length) await sset(store, k, v);
   return fresh(v);
   // the price now, from each pool's slot0
   async function fresh(v0) {
-    const v1 = { ...v0, done: true, pools: await Promise.all(v0.pools.map(async (x) => {
+    const { skip: _skip, ...v00 } = v0; // the retry list stays in the store
+    const v1 = { ...v00, done: true, pools: await Promise.all(v0.pools.map(async (x) => {
       const s0 = await slot0Of(x.id).catch(() => null);
       const td = v0.token.decimals;
       return { ...x, quote: v0.quote, price: s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, x.tokenIs0, x.tokenIs0 ? td : 18, x.tokenIs0 ? 18 : td) : null };
