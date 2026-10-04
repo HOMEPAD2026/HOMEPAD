@@ -181,6 +181,10 @@
       "destination": "/api/c?view=stake&id=:id"
     },
     {
+      "source": "/vearcia/:id",
+      "destination": "/api/c?view=vearcia&id=:id"
+    },
+    {
       "source": "/mine/:id",
       "destination": "/api/mine?view=page&page=:id"
     },

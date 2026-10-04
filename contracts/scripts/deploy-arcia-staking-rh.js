@@ -13,7 +13,9 @@
 //     It signs "this wallet holds N $ARCIRCLE" notes; it needs no ETH. Leave it out and set it later from the owner wallet
 //     (setBoostSigner) — until then nobody gets a boost.
 // After deploying: send the printed address and block back (they go into config-arc.js and api/_vearcia.mjs), then
-// from the funder wallet approve $ARCIA and call fund(amount) — the page's owner panel does both.
+// from the funder wallet approve $ARCIA and call fund(amount) — the page's owner panel does both. Then add the keeper's
+// cron (every 10 minutes): https://www.arcircle.app/api/desk?veatick=1&key=<CRON_SECRET> — it pokes ended locks and lapsed
+// boosts and lowers boosts whose $ARCIRCLE dropped (gas from VEARCIA_KEEPER_KEY, else the Robinhood Orders executor).
 const hre = require("hardhat");
 const { ethers } = hre;
 

@@ -36,6 +36,7 @@ import * as BB from "./_tg-buybot.mjs";
 import * as ORD from "./_orders.mjs";
 import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
+import * as VEA from "./_vearcia.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
@@ -85,7 +86,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
-  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
+  ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["vearcia", "veARCIA: the $ARCIA staking pool and your stake"], ["vearciaalerts", "veARCIA: unlock and boost reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
@@ -715,6 +716,8 @@ async function onMessage(m, channel) {
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
       case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
       case "stakealerts": return setStakeAlerts(m, !/^off$/i.test(arg), lang);
+      case "vearcia": case "vea": return sendCard(m.chat.id, await cardVea(m, lang), { replyTo: group ? m.message_id : undefined });
+      case "vearciaalerts": return setVeaAlerts(m, !/^off$/i.test(arg), lang);
       case "me": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardMe(u, lang));
       case "link": return startLink(m, lang);
       case "unlink": { if (group) return say(m, w("dmOnly", lang)); delete u.wallet; await saveUser(u); return say(m, "✓ Unlinked."); }
@@ -1072,6 +1075,76 @@ async function stakeNotify(T, s, out) {
     for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends in a week. Extend it to keep your veARCIRCLE, or withdraw after it ends.`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
   }
 }
+/// /vearcia — the veARCIA pool (rewards per day, staked, stakers, burned) and, with a linked wallet, its stake
+async function cardVea(m, lang) {
+  const st = await VEA.state().catch(() => null);
+  const btn = [[{ text: "veARCIA", url: `${SITE}/arc#vearcia` }]];
+  if (!st || !st.live) return { text: `💗 <b>veARCIA</b>\n${T3(lang, "Stake $ARCIA on Robinhood Chain for 1–20 days — opening soon.", "Robinhood Chain에서 $ARCIA를 1–20일 스테이킹 — 곧 오픈해요.", "在 Robinhood Chain 质押 $ARCIA 1–20 天——即将开放。")}`, buttons: btn };
+  const t = st.totals;
+  const lines = [`💗 <b>veARCIA</b> · Robinhood Chain`,
+    `${T3(lang, "Rewards today", "오늘 보상", "今日奖励")}: <b>${num(Math.round(t.perDay))} $ARCIA</b> · ${T3(lang, "pool", "풀", "奖励池")} ${num(Math.round(t.pool))}`,
+    `${T3(lang, "Staked", "스테이킹", "质押")}: ${num(Math.round(t.staked))} $ARCIA · ${num(Math.round(t.ve))} veARCIA · ${t.stakers} ${T3(lang, "stakers", "명", "人")}`,
+    `🔥 ${T3(lang, "Burned by early exits", "조기 출금 소각", "提前退出销毁")}: ${num(Math.round(t.burned))} $ARCIA`];
+  const u = m && m.from ? await loadUser(m.from.id).catch(() => null) : null;
+  if (u && u.wallet) {
+    const me = await VEA.me(u.wallet).catch(() => null);
+    const p = me && me.position;
+    if (p && p.amount > 0) {
+      const now = Math.floor(Date.now() / 1000);
+      lines.push("", `<code>${short(u.wallet)}</code>: <b>${num(Math.round(p.ve))} veARCIA</b>${me.veTier ? ` · ${VEA.VE_TIERS[me.veTier][0]}` : ""} · #${me.rank || "—"}`,
+        `${num(Math.round(p.amount))} $ARCIA · ${(p.lockBps / 10000).toFixed(2)}x${p.tier ? ` × ${[1, 1.2, 1.5, 2][p.tier]}x` : ""} · ${p.auto ? T3(lang, "auto-renew", "자동 연장", "自动续期") : p.end > now ? `${T3(lang, "unlocks in", "해제까지", "解锁")} ${Math.ceil((p.end - now) / 3600)}h` : T3(lang, "unlocked", "해제됨", "已解锁")}`,
+        `${T3(lang, "To claim", "받을 보상", "可领取")}: <b>${num(Math.round(Number(me.earned[0] || 0) / 1e18))} $ARCIA</b>`);
+      btn[0].push({ text: T3(lang, "Share", "공유", "分享"), url: `${SITE}/vearcia/${lc(u.wallet)}` });
+    }
+  }
+  return { text: lines.join("\n"), buttons: btn };
+}
+async function setVeaAlerts(m, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const u = await loadUser(m.from.id);
+  if (on && !u.wallet) return startLink(m, lang);
+  const s = await subs(), wa = lc(u.wallet || "");
+  s.vea = s.vea || {};
+  for (const k of Object.keys(s.vea)) { s.vea[k] = s.vea[k].filter((x) => x !== m.from.id); if (!s.vea[k].length) delete s.vea[k]; }
+  if (on && wa) s.vea[wa] = [...(s.vea[wa] || []), m.from.id];
+  await putDoc(DOC.subs, s);
+  return say(m, on ? `💗 ${T3(lang, "veARCIA alerts on for", "veARCIA 알림을 켰어요:", "已为此钱包开启 veARCIA 提醒:")} <code>${short(wa)}</code> — ${T3(lang, "a day before your lock ends and before your $ARCIRCLE boost runs out. /vearciaalerts off to stop.", "락 종료 하루 전, $ARCIRCLE 부스트 만료 전에 알려드려요. 끄려면 /vearciaalerts off", "锁定结束前一天、$ARCIRCLE 加成到期前提醒你。/vearciaalerts off 关闭")}` : `💗 ${T3(lang, "veARCIA alerts off.", "veARCIA 알림을 껐어요.", "veARCIA 提醒已关闭。")}`);
+}
+/// veARCIA: once a UTC day, the pool in one line to the alert list (and on Mondays to X); reminders a day before a
+/// subscriber's lock ends and before their boost runs out (once each)
+async function veaNotify(T, s, out) {
+  const st = await VEA.state().catch(() => null);
+  if (!st || !st.live) return;
+  T.vea = T.vea || {};
+  const day = new Date().toISOString().slice(0, 10), t = st.totals;
+  if (T.vea.day !== day) {
+    const first = !T.vea.day;
+    T.vea.day = day;
+    if (!first && t.stakers > 0) {
+      const top = st.top && st.top[0];
+      const text = [`💗 <b>veARCIA today</b>`, `${num(Math.round(t.perDay))} $ARCIA to stakers · ${num(Math.round(t.staked))} staked by ${t.stakers}`, top ? `#1: <code>${short(top.a)}</code> · ${num(Math.round(top.ve))} veARCIA` : null, `🔥 ${num(Math.round(t.burned))} $ARCIA burned by early exits`].filter(Boolean).join("\n");
+      out.veaDay = await toSubs(s.alerts || [], { text, ...kb([[{ text: "Stake $ARCIA", url: `${SITE}/arc#vearcia` }]]) });
+      if (new Date().getUTCDay() === 1) {
+        try { await postTweet(`veARCIA this week 💗\n\n${num(Math.round(t.perDay))} $ARCIA a day streams to ${t.stakers} stakers on Robinhood Chain · ${num(Math.round(t.staked))} $ARCIA staked · ${num(Math.round(t.burned))} burned by early exits.\n\nStake 1–20 days, up to 2x for long locks and 2x more with $ARCIRCLE: ${SITE}/arc#vearcia`); out.veaX = true; } catch (e) { out.veaX = String(e.message || e).slice(0, 80); }
+      }
+    }
+  }
+  T.vea.rem = T.vea.rem || {};
+  const now = Math.floor(Date.now() / 1000);
+  for (const [wa, ids] of Object.entries(s.vea || {}).slice(0, 300)) {
+    const x = (st.stakers || []).find((y) => y.a === wa);
+    if (!x) continue;
+    if (!x.auto && x.end > now && x.end - now < 86400 && T.vea.rem[wa] !== x.end) {
+      T.vea.rem[wa] = x.end;
+      for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your veARCIA lock (<code>${short(wa)}</code>) ends within a day. Renew it to keep your multiplier, or withdraw for free after it ends.`, ...kb([[{ text: "veARCIA", url: `${SITE}/arc#vearcia` }]]) });
+    }
+    const bk = wa + ":b";
+    if (x.tier > 0 && x.boostUntil > now && x.boostUntil - now < 86400 && T.vea.rem[bk] !== x.boostUntil) {
+      T.vea.rem[bk] = x.boostUntil;
+      for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `💎 Your $ARCIRCLE boost on veARCIA (<code>${short(wa)}</code>) runs out within a day — refresh it on the page to keep it.`, ...kb([[{ text: "Refresh boost", url: `${SITE}/arc#vearcia` }]]) });
+    }
+  }
+}
 /// /nft — the ARCIRCLE NFT Vault: what's in it, the next NFT, the open raffle, the last winner
 async function cardNft(lang) {
   const st = await NFTV.state({ store: { get: async (k) => (await getDocs([k]))[k] } }).catch(() => null);
@@ -1311,6 +1384,7 @@ async function tick() {
   try { await ordersNotify(T, s, c, out); } catch (e) { out.ordersNotify = String(e.message || e).slice(0, 120); }
   try { await stakeNotify(T, s, out); } catch (e) { out.stakeNotify = String(e.message || e).slice(0, 120); }
   try { await nftNotify(T, s, out); } catch (e) { out.nftNotify = String(e.message || e).slice(0, 120); }
+  try { await veaNotify(T, s, out); } catch (e) { out.veaNotify = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }

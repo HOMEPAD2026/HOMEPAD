@@ -40,6 +40,7 @@ export default async function handler(req) {
   if (view === "lock") return lockPage(url);
   if (view === "predict") return predictPage(url);
   if (view === "stake") return stakePage(url);
+  if (view === "vearcia") return veaPage(url);
   if (view === "nft") return nftPage(url);
   if (view === "bridge") return bridgePage(url);
   if (view === "vote") return votePage(url);
@@ -660,6 +661,46 @@ async function lockPage(url) {
 <p>Opening the <a href="${esc(target)}">lock</a>…</p>
 <script>location.replace(${JSON.stringify(target)});</script>
 </body></html>`, d && d.active ? "public, max-age=0, s-maxage=120" : "public, max-age=0, s-maxage=600");
+}
+
+// ---- veARCIA share page (/vearcia/<wallet>) ----
+async function veaPage(url) {
+  const u = String(url.searchParams.get("id") || "").toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(u)) return html(`<!doctype html><meta http-equiv="refresh" content="0;url=/arc#vearcia">`, "public, max-age=300");
+  let d = null;
+  try { const r = await fetch(`${SITE}/api/desk?vearcia=card&u=${u}`, { signal: AbortSignal.timeout(6000) }); d = r.ok ? await r.json() : null; } catch { d = null; }
+  const p = d && d.position;
+  const title = p ? `${Math.round(p.amount).toLocaleString("en-US")} $ARCIA staked — ${Math.round(p.ve).toLocaleString("en-US")} veARCIA` : "veARCIA — stake $ARCIA";
+  const desc = "Stake $ARCIA on Robinhood Chain for 1 to 20 days: $ARCIA rewards every second, up to 2x for longer locks and up to 2x more for $ARCIRCLE holders.";
+  const target = "/arc#vearcia";
+  const image = `${SITE}/api/og?vearcia=${u}`;
+  return html(`<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(`${SITE}/vearcia/${u}`)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<link rel="icon" href="/images/favicon-32.png">
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07060a;color:#eaf2e6;font:16px system-ui,sans-serif}a{color:#ff8bd8}</style>
+</head><body>
+<p><a href="${esc(target)}">${esc(title)}</a></p>
+<script>location.replace(${JSON.stringify(target)});</script>
+</body></html>`, "public, max-age=0, s-maxage=300, stale-while-revalidate=1800");
 }
 
 // ---- ARCIRCLE Staking share page (/stake/<wallet>) ----

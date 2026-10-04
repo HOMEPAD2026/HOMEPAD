@@ -20,6 +20,7 @@ import { KB } from "./_arcia-kb.mjs";
 import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
 import { storeEnabled, getDocs, commit, queryDocs, setDoc } from "./_store.mjs";
 import * as secret from "./_arcia-secret.mjs";
+import { veTierOf, VE_TIERS } from "./_vearcia.mjs";
 import { ttsProvider, speak as ttsSpeak } from "./_arcia-tts.mjs";
 
 // guide mode: the closest passage on the site for questions the quick answers don't cover
@@ -202,7 +203,7 @@ function guide(q, lang, L) {
 
 // ---------- limits: per IP (store-backed when possible) and a daily AI budget ----------
 const DAILY_CAP = () => Math.max(0, Number(process.env.ARCIA_DAILY_CAP) || 3000);
-const PER_MIN = 12, PER_DAY = 200, LETTERS_PER_DAY = 3;
+const PER_MIN = 12, PER_DAY_BASE = 200, LETTERS_PER_DAY = 3;
 const dayKey = () => new Date().toISOString().slice(0, 10);
 const ipHash = (ip) => createHash("sha256").update("arcia:" + ip).digest("hex").slice(0, 20);
 const mem = new Map(); // per-instance fallback: key -> [times]
@@ -212,8 +213,11 @@ function memHit(key, windowMs, max) {
   if (mem.size > 5000) mem.clear();
   return w.length > max;
 }
+// veARCIA holders get more of her each day: Bronze +100 · Silver +200 · Gold +400 · Diamond +800 messages
+const VE_EXTRA = [0, 100, 200, 400, 800];
 /// → { limited: "minute" | "day" | null, ai: bool (today's AI budget left) }
-async function checkLimits(ip) {
+async function checkLimits(ip, extra = 0) {
+  const PER_DAY = PER_DAY_BASE + extra;
   if (memHit("m:" + ip, 60000, PER_MIN)) return { limited: "minute", ai: true };
   if (!storeEnabled()) return { limited: memHit("d:" + ip, 86400000, PER_DAY) ? "day" : null, ai: true };
   const day = dayKey(), h = ipHash(ip), minute = "m" + Math.floor(Date.now() / 60000) % 1440;
@@ -458,16 +462,18 @@ export async function POST(req) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 700) }));
   while (msgs.length && msgs[0].role !== "user") msgs.shift();
   if (!msgs.length || msgs[msgs.length - 1].role !== "user") return json({ error: note("empty", lang), note: true }, 400);
-  const lim = await checkLimits(ip);
+  const wallet = isAddr(body.wallet) ? String(body.wallet).toLowerCase() : null;
+  const vt = wallet ? await veTierOf(wallet).catch(() => 0) : 0;
+  const lim = await checkLimits(ip, VE_EXTRA[vt] || 0);
   if (lim.limited) return json({ error: note(lim.limited, lang), note: true, retry: lim.limited === "minute" ? 60 : 3600 }, 429);
 
   const q = msgs[msgs.length - 1].content;
-  const wallet = isAddr(body.wallet) ? String(body.wallet).toLowerCase() : null;
   const name = cleanName(body.name);
   const L = await liveFor(url.origin, wallet);
   const me = L && L.me ? L.me : null;
   const drops = await dropsContext(url.origin, q, wallet).catch(() => "");
   const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, pageContext(body.page), fanContext(name, me), drops,
+    vt ? `This fan holds veARCIA (${VE_TIERS[vt][0]} tier) — they staked $ARCIA with you; thank them warmly when it fits (once, not every reply).` : "",
     "When one page on arcircle.app answers the question, end your reply with that page's link on its own line (just one, only a real page from your facts)."].filter(Boolean).join("\n");
   const pub = L ? { ...L, me: undefined } : null;
   const guideReply = () => json({ reply: guide(q, lang, L), mode: "guide", live: pub, me });

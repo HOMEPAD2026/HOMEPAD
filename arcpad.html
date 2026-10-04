@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791085240"></script>
+<script src="arc-log.js?v=1791087902"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791085240">
+<link rel="stylesheet" href="style.css?v=1791087902">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1916,17 +1916,21 @@
           </details>
           <details><summary><h3>Rewards</h3></summary>
             <p>Rewards are paid in $ARCIA from the veARCIA reward pool, which streams out over 20 days: every second, the stream is shared by everyone staked, in proportion to their reward weight (veARCIA × your $ARCIRCLE boost). The page shows today's daily rewards and the yearly rate they work out to. Neither is fixed: they follow the reward pool and the total staked, so they can go up or down.</p>
-            <p>Claim whenever you like — claiming is free (just gas) and doesn't touch your stake. Rewards you've earned stay yours even after you withdraw.</p>
+            <p>Claim whenever you like — claiming is free (just gas) and doesn't touch your stake. Or compound: your $ARCIA rewards join your stake in one transaction, with the same lock and no tokens moving. Rewards you've earned stay yours even after you withdraw.</p>
           </details>
           <details><summary><h3>Locks and withdrawing</h3></summary>
             <ul>
               <li>Staking is free. One position per wallet: adding $ARCIA or picking a new length restarts the lock from now, and it can't end earlier than it already would.</li>
               <li>After the lock ends, withdrawing is free. Until you renew, an ended lock counts at 1.0x.</li>
+              <li>Auto-renew keeps your lock — and its multiplier — running until you turn it off; then the full length counts down from that moment. While it's on, an early exit costs 50%.</li>
               <li>Withdrawing before the lock ends costs a share of what you take out: the time left ÷ the lock's full length, at most 50%. 5 days left of a 10-day lock costs 50% (the cap); 2 days left of a 10-day lock costs 20%. The penalty is burned (sent to 0x…dEaD). The page shows the exact amount before you sign.</li>
             </ul>
           </details>
           <details><summary><h3>The $ARCIRCLE boost</h3></summary>
-            <p>Holding $ARCIRCLE multiplies your reward weight: 1.2x from 1,000,000, 1.5x from 5,000,000 and 2.0x from 10,000,000 $ARCIRCLE. It counts $ARCIRCLE in your wallet on Arc, locked in ARCIRCLE Staking (veARCIRCLE) and on Robinhood Chain. The site checks your holding and signs a boost note; you apply it with one transaction, and it lasts 7 days — refresh it from this page. If your holding drops, a newer note can lower it, and an expired boost goes back to 1.0x.</p>
+            <p>Holding $ARCIRCLE multiplies your reward weight: 1.2x from 1,000,000, 1.5x from 5,000,000 and 2.0x from 10,000,000 $ARCIRCLE. It counts $ARCIRCLE in your wallet on Arc, locked in ARCIRCLE Staking (veARCIRCLE) and on Robinhood Chain. The site checks your holding and signs a boost note; you apply it with one transaction, and it lasts 3 days — refresh it from this page. If your holding drops, a newer note lowers it, and an expired boost goes back to 1.0x.</p>
+          </details>
+          <details><summary><h3>veARCIA tiers and perks</h3></summary>
+            <p>Bronze from 10,000 veARCIA, Silver from 100,000, Gold from 1,000,000 and Diamond from 5,000,000. Each tier gets more time with ARCIA in her chat every day (+100, +200, +400 or +800 messages) and a badge on ArcPad comments. veARCIA is recorded over time, so it can be counted at any past moment in the votes to come for the ARCIA AI ecosystem and its governance.</p>
           </details>
           <details><summary><h3>Safety</h3></summary>
             <p>Staked $ARCIA and the rewards you've earned can only go to you: no one else can move them, pause the contract or change the multipliers, the 20-day stream or the 50% cap. The contract is new, so stake what you're comfortable holding for the lock you pick. Nothing here is financial advice.</p>
@@ -2194,6 +2198,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791085240"></script>
+<script src="arcpad.bundle.js?v=1791087902"></script>
 </body>
 </html>

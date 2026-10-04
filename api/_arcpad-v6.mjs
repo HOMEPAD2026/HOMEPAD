@@ -21,7 +21,7 @@ export const pinMessage = (coin, id, issued) => `ARCIRCLE PAD — pin a comment\
 export const planMessage = (p, issued) => `ARCIRCLE PAD — scheduled launch\nCreator: ${lc(p.creator)}\nSymbol: ${p.symbol}\nAt: ${new Date(p.at * 1000).toISOString()}\nIssued: ${issued}`;
 export const unplanMessage = (id, creator, issued) => `ARCIRCLE PAD — cancel a scheduled launch\nCreator: ${lc(creator)}\nPlan: ${id}\nIssued: ${issued}`;
 
-export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited, keccakText, argusCoin }) {
+export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited, keccakText, argusCoin, veTier }) {
   const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
   const hashText = (t) => keccakText(t);
 
@@ -50,12 +50,13 @@ export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, l
     const c = await coinOk(coin);
     if (!c) return json(404, { error: "not a coin listed on ArcPad" });
     const holder = (await tokenBalance(coin, wallet).catch(() => 0n)) > 0n;
+    const va = veTier ? await veTier(wallet).catch(() => 0) : 0; // veARCIA tier 1…4 (Bronze … Diamond): a badge
     const key = `comments/${coin}`;
     const d = (await getDocs([key]))[key] || { items: [], pinned: null, n: 0 };
     const id = keccakText(`${coin}:${wallet}:${b.issued}:${text}`).slice(2, 12);
     if ((d.items || []).some((x) => x.id === id)) return json(200, { ok: true, id, already: true });
     const reply = /^[0-9a-f]{10}$/.test(String(b.reply || "")) && (d.items || []).some((x) => x.id === b.reply) ? b.reply : null;
-    const item = { id, w: wallet, t: text, at: Date.now(), h: holder ? 1 : 0, c: wallet === c.creator ? 1 : 0, ...(reply ? { r: reply } : {}) };
+    const item = { id, w: wallet, t: text, at: Date.now(), h: holder ? 1 : 0, c: wallet === c.creator ? 1 : 0, ...(va ? { va } : {}), ...(reply ? { r: reply } : {}) };
     d.items = [...(d.items || []), item].slice(-300);
     d.n = (d.n || 0) + 1;
     await setDoc(key, d);

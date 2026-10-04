@@ -57,7 +57,7 @@ describe("ArciaStaking (veARCIA)", function () {
     await next(t0);
     await st.connect(owner).fund(E(200_000));
     near(await st.perDay(), E(10_000));
-    expect(await st.finish()).to.equal(BigInt(t0 + 20 * DAY));
+    expect((await st.streamInfo(0))[3]).to.equal(BigInt(t0 + 20 * DAY));
     await to(t0 + DAY);
     near(await st.earned(a.address), E(5000));
     near(await st.earned(b.address), E(5000));
@@ -216,5 +216,112 @@ describe("ArciaStaking (veARCIA)", function () {
     for (const w of ws) { const p = await st.positions(w.address); sw += p.weight; sv += p.ve; }
     expect(sw).to.equal(await st.totalWeight());
     expect(sv).to.equal(await st.totalSupply());
+  });
+
+  it("compound: earned $ARCIA joins the position, same lock, books balance", async () => {
+    await st.connect(a).stake(E(1000), 20);
+    const t0 = (await now()) + 10; await next(t0);
+    await st.connect(owner).fund(E(20_000)); // 1,000/day, a alone
+    await to(t0 + DAY);
+    const end0 = (await st.positions(a.address)).end;
+    await st.connect(a).compound();
+    const p = await st.positions(a.address);
+    near(p.amount, E(2000), E("0.1"));
+    expect(p.end).to.equal(end0);
+    near(p.ve, E(4000), E("0.2"));
+    expect(await st.earned(a.address)).to.equal(0n);
+    await expect(st.connect(b).compound()).to.be.revertedWithCustomError(st, "NoStake");
+    const bal = await arcia.balanceOf(await st.getAddress());
+    expect(bal >= (await st.totalStaked()) + (await st.pool())).to.equal(true);
+  });
+
+  it("auto-renew: the multiplier never lapses; off starts the countdown; early exit while on costs 50%", async () => {
+    await st.connect(a).stake(E(1000), 10);
+    await st.connect(a).setAutoRenew(true);
+    let p = await st.positions(a.address);
+    expect(p.autoRenew).to.equal(true);
+    expect(p.end).to.equal(0n);
+    await to((await now()) + 30 * DAY);
+    await st.poke([a.address]);
+    expect((await st.positions(a.address)).lockBps).to.equal(14736n); // still 1.47x
+    const [, bps] = await st.penaltyOf(a.address, E(100));
+    expect(bps).to.equal(5000n);
+    await expect(st.connect(a).stake(0, 5)).to.be.revertedWithCustomError(st, "ShorterLock");
+    await st.connect(a).stake(0, 15); // longer is fine
+    expect((await st.positions(a.address)).lockDays).to.equal(15);
+    await st.connect(a).setAutoRenew(false);
+    p = await st.positions(a.address);
+    expect(p.end - p.start).to.equal(BigInt(15 * DAY));
+    await to(Number(p.end) + 1);
+    const ab = await arcia.balanceOf(a.address);
+    await st.connect(a).withdraw(E(1000));
+    expect((await arcia.balanceOf(a.address)) - ab).to.equal(E(1000));
+    expect(await st.stakers()).to.equal(0n);
+    // an ended lock gets its multiplier back when auto-renew is turned on
+    await st.connect(b).stake(E(100), 20);
+    await to((await now()) + 21 * DAY);
+    await st.poke([b.address]);
+    expect((await st.positions(b.address)).lockBps).to.equal(10000n);
+    await st.connect(b).setAutoRenew(true);
+    expect((await st.positions(b.address)).lockBps).to.equal(20000n);
+  });
+
+  it("votes: getPastVotes / getPastTotalSupply by timestamp", async () => {
+    expect(await st.CLOCK_MODE()).to.equal("mode=timestamp");
+    await st.connect(a).stake(E(1000), 20);
+    const t1 = await now();
+    await to(t1 + 100);
+    await st.connect(b).stake(E(500), 1);
+    const t2 = await now();
+    await to(t2 + 100);
+    expect(await st.getPastVotes(a.address, t1)).to.equal(E(2000));
+    expect(await st.getPastVotes(b.address, t1)).to.equal(0n);
+    expect(await st.getPastVotes(b.address, t2)).to.equal(E(500));
+    expect(await st.getPastTotalSupply(t1 + 50)).to.equal(E(2000));
+    expect(await st.getPastTotalSupply(t2)).to.equal(E(2500));
+    await expect(st.getPastVotes(a.address, (await now()) + 10)).to.be.revertedWithCustomError(st, "FutureLookup");
+    expect(await st.getVotes(a.address)).to.equal(E(2000));
+    expect(await st.delegates(a.address)).to.equal(a.address);
+  });
+
+  it("stakeFor: opens a locked position for a wallet without one, never touches an existing one", async () => {
+    await st.connect(owner).stakeFor(c.address, E(300), 20);
+    const p = await st.positions(c.address);
+    expect(p.amount).to.equal(E(300));
+    expect(p.ve).to.equal(E(600));
+    await expect(st.connect(owner).stakeFor(c.address, E(1), 1)).to.be.revertedWithCustomError(st, "HasStake");
+    await expect(st.connect(owner).stakeFor(b.address, 0, 1)).to.be.revertedWithCustomError(st, "ZeroAmount");
+    expect(await st.stakers()).to.equal(1n);
+  });
+
+  it("extra reward token: streams by the same weights, claim pays both, owner limits", async () => {
+    const T = await ethers.getContractFactory("TestToken");
+    const usd = await T.deploy("USD", "USD", 6);
+    await usd.mint(owner.address, 10n ** 12n);
+    await usd.connect(owner).approve(await st.getAddress(), ethers.MaxUint256);
+    await expect(st.connect(a).addRewardToken(await usd.getAddress())).to.be.revertedWithCustomError(st, "NotOwner");
+    await expect(st.connect(owner).addRewardToken(await arcia.getAddress())).to.be.revertedWithCustomError(st, "BadToken");
+    await st.connect(owner).addRewardToken(await usd.getAddress());
+    await expect(st.connect(owner).addRewardToken(await usd.getAddress())).to.be.revertedWithCustomError(st, "BadToken");
+    expect(await st.streamCount()).to.equal(2n);
+    await st.connect(a).stake(E(1000), 20); // 2000
+    await st.connect(b).stake(E(1000), 1); // 1000
+    const t0 = (await now()) + 10; await next(t0);
+    await st.connect(owner).fundStream(1, 3_000_000n * 20n); // 3 USD / day
+    await next(t0 + 1);
+    await st.connect(owner).fund(E(60_000)); // 3,000 ARCIA / day
+    await to(t0 + DAY + 1);
+    const ea = await st.earnedAll(a.address);
+    near(ea[0], E(2000), E("1"));
+    expect(Number(ea[1]) / 1e6).to.be.closeTo(2, 0.01);
+    const ub = await usd.balanceOf(a.address);
+    await st.connect(a).claim();
+    expect(Number((await usd.balanceOf(a.address)) - ub) / 1e6).to.be.closeTo(2, 0.01);
+    await expect(st.connect(owner).defundStream(1, 10n ** 12n)).to.be.revertedWithCustomError(st, "TooMuch");
+    await expect(st.connect(owner).fundStream(5, 1)).to.be.revertedWithCustomError(st, "BadStream");
+    const [tok, poolLeft, pd] = await st.streamInfo(1);
+    expect(tok).to.equal(await usd.getAddress());
+    expect(Number(pd) / 1e6).to.be.closeTo(3, 0.001);
+    expect(Number(poolLeft) / 1e6).to.be.closeTo(57, 0.05);
   });
 });

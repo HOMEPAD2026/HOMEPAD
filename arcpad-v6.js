@@ -370,7 +370,7 @@
     const creator = APC.l ? lc(APC.l.creator) : "", w = me(), pinned = c.pinned ? (c.items || []).find((x) => x.id === c.pinned) : null;
     const item = (x, pin) => `<li class="v6-cm${pin ? " pin" : ""}${x.c ? " cr" : ""}" data-cm="${esc(x.id)}">
         <span class="v6-cm-a" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(x.w) : ""}" aria-hidden="true"></span>
-        <div><p class="v6-cm-h"><a href="${apcExplorer("address", x.w)}" target="_blank" rel="noopener" data-no-i18n>${short(x.w)}</a>${x.c ? `<em class="v6-badge cr">${T("Creator")}</em>` : x.h ? `<em class="v6-badge h">${T("Holder")}</em>` : ""}${pin ? `<em class="v6-badge pin">${T("Pinned")}</em>` : ""}<time>${esc(ago(Math.floor(x.at / 1000)))}</time></p>
+        <div><p class="v6-cm-h"><a href="${apcExplorer("address", x.w)}" target="_blank" rel="noopener" data-no-i18n>${short(x.w)}</a>${x.c ? `<em class="v6-badge cr">${T("Creator")}</em>` : x.h ? `<em class="v6-badge h">${T("Holder")}</em>` : ""}${x.va ? `<em class="v6-badge va t${Number(x.va)}" title="veARCIA">${esc(["", "Bronze", "Silver", "Gold", "Diamond"][Number(x.va)] || "")}</em>` : ""}${pin ? `<em class="v6-badge pin">${T("Pinned")}</em>` : ""}<time>${esc(ago(Math.floor(x.at / 1000)))}</time></p>
         <p class="v6-cm-t" data-no-i18n>${esc(x.t)}</p>
         <p class="v6-cm-acts"><button type="button" data-cm-reply="${esc(x.id)}">${T("Reply")}</button>${w && w === creator ? `<button type="button" data-cm-pin="${pin ? "" : esc(x.id)}">${T(pin ? "Unpin" : "Pin")}</button>` : ""}</p>
         ${x.r ? `<p class="v6-cm-re">${T("replying to")} <span data-no-i18n>${esc(((c.items || []).find((y) => y.id === x.r) || {}).t || "").slice(0, 60)}</span></p>` : ""}</div></li>`;
@@ -537,6 +537,27 @@
       const head = body.querySelector(".pf-row.pf-head");
       if (head && !head.querySelector(".v6-pf-pnl")) head.insertAdjacentHTML("beforeend", `<span class="v6-pf-pnl">${T("P&L")}</span>`);
     } finally { PF.busy = false; }
+  }
+  // veARCIA (arc-vearcia.js): a line on Home and the wallet's stake in Portfolio, once it's live
+  const VEA = () => (typeof CONFIG !== "undefined" && /^0x[0-9a-fA-F]{40}$/.test(CONFIG.VEARCIA_ADDRESS || "") ? CONFIG.VEARCIA_ADDRESS : "");
+  const VEA_TIERS = ["", "Bronze", "Silver", "Gold", "Diamond"];
+  const big = (n) => (n == null || !isFinite(n) ? "—" : n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "K" : Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 }));
+  async function veaHome() {
+    const anchor = $("v6-koth"); if (!VEA() || !anchor) return;
+    let j = null; try { const r = await fetch("/api/desk?vearcia=state"); j = r.ok ? await r.json() : null; } catch { j = null; }
+    if (!j || !j.live || !(j.totals && j.totals.perDay > 0)) return;
+    let el = $("v6-vea"); if (!el) { el = document.createElement("a"); el.id = "v6-vea"; el.className = "v6-vea"; el.href = "#vearcia"; el.dataset.arcTab = "vearcia"; anchor.after(el); }
+    el.innerHTML = `<img src="images/arcia-avatar-96.jpg" alt="" width="34" height="34"><span><b>veARCIA</b> <em data-no-i18n>${esc(big(j.totals.perDay))} $ARCIA</em> ${T("a day to")} <em data-no-i18n>${esc(String(j.totals.stakers))}</em> ${T("stakers")}</span><i>${T("Stake $ARCIA")} →</i>`;
+  }
+  async function veaPortfolio() {
+    const body = $("pf-body"), w = me(); if (!VEA() || !body || !w) return;
+    let j = null; try { const r = await fetch(`/api/desk?vearcia=me&u=${w}`); j = r.ok ? await r.json() : null; } catch { j = null; }
+    let el = $("v6-pf-vea");
+    const p = j && j.position;
+    if (!p || !(p.amount > 0)) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("a"); el.id = "v6-pf-vea"; el.className = "v6-pf-vea"; el.href = "#vearcia"; el.dataset.arcTab = "vearcia"; const inv = $("v6-invite"), sum = body.querySelector(".pf-summary"); (inv || sum) ? (inv || sum).after(el) : body.prepend(el); }
+    const now = Math.floor(Date.now() / 1000), toClaim = j.earned && j.earned[0] ? Number(j.earned[0]) / 1e18 : 0;
+    el.innerHTML = `<span class="k">veARCIA${j.veTier ? ` · ${esc(VEA_TIERS[j.veTier])}` : ""}</span><b data-no-i18n>${esc(big(p.ve))}</b><span data-no-i18n>${esc(big(p.amount))} $ARCIA · ${p.auto ? esc(tr("auto-renew")) : p.end > now ? esc(tr("unlocks in")) + " " + (p.end - now > 48 * 3600 ? Math.ceil((p.end - now) / 86400) + "d" : Math.ceil((p.end - now) / 3600) + "h") : esc(tr("unlocked"))}</span><em data-no-i18n>${toClaim > 0 ? `+${esc(big(toClaim))} $ARCIA ${esc(tr("to claim"))}` : ""}</em><i>→</i>`;
   }
   async function inviteCard() {
     const body = $("pf-body"), w = me(); if (!body || !w || body.querySelector("#v6-invite")) { if (body && $("v6-invite")) paintInvite(); return; }
@@ -817,8 +838,8 @@
     const t = e.detail && e.detail.tab;
     // the "your coin is live" card belongs to the launch it followed; moving on closes it
     if (t !== "launch") { const lv = $("v6-live"); if (lv) lv.remove(); }
-    if (t === "home") { loadPlans(); paintKoth(); paintTrending(); }
-    if (t === "portfolio") setTimeout(() => { inviteCard(); alertsCard(); portfolioPnl(); }, 600);
+    if (t === "home") { loadPlans(); paintKoth(); paintTrending(); veaHome(); }
+    if (t === "portfolio") setTimeout(() => { inviteCard(); alertsCard(); portfolioPnl(); veaPortfolio(); }, 600);
     if (t === "launch") launchFrame();
     if (t === "creators") creatorsV6();
   });
@@ -827,7 +848,7 @@
   if (pfb) new MutationObserver(() => { if (!$("bp-panel-portfolio") || !$("bp-panel-portfolio").classList.contains("active")) return; clearTimeout(PF.t); PF.t = setTimeout(() => { inviteCard(); alertsCard(); portfolioPnl(); }, 300); }).observe(pfb, { childList: true });
   watchTx("apc-status", ".ac2-msg.success");
   watchTx("ap-launch-status", ".status.success");
-  homeFrame(); exploreFrame(); loadPlans();
+  homeFrame(); exploreFrame(); loadPlans(); setTimeout(veaHome, 1500);
   setInterval(tickPlans, 1000);
   setInterval(() => { if (!document.hidden) loadPlans(); }, 60e3);
   if ($("bp-panel-launch") && $("bp-panel-launch").classList.contains("active")) launchFrame();

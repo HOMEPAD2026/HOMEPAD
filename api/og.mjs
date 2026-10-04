@@ -14,6 +14,7 @@ import { voteTx } from "./_burnvote.mjs";
 import { lockInfo } from "./_locker.mjs";
 import { forChain as predictFor } from "./_predict.mjs";
 import { card as stakeCardOf } from "./_stake.mjs";
+import { card as veaCardOf } from "./_vearcia.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 import { coin as argusCoin } from "./_argus-arcpad.mjs";
@@ -150,6 +151,13 @@ export async function GET(req) {
     return new ImageResponse(await nftCard(await markP, url.searchParams.get("nft")), {
       width: W, height: H, ...(fonts.length ? { fonts } : {}),
       headers: { "cache-control": "public, max-age=120, s-maxage=600, stale-while-revalidate=3600" },
+    });
+  }
+  if (url.searchParams.has("vearcia")) {
+    const fonts = (await fontsP).filter(Boolean);
+    return new ImageResponse(await veaCard(await markP, url.searchParams.get("vearcia")), {
+      width: W, height: H, ...(fonts.length ? { fonts } : {}),
+      headers: { "cache-control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" },
     });
   }
   if (url.searchParams.has("stake")) {
@@ -834,6 +842,39 @@ async function voteCard(mark, tx) {
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 22, color: "#9fb098" },
       h("div", {}, "Burn to vote · no refunds, no changes"),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, "arcircle.app/circle")),
+  ]);
+}
+
+// ---- veARCIA: one wallet's stake (/vearcia/<wallet>) ----
+async function veaCard(mark, user) {
+  let d = null;
+  try { d = await veaCardOf(user); } catch { d = null; }
+  const pink = "#ff8bd8", blue = "#8fa8ff", g = "#39ff88";
+  const big = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : Number(n || 0).toFixed(0));
+  const p = d && d.position;
+  if (!p) {
+    return frame([
+      brandRow(mark, pill("veARCIA", pink), "veARCIA · Robinhood Chain"),
+      h("div", { flexDirection: "column", gap: 16 },
+        h("div", { fontSize: 92, fontWeight: 800, lineHeight: 1.02 }, "Stake $ARCIA."),
+        h("div", { fontSize: 34, color: "#b9b0c8" }, "1 to 20 days · $ARCIA rewards every second · up to 4x with a long lock and $ARCIRCLE")),
+      h("div", { fontSize: 26, color: "#b9b0c8" }, "arcircle.app/arc#vearcia"),
+    ]);
+  }
+  const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,139,216,0.25)" },
+    h("div", { fontSize: 20, color: "#b9b0c8", textTransform: "uppercase", letterSpacing: 2 }, label),
+    h("div", { fontSize: 38, fontWeight: 800, color }, value));
+  const lock = p.auto ? `${p.lockDays}d · auto-renew` : p.end > Math.floor(Date.now() / 1000) ? `until ${new Date(p.end * 1000).toISOString().slice(0, 10)}` : "ended";
+  return frame([
+    brandRow(mark, pill(d.tierName ? d.tierName.toUpperCase() : "STAKER", pink), "veARCIA · Robinhood Chain"),
+    h("div", { flexDirection: "column", gap: 10 },
+      h("div", { fontSize: 32, color: pink, fontWeight: 700 }, `${(p.lockBps / 10000).toFixed(2)}x lock${p.tier ? ` · ${[1, 1.2, 1.5, 2][p.tier]}x $ARCIRCLE boost` : ""}`),
+      h("div", { fontSize: 104, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `${big(p.ve)} veARCIA`),
+      h("div", { fontSize: 30, color: "#c9c0d8" }, `${big(p.amount)} $ARCIA staked · rewards every second`)),
+    h("div", { gap: 16 },
+      box("Rank", d.rank ? `#${d.rank}${d.stakers ? ` of ${d.stakers}` : ""}` : "—", blue),
+      box("Received", `${big(d.received || 0)} $ARCIA`, g),
+      box("Lock", lock, pink)),
   ]);
 }
 

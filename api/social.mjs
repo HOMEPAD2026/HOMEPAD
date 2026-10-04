@@ -192,7 +192,7 @@ export async function readTweet(id, handleHint) {
 const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
 // ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
 let V6 = null;
-const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)),
+const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
 export async function GET(req) {
   const url = new URL(req.url);
