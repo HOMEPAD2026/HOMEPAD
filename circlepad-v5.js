@@ -31,6 +31,7 @@
   const PLAN = () => (GOV().plan && GOV().plan.buy) || null;
   const short = (a) => (a ? String(a).slice(0, 6) + "…" + String(a).slice(-4) : "");
   const num = (n, d = 2) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d });
+  const usd2 = (v) => num(v, v < 1e4 ? 2 : 0); // cents below 10,000 (1,999.62, not 2,000)
   const usdOf = (wei) => { try { return Number(ethers.formatEther(BigInt(wei || 0))); } catch { return 0; } };
   // the chain's clock when circlepad-round.js knows it (countdowns run on it), else this device's
   const nowS = () => { try { const r = window.circlepadRound; const t = r && r.nowS ? Number(r.nowS()) : NaN; if (isFinite(t) && t > 0) return Math.floor(t); } catch { /* fall through */ } return Math.floor(Date.now() / 1000); };
@@ -93,10 +94,12 @@
     let box = media.querySelector(".cp5-lead");
     if (!lbRows.length) { if (box) box.remove(); return; }
     if (!box) { box = document.createElement("span"); box.className = "cp5-lead"; media.appendChild(box); }
-    const top = lbRows[0], last = (lbAct || []).find((a) => a.kind !== "refund" && a.kind !== "withdraw");
+    // the latest deposit still in: a deposit later taken back by the same wallet doesn't count
+    const outs = new Set((lbAct || []).filter((a) => /^(out|refund|withdraw)$/.test(a.kind || "")).map((a) => String(a.contributor).toLowerCase()));
+    const top = lbRows[0], last = (lbAct || []).find((a) => !/^(out|refund|withdraw)$/.test(a.kind || "") && !outs.has(String(a.contributor).toLowerCase()));
     const sh = (a) => (a ? String(a).slice(0, 5) + "…" + String(a).slice(-3) : "");
-    box.innerHTML = `<span class="cp5-lead-r"><i data-no-i18n>${esc(L("Top", "1위", "第一"))}</i><em data-no-i18n>${num(usdOf(top.amount), 0)}</em><b data-no-i18n>${esc(sh(top.address))}</b></span>` +
-      (last ? `<span class="cp5-lead-r"><i data-no-i18n>${esc(L("Latest", "최근", "最新"))}</i><em data-no-i18n>+${num(usdOf(last.amount), 0)}</em><b data-no-i18n>${esc(sh(last.contributor))}</b></span>` : "");
+    box.innerHTML = `<span class="cp5-lead-r"><i data-no-i18n>${esc(L("Top", "1위", "第一"))}</i><em data-no-i18n>${usd2(usdOf(top.amount))}</em><b data-no-i18n>${esc(sh(top.address))}</b></span>` +
+      (last ? `<span class="cp5-lead-r"><i data-no-i18n>${esc(L("Latest", "최근", "最新"))}</i><em data-no-i18n>+${usd2(usdOf(last.amount))}</em><b data-no-i18n>${esc(sh(last.contributor))}</b></span>` : "");
   }
   if (typeof renderCirclepadLeaderboard === "function") {
     const origLb = renderCirclepadLeaderboard;
@@ -119,7 +122,7 @@
     const largest = total > 0 ? (amts[amts.length - 1] / total) * 100 : 0;
     const ver = window.cpEscrowVerified;
     k.setAttribute("data-no-i18n", "");
-    k.innerHTML = [[L("In the escrow", "에스크로 잔액", "托管余额"), `${num(usdOf(s.balance), 0)} USDC`], [L("Wallets in", "참여 지갑", "参与钱包"), String(amts.length)], [L("Median", "중간값", "中位数"), `${num(median, 0)} USDC`], [L("Largest wallet", "최대 지갑 비중", "最大钱包占比"), `${num(largest, 1)}%`]]
+    k.innerHTML = [[L("In the escrow", "에스크로 잔액", "托管余额"), `${usd2(usdOf(s.balance))} USDC`], [L("Wallets in", "참여 지갑", "参与钱包"), String(amts.length)], [L("Median", "중간값", "中位数"), `${usd2(median)} USDC`], [L("Largest wallet", "최대 지갑 비중", "最大钱包占比"), `${num(largest, 1)}%`]]
       .map(([t, v]) => `<div><span>${esc(t)}</span><b>${esc(v)}</b></div>`).join("") + (ver != null ? `<p class="cp5-keys-v ${ver ? "ok" : ""}">${esc(ver ? L("Source verified on the explorer", "익스플로러에서 소스 검증됨", "源码已在浏览器验证") : L("Source not verified yet", "소스 미검증", "源码尚未验证"))}</p>` : "");
   }
 
@@ -127,7 +130,7 @@
   function sideStatus() {
     const s = S(), txt = $("bp-side-foot-text"), dot = $("bp-side-status-dot");
     if (!s || !txt || !s.started) return;
-    const m = marks(), deadline = Number(s.deadline), raised = num(usdOf(s.totalRaised), 0), plan = PLAN();
+    const m = marks(), deadline = Number(s.deadline), rv = usdOf(s.totalRaised), raised = num(rv, rv < 1e4 ? 2 : 0), plan = PLAN();
     let t = "", k = "";
     const n = N(), lf = left(deadline - nowS());
     if (s.isOpen && nowS() < deadline) { t = L(`Round #${n} is live · ${lf} left · ${raised} USDC`, `라운드 #${n} 진행 중 · ${lf} 남음 · ${raised} USDC`, `第 ${n} 轮进行中 · 剩余 ${lf} · ${raised} USDC`); k = "live"; }
@@ -255,10 +258,11 @@
     const cards = closed.slice().reverse().map((r) => {
       const sm = (d.sums || {})[r.n] || null, c = COINS[r.n] || null;
       const raised = usdOf(r.state.totalRaised), people = sm && sm.board ? sm.board.contributors : null;
-      const burned = sm && sm.ballot ? Number(sm.ballot.burned || 0) : null;
+      // the ballot's burned $ARCIRCLE comes in 18-decimal units (api/_rounds.mjs summary)
+      const burned = sm && sm.ballot && sm.ballot.burned != null ? (/^\d{16,}$/.test(String(sm.ballot.burned)) ? usdOf(sm.ballot.burned) : Number(sm.ballot.burned)) : null;
       const coin = c && c.merged ? `<span class="cp5-rs-coin merged" data-no-i18n>${esc(L(`Merged into Round #${c.merged}`, `라운드 #${c.merged}에 합쳐짐`, `并入第 ${c.merged} 轮`))}</span>` : c ? `<span class="cp5-rs-coin" data-no-i18n>$${esc(c.sym)} <i>${esc(c.chain === "rh" ? "Robinhood Chain" : "Arc")}</i></span>` : "";
       return `<article class="cp5-rs" data-n="${r.n}" data-no-i18n><div class="cp5-rs-top"><b>${esc(RN(r.n))}</b>${coin}</div>
-        <dl><div><dt>${esc(L("Raised", "모금액", "募集"))}</dt><dd>${num(raised, 0)} USDC</dd></div><div><dt>${esc(L("Contributors", "참여자", "参与者"))}</dt><dd>${people != null ? people : "—"}</dd></div>${burned ? `<div><dt>${esc(L("$ARCIRCLE burned", "$ARCIRCLE 소각", "$ARCIRCLE 销毁"))}</dt><dd>${num(burned, 0)}</dd></div>` : ""}
+        <dl><div><dt>${esc(L("Raised", "모금액", "募集"))}</dt><dd>${usd2(raised)} USDC</dd></div><div><dt>${esc(L("Contributors", "참여자", "参与者"))}</dt><dd>${people != null ? people : "—"}</dd></div>${burned ? `<div><dt>${esc(L("$ARCIRCLE burned", "$ARCIRCLE 소각", "$ARCIRCLE 销毁"))}</dt><dd>${num(burned, 0)}</dd></div>` : ""}
         ${c && c.token && !c.merged ? `<div class="cp5-rs-m" data-mk="${esc(c.chain)}:${esc(c.token)}"><dt>${esc(L("Market cap today", "현재 시가총액", "当前市值"))}</dt><dd>…</dd></div>` : ""}</dl>
         <div class="cp5-rs-foot">${r.n === 1 ? `<a href="/circle/round/1">${esc(L("Round report", "라운드 리포트", "轮次报告"))} →</a>` : ""}${c && c.token && !c.merged ? `<a href="${c.chain === "rh" ? "/arc#orders?c=rh&t=" + esc(c.token) : "/arc#coin/" + esc(c.token)}">${esc(L(`Trade $${c.sym}`, `$${c.sym} 거래`, `交易 $${c.sym}`))} →</a>` : ""}</div></article>`;
     });
