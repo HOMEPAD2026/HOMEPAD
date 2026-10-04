@@ -94,6 +94,8 @@
   const estWeek = (ve) => { const L = lastW(); return L && L.ve >= 0 && L.usdc > 0 && ve > 0 ? (L.usdc * ve) / (L.ve + ve) : null; };
   const lockOf = () => (S.me && S.me.lock && S.me.lock.amount > 0 ? S.me.lock : null);
   const num = (v) => Number(String(v || "").replace(/,/g, "")) || 0;
+  // an amount in wei; never String(number), which turns tiny or huge numbers into "9.5e-12" that ethers rejects
+  const toWei = (v) => { const n = num(v); if (!(n > 0)) return 0n; try { return ethers.parseEther(n.toLocaleString("en-US", { useGrouping: false, maximumFractionDigits: 18 })); } catch { return 0n; } };
   const arcBal = () => (S.bal.arc != null ? Number(ethers.formatEther(S.bal.arc)) : null);
 
   // ---------------- pieces ----------------
@@ -160,7 +162,7 @@
     if (!me()) h += `<p class="stk-note">${T("Connect a wallet to lock $ARCIRCLE.")}</p><button type="button" class="stk-btn go" data-stk-act="connect">${T("Connect wallet")}</button>`;
     else if (!lock) {
       const amt = num(S.amt), end = endFor(S.dur), ve = veFor(amt, end, S.max);
-      const need = amt > 0 ? ethers.parseEther(String(amt)) : 0n;
+      const need = toWei(amt);
       h += `${balRow}<label class="stk-f"><small>${T("Amount")}</small><span class="stk-in"><input id="stk-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="${esc(S.amt)}"><em data-no-i18n>$ARCIRCLE</em></span></label>${pct("amt")}
         <label class="stk-toggle"><input type="checkbox" data-stk-max${S.max ? " checked" : ""}><span class="sw" aria-hidden="true"></span><span><b>${T("Max lock")}</b> ${T("— always a full year, never runs down. Turn it off any time to start a one-year countdown.")}</span></label>
         ${S.max ? "" : `<label class="stk-f"><small>${T("Lock for")}</small></label>${slider("stk-weeks", S.dur)}`}
@@ -180,7 +182,7 @@
       h += gain(m.ve);
       if (ended) h += btn("withdraw", "Withdraw $ARCIRCLE");
       else {
-        const need = add > 0 ? ethers.parseEther(String(add)) : 0n;
+        const need = toWei(add);
         h += `<details class="stk-more"${S.open.add ? " open" : ""} data-stk-det="add"><summary>${T("Add more")}</summary>${balRow}<label class="stk-f"><span class="stk-in"><input id="stk-add" type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="${esc(S.add)}"><em data-no-i18n>$ARCIRCLE</em></span></label>${pct("add")}
           <p class="stk-note">${T(lock.max ? "Stays a max lock." : "Same unlock date.")} ${T("Your veARCIRCLE grows by")} <b data-no-i18n>${fmt(veFor(add, lock.end, lock.max), 2)}</b>.</p>${btn("add", S.bal.arcAllow != null && add > 0 && S.bal.arcAllow < need ? "Approve and add" : "Add to lock", !(add > 0))}</details>`;
         if (!lock.max) {
@@ -463,13 +465,13 @@
     }
     if (!live()) return;
     if (a === "lock") return run("lock", async (c, sg) => {
-      const amt = ethers.parseEther(String(num(S.amt)));
+      const amt = toWei(S.amt);
       await approve(sg, ARCIRCLE(), S.st.address, amt, "Approve the $ARCIRCLE in your wallet…", "lock");
       say("lock", T("Confirm the lock in your wallet…"));
       const tx = S.max ? await c.createMaxLock(amt) : await c.createLock(amt, endFor(S.dur)); await tx.wait(); S.amt = ""; return tx.hash;
     }, "lock");
     if (a === "add") return run("lock", async (c, sg) => {
-      const amt = ethers.parseEther(String(num(S.add)));
+      const amt = toWei(S.add);
       await approve(sg, ARCIRCLE(), S.st.address, amt, "Approve the $ARCIRCLE in your wallet…", "lock");
       say("lock", T("Confirm in your wallet…"));
       const tx = await c.increaseAmount(amt); await tx.wait(); S.add = ""; return tx.hash;

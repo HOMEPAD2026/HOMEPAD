@@ -197,7 +197,17 @@ export function makePredict(over) {
   const head0 = () => ({ chain: CFG.id, chainId: CFG.chainId, unit: CFG.unit });
 
   /// everything the page shows
-  async function state({ fresh = false, store = null } = {}) {
+  async function state(opts = {}) {
+    try { return await stateRun(opts); } catch (e) {
+      ch = null; // another RPC on the retry
+      try { return await stateRun({ ...opts, fresh: true }); } catch (e2) {
+        const h = mem.get("good");
+        if (h && Date.now() - h.t < 10 * 60e3) return { ...h.v, stale: true };
+        throw e2;
+      }
+    }
+  }
+  async function stateRun({ fresh = false, store = null } = {}) {
     const addr = CFG.address();
     if (!addr) return { live: false, ...head0(), note: `ARCIRCLE Predict opens on ${CFG.chainName} once its contract is deployed.` };
     if (!fresh) { const h = mem.get("state"); if (h && Date.now() - h.t < CFG.cacheMs) return h.v; }
@@ -243,6 +253,7 @@ export function makePredict(over) {
       }),
     };
     mem.set("state", { t: Date.now(), v: out });
+    mem.set("good", { t: Date.now(), v: out });
     return out;
   }
 
@@ -407,7 +418,23 @@ export function makePredict(over) {
 
   // ---------------------------------------------------------------- the keeper
   /// sample every market whose boundary is due (three times, in different blocks), then settle them
-  async function tick({ budgetMs = 40000, store = null } = {}) {
+  /// the keeper, with its outcome written to the public status (?predict=status) even when it skips or fails,
+  /// so a stalled market shows why (no key, the key isn't the operator, the RPC, a reverted sample…)
+  async function tick(opts = {}) {
+    const store = opts.store || null;
+    const note = async (k, msg) => {
+      if (!store) return;
+      const st = (await store.get(CFG.statusKey).catch(() => null)) || {};
+      st[k] = { at: CFG.now(), msg: String(msg).slice(0, 200) }; st.chain = CFG.id;
+      await store.set(CFG.statusKey, st).catch(() => null);
+    };
+    try {
+      const out = await tickRun(opts);
+      if (out && out.skipped) await note("skipped", out.skipped);
+      return out;
+    } catch (e) { await note("error", (e && e.message) || e); throw e; }
+  }
+  async function tickRun({ budgetMs = 40000, store = null } = {}) {
     const t0 = Date.now();
     const addr = CFG.address(), key = CFG.keeperKey();
     if (!addr) return { skipped: "no contract" };
@@ -448,6 +475,9 @@ export function makePredict(over) {
     }
     if (Date.now() - t0 < budgetMs - 3000) { try { await lbScan(store, { budgetMs: Math.min(8000, budgetMs - (Date.now() - t0) - 2000) }); } catch (e) { out.lbError = String((e && e.message) || e).slice(0, 120); } }
     st.at = lb.ts; st.keeper = me; st.chain = CFG.id; st.last = { due: out.due, sampled: out.sampled, settled: out.settled };
+    const bad = out.txs.filter((x) => !x.ok);
+    st.error = bad.length ? { at: CFG.now(), msg: `${bad[0].kind}: ${bad[0].err || "failed"}`.slice(0, 200) } : null;
+    st.skipped = null;
     try { const gas = await chain().balance(me); st.gas = Number(gas) / 1e18; } catch { /* keep */ }
     if (store) await store.set(CFG.statusKey, st).catch(() => null);
     out.status = st;

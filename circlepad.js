@@ -1363,6 +1363,11 @@ function govLeader(c) {
 }
 
 function renderCirclepadGovernance(g) {
+  // every category has an entry (a cached state from an older page can have fewer): no crash on a missing one
+  if (g && Array.isArray(g.categories) && g.categories.length < CIRCLEPAD_VOTE_CATEGORIES.length) {
+    g = { ...g, categories: CIRCLEPAD_VOTE_CATEGORIES.map((c) => g.categories[c.id] || { id: c.id, label: c.label, set: false, fixed: !!c.fixed, options: [], myVoteIndex: null }) };
+  }
+  if (g && Array.isArray(g.categories)) g.categories.forEach((c) => { if (c && c.myVoteIndex === undefined) c.myVoteIndex = null; });
   const wrap = document.getElementById("bp-gov-categories");
   _govLast = g;
   window.circlepadGov = g;
@@ -1873,7 +1878,7 @@ async function refreshCirclepadGovernance() {
 // RPC — so it's on screen immediately; the real fetch then overwrites it.
 function paintCirclepadGovernanceFromCache() {
   const cached = circlepadLoadCache("gov");
-  if (!cached || !Array.isArray(cached.categories)) return false;
+  if (!cached || !Array.isArray(cached.categories) || cached.categories.length < CIRCLEPAD_VOTE_CATEGORIES.length) return false;
   const votingEnds = cached.votingEnds ?? 0n;
   // Never trust a cached "open" past the cached close time.
   const votingOpen = !!cached.votingOpen && govNow() < Number(votingEnds);

@@ -66,7 +66,12 @@ import { cronBudget, within, cronOut } from "./_cron.mjs";
 const json = (o, status = 200, cache = "no-store") => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json", "cache-control": cache, "access-control-allow-origin": "*" } });
 // a keeper's answer to cron-job.org: short, timed, inside its timeout (api/_cron.mjs)
 const cron = (q, out, t0, status = 200) => json(cronOut(q, out, t0), status);
-const cronErr = (q, e, t0) => cron(q, { error: String((e && e.message) || e).slice(0, 300) }, t0, 500);
+// a keeper's failure also lands in the runtime logs (the job's name and chain, never the key)
+const cronErr = (q, e, t0) => {
+  const msg = String((e && e.message) || e).slice(0, 300);
+  console.error(`[cron] ${Object.keys(q).filter((k) => k !== "key").map((k) => (k === "chain" ? `chain=${String(q.chain).slice(0, 8)}` : k)).join(" ")}: ${msg}`);
+  return cron(q, { error: msg }, t0, 500);
+};
 const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null);
 
 export async function GET(req) {
