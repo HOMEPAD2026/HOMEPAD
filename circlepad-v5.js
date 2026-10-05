@@ -205,7 +205,9 @@
       after.insertAdjacentElement("afterend", el);
     }
     const s = S() || {}, m = marks();
-    const at = !s.started ? -1 : s.isOpen && nowS() < Number(s.deadline) ? 0 : !s.distributed ? 1 : !m.launch ? 2 : 4;
+    // a snapshot round: the delivery board's airdrop step lights the last node (CONFIG.CIRCLEPAD_DELIVERY)
+    const D = (CONFIG.CIRCLEPAD_DELIVERY || {})[N()] || {}, dropped = D.drop && D.drop.status === "done";
+    const at = !s.started ? -1 : s.isOpen && nowS() < Number(s.deadline) ? 0 : !s.distributed ? 1 : dropped ? 5 : !m.launch ? 2 : 4;
     const st = (i) => (at > i ? "done" : at === i ? "now" : "");
     const also = GOV().plan && GOV().plan.also;
     const nodes = [
@@ -213,7 +215,7 @@
       ["80%", L("The split", "분배", "分配"), L("80% buys the coin", "80%로 코인 매수", "80% 用于买币")],
       ["ETH", L("To Robinhood Chain", "Robinhood Chain으로", "转到 Robinhood Chain"), L("bridged by the team", "팀이 브릿지", "由团队跨链")],
       [`$${plan.sym}`, L(`Buys $${plan.sym}`, `$${plan.sym} 매수`, `买入 $${plan.sym}`), plan.chain || "Robinhood Chain"],
-      ["♥", L("To you", "나에게", "发给你"), L("by your share of the raise", "내 참여 비율대로", "按你的出资比例")],
+      ["YOU", L("To you", "나에게", "发给你"), PLAN() && GOV().plan && GOV().plan.also && GOV().plan.also.snapshot ? L("snapshot airdrop, by your share", "스냅샷 에어드랍, 내 참여 비율대로", "快照空投，按你的出资比例") : L("by your share of the raise", "내 참여 비율대로", "按你的出资比例")],
     ];
     el.innerHTML = `<div class="cp5-route-h"><h3>${T("Where your USDC goes")}</h3><span data-no-i18n>${esc(RN(N()))}${also ? ` · ${esc(L(`plus Round #${also.round} on ${also.chain}`, `+ ${also.chain}의 라운드 #${also.round}`, `另有 ${also.chain} 上的第 ${also.round} 轮`))}` : ""}</span></div>
       <ol class="cp5-route-l">${nodes.map(([ic, t1, t2], i) => `<li class="${st(i)}"><span class="cp5-route-ic${ic.length > 4 ? " long" : ""}" data-no-i18n>${esc(ic)}</span><b data-no-i18n>${esc(t1)}</b><small data-no-i18n>${esc(t2)}</small></li>`).join("")}</ol>

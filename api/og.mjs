@@ -8,6 +8,7 @@ import { ImageResponse } from "@vercel/og";
 import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { leaderboard as circleBoard } from "./_circle.mjs";
+import { rounds as circleRounds } from "./_rounds.mjs";
 import { scanToken } from "./_scan.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
 import { voteTx } from "./_burnvote.mjs";
@@ -301,11 +302,14 @@ export async function GET(req) {
 // ---------------- CirclePad round card ----------------
 const num = (n) => n.toLocaleString("en-US", { maximumFractionDigits: n >= 100 ? 0 : 2 });
 async function roundCard(mark, w) {
+  // v9: the round the page runs — the newest started one (Round #1's escrow if the list can't be read)
+  let cur = { n: 1, escrow: undefined };
+  try { const list = await circleRounds(); cur = [...list].reverse().find((r) => r.started) || list[0] || cur; } catch { /* Round #1 */ }
   let st = null, mine = 0n;
-  try { st = await roundState(); } catch { st = null; }
+  try { st = await roundState(cur.escrow); } catch { st = null; }
   let member = 0;
-  if (st && isAddr(w)) { try { mine = await contributionOf(w); } catch { mine = 0n; } }
-  if (mine > 0n) { try { const lb = await circleBoard(); member = (lb.joinOrder || []).indexOf(String(w).toLowerCase()) + 1; } catch { member = 0; } }
+  if (st && isAddr(w)) { try { mine = await contributionOf(w, cur.escrow); } catch { mine = 0n; } }
+  if (mine > 0n) { try { const lb = await circleBoard(undefined, cur.escrow); member = (lb.joinOrder || []).indexOf(String(w).toLowerCase()) + 1; } catch { member = 0; } }
   const raised = st ? Number(st.totalRaised) / 1e18 : 0;
   const left = st && st.started ? st.deadline - Math.floor(Date.now() / 1000) : 0;
   const status = !st ? "CIRCLEPAD" : !st.started ? "OPENS SOON" : st.isOpen ? "LIVE" : "CLOSED";
@@ -329,7 +333,7 @@ async function roundCard(mark, w) {
       h("div", { flexDirection: "column", gap: 10, maxWidth: 720 }, who),
       ring),
     h("div", { justifyContent: "space-between", width: "100%", fontSize: 26, color: "#9fb098" },
-      h("div", {}, "CirclePad round #1 · withdraw any time before close"),
+      h("div", {}, `CirclePad round #${cur.n} · ${st && st.started && !st.isOpen ? "the raise is closed" : "withdraw any time before close"}`),
       h("div", { color: "#eaf2e6", fontWeight: 700 }, timeLeft)),
   ]);
 }

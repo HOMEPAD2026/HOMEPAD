@@ -52,7 +52,9 @@
   // ================= Home: live things first while the round runs =================
   let ordered = false;
   function orderHome() {
-    if (ordered || !live()) return;
+    // v9: a real round leads Home whenever there is one (live, closed, or a later round waiting to start) — the
+    // "how it works" pieces go under it
+    if (ordered || !(live() || phase() !== "pre" || (CONFIG.CIRCLEPAD_ROUND || 1) > 1)) return;
     const home = $("bp-panel-home"), anchor = document.querySelector("#bp-panel-home > .bp-nextcard");
     if (!home || !anchor) return;
     ordered = true;

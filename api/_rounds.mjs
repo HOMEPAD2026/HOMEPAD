@@ -19,6 +19,11 @@ import { prices } from "./_fx.mjs";
 export const ESCROW_CODE_HASH = "0xf4691a923fed8a3b40db2cd952a065d72b0a7385432fd7053d8fd1a2daaca57a";
 export const ESCROW_CODE_BYTES = 3577;
 const FUNDING = 72 * 3600;
+// Round numbers that never get an escrow of their own: Round #4 was merged into Round #3 (5 Oct 2026) — ARCIRCLE's move
+// to Solana, run by the team with ARCIRCLE Orders — so the round after #3 is #5. Keep config-arc.js
+// CIRCLEPAD_SKIPPED the same.
+export const SKIPPED = { 4: 3 };
+export const nextRoundN = (n) => { let k = Number(n) + 1; while (SKIPPED[k]) k++; return k; };
 const REG = "circleRounds/main";
 const STEPS = ["top", "launch"]; // the team's steps, in order: 4 = top contributor paid, 5 = launch & airdrop
 const lc = (a) => String(a || "").toLowerCase();
@@ -171,7 +176,7 @@ export async function registerRound(b, json) {
   if (now() < lastSt.deadline) return json(409, { error: `Round #${last.n} is still open` });
   const escrow = lc(rc.contractAddress);
   const reg = await registry(true);
-  const entry = { n: last.n + 1, escrow, tx, block: parseInt(rc.blockNumber, 16), at: Date.now(), started: false };
+  const entry = { n: nextRoundN(last.n), escrow, tx, block: parseInt(rc.blockNumber, 16), at: Date.now(), started: false };
   await saveRegistry({ list: [...reg.list, entry] });
   return json(200, { ok: true, round: { n: entry.n, escrow, tx, started: false } });
 }
@@ -205,9 +210,9 @@ export async function roundsData(fresh = false) {
   const last = out[out.length - 1];
   // the next round: pre-start until the round wallet deploys + starts it
   const lastClosed = !!(last.state && last.state.started && t >= last.state.deadline);
-  const next = last.started ? { n: last.n + 1, canOpen: lastClosed, waitingFor: lastClosed ? null : `Round #${last.n} closes first` } : null;
+  const next = last.started ? { n: nextRoundN(last.n), canOpen: lastClosed, waitingFor: lastClosed ? null : `Round #${last.n} closes first` } : null;
   const current = [...out].reverse().find((r) => r.started) || out[0];
-  return { rounds: out, current: current.n, next, wallets, now: t, storeOn: store.enabled() };
+  return { rounds: out, current: current.n, next, skipped: SKIPPED, wallets, now: t, storeOn: store.enabled() };
 }
 
 /// A tiny script for /circle's <head>: which round the page runs. Only the registry (one store read), so it's fast.

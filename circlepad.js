@@ -371,7 +371,9 @@ function applyCirclepadState(s, { accountUnknown = false } = {}) {
   // start() — deployed-but-not-started stays "READY" so nobody mistakes
   // this for an open raise before it is one.
   document.querySelectorAll(".bp-featured-badge").forEach((el) => {
-    if (s.started) { el.textContent = "LIVE"; el.classList.add("bp-live"); }
+    // v9: a closed round says so (it used to stay "LIVE" after the 72 hours)
+    if (s.started && s.isOpen) { el.textContent = "LIVE"; el.classList.add("bp-live"); }
+    else if (s.started) { el.textContent = "CLOSED"; el.classList.remove("bp-live"); }
     else { el.textContent = "READY"; el.classList.remove("bp-live"); }
   });
 
@@ -555,7 +557,10 @@ async function initCirclepadRound() {
   if (CONFIG.CIRCLEPAD_ROUND_PLAN && window.cpPlan) window.cpPlan.copy(); // a round with no vote (circlepad-plan.js)
   else if (!circlepadVoteConfigured()) {
     const desc = document.getElementById("bp-featured-desc");
-    if (desc) desc.textContent = "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.";
+    // v9: a later round whose coin and vote aren't set yet says what is fixed (the escrow) and what comes next
+    if (desc) desc.textContent = (CONFIG.CIRCLEPAD_ROUND || 1) > 1
+      ? (window.cpRT ? window.cpRT("A 72-hour USDC raise in its own escrow on Arc: withdraw your contribution any time before the close, then the 80 / 15 / 5 split on-chain. What Round #1 launches is announced here — governance opens soon.") : "A 72-hour USDC raise in its own escrow on Arc: withdraw your contribution any time before the close, then the 80 / 15 / 5 split on-chain. What Round #1 launches is announced here — governance opens soon.")
+      : "This round is contribution-only on-chain: USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72-hour window closes. Voting on name, ticker, logo, and roadmap is not enforced by this contract — see Docs > Safety design.";
     const govNote = document.getElementById("bp-gov-note");
     if (govNote) govNote.textContent = "Voting opens at the close — the vote contract is being set up.";
     const govPanelNote = document.getElementById("bp-gov-panel-note");

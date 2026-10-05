@@ -66,7 +66,7 @@
         G.top === true ? { id: "top", title: "Top contributor paid", body: "The largest contributor at the close receives the 15%, over 3 days, sent by the team from the treasury wallet — as in Round #1.", status: "policy" }
           : { id: "top", title: "Top contributor", body: "Whether the largest contributor receives the 15% as in Round #1: not decided yet.", status: "open" },
         { id: "launch", title: `$${b.sym || "ARCIA"} is bought`, body: `After the split, the round wallet buys $${b.sym || "ARCIA"} on ${b.chain || "Robinhood Chain"} with the raise — ARCIA's own coin, the flagship of the ARCIRCLE NFT ecosystem.`, status: "policy" },
-        { id: "airdrop", title: "Two allocations", body: G.airdrop || "", status: "policy" },
+        { id: "airdrop", title: a.snapshot ? "Snapshot airdrop" : "Two allocations", body: G.airdrop || "", status: "policy" },
         a.merged
           ? { id: "r4", title: `Round #${a.round || cur.n + 1} on ${a.chain || "Solana"} — merged in`, body: `Round #${a.round || cur.n + 1} is ARCIRCLE's move to ${a.chain || "Solana"} through ${a.via || "pump.fun"}. It has no 3-day raise of its own: the ARCIRCLE team runs it on ${a.chain || "Solana"} with ${a.with || "ARCIRCLE Orders"}, and everyone in Round #${cur.n} is in it automatically, by their share.`, status: "policy" }
           : { id: "r4", title: `Round #${a.round || cur.n + 1} on ${a.chain || "Solana"}`, body: `Round #${a.round || cur.n + 1}'s token launches on ${a.chain || "Solana"} — not revealed yet. Round #${cur.n}'s contributors get an allocation of it by their share, new contributors included.`, status: "policy" },

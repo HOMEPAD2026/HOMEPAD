@@ -230,12 +230,25 @@
     const amt = g.usdc ? Number(g.usdc).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
     return `<div class="cp-sum-merged"><b>${RT("Merged into Round #1", into)}</b><p>${esc(RTraw("This round didn't launch on its own. Its whole raise went into Round #1, and its contributors get their share of Round #1 pro rata, from this round's list below.", into))}${amt ? ` <span data-no-i18n>(${esc(amt)} USDC)</span>` : ""}</p><button type="button" class="bp-btn-ghost" data-cp-go="governance">${RT("Go to Round #1", into)}</button></div>`;
   }
+  // the round before n that has an escrow (Round #4 never had one: it went into #3 — CONFIG.CIRCLEPAD_SKIPPED)
+  const SKIP = (typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_SKIPPED) || {};
+  function lastBefore(n) { const ns = ((data && data.rounds) || []).map((r) => r.n).filter((k) => k < n); return ns.length ? Math.max(...ns) : n - 1; }
+  /// a round number that was folded into another round: a short card where its results would be
+  function skippedHtml(k) {
+    const into = Number(SKIP[k]);
+    const g = (CONFIG.CIRCLEPAD_GOV && CONFIG.CIRCLEPAD_GOV[into]) || {}, a = (g.plan && g.plan.also) || {};
+    return `<article class="cp-sum cp-sum-skip" id="cp-sum-${k}">
+      <div class="cp-sum-top"><span class="cp-rc-badge merged">${T("Merged")}</span><span class="cp-sum-k">${RT("CirclePad Round #1", k)}</span><span class="cp-sum-dates" data-no-i18n>${esc(a.mergedAt || "")}</span></div>
+      <p>${esc(RTraw(`Merged into Round #${into}: ARCIRCLE's move to ${a.chain || "Solana"} through ${a.via || "pump.fun"}, run by the team with ${a.with || "ARCIRCLE Orders"} — no raise of its own. Round #${into}'s contributors are in it by their share.`, k))}${a.snapshot ? " " + T("Both rounds' rewards go out as a snapshot airdrop, with more updates to follow.") : ""}</p>
+      <div class="cp-sum-links"><button type="button" class="cp-link" data-cp-jump="${into}">${RT("See Round #1", into)} →</button></div>
+    </article>`;
+  }
   function nextHtml(nx, pending, where) {
     const n = pending ? pending.n : nx.n;
     const can = pending ? true : nx.canOpen;
     const w = data.wallets;
     const btn = team()
-      ? `<button type="button" class="bp-btn-primary" data-cp-open="${n}" ${can ? "" : "disabled"}>${RT(pending ? "Start the 72h raise" : "Prepare Round #1", n)}</button>${can ? "" : `<small class="cp-nr-wait">${RT("Round #1 closes first", n - 1)}</small>`}`
+      ? `<button type="button" class="bp-btn-primary" data-cp-open="${n}" ${can ? "" : "disabled"}>${RT(pending ? "Start the 72h raise" : "Prepare Round #1", n)}</button>${can ? "" : `<small class="cp-nr-wait">${RT("Round #1 closes first", lastBefore(n))}</small>`}`
       : `<small class="cp-nr-wait">${T("Opens when the round wallet starts it.")}</small>`;
     return `<article class="cp-next-round" id="cp-next-round${where ? "-" + where : ""}">
       <div class="cp-sum-top"><span class="cp-rc-badge pre">${T(pending ? "Ready to start" : "Not started")}</span><span class="cp-sum-k">${RT("CirclePad Round #1", n)}</span></div>
@@ -253,9 +266,10 @@
     // this round's results first (once it has closed), then the next round, then older rounds
     const closed = [...data.rounds].reverse().map((r) => sums.get(r.n)).filter((s) => s && s.v.closed).map((s) => s.v);
     const curSum = closed.find((v) => v.n === N());
-    if (curSum) parts.push(summaryHtml(curSum));
+    const withSkipped = (v) => Object.keys(SKIP).map(Number).filter((k) => Number(SKIP[k]) === v.n).sort((x, y) => y - x).map(skippedHtml).join("") + summaryHtml(v);
     if (pending || data.next) parts.push(nextHtml(data.next, pending));
-    closed.filter((v) => v !== curSum).forEach((v) => parts.push(summaryHtml(v)));
+    if (curSum) parts.push(withSkipped(curSum));
+    closed.filter((v) => v !== curSum).forEach((v) => parts.push(withSkipped(v)));
     const html = parts.join("");
     // keep what the round wallet is typing across the 30s refresh
     const typed = {}; pw.box.querySelectorAll("[data-proof-for]").forEach((i) => { if (i.value) typed[i.dataset.proofFor] = i.value; });
@@ -271,7 +285,7 @@
     const home = $("bp-panel-home"), feat = $("bp-featured");
     if (!home || !feat || !data) return;
     let box = $("cp-home-next");
-    const cur = roundOf(N()), prev = N() > 1 ? roundOf(N() - 1) : null;
+    const cur = roundOf(N()), prev = N() > 1 ? roundOf(lastBefore(N())) : null;
     const closed = cur && cur.state && cur.state.started && nowS() >= Number(cur.state.deadline);
     let html = "";
     if (closed && data.next && !data.rounds.some((r) => r.n > N())) {
@@ -416,6 +430,7 @@
     } finally { busy = false; btn.disabled = false; btn.textContent = orig; }
   }
   document.addEventListener("click", (e) => {
+    const j = e.target.closest("[data-cp-jump]"); if (j) { const t = $("cp-sum-" + j.dataset.cpJump); if (t) { t.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); t.classList.remove("cp-flash"); void t.offsetWidth; t.classList.add("cp-flash"); } return; }
     const a = e.target.closest("[data-cp-stage]"); if (a) { markStage(a); return; }
     const s = e.target.closest("[data-cp-split]"); if (s) { sendSplit(s); return; }
     const o = e.target.closest("[data-cp-open]"); if (o) { openRound(o); return; }

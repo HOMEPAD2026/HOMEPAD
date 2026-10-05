@@ -17386,3 +17386,91 @@ html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{di
 .cp-dl-tx{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .cp-dl-tx a{font:600 .64rem var(--or-mono,monospace);color:#9fc2ff;text-decoration:none;}
 @media (prefers-reduced-motion:reduce){ .cp-dl li.now > i{animation:none;} }
+
+/* ================= CirclePad v9: round-aware layout and motion (circlepad-v9.js) ================= */
+/* the route inside the round card, in the room under the description */
+#bp-featured .bp-featured-main.cp-main.cp9-has-route{grid-template-areas:"media info side" "route route side" "stats stats side";}
+.cp-main.cp9-has-route > .cp5-route{grid-area:route;margin:0;align-self:stretch;}
+.cp-main.cp9-has-route > .bp-mini-stats{align-self:end;}
+@media (max-width:1100px){#bp-featured .bp-featured-main.cp-main.cp9-has-route{grid-template-areas:"media info" "side side" "route route" "stats stats";}}
+@media (max-width:760px){#bp-featured .bp-featured-main.cp-main.cp9-has-route{grid-template-areas:"media" "info" "side" "stats" "route";}}
+/* phones: the description folds to three lines */
+@media (max-width:900px){
+  #bp-featured-desc.cp9-clamp:not(.cp9-open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+}
+.cp9-more{margin:6px 0 0;padding:0;border:0;background:none;font:700 .74rem Sora,sans-serif;color:var(--cp-acc,#39ff88);cursor:pointer;}
+.cp9-more:hover{text-decoration:underline;}
+/* the card's badge follows the phase: live pulses, closed settles */
+#bp-featured[data-ph="raise"] .bp-featured-badge,#bp-featured[data-ph="voting"] .bp-featured-badge{background:#39ff88;color:#04120a;box-shadow:0 0 0 0 rgba(57,255,136,.55);animation:cp9Live 1.8s ease-out infinite;}
+#bp-featured[data-ph="closed"] .bp-featured-badge,#bp-featured[data-ph="result"] .bp-featured-badge{background:rgba(255,255,255,.1);color:#d9e2ea;}
+@keyframes cp9Live{0%{box-shadow:0 0 0 0 rgba(57,255,136,.55);}80%,100%{box-shadow:0 0 0 9px rgba(57,255,136,0);}}
+/* numbers that haven't loaded: a shimmer */
+.bp-mini-stat strong.cp9-sk{display:block;width:62%;height:1.05em;margin-top:3px;border-radius:6px;color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.13) 45%,rgba(255,255,255,.05) 90%);background-size:220% 100%;animation:cp9Sk 1.3s linear infinite;}
+@keyframes cp9Sk{from{background-position:120% 0;}to{background-position:-100% 0;}}
+/* a number that changes: a short bump */
+.cp9-bump{display:inline-block;animation:cp9Bump .55s cubic-bezier(.2,1.4,.4,1);}
+@keyframes cp9Bump{0%{transform:scale(1);}35%{transform:scale(1.16);color:#7dffb8;}100%{transform:scale(1);}}
+.bp-mini-stat{transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;}
+@media (hover:hover){.bp-mini-stat:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--cp-acc,#39ff88) 45%,transparent);box-shadow:0 10px 26px rgba(0,0,0,.35),0 0 0 1px color-mix(in srgb,var(--cp-acc,#39ff88) 18%,transparent);}}
+/* Round #3 + #4: two rings that merge into one */
+.cp-merge{display:flex;justify-content:center;padding:4px 0 0;}
+.cp-merge svg{width:min(100%,260px);height:auto;overflow:visible;}
+.cp-merge circle{fill:none;stroke-width:5;}
+.cp-merge .cp-merge-a{stroke:#ff8bd8;filter:drop-shadow(0 0 6px rgba(255,139,216,.55));}
+.cp-merge .cp-merge-b{stroke:#14f195;filter:drop-shadow(0 0 6px rgba(20,241,149,.5));}
+.cp-merge .cp-merge-c{stroke:url(#cpMg);stroke-width:6;opacity:0;filter:drop-shadow(0 0 10px rgba(153,69,255,.6));}
+.cp-merge text{font:800 15px Sora,sans-serif;text-anchor:middle;fill:#eef2f6;}
+.cp-merge .cp-merge-tc{opacity:0;font-size:14px;}
+.cp-merge.go .cp-merge-a,.cp-merge.go .cp-merge-ta{animation:cp9MA 1.3s cubic-bezier(.6,0,.2,1) forwards;}
+.cp-merge.go .cp-merge-b,.cp-merge.go .cp-merge-tb{animation:cp9MB 1.3s cubic-bezier(.6,0,.2,1) forwards;}
+.cp-merge.go .cp-merge-c,.cp-merge.go .cp-merge-tc{animation:cp9MC .6s ease-out 1.1s forwards;}
+@keyframes cp9MA{60%{transform:translateX(40px);opacity:1;}100%{transform:translateX(40px);opacity:0;}}
+@keyframes cp9MB{60%{transform:translateX(-40px);opacity:1;}100%{transform:translateX(-40px);opacity:0;}}
+@keyframes cp9MC{from{opacity:0;transform:scale(.7);transform-origin:110px 42px;}to{opacity:1;transform:scale(1);transform-origin:110px 42px;}}
+.cp-merge.done .cp-merge-a,.cp-merge.done .cp-merge-b,.cp-merge.done .cp-merge-ta,.cp-merge.done .cp-merge-tb{opacity:0;}
+.cp-merge.done .cp-merge-c,.cp-merge.done .cp-merge-tc{opacity:1;}
+/* the snapshot line under the plan hero */
+.cp-plan-snap{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:11px 13px;border-radius:12px;font-size:.8rem;line-height:1.5;color:var(--ink-dim,#9aa6b2);background:linear-gradient(90deg,rgba(255,139,216,.08),rgba(20,241,149,.05));border:1px solid rgba(255,139,216,.25);}
+.cp-plan-snap b{color:#ffd6f1;}
+.cp-plan-snap i{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:#ff8bd8;box-shadow:0 0 10px #ff8bd8;}
+/* a delivery step that just turned done: a stamp */
+.cp-dl li.cp9-stamp{animation:cp9Row 1.4s ease-out;}
+.cp-dl li.cp9-stamp > i{animation:cp9Stamp .6s cubic-bezier(.2,1.6,.4,1);}
+@keyframes cp9Stamp{0%{transform:scale(2.4) rotate(-25deg);opacity:0;}60%{transform:scale(.9) rotate(4deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+@keyframes cp9Row{0%{background:rgba(57,255,136,.22);}100%{background:transparent;}}
+/* Projects: a round that went into another one */
+.cp-sum-skip{padding:16px 18px;border-style:dashed;}
+.cp-sum-skip p{margin:8px 0 10px;font-size:.84rem;line-height:1.55;color:var(--ink-dim,#9aa6b2);}
+.cp-rc-badge.merged{background:linear-gradient(90deg,rgba(255,139,216,.22),rgba(20,241,149,.2));color:#ffe3f5;}
+.cp-flash{animation:cp9Flash 1.4s ease-out;}
+@keyframes cp9Flash{0%{box-shadow:0 0 0 2px color-mix(in srgb,var(--cp-acc,#39ff88) 70%,transparent);}100%{box-shadow:0 0 0 2px transparent;}}
+/* the home card that replaces the vote list on a plan round */
+.bp-vote-list.cp9-plan-list li{border-color:rgba(255,139,216,.3);background:rgba(255,139,216,.06);}
+/* "your snapshot airdrop went out" */
+.cp9-arrived{position:fixed;right:18px;bottom:calc(var(--ax-float-space,24px) + 16px);z-index:2700;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;width:min(92vw,380px);padding:14px 14px 14px 16px;border-radius:16px;background:rgba(8,16,12,.96);border:1px solid rgba(57,255,136,.45);box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 30px rgba(57,255,136,.18);animation:cp9In .5s cubic-bezier(.2,1.2,.4,1);transition:opacity .35s,transform .35s;}
+.cp9-arrived.out{opacity:0;transform:translateY(10px);}
+.cp9-arrived > i{width:12px;height:12px;margin-top:4px;border-radius:50%;background:#39ff88;box-shadow:0 0 12px #39ff88;}
+.cp9-arrived b{display:block;font:800 .9rem Sora,sans-serif;color:#eafff3;}
+.cp9-arrived p{margin:3px 0 0;font-size:.78rem;line-height:1.45;color:#a9bdb2;}
+.cp9-arrived-tx{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:.74rem;}
+.cp9-arrived-tx a{color:#7dffb8;}
+.cp9-arrived button{border:0;background:none;color:#8aa096;font-size:1.1rem;line-height:1;cursor:pointer;padding:2px 4px;}
+@keyframes cp9In{from{opacity:0;transform:translateY(16px) scale(.97);}to{opacity:1;transform:none;}}
+/* Home: the "how it works" hero under a running round is a calmer band */
+body.cp-home-live #bp-panel-home > .bp-hero{min-height:0;padding-top:34px;padding-bottom:34px;}
+body.cp-home-live #bp-panel-home > .bp-hero h1{font-size:clamp(1.6rem,3.2vw,2.6rem);}
+@media (prefers-reduced-motion:reduce){
+  #bp-featured .bp-featured-badge,.bp-mini-stat strong.cp9-sk,.cp9-bump,.cp-dl li.cp9-stamp,.cp-dl li.cp9-stamp > i,.cp9-arrived,.cp-flash{animation:none !important;}
+  .bp-mini-stat{transition:none;}
+}
+.cp-phero.plan .cp-merge{justify-content:flex-start;margin:0 0 6px -6px;}
+.cp-phero.plan .cp-merge svg{width:200px;}
+.cp-phero.plan{align-items:start;}
+@media (max-width:900px){
+  /* v9: the round leads on phones too — its hero (a plan round's delivery board) and card first, the "how it works" band after */
+  #bp-panel-home.active>.cp-phero{order:0;}
+  body.cp-home-live #bp-panel-home.active>.bp-hero{order:3;}
+  body.cp-home-live #bp-panel-home.active>.cp-home-more{order:2;}
+}
+/* v9: no route in the card → the numbers sit right under the description, the room goes to the card's end */
+@media (min-width:1101px){.cp-main:not(.cp9-has-route) > .bp-mini-stats{align-self:start;}}

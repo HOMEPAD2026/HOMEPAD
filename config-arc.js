@@ -109,18 +109,22 @@ const CONFIG = {
       // ARCIRCLE Orders: no separate 3-day raise — the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone
       // in Round #3 (now or before the close) is in it automatically. also.merged switches the copy (circlepad-plan.js,
       // circlepad-boot.js).
-      airdrop: "Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.",
+      // 6 Oct 2026: Round #3 + #4's rewards go out as a snapshot airdrop; more updates follow (snapshot: true)
+      airdrop: "Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Both go out as a snapshot airdrop to the contributor list, with more updates to follow. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.",
       plan: { buy: { sym: "ARCIA", chain: "Robinhood Chain", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", url: "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25" },
-        also: { round: 4, chain: "Solana", sym: "TBA", merged: true, via: "pump.fun", with: "ARCIRCLE Orders", mergedAt: "5 Oct 2026" } } },
+        also: { round: 4, chain: "Solana", sym: "TBA", merged: true, via: "pump.fun", with: "ARCIRCLE Orders", mergedAt: "5 Oct 2026", snapshot: true } } },
   },
+  // Round numbers with no escrow of their own (api/_rounds.mjs SKIPPED — keep the same): Round #4 went into Round #3,
+  // so the round after #3 is #5. Projects shows a short "merged" card in its place.
+  CIRCLEPAD_SKIPPED: { 4: 3 },
   // v8: the delivery board under a plan round's hero (circlepad-plan.js) — what the team has done after the close.
   // Each step: status "" (waiting) | "now" (in progress) | "done", and txs: [{ chain: "rh" | "sol" | "arc", hash, label }].
   CIRCLEPAD_DELIVERY: {
+    // 6 Oct 2026: Round #3 + #4 go out as a snapshot airdrop, then more updates
     3: {
-      buy: { status: "", txs: [] }, // $ARCIA bought on Robinhood Chain with the raise
-      send: { status: "", txs: [] }, // $ARCIA sent to the contributors by share
-      r4: { status: "", txs: [] }, // Round #4 launched on Solana (pump.fun) with ARCIRCLE Orders
-      r4send: { status: "", txs: [] }, // the Round #4 share delivered
+      snap: { status: "", txs: [] }, // the snapshot: who is in, by share of the raise
+      drop: { status: "", txs: [] }, // the snapshot airdrop ($ARCIA on Robinhood Chain + the Round #4 share)
+      more: { status: "", txs: [] }, // the updates that follow (Round #4 on Solana)
     },
   },
   // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
