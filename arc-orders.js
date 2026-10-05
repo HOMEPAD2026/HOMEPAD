@@ -69,6 +69,8 @@
   const txa = (h, label) => (h ? `<a class="aor-tx" href="${EXPL("tx", h)}" target="_blank" rel="noopener" data-no-i18n>${esc(label || short(h))} ↗</a>` : "");
   const API = "/api/social";
   const FEE = 0.001;
+  // v6: what a fill actually got (the executor records it), else the order's own limit price
+  const opx = (o) => (o && o.fillPx > 0 ? o.fillPx : o ? o.price : 0);
   const ZERO32 = "0x" + "0".repeat(64);
   const me = () => (typeof state !== "undefined" && state.account ? lc(state.account) : null);
   const now = () => Math.floor(Date.now() / 1000);
@@ -1271,8 +1273,8 @@
     let bT = 0, bQ = 0;
     for (const o of ((S.mine && S.mine.orders) || [])) {
       if (lc(o.token.address || o.token) !== S.t || !(o.filledPct > 0) || !(o.price > 0)) continue;
-      out.fills.push({ at: o.last || o.at, p: o.price, buy: o.side === "buy" });
-      if (o.side === "buy") { const x = (human(o.buyAmount, S.tok.decimals) / (1 - FEE)) * (o.filledPct / 100); bT += x; bQ += x * o.price; }
+      out.fills.push({ at: o.last || o.at, p: opx(o), buy: o.side === "buy" });
+      if (o.side === "buy") { const x = (human(o.buyAmount, S.tok.decimals) / (1 - FEE)) * (o.filledPct / 100); bT += x; bQ += x * opx(o); }
     }
     out.avg = bT ? bQ / bT : null;
     return out;
@@ -2246,7 +2248,7 @@
       for (const o of os) {
         const t = lc(o.token.address || o.token), tk = o.token, f = (o.filledPct || 0) / 100;
         const g = by.get(t) || { t, sym: tk.symbol, bT: 0, bQ: 0, sT: 0, sQ: 0 };
-        if (o.side === "buy") { const x = (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f; g.bT += x; g.bQ += x * o.price; } else { const x = human(o.sellAmount, tk.decimals) * f; g.sT += x; g.sQ += x * o.price; }
+        if (o.side === "buy") { const x = (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f; g.bT += x; g.bQ += x * opx(o); } else { const x = human(o.sellAmount, tk.decimals) * f; g.sT += x; g.sQ += x * opx(o); }
         by.set(t, g);
       }
       const pxOf = (t) => { if (t === S.t && S.spot) return S.spot; const m = S.markets.find((x) => lc(x.token.address || x.token) === t); return m ? m.spot || m.last || null : null; };
@@ -2260,8 +2262,8 @@
       let bT = 0, bQ = 0, sT = 0, sQ = 0;
       for (const o of os.filter((x) => lc(x.token.address || x.token) === S.t)) {
         const tk = o.token, f = (o.filledPct || 0) / 100;
-        if (o.side === "buy") { const t = (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f; bT += t; bQ += t * o.price; }
-        else { const t = human(o.sellAmount, tk.decimals) * f; sT += t; sQ += t * o.price; }
+        if (o.side === "buy") { const t = (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f; bT += t; bQ += t * opx(o); }
+        else { const t = human(o.sellAmount, tk.decimals) * f; sT += t; sQ += t * opx(o); }
       }
       if (bT || sT) {
         const ab = bT ? bQ / bT : null, as = sT ? sQ / sT : null, vs = ab ? ((S.spot - ab) / ab) * 100 : null;
@@ -2274,7 +2276,7 @@
       }
     }
     // the fee side: 0.1% of what each fill received, half of it buys and burns $ARCIRCLE (an estimate: a holder pays none)
-    const vol = os.reduce((s, o) => { const tk = o.token, f = (o.filledPct || 0) / 100; const t = o.side === "buy" ? (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f : human(o.sellAmount, tk.decimals) * f; return s + t * (o.price || 0); }, 0);
+    const vol = os.reduce((s, o) => { const tk = o.token, f = (o.filledPct || 0) / 100; const t = o.side === "buy" ? (human(o.buyAmount, tk.decimals) / (1 - FEE)) * f : human(o.sellAmount, tk.decimals) * f; return s + t * (opx(o) || 0); }, 0);
     if (vol > 0) {
       const qs = RH() ? " ETH" : "", amt = (v) => (RH() ? num(v) + qs : v > 0 && v < 0.01 ? "<$0.01" : usd(v));
       html += `<div class="aor-burnc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 3.5 5 5.4 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2.2-4.6.2 1.8 1 2.6 1.8 3C11 9 11.5 6 12 3z"/></svg><span>${T("Filled through ARCIRCLE Orders")} <i data-no-i18n>${amt(vol)}</i> · ${S.feeFree ? `${T("as a holder you pay no fee — about")} <i data-no-i18n>${amt(vol * FEE)}</i> ${T("saved at today's rate")}` : `${T("about")} <i data-no-i18n>${amt(vol * FEE / 2)}</i> ${T("of fees went to buy and burn $ARCIRCLE")}`}</span></div>`;
@@ -2536,7 +2538,7 @@
   /// v5: my average buy in a market from my filled Orders buys (null without any)
   function avgBuyOf(d, t) {
     let bT = 0, bQ = 0;
-    for (const o of ((d && d.orders) || [])) { if (lc(o.token.address || o.token) !== t || o.side !== "buy" || !(o.filledPct > 0) || !(o.price > 0)) continue; const x = (human(o.buyAmount, o.token.decimals) / (1 - FEE)) * (o.filledPct / 100); bT += x; bQ += x * o.price; }
+    for (const o of ((d && d.orders) || [])) { if (lc(o.token.address || o.token) !== t || o.side !== "buy" || !(o.filledPct > 0) || !(o.price > 0)) continue; const x = (human(o.buyAmount, o.token.decimals) / (1 - FEE)) * (o.filledPct / 100); bT += x; bQ += x * opx(o); }
     return bT ? bQ / bT : null;
   }
   /// a fill's small print: what came in (at least), and the fee (or none, for a holder)

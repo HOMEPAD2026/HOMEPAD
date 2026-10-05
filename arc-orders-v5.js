@@ -47,7 +47,7 @@
     const S = O().state, by = new Map();
     for (const o of (S.mine && S.mine.orders) || []) {
       const t = lc(o.token.address || o.token), g = by.get(t) || { bT: 0, bQ: 0, open: 0 };
-      if (o.side === "buy" && o.filledPct > 0 && o.price > 0) { const x = (Number(o.buyAmount) / 10 ** o.token.decimals / 0.999) * (o.filledPct / 100); g.bT += x; g.bQ += x * o.price; }
+      if (o.side === "buy" && o.filledPct > 0 && o.price > 0) { const x = (Number(o.buyAmount) / 10 ** o.token.decimals / 0.999) * (o.filledPct / 100); g.bT += x; g.bQ += x * (o.fillPx > 0 ? o.fillPx : o.price); }
       if (o.status === "open" || o.status === "unfunded") g.open++;
       by.set(t, g);
     }
@@ -62,7 +62,7 @@
       if (!(o.filledPct > 0) || !(o.price > 0) || !o.token) continue;
       const d = Number(o.token.decimals ?? 18), f = o.filledPct / 100;
       const tok = o.side === "buy" ? (Number(o.buyAmount) / 10 ** d / 0.999) * f : (Number(o.sellAmount) / 10 ** d) * f;
-      fills.push({ t: lc(o.token.address || o.token), sym: o.token.symbol, side: o.side, tok, px: o.price, at: o.last || o.at });
+      fills.push({ t: lc(o.token.address || o.token), sym: o.token.symbol, side: o.side, tok, px: o.fillPx > 0 ? o.fillPx : o.price, at: o.last || o.at });
     }
     fills.sort((a, b) => a.at - b.at);
     const pos = new Map(), sells = [];

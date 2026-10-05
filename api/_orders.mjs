@@ -487,6 +487,7 @@ const pub = (x, m) => {
     cond: x.cond ? { token: x.cond.token, sym: x.cond.sym, dir: x.cond.dir, price: x.cond.price, met: x.condMet || null } : null,
     retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
     lastTx: x.lastTx || null, // v5: the latest fill's transaction (the share card)
+    fillPx: x.ft > 0 ? x.fq / x.ft : null, // v6: the average price the fills actually got (the limit is the worst it could be)
   };
 };
 async function book(token, { store } = {}) {
@@ -743,6 +744,7 @@ function recordFills(m, rc, via, evs = []) {
     const tokenRaw = x.side === "sell" ? sold : gross, quoteRaw = x.side === "sell" ? gross : sold;
     const amount = human(tokenRaw, m.token.decimals), quote = human(quoteRaw, m.quote.decimals);
     out.push({ at: now, h, side: x.side, price: amount > 0 ? quote / amount : 0, amount, quote, via, tx: lc(rc.transactionHash) });
+    x.ft = (x.ft || 0) + amount; x.fq = (x.fq || 0) + quote; // v6: what the fills actually got
     x.filled = (BigInt(x.filled || 0) + sold).toString(); x.last = now; x.fails = 0; x.nextTry = 0; x.lastErr = null; x.lastTx = lc(rc.transactionHash);
     if (BigInt(x.filled) >= BigInt(x.o.sellAmount)) x.status = "filled";
     const pnl = costTrack(m, x.o.maker, x.side, amount, quote);
