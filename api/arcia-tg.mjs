@@ -18,6 +18,10 @@
 // Group safety (when she's an admin there) — deletes private keys and seed phrases anywhere, scam links,
 //   fake $ARCIRCLE contract addresses and people posing as the team; join check (/captcha); holder gate
 //   (/gate); auto-scan of posted contract addresses; /warn /mute /unmute /ban for chat admins.
+// v7, the home group (t.me/ARCIRCLEonarc; /assist and /strikes elsewhere) — questions answered without an @mention
+//   (contract addresses, official links, how to buy and the price straight from here; the rest from ARCIA with live
+//   numbers), spam (invites to other groups, paid promotion and "signals", mass mentions, floods) deleted with a
+//   warning n/3, and the third warning removes the person from the group; /unban /warns /resetwarns for chat admins.
 // Admins (claimed with a code) — /status /report /botstats, /announce (text or a photo + caption),
 //   /poll, /schedule, /say, /tweet (draft → approve → X), /here /unhere /targets, /mirror, /guard,
 //   /autoscan, /lang (group), /stickers, /pause402 /hire.
@@ -46,7 +50,7 @@ import { cronBudget, within, cronOut } from "./_cron.mjs";
 import {
   SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
-  linkMessage, personalSigner, secretIn, scamReason,
+  linkMessage, personalSigner, secretIn, scamReason, spamReason,
 } from "./_tg-lib.mjs";
 
 const LIMIT = { dm: 40, group: 15, all: 800, photo: 5, lucky: 3, watch: 3 };
@@ -54,6 +58,12 @@ const json = (status, body, cache = "no-store") => new Response(JSON.stringify(b
 const store = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d), getMany: (ks) => getDocs(ks) } : null);
 const minute = () => Math.floor(Date.now() / 60000);
 const isGroup = (chat) => chat.type === "group" || chat.type === "supergroup";
+// v7: ARCIRCLE's own community group — ARCIA answers questions there without being @mentioned, and spam takes three
+// strikes and you're out. Other groups keep their settings (an admin can turn either on with /assist and /strikes).
+const HOME_GROUPS = ["arcircleonarc"];
+const isHome = (chat) => !!chat && HOME_GROUPS.includes(lc(chat.username || ""));
+const assistOn = (c, chat) => { const v = chatCfg(c, chat.id).assist; return v == null ? isHome(chat) : !!v; };
+const strikeBan = (c, chat) => { const v = chatCfg(c, chat.id).strikes; return (v == null ? (isHome(chat) ? "ban" : "mute") : v) === "ban"; };
 
 // ---------------- words ----------------
 // The bot speaks English. A DM can pick /lang ko|zh|en, and a group admin can set a group's language;
@@ -76,6 +86,7 @@ const W = {
   slow: ["One moment~ too many commands at once.", "잠깐만요~ 명령이 너무 빨라요.", "稍等一下~ 命令太快啦。"],
   keyGroup: ["⚠️ I removed a message that looked like a private key or seed phrase. Never share those — anyone who has them can take everything in the wallet. If it was real, move your funds to a new wallet now.", "⚠️ 개인키나 시드 문구로 보이는 메시지를 지웠어요. 절대 공유하지 마세요 — 그걸 가진 사람은 지갑의 모든 걸 가져갈 수 있어요. 진짜였다면 지금 바로 새 지갑으로 자산을 옮기세요.", "⚠️ 我删除了一条疑似私钥或助记词的消息。千万不要分享——拿到的人可以拿走钱包里的一切。如果是真的,请立刻把资产转到新钱包。"],
   keyDm: ["⚠️ That looks like a private key or seed phrase. Please never send it to anyone — not to me, not to the team. I didn't keep it. If it was real, move your funds to a new wallet now.", "⚠️ 개인키나 시드 문구 같아요. 누구에게도 보내지 마세요 — 저에게도, 팀에게도요. 저장하지 않았어요. 진짜였다면 지금 바로 새 지갑으로 자산을 옮기세요.", "⚠️ 这看起来像私钥或助记词。请不要发给任何人——包括我和团队。我没有保存。如果是真的,请立刻把资产转到新钱包。"],
+  spam: ["🧹 Removed a message from {name}: {why}.", "🧹 {name}님의 메시지를 지웠어요: {why}.", "🧹 已删除 {name} 的消息：{why}。"],
   scam: ["🛡 Removed a message from {name}: {why}. The team will never DM you first or ask you to connect your wallet anywhere but arcircle.app.", "🛡 {name}님의 메시지를 지웠어요: {why}. 팀은 먼저 DM하지 않고, arcircle.app 말고 다른 곳에 지갑 연결을 요청하지 않아요.", "🛡 删除了 {name} 的消息:{why}。团队不会主动私信你,也不会让你在 arcircle.app 以外的地方连接钱包。"],
   captcha: ["Welcome, {name}! Tap the button to show you're human 💙", "{name}님 환영해요! 사람임을 확인하려면 버튼을 눌러 주세요 💙", "欢迎,{name}!请点按钮证明你是真人 💙"],
   gate: ["Welcome, {name}! This group is for $ARCIRCLE holders ({min}+). Link your wallet with me in a DM, then tap Verify.", "{name}님 환영해요! 이 그룹은 $ARCIRCLE 홀더({min}개 이상) 전용이에요. DM에서 지갑을 연결한 뒤 Verify를 눌러 주세요.", "欢迎,{name}!本群仅限 $ARCIRCLE 持有人({min}+)。请先私信我绑定钱包,再点 Verify。"],
@@ -98,7 +109,8 @@ const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"]
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
   ["poll", "/poll Question | option | option"], ["schedule", "/schedule 2026-09-30 20:00 text (KST)"], ["schedules", "Scheduled posts"], ["say", "ARCIA rewrites your note and posts it"], ["tweet", "Draft a post for X, approve to publish"],
   ["here", "Use this chat for announcements"], ["unhere", "Stop announcing here"], ["targets", "Where announcements go"], ["mirror", "Mirror ARCIA's X posts: on / off"], ["agentweekly", "ARCIA AGENT's Monday report card here: on / off"], ["guard", "Scam filter here: on / off"], ["captcha", "Join check here: on / off"],
-  ["autoscan", "Auto-scan contract addresses here: on / off"], ["gate", "Holders-only group: /gate 100000 or off"], ["buybot", "Buy alerts for our coins here: on [min $] / off"], ["warn", "Reply: warn (3 = 24 h mute)"], ["mute", "Reply: mute [hours]"], ["unmute", "Reply: unmute"], ["ban", "Reply: ban"],
+  ["autoscan", "Auto-scan contract addresses here: on / off"], ["gate", "Holders-only group: /gate 100000 or off"], ["buybot", "Buy alerts for our coins here: on [min $] / off"], ["warn", "Reply: warn (3 = removed, or a 24 h mute with /strikes mute)"], ["mute", "Reply: mute [hours]"], ["unmute", "Reply: unmute"], ["ban", "Reply: ban"],
+  ["unban", "Reply or user id: unban"], ["warns", "Reply: their warnings"], ["resetwarns", "Reply: clear their warnings"], ["assist", "Answer questions here without an @mention: on / off"], ["spam", "Spam filter here (invites, promo, floods): on / off"], ["strikes", "At 3 warnings: ban or mute"],
   ["stickers", "Create ARCIA's sticker set"], ["pause402", "ARCIA 402: sell | hire | all | off"], ["hire", "ARCIA 402: hire an agent now"], ["whoami", "Your Telegram ID"]];
 const menu = (list) => list.map(([command, description]) => ({ command, description }));
 
@@ -356,11 +368,11 @@ async function scanWithProgress(m, ca, lang) {
 }
 
 // ---------------- chat as ARCIA (streamed) ----------------
-async function answer(m, text, { lang, group, image } = {}) {
+async function answer(m, text, { lang, group, image, assist = false } = {}) {
   const c = await loadCfg(), uid = m.from.id, admin = c.admins.includes(uid);
   if (!admin) {
     const mine = await usage("chat", uid), all = Object.values(await usage("chat")).reduce((s, n) => s + n, 0);
-    if (mine >= (group ? LIMIT.group : LIMIT.dm) || all >= LIMIT.all) return say(m, w("limit", lang));
+    if (mine >= (group ? LIMIT.group : LIMIT.dm) || all >= LIMIT.all) return assist ? undefined : say(m, w("limit", lang)); // unasked: stay quiet
     if (image && (await usage("photo", uid)) >= LIMIT.photo) return say(m, w("photoLimit", lang));
   }
   const stop = keepTyping(m.chat.id);
@@ -375,7 +387,7 @@ async function answer(m, text, { lang, group, image } = {}) {
     const messages = [...turns.map((t) => ({ role: t.r, content: t.c })), { role: "user", content }];
     const L = await live(SITE).catch(() => null);
     const who = [m.from.first_name, m.from.username ? "@" + m.from.username : ""].filter(Boolean).join(" ");
-    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)` : " in a private chat"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /ca /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
+    const extra = `Reply in the language the person wrote in (English unless they wrote in another language). You are chatting on Telegram${group ? ` in the group "${m.chat.title || ""}" (keep it short; others are reading)${assist ? `. This is ARCIRCLE's own community group and you answer its questions as ARCIRCLE's AI without being @mentioned: lead with the answer, use the live numbers you have for how ARCIRCLE is doing right now, give only the official contract addresses and arcircle.app links, never financial advice, and if the message isn't really for you, answer in one short friendly line` : ""}` : " in a private chat"}. The person is ${who || "a fan"}. ${image ? "They sent a picture: describe what matters in it for them (charts: say what you see, never predict prices). " : ""}Telegram shows plain text: no markdown, no bold, no bullet lists; links as plain arcircle.app/… text. Bot commands you can mention: /ca /price /scan 0x… /coin 0x… /round /drops 0x… /launches /books /link /alerts /gm.`;
     const replyTo = group ? { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true } } : {};
     let out = "", mid = null, lastEdit = 0;
     const it = await streamClaude({ messages, L, extra, maxTokens: 420, timeoutMs: 30000 }).catch(() => null);
@@ -439,22 +451,46 @@ async function guard(c, m, lang) {
   const cc = chatCfg(c, m.chat.id);
   if (!cc.guard) return false;
   const joined = (cc.joins || {})[m.from.id];
-  const why = scamReason(m, { newbie: !!joined && Date.now() - joined < 72 * 3600e3 });
+  const newbie = !!joined && Date.now() - joined < 72 * 3600e3;
+  const scam = scamReason(m, { newbie });
+  const strict = assistOn(c, m.chat) || cc.spam === true;
+  const why = scam || (strict ? spamReason(m, { newbie }) || floodReason(m) : null);
   if (!why || (await canModerate(c, m))) return false;
   const del = await tg("deleteMessage", { chat_id: m.chat.id, message_id: m.message_id });
-  await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: w("scam", lang, { name: nameOf(m.from), why: h(why) }) + (del.ok ? "" : "\n<i>(I need admin rights with “Delete messages” to remove it.)</i>") });
-  await addWarn(c, m.chat.id, m.from, why);
+  const n = await addWarn(c, m.chat.id, m.from, why, m.chat, { quiet: true });
+  const out = strikeBan(c, m.chat);
+  await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: (scam ? w("scam", lang, { name: nameOf(m.from), why: h(why) }) : w("spam", lang, { name: nameOf(m.from), why: h(why) }))
+    + `\n${n >= 3 ? (out ? T3(lang, `⛔ Warning 3/3 — removed from the group.`, `⛔ 경고 3/3 — 그룹에서 내보냈어요.`, `⛔ 警告 3/3 — 已移出本群。`) : T3(lang, `🔇 Warning 3/3 — muted for 24 h.`, `🔇 경고 3/3 — 24시간 동안 채팅 금지.`, `🔇 警告 3/3 — 禁言 24 小时。`)) : T3(lang, `⚠️ Warning ${n}/3${out ? " — at 3 you're removed." : " — at 3 you're muted for 24 h."}`, `⚠️ 경고 ${n}/3${out ? " — 3번이면 내보냅니다." : " — 3번이면 24시간 채팅 금지."}`, `⚠️ 警告 ${n}/3${out ? " — 满 3 次将被移出。" : " — 满 3 次禁言 24 小时。"}`)}`
+    + (del.ok ? "" : "\n<i>(I need admin rights with “Delete messages” to remove it.)</i>") });
   return true;
 }
-async function addWarn(c, chatId, user, why) {
+/// v7: the same person posting very fast, or the same thing over and over (this instance's memory; good enough for a raid)
+const FLOOD = new Map();
+function floodReason(m) {
+  const k = `${m.chat.id}:${m.from.id}`, now = Date.now(), t = String(m.text || m.caption || "").trim().toLowerCase().slice(0, 200);
+  const f = FLOOD.get(k) || { at: [], texts: [] };
+  f.at = [...f.at.filter((x) => now - x < 15e3), now];
+  f.texts = [...f.texts.filter((x) => now - x.t < 600e3), { t: now, s: t }];
+  FLOOD.set(k, f);
+  if (FLOOD.size > 5000) FLOOD.clear();
+  if (f.at.length >= 7) return "flooding the chat";
+  if (t.length >= 12 && f.texts.filter((x) => x.s === t).length >= 3) return "posting the same message again and again";
+  return null;
+}
+async function addWarn(c, chatId, user, why, chat = null, { quiet = false } = {}) {
   const cc = chatCfg(c, chatId), warns = { ...(cc.warns || {}) };
   warns[user.id] = (warns[user.id] || 0) + 1;
+  const n = warns[user.id];
+  if (n >= 3) delete warns[user.id]; // a fresh start if they're ever let back in
   await setChatCfg(c, chatId, { warns });
-  if (warns[user.id] >= 3) {
-    const r = await tg("restrictChatMember", { chat_id: chatId, user_id: user.id, permissions: { can_send_messages: false }, until_date: Math.floor(Date.now() / 1000) + 86400 });
-    await tg("sendMessage", { chat_id: chatId, parse_mode: "HTML", text: r.ok ? `🔇 ${nameOf(user)} is muted for 24 h (3 warnings).` : `${nameOf(user)} has 3 warnings.` });
+  if (n >= 3) {
+    // v7: three strikes — out of the group (the home group, or /strikes ban), else muted for 24 hours
+    const ban = strikeBan(c, chat || { id: chatId });
+    const r = ban ? await tg("banChatMember", { chat_id: chatId, user_id: user.id, revoke_messages: false })
+      : await tg("restrictChatMember", { chat_id: chatId, user_id: user.id, permissions: { can_send_messages: false }, until_date: Math.floor(Date.now() / 1000) + 86400 });
+    if (!quiet) await tg("sendMessage", { chat_id: chatId, parse_mode: "HTML", text: r.ok ? (ban ? `⛔ ${nameOf(user)} is removed (3 warnings).` : `🔇 ${nameOf(user)} is muted for 24 h (3 warnings).`) : `${nameOf(user)} has 3 warnings — I need the right to ${ban ? "ban" : "restrict"} members.` });
   }
-  return warns[user.id];
+  return n;
 }
 const OPEN = { can_send_messages: true, can_send_audios: true, can_send_documents: true, can_send_photos: true, can_send_videos: true, can_send_video_notes: true, can_send_voice_notes: true, can_send_polls: true, can_send_other_messages: true, can_add_web_page_previews: true, can_invite_users: true };
 const CLOSED = { can_send_messages: false, can_send_audios: false, can_send_documents: false, can_send_photos: false, can_send_videos: false, can_send_video_notes: false, can_send_voice_notes: false, can_send_polls: false, can_send_other_messages: false, can_add_web_page_previews: false };
@@ -766,6 +802,32 @@ async function onMessage(m, channel) {
         const r = await tg("banChatMember", { chat_id: m.chat.id, user_id: target.id });
         return say(m, r.ok ? `⛔ ${nameOf(target)} is banned.` : `Couldn't: ${h(r.description || "")}`);
       }
+      case "assist": case "spam": {
+        if (!group) return say(m, `Use /${cmd} on|off inside a group.`);
+        if (!(await mod())) return adminOnly();
+        const on = !/^off$/i.test(arg);
+        await setChatCfg(c, m.chat.id, { [cmd]: on });
+        return say(m, cmd === "assist" ? `✓ ${on ? "I'll answer questions here without an @mention (contract addresses, links, how to buy, the price, and anything ARCIRCLE)." : "I'll answer here only when @mentioned or replied to."}` : `✓ Spam filter (invites, promo, mass mentions, floods) ${on ? "on" : "off"} here.`);
+      }
+      case "strikes": {
+        if (!group) return say(m, "Use /strikes ban|mute inside a group.");
+        if (!(await mod())) return adminOnly();
+        const v = /^mute$/i.test(arg) ? "mute" : "ban";
+        await setChatCfg(c, m.chat.id, { strikes: v });
+        return say(m, `✓ At 3 warnings: ${v === "ban" ? "removed from the group" : "muted for 24 h"}.`);
+      }
+      case "unban": case "warns": case "resetwarns": {
+        if (!group) return say(m, `Use /${cmd} inside a group (reply to the person, or /${cmd} <user id>).`);
+        if (!(await mod())) return adminOnly();
+        const id = target ? target.id : Number(arg);
+        if (!id) return say(m, `Reply to someone with /${cmd}, or /${cmd} <user id>.`);
+        const cc = chatCfg(c, m.chat.id), warns = { ...(cc.warns || {}) };
+        if (cmd === "warns") return say(m, `${target ? nameOf(target) : id}: ${warns[id] || 0}/3 warnings.`);
+        delete warns[id]; await setChatCfg(c, m.chat.id, { warns });
+        if (cmd === "resetwarns") return say(m, "✓ Warnings cleared.");
+        const r = await tg("unbanChatMember", { chat_id: m.chat.id, user_id: id, only_if_banned: true });
+        return say(m, r.ok ? "✓ Unbanned — they can join again." : `Couldn't: ${h(r.description || "")}`);
+      }
       case "guard": case "captcha": case "autoscan": {
         if (!group) return say(m, `Use /${cmd} on|off inside a group.`);
         if (!(await mod())) return adminOnly();
@@ -868,7 +930,17 @@ async function onMessage(m, channel) {
   if (group) {
     const mention = bot.username && new RegExp(`@${bot.username}\\b`, "i").test(text);
     const toMe = m.reply_to_message && m.reply_to_message.from && m.reply_to_message.from.id === bot.id;
-    if (!mention && !toMe) { await autoScan(c, m, lang); return; }
+    if (!mention && !toMe) {
+      // v7: in the home group (or with /assist on) a question gets an answer without the @mention — the common ones
+      // (contract addresses, links, how to buy, the price) straight from here, the rest from ARCIA
+      const toHuman = m.reply_to_message && m.reply_to_message.from && !m.reply_to_message.from.is_bot && m.reply_to_message.from.id !== m.from.id;
+      if (!m.photo && assistOn(c, m.chat) && looksLikeQuestion(text)) {
+        const ql = langOf(text, lang), kind = faqOf(text);
+        if (kind) { if (!tooMany(`faq:${m.chat.id}:${kind}`, 1, 45e3)) return faqReply(m, kind, ql); return; }
+        if (!toHuman && !tooMany(`assist:${m.chat.id}`, 30, 600e3) && !tooMany(`assistu:${m.chat.id}:${uid}`, 3, 180e3)) return answer(m, text, { lang: ql, group, assist: true });
+      }
+      await autoScan(c, m, lang); return;
+    }
     q = text.replace(new RegExp(`@${bot.username}\\b`, "ig"), "").trim() || (m.photo ? "" : "hi");
   } else if (!m.photo) {
     // a bare contract address in a DM: scan it
@@ -877,6 +949,51 @@ async function onMessage(m, channel) {
   }
   const image = m.photo ? await fileBase64(m.photo[m.photo.length - 1].file_id).catch(() => null) : null;
   return answer(m, q, { lang, group, image });
+}
+// ---------------- v7: the home group's assistant ----------------
+const QWORDS = /^(what|what's|whats|how|when|where|why|who|which|is|are|can|could|does|do|did|will|should|wen|anyone|any\s+update|pls|please)\b/i;
+/// a question: a question mark, a question word first, or (Korean / Chinese) a question ending or keyword
+function looksLikeQuestion(t) {
+  t = String(t || "").trim();
+  if (t.length < 3 || t.length > 700 || /^\/|^0x[0-9a-fA-F]{40}$/.test(t)) return false;
+  if (/[?？]/.test(t)) return true;
+  if (QWORDS.test(t)) return true;
+  if (/[가-힣]/.test(t) && /(뭐|무엇|어떻게|언제|어디|왜|누구|있나요|인가요|나요|까요|건가요|맞나요|알려|주소|사이트|홈페이지|컨트랙트|씨에이)/.test(t)) return true;
+  if (/[\u4e00-\u9fff]/.test(t) && /(什么|怎么|如何|哪里|为什么|吗|呢|合约|网站|地址|价格)/.test(t)) return true;
+  return /^(ca|contract|website|links?|chart)\b/i.test(t);
+}
+const langOf = (t, fb) => (/[가-힣]/.test(t) ? "ko" : /[\u4e00-\u9fff]/.test(t) ? "zh" : fb || "en");
+/// the questions with one right answer — contract addresses, the official links, how to buy, the price
+function faqOf(t) {
+  const s = String(t || "").toLowerCase();
+  if (/\b(ca|contract|contract address|token address)\b|컨트랙트|씨에이|合约/.test(s) || (/(주소|\baddress\b|地址)/.test(s) && /(arcircle|arcia|토큰|코인|token|代币)/.test(s))) return "ca";
+  if (/\b(how (do i|to|can i|i can) buy|where (to|can i|do i) buy|how to get)\b|어디서 사|어떻게 사|구매 방법|사는 법|매수 방법|怎么买|在哪买|如何购买/.test(s)) return "buy";
+  if (/\b(website|web site|homepage|official (site|links?)|links?|socials?|twitter|x account)\b|웹사이트|사이트|홈페이지|링크|공식|网站|官网|链接/.test(s)) return "site";
+  if (/\b(price|chart|mcap|market cap|marketcap)\b|가격|시세|차트|시총|价格|行情|市值/.test(s)) return "price";
+  return null;
+}
+async function faqReply(m, kind, lang) {
+  const rp = { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true } };
+  const safe = T3(lang, "🛡 Only trust addresses from arcircle.app or this bot. The team never DMs you first.", "🛡 arcircle.app이나 이 봇이 알려준 주소만 믿으세요. 팀은 먼저 DM하지 않아요.", "🛡 只相信 arcircle.app 或本机器人给出的地址。团队绝不会先私信你。");
+  if (kind === "price") return sendCard(m.chat.id, await cardPrice(lang), { replyTo: m.message_id });
+  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `${cardCA()}\n\n♾️ <b>$ARCIRCLE</b> ${T3(lang, "on Robinhood Chain (ARCIRCLE OMNI)", "Robinhood Chain (ARCIRCLE OMNI)", "Robinhood Chain 上（ARCIRCLE OMNI）")}:\n<code>0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4</code>\n\n${safe}`, ...rp,
+    ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "arcircle.app", url: SITE }]]) });
+  if (kind === "site") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [
+    `🌐 <b>${T3(lang, "ARCIRCLE — official links", "ARCIRCLE 공식 링크", "ARCIRCLE 官方链接")}</b>`,
+    `${T3(lang, "Website", "웹사이트", "官网")}: ${SITE.replace("https://www.", "")}`,
+    `ArcPad — ${T3(lang, "launch and trade on Arc", "Arc에서 런칭·거래", "在 Arc 上发币和交易")}: arcircle.app/arc`,
+    `CirclePad — ${T3(lang, "crowdfunded rounds", "크라우드펀딩 라운드", "众筹轮次")}: arcircle.app/circle`,
+    `ARCIRCLE Orders — ${T3(lang, "limit, stop and grid orders", "지정가·스탑·그리드 주문", "限价、止损和网格订单")}: arcircle.app/arc#orders`,
+    `$ARCIRCLE: arcircle.app/arcircle · ${T3(lang, "Reward", "리워드", "奖励")}: arcircle.app/reward`,
+    `X: x.com/ARCIRCLEonArc · ARCIA: t.me/ARCIAonArc_bot`, "", safe].join("\n"),
+    ...kb([[{ text: "arcircle.app", url: SITE }, { text: "X", url: "https://x.com/ARCIRCLEonArc" }], [{ text: "ARCIRCLE Orders", url: `${SITE}/arc#orders` }, { text: "CirclePad", url: `${SITE}/circle` }]]) });
+  // buy
+  return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [
+    `🛒 <b>${T3(lang, "How to buy", "구매 방법", "如何购买")}</b>`,
+    `♾️ <b>$ARCIRCLE</b> — ${T3(lang, "on Arc: open arcircle.app/arcircle and swap with USDC (or set your own price with ARCIRCLE Orders). On Robinhood Chain it arrives through ARCIRCLE OMNI.", "Arc에서: arcircle.app/arcircle 에서 USDC로 스왑(또는 ARCIRCLE Orders로 원하는 가격에 주문). Robinhood Chain에는 ARCIRCLE OMNI로 옮겨옵니다.", "在 Arc 上：打开 arcircle.app/arcircle 用 USDC 兑换（或用 ARCIRCLE Orders 设置你的价格）。在 Robinhood Chain 上通过 ARCIRCLE OMNI 跨链。")}`,
+    `💙💚 <b>$ARCIA</b> — ${T3(lang, "on Robinhood Chain, through Pons:", "Robinhood Chain에서 Pons로:", "在 Robinhood Chain 上通过 Pons：")} ${ARCIA_RH_BUY.replace("https://www.", "")}`,
+    "", T3(lang, "Check the contract address (/ca) before you buy. Not financial advice.", "사기 전에 컨트랙트 주소(/ca)를 꼭 확인하세요. 투자 조언이 아닙니다.", "购买前请核对合约地址（/ca）。并非投资建议。")].join("\n"),
+    ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "ARCIRCLE Orders", url: `${SITE}/arc#orders` }]]) });
 }
 async function setTarget(c, chat, on) {
   c.targets = c.targets.filter((t) => t.id !== chat.id);

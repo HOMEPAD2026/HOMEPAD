@@ -177,7 +177,7 @@ export function secretIn(text) {
   }
   return null;
 }
-const ALLOW_HOSTS = /(^|\.)(arcircle\.app|x\.com|twitter\.com|t\.me|telegram\.org|argus\.world|arcscan\.app|etherscan\.io|circle\.com|arc\.network|dexscreener\.com|github\.com|youtube\.com|youtu\.be)$/i;
+const ALLOW_HOSTS = /(^|\.)(arcircle\.app|x\.com|twitter\.com|t\.me|telegram\.org|argus\.world|arcscan\.app|etherscan\.io|circle\.com|arc\.network|dexscreener\.com|github\.com|youtube\.com|youtu\.be|ponsfamily\.com|blockscout\.com|robinhood\.com)$/i;
 export function linksIn(m) {
   const t = String(m.text || m.caption || "");
   const out = [];
@@ -187,6 +187,30 @@ export function linksIn(m) {
   }
   for (const x of t.match(/\bhttps?:\/\/\S+/gi) || []) out.push(x);
   return [...new Set(out)].map((u) => { try { return new URL(/^https?:/i.test(u) ? u : "https://" + u).host.toLowerCase(); } catch { return ""; } }).filter(Boolean);
+}
+/// every link in a message, whole (for Telegram invites: t.me/+…, t.me/joinchat/…, t.me/<another group>)
+export function urlsIn(m) {
+  const t = String(m.text || m.caption || ""), out = [];
+  for (const e of [...(m.entities || []), ...(m.caption_entities || [])]) { if (e.type === "url") out.push(t.substr(e.offset, e.length)); if (e.type === "text_link" && e.url) out.push(e.url); }
+  for (const x of t.match(/\b(?:https?:\/\/)?(?:t\.me|telegram\.me)\/\S+/gi) || []) out.push(x);
+  return [...new Set(out)];
+}
+// our own Telegram: the group, the bot, the launch channel, HOMEPAD — links to anything else on t.me are someone's ad
+const OUR_TG = /^(arcircleonarc|arciaonarc_bot|arcircle_launch|homeonrobin|addstickers|share)$/i;
+const PROMO = /\b(presale|pre-sale|whitelist\s+spot|pump\s+(group|signal|channel)|1000x|100x\s+gem|gem\s+alert|next\s+100x|paid\s+promo(tion)?|promotion\s+service|promo\s+package|listing\s+service|volume\s+bot|marketing\s+service|crypto\s+signals?|trading\s+signals?|guaranteed\s+(profit|returns?)|double\s+your|investment\s+plan|earn\s+\$?\d+\s*(daily|per\s+day|a\s+day)|dm\s+(me\s+)?for\s+(promo|collab|listing|marketing|partnership))\b/i;
+/// v7 (the home group): why a group message is spam, or null — invites to other Telegram groups, paid-promotion and
+/// "signals" offers, mass mentions, a new member's forwarded ad. newbie: joined in the last 72 h.
+export function spamReason(m, { newbie = false } = {}) {
+  const t = String(m.text || m.caption || "");
+  for (const u of urlsIn(m)) {
+    const x = /(?:t\.me|telegram\.me)\/(\+|joinchat\/)?([A-Za-z0-9_]+)/i.exec(u);
+    if (x && (x[1] || !OUR_TG.test(x[2]))) return "an invite to another Telegram group or channel";
+  }
+  if (PROMO.test(t)) return "paid promotion, signals or a too-good-to-be-true offer";
+  const ments = (t.match(/@[A-Za-z0-9_]{4,}/g) || []).length;
+  if (ments >= 5) return "mass mentions";
+  if (newbie && m.forward_origin && (m.forward_origin.type === "channel" || m.forward_origin.type === "chat") && (linksIn(m).length || /@[A-Za-z0-9_]{4,}/.test(t))) return "a forwarded ad";
+  return null;
 }
 const BAIT = /\b(claim|giveaway|reward[s]?|free\s+(token|airdrop|usdc)|connect\s+(your\s+)?wallet|validate|verify\s+(your\s+)?wallet|sync\s+(your\s+)?wallet|restore|recovery|support\s+team|dm\s+me|inbox\s+me|contact\s+(admin|support)|whatsapp)\b/i;
 /// why a group message looks like a scam, or null. newbie: joined in the last 72 h.
