@@ -33,6 +33,13 @@ export function evmChain({ rpcs, chainId, timeoutMs = 8000 }) {
       const url = list[(idx + k) % list.length];
       try {
         const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(t) });
+        if (r.status === 429 && list.length === 1 && !body.__retried) {
+          // v6: one endpoint and it's busy: wait a moment (its Retry-After, at most 1.5 s) and try once more
+          const ra = Number(r.headers.get("retry-after")) || 0;
+          await new Promise((res) => setTimeout(res, Math.min(1500, ra > 0 ? ra * 1000 : 400 + Math.random() * 400)));
+          Object.defineProperty(body, "__retried", { value: true, enumerable: false });
+          return rpc(body, { timeoutMs: t });
+        }
         if (r.status === 429 || r.status >= 500) throw new Error(`rpc ${r.status}`);
         const out = await r.json();
         if (Array.isArray(body) && !Array.isArray(out)) throw new Error((out && out.error && out.error.message) || "batch refused");

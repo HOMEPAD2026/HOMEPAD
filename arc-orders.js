@@ -246,6 +246,10 @@
     const t = () => { const o = h.classList.toggle("open"); h.setAttribute("aria-expanded", String(o)); };
     h.addEventListener("click", t); h.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); t(); } });
   }
+  /// v6: chart indicators, each on or off (kept in this browser): the 20-candle average, the VWAP of what's on screen,
+  /// the volume's 20-candle average, and the walls of resting orders in the book
+  const IND_LIST = () => [["ma", "MA 20", "#ffd36b"], ["vwap", "VWAP", "#b58bff"], ["vma", "Volume MA 20", "#9fb0bd"], ["walls", L3("Order walls", "주문 벽", "挂单墙"), "#4dd4ff"]];
+  const IND = () => store.get("arcircle.orders.ind", { walls: true });
   function frame() {
     if (SOLC()) {
       const el = panel.querySelector(".aor-contracts");
@@ -279,7 +283,7 @@
         <div class="aor-mkt" id="aor-mkt"></div>
       </div>
       <div class="aor-mtabs" role="tablist" aria-label="${T("Market view")}">
-        <button type="button" role="tab" data-mt="chart" aria-selected="${S.center !== "depth" && S.center !== "pool"}">${T("Chart")}</button><button type="button" role="tab" data-mt="depth" aria-selected="${S.center === "depth"}">${T("Depth")}</button><button type="button" role="tab" data-mt="pool" aria-selected="${S.center === "pool"}">${T("Pool")}</button><button type="button" role="tab" data-mt="book" aria-selected="false">${T("Book")}</button><button type="button" role="tab" data-mt="trades" aria-selected="false">${T("Trades")}</button><a class="aor-mt-dex" id="aor-mt-dex" href="#" target="_blank" rel="noopener" data-no-i18n hidden>Dexscreener ↗</a>
+        <button type="button" role="tab" data-mt="chart" aria-selected="${S.center !== "depth" && S.center !== "pool"}"><svg class="aor-mti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg>${T("Chart")}</button><button type="button" role="tab" data-mt="depth" aria-selected="${S.center === "depth"}"><svg class="aor-mti" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h4v-5h4v-4h2v4h4v5h4"/></svg>${T("Depth")}</button><button type="button" role="tab" data-mt="pool" aria-selected="${S.center === "pool"}"><svg class="aor-mti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c3-3 5 3 8 0s5 3 8 0"/><path d="M4 10c3-3 5 3 8 0s5 3 8 0"/></svg>${T("Pool")}</button><button type="button" role="tab" data-mt="book" aria-selected="false"><svg class="aor-mti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 10h14M4 14h8M4 18h12"/></svg>${T("Book")}</button><button type="button" role="tab" data-mt="trades" aria-selected="false"><svg class="aor-mti" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>${T("Trades")}</button><a class="aor-mt-dex" id="aor-mt-dex" href="#" target="_blank" rel="noopener" data-no-i18n hidden>Dexscreener ↗</a>
       </div>
         <section class="ams-card aor-bookc">
           <div class="aor-bookh"><div class="aor-seg" role="tablist"><button type="button" data-left="book" aria-selected="true">${T("Order book")}</button><button type="button" data-left="trades" aria-selected="false">${T("Trades")}</button></div>
@@ -288,7 +292,7 @@
         </section>
         <section class="ams-card aor-chartc">
           <div class="aor-charth"><div class="aor-seg" role="tablist"><button type="button" data-center="chart" aria-selected="true">${T("Chart")}</button><button type="button" data-center="depth" aria-selected="false">${T("Depth")}</button><button type="button" data-center="pool" aria-selected="false">${T("Pool")}</button><button type="button" data-center="dex" aria-selected="false" data-no-i18n>Dexscreener</button></div>
-            <div class="aor-tfs" id="aor-tfs">${[[300, "5m"], [900, "15m"], [3600, "1h"], [14400, "4h"]].map(([v, l]) => `<button type="button" data-tf="${v}" aria-pressed="${S.tf === v}" data-no-i18n>${l}</button>`).join("")}</div></div>
+            <div class="aor-tfs" id="aor-tfs">${[[300, "5m"], [900, "15m"], [3600, "1h"], [14400, "4h"]].map(([v, l]) => `<button type="button" data-tf="${v}" aria-pressed="${S.tf === v}" data-no-i18n>${l}</button>`).join("")}<span class="aor-indw"><button type="button" class="aor-indb" data-act="indmenu" aria-expanded="false" title="${T("Indicators")}" aria-label="${T("Indicators")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 3 6-8 3 3"/></svg></button><span class="aor-indm" role="menu" hidden>${IND_LIST().map(([k, l, c]) => `<button type="button" role="menuitemcheckbox" data-ind="${k}" aria-checked="${!!IND()[k]}" data-no-i18n><i style="background:${c}"></i>${esc(l)}</button>`).join("")}</span></span></div></div>
           <div id="aor-chart" class="aor-chart"></div>
         </section>
         <section class="ams-card aor-formc" id="aor-formc" aria-label="${T("Place an order")}"></section>
@@ -329,11 +333,26 @@
   function onKey(e) {
     if (!panel.classList.contains("active") || SOLC() || e.metaKey || e.ctrlKey || e.altKey) return;
     const tg = e.target, typing = tg && (tg.tagName === "INPUT" || tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.isContentEditable);
+    if (e.key === "Escape") { const kh = document.getElementById("aor-keys"); if (kh) { kh.remove(); return; } }
     if (e.key === "Enter" && typing && tg.closest && tg.closest("#aor-formc") && tg.type !== "checkbox") { e.preventDefault(); submit(); return; }
     if (typing) return;
     const k = e.key.toLowerCase();
     if (k === "b" || k === "s") { if (!S.tok) return; const sd = k === "b" ? "buy" : "sell"; if (sd === "buy" && sellOnly(S.type)) S.type = "limit"; S.side = sd; S.msg = null; form(); requote(); if (innerWidth <= 720) sheet(true); e.preventDefault(); return; }
     if (k === "/") { const i = $("aor-in"); if (i) { e.preventDefault(); i.focus(); i.select(); } }
+    // v6: O the order form, M the market list, P the pool, C the chart, ? the keys
+    if (k === "o" && S.tok) { e.preventDefault(); if (innerWidth <= 720) sheet(true); const f0 = $("aor-price") || $("aor-amount") || $("aor-total"); if (f0) { f0.focus(); f0.select && f0.select(); } else { const fc = $("aor-formc"); if (fc) fc.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" }); } return; }
+    if (k === "m") { e.preventDefault(); S.showMarkets = !S.showMarkets; marketsView(); return; }
+    if ((k === "p" || k === "c") && S.tok) { e.preventDefault(); S.center = k === "p" ? "pool" : "chart"; seg("center", S.center); chartView(); return; }
+    if (e.key === "?") { e.preventDefault(); keysHelp(); return; }
+    if (e.key === "Escape" && S.showMarkets) { S.showMarkets = false; marketsView(); }
+  }
+  function keysHelp() {
+    const old = document.getElementById("aor-keys"); if (old) { old.remove(); return; }
+    const d = document.createElement("div"); d.id = "aor-keys"; d.className = "aor-keyhelp"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", tr("Keyboard shortcuts"));
+    const rows = [["B", L3("Buy side", "매수", "买入")], ["S", L3("Sell side", "매도", "卖出")], ["O", L3("Order form", "주문 폼", "下单表单")], ["M", L3("Market list", "마켓 목록", "市场列表")], ["P", L3("Pool tab", "풀 탭", "池标签")], ["C", L3("Chart", "차트", "图表")], ["/", L3("Token address", "토큰 주소", "代币地址")], ["Enter", L3("Place the order (in the form)", "주문하기 (폼에서)", "下单(在表单中)")], ["?", L3("This list", "이 목록", "此列表")]];
+    d.innerHTML = `<b>${T("Keyboard shortcuts")}</b><ul>${rows.map(([k0, l]) => `<li><kbd data-no-i18n>${esc(k0)}</kbd><span data-no-i18n>${esc(l)}</span></li>`).join("")}</ul><button type="button" class="aor-btn sm ghost" data-keysx>${T("Close")}</button>`;
+    d.addEventListener("click", (e) => { if (e.target.closest("[data-keysx]") || e.target === d) d.remove(); });
+    document.body.appendChild(d);
   }
   let dockObs = null, stripObs = null, gridObs = null, heroIn = true, mktIn = true, gridIn = true;
   function watchDock() {
@@ -439,8 +458,15 @@
     const b = panel.querySelector('[data-act="markets"]'); if (b) b.setAttribute("aria-expanded", String(S.showMarkets));
     if (!S.showMarkets) return;
     // v6: Markets (traded through Orders) | Explore (what's trading on the chain, and the new coins ARCIA DESK watches)
-    const tabs = `<div class="aor-ml-tabs" role="tablist">${[["mk", L3("Markets", "마켓", "市场")], ["ex", L3("Explore", "탐색", "发现")]].map(([k, l]) => `<button type="button" role="tab" data-mtab="${k}" aria-selected="${(S.mtab || "mk") === k}" data-no-i18n>${esc(l)}</button>`).join("")}</div>`;
-    if (S.mtab === "ex") { el.innerHTML = tabs + exploreView(); return; }
+    const tabs = `<div class="aor-ml-tabs" role="tablist">${[["mk", L3("Markets", "마켓", "市场")], ["ex", L3("Explore", "탐색", "发现")], ["st", L3("Stats", "통계", "统计")]].map(([k, l]) => `<button type="button" role="tab" data-mtab="${k}" aria-selected="${(S.mtab || "mk") === k}" data-no-i18n>${esc(l)}</button>`).join("")}</div>`;
+    if (S.mtab === "ex") {
+      // v6: rows that changed places glide there (FLIP)
+      const was = new Map([...el.querySelectorAll(".aor-xp-r[data-t]")].map((r) => [r.dataset.t + (r.classList.contains("new") ? ":n" : ""), r.getBoundingClientRect().top]));
+      el.innerHTML = tabs + exploreView();
+      if (!reduce && was.size) el.querySelectorAll(".aor-xp-r[data-t]").forEach((r) => { const k = r.dataset.t + (r.classList.contains("new") ? ":n" : ""), y0 = was.get(k); if (y0 == null) return; const dy = y0 - r.getBoundingClientRect().top; r.style.animation = "none"; if (Math.abs(dy) < 2) return; r.style.transform = `translateY(${dy}px)`; requestAnimationFrame(() => { r.style.transition = "transform .45s cubic-bezier(.2,.8,.2,1)"; r.style.transform = ""; }); });
+      return;
+    }
+    if (S.mtab === "st") { el.innerHTML = tabs + statsView(); return; }
     const keep = document.activeElement && document.activeElement.id === "aor-mq";
     const q = lc(S.mq).trim(), F0 = favs();
     // v5: sort by volume, 24h change, open orders or name (★ markets stay first)
@@ -471,13 +497,53 @@
     S.ex = { ch: CH, at: Date.now(), loading: false, trending: (a && a.trending) || [], watching: ((w && w.watching) || []).filter((x) => isAddr(x.t)).slice(0, 10) };
     if (S.showMarkets && S.mtab === "ex") marketsView();
   }
+  /// v6: $ARCIRCLE on the other chain (ARCIRCLE OMNI's status): its price there against this market's, both in dollars
+  async function loadOmni() {
+    if (S.omniAt && Date.now() - S.omniAt < 120000) return;
+    S.omniAt = Date.now();
+    const j = await fetch("/api/c?view=omni").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (j && j.chains) { S.omni = j; if (S.t === ARCIRCLE()) market(); }
+  }
+  function omniChip() {
+    if (S.t !== ARCIRCLE() || CH === "sol") return "";
+    if (!S.omni) { loadOmni(); return ""; }
+    const other = RH() ? "arc" : "robinhood", op = S.omni.chains && S.omni.chains[other] && S.omni.chains[other].price;
+    const here = RH() ? (S.spot && S.ethUsd ? S.spot * S.ethUsd : null) : S.spot;
+    if (!(op > 0) || !(here > 0)) return "";
+    const d = ((op - here) / here) * 100, oc = RH() ? "arc" : "rh";
+    const tk = RH() ? (CFG().ARCIRCLE_TOKEN || "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7") : ((CFG().OMNI && CFG().OMNI.ROBINHOOD_OFT) || "0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4");
+    return `<span class="aor-omni" title="${T("The same $ARCIRCLE on the other chain, through ARCIRCLE OMNI — prices in dollars")}"><a href="#orders?t=${lc(tk)}&c=${oc}" data-no-i18n>${esc(L3(RH() ? "On Arc" : "On Robinhood", RH() ? "Arc에서" : "Robinhood에서", RH() ? "在 Arc" : "在 Robinhood"))} <b>$${esc(fp(op))}</b> <i class="${d >= 0 ? "up" : "dn"}">${pc(d, 1)}</i></a><a class="om" href="/arc#omni" data-arc-tab="omni">OMNI ↗</a></span>`;
+  }
+  /// v6: Orders as a whole on this chain (the server's ?orders=stats): 7 days of filled volume, fills, open orders
+  async function loadStats() {
+    const c0 = CH;
+    if (S.stats && S.stats.ch === CH && Date.now() - S.stats.at < 60000) return;
+    const j = await fetch(`${API}?orders=stats${CQ()}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (c0 !== CH) return;
+    S.stats = { ch: CH, at: Date.now(), v: j };
+    if (S.showMarkets && S.mtab === "st") marketsView();
+  }
+  function statsView() {
+    const v = S.stats && S.stats.ch === CH ? S.stats.v : null;
+    if (!v) return `<div class="aor-xp"><p class="aor-hint"><span class="aor-spin"></span>${T("Looking…")}</p></div>`;
+    const mx = Math.max(1e-18, ...v.days.map((d) => d.vol));
+    const qv0 = (q) => (RH() ? num(q) + " ETH" + (usdOf(q) ? ` <small>≈ ${esc(usdS(usdOf(q)))}</small>` : "") : usd(q));
+    return `<div class="aor-xp aor-st">
+      <div class="aor-pool-k">
+        <div><small>${T("Filled, 7 days")}</small><b data-no-i18n>${qv0(v.vol7)}</b><span data-no-i18n>${esc(L3(`${v.fills7} fills`, `체결 ${v.fills7}건`, `${v.fills7} 笔成交`))}</span></div>
+        <div><small>${T("Open orders")}</small><b data-no-i18n>${v.open}</b><span data-no-i18n>${esc(L3(`${v.markets} markets · ${v.makers} wallets`, `마켓 ${v.markets}개 · 지갑 ${v.makers}개`, `${v.markets} 个市场 · ${v.makers} 个钱包`))}</span></div>
+        <div><small>${T("Burned by Orders fees")}</small><b data-no-i18n>${v.burned ? num(v.burned.arcircle) : "—"} <i>$ARCIRCLE</i></b>${v.burned ? `<span data-no-i18n>${esc(L3(`${v.burned.n} burns`, `소각 ${v.burned.n}회`, `${v.burned.n} 次销毁`))}</span>` : ""}</div>
+      </div>
+      <div class="aor-st-bars" role="img" aria-label="${T("Filled volume, last 7 days")}">${v.days.map((d, i) => `<div style="--h:${Math.max(2, (d.vol / mx) * 100).toFixed(1)}%;--i:${i}" title="${esc(d.d)} · ${esc(String(d.n))}"><i></i><small data-no-i18n>${esc(d.d.slice(5))}</small></div>`).join("")}</div>
+      <p class="aor-xp-src">${T("Every fill through ARCIRCLE Orders on this chain — no wallet is named.")}</p></div>`;
+  }
   const ageTxt = (ts) => { if (!ts) return "—"; const s0 = Math.max(0, now() - ts); return s0 < 3600 ? `${Math.max(1, Math.floor(s0 / 60))}m` : s0 < 86400 ? `${Math.floor(s0 / 3600)}h` : `${Math.floor(s0 / 86400)}d`; };
   const usdShort = (v) => (v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + v.toFixed(v >= 10 ? 0 : 2));
   function exploreView() {
     const x = S.ex || { loading: true, trending: [], watching: [] };
     const chainN = RH() ? "Robinhood Chain" : "Arc";
     const logo = (r) => `<span class="aor-xp-logo" aria-hidden="true">${r.logo && /^https:\/\//.test(r.logo) ? `<img src="${esc(r.logo)}" alt="" width="28" height="28" loading="lazy" onerror="this.remove()">` : ""}<i data-no-i18n>${esc(String(r.sym || "?").slice(0, 2))}</i></span>`;
-    const tr0 = x.trending.map((r, i) => `<div class="aor-xp-r" data-t="${r.t}" role="button" tabindex="0" style="--i:${i}">${logo(r)}<b data-no-i18n>$${esc(r.sym)}<small>${esc(r.name || short(r.t))}</small></b>
+    const tr0 = x.trending.map((r, i) => `<div class="aor-xp-r${r.change24 != null && r.change24 >= 20 ? " hot" : ""}" data-t="${r.t}" role="button" tabindex="0" style="--i:${i}">${logo(r)}<b data-no-i18n>$${esc(r.sym)}<small>${esc(r.name || short(r.t))}</small></b>
       <span data-no-i18n>${r.priceUsd != null ? esc(fpUsd(r.priceUsd)) : "—"}</span><span class="${r.change24 == null ? "" : r.change24 >= 0 ? "up" : "dn"}" data-no-i18n>${r.change24 == null ? "—" : pc(r.change24, 1)}</span>
       <span data-no-i18n>${usdShort(r.volUsd)}</span><span data-no-i18n>${usdShort(r.liqUsd)}</span><span data-no-i18n>${ageTxt(r.created)}</span></div>`).join("");
     const w0 = x.watching.map((r, i) => `<div class="aor-xp-r new" data-t="${r.t}" role="button" tabindex="0" style="--i:${i}">${logo(r)}<b data-no-i18n>$${esc(r.sym || short(r.t))}<small>${esc(short(r.t))}</small></b>
@@ -533,7 +599,7 @@
       </div>
       ${S.pending ? `<div class="aor-grad"><b>${T("On its Pons bonding curve")}</b><span>${T("Its Uniswap v4 pool opens when it graduates. Place a limit buy now — it waits, and fills from the new pool at your price or better.")}</span></div>` : ""}
       <div class="aor-side-tools">
-        ${execChip()}
+        ${execChip()}${omniChip()}
         ${b.thin ? `<span class="aor-thinw" title="${T("The pool moves 2% for a small trade — expect slippage")}"><i aria-hidden="true">!</i>${T("Thin liquidity")}<small data-no-i18n>±2% ≈ ${esc(qv(Math.min(b.depth.up, b.depth.dn)))}</small></span>` : ""}
         <span class="aor-askw"><button type="button" class="aor-btn sm ghost aor-askbtn" data-act="askmenu" aria-expanded="${!!S.askOpen}"><span class="aor-askav" aria-hidden="true"></span><span>${T("Ask ARCIA")}</span></button>${S.askOpen ? askMenu() : ""}</span>
         <span class="aor-alertw"><button type="button" class="aor-btn sm ghost aor-alertbtn" data-act="alerts" aria-expanded="${!!S.alertsOpen}">${ICON.bell}<span>${T("Price alert")}</span>${alertsFor(S.t).length ? `<em data-no-i18n>${alertsFor(S.t).length}</em>` : ""}</button>${S.alertsOpen ? alertsBox() : ""}</span>
@@ -615,6 +681,7 @@
     const list = alertsFor(S.t);
     return `<div class="aor-alerts" id="aor-alerts">
       <div class="aor-al-row"><span class="aor-in"><input id="aor-al-price" type="text" inputmode="decimal" placeholder="${esc(fp(S.spot))}" aria-label="${T("Alert price")}"><i data-no-i18n>${esc(S.quote.symbol)}</i></span><button type="button" class="aor-btn go sm" data-act="alertadd">${T("Alert me")}</button></div>
+      ${S.spot > 0 ? `<div class="aor-al-pct">${[-25, -10, -5, 5, 10, 25].map((k) => `<button type="button" class="${k < 0 ? "dn" : "up"}" data-alpct="${k}" data-no-i18n>${k > 0 ? "+" : "−"}${Math.abs(k)}%</button>`).join("")}</div>` : ""}
       <p class="aor-note">${T("This browser tells you when the pool price crosses it — keep the tab open, or turn on notifications.")}</p>
       ${me() ? `<button type="button" class="aor-altg${tgOn() ? " on" : ""}" data-act="altg" role="switch" aria-checked="${tgOn()}"><i aria-hidden="true"></i><span>${T("Also on Telegram")}</span><small>${T(tgOn() ? "New alerts here go to the ARCIA bot too — send it /orderalerts on" : "Your wallet's alerts, sent by the ARCIA bot even with this tab closed")}</small></button>` : ""}
       ${list.length ? `<ul>${list.map((a, i) => `<li><span>${T(a.dir === "up" ? "rises to" : "falls to")} <b data-no-i18n>${fp(a.price)}</b>${a.tg ? ` <em class="aor-tgmark" title="${T("Also on Telegram")}" data-no-i18n>TG</em>` : ""}</span><button type="button" class="aor-x" data-alertdel="${i}" aria-label="${T("Remove")}">${ICON.close}</button></li>`).join("")}</ul>` : ""}
@@ -944,6 +1011,8 @@
       <div class="aor-bids">${empty || (oneSide && !bids.length) ? ghost("buy").join("") + (oneSide ? cta("buy") + pad(ROWS - 6) : pad(ROWS - 5)) : gB + bidH + pad(bids.length + nG(gB))}</div>
       ${empty ? `<p class="aor-first"><b>${T("No orders here yet — be the first.")}</b> <span>${T(S.pending ? "Limit buys placed now wait here for the pool to open." : "The faint rows are prices around the pool: tap one to start an order there.")}</span></p>`
         : `<p class="aor-foot">${T("Orders below the ask and above the bid fill from the pool as soon as its price gets there.")}</p>`}`;
+    // v6: on a wide screen the book keeps the latest trades under it
+    if (innerWidth >= 1680 && (b.fills || []).length) { const tw = document.createElement("div"); tw.className = "aor-booktr"; tw.innerHTML = `<small>${T("Latest Orders fills")}</small>` + tradesHtml({ ...b, fills: b.fills.slice(0, 8) }); el.appendChild(tw); }
     S.prevLevels = seen; S.prevBar = bars;
     emblem(ca, cb);
   }
@@ -964,6 +1033,8 @@
   }
 
   // ---------------- chart, depth, Dexscreener ----------------
+  /// v6: a new chart tab slides in
+  const swapIn = () => { const el = $("aor-chart"); if (!el || reduce) return; el.classList.remove("sw"); void el.offsetWidth; el.classList.add("sw"); };
   function chartView() {
     const el = $("aor-chart"); if (!el) return;
     const tfs = $("aor-tfs"); if (tfs) tfs.hidden = S.center !== "chart";
@@ -1072,6 +1143,16 @@
       g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, yy); g.lineTo(cw, yy); g.stroke();
       g.fillStyle = "rgba(160,176,189,.75)"; g.textAlign = "left"; g.fillText(fp(p), cw + 6, yy);
     }
+    const ind = IND();
+    // v6: order walls — the book's resting levels as bands from the right edge, as long as their share of the side
+    if (ind.walls && S.book) {
+      const lv = [...(S.book.asks || []).map((l) => [l, "a"]), ...(S.book.bids || []).map((l) => [l, "b"])].filter(([l]) => l.price > lo && l.price < hi);
+      const top = Math.max(1e-18, ...lv.map(([l]) => l.amount));
+      for (const [l, sd] of lv) {
+        const w0 = Math.max(6, (l.amount / top) * cw * 0.3), yy = y(l.price);
+        g.fillStyle = sd === "a" ? "rgba(255,110,90,.13)" : "rgba(57,255,136,.13)"; g.fillRect(cw - w0, yy - 3, w0, 6);
+      }
+    }
     // volume
     const vmax = Math.max(...data.map((d) => d[5]), 1e-18);
     const vw = lineMode ? Math.min(14, cw / Math.max(n, 1) * 0.5) : bw * 0.7;
@@ -1091,6 +1172,17 @@
         g.fillStyle = c; g.fillRect(xx - bw * 0.34, top, bw * 0.68, Math.max(1, bot - top));
       });
     }
+    // v6: indicators — the 20-candle average of the close, the volume-weighted average price of what's shown, and the
+    // volume's 20-candle average in the volume pane
+    const pathOf = (vals, yf) => { g.beginPath(); let on = false; vals.forEach((v, i) => { if (v == null || !isFinite(v)) { on = false; return; } const yy = yf(v); if (!on) { g.moveTo(x(i), yy); on = true; } else g.lineTo(x(i), yy); }); g.stroke(); };
+    const ma = (arr, k) => arr.map((_, i) => (i >= k - 1 ? arr.slice(i - k + 1, i + 1).reduce((a0, b0) => a0 + b0, 0) / k : null));
+    g.setLineDash([]); g.lineJoin = "round";
+    if (ind.ma && n >= 20) { g.strokeStyle = "#ffd36b"; g.lineWidth = 1.5; pathOf(ma(data.map((d) => d[4]), 20), y); }
+    if (ind.vwap && n >= 2) {
+      let pv = 0, vv = 0; const vw0 = data.map((d) => { const tp = (d[2] + d[3] + d[4]) / 3; pv += tp * d[5]; vv += d[5]; return vv > 0 ? pv / vv : null; });
+      g.strokeStyle = "#b58bff"; g.lineWidth = 1.5; g.setLineDash([6, 3]); pathOf(vw0, y); g.setLineDash([]);
+    }
+    if (ind.vma && n >= 20) { g.strokeStyle = "rgba(159,176,189,.8)"; g.lineWidth = 1.2; pathOf(ma(data.map((d) => d[5]), 20), (v) => vt + vh - (v / vmax) * vh); }
     // time labels
     g.fillStyle = "rgba(160,176,189,.6)"; g.textAlign = "center"; g.textBaseline = "alphabetic"; g.font = "500 10px 'JetBrains Mono', monospace";
     const every = Math.max(1, Math.round(n / 5));
@@ -1288,7 +1380,7 @@
     const bar = (v) => (v == null ? "" : `<i class="aor-imp-b ${Math.abs(v) > 5 ? "bad" : Math.abs(v) > 2 ? "mid" : ""}" style="--w:${Math.min(100, Math.abs(v) * 8).toFixed(0)}%"></i>`);
     return `<div class="aor-pool">
       <div class="aor-pool-k">
-        <div><small data-no-i18n>${esc(L3("Venue", "거래소", "交易场所"))}</small><b data-no-i18n>${esc(p.venue || "Uniswap v4")}</b><span data-no-i18n>${short(p.id)}</span></div>
+        <div><small data-no-i18n>${esc(L3("Venue", "거래소", "交易场所"))}</small><b data-no-i18n>${esc(p.venue || "Uniswap v4")}</b><span data-no-i18n>${short(p.id)} · <a href="https://dexscreener.com/${RH() ? "robinhood" : "arc"}/${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Dexscreener ↗</a></span></div>
         <div><small>${T("Pool fee")}</small><b data-no-i18n>${p.feePct != null ? p.feePct + "%" : p.key && p.key.fee === 0x800000 ? esc(tr("dynamic")) : "—"}</b>${S.tax != null ? `<span>${T("Round trip")} <b data-no-i18n>${S.tax.toFixed(2)}%</b></span>` : ""}</div>
         <div><small>${T("Liquidity")}</small><b data-no-i18n>${p.dex && p.dex.liqUsd ? usd(p.dex.liqUsd) : "—"}</b>${b.thin ? `<span class="warn">${T("Thin liquidity")}</span>` : ""}</div>
         <div><small>${T("24h volume")}</small><b data-no-i18n>${d.volume ? qv0(d.volume) : "—"}</b>${d.trades ? `<span data-no-i18n>${esc(L3(`${d.trades} swaps`, `스왑 ${d.trades}회`, `${d.trades} 笔`))}</span>` : ""}</div>
@@ -2074,7 +2166,10 @@
     // v6: no open orders here — two starting points, one tap each (they fill the form; nothing is signed)
     const ideas = S.myTab === "open" && !hidden && S.spot > 0 && S.tok && !S.pending ? `<div class="aor-ideas"><span>${T("Start with one:")}</span><button type="button" class="aor-btn sm ghost up" data-price="${Number((S.spot * 0.9).toPrecision(4))}" data-sug="buy">${esc(L3(`Buy $${S.tok.symbol} 10% under the pool`, `풀 가격보다 10% 낮게 $${S.tok.symbol} 매수`, `低于池价 10% 买入 $${S.tok.symbol}`))}</button><button type="button" class="aor-btn sm ghost dn" data-price="${Number((S.spot * 1.2).toPrecision(4))}" data-sug="sell">${esc(L3(`Sell $${S.tok.symbol} 20% over the pool`, `풀 가격보다 20% 높게 $${S.tok.symbol} 매도`, `高于池价 20% 卖出 $${S.tok.symbol}`))}</button></div>` : "";
     if (!list.length) { el.innerHTML = filt + ideas + `<div class="aor-empty">${T(S.myTab === "open" ? "No open orders." : hidden ? "Only cancelled orders here." : "Nothing here yet.")}${hidden ? ` <button type="button" class="aor-link" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : ""}</div>`; mineFoot(); return; }
-    el.innerHTML = filt + `<div class="aor-mt"><div class="aor-mt-h"><span>${T("Market")}</span><span>${T("Type")}</span><span>${T("Price")}</span><span>${T("Amount")}</span><span>${T("Filled")}</span><span>${T("Status")}</span><span></span></div>${list.map((o) => {
+    // v6: two or more plain limit orders in this market — move them all by a few percent (each signed again, one by one)
+    const movable = S.myTab === "open" && LIVE() ? shiftable() : [];
+    const shiftRow = movable.length >= 2 ? `<div class="aor-shift">${S.shift ? `<span><span class="aor-spin"></span>${esc(L3(`Moving ${S.shift.at + 1} of ${S.shift.n} — sign each in your wallet`, `${S.shift.n}개 중 ${S.shift.at + 1}번째 이동 중 — 지갑에서 하나씩 서명하세요`, `正在移动第 ${S.shift.at + 1}/${S.shift.n} 个 — 请在钱包中逐个签名`))}</span><button type="button" class="aor-btn sm ghost" data-act="shiftstop">${T("Stop")}</button>` : `<span>${esc(L3(`Move all ${movable.length} limit orders here`, `이 마켓 지정가 주문 ${movable.length}개 모두 이동`, `移动此处全部 ${movable.length} 个限价单`))}</span>${[-5, -2, 2, 5].map((k) => `<button type="button" class="aor-btn sm ghost ${k < 0 ? "dn" : "up"}" data-shift="${k}" data-no-i18n>${k > 0 ? "+" : "−"}${Math.abs(k)}%</button>`).join("")}`}</div>` : "";
+    el.innerHTML = filt + shiftRow + `<div class="aor-mt"><div class="aor-mt-h"><span>${T("Market")}</span><span>${T("Type")}</span><span>${T("Price")}</span><span>${T("Amount")}</span><span>${T("Filled")}</span><span>${T("Status")}</span><span></span></div>${list.map((o) => {
       const tk = o.token || {}, q = o.quote || {};
       const amt = o.side === "sell" ? human(o.sellAmount, tk.decimals) : o.type === "twap" ? human(o.sellAmount, q.decimals) : human(o.buyAmount, tk.decimals) / (1 - FEE);
       const amtSym = o.side === "buy" && o.type === "twap" ? q.symbol : "";
@@ -2310,6 +2405,33 @@
   }
 
   /// v5: a filled order's link — its card on X / Telegram (/orders/fill/<tx>), then this market
+  /// v6: this market's plain limit orders (no TP/SL pair, no condition, not part-filled into a bracket), mine
+  const shiftable = () => ((S.mine && S.mine.orders) || []).filter((o) => o.status === "open" && o.type === "limit" && !o.group && !o.cond && !o.pending && lc((o.token && o.token.address) || o.token || "") === S.t && o.price > 0);
+  /// move every one of them by k%: each is edited (a new signature at the new price, the old one cancelled) in turn;
+  /// a rejected signature stops the run
+  async function shiftAll(k) {
+    if (S.busy || S.shift) return;
+    const list = shiftable();
+    if (!list.length) return;
+    // a move that would put a buy above the pool price, or a sell under it, would fill at once: not as a bulk move
+    if (S.spot > 0 && list.some((o) => { const np = o.price * (1 + k / 100); return o.side === "buy" ? np >= S.spot : np <= S.spot; })) {
+      toast(L3("That would cross the pool price", "풀 가격을 넘어가요", "这会越过池价"), "alert", L3("A buy would end up over it, or a sell under it — move those one at a time.", "매수가 풀 가격보다 높아지거나 매도가 낮아져요 — 그 주문은 하나씩 옮기세요.", "会有买单高于池价或卖单低于池价 — 请逐个移动。"));
+      return;
+    }
+    S.shift = { n: list.length, at: 0, stop: false }; mineView();
+    let moved = 0;
+    for (const [i, o] of list.entries()) {
+      if (!S.shift || S.shift.stop) break;
+      S.shift.at = i; mineView();
+      await edit(o.hash, { price: Number((o.price * (1 + k / 100)).toPrecision(6)), quiet: true });
+      await submit();
+      if (S.editing) { S.editing = null; S.fatArm = null; form(); break; } // not signed, held for a check, or failed: stop here
+      moved++;
+    }
+    S.shift = null;
+    await loadMine(); mineView();
+    toast(L3(`Moved ${moved} of ${list.length} orders ${k > 0 ? "+" : "−"}${Math.abs(k)}%`, `주문 ${list.length}개 중 ${moved}개를 ${k > 0 ? "+" : "−"}${Math.abs(k)}% 이동`, `已将 ${list.length} 个中的 ${moved} 个订单移动 ${k > 0 ? "+" : "−"}${Math.abs(k)}%`), moved ? "fill" : "");
+  }
   /// v6: an order as one line of words (arc-order-line.js reads it back): the same setup, filled in, for anyone
   function lineOf(o) {
     const tk = o.token || {}, td = Number(tk.decimals ?? 18), q = o.quote || S.quote || {}, qd = Number(q.decimals ?? 18);
@@ -2394,6 +2516,7 @@
       // v5: a sell's fill against my average buy in that market, rolled up in the toast
       const pnl = (o.filledPct || 0) > (b.filledPct || 0) && o.side === "sell" ? avgBuyOf(next, lc(o.token.address || o.token)) : null;
       const pnlPct = pnl && o.price > 0 ? (o.price / pnl - 1) * 100 : null;
+      if (msg && document.hidden && (o.filledPct || 0) > (b.filledPct || 0)) flashTitle(msg);
       if (msg) { S.pulse.add(o.hash); toast(msg, pnlPct != null && pnlPct < 0 ? "fill loss" : "fill", (o.filledPct || 0) > (b.filledPct || 0) ? fillLine(o, b) : "", pnlPct != null ? { roll: pnlPct, label: L3("vs your average buy", "내 평균 매수가 대비", "相对你的平均买入价") } : null); notify("ARCIRCLE Orders", msg + (pnlPct != null ? ` · ${pc(pnlPct, 1)}` : "")); }
       if ((o.filledPct || 0) > (b.filledPct || 0) && !reduce) S.burst = true;
       // v4: the fill moment — a sound / haptic where the site has them (arcFeedback), the row lights up below
@@ -2401,6 +2524,14 @@
     }
     bracketCheck(next);
     if (S.burst) { S.burst = false; setTimeout(() => { const t = document.querySelector("#aor-toasts .aor-toast.fill:last-child"); const r = t ? t.getBoundingClientRect() : null; confetti(r ? r.left + 24 : innerWidth - 60, r ? r.top + 10 : innerHeight - 120); celebrate(); }, 60); }
+  }
+  /// v6: a fill while the tab is in the background — the tab's title says so until you come back
+  function flashTitle(msg) {
+    if (!S.title0) S.title0 = document.title;
+    clearInterval(S.titleT); let on = true;
+    S.titleT = setInterval(() => { document.title = on ? `✓ ${msg}` : S.title0; on = !on; }, 1200);
+    const back = () => { if (document.hidden) return; clearInterval(S.titleT); document.title = S.title0; document.removeEventListener("visibilitychange", back); };
+    document.addEventListener("visibilitychange", back);
   }
   /// v5: my average buy in a market from my filled Orders buys (null without any)
   function avgBuyOf(d, t) {
@@ -2570,7 +2701,7 @@
     if (d.n) { F.n = d.n; form(); return; }
     if (d.dist) { F.dist = d.dist; form(); return; }
     if (d.msort) { S.msort = d.msort; marketsView(); return; }
-    if (d.mtab) { S.mtab = d.mtab; if (d.mtab === "ex") loadExplore(); marketsView(); return; }
+    if (d.mtab) { S.mtab = d.mtab; if (d.mtab === "ex") loadExplore(); if (d.mtab === "st") loadStats(); marketsView(); return; }
     if (d.askq) { S.askOpen = false; market(); if (window.arcArcia && window.arcArcia.ask) window.arcArcia.ask(d.askq); else location.hash = "#arcia"; return; }
     if (d.exp) { F.expiry = d.exp; form(); return; }
     if (d.slip) { F.slip = d.slip; form(); requote(); return; }
@@ -2599,7 +2730,10 @@
       return;
     }
     if (d.left) { S.left = d.left; seg("left", d.left); bookView(); return; }
-    if (d.center) { S.center = d.center; seg("center", d.center); if (d.center !== "dex") { panel.querySelectorAll("button[data-mt]").forEach((x) => { if (x.dataset.mt === "chart" || x.dataset.mt === "depth" || x.dataset.mt === "pool") x.setAttribute("aria-selected", String(x.dataset.mt === d.center)); }); } chartView(); return; }
+    if (d.center) { S.center = d.center; seg("center", d.center); swapIn(); if (d.center !== "dex") { panel.querySelectorAll("button[data-mt]").forEach((x) => { if (x.dataset.mt === "chart" || x.dataset.mt === "depth" || x.dataset.mt === "pool") x.setAttribute("aria-selected", String(x.dataset.mt === d.center)); }); } chartView(); return; }
+    if (d.alpct) { const i0 = $("aor-al-price"); if (i0 && S.spot) { i0.value = dstr(Number((S.spot * (1 + Number(d.alpct) / 100)).toPrecision(4))); S.alDraft = i0.value; i0.focus(); } return; }
+    if (d.shift) { shiftAll(Number(d.shift)); return; }
+    if (d.ind) { const v = IND(); v[d.ind] = !v[d.ind]; store.set("arcircle.orders.ind", v); b.setAttribute("aria-checked", String(!!v[d.ind])); draw(); return; }
     if (d.tf) { S.tf = Number(d.tf); panel.querySelectorAll("[data-tf]").forEach((x) => x.setAttribute("aria-pressed", String(Number(x.dataset.tf) === S.tf))); draw(); return; }
     if (d.my) { S.myTab = d.my; seg("my", d.my); mineView(); return; }
     if (d.scope) { S.myScope = d.scope; panel.querySelectorAll("[data-scope]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.scope === S.myScope))); mineView(); if (d.scope === "both") loadOther().then(mineView); return; }
@@ -2607,7 +2741,7 @@
       // v4: one row on a phone — Chart and Depth share the chart card, Book and Trades the book's
       seg("mt", d.mt); $("aor-grid").dataset.mt = d.mt === "depth" || d.mt === "pool" ? "chart" : d.mt;
       if (d.mt === "trades" || d.mt === "book") { S.left = d.mt; seg("left", d.mt); bookView(); }
-      else { S.center = d.mt === "depth" ? "depth" : d.mt === "pool" ? "pool" : "chart"; seg("center", S.center); chartView(); }
+      else { S.center = d.mt === "depth" ? "depth" : d.mt === "pool" ? "pool" : "chart"; seg("center", S.center); swapIn(); chartView(); }
       return;
     }
     if (d.alertdel != null) { const list = alertsFor(S.t), x = list[Number(d.alertdel)]; if (x && x.tg) tgSync(x, true); store.set(AK, alertsAll().filter((a) => a !== x && !(a.t === x.t && a.price === x.price && a.dir === x.dir))); market(); return; }
@@ -2618,6 +2752,8 @@
     if (act === "mvno") { S.editing = null; S.moveAsk = null; form(); draw(); return; }
     if (act === "usetap") { b.hidden = true; if (S.tapP > 0) pickPrice(S.tapP); return; }
     if (act === "askmenu") { S.askOpen = !S.askOpen; market(); return; }
+    if (act === "shiftstop") { if (S.shift) S.shift.stop = true; return; }
+    if (act === "indmenu") { const m0 = b.parentNode.querySelector(".aor-indm"); const on = m0.hidden; m0.hidden = !on; b.setAttribute("aria-expanded", String(on)); return; }
     if (act === "sharelink") { const r = b.closest("[data-h]"); if (r) shareLink(r.dataset.h); return; }
     if (act === "copyord") { const r = b.closest("[data-h]"); if (r) copyOrder(r.dataset.h); S.rowMenu = null; mineView(); return; }
     if (act === "statmore") { S.statsMore = !S.statsMore; market(); return; }
@@ -2687,10 +2823,17 @@
     const acct = me();
     if (acct !== S.acct) { S.acct = acct; await Promise.all([loadBal(), loadMine()]); form(); mineView(); }
     if (!S.tok) return;
+    // v6: a quiet market (no change in its book, its last fill or its price for 2 minutes, none of my orders open in it)
+    // is read every 15 seconds instead of every 5
+    const myHere = ((S.mine && S.mine.orders) || []).some((o) => o.status === "open" && lc((o.token && o.token.address) || o.token || "") === S.t);
+    const b0 = S.book || {}, sig = `${S.t}:${b0.open}:${b0.fills && b0.fills[0] ? b0.fills[0].at : 0}:${S.spot}`;
+    if (sig !== S.qSig) { S.qSig = sig; S.qAt = Date.now(); }
+    S.quiet = !myHere && Date.now() - (S.qAt || 0) > 120000;
+    if (S.quiet && n % 3 !== 0) return;
     await loadBook();
-    if (n % 2 === 0) { await loadSpot(); checkAlerts(); }
+    if (n % 2 === 0 || S.quiet) { await loadSpot(); checkAlerts(); }
     if (n % 3 === 0 && acct) { await Promise.all([loadMine(), loadBal(), S.myScope === "both" && (!S.other || Date.now() - S.other.at > 60e3) ? loadOther() : null]); mineView(); if (!S.busy && !panel.querySelector(".aor-formc input:focus")) form(); }
-    if (n % 6 === 0) { await Promise.all([loadCandles(), loadStatus(), S.center === "depth" ? loadPoolL() : null]); }
+    if (n % 6 === 0) { await Promise.all([loadCandles(), loadStatus(), S.center === "depth" || S.center === "pool" ? loadPoolL() : null]); }
     if (n % 60 === 0) { await Promise.all([loadScan(), loadDesk()]); }
     if (n % 12 === 0) loadMarkets();
     market(); bookView(); draw(); strip();

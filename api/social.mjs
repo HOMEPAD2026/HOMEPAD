@@ -583,6 +583,7 @@ export async function GET(req) {
       }
       if (k === "pools") { const v = await OX.pools(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=30, s-maxage=60") : json(400, { error: "token is needed" }); }
       if (k === "markets") return json(200, await OX.markets({ store: scanStore() }), "public, max-age=15, s-maxage=30");
+      if (k === "stats") return json(200, await OX.stats({ store: scanStore() }), "public, max-age=60, s-maxage=120, stale-while-revalidate=300");
       if (k === "explore") return json(200, await OX.explore({ store: scanStore() }), "public, max-age=60, s-maxage=180, stale-while-revalidate=300");
       if (k === "status") { const [st, eu] = await Promise.all([OX.status({ store: scanStore() }), OX.ethUsd().catch(() => null)]); return json(200, { ...st, ethUsd: eu }, "public, max-age=20, s-maxage=30"); }
       // v3: the live tape across markets, the fee burn's totals, a wallet's price alerts (its view signature opens them)

@@ -53,6 +53,52 @@
     }
     return by;
   }
+  /// v6: the trading journal — from my filled Orders, oldest first: each sell against the average buy before it gives a
+  /// realized result (a win when it sold above that average); the days in a 5-week calendar; the time held (first buy
+  /// fill to the sell). Orders fills only — not swaps made elsewhere.
+  function journal() {
+    const S = O().state, fills = [];
+    for (const o of (S.mine && S.mine.orders) || []) {
+      if (!(o.filledPct > 0) || !(o.price > 0) || !o.token) continue;
+      const d = Number(o.token.decimals ?? 18), f = o.filledPct / 100;
+      const tok = o.side === "buy" ? (Number(o.buyAmount) / 10 ** d / 0.999) * f : (Number(o.sellAmount) / 10 ** d) * f;
+      fills.push({ t: lc(o.token.address || o.token), sym: o.token.symbol, side: o.side, tok, px: o.price, at: o.last || o.at });
+    }
+    fills.sort((a, b) => a.at - b.at);
+    const pos = new Map(), sells = [];
+    for (const x of fills) {
+      const p0 = pos.get(x.t) || { tok: 0, cost: 0, first: null };
+      if (x.side === "buy") { p0.tok += x.tok; p0.cost += x.tok * x.px; if (p0.first == null) p0.first = x.at; }
+      else if (p0.tok > 0) {
+        const avg = p0.cost / p0.tok, q = Math.min(x.tok, p0.tok), pnl = q * (x.px - avg);
+        sells.push({ t: x.t, sym: x.sym, at: x.at, pnl, pct: (x.px / avg - 1) * 100, held: p0.first != null ? x.at - p0.first : null });
+        p0.cost -= avg * q; p0.tok -= q; if (p0.tok <= 1e-12) { p0.tok = 0; p0.cost = 0; p0.first = null; }
+      }
+      pos.set(x.t, p0);
+    }
+    const byM = new Map();
+    for (const z of sells) { const g = byM.get(z.t) || { sym: z.sym, n: 0, w: 0, pnl: 0, held: 0, hn: 0 }; g.n++; if (z.pnl > 0) g.w++; g.pnl += z.pnl; if (z.held != null) { g.held += z.held; g.hn++; } byM.set(z.t, g); }
+    const days = new Map(); for (const z of sells) { const k = new Date(z.at * 1000).toISOString().slice(0, 10); days.set(k, (days.get(k) || 0) + z.pnl); }
+    return { sells, byM, days };
+  }
+  function journalHtml() {
+    const A = O(), j = journal();
+    if (!j.sells.length) return `<div class="aor-jn"><b>${T("Trading journal")}</b><p class="aor-note">${T("It fills in as your Orders sells fill after Orders buys.")}</p></div>`;
+    const qs = A.state.quote ? A.state.quote.symbol : CH() === "rh" ? "ETH" : "USDC";
+    const tot = j.sells.reduce((a, z) => a + z.pnl, 0), wins = j.sells.filter((z) => z.pnl > 0).length;
+    const hrs = (sec) => (sec == null ? "—" : sec < 3600 ? `${Math.max(1, Math.round(sec / 60))}m` : sec < 86400 ? `${(sec / 3600).toFixed(1)}h` : `${(sec / 86400).toFixed(1)}d`);
+    // the last 35 days, a square each, coloured by the day's realized result
+    const cells = [], today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const mx = Math.max(1e-18, ...[...j.days.values()].map(Math.abs));
+    for (let i = 34; i >= 0; i--) { const d = new Date(today.getTime() - i * 86400e3), k = d.toISOString().slice(0, 10), v = j.days.get(k); cells.push(`<i class="${v == null ? "" : v >= 0 ? "up" : "dn"}" style="--a:${v == null ? 0 : (0.25 + 0.75 * Math.min(1, Math.abs(v) / mx)).toFixed(2)}" title="${k}${v != null ? ` · ${v >= 0 ? "+" : "−"}${A.fp(Math.abs(v))} ${qs}` : ""}"></i>`); }
+    const rows = [...j.byM.entries()].sort((a, b) => Math.abs(b[1].pnl) - Math.abs(a[1].pnl)).slice(0, 8);
+    return `<div class="aor-jn"><b>${T("Trading journal")}</b>
+      <div class="aor-jn-k"><div><small>${T("Realized")}</small><b class="${tot >= 0 ? "up" : "dn"}" data-no-i18n>${tot >= 0 ? "+" : "−"}${esc(A.fp(Math.abs(tot)))} ${esc(qs)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${Math.round((wins / j.sells.length) * 100)}%</b><span data-no-i18n>${wins}/${j.sells.length}</span></div><div><small>${T("Average hold")}</small><b data-no-i18n>${hrs(j.sells.filter((z) => z.held != null).reduce((a, z, _, arr) => a + z.held / arr.length, 0) || null)}</b></div></div>
+      <div class="aor-jn-cal" role="img" aria-label="${T("The last 5 weeks")}">${cells.join("")}</div>
+      <div class="aor-jn-t"><span>${T("Market")}</span><span>${T("Sells")}</span><span>${T("Win rate")}</span><span>${T("Realized")}</span><span>${T("Average hold")}</span></div>
+      ${rows.map(([t, g]) => `<div class="aor-jn-t"><button type="button" class="aor-link" data-t="${esc(t)}" data-no-i18n>$${esc(g.sym)}</button><span data-no-i18n>${g.n}</span><span data-no-i18n>${Math.round((g.w / g.n) * 100)}%</span><span class="${g.pnl >= 0 ? "up" : "dn"}" data-no-i18n>${g.pnl >= 0 ? "+" : "−"}${esc(A.fp(Math.abs(g.pnl)))}</span><span data-no-i18n>${hrs(g.hn ? g.held / g.hn : null)}</span></div>`).join("")}
+      <small class="aor-pf-n">${T("Each sell against your average Orders buy before it, on this chain. Not advice.")}</small></div>`;
+  }
   function priceOf(t) {
     const S = O().state;
     if (t === S.t && S.spot) return S.spot;
@@ -91,7 +137,7 @@
       const px = priceOf(r.t), g = by.get(r.t), avg = g && g.bT ? g.bQ / g.bT : null;
       return { ...r, px, val: px ? r.bal * px : null, avg, vs: avg && px ? (px / avg - 1) * 100 : null, open: g ? g.open : 0 };
     }).sort((a, b) => (b.val || 0) - (a.val || 0));
-    if (!rows.length) { el.innerHTML = `<div class="aor-empty arcia">${ARCIA_ART}<span>${T(CH() === "rh" ? "No tokens from these markets in this wallet on Robinhood Chain yet." : "No tokens from these markets in this wallet on Arc yet.")}</span></div>`; return; }
+    if (!rows.length) { el.innerHTML = `<div class="aor-empty arcia">${ARCIA_ART}<span>${T(CH() === "rh" ? "No tokens from these markets in this wallet on Robinhood Chain yet." : "No tokens from these markets in this wallet on Arc yet.")}</span></div>${journalHtml()}`; return; }
     const tot = rows.reduce((s, r) => s + (r.val || 0), 0), usd = (q) => (q != null && qUsd ? A.usd(q * qUsd) : "");
     const html = `<div class="aor-pf">
       <div class="aor-pf-sum"><small>${T("Held here, at the pool price")}</small><b data-no-i18n>${esc(A.qv(tot))}</b>${CH() === "rh" && usd(tot) ? `<span data-no-i18n>≈ ${esc(usd(tot))}</span>` : ""}<button type="button" class="aor-link" data-pfre>${T("Refresh")}</button></div>
@@ -105,6 +151,7 @@
         <span class="aor-pf-a"><button type="button" class="aor-btn sm go" data-protect="${esc(r.t)}" title="${T("A take-profit and a stop-loss on what you hold — you check it, then sign")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/></svg><span data-no-i18n>${esc(L3("Protect", "보호", "保护"))}</span></button></span>
       </div>`).join("")}
       <small class="aor-pf-n">${T("Balances read from the chain; average buy from your filled Orders buys only (not swaps made elsewhere). Not advice.")}</small>
+      ${journalHtml()}
     </div>`;
     // redrawn only when something changed (the rows slide in once, not on every refresh)
     if (el.dataset.pf === html && el.querySelector(".aor-pf")) return;

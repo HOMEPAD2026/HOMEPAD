@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791171322"></script>
+<script src="arc-log.js?v=1791173648"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791171322">
+<link rel="stylesheet" href="style.css?v=1791173648">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1637,6 +1637,15 @@
               <li>"Copy as a link" on an open order: a link that opens the same setup filled in, for a friend or for later. A heads-up (here, in your browser and on Telegram with /orderalerts on) when the price comes within 2% of a limit order.</li>
               <li>Ask ARCIA "my orders", "my order history" or "cancel my arcia orders" and she opens them; cancelling is still one signature by you. #orders?my=open | history | port opens them from a link.</li>
               <li>$ARCIRCLE on Robinhood Chain shows where it comes from (ARCIRCLE OMNI) until it has a pool there. An × clears the address box, and a market with no open orders of yours offers two starting points.</li>
+              <li>Indicators on the chart: a 20-candle average, VWAP, a volume average and order walls (where open Orders orders stack up). Turn each on or off; the choice stays.</li>
+              <li>Move all: shift every open limit order of a market by −5%, −1%, +1% or +5%. Each order is re-signed by you, one at a time, and a move that would cross the pool price is held back.</li>
+              <li>Price alerts take a percent: −10%, −5%, +5% or +10% from the pool price fills the alert in one tap.</li>
+              <li>A trading journal in Portfolio: realized result, win rate and average hold for your Orders sells against your Orders buys, a five-week calendar and a line per market. It is a record, not advice.</li>
+              <li>A Stats tab beside Explore: filled volume and fills over 7 days, open orders, active markets and the $ARCIRCLE burned by Orders fees. No wallet is named.</li>
+              <li>$ARCIRCLE shows its price on the other chain too (Arc or Robinhood Chain, through ARCIRCLE OMNI), in dollars.</li>
+              <li>Keyboard: B and S pick the side, O the order form, M the market list, P the pool, C the chart, ? lists them all, Esc closes.</li>
+              <li>On a wide screen (1680px and up) the latest fills sit under the book; on smaller laptops the header keeps the core numbers and the rest open under More. Phone tabs have icons and the Dexscreener link lives in the Pool tab.</li>
+              <li>A fill while the tab is in the background flashes the tab's title. A quiet market (nothing moved for two minutes, none of your orders in it) is read every 15 seconds instead of every 5, and a busy RPC is retried once before giving up.</li>
             </ul>
           </details>
           <details><summary><h3>New in v5</h3></summary>
@@ -1763,6 +1772,9 @@
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
             <p>The book is public: GET /api/social?orders=book&amp;token=0x… returns price levels, recent fills and 24-hour numbers; ?orders=markets lists every market; ?orders=candles&amp;pool=0x… gives 5-minute candles of any Arc v4 pool for 3 days. Orders are placed with a signed EIP-712 order (domain "ARCIRCLE Orders", version 1, chain 5042). Add &amp;chain=rh to any of these for Robinhood Chain (chain 4663; ?orders=pools&amp;token=0x… lists a token's ETH pools there).</p>
+            <p>New in v6: ?orders=explore (this chain's trending tokens, from Dexscreener), ?orders=stats (7 days of filled volume and fills, open orders, active markets, the fee burn's total — no wallet named), ?orders=status (the executor), ?orders=burns, ?orders=recent (the live tape). GET /api/desk?watching=1 (&amp;chain=rh) lists the new coins ARCIA DESK is watching.</p>
+            <p>To place an order from code: sign the EIP-712 Order (domain "ARCIRCLE Orders", version "1", chainId 5042 or 4663, verifyingContract the Orders contract on that chain; fields maker, sell, buy, sellAmount, buyAmount, triggerSqrtP, triggerBelow, poolId, expiry, start, duration, group, epoch, salt), then POST /api/social with JSON {"action": "orderplace", "chain": "rh" (Robinhood Chain only), "token": "0x…", "key": {currency0, currency1, fee, tickSpacing, hooks}, "order": {…}, "sig": "0x…"}. The maker approves the token to the Orders contract (or Permit2) first; nothing else is needed — the executor matches and fills. To cancel, sign the text "Cancel ARCIRCLE order 0x…" (the order hash, lowercase) with personal_sign and POST {"action": "ordercancel", "token", "hash", "sig"}; or cancel on-chain from the contract, which is final even if this site is offline. A wallet's own orders: sign "ARCIRCLE Orders: show my orders\n0x…(wallet)\nuntil &lt;unix time&gt;" and GET ?orders=mine&amp;wallet=0x…&amp;until=…&amp;sig=0x….</p>
+            <p>Links: #orders?t=0x…&amp;c=rh&amp;o=&lt;an order in words, e.g. "sell 1m at +20%"&gt; opens the form filled in; #orders?my=open | history | port (&amp;scope=all) opens your orders.</p>
           </details>
           <details><summary><h3>Honest risks</h3></summary>
             <p>The contracts are new and unaudited (their source is public on ArcScan). A limit order fills only if a wallet or the pool meets its price — there's no promise it will. Stop orders fill at market once triggered and can get less than the trigger price, down to their slippage limit. Nothing here is financial advice.</p>
@@ -2261,19 +2273,23 @@
     <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg></span>
     <span class="ax-dock-txt"><strong>Circle</strong><small>CirclePad</small></span>
   </a>
-  <a class="ax-dock-item" data-accent="reward" href="/reward">
-    <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 10h18M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></span>
-    <span class="ax-dock-txt"><strong>Reward</strong><small>Burn engine</small></span>
+  <a class="ax-dock-item ax-dock-hot" data-accent="orders" href="/arc#orders" data-arc-tab="orders">
+    <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M14.5 6.5h5M14.5 10h3.5M14.5 13.5h5"/><path d="M4.5 10.5h5M6 14h3.5M4.5 17.5h5"/></svg></span>
+    <span class="ax-dock-txt"><strong>Orders</strong><small>Limit · Stop</small></span>
+    <em class="ax-dock-flag" aria-hidden="true" data-no-i18n>v6</em>
   </a>
   <span class="ax-dock-sep" aria-hidden="true"></span>
-  <a class="ax-dock-item" data-accent="token" href="/arcircle">
-    <span class="ax-dock-ico"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"></span>
-    <span class="ax-dock-txt"><strong>$ARCIRCLE</strong><small>The core coin</small></span>
-  </a>
+  <span class="ax-dock-grp">
+    <a class="ax-dock-item" data-accent="reward" href="/reward">
+      <span class="ax-dock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 10h18M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></span>
+      <span class="ax-dock-txt"><strong>Reward</strong><small>Burn engine</small></span>
+    </a>
+    <a class="ax-dock-sub" href="/arcircle" title="$ARCIRCLE — the core coin" aria-label="$ARCIRCLE — the core coin"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111"><span data-no-i18n>$ARCIRCLE</span></a>
+  </span>
 </nav>
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791171322"></script>
+<script src="arcpad.bundle.js?v=1791173648"></script>
 </body>
 </html>

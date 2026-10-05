@@ -262,11 +262,17 @@
       var d = dock.getBoundingClientRect(), q = bar.getBoundingClientRect();
       root.style.setProperty("--ax-dock-h", Math.round(d.height) + "px");
       var dockBottom = Math.max(0, window.innerHeight - d.bottom);
-      var row = window.innerWidth >= 901 && q.width + GAP + d.width + 48 <= window.innerWidth;
+      // The pair is centred on the dock's own anchor, which on pages with a
+      // sidebar is the content column, not the window; nudge it sideways when
+      // it would run off either edge of that column.
+      var vw = window.innerWidth, cx = parseFloat(getComputedStyle(dock).left) || vw / 2;
+      var lo = Math.max(24, 2 * cx - vw + 12), hi = vw - 24, w = q.width + GAP + d.width;
+      var row = vw >= 901 && w <= hi - lo;
+      var nudge = row ? Math.min(0, hi - (cx + w / 2)) + Math.max(0, lo - (cx - w / 2)) : 0;
       root.classList.toggle("ax-float-row", row);
       if (row) {
-        root.style.setProperty("--ax-q-shift", -Math.round((GAP + d.width) / 2) + "px");
-        root.style.setProperty("--ax-d-shift", Math.round((q.width + GAP) / 2) + "px");
+        root.style.setProperty("--ax-q-shift", Math.round(nudge - (GAP + d.width) / 2) + "px");
+        root.style.setProperty("--ax-d-shift", Math.round(nudge + (q.width + GAP) / 2) + "px");
         root.style.setProperty("--ax-q-lift", Math.round((d.height - q.height) / 2) + "px");
         root.style.setProperty("--ax-float-space", Math.round(dockBottom + Math.max(d.height, q.height) + 20) + "px");
       } else root.style.setProperty("--ax-float-space", Math.round(dockBottom + d.height + 10 + q.height + 20) + "px");

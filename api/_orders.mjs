@@ -601,6 +601,35 @@ const metaOf = async (t) => { const k = "meta:" + t, hit = mem.get(k); if (hit) 
 const candleKey = (poolId) => `${P}/c_${lc(poolId)}`;
 /// v5: thin liquidity — the pool moves 2% for less than CFG.thinQuote of the quote (null until the executor has measured it)
 const thinOf = (m) => (m && m.depth && m.depth.up != null ? Math.min(m.depth.up, m.depth.dn) < CFG.thinQuote : null);
+/// v6: Orders as a whole on this chain — the last 7 days' filled volume and fills, open orders, active markets, how
+/// many wallets have orders open, and the fee burn's total. No wallet is named. Kept a minute.
+async function stats({ store } = {}) {
+  const hit = mem.get("stats");
+  if (hit && Date.now() - hit.t < 60000) return hit.v;
+  const idx = await sget(store, INDEX);
+  const tokens = ((idx && idx.tokens) || []).slice(0, 60);
+  const docs = store && store.getMany ? await store.getMany(tokens.map(marketKey)).catch(() => null) : null;
+  const now = CFG.now(), day0 = Math.floor(now / 86400) * 86400;
+  const days = Array.from({ length: 7 }, (_, i) => ({ d: new Date((day0 - (6 - i) * 86400) * 1000).toISOString().slice(0, 10), vol: 0, n: 0 }));
+  let open = 0, active = 0; const makers = new Set();
+  for (const t of tokens) {
+    const m = (docs && docs[marketKey(t)]) || (await sget(store, marketKey(t)));
+    if (!m) continue;
+    const op = m.orders.filter((o) => o.status === "open");
+    open += op.length; if (op.length) active++;
+    for (const o of op) makers.add(o.o.maker);
+    for (const f of m.fills || []) {
+      if (!(f.at >= day0 - 6 * 86400)) continue;
+      const k = Math.floor((f.at - (day0 - 6 * 86400)) / 86400);
+      if (days[k]) { days[k].vol += f.quote || 0; days[k].n++; }
+    }
+  }
+  const b = await Promise.race([burns({ store }).catch(() => null), new Promise((r) => setTimeout(() => r(null), 4000))]);
+  const v = { chain: CFG.id, quote: CFG.baseSym, days, vol7: days.reduce((a, x) => a + x.vol, 0), fills7: days.reduce((a, x) => a + x.n, 0), open, markets: active, makers: makers.size,
+    burned: b && b.live ? { arcircle: b.arcircle || 0, quote: b.quote || 0, n: b.n || 0 } : null, at: now };
+  mem.set("stats", { t: Date.now(), v });
+  return v;
+}
 /// v6: Explore — what's trading on this chain right now: Dexscreener's boosted and newest-profile tokens here, each with
 /// its deepest pair's price, 24h change, volume and liquidity (kept 3 minutes; Dexscreener down → the last list)
 async function explore() {
@@ -1416,7 +1445,7 @@ async function alertsDue(wallets, { store } = {}) {
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
   TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
-  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, _test };
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, stats, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);
