@@ -8216,6 +8216,8 @@
     "Version 8 — new features are added regularly": "第 8 版 — 新功能会定期加入",
     "Limit · stop · TP/SL · OCO · grid · DCA": "限价 · 止损 · 止盈/止损 · OCO · 网格 · DCA",
     "Limit, stop, TP/SL, OCO and grid orders — Arc, Robinhood and Solana": "限价、止损、止盈/止损、OCO 和网格订单 — Arc、Robinhood 和 Solana",
+    "arms the moment its buy fills": "买单成交那一刻即生效",
+    "out of the book until you resume it": "恢复前不在订单簿中",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

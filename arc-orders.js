@@ -1156,7 +1156,9 @@
   }
   function scanBanner() {
     const h = S.scanPause; if (!h || S.myTab !== "open") return "";
-    const why = h.crit ? L3(`a critical flag on $${h.sym}`, `$${h.sym}에 치명적 경고`, `$${h.sym} 出现严重警告`) : h.was > h.score ? L3(`$${h.sym}'s scan score fell to ${h.score} (it was ${h.was})`, `$${h.sym}의 스캔 점수가 ${h.score}점으로 떨어졌어요 (이전 ${h.was}점)`, `$${h.sym} 的扫描分数降到 ${h.score}（之前 ${h.was}）`) : L3(`$${h.sym}'s scan score is ${h.score}`, `$${h.sym}의 스캔 점수는 ${h.score}점이에요`, `$${h.sym} 的扫描分数是 ${h.score}`);
+    // count them now, not when the score came in (orders placed or paused since then)
+    h.n = ((S.mine && S.mine.orders) || []).filter((o) => (o.status === "open" || o.status === "unfunded") && !o.paused && lc((o.token && o.token.address) || o.token || "") === h.t).length || h.n;
+    const why = h.crit ? L3(`A critical flag on $${h.sym}`, `$${h.sym}에 치명적 경고`, `$${h.sym} 出现严重警告`) : h.was > h.score ? L3(`$${h.sym}'s scan score fell to ${h.score} (it was ${h.was})`, `$${h.sym}의 스캔 점수가 ${h.score}점으로 떨어졌어요 (이전 ${h.was}점)`, `$${h.sym} 的扫描分数降到 ${h.score}（之前 ${h.was}）`) : L3(`$${h.sym}'s scan score is ${h.score}`, `$${h.sym}의 스캔 점수는 ${h.score}점이에요`, `$${h.sym} 的扫描分数是 ${h.score}`);
     return `<div class="aor-scanpause" role="status"><i aria-hidden="true">!</i><span><b data-no-i18n>${esc(why)}</b> ${esc(L3(`— you have ${h.n} open ${h.n === 1 ? "order" : "orders"} there. Pause ${h.n === 1 ? "it" : "them"} while you look?`, `— 거기에 열린 주문이 ${h.n}개 있어요. 확인하는 동안 일시정지할까요?`, `— 你在那里有 ${h.n} 个挂单。查看期间先暂停吗？`))}</span><span class="aor-scanpause-a"><a class="aor-btn sm ghost" href="/arc#scanner?t=${esc(h.t)}${RH() ? "&c=rh" : ""}">${T("Read the scan")}</a><button type="button" class="aor-btn sm go" data-act="pausemkt" data-tk="${esc(h.t)}">${T("Pause them")}</button><button type="button" class="aor-link" data-act="scanoff">${T("Not now")}</button></span></div>`;
   }
   /// v8: my own orders' events as they happen (fills, armed legs, stops, one-cancels-other) — a short stream that
@@ -1609,7 +1611,7 @@
       if (o.type === "stop") out.push({ p: (o.trigger && o.trigger.price) || o.price, c: "#ff9b8a", label: `${o.leg === "sl" ? "SL" : tr("Stop")} ${amt}` });
       else if (o.type === "trail" && o.trail) out.push({ p: o.trail.at, c: "#ffb27a", label: `${tr("Trail")} ${o.trail.pct}%`, peak: o.trail.peak });
       else if (o.type === "limit" && o.cond && !o.cond.met) out.push({ p: o.price, c: "#b69cff", label: `IF ${sd} ${amt}` }); // v5: waiting on another token — not draggable
-      else if (o.type === "limit" && o.after && !o.after.met) out.push({ p: o.price, c: "#8fb3c9", label: `${tr("Grid")} ${sd} ${amt}` }); // v7: waits for its buy
+      else if (o.type === "limit" && o.after && !o.after.met) out.push({ p: o.price, c: "#8fb3c9", label: o.leg === "tp" ? `TP ${amt}` : `${tr("Grid")} ${sd} ${amt}` }); // v7: waits for its buy (v8: a bracket's take profit says TP)
       else if (o.type === "limit") out.push({ p: o.price, c: o.leg === "tp" ? "#7dffb8" : "#ffc861", label: `${o.leg === "tp" ? "TP" : sd} ${amt}`, h: !o.group && LIVE() ? o.hash : null });
     }
     return out;
@@ -2669,7 +2671,7 @@
         <span data-no-i18n>${fp(px)}${sub ? `<small>${esc(sub)}</small>` : ""}${dbar}${betterTag(o)}</span>
         <span data-no-i18n>${num(amt)}${amtSym ? ` ${esc(amtSym)}` : ""}</span>
         <span class="aor-mr-f">${o.type === "twap" && o.twap ? twapBar(o) : `${ring(o.filledPct, pf)}<small data-no-i18n>${(o.filledPct || 0).toFixed(o.filledPct > 0 && o.filledPct < 1 ? 2 : 0)}%</small>`}</span>
-        <span class="aor-st ${st}">${st === "unfunded" && !oc && LIVE() ? `<button type="button" class="aor-btn sm go aor-fixf" data-act="fixfund">${T("Fix")}</button>` : ""}${T(STATUS[st] || st)}${ex ? `<em class="aor-soon">${expRing(ex)}${T("expires in")} <span data-no-i18n>${inT(o.expiry)}</span></em>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</span>
+        <span class="aor-st ${st}">${st === "unfunded" && !oc && LIVE() ? `<button type="button" class="aor-btn sm go aor-fixf" data-act="fixfund">${T("Fix")}</button>` : ""}${T(o.paused && st === "open" ? "Paused" : STATUS[st] || st)}${ex ? `<em class="aor-soon">${expRing(ex)}${T("expires in")} <span data-no-i18n>${inT(o.expiry)}</span></em>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</span>
         <span class="aor-mr-a">${oc ? `<button type="button" class="aor-btn sm ghost" data-act="openother" data-ch="${oc}" data-tk="${esc(tk.address)}">${T(oc === "rh" ? "Open on Robinhood" : "Open on Arc")}</button>` : isOpen(o) && st !== "expired" ? `${ex && o.type === "limit" && !o.group && LIVE() ? `<button type="button" class="aor-btn sm go" data-act="extend" title="${T("Sign it again for 7 more days — the old one is cancelled")}">${T("Extend 7d")}</button>` : ""}${canEdit ? `<button type="button" class="aor-btn sm ghost aor-ed1" data-act="edit" title="${T("Change its price or amount")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg><span>${T("Edit")}</span></button>` : ""}<button type="button" class="aor-btn sm aor-cx1" data-act="cancel">${T("Cancel")}</button>${menu ? `<span class="aor-rmw"><button type="button" class="aor-btn sm ghost aor-rm" data-act="rowmenu" aria-haspopup="menu" aria-expanded="${S.rowMenu === o.hash}" aria-label="${T("More actions")}" title="${T("More actions")}"><span aria-hidden="true">⋯</span></button><span class="aor-rmenu" role="menu"${S.rowMenu === o.hash ? "" : " hidden"}>${menu}</span></span>` : ""}` : o.filledPct > 0 ? `${o.lastTx ? `<button type="button" class="aor-btn sm ghost aor-ic" data-act="sharelink" aria-label="${T("Share this fill")}" title="${T("Share this fill")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></button>` : ""}<button type="button" class="aor-btn sm ghost aor-ic" data-act="share" aria-label="${T("Save image")}" title="${T("Save image")}">${ICON.share}</button>` : ""}</span>
       </div>`;
     }).join("")}</div>${hidden ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Show")} <span data-no-i18n>${hidden}</span> ${T("cancelled")}</button>` : S.myTab === "history" && S.showCx && S.histF === "all" ? `<button type="button" class="aor-link aor-showcx" data-act="showcx">${T("Hide cancelled")}</button>` : ""}`;
@@ -2687,14 +2689,14 @@
   function whyNot(o, st) {
     // v8: the server says what's in the way of an open order (price gap, paused, a thin pool, the executor's next run)
     const w = o.why && (st === "open" || st === "unfunded") ? o.why : null;
-    if (w && w.code === "paused") return tr("paused — out of the book until you resume it");
+    if (w && w.code === "paused") return tr("out of the book until you resume it");
     if (w && w.code === "thin") return tr("at the market, but bigger than the pool takes within 2% — it fills in parts");
     if (w && w.code === "keeper") return tr("at the market — fills on the executor's next run (about a minute)");
     if (w && w.code === "trigger" && o.trigger && o.trigger.price && S.spot && lc(o.token.address || o.token) === S.t) { const g0 = pc(((o.trigger.price - S.spot) / S.spot) * 100, 1); return L3(`waits for the trigger · ${g0} to go`, `트리거 대기 · ${g0} 남음`, `等待触发 · 还差 ${g0}`); }
     if (w && w.code === "trail") return tr("following the price up — sells once it falls back by its trail");
     if (o.note === "oco") return tr("its pair filled");
     if (o.note === "after") return tr("its buy ended without filling");
-    if (o.after && !o.after.met && st === "open") return tr("waits for its buy to fill (grid)");
+    if (o.after && !o.after.met && st === "open") return o.leg === "tp" || o.leg === "sl" ? tr("arms the moment its buy fills") : tr("waits for its buy to fill (grid)");
     if (o.cond && !o.cond.met && st === "open") return `${tr("waits until")} $${o.cond.sym} ${tr(o.cond.dir === "above" ? "rises to" : "falls to")} ${fp(o.cond.price)}`;
     if (o.pending && st === "open") return tr("waits for its pool — it opens when the token graduates from Pons");
     if (st === "unfunded") return tr("top up the balance or the approval — it fills from where it left off");

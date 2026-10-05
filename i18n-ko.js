@@ -8046,6 +8046,8 @@
     "Version 8 — new features are added regularly": "버전 8 — 새 기능이 계속 추가됩니다",
     "Limit · stop · TP/SL · OCO · grid · DCA": "지정가 · 스탑 · 익절/손절 · OCO · 그리드 · DCA",
     "Limit, stop, TP/SL, OCO and grid orders — Arc, Robinhood and Solana": "지정가, 스탑, 익절/손절, OCO, 그리드 주문 — Arc, Robinhood, Solana",
+    "arms the moment its buy fills": "매수가 체결되는 순간 활성화",
+    "out of the book until you resume it": "재개할 때까지 호가창에서 빠져 있어요",
   };
 
 

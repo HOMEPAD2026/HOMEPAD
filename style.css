@@ -17264,7 +17264,7 @@ html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{di
 .aos-more button:hover,.aos-more button[aria-selected="true"]{border-color:rgba(20,241,149,.45);background:rgba(20,241,149,.07);}
 .aos-more b{font:700 .78rem Sora,sans-serif;}.aos-more small{font-size:.66rem;color:#8c98a6;line-height:1.35;}
 @keyframes aosPop{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
-.aos-two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.aos-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;}.aos-two>*{min-width:0;}.aos-two select,.aos-two input{width:100%;min-width:0;}
 .aos-pcts{display:inline-flex;gap:4px;margin-left:6px;}
 .aos-pcts button{padding:1px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:none;color:#b8c6d3;font:600 .64rem Sora,sans-serif;cursor:pointer;}
 .aos-pcts button:hover{border-color:rgba(20,241,149,.5);color:#eafff2;}
