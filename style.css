@@ -17255,3 +17255,29 @@ html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{di
 /* Round #3 + #4 merged (5 Oct 2026): why, under the two cards */
 .cp-plan-merge{margin:0;padding:10px 12px;border-radius:12px;font-size:.78rem;line-height:1.5;color:var(--ink-dim);background:linear-gradient(90deg,rgba(153,69,255,.08),rgba(20,241,149,.05));border:1px solid rgba(153,69,255,.25);}
 .cp-plan-merge b{color:var(--ink,#eef2f6);}
+
+/* ===== ARCIRCLE Orders v8 — Solana: more order types, the Pump.fun curve, waits and funding ===== */
+.aos-typebar{display:flex;flex-direction:column;gap:8px;}
+.aos-types button.on{color:#eafff2;}
+.aos-more{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.08);animation:aosPop .18s ease-out;}
+.aos-more button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;padding:8px 10px;border-radius:9px;border:1px solid transparent;background:rgba(255,255,255,.03);color:#dbe6f0;cursor:pointer;}
+.aos-more button:hover,.aos-more button[aria-selected="true"]{border-color:rgba(20,241,149,.45);background:rgba(20,241,149,.07);}
+.aos-more b{font:700 .78rem Sora,sans-serif;}.aos-more small{font-size:.66rem;color:#8c98a6;line-height:1.35;}
+@keyframes aosPop{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.aos-two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.aos-pcts{display:inline-flex;gap:4px;margin-left:6px;}
+.aos-pcts button{padding:1px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:none;color:#b8c6d3;font:600 .64rem Sora,sans-serif;cursor:pointer;}
+.aos-pcts button:hover{border-color:rgba(20,241,149,.5);color:#eafff2;}
+.aos-sign span{color:#a9f7d3 !important;font-size:.7rem;}
+.aos-curve{flex:1 1 100%;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(20,241,149,.06);border:1px solid rgba(20,241,149,.2);}
+.aos-curve span{font-size:.74rem;color:#dbe6f0;}.aos-curve em{font-style:normal;font-family:var(--or-mono,monospace);color:#8ff5c7;margin-left:4px;}
+.aos-curve > i{height:6px;border-radius:99px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;}
+.aos-curve > i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--p);border-radius:inherit;background:linear-gradient(90deg,#9945ff,#14f195);transition:width .6s ease;}
+.aos-curve small{grid-column:1 / -1;font-size:.66rem;color:#8c98a6;}
+.aos-curve.done{grid-template-columns:1fr;background:rgba(153,69,255,.07);border-color:rgba(153,69,255,.3);}
+.aos-cond-n{margin:6px 0 0;font-size:.7rem;color:#8c98a6;}.aos-cond-n b{color:#dbe6f0;}
+.aos-side i{display:block;font-style:normal;font-weight:600;font-size:.56rem;opacity:.8;}
+.aos-wait{font-size:.7rem;color:#a9b8c6;}
+.aos-fix{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:8px;padding:8px 12px;border-radius:10px;background:rgba(255,184,77,.08);border:1px solid rgba(255,184,77,.3);font-size:.74rem;color:#ffd9a0;}
+.aos-row.unfunded{box-shadow:inset 3px 0 0 #ffb84d;}
+.aos-sides button.buy.dim{opacity:.45;}

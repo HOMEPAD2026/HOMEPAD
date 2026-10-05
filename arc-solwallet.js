@@ -57,6 +57,14 @@
         return outs.map((o) => { const b = o.signedTransaction; return { serialize: () => b }; });
       },
       async signTransaction(t) { return (await p.signAllTransactions([t]))[0]; },
+      // v8: a plain message (no transaction, no fee) — ARCIRCLE Orders' order conditions on Solana
+      async signMessage(bytes) {
+        if (!acct) throw new Error("Connect the wallet first.");
+        const F = w.features["solana:signMessage"];
+        if (!F) throw new Error("This wallet can't sign messages.");
+        const [r] = await F.signMessage({ account: acct, message: bytes });
+        return { signature: r.signature };
+      },
       on(ev, fn) {
         const E = w.features["standard:events"];
         if (!E) return;
@@ -134,6 +142,15 @@
     if (pick.name !== "Phantom" && pick.name !== "Backpack" && !pick.p.isStandard) return false;
     try { await pick.p.connect({ onlyIfTrusted: true }); const k = pubOf(pick.p); if (isKey(k)) { attach(pick, k); return true; } } catch { /* asks on click */ }
     return false;
+  };
+  /// v8: sign a plain message → the 64-byte signature (Uint8Array)
+  S.signMessage = async function (bytes) {
+    const p = S.p;
+    if (!p) throw new Error("Connect a Solana wallet first.");
+    if (typeof p.signMessage !== "function") throw new Error("This wallet can't sign messages — try Phantom or Solflare.");
+    const r = await p.signMessage(bytes, "utf8");
+    const sig = r && r.signature ? r.signature : r;
+    return sig instanceof Uint8Array ? sig : Uint8Array.from(sig || []);
   };
   S.disconnect = async function () {
     try { if (S.p && typeof S.p.disconnect === "function") await S.p.disconnect(); } catch { /* fine */ }

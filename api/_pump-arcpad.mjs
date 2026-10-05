@@ -39,7 +39,7 @@ export const PROGRAM = {
 export const PLATFORM_BPS = 3000;
 const LIST_DOC = "pumpArc/list";
 const ANNOUNCE_WINDOW = 15 * 60;
-const INITIAL_REAL_TOKENS = 793_100_000_000_000n; // Global.initial_real_token_reserves: what the curve sells before it graduates
+export const INITIAL_REAL_TOKENS = 793_100_000_000_000n; // Global.initial_real_token_reserves: what the curve sells before it graduates
 const RENT_EMPTY = 890_880n; // a zero-data account's rent-exempt minimum, which the creator vault keeps
 const treasury = () => env("PUMP_TREASURY") || CFG.treasury;
 

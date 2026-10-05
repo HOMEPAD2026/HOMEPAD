@@ -565,7 +565,7 @@ export async function GET(req) {
       const k = url.searchParams.get("orders");
       try {
         const SOL = await import("./_orders-sol.mjs");
-        if (k === "book") { const v = await SOL.book(url.searchParams.get("token")); return v ? json(v.error ? 400 : 200, v, "public, max-age=4, s-maxage=6") : json(400, { error: "token is needed" }); }
+        if (k === "book") { const v = await SOL.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(v.error ? 400 : 200, v, "public, max-age=4, s-maxage=6") : json(400, { error: "token is needed" }); }
         if (k === "mine") { const v = await SOL.mine(url.searchParams.get("wallet"), { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" }); }
         if (k === "markets") return json(200, await SOL.markets({ store: scanStore() }), "public, max-age=20, s-maxage=30");
         if (k === "status") return json(200, await SOL.status({ store: scanStore() }), "public, max-age=20, s-maxage=30");
@@ -795,6 +795,13 @@ export async function POST(req) {
       if (scanner.limited(`solswap:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       try { const SOL = await import("./_orders-sol.mjs"); const r = await SOL.swapTx(b); return json(r.status, r.body); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+    }
+    // v8: the owner's signed conditions for Solana orders (stop, TP / SL, trailing, timed, graduation, curve)
+    if (b.action === "solcond") {
+      const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
+      if (scanner.limited(`solcond:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
+      try { const SOL = await import("./_orders-sol.mjs"); const r = await SOL.setCond(b, { store: scanStoreEarly() }); return json(r.status, r.body); }
+      catch (err) { return json(502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
     if (b.action === "pumpreg") {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";

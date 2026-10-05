@@ -14,7 +14,11 @@
 //                    fee. Expired orders are closed (their rent back to the owners).
 // Environment: ORDERS_SOL_PROGRAM (the program id), ORDERS_KEEPER_SOL_KEY (the keeper's secret key — Vercel, Sensitive),
 // JUPITER_API_KEY (portal.jup.ag), SOLANA_RPC_URL (an RPC that allows getProgramAccounts).
+// v8: stop, TP / SL, trailing, timed (DCA), graduation and curve orders — conditions the keeper waits for, signed by the
+// owner (api/_orders-sol-cond.mjs); the program's floor (min_out) still holds on every fill. Conditional orders stay
+// out of the book's price levels (their min_out is a floor, not a resting price).
 import { web3, spl, ordersSol } from "./_solkit.mjs";
+import * as C from "./_orders-sol-cond.mjs";
 
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 // keep in step with config-arc.js CONFIG.ORDERS_SOL
@@ -31,6 +35,9 @@ export const CFG = {
   cuPrice: 50000, // micro-lamports per compute unit on the keeper's fills
   slippageBps: 50,
   perTick: 6,
+  settleS: 20, // a new order waits this long before its first fill (its condition, if any, is registered first)
+  curve: null, // tests: (mint) => { complete, progress } | null
+  dexTtl: 30e3, // how long a Dexscreener price is reused
 };
 export function configure(o) { Object.assign(CFG, o); mem.cfg = null; mem.O = null; }
 const mem = { cfg: null, cfgAt: 0, O: null, mintInfo: new Map(), lastTick: null };
@@ -94,6 +101,53 @@ async function mintInfo(mint) {
   return v;
 }
 
+// ---------------- v8: conditions ----------------
+async function loadConds(store) {
+  if (!store) return {};
+  const d = await store.get(C.COND_DOC).catch(() => null);
+  return (d && d.items) || {};
+}
+async function saveConds(store, items) { if (store) await store.set(C.COND_DOC, { items, at: Date.now() }).catch(() => null); }
+/// POST {action:"solcond", owner, msg, sig}: the owner's signed conditions for orders they're about to place (or to drop
+/// one: kind "none"). Each order's address must be the owner's order PDA for the nonce in its line.
+export async function setCond(b, { store = null } = {}) {
+  const P = O();
+  if (!P) return { status: 503, body: { error: "ARCIRCLE Orders on Solana isn't live yet" } };
+  if (!store) return { status: 503, body: { error: "conditions need the store" } };
+  const msg = String(b.msg || "").slice(0, 6000), owner = String(b.owner || "");
+  const m = C.parseMessage(msg);
+  if (!m || m.owner !== owner) return { status: 400, body: { error: "that message isn't an order-conditions message" } };
+  if (Math.abs(Date.now() / 1000 - m.at) > 600) return { status: 400, body: { error: "that signature is too old — sign again" } };
+  if (!C.verify(owner, msg, b.sig)) return { status: 401, body: { error: "the signature doesn't match the wallet" } };
+  const items = await loadConds(store), set = [];
+  for (const x of m.items) {
+    const c = C.normalize(x.cond);
+    if (c.error) return { status: 400, body: { error: c.error, order: x.order } };
+    if (c.kind === "none") { if (items[x.order] && items[x.order].owner === owner) delete items[x.order]; set.push(x.order); continue; }
+    if (P.orderPda(owner, BigInt(c.nonce)).toBase58() !== x.order) return { status: 400, body: { error: "that order address isn't yours", order: x.order } };
+    items[x.order] = { ...c, owner, at: Math.floor(Date.now() / 1000) };
+    set.push(x.order);
+  }
+  await saveConds(store, items);
+  return { status: 200, body: { ok: true, set } };
+}
+/// a Pump.fun coin's bonding curve → { complete, progress } (null: not a Pump.fun coin), cached 15 s
+const curveMem = new Map();
+async function pumpCurve(mint) {
+  if (CFG.curve) return CFG.curve(mint);
+  const c = curveMem.get(mint);
+  if (c && Date.now() - c.at < 15e3) return c.v;
+  let v = null;
+  try {
+    const P = await import("./_pump-arcpad.mjs");
+    const [a] = await accounts([P.bondingCurvePda(mint)]);
+    const k = a && P.decodeCurve(a.data);
+    if (k) v = { complete: k.complete, progress: k.complete ? 100 : Math.max(0, Math.min(100, Math.round((Number(P.INITIAL_REAL_TOKENS - k.realTokenReserves) / Number(P.INITIAL_REAL_TOKENS)) * 1000) / 10)) };
+  } catch { v = null; }
+  curveMem.set(mint, { v, at: Date.now() });
+  return v;
+}
+
 // ---------------- prices ----------------
 const px = { sol: null, at: 0, dex: new Map() };
 async function solUsd() {
@@ -107,7 +161,7 @@ async function solUsd() {
 /// Dexscreener: the token's deepest SOL pair → { name, symbol, priceUsd, priceSol, change24h, liqUsd, vol24h, pair, dex, image }
 async function dexInfo(mints) {
   const out = {}, need = [];
-  for (const m of mints) { const c = px.dex.get(m); if (c && Date.now() - c.at < 30e3) out[m] = c.v; else need.push(m); }
+  for (const m of mints) { const c = px.dex.get(m); if (c && Date.now() - c.at < CFG.dexTtl) out[m] = c.v; else need.push(m); }
   if (!need.length) return out;
   const got = CFG.dex ? await CFG.dex(need) : {};
   if (!CFG.dex) {
@@ -149,12 +203,14 @@ export async function status({ store = null } = {}) {
   if (!last && store) { const d = await store.get("orderssol/tick").catch(() => null); last = d || null; }
   return { live: !!(o && cfg), program: o ? o.PROGRAM.toBase58() : null, config: cfg ? { ...cfg, maxIn: String(cfg.maxIn) } : null, keeper, jupiter: !!CFG.jupKey(), lastTick: last, at: Date.now() };
 }
-export async function book(mint) {
+export async function book(mint, { store = null } = {}) {
   if (!isKey(mint)) return null;
-  const [mi, cfg, info, sol] = await Promise.all([mintInfo(mint), config().catch(() => null), dexInfo([mint]).catch(() => ({})), solUsd()]);
+  const [mi, cfg, info, sol, curve, conds] = await Promise.all([mintInfo(mint), config().catch(() => null), dexInfo([mint]).catch(() => ({})), solUsd(), pumpCurve(mint).catch(() => null), loadConds(store)]);
   if (!mi) return { error: "not a token on Solana" };
   const feeBps = cfg ? cfg.feeBps : 10;
-  const orders = cfg ? (await openOrders({ mint }).catch(() => [])).map((x) => view(x, mi.decimals, feeBps)) : [];
+  const all = cfg ? (await openOrders({ mint }).catch(() => [])).map((x) => view(x, mi.decimals, feeBps)) : [];
+  // conditional orders wait for their trigger: their min_out is a floor, not a price anyone can fill at now
+  const orders = all.filter((x) => !conds[x.address]);
   const lvl = (side) => {
     const m = new Map();
     for (const x of orders.filter((y) => y.side === side && y.price)) { const k = Number(x.price.toPrecision(4)); const v = m.get(k) || { price: k, tokens: 0, sol: 0, n: 0 }; v.tokens += x.tokens; v.sol += x.sol; v.n++; m.set(k, v); }
@@ -163,7 +219,8 @@ export async function book(mint) {
   const d = info[mint] || {};
   return { mint, decimals: mi.decimals, tokenProgram: mi.program, name: d.name || "", symbol: d.symbol || "", image: d.image || "", priceSol: d.priceSol || null, priceUsd: d.priceUsd || null, solUsd: sol || null,
     change24h: d.change24h, liqUsd: d.liqUsd || null, vol24h: d.vol24h || null, pair: d.pair || null, dex: d.dex || null,
-    bids: lvl("buy"), asks: lvl("sell"), open: orders.length, feeBps, live: !!cfg, at: Date.now() };
+    bids: lvl("buy"), asks: lvl("sell"), open: all.length, conditional: all.length - orders.length, feeBps, live: !!cfg,
+    pump: curve ? { phase: curve.complete ? "graduated" : "curve", progress: curve.progress } : null, at: Date.now() };
 }
 export async function mine(wallet, { store = null } = {}) {
   if (!isKey(wallet)) return null;
@@ -174,7 +231,8 @@ export async function mine(wallet, { store = null } = {}) {
   const info = await dexInfo([...decs.keys()]).catch(() => ({}));
   let hist = [];
   if (store) { const d = await store.get(`orderssol/hist_${wallet}`).catch(() => null); hist = (d && d.items) || []; }
-  return { wallet, open: open.map((x) => ({ ...view(x, decs.get(x.mint).decimals, cfg ? cfg.feeBps : 10), symbol: (info[x.mint] || {}).symbol || "" })), history: hist.slice(0, 50) };
+  const conds = await loadConds(store);
+  return { wallet, open: open.map((x) => { const c = conds[x.address] || null; return { ...view(x, decs.get(x.mint).decimals, cfg ? cfg.feeBps : 10), symbol: (info[x.mint] || {}).symbol || "", cond: c, condLabel: C.label(c), priceNow: (info[x.mint] || {}).priceSol || null }; }), history: hist.slice(0, 50) };
 }
 export async function markets({ store = null } = {}) {
   const cfg = await config().catch(() => null);
@@ -238,7 +296,7 @@ async function alts(keys) {
 const mulBps = (v, bps) => (v * BigInt(bps)) / 10000n;
 
 /// one order → a signed fill (or why not)
-async function buildFill(o, cfg, kp) {
+async function buildFill(o, cfg, kp, gateFn = null) {
   const P = O(), K = kp.publicKey;
   const mi = await mintInfo(o.mint);
   if (!mi) return { skip: "mint" };
@@ -251,6 +309,13 @@ async function buildFill(o, cfg, kp) {
   // the price check: Jupiter's guaranteed output against the order
   const payout = buy ? floor : floor - fee;
   if (payout < o.minOut) return { skip: "price", have: payout.toString(), want: o.minOut.toString() };
+  // v8: a conditional order fills only once its condition holds at the price this fill would get (SOL per token)
+  if (gateFn) {
+    const t = 10 ** mi.decimals;
+    const px = buy ? (Number(swapIn) / LAMPORTS) / (Number(floor) / t || Infinity) : (Number(floor) / LAMPORTS) / (Number(o.amountIn) / t);
+    const g = gateFn(px);
+    if (!g.go) return { skip: "waiting", why: g.wait };
+  }
   const source = spl.getAssociatedTokenAddressSync(buy ? spl.NATIVE_MINT : mint, owner, true, buy ? spl.TOKEN_PROGRAM_ID : TP);
   const ownerAta = spl.getAssociatedTokenAddressSync(mint, owner, true, TP);
   const fillerIn = spl.getAssociatedTokenAddressSync(buy ? spl.NATIVE_MINT : mint, K, true, buy ? spl.TOKEN_PROGRAM_ID : TP);
@@ -312,6 +377,8 @@ export async function tick(store, { budgetMs = 40000 } = {}) {
   const now = Math.floor(Date.now() / 1000);
   const all = await openOrders();
   out.open = all.length;
+  const conds = await loadConds(store);
+  let condDirty = false;
   // expired orders: closed, their rent back to the owners
   for (const o of all.filter((x) => x.expiry && x.expiry <= now).slice(0, 4)) {
     if (left() < 8000) break;
@@ -338,20 +405,41 @@ export async function tick(store, { budgetMs = 40000 } = {}) {
       }
     } catch { ok = false; }
     if (!ok) { out.skipped.unfunded = (out.skipped.unfunded || 0) + 1; continue; }
+    // v8: a brand-new order waits a moment; a conditional one waits for its condition
+    if (o.created && now - o.created < CFG.settleS) { out.skipped.settling = (out.skipped.settling || 0) + 1; continue; }
+    const cond = conds[o.address] && conds[o.address].owner === o.owner ? conds[o.address] : null;
+    let gateFn = null;
+    if (cond) {
+      if (cond.notBefore && now < cond.notBefore) { out.skipped.waiting = (out.skipped.waiting || 0) + 1; continue; }
+      const spot = ((await dexInfo([o.mint]).catch(() => ({})))[o.mint] || {}).priceSol || null;
+      if (cond.kind === "trail" && spot && spot > cond.hi) { cond.hi = spot; condDirty = true; }
+      let curve = null;
+      if (cond.kind === "grad" || cond.kind === "curve") {
+        curve = await pumpCurve(o.mint).catch(() => null);
+        const g = C.gate(cond, { now, curve });
+        if (!g.go) { out.skipped.waiting = (out.skipped.waiting || 0) + 1; continue; }
+      } else if (cond.kind !== "time" && !C.near(cond, spot)) { out.skipped.waiting = (out.skipped.waiting || 0) + 1; continue; }
+      gateFn = (px) => C.gate(cond, { px, now, curve });
+    }
     tried++;
     try {
-      const f = await buildFill(o, cfg, kp);
+      const f = await buildFill(o, cfg, kp, gateFn);
       if (f.skip) { out.skipped[f.skip] = (out.skipped[f.skip] || 0) + 1; continue; }
       const r = await sendRaw(f.raw, f.lastValid);
       if (r.error) { out.errors.push({ order: o.address, error: r.error, logs: r.logs, err: r.err }); continue; }
-      out.filled.push({ order: o.address, sig: r.sig, side: o.side === 0 ? "buy" : "sell" });
+      out.filled.push({ order: o.address, sig: r.sig, side: o.side === 0 ? "buy" : "sell", ...(cond ? { kind: cond.kind } : {}) });
+      if (cond) { delete conds[o.address]; condDirty = true; }
       const sym = ((await dexInfo([o.mint]).catch(() => ({})))[o.mint] || {}).symbol;
       await noteFill(store, o, { sig: r.sig, got: o.side === 0 ? f.out : f.payout }, sym);
     } catch (e) { out.errors.push({ order: o.address, error: String(e.message || e).slice(0, 160) }); }
   }
+  // conditions whose order is gone (filled, cancelled, closed) — kept 15 minutes for one signed before its order landed
+  const openSet = new Set(all.map((x) => x.address));
+  for (const [k, c] of Object.entries(conds)) if (!openSet.has(k) && now - (c.at || 0) > 900) { delete conds[k]; condDirty = true; }
+  if (condDirty) await saveConds(store, conds);
   mem.lastTick = { at: out.at, open: out.open, filled: out.filled.length };
   if (store) await store.set("orderssol/tick", mem.lastTick).catch(() => null);
   return out;
 }
 
-export const _test = { view, keeperKp, openOrders, config, buildFill, mem };
+export const _test = { view, keeperKp, openOrders, config, buildFill, mem, loadConds, pumpCurve };
