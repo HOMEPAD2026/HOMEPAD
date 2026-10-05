@@ -12844,6 +12844,14 @@ body.arcpad-page .adv-launch-form label.agl-agree > span{flex:1 1 auto;min-width
 .aor-pick{display:flex;gap:8px;flex:1;min-width:0;}
 .aor-pick input{flex:1;min-width:0;padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);color:#fff;font:500 .82rem var(--or-mono);outline:none;}
 .aor-pick input:focus{border-color:rgba(77,212,255,.55);box-shadow:0 0 0 4px rgba(77,212,255,.1);}
+/* the × that clears the address box (Arc, Robinhood Chain, Solana) */
+.aor-q{position:relative;flex:1;min-width:0;display:flex;}
+.aor-q input{flex:1;min-width:0;padding-right:40px !important;}
+.aor-qx{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#cfd8e2;cursor:pointer;transition:background .15s,color .15s;}
+.aor-qx:hover{background:rgba(255,255,255,.16);color:#fff;}
+.aor-qx:focus-visible{outline:2px solid rgba(77,212,255,.7);outline-offset:1px;}
+.aor-qx svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;}
+.aor-q input:placeholder-shown+.aor-qx{display:none;}
 .aor-mkbtn[aria-expanded="true"]{color:#fff;border-color:rgba(77,212,255,.55);background:rgba(77,212,255,.08);}
 .aor-chips{display:flex;gap:6px;flex-wrap:wrap;}
 .aor-chips:empty{display:none;}

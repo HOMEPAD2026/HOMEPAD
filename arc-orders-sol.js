@@ -147,7 +147,7 @@
         <div class="aos-wallet" id="aos-wallet"></div>
         <div class="aor-pickrow">
           <form class="aor-pick" id="aos-form" autocomplete="off">
-            <input id="aos-in" type="text" spellcheck="false" placeholder="${T("Paste a Solana token address (mint)")}" aria-label="${T("Solana token address")}">
+<span class="aor-q"><input id="aos-in" type="text" spellcheck="false" placeholder="${T("Paste a Solana token address (mint)")}" aria-label="${T("Solana token address")}"><button type="button" class="aor-qx" data-qx aria-label="${T("Clear")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button type="submit" class="aor-btn go">${T("Open market")}</button>
           </form>
         </div>
@@ -168,6 +168,7 @@
     root.addEventListener("input", onInput);
     $("aos-form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("aos-in").value.trim(); if (isMint(v)) open(v); });
     $("aos-in").addEventListener("paste", () => setTimeout(() => { const v = $("aos-in").value.trim(); if (isMint(v)) open(v); }, 0));
+    $("aos-form").addEventListener("click", (e) => { if (!e.target.closest("[data-qx]")) return; const i = $("aos-in"); i.value = ""; i.focus(); });
     paintAll();
     boot();
   }
