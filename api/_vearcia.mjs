@@ -187,7 +187,8 @@ export async function state(fresh = false) {
     live: true, address: addr, chainId: CFG.chainId, now, owner: ownerHex ? "0x" + ownerHex.slice(-40) : null,
     totals: { pool: F(w[0] || 0n), perDay: F(w[1] || 0n), finish: Number(w[2] || 0n), staked: F(w[3] || 0n), ve: F(w[4] || 0n), weight: F(w[5] || 0n), streamed: F(w[6] || 0n), claimed: F(w[7] || 0n), burned: F(w[8] || 0n), stakers: Number(E(stakersHex)) || list.length },
     streams: streams.map((s) => ({ i: s.i, token: s.token, pool: Number(s.pool), perDay: Number(s.perDay), finish: s.finish, streamed: Number(s.streamed), claimed: Number(s.claimed) })), // raw units (each token's own decimals)
-    top: list.slice(0, 20).map((x, r) => ({ rank: r + 1, a: x.a, amount: x.amount, ve: x.ve, lockDays: x.lockDays, auto: x.auto, tier: x.tier, veTier: veTier(x.ve), end: x.end })),
+    top: list.slice(0, 20).map((x, r) => ({ rank: r + 1, a: x.a, amount: x.amount, ve: x.ve, lockDays: x.lockDays, auto: x.auto, tier: x.tier, veTier: veTier(x.ve), end: x.end })), // server-side only (desk.mjs strips it)
+    dist: community(list, now),
     stakers: list.map((x) => ({ a: x.a, ve: x.ve, end: x.end, auto: x.auto, lockBps: x.lockBps, tier: x.tier, boostUntil: x.boostUntil })),
     pools: scan.pools || [],
     tiers: VE_TIERS.slice(1).map(([nm, v]) => ({ name: nm, ve: v })),
@@ -196,6 +197,22 @@ export async function state(fresh = false) {
   for (const p of out.pools.slice(-30)) if (!p.t) p.t = await blockTs(ch, p.b);
   mem.state = out; mem.at = Date.now();
   return out;
+}
+
+/// v2: the stakers as a whole — no wallet named: lock lengths, tiers, auto-renew and boosts, by count and by $ARCIA
+export function community(list, now) {
+  const staked = list.reduce((a, x) => a + x.amount, 0);
+  const locks = [[1, 5], [6, 10], [11, 15], [16, 20]].map(([lo, hi]) => { const g = list.filter((x) => x.lockDays >= lo && x.lockDays <= hi); return { lo, hi, n: g.length, staked: g.reduce((a, x) => a + x.amount, 0) }; });
+  const tiers = VE_TIERS.map(([name], i) => ({ name: name || "Member", n: list.filter((x) => veTier(x.ve) === i).length }));
+  const auto = list.filter((x) => x.auto), boosted = list.filter((x) => x.tier > 0 && x.boostUntil > now);
+  return {
+    stakers: list.length, staked,
+    avgLock: staked > 0 ? list.reduce((a, x) => a + x.amount * x.lockDays, 0) / staked : 0,
+    locks, tiers,
+    auto: { n: auto.length, staked: auto.reduce((a, x) => a + x.amount, 0) },
+    boosted: { n: boosted.length, staked: boosted.reduce((a, x) => a + x.amount, 0) },
+    max: { n: list.filter((x) => x.lockDays >= 20).length, staked: list.filter((x) => x.lockDays >= 20).reduce((a, x) => a + x.amount, 0) },
+  };
 }
 
 /// one wallet: its position, rank and tier, and its last actions

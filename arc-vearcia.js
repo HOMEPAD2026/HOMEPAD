@@ -8,7 +8,7 @@
 //   · early withdrawal: time left ÷ the lock's length, at most 50% (auto-renew: 50%), burned — shown before signing
 //   · the $ARCIRCLE boost (1.2x / 1.5x / 2.0x from 1M / 5M / 10M, Arc + veARCIRCLE + Robinhood Chain): the site signs a
 //     3-day note (GET /api/social?veboost=0x…) and the wallet applies it
-//   · veARCIA tiers (Bronze 10K · Silver 100K · Gold 1M · Diamond 5M) unlock ARCIA perks; the top 20; the pool's history;
+//   · veARCIA tiers (Bronze 10K · Silver 100K · Gold 1M · Diamond 5M) unlock ARCIA perks; the stakers as a whole (no wallet listed); the pool's history;
 //     a wallet's last actions and share card (/vearcia/<wallet>) — GET /api/desk?vearcia=state · ?vearcia=me&u=0x…
 // Reads go straight to Robinhood Chain; the wallet switches there for transactions. Until CONFIG.VEARCIA_ADDRESS is set
 // the page explains it, previews the numbers and checks the boost, with the buttons off.
@@ -20,6 +20,7 @@
   const body = $("vea-body");
   const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
+  const L3v = (en, ko, zh) => { const l = (window.arcI18n && window.arcI18n.get()) || "en"; return l === "ko" ? ko : l === "zh" ? zh : en; };
   const T = (s) => esc(tr(s));
   const lc = (a) => String(a || "").toLowerCase();
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
@@ -142,7 +143,7 @@
     await Promise.all(jobs);
     if (!u) { S.pos = S.earned = S.bal = S.allow = S.eth = null; S.boost = S.mine = null; S.earnedAll = null; }
     S.at = nowS(); S.loaded = true;
-    if (a) loadSrv(); // the server's view (top 20, history) arrives a moment later
+    if (a) loadSrv(); // the server's view (the community figures, history) arrives a moment later
   }
   async function loadSrv() {
     const u = me();
@@ -207,7 +208,7 @@
       ${statBox("Burned by early exits", st ? big(F(st.burned)) + " <i>$ARCIA</i>" : "—", "")}
     </div>`;
     const claimPill = live && u && S.earned != null && S.earned > 0n ? `<button type="button" class="vea-tabclaim" data-vea="claim"${S.busy ? " disabled" : ""}>${T("Claim")} <b data-no-i18n class="vea-earned-mini">${big(liveEarned())}</b></button>` : "";
-    h += `<nav class="vea-tabs" role="tablist">${[["stake", "Stake"], ["pos", "My veARCIA"], ["boost", "Boost"], ["top", "Top"]].map(([k, l]) => `<button type="button" role="tab" data-vtab="${k}" aria-selected="${S.tab === k}">${T(l)}</button>`).join("")}${claimPill}</nav>`;
+    h += `<nav class="vea-tabs" role="tablist">${[["stake", "Stake"], ["pos", "My veARCIA"], ["boost", "Boost"], ["top", "Community"]].map(([k, l]) => `<button type="button" role="tab" data-vtab="${k}" aria-selected="${S.tab === k}">${T(l)}</button>`).join("")}${claimPill}</nav>`;
     h += `<div class="vea-sections vt-${esc(S.tab)}">
       <div class="vea-grid">${stakeCard(live)}${posCard(live)}</div>
       <div class="vea-grid g2">${boostCard(live)}${perksCard()}</div>
@@ -226,8 +227,9 @@
     const frac = Math.max(0, Math.min(1, daysLeft / 20));
     const R = 46, C = 2 * Math.PI * R;
     const paused = !live || !st || !(st.weight > 0n) || !(st.finish > now) || !(st.perDay > 0n);
-    const tops = (S.srv && S.srv.top) || [];
-    const dots = tops.slice(0, 5).map((x, i) => `<i style="--i:${i};${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(x.a) : ""}" title="${esc(short(x.a))}"></i>`).join("") || [0, 1, 2].map((i) => `<i class="ghost" style="--i:${i}"></i>`).join("");
+    // v2: the crowd is drawn, not named — one dot per staker, up to five
+    const nSt = (S.srv && S.srv.dist && S.srv.dist.stakers) || 0;
+    const dots = nSt ? Array.from({ length: Math.min(5, nSt) }, (_, i) => `<i style="--i:${i}"></i>`).join("") : [0, 1, 2].map((i) => `<i class="ghost" style="--i:${i}"></i>`).join("");
     return `<section class="vea-flow${paused ? " paused" : ""}" aria-label="${T("The reward stream")}">
       <div class="vea-ring"><svg viewBox="0 0 110 110" aria-hidden="true"><circle cx="55" cy="55" r="${R}" class="trk"/><circle cx="55" cy="55" r="${R}" class="val" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}"/></svg>
         <div><b data-no-i18n>${st && daysLeft > 0 ? "D-" + Math.ceil(daysLeft) : "—"}</b><span>${T("reward pool")}</span></div></div>
@@ -384,11 +386,27 @@
       ${next && ve > 0 ? `<p class="vea-fine">${T("Next")}: <b>${esc(next[0])}</b> — <b data-no-i18n>${big(next[1] - ve)}</b> veARCIA ${T("to go")}</p>` : ""}
       <p class="vea-fine">${T("veARCIA is recorded over time for the votes to come — the ARCIA AI ecosystem and its governance.")}</p></section>`;
   }
+  /// v2: the stakers as a whole — how long they lock, their tiers, auto-renew and boosts. No wallet is listed.
   function topCard(live) {
-    const top = (S.srv && S.srv.top) || [], u = me();
-    const rows = top.length ? top.map((x) => `<li class="${x.a === u ? "me" : ""}"><em data-no-i18n>${x.rank}</em><span class="vea-avs" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(x.a) : ""}"></span><a href="${esc(EXPL())}/address/${esc(x.a)}" target="_blank" rel="noopener" data-no-i18n>${esc(short(x.a))}</a>${x.veTier ? `<span class="vea-tb t${x.veTier}">${esc(VT[x.veTier][0])}</span>` : ""}<b data-no-i18n>${big(x.ve)}</b><small data-no-i18n>${x.auto ? tr("auto") : x.lockDays + "d"}${x.tier ? " · " + mult(BOOST[x.tier]) : ""}</small></li>`).join("")
-      : `<li class="vea-none">${T(live ? "The first stakers show here." : "Opens soon.")}</li>`;
-    return `<section class="ams-card vea-card vea-top" data-vt="top"><h3>${T("Top veARCIA")} ${S.srv ? `<small data-no-i18n>${S.srv.totals.stakers} ${tr(S.srv.totals.stakers === 1 ? "staker" : "stakers")}</small>` : ""}</h3><ol class="vea-lb">${rows}</ol></section>`;
+    const d = S.srv && S.srv.dist;
+    if (!d || !d.stakers) return `<section class="ams-card vea-card vea-comm" data-vt="top"><h3>${T("Community")}</h3><p class="vea-fine">${T(live ? "The first stakers show here." : "Opens soon.")}</p></section>`;
+    const pc = (v, t) => (t > 0 ? (v / t) * 100 : 0);
+    const shades = ["rgba(255,139,216,.3)", "rgba(255,139,216,.5)", "rgba(255,139,216,.72)", "#ff8bd8"];
+    const bar = d.locks.map((g, i) => (g.staked > 0 ? `<i style="flex:${g.staked};background:${shades[i]}" title="${g.lo}–${g.hi} ${esc(tr("days"))}: ${pc(g.staked, d.staked).toFixed(1)}%"></i>` : "")).join("");
+    const legend = d.locks.map((g, i) => `<li><i style="background:${shades[i]}"></i><span data-no-i18n>${g.lo}–${g.hi} ${esc(tr("days"))}</span><b data-no-i18n>${pc(g.staked, d.staked).toFixed(0)}%</b><small data-no-i18n>${g.n} ${esc(tr(g.n === 1 ? "staker" : "stakers"))}</small></li>`).join("");
+    const tiers = d.tiers.map((t, i) => `<li class="${t.n ? "" : "z"}">${i ? `<span class="vea-tb t${i}">${esc(VT[i][0])}</span>` : `<span class="vea-tb t0">${T("Member")}</span>`}<b data-no-i18n>${t.n}</b></li>`).join("");
+    const pos = S.pos && S.mine && S.mine.rank && d.stakers ? Math.max(1, Math.ceil((S.mine.rank / d.stakers) * 100)) : null;
+    return `<section class="ams-card vea-card vea-comm" data-vt="top"><h3>${T("Community")} <small data-no-i18n>${d.stakers} ${esc(tr(d.stakers === 1 ? "staker" : "stakers"))}</small></h3>
+      <div class="vea-cm-k">
+        <div><span>${T("Average lock")}</span><b data-no-i18n>${d.avgLock.toFixed(1)} <i>${esc(tr("days"))}</i></b></div>
+        <div><span>${T("On auto-renew")}</span><b data-no-i18n>${pc(d.auto.staked, d.staked).toFixed(0)}%</b></div>
+        <div><span>${T("Boosted by $ARCIRCLE")}</span><b data-no-i18n>${d.boosted.n}</b></div>
+        <div><span>${T("At 20 days (2.0x)")}</span><b data-no-i18n>${pc(d.max.staked, d.staked).toFixed(0)}%</b></div>
+      </div>
+      <div class="vea-cm-s"><small>${T("Lock length, by $ARCIA staked")}</small><div class="vea-cm-bar" role="img" aria-label="${T("Lock length, by $ARCIA staked")}">${bar}</div><ul class="vea-cm-lg">${legend}</ul></div>
+      <div class="vea-cm-s"><small>${T("Stakers by veARCIA tier")}</small><ul class="vea-cm-t">${tiers}</ul></div>
+      ${pos ? `<p class="vea-cm-you" data-no-i18n>${esc(L3v(`You're in the top ${pos}% of stakers`, `상위 ${pos}% 스테이커예요`, `你位于质押者前 ${pos}%`))}</p>` : ""}
+      <p class="vea-fine">${T("No wallet is listed here — only the stakers as a whole.")}</p></section>`;
   }
   function historyCard(live) {
     const pools = ((S.srv && S.srv.pools) || []).filter((p) => p.t);

@@ -7715,6 +7715,14 @@
     "Ask ARCIA \"lock 10k arcircle for 6 months\" and she opens this form filled in — nothing is signed until you sign. On phones, a bar keeps the next step (claim, lock, vote, withdraw) in reach.": "ARCIA에게 'lock 10k arcircle for 6 months'라고 하면 입력이 채워진 폼을 열어줘요 — 직접 서명하기 전엔 아무것도 서명되지 않아요. 휴대폰에서는 다음 할 일(클레임, 락업, 투표, 인출) 버튼이 하단 바에 떠 있어요.",
     "If Arc's node has dropped old history, the page still loads: totals come from the contract, and it says when older lists may be incomplete.": "Arc 노드가 오래된 기록을 지웠어도 페이지는 열려요: 합계는 컨트랙트 기준이고, 오래된 목록이 빠져 있을 수 있으면 알려줘요.",
     "GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&u=0x… returns a wallet's lock, veARCIRCLE, tier, claimable USDC, this week's and last week's vote and its last eight weeks. GET /api/desk?stake=pool&token=0x… returns the pool to vote for a token (one already listed, its ArcPad pool or its ARCIRCLE Orders market). arcircle.app/arc#staking?a=10000&w=26 (or &max=1) opens the form filled in. arcircle.app/stake/0x… is a wallet's share card. On Telegram, /stakealerts in a DM with ARCIA (after linking your wallet) sends your claimable USDC each new week, reminders 30, 7 and 1 days before your unlock date, new funding and the vote's last day; /stakealerts off stops it.": "GET /api/desk?stake=state는 전체 합계, 최근 주간 보상, 이번 주와 지난주 풀 투표, 큰 락업, 트레저리 수수료 몫과 펀딩 내역을 돌려줘요. GET /api/desk?stake=me&u=0x…는 지갑의 락업, veARCIRCLE, 등급, 받을 USDC, 이번 주·지난주 투표와 최근 8주 내역을 돌려줘요. GET /api/desk?stake=pool&token=0x…는 토큰에 투표할 풀(이미 목록에 있는 풀, ArcPad 풀 또는 ARCIRCLE Orders 마켓)을 돌려줘요. arcircle.app/arc#staking?a=10000&w=26(또는 &max=1)은 입력이 채워진 폼을 열어요. arcircle.app/stake/0x…는 지갑의 공유 카드예요. 텔레그램에서 ARCIA에게 DM으로 /stakealerts를 보내면(지갑 연결 후) 새 주마다 받을 USDC, 해제 30일·7일·1일 전 알림, 새 펀딩, 투표 마지막 날을 알려드려요. /stakealerts off로 끌 수 있어요.",
+    "Average lock": "평균 락업",
+    "On auto-renew": "자동 갱신",
+    "Boosted by $ARCIRCLE": "$ARCIRCLE 부스트",
+    "At 20 days (2.0x)": "20일 락업 (2.0x)",
+    "Lock length, by $ARCIA staked": "락업 기간 (스테이킹된 $ARCIA 기준)",
+    "Stakers by veARCIA tier": "veARCIA 티어별 스테이커",
+    "No wallet is listed here — only the stakers as a whole.": "여기에는 지갑이 표시되지 않아요 — 전체 스테이커 통계만 보여줘요.",
+    "Still looking — a token seen here for the first time takes a few more seconds.": "아직 찾는 중이에요 — 처음 보는 토큰은 몇 초 더 걸려요.",
   };
 
 

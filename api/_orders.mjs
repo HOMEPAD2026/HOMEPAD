@@ -72,6 +72,7 @@ const RH_CFG = {
   chainId: 4663,
   rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
+  positions: "0x58daec3116aae6d93017baaea7749052e8a04fa7", // Uniswap v4 PositionManager: poolKeys(bytes25) knows any pool it minted into
   keeperKey: () => env("ORDERS_KEEPER_RH_KEY") || env("ORDERS_KEEPER_KEY") || null,
   dexChain: "robinhood", explorerApi: "https://robinhoodchain.blockscout.com/api", // where pools() looks a token's pools up
   ponsFactory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // v4: PonsV2LaunchFactory — a curve token's pool is known before it graduates
@@ -1011,34 +1012,56 @@ async function getJson(u, ms = 6000) {
 }
 const dexPairs = async (token) => {
   if (CFG.dexPairs) return CFG.dexPairs(token);
-  const j = await getJson(`https://api.dexscreener.com/token-pairs/v1/${CFG.dexChain}/${token}`);
+  const j = await getJson(`https://api.dexscreener.com/token-pairs/v1/${CFG.dexChain}/${token}`, 5000);
   return Array.isArray(j) ? j : [];
 };
-/// the first block at or after `ts` (binary search on block timestamps)
-async function blockAt(ts, head) {
-  let lo = 0, hi = head.number;
-  for (let i = 0; i < 40 && lo < hi; i++) {
-    const mid = Math.floor((lo + hi) / 2);
-    const b = await chain().rpcCall("eth_getBlockByNumber", ["0x" + mid.toString(16), false]).catch(() => null);
-    if (!b) break;
-    if (parseInt(b.timestamp, 16) < ts) lo = mid + 1; else hi = mid;
-  }
-  return lo;
+/// v5.1: a pool's key, fastest first — (1) the PositionManager's poolKeys(bytes25) for every pair in one batched call,
+/// (2) the Pons factory for a graduated Pons coin, (3) one Blockscout log search for every Initialize naming the token,
+/// (4) the node's logs around each pair's creation block, in parallel and inside the time budget
+const keyOfLog = (l) => ({ currency0: lc("0x" + strip(l.topics[2]).slice(24)), currency1: lc("0x" + strip(l.topics[3]).slice(24)), fee: Number(W(l.data, 0)), tickSpacing: Number(BigInt.asIntN(24, W(l.data, 1))), hooks: lc("0x" + strip(l.data).slice(128 + 24, 192)) });
+async function keysFromPositions(ids) {
+  if (!CFG.positions || !ids.length) return new Map();
+  const res = await calls(ids.map((id) => ({ to: CFG.positions, data: sel("poolKeys(bytes25)") + strip(id).slice(0, 50).padEnd(64, "0") }))).catch(() => []);
+  const out = new Map();
+  ids.forEach((id, i) => {
+    const kh = res[i];
+    if (!kh || strip(kh).length < 320) return;
+    let ts = Number(W(kh, 3) & 0xffffffn); if (ts & 0x800000) ts -= 0x1000000;
+    if (!ts) return;
+    const key = { currency0: lc("0x" + strip(kh).slice(24, 64)), currency1: lc("0x" + strip(kh).slice(64 + 24, 128)), fee: Number(W(kh, 2)), tickSpacing: ts, hooks: lc("0x" + strip(kh).slice(256 + 24, 320)) };
+    if (lc(poolIdOf(key, keccak)) === id) out.set(id, key);
+  });
+  return out;
 }
-async function initLog(id, createdTs, head) {
-  if (CFG.explorerApi) {
-    const j = await getJson(`${CFG.explorerApi}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${CFG.pm}&topic0=${TOPIC_INIT}&topic1=${id}&topic0_1_opr=and`, 6000);
-    const l = j && Array.isArray(j.result) && j.result[0];
-    if (l && l.topics) return { topics: l.topics.filter(Boolean), data: l.data };
+async function keysFromExplorer(token, ms) {
+  const out = new Map();
+  if (!CFG.explorerApi) return out;
+  const t32 = "0x" + strip(token).padStart(64, "0");
+  const q = (n) => getJson(`${CFG.explorerApi}?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=${CFG.pm}&topic0=${TOPIC_INIT}&topic${n}=${t32}&topic0_${n}_opr=and`, ms);
+  const [a, b] = await Promise.all([q(2), q(3)]);
+  for (const j of [a, b]) for (const l of (j && Array.isArray(j.result) ? j.result : [])) {
+    if (!l || !Array.isArray(l.topics) || l.topics.length < 4) continue;
+    try { const key = keyOfLog({ topics: l.topics.filter(Boolean), data: l.data }); const id = lc(l.topics[1]); if (lc(poolIdOf(key, keccak)) === id) out.set(id, key); } catch { /* skip */ }
   }
-  const b = createdTs ? await blockAt(createdTs - 120, head) : Math.max(0, head.number - 9000);
-  for (let k = 0; k < 4; k++) {
-    const from = b + k * 4000, to = Math.min(head.number, from + 3999);
+  return out;
+}
+/// the node's Initialize log near a pair's creation time: the block is estimated from the chain's pace (two reads, not
+/// a binary search), then up to three 4,000-block windows are searched
+async function keyFromNode(id, createdTs, head, pace) {
+  const est = createdTs && pace > 0 ? Math.max(0, Math.round(head.number - (head.ts - createdTs) / pace) - 1500) : Math.max(0, head.number - 9000);
+  for (let k = 0; k < 3; k++) {
+    const from = est + k * 4000, to = Math.min(head.number, from + 3999);
     if (from > head.number) break;
     const logs = await chain().getLogs({ address: CFG.pm, topics: [TOPIC_INIT, id], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }, 2).catch(() => []);
-    if (logs && logs[0]) return logs[0];
+    if (logs && logs[0]) return keyOfLog(logs[0]);
   }
   return null;
+}
+async function chainPace(head) {
+  const back = Math.min(head.number - 1, 100000);
+  if (back < 100) return 0;
+  const b = await chain().rpcCall("eth_getBlockByNumber", ["0x" + (head.number - back).toString(16), false]).catch(() => null);
+  return b ? (head.ts - parseInt(b.timestamp, 16)) / back : 0;
 }
 async function pools(token, { store } = {}) {
   token = lc(token);
@@ -1058,15 +1081,41 @@ async function pools(token, { store } = {}) {
   const skip = (fresh0 && c.skip) || {}; // pairs whose key couldn't be read: retried after 15 minutes
   const todo = ethPairs.filter((p) => { const id = lc(p.pairAddress); return !known.has(id) && !(skip[id] && CFG.now() - skip[id] < 900); });
   if (fresh0 && c.pools.length && !todo.length && !ethPairs.length) return fresh(c); // Dexscreener didn't answer: keep what we have
-  const head = todo.length ? await chain().latestBlock() : null;
   let info = (fresh0 && c.token && c.token.logo) ? { logo: c.token.logo } : null;
   const nskip = { ...skip };
+  const t0 = Date.now(), left = () => 7000 - (Date.now() - t0);
+  const keys = new Map();
+  let waiting = 0;
+  if (todo.length) {
+    const ids = todo.map((p) => lc(p.pairAddress));
+    // (1) the PositionManager and (2) the Pons factory, together
+    const [fromPos, pk] = await Promise.all([keysFromPositions(ids), CFG.ponsFactory ? ponsKey(token).catch(() => null) : null]);
+    for (const [id, k0] of fromPos) keys.set(id, k0);
+    if (pk && pk.key && pk.poolId && ids.includes(pk.poolId)) keys.set(pk.poolId, pk.key);
+    // (3) Blockscout: every Initialize naming the token, in two calls
+    let rest = ids.filter((id) => !keys.has(id));
+    if (rest.length && left() > 1500) { const ex = await keysFromExplorer(token, Math.min(5000, left() - 500)); for (const id of rest) if (ex.has(id)) keys.set(id, ex.get(id)); }
+    // (4) the node, three pairs at a time, inside what's left of the budget
+    rest = ids.filter((id) => !keys.has(id));
+    if (rest.length && left() > 2000) {
+      const head = await chain().latestBlock().catch(() => null);
+      const pace = head ? await chainPace(head) : 0;
+      const queue = rest.slice();
+      const worker = async () => {
+        while (queue.length && left() > 1500) {
+          const id = queue.shift(), p = todo.find((x) => lc(x.pairAddress) === id);
+          const k0 = head ? await Promise.race([keyFromNode(id, p.pairCreatedAt ? Math.floor(p.pairCreatedAt / 1000) : 0, head, pace), new Promise((r) => setTimeout(() => r(undefined), Math.max(0, left() - 500)))]) : null;
+          if (k0) keys.set(id, k0);
+          else if (k0 === null) nskip[id] = CFG.now(); // searched and not there: retried in 15 minutes (out of time: next look-up)
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
+    }
+    waiting = ids.filter((id) => !keys.has(id) && !nskip[id]).length;
+  }
   for (const p of todo) {
-    const id = lc(p.pairAddress);
-    const l = await initLog(id, p.pairCreatedAt ? Math.floor(p.pairCreatedAt / 1000) : 0, head);
-    if (!l) { nskip[id] = CFG.now(); continue; }
-    const key = { currency0: lc("0x" + strip(l.topics[2]).slice(24)), currency1: lc("0x" + strip(l.topics[3]).slice(24)), fee: Number(W(l.data, 0)), tickSpacing: Number(BigInt.asIntN(24, W(l.data, 1))), hooks: lc("0x" + strip(l.data).slice(128 + 24, 192)) };
-    if (lc(poolIdOf(key, keccak)) !== id) { nskip[id] = CFG.now(); continue; }
+    const id = lc(p.pairAddress), key = keys.get(id);
+    if (!key) { if (!waiting || nskip[id]) nskip[id] = nskip[id] || CFG.now(); continue; }
     const other = key.currency0 === token ? key.currency1 : key.currency1 === token ? key.currency0 : null;
     if (!other || !ethSide(other)) { nskip[id] = CFG.now(); continue; }
     delete nskip[id];
@@ -1082,11 +1131,12 @@ async function pools(token, { store } = {}) {
   const v = { token: { ...tm, logo: (info && info.logo) || (tm && tm.logo) || null }, quote: { address: CFG.weth || CFG.base, symbol: "ETH", decimals: 18 }, pools: out,
     at: fresh0 && c.pools.length && todo.length === 0 ? c.at : CFG.now(), skip: nskip };
   if (out.length || Object.keys(nskip).length) await sset(store, k, v);
-  return fresh(v);
+  return fresh(v, waiting);
   // the price now, from each pool's slot0
-  async function fresh(v0) {
+  async function fresh(v0, waiting = 0) {
     const { skip: _skip, ...v00 } = v0; // the retry list stays in the store
-    const v1 = { ...v00, done: true, pools: await Promise.all(v0.pools.map(async (x) => {
+    // v5.1: pairs still being looked up (the time budget ran out) leave done false: the page asks again
+    const v1 = { ...v00, done: !waiting, ...(waiting ? { waiting } : {}), pools: await Promise.all(v0.pools.map(async (x) => {
       const s0 = await slot0Of(x.id).catch(() => null);
       const td = v0.token.decimals;
       return { ...x, quote: v0.quote, price: s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, x.tokenIs0, x.tokenIs0 ? td : 18, x.tokenIs0 ? 18 : td) : null };
@@ -1100,7 +1150,7 @@ async function pools(token, { store } = {}) {
         v1.pons = { phase: pk.phase };
       }
     }
-    mem.set("pools:" + token, { t: Date.now(), v: v1 });
+    if (!waiting) mem.set("pools:" + token, { t: Date.now(), v: v1 });
     return v1;
   }
 }

@@ -1170,8 +1170,8 @@ async function veaNotify(T, s, out) {
     const first = !T.vea.day;
     T.vea.day = day;
     if (!first && t.stakers > 0) {
-      const top = st.top && st.top[0];
-      const text = [`💗 <b>veARCIA today</b>`, `${num(Math.round(t.perDay))} $ARCIA to stakers · ${num(Math.round(t.staked))} staked by ${t.stakers}`, top ? `#1: <code>${short(top.a)}</code> · ${num(Math.round(top.ve))} veARCIA` : null, `🔥 ${num(Math.round(t.burned))} $ARCIA burned by early exits`].filter(Boolean).join("\n");
+      const d = st.dist; // v2: the stakers as a whole, no wallet named
+      const text = [`💗 <b>veARCIA today</b>`, `${num(Math.round(t.perDay))} $ARCIA to stakers · ${num(Math.round(t.staked))} staked by ${t.stakers}`, d && d.staked > 0 ? `Average lock ${d.avgLock.toFixed(1)} days · ${Math.round((d.auto.staked / d.staked) * 100)}% on auto-renew` : null, `🔥 ${num(Math.round(t.burned))} $ARCIA burned by early exits`].filter(Boolean).join("\n");
       out.veaDay = await toSubs(s.alerts || [], { text, ...kb([[{ text: "Stake $ARCIA", url: `${SITE}/arc#vearcia` }]]) });
       if (new Date().getUTCDay() === 1) {
         try { await postTweet(`veARCIA this week 💗\n\n${num(Math.round(t.perDay))} $ARCIA a day streams to ${t.stakers} stakers on Robinhood Chain · ${num(Math.round(t.staked))} $ARCIA staked · ${num(Math.round(t.burned))} burned by early exits.\n\nStake 1–20 days, up to 2x for long locks and 2x more with $ARCIRCLE: ${SITE}/arc#vearcia`); out.veaX = true; } catch (e) { out.veaX = String(e.message || e).slice(0, 80); }

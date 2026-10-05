@@ -7885,6 +7885,14 @@
     "Ask ARCIA \"lock 10k arcircle for 6 months\" and she opens this form filled in — nothing is signed until you sign. On phones, a bar keeps the next step (claim, lock, vote, withdraw) in reach.": "对 ARCIA 说 “lock 10k arcircle for 6 months”,她会打开已填好的表单 — 在你签名之前不会签任何东西。在手机上,底部栏会显示下一步(领取、锁仓、投票、提取)。",
     "If Arc's node has dropped old history, the page still loads: totals come from the contract, and it says when older lists may be incomplete.": "即使 Arc 节点已删除旧历史,页面仍可加载:总计来自合约,并会提示较早的列表可能不完整。",
     "GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&u=0x… returns a wallet's lock, veARCIRCLE, tier, claimable USDC, this week's and last week's vote and its last eight weeks. GET /api/desk?stake=pool&token=0x… returns the pool to vote for a token (one already listed, its ArcPad pool or its ARCIRCLE Orders market). arcircle.app/arc#staking?a=10000&w=26 (or &max=1) opens the form filled in. arcircle.app/stake/0x… is a wallet's share card. On Telegram, /stakealerts in a DM with ARCIA (after linking your wallet) sends your claimable USDC each new week, reminders 30, 7 and 1 days before your unlock date, new funding and the vote's last day; /stakealerts off stops it.": "GET /api/desk?stake=state 返回总计、最近几周的奖励、本周和上周的池子投票、最大锁仓、国库的手续费份额及已注入金额。GET /api/desk?stake=me&u=0x… 返回钱包的锁仓、veARCIRCLE、等级、可领取 USDC、本周与上周投票及最近八周记录。GET /api/desk?stake=pool&token=0x… 返回某代币可投票的池(已在列表中的池、其 ArcPad 池或 ARCIRCLE Orders 市场)。arcircle.app/arc#staking?a=10000&w=26(或 &max=1)会打开已填好的表单。arcircle.app/stake/0x… 是钱包的分享卡片。在 Telegram 上私信 ARCIA 发送 /stakealerts(先绑定钱包),每周会收到可领取的 USDC、解锁前 30 天/7 天/1 天的提醒、新的注入和投票最后一天的提醒;/stakealerts off 关闭。",
+    "Average lock": "平均锁仓",
+    "On auto-renew": "自动续期",
+    "Boosted by $ARCIRCLE": "$ARCIRCLE 加成",
+    "At 20 days (2.0x)": "20 天锁仓(2.0x)",
+    "Lock length, by $ARCIA staked": "锁仓时长(按质押的 $ARCIA)",
+    "Stakers by veARCIA tier": "按 veARCIA 等级的质押者",
+    "No wallet is listed here — only the stakers as a whole.": "这里不列出任何钱包 — 只显示质押者的整体情况。",
+    "Still looking — a token seen here for the first time takes a few more seconds.": "仍在查找 — 首次出现的代币需要多几秒。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -465,7 +465,7 @@
   function market() {
     const el = $("aor-mkt"); if (!el) return;
     if (!S.t) { el.innerHTML = `<p class="aor-hint">${T(RH() ? "Pick a market above — any Robinhood Chain token with a Uniswap v4 pool against ETH." : "Pick a market above — any Arc token with a Uniswap v4 pool (Argus, ArcPad or a plain pool).")}</p>`; return; }
-    if (S.loadingMkt) { el.innerHTML = `<div class="aor-mkskel" aria-hidden="true"><i class="lg"></i><i></i><i></i><i></i><i></i><i></i></div><p class="aor-hint"><span class="aor-spin"></span>${T(RH() ? "Reading the token's pools on Robinhood Chain…" : "Reading the token's pools on Arc…")}</p>`; return; }
+    if (S.loadingMkt) { el.innerHTML = `<div class="aor-mkskel" aria-hidden="true"><i class="lg"></i><i></i><i></i><i></i><i></i><i></i></div><p class="aor-hint"><span class="aor-spin"></span>${T(S.slowMkt ? "Still looking — a token seen here for the first time takes a few more seconds." : RH() ? "Reading the token's pools on Robinhood Chain…" : "Reading the token's pools on Arc…")}</p>`; return; }
     if (!S.tok) { el.innerHTML = `<p class="aor-hint bad">${T(S.err || (RH() ? "No Uniswap v4 pool against ETH found for this token on Robinhood Chain." : "No Uniswap v4 pool found for this token on Arc."))} <button type="button" class="aor-link" data-act="retryopen">${T("Try again")}</button></p>`; return; }
     const p = pool(), b = S.book || {}, d = b.day || {}, ch = dayChange();
     const dir = S.prevSpot && S.spot ? (S.spot > S.prevSpot ? "up" : S.spot < S.prevSpot ? "dn" : "") : "";
@@ -655,18 +655,23 @@
     try {
       let j = null;
       const t0 = Date.now();
-      for (let i = 0; i < 20; i++) {
-        // Arc: the Liquidity Manager's pool reader; Robinhood Chain: its own (Dexscreener + the pool's Initialize log)
-        const r = await fetch(RH() ? `${API}?orders=pools&token=${addr}&chain=rh` : `${API}?liq=${addr}&lite=1`, { cache: "no-store" }); // lite: pools and prices only, no position history
-        j = await r.json().catch(() => null);
-        if (S.t !== addr || c0 !== CH) return;
-        if (r.status === 503 || (j && !j.done && !(j.pools && j.pools.length))) {
-          if (Date.now() - t0 > 20000) { if (quick) return; throw new Error(tr("Reading this token's pools is taking too long.")); }
-          await new Promise((res) => setTimeout(res, 1500)); continue;
+      // v5.1: each look-up gets 20 s, the whole search 35 s; past 6 s the page says it's still looking
+      const slowT = setTimeout(() => { if (S.t === addr && S.loadingMkt) { S.slowMkt = true; market(); } }, 6000);
+      try {
+        for (let i = 0; i < 20; i++) {
+          // Arc: the Liquidity Manager's pool reader; Robinhood Chain: its own (Dexscreener, then the pools' keys)
+          let r = null;
+          try { r = await fetch(RH() ? `${API}?orders=pools&token=${addr}&chain=rh` : `${API}?liq=${addr}&lite=1`, { cache: "no-store", signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined }); } catch { r = null; } // lite: pools and prices only
+          j = r ? await r.json().catch(() => null) : null;
+          if (S.t !== addr || c0 !== CH) return;
+          if (!r || r.status === 503 || r.status === 504 || (j && !j.done && !(j.pools && j.pools.length))) {
+            if (Date.now() - t0 > 35000) { if (quick) return; throw new Error(tr("Reading this token's pools is taking too long.")); }
+            await new Promise((res) => setTimeout(res, 1200)); continue;
+          }
+          if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
+          break;
         }
-        if (!r.ok) throw new Error((j && j.error) || `HTTP ${r.status}`);
-        break;
-      }
+      } finally { clearTimeout(slowT); S.slowMkt = false; }
       // Arc's books trade against ERC-20s; Robinhood Chain's against ETH, native (currency 0x0) or WETH
       const pools = ((j && j.pools) || []).filter((p) => p.key && p.quote && isAddr(p.quote.address) && (RH() || lc(p.key.currency0) !== ZERO_ADDR));
       pools.sort((a, b) => (lc(b.quote.address) === BASE()) - (lc(a.quote.address) === BASE()) || ((b.dex && b.dex.liqUsd) || 0) - ((a.dex && a.dex.liqUsd) || 0) || Number(BigInt(b.liquidity || 0) > BigInt(a.liquidity || 0)) - Number(BigInt(b.liquidity || 0) < BigInt(a.liquidity || 0)));
