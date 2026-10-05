@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791167786"></script>
+<script src="arc-log.js?v=1791171322"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791167786">
+<link rel="stylesheet" href="style.css?v=1791171322">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -126,7 +126,7 @@
       <button type="button" class="bp-nav-item" data-tab="mine"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v" data-no-i18n>v2</em></button>
-      <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v5</em></button>
+      <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v6</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
@@ -1612,7 +1612,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · Limit orders on Arc, Robinhood Chain and Solana</span>
-            <h1>ARCIRCLE Orders <span class="asc-ver" title="Version 5 — new features are added regularly">v5<i>Limit · stop · TP/SL · scaled · DCA</i></span></h1>
+            <h1>ARCIRCLE Orders <span class="asc-ver" title="Version 6 — new features are added regularly">v6<i>Limit · stop · TP/SL · scaled · DCA</i></span></h1>
             <p class="bp-lede">Your price, like on an exchange — for any token with a Uniswap v4 pool on Arc or Robinhood Chain, or any Solana token. Your tokens stay in your wallet until the order fills. 0.1% fee, none for holders of 100,000 $ARCIRCLE.</p>
             <div class="aor-contracts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Verified source on ArcScan:</span>
               <a href="https://arc.etherscan.io/address/0x1A31C2539d6e3fBdF276E8D74bA67aEc4De9008e#code" target="_blank" rel="noopener">ArcircleOrders <code data-no-i18n>0x1A31…008e</code> ↗</a>
@@ -1628,7 +1628,18 @@
           <details open><summary><h3>What is ARCIRCLE Orders?</h3></summary>
             <p>An order book for tokens that trade on Uniswap v4 pools. Instead of taking the pool's price right now, you set your own: buy if the price comes down to X, sell if it goes up to Y, or sell if it falls below a stop. Three chains — switch at the top: on Arc (Argus, ArcPad or plain pools) prices are in USDC; on Robinhood Chain they're in ETH; on Solana they're in SOL.</p>
           </details>
-          <details open><summary><h3>New in v5</h3></summary>
+          <details open><summary><h3>New in v6</h3></summary>
+            <ul>
+              <li>Explore, beside the market list: what's trending on Arc or Robinhood Chain right now (price, 24h change, volume, liquidity, age, from Dexscreener) and the new coins ARCIA DESK is watching, marked high risk. Tap one to open its market.</li>
+              <li>A Pool tab beside the chart: the venue, the fee and the round trip, liquidity, how much it takes to move the price 1, 2 and 5%, and the price impact of a few buy and sell sizes with the fee included.</li>
+              <li>The 24-hour volume and change come from Dexscreener until the chart has read the pool's own swaps, so a market shows its real day from the start.</li>
+              <li>The best ask and the best bid show how far they are from the pool price. The chart's current candle follows the pool price live.</li>
+              <li>"Copy as a link" on an open order: a link that opens the same setup filled in, for a friend or for later. A heads-up (here, in your browser and on Telegram with /orderalerts on) when the price comes within 2% of a limit order.</li>
+              <li>Ask ARCIA "my orders", "my order history" or "cancel my arcia orders" and she opens them; cancelling is still one signature by you. #orders?my=open | history | port opens them from a link.</li>
+              <li>$ARCIRCLE on Robinhood Chain shows where it comes from (ARCIRCLE OMNI) until it has a pool there. An × clears the address box, and a market with no open orders of yours offers two starting points.</li>
+            </ul>
+          </details>
+          <details><summary><h3>New in v5</h3></summary>
             <ul>
               <li>The market's 24-hour change, high, low and volume now come from the pool itself — every swap, through any app — not only from Orders' own fills. The pool price is the main price; the last Orders fill sits beside it with how long ago it was and how far it is from the pool. A bar under "24h range" shows where the price sits between the day's low and high.</li>
               <li>The live tape mixes the pools' own swaps (◇) with Orders' fills (●), and says when the last Orders fill happened.</li>
@@ -2263,6 +2274,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791167786"></script>
+<script src="arcpad.bundle.js?v=1791171322"></script>
 </body>
 </html>

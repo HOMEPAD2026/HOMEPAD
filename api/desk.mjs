@@ -208,6 +208,8 @@ export async function GET(req) {
   try {
     if (q.day && q.trade) return json(await tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");
     if (q.day) return json(await dayTrades(st, q.day, q.paper === "1"), 200, "public, max-age=30, s-maxage=60");
+    // v6: ?watching=1 — only the new coins ARCIA DESK is watching (ARCIRCLE Orders' Explore), not the whole view
+    if (q.watching) { const v0 = await view(st); return json({ chain: "arc", watching: (v0 && v0.watching) || [] }, 200, "public, max-age=30, s-maxage=60, stale-while-revalidate=120"); }
     return json(await view(st), 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60");
   } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
 }
@@ -235,6 +237,7 @@ async function rhGET(q, req, st) {
   try {
     if (q.day && q.trade) return json(await RH.tradeDetail(st, q.day, String(q.trade).slice(0, 20)), 200, "public, max-age=60, s-maxage=300");
     if (q.day) return json(await RH.dayTrades(st, q.day, q.paper === "1"), 200, "public, max-age=30, s-maxage=60");
+    if (q.watching) { const v0 = await RH.view(st); return json({ chain: "rh", watching: (v0 && v0.watching) || [] }, 200, "public, max-age=30, s-maxage=60, stale-while-revalidate=120"); }
     return json(await RH.view(st), 200, "public, max-age=10, s-maxage=20, stale-while-revalidate=60");
   } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
 }

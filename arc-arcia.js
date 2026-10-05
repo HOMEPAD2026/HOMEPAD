@@ -320,6 +320,8 @@
     if (bi) { betChat(text, bi); return; }
     var ki = stakeIntent(text);
     if (ki) { stakeChat(text, ki); return; }
+    var mi = myOrdersIntent(text);
+    if (mi) { myOrdersChat(text, mi); return; }
     var oi = orderIntent(text);
     if (oi) { orderChat(text, oi); return; }
     var si = scanIntent(text);
@@ -404,6 +406,45 @@
     var r = P.parse(s, { spot: 1, mcap1: 1, qUsd: 1, qs: "", sym: sym });
     if (!r || r.err) return null;
     return { line: s, sym: sym, chain: chain, tok: tok.toLowerCase(), p: r };
+  }
+  // ---------------- ARCIRCLE Orders v6: "my orders", "show my arcia orders", "cancel my arcircle orders" → a card to them ----------------
+  // She never cancels or signs anything: the card opens the orders, and "Cancel all" there is one signature.
+  function myOrdersIntent(text) {
+    var s = " " + String(text || "").toLowerCase().replace(/\s+/g, " ").trim().replace(/[?.!]+$/, "") + " ";
+    var m = /^ (?:show |open |see |check )?(?:me )?(?:all )?my (?:open )?(\$?arcircle |\$?arcia )?(?:open )?(orders|order history|portfolio) $/.exec(s);
+    var c = /^ cancel (?:all )?(?:of )?my (\$?arcircle |\$?arcia )?(?:open )?orders $/.exec(s);
+    var k = /내 (오더|주문)|주문 내역|我的(订单|委托)/.test(text) ? { tok: null, what: "orders" } : null;
+    var hit = m ? { tok: m[1], what: m[2] } : c ? { tok: c[1], what: "cancel" } : k;
+    if (!hit) return null;
+    var t = String(hit.tok || "").trim().replace("$", "");
+    return { sym: t ? t.toUpperCase() : null, tok: t === "arcircle" ? CA.toLowerCase() : t === "arcia" ? ARCIA_RH.toLowerCase() : null, chain: t === "arcia" ? "rh" : "arc", what: hit.what };
+  }
+  function myOrdersChat(text, mi) {
+    var now = Date.now();
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    dropStarter(); bubble("user", text, { t: now }); input.value = ""; grow(); sfx("tap"); mission("ask");
+    var tab = mi.what === "order history" ? "history" : mi.what === "portfolio" ? "port" : "open";
+    var href = "/arc#orders?" + (mi.tok ? "t=" + mi.tok + (mi.chain === "rh" ? "&c=rh" : "") + "&" : "") + "my=" + tab + (mi.tok ? "" : "&scope=all");
+    var reply = mi.what === "cancel"
+      ? T({ en: "Here are your {s}orders~ Tap \"Cancel all\" there — it's one signature in your wallet, I can't do it for you♡", ko: "{s}주문 여기 있어요~ 거기서 \"Cancel all\"을 누르면 지갑 서명 한 번으로 끝나요. 제가 대신할 순 없어요♡", zh: "你的{s}订单在这里~ 在那里点“Cancel all”,钱包签名一次即可,我不能替你操作♡" })
+      : T({ en: "Here you go~ your {s}{w} on ARCIRCLE Orders♡", ko: "여기요~ ARCIRCLE Orders의 {s}{w}♡", zh: "给你~ ARCIRCLE Orders 上的{s}{w}♡" });
+    var w = T(tab === "history" ? { en: "order history", ko: "주문 내역", zh: "订单记录" } : tab === "port" ? { en: "portfolio", ko: "포트폴리오", zh: "持仓" } : { en: "open orders", ko: "열린 주문", zh: "挂单" });
+    reply = reply.replace("{s}", mi.sym ? "$" + mi.sym + " " : "").replace("{w}", w);
+    var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+    ls.set(KEY2, msgs.slice(-30));
+    typing(true);
+    setTimeout(function () {
+      typing(false);
+      var li = null;
+      li = bubble("assistant", reply, { type: true, t: Date.now(), i: i, done: function () {
+        var el = li || [].slice.call(log.querySelectorAll(".aa-m.her")).pop();
+        if (!el) return;
+        li = el; el._text = reply;
+        el.querySelector(".aa-mc").insertAdjacentHTML("beforeend", '<div class="aa-rc aa-rc-ord aa-rc-my"><span class="aa-rc-k" data-no-i18n>ARCIRCLE Orders' + (mi.chain === "rh" && mi.tok ? " · Robinhood Chain" : "") + '</span><code data-no-i18n>' + esc((mi.sym ? "$" + mi.sym + " · " : "") + w) + '</code><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(href) + '">' + esc(T({ en: "Open my orders", ko: "내 주문 열기", zh: "打开我的订单" })) + "</a></div></div>");
+        got(); sfx("milestone"); scroll();
+        if (talk.on) speak(reply, el);
+      } });
+    }, reduce ? 0 : 450);
   }
   // ---------------- ARCIRCLE Staking v2: "lock 10k arcircle for 6 months" → the Staking page with the lock filled in ----------------
   // "lock 10k arcircle for 6 months", "stake 250000 $arcircle 1y", "max lock 5k arcircle", "lock 1m arcircle for 12 weeks".

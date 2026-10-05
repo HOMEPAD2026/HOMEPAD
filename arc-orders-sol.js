@@ -148,7 +148,7 @@
         <div class="aor-pickrow">
           <form class="aor-pick" id="aos-form" autocomplete="off">
 <span class="aor-q"><input id="aos-in" type="text" spellcheck="false" placeholder="${T("Paste a Solana token address (mint)")}" aria-label="${T("Solana token address")}"><button type="button" class="aor-qx" data-qx aria-label="${T("Clear")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
-            <button type="submit" class="aor-btn go">${T("Open market")}</button>
+            <button type="submit" class="aor-btn go aor-openbtn" aria-label="${T("Open market")}"><span>${T("Open market")}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           </form>
         </div>
         <div class="aor-chips" id="aos-chips"></div>

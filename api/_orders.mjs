@@ -56,6 +56,7 @@ const ARC_CFG = {
   now: () => Math.floor(Date.now() / 1000),
   // v5: markets the list always shows, traded or not ($ARCIRCLE on Arc)
   featured: ["0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7"],
+  dexSlug: "arc", // v6: Dexscreener's name for the chain — the 24h numbers when the pool has no candles yet
   thinQuote: 200, // under this much quote within ±2% of the pool price: thin liquidity
 };
 /// Robinhood Chain: ArcircleOrdersNative + ArcircleFeeBurnNative, markets against ETH (orders name WETH; pools may be
@@ -74,7 +75,7 @@ const RH_CFG = {
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
   positions: "0x58daec3116aae6d93017baaea7749052e8a04fa7", // Uniswap v4 PositionManager: poolKeys(bytes25) knows any pool it minted into
   keeperKey: () => env("ORDERS_KEEPER_RH_KEY") || env("ORDERS_KEEPER_KEY") || null,
-  dexChain: "robinhood", explorerApi: "https://robinhoodchain.blockscout.com/api", // where pools() looks a token's pools up
+  dexChain: "robinhood", dexSlug: "robinhood", explorerApi: "https://robinhoodchain.blockscout.com/api", // where pools() looks a token's pools up
   ponsFactory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // v4: PonsV2LaunchFactory — a curve token's pool is known before it graduates
   burnMin: 2n * 10n ** 15n, // 0.002 ETH
   lowGas: 5n * 10n ** 14n, gasSym: "ETH", // under 0.0005 ETH
@@ -524,8 +525,11 @@ async function book(token, { store } = {}) {
     conds: m.orders.filter((o) => o.status === "open" && o.cond && !o.condMet).length,
   };
   // day: the pool's when it has candles (the source says which), else Orders' own fills as before
-  v.day = pd ? { source: "pool", trades: pd.swaps, volume: pd.volume, high: pd.high, low: pd.low, open: pd.ref, swapAt: pd.lastAt } : { source: "fills", ...v.orders24 };
-  v.dayChange = pd ? pd.change : (() => { const old = fills24.length ? fills24[fills24.length - 1].price : null; return old && v.last ? ((v.last - old) / old) * 100 : null; })();
+  const dx = pd ? null : await dexDay(m, 1500);
+  v.day = pd ? { source: "pool", trades: pd.swaps, volume: pd.volume, high: pd.high, low: pd.low, open: pd.ref, swapAt: pd.lastAt }
+    : dx ? { source: "dex", trades: dx.swaps, volume: dx.volume, usd: dx.usd, high: v.orders24.high, low: v.orders24.low }
+    : { source: "fills", ...v.orders24 };
+  v.dayChange = pd ? pd.change : dx && dx.change != null ? dx.change : (() => { const old = fills24.length ? fills24[fills24.length - 1].price : null; return old && v.last ? ((v.last - old) / old) * 100 : null; })();
   mem.set("book:" + token, { t: Date.now(), v });
   return v;
 }
@@ -556,6 +560,10 @@ async function markets({ store } = {}) {
   // v5: every market's pool candles in one read: the 24h change, the line and the volume come from the pool
   const pids = [...new Set(ms.filter((m) => m && m.poolId).map((m) => m.poolId))];
   const cdocs = pids.length && store && store.getMany ? await store.getMany(pids.map(candleKey)).catch(() => null) : null;
+  // v6: markets whose pool has no candles yet take Dexscreener's day (all at once, cached)
+  const pdOf = new Map();
+  for (const m of ms) if (m && m.poolId) pdOf.set(m, poolDay(m, cdocs && cdocs[candleKey(m.poolId)]));
+  const dxOf = new Map(await Promise.all(ms.filter((m) => m && !pdOf.get(m)).map(async (m) => [m, await dexDay(m, 2500)])));
   const out = [];
   for (const [i, t] of tokens.entries()) {
     const m = ms[i], featured = feat.includes(t);
@@ -575,15 +583,15 @@ async function markets({ store } = {}) {
     const asks = live.filter((o) => o.side === "sell").map((o) => o.price), bids = live.filter((o) => o.side === "buy").map((o) => o.price);
     const f24 = (m.fills || []).filter((f) => f.at >= now - 86400);
     const cd = m.poolId ? (cdocs && cdocs[candleKey(m.poolId)]) || (await sget(store, candleKey(m.poolId)).catch(() => null)) : null;
-    const pd = poolDay(m, cd);
+    const pd = poolDay(m, cd), dx = pd ? null : dxOf.get(m) || null;
     out.push({ token: m.token, quote: m.quote, open: open.length, last: (m.fills && m.fills[0] && m.fills[0].price) || null, lastAt: (m.fills && m.fills[0] && m.fills[0].at) || null, at: m.at,
       bestAsk: asks.length ? Math.min(...asks) : null, bestBid: bids.length ? Math.max(...bids) : null, spot: m.spot || null,
-      vol24: pd ? pd.volume : f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: pd ? pd.swaps : f24.length, poolId: m.poolId || null,
+      vol24: pd ? pd.volume : dx ? dx.volume : f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: pd ? pd.swaps : dx ? dx.swaps : f24.length, poolId: m.poolId || null,
       ordersVol24: f24.reduce((s, f) => s + (f.quote || 0), 0), ordersTrades24: f24.length,
       // the last day's line, oldest first (hourly pool closes; Orders' fills when the pool has no candles) and its change
       spark: pd ? pd.spark : f24.slice(0, 24).map((f) => f.price).filter((p) => p > 0).reverse(),
-      change24: pd ? pd.change : f24.length > 1 && f24[f24.length - 1].price > 0 ? ((f24[0].price - f24[f24.length - 1].price) / f24[f24.length - 1].price) * 100 : null,
-      source: pd ? "pool" : "fills", featured, depth: m.depth || null, thin: thinOf(m) });
+      change24: pd ? pd.change : dx && dx.change != null ? dx.change : f24.length > 1 && f24[f24.length - 1].price > 0 ? ((f24[0].price - f24[f24.length - 1].price) / f24[f24.length - 1].price) * 100 : null,
+      source: pd ? "pool" : dx ? "dex" : "fills", featured, depth: m.depth || null, thin: thinOf(m) });
   }
   const v = { markets: out.sort((a, b) => (b.featured - a.featured) || (b.open - a.open) || ((b.vol24 || 0) - (a.vol24 || 0))) };
   mem.set("markets", { t: Date.now(), v });
@@ -593,6 +601,52 @@ const metaOf = async (t) => { const k = "meta:" + t, hit = mem.get(k); if (hit) 
 const candleKey = (poolId) => `${P}/c_${lc(poolId)}`;
 /// v5: thin liquidity — the pool moves 2% for less than CFG.thinQuote of the quote (null until the executor has measured it)
 const thinOf = (m) => (m && m.depth && m.depth.up != null ? Math.min(m.depth.up, m.depth.dn) < CFG.thinQuote : null);
+/// v6: Explore — what's trading on this chain right now: Dexscreener's boosted and newest-profile tokens here, each with
+/// its deepest pair's price, 24h change, volume and liquidity (kept 3 minutes; Dexscreener down → the last list)
+async function explore() {
+  const slug = CFG.dexSlug || CFG.dexChain;
+  if (!slug) return { trending: [] };
+  const hit = mem.get("explore");
+  if (hit && Date.now() - hit.t < 180000) return hit.v;
+  const lists = CFG.exploreFn ? await CFG.exploreFn() : await Promise.all(["https://api.dexscreener.com/token-boosts/top/v1", "https://api.dexscreener.com/token-boosts/latest/v1", "https://api.dexscreener.com/token-profiles/latest/v1"].map((u) => getJson(u, 4000)));
+  const want = [...new Set(lists.flatMap((l) => (Array.isArray(l) ? l : [])).filter((x) => x && x.chainId === slug && isAddr(x.tokenAddress)).map((x) => lc(x.tokenAddress)))]
+    .filter((t) => t !== lc(CFG.base) && t !== lc(CFG.weth || "")).slice(0, 12);
+  const rows = (await Promise.all(want.map(async (t) => {
+    const arr = CFG.pairsFn ? await CFG.pairsFn(t) : await getJson(`https://api.dexscreener.com/token-pairs/v1/${slug}/${t}`, 4000);
+    const ps = (Array.isArray(arr) ? arr : []).filter((p) => p && lc((p.baseToken && p.baseToken.address) || "") === t);
+    if (!ps.length) return null;
+    const best = ps.slice().sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0];
+    return { t, sym: (best.baseToken && best.baseToken.symbol) || "?", name: (best.baseToken && best.baseToken.name) || "", logo: (best.info && best.info.imageUrl) || null,
+      priceUsd: best.priceUsd != null ? Number(best.priceUsd) : null, change24: best.priceChange && best.priceChange.h24 != null ? Number(best.priceChange.h24) : null,
+      volUsd: ps.reduce((a, p) => a + Number((p.volume && p.volume.h24) || 0), 0), liqUsd: (best.liquidity && best.liquidity.usd) || null,
+      created: best.pairCreatedAt ? Math.floor(best.pairCreatedAt / 1000) : null };
+  }))).filter((x) => x && x.liqUsd > 0);
+  const v = rows.length || !hit ? { trending: rows.sort((a, b) => b.volUsd - a.volUsd).slice(0, 10), at: CFG.now() } : hit.v;
+  mem.set("explore", { t: Date.now(), v });
+  return v;
+}
+/// v6: no pool candles yet (nobody has opened the chart since): Dexscreener's 24 hours for the market's pool — or all
+/// its pairs — as volume in the quote, swaps and the change. Kept 5 minutes; a slow Dexscreener is waited on ≤ `ms`.
+async function dexDay(m, ms = 2500) {
+  if (CFG.dexDayFn) return CFG.dexDayFn(m); // tests
+  const slug = CFG.dexSlug || CFG.dexChain;
+  if (!slug || !m || !m.token || !isAddr(m.token.address)) return null;
+  const t = lc(m.token.address), k = "dexday:" + t, hit = mem.get(k);
+  if (hit && Date.now() - hit.t < 300000) return hit.v;
+  const job = (async () => {
+    const arr = await getJson(`https://api.dexscreener.com/token-pairs/v1/${slug}/${t}`, 4000);
+    if (!Array.isArray(arr) || !arr.length) return null;
+    const own = m.poolId ? arr.find((p) => lc(p.pairAddress || "") === lc(m.poolId)) : null;
+    const list = own ? [own] : arr;
+    const usd = list.reduce((a, p) => a + Number((p.volume && p.volume.h24) || 0), 0);
+    const swaps = list.reduce((a, p) => a + (p.txns && p.txns.h24 ? Number(p.txns.h24.buys || 0) + Number(p.txns.h24.sells || 0) : 0), 0);
+    const best = own || list.slice().sort((a, b) => ((b.liquidity && b.liquidity.usd) || 0) - ((a.liquidity && a.liquidity.usd) || 0))[0];
+    const change = best && best.priceChange && best.priceChange.h24 != null ? Number(best.priceChange.h24) : null;
+    const qUsd = CFG.id === "rh" ? await ethUsd().catch(() => null) : 1;
+    return qUsd > 0 ? { volume: usd / qUsd, usd, swaps, change, liqUsd: (best && best.liquidity && best.liquidity.usd) || null } : null;
+  })().catch(() => null).then((v) => { mem.set(k, { t: Date.now(), v }); return v; });
+  return Promise.race([job, new Promise((r) => setTimeout(() => r(hit ? hit.v : null), ms))]);
+}
 /// v5: a market's last 24 hours from its pool's own candles (every swap, not only Orders' fills), in quote per token:
 /// the price a day ago, the high and low, the volume in the quote, the number of swaps, hourly closes for a line.
 /// null without candles.
@@ -866,6 +920,11 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
       }
       const ex = Number(x.o.expiry);
       if (ex && !x.expWarn && ex > now && ex - now < 86400 && ex - x.at > 2 * 86400) { x.expWarn = now; evs.push(ev0(x, "expiring", { expiry: ex })); }
+      // v6: a limit order the pool's price has come within 2% of (once; placed more than 10 minutes ago, not placed that close)
+      if (x.type === "limit" && !x.nearWarn && m.spot > 0 && x.price > 0 && now - x.at > 600 && !(x.cond && !x.condMet)) {
+        const gap = (x.price - m.spot) / m.spot;
+        if (Math.abs(gap) < 0.02 && (x.side === "buy" ? gap < 0 : gap > 0)) { x.nearWarn = now; evs.push(ev0(x, "near", { spot: m.spot, gap: Number((gap * 100).toFixed(2)) })); }
+      }
     }
     const waiting = (x) => (x.nextTry && x.nextTry > now) || (x.cond && !x.condMet);
     const live = (side) => m.orders.filter((x) => x.status === "open" && x.type === "limit" && x.side === side && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
@@ -1357,7 +1416,7 @@ async function alertsDue(wallets, { store } = {}) {
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
   TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
-  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, _test };
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);

@@ -1319,6 +1319,7 @@ async function ordersNotifyOn(X, T, s, c, out) {
         const sym = `$${h(e.sym || "?")}${rh ? " (Robinhood)" : ""}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order";
         const text = e.kind === "fill" ? `✅ <b>${e.done ? "Filled" : "Part filled"}</b> · ${side} ${sym} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})\n${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")}${e.done ? "" : ` · ${e.pct}% so far`}${pnlLine(e)}`
           : e.kind === "cond" ? `🎯 <b>Condition met</b> · $${h(e.csym || "?")} ${e.cdir === "below" ? "fell to" : "rose to"} ${fmtPrice(e.cnow)} — your ${side.toLowerCase()} of ${sym} at ${fmtPrice(e.price)} is in the book now`
+          : e.kind === "near" ? `👀 <b>Almost there</b> · your ${side.toLowerCase()} of ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")} — the pool is at ${fmtPrice(e.spot)}, ${Math.abs(e.gap).toFixed(1)}% away`
           : e.kind === "expiring" ? `⏳ <b>Expires within a day</b> · ${side} ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")} — extend it 7 days from your open orders`
           : e.kind === "stop" ? `🛑 <b>Stop triggered</b> · ${sym} at ${fmtPrice(e.price)} — selling at market, never below your limit`
           : e.kind === "trail" ? `📉 <b>Trailing stop triggered</b> · ${sym} fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now`
@@ -1381,6 +1382,7 @@ async function pushOrderEvent(e, rh) {
   const sym = `$${e.sym || "?"}`, side = e.side === "buy" ? "Buy" : "Sell", kind = ORDER_TYPE[e.type] || "Order", chain = rh ? " · Robinhood Chain" : "";
   const m = e.kind === "fill" ? { title: `${e.done ? "Filled" : "Part filled"} · ${side} ${sym}${e.side === "sell" && e.pnlPct != null && isFinite(e.pnlPct) ? ` · ${e.pnlPct >= 0 ? "+" : "−"}${Math.abs(e.pnlPct).toFixed(1)}%` : ""}`, body: `${compact(e.amount)} ${sym} at ${fmtPrice(e.price)} ${e.qsym || ""} (${kind}${e.leg ? ` · ${e.leg === "tp" ? "take-profit" : "stop-loss"}` : ""})${e.done ? "" : ` · ${e.pct}% so far`}${pnlLine(e).replace(/^\n\S+ /, " · ")}${chain}` }
     : e.kind === "cond" ? { title: `Condition met · ${side} ${sym}`, body: `$${e.csym || "?"} ${e.cdir === "below" ? "fell to" : "rose to"} ${fmtPrice(e.cnow)} — your order at ${fmtPrice(e.price)} is in the book now${chain}` }
+    : e.kind === "near" ? { title: `Almost there · ${side} ${sym}`, body: `The pool is at ${fmtPrice(e.spot)} — ${Math.abs(e.gap).toFixed(1)}% from your ${fmtPrice(e.price)}${chain}` }
     : e.kind === "expiring" ? { title: `Expires within a day · ${side} ${sym}`, body: `At ${fmtPrice(e.price)} ${e.qsym || ""} — extend it 7 days from your open orders${chain}` }
     : e.kind === "stop" ? { title: `Stop triggered · ${sym}`, body: `At ${fmtPrice(e.price)} — selling at market, never below your limit${chain}` }
     : e.kind === "trail" ? { title: `Trailing stop triggered · ${sym}`, body: `Fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now${chain}` }
