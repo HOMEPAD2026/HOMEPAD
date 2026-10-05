@@ -3,6 +3,10 @@
 //               owes stakers (half of what it received from ARCIRCLE Orders and Predict fees since staking opened, less
 //               what it already funded), and the pools anyone can vote for
 //   me(user)    a wallet's lock, veARCIRCLE, claimable USDC and this week's vote
+// v2 (5 Oct 2026): the page never waits on old logs — a node that has pruned them (Arc's does) is skipped past (Etherscan
+// fills the gap when ETHERSCAN_API_KEY is set), totals and pool votes are read from the contract itself, the last weeks'
+// vote winners, an estimated rate before the first paid week, Orders' markets in the pool list, a pool for any token
+// (poolFor), a wallet's rank and next tier, and lockOf() for the alerts
 // Read-only: nobody's key is used here. Contract: env STAKING_ADDRESS ("none" turns it off), else STAKING_DEFAULT.
 import { evmChain } from "./_evm.mjs";
 import { RPCS, allPools, getCoin } from "./_arc.mjs";
@@ -32,6 +36,9 @@ export const CFG = {
   now: () => Math.floor(Date.now() / 1000),
   pm: "0x8366a39cc670b4001a1121b8f6a443a643e40951",
   logos: true, // token pictures (ArcPad records, Dexscreener) — off in tests
+  // v2: ARCIRCLE Orders' markets on Arc (their pools can be voted for too)
+  ordersMarkets: async (store) => { try { const o = await import("./_orders.mjs"); const m = await o.ARC.markets({ store }); return (m.markets || []).filter((x) => x.poolId).map((x) => ({ poolId: x.poolId, token: x.token.address || x.token })); } catch { return []; } },
+  explorerKey: () => env("ETHERSCAN_API_KEY"),
 };
 export function configure(o) { Object.assign(CFG, o); ch = null; mem.clear(); }
 let ch = null;
@@ -59,6 +66,28 @@ const str = (h) => { try { const s = strip(h); const off = Number(BigInt("0x" + 
 const num = (x, d) => Number(x) / 10 ** d;
 
 // ---- the event log, kept incrementally ----
+const PRUNED = /prun|history|not available|too old|missing trie|header not found|range/i;
+/// one range of logs: the node first; when it has pruned that range, Etherscan's log API (ETHERSCAN_API_KEY) instead.
+/// Throws { pruned: true } when neither has it.
+async function logsIn(filter) {
+  try { return await chain().getLogs(filter, 2); } catch (e) {
+    if (!PRUNED.test(String((e && e.message) || e))) throw e;
+    const key = CFG.explorerKey && CFG.explorerKey();
+    if (key) {
+      try {
+        const topic0 = Array.isArray(filter.topics && filter.topics[0]) ? null : filter.topics && filter.topics[0];
+        const u = `https://api.etherscan.io/v2/api?chainid=${CFG.chainId}&module=logs&action=getLogs&address=${filter.address}&fromBlock=${parseInt(filter.fromBlock, 16)}&toBlock=${parseInt(filter.toBlock, 16)}${topic0 ? `&topic0=${topic0}` : ""}&offset=1000&page=1&apikey=${encodeURIComponent(key)}`;
+        const r = await fetch(u, { signal: AbortSignal.timeout(7000) });
+        const j = r.ok ? await r.json() : null;
+        if (j && Array.isArray(j.result)) {
+          const want = filter.topics && Array.isArray(filter.topics[0]) ? filter.topics[0].map(lc) : null;
+          return j.result.filter((l) => !want || want.includes(lc(l.topics && l.topics[0])));
+        }
+      } catch { /* not there either */ }
+    }
+    const err = new Error("pruned"); err.pruned = true; throw err;
+  }
+}
 async function scan(store) {
   const A = CFG.address();
   const key = `stake/scan/${A}`;
@@ -70,10 +99,21 @@ async function scan(store) {
   const t0 = Date.now();
   while (st.hi < head.number && Date.now() - t0 < 8000) {
     const from = st.hi + 1, to = Math.min(head.number, from + CFG.logChunk - 1);
-    const [mine, fees] = await Promise.all([
-      chain().getLogs({ address: A, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }),
-      chain().getLogs({ address: CFG.feeBurn, topics: [[T.Burned, T.Flushed]], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }),
-    ]);
+    let mine, fees;
+    try {
+      [mine, fees] = await Promise.all([
+        logsIn({ address: A, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }),
+        logsIn({ address: CFG.feeBurn, topics: [[T.Burned, T.Flushed]], fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16) }),
+      ]);
+    } catch (e) {
+      if (!e || !e.pruned) throw e;
+      // v2: the node no longer has these blocks' logs: step past them (half of what's left, at least a chunk) and say
+      // the lists may be missing older entries; totals come from the contract either way
+      const skipTo = Math.min(head.number, st.hi + Math.max(CFG.logChunk, Math.ceil((head.number - st.hi) / 2)));
+      st.gaps = [...(st.gaps || []), [from, skipTo]].slice(-20);
+      st.hi = skipTo; moved = true;
+      continue;
+    }
     for (const l of mine || []) {
       const t0 = l.topics[0], who = l.topics[1] ? "0x" + l.topics[1].slice(26) : "";
       if (t0 === T.Locked) st.locks[who] = { a: W(l.data, 1).toString(), end: Number(W(l.data, 2)), b: parseInt(l.blockNumber, 16) }; // end 0 = a max lock
@@ -117,18 +157,19 @@ async function tokenMeta(tokens) {
   }
   return Object.fromEntries(tokens.map((t) => [lc(t), metaCache.get(lc(t)) || { sym: "?", name: "" }]));
 }
-async function directory() {
+async function directory(store) {
   const hit = mem.get("dir");
   if (hit && Date.now() - hit.at < 300e3) return hit.v;
-  const [fb, pm, ap] = await Promise.all([
+  const [fb, pm, ap, om] = await Promise.all([
     chain().ethCalls([call(CFG.feeBurn, "poolKey()")]).catch(() => [null]),
-    CFG.predictMarkets(), CFG.arcpadPools(),
+    CFG.predictMarkets(), CFG.arcpadPools(), CFG.ordersMarkets ? CFG.ordersMarkets(store).catch(() => []) : [],
   ]);
   const list = [];
   const add = (poolId, token, src) => { if (!/^0x[0-9a-f]{64}$/i.test(String(poolId || "")) || !isAddr(token)) return; const id = lc(poolId); const ex = list.find((x) => x.poolId === id); if (ex) { if (!ex.src.includes(src)) ex.src.push(src); return; } list.push({ poolId: id, token: lc(token), src: [src] }); };
   // $ARCIRCLE's own pool (the fee burn trades in it): keccak of its PoolKey
   if (fb && fb[0]) { const k = strip(fb[0]).slice(0, 5 * 64); add(kec0(k), ARCIRCLE, "arcircle"); }
   for (const m of pm) add(m.poolId, m.token, "predict");
+  for (const p of om || []) add(p.poolId, p.token, "orders");
   for (const p of ap.slice(-60)) add(p.poolId, p.token, "arcpad");
   for (const p of CFG.extraPools()) add(p.poolId, p.token, p.src || "extra");
   const meta = await tokenMeta(list.map((x) => x.token)).catch(() => ({}));
@@ -142,6 +183,11 @@ async function directory() {
 export function tierOf(ve, max) {
   const t = ve >= 1e6 ? "Diamond" : ve >= 1e5 ? "Gold" : ve >= 1e4 ? "Silver" : ve >= 1e3 ? "Bronze" : ve > 0 ? "Member" : null;
   return t ? { name: t, max: !!max } : null;
+}
+/// v2: the next tier up and how much more veARCIRCLE it takes
+export function nextTier(ve) {
+  for (const [n, at] of [["Bronze", 1e3], ["Silver", 1e4], ["Gold", 1e5], ["Diamond", 1e6]]) if (ve < at) return { name: n, at, need: at - ve };
+  return null;
 }
 const logoCache = new Map();
 async function logoOf(token) {
@@ -199,6 +245,57 @@ async function arcPrice() {
   mem.set("px", { at: Date.now(), v });
   return v;
 }
+/// what the treasury still owes stakers (USDC), from the scan's fee total
+function feesInOwed(st, v) { const due = num(BigInt(st.fees || "0"), 6) / 2, funded = num(v.totalFunded, 6); return Math.max(0, due - funded); }
+/// v2: the last finished weeks' pool votes: the top three each, read from the contract for every pool in the list
+async function pastResults(A, cur, start, dir, st) {
+  const key = "results:" + cur, hit = mem.get(key);
+  if (hit && Date.now() - hit.at < 600e3) return hit.v;
+  const weeks = [];
+  for (let k = 1; k <= 6; k++) { const w = cur - k * WEEK; if (w < start) break; weeks.push(w); }
+  const byId = new Map(dir.map((d) => [d.poolId, d]));
+  const out = [];
+  for (const w of weeks) {
+    const ids = [...new Set([...(st.votes[String(w)] || []).map(lc), ...dir.map((d) => d.poolId)])];
+    const r = await chain().ethCalls([...ids.map((p) => call(A, "poolVotes(uint256,bytes32)", w, p)), call(A, "weekVotes(uint256)", w)]);
+    const total = num(W(r[ids.length], 0), 18);
+    const top = ids.map((p, i) => ({ poolId: p, ve: num(W(r[i], 0), 18) })).filter((x) => x.ve > 0).sort((a, b) => b.ve - a.ve).slice(0, 3)
+      .map((x) => { const d = byId.get(x.poolId) || {}; return { ...x, token: d.token || null, sym: d.sym || null, logo: d.logo || null }; });
+    out.push({ week: w, total, top });
+  }
+  mem.set(key, { at: Date.now(), v: out });
+  return out;
+}
+/// v2: a lock and its veARCIRCLE in two calls (the alerts check every subscriber with this)
+export async function lockOf(user) {
+  const A = CFG.address();
+  if (!A || !isAddr(user)) return null;
+  const [lk, bal] = await chain().ethCalls([call(A, "locked(address)", lc(user)), call(A, "balanceOf(address)", lc(user))]);
+  return { amount: num(W(lk, 0), 18), end: Number(W(lk, 1)), max: W(lk, 2) === 1n, ve: num(W(bal, 0), 18) };
+}
+/// v2: for the alerts — each wallet's claimable USDC and whether it voted this week, in batched calls
+export async function walletsNow(addrs) {
+  const A = CFG.address();
+  if (!A || !addrs.length) return {};
+  const [cw] = await chain().ethCalls([{ to: A, data: S.currentWeek }]);
+  const w = W(cw, 0);
+  const r = await chain().ethCalls(addrs.flatMap((a) => [call(A, "claimable(address)", lc(a)), call(A, "votedPools(uint256,address)", w, lc(a))]));
+  return Object.fromEntries(addrs.map((a, i) => { const vp = strip(r[i * 2 + 1] || ""); let n = 0; try { n = Number(BigInt("0x" + vp.slice(64, 128))); } catch { n = 0; } return [lc(a), { claimable: num(W(r[i * 2], 0), 6), voted: n > 0 }]; }));
+}
+/// v2: the pool to vote for a token: one the list already has, else its ArcPad pool or its Orders market
+export async function poolFor(token, { store } = {}) {
+  if (!isAddr(token)) return null;
+  token = lc(token);
+  const dir = await directory(store).catch(() => []);
+  const d = dir.find((x) => x.token === token);
+  if (d) return { poolId: d.poolId, token, sym: d.sym, name: d.name, logo: d.logo || null, src: d.src };
+  let poolId = null;
+  try { const ap = await CFG.arcpadPools(); const p = ap.find((x) => lc(x.token) === token); if (p) poolId = lc(p.poolId); } catch { /* next */ }
+  if (!poolId) { try { const o = await import("./_orders.mjs"); const b = await o.ARC.book(token, { store }); if (b && b.poolId) poolId = lc(b.poolId); } catch { /* none */ } }
+  if (!poolId) return null;
+  const meta = (await tokenMeta([token]).catch(() => ({})))[token] || {};
+  return { poolId, token, sym: meta.sym || "?", name: meta.name || "", logo: await logoOf(token).catch(() => null), src: ["custom"] };
+}
 function kec0(hex) { const b = Uint8Array.from((hex.match(/../g) || []).map((x) => parseInt(x, 16))); return "0x" + Array.from(keccak_256(b), (x) => x.toString(16).padStart(2, "0")).join(""); }
 
 // ---- the page's picture ----
@@ -207,7 +304,10 @@ export async function state({ store } = {}) {
   if (!A) return { live: false };
   const hit = mem.get("state");
   if (hit && Date.now() - hit.at < CFG.cacheMs) return hit.v;
-  const [{ st, head }, dir] = await Promise.all([scan(store), directory().catch(() => [])]);
+  // v2: the log scan can fail or skip pruned blocks — the page still gets everything the contract itself can tell
+  const [sc, dir] = await Promise.all([scan(store).catch((e) => ({ err: String((e && e.message) || e).slice(0, 120) })), directory(store).catch(() => [])]);
+  const head = sc.head || (await chain().latestBlock());
+  const st = sc.st || mem.get(`stake/scan/${A}`) || { locks: {}, funded: [], votes: {}, fees: "0", feesN: 0, gaps: [] };
   const g = await chain().ethCalls(Object.keys(S).map((k) => ({ to: A, data: S[k] })));
   const v = Object.fromEntries(Object.keys(S).map((k, i) => [k, W(g[i], 0)]));
   const cur = Number(v.currentWeek), start = Number(v.startWeek);
@@ -215,9 +315,10 @@ export async function state({ store } = {}) {
   for (let k = 0; k < 6; k++) { const w = cur - k * WEEK; if (w < start) break; weeks.push(w); }
   const wr = await chain().ethCalls(weeks.flatMap((w) => [call(A, "tokensPerWeek(uint256)", w), call(A, "weekSupply(uint256)", w)]));
   const wk = weeks.map((w, i) => ({ week: w, usdc: num(W(wr[i * 2], 0), 6), ve: num(W(wr[i * 2 + 1], 0), 18), open: w === cur }));
-  // votes: this week and last week, on-chain totals for every pool voted for
+  // votes: this week and last week, on-chain totals for every pool voted for — v2: and every pool in the list, read
+  // straight from the contract (so a vote the log scan missed still counts)
   const vweeks = [cur, cur - WEEK];
-  const vq = vweeks.flatMap((w) => (st.votes[String(w)] || []).map((p) => ({ w, p })));
+  const vq = vweeks.flatMap((w) => [...new Set([...(st.votes[String(w)] || []).map(lc), ...dir.map((d) => d.poolId)])].map((p) => ({ w, p })));
   const vr = vq.length ? await chain().ethCalls([...vq.map(({ w, p }) => call(A, "poolVotes(uint256,bytes32)", w, p)), ...vweeks.map((w) => call(A, "weekVotes(uint256)", w))]) : [];
   const byId = new Map(dir.map((d) => [d.poolId, d]));
   const votes = vweeks.map((w, k) => {
@@ -226,6 +327,7 @@ export async function state({ store } = {}) {
       .sort((a, b) => b.ve - a.ve);
     return { week: w, total: num(W(vr[vq.length + k], 0), 18), pools };
   });
+  const results = await pastResults(A, cur, start, dir, st).catch(() => []);
   const tnow = head.ts;
   const stakers = Object.entries(st.locks).map(([a, x]) => { const amount = num(BigInt(x.a), 18), max = x.end === 0; const ve = max ? amount : x.end > tnow ? (amount * (x.end - tnow)) / (365 * 86400) : 0; return { a, amount, end: x.end, max, ve, tier: tierOf(ve, max) }; })
     .filter((x) => x.amount > 0).sort((a, b) => b.ve - a.ve || b.amount - a.amount);
@@ -234,16 +336,20 @@ export async function state({ store } = {}) {
   const last = wk.find((w) => !w.open && w.usdc > 0) || null;
   // what a full week paid per veARCIRCLE, as a yearly rate on $ARCIRCLE in a max lock (1 $ARCIRCLE = 1 veARCIRCLE)
   const apr = last && last.ve > 0 && price ? ((last.usdc / last.ve) * 52) / price * 100 : null;
+  // v2: before the first paid week, an estimate from this week's pot (and what the treasury still owes) — marked as one
+  const open0 = wk[0] && wk[0].open ? wk[0] : null;
   // the treasury's share of the fees since staking opened, half of it promised to stakers
   const feesIn = num(BigInt(st.fees), 6), funded = num(v.totalFunded, 6);
   const due = feesIn / 2;
   const out = {
     live: true, address: A, chainId: CFG.chainId, now: head.ts, week: cur, startWeek: start, nextWeek: cur + WEEK,
     totals: { locked: num(v.totalLocked, 18), ve: num(v.totalSupply, 18), funded, claimed: num(v.totalClaimed, 6), stakers: stakers.length },
-    weeks: wk, votes, price, apr, arcPool, pot: wk[0] && wk[0].open ? wk[0].usdc : 0, last: last ? { week: last.week, usdc: last.usdc, ve: last.ve } : null,
+    weeks: wk, votes, results, price, apr, arcPool,
+    aprEst: apr == null && open0 && open0.ve > 0 && price ? (((open0.usdc + Math.max(0, feesInOwed(st, v))) / open0.ve) * 52) / price * 100 || null : null,
+    partial: !!(sc.err || (st.gaps && st.gaps.length)), scanErr: sc.err || null, pot: wk[0] && wk[0].open ? wk[0].usdc : 0, last: last ? { week: last.week, usdc: last.usdc, ve: last.ve } : null,
     treasury: { feesIn, due, funded, owed: Math.max(0, Math.round((due - funded) * 1e6) / 1e6), fills: st.feesN },
     funded: st.funded.slice(0, 12).map((f) => ({ ...f, a: num(BigInt(f.a), 6) })),
-    stakers: stakers.slice(0, 20),
+    stakers: stakers.slice(0, 200),
     pools: dir.map((d) => ({ poolId: d.poolId, token: d.token, sym: d.sym, name: d.name, src: d.src, logo: d.logo || null })),
     rules: { maxLockDays: 365, week: WEEK, rewards: "USDC", share: "half of the treasury's share of ARCIRCLE Orders and Predict fees" },
   };
@@ -277,10 +383,14 @@ export async function me(user) {
   const [vote, lastVote] = await Promise.all([voteOf(A, cur, u), voteOf(A, cur - WEEK, u)]);
   const lock = { amount: num(W(lk, 0), 18), end: Number(W(lk, 1)), max: W(lk, 2) === 1n };
   const ve = num(W(bal, 0), 18);
+  const stx = mem.get("state"), list = stx && stx.v && stx.v.stakers ? stx.v.stakers : null;
+  const rank = list ? list.findIndex((x) => x.a === u) + 1 : 0;
   return {
     live: true, user: u, week: cur,
-    lock, ve, tier: tierOf(ve, lock.max),
+    lock, ve, tier: tierOf(ve, lock.max), next: nextTier(ve), rank: rank || null,
     claimable: num(W(cl, 0), 6), claimUntil: Number(W(cl, 1)), nextClaimWeek: Number(W(nw, 0)),
+    // a claim covers at most 52 weeks: when more are waiting, another claim afterwards
+    moreWeeks: Number(W(cl, 1)) > 0 && Number(W(cl, 1)) < cur,
     vote, lastVote, history,
   };
 }

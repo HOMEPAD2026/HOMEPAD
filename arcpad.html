@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791150221"></script>
+<script src="arc-log.js?v=1791155838"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791150221">
+<link rel="stylesheet" href="style.css?v=1791155838">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -128,7 +128,7 @@
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v5</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v3</em></button>
-      <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
+      <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="vearcia"><svg><use href="#i-vea" xlink:href="#i-vea"/></svg>veARCIA<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity<em class="bp-nav-v" data-no-i18n>v2</em></button>
@@ -1909,7 +1909,7 @@
           <div class="ams-emblem stk-emblem" aria-hidden="true"><img src="images/arcircle-staking-320.webp" alt="" width="96" height="96" decoding="async"></div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Utility · lock $ARCIRCLE, earn USDC, steer the platform</span>
-            <h1>ARCIRCLE Staking <span class="asc-ver" title="New">New<i>veARCIRCLE · USDC · on-chain</i></span></h1>
+            <h1>ARCIRCLE Staking <span class="asc-ver" title="Version 2 — new features are added regularly">v2<i>veARCIRCLE · USDC · on-chain</i></span></h1>
             <p class="bp-lede">Lock $ARCIRCLE for up to a year and get veARCIRCLE. Every week, veARCIRCLE holders share USDC from ARCIRCLE Orders and Predict fees, and vote on which pools ARCIRCLE PAD should back. The longer the lock, the bigger your share and your vote.</p>
           </div>
         </div>
@@ -1918,7 +1918,19 @@
         <!-- ARCIRCLE Staking guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
         <section class="asc-guide stk-guide" aria-labelledby="stk-guide-h">
           <h2 id="stk-guide-h">ARCIRCLE Staking guide</h2>
-          <details open><summary><h3>What is veARCIRCLE?</h3></summary>
+          <details open><summary><h3>New in v2</h3></summary>
+            <ul>
+              <li>An empty pot says why: the next fee burn's progress and what's still waiting to be funded. The weekly rate shows an estimate (~) until a week has been paid.</li>
+              <li>Your lock shows your tier, how much more veARCIRCLE the next one takes and your rank. The form says the lock in one sentence, keeps your wallet over the 100K $ARCIRCLE that makes ARCIRCLE Orders fee-free (Lock all but 100K), and can approve once for later locks and adds.</li>
+              <li>A lock ending within 30 days gets one tap back to a full year. An ended lock can be withdrawn and locked again for a year in one flow. Hover the lock line to read veARCIRCLE on any date.</li>
+              <li>Rewards: what "Claim and add to my lock" would add before you start, a run that stopped half-way carries on where it was, your weeks as bars, and alerts in this browser or on Telegram (a new week's USDC, your lock ending in 30, 7 and 1 days, the vote's last day).</li>
+              <li>The vote: the leading pool as a card with what it gets, past winners, ARCIRCLE Orders markets in the list, any token's pool added by address, ARCIA's pick (a split from the pools' trading — a suggestion, you still vote), −/+ steps and your split as a ring.</li>
+              <li>"What could it earn?" estimates a week and a year for an amount and pot you pick. The biggest locks filter by tier and max lock, and say where you rank.</li>
+              <li>Ask ARCIA "lock 10k arcircle for 6 months" and she opens this form filled in — nothing is signed until you sign. On phones, a bar keeps the next step (claim, lock, vote, withdraw) in reach.</li>
+              <li>If Arc's node has dropped old history, the page still loads: totals come from the contract, and it says when older lists may be incomplete.</li>
+            </ul>
+          </details>
+          <details><summary><h3>What is veARCIRCLE?</h3></summary>
             <p>Lock $ARCIRCLE for anywhere from a week to a year and you get veARCIRCLE: your share of the weekly USDC and your weight in the weekly pool vote. veARCIRCLE = the amount locked × the time left until it unlocks ÷ one year. 1,000 $ARCIRCLE locked for a year starts at about 1,000 veARCIRCLE; locked for three months, about 250. It runs down to zero as the unlock date gets closer — extend the lock to keep it up, or make it a max lock. veARCIRCLE can't be sent or sold.</p>
           </details>
           <details><summary><h3>Locks</h3></summary>
@@ -1944,7 +1956,7 @@
             <p>The contract has no owner and no admin: nobody can move locked $ARCIRCLE or the funded USDC, change the rules or pause it. It follows Curve's veCRV design. It is new, though, so lock what you're comfortable holding until the unlock date. The USDC depends on ARCIRCLE Orders and Predict fees, so it goes up and down with how much they're used.</p>
           </details>
           <details><summary><h3>For bots and builders</h3></summary>
-            <p>GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&amp;u=0x… returns a wallet's lock, veARCIRCLE, tier, claimable USDC, this week's and last week's vote and its last eight weeks. arcircle.app/stake/0x… is a wallet's share card. On Telegram, /stakealerts in a DM with ARCIA (after linking your wallet) sends your claimable USDC each new week and a reminder a week before your unlock date; /stakealerts off stops it.</p>
+            <p>GET /api/desk?stake=state returns the totals, the last weeks' rewards, this week's and last week's pool votes, the biggest locks, the treasury's fee share and what has been funded. GET /api/desk?stake=me&amp;u=0x… returns a wallet's lock, veARCIRCLE, tier, claimable USDC, this week's and last week's vote and its last eight weeks. GET /api/desk?stake=pool&amp;token=0x… returns the pool to vote for a token (one already listed, its ArcPad pool or its ARCIRCLE Orders market). arcircle.app/arc#staking?a=10000&amp;w=26 (or &amp;max=1) opens the form filled in. arcircle.app/stake/0x… is a wallet's share card. On Telegram, /stakealerts in a DM with ARCIA (after linking your wallet) sends your claimable USDC each new week, reminders 30, 7 and 1 days before your unlock date, new funding and the vote's last day; /stakealerts off stops it.</p>
           </details>
         </section>
       </section>
@@ -2251,6 +2263,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791150221"></script>
+<script src="arcpad.bundle.js?v=1791155838"></script>
 </body>
 </html>

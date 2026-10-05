@@ -902,6 +902,7 @@ async function start(c, m, arg, lang) {
   if (p === "alerts") return setAlerts(m, true, lang);
   if (p === "mine") return setMineAlerts(m, true, lang);
   if (p === "solorders") return solOrdersWait(m, lang);
+  if (p === "stake") return setStakeAlerts(m, true, lang); // v2: the Staking page's "On Telegram"
   if (/^v[m]?\d+$/.test(p)) { // holder-gate "Verify": v<chat id with the minus as m>
     const chatId = Number(p.slice(1).replace(/^m/, "-"));
     const cc = chatCfg(c, chatId);
@@ -1048,18 +1049,28 @@ async function setStakeAlerts(m, on, lang) {
   for (const k of Object.keys(s.stake)) { s.stake[k] = s.stake[k].filter((x) => x !== m.from.id); if (!s.stake[k].length) delete s.stake[k]; }
   if (on && wa) s.stake[wa] = [...(s.stake[wa] || []), m.from.id];
   await putDoc(DOC.subs, s);
-  return say(m, on ? `🔒 ${T3(lang, "Staking alerts on for", "스테이킹 알림을 켰어요:", "已为此钱包开启质押提醒:")} <code>${short(wa)}</code> — ${T3(lang, "your USDC each new week and a reminder a week before your lock ends. /stakealerts off to stop.", "새 주마다 받을 USDC와 락업 종료 1주 전 알림을 보내드려요. 끄려면 /stakealerts off", "每周可领取的 USDC,以及锁仓到期前一周的提醒。/stakealerts off 关闭")}` : `🔒 ${T3(lang, "Staking alerts off.", "스테이킹 알림을 껐어요.", "质押提醒已关闭。")}`);
+  return say(m, on ? `🔒 ${T3(lang, "Staking alerts on for", "스테이킹 알림을 켰어요:", "已为此钱包开启质押提醒:")} <code>${short(wa)}</code> — ${T3(lang, "your USDC each new week, the pot being funded, the vote's last day, and reminders 30, 7 and 1 days before your lock ends. /stakealerts off to stop.", "새 주마다 받을 USDC, 보상 펀딩, 투표 마지막 날, 락업 종료 30일·7일·1일 전 알림을 보내드려요. 끄려면 /stakealerts off", "每周可领取的 USDC、奖池注资、投票最后一天,以及锁仓到期前 30 天、7 天和 1 天的提醒。/stakealerts off 关闭")}` : `🔒 ${T3(lang, "Staking alerts off.", "스테이킹 알림을 껐어요.", "质押提醒已关闭。")}`);
 }
 /// ARCIRCLE Staking: when a new week starts, the week that ended in one line to the alert list, and to each
-/// subscribed staker what they can claim; a week before a lock ends, a reminder (once per unlock date)
+/// subscribed staker what they can claim. v2: also this browser (Web Push topic stake-0x…) for every staker; reminders
+/// 30, 7 and 1 days before a lock ends; the vote's last day for stakers who haven't voted; and a new funding of the pot
 async function stakeNotify(T, s, out) {
-  const st = await STK.state().catch(() => null);
+  const st = await STK.state({ store: store() }).catch(() => null);
   if (!st || !st.live) return;
   T.stake = T.stake || {};
   const first = !T.stake.week;
+  const subs0 = s.stake || {};
+  const stakers = (st.stakers || []).slice(0, 200);
+  const all = [...new Set([...Object.keys(subs0), ...stakers.map((x) => x.a)])].slice(0, 300);
+  const push = WP.vapid();
+  /// one message to a wallet: its Telegram subscribers and its browsers
+  const tell = async (wa, text, p, btn = "Open staking") => {
+    for (const id of subs0[wa] || []) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[{ text: btn, url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null); out.stakeDm = (out.stakeDm || 0) + 1; }
+    if (push) out.stakePush = (out.stakePush || 0) + (await WP.toTopic(store(), WP.stakeTopic(wa), { ...p, url: "/arc#staking", tag: p.tag || "stake" }).catch(() => 0));
+  };
   if (T.stake.week !== st.week) {
     const prevWeek = T.stake.week;
-    T.stake.week = st.week;
+    T.stake.week = st.week; T.stake.voteRem = null;
     if (!first) {
       const ended = (st.weeks || []).find((x) => x.week === prevWeek) || null;
       const res = st.votes && st.votes[1] && st.votes[1].pools[0];
@@ -1069,21 +1080,48 @@ async function stakeNotify(T, s, out) {
         `${num(Math.round(st.totals.locked))} $ARCIRCLE locked · ${st.totals.stakers} stakers`,
         `This week's vote is open.`].filter(Boolean);
       out.stakeWeek = await toSubs(s.alerts || [], { text: lines.join("\n"), ...kb([[{ text: "Stake / vote", url: `${SITE}/arc#staking` }]]) });
-      for (const [wa, ids] of Object.entries(s.stake || {}).slice(0, 300)) {
-        const me = await STK.me(wa).catch(() => null);
-        if (!me || !(me.claimable > 0.005)) continue;
-        for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `💵 <b>$${me.claimable.toFixed(2)} USDC</b> to claim from ARCIRCLE Staking — <code>${short(wa)}</code>`, ...kb([[{ text: "Claim", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
+      const now0 = await STK.walletsNow(all).catch(() => ({}));
+      for (const wa of all) {
+        const c = now0[wa] && now0[wa].claimable;
+        if (!(c > 0.005)) continue;
+        await tell(wa, `💵 <b>$${c.toFixed(2)} USDC</b> to claim from ARCIRCLE Staking — <code>${short(wa)}</code>`, { title: `$${c.toFixed(2)} USDC to claim`, body: "ARCIRCLE Staking: last week's rewards are ready.", tag: "stake-claim" }, "Claim");
       }
     }
   }
-  // a week before a lock ends (not for max locks)
-  T.stake.rem = T.stake.rem || {};
+  // v2: the pot funded — once per funding
+  const f0 = (st.funded || [])[0];
+  if (f0 && f0.tx && T.stake.fundTx !== f0.tx) {
+    const was = T.stake.fundTx; T.stake.fundTx = f0.tx;
+    if (was && f0.w === st.week) {
+      out.stakeFund = await toSubs(Object.values(subs0).flat().filter((v, i, a) => a.indexOf(v) === i), { text: `💧 <b>ARCIRCLE Staking</b> · this week's pot is now <b>$${Number(st.pot || 0).toFixed(2)} USDC</b> (+$${Number(f0.a).toFixed(2)}).`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) });
+    }
+  }
   const now = Math.floor(Date.now() / 1000);
-  for (const [wa, ids] of Object.entries(s.stake || {}).slice(0, 300)) {
-    const x = (st.stakers || []).find((y) => y.a === wa);
-    if (!x || x.max || !x.end || x.end - now > 7 * 86400 || x.end <= now || T.stake.rem[wa] === x.end) continue;
-    T.stake.rem[wa] = x.end;
-    for (const id of ids) await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text: `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends in a week. Extend it to keep your veARCIRCLE, or withdraw after it ends.`, ...kb([[{ text: "Open staking", url: `${SITE}/arc#staking` }]]) }, 6000).catch(() => null);
+  // v2: reminders 30, 7 and 1 days before a lock ends (not for max locks), once each
+  T.stake.rem = T.stake.rem || {};
+  for (const wa of all) {
+    let x = stakers.find((y) => y.a === wa);
+    if (!x && subs0[wa]) { const l = await STK.lockOf(wa).catch(() => null); x = l && l.amount > 0 ? { a: wa, end: l.end, max: l.max } : null; }
+    if (!x || x.max || !x.end || x.end <= now) continue;
+    const left = x.end - now, stage = left <= 86400 ? "1d" : left <= 7 * 86400 ? "7d" : left <= 30 * 86400 ? "30d" : null;
+    const k = `${x.end}:${stage}`;
+    if (!stage || T.stake.rem[wa] === k) continue;
+    const firstSeen = T.stake.rem[wa] == null;
+    T.stake.rem[wa] = k;
+    if (firstSeen && stage === "30d" && left < 29 * 86400) continue; // don't announce a stage we came in late to
+    const when = stage === "1d" ? "tomorrow" : stage === "7d" ? "in a week" : "in 30 days";
+    await tell(wa, `⏳ Your ARCIRCLE Staking lock (<code>${short(wa)}</code>) ends ${when}. Extend it to keep your veARCIRCLE and your share of the weekly USDC — or withdraw once it ends.`, { title: `Your lock ends ${when}`, body: "Extend it to keep your veARCIRCLE and weekly USDC.", tag: "stake-end" });
+  }
+  // v2: the vote's last day — stakers with veARCIRCLE who haven't voted this week
+  const remain = (st.nextWeek || 0) - now;
+  if (remain > 0 && remain < 86400 && T.stake.voteRem !== st.week) {
+    T.stake.voteRem = st.week;
+    const now0 = await STK.walletsNow(all).catch(() => ({}));
+    for (const wa of all) {
+      const x = stakers.find((y) => y.a === wa);
+      if (!x || !(x.ve > 0) || !now0[wa] || now0[wa].voted) continue;
+      await tell(wa, `🗳 The ARCIRCLE Staking pool vote closes in under a day — split your veARCIRCLE across the pools you want ARCIRCLE PAD to back.`, { title: "The pool vote closes in under a day", body: "Your veARCIRCLE is your vote — it costs nothing but gas.", tag: "stake-vote" }, "Vote");
+    }
   }
 }
 /// /vearcia — the veARCIA pool (rewards per day, staked, stakers, burned) and, with a linked wallet, its stake

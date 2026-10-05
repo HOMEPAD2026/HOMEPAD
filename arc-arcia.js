@@ -318,6 +318,8 @@
     if (/^(check my wallet|내 지갑 확인하고 싶어|查看我的钱包)$/i.test(text)) { location.href = "/me" + (account() ? "?w=" + account() : ""); return; }
     var bi = betIntent(text);
     if (bi) { betChat(text, bi); return; }
+    var ki = stakeIntent(text);
+    if (ki) { stakeChat(text, ki); return; }
     var oi = orderIntent(text);
     if (oi) { orderChat(text, oi); return; }
     var si = scanIntent(text);
@@ -402,6 +404,47 @@
     var r = P.parse(s, { spot: 1, mcap1: 1, qUsd: 1, qs: "", sym: sym });
     if (!r || r.err) return null;
     return { line: s, sym: sym, chain: chain, tok: tok.toLowerCase(), p: r };
+  }
+  // ---------------- ARCIRCLE Staking v2: "lock 10k arcircle for 6 months" → the Staking page with the lock filled in ----------------
+  // "lock 10k arcircle for 6 months", "stake 250000 $arcircle 1y", "max lock 5k arcircle", "lock 1m arcircle for 12 weeks".
+  // Only $ARCIRCLE (veARCIRCLE on Arc); she never signs anything — the page fills the form and the person locks.
+  function stakeIntent(text) {
+    var s = " " + String(text || "").toLowerCase().replace(/,/g, "").replace(/\s+/g, " ").trim() + " ";
+    var m = /^ (max )?(lock|stake) (?:up )?([0-9]*\.?[0-9]+)\s*(k|m|b)? (?:of )?\$?arcircle\b(.*)$/.exec(s);
+    if (!m) return null;
+    var amt = parseFloat(m[3]) * (m[4] === "k" ? 1e3 : m[4] === "m" ? 1e6 : m[4] === "b" ? 1e9 : 1);
+    if (!(amt > 0) || !isFinite(amt)) return null;
+    var rest = m[5] || "", max = !!m[1] || /\bmax\b/.test(rest), w = 52;
+    var d = /([0-9]+)\s*(w|wk|wks|week|weeks|m|mo|month|months|y|yr|year|years)\b/.exec(rest);
+    if (d) { var n = parseInt(d[1], 10), u = d[2][0]; w = u === "w" ? n : u === "m" ? Math.round(n * 4.345) : n * 52; }
+    w = Math.max(1, Math.min(52, w));
+    return { amt: amt, w: w, max: max };
+  }
+  function stakeChat(text, ki) {
+    var now = Date.now();
+    msgs.push({ role: "user", content: text.slice(0, 700), t: now });
+    dropStarter(); bubble("user", text, { t: now }); input.value = ""; grow(); sfx("tap"); mission("ask");
+    var amt = ki.amt >= 1e6 ? (ki.amt / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "M" : ki.amt >= 1e3 ? (ki.amt / 1e3).toLocaleString("en-US", { maximumFractionDigits: 2 }) + "K" : String(ki.amt);
+    var len = ki.max ? T({ en: "a max lock", ko: "맥스 락업", zh: "最长锁仓" }) : ki.w >= 52 ? T({ en: "a year", ko: "1년", zh: "一年" }) : ki.w + T({ en: " weeks", ko: "주", zh: " 周" });
+    var reply = T({ en: "Love it~ {a} $ARCIRCLE for {l} — I filled it in on ARCIRCLE Staking. Check the unlock date there and sign in your wallet; nothing is locked before that♡",
+      ko: "좋아요~ $ARCIRCLE {a}개를 {l} — ARCIRCLE Staking에 채워 뒀어요. 거기서 해제일을 확인하고 지갑에서 서명하면 돼요. 그 전엔 아무것도 락업되지 않아요♡",
+      zh: "好呀~ {a} $ARCIRCLE,{l} — 我已在 ARCIRCLE Staking 填好。在那里确认解锁日期并在钱包签名;签名前不会锁仓♡" }).replace("{a}", amt).replace("{l}", len);
+    var href = "/arc#staking?a=" + encodeURIComponent(String(ki.amt)) + "&w=" + ki.w + (ki.max ? "&max=1" : "");
+    var i = msgs.push({ role: "assistant", content: reply, t: Date.now() }) - 1;
+    ls.set(KEY2, msgs.slice(-30));
+    typing(true);
+    setTimeout(function () {
+      typing(false);
+      var li = null;
+      li = bubble("assistant", reply, { type: true, t: Date.now(), i: i, done: function () {
+        var el = li || [].slice.call(log.querySelectorAll(".aa-m.her")).pop();
+        if (!el) return;
+        li = el; el._text = reply;
+        el.querySelector(".aa-mc").insertAdjacentHTML("beforeend", '<div class="aa-rc aa-rc-ord"><span class="aa-rc-k" data-no-i18n>ARCIRCLE Staking · Arc</span><code data-no-i18n>' + esc(amt) + " $ARCIRCLE · " + esc(len) + '</code><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(href) + '" data-ord="1"><span>Fill it in on ARCIRCLE Staking</span> →</a></div><span class="aa-rc-sub">' + esc(T({ en: "veARCIRCLE earns weekly USDC and votes on pools. Locked until the date — no early exit. Not advice.", ko: "veARCIRCLE로 매주 USDC를 받고 풀에 투표해요. 해제일까지 잠겨요 — 중도 해지 없음. 투자 조언이 아니에요.", zh: "veARCIRCLE 每周赚取 USDC 并为池投票。锁定至到期日——不能提前退出。不构成投资建议。" })) + "</span></div>");
+        got(); sfx("milestone"); scroll(); fx(el, "sparkle");
+        if (talk.on) speak(reply, el);
+      } });
+    }, reduce ? 0 : 450);
   }
   function orderHref(oi) { return "/arc#orders?c=" + oi.chain + "&t=" + oi.tok + "&o=" + encodeURIComponent(oi.line); }
   function orderChat(text, oi) {

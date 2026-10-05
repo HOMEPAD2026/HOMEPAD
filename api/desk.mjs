@@ -30,6 +30,7 @@
 //   GET /api/desk?stake=state                totals, weekly rewards, pool votes, stakers, what the treasury owes stakers
 //   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC, this and last week's vote, 8 weeks' earnings
 //   GET /api/desk?stake=card&u=0x…           a wallet's lock for its share card (/stake/<wallet>)
+//   GET /api/desk?stake=pool&token=0x…       v2: the pool to vote for a token (its ArcPad pool or its Orders market)
 // ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
 //   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
 //   GET /api/desk?nft=col&c=0x…                the curator's check: ERC-721?, name, floor, the vault's listing (v2)
@@ -84,6 +85,7 @@ export async function GET(req) {
   if (q.stake) {
     try {
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
+      if (q.stake === "pool") { const r = await stake.poolFor(String(q.token || ""), { store: st }); return json(r || { error: "no pool found for that token" }, r ? 200 : 404, "public, max-age=60, s-maxage=300"); }
       if (q.stake === "card") { const r = await stake.card(String(q.u || "")); return json(r || { error: "no lock" }, r ? 200 : 404, "public, max-age=30, s-maxage=60"); }
       return json(await stake.state({ store: st }), 200, "public, max-age=5, s-maxage=10");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }

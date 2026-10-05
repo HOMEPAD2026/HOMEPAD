@@ -219,7 +219,7 @@
   UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop, TP/SL and scaled orders — Arc, Robinhood and Solana", status: "v5", acc: "#4dd4ff", href: "/arc#orders",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
   // ARCIRCLE Staking: veARCIRCLE — lock $ARCIRCLE, weekly USDC, pool votes (arc-staking.js)
-  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "New", acc: "#b58bff", href: "/arc#staking",
+  UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "v2", acc: "#b58bff", href: "/arc#staking",
     img: "/images/arcircle-staking-96.webp",
     // a lock over stacked coins (the tiles draw this icon; the image is only for places that show pictures)
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="11" height="9" rx="2"/><path d="M6.8 10.5V8a2.7 2.7 0 0 1 5.4 0v2.5"/><ellipse cx="18" cy="9" rx="2.8" ry="1.3"/><path d="M15.2 9v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3V9M15.2 12.2v3.2c0 .7 1.3 1.3 2.8 1.3s2.8-.6 2.8-1.3v-3.2"/></svg>' });
