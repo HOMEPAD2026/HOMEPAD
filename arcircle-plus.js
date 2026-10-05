@@ -241,7 +241,7 @@
   function sectionNav() {
     const facts = $("live");
     if (!facts || q(".ac-nav")) return;
-    const items = [["uses", "Uses"], ["flywheel", "Flywheel"], ["market", "Market"], ["buybacks", "Burns & holders"], ["revenue", "Revenue"], ["yours", "Your wallet"], ["family", "Family"], ["buy", "How to buy"], ["faq", "FAQ"]].filter(([id]) => $(id));
+    const items = [["uses", "Uses"], ["flywheel", "Flywheel"], ["market", "Market"], ["buybacks", "Burns & holders"], ["revenue", "Revenue"], ["yours", "Your wallet"], ["family", "Official coins"], ["buy", "How to buy"], ["faq", "FAQ"]].filter(([id]) => $(id));
     const nav = document.createElement("nav");
     nav.className = "ac-nav"; nav.setAttribute("aria-label", tr("On this page"));
     nav.innerHTML = items.map(([id, l]) => `<a href="#${id}" data-sec="${id}">${esc(tr(l))}</a>`).join("");

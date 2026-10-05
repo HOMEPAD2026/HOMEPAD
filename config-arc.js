@@ -110,9 +110,10 @@ const CONFIG = {
         also: { round: 4, chain: "Solana", sym: "TBA" } } },
   },
   // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
-  // { merged: n } for a round that went into another one.
+  // { merged: n } for a round that went into another one; retired: true for a coin that isn't official any more
+  // (no address, no market, no trade link).
   CIRCLEPAD_RESULTS: {
-    1: { sym: "ARCIA", chain: "arc", token: "0x9da6d5ce413e94264Ea411372459413334a83bE5" },
+    1: { sym: "ARCIA", chain: "arc", retired: true }, // the old $ARCIA on Arc — retired on 5 Oct 2026
     2: { merged: 3 },
     3: { sym: "ARCIA", chain: "rh", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" },
   },

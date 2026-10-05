@@ -17,7 +17,7 @@
 // Limits per IP (kept in Firestore when it's configured, else per instance): 12 a minute, 200 a day.
 import { createHash, randomBytes } from "node:crypto";
 import { KB } from "./_arcia-kb.mjs";
-import { X_ARCIA, CA, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
+import { X_ARCIA, CA, ARCIA_RH, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
 import { storeEnabled, getDocs, commit, queryDocs, setDoc } from "./_store.mjs";
 import * as secret from "./_arcia-secret.mjs";
 import { veTierOf, VE_TIERS } from "./_vearcia.mjs";
@@ -154,11 +154,11 @@ function guide(q, lang, L) {
   const idol = fanReply(q, s, ko);
   if (idol) return idol;
   if (has(s, "who are you", "arcia", "아르시아", "너는", "누구")) return A(
-    `I'm ARCIA, the virtual idol of $ARCIRCLE~ 💙💚 The ARCIRCLE team (@ARCIRCLEonArc) runs me, and my job is making ARCIRCLE PAD easy and fun for you. I also answer everyone who mentions me on X: ${X_ARCIA}\n\nOh, and $ARCIA is the coin of CirclePad Round #1! It launches through Argus, and its fees go to platform growth and $ARCIRCLE buybacks♡`,
-    `저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요~ 💙💚 ARCIRCLE 팀(@ARCIRCLEonArc)이 운영하고, ARCIRCLE PAD를 쉽고 재밌게 알려드리는 게 제 일이에요. X에서 저를 불러주면 답장도 해요: ${X_ARCIA}\n\n아, 그리고 $ARCIA는 CirclePad 라운드 #1 코인이에요! Argus로 런칭되고, 수수료는 플랫폼 성장이랑 $ARCIRCLE 바이백에 쓰여요♡`);
+    `I'm ARCIA, the virtual idol of $ARCIRCLE~ 💙💚 The ARCIRCLE team (@ARCIRCLEonArc) runs me, and my job is making ARCIRCLE PAD easy and fun for you. I also answer everyone who mentions me on X: ${X_ARCIA}\n\nOh, and $ARCIA is my own coin on Robinhood Chain (launched through Pons): ${ARCIA_RH}♡`,
+    `저는 $ARCIRCLE의 버추얼 아이돌 ARCIA예요~ 💙💚 ARCIRCLE 팀(@ARCIRCLEonArc)이 운영하고, ARCIRCLE PAD를 쉽고 재밌게 알려드리는 게 제 일이에요. X에서 저를 불러주면 답장도 해요: ${X_ARCIA}\n\n아, 그리고 $ARCIA는 Robinhood Chain에 있는 제 코인이에요 (Pons로 런칭): ${ARCIA_RH}♡`);
   if (has(s, "contract", "address", "컨트랙트", "주소") || /\bca\b/.test(s)) return A(
-    `Here's $ARCIRCLE's contract on Arc~\n${CA}\nPromise me you'll double-check it on arcircle.app/arcircle before you trade, okay?♡`,
-    `$ARCIRCLE 컨트랙트 주소(Arc)예요~\n${CA}\n거래 전에 arcircle.app/arcircle 에서 꼭 한 번 더 확인하기, 약속이에요♡`);
+    `Our only two official coins~\n♾️ $ARCIRCLE (Arc):\n${CA}\n\n💙💚 $ARCIA (Robinhood Chain):\n${ARCIA_RH}\n\nAnything else using our name isn't us. Promise me you'll double-check on arcircle.app/arcircle before you trade, okay?♡`,
+    `공식 코인은 이 두 개뿐이에요~\n♾️ $ARCIRCLE (Arc):\n${CA}\n\n💙💚 $ARCIA (Robinhood Chain):\n${ARCIA_RH}\n\n우리 이름을 쓰는 다른 코인은 저희가 아니에요. 거래 전에 arcircle.app/arcircle 에서 꼭 한 번 더 확인하기, 약속이에요♡`);
   // a specific topic (a utility, fees, the whitepaper…): answer from the closest passage on the site
   const found = lookup(q);
   const say = (f) => A(`Ooh, I studied this one~ Here's what the site says (${f.page} — ${f.title}):\n\n${f.snip}\n\nMore here: ${f.url}`,

@@ -22,13 +22,13 @@ import * as RHB from "./_tg-buybot-rh.mjs";
 const KEY = "tgArcia/buybot";
 // the chain's addresses (tests point these at a local chain)
 // main: the coin every buy alert follows — $ARCIA on Robinhood Chain since 4 Oct 2026 (api/_tg-buybot-rh.mjs reads it);
-// the Arc $ARCIA (CirclePad Round #1's coin, arcArcia) is followed only if a bot admin adds it with /buybot add
+// retired: the old Arc $ARCIA and ♾️ Infinite (5 Oct 2026, not official any more) are never followed, even if added before
 const CFG = {
   pm: PM_ADDRESS, usdc: lc(ARCIRCLE_QUOTE),
-  main: RHB.ARCIA_RH, mainSym: "ARCIA", arcArcia: "0x9da6d5ce413e94264ea411372459413334a83be5",
+  main: RHB.ARCIA_RH, mainSym: "ARCIA", retired: ["0x9da6d5ce413e94264ea411372459413334a83be5", "0x2a15940316335bfb711db7cba98d637396e80c08"],
   arcircle: lc(ARCIRCLE_TOKEN || ""), arcirclePool: lc(ARCIRCLE_POOL_ID || ""),
 };
-const EMOJI = (tk) => (tk.t === CFG.main || tk.t === CFG.arcArcia ? "💙💚" : "♾");
+const EMOJI = (tk) => (tk.t === CFG.main ? "💙💚" : "♾");
 const RH_EXPLORER = "https://robinhoodchain.blockscout.com";
 const explorerOf = (tk) => (tk && tk.chain === "rh" ? RH_EXPLORER : EXPLORER);
 const EXPLORER = "https://arc.etherscan.io";
@@ -42,8 +42,8 @@ export async function load() {
   const tokens = Array.isArray(d.tokens) ? d.tokens : [];
   // $ARCIRCLE used to be followed by default: keep it only if a bot admin added it with /buybot add
   for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && tokens[i].t === CFG.arcircle && !tokens[i].added) tokens.splice(i, 1);
-  // the Arc $ARCIA used to be the followed coin: keep it only if a bot admin added it with /buybot add
-  for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && tokens[i].t === CFG.arcArcia && !tokens[i].added) tokens.splice(i, 1);
+  // the retired coins (the old Arc $ARCIA, ♾️ Infinite) are dropped, even if a bot admin added them
+  for (let i = tokens.length - 1; i >= 0; i--) if (tokens[i] && CFG.retired.includes(tokens[i].t)) tokens.splice(i, 1);
   // $ARCIA on Robinhood Chain is always followed, first
   const at = tokens.findIndex((t) => t && t.t === CFG.main);
   const main = at >= 0 ? tokens.splice(at, 1)[0] : { t: CFG.main, sym: CFG.mainSym, symFixed: true };
@@ -336,6 +336,7 @@ export async function setBurns(chatId, on) {
 export async function addToken(token, pool) {
   if (!isAddr(token)) return { error: "Send the token's contract address: /buybot add 0x…" };
   token = lc(token);
+  if (CFG.retired.includes(token)) return { error: "That coin was retired on 5 Oct 2026 and isn't official any more. The official coins: /ca" };
   const S = await load();
   if (S.tokens.some((t) => t.t === token)) return { error: "Already following that coin." };
   if (!pool) pool = await findPool(token);

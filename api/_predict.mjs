@@ -19,7 +19,9 @@
 // are in dollars (on Robinhood Chain the pool's ETH price × ETH/USD, or in ETH when that price isn't known: `pxUnit`).
 // Arc:  env PREDICT_ADDRESS ("none" turns it off), else PREDICT_DEFAULT; keeper PREDICT_KEEPER_KEY, else ORDERS_KEEPER_KEY.
 // Markets the keeper opens itself (v3): PREDICT_AUTO / PREDICT_RH_AUTO (comma-separated tokens, "none" for none),
-//       else $ARCIA on each chain — 5m, 15m and 1h, as soon as its pool is live (on Robinhood Chain: once it graduates).
+//       else the official coin on each chain — $ARCIRCLE on Arc, $ARCIA on Robinhood Chain — 5m, 15m and 1h, as soon as
+//       its pool is live (on Robinhood Chain: once it graduates). Markets on a retired coin (RETIRED) are stopped by the
+//       keeper: the round open for bets still runs and settles, no new bets after it.
 // RH:   env PREDICT_RH_ADDRESS ("none" turns it off), else PREDICT_RH_DEFAULT; keeper PREDICT_RH_KEEPER_KEY, else
 //       ORDERS_KEEPER_RH_KEY; Telegram PREDICT_RH_TG_CHAT, else PREDICT_TG_CHAT.
 import { evmChain, addressOfKey } from "./_evm.mjs";
@@ -37,7 +39,8 @@ const lc = (a) => String(a || "").toLowerCase();
 const USDC = "0x3600000000000000000000000000000000000000";
 const RH_WETH = "0x0bd7d308f8e1639fab988df18a8011f41eacad73";
 const ARCIRCLE = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
-export const ARCIA_ARC = "0x9da6d5ce413e94264Ea411372459413334a83bE5"; // $ARCIA on Arc (Argus)
+// retired on 5 Oct 2026, not official any more: the old $ARCIA on Arc and ♾️ Infinite (the test coin)
+export const RETIRED = ["0x9da6d5ce413e94264ea411372459413334a83be5", "0x2a15940316335bfb711db7cba98d637396e80c08"];
 export const ARCIA_RH = "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25"; // $ARCIA on Robinhood Chain (Pons)
 const AUTO_DURS = [300, 900, 3600];
 const U64 = 2n ** 63n; // a market's stopEpoch at or above this: running
@@ -624,7 +627,11 @@ export function makePredict(over) {
         if (e && e.at && lb.ts >= e.at && m.stopEpoch >= U64 && left() > 4000) { const r = await send(S.stop + w(m.id), "stop"); if (r.ok) out.stopped = (out.stopped || 0) + 1; }
       }
     }
-    // v3: the markets the keeper keeps open itself ($ARCIA by default), checked every 10 minutes
+    // retired coins (5 Oct 2026): their running markets are stopped — the round open now still settles
+    for (const m of ms) {
+      if (RETIRED.includes(lc(m.token)) && m.stopEpoch >= U64 && left() > 4000) { const r = await send(S.stop + w(m.id), "stop"); if (r.ok) out.stopped = (out.stopped || 0) + 1; }
+    }
+    // v3: the markets the keeper keeps open itself (the chain's official coin by default), checked every 10 minutes
     if (CFG.now() - (st.autoAt || 0) > 600 && left() > 8000) {
       st.autoAt = CFG.now();
       try { const a = await autoMarkets(ms, send, left); if (a) { out.auto = a; st.auto = { at: CFG.now(), ...a }; } } catch (e) { st.auto = { at: CFG.now(), error: String((e && e.message) || e).slice(0, 160) }; }
@@ -868,7 +875,7 @@ export const ARC = makePredict({
   link: (m) => `${SITE}/arc#predict?m=${m}`,
   dexChain: "arc", badges: true,
   coinLogo: async (token) => { const { getCoin } = await import("./_arc.mjs"); const c = await getCoin(token); return c && /^https?:\/\//.test(c.imageUrl || "") ? c.imageUrl : null; },
-  autoMarkets: () => autoList("PREDICT_AUTO", ARCIA_ARC),
+  autoMarkets: () => autoList("PREDICT_AUTO", ARCIRCLE),
   // its deepest Uniswap v4 pool against USDC (Argus, ArcPad or plain v4)
   poolKeyOf: async (token) => {
     const L = await import("./_liquidity.mjs");

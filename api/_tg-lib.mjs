@@ -8,12 +8,17 @@ import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
 export const SITE = "https://www.arcircle.app";
 export const BOT_URL = "https://t.me/ARCIAonArc_bot";
 export const CA = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
+// RETIRED on 5 Oct 2026 (not official any more): the old $ARCIA on Arc and ♾️ Infinite (the test coin).
+// Since then there are exactly two official coins: $ARCIRCLE on Arc and $ARCIA on Robinhood Chain.
 export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
+export const RETIRED_CAS = { "0x9da6d5ce413e94264ea411372459413334a83be5": "the old $ARCIA on Arc", "0x2a15940316335bfb711db7cba98d637396e80c08": "♾️ Infinite on Arc (the test coin)" };
+/// the first retired coin address in a text, as { addr, label }, or null
+export const retiredIn = (t) => { for (const a of String(t || "").match(ADDR_RE) || []) { const k = a.toLowerCase(); if (RETIRED_CAS[k]) return { addr: k, label: RETIRED_CAS[k] }; } return null; };
 // + ARCIRCLE OMNI: $ARCIRCLE on Robinhood Chain and the Arc lockbox — ours, never flagged as a fake CA
 export const OMNI_CAS = ["0x6f9ebd0dfc6de9ed47eec18efeb69a9b97c71ee4", "0x075e5dc585effe0bfdc1a0d452499ce7afe2fab6"];
 export const ARCIA_RH_CA = "0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25"; // $ARCIA on Robinhood Chain (Pons, 3 Oct 2026)
 export const ARCIA_RH_BUY = "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25";
-export const OUR_CAS = [CA, ARCIA_CA, ARCIA_RH_CA, ...OMNI_CAS];
+export const OUR_CAS = [CA, ARCIA_RH_CA, ...OMNI_CAS];
 export const env = (k) => String(process.env[k] || "").trim();
 export const h = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export const lc = (a) => String(a || "").toLowerCase();
@@ -218,7 +223,7 @@ export function scamReason(m, { newbie = false } = {}) {
   const t = String(m.text || m.caption || "");
   const hosts = linksIn(m).filter((x) => !ALLOW_HOSTS.test(x));
   if (hosts.length && (newbie || BAIT.test(t))) return `link to ${hosts[0]}`;
-  const addrs = (t.match(ADDR_RE) || []).map(lc);
+  const addrs = (t.match(ADDR_RE) || []).map(lc).filter((a) => !RETIRED_CAS[a]); // a retired coin gets a note from the bot, not a warning
   // our two coins: an address posted as $ARCIRCLE or $ARCIA that is neither of them
   if (/\$arcia\b/i.test(t) && /\b(ca|contract|address|token)\b/i.test(t) && addrs.length && !addrs.some((a) => OUR_CAS.includes(a))) return "a contract address posted as $ARCIA that isn't $ARCIA";
   if (/arcircle|\$arc\b/i.test(t) && /\b(ca|contract|address|token)\b/i.test(t) && addrs.length && !addrs.some((a) => OUR_CAS.includes(a))) return "a contract address posted as $ARCIRCLE that isn't $ARCIRCLE";

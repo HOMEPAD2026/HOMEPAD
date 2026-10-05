@@ -69,12 +69,14 @@ export async function walletsOf(escrow) {
 // ---- the launch process ----
 // Round #1 is settled: step 4 was this round's exception (the team settled it, so it counts as done) and
 // step 5 is $ARCIA's launch on Argus. These marks are fixed: the round wallet can't undo or re-mark them.
-export const ARCIA_CA = "0x9da6d5ce413e94264ea411372459413334a83be5";
+// That Arc $ARCIA was retired on 5 Oct 2026 (not official any more), so step 5's proof is the delivery to the
+// contributors (the Multisender receipt), not the coin's trading page.
+const ROUND1_DELIVERY = "https://www.arcircle.app/arc#multisend?receipt=0xae8f4d0729dbf8202cc267d5c444f3a0008ca5238b08a9075f8cd2cec6bc92e3";
 const ROUND2_ESCROW = "0xb87c5aa6c6ced8afb4ab6785ab419718f296c8c3", ROUND3_ESCROW = "0x9a93e6ca15c48b379e8dad7b03e83724c1d2e1e4";
 const FIXED = {
   [lc(ESCROW)]: {
     top: { at: null, proof: null, by: "team", exception: true, fixed: true },
-    launch: { at: null, proof: `https://argus.world/token/${ARCIA_CA}`, by: "team", fixed: true },
+    launch: { at: null, proof: ROUND1_DELIVERY, by: "team", fixed: true },
   },
   // Round #2 ($TIE) didn't launch on its own: on 3 Oct 2026 it was merged into Round #3 — its whole raise
   // (1,999.62 USDC) went back in as Round #3's, and Round #2's contributors get their share of Round #3 pro rata,

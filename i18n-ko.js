@@ -7840,6 +7840,15 @@
     "ARCIA's morning note on Telegram (with /orderalerts on): what filled in the last 24 hours, what's open, and the order the price is closest to.": "텔레그램 ARCIA 아침 노트(/orderalerts on): 최근 24시간 체결, 열린 주문, 가격이 가장 가까운 주문.",
     "For bots: a public fill feed and stream, a signed webhook for your own wallet's events, and a small client (/sdk/arcircle-orders/).": "봇을 위해: 공개 체결 피드와 스트림, 내 지갑 이벤트용 서명 웹훅, 작은 클라이언트(/sdk/arcircle-orders/).",
     "The phone's order sheet opens at half height: swipe up for all of it, down to go back. The place button stays in view on a desktop, the explainer folds once you know a type, and fills land with a stamp and a flame to the burn counter (sound and vibration can be turned off).": "휴대폰 주문 시트는 절반 높이로 열리고, 위로 밀면 전체, 아래로 밀면 돌아가요. 데스크톱에서는 주문 버튼이 항상 보이고, 유형을 익히면 설명이 접히며, 체결되면 도장과 함께 불꽃이 소각 카운터로 날아갑니다(소리·진동은 끌 수 있어요).",
+    "Official coins": "공식 코인",
+    "Two official coins. That's the whole list.": "공식 코인은 두 개. 이게 전부예요.",
+    "The core coin, on Arc": "Arc의 핵심 코인",
+    "Retired on 5 October 2026:": "2026년 10월 5일부로 종료:",
+    "the old $ARCIA on Arc and ♾️ Infinite on Arc are no longer official ARCIRCLE coins. Any other coin promoted with the ARCIRCLE name isn't ours — check the contract address against these two before you buy.": "예전 $ARCIA on Arc와 ♾️ Infinite on Arc는 더 이상 ARCIRCLE 공식 코인이 아니에요. ARCIRCLE 이름으로 홍보되는 다른 코인은 저희가 아니에요. 사기 전에 컨트랙트 주소를 이 두 개와 꼭 비교해 보세요.",
+    ". It's the $ARCIA every price, burn and alert on ARCIRCLE PAD follows, the flagship of the ARCIRCLE NFT ecosystem, and it joins $ARCIRCLE in the reward contract's automated buyback-and-burn. Since 5 October 2026 there are exactly two official coins, $ARCIRCLE on Arc and $ARCIA on Robinhood Chain; the old $ARCIA on Arc (CirclePad Round #1's coin) is retired and no longer official.": ". ARCIRCLE PAD의 모든 가격, 소각, 알림이 이 $ARCIA를 기준으로 하고, ARCIRCLE NFT 생태계의 대표 토큰이며, 리워드 컨트랙트의 자동 바이백·소각에 $ARCIRCLE과 함께 들어가요. 2026년 10월 5일부터 공식 코인은 Arc의 $ARCIRCLE과 Robinhood Chain의 $ARCIA, 딱 두 개예요. 예전 $ARCIA on Arc(CirclePad 라운드 #1 코인)는 종료되어 더 이상 공식 코인이 아니에요.",
+    "Two official coins": "공식 코인 두 개",
+    "Since 5 Oct 2026: $ARCIRCLE on Arc and $ARCIA on Robinhood Chain, nothing else. The old $ARCIA on Arc and ♾️ Infinite are retired.": "2026년 10월 5일부터: Arc의 $ARCIRCLE과 Robinhood Chain의 $ARCIA, 이 두 개뿐이에요. 예전 $ARCIA on Arc와 ♾️ Infinite는 종료됐어요.",
+    "The only two official coins since 5 Oct 2026.": "2026년 10월 5일부터 공식 코인은 이 두 개뿐이에요.",
   };
 
 

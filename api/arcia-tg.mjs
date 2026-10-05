@@ -48,7 +48,7 @@ import * as AG from "./_agent.mjs";
 import { arciaCoin } from "./_arcia-coin.mjs";
 import { cronBudget, within, cronOut } from "./_cron.mjs";
 import {
-  SITE, BOT_URL, CA, ARCIA_CA, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
+  SITE, BOT_URL, CA, retiredIn, ARCIA_RH_BUY, OUR_CAS, env, h, lc, short, day, num, compact, sleep, ADDR_RE, tg, fileBase64, kb, keepTyping, EFFECT, sendWithEffect,
   getDoc, putDoc, DOC, loadCfg, saveCfg, chatCfg, setChatCfg, loadUser, saveUser, bump, usage, firstTime, tooMany, reportError,
   linkMessage, personalSigner, secretIn, scamReason, spamReason,
 } from "./_tg-lib.mjs";
@@ -141,8 +141,23 @@ const say = (m, text, extra = {}) => tg("sendMessage", { chat_id: m.chat.id, tex
 
 // ---------------- cards ----------------
 // our two official contract addresses, in the one form ARCIA always uses (tap to copy)
-const cardCA = () => `♾️ <b>$ARCIRCLE</b>:\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b> (Robinhood Chain):\n<code>${h(CHECKSUM.arciaRh)}</code>\n\n🔵 <b>$ARCIA on Arc</b> (CirclePad Round #1):\n<code>${h(CHECKSUM.arcia)}</code>`;
-const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arcia: "0x9da6d5ce413e94264Ea411372459413334a83bE5", arciaRh: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" };
+// since 5 Oct 2026 exactly two official coins — the old $ARCIA on Arc and ♾️ Infinite are retired
+const cardCA = () => `♾️ <b>$ARCIRCLE</b> (Arc):\n<code>${h(CHECKSUM.arcircle)}</code>\n\n💙💚 <b>$ARCIA</b> (Robinhood Chain):\n<code>${h(CHECKSUM.arciaRh)}</code>`;
+const RETIRED_LABEL = {
+  "0x9da6d5ce413e94264ea411372459413334a83be5": ["the old $ARCIA on Arc", "예전 $ARCIA on Arc", "旧的 Arc 上的 $ARCIA"],
+  "0x2a15940316335bfb711db7cba98d637396e80c08": ["♾️ Infinite on Arc (the test coin)", "♾️ Infinite on Arc (테스트 코인)", "Arc 上的 ♾️ Infinite（测试币）"],
+};
+/// someone posted a retired coin's address: a friendly correction with the two official ones (no warning)
+async function retiredNote(m, old, lang) {
+  if (tooMany(`retired:${m.chat.id}:${old.addr}`, 1, 600e3)) return false;
+  lang = langOf(String(m.text || m.caption || ""), lang); // answer in the language they wrote in
+  const lb = RETIRED_LABEL[old.addr] || [old.label], name = lb[Math.min(L3(lang), lb.length - 1)];
+  await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true },
+    text: `ℹ️ <code>${h(short(old.addr))}</code> ${T3(lang, `is ${h(name)}, retired on 5 Oct 2026 — it's not an official ARCIRCLE coin any more.`, `는 ${h(name)}이에요. 2026년 10월 5일부로 종료되어 더 이상 ARCIRCLE 공식 코인이 아니에요.`, `是${h(name)}，已于 2026 年 10 月 5 日停用，不再是 ARCIRCLE 官方币。`)}\n\n<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n${cardCA()}`,
+    ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }]]) });
+  return true;
+}
+const CHECKSUM = { arcircle: "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7", arciaRh: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25" };
 // /burns: everything burned so far, where it came from, and the latest burns (the Reward page's numbers)
 const BURN_NAMES = { vote: ["Burn-to-vote", "소각 투표", "销毁投票"], mine: ["Builder Mine", "빌더 마인", "Builder Mine"], scanner: ["Token Scanner", "토큰 스캐너", "代币扫描器"],
   secret: ["ARCIA's secret file", "ARCIA 시크릿 파일", "ARCIA 秘密档案"], desk: ["ARCIA DESK", "ARCIA DESK", "ARCIA DESK"], agent: ["ARCIA AGENT vaults", "ARCIA AGENT 볼트", "ARCIA AGENT 金库"], orders: ["ARCIRCLE Orders fees", "ARCIRCLE Orders 수수료", "ARCIRCLE Orders 手续费"], buyback: ["Buyback", "바이백", "回购"],
@@ -448,14 +463,14 @@ async function guard(c, m, lang) {
     return true;
   }
   if (!isGroup(m.chat)) return false;
-  const cc = chatCfg(c, m.chat.id);
-  if (!cc.guard) return false;
+  const cc = chatCfg(c, m.chat.id), old = retiredIn(text);
+  if (!cc.guard) return old && assistOn(c, m.chat) ? retiredNote(m, old, lang) : false;
   const joined = (cc.joins || {})[m.from.id];
   const newbie = !!joined && Date.now() - joined < 72 * 3600e3;
   const scam = scamReason(m, { newbie });
   const strict = assistOn(c, m.chat) || cc.spam === true;
   const why = scam || (strict ? spamReason(m, { newbie }) || floodReason(m) : null);
-  if (!why || (await canModerate(c, m))) return false;
+  if (!why || (await canModerate(c, m))) return old ? retiredNote(m, old, lang) : false;
   const del = await tg("deleteMessage", { chat_id: m.chat.id, message_id: m.message_id });
   const n = await addWarn(c, m.chat.id, m.from, why, m.chat, { quiet: true });
   const out = strikeBan(c, m.chat);
@@ -537,7 +552,7 @@ async function autoScan(c, m, lang) {
   const cc = chatCfg(c, m.chat.id);
   if (!cc.autoscan) return false;
   const addrs = [...new Set((String(m.text || m.caption || "").match(ADDR_RE) || []).map(lc))];
-  if (addrs.length !== 1 || OUR_CAS.includes(addrs[0]) || tooMany(`scan:${m.chat.id}:${addrs[0]}`, 1, 1800e3) || tooMany(`autoscan:${m.chat.id}`, 4, 600e3)) return false;
+  if (addrs.length !== 1 || OUR_CAS.includes(addrs[0]) || retiredIn(addrs[0]) || tooMany(`scan:${m.chat.id}:${addrs[0]}`, 1, 1800e3) || tooMany(`autoscan:${m.chat.id}`, 4, 600e3)) return false;
   const r = await scanner.apiResult(addrs[0], { store: store() }).catch(() => null);
   if (!r || r.score == null) return false; // a wallet, or unreadable: stay quiet
   await tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true },
@@ -744,7 +759,7 @@ async function onMessage(m, channel) {
       case "help": return help(c, m, lang);
       case "whoami": return say(m, `Telegram ID: <code>${uid}</code>${admin ? " · admin ✓" : ""}`);
       case "admin": return claimAdmin(c, m, arg);
-      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "$ARCIA on Arc (Round #1)", url: `https://argus.world/token/${ARCIA_CA}` }]]));
+      case "ca": return say(m, cardCA(), kb([[{ text: "$ARCIRCLE", url: `https://argus.world/token/${CA}` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }]]));
       case "burns": case "burn": return sendCard(m.chat.id, await cardBurns(lang), { replyTo: group ? m.message_id : undefined });
       case "price": return sendCard(m.chat.id, await cardPrice(lang), { replyTo: group ? m.message_id : undefined });
       case "scan": { const ca = addrOf(arg) || ((String(arg || "").trim().match(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/) || [])[0] || ""); return ca ? scanWithProgress(m, ca, lang) : say(m, w("needCA", lang, { cmd: "scan" })); }
@@ -976,7 +991,7 @@ async function faqReply(m, kind, lang) {
   const rp = { reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true }, link_preview_options: { is_disabled: true } };
   const safe = T3(lang, "🛡 Only trust addresses from arcircle.app or this bot. The team never DMs you first.", "🛡 arcircle.app이나 이 봇이 알려준 주소만 믿으세요. 팀은 먼저 DM하지 않아요.", "🛡 只相信 arcircle.app 或本机器人给出的地址。团队绝不会先私信你。");
   if (kind === "price") return sendCard(m.chat.id, await cardPrice(lang), { replyTo: m.message_id });
-  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `${cardCA()}\n\n♾️ <b>$ARCIRCLE</b> ${T3(lang, "on Robinhood Chain (ARCIRCLE OMNI)", "Robinhood Chain (ARCIRCLE OMNI)", "Robinhood Chain 上（ARCIRCLE OMNI）")}:\n<code>0x6F9EBd0DFc6De9ed47EEc18EfeB69A9b97C71ee4</code>\n\n${safe}`, ...rp,
+  if (kind === "ca") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", text: `<b>${T3(lang, "The only two official coins:", "공식 코인은 이 두 개뿐이에요:", "官方币只有这两个：")}</b>\n\n${cardCA()}\n\n${safe}`, ...rp,
     ...kb([[{ text: "$ARCIRCLE", url: `${SITE}/arcircle` }, { text: "$ARCIA (Pons)", url: ARCIA_RH_BUY }], [{ text: "arcircle.app", url: SITE }]]) });
   if (kind === "site") return tg("sendMessage", { chat_id: m.chat.id, parse_mode: "HTML", ...rp, text: [
     `🌐 <b>${T3(lang, "ARCIRCLE — official links", "ARCIRCLE 공식 링크", "ARCIRCLE 官方链接")}</b>`,

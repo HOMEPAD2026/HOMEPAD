@@ -17244,3 +17244,11 @@ html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{di
 @media (prefers-reduced-motion:reduce){ .aor-mr.done::after,.aor-flyflame,.aor-burnct.aor-burnhit{animation:none;} .aor-flyflame{display:none;} }
 @media (max-width:720px){ .aor-mr.done::after{right:12px;top:14px;} }
 .aor-gridnote{margin:2px 0 10px;}
+
+/* ===== two official coins (5 Oct 2026): the $ARCIRCLE page's coin section, retired note, round results chip ===== */
+.ac-family.ac-family-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+.ac-retired{margin:14px 0 0;padding:12px 14px;border-radius:14px;font-size:.82rem;line-height:1.55;color:var(--ax-dim);background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.14);}
+.ac-retired b{color:var(--ax-ink);}
+.cp5-rs-coin.retired{color:#aab4bf;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);}
+.cp5-rs-coin.retired i{color:#8b95a1;}
+@media (max-width:900px){ .ac-family.ac-family-2{grid-template-columns:1fr;} }

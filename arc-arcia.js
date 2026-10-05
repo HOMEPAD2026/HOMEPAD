@@ -18,9 +18,7 @@
   var HOST = panel.getAttribute("data-host") === "float";
   var X = "https://x.com/ARCIAonArc";
   var CA = "0xe5718F298ac3b65FAf7c711b56cBD72b3bb15fF7";
-  // $ARCIA — CirclePad Round #1's coin, named after her — and its Uniswap v4 pool on Arc
-  var ARCIA_CA = "0x9da6d5ce413e94264Ea411372459413334a83bE5";
-  var ARCIA_POOL = "0x40272a6ee71cb10882e5a3102d10a91874aa66922bfc98801a6293fef7b5332b";
+  // (the old $ARCIA on Arc, CirclePad Round #1's coin, was retired on 5 Oct 2026 — not official any more)
   // $ARCIA on Robinhood Chain — her own launch through Pons (3 Oct 2026), bought on its Pons page
   var ARCIA_RH = "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25";
   var ARCIA_RH_BUY = "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25";
@@ -398,7 +396,7 @@
     var tok = null, sym = null, m = /0x[0-9a-f]{40}/.exec(s);
     if (m) { tok = m[0]; sym = tok.slice(0, 6) + "…" + tok.slice(-4); s = s.replace(m[0], " "); chain = chain || (ls.get("arcircle.orders.chain", "rh") === "arc" ? "arc" : "rh"); }
     else if (/(^| )\$?arcircle\b/.test(s)) { sym = "ARCIRCLE"; chain = chain || "arc"; tok = chain === "rh" ? ARCIRCLE_RH : CA; s = s.replace(/\$?arcircle\b/, " "); }
-    else if (/(^| )\$?arcia\b/.test(s)) { sym = "ARCIA"; chain = chain || "rh"; tok = chain === "arc" ? ARCIA_CA : ARCIA_RH; s = s.replace(/\$?arcia\b/, " "); }
+    else if (/(^| )\$?arcia\b/.test(s)) { if (chain === "arc") return null; sym = "ARCIA"; chain = "rh"; tok = ARCIA_RH; s = s.replace(/\$?arcia\b/, " "); } // only on Robinhood Chain now
     else return null;
     s = (" " + s + " ").replace(/ of /g, " ").replace(/\s+/g, " ").trim();
     var P = window.arcOrderLine || window.arcOrdersV4;
@@ -831,8 +829,7 @@
   function richCard(li, tp) {
     var L = LIVE || {}, R = L.round || {}, html = "";
     if (tp === "ca") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE · Arc</span><code data-no-i18n>' + CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="/arcircle">Verify on the token page</a></div>' +
-      '<span class="aa-rc-k aa-rc-k2">$ARCIA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Pons</a></div>' +
-      '<span class="aa-rc-k aa-rc-k2">$ARCIA · Arc (Round #1)</span><code data-no-i18n>' + ARCIA_CA + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Argus</a></div></div>';
+      '<span class="aa-rc-k aa-rc-k2">$ARCIA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code><div class="aa-rc-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy address">' + ICON.copy + '<span>Copy address</span></button><a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Pons</a></div>' + '<span class="aa-rc-sub">The only two official coins since 5 Oct 2026.</span></div>';
     else if (tp === "round") { var rn = RN(), raised = RND ? RND.raised : R.raised; html = '<div class="aa-rc aa-rc-round"><span class="aa-rc-k" data-no-i18n>CirclePad Round #' + rn + '</span><div class="aa-rc-big" data-no-i18n>' + (raised != null ? Number(raised).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " USDC" : "—") + '</div><span class="aa-rc-sub">' + (deadline() > nowS() ? '<span class="aa-clock" data-no-i18n>—</span>' : esc(tr("Closed"))) + '</span><div class="aa-rc-row">' + (deadline() > nowS() ? '<a class="aa-rc-btn" href="/circle" data-no-i18n>' + esc(T({ en: "Join Round #{n}", ko: "라운드 #{n} 참여", zh: "参加第 {n} 轮" }).replace("{n}", rn)) + '</a><button type="button" class="aa-rc-btn ghost" data-ics="1">' + ICON.cal + "<span>Add to calendar</span></button>" : '<a class="aa-rc-btn" href="' + esc((RND && RND.report) || "/circle") + '">See the result</a>') + "</div></div>"; }
     else if (tp === "price") html = '<div class="aa-rc"><span class="aa-rc-k">$ARCIRCLE now</span><div class="aa-rc-big" data-no-i18n>' + (L.price != null ? (F.price ? F.price(L.price) : "$" + L.price) : "—") + (L.change24h != null ? ' <em class="' + (L.change24h >= 0 ? "up" : "down") + '">' + (L.change24h >= 0 ? "+" : "") + L.change24h.toFixed(2) + "%</em>" : "") + '</div><span class="aa-rc-sub" data-no-i18n>' + (L.holders != null ? Number(L.holders).toLocaleString("en-US") + " holders" : "") + '</span><div class="aa-rc-row"><a class="aa-rc-btn ghost" href="/stats">All live stats</a></div></div>';
     else if (tp === "buy") html = '<div class="aa-rc"><span class="aa-rc-k">Get $ARCIRCLE</span><div class="aa-rc-row"><a class="aa-rc-btn" href="' + esc(BUY) + '" target="_blank" rel="noopener">Buy on Argus</a><a class="aa-rc-btn ghost" href="/start">Get USDC on Arc</a></div><span class="aa-rc-sub">Check the contract first. Crypto is risky — only use what you can afford to lose.</span></div>';
@@ -1995,10 +1992,6 @@
               '<div class="aa-coin"><span class="aa-coin-k rh">$ARCIA CA · Robinhood Chain</span><code data-no-i18n>' + ARCIA_RH + '</code>' +
               '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_RH + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
               '<a class="aa-rc-btn ghost" href="' + ARCIA_RH_BUY + '" target="_blank" rel="noopener">Buy on Pons</a></div>' +
-              '<span class="aa-coin-k aa-coin-k2 arc">$ARCIA CA · Arc</span><code data-no-i18n>' + ARCIA_CA + '</code>' +
-              '<div class="aa-coin-row"><button type="button" class="aa-rc-btn" data-copy="' + ARCIA_CA + '" data-label="Copy CA">' + ICON.copy + '<span>Copy CA</span></button>' +
-              '<a class="aa-rc-btn ghost" href="https://argus.world/token/' + ARCIA_CA.toLowerCase() + '" target="_blank" rel="noopener">Buy on Argus</a>' +
-              '<a class="aa-rc-btn ghost" href="https://dexscreener.com/arc/' + ARCIA_POOL + '" target="_blank" rel="noopener">Chart</a></div>' +
               '<p class="aa-mini">The price above is $ARCIA on Robinhood Chain, read on-chain from Pons; holders from the Token Scanner. New coins are risky — scan before you buy.</p></div>' +
               '<div class="aa-more-row"><a class="aa-more aa-more-round" href="/circle" data-no-i18n>CirclePad Round #' + RN() + ' →</a><a class="aa-more" href="/circle/round/1">Round #1 results →</a></div></div>' +
             '<div class="aa-tabp" role="tabpanel" id="aa-p-today" aria-labelledby="aa-t-today" hidden><h3>Today with ARCIA</h3><p class="aa-mini">Her posts on X, ARCIA DESK trades, ARCIA AGENT calls, ARCIA 402 and the letters she answered — the last 24 hours.</p><ul class="aa-today"></ul></div>' +

@@ -8010,6 +8010,15 @@
     "ARCIA's morning note on Telegram (with /orderalerts on): what filled in the last 24 hours, what's open, and the order the price is closest to.": "Telegram 上 ARCIA 的晨间简报（/orderalerts on）：最近 24 小时的成交、未成交订单，以及价格最接近的订单。",
     "For bots: a public fill feed and stream, a signed webhook for your own wallet's events, and a small client (/sdk/arcircle-orders/).": "给机器人：公开的成交 feed 和 stream、你钱包事件的签名 Webhook，以及一个小客户端（/sdk/arcircle-orders/）。",
     "The phone's order sheet opens at half height: swipe up for all of it, down to go back. The place button stays in view on a desktop, the explainer folds once you know a type, and fills land with a stamp and a flame to the burn counter (sound and vibration can be turned off).": "手机上的下单面板以半屏打开：上滑展开全部，下滑返回。桌面上下单按钮始终可见，熟悉某种类型后说明会折叠，成交时会盖章并有火焰飞向销毁计数器（声音和振动可以关闭）。",
+    "Official coins": "官方币",
+    "Two official coins. That's the whole list.": "官方币只有两个，仅此而已。",
+    "The core coin, on Arc": "Arc 上的核心币",
+    "Retired on 5 October 2026:": "2026 年 10 月 5 日起停用：",
+    "the old $ARCIA on Arc and ♾️ Infinite on Arc are no longer official ARCIRCLE coins. Any other coin promoted with the ARCIRCLE name isn't ours — check the contract address against these two before you buy.": "旧的 Arc 上的 $ARCIA 和 Arc 上的 ♾️ Infinite 已不再是 ARCIRCLE 官方币。任何借 ARCIRCLE 名义推广的其他币都不是我们的——购买前请将合约地址与这两个核对。",
+    ". It's the $ARCIA every price, burn and alert on ARCIRCLE PAD follows, the flagship of the ARCIRCLE NFT ecosystem, and it joins $ARCIRCLE in the reward contract's automated buyback-and-burn. Since 5 October 2026 there are exactly two official coins, $ARCIRCLE on Arc and $ARCIA on Robinhood Chain; the old $ARCIA on Arc (CirclePad Round #1's coin) is retired and no longer official.": "。ARCIRCLE PAD 上的所有价格、销毁和提醒都以这个 $ARCIA 为准，它是 ARCIRCLE NFT 生态的旗舰代币，并将与 $ARCIRCLE 一起加入奖励合约的自动回购销毁。自 2026 年 10 月 5 日起，官方币只有两个：Arc 上的 $ARCIRCLE 和 Robinhood Chain 上的 $ARCIA；旧的 Arc 上的 $ARCIA（CirclePad 第 1 轮的币）已停用，不再是官方币。",
+    "Two official coins": "两个官方币",
+    "Since 5 Oct 2026: $ARCIRCLE on Arc and $ARCIA on Robinhood Chain, nothing else. The old $ARCIA on Arc and ♾️ Infinite are retired.": "自 2026 年 10 月 5 日起：只有 Arc 上的 $ARCIRCLE 和 Robinhood Chain 上的 $ARCIA。旧的 Arc 上的 $ARCIA 和 ♾️ Infinite 已停用。",
+    "The only two official coins since 5 Oct 2026.": "自 2026 年 10 月 5 日起仅有这两个官方币。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
