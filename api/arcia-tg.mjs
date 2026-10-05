@@ -1462,22 +1462,32 @@ async function ordersDigest(T, s, out) {
   for (const [wa, ids] of subs) {
     if (!ids || !ids.length) continue;
     const lines = [];
-    let open = 0, fills = 0, near = null;
+    let open = 0, fills = 0, near = null, close5 = 0, paused = 0, unfunded = 0;
+    const ranks = [];
     for (const X of [ORD.ARC, ORD.RH]) {
       const v = await X.mine(wa, { store: store() }).catch(() => null);
       for (const o of (v && v.orders) || []) {
         const sym = `$${h(o.token && o.token.symbol || "?")}${X.id === "rh" ? " (RH)" : ""}`;
         if ((o.last || 0) > now - 86400 && o.filledPct > 0 && (o.status === "filled" || o.status === "open")) { fills++; if (lines.length < 4) lines.push(`✅ ${o.side === "buy" ? "Bought" : "Sold"} ${sym} at ${fmtPrice(o.fillPx > 0 ? o.fillPx : o.price)}`); }
+        if (o.status === "unfunded") unfunded++;
         if (o.status === "open") {
           open++;
+          if (o.paused) paused++;
           const sp = spots.get(X.id + ":" + lc(o.token && o.token.address || o.token));
-          if (sp > 0 && o.price > 0 && o.type === "limit" && !(o.cond && !o.cond.met) && !(o.after && !o.after.met)) { const g = Math.abs(o.price / sp - 1) * 100; if (!near || g < near.g) near = { g, sym, side: o.side, price: o.price }; }
+          if (sp > 0 && o.price > 0 && o.type === "limit" && !o.paused && !(o.cond && !o.cond.met) && !(o.after && !o.after.met)) { const g = Math.abs(o.price / sp - 1) * 100; if (g < 5) close5++; if (!near || g < near.g) near = { g, sym, side: o.side, price: o.price }; }
         }
       }
+      // v8: the week's season — where this wallet stands
+      const se = X.season ? await X.season({ store: store(), wallet: wa }).catch(() => null) : null;
+      if (se && se.me) ranks.push(`#${se.me.rank} of ${se.makers} on ${X.id === "rh" ? "Robinhood Chain" : "Arc"}`);
     }
-    if (!fills && !open) continue;
+    if (!fills && !open && !unfunded) continue;
     const text = [`☀️ <b>ARCIA's Orders note</b>`, fills ? `${fills} ${fills === 1 ? "fill" : "fills"} in the last 24 hours:` : "No fills in the last 24 hours.", ...lines,
-      open ? `📒 ${open} open ${open === 1 ? "order" : "orders"}${near ? ` — closest: your ${near.side} of ${near.sym} at ${fmtPrice(near.price)}, ${near.g.toFixed(1)}% away` : ""}` : "", "<i>Not advice. Turn these off with /orderalerts off.</i>"].filter(Boolean).join("\n");
+      open ? `📒 ${open} open ${open === 1 ? "order" : "orders"}${near ? ` — closest: your ${near.side} of ${near.sym} at ${fmtPrice(near.price)}, ${near.g.toFixed(1)}% away` : ""}` : "",
+      close5 > 1 ? `🎯 ${close5} orders within 5% of the market` : "",
+      paused ? `⏸ ${paused} paused — they stay out of the book until you resume them` : "",
+      unfunded ? `⚠️ ${unfunded} ${unfunded === 1 ? "order isn't" : "orders aren't"} covered by your balance or approval — open My orders and tap Fix` : "",
+      ranks.length ? `🏁 This week's season: ${ranks.join(" · ")}` : "", "<i>Not advice. Turn these off with /orderalerts off.</i>"].filter(Boolean).join("\n");
     for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[{ text: "My orders", url: `${SITE}/arc#orders?my=open&scope=all` }]]) }).catch(() => null); sent++; await sleep(40); }
   }
   out.ordersDigest = sent;

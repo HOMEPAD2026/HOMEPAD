@@ -218,6 +218,27 @@
     return `<div class="aor-pf-x"><div class="aor-pf-sum"><small>${T("Both chains, in dollars")}</small><b data-no-i18n>${hereUsd != null && xUsd != null ? esc(A.usd(hereUsd + xUsd)) : "…"}</b><span data-no-i18n>${esc(nm(CH()))} ${hereUsd != null ? esc(A.usd(hereUsd)) : "—"} · ${esc(nm(x ? x.ch : CH() === "rh" ? "arc" : "rh"))} ${xUsd != null ? esc(A.usd(xUsd)) : "…"}</span></div>
       ${x && x.rows.length ? `<div class="aor-pf-xr">${x.rows.map((r) => `<span data-no-i18n><b>$${esc(r.sym)}</b> ${esc(big(r.bal))}${r.usd != null ? ` · ${esc(A.usd(r.usd))}` : ""} <i>${esc(x.ch === "rh" ? "RH" : "Arc")}</i></span>`).join("")}</div>` : ""}</div>`;
   }
+  /// v8: the third chain — a connected Solana wallet's open orders and what they hold, beside Arc and Robinhood Chain
+  async function loadSolX() {
+    const k = window.arcSol && window.arcSol.key;
+    if (!k || V.solXBusy) return;
+    V.solXBusy = true;
+    try {
+      const j = await fetch(`/api/social?orders=mine&chain=sol&wallet=${k}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (j && j.wallet === k) {
+        const open = j.open || [], sol = open.reduce((a, x) => a + (x.side === "buy" ? Number(x.amountIn) / 1e9 : x.sol || 0), 0);
+        V.solX = { w: k, at: Date.now(), n: open.length, sol, kinds: open.filter((x) => x.cond).length, fills: (j.history || []).length };
+      }
+    } finally { V.solXBusy = false; }
+    const el = $("aor-mine"); if (el && O().state.myTab === "port") portfolio(el);
+  }
+  function solHtml() {
+    const k = window.arcSol && window.arcSol.key;
+    if (!k || !(typeof CONFIG !== "undefined" && CONFIG.ORDERS_SOL)) return "";
+    if (!V.solX || V.solX.w !== k || Date.now() - V.solX.at > 60e3) loadSolX();
+    const x = V.solX && V.solX.w === k ? V.solX : null;
+    return `<div class="aor-pf-sol"><span class="aor-pf-solc" aria-hidden="true"></span><span><small>${T("Solana wallet")}</small><b data-no-i18n>${esc(k.slice(0, 4))}…${esc(k.slice(-4))}</b></span><span data-no-i18n>${x ? esc(`${x.n} ${O().lang() === "ko" ? "개 열린 주문" : O().lang() === "zh" ? "个挂单" : x.n === 1 ? "open order" : "open orders"} · ${x.sol.toLocaleString("en-US", { maximumFractionDigits: 4 })} SOL`) : "…"}</span><button type="button" class="aor-link" data-setchain="sol">${T("Open Solana")} →</button></div>`;
+  }
   function portfolio(el) {
     const A = O(); if (!A) return;
     const w = A.me(), S = A.state;
@@ -232,7 +253,7 @@
     }).sort((a, b) => (b.val || 0) - (a.val || 0));
     if (!rows.length) { el.innerHTML = `<div class="aor-empty arcia">${ARCIA_ART}<span>${T(CH() === "rh" ? "No tokens from these markets in this wallet on Robinhood Chain yet." : "No tokens from these markets in this wallet on Arc yet.")}</span></div>${journalHtml()}`; return; }
     const tot = rows.reduce((s, r) => s + (r.val || 0), 0), usd = (q) => (q != null && qUsd ? A.usd(q * qUsd) : "");
-    const html = `<div class="aor-pf">${bothHtml(tot)}
+    const html = `<div class="aor-pf">${bothHtml(tot)}${solHtml()}
       <div class="aor-pf-sum"><small>${T("Held here, at the pool price")}</small><b data-no-i18n>${esc(A.qv(tot))}</b>${CH() === "rh" && usd(tot) ? `<span data-no-i18n>≈ ${esc(usd(tot))}</span>` : ""}<button type="button" class="aor-link" data-pfre>${T("Refresh")}</button></div>
       <div class="aor-pf-h"><span>${T("Token")}</span><span>${T("Balance")}</span><span>${T("Value")}</span><span>${T("Avg buy")}</span><span>${T("Now vs avg buy")}</span><span></span></div>
       ${rows.map((r) => `<div class="aor-pf-r${r.t === S.t ? " on" : ""}" data-pft="${esc(r.t)}">

@@ -113,6 +113,16 @@ const CONFIG = {
       plan: { buy: { sym: "ARCIA", chain: "Robinhood Chain", token: "0xF0C0fC281314a48aE4E52a9db08731cb6A38CA25", url: "https://www.ponsfamily.com/launchpad/0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25" },
         also: { round: 4, chain: "Solana", sym: "TBA", merged: true, via: "pump.fun", with: "ARCIRCLE Orders", mergedAt: "5 Oct 2026" } } },
   },
+  // v8: the delivery board under a plan round's hero (circlepad-plan.js) — what the team has done after the close.
+  // Each step: status "" (waiting) | "now" (in progress) | "done", and txs: [{ chain: "rh" | "sol" | "arc", hash, label }].
+  CIRCLEPAD_DELIVERY: {
+    3: {
+      buy: { status: "", txs: [] }, // $ARCIA bought on Robinhood Chain with the raise
+      send: { status: "", txs: [] }, // $ARCIA sent to the contributors by share
+      r4: { status: "", txs: [] }, // Round #4 launched on Solana (pump.fun) with ARCIRCLE Orders
+      r4send: { status: "", txs: [] }, // the Round #4 share delivered
+    },
+  },
   // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
   // { merged: n } for a round that went into another one; retired: true for a coin that isn't official any more
   // (no address, no market, no trade link).

@@ -96,7 +96,25 @@
         </div>
         ${MERGED ? `<p class="cp-plan-merge"><b>${T("Why merged:")}</b> ${T(`ARCIRCLE built a new contract on ${A.chain || "Solana"} for ${WITH} — on ${A.chain || "Solana"} that costs over about $1,000 — so the team is putting its focus there and taking ARCIRCLE to ${A.chain || "Solana"} together with this round.`)}</p>` : ""}
         ${you}
+        ${delivery(r)}
       </div>`;
+  }
+
+  // v8: the delivery board — after the close, each step the team takes, with its transactions (CONFIG.CIRCLEPAD_DELIVERY)
+  const EXPL = { rh: "https://robinhoodchain.blockscout.com/tx/", sol: "https://solscan.io/tx/", arc: "https://arc.etherscan.io/tx/" };
+  function delivery(r) {
+    const D = (CONFIG.CIRCLEPAD_DELIVERY || {})[N()] || {};
+    const closed = r && r.started && Math.floor(Date.now() / 1000) >= Number(r.deadline || 0);
+    const rows = [
+      ["close", closed ? "done" : "now", "The raise closes", closed ? "Closed — the split goes out from the escrow" : "Contributions are still open"],
+      ["buy", D.buy && D.buy.status, `${SYM} is bought on ${B.chain || "Robinhood Chain"}`, "With the raise, after the split"],
+      ["send", D.send && D.send.status, `${SYM} goes to every contributor`, "By your share of the raise"],
+      ...(MERGED ? [["r4", D.r4 && D.r4.status, `Round #${R4} on ${A.chain || "Solana"}`, `Through ${VIA}, run by the team with ${WITH}`], ["r4send", D.r4send && D.r4send.status, `Round #${R4}'s share goes out`, "By the same share"]] : []),
+    ];
+    const txs = (k) => ((D[k] && D[k].txs) || []).filter((x) => x && x.hash).map((x) => `<a href="${esc((EXPL[x.chain] || EXPL.rh) + x.hash)}" target="_blank" rel="noopener" data-no-i18n>${esc(x.label || `${x.hash.slice(0, 8)}…`)} ↗</a>`).join("");
+    const rowsHtml = rows.map(([k, st, t, sub], i) => `<li class="${st === "done" ? "done" : st === "now" ? "now" : ""}"><i>${st === "done" ? "✓" : i + 1}</i><div><b>${T(t)}</b><small>${T(sub)}</small>${txs(k) ? `<span class="cp-dl-tx">${txs(k)}</span>` : ""}</div><em>${T(st === "done" ? "Done" : st === "now" ? "In progress" : "Waiting")}</em></li>`).join("");
+    const n = (window.circlepadLbRows || []).length;
+    return `<div class="cp-dl"><div class="cp-dl-h"><b>${T("Delivery board")}</b>${n ? `<small data-no-i18n>${esc(n)} ${esc(tr(n === 1 ? "contributor" : "contributors"))}</small>` : ""}</div><ol>${rowsHtml}</ol></div>`;
   }
 
   const coin = () => ({ name: `${SYM} + Round #${R4}`, ticker: `${B.sym || "ARCIA"} · ${NEXT}`, logo: "", date: null, road: "", any: true });

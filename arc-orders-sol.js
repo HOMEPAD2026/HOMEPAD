@@ -24,6 +24,7 @@
   const esc = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const tr = (s) => (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s;
   const T = (s) => esc(tr(s));
+  const L3 = (en, ko, zh) => { const l = (window.arcI18n && window.arcI18n.get()) || "en"; return l === "ko" ? ko : l === "zh" ? zh : en; };
   const isMint = (a) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(a || "").trim());
   const short = (a) => (a ? `${String(a).slice(0, 4)}…${String(a).slice(-4)}` : "—");
   const API = "/api/social";
@@ -393,7 +394,7 @@
     else if (t === "tpsl") rows.push(row("Take profit", `≥ ${fp(o.tp)} SOL`), row("Stop loss", `≤ ${fp(o.sl)} SOL`), row("You get at least", net(o.sol)));
     else if (t === "trail") rows.push(row("Fills after a drop of", `${o.trailPct}%`), row("Floor now", `${fp(o.worst)} SOL`));
     else if (t === "dca") rows.push(row("Steps", `${o.steps} × ${buy ? `${num(o.per)} SOL` : `${num(o.per)} ${esc(sym)}`}`), row("Every", T((EVERY.find((x) => x[0] === String(o.every)) || [, ""])[1])), row(buy ? "Never above" : "Never under", `${fp(o.cap)} SOL`));
-    else if (t === "grad" || t === "curve") rows.push(row("Fills", t === "grad" ? tr("when the curve completes") : `${tr("at")} ${Math.round(nOf(F.curve)) || 80}% ${tr("of the curve")}`), row(buy ? "Never above" : "Never under", `${fp(o.cap)} SOL`));
+    else if (t === "grad" || t === "curve") { const cm = Math.round(nOf(F.curve)) || 80; rows.push(row("Fills", t === "grad" ? tr("when the curve completes") : L3(`at ${cm}% of the curve`, `커브 ${cm}% 지점에서`, `在曲线 ${cm}% 处`)), row(buy ? "Never above" : "Never under", `${fp(o.cap)} SOL`)); }
     if (o.orders && o.orders.length) {
       const rent = o.orders.length * 0.0018;
       rows.push(row("Fee", "0.1%"), row("Order rent", `~${rent.toFixed(4)} SOL · ${tr("back when it fills or you cancel")}`));
@@ -673,23 +674,23 @@
     el.innerHTML = open.length ? `${fund.bad.length ? `<div class="aos-fix">${fund.bad.map((k) => `<span>${T(k === "buy" ? "Your open buys need more wrapped SOL or a fresh approval." : "Your open sells on this coin need the tokens or a fresh approval.")}</span><button type="button" class="aor-btn sm" data-aos-fix="${k}">${T("Fix")}</button>`).join("")}</div>` : ""}<div class="aos-rows">${open.map((x) => {
       const c = x.cond, kind = c ? KIND[c.kind] || "" : "";
       const away = !c && x.priceNow && x.price ? (x.price / x.priceNow - 1) * 100 : null;
-      const note = c ? `<span class="aos-wait" title="${esc(x.condLabel || "")}">${T("Waits")}: ${esc(waitText(c, x))}</span>` : away != null ? `<span class="aos-wait">${Math.abs(away) < 0.5 ? T("At the market — fills on the next keeper run") : `${pc(away)} ${T("from the market")}`}</span>` : "";
+      const note = c ? `<span class="aos-wait" title="${esc(x.condLabel || "")}">${T("Waits")}: ${esc(waitText(c, x))}</span>` : away != null ? `<span class="aos-wait">${Math.abs(away) < 0.5 ? T("At the market — fills on the next keeper run") : esc(L3(`${pc(away)} from the market`, `시장가 대비 ${pc(away)}`, `距市价 ${pc(away)}`))}</span>` : "";
       const unfunded = fund.bad.includes(x.side) && (x.side === "buy" || x.mint === S.mint);
-      return `<div class="aos-row${unfunded ? " unfunded" : ""}"><span class="aos-side ${x.side}">${T(x.side === "buy" ? "Buy" : "Sell")}${kind ? `<i>${T(kind)}</i>` : ""}</span><span data-no-i18n>$${esc(x.symbol || short(x.mint))}</span><span data-no-i18n>${c ? `${num(x.tokens)} · ${esc(tr(x.side === "buy" ? "cap" : "floor"))} ${fp(x.price)} SOL` : `${num(x.tokens)} @ ${fp(x.price)} SOL`}</span><span>${note}</span><span>${x.expiry ? T("until") + " " + esc(new Date(x.expiry * 1000).toLocaleDateString()) : T("no expiry")}</span><button type="button" class="aor-btn sm ghost" data-aos-cancel="${esc(x.address)}"${S.busy ? " disabled" : ""}>${T("Cancel")}</button></div>`;
+      return `<div class="aos-row${unfunded ? " unfunded" : ""}"><span class="aos-side ${x.side}">${T(x.side === "buy" ? "Buy" : "Sell")}${kind ? `<i>${T(kind)}</i>` : ""}</span><span data-no-i18n>$${esc(x.symbol || short(x.mint))}</span><span data-no-i18n>${c ? `${num(x.tokens)} · ${esc(x.side === "buy" ? L3("cap", "상한", "上限") : L3("floor", "하한", "下限"))} ${fp(x.price)} SOL` : `${num(x.tokens)} @ ${fp(x.price)} SOL`}</span><span>${note}</span><span>${x.expiry ? T("until") + " " + esc(new Date(x.expiry * 1000).toLocaleDateString()) : T("no expiry")}</span><button type="button" class="aor-btn sm ghost" data-aos-cancel="${esc(x.address)}"${S.busy ? " disabled" : ""}>${T("Cancel")}</button></div>`;
     }).join("")}</div>` : `<p class="aos-empty">${T("No open orders.")}</p>`;
   }
 
   /// v8: what a conditional order waits for, in a few words
   function waitText(c, x) {
     const dt = (t) => new Date(t * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    if (c.notBefore && Date.now() / 1000 < c.notBefore && c.kind === "time") return `${tr("starts")} ${dt(c.notBefore)}`;
+    if (c.notBefore && Date.now() / 1000 < c.notBefore && c.kind === "time") return L3(`starts ${dt(c.notBefore)}`, `${dt(c.notBefore)} 시작`, `${dt(c.notBefore)} 开始`);
     const p = x.priceNow, gap = (v) => (p && v ? ` (${pc((v / p - 1) * 100)})` : "");
     if (c.kind === "stop") return `${c.side === "sell" ? "≤" : "≥"} ${fp(c.trig)} SOL${gap(c.trig)}`;
     if (c.kind === "tpsl") return `TP ${fp(c.tp)}${gap(c.tp)} · SL ${fp(c.sl)}${gap(c.sl)}`;
-    if (c.kind === "trail") return `${c.trail / 100}% ${tr("under")} ${fp(c.hi)} SOL`;
+    if (c.kind === "trail") return L3(`${c.trail / 100}% under ${fp(c.hi)} SOL`, `${fp(c.hi)} SOL보다 ${c.trail / 100}% 아래`, `低于 ${fp(c.hi)} SOL 的 ${c.trail / 100}%`);
     if (c.kind === "grad") return tr("the coin to graduate");
-    if (c.kind === "curve") return `${c.curve}% ${tr("of the curve")}`;
-    return c.notBefore ? `${tr("starts")} ${dt(c.notBefore)}` : "";
+    if (c.kind === "curve") return L3(`${c.curve}% of the curve`, `커브 ${c.curve}%`, `曲线 ${c.curve}%`);
+    return c.notBefore ? L3(`starts ${dt(c.notBefore)}`, `${dt(c.notBefore)} 시작`, `${dt(c.notBefore)} 开始`) : "";
   }
   /// v8: do the wallet's balances and approvals still cover the open orders? → { bad: ["buy"?, "sell"?] }
   function funding() {

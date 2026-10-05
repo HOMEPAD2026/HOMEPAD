@@ -91,25 +91,32 @@
   // ---------------- swipe to cancel (phones) ----------------
   let sw = null;
   const LINE = 96;
+  // v8: right past the line edits (or opens the order's menu); a long press opens the menu
+  const menuOf = (row) => { const A = O(); if (!A || !row.dataset.h) return; A.state.rowMenu = row.dataset.h; A.mine(); if (navigator.vibrate) try { navigator.vibrate(10); } catch { /* fine */ } };
   panel.addEventListener("touchstart", (e) => {
     const row = e.target.closest && e.target.closest(".aor-mr");
-    if (!row || innerWidth > 720 || !row.querySelector('[data-act="cancel"]') || e.touches.length !== 1) { sw = null; return; }
+    if (!row || innerWidth > 720 || !row.querySelector('[data-act="cancel"]') || e.touches.length !== 1 || e.target.closest("button, a, input")) { sw = null; return; }
     sw = { row, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false };
+    clearTimeout(X.lp); X.lp = setTimeout(() => { if (sw && !sw.on && sw.row === row) { const r = row; sw = null; menuOf(r); } }, 520);
   }, { passive: true });
   panel.addEventListener("touchmove", (e) => {
     if (!sw) return;
     const dx = e.touches[0].clientX - sw.x, dy = e.touches[0].clientY - sw.y;
-    if (!sw.on) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (dx < -10) { sw.on = true; sw.row.classList.add("swiping"); } else return; }
-    sw.dx = Math.min(0, Math.max(-160, dx));
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) clearTimeout(X.lp);
+    if (!sw.on) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (Math.abs(dx) > 10) { sw.on = true; sw.row.classList.add("swiping"); } else return; }
+    sw.dx = Math.min(160, Math.max(-160, dx));
     sw.row.style.setProperty("--sx", sw.dx + "px");
     sw.row.classList.toggle("swipe-go", sw.dx <= -LINE);
+    sw.row.classList.toggle("swipe-edit", sw.dx >= LINE);
   }, { passive: true });
   const end = () => {
     if (!sw) return;
     const { row, dx, on } = sw; sw = null;
     if (!on) return;
-    row.classList.remove("swiping", "swipe-go");
+    clearTimeout(X.lp);
+    row.classList.remove("swiping", "swipe-go", "swipe-edit");
     row.style.setProperty("--sx", "0px");
+    if (dx >= LINE) { const ed = row.querySelector('[data-act="edit"]'); if (ed) ed.click(); else menuOf(row); return; }
     if (dx <= -LINE) { const b = row.querySelector('[data-act="cancel"]'); if (b) { if (navigator.vibrate) try { navigator.vibrate(12); } catch { /* fine */ } b.click(); } }
   };
   panel.addEventListener("touchend", end);
