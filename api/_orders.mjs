@@ -36,6 +36,8 @@ import { poolSlot, decodeSlot0, poolIdOf, priceOf } from "./_liq-core.mjs";
 
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 const ZERO_ADDR = "0x" + "0".repeat(40);
+/// v5/v7: an order kept out of the book for now — waiting on another token's price, or on its own buy to fill
+const held = (o) => !!((o.cond && !o.condMet) || (o.after && !o.afterMet));
 /// Arc: ArcircleOrders + ArcircleFeeBurn, markets against USDC
 const ARC_CFG = {
   id: "arc", name: "Arc", prefix: "orders", msgTag: "",
@@ -355,7 +357,8 @@ async function place(body, { store } = {}) {
   if (W(ep, 0).toString() !== o.epoch) return { status: 409, body: { error: "this order was signed before your last cancel-all" } };
   if (cx && W(cx, 0) === 1n) return { status: 409, body: { error: "this order is cancelled" } };
   if (fl && W(fl, 0) >= BigInt(o.sellAmount)) return { status: 409, body: { error: "this order is already filled" } };
-  if (!bal || W(bal, 0) < BigInt(o.sellAmount)) return { status: 409, body: { error: "not enough balance for this order" } };
+  const afterH = isH32(body && body.after) ? lc(body.after) : null; // v7: a grid's sell, armed when its buy fills
+  if (!afterH && (!bal || W(bal, 0) < BigInt(o.sellAmount))) return { status: 409, body: { error: "not enough balance for this order" } };
   const need = BigInt(o.sellAmount), viaP2 = hasP2() && toP2 && W(toP2, 0) >= need;
   const p2ok = viaP2 && p2a && W(p2a, 0) >= need && Number(W(p2a, 1)) > now + 60;
   let permit = null;
@@ -399,6 +402,12 @@ async function place(body, { store } = {}) {
     if (c.error) return { status: c.status || 400, body: { error: c.error } };
     rec.cond = c;
   }
+  if (afterH) {
+    const par = m.orders.find((x) => x.h === afterH);
+    if (!par || par.o.maker !== o.maker || par.side === side || rec.type !== "limit" || !(par.status === "open" || par.status === "unfunded" || par.status === "filled")) return { status: 400, body: { error: "it waits on an open order of yours on the other side, in this market" } };
+    rec.after = afterH;
+    if (par.status === "filled") rec.afterMet = now;
+  }
   if (permit) rec.permit = permit; // sent by the executor before the first fill
   if (pending) { rec.pending = true; m.pending = true; }
   m.orders.push(rec);
@@ -411,6 +420,12 @@ async function place(body, { store } = {}) {
 /// v5: a condition from the page — { token, dir: above | below, price } (and optionally the pool key of a token with no
 /// market here yet) → what the executor checks: the pool, which side the token is, the decimals
 async function condOf(c, { store, token, m }) {
+  // v7: a condition on the other chain's price (its own pool, in its own quote): that chain's module reads it
+  if (c && c.chain && String(c.chain) !== CFG.id) {
+    if (!PEER || String(c.chain) !== PEER.id) return { error: "that chain isn't one ARCIRCLE Orders runs on" };
+    const r = await PEER.condOf({ ...c, chain: null }, { store, token: "", m: null });
+    return r.error ? r : { ...r, chain: PEER.id };
+  }
   const ct = lc(c.token), cp = Number(c.price), dir = c.dir === "below" ? "below" : c.dir === "above" ? "above" : null;
   if (!isAddr(ct) || !(cp > 0) || !isFinite(cp) || !dir) return { error: "a condition needs a token, above or below, and a price" };
   let key = null, tm = null, qm = null;
@@ -431,6 +446,7 @@ async function condOf(c, { store, token, m }) {
   return { token: ct, sym: String(tm.symbol || "").slice(0, 16), dir, price: cp, poolId, tokenIs0, td: tm.decimals, qd: qm.decimals };
 }
 const condPrice = async (c, cache) => {
+  if (c.chain && c.chain !== CFG.id) return PEER ? PEER.condPrice({ ...c, chain: null }, cache) : null;
   if (!cache.has(c.poolId)) { const s0 = await slot0Of(c.poolId).catch(() => null); cache.set(c.poolId, s0 && s0.sqrtP > 0n ? priceOf(s0.sqrtP, c.tokenIs0, c.tokenIs0 ? c.td : c.qd, c.tokenIs0 ? c.qd : c.td) : null); }
   return cache.get(c.poolId);
 };
@@ -484,7 +500,8 @@ const pub = (x, m) => {
     trail: x.trail ? { pct: x.trail.pct, peak: x.trail.peak, at: x.trail.peak * (1 - x.trail.pct / 100), armed: !!x.trail.armed } : null,
     twap: x.type === "twap" ? { parts: x.parts, start: Number(x.o.start), duration: Number(x.o.duration), releasedPct: Math.round(Number((releasedOf(x.o) * 10000n) / sell)) / 100 } : null,
     group: x.group || null, leg: x.leg || null, pending: !!(x.pending && m.pending),
-    cond: x.cond ? { token: x.cond.token, sym: x.cond.sym, dir: x.cond.dir, price: x.cond.price, met: x.condMet || null } : null,
+    cond: x.cond ? { token: x.cond.token, sym: x.cond.sym, dir: x.cond.dir, price: x.cond.price, met: x.condMet || null, chain: x.cond.chain || null } : null,
+    after: x.after ? { hash: x.after, met: x.afterMet || null } : null, // v7: a grid's sell, waiting for its buy
     retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
     lastTx: x.lastTx || null, // v5: the latest fill's transaction (the share card)
     fillPx: x.ft > 0 ? x.fq / x.ft : null, // v6: the average price the fills actually got (the limit is the worst it could be)
@@ -498,7 +515,7 @@ async function book(token, { store } = {}) {
   const m = await sget(store, marketKey(token));
   if (!m) return { token, live: isAddr(ordersAddr()), asks: [], bids: [], fills: [], open: 0 };
   const now = CFG.now();
-  const open = m.orders.filter((o) => o.status === "open" && o.type === "limit" && !(o.cond && !o.condMet) && !(Number(o.o.expiry) && Number(o.o.expiry) < now));
+  const open = m.orders.filter((o) => o.status === "open" && o.type === "limit" && !held(o) && !(Number(o.o.expiry) && Number(o.o.expiry) < now));
   const kinds = (t) => m.orders.filter((o) => o.status === "open" && o.type === t).length;
   const levels = (side) => {
     const g = new Map();
@@ -523,7 +540,7 @@ async function book(token, { store } = {}) {
     last: (m.fills && m.fills[0] && m.fills[0].price) || null, lastAt: (m.fills && m.fills[0] && m.fills[0].at) || null, at: m.at, spot: m.spot || null,
     depth: m.depth || null, thin: thinOf(m),
     // what's waiting on a condition (another token's price) — not in the levels until it's met
-    conds: m.orders.filter((o) => o.status === "open" && o.cond && !o.condMet).length,
+    conds: m.orders.filter((o) => o.status === "open" && held(o)).length,
   };
   // day: the pool's when it has candles (the source says which), else Orders' own fills as before
   const dx = pd ? null : await dexDay(m, 1500);
@@ -580,14 +597,14 @@ async function markets({ store } = {}) {
     }
     const open = m.orders.filter((o) => o.status === "open");
     if (!open.length && !(m.fills || []).length && !featured) continue;
-    const now = CFG.now(), live = open.filter((o) => o.type === "limit" && o.status === "open" && !(o.cond && !o.condMet));
+    const now = CFG.now(), live = open.filter((o) => o.type === "limit" && o.status === "open" && !held(o));
     const asks = live.filter((o) => o.side === "sell").map((o) => o.price), bids = live.filter((o) => o.side === "buy").map((o) => o.price);
     const f24 = (m.fills || []).filter((f) => f.at >= now - 86400);
     const cd = m.poolId ? (cdocs && cdocs[candleKey(m.poolId)]) || (await sget(store, candleKey(m.poolId)).catch(() => null)) : null;
     const pd = poolDay(m, cd), dx = pd ? null : dxOf.get(m) || null;
     out.push({ token: m.token, quote: m.quote, open: open.length, last: (m.fills && m.fills[0] && m.fills[0].price) || null, lastAt: (m.fills && m.fills[0] && m.fills[0].at) || null, at: m.at,
       bestAsk: asks.length ? Math.min(...asks) : null, bestBid: bids.length ? Math.max(...bids) : null, spot: m.spot || null,
-      vol24: pd ? pd.volume : dx ? dx.volume : f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: pd ? pd.swaps : dx ? dx.swaps : f24.length, poolId: m.poolId || null,
+      vol24: pd ? pd.volume : dx ? dx.volume : f24.reduce((s, f) => s + (f.quote || 0), 0), trades24: pd ? pd.swaps : dx ? dx.swaps : f24.length, poolId: m.poolId || null, tokenIs0: m.tokenIs0 != null ? !!m.tokenIs0 : null,
       ordersVol24: f24.reduce((s, f) => s + (f.quote || 0), 0), ordersTrades24: f24.length,
       // the last day's line, oldest first (hourly pool closes; Orders' fills when the pool has no candles) and its change
       spark: pd ? pd.spark : f24.slice(0, 24).map((f) => f.price).filter((p) => p > 0).reverse(),
@@ -612,7 +629,7 @@ async function stats({ store } = {}) {
   const docs = store && store.getMany ? await store.getMany(tokens.map(marketKey)).catch(() => null) : null;
   const now = CFG.now(), day0 = Math.floor(now / 86400) * 86400;
   const days = Array.from({ length: 7 }, (_, i) => ({ d: new Date((day0 - (6 - i) * 86400) * 1000).toISOString().slice(0, 10), vol: 0, n: 0 }));
-  let open = 0, active = 0; const makers = new Set();
+  let open = 0, active = 0; const makers = new Set(), per = new Map();
   for (const t of tokens) {
     const m = (docs && docs[marketKey(t)]) || (await sget(store, marketKey(t)));
     if (!m) continue;
@@ -622,12 +639,13 @@ async function stats({ store } = {}) {
     for (const f of m.fills || []) {
       if (!(f.at >= day0 - 6 * 86400)) continue;
       const k = Math.floor((f.at - (day0 - 6 * 86400)) / 86400);
-      if (days[k]) { days[k].vol += f.quote || 0; days[k].n++; }
+      if (days[k]) { days[k].vol += f.quote || 0; days[k].n++; const g = per.get(m.token.address) || { t: m.token.address, sym: m.token.symbol, vol: 0, n: 0 }; g.vol += f.quote || 0; g.n++; per.set(m.token.address, g); }
     }
   }
   const b = await Promise.race([burns({ store }).catch(() => null), new Promise((r) => setTimeout(() => r(null), 4000))]);
   const v = { chain: CFG.id, quote: CFG.baseSym, days, vol7: days.reduce((a, x) => a + x.vol, 0), fills7: days.reduce((a, x) => a + x.n, 0), open, markets: active, makers: makers.size,
-    burned: b && b.live ? { arcircle: b.arcircle || 0, quote: b.quote || 0, n: b.n || 0 } : null, at: now };
+    burned: b && b.live ? { arcircle: b.arcircle || 0, quote: b.quote || 0, n: b.n || 0 } : null, at: now,
+    top: [...per.values()].sort((x, y) => y.vol - x.vol).slice(0, 5), burn7: b && Array.isArray(b.last7) ? b.last7.slice(-7) : [] };
   mem.set("stats", { t: Date.now(), v });
   return v;
 }
@@ -726,7 +744,7 @@ async function status({ store } = {}) {
   const d = (await sget(store, STATUS)) || {};
   const now = CFG.now();
   return { chain: CFG.id, live: isAddr(ordersAddr()), at: d.at || 0, ago: d.at ? now - d.at : null, ok: !!d.at && now - d.at < 300 && !d.low, low: !!d.low, gas: d.gas ?? null,
-    keeper: d.keeper || null, gasSym: CFG.gasSym, last: d.last || null, burn: d.burn || null, feeBurn: feeBurnAddr() || null, orders: ordersAddr() || null };
+    keeper: d.keeper || null, gasSym: CFG.gasSym, last: d.last || null, burn: d.burn || null, feeBurn: feeBurnAddr() || null, orders: ordersAddr() || null, hist: Array.isArray(d.hist) ? d.hist.slice(-48) : [] };
 }
 
 // ---------------------------------------------------------------- the executor
@@ -813,7 +831,7 @@ async function refresh(m) {
       const p2set = viaP2 && p2a && W(p2a, 0) >= rem && Number(W(p2a, 1)) > now + 30;
       const p2sig = viaP2 && x.permit && !x.permit.used && Number(x.permit.sigDeadline) > now + 30 && BigInt(x.permit.details.amount) >= rem;
       x.needPermit = !direct && !p2set && !!p2sig;
-      x.status = (bal && W(bal, 0) < rem) || !(direct || p2set || p2sig) ? "unfunded" : "open";
+      x.status = x.after && !x.afterMet ? "open" : (bal && W(bal, 0) < rem) || !(direct || p2set || p2sig) ? "unfunded" : "open";
     }
     if (x.status !== "open" && x.status !== "unfunded") x.last = now;
   });
@@ -945,6 +963,14 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
     const ev0 = (x, kind, more = {}) => ({ at: now, kind, maker: x.o.maker, token: m.token.address, sym: m.token.symbol, qsym: m.quote.symbol, side: x.side, type: x.type, leg: x.leg || null, price: x.price, h: x.h, ...more });
     for (const x of m.orders) {
       if (x.status !== "open") continue;
+      // v7: a grid's sell waits for the buy it sells (same wallet, same market) to fill; if that buy ends without
+      // filling, so does this one
+      if (x.after && !x.afterMet) {
+        const par = m.orders.find((y) => y.h === x.after);
+        const done = par && (par.status === "filled" || BigInt(par.filled || 0) * 100n >= BigInt(par.o.sellAmount) * 99n);
+        if (done) { x.afterMet = now; evs.push(ev0(x, "armed")); }
+        else if (!par || par.status === "cancelled" || par.status === "expired") { x.status = "cancelled"; x.note = "after"; x.last = now; continue; }
+      }
       if (x.cond && !x.condMet) {
         const p = await condPrice(x.cond, condCache);
         if (p != null && (x.cond.dir === "above" ? p >= x.cond.price : p <= x.cond.price)) { x.condMet = now; x.cond.hit = p; evs.push(ev0(x, "cond", { csym: x.cond.sym, cdir: x.cond.dir, cprice: x.cond.price, cnow: p })); }
@@ -952,12 +978,12 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
       const ex = Number(x.o.expiry);
       if (ex && !x.expWarn && ex > now && ex - now < 86400 && ex - x.at > 2 * 86400) { x.expWarn = now; evs.push(ev0(x, "expiring", { expiry: ex })); }
       // v6: a limit order the pool's price has come within 2% of (once; placed more than 10 minutes ago, not placed that close)
-      if (x.type === "limit" && !x.nearWarn && m.spot > 0 && x.price > 0 && now - x.at > 600 && !(x.cond && !x.condMet)) {
+      if (x.type === "limit" && !x.nearWarn && m.spot > 0 && x.price > 0 && now - x.at > 600 && !held(x)) {
         const gap = (x.price - m.spot) / m.spot;
         if (Math.abs(gap) < 0.02 && (x.side === "buy" ? gap < 0 : gap > 0)) { x.nearWarn = now; evs.push(ev0(x, "near", { spot: m.spot, gap: Number((gap * 100).toFixed(2)) })); }
       }
     }
-    const waiting = (x) => (x.nextTry && x.nextTry > now) || (x.cond && !x.condMet);
+    const waiting = (x) => (x.nextTry && x.nextTry > now) || held(x);
     const live = (side) => m.orders.filter((x) => x.status === "open" && x.type === "limit" && x.side === side && !waiting(x) && !(Number(x.o.expiry) && Number(x.o.expiry) < now));
     // 1) wallet to wallet
     for (let guard = 0; guard < 8 && key; guard++) {
@@ -1085,6 +1111,8 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
     st.keeper = me; st.gas = gas == null ? null : Number(gas) / 1e18; st.gasSym = CFG.gasSym; st.low = gas != null && gas < CFG.lowGas;
   } else { st.keeper = null; st.low = false; }
   st.at = CFG.now(); st.last = { matched: out.matched, filled: out.filled, txs: out.txs.length, errors: out.errors.slice(0, 3) };
+  // v7: the last runs (for the page's executor panel): when, fills, transactions, how many errors
+  st.hist = [...(Array.isArray(st.hist) ? st.hist : []), { at: st.at, f: out.filled + out.matched, x: out.txs.length, e: out.errors.length }].slice(-48);
   await sset(store, STATUS, st);
   if (!key) out.skipped = "no ORDERS_KEEPER_KEY";
   out.events = evs.length;
@@ -1444,14 +1472,69 @@ async function alertsDue(wallets, { store } = {}) {
   return out;
 }
 
+// ---------------------------------------------------------------- v7: for bots — a public feed, a wallet's webhook
+/// the public fills since a cursor (the event id): market, side, type, price, amount, quote, tx — no wallet named
+async function feed({ store, since = 0, limit = 100 } = {}) {
+  const ev = await events({ store, since: Number(since) || 0 });
+  const list = ev.list.filter((e) => e.kind === "fill").slice(-Math.min(500, Math.max(1, Number(limit) || 100)))
+    .map((e) => ({ id: e.id, at: e.at, chain: CFG.id, token: e.token, sym: e.sym, quote: e.qsym, side: e.side, type: e.type, price: e.price, amount: e.amount, value: e.quote, via: e.via || null, tx: e.tx || null }));
+  return { chain: CFG.id, seq: ev.seq, list };
+}
+const hookKey = (wa) => `${P}/hk_${lc(wa)}`;
+const HOOKS_IDX = `${P}/_hooks`;
+/// a webhook URL others can't point at us or at a private network: https, a public host name, no credentials
+function hookUrlOk(u) {
+  let x; try { x = new URL(String(u || "")); } catch { return false; }
+  if (x.protocol !== "https:" || x.username || x.password || String(u).length > 300) return false;
+  const host = x.hostname.toLowerCase();
+  if (!host.includes(".") || /^(localhost|.*\.local|.*\.internal|.*\.localhost|.*\.lan|.*\.home)$/.test(host)) return false;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.startsWith("[") || host.includes(":")) return false; // a name, not an address
+  if (x.port && x.port !== "443") return false;
+  return true;
+}
+/// set, read or remove a wallet's webhook (its 30-day view signature authorizes it). The signing secret is shown once.
+async function hookSet(body, { store } = {}) {
+  const wa = lc(body.wallet);
+  if (!viewOk(wa, body.until, body.sig)) return { status: 401, body: { error: "sign once to manage your webhook" } };
+  const ix = (await sget(store, HOOKS_IDX)) || { wallets: [] };
+  if (body.remove) {
+    await sset(store, hookKey(wa), null);
+    if (ix.wallets.includes(wa)) { ix.wallets = ix.wallets.filter((x) => x !== wa); await sset(store, HOOKS_IDX, ix); }
+    return { status: 200, body: { ok: true, removed: true } };
+  }
+  if (!hookUrlOk(body.url)) return { status: 400, body: { error: "an https URL on a public host name (no IP addresses, ports or credentials)" } };
+  const rnd = new Uint8Array(24); crypto.getRandomValues(rnd);
+  const secret = "whsec_" + [...rnd].map((b) => b.toString(16).padStart(2, "0")).join("");
+  await sset(store, hookKey(wa), { url: String(body.url), secret, at: CFG.now(), fails: 0 });
+  if (!ix.wallets.includes(wa)) { ix.wallets = [wa, ...ix.wallets].slice(0, 1000); await sset(store, HOOKS_IDX, ix); }
+  return { status: 200, body: { ok: true, url: String(body.url), secret, note: "Keep the secret: every delivery carries x-arcircle-signature: sha256=<HMAC of the body>." } };
+}
+async function hookGet(wallet, { store } = {}) {
+  const d = await sget(store, hookKey(wallet));
+  return d && d.url ? { url: d.url, at: d.at, fails: d.fails || 0, last: d.last || null, off: !!d.off } : null;
+}
+/// the webhooks to deliver to (api/arcia-tg.mjs sends them, after each executor run): wallet → { url, secret }
+async function hooks({ store } = {}) {
+  const ix = (await sget(store, HOOKS_IDX)) || { wallets: [] }, out = new Map();
+  for (const wa of ix.wallets.slice(0, 300)) { const d = await sget(store, hookKey(wa)); if (d && d.url && !d.off) out.set(wa, d); }
+  return out;
+}
+async function hookNote(wallet, ok, { store } = {}) {
+  const d = await sget(store, hookKey(wallet)); if (!d) return;
+  d.last = { at: CFG.now(), ok }; d.fails = ok ? 0 : (d.fails || 0) + 1; if (d.fails >= 20) d.off = true; // 20 misses in a row: paused
+  await sset(store, hookKey(wallet), d);
+}
+let PEER = null; // v7: the other chain's module (conditions across chains)
+const setPeer = (x) => { PEER = x; };
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
   TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
-  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, stats, _test };
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, stats, condOf, condPrice, setPeer, feed, hookSet, hookGet, hooks, hookNote, hookUrlOk, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);
 export const RH = makeOrders(RH_CFG);
+ARC.setPeer(RH); RH.setPeer(ARC);
 /// ?chain=rh (or 4663) → Robinhood Chain; anything else → Arc
 export const forChain = (c) => (String(c || "").toLowerCase() === "rh" || String(c) === "4663" ? RH : ARC);
 // Arc's, as before

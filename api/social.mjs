@@ -589,6 +589,33 @@ export async function GET(req) {
       // v3: the live tape across markets, the fee burn's totals, a wallet's price alerts (its view signature opens them)
       if (k === "recent") return json(200, await OX.recent({ store: scanStore() }), "public, max-age=8, s-maxage=10");
       if (k === "burns") return json(200, await OX.burns({ store: scanStore() }), "public, max-age=30, s-maxage=60");
+      // v7: for bots — the public fills since a cursor (JSON), the same as a short server-sent-events stream that
+      // reconnects by itself (EventSource), and a wallet's webhook (its view signature opens it)
+      if (k === "feed") return json(200, await OX.feed({ store: scanStore(), since: url.searchParams.get("since"), limit: url.searchParams.get("limit") }), "public, max-age=3, s-maxage=3");
+      if (k === "stream") {
+        const st0 = scanStore(), enc = new TextEncoder();
+        let since = Number(req.headers.get("last-event-id") || url.searchParams.get("since") || 0) || 0;
+        const body = new ReadableStream({
+          async start(ctl) {
+            const t0 = Date.now();
+            ctl.enqueue(enc.encode(`retry: 3000\n: ARCIRCLE Orders fills on ${OX.id}\n\n`));
+            if (!since) { const f0 = await OX.feed({ store: st0, since: 0, limit: 1 }).catch(() => null); since = f0 ? f0.seq : 0; ctl.enqueue(enc.encode(`event: hello\ndata: ${JSON.stringify({ chain: OX.id, seq: since })}\n\n`)); }
+            while (Date.now() - t0 < 8000) {
+              const f = await OX.feed({ store: st0, since }).catch(() => null);
+              for (const e of (f && f.list) || []) { ctl.enqueue(enc.encode(`id: ${e.id}\nevent: fill\ndata: ${JSON.stringify(e)}\n\n`)); since = Math.max(since, e.id); }
+              await new Promise((r) => setTimeout(r, 2000));
+              ctl.enqueue(enc.encode(": ok\n\n"));
+            }
+            ctl.close();
+          },
+        });
+        return new Response(body, { status: 200, headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*", "x-accel-buffering": "no" } });
+      }
+      if (k === "hook") {
+        const wa = url.searchParams.get("wallet");
+        if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your webhook", locked: true });
+        return json(200, { hook: await OX.hookGet(wa, { store: scanStore() }) }, "no-store");
+      }
       if (k === "alerts") {
         const wa = url.searchParams.get("wallet");
         if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your alerts", locked: true });
@@ -742,7 +769,7 @@ export async function POST(req) {
       if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
       const OX = orders.forChain(b.chain);
-      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet }[b.action];
+      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet, orderhook: OX.hookSet }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
     }

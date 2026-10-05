@@ -38,6 +38,8 @@ import * as STK from "./_stake.mjs";
 import * as NFTV from "./_nft.mjs";
 import * as VEA from "./_vearcia.mjs";
 import * as WP from "./_webpush.mjs";
+import { createHmac } from "node:crypto";
+import { lookup as dnsLookup } from "node:dns/promises";
 import * as AG from "./_agent.mjs";
 import { arciaCoin } from "./_arcia-coin.mjs";
 import { cronBudget, within, cronOut } from "./_cron.mjs";
@@ -1278,6 +1280,45 @@ async function nftNotify(T, s, out) {
 async function ordersNotify(T, s, c, out) {
   for (const X of [ORD.ARC, ORD.RH]) await ordersNotifyOn(X, T, s, c, out);
   await solOrdersLive(T, s, out).catch(() => null);
+  await ordersDigest(T, s, out).catch((e) => { out.digestErr = String((e && e.message) || e).slice(0, 80); });
+}
+/// v7: ARCIA's morning note for wallets with /orderalerts on — once a day (from 00:00 UTC, 09:00 in Seoul): what filled
+/// in the last 24 hours, what's open, and the open order the price is closest to, on both chains. Nothing when there's
+/// nothing to say.
+async function ordersDigest(T, s, out) {
+  const day = new Date().toISOString().slice(0, 10);
+  if (T.ordersDigestDay === day) return;
+  T.ordersDigestDay = day;
+  const subs = Object.entries(s.orders || {}).slice(0, 300);
+  if (!subs.length) return;
+  const now = Math.floor(Date.now() / 1000), spots = new Map();
+  for (const X of [ORD.ARC, ORD.RH]) {
+    const mk = await X.markets({ store: store() }).catch(() => null);
+    for (const m of (mk && mk.markets) || []) spots.set(X.id + ":" + lc(m.token.address || m.token), m.spot || m.last || null);
+  }
+  let sent = 0;
+  for (const [wa, ids] of subs) {
+    if (!ids || !ids.length) continue;
+    const lines = [];
+    let open = 0, fills = 0, near = null;
+    for (const X of [ORD.ARC, ORD.RH]) {
+      const v = await X.mine(wa, { store: store() }).catch(() => null);
+      for (const o of (v && v.orders) || []) {
+        const sym = `$${h(o.token && o.token.symbol || "?")}${X.id === "rh" ? " (RH)" : ""}`;
+        if ((o.last || 0) > now - 86400 && o.filledPct > 0 && (o.status === "filled" || o.status === "open")) { fills++; if (lines.length < 4) lines.push(`✅ ${o.side === "buy" ? "Bought" : "Sold"} ${sym} at ${fmtPrice(o.fillPx > 0 ? o.fillPx : o.price)}`); }
+        if (o.status === "open") {
+          open++;
+          const sp = spots.get(X.id + ":" + lc(o.token && o.token.address || o.token));
+          if (sp > 0 && o.price > 0 && o.type === "limit" && !(o.cond && !o.cond.met) && !(o.after && !o.after.met)) { const g = Math.abs(o.price / sp - 1) * 100; if (!near || g < near.g) near = { g, sym, side: o.side, price: o.price }; }
+        }
+      }
+    }
+    if (!fills && !open) continue;
+    const text = [`☀️ <b>ARCIA's Orders note</b>`, fills ? `${fills} ${fills === 1 ? "fill" : "fills"} in the last 24 hours:` : "No fills in the last 24 hours.", ...lines,
+      open ? `📒 ${open} open ${open === 1 ? "order" : "orders"}${near ? ` — closest: your ${near.side} of ${near.sym} at ${fmtPrice(near.price)}, ${near.g.toFixed(1)}% away` : ""}` : "", "<i>Not advice. Turn these off with /orderalerts off.</i>"].filter(Boolean).join("\n");
+    for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[{ text: "My orders", url: `${SITE}/arc#orders?my=open&scope=all` }]]) }).catch(() => null); sent++; await sleep(40); }
+  }
+  out.ordersDigest = sent;
 }
 /// v5: ARCIRCLE Orders on Solana, before it opens — "tell me when it's live" (t.me/…?start=solorders; the page's button)
 async function solOrdersWait(m, lang) {
@@ -1309,6 +1350,9 @@ async function ordersNotifyOn(X, T, s, c, out) {
       const subsO = s.orders || {};
       // v4: makers whose browsers subscribed to Web Push get the same news there (VAPID keys set in Vercel)
       const wp = WP.vapid() ? new Set(await WP.wallets(store()).catch(() => [])) : new Set();
+      // v7: wallets with a webhook get every event of theirs, signed (x-arcircle-signature: sha256=HMAC(secret, body))
+      const HK = await X.hooks({ store: store() }).catch(() => new Map());
+      if (HK.size) for (const e of ev.list.slice(-30)) { const hk = HK.get(lc(e.maker)); if (hk) out.hooks = (out.hooks || 0) + (await deliverHook(X, e, hk).catch(() => 0)); }
       for (const e of ev.list.slice(-30)) {
         const ids = subsO[lc(e.maker)];
         if (wp.has(lc(e.maker))) {
@@ -1324,6 +1368,7 @@ async function ordersNotifyOn(X, T, s, c, out) {
           : e.kind === "stop" ? `🛑 <b>Stop triggered</b> · ${sym} at ${fmtPrice(e.price)} — selling at market, never below your limit`
           : e.kind === "trail" ? `📉 <b>Trailing stop triggered</b> · ${sym} fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now`
           : e.kind === "oco" ? `↔️ <b>Other leg cancelled</b> · ${sym} ${e.leg === "sl" ? "stop-loss" : e.leg === "tp" ? "take-profit" : "order"} — its pair filled`
+          : e.kind === "armed" ? `🔁 <b>Grid sell armed</b> · its buy filled — your sell of ${sym} at ${fmtPrice(e.price)} ${h(e.qsym || "")} is in the book now`
           : null;
         if (!text) continue;
         for (const id of ids) { await tg("sendMessage", { chat_id: id, parse_mode: "HTML", text, ...kb([[...(e.tx ? [{ text: "Transaction", url: txUrl(e.tx) }] : []), { text: "My orders", url: `${SITE}/arc#orders?t=${e.token}${rh ? "&c=rh" : ""}` }]]) }).catch(() => null); out.orderAlerts = (out.orderAlerts || 0) + 1; }
@@ -1375,6 +1420,22 @@ async function arciaGradNotify(T, s, first, out) {
   }
 }
 
+/// v7: one event to a wallet's webhook — only to a host that resolves to public addresses, no redirects, 4 seconds
+const privateIp = (a) => /^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|::$|f[cd]|fe80:|::ffff:(10|127|192\.168|169\.254)\.)/i.test(a);
+async function deliverHook(X, e, hk) {
+  let u; try { u = new URL(hk.url); } catch { return 0; }
+  if (!X.hookUrlOk(hk.url)) return 0;
+  const addrs = await dnsLookup(u.hostname, { all: true }).catch(() => []);
+  if (!addrs.length || addrs.some((a) => privateIp(a.address))) { await X.hookNote(e.maker, false, { store: store() }).catch(() => null); return 0; }
+  const body = JSON.stringify({ chain: X.id, event: { id: e.id, at: e.at, kind: e.kind, token: e.token, sym: e.sym, quote: e.qsym, side: e.side, type: e.type, leg: e.leg || null, price: e.price, amount: e.amount ?? null, value: e.quote ?? null, done: e.done ?? null, pct: e.pct ?? null, hash: e.h || null, tx: e.tx || null, pnlPct: e.pnlPct ?? null } });
+  const sig = "sha256=" + createHmac("sha256", hk.secret).update(body).digest("hex");
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 4000);
+  let ok = false;
+  try { const r = await fetch(hk.url, { method: "POST", redirect: "manual", signal: ac.signal, headers: { "content-type": "application/json", "user-agent": "ARCIRCLE-Orders-Webhook/1", "x-arcircle-event": e.kind, "x-arcircle-signature": sig }, body }); ok = r.status >= 200 && r.status < 300; } catch { ok = false; }
+  clearTimeout(to);
+  await X.hookNote(e.maker, ok, { store: store() }).catch(() => null);
+  return ok ? 1 : 0;
+}
 /// v4: one executor event as a Web Push message (plain text — the same news the Telegram DM carries)
 /// v5: a sell fill against the wallet's average Orders buy in that market
 const pnlLine = (e) => (e && e.side === "sell" && isFinite(e.pnlPct) && e.pnlPct != null ? `\n${e.pnlPct >= 0 ? "📈" : "📉"} ${e.pnlPct >= 0 ? "+" : "−"}${Math.abs(e.pnlPct).toFixed(1)}% vs your average buy (${fmtPrice(e.avg)})` : "");
@@ -1386,7 +1447,8 @@ async function pushOrderEvent(e, rh) {
     : e.kind === "expiring" ? { title: `Expires within a day · ${side} ${sym}`, body: `At ${fmtPrice(e.price)} ${e.qsym || ""} — extend it 7 days from your open orders${chain}` }
     : e.kind === "stop" ? { title: `Stop triggered · ${sym}`, body: `At ${fmtPrice(e.price)} — selling at market, never below your limit${chain}` }
     : e.kind === "trail" ? { title: `Trailing stop triggered · ${sym}`, body: `Fell from its peak ${fmtPrice(e.peak)} to ${fmtPrice(e.price)} — selling now${chain}` }
-    : e.kind === "oco" ? { title: `Other leg cancelled · ${sym}`, body: `Its pair filled${chain}` } : null;
+    : e.kind === "oco" ? { title: `Other leg cancelled · ${sym}`, body: `Its pair filled${chain}` }
+    : e.kind === "armed" ? { title: `Grid sell armed · ${sym}`, body: `Its buy filled — your sell at ${fmtPrice(e.price)} ${e.qsym || ""} is in the book${chain}` } : null;
   if (!m) return 0;
   return WP.toWallet(store(), e.maker, { ...m, url: `/arc#orders?t=${e.token}${rh ? "&c=rh" : ""}`, tag: `${e.kind}-${e.h || e.token}` });
 }

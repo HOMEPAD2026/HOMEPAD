@@ -216,7 +216,7 @@
     { id: "agent", name: "ARCIA AGENT", sub: "ARCIA reads any Arc token, calls it and burns it", status: "v2", acc: "#5b8cff", href: "/arc#agent",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>' },
   ];
-  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop, TP/SL and scaled orders — Arc, Robinhood and Solana", status: "v6", acc: "#4dd4ff", href: "/arc#orders",
+  UTILS4.push({ id: "orders", name: "ARCIRCLE Orders", sub: "Limit, stop, TP/SL, scaled and grid orders — Arc, Robinhood and Solana", status: "v7", acc: "#4dd4ff", href: "/arc#orders",
     ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg>' });
   // ARCIRCLE Staking: veARCIRCLE — lock $ARCIRCLE, weekly USDC, pool votes (arc-staking.js)
   UTILS4.push({ id: "staking", name: "ARCIRCLE Staking", sub: "Lock $ARCIRCLE, earn USDC, vote", status: "v2", acc: "#b58bff", href: "/arc#staking",

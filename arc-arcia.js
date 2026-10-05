@@ -413,6 +413,17 @@
     var s = " " + String(text || "").toLowerCase().replace(/\s+/g, " ").trim().replace(/[?.!]+$/, "") + " ";
     var m = /^ (?:show |open |see |check )?(?:me )?(?:all )?my (?:open )?(\$?arcircle |\$?arcia )?(?:open )?(orders|order history|portfolio) $/.exec(s);
     var c = /^ cancel (?:all )?(?:of )?my (\$?arcircle |\$?arcia )?(?:open )?orders $/.exec(s);
+    // v7: "move my sells +5%" / "내 매도 주문 5% 올려" / "我的卖单上调5%" — set up on the page, never signed here
+    var mv = /^ (?:move|shift|raise|lower) (?:all )?(?:of )?my (\$?arcircle |\$?arcia )?(sell |buy |limit )?(?:orders? |sells |buys )?(?:by )?(up |down )?([+-]?\d+(?:\.\d+)?) ?%(?: (up|down|higher|lower))? $/.exec(s);
+    var mvK = /내\s*(\$?arcircle\s*|\$?arcia\s*)?(매도|매수)?\s*(?:주문|오더)[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*%\s*(올려|올리|위로|내려|내리|아래로)?/i.exec(text);
+    var mvZ = /我的(卖单|买单|订单|委托)[^0-9+-]*([+-]?\d+(?:\.\d+)?)\s*%\s*(上调|调高|上移|下调|调低|下移)?/.exec(text);
+    if (mv || mvK || mvZ) {
+      var tokM = mv ? mv[1] : mvK ? mvK[1] : null, sideM = mv ? (mv[2] === "sell " ? "sell" : mv[2] === "buy " ? "buy" : /\bsells\b/.test(s) ? "sell" : /\bbuys\b/.test(s) ? "buy" : null) : mvK ? (mvK[2] === "매도" ? "sell" : mvK[2] === "매수" ? "buy" : null) : (mvZ[1] === "卖单" ? "sell" : mvZ[1] === "买单" ? "buy" : null);
+      var n0 = Number(mv ? mv[4] : mvK ? mvK[3] : mvZ[2]), down = mv ? (mv[3] === "down " || mv[5] === "down" || mv[5] === "lower" || /^ lower/.test(s)) : mvK ? /내려|내리|아래로/.test(mvK[4] || "") : /下调|调低|下移/.test(mvZ[3] || "");
+      if (!(n0 > 0 || n0 < 0) || Math.abs(n0) > 50) return null;
+      var tk0 = String(tokM || "").trim().replace("$", "").toLowerCase();
+      return { sym: tk0 ? tk0.toUpperCase() : null, tok: tk0 === "arcircle" ? CA.toLowerCase() : tk0 === "arcia" ? ARCIA_RH.toLowerCase() : null, chain: tk0 === "arcia" ? "rh" : "arc", what: "move", k: down ? -Math.abs(n0) : n0, side: sideM };
+    }
     var k = /내 (오더|주문)|주문 내역|我的(订单|委托)/.test(text) ? { tok: null, what: "orders" } : null;
     var hit = m ? { tok: m[1], what: m[2] } : c ? { tok: c[1], what: "cancel" } : k;
     if (!hit) return null;
@@ -424,8 +435,10 @@
     msgs.push({ role: "user", content: text.slice(0, 700), t: now });
     dropStarter(); bubble("user", text, { t: now }); input.value = ""; grow(); sfx("tap"); mission("ask");
     var tab = mi.what === "order history" ? "history" : mi.what === "portfolio" ? "port" : "open";
-    var href = "/arc#orders?" + (mi.tok ? "t=" + mi.tok + (mi.chain === "rh" ? "&c=rh" : "") + "&" : "") + "my=" + tab + (mi.tok ? "" : "&scope=all");
-    var reply = mi.what === "cancel"
+    var href = "/arc#orders?" + (mi.tok ? "t=" + mi.tok + (mi.chain === "rh" ? "&c=rh" : "") + "&" : "") + "my=" + tab + (mi.tok || mi.what === "move" ? "" : "&scope=all") + (mi.what === "move" ? "&move=" + (mi.k > 0 ? "+" : "") + mi.k + (mi.side ? "&side=" + mi.side : "") : "");
+    var reply = mi.what === "move"
+      ? T({ en: "Set up~ moving your {s}{d} {k}% — check them there and tap \"Move\". Each one is your own signature, I never sign for you♡", ko: "준비했어요~ {s}{d} {k}% 이동 — 거기서 확인하고 \"이동\"을 누르세요. 서명은 하나하나 직접 하시는 거예요, 제가 대신 못 해요♡", zh: "准备好了~ 把你的{s}{d}移动 {k}% — 在那里确认后点 \"移动\"。每笔都由你自己签名，我不会替你签♡" }).replace("{d}", T(mi.side === "sell" ? { en: "sells", ko: "매도 주문", zh: "卖单" } : mi.side === "buy" ? { en: "buys", ko: "매수 주문", zh: "买单" } : { en: "limit orders", ko: "지정가 주문", zh: "限价单" })).replace("{k}", (mi.k > 0 ? "+" : "") + mi.k)
+      : mi.what === "cancel"
       ? T({ en: "Here are your {s}orders~ Tap \"Cancel all\" there — it's one signature in your wallet, I can't do it for you♡", ko: "{s}주문 여기 있어요~ 거기서 \"Cancel all\"을 누르면 지갑 서명 한 번으로 끝나요. 제가 대신할 순 없어요♡", zh: "你的{s}订单在这里~ 在那里点“Cancel all”,钱包签名一次即可,我不能替你操作♡" })
       : T({ en: "Here you go~ your {s}{w} on ARCIRCLE Orders♡", ko: "여기요~ ARCIRCLE Orders의 {s}{w}♡", zh: "给你~ ARCIRCLE Orders 上的{s}{w}♡" });
     var w = T(tab === "history" ? { en: "order history", ko: "주문 내역", zh: "订单记录" } : tab === "port" ? { en: "portfolio", ko: "포트폴리오", zh: "持仓" } : { en: "open orders", ko: "열린 주문", zh: "挂单" });

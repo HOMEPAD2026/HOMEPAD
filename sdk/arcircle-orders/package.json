@@ -1,0 +1,14 @@
+{
+  "name": "arcircle-orders",
+  "version": "0.7.0",
+  "description": "A small client for ARCIRCLE Orders (limit, stop and grid orders on Uniswap v4 pools, Arc and Robinhood Chain): read the book, follow fills, sign and place orders, check webhooks.",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "files": ["index.mjs", "README.md"],
+  "license": "MIT",
+  "keywords": ["arcircle", "orders", "limit-order", "uniswap-v4", "arc", "robinhood-chain", "eip-712"],
+  "homepage": "https://www.arcircle.app/arc#orders",
+  "peerDependencies": { "ethers": "^6.0.0" },
+  "peerDependenciesMeta": { "ethers": { "optional": true } }
+}

@@ -56,13 +56,16 @@
   /// v6: the trading journal — from my filled Orders, oldest first: each sell against the average buy before it gives a
   /// realized result (a win when it sold above that average); the days in a 5-week calendar; the time held (first buy
   /// fill to the sell). Orders fills only — not swaps made elsewhere.
-  function journal() {
-    const S = O().state, fills = [];
-    for (const o of (S.mine && S.mine.orders) || []) {
+  /// v7: with both chains on, Arc's and Robinhood Chain's fills together, every result in dollars (ETH at the server's price)
+  function journal(both) {
+    const S = O().state, fills = [], here = CH(), uOf = (ch) => (ch === "rh" ? V.ethUsd || S.ethUsd || null : 1);
+    const src = [...((S.mine && S.mine.orders) || []).map((o) => [o, here]), ...(both && S.other ? (S.other.orders || []).map((o) => [o, S.other.ch]) : [])];
+    for (const [o, ch] of src) {
       if (!(o.filledPct > 0) || !(o.price > 0) || !o.token) continue;
-      const d = Number(o.token.decimals ?? 18), f = o.filledPct / 100;
+      const d = Number(o.token.decimals ?? 18), f = o.filledPct / 100, k = both ? uOf(ch) : 1;
+      if (both && !k) continue;
       const tok = o.side === "buy" ? (Number(o.buyAmount) / 10 ** d / 0.999) * f : (Number(o.sellAmount) / 10 ** d) * f;
-      fills.push({ t: lc(o.token.address || o.token), sym: o.token.symbol, side: o.side, tok, px: o.fillPx > 0 ? o.fillPx : o.price, at: o.last || o.at });
+      fills.push({ t: ch + ":" + lc(o.token.address || o.token), sym: o.token.symbol, ch, side: o.side, tok, px: (o.fillPx > 0 ? o.fillPx : o.price) * k, at: o.last || o.at });
     }
     fills.sort((a, b) => a.at - b.at);
     const pos = new Map(), sells = [];
@@ -71,7 +74,7 @@
       if (x.side === "buy") { p0.tok += x.tok; p0.cost += x.tok * x.px; if (p0.first == null) p0.first = x.at; }
       else if (p0.tok > 0) {
         const avg = p0.cost / p0.tok, q = Math.min(x.tok, p0.tok), pnl = q * (x.px - avg);
-        sells.push({ t: x.t, sym: x.sym, at: x.at, pnl, pct: (x.px / avg - 1) * 100, held: p0.first != null ? x.at - p0.first : null });
+        sells.push({ t: x.t, sym: x.sym, ch: x.ch, at: x.at, pnl, pct: (x.px / avg - 1) * 100, held: p0.first != null ? x.at - p0.first : null });
         p0.cost -= avg * q; p0.tok -= q; if (p0.tok <= 1e-12) { p0.tok = 0; p0.cost = 0; p0.first = null; }
       }
       pos.set(x.t, p0);
@@ -82,9 +85,11 @@
     return { sells, byM, days };
   }
   function journalHtml() {
-    const A = O(), j = journal();
+    const A = O(), both = A.state.myScope === "both", j = journal(both);
+    if (both && !V.ethUsd) loadEthUsd();
     if (!j.sells.length) return `<div class="aor-jn"><b>${T("Trading journal")}</b><p class="aor-note">${T("It fills in as your Orders sells fill after Orders buys.")}</p></div>`;
-    const qs = A.state.quote ? A.state.quote.symbol : CH() === "rh" ? "ETH" : "USDC";
+    const qs = both ? "USD" : A.state.quote ? A.state.quote.symbol : CH() === "rh" ? "ETH" : "USDC";
+    V.jn = { j, qs, both };
     const tot = j.sells.reduce((a, z) => a + z.pnl, 0), wins = j.sells.filter((z) => z.pnl > 0).length;
     const hrs = (sec) => (sec == null ? "—" : sec < 3600 ? `${Math.max(1, Math.round(sec / 60))}m` : sec < 86400 ? `${(sec / 3600).toFixed(1)}h` : `${(sec / 86400).toFixed(1)}d`);
     // the last 35 days, a square each, coloured by the day's realized result
@@ -96,8 +101,57 @@
       <div class="aor-jn-k"><div><small>${T("Realized")}</small><b class="${tot >= 0 ? "up" : "dn"}" data-no-i18n>${tot >= 0 ? "+" : "−"}${esc(A.fp(Math.abs(tot)))} ${esc(qs)}</b></div><div><small>${T("Win rate")}</small><b data-no-i18n>${Math.round((wins / j.sells.length) * 100)}%</b><span data-no-i18n>${wins}/${j.sells.length}</span></div><div><small>${T("Average hold")}</small><b data-no-i18n>${hrs(j.sells.filter((z) => z.held != null).reduce((a, z, _, arr) => a + z.held / arr.length, 0) || null)}</b></div></div>
       <div class="aor-jn-cal" role="img" aria-label="${T("The last 5 weeks")}">${cells.join("")}</div>
       <div class="aor-jn-t"><span>${T("Market")}</span><span>${T("Sells")}</span><span>${T("Win rate")}</span><span>${T("Realized")}</span><span>${T("Average hold")}</span></div>
-      ${rows.map(([t, g]) => `<div class="aor-jn-t"><button type="button" class="aor-link" data-t="${esc(t)}" data-no-i18n>$${esc(g.sym)}</button><span data-no-i18n>${g.n}</span><span data-no-i18n>${Math.round((g.w / g.n) * 100)}%</span><span class="${g.pnl >= 0 ? "up" : "dn"}" data-no-i18n>${g.pnl >= 0 ? "+" : "−"}${esc(A.fp(Math.abs(g.pnl)))}</span><span data-no-i18n>${hrs(g.hn ? g.held / g.hn : null)}</span></div>`).join("")}
-      <small class="aor-pf-n">${T("Each sell against your average Orders buy before it, on this chain. Not advice.")}</small></div>`;
+      ${rows.map(([t, g]) => `<div class="aor-jn-t"><button type="button" class="aor-link" data-t="${esc(String(t).split(":").pop())}" data-no-i18n>$${esc(g.sym)}</button><span data-no-i18n>${g.n}</span><span data-no-i18n>${Math.round((g.w / g.n) * 100)}%</span><span class="${g.pnl >= 0 ? "up" : "dn"}" data-no-i18n>${g.pnl >= 0 ? "+" : "−"}${esc(A.fp(Math.abs(g.pnl)))}</span><span data-no-i18n>${hrs(g.hn ? g.held / g.hn : null)}</span></div>`).join("")}
+      ${journalMore(j, qs)}
+      <small class="aor-pf-n">${T(both ? "Each sell against your average Orders buy before it, on both chains, in dollars. Not advice." : "Each sell against your average Orders buy before it, on this chain. Not advice.")}</small></div>`;
+  }
+  /// v7: the week and the month, the best and the worst sell, the latest sells — and the journal as a card or a CSV
+  function journalMore(j, qs) {
+    const A = O(), now0 = Date.now() / 1000;
+    const amt = (v) => (qs === "USD" || qs === "USDC" ? `${v < 0 ? "−" : "+"}${A.usd(Math.abs(v))}` : `${v < 0 ? "−" : "+"}${A.fp(Math.abs(v))} ${qs}`);
+    const per = (sec) => { const z = j.sells.filter((x) => now0 - x.at <= sec); return { n: z.length, pnl: z.reduce((a, x) => a + x.pnl, 0), w: z.filter((x) => x.pnl > 0).length }; };
+    const wk = per(7 * 86400), mo = per(30 * 86400);
+    const best = j.sells.reduce((m, x) => (!m || x.pct > m.pct ? x : m), null), worst = j.sells.reduce((m, x) => (!m || x.pct < m.pct ? x : m), null);
+    const last = [...j.sells].sort((a, b) => b.at - a.at).slice(0, 6);
+    const when = (t) => { const d = new Date(t * 1000); return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+    return `<div class="aor-jn-p">${[[L3("7 days", "7일", "7天"), wk], [L3("30 days", "30일", "30天"), mo]].map(([l, x]) => `<div><small data-no-i18n>${esc(l)}</small><b class="${x.pnl >= 0 ? "up" : "dn"}" data-no-i18n>${x.n ? esc(amt(x.pnl)) : "—"}</b><span data-no-i18n>${esc(L3(`${x.n} sells · ${x.w} wins`, `매도 ${x.n} · 수익 ${x.w}`, `${x.n} 笔卖出 · ${x.w} 笔盈利`))}</span></div>`).join("")}
+      ${best ? `<div><small>${T("Best sell")}</small><b class="up" data-no-i18n>${esc(A.pc(best.pct, 1))}</b><span data-no-i18n>$${esc(best.sym)} · ${esc(when(best.at))}</span></div>` : ""}
+      ${worst && worst !== best ? `<div><small>${T("Worst sell")}</small><b class="${worst.pct >= 0 ? "up" : "dn"}" data-no-i18n>${esc(A.pc(worst.pct, 1))}</b><span data-no-i18n>$${esc(worst.sym)} · ${esc(when(worst.at))}</span></div>` : ""}</div>
+      <div class="aor-jn-l"><small>${T("Latest sells")}</small>${last.map((x) => `<div class="aor-jn-lr"><span data-no-i18n>${esc(when(x.at))}</span><b data-no-i18n>$${esc(x.sym)}${x.ch && V.jn && V.jn.both ? ` <i>${esc(x.ch === "rh" ? "RH" : "Arc")}</i>` : ""}</b><span class="${x.pct >= 0 ? "up" : "dn"}" data-no-i18n>${esc(A.pc(x.pct, 1))}</span><span class="${x.pnl >= 0 ? "up" : "dn"}" data-no-i18n>${esc(amt(x.pnl))}</span></div>`).join("")}</div>
+      <div class="aor-jn-act"><button type="button" class="aor-btn sm ghost" data-jcard>${T("Share as an image")}</button><button type="button" class="aor-btn sm ghost" data-jcsv>${T("Download CSV")}</button></div>`;
+  }
+  async function loadEthUsd() {
+    if (V.ethBusy) return; V.ethBusy = true;
+    try { const r = await fetch("/api/social?orders=status&chain=rh", { cache: "no-store" }); const j = r.ok ? await r.json() : null; if (j && j.ethUsd > 0) V.ethUsd = j.ethUsd; } catch { /* dollars wait */ }
+    V.ethBusy = false;
+    const el = $("aor-mine"); if (el && O().state.myTab === "port" && V.ethUsd) portfolio(el);
+  }
+  function journalCsv() {
+    const x = V.jn; if (!x) return;
+    const rows = [["date", "chain", "token", "vs_avg_buy_pct", "realized_" + x.qs, "held_hours"], ...x.j.sells.map((z) => [new Date(z.at * 1000).toISOString(), z.ch || CH(), z.sym, z.pct.toFixed(2), z.pnl.toPrecision(8), z.held != null ? (z.held / 3600).toFixed(2) : ""])];
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.map((r) => r.join(",")).join("\n")], { type: "text/csv" })); a.download = `arcircle-orders-journal-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  /// the journal as a 1200×630 card — realized, win rate, average hold, the best sell; no wallet address on it
+  async function journalCard() {
+    const x = V.jn, A = O(); if (!x || !x.j.sells.length) return;
+    const j = x.j, tot = j.sells.reduce((a, z) => a + z.pnl, 0), wins = j.sells.filter((z) => z.pnl > 0).length, best = j.sells.reduce((m, z) => (!m || z.pct > m.pct ? z : m), null);
+    const held = j.sells.filter((z) => z.held != null), hAvg = held.length ? held.reduce((a, z) => a + z.held, 0) / held.length : null;
+    const c = document.createElement("canvas"); c.width = 1200; c.height = 630; const g = c.getContext("2d");
+    const bg = g.createLinearGradient(0, 0, 1200, 630); bg.addColorStop(0, "#06101a"); bg.addColorStop(1, "#071a14"); g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+    const glow = g.createRadialGradient(1000, 80, 10, 1000, 80, 520); glow.addColorStop(0, "rgba(77,212,255,.22)"); glow.addColorStop(1, "rgba(77,212,255,0)"); g.fillStyle = glow; g.fillRect(0, 0, 1200, 630);
+    g.fillStyle = "#4dd4ff"; g.font = "700 22px Sora, sans-serif"; g.fillText("ARCIRCLE ORDERS · TRADING JOURNAL", 64, 84);
+    g.fillStyle = "#93a1b4"; g.font = "500 20px Inter, sans-serif"; g.fillText(x.both ? "Arc + Robinhood Chain" : CH() === "rh" ? "Robinhood Chain" : "Arc", 64, 118);
+    const amt = (v) => (x.qs === "USD" || x.qs === "USDC" ? `${v < 0 ? "−" : "+"}${A.usd(Math.abs(v))}` : `${v < 0 ? "−" : "+"}${A.fp(Math.abs(v))} ${x.qs}`);
+    g.fillStyle = tot >= 0 ? "#39ff88" : "#ff6e5a"; g.font = "800 96px Sora, sans-serif"; g.fillText(amt(tot), 64, 262);
+    g.fillStyle = "#93a1b4"; g.font = "500 22px Inter, sans-serif"; g.fillText("Realized from Orders sells against Orders buys", 64, 302);
+    const k = [["Win rate", `${Math.round((wins / j.sells.length) * 100)}%`], ["Sells", String(j.sells.length)], ["Average hold", hAvg == null ? "—" : hAvg < 3600 ? `${Math.max(1, Math.round(hAvg / 60))}m` : hAvg < 86400 ? `${(hAvg / 3600).toFixed(1)}h` : `${(hAvg / 86400).toFixed(1)}d`], ["Best sell", best ? `${A.pc(best.pct, 1)} $${best.sym}` : "—"]];
+    k.forEach(([l, v], i) => { const x0 = 64 + i * 272; g.fillStyle = "rgba(255,255,255,.05)"; g.fillRect(x0, 360, 248, 120); g.fillStyle = "#93a1b4"; g.font = "600 18px Inter, sans-serif"; g.fillText(l, x0 + 20, 398); g.fillStyle = "#eef3ff"; g.font = "700 30px Sora, sans-serif"; g.fillText(String(v).slice(0, 16), x0 + 20, 448); });
+    g.fillStyle = "#5d6b7d"; g.font = "500 18px Inter, sans-serif"; g.fillText("Not advice. Orders fills only.", 64, 560);
+    g.fillStyle = "#b9c6d6"; g.font = "600 20px 'JetBrains Mono', monospace"; g.fillText("arcircle.app/arc#orders", 860, 560);
+    const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+    const file = blob && new File([blob], "arcircle-orders-journal.png", { type: "image/png" });
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], text: "My ARCIRCLE Orders journal" }); return; } catch { /* fall back to a download */ } }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "arcircle-orders-journal.png"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
   function priceOf(t) {
     const S = O().state;
@@ -125,6 +179,45 @@
     } finally { V.portBusy = false; }
     const el = $("aor-mine"); if (el && O().state.myTab === "port") portfolio(el);
   }
+  /// v7: the other chain's holdings, for "Both chains": tokens from my orders there (and its featured markets), read with
+  /// that chain's RPC, priced from its markets, in dollars (ETH at the server's price)
+  async function loadPortX() {
+    const A = O(), S = A.state, w = A.me(), oc = CH() === "rh" ? "arc" : "rh";
+    if (!w || V.portXBusy || !A.rpOf) return;
+    V.portXBusy = true;
+    try {
+      if (!S.other || S.other.ch !== oc) await A.loadOther();
+      const prov = A.rpOf(oc); if (!prov) return;
+      if (!V.ethUsd) await loadEthUsd();
+      const mk = await fetch(`/api/social?orders=markets${oc === "rh" ? "&chain=rh" : ""}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      const ms = (mk && mk.markets) || [], toks = new Map();
+      for (const o of (S.other && S.other.orders) || []) { const t = lc(o.token.address || o.token); if (isAddr(t)) toks.set(t, { t, sym: o.token.symbol, dec: Number(o.token.decimals ?? 18) }); }
+      for (const m of ms) if (m.featured) { const t = lc(m.token.address || m.token); if (!toks.has(t)) toks.set(t, { t, sym: m.token.symbol, dec: Number(m.token.decimals ?? 18) }); }
+      const qU = oc === "rh" ? V.ethUsd || null : 1;
+      const rows = await Promise.all([...toks.values()].slice(0, 20).map(async (x) => {
+        try {
+          const bal = Number(await new ethers.Contract(x.t, ERC20, prov).balanceOf(w)) / 10 ** x.dec;
+          if (!(bal > 0)) return null;
+          const m = ms.find((z) => lc(z.token.address || z.token) === x.t), px = m ? m.spot || m.last : null;
+          return { ...x, bal, px, usd: px && qU ? bal * px * qU : null };
+        } catch { return null; }
+      }));
+      if (w !== A.me()) return;
+      V.portX = { ch: oc, w, at: Date.now(), rows: rows.filter(Boolean).sort((a, b) => (b.usd || 0) - (a.usd || 0)) };
+    } finally { V.portXBusy = false; }
+    const el = $("aor-mine"); if (el && O().state.myTab === "port") portfolio(el);
+  }
+  function bothHtml(totHere) {
+    const A = O(), S = A.state, w = A.me();
+    if (S.myScope !== "both") return "";
+    if (!V.portX || V.portX.w !== w || V.portX.ch === CH() || Date.now() - V.portX.at > 60e3) loadPortX();
+    const x = V.portX && V.portX.w === w && V.portX.ch !== CH() ? V.portX : null;
+    const qU = CH() === "rh" ? V.ethUsd || S.ethUsd || null : 1, hereUsd = totHere != null && qU ? totHere * qU : null;
+    const xUsd = x ? x.rows.reduce((a, r) => a + (r.usd || 0), 0) : null;
+    const nm = (c) => (c === "rh" ? "Robinhood Chain" : "Arc");
+    return `<div class="aor-pf-x"><div class="aor-pf-sum"><small>${T("Both chains, in dollars")}</small><b data-no-i18n>${hereUsd != null && xUsd != null ? esc(A.usd(hereUsd + xUsd)) : "…"}</b><span data-no-i18n>${esc(nm(CH()))} ${hereUsd != null ? esc(A.usd(hereUsd)) : "—"} · ${esc(nm(x ? x.ch : CH() === "rh" ? "arc" : "rh"))} ${xUsd != null ? esc(A.usd(xUsd)) : "…"}</span></div>
+      ${x && x.rows.length ? `<div class="aor-pf-xr">${x.rows.map((r) => `<span data-no-i18n><b>$${esc(r.sym)}</b> ${esc(big(r.bal))}${r.usd != null ? ` · ${esc(A.usd(r.usd))}` : ""} <i>${esc(x.ch === "rh" ? "RH" : "Arc")}</i></span>`).join("")}</div>` : ""}</div>`;
+  }
   function portfolio(el) {
     const A = O(); if (!A) return;
     const w = A.me(), S = A.state;
@@ -139,7 +232,7 @@
     }).sort((a, b) => (b.val || 0) - (a.val || 0));
     if (!rows.length) { el.innerHTML = `<div class="aor-empty arcia">${ARCIA_ART}<span>${T(CH() === "rh" ? "No tokens from these markets in this wallet on Robinhood Chain yet." : "No tokens from these markets in this wallet on Arc yet.")}</span></div>${journalHtml()}`; return; }
     const tot = rows.reduce((s, r) => s + (r.val || 0), 0), usd = (q) => (q != null && qUsd ? A.usd(q * qUsd) : "");
-    const html = `<div class="aor-pf">
+    const html = `<div class="aor-pf">${bothHtml(tot)}
       <div class="aor-pf-sum"><small>${T("Held here, at the pool price")}</small><b data-no-i18n>${esc(A.qv(tot))}</b>${CH() === "rh" && usd(tot) ? `<span data-no-i18n>≈ ${esc(usd(tot))}</span>` : ""}<button type="button" class="aor-link" data-pfre>${T("Refresh")}</button></div>
       <div class="aor-pf-h"><span>${T("Token")}</span><span>${T("Balance")}</span><span>${T("Value")}</span><span>${T("Avg buy")}</span><span>${T("Now vs avg buy")}</span><span></span></div>
       ${rows.map((r) => `<div class="aor-pf-r${r.t === S.t ? " on" : ""}" data-pft="${esc(r.t)}">
@@ -284,6 +377,8 @@
   panel.addEventListener("click", (e) => {
     const t = e.target;
     const pr = t.closest && t.closest("[data-protect]"); if (pr) { protect(lc(pr.dataset.protect)); return; }
+    if (t.closest && t.closest("[data-jcsv]")) { journalCsv(); return; }
+    if (t.closest && t.closest("[data-jcard]")) { journalCard(); return; }
     if (t.closest && t.closest("[data-pfre]")) { V.port = V.port ? { ...V.port, at: 0 } : null; loadPort(); return; }
     if (t.closest && t.closest("[data-bdt]")) { store.set("arcircle.orders.burnopen", !(store.get("arcircle.orders.burnopen", innerWidth > 720) === true)); V.burnShown = null; burnDash(); return; }
     const sp = t.closest && t.closest("[data-solpush]");

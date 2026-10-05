@@ -17111,3 +17111,136 @@ body.cp5-modal-open{overflow:hidden;}
   .aor-jn-t>span:nth-of-type(n+3){display:none;}
 }
 @media (prefers-reduced-motion:reduce){.aor-chart.sw>*,.aor-xp-r.hot,.aor-st-bars i,.aor-indm,.aor-keyhelp{animation:none;}}
+
+/* ===== ARCIRCLE Orders v7: wide layout, column sizers, full-screen chart, fill odds, better-than-limit ===== */
+/* wide screens: the Orders desk uses the room (the rest of the app keeps its column) */
+@media (min-width:1440px){ .bp-scroll:has(#bp-panel-orders.active){max-width:min(1700px,100%);} }
+@media (min-width:1201px){
+  .aor-grid{position:relative;grid-template-columns:var(--aor-bw,minmax(250px,300px)) minmax(0,1fr) var(--aor-fw,minmax(300px,350px));}
+}
+@media (min-width:1680px){
+  .aor-grid{grid-template-columns:var(--aor-bw,minmax(290px,330px)) minmax(0,1fr) var(--aor-fw,minmax(330px,380px));}
+  .aor-chartc .aor-cv{min-height:600px;}.aor-chart{min-height:600px;}.aor-chart iframe{height:600px;}
+}
+.aor-rsz{position:absolute;width:10px;z-index:6;cursor:col-resize;border-radius:6px;touch-action:none;}
+.aor-rsz::after{content:"";position:absolute;left:4px;top:18%;bottom:18%;width:2px;border-radius:2px;background:rgba(77,212,255,0);transition:background .15s ease;}
+.aor-rsz:hover::after,.aor-rsz.on::after{background:rgba(77,212,255,.55);box-shadow:0 0 10px rgba(77,212,255,.5);}
+.aor-rsz[hidden]{display:none;}
+/* the chart's header wraps instead of spilling past its card */
+.aor-charth{flex-wrap:wrap;row-gap:6px;}
+.aor-charth .aor-tfs{margin-left:auto;flex-wrap:nowrap;}
+.aor-fsb{display:inline-grid;place-items:center;width:28px;height:26px;margin-left:4px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#c9d4de;cursor:pointer;}
+.aor-fsb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.aor-fsb:hover,.aor-fsb[aria-pressed="true"]{border-color:var(--aor-ch,#4dd4ff);color:#fff;}
+@media (max-width:720px){ .aor-fsb{display:none;} }
+/* full screen: the book and the chart over everything */
+.aor-grid.fs{position:fixed;inset:0;z-index:2600;margin:0;padding:14px;background:#05080e;grid-template-columns:minmax(260px,320px) minmax(0,1fr) !important;grid-template-areas:"book chart" !important;align-items:stretch;overflow:auto;animation:aorFsIn .22s cubic-bezier(.2,.8,.2,1);}
+.aor-grid.fs>*:not(.aor-bookc):not(.aor-chartc){display:none !important;}
+.aor-grid.fs .aor-chartc{display:flex !important;flex-direction:column;}
+.aor-grid.fs .aor-bookc{display:block !important;overflow:auto;}
+.aor-grid.fs .aor-chartc>.aor-chart{flex:1;display:flex;flex-direction:column;min-height:0;}
+.aor-grid.fs .aor-chartc .aor-cv{flex:1;height:auto;min-height:0;}
+html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{display:none !important;}
+@keyframes aorFsIn{from{opacity:0;transform:scale(.985);}to{opacity:1;transform:none;}}
+@media (max-width:720px){ .aor-grid.fs{grid-template-columns:minmax(0,1fr) !important;grid-template-areas:"chart" !important;} .aor-grid.fs .aor-bookc{display:none !important;} }
+/* fill odds under the price, and "better than its limit" on a filled order */
+.aor-odds{display:block;margin-top:2px;font:600 .62rem Inter,sans-serif;color:#8fa3b3;}
+.aor-odds b{font:700 .64rem var(--or-mono);}
+.aor-odds.hi b{color:#39ff88;}.aor-odds.mid b{color:#ffd36b;}.aor-odds.lo b{color:#ff9b8a;}
+.aor-better{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;font:700 .6rem var(--or-mono);font-style:normal;color:#39ff88;background:rgba(57,255,136,.1);vertical-align:1px;}
+@media (prefers-reduced-motion:reduce){ .aor-grid.fs{animation:none;} }
+#aor-dist{display:block;text-align:right;line-height:1.35;}
+#aor-dist .aor-touch{display:inline;margin-left:6px;}
+/* v7: grid, Move all by any %, Explore controls, watchlist, Stats ranking and burn, the executor panel, the journal */
+.aor-gridnote{margin-top:2px;}
+.aor-shiftc{display:inline-flex;gap:4px;margin-left:4px;}
+.aor-shiftc input{width:58px;padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#fff;font:600 .72rem var(--or-mono);}
+.aor-ml-tabs button i{font-style:normal;margin-left:4px;padding:0 6px;border-radius:99px;background:rgba(77,212,255,.15);color:#9fe6ff;font:700 .6rem var(--or-mono);}
+.aor-xp-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.aor-xp-ctl .aor-more{margin:0;font-size:.7rem;}
+.aor-chgbar{display:block;height:3px;width:var(--w);max-width:100%;margin-top:3px;border-radius:2px;background:currentColor;opacity:.45;}
+.aor-wl{display:grid;gap:6px;padding:10px 12px 12px;}
+.aor-wl-r{display:grid;grid-template-columns:28px minmax(80px,1fr) 84px minmax(70px,auto) 64px 72px;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);cursor:pointer;font-size:.78rem;transition:background .15s ease,transform .15s ease;}
+.aor-wl-r:hover{background:rgba(77,212,255,.07);transform:translateX(2px);}
+.aor-wl-r>span{font:600 .74rem var(--or-mono);text-align:right;}
+.aor-wl-al{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:.72rem;color:#9fb0bd;}
+@media (max-width:720px){ .aor-wl-r{grid-template-columns:24px 1fr auto auto;} .aor-wl-r>svg,.aor-wl-r>span:last-child{display:none;} }
+.aor-st-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 0 8px;font:700 .74rem Sora,sans-serif;color:#dfe8f1;}
+.aor-st-bars em{font:700 .56rem var(--or-mono);font-style:normal;color:#9fe6ff;min-height:.7rem;}
+.aor-st-bars.burn i{background:linear-gradient(180deg,#ffb27a,rgba(255,110,90,.25));}
+.aor-st-bars.burn em{color:#ffc8a0;}
+.aor-st-top{display:grid;gap:5px;}
+.aor-st-tr{position:relative;display:grid;grid-template-columns:22px auto 1fr auto;align-items:center;gap:10px;padding:8px 10px;border:0;border-radius:9px;background:rgba(255,255,255,.03);color:#dfe8f1;cursor:pointer;text-align:left;overflow:hidden;}
+.aor-st-tr>i{position:absolute;left:0;top:0;bottom:0;width:var(--w);background:linear-gradient(90deg,rgba(77,212,255,.16),rgba(57,255,136,.05));transform-origin:left;animation:aorGrowX .7s cubic-bezier(.2,.8,.2,1) both;pointer-events:none;}
+.aor-st-tr>span{font:700 .64rem var(--or-mono);color:#97a5b1;z-index:1;}
+.aor-st-tr>b{font:700 .78rem Sora,sans-serif;z-index:1;}
+.aor-st-tr>em{grid-column:4;font:600 .68rem var(--or-mono);font-style:normal;color:#b9c6d6;z-index:1;}
+@keyframes aorGrowX{from{transform:scaleX(0);}to{transform:none;}}
+.aor-ex-p{margin-top:6px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);}
+.aor-ex-p .aor-st-h{margin-top:0;}
+.aor-ex-runs{display:flex;align-items:flex-end;gap:3px;height:44px;margin:6px 0 10px;}
+.aor-ex-runs i{flex:1;height:var(--h);min-height:3px;border-radius:3px 3px 1px 1px;background:rgba(159,176,189,.3);transform-origin:bottom;animation:aorGrowY .5s calc(var(--i) * 18ms) cubic-bezier(.2,.8,.2,1) both;}
+.aor-ex-runs i.fill{background:linear-gradient(180deg,#39ff88,rgba(57,255,136,.3));}
+.aor-ex-runs i.err{background:#ff9b8a;}
+.aor-ex-k{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.7rem;color:#9fb0bd;}
+.aor-ex-k b{font:700 .72rem var(--or-mono);color:#eef3ff;}
+.aor-ex-k em{font-style:normal;color:#ff9b8a;}
+.aor-ex-k a{color:#7cd6ff;font:600 .7rem var(--or-mono);}
+.aor-jn-p{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0;}
+.aor-jn-p>div{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);}
+.aor-jn-p small{font-size:.62rem;color:#97a5b1;text-transform:uppercase;letter-spacing:.04em;}
+.aor-jn-p b{font:700 .9rem var(--or-mono);}
+.aor-jn-p span{font-size:.64rem;color:#9fb0bd;}
+.aor-jn-l{display:grid;gap:4px;margin:6px 0 10px;}
+.aor-jn-l>small{font-size:.62rem;color:#97a5b1;text-transform:uppercase;letter-spacing:.04em;}
+.aor-jn-lr{display:grid;grid-template-columns:52px 1fr 70px 110px;gap:8px;align-items:center;font:600 .72rem var(--or-mono);padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.02);}
+.aor-jn-lr b{font-family:Sora,sans-serif;font-size:.74rem;}
+.aor-jn-lr b i{font:700 .56rem var(--or-mono);font-style:normal;color:#9fe6ff;margin-left:4px;}
+.aor-jn-lr>span:nth-child(n+3){text-align:right;}
+.aor-jn-act{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+@media (max-width:720px){ .aor-jn-p{grid-template-columns:1fr 1fr;} .aor-jn-lr{grid-template-columns:44px 1fr 60px 90px;font-size:.66rem;} }
+.aor-pf-x{margin-bottom:12px;padding:12px 14px;border-radius:12px;border:1px solid rgba(77,212,255,.2);background:linear-gradient(135deg,rgba(77,212,255,.07),rgba(57,255,136,.04));}
+.aor-pf-x .aor-pf-sum{margin:0;}
+.aor-pf-xr{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.aor-pf-xr span{padding:4px 9px;border-radius:99px;background:rgba(0,0,0,.25);font:600 .66rem var(--or-mono);color:#cfd8e2;}
+.aor-pf-xr i{font-style:normal;color:#9fe6ff;font-size:.56rem;}
+@media (prefers-reduced-motion:reduce){ .aor-st-tr>i,.aor-ex-runs i{animation:none;} .aor-wl-r:hover{transform:none;} }
+.aor-hookb{display:inline-block;margin:8px 0 0 4px;font-size:.7rem;}
+.aor-hook{margin-top:8px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);}
+.aor-hook-row{display:flex;gap:6px;align-items:center;margin:6px 0;}
+.aor-hook-row .aor-in{flex:1;}
+.aor-hook-row input{width:100%;}
+.aor-hook-sec{display:grid;gap:6px;margin-top:8px;padding:10px;border-radius:10px;border:1px dashed rgba(255,211,107,.4);background:rgba(255,211,107,.05);}
+.aor-hook-sec b{font-size:.72rem;color:#ffd36b;}
+.aor-hook-sec code{font:600 .7rem var(--or-mono);word-break:break-all;color:#fff;}
+/* v7: design and motion — a clearer header, the form's button in reach, the phone sheet's two heights, fills that land */
+.aor-stats .aor-stat.big b{font-size:1.32rem;}
+.aor-stats .aor-stat:not(.big):not(.x) b{font-size:.98rem;}
+.aor-stats .aor-stat.x{opacity:.86;}
+.aor-stats .aor-stat.x b{font-size:.84rem;}
+@media (min-width:721px){
+  #aor-formc .aor-submit{position:sticky;bottom:10px;z-index:3;box-shadow:0 10px 30px rgba(0,0,0,.55),0 0 0 6px rgba(9,15,21,.85);}
+}
+.aor-xp.fold{display:flex;align-items:center;gap:10px;padding:6px 10px;}
+.aor-xp.fold>span{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:.74rem;}
+.aor-xp.fold .aor-ex-svg{width:44px;height:16px;flex:none;}
+.aor-xp.fold .aor-link{flex:none;font-size:.68rem;}
+@media (max-width:720px){
+  .aor-sheet-open .aor-formc{max-height:60vh;transition:transform .35s cubic-bezier(.2,.8,.2,1),max-height .3s cubic-bezier(.2,.8,.2,1);}
+  .aor-sheet-open.aor-sheet-full .aor-formc{max-height:92vh;}
+  .aor-formc::before{width:44px;height:5px;background:rgba(255,255,255,.28);}
+}
+/* a filled row gets a stamp; a flame flies to the burn counter, which flares */
+.aor-mr.done{position:relative;}
+.aor-mr.done::after{content:"FILLED";position:absolute;right:120px;top:50%;padding:2px 10px;border:2px solid #39ff88;border-radius:8px;color:#39ff88;font:900 .7rem Sora,sans-serif;letter-spacing:.12em;transform:translateY(-50%) rotate(-8deg) scale(1);opacity:0;animation:aorStamp 1.8s cubic-bezier(.2,.8,.2,1);pointer-events:none;}
+@keyframes aorStamp{0%{opacity:0;transform:translateY(-50%) rotate(-8deg) scale(2.2);}18%{opacity:1;transform:translateY(-50%) rotate(-8deg) scale(.94);}26%{transform:translateY(-50%) rotate(-8deg) scale(1);}80%{opacity:1;}100%{opacity:0;}}
+.aor-flyflame{position:fixed;z-index:4000;width:16px;height:20px;pointer-events:none;background:radial-gradient(circle at 50% 70%,#fff3c4 0 18%,#ffb27a 30%,#ff6e5a 58%,transparent 62%);filter:drop-shadow(0 0 8px rgba(255,140,80,.9));border-radius:50% 50% 45% 45%;animation:aorFly .9s cubic-bezier(.5,0,.3,1) forwards;}
+@keyframes aorFly{0%{transform:translate(0,0) scale(.6);opacity:0;}15%{opacity:1;transform:translate(0,-20px) scale(1.1);}100%{transform:translate(var(--dx),var(--dy)) scale(.5);opacity:.2;}}
+.aor-burnct.aor-burnhit{animation:aorBurnHit .7s ease-out;}
+@keyframes aorBurnHit{0%{box-shadow:0 0 0 0 rgba(255,140,80,.8);transform:scale(1);}35%{transform:scale(1.06);}100%{box-shadow:0 0 0 14px rgba(255,140,80,0);transform:scale(1);}}
+.aor-fxb{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0 12px;font-size:.7rem;}
+.aor-fxb::before{content:"";width:26px;height:14px;border-radius:99px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);transition:background .2s ease;}
+.aor-fxb[aria-checked="true"]::before{background:linear-gradient(90deg,#4dd4ff,#39ff88);}
+@media (prefers-reduced-motion:reduce){ .aor-mr.done::after,.aor-flyflame,.aor-burnct.aor-burnhit{animation:none;} .aor-flyflame{display:none;} }
+@media (max-width:720px){ .aor-mr.done::after{right:12px;top:14px;} }
+.aor-gridnote{margin:2px 0 10px;}
