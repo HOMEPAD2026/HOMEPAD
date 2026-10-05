@@ -63,6 +63,29 @@ const isGroup = (chat) => chat.type === "group" || chat.type === "supergroup";
 const HOME_GROUPS = ["arcircleonarc"];
 const isHome = (chat) => !!chat && HOME_GROUPS.includes(lc(chat.username || ""));
 const assistOn = (c, chat) => { const v = chatCfg(c, chat.id).assist; return v == null ? isHome(chat) : !!v; };
+/// what ARCIA did with each group message (no message text kept): the log line, plus a small per-chat record for
+/// ?status / ?health — so "she doesn't answer" can be told apart from "her messages never arrive".
+const GSEEN = { at: 0, chats: {} };
+function groupSeen(m, why) {
+  const k = String(m.chat.id), now = Date.now();
+  const r = GSEEN.chats[k] || (GSEEN.chats[k] = { title: m.chat.title || "", username: m.chat.username || "", n: 0, hour: [], why: {} });
+  r.n++; r.last = now; r.lastWhy = why; r.hour = [...r.hour.filter((t) => now - t < 3600e3), now].slice(-500); r.why[why] = (r.why[why] || 0) + 1;
+  console.log(`[tg] group ${m.chat.username || m.chat.id} → ${why}`);
+  if (now - GSEEN.at > 60e3) { GSEEN.at = now; mergeSeen().catch(() => null); }
+}
+async function mergeSeen() {
+  const d = (await getDoc(DOC_GSEEN)) || { chats: {} };
+  for (const [k, r] of Object.entries(GSEEN.chats)) {
+    const o = d.chats[k] || { n: 0, why: {}, hour: [] };
+    const why = { ...o.why }; for (const [w0, n] of Object.entries(r.why)) why[w0] = (why[w0] || 0) + n;
+    d.chats[k] = { title: r.title, username: r.username, n: (o.n || 0) + r.n, last: Math.max(o.last || 0, r.last || 0), lastWhy: r.lastWhy, why, hour: [...(o.hour || []), ...r.hour].filter((t) => Date.now() - t < 3600e3).sort().slice(-500) };
+    r.n = 0; r.why = {}; r.hour = [];
+  }
+  await putDoc(DOC_GSEEN, d);
+}
+const DOC_GSEEN = "tgArcia/groupseen";
+/// someone posting as the group itself (an anonymous admin) or as a channel; Telegram sends these with a bot `from`
+const viaChat = (m) => !!(m.from && m.from.is_bot && m.sender_chat && !m.is_automatic_forward && (m.sender_chat.id === m.chat.id || m.sender_chat.type === "channel"));
 const strikeBan = (c, chat) => { const v = chatCfg(c, chat.id).strikes; return (v == null ? (isHome(chat) ? "ban" : "mute") : v) === "ban"; };
 
 // ---------------- words ----------------
@@ -387,7 +410,7 @@ async function answer(m, text, { lang, group, image, assist = false } = {}) {
   const c = await loadCfg(), uid = m.from.id, admin = c.admins.includes(uid);
   if (!admin) {
     const mine = await usage("chat", uid), all = Object.values(await usage("chat")).reduce((s, n) => s + n, 0);
-    if (mine >= (group ? LIMIT.group : LIMIT.dm) || all >= LIMIT.all) return assist ? undefined : say(m, w("limit", lang)); // unasked: stay quiet
+    if (mine >= (group ? LIMIT.group : LIMIT.dm) || all >= LIMIT.all) { if (assist) { console.log(`[tg] assist quiet: ${all >= LIMIT.all ? "all" : "person"} daily limit (${mine}/${all})`); return; } return say(m, w("limit", lang)); } // unasked: stay quiet
     if (image && (await usage("photo", uid)) >= LIMIT.photo) return say(m, w("photoLimit", lang));
   }
   const stop = keepTyping(m.chat.id);
@@ -737,14 +760,17 @@ async function onMessage(m, channel) {
   const cmd = cm ? lc(cm[1]) : "", arg = cm ? String(cm[3] || "").trim() : "";
 
   if (channel) { if (cmd === "here" || cmd === "unhere") await setTarget(c, m.chat, cmd === "here"); return; }
-  if (!m.from || m.from.is_bot) return;
-  const group = isGroup(m.chat), uid = m.from.id, admin = c.admins.includes(uid);
+  if (m.is_automatic_forward) return; // the linked channel's own post copied into its discussion group
+  const anon = viaChat(m); // an anonymous admin or someone posting as a channel: still a person asking
+  if (!m.from || (m.from.is_bot && !anon)) { if (m.from && isGroup(m.chat) && !m.is_automatic_forward) groupSeen(m, "from-a-bot"); return; }
+  const group = isGroup(m.chat), uid = anon ? m.sender_chat.id : m.from.id, admin = c.admins.includes(uid);
   const u = group ? null : await loadUser(uid);
   const lang = group ? chatCfg(c, m.chat.id).lang || "en" : (u && u.lang) || "en";
   if (m.new_chat_members) return onJoin(c, m, lang);
   if (!text && !m.photo) return;
 
-  if (await guard(c, m, lang)) return;
+  if (!anon && (await guard(c, m, lang))) { if (group) groupSeen(m, "guard"); return; }
+  if (anon && group && retiredIn(text) && (await retiredNote(m, retiredIn(text), lang))) return;
   if (group && !cmd) await maybeReact(c, m);
   if (!group && u && !u.first) { u.first = Date.now(); u.name = m.from.first_name || ""; await saveUser(u); }
 
@@ -949,13 +975,17 @@ async function onMessage(m, channel) {
       // v7: in the home group (or with /assist on) a question gets an answer without the @mention — the common ones
       // (contract addresses, links, how to buy, the price) straight from here, the rest from ARCIA
       const toHuman = m.reply_to_message && m.reply_to_message.from && !m.reply_to_message.from.is_bot && m.reply_to_message.from.id !== m.from.id;
-      if (!m.photo && assistOn(c, m.chat) && looksLikeQuestion(text)) {
+      const on = assistOn(c, m.chat), qn = !m.photo && looksLikeQuestion(text);
+      if (on && qn) {
         const ql = langOf(text, lang), kind = faqOf(text);
-        if (kind) { if (!tooMany(`faq:${m.chat.id}:${kind}`, 1, 45e3)) return faqReply(m, kind, ql); return; }
-        if (!toHuman && !tooMany(`assist:${m.chat.id}`, 30, 600e3) && !tooMany(`assistu:${m.chat.id}:${uid}`, 3, 180e3)) return answer(m, text, { lang: ql, group, assist: true });
-      }
+        if (kind) { if (!tooMany(`faq:${m.chat.id}:${kind}`, 1, 45e3)) { groupSeen(m, `faq:${kind}`); return faqReply(m, kind, ql); } groupSeen(m, `faq:${kind}:cooldown`); return; }
+        if (toHuman) groupSeen(m, "reply-to-someone-else");
+        else if (tooMany(`assist:${m.chat.id}`, 30, 600e3) || tooMany(`assistu:${m.chat.id}:${uid}`, 3, 180e3)) groupSeen(m, "assist:rate-limit");
+        else { groupSeen(m, "assist"); return answer(m, text, { lang: ql, group, assist: true }); }
+      } else groupSeen(m, !on ? "assist-off" : m.photo ? "photo" : "not-a-question");
       await autoScan(c, m, lang); return;
     }
+    groupSeen(m, mention ? "mention" : "reply-to-arcia");
     q = text.replace(new RegExp(`@${bot.username}\\b`, "ig"), "").trim() || (m.photo ? "" : "hi");
   } else if (!m.photo) {
     // a bare contract address in a DM: scan it
@@ -1937,10 +1967,42 @@ async function setup() {
   return { ok: !!hook.ok, bot: "@" + c.me.username, webhook: hook.ok ? "connected" : hook.description, menus: cmds.every((x) => x.ok) ? "set" : cmds.filter((x) => !x.ok).map((x) => x.description), admins: c.admins.length, todo };
 }
 
+/// public, no secrets: can the bot see the home group's messages, is it an admin there, and what happened to the
+/// messages it got lately (counts and outcomes only). /api/arcia-tg?health=1
+let healthMem = null;
+async function health() {
+  if (healthMem && Date.now() - healthMem.at < 30e3) return healthMem.v;
+  const c = await loadCfg();
+  const [me, wh] = await Promise.all([tg("getMe"), tg("getWebhookInfo")]);
+  const home = [];
+  for (const g of HOME_GROUPS) {
+    const ch = await tg("getChat", { chat_id: "@" + g });
+    const mem = ch.ok && me.ok ? await tg("getChatMember", { chat_id: ch.result.id, user_id: me.result.id }) : null;
+    const r = mem && mem.ok ? mem.result : {};
+    home.push({ group: "@" + g, found: !!ch.ok, type: ch.ok ? ch.result.type : null, botStatus: r.status || null,
+      canDeleteMessages: r.status === "creator" ? true : r.can_delete_messages ?? null, canRestrictMembers: r.status === "creator" ? true : r.can_restrict_members ?? null,
+      assist: ch.ok ? assistOn(c, ch.result) : null, error: ch.ok ? null : ch.description || null });
+  }
+  await mergeSeen().catch(() => null);
+  const d = (await getDoc(DOC_GSEEN)) || { chats: {} };
+  const seen = Object.values(d.chats || {}).filter((r) => r.username && HOME_GROUPS.includes(lc(r.username))).map((r) => ({
+    lastMessageAt: r.last ? new Date(r.last).toISOString() : null, lastHour: (r.hour || []).filter((t) => Date.now() - t < 3600e3).length, total: r.n, lastOutcome: r.lastWhy || null, outcomes: r.why || {} }));
+  const v = {
+    bot: me.ok ? "@" + me.result.username : null,
+    // false = privacy mode: in groups where it isn't an admin the bot only gets commands, @mentions and replies to it
+    readsAllGroupMessages: me.ok ? !!me.result.can_read_all_group_messages : null,
+    webhook: wh.ok ? { connected: wh.result.url === `${SITE}/api/arcia-tg`, pending: wh.result.pending_update_count, lastError: wh.result.last_error_message || null, lastErrorAt: wh.result.last_error_date ? new Date(wh.result.last_error_date * 1000).toISOString() : null, updates: wh.result.allowed_updates || "all" } : null,
+    home, seen, at: new Date().toISOString(),
+  };
+  healthMem = { at: Date.now(), v };
+  return v;
+}
+
 export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   if (q.series) { const T = (await getDoc(DOC.tick, 60e3)) || {}; return json(200, { points: (T.series || []).map(([t, p]) => [Math.round(t / 1000), p]) }, "public, max-age=120, s-maxage=240"); }
   if (q.buybot) return json(200, await BB.health()); // public: is the buybot running (no secrets)
+  if (q.health) return json(200, await health().catch((e) => ({ error: String((e && e.message) || e).slice(0, 160) })), "no-store");
   if (q.linkinfo) { const i = await linkInfo(q.linkinfo); return i ? json(200, { message: i.message }) : json(410, { error: "This link expired — send /link to ARCIA again." }); }
   const secret = env("CRON_SECRET");
   if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json(401, { error: "unauthorized" });
