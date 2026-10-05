@@ -17252,3 +17252,6 @@ html.aor-fsing nav.ax-dock,html.aor-fsing nav.ax-quick,html.aor-fsing .aa-fab{di
 .cp5-rs-coin.retired{color:#aab4bf;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);}
 .cp5-rs-coin.retired i{color:#8b95a1;}
 @media (max-width:900px){ .ac-family.ac-family-2{grid-template-columns:1fr;} }
+/* Round #3 + #4 merged (5 Oct 2026): why, under the two cards */
+.cp-plan-merge{margin:0;padding:10px 12px;border-radius:12px;font-size:.78rem;line-height:1.5;color:var(--ink-dim);background:linear-gradient(90deg,rgba(153,69,255,.08),rgba(20,241,149,.05));border:1px solid rgba(153,69,255,.25);}
+.cp-plan-merge b{color:var(--ink,#eef2f6);}

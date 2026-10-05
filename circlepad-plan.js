@@ -18,6 +18,8 @@
   const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
   const lc = (a) => String(a || "").toLowerCase();
   const SYM = "$" + (B.sym || "ARCIA"), NEXT = "$" + (A.sym || "TBA"), R4 = A.round || N() + 1;
+  // 5 Oct 2026: Round #4 merged into this round — no raise of its own; the team runs it on Solana (pump.fun) with ARCIRCLE Orders
+  const MERGED = !!A.merged, VIA = A.via || "pump.fun", WITH = A.with || "ARCIRCLE Orders";
   const num = (n, d = 0) => Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: d });
   let votes = null; // the closed vote's record (/api/social?circle=burns&round=n)
 
@@ -38,7 +40,9 @@
     const tags = document.querySelector("#bp-featured .bp-tags");
     if (tags && !tags.dataset.plan) { tags.dataset.plan = "1"; tags.innerHTML = ["Team-led", "USDC raise", B.chain || "Robinhood Chain", A.chain || "Solana"].map((t) => `<span>${T(t)}</span>`).join(""); }
     const desc = document.getElementById("bp-featured-desc");
-    if (desc) desc.textContent = tr(`USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. Round #${N()} launches no new coin: the raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, and every contributor also gets an allocation of Round #${R4}'s token on ${A.chain || "Solana"} — both by their share of the raise.`);
+    if (desc) desc.textContent = MERGED
+      ? tr(`USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. Round #${N()} and Round #${R4} are merged: the raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, and Round #${R4} — ARCIRCLE's move to ${A.chain || "Solana"} through ${VIA} — is run by the ARCIRCLE team with ${WITH}, with no separate raise. Everyone in Round #${N()} is in Round #${R4} automatically; both rewards go by your share of the raise.`)
+      : tr(`USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. Round #${N()} launches no new coin: the raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, and every contributor also gets an allocation of Round #${R4}'s token on ${A.chain || "Solana"} — both by their share of the raise.`);
     const gn = document.getElementById("bp-gov-note");
     if (gn) gn.textContent = tr(`No vote this round — Round #${N()} buys ${SYM} instead of launching a new coin.`);
     const pn = document.getElementById("bp-gov-panel-note");
@@ -54,7 +58,7 @@
     set(2, "", "Contributions and withdrawals stop. The escrow sends 80% to the recipient, 15% to the treasury, 5% to the platform.");
     set(1, "No vote this round", `Round #${N()} launches no new coin, so there's nothing to vote on. Its burn-to-vote closed on 4 Oct 2026; the votes cast before stay on record.`);
     set(3, "", CONFIG.CIRCLEPAD_ROUND_GOV && CONFIG.CIRCLEPAD_ROUND_GOV.top === true ? "The largest contributor at the close receives the 15%, over 3 days." : "Whether the top contributor receives the 15% this round: not decided yet.");
-    set(4, `${SYM} + Round #${R4}`, `The raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, sent to contributors by their share. Round #${R4}'s token on ${A.chain || "Solana"} follows, shared the same way.`);
+    set(4, `${SYM} + Round #${R4}`, MERGED ? `The raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, sent to contributors by their share. Round #${R4} on ${A.chain || "Solana"} — through ${VIA}, run by the team with ${WITH} — is shared the same way.` : `The raise buys ${SYM} on ${B.chain || "Robinhood Chain"}, sent to contributors by their share. Round #${R4}'s token on ${A.chain || "Solana"} follows, shared the same way.`);
   }
 
   // your share of the raise, from the leaderboard (circlepad.js)
@@ -73,12 +77,14 @@
     const open = !!r.isOpen, dl = Number(r.deadline || 0), m = mine();
     const you = m && m.in
       ? `<div class="cp-plan-you"><small>${T("Your share of the raise")}</small><b data-no-i18n>${num(m.pct, m.pct < 1 ? 3 : 2)}%</b><span>${T(`of the ${SYM} bought and of Round #${R4}'s allocation`)}</span></div>`
-      : open ? `<div class="cp-plan-you"><small>${T("Your share of the raise")}</small><b data-no-i18n>—</b><span>${T("Contribute any amount to be in both.")}</span></div>` : "";
+      : open ? `<div class="cp-plan-you"><small>${T("Your share of the raise")}</small><b data-no-i18n>—</b><span>${T(MERGED ? `Contribute any amount to be in both — you join Round #${R4} automatically.` : "Contribute any amount to be in both.")}</span></div>` : "";
     const rec = votes && votes.votes ? `<p class="cp-plan-vote"><i aria-hidden="true"></i>${T("Burn-to-vote closed on 4 Oct 2026")} · <span data-no-i18n>${num(votes.votes)}</span> ${T(votes.votes === 1 ? "vote" : "votes")} · <span data-no-i18n>${num(votes.burned)} $ARCIRCLE</span> ${T("burned, on record")}</p>` : "";
     return `<div class="cp-phero-copy">
-        <span class="cp-phero-eyebrow">${T(`Round #${N()} · ${open ? "the plan changed" : "raise closed"}`)}</span>
-        <h2>${T("One round. Two chains. Two allocations.")}</h2>
-        <p class="cp-phero-lede">${T(`Round #${N()} launches no new coin. The raise buys ${SYM} — ARCIA's own coin on ${B.chain || "Robinhood Chain"} — and every contributor also gets an allocation of Round #${R4}'s token on ${A.chain || "Solana"}. Both by your share of the raise, new contributors included.`)}</p>
+        <span class="cp-phero-eyebrow">${MERGED ? T(`Round #${N()} + Round #${R4} · ${open ? "merged" : "raise closed"}`) : T(`Round #${N()} · ${open ? "the plan changed" : "raise closed"}`)}</span>
+        <h2>${T(MERGED ? "Two rounds in one. Robinhood Chain and Solana." : "One round. Two chains. Two allocations.")}</h2>
+        <p class="cp-phero-lede">${MERGED
+          ? T(`Round #${R4} is merged into Round #${N()}. Round #${R4} is ARCIRCLE's move to ${A.chain || "Solana"} through ${VIA}: no separate 3-day raise — the ARCIRCLE team runs it on ${A.chain || "Solana"} with ${WITH}, and everyone in Round #${N()} is in it automatically. The raise buys ${SYM} on ${B.chain || "Robinhood Chain"}; both rewards go by your share, new contributors included.`)
+          : T(`Round #${N()} launches no new coin. The raise buys ${SYM} — ARCIA's own coin on ${B.chain || "Robinhood Chain"} — and every contributor also gets an allocation of Round #${R4}'s token on ${A.chain || "Solana"}. Both by your share of the raise, new contributors included.`)}</p>
         <div class="cp-phero-cta">${open ? `<button type="button" class="bp-btn-primary" data-cp-plan="contribute">${T("Contribute USDC")}</button>` : ""}${B.url ? `<a class="bp-btn-ghost" href="${esc(B.url)}" target="_blank" rel="noopener">${esc(SYM)} ${T("on Pons")} ↗</a>` : ""}${open && dl ? `<span class="cp-phero-clock"><small>${T("Raise closes in")}</small><b data-no-i18n data-cp-to="${dl}">…</b></span>` : ""}</div>
         ${rec}
       </div>
@@ -86,8 +92,9 @@
         <div class="cp-plan-pair">
           <div class="cp-plan-card rh"><span class="cp-plan-chain"><i></i>${T(B.chain || "Robinhood Chain")}</span><b data-no-i18n>${esc(SYM)}</b><span>${T("Bought with the raise · ARCIA's own coin, the flagship of the ARCIRCLE NFT ecosystem")}</span>${B.token ? `<button type="button" class="cp-plan-ca" data-cp-copy="${esc(B.token)}" title="${T("Copy address")}" data-no-i18n>${short(B.token)}</button>` : ""}</div>
           <span class="cp-plan-plus" aria-hidden="true">+</span>
-          <div class="cp-plan-card sol"><span class="cp-plan-chain"><i></i>${T(`${A.chain || "Solana"} · Round #${R4}`)}</span><b data-no-i18n>${esc(NEXT)}</b><span>${T(`Round #${R4}'s token — not revealed yet. Allocated by the same share.`)}</span></div>
+          <div class="cp-plan-card sol"><span class="cp-plan-chain"><i></i>${T(`${A.chain || "Solana"} · Round #${R4}`)}</span><b data-no-i18n>${esc(MERGED ? VIA : NEXT)}</b><span>${T(MERGED ? `ARCIRCLE's move to ${A.chain || "Solana"}, run by the team with ${WITH}. You're in automatically, by the same share.` : `Round #${R4}'s token — not revealed yet. Allocated by the same share.`)}</span></div>
         </div>
+        ${MERGED ? `<p class="cp-plan-merge"><b>${T("Why merged:")}</b> ${T(`ARCIRCLE built a new contract on ${A.chain || "Solana"} for ${WITH} — on ${A.chain || "Solana"} that costs over about $1,000 — so the team is putting its focus there and taking ARCIRCLE to ${A.chain || "Solana"} together with this round.`)}</p>` : ""}
         ${you}
       </div>`;
   }

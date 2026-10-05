@@ -7849,6 +7849,19 @@
     "Two official coins": "공식 코인 두 개",
     "Since 5 Oct 2026: $ARCIRCLE on Arc and $ARCIA on Robinhood Chain, nothing else. The old $ARCIA on Arc and ♾️ Infinite are retired.": "2026년 10월 5일부터: Arc의 $ARCIRCLE과 Robinhood Chain의 $ARCIA, 이 두 개뿐이에요. 예전 $ARCIA on Arc와 ♾️ Infinite는 종료됐어요.",
     "The only two official coins since 5 Oct 2026.": "2026년 10월 5일부터 공식 코인은 이 두 개뿐이에요.",
+    "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. Round #3 and Round #4 are merged: the raise buys $ARCIA on Robinhood Chain, and Round #4 — ARCIRCLE's move to Solana through pump.fun — is run by the ARCIRCLE team with ARCIRCLE Orders, with no separate raise. Everyone in Round #3 is in Round #4 automatically; both rewards go by your share of the raise.": "USDC는 에스크로 컨트랙트에 보관되고, 72시간이 끝나기 전에는 언제든 내 참여금을 출금할 수 있어요. Round #3과 Round #4가 합쳐졌어요: 모금액으로 Robinhood Chain의 $ARCIA를 사고, Round #4 — pump.fun을 통한 ARCIRCLE의 Solana 진출 — 는 별도 모금 없이 ARCIRCLE 팀이 ARCIRCLE Orders로 진행해요. Round #3 참여자는 모두 Round #4에 자동 참가되고, 두 보상 모두 내 모금 기여 비율대로 받아요.",
+    "The raise buys $ARCIA on Robinhood Chain, sent to contributors by their share. Round #4 on Solana — through pump.fun, run by the team with ARCIRCLE Orders — is shared the same way.": "모금액으로 Robinhood Chain의 $ARCIA를 사서 참여자에게 비율대로 보내요. Solana의 Round #4 — pump.fun을 통해 팀이 ARCIRCLE Orders로 진행 — 도 같은 방식으로 나눠요.",
+    "Contribute any amount to be in both — you join Round #4 automatically.": "얼마든 참여하면 두 보상 모두 받아요 — Round #4에는 자동 참가돼요.",
+    "Round #3 + Round #4 · merged": "Round #3 + Round #4 · 통합",
+    "Round #3 + Round #4 · raise closed": "Round #3 + Round #4 · 모금 종료",
+    "Two rounds in one. Robinhood Chain and Solana.": "두 라운드를 하나로. Robinhood Chain과 Solana.",
+    "Round #4 is merged into Round #3. Round #4 is ARCIRCLE's move to Solana through pump.fun: no separate 3-day raise — the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone in Round #3 is in it automatically. The raise buys $ARCIA on Robinhood Chain; both rewards go by your share, new contributors included.": "Round #4가 Round #3에 합쳐졌어요. Round #4는 pump.fun을 통한 ARCIRCLE의 Solana 진출이에요: 별도의 3일 모금 없이 ARCIRCLE 팀이 ARCIRCLE Orders로 Solana에서 진행하고, Round #3 참여자는 모두 자동으로 참가돼요. 모금액으로 Robinhood Chain의 $ARCIA를 사고, 두 보상 모두 내 비율대로 받아요 — 지금 참여하는 분도 포함이에요.",
+    "ARCIRCLE's move to Solana, run by the team with ARCIRCLE Orders. You're in automatically, by the same share.": "ARCIRCLE의 Solana 진출, 팀이 ARCIRCLE Orders로 진행해요. 같은 비율로 자동 참가돼요.",
+    "Why merged:": "합친 이유:",
+    "ARCIRCLE built a new contract on Solana for ARCIRCLE Orders — on Solana that costs over about $1,000 — so the team is putting its focus there and taking ARCIRCLE to Solana together with this round.": "ARCIRCLE이 ARCIRCLE Orders를 위해 Solana에 새 컨트랙트를 구축했어요 — Solana 특성상 비용이 약 $1,000 이상 들어요 — 그래서 팀이 여기에 더 집중하고, 이번 라운드와 함께 ARCIRCLE을 Solana로 확장해요.",
+    "Round #4 on Solana — merged in": "Solana의 Round #4 — 통합",
+    "Round #4 is ARCIRCLE's move to Solana through pump.fun. It has no 3-day raise of its own: the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone in Round #3 is in it automatically, by their share.": "Round #4는 pump.fun을 통한 ARCIRCLE의 Solana 진출이에요. 별도의 3일 모금은 없고, ARCIRCLE 팀이 ARCIRCLE Orders로 Solana에서 진행해요. Round #3 참여자는 모두 비율대로 자동 참가돼요.",
+    "Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.": "Round #3과 Round #4가 합쳐져서, 한 번의 참여로 두 가지 보상을 내 모금 기여 비율대로 받아요: 모금액으로 산 Robinhood Chain의 $ARCIA, 그리고 Solana의 Round #4 몫 — ARCIRCLE 팀이 ARCIRCLE Orders로 pump.fun을 통해 진행해요. Round #2의 1,999.62 USDC가 이 라운드에 들어왔기 때문에 Round #2 참여자도 Round #2 명단 기준으로 포함돼요.",
   };
 
 

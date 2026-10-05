@@ -1392,7 +1392,7 @@ async function circleNotify(T, s, c, first, out) {
   const raised = num(Number(BigInt(st.totalRaised || 0) / 10n ** 16n) / 100);
   const left = Number(st.deadline) - nowS;
   const page = `${SITE}/circle`;
-  const plan = (n === 3) ? "The raise buys $ARCIA on Robinhood Chain for its contributors, plus an allocation of Round #4's Solana token." : "";
+  const plan = (n === 3) ? "Round #3 + #4 are merged: the raise buys $ARCIA on Robinhood Chain for its contributors, and they're in Round #4 automatically — ARCIRCLE's move to Solana through pump.fun, run by the team with ARCIRCLE Orders. Both by your share." : "";
   const moments = [];
   if (left > 0) {
     if (!F.open && left > 70 * 3600 - 1800) moments.push(["open", `🟢 <b>CirclePad Round #${n} is open</b> — 72 hours, USDC on Arc. ${plan}`.trim(), true]);
@@ -1402,7 +1402,7 @@ async function circleNotify(T, s, c, first, out) {
     if (win && !F[win[0]]) {
       const k = win[0];
       for (const w of ["24h", "6h", "1h"]) { if (w === k) break; F[w] = 1; }
-      moments.push([k, `⏳ <b>${k} left</b> in CirclePad Round #${n} · ${raised} USDC raised`, k === "1h"]);
+      moments.push([k, `⏳ <b>${k} left</b> in CirclePad Round #${n} · ${raised} USDC raised${plan ? `\n${plan}` : ""}`, k === "1h"]);
     }
   } else {
     for (const k of ["24h", "6h", "1h"]) F[k] = 1;

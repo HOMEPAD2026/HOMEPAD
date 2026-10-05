@@ -8019,6 +8019,19 @@
     "Two official coins": "两个官方币",
     "Since 5 Oct 2026: $ARCIRCLE on Arc and $ARCIA on Robinhood Chain, nothing else. The old $ARCIA on Arc and ♾️ Infinite are retired.": "自 2026 年 10 月 5 日起：只有 Arc 上的 $ARCIRCLE 和 Robinhood Chain 上的 $ARCIA。旧的 Arc 上的 $ARCIA 和 ♾️ Infinite 已停用。",
     "The only two official coins since 5 Oct 2026.": "自 2026 年 10 月 5 日起仅有这两个官方币。",
+    "USDC sits in an escrow contract and you can withdraw your own contribution any time before the 72 hours are up. Round #3 and Round #4 are merged: the raise buys $ARCIA on Robinhood Chain, and Round #4 — ARCIRCLE's move to Solana through pump.fun — is run by the ARCIRCLE team with ARCIRCLE Orders, with no separate raise. Everyone in Round #3 is in Round #4 automatically; both rewards go by your share of the raise.": "USDC 存放在托管合约中，72 小时结束前可随时取回你自己的出资。第 3 轮与第 4 轮已合并：募集资金用于购买 Robinhood Chain 上的 $ARCIA；第 4 轮——ARCIRCLE 通过 pump.fun 进军 Solana——不再单独募集，由 ARCIRCLE 团队用 ARCIRCLE Orders 执行。第 3 轮的所有参与者自动加入第 4 轮，两份奖励都按你的出资比例发放。",
+    "The raise buys $ARCIA on Robinhood Chain, sent to contributors by their share. Round #4 on Solana — through pump.fun, run by the team with ARCIRCLE Orders — is shared the same way.": "募集资金购买 Robinhood Chain 上的 $ARCIA，按比例发给参与者。Solana 上的第 4 轮——通过 pump.fun、由团队用 ARCIRCLE Orders 执行——也按同样方式分配。",
+    "Contribute any amount to be in both — you join Round #4 automatically.": "任意金额参与即可获得两份奖励——并自动加入第 4 轮。",
+    "Round #3 + Round #4 · merged": "第 3 轮 + 第 4 轮 · 已合并",
+    "Round #3 + Round #4 · raise closed": "第 3 轮 + 第 4 轮 · 募集已结束",
+    "Two rounds in one. Robinhood Chain and Solana.": "两轮合一。Robinhood Chain 与 Solana。",
+    "Round #4 is merged into Round #3. Round #4 is ARCIRCLE's move to Solana through pump.fun: no separate 3-day raise — the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone in Round #3 is in it automatically. The raise buys $ARCIA on Robinhood Chain; both rewards go by your share, new contributors included.": "第 4 轮已并入第 3 轮。第 4 轮是 ARCIRCLE 通过 pump.fun 进军 Solana：不再单独进行 3 天募集——由 ARCIRCLE 团队在 Solana 上用 ARCIRCLE Orders 执行，第 3 轮的所有参与者自动加入。募集资金购买 Robinhood Chain 上的 $ARCIA；两份奖励都按你的比例发放，新参与者也包括在内。",
+    "ARCIRCLE's move to Solana, run by the team with ARCIRCLE Orders. You're in automatically, by the same share.": "ARCIRCLE 进军 Solana，由团队用 ARCIRCLE Orders 执行。你会按同样比例自动加入。",
+    "Why merged:": "为什么合并：",
+    "ARCIRCLE built a new contract on Solana for ARCIRCLE Orders — on Solana that costs over about $1,000 — so the team is putting its focus there and taking ARCIRCLE to Solana together with this round.": "ARCIRCLE 为 ARCIRCLE Orders 在 Solana 上部署了新合约——在 Solana 上这需要约 1,000 美元以上——因此团队集中力量，与本轮一起把 ARCIRCLE 扩展到 Solana。",
+    "Round #4 on Solana — merged in": "Solana 上的第 4 轮——已合并",
+    "Round #4 is ARCIRCLE's move to Solana through pump.fun. It has no 3-day raise of its own: the ARCIRCLE team runs it on Solana with ARCIRCLE Orders, and everyone in Round #3 is in it automatically, by their share.": "第 4 轮是 ARCIRCLE 通过 pump.fun 进军 Solana。它没有单独的 3 天募集：由 ARCIRCLE 团队在 Solana 上用 ARCIRCLE Orders 执行，第 3 轮的所有参与者按比例自动加入。",
+    "Round #3 and Round #4 are merged, so one contribution earns two rewards, each pro rata to your share of the raise: $ARCIA on Robinhood Chain, bought with the raise, and your share of Round #4 on Solana — launched through pump.fun by the ARCIRCLE team with ARCIRCLE Orders. Round #2's 1,999.62 USDC went into this round, so Round #2's contributors are included from Round #2's list.": "第 3 轮与第 4 轮已合并，一次出资可获得两份奖励，都按你的出资比例：用募集资金购买的 Robinhood Chain 上的 $ARCIA，以及 Solana 上第 4 轮的份额——由 ARCIRCLE 团队用 ARCIRCLE Orders 通过 pump.fun 执行。第 2 轮的 1,999.62 USDC 已并入本轮，因此第 2 轮参与者按第 2 轮名单计入。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
