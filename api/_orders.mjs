@@ -37,7 +37,8 @@ import { poolSlot, decodeSlot0, poolIdOf, priceOf } from "./_liq-core.mjs";
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 const ZERO_ADDR = "0x" + "0".repeat(40);
 /// v5/v7: an order kept out of the book for now — waiting on another token's price, or on its own buy to fill
-const held = (o) => !!((o.cond && !o.condMet) || (o.after && !o.afterMet));
+// v8: a paused order (its maker paused it, e.g. after the token's scan score dropped) waits too
+const held = (o) => !!((o.cond && !o.condMet) || (o.after && !o.afterMet) || o.paused);
 /// Arc: ArcircleOrders + ArcircleFeeBurn, markets against USDC
 const ARC_CFG = {
   id: "arc", name: "Arc", prefix: "orders", msgTag: "",
@@ -149,6 +150,9 @@ const cancelMessage = (h) => `Cancel ARCIRCLE order ${lc(h)}`;
 /// one signature shows a wallet its own orders for up to 30 days (orders aren't public until they fill)
 const viewMessage = (wallet, until) => `ARCIRCLE Orders: show my orders\n${lc(wallet)}\nuntil ${Number(until)}`;
 const cancelMarketMessage = (token, maker, at) => `Cancel all my ARCIRCLE orders in ${lc(token)}${CFG.msgTag}\n${lc(maker)}\n${Number(at)}`;
+// v8: pause or resume a maker's orders (one, or every open one in a market); read-only API keys
+const pauseMessage = (token, maker, on, at, h = "") => `${on ? "Pause" : "Resume"} ${h ? `ARCIRCLE order ${lc(h)}` : `all my ARCIRCLE orders in ${lc(token)}`}${CFG.msgTag}\n${lc(maker)}\n${Number(at)}`;
+const keyMessage = (wallet, at, revoke = "") => `${revoke ? `Revoke ARCIRCLE Orders API key ${revoke}` : "Create a read-only ARCIRCLE Orders API key"}\n${lc(wallet)}\n${Number(at)}`;
 function viewOk(wallet, until, sig) {
   const now = CFG.now(), u = Number(until);
   if (!isAddr(wallet) || !(u > now) || u > now + 31 * 86400 || !/^0x[0-9a-fA-F]{130}$/.test(String(sig || ""))) return false;
@@ -393,7 +397,7 @@ async function place(body, { store } = {}) {
   if (stop && Number(body.triggerPrice) > 0) rec.triggerPrice = Number(body.triggerPrice); // for display only
   if (twap) rec.parts = parts;
   if (trail) { const sp = priceOf(s0.sqrtP, key.currency0 === token, key.currency0 === token ? m.token.decimals : m.quote.decimals, key.currency0 === token ? m.quote.decimals : m.token.decimals); rec.trail = { pct: trailPct, peak: sp, armed: false }; }
-  if (o.group !== "0") { rec.group = o.group; rec.leg = ["tp", "sl"].includes(body.leg) ? body.leg : null; }
+  if (o.group !== "0") { rec.group = o.group; rec.leg = ["tp", "sl", "oco"].includes(body.leg) ? body.leg : null; }
   if (body.cond && typeof body.cond === "object") {
     // v5: a conditional order — it waits (out of the book, never matched or filled) until another token's pool price
     // crosses a level, then it's an ordinary limit order
@@ -404,7 +408,8 @@ async function place(body, { store } = {}) {
   }
   if (afterH) {
     const par = m.orders.find((x) => x.h === afterH);
-    if (!par || par.o.maker !== o.maker || par.side === side || rec.type !== "limit" || !(par.status === "open" || par.status === "unfunded" || par.status === "filled")) return { status: 400, body: { error: "it waits on an open order of yours on the other side, in this market" } };
+    // v8: a bracket's take profit (limit) and stop loss (stop or trailing) wait on their buy too
+    if (!par || par.o.maker !== o.maker || par.side === side || !["limit", "stop", "trail"].includes(rec.type) || !(par.status === "open" || par.status === "unfunded" || par.status === "filled")) return { status: 400, body: { error: "it waits on an open order of yours on the other side, in this market" } };
     rec.after = afterH;
     if (par.status === "filled") rec.afterMet = now;
   }
@@ -487,6 +492,100 @@ async function cancelMarket(body, { store } = {}) {
   return { status: 200, body: { ok: true, cancelled: mine.length } };
 }
 
+/// v8: pause or resume — one order (hash) or every open one of the maker's in a market — with one signed message.
+/// A paused order stays signed and in place but out of the book: nothing fills it until it's resumed.
+async function pause(body, { store } = {}) {
+  const token = lc(body && body.token), maker = lc(body && body.maker), at = Number(body && body.at), sig = String((body && body.sig) || "");
+  const h = isH32(body && body.hash) ? lc(body.hash) : "", on = body && (body.on === true || body.on === "1" || body.on === 1);
+  if (!isAddr(token) || !isAddr(maker) || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "token, maker, at and sig are needed" } };
+  if (!(Math.abs(CFG.now() - at) < 600)) return { status: 400, body: { error: "that signature is too old — try again" } };
+  if (lc(recover(personalDigest(pauseMessage(token, maker, on, at, h)), sig)) !== maker) return { status: 401, body: { error: "only the maker can pause these" } };
+  const m = await sget(store, marketKey(token));
+  const list = m ? m.orders.filter((x) => x.o.maker === maker && (x.status === "open" || x.status === "unfunded") && (!h || x.h === h)) : [];
+  if (h && !list.length) return { status: 404, body: { error: "no such open order" } };
+  const now = CFG.now();
+  for (const x of list) { if (on) { x.paused = now; } else { delete x.paused; x.nextTry = 0; } x.last = now; }
+  if (list.length) await saveMarket(store, { ...m, orders: list, fills: [] });
+  mem.delete("book:" + token);
+  return { status: 200, body: { ok: true, paused: on, n: list.length } };
+}
+
+// ---------------------------------------------------------------- v8: seasons (a week of fills per wallet)
+/// the week a time falls in, from Monday 00:00 UTC: its number and its bounds
+const weekOf = (t = CFG.now()) => { const d = Math.floor(t / 86400), mon = d - ((d + 3) % 7); return { n: mon, start: mon * 86400, end: (mon + 7) * 86400 }; };
+const seasonKey = (n) => `${P}/season_${n}`;
+async function seasonAdd(store, evs) {
+  const fills = evs.filter((e) => e.kind === "fill" && e.maker && e.quote > 0);
+  if (!fills.length) return;
+  const wk = weekOf(), d = (await sget(store, seasonKey(wk.n))) || { n: wk.n, makers: {} };
+  for (const e of fills) { const r = d.makers[e.maker] || { vol: 0, n: 0, mk: 0, first: e.at }; r.vol += e.quote; r.n++; if (e.via === "match") r.mk++; d.makers[e.maker] = r; }
+  const ks = Object.keys(d.makers);
+  if (ks.length > 500) for (const k of ks.sort((a, b) => d.makers[a].vol - d.makers[b].vol).slice(0, ks.length - 500)) delete d.makers[k];
+  await sset(store, seasonKey(wk.n), d);
+}
+/// this week's board (and last week's top three): volume in the chain's quote, fills, ranks; a wallet's own line
+async function season({ store, wallet = "" } = {}) {
+  const wk = weekOf(), [cur0, prev] = await Promise.all([sget(store, seasonKey(wk.n)), sget(store, seasonKey(wk.n - 7))]);
+  const rows = (d) => Object.entries((d && d.makers) || {}).map(([maker, r]) => ({ maker, vol: r.vol, n: r.n, mk: r.mk || 0 })).sort((a, b) => b.vol - a.vol || b.n - a.n).map((r, i) => ({ ...r, rank: i + 1 }));
+  const now = rows(cur0), last = rows(prev), me = lc(wallet);
+  return { chain: CFG.id, quote: CFG.baseSym, week: wk.n, start: wk.start, end: wk.end, makers: now.length, top: now.slice(0, 20), last: last.slice(0, 3), me: isAddr(me) ? now.find((r) => r.maker === me) || null : null };
+}
+
+// ---------------------------------------------------------------- v8: read-only API keys
+/// a wallet signs once → a key ("ak_" + 40 hex) that opens its own orders (?orders=mine&apikey=…) without a signature
+/// each time. Read-only: it can't place, move or cancel anything. At most 3 per wallet; 2,000 calls a day each.
+const keyDoc = (k) => `${P}/apikey_${keccakText(String(k)).slice(2, 42)}`;
+const keysOfKey = (wa) => `${P}/apikeys_${lc(wa)}`;
+const KEY_DAY = 2000;
+async function keyCreate(body, { store } = {}) {
+  const wa = lc(body && body.wallet), at = Number(body && body.at), sig = String((body && body.sig) || "");
+  if (!store) return { status: 503, body: { error: "API keys need the store" } };
+  if (!isAddr(wa) || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return { status: 400, body: { error: "wallet, at and sig are needed" } };
+  if (!(Math.abs(CFG.now() - at) < 600)) return { status: 400, body: { error: "that signature is too old — try again" } };
+  const revoke = /^ak_[0-9a-f]{6}$/.test(String(body.revoke || "")) ? String(body.revoke) : "";
+  if (lc(recover(personalDigest(keyMessage(wa, at, revoke)), sig)) !== wa) return { status: 401, body: { error: "the signature isn't the wallet's" } };
+  const list = (await sget(store, keysOfKey(wa))) || { keys: [] };
+  if (revoke) {
+    const k = list.keys.find((x) => x.id === revoke);
+    if (!k) return { status: 404, body: { error: "no such key" } };
+    await sset(store, k.doc, { revoked: CFG.now() });
+    list.keys = list.keys.filter((x) => x.id !== revoke);
+    await sset(store, keysOfKey(wa), list);
+    return { status: 200, body: { ok: true, revoked: revoke } };
+  }
+  if (list.keys.length >= 3) return { status: 409, body: { error: "at most 3 keys per wallet — revoke one first" } };
+  const raw = "ak_" + bytesToHex(globalThis.crypto.getRandomValues(new Uint8Array(20))).slice(2);
+  const doc = keyDoc(raw), id = raw.slice(0, 9);
+  await sset(store, doc, { wallet: wa, id, created: CFG.now(), day: "", n: 0 });
+  list.keys.push({ id, doc, created: CFG.now() });
+  await sset(store, keysOfKey(wa), list);
+  return { status: 200, body: { ok: true, key: raw, id, perDay: KEY_DAY } };
+}
+/// a key → its wallet (and today's use), or { error }
+async function keyUse(raw, { store } = {}) {
+  if (!store || !/^ak_[0-9a-f]{40}$/.test(String(raw || ""))) return { error: "a read-only API key looks like ak_…", status: 401 };
+  const doc = keyDoc(raw), d = await sget(store, doc);
+  if (!d || d.revoked || !d.wallet) return { error: "that API key isn't valid", status: 401 };
+  const today = new Date(CFG.now() * 1000).toISOString().slice(0, 10);
+  if (d.day !== today) { d.day = today; d.n = 0; }
+  if (d.n >= KEY_DAY) return { error: `this key's ${KEY_DAY} calls for today are used`, status: 429 };
+  d.n++; d.last = CFG.now();
+  await sset(store, doc, d);
+  return { wallet: d.wallet, used: d.n, perDay: KEY_DAY };
+}
+async function keyList(wallet, { store } = {}) {
+  const list = (await sget(store, keysOfKey(wallet))) || { keys: [] };
+  const docs = await Promise.all(list.keys.map((k) => sget(store, k.doc)));
+  const today = new Date(CFG.now() * 1000).toISOString().slice(0, 10);
+  return { keys: list.keys.map((k, i) => ({ id: k.id, created: k.created, last: (docs[i] && docs[i].last) || null, today: docs[i] && docs[i].day === today ? docs[i].n : 0 })), perDay: KEY_DAY };
+}
+/// v8: one maker's events after a cursor (the page's live updates of its own orders)
+async function myEvents(wallet, { store, since = 0 } = {}) {
+  const ev = await events({ store, since: Number(since) || 0 });
+  const me = lc(wallet);
+  return { seq: ev.seq, list: ev.list.filter((e) => e.maker === me).map((e) => ({ id: e.id, at: e.at, kind: e.kind, h: e.h || null, token: e.token, sym: e.sym, side: e.side, type: e.type, leg: e.leg || null, price: e.price || null, amount: e.amount || null, done: !!e.done, pct: e.pct ?? null, tx: e.tx || null })) };
+}
+
 // ---------------------------------------------------------------- views
 const sigFig = (p) => { if (!(p > 0)) return 0; const e = Math.floor(Math.log10(p)) - 3; return Math.round(p / 10 ** e) * 10 ** e; };
 const pub = (x, m) => {
@@ -505,8 +604,31 @@ const pub = (x, m) => {
     retry: x.fails ? { fails: x.fails, next: x.nextTry || 0, why: x.lastErr || null } : null,
     lastTx: x.lastTx || null, // v5: the latest fill's transaction (the share card)
     fillPx: x.ft > 0 ? x.fq / x.ft : null, // v6: the average price the fills actually got (the limit is the worst it could be)
+    paused: !!x.paused, why: whyNot(x, m),
   };
 };
+/// v8: why an open order hasn't filled yet, in one code the page turns into a line (null: nothing in the way)
+function whyNot(x, m, now = CFG.now()) {
+  if (x.status !== "open" && x.status !== "unfunded") return null;
+  if (x.paused) return { code: "paused" };
+  if (x.status === "unfunded") return { code: "unfunded" };
+  if (x.pending && m.pending) return { code: "pool" };
+  if (x.after && !x.afterMet) return { code: "after" };
+  if (x.cond && !x.condMet) return { code: "cond" };
+  if (x.nextTry && x.nextTry > now) return { code: "retry", why: x.lastErr || null, next: x.nextTry };
+  if (x.type === "twap") return { code: "twap" };
+  if (x.type === "stop") return { code: "trigger" };
+  if (x.type === "trail") return { code: x.trail && x.trail.armed ? "keeper" : "trail" };
+  if (!(m.spot > 0) || !(x.price > 0)) return { code: "noprice" };
+  const gap = ((x.price - m.spot) / m.spot) * 100;
+  // a buy under the market, or a sell above it: it waits for the price
+  if (x.side === "buy" ? gap < -0.5 : gap > 0.5) return { code: "price", gap: Number(gap.toFixed(2)) };
+  // at the market but bigger than what the pool takes within 2%: it fills in parts
+  const rem = remOf(x), val = x.side === "buy" ? human(rem, m.quote.decimals) : human(rem, m.token.decimals) * x.price;
+  const room = m.depth ? (x.side === "buy" ? m.depth.up : m.depth.dn) : null;
+  if (room != null && room > 0 && val > room) return { code: "thin", gap: Number(gap.toFixed(2)) };
+  return { code: "keeper", gap: Number(gap.toFixed(2)) };
+}
 async function book(token, { store } = {}) {
   token = lc(token);
   if (!isAddr(token)) return null;
@@ -885,6 +1007,7 @@ async function recordMarket(store, logs) {
     byToken.get(token).push({ l, side, sold: W(l.data, 1), received: W(l.data, 2), fee: W(l.data, 3), maker: l.topics[2] ? lc("0x" + strip(l.topics[2]).slice(24)) : null });
   }
   let n = 0;
+  const sev = []; // v8: market orders count in the week's season too
   for (const [token, list] of byToken) {
     let m = await sget(store, marketKey(token));
     if (!m) { const [tm, qm] = await tokenMeta([token, usdc]); m = { token: tm, quote: qm, key: null, poolId: null, tokenIs0: null, orders: [], fills: [] }; }
@@ -897,6 +1020,7 @@ async function recordMarket(store, logs) {
       const amount = human(side === "sell" ? sold : gross, m.token.decimals), quote = human(side === "sell" ? gross : sold, m.quote.decimals);
       if (maker && isAddr(maker) && maker !== ZERO_ADDR) costTrack(m, maker, side, amount, quote);
       add.push({ at: l.blockTimestamp ? parseInt(l.blockTimestamp, 16) : CFG.now(), h: ZERO32, side, price: amount > 0 ? quote / amount : 0, amount, quote, via: "market", tx, li });
+      if (maker && isAddr(maker) && maker !== ZERO_ADDR) sev.push({ kind: "fill", maker, quote, via: "market", at: CFG.now() });
     }
     if (!add.length) continue;
     m.fills = [...add.reverse(), ...(m.fills || [])].slice(0, KEEP_FILLS);
@@ -905,6 +1029,7 @@ async function recordMarket(store, logs) {
     mem.delete("book:" + token);
     n += add.length;
   }
+  if (sev.length) await seasonAdd(store, sev).catch(() => null);
   return n;
 }
 /// right after a market order: the page sends its transaction so the tape shows it at once
@@ -1058,6 +1183,12 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
       if (r.fail) backoff(x, r.fail);
       if (r.rc) out.filled += recordFills(m, r.rc, "pool", evs).length;
     }
+    // v8: legs waiting on an order that filled in this run (a bracket's take profit and stop) are armed now, not next run
+    for (const x of m.orders) {
+      if (x.status !== "open" || !x.after || x.afterMet) continue;
+      const par = m.orders.find((y) => y.h === x.after);
+      if (par && (par.status === "filled" || BigInt(par.filled || 0) * 100n >= BigInt(par.o.sellAmount) * 99n)) { x.afterMet = now; evs.push(ev0(x, "armed")); }
+    }
     // v5: the pool's candles (the 24h numbers, the tape's swaps) and its depth, every couple of minutes
     if (m.poolId && m.key && s0 && s0.sqrtP > 0n && now - (m.cAt || 0) > 120 && Date.now() - t0 < budgetMs - 2500) {
       m.cAt = now;
@@ -1104,6 +1235,7 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
     } catch (e) { out.errors.push("fee burn: " + String((e && e.message) || e).slice(0, 80)); }
   }
   await pushEvents(store, evs).catch(() => null);
+  await seasonAdd(store, evs).catch(() => null);
   // 5) the status the page and Telegram show
   if (key) {
     const me = addressOfKey(key);
@@ -1529,7 +1661,8 @@ const setPeer = (x) => { PEER = x; };
 const _test = { mem, releasedOf, planMatch, askPrice, bidPrice, encFillPool, encMatch, recover, personalDigest, normOrder };
 return { CFG, id: CFG.id, configure, domainSeparator, orderHash, recover, cancelMessage, viewMessage, cancelMarketMessage, viewOk, normOrder,
   TOPIC_FILLED, encFillPool, encMatch, place, cancel, cancelMarket, book, mine, markets, events, status, planMatch, noteMarketTx, tick, candles, pools,
-  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, stats, condOf, condPrice, setPeer, feed, hookSet, hookGet, hooks, hookNote, hookUrlOk, _test };
+  recent, burns, ethUsd, alerts, alertSet, alertsDue, ponsKey, explore, stats, condOf, condPrice, setPeer, feed, hookSet, hookGet, hooks, hookNote, hookUrlOk,
+  pause, pauseMessage, season, weekOf, keyCreate, keyUse, keyList, keyMessage, myEvents, whyNot, _test };
 }
 
 export const ARC = makeOrders(ARC_CFG);

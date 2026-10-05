@@ -576,7 +576,14 @@ export async function GET(req) {
     try {
       if (k === "book") { const v = await OX.book(url.searchParams.get("token"), { store: scanStore() }); return v ? json(200, v, "public, max-age=3, s-maxage=4") : json(400, { error: "token is needed" }); }
       if (k === "mine") {
-        // a wallet's orders aren't public: one signature (viewMessage) opens them for up to 30 days
+        // a wallet's orders aren't public: one signature (viewMessage) opens them for up to 30 days — or, v8, a read-only
+        // API key the wallet created (for bots: ?orders=mine&apikey=ak_…)
+        if (url.searchParams.get("apikey")) {
+          const ku = await OX.keyUse(url.searchParams.get("apikey"), { store: scanStore() });
+          if (ku.error) return json(ku.status || 401, { error: ku.error });
+          const v = await OX.mine(ku.wallet, { store: scanStore() });
+          return new Response(JSON.stringify({ ...v, apikey: { used: ku.used, perDay: ku.perDay } }), { status: 200, headers: { "content-type": "application/json", "cache-control": "no-store", "access-control-allow-origin": "*", "x-ratelimit-limit": String(ku.perDay), "x-ratelimit-remaining": String(Math.max(0, ku.perDay - ku.used)) } });
+        }
         const wa = url.searchParams.get("wallet");
         if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see your orders", locked: true });
         const v = await OX.mine(wa, { store: scanStore() }); return v ? json(200, v, "no-store") : json(400, { error: "wallet is needed" });
@@ -622,6 +629,32 @@ export async function GET(req) {
         return json(200, await OX.alerts(wa, { store: scanStore() }), "no-store");
       }
       if (k === "candles") { const v = await OX.candles(url.searchParams.get("pool"), { store: scanStore() }); return v ? json(200, v, "public, max-age=20, s-maxage=30") : json(400, { error: "pool is needed" }); }
+      // v8: the week's season board (and a wallet's own line), a wallet's API keys, a wallet's own events (JSON or a
+      // short stream) — the last two behind its view signature
+      if (k === "season") return json(200, await OX.season({ store: scanStore(), wallet: url.searchParams.get("wallet") || "" }), url.searchParams.get("wallet") ? "no-store" : "public, max-age=30, s-maxage=60");
+      if (k === "apikeys" || k === "myevents" || k === "mystream") {
+        const wa = url.searchParams.get("wallet");
+        if (!OX.viewOk(wa, url.searchParams.get("until"), url.searchParams.get("sig"))) return json(401, { error: "sign once to see this", locked: true });
+        if (k === "apikeys") return json(200, await OX.keyList(wa, { store: scanStore() }), "no-store");
+        if (k === "myevents") return json(200, await OX.myEvents(wa, { store: scanStore(), since: url.searchParams.get("since") }), "no-store");
+        const st0 = scanStore(), enc = new TextEncoder();
+        let since = Number(req.headers.get("last-event-id") || url.searchParams.get("since") || 0) || 0;
+        const body = new ReadableStream({
+          async start(ctl) {
+            const t0 = Date.now();
+            ctl.enqueue(enc.encode(`retry: 4000\n: your ARCIRCLE Orders on ${OX.id}\n\n`));
+            if (!since) { const f0 = await OX.myEvents(wa, { store: st0, since: 0 }).catch(() => null); since = f0 ? f0.seq : 0; ctl.enqueue(enc.encode(`event: hello\ndata: ${JSON.stringify({ chain: OX.id, seq: since })}\n\n`)); }
+            while (Date.now() - t0 < 20000) {
+              const f = await OX.myEvents(wa, { store: st0, since }).catch(() => null);
+              if (f) { for (const e of f.list) ctl.enqueue(enc.encode(`id: ${e.id}\nevent: ${e.kind}\ndata: ${JSON.stringify(e)}\n\n`)); since = Math.max(since, f.seq || since); }
+              await new Promise((r) => setTimeout(r, 2500));
+              ctl.enqueue(enc.encode(": ok\n\n"));
+            }
+            ctl.close();
+          },
+        });
+        return new Response(body, { status: 200, headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" } });
+      }
       return json(400, { error: "unknown orders view" });
     } catch (err) { return json(502, { error: "couldn't read the order book right now" }); }
   }
@@ -764,12 +797,13 @@ export async function POST(req) {
       try { return json(200, b.action === "snappublish" ? await snap.publish(b, { store: st, recover: recoverSigner }) : await snap.schedule(b, { store: st, recover: recoverSigner })); }
       catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
     }
-    if (b.action === "orderplace" || b.action === "ordercancel" || b.action === "ordercancelall" || b.action === "orderfilled" || b.action === "orderalert") {
+    // v8: orderhook (v7's webhook — it wasn't routed here), orderpause (pause / resume), orderkey (read-only API keys)
+    if (["orderplace", "ordercancel", "ordercancelall", "orderfilled", "orderalert", "orderhook", "orderpause", "orderkey"].includes(b.action)) {
       const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
       if (scanner.limited(`orders:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       const st = storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], getMany: (ks) => getDocs(ks), set: (k, d) => setDoc(k, d) } : null;
       const OX = orders.forChain(b.chain);
-      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet, orderhook: OX.hookSet }[b.action];
+      const fn = { orderplace: OX.place, ordercancel: OX.cancel, ordercancelall: OX.cancelMarket, orderfilled: (x, o) => OX.noteMarketTx(x.tx, o), orderalert: OX.alertSet, orderhook: OX.hookSet, orderpause: OX.pause, orderkey: OX.keyCreate }[b.action];
       try { const r = await fn(b, { store: st }); return json(r.status, r.body); }
       catch (err) { return json(502, { error: `couldn't reach ${OX.CFG.name} right now: ` + String(err && err.message || err).slice(0, 120) }); }
     }
