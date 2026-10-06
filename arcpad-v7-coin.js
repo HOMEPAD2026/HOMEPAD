@@ -30,7 +30,7 @@
       "Due diligence by ARCIA": "ARCIA 실사 의뢰", "Embed": "임베드", "Embed this coin": "이 코인 임베드", "A live price card for your site — paste it where you want it.": "사이트용 실시간 가격 카드 — 원하는 곳에 붙여 넣으세요.", "Copy code": "코드 복사", "Copied": "복사됨", "Preview": "미리보기", "Light version": "라이트 버전",
       "Milestones": "마일스톤", "to go": "남음", "passed": "달성", "Market-cap milestones": "시가총액 마일스톤",
       "Chart": "차트", "Trade": "거래", "Safety": "안전", "Activity": "활동", "Orders": "주문",
-      "First minute": "첫 1분", "wallet": "지갑", "wallets": "지갑", "bought": "매수", "of the supply": "공급량", "they still hold": "아직 보유", "in the launch block": "런치 블록에서", "the creator among them": "크리에이터 포함", "No buys in the first minute.": "첫 1분 동안 매수 없음.",
+      "First minute": "첫 1분", "wallet": "지갑", "wallets": "지갑", "bought": "매수", "of the supply": "공급량", "Bought in the first 60 seconds": "첫 60초 안에 매수", "they still hold": "아직 보유", "in the launch block": "런치 블록에서", "the creator among them": "크리에이터 포함", "No buys in the first minute.": "첫 1분 동안 매수 없음.",
       "Creator": "크리에이터", "Coins launched": "런치한 코인", "Best market cap": "최고 시가총액", "Volume 24h": "24시간 거래량", "Fees 24h (est.)": "24시간 수수료(추정)", "First launch": "첫 런치", "Follow": "팔로우", "Following": "팔로잉", "Share profile": "프로필 공유", "Coins": "코인",
       "No coins from this wallet on ArcPad yet.": "이 지갑이 ArcPad에서 런치한 코인이 아직 없어요.", "That isn't a wallet address.": "지갑 주소가 아니에요.", "Since launch": "런치 이후",
       "Pick two or three coins: the compare button on any card in Explore, or on a coin's page.": "두세 개의 코인을 고르세요: Explore 카드나 코인 페이지의 비교 버튼.", "Holders": "홀더", "Creator holds": "크리에이터 보유", "Top 10 hold": "상위 10 보유", "Launched": "런치", "Trade fee": "거래 수수료", "Paired with": "페어", "Trades 24h": "24시간 거래", "Market cap": "시가총액",
@@ -46,7 +46,7 @@
       "Due diligence by ARCIA": "委托 ARCIA 尽调", "Embed": "嵌入", "Embed this coin": "嵌入这个币", "A live price card for your site — paste it where you want it.": "给你网站的实时价格卡——粘贴到想放的位置。", "Copy code": "复制代码", "Copied": "已复制", "Preview": "预览", "Light version": "浅色版",
       "Milestones": "里程碑", "to go": "还差", "passed": "已达成", "Market-cap milestones": "市值里程碑",
       "Chart": "图表", "Trade": "交易", "Safety": "安全", "Activity": "动态", "Orders": "订单",
-      "First minute": "首分钟", "wallet": "个钱包", "wallets": "个钱包", "bought": "买入", "of the supply": "的供应量", "they still hold": "仍持有", "in the launch block": "在发射区块中", "the creator among them": "其中包括创作者", "No buys in the first minute.": "首分钟没有买入。",
+      "First minute": "首分钟", "wallet": "个钱包", "wallets": "个钱包", "bought": "买入", "of the supply": "的供应量", "Bought in the first 60 seconds": "在前 60 秒内买入", "they still hold": "仍持有", "in the launch block": "在发射区块中", "the creator among them": "其中包括创作者", "No buys in the first minute.": "首分钟没有买入。",
       "Creator": "创作者", "Coins launched": "发射的币", "Best market cap": "最高市值", "Volume 24h": "24 小时交易量", "Fees 24h (est.)": "24 小时手续费(估)", "First launch": "首次发射", "Follow": "关注", "Following": "已关注", "Share profile": "分享主页", "Coins": "币",
       "No coins from this wallet on ArcPad yet.": "这个钱包还没有在 ArcPad 发射过币。", "That isn't a wallet address.": "这不是钱包地址。", "Since launch": "自发射以来",
       "Pick two or three coins: the compare button on any card in Explore, or on a coin's page.": "选两到三个币:Explore 卡片或币页面上的对比按钮。", "Holders": "持有人", "Creator holds": "创作者持有", "Top 10 hold": "前 10 持有", "Launched": "发射", "Trade fee": "交易费", "Paired with": "配对", "Trades 24h": "24 小时交易", "Market cap": "市值",
@@ -179,7 +179,7 @@
     if (!e.n) return ["ok", W0("First minute"), W0("No buys in the first minute.")];
     const kind = e.pct <= 10 ? "ok" : e.pct <= 25 ? "warn" : "bad";
     const parts = [e.hold != null ? `${W0("they still hold")} ${p(e.hold)}%` : "", e.first > 1 ? `${e.first} ${W0("in the launch block")}` : "", e.creator ? W0("the creator among them") : ""].filter(Boolean);
-    return [kind, `${W0("First minute")}: ${e.n} ${W0(e.n === 1 ? "wallet" : "wallets")} ${W0("bought")} ${p(e.pct)}%`, `${p(e.pct)}% ${W0("of the supply")}${parts.length ? " · " + parts.join(" · ") : ""}`];
+    return [kind, `${W0("First minute")}: ${e.n} ${W0(e.n === 1 ? "wallet" : "wallets")} ${W0("bought")} ${p(e.pct)}%`, `${W0("Bought in the first 60 seconds")}${parts.length ? " · " + parts.join(" · ") : ""}`];
   };
 
   // =====================================================================

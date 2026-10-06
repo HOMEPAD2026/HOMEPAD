@@ -17890,12 +17890,12 @@ body.cp-home-live #bp-panel-home > .bp-hero h1{font-size:clamp(1.6rem,3.2vw,2.6r
 .v7-snipe.warn{color:#ffd88a;background:rgba(255,200,97,.12);border:1px solid rgba(255,200,97,.4);}
 .v7-snipe.bad{color:#ffb3b3;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.45);}
 .ap-launch-card{position:relative;}
-.v7-cmpb{position:absolute;right:10px;bottom:10px;z-index:3;width:28px;height:28px;display:grid;place-items:center;border-radius:9px;border:1px solid var(--line);background:rgba(8,12,14,.85);color:#8c98a6;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,border-color .15s;}
+.v7-cmpb{position:absolute;left:66px;top:14px;z-index:3;width:28px;height:28px;display:grid;place-items:center;border-radius:9px;border:1px solid var(--line);background:rgba(8,12,14,.85);color:#8c98a6;cursor:pointer;opacity:0;transition:opacity .15s,color .15s,border-color .15s;}
 .v7-cmpb svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
 .ap-launch-card:hover .v7-cmpb,.ap-launch-card:focus-within .v7-cmpb,.v7-cmpb.on,.v7-cmpb:focus-visible{opacity:1;}
 .v7-cmpb.on{color:#04120a;background:var(--green);border-color:var(--green);}
-@media (pointer:coarse){.v7-cmpb{opacity:.85;}}
-.ap-launch-card:has(.v6-qb) .v7-cmpb{bottom:54px;}
+@media (pointer:coarse){.v7-cmpb{display:none;}} /* phones: compare from the long-press sheet or the coin page */
+
 .v7-tray{position:fixed;left:50%;bottom:calc(var(--v7-bottom,0px) + 18px);transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 24px);padding:8px 10px;border-radius:16px;background:rgba(10,14,16,.95);border:1px solid rgba(57,255,136,.35);box-shadow:0 12px 40px rgba(0,0,0,.5);backdrop-filter:blur(10px);animation:v7Up .3s ease-out;}
 .v7-tray[hidden]{display:none;}
 @keyframes v7Up{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translate(-50%,0);}}
@@ -17997,7 +17997,7 @@ body.cp-home-live #bp-panel-home > .bp-hero h1{font-size:clamp(1.6rem,3.2vw,2.6r
 @keyframes v7Sheet{from{transform:translateY(100%);}to{transform:none;}}
 .v7-lp-grab{display:block;width:40px;height:4px;margin:0 auto 12px;border-radius:4px;background:rgba(255,255,255,.2);}
 .v7-lp-h{display:flex;align-items:center;gap:10px;}
-.v7-lp-h span{flex:1;min-width:0;}.v7-lp-h small{display:block;color:#8c98a6;font-size:.74rem;}
+.v7-lp-h > span:not(.v7-lp-logo){flex:1;min-width:0;}.v7-lp-h small{display:block;color:#8c98a6;font-size:.74rem;}
 .v7-lp-logo{width:40px;height:40px;border-radius:50%;object-fit:cover;display:grid;place-items:center;color:#fff;font-weight:800;}
 .v7-lp-x{background:none;border:0;color:#8c98a6;font-size:1.4rem;cursor:pointer;}
 .v7-lp-box p{margin:14px 0 8px;font:700 .62rem 'Sora',sans-serif;text-transform:uppercase;letter-spacing:.1em;color:#7c8792;}
@@ -18230,3 +18230,18 @@ body.arcpad-page .adv-launch-form label > .v7-ticks{flex:1 0 100%;}
 .v7-ctabs{min-width:0;max-width:100%;box-sizing:border-box;}
 @media (max-width:720px){.v7-ctabs button{flex:1 1 auto;padding:7px 8px;}}
 @media (max-width:1180px){#bp-panel-launch[data-v6step="review"] .v7-lside{order:-1;margin-bottom:4px;}}
+
+/* phone cards (two narrow columns): one-line top row, the first-minute badge on the name line, quick buy fits */
+.v7-snipe-n{display:inline-block;vertical-align:middle;margin:0 0 0 6px;}
+@media (max-width:480px){
+  .ap-launch-card .ap-card-top{flex-wrap:nowrap;}
+  .ap-launch-card .ap-card-top:has(.ap-hot) .ap-card-age{display:none;}
+  .ap-launch-card .ap-hot{padding:2px 6px;font-size:.54rem;}
+  .ap-launch-card .v6-qb{gap:4px;}
+  .ap-launch-card .v6-qb > span:first-child{display:none;}
+  .ap-launch-card .v6-qbb{flex:1;text-align:center;padding:5px 0;}
+  .ap-launch-card .name .v7-snipe{font-size:.52rem;padding:1px 5px;}
+}
+.v7-lp-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.v7-lp-row .v7-lp-open{margin-top:0;}
+.v7-lp-cmp.on{border-color:rgba(57,255,136,.5);color:#9dffc4;}

@@ -328,8 +328,9 @@
       const e = EARLY.get(lc(c.dataset.token)), has = c.querySelector(".v7-snipe");
       if (!e || !(e.pct >= 10)) { if (has) has.remove(); return; }
       if (has) return;
-      const top = c.querySelector(".ap-card-top"); if (!top) return;
-      top.insertAdjacentHTML("beforeend", `<span class="v7-snipe ${e.pct >= 25 ? "bad" : "warn"}" title="${esc(e.pct.toFixed(1))}% ${V("of the supply bought in the first minute")}" data-no-i18n>⚡ ${Math.round(e.pct)}%</span>`);
+      // on the name line, so it never pushes the card's top row onto two lines
+      const top = c.querySelector(".name") || c.querySelector(".ap-card-top"); if (!top) return;
+      top.insertAdjacentHTML("beforeend", `<span class="v7-snipe v7-snipe-n ${e.pct >= 25 ? "bad" : "warn"}" title="${esc(e.pct.toFixed(1))}% ${V("of the supply bought in the first minute")}" data-no-i18n>⚡ ${Math.round(e.pct)}%</span>`);
     });
   }
   // compare: up to 3 coins (Arc coins: ArcPad and Argus), a tray, then #compare?t=a,b,c
@@ -561,13 +562,13 @@
     if (!l) return;
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* not allowed */ } }
     let sh = $("v7-lp");
-    if (!sh) { sh = document.createElement("div"); sh.id = "v7-lp"; sh.className = "v7-lp"; document.body.appendChild(sh); sh.addEventListener("click", (e) => { if (e.target === sh || e.target.closest("[data-lp-x]")) sh.hidden = true; const b = e.target.closest("[data-lp-buy]"); if (b && window.arcV6) window.arcV6.quickBuy(sh.dataset.t, Number(b.dataset.lpBuy), b); const o = e.target.closest("[data-lp-open]"); if (o) { sh.hidden = true; if (typeof openArcCoin === "function") openArcCoin(sh.dataset.t); } }); }
+    if (!sh) { sh = document.createElement("div"); sh.id = "v7-lp"; sh.className = "v7-lp"; document.body.appendChild(sh); sh.addEventListener("click", (e) => { if (e.target === sh || e.target.closest("[data-lp-x]")) sh.hidden = true; const b = e.target.closest("[data-lp-buy]"); if (b && window.arcV6) window.arcV6.quickBuy(sh.dataset.t, Number(b.dataset.lpBuy), b); const o = e.target.closest("[data-lp-open]"); if (o) { sh.hidden = true; if (typeof openArcCoin === "function") openArcCoin(sh.dataset.t); } const cm = e.target.closest("[data-lp-cmp]"); if (cm) { sh.hidden = true; cmpToggle(sh.dataset.t); } }); }
     sh.dataset.t = l.token; sh.hidden = false;
     const qb = l.quoteIsUsdc;
     sh.innerHTML = `<div class="v7-lp-box" role="dialog" aria-modal="true" aria-label="${V("Quick buy")} $${esc(l.symbol)}"><span class="v7-lp-grab" aria-hidden="true"></span>
       <div class="v7-lp-h">${logoHtml(l, "v7-lp-logo")}<span><b data-no-i18n>$${esc(l.symbol)}</b><small data-no-i18n>${esc(l.name)} · ${usd(l.marketCapUsd)}</small></span><button type="button" class="v7-lp-x" data-lp-x aria-label="Close">×</button></div>
       ${qb ? `<p>${V("Quick buy")}</p><div class="v7-lp-amts">${[1, 5, 10, 25].map((v) => `<button type="button" class="v6-qbb" data-lp-buy="${v}" data-no-i18n>$${v}</button>`).join("")}</div>` : ""}
-      <button type="button" class="bp-btn-ghost v7-lp-open" data-lp-open>${V("Open coin")} →</button></div>`;
+      <div class="v7-lp-row"><button type="button" class="bp-btn-ghost v7-lp-open" data-lp-open>${V("Open coin")} →</button><button type="button" class="bp-btn-ghost v7-lp-cmp${CMP.list.includes(lc(l.token)) ? " on" : ""}" data-lp-cmp>${V(CMP.list.includes(lc(l.token)) ? "Remove from compare" : "Add to compare")}</button></div></div>`;
     if (!reduce) { sh.classList.remove("in"); void sh.offsetWidth; sh.classList.add("in"); }
   }
   document.addEventListener("touchstart", (e) => {
