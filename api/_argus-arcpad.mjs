@@ -225,11 +225,14 @@ async function scan(store, items, budgetMs) {
 }
 
 /// GET ?argusarc=list → { items: [...], at }
+// coins taken off ArcPad's lists (Explore, Home, the ticker): ♾️ Infinite, the test coin retired on 5 Oct 2026.
+// Keep config-arc.js HIDDEN_COINS in step.
+export const HIDDEN = ["0x2a15940316335bfb711db7cba98d637396e80c08"];
 export async function list({ store = null, budgetMs = 4000 } = {}) {
   if (mem.view && Date.now() - mem.view.at < 60e3) return mem.view;
   const items = await readList(store);
   await scan(store, items, budgetMs).catch(() => 0);
   const view = await withPrices(items);
-  mem.view = { items: view, at: Date.now() };
+  mem.view = { items: view.filter((x) => !HIDDEN.includes(String(x.token || "").toLowerCase())), at: Date.now() };
   return mem.view;
 }

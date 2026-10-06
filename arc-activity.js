@@ -141,7 +141,8 @@ function arcAnyStats(l) {
 /// every coin ArcPad lists, on every platform
 function arcAllCoins() {
   const rowsOf = (m) => (m && typeof m.rows === "function" ? m.rows() : []);
-  return (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump));
+  const hidden = (typeof CONFIG !== "undefined" && CONFIG.HIDDEN_COINS) || []; // config-arc.js: coins kept off the lists
+  return (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump)).filter((l) => !hidden.includes(String(l.token || "").toLowerCase()));
 }
 window.arcAnyStats = arcAnyStats; window.arcAllCoins = arcAllCoins;
 function arcLaunchAge(l) { return l && l.launchedAt ? actAgo(l.launchedAt) : ""; }

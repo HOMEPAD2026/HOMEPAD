@@ -480,13 +480,14 @@ self.postMessage({done:true});};`;
       startPrice: Number.isFinite(x.tickStart) && typeof x.tokenIs0 === "boolean" ? (x.tokenIs0 ? Math.pow(1.0001, x.tickStart) * 1e12 : 1e12 / Math.pow(1.0001, x.tickStart)) : null,
     };
   }
+  const hiddenCoin = (t) => ((typeof CONFIG !== "undefined" && CONFIG.HIDDEN_COINS) || []).includes(lc(t)); // config-arc.js HIDDEN_COINS
   async function loadList() {
     if (AR.busy || Date.now() - AR.at < 45e3) return AR.items;
     AR.busy = true;
     try {
       const r = await fetch("/api/social?argusarc=list", { cache: "no-store" });
       const j = r.ok ? await r.json() : null;
-      if (j && Array.isArray(j.items)) { AR.items = j.items.filter((x) => x.active !== false && isAddr(x.token)).map(rowOf); AR.at = Date.now(); milestones(AR.items); }
+      if (j && Array.isArray(j.items)) { AR.items = j.items.filter((x) => x.active !== false && isAddr(x.token) && !hiddenCoin(x.token)).map(rowOf); AR.at = Date.now(); milestones(AR.items); }
     } catch { /* keep what we had */ }
     AR.busy = false;
     // only once ArcPad's own launches are in: before that (or if Arc couldn't be read) the grid keeps its skeleton / error

@@ -130,6 +130,9 @@ const CONFIG = {
   // Each closed round's coin, for the Projects results strip (circlepad-v5.js): sym, chain ("arc" | "rh"), token;
   // { merged: n } for a round that went into another one; retired: true for a coin that isn't official any more
   // (no address, no market, no trade link).
+  // Coins kept off ArcPad's lists — Explore, Home (King of the Hill, Trending), the ticker: ♾️ Infinite, the test coin
+  // retired on 5 Oct 2026. Keep api/_argus-arcpad.mjs HIDDEN in step.
+  HIDDEN_COINS: ["0x2a15940316335bfb711db7cba98d637396e80c08"],
   CIRCLEPAD_RESULTS: {
     1: { sym: "ARCIA", chain: "arc", retired: true }, // the old $ARCIA on Arc — retired on 5 Oct 2026
     2: { merged: 3 },
