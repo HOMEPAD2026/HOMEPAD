@@ -27,7 +27,15 @@ import * as X from "./_x402.mjs";
 import * as works from "./_works.mjs";
 import { veTierOf } from "./_vearcia.mjs";
 import { compact } from "./_cron.mjs";
-works.configure({ veTier: veTierOf, run: A.run });
+import { askClaude } from "./_arcia-brain.mjs";
+works.configure({
+  veTier: veTierOf, run: A.run,
+  // ARCIA's own write-up of a WORKS job: the data stays below it, unchanged
+  write: ({ title, brief, data }) => askClaude({
+    messages: [{ role: "user", content: `A client hired you on ARCIA WORKS: "${title}"${brief ? ` — they wrote: "${brief}"` : ""}. Here is the data you gathered:\n${JSON.stringify(data).slice(0, 9000)}\n\nWrite the brief they paid for: 4 to 7 short bullet points ("- "), most important first — what it is, what looks good, what to watch, your bottom line. At most 170 words. Only facts from the data; say so when something is unknown. No links, no hashtags, no financial advice.` }],
+    L: null, extra: "You are ARCIA delivering a paid job on ARCIA WORKS. Be precise and useful; never invent numbers.", maxTokens: 420, timeoutMs: 20000,
+  }).catch(() => null),
+});
 
 const SITE = "https://www.arcircle.app";
 const CORS = {

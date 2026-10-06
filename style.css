@@ -17782,3 +17782,4 @@ body.cp-home-live #bp-panel-home > .bp-hero h1{font-size:clamp(1.6rem,3.2vw,2.6r
   .wk-emblem{width:64px;height:64px;border-radius:18px;}.wk-emblem svg{width:46px;height:46px;}
 }
 @media (prefers-reduced-motion:reduce){.wk-e-link,.wk-st.delivered,.wk-term pre span:last-of-type::after,.wk-job,.wk-stats.wk-pulse{animation:none!important;}.wk-rail::before,.wk-coin{transition:none;}}
+.wk-deliver>.ams-mini{align-self:flex-start;}

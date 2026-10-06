@@ -36,6 +36,7 @@ export const CFG = {
   now: () => Math.floor(Date.now() / 1000),
   veTier: async () => 0, // set by the router: veARCIA tier of a wallet (api/_vearcia.mjs veTierOf)
   run: null, // set by the router: ARCIA 402's run(service, q) for ARCIA's own jobs
+  write: null, // set by the router: ARCIA writes the brief's summary from the data (api/_arcia-brain.mjs askClaude) → text or null
   maxJobs: 400,
 };
 let chain = null;
@@ -342,8 +343,15 @@ async function arciaWork(json) {
     if (!isAddr(inp.token)) throw Object.assign(new Error("the brief has no token address"), { bad: true });
     parts.push(["Holder snapshot", await run("holder-snapshot", { token: inp.token })]);
   } else throw Object.assign(new Error("not a job ARCIA does"), { bad: true });
-  const head = `# ${json.title || "ARCIA WORKS brief"}\nBy ARCIA · ARCIRCLE PAD · ${new Date(CFG.now() * 1000).toISOString()}\n${json.text ? `\nBrief: ${json.text}\n` : ""}`;
-  return head + parts.filter((p) => p[1]).map(([t, d]) => `\n## ${t}\n\n\`\`\`json\n${JSON.stringify(d, null, 1).slice(0, 18000)}\n\`\`\`\n`).join("");
+  const got = parts.filter((p) => p[1]);
+  const when = new Date(CFG.now() * 1000).toUTCString().replace(/^\w+, /, "").replace(/:\d\d GMT$/, " UTC");
+  let summary = null;
+  if (CFG.write) {
+    summary = await Promise.resolve(CFG.write({ title: json.title || "", brief: json.text || "", tag: json.tag, input: json.input || null, data: Object.fromEntries(got.map(([t, d]) => [t, d])) })).catch(() => null);
+  }
+  const head = `# ${json.title || "ARCIA WORKS brief"}\nBy ARCIA · ARCIRCLE PAD · ${when}\n${json.text ? `\nYou asked: ${json.text}\n` : ""}`;
+  const body = summary ? `\n## My brief\n\n${String(summary).trim()}\n` : "";
+  return head + body + `\n## The data\n` + got.map(([t, d]) => `\n### ${t}\n\n\`\`\`json\n${JSON.stringify(d, null, 1).slice(0, 18000)}\n\`\`\`\n`).join("");
 }
 
 /// GET /api/arcia402?works=tick&key=<CRON_SECRET>: ARCIA's shift. Small and safe to run every few minutes.
