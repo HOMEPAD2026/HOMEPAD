@@ -1127,11 +1127,18 @@
   }
   function refreshLive() {
     // v5: a good read is kept in this browser (the next visit paints it first); a failed one says how old the numbers are
-    return fetch("/api/arcia").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    var opt = {}; try { if (window.AbortSignal && AbortSignal.timeout) opt.signal = AbortSignal.timeout(12000); } catch (e) { /* old browser */ }
+    var miss = function () {
+      fresh5.liveFail = true; liveEmpty(); stale5();
+      // a miss is retried soon (3 s, then 8 s), not only on the 20-second refresh
+      refreshLive.miss = (refreshLive.miss || 0) + 1;
+      if (refreshLive.miss <= 2) setTimeout(refreshLive, refreshLive.miss === 1 ? 3000 : 8000);
+    };
+    return fetch("/api/arcia", opt).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (j && serverVoice !== false) serverVoice = j.tts || null;
-      if (j && j.live) { fresh5.live = Date.now(); fresh5.liveFail = false; cache5.put("live", j.live); paintLive(j.live); }
-      else { fresh5.liveFail = true; liveEmpty(); stale5(); }
-    }).catch(function () { fresh5.liveFail = true; liveEmpty(); stale5(); });
+      if (j && j.live) { refreshLive.miss = 0; fresh5.live = Date.now(); fresh5.liveFail = false; cache5.put("live", j.live); paintLive(j.live); }
+      else miss();
+    }).catch(miss);
   }
   /// no read at all yet: the Live rows show dashes instead of "Loading…"
   function liveEmpty() {

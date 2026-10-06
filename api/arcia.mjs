@@ -453,7 +453,9 @@ export async function GET(req) {
     catch (e) { console.error("arcia letters", String(e.message || e)); return json({ letters: [], open: true, error: "couldn't read letters" }, 200, "no-store"); }
   }
   const L = await liveFor(url.origin);
-  return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA, tts: ttsProvider() });
+  // the same for everyone (no wallet here): the CDN keeps it, so the page's numbers come back at once
+  return json({ ok: true, ai: !!process.env.ANTHROPIC_API_KEY, live: L, x: X_ARCIA, tts: ttsProvider() }, 200,
+    L && L.arcia && L.arcia.price != null ? "public, max-age=10, s-maxage=20, stale-while-revalidate=300" : "public, max-age=3, s-maxage=5");
 }
 
 export async function POST(req) {

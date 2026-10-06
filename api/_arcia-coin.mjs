@@ -25,8 +25,10 @@ const market = (p) => ({
 export async function arciaCoin(origin) {
   if (coinMem && Date.now() - coinMem.at < 20e3) return coinMem.v;
   const pons = import("./_pons-arcpad.mjs").then((m) => m.livePons(ARCIA_RH)).catch(() => null);
+  // every source is capped, so one slow RPC never holds the page's numbers (the last good read stands in)
+  const cap = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
   const [pl, dxRh, scRh] = await Promise.all([
-    pons,
+    cap(pons, 3000),
     getJson(`https://api.dexscreener.com/tokens/v1/robinhood/${ARCIA_RH}`, 3000),
     origin ? getJson(`${origin}/api/social?scan=${ARCIA_RH.toLowerCase()}&chain=rh&sym=ARCIA`, 3500) : null,
   ]);
@@ -42,8 +44,8 @@ export async function arciaCoin(origin) {
     buys24h: mr.buys24h, sells24h: mr.sells24h,
     holders: scRh && scRh.holderCount != null ? num(scRh.holderCount) : null,
   };
-  if (v.price != null || v.holders != null) coinMem = { at: Date.now(), v };
-  return v;
+  if (v.price != null || v.holders != null) { coinMem = { at: Date.now(), v }; return v; }
+  return coinMem ? { ...coinMem.v, stale: Math.round((Date.now() - coinMem.at) / 1000) } : v;
 }
 
 const DEAD = "0x000000000000000000000000000000000000dead";

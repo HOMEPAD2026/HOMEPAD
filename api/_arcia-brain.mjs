@@ -196,7 +196,9 @@ export async function live(origin, wallet) {
   const coin = arciaCoin(origin).catch(() => null), vault = liveNft(origin);
   const L = await liveArcircle(origin, wallet);
   const [arcia, nft] = await Promise.all([coin, vault]);
-  return L ? { ...L, arcia, nft } : null;
+  // $ARCIA's numbers (Robinhood Chain) don't wait on $ARCIRCLE's (Arc): when Arc's side is slow or down, the rest still goes out
+  if (!L && !arcia && !nft) return null;
+  return { ...(L || { price: null, mcap: null, holders: null, change24h: null, burnedPct: null, burnedTokens: null, launches: null, round: { open: false, raised: null, deadline: ROUND1_CLOSE, distributed: null } }), arcia, nft };
 }
 /// the ARCIRCLE NFT Vault right now (edge-cached /api/desk?nft=state)
 async function liveNft(origin) {

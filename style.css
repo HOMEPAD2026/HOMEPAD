@@ -18736,3 +18736,21 @@ body.arcpad-page .adv-launch-form label > .v7-ticks{flex:1 0 100%;}
   .aa-tick-w{overflow-x:auto;scrollbar-width:none;}
   .aa-tick-dup{display:none;}
 }
+
+/* v5.1 phones: the strip, the bar and veARCIA's head fit large system fonts */
+.aa-px-buy,.aa-mbar.aa5-mbar > *{white-space:nowrap;}
+@container aa5 (max-width:560px){
+  .aa5 .aa-px-buy{padding:7px 11px;font-size:.72rem;border-radius:10px;}
+  .aa5 .aa-px .aa5-stale{position:static;grid-column:1 / -1;justify-self:start;margin-top:2px;padding:0;border:0;background:none;}
+  .aa5 .aa-px-c small{font-size:.54rem;letter-spacing:.06em;}
+  .aa5 .aa-px-c b{font-size:.86rem;}
+  .aa5 .aa-vp-k{flex-wrap:wrap;row-gap:2px;}
+  .aa5 .aa-vp-k span{flex-basis:100%;padding-left:16px;font-size:.7rem;}
+  .aa5 .aa-vp-big b{font-size:2.6rem;}
+}
+@media (max-width:440px){
+  .aa-mbar.aa5-mbar{grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.2fr);gap:5px;padding:5px;}
+  .aa-mbar.aa5-mbar > *{min-height:44px;padding:0 6px;gap:5px;font-size:.76rem;}
+  .aa-mbar.aa5-mbar svg{width:16px;height:16px;}
+  .aa-mbar.aa5-mbar .buy img{display:none;}
+}

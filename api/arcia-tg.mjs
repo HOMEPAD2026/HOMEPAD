@@ -205,7 +205,7 @@ async function cardBurns(lang) {
 }
 async function cardPrice(lang) {
   const L = await live(SITE);
-  if (!L) return w("err", lang);
+  if (!L || L.price == null) return w("err", lang); // ($ARCIRCLE's side unread: live() still carries $ARCIA's)
   const ch = L.change24h == null ? "" : ` (${L.change24h >= 0 ? "+" : ""}${L.change24h.toFixed(2)}% 24h)`;
   return {
     photo: `${SITE}/api/og?price=1&t=${minute()}`,
@@ -275,7 +275,7 @@ async function cardRound(lang) {
   let raised = null, deadline = null, open = null;
   const st = await roundState(R.escrow).catch(() => null);
   if (st) { raised = Number(st.totalRaised / 10n ** 16n) / 100; deadline = st.deadline; open = st.isOpen; }
-  else if (R.n === 1) { const L = await live(SITE).catch(() => null); if (!L) return w("err", lang); raised = L.round.raised; deadline = L.round.deadline; open = L.round.open; } // the escrow didn't answer: the site's numbers
+  else if (R.n === 1) { const L = await live(SITE).catch(() => null); if (!L || L.round.raised == null) return w("err", lang); raised = L.round.raised; deadline = L.round.deadline; open = L.round.open; } // the escrow didn't answer: the site's numbers
   else return w("err", lang);
   const lf = left(deadline);
   const govLine = R.n > 1 && open ? T3(lang, "Governance, as in Round #1: suggest ideas, then burn-to-vote with $ARCIRCLE (1 vote = 1,000) on name, ticker, logo, roadmap and launch date at arcircle.app/circle → Governance.",
@@ -1170,7 +1170,7 @@ async function onInline(iq) {
       reply_markup: { inline_keyboard: [[{ text: "Full report", url: `${SITE}/s/${ca}` }, { text: "Ask ARCIA", url: `${BOT_URL}?start=scan_${ca}` }]] } });
   }
   const L = await live(SITE).catch(() => null);
-  if (L) results.push({ type: "article", id: "price", title: `$ARCIRCLE ${fmtPrice(L.price)}`, description: `Market cap ${fmtUsd(L.mcap)} · holders ${num(L.holders)}`, thumbnail_url: `${SITE}/images/arcia-avatar-96.jpg`,
+  if (L && L.price != null) results.push({ type: "article", id: "price", title: `$ARCIRCLE ${fmtPrice(L.price)}`, description: `Market cap ${fmtUsd(L.mcap)} · holders ${num(L.holders)}`, thumbnail_url: `${SITE}/images/arcia-avatar-96.jpg`,
     input_message_content: { message_text: `<b>$ARCIRCLE</b> ${fmtPrice(L.price)}${L.change24h != null ? ` (${L.change24h >= 0 ? "+" : ""}${L.change24h.toFixed(2)}% 24h)` : ""}\nMarket cap ${fmtUsd(L.mcap)} · holders ${num(L.holders)}\n<a href="${SITE}/arc#arcircle">arcircle.app</a>`, parse_mode: "HTML" } });
   return tg("answerInlineQuery", { inline_query_id: iq.id, results, cache_time: 30, button: { text: "Talk to ARCIA", start_parameter: "hi" } });
 }
