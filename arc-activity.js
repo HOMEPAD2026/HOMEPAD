@@ -457,6 +457,8 @@ document.addEventListener("arcpad:tab", () => setTimeout(tkStart, 30));
 function actPaint() {
   document.querySelectorAll(".ap-launch-card[data-token]").forEach(arcPaintCard);
   actPaintTicker();
+  ACT.paintedAt = Date.now(); // Explore's "updated n s ago" (arcpad-v7.js)
+  document.dispatchEvent(new Event("arc:activity"));
 }
 
 function arcActivityStart() {

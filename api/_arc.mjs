@@ -172,7 +172,7 @@ export async function getCoin(addr) {
   if (!rec) return null;
   const l = {
     token: wAddr(rec, 0), quoteToken: wAddr(rec, 1), quoteIsCurrency0: wBig(rec, 3) !== 0n, creator: wAddr(rec, 4),
-    launchedAt: Number(wBig(rec, 5)), extraFeeBps: Number(wBig(rec, 6)),
+    launchedAt: Number(wBig(rec, 5)), extraFeeBps: Number(wBig(rec, 6)), initialVirtualQuoteRaw: wBig(rec, 2).toString(),
     imageUrl: wString(rec, 7), description: wString(rec, 8),
     name: decodeString(nameHex), symbol: decodeString(symHex),
   };
@@ -185,6 +185,7 @@ export async function getCoin(addr) {
   let sqrt = null;
   if (keyHex) {
     const poolId = keccakHex(strip(keyHex).slice(0, 5 * 64));
+    l.poolId = poolId;
     const slot = keccakHex(strip(poolId) + pad("6"));
     const calls = [{ to: POOL_MANAGER, data: SEL.extsload + strip(slot) }];
     if (!l.quoteIsUsdc) calls.push({ to: l.quoteToken, data: SEL.decimals }, { to: l.quoteToken, data: SEL.symbol });

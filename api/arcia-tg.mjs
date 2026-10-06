@@ -126,7 +126,7 @@ const T3 = (lang, en, ko, zh) => [en, ko || en, zh || en][L3(lang)];
 const PUBLIC_CMDS = [["ca", "Official contract addresses: $ARCIRCLE and $ARCIA"], ["price", "$ARCIRCLE price, market cap, holders"], ["burns", "$ARCIRCLE burned: total, by source, latest"], ["scan", "Safety scan of any token: /scan 0x…"], ["coin", "An ArcPad or Argus coin: /coin 0x…"], ["round", "CirclePad round: raised, time left"],
   ["launches", "Newest launches"], ["drops", "Airdrops a wallet got: /drops 0x…"], ["books", "ARCIA 402: what I earned and spent"], ["predict", "ARCIRCLE Predict: live UP / DOWN rounds"], ["nft", "ARCIRCLE NFT Vault: the vault, the next NFT, raffles"], ["me", "Your linked wallet: holdings, rank, airdrops"], ["link", "Link your wallet (one signature)"],
   ["mine", "Builder Mine: mines open now"], ["minealerts", "Builder Mine: tell me when I can claim — on / off"],
-  ["agent", "ARCIA AGENT: her 24h safety call on a token — /agent 0x… [rh]"], ["agentwatch", "ARCIA AGENT: DM me a token's new calls, grades and burns — /agentwatch 0x… [rh] / off"], ["predictalerts", "ARCIRCLE Predict: DM me my rounds' results — /predictalerts 0x… [rh] / off"],
+  ["agent", "ARCIA AGENT: her 24h safety call on a token — /agent 0x… [rh]"], ["agentwatch", "ARCIA AGENT: DM me a token's new calls, grades and burns — /agentwatch 0x… [rh] / off"], ["coinwatch", "ArcPad watchlist: DM me when a coin moves 20% or passes $20K / $100K — /coinwatch 0x… / off"], ["predictalerts", "ARCIRCLE Predict: DM me my rounds' results — /predictalerts 0x… [rh] / off"],
   ["orders", "ARCIRCLE Orders: your open orders"], ["orderalerts", "ARCIRCLE Orders: tell me when my orders fill or my price alerts hit — on / off"], ["stakealerts", "ARCIRCLE Staking: weekly USDC and unlock reminders — on / off"], ["vearcia", "veARCIA: the $ARCIA staking pool and your stake"], ["vearciaalerts", "veARCIA: unlock and boost reminders — on / off"], ["alerts", "Launch, round, airdrop and price alerts: on / off"], ["watch", "Tell me when a wallet gets an airdrop: /watch 0x…"], ["gm", "Say gm — daily streak"], ["gmtop", "gm leaderboard"], ["lucky", "Spin for fun"],
   ["report", "Reply to a message to report it to the team"], ["lang", "Language: en / ko / zh"], ["help", "What I can do"]];
 const ADMIN_CMDS = [["status", "Health of the bot, ARCIA 402 and X"], ["report", "Today in numbers (DM) / report a message (group reply)"], ["botstats", "Bot usage and cost estimate"], ["announce", "Post to every target (text, or a photo with this caption)"],
@@ -801,6 +801,7 @@ async function onMessage(m, channel) {
       case "agent": { const ca = addrOf(arg); return ca ? agentWithProgress(m, ca, /\b(rh|robinhood)\b/i.test(arg) ? "rh" : "arc", lang) : say(m, w("needCA", lang, { cmd: "agent" })); }
       case "agentwatch": case "agentunwatch": return agentWatch(m, arg, cmd === "agentwatch" && !/^off$/i.test(String(arg || "").trim()), lang);
       case "predictalerts": return predictWatch(m, arg, lang);
+      case "coinwatch": case "coinunwatch": return coinWatch(m, addrsIn(arg), cmd === "coinwatch" && !/\boff\b/i.test(String(arg || "")), lang);
       case "orders": return group ? say(m, w("dmOnly", lang)) : sendCard(m.chat.id, await cardOrders(u, lang));
       case "orderalerts": return setOrderAlerts(m, !/^off$/i.test(arg), lang);
       case "stakealerts": return setStakeAlerts(m, !/^off$/i.test(arg), lang);
@@ -1063,6 +1064,7 @@ async function start(c, m, arg, lang) {
   if (/^coin_0x[0-9a-fA-F]{40}$/.test(p)) return sendCard(m.chat.id, await cardCoin(lc(p.slice(5)), lang));
   if (/^drops_0x[0-9a-fA-F]{40}$/.test(p)) return sendCard(m.chat.id, await cardDrops(lc(p.slice(6)), lang));
   if (p === "link") return startLink(m, lang);
+  if (/^wl_[a-z0-9]{8,20}$/.test(p)) return coinWatchFromCode(m, p.slice(3), lang); // the Explore watchlist's "DM me on Telegram"
   if (p === "alerts") return setAlerts(m, true, lang);
   if (p === "mine") return setMineAlerts(m, true, lang);
   if (p === "solorders") return solOrdersWait(m, lang);
@@ -1104,6 +1106,12 @@ async function onCallback(q) {
     return;
   }
   if (data.startsWith("lp:")) { ack(); return editCard(msg, await cardLaunches(Number(data.slice(3)), lang)); }
+  if (data.startsWith("cw:off:")) { // a watchlist note's "Stop"
+    const pre = "0x" + data.slice(7).toLowerCase(), sb = await subs(), W = sb.coinWatch || {};
+    const k = Object.keys(W).find((x) => x.startsWith(pre) && W[x].includes(q.from.id));
+    if (k) { W[k] = W[k].filter((x) => x !== q.from.id); if (!W[k].length) delete W[k]; await putDoc(DOC.subs, sb); }
+    return ack(k ? "✓ Stopped watching this coin" : "Already off");
+  }
   if (data.startsWith("cap:")) {
     const who = Number(data.slice(4));
     if (q.from.id !== who) return ack("This button is for the new member 💙", true);
@@ -1750,6 +1758,75 @@ async function agentWatch(m, arg, on, lang) {
   return say(m, on ? `🤖 ${T3(lang, "Following", "팔로우했어요", "已关注")} <code>${short(ca)}</code>${ch === "rh" ? " (Robinhood Chain)" : ""} — ${T3(lang, "I'll DM you its new safety calls, how they were graded, its buys & burns and when its vault runs dry.", "새 안전 콜, 채점 결과, 매수·소각, 볼트가 비었을 때 DM으로 알려드릴게요.", "新的安全判断、评分结果、买入销毁和金库见底时我会私信你。")}`
     : `✓ ${T3(lang, "Stopped following", "팔로우를 껐어요", "已取消关注")} <code>${short(ca)}</code>`);
 }
+// ---------------- ArcPad watchlist on Telegram: /coinwatch and the Explore watchlist's "DM me on Telegram" ----------------
+// The web page posts its watchlist (≤ 12 ArcPad coins) for a one-time code (POST ?wlcode=1, 30 minutes); the bot link
+// t.me/<bot>?start=wl_<code> adds them for that Telegram account: s.coinWatch = { "0x…": [telegram ids] }. The tick DMs a
+// coin's ±20% moves since the last note and the first time it passes a $20K / $100K market cap. No wallet needed.
+const DOC_WL = "tgArcia/wlcodes";
+const addrsIn = (a) => [...new Set((String(a || "").match(/0x[0-9a-fA-F]{40}/g) || []).map(lc))].slice(0, 12);
+async function wlCode(b) {
+  const toks = [...new Set((Array.isArray(b && b.tokens) ? b.tokens : []).map(lc).filter(isAddr))].slice(0, 12);
+  if (!toks.length) return { status: 400, body: { error: "add a coin to your watchlist first" } };
+  const code = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+  const d = (await getDoc(DOC_WL)) || {};
+  for (const [k, v] of Object.entries(d)) if (!v || v.exp < Date.now()) delete d[k];
+  if (Object.keys(d).length > 300) return { status: 429, body: { error: "busy — try again in a few minutes" } };
+  d[code] = { t: toks, exp: Date.now() + 30 * 60e3 };
+  await putDoc(DOC_WL, d);
+  return { status: 200, body: { code, url: `${BOT_URL}?start=wl_${code}` } };
+}
+async function coinWatchFromCode(m, code, lang) {
+  const d = (await getDoc(DOC_WL)) || {}, it = d[code];
+  if (!it || it.exp < Date.now()) return say(m, T3(lang, "That link expired — open your watchlist on ArcPad and tap \"DM me on Telegram\" again.", "링크가 만료됐어요 — ArcPad 관심 목록에서 \"텔레그램으로 알림 받기\"를 다시 눌러 주세요.", "链接已过期——请在 ArcPad 关注列表中再点一次\"Telegram 私信提醒\"。"));
+  delete d[code]; await putDoc(DOC_WL, d);
+  return coinWatch(m, it.t, true, lang);
+}
+async function coinWatch(m, toks, on, lang) {
+  if (isGroup(m.chat)) return say(m, w("dmOnly", lang));
+  const s = await subs(); s.coinWatch = s.coinWatch || {};
+  const mine = Object.keys(s.coinWatch).filter((k) => s.coinWatch[k].includes(m.from.id));
+  const drop = (k) => { s.coinWatch[k] = (s.coinWatch[k] || []).filter((x) => x !== m.from.id); if (!s.coinWatch[k].length) delete s.coinWatch[k]; };
+  const name = async (t) => { const c = await getCoin(t).catch(() => null); return c && c.symbol ? `$${h(c.symbol)}` : `<code>${short(t)}</code>`; };
+  if (!toks.length) {
+    if (!on) { mine.forEach(drop); await putDoc(DOC.subs, s); return say(m, `✓ ${T3(lang, "Watchlist alerts are off.", "관심 목록 알림을 껐어요.", "已关闭关注列表提醒。")}`); }
+    return say(m, mine.length ? `⭐ ${(await Promise.all(mine.map(name))).join(", ")}\n/coinwatch off ${T3(lang, "to stop all", "로 모두 끄기", "全部取消")}`
+      : T3(lang, "Send a coin: /coinwatch 0x… — or tap \"DM me on Telegram\" on your ArcPad watchlist. I'll DM you when it moves 20% or passes a $20K / $100K market cap.", "코인 주소를 보내 주세요: /coinwatch 0x… — 또는 ArcPad 관심 목록에서 \"텔레그램으로 알림 받기\"를 누르세요. 20% 움직이거나 시가총액 $20K / $100K를 넘으면 DM으로 알려드려요.", "发送代币地址:/coinwatch 0x… ——或在 ArcPad 关注列表点\"Telegram 私信提醒\"。涨跌 20% 或市值突破 $20K / $100K 时我会私信你。"));
+  }
+  if (!on) { toks.forEach(drop); await putDoc(DOC.subs, s); return say(m, `✓ ${T3(lang, "Stopped watching", "그만 지켜볼게요", "已取消关注")} ${(await Promise.all(toks.map(name))).join(", ")}`); }
+  const added = [];
+  for (const t of toks) {
+    if (!mine.includes(t) && mine.length + added.length >= 12) break;
+    if (!(await getCoin(t).catch(() => null))) continue; // ArcPad coins only
+    s.coinWatch[t] = [...(s.coinWatch[t] || []).filter((x) => x !== m.from.id), m.from.id];
+    added.push(t);
+  }
+  if (!added.length) return say(m, T3(lang, "None of those are ArcPad coins I can read right now (up to 12 per person).", "읽을 수 있는 ArcPad 코인이 없어요 (1인당 최대 12개).", "没有我现在能读取的 ArcPad 代币(每人最多 12 个)。"));
+  if (Object.keys(s.coinWatch).length > 600) return say(m, "The list is full right now — try later.");
+  await putDoc(DOC.subs, s);
+  return say(m, `⭐ ${T3(lang, "Watching", "지켜볼게요", "正在关注")} ${(await Promise.all(added.map(name))).join(", ")} — ${T3(lang, "I'll DM you when one moves 20% or passes a $20K / $100K market cap.", "20% 움직이거나 시가총액 $20K / $100K를 넘으면 DM으로 알려드릴게요.", "涨跌 20% 或市值突破 $20K / $100K 时我会私信你。")}\n/coinwatch · /coinwatch off`);
+}
+/// the tick: up to 40 watched coins per run (round robin), each against the price of its last note
+async function coinWatchNotify(T, s, first, out) {
+  const W = s.coinWatch || {}, keys = Object.keys(W);
+  T.cw = T.cw || {};
+  for (const k of Object.keys(T.cw)) if (!W[k]) delete T.cw[k];
+  if (!keys.length) return;
+  const at = (T.cwI || 0) % keys.length, pick = keys.concat(keys).slice(at, at + Math.min(40, keys.length));
+  T.cwI = at + pick.length;
+  let n = 0;
+  for (const t of pick) {
+    const c = await getCoin(t).catch(() => null);
+    if (!c || !c.priceUsd) continue;
+    const mc = c.mcapUsd || 0, b = T.cw[t];
+    if (!b) { T.cw[t] = { p: c.priceUsd, m: (mc >= 2e4 ? 1 : 0) | (mc >= 1e5 ? 2 : 0) }; continue; }
+    const ch = (c.priceUsd - b.p) / b.p, lines = [], sym = h(c.symbol || "?");
+    if (Math.abs(ch) >= 0.2) { lines.push(`${ch > 0 ? "📈" : "📉"} <b>$${sym} ${ch > 0 ? "+" : ""}${(ch * 100).toFixed(0)}%</b> since my last note · ${fmtPrice(c.priceUsd)} · mcap ${fmtUsd(mc)}`); b.p = c.priceUsd; }
+    for (const [bit, v, lab] of [[1, 2e4, "$20K"], [2, 1e5, "$100K"]]) if (mc >= v && !(b.m & bit)) { b.m |= bit; lines.push(`🏁 <b>$${sym} passed a ${lab} market cap</b> · now ${fmtUsd(mc)}`); }
+    if (!lines.length || first) continue;
+    n += await toSubs(W[t], { text: `${lines.join("\n")}\n<code>${t}</code>`, ...kb([[{ text: "Open on ArcPad", url: `${SITE}/arc#coin/${t}` }, { text: "Stop", callback_data: `cw:off:${t.slice(2, 14)}` }]]) });
+  }
+  out.coinWatch = n;
+}
 // ---------------- ARCIRCLE Predict v3: /predictalerts and a wallet's round news (Telegram DM + Web Push) ----------------
 /// s.predictWatch = { "arc:0x…" | "rh:0x…": [telegram ids] } — a wallet's rounds: won, lost, refunded, its side losing the lead
 async function predictWatch(m, arg, lang) {
@@ -1942,6 +2019,7 @@ async function tick() {
   try { await agentNotify(T, s, first, out); } catch (e) { out.agentNotify = String(e.message || e).slice(0, 120); }
   try { await agentWeekly(T, c, out); } catch (e) { out.agentWeekly = String(e.message || e).slice(0, 120); }
   try { await predictNotify(T, s, out); } catch (e) { out.predictNotify = String(e.message || e).slice(0, 120); }
+  try { await coinWatchNotify(T, s, first, out); } catch (e) { out.coinWatch = String(e.message || e).slice(0, 120); }
   await putDoc(DOC.tick, T);
   // Builder Mine: settle finished hours and post roots (api/_mine.mjs) — its own budget, never blocks the rest
   try { const { settleAll } = await import("./_mine.mjs"); out.mine = await settleAll({ budgetMs: 15000 }); } catch (e) { out.mine = { error: String(e.message || e).slice(0, 160) }; }
@@ -2044,6 +2122,12 @@ export async function POST(req) {
     let b; try { b = await req.json(); } catch { return json(400, { error: "bad request" }); }
     if (tooMany(`link:${req.headers.get("x-forwarded-for") || ""}`, 10, 600e3)) return json(429, { error: "slow down" });
     const r = await finishLink(b).catch((e) => ({ status: 500, body: { error: String(e.message || e).slice(0, 120) } }));
+    return json(r.status, r.body);
+  }
+  if (url.searchParams.has("wlcode")) {
+    let b; try { b = await req.json(); } catch { return json(400, { error: "bad request" }); }
+    if (tooMany(`wl:${req.headers.get("x-forwarded-for") || ""}`, 10, 600e3)) return json(429, { error: "slow down" });
+    const r = await wlCode(b).catch((e) => ({ status: 500, body: { error: String(e.message || e).slice(0, 120) } }));
     return json(r.status, r.body);
   }
   const secret = env("TG_ARCIA_SECRET");

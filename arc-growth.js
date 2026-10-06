@@ -111,7 +111,7 @@
       <div class="cr-row cr-head"><span>#</span><span>Creator</span><span>Coins</span><span class="r">Volume 24h</span><span class="r">Trades 24h</span><span class="r">Score</span></div>
       ${rows.map((r, i) => `<div class="cr-row${lc(r.creator) === me ? " is-me" : ""}${i < 3 && r.score > 0 ? ` top${i + 1}` : ""}">
         <span class="cr-rank">${i + 1}</span>
-        <span class="cr-who"><a href="${explorer("address", r.creator)}" target="_blank" rel="noopener" data-no-i18n>${short(r.creator)}</a>${lc(r.creator) === me ? ' <span class="ac2-you">you</span>' : ""}</span>
+        <span class="cr-who"><a href="#creator?a=${lc(r.creator)}" data-no-i18n>${short(r.creator)}</a>${lc(r.creator) === me ? ' <span class="ac2-you">you</span>' : ""}</span>
         <span class="cr-coins">${r.coins.slice(0, 4).map((l) => `<a class="cr-coin${l.platform === "pons" || l.platform === "pump" ? " ext" : ""}" href="${l.platform === "pons" || l.platform === "pump" ? `/arc#explore?plat=${l.platform}&coin=${l.token}` : `/arc#coin/${l.token}`}">$${esc(l.symbol)}</a>`).join("")}${r.coins.length > 4 ? `<span class="cr-more">+${r.coins.length - 4}</span>` : ""}</span>
         <span class="r">${scanning ? "…" : usd(r.vol)}</span>
         <span class="r">${scanning ? "…" : r.trades}</span>

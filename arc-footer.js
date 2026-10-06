@@ -81,11 +81,13 @@
           '<div class="axf-net" id="axf-net"><span class="axf-dot"></span><span class="axf-net-txt">Arc mainnet · checking…</span></div></div>' +
         '<div class="axf-col"><h4>Products</h4><a href="/arc">ArcPad</a><a href="/circle">CirclePad</a><a href="/arcircle">$ARCIRCLE</a><a href="/relay">Relay Launch</a><a href="/reward">Reward</a><a href="/me">My ARCIRCLE</a></div>' +
         '<div class="axf-col"><h4>Resources</h4><a href="/whitepaper">Whitepaper</a><a href="/whitepaper/ko" lang="ko">백서 (한국어)</a><a href="/arc#docs">ArcPad docs</a><a href="/circle#docs">CirclePad docs</a><a href="/start">Get started</a><a href="/stats">Stats</a><a href="/roadmap">Roadmap</a><a href="/brand">Brand kit</a></div>' +
-        '<div class="axf-col axf-contracts"><h4>Contracts</h4>' + CONTRACTS.map(function (c) {
-          if (!c[1]) return '<div class="axf-ca"><span>' + c[0] + '</span><em class="axf-nl">Not live</em></div>';
-          return '<div class="axf-ca"' + (c[2] ? ' data-axf="' + c[2] + '"' : '') + '><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
+        // the first four show; the rest fold behind "All contracts" (the column was taller than the rest of the footer)
+        '<div class="axf-col axf-contracts" id="axf-contracts"><h4>Contracts</h4>' + CONTRACTS.map(function (c, i) {
+          var more = i >= 4 ? " axf-more" : "";
+          if (!c[1]) return '<div class="axf-ca' + more + '"><span>' + c[0] + '</span><em class="axf-nl">Not live</em></div>';
+          return '<div class="axf-ca' + more + '"' + (c[2] ? ' data-axf="' + c[2] + '"' : '') + '><span>' + c[0] + '</span><a href="' + EXPLORER + '/address/' + c[1] + '" target="_blank" rel="noopener" data-no-i18n>' + short(c[1]) + ' ↗</a>' +
             '<button type="button" class="axf-copy" data-copy-ca="' + c[1] + '" aria-label="Copy address">Copy</button></div>';
-        }).join("") + '</div>' +
+        }).join("") + '<button type="button" class="axf-allca" aria-expanded="false" aria-controls="axf-contracts"><span>All contracts</span> <b data-no-i18n>' + CONTRACTS.length + '</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
       '</div>' +
       '<div class="axf-bottom"><span>Nothing on this site is financial advice. Crypto assets can lose all of their value.</span>' +
         '<button type="button" class="axf-sound" id="axf-sound" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="axf-wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span></span></button></div>';
@@ -94,6 +96,8 @@
     else document.body.appendChild(f);
 
     f.addEventListener("click", function (e) {
+      var all = e.target.closest && e.target.closest(".axf-allca");
+      if (all) { var col = all.parentNode, open = !col.classList.contains("open"); col.classList.toggle("open", open); all.setAttribute("aria-expanded", open ? "true" : "false"); all.querySelector("span").textContent = open ? "Fewer contracts" : "All contracts"; return; }
       var b = e.target.closest && e.target.closest("[data-copy-ca]");
       if (!b) return;
       var done = function (t) { b.textContent = t; setTimeout(function () { b.textContent = "Copy"; }, 1400); };

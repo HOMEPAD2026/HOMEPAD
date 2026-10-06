@@ -17,6 +17,9 @@
 //   /predict/me/<0x…>   ARCIRCLE Predict v3: a wallet's stats card (?c=rh), then Predict with that wallet as the invite
 //   /orders/fill/<tx>   ARCIRCLE Orders v5: one fill's card (?t=<token>[&c=rh]), then that market in the app
 //   /circle/round/1     CirclePad Round #1 report: raise, burn-to-vote, the result — one shareable page
+//   /creator/<0x…>      an ArcPad creator's share card, then their profile in the app (api/_aplist.mjs)
+//   /embed/coin/<0x…>   an ArcPad coin's live price card for other sites' iframes (?theme=light)
+//   /api/c?view=launches every ArcPad launch priced on the server — the browser's first paint and its fallback
 import { getCoin, allPools, ethCalls, isAddr, fmtUsd, esc, SITE } from "./_arc.mjs";
 import { roundState, contributionOf } from "./_round.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
@@ -24,6 +27,7 @@ import { voteTx, ballotReport, forRound } from "./_burnvote.mjs";
 import { omniStatus } from "./_omni.mjs";
 import { lockInfo } from "./_locker.mjs";
 import { cctp, DOMAIN_NAMES } from "./_cctp.mjs";
+import { launchSnapshot, coinEmbed, creatorPage } from "./_aplist.mjs";
 
 export const config = { runtime: "edge" };
 
@@ -52,6 +56,13 @@ export default async function handler(req) {
   if (view === "report") return reportPage(url);
   if (view === "latest") return latestCoins(url);
   if (view === "coins") return allCoins();
+  // ArcPad v7 (api/_aplist.mjs): the launch list from the server, the embeddable price card, a creator's share card
+  if (view === "launches") {
+    try { return new Response(JSON.stringify(await launchSnapshot()), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600", "access-control-allow-origin": "*" } }); }
+    catch (err) { return new Response(JSON.stringify({ error: String((err && err.message) || err).slice(0, 160) }), { status: 502, headers: { "content-type": "application/json", "cache-control": "no-store" } }); }
+  }
+  if (view === "embed") return coinEmbed(url);
+  if (view === "creator") return creatorPage(url);
   // ARCIRCLE OMNI: supply per chain, the locked == remote check, prices and spread (arc-omni.js)
   if (view === "omni") {
     try { return new Response(JSON.stringify(await omniStatus(url.origin)), { status: 200, headers: { "content-type": "application/json", "cache-control": "public, max-age=10, s-maxage=20, stale-while-revalidate=60" } }); }

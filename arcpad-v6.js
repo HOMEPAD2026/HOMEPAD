@@ -634,11 +634,7 @@
     nav.innerHTML = `<button type="button" class="bp-btn-ghost" data-v6-prev>← ${T("Back")}</button><button type="button" class="bp-btn-primary" data-v6-next>${T("Next")} →</button>`;
     form.after(nav);
     setStep(0, true);
-    // on a wide screen every step shows; the rail follows the scroll
-    if ("IntersectionObserver" in window) {
-      const io = new IntersectionObserver((es) => { if (innerWidth <= 720) return; for (const e of es) if (e.isIntersecting) { const i = STEPS.findIndex(([k]) => k === e.target.dataset.v6step); if (i >= 0) paintRail(i); } }, { rootMargin: "-35% 0px -55% 0px" });
-      panel.querySelectorAll(".v6-step").forEach((s) => io.observe(s));
-    }
+    document.dispatchEvent(new Event("arcpad:launchframe"));
   }
   function paintRail(i) { document.querySelectorAll("#v6-rail [data-v6go]").forEach((b, k) => { b.parentNode.classList.toggle("on", k === i); b.parentNode.classList.toggle("done", k < i); }); }
   function setStep(i, quiet) {
@@ -648,15 +644,18 @@
     paintRail(LS.step);
     const nav = $("v6-stepnav");
     if (nav) { nav.querySelector("[data-v6-prev]").hidden = LS.step === 0; nav.querySelector("[data-v6-next]").hidden = LS.step === STEPS.length - 1; }
-    if (innerWidth <= 720) {
+    if (true) { // v7: one step at a time on every screen (the summary column keeps the rest in view on a wide one)
       panel.querySelectorAll(".v6-step").forEach((s) => { const on = s.dataset.v6step === STEPS[LS.step][0]; s.classList.toggle("v6-on", on); if (on && !quiet && !reduce) { s.classList.remove("v6-flip"); void s.offsetWidth; s.classList.add("v6-flip"); } });
       if (!quiet) { const r = $("v6-rail"); if (r) r.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
     } else if (!quiet) {
       const s = panel.querySelector(`.v6-step[data-v6step="${STEPS[LS.step][0]}"]`); if (s) s.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     }
   }
-  function stepOk() {
-    if (STEPS[LS.step][0] !== "basics") return true;
+  function stepOk(at) {
+    const k = STEPS[at == null ? LS.step : at][0];
+    // v7: each step checks its own fields (arcpad-v7.js marks what's wrong next to the field)
+    if (window.arcV7 && typeof window.arcV7.stepCheck === "function") return window.arcV7.stepCheck(k);
+    if (k !== "basics") return true;
     const n = $("ap-name"), s = $("ap-symbol");
     if (n && !n.value.trim()) { n.focus(); n.reportValidity && n.reportValidity(); return false; }
     if (s && !s.value.trim()) { s.focus(); s.reportValidity && s.reportValidity(); return false; }
@@ -752,7 +751,7 @@
     if (!rows.length) return;
     const w = me();
     const card = (r, i) => `<div class="v6-crp top${i + 1}${r.creator === w ? " me" : ""}"><span class="v6-crp-r" data-no-i18n>${i + 1}</span><span class="v6-crp-a" style="${typeof window.arcAvatarBg === "function" ? window.arcAvatarBg(r.creator) : ""}" aria-hidden="true"></span>
-      <a class="v6-crp-w" href="${CONFIG.BLOCK_EXPLORER}/address/${r.creator}" target="_blank" rel="noopener" data-no-i18n>${short(r.creator)}</a>
+      <a class="v6-crp-w" href="#creator?a=${r.creator}" data-no-i18n>${short(r.creator)}</a>
       <div class="v6-crp-p">${[...r.plats].map((p) => `<em class="v6-plat ${p}" data-no-i18n>${PLAT[p]}</em>`).join("")}</div>
       <dl><div><dt>${T("Coins")}</dt><dd data-no-i18n>${r.coins.length}</dd></div><div><dt>${T("Vol 24h")}</dt><dd data-no-i18n>${usd(r.vol)}</dd></div><div><dt>${T("Best mcap")}</dt><dd data-no-i18n>${usd(r.best)}</dd></div><div><dt>${T("Graduated")}</dt><dd data-no-i18n>${r.grad}</dd></div></dl>
       <div class="v6-crp-c">${r.coins.slice(0, 5).map((l) => `<a href="${coinHref(l)}" data-v6-open="${esc(l.token)}" title="$${esc(l.symbol)}">${logoHtml(l, "v6-crp-logo")}</a>`).join("")}</div></div>`;
@@ -784,7 +783,7 @@
     const pn = e.target.closest && e.target.closest("[data-cm-pin]");
     if (pn) { pinComment(pn.dataset.cmPin || null); return; }
     const go = e.target.closest && e.target.closest("[data-v6go]");
-    if (go) { setStep(Number(go.dataset.v6go)); return; }
+    if (go) { const to = Number(go.dataset.v6go); for (let k = LS.step; k < to; k++) if (!stepOk(k)) { setStep(k); return; } setStep(to); return; }
     if (e.target.closest && e.target.closest("[data-v6-next]")) { if (stepOk()) setStep(LS.step + 1); return; }
     if (e.target.closest && e.target.closest("[data-v6-prev]")) { setStep(LS.step - 1); return; }
     if (e.target.closest && e.target.closest("[data-v6-last]")) { useLast(); return; }
@@ -853,5 +852,5 @@
   setInterval(() => { if (!document.hidden) loadPlans(); }, 60e3);
   if ($("bp-panel-launch") && $("bp-panel-launch").classList.contains("active")) launchFrame();
   window.addEventListener("resize", () => { if (LS.built) setStep(LS.step, true); });
-  window.arcV6 = { pnlOf, kothPick, coins, setStep, successCard, refNote, quickBuy, state: { K, CP, PF, PL, LS } };
+  window.arcV6 = { pnlOf, kothPick, coins, setStep, successCard, refNote, quickBuy, paintKoth, statsOf, STEPS, state: { K, CP, PF, PL, LS } };
 })();

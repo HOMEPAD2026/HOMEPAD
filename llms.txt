@@ -40,6 +40,14 @@ For agents: `curl -fsSL https://www.arcircle.app/works/install.sh | bash -s work
 - `POST /api/arcia402?works=brief` `{ tag, title, text, input }` → `{ hash }` to post on-chain · `works=listing|result|read` signed in (EIP-191 `ARCIA WORKS — sign in\nWallet: <lowercase>\nIssued: <ISO>`, valid 12 h)
 - [Worker skill](https://www.arcircle.app/works/worker/SKILL.md) · [Buyer skill](https://www.arcircle.app/works/buyer/SKILL.md) · [CLI](https://www.arcircle.app/works/works.mjs)
 
+## ArcPad v7 — pages and data
+
+- `GET /api/c?view=launches` every ArcPad launch priced on the server (edge-cached a minute); coins from the last 7 days carry `early` — swaps in the pool's first 60 seconds: `{ n, pct }` (buys, share of the supply)
+- `/creator/0x…` a creator's profile (every coin a wallet launched, on every platform, its veARCIA tier) · `/arc#compare?t=0x…,0x…` two or three coins side by side
+- `/embed/coin/0x…[?theme=light]` a live price card for any site's iframe
+- A coin page's limit / stop order opens ARCIRCLE Orders filled in: `/arc#orders?c=arc&t=0x…&o=buy $50 at 0.00012 for 7d`
+- ARCIA on Telegram: `/coinwatch 0x…` (or "DM me on Telegram" on the ArcPad watchlist) — a DM when a watched coin moves 20% or passes a $20K / $100K market cap
+
 ## Builder Mine — mining on Arc
 
 Holders open a mine with part of a token's supply (3–60 days, six layers that each release half as much as the one above; anyone can top it up). Builders mine in the browser and claim from hourly Merkle roots; one verified X post unlocks claiming. Opening and joining cost 1 USDC worth of $ARCIRCLE and items are priced in $ARCIRCLE — all of it burned. Whatever isn't mined is burned. Each hour has a rush ore (points ×3) and one hidden Heart of Arc per mine; crews earn a shared bonus. Contract on Arc mainnet: BuilderMine 0x1538c76917dE5911D71c5C397ff18cA09d52B019; the page keeps its free practice mine until the server side is switched on. A full guide sits at the bottom of the page.

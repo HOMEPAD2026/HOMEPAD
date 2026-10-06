@@ -73,6 +73,14 @@
       "destination": "/api/c?addr=:addr"
     },
     {
+      "source": "/creator/:addr",
+      "destination": "/api/c?view=creator&addr=:addr"
+    },
+    {
+      "source": "/embed/coin/:addr",
+      "destination": "/api/c?view=embed&addr=:addr"
+    },
+    {
       "source": "/whitepaper/ko",
       "destination": "/whitepaper-ko.html"
     },

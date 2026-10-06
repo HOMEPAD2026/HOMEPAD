@@ -350,6 +350,13 @@ export async function GET(req) {
     try { const out = await vearcia.boostNote(String(url.searchParams.get("veboost") || "")); return json(out.ok ? 200 : 400, out, "no-store"); }
     catch (err) { console.error("veboost", err && err.message || err); return json(502, { error: "couldn't check the holding right now" }); }
   }
+  // veARCIA tiers of up to 24 wallets (creator profiles, the Featured row on Home): 0 none … 4 Diamond
+  if (url.searchParams.has("vetiers")) {
+    const list = [...new Set(String(url.searchParams.get("vetiers") || "").split(",").map(lc).filter(isAddr))].slice(0, 24);
+    if (scanner.limited(`vetiers:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+    const ts = await Promise.all(list.map((w) => vearcia.veTierOf(w).catch(() => 0)));
+    return json(200, { tiers: Object.fromEntries(list.map((w, i) => [w, ts[i]])) }, "public, max-age=60, s-maxage=300, stale-while-revalidate=900");
+  }
   if (url.searchParams.get("vevote") === "list") {
     try { return json(200, await vearcia.voteList(String(url.searchParams.get("u") || "")), "no-store"); }
     catch (err) { console.error("vevote list", err && err.message || err); return json(502, { error: "couldn't read the votes right now" }); }

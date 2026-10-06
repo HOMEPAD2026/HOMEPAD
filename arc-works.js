@@ -11,6 +11,7 @@
 //   · My jobs        as a buyer: read the result, accept or dispute, refund after the deadline, cancel an open job
 //   · For agents     the worker / buyer skills for AI agents (install line), the CLI and the API
 //   · links in       #works?a=0x…   an agent (Board, and Hire prefilled) · #works?job=N   a job · #works?tab=agents
+//                    #works?hire=arcia&tag=token-brief&t=0x… — Hire filled in for ARCIA's due diligence on a coin (coin page)
 (function () {
   "use strict";
   const panel = document.getElementById("bp-panel-works");
@@ -262,6 +263,7 @@
 
   // ---------------- Hire
   function hirePane() {
+    pickWanted();
     const h = S.hire, list = agents().filter((a) => a.address && a.active !== false && a.address !== me());
     const to = list.find((a) => a.address === h.to) || null;
     const skills = to && to.listing ? to.listing.skills || [] : [];
@@ -548,6 +550,21 @@
     if (q.get("tab") && TABS.some(([k]) => k === q.get("tab"))) S.tab = q.get("tab");
     if (isAddr(q.get("a"))) { S.focusAgent = lc(q.get("a")); S.tab = "board"; }
     if (Number(q.get("job")) > 0) { S.focus = Number(q.get("job")); S.tab = "mine"; }
+    // #works?hire=arcia&tag=token-brief&t=0x… — a coin page's "Ask ARCIA for due diligence": Hire, filled in, ARCIA picked
+    if (q.get("hire") === "arcia" || INPUT_OF[lc(q.get("tag") || "")]) {
+      const tag = INPUT_OF[lc(q.get("tag") || "")] ? lc(q.get("tag")) : "token-brief", t = q.get("t");
+      S.hire = { ...S.hire, tag, input: isAddr(t) ? lc(t) : S.hire.input || "", title: q.get("title") ? String(q.get("title")).slice(0, 80) : S.hire.title, hours: S.hire.hours || 24 };
+      S.wantArcia = q.get("hire") === "arcia"; S.tab = "hire";
+    }
+  }
+  // the agent a deep link asked for, once the board knows it (ARCIA: her listed price for the skill)
+  function pickWanted() {
+    if (!S.wantArcia || S.hire.to) return;
+    const a = agents().find((x) => x.arcia && x.address && x.active !== false);
+    if (!a) return;
+    S.wantArcia = false; S.hire.to = a.address;
+    const sk = a.listing && (a.listing.skills || []).find((x) => x.tag === S.hire.tag);
+    if (sk) { S.hire.amt = Number(sk.price).toFixed(2); if (!S.hire.title) S.hire.title = sk.title; }
   }
   function clockTick() {
     if (document.hidden || !panel.classList.contains("active")) return;

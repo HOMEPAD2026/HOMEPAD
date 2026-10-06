@@ -20,6 +20,10 @@
     ["apc-scan-link", "View on ArcScan", ICON.scan],
     ["apc-edit", "Edit coin info", null],
     ["apc-lockbtn", "Lock tokens", null],
+    // v7 (arcpad-v7-coin.js): ARCIA's due diligence, the embed card, compare
+    ["v7-dd", "Due diligence by ARCIA", null],
+    ["v7-embed-b", "Embed", null],
+    ["v7-cmp-b", "Compare", null],
   ];
   const wrap = document.createElement("div");
   wrap.className = "apc-more";
@@ -34,7 +38,7 @@
       const src = document.getElementById(id);
       if (!src || src.hidden) continue;
       const it = document.createElement(src.tagName === "A" ? "a" : "button");
-      if (src.tagName === "A") { it.href = src.href; it.target = "_blank"; it.rel = "noopener"; } else it.type = "button";
+      if (src.tagName === "A") { it.href = src.href; if (src.target === "_blank") { it.target = "_blank"; it.rel = "noopener"; } } else it.type = "button";
       it.setAttribute("role", "menuitem");
       it.className = "apc-more-item" + (id === "apc-lockbtn" ? " is-lock" : id === "apc-edit" ? " is-edit" : "");
       const svg = icon || (src.querySelector("svg") ? src.querySelector("svg").outerHTML : "");

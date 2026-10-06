@@ -204,10 +204,61 @@ async function loadArcpadLaunches() {
   if (foot) foot.textContent = `${built.length} launch${built.length === 1 ? "" : "es"} live`;
   const okDot = document.getElementById("bp-side-status-dot");
   if (okDot) okDot.classList.remove("bp-bad");
+  ARC.fromServer = null;
+  arcpadStaleNote();
   renderArcpadHome();
   renderArcpadExplore();
   if (typeof arcActivityStart === "function") arcActivityStart();
 }
+
+/// v7: the launch list the server read (/api/c?view=launches, cached at the edge for a minute). It paints Home and
+/// Explore at once when Arc is slow to answer this browser, and stays up — marked with its age — when Arc can't be
+/// reached at all. The chain read replaces it the moment it lands.
+const ARC_SNAP = { p: null, at: 0 };
+function arcpadSnapshot() {
+  if (!ARC_SNAP.p) {
+    ARC_SNAP.p = fetch("/api/c?view=launches").then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((j) => (j && Array.isArray(j.launches) ? j : null));
+    ARC_SNAP.p.then((j) => { if (!j) setTimeout(() => { ARC_SNAP.p = null; }, 30e3); });
+  }
+  return ARC_SNAP.p;
+}
+async function arcpadSnapshotFill(why) {
+  if (ARC.launchesLoaded) return false;
+  const j = await arcpadSnapshot();
+  if (!j || ARC.launchesLoaded) return false;
+  ARC.launches = j.launches.map((l) => ({ ...l, initialVirtualQuote: l.quoteDecimals != null ? Number(l.initialVirtualQuoteRaw || 0) / 10 ** l.quoteDecimals : null }));
+  ARC.fromServer = { at: j.at || Date.now(), why };
+  for (const id of ["ap-stat-count", "ap-home-count"]) { const el = document.getElementById(id); if (el) { el.textContent = String(ARC.launches.length); el.classList.remove("ap-stale"); } }
+  const foot = document.getElementById("bp-side-foot-text");
+  if (foot) foot.textContent = `${ARC.launches.length} launch${ARC.launches.length === 1 ? "" : "es"} live`;
+  arcpadStaleNote();
+  renderArcpadHome();
+  renderArcpadExplore();
+  if (typeof arcActivityStart === "function") arcActivityStart();
+  return true;
+}
+/// the note over Home and Explore while the list is the server's: how old it is, and whether Arc is down or just slow
+function arcpadStaleNote() {
+  const f = ARC.fromServer;
+  for (const id of ["bp-panel-home", "bp-panel-explore"]) {
+    const panel = document.getElementById(id); if (!panel) continue;
+    let el = panel.querySelector(".ap-snapnote");
+    if (!f) { if (el) el.remove(); continue; }
+    if (!el) {
+      el = document.createElement("div"); el.className = "ap-snapnote"; el.setAttribute("role", "status");
+      const at = id === "bp-panel-home" ? document.getElementById("ap-home-stats") : panel.querySelector(".cn-explore-toolbar");
+      if (at) at.before(el); else panel.prepend(el);
+    }
+    const min = Math.max(0, Math.round((Date.now() - f.at) / 60e3));
+    const age = min < 1 ? "<1 min" : `${min} min`;
+    el.classList.toggle("down", f.why === "down");
+    el.innerHTML = f.why === "down"
+      ? `<i aria-hidden="true"></i><span><b>Showing the server's last read</b> <em data-no-i18n>· ${age}</em><br><span>Your browser can't reach Arc right now. Trading needs Arc — retrying on its own.</span></span><button type="button" class="ap-retry" data-snap-retry>Retry now</button>`
+      : `<i aria-hidden="true"></i><span><b>Loaded from the server</b> <em data-no-i18n>· ${age}</em> <span>Checking Arc for the latest…</span></span>`;
+  }
+}
+setInterval(() => { if (ARC.fromServer) arcpadStaleNote(); }, 30e3);
 
 function arcEscHtml(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function launchCardHtml(l) {
@@ -320,8 +371,10 @@ function renderArcpadExploreGrid() {
   else if (arcExploreSort === "new") rows = [...rows].sort((a, b) => b.launchedAt - a.launchedAt);
   else if (arcExploreSort === "vol") rows = [...rows].sort((a, b) => ((st(b) || {}).vol || 0) - ((st(a) || {}).vol || 0) || b.launchedAt - a.launchedAt);
   else if (arcExploreSort === "last") rows = [...rows].sort((a, b) => ((st(b) || {}).lastB || 0) - ((st(a) || {}).lastB || 0) || b.launchedAt - a.launchedAt);
+  else if (arcExploreSort === "trades") rows = [...rows].sort((a, b) => ((st(b) || {}).trades || 0) - ((st(a) || {}).trades || 0) || b.launchedAt - a.launchedAt);
   else if (arcExploreSort === "gainers") rows = [...rows].sort((a, b) => ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(b) : 0) ?? -1) - ((typeof arcChangeSinceLaunch === "function" ? arcChangeSinceLaunch(a) : 0) ?? -1));
   else rows = [...rows].sort((a, b) => (b.marketCapUsd ?? -1) - (a.marketCapUsd ?? -1));
+  if (window.arcExploreDir === -1) rows.reverse(); // a list column tapped twice (arcpad-v7.js)
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const empty = all.length === 0
     ? "No coins have launched on ArcPad yet — the Launch tab is where the first one starts."
@@ -982,14 +1035,18 @@ function refreshAccountDependentViews() {
   const loadLaunches = () => {
     if (loadingLaunches) return loadingLaunches;
     const startIdx = typeof RPC_STATE !== "undefined" ? RPC_STATE.idx : 0;
-    loadingLaunches = loadArcpadLaunches().catch((err) => {
+    const slow = setTimeout(() => { if (!ARC.launchesLoaded && !ARC.launches.length) arcpadSnapshotFill("slow"); }, 1200);
+    arcpadSnapshot();
+    loadingLaunches = loadArcpadLaunches().catch(async (err) => {
       console.error("loadArcpadLaunches failed", err);
-      if (!ARC.launches.length) renderArcpadLoadError(err);
+      if (!ARC.launchesLoaded && (ARC.fromServer || await arcpadSnapshotFill("down"))) { ARC.fromServer.why = "down"; arcpadStaleNote(); setTimeout(() => { if (!ARC.launchesLoaded) loadLaunches(); }, 30e3); }
+      else if (!ARC.launches.length) renderArcpadLoadError(err);
       // no endpoint switch happened while it failed: try the others once (a switch reloads the list, arc:rpc-switched below)
       if (!ARC.launches.length && typeof rpcProbe === "function" && !loadLaunches.probed && RPC_STATE.idx === startIdx && !RPC_STATE.switching) { loadLaunches.probed = true; rpcProbe(); }
-    }).finally(() => { loadingLaunches = null; });
+    }).finally(() => { loadingLaunches = null; clearTimeout(slow); });
     return loadingLaunches;
   };
+  document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("[data-snap-retry]")) { e.target.closest("[data-snap-retry]").disabled = true; loadLaunches(); if (typeof rpcProbe === "function") rpcProbe(); } });
   loadLaunches();
   // Reads switched to a fallback RPC: load again if the first try failed.
   window.addEventListener("arc:rpc-switched", () => {

@@ -430,7 +430,7 @@ function apcRenderHeader() {
   apc$("apc-about-quote").innerHTML = `<a href="${apcExplorer("token", APC.q.address)}" target="_blank" rel="noopener">${apcEsc(APC.q.symbol)} ↗</a>${APC.q.usd != null && !APC.q.isUsdc ? ` <span class="ac2-muted">≈ ${apcFmtPrice(APC.q.usd)}</span>` : ""}`;
   apc$("apc-about-lede").textContent = `${sym || "This coin"} was launched on ArcPad and trades in its own Uniswap v4 pool on Arc, paired with ${APC.q.isUsdc ? "USDC" : APC.q.symbol}.${APC.q.isUsdc ? "" : ` Prices in USD are converted at ${APC.q.symbol}'s current price.`}`;
   apc$("apc-about-token").innerHTML = `<a href="${apcExplorer("token", l.token)}" target="_blank" rel="noopener">${apcShort(l.token)} ↗</a>`;
-  apc$("apc-about-creator").innerHTML = l.creator ? `<a href="${apcExplorer("address", l.creator)}" target="_blank" rel="noopener">${apcShort(l.creator)} ↗</a>` : "—";
+  apc$("apc-about-creator").innerHTML = l.creator ? `<a href="#creator?a=${String(l.creator).toLowerCase()}">${apcShort(l.creator)}</a> · <a href="${apcExplorer("address", l.creator)}" target="_blank" rel="noopener">ArcScan ↗</a>` : "—";
   apc$("apc-about-fee").textContent = l.platform === "argus" ? "Set by Argus · creator fees 70% creator, 30% ARCIRCLE PAD" : `${Number(APC.feeBps) / 100}% per trade${l.extraFeeBps ? ` (incl. ${l.extraFeeBps / 100}% creator add-on)` : ""}`;
   const ps = apc$("apc-about-poolsup");
   if (ps) ps.textContent = l.platform === "argus" ? "Set by the Argus Portal at launch" : "920,000,000 (92%)";

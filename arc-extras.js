@@ -253,7 +253,9 @@
       if (!stats) return;
       box = document.createElement("div");
       box.id = "apc-safety-panel"; box.className = "apc-safety";
-      stats.parentNode.insertBefore(box, stats.nextSibling);
+      // v7: price → chart → safety → tabs — under the chart when the page has one
+      const chart = panel.querySelector(".ac2-main .ac2-chart-card");
+      if (chart) chart.after(box); else stats.parentNode.insertBefore(box, stats.nextSibling);
     }
     const l = APC.l, token = APC.token;
     const sc = safetyCache.get(lc(token));
@@ -276,6 +278,10 @@
       const pct = top.reduce((s, [, raw]) => s + Number(ethers.formatUnits(raw, 18)), 0) / SUPPLY * 100;
       items.push([pct <= 30 ? "ok" : pct <= 50 ? "warn" : "bad", `Top 10 hold ${pct.toFixed(1)}%`, argus ? "Excludes the pool, its hook, locker and escrow." : "Excludes the pool, the fee hook and the 8% platform allocation."]);
     } else items.push(["wait", "Top 10 holders", "Indexing transfers…"]);
+    // v7: the first minute of buying (arcpad-v7-coin.js) — who got in early and what they still hold
+    const early = typeof window.arcEarlyBuyers === "function" ? window.arcEarlyBuyers() : null;
+    if (early) items.push(early);
+    else if (!APC.holders) items.push(["wait", "First minute", "Reading the first trades…"]);
     const fee = Number(APC.feeBps || 100) / 100;
     items.push(argus ? ["info", "Creator fees 70 / 30", "Argus sets the trade fee; the creator's share is split 70% creator, 30% ARCIRCLE PAD."]
       : ["info", `Trade fee ${fee}%`, l.extraFeeBps ? `1% base + ${l.extraFeeBps / 100}% creator add-on.` : "1% base — 70% of it goes to the creator."]);

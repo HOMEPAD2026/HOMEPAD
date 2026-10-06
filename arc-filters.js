@@ -127,6 +127,14 @@
       if (F.plat !== "all" && !/[?&]plat=/.test(location.hash)) { F.plat = "all"; paint(); if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid(); }
       toHash();
     });
+    // saved presets (arcpad-v7.js) read and set the chips
+    window.arcFiltersGet = () => ({ ...F });
+    window.arcFiltersSet = (o) => {
+      const next = { ...DEF };
+      for (const k of Object.keys(DEF)) if (o && VALID[k].includes(o[k])) next[k] = o[k];
+      F = next; save(); paint(); toHash();
+      if (typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();
+    };
     paint(); toHash();
     if (linked && count()) btn.click();
     if ((count() || F.plat !== "all") && typeof renderArcpadExploreGrid === "function") renderArcpadExploreGrid();

@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791260626"></script>
+<script src="arc-log.js?v=1791268190"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791260626">
+<link rel="stylesheet" href="style.css?v=1791268190">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -110,31 +110,41 @@
       <svg class="bp-mobile-menu-caret"><use href="#i-chevron" xlink:href="#i-chevron"/></svg>
     </button>
 
-    <nav class="bp-side-nav">
+    <button type="button" class="bp-side-section-label bp-grp" data-grp="trade" aria-expanded="true" aria-controls="bp-grp-trade"><span>Trade</span><svg class="bp-grp-chev" aria-hidden="true"><use href="#i-chevron" xlink:href="#i-chevron"/></svg></button>
+    <nav class="bp-side-nav" id="bp-grp-trade" data-grp="trade">
       <button type="button" class="bp-nav-item active" data-tab="home"><svg><use href="#i-home" xlink:href="#i-home"/></svg>Home</button>
       <button type="button" class="bp-nav-item" data-tab="explore"><svg><use href="#i-grid" xlink:href="#i-grid"/></svg>Explore</button>
       <button type="button" class="bp-nav-item" data-tab="launch"><svg><use href="#i-rocket" xlink:href="#i-rocket"/></svg>Launch</button>
       <button type="button" class="bp-nav-item" data-tab="portfolio"><svg><use href="#i-wallet" xlink:href="#i-wallet"/></svg>Portfolio</button>
       <button type="button" class="bp-nav-item" data-tab="creators"><svg><use href="#i-trophy" xlink:href="#i-trophy"/></svg>Creators</button>
+    </nav>
+    <button type="button" class="bp-side-section-label bp-grp" data-grp="tools" aria-expanded="true" aria-controls="bp-grp-tools"><span>Tools</span><svg class="bp-grp-chev" aria-hidden="true"><use href="#i-chevron" xlink:href="#i-chevron"/></svg></button>
+    <nav class="bp-side-nav" id="bp-grp-tools" data-grp="tools">
       <button type="button" class="bp-nav-item" data-tab="locker"><svg><use href="#i-lock" xlink:href="#i-lock"/></svg>Locker<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="bridge"><svg><use href="#i-bridge" xlink:href="#i-bridge"/></svg>Bridge<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="scanner"><svg><use href="#i-scan" xlink:href="#i-scan"/></svg>Scanner<em class="bp-nav-v" data-no-i18n>v4</em></button>
       <button type="button" class="bp-nav-item" data-tab="multisend"><svg><use href="#i-fan" xlink:href="#i-fan"/></svg>Multisender<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="snapshot"><svg><use href="#i-snap" xlink:href="#i-snap"/></svg>Snapshot<em class="bp-nav-v" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="relay"><svg><use href="#i-relay" xlink:href="#i-relay"/></svg>Relay Launch<em class="bp-nav-v" data-no-i18n>v1</em></button>
+      <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity<em class="bp-nav-v" data-no-i18n>v2</em></button>
+      <button type="button" class="bp-nav-item" data-tab="omni"><svg><use href="#i-omni" xlink:href="#i-omni"/></svg>OMNI</button>
+    </nav>
+    <button type="button" class="bp-side-section-label bp-grp" data-grp="arcia" aria-expanded="true" aria-controls="bp-grp-arcia"><span>ARCIA</span><svg class="bp-grp-chev" aria-hidden="true"><use href="#i-chevron" xlink:href="#i-chevron"/></svg></button>
+    <nav class="bp-side-nav" id="bp-grp-arcia" data-grp="arcia">
       <button type="button" class="bp-nav-item" data-tab="arcia"><svg><use href="#i-arcia" xlink:href="#i-arcia"/></svg>ARCIA<em class="bp-nav-v" data-no-i18n>v4</em></button>
       <button type="button" class="bp-nav-item" data-tab="arcia402"><svg><use href="#i-a402" xlink:href="#i-a402"/></svg>ARCIA 402<em class="bp-nav-v" data-no-i18n>v1</em></button>
-      <button type="button" class="bp-nav-item" data-tab="works"><svg><use href="#i-works" xlink:href="#i-works"/></svg>ARCIA WORKS<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
-      <button type="button" class="bp-nav-item" data-tab="mine"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
+      <button type="button" class="bp-nav-item" data-tab="works" data-new="2026-10-06"><svg><use href="#i-works" xlink:href="#i-works"/></svg>ARCIA WORKS<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
+      <button type="button" class="bp-nav-item" data-tab="mine" data-new="2026-09-29"><svg><use href="#i-mine" xlink:href="#i-mine"/></svg>Builder Mine<em class="bp-nav-v bp-nav-new" data-no-i18n>v1</em></button>
       <button type="button" class="bp-nav-item" data-tab="desk"><svg><use href="#i-desk" xlink:href="#i-desk"/></svg>ARCIA DESK<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="agent"><svg><use href="#i-agent" xlink:href="#i-agent"/></svg>ARCIA AGENT<em class="bp-nav-v" data-no-i18n>v2</em></button>
+    </nav>
+    <button type="button" class="bp-side-section-label bp-grp" data-grp="arcircle" aria-expanded="true" aria-controls="bp-grp-arcircle"><span>ARCIRCLE</span><svg class="bp-grp-chev" aria-hidden="true"><use href="#i-chevron" xlink:href="#i-chevron"/></svg></button>
+    <nav class="bp-side-nav" id="bp-grp-arcircle" data-grp="arcircle">
       <button type="button" class="bp-nav-item" data-tab="orders"><svg><use href="#i-orders" xlink:href="#i-orders"/></svg>ARCIRCLE Orders<em class="bp-nav-v" data-no-i18n>v8</em></button>
       <button type="button" class="bp-nav-item" data-tab="predict"><svg><use href="#i-predict" xlink:href="#i-predict"/></svg>ARCIRCLE Predict<em class="bp-nav-v" data-no-i18n>v3</em></button>
       <button type="button" class="bp-nav-item" data-tab="staking"><svg><use href="#i-stake" xlink:href="#i-stake"/></svg>ARCIRCLE Staking<em class="bp-nav-v" data-no-i18n>v2</em></button>
       <button type="button" class="bp-nav-item" data-tab="nft"><svg><use href="#i-nft" xlink:href="#i-nft"/></svg>ARCIRCLE NFT Vault<em class="bp-nav-v" data-no-i18n>v2</em></button>
-      <button type="button" class="bp-nav-item" data-tab="vearcia"><svg><use href="#i-vea" xlink:href="#i-vea"/></svg>veARCIA<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
-      <button type="button" class="bp-nav-item" data-tab="liquidity"><svg><use href="#i-drop" xlink:href="#i-drop"/></svg>Liquidity<em class="bp-nav-v" data-no-i18n>v2</em></button>
-      <button type="button" class="bp-nav-item" data-tab="omni"><svg><use href="#i-omni" xlink:href="#i-omni"/></svg>OMNI</button>
+      <button type="button" class="bp-nav-item" data-tab="vearcia" data-new="2026-10-04"><svg><use href="#i-vea" xlink:href="#i-vea"/></svg>veARCIA<em class="bp-nav-v bp-nav-new" data-no-i18n>New</em></button>
       <button type="button" class="bp-nav-item ac2-nav" data-tab="arcircle"><img src="images/arcircle-mark-sm.png" alt="" width="160" height="111">$ARCIRCLE</button>
     </nav>
 
@@ -434,6 +444,9 @@
                 <p class="ac2-fine">Trades go straight to ArcPad's router and the coin's own Uniswap v4 pool on Arc — nothing is held by the site. Gas is paid in USDC.</p>
               </div>
 
+              <!-- arcpad-v7-coin.js: a limit / stop order from this page (ARCIRCLE Orders), the coin's Predict round -->
+              <div class="ac2-card v7-ord" id="v7-ord"></div>
+              <div class="ac2-card v7-pred" id="v7-pred" hidden></div>
               <div class="ac2-card ac2-links" id="apc-links">
                 <h3>Links</h3>
               </div>
@@ -913,6 +926,20 @@
         <div class="cr-formula"><b>Preview score</b> = 24h volume (USD) + 5 × 24h trades, summed over a creator's coins · ×1.25 for coins paired with $ARCIRCLE</div>
         <div id="cr-body"><div class="empty-state">Loading…</div></div>
         <p class="cr-note">The whitepaper's creator score is planned to combine organic volume, unique buyers and holder retention, with a boost for $ARCIRCLE-paired launches. This preview uses what can be read live today. No rewards are paid from it.</p>
+      </section>
+
+      <!-- ============ CREATOR PROFILE (arcpad-v7.js) — /creator/<address> · #creator?a=<address> ============ -->
+      <section class="bp-panel" id="bp-panel-creator">
+        <button type="button" class="ac2-back" data-tab-link="creators">← Creators</button>
+        <div id="v7-creator"><div class="empty-state">Loading…</div></div>
+      </section>
+
+      <!-- ============ COMPARE (arcpad-v7.js) — #compare?t=<a>,<b>[,<c>] ============ -->
+      <section class="bp-panel" id="bp-panel-compare">
+        <button type="button" class="ac2-back" data-tab-link="explore">← Explore</button>
+        <h1>Compare</h1>
+        <p class="bp-lede">Two or three coins side by side — price, market cap, trading, holders and the safety read, from the same on-chain data as their pages.</p>
+        <div id="v7-compare"><div class="empty-state">Loading…</div></div>
       </section>
 
       <!-- ============ LOCKER (arc-locker.js) — the first ARCIRCLE PAD utility ============ -->
@@ -2374,6 +2401,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791260626"></script>
+<script src="arcpad.bundle.js?v=1791268190"></script>
 </body>
 </html>
