@@ -20,6 +20,7 @@ import { KB } from "./_arcia-kb.mjs";
 import { X_ARCIA, CA, ARCIA_RH, ROUND1_CLOSE, live, usd, price, left, askClaude, streamClaude } from "./_arcia-brain.mjs";
 import { storeEnabled, getDocs, commit, queryDocs, setDoc } from "./_store.mjs";
 import * as secret from "./_arcia-secret.mjs";
+import { personalSigner } from "./_tg-lib.mjs";
 import { veTierOf, VE_TIERS } from "./_vearcia.mjs";
 import { ttsProvider, speak as ttsSpeak } from "./_arcia-tts.mjs";
 
@@ -311,7 +312,19 @@ const LETTER_BRIEF = `A fan left you a letter on your public fan-letter board on
 Reply as ARCIA in 1-2 short sentences (at most 160 characters), in the letter's language, warm and specific to what they wrote — like an idol answering fan mail. No links, at most one emoji or ♡.
 Output exactly SKIP instead if the letter must not be shown publicly: spam, ads or shilling another token, links, scams, abuse or hate, sexual or romantic-roleplay content, politics, personal data (phone numbers, addresses, emails, private keys), or requests for money or DMs.`;
 const letterId = () => randomBytes(8).toString("hex");
-function publicLetter(l) { return { id: l.id, name: l.name, text: l.text, reply: l.reply || "", hearts: l.hearts || 0, at: l.at, lang: l.lang || "en" }; }
+function publicLetter(l) { return { id: l.id, name: l.name, text: l.text, reply: l.reply || "", hearts: l.hearts || 0, at: l.at, lang: l.lang || "en", ...(l.vt ? { vt: l.vt } : {}) }; }
+// v5: a letter can carry its writer's veARCIA tier — only with a signature from that wallet (free, can't move funds),
+// so nobody shows someone else's tier. The same text is signed in the browser (arc-arcia.js letterSigMsg).
+const letterSigMsg = (wallet, day) => `ARCIA fan letter\nWallet: ${String(wallet).toLowerCase()}\nDay: ${day}\n\nThis signature only shows my veARCIA tier on my letter. It can't move funds.`;
+async function letterTier(b) {
+  const w = isAddr(b.wallet) ? String(b.wallet).toLowerCase() : "", sig = String(b.sig || "");
+  if (!w || !/^0x[0-9a-fA-F]{130}$/.test(sig)) return 0;
+  const today = new Date().toISOString().slice(0, 10), y = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
+  const day = String(b.day || "");
+  if (day !== today && day !== y) return 0;
+  if (personalSigner(letterSigMsg(w, day), sig) !== w) return 0;
+  return Number(await veTierOf(w).catch(() => 0)) || 0;
+}
 async function letters(top) {
   const rows = await queryDocs("arciaLetters", "board", "v1", 300);
   const shown = rows.filter((r) => r.shown !== false);
@@ -347,7 +360,8 @@ async function postLetter(b, ip, lang) {
   if (/^SKIP\b/i.test(r)) return json({ error: lang === "ko" ? "이 편지는 게시판에 올릴 수 없어요. 따뜻한 말로 다시 써 줄래요?♡" : "I can't put this one on the board~ Try a kind note instead?♡", rejected: true }, 422);
   if (r.length > 240) r = r.slice(0, 238).replace(/\s+\S*$/, "") + "…";
   const id = letterId();
-  const doc = { board: "v1", name, text, reply: r, hearts: 0, at: Date.now(), lang, ip: h };
+  const vt = await letterTier(b);
+  const doc = { board: "v1", name, text, reply: r, hearts: 0, at: Date.now(), lang, ip: h, ...(vt ? { vt } : {}) };
   await setDoc(`arciaLetters/${id}`, doc);
   commit([{ inc: cnt, fields: { n: 1 } }]).catch(() => {});
   return json({ ok: true, letter: publicLetter({ id, ...doc }) });

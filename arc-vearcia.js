@@ -908,7 +908,13 @@
     }
     // v3: ARCIRCLE Orders' "Stake it" after an $ARCIA buy leaves the amount here
     const pre = store.get("vea.prefill", null);
-    if (pre && pre.amt && Date.now() - (pre.at || 0) < 30 * 60e3) { S.amt = String(pre.amt); S.tab = "stake"; store.set("vea.prefill", null); paint(); }
+    // (v4: ARCIA's chat and calculator also leave the lock length — "stake 100k arcia 14 days")
+    if (pre && pre.amt && Date.now() - (pre.at || 0) < 30 * 60e3) {
+      S.amt = String(pre.amt); S.tab = "stake";
+      const pd = Math.round(Number(pre.days)); if (pd >= 1 && pd <= MAXD) S.days = pd;
+      store.set("vea.prefill", null); paint();
+      const f = body.querySelector("#vea-amt"); if (f && f.scrollIntoView) f.scrollIntoView({ block: "center", behavior: reduce() ? "auto" : "smooth" });
+    }
     clearInterval(timer); clearInterval(clock);
     timer = setInterval(async () => { if (!panel.classList.contains("active") || document.hidden || S.busy) return; await load(); keep(paint); }, 20000);
     clock = setInterval(async () => {

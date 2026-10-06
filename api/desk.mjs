@@ -103,7 +103,14 @@ export async function GET(req) {
       if (q.vearcia === "card") { const r = await vearcia.card(String(q.u || "")); return json(r, 200, "public, max-age=30, s-maxage=60"); }
       const s = await vearcia.state();
       // v2: no wallet list in public — the stakers as a whole (dist, series)
-      return json({ ...s, stakers: undefined, count: s.stakers ? s.stakers.length : 0 }, 200, "public, max-age=10, s-maxage=20");
+      // v4 (ARCIA page): the top stakers without their wallets (veARCIA, lock multiplier, auto-renew, boost) and the
+      // week's change in stakers and $ARCIA staked, from the community series
+      const now = Number(s.now) || Math.floor(Date.now() / 1000);
+      const top = (s.stakers || []).slice(0, 8).map((x) => ({ ve: x.ve, x: Math.round((Number(x.lockBps) || 10000) / 100) / 100, auto: !!x.auto, boost: x.tier > 0 && x.boostUntil > now ? x.tier : 0 }));
+      const ser = s.series || [], last = ser[ser.length - 1];
+      let week = null;
+      if (last) { const base = [...ser].reverse().find((p) => p.t && p.t <= now - 7 * 86400) || { stakers: 0, staked: 0 }; week = { stakers: last.stakers - base.stakers, staked: last.staked - base.staked }; }
+      return json({ ...s, stakers: undefined, count: s.stakers ? s.stakers.length : 0, top: s.live ? top : undefined, week }, 200, "public, max-age=10, s-maxage=20");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE NFT Vault (api/_nft.mjs, Robinhood Chain): ?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] · ?nft=status
