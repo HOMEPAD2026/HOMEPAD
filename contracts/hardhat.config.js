@@ -65,6 +65,8 @@ module.exports = {
   // (their v2 API is unified across chains under one key) — leaving it
   // blank will make verification fail with an auth error, not silently
   // skip. Network names here must match the `networks` block above.
+  // Sourcify's API v1 is gone (hardhat-verify 2.x still calls it and prints a 404) — Blockscout is the explorer here
+  sourcify: { enabled: false },
   etherscan: {
     apiKey: {
       robinhoodTestnet: "blockscout",
