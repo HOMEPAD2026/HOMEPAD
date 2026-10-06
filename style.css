@@ -18838,3 +18838,13 @@ html.tr-on .aa-mbar.aa5-mbar,html.tr-on .tr-hint{display:none !important;}
 }
 html.tr-on .aa-fab,html.tr-on :is(.ax-page,.ax-dock-host) nav.ax-dock,html.tr-on :is(.ax-page,.ax-dock-host) nav.ax-quick{opacity:0 !important;pointer-events:none !important;transition:opacity .3s;}
 .tr-ov.probe,.tr-ov.probe *{pointer-events:none !important;}
+/* the main page: the guided tour, under the two launch buttons (opens /arc#tour/quick) */
+.hm-tour{flex-basis:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;margin:2px auto 0;max-width:max-content;padding:8px 16px 8px 8px;border-radius:999px;text-decoration:none;font-weight:700;font-size:.86rem;color:#ffe9a8;background:rgba(245,205,110,.08);border:1px solid rgba(245,205,110,.35);transition:transform .15s ease,background .15s ease,border-color .15s ease;}
+.hm-tour:hover{transform:translateY(-1px);background:rgba(245,205,110,.14);border-color:rgba(245,205,110,.6);}
+.hm-tour-i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#fff1c4,#f5cd6e 55%,#d9a441);color:#1b1405;box-shadow:0 0 0 0 rgba(245,205,110,.5);animation:hm-tour-ping 2.6s ease-out infinite;}
+.hm-tour-i svg{width:12px;height:12px;fill:currentColor;margin-left:2px;}
+.hm-tour > i{font-style:normal;opacity:.7;transition:transform .15s ease;}
+.hm-tour:hover > i{transform:translateX(3px);}
+@keyframes hm-tour-ping{0%{box-shadow:0 0 0 0 rgba(245,205,110,.5)}70%,100%{box-shadow:0 0 0 12px rgba(245,205,110,0)}}
+@media (max-width:640px){ .hm-cta .hm-tour{flex:1 1 100%;max-width:none;padding:8px 14px 8px 8px;font-size:.82rem;} }
+@media (prefers-reduced-motion:reduce){ .hm-tour-i{animation:none;} }

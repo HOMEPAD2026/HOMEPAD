@@ -8335,6 +8335,7 @@
     "Buy $ARCIA": "$ARCIA 매수",
     "Guide": "가이드",
     "Take the 1-minute tour": "1분 투어 보기",
+    "New here? Take the 1-minute tour": "처음이세요? 1분 투어 보기",
   };
 
 

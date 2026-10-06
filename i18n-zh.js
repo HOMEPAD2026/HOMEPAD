@@ -8505,6 +8505,7 @@
     "Buy $ARCIA": "购买 $ARCIA",
     "Guide": "指南",
     "Take the 1-minute tour": "看 1 分钟导览",
+    "New here? Take the 1-minute tour": "第一次来？看 1 分钟导览",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
