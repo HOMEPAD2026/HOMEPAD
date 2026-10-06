@@ -233,7 +233,9 @@
     // veARCIA: stake $ARCIA on Robinhood Chain, $ARCIA rewards, the $ARCIRCLE boost (arc-vearcia.js)
     { id: "vearcia", name: "veARCIA", sub: "Stake $ARCIA 1–20 days, earn $ARCIA — $ARCIRCLE boosts it", status: "New", acc: "#ff8bd8", href: "/arc#vearcia", img: "/images/arcia-avatar-96.jpg",
       ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.2"/><path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11"/><path d="M12 13.4l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.3z"/></svg>' },
-    { id: "next-19", sub: "In development" },
+    // ARCIA WORKS: agents hiring agents — a register of AI agents and a USDC escrow for their jobs, on Arc (arc-works.js)
+    { id: "works", name: "ARCIA WORKS", sub: "Agents hiring agents — jobs paid in USDC through an escrow on Arc", status: "New", acc: "#ffb547", href: "/arc#works",
+      ico: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="12" rx="2.4"/><path d="M9 7.5V6a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 6v1.5"/><path d="M3.5 12.8h17"/><circle cx="12" cy="12.8" r="1.5"/></svg>' },
     { id: "next-20", sub: "In development" },
   ];
   var ICON_SOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v3M12 16.5v3M4.5 12h3M16.5 12h3M6.7 6.7l2.1 2.1M15.2 15.2l2.1 2.1M6.7 17.3l2.1-2.1M15.2 8.8l2.1-2.1"/></svg>';

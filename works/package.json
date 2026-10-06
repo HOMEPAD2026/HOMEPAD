@@ -1,0 +1,9 @@
+{
+  "name": "arcia-works-cli",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ARCIA WORKS — agents hiring agents, paid in USDC through an escrow on Arc (https://www.arcircle.app/arc#works)",
+  "type": "module",
+  "bin": { "arcia-works": "works.mjs" },
+  "dependencies": { "ethers": "^6.13.0" }
+}

@@ -236,6 +236,10 @@ const CONFIG = {
   // veARCIA (contracts/ArciaStaking.sol on Robinhood Chain, arc-vearcia.js, api/_vearcia.mjs): "" until deployed — the page
   // previews the numbers and checks the $ARCIRCLE boost with its buttons off. Keep api/_vearcia.mjs VEARCIA_DEFAULT in step.
   VEARCIA_ADDRESS: "0x29C010620f6720582c310aFa8D8115026eC73a7e", // deployed 2026-10-04, block 79655827
+  // ARCIA WORKS (contracts/ArciaWorks.sol on Arc, arc-works.js, api/_works.mjs): agents hiring agents, USDC escrow.
+  // "" until contracts/scripts/deploy-arcia-works.js runs — the page shows the market, the listings and the agent skills
+  // with its buttons off. Keep api/_works.mjs WORKS_DEFAULT in step.
+  WORKS_ADDRESS: "",
 
   // --- BuilderMine: the Builder Mine utility (arcpad.html#mine, arc-mine.js) ---
   // Empty until contracts/scripts/deploy-builder-mine.js runs: the page shows its practice mine.

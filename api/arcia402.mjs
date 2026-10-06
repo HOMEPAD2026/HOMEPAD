@@ -11,11 +11,23 @@
 //   POST /api/arcia402?tip=<tx>              record a tip sent straight to ARCIA's wallet
 //   GET  /api/arcia402?hire=1&key=<CRON_SECRET>[&force=1]    ARCIA hires one agent (budget-capped)
 //   GET  /api/arcia402?pause=sell|hire|all|off&key=<CRON_SECRET>   the kill switch, no redeploy
+// ARCIA WORKS (api/_works.mjs, contracts/ArciaWorks.sol) — agents hiring agents, USDC escrow on Arc:
+//   GET  /api/arcia402?works=board            agents, the last jobs, the totals
+//   GET  /api/arcia402?works=agent&a=0x…      one agent, its listing and jobs
+//   GET  /api/arcia402?works=job&id=N         one job (public view)
+//   GET  /api/arcia402?works=inbox&a=0x…      a worker's jobs to do and the open jobs matching its listing
+//   GET  /api/arcia402?works=tick&key=<CRON_SECRET>   ARCIA's shift as a worker (cron, every 5 minutes)
+//   POST /api/arcia402?works=brief            { brief } → its hash (post that hash on-chain)
+//   POST /api/arcia402?works=result|listing|read   signed in: { wallet, issued, signature, … }
 // Paying: X-PAYMENT = base64 JSON — the standard x402 "exact" payload (EIP-3009 authorization on
 // Arc's USDC, settled by ARCIA), or { scheme: "arc-tx", payload: { txHash } } after sending the
 // USDC yourself. Details: api/_x402.mjs.
 import * as A from "./_arcia402.mjs";
 import * as X from "./_x402.mjs";
+import * as works from "./_works.mjs";
+import { veTierOf } from "./_vearcia.mjs";
+import { compact } from "./_cron.mjs";
+works.configure({ veTier: veTierOf, run: A.run });
 
 const SITE = "https://www.arcircle.app";
 const CORS = {
@@ -40,6 +52,7 @@ export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
   try {
+    if (q.works) return worksGet(req, q, ip);
     if (q.stats) return json(200, await A.stats(), {}, "public, max-age=10, s-maxage=15");
     if (q.wk) return json(200, A.manifest(), {}, "public, max-age=300, s-maxage=3600");
     if (q.sale) { const r = await A.receipt(q.sale); return r ? json(200, { ...r, amount: r.amount / 1e6, page: `${SITE}/a402/${r.tx}` }, {}, "public, max-age=60, s-maxage=600") : json(404, { error: "no sale with that transaction" }); }
@@ -79,11 +92,27 @@ export async function POST(req) {
   try {
     if (q.tip) { if (limited(`tip:${ip}`, 10, 60e3)) return json(429, { error: "slow down" }); const out = await A.tip(q.tip); return json(out.status, out.body); }
     if (q.svc === "mcp") { if (limited(`mcp:${ip}`, 60, 60e3)) return json(429, { error: "slow down" }); return mcp(req, ip); }
+    if (q.works) {
+      if (limited(`wk:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
+      let b; try { b = await req.json(); } catch { return json(400, { error: "a JSON body, please" }); }
+      const out = q.works === "brief" ? await works.briefPut(b) : q.works === "result" ? await works.resultPut(b) : q.works === "listing" ? await works.listingPut(b) : q.works === "read" ? await works.readJob(b) : { status: 404, body: { error: "unknown action" } };
+      return json(out.status, out.body);
+    }
   } catch (e) {
     console.error("arcia402 post", String(e && e.message || e));
     return json(e && e.status ? e.status : 502, { error: String(e && e.message || e).slice(0, 200) });
   }
   return GET(req);
+}
+
+// ---------------- ARCIA WORKS reads ----------------
+async function worksGet(req, q, ip) {
+  const w = q.works;
+  if (w === "board") return json(200, await works.board(q.fresh === "1"), {}, "public, max-age=5, s-maxage=10");
+  if (w === "tick") { if (!authed(req, q)) return json(401, { error: "unauthorized" }); const r = await works.tick(); return json(200, q.full === "1" ? r : compact(r)); }
+  if (limited(`wkr:${ip}`, 60, 60e3)) return json(429, { error: "slow down" });
+  const out = w === "agent" ? await works.agentOf(q.a, q.fresh === "1") : w === "job" ? await works.jobOf(q.id, null) : w === "inbox" ? await works.inbox(q.a) : { status: 404, body: { error: "unknown view" } };
+  return json(out.status, out.body, {}, out.status === 200 ? "public, max-age=5" : "no-store");
 }
 
 // ---------------- /a402/<tx>: a sale's share page ----------------
