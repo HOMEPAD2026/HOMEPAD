@@ -291,7 +291,7 @@
       return `<svg class="vea-curve" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${m.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/><circle cx="${x(S.days - 1).toFixed(1)}" cy="${y(m[S.days - 1]).toFixed(1)}" r="5"/><text x="6" y="12">${T("multiplier")}</text></svg>`;
     }
     // v3: lower, with the 1 · 5 · 10 · 15 · 20-day marks on the line
-    const W = 300, H = 54, x = (i) => 6 + (i * (W - 12)) / (MAXD - 1), y = (v) => H - 8 - (v / max) * (H - 18);
+    const W = 300, H = 64, x = (i) => 6 + (i * (W - 12)) / (MAXD - 1), y = (v) => H - 8 - (v / max) * (H - 28);
     const line = pts.map((v, i) => `${x(i).toFixed(1)},${y(v || 0).toFixed(1)}`).join(" ");
     const ticks = [1, 5, 10, 15, 20].map((d) => `<circle class="tk${d === S.days ? " on" : ""}" cx="${x(d - 1).toFixed(1)}" cy="${y(pts[d - 1] || 0).toFixed(1)}" r="2.6"/>`).join("");
     return `<svg class="vea-curve" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polygon points="6,${H - 8} ${line} ${W - 6},${H - 8}" class="fill"/><polyline points="${line}"/>${ticks}<circle cx="${x(S.days - 1).toFixed(1)}" cy="${y(pts[S.days - 1] || 0).toFixed(1)}" r="5"/><text x="6" y="11">${T("est. yearly rate by lock")} <tspan class="v">${esc(pct(pts[S.days - 1]))}</tspan></text></svg>`;
@@ -345,11 +345,11 @@
   function timeline(p) {
     if (p.auto) return `<div class="vea-tl auto"><span>${T("Auto-renew is on")}</span><b data-no-i18n>${p.lockDays}d · ${mult(p.lockBps || BPS)}</b><small>${T("The lock keeps running; an early exit costs 50%. Turn auto-renew off to start the countdown.")}</small></div>`;
     const t = nowS(), total = Math.max(1, p.end - p.start), x = Math.min(1, Math.max(0, (t - p.start) / total));
-    const W = 300, H = 56, X = (f) => 4 + f * (W - 8), Y = (pc) => H - 14 - (pc / 50) * (H - 26);
+    const W = 300, H = 66, X = (f) => 4 + f * (W - 8), Y = (pc) => H - 14 - (pc / 50) * (H - 36);
     const curveD = `M${X(0)},${Y(50)} L${X(0.5)},${Y(50)} L${X(1)},${Y(0)}`;
     const ended = t >= p.end;
     return `<div class="vea-tl${ended ? " done" : ""}">
-      <svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${curveD} L${X(1)},${H - 14} L${X(0)},${H - 14}Z" class="area"/><path d="${curveD}" class="cost"/><line x1="${X(0)}" x2="${X(1)}" y1="${H - 14}" y2="${H - 14}" class="base"/><line x1="${X(0)}" x2="${X(x)}" y1="${H - 14}" y2="${H - 14}" class="done"/><line x1="${X(x)}" x2="${X(x)}" y1="6" y2="${H - 8}" class="now"/><circle cx="${X(x)}" cy="${H - 14}" r="5" class="now"/>
+      <svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${curveD} L${X(1)},${H - 14} L${X(0)},${H - 14}Z" class="area"/><path d="${curveD}" class="cost"/><line x1="${X(0)}" x2="${X(1)}" y1="${H - 14}" y2="${H - 14}" class="base"/><line x1="${X(0)}" x2="${X(x)}" y1="${H - 14}" y2="${H - 14}" class="done"/><line x1="${X(x)}" x2="${X(x)}" y1="16" y2="${H - 8}" class="now"/><circle cx="${X(x)}" cy="${H - 14}" r="5" class="now"/>
         <text x="${X(0)}" y="${H - 1}">${esc(when(p.start))}</text><text x="${X(1)}" y="${H - 1}" text-anchor="end">${esc(when(p.end))}</text><text x="${X(0) + 2}" y="10">${T("early-exit cost")} 50% → 0%</text></svg>
       <div><span>${T(ended ? "Lock ended" : "Unlocks in")}</span><b data-no-i18n data-vea-left="${p.end}">${ended ? when(p.end) : left(p.end - t)}</b></div>
       ${ended ? `<small>${T("Counts 1.0x until you renew — or withdraw for free.")}</small>` : ""}</div>`;
@@ -520,7 +520,7 @@
   function spark(pts, { step = false, fmtv = big, label = "", unit = "" } = {}) {
     if (!pts.length) return "";
     const t0 = pts[0].t, t1 = Math.max(t0 + 1, pts[pts.length - 1].t), vs = pts.map((p) => p.v), vmax = Math.max(...vs, 1e-9), vmin = Math.min(...vs, 0);
-    const W = 300, H = 70, X = (t) => 6 + ((t - t0) / (t1 - t0)) * (W - 12), Y = (v) => H - 14 - ((v - vmin) / (vmax - vmin || 1)) * (H - 30);
+    const W = 300, H = 92, X = (t) => 6 + ((t - t0) / (t1 - t0)) * (W - 12), Y = (v) => H - 14 - ((v - vmin) / (vmax - vmin || 1)) * (H - 26);
     let d = `M${X(pts[0].t).toFixed(1)},${Y(pts[0].v).toFixed(1)}`;
     for (let k = 1; k < pts.length; k++) d += step ? ` H${X(pts[k].t).toFixed(1)} V${Y(pts[k].v).toFixed(1)}` : ` L${X(pts[k].t).toFixed(1)},${Y(pts[k].v).toFixed(1)}`;
     const lastV = pts[pts.length - 1].v;
