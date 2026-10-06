@@ -8503,6 +8503,8 @@
     "Her posts on X, ARCIA DESK trades, ARCIA AGENT calls, ARCIA WORKS jobs, ARCIA 402 and the letters she answered — the last 24 hours.": "她在 X 的帖子、ARCIA DESK 交易、ARCIA AGENT 判断、ARCIA WORKS 任务、ARCIA 402 以及回复的粉丝信 — 最近 24 小时。",
     "Version 5 — new features are added regularly": "第 5 版 — 持续加入新功能",
     "Buy $ARCIA": "购买 $ARCIA",
+    "Guide": "指南",
+    "Take the 1-minute tour": "看 1 分钟导览",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

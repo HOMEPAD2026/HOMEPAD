@@ -8333,6 +8333,8 @@
     "Her posts on X, ARCIA DESK trades, ARCIA AGENT calls, ARCIA WORKS jobs, ARCIA 402 and the letters she answered — the last 24 hours.": "X 게시글, ARCIA DESK 매매, ARCIA AGENT 판정, ARCIA WORKS 작업, ARCIA 402, 답장한 팬레터 — 최근 24시간.",
     "Version 5 — new features are added regularly": "버전 5 — 새 기능이 계속 추가돼요",
     "Buy $ARCIA": "$ARCIA 매수",
+    "Guide": "가이드",
+    "Take the 1-minute tour": "1분 투어 보기",
   };
 
 
