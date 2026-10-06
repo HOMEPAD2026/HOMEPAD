@@ -35,6 +35,7 @@
 //   GET  /api/social?circle=boot                 /circle's <head> script: which round the page runs
 //   GET  /api/social?circle=summary&round=N      one round's results (Projects card)
 //   GET  /api/social?circle=csv&round=N[&in=eth|sol]  a round's leaderboard as CSV (?circle=lb&round=N for JSON); in= adds ETH / SOL columns
+//   GET  /api/social?vevote=list[&u=0x…]           veARCIA votes (api/_vearcia.mjs); POST vevotenew / vevote (signed)
 //   GET  /api/social?fx=1                        ETH and SOL in dollars (api/_fx.mjs)
 //   GET  /api/social?liq=<token>[&wallet=0x…]    Liquidity Manager: pools, positions, locks (api/_liquidity.mjs); &lite=1: pools and prices only (Orders)
 //   GET  /api/social?orders=book&token=0x…       ARCIRCLE Orders (api/_orders.mjs): one market's price levels and fills
@@ -348,6 +349,10 @@ export async function GET(req) {
     if (scanner.limited(`veboost:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
     try { const out = await vearcia.boostNote(String(url.searchParams.get("veboost") || "")); return json(out.ok ? 200 : 400, out, "no-store"); }
     catch (err) { console.error("veboost", err && err.message || err); return json(502, { error: "couldn't check the holding right now" }); }
+  }
+  if (url.searchParams.get("vevote") === "list") {
+    try { return json(200, await vearcia.voteList(String(url.searchParams.get("u") || "")), "no-store"); }
+    catch (err) { console.error("vevote list", err && err.message || err); return json(502, { error: "couldn't read the votes right now" }); }
   }
   if (url.searchParams.has("scan")) {
     const t = String(url.searchParams.get("scan") || "");
@@ -768,6 +773,13 @@ export async function POST(req) {
     if (b.action === "cref") return await circle.refReport(b, json);
     if (b.action === "cstage") return await rounds.stagePost(b, recoverSigner, json);
     if (b.action === "cround") return await rounds.registerRound(b, json);
+    // veARCIA votes (api/_vearcia.mjs): the owner opens one, holders sign a choice weighted by veARCIA at its snapshot
+    if (b.action === "vevotenew" || b.action === "vevote") {
+      if (scanner.limited(`vevote:${String(b.wallet || "").toLowerCase()}`, 20, 60e3)) return json(429, { error: "slow down" });
+      const deps = { recover: recoverSigner, issuedOk: (iso) => issuedOk(iso, 15 * 60e3) };
+      try { const r = b.action === "vevotenew" ? await vearcia.voteCreate(b, deps) : await vearcia.voteCast(b, deps); return json(r.status, r.body, "no-store"); }
+      catch (err) { console.error("vevote", err && err.message || err); return json(502, { error: "couldn't save the vote right now" }); }
+    }
     if (b.action === "rpoll") return await token.pollVote(b, recoverSigner, json);
     if (b.action === "scanreport") return await scanReport(b, req);
     if (b.action === "bridgelog") {

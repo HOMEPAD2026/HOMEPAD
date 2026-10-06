@@ -15879,7 +15879,7 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 .v6-badge.va.t3{background:rgba(255,200,97,.14);color:#ffd88a;border-color:rgba(255,200,97,.45);}
 .v6-badge.va.t4{background:linear-gradient(90deg,rgba(143,168,255,.22),rgba(255,139,216,.22));color:#fff;border-color:rgba(200,180,255,.6);}
 
-/* ---- veARCIA v2: the stream, tabs, curve, timeline, tiers, top 20, history, motion ---- */
+/* ---- veARCIA v2: the stream, tabs, curve, timeline, tiers, community, history, motion ---- */
 .vea-flow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;margin:0 0 14px;padding:16px 20px;border-radius:20px;
   background:radial-gradient(120% 140% at 0% 0%,rgba(255,139,216,.12),transparent 55%),radial-gradient(120% 140% at 100% 100%,rgba(143,168,255,.12),transparent 55%),rgba(255,255,255,.02);border:1px solid rgba(255,139,216,.22);}
 .vea-ring{position:relative;width:110px;height:110px;}
@@ -16000,16 +16000,6 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 .vea-cm-t b{font:700 .8rem 'JetBrains Mono',monospace;color:#fff;}
 .vea-cm-you{margin:0 0 8px;padding:8px 12px;border-radius:12px;background:rgba(255,139,216,.08);border:1px solid rgba(255,139,216,.3);font:700 .84rem Sora,sans-serif;color:#ffd2ec;}
 @media (prefers-reduced-motion:reduce){.vea-cm-bar i{transition:none;}}
-.vea-lb{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:420px;overflow:auto;}
-.vea-lb li{display:grid;grid-template-columns:22px 22px minmax(0,1fr) auto auto auto;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;font-size:.78rem;}
-.vea-lb li:nth-child(-n+3) em{color:#ffd88a;}
-.vea-lb li.me{background:rgba(255,139,216,.1);border:1px solid rgba(255,139,216,.35);}
-.vea-lb em{font:800 .78rem 'JetBrains Mono',monospace;font-style:normal;color:#8c98a6;text-align:right;}
-.vea-lb .vea-avs{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--vea),var(--vea2));}
-.vea-lb a{color:#dfe6ee;text-decoration:none;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;}
-.vea-lb b{font:700 .8rem 'JetBrains Mono',monospace;}
-.vea-lb small{color:#8c98a6;font-size:.68rem;white-space:nowrap;}
-.vea-lb .vea-none{display:block;color:#8c98a6;padding:16px;text-align:center;}
 .vea-hist{display:block;width:100%;height:110px;}
 .vea-hist .fill{fill:rgba(143,168,255,.12);}.vea-hist .line{fill:none;stroke:var(--vea2);stroke-width:2;}
 .vea-hist text{fill:#7d8996;font:600 9px Inter,sans-serif;}
@@ -16044,8 +16034,6 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 @media (max-width:560px){
   .vea-ring,.vea-ring svg{width:88px;height:88px;}
   .vea-flow{padding:12px 14px;gap:12px;}
-  .vea-lb li{grid-template-columns:20px 20px minmax(0,1fr) auto;}
-  .vea-lb li .vea-tb,.vea-lb li small{display:none;}
 }
 @media (prefers-reduced-motion:reduce){.vea-dot,.vea-av i,.vea-x.top::after{animation:none;}.vea-dot{opacity:.5;offset-distance:50%;}}
 /* veARCIA on Home and in Portfolio (arcpad-v6.js) */
@@ -17474,3 +17462,152 @@ body.cp-home-live #bp-panel-home > .bp-hero h1{font-size:clamp(1.6rem,3.2vw,2.6r
 }
 /* v9: no route in the card → the numbers sit right under the description, the room goes to the card's end */
 @media (min-width:1101px){.cp-main:not(.cp9-has-route) > .bp-mini-stats{align-self:start;}}
+
+/* ================= veARCIA v3 (arc-vearcia.js): live hero, tiers, simulator, votes, gift, trends, motion ================= */
+/* the hero: streamed so far, the pool's runway, stakers, the average rate */
+.vea-flow{grid-template-areas:"ring stream crowd" "live live live";}
+.vea-flow > .vea-ring{grid-area:ring;} .vea-flow > .vea-stream{grid-area:stream;} .vea-flow > .vea-crowd{grid-area:crowd;}
+.vea-live{grid-area:live;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07);}
+.vea-live > div{display:grid;gap:2px;min-width:0;}
+.vea-live span{font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:#8c98a6;}
+.vea-live b{font:800 1.05rem 'JetBrains Mono',monospace;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vea-live b .r{display:inline-block;animation:veaRoll .35s cubic-bezier(.2,.8,.2,1);}
+.vea-live i{font-style:normal;font-size:.68rem;color:#c9a6d8;}
+.vea-live small{font-size:.66rem;color:#8c98a6;}
+@media (max-width:860px){.vea-live{grid-template-columns:1fr 1fr;}}
+/* a refill: the pool ring fills again */
+.vea-flow.refill .vea-ring .val{animation:veaRefill 1.4s cubic-bezier(.2,.8,.2,1);}
+.vea-flow.refill .vea-ring{animation:veaRefillGlow 2s ease-out;}
+@keyframes veaRefill{from{stroke-dashoffset:var(--c,290);}}
+@keyframes veaRefillGlow{0%{filter:drop-shadow(0 0 0 rgba(255,139,216,0));}30%{filter:drop-shadow(0 0 18px rgba(255,139,216,.8));}100%{filter:drop-shadow(0 0 0 rgba(255,139,216,0));}}
+/* phones: the stat boxes scroll sideways in one row, the intro folds */
+@media (max-width:860px){
+  .vea-stats{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding-bottom:4px;scrollbar-width:none;}
+  .vea-stats::-webkit-scrollbar{display:none;}
+  .vea-stats > .vea-stat{flex:0 0 min(46vw,190px);scroll-snap-align:start;}
+  #bp-panel-vearcia .vea-hero .bp-lede.vea-fold:not(.open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+}
+.vea-more{margin:4px 0 0;padding:0;border:0;background:none;color:var(--vea);font:700 .74rem Sora,sans-serif;cursor:pointer;}
+/* the empty "Your veARCIA" card: a preview of the stake being typed */
+.vea-prev{padding:4px 0 6px;}
+.vea-big.ghost b{opacity:.75;}
+.vea-prev .vea-sum{margin:8px 0 10px;}
+/* the lock curve's day marks */
+.vea-curve .tk{fill:#0b0d12;stroke:rgba(255,139,216,.55);stroke-width:1.4;}
+.vea-curve .tk.on{stroke:#fff;}
+.vea-curve text.v{fill:#ffd6f1;font-weight:700;}
+/* the next tier */
+.vea-tp{margin:6px 0 12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);}
+.vea-tp-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.74rem;color:#aab5c2;}
+.vea-tp-h b{color:#fff;}
+.vea-tp .vea-prog{height:8px;margin:8px 0;}
+.vea-tp-w{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.vea-tp-w em{font-style:normal;font-size:.68rem;color:#8c98a6;}
+.vea-tp.top{display:flex;align-items:center;gap:8px;font-size:.74rem;color:#aab5c2;}
+.vea-flash{animation:veaFlashIn 1.2s ease-out;}
+@keyframes veaFlashIn{0%{box-shadow:0 0 0 0 rgba(255,139,216,.8);}100%{box-shadow:0 0 0 12px rgba(255,139,216,0);}}
+/* calendar / re-lock */
+.vea-la{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px 0 12px;}
+.vea-la.relock{padding:10px 12px;border-radius:14px;background:rgba(255,200,97,.07);border:1px solid rgba(255,200,97,.3);}
+.vea-la.relock span{flex:1 1 100%;font-size:.76rem;color:#ffe2a8;}
+/* the early-exit simulator */
+.vea-sim{margin:10px 0;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.22);border:1px dashed rgba(255,255,255,.12);display:grid;gap:8px;}
+.vea-sim-h{display:flex;align-items:baseline;gap:8px;font-size:.74rem;color:#aab5c2;}
+.vea-sim-h b{color:#fff;font:700 .78rem 'JetBrains Mono',monospace;}
+.vea-sim-h em{margin-left:auto;font-style:normal;font:800 .78rem 'JetBrains Mono',monospace;color:#ffb199;}
+#vea-sim{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;outline:none;cursor:pointer;background:linear-gradient(90deg,rgba(255,139,216,.8) var(--p),rgba(255,255,255,.1) var(--p));}
+#vea-sim::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--vea2);}
+#vea-sim::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--vea2);}
+.vea-sim small{font-size:.68rem;color:#8c98a6;}
+/* auto-renew: the loop turns when it's switched on */
+.vea-inf{width:22px;height:11px;margin-right:6px;vertical-align:-1px;fill:none;stroke:var(--vea);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:60;stroke-dashoffset:0;}
+.vea-switch.spin .vea-inf{animation:veaInf 1.6s cubic-bezier(.4,0,.2,1);}
+@keyframes veaInf{0%{stroke-dashoffset:60;transform:rotate(-8deg);}60%{stroke-dashoffset:0;transform:rotate(4deg);}100%{transform:none;}}
+/* the lock slider's marks pulse when the thumb lands on one */
+.vea-marks button.snap{animation:veaSnap .5s cubic-bezier(.2,1.6,.4,1);border-color:var(--vea);color:#fff;}
+@keyframes veaSnap{0%{transform:scale(1);}40%{transform:scale(1.12);box-shadow:0 0 18px rgba(255,139,216,.6);}100%{transform:scale(1);}}
+/* the emblem's ring drains with the lock */
+.vea-emblem{overflow:visible;}
+.vea-emblem img{border-radius:inherit;}
+.vea-emblem.vea-lk::after{content:"";position:absolute;inset:-6px;border-radius:32px;padding:3px;background:conic-gradient(var(--vea) calc(var(--lk,1) * 360deg),rgba(255,255,255,.08) 0);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.vea-emblem.vea-lk.auto::after{background:conic-gradient(from var(--a,0deg),var(--vea),var(--vea2),var(--vea));animation:veaTurn 6s linear infinite;}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg;}
+@keyframes veaTurn{to{--a:360deg;}}
+@media (max-width:560px){.vea-emblem.vea-lk::after{border-radius:26px;}}
+/* tier-up */
+.vea-tierup{position:fixed;left:50%;top:84px;z-index:2800;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;background:rgba(18,10,20,.96);border:1px solid rgba(255,139,216,.55);box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 30px rgba(255,139,216,.25);transform:translateX(-50%);animation:veaTierIn .6s cubic-bezier(.2,1.3,.4,1);transition:opacity .5s,transform .5s;}
+.vea-tierup.out{opacity:0;transform:translate(-50%,-10px);}
+.vea-tierup .vea-tb{font-size:.78rem;padding:4px 10px;animation:veaFlip .9s cubic-bezier(.2,.8,.2,1);}
+.vea-tierup b{display:block;font:800 .9rem Sora,sans-serif;color:#fff;}
+.vea-tierup small{font-size:.74rem;color:#c9b8d4;}
+@keyframes veaTierIn{from{opacity:0;transform:translate(-50%,-16px) scale(.96);}to{opacity:1;transform:translateX(-50%);}}
+/* votes */
+.vea-grid.g4{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);}
+.vea-vl{display:grid;gap:12px;}
+.vea-v{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:grid;gap:8px;}
+.vea-v.open{border-color:rgba(255,139,216,.35);background:linear-gradient(160deg,rgba(255,139,216,.06),rgba(143,168,255,.03));}
+.vea-v-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.vea-v-st{font:800 .62rem Sora,sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.08);color:#c4ccd6;}
+.vea-v.open .vea-v-st{background:rgba(255,139,216,.18);color:#ffd6f1;}
+.vea-v-h small{font-size:.66rem;color:#8c98a6;}
+.vea-v-t{font:800 .95rem Sora,sans-serif;color:#fff;}
+.vea-v-b{margin:0;font-size:.78rem;line-height:1.5;color:#aab5c2;white-space:pre-line;}
+.vea-v-o{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+.vea-v-o li{display:grid;gap:2px;}
+.vea-v-o button{position:relative;display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.2);color:#eef2f6;font:600 .8rem Inter,sans-serif;text-align:left;cursor:pointer;overflow:hidden;transition:border-color .2s,transform .15s;}
+.vea-v-o button:not(:disabled):hover{border-color:var(--vea);transform:translateY(-1px);}
+.vea-v-o button:disabled{cursor:default;}
+.vea-v-o button span,.vea-v-o button b{position:relative;z-index:1;}
+.vea-v-o button b{margin-left:auto;font:800 .78rem 'JetBrains Mono',monospace;}
+.vea-v-o button i{position:absolute;inset:0 auto 0 0;width:var(--w);background:linear-gradient(90deg,rgba(255,139,216,.22),rgba(143,168,255,.18));transition:width .7s cubic-bezier(.2,.8,.2,1);}
+.vea-v-o li.mine button{border-color:var(--vea);box-shadow:inset 3px 0 0 var(--vea);}
+.vea-v-o li.won button{border-color:rgba(255,216,138,.6);}
+.vea-v-o li.won button i{background:linear-gradient(90deg,rgba(255,216,138,.3),rgba(255,139,216,.18));}
+.vea-v-o small{font-size:.64rem;color:#8c98a6;padding-left:4px;}
+.vea-v-me{margin:0;font-size:.74rem;color:#c9d2dc;}
+.vea-v-tu{font-size:.66rem;color:#8c98a6;}
+.vea-v-none{font-size:.8rem;color:#8c98a6;padding:12px;border-radius:12px;border:1px dashed rgba(255,255,255,.12);text-align:center;}
+.vea-vnew{margin-top:12px;padding:10px 12px;border-radius:14px;border:1px dashed rgba(255,139,216,.35);}
+.vea-vnew summary{cursor:pointer;font:700 .8rem Sora,sans-serif;color:#ffd6f1;}
+.vea-vnew summary small{color:#8c98a6;font-weight:600;margin-left:6px;}
+.vea-vnew .vea-in{margin-top:8px;}
+.vea-in.area{align-items:flex-start;flex-direction:column;gap:4px;}
+.vea-in textarea,.vea-in select{width:100%;background:none;border:0;color:#fff;font:500 .82rem Inter,sans-serif;resize:vertical;outline:none;}
+.vea-in select option{background:#111;}
+/* gift */
+.vea-gift .vea-in{margin-bottom:8px;}
+.vea-gift .vea-marks{margin:4px 0 8px;}
+.vea-gsum{font-size:.76rem;color:#c9d2dc;margin:0 0 10px;}
+/* trends */
+.vea-trs{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.vea-tr{padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.06);}
+.vea-tr-h{display:flex;align-items:baseline;gap:6px;font-size:.66rem;color:#8c98a6;text-transform:uppercase;letter-spacing:.05em;}
+.vea-tr-h b{margin-left:auto;font:800 .8rem 'JetBrains Mono',monospace;color:#fff;text-transform:none;letter-spacing:0;}
+.vea-tr-h b i{font-style:normal;font-size:.62rem;color:#c9a6d8;}
+.vea-tr .vea-hist .dot{fill:#fff;}
+.vea-tr .vea-hist .line{stroke-dasharray:900;stroke-dashoffset:0;}
+@media (prefers-reduced-motion:no-preference){.vea-trend.in .vea-hist .line{animation:veaDraw 1.2s ease-out;}}
+@keyframes veaDraw{from{stroke-dashoffset:900;}}
+@media (max-width:560px){.vea-trs{grid-template-columns:1fr;}.vea-grid.g4{grid-template-columns:1fr;}}
+@media (max-width:860px){.vea-grid.g4{grid-template-columns:1fr;}
+  .vt-vote [data-vt="vote"]{display:block;}}
+@media (prefers-reduced-motion:reduce){
+  .vea-flow.refill .vea-ring,.vea-flow.refill .vea-ring .val,.vea-switch.spin .vea-inf,.vea-marks button.snap,.vea-emblem.vea-lk.auto::after,.vea-tierup,.vea-tierup .vea-tb,.vea-flash,.vea-v-o button i{animation:none !important;transition:none !important;}
+}
+.vea-emblem i{border-radius:inherit;}
+/* v9: "Stake it" after an $ARCIA buy (arc-orders.js stakeCta) */
+.aor-toast.vea{pointer-events:auto;border-color:rgba(255,139,216,.55);background:linear-gradient(90deg,rgba(36,12,30,.97),rgba(12,14,30,.97));}
+.aor-toast.vea i{background:#ff8bd8;}
+.aor-toast.vea span small{display:block;font-size:.68rem;color:#c9b8d4;margin-top:2px;}
+.aor-toast.vea .aor-btn{margin-left:10px;flex:none;}
+/* v9: veARCIA in the Orders portfolio (arc-orders-v5.js) */
+.aor-pf-vea{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 10px;padding:9px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(255,139,216,.09),rgba(143,168,255,.05));border:1px solid rgba(255,139,216,.3);font-size:.76rem;color:#c9d2dc;}
+.aor-pf-veac{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#ff8bd8,#8fa8ff);flex:none;}
+.aor-pf-vea small{display:block;font-size:.6rem;color:#8b9aa8;text-transform:uppercase;letter-spacing:.06em;}
+.aor-pf-vea b{font:700 .8rem var(--or-mono,monospace);color:#fff;}
+.aor-pf-vea .g{color:#7dffb8;}
+.aor-pf-vea .aor-link{margin-left:auto;}
+.vea-card h3 .vea-share-w{margin-left:auto;display:inline-flex;gap:6px;}
+.vea-card h3 .vea-share-w .vea-share{margin-left:0;}
+.vea-more{white-space:nowrap;grid-column:1/-1;justify-self:start;display:block;}
+@media (max-width:860px){.vea-tabs{overflow-x:auto;scrollbar-width:none;}.vea-tabs::-webkit-scrollbar{display:none;}.vea-tabs > *{flex:none;}}

@@ -3038,6 +3038,17 @@
       if ((o.filledPct || 0) > (b.filledPct || 0) && fxOn() && navigator.vibrate && innerWidth <= 720) { try { navigator.vibrate(o.status === "filled" ? [18, 40, 28] : 16); } catch { /* fine */ } }
     }
     bracketCheck(next);
+    // v9: an $ARCIA buy on Robinhood Chain filled → offer to stake it on veARCIA (the amount goes over pre-filled)
+    if (RH()) {
+      let got = 0;
+      for (const o of next.orders || []) {
+        const b = before.get(o.hash);
+        if (!b || o.side !== "buy" || lc((o.token && o.token.address) || o.token) !== ARCIA_RH()) continue;
+        const d = (o.filledPct || 0) - (b.filledPct || 0);
+        if (d > 0) got += (human(o.buyAmount || 0, (o.token && o.token.decimals) || 18) * d) / 100;
+      }
+      if (got >= 1) stakeCta(Math.floor(got));
+    }
     // v8: the very first fill on this browser gets its own moment — and a share card, once
     const firstH = [...S.pulse].find((h) => { const o = (next.orders || []).find((x) => x.hash === h); return o && (o.filledPct || 0) > 0; });
     if (firstH && !store.get("arcircle.orders.firstfill", false)) { store.set("arcircle.orders.firstfill", true); setTimeout(() => firstFill(firstH), 900); }
@@ -3104,6 +3115,21 @@
     t.innerHTML = `<i></i><span data-no-i18n>${esc(text)}${roll ? `<span class="aor-rollw">${roll}</span>` : ""}${sub ? `<small>${esc(sub)}</small>` : ""}</span>`;
     box.appendChild(t); setTimeout(() => t.classList.add("out"), fx ? 8000 : 6000); setTimeout(() => t.remove(), fx ? 8600 : 6600);
     if (roll && !reduce) { const el = t.querySelector(".aor-roll"), to = fx.roll, t0 = performance.now(); const step = (now0) => { const k = Math.min(1, (now0 - t0) / 1100), e = 1 - Math.pow(1 - k, 3); if (el.isConnected) el.textContent = pc(to * e, 1); if (k < 1) requestAnimationFrame(step); else el.classList.add("done"); }; setTimeout(() => requestAnimationFrame(step), 250); }
+  }
+  /// v9: "Stake it" — the $ARCIA a buy just got, one tap to veARCIA with the amount filled in
+  function stakeCta(amt) {
+    let box = $("aor-toasts");
+    if (!box) { box = document.createElement("div"); box.id = "aor-toasts"; box.className = "aor-toasts"; box.setAttribute("aria-live", "polite"); document.body.appendChild(box); }
+    const old = box.querySelector(".aor-toast.vea"); if (old) old.remove();
+    const t = document.createElement("div"); t.className = "aor-toast vea";
+    t.innerHTML = `<i></i><span data-no-i18n>${esc(L3(`Stake your ${num(amt)} $ARCIA on veARCIA?`, `받은 ${num(amt)} $ARCIA를 veARCIA에 스테이킹할까요?`, `把 ${num(amt)} $ARCIA 质押到 veARCIA？`))}<small>${esc(L3("Rewards every second · up to 2x with a 20-day lock", "매초 보상 · 20일 락이면 최대 2배", "每秒奖励 · 锁 20 天最高 2 倍"))}</small></span><button type="button" class="aor-btn sm go">${esc(L3("Stake it", "스테이킹", "去质押"))}</button>`;
+    box.appendChild(t);
+    t.querySelector("button").addEventListener("click", () => {
+      store.set("vea.prefill", { amt, at: Date.now() });
+      t.classList.add("out"); setTimeout(() => t.remove(), 400);
+      if (typeof window.arcpadShowTab === "function") window.arcpadShowTab("vearcia"); else location.hash = "vearcia";
+    });
+    setTimeout(() => t.classList.add("out"), 15000); setTimeout(() => t.remove(), 15600);
   }
   function firstFill(h) {
     let box = $("aor-toasts");
@@ -3507,7 +3533,7 @@
   document.addEventListener("arc:lang", () => { if (S.booted) { frame(); if (!SOLC() && S.t) { market(); bookView(); form(); } } });
   if (panel.classList.contains("active")) setTimeout(show, 0);
   // v4: arc-orders-v4.js (watchlist, "type an order", Web Push, the phone's layout) works through these
-  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH, fp, num, toast, live: LIVE,
+  window.arcOrders = { open, state: S, form: F, lang, setChain, chain: () => CH, fp, num, toast, stakeCta, live: LIVE,
     render: () => { form(); requote(); }, redraw: () => { market(); bookView(); chartView(); mineView(); }, favs, recent, me, viewOf, unlock, pc, usd, mcapOf, qUsd, sellOnly, PRO, setMode: (m) => { store.set(MK, m); panel.classList.toggle("aor-simple", m !== "pro"); },
     // v5: arc-orders-v5.js (portfolio, the fee-burn dashboard, the chain switch's counts, Solana's waitlist)
     rp, rpOf: (c) => (c === "rh" ? (rhProv = rhProv || new ethers.JsonRpcProvider(ALT().rpc, Number(ALT().id || 4663), { staticNetwork: true })) : typeof readProvider === "function" ? readProvider() : null), loadOther, sheet, flash: flashField, mine: mineView, connect: async () => { try { await signer(); } catch { /* cancelled */ } await Promise.all([loadBal(), loadMine()]); form(); mineView(); }, chainName: CHAIN_NAME, explorer: EXPL, liveOn, qv, ago, L3: (en, ko, zh) => L3(en, ko, zh), defaultMkt: DEFAULT_MKT };

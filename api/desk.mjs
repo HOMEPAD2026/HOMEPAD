@@ -102,8 +102,8 @@ export async function GET(req) {
       if (q.vearcia === "me") { const r = await vearcia.me(String(q.u || "")); return json(r, r.ok ? 200 : 400, "public, max-age=5, s-maxage=10"); }
       if (q.vearcia === "card") { const r = await vearcia.card(String(q.u || "")); return json(r, 200, "public, max-age=30, s-maxage=60"); }
       const s = await vearcia.state();
-      // v2: no wallet list in public — the stakers as a whole (dist) instead of a top 20
-      return json({ ...s, stakers: undefined, top: undefined, count: s.stakers ? s.stakers.length : 0 }, 200, "public, max-age=10, s-maxage=20");
+      // v2: no wallet list in public — the stakers as a whole (dist, series)
+      return json({ ...s, stakers: undefined, count: s.stakers ? s.stakers.length : 0 }, 200, "public, max-age=10, s-maxage=20");
     } catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
   // ARCIRCLE NFT Vault (api/_nft.mjs, Robinhood Chain): ?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] · ?nft=status

@@ -895,7 +895,7 @@ async function voteCard(mark, tx) {
 async function veaCard(mark, user) {
   let d = null;
   try { d = await veaCardOf(user); } catch { d = null; }
-  const pink = "#ff8bd8", blue = "#8fa8ff", g = "#39ff88";
+  const pink = "#ff8bd8", g = "#39ff88";
   const big = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : Number(n || 0).toFixed(0));
   const p = d && d.position;
   if (!p) {
@@ -910,17 +910,27 @@ async function veaCard(mark, user) {
   const box = (label, value, color = "#eaf2e6") => h("div", { flexDirection: "column", gap: 6, padding: "16px 24px", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,139,216,0.25)" },
     h("div", { fontSize: 20, color: "#b9b0c8", textTransform: "uppercase", letterSpacing: 2 }, label),
     h("div", { fontSize: 38, fontWeight: 800, color }, value));
-  const lock = p.auto ? `${p.lockDays}d · auto-renew` : p.end > Math.floor(Date.now() / 1000) ? `until ${new Date(p.end * 1000).toISOString().slice(0, 10)}` : "ended";
+  // v3: the tier, the multiplier (lock × boost) and how much of the lock is left, drawn as a bar
+  const now = Math.floor(Date.now() / 1000);
+  const boostX = p.tier && p.boostUntil > now ? [1, 1.2, 1.5, 2][p.tier] : 1;
+  const lockX = (p.lockBps || 10000) / 10000;
+  const total = Math.max(1, (p.end || 0) - (p.start || 0)), leftS = p.auto ? total : Math.max(0, (p.end || 0) - now);
+  const leftTxt = p.auto ? `${p.lockDays}d · auto-renew` : leftS > 0 ? (leftS >= 86400 ? `${Math.floor(leftS / 86400)}d ${Math.floor((leftS % 86400) / 3600)}h left` : `${Math.floor(leftS / 3600)}h ${Math.floor((leftS % 3600) / 60)}m left`) : "ended";
+  const frac = p.auto ? 1 : Math.max(0, Math.min(1, leftS / total));
+  const tierCol = ["#c9c0d8", "#e0a46b", "#d6dde6", "#ffd166", "#b9e4ff"][d.veTier || 0];
   return frame([
-    brandRow(mark, pill(d.tierName ? d.tierName.toUpperCase() : "STAKER", pink), "veARCIA · Robinhood Chain"),
+    brandRow(mark, pill(d.tierName ? d.tierName.toUpperCase() : "STAKER", tierCol), "veARCIA · Robinhood Chain"),
     h("div", { flexDirection: "column", gap: 10 },
-      h("div", { fontSize: 32, color: pink, fontWeight: 700 }, `${(p.lockBps / 10000).toFixed(2)}x lock${p.tier ? ` · ${[1, 1.2, 1.5, 2][p.tier]}x $ARCIRCLE boost` : ""}`),
+      h("div", { fontSize: 32, color: pink, fontWeight: 700 }, `${(lockX * boostX).toFixed(2)}x weight · ${lockX.toFixed(2)}x lock${boostX > 1 ? ` × ${boostX}x $ARCIRCLE boost` : ""}`),
       h("div", { fontSize: 104, fontWeight: 800, lineHeight: 1, letterSpacing: -2 }, `${big(p.ve)} veARCIA`),
       h("div", { fontSize: 30, color: "#c9c0d8" }, `${big(p.amount)} $ARCIA staked · rewards every second`)),
-    h("div", { gap: 16 },
-      box("Rank", d.rank ? `#${d.rank}${d.stakers ? ` of ${d.stakers}` : ""}` : "—", blue),
-      box("Received", `${big(d.received || 0)} $ARCIA`, g),
-      box("Lock", lock, pink)),
+    h("div", { flexDirection: "column", gap: 14, width: "100%" },
+      h("div", { gap: 16 },
+        box("Tier", d.tierName || "Member", tierCol),
+        box("Lock", leftTxt, pink),
+        box("Received", `${big(d.received || 0)} $ARCIA`, g)),
+      h("div", { width: "100%", height: 14, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.08)" },
+        h("div", { width: `${(frac * 100).toFixed(1)}%`, height: 14, borderRadius: 999, backgroundImage: "linear-gradient(90deg, #ff8bd8, #8fa8ff)" }))),
   ]);
 }
 

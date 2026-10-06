@@ -3,8 +3,8 @@
 //                     Robinhood Chain (ArcircleOFT)
 //   boostNote(wallet) the tier (0 none · 1 ≥1M → 1.2x · 2 ≥5M → 1.5x · 3 ≥10M → 2.0x) signed by ARCIA_BOOST_KEY, ready
 //                     for ArciaStaking.applyBoost(wallet, tier, issued, until, signature). A note lasts 3 days.
-//   state()           totals, the reward streams, every staker (from the Staked events) with the top 20 by veARCIA, the
-//                     $ARCIA pool's history — cached 30 s, the event scan kept in the store and read forward
+//   state()           totals, the reward streams, every staker (from the Staked events), the community as a whole and
+//                     over time, the $ARCIA pool's history — cached 30 s, the event scan kept in the store and read forward
 //   me(wallet)        a wallet's position, tier, rank and its last 30 actions (stake, compound, claim, withdraw, boost)
 //   card(wallet)      the share card's numbers (/vearcia/<wallet>)
 //   veTierOf(wallet)  0 none · 1 Bronze ≥10K · 2 Silver ≥100K · 3 Gold ≥1M · 4 Diamond ≥5M veARCIA (perks, badges)
@@ -132,26 +132,36 @@ const posOf = (hex) => {
   return { amount: F(w[0]), start: Number(w[1]), end: Number(w[2]), lockBps: Number(w[3]), lockDays: Number(w[4]), auto: w[5] === 1n, tier: Number(w[6]), boostUntil: Number(w[7]), ve: F(w[9]), weight: F(w[10]) };
 };
 
-/// every wallet that ever staked, from Staked events — scanned forward from the last block read (kept in the store)
+/// every wallet that ever staked, from Staked events — scanned forward from the last block read (kept in the store).
+/// v3 (6 Oct 2026): it also follows each wallet's staked amount (Staked carries the new total; Withdrawn and Compounded
+/// change it), so the community can be drawn over time: total staked and stakers after every change (`series`).
 async function stakersScan(ch, addr) {
-  const st = CFG.store(), key = `vearcia/scan_${addr}`;
-  let doc = (st && (await st.get(key).catch(() => null))) || mem.scan || { to: CFG.fromBlock() - 1, users: [], pools: [] };
+  const st = CFG.store(), key = `vearcia/scan3_${addr}`;
+  let doc = (st && (await st.get(key).catch(() => null))) || mem.scan || { to: CFG.fromBlock() - 1, users: [], pools: [], amt: {}, series: [] };
   const head = parseInt(await ch.rpcCall("eth_blockNumber", []), 16);
   let from = Math.max(doc.to + 1, CFG.fromBlock()), step = CFG.logStep, n = 0;
-  const users = new Set(doc.users || []), pools = doc.pools || [];
+  const users = new Set(doc.users || []), pools = doc.pools || [], amt = { ...(doc.amt || {}) }, series = doc.series || [];
   const t0 = Date.now();
   while (from <= head && n < 40 && Date.now() - t0 < 6000) {
     const to = Math.min(head, from + step - 1);
     let logs;
-    try { logs = await ch.getLogs({ address: addr, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), topics: [[EV.Staked, EV.PoolChanged]] }); }
+    try { logs = await ch.getLogs({ address: addr, fromBlock: "0x" + from.toString(16), toBlock: "0x" + to.toString(16), topics: [[EV.Staked, EV.PoolChanged, EV.Withdrawn, EV.Compounded]] }); }
     catch (e) { if (step > 10_000) { step = Math.floor(step / 4); continue; } throw e; }
     for (const l of logs) {
-      if (l.topics[0] === EV.Staked) users.add("0x" + l.topics[1].slice(26));
-      else if (E(l.topics[1]) === 0n) { const w = words(l.data); pools.push({ b: parseInt(l.blockNumber, 16), pool: F(w[0]), perDay: F(w[1]), finish: Number(w[2]) }); }
+      const b = parseInt(l.blockNumber, 16), w = words(l.data), who = l.topics[1] ? "0x" + l.topics[1].slice(26) : "";
+      if (l.topics[0] === EV.PoolChanged) { if (E(l.topics[1]) === 0n) pools.push({ b, pool: F(w[0]), perDay: F(w[1]), finish: Number(w[2]) }); continue; }
+      if (l.topics[0] === EV.Staked) { users.add(who); amt[who] = F(w[1]); } // the position's new total
+      else if (l.topics[0] === EV.Withdrawn) amt[who] = Math.max(0, (amt[who] || 0) - F(w[0]));
+      else if (l.topics[0] === EV.Compounded) amt[who] = (amt[who] || 0) + F(w[0]);
+      const vals = Object.values(amt), pt = { b, staked: vals.reduce((x, y) => x + y, 0), stakers: vals.filter((x) => x > 1e-9).length };
+      if (series.length && series[series.length - 1].b === b) series[series.length - 1] = pt; else series.push(pt);
     }
     from = to + 1; n++;
   }
-  doc = { to: from - 1, users: [...users], pools: pools.slice(-60) };
+  // keep the series light: the newest 300 points, older ones thinned to every other one
+  while (series.length > 400) series.splice(0, 200, ...series.slice(0, 200).filter((_, i) => i % 2 === 0));
+  for (const p of series.slice(-120)) if (!p.t) p.t = await blockTs(ch, p.b);
+  doc = { to: from - 1, users: [...users], pools: pools.slice(-60), amt, series };
   mem.scan = doc;
   if (st) st.set(key, doc).catch(() => {});
   return doc;
@@ -166,7 +176,7 @@ async function blockTs(ch, b) {
   return t;
 }
 
-/// the whole picture: totals, streams, stakers (top 20 by veARCIA), the $ARCIA pool's history
+/// the whole picture: totals, streams, stakers (server-side only), the community over time, the $ARCIA pool's history
 export async function state(fresh = false) {
   const addr = CFG.address();
   if (!addr) return { live: false, tiers: VE_TIERS.slice(1).map(([n, v]) => ({ name: n, ve: v })) };
@@ -187,10 +197,10 @@ export async function state(fresh = false) {
     live: true, address: addr, chainId: CFG.chainId, now, owner: ownerHex ? "0x" + ownerHex.slice(-40) : null,
     totals: { pool: F(w[0] || 0n), perDay: F(w[1] || 0n), finish: Number(w[2] || 0n), staked: F(w[3] || 0n), ve: F(w[4] || 0n), weight: F(w[5] || 0n), streamed: F(w[6] || 0n), claimed: F(w[7] || 0n), burned: F(w[8] || 0n), stakers: Number(E(stakersHex)) || list.length },
     streams: streams.map((s) => ({ i: s.i, token: s.token, pool: Number(s.pool), perDay: Number(s.perDay), finish: s.finish, streamed: Number(s.streamed), claimed: Number(s.claimed) })), // raw units (each token's own decimals)
-    top: list.slice(0, 20).map((x, r) => ({ rank: r + 1, a: x.a, amount: x.amount, ve: x.ve, lockDays: x.lockDays, auto: x.auto, tier: x.tier, veTier: veTier(x.ve), end: x.end })), // server-side only (desk.mjs strips it)
     dist: community(list, now),
     stakers: list.map((x) => ({ a: x.a, ve: x.ve, end: x.end, auto: x.auto, lockBps: x.lockBps, tier: x.tier, boostUntil: x.boostUntil })),
     pools: scan.pools || [],
+    series: (scan.series || []).filter((p) => p.t).slice(-120).map((p) => ({ t: p.t, staked: p.staked, stakers: p.stakers })),
     tiers: VE_TIERS.slice(1).map(([nm, v]) => ({ name: nm, ve: v })),
   };
   // the history points get their times (a few blocks, cached)
@@ -310,3 +320,108 @@ export async function tick({ maxDown = 8, dry = false } = {}) {
   }
   return out;
 }
+
+// ================================================================ votes (v3, 6 Oct 2026)
+// veARCIA's governance, off-chain and free: the owner wallet (or a wallet in VEARCIA_VOTE_ADMINS) signs a proposal —
+// a title, 2–6 options, how many days it runs — and the snapshot is the chain's time when it's made. Anyone signs a
+// choice; it counts with the wallet's veARCIA at the snapshot (ArciaStaking.getPastVotes — ERC-5805, mode=timestamp),
+// so staking after a proposal opens doesn't change its result. A wallet can change its choice until the end. Nothing
+// moves on-chain; the signed messages are kept and anyone can re-count them with getPastVotes.
+const VOTES_KEY = "vearcia/votes";
+const voteKey = (id) => `vearcia/vote_${id}`;
+const SEL_PAST = sel("getPastVotes(address,uint256)"), SEL_PAST_TOTAL = sel("getPastTotalSupply(uint256)");
+const vmem = new Map();
+const vstore = () => { const st = CFG.store(); return st || { get: async (k) => vmem.get(k) || null, set: async (k, d) => { vmem.set(k, JSON.parse(JSON.stringify(d))); } }; };
+const clean = (s, n) => String(s || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+const cleanBody = (s, n) => String(s || "").replace(/\r/g, "").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").replace(/\n{3,}/g, "\n\n").trim().slice(0, n);
+export const voteNewMessage = ({ title, options, days, wallet, issued }) => `veARCIA — new proposal\nTitle: ${title}\nOptions: ${options.join(" | ")}\nRuns: ${days} days\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
+export const voteMessage = ({ id, title, choice, wallet, issued }) => `veARCIA vote\nProposal: #${id} ${title}\nChoice: ${choice}\nWallet: ${lc(wallet)}\nIssued: ${issued}`;
+async function voteAdmins(addr) {
+  const out = new Set(env("VEARCIA_VOTE_ADMINS").split(/[\s,]+/).filter(isAddr).map(lc));
+  try { const o = await rhChain().rpcCall("eth_call", [{ to: addr, data: "0x" + S.owner }, "latest"]); if (o && o.length >= 66) out.add("0x" + o.slice(-40).toLowerCase()); } catch { /* the env list still works */ }
+  return out;
+}
+async function chainNow() { const blk = await rhChain().rpcCall("eth_getBlockByNumber", ["latest", false]).catch(() => null); return blk ? parseInt(blk.timestamp, 16) : CFG.now(); }
+export async function pastVotes(wallet, t) {
+  const addr = CFG.address(); if (!addr || !isAddr(wallet)) return 0;
+  const h = await rhChain().rpcCall("eth_call", [{ to: addr, data: "0x" + SEL_PAST + addrWord(wallet) + word(t) }, "latest"]);
+  return F(first(h));
+}
+async function pastTotal(t) {
+  const addr = CFG.address(); if (!addr) return 0;
+  const h = await rhChain().rpcCall("eth_call", [{ to: addr, data: "0x" + SEL_PAST_TOTAL + word(t) }, "latest"]).catch(() => null);
+  return h ? F(first(h)) : 0;
+}
+
+/// POST {action:"vevotenew", title, body, options[], days, wallet, issued, signature}
+export async function voteCreate(b, { recover, issuedOk }) {
+  const addr = CFG.address(); if (!addr) return { status: 409, body: { error: "veARCIA isn't live" } };
+  const title = clean(b.title, 120), body = cleanBody(b.body, 800), days = Math.round(Number(b.days));
+  const options = (Array.isArray(b.options) ? b.options : []).map((o) => clean(o, 60)).filter(Boolean);
+  if (title.length < 4) return { status: 400, body: { error: "the title is too short" } };
+  if (options.length < 2 || options.length > 6 || new Set(options.map((o) => o.toLowerCase())).size !== options.length) return { status: 400, body: { error: "2 to 6 different options" } };
+  if (!(days >= 1 && days <= 14)) return { status: 400, body: { error: "a vote runs 1 to 14 days" } };
+  if (!isAddr(b.wallet) || !issuedOk(b.issued)) return { status: 400, body: { error: "sign again — that signature is too old" } };
+  const msg = voteNewMessage({ title, options, days, wallet: b.wallet, issued: b.issued });
+  let who = ""; try { who = lc(await recover(msg, b.signature)); } catch { who = ""; }
+  if (who !== lc(b.wallet)) return { status: 401, body: { error: "the signature doesn't match the wallet" } };
+  if (!(await voteAdmins(addr)).has(who)) return { status: 403, body: { error: "only the veARCIA owner wallet can open a vote" } };
+  const st = vstore();
+  const list = (await st.get(VOTES_KEY).catch(() => null)) || { items: [] };
+  const now = await chainNow(), snap = now - 1;
+  const id = (list.items.reduce((m, x) => Math.max(m, x.id), 0) || 0) + 1;
+  const item = { id, title, body, options, created: now, snap, end: now + days * 86400, by: who, total: await pastTotal(snap), sig: String(b.signature), issued: b.issued };
+  await st.set(VOTES_KEY, { items: [...list.items, item].slice(-100) });
+  return { status: 200, body: { ok: true, item: pubItem(item, null) } };
+}
+
+/// POST {action:"vevote", id, choice (option index), wallet, issued, signature}
+export async function voteCast(b, { recover, issuedOk }) {
+  const st = vstore();
+  const list = (await st.get(VOTES_KEY).catch(() => null)) || { items: [] };
+  const it = list.items.find((x) => x.id === Number(b.id));
+  if (!it) return { status: 404, body: { error: "no such vote" } };
+  const o = Number(b.choice);
+  if (!(o >= 0 && o < it.options.length) || !Number.isInteger(o)) return { status: 400, body: { error: "pick one of the options" } };
+  if (CFG.now() > it.end) return { status: 409, body: { error: "this vote has ended" } };
+  if (!isAddr(b.wallet) || !issuedOk(b.issued)) return { status: 400, body: { error: "sign again — that signature is too old" } };
+  const msg = voteMessage({ id: it.id, title: it.title, choice: it.options[o], wallet: b.wallet, issued: b.issued });
+  let who = ""; try { who = lc(await recover(msg, b.signature)); } catch { who = ""; }
+  if (who !== lc(b.wallet)) return { status: 401, body: { error: "the signature doesn't match the wallet" } };
+  const w = await pastVotes(who, it.snap).catch(() => -1);
+  if (w < 0) return { status: 503, body: { error: "couldn't read Robinhood Chain — try again" } };
+  if (!(w > 0)) return { status: 403, body: { error: "this wallet had no veARCIA when the vote opened" } };
+  const doc = (await st.get(voteKey(it.id)).catch(() => null)) || { votes: {} };
+  doc.votes[who] = { o, w, at: CFG.now(), sig: String(b.signature), issued: b.issued };
+  await st.set(voteKey(it.id), doc);
+  return { status: 200, body: { ok: true, weight: w, choice: o } };
+}
+
+function pubItem(it, doc, mine) {
+  const votes = (doc && doc.votes) || {};
+  const tally = it.options.map(() => 0), count = it.options.map(() => 0);
+  for (const v of Object.values(votes)) if (tally[v.o] != null) { tally[v.o] += v.w; count[v.o]++; }
+  const now = CFG.now();
+  return { id: it.id, title: it.title, body: it.body, options: it.options, created: it.created, snap: it.snap, end: it.end, open: now <= it.end, by: it.by, total: it.total || 0, tally, count, voters: Object.keys(votes).length, mine: mine || null };
+}
+/// GET ?vevote=list[&u=0x…]: every vote, newest first, with its count; with a wallet, its choice and its weight
+export async function voteList(wallet) {
+  const st = vstore();
+  const list = (await st.get(VOTES_KEY).catch(() => null)) || { items: [] };
+  const u = isAddr(wallet) ? lc(wallet) : "";
+  const items = [];
+  for (const it of [...list.items].reverse().slice(0, 30)) {
+    const doc = await st.get(voteKey(it.id)).catch(() => null);
+    let mine = null;
+    if (u) {
+      const v = doc && doc.votes && doc.votes[u];
+      const w = v ? v.w : await pastVotes(u, it.snap).catch(() => null);
+      mine = { choice: v ? v.o : null, weight: w };
+    }
+    items.push(pubItem(it, doc, mine));
+  }
+  let admin = false;
+  if (u && CFG.address()) admin = (await voteAdmins(CFG.address())).has(u);
+  return { ok: true, items, admin, now: CFG.now() };
+}
+export const _voteTest = { reset: () => vmem.clear() };
