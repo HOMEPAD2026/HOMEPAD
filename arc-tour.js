@@ -362,7 +362,7 @@
       M(".aa-side", L("Live, letters and more", "실시간, 팬레터 등", "实时、粉丝信等"), L("Her live numbers, your veARCIA, her day, fan letters, quiz and photocards.", "실시간 숫자, 내 veARCIA, ARCIA의 하루, 팬레터, 퀴즈, 포토카드가 있어요.", "实时数据、你的 veARCIA、她的一天、粉丝信、测验和小卡。")),
     ],
   };
-  var MINI_NAME = { explore: "Explore", portfolio: "Portfolio", creators: "Creators", orders: "ARCIRCLE Orders", staking: "ARCIRCLE Staking", vearcia: "veARCIA", locker: "Locker", bridge: "Bridge", scanner: "Token Scanner", multisend: "Multisender", snapshot: "Snapshot", liquidity: "Liquidity Manager", relay: "Relay Launch", predict: "ARCIRCLE Predict", nft: "NFT Vault", arcia402: "ARCIA 402", works: "ARCIA WORKS", lab: "ARCIA LAB", desk: "ARCIA DESK", agent: "ARCIA AGENT", mine: "Builder Mine", omni: "ARCIRCLE OMNI", arcia: "ARCIA", launch: "Launch", coin: "Coin page" };
+  var MINI_NAME = { explore: "Explore", portfolio: "Portfolio", creators: "Creators", orders: "ARCIRCLE Orders", staking: "ARCIRCLE Staking", vearcia: "veARCIA", locker: "Locker", bridge: "Bridge", scanner: "Token Scanner", multisend: "Multisender", snapshot: "Snapshot", liquidity: "Liquidity Manager", relay: "Relay Launch", predict: "ARCIRCLE Predict", nft: "NFT Vault", arcia402: "ARCIA 402", works: "ARCIA WORKS", desk: "ARCIA DESK", agent: "ARCIA AGENT", mine: "Builder Mine", omni: "ARCIRCLE OMNI", arcia: "ARCIA", launch: "Launch", coin: "Coin page" };
   // the launch form and the coin page reuse the big tours' steps
   var MINI_FROM = { launch: ["plat", "launch", "pair", "start", "fee", "devbuy", "review"], coin: ["coin", "chart", "safety", "swap", "order"] };
 
