@@ -1,5 +1,7 @@
 /* global CONFIG, ethers, state, connectWallet */
 // arc-vearcia.js — veARCIA (arcpad.html#vearcia; contracts/ArciaStaking.sol on Robinhood Chain; api/_vearcia.mjs).
+//   · v4 (8 Oct 2026): auto-renew turns on with every stake and the page has no switch to turn it off (only on, for an
+//     older position): the lock and its multiplier keep running, and taking $ARCIA out costs 50%, burned
 //   · stake $ARCIA for 1–20 days → veARCIA = amount × 1.0x…2.0x; one position per wallet, adding or renewing restarts
 //     the lock (never earlier than it would end); auto-renew keeps the lock (and its multiplier) running; an ended lock
 //     counts 1.0x until renewed
@@ -71,7 +73,7 @@
   };
   const S = { st: null, pos: null, earned: null, bal: null, allow: null, eth: null, owner: null, extra: [], boost: null, srv: null, mine: null, days: 20, amt: "", wamt: "", poolAmt: "",
     votes: null, gto: "", gamt: "", gdays: 20, sim: 0, vnew: { title: "", body: "", opts: "", days: 3 }, refill: 0, snapD: 0, lastSnap: 0, autoSpin: 0, prevPool: null,
-    busy: false, msg: {}, at: 0, skew: 0, loaded: false, tab: store.get("vea.tab", "stake"), autoPref: store.get("vea.auto", false), once: store.get("vea.once", false), flip: null, flame: false, histOpen: false };
+    busy: false, msg: {}, at: 0, skew: 0, loaded: false, tab: store.get("vea.tab", "stake"), autoPref: true, once: store.get("vea.once", false), flip: null, flame: false, histOpen: false };
   const nowS = () => Math.floor(Date.now() / 1000) + (S.skew || 0);
   const left = (s) => { s = Math.max(0, s); const d = Math.floor(s / DAY), h = Math.floor((s % DAY) / 3600), m = Math.floor((s % 3600) / 60); return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${s % 60}s`; };
   const when = (t) => (t ? new Date((t - (S.skew || 0)) * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
@@ -333,7 +335,7 @@
         <div><dt>${T("Unlocks")}</dt><dd data-no-i18n>${has && pos.auto ? tr("auto-renew") : when(unlock)}</dd></div>
         <div><dt>${T("veARCIA tier")}</dt><dd data-no-i18n>${veTier(F(pv.ve)) ? `<span class="vea-tb t${veTier(F(pv.ve))}">${esc(VT[veTier(F(pv.ve))][0])}</span>` : "—"}</dd></div>
       </dl>
-      ${has && pos.auto ? "" : `<label class="vea-chk"><input type="checkbox" id="vea-autopref"${S.autoPref ? " checked" : ""}><span>${T("Auto-renew after staking — keeps the multiplier; turn it off any time to start the countdown")}</span></label>`}
+      ${has && pos.auto ? "" : `<p class="vea-note vea-auto-note">${T("Auto-renew turns on with your stake and stays on: your lock and its multiplier keep running, and taking $ARCIA out burns 50%.")}</p>`}
       ${btn}
       <label class="vea-chk sm"><input type="checkbox" id="vea-once"${S.once ? " checked" : ""}><span>${T("Approve once — no approval step next time")}</span></label>
       <p class="vea-msg ${esc((S.msg.stake || {}).k || "")}" id="vea-msg-stake">${esc((S.msg.stake || {}).t || "")}</p>
@@ -343,7 +345,7 @@
 
   // start → now → end, with the early-exit cost falling from 50% to 0 over the lock
   function timeline(p) {
-    if (p.auto) return `<div class="vea-tl auto"><span>${T("Auto-renew is on")}</span><b data-no-i18n>${p.lockDays}d · ${mult(p.lockBps || BPS)}</b><small>${T("The lock keeps running; an early exit costs 50%. Turn auto-renew off to start the countdown.")}</small></div>`;
+    if (p.auto) return `<div class="vea-tl auto"><span>${T("Auto-renew is on")}</span><b data-no-i18n>${p.lockDays}d · ${mult(p.lockBps || BPS)}</b><small>${T("The lock keeps running; taking $ARCIA out costs 50%, burned.")}</small></div>`;
     const t = nowS(), total = Math.max(1, p.end - p.start), x = Math.min(1, Math.max(0, (t - p.start) / total));
     const W = 300, H = 66, X = (f) => 4 + f * (W - 8), Y = (pc) => H - 14 - (pc / 50) * (H - 36);
     const curveD = `M${X(0)},${Y(50)} L${X(0.5)},${Y(50)} L${X(1)},${Y(0)}`;
@@ -379,7 +381,9 @@
       </dl>
       ${timeline(p)}
       ${lockActs(p)}
-      <label class="vea-switch${S.autoSpin && Date.now() - S.autoSpin < 1800 ? " spin" : ""}"><input type="checkbox" data-vea="auto"${p.auto ? " checked" : ""}${S.busy ? " disabled" : ""}><i aria-hidden="true"></i><span><b><svg class="vea-inf" viewBox="0 0 32 16" aria-hidden="true"><path d="M8 3c-3 0-5 2.2-5 5s2 5 5 5c4.5 0 11.5-10 16-10 3 0 5 2.2 5 5s-2 5-5 5c-4.5 0-11.5-10-16-10z"/></svg>${T("Auto-renew")}</b><small>${T(p.auto ? "On — your multiplier never runs out. Turning it off starts the full countdown." : "Keep the lock (and its multiplier) running until you turn it off.")}</small></span></label>
+      ${p.auto
+        ? `<div class="vea-switch on${S.autoSpin && Date.now() - S.autoSpin < 1800 ? " spin" : ""}"><span><b><svg class="vea-inf" viewBox="0 0 32 16" aria-hidden="true"><path d="M8 3c-3 0-5 2.2-5 5s2 5 5 5c4.5 0 11.5-10 16-10 3 0 5 2.2 5 5s-2 5-5 5c-4.5 0-11.5-10-16-10z"/></svg>${T("Auto-renew is always on")}</b><small>${T("Your multiplier never runs out. Taking $ARCIA out burns 50%.")}</small></span></div>`
+        : `<div class="vea-switch"><span><b><svg class="vea-inf" viewBox="0 0 32 16" aria-hidden="true"><path d="M8 3c-3 0-5 2.2-5 5s2 5 5 5c4.5 0 11.5-10 16-10 3 0 5 2.2 5 5s-2 5-5 5c-4.5 0-11.5-10-16-10z"/></svg>${T("Auto-renew")}</b><small>${T("Keep the lock (and its multiplier) running for good. Taking $ARCIA out will burn 50%.")}</small></span><button type="button" class="vea-go sm" data-vea="autoon"${S.busy ? " disabled" : ""}>${T("Turn on auto-renew")}</button></div>`}
       ${claimRow()}
       <div class="vea-wd">
         <label class="vea-in sm"><span>${T("Withdraw")}</span><input id="vea-wamt" inputmode="decimal" autocomplete="off" placeholder="0" value="${esc(S.wamt)}"><em>$ARCIA</em><button type="button" class="ams-mini" data-vea="wmax">${T("Max")}</button></label>
@@ -387,7 +391,7 @@
           : `<p class="vea-pen free">${T("Your lock has ended: withdrawing is free.")}</p>`}
         ${run && !p.auto ? simBlock(p, w) : ""}
         ${w > 0n ? `<div class="vea-split${S.flame ? " burning" : ""}" aria-label="${T("You get")} ${esc(big(recv))} · ${T("burned")} ${esc(big(burn))}"><i class="get" style="--w:${100 - sharePct}%"><span>${T("You get")} <b data-no-i18n>${big(recv)}</b></span></i>${burn > 0 ? `<i class="burn" style="--w:${sharePct}%"><span data-no-i18n>${big(burn)}</span></i>` : ""}</div>` : S.flame ? `<div class="vea-split burning"><i class="burn" style="--w:100%"><span>${T("burned")}</span></i></div>` : ""}
-        <button type="button" class="vea-go ${run ? "warn" : "ghost"}" data-vea="withdraw"${S.busy || !(w > 0n) ? " disabled" : ""}>${T(run ? "Withdraw early" : "Withdraw")}</button>
+        <button type="button" class="vea-go ${run ? "warn" : "ghost"}" data-vea="withdraw"${S.busy || !(w > 0n) ? " disabled" : ""}>${T(p.auto ? "Withdraw (50% burned)" : run ? "Withdraw early" : "Withdraw")}</button>
         <p class="vea-msg ${esc((S.msg.wd || {}).k || "")}">${esc((S.msg.wd || {}).t || "")}</p>
       </div>
       ${actsBlock()}
@@ -841,7 +845,7 @@
     if (k === "connect") { if (typeof connectWallet === "function") connectWallet(); return; }
     if (k === "max") { if (S.bal != null) { S.amt = ethers.formatEther(S.bal); paint(); } return; }
     if (k === "wmax") { if (S.pos) { S.wamt = ethers.formatEther(S.pos.amount); paint(); } return; }
-    if (k === "auto") return; // the change event below
+    if (k === "autoon") { doAuto(true); return; }
     if (k === "stake") doStake(false);
     else if (k === "renew") doStake(true);
     else if (k === "withdraw") doWithdraw();
@@ -865,8 +869,7 @@
   });
   panel.addEventListener("change", (e) => {
     const t = e.target;
-    if (t.matches && t.matches('[data-vea="auto"]')) { doAuto(!!t.checked); return; }
-    if (t.id === "vea-autopref") { S.autoPref = !!t.checked; store.set("vea.auto", S.autoPref); }
+
     if (t.id === "vea-once") { S.once = !!t.checked; store.set("vea.once", S.once); }
     if (t.id === "vea-vd") S.vnew.days = Number(t.value) || 3;
   });

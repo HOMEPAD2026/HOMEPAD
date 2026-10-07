@@ -15,8 +15,8 @@
 <meta name="twitter:site" content="@ARCIAonArc">
 <meta name="twitter:image" content="https://www.arcircle.app/images/arcia-stage-og.jpg">
 <meta name="theme-color" content="#060716">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791381569">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791381569">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791386103">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791386103">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="images/arcia-portrait.webp">
@@ -36,7 +36,7 @@
 </script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/stage.css?v=1791381569">
+<link rel="stylesheet" href="/stage.css?v=1791386103">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -408,7 +408,7 @@
   <p class="fine" data-t>She's an AI. Nothing she says is financial advice.</p>
 </aside>
 
-<script src="/wallet-arc.js?v=1791381569"></script>
+<script src="/wallet-arc.js?v=1791386103"></script>
 <script>
 (function () {
   "use strict";
@@ -508,7 +508,7 @@
     "Lock": ["잠금", "锁定"], "Lock days": ["잠금 일수", "锁定天数"], "Per day": ["하루 보상", "每日奖励"], "Add to my stake": ["내 스테이킹에 추가", "追加到我的质押"],
     "Check your wallet…": ["지갑을 확인해 주세요…", "请在钱包中确认…"], "Or stake on the veARCIA page": ["또는 veARCIA 페이지에서 스테이킹", "或在 veARCIA 页面质押"],
     "Stake on veARCIA": ["veARCIA에서 스테이킹", "前往 veARCIA 质押"], "Your amount and days come with you. Connect your wallet there and sign.": ["입력한 수량과 일수가 그대로 넘어가요. 거기서 지갑을 연결하고 서명하면 돼요.", "你填写的数量和天数会一起带过去。在那里连接钱包并签名即可。"],
-    "Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.": ["중도 해지 시 꺼내는 양의 최대 절반이 소각돼요. 잠겨 있는 동안 보상은 계속 쌓여요.", "提前退出最多销毁取出部分的一半。锁定期间奖励持续累积。"],
+    "Auto-renew turns on with your stake and stays on: your multiplier keeps running, and taking $ARCIA out burns 50%.": ["스테이킹하면 자동 연장이 켜지고 계속 유지돼요. 배수는 계속 유지되고, $ARCIA를 꺼내면 50%가 소각돼요.", "质押后自动续期即开启并一直保持：倍数持续有效，取出 $ARCIA 时销毁 50%。"], "Turn on auto-renew…": ["자동 연장을 켜는 중…", "正在开启自动续期…"],
     "Wallet": ["지갑", "钱包"], "Menu": ["메뉴", "菜单"], "Her cat and his buyback": ["그녀의 고양이와 바이백", "她的猫和他的回购"], "Try the demo wallet": ["데모 지갑 체험하기", "体验演示钱包"], "On her stage": ["그녀의 무대", "她的舞台"], "Open ArcPad": ["ArcPad 열기", "打开 ArcPad"], "Sign in with email": ["이메일로 로그인", "用邮箱登录"], "Use another wallet": ["다른 지갑 사용", "使用其他钱包"], "See your stake and rewards": ["내 스테이킹과 보상 보기", "查看我的质押和奖励"], "Connect wallet": ["지갑 연결", "连接钱包"],
     "You rejected the request in your wallet.": ["지갑에서 요청을 거절했어요.", "你在钱包中拒绝了请求。"], "Not enough ETH on Robinhood Chain for gas.": ["Robinhood Chain 가스비(ETH)가 부족해요.", "Robinhood Chain 上的 ETH 不足以支付 gas。"],
     "Something went wrong. Try again.": ["문제가 생겼어요. 다시 시도해 주세요.", "出了点问题，请重试。"], "The transaction failed on-chain.": ["트랜잭션이 온체인에서 실패했어요.", "交易在链上失败了。"],
@@ -992,7 +992,7 @@
       (EP() ? '<button type="button" class="btn main wide" data-v="stake"' + (VE.busy ? " disabled" : "") + ">" + esc(VE.busy ? t("Check your wallet…") : stakeBtnLabel()) + "</button>" +
         '<a class="alt" href="/arc#vearcia" data-v="open">' + esc(t("Or stake on the veARCIA page")) + "</a>"
         : '<a class="btn main wide" href="/arc#vearcia" data-v="open">' + esc(t("Stake on veARCIA")) + '</a><span class="note">' + esc(t("Your amount and days come with you. Connect your wallet there and sign.")) + "</span>") +
-      '<span class="note">' + esc(t("Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.")) + "</span></div>";
+      '<span class="note">' + esc(t("Auto-renew turns on with your stake and stays on: your multiplier keeps running, and taking $ARCIA out burns 50%.")) + "</span></div>";
     var who = VE.acct ? '<div class="who"><span>' + esc(t("Wallet")) + ' <code>' + esc(short(VE.acct)) + '</code></span><button type="button" data-v="forget">' + esc(t("Use another wallet")) + "</button></div>"
       : EP() ? '<div class="who"><span>' + esc(t("See your stake and rewards")) + '</span><button type="button" data-v="connect">' + esc(t(arcOnly() ? "Sign in with email" : "Connect wallet")) + "</button></div>" : "";
     var focus = document.activeElement && document.activeElement.id;
@@ -1049,12 +1049,15 @@
     var go = (VE.acct ? Promise.resolve(VE.acct) : connect()).then(toRH);
     if (kind === "stake") {
       go = go.then(function () { return rpcCall("0xdd62ed3e" + pad(VE.acct) + pad(VEA_ADDR)); }).then(function (al) {
-        var need = !al || BigInt(al) < wei;
+        var need = !al || BigInt(al) < wei, needAuto = !(p && p.auto);
         var step = function (i, n, m) { say2(n > 1 ? f("veStep", { i: i, n: n }) + " " + m : m); };
-        var n = need ? 2 : 1;
+        var n = (need ? 1 : 0) + 1 + (needAuto ? 1 : 0), k = 0;
         var chain = Promise.resolve();
-        if (need) chain = chain.then(function () { step(1, n, t("Approve $ARCIA in your wallet…")); return send("0x095ea7b3" + pad(VEA_ADDR) + wei.toString(16).padStart(64, "0"), ARCIA_T); });
-        return chain.then(function () { step(n, n, t("Confirm the stake…")); return send("0x7b0472f0" + wei.toString(16).padStart(64, "0") + VE.days.toString(16).padStart(64, "0"), VEA_ADDR); });
+        if (need) chain = chain.then(function () { step(++k, n, t("Approve $ARCIA in your wallet…")); return send("0x095ea7b3" + pad(VEA_ADDR) + wei.toString(16).padStart(64, "0"), ARCIA_T); });
+        chain = chain.then(function () { step(++k, n, t("Confirm the stake…")); return send("0x7b0472f0" + wei.toString(16).padStart(64, "0") + VE.days.toString(16).padStart(64, "0"), VEA_ADDR); });
+        // auto-renew turns on with every stake and stays on (the site has no switch to turn it off)
+        if (needAuto) chain = chain.then(function () { step(++k, n, t("Turn on auto-renew…")); return send("0x867b9318" + "1".padStart(64, "0"), VEA_ADDR); });
+        return chain;
       }).then(function () { VE.amt = ""; return t("Staked. Your veARCIA is earning."); });
     } else {
       go = go.then(function () { return send(kind === "claim" ? "0x4e71d92d" : "0xf69e2046", VEA_ADDR); })

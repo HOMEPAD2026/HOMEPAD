@@ -8423,6 +8423,14 @@
     "Launch Drop: a piece of every new coin": "런칭 드랍: 모든 신규 코인의 한 조각",
     "Hearts and lightsticks today": "오늘의 하트와 응원봉",
     "Raise a lightstick on her stage": "ARCIA 무대에서 응원봉 들기",
+    "Auto-renew turns on with your stake and stays on: your lock and its multiplier keep running, and taking $ARCIA out burns 50%.": "스테이킹하면 자동 연장이 켜지고 계속 유지돼요. 잠금과 배수가 계속 이어지고, $ARCIA를 꺼내면 50%가 소각돼요.",
+    "The lock keeps running; taking $ARCIA out costs 50%, burned.": "잠금이 계속 이어져요. $ARCIA를 꺼내면 50%가 소각돼요.",
+    "Auto-renew is always on": "자동 연장 항상 켜짐",
+    "Your multiplier never runs out. Taking $ARCIA out burns 50%.": "배수가 끝나지 않아요. $ARCIA를 꺼내면 50%가 소각돼요.",
+    "Keep the lock (and its multiplier) running for good. Taking $ARCIA out will burn 50%.": "잠금(과 배수)을 계속 이어 가요. 이후 $ARCIA를 꺼내면 50%가 소각돼요.",
+    "Turn on auto-renew": "자동 연장 켜기",
+    "Withdraw (50% burned)": "인출 (50% 소각)",
+    "Auto-renew turns on with your stake and stays on: your lock — and its multiplier — keeps running, and taking $ARCIA out costs 50%, burned. An older position without it counts down as before and can turn it on.": "스테이킹하면 자동 연장이 켜지고 계속 유지돼요. 잠금과 배수가 계속 이어지고, $ARCIA를 꺼내면 50%가 소각돼요. 자동 연장이 없는 기존 포지션은 예전처럼 기간이 줄어들고, 언제든 자동 연장을 켤 수 있어요.",
   };
 
 

@@ -15948,6 +15948,11 @@ html[data-cp-plan] #bp-gov-panel-note{margin-top:8px;text-align:left;line-height
 .vea-tl.auto b{font:800 1rem 'JetBrains Mono',monospace;}
 .vea-tl.auto small{color:#aab5c2;margin:0;}
 .vea-switch{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;cursor:pointer;}
+.vea-switch{cursor:default;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
+.vea-switch.on{background:linear-gradient(120deg,rgba(31,224,166,.12),rgba(47,107,255,.1));box-shadow:inset 0 0 0 1px rgba(31,224,166,.3);}
+.vea-switch>span{flex:1 1 220px;min-width:0;}
+.vea-switch .vea-go.sm{flex:none;}
+.vea-auto-note{margin:4px 0 10px;}
 .vea-switch input{position:absolute;opacity:0;width:1px;height:1px;}
 .vea-switch i{flex:0 0 40px;height:22px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;transition:background .2s;margin-top:2px;}
 .vea-switch i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.2,.8,.2,1);}

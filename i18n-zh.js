@@ -8593,6 +8593,14 @@
     "Launch Drop: a piece of every new coin": "发射空投：每个新币的一部分",
     "Hearts and lightsticks today": "今日爱心与应援棒",
     "Raise a lightstick on her stage": "去她的舞台举起应援棒",
+    "Auto-renew turns on with your stake and stays on: your lock and its multiplier keep running, and taking $ARCIA out burns 50%.": "质押后自动续期即开启并一直保持：锁仓和倍数持续有效，取出 $ARCIA 时销毁 50%。",
+    "The lock keeps running; taking $ARCIA out costs 50%, burned.": "锁仓持续进行；取出 $ARCIA 需销毁 50%。",
+    "Auto-renew is always on": "自动续期始终开启",
+    "Your multiplier never runs out. Taking $ARCIA out burns 50%.": "倍数永不过期。取出 $ARCIA 时销毁 50%。",
+    "Keep the lock (and its multiplier) running for good. Taking $ARCIA out will burn 50%.": "让锁仓（及倍数）一直持续。之后取出 $ARCIA 将销毁 50%。",
+    "Turn on auto-renew": "开启自动续期",
+    "Withdraw (50% burned)": "取出（销毁 50%）",
+    "Auto-renew turns on with your stake and stays on: your lock — and its multiplier — keeps running, and taking $ARCIA out costs 50%, burned. An older position without it counts down as before and can turn it on.": "质押后自动续期即开启并一直保持：锁仓及其倍数持续有效，取出 $ARCIA 需销毁 50%。没有自动续期的旧仓位照常倒计时，也可以随时开启。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
