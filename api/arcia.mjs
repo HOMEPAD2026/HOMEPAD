@@ -8,6 +8,8 @@
 //   POST /api/arcia  { action: "heart", id }                   heart a letter
 //   POST /api/arcia  { action: "cheer", n }                    send ARCIA hearts (today's gauge; 30 per IP a day)
 //   GET  /api/arcia?hearts=1                                   { today, goal } — the gauge (ARCIA_HEART_GOAL, default 100)
+//   GET  /api/arcia?hearts=board                               + { board } — tonight's top 10 lightstick wallets (her site, /arcia)
+//   POST /api/arcia  { action: "cheer", n, wallet?, day?, sig? }  a signed wallet (cheerSigMsg) also goes on tonight's board
 //   GET  /api/arcia                                            { ok, ai, live, x }
 //   GET  /api/arcia?letters=1                                  the letter board, newest first
 //
@@ -335,8 +337,8 @@ async function letters(top) {
 // what the fan is looking at on arcircle.app when they ask (the mini chat opens over any page)
 const PAGES = { arcia: "the ARCIA chat", locker: "the Locker", scanner: "the Token Scanner", multisend: "the Multisender", bridge: "the Bridge", snapshot: "the Holder Snapshot", liquidity: "the Liquidity Manager", relay: "Relay Launch", omni: "ARCIRCLE OMNI (preview)", coin: "an ArcPad coin page", explore: "Explore (ArcPad coins)", launch: "the ArcPad launch form", home: "the ArcPad home page", arcircle: "the $ARCIRCLE page", portfolio: "their ArcPad portfolio" };
 // pages outside ArcPad (the floating button, arc-arcia-fab.js): tab → path on arcircle.app
-Object.assign(PAGES, { site: "the ARCIRCLE PAD home page", circlepad: "CirclePad (the crowdfunded launch rounds)", reward: "the Reward page", me: "their wallet page", stats: "the stats page", roadmap: "the roadmap", start: "the Start guide (add Arc to a wallet, bring USDC)", brand: "the brand kit", whitepaper: "the $ARCIRCLE whitepaper" });
-const SITE_PAGES = { site: "", arcircle: "arcircle", circlepad: "circlepad", reward: "reward", me: "me", stats: "stats", roadmap: "roadmap", start: "start", brand: "brand", whitepaper: "whitepaper" };
+Object.assign(PAGES, { site: "the ARCIRCLE PAD home page", circlepad: "CirclePad (the crowdfunded launch rounds)", reward: "the Reward page", me: "their wallet page", stats: "the stats page", roadmap: "the roadmap", start: "the Start guide (add Arc to a wallet, bring USDC)", brand: "the brand kit", whitepaper: "the $ARCIRCLE whitepaper", stage: "your own concert-stage site (lightsticks, your profile, fan letters, photocards)" });
+const SITE_PAGES = { site: "", arcircle: "arcircle", circlepad: "circlepad", reward: "reward", me: "me", stats: "stats", roadmap: "roadmap", start: "start", brand: "brand", whitepaper: "whitepaper", stage: "arcia" };
 function pageContext(p) {
   if (!p || typeof p !== "object") return "";
   const tab = String(p.tab || "").toLowerCase();
@@ -392,6 +394,18 @@ async function addHearts(n) {
   if (!storeEnabled()) { memHearts = { day: dayKey(), n: memToday() + n }; return; }
   await commit([{ inc: heartsDoc(), fields: { n } }]);
 }
+// ---------- lightsticks on her site: tonight's board (a wallet signs once a day; no funds move) ----------
+const cheerSigMsg = (w, day) => `ARCIA lightstick\nWallet: ${String(w).toLowerCase()}\nDay: ${day}\n\nThis signature only puts my wallet on tonight's lightstick board. It can't move funds.`;
+function cheerWallet(b) {
+  const w = isAddr(b && b.wallet) ? String(b.wallet).toLowerCase() : "", sig = String((b && b.sig) || "");
+  if (!w || !/^0x[0-9a-fA-F]{130}$/.test(sig) || String(b.day || "") !== dayKey()) return null;
+  return personalSigner(cheerSigMsg(w, b.day), sig) === w ? w : null;
+}
+async function cheerBoard() {
+  if (!storeEnabled()) return [];
+  const rows = await queryDocs("arciaCheer", "day", dayKey(), 500).catch(() => []);
+  return rows.filter((r) => r.n > 0).sort((x, y) => y.n - x.n).slice(0, 10).map((r) => ({ a: `${r.a.slice(0, 6)}…${r.a.slice(-4)}`, n: r.n, vt: r.vt || 0 }));
+}
 async function cheer(b, ip) {
   const want = Math.max(1, Math.min(5, Math.floor(Number(b.n) || 1)));
   let give = want;
@@ -401,7 +415,15 @@ async function cheer(b, ip) {
     give = Math.max(0, Math.min(want, HEARTS_PER_IP - ((d[mine] || {}).n || 0)));
     const now = (d[heartsDoc()] || {}).n || 0;
     if (give) await commit([{ inc: mine, fields: { n: give } }, { inc: heartsDoc(), fields: { n: give } }]);
-    return json({ ok: true, counted: give, today: now + give, goal: HEART_GOAL() });
+    // her site (/arcia): a signed-in wallet's lightsticks also go on tonight's board
+    const w = give ? cheerWallet(b) : null;
+    if (w) {
+      const doc = `arciaCheer/${dayKey()}_${w}`;
+      const vt = await veTierOf(w).catch(() => 0);
+      await commit([{ create: doc, data: { day: dayKey(), a: w, n: 0, vt: Number(vt) || 0 } }]).catch(() => null);
+      await commit([{ inc: doc, fields: { n: give } }]).catch(() => null);
+    }
+    return json({ ok: true, counted: give, today: now + give, goal: HEART_GOAL(), board: !!w });
   }
   if (memHit("h:" + ip, 86400000, HEARTS_PER_IP)) give = 0;
   if (give) await addHearts(give);
@@ -439,7 +461,7 @@ async function tts(body, ip, lang) {
 export async function GET(req) {
   const url = new URL(req.url);
   if (url.searchParams.has("hearts")) {
-    try { return json({ today: await heartsToday(), goal: HEART_GOAL() }, 200, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"); }
+    try { const [today, board] = await Promise.all([heartsToday(), url.searchParams.get("hearts") === "board" ? cheerBoard() : null]); return json({ today, goal: HEART_GOAL(), ...(board ? { board } : {}) }, 200, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"); }
     catch (e) { return json({ today: null, goal: HEART_GOAL() }, 200, "no-store"); }
   }
   // the secret file (api/_arcia-secret.mjs)

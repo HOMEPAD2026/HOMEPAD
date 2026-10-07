@@ -19011,3 +19011,5 @@ html.tr-on .tr-q{visibility:hidden;}
 .aa-stagelink i{width:8px;height:8px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 8px #ff4d6d;}
 .aa-stagelink:hover{border-color:rgba(31,224,166,.7);}
 @media (max-width:560px){.aa-stagelink{top:8px;left:8px;padding:6px 11px;font-size:.72rem;}}
+.aa-g-stage{display:inline-block;margin-top:5px;font-size:.7rem;font-weight:700;color:#9fe8ff;text-decoration:none;}
+.aa-g-stage:hover{text-decoration:underline;}

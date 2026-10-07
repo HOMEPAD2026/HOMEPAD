@@ -2551,7 +2551,7 @@
               ("speechSynthesis" in window ? '<button type="button" class="aa-tool aa-voice-t" aria-pressed="false" title="Read her replies aloud"><i class="ic-off">' + ICON.mute + '</i><i class="ic-on">' + ICON.voice + "</i><span>Voice</span></button>" : "") +
               '<button type="button" class="aa-tool aa-new" title="Start a new chat — this one is kept on this device"><span>New chat</span></button></div>' +
             '<div class="aa-gauge"><button type="button" class="aa-cheer-btn" aria-label="Send ARCIA a heart" title="Send ARCIA a heart">' + ICON.heart + '</button>' +
-              '<div class="aa-g-main"><div class="aa-g-top"><span>Today\'s hearts</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div></div></div>' +
+              '<div class="aa-g-main"><div class="aa-g-top"><span>Hearts and lightsticks today</span><b class="aa-g-num" data-no-i18n>—</b></div><div class="aa-g-track"><i class="aa-g-fill"></i></div><a class="aa-g-stage" href="/arcia">Raise a lightstick on her stage</a></div></div>' +
             '<ol class="aa-log" role="log" aria-live="polite" aria-label="Conversation"></ol>' +
             '<div class="aa-sugg" aria-label="Suggested questions"></div>' +
             '<form class="aa-form" autocomplete="off"><textarea rows="1" maxlength="700" placeholder="Talk to ARCIA…" aria-label="Message ARCIA" enterkeyhint="send"></textarea>' +

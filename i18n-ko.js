@@ -8421,6 +8421,8 @@
     "The treasury holds": "트레저리 보유량",
     "the drop needs": "필요한 양",
     "Launch Drop: a piece of every new coin": "런칭 드랍: 모든 신규 코인의 한 조각",
+    "Hearts and lightsticks today": "오늘의 하트와 응원봉",
+    "Raise a lightstick on her stage": "ARCIA 무대에서 응원봉 들기",
   };
 
 

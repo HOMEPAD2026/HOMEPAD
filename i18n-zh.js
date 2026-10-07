@@ -8591,6 +8591,8 @@
     "The treasury holds": "金库持有",
     "the drop needs": "空投需要",
     "Launch Drop: a piece of every new coin": "发射空投：每个新币的一部分",
+    "Hearts and lightsticks today": "今日爱心与应援棒",
+    "Raise a lightstick on her stage": "去她的舞台举起应援棒",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
