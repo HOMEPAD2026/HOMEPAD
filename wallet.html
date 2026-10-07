@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARCIRCLE">
 <link rel="manifest" href="/wallet.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791373497">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791373497">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791380757">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791380757">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -75,6 +75,10 @@ html:lang(ko) .hero h1,html:lang(zh) .hero h1{font-weight:800;line-height:1.08;l
 .ways{display:flex;justify-content:center;gap:14px;margin-top:4px;font-size:13px;color:var(--dim)}
 .ways span{display:inline-flex;align-items:center;gap:6px}
 .ways svg{width:15px;height:15px}
+.demo{margin-top:12px;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:rgba(242,207,104,.14);box-shadow:inset 0 0 0 1px rgba(242,207,104,.35);font-size:13px;color:#f5e2a8}
+.demo i{width:7px;height:7px;border-radius:50%;background:var(--gold);flex:none}
+#signin{position:relative}
+.cs{position:absolute;top:-9px;right:16px;padding:3px 9px;border-radius:99px;font:700 11px/1.3 var(--body);background:#3a3216;color:#f5e2a8;box-shadow:inset 0 0 0 1px rgba(242,207,104,.45)}
 .soon{margin-top:18px;padding:14px 16px;border-radius:14px;border:1px dashed rgba(242,207,104,.45);color:#f5e2a8;font-size:14px}
 .facts{list-style:none;display:grid;gap:12px;margin-top:40px}
 .facts li{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start;padding:16px;border-radius:16px;background:rgba(11,14,44,.7);box-shadow:inset 0 0 0 1px var(--line)}
@@ -158,7 +162,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 .sheet .x{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(6,7,22,.5);cursor:pointer;font-size:20px;line-height:1}
 .qr{display:grid;place-items:center;margin:18px auto 0;width:220px;height:220px;border-radius:18px;background:#fff;padding:12px}
 .qr svg{width:100%;height:100%}
-.full{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(243,245,255,.05);font-family:ui-monospace,Menlo,monospace;font-size:13.5px;word-break:break-all;text-align:center}
+.full{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(243,245,255,.05);font-family:ui-monospace,Menlo,monospace;font-size:13.5px;word-break:break-all;text-align:center;white-space:pre-line}
 .note{margin-top:12px;font-size:13.5px;color:var(--dim)}
 .note.warn{color:#f5e2a8}
 .fld{display:grid;gap:6px;margin-top:14px;font-size:13.5px;color:var(--dim)}
@@ -203,14 +207,15 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       <h1 data-t>Your wallet for Arc, in one tap</h1>
       <p data-t>Sign in with email, Google or Apple and your wallet is ready on Arc and Robinhood Chain. No seed phrase, no extension, and the key is always yours to export.</p>
       <div class="go">
-        <button type="button" class="btn main wide" id="signin" data-t>Continue with email, Google or Apple</button>
+        <button type="button" class="btn main wide" id="demo-go" data-t>Try the demo wallet</button>
+        <button type="button" class="btn wide" id="signin"><span data-t>Continue with email, Google or Apple</span><span class="cs" id="cs" data-t>Coming soon</span></button>
         <button type="button" class="btn wide" id="use-own" hidden data-t>Use a wallet I already have</button>
         <div class="ways" aria-hidden="true">
           <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Email</span>
           <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" opacity=".75"/><path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2z" opacity=".55"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 6 12 6z" opacity=".9"/></svg>Google</span>
           <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.9-.8-3-.8C6.9 7.2 5.4 8.1 4.6 9.6c-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.7 2.4 2.9 2.4 1.2 0 1.6-.8 3-.8s1.8.8 3 .7c1.3 0 2-1.2 2.8-2.3.9-1.3 1.2-2.6 1.3-2.7-.1 0-2.4-.9-2.4-3.9zM14.1 5.5c.6-.8 1.1-1.8 1-2.9-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.3z"/></svg>Apple</span>
         </div>
-        <p class="soon" id="soon" hidden data-t>Sign-in with email, Google and Apple opens very soon. You can already use a wallet you have.</p>
+        <p class="soon" id="soon" hidden data-t>The real wallet opens soon. Try the demo to see exactly how it works, or use a wallet you already have.</p>
         <p class="msg err" id="out-msg" hidden></p>
       </div>
     </section>
@@ -228,6 +233,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       <div class="k"><span data-t>Total balance</span><button type="button" class="addr" id="addr" aria-label="Copy your address"><span id="addr-s">—</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg></button></div>
       <div class="total" id="total"><small>$</small>—</div>
       <div class="who" id="who"></div>
+      <p class="demo" id="demo-note" hidden><i></i><span data-t>Demo wallet: sample coins and live prices. Nothing here is real, and nothing leaves this page.</span></p>
     </section>
     <nav class="acts" aria-label="Wallet actions">
       <button type="button" data-open="receive"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v13M6 11l6 6 6-6M5 20h14"/></svg></i><span data-t>Receive</span></button>
@@ -301,7 +307,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/vendor/qrcode-generator-1.4.4.min.js" defer></script>
-<script src="/wallet-arc.js?v=1791373497"></script>
+<script src="/wallet-arc.js?v=1791380757"></script>
 <script>
 (function () {
   "use strict";
@@ -342,10 +348,15 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     "Not enough for gas. Keep a little USDC on Arc or ETH on Robinhood Chain.": ["가스비가 부족해요. Arc에는 USDC를, Robinhood Chain에는 ETH를 조금 남겨 두세요.", "gas 不足。在 Arc 上留一点 USDC，在 Robinhood Chain 上留一点 ETH。"],
     "Gas on Arc": ["Arc 가스", "Arc gas"], "Core coin on Arc": ["Arc의 코어 코인", "Arc 上的核心代币"], "Gas on Robinhood Chain": ["Robinhood Chain 가스", "Robinhood Chain gas"], "ARCIA's coin on Robinhood Chain": ["Robinhood Chain의 ARCIA 코인", "Robinhood Chain 上的 ARCIA 代币"],
     "Staked in veARCIA": ["veARCIA에 스테이킹 중", "已质押于 veARCIA"], "Open": ["열기", "打开"],
-    "Signed in with": ["로그인:", "登录方式："], "Connected wallet": ["연결된 지갑", "已连接钱包"], "Forget this wallet": ["이 지갑 연결 해제", "断开此钱包"],
+    "Connected wallet": ["연결된 지갑", "已连接钱包"], "Forget this wallet": ["이 지갑 연결 해제", "断开此钱包"],
     "Open this page in a wallet's browser, or a browser with a wallet extension.": ["지갑 앱 브라우저나 지갑 확장 프로그램이 있는 브라우저에서 열어 주세요.", "请在钱包内置浏览器或装有钱包扩展的浏览器中打开。"],
     "Tap the Share button, then Add to Home Screen.": ["공유 버튼을 누른 뒤 '홈 화면에 추가'를 고르세요.", "点击分享按钮，然后选择“添加到主屏幕”。"], "Open ARCIRCLE from your home screen.": ["홈 화면에서 ARCIRCLE을 여세요.", "从主屏幕打开 ARCIRCLE。"],
     "Open the browser menu (⋮), then Install app or Add to Home screen.": ["브라우저 메뉴(⋮)에서 '앱 설치' 또는 '홈 화면에 추가'를 고르세요.", "打开浏览器菜单（⋮），选择“安装应用”或“添加到主屏幕”。"],
+    "Try the demo wallet": ["데모 지갑 체험하기", "体验演示钱包"], "Coming soon": ["곧 오픈", "即将开放"],
+    "The real wallet opens soon. Try the demo to see exactly how it works, or use a wallet you already have.": ["실제 지갑은 곧 열려요. 데모로 어떻게 쓰는지 그대로 체험하거나, 가지고 있는 지갑으로 써 보세요.", "真实钱包即将开放。先体验演示了解用法，或使用你已有的钱包。"],
+    "Demo wallet: sample coins and live prices. Nothing here is real, and nothing leaves this page.": ["데모 지갑: 샘플 코인과 실시간 가격이에요. 실제 자산이 아니고, 아무것도 이 페이지 밖으로 나가지 않아요.", "演示钱包：示例代币与实时价格。这里的一切都不是真实的，也不会离开本页。"],
+    "Signed in with": ["로그인:", "登录方式："], "Exit the demo": ["데모 종료", "退出演示"], "In the demo there's no key to export.": ["데모에는 내보낼 키가 없어요.", "演示中没有可导出的私钥。"],
+    "Sent (demo).": ["보냈어요 (데모).", "已发送（演示）。"], "Demo address. Don't send real coins here.": ["데모 주소예요. 실제 코인을 보내지 마세요.", "演示地址，请勿发送真实代币。"],
     "Your wallet is getting ready…": ["지갑을 준비하는 중…", "钱包准备中…"], "Signing in…": ["로그인 중…", "登录中…"]
   };
   var lang = html.lang === "ko" || html.lang === "zh" ? html.lang : "en";
@@ -388,8 +399,18 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   var usd = function (n) { return n == null || !isFinite(n) ? "—" : "$" + fmt(n, n < 1 && n > 0 ? 4 : 2); };
   var short = function (a) { return a ? a.slice(0, 6) + "…" + a.slice(-4) : "—"; };
 
+  var DEMO = { addr: "0xa2c1a70000000000000000000000000000000de0", bal: { usdc: 248.5, arcircle: 1250000, arcia: 5800000, eth: 0.021 }, vea: { amount: 2500000, earned: 41250 } };
   function loadBalances() {
     if (!S.addr) return;
+    if (S.mode === "demo") {
+      if (!S.demoBal) S.demoBal = JSON.parse(JSON.stringify(DEMO.bal));
+      S.bal = S.demoBal;
+      S.vea = { ok: true, position: { amount: DEMO.vea.amount }, earned: [String(BigInt(Math.round(DEMO.vea.earned)) * 10n ** 18n)] };
+      paintCoins();
+      return Promise.all([getJson("/api/social?token=arcircle").then(function (j) { if (j && j.price != null) S.px.arcircle = Number(j.price); }),
+        getJson("/api/social?coin=arcia").then(function (j) { if (j && j.price != null) S.px.arcia = Number(j.price); }),
+        getJson("/api/social?fx=1").then(function (j) { if (j && j.eth) S.px.eth = Number(j.eth); })]).then(function () { S.at = Date.now(); paintCoins(); });
+    }
     var a = S.addr;
     var jobs = COINS.map(function (c) {
       var p = c.native ? rpc(c.ch, "eth_getBalance", [a, "latest"]) : rpc(c.ch, "eth_call", [{ to: c.token, data: "0x70a08231" + pad(a) }, "latest"]);
@@ -431,10 +452,11 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     if (!on) return;
     $("addr-s").textContent = short(S.addr);
     var st = W && W.state ? W.state() : {};
-    $("who").textContent = S.mode === "privy" ? (st.email ? t("Signed in with") + " " + st.email : "") : t("Connected wallet");
-    $("set-export").hidden = S.mode !== "privy";
-    $("signout-s").textContent = S.mode === "privy" ? (st.email || "") : short(S.addr);
-    qa("#signout [data-t]")[0].textContent = t(S.mode === "privy" ? "Sign out" : "Forget this wallet");
+    $("who").textContent = S.mode === "privy" ? (st.email ? t("Signed in with") + " " + st.email : "") : S.mode === "demo" ? t("Signed in with") + " demo@arcircle.app" : t("Connected wallet");
+    $("demo-note").hidden = S.mode !== "demo";
+    $("set-export").hidden = S.mode !== "privy" && S.mode !== "demo";
+    $("signout-s").textContent = S.mode === "privy" ? (st.email || "") : S.mode === "demo" ? "demo@arcircle.app" : short(S.addr);
+    qa("#signout [data-t]")[0].textContent = t(S.mode === "privy" ? "Sign out" : S.mode === "demo" ? "Exit the demo" : "Forget this wallet");
     loadBalances();
     paintChat();
   }
@@ -444,15 +466,19 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     var st0 = W.state(); if (st0.address) { S.mode = "privy"; S.addr = st0.address; }
   } else $("soon").hidden = false;
   $("signin").disabled = !(W && W.enabled);
+  $("cs").hidden = !!(W && W.enabled);
+  function startDemo() { S.mode = "demo"; S.addr = DEMO.addr; S.demoBal = null; show(); window.scrollTo(0, 0); }
+  $("demo-go").addEventListener("click", startDemo);
+  if (/[?&]demo\b/.test(location.search) && !S.addr) setTimeout(startDemo, 0);
   $("use-own").hidden = !window.ethereum;
   if (!S.addr && ls.get("arcwallet.injected") && window.ethereum) {
     window.ethereum.request({ method: "eth_accounts" }).then(function (acc) { var a = String(acc && acc[0] || "").toLowerCase(); if (a) { S.mode = "injected"; S.addr = a; show(); } }).catch(function () {});
   }
   $("signin").addEventListener("click", function () {
-    var b = this; b.disabled = true; outMsg(""); b.textContent = t("Signing in…");
+    var b = this, lb = b.firstElementChild; b.disabled = true; outMsg(""); lb.textContent = t("Signing in…");
     W.login().then(function (a) { S.mode = "privy"; S.addr = a; show(); })
       .catch(function (e) { outMsg(String(e && e.message || "") || t("Something went wrong. Try again.")); })
-      .then(function () { b.disabled = false; b.textContent = t("Continue with email, Google or Apple"); });
+      .then(function () { b.disabled = false; lb.textContent = t("Continue with email, Google or Apple"); });
   });
   $("use-own").addEventListener("click", function () {
     if (!window.ethereum) { outMsg(t("Open this page in a wallet's browser, or a browser with a wallet extension.")); return; }
@@ -462,10 +488,10 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     }).catch(function (e) { outMsg(e && e.code === 4001 ? t("You cancelled it.") : t("Something went wrong. Try again.")); });
   });
   $("signout").addEventListener("click", function () {
-    var done = function () { S.mode = ""; S.addr = ""; S.bal = {}; S.vea = null; ls.set("arcwallet.injected", null); show(); };
+    var done = function () { var was = S.mode; S.mode = ""; S.addr = ""; S.bal = {}; S.vea = null; if (was !== "demo") ls.set("arcwallet.injected", null); show(); };
     if (S.mode === "privy") W.logout().then(done, done); else done();
   });
-  $("export").addEventListener("click", function () { W.exportWallet().catch(function (e) { toast(String(e && e.message || t("Something went wrong. Try again."))); }); });
+  $("export").addEventListener("click", function () { if (S.mode === "demo") { toast(t("In the demo there's no key to export.")); return; } W.exportWallet().catch(function (e) { toast(String(e && e.message || t("Something went wrong. Try again."))); }); });
   function copy(txt) { return (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { toast(t("Copied")); }).catch(function () {}); }
   $("addr").addEventListener("click", function () { copy(S.addr); });
 
@@ -473,7 +499,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   qa("dialog").forEach(function (d) { d.addEventListener("click", function (e) { if (e.target === d || e.target.closest("[data-close]")) d.close(); }); });
   qa("[data-open]").forEach(function (b) { b.addEventListener("click", function () { var k = b.dataset.open; if (k === "receive") openReceive(); else if (k === "send") openSend(); }); });
   function openReceive() {
-    $("addr-full").textContent = S.addr;
+    $("addr-full").textContent = S.addr + (S.mode === "demo" ? "\n" + t("Demo address. Don't send real coins here.") : "");
     var box = $("qr");
     if (window.qrcode) { var q = window.qrcode(0, "M"); q.addData(S.addr); q.make(); box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); }
     $("d-receive").showModal();
@@ -527,6 +553,11 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     if (!(wei > 0n)) return sdMsg(t("Enter an amount."), true);
     if (S.bal[c.k] != null && n > S.bal[c.k] + 1e-12) return sdMsg(t("That's more than you have."), true);
     SD.busy = true; $("sd-go").disabled = true; sdMsg(t("Confirm in the wallet window…"));
+    if (S.mode === "demo") {
+      setTimeout(function () { sdMsg(t("Sending…")); }, 900);
+      setTimeout(function () { S.demoBal[c.k] = Math.max(0, (S.demoBal[c.k] || 0) - n); $("sd-amt").value = ""; sdMsg(t("Sent (demo).")); paintPick(); paintCoins(); SD.busy = false; $("sd-go").disabled = false; }, 2200);
+      return;
+    }
     var tx = c.native ? { from: S.addr, to: to, value: "0x" + wei.toString(16) } : { from: S.addr, to: c.token, data: "0xa9059cbb" + pad(to) + wei.toString(16).padStart(64, "0") };
     switchTo(c.ch).then(function () { return eth().request({ method: "eth_sendTransaction", params: [tx] }); })
       .then(function (h) { sdMsg(t("Sending…")); return waitTx(c.ch, h).then(function () { return h; }); })
@@ -559,11 +590,18 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     hist.slice(-8).forEach(function (m) { bubble(m.role === "user" ? "me" : "her", m.content); });
     $("chips").hidden = hist.length > 0;
   }
+  // in the demo she sees the sample coins (said up front in the message, so she answers about them as samples)
+  function demoCtx(msgs) {
+    if (S.mode !== "demo" || !msgs.length) return msgs;
+    var b = S.demoBal || DEMO.bal, last = msgs[msgs.length - 1];
+    var note = "[Demo wallet on arcircle.app/wallet with sample coins, not real: " + fmt(b.usdc, 2) + " USDC on Arc, " + fmt(b.arcircle, 0) + " $ARCIRCLE, " + fmt(b.arcia, 0) + " $ARCIA and " + b.eth + " ETH on Robinhood Chain, " + fmt(DEMO.vea.amount, 0) + " $ARCIA staked in veARCIA.] ";
+    return msgs.slice(0, -1).concat([{ role: last.role, content: note + last.content }]);
+  }
   function ask(q) {
     if (busy || !q) return; busy = true; $("chips").hidden = true;
     hist.push({ role: "user", content: q }); bubble("me", q);
     var out = bubble("her", "…"), acc = "";
-    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: hist.slice(-10), lang: lang, stream: true, wallet: S.addr, page: { tab: "wallet" } }) }).then(function (r) {
+    fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: demoCtx(hist.slice(-10)), lang: lang, stream: true, wallet: S.mode === "demo" ? undefined : S.addr, page: { tab: "wallet" } }) }).then(function (r) {
       if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.error || "chat"); });
       if ((r.headers.get("content-type") || "").indexOf("ndjson") < 0 || !r.body) return r.json().then(function (j) { acc = j.reply || ""; out.textContent = acc; });
       var rd = r.body.getReader(), dec = new TextDecoder(), buf = "";

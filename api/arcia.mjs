@@ -12,6 +12,7 @@
 //   POST /api/arcia  { action: "cheer", n, wallet?, day?, sig? }  a signed wallet (cheerSigMsg) also goes on tonight's board
 //   GET  /api/arcia                                            { ok, ai, live, x }
 //   GET  /api/arcia?letters=1                                  the letter board, newest first
+//   GET  /api/arcia?arcat=1                                    ARCAT (api/_arcat.mjs): signals, her mood, the next move, the paper log
 //
 // With ANTHROPIC_API_KEY set she answers with Claude (api/_arcia-brain.mjs: the whole site + live
 // numbers). Without it, when the call fails, or once the day's AI budget is used (ARCIA_DAILY_CAP,
@@ -25,6 +26,7 @@ import * as secret from "./_arcia-secret.mjs";
 import { personalSigner } from "./_tg-lib.mjs";
 import { veTierOf, VE_TIERS } from "./_vearcia.mjs";
 import { ttsProvider, speak as ttsSpeak } from "./_arcia-tts.mjs";
+import * as arcat from "./_arcat.mjs";
 
 // guide mode: the closest passage on the site for questions the quick answers don't cover
 const KO_TERMS = { "락커": "locker", "잠금": "lock", "스캐너": "scanner", "멀티센더": "multisender", "에어드롭": "airdrop", "브릿지": "bridge", "스냅샷": "snapshot",
@@ -463,6 +465,11 @@ export async function GET(req) {
   if (url.searchParams.has("hearts")) {
     try { const [today, board] = await Promise.all([heartsToday(), url.searchParams.get("hearts") === "board" ? cheerBoard() : null]); return json({ today, goal: HEART_GOAL(), ...(board ? { board } : {}) }, 200, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"); }
     catch (e) { return json({ today: null, goal: HEART_GOAL() }, 200, "no-store"); }
+  }
+  // ARCAT, her cat: what he sees in $ARCIA, her mood, his next move and his paper buyback log (api/_arcat.mjs)
+  if (url.searchParams.has("arcat")) {
+    try { const h = await heartsToday().catch(() => null); return json(await arcat.board(url.origin, h == null ? null : h / HEART_GOAL()), 200, "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
+    catch (e) { console.error("arcat", String(e.message || e)); return json({ error: "ARCAT is napping — try again in a bit" }, 502); }
   }
   // the secret file (api/_arcia-secret.mjs)
   if (url.searchParams.has("secret")) {

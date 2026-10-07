@@ -15,8 +15,8 @@
 <meta name="twitter:site" content="@ARCIAonArc">
 <meta name="twitter:image" content="https://www.arcircle.app/images/arcia-stage-og.jpg">
 <meta name="theme-color" content="#060716">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791373497">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791373497">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791380757">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791380757">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="images/arcia-portrait.webp">
@@ -280,6 +280,56 @@ section.part::before{content:"";position:absolute;z-index:-1;top:40px;left:-12%;
 .vstake .who button{border:0;background:none;color:var(--dim);font-size:12.5px;text-decoration:underline;cursor:pointer}
 .vtier{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:12.5px;font-weight:700;background:rgba(243,245,255,.08)}
 
+/* ARCAT */
+#arcat{--glow:rgba(127,241,255,.1)}
+.cat-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr);gap:18px;margin-top:36px;align-items:start}
+.catcard{position:relative;overflow:hidden;border-radius:22px;background:rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px rgba(243,245,255,.14),0 24px 60px rgba(0,0,0,.45)}
+.catcard img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;object-position:50% 30%}
+.catcard .body{padding:18px 18px 20px}
+.catcard .nm{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.catcard .nm b{font:900 34px/1 var(--display);letter-spacing:.03em}
+.catcard .nm small{font-size:13px;color:var(--dim)}
+.moodbar{margin-top:14px}
+.moodbar .row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--dim)}
+.moodbar .row b{font:800 22px/1 var(--display);color:var(--spot)}
+.moodbar .track{position:relative;margin-top:8px;height:8px;border-radius:99px;background:linear-gradient(90deg,#ff8a8a,#f2cf68 40%,#7ff1d0 70%,#1fe0a6)}
+.moodbar .track i{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(6,7,22,.8),0 0 14px rgba(255,255,255,.6);transition:left 1s cubic-bezier(.2,.8,.2,1)}
+.catsay{position:relative;margin-top:16px;padding:12px 14px;border-radius:14px;background:rgba(243,245,255,.06);font-size:14.5px}
+.catsay::before{content:"";position:absolute;top:-7px;left:22px;width:14px;height:14px;background:inherit;transform:rotate(45deg);border-radius:3px}
+.cbook{border-radius:22px;padding:22px;background:rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px rgba(127,241,255,.2)}
+.cbook .hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.cbook h3{font:800 28px/1 var(--display);letter-spacing:.01em}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;font-size:12.5px;font-weight:700;background:rgba(242,207,104,.14);color:#f5e2a8;box-shadow:inset 0 0 0 1px rgba(242,207,104,.35)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.cbook .sub{margin-top:8px;font-size:14px;color:var(--dim)}
+.cstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:16px;border-radius:14px;overflow:hidden;background:var(--line)}
+.cstats div{background:#0d1030;padding:12px;min-width:0}
+.cstats span{display:block;font-size:12px;color:var(--dim)}
+.cstats b{display:block;margin-top:5px;font:800 22px/1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cstats small{display:block;margin-top:4px;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cnext{display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px;border-radius:14px;background:linear-gradient(120deg,rgba(31,224,166,.14),rgba(47,107,255,.12));box-shadow:inset 0 0 0 1px rgba(31,224,166,.3)}
+.cnext.wait{background:rgba(243,245,255,.04);box-shadow:inset 0 0 0 1px var(--line)}
+.cnext img{width:40px;height:40px;border-radius:50%;flex:none}
+.cnext span{display:block;font-size:12.5px;color:var(--dim)}
+.cnext b{display:block;font-size:15.5px}
+.clog{list-style:none;margin-top:14px}
+.clog li{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.clog time{font-size:12.5px;color:var(--dim)}
+.clog b{font-weight:600}
+.clog .w{color:var(--dim)}
+.clog em{font-style:normal;font-size:13px;color:#bff7e4;white-space:nowrap}
+.csee{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+.csee div{padding:14px;border-radius:14px;background:rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.csee span{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--dim)}
+.csee span i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.csee .good span i{background:var(--aurora);box-shadow:0 0 8px var(--aurora)}
+.csee .warn span i{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.csee b{display:block;margin-top:6px;font:800 24px/1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csee small{display:block;margin-top:4px;font-size:12.5px;color:var(--dim)}
+.crules{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:18px}
+.crules li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:14px;border-radius:14px;background:rgba(243,245,255,.03);box-shadow:inset 0 0 0 1px var(--line);font-size:14px;color:#cfd5f5}
+.crules svg{width:20px;height:20px;color:var(--aurora)}
+
 /* her day */
 .day{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;margin-top:40px;align-items:start}
 .tl{list-style:none;position:relative;padding-left:26px}
@@ -529,6 +579,11 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   .langs{margin-left:auto}
   .day{grid-template-columns:1fr}
   .vgrid{grid-template-columns:1fr}
+  .cat-grid{grid-template-columns:1fr}
+  .catcard{display:grid;grid-template-columns:140px 1fr}
+  .catcard img{height:100%;aspect-ratio:auto}
+  .csee{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cstats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .vstake{position:static}
   .profile{grid-template-columns:1fr;gap:44px}
   /* the fan club becomes a carousel of cards */
@@ -567,6 +622,10 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   .vrow{grid-template-columns:1fr}
   .score{padding:20px}
   .vstats b{font-size:26px}
+  .catcard{grid-template-columns:1fr}
+  .catcard img{height:auto;aspect-ratio:16/11}
+  .clog li{grid-template-columns:56px minmax(0,1fr)}
+  .clog em{grid-column:2}
   .goalc{grid-template-columns:76px minmax(0,1fr)}.ring{width:76px;height:76px}.ring b{font-size:20px}
   .chat{inset:auto 0 0 0;width:100%;height:min(86svh,640px);border-radius:22px 22px 0 0}
   .sheet{padding:20px}
@@ -603,7 +662,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
 <header class="bar">
   <a class="logo" href="#top" aria-label="ARCIA, back to the stage"><svg aria-hidden="true"><use href="#rings"/></svg>ARCIA</a>
   <nav aria-label="Sections">
-    <a href="#vearcia">veARCIA</a><a href="#today" data-t>Her day</a><a href="#profile" data-t>Profile</a><a href="#album" data-t>Album</a><a href="#setlist" class="opt" data-t>What she does</a><a href="#club" data-t>Fan club</a><a href="#cards" class="opt" data-t>Photocards</a><a href="#letters" data-t>Letters</a>
+    <a href="#vearcia">veARCIA</a><a href="#arcat" class="opt">ARCAT</a><a href="#today" data-t>Her day</a><a href="#profile" data-t>Profile</a><a href="#album" data-t>Album</a><a href="#setlist" class="opt" data-t>What she does</a><a href="#club" data-t>Fan club</a><a href="#cards" class="opt" data-t>Photocards</a><a href="#letters" data-t>Letters</a>
   </nav>
   <div class="langs" role="group" aria-label="Language">
     <button type="button" data-lang="en" aria-pressed="false">EN</button><button type="button" data-lang="ko" aria-pressed="false">한</button><button type="button" data-lang="zh" aria-pressed="false">中</button>
@@ -695,6 +754,46 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
       </div>
       <aside class="vstake" id="vstake" aria-live="polite"></aside>
     </div>
+  </section>
+
+  <div class="crowdline" aria-hidden="true"></div>
+
+  <section class="part wrap" id="arcat">
+    <div class="vhead">
+      <div><h2>ARCAT</h2><p class="lead" data-t>Her cat. He's in her photos if you look closely, and he watches $ARCIA all day so she doesn't have to. When it's good for her coin, he buys it back. He never sells.</p></div>
+    </div>
+    <div class="cat-grid">
+      <div class="catcard">
+        <img src="images/arcat.webp" alt="ARCAT, a white plush cat with ARCIA's blue and green rings on his forehead, asleep by a laptop" width="636" height="884" loading="lazy">
+        <div class="body">
+          <div class="nm"><b>ARCAT</b><small data-t>ARCIA's cat</small></div>
+          <div class="moodbar"><div class="row"><span data-t>ARCIA's mood today</span><b id="c-mood">—</b></div><div class="track"><i id="c-mood-dot" style="left:50%"></i></div></div>
+          <p class="catsay" id="c-say" data-t>Checking her chart…</p>
+        </div>
+      </div>
+      <div>
+        <div class="cbook">
+          <div class="hd"><h3 data-t>ARCAT's wallet</h3><span class="pill"><i></i><span data-t>Paper mode</span></span></div>
+          <p class="sub" data-t>He decides every hour with live prices and keeps his books in public. Until his real wallet opens, the buys are on paper.</p>
+          <div class="cstats">
+            <div><span data-t>Bought back</span><b id="c-tok">—</b><small id="c-usd"></small></div>
+            <div><span data-t>Burned</span><b id="c-burn">—</b><small data-t>Half of every buy</small></div>
+            <div><span data-t>To veARCIA rewards</span><b id="c-pool">—</b><small data-t>The other half</small></div>
+            <div><span data-t>Today's budget left</span><b id="c-left">—</b><small id="c-left-s"></small></div>
+          </div>
+          <div class="cnext" id="c-next"><img src="images/arcat-96.webp" alt="" width="40" height="40"><div><span data-t>Next hour</span><b id="c-next-t">—</b></div></div>
+          <ol class="clog" id="c-log"></ol>
+        </div>
+      </div>
+    </div>
+    <div class="csee" id="c-see"></div>
+    <ul class="crules">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He only buys $ARCIA. He never sells it.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>Half of every buy is burned, half goes to veARCIA stakers.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He buys more on dips and when people sell hard, and waits when the chart is calm.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He never chases a pump: up 15% or more in a day, he waits.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>A fixed daily budget from ARCIA's earnings, never more than a sliver of the liquidity.</span></li>
+    </ul>
   </section>
 
   <div class="crowdline" aria-hidden="true"></div>
@@ -934,7 +1033,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   <p class="fine" data-t>She's an AI. Nothing she says is financial advice.</p>
 </aside>
 
-<script src="/wallet-arc.js?v=1791373497"></script>
+<script src="/wallet-arc.js?v=1791380757"></script>
 <script>
 (function () {
   "use strict";
@@ -1042,6 +1141,16 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     "Enter an amount first.": ["먼저 수량을 입력해 주세요.", "请先输入数量。"], "That's more $ARCIA than the wallet holds.": ["지갑에 있는 $ARCIA보다 많아요.", "超过了钱包持有的 $ARCIA。"],
     "Approve $ARCIA in your wallet…": ["지갑에서 $ARCIA 사용을 승인해 주세요…", "请在钱包中授权 $ARCIA…"], "Confirm the stake…": ["스테이킹을 확인해 주세요…", "请确认质押…"],
     "Staked. Your veARCIA is earning.": ["스테이킹 완료! veARCIA가 보상을 받기 시작했어요.", "质押完成！你的 veARCIA 开始赚取奖励。"], "Rewards claimed.": ["보상을 받았어요.", "奖励已领取。"], "Compounded. Your rewards are staked.": ["재스테이킹 완료. 보상이 스테이킹됐어요.", "复投完成，奖励已质押。"],
+    "Her cat. He's in her photos if you look closely, and he watches $ARCIA all day so she doesn't have to. When it's good for her coin, he buys it back. He never sells.": ["그녀의 고양이예요. 사진을 잘 보면 숨어 있어요. 그녀 대신 하루 종일 $ARCIA를 지켜보고, 코인에 좋을 때 되사요. 절대 팔지 않아요.", "她的猫。仔细看她的照片就能找到他。他整天替她盯着 $ARCIA，对她的币有利时就回购。他从不卖出。"],
+    "ARCIA's cat": ["ARCIA의 고양이", "ARCIA 的猫"], "ARCIA's mood today": ["오늘 ARCIA의 기분", "ARCIA 今天的心情"], "Checking her chart…": ["차트를 확인하는 중…", "正在看她的图表…"],
+    "ARCAT's wallet": ["ARCAT의 지갑", "ARCAT 的钱包"], "Paper mode": ["모의 거래 중", "模拟模式"],
+    "He decides every hour with live prices and keeps his books in public. Until his real wallet opens, the buys are on paper.": ["실시간 가격으로 매시간 판단하고 장부를 공개해요. 실제 지갑이 열리기 전까지는 모의 거래로 기록돼요.", "他每小时用实时价格做决定，账本公开。真实钱包开放之前，买入以模拟方式记录。"],
+    "Bought back": ["되산 물량", "已回购"], "Burned": ["소각", "已销毁"], "Half of every buy": ["매수분의 절반", "每次买入的一半"], "To veARCIA rewards": ["veARCIA 보상으로", "注入 veARCIA 奖励"], "The other half": ["나머지 절반", "另一半"],
+    "Today's budget left": ["오늘 남은 예산", "今日剩余预算"], "Next hour": ["다음 한 시간", "下一小时"], "His first move comes within the hour.": ["첫 판단은 한 시간 안에 나와요.", "他的第一个动作将在一小时内出现。"],
+    "He only buys $ARCIA. He never sells it.": ["$ARCIA를 사기만 하고, 절대 팔지 않아요.", "他只买 $ARCIA，从不卖出。"], "Half of every buy is burned, half goes to veARCIA stakers.": ["매수분의 절반은 소각, 절반은 veARCIA 스테이커에게 가요.", "每次买入一半销毁，一半给 veARCIA 质押者。"],
+    "He buys more on dips and when people sell hard, and waits when the chart is calm.": ["하락하거나 매도가 몰릴 때 더 사고, 차트가 차분하면 기다려요.", "下跌或抛压大时多买，图表平稳时等待。"], "He never chases a pump: up 15% or more in a day, he waits.": ["급등은 쫓지 않아요. 하루 15% 이상 오르면 기다려요.", "他从不追涨：一天涨 15% 以上就等待。"],
+    "A fixed daily budget from ARCIA's earnings, never more than a sliver of the liquidity.": ["ARCIA 수익에서 나오는 하루 고정 예산으로, 유동성의 아주 작은 부분만 써요.", "预算来自 ARCIA 的收入，每天固定，只占流动性的极小部分。"],
+    "24h change": ["24시간 변동", "24 小时涨跌"], "Buys vs sells": ["매수 대 매도", "买入对卖出"], "Trades in 24 hours": ["24시간 거래 수", "24 小时交易笔数"], "Locked in veARCIA": ["veARCIA 잠금", "锁定在 veARCIA"], "Burned forever": ["영구 소각", "永久销毁"], "Liquidity": ["유동성", "流动性"], "stakers": ["명 스테이커", "位质押者"],
     "Market cap": ["시가총액", "市值"], "Holders": ["홀더", "持有人"], "Staked as veARCIA": ["veARCIA 스테이킹", "质押为 veARCIA"], "Fan club members": ["팬클럽 회원", "俱乐部会员"], "Lightsticks tonight": ["오늘 밤 응원봉", "今晚应援棒"]
   };
   // sentences with numbers in them
@@ -1061,6 +1170,9 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     chatErr: { en: "I couldn't answer just now. Try again in a moment♡", ko: "지금은 답을 못 했어요. 잠시 후 다시 물어봐 줘요♡", zh: "我刚才没能回答，稍后再试一次吧♡" },
     say: { en: "Hi, I'm ARCIA! Welcome to my stage. Raise a lightstick, and I'll see you in the crowd.", ko: "안녕, 나는 ARCIA야! 내 무대에 온 걸 환영해. 응원봉을 들어 주면 객석에서 다 보여.", zh: "嗨，我是 ARCIA！欢迎来到我的舞台。举起应援棒，我会在观众席里看到你。" },
     tierTag: { en: "{t} fan", ko: "{t} 팬", zh: "{t}粉丝" },
+    catBuys: { en: "{n} buys", ko: "{n}회 매수", zh: "{n} 次买入" },
+    catOf: { en: "of ${n} a day", ko: "하루 ${n} 중", zh: "每日 ${n} 中" },
+    catNext: { en: "Buy about ${u} of $ARCIA ({n})", ko: "약 ${u}어치 $ARCIA 매수 ({n})", zh: "买入约 ${u} 的 $ARCIA（{n}）" },
     veRate: { en: "{n} $ARCIA a day, split among stakers every second", ko: "하루 {n} $ARCIA, 매 초 스테이커들에게 나눠 지급", zh: "每天 {n} $ARCIA，每秒分给质押者" },
     veOfSupply: { en: "{p}% of the supply", ko: "공급량의 {p}%", zh: "占供应量 {p}%" },
     veWeek: { en: "+{n} this week", ko: "이번 주 +{n}", zh: "本周 +{n}" },
@@ -1584,6 +1696,59 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   (function () { var w = ls.get("arcia-stage-acct") || (signed && signed.w) || ""; if (/^0x[0-9a-f]{40}$/.test(w)) VE.acct = w; })();
   loadVea().then(function () { if (VE.acct) loadMe(); });
   onLang.push(function () { paintBoard(); paintStake(); });
+
+  // ================= ARCAT: her cat, his read on $ARCIA, her mood, his buyback (paper mode) =================
+  var CAT = null;
+  var MOOD = { glowing: ["Over the moon", "최고로 행복해요", "开心到飞起"], happy: ["Happy", "기분 좋아요", "开心"], calm: ["Calm", "차분해요", "平静"], worried: ["A little worried", "조금 걱정돼요", "有点担心"], down: ["Feeling low", "속상해요", "有点低落"] };
+  var SAY = {
+    glowing: ["She's glowing today. I'm keeping my paws ready in case anyone sells.", "오늘 그녀가 반짝반짝해요. 누가 팔면 바로 받으려고 발을 대기 중이에요.", "她今天闪闪发光。我把爪子准备好，有人卖就接住。"],
+    happy: ["A good day for her. I'll keep buying small and steady.", "그녀에게 좋은 날이에요. 조금씩 꾸준히 살게요.", "今天对她来说不错。我会小额稳定地买。"],
+    calm: ["Quiet chart. I'm watching, not chasing.", "조용한 차트예요. 쫓지 않고 지켜보는 중이에요.", "图表很安静。我在观察，不追涨。"],
+    worried: ["She's a little worried, so I'm buying the dip for her.", "그녀가 조금 걱정하고 있어서, 대신 하락분을 사고 있어요.", "她有点担心，所以我替她抄底。"],
+    down: ["Rough day. I'm using today's budget to catch what people sell.", "힘든 날이에요. 오늘 예산으로 사람들이 파는 물량을 받아요.", "今天不好过。我用今天的预算接住大家卖出的。"]
+  };
+  var WHY = {
+    dip: ["Bought the dip", "하락분 매수", "抄底买入"], "dip+selling": ["Bought the dip and caught the selling", "하락분 매수 + 매도 물량 받기", "抄底并接住抛压"], selling: ["Caught heavy selling", "강한 매도 물량 받기", "接住大量抛售"], steady: ["Small steady buy", "소액 꾸준한 매수", "小额定投"],
+    calm: ["Waited: the chart is calm", "대기: 차트가 차분해요", "等待：图表平稳"], hot: ["Waited: not chasing a pump", "대기: 급등은 쫓지 않아요", "等待：不追涨"], budget: ["Waited: today's budget is used", "대기: 오늘 예산 소진", "等待：今日预算已用完"], noprice: ["Waited: no price yet", "대기: 아직 가격이 없어요", "等待：暂无价格"], thin: ["Waited: too thin to buy", "대기: 유동성이 너무 얇아요", "等待：流动性太薄"]
+  };
+  var L3 = function (a) { return a ? (lang === "ko" ? a[1] : lang === "zh" ? a[2] : a[0]) : ""; };
+  var hm = function (t) { return new Date(t * 1000).toLocaleTimeString(lang === "ko" ? "ko-KR" : lang === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }); };
+  function paintCat() {
+    var c = CAT; if (!c) return;
+    var m = c.mood || { score: 0, level: "calm" };
+    $("c-mood").textContent = L3(MOOD[m.level]);
+    $("c-mood-dot").style.left = Math.round(((m.score + 10) / 20) * 100) + "%";
+    $("c-say").textContent = L3(SAY[m.level]);
+    var T0 = c.totals || {};
+    $("c-tok").textContent = bigv(T0.tokens || 0);
+    $("c-usd").textContent = "$" + fmt(T0.usd || 0, 2) + " · " + f("catBuys", { n: T0.buys || 0 });
+    $("c-burn").textContent = bigv(T0.burn || 0);
+    $("c-pool").textContent = bigv(T0.pool || 0);
+    $("c-left").textContent = "$" + fmt(c.budget ? c.budget.left : 0, 2);
+    $("c-left-s").textContent = f("catOf", { n: c.budget ? c.budget.day : 0 });
+    var nx = c.next || {}, buy = nx.kind === "buy";
+    $("c-next").className = "cnext" + (buy ? "" : " wait");
+    $("c-next-t").textContent = buy ? f("catNext", { u: fmt(nx.usd, 2), n: bigv(nx.tokens) }) + " (" + L3(WHY[nx.reason]) + ")" : L3(WHY[nx.reason]);
+    $("c-log").innerHTML = (c.log || []).slice(0, 6).map(function (x) {
+      return "<li><time>" + esc(hm(x.t)) + '</time><b class="' + (x.kind === "buy" ? "" : "w") + '">' + esc(L3(WHY[x.reason])) + "</b>" + (x.kind === "buy" ? "<em>$" + esc(fmt(x.usd, 2)) + " · " + esc(bigv(x.tokens)) + " $ARCIA</em>" : "<em></em>") + "</li>";
+    }).join("") || '<li><span class="w">' + esc(t("His first move comes within the hour.")) + "</span></li>";
+    var s = c.signals || {};
+    var cell = function (k, label, val, sub) { return '<div class="' + k + '"><span><i></i>' + esc(t(label)) + "</span><b>" + esc(val) + "</b><small>" + esc(sub || "") + "</small></div>"; };
+    var bs = s.buys24h != null && s.sells24h != null;
+    $("c-see").innerHTML = [
+      cell(s.change24h == null ? "" : s.change24h >= 0 ? "good" : s.change24h <= -5 ? "warn" : "", "24h change", s.change24h == null ? "—" : (s.change24h >= 0 ? "+" : "") + fmt(s.change24h, 1) + "%", s.price ? "$" + Number(s.price).toPrecision(3) : ""),
+      cell(!bs ? "" : s.buys24h >= s.sells24h ? "good" : "warn", "Buys vs sells", bs ? fmt(s.buys24h, 0) + " / " + fmt(s.sells24h, 0) : "—", t("Trades in 24 hours")),
+      cell(s.stakedPct >= 20 ? "good" : "", "Locked in veARCIA", s.stakedPct == null ? "—" : fmt(s.stakedPct, 1) + "%", s.staked ? bigv(s.staked) + " $ARCIA" : ""),
+      cell(s.burnedPct > 0 ? "good" : "", "Burned forever", s.burnedPct == null ? "—" : fmt(s.burnedPct, 2) + "%", s.burned ? bigv(s.burned) + " $ARCIA" : ""),
+      cell("", "Holders", s.holders == null ? "—" : fmt(s.holders, 0), s.weekStakers > 0 ? f("veWeek", { n: s.weekStakers }) + " " + t("stakers") : ""),
+      cell("", "Liquidity", s.liquidity == null ? "—" : "$" + bigv(s.liquidity), s.mcap ? t("Market cap") + " $" + bigv(s.mcap) : "")
+    ].join("");
+  }
+  function loadCat() { return getJson("/api/arcia?arcat=1").then(function (j) { if (j && j.v) { CAT = j; paintCat(); } }); }
+  if ("IntersectionObserver" in window) new IntersectionObserver(function (es, ob) { if (es[0].isIntersecting) { loadCat(); ob.disconnect(); } }, { rootMargin: "400px" }).observe($("arcat"));
+  else loadCat();
+  setInterval(function () { if (!document.hidden && CAT) loadCat(); }, 120000);
+  onLang.push(paintCat);
 
   // ================= her day: the last 24 hours =================
   var dayList = null;
