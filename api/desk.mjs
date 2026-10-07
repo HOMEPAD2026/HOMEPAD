@@ -31,6 +31,9 @@
 //   GET /api/desk?stake=me&u=0x…             a wallet's lock, veARCIRCLE, claimable USDC, this and last week's vote, 8 weeks' earnings
 //   GET /api/desk?stake=card&u=0x…           a wallet's lock for its share card (/stake/<wallet>)
 //   GET /api/desk?stake=pool&token=0x…       v2: the pool to vote for a token (its ArcPad pool or its Orders market)
+//   GET /api/desk?stake=drop[&u=0x…]          Launch Drop: this week's coins, finished weeks, a wallet's share (api/_launchdrop.mjs)
+//   GET /api/desk?stake=dropconsole[&ws=…]    the treasury's unsent Launch Drop wallets, in Multisender chunks
+//   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
 // ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
 //   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
 //   GET /api/desk?nft=col&c=0x…                the curator's check: ERC-721?, name, floor, the vault's listing (v2)
@@ -61,6 +64,7 @@ import * as agent from "./_agent.mjs";
 import * as orders from "./_orders.mjs";
 import * as predict from "./_predict.mjs";
 import * as stake from "./_stake.mjs";
+import * as launchdrop from "./_launchdrop.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -84,6 +88,9 @@ export async function GET(req) {
   // ARCIRCLE Staking (api/_stake.mjs): ?stake=state · ?stake=me&u=0x…
   if (q.stake) {
     try {
+      // Launch Drop (api/_launchdrop.mjs): half of every new ArcPad coin's 8% platform allocation → veARCIRCLE stakers
+      if (q.stake === "drop") return json(await launchdrop.state({ store: st, user: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=15, s-maxage=30");
+      if (q.stake === "dropconsole") return json(await launchdrop.consoleOf({ store: st, ws: q.ws ? Number(q.ws) : 0 }), 200);
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
       if (q.stake === "pool") { const r = await stake.poolFor(String(q.token || ""), { store: st }); return json(r || { error: "no pool found for that token" }, r ? 200 : 404, "public, max-age=60, s-maxage=300"); }
       if (q.stake === "card") { const r = await stake.card(String(q.u || "")); return json(r || { error: "no lock" }, r ? 200 : 404, "public, max-age=30, s-maxage=60"); }
@@ -282,6 +289,8 @@ export async function POST(req) {
     try { const r = await predict.forChain(b.chain).setExpiry(b, { store: store(), recover: recoverSigner }); return json(r.body, r.status); }
     catch (e) { return json({ error: String((e && e.message) || e) }, 500); }
   }
+  // Launch Drop: a treasury send, checked against the week's plan from its own receipt
+  if (b && b.action === "launch-drop-sent") { try { const r = await launchdrop.record({ ws: b.ws, tx: b.tx }, store()); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
   try { const r = await (b.chain === "rh" ? RH.saveSettings : saveSettings)(store(), b, recoverSigner); return json(r.body, r.status); }

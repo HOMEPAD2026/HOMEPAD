@@ -260,6 +260,7 @@
     ],
     staking: [
       M(".stk-hd|#stk-body", L("ARCIRCLE Staking", "ARCIRCLE 스테이킹", "ARCIRCLE 质押"), L("Lock $ARCIRCLE for up to a year and get veARCIRCLE — the longer the lock, the bigger your share and your vote.", "$ARCIRCLE을 최대 1년 락업하면 veARCIRCLE이 생겨요. 길게 잠글수록 몫과 투표권이 커져요.", "锁仓 $ARCIRCLE 最长一年获得 veARCIRCLE —— 锁得越久，份额和投票权越大。")),
+      M(".ld-card|.stk-guide details@Launch Drop", L("Launch Drop", "런칭 드랍", "发射空投"), L("Half of every new ArcPad coin's 8% treasury share — 40M of each — is dropped to veARCIRCLE stakers every week, straight to their wallets.", "ArcPad 신규 코인마다 트레저리로 가는 8% 중 절반(코인당 4,000만 개)을 매주 veARCIRCLE 스테이커 지갑으로 바로 보내요.", "每个 ArcPad 新币给金库的 8% 中有一半（每个币 4000 万枚）每周直接空投到 veARCIRCLE 质押者的钱包。")),
       M("#stk-body section.stk-card@Lock $ARCIRCLE", L("Lock", "락업", "锁仓"), L("Pick an amount and a length. The unlock date is shown before you sign.", "수량과 기간을 고르면, 서명 전에 해제일이 보여요.", "选择数量和时长，签名前会显示解锁日期。")),
       M("#stk-body section.stk-card@USDC rewards", L("Weekly USDC", "매주 USDC", "每周 USDC"), L("Every week veARCIRCLE holders share USDC from ARCIRCLE Orders and Predict fees.", "매주 veARCIRCLE 홀더가 ARCIRCLE Orders와 Predict 수수료에서 나온 USDC를 나눠요.", "每周 veARCIRCLE 持有者分享来自 ARCIRCLE Orders 和 Predict 手续费的 USDC。")),
       M("#stk-body section.stk-card@pool vote", L("Vote on pools", "풀 투표", "为池投票"), L("Your veARCIRCLE votes on which pools ARCIRCLE PAD backs this week.", "veARCIRCLE로 이번 주 ARCIRCLE PAD가 지원할 풀에 투표해요.", "用 veARCIRCLE 投票决定本周 ARCIRCLE PAD 支持哪些池。")),

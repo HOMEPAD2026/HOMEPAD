@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791358824"></script>
+<script src="arc-log.js?v=1791360172"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="style.css?v=1791358824">
+<link rel="stylesheet" href="style.css?v=1791360172">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -242,7 +242,7 @@
           </div>
           <div class="bp-card">
             <div class="bp-card-head">Supply</div>
-            <p class="bp-card-note">Fixed at 1,000,000,000 tokens every launch. 8% goes to the platform treasury at creation; the remaining 92% is what's actually in the pool, opening at a ≈ $4,350 market cap.</p>
+            <p class="bp-card-note">Fixed at 1,000,000,000 tokens every launch. 8% goes to the platform treasury at creation (half of it is dropped to veARCIRCLE stakers — Launch Drop); the remaining 92% is what's actually in the pool, opening at a ≈ $4,350 market cap.</p>
           </div>
         </div>
 
@@ -2044,10 +2044,14 @@
           </div>
         </div>
         <a class="nft-mini" id="nft-mini" href="/arc#nft" data-arc-tab="nft" hidden></a>
+        <div id="ld-body"></div>
         <div id="stk-body"></div>
         <!-- ARCIRCLE Staking guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
         <section class="asc-guide stk-guide" aria-labelledby="stk-guide-h">
           <h2 id="stk-guide-h">ARCIRCLE Staking guide</h2>
+          <details open><summary><h3>Launch Drop: a piece of every new coin</h3></summary>
+            <p>Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. From 8 Oct 2026, half of it — 40M of every new coin — goes to veARCIRCLE stakers. Weeks run Thursday to Thursday (00:00 UTC). When a week ends, each staker's veARCIRCLE at that moment is read from the contract, and every coin launched that week is split pro rata (at least 1 veARCIRCLE to be in it; a lock made after the snapshot counts from the next week). The treasury sends it straight to the stakers' wallets through the Multisender — nothing to claim. Each send is checked against the week's plan, and the page shows every coin as sending or sent, with what your wallet got. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.</p>
+          </details>
           <details open><summary><h3>New in v2</h3></summary>
             <ul>
               <li>An empty pot says why: the next fee burn's progress and what's still waiting to be funded. The weekly rate shows an estimate (~) until a week has been paid.</li>
@@ -2402,6 +2406,6 @@
 
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791358824"></script>
+<script src="arcpad.bundle.js?v=1791360172"></script>
 </body>
 </html>
