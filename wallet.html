@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARCIRCLE">
 <link rel="manifest" href="/wallet.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791380757">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791380757">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791381569">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791381569">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -55,6 +55,7 @@ button,input{font:inherit;color:inherit}
 .logo{display:flex;align-items:center;gap:9px;text-decoration:none;font:900 22px/1 var(--display);letter-spacing:.04em}
 .logo svg{width:32px;height:21px}
 .logo small{font:600 13px var(--body);letter-spacing:0;color:var(--dim);padding:3px 8px;border-radius:99px;border:1px solid var(--line)}
+.top{position:relative}
 .langs{margin-left:auto;display:flex;padding:3px;border-radius:99px;border:1px solid var(--line)}
 .langs button{border:0;background:none;cursor:pointer;min-width:32px;height:26px;border-radius:99px;font-size:12.5px;font-weight:600;color:var(--dim)}
 .langs button[aria-pressed="true"]{background:rgba(243,245,255,.14);color:var(--spot)}
@@ -64,6 +65,18 @@ button,input{font:inherit;color:inherit}
 .btn.main{border:0;color:#04140f;background:linear-gradient(100deg,var(--aurora),#7ff1ff 55%,var(--led));box-shadow:0 0 30px rgba(31,224,166,.3)}
 .btn.wide{width:100%}
 .btn svg{width:18px;height:18px;flex:none}
+
+.wmb{display:grid;place-items:center;align-content:center;gap:4px;width:38px;height:38px;padding:0;border-radius:12px;border:1px solid var(--line);background:rgba(6,7,22,.5);cursor:pointer}
+.wmb i{display:block;width:16px;height:2px;border-radius:2px;background:var(--spot);transition:transform .25s,opacity .2s}
+.wmb[aria-expanded="true"] i:nth-child(1){transform:translateY(6px) rotate(45deg)}.wmb[aria-expanded="true"] i:nth-child(2){opacity:0}.wmb[aria-expanded="true"] i:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.wmenu{position:absolute;right:0;top:48px;z-index:40;width:min(300px,calc(100vw - 32px));padding:8px;border-radius:18px;background:#0d1034;box-shadow:inset 0 0 0 1px var(--line),0 24px 60px rgba(0,0,0,.55)}
+.wmenu a{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:12px;text-decoration:none}
+.wmenu a:hover{background:rgba(243,245,255,.05)}
+.wmenu img,.wmenu i{width:38px;height:38px;border-radius:50%;flex:none;object-fit:cover}
+.wmenu i{display:grid;place-items:center;background:rgba(31,224,166,.12)}
+.wmenu i svg{width:20px;height:22px}
+.wmenu b{display:block;font-size:15px}.wmenu small{display:block;font-size:12.5px;color:var(--dim)}
+@media (prefers-reduced-motion:no-preference){.wmenu:not([hidden]){animation:up .25s cubic-bezier(.2,.8,.2,1)}}
 
 /* signed out */
 .hero{padding:56px 0 8px}
@@ -198,6 +211,12 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   <header class="top">
     <a class="logo" href="/" aria-label="ARCIRCLE PAD home"><svg aria-hidden="true"><use href="#rings"/></svg>ARCIRCLE <small data-t>Wallet</small></a>
     <div class="langs" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="false">EN</button><button type="button" data-lang="ko" aria-pressed="false">한</button><button type="button" data-lang="zh" aria-pressed="false">中</button></div>
+    <button type="button" class="wmb" id="wmb" aria-expanded="false" aria-controls="wmenu" aria-label="Menu" data-t-aria><i></i><i></i><i></i></button>
+    <nav class="wmenu" id="wmenu" hidden aria-label="Menu">
+      <a href="/arcia"><img src="images/arcia-avatar-96.jpg" alt=""><span><b data-t>ARCIA's stage</b><small data-t>Lightsticks, veARCIA, her day</small></span></a>
+      <a href="/arcat"><img src="images/arcat-96.webp" alt=""><span><b>ARCAT</b><small data-t>Her cat and his buyback</small></span></a>
+      <a href="/arc"><i><svg viewBox="0 0 34 22" aria-hidden="true"><use href="#rings"/></svg></i><span><b>ArcPad</b><small data-t>Launch and trade on Arc</small></span></a>
+    </nav>
   </header>
 
   <!-- signed out -->
@@ -307,7 +326,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/vendor/qrcode-generator-1.4.4.min.js" defer></script>
-<script src="/wallet-arc.js?v=1791380757"></script>
+<script src="/wallet-arc.js?v=1791381569"></script>
 <script>
 (function () {
   "use strict";
@@ -352,6 +371,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     "Open this page in a wallet's browser, or a browser with a wallet extension.": ["지갑 앱 브라우저나 지갑 확장 프로그램이 있는 브라우저에서 열어 주세요.", "请在钱包内置浏览器或装有钱包扩展的浏览器中打开。"],
     "Tap the Share button, then Add to Home Screen.": ["공유 버튼을 누른 뒤 '홈 화면에 추가'를 고르세요.", "点击分享按钮，然后选择“添加到主屏幕”。"], "Open ARCIRCLE from your home screen.": ["홈 화면에서 ARCIRCLE을 여세요.", "从主屏幕打开 ARCIRCLE。"],
     "Open the browser menu (⋮), then Install app or Add to Home screen.": ["브라우저 메뉴(⋮)에서 '앱 설치' 또는 '홈 화면에 추가'를 고르세요.", "打开浏览器菜单（⋮），选择“安装应用”或“添加到主屏幕”。"],
+    "Menu": ["메뉴", "菜单"], "ARCIA's stage": ["ARCIA의 무대", "ARCIA 的舞台"], "Lightsticks, veARCIA, her day": ["응원봉, veARCIA, 그녀의 하루", "应援棒、veARCIA、她的一天"], "Her cat and his buyback": ["그녀의 고양이와 바이백", "她的猫和他的回购"], "Launch and trade on Arc": ["Arc에서 런칭하고 거래", "在 Arc 上发币和交易"],
     "Try the demo wallet": ["데모 지갑 체험하기", "体验演示钱包"], "Coming soon": ["곧 오픈", "即将开放"],
     "The real wallet opens soon. Try the demo to see exactly how it works, or use a wallet you already have.": ["실제 지갑은 곧 열려요. 데모로 어떻게 쓰는지 그대로 체험하거나, 가지고 있는 지갑으로 써 보세요.", "真实钱包即将开放。先体验演示了解用法，或使用你已有的钱包。"],
     "Demo wallet: sample coins and live prices. Nothing here is real, and nothing leaves this page.": ["데모 지갑: 샘플 코인과 실시간 가격이에요. 실제 자산이 아니고, 아무것도 이 페이지 밖으로 나가지 않아요.", "演示钱包：示例代币与实时价格。这里的一切都不是真实的，也不会离开本页。"],
@@ -372,6 +392,11 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   var onLang = [];
   qa("[data-lang]").forEach(function (b) { b.addEventListener("click", function () { lang = b.dataset.lang; ls.set("arcircle.lang", lang); applyLang(); onLang.forEach(function (f) { f(); }); }); });
   applyLang();
+  var wmb = $("wmb"), wmenu = $("wmenu");
+  function wm(on) { wmenu.hidden = !on; wmb.setAttribute("aria-expanded", String(on)); }
+  wmb.addEventListener("click", function (e) { e.stopPropagation(); wm(wmenu.hidden); });
+  document.addEventListener("click", function (e) { if (!wmenu.hidden && !e.target.closest("#wmenu")) wm(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !wmenu.hidden) { wm(false); wmb.focus(); } });
   function toast(m) { var el = $("toast"); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, 1800); }
 
   // ---------------- chains and coins ----------------

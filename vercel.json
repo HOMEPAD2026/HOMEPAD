@@ -9,6 +9,10 @@
       "destination": "/wallet.html"
     },
     {
+      "source": "/arcat",
+      "destination": "/arcat.html"
+    },
+    {
       "source": "/me",
       "destination": "/me.html"
     },

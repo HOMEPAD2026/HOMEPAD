@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ARCAT — ARCIA's cat, and his buyback</title>
+<meta name="description" content="ARCAT is ARCIA's cat. He watches $ARCIA every hour, shows how she feels about it, and supports her coin with a public, buy-only buyback: half burned, half to veARCIA stakers. He never sells.">
+<meta property="og:title" content="ARCAT — ARCIA's cat">
+<meta property="og:description" content="He watches $ARCIA every hour and buys it back for her. He never sells.">
+<meta property="og:image" content="https://www.arcircle.app/images/arcat.webp">
+<meta property="og:url" content="https://www.arcircle.app/arcat">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIAonArc">
+<meta name="theme-color" content="#060716">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791381569">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791381569">
+<link rel="preload" href="/fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" as="image" href="images/arcat.webp">
+<script>
+(function () {
+  try {
+    var m = /[?&]lang=(en|ko|zh)(?:&|$)/.exec(location.search), nl = (navigator.language || "").toLowerCase();
+    var l = m ? m[1] : localStorage.getItem("arcircle.lang") || (nl.indexOf("ko") === 0 ? "ko" : nl.indexOf("zh") === 0 ? "zh" : "en");
+    document.documentElement.lang = l === "ko" || l === "zh" ? l : "en";
+  } catch (e) { /* English */ }
+})();
+</script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<link rel="stylesheet" href="/stage.css?v=1791381569">
+</head>
+<body class="catpage">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="ringA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient>
+    <linearGradient id="ringB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ff1d0"/><stop offset="1" stop-color="#1fe0a6"/></linearGradient>
+    <symbol id="rings" viewBox="0 0 34 22"><circle cx="11" cy="11" r="8.5" fill="none" stroke="url(#ringA)" stroke-width="3.4"/><circle cx="23" cy="11" r="8.5" fill="none" stroke="url(#ringB)" stroke-width="3.4"/></symbol>
+  </defs>
+</svg>
+
+<header class="bar">
+  <a class="logo" href="/arcia" aria-label="ARCIA, her stage"><svg aria-hidden="true"><use href="#rings"/></svg>ARCIA</a>
+  <nav class="secs" aria-label="Her stage">
+    <a href="/arcia" data-t>Her stage</a><a href="/arcia#vearcia">veARCIA</a><a href="/arcia#today" data-t>Her day</a><a href="/arcia#album" data-t>Album</a><a href="/arcia#letters" data-t>Letters</a>
+  </nav>
+  <div class="right">
+    <div class="pages"><a class="pg" href="/arcat" aria-current="page"><img src="images/arcat-96.webp" alt="" width="22" height="22">ARCAT</a><a class="pg" href="/wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.3" fill="currentColor"/></svg><span data-t>Wallet</span></a></div>
+    <div class="langs" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="false">EN</button><button type="button" data-lang="ko" aria-pressed="false">한</button><button type="button" data-lang="zh" aria-pressed="false">中</button>
+    </div>
+    <a class="btn main talk" href="/arcia#chat" data-t>Talk to ARCIA</a>
+    <button type="button" class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Menu" data-t-aria><i></i><i></i><i></i></button>
+  </div>
+</header>
+<div class="menu" id="menu" hidden>
+  <nav class="menu-in" aria-label="Menu">
+    <div class="m-pages">
+      <a class="m-pg" href="/arcat" aria-current="page"><img src="images/arcat-96.webp" alt="" width="44" height="44"><span><b>ARCAT</b><small data-t>Her cat and his buyback</small></span></a>
+      <a class="m-pg" href="/wallet"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><circle cx="16" cy="13.5" r="1.3" fill="currentColor"/></svg></i><span><b data-t>Wallet</b><small data-t>Try the demo wallet</small></span></a>
+    </div>
+    <p class="m-k" data-t>On her stage</p>
+    <div class="m-secs">
+      <a href="/arcia" data-t>Her stage</a><a href="/arcia#vearcia">veARCIA</a><a href="/arcia#today" data-t>Her day</a><a href="/arcia#profile" data-t>Profile</a><a href="/arcia#album" data-t>Album</a><a href="/arcia#club" data-t>Fan club</a><a href="/arcia#cards" data-t>Photocards</a><a href="/arcia#letters" data-t>Letters</a>
+    </div>
+    <a class="btn main wide" href="/arcia#chat" data-t>Talk to ARCIA</a>
+    <a class="m-out" href="/arc" data-t>Open ArcPad</a>
+  </nav>
+</div>
+
+<main>
+  <section class="cathero wrap" aria-label="ARCAT">
+    <figure class="cat-photo"><img src="images/arcat.webp" alt="ARCAT, a white plush cat with ARCIA's blue and green rings on his forehead, asleep by a laptop" width="636" height="884"></figure>
+    <div class="cat-txt">
+      <p class="cat-who" data-t>ARCIA's cat</p>
+      <h1>ARCAT</h1>
+      <p class="lead" data-t>Her cat. He's in her photos if you look closely, and he watches $ARCIA all day so she doesn't have to. When it's good for her coin, he buys it back. He never sells.</p>
+      <div class="catmood">
+        <div class="moodbar"><div class="row"><span data-t>ARCIA's mood today</span><b id="c-mood">—</b></div><div class="track"><i id="c-mood-dot" style="left:50%"></i></div></div>
+        <p class="catsay" id="c-say" data-t>Checking her chart…</p>
+      </div>
+      <div class="acts" style="justify-content:flex-start"><a class="btn main" href="/arcia" data-t>See her stage</a><a class="btn" href="/wallet?demo" data-t>Try the demo wallet</a></div>
+    </div>
+  </section>
+
+  <section class="part wrap" id="books">
+    <h2 data-t>His books</h2>
+    <div class="cat-books">
+      <div class="cbook">
+          <div class="hd"><h3 data-t>ARCAT's wallet</h3><span class="pill"><i></i><span data-t>Paper mode</span></span></div>
+          <p class="sub" data-t>He decides every hour with live prices and keeps his books in public. Until his real wallet opens, the buys are on paper.</p>
+          <div class="cstats">
+            <div><span data-t>Bought back</span><b id="c-tok">—</b><small id="c-usd"></small></div>
+            <div><span data-t>Burned</span><b id="c-burn">—</b><small data-t>Half of every buy</small></div>
+            <div><span data-t>To veARCIA rewards</span><b id="c-pool">—</b><small data-t>The other half</small></div>
+            <div><span data-t>Today's budget left</span><b id="c-left">—</b><small id="c-left-s"></small></div>
+          </div>
+          <div class="cnext" id="c-next"><img src="images/arcat-96.webp" alt="" width="40" height="40"><div><span data-t>Next hour</span><b id="c-next-t">—</b></div></div>
+          <ol class="clog" id="c-log"></ol>
+        </div>
+      <div class="csee" id="c-see"></div>
+    </div>
+  </section>
+
+  <section class="part wrap" id="rules">
+    <h2 data-t>His rules</h2>
+    <ul class="crules">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He only buys $ARCIA. He never sells it.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>Half of every buy is burned, half goes to veARCIA stakers.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He buys more on dips and when people sell hard, and waits when the chart is calm.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>He never chases a pump: up 15% or more in a day, he waits.</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-t>A fixed daily budget from ARCIA's earnings, never more than a sliver of the liquidity.</span></li>
+    </ul>
+  </section>
+
+  <section class="part wrap" id="find">
+    <h2 data-t>Where's ARCAT?</h2>
+    <p class="lead" data-t>He follows her everywhere. Tap a photo to find him.</p>
+    <div class="find">
+      <button type="button" class="fd" style="--fx:82%;--fy:76%;--ox:100%;--oy:94%"><img src="images/arcia-album/cafe-selfie.webp" alt="ARCIA at a riverside cafe" loading="lazy" width="680" height="637"><span data-t>At the café, by her laptop</span></button>
+      <button type="button" class="fd" style="--fx:8%;--fy:64%;--ox:0%;--oy:70%"><img src="images/arcia-album/v2-desk.webp" alt="ARCIA at her desk" loading="lazy" width="679" height="453"><span data-t>On her desk, guarding V2</span></button>
+      <button type="button" class="fd" style="--fx:86%;--fy:46%;--ox:100%;--oy:66%"><img src="images/arcia-album/rh-training.webp" alt="ARCIA getting ready for Robinhood Chain" loading="lazy" width="614" height="900"><span data-t>Training for Robinhood Chain</span></button>
+      <button type="button" class="fd" style="--fx:18%;--fy:53%;--ox:0%;--oy:46%"><img src="images/arcia-album/booth-multichain.webp" alt="ARCIA at her booth" loading="lazy" width="603" height="1200"><span data-t>At her booth, front row</span></button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="/" style="font-size:20px"><svg aria-hidden="true" style="width:28px"><use href="#rings"/></svg>ARCIRCLE PAD</a>
+    <a href="/arcia" data-t>Her stage</a><a href="/wallet" data-t>Wallet</a><a href="/arc#vearcia">veARCIA</a><a href="https://x.com/ARCIAonArc" target="_blank" rel="noopener">X</a>
+    <p class="note" data-t>ARCAT's buys are a public buyback with a small fixed budget. They don't promise any price. Nothing here is financial advice, and coins can lose all of their value.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var qa = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+  var html = document.documentElement;
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var getJson = function (u) { return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+  var lsSet = function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } };
+  var DICT = {"Her stage":["그녀의 무대","她的舞台"],
+    "Her day":["그녀의 하루","她的一天"],
+    "Album":["앨범","相册"],
+    "Letters":["팬레터","粉丝信"],
+    "Wallet":["지갑","钱包"],
+    "Talk to ARCIA":["ARCIA와 대화하기","和 ARCIA 聊天"],
+    "Her cat and his buyback":["그녀의 고양이와 바이백","她的猫和他的回购"],
+    "Try the demo wallet":["데모 지갑 체험하기","体验演示钱包"],
+    "On her stage":["그녀의 무대","她的舞台"],
+    "Profile":["프로필","档案"],
+    "Fan club":["팬클럽","粉丝俱乐部"],
+    "Photocards":["포토카드","小卡"],
+    "Open ArcPad":["ArcPad 열기","打开 ArcPad"],
+    "ARCIA's cat":["ARCIA의 고양이","ARCIA 的猫"],
+    "Her cat. He's in her photos if you look closely, and he watches $ARCIA all day so she doesn't have to. When it's good for her coin, he buys it back. He never sells.":["그녀의 고양이예요. 사진을 잘 보면 숨어 있어요. 그녀 대신 하루 종일 $ARCIA를 지켜보고, 코인에 좋을 때 되사요. 절대 팔지 않아요.","她的猫。仔细看她的照片就能找到他。他整天替她盯着 $ARCIA，对她的币有利时就回购。他从不卖出。"],
+    "ARCIA's mood today":["오늘 ARCIA의 기분","ARCIA 今天的心情"],
+    "Checking her chart…":["차트를 확인하는 중…","正在看她的图表…"],
+    "See her stage":["그녀의 무대 보기","看她的舞台"],
+    "His books":["ARCAT의 장부","他的账本"],
+    "ARCAT's wallet":["ARCAT의 지갑","ARCAT 的钱包"],
+    "Paper mode":["모의 거래 중","模拟模式"],
+    "He decides every hour with live prices and keeps his books in public. Until his real wallet opens, the buys are on paper.":["실시간 가격으로 매시간 판단하고 장부를 공개해요. 실제 지갑이 열리기 전까지는 모의 거래로 기록돼요.","他每小时用实时价格做决定，账本公开。真实钱包开放之前，买入以模拟方式记录。"],
+    "Bought back":["되산 물량","已回购"],
+    "Burned":["소각","已销毁"],
+    "Half of every buy":["매수분의 절반","每次买入的一半"],
+    "To veARCIA rewards":["veARCIA 보상으로","注入 veARCIA 奖励"],
+    "The other half":["나머지 절반","另一半"],
+    "Today's budget left":["오늘 남은 예산","今日剩余预算"],
+    "Next hour":["다음 한 시간","下一小时"],
+    "His rules":["ARCAT의 규칙","他的规则"],
+    "He only buys $ARCIA. He never sells it.":["$ARCIA를 사기만 하고, 절대 팔지 않아요.","他只买 $ARCIA，从不卖出。"],
+    "Half of every buy is burned, half goes to veARCIA stakers.":["매수분의 절반은 소각, 절반은 veARCIA 스테이커에게 가요.","每次买入一半销毁，一半给 veARCIA 质押者。"],
+    "He buys more on dips and when people sell hard, and waits when the chart is calm.":["하락하거나 매도가 몰릴 때 더 사고, 차트가 차분하면 기다려요.","下跌或抛压大时多买，图表平稳时等待。"],
+    "He never chases a pump: up 15% or more in a day, he waits.":["급등은 쫓지 않아요. 하루 15% 이상 오르면 기다려요.","他从不追涨：一天涨 15% 以上就等待。"],
+    "A fixed daily budget from ARCIA's earnings, never more than a sliver of the liquidity.":["ARCIA 수익에서 나오는 하루 고정 예산으로, 유동성의 아주 작은 부분만 써요.","预算来自 ARCIA 的收入，每天固定，只占流动性的极小部分。"],
+    "Where's ARCAT?":["ARCAT 찾기","ARCAT 在哪里？"],
+    "He follows her everywhere. Tap a photo to find him.":["그녀가 가는 곳마다 따라다녀요. 사진을 눌러 찾아보세요.","她去哪儿他就跟到哪儿。点照片找找他。"],
+    "At the café, by her laptop":["카페에서, 노트북 옆에","在咖啡馆，笔记本电脑旁"],
+    "On her desk, guarding V2":["책상 위에서 V2를 지키는 중","在她桌上守着 V2"],
+    "Training for Robinhood Chain":["Robinhood Chain 훈련 중","为 Robinhood Chain 做训练"],
+    "At her booth, front row":["그녀의 부스 맨 앞줄에","在她展位的第一排"],
+    "ARCAT's buys are a public buyback with a small fixed budget. They don't promise any price. Nothing here is financial advice, and coins can lose all of their value.":["ARCAT의 매수는 작은 고정 예산으로 하는 공개 바이백이에요. 어떤 가격도 약속하지 않아요. 투자 조언이 아니며, 코인은 가치를 전부 잃을 수 있어요.","ARCAT 的买入是小额固定预算的公开回购，不承诺任何价格。这里的内容都不是投资建议，代币可能失去全部价值。"],
+    "Menu":["메뉴","菜单"],
+    "His first move comes within the hour.":["첫 판단은 한 시간 안에 나와요.","他的第一个动作将在一小时内出现。"],
+    "Trades in 24 hours":["24시간 거래 수","24 小时交易笔数"],
+    "stakers":["명 스테이커","位质押者"],
+    "Market cap":["시가총액","市值"]};
+  var FMT = {"catBuys":{"en":"{n} buys","ko":"{n}회 매수","zh":"{n} 次买入"},"catOf":{"en":"of ${n} a day","ko":"하루 ${n} 중","zh":"每日 ${n} 中"},"catNext":{"en":"Buy about ${u} of $ARCIA ({n})","ko":"약 ${u}어치 $ARCIA 매수 ({n})","zh":"买入约 ${u} 的 $ARCIA（{n}）"},"veWeek":{"en":"+{n} this week","ko":"이번 주 +{n}","zh":"本周 +{n}"}};
+  var lang = html.lang === "ko" || html.lang === "zh" ? html.lang : "en";
+  var t = function (s) { var r = DICT[s]; return r && lang === "ko" ? r[0] : r && lang === "zh" ? r[1] : s; };
+  var f = function (k, v) { var s = FMT[k][lang] || FMT[k].en; for (var x in v || {}) s = s.split("{" + x + "}").join(v[x]); return s; };
+  var fmt = function (n, d) { return n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d }); };
+  var bigv = function (n) { return n == null || !isFinite(n) ? "—" : n >= 1e9 ? fmt(n / 1e9, 2) + "B" : n >= 1e6 ? fmt(n / 1e6, 2) + "M" : n >= 1e4 ? fmt(n / 1e3, 1) + "K" : fmt(n, n < 1 ? 4 : 2); };
+  function applyLang() {
+    qa("[data-t]").forEach(function (el) { if (el.dataset.en == null) el.dataset.en = el.textContent.trim(); el.textContent = t(el.dataset.en); });
+    qa("[data-t-aria]").forEach(function (el) { if (el.dataset.enAria == null) el.dataset.enAria = el.getAttribute("aria-label"); el.setAttribute("aria-label", t(el.dataset.enAria)); });
+    qa("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
+    html.lang = lang;
+  }
+  var onLang = [];
+  qa("[data-lang]").forEach(function (b) { b.addEventListener("click", function () { lang = b.dataset.lang; lsSet("arcircle.lang", lang); applyLang(); onLang.forEach(function (fn) { fn(); }); }); });
+  applyLang();
+
+  // the menu (phones and narrow windows)
+  var burger = $("burger"), menu = $("menu");
+  function menuOpen(on) {
+    menu.hidden = !on; burger.setAttribute("aria-expanded", String(on)); document.body.classList.toggle("menu-on", on);
+    if (on) { var first = menu.querySelector("a,button"); if (first) first.focus(); } else burger.focus({ preventScroll: true });
+  }
+  burger.addEventListener("click", function () { menuOpen(menu.hidden); });
+  menu.addEventListener("click", function (e) { if (e.target === menu || e.target.closest("a")) menuOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) menuOpen(false); });
+
+  // where's ARCAT: a tap zooms into him
+  qa(".fd").forEach(function (b) { b.addEventListener("click", function () { b.classList.toggle("found"); }); });
+
+  // ================= ARCAT: her cat, his read on $ARCIA, her mood, his buyback (paper mode) =================
+  var CAT = null;
+  var MOOD = { glowing: ["Over the moon", "최고로 행복해요", "开心到飞起"], happy: ["Happy", "기분 좋아요", "开心"], calm: ["Calm", "차분해요", "平静"], worried: ["A little worried", "조금 걱정돼요", "有点担心"], down: ["Feeling low", "속상해요", "有点低落"] };
+  var SAY = {
+    glowing: ["She's glowing today. I'm keeping my paws ready in case anyone sells.", "오늘 그녀가 반짝반짝해요. 누가 팔면 바로 받으려고 발을 대기 중이에요.", "她今天闪闪发光。我把爪子准备好，有人卖就接住。"],
+    happy: ["A good day for her. I'll keep buying small and steady.", "그녀에게 좋은 날이에요. 조금씩 꾸준히 살게요.", "今天对她来说不错。我会小额稳定地买。"],
+    calm: ["Quiet chart. I'm watching, not chasing.", "조용한 차트예요. 쫓지 않고 지켜보는 중이에요.", "图表很安静。我在观察，不追涨。"],
+    worried: ["She's a little worried, so I'm buying the dip for her.", "그녀가 조금 걱정하고 있어서, 대신 하락분을 사고 있어요.", "她有点担心，所以我替她抄底。"],
+    down: ["Rough day. I'm using today's budget to catch what people sell.", "힘든 날이에요. 오늘 예산으로 사람들이 파는 물량을 받아요.", "今天不好过。我用今天的预算接住大家卖出的。"]
+  };
+  var WHY = {
+    dip: ["Bought the dip", "하락분 매수", "抄底买入"], "dip+selling": ["Bought the dip and caught the selling", "하락분 매수 + 매도 물량 받기", "抄底并接住抛压"], selling: ["Caught heavy selling", "강한 매도 물량 받기", "接住大量抛售"], steady: ["Small steady buy", "소액 꾸준한 매수", "小额定投"],
+    calm: ["Waited: the chart is calm", "대기: 차트가 차분해요", "等待：图表平稳"], hot: ["Waited: not chasing a pump", "대기: 급등은 쫓지 않아요", "等待：不追涨"], budget: ["Waited: today's budget is used", "대기: 오늘 예산 소진", "等待：今日预算已用完"], noprice: ["Waited: no price yet", "대기: 아직 가격이 없어요", "等待：暂无价格"], thin: ["Waited: too thin to buy", "대기: 유동성이 너무 얇아요", "等待：流动性太薄"]
+  };
+  var L3 = function (a) { return a ? (lang === "ko" ? a[1] : lang === "zh" ? a[2] : a[0]) : ""; };
+  var hm = function (t) { return new Date(t * 1000).toLocaleTimeString(lang === "ko" ? "ko-KR" : lang === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" }); };
+  function paintCat() {
+    var c = CAT; if (!c) return;
+    var m = c.mood || { score: 0, level: "calm" };
+    $("c-mood").textContent = L3(MOOD[m.level]);
+    $("c-mood-dot").style.left = Math.round(((m.score + 10) / 20) * 100) + "%";
+    $("c-say").textContent = L3(SAY[m.level]);
+    var T0 = c.totals || {};
+    $("c-tok").textContent = bigv(T0.tokens || 0);
+    $("c-usd").textContent = "$" + fmt(T0.usd || 0, 2) + " · " + f("catBuys", { n: T0.buys || 0 });
+    $("c-burn").textContent = bigv(T0.burn || 0);
+    $("c-pool").textContent = bigv(T0.pool || 0);
+    $("c-left").textContent = "$" + fmt(c.budget ? c.budget.left : 0, 2);
+    $("c-left-s").textContent = f("catOf", { n: c.budget ? c.budget.day : 0 });
+    var nx = c.next || {}, buy = nx.kind === "buy";
+    $("c-next").className = "cnext" + (buy ? "" : " wait");
+    $("c-next-t").textContent = buy ? f("catNext", { u: fmt(nx.usd, 2), n: bigv(nx.tokens) }) + " (" + L3(WHY[nx.reason]) + ")" : L3(WHY[nx.reason]);
+    $("c-log").innerHTML = (c.log || []).slice(0, 6).map(function (x) {
+      return "<li><time>" + esc(hm(x.t)) + '</time><b class="' + (x.kind === "buy" ? "" : "w") + '">' + esc(L3(WHY[x.reason])) + "</b>" + (x.kind === "buy" ? "<em>$" + esc(fmt(x.usd, 2)) + " · " + esc(bigv(x.tokens)) + " $ARCIA</em>" : "<em></em>") + "</li>";
+    }).join("") || '<li><span class="w">' + esc(t("His first move comes within the hour.")) + "</span></li>";
+    var s = c.signals || {};
+    var cell = function (k, label, val, sub) { return '<div class="' + k + '"><span><i></i>' + esc(t(label)) + "</span><b>" + esc(val) + "</b><small>" + esc(sub || "") + "</small></div>"; };
+    var bs = s.buys24h != null && s.sells24h != null;
+    $("c-see").innerHTML = [
+      cell(s.change24h == null ? "" : s.change24h >= 0 ? "good" : s.change24h <= -5 ? "warn" : "", "24h change", s.change24h == null ? "—" : (s.change24h >= 0 ? "+" : "") + fmt(s.change24h, 1) + "%", s.price ? "$" + Number(s.price).toPrecision(3) : ""),
+      cell(!bs ? "" : s.buys24h >= s.sells24h ? "good" : "warn", "Buys vs sells", bs ? fmt(s.buys24h, 0) + " / " + fmt(s.sells24h, 0) : "—", t("Trades in 24 hours")),
+      cell(s.stakedPct >= 20 ? "good" : "", "Locked in veARCIA", s.stakedPct == null ? "—" : fmt(s.stakedPct, 1) + "%", s.staked ? bigv(s.staked) + " $ARCIA" : ""),
+      cell(s.burnedPct > 0 ? "good" : "", "Burned forever", s.burnedPct == null ? "—" : fmt(s.burnedPct, 2) + "%", s.burned ? bigv(s.burned) + " $ARCIA" : ""),
+      cell("", "Holders", s.holders == null ? "—" : fmt(s.holders, 0), s.weekStakers > 0 ? f("veWeek", { n: s.weekStakers }) + " " + t("stakers") : ""),
+      cell("", "Liquidity", s.liquidity == null ? "—" : "$" + bigv(s.liquidity), s.mcap ? t("Market cap") + " $" + bigv(s.mcap) : "")
+    ].join("");
+  }
+  function loadCat() { return getJson("/api/arcia?arcat=1").then(function (j) { if (j && j.v) { CAT = j; paintCat(); } }); }
+  loadCat();
+  setInterval(function () { if (!document.hidden && CAT) loadCat(); }, 120000);
+  onLang.push(paintCat);
+
+})();
+</script>
+</body>
+</html>
