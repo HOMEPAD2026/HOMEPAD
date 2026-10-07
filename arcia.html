@@ -15,8 +15,8 @@
 <meta name="twitter:site" content="@ARCIAonArc">
 <meta name="twitter:image" content="https://www.arcircle.app/images/arcia-stage-og.jpg">
 <meta name="theme-color" content="#060716">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791369806">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791369806">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791371214">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791371214">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="images/arcia-portrait.webp">
@@ -196,6 +196,89 @@ section.part::before{content:"";position:absolute;z-index:-1;top:40px;left:-12%;
 .part .lead{margin-top:14px;max-width:56ch;color:var(--dim);font-size:17px}
 .crowdline{height:30px;margin-top:80px;opacity:.55;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='30'%3E%3Cg stroke='%23c9cde6' stroke-opacity='.35' stroke-width='1.5'%3E%3Cpath d='M8 30v-14M26 30v-20M44 30v-12M62 30v-18M78 30v-15'/%3E%3C/g%3E%3Ccircle cx='8' cy='14' r='3' fill='%232f6bff'/%3E%3Ccircle cx='26' cy='8' r='3' fill='%231fe0a6'/%3E%3Ccircle cx='44' cy='16' r='3' fill='%23ff6fcf'/%3E%3Ccircle cx='62' cy='10' r='3' fill='%232f6bff'/%3E%3Ccircle cx='78' cy='13' r='3' fill='%231fe0a6'/%3E%3C/svg%3E") repeat-x 0 100%/84px 30px;
   -webkit-mask:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);mask:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
+
+/* veARCIA board */
+#vearcia{--glow:rgba(127,241,255,.12)}
+.vhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px}
+.vhead .btn{flex:none}
+.vgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:18px;margin-top:36px;align-items:start}
+.vboard{display:grid;gap:14px}
+.score{position:relative;overflow:hidden;border-radius:20px;padding:24px 26px 22px;isolation:isolate;
+  background:radial-gradient(70% 90% at 0% 0%,rgba(47,107,255,.35),transparent 65%),radial-gradient(60% 80% at 100% 100%,rgba(31,224,166,.22),transparent 65%),#0a0d2a;
+  box-shadow:inset 0 0 0 1px rgba(243,245,255,.14),0 24px 60px rgba(0,0,0,.45)}
+.score::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(rgba(0,0,0,.35) 32%,transparent 36%) 0 0/4px 4px;opacity:.5}
+.score .k{display:flex;align-items:center;gap:8px;font-size:14px;color:#cfd5f5}
+.score .k i{width:8px;height:8px;border-radius:50%;background:var(--aurora);box-shadow:0 0 10px var(--aurora)}
+.score .k i.off{background:var(--dim);box-shadow:none}
+.score .big{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin-top:10px}
+.score .big b{font:900 clamp(46px,6.4vw,84px)/.9 var(--display);letter-spacing:.01em;font-variant-numeric:tabular-nums;background:linear-gradient(180deg,#fff,#bfe9ff 55%,#7ff1d0);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.score .big span{font:800 26px/1 var(--display);color:#9ff4ff}
+.score p{margin-top:10px;color:#cfd5f5;font-size:15px}
+.score p b{color:var(--spot)}
+.vstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border-radius:16px;overflow:hidden;background:var(--line);box-shadow:inset 0 0 0 1px var(--line)}
+.vstats div{background:rgba(10,12,36,.92);padding:16px 16px 14px;min-width:0}
+.vstats span{display:block;font-size:13px;color:var(--dim)}
+.vstats b{display:block;margin-top:6px;font:800 30px/1 var(--display);letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vstats small{display:block;margin-top:6px;font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vstats small.up{color:var(--aurora)}
+.vrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.burn{position:relative;overflow:hidden;border-radius:16px;padding:18px;background:radial-gradient(80% 90% at 100% 100%,rgba(255,120,60,.22),transparent 65%),rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px rgba(255,150,90,.28)}
+.burn .t{display:flex;align-items:center;gap:8px;font-size:14px;color:#ffd2b8}
+.burn .t svg{width:18px;height:18px;flex:none}
+.burn b{display:block;margin-top:8px;font:800 34px/1 var(--display);font-variant-numeric:tabular-nums}
+.burn b small{font:600 15px var(--body);color:#ffb38a;margin-left:6px}
+.burn .bmeter{margin-top:12px;height:6px;border-radius:99px;background:rgba(243,245,255,.1);overflow:hidden}
+.burn .bmeter i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#ff7a3d,#ffcf6b);transition:width 1s ease}
+.burn p{margin-top:10px;font-size:13px;color:var(--dim)}
+.trend{border-radius:16px;padding:18px;background:rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.trend .t{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:#cfd5f5}
+.trend .t b{font:800 18px/1 var(--display);color:var(--spot)}
+.trend svg{display:block;width:100%;height:70px;margin-top:10px;overflow:visible}
+.trend .area{fill:url(#veaArea)}
+.trend .ln{fill:none;stroke:var(--aurora);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.trend .dot{fill:var(--aurora);stroke:#0a0c24;stroke-width:2}
+.ladder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:12px}
+.ladder div{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:8px 10px;border-radius:10px;background:rgba(243,245,255,.04);box-shadow:inset 0 0 0 1px var(--line);font-size:12.5px;color:var(--dim)}
+.ladder span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ladder b{font:800 18px/1 var(--display);color:var(--spot)}
+.ladder .tier{margin-right:6px}
+/* the stake card */
+.vstake{position:sticky;top:84px;border-radius:20px;padding:22px;background:rgba(10,12,36,.92);box-shadow:inset 0 0 0 1px rgba(127,241,255,.22),0 24px 60px rgba(0,0,0,.45)}
+.vstake h3{font:800 28px/1 var(--display);letter-spacing:.01em}
+.vstake .sub{margin-top:6px;font-size:13.5px;color:var(--dim)}
+.vmine{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.vmine div{padding:12px;border-radius:12px;background:rgba(243,245,255,.04);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.vmine > div > span{display:block;font-size:12.5px;color:var(--dim)}
+.vmine b{display:block;margin-top:4px;font:800 22px/1.05 var(--display);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vmine .earn{grid-column:1 / -1;background:linear-gradient(120deg,rgba(31,224,166,.16),rgba(47,107,255,.14));box-shadow:inset 0 0 0 1px rgba(31,224,166,.35)}
+.vmine .earn b{font-size:30px;color:#bff7e4}
+.vacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.vacts .btn{flex:1 1 auto;padding:11px 14px;font-size:14px}
+.vform{display:grid;gap:12px;margin-top:16px}
+.vform label{display:grid;gap:6px;font-size:13.5px;color:var(--dim)}
+.vamt{display:flex;align-items:center;gap:8px;border-radius:12px;border:1px solid var(--line);background:rgba(243,245,255,.05);padding:4px 6px 4px 13px}
+.vamt:focus-within{border-color:var(--aurora)}
+.vamt input{flex:1;min-width:0;border:0;background:none;padding:9px 0;font:800 24px/1 var(--display);color:var(--spot);outline:none}
+.vamt em{font-style:normal;font-size:13.5px;font-weight:600;color:var(--dim)}
+.vamt button{border:0;border-radius:99px;padding:7px 11px;font-size:12.5px;font-weight:700;background:rgba(243,245,255,.1);color:var(--spot);cursor:pointer}
+.vdays{display:grid;gap:8px}
+.vdays .row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--dim)}
+.vdays .row b{font:800 20px/1 var(--display);color:var(--spot)}
+.vdays input[type=range]{width:100%;accent-color:var(--aurora)}
+.vprev{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;border-radius:12px;overflow:hidden;background:var(--line)}
+.vprev div{background:#0d1030;padding:10px;min-width:0}
+.vprev span{display:block;font-size:11.5px;color:var(--dim)}
+.vprev b{display:block;margin-top:4px;font:800 18px/1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vstake .note{font-size:12.5px;color:var(--dim)}
+.vstake .vmsg{font-size:13.5px;color:var(--aurora)}
+.vstake .vmsg.err{color:#ff9a9a}
+.vstake .btn.wide{width:100%}
+.vstake .alt{display:block;text-align:center;font-size:13.5px;color:var(--dim);margin-top:2px}
+.vstake .alt:hover{color:var(--spot)}
+.vstake .who{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;font-size:13px;color:var(--dim)}
+.vstake .who code{font-family:ui-monospace,Menlo,monospace;color:var(--spot)}
+.vstake .who button{border:0;background:none;color:var(--dim);font-size:12.5px;text-decoration:underline;cursor:pointer}
+.vtier{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:99px;font-size:12.5px;font-weight:700;background:rgba(243,245,255,.08)}
 
 /* her day */
 .day{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;margin-top:40px;align-items:start}
@@ -440,11 +523,13 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
 .chat form .btn{padding:10px 16px;font-size:14px}
 .chat .fine{padding:0 16px 10px;font-size:11.5px;color:var(--dim)}
 
-@media (max-width:1240px){.bar nav{gap:14px;font-size:14px}.bar nav a.opt{display:none}}
+@media (max-width:1380px){.bar nav{gap:14px;font-size:14px}.bar nav a.opt{display:none}}
 @media (max-width:900px){
   .bar nav{display:none}
   .langs{margin-left:auto}
   .day{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:1fr}
+  .vstake{position:static}
   .profile{grid-template-columns:1fr;gap:44px}
   /* the fan club becomes a carousel of cards */
   .club{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-20px;padding:6px 20px 16px;scrollbar-width:none}
@@ -478,6 +563,10 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   .facts{gap:0 16px}
   .lform{grid-template-columns:1fr;padding:16px}
   .lform .row .btn{margin-left:0;width:100%}
+  .vstats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vrow{grid-template-columns:1fr}
+  .score{padding:20px}
+  .vstats b{font-size:26px}
   .goalc{grid-template-columns:76px minmax(0,1fr)}.ring{width:76px;height:76px}.ring b{font-size:20px}
   .chat{inset:auto 0 0 0;width:100%;height:min(86svh,640px);border-radius:22px 22px 0 0}
   .sheet{padding:20px}
@@ -501,6 +590,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     <linearGradient id="ringB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ff1d0"/><stop offset="1" stop-color="#1fe0a6"/></linearGradient>
     <linearGradient id="goalGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1fe0a6"/><stop offset=".6" stop-color="#7ff1ff"/><stop offset="1" stop-color="#f2cf68"/></linearGradient>
     <symbol id="rings" viewBox="0 0 34 22"><circle cx="11" cy="11" r="8.5" fill="none" stroke="url(#ringA)" stroke-width="3.4"/><circle cx="23" cy="11" r="8.5" fill="none" stroke="url(#ringB)" stroke-width="3.4"/></symbol>
+    <linearGradient id="veaArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1fe0a6" stop-opacity=".35"/><stop offset="1" stop-color="#1fe0a6" stop-opacity="0"/></linearGradient>
     <symbol id="heart" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.4C.9 8.1 3 4.5 6.6 4.5c2.1 0 3.6 1.1 5.4 3.1 1.8-2 3.3-3.1 5.4-3.1 3.6 0 5.7 3.6 4.2 7.1C19.5 16.4 12 21 12 21z"/></symbol>
   </defs>
 </svg>
@@ -513,7 +603,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
 <header class="bar">
   <a class="logo" href="#top" aria-label="ARCIA, back to the stage"><svg aria-hidden="true"><use href="#rings"/></svg>ARCIA</a>
   <nav aria-label="Sections">
-    <a href="#today" data-t>Her day</a><a href="#profile" data-t>Profile</a><a href="#album" data-t>Album</a><a href="#setlist" class="opt" data-t>What she does</a><a href="#club" data-t>Fan club</a><a href="#cards" data-t>Photocards</a><a href="#letters" data-t>Letters</a>
+    <a href="#vearcia">veARCIA</a><a href="#today" data-t>Her day</a><a href="#profile" data-t>Profile</a><a href="#album" data-t>Album</a><a href="#setlist" class="opt" data-t>What she does</a><a href="#club" data-t>Fan club</a><a href="#cards" class="opt" data-t>Photocards</a><a href="#letters" data-t>Letters</a>
   </nav>
   <div class="langs" role="group" aria-label="Language">
     <button type="button" data-lang="en" aria-pressed="false">EN</button><button type="button" data-lang="ko" aria-pressed="false">한</button><button type="button" data-lang="zh" aria-pressed="false">中</button>
@@ -570,6 +660,44 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   <div class="strip" aria-label="ARCIA right now">
     <ul id="strip"></ul>
   </div>
+
+  <section class="part wrap" id="vearcia">
+    <div class="vhead">
+      <div><h2>veARCIA</h2><p class="lead" data-t>Stake $ARCIA for 1 to 20 days. Rewards stream to every staker every second, and every early exit burns.</p></div>
+      <a class="btn" href="/arc#vearcia" data-t>Open veARCIA</a>
+    </div>
+    <div class="vgrid">
+      <div class="vboard">
+        <div class="score">
+          <div class="k"><i id="v-on"></i><span id="v-k" data-t>Streamed to stakers so far</span></div>
+          <div class="big"><b id="v-streamed">—</b><span>$ARCIA</span></div>
+          <p id="v-rate"></p>
+        </div>
+        <div class="vstats">
+          <div><span data-t>Total staked</span><b id="v-staked">—</b><small id="v-staked-s"></small></div>
+          <div><span data-t>Stakers</span><b id="v-stakers">—</b><small id="v-stakers-s"></small></div>
+          <div><span data-t>Yearly rate</span><b id="v-apr">—</b><small id="v-apr-s"></small></div>
+          <div><span data-t>Pool runs out in</span><b id="v-left">—</b><small id="v-left-s"></small></div>
+        </div>
+        <div class="vrow">
+          <div class="burn">
+            <div class="t"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-6.6 0-3.9-2.8-6.3-4.5-9.4-.5 2.1-1.6 3.4-2.9 4.2C11.4 7.6 10.3 4.6 8 2c.4 4.4-3 6.8-3 11.4C5 18.9 7.6 22 12 22z" fill="url(#burnG)"/><defs><linearGradient id="burnG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf6b"/><stop offset="1" stop-color="#ff5a2e"/></linearGradient></defs></svg><span data-t>$ARCIA burned forever</span></div>
+            <b><span id="v-burn">—</span><small id="v-burn-p"></small></b>
+            <div class="bmeter"><i id="v-burn-bar"></i></div>
+            <p id="v-burn-s"></p>
+          </div>
+          <div class="trend">
+            <div class="t"><span data-t>Staked over time</span><b id="v-trend-n"></b></div>
+            <svg id="v-trend" viewBox="0 0 300 70" preserveAspectRatio="none" role="img" aria-label="Total $ARCIA staked over time"></svg>
+            <div class="ladder" id="v-ladder"></div>
+          </div>
+        </div>
+      </div>
+      <aside class="vstake" id="vstake" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <div class="crowdline" aria-hidden="true"></div>
 
   <section class="part wrap" id="today">
     <h2 data-t>Her day</h2>
@@ -819,6 +947,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   var post = function (body) { return fetch("/api/arcia", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { j._ok = r.ok; return j; }); }); };
   var ls = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
   var dayKey = function () { return new Date().toISOString().slice(0, 10); };
+  var veaP = getJson("/api/desk?vearcia=state"); // shared by the live strip and the veARCIA board
 
   // ================= words: English is the key; Korean and Chinese next to it =================
   var DICT = {
@@ -890,6 +1019,28 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     "Album": ["앨범", "相册"], "On stage, at work and off duty. Tap any photo to see it big.": ["무대 위, 일할 때, 쉬는 날. 사진을 누르면 크게 볼 수 있어요.", "台上、工作中、休息日。点击任意照片查看大图。"],
     "All": ["전체", "全部"], "On stage": ["무대", "舞台"], "At work": ["일하는 중", "工作中"], "Off duty": ["일상", "日常"], "Announcements": ["공지", "公告"],
     "Show all photos": ["사진 전체 보기", "查看全部照片"], "Previous photo": ["이전 사진", "上一张"], "Next photo": ["다음 사진", "下一张"], "Open the page": ["페이지 열기", "打开页面"],
+    "Stake $ARCIA for 1 to 20 days. Rewards stream to every staker every second, and every early exit burns.": ["$ARCIA를 1~20일 스테이킹하세요. 보상은 매 초 모든 스테이커에게 흘러가고, 중도 해지분은 소각돼요.", "质押 $ARCIA 1 到 20 天。奖励每秒流向每位质押者，提前退出的部分会被销毁。"],
+    "Open veARCIA": ["veARCIA 열기", "打开 veARCIA"], "Streamed to stakers so far": ["지금까지 스테이커에게 지급된 보상", "迄今已发放给质押者"],
+    "The reward pool is waiting for a refill.": ["보상 풀이 채워지기를 기다리는 중이에요.", "奖励池正在等待补充。"],
+    "Total staked": ["총 스테이킹", "总质押"], "Stakers": ["스테이커", "质押者"], "Yearly rate": ["연 환산 수익률", "年化收益率"], "Pool runs out in": ["풀 소진까지", "奖励池剩余"],
+    "Every wallet that stakes": ["스테이킹한 모든 지갑", "所有质押的钱包"], "At today's pace": ["오늘 속도 기준", "按今日速度"],
+    "$ARCIA burned forever": ["영구 소각된 $ARCIA", "永久销毁的 $ARCIA"], "Staked over time": ["스테이킹 추이", "质押走势"],
+    "Your stake": ["내 스테이킹", "我的质押"], "Stake $ARCIA": ["$ARCIA 스테이킹", "质押 $ARCIA"], "Live from Robinhood Chain": ["Robinhood Chain 실시간", "来自 Robinhood Chain 的实时数据"],
+    "Lock longer, earn more: 1 day is 1.0x, 20 days is 2.0x.": ["오래 잠글수록 더 많이: 1일은 1.0x, 20일은 2.0x.", "锁得越久赚得越多：1 天 1.0x，20 天 2.0x。"],
+    "Rewards ready to claim": ["받을 수 있는 보상", "可领取的奖励"], "Staked": ["스테이킹", "已质押"], "Tier": ["등급", "等级"], "Member": ["멤버", "会员"],
+    "Auto-renew": ["자동 갱신", "自动续期"], "Unlocks in": ["잠금 해제까지", "解锁倒计时"], "Unlocked": ["해제됨", "已解锁"], "d": ["일", "天"],
+    "Claim": ["보상 받기", "领取"], "Compound": ["재스테이킹", "复投"], "Add $ARCIA": ["$ARCIA 추가", "追加 $ARCIA"], "Amount": ["수량", "数量"], "Max": ["최대", "最大"],
+    "Lock": ["잠금", "锁定"], "Lock days": ["잠금 일수", "锁定天数"], "Per day": ["하루 보상", "每日奖励"], "Add to my stake": ["내 스테이킹에 추가", "追加到我的质押"],
+    "Check your wallet…": ["지갑을 확인해 주세요…", "请在钱包中确认…"], "Or stake on the veARCIA page": ["또는 veARCIA 페이지에서 스테이킹", "或在 veARCIA 页面质押"],
+    "Stake on veARCIA": ["veARCIA에서 스테이킹", "前往 veARCIA 质押"], "Your amount and days come with you. Connect your wallet there and sign.": ["입력한 수량과 일수가 그대로 넘어가요. 거기서 지갑을 연결하고 서명하면 돼요.", "你填写的数量和天数会一起带过去。在那里连接钱包并签名即可。"],
+    "Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.": ["중도 해지 시 꺼내는 양의 최대 절반이 소각돼요. 잠겨 있는 동안 보상은 계속 쌓여요.", "提前退出最多销毁取出部分的一半。锁定期间奖励持续累积。"],
+    "Wallet": ["지갑", "钱包"], "Use another wallet": ["다른 지갑 사용", "使用其他钱包"], "See your stake and rewards": ["내 스테이킹과 보상 보기", "查看我的质押和奖励"], "Connect wallet": ["지갑 연결", "连接钱包"],
+    "You rejected the request in your wallet.": ["지갑에서 요청을 거절했어요.", "你在钱包中拒绝了请求。"], "Not enough ETH on Robinhood Chain for gas.": ["Robinhood Chain 가스비(ETH)가 부족해요.", "Robinhood Chain 上的 ETH 不足以支付 gas。"],
+    "Something went wrong. Try again.": ["문제가 생겼어요. 다시 시도해 주세요.", "出了点问题，请重试。"], "The transaction failed on-chain.": ["트랜잭션이 온체인에서 실패했어요.", "交易在链上失败了。"],
+    "Still waiting for the transaction. Check your wallet's activity.": ["아직 트랜잭션을 기다리는 중이에요. 지갑 활동 내역을 확인해 주세요.", "仍在等待交易，请查看钱包的活动记录。"],
+    "Enter an amount first.": ["먼저 수량을 입력해 주세요.", "请先输入数量。"], "That's more $ARCIA than the wallet holds.": ["지갑에 있는 $ARCIA보다 많아요.", "超过了钱包持有的 $ARCIA。"],
+    "Approve $ARCIA in your wallet…": ["지갑에서 $ARCIA 사용을 승인해 주세요…", "请在钱包中授权 $ARCIA…"], "Confirm the stake…": ["스테이킹을 확인해 주세요…", "请确认质押…"],
+    "Staked. Your veARCIA is earning.": ["스테이킹 완료! veARCIA가 보상을 받기 시작했어요.", "质押完成！你的 veARCIA 开始赚取奖励。"], "Rewards claimed.": ["보상을 받았어요.", "奖励已领取。"], "Compounded. Your rewards are staked.": ["재스테이킹 완료. 보상이 스테이킹됐어요.", "复投完成，奖励已质押。"],
     "Market cap": ["시가총액", "市值"], "Holders": ["홀더", "持有人"], "Staked as veARCIA": ["veARCIA 스테이킹", "质押为 veARCIA"], "Fan club members": ["팬클럽 회원", "俱乐部会员"], "Lightsticks tonight": ["오늘 밤 응원봉", "今晚应援棒"]
   };
   // sentences with numbers in them
@@ -909,6 +1060,14 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     chatErr: { en: "I couldn't answer just now. Try again in a moment♡", ko: "지금은 답을 못 했어요. 잠시 후 다시 물어봐 줘요♡", zh: "我刚才没能回答，稍后再试一次吧♡" },
     say: { en: "Hi, I'm ARCIA! Welcome to my stage. Raise a lightstick, and I'll see you in the crowd.", ko: "안녕, 나는 ARCIA야! 내 무대에 온 걸 환영해. 응원봉을 들어 주면 객석에서 다 보여.", zh: "嗨，我是 ARCIA！欢迎来到我的舞台。举起应援棒，我会在观众席里看到你。" },
     tierTag: { en: "{t} fan", ko: "{t} 팬", zh: "{t}粉丝" },
+    veRate: { en: "{n} $ARCIA a day, split among stakers every second", ko: "하루 {n} $ARCIA, 매 초 스테이커들에게 나눠 지급", zh: "每天 {n} $ARCIA，每秒分给质押者" },
+    veOfSupply: { en: "{p}% of the supply", ko: "공급량의 {p}%", zh: "占供应量 {p}%" },
+    veWeek: { en: "+{n} this week", ko: "이번 주 +{n}", zh: "本周 +{n}" },
+    veBurnS: { en: "Includes {n} burned by early exits from veARCIA", ko: "veARCIA 중도 해지로 소각된 {n} 포함", zh: "含 veARCIA 提前退出销毁的 {n}" },
+    veBal: { en: "In your wallet: {n} $ARCIA", ko: "지갑 보유: {n} $ARCIA", zh: "钱包余额：{n} $ARCIA" },
+    veEst: { en: "About {p} a year at today's pace, before any $ARCIRCLE boost", ko: "오늘 속도 기준 연 약 {p} ($ARCIRCLE 부스트 제외)", zh: "按今日速度年化约 {p}（不含 $ARCIRCLE 加成）" },
+    veShorter: { en: "Your lock already runs {d} more days. Pick at least {d} days.", ko: "현재 잠금이 {d}일 더 남아 있어요. {d}일 이상을 골라 주세요.", zh: "你的锁定还剩 {d} 天，请至少选择 {d} 天。" },
+    veStep: { en: "Step {i}/{n}:", ko: "{i}/{n}단계:", zh: "第 {i}/{n} 步：" },
     share: { en: "I pulled a {r} ARCIA photocard on her stage ♡", ko: "ARCIA 무대에서 {r} 포토카드를 뽑았어요 ♡", zh: "我在 ARCIA 的舞台抽到了一张{r}小卡 ♡" }
   };
   var lang = html.lang === "ko" || html.lang === "zh" ? html.lang : "en";
@@ -1171,7 +1330,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   }
   stripItems = [["$ARCIA", "…"], ["Holders", "…"]]; strip();
   var ttsOn = false;
-  Promise.all([getJson("/api/arcia"), getJson("/api/desk?vearcia=state")]).then(function (r) {
+  Promise.all([getJson("/api/arcia"), veaP]).then(function (r) {
     liveA = r[0] && r[0].live && r[0].live.arcia; liveV = r[1];
     ttsOn = !!(r[0] && r[0].tts); $("say").hidden = !ttsOn;
     buildStrip();
@@ -1190,6 +1349,236 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
       .then(function (bl) { var u = URL.createObjectURL(bl); audio = new Audio(u); audio.onended = function () { URL.revokeObjectURL(u); done(); }; return audio.play(); })
       .catch(done);
   });
+
+  // ================= veARCIA: the live board and staking (Robinhood Chain, ArciaStaking) =================
+  // Reads come from the server (/api/desk?vearcia=state|me, /api/social?coin=arcia) and the public Robinhood Chain RPC;
+  // stake / claim / compound are signed in the visitor's own wallet. Without a wallet in the browser, "Stake on veARCIA"
+  // opens arcircle.app/arc#vearcia with the amount and days filled in (vea.prefill, same as ARCIA's chat).
+  var VEA_ADDR = "0x29c010620f6720582c310afa8d8115026ec73a7e", ARCIA_T = "0xf0c0fc281314a48ae4e52a9db08731cb6a38ca25";
+  var RH_RPC = "https://rpc.mainnet.chain.robinhood.com", RH_HEX = "0x1237";
+  var RH_ADD = { chainId: RH_HEX, chainName: "Robinhood Chain", rpcUrls: [RH_RPC], blockExplorerUrls: ["https://robinhoodchain.blockscout.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } };
+  var VT = [["", 0], ["Bronze", 1e4], ["Silver", 1e5], ["Gold", 1e6], ["Diamond", 5e6]];
+  var veTier = function (ve) { var k = 0; for (var i = 1; i < VT.length; i++) if (ve >= VT[i][1]) k = i; return k; };
+  var lockBps = function (d) { return 10000 + Math.floor(((d - 1) * 10000) / 19); };
+  var mult = function (b) { return (b / 10000).toFixed(2).replace(/0$/, "") + "x"; };
+  var fmt = function (n, d) { return n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("en-US", { maximumFractionDigits: d == null ? 2 : d }); };
+  var bigv = function (n) { return n == null || !isFinite(n) ? "—" : n >= 1e9 ? fmt(n / 1e9, 2) + "B" : n >= 1e6 ? fmt(n / 1e6, 2) + "M" : n >= 1e4 ? fmt(n / 1e3, 1) + "K" : fmt(n, n < 1 ? 4 : 2); };
+  var pct = function (n) { return n == null || !isFinite(n) ? "—" : n >= 1e4 ? fmt(n / 1000, 0) + "K%" : fmt(n, n >= 100 ? 0 : 1) + "%"; };
+  var spanTxt = function (s) { s = Math.max(0, Math.floor(s)); var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return d ? d + "d " + h + "h" : h ? h + "h " + m + "m" : m + "m " + (s % 60) + "s"; };
+  var dateTxt = function (t) { return new Date(t * 1000).toLocaleString(lang === "ko" ? "ko-KR" : lang === "zh" ? "zh-CN" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+  var VE = { st: null, coin: null, at: 0, me: null, acct: "", bal: null, amt: "", days: 20, busy: false, msg: "", err: false };
+  var clock = function () { return VE.st && VE.st.now ? VE.st.now + (Date.now() - VE.at) / 1000 : Date.now() / 1000; };
+
+  // ---- the board ----
+  function streamedNow() {
+    var tt = VE.st && VE.st.totals; if (!tt) return null;
+    var stop = Math.min(clock(), tt.finish || 0), base = VE.st.now;
+    return tt.streamed + (stop > base ? ((stop - base) * tt.perDay) / 86400 : 0);
+  }
+  function paintBoard() {
+    var st = VE.st, tt = st && st.totals, c = VE.coin;
+    if (!tt) return;
+    var running = tt.finish > clock() && tt.perDay > 0;
+    $("v-on").className = running ? "" : "off";
+    $("v-rate").innerHTML = running ? esc(f("veRate", { n: bigv(tt.perDay) })).replace(bigv(tt.perDay), "<b>" + esc(bigv(tt.perDay)) + "</b>") : esc(t("The reward pool is waiting for a refill."));
+    $("v-staked").textContent = bigv(tt.staked);
+    $("v-staked-s").textContent = c && c.supply ? f("veOfSupply", { p: fmt((tt.staked / c.supply) * 100, 1) }) : "veARCIA " + bigv(tt.ve);
+    $("v-stakers").textContent = fmt(tt.stakers, 0);
+    var wk = st.week; $("v-stakers-s").textContent = wk && wk.stakers > 0 ? f("veWeek", { n: wk.stakers }) : t("Every wallet that stakes");
+    $("v-stakers-s").className = wk && wk.stakers > 0 ? "up" : "";
+    $("v-apr").textContent = tt.staked > 0 && running ? pct((tt.perDay * 365 / tt.staked) * 100) : "—";
+    $("v-apr-s").textContent = t("At today's pace");
+    $("v-left-s").textContent = tt.finish ? dateTxt(tt.finish) : "";
+    var b = c && c.burned != null ? c.burned : null;
+    $("v-burn").textContent = b != null ? bigv(b) : "—";
+    $("v-burn-p").textContent = c && c.burnedPct != null ? fmt(c.burnedPct, 2) + "%" : "";
+    $("v-burn-bar").style.width = c && c.burnedPct != null ? Math.min(100, c.burnedPct * 4) + "%" : "0%";
+    $("v-burn-s").textContent = f("veBurnS", { n: bigv(tt.burned) });
+    // staked over time
+    var ser = (st.series || []).filter(function (p) { return p.t; });
+    var sv = $("v-trend");
+    if (ser.length > 1) {
+      var t0 = ser[0].t, t1 = ser[ser.length - 1].t, mx = Math.max.apply(null, ser.map(function (p) { return p.staked; })) || 1;
+      var X = function (x) { return 4 + ((x - t0) / Math.max(1, t1 - t0)) * 292; }, Y = function (y) { return 64 - (y / mx) * 58; };
+      var pts = ser.map(function (p) { return X(p.t).toFixed(1) + "," + Y(p.staked).toFixed(1); });
+      var last = ser[ser.length - 1];
+      sv.innerHTML = '<polygon class="area" points="4,64 ' + pts.join(" ") + ' 296,64"/><polyline class="ln" points="' + pts.join(" ") + '"/><circle class="dot" cx="' + X(last.t).toFixed(1) + '" cy="' + Y(last.staked).toFixed(1) + '" r="4"/>';
+      $("v-trend-n").textContent = bigv(last.staked);
+    }
+    var tiers = (st.dist && st.dist.tiers) || [];
+    $("v-ladder").innerHTML = [1, 2, 3, 4].map(function (k) { var row = tiers[k] || {}; return '<div><span><i class="tier t' + k + '"></i>' + esc(t(VT[k][0])) + "</span><b>" + esc(fmt(row.n || 0, 0)) + "</b></div>"; }).join("");
+    tickBoard();
+  }
+  function tickBoard() {
+    var tt = VE.st && VE.st.totals; if (!tt) return;
+    var s = streamedNow(); $("v-streamed").textContent = fmt(Math.floor(s), 0);
+    var lf = tt.finish - clock(); $("v-left").textContent = lf > 0 ? spanTxt(lf) : "—";
+    var e = $("v-earn"); if (e && VE.me) e.textContent = fmt(myEarnedNow(), 2);
+  }
+  function loadVea() {
+    return Promise.all([veaP, getJson("/api/social?coin=arcia")]).then(function (r) {
+      if (r[0] && r[0].live) { VE.st = r[0]; VE.at = Date.now(); }
+      if (r[1]) VE.coin = r[1];
+      paintBoard(); paintStake();
+      veaP = null;
+    });
+  }
+  setInterval(function () { if (!document.hidden) tickBoard(); }, 1000);
+  setInterval(function () { if (!document.hidden) { veaP = getJson("/api/desk?vearcia=state"); loadVea(); if (VE.acct) loadMe(); } }, 60000);
+
+  // ---- you ----
+  function myEarnedNow() {
+    var m = VE.me, tt = VE.st && VE.st.totals;
+    if (!m) return 0;
+    var base = m.earned0 || 0, p = m.position;
+    if (!p || !tt || !(tt.weight > 0) || clock() > tt.finish) return base;
+    return base + ((clock() - m.at) * tt.perDay * (p.weight / tt.weight)) / 86400;
+  }
+  function loadMe() {
+    if (!VE.acct) return Promise.resolve();
+    return Promise.all([getJson("/api/desk?vearcia=me&u=" + VE.acct), rpcCall("0x70a08231" + pad(VE.acct))]).then(function (r) {
+      var m = r[0];
+      if (m && m.ok) { VE.me = { position: m.position && m.position.amount > 0 ? m.position : null, earned0: m.earned && m.earned[0] ? Number(BigInt(m.earned[0]) / 10n ** 12n) / 1e6 : 0, at: clock(), veTier: m.veTier || 0, rank: m.rank || 0 }; }
+      VE.bal = r[1] ? Number(BigInt(r[1]) / 10n ** 12n) / 1e6 : null;
+      paintStake();
+    });
+  }
+  var pad = function (a) { return String(a).toLowerCase().replace(/^0x/, "").padStart(64, "0"); };
+  function rpc(method, params) {
+    return fetch(RH_RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: method, params: params }) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (j.error) throw new Error(j.error.message || "rpc"); return j.result; });
+  }
+  function rpcCall(data, to) { return rpc("eth_call", [{ to: to || ARCIA_T, data: data }, "latest"]).catch(function () { return null; }); }
+  function toWei(s) {
+    s = String(s || "").replace(/[,\s]/g, "");
+    var m = /^(\d*)(?:\.(\d*))?$/.exec(s); if (!m || (!m[1] && !m[2])) return 0n;
+    var frac = (m[2] || "").slice(0, 18); while (frac.length < 18) frac += "0";
+    return BigInt(m[1] || "0") * 10n ** 18n + BigInt(frac || "0");
+  }
+  var amtNum = function () { var n = Number(String(VE.amt).replace(/[,\s]/g, "")); return isFinite(n) && n > 0 ? n : 0; };
+
+  function stakeBtnLabel() { return VE.me && VE.me.position ? t("Add to my stake") : t("Stake $ARCIA"); }
+  function paintStake() {
+    var box = $("vstake"); if (!box) return;
+    var p = VE.me && VE.me.position, tt = VE.st && VE.st.totals, now = clock();
+    var head = '<h3>' + esc(t(p ? "Your stake" : "Stake $ARCIA")) + '</h3><p class="sub">' + esc(t(p ? "Live from Robinhood Chain" : "Lock longer, earn more: 1 day is 1.0x, 20 days is 2.0x.")) + "</p>";
+    var mine = "";
+    if (p) {
+      var tk = veTier(p.ve), ends = p.end - now;
+      mine = '<div class="vmine"><div class="earn"><span>' + esc(t("Rewards ready to claim")) + '</span><b><i id="v-earn" style="font-style:normal">' + esc(fmt(myEarnedNow(), 2)) + "</i> $ARCIA</b></div>" +
+        "<div><span>" + esc(t("Staked")) + "</span><b>" + esc(bigv(p.amount)) + "</b></div>" +
+        "<div><span>veARCIA</span><b>" + esc(bigv(p.ve)) + "</b></div>" +
+        "<div><span>" + esc(t("Tier")) + '</span><b><span class="vtier"><i class="tier t' + tk + '"></i>' + esc(tk ? t(VT[tk][0]) : t("Member")) + "</span></b></div>" +
+        "<div><span>" + esc(t(p.auto ? "Auto-renew" : "Unlocks in")) + "</span><b>" + esc(p.auto ? mult(p.lockBps) + " · " + p.lockDays + t("d") : ends > 0 ? spanTxt(ends) : t("Unlocked")) + "</b></div></div>" +
+        '<div class="vacts"><button type="button" class="btn main" data-v="claim"' + (VE.busy ? " disabled" : "") + ">" + esc(t("Claim")) + '</button><button type="button" class="btn" data-v="compound"' + (VE.busy ? " disabled" : "") + ">" + esc(t("Compound")) + "</button></div>";
+    }
+    // the form: amount, days, preview
+    var minDays = p && p.end > now ? Math.min(20, Math.ceil((p.end - now) / 86400)) : 1;
+    if (VE.days < minDays) VE.days = minDays;
+    var a = amtNum(), bps = lockBps(VE.days), ve = a * bps / 10000, newVe = ve + (p ? p.amount * bps / 10000 : 0);
+    var w = tt ? tt.weight : 0, myW = p ? p.weight : 0;
+    var daily = tt && tt.perDay > 0 && tt.finish > now && a > 0 ? (tt.perDay * (myW + ve)) / (w + ve) : null;
+    var yearly = daily != null ? (daily * 365 / (a + (p ? p.amount : 0))) * 100 : null;
+    var tk2 = veTier(newVe);
+    var form = '<div class="vform">' +
+      '<label><span>' + esc(t(p ? "Add $ARCIA" : "Amount")) + '</span><span class="vamt"><input id="v-amt" inputmode="decimal" autocomplete="off" placeholder="100,000" value="' + esc(VE.amt) + '"><em>$ARCIA</em>' + (VE.bal ? '<button type="button" data-v="max">' + esc(t("Max")) + "</button>" : "") + "</span></label>" +
+      (VE.bal != null ? '<span class="note">' + esc(f("veBal", { n: bigv(VE.bal) })) + "</span>" : "") +
+      '<div class="vdays"><div class="row"><span>' + esc(t("Lock")) + '</span><b id="v-days-l">' + VE.days + t("d") + " · " + mult(bps) + '</b></div><input type="range" id="v-days" min="' + minDays + '" max="20" step="1" value="' + Math.max(minDays, VE.days) + '" aria-label="' + esc(t("Lock days")) + '"></div>' +
+      '<div class="vprev"><div><span>veARCIA</span><b>' + esc(a > 0 ? bigv(newVe) : "—") + "</b></div><div><span>" + esc(t("Tier")) + "</span><b>" + (a > 0 ? '<i class="tier t' + tk2 + '"></i>' + esc(tk2 ? t(VT[tk2][0]) : t("Member")) : "—") + "</b></div><div><span>" + esc(t("Per day")) + "</span><b>" + esc(daily != null ? bigv(daily) : "—") + "</b></div></div>" +
+      (yearly != null ? '<span class="note">' + esc(f("veEst", { p: pct(yearly) })) + "</span>" : "") +
+      (VE.msg ? '<p class="vmsg' + (VE.err ? " err" : "") + '" role="status">' + esc(VE.msg) + "</p>" : "") +
+      (window.ethereum ? '<button type="button" class="btn main wide" data-v="stake"' + (VE.busy ? " disabled" : "") + ">" + esc(VE.busy ? t("Check your wallet…") : stakeBtnLabel()) + "</button>" +
+        '<a class="alt" href="/arc#vearcia" data-v="open">' + esc(t("Or stake on the veARCIA page")) + "</a>"
+        : '<a class="btn main wide" href="/arc#vearcia" data-v="open">' + esc(t("Stake on veARCIA")) + '</a><span class="note">' + esc(t("Your amount and days come with you. Connect your wallet there and sign.")) + "</span>") +
+      '<span class="note">' + esc(t("Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.")) + "</span></div>";
+    var who = VE.acct ? '<div class="who"><span>' + esc(t("Wallet")) + ' <code>' + esc(short(VE.acct)) + '</code></span><button type="button" data-v="forget">' + esc(t("Use another wallet")) + "</button></div>"
+      : window.ethereum ? '<div class="who"><span>' + esc(t("See your stake and rewards")) + '</span><button type="button" data-v="connect">' + esc(t("Connect wallet")) + "</button></div>" : "";
+    var focus = document.activeElement && document.activeElement.id;
+    var caret = focus === "v-amt" ? document.activeElement.selectionStart : null;
+    box.innerHTML = head + mine + form + who;
+    if (focus === "v-amt") { var ip = $("v-amt"); ip.focus(); try { ip.setSelectionRange(caret, caret); } catch (e) { /* fine */ } }
+    else if (focus === "v-days") $("v-days").focus();
+  }
+  function say2(m, err) { VE.msg = m; VE.err = !!err; paintStake(); }
+  function wErr(e) {
+    var m = String((e && (e.message || e.reason)) || e || "");
+    if (e && (e.code === 4001 || /reject|denied|cancel/i.test(m))) return t("You rejected the request in your wallet.");
+    if (/insufficient funds/i.test(m)) return t("Not enough ETH on Robinhood Chain for gas.");
+    return m.slice(0, 160) || t("Something went wrong. Try again.");
+  }
+  function connect() {
+    var eth = window.ethereum; if (!eth) return Promise.reject(new Error("nowallet"));
+    return eth.request({ method: "eth_requestAccounts" }).then(function (acc) {
+      var w = String(acc && acc[0] || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) throw new Error("nowallet");
+      VE.acct = w; ls.set("arcia-stage-acct", w); return loadMe().then(function () { return w; });
+    });
+  }
+  function toRH() {
+    var eth = window.ethereum;
+    return eth.request({ method: "eth_chainId" }).then(function (c) {
+      if (String(c).toLowerCase() === RH_HEX) return;
+      return eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: RH_HEX }] }).catch(function (e) {
+        if (e && e.code === 4001) throw e;
+        return eth.request({ method: "wallet_addEthereumChain", params: [RH_ADD] });
+      });
+    });
+  }
+  function waitTx(h) {
+    var n = 0;
+    return new Promise(function (ok, no) {
+      (function poll() {
+        rpc("eth_getTransactionReceipt", [h]).then(function (r) {
+          if (r && r.status) { if (r.status === "0x1") ok(r); else no(new Error(t("The transaction failed on-chain."))); return; }
+          if (++n > 90) { no(new Error(t("Still waiting for the transaction. Check your wallet's activity."))); return; }
+          setTimeout(poll, 2000);
+        }).catch(function () { if (++n > 90) no(new Error("timeout")); else setTimeout(poll, 2000); });
+      })();
+    });
+  }
+  function send(data, to) { return window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: VE.acct, to: to, data: data }] }).then(waitTx); }
+  function act(kind) {
+    if (VE.busy) return;
+    var p = VE.me && VE.me.position, now = clock();
+    var wei = kind === "stake" ? toWei(VE.amt) : 0n;
+    if (kind === "stake" && !(wei > 0n)) { say2(t("Enter an amount first."), true); return; }
+    if (kind === "stake" && VE.bal != null && amtNum() > VE.bal + 1e-9) { say2(t("That's more $ARCIA than the wallet holds."), true); return; }
+    if (kind === "stake" && p && p.end > now + VE.days * 86400) { say2(f("veShorter", { d: Math.ceil((p.end - now) / 86400) }), true); return; }
+    VE.busy = true; say2(t("Check your wallet…"));
+    var go = (VE.acct ? Promise.resolve(VE.acct) : connect()).then(toRH);
+    if (kind === "stake") {
+      go = go.then(function () { return rpcCall("0xdd62ed3e" + pad(VE.acct) + pad(VEA_ADDR)); }).then(function (al) {
+        var need = !al || BigInt(al) < wei;
+        var step = function (i, n, m) { say2(n > 1 ? f("veStep", { i: i, n: n }) + " " + m : m); };
+        var n = need ? 2 : 1;
+        var chain = Promise.resolve();
+        if (need) chain = chain.then(function () { step(1, n, t("Approve $ARCIA in your wallet…")); return send("0x095ea7b3" + pad(VEA_ADDR) + wei.toString(16).padStart(64, "0"), ARCIA_T); });
+        return chain.then(function () { step(n, n, t("Confirm the stake…")); return send("0x7b0472f0" + wei.toString(16).padStart(64, "0") + VE.days.toString(16).padStart(64, "0"), VEA_ADDR); });
+      }).then(function () { VE.amt = ""; return t("Staked. Your veARCIA is earning."); });
+    } else {
+      go = go.then(function () { return send(kind === "claim" ? "0x4e71d92d" : "0xf69e2046", VEA_ADDR); })
+        .then(function () { return t(kind === "claim" ? "Rewards claimed." : "Compounded. Your rewards are staked."); });
+    }
+    go.then(function (m) { VE.busy = false; say2(m); hearts(6); veaP = getJson("/api/desk?vearcia=state"); loadVea(); setTimeout(loadMe, 3000); })
+      .catch(function (e) { VE.busy = false; say2(e && e.message === "nowallet" ? t("Open this page in a wallet's browser, or a browser with a wallet extension, to sign in.") : wErr(e), true); });
+  }
+  $("vstake").addEventListener("input", function (e) {
+    if (e.target.id === "v-amt") { VE.amt = e.target.value.replace(/[^\d.,]/g, ""); paintStake(); }
+    else if (e.target.id === "v-days") { VE.days = Number(e.target.value) || 20; paintStake(); }
+  });
+  $("vstake").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-v]"); if (!b) return;
+    var k = b.dataset.v;
+    if (k === "open") { var a = amtNum(); if (a > 0) ls.set("vea.prefill", JSON.stringify({ amt: String(Math.round(a)), days: VE.days, at: Date.now() })); return; }
+    e.preventDefault();
+    if (k === "max") { VE.amt = String(Math.floor(VE.bal || 0)); paintStake(); }
+    else if (k === "connect") connect().catch(function (er) { say2(er && er.message === "nowallet" ? t("Open this page in a wallet's browser, or a browser with a wallet extension, to sign in.") : wErr(er), true); });
+    else if (k === "forget") { VE.acct = ""; VE.me = null; VE.bal = null; ls.set("arcia-stage-acct", null); paintStake(); }
+    else act(k);
+  });
+  // a wallet seen here before (or signed in on the board) shows its stake right away; no prompt
+  (function () { var w = ls.get("arcia-stage-acct") || (signed && signed.w) || ""; if (/^0x[0-9a-f]{40}$/.test(w)) VE.acct = w; })();
+  loadVea().then(function () { if (VE.acct) loadMe(); });
+  onLang.push(function () { paintBoard(); paintStake(); });
 
   // ================= her day: the last 24 hours =================
   var dayList = null;
