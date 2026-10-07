@@ -15,8 +15,8 @@
 <meta name="twitter:site" content="@ARCIAonArc">
 <meta name="twitter:image" content="https://www.arcircle.app/images/arcia-stage-og.jpg">
 <meta name="theme-color" content="#060716">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791371214">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791371214">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791373497">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791373497">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-900-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="image" href="images/arcia-portrait.webp">
@@ -880,7 +880,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
 <footer>
   <div class="wrap">
     <a class="logo" href="/" style="font-size:20px"><svg aria-hidden="true" style="width:28px"><use href="#rings"/></svg>ARCIRCLE PAD</a>
-    <a href="/arc">ArcPad</a><a href="/arc#vearcia">veARCIA</a><a href="/arc#arcia" data-t>Chat</a><a href="https://x.com/ARCIAonArc" target="_blank" rel="noopener">X</a><a href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener">Telegram</a>
+    <a href="/arc">ArcPad</a><a href="/wallet" data-t>Wallet</a><a href="/arc#vearcia">veARCIA</a><a href="/arc#arcia" data-t>Chat</a><a href="https://x.com/ARCIAonArc" target="_blank" rel="noopener">X</a><a href="https://t.me/ARCIAonArc_bot" target="_blank" rel="noopener">Telegram</a>
     <p class="note" data-t>ARCIA is an AI. Nothing she says is financial advice, and coins can lose all of their value.</p>
   </div>
 </footer>
@@ -934,6 +934,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   <p class="fine" data-t>She's an AI. Nothing she says is financial advice.</p>
 </aside>
 
+<script src="/wallet-arc.js?v=1791373497"></script>
 <script>
 (function () {
   "use strict";
@@ -1034,7 +1035,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     "Check your wallet…": ["지갑을 확인해 주세요…", "请在钱包中确认…"], "Or stake on the veARCIA page": ["또는 veARCIA 페이지에서 스테이킹", "或在 veARCIA 页面质押"],
     "Stake on veARCIA": ["veARCIA에서 스테이킹", "前往 veARCIA 质押"], "Your amount and days come with you. Connect your wallet there and sign.": ["입력한 수량과 일수가 그대로 넘어가요. 거기서 지갑을 연결하고 서명하면 돼요.", "你填写的数量和天数会一起带过去。在那里连接钱包并签名即可。"],
     "Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.": ["중도 해지 시 꺼내는 양의 최대 절반이 소각돼요. 잠겨 있는 동안 보상은 계속 쌓여요.", "提前退出最多销毁取出部分的一半。锁定期间奖励持续累积。"],
-    "Wallet": ["지갑", "钱包"], "Use another wallet": ["다른 지갑 사용", "使用其他钱包"], "See your stake and rewards": ["내 스테이킹과 보상 보기", "查看我的质押和奖励"], "Connect wallet": ["지갑 연결", "连接钱包"],
+    "Wallet": ["지갑", "钱包"], "Sign in with email": ["이메일로 로그인", "用邮箱登录"], "Use another wallet": ["다른 지갑 사용", "使用其他钱包"], "See your stake and rewards": ["내 스테이킹과 보상 보기", "查看我的质押和奖励"], "Connect wallet": ["지갑 연결", "连接钱包"],
     "You rejected the request in your wallet.": ["지갑에서 요청을 거절했어요.", "你在钱包中拒绝了请求。"], "Not enough ETH on Robinhood Chain for gas.": ["Robinhood Chain 가스비(ETH)가 부족해요.", "Robinhood Chain 上的 ETH 不足以支付 gas。"],
     "Something went wrong. Try again.": ["문제가 생겼어요. 다시 시도해 주세요.", "出了点问题，请重试。"], "The transaction failed on-chain.": ["트랜잭션이 온체인에서 실패했어요.", "交易在链上失败了。"],
     "Still waiting for the transaction. Check your wallet's activity.": ["아직 트랜잭션을 기다리는 중이에요. 지갑 활동 내역을 확인해 주세요.", "仍在等待交易，请查看钱包的活动记录。"],
@@ -1219,8 +1220,12 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
   var short = function (a) { return a.slice(0, 6) + "…" + a.slice(-4); };
   var signed = null;
   try { var sv = JSON.parse(ls.get("arcia-stage-sign") || "null"); if (sv && sv.day === dayKey() && /^0x[0-9a-f]{40}$/.test(sv.w)) signed = sv; } catch (e) { /* none */ }
+  // the wallet in use: ARCIRCLE Wallet once signed in (wallet-arc.js), else the browser's own, else ARCIRCLE Wallet
+  // (it signs in on first use: email, Google or Apple)
+  var EP = function () { var w = window.arcWallet; if (w && w.enabled && w.state().address) return w.provider; if (window.ethereum) return window.ethereum; return w && w.enabled ? w.provider : null; };
+  var arcOnly = function () { return !window.ethereum && !!(window.arcWallet && window.arcWallet.enabled); };
   function sign(msgFn) {
-    var eth = window.ethereum;
+    var eth = EP();
     if (!eth || !eth.request) return Promise.reject(new Error("nowallet"));
     return eth.request({ method: "eth_requestAccounts" }).then(function (acc) {
       var w = String(acc && acc[0] || "").toLowerCase(), day = dayKey();
@@ -1487,12 +1492,12 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
       '<div class="vprev"><div><span>veARCIA</span><b>' + esc(a > 0 ? bigv(newVe) : "—") + "</b></div><div><span>" + esc(t("Tier")) + "</span><b>" + (a > 0 ? '<i class="tier t' + tk2 + '"></i>' + esc(tk2 ? t(VT[tk2][0]) : t("Member")) : "—") + "</b></div><div><span>" + esc(t("Per day")) + "</span><b>" + esc(daily != null ? bigv(daily) : "—") + "</b></div></div>" +
       (yearly != null ? '<span class="note">' + esc(f("veEst", { p: pct(yearly) })) + "</span>" : "") +
       (VE.msg ? '<p class="vmsg' + (VE.err ? " err" : "") + '" role="status">' + esc(VE.msg) + "</p>" : "") +
-      (window.ethereum ? '<button type="button" class="btn main wide" data-v="stake"' + (VE.busy ? " disabled" : "") + ">" + esc(VE.busy ? t("Check your wallet…") : stakeBtnLabel()) + "</button>" +
+      (EP() ? '<button type="button" class="btn main wide" data-v="stake"' + (VE.busy ? " disabled" : "") + ">" + esc(VE.busy ? t("Check your wallet…") : stakeBtnLabel()) + "</button>" +
         '<a class="alt" href="/arc#vearcia" data-v="open">' + esc(t("Or stake on the veARCIA page")) + "</a>"
         : '<a class="btn main wide" href="/arc#vearcia" data-v="open">' + esc(t("Stake on veARCIA")) + '</a><span class="note">' + esc(t("Your amount and days come with you. Connect your wallet there and sign.")) + "</span>") +
       '<span class="note">' + esc(t("Early exits burn up to half of what you take out. Rewards keep streaming while you're locked.")) + "</span></div>";
     var who = VE.acct ? '<div class="who"><span>' + esc(t("Wallet")) + ' <code>' + esc(short(VE.acct)) + '</code></span><button type="button" data-v="forget">' + esc(t("Use another wallet")) + "</button></div>"
-      : window.ethereum ? '<div class="who"><span>' + esc(t("See your stake and rewards")) + '</span><button type="button" data-v="connect">' + esc(t("Connect wallet")) + "</button></div>" : "";
+      : EP() ? '<div class="who"><span>' + esc(t("See your stake and rewards")) + '</span><button type="button" data-v="connect">' + esc(t(arcOnly() ? "Sign in with email" : "Connect wallet")) + "</button></div>" : "";
     var focus = document.activeElement && document.activeElement.id;
     var caret = focus === "v-amt" ? document.activeElement.selectionStart : null;
     box.innerHTML = head + mine + form + who;
@@ -1507,14 +1512,14 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
     return m.slice(0, 160) || t("Something went wrong. Try again.");
   }
   function connect() {
-    var eth = window.ethereum; if (!eth) return Promise.reject(new Error("nowallet"));
+    var eth = EP(); if (!eth) return Promise.reject(new Error("nowallet"));
     return eth.request({ method: "eth_requestAccounts" }).then(function (acc) {
       var w = String(acc && acc[0] || "").toLowerCase(); if (!/^0x[0-9a-f]{40}$/.test(w)) throw new Error("nowallet");
       VE.acct = w; ls.set("arcia-stage-acct", w); return loadMe().then(function () { return w; });
     });
   }
   function toRH() {
-    var eth = window.ethereum;
+    var eth = EP();
     return eth.request({ method: "eth_chainId" }).then(function (c) {
       if (String(c).toLowerCase() === RH_HEX) return;
       return eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: RH_HEX }] }).catch(function (e) {
@@ -1535,7 +1540,7 @@ dialog::backdrop{background:rgba(3,3,12,.78);backdrop-filter:blur(6px)}
       })();
     });
   }
-  function send(data, to) { return window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: VE.acct, to: to, data: data }] }).then(waitTx); }
+  function send(data, to) { return EP().request({ method: "eth_sendTransaction", params: [{ from: VE.acct, to: to, data: data }] }).then(waitTx); }
   function act(kind) {
     if (VE.busy) return;
     var p = VE.me && VE.me.position, now = clock();

@@ -5,6 +5,10 @@
       "destination": "/arcia.html"
     },
     {
+      "source": "/wallet",
+      "destination": "/wallet.html"
+    },
+    {
       "source": "/me",
       "destination": "/me.html"
     },

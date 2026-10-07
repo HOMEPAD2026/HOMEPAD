@@ -1,0 +1,16 @@
+{
+  "name": "ARCIRCLE Wallet",
+  "short_name": "ARCIRCLE",
+  "description": "A wallet for Arc and Robinhood Chain. Sign in with email, Google or Apple.",
+  "id": "/wallet",
+  "start_url": "/wallet?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060716",
+  "theme_color": "#060716",
+  "icons": [
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/arcircle-logo-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/images/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
