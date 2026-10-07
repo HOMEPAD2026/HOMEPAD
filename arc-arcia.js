@@ -2481,6 +2481,7 @@
         // ---- the idol stage ----
         '<div class="aa-hero">' +
           '<div class="aa-banner"><div class="aa-par"><picture><source type="image/webp" srcset="/images/arcia-banner2-900.webp 900w, /images/arcia-banner2.webp 1600w" sizes="(max-width: 900px) 100vw, 1100px"><img src="/images/arcia-banner2.jpg" srcset="/images/arcia-banner2-900.jpg 900w, /images/arcia-banner2.jpg 1600w" sizes="(max-width: 900px) 100vw, 1100px" alt="ARCIA — ARCIRCLE official mascot" width="1600" height="547"' + (HOST ? ' loading="lazy"' : ' fetchpriority="high"') + "></picture></div>" + lights +
+            '<a class="aa-stagelink" href="/arcia"><i aria-hidden="true"></i>Visit her stage</a>' +
             '<span class="aa-bigname" aria-hidden="true">ARCIA</span><div class="aa-ev" hidden></div></div>' +
           '<div class="aa-id">' +
             '<span class="aa-av-wrap"><picture><source type="image/webp" srcset="/images/arcia-avatar.webp"><img class="aa-av" src="/images/arcia-avatar.jpg" alt="ARCIA" width="256" height="256"' + (HOST ? ' loading="lazy"' : "") + '></picture><i class="aa-halo" aria-hidden="true"></i><i class="aa5-ring" aria-hidden="true"></i><i class="aa-live-dot" aria-hidden="true"></i></span>' +

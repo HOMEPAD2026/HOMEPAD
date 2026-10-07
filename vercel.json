@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/arcia",
+      "destination": "/arcia.html"
+    },
+    {
       "source": "/me",
       "destination": "/me.html"
     },
@@ -270,11 +274,6 @@
     {
       "source": "/relay",
       "destination": "/arc#relay",
-      "permanent": false
-    },
-    {
-      "source": "/arcia",
-      "destination": "/arc#arcia",
       "permanent": false
     },
     {

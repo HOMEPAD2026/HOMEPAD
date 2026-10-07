@@ -19005,3 +19005,9 @@ html.tr-on .tr-q{visibility:hidden;}
 .ld-ct small{color:#9aa6b4;font-size:.74rem;}
 .ld-msg{margin-top:8px;font-size:.78rem;color:#ffd88a;}
 @media (max-width:760px){.ld-week{grid-template-columns:1fr;}.ld-me,.ld-me.none{text-align:left;align-items:flex-start;}}
+
+/* ARCIA page: link to her own site (/arcia) on the banner */
+.aa-stagelink{position:absolute;top:12px;left:12px;z-index:4;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;font-size:.8rem;font-weight:700;color:#fff;text-decoration:none;background:rgba(6,7,22,.62);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);}
+.aa-stagelink i{width:8px;height:8px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 8px #ff4d6d;}
+.aa-stagelink:hover{border-color:rgba(31,224,166,.7);}
+@media (max-width:560px){.aa-stagelink{top:8px;left:8px;padding:6px 11px;font-size:.72rem;}}
