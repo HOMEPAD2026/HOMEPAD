@@ -117,6 +117,17 @@ const CONFIG = {
   // Round numbers with no escrow of their own (api/_rounds.mjs SKIPPED — keep the same): Round #4 went into Round #3,
   // so the round after #3 is #5. Projects shows a short "merged" card in its place.
   CIRCLEPAD_SKIPPED: { 4: 3 },
+  // 7 Oct 2026: what CirclePad says about its rounds everywhere outside /circle (the main page's button, round card and
+  // live bar, ArcPad's $ARCIRCLE card and roadmap, ARCIA): Round #2 postponed, Rounds #3 + #4 being merged. Set to null
+  // when a round is live again — the pages then follow the round's own state.
+  CIRCLEPAD_STATUS: {
+    btn: "CirclePad · Rounds #3 + #4 merging",
+    line: "Round #2 postponed · Rounds #3 + #4 merging, in progress",
+    chip: "Rounds #3 + #4",
+    sub: "merging, in progress",
+    go: "See the plan →",
+    href: "/circle",
+  },
   // v8: the delivery board under a plan round's hero (circlepad-plan.js) — what the team has done after the close.
   // Each step: status "" (waiting) | "now" (in progress) | "done", and txs: [{ chain: "rh" | "sol" | "arc", hash, label }].
   CIRCLEPAD_DELIVERY: {

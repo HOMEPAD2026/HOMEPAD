@@ -113,6 +113,21 @@
     laterLive = last.n >= 2 && last.started; // the card shows that round's raise, not Round #1's
     var raisedOf = function () { var v = Number(BigInt(st.totalRaised || "0") / 10n ** 14n) / 1e4; put("raised", v, function (x) { return x.toLocaleString("en-US", { maximumFractionDigits: x >= 100 ? 0 : 2 }); }); };
     var btn = $("[data-hm-round-btn]"), lbl = $("[data-hm-round-lbl]"), dot = btn && btn.querySelector(".hm-live-dot");
+    // 7 Oct 2026: while no round is live, the team's status line (CONFIG.CIRCLEPAD_STATUS) speaks for CirclePad
+    var S = !live && typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS;
+    if (S) {
+      if (lbl) lbl.textContent = tr(S.btn);
+      if (dot) dot.hidden = true;
+      var card0 = $(".hm-round"), tag0 = $("[data-hm-round-st]"), go0 = $("[data-hm-round-go]"), rl0 = $("[data-hm-raised-lbl]"), vb0 = $("[data-hm-votes-box]");
+      if (tag0) tag0.textContent = tr(S.line);
+      if (go0) go0.textContent = tr(S.go);
+      if (rl0) rl0.textContent = RT("Round #{c} raised", n, last.n);
+      if (vb0) vb0.hidden = true;
+      if (card0) { card0.classList.remove("live"); card0.setAttribute("href", S.href || "/circle"); }
+      if (laterLive) raisedOf();
+      roundTo = 0; tickClock();
+      return;
+    }
     if (lbl) lbl.textContent = live ? RT("Join CirclePad Round #{n}", n) : !last.started ? RT("CirclePad Round #{n} · Opening soon", n) : RT("CirclePad Round #{n} · Coming soon", n);
     if (dot) dot.hidden = !live;
     var card = $(".hm-round"), tag = $("[data-hm-round-st]"), go = $("[data-hm-round-go]"), rl = $("[data-hm-raised-lbl]"), vb = $("[data-hm-votes-box]");

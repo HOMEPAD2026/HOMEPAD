@@ -8336,6 +8336,15 @@
     "Guide": "가이드",
     "Take the 1-minute tour": "1분 투어 보기",
     "New here? Take the 1-minute tour": "처음이세요? 1분 투어 보기",
+    "CirclePad · Rounds #3 + #4 merging": "CirclePad · 3·4라운드 통합 중",
+    "Round #2 postponed · Rounds #3 + #4 merging, in progress": "2라운드 연기 · 3·4라운드 통합 진행 중",
+    "Rounds #3 + #4": "3·4라운드",
+    "merging, in progress": "통합 진행 중",
+    "See the plan →": "계획 보기 →",
+    "CirclePad Rounds #3 + #4": "CirclePad 3·4라운드",
+    "Round #2 is postponed. Rounds #3 and #4 are being merged into one: one contribution, both rewards. In progress — updates on /circle.": "2라운드는 연기됐어요. 3·4라운드를 하나로 합치는 중이에요: 한 번 참여로 두 보상을 받아요. 진행 중 — 소식은 /circle에서.",
+    "The rounds after": "다음 라운드들",
+    "Community-funded launches · Round #2 postponed · Rounds #3 + #4 merging": "커뮤니티 펀딩 런칭 · 2라운드 연기 · 3·4라운드 통합 중",
   };
 
 

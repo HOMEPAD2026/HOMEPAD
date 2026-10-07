@@ -120,7 +120,7 @@ const FAN = [
       "헤헤, 정말 고마워요~♡ 오늘 특별히 신경 써서 준비했는데 알아봐 줘서 너무 기뻐요!"] },
   { k: "fan", re: /\b(fan|fans|stan|cheer|cheering|fighting|hwaiting|support you|rooting for you|best idol|number one|no\.? ?1)\b|팬|응원|화이팅|파이팅|힘내|최고|짱|덕질|입덕/,
     en: ["Thank you so much~♡ Knowing you're my fan makes my whole day. I'll keep working hard for you and for $ARCIRCLE 💙💚",
-      "Waaah, my fan! Thank you for cheering me on~♡ See you in CirclePad Round #2?",
+      "Waaah, my fan! Thank you for cheering me on~♡ See you in CirclePad's next round?",
       "You're the best~♡ Every fan who cheers for me gives me more energy to spread $ARCIRCLE to the world ✨",
       "Thank you, thank you~♡ Stay with me — and come say hi on X too: @ARCIAonArc 💙💚"],
     ko: ["정말 고마워요~♡ 제 팬이라는 말에 오늘 하루가 반짝반짝해졌어요. 앞으로도 $ARCIRCLE이랑 같이 열심히 할게요 💙💚",

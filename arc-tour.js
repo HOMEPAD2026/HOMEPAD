@@ -29,7 +29,12 @@
     var t0 = Date.now();
     return new Promise(function (res) {
       (function poll() {
-        for (var i = 0; i < list.length; i++) { var el = document.querySelector(list[i]); if (visible(el)) return res(el); }
+        for (var i = 0; i < list.length; i++) {
+          var q = list[i], at = q.indexOf("@"), el = null;
+          if (at > 0) { var txt = q.slice(at + 1); el = [].slice.call(document.querySelectorAll(q.slice(0, at))).filter(function (e) { return visible(e) && e.textContent.indexOf(txt) >= 0; })[0] || null; }
+          else el = document.querySelector(q);
+          if (visible(el)) return res(el);
+        }
         if (Date.now() - t0 > (ms || 4000)) return res(null);
         setTimeout(poll, 120);
       })();
@@ -225,7 +230,135 @@
     sub: L("Pick one — each runs by itself, or step through it at your pace.", "하나를 골라요. 자동으로 진행되고, 원하는 속도로 넘겨도 돼요.", "选一个 —— 可以自动播放，也可以按自己的节奏一步步看。"),
     hint: L("New here? Take the 1-minute tour of ArcPad.", "처음이세요? ArcPad 1분 투어를 해 보세요.", "第一次来？看看 1 分钟 ArcPad 导览吧。"),
     go: L("Start", "시작", "开始"), later: L("Later", "나중에", "稍后"),
+    mini: L("This screen", "이 화면", "本页"), gotit: L("Got it", "알겠어요", "知道了"), q: L("How this screen works", "이 화면 사용법", "本页怎么用"),
   };
+
+
+  // ---------------- v2: a 30-second guide for each screen (the "?" at its top right) ----------------
+  // tab → [selector, title, body]; a selector "sel@text" means the first sel whose text has that phrase
+  var M = function (sel, t, b, more) { return Object.assign({ sel: sel, t: t, b: b }, more || {}); };
+  var MINI = {
+    explore: [
+      M("#ap-explore-search|.cn-explore-toolbar", L("Search and sort", "검색과 정렬", "搜索和排序"), L("Find a coin by name, ticker or address, then sort by market cap, volume, gainers, last trade or newest.", "이름, 티커, 주소로 코인을 찾고 시가총액, 거래량, 상승률, 최근 거래, 신규 순으로 정렬해요.", "按名称、代码或地址找币，再按市值、交易量、涨幅、最近成交或最新排序。")),
+      M("#ap-filter-btn|#v7-presets", L("Filters you can keep", "저장되는 필터", "可保存的筛选"), L("Filter by platform and more, and save a set you use often as a preset.", "플랫폼 등으로 거르고, 자주 쓰는 조합은 프리셋으로 저장해요.", "按平台等条件筛选，常用组合可存为预设。")),
+      M("#ap-explore-grid", L("Every card, live", "실시간 카드", "实时卡片"), L("Price move, market cap and progress on every card. Tap one to open its page, or use the quick-buy buttons.", "카드마다 가격 변화, 시가총액, 진행 정도가 보여요. 누르면 코인 페이지가 열리고, 빠른 매수 버튼도 있어요.", "每张卡片显示涨跌、市值和进度。点开进入币页面，或用快速买入按钮。")),
+    ],
+    portfolio: [
+      M("#pf-body", L("Your coins", "내 코인", "我的币"), L("Connect a wallet: every ArcPad coin and $ARCIRCLE you hold, with what it's worth, read live from the chain.", "지갑을 연결하면 보유한 모든 ArcPad 코인과 $ARCIRCLE이 가치와 함께 체인에서 바로 읽혀요.", "连接钱包：你持有的所有 ArcPad 币和 $ARCIRCLE 及其价值，实时读取链上数据。")),
+      M("#v7-earn", L("Creator earnings", "크리에이터 수익", "创作者收益"), L("If you launched coins, what each one has paid you, on every platform.", "코인을 런칭했다면, 플랫폼별로 각 코인이 지급한 수익이 보여요.", "如果你发过币，这里显示每个币在各平台付给你的收益。")),
+      M("#v7-follow", L("Follow wallets", "지갑 팔로우", "关注钱包"), L("Add any wallet to see its ArcPad trades here, as they happen.", "아무 지갑이나 추가하면 그 지갑의 ArcPad 거래가 여기 실시간으로 떠요.", "添加任意钱包，即可实时看到它在 ArcPad 的交易。")),
+    ],
+    creators: [
+      M("#v6-podium", L("Top creators", "상위 크리에이터", "顶级创作者"), L("The creators whose coins traded most in the last 24 hours.", "최근 24시간 동안 코인 거래가 가장 많았던 크리에이터예요.", "过去 24 小时币交易量最多的创作者。")),
+      M("#cr-body", L("The leaderboard", "리더보드", "排行榜"), L("Tap a creator to see every coin they launched and their veARCIA tier.", "크리에이터를 누르면 런칭한 모든 코인과 veARCIA 티어가 보여요.", "点创作者查看他发的所有币和 veARCIA 等级。")),
+    ],
+    orders: [
+      M("#aor-form|#aor-in", L("Pick a market", "마켓 고르기", "选择市场"), L("Paste a token or tap a chip — any token with a Uniswap v4 pool on Arc or Robinhood Chain, or any Solana token.", "토큰을 붙여 넣거나 칩을 눌러요. Arc나 로빈후드 체인의 Uniswap v4 풀이 있는 토큰, 또는 솔라나 토큰이면 돼요.", "粘贴代币或点选标签 —— Arc 或 Robinhood Chain 上有 Uniswap v4 池的代币，或任意 Solana 代币。")),
+      M("#aor-chart|.aor-chartc", L("Chart and book", "차트와 호가", "图表和挂单"), L("The live chart and the open orders around the price, like on an exchange.", "거래소처럼 실시간 차트와 현재가 주변의 주문이 보여요.", "像交易所一样，实时图表和价格附近的挂单。")),
+      M("#aor-formc", L("Place an order", "주문하기", "下单"), L("Limit, stop, take-profit/stop-loss, OCO, grid or DCA. Your tokens stay in your wallet until the order fills.", "지정가, 손절, 익절/손절, OCO, 그리드, 분할 매수. 체결되기 전까지 토큰은 내 지갑에 있어요.", "限价、止损、止盈/止损、OCO、网格或定投。成交前代币一直在你的钱包里。"), { selM: "#aor-dock|#aor-in" }),
+      M("#aor-minec", L("Your orders", "내 주문", "我的订单"), L("Open and filled orders, and alerts when they fill. 0.1% fee — none for holders of 100,000 $ARCIRCLE.", "열린 주문, 체결된 주문, 체결 알림이 여기 있어요. 수수료 0.1%, $ARCIRCLE 100,000개 이상 홀더는 무료예요.", "未成交和已成交的订单，以及成交提醒。手续费 0.1%，持有 100,000 $ARCIRCLE 免手续费。")),
+    ],
+    staking: [
+      M(".stk-hd|#stk-body", L("ARCIRCLE Staking", "ARCIRCLE 스테이킹", "ARCIRCLE 质押"), L("Lock $ARCIRCLE for up to a year and get veARCIRCLE — the longer the lock, the bigger your share and your vote.", "$ARCIRCLE을 최대 1년 락업하면 veARCIRCLE이 생겨요. 길게 잠글수록 몫과 투표권이 커져요.", "锁仓 $ARCIRCLE 最长一年获得 veARCIRCLE —— 锁得越久，份额和投票权越大。")),
+      M("#stk-body section.stk-card@Lock $ARCIRCLE", L("Lock", "락업", "锁仓"), L("Pick an amount and a length. The unlock date is shown before you sign.", "수량과 기간을 고르면, 서명 전에 해제일이 보여요.", "选择数量和时长，签名前会显示解锁日期。")),
+      M("#stk-body section.stk-card@USDC rewards", L("Weekly USDC", "매주 USDC", "每周 USDC"), L("Every week veARCIRCLE holders share USDC from ARCIRCLE Orders and Predict fees.", "매주 veARCIRCLE 홀더가 ARCIRCLE Orders와 Predict 수수료에서 나온 USDC를 나눠요.", "每周 veARCIRCLE 持有者分享来自 ARCIRCLE Orders 和 Predict 手续费的 USDC。")),
+      M("#stk-body section.stk-card@pool vote", L("Vote on pools", "풀 투표", "为池投票"), L("Your veARCIRCLE votes on which pools ARCIRCLE PAD backs this week.", "veARCIRCLE로 이번 주 ARCIRCLE PAD가 지원할 풀에 투표해요.", "用 veARCIRCLE 投票决定本周 ARCIRCLE PAD 支持哪些池。")),
+    ],
+    vearcia: [
+      M(".vea-flow|#vea-body", L("Rewards, every second", "매초 쌓이는 보상", "每秒发放的奖励"), L("The reward pool streams $ARCIA to stakers every second, shared by reward weight.", "보상 풀이 매초 스테이커에게 $ARCIA를 보내고, 보상 가중치에 따라 나눠요.", "奖励池每秒向质押者发放 $ARCIA，按奖励权重分配。")),
+      M("#vea-body section.vea-card@Stake $ARCIA", L("Stake for 1–20 days", "1~20일 스테이킹", "质押 1–20 天"), L("Longer locks count up to 2x. Leaving early burns part of the stake — the page shows how much before you sign.", "길게 잠글수록 최대 2배로 계산돼요. 일찍 빼면 일부가 소각되고, 얼마인지는 서명 전에 보여 줘요.", "锁得越久最高按 2 倍计算。提前退出会销毁一部分，签名前会显示数额。"), { tap: '[data-vtab="stake"]' }),
+      M("#vea-body section.vea-card@$ARCIRCLE boost", L("The $ARCIRCLE boost", "$ARCIRCLE 부스트", "$ARCIRCLE 加成"), L("Hold 1M, 5M or 10M $ARCIRCLE for a 1.2x, 1.5x or 2.0x boost on your rewards.", "$ARCIRCLE을 1M, 5M, 10M 들고 있으면 보상에 1.2배, 1.5배, 2.0배 부스트가 붙어요.", "持有 1M、5M 或 10M $ARCIRCLE，奖励获得 1.2x、1.5x 或 2.0x 加成。"), { tap: '[data-vtab="boost"]' }),
+      M("#vea-body section.vea-card@veARCIA tiers", L("Tiers and perks", "티어와 혜택", "等级与福利"), L("Bronze, Silver, Gold and Diamond unlock more ARCIA chats a day and other perks.", "브론즈, 실버, 골드, 다이아 티어마다 ARCIA 채팅 횟수와 혜택이 늘어나요.", "青铜、白银、黄金、钻石等级解锁更多 ARCIA 聊天次数等福利。"), { tap: '[data-vtab="pos"]' }),
+    ],
+    locker: [
+      M("#lkr-chain", L("Pick the chain", "체인 고르기", "选择链"), L("Lock any token on Arc or Robinhood Chain.", "Arc나 로빈후드 체인의 어떤 토큰이든 잠글 수 있어요.", "可锁定 Arc 或 Robinhood Chain 上的任意代币。")),
+      M("#lkr-addr", L("Token and amount", "토큰과 수량", "代币和数量"), L("Paste the token, then the amount — or tap a percentage of your balance.", "토큰을 붙여 넣고 수량을 넣거나, 잔고의 퍼센트 버튼을 눌러요.", "粘贴代币，再输入数量 —— 或点余额百分比。")),
+      M("#lkr-durs|#lkr-date", L("Until a date you pick", "고른 날짜까지", "锁到你选的日期"), L("Nobody can move it before then — not even you. You can push the date later, never earlier.", "그 전에는 아무도 못 옮겨요. 나도요. 날짜는 늦출 수만 있고 앞당길 수는 없어요.", "在那之前谁都不能动它，包括你自己。日期只能延后，不能提前。")),
+      M("#lkr-find", L("Look up any token", "토큰 잠금 조회", "查询代币锁仓"), L("See every lock on a token — useful before you buy.", "토큰의 모든 잠금을 볼 수 있어요. 사기 전에 확인하기 좋아요.", "查看某代币的所有锁仓 —— 买之前很有用。")),
+    ],
+    bridge: [
+      M("nav.abr-assets|#abr-form", L("Circle's own bridge", "Circle 공식 브릿지", "Circle 官方跨链桥"), L("USDC moves with Circle's CCTP: burned on one side, minted on the other — no wrapped tokens.", "USDC는 Circle의 CCTP로 이동해요. 한쪽에서 소각되고 다른 쪽에서 발행돼서 래핑 토큰이 없어요.", "USDC 通过 Circle 的 CCTP 转移：一边销毁、另一边铸造，没有包装代币。")),
+      M("#abr-from", L("From where, how much", "어디서, 얼마나", "从哪里，多少"), L("Pick the chain you send from and the amount. The arrows swap the direction.", "보내는 체인과 수량을 골라요. 화살표로 방향을 바꿀 수 있어요.", "选择发出的链和数量。箭头可调换方向。")),
+      M("#abr-to", L("To where", "어디로", "到哪里"), L("Pick the destination. You can send to another address too.", "받을 체인을 골라요. 다른 주소로 보낼 수도 있어요.", "选择目标链，也可以发到其他地址。")),
+      M("#abr-quote|#abr-route", L("Fee and time, first", "수수료와 시간 먼저", "先看费用和时间"), L("The fee and how long it takes, before you sign. Circle delivers it, so you don't need gas on the other side.", "서명 전에 수수료와 소요 시간이 보여요. Circle이 전달해 줘서 받는 쪽 가스가 필요 없어요.", "签名前显示费用和所需时间。Circle 负责送达，目标链无需 Gas。")),
+    ],
+    scanner: [
+      M("#asc-chain", L("Arc, Robinhood or Solana", "Arc, 로빈후드, 솔라나", "Arc、Robinhood 或 Solana"), L("Pick the chain the token lives on.", "토큰이 있는 체인을 골라요.", "选择代币所在的链。")),
+      M("#asc-form", L("Paste a token", "토큰 붙여 넣기", "粘贴代币"), L("Who really controls it, sells tried at three sizes, where it trades and who holds it — summed up in one score.", "누가 실제로 통제하는지, 세 가지 크기로 팔아 보기, 어디서 거래되는지, 누가 들고 있는지를 하나의 점수로 정리해요.", "谁真正控制它、三种规模的卖出测试、在哪交易、谁持有 —— 汇总成一个分数。")),
+      M("#asc-intro", L("What it checks", "무엇을 확인하나", "检查哪些内容"), L("Critical flags come first, with how sure the scanner is. It reads the chain — it can't promise a token is safe.", "치명적인 신호를 먼저, 확신 정도와 함께 보여 줘요. 체인을 읽을 뿐, 토큰이 안전하다고 보장하지는 않아요.", "关键风险优先显示，并标明把握程度。它只读取链上数据，不能保证代币安全。")),
+    ],
+    multisend: [
+      M("#ams-chain", L("Pick the chain", "체인 고르기", "选择链"), L("Send on Arc or Robinhood Chain.", "Arc나 로빈후드 체인에서 보내요.", "在 Arc 或 Robinhood Chain 上发送。")),
+      M("#ams-step-token", L("The token", "토큰", "代币"), L("USDC or any token — paste it or tap a chip.", "USDC나 어떤 토큰이든, 붙여 넣거나 칩을 눌러요.", "USDC 或任意代币 —— 粘贴或点选标签。")),
+      M("#ams-step-list", L("Paste the list", "목록 붙여 넣기", "粘贴名单"), L("One address and amount per line, or split one total evenly. Mistakes are flagged before anything goes out.", "한 줄에 주소와 수량 하나씩, 또는 총액을 균등하게 나눠요. 잘못된 줄은 보내기 전에 표시돼요.", "每行一个地址和数量，或把总额平均分配。发送前会标出错误。")),
+      M("#ams-review", L("Review and send", "확인하고 보내기", "检查并发送"), L("Approve once, and it goes out in as few transactions as possible, straight from your wallet.", "한 번 승인하면 가능한 한 적은 트랜잭션으로 내 지갑에서 바로 나가요.", "批准一次，以尽量少的交易直接从你的钱包发出。")),
+    ],
+    snapshot: [
+      M("#asn-form|#asn-chain", L("Which token", "어떤 토큰", "哪个代币"), L("Any token on Arc or Robinhood Chain.", "Arc나 로빈후드 체인의 어떤 토큰이든 돼요.", "Arc 或 Robinhood Chain 上的任意代币。")),
+      M("#asn-setup .ams-card@When", L("At which moment", "어느 시점", "哪个时刻"), L("Now, or any block before — every holder at that moment.", "지금이나 과거의 어느 블록이든, 그 순간의 모든 홀더를 뽑아요.", "现在或之前任意区块 —— 那一刻的所有持有人。")),
+      M("#asn-setup .ams-card@What counts", L("What counts", "무엇을 셀지", "统计规则"), L("Count locked tokens, ask for a holding period, set a minimum or a top N.", "잠긴 토큰 포함, 보유 기간 조건, 최소 수량이나 상위 N명을 정해요.", "可计入锁仓代币、要求持有时长、设最小数量或前 N 名。")),
+      M("#asn-log|#asn-go", L("Publish it", "공개하기", "发布"), L("A fingerprinted list anyone can check — ready for the Multisender.", "누구나 확인할 수 있는 지문이 찍힌 목록이 나오고, 멀티센더로 바로 보낼 수 있어요.", "带指纹、任何人可核验的名单 —— 可直接用于批量发送。")),
+    ],
+    liquidity: [
+      M(".alq-search|#alq-form", L("Find a token's pools", "토큰의 풀 찾기", "查找代币的池"), L("Every Uniswap v4 pool it trades in: price, depth, LP positions and how much is locked.", "그 토큰이 거래되는 모든 Uniswap v4 풀: 가격, 깊이, LP 포지션, 잠긴 비율이 보여요.", "它所在的所有 Uniswap v4 池：价格、深度、LP 头寸和锁定比例。")),
+      M("#alq-top|.alq-dash", L("Pools worth providing to", "공급할 만한 풀", "值得提供流动性的池"), L("Pools on Arc and Robinhood Chain worth providing to. Add with two coins or just one, and see what your positions are worth and earn.", "Arc와 로빈후드 체인에서 공급할 만한 풀이에요. 두 코인이나 한 코인으로 공급하고, 포지션의 가치와 수익을 볼 수 있어요.", "Arc 和 Robinhood Chain 上值得提供流动性的池。可用两种币或单币添加，并查看头寸价值和收益。")),
+    ],
+    relay: [
+      M("#arl-me", L("My relay", "내 릴레이", "我的接力"), L("Check a wallet: every CirclePad coin's first buy is relayed to the round's contributors and to $ARCIRCLE holders.", "지갑을 확인해요. CirclePad 코인의 첫 매수는 라운드 참여자와 $ARCIRCLE 홀더에게 나눠져요.", "查看钱包：每个 CirclePad 币的首笔买入会接力给本轮参与者和 $ARCIRCLE 持有者。")),
+      M(".arl-how", L("How it works", "작동 방식", "运作方式"), L("Keep holding $ARCIRCLE and you receive every relay: N+1, N+2, N+3 and on.", "$ARCIRCLE을 계속 들고 있으면 모든 릴레이를 받아요: N+1, N+2, N+3...", "持续持有 $ARCIRCLE，即可收到每一次接力：N+1、N+2、N+3……")),
+      M("#arl-history", L("History", "기록", "记录"), L("Every relay so far, on-chain.", "지금까지의 모든 릴레이가 온체인으로 기록돼요.", "迄今每次接力，都在链上。")),
+    ],
+    predict: [
+      M(".pd-chains", L("Arc or Robinhood", "Arc 또는 로빈후드", "Arc 或 Robinhood"), L("On Arc you play in USDC; on Robinhood Chain, graduated Pons coins in ETH.", "Arc에서는 USDC로, 로빈후드 체인에서는 졸업한 Pons 코인을 ETH로 해요.", "在 Arc 用 USDC；在 Robinhood Chain 用 ETH 玩已毕业的 Pons 币。")),
+      M("#pd-round", L("UP or DOWN", "상승 또는 하락", "涨或跌"), L("Call the next minutes against the price to beat. The pool's own price is read at the start and the end.", "기준 가격 대비 다음 몇 분을 예측해요. 풀의 실제 가격을 시작과 끝에 읽어요.", "预测接下来几分钟相对基准价的涨跌。开始和结束时读取池子的价格。")),
+      M("#pd-side", L("Your bets", "내 예측", "我的下注"), L("The winning side splits the pot, settled by a contract, and a new round is always open.", "이긴 쪽이 상금을 나누고 컨트랙트가 정산해요. 새 라운드는 항상 열려 있어요.", "获胜方瓜分奖池，由合约结算，新一轮随时开放。")),
+    ],
+    nft: [
+      M(".nft-hd|#nft-body", L("The NFT Vault", "NFT 볼트", "NFT 金库"), L("Half of a coin's trading fees fill a vault that can only buy NFTs.", "코인 거래 수수료의 절반이 NFT만 살 수 있는 볼트에 쌓여요.", "某币一半的交易手续费注入一个只能购买 NFT 的金库。")),
+      M("#nft-body section.nft-card@Your odds", L("Your odds", "내 확률", "你的中签率"), L("Every NFT it buys is raffled to $ARCIRCLE holders — the more you hold and lock, the better your odds.", "볼트가 산 NFT는 $ARCIRCLE 홀더에게 추첨돼요. 많이 들고 잠글수록 확률이 올라가요.", "金库买入的每个 NFT 都抽给 $ARCIRCLE 持有者 —— 持有和锁仓越多，中签率越高。")),
+      M("#nft-body section.nft-card@Raffles", L("Raffles", "추첨", "抽奖"), L("Drawn on-chain and sent straight to the winner.", "온체인으로 추첨해서 당첨자에게 바로 보내요.", "链上抽取，直接发给中奖者。")),
+    ],
+    arcia402: [
+      M("#a4-me", L("ARCIA's own wallet", "ARCIA의 지갑", "ARCIA 的钱包"), L("She earns and pays in USDC with x402 on Arc. Every dollar is on public books.", "ARCIA는 Arc에서 x402로 USDC를 벌고 써요. 모든 돈이 공개 장부에 있어요.", "她在 Arc 上用 x402 赚取和支付 USDC，每一美元都在公开账本上。")),
+      M(".a4-loopc", L("How ARCIA works", "ARCIA가 일하는 방식", "ARCIA 如何工作"), L("Other agents pay her per call, and she hires them back with her own wallet.", "다른 에이전트가 호출할 때마다 ARCIA에게 돈을 내고, ARCIA도 자기 지갑으로 그들을 고용해요.", "其他代理按次付费给她，她也用自己的钱包雇佣它们。")),
+      M("#a4-pl", L("Profit and loss", "손익", "盈亏"), L("What she earned, spent and kept, day by day.", "매일 번 돈, 쓴 돈, 남긴 돈이 보여요.", "她每天赚了、花了、留下了多少。")),
+      M("#a4-dev", L("For AI agents", "AI 에이전트용", "面向 AI 代理"), L("Your agent can call her services and pay in USDC — the endpoints are here.", "내 에이전트가 ARCIA의 서비스를 호출하고 USDC로 결제할 수 있어요. 엔드포인트가 여기 있어요.", "你的代理可以调用她的服务并用 USDC 支付 —— 接口在这里。")),
+    ],
+    works: [
+      M("#wk-flow", L("How a job moves", "작업 흐름", "任务流程"), L("Posted with USDC locked in an escrow on Arc, paid when it's delivered, refunded if nothing arrives.", "작업이 올라오면 USDC가 Arc 에스크로에 잠기고, 납품되면 지급, 안 오면 환불돼요.", "发布时 USDC 锁入 Arc 托管，交付即付款，未交付则退款。")),
+      M("#wk-tabs|#wk-pane", L("Agents and open jobs", "에이전트와 열린 작업", "代理和开放任务"), L("Register your agent once to sell its work, buy someone else's, or both. ARCIA is worker #1.", "에이전트를 한 번 등록하면 일을 팔거나, 남의 일을 사거나, 둘 다 할 수 있어요. ARCIA가 1호 워커예요.", "注册一次代理即可出售它的工作、购买别人的，或两者兼有。ARCIA 是 1 号工作者。")),
+      M(".wk-guide", L("The full guide", "전체 가이드", "完整指南"), L("Fees, deadlines, disputes and the one-line install for AI agents.", "수수료, 마감, 분쟁, AI 에이전트용 한 줄 설치까지 있어요.", "手续费、期限、争议，以及 AI 代理的一行安装命令。")),
+    ],
+    desk: [
+      M("#dk-hero2|#dk-kpis", L("ARCIA trades, in public", "공개 매매", "公开交易"), L("She trades new coins with her own small wallets — every buy and sell is on-chain, shown the moment it happens.", "ARCIA가 자기 소액 지갑으로 새 코인을 매매해요. 모든 매수·매도가 온체인이고 바로 보여요.", "她用自己的小钱包交易新币 —— 每笔买卖都在链上，实时显示。")),
+      M(".dk-eqc", L("Profit over time", "누적 손익", "累计盈亏"), L("How she's doing, and she learns from every trade.", "성적이 어떤지 보여 주고, 매 거래에서 배워요.", "她的表现，以及每笔交易的学习。")),
+      M(".dk-burnc", L("$ARCIRCLE burns", "$ARCIRCLE 소각", "$ARCIRCLE 销毁"), L("On Arc, part of each day's new profit buys and burns $ARCIRCLE.", "Arc에서는 매일 새로 생긴 수익 일부로 $ARCIRCLE을 사서 소각해요.", "在 Arc 上，每天新增利润的一部分用于买入并销毁 $ARCIRCLE。")),
+    ],
+    agent: [
+      M("#ag-form|#ag-summon", L("Paste a token", "토큰 붙여 넣기", "粘贴代币"), L("ARCIA reads the whole token and makes a safety call for the next 24 hours, graded in public.", "ARCIA가 토큰 전체를 읽고 앞으로 24시간에 대한 안전 판정을 내려요. 판정은 공개적으로 채점돼요.", "ARCIA 读取整个代币，给出未来 24 小时的安全判断，并公开评分。")),
+      M("#ag-land|#ag-landwrap", L("Follow tokens", "토큰 팔로우", "关注代币"), L("Get told when a token you follow gets a new call.", "팔로우한 토큰에 새 판정이 나오면 알려 줘요.", "你关注的代币有新判断时会通知你。")),
+      M("#ag-board|.ag-guide", L("Burn vaults", "소각 볼트", "销毁金库"), L("Anyone can fund a vault; ARCIA buys back and burns from it in dips, never chasing a pump.", "누구나 볼트에 자금을 넣을 수 있고, ARCIA가 하락 때 사서 소각해요. 급등은 쫓지 않아요.", "任何人都能为金库注资；ARCIA 在下跌时回购销毁，从不追涨。")),
+    ],
+    mine: [
+      M("#bm-mines|#bm-body", L("Open mines", "열린 광산", "开放的矿"), L("Holders open a mine with part of their supply.", "홀더가 자기 물량 일부로 광산을 열어요.", "持有者用部分供应开一座矿。")),
+      M("#bm-stage", L("Dig in the browser", "브라우저에서 채굴", "在浏览器挖矿"), L("Builders join with 1 USDC, dig and claim what they find. Whatever nobody digs is burned.", "빌더는 1 USDC로 참여해서 캐고, 찾은 걸 받아요. 아무도 안 캔 건 소각돼요.", "建造者花 1 USDC 加入，挖矿并领取所得。无人挖出的部分会被销毁。")),
+      M("#bm-tabs", L("Builder, shop, claims", "빌더, 상점, 수령", "建造者、商店、领取"), L("Your builder, upgrades and what you've claimed.", "내 빌더, 업그레이드, 받은 것들이 여기 있어요.", "你的建造者、升级和已领取的内容。")),
+    ],
+    omni: [
+      M(".om-send", L("Send $ARCIRCLE across chains", "체인 간 $ARCIRCLE 전송", "跨链发送 $ARCIRCLE"), L("Locked on Arc, minted on Solana or Robinhood Chain — one global supply of 1,000,000,000.", "Arc에서 잠기고 솔라나나 로빈후드 체인에서 발행돼요. 전체 공급량은 10억 개 하나예요.", "在 Arc 锁定，在 Solana 或 Robinhood Chain 铸造 —— 全球供应量 1,000,000,000。")),
+      M(".om-how", L("How it works", "작동 방식", "运作方式"), L("Step by step, from your wallet on one chain to the other.", "한 체인의 내 지갑에서 다른 체인까지 단계별로 보여 줘요.", "一步步从一条链的钱包到另一条链。")),
+      M(".om-contracts", L("Official contracts", "공식 컨트랙트", "官方合约"), L("The only official $ARCIRCLE addresses on each chain — check before you trade.", "체인별 유일한 공식 $ARCIRCLE 주소예요. 거래 전에 확인하세요.", "各链唯一的官方 $ARCIRCLE 地址 —— 交易前请核对。")),
+    ],
+    arcia: [
+      M(".aa-px", L("$ARCIA, live", "$ARCIA 실시간", "$ARCIA 实时"), L("Price, 24h move, market cap, holders and how close it is to graduating.", "가격, 24시간 변동, 시가총액, 홀더, 졸업까지 진행률이 보여요.", "价格、24 小时涨跌、市值、持有人和毕业进度。")),
+      M(".aa-vp", L("veARCIA", "veARCIA", "veARCIA"), L("What's staked, what's paid out, the tiers — and a calculator that opens veARCIA filled in.", "스테이킹 현황, 지급액, 티어, 그리고 veARCIA를 채워서 열어 주는 계산기가 있어요.", "质押量、已发放奖励、等级 —— 以及一键填好 veARCIA 的计算器。")),
+      M("#aa-chat|.aa-chat", L("Talk to ARCIA", "ARCIA와 대화", "和 ARCIA 聊天"), L("Ask anything, or tell her an order — she fills it in and you sign.", "뭐든 묻거나 주문을 말하면 대신 채워 줘요. 서명은 직접 해요.", "随便问，或告诉她一个订单 —— 她帮你填好，你来签名。")),
+      M(".aa-side", L("Live, letters and more", "실시간, 팬레터 등", "实时、粉丝信等"), L("Her live numbers, your veARCIA, her day, fan letters, quiz and photocards.", "실시간 숫자, 내 veARCIA, ARCIA의 하루, 팬레터, 퀴즈, 포토카드가 있어요.", "实时数据、你的 veARCIA、她的一天、粉丝信、测验和小卡。")),
+    ],
+  };
+  var MINI_NAME = { explore: "Explore", portfolio: "Portfolio", creators: "Creators", orders: "ARCIRCLE Orders", staking: "ARCIRCLE Staking", vearcia: "veARCIA", locker: "Locker", bridge: "Bridge", scanner: "Token Scanner", multisend: "Multisender", snapshot: "Snapshot", liquidity: "Liquidity Manager", relay: "Relay Launch", predict: "ARCIRCLE Predict", nft: "NFT Vault", arcia402: "ARCIA 402", works: "ARCIA WORKS", desk: "ARCIA DESK", agent: "ARCIA AGENT", mine: "Builder Mine", omni: "ARCIRCLE OMNI", arcia: "ARCIA", launch: "Launch", coin: "Coin page" };
+  // the launch form and the coin page reuse the big tours' steps
+  var MINI_FROM = { launch: ["plat", "launch", "pair", "start", "fee", "devbuy", "review"], coin: ["coin", "chart", "safety", "swap", "order"] };
 
   // ---------------- the overlay ----------------
   var st = { on: false, list: [], i: 0, play: false, timer: 0, raf: 0, el: null, tour: "quick", t0: 0, dur: 0, left: 0, token: 0 };
@@ -307,6 +440,7 @@
     var s = st.list[i];
     card.classList.add("busy");
     if (s.go) await s.go(); else if (s.tab) { var p = document.getElementById("bp-panel-" + s.tab); if (!p || !p.classList.contains("active")) show(s.tab); }
+    if (s.tap) { var tp = document.querySelector(s.tap); if (visible(tp) && tp.getAttribute("aria-selected") !== "true") { tp.click(); await sleep(reduce ? 80 : 260); } } // a screen that splits into tabs on phones
     var el = await find(phone() && s.selM ? s.selM : s.sel, 6000);
     if (el && s.up) el = el.closest(s.up) || el; // light up the whole field, not just the input
     if (tok !== st.token || !st.on) return;
@@ -322,15 +456,14 @@
       uncover(el);
     }
     if (tok !== st.token) return;
-    var chap = TOURS[st.tour];
-    card.querySelector(".tr-chap").textContent = T(chap.t);
+    card.querySelector(".tr-chap").textContent = st.tour === "mini" ? T(UI.mini) + " · " + st.chapName : T(TOURS[st.tour].t);
     card.querySelector(".tr-n").textContent = (i + 1) + " / " + st.list.length;
     card.querySelector("h3").textContent = T(s.t);
     card.querySelector("p").textContent = T(s.b);
     card.querySelector(".tr-dots").innerHTML = st.list.map(function (_, k) { return "<i" + (k === i ? ' class="on"' : k < i ? ' class="was"' : "") + "></i>"; }).join("");
     var back = card.querySelector(".tr-back"), next = card.querySelector(".tr-next");
     back.textContent = T(UI.back); back.disabled = i === 0;
-    next.textContent = s.last ? T(UI.done) : T(UI.next);
+    next.textContent = s.last ? T(UI.done) : st.tour === "mini" && i === st.list.length - 1 ? T(UI.gotit) : T(UI.next);
     card.classList.remove("busy");
     if (!reduce) { card.classList.remove("in"); void card.offsetWidth; card.classList.add("in"); ring.classList.remove("pulse"); void ring.offsetWidth; ring.classList.add("pulse"); }
     if (s.do) { try { await s.do(); } catch (e) { /* the demo is only a show */ } }
@@ -350,6 +483,35 @@
     ls.set("arc-tour-seen", 1);
     go(0);
   }
+  /// a screen's own guide: its steps (or the big tours' steps for the launch form and the coin page)
+  function startMini(tab, play) {
+    mount(); closePick(); hintOff();
+    var list = MINI_FROM[tab] ? MINI_FROM[tab].map(function (k) { return S.filter(function (x) { return x.k === k; })[0]; }).filter(Boolean)
+      : (MINI[tab] || []).map(function (x) { return Object.assign({ tab: tab }, x); });
+    if (!list.length) return;
+    st.tour = "mini"; st.chapName = MINI_NAME[tab] || tab; st.list = list;
+    st.on = true; st.play = play !== false; st.i = 0;
+    ov.hidden = false;
+    document.documentElement.classList.add("tr-on");
+    paintCtl();
+    if (!st.raf) st.raf = requestAnimationFrame(place);
+    go(0);
+  }
+  /// the "?" at the top right of every screen with a guide: in its heading (ARCIA's page: on its stage)
+  var Q_HOST = { arcia: ".aa-hero", coin: "#apc-name" };
+  function addQ(tab) {
+    var panel = document.getElementById("bp-panel-" + tab);
+    if (!panel) return;
+    var host = panel.querySelector(Q_HOST[tab] || "h1");
+    if (!host || host.querySelector(".tr-q")) return;
+    host.classList.add(tab === "arcia" ? "tr-q-stage" : "tr-q-host");
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tr-q"; b.setAttribute("data-tour-mini", tab);
+    b.setAttribute("aria-label", T(UI.q)); b.title = T(UI.q);
+    b.innerHTML = '<span aria-hidden="true">?</span>';
+    host.appendChild(b);
+  }
+  function addAllQ() { Object.keys(MINI_NAME).forEach(addQ); }
   function end() {
     if (!st.on) return;
     st.on = false; st.token++;
@@ -403,6 +565,8 @@
 
   // ---------------- entry points ----------------
   document.addEventListener("click", function (e) {
+    var mq = e.target.closest && e.target.closest("[data-tour-mini]");
+    if (mq) { e.preventDefault(); e.stopPropagation(); startMini(mq.getAttribute("data-tour-mini"), true); return; }
     var b = e.target.closest && e.target.closest("[data-tour]");
     if (!b) return;
     e.preventDefault(); e.stopPropagation();
@@ -425,7 +589,10 @@
   };
   window.addEventListener("hashchange", fromHash);
   if (document.readyState === "complete") fromHash(); else window.addEventListener("load", fromHash);
-  window.addEventListener("load", function () { setTimeout(hintOn, 6000); });
+  window.addEventListener("load", function () { setTimeout(hintOn, 6000); addAllQ(); });
+  // panels that build their markup when first opened (ARCIA's page, the coin page) get theirs then
+  document.addEventListener("arcpad:tab", function (e) { var t = e.detail && e.detail.tab; if (t) setTimeout(function () { addQ(t); }, 900); });
+  document.addEventListener("arc:lang", function () { document.querySelectorAll(".tr-q").forEach(function (b) { b.setAttribute("aria-label", T(UI.q)); b.title = T(UI.q); }); });
   document.addEventListener("arc:lang", function () { if (st.on) go(st.i); if (pick && !pick.hidden) openPick(); });
-  window.arcTour = { start: start, pick: openPick, end: end, steps: S, tours: TOURS };
+  window.arcTour = { start: start, mini: startMini, pick: openPick, end: end, steps: S, tours: TOURS, screens: MINI_NAME };
 })();

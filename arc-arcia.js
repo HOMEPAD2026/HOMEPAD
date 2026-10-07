@@ -138,6 +138,8 @@
   /// the round question for the chips: when it closes (open) or what's next (closed)
   var RQ = function () {
     var n = RN();
+    // 7 Oct 2026: no round open and the team's status line set (Round #2 postponed, #3 + #4 merging)
+    if (!roundOpen() && typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS) return T({ en: "What's happening with Rounds #3 + #4?", ko: "3·4라운드 통합은 어떻게 돼가?", zh: "第 3、4 轮合并进展如何？" });
     return roundOpen() ? T({ en: "When does Round #{n} close?", ko: "라운드 #{n} 언제 마감해?", zh: "第 {n} 轮什么时候截止？" }).replace("{n}", n)
       : T({ en: "What comes after Round #{n}?", ko: "라운드 #{n} 다음은 뭐야?", zh: "第 {n} 轮之后是什么？" }).replace("{n}", n);
   };

@@ -455,7 +455,7 @@
     await loadRecord();
     const el = $("ag-board");
     if (!el) return;
-    if (!S.rec || !S.rec.stats.total) { el.innerHTML = `<div class="dk-h"><h3>${T("ARCIA's record")}</h3></div><div class="ag-empty">${T("ARCIA's calls start with the first token someone pastes here.")}</div>`; return; }
+    if (!S.rec || !S.rec.stats || !S.rec.stats.total) { el.innerHTML = `<div class="dk-h"><h3>${T("ARCIA's record")}</h3></div><div class="ag-empty">${T("ARCIA's calls start with the first token someone pastes here.")}</div>`; return; }
     el.innerHTML = `<div class="dk-h"><h3>${T("ARCIA's record")}</h3><span class="dk-sub">${T("every safety call, graded in public")}</span><button type="button" class="ag-btn sm ag-weekbtn" data-ag-share="week">${T("Save the week as an image")}</button></div>${statLine(S.rec.stats)}<div class="ag-calls">${S.rec.calls.slice(0, 8).map((c) => callRow(c, null)).join("")}</div>`;
   }
 

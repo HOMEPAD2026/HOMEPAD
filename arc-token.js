@@ -184,7 +184,7 @@
       var c = rv.circle;
       if (!c) return "";
       if (!c.started) return "Round #1 opens soon";
-      if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · Round #2 next";
+      if (!c.open) return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " to the platform · " + ((typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS && CONFIG.CIRCLEPAD_STATUS.line) || "Round #2 next");
       return "Round #1: " + usd(c.raised) + " raised · " + usd(c.share) + " at close";
     }
     if (id === "util") return d.burned && d.burned.bySource ? (function (b) { var t = ["scanner", "mine", "secret", "desk", "agent", "orders"].reduce(function (x, k) { return x + (b[k] ? b[k].tokens : 0); }, 0); return t > 0 ? num(t) + " $ARCIRCLE burned by utilities so far" : ""; })(d.burned.bySource) : "";

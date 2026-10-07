@@ -49,6 +49,12 @@ export const ADDR_RH = {
   ponsFactories: ["0xa5aab3f0c6eeadf30ef1d3eb997108e976351feb", "0x0c37a24f5d23a486fa692d1500881d698b1f77a4"],
   ponsLocker: "0x736d76699c26d0d966744cae304c000d471f7f35",
   bagsHook: "0x2380abf72c17aabab76480244759ac7e2932eecc",
+  // ARCIRCLE PAD's own contracts on Robinhood Chain (config-arc.js): what sits in them is staked, locked or waiting in
+  // an open order — not a wallet's bag, so it's left out of the top 10 like any launchpad's contracts
+  vearcia: "0x29c010620f6720582c310afa8d8115026ec73a7e", // veARCIA: staked $ARCIA and its reward pool
+  arclock: "0x301e1e8dcb43cdddd3244889063ad4220536b38a", // ArcLock on Robinhood Chain
+  multisend: "0x07ec525dc675206618c3e5e7fd92c7c0707df6c4", // ARCIRCLE Multisender on Robinhood Chain
+  orders: "0xa53dbd06d8c604107e1fe1b5936efcf32d895ee3", // ARCIRCLE Orders on Robinhood Chain
 };
 /// The chains the scanner reads: io.chain picks one ("arc" when it's not set).
 export const CHAINS = {
@@ -66,6 +72,10 @@ export function labelOf(a, extra) {
   if (k === ADDR_RH.ponsV2 || ADDR_RH.ponsFactories.includes(k)) return { name: "Pons", kind: "infra" };
   if (k === ADDR_RH.ponsLocker) return { name: "Pons locker", kind: "lock" };
   if (k === ADDR_RH.bagsHook) return { name: "Bags", kind: "infra" };
+  if (k === ADDR_RH.vearcia) return { name: "ARCIA Staking (veARCIA)", kind: "lock" };
+  if (k === ADDR_RH.arclock) return { name: "ArcLock (locked)", kind: "lock" };
+  if (k === ADDR_RH.multisend) return { name: "ARCIRCLE Multisender", kind: "infra" };
+  if (k === ADDR_RH.orders) return { name: "ARCIRCLE Orders (open orders)", kind: "infra" };
   if (k === ADDR.uniPositions) return { name: "Uniswap positions", kind: "pool" };
   if (k === ADDR.arclock) return { name: "ArcLock (locked)", kind: "lock" };
   if (k === ADDR.arcpadFactory || k === ADDR.arcpadHook || k === ADDR.arcpadRouter) return { name: "ArcPad", kind: "infra" };

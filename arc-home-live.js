@@ -44,6 +44,9 @@
     if (box) {
       if (c && c.started) { box.parentNode.classList.remove("soon"); roll(box, c.raised || 0, usd); el("circle-lbl").textContent = tr(c.open ? "raised" : "raised in Round #1"); }
       else { box.parentNode.classList.add("soon"); box.textContent = tr("Opening soon"); box.__v = null; el("circle-lbl").textContent = ""; }
+      // 7 Oct 2026: no round open — the team's status line instead of Round #1's numbers or "Opening soon"
+      var S = typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS;
+      if (S && !(c && c.open)) { box.parentNode.classList.add("soon"); box.textContent = tr(S.chip); box.__v = null; el("circle-lbl").textContent = tr(S.sub); }
     }
     bar.classList.add("ready");
   }

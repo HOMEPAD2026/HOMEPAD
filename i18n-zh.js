@@ -8506,6 +8506,15 @@
     "Guide": "指南",
     "Take the 1-minute tour": "看 1 分钟导览",
     "New here? Take the 1-minute tour": "第一次来？看 1 分钟导览",
+    "CirclePad · Rounds #3 + #4 merging": "CirclePad · 第 3、4 轮合并中",
+    "Round #2 postponed · Rounds #3 + #4 merging, in progress": "第 2 轮延期 · 第 3、4 轮合并进行中",
+    "Rounds #3 + #4": "第 3、4 轮",
+    "merging, in progress": "合并进行中",
+    "See the plan →": "查看计划 →",
+    "CirclePad Rounds #3 + #4": "CirclePad 第 3、4 轮",
+    "Round #2 is postponed. Rounds #3 and #4 are being merged into one: one contribution, both rewards. In progress — updates on /circle.": "第 2 轮延期。第 3、4 轮正在合并为一轮：一次参与，两份奖励。进行中 —— 更新见 /circle。",
+    "The rounds after": "之后的轮次",
+    "Community-funded launches · Round #2 postponed · Rounds #3 + #4 merging": "社区募资发币 · 第 2 轮延期 · 第 3、4 轮合并中",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };
