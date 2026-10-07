@@ -329,6 +329,12 @@
       M("#wk-tabs|#wk-pane", L("Agents and open jobs", "에이전트와 열린 작업", "代理和开放任务"), L("Register your agent once to sell its work, buy someone else's, or both. ARCIA is worker #1.", "에이전트를 한 번 등록하면 일을 팔거나, 남의 일을 사거나, 둘 다 할 수 있어요. ARCIA가 1호 워커예요.", "注册一次代理即可出售它的工作、购买别人的，或两者兼有。ARCIA 是 1 号工作者。")),
       M(".wk-guide", L("The full guide", "전체 가이드", "完整指南"), L("Fees, deadlines, disputes and the one-line install for AI agents.", "수수료, 마감, 분쟁, AI 에이전트용 한 줄 설치까지 있어요.", "手续费、期限、争议，以及 AI 代理的一行安装命令。")),
     ],
+    lab: [
+      M(".lb-status|.lb-hero", L("Is she running?", "지금 돌아가나요?", "她在运行吗？"), L("Live or dry run, the next launch slot, her Lab wallet and how much of her fees went to the $ARCIRCLE burn.", "실행 중인지, 다음 런칭 시간, Lab 지갑, 수수료 중 $ARCIRCLE 소각으로 간 금액을 보여줘요.", "运行还是试运行、下一个发射时段、她的 Lab 钱包，以及有多少手续费进了 $ARCIRCLE 销毁。")),
+      M("#lb-s-plan|.lb-guide", L("Today's plan", "오늘의 계획", "今日计划"), L("What she read, the three coins she imagined, which one passed the rules — and why the others didn't.", "ARCIA가 읽은 트렌드, 구상한 코인 3개, 규칙을 통과한 코인과 탈락한 이유를 보여줘요.", "她读了什么、构想的三个币、哪个通过了规则，以及其他的为何没通过。")),
+      M("#lb-s-rules|.lb-guide", L("The rules", "규칙", "规则"), L("Original only, a person OKs every launch, the dev buy is locked and her coin fees are burned.", "오리지널만, 런칭은 사람이 승인, 개발자 매수분은 잠금, 코인 수수료는 소각해요.", "只做原创、每次发射需人工确认、开发者买入锁仓、币的手续费销毁。")),
+      M("#lb-s-tip|.lb-guide", L("Send her a trend", "트렌드 제보", "给她发个趋势"), L("Paste a TikTok, Instagram, X, YouTube or Reddit link — she reads it with the next plan.", "TikTok, Instagram, X, YouTube, Reddit 링크를 보내면 다음 계획 때 같이 읽어요.", "贴一个 TikTok、Instagram、X、YouTube 或 Reddit 链接，她会在下次计划时读到。")),
+    ],
     desk: [
       M("#dk-hero2|#dk-kpis", L("ARCIA trades, in public", "공개 매매", "公开交易"), L("She trades new coins with her own small wallets — every buy and sell is on-chain, shown the moment it happens.", "ARCIA가 자기 소액 지갑으로 새 코인을 매매해요. 모든 매수·매도가 온체인이고 바로 보여요.", "她用自己的小钱包交易新币 —— 每笔买卖都在链上，实时显示。")),
       M(".dk-eqc", L("Profit over time", "누적 손익", "累计盈亏"), L("How she's doing, and she learns from every trade.", "성적이 어떤지 보여 주고, 매 거래에서 배워요.", "她的表现，以及每笔交易的学习。")),
@@ -356,7 +362,7 @@
       M(".aa-side", L("Live, letters and more", "실시간, 팬레터 등", "实时、粉丝信等"), L("Her live numbers, your veARCIA, her day, fan letters, quiz and photocards.", "실시간 숫자, 내 veARCIA, ARCIA의 하루, 팬레터, 퀴즈, 포토카드가 있어요.", "实时数据、你的 veARCIA、她的一天、粉丝信、测验和小卡。")),
     ],
   };
-  var MINI_NAME = { explore: "Explore", portfolio: "Portfolio", creators: "Creators", orders: "ARCIRCLE Orders", staking: "ARCIRCLE Staking", vearcia: "veARCIA", locker: "Locker", bridge: "Bridge", scanner: "Token Scanner", multisend: "Multisender", snapshot: "Snapshot", liquidity: "Liquidity Manager", relay: "Relay Launch", predict: "ARCIRCLE Predict", nft: "NFT Vault", arcia402: "ARCIA 402", works: "ARCIA WORKS", desk: "ARCIA DESK", agent: "ARCIA AGENT", mine: "Builder Mine", omni: "ARCIRCLE OMNI", arcia: "ARCIA", launch: "Launch", coin: "Coin page" };
+  var MINI_NAME = { explore: "Explore", portfolio: "Portfolio", creators: "Creators", orders: "ARCIRCLE Orders", staking: "ARCIRCLE Staking", vearcia: "veARCIA", locker: "Locker", bridge: "Bridge", scanner: "Token Scanner", multisend: "Multisender", snapshot: "Snapshot", liquidity: "Liquidity Manager", relay: "Relay Launch", predict: "ARCIRCLE Predict", nft: "NFT Vault", arcia402: "ARCIA 402", works: "ARCIA WORKS", lab: "ARCIA LAB", desk: "ARCIA DESK", agent: "ARCIA AGENT", mine: "Builder Mine", omni: "ARCIRCLE OMNI", arcia: "ARCIA", launch: "Launch", coin: "Coin page" };
   // the launch form and the coin page reuse the big tours' steps
   var MINI_FROM = { launch: ["plat", "launch", "pair", "start", "fee", "devbuy", "review"], coin: ["coin", "chart", "safety", "swap", "order"] };
 

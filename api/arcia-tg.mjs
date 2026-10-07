@@ -1106,6 +1106,17 @@ async function onCallback(q) {
     return;
   }
   if (data.startsWith("lp:")) { ack(); return editCard(msg, await cardLaunches(Number(data.slice(3)), lang)); }
+  if (data.startsWith("lab:")) { // ARCIA LAB: the team's Launch / Skip on a coin she planned (api/_lab.mjs)
+    if (!c.admins.includes(q.from.id)) return ack("Admins only", true);
+    const [, act, slot, n] = data.split(":");
+    ack(act === "ok" ? "Launching… (about 20 seconds)" : "Skipping…");
+    const lab = await import("./_lab.mjs");
+    const r = await lab.decide({ slot, n, ok: act === "ok", who: q.from.id }).catch((e) => ({ text: `Error: ${String(e && e.message || e).slice(0, 160)}` }));
+    const was = String((msg && (msg.caption || msg.text)) || "").slice(0, msg && msg.photo ? 800 : 3500);
+    const by = q.from.username ? `@${q.from.username}` : q.from.first_name || "admin";
+    const text = `${was}\n\n→ ${by}: ${r.text}${r.token ? `\n${SITE}/arc#coin/${r.token}` : ""}`;
+    return tg(msg.photo ? "editMessageCaption" : "editMessageText", { chat_id: msg.chat.id, message_id: msg.message_id, [msg.photo ? "caption" : "text"]: text.slice(0, msg.photo ? 1024 : 4000), reply_markup: { inline_keyboard: [] }, ...(msg.photo ? {} : { link_preview_options: { is_disabled: true } }) });
+  }
   if (data.startsWith("cw:off:")) { // a watchlist note's "Stop"
     const pre = "0x" + data.slice(7).toLowerCase(), sb = await subs(), W = sb.coinWatch || {};
     const k = Object.keys(W).find((x) => x.startsWith(pre) && W[x].includes(q.from.id));

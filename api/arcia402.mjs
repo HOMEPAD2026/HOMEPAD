@@ -25,6 +25,7 @@
 import * as A from "./_arcia402.mjs";
 import * as X from "./_x402.mjs";
 import * as works from "./_works.mjs";
+import * as lab from "./_lab.mjs";
 import { veTierOf } from "./_vearcia.mjs";
 import { compact } from "./_cron.mjs";
 import { askClaude } from "./_arcia-brain.mjs";
@@ -61,6 +62,7 @@ export async function GET(req) {
   const ip = String(req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon";
   try {
     if (q.works) return worksGet(req, q, ip);
+    if (q.lab) return labGet(req, q, ip);
     if (q.stats) return json(200, await A.stats(), {}, "public, max-age=10, s-maxage=15");
     if (q.wk) return json(200, A.manifest(), {}, "public, max-age=300, s-maxage=3600");
     if (q.sale) { const r = await A.receipt(q.sale); return r ? json(200, { ...r, amount: r.amount / 1e6, page: `${SITE}/a402/${r.tx}` }, {}, "public, max-age=60, s-maxage=600") : json(404, { error: "no sale with that transaction" }); }
@@ -100,6 +102,11 @@ export async function POST(req) {
   try {
     if (q.tip) { if (limited(`tip:${ip}`, 10, 60e3)) return json(429, { error: "slow down" }); const out = await A.tip(q.tip); return json(out.status, out.body); }
     if (q.svc === "mcp") { if (limited(`mcp:${ip}`, 60, 60e3)) return json(429, { error: "slow down" }); return mcp(req, ip); }
+    if (q.lab === "tip") {
+      if (limited(`labtip:${ip}`, 5, 3600e3)) return json(429, { error: "five tips an hour — thanks!" });
+      let b; try { b = await req.json(); } catch { return json(400, { error: "a JSON body, please" }); }
+      const out = await lab.tip(b); return json(out.status, out.body);
+    }
     if (q.works) {
       if (limited(`wk:${ip}`, 30, 60e3)) return json(429, { error: "slow down" });
       let b; try { b = await req.json(); } catch { return json(400, { error: "a JSON body, please" }); }
@@ -111,6 +118,19 @@ export async function POST(req) {
     return json(e && e.status ? e.status : 502, { error: String(e && e.message || e).slice(0, 200) });
   }
   return GET(req);
+}
+
+// ---------------- ARCIA LAB (api/_lab.mjs) ----------------
+//   GET /api/arcia402?lab=board                       the Lab in public: rules, today's signals and concepts, her coins, the log
+//   GET /api/arcia402?lab=tick&key=<CRON_SECRET>[&force=plan|launch|fees|digest]   one run (cron, every 15 minutes)
+//   GET /api/arcia402?lab=pause&v=on|off&key=<CRON_SECRET>   the kill switch, no redeploy
+//   POST /api/arcia402?lab=tip  { url, note }          a TikTok / Instagram / X / YouTube / Reddit link for her to read
+async function labGet(req, q, ip) {
+  if (q.lab === "board") { if (limited(`labb:${ip}`, 40, 60e3)) return json(429, { error: "slow down" }); return json(200, await lab.board(), {}, "public, max-age=10, s-maxage=20"); }
+  if (!authed(req, q)) return json(401, { error: "unauthorized" });
+  if (q.lab === "tick") return json(200, await lab.tick({ force: ["plan", "launch", "fees", "digest"].includes(q.force) ? q.force : "" }));
+  if (q.lab === "pause") return json(200, await lab.setPause(q.v === "off" ? "off" : "on"));
+  return json(404, { error: "unknown lab view" });
 }
 
 // ---------------- ARCIA WORKS reads ----------------
