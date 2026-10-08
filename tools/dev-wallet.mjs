@@ -2,12 +2,15 @@
 // ETH it spent and got back, and what it still holds (plus what the wallets it sent tokens to still hold).
 // Read-only: no key, no signature, nothing is sent. Needs Node 18+ (built-in fetch), no packages.
 //   node tools/dev-wallet.mjs <wallet> [token]        token defaults to Aria (ARIA) 0xa74a…7b55
+//   prints a one-screen summary; add --all for every transaction in a table
 //   ROBINHOOD_RPC_URL overrides the public RPC; FROM_BLOCK overrides where the scan starts (default: 2026-09-01)
 // ETH per trade comes from the Uniswap v4 Swap events in the wallet's own transactions (exact, gas not included);
 // when a buy has no Swap event (a launchpad or other contract), the ETH sent with the transaction is used instead.
 const RPC = process.env.ROBINHOOD_RPC_URL || "https://rpc.mainnet.chain.robinhood.com";
-const WALLET = (process.argv[2] || "").toLowerCase();
-const TOKEN = (process.argv[3] || "0xa74a94c15b95f8d5f3abdd2db00f6c7384037b55").toLowerCase();
+const ARGS = process.argv.slice(2).filter((a) => !a.startsWith("--")), ALL = process.argv.includes("--all");
+const WALLET = (ARGS[0] || "").toLowerCase();
+const TOKEN = (ARGS[1] || "0xa74a94c15b95f8d5f3abdd2db00f6c7384037b55").toLowerCase();
+const progress = (m) => { if (process.stderr.isTTY) process.stderr.write("\r\x1b[2K" + m); };
 if (!/^0x[0-9a-f]{40}$/.test(WALLET) || !/^0x[0-9a-f]{40}$/.test(TOKEN)) { console.error("usage: node tools/dev-wallet.mjs <wallet 0x…> [token 0x…]"); process.exit(1); }
 const SINCE = Date.UTC(2026, 8, 1) / 1000;
 const T_TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -66,6 +69,7 @@ async function logs(filter, from, to) {
 const head = parseInt(await rpc("eth_blockNumber", []), 16);
 const blockTs = new Map();
 async function ts(n) { if (!blockTs.has(n)) blockTs.set(n, parseInt((await rpc("eth_getBlockByNumber", [hex(n), false])).timestamp, 16)); return blockTs.get(n); }
+progress("finding where to start…");
 let FROM = process.env.FROM_BLOCK ? Number(process.env.FROM_BLOCK) : null;
 if (FROM == null) { let lo = 0, hi = head; while (lo < hi) { const mid = Math.floor((lo + hi) / 2); if ((await ts(mid)) < SINCE) lo = mid + 1; else hi = mid; } FROM = lo; }
 
@@ -77,10 +81,12 @@ const [supplyH, balH, ethH, nonceH] = await Promise.all([
 const supply = units(BigInt(supplyH), tk.decimals), holding = units(BigInt(balH), tk.decimals);
 
 // every transfer of the token to or from the wallet
+progress(`scanning ${head - FROM} blocks for transfers…`);
 const tl = [
   ...(await logs({ address: TOKEN, topics: [T_TRANSFER, pad(WALLET)] }, FROM, head)),
   ...(await logs({ address: TOKEN, topics: [T_TRANSFER, null, pad(WALLET)] }, FROM, head)),
 ];
+progress("");
 const hashes = [...new Set(tl.map((l) => l.transactionHash))];
 
 const pools = new Map(); // v4 pool id → { c0, c1 }
@@ -93,7 +99,8 @@ async function pool(manager, pid) {
 }
 
 const rows = [];
-for (const h of hashes) {
+for (const [i, h] of hashes.entries()) {
+  progress(`reading transaction ${i + 1} of ${hashes.length}…`);
   const [tx, rc] = await Promise.all([rpc("eth_getTransactionByHash", [h]), rpc("eth_getTransactionReceipt", [h])]);
   const bn = parseInt(rc.blockNumber, 16), mine = tx.from.toLowerCase() === WALLET;
   let tokenDelta = 0n; const peers = new Map(); const other = new Map();
@@ -149,24 +156,34 @@ const ethIn = -sum("eth", (r) => r.kind === "BUY" && r.eth != null), ethOut = su
 const bought = sum("token", (r) => r.kind === "BUY"), sold = -sum("token", (r) => r.kind === "SELL");
 const received = sum("token", (r) => r.kind === "IN" || r.kind === "MINT"), sent = -sum("token", (r) => r.kind === "OUT"), burned = -sum("token", (r) => r.kind === "BURN");
 
-console.log(`${tk.symbol} ${TOKEN} · wallet ${WALLET}`);
-console.log(`Robinhood Chain block ${head} · scanned from block ${FROM} · ${rows.length} transactions touching ${tk.symbol}`);
-console.log(`wallet's ETH now: ${fmt(units(BigInt(ethH), 18), 6)} · transactions sent by it (nonce): ${parseInt(nonceH, 16)}\n`);
-console.table(rows.map((r) => ({
-  time: when(r.ts), type: r.kind, [tk.symbol]: (r.token > 0 ? "+" : "") + fmt(r.token, 0),
-  ETH: r.eth == null ? "" : (r.eth > 0 ? "+" : "") + fmt(r.eth, 6) + (r.viaValue ? " (tx value)" : ""),
-  other: r.quote, "from / to": r.peers.map(([p]) => short(p)).join(" "), tx: r.h.slice(0, 12) + "…",
-})));
-console.log(`\nBUYS   ${buys.length} · ${fmt(bought, 0)} ${tk.symbol} for ${fmt(ethIn, 6)} ETH${bought ? ` (avg ${(ethIn / bought).toExponential(4)} ETH each)` : ""}`);
-console.log(`SELLS  ${sells.length} · ${fmt(sold, 0)} ${tk.symbol} for ${fmt(ethOut, 6)} ETH`);
-console.log(`IN     ${fmt(received, 0)} ${tk.symbol} received without buying (mint / transfers in)`);
-console.log(`OUT    ${fmt(sent, 0)} ${tk.symbol} sent to other addresses · BURNED ${fmt(burned, 0)}`);
-console.log(`NET ETH (sold − bought, gas not included): ${fmt(ethOut - ethIn, 6)} ETH`);
-console.log(`HOLDS NOW ${fmt(holding, 0)} ${tk.symbol} = ${fmt((holding / supply) * 100, 3)}% of the ${fmt(supply, 0)} supply` +
-  (px ? ` ≈ $${fmt(holding * px.usd, 0)}${px.eth ? ` / ${fmt(holding * px.eth, 4)} ETH` : ""} at $${px.usd}` : ""));
-if (recipients.length) {
-  console.log(`\nWhere the ${fmt(sent, 0)} sent ${tk.symbol} went (what each address holds now):`);
-  console.table(recipients.sort((a, b) => b.sent - a.sent).map((r) => ({ address: r.address, type: r.type, sent: fmt(r.sent, 0), "holds now": fmt(r.holdsNow, 0), "% supply": fmt((r.holdsNow / supply) * 100, 3) })));
-  const group = holding + recipients.filter((r) => r.type === "wallet").reduce((s, r) => s + r.holdsNow, 0);
-  console.log(`wallet + the wallets it sent to hold ${fmt(group, 0)} ${tk.symbol} = ${fmt((group / supply) * 100, 3)}% of supply`);
+progress("");
+const day = (t) => when(t).slice(5);
+const span = (list) => (list.length ? `  (${day(list[0].ts)} → ${day(list[list.length - 1].ts)} UTC)` : "");
+const top = (list, by) => [...list].sort(by).slice(0, 3).map((r) => `${day(r.ts)} ${fmt(Math.abs(r.token), 0)} for ${fmt(Math.abs(r.eth || 0), 4)} ETH`).join(" | ");
+const L = (k, v) => console.log(k.padEnd(12) + v);
+
+if (ALL) {
+  console.table(rows.map((r) => ({
+    time: when(r.ts), type: r.kind, [tk.symbol]: (r.token > 0 ? "+" : "") + fmt(r.token, 0),
+    ETH: r.eth == null ? "" : (r.eth > 0 ? "+" : "") + fmt(r.eth, 6) + (r.viaValue ? " (tx value)" : ""),
+    other: r.quote, "from / to": r.peers.map(([p]) => short(p)).join(" "), tx: r.h.slice(0, 12) + "…",
+  })));
+  console.log("");
 }
+console.log(`${tk.symbol} · wallet ${short(WALLET)} · ${rows.length} transactions · ETH left ${fmt(units(BigInt(ethH), 18), 4)}`);
+L("Bought", `${buys.length}x · ${fmt(bought, 0)} ${tk.symbol} for ${fmt(ethIn, 4)} ETH${span(buys)}`);
+L("Sold", `${sells.length}x · ${fmt(sold, 0)} ${tk.symbol} for ${fmt(ethOut, 4)} ETH${span(sells)}`);
+L("Net ETH", `${ethOut - ethIn >= 0 ? "+" : ""}${fmt(ethOut - ethIn, 4)} ETH (sold − bought, no gas)`);
+if (received) L("Got free", `${fmt(received, 0)} ${tk.symbol} (mint / sent in)`);
+if (sent || burned) L("Sent out", `${fmt(sent, 0)} ${tk.symbol} to ${recipients.length} address(es)${burned ? ` · burned ${fmt(burned, 0)}` : ""}`);
+L("Holds now", `${fmt(holding, 0)} ${tk.symbol} = ${fmt((holding / supply) * 100, 2)}% of supply` + (px ? ` ≈ $${fmt(holding * px.usd, 0)}${px.eth ? ` / ${fmt(holding * px.eth, 3)} ETH` : ""}` : ""));
+if (buys.length > 1) L("Top buys", top(buys, (a, b) => a.eth - b.eth));
+if (sells.length > 1) L("Top sells", top(sells, (a, b) => b.eth - a.eth));
+if (recipients.length) {
+  recipients.sort((a, b) => b.sent - a.sent);
+  for (const r of recipients.slice(0, 5)) console.log(`  ${r.address}  ${r.type} · sent ${fmt(r.sent, 0)} · holds ${fmt(r.holdsNow, 0)} (${fmt((r.holdsNow / supply) * 100, 2)}%)`);
+  if (recipients.length > 5) console.log(`            …and ${recipients.length - 5} more (--all lists every transfer)`);
+  const group = holding + recipients.filter((r) => r.type === "wallet").reduce((s, r) => s + r.holdsNow, 0);
+  L("With those", `${fmt(group, 0)} ${tk.symbol} = ${fmt((group / supply) * 100, 2)}% of supply (this wallet + wallets it sent to)`);
+}
+if (!ALL) console.log("every transaction: add --all");
