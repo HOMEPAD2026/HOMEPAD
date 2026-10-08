@@ -1,0 +1,160 @@
+/* arc-nav.css — the shared ARCIRCLE PAD menu (arc-nav.js). Loaded on every page that has it.
+   One fixed bar on top (plus a second row for the menu you're in), a 5-tab bar on phones, and the old
+   navigation hidden: the top switcher, the two bottom bars, the utilities sheet and ArcPad's sidebar. */
+:root{
+  --anav-bg:rgba(5,9,22,.88);--anav-panel:#0a1024;--anav-line:rgba(150,175,255,.13);--anav-ink:#eaf0fb;
+  --anav-dim:#97a3c0;--anav-mute:#6c7894;--anav-blue:#4d8dff;--anav-green:#2fe6a4;
+  --anav-top:60px;--anav-row:44px;--anav-h:var(--anav-top);--anav-bot:0px;
+}
+html.anav-pre,html.anav-has-strip{--anav-h:calc(var(--anav-top) + var(--anav-row))}
+@media (max-width:900px){
+  :root{--anav-top:56px;--anav-bot:calc(62px + env(safe-area-inset-bottom))}
+  html.anav-pre,html.anav-has-strip{--anav-h:var(--anav-top)}
+  html.anav-has-local{--anav-h:calc(var(--anav-top) + var(--anav-row))}
+}
+[hidden]{display:none!important}
+
+/* ---- the old navigation, replaced ---- */
+.ax-dock,.ax-quick,.ax-util,.ax-util-scrim,.ax-stk,header.ax-top,.bp-sidebar,.ps,
+body>header.bar,body>.menu#menu,.app>header.top,
+.bp-topbar-right .soc-head,.bp-topbar-right .ck-btn-bar,.bp-topbar-right .lang-toggle{display:none!important}
+body{padding-top:var(--anav-h)!important;padding-bottom:var(--anav-bot)!important}
+html{scroll-padding-top:calc(var(--anav-h) + 12px)}
+.bp-app{display:block}
+.bp-main{width:100%}
+.bp-topbar{max-width:1244px;margin:0 auto;padding:12px 32px!important;border-bottom:0!important}
+body.bigpad-page .bp-topbar{top:auto!important;background:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-image:none!important;position:relative!important}
+.bp-scroll{margin:0 auto}
+html.anav-locked{overflow:hidden}
+
+/* ---- top bar ---- */
+.anav{position:fixed;top:0;left:0;right:0;z-index:80;font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--anav-bg);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);
+  border-bottom:1px solid var(--anav-line);color:var(--anav-ink);-webkit-font-smoothing:antialiased;letter-spacing:0;text-transform:none}
+.anav *,.anav-tabs *,.anav-sheet *{box-sizing:border-box}
+.anav a,.anav button,.anav-tabs a,.anav-tabs button,.anav-sheet a,.anav-sheet button{font:inherit;color:inherit;text-decoration:none;letter-spacing:0;text-transform:none}
+.anav button,.anav-tabs button,.anav-sheet button{background:none;border:0;cursor:pointer;margin:0}
+.anav-in{height:var(--anav-top);display:flex;align-items:center;gap:26px;padding:0 24px;max-width:1600px;margin:0 auto}
+.anav-logo{display:flex;align-items:center;gap:10px;flex:none}
+.anav-logo img{height:20px;width:auto;display:block}
+.anav-logo span{font-weight:700;font-size:13px;letter-spacing:.2em!important;color:#fff}
+.anav-i{width:18px;height:18px;flex:none;display:block}
+.anav-groups{display:flex;align-items:center;gap:2px}
+.anav-g{position:relative}
+.anav-gb{display:flex;align-items:center;gap:5px;height:38px;padding:0 12px;border-radius:10px;font-size:14px!important;font-weight:600!important;color:#c3cde4!important;position:relative;transition:background .15s,color .15s}
+.anav-gb:hover,.anav-g.open .anav-gb{color:#fff!important;background:rgba(255,255,255,.05)!important}
+.anav-g.here .anav-gb{color:#fff!important}
+.anav-g.here .anav-gb::after{content:"";position:absolute;left:12px;right:28px;bottom:3px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--anav-blue),var(--anav-green))}
+.anav-chev{width:14px;height:14px;opacity:.55;transition:transform .18s}
+.anav-g.open .anav-chev{transform:rotate(180deg)}
+.anav-panel{position:absolute;top:calc(100% + 11px);left:-10px;width:576px;padding:10px;border-radius:18px;background:var(--anav-panel);
+  border:1px solid rgba(150,175,255,.17);box-shadow:0 26px 64px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.3);animation:anav-in .16s ease-out}
+.anav-panel::before{content:"";position:absolute;left:0;right:0;top:-12px;height:12px}
+@keyframes anav-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.anav-items{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.anav-it{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;transition:background .12s}
+.anav-it:hover,.anav-it:focus-visible{background:rgba(120,150,255,.09)}
+.anav-it.on{background:rgba(77,141,255,.13)}
+.anav-ib{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:11px;color:#a9c8ff;
+  background:linear-gradient(140deg,rgba(77,141,255,.17),rgba(47,230,164,.1));border:1px solid rgba(150,175,255,.14)}
+.anav-ib .anav-i{width:19px;height:19px}
+.anav-it.on .anav-ib{color:#fff;border-color:rgba(120,170,255,.4)}
+.anav-it-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.anav-it-tx b{font-size:14px;font-weight:600;color:#fff;line-height:1.25}
+.anav-it-tx small{font-size:12px;color:var(--anav-dim);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anav-more{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:8px;padding:11px 12px 5px;border-top:1px solid rgba(150,175,255,.1)}
+.anav-more span{font-size:12px;color:var(--anav-mute);margin-right:2px}
+.anav-more a{font-size:13px;color:#b2bdd8!important;padding:2px 0}
+.anav-more a:hover{color:#fff!important}
+
+.anav-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.anav-ic{width:36px;height:36px;display:grid;place-items:center;border-radius:10px!important;border:1px solid var(--anav-line)!important;color:#c3cde4!important;font-size:12px!important;font-weight:700!important;transition:background .15s,color .15s}
+.anav-ic:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
+.anav-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.anav-lang{position:relative}
+.anav-lmenu{position:absolute;right:0;top:44px;min-width:140px;padding:6px;border-radius:14px;background:var(--anav-panel);border:1px solid rgba(150,175,255,.17);box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.anav-lmenu button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:9px;font-size:14px!important;color:#c3cde4!important}
+.anav-lmenu button:hover,.anav-lmenu button[aria-current]{background:rgba(120,150,255,.1);color:#fff!important}
+.anav-chip{display:flex;align-items:center;gap:7px;height:36px;padding:0 13px 0 8px;border-radius:999px;border:1px solid var(--anav-line);font-size:13px!important;font-weight:600;color:#dfe6f6!important;transition:background .15s,border-color .15s}
+.anav-chip:hover{background:rgba(255,255,255,.05);border-color:rgba(150,175,255,.3)}
+.anav-chip img{height:15px;width:auto;display:block}
+.anav-chip img.r{height:22px;width:22px;border-radius:50%;object-fit:cover}
+.anav-wallet{display:flex;align-items:center;gap:7px;height:36px;padding:0 16px 0 13px;border-radius:999px;font-size:13px!important;font-weight:700;color:#04101e!important;
+  background:linear-gradient(90deg,#5b93ff,#2fe6a4);box-shadow:0 6px 20px rgba(47,180,200,.22);transition:filter .15s}
+.anav-wallet:hover{filter:brightness(1.08)}
+.anav-wallet .anav-i{width:17px;height:17px}
+
+/* second row: the pages of the menu you're in (or the page's own tabs) */
+.anav-strip{border-top:1px solid rgba(150,175,255,.08)}
+.anav-strip-in{height:var(--anav-row);display:flex;align-items:center;gap:4px;padding:0 24px;max-width:1600px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.anav-strip-in::-webkit-scrollbar{display:none}
+.anav-st{display:flex;align-items:center;gap:7px;flex:none;height:32px;padding:0 13px;border-radius:999px;font-size:13px!important;font-weight:600!important;color:#97a3c0!important;white-space:nowrap;transition:background .15s,color .15s}
+.anav-st .anav-i,.anav-st svg{width:16px;height:16px;flex:none}
+.anav-st:hover{color:#fff!important;background:rgba(255,255,255,.04)}
+.anav-st.on{color:#fff!important;background:rgba(77,141,255,.15);box-shadow:inset 0 0 0 1px rgba(110,160,255,.32)}
+
+/* ---- phones: bottom tabs + a sheet per menu ---- */
+.anav-tabs{display:none}
+.anav-sheet{position:fixed;inset:0;z-index:95;font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--anav-ink)}
+.anav-scrim{position:absolute;inset:0;background:rgba(2,4,12,.62);opacity:0;transition:opacity .2s}
+.anav-sheet-in{position:absolute;left:0;right:0;bottom:0;max-height:82vh;overflow:auto;padding:8px 12px calc(16px + env(safe-area-inset-bottom));
+  border-radius:22px 22px 0 0;background:var(--anav-panel);border-top:1px solid rgba(150,175,255,.18);transform:translateY(100%);transition:transform .2s ease-out}
+.anav-sheet.in .anav-scrim{opacity:1}
+.anav-sheet.in .anav-sheet-in{transform:none}
+.anav-sheet-top{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 10px}
+.anav-sheet-top b{font-size:17px;font-weight:700}
+.anav-x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.anav-sheet-grid{display:grid;gap:2px}
+.anav-sheet .anav-it{padding:11px 8px}
+.anav-sheet .anav-it-tx small{white-space:normal}
+.anav-sheet .anav-more{padding:12px 8px 4px}
+
+@media (max-width:1180px){
+  .anav-chip{display:none}
+  .anav-in{gap:18px}
+}
+@media (max-width:900px){
+  .anav-in{padding:0 14px;gap:10px}
+  .anav-groups,.anav-strip:not(.local){display:none!important}
+  .anav-strip-in{padding:0 12px}
+  html.anav-tool-in .anav-wallet,html.anav-tool-in .anav-right .bp-chain-pill{display:none!important}
+  html.anav-tool-in .anav-right .bp-topbar-right{display:flex;align-items:center;gap:8px;position:static;margin:0}
+  html.anav-tool-in .bp-topbar{display:none!important}
+  body.bigpad-page .bp-topbar{position:relative!important;top:auto!important;left:auto!important;right:auto!important;height:auto!important;padding:10px 14px 0!important;justify-content:flex-end;z-index:2}
+  .anav-wallet{height:34px;padding:0 12px 0 10px}
+  .anav-tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:85;height:var(--anav-bot);padding-bottom:env(safe-area-inset-bottom);
+    background:rgba(5,9,22,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--anav-line);font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .anav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;color:#8592b0!important;font-size:11px!important;font-weight:600!important;-webkit-tap-highlight-color:transparent}
+  .anav-tab .anav-i{width:22px;height:22px}
+  .anav-tab.on{color:#fff!important}
+  .anav-tab.on::before{content:"";position:absolute;top:0;left:30%;right:30%;height:2px;border-radius:0 0 2px 2px;background:linear-gradient(90deg,var(--anav-blue),var(--anav-green))}
+}
+@media (max-width:380px){.anav-logo span{display:none}}
+@media (max-width:440px){html.anav-tool-in .anav-logo span{display:none}}
+@media (prefers-reduced-motion:reduce){
+  .anav-panel{animation:none}
+  .anav-sheet-in,.anav-scrim,.anav-chev{transition:none}
+}
+.anav a:focus-visible,.anav button:focus-visible,.anav-tabs :focus-visible,.anav-sheet :focus-visible{outline:2px solid #7fb0ff;outline-offset:2px}
+
+/* ---- home: a shorter hero, then the four menus side by side ---- */
+html.anav-home .ax-hero{min-height:0!important;padding:48px 20px 36px!important}
+html.anav-home .ax-mark{width:clamp(150px,17vw,220px)!important;margin:14px auto 4px!important}
+html.anav-home .ax-title{font-size:clamp(2.2rem,4.4vw,3.4rem)!important;margin-bottom:10px!important}
+html.anav-home .hm-scroll{display:none!important}
+.hm-map-sec{padding-top:8px!important}
+.hm-map-h{font-size:clamp(1.25rem,2vw,1.6rem);font-weight:700;margin:0 0 16px;color:#fff;letter-spacing:-.01em}
+.hm-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.hm-mapc{border:1px solid rgba(150,175,255,.14);border-radius:18px;background:linear-gradient(180deg,rgba(14,22,48,.72),rgba(8,12,28,.72));padding:16px 10px 10px}
+.hm-mapc-h{display:flex;align-items:center;gap:11px;padding:0 8px 12px;margin-bottom:6px;border-bottom:1px solid rgba(150,175,255,.1)}
+.hm-mapc-h>.anav-i{width:34px;height:34px;padding:7px;border-radius:10px;color:#fff;background:linear-gradient(140deg,#3f7cff,#22c99a)}
+.hm-mapc-h b{display:block;font-size:16px;font-weight:700;color:#fff}
+.hm-mapc-h small{display:block;font-size:12px;color:#97a3c0;margin-top:2px}
+.hm-mapc-l{display:grid;gap:1px}
+.hm-mapc-l a{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;color:#e3e9f6;text-decoration:none;transition:background .12s}
+.hm-mapc-l a:hover,.hm-mapc-l a:focus-visible{background:rgba(120,150,255,.09)}
+.hm-mapc-l .anav-i{width:17px;height:17px;color:#9cc0ff}
+.hm-mapc-l b{display:block;font-size:13.5px;font-weight:600}
+.hm-mapc-l small{display:block;font-size:11.5px;color:#8b97b3;line-height:1.35}
+@media (max-width:1100px){.hm-map{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.hm-map{grid-template-columns:1fr 1fr;gap:10px}.hm-mapc{padding:12px 6px 6px}.hm-mapc-h{padding:0 6px 10px;gap:9px}.hm-mapc-h>.anav-i{width:30px;height:30px;padding:6px}.hm-mapc-h small,.hm-mapc-l small{display:none}.hm-mapc-l a{padding:7px 6px;gap:8px}html.anav-home .ax-hero{padding:32px 16px 24px!important}}

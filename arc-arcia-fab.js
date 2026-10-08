@@ -9,7 +9,7 @@
   var me = document.currentScript && document.currentScript.src;
   var v = (/[?&]v=(\d+)/.exec(me || "") || [])[1] || "";
   var BUNDLE = "/arcia.bundle.js" + (v ? "?v=" + v : "");
-  var BARS = ".ax-quick, .ax-dock, .cpx-bar, .asn-sticky";
+  var BARS = ".anav-tabs, .ax-quick, .ax-dock, .cpx-bar, .asn-sticky";
   var b = null, st = 0, waiters = [], bare = false;
   var tr = function (s) { return (window.arcI18n && window.arcI18n.get() !== "en" && window.arcI18n.translate(s)) || s; };
 
