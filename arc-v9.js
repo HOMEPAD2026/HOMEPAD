@@ -369,7 +369,7 @@
         el.__v9p = Date.now(); el.classList.add("v9-skel");
         var mo = new MutationObserver(function () { if (el.textContent.trim() !== "—") { el.classList.remove("v9-skel", "v9-na"); mo.disconnect(); } });
         mo.observe(el, { childList: true, characterData: true, subtree: true });
-        setTimeout(function () { if (el.classList.contains("v9-skel")) { el.classList.remove("v9-skel"); el.classList.add("v9-na"); el.title = L("Not available right now — Arc didn't answer. It fills in by itself when it does.", "지금은 불러올 수 없어요 — Arc 응답이 오면 자동으로 채워져요.", "暂时无法读取——Arc 响应后会自动显示。"); } }, 12000);
+        setTimeout(function () { if (el.classList.contains("v9-skel")) { el.classList.remove("v9-skel"); el.classList.add("v9-na"); el.title = L("Not available right now — Arc didn't answer. It fills in by itself when it does.", "지금은 불러올 수 없어요 — Arc 응답이 오면 자동으로 채워져요.", "暂时无法读取——Arc 响应后会自动显示。"); } }, 6000);
       });
     }
     mark(); setInterval(mark, 1500);
@@ -459,7 +459,8 @@
     buyToast();
     priceFlash();
     burnPulse();
-    countIn();
+    // v11: numbers no longer count up from zero on every visit (they flash only when they change: priceFlash)
+    // countIn();
     pending();
     arciaBubble();
     compactNav();

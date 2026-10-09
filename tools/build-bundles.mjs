@@ -29,7 +29,7 @@ export const BUNDLES = {
     "i18n-boot.js", "arc-solwallet.js", ...COMMON_HEAD, "arc-fmt.js", "arc-lazy.js", "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
     "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
     "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-coinhead.js", "arc-filters.js", "arc-argus.js", "arc-pons.js", "arc-pump.js", "arc-chartev.js", "arcpad-v6.js", "arcpad-v7.js", "arcpad-v7-coin.js", "arc-tour.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "arc-tglink.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "arc-tglink.js", "i18n.js",
   ],
   // The utilities (Locker, Bridge, Scanner, Multisender, Snapshot, Relay, ARCIA, Liquidity, OMNI) are ~half of
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
@@ -39,25 +39,25 @@ export const BUNDLES = {
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad-boot.js", "circlepad-plan.js", "circlepad.js", "circlepad-conv.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-rounds.js", "circlepad-live.js", "circlepad-look.js", "circlepad-v5.js", "circlepad-v9.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-rounds.js", "circlepad-live.js", "circlepad-look.js", "circlepad-v5.js", "circlepad-v9.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   "reward.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "reward-engine.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arc-social.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // The $ARCIRCLE page needs no wallet and no ethers (config-arc.js only for
   // the $ARCIRCLE contract / "not live" switch): its numbers come from
   // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
   "arcircle.bundle.js": [
     "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arcircle-plus.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // ARCIA on pages other than ArcPad: arc-arcia-fab.js loads this on the first tap of "Ask ARCIA"
   // (ArcPad itself gets her from arcpad-tools.bundle.js).
   "arcia.bundle.js": ["arc-order-line.js", "arc-arcia.js"],
   // /me, /stats, /roadmap, /brand, /start — small standalone pages (ethers from vendor/).
   "pages.bundle.js": [
-    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-nav.js", "arc-connect.js", "arc-v9.js", "arc-v10.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
 };
 

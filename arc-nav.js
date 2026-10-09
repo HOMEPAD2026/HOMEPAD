@@ -162,7 +162,7 @@
             '<div class="anav-lmenu" hidden>' + LANGS.map(function (l) { return '<button type="button" data-l="' + l[0] + '"' + (lang() === l[0] ? ' aria-current="true"' : "") + ">" + l[1] + "</button>"; }).join("") + "</div></div>" +
           '<a class="anav-chip" href="/arcircle" title="$ARCIRCLE — ' + esc(t("The core coin")) + '"><img src="/images/arcircle-mark-sm.png" alt="" width="160" height="111"><span>$ARCIRCLE</span></a>' +
           '<a class="anav-chip" href="/arcia" title="$ARCIA — ' + esc(t("ARCIA's coin")) + '"><img src="/images/arcia-avatar-96.jpg" alt="" width="96" height="96" class="r"><span>$ARCIA</span></a>' +
-          '<a class="anav-wallet' + (path === "/wallet" ? " on" : "") + '" href="/wallet">' + svg("wallet") + "<span>" + esc(t("Wallet")) + "</span></a>" +
+          '<div class="cw"></div>' + // the wallet button: arc-connect.js fills it (the same one on every page)
         "</div>" +
       "</div>" +
       '<div class="anav-strip" role="navigation" aria-label="' + esc(t("Menu")) + ' 2" hidden><div class="anav-strip-in"></div></div>';

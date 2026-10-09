@@ -80,6 +80,8 @@ page = f'''<!DOCTYPE html>
 {items}
 </main>
 <script src="/arc-nav.js?v={ver}"></script>
+<script src="/arc-connect.js?v={ver}"></script>
+<script src="/arc-chrome.js?v={ver}"></script>
 <script src="/arc-v9.js?v={ver}"></script>
 <script src="/arc-v10.js?v={ver}"></script>
 </body>

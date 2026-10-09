@@ -221,3 +221,85 @@ html.v10 .v10-draw path{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)
 .nb-none a{color:#8fb4ff;text-decoration:none;white-space:nowrap}
 .anav-lmenu:has(.v10-lset){min-width:250px}
 .v10-lset label span{min-width:0}
+
+/* ======================= v11 ======================= */
+/* content shows without waiting for a scroll (the fade-in on every section is gone) */
+html.v10 .rv{opacity:1!important;transform:none!important;transition:none!important}
+/* portfolio without a wallet: one "connect" box, not three */
+html.v10:not(.cw-in) #bp-panel-portfolio #v7-earn{display:none}
+html.v10 #bp-panel-portfolio #v7-follow .empty-state{padding:14px 16px;min-height:0}
+html.v10 #bp-panel-portfolio #v7-follow .empty-state svg,html.v10 #bp-panel-portfolio #v7-follow .empty-state img{display:none}
+/* Orders: a softer "up" green (the side switch, the book, the numbers) */
+#bp-panel-orders{--or-up:#2fd38a}
+/* Ask ARCIA: small while you scroll, back when you stop */
+.aa-fab{transition:padding .2s ease,transform .2s ease,box-shadow .2s ease,opacity .2s ease}
+.aa-fab span{transition:max-width .2s ease,opacity .15s ease;display:inline-block;max-width:120px;overflow:hidden;white-space:nowrap}
+.aa-fab.v11-mini{padding:5px!important;gap:0!important}
+.aa-fab.v11-mini span{max-width:0;opacity:0}
+@media (prefers-reduced-motion:reduce){.aa-fab,.aa-fab span{transition:none}}
+
+/* ---------------- v11: one page header ---------------- */
+/* titles in white — the gradient stays on the logo and the home page's wordmark */
+.ax-token-hero h1 span,.rw-hero h1 span,.pg-hero h1 span,.rw-hero-burn h1 span{background:none!important;-webkit-text-fill-color:currentColor;color:#fff!important}
+.pg-hero h1 span{color:var(--text-2)!important;font-weight:inherit}
+.pg-me .pg-hero h1 span{color:#fff!important}
+/* the small line above a title: sentence case, quiet */
+.ax-eyebrow,.ax-badge{text-transform:none!important;letter-spacing:0!important;font:600 13px var(--f-ui)!important}
+html:not(.anav-home) .ax-eyebrow{color:var(--text-2)!important;background:none!important;border:0!important;padding:0!important}
+/* ArcPad utilities: no "UTILITY · …" line (the title and its one-line intro say it), a smaller emblem */
+.bp-panel .ams-kicker,.bp-panel .asc-kicker,.bp-panel .lkr-kicker,.bp-panel .abr-kicker,.bp-panel .asn-kick{display:none!important}
+.bp-panel .ams-emblem,.bp-panel .asc-emblem,.bp-panel .lkr-emblem,.bp-panel .abr-emblem,.bp-panel .asn-emblem,.bp-panel .alq-emblem,.bp-panel .vea-emblem,.bp-panel .wk-emblem{width:56px!important;height:56px!important;border-radius:var(--r-card)!important}
+.bp-panel .ams-emblem img,.bp-panel .asc-emblem img,.bp-panel .lkr-emblem img,.bp-panel .abr-emblem img,.bp-panel .asn-emblem img,.bp-panel .alq-emblem img,.bp-panel .vea-emblem img,.bp-panel .wk-emblem img{max-width:100%;max-height:100%}
+.bp-panel .ams-hero{gap:6px 16px!important;align-items:start!important}
+/* calm backgrounds: the art and glow stay faint, no stars */
+.ax-bg-art{opacity:.1!important;filter:blur(3px) saturate(.7)}
+.ax-bg-glow{opacity:.5!important}
+.ax-stars{display:none!important}
+/* Orders: the same page width as every other utility */
+@media (min-width:1440px){html.v10 .bp-scroll:has(#bp-panel-orders.active){max-width:1180px!important}}
+
+/* ---------------- v11: first screens lead with the action ---------------- */
+/* $ARCIRCLE: Buy and Chart right under the intro; the contracts and their note after */
+.ax-token-hero>div:first-child{display:flex;flex-direction:column;align-items:flex-start}
+.ax-token-hero>div:first-child>*{order:10}
+.ax-token-hero>div:first-child>.ax-eyebrow{order:0}
+.ax-token-hero>div:first-child>h1{order:1}
+.ax-token-hero>div:first-child>.ax-lede{order:2}
+.ax-token-hero>div:first-child>.ax-actions{order:3;margin:6px 0 10px}
+.ax-token-hero>div:first-child>.ax-burn-pill{order:4;margin-bottom:14px}
+.ax-token-hero>div:first-child>.ax-ca{order:5;width:100%}
+.ax-token-hero>div:first-child>.ax-ca-note{order:6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.ax-token-hero>div:first-child>.ax-ca-note.open{display:block}
+.ax-token-hero>div:first-child>.ac-safe{order:7}
+@media (max-width:760px){.ax-token-hero .ax-coin{max-width:130px!important;max-height:130px!important;margin:0 auto 4px!important}.ax-token-hero .ax-coin picture,.ax-token-hero .ax-coin img{max-width:100px!important;max-height:100px!important}}
+/* Launch: the 3-step starter goes away once a wallet is connected (the 4-step form is the guide) */
+html.cw-in #v9-guide{display:none!important}
+
+/* ---------------- v11: features ---------------- */
+.v11-keys{margin:10px 2px 0;color:var(--text-2);font:500 11.5px var(--f-ui)}
+.v11-keys kbd{display:inline-block;min-width:18px;padding:1px 5px;border-radius:5px;border:1px solid var(--sec-line);background:var(--sec-bg);color:var(--text);font:600 11px var(--f-num);text-align:center}
+@media (max-width:900px),(pointer:coarse){.v11-keys{display:none}}
+html.v11-cmp-on .v7-cmpb{opacity:1!important;display:grid!important}
+html.v11-cmp-on #ap-explore-grid .launch-card{outline:1px dashed rgba(140,180,255,.25);outline-offset:-1px}
+.v11-cmp.on{color:#fff;border-color:var(--sel-line);background:var(--sel-bg)}
+.v11-start{margin:0 0 18px;padding:16px;border-radius:var(--r-card);border:1px solid rgba(110,160,255,.25);background:rgba(110,160,255,.05)}
+.v11-start-h{display:flex;align-items:baseline;justify-content:space-between}
+.v11-start-h h2{margin:0;font:700 1.05rem var(--f-ui);color:#fff}
+.v11-start-h span{font:600 13px var(--f-num);color:var(--text-2)}
+.v11-start-bar{height:6px;margin:10px 0 12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.v11-start-bar i{display:block;height:100%;border-radius:999px;background:var(--pri);transition:width .6s var(--v10-ease)}
+.v11-start ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.v11-start li a{display:flex;gap:10px;align-items:flex-start;height:100%;padding:10px;border-radius:var(--r-ctl);border:1px solid rgba(170,190,230,.14);background:rgba(255,255,255,.02);color:var(--text);text-decoration:none}
+.v11-start li a:hover{border-color:rgba(170,190,230,.3)}
+.v11-start li i{flex:0 0 18px;height:18px;margin-top:1px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #6c7891}
+.v11-start li.ok i{box-shadow:none;background:#34d3b4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%2303121b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.v11-start li.ok b{color:var(--text-2);text-decoration:line-through;text-decoration-color:rgba(169,181,203,.5)}
+.v11-start b{display:block;font:600 13.5px var(--f-ui)}
+.v11-start small{display:block;color:var(--text-2);font-size:12px;margin-top:2px}
+@media (max-width:760px){.v11-start ol{grid-template-columns:1fr 1fr}}
+/* one place for messages: bottom centre on desktop, above the tab bar on phones (tx rings sit just above) */
+#arc-toasts{top:auto!important;bottom:calc(var(--anav-bot,0px) + 22px)!important;flex-direction:column-reverse!important}
+.arc-toast,.v9-toast{background:#0b1224!important;border:1px solid rgba(170,190,230,.22)!important;border-radius:999px!important;font:600 13px var(--f-ui)!important;color:#e4ebf4!important;box-shadow:0 14px 34px rgba(0,0,0,.45)!important}
+.arc-toast-dot{background:#34d3b4!important;box-shadow:none!important}
+@media (min-width:901px){.txr-host{left:50%!important;transform:translateX(-50%);bottom:84px!important}}
+html.v10 .pg-in{animation:none!important}

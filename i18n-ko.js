@@ -8477,6 +8477,7 @@
     "Open Staking": "스테이킹 열기",
     "Everything to claim, in one place": "받을 보상을 한곳에서",
     "ARCIRCLE Wallet": "ARCIRCLE 지갑",
+    "Community-funded launches · Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop": "커뮤니티 펀딩 런칭 · 다음은 라운드 #5 · 라운드 #3 + #4 보상: 스냅샷 에어드랍",
   };
 
 

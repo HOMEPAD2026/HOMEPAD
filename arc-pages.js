@@ -99,13 +99,21 @@
       return outR;
     };
     form.addEventListener("submit", function (e) { e.preventDefault(); show(input.value.trim()); });
+    // v11: the site's one wallet button (arc-connect.js) — the same connect as every page, and its remembered address
     $("#me-connect").addEventListener("click", async function () {
+      var W = window.arcConnect;
+      if (W) { try { if (!W.address() || !W.live()) await W.connect(); var a0 = W.address(); if (a0) { input.value = a0; show(a0); } } catch (e) { /* cancelled */ } return; }
       if (!window.ethereum) { out.innerHTML = '<p class="pg-bad">' + T("No browser wallet found — paste your address instead.") + "</p>"; return; }
       try { var acc = await window.ethereum.request({ method: "eth_requestAccounts" }); if (acc && acc[0]) { input.value = acc[0]; show(acc[0]); } } catch (e) { /* cancelled */ }
     });
     var q = new URLSearchParams(location.search).get("w");
     if (isAddr(q)) { input.value = q; show(q); }
-    else if (window.ethereum && window.ethereum.request) window.ethereum.request({ method: "eth_accounts" }).then(function (a) { if (a && a[0] && !input.value) { input.value = a[0]; show(a[0]); } }).catch(function () {});
+    else setTimeout(function () {
+      var W = window.arcConnect, a1 = W && W.address();
+      if (a1 && !input.value) { input.value = a1; show(a1); }
+      else if (!a1 && window.ethereum && window.ethereum.request) window.ethereum.request({ method: "eth_accounts" }).then(function (a) { if (a && a[0] && !input.value) { input.value = a[0]; show(a[0]); } }).catch(function () {});
+    }, 600);
+    if (window.arcConnect && !isAddr(q)) window.arcConnect.on(function (a) { if (a && input.value.toLowerCase() !== a) { input.value = a; show(a); } });
   }
 
   // ================= /stats =================

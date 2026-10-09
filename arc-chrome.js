@@ -141,15 +141,16 @@
       paint();
     }
   }
-  function bell(host) {
-    if (host.querySelector(".nb-btn")) return;
+  function bell(host, before) {
+    if (host.querySelector(".nb-btn") || (btn && document.body.contains(btn) && btn.offsetParent !== null)) return;
     var wrap = document.createElement("div");
     wrap.className = "nb";
     wrap.innerHTML = '<button type="button" class="nb-btn" aria-haspopup="true" aria-expanded="false" aria-label="Alerts">' +
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2H4.5z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg><span class="nb-n" hidden>0</span></button>' +
       '<div class="nb-panel" hidden><div class="nb-h"><b>Alerts</b><a href="/roadmap">' + esc(tr("Roadmap")) + ' →</a></div><ul class="nb-list"></ul></div>';
     var search = host.querySelector(".ck-btn");
-    if (search) search.insertAdjacentElement("afterend", wrap);
+    if (before && before.parentNode === host) host.insertBefore(wrap, before);
+    else if (search) search.insertAdjacentElement("afterend", wrap);
     else { var cta = host.querySelector(".bp-chain-pill, .ax-top-right, .ax-top-cta"); if (cta) host.insertBefore(wrap, cta); else host.appendChild(wrap); }
     btn = wrap.querySelector(".nb-btn");
     panel = wrap.querySelector(".nb-panel");
@@ -174,10 +175,11 @@
   }
   function init() {
     var top = document.querySelector("header.ax-top");
-    var head = document.querySelector(".bp-topbar-right") || top;
+    // v11: the shared menu bar (arc-nav.js) is where the bell lives, next to the wallet button
+    var head = document.querySelector(".bp-topbar-right") || document.querySelector(".anav-right") || top;
     if (top) switcher(top);
     if (head) {
-      bell(head);
+      bell(head, head.querySelector(":scope > .cw"));
       tidy(head);
       setTimeout(gather, 2500);
       setTimeout(gatherMine, 3500);
@@ -194,5 +196,11 @@
     window.addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function () { /* unsupported */ }); });
   }
 
-  window.arcChrome = { refresh: gather };
+  // v11: every page's menu bar gets the bell next to the wallet button (arc-connect.js asks for it)
+  var belled = false;
+  function mountBell(host, before) {
+    bell(host, before);
+    if (!belled) { belled = true; setTimeout(gather, 1500); setTimeout(gatherMine, 2500); document.addEventListener("arc:v10acct", function () { mineAt = 0; gatherMine(); }); }
+  }
+  window.arcChrome = { refresh: gather, mountBell: mountBell };
 })();

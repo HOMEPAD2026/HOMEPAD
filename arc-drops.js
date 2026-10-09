@@ -103,6 +103,8 @@
   D.getElementById("dr-f").addEventListener("submit", function (e) { e.preventDefault(); check(D.getElementById("dr-w").value); });
   var mineBtn = D.getElementById("dr-mine");
   if (mineBtn) mineBtn.addEventListener("click", function () {
+    var W = window.arcConnect; // v11: the site's one wallet button
+    if (W) { Promise.resolve(W.address() && W.live() ? null : W.connect()).then(function () { var a = W.address(); if (a) { D.getElementById("dr-w").value = a; check(a); } }).catch(function () { /* declined */ }); return; }
     var eth = window.ethereum; if (!eth) { D.getElementById("dr-msg").textContent = L("No wallet found in this browser — paste the address instead.", "이 브라우저에 지갑이 없어요 — 주소를 붙여 넣어 주세요.", "此浏览器没有钱包——请粘贴地址。"); return; }
     eth.request({ method: "eth_requestAccounts" }).then(function (a) { if (a && a[0]) { D.getElementById("dr-w").value = a[0]; check(a[0]); } }).catch(function () { /* declined */ });
   });
@@ -111,4 +113,5 @@
   paint();
   var q = new URLSearchParams(location.search).get("w");
   if (isAddr(q)) { D.getElementById("dr-w").value = q; check(q); }
+  else setTimeout(function () { var a = window.arcConnect && window.arcConnect.address(); if (a && !D.getElementById("dr-w").value) { D.getElementById("dr-w").value = a; check(a); } }, 700);
 })();

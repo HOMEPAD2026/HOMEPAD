@@ -8647,6 +8647,7 @@
     "Open Staking": "打开质押",
     "Everything to claim, in one place": "所有可领取的,集中一处",
     "ARCIRCLE Wallet": "ARCIRCLE 钱包",
+    "Community-funded launches · Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop": "社区募资发币 · 下一轮为第 5 轮 · 第 3 + 4 轮奖励:快照空投",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

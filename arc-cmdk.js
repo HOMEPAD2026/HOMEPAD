@@ -14,7 +14,8 @@
     ["Home", "ARCIRCLE PAD", "/", "page"],
     ["ArcPad", "Launch a coin in one transaction", "/arc", "page"],
     ["Launch a coin", "ArcPad launch form", "/arc#launch", "page"],
-    ["CirclePad", "Community-funded launches · Round #2 postponed · Rounds #3 + #4 merging", "/circle", "page"],
+    // the round line follows CONFIG.CIRCLEPAD_STATUS (config-arc.js), so it never goes stale here
+    ["CirclePad", "Community-funded launches" + ((window.CONFIG && CONFIG.CIRCLEPAD_STATUS && CONFIG.CIRCLEPAD_STATUS.line) ? " · " + CONFIG.CIRCLEPAD_STATUS.line : ""), "/circle", "page"],
     ["$ARCIRCLE", "Price, holders, burns and buybacks", "/arcircle", "page"],
     ["Relay Launch", "Every CirclePad coin relayed to holders", "/relay", "page"],
     ["Reward", "Holder rewards", "/reward", "page"],

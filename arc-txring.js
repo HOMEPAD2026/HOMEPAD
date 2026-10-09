@@ -48,11 +48,13 @@
     set(0.18, "Confirm in your wallet", esc(tr("Waiting for your signature")));
     var ex = EXPL; // the transaction's own chain's explorer (Robinhood Chain for veARCIA, Pons, Orders RH…)
     var link = function (h) { return '<a href="' + esc(ex + "/tx/" + h) + '" target="_blank" rel="noopener">' + esc(h.slice(0, 10) + "…" + h.slice(-6)) + " ↗</a>"; };
+    var cur = "";
+    var tell = function (h, st) { if (!h) return; cur = h; try { document.dispatchEvent(new CustomEvent("arc:tx", { detail: { h: h, s: st, ex: ex } })); } catch (e) { /* old browser */ } };
     return {
       chain: function (cid) { if (Number(cid) === 4663) ex = (typeof CONFIG !== "undefined" && CONFIG.PONS && CONFIG.PONS.EXPLORER) || "https://robinhoodchain.blockscout.com"; },
-      sent: function (h) { if (done) return; set(0.55, "Transaction submitted", esc(tr("Waiting for a block")) + " · " + link(h), "sent"); },
-      mined: function (h) { if (done) return; done = true; set(1, "Transaction confirmed", link(h), "ok"); el.querySelector(".txr-mark").innerHTML = CHECK; if (typeof window.arcHaptic === "function") window.arcHaptic("milestone"); close(4200); },
-      failed: function (h, why) { if (done) return; done = true; set(1, why === "rejected" ? "Cancelled in wallet" : "Transaction failed", h ? link(h) : esc(tr(why === "rejected" ? "Nothing was sent." : "Nothing changed — you can try again."))); el.classList.add(why === "rejected" ? "cancel" : "bad"); el.querySelector(".txr-mark").innerHTML = CROSS; close(why === "rejected" ? 2600 : 6000); },
+      sent: function (h) { if (done) return; tell(h, "pending"); set(0.55, "Transaction submitted", esc(tr("Waiting for a block")) + " · " + link(h), "sent"); },
+      mined: function (h) { if (done) return; done = true; tell(h, "ok"); set(1, "Transaction confirmed", link(h), "ok"); el.querySelector(".txr-mark").innerHTML = CHECK; if (typeof window.arcHaptic === "function") window.arcHaptic("milestone"); close(4200); },
+      failed: function (h, why) { if (done) return; done = true; tell(h, "fail"); set(1, why === "rejected" ? "Cancelled in wallet" : "Transaction failed", h ? link(h) : esc(tr(why === "rejected" ? "Nothing was sent." : "Nothing changed — you can try again."))); el.classList.add(why === "rejected" ? "cancel" : "bad"); el.querySelector(".txr-mark").innerHTML = CROSS; close(why === "rejected" ? 2600 : 6000); },
     };
   }
   var rejected = function (e) { var m = String((e && (e.code || e.shortMessage || e.message)) || ""); return /ACTION_REJECTED|4001|user rejected|user denied|rejected the request/i.test(m + " " + String(e && e.info && e.info.error && e.info.error.code)); };
@@ -86,7 +88,7 @@
   }, true);
   function celebrate() {
     if (reduce) return;
-    var target = document.getElementById("wallet-pill-btn") || document.getElementById("wallet-slot");
+    var target = document.querySelector(".cw-b") || document.getElementById("wallet-pill-btn") || document.getElementById("wallet-slot");
     var r = target ? target.getBoundingClientRect() : { left: innerWidth - 120, top: 16, width: 100, height: 36 };
     var el = document.createElement("div");
     el.className = "wcr";

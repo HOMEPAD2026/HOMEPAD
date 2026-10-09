@@ -218,7 +218,7 @@
       if (a && a !== last && isAddr(a)) { last = a; store.set("arc.v10.acct", a); D.dispatchEvent(new CustomEvent("arc:v10acct", { detail: a })); }
     }, 1500);
   }
-  api.account = function () { var a = store.get("arc.v10.acct"); return isAddr(a) ? a : ""; };
+  api.account = function () { var c = window.arcConnect && window.arcConnect.address(); if (c) return c; var a = store.get("arc.v10.acct"); return isAddr(a) ? a : ""; };
 
   // ---------------- My ARCIRCLE: everything to claim ----------------
   var getJson = function (u) { return fetch(u, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
@@ -267,7 +267,7 @@
       id.insertAdjacentElement("afterend", box);
       api.claims(addr).then(function (rows) {
         var arcReady = rows.filter(function (r) { return r.ready && !r.other; });
-        var mine = api.account() === addr;
+        var mine = api.account() === addr || (window.arcConnect && window.arcConnect.address() === addr);
         box.innerHTML = '<div class="v10-claims-h"><h2>' + esc(L("Ready to claim", "받을 수 있는 보상", "可领取")) + "</h2>" +
           (arcReady.length ? (mine ? '<button type="button" class="ld-btn pri" data-v10claim>' + esc(L("Claim all on Arc", "Arc에서 모두 수령", "在 Arc 上全部领取")) + " (" + arcReady.length + ")</button>"
             : '<a class="ld-btn" href="/arc#staking">' + esc(L("Connect this wallet to claim", "이 지갑을 연결해서 수령", "连接此钱包以领取")) + "</a>") : "") + "</div>" +
@@ -275,6 +275,7 @@
             return "<li><span>" + esc(r.t) + '</span><span><b data-no-i18n>' + esc(r.v) + '</b> <span class="v10-st' + (r.ready ? " ok" : "") + '">' + esc(r.ready ? L("ready", "수령 가능", "可领取") : r.warn ? "" : "—") + '</span> <a href="' + esc(r.href) + '">' + esc(L("Open", "열기", "打开")) + " →</a></span></li>";
           }).join("") + "</ul>" : '<p class="v10-claims-empty">' + esc(L("Nothing to claim yet. Lock $ARCIRCLE on Staking to get USDC every week and a piece of every new ArcPad coin.", "아직 받을 보상이 없어요. 스테이킹에서 $ARCIRCLE을 락업하면 매주 USDC와 새 ArcPad 코인을 받아요.", "暂无可领取的奖励。在质押页面锁仓 $ARCIRCLE,每周可得 USDC,还能分到每个新 ArcPad 币。")) + ' <a href="/arc#staking">' + esc(L("Open Staking", "스테이킹 열기", "打开质押")) + " →</a></p>");
         box.dataset.rows = JSON.stringify(arcReady.map(function (r) { return { k: r.k, tokens: r.tokens || [], vault: r.vault || "" }; }));
+        if (mine && !out.querySelector(".v11-start")) meStart(addr, box);
       });
     };
     out.addEventListener("click", function (e) {
@@ -293,13 +294,15 @@
   }
   /// Staking USDC + Launch Drop, on Arc, one after the other (each is the wallet's own transaction)
   function claimAll(rows, say) {
-    var eth = window.ethereum;
-    if (!eth || typeof ethers === "undefined") { say(L("Open this in a wallet browser", "지갑 브라우저에서 열어주세요", "请在钱包浏览器中打开")); return Promise.resolve(false); }
     var C = window.CONFIG || {};
     var STK = C.STAKING_ADDRESS;
-    return eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] }).catch(function () { return null; }).then(function () {
-      var signer = new ethers.BrowserProvider(eth).getSigner();
-      return signer.then(function (s) {
+    // v11: the wallet from the site's one wallet button (arc-connect.js), else the browser's
+    var getP = window.arcConnect ? Promise.resolve(window.arcConnect.provider()) : Promise.resolve(window.ethereum);
+    return getP.then(function (eth) {
+      if (!eth || typeof ethers === "undefined") { say(L("Open this in a wallet browser", "지갑 브라우저에서 열어주세요", "请在钱包浏览器中打开")); return false; }
+      return eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] }).catch(function () { return null; }).then(function () {
+        return new ethers.BrowserProvider(eth).getSigner();
+      }).then(function (s) {
         var chain = Promise.resolve();
         rows.forEach(function (r) {
           chain = chain.then(function () {
@@ -324,6 +327,97 @@
   }
   api.fly = fly;
 
+  // ---------------- v11: Ask ARCIA shrinks while you scroll ----------------
+  function fabScroll() {
+    var t = 0, lastY = window.scrollY;
+    window.addEventListener("scroll", function () {
+      var f = D.querySelector(".aa-fab");
+      if (!f) return;
+      if (Math.abs(window.scrollY - lastY) > 24) f.classList.add("v11-mini");
+      lastY = window.scrollY;
+      clearTimeout(t);
+      t = setTimeout(function () { f.classList.remove("v11-mini"); }, 900);
+    }, { passive: true });
+  }
+
+  // ---------------- v11: the $ARCIRCLE contracts note opens on a tap ----------------
+  function caNote() {
+    var n = D.querySelector(".ax-token-hero .ax-ca-note");
+    if (!n || n.dataset.v11) return;
+    n.dataset.v11 = "1";
+    n.title = L("Tap to read all", "눌러서 전체 보기", "点击查看全部");
+    n.addEventListener("click", function (e) { if (e.target.closest("a")) return; n.classList.toggle("open"); });
+  }
+
+  // ---------------- v11: coin page shortcuts (desktop) ----------------
+  function coinKeys() {
+    var panel = D.getElementById("bp-panel-coin");
+    if (!panel || panel.dataset.v11k) return;
+    panel.dataset.v11k = "1";
+    var swap = D.getElementById("apc-swap");
+    if (swap && !swap.querySelector(".v11-keys")) {
+      var h = D.createElement("p");
+      h.className = "v11-keys";
+      h.innerHTML = L("Keys", "단축키", "快捷键") + ': <kbd>B</kbd> ' + esc(L("buy", "매수", "买入")) + ' · <kbd>S</kbd> ' + esc(L("sell", "매도", "卖出")) + ' · <kbd>1</kbd>–<kbd>4</kbd> $1 / $5 / $10 / $50';
+      swap.appendChild(h);
+    }
+    D.addEventListener("keydown", function (e) {
+      if (!panel.classList.contains("active") || e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target, tag = t && t.tagName;
+      if (e.key === "Escape" && tag === "INPUT" && t.id === "apc-amount") { t.blur(); return; }
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+      if (D.querySelector(".cw-modal, .cw-m:not([hidden]), .anav-sheet.in")) return;
+      var k = e.key.toLowerCase(), tabs = panel.querySelectorAll("#apc-swap .ac2-swap-tabs button"), q = panel.querySelectorAll("#apc-quick button");
+      if ((k === "b" || k === "s") && tabs.length >= 2) { e.preventDefault(); tabs[k === "b" ? 0 : 1].click(); var a = D.getElementById("apc-amount"); if (a) a.focus(); }
+      else if (/^[1-4]$/.test(k) && q[Number(k) - 1]) { e.preventDefault(); q[Number(k) - 1].click(); }
+    });
+  }
+
+  // ---------------- v11: Explore — a visible "Compare" ----------------
+  function compareBtn() {
+    var bar = D.querySelector("#bp-panel-explore .cn-explore-toolbar");
+    if (!bar || bar.querySelector(".v11-cmp")) return;
+    var b = D.createElement("button");
+    b.type = "button"; b.className = "flt-btn v11-cmp"; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"/></svg><span>' + esc(L("Compare", "비교", "比较")) + "</span>";
+    var f = bar.querySelector("#ap-filter-btn");
+    bar.insertBefore(b, f || null);
+    b.addEventListener("click", function () {
+      var on = H.classList.toggle("v11-cmp-on");
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.classList.toggle("on", on);
+      if (on && typeof window.arcToast === "function") window.arcToast(L("Pick 2 or 3 coins to compare", "비교할 코인을 2~3개 고르세요", "选择 2 到 3 个币进行比较"), "info");
+    });
+  }
+
+  // ---------------- v11: My ARCIRCLE — getting started, for a wallet that's just begun ----------------
+  function meStart(addr, box) {
+    var C = window.CONFIG || {};
+    var rpcUrl = C.RPC_URL || "https://rpc.mainnet.arc.io";
+    Promise.all([
+      fetch(rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [addr, "latest"] }) }).then(function (r) { return r.json(); }).catch(function () { return null; }),
+      getJson("/api/social?token=arcircle&wallet=" + addr),
+      getJson("/api/desk?stake=me&u=" + addr),
+    ]).then(function (r) {
+      var usdc = 0; try { usdc = Number(BigInt((r[0] && r[0].result) || "0x0") / 10n ** 14n) / 1e4; } catch (e) { /* none */ }
+      var w = r[1] && r[1].wallet, st = r[2] || {};
+      var earned = (st.history || []).reduce(function (a, h) { return a + (h.earned || 0); }, 0);
+      var steps = [
+        [usdc >= 0.5, L("USDC on Arc", "Arc에 USDC", "Arc 上的 USDC"), L("Gas and buys are paid in USDC", "가스와 매수 모두 USDC", "Gas 和买入都用 USDC"), "/start"],
+        [!!(w && Number(w.balance) > 0), L("Hold $ARCIRCLE", "$ARCIRCLE 보유", "持有 $ARCIRCLE"), L("The core coin", "핵심 코인", "核心币"), "/arcircle"],
+        [!!(st.lock && st.lock.amount > 0), L("Lock it for veARCIRCLE", "락업해서 veARCIRCLE 받기", "锁仓获得 veARCIRCLE"), L("USDC every week + every new coin's drop", "매주 USDC + 새 코인 드랍", "每周 USDC + 每个新币空投"), "/arc#staking"],
+        [earned > 0, L("Your first reward", "첫 보상 받기", "第一笔奖励"), L("Claim it from here", "여기서 수령", "在这里领取"), "/arc#staking"],
+      ];
+      var done = steps.filter(function (x) { return x[0]; }).length;
+      if (done === steps.length) return;
+      var el = D.createElement("section");
+      el.className = "v11-start";
+      el.innerHTML = '<div class="v11-start-h"><h2>' + esc(L("Getting started", "시작하기", "入门")) + '</h2><span>' + done + " / " + steps.length + '</span></div><div class="v11-start-bar"><i style="width:' + (done / steps.length * 100) + '%"></i></div><ol>' +
+        steps.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '"><a href="' + esc(x[3]) + '"><i aria-hidden="true"></i><span><b>' + esc(x[1]) + "</b><small>" + esc(x[2]) + "</small></span></a></li>"; }).join("") + "</ol>";
+      box.insertAdjacentElement("afterend", el);
+    });
+  }
+
   // ---------------- run ----------------
   function init() {
     mountSettings();
@@ -335,7 +429,11 @@
     home();
     meCard();
     watchAccount();
-    if (onArc) D.addEventListener("arcpad:tab", function () { setTimeout(function () { cutLedes(); foldGuides(); explore(); }, 0); tabIn(); });
+    fabScroll();
+    caNote();
+    coinKeys();
+    compareBtn();
+    if (onArc) D.addEventListener("arcpad:tab", function () { setTimeout(function () { cutLedes(); foldGuides(); explore(); compareBtn(); coinKeys(); }, 0); tabIn(); });
     // the bar is rebuilt when the language changes
     D.addEventListener("arc:lang", function () { setTimeout(function () { mountSettings(); mountLangSettings(); }, 50); });
     setTimeout(function () { mountSettings(); mountLangSettings(); foldGuides(); }, 1200);

@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARCIRCLE">
 <link rel="manifest" href="/wallet.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791554930">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791554930">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791560094">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791560094">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -30,6 +30,7 @@
 </script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 @font-face{font-family:"Big Shoulders Display";font-weight:800;font-display:swap;src:url(/fonts/big-shoulders-display-latin-800-normal.woff2) format("woff2")}
 @font-face{font-family:"Big Shoulders Display";font-weight:900;font-display:swap;src:url(/fonts/big-shoulders-display-latin-900-normal.woff2) format("woff2")}
@@ -39,8 +40,9 @@
 @font-face{font-family:"Instrument Sans";font-weight:700;font-display:swap;src:url(/fonts/instrument-sans-latin-700-normal.woff2) format("woff2")}
 :root{
   --night:#060716;--card:#0b0e2c;--card2:#0f1336;--led:#2f6bff;--aurora:#1fe0a6;--heart:#ff6fcf;--gold:#f2cf68;--spot:#f3f5ff;--dim:#a5abc9;--line:rgba(243,245,255,.12);--bad:#ff9a9a;
-  --display:"Big Shoulders Display","Arial Narrow",system-ui,"Apple SD Gothic Neo","Noto Sans KR","PingFang SC",sans-serif;
-  --body:"Instrument Sans",system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","PingFang SC","Noto Sans SC",sans-serif;
+  /* v11: the site's own type (Sora), like every other page */
+  --display:"Sora",system-ui,"Apple SD Gothic Neo","Noto Sans KR","PingFang SC",sans-serif;
+  --body:"Sora",system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","PingFang SC","Noto Sans SC",sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
@@ -198,9 +200,9 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 .steps li::before{content:counter(s);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(31,224,166,.15);color:var(--aurora);font-weight:700;font-size:13px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;padding:10px 16px;border-radius:99px;background:#1b2050;box-shadow:0 10px 30px rgba(0,0,0,.4);font-size:14px}
 </style>
-<link rel="stylesheet" href="/arc-nav.css?v=1791554930">
-<link rel="stylesheet" href="/arc-v9.css?v=1791554930">
-<link rel="stylesheet" href="/arc-v10.css?v=1791554930">
+<link rel="stylesheet" href="/arc-nav.css?v=1791560094">
+<link rel="stylesheet" href="/arc-v9.css?v=1791560094">
+<link rel="stylesheet" href="/arc-v10.css?v=1791560094">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -329,7 +331,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/vendor/qrcode-generator-1.4.4.min.js" defer></script>
-<script src="/wallet-arc.js?v=1791554930"></script>
+<script src="/wallet-arc.js?v=1791560094"></script>
 <script>
 (function () {
   "use strict";
@@ -652,8 +654,10 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   setInterval(function () { if (!document.hidden && S.addr && Date.now() - S.at > 30000) loadBalances(); }, 10000);
 })();
 </script>
-<script src="/arc-nav.js?v=1791554930"></script>
-<script src="/arc-v9.js?v=1791554930"></script>
-<script src="/arc-v10.js?v=1791554930"></script>
+<script src="/arc-nav.js?v=1791560094"></script>
+<script src="/arc-connect.js?v=1791560094"></script>
+<script src="/arc-chrome.js?v=1791560094"></script>
+<script src="/arc-v9.js?v=1791560094"></script>
+<script src="/arc-v10.js?v=1791560094"></script>
 </body>
 </html>
