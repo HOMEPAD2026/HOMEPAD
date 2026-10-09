@@ -19,7 +19,7 @@ const env = (k) => (typeof process !== "undefined" && process.env ? String(proce
 const u256 = (n) => BigInt(n).toString(16).padStart(64, "0");
 const sel = (sig) => keccakHex(Buffer.from(sig, "utf8").toString("hex")).slice(0, 10);
 const W = (h, i) => { const s = strip(h || ""); return s.length >= (i + 1) * 64 ? BigInt("0x" + s.slice(i * 64, (i + 1) * 64)) : 0n; };
-export const VAULT_DEFAULT = ""; // contracts/scripts/deploy-arc-launch-drop-rh.js — filled in once deployed
+export const VAULT_DEFAULT = "0x8e67b75b4B91c5c95c4562F99980371e4f466daA"; // ArcLaunchDropRH, contracts/scripts/deploy-arcpad-rh.js, 2026-10-10
 export const DELAY = 12 * 3600;
 export const CFG = {
   vault: () => { const e = env("LAUNCHDROP_RH_ADDRESS"); return isAddr(e) ? lc(e) : isAddr(VAULT_DEFAULT) ? lc(VAULT_DEFAULT) : ""; },

@@ -18,8 +18,8 @@ export const CFG = {
   rpcs: () => [env("ROBINHOOD_RPC_URL"), "https://rpc.mainnet.chain.robinhood.com"].filter(Boolean),
   ethUsd: null, // tests pin it
 };
-export const FACTORY_DEFAULT = ""; // contracts/scripts/deploy-arcpad-rh.js — filled in once deployed
-export const ROUTER_DEFAULT = "";
+export const FACTORY_DEFAULT = "0x1446Af2D4b86cf31a96bDe8173c2bC39C8a2EEAf"; // contracts/scripts/deploy-arcpad-rh.js, 2026-10-10 (block 84421705)
+export const ROUTER_DEFAULT = "0x0ab746332B5b85091b62cBC6F1Ce90F1557465B3";
 export function configure(o) { Object.assign(CFG, o); ch = null; mem.list = null; }
 let ch = null;
 const chain = () => (ch = ch || evmChain({ rpcs: CFG.rpcs, chainId: 4663 }));

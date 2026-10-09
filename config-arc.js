@@ -315,12 +315,13 @@ const CONFIG = {
   },
   // ArcPad's own launches on Robinhood Chain (arc-arcpad-rh.js, api/_arcpad-rh.mjs, contracts/ArcPadFactoryRH.sol +
   // ArcPadRouterRH.sol): an ETH-paired Uniswap v4 pool from the first block, the same 8% platform allocation and fee
-  // split as ArcPad on Arc, a launch fee of about $1 in ETH. Empty until contracts/scripts/deploy-arcpad-rh.js runs —
-  // the launch form shows Robinhood Chain as "soon" until then. Keep in step with api/_arcpad-rh.mjs FACTORY_DEFAULT.
+  // split as ArcPad on Arc, a launch fee of about $1 in ETH (contracts/scripts/deploy-arcpad-rh.js, 10 Oct 2026). Empty
+  // FACTORY shows Robinhood Chain as "soon". Keep in step with api/_arcpad-rh.mjs and api/_launchdrop-rh.mjs defaults.
   ARCPAD_RH: {
-    FACTORY: "",
-    ROUTER: "",
-    DROP: "", // ArcLaunchDropRH (the merkle vault for the veARCIRCLE Launch Drop on Robinhood Chain)
+    FACTORY: "0x1446Af2D4b86cf31a96bDe8173c2bC39C8a2EEAf", // ArcPadFactoryRH (deploy-arcpad-rh.js, block 84421705, launch fee 0.0004 ETH)
+    ROUTER: "0x0ab746332B5b85091b62cBC6F1Ce90F1557465B3", // ArcPadRouterRH
+    HOOK: "0xD49D2D593FCf79651E2db7f554D4E13f434e8044", // its HomepadHybridHook
+    DROP: "0x8e67b75b4B91c5c95c4562F99980371e4f466daA", // ArcLaunchDropRH (the merkle vault for the veARCIRCLE Launch Drop on Robinhood Chain; root poster: the treasury)
     CHAIN_ID: 4663,
     RPC: "https://rpc.mainnet.chain.robinhood.com",
     EXPLORER: "https://robinhoodchain.blockscout.com",
