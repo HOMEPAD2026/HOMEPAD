@@ -50,6 +50,8 @@
 //   every orders route takes chain=rh (query or body) for Robinhood Chain's book (ArcircleOrdersNative)
 //   GET  /api/social?liqfeed=<poolId,…>[&h=24]   Liquidity Manager: adds, removals, LP locks (last h hours)
 //   GET  /api/social?liqmine=<wallet>            Liquidity Manager: a wallet's positions across every token
+//   GET  /api/social?swaptrades=<poolId>         ARCIRCLE Swap: a pool's latest trades (GeckoTerminal)
+//   GET  /api/social?swapohlc=<poolId>&token=0x…&tf=15m|1h|4h|1d   ARCIRCLE Swap: USD price candles
 //   GET  /api/social?liqtop=arc|rh               Liquidity Manager: trending / established pools with fee yields
 //        (liq, liqfeed, liqmine, liqsafe take &chain=rh for Robinhood Chain)
 //   GET  /api/social?lock=<id>                  Locker: one ArcLock lock (/lock/<id> certificate)
@@ -477,6 +479,17 @@ export async function GET(req) {
   if (url.searchParams.has("liqmine")) {
     if (scanner.limited(`lm:${ip}`, 20, 60e3)) return json(429, { error: "slow down" });
     try { return json(200, await liquidity.mine(url.searchParams.get("liqmine"), { store: scanStore(), budgetMs: 8000, chain: url.searchParams.get("chain") || "arc" }), "no-store"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  // ARCIRCLE Swap (arc-swap.js): a pool's latest trades and its USD price candles (GeckoTerminal)
+  if (url.searchParams.has("swaptrades")) {
+    if (scanner.limited(`st:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await liquidity.poolTrades(url.searchParams.get("swaptrades"), { chain: url.searchParams.get("chain") || "arc" }), "public, max-age=10, s-maxage=15, stale-while-revalidate=60"); }
+    catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
+  }
+  if (url.searchParams.has("swapohlc")) {
+    if (scanner.limited(`so:${ip}`, 40, 60e3)) return json(429, { error: "slow down" });
+    try { return json(200, await liquidity.poolCandles(url.searchParams.get("swapohlc"), { chain: url.searchParams.get("chain") || "arc", token: url.searchParams.get("token") || "", tf: url.searchParams.get("tf") || "1h" }), "public, max-age=20, s-maxage=30, stale-while-revalidate=120"); }
     catch (err) { return json(err && err.status ? err.status : 502, { error: String(err && err.message || err).slice(0, 160) }); }
   }
   // the chain's busiest pools (GeckoTerminal) with v4 fee yields — the Liquidity Manager's dashboard

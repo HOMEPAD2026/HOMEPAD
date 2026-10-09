@@ -747,3 +747,42 @@ export async function top(chain = "arc", { store = null } = {}) {
   await sset(store, key, v);
   return v;
 }
+
+// ---------------------------------------------------------------- ARCIRCLE Swap: a pool's trades and price candles
+// From GeckoTerminal (CoinGecko's on-chain data), kept briefly per instance. A Uniswap v4 pool's GeckoTerminal address
+// is its 32-byte pool id. `token` picks whose price the candles follow (an address in the pool); prices are in USD.
+const swapMem = new Map();
+const poolOk = (p) => /^0x[0-9a-f]{40}$|^0x[0-9a-f]{64}$/.test(p);
+async function gtCached(k, ttl, url, X) {
+  const h = swapMem.get(k);
+  if (h && Date.now() - h.at < ttl) return h.v;
+  const j = await X.io.fetchJson(url, 8000);
+  if (j) { swapMem.set(k, { at: Date.now(), v: j }); if (swapMem.size > 400) swapMem.delete(swapMem.keys().next().value); }
+  return j || (h && h.v) || null;
+}
+export async function poolTrades(pool, { chain = "arc" } = {}) {
+  const X = ctx(chain);
+  pool = lc(pool);
+  if (!poolOk(pool)) throw Object.assign(new Error("pool must be a pool id or address"), { status: 400 });
+  const j = await gtCached(`tr:${X.c}:${pool}`, 15e3, `${GT}/networks/${X.K.gt}/pools/${pool}/trades`, X);
+  if (!j) throw Object.assign(new Error("GeckoTerminal didn't answer — try again in a minute"), { status: 502 });
+  const trades = ((j && j.data) || []).slice(0, 40).map((d) => {
+    const a = d.attributes || {};
+    return { t: a.block_timestamp ? Math.floor(Date.parse(a.block_timestamp) / 1000) : null, kind: a.kind === "sell" ? "sell" : "buy", usd: num(a.volume_in_usd),
+      from: { address: lc(a.from_token_address || ""), amount: num(a.from_token_amount) }, to: { address: lc(a.to_token_address || ""), amount: num(a.to_token_amount) },
+      priceUsd: a.kind === "sell" ? num(a.price_from_in_usd) : num(a.price_to_in_usd), tx: lc(a.tx_hash || ""), wallet: lc(a.tx_from_address || "") };
+  }).filter((x) => x.t && /^0x[0-9a-f]{64}$/.test(x.tx));
+  return { chain: X.c, pool, at: Date.now(), trades };
+}
+const TF = { "15m": ["minute", 15], "1h": ["hour", 1], "4h": ["hour", 4], "1d": ["day", 1] };
+export async function poolCandles(pool, { chain = "arc", token = "", tf = "1h" } = {}) {
+  const X = ctx(chain);
+  pool = lc(pool); token = lc(token);
+  if (!poolOk(pool)) throw Object.assign(new Error("pool must be a pool id or address"), { status: 400 });
+  const [unit, agg] = TF[tf] || TF["1h"];
+  const tq = isAddr(token) ? `&token=${token}` : "";
+  const j = await gtCached(`oh:${X.c}:${pool}:${tf}:${token}`, 30e3, `${GT}/networks/${X.K.gt}/pools/${pool}/ohlcv/${unit}?aggregate=${agg}&limit=200&currency=usd${tq}`, X);
+  if (!j) throw Object.assign(new Error("GeckoTerminal didn't answer — try again in a minute"), { status: 502 });
+  const list = (((j.data || {}).attributes || {}).ohlcv_list || []).map((r) => r.map(Number)).filter((r) => r.length >= 6 && r.every((x) => isFinite(x))).sort((a, b) => a[0] - b[0]);
+  return { chain: X.c, pool, tf: TF[tf] ? tf : "1h", at: Date.now(), candles: list };
+}

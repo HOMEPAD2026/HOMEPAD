@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791585000"></script>
+<script src="arc-log.js?v=1791588573"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791585000">
+<link rel="stylesheet" href="/arc.min.css?v=1791588573">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -2036,7 +2036,7 @@
           </div>
           <div class="ams-hero-txt">
             <span class="ams-kicker">Trade · Any Arc token in one transaction</span>
-            <h1>ARCIRCLE Swap <span class="asc-ver" title="Version 1">v1<i>Pay with $ARCIRCLE · USDC · any token</i></span></h1>
+            <h1>ARCIRCLE Swap <span class="asc-ver" title="Version 2">v2<i>Pay with $ARCIRCLE · USDC · any token</i></span></h1>
             <p class="bp-lede">Buy any coin on Arc with $ARCIRCLE — even one paired with USDC. Swap finds the best route through Arc's Uniswap v4 pools, up to three of them, and does it in one transaction. Every fee feeds the $ARCIRCLE burn.</p>
           </div>
         </div>
@@ -2050,6 +2050,16 @@
               <li>Swap reads the pools of both tokens plus $ARCIRCLE / USDC and quotes every route of up to three pools, for example $ARCIRCLE → USDC → a coin, or a coin → $ARCIRCLE for a coin paired with $ARCIRCLE. The best one is used and drawn on the card.</li>
               <li>The whole route runs in one transaction. If you'd receive less than the quote minus your slippage limit (1% unless you change it), nothing is swapped. Whatever a pool can't take comes back to you.</li>
               <li>Approve the token you pay with once (just the amount, or unlimited), then swap. Arc's gas is paid in USDC, so Max keeps 0.1 USDC aside when you pay with USDC.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Everything on this page</h3></summary>
+            <ul>
+              <li>Swap: the card, the pair's USD price chart (15m, 1H, 4H, 1D — hover a candle for its open, high, low and close) and its latest trades. Review swap shows everything once more, then approves (if needed) and swaps step by step, with the network fee in dollars.</li>
+              <li>Pools: Arc's busiest Uniswap v4 pools with liquidity, 24h volume, 24h LP fees and the fee yield; Swap opens the pair, Add liquidity opens the Liquidity Manager. My positions lists the pools your wallet provides liquidity to.</li>
+              <li>Tokens: every token those pools and ArcPad know, with price, 24h change, volume, liquidity and market cap; Buy with $ARCIRCLE opens the swap.</li>
+              <li>Activity: your swaps, or everyone's, with what was paid, received and burned.</li>
+              <li>Send &amp; Receive: send any token on Arc to an address (typos, burn addresses and the token's own contract are caught before it goes) and show your address with a QR code.</li>
+              <li>The strip at the top shows Arc's latest block and what a typical swap costs in gas; it warns when your wallet is on another network.</li>
             </ul>
           </details>
           <details><summary><h3>Fees and the burn</h3></summary>
@@ -2541,9 +2551,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791585000"></script>
+<script src="wallet-arc.js?v=1791588573"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791585000"></script>
+<script src="arcpad.bundle.js?v=1791588573"></script>
 </body>
 </html>
