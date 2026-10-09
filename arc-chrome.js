@@ -39,6 +39,20 @@
     { id: "news:relay", ts: 1790488800, t: "Relay Launch is in Utilities", s: "Every CirclePad coin relayed to contributors and $ARCIRCLE holders", href: "/relay" },
   ];
   var items = [], btn, panel, open = false, loaded = false;
+  // v10: "Mine" — what the wallet this browser last connected can claim, or has to act on (arc-v10.js)
+  var mine = [], tab = "", mineAt = 0;
+  function gatherMine() {
+    var V = window.arcV10, a = V && V.account && V.account();
+    if (!a || !V.claims) { mine = []; return Promise.resolve(); }
+    if (Date.now() - mineAt < 60000) return Promise.resolve();
+    mineAt = Date.now();
+    return V.claims(a).then(function (rows) {
+      mine = rows.filter(function (r) { return r.ready || r.warn; }).map(function (r) {
+        return { k: r.warn ? "lock" : "claim", t: r.t, s: r.v, href: r.href };
+      });
+      paint();
+    }).catch(function () { /* later */ });
+  }
   var seenAt = function () { var v = Number(store.get(SEEN)); return v > 0 ? v : now() - 3 * 86400; };
   function gather() {
     var tasks = [
@@ -73,16 +87,40 @@
   function unread() { var s = seenAt(); return items.filter(function (i) { return i.ts > s; }).length; }
   function paint() {
     if (!btn) return;
-    var n = unread();
+    var n = unread() + mine.length;
     var badge = btn.querySelector(".nb-n");
     badge.textContent = n > 9 ? "9+" : String(n);
     badge.hidden = !n;
     btn.setAttribute("aria-label", tr("Alerts") + (n ? " (" + n + ")" : ""));
     if (open) list();
   }
+  function tabs() {
+    var t = panel.querySelector(".v10-ntabs");
+    if (!t) {
+      t = document.createElement("div");
+      t.className = "v10-ntabs"; t.setAttribute("role", "tablist");
+      t.innerHTML = '<button type="button" role="tab" data-nt="mine"></button><button type="button" role="tab" data-nt="all"></button>';
+      panel.querySelector(".nb-h").insertAdjacentElement("afterend", t);
+      t.addEventListener("click", function (e) { var b = e.target.closest("[data-nt]"); if (!b) return; e.stopPropagation(); tab = b.getAttribute("data-nt"); list(); });
+    }
+    t.querySelector('[data-nt="mine"]').textContent = tr("For you") + (mine.length ? " (" + mine.length + ")" : "");
+    t.querySelector('[data-nt="all"]').textContent = tr("All");
+    [].forEach.call(t.querySelectorAll("[data-nt]"), function (b) { b.setAttribute("aria-selected", b.getAttribute("data-nt") === tab ? "true" : "false"); });
+  }
   function list() {
+    if (!tab) tab = mine.length ? "mine" : "all";
+    tabs();
     var s = Number(panel.getAttribute("data-seen")) || seenAt();
     var ul = panel.querySelector(".nb-list");
+    if (tab === "mine") {
+      var V = window.arcV10, a = V && V.account && V.account();
+      if (!a) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Connect a wallet on ArcPad and your rewards, claims and lock dates show up here.")) + ' <a href="/arc#staking">' + esc(tr("Open Staking")) + " →</a></li>"; return; }
+      if (!mine.length) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Nothing to claim right now.")) + ' <a href="/me?w=' + esc(a) + '">' + esc(tr("My ARCIRCLE")) + " →</a></li>"; return; }
+      ul.innerHTML = mine.map(function (i) {
+        return '<li class="nb-i nb-' + i.k + ' new"><a href="' + esc(i.href) + '"><i aria-hidden="true"></i><span><b>' + esc(i.t) + '</b><small data-no-i18n>' + esc(i.s) + "</small></span></a></li>";
+      }).join("") + '<li class="nb-none"><a href="/me?w=' + esc(a) + '">' + esc(tr("Everything to claim, in one place")) + " →</a></li>";
+      return;
+    }
     if (!loaded) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Loading…")) + "</li>"; return; }
     if (!items.length) { ul.innerHTML = '<li class="nb-none">' + esc(tr("Nothing new yet.")) + "</li>"; return; }
     ul.innerHTML = items.map(function (i) {
@@ -98,6 +136,7 @@
       panel.querySelector(".nb-h b").textContent = tr("Alerts");
       list();
       if (!loaded) gather();
+      gatherMine();
       store.set(SEEN, String(now()));
       paint();
     }
@@ -141,7 +180,9 @@
       bell(head);
       tidy(head);
       setTimeout(gather, 2500);
-      setInterval(function () { if (!document.hidden) gather(); }, 180000);
+      setTimeout(gatherMine, 3500);
+      document.addEventListener("arc:v10acct", function () { mineAt = 0; gatherMine(); });
+      setInterval(function () { if (!document.hidden) { gather(); gatherMine(); } }, 180000);
     }
   }
   // search (arc-cmdk.js) adds its button on DOMContentLoaded too; wait a tick so the bell sits after it

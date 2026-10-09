@@ -21,7 +21,7 @@
 
   var TR = {
     ko: {
-      Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", Close: "닫기", Menu: "메뉴",
+      "ARCIRCLE Wallet": "ARCIRCLE 지갑", Trade: "트레이드", Earn: "수익", Tools: "도구", More: "더보기", Home: "홈", Wallet: "지갑", Search: "검색", Language: "언어", Close: "닫기", Menu: "메뉴",
       Explore: "탐색", "Every coin on ArcPad, live": "ArcPad의 모든 코인 실시간", Launch: "런치", "Launch a coin with a real pool": "실제 풀과 함께 코인 발행",
       Orders: "주문", "Limit, stop and DCA orders": "지정가·스탑·분할매수 주문", Predict: "예측", "Call UP or DOWN, up to $5": "UP/DOWN 예측, 최대 $5",
       Portfolio: "포트폴리오", "What your wallet holds": "내 지갑 보유 현황", "Fund a launch together": "함께 모금해서 런치",
@@ -38,7 +38,7 @@
       "Launch, buy and sell on Arc": "Arc에서 발행하고 사고팔기", "Stake, burn and get rewarded": "스테이킹·소각으로 보상받기", "Arc's AI idol and her crew": "Arc의 AI 아이돌과 친구들", "Free tools for any Arc token": "모든 Arc 토큰용 무료 도구",
     },
     zh: {
-      Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", Close: "关闭", Menu: "菜单",
+      "ARCIRCLE Wallet": "ARCIRCLE 钱包", Trade: "交易", Earn: "收益", Tools: "工具", More: "更多", Home: "首页", Wallet: "钱包", Search: "搜索", Language: "语言", Close: "关闭", Menu: "菜单",
       Explore: "探索", "Every coin on ArcPad, live": "ArcPad 全部代币，实时", Launch: "发币", "Launch a coin with a real pool": "发行代币，自带真实池子",
       Orders: "订单", "Limit, stop and DCA orders": "限价、止损和定投订单", Predict: "预测", "Call UP or DOWN, up to $5": "猜涨跌，最多 $5",
       Portfolio: "资产", "What your wallet holds": "你的钱包持仓", "Fund a launch together": "一起众筹发币",
@@ -81,7 +81,7 @@
       items: [["scanner", "Scanner", "Safety-scan any token", "/arc#scanner", "scan"], ["locker", "Locker", "Lock tokens or LP", "/arc#locker", "lock"],
         ["bridge", "Bridge", "Move coins between chains", "/arc#bridge", "bridge"], ["multisend", "Multisender", "Send to many wallets at once", "/arc#multisend", "fan"],
         ["snapshot", "Snapshot", "Holder lists for airdrops", "/arc#snapshot", "snap"], ["liquidity", "Liquidity", "Add and manage pool liquidity", "/arc#liquidity", "drop"]],
-      more: [["omni", "OMNI", "/arc#omni"], ["docs", "Docs", "/arc#docs"], ["whitepaper", "Whitepaper", "/whitepaper"], ["updates", "What's new", "/updates"], ["roadmap", "Roadmap", "/roadmap"], ["brand", "Brand", "/brand"]] },
+      more: [["omni", "OMNI", "/arc#omni"], ["docs", "Docs", "/arc#docs"], ["whitepaper", "Whitepaper", "/whitepaper"], ["updates", "What's new", "/updates"], ["roadmap", "Roadmap", "/roadmap"], ["brand", "Brand", "/brand"], ["wallet", "ARCIRCLE Wallet", "/wallet"]] },
   ];
   // ArcPad tabs that live in a menu without being one of its items
   var ARC_EXTRA = { home: ["trade", "explore"], coin: ["trade", "explore"], compare: ["trade", "explore"], creator: ["trade", "creators"], arcircle: [null, null] };
@@ -342,8 +342,9 @@
     D.addEventListener("arc:lang", function () { setTimeout(refresh, 0); });
     if ("MutationObserver" in window) new MutationObserver(function () { var l = lang(); if (l !== init.l) { init.l = l; refresh(); } }).observe(H, { attributes: true, attributeFilter: ["lang"] });
     init.l = lang();
-    // ArcPad / CirclePad on phones: their wallet button (and alerts) sit in this bar instead of a row of their own
-    var tool = D.querySelector(".bp-topbar-right"), toolHome = tool && tool.parentNode, mq = window.matchMedia && matchMedia("(max-width:900px)");
+    // ArcPad / CirclePad: their wallet button (and alerts) sit in this bar instead of a row of their own — on every
+    // screen since v10 (one wallet button, not two). The ARCIRCLE Wallet link moves to Tools → More there.
+    var tool = D.querySelector(".bp-topbar-right"), toolHome = tool && tool.parentNode, mq = window.matchMedia && matchMedia("all");
     if (tool && mq) {
       var place = function () {
         var right = root.querySelector(".anav-right");

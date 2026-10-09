@@ -8472,6 +8472,11 @@
     "Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. For coins launched from 8 Oct 2026, half of it — 4% of the supply, 40M of every new coin — goes to veARCIRCLE holders, through the Launch Drop vault contract. The treasury deposits each coin's 4% once; the vault does the rest. Your share of a coin is your veARCIRCLE at the start of the week it launched (Thursday 00:00 UTC), out of all veARCIRCLE at that moment — a lock made later counts from the next week's coins, and a max lock counts in full. Claim every coin you have in one transaction, any time, or let anyone send it to you: \"Send to every holder\" pays each holder their exact share, and tokens only ever go to the holders. The vault has no owner and no way to take a deposit back. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.": "ArcPad 런칭마다 새 코인 공급량의 8%(10억 개 중 8천만 개)가 플랫폼 트레저리로 갑니다. 2026년 10월 8일 이후 런칭된 코인은 그 절반 — 공급량의 4%, 코인마다 4천만 개 — 이 Launch Drop 볼트 컨트랙트를 통해 veARCIRCLE 보유자에게 갑니다. 트레저리는 코인마다 4%를 한 번만 입금하고, 나머지는 볼트가 처리합니다. 각 코인의 내 몫은 그 코인이 런칭된 주가 시작된 시점(목요일 00:00 UTC)의 내 veARCIRCLE ÷ 그 시점의 전체 veARCIRCLE입니다 — 그 이후에 한 락업은 다음 주 코인부터 반영되고, 맥스 락업은 전량 반영됩니다. 받을 코인을 언제든 한 번의 트랜잭션으로 모두 수령하거나, 누구나 대신 보내줄 수 있습니다: \"모든 보유자에게 보내기\"는 각 보유자에게 정확한 몫을 보내며, 토큰은 보유자에게만 갑니다. 볼트에는 소유자가 없고 입금된 토큰을 되돌릴 방법도 없습니다. 더 많이, 더 오래 락업할수록 veARCIRCLE이 커져 모든 코인에서 더 큰 몫을 받습니다.",
     "Launch Drop moves on-chain: the vault contract snapshots veARCIRCLE at the start of each coin's launch week and pays pro rata. \"Your drops\" lists what you can claim, with Claim all; \"Every drop\" shows each coin's deposit and how much has been claimed, and anyone can send a coin to every holder.": "Launch Drop이 온체인으로 바뀝니다: 볼트 컨트랙트가 각 코인이 런칭된 주의 시작 시점에 veARCIRCLE을 스냅샷하고 비율대로 지급합니다. \"내 드롭\"에서 수령할 코인과 모두 수령 버튼을, \"전체 드롭\"에서 코인별 입금량과 수령 현황을 볼 수 있고, 누구나 코인을 모든 보유자에게 보낼 수 있습니다.",
     "The treasury console is one deposit per coin (approve, then deposit) instead of weekly Multisender sends.": "트레저리 콘솔은 매주 멀티센더로 보내는 대신 코인당 한 번 입금(승인 후 입금)으로 바뀝니다.",
+    "For you": "내 알림",
+    "Connect a wallet on ArcPad and your rewards, claims and lock dates show up here.": "ArcPad에서 지갑을 연결하면 보상, 수령, 락업 일정이 여기에 표시돼요.",
+    "Open Staking": "스테이킹 열기",
+    "Everything to claim, in one place": "받을 보상을 한곳에서",
+    "ARCIRCLE Wallet": "ARCIRCLE 지갑",
   };
 
 

@@ -81,6 +81,7 @@ page = f'''<!DOCTYPE html>
 </main>
 <script src="/arc-nav.js?v={ver}"></script>
 <script src="/arc-v9.js?v={ver}"></script>
+<script src="/arc-v10.js?v={ver}"></script>
 </body>
 </html>
 '''

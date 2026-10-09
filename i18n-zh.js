@@ -8642,6 +8642,11 @@
     "Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. For coins launched from 8 Oct 2026, half of it — 4% of the supply, 40M of every new coin — goes to veARCIRCLE holders, through the Launch Drop vault contract. The treasury deposits each coin's 4% once; the vault does the rest. Your share of a coin is your veARCIRCLE at the start of the week it launched (Thursday 00:00 UTC), out of all veARCIRCLE at that moment — a lock made later counts from the next week's coins, and a max lock counts in full. Claim every coin you have in one transaction, any time, or let anyone send it to you: \"Send to every holder\" pays each holder their exact share, and tokens only ever go to the holders. The vault has no owner and no way to take a deposit back. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.": "每次 ArcPad 发币都会把新币供应量的 8%(10 亿中的 8000 万)转入平台金库。2026 年 10 月 8 日起上线的币,其中一半——供应量的 4%,每个新币 4000 万——通过 Launch Drop 金库合约发给 veARCIRCLE 持有者。金库只需为每个币存入一次 4%,其余由金库合约完成。你在某个币中的份额是该币上线当周开始时(周四 00:00 UTC)你的 veARCIRCLE 占当时全部 veARCIRCLE 的比例——之后的锁仓从下周的币开始计算,最大锁仓按全额计算。随时用一笔交易领取所有可领的币,或让任何人代你发送:\"发送给所有持有者\"会给每位持有者发送其准确份额,代币只会到持有者手中。金库没有所有者,也无法取回存入的代币。锁得越多越久,veARCIRCLE 越多,每个币中的份额也越大。",
     "Launch Drop moves on-chain: the vault contract snapshots veARCIRCLE at the start of each coin's launch week and pays pro rata. \"Your drops\" lists what you can claim, with Claim all; \"Every drop\" shows each coin's deposit and how much has been claimed, and anyone can send a coin to every holder.": "Launch Drop 上链:金库合约在每个币上线当周开始时对 veARCIRCLE 快照并按比例发放。\"我的空投\"列出可领取的币并可全部领取;\"全部空投\"显示每个币的存入量和已领取比例,任何人都可以把币发送给所有持有者。",
     "The treasury console is one deposit per coin (approve, then deposit) instead of weekly Multisender sends.": "金库控制台改为每个币存入一次(先授权再存入),不再每周用批量转账发送。",
+    "For you": "与我相关",
+    "Connect a wallet on ArcPad and your rewards, claims and lock dates show up here.": "在 ArcPad 连接钱包后,你的奖励、可领取项和锁仓日期会显示在这里。",
+    "Open Staking": "打开质押",
+    "Everything to claim, in one place": "所有可领取的,集中一处",
+    "ARCIRCLE Wallet": "ARCIRCLE 钱包",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -1,6 +1,8 @@
 /* arc-nav.css — the shared ARCIRCLE PAD menu (arc-nav.js). Loaded on every page that has it.
    One fixed bar on top (plus a second row for the menu you're in), a 5-tab bar on phones, and the old
    navigation hidden: the top switcher, the two bottom bars, the utilities sheet and ArcPad's sidebar. */
+:root{--f-ui:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;--f-num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;--f-pixel:var(--f-ui);--r-ctl:10px;--r-card:16px;--r-sheet:24px} /* v10 tokens (style.css has them too; pages without style.css need them here) */
+
 :root{
   --anav-bg:rgba(5,9,22,.88);--anav-panel:#0a1024;--anav-line:rgba(150,175,255,.13);--anav-ink:#eaf0fb;
   --anav-dim:#97a3c0;--anav-mute:#6c7894;--anav-blue:#4d8dff;--anav-green:#2fe6a4;
@@ -28,7 +30,7 @@ body.bigpad-page .bp-topbar{top:auto!important;background:none!important;-webkit
 html.anav-locked{overflow:hidden}
 
 /* ---- top bar ---- */
-.anav{position:fixed;top:0;left:0;right:0;z-index:80;font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+.anav{position:fixed;top:0;left:0;right:0;z-index:80;font-family:var(--f-ui);
   background:var(--anav-bg);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);
   border-bottom:1px solid var(--anav-line);color:var(--anav-ink);-webkit-font-smoothing:antialiased;letter-spacing:0;text-transform:none}
 .anav *,.anav-tabs *,.anav-sheet *{box-sizing:border-box}
@@ -41,21 +43,21 @@ html.anav-locked{overflow:hidden}
 .anav-i{width:18px;height:18px;flex:none;display:block}
 .anav-groups{display:flex;align-items:center;gap:2px}
 .anav-g{position:relative}
-.anav-gb{display:flex;align-items:center;gap:5px;height:38px;padding:0 12px;border-radius:10px;font-size:14px!important;font-weight:600!important;color:#c3cde4!important;position:relative;transition:background .15s,color .15s}
+.anav-gb{display:flex;align-items:center;gap:5px;height:38px;padding:0 12px;border-radius:var(--r-ctl);font-size:14px!important;font-weight:600!important;color:#c3cde4!important;position:relative;transition:background .15s,color .15s}
 .anav-gb:hover,.anav-g.open .anav-gb{color:#fff!important;background:rgba(255,255,255,.05)!important}
 .anav-g.here .anav-gb{color:#fff!important}
 .anav-g.here .anav-gb::after{content:"";position:absolute;left:12px;right:28px;bottom:3px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--anav-blue),var(--anav-green))}
 .anav-chev{width:14px;height:14px;opacity:.55;transition:transform .18s}
 .anav-g.open .anav-chev{transform:rotate(180deg)}
-.anav-panel{position:absolute;top:calc(100% + 11px);left:-10px;width:576px;padding:10px;border-radius:18px;background:var(--anav-panel);
+.anav-panel{position:absolute;top:calc(100% + 11px);left:-10px;width:576px;padding:10px;border-radius:var(--r-card);background:var(--anav-panel);
   border:1px solid rgba(150,175,255,.17);box-shadow:0 26px 64px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.3);animation:anav-in .16s ease-out}
 .anav-panel::before{content:"";position:absolute;left:0;right:0;top:-12px;height:12px}
 @keyframes anav-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .anav-items{display:grid;grid-template-columns:1fr 1fr;gap:2px}
-.anav-it{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;transition:background .12s}
+.anav-it{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-ctl);transition:background .12s}
 .anav-it:hover,.anav-it:focus-visible{background:rgba(120,150,255,.09)}
 .anav-it.on{background:rgba(77,141,255,.13)}
-.anav-ib{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:11px;color:#a9c8ff;
+.anav-ib{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:var(--r-ctl);color:#a9c8ff;
   background:linear-gradient(140deg,rgba(77,141,255,.17),rgba(47,230,164,.1));border:1px solid rgba(150,175,255,.14)}
 .anav-ib .anav-i{width:19px;height:19px}
 .anav-it.on .anav-ib{color:#fff;border-color:rgba(120,170,255,.4)}
@@ -68,12 +70,12 @@ html.anav-locked{overflow:hidden}
 .anav-more a:hover{color:#fff!important}
 
 .anav-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
-.anav-ic{width:36px;height:36px;display:grid;place-items:center;border-radius:10px!important;border:1px solid var(--anav-line)!important;color:#c3cde4!important;font-size:12px!important;font-weight:700!important;transition:background .15s,color .15s}
+.anav-ic{width:36px;height:36px;display:grid;place-items:center;border-radius:var(--r-ctl)!important;border:1px solid var(--anav-line)!important;color:#c3cde4!important;font-size:12px!important;font-weight:700!important;transition:background .15s,color .15s}
 .anav-ic:hover{background:rgba(255,255,255,.05)!important;color:#fff!important}
 .anav-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
 .anav-lang{position:relative}
-.anav-lmenu{position:absolute;right:0;top:44px;min-width:140px;padding:6px;border-radius:14px;background:var(--anav-panel);border:1px solid rgba(150,175,255,.17);box-shadow:0 18px 44px rgba(0,0,0,.55)}
-.anav-lmenu button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:9px;font-size:14px!important;color:#c3cde4!important}
+.anav-lmenu{position:absolute;right:0;top:44px;min-width:140px;padding:6px;border-radius:var(--r-card);background:var(--anav-panel);border:1px solid rgba(150,175,255,.17);box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.anav-lmenu button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:var(--r-ctl);font-size:14px!important;color:#c3cde4!important}
 .anav-lmenu button:hover,.anav-lmenu button[aria-current]{background:rgba(120,150,255,.1);color:#fff!important}
 .anav-chip{display:flex;align-items:center;gap:7px;height:36px;padding:0 13px 0 8px;border-radius:999px;border:1px solid var(--anav-line);font-size:13px!important;font-weight:600;color:#dfe6f6!important;transition:background .15s,border-color .15s}
 .anav-chip:hover{background:rgba(255,255,255,.05);border-color:rgba(150,175,255,.3)}
@@ -95,10 +97,10 @@ html.anav-locked{overflow:hidden}
 
 /* ---- phones: bottom tabs + a sheet per menu ---- */
 .anav-tabs{display:none}
-.anav-sheet{position:fixed;inset:0;z-index:95;font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--anav-ink)}
+.anav-sheet{position:fixed;inset:0;z-index:95;font-family:var(--f-ui);color:var(--anav-ink)}
 .anav-scrim{position:absolute;inset:0;background:rgba(2,4,12,.62);opacity:0;transition:opacity .2s}
 .anav-sheet-in{position:absolute;left:0;right:0;bottom:0;max-height:82vh;overflow:auto;padding:8px 12px calc(16px + env(safe-area-inset-bottom));
-  border-radius:22px 22px 0 0;background:var(--anav-panel);border-top:1px solid rgba(150,175,255,.18);transform:translateY(100%);transition:transform .2s ease-out}
+  border-radius:var(--r-sheet) var(--r-sheet) 0 0;background:var(--anav-panel);border-top:1px solid rgba(150,175,255,.18);transform:translateY(100%);transition:transform .2s ease-out}
 .anav-sheet.in .anav-scrim{opacity:1}
 .anav-sheet.in .anav-sheet-in{transform:none}
 .anav-sheet-top{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 10px}
@@ -113,18 +115,19 @@ html.anav-locked{overflow:hidden}
   .anav-chip{display:none}
   .anav-in{gap:18px}
 }
+/* the page's own wallet button and alerts live in the bar (every screen since v10) */
+html.anav-tool-in .anav-wallet,html.anav-tool-in .anav-right .bp-chain-pill{display:none!important}
+html.anav-tool-in .anav-right .bp-topbar-right{display:flex;align-items:center;gap:8px;position:static;margin:0}
+html.anav-tool-in .bp-topbar{display:none!important}
+html.anav-tool-in .bp-app{padding-top:0!important}
 @media (max-width:900px){
   .anav-in{padding:0 14px;gap:10px}
   .anav-groups,.anav-strip:not(.local){display:none!important}
   .anav-strip-in{padding:0 12px}
-  html.anav-tool-in .anav-wallet,html.anav-tool-in .anav-right .bp-chain-pill{display:none!important}
-  html.anav-tool-in .anav-right .bp-topbar-right{display:flex;align-items:center;gap:8px;position:static;margin:0}
-  html.anav-tool-in .bp-topbar{display:none!important}
-  html.anav-tool-in .bp-app{padding-top:0!important}
   body.bigpad-page .bp-topbar{position:relative!important;top:auto!important;left:auto!important;right:auto!important;height:auto!important;padding:10px 14px 0!important;justify-content:flex-end;z-index:2}
   .anav-wallet{height:34px;padding:0 12px 0 10px}
   .anav-tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:85;height:var(--anav-bot);padding-bottom:env(safe-area-inset-bottom);
-    background:rgba(5,9,22,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--anav-line);font-family:"Sora",Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    background:rgba(5,9,22,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--anav-line);font-family:var(--f-ui)}
   .anav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;color:#8592b0!important;font-size:11px!important;font-weight:600!important;-webkit-tap-highlight-color:transparent}
   .anav-tab .anav-i{width:22px;height:22px}
   .anav-tab.on{color:#fff!important}
@@ -146,13 +149,13 @@ html.anav-home .hm-scroll{display:none!important}
 .hm-map-sec{padding-top:8px!important}
 .hm-map-h{font-size:clamp(1.25rem,2vw,1.6rem);font-weight:700;margin:0 0 16px;color:#fff;letter-spacing:-.01em}
 .hm-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.hm-mapc{border:1px solid rgba(150,175,255,.14);border-radius:18px;background:linear-gradient(180deg,rgba(14,22,48,.72),rgba(8,12,28,.72));padding:16px 10px 10px}
+.hm-mapc{border:1px solid rgba(150,175,255,.14);border-radius:var(--r-card);background:linear-gradient(180deg,rgba(14,22,48,.72),rgba(8,12,28,.72));padding:16px 10px 10px}
 .hm-mapc-h{display:flex;align-items:center;gap:11px;padding:0 8px 12px;margin-bottom:6px;border-bottom:1px solid rgba(150,175,255,.1)}
-.hm-mapc-h>.anav-i{width:34px;height:34px;padding:7px;border-radius:10px;color:#fff;background:linear-gradient(140deg,#3f7cff,#22c99a)}
+.hm-mapc-h>.anav-i{width:34px;height:34px;padding:7px;border-radius:var(--r-ctl);color:#fff;background:linear-gradient(140deg,#3f7cff,#22c99a)}
 .hm-mapc-h b{display:block;font-size:16px;font-weight:700;color:#fff}
 .hm-mapc-h small{display:block;font-size:12px;color:#97a3c0;margin-top:2px}
 .hm-mapc-l{display:grid;gap:1px}
-.hm-mapc-l a{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;color:#e3e9f6;text-decoration:none;transition:background .12s}
+.hm-mapc-l a{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--r-ctl);color:#e3e9f6;text-decoration:none;transition:background .12s}
 .hm-mapc-l a:hover,.hm-mapc-l a:focus-visible{background:rgba(120,150,255,.09)}
 .hm-mapc-l .anav-i{width:17px;height:17px;color:#9cc0ff}
 .hm-mapc-l b{display:block;font-size:13.5px;font-weight:600}
