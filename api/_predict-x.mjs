@@ -14,7 +14,7 @@ import { RPCS } from "./_arc.mjs";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { priceOf } from "./_liq-core.mjs";
 
-export const PREDICTX_DEFAULT = ""; // contracts/scripts/deploy-arc-predict-bands.js — filled in once deployed
+export const PREDICTX_DEFAULT = "0x4C271594f8382BaCeAfB484a7D761ecd82946D64"; // ArcPredictBands, deploy-arc-predict-bands.js, 2026-10-10 (block 25128713)
 const env = (k) => String((typeof process !== "undefined" && process.env && process.env[k]) || "").trim();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const lc = (a) => String(a || "").toLowerCase();

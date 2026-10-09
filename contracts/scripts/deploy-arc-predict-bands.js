@@ -11,6 +11,7 @@
 //   PREDICT_OWNER          the owner (fee ≤ 3%, referral share, caps, listing price, pause — never money in a round)
 //   PREDICT_OPERATOR       the keeper's wallet: the Predict keeper samples these rounds too, in the same cron job
 //   PREDICT_LIST_BURN      $ARCIRCLE anyone burns to open a market (default 50000; 0 = free; "off" = team only)
+// Live: 0x4C271594f8382BaCeAfB484a7D761ecd82946D64 (block 25128713, 2026-10-10) — the default in api/_predict-x.mjs.
 // After deploying: tell Claude the address it prints (it goes into api/_predict-x.mjs PREDICTX_DEFAULT) — the keeper then
 // opens $ARCIRCLE 5m / 15m / 1h markets by itself; delete contracts/.env.
 const hre = require("hardhat");
