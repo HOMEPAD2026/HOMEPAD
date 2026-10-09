@@ -137,6 +137,7 @@
     if (lbl && !busy) lbl.textContent = tr(plat === "argus" ? "Launch on Argus" : plat === "pons" ? "Launch on Pons" : plat === "pump" ? "Launch on Pump.fun" : "Launch coin");
     if (window.arcPons && typeof window.arcPons.onPlat === "function") window.arcPons.onPlat(plat, quiet);
     if (window.arcPump && typeof window.arcPump.onPlat === "function") window.arcPump.onPlat(plat, quiet);
+    if (window.arcArcpadRH && typeof window.arcArcpadRH.onPlat === "function") window.arcArcpadRH.onPlat(plat, quiet);
     if (plat === "argus") { paintAlloc(); paintFlow(); seedHint(); resumeCard(); balance(); }
     else $("agl-resume").hidden = true;
     if (!quiet && !reduce) { const f = $("agl-fields"); if (plat === "argus") { f.classList.remove("in"); void f.offsetWidth; f.classList.add("in"); } }

@@ -400,9 +400,9 @@
       pl.querySelectorAll("[data-plat]").forEach((b) => { const p = PLAT[b.dataset.plat]; if (p) { b.style.setProperty("--pc", p.c); b.insertAdjacentHTML("afterbegin", `<span class="v7-chain" data-no-i18n><i aria-hidden="true"></i>${esc(p.chain)}</span>`); } });
       pl.insertAdjacentHTML("afterend", `<details class="v7-ptab"><summary>${V("Compare platforms")}</summary><div class="v7-ptab-w"><table>
         <thead><tr><th></th><th data-no-i18n>ArcPad</th><th data-no-i18n>Argus</th><th data-no-i18n>Pons</th><th data-no-i18n>Pump.fun</th></tr></thead><tbody>
-        <tr><th>${V("Chain")}</th><td data-no-i18n>Arc</td><td data-no-i18n>Arc</td><td data-no-i18n>Robinhood Chain</td><td data-no-i18n>Solana</td></tr>
+        <tr><th>${V("Chain")}</th><td data-no-i18n>${window.arcArcpadRH && window.arcArcpadRH.live() ? "Arc · Robinhood Chain" : "Arc"}</td><td data-no-i18n>Arc</td><td data-no-i18n>Robinhood Chain</td><td data-no-i18n>Solana</td></tr>
         <tr><th>${V("Trades on")}</th><td>${T("Uniswap v4 pool from block one")}</td><td>${T("Uniswap v4 pool with buy / sell tax")}</td><td>${T("Bonding curve, then Uniswap v4")}</td><td>${T("Bonding curve, then PumpSwap")}</td></tr>
-        <tr><th>${V("To launch")}</th><td data-no-i18n>1 USDC</td><td>${T("An opening buy in USDC")}</td><td>${T("Pons's fee in ETH")}</td><td>${T("About 0.03 SOL in accounts")}</td></tr>
+        <tr><th>${V("To launch")}</th><td data-no-i18n>${window.arcArcpadRH && window.arcArcpadRH.live() ? "1 USDC · ≈ $1 ETH (Robinhood Chain)" : "1 USDC"}</td><td>${T("An opening buy in USDC")}</td><td>${T("Pons's fee in ETH")}</td><td>${T("About 0.03 SOL in accounts")}</td></tr>
         <tr><th>${V("Creator fees")}</th><td>${T("70% of the 1% base fee, plus your add-on")}</td><td>${T("70% of the creator share")}</td><td>${T("70% of creator fees")}</td><td>${T("70% of creator fees")}</td></tr>
         <tr><th>${V("Graduates")}</th><td>—</td><td>—</td><td>${T("When the curve fills")}</td><td>${T("When the curve fills")}</td></tr>
         <tr><th>${V("Wallet")}</th><td>${T("Your Arc wallet")}</td><td>${T("Your Arc wallet")}</td><td>${T("Your EVM wallet")}</td><td>${T("A Solana wallet")}</td></tr>
@@ -416,7 +416,16 @@
     const box = $("v7-cost"); if (!box) return;
     const p = platNow(), rows = [];
     const fmt = (v, u) => `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 4 })} ${u}`;
-    if (p === "arcpad") {
+    const rh = p === "arcpad" && window.arcArcpadRH && window.arcArcpadRH.active() ? window.arcArcpadRH.cost() : null;
+    if (rh) { // ArcPad on Robinhood Chain (arc-arcpad-rh.js): everything in ETH
+      const fee = Number(($("ap-extrafee") || {}).value || 0) / 100, fe = rh.fee != null ? Number(rh.fee) / 1e18 : null, dev = Number(rh.dev || 0n) / 1e18;
+      rows.push([V("Network"), "Robinhood Chain"]);
+      const fe6 = (v) => `${Number(v).toLocaleString("en-US", { maximumFractionDigits: 6 })} ETH`;
+      rows.push([V("Launch fee"), fe != null ? fe6(fe) : "≈ $1 ETH"]);
+      rows.push([V("Dev buy"), dev ? fe6(dev) : "—"]);
+      rows.push([V("Your add-on fee"), `${fee.toFixed(fee % 1 ? 1 : 0)}% <small>${V("of every trade, 100% yours")}</small>`]);
+      rows.push([V("Total"), `<b>${fe != null ? fe6(fe + dev) : "—"}</b> <small>${V("plus a little gas")}</small>`, "tot"]);
+    } else if (p === "arcpad") {
       const dev = num("ap-devbuy"), fee = Number(($("ap-extrafee") || {}).value || 0) / 100, unit = ($("ap-devbuy-unit") || {}).textContent || "USDC";
       rows.push([V("Launch fee"), "1 USDC"]);
       rows.push([V("Dev buy"), dev ? fmt(dev, unit) : "—"]);
@@ -477,7 +486,7 @@
     }
     if (k === "token") {
       ["ap-devbuy", "ap-pair-ca"].forEach(unmark);
-      if (p === "arcpad") {
+      if (p === "arcpad" && !(window.arcArcpadRH && window.arcArcpadRH.active())) {
         const d = (($("ap-devbuy") || {}).value || "").trim();
         if (d && !(Number(d) >= 0)) bad.push(["ap-devbuy", "Dev buy must be a number."]);
         const custom = document.querySelector('#ap-pair-seg [data-pair="custom"].active');

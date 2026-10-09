@@ -129,7 +129,7 @@ export async function ethCalls(calls, { timeoutMs = 6000 } = {}) {
   const byId = new Map(arr.map((x) => [x.id, x]));
   return calls.map((_, i) => { const x = byId.get(i); return x && x.result && x.result !== "0x" ? x.result : null; });
 }
-export { keccakHex, pad, strip, wAddr, wBig };
+export { keccakHex, pad, strip, wAddr, wBig, wString, decodeString };
 /// Pool id of every ArcPad launch (keccak of its PoolKey), plus the launch.
 export async function allPools() {
   const [cntHex] = await ethCalls([{ to: FACTORY, data: SEL.launchCount }]);

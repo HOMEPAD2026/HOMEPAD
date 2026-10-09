@@ -75,7 +75,7 @@ async function coinsBetween(from0, to) {
   return list.map((c) => ({ ...c, ...(m[c.token] || { sym: "?", name: "" }) })).sort((a, b) => a.launchedAt - b.launchedAt);
 }
 /// veARCIRCLE of every lock at time t, from the contract's own history
-async function weightsAt(t, store) {
+export async function weightsAt(t, store, min = CFG.minVe) {
   const locks = CFG.locks ? await CFG.locks() : await stake.allLocks({ store });
   const addrs = [...new Set(locks.map((l) => lc(l.a)))];
   let ve;
@@ -89,7 +89,7 @@ async function weightsAt(t, store) {
       ve.push(...r.map((h) => (h ? BigInt(h) : 0n)));
     }
   }
-  return addrs.map((a, i) => [a, BigInt(ve[i] || 0n)]).filter(([, v]) => v >= CFG.minVe).sort((x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0));
+  return addrs.map((a, i) => [a, BigInt(ve[i] || 0n)]).filter(([, v]) => v >= min).sort((x, y) => (y[1] > x[1] ? 1 : y[1] < x[1] ? -1 : 0));
 }
 /// each coin's share split pro rata; the rounding dust goes to the largest staker
 export function split(weights, amount) {

@@ -87,6 +87,7 @@ import * as liquidity from "./_liquidity.mjs";
 import * as locker from "./_locker.mjs";
 import * as argusArc from "./_argus-arcpad.mjs";
 import * as ponsArc from "./_pons-arcpad.mjs";
+import * as arcpadRH from "./_arcpad-rh.mjs";
 import * as pumpArc from "./_pump-arcpad.mjs";
 import * as orders from "./_orders.mjs";
 import * as webpush from "./_webpush.mjs";
@@ -679,6 +680,11 @@ export async function GET(req) {
   if (url.searchParams.get("ponsarc") === "list") {
     try { return json(200, await ponsArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }
     catch (err) { console.error("ponsarc", err && err.message || err); return json(502, { error: "couldn't read the Pons launches right now" }); }
+  }
+  // ArcPad's own launches on Robinhood Chain (ArcPadFactoryRH, ETH pairs) — empty with live:false until it's deployed
+  if (url.searchParams.get("arcpadrh") === "list") {
+    try { return json(200, await arcpadRH.list(), "public, max-age=20, s-maxage=30, stale-while-revalidate=300"); }
+    catch (err) { console.error("arcpadrh", err && err.message || err); return json(502, { error: "couldn't read the Robinhood Chain launches right now" }); }
   }
   if (url.searchParams.get("argusarc") === "list") {
     try { return json(200, await argusArc.list({ store: scanStore() }), "public, max-age=30, s-maxage=60, stale-while-revalidate=300"); }

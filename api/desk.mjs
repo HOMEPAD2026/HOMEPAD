@@ -35,6 +35,8 @@
 //   GET /api/desk?stake=dropconsole[&ws=…]    the treasury's to-do: with the vault, coins waiting for their 4% deposit;
 //                                             without it, the unsent Launch Drop wallets in Multisender chunks
 //   GET /api/desk?stake=dropholders&token=0x… the wallets a vault push of that coin would pay now (anyone can send it)
+//   GET /api/desk?stake=droprh[&u=0x…]        Launch Drop on Robinhood Chain: drops, weekly veARCIRCLE roots, a wallet's claims
+//   GET /api/desk?stake=droprhproof&ws=&u=0x…  a wallet's veARCIRCLE leaf + Merkle proof for one week
 //   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
 // ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
 //   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
@@ -67,6 +69,7 @@ import * as orders from "./_orders.mjs";
 import * as predict from "./_predict.mjs";
 import * as stake from "./_stake.mjs";
 import * as launchdrop from "./_launchdrop.mjs";
+import * as launchdropRH from "./_launchdrop-rh.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -93,6 +96,9 @@ export async function GET(req) {
       // Launch Drop (api/_launchdrop.mjs): half of every new ArcPad coin's 8% platform allocation → veARCIRCLE stakers
       if (q.stake === "drop") return json(await launchdrop.state({ store: st, user: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=15, s-maxage=30");
       if (q.stake === "dropconsole") return json(await launchdrop.consoleOf({ store: st, ws: q.ws ? Number(q.ws) : 0 }), 200);
+      // the Robinhood Chain side (api/_launchdrop-rh.mjs): drops, roots to post, a wallet's proofs
+      if (q.stake === "droprh") return json(await launchdropRH.state({ store: st, me: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=15, s-maxage=30");
+      if (q.stake === "droprhproof") return json(await launchdropRH.proof({ store: st, ws: Number(q.ws || 0), me: String(q.u || "") }), 200, "public, max-age=60");
       if (q.stake === "dropholders") return json(await launchdrop.holders({ store: st, token: String(q.token || "") }), 200, "no-store");
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
       if (q.stake === "pool") { const r = await stake.poolFor(String(q.token || ""), { store: st }); return json(r || { error: "no pool found for that token" }, r ? 200 : 404, "public, max-age=60, s-maxage=300"); }

@@ -42,7 +42,7 @@ function actEvents() {
   const now = Date.now() / 1000, ev = [];
   const rowsOf = (m) => (m && typeof m.rows === "function" ? m.rows() : []);
   // v6: every platform's new launches — ArcPad, Argus, Pons (Robinhood Chain) and Pump.fun (Solana)
-  for (const l of (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump))) {
+  for (const l of (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcArcpadRH), rowsOf(window.arcPump))) {
     if (l.launchedAt && now - l.launchedAt < ACT_WINDOW_SEC) ev.push({ kind: "launch", ts: l.launchedAt, sym: l.symbol, token: l.platform === "pump" ? String(l.token) : String(l.token).toLowerCase(), img: l.imageUrl, argus: l.platform === "argus", plat: l.platform || "arcpad" });
   }
   for (const d of ACT.drops || []) if (d.ts && now - d.ts < ACT_WINDOW_SEC) ev.push({ kind: "airdrop", ts: d.ts, sym: d.sym, token: d.token, n: d.n, total: d.total, dec: d.dec, tx: d.tx });
@@ -142,7 +142,7 @@ function arcAnyStats(l) {
 function arcAllCoins() {
   const rowsOf = (m) => (m && typeof m.rows === "function" ? m.rows() : []);
   const hidden = (typeof CONFIG !== "undefined" && CONFIG.HIDDEN_COINS) || []; // config-arc.js: coins kept off the lists
-  return (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcPump)).filter((l) => !hidden.includes(String(l.token || "").toLowerCase()));
+  return (ARC.launches || []).concat(rowsOf(window.arcArgus), rowsOf(window.arcPons), rowsOf(window.arcArcpadRH), rowsOf(window.arcPump)).filter((l) => !hidden.includes(String(l.token || "").toLowerCase()));
 }
 window.arcAnyStats = arcAnyStats; window.arcAllCoins = arcAllCoins;
 function arcLaunchAge(l) { return l && l.launchedAt ? actAgo(l.launchedAt) : ""; }

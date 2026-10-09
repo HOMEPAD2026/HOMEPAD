@@ -31,7 +31,9 @@
   const left = (s) => { s = Math.max(0, Math.floor(s)); const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60); return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m ${s % 60}s`; };
   const coinLink = (c) => `<a class="ld-coin" href="/arc#coin/${esc(c.token)}" data-no-i18n>$${esc(c.sym)}</a>`;
   const wk = (ws, low) => { const l = (window.arcI18n && window.arcI18n.get()) || "en", d = day(ws); return esc(l === "ko" ? `${d} 주` : l === "zh" ? `${d} 当周` : `${low ? "week" : "Week"} of ${d}`); };
-  const S = { d: null, acct: "", con: null, busy: "", msg: "", timer: 0, clock: 0 };
+  const S = { d: null, acct: "", con: null, busy: "", msg: "", timer: 0, clock: 0, rh: null };
+  const RHC = (typeof CONFIG !== "undefined" && CONFIG.ARCPAD_RH) || {};
+  const rhLive = () => /^0x[0-9a-fA-F]{40}$/.test(String(RHC.FACTORY || "")) && /^0x[0-9a-fA-F]{40}$/.test(String(RHC.DROP || ""));
   const consoleWanted = () => /[?&]drop=console\b/.test(location.hash);
 
   async function load() {
@@ -43,6 +45,10 @@
     if (S.d && (consoleWanted() || (me() && S.d.treasury && me() === lc(S.d.treasury)))) {
       try { const r = await fetch(`/api/desk?stake=dropconsole`, { cache: "no-store" }); S.con = r.ok ? await r.json() : null; } catch { /* later */ }
     } else S.con = null;
+    S.rh = null;
+    if (rhLive()) {
+      try { const r = await fetch(`/api/desk?stake=droprh${me() ? `&u=${me()}` : ""}`, { cache: "no-store" }); const j = r.ok ? await r.json() : null; S.rh = j && j.live ? j : null; } catch { /* later */ }
+    }
     paint();
   }
 
@@ -123,7 +129,7 @@
     host.innerHTML = `<section class="ams-card ld-card">
       <div class="ld-top"><span class="ld-badge">${T("On-chain")}</span><h3>${T("Launch Drop")}</h3></div>
       <p class="ld-lede">${T("4% of every new ArcPad coin goes to veARCIRCLE holders, paid by a contract. Your share of a coin is set when the week it launched began (Thursday 00:00 UTC): your veARCIRCLE then, out of all veARCIRCLE then. Claim any time, or anyone can send it to you.")}</p>
-      ${vWeekHtml(d)}${vMineHtml(d)}${vAllHtml(d)}${vConsoleHtml()}${S.msg ? `<div class="ld-msg" role="status">${esc(S.msg)}</div>` : ""}
+      ${vWeekHtml(d)}${vMineHtml(d)}${vAllHtml(d)}${vConsoleHtml()}${rhHtml(d)}${S.msg ? `<div class="ld-msg" role="status">${esc(S.msg)}</div>` : ""}
     </section>`;
   }
   const errText = (e) => String((e && (e.shortMessage || e.reason || e.message)) || e).slice(0, 200);
@@ -179,6 +185,87 @@
     S.busy = ""; await load();
   }
 
+  // ---------------- Robinhood Chain (contracts/ArcLaunchDropRH.sol, api/_launchdrop-rh.mjs) ----------------
+  // Same rule; veARCIRCLE lives on Arc, so each week's holders are posted to the vault as a Merkle root (by the
+  // treasury, from the console below) and claims carry a proof. Claims open 12 hours after a root is posted.
+  const RH_ABI = [
+    "function claim(tuple(address token, uint256 ve, bytes32[] proof)[] list) returns (uint256)",
+    "function postRoot(uint256 week, bytes32 root, uint256 supply)", "function deposit(address token, uint256 amount)",
+  ];
+  const rhCoin = (c) => `<a class="ld-coin" href="/arc#explore?plat=arcpad&coin=${esc(c.token)}" data-no-i18n>$${esc(c.sym)}</a>`;
+  function rhHtml(d) {
+    const r = S.rh;
+    if (!r) return "";
+    const t = Date.now() / 1000;
+    const mine = (r.mine || []).filter((x) => BigInt(x.claimable) > 0n || BigInt(x.paid) > 0n || !x.open);
+    const ready = mine.filter((x) => BigInt(x.claimable) > 0n);
+    const rootOf = new Map((r.roots || []).map((w) => [w.ws, w]));
+    const st = (x) => { const w = rootOf.get(x.ws); if (!w || !w.posted) return [T("Waiting for the week's holder list"), "mid"]; if (!w.open) return [`${T("Opens in")} ${left(w.posted.opensAt - t)}`, "mid"]; return [null, ""]; };
+    const row = (x) => { const A = BigInt(x.amount), open = (A - BigInt(x.claimed)) * 10000000n > A, p = open ? Math.min(pct(x.claimed, x.amount), 99.9) : 100, [s, k] = st(x); return `<li>${rhCoin(x)}<small>${wk(x.ws, true)} · ${tok(x.amount)}</small><span class="ld-bar" title="${p}%"><i style="width:${Math.min(100, p)}%"></i></span><span class="ld-st ${s ? k : open ? "mid" : "ok"}">${s || `${p}% ${T("claimed")}`}</span></li>`; };
+    const wrow = (x) => `<li>${rhCoin(x)}<small>${wk(x.ws, true)}</small><span class="ld-st mid">${T("Waiting for the treasury's deposit")}</span></li>`;
+    const mineHtml = me() && mine.length ? `<div class="ld-mine-box"><div class="ld-mb-h"><h4>${T("Your drops on Robinhood Chain")}</h4>${ready.length ? `<button type="button" class="ld-btn pri" data-ld="rhclaim"${S.busy ? " disabled" : ""}>${S.busy === "rhclaim" ? T("Claiming…") : `${T("Claim on Robinhood Chain")} (${ready.length})`}</button>` : ""}</div>
+      <ul class="ld-list">${mine.map((x) => { const c = BigInt(x.claimable) > 0n, soon = !c && !x.open; return `<li>${rhCoin(x)}<span class="ld-amt">${tok(c ? x.claimable : soon ? x.owed : x.paid)}</span><span class="ld-st ${c || soon ? "mid" : "ok"}">${soon ? `${T("Opens in")} ${left(x.opensAt - t)}` : T(c ? "Ready to claim" : "Claimed")}</span></li>`; }).join("")}</ul></div>` : "";
+    const drops = r.drops || [], wait = r.waiting || [];
+    const all = drops.length || wait.length ? `<ul class="ld-list">${drops.map(row).join("")}${wait.map(wrow).join("")}</ul>` : `<p class="ld-none">${T("No ArcPad coins on Robinhood Chain yet — every new one is shared the same way.")}</p>`;
+    return `<div class="ld-rh"><div class="ld-mb-h"><h4>${T("On Robinhood Chain")}</h4><span class="ld-chain">Robinhood Chain</span></div>
+      <p class="ld-foot">${T("ArcPad coins launched on Robinhood Chain share 4% with veARCIRCLE holders by the same rule. Claims there need a little ETH for gas.")} <a href="${esc((RHC.EXPLORER || "https://robinhoodchain.blockscout.com") + "/address/" + r.vault)}" target="_blank" rel="noopener">${T("Vault contract")}</a></p>
+      ${mineHtml}${all}${rhConsoleHtml(d)}</div>`;
+  }
+  function rhConsoleHtml(d) {
+    const r = S.rh, tre = d && d.treasury;
+    if (!r || !(consoleWanted() || (me() && tre && me() === lc(tre)))) return "";
+    const isTr = me() && tre && me() === lc(tre);
+    const t = Date.now() / 1000;
+    const roots = (r.roots || []).filter((w) => w.tree && !w.match && (!w.posted || t < w.posted.opensAt));
+    const dis = !isTr || S.busy ? " disabled" : "";
+    const rr = roots.map((w) => `<div class="ld-ct"><div><b>${wk(w.ws)}</b> <small>${esc(w.tree.holders)} ${T("holders")} · ${w.posted ? T("posted root differs — correct it") : T("root not posted")}</small></div><button type="button" class="ld-btn pri" data-ld="rhroot" data-ws="${w.ws}"${dis}>${S.busy === "root:" + w.ws ? T("Posting…") : T("Post holder list")}</button></div>`).join("");
+    const dr = (r.waiting || []).map((x, i) => `<div class="ld-ct"><div><b data-no-i18n>$${esc(x.sym)}</b> <small>${wk(x.ws, true)} · ${tok(x.need)}</small></div><button type="button" class="ld-btn pri" data-ld="rhdep" data-i="${i}"${dis}>${S.busy === "rhdep:" + i ? T("Depositing…") : T("Deposit 4%")}</button></div>`).join("");
+    return `<div class="ld-console"><h4>${T("Treasury console")} · Robinhood Chain</h4>
+      <p>${isTr ? T("Each week: post the veARCIRCLE holder list (a Merkle root anyone can rebuild from Arc) — claims open 12 hours later. Each coin: approve, then deposit its 4%.") : `${T("Connect the treasury wallet to deposit")}: <code data-no-i18n>${esc(tre || "—")}</code>`}</p>
+      ${rr}${dr}${!rr && !dr ? `<p class="ld-none">${T("Nothing to do.")}</p>` : ""}</div>`;
+  }
+  async function rhRun(key, fn) {
+    const W = window.arcArcpadRH && window.arcArcpadRH.wallet;
+    if (!W || S.busy) return;
+    S.busy = key; S.msg = ""; paint();
+    const stay = await W.stay();
+    W.hold(true);
+    try {
+      S.msg = tr("Switch your wallet to Robinhood Chain if it asks…"); paint();
+      const sg = await W.signer();
+      await fn(sg, W);
+    } catch (e) { S.msg = W.why(e); }
+    finally { if (!stay) await W.back(); W.hold(false); }
+    S.busy = ""; await load();
+  }
+  const rhClaim = () => rhRun("rhclaim", async (sg, W) => {
+    const list = (S.rh.mine || []).filter((x) => BigInt(x.claimable) > 0n).map((x) => ({ token: x.token, ve: BigInt(x.ve), proof: x.proof }));
+    const v = new ethers.Contract(S.rh.vault, RH_ABI, sg);
+    for (let i = 0; i < list.length; i += 10) {
+      S.msg = list.length > 10 ? `${tr("Confirm claim")} ${i / 10 + 1}/${Math.ceil(list.length / 10)}…` : tr("Confirm in your wallet…"); paint();
+      await W.wait(await v.claim(list.slice(i, i + 10)));
+    }
+    S.msg = tr("Claimed — the coins are in your wallet on Robinhood Chain.");
+  });
+  const rhRoot = (ws) => rhRun("root:" + ws, async (sg, W) => {
+    const w = (S.rh.roots || []).find((x) => x.ws === Number(ws));
+    if (!w || !w.tree) throw new Error(tr("No holder list for that week yet."));
+    S.msg = tr("Confirm in your wallet…"); paint();
+    await W.wait(await new ethers.Contract(S.rh.vault, RH_ABI, sg).postRoot(w.ws, w.tree.root, BigInt(w.tree.supply)));
+    S.msg = tr("Posted — claims for that week open in 12 hours.");
+  });
+  const rhDeposit = (i) => rhRun("rhdep:" + i, async (sg, W) => {
+    const x = S.rh.waiting[i];
+    if (!x) return;
+    const erc = new ethers.Contract(x.token, ["function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)", "function balanceOf(address) view returns (uint256)"], sg);
+    const need = BigInt(x.need), bal = await erc.balanceOf(me());
+    if (bal < need) throw new Error(`${tr("The treasury holds")} ${tok(bal.toString())} $${x.sym}, ${tr("the drop needs")} ${tok(x.need)}.`);
+    if ((await erc.allowance(me(), S.rh.vault)) < need) { S.msg = tr("Approve in your wallet…"); paint(); await W.wait(await erc.approve(S.rh.vault, need)); }
+    S.msg = tr("Confirm the deposit…"); paint();
+    await W.wait(await new ethers.Contract(S.rh.vault, RH_ABI, sg).deposit(x.token, need));
+    S.msg = `$${x.sym}: ${tr("deposited on Robinhood Chain.")}`;
+  });
+
   function paint() {
     const d = S.d;
     if (!d) { host.innerHTML = ""; return; }
@@ -227,6 +314,9 @@
     if (k === "claim") vClaim();
     if (k === "push") vPush(b.dataset.t);
     if (k === "deposit") vDeposit(Number(b.dataset.i));
+    if (k === "rhclaim") rhClaim();
+    if (k === "rhroot") rhRoot(b.dataset.ws);
+    if (k === "rhdep") rhDeposit(Number(b.dataset.i));
   });
   function tick() {
     if (document.hidden || !panel.classList.contains("active")) return;

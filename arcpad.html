@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791560094"></script>
+<script src="arc-log.js?v=1791575332"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791560094">
+<link rel="stylesheet" href="/arc.min.css?v=1791575332">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -719,6 +719,7 @@
           <button type="button" role="radio" aria-checked="false" data-plat="pons"><b>Pons</b><small>Robinhood Chain · bonding curve → Uniswap v4 · 70% of creator fees to you</small></button>
           <button type="button" role="radio" aria-checked="false" data-plat="pump"><b>Pump.fun</b><small>Solana · bonding curve → PumpSwap · 70% of creator fees to you</small></button>
         </div>
+        <div class="agl-plat aprh-net ap-only" id="aprh-net" role="radiogroup" aria-label="Network" hidden></div>
         <div class="agl-resume" id="agl-resume" hidden></div>
         <div class="ap-launch-fee-note ap-only">Launching costs a flat <strong>1 USDC</strong> platform fee, paid automatically as network value (no separate approval step). Any amount you send above that is refunded.</div>
 
@@ -751,6 +752,9 @@
           </div>
 
           <div class="ap-only-group">
+          <!-- ArcPad on Robinhood Chain (arc-arcpad-rh.js): its fields; the Arc-only parts carry .ap-arc-only -->
+          <div class="aprh-fields" id="aprh-fields" hidden></div>
+          <div class="ap-arc-only">
           <label><span>Pair with</span> <span class="optional">the token people buy your coin with — USDC unless you pick another</span></label>
           <div class="ap-pair">
             <div class="ap-pair-seg" id="ap-pair-seg" role="radiogroup" aria-label="Pair token">
@@ -770,12 +774,14 @@
             </div>
             <p class="hint" id="ap-start-hint">Every ArcPad coin opens at the same price — the pool starts with a 4,000 USDC virtual reserve against the 920M sellable tokens, so there's nothing to set here.</p>
           </div>
+          </div>
 
           <label><span>Your fee</span> <span class="optional">optional add-on, 0–2%, 100% yours</span>
             <input id="ap-extrafee" type="range" min="0" max="200" step="10" value="0" class="fee-slider">
           </label>
           <div class="fee-preview" id="ap-fee-preview"></div>
 
+          <div class="ap-arc-only">
           <label><span>Dev buy</span> <span class="optional">optional</span>
             <div class="cn-input-suffix-wrap">
               <input id="ap-devbuy" type="number" min="0" step="any" placeholder="0.0">
@@ -785,6 +791,8 @@
           <p class="hint" id="ap-devbuy-hint">Buy your own tokens in the same transaction as the launch, before anyone else can. Requires a one-time USDC approval first. Leave blank to skip.</p>
           <div class="ap-devbuy-quick" id="ap-devbuy-quick"><button type="button" data-v="">None</button><button type="button" data-v="10">10</button><button type="button" data-v="50">50</button><button type="button" data-v="100">100</button><button type="button" data-v="500">500</button></div>
           <p class="hint" id="ap-devbuy-preview"></p>
+          </div>
+          <div class="aprh-dev" id="aprh-dev" hidden></div>
           </div>
 
           <!-- Argus (arc-argus.js): shown when the platform switch is on Argus -->
@@ -903,6 +911,7 @@
           <p class="ap-launch-balance ap-only" id="ap-launch-balance" aria-live="polite"></p>
           <p class="ap-launch-balance agl-only" id="agl-balance" aria-live="polite"></p>
           <p class="ap-launch-balance pon-only" id="pon-balance" aria-live="polite"></p>
+          <p class="ap-launch-balance aprh-only" id="aprh-balance" aria-live="polite"></p>
           <p class="ap-launch-balance pmp-only" id="pmp-balance" aria-live="polite"></p>
           <p class="ap-launch-btn-note ap-only">Your coin goes live in a real Uniswap v4 pool the moment this confirms.</p>
           <p class="ap-launch-btn-note agl-only">Your coin goes live on Argus the moment the launch confirms; the fee split is the second signature.</p>
@@ -2052,7 +2061,12 @@
           <details open><summary><h3>Launch Drop: a piece of every new coin</h3></summary>
             <p>Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. For coins launched from 8 Oct 2026, half of it — 4% of the supply, 40M of every new coin — goes to veARCIRCLE holders, through the Launch Drop vault contract. The treasury deposits each coin's 4% once; the vault does the rest. Your share of a coin is your veARCIRCLE at the start of the week it launched (Thursday 00:00 UTC), out of all veARCIRCLE at that moment — a lock made later counts from the next week's coins, and a max lock counts in full. Claim every coin you have in one transaction, any time, or let anyone send it to you: "Send to every holder" pays each holder their exact share, and tokens only ever go to the holders. The vault has no owner and no way to take a deposit back. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.</p>
           </details>
-          <details open><summary><h3>New in v3</h3></summary>
+          <details open><summary><h3>New in v4</h3></summary>
+            <ul>
+              <li>Launch Drop on Robinhood Chain: ArcPad coins launched on Robinhood Chain share 4% with veARCIRCLE holders by the same rule — your veARCIRCLE at the start of the coin's launch week. veARCIRCLE lives on Arc, so each week's holder list is posted to the Robinhood Chain vault as a Merkle root anyone can rebuild; claims open 12 hours after it's posted. "Your drops on Robinhood Chain" claims them all in one transaction (a little ETH for gas).</li>
+            </ul>
+          </details>
+          <details><summary><h3>New in v3</h3></summary>
             <ul>
               <li>Launch Drop moves on-chain: the vault contract snapshots veARCIRCLE at the start of each coin's launch week and pays pro rata. "Your drops" lists what you can claim, with Claim all; "Every drop" shows each coin's deposit and how much has been claimed, and anyone can send a coin to every holder.</li>
               <li>The treasury console is one deposit per coin (approve, then deposit) instead of weekly Multisender sends.</li>
@@ -2410,9 +2424,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791560094"></script>
+<script src="wallet-arc.js?v=1791575332"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791560094"></script>
+<script src="arcpad.bundle.js?v=1791575332"></script>
 </body>
 </html>

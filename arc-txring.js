@@ -69,8 +69,13 @@
         var h = resp && resp.hash;
         if (resp && resp.chainId != null) r.chain(resp.chainId);
         if (h) r.sent(h);
-        if (resp && typeof resp.wait === "function") {
-          resp.wait().then(function (rc) { if (rc && rc.status === 1) r.mined(h); else r.failed(h, "reverted"); }, function (e) { r.failed(h, rejected(e) ? "rejected" : "reverted"); });
+        // a Robinhood Chain transaction: the wallet is often switched back to Arc right after, so its provider would
+        // look for the receipt on the wrong chain — follow it on Robinhood Chain's own RPC instead
+        var rhRpc = typeof CONFIG !== "undefined" && ((CONFIG.ARCPAD_RH && CONFIG.ARCPAD_RH.RPC) || (CONFIG.PONS && CONFIG.PONS.RPC));
+        var onRh = resp && resp.chainId != null && Number(resp.chainId) === 4663 && rhRpc && h;
+        var waiting = onRh ? new ethers.JsonRpcProvider(rhRpc, 4663, { staticNetwork: true }).waitForTransaction(h, 1, 900000) : resp && typeof resp.wait === "function" ? resp.wait() : null;
+        if (waiting) {
+          waiting.then(function (rc) { if (rc && rc.status === 1) r.mined(h); else r.failed(h, "reverted"); }, function (e) { r.failed(h, rejected(e) ? "rejected" : "reverted"); });
         }
         return resp;
       }, function (e) { r.failed(null, rejected(e) ? "rejected" : "error"); throw e; });

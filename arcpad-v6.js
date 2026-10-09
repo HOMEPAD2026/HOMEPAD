@@ -34,13 +34,14 @@
   const coins = () => (typeof arcAllCoins === "function" ? arcAllCoins() : ARC.launches || []);
   const statsOf = (l) => (typeof arcAnyStats === "function" ? arcAnyStats(l) : null);
   const keyOf = (l) => (l.platform === "pump" ? String(l.token) : lc(l.token));
-  const coinHref = (l) => (l.platform === "pons" || l.platform === "pump" ? `/arc#explore?plat=${l.platform}&coin=${l.token}` : `/arc#coin/${l.token}`);
-  const PLAT = { arcpad: "ArcPad", argus: "Argus", pons: "Pons", pump: "Pump.fun" };
+  const coinHref = (l) => (l.platform === "pons" || l.platform === "pump" || l.platform === "arcpadrh" ? `/arc#explore?plat=${l.platform === "arcpadrh" ? "arcpad" : l.platform}&coin=${l.token}` : `/arc#coin/${l.token}`);
+  const PLAT = { arcpad: "ArcPad", arcpadrh: "ArcPad · Robinhood", argus: "Argus", pons: "Pons", pump: "Pump.fun" };
   const platOf = (l) => l.platform || "arcpad";
   const logoHtml = (l, cls) => (safeImg(l.imageUrl) ? `<img class="${cls}" src="${esc(l.imageUrl)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`
     : `<span class="${cls} ph" style="${typeof window.arcAvatarBg === "function" && l.platform !== "pump" ? window.arcAvatarBg(l.token) : ""}">${esc(String(l.symbol || "?").slice(0, 1).toUpperCase())}</span>`);
   function openCoin(l) {
     if (l.platform === "pons" && window.arcPons) { window.arcPons.openSheet(l.token); return; }
+    if (l.platform === "arcpadrh" && window.arcArcpadRH) { window.arcArcpadRH.openSheet(l.token); return; }
     if (l.platform === "pump" && window.arcPump) { window.arcPump.openSheet(l.token); return; }
     if (typeof openArcCoin === "function") openArcCoin(l.token);
   }

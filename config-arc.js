@@ -313,6 +313,19 @@ const CONFIG = {
     APP: "https://www.ponsfamily.com/launchpad", // a coin's page: APP + "/" + token
     SUPPORT: { DEX_INFO_MCAP: 20000, MARKETING_MCAP: 100000 }, // the same ArcPad support policy as Argus
   },
+  // ArcPad's own launches on Robinhood Chain (arc-arcpad-rh.js, api/_arcpad-rh.mjs, contracts/ArcPadFactoryRH.sol +
+  // ArcPadRouterRH.sol): an ETH-paired Uniswap v4 pool from the first block, the same 8% platform allocation and fee
+  // split as ArcPad on Arc, a launch fee of about $1 in ETH. Empty until contracts/scripts/deploy-arcpad-rh.js runs —
+  // the launch form shows Robinhood Chain as "soon" until then. Keep in step with api/_arcpad-rh.mjs FACTORY_DEFAULT.
+  ARCPAD_RH: {
+    FACTORY: "",
+    ROUTER: "",
+    DROP: "", // ArcLaunchDropRH (the merkle vault for the veARCIRCLE Launch Drop on Robinhood Chain)
+    CHAIN_ID: 4663,
+    RPC: "https://rpc.mainnet.chain.robinhood.com",
+    EXPLORER: "https://robinhoodchain.blockscout.com",
+    VIRTUAL_USD: 4000, // the opening reserve, in dollars of ETH — the same starting market cap as on Arc
+  },
   // ARCIRCLE NFT Vault (arc-nft.js, api/_nft.mjs, contracts/ArcircleNft.sol) on Robinhood Chain: a coin's Pons creator fees
   // go to ROUTER (50% the vault, 50% the treasury); the vault buys NFTs and raffles them to $ARCIRCLE holders. The page
   // reads the live addresses from /api/desk?nft=state; ROUTER here is for the Pons launch option, offered only to the
