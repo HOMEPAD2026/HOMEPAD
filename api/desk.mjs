@@ -40,6 +40,8 @@
 //   GET /api/desk?paper=state[&u=0x…]          Paper Trading: prices, this week's board, a wallet's account, past weeks
 //   GET /api/desk?paper=prices                  Paper Trading's live prices (BTC, ETH, SOL)
 //   GET /api/desk?predictx=state|mine&u=0x…     Predict × (multiplier bands): markets and rounds, a wallet's bets
+//   GET /api/desk?perp=state[&u=0x…]            ARCIRCLE Perps (not live before an audit): markets, the pool, a wallet's positions
+//   GET /api/desk?perptick=1&key=<CRON_SECRET>  its keeper (executes orders, liquidates, skims) — its own cron job
 //   POST {action:"paper-join", addr, msg, sig}  sign in for the week (a plain signed message) → session token
 //   POST {action:"paper", addr, tok, op, …}     open / close / closeall / tpsl / sync
 //   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
@@ -77,6 +79,7 @@ import * as launchdrop from "./_launchdrop.mjs";
 import * as launchdropRH from "./_launchdrop-rh.mjs";
 import * as paper from "./_paper.mjs";
 import * as predictx from "./_predict-x.mjs";
+import * as perp from "./_perp.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -172,6 +175,17 @@ export async function GET(req) {
       if (q.chain !== "rh" && predictx.CFG.address() && left > 12000) { try { out.x = await predictx.tick({ budgetMs: left - 1000, store: st }); } catch (e) { out.x = { error: String((e && e.message) || e).slice(0, 160) }; } }
       return cron(q, out, t0);
     } catch (e) { return cronErr(q, e, t0); }
+  }
+  // ARCIRCLE Perps (api/_perp.mjs): not live before an audit; the keeper is its own cron job
+  if (q.perptick) {
+    const secret = String(process.env.CRON_SECRET || "").trim();
+    if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
+    const t0 = Date.now(), B = cronBudget(q);
+    try { return cron(q, await perp.tick({ budgetMs: within(B - 2000, 50000), store: st }), t0); } catch (e) { return cronErr(q, e, t0); }
+  }
+  if (q.perp) {
+    try { return json(await perp.state({ user: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=2, s-maxage=3"); }
+    catch (e) { return json({ error: String((e && e.message) || e) }, 502); }
   }
   // ARCIRCLE Predict × (api/_predict-x.mjs): multiplier bands
   if (q.predictx) {

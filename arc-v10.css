@@ -488,3 +488,16 @@ html.v10 .pg-in{animation:none!important}
 #bp-panel-predict.pdx-on #pd-sticky{display:none!important;}
 @media (max-width:560px){.pdx-live b{font-size:1rem;}.pdx-ladder{grid-template-columns:1fr 1fr;}.pdx-in{width:110px;}.pdx-go{min-width:100%;}.pdx-mine li{grid-template-columns:1fr auto;}}
 @media (prefers-reduced-motion:reduce){.pdx-pop{animation:none;}.pdx-meter i{transition:none;}}
+
+/* ARCIRCLE Perps (arc-perp.js) — shares the Paper Trading layout */
+.pr-e-up{stroke:#2fd38a;}.pr-e-dn{stroke:#ff6b6b;}
+.pr-soon{padding:20px;border-radius:var(--r-card);border:1px solid var(--line);background:rgba(255,255,255,.02);display:grid;gap:16px;max-width:860px;}
+.pr-badge{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid rgba(255,183,71,.4);background:rgba(255,183,71,.08);color:#ffd08a;font:600 .72rem var(--f-ui);}
+.pr-soon-h h3{margin:10px 0 6px;font-size:1.15rem;}.pr-soon-h p{margin:0;color:var(--ink-dim);font-size:.86rem;line-height:1.55;}
+.pr-points{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.pr-points li{padding:12px 14px;border-radius:var(--r-ctl);background:rgba(255,255,255,.03);display:grid;gap:4px;}
+.pr-points b{font:700 .88rem var(--f-ui);}.pr-points span{font-size:.8rem;color:var(--ink-dim);line-height:1.5;}
+.pr-soon-a{display:flex;gap:8px;flex-wrap:wrap;}
+.pr-k{align-self:center;font-size:.72rem;color:var(--ink-dim);margin-right:4px;white-space:nowrap;}
+.pr-small{display:block;font-size:.7rem;color:var(--ink-dim);line-height:1.5;}
+@media (max-width:640px){.pr-points{grid-template-columns:1fr;}}

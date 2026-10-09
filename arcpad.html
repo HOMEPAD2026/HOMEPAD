@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791578320"></script>
+<script src="arc-log.js?v=1791578852"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791578320">
+<link rel="stylesheet" href="/arc.min.css?v=1791578852">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1997,6 +1997,36 @@
       </section>
 
       <!-- ============ ARCIRCLE Staking (arc-staking.js + api/desk.mjs?stake=, engine api/_stake.mjs, contract ArcircleStaking.sol) — veARCIRCLE: lock, weekly USDC, pool votes ============ -->
+      <!-- ============ ARCIRCLE Perps (arc-perp.js + api/desk.mjs?perp=, engine api/_perp.mjs, contract ArcPerp.sol) — not live before an audit ============ -->
+      <section class="bp-panel" id="bp-panel-perp">
+        <div class="ams-hero pr-hero">
+          <div class="ams-emblem pp-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><path class="pp-e-base" d="M8 54h48"/><path class="pr-e-up" d="M12 44 26 30l8 8 18-20"/><path class="pr-e-up" d="M42 18h10v10"/><path class="pr-e-dn" d="M12 22l12 10"/></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Utility · Long or short the majors on Arc</span>
+            <h1>ARCIRCLE Perps <span class="asc-ver" title="Not live — waiting for an external audit">soon<i>BTC · ETH · SOL · USDC</i></span></h1>
+            <p class="bp-lede">Long or short Bitcoin, Ether and Solana with USDC collateral and low leverage, against one pool seeded by the treasury. It opens only after an external audit of its contract.</p>
+          </div>
+        </div>
+        <div id="pr-body"></div>
+        <section class="asc-guide pr-guide" aria-labelledby="pr-guide-h">
+          <h2 id="pr-guide-h">ARCIRCLE Perps guide</h2>
+          <details open><summary><h3>How it will work</h3></summary>
+            <ul>
+              <li>Markets: BTC, ETH and SOL. Collateral in USDC, 20–25x at most to start, with caps on each position and on each side's open interest.</li>
+              <li>Two-step orders: you request with the worst price you accept; a keeper fills it at a price observed after your request, inside a band of 1% around Chainlink's price on Arc. Not filled within 3 minutes — cancel it for a full refund.</li>
+              <li>Fees: 0.06% of the size to open and to close, 0.01% of the size an hour while open, and a small keeper fee per order. They go to the pool.</li>
+              <li>Liquidation: when collateral plus PnL, less fees, falls under 1% of the size. The keeper that liquidates gets a small fee; the rest goes to the pool.</li>
+              <li>The pool (the other side of every trade) is seeded by the ARCIRCLE PAD treasury. A position's profit is capped at 9× its collateral, and the sum of those caps can't pass 80% of the pool, so the pool can always pay. Half of the pool's gains above its high-water mark goes to the $ARCIRCLE fee burn and to veARCIRCLE holders' weekly USDC.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Why it isn't live</h3></summary>
+            <p>A perps contract holds other people's money under fast-moving prices. ARCIRCLE Perps is written and tested, but it opens only after an external audit — until then nothing is deployed. Practice the same moves with play money in Paper Trading.</p>
+          </details>
+        </section>
+      </section>
+
       <!-- ============ ARCIRCLE Paper Trading (arc-paper.js + api/desk.mjs?paper=, engine api/_paper.mjs) — a weekly play-money event ============ -->
       <section class="bp-panel" id="bp-panel-paper">
         <div class="ams-hero pp-hero">
@@ -2469,9 +2499,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791578320"></script>
+<script src="wallet-arc.js?v=1791578852"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791578320"></script>
+<script src="arcpad.bundle.js?v=1791578852"></script>
 </body>
 </html>

@@ -66,7 +66,7 @@
       items: [["explore", "Explore", "Every coin on ArcPad, live", "/arc#explore", "grid"], ["launch", "Launch", "Launch a coin with a real pool", "/arc#launch", "rocket"],
         ["orders", "Orders", "Limit, stop and DCA orders", "/arc#orders", "orders"], ["predict", "Predict", "Call UP or DOWN, up to $5", "/arc#predict", "predict"], ["paper", "Paper Trading", "Play money, live prices, weekly board", "/arc#paper", "trophy"],
         ["portfolio", "Portfolio", "What your wallet holds", "/arc#portfolio", "wallet"], ["circle", "CirclePad", "Fund a launch together", "/circle", "brand"]],
-      more: [["creators", "Creators", "/arc#creators"], ["relay", "Relay Launch", "/arc#relay"], ["start", "Getting started", "/start"]] },
+      more: [["perp", "Perps (soon)", "/arc#perp"], ["creators", "Creators", "/arc#creators"], ["relay", "Relay Launch", "/arc#relay"], ["start", "Getting started", "/start"]] },
     { id: "earn", label: "Earn", icon: "coin", line: "Stake, burn and get rewarded",
       items: [["staking", "Staking", "Lock $ARCIRCLE for veARCIRCLE", "/arc#staking", "stake"], ["vearcia", "veARCIA", "Stake $ARCIA, earn $ARCIA", "/arc#vearcia", "vea"],
         ["nft", "NFT Vault", "Fees buy NFTs for holders", "/arc#nft", "nft"], ["reward", "Reward", "The $ARCIRCLE burn engine", "/reward", "gift"],

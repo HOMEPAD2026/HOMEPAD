@@ -35,7 +35,7 @@ export const BUNDLES = {
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
   // It runs after arcpad.bundle.js and shares its globals (ethers, CONFIG, state, the ABIs).
   "arcpad-tools.bundle.js": [
-    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-scanner-x.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "arc-arcia402.js", "arc-works.js", "arc-mine.js", "arc-desk.js", "arc-agent.js", "liq-core.js", "arc-orders-sol.js", "arc-orders.js", "arc-orders-x.js", "arc-order-line.js", "arc-orders-v4.js", "arc-orders-v5.js", "arc-predict.js", "arc-predict-x.js", "arc-paper.js", "arc-staking.js", "arc-launchdrop.js", "arc-nft.js", "arc-vearcia.js", "arc-liquidity.js", "arc-omni.js", "arc-uhub.js",
+    "arc-locker.js", "arc-bridge.js", "scan-core.js", "arc-scanner.js", "arc-scanner-x.js", "arc-multisend.js", "snap-core.js", "arc-snapshot.js", "arc-relay.js", "arc-arcia.js", "arc-arcia402.js", "arc-works.js", "arc-mine.js", "arc-desk.js", "arc-agent.js", "liq-core.js", "arc-orders-sol.js", "arc-orders.js", "arc-orders-x.js", "arc-order-line.js", "arc-orders-v4.js", "arc-orders-v5.js", "arc-predict.js", "arc-predict-x.js", "arc-paper.js", "arc-perp.js", "arc-staking.js", "arc-launchdrop.js", "arc-nft.js", "arc-vearcia.js", "arc-liquidity.js", "arc-omni.js", "arc-uhub.js",
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad-boot.js", "circlepad-plan.js", "circlepad.js", "circlepad-conv.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
