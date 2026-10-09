@@ -420,6 +420,7 @@ function apcRenderHeader() {
     }).catch(() => {});
   }
   if (apc$("apc-orders")) apc$("apc-orders").href = `#orders?t=${l.token}`;
+  if (apc$("apc-arcswap")) apc$("apc-arcswap").href = `#swap?in=${CONFIG.ARCIRCLE_TOKEN}&out=${l.token}`; // ARCIRCLE Swap: pay with $ARCIRCLE, whatever the coin is paired with
   if (apc$("apc-liqmgr")) apc$("apc-liqmgr").href = `#liquidity?token=${l.token}`;
   const desc = apc$("apc-desc");
   if (l.description) { desc.textContent = l.description; desc.hidden = false; } else desc.hidden = true;

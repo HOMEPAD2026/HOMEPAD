@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791581224"></script>
+<script src="arc-log.js?v=1791585000"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791581224">
+<link rel="stylesheet" href="/arc.min.css?v=1791585000">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -303,6 +303,7 @@
                 <a class="ac2-chip-btn" id="apc-scan-link" href="#" target="_blank" rel="noopener">ArcScan ↗</a>
                 <a class="ac2-chip-btn ac2-safety" id="apc-safety" href="#scanner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7 3v5.3c0 4.4-3 8.1-7 9.3-4-1.2-7-4.9-7-9.3V6.2z"/><path d="m9 12 2 2 4-4"/></svg><span>Safety scan</span></a>
                 <a class="ac2-chip-btn ac2-agent" id="apc-agent" href="#agent"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>ARCIA AGENT</span></a>
+                <a class="ac2-chip-btn ac2-orders ac2-arcswap" id="apc-arcswap" href="#swap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v14M7 18l-3-3M7 18l3-3M17 20V6M17 6l-3 3M17 6l3 3"/></svg><span>Buy with $ARCIRCLE</span></a>
                 <a class="ac2-chip-btn ac2-orders" id="apc-orders" href="#orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17"/><path d="M9.5 7H5M9.5 11H3.5M9.5 15H6"/><path d="M14.5 9H19M14.5 13H20.5M14.5 17H17.5"/></svg><span>Limit order</span></a>
                 <a class="ac2-chip-btn" id="apc-liqmgr" href="#liquidity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 3.8 5.5 7 5.5 9.9a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6.1 5.5-9.9z"/></svg><span>Liquidity</span></a>
                 <button type="button" class="ac2-chip-btn ap-star-btn apc-ic" id="apc-star" aria-pressed="false" aria-label="Watch"><svg><use href="#i-star" xlink:href="#i-star"/></svg><span>Watch</span></button>
@@ -2027,6 +2028,47 @@
         </section>
       </section>
 
+      <!-- ============ ARCIRCLE Swap (arc-swap.js, contracts/ArcircleSwap.sol) — any Arc token, paid with $ARCIRCLE, USDC or any token ============ -->
+      <section class="bp-panel" id="bp-panel-swap">
+        <div class="ams-hero sw-hero">
+          <div class="ams-emblem sw-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><circle class="sw-e-a" cx="22" cy="32" r="13"/><circle class="sw-e-b" cx="42" cy="32" r="13"/><path class="sw-e-ar" d="M18 14h16l-4-4M46 50H30l4 4"/></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Trade · Any Arc token in one transaction</span>
+            <h1>ARCIRCLE Swap <span class="asc-ver" title="Version 1">v1<i>Pay with $ARCIRCLE · USDC · any token</i></span></h1>
+            <p class="bp-lede">Buy any coin on Arc with $ARCIRCLE — even one paired with USDC. Swap finds the best route through Arc's Uniswap v4 pools, up to three of them, and does it in one transaction. Every fee feeds the $ARCIRCLE burn.</p>
+          </div>
+        </div>
+        <div id="sw-body"></div>
+        <!-- Swap guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
+        <section class="asc-guide sw-guide" aria-labelledby="sw-guide-h">
+          <h2 id="sw-guide-h">ARCIRCLE Swap guide</h2>
+          <details open><summary><h3>How it works</h3></summary>
+            <ul>
+              <li>Pick what you pay with and what you want. Any token with a Uniswap v4 pool on Arc works — ArcPad coins, Argus launches, $ARCIRCLE, USDC — or paste a contract address.</li>
+              <li>Swap reads the pools of both tokens plus $ARCIRCLE / USDC and quotes every route of up to three pools, for example $ARCIRCLE → USDC → a coin, or a coin → $ARCIRCLE for a coin paired with $ARCIRCLE. The best one is used and drawn on the card.</li>
+              <li>The whole route runs in one transaction. If you'd receive less than the quote minus your slippage limit (1% unless you change it), nothing is swapped. Whatever a pool can't take comes back to you.</li>
+              <li>Approve the token you pay with once (just the amount, or unlimited), then swap. Arc's gas is paid in USDC, so Max keeps 0.1 USDC aside when you pay with USDC.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Fees and the burn</h3></summary>
+            <ul>
+              <li>The fee is 0.1% of the swap, fixed in the contract (it can never be set above 0.3%). Pools charge their own fees on top, as everywhere.</li>
+              <li>If the route touches $ARCIRCLE — you pay with it, receive it, or pass through it — the fee is taken in $ARCIRCLE and sent to ArcircleFeeBurn, which burns half of it in the same transaction and passes half to the ARCIRCLE PAD treasury.</li>
+              <li>Otherwise it's taken in USDC wherever the route touches USDC; ArcircleFeeBurn spends half of it on $ARCIRCLE and burns it in its hourly run. A route with neither pays the fee in the token you receive, which goes to the treasury.</li>
+              <li>Wallets holding 100,000 $ARCIRCLE or more swap fee-free — the same rule as ARCIRCLE Orders.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Honest notes</h3></summary>
+            <p>ArcircleSwap has no owner, no admin key, no pause and no upgrades; it only holds tokens for the length of one swap. Its code is tested against Uniswap v4's own PoolManager but hasn't had an external audit. Price impact on small pools can be large — the card shows it, and over 15% asks you to press twice. Tokens that tax their own transfers aren't supported — such a swap reverts and nothing moves (a pool hook's tax is fine and is in the quote). Nothing here is investment advice.</p>
+          </details>
+          <details><summary><h3>For bots and builders</h3></summary>
+            <p>Call quote(path, tokenIn, amountIn, payer) with eth_call: it reverts with QuoteResult(out, fee, feeAt). Then swap(path, tokenIn, amountIn, minOut, to, deadline) after approving tokenIn. A path is a list of Uniswap v4 pool keys; routeOf(path, tokenIn) returns the tokens it passes through and where the fee is taken. Deep links: /arc#swap?in=0x…&amp;out=0x…&amp;amt=100.</p>
+          </details>
+        </section>
+      </section>
+
       <!-- ============ ARCIRCLE Paper Trading (arc-paper.js + api/desk.mjs?paper=, engine api/_paper.mjs) — a weekly play-money event ============ -->
       <section class="bp-panel" id="bp-panel-paper">
         <div class="ams-hero pp-hero">
@@ -2499,9 +2541,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791581224"></script>
+<script src="wallet-arc.js?v=1791585000"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791581224"></script>
+<script src="arcpad.bundle.js?v=1791585000"></script>
 </body>
 </html>

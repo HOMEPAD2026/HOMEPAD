@@ -245,6 +245,13 @@ const CONFIG = {
   // veARCIRCLE holders, claimed or pushed. Deployed 2026-10-09 (block 25056550). The Staking page reads the vault
   // through /api/desk?stake=drop (api/_launchdrop.mjs LAUNCHDROP_DEFAULT / env LAUNCHDROP_ADDRESS) — keep them in step.
   LAUNCHDROP_ADDRESS: "0x0921638A292Bd7Dfd001Ed62367cF8B6f0F7d613",
+  // ARCIRCLE Swap (contracts/ArcircleSwap.sol, arc-swap.js): any Arc token with a Uniswap v4 pool, paid with $ARCIRCLE,
+  // USDC or any token, routed through up to three pools in one transaction. Its fee (SWAP_FEE_BPS, fixed in the contract)
+  // goes to ArcircleFeeBurn below. "" until contracts/scripts/deploy-arcircle-swap.js runs — the page then quotes the same
+  // routes through ARCIRCLE Orders as a preview and the Swap button stays off.
+  SWAP_ADDRESS: "",
+  SWAP_FEE_BPS: 10,
+  ARCIRCLE_FEEBURN: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn: 50% of fees burned as $ARCIRCLE, 50% treasury
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
   // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
