@@ -1,7 +1,7 @@
 /* global state, connectWallet */
 // arc-paper.js — ARCIRCLE Paper Trading (arcpad.html#paper; api/_paper.mjs): a weekly event with play money on live
-// prices. Every wallet that joins starts the week with $10,000 and trades BTC, ETH and SOL long or short, up to 100x
-// (SOL 50x); the board ranks everyone by account value, and each finished week keeps its top 10.
+// prices. Every wallet that joins starts the week with $10,000 and trades BTC, ETH and SOL long or short, up to 1000x
+// (SOL 500x), filled at the mid price (no slippage, no funding); the board ranks everyone by account value, and each finished week keeps its top 10.
 //   · join: one signed message a week (no gas) → a session token kept in this browser
 //   · the ticket: long / short, margin (or a share of cash), leverage, optional take-profit and stop-loss — with the
 //     size, liquidation price and fee before it's placed
@@ -31,7 +31,7 @@
   const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* this visit */ } } };
   const tokKey = (wk) => `arc.paper.tok.${me()}.${wk}`;
   const S = { st: null, m: ls.get("arc.paper.m") || "BTC", side: "long", lev: 10, busy: false, msg: "", kind: "", hist: {}, timer: 0, clock: 0, booted: false, last: {}, view: "positions" };
-  const LEVS = [2, 5, 10, 25, 50, 100];
+  const LEVS = [2, 10, 50, 100, 500, 1000];
 
   // ---------------------------------------------------------------- reads
   async function load() {
@@ -103,8 +103,8 @@
     const el = $("pp-pre"); if (!el || !S.st) return;
     const mg = margin(), lv = Math.min(S.lev, mkt().max), p = price();
     if (!mg || !p) { el.innerHTML = `<div><span>${T("Size")}</span><b>—</b></div><div><span>${T("Liquidation")}</span><b>—</b></div><div><span>${T("Fee")}</span><b>—</b></div>`; return; }
-    const sz = mg * lv, s = S.side === "long" ? 1 : -1, mm = (sz * S.st.rules.mmBps) / 10000;
-    const liq = p * (1 - s * (mg - mm) / sz), fee = (sz * S.st.rules.feeBps) / 10000;
+    const R = S.st.rules, sz = mg * lv, s = S.side === "long" ? 1 : -1, mm = Math.min((sz * R.mmBps) / 10000, mg * (R.mmCap || 1));
+    const liq = p * (1 - s * (mg - mm) / sz), fee = Math.min((sz * R.feeBps) / 10000, (mg * (R.feeCapBps || 1e9)) / 10000);
     el.innerHTML = `<div><span>${T("Size")}</span><b data-no-i18n>${usd(sz, 0)}</b></div><div><span>${T("Liquidation")}</span><b data-no-i18n class="pp-liq">${pxS(liq)}</b></div><div><span>${T("Fee")}</span><b data-no-i18n>${usd(fee)}</b></div>`;
     const go = $("pp-go");
     if (go && !S.busy) go.textContent = joined() ? `${tr(S.side === "long" ? "Open long" : "Open short")} ${S.m} · ${lv}x` : tr("Join to trade");
@@ -223,7 +223,7 @@
     if (b.dataset.ppM) { if (S.m !== b.dataset.ppM) S.clearTl = true; S.m = b.dataset.ppM; ls.set("arc.paper.m", S.m); paint(); return; }
     if (b.dataset.ppSide) { if (S.side !== b.dataset.ppSide) S.clearTl = true; S.side = b.dataset.ppSide; paint(); return; }
     if (b.dataset.ppLev) { S.lev = Number(b.dataset.ppLev); paint(); return; }
-    if (b.dataset.ppPct) { const c = cash(), fee = (S.st.rules.feeBps / 10000) * Math.min(S.lev, mkt().max); $("pp-mg").value = String(Math.floor(((c * Number(b.dataset.ppPct)) / 100 / (1 + fee)) * 100) / 100); preview(); return; }
+    if (b.dataset.ppPct) { const c = cash(), R = S.st.rules, fee = Math.min((R.feeBps / 10000) * Math.min(S.lev, mkt().max), (R.feeCapBps || 1e9) / 10000); $("pp-mg").value = String(Math.floor(((c * Number(b.dataset.ppPct)) / 100 / (1 + fee)) * 100) / 100); preview(); return; }
     if (b.dataset.ppView) { S.view = b.dataset.ppView; paint(); return; }
     if (b.hasAttribute("data-pp-join")) { join(); return; }
     if (b.hasAttribute("data-pp-go")) {

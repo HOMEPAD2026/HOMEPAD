@@ -120,14 +120,16 @@ const CONFIG = {
   // 7 Oct 2026: what CirclePad says about its rounds everywhere outside /circle (the main page's button, round card and
   // live bar, ArcPad's $ARCIRCLE card and roadmap, ARCIA): Round #2 postponed, Rounds #3 + #4 being merged. Set to null
   // when a round is live again — the pages then follow the round's own state.
-  // 9 Oct 2026: Round #5 is next; Rounds #3 + #4 rewards go out as a snapshot airdrop at the right time.
+  // 10 Oct 2026: Round #5 is live — ArcPad launches on Robinhood Chain, 4% of every coin to veARCIRCLE automatically
+  // (the Launch Drop). Rounds #3 + #4: a snapshot airdrop once $ARCIA's utilities are upgraded.
   CIRCLEPAD_STATUS: {
-    btn: "CirclePad · Round #5 is next",
-    line: "Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop",
+    btn: "CirclePad · Round #5 is live",
+    line: "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade",
     chip: "Round #5",
-    sub: "opens next",
-    go: "See the plan →",
-    href: "/circle",
+    sub: "live",
+    go: "Launch on Robinhood Chain →",
+    href: "/arc#launch",
+    live: true, // the home button gets its live dot
   },
   // v8: the delivery board under a plan round's hero (circlepad-plan.js) — what the team has done after the close.
   // Each step: status "" (waiting) | "now" (in progress) | "done", and txs: [{ chain: "rh" | "sol" | "arc", hash, label }].

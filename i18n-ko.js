@@ -8658,6 +8658,15 @@
     "Why it isn't live": "아직 열지 않는 이유",
     "How it will work": "작동 방식(예정)",
     "ARCIRCLE Perps guide": "ARCIRCLE 무기한 선물 가이드",
+    "CirclePad · Round #5 is live": "CirclePad · 라운드 #5 진행 중",
+    "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "라운드 #5 진행 중: ArcPad · Robinhood Chain에서 런치 — 모든 코인의 4%를 veARCIRCLE에 · 라운드 #3 + #4: $ARCIA 유틸리티 정비 후 에어드랍",
+    "Launch on Robinhood Chain →": "Robinhood Chain에서 런치 →",
+    "Community-funded launches · Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "커뮤니티 펀딩 런칭 · 라운드 #5 진행 중: ArcPad · Robinhood Chain에서 런치 — 모든 코인의 4%를 veARCIRCLE에 · 라운드 #3 + #4: $ARCIA 유틸리티 정비 후 에어드랍",
+    "Every week starts with $10,000 of play money. Go long or short on Bitcoin, Ether and Solana with live prices and up to 1000x leverage — no slippage, no funding — and climb the weekly board. Nothing is on-chain — practice the moves before you use real money.": "매주 연습용 $10,000로 시작해요. 실시간 가격으로 비트코인, 이더, 솔라나를 최대 1000배 레버리지로 롱·숏 — 슬리피지도 펀딩비도 없어요 — 하고 주간 순위를 올리세요. 온체인은 아니에요 — 실제 돈을 쓰기 전에 연습하세요.",
+    "Pick a market (BTC, ETH or SOL), long or short, a margin and a leverage (BTC and ETH up to 1000x, SOL up to 500x). Size = margin × leverage. Fills are at the live mid price from Hyperliquid (Coinbase if it doesn't answer): no slippage, no funding.": "마켓(BTC, ETH, SOL), 롱 또는 숏, 증거금과 레버리지를 고르세요(BTC·ETH 최대 1000배, SOL 최대 500배). 크기 = 증거금 × 레버리지. 체결은 Hyperliquid 실시간 중간가(응답이 없으면 Coinbase) — 슬리피지도 펀딩비도 없어요.",
+    "Opening and closing each cost 0.05% of the size, at most 2% of the margin. Profit and loss follow the price: at 10x, a 1% move is 10% of your margin; at 1000x, a 0.1% move is all of it.": "열고 닫을 때 각각 크기의 0.05%(최대 증거금의 2%)가 수수료예요. 손익은 가격을 따라가요: 10배면 1% 움직임이 증거금의 10%, 1000배면 0.1% 움직임이 증거금 전부예요.",
+    "A position can't lose more than its margin: it's liquidated when the loss reaches the margin less the maintenance margin (0.5% of the size, at most half the margin). The liquidation price is shown before you open.": "포지션은 증거금보다 많이 잃지 않아요: 손실이 증거금에서 유지증거금(크기의 0.5%, 최대 증거금의 절반)을 뺀 만큼에 닿으면 청산돼요. 청산가는 열기 전에 보여줘요.",
+    "Not enough play money for that margin plus the fee.": "그 증거금과 수수료를 낼 연습용 자금이 부족해요.",
   };
 
 

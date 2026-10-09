@@ -19,8 +19,8 @@
       t: ["CirclePad Rounds #3 + #4", "CirclePad 라운드 #3 + #4", "CirclePad 第 3 + 4 轮"],
       what: ["$ARCIA on Robinhood Chain, bought with the raise, plus your share of Round #4 on Solana.", "모금액으로 산 Robinhood Chain의 $ARCIA, 그리고 솔라나 라운드 #4 지분.", "用募资买入的 Robinhood Chain $ARCIA,加上 Solana 第 4 轮的份额。"],
       who: ["Everyone who contributed to Round #3, and Round #2's contributors (Round #2's USDC moved into Round #3) — pro rata to your share.", "라운드 #3 기여자 전원, 그리고 라운드 #2 기여자(라운드 #2 USDC가 #3로 이동) — 기여 비율대로.", "第 3 轮所有贡献者,以及第 2 轮贡献者(第 2 轮的 USDC 已转入第 3 轮)——按份额比例。"],
-      how: ["A snapshot airdrop to the contributor list, at the right time — nothing to claim.", "적절한 시점에 기여자 명단으로 스냅샷 에어드랍 — 클레임할 필요 없어요.", "在合适的时机按贡献者名单快照空投——无需领取。"],
-      steps: [["snap", ["Snapshot of the contributor list", "기여자 명단 스냅샷", "贡献者名单快照"]], ["drop", ["Airdrop: $ARCIA + the Round #4 share", "에어드랍: $ARCIA + 라운드 #4 지분", "空投:$ARCIA + 第 4 轮份额"]], ["more", ["Round #4 on Solana, and what follows", "솔라나 라운드 #4와 이후 업데이트", "Solana 第 4 轮及后续"]]],
+      how: ["A snapshot airdrop to the contributor list once $ARCIA's utilities are upgraded — nothing to claim. Then: Pons graduation and more new $ARCIA holders.", "$ARCIA 유틸리티 정비가 끝나면 기여자 명단으로 스냅샷 에어드랍 — 클레임할 필요 없어요. 이후 Pons 졸업과 $ARCIA 신규 홀더 유입 확대.", "$ARCIA 的工具升级完成后，按贡献者名单快照空投——无需领取。之后：Pons 毕业，吸引更多 $ARCIA 新持有者。"],
+      steps: [["snap", ["Snapshot of the contributor list", "기여자 명단 스냅샷", "贡献者名单快照"]], ["util", ["$ARCIA's utilities upgraded", "$ARCIA 유틸리티 정비", "$ARCIA 工具升级"]], ["drop", ["Airdrop: $ARCIA + the Round #4 share", "에어드랍: $ARCIA + 라운드 #4 지분", "空投:$ARCIA + 第 4 轮份额"]], ["more", ["Pons graduation, more new $ARCIA holders", "Pons 졸업, $ARCIA 신규 홀더 확대", "Pons 毕业,更多 $ARCIA 新持有者"]]],
       link: ["/circle", ["See the round", "라운드 보기", "查看本轮"]] },
     { id: "relay", status: "live",
       t: ["Relay Launch", "릴레이 런치", "接力发币"],
@@ -36,9 +36,9 @@
       link: ["/arc#vearcia", ["Open veARCIA", "veARCIA 열기", "打开 veARCIA"]] },
     { id: "launchdrop", status: isAddr(C.LAUNCHDROP_ADDRESS) ? "live" : "soon",
       t: ["Launch Drop", "런치 드랍", "发币空投"],
-      what: ["4% of every new ArcPad coin's supply (40M of 1B), held and paid out by a contract.", "새 ArcPad 코인마다 공급량의 4%(10억 개 중 4천만 개)를 컨트랙트가 보관하고 지급해요.", "每个新 ArcPad 币供应量的 4%(10 亿中的 4000 万),由合约保管并发放。"],
+      what: ["CirclePad Round #5: 4% of every new ArcPad coin's supply (40M of 1B) — on Arc and on Robinhood Chain — held and paid out by a contract.", "CirclePad 라운드 #5: 새 ArcPad 코인마다 공급량의 4%(10억 개 중 4천만 개) — Arc와 Robinhood Chain 모두 — 를 컨트랙트가 보관하고 지급해요.", "CirclePad 第 5 轮：每个新 ArcPad 币供应量的 4%(10 亿中的 4000 万)——Arc 和 Robinhood Chain 均适用——由合约保管并发放。"],
       who: ["veARCIRCLE holders, pro rata to their veARCIRCLE when the coin's launch week began (Thursday 00:00 UTC).", "veARCIRCLE 보유자 — 코인이 런칭된 주가 시작된 시점(목요일 00:00 UTC)의 veARCIRCLE 비율대로.", "veARCIRCLE 持有者——按该币上线当周开始时(周四 00:00 UTC)的 veARCIRCLE 比例。"],
-      how: ["Claim on the Staking page any time, or anyone can send it to you. Coins launched from 8 Oct 2026 on.", "스테이킹 페이지에서 언제든 수령하거나, 누구나 대신 보내줄 수 있어요. 2026년 10월 8일 이후 런칭된 코인부터.", "随时在质押页面领取,任何人也可以代你发送。适用于 2026 年 10 月 8 日起上线的币。"],
+      how: ["Claim on the Staking page any time (Robinhood Chain coins: 12 hours after the week's holder list is posted), or anyone can send it to you. Coins launched from 8 Oct 2026 on.", "스테이킹 페이지에서 언제든 수령하거나, 누구나 대신 보내줄 수 있어요. 2026년 10월 8일 이후 런칭된 코인부터.", "随时在质押页面领取,任何人也可以代你发送。适用于 2026 年 10 月 8 日起上线的币。"],
       link: ["/arc#staking", ["Open Staking", "스테이킹 열기", "打开质押"]] },
   ];
   var ST = { live: ["Live", "진행 중", "进行中"], prep: ["Preparing", "준비 중", "准备中"], soon: ["Coming soon", "곧 시작", "即将开始"], done: ["Done", "완료", "已完成"] };

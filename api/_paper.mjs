@@ -1,11 +1,12 @@
 // api/_paper.mjs — ARCIRCLE Paper Trading: a weekly trading event with play money on live prices (arc-paper.js).
 //
 // Every week (Monday 00:00 UTC to the next Monday) every wallet that joins starts with $10,000 of play money and
-// trades BTC, ETH and SOL long or short with up to 100x leverage (SOL 50x). Nothing touches a chain and nothing can be
+// trades BTC, ETH and SOL long or short with up to 1000x leverage (SOL 500x) — no slippage, no funding. Nothing touches a chain and nothing can be
 // won or lost — it's practice and a weekly board. The same rules as a real perp, kept simple:
-//   · a position: margin × leverage = size, opened at the live price; 0.05% of the size on open and on close
+//   · a position: margin × leverage = size, opened at the live mid price (no slippage, no funding); 0.05% of the size
+//     on open and on close, at most 2% of the margin each time (so 1000x isn't eaten by fees)
 //   · PnL = size × (price ÷ entry − 1), negative for a short. It can't lose more than its margin: it's liquidated when
-//     the loss reaches the margin less 0.5% of the size (the maintenance margin)
+//     the loss reaches the margin less the maintenance margin — 0.5% of the size, at most half the margin
 //   · optional take-profit and stop-loss prices; they, and liquidations, are checked whenever the event is read (every
 //     few seconds while anyone has the page open) and close at their own price
 // Prices: Hyperliquid's mid prices (public, keyless), Coinbase's spot price if Hyperliquid doesn't answer.
@@ -17,13 +18,17 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 
 export const START = 10_000;
 export const FEE_BPS = 5;   // 0.05% of the size, on open and on close
-export const MM_BPS = 50;   // maintenance margin: 0.5% of the size
+export const MM_BPS = 50;   // maintenance margin: 0.5% of the size…
+export const MM_CAP = 0.5;  // …at most half the margin (high leverage)
+export const FEE_CAP_BPS = 200; // a fee is at most 2% of the margin
+const feeOf = (sz, mg) => Math.min((sz * FEE_BPS) / 10000, (mg * FEE_CAP_BPS) / 10000);
+const mmOf = (sz, mg) => Math.min((sz * MM_BPS) / 10000, mg * MM_CAP);
 export const MIN_MARGIN = 10;
 export const MAX_OPEN = 10;
 export const MARKETS = {
-  BTC: { name: "Bitcoin", max: 100, cb: "BTC-USD" },
-  ETH: { name: "Ethereum", max: 100, cb: "ETH-USD" },
-  SOL: { name: "Solana", max: 50, cb: "SOL-USD" },
+  BTC: { name: "Bitcoin", max: 1000, cb: "BTC-USD" },
+  ETH: { name: "Ethereum", max: 1000, cb: "ETH-USD" },
+  SOL: { name: "Solana", max: 500, cb: "SOL-USD" },
 };
 const te = new TextEncoder();
 const hx = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -72,13 +77,13 @@ export async function prices() {
 
 // ---------------------------------------------------------------- the maths
 const pnlOf = (p, px) => (px > 0 ? p.sz * p.s * (px / p.en - 1) : 0);
-export const liqPrice = (p) => p.en * (1 - p.s * (p.mg - (p.sz * MM_BPS) / 10000) / p.sz);
+export const liqPrice = (p) => p.en * (1 - p.s * (p.mg - mmOf(p.sz, p.mg)) / p.sz);
 const value = (p, px) => Math.max(0, p.mg + pnlOf(p, px)); // what a position is worth now (never below 0)
 export function equity(acc, px) { return acc.cash + (acc.pos || []).reduce((s, p) => s + value(p, px[p.m]), 0); }
 /// close `p` at `price` for `why`: its margin plus PnL, less the closing fee, back to cash
 function closeAt(acc, p, price, why, t) {
   const pnl = why === "liquidated" ? -p.mg : pnlOf(p, price);
-  const fee = why === "liquidated" ? 0 : (p.sz * (price / p.en) * FEE_BPS) / 10000;
+  const fee = why === "liquidated" ? 0 : feeOf(p.sz * (price / p.en), p.mg);
   const back = Math.max(0, p.mg + pnl - fee);
   acc.cash = r2(acc.cash + back);
   acc.pos = acc.pos.filter((x) => x.id !== p.id);
@@ -163,8 +168,8 @@ export async function act(b, { store }) {
     if (!(mg >= MIN_MARGIN)) return err(400, `The smallest margin is $${MIN_MARGIN}.`);
     if (!(lv >= 1 && lv <= M.max)) return err(400, `Leverage on ${m} is 1–${M.max}x.`);
     if ((acc.pos || []).length >= MAX_OPEN) return err(400, `At most ${MAX_OPEN} open positions.`);
-    const sz = r2(mg * lv), fee = (sz * FEE_BPS) / 10000;
-    if (acc.cash < mg + fee - 1e-9) return err(400, "Not enough play money for that margin plus the 0.05% fee.");
+    const sz = r2(mg * lv), fee = feeOf(sz, mg);
+    if (acc.cash < mg + fee - 1e-9) return err(400, "Not enough play money for that margin plus the fee.");
     const en = px[m];
     const tp = Number(b.tp) > 0 ? Number(b.tp) : null, sl = Number(b.sl) > 0 ? Number(b.sl) : null;
     if (tp && (s > 0 ? tp <= en : tp >= en)) return err(400, `Take-profit has to be ${s > 0 ? "above" : "below"} the price.`);
@@ -231,7 +236,7 @@ export async function state({ store, user = "" } = {}) {
   }
   return {
     wk: wk.wk, start: wk.start, ends: wk.end, now: t, px, markets: Object.fromEntries(Object.entries(MARKETS).map(([k, m]) => [k, { name: m.name, max: m.max }])),
-    rules: { start: START, feeBps: FEE_BPS, mmBps: MM_BPS, minMargin: MIN_MARGIN, maxOpen: MAX_OPEN },
+    rules: { start: START, feeBps: FEE_BPS, feeCapBps: FEE_CAP_BPS, mmBps: MM_BPS, mmCap: MM_CAP, minMargin: MIN_MARGIN, maxOpen: MAX_OPEN },
     traders: rows.length, top: rows.slice(0, 50), me, seasons: ((ss && ss.weeks) || []).slice(0, 8),
   };
 }

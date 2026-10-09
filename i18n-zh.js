@@ -8828,6 +8828,15 @@
     "Why it isn't live": "为何尚未上线",
     "How it will work": "运作方式（计划）",
     "ARCIRCLE Perps guide": "ARCIRCLE 永续合约指南",
+    "CirclePad · Round #5 is live": "CirclePad · 第 5 轮进行中",
+    "Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "第 5 轮进行中：在 ArcPad · Robinhood Chain 发币——每个币的 4% 归 veARCIRCLE · 第 3 + 4 轮：$ARCIA 工具升级后空投",
+    "Launch on Robinhood Chain →": "在 Robinhood Chain 发币 →",
+    "Community-funded launches · Round #5 live: launch on ArcPad · Robinhood Chain — 4% of every coin to veARCIRCLE · Rounds #3 + #4: $ARCIA airdrop after its utility upgrade": "社区募资发币 · 第 5 轮进行中：在 ArcPad · Robinhood Chain 发币——每个币的 4% 归 veARCIRCLE · 第 3 + 4 轮：$ARCIA 工具升级后空投",
+    "Every week starts with $10,000 of play money. Go long or short on Bitcoin, Ether and Solana with live prices and up to 1000x leverage — no slippage, no funding — and climb the weekly board. Nothing is on-chain — practice the moves before you use real money.": "每周以 $10,000 模拟资金开始。用实时价格、最高 1000 倍杠杆做多或做空比特币、以太坊和 Solana——无滑点、无资金费——冲击每周排行榜。不上链——在用真钱之前先练习。",
+    "Pick a market (BTC, ETH or SOL), long or short, a margin and a leverage (BTC and ETH up to 1000x, SOL up to 500x). Size = margin × leverage. Fills are at the live mid price from Hyperliquid (Coinbase if it doesn't answer): no slippage, no funding.": "选择市场（BTC、ETH 或 SOL）、做多或做空、保证金和杠杆（BTC、ETH 最高 1000 倍，SOL 最高 500 倍）。仓位 = 保证金 × 杠杆。按 Hyperliquid 实时中间价成交（无响应时用 Coinbase）：无滑点、无资金费。",
+    "Opening and closing each cost 0.05% of the size, at most 2% of the margin. Profit and loss follow the price: at 10x, a 1% move is 10% of your margin; at 1000x, a 0.1% move is all of it.": "开仓和平仓各收取仓位的 0.05%（最多为保证金的 2%）。盈亏随价格变动：10 倍时 1% 的波动等于保证金的 10%；1000 倍时 0.1% 的波动就是全部保证金。",
+    "A position can't lose more than its margin: it's liquidated when the loss reaches the margin less the maintenance margin (0.5% of the size, at most half the margin). The liquidation price is shown before you open.": "仓位亏损不会超过保证金：当亏损达到保证金减去维持保证金（仓位的 0.5%，最多为保证金的一半）时被强平。开仓前会显示强平价。",
+    "Not enough play money for that margin plus the fee.": "模拟资金不足以支付该保证金和手续费。",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

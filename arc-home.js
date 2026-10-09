@@ -117,13 +117,13 @@
     var S = !live && typeof CONFIG !== "undefined" && CONFIG.CIRCLEPAD_STATUS;
     if (S) {
       if (lbl) lbl.textContent = tr(S.btn);
-      if (dot) dot.hidden = true;
+      if (dot) dot.hidden = !S.live;
       var card0 = $(".hm-round"), tag0 = $("[data-hm-round-st]"), go0 = $("[data-hm-round-go]"), rl0 = $("[data-hm-raised-lbl]"), vb0 = $("[data-hm-votes-box]");
       if (tag0) tag0.textContent = tr(S.line);
       if (go0) go0.textContent = tr(S.go);
       if (rl0) rl0.textContent = RT("Round #{c} raised", n, last.n);
       if (vb0) vb0.hidden = true;
-      if (card0) { card0.classList.remove("live"); card0.setAttribute("href", S.href || "/circle"); }
+      if (card0) { card0.classList.toggle("live", !!S.live); card0.setAttribute("href", S.href || "/circle"); }
       if (laterLive) raisedOf();
       roundTo = 0; tickClock();
       return;
