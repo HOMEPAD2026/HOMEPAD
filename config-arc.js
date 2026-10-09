@@ -247,9 +247,10 @@ const CONFIG = {
   LAUNCHDROP_ADDRESS: "0x0921638A292Bd7Dfd001Ed62367cF8B6f0F7d613",
   // ARCIRCLE Swap (contracts/ArcircleSwap.sol, arc-swap.js): any Arc token with a Uniswap v4 pool, paid with $ARCIRCLE,
   // USDC or any token, routed through up to three pools in one transaction. Its fee (SWAP_FEE_BPS, fixed in the contract)
-  // goes to ArcircleFeeBurn below. "" until contracts/scripts/deploy-arcircle-swap.js runs — the page then quotes the same
-  // routes through ARCIRCLE Orders as a preview and the Swap button stays off.
-  SWAP_ADDRESS: "",
+  // goes to ArcircleFeeBurn below. Live since 10 Oct 2026 (contracts/scripts/deploy-arcircle-swap.js); with "" the page
+  // quotes the same routes through ARCIRCLE Orders as a preview and the Swap button stays off.
+  SWAP_ADDRESS: "0x305Da1b305249072b13B73ab394E02046c865d56", // deployed 2026-10-10 (block 25150057)
+  SWAP_FROM_BLOCK: 25150057, // Activity reads Swapped events from here
   SWAP_FEE_BPS: 10,
   ARCIRCLE_FEEBURN: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn: 50% of fees burned as $ARCIRCLE, 50% treasury
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
