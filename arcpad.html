@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791577303"></script>
+<script src="arc-log.js?v=1791578086"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791577303">
+<link rel="stylesheet" href="/arc.min.css?v=1791578086">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1916,6 +1916,9 @@
               <a href="https://robinhoodchain.blockscout.com/address/0x774730acdb1446512E763148B2cbb63B3c7FAFDB" target="_blank" rel="noopener">Robinhood Chain <code data-no-i18n>0x7747…FAFDB</code> ↗</a></div>
           </div>
         </div>
+        <!-- Predict × (arc-predict-x.js): UP / DOWN or multiplier bands -->
+        <div class="pdx-switch" id="pdx-switch"></div>
+        <div id="pdx-body" hidden></div>
         <div id="pd-body"></div>
         <!-- ARCIRCLE Predict guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
         <section class="asc-guide pd-guide" aria-labelledby="pd-guide-h">
@@ -1932,7 +1935,14 @@
               <li>Winnings are claimed from "Your bets" with one transaction, any time — they never expire.</li>
             </ul>
           </details>
-          <details open><summary><h3>New in v3</h3></summary>
+          <details open><summary><h3>Multiplier × (new)</h3></summary>
+            <ul>
+              <li>The switch above Predict opens Multiplier ×: the same rounds, with four bands instead of UP / DOWN — down more than x%, down, up, up more than x% (x = 1% for 5-minute rounds, 2% for 15 minutes, 5% for an hour), measured from the price to beat.</li>
+              <li>Each band has its own pool and the winning band splits the whole pot after the 2% fee, so the far bands pay a multiple of the near ones. The multiplier on each band is what $1 returns if it wins now; it moves as bets come in.</li>
+              <li>One band per wallet per round, $0.50 to $5. A round refunds without fee when the price didn't move, nobody picked the winning band, or everybody did. Prices, the keeper, referrals and the fee burn work as in UP / DOWN; it's its own contract (ArcPredictBands).</li>
+            </ul>
+          </details>
+          <details><summary><h3>New in v3</h3></summary>
             <ul>
               <li>The round card opens with a Bet → Live → Settle band and a gauge: its needle shows how far the price is from the price to beat, with a bar for the gap. Your stake is marked on the pool bar, a coin drops into a side when a bet lands, the payout multiples roll as they change, and the "is winning" pill flips over when the lead changes hands.</li>
               <li>Under the pools, a small chart shows how the UP / DOWN split moved as bets came in. A round with no bets yet says it plainly: the first bet sets the odds, and with nobody on the other side everyone gets their stake back.</li>
@@ -2459,9 +2469,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791577303"></script>
+<script src="wallet-arc.js?v=1791578086"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791577303"></script>
+<script src="arcpad.bundle.js?v=1791578086"></script>
 </body>
 </html>

@@ -39,6 +39,7 @@
 //   GET /api/desk?stake=droprhproof&ws=&u=0x…  a wallet's veARCIRCLE leaf + Merkle proof for one week
 //   GET /api/desk?paper=state[&u=0x…]          Paper Trading: prices, this week's board, a wallet's account, past weeks
 //   GET /api/desk?paper=prices                  Paper Trading's live prices (BTC, ETH, SOL)
+//   GET /api/desk?predictx=state|mine&u=0x…     Predict × (multiplier bands): markets and rounds, a wallet's bets
 //   POST {action:"paper-join", addr, msg, sig}  sign in for the week (a plain signed message) → session token
 //   POST {action:"paper", addr, tok, op, …}     open / close / closeall / tpsl / sync
 //   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
@@ -75,6 +76,7 @@ import * as stake from "./_stake.mjs";
 import * as launchdrop from "./_launchdrop.mjs";
 import * as launchdropRH from "./_launchdrop-rh.mjs";
 import * as paper from "./_paper.mjs";
+import * as predictx from "./_predict-x.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -163,7 +165,20 @@ export async function GET(req) {
     const secret = String(process.env.CRON_SECRET || "").trim();
     if (!secret || (q.key !== secret && req.headers.get("authorization") !== `Bearer ${secret}`)) return json({ error: "unauthorized" }, 401);
     const t0 = Date.now(), B = cronBudget(q);
-    try { return cron(q, await predict.forChain(q.chain).tick({ budgetMs: within(B - 2000, 45000), store: st }), t0); } catch (e) { return cronErr(q, e, t0); }
+    try {
+      const out = await predict.forChain(q.chain).tick({ budgetMs: within(B - 2000, 45000), store: st });
+      // Predict × (multiplier bands) on Arc shares the keeper and this cron job, with the time that's left
+      const left = within(B - 2000, 45000) - (Date.now() - t0);
+      if (q.chain !== "rh" && predictx.CFG.address() && left > 12000) { try { out.x = await predictx.tick({ budgetMs: left - 1000, store: st }); } catch (e) { out.x = { error: String((e && e.message) || e).slice(0, 160) }; } }
+      return cron(q, out, t0);
+    } catch (e) { return cronErr(q, e, t0); }
+  }
+  // ARCIRCLE Predict × (api/_predict-x.mjs): multiplier bands
+  if (q.predictx) {
+    try {
+      if (q.predictx === "mine") { const r = await predictx.mine(String(q.u || "")); return json(r, r.error ? 400 : 200); }
+      return json(await predictx.state(), 200, "public, max-age=2, s-maxage=3");
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 502); }
   }
   if (q.predict) {
     const P = predict.forChain(q.chain);
