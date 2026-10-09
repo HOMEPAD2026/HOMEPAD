@@ -5,7 +5,7 @@
 (function () {
   "use strict";
   if (window.arcLazy) return;
-  var TOOLS = ["locker", "bridge", "scanner", "multisend", "snapshot", "relay", "arcia", "arcia402", "works", "mine", "desk", "agent", "orders", "predict", "staking", "nft", "vearcia", "liquidity", "omni"];
+  var TOOLS = ["locker", "bridge", "scanner", "multisend", "snapshot", "relay", "arcia", "arcia402", "works", "mine", "desk", "agent", "orders", "predict", "paper", "staking", "nft", "vearcia", "liquidity", "omni"];
   var me = document.currentScript && document.currentScript.src;
   var v = (/[?&]v=(\d+)/.exec(me || "") || [])[1] || "";
   var URL_ = "/arcpad-tools.bundle.js" + (v ? "?v=" + v : "");

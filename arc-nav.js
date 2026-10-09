@@ -64,7 +64,7 @@
   var GROUPS = [
     { id: "trade", label: "Trade", icon: "predict", line: "Launch, buy and sell on Arc",
       items: [["explore", "Explore", "Every coin on ArcPad, live", "/arc#explore", "grid"], ["launch", "Launch", "Launch a coin with a real pool", "/arc#launch", "rocket"],
-        ["orders", "Orders", "Limit, stop and DCA orders", "/arc#orders", "orders"], ["predict", "Predict", "Call UP or DOWN, up to $5", "/arc#predict", "predict"],
+        ["orders", "Orders", "Limit, stop and DCA orders", "/arc#orders", "orders"], ["predict", "Predict", "Call UP or DOWN, up to $5", "/arc#predict", "predict"], ["paper", "Paper Trading", "Play money, live prices, weekly board", "/arc#paper", "trophy"],
         ["portfolio", "Portfolio", "What your wallet holds", "/arc#portfolio", "wallet"], ["circle", "CirclePad", "Fund a launch together", "/circle", "brand"]],
       more: [["creators", "Creators", "/arc#creators"], ["relay", "Relay Launch", "/arc#relay"], ["start", "Getting started", "/start"]] },
     { id: "earn", label: "Earn", icon: "coin", line: "Stake, burn and get rewarded",

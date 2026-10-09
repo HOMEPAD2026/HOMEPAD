@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791576162"></script>
+<script src="arc-log.js?v=1791577303"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791576162">
+<link rel="stylesheet" href="/arc.min.css?v=1791577303">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -1987,6 +1987,41 @@
       </section>
 
       <!-- ============ ARCIRCLE Staking (arc-staking.js + api/desk.mjs?stake=, engine api/_stake.mjs, contract ArcircleStaking.sol) — veARCIRCLE: lock, weekly USDC, pool votes ============ -->
+      <!-- ============ ARCIRCLE Paper Trading (arc-paper.js + api/desk.mjs?paper=, engine api/_paper.mjs) — a weekly play-money event ============ -->
+      <section class="bp-panel" id="bp-panel-paper">
+        <div class="ams-hero pp-hero">
+          <div class="ams-emblem pp-emblem" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><path class="pp-e-base" d="M8 54h48"/><path class="pp-e-wick" d="M17 14v34M32 10v30M47 20v30"/><rect class="pp-e-up" x="12" y="22" width="10" height="18" rx="2"/><rect class="pp-e-dn" x="27" y="16" width="10" height="14" rx="2"/><rect class="pp-e-up" x="42" y="28" width="10" height="16" rx="2"/></svg>
+          </div>
+          <div class="ams-hero-txt">
+            <span class="ams-kicker">Event · Play money on live prices</span>
+            <h1>Paper Trading <span class="asc-ver" title="Version 1">v1<i>BTC · ETH · SOL · up to 100x</i></span></h1>
+            <p class="bp-lede">Every week starts with $10,000 of play money. Go long or short on Bitcoin, Ether and Solana with live prices and up to 100x leverage, and climb the weekly board. Nothing is on-chain — practice the moves before you use real money.</p>
+          </div>
+        </div>
+        <div id="pp-body"></div>
+        <!-- Paper Trading guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
+        <section class="asc-guide pp-guide" aria-labelledby="pp-guide-h">
+          <h2 id="pp-guide-h">Paper Trading guide</h2>
+          <details open><summary><h3>How it works</h3></summary>
+            <ul>
+              <li>Join once a week by signing a message with your wallet — it costs nothing and sends no transaction. You start with $10,000 of play money; the week runs Monday 00:00 UTC to the next Monday.</li>
+              <li>Pick a market (BTC, ETH or SOL), long or short, a margin and a leverage (BTC and ETH up to 100x, SOL up to 50x). Size = margin × leverage. Prices are live mid prices from Hyperliquid (Coinbase if it doesn't answer).</li>
+              <li>Opening and closing each cost 0.05% of the size. Profit and loss follow the price: at 10x, a 1% move is 10% of your margin.</li>
+              <li>A position can't lose more than its margin: it's liquidated when the loss reaches the margin less 0.5% of the size. The liquidation price is shown before you open.</li>
+              <li>Take-profit and stop-loss are optional. They, and liquidations, are checked every few seconds while anyone has the page open, and close at their own price.</li>
+              <li>The board ranks everyone by account value (cash plus open positions at live prices). Each finished week keeps its top 10 under Past weeks.</li>
+            </ul>
+          </details>
+          <details><summary><h3>Honest notes</h3></summary>
+            <p>It's play money: nothing can be won or lost, and no prizes are set. If the team ever runs a prize week, it's announced before the week starts. Real leveraged trading can lose everything you put in, faster than it looks here — and it's restricted in some countries.</p>
+          </details>
+          <details><summary><h3>For bots and builders</h3></summary>
+            <p>GET /api/desk?paper=state&amp;u=0x… returns the prices, this week's board (top 50), a wallet's account and past weeks; ?paper=prices just the prices.</p>
+          </details>
+        </section>
+      </section>
+
       <section class="bp-panel" id="bp-panel-nft">
         <div class="ams-hero nft-hero">
           <div class="ams-emblem nft-emblem" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-nft" xlink:href="#i-nft"/></svg></div>
@@ -2424,9 +2459,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791576162"></script>
+<script src="wallet-arc.js?v=1791577303"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791576162"></script>
+<script src="arcpad.bundle.js?v=1791577303"></script>
 </body>
 </html>

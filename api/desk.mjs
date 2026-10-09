@@ -37,6 +37,10 @@
 //   GET /api/desk?stake=dropholders&token=0x… the wallets a vault push of that coin would pay now (anyone can send it)
 //   GET /api/desk?stake=droprh[&u=0x…]        Launch Drop on Robinhood Chain: drops, weekly veARCIRCLE roots, a wallet's claims
 //   GET /api/desk?stake=droprhproof&ws=&u=0x…  a wallet's veARCIRCLE leaf + Merkle proof for one week
+//   GET /api/desk?paper=state[&u=0x…]          Paper Trading: prices, this week's board, a wallet's account, past weeks
+//   GET /api/desk?paper=prices                  Paper Trading's live prices (BTC, ETH, SOL)
+//   POST {action:"paper-join", addr, msg, sig}  sign in for the week (a plain signed message) → session token
+//   POST {action:"paper", addr, tok, op, …}     open / close / closeall / tpsl / sync
 //   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
 // ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
 //   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
@@ -70,6 +74,7 @@ import * as predict from "./_predict.mjs";
 import * as stake from "./_stake.mjs";
 import * as launchdrop from "./_launchdrop.mjs";
 import * as launchdropRH from "./_launchdrop-rh.mjs";
+import * as paper from "./_paper.mjs";
 import * as nft from "./_nft.mjs";
 import * as vearcia from "./_vearcia.mjs";
 import { storeEnabled, getDocs, setDoc } from "./_store.mjs";
@@ -90,6 +95,13 @@ export async function GET(req) {
   const url = new URL(req.url), q = Object.fromEntries(url.searchParams);
   const st = store();
   if (q.chain === "rh" && !q.agent && !q.predict && !q.predicttick) return rhGET(q, req, st); // ARCIA AGENT takes chain=rh itself (below)
+  // ARCIRCLE Paper Trading (api/_paper.mjs): the weekly play-money event
+  if (q.paper === "state" || q.paper === "prices") {
+    try {
+      if (q.paper === "prices") return json(await paper.prices(), 200, "public, max-age=2, s-maxage=2");
+      return json(await paper.state({ store: st, user: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=3, s-maxage=4");
+    } catch (e) { return json({ error: String((e && e.message) || e) }, 502); }
+  }
   // ARCIRCLE Staking (api/_stake.mjs): ?stake=state · ?stake=me&u=0x…
   if (q.stake) {
     try {
@@ -300,6 +312,9 @@ export async function POST(req) {
   }
   // Launch Drop: a treasury send, checked against the week's plan from its own receipt
   if (b && b.action === "launch-drop-sent") { try { const r = await launchdrop.record({ ws: b.ws, tx: b.tx }, store()); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
+  // ARCIRCLE Paper Trading: sign in for the week, then trade with the session token
+  if (b && b.action === "paper-join") { try { const r = await paper.join(b, { store: store(), recover: recoverSigner }); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
+  if (b && b.action === "paper") { try { const r = await paper.act(b, { store: store() }); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (b && b.action === "agent-mode") { try { const r = await agent.saveMode(store(), b, recoverSigner); return json(r.body, r.status); } catch (e) { return json({ error: String((e && e.message) || e) }, 500); } }
   if (!b || b.action !== "settings") return json({ error: "unknown action" }, 400);
   try { const r = await (b.chain === "rh" ? RH.saveSettings : saveSettings)(store(), b, recoverSigner); return json(r.body, r.status); }
