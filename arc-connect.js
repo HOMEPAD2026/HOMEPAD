@@ -165,8 +165,8 @@
         return '<button type="button" class="cw-w" data-i="' + i + '">' + (w.info.icon ? '<img src="' + esc(w.info.icon) + '" alt="" width="28" height="28">' : '<span class="cw-wi" aria-hidden="true"></span>') + "<b>" + esc(w.info.name) + '</b><small>' + esc(L("Installed", "설치됨", "已安装")) + "</small></button>";
       }).join("");
       var apps = phone ? '<div class="cw-sec">' + esc(L("Open this page in a wallet app", "지갑 앱에서 이 페이지 열기", "在钱包应用中打开本页")) + '</div>' +
-        '<a class="cw-w" href="https://metamask.app.link/dapp/' + esc(here) + '"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>' + esc(L("App", "앱", "应用")) + "</small></a>" +
-        '<a class="cw-w" href="https://go.cb-w.com/dapp?cb_url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>' + esc(L("App", "앱", "应用")) + "</small></a>" : "";
+        '<a class="cw-w" href="https://metamask.app.link/dapp/' + esc(here) + '"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
+        '<a class="cw-w" href="https://go.cb-w.com/dapp?cb_url=' + esc(encodeURIComponent(location.href)) + '"><span class="cw-wi cb" aria-hidden="true"></span><b>Coinbase Wallet</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" : "";
       ch.innerHTML = '<div class="cw-scrim" data-x></div><div class="cw-card">' +
         '<div class="cw-card-h"><b>' + esc(L("Connect a wallet", "지갑 연결", "连接钱包")) + '</b><button type="button" class="cw-x" data-x aria-label="' + esc(L("Close", "닫기", "关闭")) + '">×</button></div>' +
         (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + "</p>") +
