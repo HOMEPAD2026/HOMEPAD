@@ -68,11 +68,15 @@ module.exports = {
   // Sourcify's API v1 is gone (hardhat-verify 2.x still calls it and prints a 404) — Blockscout is the explorer here
   sourcify: { enabled: false },
   etherscan: {
-    apiKey: {
-      robinhoodTestnet: "blockscout",
-      robinhoodMainnet: "blockscout",
-      arcMainnet: process.env.ARC_ETHERSCAN_API_KEY || "",
-    },
+    // Arc goes through Etherscan's v2 API (one etherscan.io key, chainid=5042): hardhat-verify only speaks v2 when
+    // apiKey is a single string, so that's what a run on arcMainnet gets. Blockscout (Robinhood Chain) keeps v1.
+    apiKey: process.argv.includes("arcMainnet") && process.env.ARC_ETHERSCAN_API_KEY
+      ? process.env.ARC_ETHERSCAN_API_KEY
+      : {
+          robinhoodTestnet: "blockscout",
+          robinhoodMainnet: "blockscout",
+          arcMainnet: process.env.ARC_ETHERSCAN_API_KEY || "",
+        },
     customChains: [
       {
         network: "robinhoodTestnet",
@@ -94,7 +98,7 @@ module.exports = {
         network: "arcMainnet",
         chainId: 5042,
         urls: {
-          apiURL: "https://arc.etherscan.io/api",
+          apiURL: "https://api.etherscan.io/v2/api", // v2 (chainid added by hardhat-verify); arc.etherscan.io/api is gone
           browserURL: "https://arc.etherscan.io",
         },
       },

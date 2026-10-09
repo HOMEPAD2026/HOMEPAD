@@ -43,7 +43,7 @@ export const CFG = {
   // the vault: env LAUNCHDROP_ADDRESS ("none" turns it off), else LAUNCHDROP_DEFAULT
   vault: () => { const e = env("LAUNCHDROP_ADDRESS"); if (e === "none") return null; return isAddr(e) ? lc(e) : isAddr(LAUNCHDROP_DEFAULT) ? lc(LAUNCHDROP_DEFAULT) : null; },
 };
-export const LAUNCHDROP_DEFAULT = ""; // contracts/scripts/deploy-arc-launch-drop.js — filled in once it's deployed
+export const LAUNCHDROP_DEFAULT = "0x0921638a292bd7dfd001ed62367cf8b6f0f7d613"; // contracts/scripts/deploy-arc-launch-drop.js, 2026-10-09 (block 25056550)
 export function configure(o) { Object.assign(CFG, o); mem.clear(); }
 const T0 = () => (CFG.now ? CFG.now() : now());
 const mem = new Map();

@@ -240,9 +240,9 @@ const CONFIG = {
   // address from /api/desk?stake=state (api/_stake.mjs STAKING_DEFAULT / env STAKING_ADDRESS); this one is for the footer.
   STAKING_ADDRESS: "0x301E1e8dcB43cDddD3244889063aD4220536b38A",
   // Launch Drop vault (contracts/ArcLaunchDrop.sol, scripts/deploy-arc-launch-drop.js): every ArcPad coin's 4% →
-  // veARCIRCLE holders, claimed or pushed. Empty until deployed (the /airdrops card says "Coming soon"); the Staking
-  // page reads the vault through /api/desk?stake=drop (api/_launchdrop.mjs LAUNCHDROP_DEFAULT / env LAUNCHDROP_ADDRESS).
-  LAUNCHDROP_ADDRESS: "",
+  // veARCIRCLE holders, claimed or pushed. Deployed 2026-10-09 (block 25056550). The Staking page reads the vault
+  // through /api/desk?stake=drop (api/_launchdrop.mjs LAUNCHDROP_DEFAULT / env LAUNCHDROP_ADDRESS) — keep them in step.
+  LAUNCHDROP_ADDRESS: "0x0921638A292Bd7Dfd001Ed62367cF8B6f0F7d613",
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature
   ORDERS_FREE_HOLD: 100000, // $ARCIRCLE held for fee-free orders (shown before the contract is live; ArcircleFeeBurn.discountMin decides)
   // ARCIRCLE Orders on Robinhood Chain (ArcircleOrdersNative + ArcircleFeeBurnNative, contracts/scripts/deploy-arcircle-orders-rh.js):
