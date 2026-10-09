@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What's new — ARCIRCLE PAD</title>
+<meta name="description" content="Every update to ARCIRCLE PAD's utilities, newest first.">
+<link rel="canonical" href="https://www.arcircle.app/updates">
+<meta name="theme-color" content="#04060a">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=1791511760">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/arc.min.css?v=1791511760">
+<style>
+.up{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:36px 20px 80px;color:#dfe6f4;font-family:Sora,Inter,system-ui,sans-serif}
+.up h1{font-size:clamp(2rem,4vw,2.8rem);margin:0 0 8px;color:#fff}
+.up .lede{color:#97a3c0;margin:0 0 22px}
+.up-toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 30px}
+.up-toc a{padding:7px 13px;border-radius:999px;border:1px solid rgba(150,175,255,.18);color:#c6d2ec;text-decoration:none;font-size:13px}
+.up-toc a:hover{background:rgba(120,150,255,.1)}
+.up-u{margin:0 0 34px;padding-top:8px}
+.up-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(150,175,255,.14);padding-bottom:10px;margin-bottom:14px}
+.up-h h2{margin:0;font-size:1.3rem;color:#fff}
+.up-h a{color:#7fb0ff;font-size:13px;text-decoration:none;white-space:nowrap}
+.up-n{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:12px 0;border-bottom:1px dashed rgba(150,175,255,.1)}
+.up-v{align-self:start;justify-self:start;padding:3px 9px;border-radius:8px;background:rgba(77,141,255,.14);color:#a9c8ff;font-weight:700;font-size:12px}
+.up-b{font-size:14px;line-height:1.6;color:#c9d3e8}
+.up-b ul{margin:0;padding-left:18px} .up-b li{margin:0 0 6px} .up-b p{margin:0 0 8px} .up-b a{color:#7fb0ff}
+@media (max-width:560px){.up-n{grid-template-columns:1fr;gap:6px}}
+</style>
+</head>
+<body class="ax-page pg-updates">
+<div class="ax-bg" aria-hidden="true"><div class="ax-bg-art"></div><div class="ax-bg-glow"></div></div>
+<main class="up">
+  <h1>What's new</h1>
+  <p class="lede">Every update to ARCIRCLE PAD's utilities, newest first.</p>
+  <nav class="up-toc" aria-label="Utilities"><a href="#scanner">Token Scanner</a><a href="#desk">ARCIA DESK</a><a href="#agent">ARCIA AGENT</a><a href="#orders">ARCIRCLE Orders</a><a href="#predict">ARCIRCLE Predict</a><a href="#staking">ARCIRCLE Staking</a></nav>
+    <section class="up-u" id="scanner">
+      <div class="up-h"><h2>Token Scanner</h2><a href="/arc#scanner">Open Token Scanner</a></div>
+      <article class="up-n"><span class="up-v">v4</span><div class="up-b"><ul>
+<li>Solana: paste a token's mint (or pick Solana above the box). The scanner reads the mint — can anyone still mint or freeze wallets — Token-2022 extensions (transfer fees, transfer hooks, permanent delegates, frozen-by-default accounts), whether the name and logo can still change, pump.fun's bonding curve and how far it is from graduating, Jupiter's price to sell 0.01%, 0.1% and 1% of the supply, Dexscreener's pools, and the 20 largest holders with pools, the curve and program accounts left out. A critical flag caps the score at 44.</li>
+<li>The checks come first, then the tools. Sections where everything passed fold into one "All good" line. Tools you haven't opened are one short list instead of blurred cards.</li>
+<li>The "?" on a check says what it means and, for warnings and risks, where the same thing has shown up before — with "Is this wrong? Tell us" inside.</li>
+<li>If ARCIA DESK held, traded, passed on or is watching the token, a card says so (her own small wallet — not a tip). Scan a token again and checks that changed since your last scan are marked "Was: …".</li>
+<li>Paste a wallet and every token it holds is listed with its score and critical flags; "Score the rest" scans the ones not scored yet. The front page shows the week's most scanned tokens, scores that dropped 10 points or more in the last three days, and your watch list with each token's latest score.</li>
+<li>Three actions up front (Share on X, Watch, Ask ARCIA) and the rest under More. Compare up to three tokens — across chains too — and save the table as a picture. Share links work for Robinhood Chain and Solana scans, with a picture of the result.</li>
+</ul></div></article>
+    </section>
+    <section class="up-u" id="desk">
+      <div class="up-h"><h2>ARCIA DESK</h2><a href="/arc#desk">Open ARCIA DESK</a></div>
+      <article class="up-n"><span class="up-v">v3</span><div class="up-b"><ul>
+<li>The switch at the top is the same pill as Orders and Predict, with a third side: Both — the Arc and Robinhood Chain desks side by side, their total in dollars and one live log.</li>
+<li>"ARCIA right now" shows what the desk is doing: scanning new pools, the launch she is considering (with the checks this page can see — age, critical flags, links), what she holds, and her last move.</li>
+<li>One status line: live or paper, the warm-up, when she last checked and a countdown to the next check. The ⓘ buttons explain the words (warm-up, paper, playbook, profit factor, Claude said no). The bell sends a browser notification when she buys, sells or burns.</li>
+<li>Four headline numbers instead of eight: win rate with the average win, average loss and profit factor; best and worst; Claude's vetoes; $ARCIRCLE burned (or the profit in ETH). The rest is under More stats.</li>
+<li>ARCIA's week: the last 7 days' profit, trades, wins and best trade, with her latest lessons — and a button that saves it as an image. Profit by day is a heat map: tap a day to see its trades.</li>
+<li>Positions start with an exposure map: each open position by its size, coloured by how far it has gone toward its stop-loss or take-profit. Positions near the take-profit glow; each has a link to its market in ARCIRCLE Orders (to look, not a tip).</li>
+<li>History switches between UTC and your own time and downloads as a CSV. A trade opens with why she sold, a button to ask ARCIA about it, and a share image. Tapping a playbook opens its own page: its profit curve, results, exits and last trades.</li>
+<li>Watching, Passed on and the live log fold to their first rows ("Show all"); Passed on starts with how many she dodged and how many runs she missed. The burns card has a running-total chart; Rules lists the money put in and taken out.</li>
+<li>Livelier: the desk value rolls when it changes, ARCIA's line types itself, she reacts to a buy, a win or a loss, the profit line ends in a live dot, and the section tabs have a sliding underline.</li>
+</ul></div></article>
+    </section>
+    <section class="up-u" id="agent">
+      <div class="up-h"><h2>ARCIA AGENT</h2><a href="/arc#agent">Open ARCIA AGENT</a></div>
+      <article class="up-n"><span class="up-v">v2</span><div class="up-b"><p>ARCIA AGENT v2 adds: the total ARCIA has burned on Arc and on Robinhood Chain, rolling up at the top; Caution calls graded too (did the token hold, or go bad); hit rates shown as a percentage only once five calls are graded; each token's history over her calls (scanner score and liquidity); an Empty state with quick top-ups and a preview of how many buys a top-up makes and over how long; each vault's top funders and its burn as a share of the supply; follow news by Web Push with the tab closed, or by DM with /agentwatch 0x… on the ARCIA bot (and /agent 0x… for a call in Telegram); a weekly report card; and her call on ARCIRCLE Orders' market header, coin pages and in ARCIA's chat ("scan 0x…").</p></div></article>
+    </section>
+    <section class="up-u" id="orders">
+      <div class="up-h"><h2>ARCIRCLE Orders</h2><a href="/arc#orders">Open ARCIRCLE Orders</a></div>
+      <article class="up-n"><span class="up-v">v8</span><div class="up-b"><ul>
+<li>One cancels other: a limit and a stop on the same amount — buy the dip or the breakout, or sell into a rise or cut on a fall. The first to fill cancels the other on-chain.</li>
+<li>Buy with take-profit and stop-loss: three orders signed at once. The two exits wait for the buy and arm the moment it fills; the first of them to fill cancels the other.</li>
+<li>Pause and resume: take an order — or every order in a market — out of the book without cancelling it. One signature, no gas; when the Token Scanner flags a coin you hold orders in, a banner offers to pause them.</li>
+<li>Why it hasn't filled: each open order says what it waits for — the price gap, a thin pool, funding, a pause or the order before it. Unfunded orders get a Fix button that restores the approval or balance they need.</li>
+<li>Solana gets the full set: stop, TP / SL, trailing stop, timed buys (DCA), and for Pump.fun coins At graduation and Curve mark. You sign the condition as a plain message (no fee); the keeper waits for it, and the program's worst-price floor still holds.</li>
+<li>A weekly season: the volume your orders filled this week, Monday to Monday UTC, on a board in Stats. Just for fun — no rewards are set.</li>
+<li>For bots: a read-only API key (it can read your open orders and fills, never place or cancel) and a live stream of your own order events.</li>
+<li>Notes on your orders (kept in this browser), a cancel you can undo for 5 seconds, copy any trade from the tape into the form, the network fee before you place, layout presets (chart first, balanced, book first), and Solana in the portfolio.</li>
+<li>On a phone: swipe an order right to edit it, left to cancel, or hold it for the menu. Chart labels that sit close together stack into one, and the price glows when it comes within 3% of an order.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v7</span><div class="up-b"><ul>
+<li>Grid orders: buys at steps under the pool price (2, 3, 5 or 10% apart, 3 to 8 levels), each with a sell one step higher that waits for its own buy to fill. Two signatures a level, no gas; a sell joins the book only once its buy has filled.</li>
+<li>Fill odds: under the price, how often the pool reached it within a day in its own candles of the last few days, and when it last did. A record of the past, not a forecast. The odds also follow an order line while you drag it on the chart.</li>
+<li>A wider desk on big screens: the chart takes the room, and the edges between the book, the chart and the form can be dragged (double-click resets them). F puts the book and the chart over the whole screen; Esc leaves.</li>
+<li>Move all by any percent you type, or only your sells or only your buys. Ask ARCIA "move my sells +5%" and the move is set up for you to check and sign.</li>
+<li>A condition can watch the other chain: $ARCIRCLE on Arc from Robinhood Chain, $ARCIA on Robinhood Chain from Arc.</li>
+<li>Price alerts are kept for your wallet by default, so the ARCIA bot (/orderalerts on) and browser notifications reach you with the tab closed, on any device. A watchlist tab keeps your starred markets, with alerts on all of them at once.</li>
+<li>Portfolio across both chains, in dollars. The journal adds the last 7 and 30 days, the best and worst sell, the latest sells, a share image and a CSV. A filled order shows how much better than its limit it filled.</li>
+<li>Explore sorts by volume, 24h change, liquidity or age, and can hide coins under a day old. Stats adds the most-filled markets, the $ARCIRCLE burned by day, and the executor's recent runs, gas and address.</li>
+<li>ARCIA's morning note on Telegram (with /orderalerts on): what filled in the last 24 hours, what's open, and the order the price is closest to.</li>
+<li>For bots: a public fill feed and stream, a signed webhook for your own wallet's events, and a small client (/sdk/arcircle-orders/).</li>
+<li>The phone's order sheet opens at half height: swipe up for all of it, down to go back. The place button stays in view on a desktop, the explainer folds once you know a type, and fills land with a stamp and a flame to the burn counter (sound and vibration can be turned off).</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v6</span><div class="up-b"><ul>
+<li>Explore, beside the market list: what's trending on Arc or Robinhood Chain right now (price, 24h change, volume, liquidity, age, from Dexscreener) and the new coins ARCIA DESK is watching, marked high risk. Tap one to open its market.</li>
+<li>A Pool tab beside the chart: the venue, the fee and the round trip, liquidity, how much it takes to move the price 1, 2 and 5%, and the price impact of a few buy and sell sizes with the fee included.</li>
+<li>The 24-hour volume and change come from Dexscreener until the chart has read the pool's own swaps, so a market shows its real day from the start.</li>
+<li>The best ask and the best bid show how far they are from the pool price. The chart's current candle follows the pool price live.</li>
+<li>"Copy as a link" on an open order: a link that opens the same setup filled in, for a friend or for later. A heads-up (here, in your browser and on Telegram with /orderalerts on) when the price comes within 2% of a limit order.</li>
+<li>Ask ARCIA "my orders", "my order history" or "cancel my arcia orders" and she opens them; cancelling is still one signature by you. #orders?my=open | history | port opens them from a link.</li>
+<li>$ARCIRCLE on Robinhood Chain shows where it comes from (ARCIRCLE OMNI) until it has a pool there. An × clears the address box, and a market with no open orders of yours offers two starting points.</li>
+<li>Indicators on the chart: a 20-candle average, VWAP, a volume average and order walls (where open Orders orders stack up). Turn each on or off; the choice stays.</li>
+<li>Move all: shift every open limit order of a market by −5%, −2%, +2% or +5%. Each order is re-signed by you, one at a time, and a move that would cross the pool price is held back.</li>
+<li>Price alerts take a percent: chips from −25% to +25% of the pool price fill the alert in one tap.</li>
+<li>A trading journal in Portfolio: realized result, win rate and average hold for your Orders sells against your Orders buys, a five-week calendar and a line per market. It is a record, not advice.</li>
+<li>A Stats tab beside Explore: filled volume and fills over 7 days, open orders, active markets and the $ARCIRCLE burned by Orders fees. No wallet is named.</li>
+<li>$ARCIRCLE shows its price on the other chain too (Arc or Robinhood Chain, through ARCIRCLE OMNI), in dollars.</li>
+<li>Keyboard: B and S pick the side, O the order form, M the market list, P the pool, C the chart, ? lists them all, Esc closes.</li>
+<li>On a wide screen (1680px and up) the latest fills sit under the book; on smaller laptops the header keeps the core numbers and the rest open under More. Phone tabs have icons and the Dexscreener link lives in the Pool tab.</li>
+<li>A fill while the tab is in the background flashes the tab's title. A quiet market (nothing moved for two minutes, none of your orders in it) is read every 15 seconds instead of every 5, and a busy RPC is retried once before giving up.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v5</span><div class="up-b"><ul>
+<li>The market's 24-hour change, high, low and volume now come from the pool itself — every swap, through any app — not only from Orders' own fills. The pool price is the main price; the last Orders fill sits beside it with how long ago it was and how far it is from the pool. A bar under "24h range" shows where the price sits between the day's low and high.</li>
+<li>The live tape mixes the pools' own swaps (◇) with Orders' fills (●), and says when the last Orders fill happened.</li>
+<li>Portfolio (a tab beside Open orders and History): the tokens from these markets in your wallet, their value at the pool price, your average Orders buy and how the price compares. "Protect" fills in a take-profit +25% and a stop-loss −15% on what you hold; you check it and sign.</li>
+<li>Only if another token's price…: under Advanced, a limit or scaled order can wait off the book until another token's pool rises or falls to a level (say, buy $ARCIA only if $ARCIRCLE rises to a price). Until then nothing fills; the executor checks every minute and tells you when it's met.</li>
+<li>Drag one of your limit lines on the chart and it asks right there: Replace order or Undo. On a phone, tap the chart and a "Use this price" button appears; a tap on a book row picks the price and the side.</li>
+<li>Scaled orders take a shape: even, more further out, or more near the price. Your open orders show Edit up front, a bar for how close the price is, and a ring for the last day before one expires.</li>
+<li>Alerts: the executor tells you a day before an order with days to run expires, when a condition is met, and on a sell fill how it compares with your average buy (Telegram /orderalerts on, or Notify me for this browser).</li>
+<li>The fee burn has its own panel: $ARCIRCLE burned by Orders fees, what's waiting for the next hourly burn against its minimum (5 USDC on Arc, 0.002 ETH on Robinhood Chain), the last burn and the last 7 days.</li>
+<li>Markets: featured markets are always listed ($ARCIRCLE; on Robinhood Chain $ARCIA, which the Robinhood side opens on, and $ARCIRCLE), the list sorts by volume, 24-hour change, orders or name, and a "Thin" tag marks a pool that moves 2% for a small trade. A fill can be shared as a link with its own card.</li>
+<li>Also: a market Orders already knows opens at once from its book; the chain switch shows each chain's markets and whether its executor checked in; Solana's preview takes a "tell me when it's live" (this browser or Telegram); Ask ARCIA offers questions about the market and your order.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v4</span><div class="up-b"><ul>
+<li>Market-cap prices: tap the quote next to the price (ETH or USDC) to switch it to MCAP $ and enter a market cap — "buy at $50K market cap". The order is still signed at the price per token it works out to, shown under the box.</li>
+<li>Buy before the graduation (Robinhood Chain): for a Pons token still on its bonding curve, the Uniswap v4 pool it graduates into is known already. A limit buy can wait for it and fills from the new pool at your price or better. Only limit buys; the pool's first price can be far from the curve's, so set the most you'd pay.</li>
+<li>Type an order: write it in one line above the form — "buy 1m at 0.00000008", "sell 50% at +10%", "buy $100 at mcap 50k", "stop sell all at -8%", "dca $300 over 1d", "buy 1m from -2% to -10% x5" — and Enter fills the form. It never places anything; you still check it and press the button.</li>
+<li>The depth chart also shows the pool itself: how many tokens it would sell as the price rises 10% and buy as it falls 10%, from its active liquidity (approximate past its current range).</li>
+<li>A market order that moves the price more than 3% suggests a Timed (DCA) order instead — 12 parts over 6 hours, one tap. Next to a limit price you see how many 5-minute candles of the last 24 hours traded through it.</li>
+<li>The watchlist: every ★ market in one list with its price, 24-hour change, your open orders there and how far the nearest one is from the price.</li>
+<li>Notify me can reach this browser with the tab closed (Web Push): fills, triggered stops and price alerts. It uses the same signature that opens your orders; turning it off removes the subscription.</li>
+<li>On a phone: Chart, Depth, Book and Trades in one row, the market bar folds its extra numbers behind More, the hero's contracts sit behind an ⓘ, and on the Orders tab only the Buy / Sell bar sits at the bottom. Your orders show Cancel up front and the rest under ⋯.</li>
+<li>Chains have their colours — Arc blue, Robinhood lime, Solana purple — on the market bar, the tape and your orders. A fill lights its row, a new order's line drops onto the chart, the price flashes as it ticks, the book's bars grow and shrink, and an order within 1% of its price breathes.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v3</span><div class="up-b"><ul>
+<li>A live tape across the top shows the latest fills in every market on the chain (tap one to open it), next to how much $ARCIRCLE Orders' fees have burned so far.</li>
+<li>Each market shows its Token Scanner score and whether ARCIA DESK holds, traded or passed on the token. Buying a token the scanner flags asks for a second press — it's an automated check, not advice.</li>
+<li>Tiny prices are easier to read: 0.0₆1088 means five more zeros after "0.0" before 1088. On Robinhood Chain prices and totals also show dollars, and the Total box can take dollars (tap ETH ⇄ USD).</li>
+<li>Pro shows Limit and Market up front; Stop, TP / SL, Trailing, Scaled and Timed open from More types, each with one line on what it does. Above the numbers, the order is written out in one sentence.</li>
+<li>Your orders sit right under the book and chart. They can show this market, the whole chain or both chains, and download as a CSV file. An order expiring within a day gets a badge and an Extend 7d button (a new signature at the same price; the old one is cancelled).</li>
+<li>All markets: your average buy, average sell and how the price now compares, market by market. On the chart, your average buy is a dashed line, your fills are rings, and a line the price is within 1% of glows. Dragging a line shows how far the new price is from the pool.</li>
+<li>Price alerts can go to Telegram too: turn on Also on Telegram under the alert, then send /orderalerts on to the ARCIA bot — it messages you when the price crosses, even with the page closed.</li>
+<li>The chain switch marks a chain whose Orders contract isn't live yet as Preview. On a phone, slide an open order left to cancel it.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v2</span><div class="up-b"><ul>
+<li>On a wide screen the order form runs down the right from the top and stays in view as you scroll; the price alert is a small pop-up on its button. A slim strip with the price, its 24h change and Buy / Sell follows you down the page.</li>
+<li>Simple shows Limit and Market; Pro shows every type, the book's price step and keyboard keys (B and S pick the side, Enter places, / goes to the token box).</li>
+<li>Click the chart to use that price. Drag one of your limit-order lines to a new price, then press Replace order — that signs the new order and cancels the old one.</li>
+<li>Each order type has a small drawing and one line on how it works. Next to the price you see how far it is from the pool price — and a buy far above it (or a sell far below) asks for a second press.</li>
+<li>ARCIA levels: the 24-hour and 3-day lows and highs from the pool's own trades, one tap from the price box. They're levels to consider, not advice.</li>
+<li>Scaled orders split one buy or sell into 3 to 10 limit orders over a price range (one signature each, no gas). A limit buy can carry a take-profit and stop-loss: once it fills, this browser shows a button to sign both.</li>
+<li>Expiry and slippage are one-tap chips; the summary shows where the fee goes (half buys and burns $ARCIRCLE — or what a holder saves) and, on Robinhood Chain, how much ETH gets wrapped first. The steps ahead (wrap, approve, sign, place) show before you press, with an approval that already covers it ticked.</li>
+<li>Save the form as a preset, or Repeat last: the same side, type and distance from the pool (and, in the same market, the same amount).</li>
+<li>An empty book shows a faint ladder of prices around the pool; each level has a size mark, and hovering shows its orders and distance from the pool. A new order flies into its row.</li>
+<li>All markets has a search box, each market's 24-hour change and a line of its fills, and ★ keeps a market at the front.</li>
+<li>History filters by filled, expired and cancelled (cancelled ones fold away), and says why an order didn't fill. Timed orders show their parts and when the next one is released. Cancel all asks once more.</li>
+<li>Under your orders: what your fills in this market add up to (average buy and sell against the pool) and how much of their fees went to buy and burn $ARCIRCLE. A fill comes with a toast of what came in and a burst of confetti; the share image shows the fill and its ring.</li>
+</ul></div></article>
+    </section>
+    <section class="up-u" id="predict">
+      <div class="up-h"><h2>ARCIRCLE Predict</h2><a href="/arc#predict">Open ARCIRCLE Predict</a></div>
+      <article class="up-n"><span class="up-v">v3</span><div class="up-b"><ul>
+<li>The round card opens with a Bet → Live → Settle band and a gauge: its needle shows how far the price is from the price to beat, with a bar for the gap. Your stake is marked on the pool bar, a coin drops into a side when a bet lands, the payout multiples roll as they change, and the "is winning" pill flips over when the lead changes hands.</li>
+<li>Under the pools, a small chart shows how the UP / DOWN split moved as bets came in. A round with no bets yet says it plainly: the first bet sets the odds, and with nobody on the other side everyone gets their stake back.</li>
+<li>Practice mode: bet play money on the real rounds ($100 on Arc, 0.05 ETH on Robinhood Chain), settled on the real result. Nothing leaves your wallet; with nobody on the other side, practice pays an even pot.</li>
+<li>Alerts follow you: with a wallet connected, the bell also sends your rounds' results to this device with the tab closed, and on Telegram, /predictalerts 0x… (add rh for Robinhood Chain) DMs you wins, losses, refunds, a side losing the lead and winnings still unclaimed after 6 hours.</li>
+<li>"Your bets" collects what you can claim on both chains — the other chain is one tap (switch, then claim). Your PnL comes with its last 30 days as a line, and "Share my stats card" posts a card with your win rate, PnL, best streak and weekly podiums.</li>
+<li>Last rounds opens with a heat map of the market's last 50 results. Live bets keeps the last 30 bets even in a quiet hour.</li>
+<li>The leaderboard shows the top 3 on a podium, each wallet's fan tier (from the $ARCIA it holds on Robinhood Chain) and its weekly podiums. Every finished week keeps its top 3 under Past seasons.</li>
+<li>Tell ARCIA a bet in her chat — "UP $2 on ARCIRCLE 5m", "down 1 usdc arcircle 15m", "up 0.001 eth arcia on rh" — and she opens Predict with the market, side and amount filled in. You check it and sign; nothing is placed before that.</li>
+<li>The wallet that lists a market can give it an end date (1, 7 or 30 days, a signature, no gas); the keeper stops it then. On Robinhood Chain anyone can list a graduated Pons coin when the team opens listing. The keeper also keeps $ARCIA markets open on both chains (5m, 15m and 1h) — on Robinhood Chain once $ARCIA graduates.</li>
+<li>The keeper chip turns amber when the keeper is 5 minutes late or reports a problem, and the page keeps trying when a chain doesn't answer instead of going blank.</li>
+</ul></div></article>
+      <article class="up-n"><span class="up-v">v2</span><div class="up-b"><ul>
+<li>On a phone, UP and DOWN stay pinned to the bottom of the screen with the quick amounts, so you can bet without scrolling.</li>
+<li>Before you bet, the box shows what your amount would pay if UP wins and if DOWN wins (if nobody else bets after you), and warns when it's under the smallest or over the largest bet.</li>
+<li>Each round finishes with a 3-2-1 countdown, then "Reading the pool…" until the result lands; the winning side lights up.</li>
+<li>Market chips show the time left to bet, the pot and a small line of recent prices; a chip pulses in its last 30 seconds.</li>
+<li>ARCIA calls every round (UP if the coin is above its price to beat, DOWN if below) before bets close, and her record is kept next to "the crowd" (the side with more money). It's for fun, not advice.</li>
+<li>The last 10 results sit under the token's name, with a dot where ARCIA's call was scored. Reactions (hot, to the moon, cold, watching) can be left on the live round.</li>
+<li>The bell on a market reminds you 30 seconds before bets close, every round, in this browser. Badges come with your first call, first win, streaks of 3, 5 and 10, and 10, 50 and 100 rounds.</li>
+<li>All markets lets you bet straight from a tile with your amount. The weekly leaderboard is a season that resets every Monday 00:00 UTC. In Telegram, /predict lists the live rounds.</li>
+</ul></div></article>
+    </section>
+    <section class="up-u" id="staking">
+      <div class="up-h"><h2>ARCIRCLE Staking</h2><a href="/arc#staking">Open ARCIRCLE Staking</a></div>
+      <article class="up-n"><span class="up-v">v2</span><div class="up-b"><ul>
+<li>An empty pot says why: the next fee burn's progress and what's still waiting to be funded. The weekly rate shows an estimate (~) until a week has been paid.</li>
+<li>Your lock shows your tier, how much more veARCIRCLE the next one takes and your rank. The form says the lock in one sentence, keeps your wallet over the 100K $ARCIRCLE that makes ARCIRCLE Orders fee-free (Lock all but 100K), and can approve once for later locks and adds.</li>
+<li>A lock ending within 30 days gets one tap back to a full year. An ended lock can be withdrawn and locked again for a year in one flow. Hover the lock line to read veARCIRCLE on any date.</li>
+<li>Rewards: what "Claim and add to my lock" would add before you start, a run that stopped half-way carries on where it was, your weeks as bars, and alerts in this browser or on Telegram (a new week's USDC, your lock ending in 30, 7 and 1 days, the vote's last day).</li>
+<li>The vote: the leading pool as a card with what it gets, past winners, ARCIRCLE Orders markets in the list, any token's pool added by address, ARCIA's pick (a split from the pools' trading — a suggestion, you still vote), −/+ steps and your split as a ring.</li>
+<li>"What could it earn?" estimates a week and a year for an amount and pot you pick. The biggest locks filter by tier and max lock, and say where you rank.</li>
+<li>Ask ARCIA "lock 10k arcircle for 6 months" and she opens this form filled in — nothing is signed until you sign. On phones, a bar keeps the next step (claim, lock, vote, withdraw) in reach.</li>
+<li>If Arc's node has dropped old history, the page still loads: totals come from the contract, and it says when older lists may be incomplete.</li>
+</ul></div></article>
+    </section>
+</main>
+<script src="/arc-nav.js?v=1791511760"></script>
+<script src="/arc-v9.js?v=1791511760"></script>
+</body>
+</html>

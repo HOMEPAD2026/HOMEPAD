@@ -17,6 +17,8 @@ cd "$(dirname "$0")"
 if command -v node >/dev/null 2>&1; then node tools/build-bundles.mjs; else echo "WARNING: node not found - bundles NOT rebuilt"; fi
 # ARCIA's knowledge of the site (api/_arcia-kb.mjs) follows the page copy.
 if command -v python3 >/dev/null 2>&1; then python3 tools/build-arcia-kb.py; fi
+# /updates collects every utility guide's "New in vN" notes (needs beautifulsoup4; skipped without it).
+if command -v python3 >/dev/null 2>&1; then python3 tools/build-updates.py || echo "updates.html not rebuilt (pip install beautifulsoup4)"; fi
 NEW=$(date +%s)
 for f in *.html; do sed -i -E "s/\?v=[0-9]+/?v=$NEW/g" "$f"; done
 echo "cache version -> $NEW ($(grep -l "?v=$NEW" *.html | wc -l) pages, $(grep -oh '?v=[0-9]*' *.html | sort -u | wc -l) distinct value(s) remaining)"

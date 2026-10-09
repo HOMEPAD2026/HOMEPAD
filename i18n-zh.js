@@ -8601,6 +8601,15 @@
     "Turn on auto-renew": "开启自动续期",
     "Withdraw (50% burned)": "取出（销毁 50%）",
     "Auto-renew turns on with your stake and stays on: your lock — and its multiplier — keeps running, and taking $ARCIA out costs 50%, burned. An older position without it counts down as before and can turn it on.": "质押后自动续期即开启并一直保持：锁仓及其倍数持续有效，取出 $ARCIA 需销毁 50%。没有自动续期的旧仓位照常倒计时，也可以随时开启。",
+    "Launch a coin · 1 USDC": "发币 · 1 USDC",
+    "CirclePad · Round #5 is next": "CirclePad · 下一轮是第 5 轮",
+    "Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop": "下一轮是第 5 轮 · 第 3 + 4 轮奖励:快照空投",
+    "Round #5": "第 5 轮",
+    "opens next": "即将开启",
+    "Name, ticker and description filled in": "已填好名称、代码和介绍",
+    "Launch a coin on Circle's Arc for 1 USDC — a real pool from the first block.": "只需 1 USDC 即可在 Circle 的 Arc 上发币——从第一个区块起就有真实池子。",
+    "Or fund one together on CirclePad.": "或在 CirclePad 上一起众筹发币。",
+    "Ask ARCIA AGENT": "问 ARCIA AGENT",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

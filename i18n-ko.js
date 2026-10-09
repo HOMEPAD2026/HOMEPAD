@@ -8431,6 +8431,15 @@
     "Turn on auto-renew": "자동 연장 켜기",
     "Withdraw (50% burned)": "인출 (50% 소각)",
     "Auto-renew turns on with your stake and stays on: your lock — and its multiplier — keeps running, and taking $ARCIA out costs 50%, burned. An older position without it counts down as before and can turn it on.": "스테이킹하면 자동 연장이 켜지고 계속 유지돼요. 잠금과 배수가 계속 이어지고, $ARCIA를 꺼내면 50%가 소각돼요. 자동 연장이 없는 기존 포지션은 예전처럼 기간이 줄어들고, 언제든 자동 연장을 켤 수 있어요.",
+    "Launch a coin · 1 USDC": "코인 런치 · 1 USDC",
+    "CirclePad · Round #5 is next": "CirclePad · 다음은 라운드 #5",
+    "Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop": "다음은 라운드 #5 · 라운드 #3 + #4 보상: 스냅샷 에어드랍",
+    "Round #5": "라운드 #5",
+    "opens next": "다음 차례",
+    "Name, ticker and description filled in": "이름, 티커, 설명을 채웠어요",
+    "Launch a coin on Circle's Arc for 1 USDC — a real pool from the first block.": "1 USDC로 Circle Arc에 코인을 발행하세요 — 첫 블록부터 실제 풀이 열려요.",
+    "Or fund one together on CirclePad.": "또는 CirclePad에서 함께 모금해 런치하세요.",
+    "Ask ARCIA AGENT": "ARCIA AGENT에게 묻기",
   };
 
 

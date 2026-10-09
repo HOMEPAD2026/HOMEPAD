@@ -29,7 +29,7 @@ export const BUNDLES = {
     "i18n-boot.js", "arc-solwallet.js", ...COMMON_HEAD, "arc-fmt.js", "arc-lazy.js", "wallet-appkit.js", "arc-quote.js", "arcpad.js", "arcpad-coin.js", "arc-fx.js", "arc-activity.js",
     "arc-extras.js", "arcircle-coin.js", "arc-token.js", "arcircle-tab.js", "arc-motion.js", "arc-growth.js", "arc-polish.js", "arc-search.js", "arc-footer.js",
     "arcircle-hub.js", "arc-community.js", "arc-lock.js", "arc-coinhead.js", "arc-filters.js", "arc-argus.js", "arc-pons.js", "arc-pump.js", "arc-chartev.js", "arcpad-v6.js", "arcpad-v7.js", "arcpad-v7-coin.js", "arc-tour.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "arc-tglink.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "arc-tglink.js", "i18n.js",
   ],
   // The utilities (Locker, Bridge, Scanner, Multisender, Snapshot, Relay, ARCIA, Liquidity, OMNI) are ~half of
   // ArcPad's code but most visits never open one: arc-lazy.js loads this the first time a utility tab opens.
@@ -39,27 +39,32 @@ export const BUNDLES = {
   ],
   "circlepad.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "wallet-appkit.js", "circlepad-boot.js", "circlepad-plan.js", "circlepad.js", "circlepad-conv.js", "arc-fx.js", "arcircle-live.js", "arc-motion.js", "arc-footer.js",
-    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-rounds.js", "circlepad-live.js", "circlepad-look.js", "circlepad-v5.js", "circlepad-v9.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arcircle-hub.js", "arc-social.js", "circlepad-fx.js", "circlepad-community.js", "circlepad-plus.js", "circlepad-ideas.js", "circlepad-round.js", "circlepad-rounds.js", "circlepad-live.js", "circlepad-look.js", "circlepad-v5.js", "circlepad-v9.js", "arc-uxfx.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   "reward.bundle.js": [
     "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arcircle-live.js", "arc-token.js", "reward.js", "reward-engine.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-cmdk.js", "arc-nav.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arc-social.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // The $ARCIRCLE page needs no wallet and no ethers (config-arc.js only for
   // the $ARCIRCLE contract / "not live" switch): its numbers come from
   // /api/social?token=arcircle (arc-token.js reads the curve directly if that fails).
   "arcircle.bundle.js": [
     "i18n-boot.js", "config-arc.js", "arc-fmt.js", "arc-fx.js", "arc-token.js", "arcircle-page.js", "arcircle-plus.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js",
-    "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-nav.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "arc-social.js", "arc-burnvote-chip.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-chrome.js", "arc-a11y.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
   // ARCIA on pages other than ArcPad: arc-arcia-fab.js loads this on the first tap of "Ask ARCIA"
   // (ArcPad itself gets her from arcpad-tools.bundle.js).
   "arcia.bundle.js": ["arc-order-line.js", "arc-arcia.js"],
   // /me, /stats, /roadmap, /brand, /start — small standalone pages (ethers from vendor/).
   "pages.bundle.js": [
-    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-nav.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
+    "i18n-boot.js", ...COMMON_HEAD, "arc-fmt.js", "arc-fx.js", "arc-motion.js", "arc-footer.js", "arcircle-hub.js", "arc-social.js", "arc-pages.js", "arc-cmdk.js", "arc-nav.js", "arc-v9.js", "arc-chrome.js", "arc-a11y.js", "arc-txring.js", "arc-glyph.js", "arc-arcia-fab.js", "i18n.js",
   ],
 };
+
+// One stylesheet for the ARCIRCLE PAD pages that use style.css: the site styles, the shared menu and the v9
+// layer, joined and minified (one request instead of three). arcia / arcat / wallet keep their own stage.css and link
+// arc-nav.css + arc-v9.css directly; older pages keep style.css.
+export const CSS_BUNDLES = { "arc.min.css": ["style.css", "arc-nav.css", "arc-v9.css"] };
 
 // A lazy bundle runs on top of its parent: ABI shaking keeps what either needs, and a
 // top-level name may not be declared in both.
@@ -162,6 +167,20 @@ export async function build({ check = false, force = false } = {}) {
     if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
     fs.writeFileSync(dest, code);
     console.log(`${out}: ${files.length} files, ${(src.length / 1024).toFixed(0)} KB -> ${(code.length / 1024).toFixed(0)} KB${esbuild ? " (minified)" : " (not minified: esbuild not found)"}`);
+  }
+  for (const [out, files] of Object.entries(CSS_BUNDLES)) {
+    const src = files.map((f) => `/* ${f} */\n` + fs.readFileSync(path.join(ROOT, f), "utf8")).join("\n");
+    const hash = crypto.createHash("sha256").update(src).digest("hex").slice(0, 16);
+    const banner = `/* ${out} — built by tools/build-bundles.mjs from: ${files.join(", ")}. Do not edit; edit the sources. src:${hash} */\n`;
+    const dest = path.join(ROOT, out);
+    const cur = fs.existsSync(dest) ? fs.readFileSync(dest, "utf8") : "";
+    const curHash = (/src:([0-9a-f]{16})/.exec(cur.slice(0, 600)) || [])[1];
+    if (check) { if (curHash !== hash) stale.push(out); continue; }
+    if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
+    let code = src;
+    if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
+    fs.writeFileSync(dest, banner + code);
+    console.log(`${out}: ${files.length} files, ${(src.length / 1024).toFixed(0)} KB -> ${((banner + code).length / 1024).toFixed(0)} KB${esbuild ? " (minified)" : " (joined, not minified: esbuild not found)"}`);
   }
   if (check && stale.length) { console.error("out of date: " + stale.join(", ") + " — run: node tools/build-bundles.mjs"); process.exit(1); }
 }

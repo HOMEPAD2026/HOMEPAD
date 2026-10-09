@@ -28,12 +28,12 @@
       Creators: "크리에이터", "Relay Launch": "릴레이 런치", "Getting started": "시작하기",
       Staking: "스테이킹", "Lock $ARCIRCLE for veARCIRCLE": "$ARCIRCLE 락업 → veARCIRCLE", "Stake $ARCIA, earn $ARCIA": "$ARCIA 스테이킹, $ARCIA 보상",
       "NFT Vault": "NFT 볼트", "Fees buy NFTs for holders": "수수료로 홀더용 NFT 구매", Reward: "리워드", "The $ARCIRCLE burn engine": "$ARCIRCLE 소각 엔진",
-      "Builder Mine": "빌더 마인", "Dig coins with 1 USDC": "1 USDC로 코인 채굴", Stats: "통계", "My profile": "내 프로필",
+      "Builder Mine": "빌더 마인", Airdrops: "에어드랍", "Every reward and where it stands": "모든 보상과 진행 상황", "Dig coins with 1 USDC": "1 USDC로 코인 채굴", Stats: "통계", "Invite friends": "친구 초대", "My profile": "내 프로필",
       "Her stage, Arc's AI idol": "Arc의 AI 아이돌 무대", "Her cat and his buyback": "ARCIA의 고양이와 바이백", "ARCIA trades new coins in public": "ARCIA가 새 코인을 공개 트레이딩",
       "Paste a token, get her safety call": "토큰 주소로 안전 판정 받기", "AI agents hire each other in USDC": "AI 에이전트끼리 USDC로 일 거래", "Talk to ARCIA": "ARCIA와 대화",
       Scanner: "스캐너", "Safety-scan any token": "토큰 안전 점검", Locker: "락커", "Lock tokens or LP": "토큰·LP 잠금", Bridge: "브리지", "Move coins between chains": "체인 간 코인 이동",
       Multisender: "멀티센더", "Send to many wallets at once": "여러 지갑에 한 번에 전송", Snapshot: "스냅샷", "Holder lists for airdrops": "에어드랍용 홀더 목록",
-      Liquidity: "유동성", "Add and manage pool liquidity": "풀 유동성 추가·관리", Docs: "문서", Whitepaper: "백서", Roadmap: "로드맵", Brand: "브랜드",
+      Liquidity: "유동성", "Add and manage pool liquidity": "풀 유동성 추가·관리", Docs: "문서", "What's new": "새 소식", Whitepaper: "백서", Roadmap: "로드맵", Brand: "브랜드",
       "The core coin": "핵심 코인", "ARCIA's coin": "ARCIA의 코인", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD 한눈에 보기",
       "Launch, buy and sell on Arc": "Arc에서 발행하고 사고팔기", "Stake, burn and get rewarded": "스테이킹·소각으로 보상받기", "Arc's AI idol and her crew": "Arc의 AI 아이돌과 친구들", "Free tools for any Arc token": "모든 Arc 토큰용 무료 도구",
     },
@@ -45,12 +45,12 @@
       Creators: "创作者", "Relay Launch": "接力发币", "Getting started": "新手入门",
       Staking: "质押", "Lock $ARCIRCLE for veARCIRCLE": "锁仓 $ARCIRCLE 获得 veARCIRCLE", "Stake $ARCIA, earn $ARCIA": "质押 $ARCIA，赚 $ARCIA",
       "NFT Vault": "NFT 金库", "Fees buy NFTs for holders": "手续费为持有者购买 NFT", Reward: "奖励", "The $ARCIRCLE burn engine": "$ARCIRCLE 销毁引擎",
-      "Builder Mine": "建造者矿场", "Dig coins with 1 USDC": "用 1 USDC 挖币", Stats: "数据", "My profile": "我的主页",
+      "Builder Mine": "建造者矿场", Airdrops: "空投", "Every reward and where it stands": "所有奖励及进度", "Dig coins with 1 USDC": "用 1 USDC 挖币", Stats: "数据", "Invite friends": "邀请好友", "My profile": "我的主页",
       "Her stage, Arc's AI idol": "Arc 的 AI 偶像舞台", "Her cat and his buyback": "她的猫和回购", "ARCIA trades new coins in public": "ARCIA 公开交易新币",
       "Paste a token, get her safety call": "粘贴代币，获得安全判断", "AI agents hire each other in USDC": "AI 代理之间用 USDC 雇佣", "Talk to ARCIA": "和 ARCIA 聊天",
       Scanner: "扫描", "Safety-scan any token": "代币安全检查", Locker: "锁仓", "Lock tokens or LP": "锁定代币或 LP", Bridge: "跨链桥", "Move coins between chains": "跨链转移代币",
       Multisender: "批量转账", "Send to many wallets at once": "一次发给多个钱包", Snapshot: "快照", "Holder lists for airdrops": "空投用持有者名单",
-      Liquidity: "流动性", "Add and manage pool liquidity": "添加和管理池子流动性", Docs: "文档", Whitepaper: "白皮书", Roadmap: "路线图", Brand: "品牌",
+      Liquidity: "流动性", "Add and manage pool liquidity": "添加和管理池子流动性", Docs: "文档", "What's new": "最新更新", Whitepaper: "白皮书", Roadmap: "路线图", Brand: "品牌",
       "The core coin": "核心代币", "ARCIA's coin": "ARCIA 的代币", "Everything on ARCIRCLE PAD": "ARCIRCLE PAD 一览",
       "Launch, buy and sell on Arc": "在 Arc 上发币和交易", "Stake, burn and get rewarded": "质押、销毁、获得奖励", "Arc's AI idol and her crew": "Arc 的 AI 偶像和她的伙伴", "Free tools for any Arc token": "适用于任何 Arc 代币的免费工具",
     },
@@ -70,8 +70,8 @@
     { id: "earn", label: "Earn", icon: "coin", line: "Stake, burn and get rewarded",
       items: [["staking", "Staking", "Lock $ARCIRCLE for veARCIRCLE", "/arc#staking", "stake"], ["vearcia", "veARCIA", "Stake $ARCIA, earn $ARCIA", "/arc#vearcia", "vea"],
         ["nft", "NFT Vault", "Fees buy NFTs for holders", "/arc#nft", "nft"], ["reward", "Reward", "The $ARCIRCLE burn engine", "/reward", "gift"],
-        ["mine", "Builder Mine", "Dig coins with 1 USDC", "/arc#mine", "mine"]],
-      more: [["stats", "Stats", "/stats"], ["me", "My profile", "/me"]] },
+        ["mine", "Builder Mine", "Dig coins with 1 USDC", "/arc#mine", "mine"], ["airdrops", "Airdrops", "Every reward and where it stands", "/airdrops", "drop"]],
+      more: [["invite", "Invite friends", "/arc#portfolio"], ["stats", "Stats", "/stats"], ["me", "My profile", "/me"]] },
     { id: "arcia", label: "ARCIA", icon: "arcia", line: "Arc's AI idol and her crew",
       items: [["stage", "ARCIA", "Her stage, Arc's AI idol", "/arcia", "arcia"], ["arcat", "ARCAT", "Her cat and his buyback", "/arcat", "cat"],
         ["desk", "DESK", "ARCIA trades new coins in public", "/arc#desk", "desk"], ["agent", "AGENT", "Paste a token, get her safety call", "/arc#agent", "agent"],
@@ -81,7 +81,7 @@
       items: [["scanner", "Scanner", "Safety-scan any token", "/arc#scanner", "scan"], ["locker", "Locker", "Lock tokens or LP", "/arc#locker", "lock"],
         ["bridge", "Bridge", "Move coins between chains", "/arc#bridge", "bridge"], ["multisend", "Multisender", "Send to many wallets at once", "/arc#multisend", "fan"],
         ["snapshot", "Snapshot", "Holder lists for airdrops", "/arc#snapshot", "snap"], ["liquidity", "Liquidity", "Add and manage pool liquidity", "/arc#liquidity", "drop"]],
-      more: [["omni", "OMNI", "/arc#omni"], ["docs", "Docs", "/arc#docs"], ["whitepaper", "Whitepaper", "/whitepaper"], ["roadmap", "Roadmap", "/roadmap"], ["brand", "Brand", "/brand"]] },
+      more: [["omni", "OMNI", "/arc#omni"], ["docs", "Docs", "/arc#docs"], ["whitepaper", "Whitepaper", "/whitepaper"], ["updates", "What's new", "/updates"], ["roadmap", "Roadmap", "/roadmap"], ["brand", "Brand", "/brand"]] },
   ];
   // ArcPad tabs that live in a menu without being one of its items
   var ARC_EXTRA = { home: ["trade", "explore"], coin: ["trade", "explore"], compare: ["trade", "explore"], creator: ["trade", "creators"], arcircle: [null, null] };
@@ -209,6 +209,7 @@
       strip.classList.remove("local");
     }
     inner.innerHTML = html;
+    strip.style.setProperty("--strip-acc", local && local.length ? "#39ff88" : ({ trade: "#4d8dff", earn: "#2fe6a4", arcia: "#ff7ad1", tools: "#8fb4d9" })[here[0]] || "#4d8dff");
     strip.hidden = !html;
     H.classList.toggle("anav-has-strip", !!html);
     H.classList.toggle("anav-has-local", !!html && strip.classList.contains("local"));

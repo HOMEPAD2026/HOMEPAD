@@ -789,7 +789,7 @@
     if (e.target.closest && e.target.closest("[data-v6-last]")) { useLast(); return; }
     if (e.target.closest && e.target.closest("[data-v6-ideas]")) { const b = $("v6-ideas"); if (b && !b.hidden) b.hidden = true; else ideas(); return; }
     const idea = e.target.closest && e.target.closest("[data-v6-idea]");
-    if (idea) { const l = ($("v6-ideas-l") || {}).__ideas || [], x = l[Number(idea.dataset.v6Idea)]; if (x) { const n = $("ap-name"), s = $("ap-symbol"); if (n) { n.value = x.name; n.dispatchEvent(new Event("input", { bubbles: true })); } if (s) { s.value = x.symbol; s.dispatchEvent(new Event("input", { bubbles: true })); } toast(tr("Name and ticker filled in")); } return; }
+    if (idea) { const l = ($("v6-ideas-l") || {}).__ideas || [], x = l[Number(idea.dataset.v6Idea)]; if (x) { const n = $("ap-name"), s = $("ap-symbol"); if (n) { n.value = x.name; n.dispatchEvent(new Event("input", { bubbles: true })); } if (s) { s.value = x.symbol; s.dispatchEvent(new Event("input", { bubbles: true })); } const d = $("ap-description"); if (d && x.desc && !d.value.trim()) { d.value = x.desc; d.dispatchEvent(new Event("input", { bubbles: true })); } toast(tr(x.desc ? "Name, ticker and description filled in" : "Name and ticker filled in")); } return; }
     if (e.target.closest && e.target.closest("[data-v6-sched]")) { schedForm(); return; }
     if (e.target.closest && e.target.closest("[data-v6-sched-go]")) { schedule(); return; }
   }, true);

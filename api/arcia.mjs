@@ -433,15 +433,15 @@ async function cheer(b, ip) {
 }
 
 // ---------- v6: coin name and ticker ideas for the launch form (arcpad-v6.js) ----------
-const NAMES_BRIEF = "The user is about to launch a meme coin on ArcPad and wants ideas. Reply with ONLY a JSON array (no prose, no code fence) of 6 objects {\"name\": string up to 32 chars, \"symbol\": 3-8 uppercase letters or digits, \"why\": up to 60 chars}. Fun, original, no real brands, no real people, nothing offensive. Don't promise prices or returns.";
+const NAMES_BRIEF = "The user is about to launch a meme coin on ArcPad and wants ideas. Reply with ONLY a JSON array (no prose, no code fence) of 6 objects {\"name\": string up to 32 chars, \"symbol\": 3-8 uppercase letters or digits, \"why\": up to 60 chars, \"desc\": a one- or two-sentence coin description up to 160 chars, in the voice of the coin's community}. Fun, original, no real brands, no real people, nothing offensive. Don't promise prices or returns.";
 async function nameIdeas(b, ip) {
   if (memHit("n:" + ip, 3600000, 20)) return json({ error: "that's a lot of ideas — try again later" }, 429);
   const theme = String(b.theme || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 120) || "anything fun on Circle's Arc";
-  const text = await askClaude({ messages: [{ role: "user", content: `Theme: ${theme}` }], L: null, extra: NAMES_BRIEF, maxTokens: 400, timeoutMs: 15000 });
+  const text = await askClaude({ messages: [{ role: "user", content: `Theme: ${theme}` }], L: null, extra: NAMES_BRIEF, maxTokens: 900, timeoutMs: 15000 });
   if (!text) return json({ error: "no ideas right now — try again" }, 503);
   let list = [];
   try { const m = /\[[\s\S]*\]/.exec(text); list = JSON.parse(m ? m[0] : text); } catch { list = []; }
-  list = (Array.isArray(list) ? list : []).map((x) => ({ name: String((x && x.name) || "").slice(0, 32), symbol: String((x && x.symbol) || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8), why: String((x && x.why) || "").slice(0, 80) }))
+  list = (Array.isArray(list) ? list : []).map((x) => ({ name: String((x && x.name) || "").slice(0, 32), symbol: String((x && x.symbol) || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8), why: String((x && x.why) || "").slice(0, 80), desc: String((x && x.desc) || "").replace(/[\u0000-\u001f]/g, " ").slice(0, 200) }))
     .filter((x) => x.name && x.symbol.length >= 2).slice(0, 6);
   return json({ ideas: list });
 }

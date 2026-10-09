@@ -1,0 +1,248 @@
+/* arc-v9.css — the v9 cleanup shared by every ARCIRCLE PAD page (with arc-nav.css; behaviour in arc-v9.js).
+   Sticky bars that sit under the new top menu, a tidier coin header, bigger touch targets, numbers that line up,
+   version badges gone, and the small layout fixes from the October audit. */
+
+/* ---- sticky bars start below the menu (they used to assume the old 56–72px bars) ---- */
+:root{--anav-stick:var(--anav-h);--bp-top:var(--anav-stick);--aor-tabs-top:var(--anav-stick);--dk-sticky:var(--anav-stick)}
+@media (min-width:901px){html.anav-compact{--anav-stick:var(--anav-top)}}
+.ac2-side,.cp-prop-side,.aa-portrait,.aa-side,.bm-prof,.wk-sum,.v7-lside{top:calc(var(--anav-stick) + 16px)!important}
+.rw-tabs,.v6-rail{top:calc(var(--anav-stick) + 8px)!important}
+.cp-strip,.cp-final24,.dk-nav,.ac-nav{top:var(--anav-stick)!important}
+@media (max-width:900px){
+  .aor-formc{top:calc(var(--anav-stick) + 12px)!important}
+  .gv-cat-tabs,.vea-tabs,.aor-mtabs,.v7-ctabs{top:var(--anav-stick)!important}
+  .ag-res .ag-tabs{top:calc(var(--anav-stick) + 4px)!important}
+}
+@media (min-width:901px){.aor-formc{top:calc(var(--anav-stick) + 16px)!important}}
+
+/* ---- coin page: Copy · Safety scan · Watch · Share stay, everything else goes in "···" ---- */
+#bp-panel-coin .ac2-ca-row>:is(#apc-scan-link,#apc-edit,#apc-lockbtn,#v7-dd,#v7-embed-b,#v7-cmp-b,#apc-agent,#apc-orders,#apc-liqmgr){display:none!important}
+#bp-panel-coin .apc-more{display:block;margin-left:auto}
+#bp-panel-coin .apc-more[hidden]{display:none}
+
+/* ---- phones: a Buy / Sell bar on the coin page ---- */
+.v9-buybar{display:none}
+@media (max-width:900px){
+  .v9-buybar{position:fixed;left:12px;right:12px;bottom:calc(var(--anav-bot) + 10px);z-index:60;display:grid;grid-template-columns:1fr 1fr;gap:8px;
+    padding:8px;border-radius:18px;background:rgba(6,10,22,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(150,175,255,.16);
+    box-shadow:0 14px 34px rgba(0,0,0,.5);transition:transform .2s ease,opacity .2s ease}
+  .v9-buybar[hidden]{display:none}
+  .v9-buybar.away{transform:translateY(16px);opacity:0;pointer-events:none}
+  .v9-buybar button{height:46px;border-radius:12px;border:0;font:700 15px "Sora",Inter,system-ui,sans-serif;cursor:pointer}
+  .v9-buybar .b{background:linear-gradient(90deg,#2fe6a4,#39d0ff);color:#03140d}
+  .v9-buybar .s{background:rgba(255,92,112,.14);color:#ff8b98;box-shadow:inset 0 0 0 1px rgba(255,92,112,.4)}
+  html.v9-buybar-on .aa-fab{bottom:calc(var(--anav-bot) + 82px)!important}
+}
+
+/* ---- CirclePad on phones: what CirclePad is first, then the round ---- */
+@media (max-width:900px){
+  body.circlepad-page #bp-panel-home.active>.bp-hero{order:0!important;margin-top:4px}
+  body.circlepad-page #bp-panel-home.active>.bp-featured{order:1!important}
+}
+
+/* ---- touch targets on phones (40px where a finger lands) ---- */
+@media (max-width:900px){
+  footer .axf-col a{display:flex;align-items:center;min-height:38px}
+  .axf-copy,.axf-sound,.axf-allca,.hm-copy,.rw-copy{min-height:36px;min-width:36px}
+  .v6-qbb{min-height:34px;display:inline-flex;align-items:center;padding-left:10px;padding-right:10px}
+  .ap-star{min-width:36px;min-height:36px;display:inline-grid;place-items:center}
+  .bp-card-link,.cp9-more,.ac2-back,.ac2-bal,.aor-link,.rw-link,.hm-mini,.ax-mini-link{min-height:36px;display:inline-flex;align-items:center}
+  #bp-panel-coin :is(.buy,.sell,[data-side]){min-height:40px}
+  .tr-q{min-width:36px;min-height:36px}
+}
+
+/* ---- numbers line up; version badges go (the menus say what's new) ---- */
+b,strong,td,th,output,[data-hm-num],[data-lb],[data-num]{font-variant-numeric:tabular-nums}
+.asc-ver,.bp-nav-v:not(.bp-nav-new){display:none!important}
+
+/* ---- utility guides: older "New in vN" notes fold into one line ---- */
+.v9-older{margin-top:6px;border-top:1px dashed rgba(150,175,255,.14)}
+.v9-older>summary{cursor:pointer;list-style:none;padding:12px 2px;font-size:13px;font-weight:600;color:#9cb2d8}
+.v9-older>summary::-webkit-details-marker{display:none}
+.v9-older>summary::after{content:" ▾";opacity:.6}
+.v9-older[open]>summary::after{content:" ▴"}
+.v9-older>summary a{color:#7fb0ff;margin-left:10px;font-weight:500}
+
+/* ---- small layout fixes ---- */
+.al img{background:linear-gradient(135deg,rgba(91,140,255,.16),rgba(47,230,164,.08));border-radius:inherit}
+
+/* ---- ArcPad Launch: first launch in 3 steps ---- */
+.v9-guide{margin:0 0 18px;padding:16px 16px 8px;border-radius:18px;border:1px solid rgba(110,160,255,.28);
+  background:linear-gradient(135deg,rgba(77,141,255,.12),rgba(47,230,164,.06));font-family:"Sora",Inter,system-ui,sans-serif}
+.v9-guide-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.v9-guide-h b{font-size:15px;color:#fff}
+.v9-x{width:30px;height:30px;border-radius:9px;border:1px solid rgba(150,175,255,.18);background:none;color:#aab6d3;font-size:18px;line-height:1;cursor:pointer}
+.v9-guide ol{list-style:none;margin:0;padding:0}
+.v9-guide li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:12px;padding:10px 0;border-top:1px solid rgba(150,175,255,.1)}
+.v9-guide li:first-child{border-top:0}
+.v9-n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:#a9c8ff;border:1px solid rgba(120,170,255,.45)}
+.v9-guide li.done .v9-n{background:linear-gradient(135deg,#4d8dff,#2fe6a4);border:0;color:#04101e}
+.v9-n svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.v9-guide li b{display:block;font-size:14px;color:#fff}
+.v9-guide li small{display:block;font-size:12.5px;color:#9aa6c4;margin-top:2px;line-height:1.4}
+.v9-guide li.done b{color:#c9f7e6}
+.v9-gb{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 14px;border-radius:999px;border:0;font:700 13px "Sora",Inter,system-ui,sans-serif;
+  color:#04101e;background:linear-gradient(90deg,#5b93ff,#2fe6a4);cursor:pointer;text-decoration:none;white-space:nowrap}
+.v9-gb.ghost{background:none;color:#cfe0ff;box-shadow:inset 0 0 0 1px rgba(150,175,255,.35)}
+@media (max-width:560px){.v9-guide li{grid-template-columns:28px 1fr}.v9-guide li>.v9-gb{grid-column:2;justify-self:start}}
+
+/* ---- coin page: the creator's cut; Telegram alerts after Watch ---- */
+.v9-earn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:10px 14px;border-radius:14px;border:1px solid rgba(47,230,164,.22);background:rgba(47,230,164,.06);font-size:13px;color:#cfe9df}
+.v9-earn[hidden]{display:none}
+.v9-earn b{color:#7ff1c8}
+.v9-earn small{color:#8fb3a6}
+.v9-earn-i svg{width:18px;height:18px;fill:none;stroke:#2fe6a4;stroke-width:1.8;stroke-linecap:round;display:block}
+.v9-earn-go{margin-left:auto;color:#7ff1c8;font-weight:600;text-decoration:none;white-space:nowrap}
+.v9-tgpop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-basis:100%;margin-top:6px;padding:10px 12px;border-radius:12px;background:rgba(77,141,255,.12);border:1px solid rgba(110,160,255,.3);font-size:13px;color:#dbe6ff}
+.v9-feeest{margin:8px 0 0;font-size:12.5px;color:#9fb0cf}.v9-feeest b{color:#7ff1c8}
+
+/* ---- launch celebration ---- */
+.v9-confetti{position:fixed;inset:0;pointer-events:none;z-index:120}
+.v9-confetti i{position:fixed;width:8px;height:12px;border-radius:2px;opacity:0;animation:v9-conf 1.4s cubic-bezier(.15,.7,.3,1) forwards}
+@keyframes v9-conf{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 260px)) rotate(var(--r))}}
+
+/* ---- ArcPad home: be the first buyer ---- */
+.v9-first{margin:18px 0 0}
+.v9-first .v6-sec-h small{color:#8b97b3;font-size:12px;margin-left:10px}
+.v9-first-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.v9-fc{display:flex;flex-direction:column;gap:3px;padding:14px;border-radius:14px;border:1px dashed rgba(47,230,164,.35);background:rgba(47,230,164,.04);text-decoration:none;color:#e3e9f6;transition:background .15s,border-color .15s}
+.v9-fc:hover{background:rgba(47,230,164,.09);border-color:rgba(47,230,164,.6)}
+.v9-fc b{font-size:15px}.v9-fc span{font-size:12px;color:#97a3c0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v9-fc em{font-style:normal;font-size:12px;font-weight:700;color:#2fe6a4;margin-top:4px}
+@media (max-width:640px){.v9-first-l{grid-template-columns:1fr}}
+
+/* ---- install as an app ---- */
+.v9-install{position:fixed;left:12px;right:12px;bottom:calc(var(--anav-bot) + 12px);z-index:70;display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;
+  background:rgba(10,16,36,.97);border:1px solid rgba(150,175,255,.2);box-shadow:0 16px 40px rgba(0,0,0,.55);font-family:"Sora",Inter,system-ui,sans-serif;color:#e3e9f6;animation:v9-rise .25s ease-out}
+.v9-install img{border-radius:10px;flex:none}
+.v9-install div{flex:1;min-width:0}.v9-install b{display:block;font-size:13.5px}.v9-install small{display:block;font-size:12px;color:#97a3c0}
+@keyframes v9-rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+
+/* ---- /airdrops ---- */
+.dr{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:36px 20px 80px;font-family:"Sora",Inter,system-ui,sans-serif;color:#dfe6f4}
+.dr h1{font-size:clamp(2rem,4vw,2.8rem);margin:0 0 8px;color:#fff;letter-spacing:-.01em}
+.dr-lede{color:#9aa6c4;margin:0 0 22px;max-width:62ch;line-height:1.6}
+.dr-f{margin:0 0 26px;padding:16px;border-radius:16px;border:1px solid rgba(150,175,255,.16);background:rgba(10,16,36,.6)}
+.dr-f label{display:block;font-size:13px;font-weight:600;color:#c6d2ec;margin-bottom:8px}
+.dr-row{display:flex;gap:8px}
+.dr-row input{flex:1;min-width:0;height:44px;padding:0 14px;border-radius:12px;border:1px solid rgba(150,175,255,.22);background:rgba(4,8,20,.8);color:#fff;font:500 14px ui-monospace,SFMono-Regular,monospace}
+.dr-btn{height:44px;padding:0 18px;border-radius:12px;border:0;font:700 14px "Sora",Inter,system-ui,sans-serif;color:#04101e;background:linear-gradient(90deg,#5b93ff,#2fe6a4);cursor:pointer}
+.dr-btn.ghost{width:44px;padding:0;display:grid;place-items:center;background:none;box-shadow:inset 0 0 0 1px rgba(150,175,255,.3);color:#cfe0ff}
+.dr-btn.ghost svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.dr-msg{margin:8px 0 0;font-size:13px;color:#9aa6c4;min-height:1em}
+.dr-list{display:grid;gap:14px}
+.dr-c{padding:18px 18px 14px;border-radius:18px;border:1px solid rgba(150,175,255,.15);background:linear-gradient(180deg,rgba(14,22,48,.72),rgba(8,12,28,.72))}
+.dr-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.dr-top h2{margin:0;font-size:1.15rem;color:#fff}
+.dr-st{flex:none;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700}
+.st-live{background:rgba(47,230,164,.14);color:#5ff0bd}.st-prep{background:rgba(255,193,77,.14);color:#ffcf6e}.st-soon{background:rgba(160,140,255,.16);color:#c4b5ff}.st-done{background:rgba(120,170,255,.16);color:#a9c8ff}
+.dr-c dl{margin:0;display:grid;gap:6px}
+.dr-c dl div{display:grid;grid-template-columns:64px 1fr;gap:10px}
+.dr-c dt{font-size:12px;color:#7d89a6;padding-top:2px}.dr-c dd{margin:0;font-size:14px;line-height:1.5;color:#d3dcee}
+.dr-steps{list-style:none;margin:12px 0 0;padding:10px 12px;border-radius:12px;background:rgba(4,8,20,.5)}
+.dr-steps li{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+.dr-steps li i{width:10px;height:10px;border-radius:50%;background:#3a4560}
+.dr-steps li.s-now i{background:#ffcf6e;box-shadow:0 0 0 4px rgba(255,207,110,.15)}.dr-steps li.s-done i{background:#2fe6a4}
+.dr-steps li em{font-style:normal;font-size:12px;color:#8b97b3}
+.dr-steps li div{grid-column:2/4;font-size:12px}.dr-steps a{color:#7fb0ff}
+.dr-you{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-size:13px}
+.dr-you.ok{background:rgba(47,230,164,.1);color:#9df5d3}.dr-you.no{background:rgba(255,255,255,.04);color:#a7b1c8}
+.dr-go{display:inline-block;margin-top:12px;color:#7fb0ff;font-weight:600;font-size:13.5px;text-decoration:none}
+@media (max-width:560px){.dr-c dl div{grid-template-columns:1fr;gap:2px}}
+
+/* ======== v9 design pass ======== */
+/* one headline voice: Sora, sentence case, tight tracking (ARCIA and ARCAT keep their stage type) */
+.bp-hero-copy h1{text-transform:none!important;font-family:"Sora",Inter,system-ui,sans-serif;letter-spacing:-.025em!important}
+.bp-panel>h1,.pg-hero h1,.ax-title{letter-spacing:-.025em}
+
+/* ArcPad's own home is the market: a compact header so the coins sit in the first screen */
+body.arcpad-page #bp-panel-home .bp-hero{min-height:0!important;padding:26px 30px!important;margin:14px 0 18px!important}
+body.arcpad-page #bp-panel-home .bp-hero-copy h1{font-size:clamp(1.45rem,2.4vw,1.95rem)!important;margin-bottom:10px!important}
+body.arcpad-page #bp-panel-home .bp-hero-copy h1 span{display:inline!important}
+body.arcpad-page #bp-panel-home .bp-hero-copy h1 span+span::before{content:" "}
+body.arcpad-page #bp-panel-home .bp-hero-copy>p{margin-bottom:14px;max-width:62ch}
+@media (max-width:900px){body.arcpad-page #bp-panel-home .bp-hero{padding:18px 16px!important}}
+
+/* cards: two radii (18 large, 12 small) and one neutral edge colour */
+:is(.hm-card,.hm-mapc,.bp-card,.ax-card,.ams-card,.cpx-tc,.ax-step,.ax-buy-step,.bp-hero,.asc-guide,.ax-facts,.pg-t,.launch-card,.stk-pot,.stk-clock,.stk-claim,
+  .bp-featured,.cpx-trust,.cpx-faq,.cp-timeline,.ac-use,.ax-rev-list,.ax-rev-dest,.ac-fam,.rw-meter,.rw-node,.rw-coin,.rw-feed-wrap,.rw-srcbars-wrap,.st-chart,
+  .v6-koth-in,.ap-alerts,.ap-stat,.ac2-feature,.dr-c){border-radius:18px}
+:is(.bp-mini-stat,.bp-featured-side,.stk-perks){border-radius:12px}
+:is(.pg-t,.ax-card,.bp-card,.ams-card,.cpx-tc,.ax-step,.ax-buy-step,.bp-hero,.asc-guide,.ax-facts,.ap-stat,.bp-mini-stat,.stk-clock,.cpx-trust,.cpx-faq,.cp-timeline,
+  .ax-rev-list,.rw-feed-wrap,.rw-srcbars-wrap,.st-chart){border-color:rgba(150,175,255,.13)}
+
+/* empty states: one calm look, with the rings, and the action next to it */
+:is(.bp-empty,.empty-state,.asn-empty,.aor-empty,.bm-empty,.pf-empty,.gv-feed-empty,.ac2-empty,.nft-empty,.cp-ls-empty,.ac-empty,.abr-empty,.stk-empty,.dk-empty-s,.cp-wc-empty,.aos-empty,.wk-empty):not(td):not(tr){
+  text-align:center;color:#9aa6c4;padding:22px 16px;border:1px dashed rgba(150,175,255,.2);border-radius:14px;background:rgba(10,16,36,.35)}
+:is(.bp-empty,.empty-state,.asn-empty,.aor-empty,.bm-empty,.pf-empty,.gv-feed-empty,.ac2-empty,.nft-empty,.cp-ls-empty,.ac-empty,.abr-empty,.stk-empty,.dk-empty-s,.cp-wc-empty,.aos-empty,.wk-empty):not(td):not(tr)::before{
+  content:"";display:block;width:34px;height:22px;margin:0 auto 10px;opacity:.75;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 22'%3E%3Ccircle cx='11' cy='11' r='8.5' fill='none' stroke='%234d8dff' stroke-width='2.6'/%3E%3Ccircle cx='23' cy='11' r='8.5' fill='none' stroke='%232fe6a4' stroke-width='2.6'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* product colours: ArcPad blue, CirclePad green, ARCIA pink — Earn teal, Tools slate */
+.anav-g[data-g="trade"]{--acc:#4d8dff}.anav-g[data-g="earn"]{--acc:#2fe6a4}.anav-g[data-g="arcia"]{--acc:#ff7ad1}.anav-g[data-g="tools"]{--acc:#8fb4d9}
+#anav-p-earn .anav-ib{color:#7ff1c8;background:linear-gradient(140deg,rgba(47,230,164,.18),rgba(47,230,164,.05));border-color:rgba(47,230,164,.22)}
+#anav-p-arcia .anav-ib{color:#ffb3e6;background:linear-gradient(140deg,rgba(255,122,209,.2),rgba(160,120,255,.08));border-color:rgba(255,122,209,.24)}
+#anav-p-tools .anav-ib{color:#bcd2ea;background:linear-gradient(140deg,rgba(143,180,217,.16),rgba(143,180,217,.05));border-color:rgba(143,180,217,.2)}
+.anav-it[href="/circle"] .anav-ib{color:#7ff1a8;background:linear-gradient(140deg,rgba(57,255,136,.18),rgba(57,255,136,.05));border-color:rgba(57,255,136,.25)}
+.anav-g.here[data-g] .anav-gb::after{background:var(--acc)}
+.hm-mapc[data-g="earn"] .hm-mapc-h>.anav-i{background:linear-gradient(140deg,#16b98a,#2fe6a4)}
+.hm-mapc[data-g="arcia"] .hm-mapc-h>.anav-i{background:linear-gradient(140deg,#e255b8,#9d74ff)}
+.hm-mapc[data-g="tools"] .hm-mapc-h>.anav-i{background:linear-gradient(140deg,#4f6e91,#8fb4d9)}
+.hm-mapc[data-g="earn"] .hm-mapc-l .anav-i{color:#7ff1c8}.hm-mapc[data-g="arcia"] .hm-mapc-l .anav-i{color:#ffb3e6}.hm-mapc[data-g="tools"] .hm-mapc-l .anav-i{color:#bcd2ea}
+html.anav-has-strip .anav-strip .anav-st.on{background:color-mix(in srgb,var(--strip-acc,#4d8dff) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--strip-acc,#4d8dff) 40%,transparent)}
+
+/* ======== v9 motion (everything here is off with reduced motion) ======== */
+.v9-toast{position:fixed;left:50%;bottom:calc(var(--anav-bot) + 22px);transform:translate(-50%,16px);opacity:0;z-index:110;display:flex;align-items:baseline;gap:8px;
+  padding:12px 18px;border-radius:14px;background:rgba(8,14,30,.96);border:1px solid rgba(150,175,255,.22);box-shadow:0 16px 40px rgba(0,0,0,.5);
+  font-family:"Sora",Inter,system-ui,sans-serif;color:#e8eefc;transition:transform .25s ease,opacity .25s ease;max-width:calc(100vw - 24px)}
+.v9-toast.in{transform:translate(-50%,0);opacity:1}
+.v9-toast.ok{border-color:rgba(47,230,164,.45)}
+.v9-toast .v9-cu{font-size:20px;color:#5ff0bd;font-variant-numeric:tabular-nums}
+.v9-toast small{color:#9aa6c4;font-size:12px}
+.v9-up{animation:v9-up 1.2s ease-out}.v9-down{animation:v9-down 1.2s ease-out}
+@keyframes v9-up{0%{box-shadow:inset 0 0 0 1px rgba(47,230,164,.9),0 0 22px rgba(47,230,164,.35)}100%{box-shadow:inset 0 0 0 1px transparent,0 0 0 transparent}}
+@keyframes v9-down{0%{box-shadow:inset 0 0 0 1px rgba(255,92,112,.85),0 0 22px rgba(255,92,112,.3)}100%{box-shadow:inset 0 0 0 1px transparent,0 0 0 transparent}}
+.anav-chip{position:relative}
+.anav-chip.v9-burn{animation:v9-burn 1.6s ease-out}
+@keyframes v9-burn{0%{box-shadow:0 0 0 0 rgba(255,138,76,.7);border-color:rgba(255,138,76,.9)}70%{box-shadow:0 0 0 12px rgba(255,138,76,0)}100%{box-shadow:none}}
+.v9-burntip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;padding:5px 10px;border-radius:9px;background:#2a1408;border:1px solid rgba(255,138,76,.5);color:#ffb68c;font-size:12px;font-weight:700;animation:v9-tip 3.2s ease forwards}
+@keyframes v9-tip{0%{opacity:0;transform:translate(-50%,-4px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+.v9-skel{color:transparent!important;border-radius:6px;background:linear-gradient(90deg,rgba(150,175,255,.08) 0%,rgba(150,175,255,.2) 50%,rgba(150,175,255,.08) 100%)!important;background-size:200% 100%!important;
+  -webkit-background-clip:border-box!important;background-clip:border-box!important;animation:v9-shim 1.3s linear infinite;min-width:2.6em;display:inline-block}
+@keyframes v9-shim{from{background-position:100% 0}to{background-position:-100% 0}}
+.v9-na{opacity:.45;cursor:help}
+.v9-bubble{position:fixed;z-index:61;max-width:250px;padding:10px 13px;border-radius:14px 14px 4px 14px;background:rgba(10,16,36,.97);border:1px solid rgba(255,122,209,.4);
+  color:#f2e6fa;font:600 13px/1.4 "Sora",Inter,system-ui,sans-serif;text-decoration:none;box-shadow:0 12px 30px rgba(0,0,0,.45);animation:v9-pop .35s cubic-bezier(.2,1.4,.4,1)}
+.v9-bubble.out{opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+@keyframes v9-pop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+/* the second menu row tucks away on scroll (desktop) */
+@media (min-width:901px){
+  .anav-strip{transition:height .2s ease,opacity .2s ease;height:var(--anav-row);overflow:hidden}
+  html.anav-compact .anav-strip{height:0;opacity:0;border-top-color:transparent}
+}
+/* menu panels: items arrive one after another */
+.anav-panel .anav-it{animation:v9-item .24s ease-out both}
+.anav-panel .anav-it:nth-child(2){animation-delay:.03s}.anav-panel .anav-it:nth-child(3){animation-delay:.06s}.anav-panel .anav-it:nth-child(4){animation-delay:.09s}
+.anav-panel .anav-it:nth-child(5){animation-delay:.12s}.anav-panel .anav-it:nth-child(6){animation-delay:.15s}.anav-panel .anav-it:nth-child(7){animation-delay:.18s}
+@keyframes v9-item{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* page to page: the menu stays put, the page fades (browsers that support it) */
+@media (prefers-reduced-motion:no-preference){
+  @view-transition{navigation:auto}
+  .anav{view-transition-name:anav}
+  .anav-tabs{view-transition-name:anav-tabs}
+  ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+}
+@media (prefers-reduced-motion:reduce){
+  .v9-up,.v9-down,.anav-chip.v9-burn,.v9-skel,.anav-panel .anav-it,.v9-bubble,.v9-burntip{animation:none!important}
+  .v9-toast,.anav-strip{transition:none}
+}
+
+/* ---- $ARCIRCLE page on phones: sections fold under their titles ---- */
+@media (max-width:900px){
+  .ax-section.v9-fold>h2{position:relative;cursor:pointer;padding-right:36px;margin-bottom:0}
+  .ax-section.v9-fold>h2::after{content:"";position:absolute;right:6px;top:50%;width:10px;height:10px;border-right:2px solid #8fb4d9;border-bottom:2px solid #8fb4d9;transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+  .ax-section.v9-fold.open>h2::after{transform:translateY(-30%) rotate(-135deg)}
+  .ax-section.v9-fold:not(.open)>:not(.ax-kicker):not(h2){display:none!important}
+  .ax-section.v9-fold{padding-top:18px!important;padding-bottom:18px!important;border-bottom:1px solid rgba(150,175,255,.1)}
+  .ax-section.v9-fold.open>h2{margin-bottom:12px}
+}

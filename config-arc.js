@@ -120,11 +120,12 @@ const CONFIG = {
   // 7 Oct 2026: what CirclePad says about its rounds everywhere outside /circle (the main page's button, round card and
   // live bar, ArcPad's $ARCIRCLE card and roadmap, ARCIA): Round #2 postponed, Rounds #3 + #4 being merged. Set to null
   // when a round is live again — the pages then follow the round's own state.
+  // 9 Oct 2026: Round #5 is next; Rounds #3 + #4 rewards go out as a snapshot airdrop at the right time.
   CIRCLEPAD_STATUS: {
-    btn: "CirclePad · Rounds #3 + #4 merging",
-    line: "Round #2 postponed · Rounds #3 + #4 merging, in progress",
-    chip: "Rounds #3 + #4",
-    sub: "merging, in progress",
+    btn: "CirclePad · Round #5 is next",
+    line: "Round #5 opens next · Rounds #3 + #4 rewards: snapshot airdrop",
+    chip: "Round #5",
+    sub: "opens next",
     go: "See the plan →",
     href: "/circle",
   },

@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/airdrops",
+      "destination": "/airdrops.html"
+    },
+    {
+      "source": "/updates",
+      "destination": "/updates.html"
+    },
+    {
       "source": "/arcia",
       "destination": "/arcia.html"
     },

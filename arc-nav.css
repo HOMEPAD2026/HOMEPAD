@@ -120,6 +120,7 @@ html.anav-locked{overflow:hidden}
   html.anav-tool-in .anav-wallet,html.anav-tool-in .anav-right .bp-chain-pill{display:none!important}
   html.anav-tool-in .anav-right .bp-topbar-right{display:flex;align-items:center;gap:8px;position:static;margin:0}
   html.anav-tool-in .bp-topbar{display:none!important}
+  html.anav-tool-in .bp-app{padding-top:0!important}
   body.bigpad-page .bp-topbar{position:relative!important;top:auto!important;left:auto!important;right:auto!important;height:auto!important;padding:10px 14px 0!important;justify-content:flex-end;z-index:2}
   .anav-wallet{height:34px;padding:0 12px 0 10px}
   .anav-tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:85;height:var(--anav-bot);padding-bottom:env(safe-area-inset-bottom);

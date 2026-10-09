@@ -1,4 +1,4 @@
-// arc-coinhead.js — the coin page header on phones.
+// arc-coinhead.js — the coin page header (phones and, since v9, desktop too).
 // Copy / Watch / Share shrink to icons, and everything else that lands in the
 // address row (ArcScan, Edit coin info, Lock tokens, …) moves into one "···"
 // menu, so the header stays on two lines however many creator tools appear.
@@ -16,7 +16,11 @@
   };
   // [source element id, label, icon source] — the icon is copied from the
   // source button when it has one.
+  // v9: on every screen size the header keeps Copy, Safety scan, Watch and Share; the rest lives here.
   const ITEMS = [
+    ["apc-orders", "Limit order", null],
+    ["apc-liqmgr", "Liquidity", null],
+    ["apc-agent", "Ask ARCIA AGENT", null],
     ["apc-scan-link", "View on ArcScan", ICON.scan],
     ["apc-edit", "Edit coin info", null],
     ["apc-lockbtn", "Lock tokens", null],

@@ -15,4 +15,6 @@
   <url><loc>https://www.arcircle.app/roadmap</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://www.arcircle.app/me</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://www.arcircle.app/brand</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.arcircle.app/updates</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.arcircle.app/airdrops</loc><changefreq>daily</changefreq></url>
 </urlset>
