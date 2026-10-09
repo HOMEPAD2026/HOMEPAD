@@ -32,7 +32,9 @@
 //   GET /api/desk?stake=card&u=0x…           a wallet's lock for its share card (/stake/<wallet>)
 //   GET /api/desk?stake=pool&token=0x…       v2: the pool to vote for a token (its ArcPad pool or its Orders market)
 //   GET /api/desk?stake=drop[&u=0x…]          Launch Drop: this week's coins, finished weeks, a wallet's share (api/_launchdrop.mjs)
-//   GET /api/desk?stake=dropconsole[&ws=…]    the treasury's unsent Launch Drop wallets, in Multisender chunks
+//   GET /api/desk?stake=dropconsole[&ws=…]    the treasury's to-do: with the vault, coins waiting for their 4% deposit;
+//                                             without it, the unsent Launch Drop wallets in Multisender chunks
+//   GET /api/desk?stake=dropholders&token=0x… the wallets a vault push of that coin would pay now (anyone can send it)
 //   POST /api/desk { action: "launch-drop-sent", ws, tx }   a treasury Multisender send, checked against the plan
 // ARCIRCLE NFT Vault (api/_nft.mjs, contracts/ArcircleNft.sol on Robinhood Chain) — fees buy NFTs, raffled to $ARCIRCLE holders:
 //   GET /api/desk?nft=state · ?nft=me&u=0x… · ?nft=list&prize=N[&u=0x…] (a raffle's list + a wallet's proof) · ?nft=status
@@ -91,6 +93,7 @@ export async function GET(req) {
       // Launch Drop (api/_launchdrop.mjs): half of every new ArcPad coin's 8% platform allocation → veARCIRCLE stakers
       if (q.stake === "drop") return json(await launchdrop.state({ store: st, user: String(q.u || "") }), 200, q.u ? "no-store" : "public, max-age=15, s-maxage=30");
       if (q.stake === "dropconsole") return json(await launchdrop.consoleOf({ store: st, ws: q.ws ? Number(q.ws) : 0 }), 200);
+      if (q.stake === "dropholders") return json(await launchdrop.holders({ store: st, token: String(q.token || "") }), 200, "no-store");
       if (q.stake === "me") { const r = await stake.me(String(q.u || "")); return json(r, r.error ? 400 : 200); }
       if (q.stake === "pool") { const r = await stake.poolFor(String(q.token || ""), { store: st }); return json(r || { error: "no pool found for that token" }, r ? 200 : 404, "public, max-age=60, s-maxage=300"); }
       if (q.stake === "card") { const r = await stake.card(String(q.u || "")); return json(r || { error: "no lock" }, r ? 200 : 404, "public, max-age=30, s-maxage=60"); }

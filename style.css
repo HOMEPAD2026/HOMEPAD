@@ -19010,6 +19010,23 @@ html.tr-on .tr-q{visibility:hidden;}
 .ld-ct small{color:#9aa6b4;font-size:.74rem;}
 .ld-msg{margin-top:8px;font-size:.78rem;color:#ffd88a;}
 @media (max-width:760px){.ld-week{grid-template-columns:1fr;}.ld-me,.ld-me.none{text-align:left;align-items:flex-start;}}
+/* Launch Drop vault (arc-launchdrop.js, mode "vault") */
+.ld-coins .ld-k{flex-basis:100%;margin-bottom:2px;}
+.ld-mine-box{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(57,255,136,.3);background:rgba(57,255,136,.05);}
+.ld-mb-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.ld-mb-h h4{margin:0;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:#9aa6b4;}
+.ld-list{margin:0;padding:0;list-style:none;display:grid;gap:2px;}
+.ld-list li{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06);}
+.ld-list li:first-child{border-top:0;}
+.ld-list small{font-size:.74rem;color:#8f9aa8;font-variant-numeric:tabular-nums;}
+.ld-amt{font:700 .84rem 'JetBrains Mono',monospace;color:#e8eef5;font-variant-numeric:tabular-nums;}
+.ld-bar{flex:0 0 90px;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.ld-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#39ff88,#9fe8ff);transition:width .5s ease;}
+.ld-list .ld-btn{margin-left:auto;padding:6px 11px;font-size:.76rem;}
+.ld-foot{margin:10px 0 0;font-size:.74rem;line-height:1.5;color:#8f9aa8;}
+.ld-foot a{color:#8dffbf;}
+@media (max-width:560px){.ld-bar{flex-basis:60px;}.ld-list .ld-btn{margin-left:0;width:100%;justify-content:center;min-height:40px;}}
+@media (prefers-reduced-motion:reduce){.ld-bar i{transition:none;}}
 
 /* ARCIA page: link to her own site (/arcia) on the banner */
 .aa-stagelink{position:absolute;top:12px;left:12px;z-index:4;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;font-size:.8rem;font-weight:700;color:#fff;text-decoration:none;background:rgba(6,7,22,.62);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);}

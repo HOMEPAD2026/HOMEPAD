@@ -34,11 +34,11 @@
       who: ["veARCIA stakers, by their veARCIA.", "veARCIA 스테이커, veARCIA 비율대로.", "veARCIA 质押者,按 veARCIA 比例。"],
       how: ["Claim any time on the veARCIA page.", "veARCIA 페이지에서 언제든 클레임.", "随时在 veARCIA 页面领取。"],
       link: ["/arc#vearcia", ["Open veARCIA", "veARCIA 열기", "打开 veARCIA"]] },
-    { id: "launchdrop", status: "soon",
+    { id: "launchdrop", status: isAddr(C.LAUNCHDROP_ADDRESS) ? "live" : "soon",
       t: ["Launch Drop", "런치 드랍", "发币空投"],
-      what: ["Half of the 8% of supply each new ArcPad launch sends to the treasury.", "새 ArcPad 런치마다 트레저리로 가는 공급량 8%의 절반.", "每个新 ArcPad 发币转入金库的 8% 供应量中的一半。"],
-      who: ["veARCIRCLE stakers, weekly, straight to the wallet.", "veARCIRCLE 스테이커에게 매주 지갑으로 바로.", "veARCIRCLE 质押者,每周直接到钱包。"],
-      how: ["For launches from the start date on, not coins already launched.", "시작일 이후 런치부터 적용, 이미 런치된 코인은 제외.", "适用于开始日期之后的发币,已发行的不算。"],
+      what: ["4% of every new ArcPad coin's supply (40M of 1B), held and paid out by a contract.", "새 ArcPad 코인마다 공급량의 4%(10억 개 중 4천만 개)를 컨트랙트가 보관하고 지급해요.", "每个新 ArcPad 币供应量的 4%(10 亿中的 4000 万),由合约保管并发放。"],
+      who: ["veARCIRCLE holders, pro rata to their veARCIRCLE when the coin's launch week began (Thursday 00:00 UTC).", "veARCIRCLE 보유자 — 코인이 런칭된 주가 시작된 시점(목요일 00:00 UTC)의 veARCIRCLE 비율대로.", "veARCIRCLE 持有者——按该币上线当周开始时(周四 00:00 UTC)的 veARCIRCLE 比例。"],
+      how: ["Claim on the Staking page any time, or anyone can send it to you. Coins launched from 8 Oct 2026 on.", "스테이킹 페이지에서 언제든 수령하거나, 누구나 대신 보내줄 수 있어요. 2026년 10월 8일 이후 런칭된 코인부터.", "随时在质押页面领取,任何人也可以代你发送。适用于 2026 年 10 月 8 日起上线的币。"],
       link: ["/arc#staking", ["Open Staking", "스테이킹 열기", "打开质押"]] },
   ];
   var ST = { live: ["Live", "진행 중", "进行中"], prep: ["Preparing", "준비 중", "准备中"], soon: ["Coming soon", "곧 시작", "即将开始"], done: ["Done", "완료", "已完成"] };
@@ -77,7 +77,7 @@
     if (!isAddr(addr)) { if (msg) msg.textContent = L("That doesn't look like a wallet address.", "지갑 주소 형식이 아니에요.", "这不像钱包地址。"); return; }
     if (msg) msg.textContent = L("Reading this wallet…", "지갑을 읽는 중…", "正在读取钱包…");
     try { history.replaceState(null, "", "/airdrops?w=" + addr); } catch (e) { /* fine */ }
-    Promise.all([getJson("/api/social?circle=lb&round=2&wallet=" + addr), getJson("/api/social?circle=lb&round=3&wallet=" + addr), getJson("/api/social?token=arcircle&wallet=" + addr)]).then(function (res) {
+    Promise.all([getJson("/api/social?circle=lb&round=2&wallet=" + addr), getJson("/api/social?circle=lb&round=3&wallet=" + addr), getJson("/api/social?token=arcircle&wallet=" + addr), getJson("/api/desk?stake=drop&u=" + addr)]).then(function (res) {
       var parts = [], any = false;
       [[2, res[0]], [3, res[1]]].forEach(function (x) {
         var lb = x[1]; if (!lb || !lb.rows) return;
@@ -89,6 +89,13 @@
       var w = res[2] && res[2].wallet, bal = w ? Number(w.balance || 0) : null;
       if (bal != null) mine.relay = bal >= 100000 ? { ok: true, html: "✓ " + esc(L("Holds ", "보유 ", "持有 ") + Math.floor(bal).toLocaleString("en-US") + " $ARCIRCLE — " + L("in the next relay while it holds.", "보유하는 동안 다음 릴레이 대상이에요.", "持有期间可参与下一次接力。")) }
         : { ok: false, html: esc(L("Holds ", "보유 ", "持有 ") + Math.floor(bal).toLocaleString("en-US") + " $ARCIRCLE — " + L("100,000 needed for the relay.", "릴레이는 100,000개 필요해요.", "接力需要 100,000 枚。")) };
+      var ld = res[3];
+      if (ld && ld.mode === "vault") {
+        var n = (ld.claimable || []).length, sh = ld.me ? Number(ld.me.share) || 0 : 0, nx = ld.me ? Number(ld.me.shareNext) || 0 : 0;
+        mine.launchdrop = n ? { ok: true, html: "✓ " + esc(n + L(n === 1 ? " coin ready to claim on the Staking page." : " coins ready to claim on the Staking page.", "개 코인을 스테이킹 페이지에서 수령할 수 있어요.", " 个币可在质押页面领取。")) }
+          : sh || nx ? { ok: true, html: "✓ " + esc(L("Holds veARCIRCLE — ", "veARCIRCLE 보유 중 — ", "持有 veARCIRCLE — ") + ((sh || nx) * 100).toFixed(2) + "%" + L(" of each new coin's drop.", " 만큼 새 코인 드랍을 받아요.", " 的新币空投份额。")) }
+          : { ok: false, html: esc(L("No veARCIRCLE yet — lock $ARCIRCLE to be in the next coins' drops.", "아직 veARCIRCLE이 없어요 — $ARCIRCLE을 락업하면 다음 코인부터 받아요.", "还没有 veARCIRCLE——锁仓 $ARCIRCLE 即可参与之后的新币空投。")) };
+      }
       if (msg) msg.textContent = "";
       paint();
     });

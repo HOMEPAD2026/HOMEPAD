@@ -11,6 +11,12 @@
 //     from its own receipt (sender = the treasury, the coin, every wallet and amount) before it counts
 //   · the bot admins get a Telegram note when a week's drop is ready to send
 // Read-only and keyless. Store: launchDrop/<weekStart> (the plan and what was sent) and launchDrop/index.
+//
+// The vault (contracts/ArcLaunchDrop.sol) replaces all of the above once LAUNCHDROP_ADDRESS (or LAUNCHDROP_DEFAULT) is
+// set: the treasury deposits each coin's 4% into it once; the contract snapshots veARCIRCLE at the start of the week the
+// coin launched (Thursday 00:00 UTC) and pays pro rata — holders claim, or anyone pushes. This file then only reads the
+// vault: the drops and a wallet's claimable amounts, the coins still waiting for their deposit (the treasury console),
+// and the holders a push would pay. The weekly Multisender plan stays only for a site with no vault.
 import { allPools, ethCalls, isAddr, pad, strip, keccakHex, SITE } from "./_arc.mjs";
 import * as stake from "./_stake.mjs";
 import { receipt as dropReceipt } from "./_drop.mjs";
@@ -34,7 +40,10 @@ export const CFG = {
   chunk: 200, // wallets per Multisender transaction (the contract takes up to 500)
   start: () => { const n = parseInt(env("LAUNCH_DROP_START"), 10); return Number.isFinite(n) && n > 0 ? n : START; },
   now: null, pools: null, locks: null, veAt: null, notify: null, receipt: null, treasury: null, meta: null,
+  // the vault: env LAUNCHDROP_ADDRESS ("none" turns it off), else LAUNCHDROP_DEFAULT
+  vault: () => { const e = env("LAUNCHDROP_ADDRESS"); if (e === "none") return null; return isAddr(e) ? lc(e) : isAddr(LAUNCHDROP_DEFAULT) ? lc(LAUNCHDROP_DEFAULT) : null; },
 };
+export const LAUNCHDROP_DEFAULT = ""; // contracts/scripts/deploy-arc-launch-drop.js — filled in once it's deployed
 export function configure(o) { Object.assign(CFG, o); mem.clear(); }
 const T0 = () => (CFG.now ? CFG.now() : now());
 const mem = new Map();
@@ -56,9 +65,10 @@ async function metaOf(tokens) {
   return Object.fromEntries(tokens.map((t, i) => [lc(t), { sym: str(r[i * 2]) || "?", name: str(r[i * 2 + 1]) || "" }]));
 }
 /// the ArcPad coins launched in the week starting `ws` (and not before START)
-async function coinsOf(ws) {
+const coinsOf = (ws) => coinsBetween(ws, ws + WEEK);
+async function coinsBetween(from0, to) {
   const pools = CFG.pools ? await CFG.pools() : await allPools();
-  const from = Math.max(ws, CFG.start()), to = ws + WEEK;
+  const from = Math.max(from0, CFG.start());
   const list = pools.filter((p) => p.launchedAt >= from && p.launchedAt < to).map((p) => ({ token: lc(p.token), launchedAt: p.launchedAt }));
   if (!list.length) return [];
   const m = await metaOf(list.map((c) => c.token)).catch(() => ({}));
@@ -126,6 +136,7 @@ async function notifyReady(doc) {
 
 // ---------------- recording a send (checked against its receipt) ----------------
 export async function record({ ws, tx }, store) {
+  if (CFG.vault()) return { status: 400, body: { error: "Launch Drop is paid by the vault now — nothing to record" } };
   ws = Number(ws);
   if (!Number.isFinite(ws) || ws % WEEK) return { status: 400, body: { error: "bad week" } };
   if (!/^0x[0-9a-fA-F]{64}$/.test(String(tx || ""))) return { status: 400, body: { error: "bad transaction hash" } };
@@ -154,10 +165,112 @@ export async function record({ ws, tx }, store) {
 }
 const view = (c, doc) => ({ token: c.token, sym: c.sym, name: c.name, launchedAt: c.launchedAt, sent: Object.keys(c.sent).length, of: doc.rows.length, done: !!c.done, skipped: c.skipped || null, txs: c.txs.slice(-12) });
 
+
+// ---------------- the vault (contracts/ArcLaunchDrop.sol) ----------------
+const W = (h, i) => { const s = strip(h || ""); const w = s.slice(i * 64, i * 64 + 64); return w.length === 64 ? BigInt("0x" + w) : 0n; };
+const addrW = (h, i) => "0x" + strip(h || "").slice(i * 64 + 24, i * 64 + 64);
+const VS = {
+  dropCount: sel("dropCount()"), tokens: sel("tokens(uint256)"), drops: sel("drops(address)"),
+  claimable: sel("claimable(address,address)"), paid: sel("paid(address,address)"),
+  balAt: sel("balanceOfAt(address,uint256)"), supAt: sel("totalSupplyAt(uint256)"), bal: sel("balanceOf(address)"), sup: sel("totalSupply()"),
+};
+async function calls(list) {
+  const out = [];
+  for (let i = 0; i < list.length; i += 150) out.push(...(await ethCalls(list.slice(i, i + 150))));
+  return out;
+}
+/// every drop in the vault (oldest first), with what `me` can claim and has been paid
+export async function vaultDrops(me = "") {
+  const V = CFG.vault();
+  const [cnt] = await ethCalls([{ to: V, data: VS.dropCount }]);
+  const n = Math.min(cnt ? Number(BigInt(cnt)) : 0, 500);
+  if (!n) return [];
+  const toks = (await calls(Array.from({ length: n }, (_, i) => ({ to: V, data: VS.tokens + u256(i) })))).map((h) => lc(addrW(h, 0)));
+  const per = await calls(toks.flatMap((t) => [
+    { to: V, data: VS.drops + pad(t) },
+    ...(me ? [{ to: V, data: VS.claimable + pad(t) + pad(me) }, { to: V, data: VS.paid + pad(t) + pad(me) }] : []),
+  ]));
+  const k = me ? 3 : 1;
+  const m = await metaOf(toks).catch(() => ({}));
+  return toks.map((t, i) => {
+    const d = per[i * k];
+    const row = { token: t, ...(m[t] || { sym: "?", name: "" }), ws: Number(W(d, 0)), supply: W(d, 1).toString(), amount: W(d, 2).toString(), claimed: W(d, 3).toString() };
+    if (me) row.mine = { claimable: W(per[i * k + 1], 0).toString(), paid: W(per[i * k + 2], 0).toString() };
+    return row;
+  });
+}
+/// a wallet's veARCIRCLE share at a week's snapshot and now
+async function shareOf(me, ws) {
+  const S = stake.CFG.address();
+  if (!S || !me) return null;
+  const [b0, s0, b1, s1] = await ethCalls([
+    { to: S, data: VS.balAt + pad(me) + u256(ws) }, { to: S, data: VS.supAt + u256(ws) },
+    { to: S, data: VS.bal + pad(me) }, { to: S, data: VS.sup },
+  ]);
+  const f = (b, s) => (W(s, 0) > 0n ? Number((W(b, 0) * 1000000n) / W(s, 0)) / 1e6 : 0);
+  return { ve: (W(b0, 0) / 10n ** 16n).toString(), share: f(b0, s0), perCoin: W(s0, 0) > 0n ? ((perCoin() * W(b0, 0)) / W(s0, 0)).toString() : "0", veNow: (W(b1, 0) / 10n ** 16n).toString(), shareNext: f(b1, s1) };
+}
+/// coins launched from START on whose 4% isn't (fully) in the vault yet. A coin whose snapshot had no veARCIRCLE can't
+/// be deposited (the vault would revert) — it's marked `blocked` and the treasury keeps it.
+async function waiting(drops) {
+  const all = await coinsBetween(CFG.start(), T0() + 1).catch(() => []);
+  const have = new Map(drops.map((d) => [d.token, BigInt(d.amount)]));
+  const need = perCoin();
+  const list = all.filter((c) => (have.get(c.token) || 0n) < need);
+  const S = stake.CFG.address();
+  const sup = S && list.length ? await calls(list.map((c) => ({ to: S, data: VS.supAt + u256(weekOf(c.launchedAt)) }))).catch(() => []) : [];
+  return list.map((c, i) => {
+    const got = have.get(c.token) || 0n;
+    return { token: c.token, sym: c.sym, name: c.name, launchedAt: c.launchedAt, ws: weekOf(c.launchedAt), deposited: got.toString(), need: (need - got).toString(), blocked: !got && sup[i] && W(sup[i], 0) === 0n ? "no veARCIRCLE at the snapshot" : null };
+  });
+}
+async function notifyWaiting(store, list) {
+  if (!list.length) return;
+  const seen = (await getDoc(store, "launchDrop/notified")) || { t: [] };
+  const fresh = list.filter((c) => !c.blocked && !seen.t.includes(c.token));
+  if (!fresh.length) return;
+  seen.t = [...seen.t, ...fresh.map((c) => c.token)].slice(-500);
+  await putDoc(store, "launchDrop/notified", seen);
+  const text = `🪂 <b>Launch Drop: deposit waiting</b>\n\n${fresh.map((c) => "$" + c.sym).join(", ")} — ${(Number(perCoin() / 10n ** 18n) / 1e6).toFixed(0)}M of each into the vault, then veARCIRCLE holders claim on their own.\n\nConnect the treasury wallet: ${SITE}/arc#staking?drop=console`;
+  if (CFG.notify) return CFG.notify(text);
+  const { tg, loadCfg } = await import("./_tg-lib.mjs");
+  const admins = ((await loadCfg().catch(() => null)) || {}).admins || [];
+  for (const a of admins) await tg("sendMessage", { chat_id: a, text, parse_mode: "HTML", link_preview_options: { is_disabled: true } });
+}
+async function vaultState({ store, me }) {
+  const t = T0(), ws = weekOf(t);
+  const [coins, tr, drops, mine] = await Promise.all([coinsOf(ws).catch(() => []), treasury().catch(() => null), vaultDrops(me).catch(() => []), me ? shareOf(me, ws).catch(() => null) : null]);
+  const wait = await waiting(drops);
+  await notifyWaiting(store, wait).catch(() => null);
+  const claimable = me ? drops.filter((d) => d.mine && BigInt(d.mine.claimable) > 0n).map((d) => d.token) : [];
+  return {
+    v: 2, mode: "vault", vault: CFG.vault(), staking: stake.CFG.address(), start: CFG.start(), per: perCoin().toString(), treasury: tr, started: t >= CFG.start(),
+    week: { ws, ends: ws + WEEK, coins: coins.map((c) => ({ token: c.token, sym: c.sym, name: c.name, launchedAt: c.launchedAt })) },
+    me: mine, drops: drops.slice().reverse(), waiting: wait.map(({ token, sym, launchedAt, ws: w, blocked }) => ({ token, sym, launchedAt, ws: w, blocked })), claimable,
+  };
+}
+/// the treasury's to-do with a vault: deposit each waiting coin's 4% (approve + deposit)
+async function vaultConsole() {
+  const drops = await vaultDrops().catch(() => []);
+  const wait = await waiting(drops);
+  return { mode: "vault", vault: CFG.vault(), treasury: await treasury(), todo: wait.map((c) => ({ ...c, total: c.need })) };
+}
+/// the wallets a push of `token` would pay now (anyone can send it)
+export async function holders({ store, token }) {
+  if (!CFG.vault() || !isAddr(token)) return { error: "bad token" };
+  const V = CFG.vault(), t = lc(token);
+  const locks = CFG.locks ? await CFG.locks() : await stake.allLocks({ store });
+  const addrs = [...new Set(locks.map((l) => lc(l.a)))];
+  const r = await calls(addrs.map((a) => ({ to: V, data: VS.claimable + pad(t) + pad(a) })));
+  const rows = addrs.map((a, i) => [a, W(r[i], 0)]).filter(([, x]) => x > 0n).sort((x, y) => (y[1] > x[1] ? 1 : -1));
+  return { token: t, vault: V, holders: rows.map(([a, x]) => [a, x.toString()]), total: rows.reduce((s, [, x]) => s + x, 0n).toString() };
+}
+
 // ---------------- public views ----------------
 /// this week so far (live coins and an estimate), the finished weeks, and for a wallet: what it got / will get
 export async function state({ store, user = "" } = {}) {
   const t = T0(), ws = weekOf(t), me = isAddr(user) ? lc(user) : "";
+  if (CFG.vault()) return vaultState({ store, me });
   const [coins, tr] = await Promise.all([coinsOf(ws).catch(() => []), treasury().catch(() => null)]);
   // the estimate: veARCIRCLE now (the real split uses the value at the week's end)
   let est = null;
@@ -186,6 +299,7 @@ export async function state({ store, user = "" } = {}) {
 }
 /// the treasury's to-do: the unsent wallets of each coin, in Multisender-sized chunks
 export async function consoleOf({ store, ws }) {
+  if (CFG.vault()) return vaultConsole();
   const out = [];
   const ix = (await getDoc(store, "launchDrop/index")) || { weeks: [] };
   const weeks = ws ? [Number(ws)] : ix.weeks.slice(0, 6);

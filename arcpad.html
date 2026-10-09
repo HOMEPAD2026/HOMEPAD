@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791511760"></script>
+<script src="arc-log.js?v=1791526492"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791511760">
+<link rel="stylesheet" href="/arc.min.css?v=1791526492">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -2050,7 +2050,13 @@
         <section class="asc-guide stk-guide" aria-labelledby="stk-guide-h">
           <h2 id="stk-guide-h">ARCIRCLE Staking guide</h2>
           <details open><summary><h3>Launch Drop: a piece of every new coin</h3></summary>
-            <p>Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. From 8 Oct 2026, half of it — 40M of every new coin — goes to veARCIRCLE stakers. Weeks run Thursday to Thursday (00:00 UTC). When a week ends, each staker's veARCIRCLE at that moment is read from the contract, and every coin launched that week is split pro rata (at least 1 veARCIRCLE to be in it; a lock made after the snapshot counts from the next week). The treasury sends it straight to the stakers' wallets through the Multisender — nothing to claim. Each send is checked against the week's plan, and the page shows every coin as sending or sent, with what your wallet got. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.</p>
+            <p>Every ArcPad launch sends 8% of the new coin's supply (80M of 1B) to the platform treasury. For coins launched from 8 Oct 2026, half of it — 4% of the supply, 40M of every new coin — goes to veARCIRCLE holders, through the Launch Drop vault contract. The treasury deposits each coin's 4% once; the vault does the rest. Your share of a coin is your veARCIRCLE at the start of the week it launched (Thursday 00:00 UTC), out of all veARCIRCLE at that moment — a lock made later counts from the next week's coins, and a max lock counts in full. Claim every coin you have in one transaction, any time, or let anyone send it to you: "Send to every holder" pays each holder their exact share, and tokens only ever go to the holders. The vault has no owner and no way to take a deposit back. A bigger, longer lock means more veARCIRCLE, so a bigger share of every coin.</p>
+          </details>
+          <details open><summary><h3>New in v3</h3></summary>
+            <ul>
+              <li>Launch Drop moves on-chain: the vault contract snapshots veARCIRCLE at the start of each coin's launch week and pays pro rata. "Your drops" lists what you can claim, with Claim all; "Every drop" shows each coin's deposit and how much has been claimed, and anyone can send a coin to every holder.</li>
+              <li>The treasury console is one deposit per coin (approve, then deposit) instead of weekly Multisender sends.</li>
+            </ul>
           </details>
           <details open><summary><h3>New in v2</h3></summary>
             <ul>
@@ -2404,9 +2410,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791511760"></script>
+<script src="wallet-arc.js?v=1791526492"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791511760"></script>
+<script src="arcpad.bundle.js?v=1791526492"></script>
 </body>
 </html>
