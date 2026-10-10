@@ -8987,6 +8987,10 @@
     "Activity: your swaps, or everyone's, with what was paid, received and burned.": "记录：你的兑换或所有人的兑换，包括支付、收到和销毁的数量。",
     "Send & Receive: send any token on Arc to an address (typos, burn addresses and the token's own contract are caught before it goes) and show your address with a QR code.": "发送与接收：把 Arc 上的任意代币发送到某个地址（发送前会拦下拼写错误、销毁地址和代币自身的合约），并用二维码显示你的地址。",
     "The strip at the top shows Arc's latest block and what a typical swap costs in gas; it warns when your wallet is on another network.": "顶部一行显示 Arc 的最新区块和一次典型兑换的 gas 费用；钱包在其他网络时会提醒。",
+    "ETH pair · about $1 in ETH · Launch Drop too": "ETH 交易对 · 约 $1 的 ETH · 同样有 Launch Drop",
+    "Pool vote": "池投票",
+    "Treasury & stats": "金库与统计",
+    "Show {n} more": "再显示 {n} 个",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

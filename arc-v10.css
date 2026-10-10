@@ -800,3 +800,96 @@ output.sw-amt{display:block;}
 .swx-card .sw-rv-acts .sw-cta{margin-top:0;}
 .swx-card p{margin:0;font-size:.78rem;line-height:1.5;}
 .swx-card p.sw-msg{font-size:.82rem;}
+
+/* ---------------- v12: launch — platform and network in one choice (arc-arcpad-rh.js adds "ArcPad · Robinhood Chain") ---------------- */
+html #agl-plat.agl-plat:has(> :nth-child(5)){grid-template-columns:repeat(5,minmax(0,1fr));max-width:none}
+#agl-plat [data-net="rh"] .v7-chain{color:#c7f24a}
+#agl-plat .aprh-soon{position:absolute;top:8px;right:10px;font:700 .6rem var(--f-ui);font-style:normal;color:#c7f24a;padding:2px 7px;border-radius:999px;border:1px solid rgba(199,242,74,.4)}
+#agl-plat [aria-disabled="true"]{opacity:.6}
+@media (max-width:1240px){html #agl-plat.agl-plat:has(> :nth-child(5)){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){
+  html #agl-plat.agl-plat:has(> :nth-child(5)){grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #agl-plat [data-plat]{padding:10px 11px}
+  #agl-plat [data-plat] b{font-size:.9rem}
+  #agl-plat [data-plat] small{font-size:.66rem}
+  #agl-plat [data-plat]:last-child:nth-child(odd){grid-column:1/-1}
+}
+
+/* ---------------- v12: Staking tabs (arc-v12.js) ---------------- */
+.v12-stabs{position:sticky;top:calc(var(--anav-h,58px) + 6px);z-index:30;display:flex;gap:4px;margin:14px 0 16px;padding:4px;border-radius:999px;background:rgba(8,12,24,.86);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow-x:auto;scrollbar-width:none}
+.v12-stabs::-webkit-scrollbar{display:none}
+.v12-stabs button{position:relative;flex:1 0 auto;padding:9px 16px;border-radius:999px;border:0;background:none;color:#9fb0bf;font:600 .84rem var(--f-ui);cursor:pointer;white-space:nowrap;transition:background .2s,color .2s}
+.v12-stabs button:hover{color:#e6edf6}
+.v12-stabs button[aria-selected="true"]{background:linear-gradient(135deg,rgba(57,208,255,.22),rgba(57,255,136,.18));color:#fff;box-shadow:inset 0 0 0 1px rgba(57,255,136,.35)}
+.v12-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#39ff88;box-shadow:0 0 8px #39ff88}
+#bp-panel-staking[data-v12tab="lock"] :is(#ld-body,#stk-body>.stk-vote,#stk-body>.stk-grid:has(.stk-tre),#stk-body>.stk-topl),
+#bp-panel-staking[data-v12tab="drop"] :is(#stk-body>.stk-hd,#stk-body>.stk-grid,#stk-body>.stk-vote,#stk-body>.stk-topl),
+#bp-panel-staking[data-v12tab="vote"] :is(#ld-body,#stk-body>.stk-hd,#stk-body>.stk-grid,#stk-body>.stk-topl),
+#bp-panel-staking[data-v12tab="more"] :is(#ld-body,#stk-body>.stk-grid:has(.stk-lock),#stk-body>.stk-vote){display:none!important}
+html[data-v12stk]:not([data-v12stk="lock"]) body>.stk-actbar{display:none!important}
+#bp-panel-staking.v12-swap :is(#ld-body,#stk-body)>*{animation:v12In .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes v12In{from{opacity:0;transform:translateY(8px)}}
+@media (max-width:640px){
+  .v12-stabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-radius:14px;margin:10px 0 12px}
+  .v12-stabs button{padding:8px 4px;font-size:.74rem;line-height:1.2;white-space:normal;border-radius:10px;min-height:40px}
+}
+
+/* ---------------- v12: home menu cards on a phone ---------------- */
+.v12-more{display:none}
+@media (max-width:560px){
+  .hm-mapc:not(.v12-open) .hm-mapc-l>a:nth-child(n+5){display:none}
+  .v12-more{display:block;width:100%;margin-top:4px;padding:8px 6px;border:0;border-top:1px solid rgba(150,175,255,.1);background:none;color:#9cc0ff;font:600 12px var(--f-ui);text-align:left;cursor:pointer}
+  .hm-mapc.v12-open .hm-mapc-l>a:nth-child(n+5){animation:v12In .25s ease both}
+}
+
+/* ---------------- v12: coin page header — one tidy line ---------------- */
+#bp-panel-coin .ac2-ca-row .ac2-ca-full{display:none!important}
+#bp-panel-coin .ac2-ca-row .ac2-ca-short{display:inline-block!important}
+#bp-panel-coin .ac2-ca-row :is(#apc-star,.ac2-share-btn)>span{display:none}
+#bp-panel-coin .ac2-ca-row :is(#apc-star,.ac2-share-btn){padding-left:9px;padding-right:9px}
+@media (max-width:640px){
+  #bp-panel-coin .ac2-ca-row{flex-wrap:wrap;gap:6px}
+  #bp-panel-coin .ac2-ca-row :is(#apc-safety,#apc-copy-ca)>span{display:none}
+  #bp-panel-coin .ac2-ca-row :is(#apc-safety,#apc-copy-ca){padding-left:9px;padding-right:9px}
+}
+
+/* ---------------- v12: trades on a phone — two short lines a trade, not a card ---------------- */
+@media (max-width:640px){
+  html .ac2-table tbody{gap:0}
+  html .ac2-table tr{grid-template-columns:auto minmax(0,1fr) auto auto;grid-template-areas:"type usd tok tok" "time who price tx";gap:2px 10px;padding:9px 4px;border-radius:0;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.06)}
+  html .ac2-table td:nth-child(1){text-align:left;font-size:.7rem}
+  html .ac2-table td:nth-child(4){text-align:right;font-size:.78rem;color:var(--ink,#e6edf6)}
+  html .ac2-table td:nth-child(6){font-size:.7rem;color:var(--ink-dim)}
+  html .ac2-table td:nth-child(5){font-size:.7rem}
+  html .ac2-table .ac2-type{padding:2px 7px;font-size:.66rem}
+  html #bp-panel-coin .ac2-table :is(tr,.ac2-type){min-height:0}
+  html .ac2-table tr:is(.buy,.sell){border-left:0}
+}
+
+/* ---------------- v12: motion ---------------- */
+/* a trade that just happened slides in at the top; a big one glows */
+.ac2-table tr.v12-new{animation:v12Row .5s cubic-bezier(.2,.8,.2,1) var(--v12d,0ms) both}
+.ac2-table tr.v12-new td{animation:v12RowBg 2.2s ease var(--v12d,0ms)}
+.ac2-table tr.v12-new.sell td{animation-name:v12RowBgS}
+.ac2-table tr.v12-big{box-shadow:inset 3px 0 0 #39ff88}
+.ac2-table tr.v12-big.sell{box-shadow:inset 3px 0 0 #ff6b6b}
+@keyframes v12Row{from{opacity:0;transform:translateY(-10px)}}
+@keyframes v12RowBg{from{background:rgba(57,255,136,.16)}to{background:transparent}}
+@keyframes v12RowBgS{from{background:rgba(255,107,107,.16)}to{background:transparent}}
+/* the coin price rolls a little when it ticks (on top of arc-fx.js's glow) */
+#apc-price.fx-up{animation:fx-up 1.2s ease-out,v12RollUp .36s cubic-bezier(.2,.8,.2,1)}
+#apc-price.fx-down{animation:fx-down 1.2s ease-out,v12RollDn .36s cubic-bezier(.2,.8,.2,1)}
+@keyframes v12RollUp{from{transform:translateY(.32em);opacity:.4}}
+@keyframes v12RollDn{from{transform:translateY(-.32em);opacity:.4}}
+/* every main button gives a little under the finger */
+:is(.bp-btn-primary,.bp-btn-ghost,.ac2-chip-btn,.cm-btn,.sw-cta,.ld-btn,.stk-btn,.v12-stabs button,#agl-plat [data-plat],.hm-mapc-l a,.anav-tab){transition-property:transform,background,border-color,color,box-shadow,opacity;transition-duration:.12s}
+:is(.bp-btn-primary,.bp-btn-ghost,.ac2-chip-btn,.cm-btn,.sw-cta,.ld-btn,.stk-btn,#agl-plat [data-plat],.hm-mapc-l a):active:not(:disabled){transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){
+  .ac2-table tr.v12-new,.ac2-table tr.v12-new td,#apc-price.fx-up,#apc-price.fx-down,#bp-panel-staking.v12-swap :is(#ld-body,#stk-body)>*,.hm-mapc.v12-open .hm-mapc-l>a{animation:none!important}
+  :is(.bp-btn-primary,.bp-btn-ghost,.ac2-chip-btn,.cm-btn,.sw-cta,.ld-btn,.stk-btn,#agl-plat [data-plat],.hm-mapc-l a):active{transform:none}
+}
+/* the "$ARCIRCLE burned" flame after a swap flickers up while its number counts */
+.v12-burn{display:inline-flex;align-items:center;gap:4px}
+.v12-burn.v12-pop .sw-fl{animation:v12Flame .9s cubic-bezier(.3,1.6,.5,1)}
+@keyframes v12Flame{0%{transform:scale(.4) translateY(4px);opacity:.3}45%{transform:scale(1.35) translateY(-2px);opacity:1;filter:drop-shadow(0 0 6px #ffb648)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.v12-burn.v12-pop .sw-fl{animation:none}}

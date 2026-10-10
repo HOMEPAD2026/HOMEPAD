@@ -8817,6 +8817,10 @@
     "Activity: your swaps, or everyone's, with what was paid, received and burned.": "활동: 내 스왑 또는 전체 스왑 — 지불·수령·소각된 양.",
     "Send & Receive: send any token on Arc to an address (typos, burn addresses and the token's own contract are caught before it goes) and show your address with a QR code.": "보내기·받기: Arc의 어떤 토큰이든 주소로 보내고(오타·소각 주소·토큰 자체 컨트랙트는 보내기 전에 걸러냅니다), 내 주소를 QR 코드와 함께 보여줍니다.",
     "The strip at the top shows Arc's latest block and what a typical swap costs in gas; it warns when your wallet is on another network.": "맨 위 줄에는 Arc의 최신 블록과 일반적인 스왑의 가스비가 나오고, 지갑이 다른 네트워크에 있으면 경고합니다.",
+    "ETH pair · about $1 in ETH · Launch Drop too": "ETH 페어 · 약 $1 상당 ETH · Launch Drop 포함",
+    "Pool vote": "풀 투표",
+    "Treasury & stats": "트레저리·통계",
+    "Show {n} more": "{n}개 더 보기",
   };
 
 

@@ -336,8 +336,13 @@
       if (Math.abs(window.scrollY - lastY) > 24) f.classList.add("v11-mini");
       lastY = window.scrollY;
       clearTimeout(t);
-      t = setTimeout(function () { f.classList.remove("v11-mini"); }, 900);
+      // v12: on a phone she's always the small round avatar (her label covered cards and buttons)
+      t = setTimeout(function () { if (!phoneNow()) f.classList.remove("v11-mini"); }, 900);
     }, { passive: true });
+    var phoneNow = function () { return !!(window.matchMedia && matchMedia("(max-width: 640px)").matches); };
+    var mini = function () { var f = D.querySelector(".aa-fab"); if (f) f.classList.toggle("v11-mini", phoneNow()); return !!f; };
+    if (!mini()) { var n = 0, iv = setInterval(function () { if (mini() || ++n > 20) clearInterval(iv); }, 500); }
+    window.addEventListener("resize", mini);
   }
 
   // ---------------- v11: the $ARCIRCLE contracts note opens on a tap ----------------

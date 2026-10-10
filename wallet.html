@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARCIRCLE">
 <link rel="manifest" href="/wallet.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791601091">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791601091">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791609425">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791609425">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -222,6 +222,12 @@ form.wp-ai .btn svg{width:20px;height:20px}
 .wp-ex button{border:1px solid var(--line);background:none;border-radius:99px;padding:6px 11px;font-size:12.5px;color:var(--dim);cursor:pointer;text-align:left}
 .wp-ex button:hover{color:var(--spot);border-color:rgba(243,245,255,.3)}
 .wp-c{margin-top:12px;padding:16px;border-radius:18px;background:rgba(11,14,44,.88);box-shadow:inset 0 0 0 1px var(--line)}
+.wp-c.wp-in{animation:wpIn .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes wpIn{from{opacity:0;transform:translateY(8px) scale(.985)}}
+.bal .chains.wp-first span{animation:wpIn .4s cubic-bezier(.2,.8,.2,1) both}
+.bal .chains.wp-first span:nth-child(2){animation-delay:.12s}
+.wp-c-a .btn .wp-spin{width:15px;height:15px}
+@media (prefers-reduced-motion:reduce){.wp-c.wp-in,.bal .chains.wp-first span{animation:none}}
 .wp-c p{font-size:14.5px;color:#cfd5f5}
 .wp-c[role="status"]{position:relative;padding-right:48px}
 .wp-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--dim)}
@@ -304,9 +310,9 @@ form.wp-ai .btn svg{width:20px;height:20px}
 .wp-link code{flex:1 1 220px;min-width:0;padding:11px 12px;border-radius:12px;background:rgba(6,7,22,.5);font-family:ui-monospace,Menlo,monospace;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wp-link .btn{padding:11px 16px;font-size:14px}
 </style>
-<link rel="stylesheet" href="/arc-nav.css?v=1791601091">
-<link rel="stylesheet" href="/arc-v9.css?v=1791601091">
-<link rel="stylesheet" href="/arc-v10.css?v=1791601091">
+<link rel="stylesheet" href="/arc-nav.css?v=1791609425">
+<link rel="stylesheet" href="/arc-v9.css?v=1791609425">
+<link rel="stylesheet" href="/arc-v10.css?v=1791609425">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -448,7 +454,7 @@ form.wp-ai .btn svg{width:20px;height:20px}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/vendor/qrcode-generator-1.4.4.min.js" defer></script>
-<script src="/wallet-arc.js?v=1791601091"></script>
+<script src="/wallet-arc.js?v=1791609425"></script>
 <script>
 (function () {
   "use strict";
@@ -596,7 +602,21 @@ form.wp-ai .btn svg{width:20px;height:20px}
     if (S.vea) { total += S.vea.position.amount * (S.px.arcia || 0); }
     var extra = window.arcWalletPlus && S.mode !== "demo" ? window.arcWalletPlus.extraUsd() : 0;
     if (extra > 0) { total += extra; any = true; }
-    $("total").innerHTML = "<small>$</small>" + esc(any ? fmt(total, 2) : "—");
+    // v12: the first total for a wallet counts up from zero (to whatever the latest total is); later ones just change
+    var tel = $("total");
+    S.lastTotal = total;
+    if (any && S.countFor !== S.addr && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      S.countFor = S.addr; var t0 = performance.now(), who = S.addr; S.countUntil = t0 + 900;
+      (function step(t) {
+        if (S.addr !== who) return;
+        var k = Math.min(1, (t - t0) / 900), e = 1 - Math.pow(1 - k, 3);
+        tel.innerHTML = "<small>$</small>" + esc(fmt(S.lastTotal * e, 2));
+        if (k < 1) requestAnimationFrame(step);
+      })(t0);
+    } else if (!(performance.now() < (S.countUntil || 0))) tel.innerHTML = "<small>$</small>" + esc(any ? fmt(total, 2) : "—");
+    paintVea();
+  }
+  function paintVea() {
     var ve = $("vea");
     if (S.vea) {
       var p = S.vea.position, earned = S.vea.earned && S.vea.earned[0] ? units("0x" + BigInt(S.vea.earned[0]).toString(16)) : 0;
@@ -792,11 +812,11 @@ form.wp-ai .btn svg{width:20px;height:20px}
   setInterval(function () { if (!document.hidden && S.addr && Date.now() - S.at > 30000) loadBalances(); }, 10000);
 })();
 </script>
-<script src="/wallet-plus.js?v=1791601091"></script>
-<script src="/arc-nav.js?v=1791601091"></script>
-<script src="/arc-connect.js?v=1791601091"></script>
-<script src="/arc-chrome.js?v=1791601091"></script>
-<script src="/arc-v9.js?v=1791601091"></script>
-<script src="/arc-v10.js?v=1791601091"></script>
+<script src="/wallet-plus.js?v=1791609425"></script>
+<script src="/arc-nav.js?v=1791609425"></script>
+<script src="/arc-connect.js?v=1791609425"></script>
+<script src="/arc-chrome.js?v=1791609425"></script>
+<script src="/arc-v9.js?v=1791609425"></script>
+<script src="/arc-v10.js?v=1791609425"></script>
 </body>
 </html>

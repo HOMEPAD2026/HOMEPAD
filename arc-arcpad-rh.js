@@ -139,10 +139,39 @@
   if (!live()) net = "arc";
   const plat = () => (panel ? panel.dataset.plat || "arcpad" : "");
   function active() { return !!panel && plat() === "arcpad" && net === "rh" && live(); }
+  // v11: one choice, not two — "ArcPad · Arc" and "ArcPad · Robinhood Chain" are two cards among the platform cards
+  // (#agl-plat), so the separate network switch below stays hidden
+  function cards() {
+    const pl = $("agl-plat");
+    if (!pl) return;
+    const arc = pl.querySelector('[data-plat="arcpad"]:not([data-net="rh"])');
+    if (!arc) return;
+    arc.dataset.net = "arc";
+    let rh = pl.querySelector('[data-plat="arcpad"][data-net="rh"]');
+    if (!rh) {
+      rh = document.createElement("button");
+      rh.type = "button"; rh.setAttribute("role", "radio"); rh.dataset.plat = "arcpad"; rh.dataset.net = "rh";
+      arc.after(rh);
+    }
+    const sub = live() ? "ETH pair · about $1 in ETH · Launch Drop too" : "ETH pair · coming soon";
+    if (rh.dataset.sub !== sub + "|" + (window.arcI18n ? window.arcI18n.get() : "")) {
+      rh.dataset.sub = sub + "|" + (window.arcI18n ? window.arcI18n.get() : "");
+      rh.innerHTML = `<b>ArcPad</b><small>${T(sub)}</small>${live() ? "" : `<em class="aprh-soon">${T("Soon")}</em>`}`;
+    }
+    if (live()) rh.removeAttribute("aria-disabled"); else rh.setAttribute("aria-disabled", "true");
+    rh.style.setProperty("--pc", "#c7f24a");
+    // the chain line arcpad-v7.js puts on every card (it reads "Arc" for both ArcPad cards)
+    const chainOf = (b, name) => { const all = b.querySelectorAll(".v7-chain"); for (let i = 1; i < all.length; i++) all[i].remove(); const c = all[0]; if (c) c.innerHTML = `<i aria-hidden="true"></i>${esc(name)}`; else if (arc.querySelector(".v7-chain")) b.insertAdjacentHTML("afterbegin", `<span class="v7-chain" data-no-i18n><i aria-hidden="true"></i>${esc(name)}</span>`); };
+    chainOf(rh, "Robinhood Chain"); chainOf(arc, "Arc");
+    const on = plat() === "arcpad";
+    arc.setAttribute("aria-checked", String(on && net !== "rh"));
+    rh.setAttribute("aria-checked", String(on && net === "rh"));
+  }
   function paintNet() {
+    cards();
     const box = $("aprh-net");
     if (!box) return;
-    box.hidden = plat() !== "arcpad";
+    box.hidden = true;
     box.innerHTML = [
       ["arc", "Arc", "USDC pair · 1 USDC fee", false],
       ["rh", "Robinhood Chain", live() ? "ETH pair · about $1 in ETH" : "ETH pair · coming soon", !live()],
@@ -510,6 +539,17 @@
   }
 
   // ---------------- wiring ----------------
+  // a click on either ArcPad card picks its network before the platform switch (arc-argus.js) runs
+  const platBox = $("agl-plat");
+  if (platBox) platBox.addEventListener("click", (e) => {
+    const b = e.target.closest('[data-plat="arcpad"][data-net]'); if (!b) return;
+    if (b.getAttribute("aria-disabled") === "true") { e.stopPropagation(); status(T("ArcPad on Robinhood Chain is coming soon — launch on Arc for now."), "pending"); return; }
+    status("");
+    net = b.dataset.net === "rh" && live() ? "rh" : "arc";
+    try { localStorage.setItem("arcircle.launch.net", net); } catch { /* fine */ }
+    // the platform is already ArcPad: arc-argus.js won't re-run its switch, so apply here
+    if (plat() === "arcpad") { setTimeout(() => setNet(net), 0); }
+  }, true);
   const netBox = $("aprh-net");
   if (netBox) netBox.addEventListener("click", (e) => {
     const b = e.target.closest("[data-aprh-net]"); if (!b) return;
@@ -531,8 +571,8 @@
     const anchor = pl.nextElementSibling && pl.nextElementSibling.classList.contains("v7-ptab") ? pl.nextElementSibling : pl;
     if (anchor.nextElementSibling !== nb) anchor.after(nb);
   }
-  document.addEventListener("arcpad:launchframe", () => setTimeout(place, 0));
-  setTimeout(place, 0);
+  document.addEventListener("arcpad:launchframe", () => { setTimeout(() => { place(); cards(); }, 0); setTimeout(cards, 120); });
+  setTimeout(() => { place(); cards(); }, 0);
   const cost = () => ({ fee, dev: devWei() || 0n });
   // the Launch Drop card (arc-launchdrop.js) signs on Robinhood Chain with the same wallet plumbing
   const wallet = { signer: rhSigner, stay: startedOnRh, back: backToArc, hold: holdChain, wait: waitTx, explorer: EXPL, why };

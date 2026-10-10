@@ -304,8 +304,10 @@
     const el = $("wp-ai");
     if (!el || !P()) return;
     const c = X.card;
-    const card = !c ? "" : c.kind === "hint" || c.kind === "info" || c.kind === "need" ? `<div class="wp-c ${c.kind}" role="status"><p>${esc(c.text)}</p><button type="button" class="wp-x" data-wp="cancel" aria-label="${esc(T3("Dismiss", "닫기", "关闭"))}">×</button></div>`
-      : `<div class="wp-c ${c.kind}" role="group" aria-label="${esc(c.title || "")}">
+    // a new card unfolds; the same card redrawn (a status line changing) doesn't
+    const fresh = !!c && X.shown !== c; X.shown = c;
+    const card = !c ? "" : c.kind === "hint" || c.kind === "info" || c.kind === "need" ? `<div class="wp-c ${c.kind}${fresh ? " wp-in" : ""}" role="status"><p>${esc(c.text)}</p><button type="button" class="wp-x" data-wp="cancel" aria-label="${esc(T3("Dismiss", "닫기", "关闭"))}">×</button></div>`
+      : `<div class="wp-c ${c.kind}${fresh ? " wp-in" : ""}" role="group" aria-label="${esc(c.title || "")}">
           <b class="wp-c-t">${svg(c.kind === "send" ? "send" : c.it && c.it.type === "swap" ? "swap" : c.it && c.it.type === "tp" ? "up" : c.it && c.it.type === "sl" ? "down" : c.it && c.it.type === "dip" ? "dip" : c.it && c.it.type === "limit" ? "target" : "clock")}${esc(c.title || "")}</b>
           ${c.rows && c.rows.length ? `<dl>${c.rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd data-no-i18n>${esc(v)}</dd></div>`).join("")}</dl>` : ""}
           ${c.text ? `<p>${esc(c.text)}</p>` : ""}
@@ -313,7 +315,7 @@
           ${X.msg ? `<p class="wp-msg ${esc(X.msg.k)}">${esc(X.msg.t)}${X.msg.href ? ` <a href="${esc(X.msg.href)}" target="_blank" rel="noopener">${esc(T3("View it", "내역 보기", "查看"))}</a>` : ""}</p>` : ""}
           <div class="wp-c-a">
             <button type="button" class="btn" data-wp="cancel">${esc(T3("Cancel", "취소", "取消"))}</button>
-            ${c.kind === "send" ? `<button type="button" class="btn main" data-wp="send" ${c.block || X.busy ? "disabled" : ""}>${esc(X.busy ? T3("Sending…", "보내는 중…", "发送中…") : T3("Confirm and send", "확인하고 보내기", "确认发送"))}</button>` : `<a class="btn main" href="${esc(c.href)}">${esc(c.cta)}${svg("arrow")}</a>`}
+            ${c.kind === "send" ? `<button type="button" class="btn main" data-wp="send" ${c.block || X.busy ? "disabled" : ""}>${X.busy ? `<span class="wp-spin" aria-hidden="true"></span>` : ""}${esc(X.busy ? T3("Sending…", "보내는 중…", "发送中…") : T3("Confirm and send", "확인하고 보내기", "确认发送"))}</button>` : `<a class="btn main" href="${esc(c.href)}">${esc(c.cta)}${svg("arrow")}</a>`}
           </div>
         </div>`;
     el.innerHTML = `<h2><span>${esc(T3("Tell your wallet", "지갑에게 말하기", "告诉你的钱包"))}</span><small class="wp-ai-tag">${svg("spark")}AI</small></h2>
@@ -426,7 +428,12 @@
     const el = $("wp-chains");
     if (!el || !P() || !P().S.addr) return;
     const hs = holdings(), sum = (ch) => hs.filter((h) => h.ch === ch).reduce((s, h) => s + (h.usd || 0), 0);
-    el.innerHTML = `<span><i class="arc"></i>Arc <b data-no-i18n>${esc(usdS(sum("arc")))}</b></span><span><i class="rh"></i>Robinhood Chain <b data-no-i18n>${esc(usdS(sum("rh")))}</b></span>`;
+    const h = `<span><i class="arc"></i>Arc <b data-no-i18n>${esc(usdS(sum("arc")))}</b></span><span><i class="rh"></i>Robinhood Chain <b data-no-i18n>${esc(usdS(sum("rh")))}</b></span>`;
+    if (el.__h === h) return;
+    // the split eases in once, the first time it's drawn for this wallet
+    if (!el.__h || el.__for !== P().S.addr) { el.classList.remove("wp-first"); void el.offsetWidth; el.classList.add("wp-first"); }
+    el.__h = h; el.__for = P().S.addr;
+    el.innerHTML = h;
   }
 
   // ---------------- Today's report ----------------
