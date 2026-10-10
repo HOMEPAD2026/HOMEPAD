@@ -256,8 +256,8 @@ const CONFIG = {
   // buys with everything committed — everyone at the same price, nobody ahead. Empty until it's deployed
   // (scripts/deploy-quantum-launch.js); the launch form then offers "Quantum Launch". Keep api/tg-launch.mjs
   // (QUANTUM_PAD) in step.
-  QUANTUM_PAD_ADDRESS: "",
-  QUANTUM_FROM_BLOCK: 0,
+  QUANTUM_PAD_ADDRESS: "0x9EBFB3A7724ecE9cE3f0df62532471d532223Fd2", // deployed + verified 2026-10-10 (block 25222590)
+  QUANTUM_FROM_BLOCK: 25222590,
   SWAP_FEE_BPS: 10,
   ARCIRCLE_FEEBURN: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn: 50% of fees burned as $ARCIRCLE, 50% treasury
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature

@@ -175,7 +175,7 @@ async function onWatch(msg, chat, cmd, addr, bot) {
 // ---------------- Quantum Launch (contracts/QuantumLaunch.sol): announced while it's in superposition ----------------
 // The launch page posts {"quantum":"0x<batch>"} right after QuantumPad.open(). Checked on-chain: a batch of QuantumPad
 // (env QUANTUM_PAD, or the default once it's deployed), still open, opened in the last 15 minutes. Posted once.
-const QUANTUM_PAD_DEFAULT = "";
+const QUANTUM_PAD_DEFAULT = "0x9EBFB3A7724ecE9cE3f0df62532471d532223Fd2";
 const SEL = { isBatch: "0xae96cf8a", info: "0x0aae7a6b", name: "0x06fdde03", symbol: "0x95d89b41", meta: "0xc885044e" };
 function metaDesc(hex) {
   try { const h = strip(hex), base = Number(BigInt("0x" + h.slice(0, 64))) * 2, t = h.slice(base); return { img: wString(t, 0), desc: wString(t, 1) }; } catch { return { img: "", desc: "" }; }
