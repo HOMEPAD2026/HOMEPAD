@@ -26,7 +26,7 @@
 // listed (api/_tg.mjs); a token that isn't on the ArcPad factory is forwarded there. The token is checked on-chain (must be an ArcPad launch from the
 // last 15 minutes) and announced once per server instance, so the endpoint
 // can't be used to post arbitrary text or old coins.
-import { getCoin, isAddr, fmtUsd, SITE } from "./_arc.mjs";
+import { getCoin, isAddr, fmtUsd, SITE, ethCalls, pad as pad32, wBig, wAddr, wString, decodeString, strip } from "./_arc.mjs";
 import { scanToken } from "./_scan.mjs";
 
 export const config = { runtime: "edge" };
@@ -172,6 +172,47 @@ async function onWatch(msg, chat, cmd, addr, bot) {
   return json(200, { ok: true });
 }
 
+// ---------------- Quantum Launch (contracts/QuantumLaunch.sol): announced while it's in superposition ----------------
+// The launch page posts {"quantum":"0x<batch>"} right after QuantumPad.open(). Checked on-chain: a batch of QuantumPad
+// (env QUANTUM_PAD, or the default once it's deployed), still open, opened in the last 15 minutes. Posted once.
+const QUANTUM_PAD_DEFAULT = "";
+const SEL = { isBatch: "0xae96cf8a", info: "0x0aae7a6b", name: "0x06fdde03", symbol: "0x95d89b41", meta: "0xc885044e" };
+function metaDesc(hex) {
+  try { const h = strip(hex), base = Number(BigInt("0x" + h.slice(0, 64))) * 2, t = h.slice(base); return { img: wString(t, 0), desc: wString(t, 1) }; } catch { return { img: "", desc: "" }; }
+}
+async function onQuantum(addr, bot, chat, test) {
+  const padAddr = (process.env.QUANTUM_PAD || QUANTUM_PAD_DEFAULT || "").toLowerCase();
+  if (!isAddr(padAddr)) return json(200, { ok: false, error: "Quantum Launch isn't live" });
+  if (!isAddr(addr)) return json(400, { ok: false, error: "quantum must be an address" });
+  const b = addr.toLowerCase(), key = "q:" + b;
+  if (sent.has(key) && !test) return json(200, { ok: true, duplicate: true });
+  const [isB, info, nm, sy, mt] = await ethCalls([
+    { to: padAddr, data: SEL.isBatch + pad32(b) }, { to: b, data: SEL.info + pad32("0x0") },
+    { to: b, data: SEL.name }, { to: b, data: SEL.symbol }, { to: b, data: SEL.meta },
+  ]).catch(() => []);
+  if (!isB || wBig(isB, 0) !== 1n || !info) return json(404, { ok: false, error: "not a Quantum launch" });
+  const st = Number(wBig(info, 0)), opened = Number(wBig(info, 1)), ends = Number(wBig(info, 2)), cap = wBig(info, 5), creator = wAddr(info, 12);
+  const now = Date.now() / 1000;
+  if (!test && (st !== 0 || ends <= now || now - opened > 15 * 60)) return json(200, { ok: false, error: "only open Quantum launches from the last 15 minutes are announced" });
+  sent.add(key);
+  const name = decodeString(nm), sym = decodeString(sy) || "COIN", m = metaDesc(mt || "0x");
+  const page = `${SITE}/arc#quantum?b=${b}`;
+  const mins = Math.max(1, Math.round((ends - now) / 60));
+  const desc = String(m.desc || "").replace(/\s+/g, " ").trim();
+  const caption = [
+    `<b>QUANTUM LAUNCH</b>  ·  ArcPad 💚`,
+    `<b>$${h(sym)}</b>${name && name !== sym ? `  —  ${h(name)}` : ""}` + (desc ? `\n<blockquote>${h(desc.length > 220 ? desc.slice(0, 219) + "…" : desc)}</blockquote>` : ""),
+    [`▸ In superposition — collapses in <b>≈ ${mins} min</b>`, `▸ Pair   <b>USDC</b>`, cap > 0n ? `▸ Cap   <b>${h(fmtUsd(Number(cap) / 1e6))}</b> a wallet` : `▸ No per-wallet cap`, `▸ Creator   <a href="${EXPLORER}/address/${creator}">${short(creator)}</a>`].join("\n"),
+    `<i>Commit USDC before it collapses. Then one transaction launches the coin and buys with every commit — everyone at the same price, no snipers.</i>`,
+  ].join("\n\n");
+  const shareText = `$${sym} is in superposition on ArcPad — commit before it collapses, everyone gets the same price 💚`;
+  const reply_markup = { inline_keyboard: [[{ text: `Commit to $${sym}`, url: page }], [{ text: "Share on X", url: `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(page)}&via=ARCIRCLEonArc` }]] };
+  const res = await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: chat, parse_mode: "HTML", text: caption, reply_markup, link_preview_options: { url: page, prefer_large_media: true, show_above_text: true } }) }).then((r) => r.json().catch(() => ({ ok: false }))).catch(() => ({ ok: false }));
+  if (!res.ok) { sent.delete(key); return json(502, { ok: false, error: "telegram rejected the message", detail: res.description || null }); }
+  return json(200, { ok: true, quantum: true, test });
+}
+
 export default async function handler(req) {
   const bot = process.env.TG_BOT_TOKEN, chat = process.env.TG_CHAT_ID, testKey = process.env.TG_TEST_KEY;
   const hook = process.env.TG_WEBHOOK_SECRET;
@@ -191,8 +232,9 @@ export default async function handler(req) {
   if (req.method !== "POST") return json(405, { ok: false, error: "POST only" });
   let body = {};
   try { body = (await req.json()) || {}; } catch { /* bad body */ }
-  const token = String(body.token || "");
   const test = !!(testKey && body.key && String(body.key) === testKey);
+  if (body.quantum) return onQuantum(String(body.quantum), bot, chat, test);
+  const token = String(body.token || "");
   if (!isAddr(token)) return json(400, { ok: false, error: "token must be an address" });
   const key = token.toLowerCase();
   if (sent.has(key) && !test) return json(200, { ok: true, duplicate: true });

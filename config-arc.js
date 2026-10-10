@@ -251,6 +251,13 @@ const CONFIG = {
   // quotes the same routes through ARCIRCLE Orders as a preview and the Swap button stays off.
   SWAP_ADDRESS: "0x305Da1b305249072b13B73ab394E02046c865d56", // deployed 2026-10-10 (block 25150057)
   SWAP_FROM_BLOCK: 25150057, // Activity reads Swapped events from here
+  // Quantum Launch (contracts/QuantumLaunch.sol — QuantumPad + one QuantumBatch per launch; arc-quantum.js, arcpad.html
+  // #quantum): a coin is announced, USDC is committed for a window, then one transaction launches it on ArcPad and
+  // buys with everything committed — everyone at the same price, nobody ahead. Empty until it's deployed
+  // (scripts/deploy-quantum-launch.js); the launch form then offers "Quantum Launch". Keep api/tg-launch.mjs
+  // (QUANTUM_PAD) in step.
+  QUANTUM_PAD_ADDRESS: "",
+  QUANTUM_FROM_BLOCK: 0,
   SWAP_FEE_BPS: 10,
   ARCIRCLE_FEEBURN: "0x7F53F5014bc2cFE52ED8fB9370f2bCd497B93034", // ArcircleFeeBurn: 50% of fees burned as $ARCIRCLE, 50% treasury
   ORDERS_PERMIT2: "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Uniswap's Permit2: makers can allow ARCIRCLE Orders with a signature

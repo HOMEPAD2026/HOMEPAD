@@ -28,10 +28,10 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791609425"></script>
+<script src="arc-log.js?v=1791624538"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791609425">
+<link rel="stylesheet" href="/arc.min.css?v=1791624538">
 </head>
 <body class="bigpad-page arcpad-page ax-dock-host">
 
@@ -2029,6 +2029,23 @@
       </section>
 
       <!-- ============ ARCIRCLE Swap (arc-swap.js, contracts/ArcircleSwap.sol) — any Arc token, paid with $ARCIRCLE, USDC or any token ============ -->
+      <!-- ============ QUANTUM LAUNCH (arc-quantum.js; contracts/QuantumLaunch.sol) ============ -->
+      <section class="bp-panel" id="bp-panel-quantum">
+        <h1>Quantum Launch</h1>
+        <p class="bp-lede">A coin is announced first and launched later. While it's in superposition, anyone commits USDC; when it collapses, one transaction launches the coin and buys with all of it — so everyone gets the same price and no sniper gets in ahead.</p>
+        <div id="q-body"></div>
+        <!-- Quantum Launch guide: static, so people (and ARCIA's knowledge, tools/build-arcia-kb.py) can read it without the live data -->
+        <section class="asc-guide q-guide" aria-labelledby="q-guide-h">
+          <h2 id="q-guide-h">Quantum Launch guide</h2>
+          <details open><summary><h3>Why it exists</h3></summary><p>On an ordinary launch, bots buy in the first block and sell into everyone who comes after. A Quantum Launch has no first block to win: the coin's pool doesn't exist until the collapse, and the collapse buys for everyone at once.</p></details>
+          <details><summary><h3>Superposition</h3></summary><p>The creator announces the coin (name, ticker, logo, their add-on fee) and picks a window: 1 minute, 5 minutes, 15 minutes or 1 hour. During the window anyone can commit USDC (from 0.10 USDC; the creator can set a cap per wallet) and take it back. The USDC waits in the launch's own contract (a QuantumBatch), which has no owner.</p></details>
+          <details><summary><h3>Collapse</h3></summary><p>When the window ends, anyone can press "Collapse it now". That one transaction launches the coin on ArcPad (a real Uniswap v4 pool, liquidity locked, the usual 8% to the platform treasury and 4% of it to veARCIRCLE holders through the Launch Drop) and buys with every committed USDC in a single swap.</p></details>
+          <details><summary><h3>Same price for all</h3></summary><p>Each wallet's share of the tokens is exactly its share of the USDC. Committing first, from a bot or a private RPC, buys nothing extra. The batch pays the coin's usual trade fee once; the creator's share of that fee stays with the committers. Claim your tokens on the launch's page — or anyone can send everyone's at once.</p></details>
+          <details><summary><h3>If it doesn't collapse</h3></summary><p>If nobody collapses it within a day of the window's end, every committer takes their USDC back and the creator their 1 USDC launch fee. The creator can also call it off before the window ends; everyone is refunded.</p></details>
+          <details><summary><h3>The creator's fees</h3></summary><p>On ArcPad the launching address is the coin's creator of record, so the launch's contract receives the creator's share of trading fees; anyone can forward it to the real creator (sweep). It never touches what committers are owed.</p></details>
+        </section>
+      </section>
+
       <section class="bp-panel" id="bp-panel-swap">
         <div class="ams-hero sw-hero">
           <div class="ams-emblem sw-emblem" aria-hidden="true">
@@ -2551,9 +2568,9 @@
   </span>
 </nav>
 
-<script src="wallet-arc.js?v=1791609425"></script>
+<script src="wallet-arc.js?v=1791624538"></script>
 <script src="vendor/ethers-6.13.4.umd.min.js"></script>
 <!-- One file built from 26 scripts by tools/build-bundles.mjs (sources: config-arc.js, abis.js, arc-shared.js, wallet-appkit.js, arc-quote.js, arcpad.js, arcpad-coin.js, arc-fx.js, arc-activity.js, arc-extras.js, arcircle-coin.js, arc-motion.js, arc-growth.js, arc-polish.js, arc-search.js, arc-footer.js, arcircle-hub.js, arc-community.js, arc-lock.js, arc-coinhead.js, arc-filters.js, arc-chartev.js, arc-social.js, arc-uxfx.js, arc-a11y.js, i18n.js) -->
-<script src="arcpad.bundle.js?v=1791609425"></script>
+<script src="arcpad.bundle.js?v=1791624538"></script>
 </body>
 </html>

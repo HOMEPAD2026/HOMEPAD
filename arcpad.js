@@ -820,6 +820,12 @@ async function submitArcpadLaunch(ev) {
     if (!state.account) { statusEl.innerHTML = `<div class="status error">Connect a wallet to launch.</div>`; return; }
   }
 
+  // Quantum Launch (arc-quantum.js): announce now, launch + one buy for everyone at the end of the window
+  if (window.arcQuantum && window.arcQuantum.on()) {
+    if (!pair.meta.isUsdc) { statusEl.innerHTML = `<div class="status error">Quantum Launch pairs with USDC — pick USDC as the pair.</div>`; return; }
+    return window.arcQuantum.submit({ name, symbol, initialVirtualQuote: pair.reserveRaw, extraFeeBps, meta: { imageUrl, description, twitter, telegram, discord, website }, statusEl, btn });
+  }
+
   try {
     const [bal, cost] = await Promise.all([withRetry(() => readProvider().getBalance(state.account)), arcpadLaunchCost(devBuyStr)]);
     if (bal < cost.total) {
