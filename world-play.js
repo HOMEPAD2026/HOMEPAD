@@ -40,9 +40,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Controls: "조작 방법", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", "drag to look": "드래그로 둘러보기" },
-  zh: { Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Controls: "操作说明", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -316,21 +316,30 @@ addEventListener("keydown", (e) => {
 addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
 addEventListener("blur", () => keys.clear());
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
-let downAt = null, hoverXY = null;
+let downAt = null, hoverXY = null, pinch = null;
+const JOYMAX = document.documentElement.classList.contains("wp-pcphone") ? 118 : 56;
+const touches = new Map(); // non-stick touches: two of them pinch to zoom
 cv.addEventListener("contextmenu", (e) => { if (mode === "island") e.preventDefault(); });
 cv.addEventListener("pointerdown", (e) => {
   if (frozen && !photo) return;
   downAt = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
   cv.setPointerCapture(e.pointerId);
+  const willJoy = !photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy;
+  if (e.pointerType === "touch" && !willJoy) {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist }; look = null; return; }
+  }
   if (!photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy) {
     joy = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
     joyEl.style.left = e.clientX + "px"; joyEl.style.top = e.clientY + "px"; joyEl.classList.add("on"); knob.style.transform = "";
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener("pointermove", (e) => {
+  if (touches.has(e.pointerId)) { touches.get(e.pointerId).x = e.clientX; touches.get(e.pointerId).y = e.clientY; }
+  if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; camDist = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 0.6, mode === "island" ? 2.6 : 1.9); return; }
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
-    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = 56;
+    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = JOYMAX;
     if (m > max) { dx *= max / m; dy *= max / m; }
     joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
   } else if (look && e.pointerId === look.id) {
@@ -340,6 +349,7 @@ cv.addEventListener("pointermove", (e) => {
   }
 });
 const lift = (e) => {
+  touches.delete(e.pointerId); if (touches.size < 2) pinch = null;
   // a short tap without a drag is a build action on your island
   if (e.type === "pointerup" && downAt && downAt.id === e.pointerId && mode === "island" && island.building() && !frozen && performance.now() - downAt.t < 450 && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 9) island.tap(e);
   downAt = null;
@@ -1100,7 +1110,7 @@ function openAuth() {
   paintAuthCount();
   setTimeout(() => $("wp-auth-go").focus({ preventScroll: true }), 60);
 }
-function closeAuth() { auth.hidden = true; frozen = false; P.authSeen = true; save(); paintAcct(); if (!P.char) openMake(); else { setAvatar(P.char); tutorialStep(-1); } }
+function closeAuth() { auth.hidden = true; frozen = false; P.authSeen = true; save(); paintAcct(); if (!P.char) openMake(); else { setAvatar(P.char); tutorialStep(-1); maybeGuide(); } }
 $("wp-auth-go").addEventListener("click", async (e) => {
   const b = e.currentTarget; b.disabled = true; b.textContent = T("Check your wallet…");
   try { await signIn(); closeAuth(); refreshPurse(true); refreshCoins(); paintHud(); }
@@ -1154,7 +1164,7 @@ $("wp-make-grid").addEventListener("click", (e) => {
 });
 $("wp-make-go").addEventListener("click", () => {
   P.char = pickChar; P.name = ($("wp-make-name").value || "").replace(/[<>"'`\\]/g, "").trim().slice(0, 16) || W("Player"); save();
-  setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1);
+  setNameTag(); make.hidden = true; frozen = false; camYaw = facing - Math.PI; paintQuests(); tutorialStep(-1); maybeGuide();
 });
 const setEl = $("wp-setsheet");
 function openSet() {
@@ -1179,9 +1189,50 @@ $("wp-set-q").addEventListener("click", (e) => {
   $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
 });
 $("wp-set-lang").addEventListener("click", (e) => { const b = e.target.closest("button[data-l]"); if (!b || b.dataset.l === LANG) return; try { localStorage.setItem("arcircle.lang", b.dataset.l); } catch { /* private */ } if (window.arcI18n) window.arcI18n.set(b.dataset.l); location.reload(); });
+
+// ---------------- the controls guide: keyboard, mouse and touch, shown once and from Settings ----------------
+const guide = document.createElement("div");
+guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.setAttribute("role", "dialog"); guide.setAttribute("aria-modal", "true"); guide.setAttribute("aria-labelledby", "wp-guide-h"); guide.setAttribute("data-no-i18n", "");
+{
+  const K2 = (k, c = "") => `<span class="${c}">${k}</span>`;
+  const kb = [
+    [K2("Esc", "u"), K2("1", "a"), K2("2", "a"), K2("3"), K2("4"), K2("5"), K2("6"), K2("7"), K2("8"), K2("9"), K2("0")],
+    [K2("Tab", "b w15"), K2("Q"), K2("W", "m"), K2("E", "a"), K2("R", "b"), K2("T"), K2("Y"), K2("U"), K2("I"), K2("O"), K2("P", "a")],
+    [K2("Caps", "w15"), K2("A", "m"), K2("S", "m"), K2("D", "m"), K2("F", "a"), K2("G", "b"), K2("H"), K2("J"), K2("K"), K2("L", "b"), K2("Enter", "a w15")],
+    [K2("Shift", "m w2"), K2("Z"), K2("X", "b"), K2("C", "b"), K2("V", "b"), K2("B", "b"), K2("N"), K2("M", "u"), K2(","), K2("Shift", "w2")],
+    [K2("Ctrl", "b w15"), K2("Alt"), K2(T("Space") === "Space" ? "Space" : T("Space"), "m w6"), K2("Alt"), K2("Ctrl", "w15")],
+  ].map((r) => `<div class="wp-kb-row">${r.join("")}</div>`).join("");
+  const li = (keys, what, c) => `<li><span>${keys.map((k) => `<kbd style="--k:${c[0]};--kc:${c[1]}">${esc(k)}</kbd>`).join(" ")}</span>${esc(T(what))}</li>`;
+  const M = ["#ff5f73", "#fff"], A = ["#ffd34d", "#3b2416"], U = ["#6fdc8c", "#0a2414"], B = ["#7ea3ff", "#0b1838"];
+  const legend = `<ul class="wp-guide-legend">
+    <h4>${esc(T("Moving"))}</h4>${li(["W", "A", "S", "D"], "Move (or the arrow keys)", M)}${li(["Shift"], "Run (hold)", M)}${li(["Space"], "Jump", M)}
+    <h4>${esc(T("Doing things"))}</h4>${li(["E"], "Enter a shop, talk", A)}${li(["F"], "Hoverboard on and off", A)}${li(["1", "2"], "Wave, shake your head", A)}${li(["P"], "Photo mode", A)}
+    <h4>${esc(T("Menus"))}</h4>${li(["M"], "Map and fast travel", U)}${li(["Esc"], "Close what's open", U)}
+    <h4>${esc(T("Building on your island"))}</h4>${li(["B"], "Build mode on and off", B)}${li(["Tab"], "All bricks", B)}${li(["R"], "Rotate the brick", B)}${li(["X"], "Remove tool", B)}${li(["C"], "Paint tool", B)}${li(["V"], "Pick a brick and its colour", B)}${li(["G"], "Mirror", B)}${li(["L"], "Layer lock", B)}${li(["Ctrl", "Z"], "Undo", B)}
+  </ul>`;
+  const mouse = `<div class="wp-guide-mouse"><svg viewBox="0 0 100 150" aria-hidden="true"><rect x="8" y="6" width="84" height="138" rx="42" fill="#3b3f47" stroke="#22252b" stroke-width="3"/><path d="M50 6v52M8 58h84" stroke="#22252b" stroke-width="3"/><path d="M50 9a41 41 0 0 0-39 46h39z" fill="#ffd34d"/><path d="M50 9a41 41 0 0 1 39 46H50z" fill="#7ea3ff"/><rect x="44" y="20" width="12" height="26" rx="6" fill="#6fdc8c" stroke="#22252b" stroke-width="2.5"/></svg>
+    <ul class="wp-guide-legend">${li([T("Drag")], "Look around", U)}${li([T("Wheel")], "Zoom in and out", U)}${li([T("Click")], "Building: place a brick", A)}${li([T("Right-click")], "Building: remove a brick", B)}</ul></div>`;
+  const touch = `<div class="wp-guide-touch"><svg viewBox="0 0 200 380" aria-hidden="true"><rect x="6" y="6" width="188" height="368" rx="30" fill="#141a24" stroke="#3b3f47" stroke-width="5"/><rect x="18" y="40" width="82" height="300" rx="12" fill="rgba(255,95,115,.18)" stroke="#ff5f73" stroke-dasharray="6 5"/><rect x="100" y="40" width="82" height="200" rx="12" fill="rgba(111,220,140,.15)" stroke="#6fdc8c" stroke-dasharray="6 5"/><circle cx="58" cy="270" r="30" fill="none" stroke="#ff5f73" stroke-width="4"/><circle cx="58" cy="270" r="12" fill="#ff5f73"/><circle cx="160" cy="320" r="17" fill="#52d4e3" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="296" r="11" fill="#ff5f73" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="266" r="11" fill="#ffd34d" stroke="#3b2416" stroke-width="3"/><circle cx="150" cy="266" r="11" fill="#7ea3ff" stroke="#3b2416" stroke-width="3"/><circle cx="176" cy="266" r="11" fill="#ffa86a" stroke="#3b2416" stroke-width="3"/><text x="58" y="225" fill="#ffb3bd" font-size="15" font-weight="700" text-anchor="middle">${esc(T("Move"))}</text><text x="141" y="140" fill="#b4f0c4" font-size="15" font-weight="700" text-anchor="middle">${esc(T("Look"))}</text></svg>
+    <ul class="wp-guide-legend">${li(["◐"], "Left thumb: drag to walk (push far to run)", M)}${li(["◑"], "Right side: drag to look around", U)}${li(["⇲⇱"], "Two fingers: pinch to zoom", U)}
+      <h4>${esc(T("Buttons"))}</h4>${li(["↑"], "Jump", ["#52d4e3", "#06222a"])}${li(["▶"], "Run on and off", M)}${li(["✋"], "Wave", A)}${li(["⏏"], "Hoverboard", B)}${li(["◉"], "Photo mode", ["#ffa86a", "#3b2416"])}
+      <h4>${esc(T("Building on your island"))}</h4>${li([T("Tap")], "Place a brick with the tool you picked", B)}</ul></div>`;
+  guide.innerHTML = `<div class="wp-guide-card"><h2 id="wp-guide-h">${esc(T("How to play"))}</h2><p>${esc(T("You can open this again any time from Settings."))}</p>
+    <nav class="wp-guide-tabs"><button type="button" data-g="kb">${esc(T("Keyboard and mouse"))}</button><button type="button" data-g="touch">${esc(T("Touch screen"))}</button></nav>
+    <section data-p="kb"><div class="wp-kb">${kb}</div>${legend}${mouse}</section><section data-p="touch" hidden>${touch}</section>
+    <button type="button" class="wp-cta wp-guide-go" id="wp-guide-go">${esc(T("Got it, let's play"))}</button></div>`;
+  document.body.appendChild(guide);
+}
+function guideTab(t) { guide.querySelectorAll("[data-g]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.g === t))); guide.querySelectorAll("[data-p]").forEach((p) => { p.hidden = p.dataset.p !== t; }); }
+function openGuide() { guideTab(coarse ? "touch" : "kb"); guide.hidden = false; frozen = true; keys.clear(); paintPrompt(); setTimeout(() => $("wp-guide-go").focus({ preventScroll: true }), 60); }
+function closeGuide() { if (guide.hidden) return; guide.hidden = true; frozen = false; if (!P.guideSeen) { P.guideSeen = true; save(); } }
+guide.addEventListener("click", (e) => { const b = e.target.closest("[data-g]"); if (b) guideTab(b.dataset.g); if (e.target.id === "wp-guide-go" || e.target === guide) closeGuide(); });
+// first time in: after the sign-in and the character maker
+function maybeGuide() { if (!P.guideSeen && auth.hidden && make.hidden && guide.hidden) setTimeout(() => { if (!P.guideSeen && auth.hidden && make.hidden) openGuide(); }, 500); }
+
 // phones: the compact (PC-style) layout or the large one; applied on reload (play.html sets the viewport)
 const VP = (() => { try { return localStorage.getItem("arc.world.vp") || "pc"; } catch { return "pc"; } })();
 if (coarse) { $("wp-set-vp-row").hidden = false; $("wp-set-vp").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vp === VP))); }
+$("wp-set-guide").addEventListener("click", () => { closeSet(); openGuide(); });
 $("wp-set-vp").addEventListener("click", (e) => { const b = e.target.closest("button[data-vp]"); if (!b || b.dataset.vp === VP) return; try { localStorage.setItem("arc.world.vp", b.dataset.vp); } catch { /* private */ } location.reload(); });
 $("wp-set-snd").addEventListener("change", (e) => Snd.set(e.target.checked));
 $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; saveSet(); });
@@ -1211,7 +1262,7 @@ $("wp-photo-take").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; });
 
 // ---------------- closing things ----------------
-function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); island.closeSheets(); $("wp-shot").hidden = true; }
+function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); $("wp-shot").hidden = true; }
 if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 
 // ---------------- day and night (Seoul time) ----------------
@@ -1368,7 +1419,7 @@ await dive();
 landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
 if (!P.authSeen && !sess()) openAuth();
 else if (!P.char) openMake();
-else tutorialStep(-1);
+else { tutorialStep(-1); maybeGuide(); }
 window.arcWorld = {
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
