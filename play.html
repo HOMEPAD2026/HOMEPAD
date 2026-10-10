@@ -15,22 +15,22 @@
 <meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="theme-color" content="#04060a">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791642614">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791642614">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791645290">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791645290">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791642614"></script>
-<script src="i18n-boot.js?v=1791642614"></script>
+<script src="arc-log.js?v=1791645290"></script>
+<script src="i18n-boot.js?v=1791645290"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<script src="/world-lock.js?v=1791642614"></script>
-<link rel="stylesheet" href="/arc.min.css?v=1791642614">
+<script src="/world-lock.js?v=1791645290"></script>
+<link rel="stylesheet" href="/arc.min.css?v=1791645290">
 <link rel="modulepreload" href="/vendor/three/three-0.169.0.module.min.js">
 </head>
 <body class="wp">
-<canvas id="wp-cv" class="wp-cv" aria-label="ARCIRCLE World — use W A S D or the arrow keys to walk, E to enter a shop"></canvas>
+<canvas id="wp-cv" class="wp-cv" aria-label="ARCIRCLE World — W A S D to walk, Space to jump, Shift to run, E to enter, drag to look around"></canvas>
 
-<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span></div>
+<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span><i class="wp-loadbar"><b id="wp-loadbar"></b></i></div>
 
 <header class="wp-hud">
   <div class="wp-hud-l">
@@ -40,27 +40,40 @@
       <span class="wp-chip wp-cards" id="wp-cards" title="Key cards found"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h4"/></svg><b data-no-i18n>0/12</b></span>
       <span class="wp-chip wp-stage" id="wp-stage"></span>
     </div>
+    <section class="wp-quests" id="wp-quests" aria-label="Quests"><button type="button" class="wp-quests-h" id="wp-quests-h" aria-expanded="true"><span>Quests</span><b id="wp-quests-n" data-no-i18n></b></button><ol id="wp-quests-l"></ol></section>
   </div>
   <div class="wp-hud-r">
-    <button type="button" class="wp-btn wp-map-btn" id="wp-map-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
-    <button type="button" class="wp-btn wp-wallet" id="wp-wallet"><span class="wp-dot"></span><span id="wp-wallet-t">Connect wallet</span></button>
+    <div class="wp-hud-btns">
+      <button type="button" class="wp-btn wp-icon" id="wp-map-btn" aria-haspopup="dialog" title="Map (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span class="wp-sr">Map</span></button>
+      <button type="button" class="wp-btn wp-icon" id="wp-set-btn" aria-haspopup="dialog" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="wp-sr">Settings</span></button>
+      <button type="button" class="wp-btn wp-wallet" id="wp-wallet"><span class="wp-dot"></span><span id="wp-wallet-t">Connect wallet</span></button>
+    </div>
+    <div class="wp-purse" id="wp-purse" hidden>
+      <span><small>USDC</small><b id="wp-usdc" data-no-i18n>—</b></span>
+      <span><small>$ARCIRCLE</small><b id="wp-arc" data-no-i18n>—</b></span>
+    </div>
+    <div class="wp-mini" aria-hidden="true"><canvas id="wp-mini" width="300" height="300"></canvas><span class="wp-mini-n" id="wp-mini-n"></span></div>
   </div>
 </header>
-<div class="wp-purse" id="wp-purse" hidden>
-  <span><small>USDC</small><b id="wp-usdc" data-no-i18n>—</b></span>
-  <span><small>$ARCIRCLE</small><b id="wp-arc" data-no-i18n>—</b></span>
-</div>
+
+<ul class="wp-feed" id="wp-feed" aria-live="polite" aria-label="What's happening on ArcPad"></ul>
 
 <div class="wp-prompt" id="wp-prompt" hidden><button type="button" id="wp-enter"><span id="wp-enter-t"></span><kbd>E</kbd></button></div>
 <div class="wp-joy" id="wp-joy" aria-hidden="true"><i></i></div>
-<p class="wp-keys" id="wp-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk <span>·</span> <kbd>Shift</kbd> run <span>·</span> <kbd>E</kbd> enter <span>·</span> <kbd>M</kbd> map <span>·</span> drag to look</p>
+<div class="wp-acts" id="wp-acts">
+  <button type="button" class="wp-act wp-act-emote" id="wp-act-emote" aria-label="Wave"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12m0-6.5v-1a1.5 1.5 0 0 1 3 0V12m0-5.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.8 14.5a1.5 1.5 0 0 1 2.4-1.8L8 15"/></svg></button>
+  <button type="button" class="wp-act wp-act-run" id="wp-act-run" aria-pressed="false" aria-label="Run"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4a2 2 0 1 0 4 0 2 2 0 0 0-4 0M6 20l3-6 3 2v6M10 9l4-2 3 4 3 1M9 14l-1-5 4-2"/></svg></button>
+  <button type="button" class="wp-act wp-act-jump" id="wp-act-jump" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+</div>
+<p class="wp-keys" id="wp-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move <span>·</span> <kbd>Space</kbd> jump <span>·</span> <kbd>Shift</kbd> run <span>·</span> <kbd>E</kbd> enter <span>·</span> <kbd>1</kbd><kbd>2</kbd> emote <span>·</span> <kbd>M</kbd> map <span>·</span> drag to look</p>
 
-<div class="wp-intro" id="wp-intro" hidden role="dialog" aria-modal="true" aria-labelledby="wp-intro-h">
-  <div class="wp-card">
-    <h2 id="wp-intro-h">Welcome to ARCIRCLE World</h2>
-    <p>You're the robot. Walk up to a shop and step in: every shop is a real ARCIRCLE PAD tool, so what you sign there really happens on Circle's Arc, with your own USDC and $ARCIRCLE.</p>
-    <p>Scammers roam the planet. Beat them by spotting their tricks, one stage at a time. Pick up the key cards on the way.</p>
-    <button type="button" class="wp-cta" id="wp-intro-go">Start walking</button>
+<div class="wp-make" id="wp-make" hidden role="dialog" aria-modal="true" aria-labelledby="wp-make-h">
+  <div class="wp-card wp-make-card">
+    <h2 id="wp-make-h">Who's walking ARCIRCLE World?</h2>
+    <p>Pick your look and a name. Every shop on the planet is a real ARCIRCLE PAD tool: what you sign there happens on Circle's Arc, with your own USDC and $ARCIRCLE. Scammers roam the Dark Market.</p>
+    <div class="wp-make-grid" id="wp-make-grid" role="radiogroup" aria-label="Character"></div>
+    <label class="wp-make-name"><span>Name</span><input id="wp-make-name" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Your name"></label>
+    <button type="button" class="wp-cta" id="wp-make-go">Start walking</button>
   </div>
 </div>
 
@@ -75,8 +88,19 @@
 <aside class="wp-mapsheet" id="wp-mapsheet" hidden role="dialog" aria-modal="true" aria-labelledby="wp-map-h">
   <div class="wp-card">
     <div class="wp-sheet-head"><h2 id="wp-map-h">Map</h2><button type="button" class="wp-btn wp-x" id="wp-map-x" aria-label="Close the map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-    <p class="wp-map-sub">Tap a shop to fly there.</p>
-    <ul class="wp-maplist" id="wp-maplist"></ul>
+    <p class="wp-map-sub">Tap a place to fly there.</p>
+    <div id="wp-maplist"></div>
+  </div>
+</aside>
+
+<aside class="wp-mapsheet wp-setsheet" id="wp-setsheet" hidden role="dialog" aria-modal="true" aria-labelledby="wp-set-h">
+  <div class="wp-card">
+    <div class="wp-sheet-head"><h2 id="wp-set-h">Settings</h2><button type="button" class="wp-btn wp-x" id="wp-set-x" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <fieldset class="wp-set-row"><legend>Graphics</legend><div class="wp-seg" id="wp-set-q"><button type="button" data-q="auto">Auto</button><button type="button" data-q="high">High</button><button type="button" data-q="low">Low</button></div><small id="wp-set-q-note"></small></fieldset>
+    <label class="wp-set-row wp-set-line"><span>Sound</span><input type="checkbox" id="wp-set-snd"></label>
+    <label class="wp-set-row"><span>Camera speed</span><input type="range" id="wp-set-sens" min="0.4" max="2" step="0.1"></label>
+    <div class="wp-set-row wp-set-btns"><button type="button" class="wp-btn" id="wp-set-char">Change character</button><button type="button" class="wp-btn wp-danger" id="wp-set-reset">Reset progress</button></div>
+    <p class="wp-set-note">Progress is saved in this browser.</p>
   </div>
 </aside>
 
@@ -93,8 +117,8 @@
 <div class="wp-toast" id="wp-toast" role="status" aria-live="polite"></div>
 
 <noscript><p class="wp-nojs">ARCIRCLE World needs JavaScript. <a href="/?skip">Go to the Platform World</a>.</p></noscript>
-<script src="config-arc.js?v=1791642614"></script>
-<script src="arc-connect.js?v=1791642614"></script>
-<script type="module" src="/world-play.js?v=1791642614"></script>
+<script src="config-arc.js?v=1791645290"></script>
+<script src="arc-connect.js?v=1791645290"></script>
+<script type="module" src="/world-play.js?v=1791645290"></script>
 </body>
 </html>

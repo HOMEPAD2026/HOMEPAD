@@ -20,7 +20,7 @@ import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js"
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 
 export { THREE };
-export const R = 22;
+export const R = 32; // big enough for districts; everything else is placed in degrees
 export const C = {
   space: 0x04060a, ground: 0x10303a, ground2: 0x163f48, ground3: 0x0c252e,
   blue: 0x3f9bff, cyan: 0x35d8d0, green: 0x39ff88, gold: 0xffc861, ink: 0xeef3f7,
@@ -30,26 +30,37 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 // One shop per real utility. theta: degrees from the spawn point (north pole); phi: degrees around it.
 export const SHOPS = [
-  { id: "launch", name: "Launchpad", url: "/arc#launch", color: C.green, shape: "rocket", theta: 28, phi: 0,
+  { id: "launch", name: "Launchpad", url: "/arc#launch", color: C.green, shape: "rocket", theta: 21, phi: 0, district: "Launch",
     line: "Launch a real coin on ArcPad for 1 USDC. A real pool from the first block." },
-  { id: "quantum", name: "Quantum Lab", url: "/arc#quantum", color: C.purple, shape: "orb", theta: 34, phi: 40,
+  { id: "quantum", name: "Quantum Lab", url: "/arc#quantum", color: C.purple, shape: "orb", theta: 25, phi: 34, district: "Launch",
     line: "Announce a launch, collect commits, collapse it: everyone gets the same price." },
-  { id: "swap", name: "Exchange", url: "/arc#swap", color: C.cyan, shape: "coin", theta: 28, phi: 80,
+  { id: "swap", name: "Exchange", url: "/arc#swap", color: C.cyan, shape: "coin", theta: 21, phi: 78, district: "Finance",
     line: "Swap any Arc token with $ARCIRCLE or USDC. 0.1% fee, half of it burned." },
-  { id: "orders", name: "Order House", url: "/arc#orders", color: C.blue, shape: "clock", theta: 34, phi: 120,
+  { id: "orders", name: "Order House", url: "/arc#orders", color: C.blue, shape: "clock", theta: 25, phi: 108, district: "Finance",
     line: "Limit, stop-loss, take-profit and DCA orders. Sign once, no gas until a fill." },
-  { id: "staking", name: "Bank", url: "/arc#staking", color: C.gold, shape: "dome", theta: 28, phi: 160,
+  { id: "staking", name: "Bank", url: "/arc#staking", color: C.gold, shape: "dome", theta: 21, phi: 138, district: "Finance",
     line: "Lock $ARCIRCLE for veARCIRCLE and share the platform's fees." },
-  { id: "locker", name: "Vault", url: "/arc#locker", color: C.gold, shape: "vault", theta: 34, phi: 200,
+  { id: "locker", name: "Vault", url: "/arc#locker", color: C.gold, shape: "vault", theta: 25, phi: 168, district: "Finance",
     line: "Lock tokens or LP until a date. Locks can only be pushed later, never earlier." },
-  { id: "scanner", name: "Scanner Tower", url: "/arc#scanner", color: C.cyan, shape: "dish", theta: 28, phi: 240,
+  { id: "scanner", name: "Scanner Tower", url: "/arc#scanner", color: C.cyan, shape: "dish", theta: 21, phi: 212, district: "Research",
     line: "Safety-scan any token before you buy. Your best weapon against scammers." },
-  { id: "predict", name: "Oracle", url: "/arc#predict", color: C.purple, shape: "obelisk", theta: 34, phi: 280,
+  { id: "predict", name: "Oracle", url: "/arc#predict", color: C.purple, shape: "obelisk", theta: 25, phi: 242, district: "Research",
     line: "Call UP or DOWN on a coin, up to $5 a round." },
-  { id: "arcia", name: "ARCIA Studio", url: "/arcia", color: C.pink, shape: "stage", theta: 28, phi: 320,
+  { id: "arcia", name: "ARCIA Studio", url: "/arcia", color: C.pink, shape: "stage", theta: 22, phi: 296, district: "ARCIA",
     line: "Arc's AI idol. Ask her anything about a coin, a wallet or this world." },
 ];
-export const PORTAL = { id: "platform", name: "Platform World", theta: 15, phi: 140 };
+export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
+// districts: a sign over each, a colour on the minimap
+export const DISTRICTS = [
+  { id: "launch", name: "Launch District", theta: 33, phi: 17, color: 0x39ff88 },
+  { id: "finance", name: "Finance District", theta: 33, phi: 123, color: 0xffc861 },
+  { id: "research", name: "Research District", theta: 33, phi: 227, color: 0x35d8d0 },
+  { id: "arcia", name: "ARCIA Studio", theta: 33, phi: 296, color: 0xff7ad9 },
+  { id: "coins", name: "Coin City", theta: 61, phi: 0, color: 0xeef3f7 },
+  { id: "dark", name: "Dark Market", theta: 62, phi: 205, color: 0xff4d6d },
+];
+// Coin City: one lot per ArcPad coin, biggest market caps nearest the plaza
+export const COIN_LOTS = (() => { const out = []; [41, 48, 55].forEach((th) => { for (let ph = -48; ph <= 48; ph += 16) out.push([th, ph]); }); return out.sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]) || a[0] - b[0]).map(([t, p]) => [t, (p + 360) % 360]); })(); // centre first
 
 export function dirOf(thetaDeg, phiDeg) {
   const t = THREE.MathUtils.degToRad(thetaDeg), p = THREE.MathUtils.degToRad(phiDeg);
@@ -65,17 +76,17 @@ export function placeOn(obj, dir, r = R) {
 }
 
 // ---------------- renderer + post ----------------
-export function quality() {
+export function quality(force = "auto") {
   const coarse = matchMedia("(pointer: coarse)").matches;
   const cores = navigator.hardwareConcurrency || 4;
-  const low = (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
+  const low = force === "low" ? true : force === "high" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
   return { coarse, low, dpr: Math.min(window.devicePixelRatio || 1, low ? 1.25 : 1.75), bloom: !low };
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
 }
 export function makeStage(canvas, opts = {}) {
-  const q = quality();
+  const q = quality(opts.quality);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !q.low, alpha: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(q.dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -182,7 +193,7 @@ export function makePlanet({ map = "" } = {}) {
   for (let i = 0; i < 110; i++) {
     const th = 14 + rr() * 166, ph = rr() * 360;
     if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
-    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6) continue;
+    if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
     const d = dirOf(th, ph), o = new THREE.Group();
     if (rr() < 0.45) { const m = new THREE.Mesh(crystal, crysMats[i % 3]); m.position.y = 0.7; m.rotation.z = (rr() - 0.5) * 0.4; o.add(m); }
     else { const t = new THREE.Mesh(trunk, trunkMat); t.position.y = 0.4; const cr = new THREE.Mesh(crown, crownMats[i % 3]); cr.position.y = 1.15; cr.scale.setScalar(0.8 + rr() * 0.6); o.add(t, cr); }
@@ -386,7 +397,7 @@ export function makePortal() {
 
 // ---------------- scammers ----------------
 export const SCAMMERS = [
-  { id: "phisher", stage: 1, name: "The Phisher", color: C.scam, sign: "FREE AIRDROP", theta: 50, phi: 20 },
+  { id: "phisher", stage: 1, name: "The Phisher", color: C.scam, sign: "FREE AIRDROP", theta: 46, phi: 205 },
 ];
 export function makeScammer(spec) {
   const g = new THREE.Group(); g.name = "scam:" + spec.id;
@@ -489,13 +500,13 @@ export function decorate(shop, kit) {
 }
 // the industrial town between the shops and the far side: [model, theta, phi, scale, turn]
 export const TOWN = [
-  ["windmill", 46, 70, 2.6, 0.4], ["windmill", 49, 82, 2.4, 1.2], ["windmill", 44, 95, 2.7, 2.0],
-  ["water-tower", 47, 205, 2.4, 0.2], ["building-h", 45, 228, 2.4, 1.2], ["building-k", 48, 178, 2.4, 2.6],
-  ["building-s", 46, 300, 2.4, 0.8], ["solar-panel-landscape-group", 47, 318, 2.4, 0.3], ["solar-panel-portrait-group", 50, 340, 2.4, 1.1],
-  ["shipping-container-a", 45, 118, 2.4, 0.5], ["shipping-container-c", 47, 124, 2.4, 1.9], ["detail-tank-large", 44, 160, 1.6, 0],
-  ["chimney-large", 62, 35, 2.0, 0], ["building-h", 64, 110, 2.6, 2.2], ["windmill", 68, 175, 2.6, 0.7], ["building-k", 66, 285, 2.6, 1.5],
-  ["water-tower", 72, 320, 2.6, 0.4], ["solar-panel-landscape-group", 74, 230, 2.6, 2.4], ["windmill", 80, 50, 2.8, 0.2], ["building-s", 82, 130, 2.6, 1.0],
-  ["detail-tank-large", 86, 260, 1.8, 0.3], ["windmill", 95, 340, 2.8, 1.6], ["building-h", 100, 200, 2.6, 0.5], ["windmill", 110, 100, 2.8, 2.9],
+  ["windmill", 42, 72, 2.6, 0.4], ["windmill", 46, 88, 2.4, 1.2], ["windmill", 41, 104, 2.7, 2.0],
+  ["water-tower", 44, 128, 2.4, 0.2], ["building-h", 47, 145, 2.4, 1.2], ["building-k", 43, 160, 2.4, 2.6],
+  ["solar-panel-landscape-group", 42, 250, 2.4, 0.3], ["solar-panel-portrait-group", 46, 268, 2.4, 1.1], ["building-s", 43, 285, 2.4, 0.8],
+  ["water-tower", 47, 305, 2.4, 0.4], ["shipping-container-a", 41, 320, 2.4, 0.5], ["shipping-container-c", 44, 332, 2.4, 1.9],
+  ["windmill", 80, 40, 2.8, 0.2], ["building-h", 85, 110, 2.6, 2.2], ["windmill", 100, 300, 2.8, 1.6], ["building-s", 110, 20, 2.6, 1.0],
+  ["detail-tank-large", 95, 130, 1.8, 0.3], ["windmill", 120, 200, 2.8, 0.7], ["chimney-large", 105, 250, 2.0, 0], ["building-k", 130, 80, 2.6, 1.5],
+  ["water-tower", 140, 300, 2.6, 0.4], ["windmill", 150, 160, 2.8, 2.9], ["building-h", 160, 20, 2.6, 0.5],
 ];
 export function makeTown(kit) {
   const out = [];
@@ -511,7 +522,7 @@ export function makeTown(kit) {
 }
 
 // key cards to collect: a few XP each
-export const CARDS = [[15, 70], [19, 200], [38, 15], [40, 100], [41, 185], [39, 265], [43, 330], [52, 60], [56, 150], [58, 230], [60, 300], [66, 20]];
+export const CARDS = [[12, 40], [13, 200], [30, 60], [30, 190], [31, 330], [38, 120], [40, 230], [50, 70], [56, 300], [64, 140], [75, 20], [90, 250]];
 export function makeCard(kit) {
   const g = new THREE.Group();
   const c = prop(kit, "KeyCard", { s: 3.2, y: 0.9 }); if (c) g.add(c);
@@ -535,7 +546,7 @@ export function makeSky() {
 // stepping stones: a ring path through the shops and a spoke from the plaza to each door
 export function makePaths() {
   const pts = [];
-  for (let ph = 0; ph < 360; ph += 3.2) pts.push([31, ph]);
+  for (let ph = 0; ph < 360; ph += 2.4) pts.push([23, ph]);
   SHOPS.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
   const geo = new THREE.CylinderGeometry(0.62, 0.7, 0.12, 6);
   const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0x24404c, roughness: 0.75, metalness: 0.2 }), pts.length);
@@ -543,4 +554,106 @@ export function makePaths() {
   pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R + 0.02); o.rotateY((i * 0.7) % 1); o.updateMatrix(); m.copy(o.matrix); mesh.setMatrixAt(i, m); });
   mesh.receiveShadow = true;
   return mesh;
+}
+
+// ---------------- players: Kenney Mini Characters (CC0) or the ARC Bot ----------------
+export const CHARACTERS = ["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
+const charCache = new Map();
+export async function makeCharacter(id, ver = "") {
+  if (id === "bot" || !CHARACTERS.includes(id)) {
+    const r = makeRobot(); r.scale.setScalar(0.8);
+    return { obj: r, bot: true, play() {}, update(dt, t, speed, turn) { animateRobot(r, dt, t, speed, turn); }, height: 2.3 };
+  }
+  let src = charCache.get(id);
+  if (!src) {
+    const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+    src = await new Promise((res, rej) => L.load(`/models/world/chars/character-${id}.glb${ver}`, res, undefined, rej));
+    charCache.set(id, src);
+  }
+  const inner = SkeletonUtils.clone(src.scene);
+  const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
+  const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false);
+  // the ARCIRCLE crown: the two rings of the mark over the head
+  const crown = new THREE.Group(); crown.position.y = 2.45;
+  const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
+  r1.position.x = -0.1; r2.position.x = 0.1; r2.rotation.x = Math.PI / 2; crown.add(r1, r2); obj.add(crown);
+  const mixer = new THREE.AnimationMixer(inner), acts = {};
+  src.animations.forEach((c) => { acts[c.name] = mixer.clipAction(c); });
+  let cur = null, oneShot = null;
+  const play = (name, { once = false, fade = 0.18, speed = 1 } = {}) => {
+    const a = acts[name]; if (!a) return;
+    if (!once && cur === a && !oneShot) return;
+    a.reset(); a.timeScale = speed; a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once;
+    if (cur && cur !== a) cur.crossFadeTo(a, fade, false);
+    a.play(); cur = a;
+    if (once) { oneShot = a; const done = (e) => { if (e.action === a) { mixer.removeEventListener("finished", done); oneShot = null; } }; mixer.addEventListener("finished", done); }
+  };
+  play("idle");
+  return {
+    obj, mixer, play, height: 2.1, busy: () => !!oneShot,
+    update(dt, t) { mixer.update(dt); crown.rotation.y += dt * 1.4; crown.position.y = 2.45 + Math.sin(t * 2) * 0.04; },
+  };
+}
+
+// ---------------- Coin City: real ArcPad coins as buildings ----------------
+const COIN_MODELS = ["building-k", "building-h", "building-s", "building-g", "building-a", "building-d", "building-n"];
+export function makeCoinBuilding(kit, coin, mine) {
+  const g = new THREE.Group(); g.name = "coin:" + coin.token;
+  const mc = Number(coin.marketCapUsd) || 0;
+  const tier = Math.max(0, Math.min(COIN_MODELS.length - 1, Math.floor(Math.log10(Math.max(1, mc)) - 2)));
+  const b = prop(kit, COIN_MODELS[tier], { s: 1.8 + tier * 0.12, ry: Math.PI });
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.5, 0.2, 32), solid(mine ? 0x123d2a : 0x161f2c, { metalness: 0.3 })); pad.position.y = 0.1;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(2.45, 0.05, 8, 64), glow(mine ? C.green : C.blue, mine ? 2.2 : 1.1)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.21;
+  g.add(pad, rim); if (b) { b.position.y = 0.2; g.add(b); }
+  const h = (b ? b.userData.h : 2) + 0.2;
+  const fmt = mc >= 1e6 ? "$" + (mc / 1e6).toFixed(2) + "M" : mc >= 1e3 ? "$" + (mc / 1e3).toFixed(1) + "K" : "$" + Math.round(mc);
+  const tag = label("$" + String(coin.symbol || "?").slice(0, 10), { accent: mine ? "#39ff88" : "#4f9dff", size: 0.62, sub: mine ? "yours · " + fmt : fmt });
+  tag.position.y = h + 1.6; g.add(tag);
+  g.userData = { coin, mine, radius: 2.5, spin: [], tag };
+  if (mine) { const bc = makeBeacon(C.green, 14); g.add(bc); g.userData.spin.push(bc.userData.spin); }
+  return g;
+}
+
+// a pillar of light: quest targets and your own coins
+export function makeBeacon(color = C.cyan, h = 18) {
+  const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, h, 20, 1, true), m); beam.position.y = h / 2;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06;
+  const g = new THREE.Group(); g.add(beam, ring);
+  g.userData.spin = (dt, t) => { m.opacity = 0.16 + Math.sin(t * 2.4) * 0.07; ring.scale.setScalar(1 + (t % 1.6) / 1.6 * 0.6); ring.material.opacity = 0.6 * (1 - (t % 1.6) / 1.6); };
+  return g;
+}
+
+// district names, floating over each district
+export function makeDistrictSigns() {
+  const g = new THREE.Group();
+  DISTRICTS.forEach((d) => {
+    const col = "#" + d.color.toString(16).padStart(6, "0");
+    const sp = label(d.name, { accent: col, color: col, size: 1.15 }); sp.material.opacity = 0.9;
+    const o = new THREE.Group(); placeOn(o, dirOf(d.theta, d.phi), R); sp.position.y = d.id === "dark" ? 9 : 10.5; o.add(sp); g.add(o);
+  });
+  return g;
+}
+
+// a launch: a rocket leaves the Launchpad on a column of fire (a real ArcPad launch triggers it)
+export function rocketLaunch(parent, at, color = C.green) {
+  const g = new THREE.Group(); g.position.copy(at); g.quaternion.copy(parent.quaternion.clone().invert()); parent.add(g);
+  const up = at.clone().normalize();
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+  const r = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 2.8, 20), glossy(0xe9f1f7)); hull.position.y = 1.4;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.1, 20), glow(color, 2)); nose.position.y = 3.35;
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.6, 14), glow(C.gold, 4)); flame.rotation.x = Math.PI; flame.position.y = -0.7;
+  r.add(hull, nose, flame); g.add(r);
+  const puffs = [], puffGeo = new THREE.SphereGeometry(0.5, 10, 8);
+  const t0 = performance.now();
+  return (dt) => {
+    const k = (performance.now() - t0) / 1000;
+    r.position.y = 6 + k * k * 14; flame.scale.set(1, 0.8 + Math.random() * 0.6, 1);
+    if (k < 2.6 && Math.random() < 0.7) { const p = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ color: 0xdfe8f0, transparent: true, opacity: 0.7, depthWrite: false })); p.position.set((Math.random() - 0.5) * 0.6, r.position.y - 1.2, (Math.random() - 0.5) * 0.6); g.add(p); puffs.push(p); }
+    puffs.forEach((p) => { p.scale.multiplyScalar(1 + dt * 1.6); p.material.opacity *= 1 - dt * 1.2; });
+    if (k > 4) { parent.remove(g); return false; }
+    return true;
+  };
 }

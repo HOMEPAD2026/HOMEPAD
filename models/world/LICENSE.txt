@@ -10,3 +10,7 @@ License: CC0 1.0 Universal — selected models merged and meshopt-compressed wit
 models/world/sky-planet*.webp, models/world/planet-surface.jpg
 From "Planets 1.0" by Kenney — https://kenney.nl — CC0 1.0 Universal.
 sky-planet*.webp are resized planet images; planet-surface.jpg is a seamless sphere map generated in that pack's planet00 colours.
+
+models/world/chars/*.glb, models/world/chars/*.webp
+From "Mini Characters" by Kenney — https://kenney.nl — CC0 1.0 Universal.
+Unused animations removed and meshopt-compressed with glTF-Transform; thumbnails from the pack's previews.

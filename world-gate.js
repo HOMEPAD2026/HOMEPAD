@@ -4,7 +4,7 @@ export async function start(canvas, { reduce = false } = {}) {
   const K = await import("./world-kit.js" + new URL(import.meta.url).search);
   const { THREE, R } = K;
   try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
-  const st = K.makeStage(canvas, { fog: 0.0016, bloom: 0.85, fov: 42 });
+  const st = K.makeStage(canvas, { fog: 0.0012, bloom: 0.85, fov: 42 });
   const world = new THREE.Group(); st.scene.add(world);
   const VER = new URL(import.meta.url).search;
   const planet = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER }); world.add(planet);
@@ -15,7 +15,7 @@ export async function start(canvas, { reduce = false } = {}) {
   planet.add(K.makePaths());
   const portal = K.makePortal(); K.placeOn(portal, K.dirOf(K.PORTAL.theta, K.PORTAL.phi)); planet.add(portal); spins.push(...portal.userData.spin);
   K.SCAMMERS.forEach((s) => { const m = K.makeScammer(s); K.placeOn(m, K.dirOf(s.theta, s.phi)); planet.add(m); spins.push(...m.userData.spin); });
-  const robot = K.makeRobot(); K.placeOn(robot, new THREE.Vector3(0, 1, 0)); robot.scale.setScalar(1.6); planet.add(robot);
+  const robot = K.makeRobot(); K.placeOn(robot, new THREE.Vector3(0, 1, 0)); robot.scale.setScalar(2.2); planet.add(robot);
   world.rotation.set(0.18, 0, -0.1);
   st.scene.background = null; st.scene.add(K.makeSky()); st.scene.add(K.makeSkyPlanets(VER));
   // the Quaternius models arrive a moment later: props around the shops and an Eye Drone circling the world
@@ -30,7 +30,7 @@ export async function start(canvas, { reduce = false } = {}) {
 
   // camera orbits slowly; dragging adds to it
   const cam = st.camera;
-  let yaw = 0.6, pitch = 0.62, dist = 108, vyaw = 0, drag = null, auto = reduce ? 0 : 0.05;
+  let yaw = 0.6, pitch = 0.62, dist = 108 * R / 22, vyaw = 0, drag = null, auto = reduce ? 0 : 0.05;
   const narrow = () => innerWidth < 700;
   canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener("pointermove", (e) => {
@@ -41,7 +41,7 @@ export async function start(canvas, { reduce = false } = {}) {
   const up = () => { drag = null; };
   canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
   let diving = null;
-  const lookY = () => (narrow() ? -22 : -9);
+  const lookY = () => (narrow() ? -22 : -9) * R / 22;
   const look = new THREE.Vector3(0, lookY(), 0);
   st.on((dt, t) => {
     spins.forEach((f) => f(dt, t));
@@ -52,7 +52,7 @@ export async function start(canvas, { reduce = false } = {}) {
     if (!diving) {
       if (!drag) { yaw += auto * dt + vyaw; vyaw *= 0.92; }
       const d = narrow() ? dist * 1.45 : dist;
-      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d + (narrow() ? 18 : 6), Math.cos(yaw) * Math.cos(pitch) * d);
+      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d + (narrow() ? 18 : 6) * R / 22, Math.cos(yaw) * Math.cos(pitch) * d);
       look.y = THREE.MathUtils.lerp(look.y, lookY(), 0.1);
       cam.lookAt(look);
     } else {
