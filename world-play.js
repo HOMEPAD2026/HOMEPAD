@@ -40,9 +40,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", "drag to look": "드래그로 둘러보기" },
-  zh: { Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -511,15 +511,28 @@ $("wp-enter").addEventListener("click", () => near && enter(near));
 // ---------------- shops, coins, ARCIA ----------------
 const sheet = $("wp-sheet"), frame = $("wp-frame");
 let openShop = null;
-let lotCoin = null;
+let lotCoin = null, frameT = 0;
 $("wp-sheet-lot").addEventListener("click", () => { const c = lotCoin; closeSheet(); if (c) goIsland({ lot: c }); });
 function openSheet(title, line, url) {
   $("wp-sheet-lot").hidden = true;
   $("wp-sheet-h").textContent = title; $("wp-sheet-p").textContent = line;
   $("wp-sheet-full").href = url;
-  $("wp-frame-load").hidden = false;
-  frame.onload = () => { $("wp-frame-load").hidden = true; };
-  if (frame.getAttribute("src") !== url) frame.src = url; else $("wp-frame-load").hidden = true;
+  // Most shops are sections of the same page (/arc#launch, /arc#swap, …): switching between them only changes the
+  // hash, which doesn't reload the frame, so its load event never comes. Then the page is already there: just move
+  // to the section. A slow first load still clears its cover after a while (the page shows its own loading).
+  const load = $("wp-frame-load"), cur = frame.getAttribute("src") || "", path = (u) => u.split("#")[0];
+  clearTimeout(frameT);
+  if (cur === url) load.hidden = true;
+  else if (cur && path(cur) === path(url)) {
+    load.hidden = true;
+    try { frame.contentWindow.location.hash = url.split("#")[1] || ""; } catch { /* another origin: set src below */ }
+    frame.setAttribute("src", url);
+  } else {
+    load.hidden = false;
+    frame.onload = () => { load.hidden = true; clearTimeout(frameT); };
+    frame.src = url;
+    frameT = setTimeout(() => { load.hidden = true; }, 9000);
+  }
   sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add("on"));
   frozen = true; keys.clear(); paintPrompt(); Snd.enter();
   if (avatar) avatar.play("interact-right", { once: true });
@@ -1166,6 +1179,10 @@ $("wp-set-q").addEventListener("click", (e) => {
   $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
 });
 $("wp-set-lang").addEventListener("click", (e) => { const b = e.target.closest("button[data-l]"); if (!b || b.dataset.l === LANG) return; try { localStorage.setItem("arcircle.lang", b.dataset.l); } catch { /* private */ } if (window.arcI18n) window.arcI18n.set(b.dataset.l); location.reload(); });
+// phones: the compact (PC-style) layout or the large one; applied on reload (play.html sets the viewport)
+const VP = (() => { try { return localStorage.getItem("arc.world.vp") || "pc"; } catch { return "pc"; } })();
+if (coarse) { $("wp-set-vp-row").hidden = false; $("wp-set-vp").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vp === VP))); }
+$("wp-set-vp").addEventListener("click", (e) => { const b = e.target.closest("button[data-vp]"); if (!b || b.dataset.vp === VP) return; try { localStorage.setItem("arc.world.vp", b.dataset.vp); } catch { /* private */ } location.reload(); });
 $("wp-set-snd").addEventListener("change", (e) => Snd.set(e.target.checked));
 $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; saveSet(); });
 $("wp-set-char").addEventListener("click", () => { closeSet(); openMake(); });

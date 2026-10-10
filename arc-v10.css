@@ -1368,10 +1368,13 @@ body.wi-on #wi>.wi-sheet:not([hidden]){display:grid}
 body.wi-on.wi-visit #wi>.wi-visitbar:not([hidden]){display:flex}
 body.wp-photo #wi,body.wi-lapse .wi-build{display:none!important}
 body.wi-on .wp-stage,body.wi-on .wp-feed,body.wi-building .wp-keys,body.wi-building .wp-quests{display:none!important}
-body.wi-building .wp-prompt{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 150px)}
+body.wi-on .wp-prompt{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 140px)}
+body.wi-building .wi-bar{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 168px)}
+body.wi-building .wp-prompt{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 270px)}
+body.wi-visit #wi>.wi-bar{display:none!important}
 
-.wi-bar{position:fixed;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:21;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:999px;background:rgba(10,14,22,.8);border:1px solid rgba(126,224,160,.28);box-shadow:0 14px 40px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);max-width:calc(100vw - 32px)}
-.wi-title{display:flex;align-items:baseline;gap:12px;min-width:0;white-space:nowrap}
+.wi-bar{position:fixed;left:50%;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 34px);transform:translateX(-50%);z-index:21;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 12px;padding:10px 12px;border-radius:18px;background:rgba(10,14,22,.82);border:1px solid rgba(126,224,160,.28);box-shadow:0 14px 40px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);max-width:min(470px,calc(100vw - 24px))}
+.wi-title{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 12px;min-width:0;white-space:nowrap}
 .wi-title b{font-size:15px;font-weight:700;letter-spacing:-.01em}
 .wi-title span{display:flex;gap:10px;font-size:12px;color:rgba(222,233,244,.7)}
 .wi-title span span+span::before{content:"";display:inline-block;width:3px;height:3px;margin-right:10px;border-radius:50%;background:rgba(222,233,244,.35);vertical-align:middle}
