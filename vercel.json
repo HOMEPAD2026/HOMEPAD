@@ -49,6 +49,10 @@
       "destination": "/world.html"
     },
     {
+      "source": "/play",
+      "destination": "/play.html"
+    },
+    {
       "source": "/cnPONS",
       "destination": "/cnPONS.html"
     },

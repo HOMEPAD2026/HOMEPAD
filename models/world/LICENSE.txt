@@ -1,0 +1,4 @@
+models/world/scifi-props.glb and models/world/scifi-enemies.glb
+From "Sci-Fi Essentials Kit" (standard free version) by Quaternius — https://quaternius.com
+License: CC0 1.0 Universal (public domain dedication) — https://creativecommons.org/publicdomain/zero/1.0/
+Repacked for the web (selected models merged, textures resized to WebP, meshopt-compressed) with glTF-Transform.

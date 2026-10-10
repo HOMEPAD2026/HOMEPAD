@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ARCIRCLE World — walk the planet, launch real coins</title>
+<meta name="description" content="ARCIRCLE World: walk a tiny planet as your robot. Every shop is a real ARCIRCLE PAD tool on Circle's Arc — launch coins, swap, lock, scan — and the money is real USDC and $ARCIRCLE. Beat the scammers stage by stage.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ARCIRCLE PAD">
+<meta property="og:title" content="ARCIRCLE World — walk the planet, launch real coins">
+<meta property="og:description" content="Walk a tiny planet as your robot. Every shop is a real ARCIRCLE PAD tool on Circle's Arc.">
+<meta property="og:url" content="https://www.arcircle.app/play">
+<meta property="og:image" content="https://www.arcircle.app/images/og/og-home.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ARCIRCLEonArc">
+<meta name="theme-color" content="#04060a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791641760">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791641760">
+<link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<script src="arc-log.js?v=1791641760"></script>
+<script src="i18n-boot.js?v=1791641760"></script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="/world-lock.js?v=1791641760"></script>
+<link rel="stylesheet" href="/arc.min.css?v=1791641760">
+<link rel="modulepreload" href="/vendor/three/three-0.169.0.module.min.js">
+</head>
+<body class="wp">
+<canvas id="wp-cv" class="wp-cv" aria-label="ARCIRCLE World — use W A S D or the arrow keys to walk, E to enter a shop"></canvas>
+
+<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span></div>
+
+<header class="wp-hud">
+  <div class="wp-hud-l">
+    <a class="wp-brand" href="/?skip" title="Platform World"><img src="/images/arcircle-mark-sm.png" alt="" width="30" height="18"><b>ARCIRCLE</b><i>World</i></a>
+    <div class="wp-chips">
+      <span class="wp-chip wp-lv" id="wp-lv"><b data-no-i18n>Lv 1</b><span class="wp-xpbar"><i id="wp-xpfill"></i></span></span>
+      <span class="wp-chip wp-cards" id="wp-cards" title="Key cards found"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h4"/></svg><b data-no-i18n>0/12</b></span>
+      <span class="wp-chip wp-stage" id="wp-stage"></span>
+    </div>
+  </div>
+  <div class="wp-hud-r">
+    <button type="button" class="wp-btn wp-map-btn" id="wp-map-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span>Map</span></button>
+    <button type="button" class="wp-btn wp-wallet" id="wp-wallet"><span class="wp-dot"></span><span id="wp-wallet-t">Connect wallet</span></button>
+  </div>
+</header>
+<div class="wp-purse" id="wp-purse" hidden>
+  <span><small>USDC</small><b id="wp-usdc" data-no-i18n>—</b></span>
+  <span><small>$ARCIRCLE</small><b id="wp-arc" data-no-i18n>—</b></span>
+</div>
+
+<div class="wp-prompt" id="wp-prompt" hidden><button type="button" id="wp-enter"><span id="wp-enter-t"></span><kbd>E</kbd></button></div>
+<div class="wp-joy" id="wp-joy" aria-hidden="true"><i></i></div>
+<p class="wp-keys" id="wp-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk <span>·</span> <kbd>Shift</kbd> run <span>·</span> <kbd>E</kbd> enter <span>·</span> <kbd>M</kbd> map <span>·</span> drag to look</p>
+
+<div class="wp-intro" id="wp-intro" hidden role="dialog" aria-modal="true" aria-labelledby="wp-intro-h">
+  <div class="wp-card">
+    <h2 id="wp-intro-h">Welcome to ARCIRCLE World</h2>
+    <p>You're the robot. Walk up to a shop and step in: every shop is a real ARCIRCLE PAD tool, so what you sign there really happens on Circle's Arc, with your own USDC and $ARCIRCLE.</p>
+    <p>Scammers roam the planet. Beat them by spotting their tricks, one stage at a time. Pick up the key cards on the way.</p>
+    <button type="button" class="wp-cta" id="wp-intro-go">Start walking</button>
+  </div>
+</div>
+
+<aside class="wp-sheet" id="wp-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="wp-sheet-h">
+  <div class="wp-sheet-head">
+    <div><h2 id="wp-sheet-h"></h2><p id="wp-sheet-p"></p></div>
+    <div class="wp-sheet-act"><a id="wp-sheet-full" href="#" class="wp-btn">Open full page</a><button type="button" class="wp-btn wp-x" id="wp-sheet-x" aria-label="Back to the planet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  </div>
+  <div class="wp-frame"><iframe id="wp-frame" title="Shop" allow="clipboard-write; web-share"></iframe><div class="wp-frame-load" id="wp-frame-load">Opening the shop…</div></div>
+</aside>
+
+<aside class="wp-mapsheet" id="wp-mapsheet" hidden role="dialog" aria-modal="true" aria-labelledby="wp-map-h">
+  <div class="wp-card">
+    <div class="wp-sheet-head"><h2 id="wp-map-h">Map</h2><button type="button" class="wp-btn wp-x" id="wp-map-x" aria-label="Close the map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <p class="wp-map-sub">Tap a shop to fly there.</p>
+    <ul class="wp-maplist" id="wp-maplist"></ul>
+  </div>
+</aside>
+
+<div class="wp-fight" id="wp-fight" hidden role="dialog" aria-modal="true" aria-labelledby="wp-fight-h">
+  <div class="wp-card wp-fight-card">
+    <span class="wp-fight-stage" id="wp-fight-stage"></span>
+    <h2 id="wp-fight-h"></h2>
+    <blockquote id="wp-fight-q"></blockquote>
+    <p class="wp-fight-out" id="wp-fight-out" hidden></p>
+    <div class="wp-fight-opts" id="wp-fight-opts"></div>
+  </div>
+</div>
+
+<div class="wp-toast" id="wp-toast" role="status" aria-live="polite"></div>
+
+<noscript><p class="wp-nojs">ARCIRCLE World needs JavaScript. <a href="/?skip">Go to the Platform World</a>.</p></noscript>
+<script src="config-arc.js?v=1791641760"></script>
+<script src="arc-connect.js?v=1791641760"></script>
+<script type="module" src="/world-play.js?v=1791641760"></script>
+</body>
+</html>
