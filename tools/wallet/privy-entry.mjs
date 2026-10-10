@@ -1,4 +1,4 @@
-// tools/wallet/privy-entry.mjs — the ARCIRCLE Wallet core: Privy (email · Google · Apple → an embedded wallet), built by
+// tools/wallet/privy-entry.mjs — the ARCIRCLE Wallet core: Privy (email · Google · Apple · X → an embedded wallet), built by
 // tools/build-wallet.mjs into wallet-privy.bundle.js and loaded on demand by wallet-arc.js. It renders nothing of its
 // own except Privy's dialogs (login, transaction confirmation, key export); the site's pages talk to it through
 // window.__arcPrivy: { ready, authenticated, address, email, login(), logout(), exportWallet(), provider() }.
@@ -27,10 +27,11 @@ function Bridge() {
   const last = useRef("");
   useEffect(() => {
     const w = (wallets || []).find((x) => x.walletClientType === "privy") || null;
-    const email = (user && (user.email && user.email.address)) || (user && user.google && user.google.email) || (user && user.apple && user.apple.email) || "";
+    // what the page shows as "signed in with": the email, or @handle for X
+    const email = (user && (user.email && user.email.address)) || (user && user.google && user.google.email) || (user && user.apple && user.apple.email) || (user && user.twitter && user.twitter.username ? "@" + user.twitter.username : "") || "";
     Object.assign(P, {
       ready, authenticated: !!(ready && authenticated), address: w ? String(w.address).toLowerCase() : "", email,
-      method: user && user.google ? "google" : user && user.apple ? "apple" : user && user.email ? "email" : "",
+      method: user && user.google ? "google" : user && user.apple ? "apple" : user && user.twitter ? "x" : user && user.email ? "email" : "",
       login: () => new Promise((ok, no) => { if (authenticated) return ok(true); waiters.push({ ok, no }); login(); }),
       logout: () => logout(),
       exportWallet: () => (w ? exportWallet({ address: w.address }) : Promise.reject(new Error("no wallet"))),
@@ -52,7 +53,7 @@ export function mount(appId) {
   createRoot(el).render(h(PrivyProvider, {
     appId,
     config: {
-      loginMethods: ["email", "google", "apple"],
+      loginMethods: ["email", "google", "apple", "twitter"],
       appearance: { theme: "dark", accentColor: "#1fe0a6", logo: "https://www.arcircle.app/images/apple-touch-icon.png", landingHeader: "ARCIRCLE Wallet", showWalletLoginFirst: false, walletChainType: "ethereum-only" },
       embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" }, showWalletUIs: true },
       defaultChain: ARC,

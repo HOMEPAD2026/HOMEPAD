@@ -162,7 +162,7 @@
       var here = location.host + location.pathname + location.search;
       var phone = /Android|iPhone|iPad/i.test(navigator.userAgent || "");
       var rows = list.map(function (w, i) {
-        return '<button type="button" class="cw-w" data-i="' + i + '">' + (w.info.icon ? '<img src="' + esc(w.info.icon) + '" alt="" width="28" height="28">' : '<span class="cw-wi" aria-hidden="true"></span>') + "<b>" + esc(w.info.name) + '</b><small>' + esc(L("Installed", "설치됨", "已安装")) + "</small></button>";
+        return '<button type="button" class="cw-w" data-i="' + i + '">' + (w.info.icon ? '<img src="' + esc(w.info.icon) + '" alt="" width="28" height="28">' : '<span class="cw-wi" aria-hidden="true"></span>') + "<b>" + esc(w.info.name) + '</b><small>' + esc(w.info.rdns === "app.arcircle.wallet" ? L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X") : L("Installed", "설치됨", "已安装")) + "</small></button>";
       }).join("");
       var apps = phone ? '<div class="cw-sec">' + esc(L("Open this page in a wallet app", "지갑 앱에서 이 페이지 열기", "在钱包应用中打开本页")) + '</div>' +
         '<a class="cw-w" href="https://metamask.app.link/dapp/' + esc(here) + '"><span class="cw-wi mm" aria-hidden="true"></span><b>MetaMask</b><small>' + esc(L("Open in the app", "앱에서 열기", "在应用中打开")) + "</small></a>" +
@@ -173,7 +173,8 @@
         apps +
         '<div class="cw-sec">' + esc(L("More ways", "다른 방법", "更多方式")) + "</div>" +
         '<a class="cw-w" href="/arc?connect=1' + esc(location.hash || "") + '"><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></a>" +
-        '<a class="cw-w soon" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google or Apple — soon", "이메일·구글·애플 — 곧 출시", "邮箱、Google 或 Apple — 即将推出")) + "</small></a>" +
+        // ARCIRCLE Wallet (email, Google, Apple or X): listed above where this page loads it, otherwise opened on /wallet
+        (list.some(function (w) { return w.info && w.info.rdns === "app.arcircle.wallet"; }) ? "" : '<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X")) + "</small></a>") +
         "</div>";
       D.body.appendChild(ch);
       ch.addEventListener("click", function (e) {

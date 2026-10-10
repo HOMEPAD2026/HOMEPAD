@@ -1,5 +1,5 @@
-// wallet-arc.js — ARCIRCLE Wallet, the light part (a few KB, on every page that offers it). Sign in with email, Google
-// or Apple and an embedded wallet is made for you on Arc and Robinhood Chain (Privy; the key never reaches
+// wallet-arc.js — ARCIRCLE Wallet, the light part (a few KB, on every page that offers it). Sign in with email, Google,
+// Apple or X and an embedded wallet is made for you on Arc and Robinhood Chain (Privy; the key never reaches
 // arcircle.app, and you can export it to any wallet). The heavy part (wallet-core/, built by tools/build-wallet.mjs)
 // downloads only when someone opens the wallet or signs in, or when a wallet already signed in comes back.
 //
@@ -12,7 +12,7 @@
   if (window.arcWallet) return;
   // The Privy app's ID (dashboard.privy.io → the app → Settings). Public by design: it only names the app; Privy checks
   // the site's domain against the app's allowed domains.
-  var PRIVY_APP_ID = "";
+  var PRIVY_APP_ID = "cmv1r2ddc00az0gjgz58tlqme";
   var CORE = "/wallet-core/privy-entry.js";
   var HINT = "arcwallet.on";
   var ICON = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#0b0e2c"/><circle cx="25" cy="32" r="12" fill="none" stroke="#2f6bff" stroke-width="5"/><circle cx="39" cy="32" r="12" fill="none" stroke="#1fe0a6" stroke-width="5"/></svg>');
