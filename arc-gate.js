@@ -16,9 +16,9 @@
   var lang = (H.getAttribute("lang") || "en").slice(0, 2);
   try { lang = localStorage.getItem("arcircle.lang") || lang; } catch (e) { /* private */ }
   var T = {
-    ko: { h: "두 개의 세계, 하나의 지갑", p: "같은 코인, 같은 USDC와 $ARCIRCLE. 들어가는 길만 두 갈래예요.", g: "게임 월드", gb: "로봇으로 행성을 걸어 다녀요", gs: "상점에서 진짜 코인을 런칭하고 거래하고, 스캐머를 물리쳐요.", f: "플랫폼 월드", fb: "ARCIRCLE PAD 전체", fs: "지금의 사이트 그대로, 모든 도구가 한 곳에.", hint: "드래그해서 둘러보기", skip: "사이트로 바로 가기", world: "World", on: "{n}명 접속 중", vis: "누적 방문 {n}명", cont: "{name}(으)로 계속하기" },
-    zh: { h: "两个世界，一个钱包", p: "同样的币，同样的 USDC 和 $ARCIRCLE，两条入口。", g: "游戏世界", gb: "以机器人身份漫游星球", gs: "在商店里发行真实代币、交易，并击败骗子。", f: "平台世界", fb: "完整的 ARCIRCLE PAD", fs: "保持现在的网站，所有工具一页可达。", hint: "拖动查看四周", skip: "直接进入网站", world: "World", on: "{n} 人在线", vis: "累计访问 {n} 人", cont: "以 {name} 继续" },
-    en: { h: "Two worlds. One wallet.", p: "The same coins, the same USDC and $ARCIRCLE. Two ways in.", g: "Game World", gb: "Walk the planet as your robot", gs: "Launch real coins and trade in the shops. Beat the scammers.", f: "Platform World", fb: "The full ARCIRCLE PAD", fs: "The site as it is, every tool in one place.", hint: "Drag to look around", skip: "Skip to the site", world: "World", on: "{n} online now", vis: "{n} visitors so far", cont: "Continue as {name}" },
+    ko: { h: "두 개의 세계, 하나의 지갑", p: "같은 코인, 같은 USDC와 $ARCIRCLE. 들어가는 길만 두 갈래예요.", g: "게임 월드", gb: "행성으로 뛰어들어 걸어 다녀요", gs: "상점에서 진짜 코인을 런칭하고 거래하고, 나만의 섬을 짓고, 스캐머를 물리쳐요.", f: "플랫폼 월드", fb: "ARCIRCLE PAD 전체", fs: "지금의 사이트 그대로, 모든 도구가 한 곳에.", hint: "드래그해서 둘러보기", skip: "사이트로 바로 가기", world: "World", on: "{n}명 접속 중", vis: "누적 방문 {n}명", cont: "{name}(으)로 계속하기" },
+    zh: { h: "两个世界，一个钱包", p: "同样的币，同样的 USDC 和 $ARCIRCLE，两条入口。", g: "游戏世界", gb: "跃入星球，自由漫步", gs: "在商店里发行真实代币、交易，搭建自己的岛屿，并击败骗子。", f: "平台世界", fb: "完整的 ARCIRCLE PAD", fs: "保持现在的网站，所有工具一页可达。", hint: "拖动查看四周", skip: "直接进入网站", world: "World", on: "{n} 人在线", vis: "累计访问 {n} 人", cont: "以 {name} 继续" },
+    en: { h: "Two worlds. One wallet.", p: "The same coins, the same USDC and $ARCIRCLE. Two ways in.", g: "Game World", gb: "Dive in and walk the world", gs: "Launch real coins and trade in the shops, build your own island, beat the scammers.", f: "Platform World", fb: "The full ARCIRCLE PAD", fs: "The site as it is, every tool in one place.", hint: "Drag to look around", skip: "Skip to the site", world: "World", on: "{n} online now", vis: "{n} visitors so far", cont: "Continue as {name}" },
   }[lang === "ko" || lang === "zh" ? lang : "en"];
 
   // a saved character on this browser turns the Game World door into "Continue as <name>"

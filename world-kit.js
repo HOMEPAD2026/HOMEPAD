@@ -64,12 +64,30 @@ export const DISTRICTS = [
 // Coin City: one lot per ArcPad coin, biggest market caps nearest the plaza
 export const COIN_LOTS = (() => { const out = []; [41, 48, 55].forEach((th) => { for (let ph = -48; ph <= 48; ph += 16) out.push([th, ph]); }); return out.sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]) || a[0] - b[0]).map(([t, p]) => [t, (p + 360) % 360]); })(); // centre first
 
+// Flat mode (the game, after the dive): the same layout unrolled onto flat ground around the plaza, distances along
+// each spoke kept (theta degrees → FLAT·R·theta units out from the centre, phi = the bearing). The gate keeps the sphere.
+let FLAT = 0;
+export const setFlat = (scale = 1.35) => { FLAT = scale; };
+export const isFlat = () => FLAT > 0;
+export const flatR = (thetaDeg) => FLAT * R * THREE.MathUtils.degToRad(thetaDeg);
+export function spot(thetaDeg, phiDeg) {
+  const r = flatR(thetaDeg), p = THREE.MathUtils.degToRad(phiDeg);
+  return new THREE.Vector3(r * Math.sin(p), 0, -r * Math.cos(p));
+}
 export function dirOf(thetaDeg, phiDeg) {
   const t = THREE.MathUtils.degToRad(thetaDeg), p = THREE.MathUtils.degToRad(phiDeg);
   return new THREE.Vector3(Math.sin(t) * Math.sin(p), Math.cos(t), -Math.sin(t) * Math.cos(p)).normalize();
 }
 // stand an object on the planet at dir, its +Z (front) facing the spawn point
 export function placeOn(obj, dir, r = R) {
+  if (FLAT) {
+    // back to (theta, bearing), then out along the ground; +Z faces the plaza
+    const th = Math.acos(THREE.MathUtils.clamp(dir.y, -1, 1)), h = Math.hypot(dir.x, dir.z), rr = FLAT * R * th;
+    const x = h > 1e-6 ? dir.x / h * rr : 0, z = h > 1e-6 ? dir.z / h * rr : 0;
+    obj.position.set(x, r - R, z); obj.up.set(0, 1, 0);
+    obj.rotation.set(0, rr > 1e-4 ? Math.atan2(-x, -z) : 0, 0);
+    return;
+  }
   obj.position.copy(dir).multiplyScalar(r);
   const toPole = UP.clone().sub(dir.clone().multiplyScalar(UP.dot(dir)));
   if (toPole.lengthSq() < 1e-6) toPole.set(0, 0, 1);
@@ -107,7 +125,8 @@ export function makeStage(canvas, opts = {}) {
   if (opts.shadows && !q.low) {
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
-    sun.position.set(14, R + 34, 18); sun.target.position.set(0, R, -4);
+    const gy = opts.groundY ?? R;
+    sun.position.set(14, gy + 34, 18); sun.target.position.set(0, gy, -4);
     const sc = sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 5; sc.far = 90; sc.updateProjectionMatrix();
   }
   const rim = new THREE.DirectionalLight(0x39ff88, 0.7); rim.position.set(-40, -10, -30); scene.add(rim);
@@ -191,13 +210,17 @@ export function makePlanet({ map = "" } = {}) {
   plaza.receiveShadow = true; g.add(plaza);
   const plazaRing = new THREE.Mesh(new THREE.TorusGeometry((R + 0.08) * Math.sin(cap), 0.05, 8, 128), glow(C.cyan, 1.1));
   plazaRing.rotation.x = Math.PI / 2; plazaRing.position.y = (R + 0.08) * Math.cos(cap); g.add(plazaRing);
-  // crystals and a few trees where nothing else stands — instanced (one draw per kind) so phones keep up
+  scatter(g, 160);
+  return g;
+}
+// crystals and trees where nothing else stands — instanced (one draw per kind) so phones keep up
+function scatter(g, n, maxTheta = 180) {
   const crystal = new THREE.ConeGeometry(0.45, 1.8, 5), trunk = new THREE.CylinderGeometry(0.12, 0.16, 0.8, 6), crown = new THREE.IcosahedronGeometry(0.75, 0);
   crystal.translate(0, 0.7, 0); trunk.translate(0, 0.4, 0); crown.translate(0, 1.15, 0);
   const crysMats = [glow(C.cyan, 1.2), glow(C.green, 1.1), glow(C.blue, 1.2)], trunkMat = solid(0x3a2c22), crownMats = [solid(0x1f6b55, { flat: true }), solid(0x23806a, { flat: true }), solid(0x2a5e7a, { flat: true })];
   const rr = rand(7), spots = { crys: [[], [], []], tree: [[], [], []] }, o = new THREE.Object3D();
-  for (let i = 0; i < 160; i++) {
-    const th = 14 + rr() * 166, ph = rr() * 360;
+  for (let i = 0; i < n; i++) {
+    const th = 14 + rr() * (maxTheta - 14), ph = rr() * 360;
     if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
     if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6 || COIN_LOTS.some(([a, b]) => angDist(th, ph, a, b) < 5) || DISTRICTS.some((d) => angDist(th, ph, d.theta, d.phi) < 3)) continue;
     placeOn(o, dirOf(th, ph), R - 0.05); o.rotateY(rr() * 6.28); o.scale.setScalar(0.8 + rr() * 0.7);
@@ -207,6 +230,56 @@ export function makePlanet({ map = "" } = {}) {
   const inst = (geo, mat, list) => { if (!list.length) return null; const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((mx, k) => m.setMatrixAt(k, mx)); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
   spots.crys.forEach((l, k) => inst(crystal, crysMats[k], l));
   spots.tree.forEach((l, k) => { inst(trunk, trunkMat, l); inst(crown, crownMats[k], l); });
+}
+
+// ---------------- the flat ground (the game): grass, the plaza, far hills, clouds ----------------
+function grassTexture() {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 512;
+  const g = cv.getContext("2d"), rr = rand(11);
+  g.fillStyle = "#4f8f62"; g.fillRect(0, 0, 512, 512);
+  // soft patches, wrapped at the edges so the tile repeats without a seam
+  const blob = (x, y, r, c) => { for (const dx of [-512, 0, 512]) for (const dy of [-512, 0, 512]) { const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); } };
+  for (let i = 0; i < 70; i++) blob(rr() * 512, rr() * 512, 30 + rr() * 90, ["rgba(110,170,110,.35)", "rgba(52,110,84,.4)", "rgba(140,180,120,.25)", "rgba(60,120,120,.25)"][i % 4]);
+  for (let i = 0; i < 2600; i++) { g.fillStyle = rr() < 0.5 ? "rgba(30,70,45,.35)" : "rgba(170,210,150,.28)"; g.fillRect(rr() * 512, rr() * 512, 1.5, 3 + rr() * 3); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+}
+export function makeGround({ radius = 330 } = {}) {
+  const g = new THREE.Group(); g.name = "ground";
+  const tex = grassTexture(); tex.repeat.set(radius / 9, radius / 9);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(radius, 96), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; g.add(ground);
+  // the plaza: stone, a cyan ring at its edge
+  const pr = flatR(11);
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(pr, 64), solid(0x3b4f5c, { roughness: 0.8, metalness: 0.1 }));
+  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; plaza.receiveShadow = true; g.add(plaza);
+  const tiles = new THREE.Mesh(new THREE.RingGeometry(pr * 0.35, pr * 0.37, 64), new THREE.MeshBasicMaterial({ color: 0x9fd8e0, transparent: true, opacity: 0.35, depthWrite: false }));
+  tiles.rotation.x = -Math.PI / 2; tiles.position.y = 0.045; g.add(tiles);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.07, 8, 128), glow(C.cyan, 1.1)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
+  scatter(g, 260, 175);
+  // far hills all around: the edge of the world melts into them and the fog
+  const hills = new THREE.Group(), rr = rand(5), hillGeo = new THREE.IcosahedronGeometry(1, 1);
+  const hillMats = [solid(0x3f7a64, { flat: true, roughness: 1 }), solid(0x356b70, { flat: true, roughness: 1 }), solid(0x4c8a6a, { flat: true, roughness: 1 })];
+  for (let i = 0; i < 46; i++) {
+    const a = (i / 46) * Math.PI * 2 + rr() * 0.1, d = radius * (0.72 + rr() * 0.22);
+    const m = new THREE.Mesh(hillGeo, hillMats[i % 3]); m.position.set(Math.cos(a) * d, -2, Math.sin(a) * d);
+    m.scale.set(18 + rr() * 26, 8 + rr() * 22, 18 + rr() * 26); hills.add(m);
+  }
+  g.add(hills);
+  return g;
+}
+// soft low-poly clouds; they drift slowly (update with dt)
+export function makeClouds(n = 26, { spread = 260, y = 38 } = {}) {
+  const g = new THREE.Group(), rr = rand(21), puff = new THREE.IcosahedronGeometry(1, 1);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0, flatShading: true, transparent: true, opacity: 0.92, emissive: 0x9fb6c8, emissiveIntensity: 0.25 });
+  for (let i = 0; i < n; i++) {
+    const c = new THREE.Group();
+    const k = 3 + Math.floor(rr() * 4);
+    for (let j = 0; j < k; j++) { const m = new THREE.Mesh(puff, mat); m.position.set((j - k / 2) * 2.4 + rr(), rr() * 1.2, rr() * 2 - 1); m.scale.setScalar(2 + rr() * 2.2); c.add(m); }
+    c.position.set((rr() - 0.5) * spread * 2, y + rr() * 18, (rr() - 0.5) * spread * 2); c.scale.setScalar(1 + rr() * 1.4);
+    g.add(c);
+  }
+  g.userData = { mat, update: (dt) => { g.children.forEach((c, i) => { c.position.x += dt * (0.6 + (i % 3) * 0.25); if (c.position.x > spread) c.position.x -= spread * 2; }); } };
   return g;
 }
 // distant Kenney planets in the sky
@@ -635,7 +708,7 @@ export function makeCoinBuilding(kit, coin, mine) {
   const fmt = mc >= 1e6 ? "$" + (mc / 1e6).toFixed(2) + "M" : mc >= 1e3 ? "$" + (mc / 1e3).toFixed(1) + "K" : "$" + Math.round(mc);
   const tag = label("$" + String(coin.symbol || "?").slice(0, 10), { accent: mine ? "#39ff88" : "#4f9dff", size: 0.62, sub: mine ? "yours · " + fmt : fmt });
   tag.position.y = h + 1.6; g.add(tag);
-  g.userData = { coin, mine, radius: 2.5, spin: [], tag, pulse: 0 };
+  g.userData = { coin, mine, radius: 2.5, spin: [], tag, pulse: 0, body: b };
   if (mine) { const bc = makeBeacon(C.green, 14); g.add(bc); g.userData.spin.push(bc.userData.spin); }
   // the coin's own logo on a billboard over the roof (data: logos always; https ones when the host allows it)
   if (coin.imageUrl) {
@@ -674,7 +747,7 @@ export function makeDistrictSigns() {
 // a launch: a rocket leaves the Launchpad on a column of fire (a real ArcPad launch triggers it)
 export function rocketLaunch(parent, at, color = C.green) {
   const g = new THREE.Group(); g.position.copy(at); g.quaternion.copy(parent.quaternion.clone().invert()); parent.add(g);
-  const up = at.clone().normalize();
+  const up = FLAT ? UP.clone() : at.clone().normalize();
   g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
   const r = new THREE.Group();
   const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 2.8, 20), glossy(0xe9f1f7)); hull.position.y = 1.4;
@@ -709,8 +782,14 @@ export function makeDistrictTints() {
   const g = new THREE.Group();
   DISTRICTS.forEach((d) => {
     const cap = d.id === "dark" ? 16 : d.id === "coins" ? 13 : 11;
-    const m = new THREE.Mesh(new THREE.SphereGeometry(R + 0.03, 48, 6, 0, Math.PI * 2, 0, THREE.MathUtils.degToRad(cap)), new THREE.MeshBasicMaterial({ color: d.color, transparent: true, opacity: d.id === "dark" ? 0.2 : 0.09, depthWrite: false }));
-    m.quaternion.setFromUnitVectors(UP, dirOf(d.id === "coins" ? 48 : d.id === "dark" ? 72 : d.theta - 9, d.phi)); m.renderOrder = 1; g.add(m);
+    const mat = new THREE.MeshBasicMaterial({ color: d.color, transparent: true, opacity: d.id === "dark" ? 0.2 : 0.09, depthWrite: false });
+    const th = d.id === "coins" ? 48 : d.id === "dark" ? 72 : d.theta - 9;
+    if (FLAT) {
+      const m = new THREE.Mesh(new THREE.CircleGeometry(flatR(cap), 64), mat); m.rotation.x = -Math.PI / 2;
+      m.position.copy(spot(th, d.phi)); m.position.y = 0.04; m.renderOrder = 1; g.add(m); return;
+    }
+    const m = new THREE.Mesh(new THREE.SphereGeometry(R + 0.03, 48, 6, 0, Math.PI * 2, 0, THREE.MathUtils.degToRad(cap)), mat);
+    m.quaternion.setFromUnitVectors(UP, dirOf(th, d.phi)); m.renderOrder = 1; g.add(m);
   });
   return g;
 }
@@ -750,8 +829,8 @@ export function makeAurora() {
     vertexShader: "varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: "uniform float t; varying vec2 vU; void main(){ float w = sin(vU.x * 18.0 + t * 0.7) * 0.5 + 0.5; float band = smoothstep(0.0, 0.35, vU.y) * smoothstep(1.0, 0.45, vU.y); vec3 c = mix(vec3(0.21,0.85,0.82), vec3(0.22,1.0,0.53), w); gl_FragColor = vec4(c, band * (0.25 + 0.25 * w)); }",
   });
-  const g = new THREE.Mesh(new THREE.CylinderGeometry(R * 2.2, R * 2.2, R * 0.9, 96, 1, true), m);
-  g.position.y = R * 1.4; g.userData.update = (dt, t) => { m.uniforms.t.value = t; };
+  const g = new THREE.Mesh(FLAT ? new THREE.CylinderGeometry(150, 150, 60, 96, 1, true) : new THREE.CylinderGeometry(R * 2.2, R * 2.2, R * 0.9, 96, 1, true), m);
+  g.position.y = FLAT ? 70 : R * 1.4; g.userData.update = (dt, t) => { m.uniforms.t.value = t; };
   return g;
 }
 // a whale across the sky (a big $ARCIRCLE trade)

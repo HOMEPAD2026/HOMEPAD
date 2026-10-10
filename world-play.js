@@ -3,9 +3,10 @@
 // Burn Furnace flares on a real $ARCIRCLE burn, the Exchange board shows the live price, the Quantum Lab shows the
 // launches in superposition, and the sky follows Seoul's clock and the market's mood.
 //
-// How it moves: the player stays at the top of the world and the planet turns under them, so everything on the
-// planet rides on it. Movement is camera-relative in any direction (axis = direction × up) and slides along walls;
-// the camera orbits freely, drifts back behind the player and pulls in when a building is in the way.
+// It opens in space on the round planet and dives through the clouds onto flat ground: the same districts, unrolled
+// around the plaza. How it moves: the player stays at the origin and the world slides under them (so the shadow box,
+// the sky and the rain stay put). Movement is camera-relative and slides along walls; the camera orbits freely,
+// drifts back behind the player and fades out a building that stands in the way.
 // Shops open the real page inside the world (an iframe of the same site; arc-nav.js "in-world" hides its chrome).
 // The game never signs a transaction: every one is the page's own, confirmed in the player's wallet.
 //
@@ -21,7 +22,8 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 const K = await import("./world-kit.js" + VER);
-const { THREE, R } = K;
+const IS = await import("./world-island.js" + VER);
+const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -38,9 +40,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", "drag to look": "드래그로 둘러보기" },
-  zh: { Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -151,6 +153,9 @@ const Snd = (() => {
     fire: () => noise(1.2, 0.14, 300), whale: () => tone(140, 2.2, { type: "sine", to: 90, v: 0.08 }), shutter: () => noise(0.06, 0.2, 2500),
     bad: () => tone(220, 0.3, { type: "square", to: 140, v: 0.06 }), win: () => [659, 880, 1175].forEach((f, i) => tone(f, 0.2, { v: 0.12, at: i * 0.1 })),
     board: () => tone(200, 0.3, { type: "sawtooth", to: 420, v: 0.05 }),
+    place: () => { tone(540 + Math.random() * 180, 0.07, { type: "triangle", v: 0.12 }); noise(0.04, 0.1, 2400); },
+    pop: () => { tone(420, 0.1, { to: 190, v: 0.1 }); noise(0.08, 0.12, 1200); },
+    paint: () => tone(900, 0.09, { to: 1300, v: 0.07 }),
   };
 })();
 addEventListener("pointerdown", () => Snd.init(), { once: true });
@@ -164,28 +169,46 @@ if (!K.webglOk()) {
 }
 try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
 loadbar(0.15);
-const st = K.makeStage(cv, { fog: 0.0075, bloom: 0.7, fov: 55, shadows: true, quality: S.quality });
+const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.55, fov: 55, shadows: true, quality: S.quality, groundY: 0 });
 st.scene.background = null;
 const kitP = K.loadKit(VER).catch((e) => { console.warn("world models:", e); return null; });
-const planet = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER }); st.scene.add(planet);
-const sky = K.makeSky(); planet.add(sky); planet.add(K.makeSkyPlanets(VER)); planet.add(K.makeHalo()); planet.add(K.makeStars()); planet.add(K.makePaths());
-planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
+// the intro: the round planet seen from space, built before the kit switches to flat ground
+const intro = new THREE.Group(); intro.visible = false; st.scene.add(intro);
+{
+  const pl = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER });
+  pl.add(K.makePaths(), K.makeDistrictTints(), K.makeLamps());
+  K.SHOPS.forEach((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); pl.add(g); });
+  intro.add(pl, K.makeHalo()); intro.userData.pl = pl;
+}
+K.setFlat(1.35);
+// the world: everything on the ground lives in this group, which slides under the player
+const planet = new THREE.Group(); planet.name = "world"; st.scene.add(planet);
+planet.add(K.makeGround());
+const sky = K.makeSky(); st.scene.add(sky);
+const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
+const stars = K.makeStars(); st.scene.add(stars);
+const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set(0.32, 0.2, 0); halo.traverse((o) => { if (o.material) o.material.fog = false; }); st.scene.add(halo);
+const clouds = K.makeClouds(); planet.add(clouds);
+planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
 const spins = [];
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); K.shadowy(g); spins.push(...g.userData.spin); return g; });
 const shopG = (id) => shops.find((g) => g.userData.spec.id === id);
 const portal = K.makePortal(T("Platform World")); K.placeOn(portal, K.dirOf(K.PORTAL.theta, K.PORTAL.phi)); planet.add(portal); spins.push(...portal.userData.spin);
+// the way to the islands
+const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(14, 140)); planet.add(isleGate); spins.push(...isleGate.userData.spin);
+isleGate.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.transparent) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x7ee0a0), 0.5); o.material.emissive.lerp(new THREE.Color(0x7ee0a0), 0.5); } });
 // the fast-travel pad at the edge of the plaza
 const pad = new THREE.Group(); { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.09, 8, 48), new THREE.MeshStandardMaterial({ color: 0xffc861, emissive: 0xffc861, emissiveIntensity: 2 })); ring.rotation.x = Math.PI / 2; ring.position.y = 0.08; const disc = new THREE.Mesh(new THREE.CircleGeometry(1.15, 40), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.18, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.07; const tag = K.label(T("Fast travel"), { accent: "#ffc861", size: 0.55 }); tag.position.y = 2.2; pad.add(ring, disc, tag); pad.userData = { radius: 1.2, spin: [(dt, t) => { ring.rotation.z = t; disc.material.opacity = 0.14 + Math.sin(t * 3) * 0.06; }] }; spins.push(...pad.userData.spin); }
 K.placeOn(pad, K.dirOf(7, 90)); planet.add(pad);
 planet.traverse((o) => { if (o.isMesh && o.material && o.material.transparent) o.castShadow = false; });
-const glowLight = new THREE.PointLight(0x35d8d0, 5, 7, 2); glowLight.position.set(0, R + 0.5, 0); st.scene.add(glowLight);
-const aurora = K.makeAurora(); aurora.visible = false; planet.add(aurora);
+const glowLight = new THREE.PointLight(0x35d8d0, 5, 7, 2); glowLight.position.set(0, 0.5, 0); st.scene.add(glowLight);
+const aurora = K.makeAurora(); aurora.visible = false; st.scene.add(aurora);
 const rain = K.makeRain(); rain.visible = false; st.scene.add(rain);
 loadbar(0.35);
 
-// the player: a group at the top of the world; the character inside it turns to face where it walks
-const player = new THREE.Group(); player.position.set(0, R, 0); st.scene.add(player);
+// the player: a group at the origin; the character inside it turns to face where it walks
+const player = new THREE.Group(); st.scene.add(player);
 const board = K.makeHoverboard(); board.visible = false; player.add(board);
 let avatar = null, nameTag = null;
 async function setAvatar(id) {
@@ -277,6 +300,7 @@ const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
 const MOVE_KEYS = ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"];
 addEventListener("keydown", (e) => {
   if (typing(e)) return;
+  if (mode === "island" && !photo && island.keyDown(e)) return;
   const k = e.key.toLowerCase();
   if (k === "escape") { if (photo) setPhoto(false); else closeAll(); return; }
   if (k === "p" && (!frozen || photo)) { setPhoto(!photo); return; }
@@ -292,8 +316,11 @@ addEventListener("keydown", (e) => {
 addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
 addEventListener("blur", () => keys.clear());
 const joyEl = $("wp-joy"), knob = joyEl.querySelector("i");
+let downAt = null, hoverXY = null;
+cv.addEventListener("contextmenu", (e) => { if (mode === "island") e.preventDefault(); });
 cv.addEventListener("pointerdown", (e) => {
   if (frozen && !photo) return;
+  downAt = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
   cv.setPointerCapture(e.pointerId);
   if (!photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy) {
     joy = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
@@ -301,31 +328,36 @@ cv.addEventListener("pointerdown", (e) => {
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener("pointermove", (e) => {
+  if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
     let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = 56;
     if (m > max) { dx *= max / m; dy *= max / m; }
     joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
   } else if (look && e.pointerId === look.id) {
     camYaw -= (e.clientX - look.x) * 0.006 * S.sens;
-    camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - look.y) * 0.004 * S.sens, -0.3, 0.75);
+    camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - look.y) * 0.004 * S.sens, -0.3, mode === "island" && island.building() ? 1.4 : 0.75);
     look.x = e.clientX; look.y = e.clientY; lastLook = performance.now();
   }
 });
 const lift = (e) => {
+  // a short tap without a drag is a build action on your island
+  if (e.type === "pointerup" && downAt && downAt.id === e.pointerId && mode === "island" && island.building() && !frozen && performance.now() - downAt.t < 450 && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 9) island.tap(e);
+  downAt = null;
   if (joy && e.pointerId === joy.id) { joy = null; joyEl.classList.remove("on"); }
   if (look && e.pointerId === look.id) look = null;
 };
 cv.addEventListener("pointerup", lift); cv.addEventListener("pointercancel", lift);
-cv.addEventListener("wheel", (e) => { camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.0012, 0.6, 1.9); }, { passive: true });
+cv.addEventListener("wheel", (e) => { camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.0012, 0.6, mode === "island" ? 2.6 : 1.9); }, { passive: true });
 $("wp-act-jump").addEventListener("click", () => jump());
 $("wp-act-run").addEventListener("click", (e) => { runToggle = !runToggle; e.currentTarget.setAttribute("aria-pressed", String(runToggle)); });
 $("wp-act-emote").addEventListener("click", () => emote("emote-yes"));
 $("wp-act-board").addEventListener("click", () => setBoard(!boarding));
 $("wp-act-photo").addEventListener("click", () => setPhoto(true));
 
-// ---------------- movement on the sphere ----------------
-const Y = new THREE.Vector3(0, 1, 0), qa = new THREE.Quaternion(), prevQ = new THREE.Quaternion();
-const at = new THREE.Vector3(0, R, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
+// ---------------- movement: the world slides under the player ----------------
+const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
+let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
+const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
 function inputs() {
   let x = 0, y = 0;
@@ -338,19 +370,22 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95);
   return { x, y, m, run };
 }
-const SOLIDS = () => [shops, [portal], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
+const SOLIDS = () => [shops, [portal, isleGate], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
 function blockedBy() {
   let hit = null, best = Infinity;
   for (const list of SOLIDS()) for (const g of list) { g.getWorldPosition(tmp); const d = tmp.distanceTo(at) - (g.userData.radius + 0.55); if (d < 0 && d < best) { best = d; hit = g; } }
   return hit;
 }
+// where the player stands, in the world group's coordinates
+const here = (v = new THREE.Vector3()) => v.set(-planet.position.x, hop, -planet.position.z);
 function tryMove(d, dist) {
-  prevQ.copy(planet.quaternion);
-  axis.crossVectors(d, Y).normalize();
-  qa.setFromAxisAngle(axis, dist / R); planet.quaternion.premultiply(qa);
-  planet.updateMatrixWorld(true);
-  const hit = blockedBy();
-  if (hit) planet.quaternion.copy(prevQ);
+  prevP.copy(planet.position);
+  planet.position.addScaledVector(d, -dist);
+  let hit = null;
+  if (mode === "island") hit = island.blocked(here(tmp2)) ? { axis: true } : null;
+  else if (planet.position.lengthSq() > EDGE * EDGE) hit = { edge: true };
+  else { planet.updateMatrixWorld(true); hit = blockedBy(); }
+  if (hit) planet.position.copy(prevP);
   return hit;
 }
 const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
@@ -363,15 +398,20 @@ function setBoard(on) {
   toast(on ? T("Hoverboard on: hold Shift (or Run) to fly") : T("Hoverboard off"));
 }
 function step(dt) {
-  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= 0) { hop = 0; vy = 0; grounded = true; Snd.land(); dust(6); shake = Math.max(shake, 0.12); } }
-  player.position.y = R + hop;
+  // the floor: flat ground in the hub, the bricks under your feet on an island
+  const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
+  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { hop = floor; vy = 0; grounded = true; Snd.land(); dust(6); shake = Math.max(shake, 0.12); } }
+  else if (hop > floor + 0.05) { grounded = false; vy = 0; }
+  else if (floor > hop) hop = floor;
+  player.position.y = hop;
+  at.y = THREE.MathUtils.lerp(at.y, floor, grounded ? 0.2 : 0.04);
   if (frozen) { speedNow = THREE.MathUtils.lerp(speedNow, 0, 0.2); return; }
   if (flying) {
     const k = Math.min(1, (performance.now() - flying.t0) / flying.ms), e = 1 - Math.pow(1 - k, 3);
-    planet.quaternion.slerpQuaternions(flying.from, flying.to, e);
-    camYaw = angLerp(camYaw, 0, 0.08); facing = angLerp(facing, Math.PI, 0.1);
+    planet.position.lerpVectors(flying.from, flying.to, e);
+    camYaw = angLerp(camYaw, flying.face - Math.PI, 0.08); facing = angLerp(facing, flying.face, 0.1);
     speedNow = 0.6 * (1 - k);
-    if (k >= 1) flying = null;
+    if (k >= 1) { facing = flying.face; camYaw = flying.face - Math.PI; flying = null; }
     return;
   }
   const { x, y, m, run } = inputs();
@@ -381,9 +421,15 @@ function step(dt) {
     dir.set(rx * x + fx * y, 0, rz * x + fz * y).normalize();
     sp = (boarding ? (run ? 22 : 13) : run ? 12.5 : 6.5) * m;
     const hit = tryMove(dir, sp * dt);
-    if (hit) {
+    if (hit && hit.axis) {
+      // a brick grid: slide along whichever axis is still free
+      const ax = new THREE.Vector3(Math.sign(dir.x), 0, 0), az = new THREE.Vector3(0, 0, Math.sign(dir.z));
+      const okX = Math.abs(dir.x) > 0.15 && !tryMove(ax, sp * dt * Math.abs(dir.x));
+      if (!okX && !(Math.abs(dir.z) > 0.15 && !tryMove(az, sp * dt * Math.abs(dir.z)))) sp *= 0.2;
+    } else if (hit) {
       // slide along it: drop the part of the step that goes into the obstacle
-      hit.getWorldPosition(tmp); nrm.set(tmp.x, 0, tmp.z).normalize();
+      if (hit.edge) nrm.set(-planet.position.x, 0, -planet.position.z).normalize();
+      else { hit.getWorldPosition(tmp); nrm.set(tmp.x, 0, tmp.z).normalize(); }
       const into = dir.dot(nrm);
       if (into > 0) { tmp2.copy(dir).addScaledVector(nrm, -into); if (tmp2.lengthSq() > 0.02) { tmp2.normalize(); if (tryMove(tmp2, sp * dt * Math.sqrt(1 - into * into))) sp *= 0.2; } else sp *= 0.2; }
     }
@@ -395,25 +441,57 @@ function step(dt) {
   }
   speedNow = THREE.MathUtils.lerp(speedNow, sp, 0.2);
 }
-// fly to a place: the player lands in front of it (things face the spawn point) and turns to it
+// fly to a place: the player lands in front of it (things face the plaza) and turns to it
 function flyTo(g) {
-  const V = THREE.Vector3, d = g.position.clone().normalize(), pole = new V(0, 1, 0);
-  const tp = pole.clone().sub(d.clone().multiplyScalar(pole.dot(d)));
-  if (tp.lengthSq() < 1e-6) tp.set(0, 0, 1);
-  tp.normalize();
-  const a = ((g.userData.radius || 1) + 1.7) / R;
-  const up = d.clone().multiplyScalar(Math.cos(a)).add(tp.multiplyScalar(Math.sin(a))).normalize();
-  const fwd = d.clone().sub(up.clone().multiplyScalar(d.dot(up))).normalize(), back = fwd.negate();
-  const right = new V().crossVectors(up, back);
-  const to = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, back).transpose());
-  flying = { from: planet.quaternion.clone(), to, t0: performance.now(), ms: reduce ? 1 : 1500 };
+  if (mode !== "hub") leaveIsland();
+  const p = g.position, front = new THREE.Vector3(-p.x, 0, -p.z);
+  if (front.lengthSq() < 1e-4) front.set(0, 0, 1);
+  front.normalize();
+  const stand = new THREE.Vector3(p.x, 0, p.z).addScaledVector(front, (g.userData.radius || 1) + 1.7);
+  flying = { from: planet.position.clone(), to: stand.clone().negate(), face: Math.atan2(p.x - stand.x, p.z - stand.z), t0: performance.now(), ms: reduce ? 1 : 1500 };
   camPitch = 0.05;
+}
+
+// ---------------- My Island (world-island.js): a floating island you build, and other players' islands ----------------
+const island = IS.createIsland({
+  THREE, K, st, planet, T, lang: LANG, esc, toast, post, sess, Snd, P, VER, reduce, coarse, level,
+  lines: () => islandLines(), onStats: (x) => { if (!x) return; P.isle = x; save(); checkQuests(); },
+  labelsDirty: () => { if (labels) labels.dirty = true; },
+  avatarPlay: (n) => { if (avatar && grounded && !boarding) avatar.play(n, { once: true }); },
+  goTo: (pos, face) => { planet.position.set(-pos.x, 0, -pos.z); hop = pos.y; at.y = pos.y; vy = 0; grounded = true; facing = face; camYaw = face - Math.PI; flying = null; mode = "island"; },
+  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
+  feet: () => hop, goIsland: (o) => goIsland(o),
+});
+function islandLines() {
+  const out = [];
+  if (arcStats && arcStats.change24h != null) out.push(T("$ARCIRCLE is {p} today", { p: (arcStats.change24h >= 0 ? "+" : "") + arcStats.change24h.toFixed(1) + "%" }));
+  if (coinData && coinData.length) { const c = coinData.slice().sort((a, b) => b.launchedAt - a.launchedAt)[0]; out.push(T("Did you see {x} launch on ArcPad?", { x: "$" + c.symbol })); }
+  if (arcStats && arcStats.burned && arcStats.burned.tokens) out.push(T("{n} $ARCIRCLE burned so far", { n: Math.round(arcStats.burned.tokens).toLocaleString("en-US") }));
+  out.push(T("Scan a token before you buy it."), T("I love this island."));
+  return out;
+}
+async function goIsland(opt) {
+  closeAll();
+  const veil = $("wp-veil"); veil.style.opacity = "1"; await sleep(reduce ? 0 : 260);
+  if (mode === "island") island.leave();
+  const ok = await island.enter(opt);
+  if (!ok) { if (mode === "island") leaveIsland(); }
+  else if (opt.visit && !P.visited.includes("isle-visit")) { P.visited.push("isle-visit"); save(); checkQuests(); }
+  near = null; paintPrompt(); veil.style.opacity = "0";
+}
+function leaveIsland() {
+  island.leave(); mode = "hub";
+  const p = isleGate.position, front = new THREE.Vector3(-p.x, 0, -p.z).normalize(), stand = new THREE.Vector3(p.x, 0, p.z).addScaledVector(front, 3.6);
+  planet.position.copy(stand).negate(); hop = 0; at.y = 0; vy = 0; grounded = true; facing = Math.atan2(-front.x, -front.z) + Math.PI; camYaw = facing - Math.PI;
+  if (labels) labels.dirty = true; near = null; paintPrompt();
 }
 
 // ---------------- what's in reach ----------------
 function nearest() {
   let best = null, bd = Infinity;
   const consider = (g, kind, extra, reach) => { g.getWorldPosition(tmp); const d = tmp.distanceTo(at) - (g.userData.radius || 1); if (d < reach && d < bd) { bd = d; best = { kind, g, ...extra }; } };
+  if (mode === "island") { island.near(consider); return best; }
+  consider(isleGate, "isle", {}, 2.4);
   shops.forEach((g) => consider(g, "shop", { spec: g.userData.spec }, 2.8));
   coinBuildings.forEach((g) => consider(g, "coin", { coin: g.userData.coin }, 2.4));
   consider(portal, "portal", {}, 2.4);
@@ -426,14 +504,17 @@ function paintPrompt() {
   if (!near || frozen) { p.hidden = true; return; }
   p.hidden = false;
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
 
 // ---------------- shops, coins, ARCIA ----------------
 const sheet = $("wp-sheet"), frame = $("wp-frame");
 let openShop = null;
+let lotCoin = null;
+$("wp-sheet-lot").addEventListener("click", () => { const c = lotCoin; closeSheet(); if (c) goIsland({ lot: c }); });
 function openSheet(title, line, url) {
+  $("wp-sheet-lot").hidden = true;
   $("wp-sheet-h").textContent = title; $("wp-sheet-p").textContent = line;
   $("wp-sheet-full").href = url;
   $("wp-frame-load").hidden = false;
@@ -452,12 +533,15 @@ function doorThen(g, fn) {
   const off = st.on(() => { const k = Math.min(1, (performance.now() - t0) / 420); camYaw = angLerp(y0, yaw, k); camZoom = 1 - 0.35 * k; if (k >= 1) { off(); fn(); } });
 }
 function enter(n) {
+  if (n.kind === "isle") { goIsland({}); return; }
+  if (n.kind === "isle-exit") { leaveIsland(); return; }
+  if (n.kind === "resident") { island.talk(n.res); return; }
   if (n.kind === "portal") { location.href = "/?skip"; return; }
   if (n.kind === "pad") { openMap(); return; }
   if (n.kind === "npc") { doorThen(n.g, () => openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia")); return; }
   if (n.kind === "coin") {
     const c = n.coin;
-    doorThen(n.g, () => openSheet("$" + c.symbol, `${c.name || c.symbol} · ${T("market cap {v}", { v: usd(Number(c.marketCapUsd) || 0) })}${n.g.userData.mine ? " · " + T("your coin") : ""}`, "/arc#coin/" + c.token));
+    doorThen(n.g, () => { openSheet("$" + c.symbol, `${c.name || c.symbol} · ${T("market cap {v}", { v: usd(Number(c.marketCapUsd) || 0) })}${n.g.userData.mine ? " · " + T("your coin") : ""}`, "/arc#coin/" + c.token); $("wp-sheet-lot").hidden = !n.g.userData.mine; lotCoin = { token: lc(c.token), symbol: c.symbol }; });
     openShop = n.g;
     if (!P.visited.includes("coin")) { P.visited.push("coin"); save(); }
     checkQuests(); return;
@@ -482,7 +566,10 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
 
 // ---------------- Coin City, the live feed and rockets: real ArcPad data (/api/c?view=launches) ----------------
 const feedEl = $("wp-feed");
+// before the landing, news waits (so the first items aren't gone by the time the dive ends)
+let landed = false; const feedQ = [];
 function feed(html, color = "#39ff88") {
+  if (!landed) { feedQ.push([html, color]); return; }
   const li = document.createElement("li"); li.setAttribute("data-no-i18n", ""); li.innerHTML = `<i style="--c:${color}"></i><span>${html}</span>`;
   feedEl.prepend(li); requestAnimationFrame(() => li.classList.add("on"));
   while (feedEl.children.length > 4) feedEl.lastChild.remove();
@@ -500,6 +587,24 @@ function buildCoinCity(list) {
     K.placeOn(g, K.dirOf(th, ph)); planet.add(g); spins.push(...g.userData.spin); coinBuildings.push(g);
   });
   if (labels) labels.dirty = true;
+  dressLots();
+}
+// a coin's creator can build its lot brick by brick (world-island.js, lot mode); those builds replace the stock building
+async function dressLots() {
+  if (!coinBuildings.length) return;
+  try {
+    const r = await fetch("/api/social?world=lots&coins=" + coinBuildings.map((g) => lc(g.userData.coin.token)).join(",")); if (!r.ok) return;
+    const j = await r.json();
+    coinBuildings.forEach((g) => {
+      const d = j.lots && j.lots[lc(g.userData.coin.token)]; if (!d || !d.data) return;
+      const sg = island.makeStatic(d.data); if (!sg) return;
+      if (g.userData.lotG) g.remove(g.userData.lotG);
+      sg.scale.setScalar(0.5); sg.position.y = 0.2; g.add(sg); g.userData.lotG = sg;
+      if (g.userData.body) g.userData.body.visible = false;
+      g.userData.tag.position.y = sg.userData.h * 0.5 + 1.9;
+    });
+    if (labels) labels.dirty = true;
+  } catch { /* the stock buildings stay */ }
 }
 const ago = (t) => { const s = Math.max(1, Date.now() / 1000 - t); return s < 90 ? T("just now") : s < 3600 ? T("{n} min ago", { n: Math.round(s / 60) }) : s < 86400 ? T("{n} h ago", { n: Math.round(s / 3600) }) : T("{n} d ago", { n: Math.round(s / 86400) }); };
 async function refreshCoins(first) {
@@ -575,7 +680,7 @@ function swimWhale() {
   const t0 = performance.now(), side = Math.random() < 0.5 ? -1 : 1;
   const off = st.on((dt, t) => {
     const k = (performance.now() - t0) / 12000;
-    whale.position.set(side * (-70 + k * 140), R + 22 + Math.sin(k * 6) * 2, -30 + Math.sin(k * 3) * 10); whale.rotation.y = side > 0 ? 0 : Math.PI; whale.rotation.z = Math.sin(t * 1.5) * 0.06;
+    whale.position.set(side * (-70 + k * 140), 26 + Math.sin(k * 6) * 2, -30 + Math.sin(k * 3) * 10); whale.rotation.y = side > 0 ? 0 : Math.PI; whale.rotation.z = Math.sin(t * 1.5) * 0.06;
     whale.userData.tail.rotation.y = Math.sin(t * 3) * 0.4;
     if (k >= 1) { off(); st.scene.remove(whale); whale = null; }
   });
@@ -626,6 +731,9 @@ const QUESTS = [
   { id: "phisher", t: "Beat The Phisher in the Dark Market", xp: 0, done: () => P.beaten.includes("phisher"), target: () => fighters.find((g) => g.userData.spec.id === "phisher") || null },
   { id: "coincity", t: "Visit a coin in Coin City", xp: 15, done: () => P.visited.includes("coin"), target: () => coinBuildings[0] || null },
   { id: "arcia", t: "Talk to ARCIA", xp: 15, done: () => P.visited.includes("npc"), target: () => npc },
+  { id: "build20", t: "Place 20 bricks on your island", xp: 20, done: () => ((P.isle && P.isle.bricks) || 0) >= 20, target: () => isleGate },
+  { id: "resident", t: "Build a door: welcome your first resident", xp: 25, done: () => ((P.isle && P.isle.residents) || 0) >= 1, target: () => isleGate },
+  { id: "isle-visit", t: "Visit another player's island", xp: 15, done: () => P.visited.includes("isle-visit"), target: () => isleGate },
   { id: "furnace", t: "Visit the Burn Furnace", xp: 15, done: () => P.visited.includes("reward"), target: () => shopG("reward") },
   { id: "hold", t: "Hold some $ARCIRCLE", xp: 25, done: () => (bal.arc || 0) > 0, target: () => shopG("swap") },
   { id: "stages", t: "Clear all six scammer stages", xp: 150, done: () => K.SCAMMERS.every((s) => P.beaten.includes(s.id)), target: () => fighters.find((g) => g.userData.live) || null },
@@ -640,6 +748,8 @@ const BADGES = [
   { id: "holder", t: "Hold $ARCIRCLE", title: "Holder", done: () => (bal.arc || 0) > 0 },
   { id: "launcher", t: "Launch a coin", title: "Launcher", done: () => myCoins.length > 0 },
   { id: "streak7", t: "7-day streak", title: "Regular", done: () => ((P.daily && P.daily.streak) || 0) >= 7 },
+  { id: "builder", t: "Place 200 bricks", title: "Builder", done: () => ((P.isle && P.isle.bricks) || 0) >= 200 },
+  { id: "landlord", t: "Welcome 5 residents", title: "Island host", done: () => ((P.isle && P.isle.residents) || 0) >= 5 },
 ];
 function badges() {
   let got = false;
@@ -696,7 +806,7 @@ function openMap() {
   const coinsHtml = coinBuildings.length ? `<h3 style="--c:#eef3f7">${esc(T("Coin City"))}</h3><ul class="wp-maplist">` + coinBuildings.slice(0, 6).map((g, i) => `<li><button type="button" data-c="${i}"><i style="--c:${g.userData.mine ? "#39ff88" : "#4f9dff"}"></i><span><b>$${esc(g.userData.coin.symbol)}</b><small>${esc(g.userData.coin.name || "")}${g.userData.mine ? " · " + esc(W("yours")) : ""}</small></span></button></li>`).join("") + "</ul>" : "";
   const live = fighters.find((g) => g.userData.live);
   const darkHtml = live ? `<h3 style="--c:#ff4d6d">${esc(T("Dark Market"))}</h3><ul class="wp-maplist"><li><button type="button" data-f="1"><i style="--c:#ff4d6d"></i><span><b>${esc(live.userData.spec.name)}</b><small>${esc(T("Stage {n} · scammer", { n: live.userData.spec.stage }))}</small></span></button></li></ul>` : "";
-  $("wp-maplist").innerHTML = groups + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  $("wp-maplist").innerHTML = groups + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
 }
@@ -705,8 +815,10 @@ $("wp-map-btn").addEventListener("click", openMap);
 $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n]"); if (!b) return;
+  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles]"); if (!b) return;
   closeMap();
+  if (b.dataset.isle) { goIsland({}); return; }
+  if (b.dataset.isles) { island.openIsles(); return; }
   if (b.dataset.c != null) flyTo(coinBuildings[+b.dataset.c]);
   else if (b.dataset.f) { const g = fighters.find((x) => x.userData.live); if (g) flyTo(g); }
   else if (b.dataset.n) { if (npc) flyTo(npc); }
@@ -718,14 +830,14 @@ const mini = $("wp-mini"), mg = mini.getContext("2d");
 mini.parentNode.addEventListener("click", () => { if (!frozen) openMap(); });
 let miniT = 0;
 function drawMini() {
-  const W = mini.width, c = W / 2, range = 34, sc = (c - 10) / range;
+  const W = mini.width, c = W / 2, range = mode === "island" ? 26 : 40, sc = (c - 10) / range;
   mg.clearRect(0, 0, W, W);
   mg.save(); mg.beginPath(); mg.arc(c, c, c - 2, 0, 6.283); mg.clip();
   mg.fillStyle = "rgba(8,14,22,.82)"; mg.fillRect(0, 0, W, W);
   mg.strokeStyle = "rgba(53,216,208,.14)"; mg.lineWidth = 2; [0.33, 0.66].forEach((k) => { mg.beginPath(); mg.arc(c, c, (c - 2) * k, 0, 6.283); mg.stroke(); });
   const cs = Math.cos(camYaw), sn = Math.sin(camYaw);
   const put = (g, color, r, glyph) => {
-    g.getWorldPosition(tmp); if (tmp.y < R * 0.3) return null;
+    g.getWorldPosition(tmp);
     const rx = tmp.x * cs - tmp.z * sn, rz = tmp.x * sn + tmp.z * cs;
     let px = c + rx * sc, py = c + rz * sc; const dd = Math.hypot(px - c, py - c), edge = c - 12;
     const out = dd > edge; if (out) { px = c + (px - c) / dd * edge; py = c + (py - c) / dd * edge; }
@@ -733,22 +845,27 @@ function drawMini() {
     if (glyph && !out) { mg.fillStyle = "#04121a"; mg.font = "700 13px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.fillText(glyph, px, py + 0.5); }
     return { px, py };
   };
-  coinBuildings.forEach((g) => put(g, g.userData.mine ? "#39ff88" : "rgba(238,243,247,.55)", 4));
-  cards.forEach((g) => put(g, "#ffc861", 3.5));
-  put(portal, "#35d8d0", 6); put(pad, "#ffc861", 5); if (npc) put(npc, "#ff7ad9", 5);
-  shops.forEach((g) => put(g, hex(g.userData.spec.color), 9, g.userData.spec.name[0]));
-  fighters.forEach((g) => put(g, g.userData.live ? "#ff4d6d" : "rgba(255,77,109,.45)", g.userData.live ? 6 : 4));
-  if (questTarget) { const p = put(questTarget, "", 0); if (p) { mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(p.px, p.py, 12, 0, 6.283); mg.stroke(); } }
+  if (mode === "island") island.mini(put);
+  else {
+    coinBuildings.forEach((g) => put(g, g.userData.mine ? "#39ff88" : "rgba(238,243,247,.55)", 4));
+    cards.forEach((g) => put(g, "#ffc861", 3.5));
+    put(portal, "#35d8d0", 6); put(pad, "#ffc861", 5); put(isleGate, "#7ee0a0", 6); if (npc) put(npc, "#ff7ad9", 5);
+    shops.forEach((g) => put(g, hex(g.userData.spec.color), 9, g.userData.spec.name[0]));
+    fighters.forEach((g) => put(g, g.userData.live ? "#ff4d6d" : "rgba(255,77,109,.45)", g.userData.live ? 6 : 4));
+  }
+  if (questTarget && mode === "hub") { const p = put(questTarget, "", 0); if (p) { mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(p.px, p.py, 12, 0, 6.283); mg.stroke(); } }
   mg.restore();
   const fa = facing - Math.PI - camYaw;
   mg.save(); mg.translate(c, c); mg.rotate(-fa); mg.fillStyle = "#eef3f7"; mg.beginPath(); mg.moveTo(0, -11); mg.lineTo(8, 9); mg.lineTo(0, 4); mg.lineTo(-8, 9); mg.closePath(); mg.fill(); mg.restore();
   mg.strokeStyle = "rgba(255,255,255,.18)"; mg.lineWidth = 2; mg.beginPath(); mg.arc(c, c, c - 2, 0, 6.283); mg.stroke();
-  let dn = "", bd = Infinity; K.DISTRICTS.forEach((d) => { const v = K.dirOf(d.theta, d.phi).multiplyScalar(R).applyQuaternion(planet.quaternion); const dd = v.distanceTo(at); if (dd < bd) { bd = dd; dn = d.name; } });
-  $("wp-mini-n").textContent = bd < 18 ? dn : "";
+  let dn = "", bd = Infinity;
+  if (mode === "island") { dn = island.title(); bd = 0; }
+  else K.DISTRICTS.forEach((d) => { const v = K.spot(d.theta, d.phi).add(planet.position); const dd = v.length(); if (dd < bd) { bd = dd; dn = d.name; } });
+  $("wp-mini-n").textContent = bd < 22 ? dn : "";
 }
 const qm = $("wp-qmark"), proj = new THREE.Vector3();
 function paintMarker() {
-  if (!questTarget || frozen || photo) { qm.hidden = true; return; }
+  if (!questTarget || frozen || photo || mode !== "hub") { qm.hidden = true; return; }
   questTarget.getWorldPosition(proj); const dist = proj.distanceTo(at);
   if (dist < 5) { qm.hidden = true; return; }
   proj.y += 3; proj.project(cam);
@@ -825,7 +942,7 @@ function poof(g) {
 }
 // the Scanner's beam from the player to the scammer
 function beam(g) {
-  g.getWorldPosition(tmp); const from = new THREE.Vector3(0, R + 1.5, 0), to = tmp.clone().add(new THREE.Vector3(0, 1.2, 0));
+  g.getWorldPosition(tmp); const from = new THREE.Vector3(0, hop + 1.5, 0), to = tmp.clone().add(new THREE.Vector3(0, 1.2, 0));
   const len = from.distanceTo(to), m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, len, 8), new THREE.MeshBasicMaterial({ color: 0x35d8d0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
   m.position.copy(from).add(to).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(Y, to.clone().sub(from).normalize()); st.scene.add(m);
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 700; m.material.opacity = 0.9 * (1 - k); m.scale.x = m.scale.z = 1 + k * 2; if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
@@ -840,11 +957,20 @@ function scamCheck(dt) {
 }
 
 // labels fade out as the camera comes close, and the small ones (coins, orbs) only show nearby
-function fadeLabels() {
+// big labels (shops, districts): only the five nearest stay up, so the sky isn't a wall of signs
+let labelT = 0;
+function fadeLabels(dt) {
   if (!labels || labels.dirty) { labels = []; planet.traverse((o) => { if (o.isSprite && o.material.map) labels.push(o); }); }
+  const big = [];
   for (const l of labels) {
-    l.getWorldPosition(tmp); const d = tmp.distanceTo(cam.position), far = l.scale.x < 3.6 ? 34 : 120;
-    l.material.opacity = THREE.MathUtils.clamp((d - 6) / 6, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1); l.visible = l.material.opacity > 0.02;
+    l.getWorldPosition(tmp); const d = tmp.distanceTo(cam.position); l.userData.d = d;
+    if (l.scale.x >= 3.6) big.push(l);
+  }
+  if ((labelT -= dt) <= 0) { labelT = 0.4; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); }
+  for (const l of labels) {
+    const d = l.userData.d, isBig = l.scale.x >= 3.6, far = isBig ? (l.userData.rank < 5 ? 95 : 0) : 30;
+    const want = THREE.MathUtils.clamp((d - 6) / 6, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1);
+    l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
   }
 }
 
@@ -882,7 +1008,7 @@ function lockedCheck(dt) {
 }
 function burst(color) {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.9, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2; m.position.set(0, R + 0.1, 0); st.scene.add(m);
+  m.rotation.x = -Math.PI / 2; m.position.set(0, hop + 0.1, 0); st.scene.add(m);
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 7); m.material.opacity = 0.9 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function levelUp(n) {
@@ -895,7 +1021,7 @@ function dust(n) {
   if (reduce) return;
   for (let i = 0; i < n; i++) {
     const m = new THREE.Mesh(dustGeo, new THREE.MeshBasicMaterial({ color: 0xcfe0e6, transparent: true, opacity: 0.6, depthWrite: false }));
-    const a = Math.random() * 6.28; m.position.set(Math.cos(a) * 0.4, R + 0.1, Math.sin(a) * 0.4); st.scene.add(m);
+    const a = Math.random() * 6.28; m.position.set(Math.cos(a) * 0.4, hop + 0.1, Math.sin(a) * 0.4); st.scene.add(m);
     const v = new THREE.Vector3(Math.cos(a), 0.6, Math.sin(a)).multiplyScalar(1.4 + Math.random()); const t0 = performance.now();
     const off = st.on((dt) => { const k = (performance.now() - t0) / 600; m.position.addScaledVector(v, dt); m.scale.setScalar(1 + k * 2); m.material.opacity = 0.6 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.material.dispose(); } });
   }
@@ -1068,33 +1194,58 @@ $("wp-photo-take").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; });
 
 // ---------------- closing things ----------------
-function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); $("wp-shot").hidden = true; }
+function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); island.closeSheets(); $("wp-shot").hidden = true; }
 if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 
 // ---------------- day and night (Seoul time) ----------------
-const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x050a18), mid: new THREE.Color(0x0a1a2e), glow: new THREE.Color(0x0f3f4a) }, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x060a18), glow: new THREE.Color(0x1b1440) }, DUSK = new THREE.Color(0x5a2a3a);
+// a blue day sky over the ground, stars and the far planets at night (?hour=21 tries another hour)
+const skyU = sky.material.uniforms, DAY = { top: new THREE.Color(0x2a66c4), mid: new THREE.Color(0x76b0e4), glow: new THREE.Color(0xd2e8f0) }, NIGHT = { top: new THREE.Color(0x02030a), mid: new THREE.Color(0x07102a), glow: new THREE.Color(0x173452) }, DUSK = new THREE.Color(0xf0a070);
+const FOG = { day: new THREE.Color(0xb4d4e4), night: new THREE.Color(0x0b1830), dusk: new THREE.Color(0xd99a80) };
+const hourParam = Number(new URLSearchParams(location.search).get("hour"));
 let nightK = -1;
 function dayNight() {
-  const d = new Date(Date.now() + 9 * 3600e3), h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  const d = new Date(Date.now() + 9 * 3600e3);
+  const h = Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
   st.sun.intensity = 2.1 * (1 - k * 0.65); st.sun.color.setHSL(0.08, dusk * 0.8, 1 - dusk * 0.15);
-  st.hemi.intensity = 0.9 * (1 - k * 0.4); lamps.userData.night(k);
+  st.hemi.intensity = 0.75 * (1 - k * 0.35); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.92 + k * 0.12;
+  if (st.scene.fog) st.scene.fog.density = 0.0032 + k * 0.0026; st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k);
+  if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5);
+  stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
+  skyPlanets.children.forEach((p) => { p.material.opacity = 0.95 * k; }); skyPlanets.visible = k > 0.02;
+  clouds.userData.mat.color.setHSL(0.6, 0.15, 1 - k * 0.72); clouds.userData.mat.emissiveIntensity = 0.25 * (1 - k);
 }
 setInterval(dayNight, 60000);
 
-// ---------------- camera collision: pull in when a building stands between the camera and the player ----------------
+// ---------------- camera: a building between the camera and the player turns see-through ----------------
 const ray = new THREE.Raycaster(); ray.camera = st.camera; let camFit = 1, colT = 0;
+const ghosted = new Map(), ghostMats = new Map();
+const ghostOf = (m) => { let g = ghostMats.get(m); if (!g) { g = m.clone(); g.transparent = true; g.opacity = 0.22; g.depthWrite = false; ghostMats.set(m, g); } return g; };
+function ghost(group, on) {
+  if (on === !!ghosted.get(group)) return;
+  group.traverse((o) => {
+    if (!o.isMesh || o.isSprite) return;
+    if (on) { if (!o.userData.mat0 && !o.material.transparent) { o.userData.mat0 = o.material; o.material = Array.isArray(o.material) ? o.material.map(ghostOf) : ghostOf(o.material); o.castShadow = false; } }
+    else if (o.userData.mat0) { o.material = o.userData.mat0; o.userData.mat0 = null; o.castShadow = true; }
+  });
+  if (on) ghosted.set(group, true); else ghosted.delete(group);
+}
 function camCollide(target) {
-  const head = new THREE.Vector3(0, R + 1.6 + hop, 0), dirC = target.clone().sub(head), len = dirC.length(); dirC.normalize();
+  const head = new THREE.Vector3(0, hop + 1.6, 0), dirC = target.clone().sub(head), len = dirC.length(); dirC.normalize();
   ray.set(head, dirC); ray.far = len;
   const close = [];
-  for (const list of [shops, town, coinBuildings]) for (const g of list) { g.getWorldPosition(tmp); if (tmp.distanceTo(head) < len + 6) close.push(g); }
-  const hit = close.length ? ray.intersectObjects(close, true).find((h) => h.object.isMesh && !h.object.material.transparent) : null;
-  camFit = THREE.MathUtils.lerp(camFit, hit ? Math.max(0.42, (hit.distance - 0.6) / len) : 1, hit ? 0.5 : 0.08);
+  const lists = mode === "island" ? [] : [shops, town, coinBuildings];
+  for (const list of lists) for (const g of list) { g.getWorldPosition(tmp); if (tmp.distanceTo(head) < len + 7) close.push(g); }
+  const hits = new Set();
+  if (close.length) for (const h of ray.intersectObjects(close, true)) { if (!h.object.isMesh || h.object.isSprite || h.distance < 0.4) continue; let o = h.object; while (o.parent && !close.includes(o)) o = o.parent; if (close.includes(o)) hits.add(o); }
+  for (const g of [...ghosted.keys()]) if (!hits.has(g)) ghost(g, false);
+  hits.forEach((g) => ghost(g, true));
+  // a little pull-in only when something is right behind the head
+  camFit = THREE.MathUtils.lerp(camFit, 1, 0.08);
 }
 
 // ---------------- frame rate watch: drop quality once if the device can't keep up ----------------
@@ -1108,7 +1259,7 @@ function watchFps(dt) {
 // ---------------- the loop ----------------
 const cam = st.camera;
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), base = new THREE.Vector3();
-let animState = "", npcT = 0;
+let animState = "", npcT = 0, introOn = false, landUntil = 0, hoverT = 0;
 st.on((dt, t) => {
   step(dt);
   spins.forEach((f) => f(dt, t));
@@ -1131,26 +1282,63 @@ st.on((dt, t) => {
   for (let i = rockets.length - 1; i >= 0; i--) if (!rockets[i](dt)) rockets.splice(i, 1);
   if (aurora.visible) aurora.userData.update(dt, t);
   if (rain.visible) rain.userData.update(dt, at);
+  clouds.userData.update(dt);
+  island.tick(dt, t);
+  if (mode === "island" && island.building() && hoverXY && !look && (hoverT += dt) > 0.12) { hoverT = 0; island.hover(hoverXY.x, hoverXY.y); }
   const n = nearest();
   if ((n && n.g) !== (near && near.g)) { near = n; paintPrompt(); if (n && n.kind === "npc" && !P.visited.includes("npc")) { P.visited.push("npc"); save(); checkQuests(); } }
   scamCheck(dt);
   mixers.forEach((m) => m.update(dt));
-  fadeLabels();
+  fadeLabels(dt);
   pickCards();
   lockedCheck(dt);
   if ((miniT += dt) > 0.08) { miniT = 0; drawMini(); }
   paintMarker();
   watchFps(dt);
-  // camera: behind and above the player, orbiting with camYaw / camPitch, pulled in by walls, wider when running
-  base.set(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom).applyAxisAngle(Y, camYaw);
-  camPos.copy(base).add(at); camPos.y += hop * 0.6;
-  if (!photo && (colT += dt) > 0.05) { colT = 0; camCollide(camPos); }
+  if (introOn) return; // the dive drives the camera
+  // camera: behind and above the player, orbiting with camYaw / camPitch, wider when running; build mode sits higher
+  const bz = mode === "island" && island.building() ? 1.55 : 1;
+  base.set(0, 5.2 + camPitch * 6, 9.6).multiplyScalar(camDist * camZoom * bz).applyAxisAngle(Y, camYaw);
+  camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
+  if (!photo && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
   camPos.sub(at).multiplyScalar(photo ? 1 : camFit).add(at);
   if (shake > 0) { shake = Math.max(0, shake - dt); camPos.x += (Math.random() - 0.5) * shake; camPos.y += (Math.random() - 0.5) * shake; }
-  camLook.set(-Math.sin(camYaw) * 2.6, 1.4 + hop * 0.5, -Math.cos(camYaw) * 2.6).add(at);
-  cam.position.lerp(camPos, 0.16); cam.lookAt(camLook);
+  camLook.set(-Math.sin(camYaw) * 2.6, 1.4 + (hop - at.y) * 0.5, -Math.cos(camYaw) * 2.6).add(at);
+  const landing = performance.now() < landUntil;
+  cam.position.lerp(camPos, 1 - Math.exp(-dt * (landing ? 2.4 : 10))); cam.lookAt(camLook);
   const fov = 55 + Math.min(1, speedNow / 12.5) * 7; if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = THREE.MathUtils.lerp(cam.fov, fov, 0.08); cam.updateProjectionMatrix(); }
 });
+
+// ---------------- the dive: space, the round planet, down through the clouds onto the ground ----------------
+async function dive() {
+  if (reduce || new URLSearchParams(location.search).has("nointro")) return;
+  const veil = $("wp-veil"), fog = st.scene.fog, P0 = new THREE.Vector3(0, 52, 112), P1 = new THREE.Vector3(0, 32 + 2.5, 2.5), L0 = new THREE.Vector3(0, 4, 0), L1 = new THREE.Vector3(0, 32, -7);
+  introOn = true; frozen = true; document.body.classList.add("wp-intro");
+  planet.visible = false; sky.visible = false; halo.visible = false; player.visible = false;
+  st.scene.fog = null; st.scene.background = new THREE.Color(0x02040a); stars.visible = true; stars.material.opacity = 0.9;
+  intro.visible = true; cam.position.copy(P0); cam.lookAt(L0);
+  let skip = false; const stop = () => { skip = true; };
+  addEventListener("keydown", stop, { once: true }); cv.addEventListener("pointerdown", stop, { once: true }); $("wp-intro-skip").addEventListener("click", stop, { once: true });
+  const t0 = performance.now(), MS = 2600, look = new THREE.Vector3();
+  await new Promise((res) => {
+    const off = st.on((dt) => {
+      const k = Math.min(1, (performance.now() - t0) / MS), e = k * k * k; // speeding up as it falls
+      intro.userData.pl.rotation.y += dt * 0.12 * (1 - k);
+      cam.position.lerpVectors(P0, P1, e); look.lerpVectors(L0, L1, Math.min(1, k * 1.4)); cam.lookAt(look);
+      veil.style.opacity = String(THREE.MathUtils.smoothstep(k, 0.68, 0.98));
+      if (k >= 1 || skip) { off(); res(); }
+    });
+  });
+  veil.style.opacity = "1";
+  intro.visible = false; st.scene.remove(intro);
+  planet.visible = true; sky.visible = true; halo.visible = true; player.visible = true; st.scene.fog = fog; st.scene.background = null; nightK = -1; dayNight();
+  // land: the camera comes down from above the clouds to its place behind the player
+  cam.position.set(0, 64, 26); cam.lookAt(0, 0, -4); landUntil = performance.now() + (skip ? 700 : 1700);
+  introOn = false; document.body.classList.remove("wp-intro");
+  requestAnimationFrame(() => { veil.style.opacity = "0"; });
+  await sleep(skip ? 300 : 900);
+  frozen = false;
+}
 
 // ---------------- start ----------------
 dailyState(); dayNight(); worldReady = true;
@@ -1158,10 +1346,14 @@ loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping();
 $("wp-loading").classList.add("done");
 setTimeout(() => $("wp-loading").remove(), 600);
-if (!P.authSeen && !sess()) { openAuth(); await setAvatar(P.char || "male-a"); }
+await setAvatar(P.char || "male-a");
+await dive();
+landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
+if (!P.authSeen && !sess()) openAuth();
 else if (!P.char) openMake();
-else { await setAvatar(P.char); tutorialStep(-1); }
+else tutorialStep(-1);
 window.arcWorld = {
+  mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
   coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit }),
