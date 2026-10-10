@@ -96,7 +96,7 @@
   var root, input, list, open = false, sel = 0, items = [], lastFocus = null;
   function build() {
     root = document.createElement("div");
-    root.className = "ck";
+    root.className = "ckp";
     root.hidden = true;
     root.setAttribute("role", "dialog");
     root.setAttribute("aria-modal", "true");
@@ -142,7 +142,7 @@
       var ext = /^https?:/.test(it[2]);
       return '<li role="option" id="ck-o' + i + '" data-ck-i="' + i + '" class="ck-' + it[3] + '"><span class="ck-k">' + esc(tr(KIND[it[3]] || "")) + '</span>' +
         '<span class="ck-t"><b' + (it[3] === "coin" || it[3] === "addr" && i === 0 ? " data-no-i18n" : "") + ">" + esc(it[3] === "coin" ? it[0] : tr(it[0])) + "</b><small" + (it[3] === "coin" || it[3] === "addr" ? " data-no-i18n" : "") + ">" +
-        esc(it[3] === "coin" || /^0x/.test(it[1]) ? it[1] : tr(it[1])) + "</small></span>" + (ext ? '<span class="ck-x" aria-hidden="true">↗</span>' : "") + "</li>";
+        esc(it[3] === "coin" || /^0x/.test(it[1]) ? it[1] : tr(it[1])) + "</small></span>" + (ext ? '<span class="ck-ext" aria-hidden="true">↗</span>' : "") + "</li>";
     }).join("");
     paintSel();
   }

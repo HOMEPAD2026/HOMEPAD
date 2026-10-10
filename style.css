@@ -8466,18 +8466,19 @@ a.hm-card:hover{transform:translateY(-3px);border-color:rgba(57,255,136,.4);box-
   transition:border-color .18s ease,color .18s ease;}
 .ck-btn:hover{border-color:rgba(77,159,255,.6);color:#fff;}
 .ck-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;}
-.ck-btn kbd,.ck kbd{font:600 .66rem/1 var(--f-num);padding:3px 6px;border-radius:var(--r-ctl);border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:rgba(222,233,244,.7);}
+.ck-btn kbd,.ckp kbd{font:600 .66rem/1 var(--f-num);padding:3px 6px;border-radius:var(--r-ctl);border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:rgba(222,233,244,.7);}
 .headbar .ck-btn{margin-left:12px;}
 @media (max-width:720px){.ck-btn span,.ck-btn kbd{display:none;}.ck-btn{padding:9px;}}
 @media (hover:none){.ck-btn kbd{display:none;}}
-.ck{position:fixed;inset:0;z-index:2147483000;display:flex;justify-content:center;align-items:flex-start;padding:min(14vh,120px) 14px 14px;}
-.ck[hidden]{display:none;}
+/* the site search (arc-cmdk.js): .ckp, not .ck, which is the coin page's creator checklist (arc-community.js) */
+.ckp{position:fixed;inset:0;z-index:2147483000;display:flex;justify-content:center;align-items:flex-start;padding:min(14vh,120px) 14px 14px;}
+.ckp[hidden]{display:none;}
 .ck-bg{position:absolute;inset:0;background:rgba(2,4,8,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .16s ease;}
 .ck-box{position:relative;width:min(620px,100%);max-height:min(560px,calc(100vh - 140px));display:flex;flex-direction:column;border-radius:var(--r-card);overflow:hidden;
   background:rgba(13,17,25,.97);border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);
   opacity:0;transform:translateY(-8px) scale(.985);transition:opacity .16s ease,transform .2s cubic-bezier(.2,.8,.2,1);color:#eef3f7;}
-.ck.in .ck-bg{opacity:1;}
-.ck.in .ck-box{opacity:1;transform:none;}
+.ckp.in .ck-bg{opacity:1;}
+.ckp.in .ck-box{opacity:1;transform:none;}
 .ck-in{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
 .ck-in svg{flex:0 0 18px;height:18px;fill:none;stroke:rgba(222,233,244,.5);stroke-width:2;stroke-linecap:round;}
 .ck-in input{flex:1;min-width:0;background:none;border:none;outline:none;color:#eef3f7;font:500 1rem/1.3 var(--f-ui);padding:4px 0;}
@@ -8492,7 +8493,7 @@ a.hm-card:hover{transform:translateY(-3px);border-color:rgba(57,255,136,.4);box-
 .ck-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .ck-t b{font-size:.92rem;font-weight:600;color:#eef3f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ck-t small{font-size:.76rem;color:rgba(222,233,244,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ck-x{color:rgba(222,233,244,.45);font-size:.85rem;}
+.ck-ext{color:rgba(222,233,244,.45);font-size:.85rem;}
 .ck-none{padding:22px 14px;color:rgba(222,233,244,.55);font-size:.88rem;text-align:center;}
 .ck-foot{display:flex;gap:16px;align-items:center;padding:9px 14px;border-top:1px solid rgba(255,255,255,.08);font-size:.72rem;color:rgba(222,233,244,.5);}
 .ck-foot em{font-style:normal;}

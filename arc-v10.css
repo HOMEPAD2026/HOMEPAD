@@ -88,6 +88,8 @@ html.v10 .ac2.apc{display:flex;flex-direction:column}
 html.v10 .ac2.apc>*{order:20}
 html.v10 .ac2.apc>.ac2-back{order:0}
 html.v10 .ac2.apc>.ac2-head{order:1}
+/* the creator's "Get your coin ready" checklist sits right under the coin's name, not at the end */
+html.v10 .ac2.apc>#apc-checklist{order:1}
 html.v10 .ac2.apc>.v7-ctabs{order:2}
 html.v10 .ac2.apc>.ac2-stats{order:3}
 html.v10 .ac2.apc>.ac2-grid{order:4}
