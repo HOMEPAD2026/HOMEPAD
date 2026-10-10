@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ARCIRCLE">
 <link rel="manifest" href="/wallet.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791589199">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791589199">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791596447">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791596447">
 <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/instrument-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -199,10 +199,114 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 .steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14.5px}
 .steps li::before{content:counter(s);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(31,224,166,.15);color:var(--aurora);font-weight:700;font-size:13px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;padding:10px 16px;border-radius:99px;background:#1b2050;box-shadow:0 10px 30px rgba(0,0,0,.4);font-size:14px}
+
+/* v2 (wallet-plus.js): Tell your wallet, chains, report, automate, invite */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hero p.tag{margin-top:20px;font:700 15px/1.3 var(--body);color:var(--aurora);letter-spacing:.01em}
+.hero p.tag + h1{margin-top:10px}
+.bal .chains{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;color:#cfd5f5}
+.bal .chains:empty{display:none}
+.chains span{display:inline-flex;align-items:center;gap:6px}
+.chains i{width:8px;height:8px;border-radius:50%;background:var(--led)}
+.chains i.rh{background:#ccff00}
+.chains b{font-weight:600;color:var(--spot);font-variant-numeric:tabular-nums}
+.sec h2 .wp-ai-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font:700 12px/1.2 var(--body);color:var(--aurora);background:rgba(31,224,166,.1);box-shadow:inset 0 0 0 1px rgba(31,224,166,.35)}
+.wp-ai-tag svg{width:13px;height:13px}
+.sec h2 button svg{width:14px;height:14px;vertical-align:-2px;margin-right:5px}
+form.wp-ai{display:flex;gap:8px;margin-top:12px;padding:6px 6px 6px 8px;border-radius:999px;background:rgba(11,14,44,.88);box-shadow:inset 0 0 0 1px rgba(31,224,166,.4),0 0 34px rgba(31,224,166,.08)}
+form.wp-ai:focus-within{box-shadow:inset 0 0 0 1.5px var(--aurora),0 0 40px rgba(31,224,166,.16)}
+form.wp-ai input{flex:1;min-width:0;border:0;background:none;padding:10px;font-size:16px;outline:none}
+form.wp-ai .btn{flex:none;width:44px;height:44px;padding:0}
+form.wp-ai .btn svg{width:20px;height:20px}
+.wp-ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.wp-ex button{border:1px solid var(--line);background:none;border-radius:99px;padding:6px 11px;font-size:12.5px;color:var(--dim);cursor:pointer;text-align:left}
+.wp-ex button:hover{color:var(--spot);border-color:rgba(243,245,255,.3)}
+.wp-c{margin-top:12px;padding:16px;border-radius:18px;background:rgba(11,14,44,.88);box-shadow:inset 0 0 0 1px var(--line)}
+.wp-c p{font-size:14.5px;color:#cfd5f5}
+.wp-c[role="status"]{position:relative;padding-right:48px}
+.wp-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--dim)}
+.wp-x:hover{color:var(--spot)}
+.wp-c.hint p,.wp-c.need p{color:#f5e2a8}
+.wp-c.need,.wp-c.hint{box-shadow:inset 0 0 0 1px rgba(242,207,104,.4)}
+.wp-c.info{box-shadow:inset 0 0 0 1px rgba(31,224,166,.35)}
+.wp-c.send,.wp-c.go{box-shadow:inset 0 0 0 1px rgba(127,241,255,.45),0 18px 44px rgba(0,0,0,.35)}
+.wp-c-t{display:flex;align-items:center;gap:10px;font:800 20px/1.2 var(--display);overflow-wrap:anywhere}
+.wp-c-t svg{width:20px;height:20px;flex:none;color:var(--aurora)}
+.wp-c dl{display:grid;gap:7px;margin:12px 0 10px}
+.wp-c dl div{display:flex;justify-content:space-between;gap:14px;font-size:13.5px}
+.wp-c dt{color:var(--dim);flex:none}
+.wp-c dd{min-width:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.wp-warn{list-style:none;display:grid;gap:4px;margin-top:10px;font-size:13.5px;color:#f5e2a8}
+.wp-warn li{padding-left:16px;position:relative}
+.wp-warn li::before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.wp-c p.wp-msg{margin-top:10px;font-size:14px;color:var(--spot)}
+.wp-c p.wp-msg.ok{color:var(--aurora)}
+.wp-c p.wp-msg.err{color:var(--bad)}
+.wp-msg a{color:inherit}
+.wp-c-a{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;margin-top:14px}
+.wp-c-a .btn{padding:12px 16px;font-size:14.5px}
+.wp-fine{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.wp-spin{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;vertical-align:-3px;animation:wpspin .8s linear infinite}
+@keyframes wpspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.wp-spin{animation-duration:2.4s}}
+.wp-l{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:rgba(47,107,255,.35);font:800 15px var(--display)}
+#wp-held{margin-top:8px}
+.wp-rep{margin-top:12px;padding:18px;border-radius:18px;background:rgba(11,14,44,.8);box-shadow:inset 0 0 0 1px var(--line)}
+.wp-rep .up{color:var(--aurora)}
+.wp-rep .dn{color:var(--bad)}
+.wp-rep-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.wp-rep-h small{width:100%;font-size:13px;color:var(--dim)}
+.wp-rep-h b{font:900 42px/1 var(--display);font-variant-numeric:tabular-nums}
+.wp-rep-h em{font-style:normal;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.wp-spark{display:block;width:100%;height:56px;margin-top:12px}
+.wp-spark polyline{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.wp-spark.up polyline{stroke:var(--aurora)}
+.wp-spark.dn polyline{stroke:var(--bad)}
+.wp-rep-ai{margin-top:12px;padding:12px 14px;border-radius:14px;font-size:14.5px;color:#e6e9ff;background:rgba(255,111,207,.07);box-shadow:inset 0 0 0 1px rgba(255,111,207,.25)}
+.wp-rep-ai i{display:inline-grid;margin-right:6px;vertical-align:-3px;color:var(--heart)}
+.wp-rep-ai i svg{width:16px;height:16px}
+.wp-rep-g{margin-top:12px}
+.wp-rep-g div{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px}
+.wp-rep-g dt{color:var(--dim)}
+.wp-rep-g dd{text-align:right;overflow-wrap:anywhere}
+.wp-burn{display:inline-flex;align-items:center;gap:3px;color:#ffb36b}
+.wp-burn svg{width:14px;height:14px}
+.wp-strats{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:12px}
+.wp-st{display:grid;justify-items:start;align-content:start;gap:4px;padding:12px;border-radius:16px;border:0;cursor:pointer;text-align:left;background:rgba(11,14,44,.8);box-shadow:inset 0 0 0 1px var(--line)}
+.wp-st:hover{box-shadow:inset 0 0 0 1px rgba(127,241,255,.45)}
+.wp-st.on{background:rgba(31,224,166,.07);box-shadow:inset 0 0 0 1.5px var(--aurora)}
+.wp-st i{display:grid;place-items:center;width:32px;height:32px;margin-bottom:4px;border-radius:10px;background:rgba(31,224,166,.12);color:var(--aurora)}
+.wp-st i svg{width:18px;height:18px}
+.wp-st b{font-size:14px;line-height:1.2}
+.wp-st small{font-size:12px;line-height:1.3;color:var(--dim)}
+.wp-af{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px;padding:16px;border-radius:18px;background:rgba(11,14,44,.88);box-shadow:inset 0 0 0 1px rgba(31,224,166,.35)}
+.wp-af label{display:grid;gap:5px;min-width:0;font-size:12.5px;color:var(--dim)}
+.wp-af select,.wp-in{width:100%;height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(243,245,255,.05);padding:0 12px;font-size:16px;color:var(--spot)}
+.wp-af select option{background:var(--card)}
+.wp-in{display:flex;align-items:center;gap:4px}
+.wp-in input{flex:1;width:100%;min-width:0;border:0;background:none;outline:none;font-size:16px}
+.wp-in:focus-within,.wp-af select:focus{outline:none;border-color:var(--aurora)}
+.wp-af-p,.wp-af .wp-c-a{grid-column:1/-1}
+.wp-af .wp-c-a{margin-top:0}
+.wp-af-p code{display:block;padding:10px 12px;border-radius:10px;background:rgba(243,245,255,.05);font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:#bff7e4;overflow-wrap:anywhere}
+.wp-af-p small{font-size:13px;color:var(--dim)}
+.wp-ref{margin-top:12px;padding:18px;border-radius:18px;background:linear-gradient(120deg,rgba(255,111,207,.1),rgba(47,107,255,.12)),rgba(11,14,44,.8);box-shadow:inset 0 0 0 1px rgba(255,111,207,.28)}
+.wp-ref-h{display:flex;align-items:center;gap:12px}
+.wp-ref-h i{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:rgba(255,111,207,.16);color:var(--heart)}
+.wp-ref-h i svg{width:22px;height:22px}
+.wp-ref-h b{display:block;font:900 34px/1 var(--display);font-variant-numeric:tabular-nums}
+.wp-ref-h small{font-size:13px;color:var(--dim)}
+.wp-ref-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.wp-ref-g div{padding:10px;border-radius:12px;background:rgba(6,7,22,.45)}
+.wp-ref-g b{display:block;font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.wp-ref-g small{display:block;font-size:12px;line-height:1.3;color:var(--dim)}
+.wp-link{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.wp-link code{flex:1 1 220px;min-width:0;padding:11px 12px;border-radius:12px;background:rgba(6,7,22,.5);font-family:ui-monospace,Menlo,monospace;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-link .btn{padding:11px 16px;font-size:14px}
 </style>
-<link rel="stylesheet" href="/arc-nav.css?v=1791589199">
-<link rel="stylesheet" href="/arc-v9.css?v=1791589199">
-<link rel="stylesheet" href="/arc-v10.css?v=1791589199">
+<link rel="stylesheet" href="/arc-nav.css?v=1791596447">
+<link rel="stylesheet" href="/arc-v9.css?v=1791596447">
+<link rel="stylesheet" href="/arc-v10.css?v=1791596447">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -228,6 +332,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   <main id="out">
     <section class="hero">
       <svg class="rings" aria-hidden="true"><use href="#rings"/></svg>
+      <p class="tag" data-t>One wallet. Multiple chains. Powered by AI.</p>
       <h1 data-t>Your wallet for Arc, in one tap</h1>
       <p data-t>Sign in with email, Google or Apple and your wallet is ready on Arc and Robinhood Chain. No seed phrase, no extension, and the key is always yours to export.</p>
       <div class="go">
@@ -244,9 +349,12 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       </div>
     </section>
     <ul class="facts">
+      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.8 4.9L19 9.7l-4.9 1.8L12 16.4l-1.8-4.9L5.3 9.7l4.9-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></i><div><b data-t>Tell it what to do</b><span data-t>Type “send 5 USDC to 0x…”, “swap 100 USDC to ARCIRCLE” or “DCA $300 over 7 days”. The wallet sets it up, and nothing moves until you confirm and sign.</span></div></li>
+      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v14M7 18l-3-3M7 18l3-3M17 20V6M17 6l-3 3M17 6l3 3"/></svg></i><div><b data-t>Trade every coin on Arc</b><span data-t>ARCIRCLE Swap finds the best route across Arc's pools. Its 0.1% fee goes to the $ARCIRCLE burn.</span></div></li>
+      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 15l3-3 2 2 3-4"/></svg></i><div><b data-t>A report every day</b><span data-t>What your wallet is worth, what moved it, your swaps and the $ARCIRCLE they burned, with a few lines from ARCIA.</span></div></li>
+      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3.2 2"/></svg></i><div><b data-t>Strategies that run while you're away</b><span data-t>DCA, take profit, stop loss, buy the dip and limit orders. Sign once, no gas, and your coins stay in your wallet until they fill.</span></div></li>
+      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="1"/><path d="M4 10h16M12 10v10"/><path d="M12 10c-1.2-3.6-6.4-4-6.4-1.3S9 10 12 10ZM12 10c1.2-3.6 6.4-4 6.4-1.3S15 10 12 10Z"/></svg></i><div><b data-t>Invite friends, earn points</b><span data-t>Points for every friend who joins with your link and for what they trade. What points turn into is announced later.</span></div></li>
       <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2s1.2 1.7 2.8 2.1 2.8.9 2.8 2.2-1.2 2.1-2.8 2.1c-1.3 0-2.4-.6-2.9-1.5M12 6v1.8M12 16.2V18" stroke-linecap="round"/></svg></i><div><b data-t>Gas on Arc is paid in USDC</b><span data-t>Hold USDC and you can trade, stake and send. Nothing else to buy first.</span></div></li>
-      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg></i><div><b data-t>Everything on ARCIRCLE PAD works with it</b><span data-t>Trade ArcPad coins, stake veARCIA, lock, place orders and collect your Launch Drop.</span></div></li>
-      <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5l1.8 1.8 3.2-3.6"/></svg></i><div><b data-t>ARCIA checks a coin before you buy</b><span data-t>Ask her right inside the wallet. She reads the chain and tells you what she sees.</span></div></li>
       <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></i><div><b data-t>Your keys, your coins</b><span data-t>ARCIRCLE never holds your key. Export it to any wallet whenever you like.</span></div></li>
     </ul>
   </main>
@@ -257,20 +365,28 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       <div class="k"><span data-t>Total balance</span><button type="button" class="addr" id="addr" aria-label="Copy your address"><span id="addr-s">—</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg></button></div>
       <div class="total" id="total"><small>$</small>—</div>
       <div class="who" id="who"></div>
+      <div class="chains" id="wp-chains"></div>
       <p class="demo" id="demo-note" hidden><i></i><span data-t>Demo wallet: sample coins and live prices. Nothing here is real, and nothing leaves this page.</span></p>
     </section>
     <nav class="acts" aria-label="Wallet actions">
       <button type="button" data-open="receive"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v13M6 11l6 6 6-6M5 20h14"/></svg></i><span data-t>Receive</span></button>
       <button type="button" data-open="send"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20V7M6 13l6-6 6 6M5 4h14"/></svg></i><span data-t>Send</span></button>
-      <a href="/arc#explore"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg></i><span data-t>Trade</span></a>
+      <a href="/arc#swap"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg></i><span data-t>Trade</span></a>
       <a href="/arcia#vearcia"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></i><span data-t>Stake</span></a>
     </nav>
+
+    <section class="sec" id="wp-ai"></section>
 
     <section class="sec">
       <h2><span data-t>Coins</span><a href="/arc#portfolio" data-t>All ArcPad coins</a></h2>
       <ul class="toks" id="toks"></ul>
+      <ul class="toks" id="wp-held" hidden></ul>
       <a class="vea" id="vea" href="/arcia#vearcia" hidden></a>
     </section>
+
+    <section class="sec" id="wp-report" aria-live="polite"></section>
+    <section class="sec" id="wp-auto"></section>
+    <section class="sec" id="wp-ref"></section>
 
     <section class="sec">
       <h2><span data-t>Ask ARCIA</span></h2>
@@ -331,7 +447,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/vendor/qrcode-generator-1.4.4.min.js" defer></script>
-<script src="/wallet-arc.js?v=1791589199"></script>
+<script src="/wallet-arc.js?v=1791596447"></script>
 <script>
 (function () {
   "use strict";
@@ -382,7 +498,18 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     "Demo wallet: sample coins and live prices. Nothing here is real, and nothing leaves this page.": ["데모 지갑: 샘플 코인과 실시간 가격이에요. 실제 자산이 아니고, 아무것도 이 페이지 밖으로 나가지 않아요.", "演示钱包：示例代币与实时价格。这里的一切都不是真实的，也不会离开本页。"],
     "Signed in with": ["로그인:", "登录方式："], "Exit the demo": ["데모 종료", "退出演示"], "In the demo there's no key to export.": ["데모에는 내보낼 키가 없어요.", "演示中没有可导出的私钥。"],
     "Sent (demo).": ["보냈어요 (데모).", "已发送（演示）。"], "Demo address. Don't send real coins here.": ["데모 주소예요. 실제 코인을 보내지 마세요.", "演示地址，请勿发送真实代币。"],
-    "Your wallet is getting ready…": ["지갑을 준비하는 중…", "钱包准备中…"], "Signing in…": ["로그인 중…", "登录中…"]
+    "Your wallet is getting ready…": ["지갑을 준비하는 중…", "钱包准备中…"], "Signing in…": ["로그인 중…", "登录中…"],
+    "One wallet. Multiple chains. Powered by AI.": ["지갑 하나로 여러 체인을. AI와 함께.", "一个钱包，多条链，AI 驱动。"],
+    "Tell it what to do": ["말로 시키세요", "说出你想做的"],
+    "Type “send 5 USDC to 0x…”, “swap 100 USDC to ARCIRCLE” or “DCA $300 over 7 days”. The wallet sets it up, and nothing moves until you confirm and sign.": ["“0x…로 5 USDC 보내줘”, “100 USDC를 ARCIRCLE로 바꿔줘”, “7일 동안 300달러 적립식 매수”처럼 입력하세요. 지갑이 준비하고, 직접 확인하고 서명하기 전에는 아무것도 움직이지 않아요.", "输入“send 5 USDC to 0x…”、“swap 100 USDC to ARCIRCLE”或“DCA $300 over 7 days”。钱包会帮你准备好，在你确认并签名之前什么都不会转出。"],
+    "Trade every coin on Arc": ["Arc의 모든 코인을 거래", "交易 Arc 上的所有代币"],
+    "ARCIRCLE Swap finds the best route across Arc's pools. Its 0.1% fee goes to the $ARCIRCLE burn.": ["ARCIRCLE Swap이 Arc 풀 전체에서 최적 경로를 찾아요. 0.1% 수수료는 $ARCIRCLE 소각에 쓰여요.", "ARCIRCLE Swap 在 Arc 的所有池中寻找最优路线，0.1% 手续费用于 $ARCIRCLE 销毁。"],
+    "A report every day": ["매일 받는 리포트", "每日报告"],
+    "What your wallet is worth, what moved it, your swaps and the $ARCIRCLE they burned, with a few lines from ARCIA.": ["지갑 가치, 무엇이 움직였는지, 내 스왑과 그로 소각된 $ARCIRCLE까지, ARCIA의 한마디와 함께.", "钱包价值、变动来源、你的兑换以及由此销毁的 $ARCIRCLE，再加上 ARCIA 的几句话。"],
+    "Strategies that run while you're away": ["자리를 비워도 돌아가는 전략", "你不在时也会运行的策略"],
+    "DCA, take profit, stop loss, buy the dip and limit orders. Sign once, no gas, and your coins stay in your wallet until they fill.": ["적립식 매수, 익절, 손절, 저점 매수, 지정가 주문. 한 번 서명하면 가스비 없이, 체결될 때까지 코인은 지갑에 그대로 있어요.", "定投、止盈、止损、逢低买入和限价单。签名一次，无需 gas，成交前代币一直留在你的钱包里。"],
+    "Invite friends, earn points": ["친구 초대하고 포인트 받기", "邀请好友赚积分"],
+    "Points for every friend who joins with your link and for what they trade. What points turn into is announced later.": ["내 링크로 들어온 친구와 그 친구의 거래만큼 포인트가 쌓여요. 포인트가 무엇으로 바뀌는지는 나중에 공지해요.", "通过你的链接加入的好友及其交易都会为你累积积分。积分的用途日后公布。"]
   };
   var lang = html.lang === "ko" || html.lang === "zh" ? html.lang : "en";
   var t = function (s) { var r = DICT[s]; return r && lang === "ko" ? r[0] : r && lang === "zh" ? r[1] : s; };
@@ -439,7 +566,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       paintCoins();
       return Promise.all([getJson("/api/social?token=arcircle").then(function (j) { if (j && j.price != null) S.px.arcircle = Number(j.price); }),
         getJson("/api/social?coin=arcia").then(function (j) { if (j && j.price != null) S.px.arcia = Number(j.price); }),
-        getJson("/api/social?fx=1").then(function (j) { if (j && j.eth) S.px.eth = Number(j.eth); })]).then(function () { S.at = Date.now(); paintCoins(); });
+        getJson("/api/social?fx=1").then(function (j) { if (j && j.eth) S.px.eth = Number(j.eth); })]).then(function () { S.at = Date.now(); paintCoins(); balDone(); });
     }
     var a = S.addr;
     var jobs = COINS.map(function (c) {
@@ -451,8 +578,9 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     jobs.push(getJson("/api/social?fx=1").then(function (j) { if (j && j.eth) S.px.eth = Number(j.eth); }));
     jobs.push(getJson("/api/desk?vearcia=me&u=" + a).then(function (j) { S.vea = j && j.ok && j.position && j.position.amount > 0 ? j : null; }));
     paintCoins();
-    return Promise.all(jobs).then(function () { S.at = Date.now(); paintCoins(); });
+    return Promise.all(jobs).then(function () { S.at = Date.now(); paintCoins(); balDone(); });
   }
+  function balDone() { if (S.addr) document.dispatchEvent(new CustomEvent("arcwallet:bal")); }
   function value(c) { var b = S.bal[c.k], p = S.px[c.k]; return b != null && p != null ? b * p : null; }
   function paintCoins() {
     var total = 0, any = false;
@@ -465,6 +593,8 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
       return "<li>" + (c.href ? '<a class="tok" href="' + c.href + '">' + inner + "</a>" : '<div class="tok">' + inner + "</div>") + "</li>";
     }).join("");
     if (S.vea) { total += S.vea.position.amount * (S.px.arcia || 0); }
+    var extra = window.arcWalletPlus && S.mode !== "demo" ? window.arcWalletPlus.extraUsd() : 0;
+    if (extra > 0) { total += extra; any = true; }
     $("total").innerHTML = "<small>$</small>" + esc(any ? fmt(total, 2) : "—");
     var ve = $("vea");
     if (S.vea) {
@@ -489,6 +619,7 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
     qa("#signout [data-t]")[0].textContent = t(S.mode === "privy" ? "Sign out" : S.mode === "demo" ? "Exit the demo" : "Forget this wallet");
     loadBalances();
     paintChat();
+    document.dispatchEvent(new CustomEvent("arcwallet:show"));
   }
   function outMsg(m) { var el = $("out-msg"); el.hidden = !m; el.textContent = m || ""; }
   if (W && W.enabled) {
@@ -650,14 +781,19 @@ dialog[open] .sheet{animation:up .3s cubic-bezier(.2,.8,.2,1)}
   $("chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) ask(b.textContent); });
 
   onLang.push(function () { if (S.addr) { show(); } });
+  // wallet-plus.js (AI commands, report, automate, invite) works through these
+  window.arcWalletPage = { S: S, COINS: COINS, CH: CH, eth: eth, switchTo: switchTo, waitTx: waitTx, rpc: rpc, pad: pad, loadBalances: loadBalances, paintCoins: paintCoins,
+    t: t, T3: function (a, b, c) { return T3(a, b, c); }, lang: function () { return lang; }, esc: esc, fmt: fmt, amt: amt, usd: usd, short: short, toast: toast, copy: copy, openReceive: openReceive, onLang: onLang, ask: ask, show: show };
+  document.dispatchEvent(new CustomEvent("arcwallet:page"));
   show();
   setInterval(function () { if (!document.hidden && S.addr && Date.now() - S.at > 30000) loadBalances(); }, 10000);
 })();
 </script>
-<script src="/arc-nav.js?v=1791589199"></script>
-<script src="/arc-connect.js?v=1791589199"></script>
-<script src="/arc-chrome.js?v=1791589199"></script>
-<script src="/arc-v9.js?v=1791589199"></script>
-<script src="/arc-v10.js?v=1791589199"></script>
+<script src="/wallet-plus.js?v=1791596447"></script>
+<script src="/arc-nav.js?v=1791596447"></script>
+<script src="/arc-connect.js?v=1791596447"></script>
+<script src="/arc-chrome.js?v=1791596447"></script>
+<script src="/arc-v9.js?v=1791596447"></script>
+<script src="/arc-v10.js?v=1791596447"></script>
 </body>
 </html>

@@ -6,6 +6,8 @@
 //        otherwise / guide mode → JSON { reply, mode: "ai" | "guide", live, me }
 //   POST /api/arcia  { action: "letter", name, text, lang }   leave ARCIA a fan letter (she reads and answers it)
 //   POST /api/arcia  { action: "heart", id }                   heart a letter
+//   POST /api/arcia  { action: "intent", text, tokens }        ARCIRCLE Wallet: a typed command → { intent } (JSON, checked by the wallet)
+//   POST /api/arcia  { action: "wreport", facts, lang }        ARCIRCLE Wallet: the day's report in 2–3 sentences
 //   POST /api/arcia  { action: "cheer", n }                    send ARCIA hearts (today's gauge; 30 per IP a day)
 //   GET  /api/arcia?hearts=1                                   { today, goal } — the gauge (ARCIA_HEART_GOAL, default 100)
 //   GET  /api/arcia?hearts=board                               + { board } — tonight's top 10 lightstick wallets (her site, /arcia)
@@ -446,6 +448,48 @@ async function nameIdeas(b, ip) {
   return json({ ideas: list });
 }
 
+// ---------- ARCIRCLE Wallet (wallet-plus.js): a typed command → a structured intent; the day's report in a few lines ----------
+// The wallet reads plain commands itself first; only what it can't read comes here. Claude only turns words into a
+// JSON intent — the wallet checks every field, resolves the tokens, shows the user a card and nothing moves until the
+// user confirms it and signs in their own wallet.
+const INTENT_BRIEF = `You turn a crypto wallet user's command into JSON. The wallet is on Circle's Arc chain (gas and dollars are USDC) and Robinhood Chain (gas is ETH). Reply with ONLY one JSON object (no prose, no code fence):
+{"type": "send"|"swap"|"dca"|"tp"|"sl"|"dip"|"limit"|"report"|"balance"|"receive"|"unknown",
+ "amount": number|null, "amountUsd": boolean, "all": boolean, "pct": number|null,
+ "from": token|null, "to": token|null, "token": token|null, "recipient": "0x…"|null,
+ "price": string|null, "over": string|null, "note": short string}
+Rules: tokens are symbols as the user wrote them (e.g. "USDC", "ARCIRCLE", "AFROG") or a 0x contract address; never invent addresses or amounts.
+send = transfer to a 0x recipient. swap = trade one token for another (buy X with Y: from=Y,to=X; sell X: from=X, to=USDC unless said). "$50 of X" means amountUsd=true, from=USDC.
+dca = buy token over time (amount is the total in USDC; over like "7d", "12h", "2w"). tp = take profit on token (pct = % above the price, e.g. 20; amount/all = how much). sl = stop loss (pct = % below, e.g. 10). dip = buy the dip ladder (amount USDC, token). limit = buy/sell at a price (price as written, e.g. "0.0001" or "mcap 50k"; put "buy" or "sell" in note).
+If the command is a question or unclear, type = "unknown" and note = a one-line hint of a command the wallet understands. Commands can be in any language.`;
+async function walletIntent(b, ip) {
+  if (memHit("wi:" + ip, 3600000, 60)) return json({ error: "that's a lot of commands — try again later" }, 429);
+  const text = String(b.text || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 300);
+  if (!text) return json({ error: "say what to do" }, 400);
+  if (!process.env.ANTHROPIC_API_KEY) return json({ intent: null, ai: false });
+  const syms = (Array.isArray(b.tokens) ? b.tokens : []).map((x) => String(x).replace(/[^A-Za-z0-9$]/g, "").slice(0, 16)).filter(Boolean).slice(0, 80);
+  const out = await askClaude({ messages: [{ role: "user", content: `Known tokens: ${syms.join(", ") || "USDC, ARCIRCLE, ARCIA, ETH"}\nCommand: ${text}` }], L: null, extra: INTENT_BRIEF, maxTokens: 300, timeoutMs: 12000 });
+  if (!out) return json({ intent: null, ai: true });
+  let j = null;
+  try { const m = /\{[\s\S]*\}/.exec(out); j = JSON.parse(m ? m[0] : out); } catch { j = null; }
+  if (!j || typeof j !== "object") return json({ intent: null, ai: true });
+  const TYPES = ["send", "swap", "dca", "tp", "sl", "dip", "limit", "report", "balance", "receive", "unknown"];
+  const str = (v, n) => (v == null ? null : String(v).slice(0, n));
+  const num = (v) => (typeof v === "number" && isFinite(v) && v > 0 ? v : typeof v === "string" && /^\d*\.?\d+$/.test(v) ? Number(v) : null);
+  const intent = { type: TYPES.includes(j.type) ? j.type : "unknown", amount: num(j.amount), amountUsd: !!j.amountUsd, all: !!j.all, pct: num(j.pct),
+    from: str(j.from, 42), to: str(j.to, 42), token: str(j.token, 42), recipient: /^0x[0-9a-fA-F]{40}$/.test(String(j.recipient || "")) ? j.recipient : null,
+    price: str(j.price, 24), over: /^\d{1,3}\s*[hdw]$/i.test(String(j.over || "")) ? String(j.over).replace(/\s+/g, "").toLowerCase() : null, note: str(j.note, 160) };
+  return json({ intent, ai: true });
+}
+const REPORT_BRIEF = `You are ARCIA, writing a wallet owner's short daily wallet report on ARCIRCLE Wallet. You get the numbers as JSON. Write 2–3 short sentences in the requested language: what the wallet is worth and how that changed since the last report, what moved it most, and one useful thing they could look at today (a feature of the wallet: Swap, DCA, take-profit/stop-loss in Orders, staking, inviting friends). Use only the numbers given — never invent any. No financial advice, no predictions, no hype, no emojis except one ♡ at the end.`;
+async function walletReport(b, ip, lang) {
+  if (memHit("wr:" + ip, 3600000, 30)) return json({ error: "try again later" }, 429);
+  if (!process.env.ANTHROPIC_API_KEY) return json({ text: null, ai: false });
+  const f = b && typeof b.facts === "object" && b.facts ? b.facts : {};
+  const facts = JSON.stringify(f).slice(0, 2500);
+  const out = await askClaude({ messages: [{ role: "user", content: `Language: ${lang}\nNumbers: ${facts}` }], L: null, extra: REPORT_BRIEF, maxTokens: 260, timeoutMs: 15000 });
+  return json({ text: out ? out.slice(0, 700) : null, ai: true });
+}
+
 // ---------- her voice (api/_arcia-tts.mjs) ----------
 async function tts(body, ip, lang) {
   if (!ttsProvider()) return json({ error: "voice is off" }, 503);
@@ -494,6 +538,8 @@ export async function POST(req) {
   try { body = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
   const lang = ["en", "ko", "zh"].includes(body && body.lang) ? body.lang : "en";
   if (body && body.action === "letter") { try { return await postLetter(body, ip, lang); } catch (e) { console.error("arcia letter", String(e.message || e)); return json({ error: "The letter got lost on the way~ try again♡" }, 502); } }
+  if (body && body.action === "intent") { try { return await walletIntent(body, ip); } catch (e) { return json({ intent: null, error: "couldn't read that right now" }, 502); } }
+  if (body && body.action === "wreport") { try { return await walletReport(body, ip, lang); } catch (e) { return json({ text: null }, 502); } }
   if (body && body.action === "names") { try { return await nameIdeas(body, ip); } catch (e) { return json({ error: "no ideas right now — try again" }, 502); } }
   if (body && body.action === "cheer") { try { return await cheer(body, ip); } catch (e) { return json({ error: "couldn't send it" }, 502); } }
   if (body && body.action === "tts") { try { return await tts(body, ip, lang); } catch (e) { console.error("arcia tts", String(e.message || e)); return json({ error: "voice unavailable" }, e.status || 502); } }

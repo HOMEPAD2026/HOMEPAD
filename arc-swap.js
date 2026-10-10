@@ -893,6 +893,14 @@
       S.amt = ""; S.quote = null; S.routes = [];
       S.msg = { k: "ok", html: `${L3("Swapped", "스왑 완료", "兑换完成")} <b data-no-i18n>${esc(fmtRaw(r.amount, mi.decimals))} ${esc(mi.symbol)}</b> → <b data-no-i18n>${esc(fmtRaw(got, mo.decimals))} ${esc(mo.symbol)}</b>${r.burned > 0n ? ` · ${svg("flame", "sw-fl")} <span data-no-i18n>${esc(fmtRaw(r.burned, 18))}</span> $ARCIRCLE ${T("burned")}` : ""} · <a href="${esc(EXPL())}/tx/${esc(rc.hash)}" target="_blank" rel="noopener">${T("View")}${svg("ext", "sw-i sm")}</a>` };
       document.dispatchEvent(new CustomEvent("arcswap:swapped", { detail: { hash: rc.hash } }));
+      // a swap from an invite link credits the inviter (the server checks the transaction; points in ARCIRCLE Wallet)
+      const ref = typeof window.arcRef === "function" ? window.arcRef() : null;
+      if (ref && lc(ref) !== me()) (async () => {
+        for (let i = 0; i < 3; i++) {
+          try { const x = await fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "refnote", tx: rc.hash, ref }) }); if (x.status !== 404) return; } catch { /* retry */ }
+          await new Promise((res) => setTimeout(res, 4000));
+        }
+      })();
       await Promise.all([loadBal(), loadStats()]);
       S.pbalAt = 0;
     } catch (e) {

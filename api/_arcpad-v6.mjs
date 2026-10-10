@@ -1,8 +1,9 @@
 // api/_arcpad-v6.mjs — ArcPad v6 on the server (routed by api/social.mjs):
 //   comments      a coin's comment thread (signed by the wallet; holders and the creator are marked; the creator can
 //                 pin one). Coins: ArcPad launches and Argus coins listed through ArcPad.
-//   referrals     a trade or launch made through ArcPad from a ?ref= link: the browser sends the transaction, the server
-//                 checks it on Arc (it went to the ArcPad router or factory and succeeded) and credits the referrer once
+//   referrals     a trade or launch made through ArcPad (or a swap through ARCIRCLE Swap) from a ?ref= link: the browser
+//                 sends the transaction, the server checks it on Arc (it went to the ArcPad router or factory, or is a
+//                 Swapped event of ArcircleSwap from that wallet, and succeeded) and credits the referrer once
 //                 per transaction. The first referrer of a wallet stays its referrer.
 //   launch plans  "launching on Saturday 21:00 UTC" pages: a signed plan (name, ticker, logo, time, platform) with a
 //                 countdown on Home until it's live.
@@ -12,6 +13,23 @@ import { isAddr, launchRecord, tokenBalance, rpcCall } from "./_arc.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 export const ROUTER = "0xfca8fd788d44bb335b1451257366e06d67114785";
 export const FACTORY = "0x0ebd6df354056ff469f17f8fd14dc0d2c87bd65e";
+// ARCIRCLE Swap (contracts/ArcircleSwap.sol): its swaps count for referrals too (env SWAP_ADDRESS overrides, for tests)
+export const SWAP = () => lc(process.env.SWAP_ADDRESS || "0x305da1b305249072b13b73ab394e02046c865d56");
+const TOPIC_SWAPPED = "0x6886cf53e77d3f9cb0cdb0b601eb810af105466e2b75170449730419d6218f3a"; // Swapped(address,address,address,uint256,uint256,address,uint256,uint8,address)
+const ARCIRCLE = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
+const PM = "0x8366a39cc670b4001a1121b8f6a443a643e40951";
+const ARCIRCLE_SLOT = "0xad85d721d91ab50f533ac7d86b01e50798b891ac2a1502187e974fabc0cf854b"; // its pool's slot0 in the PoolManager
+/// dollars per $ARCIRCLE from its pool (USDC is currency0, $ARCIRCLE currency1)
+async function arcircleUsd() {
+  try {
+    const w = await rpcCall("eth_call", [{ to: PM, data: "0x1e2eaeaf" + ARCIRCLE_SLOT.slice(2) }, "latest"]);
+    const sqrt = BigInt("0x" + String(w).slice(2).slice(-40));
+    if (!sqrt) return null;
+    const r = (Number(sqrt) / 2 ** 96) ** 2; // raw $ARCIRCLE per raw USDC
+    const p = (1 / r) * 1e12; // USDC per $ARCIRCLE
+    return isFinite(p) && p > 0 ? p : null;
+  } catch { return null; }
+}
 const USDC = "0x3600000000000000000000000000000000000000";
 const clean = (s, n) => String(s == null ? "" : s).replace(/[\u0000-\u0008\u000b-\u001f\u007f‪-‮⁦-⁩]/g, "").trim().slice(0, n);
 
@@ -88,7 +106,8 @@ export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, l
     const [t, rc] = await Promise.all([rpcCall("eth_getTransactionByHash", [tx]).catch(() => null), rpcCall("eth_getTransactionReceipt", [tx]).catch(() => null)]);
     if (!t || !rc) return json(404, { error: "transaction not found yet — try again in a moment" });
     const to = lc(t.to), from = lc(t.from);
-    if (rc.status !== "0x1" || (to !== ROUTER && to !== FACTORY)) return json(400, { error: "not an ArcPad trade or launch" });
+    const isSwap = to === SWAP();
+    if (rc.status !== "0x1" || (to !== ROUTER && to !== FACTORY && !isSwap)) return json(400, { error: "not an ArcPad trade, launch or ARCIRCLE Swap" });
     if (from === ref) return json(400, { error: "self-referrals don't count" });
     // the wallet's first referrer stays its referrer
     const wKey = `arcRefs/w_${from}`;
@@ -96,8 +115,18 @@ export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, l
     const owner = bound ? bound.ref : ref;
     // what it moved in USDC: the wallet's USDC transfers in that transaction (a buy pays it, a sell receives it)
     let usd = 0;
-    const kind = to === FACTORY ? "launch" : "trade";
-    for (const l of rc.logs || []) {
+    const kind = to === FACTORY ? "launch" : isSwap ? "swap" : "trade";
+    // an ARCIRCLE Swap trade: its Swapped event — USDC counts as dollars, $ARCIRCLE at its pool price
+    if (isSwap) {
+      const ev = (rc.logs || []).find((l) => lc(l.address) === SWAP() && lc(l.topics && l.topics[0]) === TOPIC_SWAPPED);
+      if (!ev || lc("0x" + String(ev.topics[1]).slice(26)) !== from) return json(400, { error: "not a swap from this wallet" });
+      const tin = lc("0x" + String(ev.topics[2]).slice(26)), tout = lc("0x" + String(ev.topics[3]).slice(26));
+      const d = String(ev.data || "0x").slice(2), aIn = BigInt("0x" + (d.slice(0, 64) || "0")), aOut = BigInt("0x" + (d.slice(64, 128) || "0"));
+      if (tin === USDC) usd = Number(aIn) / 1e6;
+      else if (tout === USDC) usd = Number(aOut) / 1e6;
+      else if (tin === ARCIRCLE || tout === ARCIRCLE) { const p = await arcircleUsd(); usd = p ? (Number(tin === ARCIRCLE ? aIn : aOut) / 1e18) * p : 0; }
+    }
+    for (const l of isSwap ? [] : rc.logs || []) {
       if (lc(l.address) !== USDC || lc(l.topics && l.topics[0]) !== TRANSFER || !l.topics[2]) continue;
       const fr = "0x" + String(l.topics[1]).slice(26), tt = "0x" + String(l.topics[2]).slice(26);
       if (fr === from || tt === from) usd += Number(BigInt(l.data || "0x0")) / 1e6;
@@ -105,7 +134,7 @@ export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, l
     if (usd > 1e7) usd = 0; // not a number to trust
     const writes = [{ create: `arcRefs/t_${tx}`, data: { ref: owner, from, kind, usd, at: Date.now() } }];
     if (!bound) writes.push({ create: wKey, data: { ref: owner, at: Date.now(), tx } });
-    writes.push({ inc: `arcRefs/r_${owner}`, fields: { trades: kind === "trade" ? 1 : 0, launches: kind === "launch" ? 1 : 0, usd: Math.round(usd * 100) / 100, wallets: bound ? 0 : 1 } });
+    writes.push({ inc: `arcRefs/r_${owner}`, fields: { trades: kind === "launch" ? 0 : 1, launches: kind === "launch" ? 1 : 0, swaps: kind === "swap" ? 1 : 0, usd: Math.round(usd * 100) / 100, wallets: bound ? 0 : 1 } });
     const r = await commit(writes);
     if (r && r.conflict) return json(200, { ok: true, already: true });
     // the referrer's recent list (for the Portfolio card)
@@ -120,7 +149,9 @@ export function make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, l
     if (!isAddr(wallet)) return json(400, { error: "wallet must be an address" });
     const d = await getDocs([`arcRefs/r_${wallet}`, `arcRefs/l_${wallet}`]);
     const s = d[`arcRefs/r_${wallet}`] || {}, L = d[`arcRefs/l_${wallet}`] || {};
-    return json(200, { wallets: s.wallets || 0, trades: s.trades || 0, launches: s.launches || 0, usd: Math.round((s.usd || 0) * 100) / 100,
+    // ARCIRCLE Wallet's referral points: 100 a wallet brought in, 1 a dollar its trades moved (what points become is announced later)
+    const points = (s.wallets || 0) * 100 + Math.floor(s.usd || 0);
+    return json(200, { wallets: s.wallets || 0, trades: s.trades || 0, swaps: s.swaps || 0, launches: s.launches || 0, usd: Math.round((s.usd || 0) * 100) / 100, points,
       recent: (L.items || []).slice(0, 12).map((x) => ({ w: x.w.slice(0, 6) + "…" + x.w.slice(-4), kind: x.kind, usd: x.usd, at: x.at })) }, "public, max-age=15, s-maxage=20");
   }
 
