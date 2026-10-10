@@ -363,6 +363,7 @@ $("wp-act-run").addEventListener("click", (e) => { runToggle = !runToggle; e.cur
 $("wp-act-emote").addEventListener("click", () => emote("emote-yes"));
 $("wp-act-board").addEventListener("click", () => setBoard(!boarding));
 $("wp-act-photo").addEventListener("click", () => setPhoto(true));
+$("wp-photo-btn").addEventListener("click", () => { if (!frozen) setPhoto(true); });
 
 // ---------------- movement: the world slides under the player ----------------
 const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
@@ -992,7 +993,7 @@ function fadeLabels(dt) {
   if ((labelT -= dt) <= 0) { labelT = 0.4; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); }
   for (const l of labels) {
     const d = l.userData.d, isBig = l.scale.x >= 3.6, far = isBig ? (l.userData.rank < 5 ? 95 : 0) : 30;
-    const want = THREE.MathUtils.clamp((d - 6) / 6, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1);
+    const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1);
     l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
   }
 }
