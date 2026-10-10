@@ -2,3 +2,11 @@ models/world/scifi-props.glb and models/world/scifi-enemies.glb
 From "Sci-Fi Essentials Kit" (standard free version) by Quaternius — https://quaternius.com
 License: CC0 1.0 Universal (public domain dedication) — https://creativecommons.org/publicdomain/zero/1.0/
 Repacked for the web (selected models merged, textures resized to WebP, meshopt-compressed) with glTF-Transform.
+
+models/world/kenney-city.glb
+From "City Kit (Industrial) 2.0" by Kenney — https://kenney.nl
+License: CC0 1.0 Universal — selected models merged and meshopt-compressed with glTF-Transform.
+
+models/world/sky-planet*.webp, models/world/planet-surface.jpg
+From "Planets 1.0" by Kenney — https://kenney.nl — CC0 1.0 Universal.
+sky-planet*.webp are resized planet images; planet-surface.jpg is a seamless sphere map generated in that pack's planet00 colours.

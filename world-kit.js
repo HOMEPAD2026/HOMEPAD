@@ -102,7 +102,7 @@ export function makeStage(canvas, opts = {}) {
   if (q.bloom) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, 0.55, 0.78));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, 0.55, 0.9));
     composer.addPass(new OutputPass());
   }
   function resize() {
@@ -156,40 +156,48 @@ export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, s
 
 // ---------------- the planet ----------------
 function rand(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
-export function makePlanet() {
+export function makePlanet({ map = "" } = {}) {
   const g = new THREE.Group(); g.name = "planet";
-  const geo = new THREE.IcosahedronGeometry(R, 5); // already non-indexed: one colour per face
-  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), rnd = rand(42);
-  const cA = new THREE.Color(C.ground), cB = new THREE.Color(C.ground2), cC = new THREE.Color(C.ground3), c = new THREE.Color();
-  for (let i = 0; i < pos.count; i += 3) {
-    const k = rnd(); c.copy(k < 0.55 ? cA : k < 0.85 ? cB : cC);
-    for (let j = 0; j < 3; j++) col.set([c.r, c.g, c.b], (i + j) * 3);
-  }
-  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  geo.computeVertexNormals();
-  g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0.05 })));
-  // a faint atmosphere
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.06, 48, 32), new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.05, side: THREE.BackSide, depthWrite: false })));
-  // the plaza ring around the spawn point and the path ring the shops sit on
-  // the plaza: a spherical cap that follows the ground (a flat disc would float off the curve)
+  const mat = new THREE.MeshStandardMaterial({ color: 0xa8b4bc, roughness: 0.92, metalness: 0.02 }); // the map is bright; keep the buildings the brightest thing
+  if (map) new THREE.TextureLoader().load(map, (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; mat.map = t; mat.needsUpdate = true; });
+  else mat.color.set(C.ground2);
+  const ground = new THREE.Mesh(new THREE.SphereGeometry(R, 160, 120), mat); ground.receiveShadow = true; g.add(ground);
+  // atmosphere: a soft cyan rim, brightest at the edge of the disc
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.12, 64, 48), new THREE.ShaderMaterial({
+    side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    uniforms: { c: { value: new THREE.Color(0x35d8d0) } },
+    vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }",
+    fragmentShader: "uniform vec3 c; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(vN, vV)), 3.2); gl_FragColor = vec4(c, f * 0.85); }",
+  })));
+  // the plaza: a spherical cap that follows the ground
   const cap = THREE.MathUtils.degToRad(11);
   const plaza = new THREE.Mesh(new THREE.SphereGeometry(R + 0.05, 64, 6, 0, Math.PI * 2, 0, cap), solid(0x112a33, { roughness: 0.85, metalness: 0.1 }));
   plaza.receiveShadow = true; g.add(plaza);
   const plazaRing = new THREE.Mesh(new THREE.TorusGeometry((R + 0.08) * Math.sin(cap), 0.05, 8, 128), glow(C.cyan, 1.1));
   plazaRing.rotation.x = Math.PI / 2; plazaRing.position.y = (R + 0.08) * Math.cos(cap); g.add(plazaRing);
-  // crystals and trees scattered where the shops aren't
+  // crystals and a few trees where nothing else stands
   const crystal = new THREE.ConeGeometry(0.45, 1.8, 5), trunk = new THREE.CylinderGeometry(0.12, 0.16, 0.8, 6), crown = new THREE.IcosahedronGeometry(0.75, 0);
   const crysMats = [glow(C.cyan, 1.2), glow(C.green, 1.1), glow(C.blue, 1.2)], trunkMat = solid(0x3a2c22), crownMats = [solid(0x1f6b55, { flat: true }), solid(0x23806a, { flat: true }), solid(0x2a5e7a, { flat: true })];
   const rr = rand(7);
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 110; i++) {
     const th = 14 + rr() * 166, ph = rr() * 360;
-    if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9)) continue;
+    if (SHOPS.some((s) => angDist(th, ph, s.theta, s.phi) < 9) || TOWN.some((t) => angDist(th, ph, t[1], t[2]) < 5)) continue;
     if (angDist(th, ph, PORTAL.theta, PORTAL.phi) < 6) continue;
     const d = dirOf(th, ph), o = new THREE.Group();
-    if (rr() < 0.35) { const m = new THREE.Mesh(crystal, crysMats[i % 3]); m.position.y = 0.7; m.rotation.z = (rr() - 0.5) * 0.4; o.add(m); }
+    if (rr() < 0.45) { const m = new THREE.Mesh(crystal, crysMats[i % 3]); m.position.y = 0.7; m.rotation.z = (rr() - 0.5) * 0.4; o.add(m); }
     else { const t = new THREE.Mesh(trunk, trunkMat); t.position.y = 0.4; const cr = new THREE.Mesh(crown, crownMats[i % 3]); cr.position.y = 1.15; cr.scale.setScalar(0.8 + rr() * 0.6); o.add(t, cr); }
     placeOn(o, d, R - 0.05); o.rotateY(rr() * 6.28); o.scale.setScalar(0.8 + rr() * 0.7); g.add(o);
   }
+  return g;
+}
+// distant Kenney planets in the sky
+export function makeSkyPlanets(ver = "") {
+  const g = new THREE.Group(), L = new THREE.TextureLoader();
+  [["02", -300, 90, -380, 92], ["09", 380, 210, -300, 58], ["03", 160, 300, 380, 84], ["05", -420, -160, 200, 44]].forEach(([n, x, y, z, size]) => {
+    const m = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, fog: false, opacity: 0.95 });
+    L.load(`/models/world/sky-planet${n}.webp${ver}`, (t) => { t.colorSpace = THREE.SRGBColorSpace; m.map = t; m.needsUpdate = true; });
+    const sp = new THREE.Sprite(m); sp.position.set(x, y, z); sp.scale.setScalar(size); sp.renderOrder = -1; g.add(sp);
+  });
   return g;
 }
 function angDist(t1, p1, t2, p2) { return THREE.MathUtils.radToDeg(dirOf(t1, p1).angleTo(dirOf(t2, p2))); }
@@ -270,109 +278,96 @@ export function animateRobot(rb, dt, t, speed = 0, turn = 0) {
 export function waveRobot(rb, t) { rb.userData.armR.rotation.z = 2.4 + Math.sin(t * 10) * 0.35; rb.userData.armR.rotation.x = 0; }
 
 // ---------------- shops ----------------
+// A shop: a plinth, a body (a stand-in box until the Kenney building arrives), and the ARCIRCLE accent that marks
+// what it is — rocket, orb, coin, clock, dome, vault wheel, dish, crystal, screen — set on the roof.
 export function makeShop(spec) {
   const g = new THREE.Group(); g.name = "shop:" + spec.id;
-  const col = spec.color, wall = solid(C.panel, { roughness: 0.6, metalness: 0.3 }), trim = glow(col, 1.8), dark = solid(C.panel2, { metalness: 0.4 });
+  const col = spec.color, trim = glow(col, 1.8), dark = solid(C.panel2, { metalness: 0.4 });
   const spin = [];
   const plinth = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.2, 0.35, 40), dark); plinth.position.y = 0.17;
   const edge = new THREE.Mesh(new THREE.TorusGeometry(3.05, 0.06, 8, 80), trim); edge.rotation.x = Math.PI / 2; edge.position.y = 0.36;
-  const door = new THREE.Mesh(new RoundedBoxGeometry(1.1, 1.5, 0.2, 3, 0.12), glow(col, 1.1)); door.position.set(0, 1.1, 1.62);
-  g.add(plinth, edge);
-  const box = (w, h, d, y, m = wall) => { const b = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, 0.18), m); b.position.y = y; g.add(b); return b; };
+  const body = new THREE.Group();
+  const stand = new THREE.Mesh(new RoundedBoxGeometry(3, 2.4, 3, 3, 0.18), solid(C.panel, { roughness: 0.6, metalness: 0.3 })); stand.position.y = 1.55; body.add(stand);
+  const accent = new THREE.Group(); accent.position.y = 2.75;
   switch (spec.shape) {
     case "rocket": {
-      box(3, 2.2, 3, 1.45);
-      const r = new THREE.Group(); r.position.y = 2.55;
+      const r = new THREE.Group();
       const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 2.4, 20), glossy(0xe9f1f7)); hull.position.y = 1.2;
       const nose = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.9, 20), glow(col, 1.6)); nose.position.y = 2.85;
       const fins = [0, 1, 2].map((i) => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.6, 0.5), glow(col, 1.4)); f.position.set(Math.sin(i * 2.09) * 0.5, 0.25, Math.cos(i * 2.09) * 0.5); f.rotation.y = i * 2.09; return f; });
       const flame = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.7, 12), glow(C.gold, 3)); flame.position.y = -0.2; flame.rotation.x = Math.PI;
-      r.add(hull, nose, flame, ...fins); g.add(r);
-      spin.push((dt, t) => { r.position.y = 2.55 + Math.sin(t * 1.4) * 0.12; flame.scale.y = 0.8 + Math.sin(t * 18) * 0.25; });
+      r.add(hull, nose, flame, ...fins); accent.add(r);
+      spin.push((dt, t) => { r.position.y = 0.25 + Math.sin(t * 1.4) * 0.12; flame.scale.y = 0.8 + Math.sin(t * 18) * 0.25; });
       break;
     }
     case "orb": {
-      box(3, 1.6, 3, 1.15);
-      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.9, 32, 24), glossy(0x1b1033, { emissive: col, emissiveIntensity: 0.7 })); orb.position.y = 3.2;
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.9, 32, 24), glossy(0x1b1033, { emissive: col, emissiveIntensity: 0.7 })); orb.position.y = 1.3;
       const o1 = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.05, 8, 64), glow(C.blue, 2.2)), o2 = new THREE.Mesh(new THREE.TorusGeometry(1.45, 0.05, 8, 64), glow(C.green, 2.2));
-      o1.position.y = o2.position.y = 3.2; g.add(orb, o1, o2);
+      o1.position.y = o2.position.y = 1.3; accent.add(orb, o1, o2);
       spin.push((dt, t) => { o1.rotation.set(1.1, t * 0.9, 0); o2.rotation.set(-1.1, -t * 0.7, 0.4); orb.material.emissiveIntensity = 0.5 + Math.sin(t * 2.4) * 0.25; });
       break;
     }
     case "coin": {
-      box(3.6, 1.9, 2.8, 1.3);
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.18, 3.1), trim); roof.position.y = 2.32; g.add(roof);
-      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.16, 40), glossy(C.gold, { emissive: 0x7a5000, emissiveIntensity: 0.4 })); coin.position.y = 3.45; coin.rotation.x = Math.PI / 2;
-      const mark = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 10, 40), glow(col, 2)); mark.position.y = 3.45; g.add(coin, mark);
-      spin.push((dt, t) => { coin.rotation.z = t * 1.6; mark.rotation.y = t * 1.6; coin.position.y = mark.position.y = 3.45 + Math.sin(t * 2) * 0.1; });
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.16, 40), glossy(C.gold, { emissive: 0x7a5000, emissiveIntensity: 0.4 })); coin.position.y = 1.2; coin.rotation.x = Math.PI / 2;
+      const mark = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 10, 40), glow(col, 2)); mark.position.y = 1.2; accent.add(coin, mark);
+      spin.push((dt, t) => { coin.rotation.z = t * 1.6; mark.rotation.y = t * 1.6; coin.position.y = mark.position.y = 1.2 + Math.sin(t * 2) * 0.1; });
       break;
     }
     case "clock": {
-      box(2.4, 3.6, 2.4, 2.15);
-      const face = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.08, 40), solid(0xe9f1f7)); face.rotation.x = Math.PI / 2; face.position.set(0, 3.2, 1.22);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.06, 8, 48), trim); ring.position.set(0, 3.2, 1.26);
-      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 0.04), dark); hand.geometry.translate(0, 0.28, 0); hand.position.set(0, 3.2, 1.3);
-      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.9, 1.1, 4), dark); cap.position.y = 4.5; cap.rotation.y = Math.PI / 4;
-      g.add(face, ring, hand, cap);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.6, 10), dark); post.position.y = 0.3;
+      const face = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 40), solid(0xe9f1f7)); face.rotation.x = Math.PI / 2; face.position.y = 1.4;
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.06, 8, 48), trim); ring.position.y = 1.4;
+      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 0.04), dark); hand.geometry.translate(0, 0.28, 0); hand.position.set(0, 1.4, 0.07);
+      accent.add(post, face, ring, hand);
       spin.push((dt, t) => { hand.rotation.z = -t * 0.8; });
       break;
     }
     case "dome": {
-      box(3.6, 1.2, 3.2, 0.95);
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(1.55, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), glossy(C.gold, { emissive: 0x5a3c00, emissiveIntensity: 0.35 })); dome.position.y = 1.55;
-      g.add(dome);
-      [-1.2, -0.4, 0.4, 1.2].forEach((x) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 10), solid(0xe9f1f7)); c.position.set(x, 0.95, 1.7); g.add(c); });
-      const top = new THREE.Mesh(new THREE.OctahedronGeometry(0.28), glow(col, 2.6)); top.position.y = 3.35; g.add(top);
-      spin.push((dt, t) => { top.rotation.y = t * 1.2; top.position.y = 3.35 + Math.sin(t * 2) * 0.1; });
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(1.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), glossy(C.gold, { emissive: 0x5a3c00, emissiveIntensity: 0.35 }));
+      const top = new THREE.Mesh(new THREE.OctahedronGeometry(0.28), glow(col, 2.6)); top.position.y = 1.55;
+      accent.add(dome, top);
+      spin.push((dt, t) => { top.rotation.y = t * 1.2; top.position.y = 1.55 + Math.sin(t * 2) * 0.1; });
       break;
     }
     case "vault": {
-      box(3.2, 2.8, 3, 1.75);
-      const vd = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.22, 40), glossy(0x8a96a8)); vd.rotation.x = Math.PI / 2; vd.position.set(0, 1.8, 1.55);
-      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 8, 32), trim); wheel.position.set(0, 1.8, 1.7);
-      const spokes = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.06), trim); spokes.position.set(0, 1.8, 1.7);
-      const spokes2 = spokes.clone(); spokes2.rotation.z = Math.PI / 2;
-      g.add(vd, wheel, spokes, spokes2);
-      spin.push((dt, t) => { const a = Math.sin(t * 0.6) * 0.8; wheel.rotation.z = spokes.rotation.z = a; spokes2.rotation.z = a + Math.PI / 2; });
-      door.visible = false;
+      const vd = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 40), glossy(0x8a96a8)); vd.rotation.x = Math.PI / 2; vd.position.y = 1.0;
+      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 32), trim); wheel.position.set(0, 1.0, 0.14);
+      const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 0.06), trim); sp1.position.set(0, 1.0, 0.14);
+      const sp2 = sp1.clone(); sp2.rotation.z = Math.PI / 2;
+      accent.add(vd, wheel, sp1, sp2);
+      spin.push((dt, t) => { const a = Math.sin(t * 0.6) * 0.8; wheel.rotation.z = sp1.rotation.z = a; sp2.rotation.z = a + Math.PI / 2; });
       break;
     }
     case "dish": {
-      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1.1, 4.4, 8), wall); tower.position.y = 2.55; g.add(tower);
-      box(2.6, 1.4, 2.6, 1.05);
-      const head = new THREE.Group(); head.position.y = 5.0;
-      const dish = new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 12, 0, Math.PI * 2, 0, 0.9), glossy(0xe9f1f7, { side: THREE.DoubleSide })); dish.rotation.x = -1.1;
-      const beam = new THREE.Mesh(new THREE.ConeGeometry(0.9, 5, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
-      beam.rotation.x = -1.1 - Math.PI / 2; beam.position.set(0, 1.0, 2.0);
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), glow(col, 3)); tip.position.set(0, 0.5, 0.35);
-      head.add(dish, beam, tip); g.add(head);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.4, 8), dark); mast.position.y = 0.7;
+      const head = new THREE.Group(); head.position.y = 1.5;
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 12, 0, Math.PI * 2, 0, 0.9), glossy(0xe9f1f7, { side: THREE.DoubleSide })); dish.rotation.x = -1.1;
+      const beam = new THREE.Mesh(new THREE.ConeGeometry(0.8, 4.5, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
+      beam.rotation.x = -1.1 - Math.PI / 2; beam.position.set(0, 0.9, 1.8);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), glow(col, 3)); tip.position.set(0, 0.45, 0.32);
+      head.add(dish, beam, tip); accent.add(mast, head);
       spin.push((dt, t) => { head.rotation.y = t * 0.7; });
       break;
     }
     case "obelisk": {
-      const ob = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 1.2, 4.2, 4), wall); ob.position.y = 2.4; ob.rotation.y = Math.PI / 4; g.add(ob);
-      const crys = new THREE.Mesh(new THREE.OctahedronGeometry(0.7), glossy(0x2a1250, { emissive: col, emissiveIntensity: 1.2, transparent: true, opacity: 0.92 })); crys.position.y = 5.3; g.add(crys);
+      const crys = new THREE.Mesh(new THREE.OctahedronGeometry(0.7), glossy(0x2a1250, { emissive: col, emissiveIntensity: 1.2, transparent: true, opacity: 0.92 })); crys.position.y = 1.4;
       const up = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 3), glow(C.green, 2.4)), dn = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 3), glow(C.scam, 2.4));
-      dn.rotation.x = Math.PI; g.add(up, dn);
-      spin.push((dt, t) => { crys.rotation.y = t; crys.position.y = 5.3 + Math.sin(t * 1.5) * 0.18; up.position.set(Math.cos(t) * 1.3, 5.3, Math.sin(t) * 1.3); dn.position.set(-Math.cos(t) * 1.3, 5.3, -Math.sin(t) * 1.3); });
-      door.position.y = 0.95;
+      dn.rotation.x = Math.PI; accent.add(crys, up, dn);
+      spin.push((dt, t) => { crys.rotation.y = t; crys.position.y = 1.4 + Math.sin(t * 1.5) * 0.18; up.position.set(Math.cos(t) * 1.3, 1.4, Math.sin(t) * 1.3); dn.position.set(-Math.cos(t) * 1.3, 1.4, -Math.sin(t) * 1.3); });
       break;
     }
     case "stage": {
-      box(3.6, 2.4, 2.4, 1.55);
-      const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.5), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      screen.position.set(0, 1.85, 1.22);
-      screen.material = glow(col, 0.9);
-      const lights = [-1.2, 0, 1.2].map((x, i) => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), glow([C.pink, C.cyan, C.purple][i], 3)); l.position.set(x, 3.0, 1.0); return l; });
-      g.add(screen, ...lights);
-      spin.push((dt, t) => { screen.material.emissiveIntensity = 0.7 + Math.sin(t * 3) * 0.3; lights.forEach((l, i) => (l.position.y = 3.0 + Math.sin(t * 4 + i) * 0.1)); });
-      door.position.set(0, 0.95, 1.26); door.scale.set(1.6, 0.7, 1);
+      const frame = new THREE.Mesh(new RoundedBoxGeometry(2.6, 1.5, 0.16, 3, 0.06), dark); frame.position.y = 1.0;
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.36, 1.28), glow(col, 0.9)); screen.position.set(0, 1.0, 0.09);
+      const lights = [-1.0, 0, 1.0].map((x, i) => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), glow([C.pink, C.cyan, C.purple][i], 3)); l.position.set(x, 2.0, 0); return l; });
+      accent.add(frame, screen, ...lights);
+      spin.push((dt, t) => { screen.material.emissiveIntensity = 0.7 + Math.sin(t * 3) * 0.3; lights.forEach((l, i) => (l.position.y = 2.0 + Math.sin(t * 4 + i) * 0.1)); });
       break;
     }
   }
-  g.add(door);
-  const tag = label(spec.name, { accent: "#" + col.toString(16).padStart(6, "0") }); tag.position.y = spec.shape === "dish" || spec.shape === "obelisk" ? 7.2 : 6.0; g.add(tag);
-  g.userData = { spec, spin, tag, radius: 3.2 };
+  g.add(plinth, edge, body, accent);
+  const tag = label(spec.name, { accent: "#" + col.toString(16).padStart(6, "0") }); tag.position.y = 6.2; g.add(tag);
+  g.userData = { spec, spin, tag, body, accent, radius: 3.2 };
   return g;
 }
 
@@ -414,12 +409,14 @@ export function makeScammer(spec) {
 // scifi-props.glb holds one scene per prop in this order; scifi-enemies.glb holds the three enemy robots.
 const PROP_NAMES = ["Crate", "CrateLarge", "CrateTarp", "CrateTarpLarge", "Barrel", "Barrel2", "Chest", "Locker", "Dish", "KeyCard", "Desk", "Chair", "Shelves"];
 const ENEMY_NAMES = ["EyeDrone", "QuadShell", "Trilobite"];
+// kenney-city.glb (Kenney City Kit Industrial 2.0, CC0), one scene per model in this order
+const CITY_NAMES = ["building-e", "building-n", "building-a", "building-d", "building-o", "building-g", "building-f", "building-m", "building-t", "building-h", "building-k", "building-s", "windmill", "water-tower", "solar-panel-landscape-group", "solar-panel-portrait-group", "shipping-container-a", "shipping-container-b", "shipping-container-c", "detail-tank-large", "detail-tank", "chimney-large"];
 let kitP = null;
 export function loadKit(ver = "") {
   if (kitP) return kitP;
   const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
   const one = (u) => new Promise((res, rej) => L.load(u + ver, res, undefined, rej));
-  kitP = Promise.all([one("/models/world/scifi-props.glb"), one("/models/world/scifi-enemies.glb")]).then(([p, e]) => {
+  kitP = Promise.all([one("/models/world/scifi-props.glb"), one("/models/world/scifi-enemies.glb"), one("/models/world/kenney-city.glb")]).then(([p, e, c]) => {
     const split = (g, names) => {
       const J = g.parser.json, owner = new Map(), out = {};
       (J.scenes || []).forEach((sc, si) => { const walk = (n) => { owner.set(n, si); (J.nodes[n].children || []).forEach(walk); }; (sc.nodes || []).forEach(walk); });
@@ -428,7 +425,7 @@ export function loadKit(ver = "") {
       });
       return out;
     };
-    return { props: split(p, PROP_NAMES), enemies: split(e, ENEMY_NAMES) };
+    return { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: split(e, ENEMY_NAMES) };
   });
   return kitP;
 }
@@ -436,9 +433,13 @@ const shadowy = (o, cast = true, recv = true) => { o.traverse((m) => { if (m.isM
 export { shadowy };
 export function prop(kit, name, { s = 1, x = 0, z = 0, y = 0, ry = 0 } = {}) {
   const src = kit.props[name]; if (!src) return null;
-  const o = SkeletonUtils.clone(src.scene);
+  const inner = SkeletonUtils.clone(src.scene);
+  const box = new THREE.Box3().setFromObject(inner), c = box.getCenter(new THREE.Vector3());
+  inner.position.set(-c.x, -box.min.y, -c.z);
+  const o = new THREE.Group(); o.add(inner);
   o.scale.setScalar(s); o.position.set(x, y, z); o.rotation.y = ry;
-  o.userData.clips = src.clips;
+  o.userData.clips = src.clips; o.userData.h = (box.max.y - box.min.y) * s; o.userData.w = Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * s;
+  if (src.clips.length) o.userData.animRoot = inner;
   return shadowy(o);
 }
 export function enemy(kit, name) {
@@ -456,27 +457,57 @@ export function enemy(kit, name) {
   return { obj: o, mixer, play };
 }
 // what stands around each shop, in the shop's own frame (+Z faces the spawn point, the plinth is r = 3)
+const BUILDING = { launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
+const ACCENT_H = { rocket: 3.4, orb: 2.8, coin: 2.2, clock: 2.4, dome: 1.9, vault: 2.0, dish: 2.6, obelisk: 2.3, stage: 2.3 };
 const DECOR = {
-  launch: [["Crate", { s: 0.75, x: 3.5, z: 0.7, ry: 0.3 }], ["CrateTarp", { s: 0.75, x: -3.6, z: -0.4, ry: -0.4 }], ["Barrel", { s: 0.9, x: 3.2, z: -1.3 }], ["Barrel2", { s: 1, x: -3.1, z: 1.3 }]],
-  quantum: [["Crate", { s: 0.7, x: 3.5, z: -0.2, ry: 0.6 }], ["Barrel2", { s: 1, x: -3.3, z: 0.9 }], ["Barrel2", { s: 1, x: -3.6, z: -0.2 }]],
-  swap: [["CrateTarpLarge", { s: 0.65, x: -3.7, z: 0, ry: 1.57 }], ["Crate", { s: 0.7, x: 3.6, z: 0.9, ry: 0.2 }], ["Crate", { s: 0.55, x: 3.6, z: -0.5, ry: -0.3 }]],
-  orders: [["Desk", { s: 0.8, x: 3.7, z: 0.4, ry: -1.4 }], ["Chair", { s: 0.8, x: 3.0, z: 1.7, ry: -2.4 }], ["Shelves", { s: 0.9, x: -3.6, z: 0, ry: 1.57 }]],
-  staking: [["Chest", { s: 1.2, x: -3.5, z: 1.0, ry: 0.6, key: "chest" }], ["Barrel2", { s: 1, x: 3.3, z: 1.0 }], ["Barrel2", { s: 1, x: 3.6, z: 0 }]],
-  locker: [["Locker", { s: 0.8, x: 3.4, z: -0.6, ry: -1.57 }], ["Locker", { s: 0.8, x: 3.4, z: 0.4, ry: -1.57 }], ["Chest", { s: 1.1, x: -3.5, z: 0.8, ry: 0.5, key: "chest" }]],
-  scanner: [["Dish", { s: 0.6, x: 3.7, z: -0.3, ry: -1.1 }], ["Shelves", { s: 0.8, x: -3.5, z: 0.5, ry: 1.3 }]],
-  predict: [["Barrel", { s: 0.9, x: 3.2, z: 1.0 }], ["CrateTarp", { s: 0.7, x: -3.5, z: 0, ry: 0.8 }]],
-  arcia: [["Chair", { s: 0.7, x: 1.3, z: 3.3, ry: Math.PI }], ["Chair", { s: 0.7, x: -1.3, z: 3.3, ry: Math.PI }], ["Desk", { s: 0.75, x: -3.7, z: 0, ry: 1.57 }]],
+  launch: [["shipping-container-a", { s: 2.2, x: 3.9, z: 0.4, ry: 0.15 }], ["detail-tank", { s: 1.8, x: -3.9, z: 0.2, ry: 1.2 }]],
+  quantum: [["chimney-large", { s: 1.5, x: -3.7, z: -0.4 }], ["detail-tank-large", { s: 1.3, x: 3.8, z: 0.2, ry: 0.6 }]],
+  swap: [["shipping-container-c", { s: 2.1, x: -3.9, z: 0.5, ry: 0 }], ["shipping-container-b", { s: 2.1, x: -3.9, z: 0.5, y: 0.74, ry: 0.12 }], ["shipping-container-a", { s: 2.1, x: 3.9, z: 0.2, ry: -0.1 }]],
+  orders: [["solar-panel-portrait-group", { s: 1.9, x: 3.9, z: 0.2, ry: -0.3 }], ["Shelves", { s: 1.1, x: -3.8, z: 0, ry: 1.57 }]],
+  staking: [["Chest", { s: 1.45, x: -3.7, z: 1.0, ry: 0.6, key: "chest" }], ["detail-tank", { s: 1.8, x: 3.9, z: 0.4, ry: -0.5 }]],
+  locker: [["Locker", { s: 1.0, x: 3.6, z: -0.6, ry: -1.57 }], ["Locker", { s: 1.0, x: 3.6, z: 0.5, ry: -1.57 }], ["Chest", { s: 1.4, x: -3.7, z: 0.8, ry: 0.5, key: "chest" }]],
+  scanner: [["Dish", { s: 0.75, x: 3.9, z: -0.3, ry: -1.1 }], ["solar-panel-landscape-group", { s: 1.9, x: -3.9, z: 0.3, ry: 0.4 }]],
+  predict: [["detail-tank-large", { s: 1.2, x: 3.8, z: 0.4 }], ["shipping-container-b", { s: 2.1, x: -3.9, z: 0, ry: 0.3 }]],
+  arcia: [["Chair", { s: 0.6, x: 1.2, z: 3.4, ry: Math.PI }], ["Chair", { s: 0.6, x: -1.2, z: 3.4, ry: Math.PI }], ["solar-panel-landscape-group", { s: 1.8, x: -3.9, z: -0.2, ry: 1.2 }]],
 };
 export function decorate(shop, kit) {
-  const list = DECOR[shop.userData.spec.id] || [];
-  list.forEach(([n, o]) => { const p = prop(kit, n, { ...o, s: (o.s || 1) * 1.3 }); if (!p) return; shop.add(p); if (o.key) shop.userData[o.key] = p; });
-  const chest = shop.userData.chest;
-  if (chest && chest.userData.clips.length) {
-    const mixer = new THREE.AnimationMixer(chest); shop.userData.chestMixer = mixer;
-    const act = (n, once) => { const c = chest.userData.clips.find((x) => x.name === n); if (!c) return; const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = true; a.play(); mixer.stopAllAction(); a.play(); };
-    act("Idle_Closed"); shop.userData.chestOpen = () => act("Open", true); shop.userData.chestClose = () => act("Close", true);
-    shop.userData.spin.push((dt) => mixer.update(dt));
+  const u = shop.userData, id = u.spec.id;
+  const b = prop(kit, BUILDING[id], { s: 2.5, y: 0.34, ry: Math.PI });
+  if (b) {
+    u.body.visible = false; shop.add(b);
+    u.accent.position.y = 0.34 + b.userData.h * 0.8; // chimneys and towers count in h, so sit a little lower
+    u.tag.position.y = u.accent.position.y + (ACCENT_H[u.spec.shape] || 2) + 1.3;
   }
+  (DECOR[id] || []).forEach(([n, o]) => { const p = prop(kit, n, o); if (!p) return; shop.add(p); if (o.key) u[o.key] = p; });
+  const chest = u.chest;
+  if (chest && chest.userData.clips.length) {
+    const mixer = new THREE.AnimationMixer(chest.userData.animRoot || chest); u.chestMixer = mixer;
+    const act = (n, once) => { const c = chest.userData.clips.find((x) => x.name === n); if (!c) return; mixer.stopAllAction(); const a = mixer.clipAction(c); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = true; a.play(); };
+    act("Idle_Closed"); u.chestOpen = () => act("Open", true); u.chestClose = () => act("Close", true);
+    u.spin.push((dt) => mixer.update(dt));
+  }
+}
+// the industrial town between the shops and the far side: [model, theta, phi, scale, turn]
+export const TOWN = [
+  ["windmill", 46, 70, 2.6, 0.4], ["windmill", 49, 82, 2.4, 1.2], ["windmill", 44, 95, 2.7, 2.0],
+  ["water-tower", 47, 205, 2.4, 0.2], ["building-h", 45, 228, 2.4, 1.2], ["building-k", 48, 178, 2.4, 2.6],
+  ["building-s", 46, 300, 2.4, 0.8], ["solar-panel-landscape-group", 47, 318, 2.4, 0.3], ["solar-panel-portrait-group", 50, 340, 2.4, 1.1],
+  ["shipping-container-a", 45, 118, 2.4, 0.5], ["shipping-container-c", 47, 124, 2.4, 1.9], ["detail-tank-large", 44, 160, 1.6, 0],
+  ["chimney-large", 62, 35, 2.0, 0], ["building-h", 64, 110, 2.6, 2.2], ["windmill", 68, 175, 2.6, 0.7], ["building-k", 66, 285, 2.6, 1.5],
+  ["water-tower", 72, 320, 2.6, 0.4], ["solar-panel-landscape-group", 74, 230, 2.6, 2.4], ["windmill", 80, 50, 2.8, 0.2], ["building-s", 82, 130, 2.6, 1.0],
+  ["detail-tank-large", 86, 260, 1.8, 0.3], ["windmill", 95, 340, 2.8, 1.6], ["building-h", 100, 200, 2.6, 0.5], ["windmill", 110, 100, 2.8, 2.9],
+];
+export function makeTown(kit) {
+  const out = [];
+  TOWN.forEach(([n, th, ph, sc, ry]) => {
+    const p = prop(kit, n, { s: sc }); if (!p) return;
+    const g = new THREE.Group(); p.rotation.y = ry; g.add(p);
+    placeOn(g, dirOf(th, ph), R - 0.02);
+    g.userData = { radius: Math.max(0.8, p.userData.w * 0.45), spin: [] };
+    if (n === "windmill") { const blades = p.getObjectByName("blades") || null; if (blades) g.userData.spin.push((dt) => (blades.rotation.z += dt * 1.5)); }
+    out.push(g);
+  });
+  return out;
 }
 
 // key cards to collect: a few XP each
@@ -505,7 +536,7 @@ export function makeSky() {
 export function makePaths() {
   const pts = [];
   for (let ph = 0; ph < 360; ph += 3.2) pts.push([31, ph]);
-  SHOPS.forEach((s) => { for (let th = 8; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
+  SHOPS.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
   const geo = new THREE.CylinderGeometry(0.62, 0.7, 0.12, 6);
   const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0x24404c, roughness: 0.75, metalness: 0.2 }), pts.length);
   const m = new THREE.Matrix4(), o = new THREE.Object3D();

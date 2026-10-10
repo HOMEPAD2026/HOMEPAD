@@ -6,7 +6,8 @@ export async function start(canvas, { reduce = false } = {}) {
   try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
   const st = K.makeStage(canvas, { fog: 0.0016, bloom: 0.85, fov: 42 });
   const world = new THREE.Group(); st.scene.add(world);
-  const planet = K.makePlanet(); world.add(planet);
+  const VER = new URL(import.meta.url).search;
+  const planet = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER }); world.add(planet);
   const halo = K.makeHalo(); world.add(halo);
   st.scene.add(K.makeStars());
   const spins = [];
@@ -16,12 +17,13 @@ export async function start(canvas, { reduce = false } = {}) {
   K.SCAMMERS.forEach((s) => { const m = K.makeScammer(s); K.placeOn(m, K.dirOf(s.theta, s.phi)); planet.add(m); spins.push(...m.userData.spin); });
   const robot = K.makeRobot(); K.placeOn(robot, new THREE.Vector3(0, 1, 0)); robot.scale.setScalar(1.6); planet.add(robot);
   world.rotation.set(0.18, 0, -0.1);
-  st.scene.background = null; st.scene.add(K.makeSky());
+  st.scene.background = null; st.scene.add(K.makeSky()); st.scene.add(K.makeSkyPlanets(VER));
   // the Quaternius models arrive a moment later: props around the shops and an Eye Drone circling the world
   const mixers = [];
   let drone = null;
   K.loadKit(new URL(import.meta.url).search).then((kit) => {
     shops.forEach((b) => K.decorate(b, kit));
+    K.makeTown(kit).forEach((g) => { planet.add(g); spins.push(...g.userData.spin); });
     const e = K.enemy(kit, "EyeDrone"); if (!e) return;
     drone = new THREE.Group(); e.obj.scale.setScalar(2.2); drone.add(e.obj); world.add(drone); e.play("Idle"); mixers.push(e.mixer);
   }).catch(() => { /* the planet is enough */ });

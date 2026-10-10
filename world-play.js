@@ -50,9 +50,9 @@ try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
 const st = K.makeStage(cv, { fog: 0.009, bloom: 0.7, fov: 55, shadows: true });
 st.scene.background = null;
 const kitP = K.loadKit(new URL(import.meta.url).search).catch((e) => { console.warn("world models:", e); return null; });
-const planet = K.makePlanet(); st.scene.add(planet);
-planet.add(K.makeSky()); planet.add(K.makeHalo()); planet.add(K.makeStars()); planet.add(K.makePaths());
-planet.children[0].receiveShadow = true;
+const VER = new URL(import.meta.url).search;
+const planet = K.makePlanet({ map: "/models/world/planet-surface.jpg" + VER }); st.scene.add(planet);
+planet.add(K.makeSky()); planet.add(K.makeSkyPlanets(VER)); planet.add(K.makeHalo()); planet.add(K.makeStars()); planet.add(K.makePaths());
 const spins = [];
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); K.shadowy(g); spins.push(...g.userData.spin); return g; });
 const portal = K.makePortal(); K.placeOn(portal, K.dirOf(K.PORTAL.theta, K.PORTAL.phi)); planet.add(portal); spins.push(...portal.userData.spin);
@@ -67,9 +67,11 @@ const cards = [];
 const mixers = [];
 let labels = null; // the sign sprites, gathered on first use (fadeLabels)
 const kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null), 12000))]);
+const town = [];
 function dressWorld(kit) {
   if (!kit) return;
   shops.forEach((g) => K.decorate(g, kit));
+  K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the Phisher wears the Eye Drone
   scammers.forEach((g) => {
     const e = K.enemy(kit, "EyeDrone"); if (!e) return;
@@ -160,7 +162,7 @@ function inputs() {
   return { f: THREE.MathUtils.clamp(f, -1, 1), t: THREE.MathUtils.clamp(t, -1, 1), run };
 }
 function blocked() {
-  for (const g of [...shops, portal, ...lockedStages]) { g.getWorldPosition(tmp); if (tmp.distanceTo(robotAt) < g.userData.radius + 0.6) return true; }
+  for (const g of [...shops, portal, ...lockedStages, ...town]) { g.getWorldPosition(tmp); if (tmp.distanceTo(robotAt) < g.userData.radius + 0.6) return true; }
   return false;
 }
 function step(dt) {
