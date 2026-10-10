@@ -95,6 +95,7 @@ import * as orders from "./_orders.mjs";
 import * as webpush from "./_webpush.mjs";
 import * as v6mod from "./_arcpad-v6.mjs";
 import * as vearcia from "./_vearcia.mjs";
+import * as worldmod from "./_world.mjs";
 
 const te = new TextEncoder();
 const hex = (b) => "0x" + Buffer.from(b).toString("hex");
@@ -201,6 +202,8 @@ export async function readTweet(id, handleHint) {
 const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null);
 // ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
 let V6 = null;
+let WORLD = null;
+const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, storeEnabled, recover: recoverSigner, issuedOk, json }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
 export async function GET(req) {
@@ -213,6 +216,12 @@ export async function GET(req) {
       if (url.searchParams.has("refstats")) return await v6().refStats(url.searchParams.get("refstats"));
       return await v6().plans();
     } catch (err) { console.error("v6 GET", err && err.message || err); return json(502, { error: "couldn't read that right now" }); }
+  }
+  // ARCIRCLE World (api/_world.mjs): who's in the world now and how many have visited
+  if (url.searchParams.get("world") === "stats") {
+    if (!storeEnabled()) return json(200, { online: null, visitors: null, players: null }, "public, max-age=30");
+    try { return json(200, await world().stats(), "public, max-age=10, s-maxage=15, stale-while-revalidate=30"); }
+    catch (err) { console.error("world stats", err && err.message || err); return json(502, { error: "couldn't read the world" }); }
   }
   if (url.searchParams.has("logo")) return serveLogo(url.searchParams.get("logo"));
   // CirclePad rounds (api/_rounds.mjs): the list + launch process, the boot script for /circle, a round's summary and CSV
@@ -785,6 +794,7 @@ export async function POST(req) {
     }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
+    if (b.action === "world-ping" || b.action === "world-login" || b.action === "world-save") return await world().handle(b);
     if (b.action === "vote") return await vote(b);
     if (b.action === "logo") return await saveLogo(b, req);
     if (b.action === "pledge") return await circle.pledge(b, recoverSigner, json);
