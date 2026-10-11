@@ -116,11 +116,12 @@ export const BRANCHES = {
 // gear fusion at the Forge: three pieces of one rarity (Common or Uncommon) make one of the next rarity
 export const FUSE_MAX_R = 1;
 /// the piece three make: one of their slots, the highest tier and level among them, one rarity up
-export function fuseResult(items, pickSlot = Math.random()) {
+export const FUSE_PICK_SCRAP = 30;
+export function fuseResult(items, pickSlot = Math.random(), want = "") {
   if (!Array.isArray(items) || items.length !== 3) return null;
   const r = items[0].r || 0; if (r > FUSE_MAX_R || items.some((x) => (x.r || 0) !== r)) return null;
   const ps = items.map((x) => parseBase(x.b)); if (ps.some((p) => !p)) return null;
-  const slot = ps[Math.min(2, Math.floor(pickSlot * 3))].slot, tier = Math.max(...ps.map((p) => p.tier)), lv = Math.max(...items.map((x) => x.lv || 1));
+  const slot = want && ps.some((p) => p.slot === want) ? want : ps[Math.min(2, Math.floor(pickSlot * 3))].slot, tier = Math.max(...ps.map((p) => p.tier)), lv = Math.max(...items.map((x) => x.lv || 1));
   return { b: baseId(slot, tier), r: r + 1, lv, p: 0 };
 }
 

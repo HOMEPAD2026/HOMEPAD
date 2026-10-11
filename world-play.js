@@ -40,9 +40,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -521,7 +521,7 @@ let jumpBuf = 0;
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
 function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
-function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); }
+function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); if (pet) pet.emote(); }
 function setBoard(on) {
   if (frozen) return;
   boarding = on; board.visible = on; if (avatar) avatar.obj.position.y = on ? 0.45 : 0;
@@ -651,7 +651,7 @@ async function refreshPlaza() {
   const b = screen.userData.board, isle = plazaNow && plazaNow.isle, coin = plazaNow && plazaNow.coin;
   b.userData.draw((g, w, h) => {
     const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "#0b2340"); gr.addColorStop(1, "#0d3a2c"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#8fe9df"; g.font = "700 26px Sora, sans-serif"; g.fillText(isle ? T("Island of the day") : coin ? T("On ArcPad") : T("The plaza screen"), 24, 44);
+    g.fillStyle = "#8fe9df"; g.font = "700 26px Sora, sans-serif"; g.fillText(isle ? (isle.contest ? T("Last week's top island") : T("Island of the day")) : coin ? T("On ArcPad") : T("The plaza screen"), 24, 44);
     g.fillStyle = "#ffffff"; g.font = "700 58px Sora, sans-serif";
     g.fillText(isle ? isle.name.slice(0, 16) : coin ? "$" + String(coin.symbol || "").slice(0, 10) : T("Your island here"), 24, 130);
     g.fillStyle = "#c9d6e2"; g.font = "600 24px Sora, sans-serif";
@@ -1492,8 +1492,23 @@ $("wp-set-reset").addEventListener("click", (e) => {
   try { localStorage.removeItem(SAVE); } catch { /* private */ } location.reload();
 });
 // photo mode: the HUD steps aside, drag to frame the shot, then save or share it
+let photoFilter = "none", photoSticker = 0;
+const photoStickers = () => ["", quests && quests.title(), (P.rpg && P.rpg.x && P.rpg.x.ach || []).includes("raid1") ? T("Raid Breaker") : "", P.rpg && P.rpg.x && P.rpg.x.stitle ? T("Season Star") : "", "ARCIRCLE World"].filter((x, i) => i === 0 || x);
+{ // filters, a sticker and a pose (built here so the words come from the game's own maps)
+  const o = document.createElement("div"); o.className = "wp-photo-opts"; o.setAttribute("data-no-i18n", "");
+  o.innerHTML = `<div><span>${esc(W("Filter"))}</span>${["none", "warm", "cool", "noir", "neon"].map((f) => `<button type="button" data-pf="${f}" aria-pressed="${f === "none"}">${esc(W(f[0].toUpperCase() + f.slice(1)))}</button>`).join("")}</div>
+    <div><span>${esc(W("Sticker"))}</span><button type="button" id="wp-photo-sticker">${esc(W("None"))}</button><span>${esc(W("Pose"))}</span>${[["emote-yes", "Wave"], ["sit", "Sit"], ["interact-right", "Point"]].map(([a, n]) => `<button type="button" data-pp="${a}">${esc(W(n))}</button>`).join("")}</div>`;
+  $("wp-photo-bar").prepend(o);
+  o.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.pf) { photoFilter = b.dataset.pf; o.querySelectorAll("[data-pf]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); cv.style.filter = SOC.PHOTO_FILTERS[photoFilter] || ""; }
+    else if (b.id === "wp-photo-sticker") { const l = photoStickers(); photoSticker = (photoSticker + 1) % l.length; b.textContent = l[photoSticker] || W("None"); }
+    else if (b.dataset.pp && avatar) avatar.play(b.dataset.pp, { once: b.dataset.pp !== "sit" });
+  });
+}
 function setPhoto(on) {
   photo = on; document.body.classList.toggle("wp-photo", on); $("wp-photo-bar").hidden = !on;
+  if (!on) cv.style.filter = "";
   frozen = on; keys.clear(); paintPrompt();
   if (on) toast(T("Photo mode: drag to frame, scroll to zoom"));
 }
@@ -1501,12 +1516,15 @@ $("wp-photo-exit").addEventListener("click", () => setPhoto(false));
 $("wp-photo-take").addEventListener("click", async () => {
   const bar = $("wp-photo-bar"); bar.hidden = true; Snd.shutter();
   const raw = await st.snap(); bar.hidden = false; if (!raw) return;
-  shotRaw = raw; shotFramed = await SOC.frameShot(raw, { name: P.name || "", lv: level(), where: mode === "island" ? island.title() : $("wp-mini-n").textContent || "" }).catch(() => raw);
+  const opt = { name: P.name || "", lv: level(), where: mode === "island" ? island.title() : $("wp-mini-n").textContent || "", filter: photoFilter, sticker: photoStickers()[photoSticker] || "" };
+  // the version on screen is made first; the other one only when the frame is switched
+  shotSrc = raw; shotOpt = opt; shotRaw = shotFramed = null;
+  if (shotFrame) shotFramed = await SOC.frameShot(raw, opt).catch(() => raw); else shotRaw = await SOC.frameShot(raw, { ...opt, frame: false }).catch(() => raw);
   $("wp-shot-frame").hidden = false; $("wp-shot-frame").setAttribute("aria-pressed", String(shotFrame));
   showShot(shotFrame ? shotFramed : shotRaw);
 });
 // the photo (or card) sheet: save, share, post on X; a photo can wear the game's frame or not
-let shotRaw = null, shotFramed = null, shotFrame = true, shotUrl = "";
+let shotRaw = null, shotFramed = null, shotFrame = true, shotUrl = "", shotSrc = null, shotOpt = {};
 function showShot(blob, text) {
   if (shotUrl) URL.revokeObjectURL(shotUrl);
   const msg = text || T("Walking ARCIRCLE World on Circle's Arc ♾");
@@ -1515,13 +1533,46 @@ function showShot(blob, text) {
   const file = new File([blob], "arcircle-world.png", { type: "image/png" });
   $("wp-shot-share").hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
   $("wp-shot-share").onclick = () => navigator.share({ files: [file], text: msg, url: "https://www.arcircle.app/play" }).catch(() => {});
-  if (!text) $("wp-shot-frame").hidden = !shotRaw; else $("wp-shot-frame").hidden = true;
+  $("wp-shot-frame").hidden = !!text || !shotSrc;
   $("wp-shot-h").textContent = text ? T("Your card") : T("Your photo");
   $("wp-shot").hidden = false;
 }
-$("wp-shot-frame").addEventListener("click", () => { if (!shotRaw) return; shotFrame = !shotFrame; $("wp-shot-frame").setAttribute("aria-pressed", String(shotFrame)); showShot(shotFrame ? shotFramed : shotRaw); });
-$("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = null; });
+$("wp-shot-frame").addEventListener("click", async () => {
+  if (!shotSrc) return; shotFrame = !shotFrame; $("wp-shot-frame").setAttribute("aria-pressed", String(shotFrame));
+  if (shotFrame && !shotFramed) shotFramed = await SOC.frameShot(shotSrc, shotOpt).catch(() => shotSrc);
+  if (!shotFrame && !shotRaw) shotRaw = await SOC.frameShot(shotSrc, { ...shotOpt, frame: false }).catch(() => shotSrc);
+  showShot(shotFrame ? shotFramed : shotRaw);
+});
+$("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; shotRaw = shotFramed = shotSrc = null; });
 
+// ---------------- what's new: once after an update, a card with a way to try each new thing ----------------
+const NEWV = "b358";
+function maybeNew() {
+  try { if (localStorage.getItem("arc.world.newv") === NEWV) return; } catch { return; }
+  if (!P.char || !P.guideSeen || new URLSearchParams(location.search).has("nointro")) return;
+  setTimeout(() => { if (mode === "hub" && !frozen) openNew(); }, 1500);
+}
+function openNew() {
+  const items = [
+    ["raid", T("The weekly raid boss"), T("One HP bar for every player, south of town. Level 10 and up.")],
+    ["season", T("The season log"), T("Ten tiers of rewards over 28 days.")],
+    ["quiz", T("The scam quiz"), T("Five questions a day in the codex.")],
+    ["pets", W("Companions"), T("A drone, a cat and an Arc wisp that grow with you.")],
+    ["fuse", T("Gear fusion"), T("Three pieces into the next rarity at the Forge.")],
+    ["isles", T("Islands together"), T("Island links, stamp notes, friends and a weekly contest.")],
+  ];
+  const el = document.createElement("div"); el.className = "wp-new"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
+  el.innerHTML = `<div class="wp-new-card"><small>${esc(W("Update"))}</small><h2>${esc(T("What's new in ARCIRCLE World"))}</h2><ul>${items.map(([k, t, l]) => `<li><button type="button" data-new="${k}"><b>${esc(t)}</b><span>${esc(l)}</span><i aria-hidden="true">›</i></button></li>`).join("")}</ul><button type="button" class="wp-cta" data-new="close">${esc(T("Let's play"))}</button></div>`;
+  document.body.appendChild(el); frozen = true; keys.clear(); paintPrompt();
+  const done = () => { el.remove(); frozen = false; try { localStorage.setItem("arc.world.newv", NEWV); } catch { /* private */ } };
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-new]"); if (!b && e.target !== el) return; done(); const k = b ? b.dataset.new : "close";
+    if (k === "raid") { const z = SOC.RAID, a = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(a) * (z.r + 3), 0, z.z + Math.cos(a) * (z.r + 3)), userData: { radius: 0.5 } }); }
+    else if (k === "season" || k === "pets" || k === "quiz") { quests.setTab(k === "quiz" ? "codex" : k); rpg.show("log"); }
+    else if (k === "fuse") { rpg.forgeTab("fuse"); rpg.show("forge"); }
+    else if (k === "isles") island.openIsles();
+  });
+}
 // ---------------- closing things ----------------
 function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
@@ -1593,7 +1644,7 @@ quests = QST.createQuests({
   shareCard: (o) => shareCard(o),
 });
 rpg.setLog(quests);
-pet = QST.createPet({ THREE, planet, here: (v) => here(v), facing: () => facing, combat, reduce });
+pet = QST.createPet({ THREE, K, planet, here: (v) => here(v), facing: () => facing, combat, reduce });
 pet.set(quests.pet()); setNameTag();
 // the weekly raid boss and the wanderers (world-social.js)
 raid = SOC.createRaid({
@@ -1603,7 +1654,7 @@ raid = SOC.createRaid({
   feed: (h, c) => feed(h, c), shareCard: (o) => shareCard(o), name: () => P.name || "", shake: (n) => { shake = Math.max(shake, n); },
 });
 if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
-ghosts = SOC.createGhosts({ THREE, K, planet, T, inHub: () => mode === "hub" && !introOn, myTag: SOC.tagOf(vid) });
+ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag: SOC.tagOf(vid) });
 // a card to share (an achievement): the photo sheet shows it with save / share / post
 async function shareCard(o) {
   const blob = await SOC.drawCard({ ...o, name: P.name || W("Player"), lv: level() }); if (!blob) return;
@@ -1892,6 +1943,9 @@ else if (!P.char) openMake();
 else { tutorialStep(-1); maybeGuide(); }
 refreshPlaza();
 // a shared island link (/play?isle=0x…): straight to that island once you're in
+// news while you play (friends online, stamps on your island) and, once after an update, what's new
+setTimeout(() => island.news((h, c) => feed(h, c)), 5000); setInterval(() => { if (mode === "hub") island.news((h, c) => feed(h, c)); }, 300000);
+maybeNew();
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {

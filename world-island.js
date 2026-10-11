@@ -610,7 +610,28 @@ export function createIsland(ctx) {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to see your guestbook")); return; }
     openSheet("wi-book"); $("wi-book-list").innerHTML = `<li class="wi-empty">${esc(T("Loading…"))}</li>`;
     try { const r = await fetch("/api/social?world=island&wallet=" + s.wallet); book = r.ok ? ((await r.json()).stamps || []) : []; } catch { book = []; }
+    const top = Math.max(0, ...book.map((x) => x.at || 0)); try { localStorage.setItem(BOOK, String(top)); } catch { /* private */ } bookNew = 0; paintBookDot();
     paintBook();
+  }
+  // what's new since you last looked: friends playing right now, stamps left on your island
+  const BOOK = "arc.world.bookSeen", told = new Set();
+  let bookNew = 0, lastNew = 0;
+  function paintBookDot() { const b = $("wi-book-btn"); if (b) { b.classList.toggle("has-new", bookNew > 0); b.dataset.n = bookNew ? String(bookNew) : ""; } }
+  async function news(say) {
+    const fr = FR();
+    if (fr.length) {
+      try {
+        const r = await fetch("/api/social?world=friends&wallets=" + fr.map((f) => f.w).join(",")), j = r.ok ? await r.json() : {};
+        for (const f of fr) { const x = (j.friends || {})[f.w]; if (x && x.seen && Date.now() - x.seen < 15 * 60e3 && !told.has(f.w)) { told.add(f.w); say(T("{x} is playing now. Visit their island from Islands → Friends.", { x: `<b>${esc(x.name || f.n || f.w.slice(0, 6) + "…" + f.w.slice(-4))}</b>` }), "#7fe0ff"); } }
+      } catch { /* next time */ }
+    }
+    const s = sess(); if (!s) return;
+    try {
+      const r = await fetch("/api/social?world=island&wallet=" + s.wallet), j = r.ok ? await r.json() : {};
+      let seen = 0; try { seen = Number(localStorage.getItem(BOOK) || 0); } catch { /* private */ }
+      bookNew = (j.stamps || []).filter((x) => (x.at || 0) > seen).length; paintBookDot();
+      if (bookNew && bookNew !== lastNew) { lastNew = bookNew; say(bookNew === 1 ? T("A new stamp on your island. Open the Guestbook to see it.") : T("{n} new stamps on your island. Open the Guestbook to see them.", { n: bookNew }), "#ffc861"); }
+    } catch { /* next time */ }
   }
   function paintBook() {
     const list = (book || []).slice().reverse();
@@ -894,7 +915,7 @@ export function createIsland(ctx) {
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
     tick(dt, t) { if (!active) return; tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
-    openIsles, closeSheets, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
+    openIsles, closeSheets, news, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
 }

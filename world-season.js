@@ -28,20 +28,20 @@ export const SEASON_TIERS = [
 ];
 export const tierOf = (pts) => SEASON_TIERS.filter((x) => pts >= x.pts).length;
 
-// the quiz: each question has one right answer (a) and two wrong ones; the game shuffles them
+// the quiz: each question has one right answer (a), two wrong ones and why (shown after answering); the game shuffles them
 export const QUIZ = [
-  { q: "Someone from \"support\" DMs you first and asks for your recovery phrase. What do you do?", a: "Ignore and block: real support never asks for it", b: ["Send it so they can fix your wallet", "Send half of it to be safe"] },
-  { q: "A free token appears in your wallet with a link to \"claim\" more. What's the safe move?", a: "Leave it alone and don't open the link", b: ["Approve the contract to claim it", "Sell it right away on any site"] },
-  { q: "What does approving a token contract let it do?", a: "Move that token out of your wallet, up to the amount approved", b: ["Nothing, it only reads your balance", "Send you more tokens for free"] },
-  { q: "A coin's contract lets the owner block sells. What is it?", a: "A honeypot: you can buy but not sell", b: ["A safe coin with a tax", "A stablecoin"] },
-  { q: "The team wallet holds 80% of a new coin and the liquidity isn't locked. The risk?", a: "They can dump or pull the liquidity: a rug", b: ["None, big holders mean trust", "Only the price goes up"] },
-  { q: "Where should you mint a project's NFT from?", a: "Only the link the project posts on its own channels", b: ["Any page that looks the same", "A link from a reply under the post"] },
-  { q: "A message says \"You won 5,000 USDC, verify your wallet here\". It's…", a: "A phishing link", b: ["A real airdrop", "A bank transfer"] },
-  { q: "What's the safest place for a recovery phrase?", a: "Offline, written down, kept private", b: ["In a screenshot on your phone", "In a note in your email"] },
-  { q: "A site asks you to sign a message you can't read. What do you do?", a: "Don't sign until you know what it does", b: ["Sign: messages are always harmless", "Sign twice to be sure"] },
-  { q: "A \"guaranteed 10% a day\" staking pool is most likely…", a: "A Ponzi: early players are paid with new deposits", b: ["A normal savings account", "A government bond"] },
-  { q: "Someone's account you follow suddenly posts a giveaway with a wallet link. Likely?", a: "The account was hacked", b: ["A real giveaway", "A new feature of the app"] },
-  { q: "How can you check a coin before buying on ArcPad?", a: "Run it through the Scanner: locks, owner, holders, sell test", b: ["Ask in a random group chat", "Buy a little and hope"] },
+  { q: "Someone from \"support\" DMs you first and asks for your recovery phrase. What do you do?", a: "Ignore and block: real support never asks for it", b: ["Send it so they can fix your wallet", "Send half of it to be safe"], why: "Your recovery phrase is the wallet itself. Anyone who has it can take everything, and real support never asks for it." },
+  { q: "A free token appears in your wallet with a link to \"claim\" more. What's the safe move?", a: "Leave it alone and don't open the link", b: ["Approve the contract to claim it", "Sell it right away on any site"], why: "Unknown tokens with links are bait: the claim page asks for an approval or a signature that empties the wallet." },
+  { q: "What does approving a token contract let it do?", a: "Move that token out of your wallet, up to the amount approved", b: ["Nothing, it only reads your balance", "Send you more tokens for free"], why: "An approval lets the contract move that token for you, up to the amount, until you revoke it." },
+  { q: "A coin's contract lets the owner block sells. What is it?", a: "A honeypot: you can buy but not sell", b: ["A safe coin with a tax", "A stablecoin"], why: "A honeypot lets you buy and blocks your sells. The Scanner's sell test catches it." },
+  { q: "The team wallet holds 80% of a new coin and the liquidity isn't locked. The risk?", a: "They can dump or pull the liquidity: a rug", b: ["None, big holders mean trust", "Only the price goes up"], why: "Unlocked liquidity and a team holding most of the supply means they can pull out, and the price goes to zero." },
+  { q: "Where should you mint a project's NFT from?", a: "Only the link the project posts on its own channels", b: ["Any page that looks the same", "A link from a reply under the post"], why: "Scam sites copy real mint pages. Trust only links the project posts on its own accounts." },
+  { q: "A message says \"You won 5,000 USDC, verify your wallet here\". It's…", a: "A phishing link", b: ["A real airdrop", "A bank transfer"], why: "Nobody hands out free USDC for \"verifying\" a wallet. The link wants your signature or your phrase." },
+  { q: "What's the safest place for a recovery phrase?", a: "Offline, written down, kept private", b: ["In a screenshot on your phone", "In a note in your email"], why: "Screenshots and email sync to the cloud and can leak. Keep the phrase offline and to yourself." },
+  { q: "A site asks you to sign a message you can't read. What do you do?", a: "Don't sign until you know what it does", b: ["Sign: messages are always harmless", "Sign twice to be sure"], why: "A signature can approve transfers or listings. If you can't read what it does, don't sign it." },
+  { q: "A \"guaranteed 10% a day\" staking pool is most likely…", a: "A Ponzi: early players are paid with new deposits", b: ["A normal savings account", "A government bond"], why: "No honest pool can promise a fixed daily return. Early payouts come from later deposits until it collapses." },
+  { q: "Someone's account you follow suddenly posts a giveaway with a wallet link. Likely?", a: "The account was hacked", b: ["A real giveaway", "A new feature of the app"], why: "Hacked accounts post fake giveaways fast. Check the project's other channels before you click." },
+  { q: "How can you check a coin before buying on ArcPad?", a: "Run it through the Scanner: locks, owner, holders, sell test", b: ["Ask in a random group chat", "Buy a little and hope"], why: "The Scanner checks locks, owners and holders and runs a sell test before you buy." },
 ];
 const hash = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h; };
 /// today's five questions, with their answers in a fixed shuffled order: [{ i, q, opts: [text], right }]
@@ -51,7 +51,7 @@ export function quizFor(day) {
     const i = hash(day + ":" + k) % QUIZ.length; if (used.has(i)) continue; used.add(i);
     const Q = QUIZ[i], opts = [Q.a, ...Q.b], rot = (h >> (out.length * 2)) % 3;
     const order = [0, 1, 2].map((j) => (j + rot) % 3);
-    out.push({ i, q: Q.q, opts: order.map((j) => opts[j]), right: order.indexOf(0) });
+    out.push({ i, q: Q.q, opts: order.map((j) => opts[j]), right: order.indexOf(0), why: Q.why || "" });
   }
   return out;
 }

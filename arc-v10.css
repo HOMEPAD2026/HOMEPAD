@@ -2566,3 +2566,68 @@ html.wp-pcphone .wc-boss .wc-long{display:none}
 html.wp-pcphone .wr-phase{top:24%}html.wp-pcphone .wr-phase b{font-size:52px}html.wp-pcphone .wr-phase small{font-size:22px}
 html.wp-pcphone .wr-others{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 420px);font-size:22px;padding:8px 18px}
 html.wp-pcphone .wr-credits b{font-size:64px}html.wp-pcphone .wr-credits p{font-size:30px}html.wp-pcphone .wr-credits small{font-size:24px}
+/* ---- v31: quiz explanations, companion names, fusion slot, branch previews, the week strip, NEW badges, what's new, photo options ---- */
+.wq-why{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border-left:3px solid #7fe0ff;font-size:12.5px;line-height:1.5;color:rgba(222,233,244,.82)}
+.wq-petname{display:flex;gap:6px;margin-top:2px}
+.wq-petname input{flex:1;min-width:0;height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);color:#eef3f7;font:600 12.5px var(--f-ui)}
+.wq-petname button{appearance:none;height:30px;padding:0 12px;border-radius:9px;border:1px solid rgba(120,196,255,.35);background:rgba(63,155,255,.14);color:#cfe8ff;font:700 12px var(--f-ui);cursor:pointer}
+.wq-pet small.wq-petnext{color:rgba(255,224,168,.8)}
+.wr-fuse-pick{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:0 0 10px}
+.wr-fuse-pick>span{font:700 12px var(--f-ui);color:rgba(222,233,244,.6)}
+.wr-fuse-pick button{appearance:none;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:none;color:#eef3f7;font:700 12px var(--f-ui);cursor:pointer}
+.wr-fuse-pick button svg{width:15px;height:15px;fill:none;stroke:var(--ic);stroke-width:1.8}
+.wr-fuse-pick button[aria-pressed=true]{border-color:#ffc861;background:rgba(255,200,97,.14);color:#ffe0a8}
+.wr-fuse-pick small{width:100%;text-align:center;font-size:11.5px;color:rgba(222,233,244,.5)}
+/* branch previews: a tiny looping picture of each branch */
+.wr-br button{position:relative;padding-left:44px}
+.br-fx{position:absolute;left:8px;top:50%;width:28px;height:28px;margin-top:-14px;border-radius:8px;background:rgba(0,0,0,.35);overflow:hidden}
+.br-fx u{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:#8fe6ff}
+.br-ice-a u{background:#cff6ff;animation:brFreeze 1.6s infinite}.br-ice-a u:nth-child(2){animation-delay:.2s;transform:translate(-7px,5px)}.br-ice-a u:nth-child(3){animation-delay:.4s;transform:translate(7px,-5px)}
+.br-ice-b u{background:#8fe6ff;animation:brShatter 1.2s infinite}.br-ice-b u:nth-child(2){animation-delay:.1s}.br-ice-b u:nth-child(3){animation-delay:.2s}
+.br-fire-a u{background:#ff9a4a;animation:brWide 1.4s infinite}.br-fire-a u:nth-child(2){animation-delay:.35s}.br-fire-a u:nth-child(3){animation-delay:.7s}
+.br-fire-b u{background:#ff5a1a;border-radius:50% 50% 40% 40%;animation:brBurn 1s infinite}.br-fire-b u:nth-child(2){animation-delay:.33s;left:35%}.br-fire-b u:nth-child(3){animation-delay:.66s;left:65%}
+.br-shock-a u{background:#d8c4ff;animation:brChain 1.2s infinite}.br-shock-a u:nth-child(1){left:20%}.br-shock-a u:nth-child(2){left:50%;animation-delay:.15s}.br-shock-a u:nth-child(3){left:80%;animation-delay:.3s}
+.br-shock-b u{background:#b48cff;animation:brStun 1s infinite}.br-shock-b u:nth-child(2),.br-shock-b u:nth-child(3){display:none}
+.br-meteor-a u{background:#ff7a2a;animation:brFall 1.4s infinite}.br-meteor-a u:nth-child(2){animation-delay:.35s;left:65%}.br-meteor-a u:nth-child(3){display:none}
+.br-meteor-b u{background:#ff4d2a;animation:brCrater 1.4s infinite}.br-meteor-b u:nth-child(2),.br-meteor-b u:nth-child(3){display:none}
+@keyframes brFreeze{0%,100%{opacity:.4;box-shadow:0 0 0 0 rgba(207,246,255,.6)}50%{opacity:1;box-shadow:0 0 0 6px rgba(207,246,255,0)}}
+@keyframes brShatter{0%{transform:scale(.5);opacity:1}100%{transform:translate(9px,-9px) scale(.2);opacity:0}}
+@keyframes brWide{0%{transform:scale(.2);opacity:1}100%{transform:scale(3.2);opacity:0}}
+@keyframes brBurn{0%{transform:translateY(8px) scale(.6);opacity:0}50%{opacity:1}100%{transform:translateY(-10px) scale(1.1);opacity:0}}
+@keyframes brChain{0%,100%{opacity:.25}20%{opacity:1;box-shadow:0 0 8px #d8c4ff}}
+@keyframes brStun{0%,100%{transform:scale(1)}25%{transform:translateX(-3px) scale(1.3)}75%{transform:translateX(3px) scale(1.3)}}
+@keyframes brFall{0%{transform:translate(-10px,-16px);opacity:0}70%{transform:translate(0,4px);opacity:1}100%{transform:translate(0,4px) scale(1.8);opacity:0}}
+@keyframes brCrater{0%{transform:scale(.3);opacity:1}100%{transform:scale(3.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.br-fx u{animation:none!important}}
+/* the week strip under today's event */
+.wq-week{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wq-week li{position:relative;display:grid;gap:1px;justify-items:center;padding:6px 2px 7px;border-radius:9px;background:rgba(0,0,0,.22);border-bottom:3px solid var(--zc)}
+.wq-week li b{font:800 11.5px var(--f-ui);color:#eef3f7}.wq-week li small{font-size:10px;color:rgba(222,233,244,.6);white-space:nowrap}
+.wq-week li.now{background:rgba(57,255,136,.14);box-shadow:inset 0 0 0 1px rgba(57,255,136,.5)}
+.wq-week li em{position:absolute;top:-8px;right:-2px;padding:1px 5px;border-radius:6px;background:#39ff88;color:#04210f;font:800 9px var(--f-ui);font-style:normal;white-space:nowrap}
+/* NEW badges */
+.nb{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:#ff4d6d;color:#fff;font:900 9.5px var(--f-ui);font-style:normal;letter-spacing:.04em;vertical-align:2px}
+/* what's new */
+.wp-new{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(2,6,12,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.wp-new-card{width:min(520px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:22px 22px 20px;border-radius:24px;background:radial-gradient(90% 60% at 0 0,rgba(57,255,136,.14),transparent 60%),#0b1320;border:1px solid rgba(57,255,136,.35);box-shadow:0 30px 80px rgba(0,0,0,.6);animation:wpNewIn .45s cubic-bezier(.2,1.3,.4,1)}
+@keyframes wpNewIn{from{transform:translateY(16px) scale(.96);opacity:0}}
+.wp-new-card>small{font:800 12px var(--f-ui);color:#39ff88}
+.wp-new-card h2{margin:4px 0 14px;font:900 24px var(--f-ui);color:#fff}
+.wp-new-card ul{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:7px}
+.wp-new-card li button{appearance:none;width:100%;display:grid;grid-template-columns:1fr auto;grid-template-areas:"b i" "s i";gap:2px 10px;align-items:center;text-align:left;padding:11px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#eef3f7;cursor:pointer}
+.wp-new-card li button:hover{border-color:rgba(57,255,136,.5);background:rgba(57,255,136,.07)}
+.wp-new-card li b{grid-area:b;font:800 14.5px var(--f-ui)}.wp-new-card li span{grid-area:s;font-size:12.5px;color:rgba(222,233,244,.65)}.wp-new-card li i{grid-area:i;font:900 22px var(--f-ui);font-style:normal;color:#39ff88}
+.wp-new-card>.wp-cta{width:100%}
+html.wp-pcphone .wp-new-card{zoom:1.5;width:min(560px,calc((100vw - 24px) / 1.5));max-height:calc((100svh - 40px) / 1.5)}
+/* the guestbook's new-stamp dot */
+.wi-b.has-new{position:relative}
+.wi-b.has-new::after{content:attr(data-n);position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d6d;color:#fff;font:800 11px/18px var(--f-ui);text-align:center}
+/* the photo's options */
+.wp-photo-bar{flex-wrap:wrap;justify-content:center}
+.wp-photo-opts{flex-basis:100%;display:grid;gap:6px;justify-items:center;margin-bottom:6px}
+.wp-photo-opts>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px;padding:6px 10px;border-radius:999px;background:rgba(8,14,22,.72)}
+.wp-photo-opts span{font:700 11.5px var(--f-ui);color:rgba(222,233,244,.6);margin:0 4px}
+.wp-photo-opts button{appearance:none;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:none;color:#eef3f7;font:700 12px var(--f-ui);cursor:pointer}
+.wp-photo-opts button[aria-pressed=true]{border-color:#35d8d0;background:rgba(53,216,208,.16);color:#9ff5ea}
+#wp-photo-sticker{border-color:rgba(255,200,97,.5);color:#ffe0a8}
+html.wp-pcphone .wp-photo-opts button{height:56px;padding:0 22px;font-size:22px}html.wp-pcphone .wp-photo-opts span{font-size:20px}

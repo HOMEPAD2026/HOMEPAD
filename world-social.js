@@ -155,7 +155,7 @@ export function createRaid(ctx) {
   el.addEventListener("click", async (e) => {
     if (e.target.closest("[data-raidshare]")) {
       const i = (st.top || []).findIndex((r) => ctx.name && r.name === ctx.name());
-      ctx.shareCard && ctx.shareCard({ head: T("Weekly raid"), title: RAID.boss.name, line: T("My damage: {n}", { n: Math.round(st.mine).toLocaleString("en-US") }) + (i >= 0 ? " · " + T("#{n} this week", { n: i + 1 }) : ""), badge: T("Raid Breaker") });
+      ctx.shareCard && ctx.shareCard({ head: T("Weekly raid"), title: RAID.boss.name, line: T("My damage: {n}", { n: Math.round(st.mine).toLocaleString("en-US") }) + (i >= 0 ? " · " + T("#{n} this week", { n: i + 1 }) : ""), badge: T("Raid Breaker"), icon: "raid1" });
       return;
     }
     const b = e.target.closest("[data-raidclaim]"); if (!b || b.disabled) return;
@@ -243,6 +243,9 @@ export function createGhosts(ctx) {
         tmp.set(tx - w.g.position.x, 0, tz - w.g.position.z); const d = tmp.length();
         if (d > 25) w.g.position.set(w.x, 0, w.z); else if (d > 0.05) { tmp.multiplyScalar(Math.min(1, dt * 0.9 / d)); w.g.position.add(tmp); w.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
         w.g.userData.body.position.y = 0.75 + Math.sin(t * 2 + w.wander) * 0.05; w.g.userData.head.position.y = 1.55 + Math.sin(t * 2 + w.wander) * 0.05;
+        // walk up to one and it turns, hops and says hi (once in a while)
+        if (ctx.here && !w.gone) { ctx.here(tmp); const dd = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z); if (dd < 3 && (!w.hiAt || performance.now() - w.hiAt > 20000)) { w.hiAt = performance.now(); w.hop = 1; w.g.rotation.y = Math.atan2(tmp.x - w.g.position.x, tmp.z - w.g.position.z); const hi = K.label(ctx.T("Hi!"), { accent: "#9fe6ff", size: 0.4 }); hi.position.y = 2.9; w.g.add(hi); setTimeout(() => { w.g.remove(hi); hi.material.map && hi.material.map.dispose(); }, 1800); } }
+        if (w.hop > 0) { w.hop = Math.max(0, w.hop - dt * 1.6); w.g.position.y = Math.sin((1 - w.hop) * Math.PI) * 0.6; } else w.g.position.y = 0;
         w.fade = w.gone ? Math.max(0, w.fade - dt) : Math.min(1, w.fade + dt);
         w.g.userData.mat.opacity = 0.45 * w.fade;
         if (w.gone && w.fade <= 0) { root.remove(w.g); list.delete(k); }
@@ -261,7 +264,21 @@ function rings(g, cx, cy, r, a = 0.16) {
 function fitText(g, text, max, w, px, min = 18) { let s = px; g.font = font(w, s); while (s > min && g.measureText(text).width > max) { s -= 2; g.font = font(w, s); } return s; }
 
 /// an achievement (or any) card: 1200 × 630 PNG
-export async function drawCard({ head, title, line, badge, name, lv, foot = "arcircle.app/play" }) {
+// a glyph for each achievement on its card (drawn around 0,0 at about ±60)
+function glyph(g, icon) {
+  g.fillStyle = "#1a1206"; g.strokeStyle = "#1a1206"; g.lineWidth = 9; g.lineCap = "round"; g.lineJoin = "round";
+  const P = (pts, close) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); if (close) g.closePath(); };
+  if (/^k/.test(icon)) { P([[-38, 38], [30, -30]]); g.stroke(); P([[18, -42], [42, -18]]); g.stroke(); P([[-44, 24], [-24, 44]]); g.stroke(); }
+  else if (icon === "e25") { P([[-34, 4], [0, -26], [34, 4]]); g.stroke(); P([[-34, 32], [0, 2], [34, 32]]); g.stroke(); }
+  else if (/^b/.test(icon)) { P([[-40, 26], [-44, -20], [-20, 0], [0, -34], [20, 0], [44, -20], [40, 26]], true); g.fill(); }
+  else if (icon === "leg") { for (const [x, y] of [[0, -20], [-20, 0], [20, 0], [0, 20]]) { g.beginPath(); g.arc(x, y, 17, 0, TAU); g.fill(); } }
+  else if (icon === "zones") { g.beginPath(); g.arc(0, 0, 36, 0, TAU); g.stroke(); P([[0, -28], [10, 0], [0, 28], [-10, 0]], true); g.fill(); }
+  else if (icon === "plus10") { P([[-30, 34], [14, -10]]); g.stroke(); g.fillRect(2, -40, 40, 22); }
+  else if (icon === "raid1") { P([[0, -40], [34, -26], [30, 12], [0, 40], [-30, 12], [-34, -26]], true); g.fill(); g.strokeStyle = "#ffc861"; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 14, 0, TAU); g.stroke(); }
+  else if (icon === "quiz") { g.font = "900 72px Sora, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", 0, 4); }
+  else { g.font = "900 64px Sora, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(icon || "").slice(0, 2).toUpperCase() || "★", 0, 4); }
+}
+export async function drawCard({ head, title, line, badge, name, lv, icon = "", foot = "arcircle.app/play" }) {
   const W = 1200, H = 630, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
   rings(g, 930, 300, 230, 0.2);
@@ -273,17 +290,28 @@ export async function drawCard({ head, title, line, badge, name, lv, foot = "arc
   g.fillStyle = "#b8c6d2"; g.font = font(500, 30); g.fillText(line || "", 72, 360, 760);
   if (badge) { g.font = font(800, 30); const w = g.measureText(badge).width + 56; g.fillStyle = "rgba(255,200,97,.14)"; g.strokeStyle = "#ffc861"; g.lineWidth = 2; g.beginPath(); g.roundRect(72, 400, w, 58, 29); g.fill(); g.stroke(); g.fillStyle = "#ffc861"; g.fillText(badge, 100, 440); }
   // the medal on the right
-  g.save(); g.translate(930, 300); g.fillStyle = "#ffc861"; g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 58 : 118, a = (i / 10) * TAU - Math.PI / 2; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.restore();
+  g.save(); g.translate(930, 300);
+  if (icon) { g.fillStyle = "#ffc861"; g.beginPath(); g.arc(0, 0, 104, 0, TAU); g.fill(); g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 92, 0, TAU); g.stroke(); glyph(g, icon); }
+  else { g.fillStyle = "#ffc861"; g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 58 : 118, a = (i / 10) * TAU - Math.PI / 2; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); }
+  g.restore();
   g.fillStyle = "rgba(255,255,255,.08)"; g.fillRect(0, H - 92, W, 92);
   g.fillStyle = "#eef3f7"; g.font = font(700, 30); g.fillText((name || "") + (lv ? `  ·  Lv ${lv}` : ""), 72, H - 36);
   g.fillStyle = "#9fb3c4"; g.font = font(600, 26); g.textAlign = "right"; g.fillText(foot, W - 72, H - 36); g.textAlign = "left";
   return new Promise((ok) => cv.toBlob(ok, "image/png"));
 }
 /// a photo with the game's frame: a slim bar along the bottom with the mark, the name and the link
-export async function frameShot(blob, { name, lv, where } = {}) {
+export const PHOTO_FILTERS = { none: "", warm: "sepia(.28) saturate(1.25) brightness(1.04)", cool: "hue-rotate(-12deg) saturate(1.15) contrast(1.05)", noir: "grayscale(1) contrast(1.25)", neon: "saturate(1.8) contrast(1.15) hue-rotate(8deg)" };
+/// the photo: a filter, a sticker in the corner, and (unless frame is false) the bar along the bottom
+export async function frameShot(blob, { name, lv, where, filter = "", sticker = "", frame = true } = {}) {
   const img = await loadImg(URL.createObjectURL(blob)); if (!img) return blob;
-  const W = img.naturalWidth, H = img.naturalHeight, bar = Math.round(Math.max(64, H * 0.085)), cv = document.createElement("canvas"); cv.width = W; cv.height = H + bar;
-  const g = cv.getContext("2d"); g.drawImage(img, 0, 0);
+  const W = img.naturalWidth, H = img.naturalHeight, bar = frame ? Math.round(Math.max(64, H * 0.085)) : 0, cv = document.createElement("canvas"); cv.width = W; cv.height = H + bar;
+  const g = cv.getContext("2d"); g.filter = PHOTO_FILTERS[filter] || "none"; g.drawImage(img, 0, 0); g.filter = "none";
+  if (sticker) {
+    const s = Math.round(Math.max(28, H * 0.045)); g.font = font(800, s); const tw = g.measureText(sticker).width, pad = s * 0.7, bw = tw + pad * 2, bh = s * 1.9, x = W - bw - s, y = s;
+    g.save(); g.translate(x + bw / 2, y + bh / 2); g.rotate(-0.06); g.fillStyle = "rgba(6,18,28,.82)"; g.strokeStyle = "#ffc861"; g.lineWidth = Math.max(2, s * 0.09); g.beginPath(); g.roundRect(-bw / 2, -bh / 2, bw, bh, bh / 2); g.fill(); g.stroke();
+    g.fillStyle = "#ffc861"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(sticker, 0, 2); g.restore();
+  }
+  if (!frame) return new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
   const bg = g.createLinearGradient(0, H, W, H + bar); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, H, W, bar);
   g.fillStyle = "#39ff88"; g.fillRect(0, H, W, Math.max(2, Math.round(bar * 0.04)));
   const logo = await loadImg("/images/arcircle-mark-sm.png"), lh = Math.round(bar * 0.46);
