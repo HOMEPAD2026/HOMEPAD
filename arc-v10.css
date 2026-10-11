@@ -2631,3 +2631,54 @@ html.wp-pcphone .wp-new-card{zoom:1.5;width:min(560px,calc((100vw - 24px) / 1.5)
 .wp-photo-opts button[aria-pressed=true]{border-color:#35d8d0;background:rgba(53,216,208,.16);color:#9ff5ea}
 #wp-photo-sticker{border-color:rgba(255,200,97,.5);color:#ffe0a8}
 html.wp-pcphone .wp-photo-opts button{height:56px;padding:0 22px;font-size:22px}html.wp-pcphone .wp-photo-opts span{font-size:20px}
+/* ---- v32: the season track, the claim pop, companion portraits, phone character tabs, rarity marks, the fusion animation, quiz feedback, past raids ---- */
+.wq-track{position:relative;height:46px;margin:14px 14px 6px}
+.wq-track::before{content:"";position:absolute;left:0;right:0;top:21px;height:4px;border-radius:2px;background:rgba(255,255,255,.08)}
+.wq-track-fill{position:absolute;left:0;top:21px;height:4px;border-radius:2px;background:linear-gradient(90deg,#ffc861,#ff9a4a);box-shadow:0 0 12px rgba(255,200,97,.5);animation:wqFill 1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes wqFill{from{width:0}}
+.wq-track span{position:absolute;top:9px;width:28px;height:28px;margin-left:-14px;border-radius:50%;display:grid;place-items:center;background:#141c2a;border:2px solid rgba(255,255,255,.14)}
+.wq-track span b{font:800 11px var(--f-ui);color:rgba(222,233,244,.55)}
+.wq-track span.ready{background:#ffc861;border-color:#ffe0a8;box-shadow:0 0 0 4px rgba(255,200,97,.18);animation:wqReady 1.6s ease-in-out infinite}
+.wq-track span.ready b{color:#2a1200}
+.wq-track span.done{background:rgba(95,224,138,.2);border-color:#5fe08a}.wq-track span.done b{color:#5fe08a}
+.wq-track span.top{width:34px;height:34px;margin-left:-17px;top:6px;border-color:#b48cff}
+.wq-track span.k-gear:not(.done):not(.ready){border-color:rgba(79,168,255,.6)}
+@keyframes wqReady{50%{box-shadow:0 0 0 8px rgba(255,200,97,0)}}
+.wq-pop{position:fixed;left:50%;top:42%;z-index:31;display:grid;justify-items:center;gap:8px;transform:translate(-50%,-50%);pointer-events:none;animation:wqPop 1.7s ease forwards}
+.wq-pop b{padding:8px 16px;border-radius:999px;background:rgba(10,14,22,.9);border:1px solid rgba(255,200,97,.6);font:900 18px var(--f-ui);color:#ffe0a8;white-space:nowrap}
+.wq-pop-chest{position:relative;width:64px;height:46px;border-radius:8px 8px 10px 10px;background:linear-gradient(180deg,#8a5a36,#5a3a22);box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
+.wq-pop-chest::before{content:"";position:absolute;left:-4px;right:-4px;top:-14px;height:18px;border-radius:9px 9px 3px 3px;background:linear-gradient(180deg,#ffd08a,#ff9a4a);transform-origin:10% 100%;animation:wqLid .5s .15s cubic-bezier(.2,1.6,.4,1) both}
+.wq-pop-chest::after{content:"";position:absolute;left:50%;top:-30px;width:90px;height:90px;margin-left:-45px;border-radius:50%;background:radial-gradient(circle,rgba(255,224,168,.8),transparent 65%);animation:wqGlow 1s .2s ease both}
+@keyframes wqPop{0%{opacity:0;transform:translate(-50%,-40%) scale(.7)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%)}}
+@keyframes wqLid{to{transform:rotate(-28deg) translateY(-6px)}}
+@keyframes wqGlow{from{opacity:0;transform:scale(.3)}50%{opacity:1}to{opacity:0;transform:scale(1.4)}}
+.wq-pet-art{display:grid;place-items:center;overflow:hidden}
+.wq-pet-art img{width:100%;height:100%;object-fit:cover}
+.wq-pet-art:has(img){background:radial-gradient(circle,rgba(127,224,255,.2),rgba(0,0,0,.25) 70%)}
+/* the phone's character sheet: Gear and Bag as tabs */
+.wr-panes{display:none;gap:6px;margin:0 0 10px}
+.wr-panes button{appearance:none;flex:1;height:40px;border-radius:12px;border:1px solid rgba(120,196,255,.3);background:none;color:#eef3f7;font:800 14px var(--f-ui);cursor:pointer}
+.wr-panes button[aria-pressed=true]{background:rgba(63,155,255,.2);border-color:#7fe0ff}
+.wr-panes small{font-weight:600;color:rgba(222,233,244,.55)}
+html.wp-pcphone .wr-panes{display:flex}
+html.wp-pcphone .wr-grid.pane-gear .wr-bag,html.wp-pcphone .wr-grid.pane-bag .wr-doll{display:none}
+/* rarity marks: not only colour */
+.wr-tile{position:relative}
+.wr-tile.r1::before,.wr-tile.r2::before,.wr-tile.r3::before,.wr-tile.r4::before{position:absolute;top:2px;left:4px;font:900 9px/1 var(--f-ui);color:var(--rc);letter-spacing:1px;pointer-events:none}
+.wr-tile.r1::before{content:"•"}.wr-tile.r2::before{content:"••"}.wr-tile.r3::before{content:"◆"}.wr-tile.r4::before{content:"★"}
+/* fusion: the three fly into the middle */
+.wr-fuse-slots.fusing .wr-fslot:not(.out){animation:wrFuseIn .7s cubic-bezier(.5,0,.8,.4) forwards}
+.wr-fuse-slots.fusing .wr-fslot:nth-child(1){--fx:150px}.wr-fuse-slots.fusing .wr-fslot:nth-child(3){--fx:90px}.wr-fuse-slots.fusing .wr-fslot:nth-child(5){--fx:30px}
+.wr-fuse-slots.fusing .wr-fslot.out{animation:wrFuseGlow .7s ease forwards}
+@keyframes wrFuseIn{to{transform:translateX(var(--fx,60px)) scale(.4);opacity:0}}
+@keyframes wrFuseGlow{60%{box-shadow:0 0 40px 10px var(--rc,#ffc861);transform:scale(1.2)}100%{box-shadow:0 0 18px -4px var(--rc,#ffc861);transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.wr-fuse-slots.fusing .wr-fslot{animation:none!important}.wq-track-fill,.wq-track span.ready{animation:none}.wq-pop{animation:none;opacity:0}}
+/* quiz feedback */
+.wq-last.ok{animation:wqFlip .45s ease}.wq-last.no{animation:wqShake .4s ease}
+@keyframes wqFlip{from{transform:rotateX(90deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes wqShake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+/* past raids */
+.wq-past-h{margin:16px 0 6px;font:800 13px var(--f-ui);color:rgba(222,233,244,.7)}
+.wq-past{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.wq-past li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.03);font-size:12.5px}
+.wq-past li b{font:800 12.5px var(--f-num,var(--f-ui));color:#cfe8ff}.wq-past li span{color:rgba(222,233,244,.65)}.wq-past li em{font-style:normal;font-weight:700;color:rgba(255,143,160,.85)}.wq-past li em.ok{color:#9fffd0}

@@ -118,7 +118,7 @@ export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, M
 const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 } };
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
-function isoWeek(t) {
+export function isoWeek(t) {
   const d = new Date(t + 9 * 3600e3); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3);
   const y = d.getUTCFullYear(), first = new Date(Date.UTC(y, 0, 4)); return `${y}-W${String(1 + Math.round(((d - first) / 864e5 - 3 + ((first.getUTCDay() + 6) % 7)) / 7)).padStart(2, "0")}`;
 }

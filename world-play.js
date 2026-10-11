@@ -147,8 +147,24 @@ const Snd = (() => {
     const fl = ctx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = f; const g = ctx.createGain(); g.gain.value = v;
     n.buffer = b; n.connect(fl); fl.connect(g); g.connect(out); n.start();
   }
+  // a scene: the raid's beat, or a hunting ground's ambience, quietly under everything else
+  let sceneK = "", sceneIv = 0, beat = 0;
+  const RAID_SEQ = [110, 0, 131, 0, 147, 0, 131, 0, 98, 0, 117, 0, 131, 0, 117, 0];
+  function scene(k) {
+    if (k === sceneK) return; sceneK = k; clearInterval(sceneIv); sceneIv = 0; beat = 0;
+    if (!k) return;
+    sceneIv = setInterval(() => {
+      if (!ctx || !S.sound || document.hidden) return; const b = beat++;
+      if (k === "raid") { const s = b % 16; if (s % 4 === 0) { tone(58, 0.24, { to: 40, v: 0.13 }); noise(0.04, 0.05, 140); } if (s % 8 === 4) noise(0.11, 0.06, 1900); if (RAID_SEQ[s]) tone(RAID_SEQ[s], 0.2, { type: "sawtooth", v: 0.022 }); }
+      else if (k === "spam") { if (Math.random() < 0.2) tone(1100 + Math.random() * 1300, 0.05, { type: "square", v: 0.012 }); }
+      else if (k === "fields") { if (b % 12 === 0) noise(2.6, 0.018, 420); if (Math.random() < 0.06) tone(1900 + Math.random() * 600, 0.12, { v: 0.012, to: 2500 }); }
+      else if (k === "swamp") { if (Math.random() < 0.18) tone(170 + Math.random() * 120, 0.14, { to: 430, v: 0.025 }); }
+      else if (k === "canyon") { if (b % 10 === 0) noise(2.4, 0.026, 230); }
+      else if (k === "depths") { if (b % 8 === 0) tone(46, 1.9, { v: 0.045 }); if (Math.random() < 0.08) tone(660, 0.6, { type: "triangle", v: 0.01, to: 330 }); }
+    }, k === "raid" ? 250 : 500);
+  }
   return {
-    init, set(on) { S.sound = on; saveSet(); if (on) init(); if (out) out.gain.value = on ? 0.42 : 0; },
+    init, scene, set(on) { S.sound = on; saveSet(); if (on) init(); if (out) out.gain.value = on ? 0.42 : 0; },
     step: () => noise(0.05, 0.05, 1400), jump: () => tone(300, 0.22, { type: "triangle", to: 620, v: 0.12 }), land: () => noise(0.09, 0.09, 500),
     pick: () => { tone(880, 0.12, { v: 0.12 }); tone(1320, 0.18, { v: 0.1, at: 0.08 }); },
     enter: () => { tone(520, 0.1, { type: "triangle", v: 0.12 }); tone(780, 0.14, { type: "triangle", v: 0.1, at: 0.07 }); },
@@ -1605,7 +1621,7 @@ combat = FIGHT.createCombat({
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
   onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); },
-  onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); }, onCast: () => quests && quests.on.skill(), petPull: () => (pet && pet.visible() ? pet.pull() : 0),
+  onKill: (k) => { if (quests) quests.on.kill(k); tutorialStep(3); }, onCast: () => quests && quests.on.skill(), onFetch: () => { if (pet && pet.id() === "cat") pet.emote(); }, petPull: () => (pet && pet.visible() ? pet.pull() : 0),
   xpBoost: (zid) => RPG.xpBoost(zid), inRaid: () => !!(raid && raid.inside()), raidHit: (n) => raid && raid.hit(n),
   onRaidDown: () => { if (raid) raid.load(); },
   onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); },
@@ -1641,6 +1657,7 @@ quests = QST.createQuests({
   repaint: () => rpg.repaint(), onTitle: () => setNameTag(),
   onAch: () => { setNameTag(); if (pet) pet.set(quests.pet()); paintBagDot(); },
   onPet: () => { if (pet) pet.set(quests.pet()); },
+  petThumb: (id) => (pet && pet.portraits ? pet.portraits()[id] || "" : ""),
   shareCard: (o) => shareCard(o),
 });
 rpg.setLog(quests);
@@ -1867,6 +1884,7 @@ st.on((dt0, t) => {
   if (combat) combat.tick(dt, t);
   if (pet) pet.tick(dt, t, mode === "hub" && !introOn && !flying);
   if (raid) raid.tick(dt, t);
+  Snd.scene(mode !== "hub" || introOn ? "" : raid && raid.inside() ? "raid" : (combat && combat.zone() && combat.zone().id) || "");
   if (ghosts) ghosts.tick(dt, t);
   if (knockV.lengthSq() > 0.01) { const v = knockV.length(); tmp2.copy(knockV).divideScalar(v); tryMove(tmp2, v * dt); knockV.multiplyScalar(Math.max(0, 1 - dt * 6)); }
   trail.update(boarding && !frozen, here(tmpTr), speedNow);
@@ -1946,6 +1964,7 @@ refreshPlaza();
 // news while you play (friends online, stamps on your island) and, once after an update, what's new
 setTimeout(() => island.news((h, c) => feed(h, c)), 5000); setInterval(() => { if (mode === "hub") island.news((h, c) => feed(h, c)); }, 300000);
 maybeNew();
+setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {

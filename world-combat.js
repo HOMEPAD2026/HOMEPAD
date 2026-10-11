@@ -156,7 +156,13 @@ export function createCombat(ctx) {
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: bs ? bs.y : spec.y };
-    if (o.raid) { m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; } // the raid's HP is the bar at the top and the gauge on the floor
+    if (o.raid) {
+      m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
+      const crown = new THREE.Group(); crown.position.y = bb.max.y + 1.2; g.add(crown);
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * TAU, c = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 20), new THREE.MeshStandardMaterial({ color: 0xffc861, metalness: 0.85, roughness: 0.25, emissive: 0x6a4a10, emissiveIntensity: 0.5 })); c.position.set(Math.cos(a) * 2.6, Math.sin(a * 3) * 0.25, Math.sin(a) * 2.6); c.rotation.z = Math.PI / 2; c.rotation.y = -a; crown.add(c); }
+      const aura = new THREE.Mesh(new THREE.SphereGeometry(Math.max(3, (bb.max.y - bb.min.y) * 0.7), 24, 16), additive(0x39ff88, 0.08)); aura.position.y = (bb.max.y + bb.min.y) / 2; g.add(aura);
+      m.crown = crown; m.aura = aura;
+    }
     label(m); mobs.push(m);
     if (m.slow === 0) { const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6), 0), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
@@ -171,7 +177,7 @@ export function createCombat(ctx) {
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
     if (!m.raid) tryStep(m, tmp, kb);
-    if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); }
+    if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) { m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); m.statue = true; } }
     if (kind === "shock") m.stun = (m.rank === "boss" ? 0.4 : 1.2) * (brOf("shock") === "b" ? 2 : 1);
     if (kind === "fire" || kind === "meteor") { const inf = kind === "fire" && brOf("fire") === "b"; m.burn = inf ? 5 : 3; m.burnD = Math.max(1, Math.round(raw * (inf ? 0.24 : 0.12))); }
     m.e.play("Hit", { once: true, fade: 0.05 });
@@ -238,7 +244,8 @@ export function createCombat(ctx) {
       if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { root.remove(m.g); mobs.splice(i, 1); if (m.rank === "boss") hideBossBar(); continue; }
       m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
       if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
-      if (m.shell) m.shell.visible = m.slow > 0;
+      if (m.shell) { m.shell.visible = m.slow > 0; m.shell.material.opacity = m.statue && m.stun > 0 ? 0.85 : 0.45; }
+      if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
       body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : 0.18; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
@@ -256,7 +263,7 @@ export function createCombat(ctx) {
         if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
-      if (m.raid) raidTick(m, dt, t, d);
+      if (m.raid) { raidTick(m, dt, t, d); m.crown.rotation.y += dt * 0.8; m.crown.children.forEach((c, k) => { c.rotation.x += dt * 3; }); m.aura.material.opacity = 0.06 + Math.sin(t * 2) * 0.03 + (raidPhase >= 4 ? 0.05 : 0); }
       if (m.rank === "boss") {
         m.slam = (m.slam || 6) - dt;
         // a red circle grows on the ground a second before the slam: step out of it
@@ -390,7 +397,7 @@ export function createCombat(ctx) {
     if (second) at.add(new V3((Math.random() - 0.5) * 5, 0, (Math.random() - 0.5) * 5));
     const big = brOf("meteor") === "b" ? 1.5 : 1;
     if (!second && brOf("meteor") === "a") setTimeout(() => { ctx.here(me); fwdOf(fwd); meteor(s, true); }, 380);
-    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ color: 0x5a2a18, emissive: 0xff4d1a, emissiveIntensity: 1.6, roughness: 0.6, flatShading: true }));
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(second ? 0.7 : 0.9, 1), new THREE.MeshStandardMaterial({ color: second ? 0x2a1a4a : 0x5a2a18, emissive: second ? 0xb48cff : 0xff4d1a, emissiveIntensity: 1.6, roughness: 0.6, flatShading: true }));
     const halo = new THREE.Sprite(spriteMat(s.color, 0.95)); halo.scale.setScalar(4.2); core.add(halo);
     core.position.copy(at).add(new V3(-3, 16, -3)); add(core);
     const v = at.clone().sub(core.position).multiplyScalar(1 / 0.7);
@@ -418,6 +425,12 @@ export function createCombat(ctx) {
     }
     flash(hand, 0xb48cff, 1.8, 0.2); Snd.cast && Snd.cast("shock");
     return true;
+  }
+  // a patch of burning ground (Wildfire): flickers for two seconds and singes whatever stands in it
+  function groundFire(at) {
+    const p = at.clone().setY(0.07), disc = new THREE.Mesh(new THREE.CircleGeometry(3.2, 32), additive(0xff7a2a, 0.35)); disc.rotation.x = -Math.PI / 2; disc.position.copy(p); add(disc);
+    let tick = 0;
+    fx.push({ o: disc, life: 2, t: 0, onTick: (k) => { disc.material.opacity = 0.35 * (1 - k) + Math.sin(k * 40) * 0.05; if ((tick += 1) % 6 === 0) { puff(p.clone().add(new V3((Math.random() - 0.5) * 4, 0.2, (Math.random() - 0.5) * 4)), 0xff7a2a, { n: 2, speed: 1, size: 0.6, life: 0.5, grav: -3 }); for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < 3.2) { m.burn = Math.max(m.burn, 1); m.burnD = Math.max(m.burnD || 0, 2); } } } });
   }
   function bolt(a, b) {
     const n = 9, pts = [];
@@ -455,7 +468,7 @@ export function createCombat(ctx) {
         } else {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "fire", c);
           for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < (s.wide ? 4.5 : 3)) hit(m, s.dmg * (s.wide ? 0.8 : 0.6), p, "fire");
-          if (s.wide) ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 });
+          if (s.wide) { ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 }); groundFire(p); }
           flash(p, 0xffb060, 4.2, 0.3); puff(p, 0xff7a2a, { n: 18, speed: 6, size: 0.6, life: 0.6, grav: -1 }); puff(p, 0x55504a, { n: 8, speed: 1.5, size: 1.1, life: 1.1, grav: -1.5 }); ring(p, 0xff9a4a, { r0: 0.4, r1: 3.2, life: 0.45 });
           ctx.shake(0.14);
         }
@@ -491,6 +504,7 @@ export function createCombat(ctx) {
   }
   function pick(x) {
     const p = x.g.position.clone(); root.remove(x.g); items.splice(items.indexOf(x), 1);
+    if (x.pulled && ctx.onFetch) ctx.onFetch();
     puff(p, x.it.color, { n: 12, speed: 4, size: 0.35, life: 0.6, grav: 2 }); ring(p, x.it.color, { r0: 0.2, r1: 1.8, life: 0.35, y: 0.1 });
     Snd.coin && Snd.coin();
     const name = T(x.it.name);
@@ -509,7 +523,7 @@ export function createCombat(ctx) {
       const x = items[i]; x.g.rotation.y += dt * 1.8; x.g.position.y = 1.0 + Math.sin(t * 2.4 + x.k) * 0.15;
       const d = Math.hypot(x.g.position.x - me.x, x.g.position.z - me.z);
       if (d > 50) { root.remove(x.g); items.splice(i, 1); continue; }
-      if ((buffs.magnet > 0 && d < 9) || (petPull && d < petPull)) { tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
+      if ((buffs.magnet > 0 && d < 9) || (petPull && d < petPull)) { if (!(buffs.magnet > 0 && d < 9)) x.pulled = true; tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
       if (d < 1.3 && ctx.hopY() < 2.6) pick(x);
     }
   }
@@ -749,7 +763,7 @@ export function createCombat(ctx) {
     heal(pct, from) {
       if (down || !ctx.inHub() || hp >= maxHp() - 0.5) return false;
       const h = Math.max(1, Math.round(maxHp() * pct)); hp = Math.min(maxHp(), hp + h); paintVit();
-      ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); if (from) puff(from, 0x9fffd0, { n: 6, speed: 1.5, size: 0.3, life: 0.5, grav: -1 }); return true;
+      ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); if (from) { puff(from, 0x9fffd0, { n: 6, speed: 1.5, size: 0.3, life: 0.5, grav: -1 }); const a = from.clone(), b = me.clone().setY(1.2), line = new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a, a.clone().lerp(b, 0.5).add(new V3(0, 0.8, 0)), b), 16, 0.04, 5), additive(0x9fffd0, 0.8)); add(line); fx.push({ o: line, life: 0.6, t: 0, op0: 0.8 }); } return true;
     },
     // the raid boss (world-raid.js): spawned from the server's HP, kept in step with it, brought down by it
     raidMob: () => mobs.find((m) => m.raid && !m.dead) || null,

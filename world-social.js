@@ -216,6 +216,12 @@ export function createGhosts(ctx) {
     return g;
   }
   let pollAt = 0;
+  const rings = [];
+  // a ring of light where a wanderer appears (and again where one fades away)
+  function arrive(g, out) {
+    const r = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.45, 32), new THREE.MeshBasicMaterial({ color: out ? 0xdfe7ef : 0x9fe6ff, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+    r.rotation.x = -Math.PI / 2; r.position.set(g.position.x, 0.06, g.position.z); root.add(r); rings.push({ r, t: 0 });
+  }
   async function load() {
     try {
       const r = await fetch("/api/social?world=ghosts"); if (!r.ok) return;
@@ -223,7 +229,7 @@ export function createGhosts(ctx) {
       for (const x of (await r.json()).ghosts || []) {
         if (x.t === ctx.myTag || Math.hypot(x.x, x.z) > 150) continue; seen.add(x.t);
         let w = list.get(x.t);
-        if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); }
+        if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); }
         w.x = x.x; w.z = x.z; w.at = now;
       }
       for (const [k, w] of list) if (!seen.has(k)) w.gone = true;
@@ -235,6 +241,7 @@ export function createGhosts(ctx) {
     each: (fn) => list.forEach((w) => fn(w.g)),
     tick(dt, t) {
       const on = ctx.inHub(); root.visible = on; if (!on) return;
+      for (let i = rings.length - 1; i >= 0; i--) { const o = rings[i]; o.t += dt; o.r.scale.setScalar(1 + o.t * 4); o.r.material.opacity = Math.max(0, 0.8 * (1 - o.t / 0.8)); if (o.t > 0.8) { root.remove(o.r); o.r.geometry.dispose(); rings.splice(i, 1); } }
       if (Date.now() >= pollAt) { pollAt = Date.now() + 20e3; load(); }
       for (const [k, w] of list) {
         // drift around the last spot, a little life in it
@@ -248,7 +255,7 @@ export function createGhosts(ctx) {
         if (w.hop > 0) { w.hop = Math.max(0, w.hop - dt * 1.6); w.g.position.y = Math.sin((1 - w.hop) * Math.PI) * 0.6; } else w.g.position.y = 0;
         w.fade = w.gone ? Math.max(0, w.fade - dt) : Math.min(1, w.fade + dt);
         w.g.userData.mat.opacity = 0.45 * w.fade;
-        if (w.gone && w.fade <= 0) { root.remove(w.g); list.delete(k); }
+        if (w.gone && w.fade <= 0) { arrive(w.g, true); root.remove(w.g); list.delete(k); }
       }
     },
   };

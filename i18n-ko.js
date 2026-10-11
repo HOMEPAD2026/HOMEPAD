@@ -9907,6 +9907,13 @@
     "Island links, stamp notes, friends and a weekly contest.": "섬 링크, 스탬프 메모, 친구, 주간 콘테스트.",
     "What's new in ARCIRCLE World": "ARCIRCLE World 새 소식",
     "Let's play": "플레이하기",
+    "Past raids": "지난 레이드",
+    "{n} HP": "HP {n}",
+    "fell after {h} h": "{h}시간 만에 처치",
+    "stood": "버텼어요",
+    "Season {s} ends in {d}. {n} tiers are waiting in the Adventure log.": "시즌 {s}이 {d} 뒤에 끝나요. 모험 일지에 받을 단계가 {n}개 있어요.",
+    "Season {s} ends in {d}. A new one starts right after.": "시즌 {s}이 {d} 뒤에 끝나요. 바로 새 시즌이 시작돼요.",
+    "2 days": "2일",
   };
 
 

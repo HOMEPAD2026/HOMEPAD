@@ -10077,6 +10077,13 @@
     "Island links, stamp notes, friends and a weekly contest.": "岛屿链接、印章留言、好友和每周比赛。",
     "What's new in ARCIRCLE World": "ARCIRCLE World 新内容",
     "Let's play": "开始玩",
+    "Past raids": "往期团战",
+    "{n} HP": "{n} HP",
+    "fell after {h} h": "{h} 小时后被击倒",
+    "stood": "未被击倒",
+    "Season {s} ends in {d}. {n} tiers are waiting in the Adventure log.": "第 {s} 赛季将在 {d}后结束。冒险日志里还有 {n} 阶奖励待领取。",
+    "Season {s} ends in {d}. A new one starts right after.": "第 {s} 赛季将在 {d}后结束，新赛季随即开始。",
+    "2 days": "2 天",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -121,7 +121,23 @@ export function createQuests(ctx) {
     else if (t.kind === "hp" || t.kind === "sp" || t.kind === "recall") { r[t.kind] = Math.min(99, (r[t.kind] || 0) + t.n); ctx.toast(rewardText(t)); }
     else if (t.kind === "gear") { const it = ctx.rpg.giftPiece(ctx.level(), t.r); ctx.toast(it ? T("Season gear: {x}", { x: ctx.rpg.itemName(it) }) : T("Your bag is full — make room and claim it again")); if (!it) x.ss.got.pop(); }
     if (t.title) { x.stitle = 1; ctx.toast(T("New title: \"{t}\"", { t: T("Season Star") })); }
-    ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh();
+    ctx.Snd.win && ctx.Snd.win(); ctx.save(); ctx.rpg.refresh && ctx.rpg.refresh(); pop(rewardText(t));
+  }
+  // the ten tiers as a road: nodes along a line that fills with your points
+  function trackHTML(x, pts) {
+    const last = SEASON_TIERS[SEASON_TIERS.length - 1].pts, k = Math.min(1, pts / last);
+    return `<div class="wq-track" aria-hidden="true"><i class="wq-track-fill" style="width:${(100 * k).toFixed(1)}%"></i>${SEASON_TIERS.map((t, i) => `<span class="${x.ss.got.includes(i) ? "done" : pts >= t.pts ? "ready" : ""} k-${t.kind}${t.title ? " top" : ""}" style="left:${((100 * t.pts) / last).toFixed(1)}%"><b>${i + 1}</b></span>`).join("")}</div>`;
+  }
+  // a claimed tier: the reward rises out of a little chest
+  function pop(text) {
+    const d = document.createElement("div"); d.className = "wq-pop"; d.setAttribute("aria-hidden", "true"); d.setAttribute("data-no-i18n", "");
+    d.innerHTML = `<span class="wq-pop-chest"></span><b>${esc(text)}</b>`; document.body.appendChild(d); setTimeout(() => d.remove(), 1700);
+  }
+  /// a note when the season is about to end and tiers are still waiting (once a day)
+  function seasonNotice(say) {
+    const sn = seasonOf(), left = sn.ends - Date.now(), n = seasonPending(); if (left > 2 * 864e5 || left <= 0) return;
+    const key = "arc.world.seasonNote", day = seoulDay(); try { if (localStorage.getItem(key) === day) return; localStorage.setItem(key, day); } catch { return; }
+    say(n ? T("Season {s} ends in {d}. {n} tiers are waiting in the Adventure log.", { s: sn.id, d: left > 864e5 ? T("2 days") : T("a day"), n }) : T("Season {s} ends in {d}. A new one starts right after.", { s: sn.id, d: left > 864e5 ? T("2 days") : T("a day") }), "#ffc861");
   }
   const rewardText = (t) => t.kind === "xp" ? T("+{n} XP", { n: t.n }) : t.kind === "scrap" ? T("+{n} scrap", { n: t.n }) : t.kind === "hp" ? T("{n} health potions", { n: t.n }) : t.kind === "sp" ? T("{n} mana potions", { n: t.n }) : t.kind === "recall" ? T("{n} recall scrolls", { n: t.n }) : t.r >= 3 ? T("An Epic piece of gear") : T("A Rare piece of gear");
 
@@ -164,20 +180,25 @@ export function createQuests(ctx) {
       const sn = seasonOf(), pts = x.ss.pts, tier = tierOf(pts), next = SEASON_TIERS[tier], left = Math.max(0, Math.ceil((sn.ends - Date.now()) / 864e5));
       body = `<div class="wq-season"><div><b>${esc(T("Season {n}", { n: sn.id }))}</b><small>${esc(T("{n} days left", { n: left }))}</small></div><strong>${pts.toLocaleString("en-US")} <small>${esc(T("points"))}</small></strong>${bar(next ? pts - (tier ? SEASON_TIERS[tier - 1].pts : 0) : 1, next ? next.pts - (tier ? SEASON_TIERS[tier - 1].pts : 0) : 1)}<em>${esc(next ? T("{n} to tier {t}", { n: next.pts - pts, t: tier + 1 }) : T("Every tier done this season"))}</em></div>
         <p class="wr-note">${esc(T("Points come from playing: a knock-out 1, an elite 3, a boss 15, a daily hunt 10, the quiz 10, the raid 25. Rewards are XP, scrap, potions and gear."))}</p>
+        ${trackHTML(x, pts)}
         ${SEASON_TIERS.filter((t, i) => pts >= t.pts && !x.ss.got.includes(i)).length > 1 ? `<button type="button" class="wq-claimall" data-sclaimall>${esc(T("Claim all ({n})", { n: SEASON_TIERS.filter((t, i) => pts >= t.pts && !x.ss.got.includes(i)).length }))}</button>` : ""}
         <ol class="wq-tiers">${SEASON_TIERS.map((t, i) => { const got = x.ss.got.includes(i), ok = pts >= t.pts; return `<li class="${got ? "done" : ok ? "ready" : ""}${t.title ? " top" : ""}"><span>${i + 1}</span><div><b>${esc(rewardText(t))}${t.title ? " · " + esc(T("title")) + ": “" + esc(T("Season Star")) + "”" : ""}</b><small>${t.pts.toLocaleString("en-US")} ${esc(T("points"))}</small></div>${got ? `<em class="ok" aria-label="${esc(T("Done"))}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></em>` : `<button type="button" data-sclaim="${i}" ${ok ? "" : "disabled"}>${esc(T("Claim"))}</button>`}</li>`; }).join("")}</ol>
         ${x.stitle ? `<p class="wq-stitle">${esc(T("Your season title"))}: <button type="button" data-title="season" aria-pressed="${x.title === "season"}">${esc(x.title === "season" ? T("Worn") : T("Wear"))} “${esc(T("Season Star"))}”</button></p>` : ""}`;
     }
     else if (tab === "pets") {
       const own = ownedPets(), act = activePet();
-      body = `<p class="wr-note">${esc(T("Companions come with achievements and grow with every scammer knocked out while they're with you."))}</p><div class="wq-pets">${PETS.map((p) => { const has = own.includes(p), xp = x.petXp[p.id] || 0, lv = petLevel(xp), nx = petNext(lv), prev = lv > 1 ? petNext(lv - 1) : 0, a = ACH.find((y) => y.id === p.need); return `<article class="wq-pet p-${p.id}${has ? "" : " locked"}${act === p.id ? " on" : ""}"><span class="wq-pet-art" aria-hidden="true"></span><div><b>${esc(T(p.name))}${has ? ` <small>${esc(T("Lv {n}", { n: lv }))}</small>` : ""}</b><small>${esc(T(p.line))}</small>${has ? `<span class="wq-petname"><input data-petname="${p.id}" maxlength="12" value="${esc(petName(p.id))}" placeholder="${esc(T("Give it a name"))}" autocomplete="off" spellcheck="false"><button type="button" data-petsave="${p.id}">${esc(T("Save"))}</button></span>` : ""}${has && lv < 10 ? `<small class="wq-petnext">${esc(lv < 5 ? T("New look at level 5") : T("Golden at level 10"))}</small>` : ""}${has ? (nx ? bar(xp - prev, nx - prev) : `<small class="max">${esc(T("Fully grown"))}</small>`) : `<small class="need">${esc(T("Comes with “{x}”", { x: T(a ? a.name : "") }))}</small>`}</div>${has ? `<button type="button" data-pet="${p.id}" aria-pressed="${act === p.id}">${esc(act === p.id ? T("With you") : T("Bring"))}</button>` : ""}</article>`; }).join("")}</div>${act ? `<p class="wq-petoff"><button type="button" data-pet="none">${esc(T("Leave companions at home"))}</button></p>` : ""}`;
+      body = `<p class="wr-note">${esc(T("Companions come with achievements and grow with every scammer knocked out while they're with you."))}</p><div class="wq-pets">${PETS.map((p) => { const has = own.includes(p), xp = x.petXp[p.id] || 0, lv = petLevel(xp), nx = petNext(lv), prev = lv > 1 ? petNext(lv - 1) : 0, a = ACH.find((y) => y.id === p.need); return `<article class="wq-pet p-${p.id}${has ? "" : " locked"}${act === p.id ? " on" : ""}"><span class="wq-pet-art" aria-hidden="true">${ctx.petThumb && ctx.petThumb(p.id) ? `<img src="${ctx.petThumb(p.id)}" alt="">` : ""}</span><div><b>${esc(T(p.name))}${has ? ` <small>${esc(T("Lv {n}", { n: lv }))}</small>` : ""}</b><small>${esc(T(p.line))}</small>${has ? `<span class="wq-petname"><input data-petname="${p.id}" maxlength="12" value="${esc(petName(p.id))}" placeholder="${esc(T("Give it a name"))}" autocomplete="off" spellcheck="false"><button type="button" data-petsave="${p.id}">${esc(T("Save"))}</button></span>` : ""}${has && lv < 10 ? `<small class="wq-petnext">${esc(lv < 5 ? T("New look at level 5") : T("Golden at level 10"))}</small>` : ""}${has ? (nx ? bar(xp - prev, nx - prev) : `<small class="max">${esc(T("Fully grown"))}</small>`) : `<small class="need">${esc(T("Comes with “{x}”", { x: T(a ? a.name : "") }))}</small>`}</div>${has ? `<button type="button" data-pet="${p.id}" aria-pressed="${act === p.id}">${esc(act === p.id ? T("With you") : T("Bring"))}</button>` : ""}</article>`; }).join("")}</div>${act ? `<p class="wq-petoff"><button type="button" data-pet="none">${esc(T("Leave companions at home"))}</button></p>` : ""}`;
     }
     else if (tab === "codex") body = `${quizHTML(x)}<p class="wr-note">${esc(T("Every scammer here is a real scam. Knock one out to unlock its page."))}</p><div class="wq-codex">${CODEX.map((c) => { const n = x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : T("Knock one out to learn how this scam works."))}</p><small>${n ? esc(T("Knocked out {n}", { n })) : ""}</small></article>`; }).join("")}</div>`;
-    else body = `<nav class="wq-sub"><button type="button" data-rk="hunt" aria-pressed="${rk === "hunt"}">${esc(T("Hunters"))}</button><button type="button" data-rk="raid" aria-pressed="${rk === "raid"}">${esc(T("Raid damage"))}${nb("raidrank")}</button></nav><p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}`;
+    else body = `<nav class="wq-sub"><button type="button" data-rk="hunt" aria-pressed="${rk === "hunt"}">${esc(T("Hunters"))}</button><button type="button" data-rk="raid" aria-pressed="${rk === "raid"}">${esc(T("Raid damage"))}${nb("raidrank")}</button></nav><p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}${rk === "raid" && past && past.length ? `<h4 class="wq-past-h">${esc(T("Past raids"))}</h4><ul class="wq-past">${past.map((w) => `<li><b>${esc(w.week)}</b><span>${esc(T("{n} raiders", { n: w.players }))} · ${esc(T("{n} HP", { n: w.max.toLocaleString("en-US") }))}</span><em class="${w.fell ? "ok" : ""}">${esc(w.fell ? T("fell after {h} h", { h: w.hours }) : T("stood"))}</em></li>`).join("")}</ul>` : ""}`;
     return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-qtab="${id}" aria-pressed="${id === tab}">${esc(T(n))}${id === "season" || id === "pets" ? nb(id) : ""}</button>`).join("")}</nav>${body}`;
   }
   let rk = "hunt";
-  async function loadTop() { try { const r = await fetch(rk === "raid" ? "/api/social?world=raid" : "/api/social?world=hunt-top"); top = r.ok ? ((await r.json()).top || []) : []; } catch { top = []; } }
+  let past = null;
+  async function loadTop() {
+    try { const r = await fetch(rk === "raid" ? "/api/social?world=raid" : "/api/social?world=hunt-top"); top = r.ok ? ((await r.json()).top || []) : []; } catch { top = []; }
+    if (rk === "raid" && !past) { try { const r = await fetch("/api/social?world=raid-history"); past = r.ok ? ((await r.json()).weeks || []) : []; } catch { past = []; } }
+  }
   function click(b) {
     if (b.dataset.rk) { rk = b.dataset.rk; if (rk === "raid") seeTab("raidrank"); top = null; loadTop().then(() => ctx.repaint()); return true; }
     if (b.hasAttribute("data-sclaimall")) { const x = X(); SEASON_TIERS.forEach((t, i) => { if (x.ss.pts >= t.pts && !x.ss.got.includes(i)) seasonClaim(i); }); return true; }
@@ -199,7 +220,7 @@ export function createQuests(ctx) {
   const pet = () => { const id = activePet(); return id ? { id, lv: petLevel(X().petXp[id] || 0), name: petName(id) } : null; };
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
   const pending = () => { const x = X(); return todays().filter((q) => !x.d.done.includes(q.id) && (x.d.p[q.id] || 0) >= q.n).length + seasonPending(); };
-  return { on, html, click, title, titleBonus, hasPet, pet, pending, bump, setTab: (t) => { tab = t; } };
+  return { on, html, click, title, titleBonus, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat
@@ -255,10 +276,28 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
       const id = p && looks[p.id] ? p.id : null, lv0 = lv, n0 = name, c0 = cur; lv = (p && p.lv) || 1; name = (p && p.name) || "";
       if (cur !== id) { if (plate && g) g.remove(plate); plate = null; Object.values(looks).forEach((x) => { x.visible = false; }); cur = id; g = id ? looks[id] : null; if (g) { here(me); g.position.set(me.x, me.y + (id === "cat" ? 0 : 2), me.z); g.visible = true; } }
       if (g && (c0 !== cur || lv0 !== lv || n0 !== name || !plate === !!name)) dress();
+      if (g && c0 === cur && lv > lv0 && lv0) emoteT = 1.2; // it grew: a little show
     },
     /// a little show when you emote: the drone spins, the cat hops, the wisp flares
     emote() { emoteT = 1; },
     id: () => cur, level: () => lv, visible: () => !!(g && g.visible),
+    /// portraits of the three companions (rendered once, on first ask): { drone, cat, wisp } → data URLs
+    portraits() {
+      if (this._pics) return this._pics;
+      const out = {}; let r = null;
+      try {
+        r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setSize(96, 96); r.outputColorSpace = THREE.SRGBColorSpace;
+        const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x334455, 2.4)); const dl = new THREE.DirectionalLight(0xffffff, 1.8); dl.position.set(2, 3, 4); sc.add(dl);
+        const cm = new THREE.PerspectiveCamera(32, 1, 0.05, 20);
+        for (const [id, look] of Object.entries(looks)) {
+          const c = look.clone(true); c.visible = true; c.position.set(0, 0, 0); c.rotation.set(0, id === "cat" ? 0.6 : 0.3, 0); c.children.forEach((k) => { if (k.isSprite) k.visible = false; });
+          sc.add(c); const y = id === "cat" ? 0.42 : 0; cm.position.set(0.9, y + 0.45, 1.5).multiplyScalar(id === "cat" ? 1.1 : 0.85); cm.lookAt(0, y, 0);
+          r.render(sc, cm); out[id] = r.domElement.toDataURL("image/png"); sc.remove(c);
+        }
+      } catch { /* the drawn icons stay */ }
+      if (r) { r.dispose(); r.forceContextLoss(); }
+      this._pics = out; return out;
+    },
     debug: () => ({ id: cur, lv, name, plate: !!plate, extra: !!(g && g.userData.extra.visible), gold: !!(g && g.userData.skin[0].material === gold) }),
     /// how far the companion pulls street items in (the cat pulls farther as it grows)
     pull: () => (cur === "cat" ? 6 + lv * 0.5 : cur ? 4.5 : 0),

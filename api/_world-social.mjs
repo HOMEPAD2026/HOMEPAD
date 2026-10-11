@@ -5,7 +5,8 @@
 //   GET  ?world=island-week                               { week, top: [{ wallet, name, n, likes }] }  likes this week
 //   GET  ?world=friends&wallets=0x…,…                     { friends: { wallet: { name, lv, seen, isle, likes } } }
 //   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv }] }  last 2 minutes
-//   GET  ?world=raid&wallet=0x…?                          { week, hp, max, down, top, mine, claimed }
+//   GET  ?world=raid&wallet=0x…?                          { week, hp, max, down, top, mine, claimed, players, fellAt, next }
+//   GET  ?world=raid-history                              { weeks: [{ week, players, max, dmg, fell, hours }] }  last 8
 //   POST { action: "world-raid-hit", …signature, dmg }    damage dealt in the last 5 s, capped at 60 × saved level
 //   POST { action: "world-raid-claim", …signature }       after the raid falls: a small ARCL thank-you, once a week
 //
@@ -147,6 +148,12 @@ export function makeSocial(deps) {
     const got = deps.credit ? await deps.credit(w, "raid", RAID_ARCL) : 0;
     return json(200, { ok: true, credited: got, ...pub(await raidState(w)) });
   }
+  // the last eight raids: how many came, the HP, whether it fell and how long it took (no wallets)
+  async function raidHistory() {
+    const weeks = []; for (let i = 1; i <= 8; i++) weeks.push([isoWeek(now() - i * 7 * 864e5), isoWeek(now() - (i + 1) * 7 * 864e5), nextWeekAt(now() - i * 7 * 864e5) - 7 * 864e5]);
+    const d = await getDocs(weeks.flatMap(([w, p]) => [`worldStats/raid_${w}`, `worldStats/raid_${p}`, `worldRaidFell/${w}`]));
+    return json(200, { weeks: weeks.map(([w, p, start]) => { const R = d[`worldStats/raid_${w}`] || {}, f = d[`worldRaidFell/${w}`]; return { week: w, players: R.players || 0, max: raidMax((d[`worldStats/raid_${p}`] || {}).players || 0), dmg: R.dmg || 0, fell: !!f, hours: f ? Math.max(0, Math.round((f.at - start) / 3600e3)) : null }; }).filter((x) => x.players || x.dmg) }, "public, max-age=300");
+  }
   const pub = (st) => ({ ...st, top: st.top.map(({ w: s, n, name }) => ({ w: s, n, name: name || "" })) });
 
   return {
@@ -155,6 +162,7 @@ export function makeSocial(deps) {
       if (view === "island-week") return islandWeek();
       if (view === "friends") return friends(url.searchParams.get("wallets"));
       if (view === "ghosts") return ghosts();
+      if (view === "raid-history") return raidHistory();
       if (view === "raid") { const w = lc(url.searchParams.get("wallet")); return json(200, pub(await raidState(isAddr(w) ? w : "")), isAddr(w) ? "no-store" : "public, max-age=10"); }
       return null;
     },

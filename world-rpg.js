@@ -101,7 +101,7 @@ export function createRpg(ctx) {
   // ---------------- the character sheet ----------------
   const el = document.createElement("div"); el.className = "wr-sheet"; el.id = "wr-inv"; el.hidden = true; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
   document.body.appendChild(el);
-  let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "";
+  let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear";
   const rc = (it) => RARITY[it.r || 0].color;
   const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${iconSvg(parseBase(it.b).slot, rc(it))}${it.p ? `<b>+${it.p}</b>` : ""}<small>${it.lv}</small></button>` : "";
   const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(Math.round(d * 10) / 10)}</i>` : ""}</li>`;
@@ -121,7 +121,7 @@ export function createRpg(ctx) {
   function invHTML() {
     const r = R(), s = stats();
     const slot = (k) => `<div class="wr-slot s-${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`;
-    return `<div class="wr-grid">
+    return `<nav class="wr-panes"><button type="button" data-pane="gear" aria-pressed="${invPane === "gear"}">${esc(T("Gear"))}</button><button type="button" data-pane="bag" aria-pressed="${invPane === "bag"}">${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></button></nav><div class="wr-grid pane-${invPane}">
       <section class="wr-doll"><h3>${esc(T("Gear"))}</h3><div class="wr-paper">${SLOTS.map(slot).join("")}<div class="wr-avatar"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div></div>
         <ul class="wr-stats big">${["atk", "def", "hp", "sp", "crit", "spd"].map((k) => statLine(k, s[k])).join("")}</ul>
         ${s.sets.length ? `<p class="wr-sets">${Object.entries(s.sets.reduce((m, x) => ((m[x.set] = Math.max(m[x.set] || 0, x.need)), m), {})).map(([set, need]) => esc(T("{x} set ({n})", { x: set, n: need }))).join(" · ")}</p>` : `<p class="wr-sets dim">${esc(T("Wear 2, 4 or 7 pieces of one set for a bonus."))}</p>`}${ctx.titleLine ? ctx.titleLine() : ""}${skillsHTML()}</section>
@@ -230,11 +230,12 @@ export function createRpg(ctx) {
     if (view === "log" && log && log.click(b)) { paint(); return; }
     if (b.hasAttribute("data-recall")) { if (ctx.recall && ctx.recall()) hide(); return; }
     if (d.ftab) { forgeTab = d.ftab; seeTab(forgeTab); sel = null; fuseSel = []; paint(); return; }
+    if (d.pane) { invPane = d.pane; paint(); return; }
     if (d.fuse) { fusePick(d.fuse); return; }
     if (d.fslot != null) { fuseSlot = d.fslot; paint(); return; }
-    if (b.hasAttribute("data-fusego")) { fuse(); return; }
+    if (b.hasAttribute("data-fusego")) { const sl = el.querySelector(".wr-fuse-slots"); if (fuseSlot && (R().scrap || 0) < FUSE_PICK_SCRAP) { fuse(); return; } if (sl && !sl.classList.contains("fusing")) { sl.classList.add("fusing"); ctx.Snd.chest && ctx.Snd.chest(); setTimeout(fuse, 700); } else if (!sl) fuse(); return; }
     if (d.br) { setBranch(d.br); return; }
-    if (d.pick) { sel = sel === d.pick ? null : d.pick; paint(); return; }
+    if (d.pick) { sel = sel === d.pick ? null : d.pick; if (sel && view === "inv") invPane = "bag"; paint(); return; }
     if (d.equip) { equip(d.equip); return; }
     if (d.unequip) { unequip(d.unequip); return; }
     if (d.enhance) { enhance(d.enhance); return; }
