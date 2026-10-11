@@ -2178,3 +2178,6 @@ body.wc-legend::before{content:"";position:fixed;inset:0;z-index:15;pointer-even
 .wr-cell{position:relative}
 .wr-price{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;background:#0b1018;border:1px solid rgba(255,200,97,.45);font:800 10.5px/16px var(--f-ui);color:#ffc861;white-space:nowrap;pointer-events:none}
 .wr-cells.enh{row-gap:16px}
+/* the wallet chooser opens above the beta gate */
+html.wl-open .cw-modal{z-index:13500}
+.wl-hint{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(63,155,255,.1);border:1px solid rgba(120,196,255,.25);font-size:12.5px;line-height:1.5;color:#cfe8ff}
