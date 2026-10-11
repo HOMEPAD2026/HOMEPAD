@@ -46,7 +46,7 @@
       try {
         var se = JSON.parse(localStorage.getItem("arc.world.sess") || "null"), P = JSON.parse(localStorage.getItem("arc.world") || "null");
         if (!se || !P || String(se.wallet || "").toLowerCase() !== addr.toLowerCase()) return "";
-        var x = (P.rpg && P.rpg.x) || {}, c = x.c || {}, seen = Object.keys(x.seen || {}).length + (P.beaten || []).length, lv = 1 + Math.floor((P.xp || 0) / 100);
+        var x = (P.rpg && P.rpg.x) || {}, c = x.c || {}, seen = Object.keys(x.seen || {}).length + (P.beaten || []).length, lv = (function (xp) { if (P.xpv !== 2) return 1 + Math.floor(xp / 100); var l = 1, at = function (L) { var n = L - 1; return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; }; while (l < 200 && at(l + 1) <= xp) l++; return l; })(P.xp || 0); // world-rpg-data.js levelOfXp
         return '<h3 class="pg-h3">' + T("ARCIRCLE World") + '</h3><div class="pg-grid">' +
           tile("Game level", nf(lv, 0), P.name ? esc(P.name) : T("Game World")) +
           tile("Scammers knocked out", nf(c.kill || 0, 0), nf(c.boss || 0, 0) + " " + T("bosses")) +

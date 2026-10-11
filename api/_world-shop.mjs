@@ -25,6 +25,7 @@
 //   POST world-arcl-notify { …signature, on }                     tell me when the exchange opens
 // Firestore: worldArcl/<w> · worldArclOnce/<w>_<kind> · worldArclDay/<w>_<day> · worldArclWeek/<week>_<w> · worldOwn/<w>
 //            worldPayQuote/<id> · worldPayTx/<hash> · worldStats/plaza · worldStats/arclWeek_<week> · worldArclNotify/<w>
+import { levelOfSave } from "./_world-social.mjs"; // the level from a save, on whichever XP curve it is
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const pad32 = (a) => "0x" + lc(a).replace(/^0x/, "").padStart(64, "0");
@@ -221,7 +222,7 @@ export function makeShop(deps) {
       if (kind === "hunt" || kind === "boss") {
         const tier = kind === "hunt" ? Math.max(2, Math.min(4, Math.floor(Number(b.tier) || 2))) : Math.max(0, Math.min(4, Math.floor(Number(b.zone) || 0)));
         const need = kind === "hunt" ? [0, 0, 5, 10, 15][tier] : [1, 5, 10, 15, 20][tier];
-        const save = await one(`worldSave/${w}`), level = 1 + Math.floor(((save && save.xp) || 0) / 100);
+        const save = await one(`worldSave/${w}`), level = levelOfSave(save);
         if (level < need) return json(400, { error: `needs level ${need} (your saved level is ${level})` });
         n = kind === "hunt" ? [0, 5, 8, 10, 12][tier] : 30;
       }
@@ -331,7 +332,7 @@ export function makeShop(deps) {
     if (!sup && !(m && FORGE_SLOTS.includes(m[1]))) return json(400, { error: "the Forge doesn't sell that" });
     const tier = m ? +m[2] : 0, price = sup ? sup.arcl : FORGE_PRICE[tier];
     if (m) {
-      const save = await one(`worldSave/${w}`), level = 1 + Math.floor(((save && save.xp) || 0) / 100);
+      const save = await one(`worldSave/${w}`), level = levelOfSave(save);
       if (level < FORGE_TIER_LV[tier]) return json(400, { error: `needs level ${FORGE_TIER_LV[tier]} (your saved level is ${level})` });
     }
     const { bal } = await balance(w);

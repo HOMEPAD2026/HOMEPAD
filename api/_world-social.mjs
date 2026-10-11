@@ -39,7 +39,16 @@ export function cleanNote(s) {
 }
 // a wanderer's tag: a short hash of the browser's id, so the game can skip its own and nothing traces back
 export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(36).padStart(7, "0").slice(-7); };
-export const levelOf = (xp) => 1 + Math.floor((Number(xp) || 0) / 100);
+// levels (the same numbers as world-rpg-data.js): the XP from one level to the next grows with the level. A save
+// without xpv: 2 still counts XP the old way (100 a level) until the game converts it (xpFromOld), so its level holds.
+export const XP_VERSION = 2;
+export const xpNeed = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
+export const xpAt = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
+export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lv = 1; while (lv < 200 && xpAt(lv + 1) <= v) lv++; return lv; };
+export const xpFromOld = (xp) => { const v = Math.max(0, Math.floor(Number(xp) || 0)), lv = 1 + Math.floor(v / 100); return xpAt(lv) + Math.floor(((v % 100) / 100) * xpNeed(lv)); };
+/// a saved player's level, whichever curve its save is on
+export const levelOfSave = (sv) => (!sv ? 1 : sv.xpv === XP_VERSION ? levelOfXp(sv.xp) : 1 + Math.floor((Number(sv.xp) || 0) / 100));
+export const levelOf = (xp) => levelOfXp(xp);
 
 /// deps: { getDocs, setDoc, commit, json, now, signer, isoWeek, credit(w, kind, n), lists() }
 export function makeSocial(deps) {
@@ -80,7 +89,7 @@ export function makeSocial(deps) {
     const d = list.length ? await getDocs(keys) : {}, out = {};
     for (const w of list) {
       const sv = d[`worldSave/${w}`] || null, isl = d[`worldIsland/${w}`] || null;
-      out[w] = { name: (sv && sv.name) || "", lv: sv ? levelOf(sv.xp) : 0, seen: sv && sv.at ? Math.floor(sv.at / 600e3) * 600e3 : 0, char: (sv && sv.char) || "", isle: isl ? isl.n || 0 : 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0 };
+      out[w] = { name: (sv && sv.name) || "", lv: sv ? levelOfSave(sv) : 0, seen: sv && sv.at ? Math.floor(sv.at / 600e3) * 600e3 : 0, char: (sv && sv.char) || "", isle: isl ? isl.n || 0 : 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0 };
     }
     return json(200, { friends: out }, "no-store");
   }
@@ -121,7 +130,7 @@ export function makeSocial(deps) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, wk = isoWeek(now());
     const st = await raidState(w); if (st.down) return json(200, { ok: true, ...pub(st), counted: 0 });
-    const lv = levelOf(((await one(`worldSave/${w}`)) || {}).xp);
+    const lv = levelOfSave(await one(`worldSave/${w}`));
     if (lv < 10) return json(400, { error: "the raid is for level 10 and up (your saved level is " + lv + ")" });
     const slot = Math.floor(now() / (RAID_GAP * 1000));
     if (!(await commit([{ create: `worldRaidGap/${wk}_${w}_${slot}`, data: { at: now() } }])).ok) return json(429, { error: "one report every 5 seconds" });

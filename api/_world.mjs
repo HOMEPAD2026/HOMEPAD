@@ -27,7 +27,7 @@
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
-import { makeSocial, cleanNote } from "./_world-social.mjs";
+import { makeSocial, cleanNote, XP_VERSION, xpFromOld } from "./_world-social.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -54,10 +54,11 @@ function cleanRpg(r) {
 }
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
-  const xp = Math.max(0, Math.min(1e6, Math.floor(Number(o.xp) || 0)));
+  // XP on the rising level curve (xpv 2); a save from an older game (100 XP a level) is converted so its level holds
+  const xp = Math.max(0, Math.min(5e6, Math.floor(o.xpv === XP_VERSION ? Number(o.xp) || 0 : xpFromOld(o.xp))));
   const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
   return {
-    xp, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
+    xp, xpv: XP_VERSION, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,
@@ -162,7 +163,8 @@ export function make(deps) {
       else data.name = old.name;
     }
     // XP can only climb so fast between saves (a save at least every few minutes while playing)
-    if (old && data.xp > (old.xp || 0) + 3000) data.xp = (old.xp || 0) + 3000;
+    const oldXp = old ? (old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp)) : 0;
+    if (old && data.xp > oldXp + 3000) data.xp = oldXp + 3000;
     await setDoc(key, { ...data, at: now() });
     return json(200, { ok: true, at: now() });
   }

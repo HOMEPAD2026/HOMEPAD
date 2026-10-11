@@ -1,7 +1,8 @@
 // game.test.mjs — the game's pure rules (no browser): the season, the quiz, fusion, the raid's twist, its calendar, the codex.
 // Run: node tests/world/game.test.mjs
 import { seasonOf, tierOf, SEASON_TIERS, quizFor, QUIZ } from "../../world-season.js";
-import { fuseResult, FUSE_MAX_R } from "../../world-rpg-data.js";
+import { fuseResult, FUSE_MAX_R, xpNeed, xpAt, levelOfXp, xpFromOld, xpProgress, mobStats } from "../../world-rpg-data.js";
+import * as SRV from "../../api/_world-social.mjs";
 import { RAID_MODS, raidModOf, raidIcs, phaseOf } from "../../world-social.js";
 import { CODEX, CODEX_STORY } from "../../world-quests.js";
 import { raidMax, nextWeekAt } from "../../api/_world-social.mjs";
@@ -42,6 +43,13 @@ check(/^BEGIN:VCALENDAR\r\n/.test(ics) && /RRULE:FREQ=WEEKLY/.test(ics) && /DTST
 check(new Date(nextWeekAt(Date.UTC(2026, 9, 11, 3))).toISOString() === "2026-10-11T15:00:00.000Z", "the next week starts Monday 00:00 in Seoul");
 check(raidMax(0) === 500000 && raidMax(1) === 200000 && raidMax(1000) === 2000000 && raidMax(40) === 1000000, "the raid's HP follows last week's raiders, clamped");
 
+// levels: a rising curve, the same on the server, and old saves keep their level
+check(xpNeed(1) === 100 && xpNeed(10) > 400 && xpNeed(20) > 900 && xpNeed(80) > 8000, "each level needs more XP than the last");
+check([2, 5, 10, 25, 40, 80].every((l) => levelOfXp(xpAt(l)) === l && levelOfXp(xpAt(l) - 1) === l - 1), "levelOfXp and xpAt agree at every boundary");
+check([0, 99, 100, 1250, 2499, 7999, 19899].every((x) => levelOfXp(xpFromOld(x)) === 1 + Math.floor(x / 100)), "converting an old save keeps its level");
+check(xpProgress(xpFromOld(1250)).into === Math.floor(0.5 * xpNeed(13)), "and the share of the level already done");
+check([1, 7, 33, 90].every((l) => SRV.xpAt(l) === xpAt(l) && SRV.xpNeed(l) === xpNeed(l)) && SRV.levelOfSave({ xp: 2450 }) === 25 && SRV.levelOfSave({ xp: xpAt(25), xpv: 2 }) === 25, "the server uses the same curve and reads old saves the old way");
+{ const kills = (l) => xpNeed(l) / mobStats(l).xp; check(kills(5) >= 4 && kills(20) > 10 && kills(80) < 50, "about " + [5, 20, 40, 80].map((l) => Math.round(kills(l))).join(" / ") + " knock-outs of your own level per level at 5 / 20 / 40 / 80"); }
 // the codex: fifteen pages, each with how to beat the scam
 const all = [...CODEX_STORY, ...CODEX];
 check(all.length === 15 && new Set(all.map((c) => c.id)).size === 15, "fifteen pages with their own ids");

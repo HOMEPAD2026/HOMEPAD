@@ -63,7 +63,11 @@ const S = (() => { const d = { quality: "auto", sound: true, sens: 1 }; try { re
 let cloudT = 0;
 const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private window */ } clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 6000); };
 const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } catch { /* private window */ } };
-const level = () => 1 + Math.floor(P.xp / 100);
+// the level from XP on a rising curve (world-rpg-data.js); a save from the old 100-a-level curve is converted once,
+// keeping its level
+if (P.xpv !== RPG.XP_VERSION) { P.xp = RPG.xpFromOld(P.xp); P.xpv = RPG.XP_VERSION; try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } }
+let lvMemo = [-1, 1];
+const level = () => { if (lvMemo[0] !== P.xp) lvMemo = [P.xp, RPG.levelOfXp(P.xp)]; return lvMemo[1]; };
 let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
 function gain(n, why) {
   if (xpHeld) return;
@@ -82,7 +86,7 @@ const vid = (() => { try { let v = localStorage.getItem(VID); if (!/^[a-z0-9]{20
 const sess = () => { try { const s = JSON.parse(localStorage.getItem(SESS) || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch { return null; } };
 const loginMessage = (wallet, issued) => `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;
 const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
-const PROGRESS = ["xp", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg"];
+const PROGRESS = ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg"];
 async function signIn() {
   if (!AC) throw new Error(T("Wallet connect isn't available here."));
   if (!AC.live || !AC.live()) await AC.connect();
@@ -96,6 +100,7 @@ async function signIn() {
   if (!r.ok) throw new Error(r.j.error || T("Sign-in failed."));
   try { localStorage.setItem(SESS, JSON.stringify({ wallet: a, issued, signature })); } catch { /* private */ }
   const sv = r.j.save;
+  if (sv && sv.xpv !== RPG.XP_VERSION) { sv.xp = RPG.xpFromOld(sv.xp); sv.xpv = RPG.XP_VERSION; } // a save from the old level curve
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
   else { toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
@@ -1394,8 +1399,8 @@ setInterval(() => refreshPurse(false), 30000);
 // ---------------- HUD ----------------
 function paintHud() {
   $("wp-lv").querySelector("b").textContent = "Lv " + level();
-  $("wp-xpfill").style.width = (P.xp % 100) + "%";
-  $("wp-lv").title = `${P.xp} XP`;
+  const xq = RPG.xpProgress(P.xp); $("wp-xpfill").style.width = Math.min(100, (100 * xq.into) / xq.need).toFixed(1) + "%";
+  $("wp-lv").title = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP`;
   $("wp-cards").querySelector("b").textContent = `${P.cards.length}/${K.CARDS.length}`;
   const next = K.SCAMMERS.find((s) => !P.beaten.includes(s.id));
   $("wp-stage").textContent = next ? T("Stage {n} · {name}", { n: next.stage, name: next.name }) : T("Every stage cleared");
@@ -1686,7 +1691,7 @@ rpg = RPG.createRpg({
 rpg.dress();
 combat = FIGHT.createCombat({
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
-  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp,
+  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp, xpProg: () => RPG.xpProgress(P.xp),
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },

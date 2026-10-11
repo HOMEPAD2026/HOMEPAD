@@ -30,13 +30,13 @@ check(r.status === 200 && !r.body.firstTime, "second sign-in: not counted again"
 check((await W.stats()).players === 1, "1 player");
 r = await W.handle({ action: "world-login", wallet: "0x" + "1".repeat(40), issued, signature: sig });
 check(r.status === 403, "someone else's signature: refused");
-r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 120, name: "kmp<script>", char: "female-b", visited: ["launch", "BAD ID!"], cards: ["c1", "x"], quests: ["launchpad"] } });
+r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 120, xpv: 2, name: "kmp<script>", char: "female-b", visited: ["launch", "BAD ID!"], cards: ["c1", "x"], quests: ["launchpad"] } });
 check(r.status === 200, "save ok");
 const sv = db.get("worldSave/" + w.address.toLowerCase());
 check(sv.xp === 120 && sv.name === "kmpscript" && sv.char === "female-b" && sv.visited.join() === "launch" && sv.cards.join() === "c1", "save cleaned: " + JSON.stringify({ name: sv.name, visited: sv.visited, cards: sv.cards }));
 r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 130 } });
 check(r.status === 429, "saving again within 8 s: refused");
-T += 10e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 999999 } });
+T += 10e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 999999, xpv: 2 } });
 check(db.get("worldSave/" + w.address.toLowerCase()).xp === 3120, "XP jump capped at +3000");
 T += 25 * 3600e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 1 } });
 check(r.status === 400, "a day-old signature: sign in again");
@@ -87,6 +87,8 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
 { const w3 = ethers.Wallet.createRandom(), a3 = w3.address.toLowerCase(); db.set(`worldPlayers/${a3}`, { at: 1 }); const before = (await W.stats()).players; const iss = new Date(T).toISOString(); const sg = await w3.signMessage(loginMessage(a3, iss));
   await W.handle({ action: "world-login", wallet: a3, issued: iss, signature: sg }); await W.handle({ action: "world-login", wallet: a3, issued: iss, signature: sg });
   check((await W.stats()).players === before + 1, "an earlier wallet is counted once on its next sign-in"); }
+// the level curve: an old save (no xpv) is converted on save, keeping its level; XP can still only climb so fast
+check(cleanSave({ xp: 2450 }).xpv === 2 && cleanSave({ xp: 2450 }).xp === 15004 + Math.floor(0.5 * 1396), "an old 2,450 XP save becomes level 25 on the new curve");
 // characters: the ARC Bots are kept, anything else unknown is dropped
 check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({ char: "arc-nobody" }).char === "" && cleanSave({ char: "male-c" }).char === "male-c", "saves keep ARC Bot characters and drop unknown ones");
 console.log(ok, "pass", bad, "fail");

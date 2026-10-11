@@ -71,6 +71,17 @@ export const PASSIVES = [{ lv: 3, name: "Tough skin", line: "Max HP +5%" }, { lv
 export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1 + Math.floor((level - unlock) / 5)));
 
 // scammers by level
+// levels: the XP from one level to the next grows with the level — 100 at level 1, about 450 at 10, 1,000 at 20,
+// 2,800 at 40 and 8,700 at 80 (so about 10 knock-outs of your own level early on, about 35 at level 80).
+// Saves from before (100 XP every level, xpv missing) are converted once so nobody's level changes (xpFromOld).
+// api/_world-social.mjs keeps the same numbers for the server.
+export const XP_VERSION = 2;
+export const xpNeed = (lv) => 100 + 30 * (lv - 1) + (lv - 1) * (lv - 1);
+export const xpAt = (lv) => { const n = Math.max(0, Math.floor(lv) - 1); return 100 * n + 15 * n * (n - 1) + ((n - 1) * n * (2 * n - 1)) / 6; };
+export const levelOfXp = (xp) => { const v = Math.max(0, Number(xp) || 0); let lv = 1; while (lv < 200 && xpAt(lv + 1) <= v) lv++; return lv; };
+export const xpFromOld = (xp) => { const v = Math.max(0, Math.floor(Number(xp) || 0)), lv = 1 + Math.floor(v / 100); return xpAt(lv) + Math.floor(((v % 100) / 100) * xpNeed(lv)); };
+/// where you are inside your level: { lv, into, need }
+export const xpProgress = (xp) => { const lv = levelOfXp(xp); return { lv, into: Math.floor(xp - xpAt(lv)), need: xpNeed(lv) }; };
 export const mobStats = (lv, rank = "") => {
   const k = rank === "boss" ? 14 : rank === "elite" ? 2.6 : 1;
   return { hp: Math.round((20 + lv * 14) * k), atk: Math.round((8 + lv * 4.5) * (rank === "boss" ? 1.6 : rank === "elite" ? 1.3 : 1)), def: Math.round(lv * 1.2), xp: Math.round((6 + lv * 3) * (rank === "boss" ? 15 : rank === "elite" ? 3 : 1)) };

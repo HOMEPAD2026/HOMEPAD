@@ -631,7 +631,7 @@ export function createCombat(ctx) {
     vit.querySelector("#wc-hp-b").style.width = (100 * hp / mh) + "%"; vit.querySelector("#wc-sp-b").style.width = (100 * sp / ms) + "%";
     vit.querySelector("#wc-hp-g").style.width = (100 * Math.max(hp, ghostHp) / mh) + "%";
     vit.querySelector("#wc-hp-n").textContent = `${Math.ceil(hp)} / ${mh}`; vit.querySelector("#wc-sp-n").textContent = `${Math.floor(sp)} / ${ms}`;
-    const xp = ctx.xp ? ctx.xp() : 0, into = xp % 100; vit.querySelector("#wc-xp-b").style.width = into + "%"; vit.querySelector("#wc-xp-n").textContent = `${into} / 100`;
+    const q = ctx.xpProg ? ctx.xpProg() : { into: (ctx.xp ? ctx.xp() : 0) % 100, need: 100 }; vit.querySelector("#wc-xp-b").style.width = Math.min(100, (100 * q.into) / q.need).toFixed(1) + "%"; vit.querySelector("#wc-xp-n").textContent = `${q.into.toLocaleString("en-US")} / ${q.need.toLocaleString("en-US")}`;
     vit.classList.toggle("danger", hp / mh < 0.3); document.body.classList.toggle("wc-low", hp / mh < 0.3 && !down && ctx.inHub());
   }
   function damage(n) {
