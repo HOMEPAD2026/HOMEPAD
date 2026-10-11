@@ -14,6 +14,8 @@ export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) 
 ///        inHub(), wallet(), onArcl(n), feed(html, color), shareCard(o), name() }
 export const PHASES = [null, "", "Phase 2: it calls its swarm", "Phase 3: its shield goes up", "Final phase: the floor gives way"];
 export const phaseOf = (hp, max) => (hp <= 0 ? 5 : hp / max > 0.75 ? 1 : hp / max > 0.5 ? 2 : hp / max > 0.25 ? 3 : 4);
+// the next Monday 00:00 in Seoul, for when the server's answer doesn't carry it (api/_world-social.mjs nextWeekAt)
+const nextMonday = (t = Date.now()) => { const d = new Date(t + 9 * 3600e3), dow = (d.getUTCDay() + 6) % 7; return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) + (7 - dow) * 864e5 - 9 * 3600e3; };
 const leftText = (ms, T) => { const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return d ? T("{d}d {h}h", { d, h }) : T("{h}h {m}m", { h, m: m % 60 }); };
 export function createRaid(ctx) {
   const { THREE, K, planet, T, esc } = ctx;
@@ -147,7 +149,7 @@ export function createRaid(ctx) {
     const top = (st.top || []).slice(0, 3).map((r, i) => `<li><span>${i + 1}</span><b>${esc(r.name || r.w)}</b><em>${Math.round(r.n).toLocaleString("en-US")}</em></li>`).join("");
     const p = st.down ? 5 : phaseOf(st.hp - pending, st.max);
     el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}${st.players ? " · " + esc(T("{n} raiders", { n: st.players })) : ""}</small></div>
-      ${st.down ? `<p class="wr-raid-phase down">${esc(T("Down for this week"))} · ${esc(T("next in {t}", { t: leftText(st.next - Date.now(), T) }))}</p>` : `<p class="wr-raid-phase p${p}">${esc(p > 1 ? T(PHASES[p]) : T("Phase 1"))}</p>`}
+      ${st.down ? `<p class="wr-raid-phase down">${esc(T("Down for this week"))} · ${esc(T("next in {t}", { t: leftText((st.next || nextMonday()) - Date.now(), T) }))}</p>` : `<p class="wr-raid-phase p${p}">${esc(p > 1 ? T(PHASES[p]) : T("Phase 1"))}</p>`}
       <p class="wr-raid-me">${esc(T("Your damage: {n}", { n: Math.round(mine).toLocaleString("en-US") }))}${mine < st.need ? ` <small>${esc(T("{n} to share the reward", { n: Math.max(0, Math.ceil(st.need - mine)).toLocaleString("en-US") }))}</small>` : ` <small class="ok">${esc(T("You're in for the reward"))}</small>`}</p>
       ${top ? `<ol class="wr-raid-top">${top}</ol>` : ""}
       ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>${claimedNow || mine >= st.need ? `<button type="button" class="wp-btn wr-raid-share" data-raidshare>${esc(T("Share my raid card"))}</button>` : ""}` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
@@ -172,7 +174,7 @@ export function createRaid(ctx) {
     paint();
   });
   // a little ahead of the arena: the next one's countdown for the map
-  const nextText = () => (st && st.down ? T("next in {t}", { t: leftText(st.next - Date.now(), T) }) : st ? T("{p}% HP left", { p: Math.max(0, Math.round((100 * (st.hp - pending)) / st.max)) }) : "");
+  const nextText = () => (st && st.down ? T("next in {t}", { t: leftText((st.next || nextMonday()) - Date.now(), T) }) : st ? T("{p}% HP left", { p: Math.max(0, Math.round((100 * (st.hp - pending)) / st.max)) }) : "");
 
   return {
     zone: RAID, root, gate, hit, load, inside, nextText,
