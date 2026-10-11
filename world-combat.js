@@ -56,7 +56,7 @@ export function createCombat(ctx) {
   let quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
   const buffs = {};
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
-  const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3();
+  const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
   const add = (m) => { root.add(m); return m; };
   const additive = (c, o = 1) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false });
   const dotTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d"); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); })();
@@ -69,7 +69,7 @@ export function createCombat(ctx) {
   const pool = [];
   const sprite = (c, o = 1) => { const s = pool.pop() || new THREE.Sprite(spriteMat(c, o)); s.material.color.set(c); s.material.opacity = o; s.visible = true; s.userData.pooled = true; return s; };
   function puff(pos, color, { n = 10, speed = 4, size = 0.35, life = 0.6, up = 1, grav = 4 } = {}) {
-    if (ctx.reduce) n = Math.ceil(n / 3);
+    if (ctx.reduce || (ctx.lite && ctx.lite())) n = Math.ceil(n / 3);
     for (let i = 0; i < n; i++) {
       const s = sprite(color); s.position.copy(pos); s.scale.setScalar(size * (0.6 + Math.random() * 0.8)); add(s);
       const a = Math.random() * TAU;
@@ -78,7 +78,7 @@ export function createCombat(ctx) {
   }
   function shards(pos, color, n = 10, speed = 6) {
     const geo = new THREE.TetrahedronGeometry(0.12, 0);
-    for (let i = 0; i < (ctx.reduce ? 4 : n); i++) {
+    for (let i = 0; i < (ctx.reduce || (ctx.lite && ctx.lite()) ? 4 : n); i++) {
       const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.8, roughness: 0.2, transparent: true })); m.position.copy(pos); add(m);
       const a = Math.random() * TAU; fx.push({ o: m, v: new V3(Math.cos(a) * speed * Math.random(), 2 + Math.random() * speed * 0.7, Math.sin(a) * speed * Math.random()), life: 0.7 + Math.random() * 0.3, t: 0, grav: 14, spin: new V3(Math.random() * 12, Math.random() * 12, 0) });
     }
@@ -186,6 +186,7 @@ export function createCombat(ctx) {
     if (crit && ctx.slowmo) ctx.slowmo(160);
     if (kind === "heavy" && ctx.punch) ctx.punch();
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
+    if (m.raid && raidMod === "rally" && Math.random() < 0.15) { const h = Math.max(1, Math.round(maxHp() * 0.012)); if (!down && hp < maxHp()) { hp = Math.min(maxHp(), hp + h); paintVit(); ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); } } // Rally week: hits on the boss mend you a little
     if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; }
     if (m.hp <= 0) kill(m);
   }
@@ -268,7 +269,8 @@ export function createCombat(ctx) {
         m.slam = (m.slam || 6) - dt;
         // a red circle grows on the ground a second before the slam: step out of it
         if (m.slam <= 1.1 && !m.warned && d < 14) { m.warned = true; const disc = new THREE.Mesh(new THREE.CircleGeometry(7, 48), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(m.g.position).setY(0.07); add(disc); fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.28 * k + Math.sin(k * 30) * 0.06; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); }
-        if (m.slam <= 0 && d < 12) { m.slam = 7 + Math.random() * 3; m.warned = false; slam(m); }
+        if (m.warned && m.slam > 0 && !ctx.reduce) { const k = Math.min(1, 1 - m.slam / 1.1), q = Math.sin(k * Math.PI * 0.5); m.g.scale.set(1 + q * 0.1, 1 - q * 0.2, 1 + q * 0.1); } else if (m.g.scale.y !== 1) m.g.scale.lerp(ONE, 0.35);
+        if (m.slam <= 0 && d < 12) { m.slam = m.raid && raidMod === "slam" ? 4 + Math.random() * 1.5 : 7 + Math.random() * 3; m.warned = false; slam(m); }
         else if (m.slam <= 0) { m.slam = 2; m.warned = false; }
       }
     }
@@ -276,21 +278,22 @@ export function createCombat(ctx) {
   }
   // the raid's phases (world-social.js): 2 calls a swarm now and then, 3 adds a shield that soaks most of a hit,
   // 4 drops red circles around you — step out before they burst
-  let raidPhase = 1;
+  let raidPhase = 1, raidMod = ""; // raidMod: this week's twist (world-social.js RAID_MODS)
   function raidTick(m, dt, t, d) {
     const now = performance.now(); // wall-clock: a slow frame rate mustn't stretch the phases
+    const sw = raidMod === "swarm";
     if (raidPhase >= 2 && now >= (m.swarmAt ??= now + 4000)) {
-      m.swarmAt = now + 14000;
-      if (mobs.filter((x) => !x.dead && x.zone === m.zone && !x.raid).length < 4) for (let i = 0; i < 2; i++) { const a = Math.random() * TAU; spawnMob({ type: "rug", lv: Math.max(1, m.lv - 3), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 4, 0, Math.sin(a) * 4)) }); }
+      m.swarmAt = now + (sw ? 10000 : 14000);
+      if (mobs.filter((x) => !x.dead && x.zone === m.zone && !x.raid).length < (sw ? 6 : 4)) for (let i = 0; i < (sw ? 3 : 2); i++) { const a = Math.random() * TAU; spawnMob({ type: "rug", lv: Math.max(1, m.lv - 3), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 4, 0, Math.sin(a) * 4)) }); }
       ring(m.g.position, 0xb48cff, { r0: 1, r1: 6, life: 0.6, y: 0.1 });
     }
-    if (raidPhase >= 3) {
+    if (raidPhase >= (raidMod === "shield" ? 2 : 3)) {
       m.shieldT = Math.max(0, ((m.shieldUntil || 0) - now) / 1000);
-      if (now >= (m.shieldAt ??= now + 3000)) { m.shieldAt = now + 11000; m.shieldUntil = now + 3500; m.shieldT = 3.5; if (!m.bubble) { const bb = new THREE.Mesh(new THREE.SphereGeometry(4.2, 24, 16), new THREE.MeshBasicMaterial({ color: 0x9fffd0, transparent: true, opacity: 0.22, depthWrite: false })); bb.position.y = 2.2; m.g.add(bb); m.bubble = bb; } ctx.float(T("Shield up"), m.g.position.clone().setY(5), "#9fffd0"); }
+      if (now >= (m.shieldAt ??= now + 3000)) { m.shieldAt = now + (raidMod === "shield" ? 8000 : 11000); m.shieldUntil = now + 3500; m.shieldT = 3.5; if (!m.bubble) { const bb = new THREE.Mesh(new THREE.SphereGeometry(4.2, 24, 16), new THREE.MeshBasicMaterial({ color: 0x9fffd0, transparent: true, opacity: 0.22, depthWrite: false })); bb.position.y = 2.2; m.g.add(bb); m.bubble = bb; } ctx.float(T("Shield up"), m.g.position.clone().setY(5), "#9fffd0"); }
       if (m.bubble) { m.bubble.visible = m.shieldT > 0; m.bubble.material.opacity = 0.16 + Math.sin(t * 6) * 0.06; }
     }
     if (raidPhase >= 4 && d < 22 && now >= (m.dropAt ??= now + 2000)) {
-      m.dropAt = now + 2400;
+      m.dropAt = now + (raidMod === "rain" ? 1300 : 2400);
       ctx.here(me); const at = me.clone().add(new V3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6)).setY(0.08);
       const disc = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at); add(disc);
       fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.15 + 0.35 * k; disc.scale.setScalar(0.4 + 0.6 * Math.min(1, k * 1.5)); } });
@@ -524,6 +527,7 @@ export function createCombat(ctx) {
       const d = Math.hypot(x.g.position.x - me.x, x.g.position.z - me.z);
       if (d > 50) { root.remove(x.g); items.splice(i, 1); continue; }
       if ((buffs.magnet > 0 && d < 9) || (petPull && d < petPull)) { if (!(buffs.magnet > 0 && d < 9)) x.pulled = true; tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
+      if (d < 2.6 && !(buffs.magnet > 0) && ctx.hopY() < 2.6) { x.fly = (x.fly || 0) + dt * 3; tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * (4 + x.fly * 12)); x.g.position.y += Math.sin(Math.min(1, x.fly) * Math.PI) * 0.9; x.g.scale.setScalar(1 + Math.min(1, x.fly) * 0.25); }
       if (d < 1.3 && ctx.hopY() < 2.6) pick(x);
     }
   }
@@ -651,8 +655,8 @@ export function createCombat(ctx) {
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
     waitT = performance.now() + 8000;
     dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
-      <button type="button" class="wc-revive" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
       <button type="button" class="wc-respawn" id="wc-respawn" disabled><b>${T("Respawn on the plaza")}</b><small id="wc-wait"></small></button>
+      <button type="button" class="wc-revive" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
       <p class="wc-dead-tip">${tipAfterKO()}</p>
       <p class="wc-dead-note" id="wc-dead-note">${T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`;
     setTimeout(() => { dead.hidden = false; }, 900);
@@ -729,6 +733,7 @@ export function createCombat(ctx) {
   }
   function keyDown(k) {
     if (k === "j") return attack();
+    if (k === "k") return dodge() || true;
     if (k === "q") return nextSkill() || true;
     if (k === "4") return drink("hp") || true;
     if (k === "5") return drink("sp") || true;
@@ -767,7 +772,7 @@ export function createCombat(ctx) {
     },
     // the raid boss (world-raid.js): spawned from the server's HP, kept in step with it, brought down by it
     raidMob: () => mobs.find((m) => m.raid && !m.dead) || null,
-    raidPhase: (p) => { raidPhase = p; },
+    raidPhase: (p) => { raidPhase = p; }, raidMod: (id) => { raidMod = id || ""; },
     spawnRaid(o) { return spawnMob({ ...o, rank: "boss", raid: true }); },
     raidSet(hpNow) { const m = mobs.find((x) => x.raid && !x.dead); if (!m) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); bossBar(m); },
     raidDown() {

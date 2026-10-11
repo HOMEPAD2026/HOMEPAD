@@ -40,28 +40,37 @@ export const ACH = [
 ];
 // the codex: every scammer here stands for a real scam
 export const CODEX = [
-  { id: "spam", name: "Spam Bot", line: "Floods replies and DMs with fake giveaways and links. Real projects don't DM you first, and never ask you to \"verify\" a wallet." },
-  { id: "drop", name: "Fake Airdrop", line: "A \"free\" token or NFT that asks you to approve a contract or sign a message to claim it. The approval lets it drain your wallet." },
-  { id: "rug", name: "Rug Gremlin", line: "A coin whose team can pull the liquidity or mint more at will. Check locks, ownership and holders in the Scanner before you buy." },
-  { id: "boss-spam", name: "The Spam King", line: "Impersonates support: a fake help account that asks for your recovery phrase. Nobody real will ever ask for it." },
-  { id: "boss-fields", name: "The Free Mint", line: "A mint page cloned from a real project, with a malicious contract behind the button. Only mint from links the project posts itself." },
-  { id: "boss-swamp", name: "The Honeypot Queen", line: "A token you can buy but can't sell: the contract blocks sells for everyone but the owner. The Scanner's sell simulation catches it." },
-  { id: "boss-canyon", name: "The Rug Titan", line: "A big launch with unlocked liquidity and a team wallet holding most of the supply. When it dumps, the price goes to zero." },
-  { id: "boss-depths", name: "The Rug Dragon", line: "The long con: months of hype, then the treasury and liquidity vanish together. Check where the money sits and who can move it." },
-  { id: "boss-raid", name: "The Ponzi Leviathan", line: "\"Guaranteed\" daily returns paid out of the next people's deposits. It grows while new money flows in, then collapses on everyone still inside." },
+  { id: "spam", name: "Spam Bot", line: "Floods replies and DMs with fake giveaways and links. Real projects don't DM you first, and never ask you to \"verify\" a wallet.", beat: "Don't open links from DMs or replies. Type the project's site in yourself." },
+  { id: "drop", name: "Fake Airdrop", line: "A \"free\" token or NFT that asks you to approve a contract or sign a message to claim it. The approval lets it drain your wallet.", beat: "Never approve or sign anything to claim. A real airdrop lands in your wallet or is claimed on the official site." },
+  { id: "rug", name: "Rug Gremlin", line: "A coin whose team can pull the liquidity or mint more at will. Check locks, ownership and holders in the Scanner before you buy.", beat: "Check the LP lock, the owner and the top holders in the Scanner first." },
+  { id: "boss-spam", name: "The Spam King", line: "Impersonates support: a fake help account that asks for your recovery phrase. Nobody real will ever ask for it.", beat: "Never share your recovery phrase. Real support never messages you first." },
+  { id: "boss-fields", name: "The Free Mint", line: "A mint page cloned from a real project, with a malicious contract behind the button. Only mint from links the project posts itself.", beat: "Mint only from the link on the project's own account." },
+  { id: "boss-swamp", name: "The Honeypot Queen", line: "A token you can buy but can't sell: the contract blocks sells for everyone but the owner. The Scanner's sell simulation catches it.", beat: "Run the Scanner's sell test before you buy." },
+  { id: "boss-canyon", name: "The Rug Titan", line: "A big launch with unlocked liquidity and a team wallet holding most of the supply. When it dumps, the price goes to zero.", beat: "Look for locked liquidity and a holder list that isn't one wallet." },
+  { id: "boss-depths", name: "The Rug Dragon", line: "The long con: months of hype, then the treasury and liquidity vanish together. Check where the money sits and who can move it.", beat: "Follow the money: who can move the treasury, and is any of it locked?" },
+  { id: "boss-raid", name: "The Ponzi Leviathan", line: "\"Guaranteed\" daily returns paid out of the next people's deposits. It grows while new money flows in, then collapses on everyone still inside.", beat: "Fixed daily returns don't exist. If payouts depend on new deposits, it's a Ponzi." },
+];
+// the six scammers of the story (world-kit.js SCAMMERS): their page opens when you beat them on the planet
+export const CODEX_STORY = [
+  { id: "st-phisher", story: "phisher", name: "The Phisher", line: "Promises a prize if you approve his contract. The approval lets him spend your tokens, now or later.", beat: "Check the contract in the Scanner. Never approve a stranger's contract." },
+  { id: "st-airdrop", story: "airdrop", name: "The Fake Airdrop", line: "Says your airdrop is ready, if you first send a little money \"for gas\".", beat: "A real airdrop never asks you to pay first. Check the project's official channels." },
+  { id: "st-honeypot", story: "honeypot", name: "The Honeypot", line: "\"Nobody has sold yet!\" That's because the contract won't let anyone sell.", beat: "Dry-run a sell in the Scanner before you buy." },
+  { id: "st-doppel", story: "doppel", name: "The Doppelganger", line: "A \"v2\" with the same ticker and a different contract: a copy of the real coin.", beat: "Tickers aren't unique, addresses are. Compare it with the official address." },
+  { id: "st-golem", story: "golem", name: "The Dump Golem", line: "The dev holds a huge share and promises not to sell.", beat: "A promise isn't a lock. Check the holders in the Scanner and the locks in the Locker." },
+  { id: "st-dragon", story: "dragon", name: "The Rug Dragon", line: "Unlocked liquidity and \"trust us\". One transaction empties the pool.", beat: "Check the LP lock in the Locker before you buy." },
 ];
 export const QUEST_ZONES = ["spam", "fields", "swamp", "canyon", "depths"];
 
 /// ctx: { T, lang, esc, toast, P, save(), level(), gain(xp, why), rpg (for scrap and potions), Snd, wallet() }
 export function createQuests(ctx) {
   const { esc } = ctx;
-  const LW = { ko: { Open: "열기",  Daily: "일일", Achievements: "업적", Codex: "도감", Rankings: "순위", Hunters: "사냥꾼", Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일", All: "전체", Save: "저장", Achievement: "업적", Bring: "데려가기", "Right!": "정답!", Drone: "드론", Cat: "고양이", Season: "시즌", Pets: "펫", Quiz: "퀴즈", Share: "공유", Claim: "받기", Wear: "착용", Worn: "착용 중", Explorer: "탐험가", Legend: "전설", Lucky: "행운아", Done: "완료", Locked: "잠김", scrap: "고철", title: "칭호" }, zh: { Open: "打开",  Daily: "每日", Achievements: "成就", Codex: "图鉴", Rankings: "排行", Hunters: "猎人", Mon: "周一", Tue: "周二", Wed: "周三", Thu: "周四", Fri: "周五", Sat: "周六", Sun: "周日", All: "全部", Save: "保存", Achievement: "成就", Bring: "带上", "Right!": "答对了！", Drone: "无人机", Cat: "猫咪", Season: "赛季", Pets: "宠物", Quiz: "测验", Share: "分享", Claim: "领取", Wear: "佩戴", Worn: "佩戴中", Explorer: "探险家", Legend: "传奇", Lucky: "幸运儿", Done: "完成", Locked: "未解锁", scrap: "废料", title: "称号" } }[ctx.lang] || {};
+  const LW = { ko: { Bosses: "보스", Raids: "레이드", "Knock-outs": "처치", Open: "열기",  Daily: "일일", Achievements: "업적", Codex: "도감", Rankings: "순위", Hunters: "사냥꾼", Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일", All: "전체", Save: "저장", Achievement: "업적", Bring: "데려가기", "Right!": "정답!", Drone: "드론", Cat: "고양이", Season: "시즌", Pets: "펫", Quiz: "퀴즈", Share: "공유", Claim: "받기", Wear: "착용", Worn: "착용 중", Explorer: "탐험가", Legend: "전설", Lucky: "행운아", Done: "완료", Locked: "잠김", scrap: "고철", title: "칭호" }, zh: { Bosses: "首领", Raids: "团战", "Knock-outs": "击倒", Open: "打开",  Daily: "每日", Achievements: "成就", Codex: "图鉴", Rankings: "排行", Hunters: "猎人", Mon: "周一", Tue: "周二", Wed: "周三", Thu: "周四", Fri: "周五", Sat: "周六", Sun: "周日", All: "全部", Save: "保存", Achievement: "成就", Bring: "带上", "Right!": "答对了！", Drone: "无人机", Cat: "猫咪", Season: "赛季", Pets: "宠物", Quiz: "测验", Share: "分享", Claim: "领取", Wear: "佩戴", Worn: "佩戴中", Explorer: "探险家", Legend: "传奇", Lucky: "幸运儿", Done: "完成", Locked: "未解锁", scrap: "废料", title: "称号" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const X = () => {
     const r = ctx.rpg.data(); r.x = r.x || {};
     const x = r.x; x.c = x.c || {}; x.ach = x.ach || []; x.seen = x.seen || {}; x.zones = x.zones || [];
     if (!x.d || x.d.day !== seoulDay()) x.d = { day: seoulDay(), p: {}, done: [], zones: [] };
-    const sn = seasonOf(); if (!x.ss || x.ss.id !== sn.id) x.ss = { id: sn.id, pts: 0, got: [] };
+    const sn = seasonOf(); if (!x.ss || x.ss.id !== sn.id) { if (x.ss && x.ss.pts) x.ssPrev = { id: x.ss.id, pts: x.ss.pts, k: x.ss.k || {}, star: !!x.stitle }; x.ss = { id: sn.id, pts: 0, got: [], k: {} }; }
     if (!x.qz || x.qz.day !== seoulDay()) x.qz = { day: seoulDay(), a: [], done: 0 };
     x.petXp = x.petXp || {};
     return x;
@@ -71,7 +80,7 @@ export function createQuests(ctx) {
 
   function seasonAdd(kind, n = 1) {
     const x = X(), pts = (SEASON_PTS[kind] || 0) * n; if (!pts) return;
-    const before = tierOf(x.ss.pts); x.ss.pts += pts;
+    const before = tierOf(x.ss.pts); x.ss.pts += pts; x.ss.k = x.ss.k || {}; x.ss.k[kind] = (x.ss.k[kind] || 0) + n; // what the season was made of, for its card
     if (tierOf(x.ss.pts) > before) { ctx.toast(T("Season tier {n} reached — claim it in the Adventure log", { n: tierOf(x.ss.pts) })); ctx.Snd.win && ctx.Snd.win(); }
   }
   function bump(ev, n = 1) {
@@ -183,13 +192,18 @@ export function createQuests(ctx) {
         ${trackHTML(x, pts)}
         ${SEASON_TIERS.filter((t, i) => pts >= t.pts && !x.ss.got.includes(i)).length > 1 ? `<button type="button" class="wq-claimall" data-sclaimall>${esc(T("Claim all ({n})", { n: SEASON_TIERS.filter((t, i) => pts >= t.pts && !x.ss.got.includes(i)).length }))}</button>` : ""}
         <ol class="wq-tiers">${SEASON_TIERS.map((t, i) => { const got = x.ss.got.includes(i), ok = pts >= t.pts; return `<li class="${got ? "done" : ok ? "ready" : ""}${t.title ? " top" : ""}"><span>${i + 1}</span><div><b>${esc(rewardText(t))}${t.title ? " · " + esc(T("title")) + ": “" + esc(T("Season Star")) + "”" : ""}</b><small>${t.pts.toLocaleString("en-US")} ${esc(T("points"))}</small></div>${got ? `<em class="ok" aria-label="${esc(T("Done"))}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></em>` : `<button type="button" data-sclaim="${i}" ${ok ? "" : "disabled"}>${esc(T("Claim"))}</button>`}</li>`; }).join("")}</ol>
-        ${x.stitle ? `<p class="wq-stitle">${esc(T("Your season title"))}: <button type="button" data-title="season" aria-pressed="${x.title === "season"}">${esc(x.title === "season" ? T("Worn") : T("Wear"))} “${esc(T("Season Star"))}”</button></p>` : ""}`;
+        ${x.stitle ? `<p class="wq-stitle">${esc(T("Your season title"))}: <button type="button" data-title="season" aria-pressed="${x.title === "season"}">${esc(x.title === "season" ? T("Worn") : T("Wear"))} “${esc(T("Season Star"))}”</button></p>` : ""}
+        <div class="wq-recap">${x.ss.pts ? `<button type="button" class="wp-btn" data-srecap="cur">${esc(T("Share my season"))}</button>` : ""}${x.ssPrev ? `<p>${esc(T("Season {n}: {p} points, tier {t}", { n: x.ssPrev.id, p: x.ssPrev.pts.toLocaleString("en-US"), t: tierOf(x.ssPrev.pts) }))} <button type="button" class="wp-link" data-srecap="prev">${esc(T("Share its card"))}</button></p>` : ""}</div>`;
     }
     else if (tab === "pets") {
       const own = ownedPets(), act = activePet();
       body = `<p class="wr-note">${esc(T("Companions come with achievements and grow with every scammer knocked out while they're with you."))}</p><div class="wq-pets">${PETS.map((p) => { const has = own.includes(p), xp = x.petXp[p.id] || 0, lv = petLevel(xp), nx = petNext(lv), prev = lv > 1 ? petNext(lv - 1) : 0, a = ACH.find((y) => y.id === p.need); return `<article class="wq-pet p-${p.id}${has ? "" : " locked"}${act === p.id ? " on" : ""}"><span class="wq-pet-art" aria-hidden="true">${ctx.petThumb && ctx.petThumb(p.id) ? `<img src="${ctx.petThumb(p.id)}" alt="">` : ""}</span><div><b>${esc(T(p.name))}${has ? ` <small>${esc(T("Lv {n}", { n: lv }))}</small>` : ""}</b><small>${esc(T(p.line))}</small>${has ? `<span class="wq-petname"><input data-petname="${p.id}" maxlength="12" value="${esc(petName(p.id))}" placeholder="${esc(T("Give it a name"))}" autocomplete="off" spellcheck="false"><button type="button" data-petsave="${p.id}">${esc(T("Save"))}</button></span>` : ""}${has && lv < 10 ? `<small class="wq-petnext">${esc(lv < 5 ? T("New look at level 5") : T("Golden at level 10"))}</small>` : ""}${has ? (nx ? bar(xp - prev, nx - prev) : `<small class="max">${esc(T("Fully grown"))}</small>`) : `<small class="need">${esc(T("Comes with “{x}”", { x: T(a ? a.name : "") }))}</small>`}</div>${has ? `<button type="button" data-pet="${p.id}" aria-pressed="${act === p.id}">${esc(act === p.id ? T("With you") : T("Bring"))}</button>` : ""}</article>`; }).join("")}</div>${act ? `<p class="wq-petoff"><button type="button" data-pet="none">${esc(T("Leave companions at home"))}</button></p>` : ""}`;
     }
-    else if (tab === "codex") body = `${quizHTML(x)}<p class="wr-note">${esc(T("Every scammer here is a real scam. Knock one out to unlock its page."))}</p><div class="wq-codex">${CODEX.map((c) => { const n = x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : T("Knock one out to learn how this scam works."))}</p><small>${n ? esc(T("Knocked out {n}", { n })) : ""}</small></article>`; }).join("")}</div>`;
+    else if (tab === "codex") {
+      const beaten = (ctx.P && ctx.P.beaten) || [], all = [...CODEX_STORY, ...CODEX], got = all.filter((c) => (c.story ? beaten.includes(c.story) : x.seen[c.id])).length;
+      const page = (c) => { const n = c.story ? (beaten.includes(c.story) ? 1 : 0) : x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}${c.story ? " story" : ""}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : c.story ? T("Beat this scammer on the planet to open its page.") : T("Knock one out to learn how this scam works."))}</p>${n && c.beat ? `<p class="wq-beat"><b>${esc(T("How to beat it"))}</b> ${esc(T(c.beat))}</p>` : ""}<small>${n ? esc(c.story ? T("Beaten on the planet") : T("Knocked out {n}", { n })) : ""}</small></article>`; };
+      body = `${quizHTML(x)}<div class="wq-codex-h"><b>${esc(T("{n} of {m} pages", { n: got, m: all.length }))}</b>${bar(got, all.length)}</div><p class="wr-note">${esc(T("Every scammer here is a real scam. Beat one to open its page: how the trick works and how to beat it."))}</p><h4 class="wq-codex-sec">${esc(T("The story's six"))}</h4><div class="wq-codex">${CODEX_STORY.map(page).join("")}</div><h4 class="wq-codex-sec">${esc(T("Hunting grounds and the raid"))}</h4><div class="wq-codex">${CODEX.map(page).join("")}</div>`;
+    }
     else body = `<nav class="wq-sub"><button type="button" data-rk="hunt" aria-pressed="${rk === "hunt"}">${esc(T("Hunters"))}</button><button type="button" data-rk="raid" aria-pressed="${rk === "raid"}">${esc(T("Raid damage"))}${nb("raidrank")}</button></nav><p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}${rk === "raid" && past && past.length ? `<h4 class="wq-past-h">${esc(T("Past raids"))}</h4><ul class="wq-past">${past.map((w) => `<li><b>${esc(w.week)}</b><span>${esc(T("{n} raiders", { n: w.players }))} · ${esc(T("{n} HP", { n: w.max.toLocaleString("en-US") }))}</span><em class="${w.fell ? "ok" : ""}">${esc(w.fell ? T("fell after {h} h", { h: w.hours }) : T("stood"))}</em></li>`).join("")}</ul>` : ""}`;
     return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-qtab="${id}" aria-pressed="${id === tab}">${esc(T(n))}${id === "season" || id === "pets" ? nb(id) : ""}</button>`).join("")}</nav>${body}`;
   }
@@ -206,6 +220,8 @@ export function createQuests(ctx) {
     if (b.hasAttribute("data-qdaily")) { ctx.openDaily && ctx.openDaily(); return true; }
     if (b.dataset.qclaim) { claim(b.dataset.qclaim); return true; }
     if (b.dataset.sclaim != null) { seasonClaim(+b.dataset.sclaim); return true; }
+    // the season's card: points, tier and what they came from
+    if (b.dataset.srecap) { const x = X(), s = b.dataset.srecap === "prev" ? x.ssPrev : x.ss; if (s && ctx.shareCard) { const k = s.k || {}, t = tierOf(s.pts); ctx.shareCard({ head: T("Season {n}", { n: s.id }), title: T("{p} points · tier {t}", { p: s.pts.toLocaleString("en-US"), t }), line: t >= SEASON_TIERS.length ? T("Every tier of the season road, done.") : T("{n} of {m} tiers on the season road", { n: t, m: SEASON_TIERS.length }), stats: [[T("Knock-outs"), (k.kill || 0).toLocaleString("en-US")], [T("Bosses"), k.boss || 0], [T("Raids"), k.raid || 0], [T("Quiz days"), k.quiz || 0]] }); } return false; }
     if (b.dataset.qz != null) { answer(+b.dataset.qz); return true; }
     if (b.dataset.petsave) { const x = X(), inp = b.parentElement.querySelector("input"), v = String((inp && inp.value) || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 12); x.petName = { ...(x.petName || {}), [b.dataset.petsave]: v }; ctx.save(); ctx.onPet && ctx.onPet(); ctx.toast(v ? T("Your companion is called {x}", { x: v }) : T("Name cleared")); return true; }
     if (b.dataset.pet) { const x = X(); x.pet = b.dataset.pet === x.pet && b.dataset.pet !== "none" ? x.pet : b.dataset.pet; ctx.save(); ctx.onPet && ctx.onPet(); return true; }
@@ -262,7 +278,7 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
   Object.values(looks).forEach((x) => { x.userData.skinMat = x.userData.skin.map((m) => m.material); });
   Object.values(looks).forEach((g) => { g.visible = false; root.add(g); });
   const me = new THREE.Vector3(), want = new THREE.Vector3(), last = new THREE.Vector3();
-  let cur = null, g = null, actT = 4, lv = 1, name = "", plate = null, emoteT = 0;
+  let cur = null, g = null, actT = 4, lv = 1, name = "", plate = null, emoteT = 0, idleT = 0;
   function dress() {
     if (!g) return;
     g.userData.extra.visible = lv >= 5;
@@ -314,6 +330,10 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
         if (moving) g.rotation.y = Math.atan2(g.position.x - last.x, g.position.z - last.z);
         const u = g.userData; u.legs.forEach((l, i) => { l.rotation.x = moving ? Math.sin(t * 14 + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI / 2 : 0)) * 0.6 : 0; });
         u.tail.rotation.z = Math.sin(t * (moving ? 8 : 2.5)) * 0.4; u.head.rotation.y = moving ? 0 : Math.sin(t * 0.8) * 0.4;
+        // left alone a moment it sits down, and now and then it yawns (head back) or licks a paw (head down)
+        idleT = moving ? 0 : idleT + dt; const sit = reduce ? 0 : Math.min(1, Math.max(0, (idleT - 2) * 2));
+        g.children[0].rotation.x = -0.45 * sit; g.children[0].position.y = 0.32 - 0.06 * sit; u.legs[2].position.y = u.legs[3].position.y = 0.1 - 0.04 * sit;
+        const yawn = sit >= 1 ? Math.max(0, Math.sin(((idleT - 3) % 9) / 1.4 * Math.PI)) * (((idleT - 3) % 9) < 1.4 ? 1 : 0) : 0; u.head.rotation.x = -0.35 * yawn;
         g.position.y = me.y + (moving ? Math.abs(Math.sin(t * 14)) * 0.05 : 0) + Math.max(0, g.userData.hop || 0);
         return;
       }

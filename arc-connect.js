@@ -128,7 +128,9 @@
   function wcLoad() {
     if (WC) return WC;
     var cfg = C(), pid = cfg.REOWN_PROJECT_ID || "278f543c581f60eec5975dc755f0c3dd";
-    WC = import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js").then(function (m) {
+    // a blocked or very slow CDN mustn't leave the button spinning: after 15 s it counts as failed
+    var slow = new Promise(function (_, no) { setTimeout(function () { no(new Error("timeout")); }, 15000); });
+    WC = Promise.race([import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js"), slow]).then(function (m) {
       var arc = { id: ARC.id, name: ARC.name, nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [ARC.rpc] } }, blockExplorers: { default: { name: "Explorer", url: ARC.expl } }, chainNamespace: "eip155", caipNetworkId: "eip155:" + ARC.id, testnet: false };
       var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc] });
       var modal = m.createAppKit({
@@ -161,7 +163,7 @@
         try { unsub = W.modal.subscribeState(function (st) { if (opened && st && !st.open) setTimeout(function () { check(); if (!done) { var x = new Error(L("The wallet wasn't connected.", "지갑이 연결되지 않았어요.", "钱包未连接。")); x.closed = true; finish(x); } }, 1500); }); } catch (e) { /* the poll covers it */ }
         iv = setInterval(check, 400); check();
       });
-    }, function () { throw new Error(L("WalletConnect couldn't load. Check the connection and try again.", "WalletConnect를 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.", "无法加载 WalletConnect。请检查网络后重试。")); }).then(function (w) { return use(w); });
+    }, function () { throw new Error(L("WalletConnect couldn't load here (the network or an ad blocker may be stopping it). Try again, or use a browser wallet or ARCIRCLE Wallet.", "여기서 WalletConnect를 불러오지 못했어요(네트워크나 광고 차단기가 막고 있을 수 있어요). 다시 시도하거나 브라우저 지갑 또는 ARCIRCLE Wallet을 써 주세요.", "这里无法加载 WalletConnect（可能被网络或广告拦截器阻止）。请重试，或使用浏览器钱包或 ARCIRCLE Wallet。")); }).then(function (w) { return use(w); });
   }
   api.walletConnect = useWC;
 

@@ -41,6 +41,21 @@
     var out = $("#me-out"), form = $("#me-form"), input = $("#me-addr");
     var MIN = Number((CONFIG.RELAY && CONFIG.RELAY.MIN_ARCIRCLE) || 100000);
     var run = 0;
+    // ARCIRCLE World: this browser's game save, shown only when it's signed in with the wallet being looked up
+    var worldHTML = function (addr) {
+      try {
+        var se = JSON.parse(localStorage.getItem("arc.world.sess") || "null"), P = JSON.parse(localStorage.getItem("arc.world") || "null");
+        if (!se || !P || String(se.wallet || "").toLowerCase() !== addr.toLowerCase()) return "";
+        var x = (P.rpg && P.rpg.x) || {}, c = x.c || {}, seen = Object.keys(x.seen || {}).length + (P.beaten || []).length, lv = 1 + Math.floor((P.xp || 0) / 100);
+        return '<h3 class="pg-h3">' + T("ARCIRCLE World") + '</h3><div class="pg-grid">' +
+          tile("Game level", nf(lv, 0), P.name ? esc(P.name) : T("Game World")) +
+          tile("Scammers knocked out", nf(c.kill || 0, 0), nf(c.boss || 0, 0) + " " + T("bosses")) +
+          tile("Codex pages", nf(seen, 0) + " / 15", T("Each one is a real scam")) +
+          tile("Season points", nf((x.ss && x.ss.pts) || 0, 0), T("Season") + " " + ((x.ss && x.ss.id) || 1)) +
+          tile("Weekly raids", nf(c.raid || 0, 0), T("Bosses brought down together")) +
+          "</div>" + '<div class="pg-links"><a class="ax-btn ax-btn-grad" href="/play">' + T("Open ARCIRCLE World") + "</a></div>";
+      } catch (e) { return ""; }
+    };
     var show = async function (addr) {
       if (!isAddr(addr)) { out.innerHTML = '<p class="pg-bad">' + T("That doesn't look like a wallet address.") + "</p>"; return; }
       var id = ++run;
@@ -75,6 +90,7 @@
           var amt = g.dec != null && g.amount ? Number(ethers.formatUnits(BigInt(g.amount), g.dec)) : null;
           return '<li><a href="/drop/' + esc(g.tx) + '" data-no-i18n>' + esc(g.sym ? "$" + g.sym : short(g.token)) + '</a><span data-no-i18n>' + (amt != null ? nf(amt, 2) : "") + '</span><em data-no-i18n>' + date(g.ts) + "</em></li>";
         }).join("") + "</ul>" : "") +
+        worldHTML(addr) +
         '<div class="pg-links"><a class="ax-btn" href="/circle#position">' + T("CirclePad position") + '</a><a class="ax-btn" href="/relay">' + T("My relay") + '</a><a class="ax-btn" href="/arc#portfolio">' + T("ArcPad portfolio") + '</a><a class="ax-btn" href="/arc#multisend">' + T("Did I get an airdrop?") + "</a></div>";
       stagger(out);
       var sh = $("#me-share");

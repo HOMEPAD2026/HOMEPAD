@@ -13,10 +13,29 @@ export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) 
 /// ctx: { THREE, K, planet, T, esc, toast, Snd, here(v), level(), sess(), post(b), combat, rpg, quests(), gain(n, why),
 ///        inHub(), wallet(), onArcl(n), feed(html, color), shareCard(o), name() }
 export const PHASES = [null, "", "Phase 2: it calls its swarm", "Phase 3: its shield goes up", "Final phase: the floor gives way"];
+// this week's twist on the raid: picked from the week's id, so everyone gets the same one (world-combat.js applies it)
+export const RAID_MODS = [
+  { id: "shield", name: "Iron shell", line: "Its shield comes up from phase 2, and more often." },
+  { id: "swarm", name: "Swarm week", line: "A bigger swarm, back sooner." },
+  { id: "rain", name: "Red rain", line: "In the final phase the red circles fall twice as fast." },
+  { id: "slam", name: "Ground pound", line: "It slams the floor more often. Step out of the red circle." },
+  { id: "rally", name: "Rally", line: "Your hits on the boss mend you a little." },
+];
+export const raidModOf = (week) => { let h = 2166136261; for (const ch of String(week || "")) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return RAID_MODS[h % RAID_MODS.length]; };
 export const phaseOf = (hp, max) => (hp <= 0 ? 5 : hp / max > 0.75 ? 1 : hp / max > 0.5 ? 2 : hp / max > 0.25 ? 3 : 4);
 // the next Monday 00:00 in Seoul, for when the server's answer doesn't carry it (api/_world-social.mjs nextWeekAt)
 const nextMonday = (t = Date.now()) => { const d = new Date(t + 9 * 3600e3), dow = (d.getUTCDay() + 6) % 7; return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) + (7 - dow) * 864e5 - 9 * 3600e3; };
 const leftText = (ms, T) => { const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return d ? T("{d}d {h}h", { d, h }) : T("{h}h {m}m", { h, m: m % 60 }); };
+// a calendar file with a weekly reminder: Mondays at noon in Seoul, when the new raid boss has been up for twelve hours
+export function raidIcs(t = Date.now(), title = "ARCIRCLE World: a new raid boss is up", text = "") {
+  const at = new Date(nextMonday(t) + 12 * 3600e3), z = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const esc = (s) => String(s).replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ARCIRCLE//World//EN", "BEGIN:VEVENT", `UID:arcircle-raid-weekly@arcircle.app`, `DTSTAMP:${z(new Date(t))}`, `DTSTART:${z(at)}`, `DTEND:${z(new Date(at.getTime() + 30 * 60e3))}`, "RRULE:FREQ=WEEKLY", `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(text)}`, "URL:https://www.arcircle.app/play", "BEGIN:VALARM", "TRIGGER:PT0M", "ACTION:DISPLAY", `DESCRIPTION:${esc(title)}`, "END:VALARM", "END:VEVENT", "END:VCALENDAR", ""].join("\r\n");
+}
+function raidCalendar(T) {
+  const ics = raidIcs(Date.now(), T("ARCIRCLE World: a new raid boss is up"), T("One boss, one HP bar for everyone. arcircle.app/play"));
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = "arcircle-raid.ics"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
 export function createRaid(ctx) {
   const { THREE, K, planet, T, esc } = ctx;
   const root = new THREE.Group(); root.name = "raid"; root.position.set(RAID.x, 0, RAID.z); planet.add(root);
@@ -25,6 +44,19 @@ export function createRaid(ctx) {
   const floor = new THREE.Mesh(new THREE.CircleGeometry(RAID.r, 72), new THREE.MeshStandardMaterial({ color: RAID.ground, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0.03; floor.receiveShadow = true; root.add(floor);
   const rune = new THREE.Mesh(new THREE.RingGeometry(6, 6.3, 64), new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.05; root.add(rune);
+  // the floor's markings: rings, spokes and a band of ticks, drawn once on a canvas; they take the phase's colour
+  const marks = (() => {
+    const cv = document.createElement("canvas"); cv.width = cv.height = 1024; const g = cv.getContext("2d"), c = 512, R = 500;
+    g.strokeStyle = "#fff"; g.lineCap = "round";
+    [[0.93, 5], [0.86, 2], [0.62, 3], [0.36, 2], [0.18, 4]].forEach(([k, w]) => { g.lineWidth = w; g.globalAlpha = 0.55; g.beginPath(); g.arc(c, c, R * k, 0, TAU); g.stroke(); });
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU, r0 = R * (i % 2 ? 0.4 : 0.2), r1 = R * 0.84; g.lineWidth = i % 2 ? 2 : 4; g.globalAlpha = i % 2 ? 0.3 : 0.5; g.beginPath(); g.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0); g.lineTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.stroke(); }
+    for (let i = 0; i < 96; i++) { const a = (i / 96) * TAU, r0 = R * 0.865, r1 = R * (i % 4 ? 0.89 : 0.915); g.lineWidth = i % 4 ? 2 : 4; g.globalAlpha = 0.6; g.beginPath(); g.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0); g.lineTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.stroke(); }
+    // eight diamonds between the spokes
+    g.fillStyle = "#fff"; for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU + TAU / 32, x = c + Math.cos(a) * R * 0.74, y = c + Math.sin(a) * R * 0.74; g.globalAlpha = 0.45; g.beginPath(); g.moveTo(x, y - 16); g.lineTo(x + 11, y); g.lineTo(x, y + 16); g.lineTo(x - 11, y); g.closePath(); g.fill(); }
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const m = new THREE.Mesh(new THREE.CircleGeometry(RAID.r * 0.98, 72), new THREE.MeshBasicMaterial({ map: tex, color: 0x39ff88, transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+    m.rotation.x = -Math.PI / 2; m.position.y = 0.04; root.add(m); return m;
+  })();
   // the floor gauge: a ring around the arena that runs down with everyone's HP bar
   const gaugeBg = new THREE.Mesh(new THREE.RingGeometry(15.4, 16.6, 96), new THREE.MeshBasicMaterial({ color: 0x0a1712, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); gaugeBg.rotation.x = -Math.PI / 2; gaugeBg.position.y = 0.045; root.add(gaugeBg);
   const gaugeMat = new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }); // above the floor, which is pulled forward itself
@@ -62,6 +94,7 @@ export function createRaid(ctx) {
   }
   function setState(j, counted) {
     const was = st; st = j;
+    if (st.week && (!was || was.week !== st.week)) ctx.combat.raidMod && ctx.combat.raidMod(raidModOf(st.week).id);
     // the damage other raiders did since the last word from the server
     if (was && !was.down && was.week === st.week) { const others = Math.round(was.hp - st.hp - (counted || 0)); if (others > 0) othersChip(others); }
     if (st.down) {
@@ -85,7 +118,7 @@ export function createRaid(ctx) {
   // a new phase: a roar, a shake, the rim and the gauge change colour, a line across the screen
   function phaseUp(p) {
     ctx.Snd.siren && ctx.Snd.siren(); ctx.shake && ctx.shake(0.6);
-    rim.material.color.set(p >= 4 ? 0xff4d6d : p >= 3 ? 0xffc861 : 0x39ff88); rim.material.emissive.copy(rim.material.color);
+    rim.material.color.set(p >= 4 ? 0xff4d6d : p >= 3 ? 0xffc861 : 0x39ff88); rim.material.emissive.copy(rim.material.color); marks.material.color.copy(rim.material.color);
     const c = document.createElement("div"); c.className = "wr-phase"; c.setAttribute("role", "status"); c.setAttribute("data-no-i18n", "");
     c.innerHTML = `<small>${esc(RAID.boss.name)}</small><b>${esc(T(PHASES[p]))}</b>`; document.body.appendChild(c); setTimeout(() => c.remove(), 2600);
   }
@@ -98,10 +131,10 @@ export function createRaid(ctx) {
   // it falls: confetti and coins over the arena, the raiders' names roll up the screen
   const confetti = [];
   function finale() {
-    ctx.combat.raidDown(); finaleT = 6;
+    ctx.combat.raidDown(); finaleT = 6; ctx.clip && ctx.clip(6500); // the fall is filmed (the game's picture, not the panels) for a clip to save or share
     ctx.Snd.win && ctx.Snd.win(); ctx.shake && ctx.shake(0.8);
     const cols = [0x39ff88, 0xffc861, 0x4fa8ff, 0xff7ad9, 0xffffff];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < (ctx.reduce ? 24 : 140); i++) {
       const coin = i % 4 === 0, m = new THREE.Mesh(coin ? new THREE.CylinderGeometry(0.22, 0.22, 0.05, 14) : new THREE.PlaneGeometry(0.22, 0.34), new THREE.MeshBasicMaterial({ color: coin ? 0xffc861 : cols[i % cols.length], side: THREE.DoubleSide, transparent: true }));
       const a = Math.random() * TAU, d = Math.random() * RAID.r; m.position.set(Math.cos(a) * d, 12 + Math.random() * 10, Math.sin(a) * d); root.add(m);
       confetti.push({ m, v: 2 + Math.random() * 2.5, spin: (Math.random() - 0.5) * 8, sway: Math.random() * TAU });
@@ -129,7 +162,9 @@ export function createRaid(ctx) {
     if (sending || !pending || !ctx.sess()) return;
     const cap = 60 * ctx.level(), n = Math.min(pending, cap); pending = Math.min(cap, pending - n); // what's over the cap carries a little, not forever
     sending = true;
-    try { const r = await ctx.post({ action: "world-raid-hit", ...ctx.sess(), dmg: Math.round(n) }); if (r.ok && r.j.max) setState(r.j, r.j.counted || 0); } catch { /* the next report carries on */ }
+    // a report that didn't get through (offline, a server hiccup, too fast) goes back in the pile and rides with the next one
+    const back = () => { pending = Math.min(cap * 3, pending + n); };
+    try { const r = await ctx.post({ action: "world-raid-hit", ...ctx.sess(), dmg: Math.round(n) }); if (r.ok && r.j.max) setState(r.j, r.j.counted || 0); else if (!r.ok && (r.status >= 500 || r.status === 429 || !r.status)) back(); } catch { back(); }
     sending = false;
   }
   function spawn() {
@@ -149,12 +184,15 @@ export function createRaid(ctx) {
     const top = (st.top || []).slice(0, 3).map((r, i) => `<li><span>${i + 1}</span><b>${esc(r.name || r.w)}</b><em>${Math.round(r.n).toLocaleString("en-US")}</em></li>`).join("");
     const p = st.down ? 5 : phaseOf(st.hp - pending, st.max);
     el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}${st.players ? " · " + esc(T("{n} raiders", { n: st.players })) : ""}</small></div>
+      ${st.down ? "" : (() => { const md = raidModOf(st.week); return `<p class="wr-raid-mod"><b>${esc(T("This week: {x}", { x: T(md.name) }))}</b> ${esc(T(md.line))}</p>`; })()}
       ${st.down ? `<p class="wr-raid-phase down">${esc(T("Down for this week"))} · ${esc(T("next in {t}", { t: leftText((st.next || nextMonday()) - Date.now(), T) }))}</p>` : `<p class="wr-raid-phase p${p}">${esc(p > 1 ? T(PHASES[p]) : T("Phase 1"))}</p>`}
       <p class="wr-raid-me">${esc(T("Your damage: {n}", { n: Math.round(mine).toLocaleString("en-US") }))}${mine < st.need ? ` <small>${esc(T("{n} to share the reward", { n: Math.max(0, Math.ceil(st.need - mine)).toLocaleString("en-US") }))}</small>` : ` <small class="ok">${esc(T("You're in for the reward"))}</small>`}</p>
       ${top ? `<ol class="wr-raid-top">${top}</ol>` : ""}
+      <button type="button" class="wp-link wr-raid-cal" data-raidcal>${esc(T("Remind me every Monday (calendar)"))}</button>
       ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>${claimedNow || mine >= st.need ? `<button type="button" class="wp-btn wr-raid-share" data-raidshare>${esc(T("Share my raid card"))}</button>` : ""}` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
   }
   el.addEventListener("click", async (e) => {
+    if (e.target.closest("[data-raidcal]")) { raidCalendar(T); return; }
     if (e.target.closest("[data-raidshare]")) {
       const i = (st.top || []).findIndex((r) => ctx.name && r.name === ctx.name());
       ctx.shareCard && ctx.shareCard({ head: T("Weekly raid"), title: RAID.boss.name, line: T("My damage: {n}", { n: Math.round(st.mine).toLocaleString("en-US") }) + (i >= 0 ? " · " + T("#{n} this week", { n: i + 1 }) : ""), badge: T("Raid Breaker"), icon: "raid1" });
@@ -180,7 +218,7 @@ export function createRaid(ctx) {
     zone: RAID, root, gate, hit, load, inside, nextText,
     state: () => st,
     tick(dt, t) {
-      rune.rotation.z += dt * 0.15; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4;
+      rune.rotation.z += dt * 0.15; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4; marks.rotation.z -= dt * 0.03; marks.material.opacity = 0.26 + Math.sin(t * 1.5) * 0.06;
       pillars.forEach((p, i) => { p.rotation.y = t * 1.2 + i; p.position.y = 3.8 + Math.sin(t * 2 + i) * 0.15; });
       if (gauge && gaugeK < 0.25) gaugeMat.opacity = 0.6 + Math.sin(t * 8) * 0.25;
       tickConfetti(dt, t);
@@ -217,7 +255,7 @@ export function createGhosts(ctx) {
     g.add(body, head, halo, tag); g.userData = { body, head, mat };
     return g;
   }
-  let pollAt = 0;
+  let pollAt = 0, palT = 0, palOn = false;
   const rings = [];
   // a ring of light where a wanderer appears (and again where one fades away)
   function arrive(g, out) {
@@ -233,6 +271,10 @@ export function createGhosts(ctx) {
         let w = list.get(x.t);
         if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); }
         w.x = x.x; w.z = x.z; w.at = now;
+        // a friend from an invite link: a gold ring and a "Friend" plate
+        const pal = !!(ctx.isPal && ctx.isPal(x)); if (pal && !w.pal) { w.pal = true; const pl = K.label(ctx.T("Friend"), { accent: "#ffc861", size: 0.42 }); pl.position.y = 2.75; w.g.add(pl); w.plate = pl; const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.78, 32), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; w.g.add(ring); }
+        // a line they said in the last minute: a bubble over them, once
+        if (x.sa && x.sa !== w.sa && ctx.sayText) { w.sa = x.sa; const txt = ctx.sayText(x.s); if (txt) { if (w.bub) w.g.remove(w.bub); const b = K.label(txt, { accent: "#9fffd0", size: 0.48 }); b.position.y = 3.2; w.g.add(b); w.bub = b; w.bubT = 6; } }
       }
       for (const [k, w] of list) if (!seen.has(k)) w.gone = true;
     } catch { /* next time */ }
@@ -240,9 +282,12 @@ export function createGhosts(ctx) {
   const tmp = new THREE.Vector3();
   return {
     count: () => list.size,
+    /// a friend's figure within r metres of you
+    palNear: (r) => { const p = new THREE.Vector3(); ctx.here(p); for (const w of list.values()) if (w.pal && !w.gone && Math.hypot(p.x - w.g.position.x, p.z - w.g.position.z) < r) return true; return false; },
     each: (fn) => list.forEach((w) => fn(w.g)),
     tick(dt, t) {
-      const on = ctx.inHub(); root.visible = on; if (!on) return;
+      const on = ctx.inHub(); root.visible = on; if (!on) { if (palOn) { palOn = false; ctx.onPal && ctx.onPal(false); } return; }
+      if ((palT -= dt) <= 0) { palT = 1; const n = this.palNear(20); if (n !== palOn) { palOn = n; ctx.onPal && ctx.onPal(n); } }
       for (let i = rings.length - 1; i >= 0; i--) { const o = rings[i]; o.t += dt; o.r.scale.setScalar(1 + o.t * 4); o.r.material.opacity = Math.max(0, 0.8 * (1 - o.t / 0.8)); if (o.t > 0.8) { root.remove(o.r); o.r.geometry.dispose(); rings.splice(i, 1); } }
       if (Date.now() >= pollAt) { pollAt = Date.now() + 20e3; load(); }
       for (const [k, w] of list) {
@@ -254,6 +299,7 @@ export function createGhosts(ctx) {
         w.g.userData.body.position.y = 0.75 + Math.sin(t * 2 + w.wander) * 0.05; w.g.userData.head.position.y = 1.55 + Math.sin(t * 2 + w.wander) * 0.05;
         // walk up to one and it turns, hops and says hi (once in a while)
         if (ctx.here && !w.gone) { ctx.here(tmp); const dd = Math.hypot(tmp.x - w.g.position.x, tmp.z - w.g.position.z); if (dd < 3 && (!w.hiAt || performance.now() - w.hiAt > 20000)) { w.hiAt = performance.now(); w.hop = 1; w.g.rotation.y = Math.atan2(tmp.x - w.g.position.x, tmp.z - w.g.position.z); const hi = K.label(ctx.T("Hi!"), { accent: "#9fe6ff", size: 0.4 }); hi.position.y = 2.9; w.g.add(hi); setTimeout(() => { w.g.remove(hi); hi.material.map && hi.material.map.dispose(); }, 1800); } }
+        if (w.bub && (w.bubT -= dt) <= 0) { w.g.remove(w.bub); w.bub = null; }
         if (w.hop > 0) { w.hop = Math.max(0, w.hop - dt * 1.6); w.g.position.y = Math.sin((1 - w.hop) * Math.PI) * 0.6; } else w.g.position.y = 0;
         w.fade = w.gone ? Math.max(0, w.fade - dt) : Math.min(1, w.fade + dt);
         w.g.userData.mat.opacity = 0.45 * w.fade;
@@ -287,7 +333,7 @@ function glyph(g, icon) {
   else if (icon === "quiz") { g.font = "900 72px Sora, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", 0, 4); }
   else { g.font = "900 64px Sora, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(icon || "").slice(0, 2).toUpperCase() || "★", 0, 4); }
 }
-export async function drawCard({ head, title, line, badge, name, lv, icon = "", foot = "arcircle.app/play" }) {
+export async function drawCard({ head, title, line, badge, name, lv, icon = "", foot = "arcircle.app/play", stats = null }) {
   const W = 1200, H = 630, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
   rings(g, 930, 300, 230, 0.2);
@@ -297,7 +343,10 @@ export async function drawCard({ head, title, line, badge, name, lv, icon = "", 
   g.fillStyle = "#39ff88"; g.font = font(800, 30); g.fillText(head || "", 72, 222);
   g.fillStyle = "#eef3f7"; fitText(g, title || "", 720, 800, 76, 40); g.fillText(title || "", 72, 306);
   g.fillStyle = "#b8c6d2"; g.font = font(500, 30); g.fillText(line || "", 72, 360, 760);
-  if (badge) { g.font = font(800, 30); const w = g.measureText(badge).width + 56; g.fillStyle = "rgba(255,200,97,.14)"; g.strokeStyle = "#ffc861"; g.lineWidth = 2; g.beginPath(); g.roundRect(72, 400, w, 58, 29); g.fill(); g.stroke(); g.fillStyle = "#ffc861"; g.fillText(badge, 100, 440); }
+  // a row of numbers (the season card): value over label, up to four
+  if (stats && stats.length) {
+    stats.slice(0, 4).forEach(([label, value], i) => { const x = 72 + i * 182; g.fillStyle = "rgba(255,255,255,.06)"; g.beginPath(); g.roundRect(x, 392, 168, 104, 16); g.fill(); g.fillStyle = "#eef3f7"; fitText(g, String(value), 140, 800, 40, 22); g.fillText(String(value), x + 18, 444); g.fillStyle = "#9fb3c4"; fitText(g, label, 140, 600, 20, 14); g.fillText(label, x + 18, 478); });
+  } else if (badge) { g.font = font(800, 30); const w = g.measureText(badge).width + 56; g.fillStyle = "rgba(255,200,97,.14)"; g.strokeStyle = "#ffc861"; g.lineWidth = 2; g.beginPath(); g.roundRect(72, 400, w, 58, 29); g.fill(); g.stroke(); g.fillStyle = "#ffc861"; g.fillText(badge, 100, 440); }
   // the medal on the right
   g.save(); g.translate(930, 300);
   if (icon) { g.fillStyle = "#ffc861"; g.beginPath(); g.arc(0, 0, 104, 0, TAU); g.fill(); g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 92, 0, TAU); g.stroke(); glyph(g, icon); }

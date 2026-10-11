@@ -1,0 +1,38 @@
+# ARCIRCLE World tests on every push and pull request: the game's rules (tests/world/game.test.mjs), the World API
+# against an in-memory store (shop, social, support, sign-in and saves), and the site's own checks (edge functions,
+# the Token Scanner's golden cases, bundles built from their sources).
+#
+# Kept here rather than in .github/workflows/ because pushing workflow files needs a token with the "workflow"
+# permission. To switch it on, in GitHub: Actions → New workflow → set up a workflow yourself → paste this file →
+# commit it as .github/workflows/world-tests.yml.
+name: world-tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund ethers@6 esbuild postcss
+      - name: Game rules
+        run: node tests/world/game.test.mjs
+      - name: World API
+        run: |
+          for f in tests/world/shop.test.mjs tests/world/social.test.mjs tests/world/support.test.mjs tests/world/world-api.test.mjs; do
+            echo "== $f"; node "$f" | grep -v '^PASS' ; test "${PIPESTATUS[0]}" -eq 0
+          done
+      - name: Site checks
+        run: |
+          node tools/check-edge.mjs
+          node tools/scan-golden.mjs
+          node tools/build-bundles.mjs --check

@@ -4,7 +4,7 @@
 //   POST { action: "world-stamp-hide", …signature, at }   the island's owner hides (or shows again) one note
 //   GET  ?world=island-week                               { week, top: [{ wallet, name, n, likes }] }  likes this week
 //   GET  ?world=friends&wallets=0x…,…                     { friends: { wallet: { name, lv, seen, isle, likes } } }
-//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv }] }  last 2 minutes
+//   GET  ?world=ghosts                                    { ghosts: [{ t, x, z, c, lv, s?, sa?, p? }] }  last 2 minutes (s: a fixed line said in the last minute; p: the tag of the friend who invited them)
 //   GET  ?world=raid&wallet=0x…?                          { week, hp, max, down, top, mine, claimed, players, fellAt, next }
 //   GET  ?world=raid-history                              { weeks: [{ week, players, max, dmg, fell, hours }] }  last 8
 //   POST { action: "world-raid-hit", …signature, dmg }    damage dealt in the last 5 s, capped at 60 × saved level
@@ -94,7 +94,11 @@ export function makeSocial(deps) {
     const t = tagOf(id), c = CHARS.test(String(g.c || "")) ? g.c : "bot", lv = Math.max(1, Math.min(99, Math.floor(Number(g.lv) || 1)));
     // eight small documents per 2-minute window, picked by the tag, so pings from many players don't queue on one
     const at = now(), key = `worldGhosts/${Math.floor(at / GHOST_LIFE)}_${parseInt(t, 36) % GHOST_SHARDS}`, cur = (await one(key)) || { list: [] };
-    const list = [{ t, x, z, c, lv, at }, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
+    // a line from the fixed list (0–7, shown for a minute; there's no free text to moderate) and a friend's tag from an invite link
+    const s = Number.isInteger(g.s) && g.s >= 0 && g.s < 8 ? g.s : null, p = /^[0-9a-z]{7}$/.test(String(g.p || "")) ? g.p : "";
+    const old = (cur.list || []).find((y) => y.t === t) || {};
+    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}) };
+    const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }
   async function ghosts() {
@@ -102,7 +106,7 @@ export function makeSocial(deps) {
     for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
     const d = await getDocs(keys), seen = new Map();
     for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
-    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv }) => ({ t, x, z, c, lv })) }, "public, max-age=10");
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}) })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----

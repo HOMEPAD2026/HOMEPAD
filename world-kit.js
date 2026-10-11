@@ -197,7 +197,8 @@ export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, s
   g.fillStyle = "rgba(6,10,16,.78)"; g.beginPath(); g.roundRect(x0, y0, w, h, r); g.fill();
   g.lineWidth = 6; g.strokeStyle = accent; g.stroke();
   g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 512, y0 + h / 2 + 4);
-  if (sub) { g.font = "600 58px Sora, system-ui, sans-serif"; g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 66); }
+  // the line under it (a title, a level) sits on its own small dark pill so it reads against a bright sky or floor
+  if (sub) { g.font = "700 62px Sora, system-ui, sans-serif"; const sw = Math.min(1000, g.measureText(sub).width + 64); g.fillStyle = "rgba(6,10,16,.72)"; g.beginPath(); g.roundRect(512 - sw / 2, y0 + h + 22, sw, 88, 44); g.fill(); g.fillStyle = accent; g.fillText(sub, 512, y0 + h + 68); }
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
   sp.scale.set(5.2 * size, 5.2 * size * cv.height / 1024, 1);

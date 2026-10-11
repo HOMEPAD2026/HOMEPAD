@@ -720,14 +720,14 @@ export function createIsland(ctx) {
     <p class="wi-note">${esc(T("Pick one, then tap a spot on your island. It rises layer by layer."))}</p><div class="wi-bplist" id="wi-bplist"></div>
     <h3>${esc(T("Share a build"))}</h3><div class="wi-code"><button type="button" class="wp-btn" id="wi-copy">${esc(T("Copy my island as a code"))}</button><input id="wi-code-in" placeholder="ARCBP1.…" spellcheck="false" autocomplete="off"><button type="button" class="wp-btn" id="wi-paste">${esc(T("Use code"))}</button></div></div></div>
   <div class="wi-sheet" id="wi-isles" hidden><div class="wi-card"><header><h2>${esc(T("Islands"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
-    <div class="wi-mine-row"><button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button><button type="button" class="wp-btn wi-link" id="wi-link">${esc(T("Copy my island link"))}</button></div>
+    <div class="wi-mine-row"><button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button><button type="button" class="wp-btn wi-link" id="wi-link">${esc(T("Copy my island link"))}</button><button type="button" class="wp-btn wi-tour" id="wi-tour">${esc(T("Surprise me"))}</button></div>
     <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="week" aria-pressed="false">${esc(T("This week"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button><button type="button" data-tab="friends" aria-pressed="false">${esc(T("Friends"))}</button></nav>
     <p class="wi-note" id="wi-isle-note" hidden></p>
     <ul class="wi-isle-list" id="wi-isle-list"></ul>
     <form class="wi-code" id="wi-visit-form"><input id="wi-visit-in" placeholder="${esc(T("Visit a wallet: 0x…"))}" spellcheck="false" autocomplete="off"><button type="submit" class="wp-btn">${esc(T("Visit"))}</button></form></div></div>
   <div class="wi-sheet" id="wi-book" hidden><div class="wi-card"><header><h2>${esc(T("Guestbook"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <p class="wi-note">${esc(T("Stamps and notes visitors left on your island. Hide a note and only the stamp stays."))}</p><ul class="wi-book" id="wi-book-list"></ul></div></div>
-  <div class="wi-visitbar" id="wi-visitbar" hidden><div><b id="wi-v-name"></b><small id="wi-v-sub"></small></div><button type="button" class="wi-like" id="wi-like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span id="wi-likes">0</span></button><button type="button" class="wi-friend" id="wi-friend" aria-pressed="false"></button>
+  <div class="wi-visitbar" id="wi-visitbar" hidden><div><b id="wi-v-name"></b><small id="wi-v-sub"></small></div><button type="button" class="wi-like" id="wi-like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span id="wi-likes">0</span></button><button type="button" class="wi-friend" id="wi-friend" aria-pressed="false"></button><button type="button" class="wi-next" id="wi-next">${esc(T("Next island"))}</button>
     <div class="wi-stamps" id="wi-stamps"></div><input class="wi-note-in" id="wi-note" maxlength="60" placeholder="${esc(T("Add a note to your stamp (optional, no links)"))}" autocomplete="off" spellcheck="false"><ul class="wi-stamp-log" id="wi-stamp-log"></ul></div>`;
   document.body.appendChild(ui);
   const q = (s) => ui.querySelector(s);
@@ -810,6 +810,17 @@ export function createIsland(ctx) {
     weekData = null; paintIsles(); if (isleTab === "week" || isleTab === "friends") loadTab();
   }
   let weekData = null, friendData = null;
+  // the island tour: a random island you haven't seen on this tour, from the popular, this week's and recently built lists
+  const toured = new Set();
+  async function tour() {
+    if (!isleData) { try { const r = await fetch("/api/social?world=islands"); isleData = r.ok ? await r.json() : null; } catch { isleData = null; } }
+    const me = (sess() || {}).wallet || "", seen = new Map();
+    for (const k of ["top", "recent", "week"]) for (const x of ((isleData || {})[k] || [])) if (x && /^0x[0-9a-f]{40}$/.test(x.wallet || "") && x.wallet !== me && (x.n || 0) > 0) seen.set(x.wallet, x);
+    let pool = [...seen.keys()].filter((w) => !toured.has(w) && w !== (visitInfo && visitInfo.wallet));
+    if (!pool.length) { toured.clear(); pool = [...seen.keys()].filter((w) => w !== (visitInfo && visitInfo.wallet)); }
+    if (!pool.length) { toast(T("No other islands to visit yet")); return; }
+    const w = pool[Math.floor(Math.random() * pool.length)]; toured.add(w); closeSheets(); ctx.goIsland({ visit: w });
+  }
   async function loadTab() {
     if (isleTab === "week" && !weekData) { try { const r = await fetch("/api/social?world=island-week"); weekData = r.ok ? await r.json() : { top: [] }; } catch { weekData = { top: [] }; } }
     if (isleTab === "friends") { const ws = FR().map((f) => f.w); friendData = { list: [] }; if (ws.length) { try { const r = await fetch("/api/social?world=friends&wallets=" + ws.join(",")); const j = r.ok ? await r.json() : {}; friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n, ...((j.friends || {})[f.w] || {}) })); } catch { friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n })); } } }
@@ -858,6 +869,7 @@ export function createIsland(ctx) {
     if (b.id === "wi-copy") { const code = toCode(bricks); if (!code) { toast(T("Build something first")); return; } try { await navigator.clipboard.writeText(code); toast(T("Code copied. Anyone can paste it into Blueprints.")); } catch { $("wi-code-in").value = code; toast(T("Here's your code: copy it from the box")); } return; }
     if (b.id === "wi-paste") { closeSheets(); startBlueprint(fromCode($("wi-code-in").value), T("Your blueprint")); return; }
     if (b.id === "wi-go-mine") { closeSheets(); ctx.goIsland({}); return; }
+    if (b.id === "wi-tour" || b.id === "wi-next") { tour(); return; }
     if (b.dataset.tab) { isleTab = b.dataset.tab; if (isleTab === "week") weekData = null; paintIsles(); loadTab(); return; }
     if (b.dataset.unfriend) { const list = FR(), i = list.findIndex((f) => f.w === b.dataset.unfriend); if (i >= 0) list.splice(i, 1); ctx.saveP && ctx.saveP(); loadTab(); return; }
     if (b.id === "wi-friend") { if (visitInfo) toggleFriend(visitInfo.wallet, visitInfo.name); return; }

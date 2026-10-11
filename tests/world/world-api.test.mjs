@@ -1,0 +1,87 @@
+// world-api.test.mjs — the World API (world-api) against an in-memory store. Run: node tests/world/world-api.test.mjs (needs ethers 6)
+import { ethers } from "ethers";
+const { make, loginMessage, cleanSave } = await import("../../api/_world.mjs");
+const { recoverSigner } = await import("../../api/social.mjs");
+let ok = 0, bad = 0; const check = (c, m) => { if (c) { ok++; console.log("PASS", m); } else { bad++; console.log("FAIL", m); } };
+const db = new Map();
+const store = {
+  getDocs: async (ps) => Object.fromEntries(ps.map((p) => [p, db.get(p) || null])),
+  setDoc: async (p, d) => { db.set(p, d); },
+  commit: async (ws) => { for (const w of ws) { if (w.create) { if (db.has(w.create)) return { ok: false, conflict: true }; db.set(w.create, w.data); } else if (w.inc) { const d = db.get(w.inc) || {}; for (const [k, n] of Object.entries(w.fields)) d[k] = (d[k] || 0) + n; db.set(w.inc, d); } } return { ok: true }; },
+};
+const json = (status, body) => ({ status, body });
+let T = Date.now();
+const issuedOk = (iso, max) => { const t = Date.parse(iso); return Number.isFinite(t) && new Date(t).toISOString() === iso && T - t <= max; };
+const W = make({ ...store, recover: recoverSigner, issuedOk, json, now: () => T, launchRecord: async (c) => (c === "0x" + "c".repeat(40) ? { creator: w.address.toLowerCase() } : null) });
+let r = await W.handle({ action: "world-ping", id: "abcdefabcdef12" });
+check(r.status === 200 && r.body.visitors === 1 && r.body.online === 1, "first ping: 1 visitor, 1 online");
+r = await W.handle({ action: "world-ping", id: "abcdefabcdef12" });
+check(r.body.visitors === 1 && r.body.online === 1, "same visitor again: still 1 / 1");
+r = await W.handle({ action: "world-ping", id: "zzzzzzzzzzzz99" });
+check(r.body.visitors === 2 && r.body.online === 2, "second visitor: 2 / 2");
+T += 125e3; r = await W.handle({ action: "world-ping", id: "abcdefabcdef12" });
+check(r.body.online === 2 && r.body.visitors === 2, "next window: online keeps the last window's count");
+const w = ethers.Wallet.createRandom(); // hardhat test key #0 (public)
+const issued = new Date(T).toISOString(), sig = await w.signMessage(loginMessage(w.address, issued));
+r = await W.handle({ action: "world-login", wallet: w.address, issued, signature: sig });
+check(r.status === 200 && r.body.firstTime && r.body.save === null, "first sign-in: counted, no save yet");
+r = await W.handle({ action: "world-login", wallet: w.address, issued, signature: sig });
+check(r.status === 200 && !r.body.firstTime, "second sign-in: not counted again");
+check((await W.stats()).players === 1, "1 player");
+r = await W.handle({ action: "world-login", wallet: "0x" + "1".repeat(40), issued, signature: sig });
+check(r.status === 403, "someone else's signature: refused");
+r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 120, name: "kmp<script>", char: "female-b", visited: ["launch", "BAD ID!"], cards: ["c1", "x"], quests: ["launchpad"] } });
+check(r.status === 200, "save ok");
+const sv = db.get("worldSave/" + w.address.toLowerCase());
+check(sv.xp === 120 && sv.name === "kmpscript" && sv.char === "female-b" && sv.visited.join() === "launch" && sv.cards.join() === "c1", "save cleaned: " + JSON.stringify({ name: sv.name, visited: sv.visited, cards: sv.cards }));
+r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 130 } });
+check(r.status === 429, "saving again within 8 s: refused");
+T += 10e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 999999 } });
+check(db.get("worldSave/" + w.address.toLowerCase()).xp === 3120, "XP jump capped at +3000");
+T += 25 * 3600e3; r = await W.handle({ action: "world-save", wallet: w.address, issued, signature: sig, data: { xp: 1 } });
+check(r.status === 400, "a day-old signature: sign in again");
+r = await W.handle({ action: "world-ping", id: "BAD" }); check(r.status === 400, "bad visitor id refused");
+// ---- islands ----
+const { checkBuild } = await import("../../api/_world.mjs");
+const build = (N, bricks) => Buffer.from([1, N, ...bricks.flat()]).toString("base64");
+const isle = build(36, [[1, 0, 1, 0, 5 << 2], [2, 0, 1, 11, 0]]);
+check(checkBuild(isle, 36, 6000) && checkBuild(isle, 36, 6000).n === 2, "a 2-brick island checks out");
+check(!checkBuild(build(36, [[40, 0, 1, 0, 0]]), 36, 6000), "a brick off the grid: refused");
+check(!checkBuild(build(9, [[1, 0, 1, 0, 0]]), 36, 6000), "a lot posing as an island: refused");
+check(!checkBuild("not base64!", 36, 6000), "garbage: refused");
+T = Date.now(); const iss2 = new Date(T).toISOString(), sig2 = await w.signMessage(loginMessage(w.address, iss2));
+const me = { wallet: w.address, issued: iss2, signature: sig2 };
+r = await W.handle({ action: "world-island-save", ...me, data: isle, name: "kmp<b>", n: 2, res: 0 });
+check(r.status === 200 && r.body.n === 2, "island saved");
+const u = new URL("http://x/api/social?world=island&wallet=" + w.address);
+r = await W.read(u); check(r.body.data === isle && r.body.name === "kmpb" && r.body.likes === 0, "island read back, name cleaned");
+r = await W.read(new URL("http://x/api/social?world=islands")); check(r.body.recent.length === 1 && r.body.recent[0].n === 2, "recent list has it");
+r = await W.handle({ action: "world-like", ...me, target: w.address }); check(r.status === 400, "liking your own island: refused");
+const w2 = ethers.Wallet.createRandom(); // hardhat test key #1 (public)
+const sig3 = await w2.signMessage(loginMessage(w2.address, iss2)), them = { wallet: w2.address, issued: iss2, signature: sig3 };
+r = await W.handle({ action: "world-like", ...them, target: w.address }); check(r.status === 200 && r.body.likes === 1, "a like from someone else: 1");
+r = await W.handle({ action: "world-like", ...them, target: w.address }); check(r.status === 409, "liking twice: refused");
+r = await W.read(new URL("http://x/api/social?world=islands")); check(r.body.top[0].likes === 1, "popular list has it");
+r = await W.handle({ action: "world-stamp", ...them, target: w.address, k: 2 }); check(r.status === 200 && r.body.stamps.length === 1 && r.body.stamps[0].k === 2, "stamp left");
+r = await W.handle({ action: "world-stamp", ...them, target: w.address, k: 1 }); check(r.status === 429, "second stamp the same day: refused");
+r = await W.handle({ action: "world-stamp", ...them, target: w.address, k: 9 }); check(r.status === 400, "unknown stamp: refused");
+const lot = build(9, [[4, 0, 4, 0, 0]]), coin = "0x" + "c".repeat(40);
+r = await W.handle({ action: "world-lot-save", ...them, coin, data: lot }); check(r.status === 403, "someone else's coin lot: refused");
+r = await W.handle({ action: "world-lot-save", ...me, coin, data: lot }); check(r.status === 200, "the creator saves the lot");
+r = await W.handle({ action: "world-lot-save", ...me, coin: "0x" + "d".repeat(40), data: lot }); check(r.status === 404, "not an ArcPad coin: refused");
+r = await W.read(new URL("http://x/api/social?world=lots&coins=" + coin + ",0x" + "e".repeat(40))); check(r.body.lots[coin].data === lot && Object.keys(r.body.lots).length === 1, "lots read back");
+const off = make({ ...store, recover: recoverSigner, issuedOk, json, storeEnabled: () => false });
+r = await off.read(u); check(r.body.enabled === false, "storage off: islands say so");
+// the beta gate: 1,000,000 $ARCIRCLE on Arc
+{
+  let bal = 999999n * 10n ** 18n; const G = make({ ...store, storeEnabled: () => false, recover: recoverSigner, issuedOk, json, now: () => T, tokenBalance: async (t, o) => { if (t !== "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7") throw new Error("wrong token"); return bal; } });
+  const iss = new Date(T).toISOString(), sg = await w.signMessage(loginMessage(w.address, iss));
+  let g = await G.handle({ action: "world-gate", wallet: w.address, issued: iss, signature: sg });
+  check(g.status === 200 && g.body.ok === false && g.body.balance === 999999 && g.body.need === 1000000, "gate: 999,999 isn't enough " + JSON.stringify(g.body));
+  bal = 1000000n * 10n ** 18n; g = await G.handle({ action: "world-gate", wallet: w.address, issued: iss, signature: sg });
+  check(g.body.ok === true, "gate: 1,000,000 opens it");
+  g = await G.handle({ action: "world-gate", wallet: "0x" + "b".repeat(40), issued: iss, signature: sg });
+  check(g.status === 403, "gate: someone else's signature doesn't count");
+}
+console.log(ok, "pass", bad, "fail");
+if (bad) process.exit(1); process.exit(bad ? 1 : 0);
