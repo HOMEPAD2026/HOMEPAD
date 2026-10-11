@@ -23,7 +23,8 @@
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
 // Firestore: worldStats/main { visitors, players } · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
-import { makeShop } from "./_world-shop.mjs";
+import { makeShop, FEE_BURN } from "./_world-shop.mjs";
+import { makeSupport } from "./_world-support.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -71,16 +72,24 @@ export function make(deps) {
     const w = Math.floor(now() / WINDOW);
     const d = await getDocs(["worldStats/main", `worldOnline/${w}`, `worldOnline/${w - 1}`]);
     const m = d["worldStats/main"] || {}, a = (d[`worldOnline/${w}`] || {}).n || 0, b = (d[`worldOnline/${w - 1}`] || {}).n || 0;
-    return { online: Math.max(a, b), visitors: m.visitors || 0, players: m.players || 0 };
+    return { online: Math.max(a, b), visitors: m.visitors || 0, uniques: m.uniques || 0, players: m.players || 0 };
   }
   async function ping(b) {
     const id = String(b.id || "");
     if (!/^[a-z0-9]{12,40}$/.test(id)) return json(400, { error: "bad id" });
     const w = Math.floor(now() / WINDOW);
+    // visits add up: every time the game is opened counts (the same browser at most once per 10 minutes, so reloads
+    // don't pile up); first-time browsers are kept as a separate count
     const first = await commit([{ create: `worldVisitors/${id}`, data: { at: now() } }]);
-    if (first.ok) await commit([{ inc: "worldStats/main", fields: { visitors: 1 } }]);
-    const seen = await commit([{ create: `worldSeen/${w}_${id}`, data: { at: now() } }]);
-    if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
+    if (first.ok) await commit([{ inc: "worldStats/main", fields: { uniques: 1 } }]);
+    if (b.visit || first.ok) {
+      const v = await commit([{ create: `worldVisit/${id}_${Math.floor(now() / 600e3)}`, data: { at: now() } }]);
+      if (v.ok) await commit([{ inc: "worldStats/main", fields: { visitors: 1 } }]);
+    }
+    if (!b.gate) { // the home page's gate counts the visit but isn't "in the world"
+      const seen = await commit([{ create: `worldSeen/${w}_${id}`, data: { at: now() } }]);
+      if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
+    }
     return json(200, { ok: true, ...(await stats()) });
   }
   function signer(b) {
@@ -92,6 +101,15 @@ export function make(deps) {
     return { wallet };
   }
   const shop = makeShop({ ...deps, json, now, signer, hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
+  // the help desk's reviewers: SUPPORT_ADMINS (comma-separated wallets) and the owner of ArcircleFeeBurn
+  let adminCache = null;
+  async function admins() {
+    if (adminCache && now() - adminCache.at < 600e3) return adminCache.set;
+    const set = new Set(String((globalThis.process && process.env.SUPPORT_ADMINS) || "").split(/[\s,]+/).map(lc).filter(isAddr));
+    try { const o = deps.ownerOf ? await deps.ownerOf(FEE_BURN) : null; if (o && o.length >= 66) set.add("0x" + o.slice(-40).toLowerCase()); } catch { /* the env list still works */ }
+    adminCache = { set, at: now() }; return set;
+  }
+  const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   async function login(b) {
     const s = signer(b); if (s.err) return s.err;
     const first = await commit([{ create: `worldPlayers/${s.wallet}`, data: { at: now() } }]);
@@ -201,7 +219,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = await shop.read(w, url); if (r) return r;
+      const r = (await shop.read(w, url)) || (await support.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -213,7 +231,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = await shop.handle(b); if (r) return r;
+      const r = (await shop.handle(b)) || (await support.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

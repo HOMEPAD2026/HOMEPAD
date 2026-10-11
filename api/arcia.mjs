@@ -343,6 +343,8 @@ const PAGES = { arcia: "the ARCIA chat", locker: "the Locker", scanner: "the Tok
 // pages outside ArcPad (the floating button, arc-arcia-fab.js): tab → path on arcircle.app
 Object.assign(PAGES, { site: "the ARCIRCLE PAD home page", circlepad: "CirclePad (the crowdfunded launch rounds)", reward: "the Reward page", me: "their wallet page", stats: "the stats page", roadmap: "the roadmap", start: "the Start guide (add Arc to a wallet, bring USDC)", brand: "the brand kit", whitepaper: "the $ARCIRCLE whitepaper", stage: "your own concert-stage site (lightsticks, your profile, fan letters, photocards)", arcat: "ARCAT's page (your cat: his read on $ARCIA, your mood, his buy-only buyback in paper mode)", wallet: "their ARCIRCLE Wallet (sign in with email, Google or Apple; balances on Arc and Robinhood Chain: USDC, $ARCIRCLE, $ARCIA, ETH, their veARCIA stake; send and receive)" });
 const SITE_PAGES = { site: "", arcircle: "arcircle", circlepad: "circlepad", reward: "reward", me: "me", stats: "stats", roadmap: "roadmap", start: "start", brand: "brand", whitepaper: "whitepaper", stage: "arcia", wallet: "wallet", arcat: "arcat" };
+// the help desk (/support and the Help button in the game): ARCIA is the first line
+const SUPPORT_BRIEF = `Right now you are ARCIRCLE's 24/7 help desk, the first line of support. Be calm and practical (keep your warmth, fewer emoji). Find out what went wrong and walk the user through a fix step by step from your facts: which page or building, what to click, what to check in their wallet. Never ask for or accept a private key, a recovery phrase or a password, never send them to another site to "verify" or "sync" a wallet, and warn them if someone asked for one. Never promise refunds, compensation or reward amounts. If you can't solve it — something is broken (a bug), a payment or transaction you can't explain, a missing balance, or they suggest an improvement or an idea — say you'll pass it to the team, ask for the details that would help (what they did, what they expected, what happened, the page, their device), suggest attaching a screenshot, and end your reply with the exact line [REPORT:bug], [REPORT:improve] or [REPORT:idea] so the app opens the report form. Only add that line when a report is the next step.`;
 function pageContext(p) {
   if (!p || typeof p !== "object") return "";
   const tab = String(p.tab || "").toLowerCase();
@@ -563,7 +565,7 @@ export async function POST(req) {
   const L = await liveFor(url.origin, wallet);
   const me = L && L.me ? L.me : null;
   const drops = await dropsContext(url.origin, q, wallet).catch(() => "");
-  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, pageContext(body.page), fanContext(name, me), drops,
+  const extra = [`The site language the user picked: ${lang}. You are chatting in the ARCIA utility on arcircle.app.`, body.support ? SUPPORT_BRIEF : "", pageContext(body.page), fanContext(name, me), drops,
     vt ? `This fan holds veARCIA (${VE_TIERS[vt][0]} tier) — they staked $ARCIA with you; thank them warmly when it fits (once, not every reply).` : "",
     "When one page on arcircle.app answers the question, end your reply with that page's link on its own line (just one, only a real page from your facts)."].filter(Boolean).join("\n");
   const pub = L ? { ...L, me: undefined } : null;

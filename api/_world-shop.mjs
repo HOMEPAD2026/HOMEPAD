@@ -140,6 +140,14 @@ export function makeShop(deps) {
     } catch { /* the credit stands */ }
     return amt;
   }
+  // a reward the team approved (the support desk): outside the daily cap, logged like any other ARCL
+  async function rewardArcl(w, kind, n) {
+    const amt = Math.max(0, Math.floor(Number(n) || 0)); if (!amt) return 0;
+    const wk = isoWeek(now());
+    await commit([{ inc: `worldArclBal/${w}`, fields: { bal: amt, earned: amt } }, { inc: `worldArclWeek/${wk}_${w}`, fields: { n: amt } }]);
+    await note(w, "earn", kind, amt).catch(() => {});
+    return amt;
+  }
   const onceOk = async (w, kind) => (await commit([{ create: `worldArclOnce/${w}_${kind}`, data: { at: now() } }])).ok;
 
   async function claim(b) {
@@ -276,7 +284,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza,
+    stampCredit, own, plaza, rewardArcl,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,

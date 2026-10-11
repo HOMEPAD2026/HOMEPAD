@@ -41,6 +41,10 @@
       "destination": "/arcl.html"
     },
     {
+      "source": "/support",
+      "destination": "/support.html"
+    },
+    {
       "source": "/start",
       "destination": "/start.html"
     },

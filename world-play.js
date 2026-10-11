@@ -25,6 +25,7 @@ const K = await import("./world-kit.js" + VER);
 const IS = await import("./world-island.js" + VER);
 const SHOP = await import("./world-shop.js" + VER);
 const STYLE = await import("./world-style.js" + VER);
+const HELP = await import("./world-support.js" + VER);
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -42,14 +43,14 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
-    move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", "drag to look": "드래그로 둘러보기" },
-  zh: { Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
-    move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", "drag to look": "拖动查看" },
+  ko: { Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+    move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
+  zh: { Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+    move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
 document.querySelectorAll("[data-w]").forEach((el) => { el.textContent = W(el.dataset.w); });
-if (LANG !== "en") { const k = $("wp-keys"); if (k) k.innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${W("move")} <span>·</span> <kbd>Space</kbd> ${W("jump")} <span>·</span> <kbd>Shift</kbd> ${W("run")} <span>·</span> <kbd>E</kbd> ${W("enter")} <span>·</span> <kbd>F</kbd> ${W("board")} <span>·</span> <kbd>1</kbd><kbd>2</kbd> ${W("emote")} <span>·</span> <kbd>P</kbd> ${W("photo")} <span>·</span> <kbd>M</kbd> ${W("map")} <span>·</span> ${W("drag to look")}`; }
+if (LANG !== "en") { const k = $("wp-keys"); if (k) k.innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${W("move")} <span>·</span> <kbd>Space</kbd> ${W("jump")} <span>·</span> <kbd>Shift</kbd> ${W("run")} <span>·</span> <kbd>E</kbd> ${W("enter")} <span>·</span> <kbd>F</kbd> ${W("board")} <span>·</span> <kbd>1</kbd><kbd>2</kbd> ${W("emote")} <span>·</span> <kbd>P</kbd> ${W("photo")} <span>·</span> <kbd>M</kbd> ${W("map")} <span>·</span> <kbd>H</kbd> ${W("help")} <span>·</span> ${W("drag to look")}`; }
 K.SHOPS.forEach((s) => { s.name = T(s.name); s.line = T(s.line); });
 K.DISTRICTS.forEach((d) => { d.name = T(d.name); });
 K.SCAMMERS.forEach((s) => { s.name = T(s.name); s.sign = T(s.sign); });
@@ -103,10 +104,10 @@ async function cloudSave() {
   const data = {}; PROGRESS.forEach((k) => (data[k] = P[k]));
   try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { localStorage.removeItem(SESS); paintAcct(); } } catch { /* next time */ }
 }
-let stats = null;
+let stats = null, visitSent = false;
 async function ping() {
   if (document.hidden) return;
-  try { const r = await post({ action: "world-ping", id: vid }); if (r.ok) { stats = r.j; paintOnline(); } } catch { /* offline */ }
+  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
 }
 function paintAuthCount() {
   const c = $("wp-auth-count"); if (!stats || !stats.players) { c.hidden = true; return; }
@@ -354,6 +355,7 @@ addEventListener("keydown", (e) => {
   if (frozen) return;
   if (k === "e" || k === "enter") { if (near) { e.preventDefault(); enter(near); } return; }
   if (k === "m") { openMap(); return; }
+  if (k === "h") { openHelp(); return; }
   if (k === "f") { setBoard(!boarding); return; }
   if (k === "1") { emote("emote-yes"); return; }
   if (k === "2") { emote("emote-no"); return; }
@@ -372,13 +374,19 @@ cv.addEventListener("pointerdown", (e) => {
   if (frozen && !photo) return;
   downAt = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }; // event time: a slow frame in between does not turn a tap into a hold
   cv.setPointerCapture(e.pointerId);
+  // a second finger while the stick hasn't moved yet means a pinch, even on the stick's side
+  if (e.pointerType === "touch" && joy && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2) {
+    touches.set(joy.id, { x: joy.cx, y: joy.cy }); joy = null; joyEl.classList.remove("on"); knob.style.transform = "";
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...touches.values()];
+    pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camDist }; look = null; return;
+  }
   const willJoy = !photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy;
   if (e.pointerType === "touch" && !willJoy) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist }; look = null; return; }
   }
   if (!photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy) {
-    joy = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+    joy = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0 };
     joyEl.style.left = e.clientX + "px"; joyEl.style.top = e.clientY + "px"; joyEl.classList.add("on"); knob.style.transform = "";
   } else if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
@@ -387,6 +395,7 @@ cv.addEventListener("pointermove", (e) => {
   if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; camDist = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 0.6, mode === "island" ? 2.6 : 1.9); return; }
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
+    joy.cx = e.clientX; joy.cy = e.clientY;
     let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const m = Math.hypot(dx, dy), max = JOYMAX;
     if (m > max) { dx *= max / m; dy *= max / m; }
     joy.dx = dx / max; joy.dy = dy / max; knob.style.transform = `translate(${dx}px,${dy}px)`;
@@ -478,7 +487,9 @@ function tryMove(d, dist) {
 }
 const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
 let jumpBuf = 0;
-function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = boarding ? 11 : 9; grounded = false; Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
+// a running jump carries you forward: the speed you had when you left the ground stays with you in the air
+const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
+function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = boarding ? 11 : 9; grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
 function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); }
 function setBoard(on) {
   if (frozen) return;
@@ -489,7 +500,7 @@ function setBoard(on) {
 function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
   const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
-  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { hop = floor; vy = 0; grounded = true; Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
+  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { hop = floor; vy = 0; grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
   else if (hop > floor + 0.05) { grounded = false; vy = 0; }
   else if (floor > hop) hop = floor;
   player.position.y = hop;
@@ -505,10 +516,14 @@ function step(dt) {
   }
   const { x, y, m, run } = inputs();
   let sp = 0;
+  // in the air with no input: keep gliding the way you jumped, slowing a little
+  if (!grounded && m <= 0.05 && airV.lengthSq() > 0.25) { const v = airV.length(); tmp2.copy(airV).divideScalar(v); if (!tryMove(tmp2, v * dt)) sp = v; airV.multiplyScalar(1 - Math.min(1, dt * 0.6)); }
   if (m > 0.05) {
     const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
     dir.set(rx * x + fx * y, 0, rz * x + fz * y).normalize();
     sp = (boarding ? (run ? 22 : 13) : run ? 12.5 : 6.5) * m;
+    if (!grounded && airV.lengthSq() > 0.25) sp = Math.max(sp, airV.length() * 0.92); // no slowing down mid-jump
+    lastDir.copy(dir);
     const hit = tryMove(dir, sp * dt);
     if (hit && hit.axis) {
       // a brick grid: slide along whichever axis is still free
@@ -1417,7 +1432,46 @@ $("wp-photo-take").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; });
 
 // ---------------- closing things ----------------
-function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); $("wp-shot").hidden = true; }
+function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+// ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
+const help = HELP.createSupport({
+  T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
+  provider: async () => { if (AC && (!AC.live || !AC.live())) await AC.connect(); return AC ? AC.provider() : window.ethereum; }, address: () => addr(),
+  capture: () => st.snap(), freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
+});
+function openHelp(t) { closeAll(); help.open(t); }
+$("wp-help-btn").addEventListener("click", () => openHelp());
+$("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
+
+// ---------------- the Back button (a phone's, or the browser's) ----------------
+// With a window open, Back closes it; on the plain game screen it asks before leaving the game.
+const leaveEl = document.createElement("div");
+leaveEl.className = "wp-leave"; leaveEl.id = "wp-leave"; leaveEl.hidden = true; leaveEl.setAttribute("role", "alertdialog"); leaveEl.setAttribute("aria-modal", "true"); leaveEl.setAttribute("data-no-i18n", "");
+leaveEl.innerHTML = `<div class="wp-card wp-leave-card"><h2>${esc(T("Leave ARCIRCLE World?"))}</h2><p>${esc(sess() ? T("Your progress is saved to your wallet.") : T("Your progress stays in this browser."))}</p><div class="wp-leave-btns"><button type="button" class="wp-btn" id="wp-leave-stay">${esc(T("Keep playing"))}</button><button type="button" class="wp-cta" id="wp-leave-go">${esc(T("Leave the game"))}</button></div></div>`;
+document.body.appendChild(leaveEl);
+let leaving = false;
+const guard = () => { try { history.pushState({ wpGuard: 1 }, "", location.href); } catch { /* old browser */ } };
+function closeLeave() { if (leaveEl.hidden) return false; leaveEl.hidden = true; frozen = false; keys.clear(); paintPrompt(); return true; }
+function backAction() {
+  if (closeLeave()) return true;
+  if (photo) { setPhoto(false); return true; }
+  if (!wheel.hidden) { wheel.hidden = true; return true; }
+  if (mode === "island" && island.keyDown({ key: "Escape", preventDefault() {} })) return true;
+  if (frozen) { closeAll(); return true; }
+  if (mode === "island" && island.building()) { island.keyDown({ key: "b", preventDefault() {} }); return true; }
+  return false;
+}
+addEventListener("popstate", () => {
+  if (leaving) return;
+  if (!backAction()) { leaveEl.querySelector("p").textContent = sess() ? T("Your progress is saved to your wallet.") : T("Your progress stays in this browser."); leaveEl.hidden = false; frozen = true; keys.clear(); setTimeout(() => $("wp-leave-stay").focus(), 30); }
+  guard();
+});
+leaveEl.addEventListener("click", (e) => {
+  if (e.target.id === "wp-leave-stay" || e.target === leaveEl) closeLeave();
+  if (e.target.id === "wp-leave-go") { leaving = true; cloudSave(); history.go(-2); setTimeout(() => { location.href = "/"; }, 500); }
+});
+guard();
+$("wp-set-help").addEventListener("click", () => openHelp());
 if (coarse) $("wp-keys").hidden = true; else $("wp-acts").hidden = true;
 
 // ---------------- day and night (Seoul time) ----------------
@@ -1612,6 +1666,6 @@ window.arcWorld = {
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
-  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
+  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
 };

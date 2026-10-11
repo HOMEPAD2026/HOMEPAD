@@ -65,7 +65,10 @@
 
   // who's in the world now and how many have visited (api/_world.mjs); hidden until there's a number to show
   var fmt = function (n) { try { return Number(n).toLocaleString(lang === "zh" ? "zh-CN" : lang === "ko" ? "ko-KR" : "en-US"); } catch (e) { return String(n); } };
-  fetch("/api/social?world=stats").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+  // opening the site counts as a visit (the same browser at most once per 10 minutes; api/_world.mjs)
+  var vid = ""; try { vid = localStorage.getItem("arc.world.vid") || ""; if (!/^[a-z0-9]{20}$/.test(vid)) { vid = Array.from(crypto.getRandomValues(new Uint8Array(20)), function (b) { return "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]; }).join(""); localStorage.setItem("arc.world.vid", vid); } } catch (e) { vid = ""; }
+  var statsReq = vid ? fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "world-ping", id: vid, visit: true, gate: true }) }).then(function (r) { return r.ok ? r : fetch("/api/social?world=stats"); }) : fetch("/api/social?world=stats");
+  statsReq.then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
     if (!j || gone || j.visitors == null) return;
     var box = el.querySelector(".wg-stats"), parts = [];
     if (j.online > 0) parts.push('<i class="wg-live-dot" aria-hidden="true"></i>' + T.on.replace("{n}", fmt(j.online)));
