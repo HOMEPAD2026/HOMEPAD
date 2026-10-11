@@ -2534,3 +2534,35 @@ html.wp-pcphone .wr-paper{max-width:440px;margin-left:auto;margin-right:auto}
 html.wp-pcphone .wr-raid{top:250px;bottom:auto;transform:none;right:20px;width:440px}
 html.wp-pcphone .wc-boss{left:20px;transform:none;width:calc(100vw - var(--acts-w,540px) - 60px);min-width:340px}
 @media (pointer:coarse) and (max-width:720px){html:not(.wp-pcphone) body.wp .wp-prompt{top:41%}} /* a narrow phone (mobile layout): clear of the quests panel */
+/* ---- v30: the raid's phases, the others' share, the fall; rankings switch; season claim-all ---- */
+.wr-raid-phase{margin:0;font:800 13px var(--f-ui);color:#9fffd0}
+.wr-raid-phase.p3{color:#ffd27a}.wr-raid-phase.p4{color:#ff8fa0}.wr-raid-phase.down{color:rgba(222,233,244,.75)}
+.wr-raid-share{width:100%}
+.wr-phase{position:fixed;left:50%;top:28%;z-index:22;display:grid;justify-items:center;gap:4px;padding:14px 40px;transform:translateX(-50%);pointer-events:none;text-align:center;background:linear-gradient(90deg,transparent,rgba(4,24,14,.85) 18%,rgba(4,24,14,.85) 82%,transparent);border-top:1px solid rgba(57,255,136,.6);border-bottom:1px solid rgba(57,255,136,.6);animation:wrPhase 2.6s ease forwards}
+.wr-phase small{font:700 13px var(--f-ui);color:rgba(159,255,208,.75)}
+.wr-phase b{font:900 30px var(--f-ui);color:#fff;text-shadow:0 0 24px rgba(57,255,136,.6)}
+@keyframes wrPhase{0%{opacity:0;transform:translateX(-50%) scaleY(.2)}12%{opacity:1;transform:translateX(-50%) scaleY(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+.wr-others{position:fixed;left:50%;top:150px;z-index:15;transform:translateX(-50%);pointer-events:none;padding:5px 12px;border-radius:999px;background:rgba(6,16,12,.8);border:1px solid rgba(57,255,136,.45);font:800 13px var(--f-ui);color:#9fffd0;animation:wrOthers 2.4s ease forwards}
+@keyframes wrOthers{0%{opacity:0;transform:translate(-50%,10px)}15%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-18px)}}
+.wr-credits{position:fixed;inset:0;z-index:21;pointer-events:none;display:grid;place-items:center;overflow:hidden;background:radial-gradient(60% 50% at 50% 50%,rgba(4,20,12,.55),transparent 70%)}
+.wr-credits>div{display:grid;justify-items:center;gap:6px;text-align:center;animation:wrCredits 7s linear forwards}
+.wr-credits small{font:700 15px var(--f-ui);color:#9fffd0;letter-spacing:.02em}
+.wr-credits b{font:900 44px var(--f-ui);color:#fff;text-shadow:0 0 30px rgba(57,255,136,.6);margin-bottom:12px}
+.wr-credits p{margin:0;font:700 19px var(--f-ui);color:rgba(238,243,247,.9)}
+.wr-credits p.p1{color:#ffc861;font-size:24px}.wr-credits p.p2{color:#dfe7ef;font-size:22px}.wr-credits p.p3{color:#e09a5f;font-size:21px}.wr-credits p.more{color:rgba(222,233,244,.6);font-size:16px}
+@keyframes wrCredits{0%{opacity:0;transform:translateY(40vh)}10%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-40vh)}}
+@media (prefers-reduced-motion:reduce){.wr-credits>div{animation:none}.wr-phase,.wr-others{animation:none}}
+.wq-sub{display:flex;gap:6px;margin:0 0 4px}
+.wq-sub button{appearance:none;height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(120,196,255,.3);background:none;color:#cfe8ff;font:700 12.5px var(--f-ui);cursor:pointer}
+.wq-sub button[aria-pressed=true]{background:rgba(63,155,255,.2);border-color:#7fe0ff;color:#fff}
+.wq-claimall{display:block;margin:10px 0 8px auto;appearance:none;height:36px;padding:0 18px;border-radius:10px;border:0;background:linear-gradient(180deg,#ffd08a,#ff9a4a);color:#2a1200;font:800 13px var(--f-ui);cursor:pointer}
+.cw-w.busy{opacity:.75;pointer-events:none}.cw-w.busy small{color:#9fe6ff}
+/* phones: tabs on one sliding row, the boss bar keeps to the essentials */
+html.wp-pcphone .wr-ftabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+html.wp-pcphone .wr-ftabs::-webkit-scrollbar{display:none}
+html.wp-pcphone .wr-ftabs>button{flex:none}
+html.wp-pcphone .wc-boss .wc-long{display:none}
+@media (max-width:640px){.wc-boss .wc-long{display:none}.wr-phase b{font-size:22px}.wr-credits b{font-size:30px}}
+html.wp-pcphone .wr-phase{top:24%}html.wp-pcphone .wr-phase b{font-size:52px}html.wp-pcphone .wr-phase small{font-size:22px}
+html.wp-pcphone .wr-others{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 420px);font-size:22px;padding:8px 18px}
+html.wp-pcphone .wr-credits b{font-size:64px}html.wp-pcphone .wr-credits p{font-size:30px}html.wp-pcphone .wr-credits small{font-size:24px}

@@ -10,7 +10,7 @@ export function makeZones({ THREE, K, planet, kit, T }) {
   const rnd = (seed) => { let a = seed; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; };
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true, ...o });
   const glowM = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
-  const spins = [], signs = [];
+  const spins = [], signs = [], gates = [];
   ZONES.forEach((zn, zi) => {
     const g = new THREE.Group(); g.position.set(zn.x, 0, zn.z); root.add(g);
     const r = rnd(97 + zi * 13);
@@ -21,7 +21,7 @@ export function makeZones({ THREE, K, planet, kit, T }) {
     for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.1, 6), std(0x2a3442, { metalness: 0.5 })); post.position.set(Math.cos(a) * zn.r, 0.55, Math.sin(a) * zn.r); const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM(zn.color, 2.4)); cap.position.y = 0.62; post.add(cap); g.add(post); }
     // the gate on the side facing the plaza
     const toPlaza = Math.atan2(-zn.x, -zn.z);
-    const gate = K.makeArch(zn.color); gate.scale.setScalar(1.25); gate.position.set(Math.sin(toPlaza) * zn.r, 0, Math.cos(toPlaza) * zn.r); gate.rotation.y = toPlaza; g.add(gate);
+    const gate = K.makeArch(zn.color); gate.scale.setScalar(1.25); gate.position.set(Math.sin(toPlaza) * zn.r, 0, Math.cos(toPlaza) * zn.r); gate.rotation.y = toPlaza; g.add(gate); gates.push(gate);
     const sign = K.label(zn.name, { accent: "#" + new THREE.Color(zn.color).getHexString(), size: 1.0, sub: T("Level {a}–{b}", { a: zn.lv[0], b: zn.lv[1] }) }); sign.position.set(gate.position.x, 7.6, gate.position.z); g.add(sign); signs.push({ sign, x: zn.x + gate.position.x, z: zn.z + gate.position.z });
     // props
     const prop = (mesh, x, z, ry = r() * 6) => { mesh.position.set(x, mesh.position.y, z); mesh.rotation.y = ry; mesh.castShadow = true; g.add(mesh); return mesh; };
@@ -49,5 +49,5 @@ export function makeZones({ THREE, K, planet, kit, T }) {
   });
   // a gate's sign right over your head would sit on top of the HUD: it fades out while you stand under it
   const fadeSigns = () => { const px = -planet.position.x, pz = -planet.position.z; for (const s of signs) { const d = Math.hypot(s.x - px, s.z - pz), k = Math.max(0, Math.min(1, (d - 6) / 6)); s.sign.material.opacity = k; s.sign.visible = k > 0.02; } };
-  return { root, update: (dt, t) => { spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt };
+  return { root, gates, update: (dt, t) => { spins.forEach((f) => f(dt, t)); fadeSigns(); }, zoneAt };
 }

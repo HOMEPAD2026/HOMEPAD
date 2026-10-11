@@ -283,7 +283,7 @@ async function dressWorld(kit) {
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the hunting grounds (world-zones.js)
-  const zs = ZN.makeZones({ THREE, K, planet, kit, T }); spins.push((dt, t) => zs.update(dt, t));
+  const zs = ZN.makeZones({ THREE, K, planet, kit, T }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
     if (!g) return; smokes.push(K.smoke(g, new THREE.Vector3(0.4, g.name ? 4.0 : 5.0, -0.3)));
@@ -1033,7 +1033,7 @@ function openMap() {
   const coinsHtml = coinBuildings.length ? `<h3 style="--c:#eef3f7">${esc(T("Coin City"))}</h3><ul class="wp-maplist">` + coinBuildings.slice(0, 6).map((g, i) => `<li><button type="button" data-c="${i}"><i style="--c:${g.userData.mine ? "#39ff88" : "#4f9dff"}"></i><span><b>$${esc(g.userData.coin.symbol)}</b><small>${esc(g.userData.coin.name || "")}${g.userData.mine ? " · " + esc(W("yours")) : ""}</small></span></button></li>`).join("") + "</ul>" : "";
   const live = fighters.find((g) => g.userData.live);
   const darkHtml = live ? `<h3 style="--c:#ff4d6d">${esc(T("Dark Market"))}</h3><ul class="wp-maplist"><li><button type="button" data-f="1"><i style="--c:#ff4d6d"></i><span><b>${esc(live.userData.spec.name)}</b><small>${esc(T("Stage {n} · scammer", { n: live.userData.spec.stage }))}</small></span></button></li></ul>` : "";
-  const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3><ul class="wp-maplist">` + [...ZN.ZONES, SOC.RAID].map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}</b><small>${esc(T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Too strong for you yet")) : ""}</small></span></button></li>`).join("") + "</ul>";
+  const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3><ul class="wp-maplist">` + [...ZN.ZONES, SOC.RAID].map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}</b><small>${esc(z.id === "raid" ? T("Level {n}+", { n: z.lv[0] }) + (raid && raid.nextText() ? " · " + raid.nextText() : "") : T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Too strong for you yet")) : ""}</small></span></button></li>`).join("") + "</ul>";
   $("wp-maplist").innerHTML = groups + arclHtml + zoneHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
@@ -1600,7 +1600,9 @@ raid = SOC.createRaid({
   THREE, K, planet, T, esc, toast, Snd, here: (v) => here(v), level, sess, post, combat, rpg, quests: () => quests, gain: (n, why) => gain(n, why),
   inHub: () => mode === "hub" && !introOn, wallet: () => { const s = sess(); return s ? s.wallet : ""; },
   onArcl: (n) => { arclShop.refresh().then(() => toast(T("+{n} ARCL · {why}", { n, why: T("Weekly raid") }))); Snd.coin(); },
+  feed: (h, c) => feed(h, c), shareCard: (o) => shareCard(o), name: () => P.name || "", shake: (n) => { shake = Math.max(shake, n); },
 });
+if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the camera like the town's arches
 ghosts = SOC.createGhosts({ THREE, K, planet, T, inHub: () => mode === "hub" && !introOn, myTag: SOC.tagOf(vid) });
 // a card to share (an achievement): the photo sheet shows it with save / share / post
 async function shareCard(o) {

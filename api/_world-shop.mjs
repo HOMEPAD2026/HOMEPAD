@@ -385,7 +385,10 @@ export function makeShop(deps) {
   async function plaza() {
     const P = (await one("worldStats/plaza")) || {}, t = now();
     const cur = (k) => (P[k] || []).find((x) => x.start <= t && x.until > t) || null;
-    return { isle: cur("isle"), coin: cur("coin") };
+    // no island bought for the screen: last week's most-liked island (the weekly contest) gets it
+    let isle = cur("isle");
+    if (!isle) { const w = (((await one(`worldStats/islandWeek_${isoWeek(t - 7 * 864e5)}`)) || {}).top || [])[0]; if (w && w.wallet) isle = { wallet: w.wallet, name: w.name || "", contest: true, likes: w.likes || 0 }; }
+    return { isle, coin: cur("coin") };
   }
 
   return {

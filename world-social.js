@@ -11,7 +11,10 @@ export const RAID_MIN_LV = 10;
 export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(36).padStart(7, "0").slice(-7); };
 
 /// ctx: { THREE, K, planet, T, esc, toast, Snd, here(v), level(), sess(), post(b), combat, rpg, quests(), gain(n, why),
-///        inHub(), wallet(), onArcl(n) }
+///        inHub(), wallet(), onArcl(n), feed(html, color), shareCard(o), name() }
+export const PHASES = [null, "", "Phase 2: it calls its swarm", "Phase 3: its shield goes up", "Final phase: the floor gives way"];
+export const phaseOf = (hp, max) => (hp <= 0 ? 5 : hp / max > 0.75 ? 1 : hp / max > 0.5 ? 2 : hp / max > 0.25 ? 3 : 4);
+const leftText = (ms, T) => { const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return d ? T("{d}d {h}h", { d, h }) : T("{h}h {m}m", { h, m: m % 60 }); };
 export function createRaid(ctx) {
   const { THREE, K, planet, T, esc } = ctx;
   const root = new THREE.Group(); root.name = "raid"; root.position.set(RAID.x, 0, RAID.z); planet.add(root);
@@ -19,8 +22,18 @@ export function createRaid(ctx) {
   const glow = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
   const floor = new THREE.Mesh(new THREE.CircleGeometry(RAID.r, 72), new THREE.MeshStandardMaterial({ color: RAID.ground, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0.03; floor.receiveShadow = true; root.add(floor);
-  const rune = new THREE.Mesh(new THREE.RingGeometry(6, 6.3, 64), new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.35, depthWrite: false })); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.05; root.add(rune);
-  const rune2 = new THREE.Mesh(new THREE.RingGeometry(11, 11.2, 64), rune.material.clone()); rune2.rotation.x = -Math.PI / 2; rune2.position.y = 0.05; root.add(rune2);
+  const rune = new THREE.Mesh(new THREE.RingGeometry(6, 6.3, 64), new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.35, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.05; root.add(rune);
+  // the floor gauge: a ring around the arena that runs down with everyone's HP bar
+  const gaugeBg = new THREE.Mesh(new THREE.RingGeometry(15.4, 16.6, 96), new THREE.MeshBasicMaterial({ color: 0x0a1712, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); gaugeBg.rotation.x = -Math.PI / 2; gaugeBg.position.y = 0.045; root.add(gaugeBg);
+  const gaugeMat = new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }); // above the floor, which is pulled forward itself
+  let gauge = null, gaugeK = -1;
+  function setGauge(k) {
+    k = Math.max(0, Math.min(1, k)); if (Math.abs(k - gaugeK) < 0.004) return; gaugeK = k;
+    if (gauge) { root.remove(gauge); gauge.geometry.dispose(); }
+    if (k <= 0) { gauge = null; return; }
+    gauge = new THREE.Mesh(new THREE.RingGeometry(15.5, 16.5, 96, 1, Math.PI / 2, -k * TAU), gaugeMat); gauge.rotation.x = -Math.PI / 2; gauge.position.y = 0.055; root.add(gauge);
+    gaugeMat.color.set(k > 0.5 ? 0x39ff88 : k > 0.25 ? 0xffc861 : 0xff4d6d);
+  }
   const rim = new THREE.Mesh(new THREE.TorusGeometry(RAID.r, 0.16, 8, 128), glow(RAID.color, 1.8)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; root.add(rim);
   const pillars = [];
   for (let i = 0; i < 8; i++) {
@@ -35,61 +48,122 @@ export function createRaid(ctx) {
   const sign = K.label(T("Weekly raid"), { accent: "#39ff88", size: 1.1, sub: T("Level {n}+ · one boss for everyone", { n: RAID_MIN_LV }) });
   sign.position.set(Math.sin(toTown) * RAID.r, 9, Math.cos(toTown) * RAID.r); root.add(sign);
 
-  // the shared HP, the hits waiting to be reported, the reward card
-  let st = null, pending = 0, sendAt = 0, pollAt = 0, paintAt = 0, lastFetch = 0, warnedLv = false, warnedSign = false, sending = false, claimShown = false;
+  // the shared HP, the hits waiting to be reported, what others did in between
+  let st = null, pending = 0, sendAt = 0, pollAt = 0, paintAt = 0, lastFetch = 0, warnedLv = false, warnedSign = false, sending = false, phase = 0, finaleT = 0;
   const me = new THREE.Vector3();
   const inside = () => { ctx.here(me); return Math.hypot(me.x - RAID.x, me.z - RAID.z) < RAID.r - 0.5; };
   const near = () => { ctx.here(me); return Math.hypot(me.x - RAID.x, me.z - RAID.z) < RAID.r + 30; };
+  const SEEN = "arc.world.raidFell";
   async function load() {
     lastFetch = Date.now();
-    try { const w = ctx.wallet(); const r = await fetch("/api/social?world=raid" + (w ? "&wallet=" + w : "")); if (r.ok) { const j = await r.json(); if (j && j.max) setState(j); } } catch { /* next time */ }
+    try { const w = ctx.wallet(); const r = await fetch("/api/social?world=raid" + (w ? "&wallet=" + w : "")); if (r.ok) { const j = await r.json(); if (j && j.max) setState(j, 0); } } catch { /* next time */ }
   }
-  function setState(j) {
+  function setState(j, counted) {
     const was = st; st = j;
-    if (st.down) { if (ctx.combat.raidMob()) ctx.combat.raidDown(); paintCard(); }
-    else ctx.combat.raidSet(st.hp - pending);
-    if (was && !was.down && st.down && !claimShown) ctx.toast(T("The raid boss fell! Claim your share at the arena."));
+    // the damage other raiders did since the last word from the server
+    if (was && !was.down && was.week === st.week) { const others = Math.round(was.hp - st.hp - (counted || 0)); if (others > 0) othersChip(others); }
+    if (st.down) {
+      const live = ctx.combat.raidMob();
+      if ((was && !was.down) || live) { if (live && near()) finale(); else if (live) ctx.combat.raidDown(); }
+      // everyone hears about it once, wherever they are
+      let seen = ""; try { seen = localStorage.getItem(SEEN) || ""; } catch { /* private */ }
+      if (seen !== st.week && st.fellAt && Date.now() - st.fellAt < 3 * 864e5) {
+        try { localStorage.setItem(SEEN, st.week); } catch { /* private */ }
+        ctx.feed && ctx.feed(T("{x} fell this week! Raiders who dealt {n}+ damage can claim at the arena.", { x: `<b style="color:#9fffd0">${esc(RAID.boss.name)}</b>`, n: st.need }), "#39ff88");
+      }
+    } else {
+      ctx.combat.raidSet(st.hp - pending);
+      const p = phaseOf(st.hp - pending, st.max);
+      if (phase && p > phase && inside()) phaseUp(p);
+      phase = p; ctx.combat.raidPhase && ctx.combat.raidPhase(p);
+    }
+    setGauge(st.down ? 0 : (st.hp - pending) / st.max);
     paint();
+  }
+  // a new phase: a roar, a shake, the rim and the gauge change colour, a line across the screen
+  function phaseUp(p) {
+    ctx.Snd.siren && ctx.Snd.siren(); ctx.shake && ctx.shake(0.6);
+    rim.material.color.set(p >= 4 ? 0xff4d6d : p >= 3 ? 0xffc861 : 0x39ff88); rim.material.emissive.copy(rim.material.color);
+    const c = document.createElement("div"); c.className = "wr-phase"; c.setAttribute("role", "status"); c.setAttribute("data-no-i18n", "");
+    c.innerHTML = `<small>${esc(RAID.boss.name)}</small><b>${esc(T(PHASES[p]))}</b>`; document.body.appendChild(c); setTimeout(() => c.remove(), 2600);
+  }
+  // other raiders' damage, rising off the top bar
+  function othersChip(n) {
+    if (!inside()) return;
+    const c = document.createElement("div"); c.className = "wr-others"; c.setAttribute("data-no-i18n", "");
+    c.textContent = T("−{n} from other raiders", { n: n.toLocaleString("en-US") }); document.body.appendChild(c); setTimeout(() => c.remove(), 2400);
+  }
+  // it falls: confetti and coins over the arena, the raiders' names roll up the screen
+  const confetti = [];
+  function finale() {
+    ctx.combat.raidDown(); finaleT = 6;
+    ctx.Snd.win && ctx.Snd.win(); ctx.shake && ctx.shake(0.8);
+    const cols = [0x39ff88, 0xffc861, 0x4fa8ff, 0xff7ad9, 0xffffff];
+    for (let i = 0; i < 140; i++) {
+      const coin = i % 4 === 0, m = new THREE.Mesh(coin ? new THREE.CylinderGeometry(0.22, 0.22, 0.05, 14) : new THREE.PlaneGeometry(0.22, 0.34), new THREE.MeshBasicMaterial({ color: coin ? 0xffc861 : cols[i % cols.length], side: THREE.DoubleSide, transparent: true }));
+      const a = Math.random() * TAU, d = Math.random() * RAID.r; m.position.set(Math.cos(a) * d, 12 + Math.random() * 10, Math.sin(a) * d); root.add(m);
+      confetti.push({ m, v: 2 + Math.random() * 2.5, spin: (Math.random() - 0.5) * 8, sway: Math.random() * TAU });
+    }
+    const names = (st.top || []).map((r) => r.name || r.w), cr = document.createElement("div"); cr.className = "wr-credits"; cr.setAttribute("aria-hidden", "true"); cr.setAttribute("data-no-i18n", "");
+    cr.innerHTML = `<div><small>${esc(T("Brought down together"))}</small><b>${esc(RAID.boss.name)}</b>${names.map((n, i) => `<p${i < 3 ? ' class="p' + (i + 1) + '"' : ""}>${esc(n)}</p>`).join("")}${st.players > names.length ? `<p class="more">${esc(T("and {n} more raiders", { n: st.players - names.length }))}</p>` : ""}</div>`;
+    document.body.appendChild(cr); setTimeout(() => cr.remove(), 7000);
+  }
+  function tickConfetti(dt, t) {
+    if (finaleT > 0) finaleT -= dt;
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i]; c.m.position.y -= c.v * dt; c.m.position.x += Math.sin(t * 2 + c.sway) * dt * 0.6; c.m.rotation.x += c.spin * dt; c.m.rotation.y += c.spin * 0.7 * dt;
+      if (finaleT <= 1) c.m.material.opacity = Math.max(0, finaleT);
+      if (c.m.position.y < 0.1 || finaleT <= 0) { root.remove(c.m); c.m.geometry.dispose(); confetti.splice(i, 1); }
+    }
   }
   // a hit on the boss (world-combat.js): counted here and sent every few seconds
   function hit(n) {
     if (!st || st.down) return;
-    pending += n;
+    pending += n; setGauge((st.hp - pending) / st.max);
+    const p = phaseOf(st.hp - pending, st.max); if (p > phase && p < 5) { phaseUp(p); phase = p; ctx.combat.raidPhase && ctx.combat.raidPhase(p); }
     if (!ctx.sess() && !warnedSign) { warnedSign = true; ctx.toast(T("Sign in with your wallet so your raid hits count")); }
   }
   async function send() {
     if (sending || !pending || !ctx.sess()) return;
     const cap = 60 * ctx.level(), n = Math.min(pending, cap); pending = Math.min(cap, pending - n); // what's over the cap carries a little, not forever
     sending = true;
-    try { const r = await ctx.post({ action: "world-raid-hit", ...ctx.sess(), dmg: Math.round(n) }); if (r.ok && r.j.max) setState(r.j); } catch { /* the next report carries on */ }
+    try { const r = await ctx.post({ action: "world-raid-hit", ...ctx.sess(), dmg: Math.round(n) }); if (r.ok && r.j.max) setState(r.j, r.j.counted || 0); } catch { /* the next report carries on */ }
     sending = false;
   }
   function spawn() {
     if (!st || st.down || ctx.combat.raidMob()) return;
     const lv = Math.max(12, Math.min(40, ctx.level()));
     ctx.combat.spawnRaid({ lv, boss: RAID.boss, zone: RAID, at: new THREE.Vector3(RAID.x, 0, RAID.z - 3), max: st.max, hp: st.hp - pending });
+    ctx.combat.raidPhase && ctx.combat.raidPhase(phaseOf(st.hp - pending, st.max));
   }
-  // the panel inside the arena: the shared bar, your damage, the top three, and the claim when it's down
+  // the panel: the phase, your damage, the top three, others' share; when it's down, the claim and the countdown
+  // (the HP itself is the bar at the top of the screen and the gauge on the floor)
   const el = document.createElement("div"); el.className = "wr-raid"; el.id = "wr-raid"; el.hidden = true; el.setAttribute("data-no-i18n", ""); document.body.appendChild(el);
+  let claimedNow = false;
   function paint() {
     const show = !!st && ctx.inHub() && (inside() || (st.down && near()));
     el.hidden = !show; if (!show) return;
-    const k = st.max ? Math.max(0, (st.hp - (st.down ? 0 : pending)) / st.max) : 0, mine = st.mine + (st.down ? 0 : pending);
+    const mine = st.mine + (st.down ? 0 : pending);
     const top = (st.top || []).slice(0, 3).map((r, i) => `<li><span>${i + 1}</span><b>${esc(r.name || r.w)}</b><em>${Math.round(r.n).toLocaleString("en-US")}</em></li>`).join("");
-    el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}</small></div>
-      <i class="wr-raid-bar"><u style="width:${(100 * k).toFixed(2)}%"></u></i><p class="wr-raid-n">${st.down ? esc(T("Down for this week")) : `${Math.max(0, Math.round(st.hp - pending)).toLocaleString("en-US")} / ${st.max.toLocaleString("en-US")}`}</p>
+    const p = st.down ? 5 : phaseOf(st.hp - pending, st.max);
+    el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}${st.players ? " · " + esc(T("{n} raiders", { n: st.players })) : ""}</small></div>
+      ${st.down ? `<p class="wr-raid-phase down">${esc(T("Down for this week"))} · ${esc(T("next in {t}", { t: leftText(st.next - Date.now(), T) }))}</p>` : `<p class="wr-raid-phase p${p}">${esc(p > 1 ? T(PHASES[p]) : T("Phase 1"))}</p>`}
       <p class="wr-raid-me">${esc(T("Your damage: {n}", { n: Math.round(mine).toLocaleString("en-US") }))}${mine < st.need ? ` <small>${esc(T("{n} to share the reward", { n: Math.max(0, Math.ceil(st.need - mine)).toLocaleString("en-US") }))}</small>` : ` <small class="ok">${esc(T("You're in for the reward"))}</small>`}</p>
       ${top ? `<ol class="wr-raid-top">${top}</ol>` : ""}
-      ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
+      ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>${claimedNow || mine >= st.need ? `<button type="button" class="wp-btn wr-raid-share" data-raidshare>${esc(T("Share my raid card"))}</button>` : ""}` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
   }
-  function paintCard() { claimShown = true; paint(); }
   el.addEventListener("click", async (e) => {
+    if (e.target.closest("[data-raidshare]")) {
+      const i = (st.top || []).findIndex((r) => ctx.name && r.name === ctx.name());
+      ctx.shareCard && ctx.shareCard({ head: T("Weekly raid"), title: RAID.boss.name, line: T("My damage: {n}", { n: Math.round(st.mine).toLocaleString("en-US") }) + (i >= 0 ? " · " + T("#{n} this week", { n: i + 1 }) : ""), badge: T("Raid Breaker") });
+      return;
+    }
     const b = e.target.closest("[data-raidclaim]"); if (!b || b.disabled) return;
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
     b.disabled = true;
     const r = await ctx.post({ action: "world-raid-claim", ...s }).catch(() => ({ ok: false, j: {} }));
     if (!r.ok) { ctx.toast(r.j.error || T("Couldn't claim right now")); b.disabled = false; if (r.status === 409) load(); return; }
-    st = { ...st, ...r.j };
+    st = { ...st, ...r.j }; claimedNow = true;
     const it = ctx.rpg.giftPiece(ctx.level(), 3); ctx.gain(500, T("Weekly raid"));
     const q = ctx.quests(); if (q) q.on.raid();
     if (r.j.credited) ctx.onArcl && ctx.onArcl(r.j.credited);
@@ -97,14 +171,17 @@ export function createRaid(ctx) {
     ctx.toast(it ? T("Raid reward: {x}", { x: ctx.rpg.itemName(it) }) : T("Your bag is full — the raid gear became scrap"));
     paint();
   });
+  // a little ahead of the arena: the next one's countdown for the map
+  const nextText = () => (st && st.down ? T("next in {t}", { t: leftText(st.next - Date.now(), T) }) : st ? T("{p}% HP left", { p: Math.max(0, Math.round((100 * (st.hp - pending)) / st.max)) }) : "");
 
   return {
-    zone: RAID, root, hit, load,
-    inside,
+    zone: RAID, root, gate, hit, load, inside, nextText,
     state: () => st,
     tick(dt, t) {
-      rune.rotation.z += dt * 0.15; rune2.rotation.z -= dt * 0.08; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4;
+      rune.rotation.z += dt * 0.15; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4;
       pillars.forEach((p, i) => { p.rotation.y = t * 1.2 + i; p.position.y = 3.8 + Math.sin(t * 2 + i) * 0.15; });
+      if (gauge && gaugeK < 0.25) gaugeMat.opacity = 0.6 + Math.sin(t * 8) * 0.25;
+      tickConfetti(dt, t);
       { ctx.here(me); const d = Math.hypot(me.x - sign.parent.position.x - sign.position.x, me.z - sign.parent.position.z - sign.position.z), k = Math.max(0, Math.min(1, (d - 6) / 6)); sign.material.opacity = k; sign.visible = k > 0.02; }
       if (!ctx.inHub()) { el.hidden = true; return; }
       const nr = near(), inn = nr && inside();

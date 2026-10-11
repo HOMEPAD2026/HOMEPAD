@@ -12,14 +12,19 @@
 // The server can't watch a fight, so the raid trusts the game within a cap (one report per 5 s, 60 × level each) and
 // its ARCL stays small (40 a week, inside the daily cap); the gear and XP are the game's own.
 // A note is plain text, 60 characters, no links, no addresses and no long numbers; its island's owner can hide it.
-// Firestore: worldIslandWeek/<week>_<wallet> { n } · worldStats/islandWeek_<week> { top } · worldStats/ghosts { list }
-//            worldStats/raid_<week> { dmg } · worldRaidDmg/<week>_<wallet> { n } · worldStats/raidTop_<week> { top }
+// Firestore: worldIslandWeek/<week>_<wallet> { n } · worldStats/islandWeek_<week> { top }
+//            worldStats/raid_<week> { dmg, players } · worldRaidDmg/<week>_<wallet> { n } · worldStats/raidTop_<week> { top, at }
+//            worldRaidIn/<week>_<wallet> · worldRaidFell/<week> { at } · worldGhosts/<2-min window>_<shard 0–7> { list }
 //            worldRaidGap/<week>_<wallet>_<slot> · worldRaidClaim/<week>_<wallet>
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
 export const RAID_HP = 500000, RAID_ARCL = 40, RAID_MIN = 600, RAID_GAP = 5;
 export const NOTE_MAX = 60;
+/// the raid's HP: 25,000 for each raider who came last week, between 200,000 and 2,000,000 (500,000 with no history)
+export const raidMax = (players) => (players > 0 ? Math.max(200000, Math.min(2000000, Math.round((players * 25000) / 50000) * 50000)) : RAID_HP);
+/// the next Monday 00:00 in Seoul (when a new raid boss comes)
+export const nextWeekAt = (t) => { const k = t + 9 * 3600e3, d = new Date(k), dow = (d.getUTCDay() + 6) % 7, day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); return day0 + (7 - dow) * 864e5 - 9 * 3600e3; };
 const CHARS = /^(bot|male-[a-f]|female-[a-f])$/;
 
 /// a guestbook note: "" when there's none, null when it can't be posted (a link, an address, a long number)
@@ -80,27 +85,32 @@ export function makeSocial(deps) {
   }
 
   // ---- wanderers: where players were in the last two minutes (no names: the ping isn't signed) ----
-  const GHOST_LIFE = 120e3;
+  const GHOST_LIFE = 120e3, GHOST_SHARDS = 8;
   async function ghostPing(id, g) {
     if (!g || typeof g !== "object") return;
     const x = Math.round(Number(g.x) * 10) / 10, z = Math.round(Number(g.z) * 10) / 10;
     if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > 150) return;
     const t = tagOf(id), c = CHARS.test(String(g.c || "")) ? g.c : "bot", lv = Math.max(1, Math.min(99, Math.floor(Number(g.lv) || 1)));
-    const cur = (await one("worldStats/ghosts")) || { list: [] }, at = now();
-    const list = [{ t, x, z, c, lv, at }, ...(cur.list || []).filter((y) => y.t !== t && at - y.at < GHOST_LIFE)].slice(0, 16);
-    await setDoc("worldStats/ghosts", { list });
+    // eight small documents per 2-minute window, picked by the tag, so pings from many players don't queue on one
+    const at = now(), key = `worldGhosts/${Math.floor(at / GHOST_LIFE)}_${parseInt(t, 36) % GHOST_SHARDS}`, cur = (await one(key)) || { list: [] };
+    const list = [{ t, x, z, c, lv, at }, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
+    await setDoc(key, { list });
   }
   async function ghosts() {
-    const at = now();
-    return json(200, { ghosts: (((await one("worldStats/ghosts")) || {}).list || []).filter((y) => at - y.at < GHOST_LIFE).map(({ t, x, z, c, lv }) => ({ t, x, z, c, lv })) }, "public, max-age=10");
+    const at = now(), w = Math.floor(at / GHOST_LIFE), keys = [];
+    for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
+    const d = await getDocs(keys), seen = new Map();
+    for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv }) => ({ t, x, z, c, lv })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----
   async function raidState(w) {
-    const wk = isoWeek(now());
-    const keys = [`worldStats/raid_${wk}`, `worldStats/raidTop_${wk}`, ...(w ? [`worldRaidDmg/${wk}_${w}`, `worldRaidClaim/${wk}_${w}`] : [])];
-    const d = await getDocs(keys), dmg = (d[`worldStats/raid_${wk}`] || {}).dmg || 0;
-    return { week: wk, max: RAID_HP, hp: Math.max(0, RAID_HP - dmg), down: dmg >= RAID_HP, top: ((d[`worldStats/raidTop_${wk}`] || {}).top || []).slice(0, 10), mine: w ? (d[`worldRaidDmg/${wk}_${w}`] || {}).n || 0 : 0, claimed: w ? !!d[`worldRaidClaim/${wk}_${w}`] : false, need: RAID_MIN, arcl: RAID_ARCL };
+    const wk = isoWeek(now()), prev = isoWeek(now() - 7 * 864e5);
+    const keys = [`worldStats/raid_${wk}`, `worldStats/raid_${prev}`, `worldStats/raidTop_${wk}`, `worldRaidFell/${wk}`, ...(w ? [`worldRaidDmg/${wk}_${w}`, `worldRaidClaim/${wk}_${w}`] : [])];
+    const d = await getDocs(keys), R = d[`worldStats/raid_${wk}`] || {}, dmg = R.dmg || 0;
+    const max = raidMax((d[`worldStats/raid_${prev}`] || {}).players || 0), fell = d[`worldRaidFell/${wk}`] || null;
+    return { week: wk, max, hp: Math.max(0, max - dmg), down: dmg >= max, players: R.players || 0, fellAt: fell ? fell.at : 0, next: nextWeekAt(now()), top: ((d[`worldStats/raidTop_${wk}`] || {}).top || []).slice(0, 10), mine: w ? (d[`worldRaidDmg/${wk}_${w}`] || {}).n || 0 : 0, claimed: w ? !!d[`worldRaidClaim/${wk}_${w}`] : false, need: RAID_MIN, arcl: RAID_ARCL };
   }
   async function raidHit(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -113,11 +123,18 @@ export function makeSocial(deps) {
     const n = Math.max(0, Math.min(60 * lv, Math.floor(Number(b.dmg) || 0), st.hp));
     if (!n) return json(200, { ok: true, ...pub(st), counted: 0 });
     await commit([{ inc: `worldStats/raid_${wk}`, fields: { dmg: n } }, { inc: `worldRaidDmg/${wk}_${w}`, fields: { n } }]);
+    // this week's raiders (next week's HP follows how many came)
+    if ((await commit([{ create: `worldRaidIn/${wk}_${w}`, data: { at: now() } }])).ok) await commit([{ inc: `worldStats/raid_${wk}`, fields: { players: 1 } }]).catch(() => {});
+    if (st.hp - n <= 0) await commit([{ create: `worldRaidFell/${wk}`, data: { at: now() } }]).catch(() => {});
     try {
-      const mine = st.mine + n, name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16), key = `worldStats/raidTop_${wk}`;
-      const cur = (await one(key)) || { top: [] };
-      const top = [{ w: short(w), id: w, n: mine, name }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, c) => c.n - a.n).slice(0, 20);
-      await setDoc(key, { top });
+      // the top list is rewritten only when it changes who's on it, or every 30 s for a raider already there
+      const mine = st.mine + n, key = `worldStats/raidTop_${wk}`, cur = (await one(key)) || { top: [] }, list = cur.top || [];
+      const inTop = list.some((x) => x.id === w), qualifies = list.length < 20 || mine > list[list.length - 1].n;
+      if (qualifies && (!inTop || now() - (cur.at || 0) > 30e3 || st.hp - n <= 0)) {
+        const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+        const top = [{ w: short(w), id: w, n: mine, name }, ...list.filter((x) => x.id !== w)].sort((a, c) => c.n - a.n).slice(0, 20);
+        await setDoc(key, { top, at: now() });
+      }
     } catch { /* the damage counts anyway */ }
     return json(200, { ok: true, counted: n, ...pub(await raidState(w)) });
   }

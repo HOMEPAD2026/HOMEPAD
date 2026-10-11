@@ -156,7 +156,7 @@ export function createCombat(ctx) {
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: bs ? bs.y : spec.y };
-    if (o.raid) { m.raid = true; m.hp = Math.max(1, o.hp); }
+    if (o.raid) { m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; } // the raid's HP is the bar at the top and the gauge on the floor
     label(m); mobs.push(m);
     if (m.slow === 0) { const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6), 0), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
@@ -166,7 +166,7 @@ export function createCombat(ctx) {
   }
   function hit(m, raw, from, kind, crit) {
     if (m.dead) return;
-    const dmg = hitDamage(raw, m.def);
+    const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
     m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
@@ -256,6 +256,7 @@ export function createCombat(ctx) {
         if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
+      if (m.raid) raidTick(m, dt, t, d);
       if (m.rank === "boss") {
         m.slam = (m.slam || 6) - dt;
         // a red circle grows on the ground a second before the slam: step out of it
@@ -266,6 +267,29 @@ export function createCombat(ctx) {
     }
     hurtT = Math.max(0, hurtT - dt);
   }
+  // the raid's phases (world-social.js): 2 calls a swarm now and then, 3 adds a shield that soaks most of a hit,
+  // 4 drops red circles around you — step out before they burst
+  let raidPhase = 1;
+  function raidTick(m, dt, t, d) {
+    const now = performance.now(); // wall-clock: a slow frame rate mustn't stretch the phases
+    if (raidPhase >= 2 && now >= (m.swarmAt ??= now + 4000)) {
+      m.swarmAt = now + 14000;
+      if (mobs.filter((x) => !x.dead && x.zone === m.zone && !x.raid).length < 4) for (let i = 0; i < 2; i++) { const a = Math.random() * TAU; spawnMob({ type: "rug", lv: Math.max(1, m.lv - 3), zone: m.zone, at: m.g.position.clone().add(new V3(Math.cos(a) * 4, 0, Math.sin(a) * 4)) }); }
+      ring(m.g.position, 0xb48cff, { r0: 1, r1: 6, life: 0.6, y: 0.1 });
+    }
+    if (raidPhase >= 3) {
+      m.shieldT = Math.max(0, ((m.shieldUntil || 0) - now) / 1000);
+      if (now >= (m.shieldAt ??= now + 3000)) { m.shieldAt = now + 11000; m.shieldUntil = now + 3500; m.shieldT = 3.5; if (!m.bubble) { const bb = new THREE.Mesh(new THREE.SphereGeometry(4.2, 24, 16), new THREE.MeshBasicMaterial({ color: 0x9fffd0, transparent: true, opacity: 0.22, depthWrite: false })); bb.position.y = 2.2; m.g.add(bb); m.bubble = bb; } ctx.float(T("Shield up"), m.g.position.clone().setY(5), "#9fffd0"); }
+      if (m.bubble) { m.bubble.visible = m.shieldT > 0; m.bubble.material.opacity = 0.16 + Math.sin(t * 6) * 0.06; }
+    }
+    if (raidPhase >= 4 && d < 22 && now >= (m.dropAt ??= now + 2000)) {
+      m.dropAt = now + 2400;
+      ctx.here(me); const at = me.clone().add(new V3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6)).setY(0.08);
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(at); add(disc);
+      fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.15 + 0.35 * k; disc.scale.setScalar(0.4 + 0.6 * Math.min(1, k * 1.5)); } });
+      setTimeout(() => { puff(at.clone().setY(0.4), 0xff6a4a, { n: 18, speed: 6, size: 0.5, life: 0.5, grav: 2 }); ring(at, 0xff4d6d, { r0: 0.3, r1: 2.6, life: 0.35, y: 0.1 }); ctx.here(me); if (!down && guardT <= 0 && Math.hypot(me.x - at.x, me.z - at.z) < 2.2 && ctx.hopY() < 0.8) { ctx.hurt(); damage(hitDamage(Math.round(m.atk * 0.8), stats().def)); } }, 1100);
+    }
+  }
   function slam(m) {
     const p = m.g.position.clone(); ring(p, 0xff4d6d, { r0: 0.5, r1: 7, life: 0.7, y: 0.1 }); puff(p.clone().setY(0.5), 0xff8a6a, { n: 30, speed: 7, size: 0.6, life: 0.7, grav: 3 }); ctx.shake(0.45);
     ctx.here(me); if (me.distanceTo(tmp.copy(p).setY(me.y)) < 7 && guardT <= 0 && !down && ctx.hopY() < 0.8) { tmp.copy(me).sub(p).setY(0).normalize(); ctx.knock(tmp, 13); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.4), stats().def)); }
@@ -273,7 +297,7 @@ export function createCombat(ctx) {
 
   // ---------------- the boss bar and the zone banner ----------------
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
-  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? T("Weekly raid · everyone's HP") : T("Boss")} · Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
+  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? `<span class="wc-long">${T("Weekly raid · everyone's HP")} · </span>` : T("Boss") + " · "}Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
   function hideBossBar() { bossEl.hidden = true; }
   const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
@@ -729,9 +753,15 @@ export function createCombat(ctx) {
     },
     // the raid boss (world-raid.js): spawned from the server's HP, kept in step with it, brought down by it
     raidMob: () => mobs.find((m) => m.raid && !m.dead) || null,
+    raidPhase: (p) => { raidPhase = p; },
     spawnRaid(o) { return spawnMob({ ...o, rank: "boss", raid: true }); },
     raidSet(hpNow) { const m = mobs.find((x) => x.raid && !x.dead); if (!m) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); bossBar(m); },
-    raidDown() { const m = mobs.find((x) => x.raid && !x.dead); if (m) { m.hp = 0; label(m); kill(m); } },
+    raidDown() {
+      const m = mobs.find((x) => x.raid && !x.dead); if (!m) return;
+      // its swarm scatters with it
+      for (const x of mobs) if (!x.dead && !x.raid && x.zone === m.zone) { x.dead = 0.001; puff(x.g.position.clone().setY(0.6), 0x9fffd0, { n: 10, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
+      m.hp = 0; label(m); kill(m);
+    },
     dropNear(item) { ctx.here(me); dropChest(me.clone().add(new V3(2, 0, 0)), item); },
   };
 }

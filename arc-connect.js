@@ -234,9 +234,12 @@
         };
         var fail = function (e) { if (!ch) { resolve(""); return; } var p = ch.querySelector(".cw-err"); if (p) { p.textContent = why(e); p.hidden = false; } };
         if (b) { use(list[Number(b.getAttribute("data-i"))]).then(resolve, fail); return; }
-        if (e.target.closest("[data-wc]")) { useWC().then(resolve, function (err) { if (err && err.closed) { resolve(""); return; } chooser(list).then(resolve); setTimeout(function () { fail(err); }, 0); }); }
+        var wcb = e.target.closest("[data-wc]"); if (wcb) { var sm = wcb.querySelector("small"); if (sm) sm.textContent = L("Opening WalletConnect…", "WalletConnect 여는 중…", "正在打开 WalletConnect…"); wcb.classList.add("busy"); }
+        if (wcb) { useWC().then(resolve, function (err) { if (err && err.closed) { resolve(""); return; } chooser(list).then(resolve); setTimeout(function () { fail(err); }, 0); }); }
       });
       D.addEventListener("keydown", function k(e) { if (e.key === "Escape") { D.removeEventListener("keydown", k); closeChooser(); resolve(""); } });
+      // WalletConnect takes a moment to load: start as soon as a pointer or the keyboard comes near it
+      var wcBtn = ch.querySelector("[data-wc]"); if (wcBtn) ["pointerenter", "focus", "touchstart"].forEach(function (t) { wcBtn.addEventListener(t, function () { wcLoad().catch(function () {}); }, { once: true, passive: true }); });
       var first = ch.querySelector(".cw-w, .cw-x");
       if (first) first.focus();
     });
