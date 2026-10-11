@@ -1681,7 +1681,7 @@ rpg = RPG.createRpg({
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
-  onStats: () => { if (combat) combat.onGear(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 combat = FIGHT.createCombat({

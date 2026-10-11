@@ -202,7 +202,7 @@ export function createRpg(ctx) {
     if (R().bag.length >= BAG && !FORGE_SUPPLY[id]) { ctx.toast(T("Your bag is full")); return; }
     const r = await ctx.post({ action: "world-forge-buy", ...s, item: id });
     if (!r.ok) { ctx.toast(r.j.error || T("Couldn't buy that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
-    if (r.j.supply) { const x = r.j.supply; R()[x.kind] = (R()[x.kind] || 0) + x.n; ctx.save(); ctx.toast(T("Bought: {x}", { x: T(FORGE_SUPPLY[id].name) })); }
+    if (r.j.supply) { const x = r.j.supply; R()[x.kind] = (R()[x.kind] || 0) + x.n; ctx.save(); ctx.onPots && ctx.onPots(); ctx.toast(T("Bought: {x} · you have {n}", { x: T(FORGE_SUPPLY[id].name), n: R()[x.kind] })); }
     else { addItem(r.j.item, true); sel = r.j.item.id; ctx.toast(T("Bought: {x}", { x: itemName(r.j.item) })); }
     ctx.Snd.win && ctx.Snd.win(); ctx.arclRefresh().then(() => open && paint()); paint();
   }

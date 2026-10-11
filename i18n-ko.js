@@ -10037,6 +10037,7 @@
     "Special": "스페셜",
     "25 ARC Bots": "ARC 봇 25종",
     "ARCIRCLE World's own robot characters, each with its own look. Pick one now.": "ARCIRCLE World만의 로봇 캐릭터, 저마다 다른 모습이에요. 지금 골라 보세요.",
+    "Bought: {x} · you have {n}": "구입: {x} · 보유 {n}개",
   };
 
 

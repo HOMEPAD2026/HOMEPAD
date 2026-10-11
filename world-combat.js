@@ -600,6 +600,9 @@ export function createCombat(ctx) {
     slotBtn.setAttribute("aria-label", s ? `${T(s.name)} (Z)` : T("Your first skill opens at level 10"));
     slotBtn.title = s ? `${T(s.name)} (Z) · ${T("Skill level {n}", { n: skillLevel(ctx.level(), s.lv) })}${n > 1 ? " · " + T("Q or a long press changes it") : ""}` : T("Your first skill opens at level 10");
   }
+  // potions can come from anywhere (the Forge, a daily hunt, the season road, a drop): the buttons follow, and pop when they go up
+  let potsSeen = null;
+  function potsCheck() { const p = rpg.potions(); if (potsSeen && (p.hp !== potsSeen.hp || p.sp !== potsSeen.sp)) { paintPots(); [["hp", "pot-hp"], ["sp", "pot-sp"]].forEach(([k, id]) => { if (p[k] > potsSeen[k]) { const b = bar.querySelector(`[data-skill="${id}"]`); b.classList.remove("got"); void b.offsetWidth; b.classList.add("got"); } }); } potsSeen = { hp: p.hp, sp: p.sp }; }
   function paintPots() { const p = rpg.potions(); bar.querySelector("#wc-pot-hp").textContent = p.hp; bar.querySelector("#wc-pot-sp").textContent = p.sp; bar.querySelector('[data-skill="pot-hp"]').classList.toggle("empty", !p.hp); bar.querySelector('[data-skill="pot-sp"]').classList.toggle("empty", !p.sp); }
   const CDT = { attack: 0.5, dodge: 1.1 };
   function paintCd() {
@@ -702,7 +705,7 @@ export function createCombat(ctx) {
     comboT = Math.max(0, comboT - dt);
     paintCd();
     let changed = false; for (const k in buffs) { if (buffs[k] > 0) { buffs[k] = Math.max(0, buffs[k] - dt); if (!buffs[k]) changed = true; } }
-    if ((buffPaint -= dt) <= 0 || changed) { buffPaint = 0.5; paintBuffs(); }
+    if ((buffPaint -= dt) <= 0 || changed) { buffPaint = 0.5; paintBuffs(); potsCheck(); }
     if (ghostHp > hp) { ghostHp = Math.max(hp, ghostHp - dt * maxHp() * 0.5); paintVit(); }
     if (down) { const left = Math.max(0, (waitT - performance.now()) / 1000), b = dead.querySelector("#wc-respawn"), w = dead.querySelector("#wc-wait"); if (b && w) { b.disabled = left > 0; w.textContent = left > 0 ? T("free, in {n} s", { n: Math.ceil(left) }) : T("free"); } }
     else {
@@ -750,7 +753,7 @@ export function createCombat(ctx) {
   }
   return {
     bosses: () => mobs.filter((m) => m.rank === "boss" && !m.dead && m.zone).map((m) => m.zone.id),
-    tick, keyDown, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
+    potsCheck, tick, keyDown, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z })), items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),

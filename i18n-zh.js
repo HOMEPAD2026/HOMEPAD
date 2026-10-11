@@ -10207,6 +10207,7 @@
     "Special": "特别",
     "25 ARC Bots": "25 个 ARC 机器人",
     "ARCIRCLE World's own robot characters, each with its own look. Pick one now.": "ARCIRCLE World 专属的机器人角色，各有各的样子。现在就选一个吧。",
+    "Bought: {x} · you have {n}": "已购买：{x} · 现有 {n}",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

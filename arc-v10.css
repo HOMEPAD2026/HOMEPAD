@@ -2740,3 +2740,7 @@ html.wp-less .wp-speed,html.wp-less .wp-hurt{display:none!important}
 .wp-make-grid button{position:relative}
 .wp-make-grid button small{position:absolute;left:0;right:0;bottom:2px;font:800 8.5px var(--f-ui);letter-spacing:.02em;color:#dff8ff;text-shadow:0 1px 2px rgba(0,0,0,.8);pointer-events:none}
 @media (max-width:640px){.wp-make-grid{max-height:34vh}}
+/* a potion count that just went up (bought at the Forge, a reward): the button pops */
+@keyframes wcGot{0%{transform:scale(1)}35%{transform:scale(1.28)}100%{transform:scale(1)}}
+.wc-pot.got{animation:wcGot .5s cubic-bezier(.2,1.4,.4,1)}
+.wc-pot.got em{color:#9fffd0}

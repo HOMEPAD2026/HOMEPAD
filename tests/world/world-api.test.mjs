@@ -83,6 +83,10 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
   g = await G.handle({ action: "world-gate", wallet: "0x" + "b".repeat(40), issued: iss, signature: sg });
   check(g.status === 403, "gate: someone else's signature doesn't count");
 }
+// the signed-in count: a wallet that signed in before the count existed is counted once when it signs in again
+{ const w3 = ethers.Wallet.createRandom(), a3 = w3.address.toLowerCase(); db.set(`worldPlayers/${a3}`, { at: 1 }); const before = (await W.stats()).players; const iss = new Date(T).toISOString(); const sg = await w3.signMessage(loginMessage(a3, iss));
+  await W.handle({ action: "world-login", wallet: a3, issued: iss, signature: sg }); await W.handle({ action: "world-login", wallet: a3, issued: iss, signature: sg });
+  check((await W.stats()).players === before + 1, "an earlier wallet is counted once on its next sign-in"); }
 // characters: the ARC Bots are kept, anything else unknown is dropped
 check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({ char: "arc-nobody" }).char === "" && cleanSave({ char: "male-c" }).char === "male-c", "saves keep ARC Bot characters and drop unknown ones");
 console.log(ok, "pass", bad, "fail");

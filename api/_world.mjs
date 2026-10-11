@@ -23,7 +23,7 @@
 // Firestore: worldIsland/<wallet> · worldIslandLikes/<wallet> { n } · worldLikes/<target>_<wallet> · worldStamps/<wallet> { list }
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
 // Notes, the weekly island contest, friends, wanderers and the raid boss: api/_world-social.mjs.
-// Firestore: worldStats/main { visitors, players } · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
+// Firestore: worldStats/main { visitors, players } · worldCounted/<wallet> (counted once in players) · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
@@ -143,7 +143,10 @@ export function make(deps) {
   async function login(b) {
     const s = signer(b); if (s.err) return s.err;
     const first = await commit([{ create: `worldPlayers/${s.wallet}`, data: { at: now() } }]);
-    if (first.ok) await commit([{ inc: "worldStats/main", fields: { players: 1 } }]);
+    // the "signed in" count: each wallet once. It's keyed on its own marker so wallets that signed in before the count
+    // existed (their worldPlayers doc was already there) are counted the next time they sign in
+    const counted = await commit([{ create: `worldCounted/${s.wallet}`, data: { at: now() } }]);
+    if (counted.ok) await commit([{ inc: "worldStats/main", fields: { players: 1 } }]);
     const d = await getDocs([`worldSave/${s.wallet}`]);
     return json(200, { ok: true, wallet: s.wallet, firstTime: !!first.ok, save: d[`worldSave/${s.wallet}`] || null });
   }
