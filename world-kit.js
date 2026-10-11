@@ -145,7 +145,7 @@ export function makeStage(canvas, opts = {}) {
   if (q.bloom) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, 0.55, 0.9));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(256, 256), opts.bloom ?? 0.75, opts.bloomRadius ?? 0.55, opts.bloomThreshold ?? 0.9));
     composer.addPass(new OutputPass());
   }
   function resize() {

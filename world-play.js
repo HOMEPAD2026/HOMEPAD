@@ -220,7 +220,9 @@ if (!K.webglOk()) {
 }
 try { await document.fonts.load("700 92px Sora"); } catch { /* system font */ }
 loadbar(0.15);
-const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.55, fov: 55, shadows: true, quality: S.quality, groundY: 0 });
+// bloom only on what glows: the white halls lit by the sun stay under the threshold (a wider, stronger bloom washed the
+// whole screen white on phones when a hall or an arch was close to the camera)
+const st = K.makeStage(cv, { fog: 0.0058, bloom: 0.28, bloomRadius: 0.25, bloomThreshold: 1.15, fov: 55, shadows: true, quality: S.quality, groundY: 0 });
 st.scene.background = null;
 const kitP = K.loadKit(VER).catch((e) => { console.warn("world models:", e); return null; });
 // the intro: the round planet seen from space, built before the kit switches to flat ground
@@ -2000,7 +2002,7 @@ setInterval(dayNight, 60000);
 // ---------------- camera: a building between the camera and the player turns see-through ----------------
 const ray = new THREE.Raycaster(); ray.camera = st.camera; let camFit = 1, colT = 0;
 const ghosted = new Map(), ghostMats = new Map();
-const ghostOf = (m) => { let g = ghostMats.get(m); if (!g) { g = m.clone(); g.transparent = true; g.opacity = 0.22; g.depthWrite = false; ghostMats.set(m, g); } return g; };
+const ghostOf = (m) => { let g = ghostMats.get(m); if (!g) { g = m.clone(); g.transparent = true; g.opacity = 0.14; g.depthWrite = false; ghostMats.set(m, g); } return g; };
 function ghost(group, on) {
   if (on === !!ghosted.get(group)) return;
   group.traverse((o) => {
@@ -2014,7 +2016,7 @@ function camCollide(target) {
   const head = new THREE.Vector3(0, hop + 1.6, 0), dirC = target.clone().sub(head), len = dirC.length(); dirC.normalize();
   ray.set(head, dirC); ray.far = len;
   const close = [];
-  const lists = mode === "island" ? [] : [shops, town, coinBuildings];
+  const lists = mode === "island" ? [] : [shops, town, coinBuildings, arches];
   for (const list of lists) for (const g of list) { g.getWorldPosition(tmp); if (tmp.distanceTo(head) < len + 7) close.push(g); }
   const hits = new Set();
   if (close.length) for (const h of ray.intersectObjects(close, true)) { if (!h.object.isMesh || h.object.isSprite || h.distance < 0.4) continue; let o = h.object; while (o.parent && !close.includes(o)) o = o.parent; if (close.includes(o)) hits.add(o); }
@@ -2176,6 +2178,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
+  stage: () => st,
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
