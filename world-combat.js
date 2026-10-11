@@ -603,6 +603,7 @@ export function createCombat(ctx) {
   let buffPaint = 0, placeT = 0, zoneT = 0;
   function place() { bar.style.bottom = ""; } // the buttons share one corner layout with the move buttons (arc-v10.css v25)
   function spawnTick(dt) {
+    const kit = ctx.kit(); if (!kit || !kit.enemies || !kit.enemies.EyeDrone) return; // the robots are still loading
     ctx.here(me);
     const z = zone;
     if (z) {

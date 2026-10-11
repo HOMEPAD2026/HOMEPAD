@@ -2181,3 +2181,92 @@ body.wc-legend::before{content:"";position:fixed;inset:0;z-index:15;pointer-even
 /* the wallet chooser opens above the beta gate */
 html.wl-open .cw-modal{z-index:13500}
 .wl-hint{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(63,155,255,.1);border:1px solid rgba(120,196,255,.25);font-size:12.5px;line-height:1.5;color:#cfe8ff}
+
+/* ---------- v26: the daily reward — a week of chests (world-shop.js) ---------- */
+.wa-daily{z-index:40;background:radial-gradient(60% 50% at 50% 45%,rgba(255,200,97,.12),transparent 70%),rgba(2,4,8,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.wd-card{position:relative;width:min(720px,calc(100vw - 24px));max-height:calc(100svh - 24px);overflow:auto;padding:22px 22px 18px;border-radius:28px;background:radial-gradient(90% 60% at 50% 0%,rgba(255,200,97,.16),transparent 65%),linear-gradient(180deg,#0e1626,#080d17);border:1px solid rgba(255,200,97,.3);box-shadow:0 40px 100px rgba(0,0,0,.7);color:#eef3f7;text-align:left;animation:wdIn .35s cubic-bezier(.2,1.2,.4,1)}
+@keyframes wdIn{from{transform:translateY(16px) scale(.96);opacity:0}}
+.wd-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.wd-head h2{margin:0;font:800 24px/1.1 var(--f-ui);letter-spacing:-.02em;color:#fff}
+.wd-head p{margin:4px 0 0;font-size:13.5px;color:rgba(222,233,244,.7)}
+.wd-flame{position:relative;flex:none;display:grid;place-items:center;width:58px;height:58px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.wd-flame svg{width:34px;height:34px;fill:rgba(222,233,244,.3)}
+.wd-flame.hot{background:radial-gradient(circle at 50% 70%,rgba(255,154,74,.35),rgba(255,77,42,.08));border-color:rgba(255,154,74,.55)}
+.wd-flame.hot svg{fill:url(#none);fill:#ff9a4a;filter:drop-shadow(0 0 8px rgba(255,122,60,.8));animation:wdFlame 1.4s ease-in-out infinite}
+@keyframes wdFlame{50%{transform:scale(1.08) translateY(-1px)}}
+.wd-flame b{position:absolute;right:-6px;bottom:-6px;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#ff7a3c;color:#fff;font:800 13px/24px var(--f-ui);text-align:center;box-shadow:0 0 0 3px #0c1322}
+.wd-days{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.25fr);grid-template-rows:auto auto;gap:10px}
+.wd-day{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px 12px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);text-align:center;transition:transform .2s}
+.wd-day:nth-child(4){grid-column:1}
+.wd-day.big{grid-column:4;grid-row:1 / span 2;justify-content:center;background:radial-gradient(90% 60% at 50% 30%,rgba(255,200,97,.2),transparent 70%),rgba(255,255,255,.04);border-color:rgba(255,200,97,.35)}
+.wd-n{font:700 11.5px var(--f-ui);color:rgba(222,233,244,.55)}
+.wd-ico{position:relative;display:grid;place-items:center;width:46px;height:46px}
+.wd-day.big .wd-ico{width:70px;height:70px}
+.wd-day.big .wd-ico img{width:52px;height:52px}
+.wd-day b{font:800 17px var(--f-ui);color:#ffc861}
+.wd-day small{font-size:11px;line-height:1.3;color:rgba(222,233,244,.68)}
+.wd-b{position:absolute;right:-4px;bottom:-2px;width:20px;height:20px;border-radius:7px;border:2px solid #0c1322;background:#8fa0b3}
+.wd-b.pot.hp{background:radial-gradient(circle at 35% 30%,#ffd6dc,#ff5f73 60%,#c81e3a)}
+.wd-b.pot.sp{background:radial-gradient(circle at 35% 30%,#dff4ff,#4fa8ff 60%,#1f5fc8)}
+.wd-b.pot.both{background:linear-gradient(90deg,#ff5f73 50%,#4fa8ff 50%)}
+.wd-b.scrap{background:conic-gradient(#c9d3de 0 25%,#7c8896 0 50%,#c9d3de 0 75%,#7c8896 0);border-radius:50%}
+.wd-b.xp{border:0;width:22px;height:22px;background:#5fe08a;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.wd-b.gear{width:28px;height:28px;right:-8px;background:linear-gradient(135deg,#b48cff,#ffc861);border-radius:8px;box-shadow:0 0 14px rgba(255,200,97,.6)}
+.wd-day.today{border-color:#ffc861;background:linear-gradient(180deg,rgba(255,200,97,.18),rgba(255,154,74,.06));box-shadow:0 0 0 1px rgba(255,200,97,.5),0 0 24px rgba(255,200,97,.25);animation:wdToday 1.8s ease-in-out infinite}
+.wd-day.today .wd-n{color:#ffc861}
+@keyframes wdToday{50%{box-shadow:0 0 0 1px rgba(255,200,97,.8),0 0 34px rgba(255,200,97,.45)}}
+.wd-day.next{opacity:.6}
+.wd-day.done{background:rgba(95,224,138,.06);border-color:rgba(95,224,138,.3)}
+.wd-day.done .wd-ico,.wd-day.done b,.wd-day.done small{opacity:.55}
+.wd-stamp{position:absolute;top:7px;right:7px;display:none;pointer-events:none}
+.wd-stamp svg{width:26px;height:26px;padding:4px;border-radius:50%;background:rgba(95,224,138,.92);fill:none;stroke:#04210f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;box-shadow:0 6px 18px rgba(95,224,138,.4);transform:rotate(-10deg)}
+.wd-day.done .wd-stamp{display:grid}
+.wd-day.stamp .wd-stamp svg{animation:wdStamp .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes wdStamp{0%{transform:scale(2.2) rotate(-25deg);opacity:0}100%{transform:scale(1) rotate(-10deg);opacity:1}}
+.wd-stage{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;min-height:150px;margin:14px 0 6px}
+.wd-chest{margin:0;flex:none}
+.wd-chest.gold .wa-chest-box{background:linear-gradient(180deg,#ffd27a,#c88a2a)}
+.wd-chest.gold .wa-chest-lid{background:linear-gradient(180deg,#ffe2a0,#d99a3a)}
+.wd-chest.shake{animation:wdShake .5s ease-in-out}
+@keyframes wdShake{20%{transform:rotate(-6deg)}40%{transform:rotate(6deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(3deg)}}
+.wd-rays{position:absolute;left:50%;top:62%;width:620px;height:620px;margin:-310px 0 0 -310px;border-radius:50%;background:repeating-conic-gradient(rgba(255,200,97,.16) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 20%,transparent 62%);mask:radial-gradient(circle,#000 20%,transparent 62%);opacity:0;pointer-events:none;transition:opacity .5s}
+.wd-card.burst .wd-rays{opacity:1;animation:wdSpin 14s linear infinite}
+@keyframes wdSpin{to{transform:rotate(360deg)}}
+.wd-got{list-style:none;margin:0;padding:0;display:grid;gap:6px;min-width:0}
+.wd-g{padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font:700 14px var(--f-ui);color:#fff;opacity:0;transform:translateY(10px) scale(.96);transition:opacity .3s,transform .35s cubic-bezier(.2,1.4,.4,1)}
+.wd-g.in{opacity:1;transform:none}
+.wd-g.arcl{border-color:rgba(255,200,97,.5);color:#ffc861}
+.wd-g.gear{border-color:var(--rc,#b48cff);color:var(--rc,#b48cff);box-shadow:0 0 18px color-mix(in srgb,var(--rc,#b48cff) 35%,transparent)}
+.wd-card .wp-cta{width:100%;margin-top:8px}
+.wd-card .wp-link{display:block;margin:10px auto 0}
+.wd-note{margin:12px 0 0;font-size:11.5px;color:rgba(222,233,244,.45);text-align:center}
+@media (max-width:560px){.wd-card{padding:18px 14px 14px;border-radius:22px}.wd-days{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.wd-day:nth-child(4){grid-column:auto}.wd-day.big{grid-column:1 / -1;grid-row:auto;flex-direction:row;gap:12px;justify-content:center}.wd-day small{font-size:10px}.wd-ico{width:38px;height:38px}.wd-ico img{width:30px;height:30px}.wd-head h2{font-size:20px}.wd-stage{min-height:130px}}
+@media (prefers-reduced-motion:reduce){.wd-card,.wd-day.today,.wd-flame.hot svg,.wd-card.burst .wd-rays,.wd-chest.shake,.wd-day.stamp .wd-stamp svg{animation:none}}
+/* the chest in the Adventure log */
+.wq-chest{display:flex;align-items:center;gap:14px;margin:8px 0 4px;padding:12px 14px;border-radius:16px;background:linear-gradient(90deg,rgba(255,200,97,.14),rgba(255,154,74,.04));border:1px solid rgba(255,200,97,.45)}
+.wq-chest.done{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
+.wq-chest-ico{flex:none;width:40px;height:34px;border-radius:8px 8px 10px 10px;background:linear-gradient(180deg,#d0894a 0 40%,#3b2416 40% 46%,#b9733a 46%);border:3px solid #3b2416}
+.wq-chest div{flex:1;display:grid;gap:2px}
+.wq-chest b{font:800 14.5px var(--f-ui);color:#fff}
+.wq-chest small{font-size:12px;color:rgba(222,233,244,.65)}
+.wq-chest button{appearance:none;height:36px;padding:0 16px;border:0;border-radius:11px;background:linear-gradient(180deg,#ffd08a,#ff9a4a);color:#2a1200;font:800 13px var(--f-ui);cursor:pointer}
+.wq-chest.done button{background:rgba(255,255,255,.08);color:#eef3f7}
+/* phones in the wide "PC" view: the daily card fills the width and reads at phone size */
+html.wp-pcphone .wd-card{zoom:1.32;width:min(720px,calc((100vw - 24px) / 1.32));max-height:calc((100svh - 24px) / 1.32)}
+/* no double-tap page zoom while playing (pinch on the game itself zooms the camera) */
+html:has(body.wp),body.wp{touch-action:none;overscroll-behavior:none}
+body.wp .wp-acts,body.wp .wp-act,body.wp .wc-bar,body.wp .wc-bar *,body.wp .wp-hud,body.wp .wp-joy,body.wp canvas{touch-action:none}
+body.wp .wa-sheet,body.wp .wa-daily,body.wp .wr-inv,body.wp [role=dialog]{touch-action:pan-x pan-y}
+
+/* ---------- v27: the "Visit / Enter" prompt sits in the middle of the screen, see-through, and fades as you pass ---------- */
+html body.wp .wp-prompt{left:50%;top:31%;bottom:auto;z-index:21;transform:translate(-50%,-50%) scale(.92);opacity:0;pointer-events:none;transition:opacity .28s ease,transform .32s cubic-bezier(.2,1.3,.4,1)}
+html body.wp .wp-prompt.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+html body.wp .wp-prompt button{gap:14px;padding:14px 16px 14px 24px;font-size:17px;background:rgba(8,14,26,.58);border:1px solid rgba(143,233,223,.55);box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 0 4px rgba(53,216,208,.08);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html body.wp .wp-prompt button b{color:#9ff5ea}
+html body.wp .wp-prompt.on button{animation:wpPromptGlow 1.8s ease-in-out infinite}
+@keyframes wpPromptGlow{50%{box-shadow:0 10px 30px rgba(0,0,0,.28),0 0 0 6px rgba(53,216,208,.16),0 0 26px rgba(53,216,208,.35)}}
+html body.wp .wp-prompt kbd{background:rgba(255,255,255,.9);color:#0b1220}
+html.wp-pcphone body.wp .wp-prompt button{padding:26px 44px;font-size:44px;gap:20px;border-width:3px}
+html.wp-pcphone body.wp .wp-prompt kbd{display:none}
+@media (pointer:coarse){html body.wp .wp-prompt kbd{display:none}}
+@media (prefers-reduced-motion:reduce){html body.wp .wp-prompt{transition:opacity .2s}html body.wp .wp-prompt.on button{animation:none}}

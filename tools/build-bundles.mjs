@@ -66,6 +66,49 @@ export const BUNDLES = {
 // arc-nav.css + arc-v9.css directly; older pages keep style.css.
 export const CSS_BUNDLES = { "arc.min.css": ["style.css", "arc-nav.css", "arc-v9.css", "arc-v10.css"] };
 
+// ARCIRCLE World (/play) needs a sliver of style.css (1.6 MB, the whole site): world.min.css keeps the rules of
+// "purge" whose classes and ids appear in "scan" (the game's page and scripts), plus "keep" in full. Rules with no
+// class or id (:root, html, body, inputs) and every @keyframes / @font-face stay.
+export const CSS_PURGED = {
+  "world.min.css": {
+    purge: ["style.css"],
+    keep: ["arc-nav.css", "arc-v9.css", "arc-v10.css"],
+    scan: ["play.html", "world-play.js", "world-kit.js", "world-island.js", "world-shop.js", "world-style.js", "world-support.js", "world-combat.js", "world-rpg.js", "world-rpg-data.js", "world-zones.js", "world-quests.js", "world-lock.js", "arc-connect.js", "i18n.js", "i18n-boot.js", "arc-log.js"],
+  },
+};
+/// the top-level pieces of a stylesheet: { pre, body } for blocks, { stmt } for "@import …;"
+function cssPieces(css) {
+  const out = []; let i = 0, n = css.length;
+  while (i < n) {
+    // skip spaces and comments
+    while (i < n) { if (/\s/.test(css[i])) i++; else if (css.startsWith("/*", i)) { const e = css.indexOf("*/", i + 2); i = e < 0 ? n : e + 2; } else break; }
+    if (i >= n) break;
+    let j = i, q = null, depth = 0, pre = null;
+    for (; j < n; j++) {
+      const c = css[j];
+      if (q) { if (c === "\\") j++; else if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") { q = c; continue; }
+      if (css.startsWith("/*", j)) { const e = css.indexOf("*/", j + 2); j = (e < 0 ? n : e + 2) - 1; continue; }
+      if (c === "{") { if (depth === 0) pre = css.slice(i, j).trim(), i = j + 1; depth++; }
+      else if (c === "}") { depth--; if (depth === 0) { out.push({ pre, body: css.slice(i, j) }); j++; break; } }
+      else if (c === ";" && depth === 0) { out.push({ stmt: css.slice(i, j + 1).trim() }); j++; break; }
+    }
+    i = j;
+  }
+  return out;
+}
+const splitSel = (s) => { const out = []; let d = 0, cur = ""; for (const c of s) { if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") d--; if (c === "," && d === 0) { out.push(cur); cur = ""; } else cur += c; } out.push(cur); return out.map((x) => x.trim()).filter(Boolean); };
+export function purgeCss(css, used) {
+  const keepSel = (sel) => { const names = sel.replace(/\[[^\]]*\]/g, "").replace(/:(?:not|is|where|has)\(/g, "(").match(/[.#](-?[_a-zA-Z][\w-]*)/g) || []; return names.every((x) => used.has(x.slice(1))); };
+  return cssPieces(css).map((p) => {
+    if (p.stmt) return p.stmt;
+    if (/^@(media|supports|container|layer)\b/.test(p.pre)) { const inner = purgeCss(p.body, used); return inner.trim() ? `${p.pre}{${inner}}` : ""; }
+    if (p.pre.startsWith("@")) return `${p.pre}{${p.body}}`;
+    const sels = splitSel(p.pre).filter(keepSel);
+    return sels.length ? `${sels.join(",")}{${p.body}}` : "";
+  }).filter(Boolean).join("\n");
+}
+
 // A lazy bundle runs on top of its parent: ABI shaking keeps what either needs, and a
 // top-level name may not be declared in both.
 const PARTNERS = { "arcpad.bundle.js": ["arcpad-tools.bundle.js"], "arcpad-tools.bundle.js": ["arcpad.bundle.js"] };
@@ -181,6 +224,24 @@ export async function build({ check = false, force = false } = {}) {
     if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
     fs.writeFileSync(dest, banner + code);
     console.log(`${out}: ${files.length} files, ${(src.length / 1024).toFixed(0)} KB -> ${((banner + code).length / 1024).toFixed(0)} KB${esbuild ? " (minified)" : " (joined, not minified: esbuild not found)"}`);
+  }
+  for (const [out, cfg] of Object.entries(CSS_PURGED)) {
+    const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+    const scanned = cfg.scan.map(read).join("\n").replace(/\?v=\d+/g, ""); // the cache version changes on every bump; the classes don't
+    const srcAll = [...cfg.purge, ...cfg.keep].map((f) => `/* ${f} */\n` + read(f)).join("\n") + "\n/* scan */\n" + scanned;
+    const hash = crypto.createHash("sha256").update(srcAll).digest("hex").slice(0, 16);
+    const banner = `/* ${out} — built by tools/build-bundles.mjs: ${cfg.purge.join(", ")} cut to what the game uses, then ${cfg.keep.join(", ")}. Do not edit; edit the sources. src:${hash} */\n`;
+    const dest = path.join(ROOT, out);
+    const cur = fs.existsSync(dest) ? fs.readFileSync(dest, "utf8") : "";
+    const curHash = (/src:([0-9a-f]{16})/.exec(cur.slice(0, 800)) || [])[1];
+    if (check) { if (curHash !== hash) stale.push(out); continue; }
+    if (!force && curHash === hash && cur.length) { console.log(`${out}: up to date`); continue; }
+    const used = new Set(scanned.match(/[_a-zA-Z][\w-]*/g));
+    const src = cfg.purge.map((f) => purgeCss(read(f), used)).join("\n") + "\n" + cfg.keep.map(read).join("\n");
+    let code = src;
+    if (esbuild) { const r = await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none", charset: "utf8" }); code = r.code; }
+    fs.writeFileSync(dest, banner + code);
+    console.log(`${out}: ${(srcAll.length / 1024).toFixed(0)} KB of sources -> ${((banner + code).length / 1024).toFixed(0)} KB`);
   }
   if (check && stale.length) { console.error("out of date: " + stale.join(", ") + " — run: node tools/build-bundles.mjs"); process.exit(1); }
 }

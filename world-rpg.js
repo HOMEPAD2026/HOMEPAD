@@ -201,6 +201,8 @@ export function createRpg(ctx) {
     onLevel: () => changed(), refresh: () => { cache = null; ctx.onStats(stats()); },
     data: () => R(),
     setSkill: (id) => { R().sk = id; ctx.save(); },
+    // the 7th day's chest: a Rare (or, one time in four, an Epic) piece at your level
+    giftPiece: (lv) => { const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)], tier = Math.max(0, Math.min(4, TIERS.filter((t) => t.lv <= lv).length - 1)); const it = { id: rid(), b: baseId(slot, tier), r: Math.random() < 0.25 ? 3 : 2, lv: Math.max(1, Math.min(60, lv)), p: 0 }; return addItem(it, true) ? it : null; },
     setLog: (q) => { log = q; }, repaint: () => paint(), view: () => view,
   };
 }

@@ -132,7 +132,7 @@ export function makeStage(canvas, opts = {}) {
   // soft shadows around the robot (it always stands at the top of the world, so one fixed shadow box covers it)
   if (opts.shadows && !q.low) {
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+    sun.castShadow = true; sun.shadow.mapSize.set(q.coarse ? 1024 : 2048, q.coarse ? 1024 : 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     const gy = opts.groundY ?? R;
     sun.position.set(14, gy + 34, 18); sun.target.position.set(0, gy, -4);
     const sc = sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 5; sc.far = 90; sc.updateProjectionMatrix();
@@ -155,10 +155,11 @@ export function makeStage(canvas, opts = {}) {
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const updates = new Set();
   const clock = new THREE.Clock();
-  let raf = 0, running = true;
+  let raf = 0, running = true, every = 1, nth = 0;
   function frame() {
     if (!running) return;
     raf = requestAnimationFrame(frame);
+    if (every > 1 && (++nth % every)) return; // a menu covers the world: draw it a few times a second, not 60
     const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     updates.forEach((fn) => fn(dt, t));
     if (composer) composer.render(); else renderer.render(scene, camera);
@@ -166,6 +167,10 @@ export function makeStage(canvas, opts = {}) {
   frame();
   document.addEventListener("visibilitychange", () => { if (document.hidden) { running = false; cancelAnimationFrame(raf); } else if (!running) { running = true; clock.getDelta(); frame(); } });
   return {
+    // a full-screen menu is open: the world behind it only needs a few frames a second (saves battery and heat)
+    idle(on) { const e = on ? 4 : 1; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
+    // a first, gentle step for a slow frame rate: fewer pixels, everything else kept
+    lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
     degrade() { renderer.setPixelRatio(1); if (composer) { composer.dispose?.(); composer = null; } renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); resize(); },
     snap() { if (composer) composer.render(); else renderer.render(scene, camera); return new Promise((res) => canvas.toBlob(res, "image/png")); },
@@ -589,7 +594,8 @@ export function loadKit(ver = "") {
   if (kitP) return kitP;
   const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
   const one = (u) => new Promise((res, rej) => L.load(u + ver, res, undefined, rej));
-  kitP = Promise.all([one("/models/world/scifi-props.glb"), one("/models/world/scifi-enemies.glb"), one("/models/world/kenney-city.glb")]).then(([p, e, c]) => {
+  // the town (props + buildings) first; the scammer robots (the biggest file) load right after, so the world shows sooner
+  kitP = Promise.all([one("/models/world/scifi-props.glb"), one("/models/world/kenney-city.glb")]).then(([p, c]) => {
     const split = (g, names) => {
       const J = g.parser.json, owner = new Map(), out = {};
       (J.scenes || []).forEach((sc, si) => { const walk = (n) => { owner.set(n, si); (J.nodes[n].children || []).forEach(walk); }; (sc.nodes || []).forEach(walk); });
@@ -598,7 +604,9 @@ export function loadKit(ver = "") {
       });
       return out;
     };
-    return { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: split(e, ENEMY_NAMES) };
+    const kit = { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: {} };
+    kit.enemiesReady = one("/models/world/scifi-enemies.glb").then((e) => { Object.assign(kit.enemies, split(e, ENEMY_NAMES)); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
+    return kit;
   });
   return kitP;
 }

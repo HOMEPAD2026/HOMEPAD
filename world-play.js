@@ -21,15 +21,8 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = false;
 }
 const VER = new URL(import.meta.url).search;
-const K = await import("./world-kit.js" + VER);
-const IS = await import("./world-island.js" + VER);
-const SHOP = await import("./world-shop.js" + VER);
-const STYLE = await import("./world-style.js" + VER);
-const HELP = await import("./world-support.js" + VER);
-const FIGHT = await import("./world-combat.js" + VER);
-const RPG = await import("./world-rpg.js" + VER);
-const ZN = await import("./world-zones.js" + VER);
-const QST = await import("./world-quests.js" + VER);
+// the game's modules load side by side (one after another cost a round trip each on a phone)
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests"].map((m) => import(`./${m}.js${VER}`)));
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -281,7 +274,7 @@ let facing = Math.PI, boarding = false, worldReady = false;
 const fighters = [];
 
 // ---- the kit models (Kenney + Quaternius, CC0) ----
-const kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null), 12000))]);
+let kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null), 12000))]);
 loadbar(0.75);
 async function dressWorld(kit) {
   if (!kit) return;
@@ -297,12 +290,13 @@ async function dressWorld(kit) {
   // scammers: the first one not yet beaten roams; the rest wait in cages
   K.SCAMMERS.forEach((spec) => {
     if (P.beaten.includes(spec.id)) return;
-    const e = K.enemy(kit, spec.model);
     const g = new THREE.Group(); g.name = "scam:" + spec.id;
-    if (e) { e.obj.scale.setScalar(spec.scale); e.obj.position.y = spec.y; if (spec.tint) e.obj.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.color.lerp(new THREE.Color(spec.tint), 0.55); } }); g.add(e.obj); mixers.push(e.mixer); e.play("Idle"); }
+    // the robots load after the town (world-kit.js), so a scammer may get its body a moment later
+    const body = () => { const e = K.enemy(kit, spec.model); if (!e) return null; e.obj.scale.setScalar(spec.scale); e.obj.position.y = spec.y; if (spec.tint) e.obj.traverse((m) => { if (m.isMesh && m.material) { m.material = m.material.clone(); m.material.color.lerp(new THREE.Color(spec.tint), 0.55); } }); g.add(e.obj); mixers.push(e.mixer); e.play(P.beaten.includes(spec.id) ? "TurnOff" : "Idle"); g.userData.enemy = e; return e; };
+    const e = body(); if (!e && kit.enemiesReady) kit.enemiesReady.then(body);
     const sign = K.label(spec.sign, { accent: "#ff4d6d", color: "#ffc861", size: 0.6 }); sign.position.y = spec.y + 1.9 * spec.scale + 0.6; g.add(sign);
     const ring = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.25, 40), new THREE.MeshBasicMaterial({ color: spec.color, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
-    g.userData = { spec, enemy: e, radius: 1.3 + spec.scale * 0.5, ring };
+    g.userData = { spec, enemy: e || g.userData.enemy || null, radius: 1.3 + spec.scale * 0.5, ring };
     K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); fighters.push(g);
   });
   arrangeFighters();
@@ -352,7 +346,7 @@ function arrangeFighters() {
   lockedStages.splice(0, lockedStages.length, ...fighters.filter((g) => !g.userData.live));
   if (labels) labels.dirty = true;
 }
-if (kit) await dressWorld(kit); else kitP.then((k) => k && dressWorld(k));
+if (kit) await dressWorld(kit); else kitP.then((k) => { if (k) { kit = k; dressWorld(k); } }); // a slow connection: the town arrives when it arrives
 
 // ---------------- input ----------------
 const keys = new Set();
@@ -391,16 +385,17 @@ cv.addEventListener("pointerdown", (e) => {
   if (frozen && !photo) return;
   downAt = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }; // event time: a slow frame in between does not turn a tap into a hold
   cv.setPointerCapture(e.pointerId);
-  // a second finger while the stick hasn't moved yet means a pinch, even on the stick's side
-  if (e.pointerType === "touch" && joy && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2) {
+  // a second finger close to a stick that hasn't moved yet means a pinch; one far away (the right thumb going for the
+  // attack button while the left one rests on the stick) is not — that used to zoom the camera in mid-fight
+  if (e.pointerType === "touch" && joy && e.pointerId !== joy.id && Math.hypot(joy.dx, joy.dy) < 0.2 && Math.hypot(e.clientX - joy.cx, e.clientY - joy.cy) < innerWidth * 0.42) {
     touches.set(joy.id, { x: joy.cx, y: joy.cy }); joy = null; joyEl.classList.remove("on"); knob.style.transform = "";
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...touches.values()];
-    pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camDist }; look = null; return;
+    pinch = { d: Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), cd: camDist, live: false }; look = null; return;
   }
   const willJoy = !photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy;
   if (e.pointerType === "touch" && !willJoy) {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist }; look = null; return; }
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; if (Math.hypot(a.x - b.x, a.y - b.y) < innerWidth * 0.42) { pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cd: camDist, live: false }; look = null; return; } touches.delete(e.pointerId); }
   }
   if (!photo && e.pointerType !== "mouse" && e.clientX < innerWidth * 0.5 && !joy) {
     joy = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: e.clientX, cy: e.clientY, t: e.timeStamp, dx: 0, dy: 0 };
@@ -409,7 +404,12 @@ cv.addEventListener("pointerdown", (e) => {
 });
 cv.addEventListener("pointermove", (e) => {
   if (touches.has(e.pointerId)) { touches.get(e.pointerId).x = e.clientX; touches.get(e.pointerId).y = e.clientY; }
-  if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; camDist = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 0.6, mode === "island" ? 2.6 : 1.9); return; }
+  if (pinch && touches.size === 2) {
+    const [a, b] = [...touches.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (!pinch.live && Math.abs(d - pinch.d) < 18) return; // a dead zone: fingers resting still don't zoom
+    if (!pinch.live) { pinch.live = true; pinch.d = d; pinch.cd = camDist; }
+    camDist = THREE.MathUtils.clamp(pinch.cd * pinch.d / Math.max(20, d), 0.6, mode === "island" ? 2.6 : 1.9); return;
+  }
   if (e.pointerType === "mouse" && mode === "island") { hoverXY = { x: e.clientX, y: e.clientY }; if (!look) island.hover(e.clientX, e.clientY); }
   if (joy && e.pointerId === joy.id) {
     joy.cx = e.clientX; joy.cy = e.clientY;
@@ -608,6 +608,18 @@ const arclShop = SHOP.createShop({
   T, lang: LANG, esc, toast, post, sess, Snd, P, coarse, reduce, AC, addr,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
   openAuth: () => openAuth(), openForge: () => rpg && rpg.show("forge"),
+  // the daily chest's bonus (the ARCL part comes from the server): potions, scrap, XP or a gear chest
+  dailyBonus: (k) => {
+    const r = rpg.data(), out = [], add = (f, n) => { r[f] = (r[f] || 0) + n; };
+    if (k === "hp2") { add("hp", 2); out.push({ k: "pot", text: T("+2 health potions") }); }
+    else if (k === "scrap60" || k === "scrap120") { const n = k === "scrap60" ? 60 : 120; add("scrap", n); out.push({ k: "scrap", text: T("+{n} scrap", { n }) }); }
+    else if (k === "mix") { add("sp", 2); add("recall", 1); out.push({ k: "pot", text: T("+2 mana potions") }, { k: "scroll", text: T("+1 recall scroll") }); }
+    else if (k === "pots6") { add("hp", 3); add("sp", 3); out.push({ k: "pot", text: T("+3 health potions") }, { k: "pot", text: T("+3 mana potions") }); }
+    else if (k === "xp150") { setTimeout(() => gain(150, T("Daily reward")), 900); out.push({ k: "xp", text: T("+150 XP") }); }
+    else if (k === "gear") { const it = rpg.giftPiece(level()); out.push(it ? { k: "gear", text: rpg.itemName(it), color: RPG.RARITY[it.r].color } : { k: "scrap", text: T("Your bag was full, so the piece became scrap") }); }
+    save(); rpg.refresh(); if (combat) combat.paintPots();
+    return out;
+  },
   myCoins: () => myCoins, coins: () => (coinData || []).slice(0, 30),
   onOwn: (o) => applyOwn(o),
   using: (id) => P.style.plate === id || P.style.trail === id || P.isleTheme === id,
@@ -685,8 +697,11 @@ function nearest() {
 }
 function paintPrompt() {
   const p = $("wp-prompt");
-  if (!near || frozen) { p.hidden = true; return; }
-  p.hidden = false;
+  // the prompt fades in at the middle of the screen while you're close, and fades out as you walk on
+  if (!near || frozen) { if (p.classList.contains("on")) { p.classList.remove("on"); clearTimeout(p._t); p._t = setTimeout(() => { if (!p.classList.contains("on")) p.hidden = true; }, 320); } else p.hidden = true; return; }
+  clearTimeout(p._t);
+  if (p.hidden) { p.hidden = false; void p.offsetWidth; }
+  p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
   $("wp-enter-t").innerHTML = near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
 }
@@ -1517,6 +1532,7 @@ combat = FIGHT.createCombat({
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
 quests = QST.createQuests({
   T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why),
+  dailyDone: () => arclShop.dailyDone(), openDaily: () => { rpg.hide(); arclShop.openDaily(); }, signedIn: () => !!sess(),
   repaint: () => rpg.repaint(), onTitle: () => setNameTag(),
   onAch: () => { setNameTag(); if (pet) pet.set(quests.hasPet()); paintBagDot(); },
 });
@@ -1660,9 +1676,15 @@ function camCollide(target) {
 // ---------------- frame rate watch: drop quality once if the device can't keep up ----------------
 let fpsAcc = 0, fpsN = 0, fpsT0 = performance.now(), degraded = false;
 function watchFps(dt) {
+  if (st.idle) st.idle(!!(frozen && !photo && !introOn && !flying)); // a menu is open: the world behind it rests
+  if (frozen) { fpsAcc = 0; fpsN = 0; fpsT0 = performance.now(); return; }
   if (degraded || S.quality !== "auto" || photo || navigator.webdriver) return;
   fpsAcc += dt; fpsN++;
-  if (performance.now() - fpsT0 > 9000 && fpsAcc > 4) { if (fpsN / fpsAcc < 24) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); } fpsAcc = 0; fpsN = 0; }
+  if (performance.now() - fpsT0 > 9000 && fpsAcc > 4) {
+    // slow: first fewer pixels (twice at most), and only then no bloom and no shadows
+    if (fpsN / fpsAcc < 26 && !(st.lighter && st.lighter())) { degraded = true; st.degrade(); toast(T("Graphics lowered to keep things smooth")); }
+    fpsAcc = 0; fpsN = 0; fpsT0 = performance.now();
+  }
 }
 
 // ---------------- the loop ----------------
@@ -1782,7 +1804,7 @@ window.arcWorld = {
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
-  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
+  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, robots: () => !!(kit && kit.enemies && kit.enemies.EyeDrone), quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
   // for screenshots and tests: point the camera, ride the board
   cam: (o = {}) => { if (o.yaw != null) camYaw = o.yaw; if (o.pitch != null) camPitch = o.pitch; if (o.dist != null) camDist = o.dist; if (o.facing != null) facing = o.facing; }, board: (on) => setBoard(!!on), gain: (n) => gain(n, ""), holdXp: (on) => { xpHeld = !!on; },
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),

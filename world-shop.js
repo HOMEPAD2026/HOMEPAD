@@ -47,7 +47,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
 export function createShop(ctx) {
   const { esc, toast, post, sess, Snd, P, coarse } = ctx;
   // single words stay out of the site-wide dictionary
-  const LW = { ko: { Items: "아이템",  Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Items: "道具",  Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" } }[ctx.lang] || {};
+  const LW = { ko: { Close: "닫기",  Items: "아이템",  Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Close: "关闭",  Items: "道具",  Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
   let arcl = null, cat = null, own = null, top = null, shown = 0;
@@ -127,23 +127,67 @@ export function createShop(ctx) {
   const daily = document.createElement("div");
   daily.className = "wa-daily"; daily.id = "wa-daily"; daily.hidden = true; daily.setAttribute("role", "dialog"); daily.setAttribute("aria-modal", "true"); daily.setAttribute("data-no-i18n", "");
   document.body.appendChild(daily);
+  // the 7-day calendar: ARCL from the server (20, +5 a day of streak, up to 50) and a bonus from the game each day
+  const DAYS = [
+    { bonus: "hp2", line: "2 health potions" }, { bonus: "scrap60", line: "60 scrap" }, { bonus: "mix", line: "2 mana potions and a recall scroll" },
+    { bonus: "scrap120", line: "120 scrap" }, { bonus: "xp150", line: "+150 XP" }, { bonus: "pots6", line: "3 health and 3 mana potions" },
+    { bonus: "gear", line: "A gear chest: Rare or Epic" },
+  ];
+  const arclFor = (streak) => 20 + Math.min(30, 5 * (Math.max(1, streak) - 1));
+  const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c4.4 0 7-2.9 7-6.8 0-3.8-2.8-6.3-4.2-9.7-.4 2.4-1.6 3.6-2.8 4.3.2-3.5-1.6-6.4-4.4-7.8.4 3.3-2.6 6-2.6 10.8C5 19.1 7.6 22 12 22z"/></svg>';
+  const BICON = { hp2: "pot hp", scrap60: "scrap", mix: "pot sp", scrap120: "scrap", xp150: "xp", pots6: "pot both", gear: "gear" };
+  let dState = null;
   function openDaily() {
-    const streak = arcl && arcl.lastDay ? arcl.streak : 0, next = arcl && arcl.lastDay === seoulDay(Date.now() - 864e5) ? streak + 1 : 1;
-    const amt = 20 + Math.min(30, 5 * (next - 1));
-    daily.innerHTML = `<div class="wa-daily-card"><h2>${esc(T("Daily check-in"))}</h2><p>${esc(T("Come back every day: the streak adds more ARCL."))}</p>
-      <div class="wa-chest" id="wa-chest"><span class="wa-chest-lid"></span><span class="wa-chest-box"></span><img src="/images/arcl-128.png" alt="" class="wa-chest-coin"></div>
-      <ol class="wa-streak">${Array.from({ length: 7 }, (_, i) => `<li class="${i < next ? "on" : ""}"><i></i><small>${i + 1}</small></li>`).join("")}</ol>
-      <button type="button" class="wp-cta" id="wa-daily-go">${esc(T("Open: +{n} ARCL", { n: amt }))}</button><button type="button" class="wp-link" id="wa-daily-x">${esc(T("Later"))}</button></div>`;
+    const last = arcl && arcl.lastDay, streak = last ? arcl.streak || 0 : 0, done = last === seoulDay();
+    const next = done ? streak : last === seoulDay(Date.now() - 864e5) ? streak + 1 : 1; // the streak today's chest makes
+    const day = ((next - 1) % 7) + 1, start = next - day + 1;                       // where today sits in its week of 7
+    dState = { next, day, done };
+    const tile = (i) => {
+      const d = i + 1, st = d < day || (d === day && done) ? "done" : d === day ? "today" : "next";
+      return `<li class="wd-day ${st}${d === 7 ? " big" : ""}" data-d="${d}"><span class="wd-n">${esc(T("Day {n}", { n: d }))}</span>
+        <span class="wd-ico"><img src="/images/arcl-64.png" alt="" width="34" height="34"><i class="wd-b ${BICON[DAYS[i].bonus]}"></i></span>
+        <b>+${arclFor(start + i)}</b><small>${esc(T(DAYS[i].line))}</small>
+        <em class="wd-stamp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg></em></li>`;
+    };
+    daily.innerHTML = `<div class="wd-card" role="document">
+      <div class="wd-rays" aria-hidden="true"></div>
+      <div class="wd-head"><span class="wd-flame${next > 1 ? " hot" : ""}">${FLAME}<b>${next}</b></span>
+        <div><h2>${esc(T("Daily reward"))}</h2><p>${esc(done ? T("Today's chest is open. Come back tomorrow for day {n}.", { n: (day % 7) + 1 }) : next > 1 ? T("{n}-day streak — keep it going.", { n: next }) : T("Open a chest every day; the seventh holds gear."))}</p></div></div>
+      <ol class="wd-days">${DAYS.map((_, i) => tile(i)).join("")}</ol>
+      <div class="wd-stage"><div class="wa-chest wd-chest${day === 7 ? " gold" : ""}" id="wa-chest"><span class="wa-chest-lid"></span><span class="wa-chest-box"></span><img src="/images/arcl-128.png" alt="" class="wa-chest-coin"></div><ul class="wd-got" id="wd-got"></ul></div>
+      ${done ? `<button type="button" class="wp-cta" id="wa-daily-x2">${esc(T("Close"))}</button>` : `<button type="button" class="wp-cta wd-go" id="wa-daily-go">${esc(T("Open day {n}: +{a} ARCL and {b}", { n: day, a: arclFor(next), b: T(DAYS[day - 1].line) }))}</button><button type="button" class="wp-link" id="wa-daily-x">${esc(T("Later"))}</button>`}
+      <p class="wd-note">${esc(T("Miss a day and the streak starts again at day 1. ARCL is the game's points; the exchange isn't open."))}</p></div>`;
     daily.hidden = false; ctx.freeze(true);
   }
   function closeDaily() { if (daily.hidden) return; daily.hidden = true; ctx.freeze(false); }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   daily.addEventListener("click", async (e) => {
-    if (e.target.id === "wa-daily-x" || e.target === daily) { closeDaily(); return; }
-    if (e.target.id !== "wa-daily-go") return;
-    e.target.disabled = true; $("wa-chest").classList.add("open"); Snd.chest();
-    const r = $("wa-chest").getBoundingClientRect();
-    const got = await claim("daily", {}, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
-    setTimeout(closeDaily, got ? 1300 : 600);
+    const id = e.target.closest("button") ? e.target.closest("button").id : "";
+    if (id === "wa-daily-x" || id === "wa-daily-x2" || id === "wa-daily-done" || e.target === daily) { closeDaily(); return; }
+    if (id !== "wa-daily-go") return;
+    const go = $("wa-daily-go"), chest = $("wa-chest"), card = daily.querySelector(".wd-card"), s = sess();
+    if (!s) { toast(T("Sign in with your wallet to collect ARCL")); return; }
+    go.disabled = true; go.textContent = T("Opening…"); chest.classList.add("shake"); Snd.chest && Snd.chest();
+    let r = null; try { r = await post({ action: "world-arcl-claim", ...s, kind: "daily" }); } catch { r = null; }
+    await wait(500);
+    chest.classList.remove("shake");
+    if (!r || !r.ok) {
+      const msg = r && r.status === 409 ? T("Today's chest is already open.") : (r && r.j && r.j.error) || T("Couldn't open it. Try again.");
+      toast(msg); if (r && r.status === 409) { await refresh(); openDaily(); } else { go.disabled = false; go.textContent = T("Try again"); }
+      return;
+    }
+    arcl = { ...(arcl || {}), ...r.j, lastDay: seoulDay() }; paintChip(true);
+    const day = ((Math.max(1, r.j.streak || 1) - 1) % 7) + 1;
+    chest.classList.add("open"); card.classList.add("burst"); Snd.coin && Snd.coin();
+    const rc = chest.getBoundingClientRect();
+    if (r.j.credited > 0) flyCoins(r.j.credited, { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 });
+    const t = daily.querySelector(`.wd-day[data-d="${day}"]`); if (t) { t.classList.remove("today"); t.classList.add("done", "stamp"); }
+    const lines = [{ k: "arcl", text: r.j.credited > 0 ? T("+{n} ARCL", { n: r.j.credited }) : T("ARCL: today's limit is already reached") }];
+    try { const got = ctx.dailyBonus ? ctx.dailyBonus(DAYS[day - 1].bonus) : null; if (got) lines.push(...got); } catch { /* the ARCL stands */ }
+    const ul = $("wd-got");
+    for (const [i, x] of lines.entries()) { await wait(i ? 380 : 650); const li = document.createElement("li"); li.className = "wd-g " + (x.k || ""); if (x.color) li.style.setProperty("--rc", x.color); li.textContent = x.text; ul.appendChild(li); requestAnimationFrame(() => li.classList.add("in")); }
+    go.disabled = false; go.id = "wa-daily-done"; go.textContent = T("Got it");
+    const later = $("wa-daily-x"); if (later) later.remove();
   });
   function maybeDaily() {
     const s = sess(); if (!s || !arcl) return;
@@ -274,7 +318,7 @@ export function createShop(ctx) {
   }
 
   return {
-    refresh, claim, flushQueue, maybeDaily, openShop, openExchange, owns, close: () => { close(); closeDaily(); },
+    refresh, claim, flushQueue, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
     arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden,
   };

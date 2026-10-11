@@ -24,7 +24,9 @@ export async function start(canvas, { reduce = false } = {}) {
   K.loadKit(new URL(import.meta.url).search).then((kit) => {
     shops.forEach((b) => K.decorate(b, kit));
     K.makeTown(kit).forEach((g) => { planet.add(g); spins.push(...g.userData.spin); });
-    const e = K.enemy(kit, "EyeDrone"); if (!e) return;
+    return kit.enemiesReady;
+  }).then((kit) => {
+    const e = kit && K.enemy(kit, "EyeDrone"); if (!e) return;
     drone = new THREE.Group(); e.obj.scale.setScalar(2.2); drone.add(e.obj); world.add(drone); e.play("Idle"); mixers.push(e.mixer);
   }).catch(() => { /* the planet is enough */ });
 
