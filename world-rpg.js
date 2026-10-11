@@ -65,6 +65,34 @@ export function createRpg(ctx) {
     r.bag.splice(i, 1); if (r.eq[p.slot]) r.bag.splice(i, 0, r.eq[p.slot]); r.eq[p.slot] = it;
     ctx.Snd.place && ctx.Snd.place(); changed();
   }
+  // one number for how strong a set of stats is (for "Equip best": attack and defence weigh most, then health)
+  const powerOf = (s) => (s.atk || 0) * 2 + (s.def || 0) * 1.6 + (s.hp || 0) * 0.3 + (s.sp || 0) * 0.08 + (s.crit || 0) * 3 + (s.spd || 0) * 1.2;
+  // Equip best: for every slot, wear the piece from the bag that makes the character strongest (set bonuses count),
+  // only pieces your level allows; a few passes so a set that only pays off together still wins
+  function equipBest() {
+    const r = R(), lv = ctx.level(), ex = ctx.extraStats ? ctx.extraStats() : null, eq = { ...r.eq };
+    let cur = powerOf(statsOf(lv, eq, ex)); const before = cur, put = new Set();
+    for (let pass = 0; pass < 3; pass++) {
+      let moved = false;
+      for (const slot of SLOTS) {
+        let best = null, bp = cur;
+        for (const it of r.bag) {
+          const p = parseBase(it.b); if (!p || p.slot !== slot || TIERS[p.tier].lv > lv || put.has(it.id)) continue;
+          const v = powerOf(statsOf(lv, { ...eq, [slot]: it }, ex)); if (v > bp + 0.01) { bp = v; best = it; }
+        }
+        if (best) { if (eq[slot]) put.delete(eq[slot].id); eq[slot] = best; put.add(best.id); cur = bp; moved = true; }
+      }
+      if (!moved) break;
+    }
+    const swaps = SLOTS.filter((sl) => eq[sl] && (!r.eq[sl] || r.eq[sl].id !== eq[sl].id));
+    if (!swaps.length) { ctx.toast(T("You're already wearing your best gear")); return; }
+    for (const sl of swaps) {
+      const it = eq[sl], i = r.bag.findIndex((x) => x.id === it.id); if (i < 0) continue;
+      r.bag.splice(i, 1); if (r.eq[sl]) r.bag.splice(i, 0, r.eq[sl]); r.eq[sl] = it;
+    }
+    sel = null; ctx.Snd.place && ctx.Snd.place();
+    changed(T("Equipped {n} better pieces · power +{p}", { n: swaps.length, p: Math.round(cur - before) }));
+  }
   function unequip(slot) { const r = R(); if (!r.eq[slot]) return; if (r.bag.length >= BAG) { ctx.toast(T("Your bag is full")); return; } r.bag.push(r.eq[slot]); delete r.eq[slot]; changed(); }
   function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; const s = scrapOf(r.bag[i]); r.scrap += s; r.bag.splice(i, 1); sel = null; changed(T("+{n} scrap", { n: s })); }
   function enhance(id) {
@@ -129,7 +157,7 @@ export function createRpg(ctx) {
         ${s.sets.length ? `<p class="wr-sets">${Object.entries(s.sets.reduce((m, x) => ((m[x.set] = Math.max(m[x.set] || 0, x.need)), m), {})).map(([set, need]) => esc(T("{x} set ({n})", { x: set, n: need }))).join(" · ")}</p>` : `<p class="wr-sets dim">${esc(T("Wear 2, 4 or 7 pieces of one set for a bonus."))}</p>`}${ctx.titleLine ? ctx.titleLine() : ""}${skillsHTML()}</section>
       <section class="wr-bag"><div class="wr-bag-h"><h3>${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></h3><span class="wr-res"><b>${r.scrap}</b> ${esc(T("Scrap"))} · <b>${r.hp}</b> ${esc(T("health potions"))} · <b>${r.sp}</b> ${esc(T("mana potions"))}${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</span></div>
         <div class="wr-cells">${Array.from({ length: BAG }, (_, i) => `<div class="wr-cell">${r.bag[i] ? tile(r.bag[i], `data-pick="${r.bag[i].id}"`) : ""}</div>`).join("")}</div>
-        <div class="wr-bag-f"><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button><button type="button" class="gold" data-forge>${esc(T("Forge"))}</button></div>
+        <div class="wr-bag-f"><button type="button" class="go" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button><button type="button" class="gold" data-forge>${esc(T("Forge"))}</button></div>
         ${detail(sel && findItem(sel))}</section></div>`;
   }
   // ---------------- skills and their branches ----------------
@@ -189,12 +217,14 @@ export function createRpg(ctx) {
   }
   function paint() {
     if (!open) return;
-    el.innerHTML = `<div class="wr-card"><div class="wr-head"><span class="wr-ico">${view === "log" ? '<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>' : view === "forge" ? '<svg viewBox="0 0 24 24"><path d="M3 9h13l5-3v4l-5 2H9v3l3 2H6l3-2v-3H3z"/></svg>' : iconSvg("armor", "#9fe6ff")}</span><div><h2>${esc(view === "forge" ? T("Forge") : view === "log" ? T("Adventure log") : T("Character"))}</h2><p>${esc(view === "forge" ? T("Gear and supplies for ARCL. Enhance with scrap.") : view === "log" ? T("Daily hunts, the season, achievements, companions, the scam codex and top hunters. L opens it.") : T("Your gear, your stats and your bag. I opens and closes it."))}</p></div>
+    el.innerHTML = `<div class="wr-card${opening ? " opening" : ""}"><div class="wr-head"><span class="wr-ico">${view === "log" ? '<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>' : view === "forge" ? '<svg viewBox="0 0 24 24"><path d="M3 9h13l5-3v4l-5 2H9v3l3 2H6l3-2v-3H3z"/></svg>' : iconSvg("armor", "#9fe6ff")}</span><div><h2>${esc(view === "forge" ? T("Forge") : view === "log" ? T("Adventure log") : T("Character"))}</h2><p>${esc(view === "forge" ? T("Gear and supplies for ARCL. Enhance with scrap.") : view === "log" ? T("Daily hunts, the season, achievements, companions, the scam codex and top hunters. L opens it.") : T("Your gear, your stats and your bag. I opens and closes it."))}</p></div>
       <nav class="wr-switch"><button type="button" data-view="inv" aria-pressed="${view === "inv"}">${esc(T("Character"))}</button><button type="button" data-view="forge" aria-pressed="${view === "forge"}">${esc(T("Forge"))}</button>${log ? `<button type="button" data-view="log" aria-pressed="${view === "log"}">${esc(T("Adventure log"))}${log.pending() ? `<i class="wr-dot">${log.pending()}</i>` : ""}</button>` : ""}</nav>
       <button type="button" class="wa-x" data-x aria-label="${esc(T("Close"))}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       <div class="wr-body">${view === "forge" ? forgeHTML() : view === "log" && log ? log.html() : invHTML()}</div></div>`;
   }
-  function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); }
+  // the panel slides in when it opens, not again on every repaint (equipping, selling…)
+  let opening = false;
+  function show(v) { view = v || view; if (ctx.onView) ctx.onView(view); opening = !open; open = true; el.hidden = false; ctx.freeze(true); if (view === "forge") ctx.arclRefresh().then(() => open && paint()); paint(); opening = false; }
   function hide() { const tp = document.querySelector(".wr-tip"); if (tp) tp.hidden = true; if (!open) return; open = false; el.hidden = true; sel = null; ctx.freeze(false); }
   function hammer() { const a = el.querySelector(".wr-detail"); if (a) { a.classList.remove("hit"); void a.offsetWidth; a.classList.add("hit"); } }
   async function buy(id) {
@@ -217,9 +247,19 @@ export function createRpg(ctx) {
     selling = true;
     const res = await ctx.post({ action: "world-sell", ...s, item: { id: it.id, b: it.b, r: it.r, lv: it.lv, p: it.p || 0 } }).catch(() => ({ ok: false, j: {} }));
     selling = false;
-    if (!res.ok) { ctx.toast(res.j.error || T("Couldn't sell that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
+    if (res.status === 409) {
+      // the server has this piece as sold already: take it out of the bag so it stops failing
+      const k = r.bag.findIndex((x) => x.id === id); if (k >= 0) r.bag.splice(k, 1); sel = null;
+      changed(T("Already sold — taken out of your bag")); return;
+    }
+    if (!res.ok) { ctx.toast(res.j.error ? T(res.j.error) : T("Couldn't sell that")); ctx.Snd.bad && ctx.Snd.bad(); return; }
     if (res.j.left != null) setSellLeft(res.j.left); else if (res.j.capped) setSellLeft(0);
-    if (res.j.capped && !res.j.credited) { ctx.toast(T("That's today's {n} ARCL of sales — the Forge buys again tomorrow.", { n: SELL_DAY_CAP })); return; }
+    if (res.j.capped && !res.j.credited) {
+      ctx.Snd.bad && ctx.Snd.bad();
+      ctx.toast(res.j.full === "earn" ? T("Today's ARCL is full ({n} a day). The piece stays in your bag: sell it tomorrow.", { n: 300 })
+        : T("That's today's {n} ARCL of sales — the Forge buys again tomorrow.", { n: SELL_DAY_CAP }));
+      return;
+    }
     const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) r.bag.splice(i, 1); sel = null;
     ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited }));
     ctx.arclRefresh().then(() => open && paint());
@@ -243,6 +283,7 @@ export function createRpg(ctx) {
     if (d.enhance) { enhance(d.enhance); return; }
     if (d.salvage) { salvage(d.salvage); return; }
     if (d.sell) { sellItem(d.sell); return; }
+    if (b.hasAttribute("data-best")) { equipBest(); return; }
     if (b.hasAttribute("data-sort")) { sortBag(); return; }
     if (b.hasAttribute("data-junk")) { salvageCommons(); return; }
     if (b.hasAttribute("data-forge")) { view = "forge"; sel = null; show("forge"); return; }
@@ -270,7 +311,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, addItem, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
+    stats, addItem, equipBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     onLevel: () => changed(), refresh: () => { cache = null; ctx.onStats(stats()); },
     data: () => R(),

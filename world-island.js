@@ -927,7 +927,7 @@ export function createIsland(ctx) {
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
     tick(dt, t) { if (!active) return; tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
-    openIsles, closeSheets, news, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
+    openIsles, closeSheets, news, isFriend, toggleFriend, bookNew: () => bookNew, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };
 }

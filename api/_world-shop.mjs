@@ -162,16 +162,33 @@ export function makeShop(deps) {
     } catch { /* the credit stands */ }
     return amt;
   }
+  // an older sale record without its amount: unpaid when the ledger reaches back past it and shows no sale credit
+  // within a few seconds after it
+  async function unpaid(w, at) {
+    const log = (await ledger(w)).log || [];
+    if (!log.length || !(log[0].at < at)) return false;
+    return !log.some((x) => x.t === "earn" && x.k === "sell" && x.at >= at && x.at - at < 8000);
+  }
   async function sell(b) {
     const s = signer(b); if (s.err) return s.err;
     const w = s.wallet, it = b.item || {}, id = String(it.id || "");
     if (!/^[a-z0-9]{4,10}$/.test(id) || !/^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(it.b || ""))) return json(400, { error: "that isn't a piece of gear" });
-    const price = sellPrice(it), day = seoulDay(now()), dk = `worldSellDay/${w}_${day}`;
-    const sold = ((await one(dk)) || {}).n || 0, amt = Math.min(price, SELL_DAY_CAP - sold);
-    if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, price, ...(await balance(w)) });
-    if (!(await commit([{ create: `worldSold/${w}_${id}`, data: { at: now(), b: it.b } }])).ok) return json(409, { error: "that piece was already sold" });
+    const price = sellPrice(it), day = seoulDay(now()), dk = `worldSellDay/${w}_${day}`, sk = `worldSold/${w}_${id}`;
+    const sold = ((await one(dk)) || {}).n || 0, earned = ((await one(`worldArclDay/${w}_${day}`)) || {}).n || 0;
+    // a sale is paid inside both of today's limits: 150 ARCL of sales and the 300 ARCL a day everything shares.
+    // With no room left the piece stays in the bag, unsold, so it can still be sold tomorrow.
+    const amt = Math.max(0, Math.min(price, SELL_DAY_CAP - sold, DAILY_CAP - earned));
+    if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, full: sold >= SELL_DAY_CAP ? "sell" : "earn", price, left: Math.max(0, SELL_DAY_CAP - sold), ...(await balance(w)) });
+    if (!(await commit([{ create: sk, data: { at: now(), b: it.b, got: amt } }])).ok) {
+      // sold before: refused, unless that sale paid nothing (an older version recorded sales the day's limit had
+      // already swallowed); then it sells properly now
+      const prev = (await one(sk)) || {};
+      if (prev.got !== 0 && !(prev.got == null && prev.at > now() - 3 * 864e5 && await unpaid(w, prev.at))) return json(409, { error: "that piece was already sold" });
+      await setDoc(sk, { at: now(), b: it.b, got: amt, again: true });
+    }
     await commit([{ inc: dk, fields: { n: amt } }]);
     const got = await credit(w, "sell", amt);
+    if (got !== amt) await setDoc(sk, { at: now(), b: it.b, got }).catch(() => {});
     return json(200, { ok: true, credited: got, price, capped: got < price, left: Math.max(0, SELL_DAY_CAP - sold - amt), ...(await balance(w)) });
   }
   // this week's hunters: points only for knock-outs the server counted (the daily caps above bound them)

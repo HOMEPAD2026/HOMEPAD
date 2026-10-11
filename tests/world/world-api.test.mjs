@@ -82,6 +82,10 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
   check(g.body.ok === true, "gate: 1,000,000 opens it");
   g = await G.handle({ action: "world-gate", wallet: "0x" + "b".repeat(40), issued: iss, signature: sg });
   check(g.status === 403, "gate: someone else's signature doesn't count");
+  // the purse's fallback: a wallet's $ARCIRCLE read by the server (works with storage off too)
+  let h = await G.read(new URL("http://x/?world=holding&wallet=" + w.address));
+  check(h.status === 200 && h.body.arc === (1000000n * 10n ** 18n).toString(), "holding: the server reads the balance " + JSON.stringify(h.body).slice(0, 80));
+  h = await G.read(new URL("http://x/?world=holding&wallet=nope")); check(h.status === 400, "holding: not an address");
 }
 // the signed-in count: a wallet that signed in before the count existed is counted once when it signs in again
 { const w3 = ethers.Wallet.createRandom(), a3 = w3.address.toLowerCase(); db.set(`worldPlayers/${a3}`, { at: 1 }); const before = (await W.stats()).players; const iss = new Date(T).toISOString(); const sg = await w3.signMessage(loginMessage(a3, iss));

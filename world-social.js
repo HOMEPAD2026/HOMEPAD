@@ -251,7 +251,7 @@ export function createGhosts(ctx) {
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.7, 4, 10), mat); body.position.y = 0.75;
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), mat); head.position.y = 1.55;
     const halo = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.55, 28), new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.04;
-    const tag = K.label(ctx.T("Lv {n}", { n: lv }), { accent: "#" + new THREE.Color(tint).getHexString(), size: 0.42 }); tag.position.y = 2.3; tag.material.opacity = 0.75;
+    const tag = K.label(ctx.T("Lv {n}", { n: lv }), { accent: "#" + new THREE.Color(tint).getHexString(), size: 0.42 }); tag.position.y = 2.3; tag.material.opacity = 0.75; tag.userData.lvTag = true;
     g.add(body, head, halo, tag); g.userData = { body, head, mat };
     return g;
   }
@@ -271,6 +271,9 @@ export function createGhosts(ctx) {
         let w = list.get(x.t);
         if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); arrive(g); }
         w.x = x.x; w.z = x.z; w.at = now;
+        // signed in (and not hidden): their name and level on the plate instead of just the level
+        const nm = x.n ? `${x.n} · Lv ${x.l || x.lv}` : ""; w.wallet = x.w || ""; w.name = x.n || ""; w.lv = x.l || x.lv;
+        if (nm && w.nm !== nm) { w.nm = nm; const tag = w.g.children.find((c) => c.isSprite && c.userData.lvTag); if (tag) { w.g.remove(tag); tag.material.map && tag.material.map.dispose(); } const t2 = K.label(x.n, { accent: "#9ff3ff", size: 0.42, sub: "Lv " + (x.l || x.lv) }); t2.position.y = 2.45; t2.material.opacity = 0.9; t2.userData.lvTag = true; w.g.add(t2); }
         // a friend from an invite link: a gold ring and a "Friend" plate
         const pal = !!(ctx.isPal && ctx.isPal(x)); if (pal && !w.pal) { w.pal = true; const pl = K.label(ctx.T("Friend"), { accent: "#ffc861", size: 0.42 }); pl.position.y = 2.75; w.g.add(pl); w.plate = pl; const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.78, 32), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; w.g.add(ring); }
         // a line they said in the last minute: a bubble over them, once
@@ -284,7 +287,9 @@ export function createGhosts(ctx) {
     count: () => list.size,
     /// a friend's figure within r metres of you
     palNear: (r) => { const p = new THREE.Vector3(); ctx.here(p); for (const w of list.values()) if (w.pal && !w.gone && Math.hypot(p.x - w.g.position.x, p.z - w.g.position.z) < r) return true; return false; },
-    each: (fn) => list.forEach((w) => fn(w.g)),
+    each: (fn) => list.forEach((w) => fn(w.g, w)),
+    /// the signed-in players around now: [{ name, lv, wallet }]
+    named: () => [...list.values()].filter((w) => w.name && !w.gone).map((w) => ({ name: w.name, lv: w.lv, wallet: w.wallet })),
     tick(dt, t) {
       const on = ctx.inHub(); root.visible = on; if (!on) { if (palOn) { palOn = false; ctx.onPal && ctx.onPal(false); } return; }
       if ((palT -= dt) <= 0) { palT = 1; const n = this.palNear(20); if (n !== palOn) { palOn = n; ctx.onPal && ctx.onPal(n); } }

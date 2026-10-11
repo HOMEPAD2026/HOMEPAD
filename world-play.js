@@ -42,9 +42,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -80,7 +80,7 @@ let toastT = 0;
 function toast(msg) { const t = $("wp-toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
 
 // ---------------- accounts, saving, who's online (api/_world.mjs) ----------------
-const AC = window.arcConnect, CFG = window.CONFIG || {};
+const AC = window.arcConnect, CFG = (typeof CONFIG !== "undefined" ? CONFIG : window.CONFIG) || {}; // config-arc.js declares CONFIG with const: a global, but not a window property
 const addr = () => (AC && AC.address && AC.address()) || "";
 const vid = (() => { try { let v = localStorage.getItem(VID); if (!/^[a-z0-9]{20}$/.test(v || "")) { v = Array.from(crypto.getRandomValues(new Uint8Array(20)), (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join(""); localStorage.setItem(VID, v); } return v; } catch { return "guest0000000000000000"; } })();
 const sess = () => { try { const s = JSON.parse(localStorage.getItem(SESS) || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch { return null; } };
@@ -98,11 +98,25 @@ async function signIn() {
   const r = await post({ action: "world-login", wallet: a, issued, signature });
   if (r.status === 503) { toast(T("Signed in. Cloud saving isn't switched on yet, so progress stays in this browser.")); return; }
   if (!r.ok) throw new Error(r.j.error || T("Sign-in failed."));
-  try { localStorage.setItem(SESS, JSON.stringify({ wallet: a, issued, signature })); } catch { /* private */ }
+  try { localStorage.setItem(SESS, JSON.stringify({ wallet: a, issued, signature })); localStorage.setItem(LOGGED, issued); } catch { /* private */ }
+  loggedIn(r);
+}
+// the beta pass signs the same message but only checks the balance: the first visit with that signature also signs in
+// here (the player is counted, and a save from another device is loaded)
+const LOGGED = "arc.world.logged";
+async function resumeSession() {
+  const s = sess(); if (!s) return;
+  try { if (localStorage.getItem(LOGGED) === s.issued) return; } catch { return; }
+  const r = await post({ action: "world-login", ...s }).catch(() => null);
+  if (!r || !r.ok) return;
+  try { localStorage.setItem(LOGGED, s.issued); } catch { /* private */ }
+  loggedIn(r, true);
+}
+function loggedIn(r, quiet) {
   const sv = r.j.save;
   if (sv && sv.xpv !== RPG.XP_VERSION) { sv.xp = RPG.xpFromOld(sv.xp); sv.xpv = RPG.XP_VERSION; } // a save from the old level curve
   if (sv && (sv.xp || 0) > P.xp) { PROGRESS.forEach((k) => { if (sv[k] != null && sv[k] !== "") P[k] = sv[k]; }); try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private */ } toast(T("Welcome back, {name}. Your progress is loaded.", { name: P.name || "" })); }
-  else { toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
+  else { if (!quiet || r.j.firstTime) toast(r.j.firstTime ? T("Signed in. Welcome to ARCIRCLE World!") : T("Signed in.")); cloudSave(); }
   arclShop.refresh().then(() => { arclShop.flushQueue(); arclChecks(); setTimeout(() => arclShop.maybeDaily(), 1500); });
 }
 async function cloudSave() {
@@ -114,7 +128,9 @@ let stats = null, visitSent = false;
 async function ping() {
   if (document.hidden) return;
   let g; try { if (mode === "hub" && !introOn) { const v = here(new THREE.Vector3()); g = { x: Math.round(v.x * 10) / 10, z: Math.round(v.z * 10) / 10, c: P.char || "bot", lv: level() }; if (said && !said.sent && Date.now() - said.at < 60e3) { g.s = said.s; said.sent = true; } if (P.pal) g.p = P.pal; } } catch { /* not ready yet */ }
-  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
+  // signed in and not hidden (Settings): the sign-in goes along, so others see your name and level over your figure
+  const se = g && S.showName !== false ? sess() : null;
+  try { const r = await post({ action: "world-ping", id: vid, visit: !visitSent, ...(g ? { g } : {}), ...(se ? { s: se } : {}) }); if (r.ok) { visitSent = true; stats = r.j; paintOnline(); } } catch { /* offline */ }
 }
 function paintAuthCount() {
   const c = $("wp-auth-count"); if (!stats || !stats.players) { c.hidden = true; return; }
@@ -218,6 +234,8 @@ const intro = new THREE.Group(); intro.visible = false; st.scene.add(intro);
 K.setFlat(1.35);
 // the world: everything on the ground lives in this group, which slides under the player
 const planet = new THREE.Group(); planet.name = "world"; st.scene.add(planet);
+// where you stand on the plaza: in front of the fountain, facing it (the world slides, so this is its offset)
+const HOME = new THREE.Vector3(-1.2, 0, -7.6); planet.position.copy(HOME); // a little off centre, so walking straight on slides past the fountain
 planet.add(K.makeGround());
 const sky = K.makeSky(); st.scene.add(sky);
 const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
@@ -235,6 +253,8 @@ const isleGate = K.makePortal(T("My Island")); K.placeOn(isleGate, K.dirOf(14, 1
 isleGate.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.transparent) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x7ee0a0), 0.5); o.material.emissive.lerp(new THREE.Color(0x7ee0a0), 0.5); } });
 // the plaza: the ARCIRCLE rings fountain in the middle, an arch over each district's way out, the plaza screen
 const fountain = K.makeFountain(); planet.add(fountain); spins.push(...fountain.userData.spin);
+// the fountain's middle tier is solid; its pool you can still wade through
+const fountainCore = new THREE.Group(); fountainCore.userData.radius = 2.1; planet.add(fountainCore);
 const arches = [[0, 0x39ff88], [78, 0xffc861], [212, 0x35d8d0], [296, 0xff7ad9]].map(([ph, c]) => { const a = K.makeArch(c); K.placeOn(a, K.dirOf(13.2, ph)); planet.add(a); return a; });
 const screen = K.makeScreen(); K.placeOn(screen, K.dirOf(9.5, 48)); planet.add(screen);
 // the fast-travel pad at the edge of the plaza
@@ -250,8 +270,11 @@ loadbar(0.35);
 const player = new THREE.Group(); st.scene.add(player);
 const board = K.makeHoverboard(); board.visible = false; player.add(board);
 let avatar = null, nameTag = null;
+// the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
+function paintFace() { const img = $("wc-face-img"), id = P.char || "arc-arc"; if (!img) return; if (thumbCache[id]) { img.src = thumbCache[id]; return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) img.src = thumbCache[id]; }); }
 async function setAvatar(id) {
   const a = await K.makeCharacter(id, VER).catch(() => K.makeCharacter("bot"));
+  setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
   avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = boarding ? 0.45 : 0;
   if (rpg) rpg.dress();
@@ -309,7 +332,7 @@ async function dressWorld(kit) {
   const zs = ZN.makeZones({ THREE, K, planet, kit, T }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
-    if (!g) return; smokes.push(K.smoke(g, new THREE.Vector3(0.4, g.name ? 4.0 : 5.0, -0.3)));
+    if (!g) return; const tw = /^town:/.test(g.name); smokes.push(K.smoke(g, tw ? new THREE.Vector3(0, 5.6 * (g.children[0] ? g.children[0].scale.x : 1), 0) : new THREE.Vector3(-1.5, 6.6, -0.9)));
   });
   // scammers: the first one not yet beaten roams; the rest wait in cages
   K.SCAMMERS.forEach((spec) => {
@@ -539,7 +562,7 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95) || (gpad.on && gpad.run);
   return { x, y, m, run };
 }
-const SOLIDS = () => [shops, [portal, isleGate], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
+const SOLIDS = () => [shops, [portal, isleGate, fountainCore], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
 const lp = new THREE.Vector3();
 // a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
 const wp0 = new THREE.Vector3();
@@ -553,6 +576,7 @@ function blockedAt(v) {
   }
   return false;
 }
+let hitDepth = 0;
 function blockedBy() {
   let hit = null, best = Infinity;
   for (const list of SOLIDS()) for (const g of list) {
@@ -567,6 +591,7 @@ function blockedBy() {
     }
     const d = tmp.distanceTo(at) - (g.userData.radius + 0.55); if (d < 0 && d < best) { best = d; hit = g; }
   }
+  hitDepth = best;
   return hit;
 }
 // the way out of what you walked into: away from the nearest box side, or away from the centre
@@ -582,11 +607,14 @@ function hitNormal(hit, out) {
 const here = (v = new THREE.Vector3()) => v.set(-planet.position.x, hop, -planet.position.z);
 function tryMove(d, dist) {
   prevP.copy(planet.position);
+  // already standing inside something (a respawn, a landing): any step that takes you further out is allowed
+  let was = null, d0 = 0;
+  if (mode !== "island") { planet.updateMatrixWorld(true); was = blockedBy(); d0 = hitDepth; }
   planet.position.addScaledVector(d, -dist);
   let hit = null;
   if (mode === "island") hit = island.blocked(here(tmp2)) ? { axis: true } : null;
   else if (planet.position.lengthSq() > EDGE * EDGE) hit = { edge: true };
-  else { planet.updateMatrixWorld(true); hit = blockedBy(); }
+  else { planet.updateMatrixWorld(true); hit = blockedBy(); if (hit && hit === was && hitDepth > d0 + 1e-4) hit = null; }
   if (hit) planet.position.copy(prevP);
   return hit;
 }
@@ -985,7 +1013,7 @@ function swimWhale() {
 setInterval(refreshArc, 60000);
 
 // ---------------- the Quantum Lab: launches in superposition, read from QuantumPad on Arc ----------------
-const rpc = (calls) => fetch(CFG.RPC_URL || "https://rpc.mainnet.arc.io", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(calls.map((c, i) => ({ jsonrpc: "2.0", id: i, method: "eth_call", params: [c, "latest"] }))) }).then((r) => r.json()).then((j) => { const m = {}; (Array.isArray(j) ? j : [j]).forEach((x) => (m[x.id] = x.result)); return calls.map((_, i) => m[i] || "0x"); });
+const rpc = (calls) => Promise.all(calls.map((c) => rpcRead("eth_call", [c, "latest"]).catch(() => null))); // one read each, with the fallbacks
 const word = (h, i) => "0x" + ((h || "0x").slice(2 + i * 64, 2 + (i + 1) * 64) || "0");
 const decStr = (h) => { try { const off = Number(BigInt(word(h, 0))) * 2, len = Number(BigInt("0x" + h.slice(2 + off, 2 + off + 64))); const bytes = h.slice(2 + off + 64, 2 + off + 64 + len * 2); return new TextDecoder().decode(new Uint8Array(bytes.match(/../g).map((x) => parseInt(x, 16)))); } catch { return ""; } };
 async function refreshQuantum() {
@@ -1360,27 +1388,45 @@ function dust(n) {
 
 // ---------------- wallet purse; the crown shows what you hold ----------------
 const bal = { usdc: null, arc: null };
+// a read on Arc: the config's RPC first, then its listed fallbacks; the last one that answered goes first next time
+const RPCS = [CFG.RPC_URL || "https://rpc.mainnet.arc.io", ...(Array.isArray(CFG.RPC_FALLBACKS) ? CFG.RPC_FALLBACKS : [])];
+let rpcI = 0;
+async function rpcRead(method, params) {
+  for (let k = 0; k < RPCS.length; k++) {
+    const i = (rpcI + k) % RPCS.length, ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 12000);
+    try {
+      const j = await (await fetch(RPCS[i], { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: ctl.signal })).json();
+      if (j && typeof j.result === "string" && /^0x[0-9a-fA-F]*$/.test(j.result)) { rpcI = i; return j.result === "0x" ? "0x0" : j.result; }
+    } catch { /* the next endpoint */ } finally { clearTimeout(tm); }
+  }
+  throw new Error("no Arc endpoint answered");
+}
 let purseAt = 0;
 async function refreshPurse(force) {
-  const a = addr();
-  $("wp-wallet-t").textContent = a ? a.slice(0, 6) + "…" + a.slice(-4) : T("Connect wallet");
-  $("wp-wallet").classList.toggle("on", !!a);
+  const c = addr(), sv = sess(), a = c || (sv && /^0x[0-9a-fA-F]{40}$/.test(sv.wallet || "") ? sv.wallet : "");
+  $("wp-wallet-t").textContent = c ? c.slice(0, 6) + "…" + c.slice(-4) : T("Connect wallet");
+  $("wp-wallet").classList.toggle("on", !!c);
+  // the purse reads the connected wallet, or the one signed in (the beta pass) while the wallet reconnects
   $("wp-purse").hidden = !a;
   if (!a || (!force && Date.now() - purseAt < 30000)) { checkQuests(); return; }
   purseAt = Date.now();
-  try {
-    const body = [
-      { jsonrpc: "2.0", id: 0, method: "eth_getBalance", params: [a, "latest"] },
-      { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: CFG.ARCIRCLE_TOKEN, data: "0x70a08231" + a.slice(2).toLowerCase().padStart(64, "0") }, "latest"] },
-    ];
-    const j = await (await fetch(CFG.RPC_URL || "https://rpc.mainnet.arc.io", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).json();
-    const m = {}; (Array.isArray(j) ? j : [j]).forEach((x) => (m[x.id] = x.result));
-    const n = (h) => Number(BigInt(h || "0x0") / 10n ** 14n) / 1e4;
-    const f = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : v.toLocaleString("en-US", { maximumFractionDigits: 2 });
-    bal.usdc = n(m[0]); bal.arc = n(m[1]);
-    $("wp-usdc").textContent = f(bal.usdc); $("wp-arc").textContent = f(bal.arc);
-    paintCrown(); arclChecks();
-  } catch { /* keep the last numbers */ }
+  // two plain reads (no batch: some endpoints refuse or rate-limit items inside one), each falling back through
+  // the config's other Arc endpoints; a read that fails keeps the last number instead of showing 0
+  const f = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  const n = (h) => Number(BigInt(h) / 10n ** 14n) / 1e4;
+  const tok = /^0x[0-9a-fA-F]{40}$/.test(CFG.ARCIRCLE_TOKEN || "") ? CFG.ARCIRCLE_TOKEN : "";
+  const [u, t] = await Promise.allSettled([
+    rpcRead("eth_getBalance", [a, "latest"]),
+    tok ? rpcRead("eth_call", [{ to: tok, data: "0x70a08231" + a.slice(2).toLowerCase().padStart(64, "0") }, "latest"])
+      // the browser couldn't reach Arc: the server reads the same public balance
+      .catch(() => fetch("/api/social?world=holding&wallet=" + a).then((r) => r.json()).then((j) => { if (!/^\d+$/.test(String(j && j.arc))) throw new Error("no balance"); return "0x" + BigInt(j.arc).toString(16); }))
+      : Promise.reject(new Error("no token")),
+  ]);
+  if (u.status === "fulfilled") { bal.usdc = n(u.value); $("wp-usdc").textContent = f(bal.usdc); }
+  if (t.status === "fulfilled") { bal.arc = n(t.value); $("wp-arc").textContent = f(bal.arc); }
+  $("wp-purse").classList.toggle("stale", u.status !== "fulfilled" || t.status !== "fulfilled");
+  if (u.status !== "fulfilled" || t.status !== "fulfilled") purseAt = Date.now() - 22000; // try again in a few seconds
+  if (u.status === "fulfilled" || t.status === "fulfilled") { paintCrown(); arclChecks(); }
   checkQuests();
 }
 function arclChecks() {
@@ -1399,6 +1445,7 @@ setInterval(() => refreshPurse(false), 30000);
 // ---------------- HUD ----------------
 function paintHud() {
   $("wp-lv").querySelector("b").textContent = "Lv " + level();
+  const fl = $("wc-face-lv"); if (fl) fl.textContent = String(level());
   const xq = RPG.xpProgress(P.xp); $("wp-xpfill").style.width = Math.min(100, (100 * xq.into) / xq.need).toFixed(1) + "%";
   $("wp-lv").title = `${xq.into.toLocaleString("en-US")} / ${xq.need.toLocaleString("en-US")} XP`;
   $("wp-cards").querySelector("b").textContent = `${P.cards.length}/${K.CARDS.length}`;
@@ -1424,7 +1471,7 @@ function tutorialStep(done) {
   if (P.tut >= TUT.length) { h.hidden = true; return; }
   h.innerHTML = `<small>${esc(T("Getting started"))} ${P.tut + 1}/${TUT.length}</small> ${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
   // the training fight: a weak scammer shows up a few steps away
-  if (P.tut === 3 && combat && mode === "hub") setTimeout(() => { if (P.tut === 3 && combat.state().mobs.length === 0) combat.spawnNear(6, { lv: 1 }); }, 900);
+  if (P.tut === 3 && combat && mode === "hub") setTimeout(() => { if (P.tut === 3 && combat.state().mobs.length === 0) combat.spawnNear(6, { lv: 1, free: true }); }, 900);
 }
 // ---------------- sign in, character maker, settings, photo mode ----------------
 const auth = $("wp-auth");
@@ -1463,27 +1510,38 @@ function openMake() {
   renderThumbs();
   setTimeout(() => $("wp-make-name").focus({ preventScroll: true }), 60);
 }
-// sharper portraits: each character rendered once in 3D, replacing the small preview images
-let thumbsDone = false;
+// sharper portraits: each character rendered once in 3D (kept for the maker, the Players list and profile cards)
+const thumbCache = {};
+let thumbsDone = false, thumbBusy = Promise.resolve();
+function renderThumbsFor(ids) {
+  const todo = [...new Set(ids)].filter((id) => id && !thumbCache[id] && K.CHARACTERS.includes(id) && id !== "bot");
+  if (!todo.length) return thumbBusy;
+  thumbBusy = thumbBusy.then(async () => {
+    let r = null;
+    try {
+      r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setSize(128, 128); r.outputColorSpace = THREE.SRGBColorSpace;
+      const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x334455, 2.2)); const dl = new THREE.DirectionalLight(0xffffff, 1.6); dl.position.set(2, 3, 4); sc.add(dl);
+      const cm = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+      for (const id of todo) {
+        if (thumbCache[id]) continue;
+        const c = await K.makeCharacter(id, VER).catch(() => null); if (!c) continue;
+        // an ARC Bot's portrait is closer (its face is the point) and without the crown
+        const crown = c.arc ? c.obj.getObjectByName("crown") : null; if (crown) crown.visible = false;
+        if (c.arc) { cm.position.set(0.5, 1.5, 3.7); cm.lookAt(0, 1.2, 0); c.obj.rotation.y = 0.25; } else { cm.position.set(0, 1.5, 5.2); cm.lookAt(0, 1.15, 0); }
+        sc.add(c.obj); c.mixer.update(0.5); r.render(sc, cm);
+        thumbCache[id] = r.domElement.toDataURL("image/png"); sc.remove(c.obj);
+        const img = make.querySelector(`button[data-c="${id}"] img`); if (img) img.src = thumbCache[id];
+        await sleep(0);
+      }
+    } catch { /* the small previews stay */ }
+    if (r) { r.dispose(); r.forceContextLoss(); }
+  });
+  return thumbBusy;
+}
 async function renderThumbs() {
   if (thumbsDone) return; thumbsDone = true;
-  let r = null;
-  try {
-    r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); r.setSize(128, 128); r.outputColorSpace = THREE.SRGBColorSpace;
-    const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x334455, 2.2)); const dl = new THREE.DirectionalLight(0xffffff, 1.6); dl.position.set(2, 3, 4); sc.add(dl);
-    const cm = new THREE.PerspectiveCamera(30, 1, 0.1, 50); cm.position.set(0, 1.5, 5.2); cm.lookAt(0, 1.15, 0);
-    for (const id of K.CHARACTERS) {
-      if (id === "bot" || make.hidden) continue;
-      const c = await K.makeCharacter(id, VER).catch(() => null); if (!c) continue;
-      // an ARC Bot's portrait is closer (its face is the point) and without the crown
-      const crown = c.arc ? c.obj.getObjectByName("crown") : null; if (crown) crown.visible = false;
-      if (c.arc) { cm.position.set(0.5, 1.5, 3.7); cm.lookAt(0, 1.2, 0); c.obj.rotation.y = 0.25; } else { cm.position.set(0, 1.5, 5.2); cm.lookAt(0, 1.15, 0); }
-      sc.add(c.obj); c.mixer.update(0.5); r.render(sc, cm);
-      const img = make.querySelector(`button[data-c="${id}"] img`); if (img) img.src = r.domElement.toDataURL("image/png");
-      sc.remove(c.obj);
-    }
-  } catch { /* the small previews stay */ }
-  if (r) { r.dispose(); r.forceContextLoss(); }
+  K.CHARACTERS.forEach((id) => { const img = make.querySelector(`button[data-c="${id}"] img`); if (img && thumbCache[id]) img.src = thumbCache[id]; });
+  await renderThumbsFor(K.CHARACTERS);
 }
 $("wp-make-grid").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-c]"); if (!b) return;
@@ -1504,7 +1562,7 @@ function openSet() {
   setEl.querySelectorAll("#wp-set-q button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === S.quality)));
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
   $("wp-set-q-note").textContent = "";
-  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less";
+  $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false;
   const d = dailyState(), c = d.c, val = { shops: c.shops.length, jumps: c.jumps, walk: Math.round(c.walk) };
   $("wp-daily").innerHTML = DAILY.map((g) => `<li class="${d.done.includes(g.id) ? "ok" : ""}"><i></i><span>${esc(T(g.t))}</span><small data-no-i18n>${Math.min(val[g.id], g.n)}/${g.n}</small></li>`).join("") + `<li class="streak"><span>${esc(T("Streak: {n} days", { n: d.streak || 0 }))}</span></li>`;
   $("wp-badges").innerHTML = BADGES.map((b) => `<li class="${P.badges.includes(b.id) ? "ok" : ""}" title="${esc(T(b.t))}"><b>${esc(T(b.title))}</b><small>${esc(T(b.t))}</small></li>`).join("");
@@ -1570,6 +1628,7 @@ if (coarse) { $("wp-set-vp-row").hidden = false; $("wp-set-vp").querySelectorAll
 $("wp-set-guide").addEventListener("click", () => { closeSet(); openGuide(); });
 $("wp-set-vp").addEventListener("click", (e) => { const b = e.target.closest("button[data-vp]"); if (!b || b.dataset.vp === VP) return; try { localStorage.setItem("arc.world.vp", b.dataset.vp); } catch { /* private */ } location.reload(); });
 $("wp-set-snd").addEventListener("change", (e) => Snd.set(e.target.checked));
+$("wp-set-showname").addEventListener("change", (e) => { S.showName = !!e.target.checked; saveSet(); });
 $("wp-set-motion").addEventListener("change", (e) => { S.motion = e.target.checked ? "less" : ""; saveSet(); $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`; });
 $("wp-set-sens").addEventListener("input", (e) => { S.sens = +e.target.value; saveSet(); });
 $("wp-set-char").addEventListener("click", () => { closeSet(); openMake(); });
@@ -1721,13 +1780,16 @@ combat = FIGHT.createCombat({
     if (on && boarding) setBoard(false);
     frozen = on; keys.clear(); paintPrompt();
     if (on) { if (avatar) avatar.play("die", { once: true }); return; }
-    if (where === "plaza") { const veil = $("wp-veil"); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 380); } planet.position.set(0, 0, 0); hop = 0; vy = 0; grounded = true; }
+    if (where === "plaza") { const veil = $("wp-veil"); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 380); } planet.position.copy(HOME); hop = 0; vy = 0; grounded = true; facing = Math.PI; camYaw = 0; }
     if (avatar) avatar.play("idle");
   },
 });
 // the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
 quests = QST.createQuests({
   T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why),
+  // Rankings → Players: portraits, who's around now, a player's card
+  charThumb: (id) => thumbCache[id] || "", needThumbs: (ids) => renderThumbsFor(ids).then(() => rpg.isOpen() && rpg.repaint()),
+  online: () => (ghosts && ghosts.named ? ghosts.named() : []), openProfile: (w) => openProfile(w),
   dailyDone: () => arclShop.dailyDone(), openDaily: () => { rpg.hide(); arclShop.openDaily(); }, signedIn: () => !!sess(),
   repaint: () => rpg.repaint(), onTitle: () => setNameTag(),
   onAch: () => { setNameTag(); if (pet) pet.set(quests.pet()); paintBagDot(); },
@@ -1773,6 +1835,31 @@ if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the c
 ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
   isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; } });
+// ---------------- a player's card (Rankings → Players, or someone around you) ----------------
+async function openProfile(w) {
+  if (!/^0x[0-9a-f]{40}$/.test(String(w || ""))) return;
+  document.querySelectorAll(".wp-prof").forEach((x) => x.remove());
+  const dir = (quests.dir() || {}).list || [], row = dir.find((r) => r.w === w) || {}, el = document.createElement("div");
+  el.className = "wp-prof"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("data-no-i18n", "");
+  const paint = (fr) => {
+    const name = row.name || (fr && fr.name) || w.slice(0, 6) + "…" + w.slice(-4), lv = row.lv || (fr && fr.lv) || 1, char = row.char || (fr && fr.char) || "", me = sess() && sess().wallet === w;
+    const isFr = island.isFriend(w), ago = row.at ? Math.floor((Date.now() - row.at) / 60000) : null;
+    el.innerHTML = `<div class="wp-prof-card"><button type="button" class="wp-btn wp-x" data-px aria-label="${esc(T("Close"))}">×</button>
+      <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
+      <h2>${esc(name)}</h2>${quests.titleOf(row.t) ? `<p class="wp-prof-title">${esc(quests.titleOf(row.t))}</p>` : ""}
+      <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / 15</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
+      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}</div></div>`;
+    if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
+  };
+  paint(null); document.body.appendChild(el); frozen = true; keys.clear();
+  const close = () => { el.remove(); frozen = !!(rpg && rpg.isOpen()); };
+  let fr = null; try { const r = await fetch("/api/social?world=friends&wallets=" + w); fr = r.ok ? ((await r.json()).friends || {})[w] || null : null; } catch { /* the card stays as it is */ } if (el.isConnected) paint(fr);
+  el.addEventListener("click", (e) => {
+    if (e.target === el || e.target.closest("[data-px]")) { close(); return; }
+    if (e.target.closest("[data-pvisit]")) { close(); rpg.hide(); goIsland({ visit: w }); return; }
+    if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); paint(fr); }
+  });
+}
 // a card to share (an achievement): the photo sheet shows it with save / share / post
 async function shareCard(o) {
   const blob = await SOC.drawCard({ ...o, name: P.name || W("Player"), lv: level() }); if (!blob) return;
@@ -1785,7 +1872,7 @@ function recallHome() {
   if (mode !== "hub" || flying || introOn) { toast(T("Recall scrolls work in the town")); return false; }
   if (!rpg.useRecall()) { toast(T("No recall scrolls — the Forge sells them")); return false; }
   if (boarding) setBoard(false);
-  planet.position.set(0, 0, 0); hop = 0; vy = 0; grounded = true; knockV.set(0, 0, 0);
+  planet.position.copy(HOME); hop = 0; vy = 0; grounded = true; facing = Math.PI; camYaw = 0; knockV.set(0, 0, 0);
   Snd.dash && Snd.dash(); shake = Math.max(shake, 0.2); toast(T("Back on the plaza")); return true;
 }
 // Epic and Legendary finds go in everyone's feed (a line of text; the server rate-limits it)
@@ -1886,8 +1973,8 @@ function dayNight() {
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
-  st.sun.intensity = 2.1 * (1 - k * 0.65); st.sun.color.setHSL(0.08, dusk * 0.8, 1 - dusk * 0.15);
-  st.hemi.intensity = 0.75 * (1 - k * 0.35); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.92 + k * 0.12;
+  st.sun.intensity = 2.35 * (1 - k * 0.65); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
+  st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.92 + k * 0.12;
   if (st.scene.fog) st.scene.fog.density = 0.0032 + k * 0.0026; st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k);
   if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5);
   stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
@@ -2068,7 +2155,7 @@ async function dive() {
 // ---------------- start ----------------
 dailyState(); dayNight(); worldReady = true;
 loadbar(1);
-paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping();
+paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 $("wp-loading").classList.add("done");
 setTimeout(() => $("wp-loading").remove(), 600);
 await setAvatar(P.char || "arc-arc");
@@ -2086,6 +2173,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
+  level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),

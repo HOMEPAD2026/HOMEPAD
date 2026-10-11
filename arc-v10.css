@@ -2726,7 +2726,7 @@ html.wp-less *,html.wp-less *::before,html.wp-less *::after{animation-duration:.
 html.wp-less .wp-speed,html.wp-less .wp-hurt{display:none!important}
 /* panels open with a short spring (the card rises and settles) */
 @keyframes wpPanelIn{from{opacity:0;transform:translateY(14px) scale(.975)}to{opacity:1;transform:none}}
-.wr-sheet:not([hidden]) .wr-card,.wi-sheet:not([hidden]) .wi-card,.wp-mapsheet:not([hidden]) .wp-card,.wp-guide:not([hidden]) .wp-guide-card{animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wr-sheet:not([hidden]) .wr-card.opening,.wi-sheet:not([hidden]) .wi-card,.wp-mapsheet:not([hidden]) .wp-card,.wp-guide:not([hidden]) .wp-guide-card{animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
 .wa-tabs button,.wq-sub button,.wi-cats button{transition:background-color .18s,color .18s,border-color .18s,box-shadow .18s}
 @media (prefers-reduced-motion:reduce){.wr-sheet .wr-card,.wi-sheet .wi-card,.wp-mapsheet .wp-card,.wp-guide .wp-guide-card{animation:none!important}}
 /* knocked out: the free respawn comes first and is the bright one; reviving on the spot is the quiet option */
@@ -2744,3 +2744,61 @@ html.wp-less .wp-speed,html.wp-less .wp-hurt{display:none!important}
 @keyframes wcGot{0%{transform:scale(1)}35%{transform:scale(1.28)}100%{transform:scale(1)}}
 .wc-pot.got{animation:wcGot .5s cubic-bezier(.2,1.4,.4,1)}
 .wc-pot.got em{color:#9fffd0}
+/* ---- v35: the ARCIRCLE interface (world-art/ART-SPEC.md): navy glass panels with a light edge, round glossy icon
+   buttons, the character's portrait in the HP card, a sky loading screen ---- */
+:root{--glass-bg:linear-gradient(160deg,rgba(22,44,88,.82),rgba(8,16,34,.84));--glass-edge:rgba(120,190,255,.34);--glass-shadow:0 10px 28px rgba(0,16,48,.38),inset 0 1px 0 rgba(255,255,255,.1)}
+.wp-chip,.wp-quests,.wc-vit,.wr-raid,.wp-mini,.wp-together{background:var(--glass-bg);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow)}
+.wp-mini{border-radius:50%}
+.wp-hud .wp-btn:not(.wp-shop-btn),.wp-icon{background:radial-gradient(circle at 35% 25%,rgba(80,150,255,.55),rgba(14,34,74,.92) 70%);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow)}
+.wp-hud .wp-btn:not(.wp-shop-btn):hover,.wp-icon:hover{border-color:rgba(160,220,255,.7);filter:brightness(1.12)}
+/* the HP card: the portrait in a ring on the left, the bars on the right */
+.wc-vit{display:grid;grid-template-columns:54px 1fr;grid-auto-rows:auto;column-gap:10px;row-gap:4px;width:260px;align-items:center;border-radius:18px}
+.wc-face{grid-row:1/span 3;position:relative;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#3f8fe8,#0f2a5c);border:2px solid rgba(160,220,255,.7);box-shadow:0 0 14px rgba(63,155,255,.45);overflow:visible}
+.wc-face img{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 30%}
+.wc-face img:not([src]){visibility:hidden}
+.wc-face b{position:absolute;right:-6px;bottom:-4px;min-width:22px;height:20px;padding:0 5px;border-radius:999px;background:linear-gradient(180deg,#ffd27a,#f2a83a);color:#2a1606;font:900 11px/20px var(--f-num,var(--f-ui));text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.wc-v i{height:12px;border-radius:7px;background:rgba(4,10,24,.7);border:1px solid rgba(255,255,255,.08)}
+.wc-v i b{box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+/* the loading screen: a sky, the mark, a glossy bar */
+.wp-loading{background:radial-gradient(120% 80% at 50% 110%,#2f86ff 0%,#0f3a7a 38%,#06142e 70%,#040814 100%)}
+.wp-loading::before{content:"";position:absolute;left:50%;bottom:-18vh;width:120vw;height:46vh;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(46,224,122,.35),rgba(46,224,122,0));pointer-events:none}
+.wp-loading>span{position:relative;font:800 15px var(--f-ui);letter-spacing:.02em;color:#dff0ff}
+.wp-loading img{position:relative;width:96px;height:auto;filter:drop-shadow(0 0 18px rgba(63,155,255,.6))}
+.wp-loadbar{position:relative;width:min(320px,70vw);height:10px;border-radius:999px;background:rgba(4,10,24,.6);border:1px solid rgba(160,220,255,.35);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+.wp-loadbar b{border-radius:999px;box-shadow:0 0 12px rgba(53,216,208,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+.wp-loadtip{position:relative;color:rgba(223,240,255,.85)}
+html.wp-pcphone .wc-vit{width:360px;grid-template-columns:76px 1fr}
+html.wp-pcphone .wc-face{width:76px;height:76px}
+/* rankings: players, levels, codex, race; who's around; a player's card */
+.wq-sub-rk{flex-wrap:wrap}
+.wq-rank li>button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:10px;width:100%;cursor:pointer}
+.wq-rank li>button:focus-visible{outline:2px solid #35d8d0;outline-offset:2px;border-radius:10px}
+.wq-players li>button{grid-template-columns:auto 1fr auto}
+.wq-rank em small{display:block;font-size:10.5px;font-weight:600;color:rgba(222,233,244,.5);text-align:right}
+.wq-face{display:inline-block;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#3f8fe8,#0f2a5c);border:1px solid rgba(160,220,255,.5);overflow:hidden}
+.wq-face img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.wq-online{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.wq-online button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(57,255,136,.35);background:rgba(57,255,136,.08);color:#dff8ea;font:700 12.5px var(--f-ui);cursor:pointer}
+.wq-online button i{width:7px;height:7px;border-radius:50%;background:#39ff88;box-shadow:0 0 6px #39ff88}
+.wq-online small{color:rgba(222,233,244,.6);font-weight:600}
+.wp-prof{position:fixed;inset:0;z-index:42;display:grid;place-items:center;padding:16px;background:rgba(2,6,14,.55)}
+.wp-prof-card{position:relative;width:min(380px,100%);padding:22px 22px 20px;border-radius:24px;background:var(--glass-bg);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);text-align:center;color:#eef3f7;animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wp-prof-card .wp-x{position:absolute;right:12px;top:12px}
+.wp-prof-face{position:relative;width:96px;height:96px;margin:4px auto 10px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#3f8fe8,#0f2a5c);border:2px solid rgba(160,220,255,.7);box-shadow:0 0 22px rgba(63,155,255,.45)}
+.wp-prof-face img{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 30%}
+.wp-prof-face b{position:absolute;right:-4px;bottom:0;min-width:28px;height:24px;padding:0 6px;border-radius:999px;background:linear-gradient(180deg,#ffd27a,#f2a83a);color:#2a1606;font:900 13px/24px var(--f-num,var(--f-ui))}
+.wp-prof-card h2{margin:0;font:900 22px var(--f-ui)}
+.wp-prof-title{margin:4px 0 0;font:700 13px var(--f-ui);color:#ffd27a}
+.wp-prof-card dl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+.wp-prof-card dl div{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);text-align:left}
+.wp-prof-card dt{font-size:11px;color:rgba(222,233,244,.6)}.wp-prof-card dd{margin:2px 0 0;font:800 14px var(--f-ui)}
+.wp-prof-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.wq-rank li:has(>button){display:block}
+.wq-rank li>button{grid-column:1/-1}
+.wq-rank li>button b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* v36: the purse while a read is retrying keeps the last number, dimmed */
+.wp-purse.stale b{opacity:.6}
+.wr-bag-f button.go{border:0;background:linear-gradient(180deg,#5fe3a0,#2ee07a);color:#06210f}
+/* the pending count on the Adventure log button sits inside the card's edge */
+.wr-switch{padding-top:8px;margin-top:-8px}
+.wr-dot{top:-7px;right:-5px;z-index:2}

@@ -77,5 +77,44 @@ r = await W.read(new URL("http://x/api/social?world=raid&wallet=" + A)); check(r
   r = await W.read(new URL("http://x/api/social?world=raid-history")); const w0 = r.body.weeks.find((x) => x.week === pw); check(w0 && w0.players === 24 && w0.fell && w0.hours === 30 && !JSON.stringify(r.body).includes("0x"), "raid history: raiders, fell after 30 h, no wallets"); }
 db.set("worldStats/islandWeek_" + (await import("../../api/_world-shop.mjs")).isoWeek(T - 7 * 864e5), { top: [{ wallet: A, name: "kmp", n: 1, likes: 9 }] });
 r = await W.read(new URL("http://x/api/social?world=plaza")); check(r.body.isle && r.body.isle.contest && r.body.isle.wallet === A, "the plaza screen falls back to last week's top island");
+// ---- the directory, gifts, guestbook replies, race times, named wanderers ----
+{
+  const rd = async (q) => W.read(new URL("http://x/api/social?world=" + q));
+  T += 9000; r = await W.handle({ action: "world-save", ...me, data: { xp: 1250, name: "kmp", char: "arc-luna", rpg: { x: { title: "k10", seen: { spam: 3, drop: 1 } } }, beaten: ["phisher"] } });
+  check(r.status === 200, "saved");
+  r = await rd("players"); const row = (r.body.list || []).find((x) => x.w === A);
+  check(row && row.name === "kmp" && row.lv === 13 && row.char === "arc-luna" && row.t === "k10" && row.cx === 3 && r.body.n >= 1, "the directory has the player: name, level, character, title, codex pages");
+  T += 9000; r = await W.handle({ action: "world-save", ...them, data: { xp: 50, name: "them", char: "male-a" } });
+  r = await rd("players"); check(r.body.list[0].w === B && r.body.list.length >= 2, "newest first");
+  // gifts
+  r = await W.handle({ action: "world-gift", ...me, to: B, kind: "hp", n: 3 }); check(r.status === 200, "a gift of 3 health potions");
+  r = await W.handle({ action: "world-gift", ...me, to: B, kind: "hp", n: 4 }); check(r.status === 400, "more than 3 potions: refused");
+  r = await W.handle({ action: "world-gift", ...me, to: B, kind: "arcl", n: 1 }); check(r.status === 400, "ARCL can't be gifted");
+  r = await W.handle({ action: "world-gift", ...me, to: A, kind: "hp", n: 1 }); check(r.status === 400, "not to yourself");
+  r = await W.handle({ action: "world-gift", ...me, to: "0x" + "9".repeat(40), kind: "hp", n: 1 }); check(r.status === 404, "not to a wallet that hasn't played");
+  for (let i = 0; i < 4; i++) await W.handle({ action: "world-gift", ...me, to: B, kind: "scrap", n: 50 });
+  r = await W.handle({ action: "world-gift", ...me, to: B, kind: "scrap", n: 50 }); check(r.status === 429, "five gifts a day");
+  r = await rd("gifts&wallet=" + B); check(r.body.n === 5, "five waiting");
+  r = await W.handle({ action: "world-gifts-take", ...them }); check(r.status === 200 && r.body.gifts.length === 5 && r.body.gifts[0].name === "kmp" && r.body.gifts[0].kind === "hp", "the receiver collects them, with who sent them");
+  r = await W.handle({ action: "world-gifts-take", ...them }); check(r.body.gifts.length === 0, "collected once");
+  // guestbook replies
+  r = await W.handle({ action: "world-stamp-reply", ...me, at, r: 2 }); check(r.status === 200 && r.body.stamps.find((x) => x.at === at).r === 2, "the owner answers a stamp");
+  r = await W.handle({ action: "world-stamp-reply", ...them, at, r: 1 }); check(r.status === 404, "only on your own island");
+  r = await W.handle({ action: "world-stamp-reply", ...me, at, r: 9 }); check(r.status === 400, "only the fixed replies");
+  // race
+  r = await W.handle({ action: "world-race", ...me, ms: 3000 }); check(r.status === 400, "an impossible time: refused");
+  r = await W.handle({ action: "world-race", ...me, ms: 24000 }); r = await W.handle({ action: "world-race", ...me, ms: 30000 });
+  check(r.body.best === 24000, "a slower run keeps the best");
+  r = await W.handle({ action: "world-race", ...them, ms: 21000 }); r = await rd("race-top");
+  check(r.body.top.length === 2 && r.body.top[0].ms === 21000 && r.body.top[0].name === "them" && !/^0x[0-9a-f]{40}$/.test(r.body.top[0].w), "the week's best, fastest first, wallets shortened");
+  // named wanderers
+  T += 1000; await W.handle({ action: "world-ping", id: "namedghost0001", g: { x: 3, z: 4, c: "arc-luna", lv: 13 }, s: me });
+  await W.handle({ action: "world-ping", id: "plainghost0002", g: { x: 5, z: 6, c: "bot", lv: 2 } });
+  r = await rd("ghosts"); const gN = r.body.ghosts.find((g) => g.x === 3), gP = r.body.ghosts.find((g) => g.x === 5);
+  check(gN && gN.n === "kmp" && gN.l === 13 && gN.w === A, "a signed-in wanderer shows its name and level");
+  check(gP && !gP.n && !gP.w, "an anonymous one doesn't");
+  await W.handle({ action: "world-ping", id: "fakeghost00003", g: { x: 7, z: 7, c: "bot", lv: 2 }, s: { ...me, signature: them.signature } });
+  r = await rd("ghosts"); check(!r.body.ghosts.find((g) => g.x === 7).n, "a forged sign-in shows no name");
+}
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1);

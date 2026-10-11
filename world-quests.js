@@ -64,7 +64,7 @@ export const QUEST_ZONES = ["spam", "fields", "swamp", "canyon", "depths"];
 /// ctx: { T, lang, esc, toast, P, save(), level(), gain(xp, why), rpg (for scrap and potions), Snd, wallet() }
 export function createQuests(ctx) {
   const { esc } = ctx;
-  const LW = { ko: { Bosses: "보스", Raids: "레이드", "Knock-outs": "처치", Open: "열기",  Daily: "일일", Achievements: "업적", Codex: "도감", Rankings: "순위", Hunters: "사냥꾼", Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일", All: "전체", Save: "저장", Achievement: "업적", Bring: "데려가기", "Right!": "정답!", Drone: "드론", Cat: "고양이", Season: "시즌", Pets: "펫", Quiz: "퀴즈", Share: "공유", Claim: "받기", Wear: "착용", Worn: "착용 중", Explorer: "탐험가", Legend: "전설", Lucky: "행운아", Done: "완료", Locked: "잠김", scrap: "고철", title: "칭호" }, zh: { Bosses: "首领", Raids: "团战", "Knock-outs": "击倒", Open: "打开",  Daily: "每日", Achievements: "成就", Codex: "图鉴", Rankings: "排行", Hunters: "猎人", Mon: "周一", Tue: "周二", Wed: "周三", Thu: "周四", Fri: "周五", Sat: "周六", Sun: "周日", All: "全部", Save: "保存", Achievement: "成就", Bring: "带上", "Right!": "答对了！", Drone: "无人机", Cat: "猫咪", Season: "赛季", Pets: "宠物", Quiz: "测验", Share: "分享", Claim: "领取", Wear: "佩戴", Worn: "佩戴中", Explorer: "探险家", Legend: "传奇", Lucky: "幸运儿", Done: "完成", Locked: "未解锁", scrap: "废料", title: "称号" } }[ctx.lang] || {};
+  const LW = { ko: { Players: "플레이어", Levels: "레벨", Bosses: "보스", Raids: "레이드", "Knock-outs": "처치", Open: "열기",  Daily: "일일", Achievements: "업적", Codex: "도감", Rankings: "순위", Hunters: "사냥꾼", Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일", All: "전체", Save: "저장", Achievement: "업적", Bring: "데려가기", "Right!": "정답!", Drone: "드론", Cat: "고양이", Season: "시즌", Pets: "펫", Quiz: "퀴즈", Share: "공유", Claim: "받기", Wear: "착용", Worn: "착용 중", Explorer: "탐험가", Legend: "전설", Lucky: "행운아", Done: "완료", Locked: "잠김", scrap: "고철", title: "칭호" }, zh: { Players: "玩家", Levels: "等级", Bosses: "首领", Raids: "团战", "Knock-outs": "击倒", Open: "打开",  Daily: "每日", Achievements: "成就", Codex: "图鉴", Rankings: "排行", Hunters: "猎人", Mon: "周一", Tue: "周二", Wed: "周三", Thu: "周四", Fri: "周五", Sat: "周六", Sun: "周日", All: "全部", Save: "保存", Achievement: "成就", Bring: "带上", "Right!": "答对了！", Drone: "无人机", Cat: "猫咪", Season: "赛季", Pets: "宠物", Quiz: "测验", Share: "分享", Claim: "领取", Wear: "佩戴", Worn: "佩戴中", Explorer: "探险家", Legend: "传奇", Lucky: "幸运儿", Done: "完成", Locked: "未解锁", scrap: "废料", title: "称号" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const X = () => {
     const r = ctx.rpg.data(); r.x = r.x || {};
@@ -175,6 +175,33 @@ export function createQuests(ctx) {
     const lv = petLevel(x.petXp[id]); if (lv > before) { ctx.toast(T("{x} grew to level {n}", { x: T(PETS.find((p) => p.id === id).name), n: lv })); ctx.onPet && ctx.onPet(); }
   }
 
+  // ---------------- rankings: players (the directory and who's on now), levels, codex, hunters, raid, race ----------------
+  const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"]];
+  const titleOf = (t) => (t === "season" ? T("Season Star") : (ACH.find((a) => a.id === t) || {}).title ? T(ACH.find((a) => a.id === t).title) : "");
+  const agoOf = (t) => { if (!t) return ""; const m = Math.floor((Date.now() - t) / 60000); return m < 15 ? T("just now") : m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.floor(m / 60) }) : m < 2880 ? T("yesterday") : T("{n} days ago", { n: Math.floor(m / 1440) }); };
+  const face = (c) => { const src = ctx.charThumb ? ctx.charThumb(c) : ""; return `<i class="wq-face">${src ? `<img src="${src}" alt="">` : ""}</i>`; };
+  const prow = (r, i, val) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><button type="button" data-prof="${esc(r.w)}"><span>${i + 1}</span>${face(r.char)}<b>${esc(r.name || r.w.slice(0, 6) + "…" + r.w.slice(-4))}${titleOf(r.t) ? `<small>${esc(titleOf(r.t))}</small>` : ""}</b><em>${val}</em></button></li>`;
+  function rankHTML() {
+    const nav = `<nav class="wq-sub wq-sub-rk">${RK.map(([id, n]) => `<button type="button" data-rk="${id}" aria-pressed="${rk === id}">${esc(T(n))}${id === "raid" ? nb("raidrank") : id === "players" ? nb("players") : ""}</button>`).join("")}</nav>`;
+    const wait = `<p class="wa-empty">${esc(T("Loading…"))}</p>`, none = `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`;
+    if (rk === "players" || rk === "level" || rk === "codex") {
+      if (!dir) return nav + wait;
+      const L = dir.list || [];
+      if (rk === "players") {
+        const on = ctx.online ? ctx.online() : [];
+        return nav + `<p class="wr-note">${esc(T("{n} players have played with a wallet. Tap one for their card.", { n: (dir.n || L.length).toLocaleString("en-US") }))}</p>` +
+          `<h4 class="wq-past-h">${esc(T("Around you now"))} <small>${on.length}</small></h4>${on.length ? `<div class="wq-online">${on.map((o) => `<button type="button" data-prof="${esc(o.wallet)}"><i></i>${esc(o.name)} <small>Lv ${o.lv}</small></button>`).join("")}</div>` : `<p class="wa-empty">${esc(T("Nobody signed in nearby right now."))}</p>`}` +
+          `<h4 class="wq-past-h">${esc(T("Everyone, most recent first"))}</h4>` + (L.length ? `<ol class="wq-rank wq-players">${L.slice(0, 100).map((r, i) => prow(r, 99, `Lv ${r.lv}<small>${esc(agoOf(r.at))}</small>`).replace('<span>100</span>', "")).join("")}</ol>` : none);
+      }
+      const by = rk === "level" ? [...L].sort((a, b) => b.lv - a.lv || b.cx - a.cx) : [...L].filter((r) => r.cx > 0).sort((a, b) => b.cx - a.cx || b.lv - a.lv);
+      return nav + `<p class="wr-note">${esc(rk === "level" ? T("Everyone who's played with a wallet, by level.") : T("Codex pages found: every page is a real scam learned."))}</p>` + (by.length ? `<ol class="wq-rank">${by.slice(0, 50).map((r, i) => prow(r, i, rk === "level" ? `Lv ${r.lv}` : esc(T("{n} of 15 pages", { n: r.cx })))).join("")}</ol>` : none);
+    }
+    if (rk === "race") {
+      const fmt = (ms) => (ms / 1000).toFixed(2) + " s";
+      return nav + `<p class="wr-note">${esc(T("This week's fastest hoverboard laps around the plaza. Start at the gold ring by the fountain."))}</p>` + (race ? (race.length ? `<ol class="wq-rank">${race.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${fmt(r.ms)}</em></li>`).join("")}</ol>` : none) : wait);
+    }
+    return nav + `<p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}${rk === "raid" && past && past.length ? `<h4 class="wq-past-h">${esc(T("Past raids"))}</h4><ul class="wq-past">${past.map((w) => `<li><b>${esc(w.week)}</b><span>${esc(T("{n} raiders", { n: w.players }))} · ${esc(T("{n} HP", { n: w.max.toLocaleString("en-US") }))}</span><em class="${w.fell ? "ok" : ""}">${esc(w.fell ? T("fell after {h} h", { h: w.hours }) : T("stood"))}</em></li>`).join("")}</ul>` : ""}`;
+  }
   // ---------------- the log (a view of the character sheet) ----------------
   const bar = (n, of) => `<i class="wq-bar"><b style="width:${Math.min(100, (100 * n) / of)}%"></b></i>`;
   function html() {
@@ -204,17 +231,20 @@ export function createQuests(ctx) {
       const page = (c) => { const n = c.story ? (beaten.includes(c.story) ? 1 : 0) : x.seen[c.id] || 0; return `<article class="${n ? "" : "locked"}${c.story ? " story" : ""}"><h4>${esc(n ? T(c.name) : "???")}</h4><p>${esc(n ? T(c.line) : c.story ? T("Beat this scammer on the planet to open its page.") : T("Knock one out to learn how this scam works."))}</p>${n && c.beat ? `<p class="wq-beat"><b>${esc(T("How to beat it"))}</b> ${esc(T(c.beat))}</p>` : ""}<small>${n ? esc(c.story ? T("Beaten on the planet") : T("Knocked out {n}", { n })) : ""}</small></article>`; };
       body = `${quizHTML(x)}<div class="wq-codex-h"><b>${esc(T("{n} of {m} pages", { n: got, m: all.length }))}</b>${bar(got, all.length)}</div><p class="wr-note">${esc(T("Every scammer here is a real scam. Beat one to open its page: how the trick works and how to beat it."))}</p><h4 class="wq-codex-sec">${esc(T("The story's six"))}</h4><div class="wq-codex">${CODEX_STORY.map(page).join("")}</div><h4 class="wq-codex-sec">${esc(T("Hunting grounds and the raid"))}</h4><div class="wq-codex">${CODEX.map(page).join("")}</div>`;
     }
-    else body = `<nav class="wq-sub"><button type="button" data-rk="hunt" aria-pressed="${rk === "hunt"}">${esc(T("Hunters"))}</button><button type="button" data-rk="raid" aria-pressed="${rk === "raid"}">${esc(T("Raid damage"))}${nb("raidrank")}</button></nav><p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}${rk === "raid" && past && past.length ? `<h4 class="wq-past-h">${esc(T("Past raids"))}</h4><ul class="wq-past">${past.map((w) => `<li><b>${esc(w.week)}</b><span>${esc(T("{n} raiders", { n: w.players }))} · ${esc(T("{n} HP", { n: w.max.toLocaleString("en-US") }))}</span><em class="${w.fell ? "ok" : ""}">${esc(w.fell ? T("fell after {h} h", { h: w.hours }) : T("stood"))}</em></li>`).join("")}</ul>` : ""}`;
+    else body = rankHTML();
     return `<nav class="wa-tabs wr-ftabs">${tabs.map(([id, n]) => `<button type="button" data-qtab="${id}" aria-pressed="${id === tab}">${esc(T(n))}${id === "season" || id === "pets" ? nb(id) : ""}</button>`).join("")}</nav>${body}`;
   }
-  let rk = "hunt";
+  let rk = "players", dir = null, dirAt = 0, race = null;
   let past = null;
   async function loadTop() {
+    if (rk === "players" || rk === "level" || rk === "codex") { if (!dir || Date.now() - dirAt > 60e3) { try { const r = await fetch("/api/social?world=players"); dir = r.ok ? await r.json() : { list: [] }; dirAt = Date.now(); } catch { dir = dir || { list: [] }; } if (ctx.needThumbs) ctx.needThumbs([...new Set((dir.list || []).slice(0, 100).map((r) => r.char))]); } return; }
+    if (rk === "race") { try { const r = await fetch("/api/social?world=race-top"); race = r.ok ? ((await r.json()).top || []) : []; } catch { race = []; } return; }
     try { const r = await fetch(rk === "raid" ? "/api/social?world=raid" : "/api/social?world=hunt-top"); top = r.ok ? ((await r.json()).top || []) : []; } catch { top = []; }
     if (rk === "raid" && !past) { try { const r = await fetch("/api/social?world=raid-history"); past = r.ok ? ((await r.json()).weeks || []) : []; } catch { past = []; } }
   }
   function click(b) {
-    if (b.dataset.rk) { rk = b.dataset.rk; if (rk === "raid") seeTab("raidrank"); top = null; loadTop().then(() => ctx.repaint()); return true; }
+    if (b.dataset.rk) { rk = b.dataset.rk; if (rk === "raid") seeTab("raidrank"); if (rk === "players") seeTab("players"); top = null; if (rk === "race") race = null; loadTop().then(() => ctx.repaint()); return true; }
+    if (b.dataset.prof) { if (ctx.openProfile) ctx.openProfile(b.dataset.prof); return false; }
     if (b.hasAttribute("data-sclaimall")) { const x = X(); SEASON_TIERS.forEach((t, i) => { if (x.ss.pts >= t.pts && !x.ss.got.includes(i)) seasonClaim(i); }); return true; }
     if (b.dataset.qtab) { tab = b.dataset.qtab; seeTab(tab); if (tab === "rank") { top = null; loadTop().then(() => ctx.repaint()); } return true; }
     if (b.hasAttribute("data-qdaily")) { ctx.openDaily && ctx.openDaily(); return true; }
@@ -236,7 +266,7 @@ export function createQuests(ctx) {
   const pet = () => { const id = activePet(); return id ? { id, lv: petLevel(X().petXp[id] || 0), name: petName(id) } : null; };
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
   const pending = () => { const x = X(); return todays().filter((q) => !x.d.done.includes(q.id) && (x.d.p[q.id] || 0) >= q.n).length + seasonPending(); };
-  return { on, html, click, title, titleBonus, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
+  return { on, html, click, title, titleBonus, titleOf, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat

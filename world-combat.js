@@ -47,7 +47,7 @@ export function createCombat(ctx) {
   const { THREE, K, planet, Snd, rpg } = ctx;
   const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
-  const V3 = THREE.Vector3;
+  const V3 = THREE.Vector3, UP = new THREE.Vector3(0, 1, 0);
   const root = new THREE.Group(); root.name = "combat"; planet.add(root);
   const mobs = [], items = [], shots = [], fx = [], drops = [];
   const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0 };
@@ -623,7 +623,7 @@ export function createCombat(ctx) {
 
   // ---------------- HP, SP and XP: always on screen in the streets ----------------
   const vit = document.createElement("div"); vit.className = "wc-vit"; vit.id = "wc-vit"; vit.setAttribute("data-no-i18n", "");
-  vit.innerHTML = `<div class="wc-v hp"><span>HP</span><i><b id="wc-hp-b"></b><u id="wc-hp-g"></u></i><em id="wc-hp-n"></em></div><div class="wc-v sp"><span>SP</span><i><b id="wc-sp-b"></b></i><em id="wc-sp-n"></em></div><div class="wc-v xp"><span>XP</span><i><b id="wc-xp-b"></b></i><em id="wc-xp-n"></em></div>`;
+  vit.innerHTML = `<div class="wc-face" aria-hidden="true"><img id="wc-face-img" alt=""><b id="wc-face-lv"></b></div><div class="wc-v hp"><span>HP</span><i><b id="wc-hp-b"></b><u id="wc-hp-g"></u></i><em id="wc-hp-n"></em></div><div class="wc-v sp"><span>SP</span><i><b id="wc-sp-b"></b></i><em id="wc-sp-n"></em></div><div class="wc-v xp"><span>XP</span><i><b id="wc-xp-b"></b></i><em id="wc-xp-n"></em></div>`;
   (document.querySelector(".wp-hud-l") || document.body).insertBefore(vit, document.getElementById("wp-quests"));
   let ghostHp = hp;
   function paintVit() {
@@ -757,7 +757,11 @@ export function createCombat(ctx) {
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z })), items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
-    spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd); const at = me.clone().addScaledVector(fwd, dist).setY(0); return !!spawnMob({ ...o, at, zone: o.zone ? ZONES.find((z) => z.id === o.zone) : zone, boss: o.rank === "boss" ? (ZONES.find((z) => z.id === o.zone) || ZONES[0]).boss : undefined }); },
+    spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);
+      // in front of you; with free, turned aside when that spot is inside something (the fountain, a hall)
+      let at = null; for (const turn of o.free ? [0, 0.7, -0.7, 1.4, -1.4, 2.2, -2.2, Math.PI] : []) { const d = fwd.clone().applyAxisAngle(UP, turn), c = me.clone().addScaledVector(d, dist).setY(0); if (!ctx.blocked(c)) { at = c; break; } }
+      if (!at) at = me.clone().addScaledVector(fwd, dist).setY(0);
+      return !!spawnMob({ ...o, at, zone: o.zone ? ZONES.find((z) => z.id === o.zone) : zone, boss: o.rank === "boss" ? (ZONES.find((z) => z.id === o.zone) || ZONES[0]).boss : undefined }); },
     itemNear(id, dist = 0.5) { const it = ITEMS.find((x) => x.id === id); if (!it) return; ctx.here(me); const g = itemMesh(it); g.position.set(me.x + dist, 1, me.z); add(g); items.push({ g, it, k: 0 }); },
     // the companion drone: a small zap at the nearest scammer within reach (about a tenth of your attack, through armour)
     petZap(from, k = 1) {

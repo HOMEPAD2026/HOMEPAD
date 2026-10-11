@@ -27,7 +27,7 @@
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
-import { makeSocial, cleanNote, XP_VERSION, xpFromOld } from "./_world-social.mjs";
+import { makeSocial, cleanNote, XP_VERSION, xpFromOld, levelOfSave } from "./_world-social.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -109,7 +109,10 @@ export function make(deps) {
     if (!b.gate) { // the home page's gate counts the visit but isn't "in the world"
       const seen = await commit([{ create: `worldSeen/${w}_${id}`, data: { at: now() } }]);
       if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
-      if (b.g) await social.ghostPing(id, b.g).catch(() => {}); // where you are, for the wanderers others see
+      // where you are, for the wanderers others see; signed in (and not hidden in Settings), with your name and level
+      let who = null;
+      if (b.g && b.s && typeof b.s === "object") { const v = signer(b.s); if (!v.err) { const sv = (await getDocs([`worldSave/${v.wallet}`]))[`worldSave/${v.wallet}`]; if (sv && sv.name) who = { name: String(sv.name).slice(0, 16), lv: levelOfSave(sv), w: v.wallet }; } }
+      if (b.g) await social.ghostPing(id, b.g, who).catch(() => {});
     }
     return json(200, { ok: true, ...(await stats()) });
   }
@@ -166,6 +169,7 @@ export function make(deps) {
     const oldXp = old ? (old.xpv === XP_VERSION ? old.xp || 0 : xpFromOld(old.xp)) : 0;
     if (old && data.xp > oldXp + 3000) data.xp = oldXp + 3000;
     await setDoc(key, { ...data, at: now() });
+    await social.dirUpdate(s.wallet, data).catch(() => {}); // the player directory (Rankings → Players)
     return json(200, { ok: true, at: now() });
   }
   // ---- islands ----
@@ -252,6 +256,14 @@ export function make(deps) {
     // GET ?world=…
     async read(url) {
       const w = url.searchParams.get("world");
+      // a wallet's $ARCIRCLE on Arc (public chain data), for when the browser's own RPC reads fail
+      if (w === "holding") {
+        const a = url.searchParams.get("wallet");
+        if (!isAddr(a)) return json(400, { error: "wallet must be an address" });
+        if (!deps.tokenBalance) return json(503, { error: "the balance check isn't available" });
+        try { const v = BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, lc(a))); return json(200, { wallet: lc(a), arc: v.toString() }, "public, max-age=20"); }
+        catch { return json(502, { error: "couldn't read the balance on Arc" }); }
+      }
       if (!on()) return json(200, { enabled: false, data: null, top: [], recent: [], lots: {} });
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }

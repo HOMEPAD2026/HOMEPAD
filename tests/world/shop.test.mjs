@@ -37,6 +37,9 @@ let a = await arcl(); check(a.bal === 200 && a.today === 200 && a.got.includes("
 for (const id of ["airdrop", "honeypot", "doppel", "golem"]) await W.handle({ action: "world-arcl-claim", ...S, kind: "stage:" + id, answer: 1 });
 a = await arcl(); check(a.bal === DAILY_CAP && a.today === DAILY_CAP, "the daily cap holds: " + a.bal);
 r = await W.handle({ action: "world-arcl-claim", ...S, kind: "stage:dragon", answer: 1 }); check(r.status === 200 && r.body.credited === 0 && r.body.capped, "over the cap: nothing more today");
+// selling once today's 300 is used up: the piece stays unsold (not burned for nothing), and says why
+r = await W.handle({ action: "world-sell", ...S, item: { id: "capd01", b: "armor-1", r: 1, lv: 5, p: 0 } });
+check(r.status === 200 && r.body.credited === 0 && r.body.full === "earn" && !db.has("worldSold/" + me + "_capd01"), "sell with the day's ARCL full: nothing recorded " + JSON.stringify(r.body).slice(0, 90));
 T += 864e5; const iss2 = new Date(T).toISOString(), S2 = { wallet: w.address, issued: iss2, signature: await w.signMessage(loginMessage(w.address, iss2)) };
 r = await W.handle({ action: "world-arcl-claim", ...S2, kind: "daily" }); check(r.body.streak === 2 && r.body.credited === 25, "next day: streak 2, 25 ARCL");
 // spending
@@ -122,5 +125,14 @@ T += 61000; r = await W.handle({ action: "world-feed-drop", ...S4, b: "ring-1", 
   r = await W.handle({ action: "world-arcl-claim", ...S4, kind: "sell" });
   check(r.status === 400, "sell isn't a claim");
 }
+// the next day: the piece kept back by the full day sells; so does one an older version recorded without paying
+T += 864e5; const iss5 = new Date(T).toISOString(), S5 = { wallet: w.address, issued: iss5, signature: await w.signMessage(loginMessage(w.address, iss5)) };
+db.set("worldSold/" + me + "_lgcy01", { at: T - 60000, b: "boots-1" });
+r = await W.handle({ action: "world-sell", ...S5, item: { id: "capd01", b: "armor-1", r: 1, lv: 5, p: 0 } });
+check(r.status === 200 && r.body.credited === 18 && db.get("worldSold/" + me + "_capd01").got === 18, "the next day the same piece sells: +18");
+r = await W.handle({ action: "world-sell", ...S5, item: { id: "capd01", b: "armor-1", r: 1, lv: 5, p: 0 } }); check(r.status === 409, "and only once");
+r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boots-1", r: 1, lv: 5, p: 0 } });
+check(r.status === 200 && r.body.credited === 18, "a sale an older version left unpaid sells now: +18");
+r = await W.handle({ action: "world-sell", ...S5, item: { id: "lgcy01", b: "boots-1", r: 1, lv: 5, p: 0 } }); check(r.status === 409, "then it's sold for good");
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

@@ -19,6 +19,7 @@ import { GLTFLoader } from "./vendor/three/addons/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 import { ARCBOT_IDS, arcbotOf, makeArcBot } from "./world-arcbots.js";
+import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 
 export { THREE };
 export const R = 32; // big enough for districts; everything else is placed in degrees
@@ -129,7 +130,7 @@ export function makeStage(canvas, opts = {}) {
   scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
   pm.dispose();
   const camera = new THREE.PerspectiveCamera(opts.fov ?? 50, 1, 0.1, 1200);
-  const hemi = new THREE.HemisphereLight(0x9fd0ff, 0x0b1a14, 0.9); scene.add(hemi);
+  const hemi = new THREE.HemisphereLight(0x9fd0ff, 0x2a4a36, 0.9); scene.add(hemi); // a green-lit ground bounce keeps shadows soft (ART-SPEC: light and air)
   const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(30, 60, 40); scene.add(sun); scene.add(sun.target);
   // soft shadows around the robot (it always stands at the top of the world, so one fixed shadow box covers it)
   if (opts.shadows && !q.low && !q.saver) {
@@ -247,17 +248,18 @@ function scatter(g, n, maxTheta = 180) {
   }
   const inst = (geo, mat, list) => { if (!list.length) return null; const m = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((mx, k) => m.setMatrixAt(k, mx)); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
   spots.crys.forEach((l, k) => inst(crystal, crysMats[k], l));
-  spots.tree.forEach((l, k) => { inst(trunk, trunkMat, l); inst(crown, crownMats[k], l); });
+  // the trees: round and lush, green with some blossom and maple, and pines (world-arcstyle.js), three draws for all
+  const trees = ARC.makeTrees(spots.tree.flat(), { seed: n }); g.add(trees);
 }
 
 // ---------------- the flat ground (the game): grass, the plaza, far hills, clouds ----------------
 function grassTexture() {
   const cv = document.createElement("canvas"); cv.width = cv.height = 512;
   const g = cv.getContext("2d"), rr = rand(11);
-  g.fillStyle = "#4f8f62"; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = "#5aa86a"; g.fillRect(0, 0, 512, 512); // a brighter, livelier green (world-art/ART-SPEC.md)
   // soft patches, wrapped at the edges so the tile repeats without a seam
   const blob = (x, y, r, c) => { for (const dx of [-512, 0, 512]) for (const dy of [-512, 0, 512]) { const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); } };
-  for (let i = 0; i < 70; i++) blob(rr() * 512, rr() * 512, 30 + rr() * 90, ["rgba(110,170,110,.35)", "rgba(52,110,84,.4)", "rgba(140,180,120,.25)", "rgba(60,120,120,.25)"][i % 4]);
+  for (let i = 0; i < 70; i++) blob(rr() * 512, rr() * 512, 30 + rr() * 90, ["rgba(130,200,110,.35)", "rgba(62,140,84,.35)", "rgba(170,210,120,.25)", "rgba(70,150,120,.22)"][i % 4]);
   for (let i = 0; i < 2600; i++) { g.fillStyle = rr() < 0.5 ? "rgba(30,70,45,.35)" : "rgba(170,210,150,.28)"; g.fillRect(rr() * 512, rr() * 512, 1.5, 3 + rr() * 3); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
   return t;
@@ -269,10 +271,9 @@ export function makeGround({ radius = 330 } = {}) {
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; g.add(ground);
   // the plaza: stone, a cyan ring at its edge
   const pr = flatR(11);
-  const plaza = new THREE.Mesh(new THREE.CircleGeometry(pr, 64), solid(0x3b4f5c, { roughness: 0.8, metalness: 0.1 }));
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(pr, 96), new THREE.MeshStandardMaterial({ map: ARC.plazaTexture(), roughness: 0.7, metalness: 0.02 }));
   plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.03; plaza.receiveShadow = true; g.add(plaza);
-  const tiles = new THREE.Mesh(new THREE.RingGeometry(pr * 0.35, pr * 0.37, 64), new THREE.MeshBasicMaterial({ color: 0x9fd8e0, transparent: true, opacity: 0.35, depthWrite: false }));
-  tiles.rotation.x = -Math.PI / 2; tiles.position.y = 0.045; g.add(tiles);
+
   const ring = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.07, 8, 128), glow(C.cyan, 1.1)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; g.add(ring);
   scatter(g, 260, 175);
   // far hills all around: the edge of the world melts into them and the fog
@@ -288,6 +289,7 @@ export function makeGround({ radius = 330 } = {}) {
 }
 // the plaza's centrepiece: a shallow pool you can walk through, the ARCIRCLE rings turning over it, water jets
 export function makeFountain() {
+  if (ARC) return ARC.makeArcFountain(); // three white tiers and glowing water (world-arcstyle.js)
   const g = new THREE.Group(); g.name = "fountain";
   const pool = new THREE.Mesh(new THREE.CircleGeometry(4.2, 64), new THREE.MeshStandardMaterial({ color: 0x2aa6c8, roughness: 0.08, metalness: 0.3, transparent: true, opacity: 0.82 }));
   pool.rotation.x = -Math.PI / 2; pool.position.y = 0.07; g.add(pool);
@@ -306,6 +308,7 @@ export function makeFountain() {
 }
 // an arch over a path out of the plaza, in its district's colour
 export function makeArch(color) {
+  if (ARC) return ARC.makeArcArch(color); // the ARCIRCLE arch (world-arcstyle.js)
   const g = new THREE.Group(), m = solid(0x2a3442, { metalness: 0.5, roughness: 0.4 }), t = glow(color, 2.2);
   const l = new THREE.Mesh(new RoundedBoxGeometry(0.5, 4.6, 0.5, 2, 0.08), m), r = l.clone(); l.position.set(-2.4, 2.3, 0); r.position.set(2.4, 2.3, 0);
   const top = new THREE.Mesh(new RoundedBoxGeometry(5.6, 0.5, 0.6, 2, 0.1), m); top.position.y = 4.75;
@@ -431,7 +434,7 @@ export function makeShop(spec) {
   const g = new THREE.Group(); g.name = "shop:" + spec.id;
   const col = spec.color, trim = glow(col, 1.8), dark = solid(C.panel2, { metalness: 0.4 });
   const spin = [];
-  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.2, 0.35, 40), dark); plinth.position.y = 0.17;
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.2, 0.35, 40), ARC.stone()); plinth.position.y = 0.17;
   const edge = new THREE.Mesh(new THREE.TorusGeometry(3.05, 0.06, 8, 80), trim); edge.rotation.x = Math.PI / 2; edge.position.y = 0.36;
   const body = new THREE.Group();
   const stand = new THREE.Mesh(new RoundedBoxGeometry(3, 2.4, 3, 3, 0.18), solid(C.panel, { roughness: 0.6, metalness: 0.3 })); stand.position.y = 1.55; body.add(stand);
@@ -546,6 +549,11 @@ export function makeShop(spec) {
   g.add(plinth, edge, body, accent);
   const tag = label(spec.name, { accent: "#" + col.toString(16).padStart(6, "0") }); tag.position.y = 6.2; g.add(tag);
   g.userData = { spec, spin, tag, body, accent, radius: 3.2 };
+  // the building itself: the ARCIRCLE hall for this shop (world-arcstyle.js), the accent on its roof
+  if (BUILDING[spec.id]) {
+    const b = ARC.makeArcBuilding(spec.id, col); b.position.y = 0.34; g.add(b); body.visible = false;
+    accent.position.y = 0.34 + b.userData.h + 0.1; tag.position.y = accent.position.y + (ACCENT_H[spec.shape] || 2) + 1.3; g.userData.building = b;
+  }
   return g;
 }
 
@@ -659,13 +667,8 @@ const DECOR = {
 };
 export function decorate(shop, kit) {
   const u = shop.userData, id = u.spec.id;
-  const b = prop(kit, BUILDING[id], { s: 2.5, y: 0.34, ry: Math.PI });
-  if (b) {
-    u.body.visible = false; shop.add(b);
-    u.accent.position.y = 0.34 + b.userData.h * 0.8; // chimneys and towers count in h, so sit a little lower
-    u.tag.position.y = u.accent.position.y + (ACCENT_H[u.spec.shape] || 2) + 1.3;
-  }
-  (DECOR[id] || []).forEach(([n, o]) => { const p = prop(kit, n, o); if (!p) return; shop.add(p); if (o.key) u[o.key] = p; });
+  // the building is the ARCIRCLE hall (makeShop); of the kit's props only the treasure chests stay (they open)
+  (DECOR[id] || []).forEach(([n, o]) => { if (!o.key) return; const p = prop(kit, n, o); if (!p) return; shop.add(p); u[o.key] = p; });
   const chest = u.chest;
   if (chest && chest.userData.clips.length) {
     const mixer = new THREE.AnimationMixer(chest.userData.animRoot || chest); u.chestMixer = mixer;
@@ -687,11 +690,11 @@ export const TOWN = [
 export function makeTown(kit) {
   const out = [];
   TOWN.forEach(([n, th, ph, sc, ry]) => {
-    const p = prop(kit, n, { s: sc }); if (!p) return;
-    const g = new THREE.Group(); g.name = "town:" + n; p.rotation.y = ry; g.add(p);
+    const kind = n === "windmill" ? "turbine" : n === "water-tower" ? "tower" : /^building/.test(n) ? "house" : /^solar/.test(n) ? "solar" : /^shipping/.test(n) ? "pods" : /tank/.test(n) ? "tank" : /chimney/.test(n) ? "stack" : "house";
+    const p = ARC.makeArcTownPiece(kind, th * 7 + ph);
+    const g = new THREE.Group(); g.name = "town:" + n; p.rotation.y = ry; p.scale.setScalar(Math.max(0.9, sc / 2.4)); g.add(p);
     placeOn(g, dirOf(th, ph), R - 0.02);
-    g.userData = { radius: Math.max(0.8, p.userData.w * 0.45), spin: [] };
-    if (n === "windmill") { const blades = p.getObjectByName("blades") || null; if (blades) g.userData.spin.push((dt) => (blades.rotation.z += dt * 1.5)); }
+    g.userData = { radius: Math.max(0.8, p.userData.w * 0.45 * p.scale.x), spin: p.userData.spin };
     out.push(g);
   });
   return out;
@@ -724,8 +727,10 @@ export function makePaths() {
   const pts = [];
   for (let ph = 0; ph < 360; ph += 2.4) pts.push([23, ph]);
   SHOPS.forEach((s) => { for (let th = 12.5; th < s.theta - 4.5; th += 2.6) pts.push([th, s.phi]); });
-  const geo = new THREE.CylinderGeometry(0.62, 0.7, 0.12, 6);
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0x24404c, roughness: 0.75, metalness: 0.2 }), pts.length);
+  // pale stone slabs with a soft bevel (ART-SPEC: the plaza's stone), a few in a warmer shade
+  const geo = new RoundedBoxGeometry(1.25, 0.14, 1.25, 2, 0.06);
+  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.02 }), pts.length);
+  { const c = new THREE.Color(); pts.forEach((_, i) => mesh.setColorAt(i, c.set([0xd3dbe3, 0xc9d2db, 0xdde3e8, 0xd8d2c8][i % 4]))); }
   const m = new THREE.Matrix4(), o = new THREE.Object3D();
   pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R + 0.02); o.rotateY((i * 0.7) % 1); o.updateMatrix(); m.copy(o.matrix); mesh.setMatrixAt(i, m); });
   mesh.receiveShadow = true;
@@ -884,17 +889,17 @@ export function makeLamps() {
   const head = new THREE.SphereGeometry(0.22, 12, 8); head.translate(0, 2.7, 0);
   const pts = []; for (let ph = 9; ph < 360; ph += 18) pts.push([31.5, ph]);
   const lampMat = new THREE.MeshStandardMaterial({ color: 0xfff1c8, emissive: 0xffd88a, emissiveIntensity: 0.2 });
-  const poles = new THREE.InstancedMesh(pole, solid(0x2a3442, { metalness: 0.5 }), pts.length), heads = new THREE.InstancedMesh(head, lampMat, pts.length);
-  const o = new THREE.Object3D();
-  pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); poles.setMatrixAt(i, o.matrix); heads.setMatrixAt(i, o.matrix); });
-  const g = new THREE.Group(); g.add(poles, heads);
+  const o = new THREE.Object3D(), ms = pts.map(([th, ph]) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); return o.matrix.clone(); });
+  // the ARCIRCLE lamp: a white post, a dark crown and a warm lantern (world-arcstyle.js)
+  const al = ARC.makeArcLamps(ms), g = new THREE.Group(); g.add(al.group);
+  lampMat.dispose(); const lampMat2 = al.lampMat;
   // at night each lamp throws a warm pool of light on the ground
   const pool = new THREE.CircleGeometry(2.2, 28); pool.rotateX(-Math.PI / 2); pool.translate(0, 0.06, 0);
   const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc977, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
   const pools = new THREE.InstancedMesh(pool, poolMat, pts.length);
   pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); pools.setMatrixAt(i, o.matrix); });
   pools.visible = false; g.add(pools);
-  g.userData.night = (k) => { lampMat.emissiveIntensity = 0.2 + k * 3.2; poolMat.opacity = 0.32 * k; pools.visible = k > 0.05; };
+  g.userData.night = (k) => { lampMat2.emissiveIntensity = 0.35 + k * 3.2; poolMat.opacity = 0.32 * k; pools.visible = k > 0.05; };
   return g;
 }
 // a column of smoke puffs (chimneys)

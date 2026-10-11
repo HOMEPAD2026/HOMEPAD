@@ -9,6 +9,12 @@
 //   GET  ?world=raid-history                              { weeks: [{ week, players, max, dmg, fell, hours }] }  last 8
 //   POST { action: "world-raid-hit", …signature, dmg }    damage dealt in the last 5 s, capped at 60 × saved level
 //   POST { action: "world-raid-claim", …signature }       after the raid falls: a small ARCL thank-you, once a week
+//   GET  ?world=players                                   { n, list: [{ w, name, lv, char, t, cx, at }] }  the directory, newest first
+//   POST { action: "world-gift", …signature, to, kind, n } 1–3 potions (hp / sp) or up to 100 scrap; 5 a day; never ARCL
+//   POST { action: "world-gifts-take", …signature }       { gifts } waiting for you, then cleared · GET ?world=gifts&wallet= { n }
+//   POST { action: "world-stamp-reply", …signature, at, r } the owner answers a stamp with fixed reply r (0–5)
+//   POST { action: "world-race", …signature, ms }         a hoverboard race time · GET ?world=race-top { week, top }
+//   (world-ping with s = the sign-in: the wanderer shows your name and level, n / l / w in ?world=ghosts)
 //
 // The server can't watch a fight, so the raid trusts the game within a cap (one report per 5 s, 60 × level each) and
 // its ARCL stays small (40 a week, inside the daily cap); the gear and XP are the game's own.
@@ -17,6 +23,7 @@
 //            worldStats/raid_<week> { dmg, players } · worldRaidDmg/<week>_<wallet> { n } · worldStats/raidTop_<week> { top, at }
 //            worldRaidIn/<week>_<wallet> · worldRaidFell/<week> { at } · worldGhosts/<2-min window>_<shard 0–7> { list }
 //            worldRaidGap/<week>_<wallet>_<slot> · worldRaidClaim/<week>_<wallet>
+//            worldStats/players { list, n } · worldGifts/<wallet> { list } · worldGiftDay/<wallet>_<day> { n } · worldStats/race_<week> { top }
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const short = (w) => w.slice(0, 6) + "…" + w.slice(-4);
@@ -69,6 +76,76 @@ export function makeSocial(deps) {
     return json(200, { week: wk, top: ((await one(`worldStats/islandWeek_${wk}`)) || {}).top || [] }, "public, max-age=30");
   }
 
+  // ---- the player directory: everyone who saved with a wallet, newest first (name, level, character, title, codex) ----
+  // One small document (worldStats/players, up to 400 rows), rewritten on a save only when a row changes or every 15 min.
+  const DIR_MAX = 400, TITLE_ID = /^[a-z0-9]{1,12}$/;
+  async function dirUpdate(w, sv) {
+    if (!isAddr(w) || !sv) return;
+    const x = (sv.rpg && sv.rpg.x) || {};
+    const row = { w, name: String(sv.name || "").slice(0, 16), lv: levelOfSave(sv), char: String(sv.char || "").slice(0, 16), t: TITLE_ID.test(String(x.title || "")) ? x.title : "", cx: Math.min(99, Object.keys(x.seen || {}).length + (Array.isArray(sv.beaten) ? sv.beaten.length : 0)), at: now() };
+    const key = "worldStats/players", cur = (await one(key)) || { list: [] }, old = (cur.list || []).find((y) => y.w === w);
+    if (old && now() - (old.at || 0) < 15 * 60e3 && ["name", "lv", "char", "t", "cx"].every((k) => old[k] === row[k])) return;
+    const list = [row, ...(cur.list || []).filter((y) => y.w !== w)].slice(0, DIR_MAX);
+    await setDoc(key, { list, n: Math.max(list.length, cur.n || 0) });
+  }
+  async function players() {
+    const d = (await one("worldStats/players")) || { list: [] };
+    return json(200, { n: d.n || (d.list || []).length, list: (d.list || []).map((r) => ({ ...r, at: Math.floor((r.at || 0) / 600e3) * 600e3 })) }, "public, max-age=30");
+  }
+
+  // ---- gifts between players: potions and scrap only (never ARCL), five a day, the receiver collects them ----
+  const GIFT = { hp: 3, sp: 3, scrap: 100 }, GIFTS_A_DAY = 5;
+  const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+  async function gift(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const to = lc(b.to), kind = String(b.kind || ""), n = Math.floor(Number(b.n));
+    if (!isAddr(to) || to === s.wallet) return json(400, { error: "who is it for?" });
+    if (!GIFT[kind] || !(n >= 1 && n <= GIFT[kind])) return json(400, { error: "gifts are 1–3 potions or up to 100 scrap" });
+    const d = await getDocs([`worldSave/${to}`, `worldSave/${s.wallet}`, `worldGiftDay/${s.wallet}_${seoulDay(now())}`]);
+    if (!d[`worldSave/${to}`]) return json(404, { error: "that wallet hasn't played yet" });
+    if (((d[`worldGiftDay/${s.wallet}_${seoulDay(now())}`] || {}).n || 0) >= GIFTS_A_DAY) return json(429, { error: "five gifts a day — more tomorrow" });
+    await commit([{ inc: `worldGiftDay/${s.wallet}_${seoulDay(now())}`, fields: { n: 1 } }]);
+    const key = `worldGifts/${to}`, cur = (await one(key)) || { list: [] };
+    const g = { id: now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), from: s.wallet, name: String((d[`worldSave/${s.wallet}`] || {}).name || "").slice(0, 16), kind, n, at: now() };
+    await setDoc(key, { list: [...(cur.list || []), g].slice(-30) });
+    return json(200, { ok: true, gift: g });
+  }
+  async function giftsTake(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const key = `worldGifts/${s.wallet}`, cur = (await one(key)) || { list: [] }, list = cur.list || [];
+    if (list.length) await setDoc(key, { list: [] });
+    return json(200, { ok: true, gifts: list });
+  }
+  async function giftsCount(w) { return json(200, { n: isAddr(w) ? (((await one(`worldGifts/${w}`)) || {}).list || []).length : 0 }, "no-store"); }
+
+  // ---- hoverboard race on the plaza: the week's best times (a time is self-reported, so it only ranks; no rewards) ----
+  const RACE_MIN_MS = 9000, RACE_MAX_MS = 600e3;
+  async function raceTime(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const ms = Math.floor(Number(b.ms)); if (!(ms >= RACE_MIN_MS && ms <= RACE_MAX_MS)) return json(400, { error: "that time doesn't look right" });
+    const wk = isoWeek(now()), key = `worldStats/race_${wk}`, cur = (await one(key)) || { top: [] };
+    const sv = await one(`worldSave/${s.wallet}`), old = (cur.top || []).find((x) => x.w === s.wallet);
+    if (old && old.ms <= ms) return json(200, { ok: true, best: old.ms, top: (cur.top || []).map(pubRace) });
+    const top = [{ w: s.wallet, name: String((sv || {}).name || "").slice(0, 16), ms, at: now() }, ...(cur.top || []).filter((x) => x.w !== s.wallet)].sort((a, c) => a.ms - c.ms).slice(0, 20);
+    await setDoc(key, { top });
+    return json(200, { ok: true, best: ms, top: top.map(pubRace) });
+  }
+  const pubRace = ({ w, name, ms }) => ({ w: w.slice(0, 6) + "…" + w.slice(-4), name: name || "", ms });
+  async function raceTop() { const wk = isoWeek(now()); return json(200, { week: wk, top: (((await one(`worldStats/race_${wk}`)) || {}).top || []).map(pubRace) }, "public, max-age=20"); }
+
+  // ---- guestbook: the owner answers a stamp with one of a few fixed replies ----
+  const REPLIES = 6;
+  async function stampReply(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const at = Math.floor(Number(b.at)), r = Math.floor(Number(b.r)); if (!(at > 0) || !(r >= 0 && r < REPLIES)) return json(400, { error: "which note, which reply?" });
+    const key = `worldStamps/${s.wallet}`, cur = (await one(key)) || { list: [] };
+    let found = false;
+    const list = (cur.list || []).map((x) => { if (x.at !== at) return x; found = true; return { ...x, r }; });
+    if (!found) return json(404, { error: "no such note on your island" });
+    await setDoc(key, { list });
+    return json(200, { ok: true, stamps: list.slice(-20) });
+  }
+
   // ---- guestbook: the owner hides a note ----
   async function stampHide(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -96,7 +173,7 @@ export function makeSocial(deps) {
 
   // ---- wanderers: where players were in the last two minutes (no names: the ping isn't signed) ----
   const GHOST_LIFE = 120e3, GHOST_SHARDS = 8;
-  async function ghostPing(id, g) {
+  async function ghostPing(id, g, who = null) {
     if (!g || typeof g !== "object") return;
     const x = Math.round(Number(g.x) * 10) / 10, z = Math.round(Number(g.z) * 10) / 10;
     if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) > 150) return;
@@ -106,7 +183,7 @@ export function makeSocial(deps) {
     // a line from the fixed list (0–7, shown for a minute; there's no free text to moderate) and a friend's tag from an invite link
     const s = Number.isInteger(g.s) && g.s >= 0 && g.s < 8 ? g.s : null, p = /^[0-9a-z]{7}$/.test(String(g.p || "")) ? g.p : "";
     const old = (cur.list || []).find((y) => y.t === t) || {};
-    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}) };
+    const e = { t, x, z, c, lv, at, ...(s != null ? { s, sa: at } : old.sa && at - old.sa < 60e3 ? { s: old.s, sa: old.sa } : {}), ...(p ? { p } : {}), ...(who && who.name ? { n: who.name, l: who.lv, w: who.w } : {}) };
     const list = [e, ...(cur.list || []).filter((y) => y.t !== t)].slice(0, 8);
     await setDoc(key, { list });
   }
@@ -115,7 +192,7 @@ export function makeSocial(deps) {
     for (const win of [w, w - 1]) for (let i = 0; i < GHOST_SHARDS; i++) keys.push(`worldGhosts/${win}_${i}`);
     const d = await getDocs(keys), seen = new Map();
     for (const k of keys) for (const y of ((d[k] || {}).list || [])) if (at - y.at < GHOST_LIFE && (!seen.has(y.t) || seen.get(y.t).at < y.at)) seen.set(y.t, y);
-    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}) })) }, "public, max-age=10");
+    return json(200, { ghosts: [...seen.values()].sort((a, b) => b.at - a.at).slice(0, 24).map(({ t, x, z, c, lv, s, sa, p, n, l, w }) => ({ t, x, z, c, lv, ...(sa && at - sa < 60e3 ? { s, sa } : {}), ...(p ? { p } : {}), ...(n ? { n, l, w } : {}) })) }, "public, max-age=10");
   }
 
   // ---- the weekly raid boss ----
@@ -170,17 +247,24 @@ export function makeSocial(deps) {
   const pub = (st) => ({ ...st, top: st.top.map(({ w: s, n, name }) => ({ w: s, n, name: name || "" })) });
 
   return {
-    weekLike, ghostPing,
+    weekLike, ghostPing, dirUpdate,
     async read(view, url) {
       if (view === "island-week") return islandWeek();
       if (view === "friends") return friends(url.searchParams.get("wallets"));
       if (view === "ghosts") return ghosts();
       if (view === "raid-history") return raidHistory();
+      if (view === "players") return players();
+      if (view === "race-top") return raceTop();
+      if (view === "gifts") return giftsCount(lc(url.searchParams.get("wallet")));
       if (view === "raid") { const w = lc(url.searchParams.get("wallet")); return json(200, pub(await raidState(isAddr(w) ? w : "")), isAddr(w) ? "no-store" : "public, max-age=10"); }
       return null;
     },
     async handle(b) {
       if (b.action === "world-stamp-hide") return stampHide(b);
+      if (b.action === "world-stamp-reply") return stampReply(b);
+      if (b.action === "world-gift") return gift(b);
+      if (b.action === "world-gifts-take") return giftsTake(b);
+      if (b.action === "world-race") return raceTime(b);
       if (b.action === "world-raid-hit") return raidHit(b);
       if (b.action === "world-raid-claim") return raidClaim(b);
       return null;
