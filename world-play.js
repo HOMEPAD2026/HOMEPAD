@@ -1852,7 +1852,10 @@ async function openProfile(w) {
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
   };
   paint(null); document.body.appendChild(el); frozen = true; keys.clear();
-  const close = () => { el.remove(); frozen = !!(rpg && rpg.isOpen()); };
+  // Escape closes the card first (the Adventure log under it stays open)
+  const onKey = (e) => { if (e.key === "Escape" && el.isConnected) { e.preventDefault(); e.stopImmediatePropagation(); close(); } };
+  const close = () => { el.remove(); removeEventListener("keydown", onKey, true); frozen = !!(rpg && rpg.isOpen()); };
+  addEventListener("keydown", onKey, true);
   let fr = null; try { const r = await fetch("/api/social?world=friends&wallets=" + w); fr = r.ok ? ((await r.json()).friends || {})[w] || null : null; } catch { /* the card stays as it is */ } if (el.isConnected) paint(fr);
   el.addEventListener("click", (e) => {
     if (e.target === el || e.target.closest("[data-px]")) { close(); return; }
