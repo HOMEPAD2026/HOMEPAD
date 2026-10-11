@@ -23,6 +23,7 @@
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
 // Firestore: worldStats/main { visitors, players } · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
+import { makeShop } from "./_world-shop.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -48,12 +49,13 @@ export function cleanSave(d) {
 // a build: base64 of [1, N, (x, y, z, kind, rot|colour<<2) × n]; null when it isn't one
 export function checkBuild(data, N, max) {
   const s = String(data || "");
+  if (Array.isArray(N)) { for (const n of N) { const r = checkBuild(data, n, max); if (r) return { ...r, N: n }; } return null; }
   if (!s || s.length > 48000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
   let bin; try { bin = atob(s); } catch { return null; }
   if (bin.length < 2 || bin.charCodeAt(0) !== 1 || bin.charCodeAt(1) !== N || (bin.length - 2) % 5 !== 0) return null;
   const n = (bin.length - 2) / 5;
   if (n > max) return null;
-  for (let i = 2; i < bin.length; i += 5) if (bin.charCodeAt(i) >= N || bin.charCodeAt(i + 2) >= N || bin.charCodeAt(i + 1) >= 24) return null;
+  for (let i = 2; i < bin.length; i += 5) if (bin.charCodeAt(i) >= N || bin.charCodeAt(i + 2) >= N || bin.charCodeAt(i + 1) >= 32) return null;
   return { n };
 }
 export const STAMP_COUNT = 6;
@@ -89,6 +91,7 @@ export function make(deps) {
     if (who !== wallet) return { err: json(403, { error: "signature doesn't match the wallet" }) };
     return { wallet };
   }
+  const shop = makeShop({ ...deps, json, now, signer, hasName: async (w) => !!(((await getDocs([`worldSave/${w}`]))[`worldSave/${w}`] || {}).name) });
   async function login(b) {
     const s = signer(b); if (s.err) return s.err;
     const first = await commit([{ create: `worldPlayers/${s.wallet}`, data: { at: now() } }]);
@@ -101,6 +104,12 @@ export function make(deps) {
     const key = `worldSave/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const data = cleanSave(b.data);
+    if (old && old.name && data.name && data.name !== old.name) {
+      const o = await shop.own(s.wallet);
+      if (!o.freeRename) await setDoc(`worldOwn/${s.wallet}`, { ...o, freeRename: true });
+      else if ((o.renames || 0) > (o.renamesUsed || 0)) await setDoc(`worldOwn/${s.wallet}`, { ...o, renamesUsed: (o.renamesUsed || 0) + 1 });
+      else data.name = old.name;
+    }
     // XP can only climb so fast between saves (a save at least every few minutes while playing)
     if (old && data.xp > (old.xp || 0) + 3000) data.xp = (old.xp || 0) + 3000;
     await setDoc(key, { ...data, at: now() });
@@ -110,11 +119,14 @@ export function make(deps) {
   const lists = async () => (await getDocs(["worldStats/islands"]))["worldStats/islands"] || { top: [], recent: [] };
   async function islandSave(b) {
     const s = signer(b); if (s.err) return s.err;
-    const ok = checkBuild(b.data, 36, 6000); if (!ok) return json(400, { error: "that island data isn't valid" });
+    const o = await shop.own(s.wallet), items = o.items || [];
+    const sizes = [36, ...(items.includes("isle48") ? [48] : []), ...(items.includes("isle64") ? [64] : [])];
+    const ok = checkBuild(b.data, sizes, 12000); if (!ok) return json(400, { error: "that island data isn't valid" });
+    const theme = /^style-[a-z]+$/.test(String(b.theme || "")) && items.includes(b.theme) ? b.theme : "";
     const key = `worldIsland/${s.wallet}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
     const name = cleanName(b.name), res = Math.max(0, Math.min(8, Math.floor(Number(b.res) || 0)));
-    await setDoc(key, { data: String(b.data), name, n: ok.n, res, at: now() });
+    await setDoc(key, { data: String(b.data), name, n: ok.n, res, at: now(), N: ok.N, theme });
     // the recent list (and the name / size in the top list)
     try {
       const L = await lists(), entry = { wallet: s.wallet, name, n: ok.n };
@@ -129,7 +141,7 @@ export function make(deps) {
     const d = await getDocs([`worldIsland/${w}`, `worldIslandLikes/${w}`, `worldStamps/${w}`]);
     const isl = d[`worldIsland/${w}`];
     if (!isl) return json(200, { wallet: w, data: null });
-    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: ((d[`worldStamps/${w}`] || {}).list || []).slice(-20) });
+    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: ((d[`worldStamps/${w}`] || {}).list || []).slice(-20) });
   }
   async function like(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -158,24 +170,26 @@ export function make(deps) {
     const key = `worldStamps/${target}`, cur = (await getDocs([key]))[key] || { list: [] };
     const list = [...(cur.list || []), { k, w: shortW(s.wallet), at: now() }].slice(-30);
     await setDoc(key, { list });
-    return json(200, { ok: true, stamps: list.slice(-20) });
+    const arcl = await shop.stampCredit(s.wallet).catch(() => 0);
+    return json(200, { ok: true, stamps: list.slice(-20), arcl });
   }
   async function lotSave(b) {
     const s = signer(b); if (s.err) return s.err;
     const coin = lc(b.coin); if (!isAddr(coin)) return json(400, { error: "coin must be an address" });
-    const ok = checkBuild(b.data, 9, 600); if (!ok) return json(400, { error: "that lot data isn't valid" });
+    const ok = checkBuild(b.data, [9, 13], 1200); if (!ok) return json(400, { error: "that lot data isn't valid" });
     const rec = deps.launchRecord ? await deps.launchRecord(coin) : null;
     if (!rec) return json(404, { error: "not an ArcPad coin" });
     if (lc(rec.creator) !== s.wallet) return json(403, { error: "only the wallet that launched this coin can build its lot" });
+    if (ok.N === 13 && !(await shop.lotPremium(s.wallet, coin))) return json(403, { error: "a 13×13 lot is the premium lot" });
     const key = `worldLot/${coin}`, old = (await getDocs([key]))[key];
     if (old && now() - (old.at || 0) < 8000) return json(429, { error: "saving too often" });
-    await setDoc(key, { data: String(b.data), n: ok.n, at: now(), by: s.wallet });
+    await setDoc(key, { data: String(b.data), n: ok.n, at: now(), by: s.wallet, N: ok.N });
     return json(200, { ok: true, at: now() });
   }
   async function lots(coins) {
     const list = [...new Set(String(coins || "").split(",").map(lc).filter(isAddr))].slice(0, 24);
     const d = await getDocs(list.map((c) => `worldLot/${c}`)), out = {};
-    for (const c of list) { const x = d[`worldLot/${c}`]; if (x && x.data) out[c] = { data: x.data, at: x.at || 0 }; }
+    for (const c of list) { const x = d[`worldLot/${c}`]; if (x && x.data) out[c] = { data: x.data, at: x.at || 0, N: x.N || 9 }; }
     return json(200, { lots: out });
   }
   return {
@@ -187,6 +201,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
+      const r = await shop.read(w, url); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -198,6 +213,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
+      const r = await shop.handle(b); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

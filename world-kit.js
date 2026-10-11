@@ -50,6 +50,11 @@ export const SHOPS = [
     line: "The $ARCIRCLE burn engine: fees buy $ARCIRCLE and burn it for good. Every real burn lights this fire." },
   { id: "arcia", name: "ARCIA Studio", url: "/arcia", color: C.pink, shape: "stage", theta: 22, phi: 296, district: "ARCIA",
     line: "Arc's AI idol. Ask her anything about a coin, a wallet or this world." },
+  // ARCL, the game's own points (world-shop.js): spend them here, see them there
+  { id: "arcl-shop", name: "ARCL Shop", url: "", color: 0x4fd6ff, shape: "arcl", theta: 34, phi: 198, district: "ARCL",
+    line: "Island upgrades, brick packs and style. Pay with ARCL or $ARCIRCLE." },
+  { id: "arcl-ex", name: "ARCL Exchange", url: "", color: 0x4fd6ff, shape: "arcl", theta: 34, phi: 90, district: "ARCL",
+    line: "Your ARCL, how to earn it, and the exchange to $ARCIRCLE (not open yet)." },
 ];
 export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
 // districts: a sign over each, a colour on the minimap
@@ -268,6 +273,43 @@ export function makeGround({ radius = 330 } = {}) {
   g.add(hills);
   return g;
 }
+// the plaza's centrepiece: a shallow pool you can walk through, the ARCIRCLE rings turning over it, water jets
+export function makeFountain() {
+  const g = new THREE.Group(); g.name = "fountain";
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(4.2, 64), new THREE.MeshStandardMaterial({ color: 0x2aa6c8, roughness: 0.08, metalness: 0.3, transparent: true, opacity: 0.82 }));
+  pool.rotation.x = -Math.PI / 2; pool.position.y = 0.07; g.add(pool);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(4.25, 0.18, 10, 96), solid(0xd8e2ea, { roughness: 0.4 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.12; g.add(rim);
+  const rings = new THREE.Group(); rings.position.y = 10.5; rings.scale.setScalar(0.85);
+  const a = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.2, 18, 96), glossy(0x2f86ff, { emissive: 0x1d63d6, emissiveIntensity: 1.1 }));
+  const b = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.2, 18, 96), glossy(0x2ee07a, { emissive: 0x17a85a, emissiveIntensity: 1.1 }));
+  a.position.x = -1.05; b.position.x = 1.05; b.rotation.x = Math.PI / 2; rings.add(a, b); g.add(rings);
+  const jetGeo = new THREE.SphereGeometry(0.09, 6, 5), jetMat = new THREE.MeshBasicMaterial({ color: 0xcff6ff, transparent: true, opacity: 0.85 });
+  const drops = Array.from({ length: 90 }, (_, i) => { const m = new THREE.Mesh(jetGeo, jetMat); m.userData = { a: (i % 18) / 18 * Math.PI * 2, t: (i / 90) * 1.6 }; g.add(m); return m; });
+  g.userData = { radius: 0, spin: [(dt, t) => {
+    rings.rotation.y = t * 0.35; a.rotation.y = Math.sin(t * 0.7) * 0.25; rings.position.y = 10.5 + Math.sin(t * 1.2) * 0.25;
+    drops.forEach((d) => { const u = d.userData, k = ((t * 0.8 + u.t) % 1.6) / 1.6, r = 0.6 + k * 3.1; d.position.set(Math.cos(u.a) * r, 0.1 + Math.sin(k * Math.PI) * 3.4, Math.sin(u.a) * r); });
+  }] };
+  return g;
+}
+// an arch over a path out of the plaza, in its district's colour
+export function makeArch(color) {
+  const g = new THREE.Group(), m = solid(0x2a3442, { metalness: 0.5, roughness: 0.4 }), t = glow(color, 2.2);
+  const l = new THREE.Mesh(new RoundedBoxGeometry(0.5, 4.6, 0.5, 2, 0.08), m), r = l.clone(); l.position.set(-2.4, 2.3, 0); r.position.set(2.4, 2.3, 0);
+  const top = new THREE.Mesh(new RoundedBoxGeometry(5.6, 0.5, 0.6, 2, 0.1), m); top.position.y = 4.75;
+  const band = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.12, 0.66), t); band.position.y = 4.75;
+  const capL = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), t), capR = capL.clone(); capL.position.set(-2.4, 5.15, 0); capR.position.set(2.4, 5.15, 0);
+  g.add(l, r, top, band, capL, capR); shadowy(g);
+  return g;
+}
+// the plaza screen: the island of the day, or a coin someone put up (world-shop.js sells both)
+export function makeScreen() {
+  const g = new THREE.Group();
+  const board = makeBoard(5.6, 3.1); board.position.y = 3.4; g.add(board);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.9, 10), solid(0x2a3442, { metalness: 0.5 })); post.position.y = 0.95; g.add(post);
+  g.userData = { radius: 0.6, board };
+  return g;
+}
+
 // soft low-poly clouds; they drift slowly (update with dt)
 export function makeClouds(n = 26, { spread = 260, y = 38 } = {}) {
   const g = new THREE.Group(), rr = rand(21), puff = new THREE.IcosahedronGeometry(1, 1);
@@ -382,6 +424,17 @@ export function makeShop(spec) {
   const stand = new THREE.Mesh(new RoundedBoxGeometry(3, 2.4, 3, 3, 0.18), solid(C.panel, { roughness: 0.6, metalness: 0.3 })); stand.position.y = 1.55; body.add(stand);
   const accent = new THREE.Group(); accent.position.y = 2.75;
   switch (spec.shape) {
+    case "arcl": {
+      // the ARCL coin, its logo on both faces, turning slowly
+      const tex = new THREE.TextureLoader().load("/images/arcl-256.webp"); tex.colorSpace = THREE.SRGBColorSpace;
+      const face = new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false });
+      const rim = glossy(0x2f86ff, { emissive: 0x1d63d6, emissiveIntensity: 1.1 });
+      const coin = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.2, 48), [rim, face, face]); coin.rotation.x = Math.PI / 2; coin.position.y = 1.4;
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(1.32, 0.05, 8, 64), glow(col, 2.4)); halo.position.y = 1.4;
+      accent.add(coin, halo);
+      spin.push((dt, t) => { coin.rotation.z = t * 0.9; halo.rotation.set(Math.PI / 2 + Math.sin(t) * 0.3, t * 0.5, 0); coin.position.y = halo.position.y = 1.4 + Math.sin(t * 1.8) * 0.12; });
+      break;
+    }
     case "rocket": {
       const r = new THREE.Group();
       const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 2.4, 20), glossy(0xe9f1f7)); hull.position.y = 1.2;
@@ -562,8 +615,8 @@ export function enemy(kit, name) {
   return { obj: o, mixer, play };
 }
 // what stands around each shop, in the shop's own frame (+Z faces the spawn point, the plinth is r = 3)
-const BUILDING = { reward: "chimney-large", launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
-const ACCENT_H = { furnace: 2.4, rocket: 3.4, orb: 2.8, coin: 2.2, clock: 2.4, dome: 1.9, vault: 2.0, dish: 2.6, obelisk: 2.3, stage: 2.3 };
+const BUILDING = { "arcl-shop": "building-h", "arcl-ex": "building-s", reward: "chimney-large", launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
+const ACCENT_H = { arcl: 2.6, furnace: 2.4, rocket: 3.4, orb: 2.8, coin: 2.2, clock: 2.4, dome: 1.9, vault: 2.0, dish: 2.6, obelisk: 2.3, stage: 2.3 };
 const DECOR = {
   launch: [["shipping-container-a", { s: 2.2, x: 3.9, z: 0.4, ry: 0.15 }], ["detail-tank", { s: 1.8, x: -3.9, z: 0.2, ry: 1.2 }]],
   quantum: [["chimney-large", { s: 1.5, x: -3.7, z: -0.4 }], ["detail-tank-large", { s: 1.3, x: 3.8, z: 0.2, ry: 0.6 }]],

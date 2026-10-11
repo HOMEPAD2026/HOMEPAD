@@ -73,7 +73,7 @@
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { createHash } from "node:crypto";
-import { isAddr, launchRecord, tokenBalance } from "./_arc.mjs";
+import { isAddr, launchRecord, tokenBalance, rpcCall } from "./_arc.mjs";
 import { storeEnabled, storeHealth, getDocs, setDoc, commit } from "./_store.mjs";
 import * as circle from "./_circle.mjs";
 import * as rounds from "./_rounds.mjs";
@@ -203,7 +203,8 @@ const scanStoreEarly = () => (storeEnabled() ? { get: async (k) => (await getDoc
 // ArcPad v6 (api/_arcpad-v6.mjs): comments, referrals, launch plans
 let V6 = null;
 let WORLD = null;
-const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord }));
+const world = () => (WORLD = WORLD || worldmod.make({ getDocs, setDoc, commit, storeEnabled, recover: recoverSigner, issuedOk, json, launchRecord, tokenBalance,
+  arcPrice: async () => (await token.tokenStats(null)).price, receipt: (h) => rpcCall("eth_getTransactionReceipt", [h]) }));
 const v6 = () => (V6 = V6 || v6mod.make({ getDocs, setDoc, commit, recoverSigner, issuedOk, json, limited: (k, n, ms) => scanner.limited(k, n, ms), keccakText: (s) => keccakHex(te.encode(s)), veTier: (w) => vearcia.veTierOf(w),
   argusCoin: (t) => argusArc.coin(t, { store: storeEnabled() ? { get: async (k) => (await getDocs([k]))[k], set: (k, d) => setDoc(k, d) } : null }) }));
 export async function GET(req) {
@@ -223,7 +224,7 @@ export async function GET(req) {
     try { return json(200, await world().stats(), "public, max-age=10, s-maxage=15, stale-while-revalidate=30"); }
     catch (err) { console.error("world stats", err && err.message || err); return json(502, { error: "couldn't read the world" }); }
   }
-  if (["island", "islands", "lots"].includes(url.searchParams.get("world"))) {
+  if (["island", "islands", "lots", "shop", "arcl", "arcl-top", "plaza"].includes(url.searchParams.get("world"))) {
     try { return await world().read(url); }
     catch (err) { console.error("world read", err && err.message || err); return json(502, { error: "couldn't read the islands right now" }); }
   }
@@ -798,7 +799,7 @@ export async function POST(req) {
     }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
-    if (/^world-(ping|login|save|island-save|like|stamp|lot-save)$/.test(String(b.action))) return await world().handle(b);
+    if (/^world-(ping|login|save|island-save|like|stamp|lot-save|arcl-claim|arcl-spend|arcl-notify|pay-quote|pay-confirm)$/.test(String(b.action))) return await world().handle(b);
     if (b.action === "vote") return await vote(b);
     if (b.action === "logo") return await saveLogo(b, req);
     if (b.action === "pledge") return await circle.pledge(b, recoverSigner, json);

@@ -37,6 +37,10 @@
       "destination": "/brand.html"
     },
     {
+      "source": "/arcl",
+      "destination": "/arcl.html"
+    },
+    {
       "source": "/start",
       "destination": "/start.html"
     },

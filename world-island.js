@@ -13,20 +13,21 @@
 import { mergeGeometries } from "./vendor/three/addons/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js";
 
-export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 6000;
+export const ISLAND_N = 36, LOT_N = 9, HMAX = 24, MAX_BRICKS = 12000;
 export const COLORS = [
   0xf4f1ea, 0xc9ced6, 0x7d8794, 0x2e3440, 0x161a20, 0xe5484d, 0xf2803a, 0xffc861, 0xb6e05a, 0x4caf6a,
   0x2a7a52, 0x35d8d0, 0x4fa8ff, 0x2f86ff, 0x23408e, 0x9b6cff, 0xff7ad9, 0x8a5a36, 0xc89a6a, 0xe9d3a8,
   0x2ee07a, 0x6fd1ff, 0xff4d6d, 0x5b3a8a,
 ];
-const CAT = ["Bricks", "Walls and roofs", "Windows and doors", "Nature", "Lights and decor", "Special"];
+const CAT = ["Bricks", "Walls and roofs", "Windows and doors", "Nature", "Lights and decor", "Special", "Neon City", "Ocean", "Space Station", "Materials"];
 
 export function createIsland(ctx) {
+  let HM = HMAX; // 32 on a 64×64 island
   const { THREE, K, st, planet, esc, toast, post, sess, Snd, P, VER } = ctx;
   // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the island
   const LW = {
-    ko: { Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료" },
-    zh: { Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成" },
+    ko: { Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료", Antenna: "안테나", Coral: "산호", Sand: "모래", Lighthouse: "등대", Porthole: "둥근 창(우주)", Ocean: "바다", Materials: "재질" },
+    zh: { Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成", Antenna: "天线", Coral: "珊瑚", Sand: "沙地", Lighthouse: "灯塔", Porthole: "舷窗", Ocean: "海洋", Materials: "材质" },
   }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
@@ -49,6 +50,7 @@ export function createIsland(ctx) {
     pink: fixedPatch(std({ color: 0xff7ad9 })), yellow: fixedPatch(std({ color: 0xffd34d })),
     arcB: fixedPatch(new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 1.4, 3.2) })), arcG: fixedPatch(new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 3.0, 1.4) })),
   };
+  Object.assign(M, ctx.STYLE.brickMats(THREE, fixedPatch)); // the material bricks (ARCL Shop)
 
   // ---------------- brick geometry (a cell is 1×1×1; the origin is the bottom centre; +Z is the front) ----------------
   const RB = (w, h, d, r = 0.05, y = h / 2, z = 0, x = 0) => { const g = new RoundedBoxGeometry(w, h, d, 1, r); g.translate(x, y, z); return g; };
@@ -67,6 +69,12 @@ export function createIsland(ctx) {
   const plane = (w, h, x, y, z) => { const g = new THREE.PlaneGeometry(w, h); g.translate(x, y, z); return g; };
   const ico = (r, x, y, z, d = 1) => { const g = new THREE.IcosahedronGeometry(r, d); g.translate(x, y, z); return g; };
   const torus = (r, t, x, y, z, rx = 0) => { const g = new THREE.TorusGeometry(r, t, 8, 28); g.rotateX(rx); g.translate(x, y, z); return g; };
+
+  // the 12 edges of a cell cube as thin bars (which: a subset; 0-3 the bottom ring, 4-7 the top ring, 8-11 the posts)
+  const edges = (t, which = null) => { const a = 0.49, out = [];
+    [[0, 0, -a], [0, 0, a], [-a, 0, 0], [a, 0, 0]].forEach(([x, , z], i) => { const w = x ? t : 0.98 + t, d = z ? t : 0.98 + t; out[i] = box(w, t, d, x, t / 2, z); out[i + 4] = box(w, t, d, x, 0.98 - t / 2, z); });
+    [[-a, -a], [a, -a], [-a, a], [a, a]].forEach(([x, z], i) => { out[8 + i] = box(t, 0.98, t, x, 0.49, z); });
+    return which ? which.map((i) => out[i]) : out; };
 
   // kind: { id, name, cat, top (how high you stand on it), solid, tall (cells), lv | req, color (default), parts }
   // parts(): [[materialKey, [geometries]], …] — "paint" parts take the brick colour
@@ -112,12 +120,36 @@ export function createIsland(ctx) {
     { id: "crown", name: "Holder crown", cat: 5, top: 0.3, req: "holder", color: 7, parts: () => [["paint", [cyl(0.32, 0.36, 0.3, 12)]], ["arcB", [torus(0.2, 0.05, -0.12, 0.62, 0)]], ["arcG", [torus(0.2, 0.05, 0.12, 0.62, 0, Math.PI / 2)]]] },
     { id: "trophy", name: "Streak trophy", cat: 5, top: 0.3, req: "streak7", color: 3, parts: () => { const cup = new THREE.CylinderGeometry(0.26, 0.12, 0.4, 14, 1, true); cup.translate(0, 0.78, 0); return [["paint", [RB(0.5, 0.3, 0.5, 0.03)]], ["gold", [cyl(0.05, 0.05, 0.3, 6, 0, 0.45), cup, torus(0.12, 0.03, 0.3, 0.8, 0)]]]; } },
     { id: "keycard", name: "Card display", cat: 5, top: 0.3, req: "collector", color: 3, parts: () => [["paint", [RB(0.6, 0.3, 0.4, 0.03)]], ["gold", [box(0.42, 0.56, 0.03, 0, 0.62, 0)]]] },
+    // brick packs from the ARCL Shop (pack: the item that unlocks them)
+    { id: "neonpanel", name: "Neon panel", cat: 6, top: 1, pack: "pack-neon", color: 15, parts: () => [["dark", [RB(0.98, 0.98, 0.22, 0.03, 0.49, -0.38)]], ["neon", [box(0.8, 0.06, 0.03, 0, 0.2, -0.26), box(0.8, 0.06, 0.03, 0, 0.78, -0.26), box(0.06, 0.6, 0.03, -0.37, 0.49, -0.26), box(0.06, 0.6, 0.03, 0.37, 0.49, -0.26)]]] },
+    { id: "holo", name: "Holo screen", cat: 6, top: 0, solid: false, pack: "pack-neon", color: 11, parts: () => [["dark", [box(0.08, 0.7, 0.08, 0, 0.35, -0.3)]], ["glass", [plane(0.86, 0.5, 0, 0.95, -0.3)]], ["neon", [box(0.9, 0.04, 0.04, 0, 0.68, -0.3), box(0.9, 0.04, 0.04, 0, 1.22, -0.3)]]] },
+    { id: "neonsign", name: "Neon sign", cat: 6, top: 0, solid: false, pack: "pack-neon", color: 16, parts: () => [["dark", [RB(0.9, 0.5, 0.06, 0.03, 0.6, -0.42)]], ["neon", [torus(0.14, 0.035, -0.2, 0.6, -0.37), torus(0.14, 0.035, 0.2, 0.6, -0.37)]]] },
+    { id: "lightpillar", name: "Light pillar", cat: 6, top: 2, tall: 2, pack: "pack-neon", color: 11, parts: () => [["dark", [cyl(0.32, 0.36, 0.2, 12), cyl(0.32, 0.32, 0.12, 12, 0, 1.92)]], ["neon", [cyl(0.2, 0.2, 1.7, 12, 0, 1.05)]]] },
+    { id: "sand", name: "Sand", cat: 7, top: 0.2, pack: "pack-ocean", color: 19, parts: () => [["paint", [RB(0.98, 0.2, 0.98, 0.05)]]] },
+    { id: "coral", name: "Coral", cat: 7, top: 0, solid: false, pack: "pack-ocean", color: 16, parts: () => { const c = (r, h, x, z, rz) => { const g = new THREE.ConeGeometry(r, h, 6); g.rotateZ(rz); g.translate(x, h / 2, z); return g; }; return [["paint", [c(0.1, 0.7, 0, 0, 0), c(0.08, 0.5, 0.15, 0.1, -0.4), c(0.08, 0.55, -0.16, -0.05, 0.4), ico(0.1, 0, 0.72, 0, 0)]]]; } },
+    { id: "palm", name: "Palm tree", cat: 7, top: 2, tall: 2, pack: "pack-ocean", color: 9, parts: () => { const t = cyl(0.09, 0.14, 1.7, 7); t.rotateZ(0.12); const leaf = (a) => { const g = new THREE.ConeGeometry(0.16, 0.9, 4); g.rotateZ(Math.PI / 2 + 0.5); g.rotateY(a); g.translate(Math.cos(a) * 0.35 + 0.1, 1.72, -Math.sin(a) * 0.35); return g; }; return [["wood", [t]], ["paint", [0, 1.26, 2.5, 3.77, 5.03].map(leaf)]]; } },
+    { id: "lighthouse", name: "Lighthouse", cat: 7, top: 2, tall: 2, pack: "pack-ocean", color: 5, parts: () => [["white", [cyl(0.3, 0.4, 0.5, 14, 0, 0.25), cyl(0.26, 0.3, 0.5, 14, 0, 1.05)]], ["paint", [cyl(0.3, 0.3, 0.3, 14, 0, 0.65), cyl(0.27, 0.27, 0.12, 14, 0, 1.36)]], ["warm", [cyl(0.18, 0.18, 0.3, 10, 0, 1.57)]], ["dark", [new THREE.ConeGeometry(0.28, 0.3, 10).translate(0, 1.87, 0)]]] },
+    { id: "hull", name: "Hull plate", cat: 8, top: 1, pack: "pack-space", color: 1, parts: () => [["paint", [RB(0.98, 0.98, 0.98, 0.04)]], ["dark", [box(0.99, 0.05, 0.99, 0, 0.33, 0), box(0.99, 0.05, 0.99, 0, 0.66, 0)]]] },
+    { id: "porthole", name: "Porthole", cat: 8, top: 1, pack: "pack-space", color: 2, parts: () => [["paint", [frame(circHole(0.3, 0.5))]], ["dark", [torus(0.31, 0.05, 0, 0.5, -0.27)]], ["glass", [(() => { const g = new THREE.CircleGeometry(0.3, 20); g.translate(0, 0.5, -0.38); return g; })()]]] },
+    { id: "antenna", name: "Antenna", cat: 8, top: 0, solid: false, tall: 2, pack: "pack-space", color: 3, parts: () => [["paint", [cyl(0.22, 0.26, 0.16, 10)]], ["dark", [cyl(0.03, 0.05, 1.6, 6, 0, 0.95)]], ["arcG", [ico(0.09, 0, 1.8, 0, 1)]]] },
+    { id: "satdish", name: "Satellite dish", cat: 8, top: 0.3, pack: "pack-space", color: 0, parts: () => { const d = new THREE.SphereGeometry(0.45, 16, 8, 0, Math.PI * 2, 0, 1.05); d.rotateX(-0.8); d.translate(0, 0.72, 0.05); return [["dark", [cyl(0.25, 0.3, 0.3, 10), cyl(0.05, 0.05, 0.45, 6, 0, 0.5)]], ["paint", [d]], ["arcB", [ico(0.06, 0, 0.82, 0.32, 0)]]]; } },
+    // material bricks from the ARCL Shop: one each, a cube in its own material
+    { id: "mgrass", name: "Grass brick", cat: 9, top: 1, pack: "brick-grass", color: 9, parts: () => [["mDirt", [RB(0.98, 0.76, 0.98, 0.04)]], ["mGrass", [RB(1.0, 0.26, 1.0, 0.05, 0.85), ...[[-0.3, 0.2], [0.25, -0.25], [0.1, 0.32], [-0.2, -0.3]].map(([x, z]) => { const g = new THREE.ConeGeometry(0.05, 0.22, 4); g.translate(x, 1.07, z); return g; })]]] },
+    { id: "mstone", name: "Stone brick", cat: 9, top: 1, pack: "brick-stone", color: 1, parts: () => [["mStone", [RB(0.98, 0.98, 0.98, 0.06)]]] },
+    { id: "mwood", name: "Wood brick", cat: 9, top: 1, pack: "brick-wood", color: 17, parts: () => [["mWood", [RB(0.98, 0.98, 0.98, 0.04)]]] },
+    { id: "mmetal", name: "Metal brick", cat: 9, top: 1, pack: "brick-metal", color: 1, parts: () => [["mMetal", [RB(0.98, 0.98, 0.98, 0.05)]], ["mGlowB", edges(0.035, [4, 5, 6, 7])]] },
+    { id: "mglass", name: "Glass brick", cat: 9, top: 1, pack: "brick-glass", color: 21, parts: () => [["mGlass", [RB(0.94, 0.94, 0.94, 0.03, 0.49)]], ["mFrame", edges(0.05)]] },
+    { id: "mneon", name: "Neon brick", cat: 9, top: 1, pack: "brick-neon", color: 15, parts: () => [["mNeonBody", [RB(0.94, 0.94, 0.94, 0.04, 0.49)]], ["mNeonEdge", edges(0.05)]] },
+    { id: "mcrystal", name: "Crystal brick", cat: 9, top: 1, pack: "brick-crystal", color: 15, parts: () => [["mCrystal", [RB(0.96, 0.96, 0.96, 0.16, 0.49)]], ["mCrystalCore", [(() => { const g = new THREE.OctahedronGeometry(0.24, 0); g.scale(1, 1.4, 1); g.translate(0, 0.49, 0); return g; })()]]] },
+    { id: "mgold", name: "Gold block", cat: 9, top: 1, pack: "brick-gold", color: 7, parts: () => [["mGoldB", [RB(0.98, 0.98, 0.98, 0.05)]]] },
+    { id: "mcyber", name: "Cyber brick", cat: 9, top: 1, pack: "brick-cyber", color: 3, parts: () => [["mCyber", [RB(0.98, 0.98, 0.98, 0.05)]], ["mGlowB", edges(0.03, [0, 1, 2, 3])]] },
+    { id: "marcadia", name: "Arcadia brick", cat: 9, top: 1, pack: "brick-arcadia", color: 0, parts: () => [["mMarble", [RB(0.96, 0.96, 0.96, 0.04, 0.48)]], ["mGoldTrim", edges(0.06)], ["leaf", [ico(0.12, -0.44, 0.9, 0.44, 0), ico(0.1, -0.47, 0.7, 0.47, 0), ico(0.11, -0.4, 0.5, 0.49, 0), ico(0.1, 0.44, 0.95, -0.46, 0)]]] },
   ];
   const TI = Object.fromEntries(TYPES.map((t, i) => [t.id, i]));
   TYPES.forEach((t) => { t.solid = t.solid !== false; t.tall = t.tall || 1; t.name = T(t.name); });
   const REQ = { slayer: "Beat all six scammers", launcher: "Launch a coin on ArcPad", phisher: "Beat The Phisher", holder: "Hold $ARCIRCLE", streak7: "Keep a 7-day streak", collector: "Collect all 12 key cards" };
-  const unlocked = (t) => (t.req ? (t.req === "phisher" ? P.beaten.includes("phisher") : P.badges.includes(t.req)) : ctx.level() >= (t.lv || 1));
-  const lockText = (t) => (t.req ? T(REQ[t.req]) : T("Reach level {n}", { n: t.lv }));
+  const unlocked = (t) => (t.pack ? ctx.owns(t.pack) : t.req ? (t.req === "phisher" ? P.beaten.includes("phisher") : P.badges.includes(t.req)) : ctx.level() >= (t.lv || 1));
+  const lockText = (t) => (t.pack ? T("In the ARCL Shop") : t.req ? T(REQ[t.req]) : T("Reach level {n}", { n: t.lv }));
 
   const geoCache = new Map();
   function kindGeo(i) {
@@ -178,11 +210,11 @@ export function createIsland(ctx) {
   function decode(s, N) {
     try {
       const u = unb64(s); if (u[0] !== 1) return [];
-      const n0 = u[1] || N, out = [];
+      const n0 = u[1] || N, out = [], sh = N > n0 && n0 !== 64 ? (N - n0) >> 1 : 0;
       for (let i = 2; i + 5 <= u.length && out.length < MAX_BRICKS; i += 5) {
         const [x, y, z, t, rc] = u.subarray(i, i + 5), c = rc >> 2;
-        if (x >= n0 || z >= n0 || y >= HMAX || !TYPES[t] || c >= COLORS.length) continue;
-        out.push({ x, y, z, t, r: rc & 3, c });
+        if (x >= n0 || z >= n0 || y >= 32 || !TYPES[t] || c >= COLORS.length) continue;
+        out.push({ x: x + sh, y, z: z + sh, t, r: rc & 3, c });
       }
       return out;
     } catch { return []; }
@@ -204,15 +236,17 @@ export function createIsland(ctx) {
     const W = N + 6;
     topMat = new THREE.MeshStandardMaterial({ color: 0x5fae62, roughness: 0.95, map: gridTex.clone() });
     topMat.map.repeat.set(W, W); topMat.map.offset.set(0, 0); topMat.map.needsUpdate = true;
-    const top = new THREE.Mesh(new THREE.BoxGeometry(W, 1, W), [new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 }), new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 }), topMat, new THREE.MeshStandardMaterial({ color: 0x5a3e2a }), new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 }), new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 })]);
+    const sideMat = new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 1 });
+    const top = new THREE.Mesh(new THREE.BoxGeometry(W, 1, W), [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]);
     top.position.y = -0.5; top.receiveShadow = true; land.add(top);
     // blocky cliffs that narrow toward the bottom
     const rock = new THREE.MeshStandardMaterial({ color: 0x7d7368, roughness: 1, flatShading: true }), dirt = new THREE.MeshStandardMaterial({ color: 0x5f4430, roughness: 1 });
     for (let i = 1; i <= 5; i++) { const w = W * (1 - i * 0.15); const m = new THREE.Mesh(new THREE.BoxGeometry(w, 1.4, w), i % 2 ? dirt : rock); m.position.y = -1 - i * 1.3; m.rotation.y = i * 0.12; land.add(m); }
+    Object.assign(land.userData, { topMat, sideMat, rock, dirt, styled: null });
     const tip = new THREE.Mesh(new THREE.ConeGeometry(W * 0.12, 5, 5), rock); tip.rotation.x = Math.PI; tip.position.y = -10.5; land.add(tip);
     // a sea of clouds below and a few around
     const sea = new THREE.Mesh(new THREE.CircleGeometry(160, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, fog: true, depthWrite: false }));
-    sea.rotation.x = -Math.PI / 2; sea.position.y = -16; land.add(sea);
+    sea.rotation.x = -Math.PI / 2; sea.position.y = -16; land.add(sea); land.userData.sea = sea;
     const cl = K.makeClouds(14, { spread: 80, y: -13 }); cl.userData.mat.emissiveIntensity = 0.55; cl.userData.mat.flatShading = false; land.add(cl); land.userData.clouds = cl;
     // the way back: a portal at the front edge, facing the island
     exit = K.makePortal(T("Back to the world")); exit.position.set(-N / 2 - 1.2, 0, N / 2 - 1.5); exit.rotation.y = Math.PI / 2; exit.scale.setScalar(0.8); land.add(exit);
@@ -228,7 +262,7 @@ export function createIsland(ctx) {
   }
   function addIndex(b) { for (let k = 0; k < TYPES[b.t].tall; k++) occ.set(key(b.x, b.y + k, b.z), b); const c = ckey(b.x, b.z); let a = cols.get(c); if (!a) cols.set(c, (a = [])); a.push(b); }
   function dropIndex(b) { for (let k = 0; k < TYPES[b.t].tall; k++) occ.delete(key(b.x, b.y + k, b.z)); const a = cols.get(ckey(b.x, b.z)); if (a) a.splice(a.indexOf(b), 1); }
-  const free = (x, y, z, tall = 1) => { if (x < 0 || z < 0 || x >= N || z >= N || y < 0 || y + tall > HMAX) return false; for (let k = 0; k < tall; k++) if (occ.has(key(x, y + k, z))) return false; return true; };
+  const free = (x, y, z, tall = 1) => { if (x < 0 || z < 0 || x >= N || z >= N || y < 0 || y + tall > HM) return false; for (let k = 0; k < tall; k++) if (occ.has(key(x, y + k, z))) return false; return true; };
 
   // ---------------- walking on bricks: floor under the feet, walls in the way ----------------
   const local = (v) => new V3(v.x - ISLE.x, v.y, v.z - ISLE.z);
@@ -417,9 +451,9 @@ export function createIsland(ctx) {
     let n = [0, 0, 0];
     for (let i = 0; i < 240; i++) {
       if (y < 0) { if (x >= 0 && z >= 0 && x < N && z < N) return { place: [x, 0, z], hit: null, ground: true }; return null; }
-      if (y < HMAX + 2) { const b = occ.get(key(x, y, z)); if (b) { const p = [x - n[0], y - n[1], z - n[2]]; return { place: p, hit: b, normal: n }; } }
+      if (y < HM + 2) { const b = occ.get(key(x, y, z)); if (b) { const p = [x - n[0], y - n[1], z - n[2]]; return { place: p, hit: b, normal: n }; } }
       if (tx < ty && tx < tz) { x += sx; tx += tdx; n = [sx, 0, 0]; } else if (ty < tz) { y += sy; ty += tdy; n = [0, sy, 0]; } else { z += sz; tz += tdz; n = [0, 0, sz]; }
-      if (y > HMAX + 30 && sy > 0) return null;
+      if (y > HM + 30 && sy > 0) return null;
     }
     return null;
   }
@@ -512,23 +546,23 @@ export function createIsland(ctx) {
   async function cloudSave() {
     const s = sess(); if (!s || readOnly) return;
     const data = encode(bricks, N), st2 = stats();
-    const body = kind === "lot" ? { action: "world-lot-save", ...s, coin: lotCoin.token, data } : { action: "world-island-save", ...s, data, name: P.name || "", n: st2.bricks, res: st2.residents };
+    const body = kind === "lot" ? { action: "world-lot-save", ...s, coin: lotCoin.token, data } : { action: "world-island-save", ...s, data, name: P.name || "", n: st2.bricks, res: st2.residents, theme: myTheme };
     try {
       const r = await post(body);
-      if (r.ok) setSave(T("Saved to your wallet"));
+      if (r.ok) { setSave(T("Saved to your wallet")); if (kind === "home") ctx.onSaved(st2); }
       else if (r.status === 503) setSave(T("Saved in this browser"));
       else if (r.status === 429) { clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 9000); }
       else setSave(r.j.error || T("Couldn't save"));
     } catch { setSave(T("Saved in this browser")); }
   }
   function setSave(t) { saveState = t; const el = $("wi-save"); if (el) el.textContent = t; }
-  async function loadOwn() {
+  async function loadOwn(N) {
     let local = null; try { local = JSON.parse(localStorage.getItem(LKEY()) || "null"); } catch { local = null; }
     let list = local && local.d ? decode(local.d, N) : [];
     const me = sess();
     try {
       if (kind === "lot") { const r = await fetch("/api/social?world=lots&coins=" + lotCoin.token); if (r.ok) { const j = await r.json(); const d = j.lots && j.lots[lotCoin.token]; if (d && (!local || (d.at || 0) > (local.at || 0))) list = decode(d.data, N); } }
-      else if (me) { const r = await fetch("/api/social?world=island&wallet=" + me.wallet); if (r.ok) { const j = await r.json(); if (j.data && (!local || (j.at || 0) > (local.at || 0))) list = decode(j.data, N); } }
+      else if (me) { const r = await fetch("/api/social?world=island&wallet=" + me.wallet); if (r.ok) { const j = await r.json(); if (j.data && (!local || (j.at || 0) > (local.at || 0))) list = decode(j.data, N); if (j.likes) ctx.onLikes(j.likes); } }
     } catch { /* keep this browser's copy */ }
     return list;
   }
@@ -543,7 +577,8 @@ export function createIsland(ctx) {
     if (j.enabled === false) throw new Error(T("Island visits open once cloud saving is switched on."));
     if (!j.data) throw new Error(T("That wallet hasn't built an island yet"));
     visitInfo = { wallet, name: j.name || wallet.slice(0, 6) + "…" + wallet.slice(-4), likes: j.likes || 0, stamps: j.stamps || [] };
-    return j.data ? decode(j.data, ISLAND_N) : [];
+    const n0 = unb64(j.data)[1] || ISLAND_N;
+    return { list: decode(j.data, n0), N: n0, theme: j.theme || "" };
   }
   async function like() {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to like islands")); return; }
@@ -554,23 +589,43 @@ export function createIsland(ctx) {
   async function stamp(k) {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to leave a stamp")); return; }
     const r = await post({ action: "world-stamp", ...s, target: visitInfo.wallet, k });
-    if (r.ok) { visitInfo.stamps = r.j.stamps || visitInfo.stamps; paintVisit(); Snd.pick(); toast(T("Stamp left")); }
+    if (r.ok) { visitInfo.stamps = r.j.stamps || visitInfo.stamps; paintVisit(); Snd.pick(); toast(T("Stamp left")); if (r.j.arcl) ctx.onArcl(r.j.arcl); }
     else toast(r.j.error || T("Couldn't leave a stamp right now"));
   }
+
+  // ---------------- what the wallet owns (the ARCL Shop): island size, brick packs, sky ----------------
+  let ownedItems = [], ownedLots = [], myTheme = P.isleTheme || "";
+  const ownedN = () => (ownedItems.includes("isle64") ? 64 : ownedItems.includes("isle48") ? 48 : ISLAND_N);
+  function setOwned(items, lots) {
+    const before = ownedN(); ownedItems = items || []; ownedLots = lots || [];
+    if (active && kind === "home" && !readOnly && ownedN() !== before) { leave(); enter({}).then(() => toast(T("Your island grew to {n}×{n}", { n: N }))); }
+    else if (active && building) paintBuild();
+  }
+  // the island's style (world-style.js): ground, cliffs, edge props, waterfalls, weather, the sea; the sky in world-play
+  const styler = ctx.STYLE.createStyler({ THREE, K, reduce: ctx.reduce });
+  function applyTheme(th) {
+    th = ctx.STYLE.STYLES[th] ? th : "";
+    ctx.skyTheme(active ? th : "");
+    styler.apply(land, N, th);
+  }
+  function setTheme(th) { myTheme = th || ""; if (active && kind === "home" && !readOnly) { applyTheme(myTheme); saveSoon(); } }
 
   // ---------------- entering and leaving ----------------
   let active = false;
   async function enter(opt = {}) {
     kind = opt.lot ? "lot" : "home"; lotCoin = opt.lot || null; readOnly = !!opt.visit; owner = opt.visit || "";
-    const n2 = kind === "lot" ? LOT_N : ISLAND_N;
+    let list, n2, theme = "";
+    try {
+      if (opt.visit) { const v = await loadVisit(opt.visit); list = v.list; n2 = v.N; theme = v.theme; }
+      else if (opt.lot) { n2 = ownedLots.includes(String(opt.lot.token).toLowerCase()) ? 13 : LOT_N; list = await loadOwn(n2); }
+      else { n2 = ownedN(); list = await loadOwn(n2); theme = myTheme; }
+    } catch (e) { toast(e.message || T("Couldn't load that island")); return false; }
     if (n2 !== N) { N = n2; set.clear(); set = brickSet(brickRoot, N); buildLand(); }
-    let list;
-    try { list = opt.visit ? await loadVisit(opt.visit) : await loadOwn(); }
-    catch (e) { toast(e.message || T("Couldn't load that island")); return false; }
+    HM = N === 64 ? 32 : HMAX;
     bricks = list; index(); set.clear(); set = brickSet(brickRoot, N); set.sync(bricks);
     undo.length = 0; redo.length = 0; anims.length = 0;
     residents.splice(0).forEach((r) => root.remove(r.g)); lastDoors = bricks.filter((b) => TYPES[b.t].id === "door").length; syncResidents(false);
-    root.visible = true; active = true; ghostRoot.visible = false;
+    root.visible = true; active = true; ghostRoot.visible = false; applyTheme(theme);
     ctx.goTo(ISLE.clone().add(new V3(-N / 2 + 3.5, 0, N / 2 - 3.5)), Math.PI * 0.75);
     setSave(kind === "lot" || readOnly ? "" : sess() ? T("Saved to your wallet") : T("Saved in this browser"));
     paintHud(); document.body.classList.add("wi-on"); document.body.classList.toggle("wi-visit", readOnly);
@@ -582,7 +637,7 @@ export function createIsland(ctx) {
   function leave() {
     if (!active) return;
     if (!readOnly) { clearTimeout(saveT); try { if (bricks.length || localStorage.getItem(LKEY())) localStorage.setItem(LKEY(), JSON.stringify({ d: encode(bricks, N), at: Date.now() })); } catch { /* private */ } cloudSave(); }
-    setBuild(false); active = false; root.visible = false; pending = null; lapse = null;
+    setBuild(false); active = false; root.visible = false; pending = null; lapse = null; ctx.skyTheme("");
     document.body.classList.remove("wi-on", "wi-visit", "wi-lapse"); closeSheets();
   }
 
@@ -754,7 +809,7 @@ export function createIsland(ctx) {
     if (k === "g") { mirror = !mirror; paintBuild(); return true; }
     if (k === "l") { layer = layer >= 0 ? -1 : Math.max(0, Math.floor(ctx.feet())); paintBuild(); return true; }
     if (k === "[" && layer >= 0) { layer = Math.max(0, layer - 1); paintBuild(); return true; }
-    if (k === "]" && layer >= 0) { layer = Math.min(HMAX - 1, layer + 1); paintBuild(); return true; }
+    if (k === "]" && layer >= 0) { layer = Math.min(HM - 1, layer + 1); paintBuild(); return true; }
     if (k === "tab") { e.preventDefault(); if ($("wi-pal").hidden) openPalette(); else closeSheets(); return true; }
     return false;
   }
@@ -768,19 +823,20 @@ export function createIsland(ctx) {
 
   // ---------------- static builds for Coin City lots ----------------
   function makeStatic(data) {
-    const g = new THREE.Group(), list = decode(data, LOT_N); if (!list.length) return null;
-    const s = brickSet(g, LOT_N); s.sync(list); g.userData.h = Math.max(...list.map((b) => b.y + TYPES[b.t].tall));
+    let n0 = LOT_N; try { n0 = unb64(data)[1] || LOT_N; } catch { /* the default */ }
+    const g = new THREE.Group(), list = decode(data, n0); if (!list.length) return null;
+    const s = brickSet(g, n0); s.sync(list); g.userData.h = Math.max(...list.map((b) => b.y + TYPES[b.t].tall)); g.userData.N = n0;
     return g;
   }
 
   return {
-    TYPES, enter, leave, floorAt, blocked, keyDown, tap, hover, makeStatic, stats,
+    TYPES, enter, leave, floorAt, blocked, keyDown, tap, hover, makeStatic, stats, setOwned, setTheme,
     active: () => active, building: () => building, readOnly: () => readOnly, kind: () => kind,
     title: () => (readOnly && visitInfo ? T("{name}'s island", { name: visitInfo.name }) : kind === "lot" ? "$" + lotCoin.symbol : T("My Island")),
     near(consider) { consider(exit, "isle-exit", {}, 2.6); residents.forEach((r) => consider(r.g, "resident", { res: r }, 1.8)); },
     talk(r) { const lines = ctx.lines(); if (r.bub) r.g.remove(r.bub); r.bub = K.bubble(lines.length ? lines[Math.floor(Math.random() * lines.length)] : T("Hi! Nice island."), "#7ee0a0"); r.bub.position.y = 3.1; r.bub.scale.multiplyScalar(0.8); r.g.add(r.bub); r.ch.play("emote-yes", { once: true }); ctx.labelsDirty(); setTimeout(() => { if (r.bub) { r.g.remove(r.bub); r.bub = null; ctx.labelsDirty(); } }, 5000); },
     mini(put) { put(exit, "#35d8d0", 6); residents.forEach((r) => put(r.g, "#7ee0a0", 4)); },
-    tick(dt, t) { if (!active) return; tickAnims(); tickLapse(); tickResidents(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
+    tick(dt, t) { if (!active) return; tickAnims(); tickLapse(); tickResidents(dt, t); styler.tick(dt, t); if (land.userData.clouds) land.userData.clouds.userData.update(dt); },
     openIsles, closeSheets, save: cloudSave, debug: () => ({ bricks: bricks.length, kinds: new Set(bricks.map((b) => b.t)).size, residents: residents.length, building, tool, slot, undo: undo.length, layer, mirror }),
     _place: (x, y, z, id, r = 0, c) => { const t = TI[id]; apply({ add: [{ x, y, z, t, r, c: c ?? TYPES[t].color }] }); }, _blueprint: (id, x, y, z) => { pending = { list: bpList(id), name: id }; aim = { place: [x, y, z] }; return placeBlueprint(); },
   };

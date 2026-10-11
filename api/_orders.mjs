@@ -59,6 +59,7 @@ const ARC_CFG = {
   now: () => Math.floor(Date.now() / 1000),
   // v5: markets the list always shows, traded or not ($ARCIRCLE on Arc)
   featured: ["0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7"],
+  sink: ["0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7"], // $ARCIRCLE paid in ARCIRCLE World (api/_world-shop.mjs) lands here: flushed every hour, half burned
   dexSlug: "arc", // v6: Dexscreener's name for the chain — the 24h numbers when the pool has no candles yet
   thinQuote: 200, // under this much quote within ±2% of the pool price: thin liquidity
 };
@@ -1228,7 +1229,7 @@ async function tick(store, { budgetMs = 12000, token = null } = {}) {
           if (r.rc) st.burn = { at: CFG.now(), [CFG.baseSym.toLowerCase()]: Number(spend) / 10 ** CFG.baseDec, arcircle: Number(got) / 1e18, tx: lc(r.rc.transactionHash) };
         }
       }
-      const toks = ((idx && idx.tokens) || []).filter((x) => x !== lc(CFG.base)).slice(0, 12);
+      const toks = [...new Set([...(CFG.sink || []), ...((idx && idx.tokens) || [])])].filter((x) => x !== lc(CFG.base)).slice(0, 12);
       const bals = toks.length ? await calls(toks.map((x) => ({ to: x, data: SEL.balanceOf + w(FB) }))) : [];
       let flushed = 0;
       for (let i = 0; i < toks.length && flushed < 2; i++) if (bals[i] && W(bals[i], 0) > 0n) { const r = await send(SEL.flush + w(toks[i]), "fee flush", FB); if (r.rc) flushed++; }
