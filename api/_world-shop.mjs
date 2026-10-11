@@ -53,6 +53,7 @@ export const EARN = [
   { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 10 a day", repeat: { max: 10, gap: 10 } },
   { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 150 a day" },
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 3 a day", repeat: { max: 3, gap: 240 } },
+  { kind: "raid", n: 40, label: "Help bring down the weekly raid boss", more: "once a week, after it falls", weekly: true },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
 // the scammer stages: the answer that beats each (the game's FIGHTS)
@@ -136,7 +137,7 @@ export function makeShop(deps) {
     // the ledger's history (the balance itself moves with atomic increments)
     const L = await ledger(w);
     const log = [...(L.log || []), { t, k, n, at: now() }].slice(-40);
-    const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(EARN_BY[k] && EARN_BY[k].repeat) && !k.startsWith("support:") && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
+    const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(EARN_BY[k] && (EARN_BY[k].repeat || EARN_BY[k].weekly)) && !k.startsWith("support:") && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
     await setDoc(`worldArcl/${w}`, { ...L, log, got, bal: undefined, earned: undefined, spent: undefined });
   }
   async function balance(w) {
@@ -212,6 +213,7 @@ export function makeShop(deps) {
     if (!e) return json(400, { error: "unknown kind" });
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
+    if (kind === "raid") return json(400, { error: "the raid's reward is claimed at the raid" });
     let n = e.n;
     if (e.repeat) {
       // hunting grounds: the stronger the scammer, the more ARCL, but only for a character whose saved level could
@@ -387,7 +389,7 @@ export function makeShop(deps) {
   }
 
   return {
-    stampCredit, own, plaza, rewardArcl,
+    stampCredit, own, plaza, rewardArcl, credit, isoWeek,
     owns: async (w, id) => ((await own(w)).items || []).includes(id),
     lotPremium: async (w, coin) => ((await own(w)).lots || []).includes(lc(coin)),
     renames: async (w) => (await own(w)).renames || 0,

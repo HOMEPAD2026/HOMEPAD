@@ -26,8 +26,8 @@ export function createIsland(ctx) {
   const { THREE, K, st, planet, esc, toast, post, sess, Snd, P, VER } = ctx;
   // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the island
   const LW = {
-    ko: { Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료", Antenna: "안테나", Coral: "산호", Sand: "모래", Lighthouse: "등대", Porthole: "둥근 창(우주)", Ocean: "바다", Materials: "재질" },
-    zh: { Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成", Antenna: "天线", Coral: "珊瑚", Sand: "沙地", Lighthouse: "灯塔", Porthole: "舷窗", Ocean: "海洋", Materials: "材质" },
+    ko: { Guestbook: "방명록", Friends: "친구", Friend: "친구", Show: "보이기", Hide: "숨기기", Arch: "아치", Bench: "벤치", Blueprints: "설계도", Brick: "브릭", Bricks: "브릭", Bush: "덤불", Chimney: "굴뚝", Colour: "색상", Cottage: "오두막", Crystal: "크리스탈", Dome: "돔", Door: "문", Fence: "울타리", Flag: "깃발", Flowers: "꽃", Fountain: "분수", Garden: "정원", Islands: "섬 둘러보기", Mirror: "대칭", Nature: "자연", Paint: "칠하기", Pick: "스포이드", Pillar: "기둥", Pine: "소나무", Planter: "화분", Plate: "플레이트", Popular: "인기", Redo: "다시", Rock: "바위", Rocket: "로켓", Roof: "지붕", Rotate: "회전", Slope: "경사", Special: "특별", Table: "테이블", "Time-lapse": "타임랩스", Tree: "나무", Visit: "방문", Wall: "벽", Water: "물", Window: "창문", Wow: "와우", Build: "건설", Place: "놓기", Remove: "지우기", Undo: "되돌리기", Layer: "층", Tools: "도구", Close: "닫기", Done: "완료", Antenna: "안테나", Coral: "산호", Sand: "모래", Lighthouse: "등대", Porthole: "둥근 창(우주)", Ocean: "바다", Materials: "재질" },
+    zh: { Guestbook: "留言簿", Friends: "好友", Friend: "好友", Show: "显示", Hide: "隐藏", Arch: "拱门", Bench: "长椅", Blueprints: "蓝图", Brick: "积木", Bricks: "积木", Bush: "灌木", Chimney: "烟囱", Colour: "颜色", Cottage: "小屋", Crystal: "水晶", Dome: "穹顶", Door: "门", Fence: "栅栏", Flag: "旗帜", Flowers: "花", Fountain: "喷泉", Garden: "花园", Islands: "岛屿", Mirror: "镜像", Nature: "自然", Paint: "上色", Pick: "取样", Pillar: "柱子", Pine: "松树", Planter: "花盆", Plate: "薄板", Popular: "热门", Redo: "重做", Rock: "岩石", Rocket: "火箭", Roof: "屋顶", Rotate: "旋转", Slope: "斜坡", Special: "特殊", Table: "桌子", "Time-lapse": "延时回放", Tree: "树", Visit: "拜访", Wall: "墙", Water: "水", Window: "窗户", Wow: "哇", Build: "建造", Place: "放置", Remove: "移除", Undo: "撤销", Layer: "楼层", Tools: "工具", Close: "关闭", Done: "完成", Antenna: "天线", Coral: "珊瑚", Sand: "沙地", Lighthouse: "灯塔", Porthole: "舷窗", Ocean: "海洋", Materials: "材质" },
   }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
@@ -588,9 +588,38 @@ export function createIsland(ctx) {
   }
   async function stamp(k) {
     const s = sess(); if (!s) { toast(T("Sign in with your wallet to leave a stamp")); return; }
-    const r = await post({ action: "world-stamp", ...s, target: visitInfo.wallet, k });
-    if (r.ok) { visitInfo.stamps = r.j.stamps || visitInfo.stamps; paintVisit(); Snd.pick(); toast(T("Stamp left")); if (r.j.arcl) ctx.onArcl(r.j.arcl); }
+    const msg = ($("wi-note") && $("wi-note").value.trim()) || "";
+    const r = await post({ action: "world-stamp", ...s, target: visitInfo.wallet, k, ...(msg ? { msg } : {}) });
+    if (r.ok) { visitInfo.stamps = r.j.stamps || visitInfo.stamps; if ($("wi-note")) $("wi-note").value = ""; paintVisit(); Snd.pick(); toast(msg ? T("Stamp and note left") : T("Stamp left")); if (r.j.arcl) ctx.onArcl(r.j.arcl); }
     else toast(r.j.error || T("Couldn't leave a stamp right now"));
+  }
+
+  // ---------------- friends (saved with your character: P.rpg.x.friends) ----------------
+  const FR = () => { const r = P.rpg || (P.rpg = {}); r.x = r.x || {}; if (!Array.isArray(r.x.friends)) r.x.friends = []; return r.x.friends; };
+  const isFriend = (w) => FR().some((f) => f.w === w);
+  function toggleFriend(w, name) {
+    const list = FR(), i = list.findIndex((f) => f.w === w);
+    if (i >= 0) { list.splice(i, 1); toast(T("Removed from friends")); }
+    else { if (list.length >= 30) { toast(T("Your friends list is full (30)")); return; } list.push({ w, n: String(name || "").slice(0, 16) }); toast(T("Added to friends")); Snd.pick(); }
+    ctx.saveP && ctx.saveP(); paintVisit();
+  }
+  const myLink = () => { const s = sess(); return s ? "https://www.arcircle.app/play?isle=" + s.wallet : ""; };
+  // ---------------- the guestbook: notes left on your island, and hiding one ----------------
+  let book = null;
+  async function openBook() {
+    const s = sess(); if (!s) { toast(T("Sign in with your wallet to see your guestbook")); return; }
+    openSheet("wi-book"); $("wi-book-list").innerHTML = `<li class="wi-empty">${esc(T("Loading…"))}</li>`;
+    try { const r = await fetch("/api/social?world=island&wallet=" + s.wallet); book = r.ok ? ((await r.json()).stamps || []) : []; } catch { book = []; }
+    paintBook();
+  }
+  function paintBook() {
+    const list = (book || []).slice().reverse();
+    $("wi-book-list").innerHTML = list.length ? list.map((x) => `<li class="${x.h ? "hid" : ""}"><div><b>${esc(T(STAMPS[x.k] || ""))}</b><small>${esc(String(x.w || ""))} · ${esc(new Date(x.at).toLocaleDateString())}</small>${x.h ? `<q class="dim">${esc(T("Note hidden"))}</q>` : x.m ? `<q>${esc(x.m)}</q>` : ""}</div>${x.m || x.h ? `<button type="button" class="wp-btn" data-hide="${x.at}">${esc(x.h ? T("Show") : T("Hide"))}</button>` : ""}</li>`).join("") : `<li class="wi-empty">${esc(T("No stamps yet. Share your island link so friends can visit."))}</li>`;
+  }
+  async function hideNote(at) {
+    const s = sess(); if (!s) return;
+    const r = await post({ action: "world-stamp-hide", ...s, at: Number(at) });
+    if (r.ok) { book = r.j.stamps || book; paintBook(); } else toast(r.j.error || T("Couldn't change that right now"));
   }
 
   // ---------------- what the wallet owns (the ARCL Shop): island size, brick packs, sky ----------------
@@ -645,7 +674,7 @@ export function createIsland(ctx) {
   const ui = document.createElement("div"); ui.id = "wi"; ui.setAttribute("data-no-i18n", "");
   ui.innerHTML = `
   <div class="wi-bar"><div class="wi-title"><b id="wi-name"></b><span id="wi-stats"></span><small id="wi-save"></small></div>
-    <div class="wi-acts"><button type="button" class="wi-b" id="wi-build-btn" aria-pressed="false">${esc(T("Build"))}<kbd>B</kbd></button><button type="button" class="wi-b" id="wi-bp-btn">${esc(T("Blueprints"))}</button><button type="button" class="wi-b" id="wi-replay-btn">${esc(T("Time-lapse"))}</button><button type="button" class="wi-b" id="wi-isles-btn">${esc(T("Islands"))}</button></div></div>
+    <div class="wi-acts"><button type="button" class="wi-b" id="wi-build-btn" aria-pressed="false">${esc(T("Build"))}<kbd>B</kbd></button><button type="button" class="wi-b" id="wi-bp-btn">${esc(T("Blueprints"))}</button><button type="button" class="wi-b" id="wi-replay-btn">${esc(T("Time-lapse"))}</button><button type="button" class="wi-b" id="wi-book-btn">${esc(T("Guestbook"))}</button><button type="button" class="wi-b" id="wi-isles-btn">${esc(T("Islands"))}</button></div></div>
   <div class="wi-build" id="wi-build" hidden>
     <div class="wi-tools" role="toolbar" aria-label="${esc(T("Tools"))}">
       <button type="button" data-tool="place" title="${esc(T("Place"))}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>${esc(T("Place"))}</span></button>
@@ -670,12 +699,15 @@ export function createIsland(ctx) {
     <p class="wi-note">${esc(T("Pick one, then tap a spot on your island. It rises layer by layer."))}</p><div class="wi-bplist" id="wi-bplist"></div>
     <h3>${esc(T("Share a build"))}</h3><div class="wi-code"><button type="button" class="wp-btn" id="wi-copy">${esc(T("Copy my island as a code"))}</button><input id="wi-code-in" placeholder="ARCBP1.…" spellcheck="false" autocomplete="off"><button type="button" class="wp-btn" id="wi-paste">${esc(T("Use code"))}</button></div></div></div>
   <div class="wi-sheet" id="wi-isles" hidden><div class="wi-card"><header><h2>${esc(T("Islands"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
-    <button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button>
-    <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button></nav>
+    <div class="wi-mine-row"><button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button><button type="button" class="wp-btn wi-link" id="wi-link">${esc(T("Copy my island link"))}</button></div>
+    <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="week" aria-pressed="false">${esc(T("This week"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button><button type="button" data-tab="friends" aria-pressed="false">${esc(T("Friends"))}</button></nav>
+    <p class="wi-note" id="wi-isle-note" hidden></p>
     <ul class="wi-isle-list" id="wi-isle-list"></ul>
     <form class="wi-code" id="wi-visit-form"><input id="wi-visit-in" placeholder="${esc(T("Visit a wallet: 0x…"))}" spellcheck="false" autocomplete="off"><button type="submit" class="wp-btn">${esc(T("Visit"))}</button></form></div></div>
-  <div class="wi-visitbar" id="wi-visitbar" hidden><div><b id="wi-v-name"></b><small id="wi-v-sub"></small></div><button type="button" class="wi-like" id="wi-like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span id="wi-likes">0</span></button>
-    <div class="wi-stamps" id="wi-stamps"></div><ul class="wi-stamp-log" id="wi-stamp-log"></ul></div>`;
+  <div class="wi-sheet" id="wi-book" hidden><div class="wi-card"><header><h2>${esc(T("Guestbook"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+    <p class="wi-note">${esc(T("Stamps and notes visitors left on your island. Hide a note and only the stamp stays."))}</p><ul class="wi-book" id="wi-book-list"></ul></div></div>
+  <div class="wi-visitbar" id="wi-visitbar" hidden><div><b id="wi-v-name"></b><small id="wi-v-sub"></small></div><button type="button" class="wi-like" id="wi-like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span id="wi-likes">0</span></button><button type="button" class="wi-friend" id="wi-friend" aria-pressed="false"></button>
+    <div class="wi-stamps" id="wi-stamps"></div><input class="wi-note-in" id="wi-note" maxlength="60" placeholder="${esc(T("Add a note to your stamp (optional, no links)"))}" autocomplete="off" spellcheck="false"><ul class="wi-stamp-log" id="wi-stamp-log"></ul></div>`;
   document.body.appendChild(ui);
   const q = (s) => ui.querySelector(s);
 
@@ -685,7 +717,7 @@ export function createIsland(ctx) {
     $("wi-name").textContent = readOnly ? (visitInfo ? T("{name}'s island", { name: visitInfo.name }) : "") : kind === "lot" ? T("{sym} lot", { sym: "$" + lotCoin.symbol }) : T("My Island");
     $("wi-stats").innerHTML = `<span>${esc(s.bricks === 1 ? T("1 brick") : T("{n} bricks", { n: s.bricks }))}</span><span>${esc(s.residents === 1 ? T("1 resident") : T("{n} residents", { n: s.residents }))}</span><span>${esc(T("Beauty {n}", { n: s.beauty }))}</span>`;
     q(".wi-acts").hidden = readOnly; $("wi-replay-btn").hidden = !bricks.length;
-    $("wi-bp-btn").hidden = kind === "lot";
+    $("wi-bp-btn").hidden = kind === "lot"; $("wi-book-btn").hidden = kind === "lot";
   }
   function paintBuild() {
     $("wi-build").hidden = !building;
@@ -731,7 +763,8 @@ export function createIsland(ctx) {
     $("wi-v-sub").textContent = visitInfo.wallet.slice(0, 6) + "…" + visitInfo.wallet.slice(-4);
     $("wi-likes").textContent = String(visitInfo.likes || 0);
     $("wi-stamps").innerHTML = STAMPS.map((s, i) => `<button type="button" data-st="${i}">${esc(T(s))}</button>`).join("");
-    $("wi-stamp-log").innerHTML = (visitInfo.stamps || []).slice(-4).reverse().map((s) => `<li><b>${esc(T(STAMPS[s.k] || ""))}</b> <small>${esc(String(s.w || ""))}</small></li>`).join("");
+    $("wi-stamp-log").innerHTML = (visitInfo.stamps || []).slice(-4).reverse().map((s) => `<li><b>${esc(T(STAMPS[s.k] || ""))}</b> <small>${esc(String(s.w || ""))}</small>${s.m && !s.h ? `<q>${esc(s.m)}</q>` : ""}</li>`).join("");
+    const fr = isFriend(visitInfo.wallet); $("wi-friend").setAttribute("aria-pressed", String(fr)); $("wi-friend").textContent = fr ? T("Friend") : T("Add friend");
   }
   function setBuild(on) {
     if (on && readOnly) return;
@@ -743,7 +776,7 @@ export function createIsland(ctx) {
     if (on) toast(ctx.coarse ? T("Build mode: tap to place, drag to look") : T("Build mode: click to place, right-click to remove, R to rotate"));
   }
   function openSheet(id) { closeSheets(); $(id).hidden = false; ctx.freeze(true); }
-  function closeSheets() { ["wi-pal", "wi-bp", "wi-isles"].forEach((id) => { const e = $(id); if (e && !e.hidden) { e.hidden = true; ctx.freeze(false); } }); }
+  function closeSheets() { ["wi-pal", "wi-bp", "wi-isles", "wi-book"].forEach((id) => { const e = $(id); if (e && !e.hidden) { e.hidden = true; ctx.freeze(false); } }); }
   function openPalette() { paintPal(); openSheet("wi-pal"); if (!thumbsDone) renderThumbs().then(() => { if (!$("wi-pal").hidden) paintPal(); }); }
   function openBlueprints() {
     $("wi-bplist").innerHTML = Object.keys(BP).map((id) => { const list = bpList(id), ok = list.every((b) => unlocked(TYPES[b.t])); return `<button type="button" data-bp="${id}" class="${ok ? "" : "locked"}"><b>${esc(T(BP_NAMES[id]))}</b><small>${esc(T("{n} bricks", { n: list.length }))}${ok ? "" : " · " + esc(T("needs bricks you haven't unlocked"))}</small></button>`; }).join("");
@@ -753,10 +786,29 @@ export function createIsland(ctx) {
   async function openIsles() {
     openSheet("wi-isles"); $("wi-isle-list").innerHTML = `<li class="wi-empty">${esc(T("Loading islands…"))}</li>`;
     try { const r = await fetch("/api/social?world=islands"); isleData = r.ok ? await r.json() : null; } catch { isleData = null; }
+    weekData = null; paintIsles(); if (isleTab === "week" || isleTab === "friends") loadTab();
+  }
+  let weekData = null, friendData = null;
+  async function loadTab() {
+    if (isleTab === "week" && !weekData) { try { const r = await fetch("/api/social?world=island-week"); weekData = r.ok ? await r.json() : { top: [] }; } catch { weekData = { top: [] }; } }
+    if (isleTab === "friends") { const ws = FR().map((f) => f.w); friendData = { list: [] }; if (ws.length) { try { const r = await fetch("/api/social?world=friends&wallets=" + ws.join(",")); const j = r.ok ? await r.json() : {}; friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n, ...((j.friends || {})[f.w] || {}) })); } catch { friendData.list = FR().map((f) => ({ wallet: f.w, saved: f.n })); } } }
     paintIsles();
   }
+  const ago = (t) => { if (!t) return T("not seen yet"); const m = Math.floor((Date.now() - t) / 60000); return m < 15 ? T("just now") : m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.floor(m / 60) }) : T("{n} days ago", { n: Math.floor(m / 1440) }); };
   function paintIsles() {
     ui.querySelectorAll("#wi-isle-tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === isleTab)));
+    const note = $("wi-isle-note"); note.hidden = !(isleTab === "week" || isleTab === "friends");
+    if (isleTab === "week") note.textContent = T("This week's contest: the islands with the most new likes since Monday (Seoul time). It starts over every week.");
+    if (isleTab === "friends") note.textContent = T("Add friends from their island's visit bar. Their card shows their level, when they last played and their island.");
+    if (isleTab === "week" || isleTab === "friends") {
+      const L = isleTab === "week" ? (weekData ? weekData.top || [] : null) : friendData ? friendData.list : null;
+      if (!L) { $("wi-isle-list").innerHTML = `<li class="wi-empty">${esc(T("Loading islands…"))}</li>`; return; }
+      $("wi-isle-list").innerHTML = L.length ? L.map((x, i) => isleTab === "week"
+        ? `<li class="${i < 3 ? "wk p" + (i + 1) : "wk"}"><button type="button" data-wal="${esc(x.wallet)}"><span class="wi-rank">${i + 1}</span><b>${esc(x.name || x.wallet.slice(0, 6) + "…" + x.wallet.slice(-4))}</b><small>${esc(T("{n} likes this week", { n: x.likes || 0 }))} · ${esc(T("{n} bricks", { n: x.n || 0 }))}</small></button></li>`
+        : `<li class="fr"><button type="button" data-wal="${esc(x.wallet)}" ${x.isle ? "" : "disabled"}><b>${esc(x.name || x.saved || x.wallet.slice(0, 6) + "…" + x.wallet.slice(-4))}${x.lv ? ` <em>Lv ${x.lv}</em>` : ""}</b><small>${esc(ago(x.seen))} · ${esc(x.isle ? T("{n} bricks", { n: x.isle }) + " · ♥ " + (x.likes || 0) : T("no island yet"))}</small></button><button type="button" class="wi-unfriend" data-unfriend="${esc(x.wallet)}" aria-label="${esc(T("Remove from friends"))}">×</button></li>`).join("")
+        : `<li class="wi-empty">${esc(isleTab === "week" ? T("No likes yet this week. Visit an island and leave the first.") : T("No friends yet. Visit an island and tap Add friend."))}</li>`;
+      return;
+    }
     const list = (isleData && isleData[isleTab]) || [];
     $("wi-isle-list").innerHTML = list.length ? list.map((x) => `<li><button type="button" data-wal="${esc(x.wallet)}"><b>${esc(x.name || x.wallet.slice(0, 6) + "…" + x.wallet.slice(-4))}</b><small>${esc(T("{n} bricks", { n: x.n || 0 }))} · ♥ ${x.likes || 0}</small></button></li>`).join("") : `<li class="wi-empty">${esc(isleData && isleData.enabled === false ? T("Island visits open once cloud saving is switched on.") : T("No islands here yet. Build yours and sign in to share it."))}</li>`;
   }
@@ -785,7 +837,12 @@ export function createIsland(ctx) {
     if (b.id === "wi-copy") { const code = toCode(bricks); if (!code) { toast(T("Build something first")); return; } try { await navigator.clipboard.writeText(code); toast(T("Code copied. Anyone can paste it into Blueprints.")); } catch { $("wi-code-in").value = code; toast(T("Here's your code: copy it from the box")); } return; }
     if (b.id === "wi-paste") { closeSheets(); startBlueprint(fromCode($("wi-code-in").value), T("Your blueprint")); return; }
     if (b.id === "wi-go-mine") { closeSheets(); ctx.goIsland({}); return; }
-    if (b.dataset.tab) { isleTab = b.dataset.tab; paintIsles(); return; }
+    if (b.dataset.tab) { isleTab = b.dataset.tab; if (isleTab === "week") weekData = null; paintIsles(); loadTab(); return; }
+    if (b.dataset.unfriend) { const list = FR(), i = list.findIndex((f) => f.w === b.dataset.unfriend); if (i >= 0) list.splice(i, 1); ctx.saveP && ctx.saveP(); loadTab(); return; }
+    if (b.id === "wi-friend") { if (visitInfo) toggleFriend(visitInfo.wallet, visitInfo.name); return; }
+    if (b.id === "wi-book-btn") { openBook(); return; }
+    if (b.dataset.hide) { hideNote(b.dataset.hide); return; }
+    if (b.id === "wi-link") { const u = myLink(); if (!u) { toast(T("Sign in with your wallet to share your island")); return; } try { await navigator.clipboard.writeText(u); toast(T("Island link copied. Anyone who opens it lands on your island.")); } catch { $("wi-visit-in").value = u; toast(T("Here's your link: copy it from the box")); } return; }
     if (b.dataset.wal) { closeSheets(); ctx.goIsland({ visit: b.dataset.wal }); return; }
     if (b.id === "wi-like") { like(); return; }
     if (b.dataset.st != null) { stamp(+b.dataset.st); return; }

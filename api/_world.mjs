@@ -9,7 +9,8 @@
 // Islands (world-island.js): a build is bytes in base64 — [1, N] then 5 bytes a brick — checked for shape here.
 //   POST { action: "world-island-save", wallet, issued, signature, data, name, n, res }   your island (36×36)
 //   POST { action: "world-like", …signature, target }        one like per wallet per island, for good
-//   POST { action: "world-stamp", …signature, target, k }    a preset stamp (no free text), one a day per island
+//   POST { action: "world-stamp", …signature, target, k, msg? }  a preset stamp and an optional 60-character note
+//                                                             (no links or addresses; api/_world-social.mjs), one a day per island
 //   POST { action: "world-lot-save", …signature, coin, data }  a coin's Coin City lot (9×9), its creator only
 //   GET  ?world=island&wallet=0x…   { data, name, n, at, likes, stamps }
 //   GET  ?world=islands             { top, recent }  (worldStats/islands, kept up to date on save and like)
@@ -21,10 +22,12 @@
 // and the last one. Progress is self-reported by the game, so it's for play (character, XP, quests), never rewards.
 // Firestore: worldIsland/<wallet> · worldIslandLikes/<wallet> { n } · worldLikes/<target>_<wallet> · worldStamps/<wallet> { list }
 //            worldStampSeen/<target>_<wallet>_<day> · worldLot/<coin> · worldStats/islands { top, recent }
+// Notes, the weekly island contest, friends, wanderers and the raid boss: api/_world-social.mjs.
 // Firestore: worldStats/main { visitors, players } · worldOnline/<window> { n } · worldSeen/<window>_<id> · worldVisitors/<id>
 //            worldPlayers/<wallet> · worldSave/<wallet>
 import { makeShop, FEE_BURN } from "./_world-shop.mjs";
 import { makeSupport } from "./_world-support.mjs";
+import { makeSocial, cleanNote } from "./_world-social.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
@@ -46,8 +49,8 @@ function cleanRpg(r) {
   if (!r || typeof r !== "object") return undefined;
   const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
   const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, 24);
-  const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, pet (world-quests.js)
-  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 6000 ? { x: extra } : {}) };
+  const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
+  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 10000 ? { x: extra } : {}) };
 }
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
@@ -75,6 +78,8 @@ export function checkBuild(data, N, max) {
 }
 export const STAMP_COUNT = 6;
 const shortW = (w) => w.slice(0, 6) + "…" + w.slice(-4);
+// a hidden note keeps its stamp but not its words
+const pubStamps = (list) => list.slice(-20).map(({ m, h, ...x }) => (h ? { ...x, h: 1 } : m ? { ...x, m } : x));
 const cleanName = (n) => String(n || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
 
 /// deps: { getDocs, setDoc, commit, storeEnabled, recover, issuedOk, json, launchRecord?, now? }
@@ -103,6 +108,7 @@ export function make(deps) {
     if (!b.gate) { // the home page's gate counts the visit but isn't "in the world"
       const seen = await commit([{ create: `worldSeen/${w}_${id}`, data: { at: now() } }]);
       if (seen.ok) await commit([{ inc: `worldOnline/${w}`, fields: { n: 1 } }]);
+      if (b.g) await social.ghostPing(id, b.g).catch(() => {}); // where you are, for the wanderers others see
     }
     return json(200, { ok: true, ...(await stats()) });
   }
@@ -123,6 +129,7 @@ export function make(deps) {
     try { const o = deps.ownerOf ? await deps.ownerOf(FEE_BURN) : null; if (o && o.length >= 66) set.add("0x" + o.slice(-40).toLowerCase()); } catch { /* the env list still works */ }
     adminCache = { set, at: now() }; return set;
   }
+  const social = makeSocial({ ...deps, json, now, signer, isoWeek: shop.isoWeek, credit: shop.credit });
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
   // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
   // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
@@ -182,7 +189,7 @@ export function make(deps) {
     const d = await getDocs([`worldIsland/${w}`, `worldIslandLikes/${w}`, `worldStamps/${w}`]);
     const isl = d[`worldIsland/${w}`];
     if (!isl) return json(200, { wallet: w, data: null });
-    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: ((d[`worldStamps/${w}`] || {}).list || []).slice(-20) });
+    return json(200, { wallet: w, data: isl.data, name: isl.name || "", n: isl.n || 0, at: isl.at || 0, theme: isl.theme || "", likes: (d[`worldIslandLikes/${w}`] || {}).n || 0, stamps: pubStamps((d[`worldStamps/${w}`] || {}).list || []) });
   }
   async function like(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -198,6 +205,7 @@ export function make(deps) {
       const top = [{ wallet: target, name: isl.name || "", n: isl.n || 0, likes }, ...(L.top || []).filter((x) => x.wallet !== target)].sort((a, c) => (c.likes || 0) - (a.likes || 0)).slice(0, 12);
       await setDoc("worldStats/islands", { top, recent: L.recent || [] });
     } catch { /* the like counts anyway */ }
+    await social.weekLike(target, isl).catch(() => {});
     return json(200, { ok: true, likes });
   }
   async function stamp(b) {
@@ -205,14 +213,15 @@ export function make(deps) {
     const target = lc(b.target); if (!isAddr(target)) return json(400, { error: "target must be an address" });
     const k = Math.floor(Number(b.k)); if (!(k >= 0 && k < STAMP_COUNT)) return json(400, { error: "unknown stamp" });
     if (target === s.wallet) return json(400, { error: "that's your own island" });
+    const m = cleanNote(b.msg); if (m === null) return json(400, { error: "a note can't carry links, addresses or long numbers" });
     const day = new Date(now() + 9 * 3600e3).toISOString().slice(0, 10);
     const first = await commit([{ create: `worldStampSeen/${target}_${s.wallet}_${day}`, data: { at: now() } }]);
     if (!first.ok) return json(429, { error: "one stamp a day for each island" });
     const key = `worldStamps/${target}`, cur = (await getDocs([key]))[key] || { list: [] };
-    const list = [...(cur.list || []), { k, w: shortW(s.wallet), at: now() }].slice(-30);
+    const list = [...(cur.list || []), { k, w: shortW(s.wallet), at: now(), ...(m ? { m } : {}) }].slice(-30);
     await setDoc(key, { list });
     const arcl = await shop.stampCredit(s.wallet).catch(() => 0);
-    return json(200, { ok: true, stamps: list.slice(-20), arcl });
+    return json(200, { ok: true, stamps: pubStamps(list), arcl });
   }
   async function lotSave(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -242,7 +251,7 @@ export function make(deps) {
       if (w === "island") return island(url.searchParams.get("wallet"));
       if (w === "islands") { const L = await lists(); return json(200, { top: L.top || [], recent: L.recent || [] }); }
       if (w === "lots") return lots(url.searchParams.get("coins"));
-      const r = (await shop.read(w, url)) || (await support.read(w, url)); if (r) return r;
+      const r = (await shop.read(w, url)) || (await social.read(w, url)) || (await support.read(w, url)); if (r) return r;
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
@@ -255,7 +264,7 @@ export function make(deps) {
       if (b.action === "world-like") return like(b);
       if (b.action === "world-stamp") return stamp(b);
       if (b.action === "world-lot-save") return lotSave(b);
-      const r = (await shop.handle(b)) || (await support.handle(b)); if (r) return r;
+      const r = (await shop.handle(b)) || (await social.handle(b)) || (await support.handle(b)); if (r) return r;
       return json(400, { error: "unknown action" });
     },
   };

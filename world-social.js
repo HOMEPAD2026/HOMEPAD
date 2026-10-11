@@ -1,0 +1,219 @@
+// world-social.js — what ARCIRCLE World shares between players (the server side is api/_world-social.mjs):
+//   the weekly raid boss   one arena south of town, one HP bar for everyone; your hits are reported every 5 seconds
+//                          (capped by your level) and when it falls, everyone who helped claims a reward once
+//   wanderers              other players' last spots in town, drawn as soft see-through figures (no names: the ping
+//                          isn't signed)
+//   cards and frames       an achievement card to share, and a branded frame for photos
+const TAU = Math.PI * 2;
+export const RAID = { id: "raid", name: "Raid Arena", x: 0, z: -122, r: 18, color: 0x39ff88, lv: [10, 99], ground: 0x12261c, boss: { name: "The Ponzi Leviathan", model: "Trilobite", scale: 2.0, y: 1.2, tint: 0x39ff88 } };
+export const RAID_MIN_LV = 10;
+// the same short tag the server gives a wanderer (api/_world-social.mjs tagOf), so the game can skip its own
+export const tagOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h.toString(36).padStart(7, "0").slice(-7); };
+
+/// ctx: { THREE, K, planet, T, esc, toast, Snd, here(v), level(), sess(), post(b), combat, rpg, quests(), gain(n, why),
+///        inHub(), wallet(), onArcl(n) }
+export function createRaid(ctx) {
+  const { THREE, K, planet, T, esc } = ctx;
+  const root = new THREE.Group(); root.name = "raid"; root.position.set(RAID.x, 0, RAID.z); planet.add(root);
+  // the arena: a dark green floor, a glowing rim, eight pillars with lights, a gate facing the town and its sign
+  const glow = (c, k = 2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.4 });
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(RAID.r, 72), new THREE.MeshStandardMaterial({ color: RAID.ground, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = 0.03; floor.receiveShadow = true; root.add(floor);
+  const rune = new THREE.Mesh(new THREE.RingGeometry(6, 6.3, 64), new THREE.MeshBasicMaterial({ color: 0x39ff88, transparent: true, opacity: 0.35, depthWrite: false })); rune.rotation.x = -Math.PI / 2; rune.position.y = 0.05; root.add(rune);
+  const rune2 = new THREE.Mesh(new THREE.RingGeometry(11, 11.2, 64), rune.material.clone()); rune2.rotation.x = -Math.PI / 2; rune2.position.y = 0.05; root.add(rune2);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(RAID.r, 0.16, 8, 128), glow(RAID.color, 1.8)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; root.add(rim);
+  const pillars = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU + Math.PI / 8;
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1.1, 6, 1.1), new THREE.MeshStandardMaterial({ color: 0x1a2a24, metalness: 0.5, roughness: 0.35, flatShading: true }));
+    p.position.set(Math.cos(a) * (RAID.r + 1.4), 3, Math.sin(a) * (RAID.r + 1.4)); p.castShadow = true; root.add(p);
+    const cap = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), glow(RAID.color, 2.4)); cap.position.y = 3.8; p.add(cap); pillars.push(cap);
+  }
+  const toTown = Math.atan2(-RAID.x, -RAID.z);
+  const gate = K.makeArch ? K.makeArch(RAID.color) : null;
+  if (gate) { gate.scale.setScalar(1.5); gate.position.set(Math.sin(toTown) * RAID.r, 0, Math.cos(toTown) * RAID.r); gate.rotation.y = toTown; root.add(gate); }
+  const sign = K.label(T("Weekly raid"), { accent: "#39ff88", size: 1.1, sub: T("Level {n}+ · one boss for everyone", { n: RAID_MIN_LV }) });
+  sign.position.set(Math.sin(toTown) * RAID.r, 9, Math.cos(toTown) * RAID.r); root.add(sign);
+
+  // the shared HP, the hits waiting to be reported, the reward card
+  let st = null, pending = 0, sendAt = 0, pollAt = 0, paintAt = 0, lastFetch = 0, warnedLv = false, warnedSign = false, sending = false, claimShown = false;
+  const me = new THREE.Vector3();
+  const inside = () => { ctx.here(me); return Math.hypot(me.x - RAID.x, me.z - RAID.z) < RAID.r - 0.5; };
+  const near = () => { ctx.here(me); return Math.hypot(me.x - RAID.x, me.z - RAID.z) < RAID.r + 30; };
+  async function load() {
+    lastFetch = Date.now();
+    try { const w = ctx.wallet(); const r = await fetch("/api/social?world=raid" + (w ? "&wallet=" + w : "")); if (r.ok) { const j = await r.json(); if (j && j.max) setState(j); } } catch { /* next time */ }
+  }
+  function setState(j) {
+    const was = st; st = j;
+    if (st.down) { if (ctx.combat.raidMob()) ctx.combat.raidDown(); paintCard(); }
+    else ctx.combat.raidSet(st.hp - pending);
+    if (was && !was.down && st.down && !claimShown) ctx.toast(T("The raid boss fell! Claim your share at the arena."));
+    paint();
+  }
+  // a hit on the boss (world-combat.js): counted here and sent every few seconds
+  function hit(n) {
+    if (!st || st.down) return;
+    pending += n;
+    if (!ctx.sess() && !warnedSign) { warnedSign = true; ctx.toast(T("Sign in with your wallet so your raid hits count")); }
+  }
+  async function send() {
+    if (sending || !pending || !ctx.sess()) return;
+    const cap = 60 * ctx.level(), n = Math.min(pending, cap); pending = Math.min(cap, pending - n); // what's over the cap carries a little, not forever
+    sending = true;
+    try { const r = await ctx.post({ action: "world-raid-hit", ...ctx.sess(), dmg: Math.round(n) }); if (r.ok && r.j.max) setState(r.j); } catch { /* the next report carries on */ }
+    sending = false;
+  }
+  function spawn() {
+    if (!st || st.down || ctx.combat.raidMob()) return;
+    const lv = Math.max(12, Math.min(40, ctx.level()));
+    ctx.combat.spawnRaid({ lv, boss: RAID.boss, zone: RAID, at: new THREE.Vector3(RAID.x, 0, RAID.z - 3), max: st.max, hp: st.hp - pending });
+  }
+  // the panel inside the arena: the shared bar, your damage, the top three, and the claim when it's down
+  const el = document.createElement("div"); el.className = "wr-raid"; el.id = "wr-raid"; el.hidden = true; el.setAttribute("data-no-i18n", ""); document.body.appendChild(el);
+  function paint() {
+    const show = !!st && ctx.inHub() && (inside() || (st.down && near()));
+    el.hidden = !show; if (!show) return;
+    const k = st.max ? Math.max(0, (st.hp - (st.down ? 0 : pending)) / st.max) : 0, mine = st.mine + (st.down ? 0 : pending);
+    const top = (st.top || []).slice(0, 3).map((r, i) => `<li><span>${i + 1}</span><b>${esc(r.name || r.w)}</b><em>${Math.round(r.n).toLocaleString("en-US")}</em></li>`).join("");
+    el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}</small></div>
+      <i class="wr-raid-bar"><u style="width:${(100 * k).toFixed(2)}%"></u></i><p class="wr-raid-n">${st.down ? esc(T("Down for this week")) : `${Math.max(0, Math.round(st.hp - pending)).toLocaleString("en-US")} / ${st.max.toLocaleString("en-US")}`}</p>
+      <p class="wr-raid-me">${esc(T("Your damage: {n}", { n: Math.round(mine).toLocaleString("en-US") }))}${mine < st.need ? ` <small>${esc(T("{n} to share the reward", { n: Math.max(0, Math.ceil(st.need - mine)).toLocaleString("en-US") }))}</small>` : ` <small class="ok">${esc(T("You're in for the reward"))}</small>`}</p>
+      ${top ? `<ol class="wr-raid-top">${top}</ol>` : ""}
+      ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
+  }
+  function paintCard() { claimShown = true; paint(); }
+  el.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-raidclaim]"); if (!b || b.disabled) return;
+    const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
+    b.disabled = true;
+    const r = await ctx.post({ action: "world-raid-claim", ...s }).catch(() => ({ ok: false, j: {} }));
+    if (!r.ok) { ctx.toast(r.j.error || T("Couldn't claim right now")); b.disabled = false; if (r.status === 409) load(); return; }
+    st = { ...st, ...r.j };
+    const it = ctx.rpg.giftPiece(ctx.level(), 3); ctx.gain(500, T("Weekly raid"));
+    const q = ctx.quests(); if (q) q.on.raid();
+    if (r.j.credited) ctx.onArcl && ctx.onArcl(r.j.credited);
+    ctx.Snd.win && ctx.Snd.win();
+    ctx.toast(it ? T("Raid reward: {x}", { x: ctx.rpg.itemName(it) }) : T("Your bag is full — the raid gear became scrap"));
+    paint();
+  });
+
+  return {
+    zone: RAID, root, hit, load,
+    inside,
+    state: () => st,
+    tick(dt, t) {
+      rune.rotation.z += dt * 0.15; rune2.rotation.z -= dt * 0.08; rim.material.emissiveIntensity = 1.4 + Math.sin(t * 2) * 0.4;
+      pillars.forEach((p, i) => { p.rotation.y = t * 1.2 + i; p.position.y = 3.8 + Math.sin(t * 2 + i) * 0.15; });
+      { ctx.here(me); const d = Math.hypot(me.x - sign.parent.position.x - sign.position.x, me.z - sign.parent.position.z - sign.position.z), k = Math.max(0, Math.min(1, (d - 6) / 6)); sign.material.opacity = k; sign.visible = k > 0.02; }
+      if (!ctx.inHub()) { el.hidden = true; return; }
+      const nr = near(), inn = nr && inside();
+      // the HP comes from the server: every 10 s near the arena, every 2 minutes from anywhere else
+      const now = Date.now(); // wall-clock timers: a slow frame rate mustn't slow the reports
+      if (now >= pollAt) { pollAt = now + (nr ? 10e3 : 120e3); if (nr || now - lastFetch > 110e3) load(); }
+      if (inn) {
+        if (ctx.level() < RAID_MIN_LV) { if (!warnedLv) { warnedLv = true; ctx.toast(T("The raid is for level {n} and up. Come back stronger!", { n: RAID_MIN_LV })); } }
+        else spawn();
+      } else warnedLv = false;
+      if (now >= sendAt) { sendAt = now + 5200; send(); }
+      if (now >= paintAt) { paintAt = now + 500; paint(); }
+    },
+  };
+}
+
+/// the wanderers: soft see-through figures where other players were in the last two minutes
+/// ctx: { THREE, K, planet, T, inHub(), myTag }
+export function createGhosts(ctx) {
+  const { THREE, K, planet } = ctx;
+  const root = new THREE.Group(); root.name = "ghosts"; planet.add(root);
+  const tints = { bot: 0x8fd6ff, male: 0x7fe0b0, female: 0xffa8d0 };
+  const list = new Map(); // tag → { g, x, z, at, home }
+  function figure(c, lv) {
+    const g = new THREE.Group(), tint = tints[String(c).split("-")[0]] || tints.bot;
+    const mat = new THREE.MeshStandardMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.5, transparent: true, opacity: 0.45, depthWrite: false, roughness: 0.4 });
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.7, 4, 10), mat); body.position.y = 0.75;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), mat); head.position.y = 1.55;
+    const halo = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.55, 28), new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.04;
+    const tag = K.label(ctx.T("Lv {n}", { n: lv }), { accent: "#" + new THREE.Color(tint).getHexString(), size: 0.42 }); tag.position.y = 2.3; tag.material.opacity = 0.75;
+    g.add(body, head, halo, tag); g.userData = { body, head, mat };
+    return g;
+  }
+  let pollAt = 0;
+  async function load() {
+    try {
+      const r = await fetch("/api/social?world=ghosts"); if (!r.ok) return;
+      const now = Date.now(), seen = new Set();
+      for (const x of (await r.json()).ghosts || []) {
+        if (x.t === ctx.myTag || Math.hypot(x.x, x.z) > 150) continue; seen.add(x.t);
+        let w = list.get(x.t);
+        if (!w) { const g = figure(x.c, x.lv); g.position.set(x.x, 0, x.z); root.add(g); w = { g, x: x.x, z: x.z, at: now, wander: Math.random() * TAU, fade: 0 }; list.set(x.t, w); }
+        w.x = x.x; w.z = x.z; w.at = now;
+      }
+      for (const [k, w] of list) if (!seen.has(k)) w.gone = true;
+    } catch { /* next time */ }
+  }
+  const tmp = new THREE.Vector3();
+  return {
+    count: () => list.size,
+    each: (fn) => list.forEach((w) => fn(w.g)),
+    tick(dt, t) {
+      const on = ctx.inHub(); root.visible = on; if (!on) return;
+      if (Date.now() >= pollAt) { pollAt = Date.now() + 20e3; load(); }
+      for (const [k, w] of list) {
+        // drift around the last spot, a little life in it
+        w.wander += (Math.random() - 0.5) * dt * 0.8;
+        const tx = w.x + Math.cos(w.wander) * 2.2, tz = w.z + Math.sin(w.wander) * 2.2;
+        tmp.set(tx - w.g.position.x, 0, tz - w.g.position.z); const d = tmp.length();
+        if (d > 25) w.g.position.set(w.x, 0, w.z); else if (d > 0.05) { tmp.multiplyScalar(Math.min(1, dt * 0.9 / d)); w.g.position.add(tmp); w.g.rotation.y = Math.atan2(tmp.x, tmp.z); }
+        w.g.userData.body.position.y = 0.75 + Math.sin(t * 2 + w.wander) * 0.05; w.g.userData.head.position.y = 1.55 + Math.sin(t * 2 + w.wander) * 0.05;
+        w.fade = w.gone ? Math.max(0, w.fade - dt) : Math.min(1, w.fade + dt);
+        w.g.userData.mat.opacity = 0.45 * w.fade;
+        if (w.gone && w.fade <= 0) { root.remove(w.g); list.delete(k); }
+      }
+    },
+  };
+}
+
+// ---------------- cards and frames (canvas, drawn in the game's own look) ----------------
+const loadImg = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+const font = (w, px) => `${w} ${px}px Sora, "Noto Sans KR", "Noto Sans SC", sans-serif`;
+function rings(g, cx, cy, r, a = 0.16) {
+  [["#2f86ff", 0], ["#2ee07a", 1], ["#35d8d0", 2]].forEach(([c, i]) => { g.strokeStyle = c; g.globalAlpha = a; g.lineWidth = 3; g.beginPath(); g.arc(cx + (i - 1) * r * 0.55, cy, r, 0, TAU); g.stroke(); });
+  g.globalAlpha = 1;
+}
+function fitText(g, text, max, w, px, min = 18) { let s = px; g.font = font(w, s); while (s > min && g.measureText(text).width > max) { s -= 2; g.font = font(w, s); } return s; }
+
+/// an achievement (or any) card: 1200 × 630 PNG
+export async function drawCard({ head, title, line, badge, name, lv, foot = "arcircle.app/play" }) {
+  const W = 1200, H = 630, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+  const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  rings(g, 930, 300, 230, 0.2);
+  g.fillStyle = "rgba(57,255,136,.10)"; g.beginPath(); g.arc(930, 300, 150, 0, TAU); g.fill();
+  const logo = await loadImg("/images/arcircle-mark-sm.png"); if (logo) g.drawImage(logo, 72, 64, 87, 51);
+  g.fillStyle = "#9fb3c4"; g.font = font(700, 28); g.textBaseline = "alphabetic"; g.fillText("ARCIRCLE World", 176, 100);
+  g.fillStyle = "#39ff88"; g.font = font(800, 30); g.fillText(head || "", 72, 222);
+  g.fillStyle = "#eef3f7"; fitText(g, title || "", 720, 800, 76, 40); g.fillText(title || "", 72, 306);
+  g.fillStyle = "#b8c6d2"; g.font = font(500, 30); g.fillText(line || "", 72, 360, 760);
+  if (badge) { g.font = font(800, 30); const w = g.measureText(badge).width + 56; g.fillStyle = "rgba(255,200,97,.14)"; g.strokeStyle = "#ffc861"; g.lineWidth = 2; g.beginPath(); g.roundRect(72, 400, w, 58, 29); g.fill(); g.stroke(); g.fillStyle = "#ffc861"; g.fillText(badge, 100, 440); }
+  // the medal on the right
+  g.save(); g.translate(930, 300); g.fillStyle = "#ffc861"; g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 58 : 118, a = (i / 10) * TAU - Math.PI / 2; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.restore();
+  g.fillStyle = "rgba(255,255,255,.08)"; g.fillRect(0, H - 92, W, 92);
+  g.fillStyle = "#eef3f7"; g.font = font(700, 30); g.fillText((name || "") + (lv ? `  ·  Lv ${lv}` : ""), 72, H - 36);
+  g.fillStyle = "#9fb3c4"; g.font = font(600, 26); g.textAlign = "right"; g.fillText(foot, W - 72, H - 36); g.textAlign = "left";
+  return new Promise((ok) => cv.toBlob(ok, "image/png"));
+}
+/// a photo with the game's frame: a slim bar along the bottom with the mark, the name and the link
+export async function frameShot(blob, { name, lv, where } = {}) {
+  const img = await loadImg(URL.createObjectURL(blob)); if (!img) return blob;
+  const W = img.naturalWidth, H = img.naturalHeight, bar = Math.round(Math.max(64, H * 0.085)), cv = document.createElement("canvas"); cv.width = W; cv.height = H + bar;
+  const g = cv.getContext("2d"); g.drawImage(img, 0, 0);
+  const bg = g.createLinearGradient(0, H, W, H + bar); bg.addColorStop(0, "#06121c"); bg.addColorStop(1, "#0a2a22"); g.fillStyle = bg; g.fillRect(0, H, W, bar);
+  g.fillStyle = "#39ff88"; g.fillRect(0, H, W, Math.max(2, Math.round(bar * 0.04)));
+  const logo = await loadImg("/images/arcircle-mark-sm.png"), lh = Math.round(bar * 0.46);
+  let x = Math.round(bar * 0.4); if (logo) { g.drawImage(logo, x, H + (bar - lh) / 2, lh * 58 / 34, lh); x += lh * 58 / 34 + bar * 0.25; }
+  g.textBaseline = "middle"; g.fillStyle = "#eef3f7"; g.font = font(800, Math.round(bar * 0.3)); g.fillText("ARCIRCLE World", x, H + bar / 2);
+  x += g.measureText("ARCIRCLE World").width + bar * 0.35;
+  g.fillStyle = "#9fb3c4"; g.font = font(600, Math.round(bar * 0.26)); const who = [name, lv ? "Lv " + lv : "", where].filter(Boolean).join("  ·  "); g.fillText(who, x, H + bar / 2, W * 0.45);
+  g.textAlign = "right"; g.fillStyle = "#9fe6c8"; g.fillText("arcircle.app/play", W - bar * 0.4, H + bar / 2); g.textAlign = "left";
+  return new Promise((ok) => cv.toBlob((b) => ok(b || blob), "image/png"));
+}

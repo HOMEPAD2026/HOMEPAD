@@ -73,7 +73,7 @@ export const CSS_PURGED = {
   "world.min.css": {
     purge: ["style.css"],
     keep: ["arc-nav.css", "arc-v9.css", "arc-v10.css"],
-    scan: ["play.html", "world-play.js", "world-kit.js", "world-island.js", "world-shop.js", "world-style.js", "world-support.js", "world-combat.js", "world-rpg.js", "world-rpg-data.js", "world-zones.js", "world-quests.js", "world-lock.js", "arc-connect.js", "i18n.js", "i18n-boot.js", "arc-log.js"],
+    scan: ["play.html", "world-play.js", "world-kit.js", "world-island.js", "world-shop.js", "world-style.js", "world-support.js", "world-combat.js", "world-rpg.js", "world-rpg-data.js", "world-zones.js", "world-quests.js", "world-social.js", "world-season.js", "world-lock.js", "arc-connect.js", "i18n.js", "i18n-boot.js", "arc-log.js"],
   },
 };
 /// the top-level pieces of a stylesheet: { pre, body } for blocks, { stmt } for "@import …;"

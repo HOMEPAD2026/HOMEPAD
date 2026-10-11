@@ -7,7 +7,9 @@
 //     Robinhood Chain, Solana); this reads state.account and calls connectWallet() / disconnectWallet() /
 //     switchToArcNetwork() / switchToAltNetwork() / switchToSolana(). The page's own wallet slot is hidden.
 //   · every other page: the browser's wallets (EIP-6963, else window.ethereum), with a small chooser when there are
-//     several, links to open the site inside a wallet app on phones, and ArcPad's connect (WalletConnect QR).
+//     several, links to open the site inside a wallet app on phones, and WalletConnect right on the page (QR code or
+//     a phone's wallet app, through Reown's AppKit loaded only when it's picked), so a browser without a wallet
+//     extension (Chrome, Edge, Safari on a computer) can still connect without leaving the page.
 // A wallet connected on one page shows on the next (the address is remembered in this browser; signing reconnects
 // when needed). "Disconnect" anywhere forgets it everywhere (shares ArcPad's homepad.walletDisconnected flag).
 //   window.arcConnect: { address(), live(), connect(), disconnect(), provider(), mount(), on(fn) }
@@ -121,6 +123,48 @@
       return S.addr;
     });
   }
+  // ---------------- WalletConnect on this page (Reown AppKit, loaded on demand) ----------------
+  var WC = null;
+  function wcLoad() {
+    if (WC) return WC;
+    var cfg = C(), pid = cfg.REOWN_PROJECT_ID || "278f543c581f60eec5975dc755f0c3dd";
+    WC = import("https://cdn.jsdelivr.net/npm/@reown/appkit-cdn@1.8.18/dist/appkit.min.js").then(function (m) {
+      var arc = { id: ARC.id, name: ARC.name, nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [ARC.rpc] } }, blockExplorers: { default: { name: "Explorer", url: ARC.expl } }, chainNamespace: "eip155", caipNetworkId: "eip155:" + ARC.id, testnet: false };
+      var ad = new m.WagmiAdapter({ projectId: pid, networks: [arc] });
+      var modal = m.createAppKit({
+        adapters: [ad], networks: [arc], defaultNetwork: arc, allowUnsupportedChain: true, projectId: pid,
+        metadata: { name: "ARCIRCLE", description: "ARCIRCLE on Circle's Arc", url: location.origin, icons: [location.origin + "/images/arcircle-mark-sm.png"] },
+        features: { email: false, socials: false, analytics: false },
+        themeMode: "dark", themeVariables: { "--w3m-z-index": 20000, "--w3m-accent": "#35d8d0" },
+      });
+      return { modal: modal, config: ad.wagmiConfig, core: m.WagmiCore };
+    });
+    WC.catch(function () { WC = null; }); // a failed load can be tried again
+    return WC;
+  }
+  /// connect through WalletConnect: an existing session comes back by itself; otherwise AppKit's modal opens
+  function useWC() {
+    closeChooser();
+    return wcLoad().then(function (W) {
+      return new Promise(function (resolve, reject) {
+        var done = false, opened = false, iv = 0, unsub = null, t0 = Date.now();
+        function finish(err, w) { if (done) return; done = true; clearInterval(iv); try { unsub && unsub(); } catch (e) { /* fine */ } if (err) reject(err); else resolve(w); }
+        function check() {
+          var a = W.core.getAccount(W.config);
+          if (a && a.isConnected && a.address && a.connector && a.connector.getProvider) {
+            a.connector.getProvider().then(function (p) { finish(null, { provider: p, info: { name: a.connector.name || "WalletConnect", rdns: "walletconnect" } }); }, function (e) { finish(e); });
+            return;
+          }
+          // a session from before reconnects within a moment; if there isn't one, open the modal
+          if (!opened && Date.now() - t0 > 900) { opened = true; W.modal.open(); }
+        }
+        try { unsub = W.modal.subscribeState(function (st) { if (opened && st && !st.open) setTimeout(function () { check(); if (!done) { var x = new Error(L("The wallet wasn't connected.", "지갑이 연결되지 않았어요.", "钱包未连接。")); x.closed = true; finish(x); } }, 1500); }); } catch (e) { /* the poll covers it */ }
+        iv = setInterval(check, 400); check();
+      });
+    }, function () { throw new Error(L("WalletConnect couldn't load. Check the connection and try again.", "WalletConnect를 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.", "无法加载 WalletConnect。请检查网络后重试。")); }).then(function (w) { return use(w); });
+  }
+  api.walletConnect = useWC;
+
   api.disconnect = function () {
     closeMenu();
     if (appMode()) { ls.set(KEY, null); if (typeof disconnectWallet === "function") return Promise.resolve(disconnectWallet()); return Promise.resolve(); }
@@ -128,6 +172,7 @@
     S = { addr: "", live: false, prov: null, rdns: "", chain: 0 };
     forget();
     if (p && p.request) p.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }).catch(function () {});
+    if (WC) WC.then(function (W) { try { W.core.disconnect(W.config); } catch (e) { /* fine */ } }).catch(function () {});
     paint(); emit();
     return Promise.resolve();
   };
@@ -170,9 +215,10 @@
       ch.innerHTML = '<div class="cw-scrim" data-x></div><div class="cw-card">' +
         '<div class="cw-card-h"><b>' + esc(L("Connect a wallet", "지갑 연결", "连接钱包")) + '</b><button type="button" class="cw-x" data-x aria-label="' + esc(L("Close", "닫기", "关闭")) + '">×</button></div>' +
         (rows ? '<div class="cw-list">' + rows + "</div>" : '<p class="cw-none">' + esc(L("No wallet in this browser yet.", "이 브라우저에 지갑이 없어요.", "此浏览器还没有钱包。")) + "</p>") +
+        '<p class="cw-err" role="alert" hidden></p>' +
         apps +
         '<div class="cw-sec">' + esc(L("More ways", "다른 방법", "更多方式")) + "</div>" +
-        '<a class="cw-w" href="/arc?connect=1' + esc(location.hash || "") + '"><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></a>" +
+        '<button type="button" class="cw-w" data-wc><span class="cw-wi wc" aria-hidden="true"></span><b>WalletConnect</b><small>' + esc(L("QR code, any wallet app", "QR 코드, 모든 지갑 앱", "二维码,任意钱包应用")) + "</small></button>" +
         // ARCIRCLE Wallet (email, Google, Apple or X): listed above where this page loads it, otherwise opened on /wallet
         (list.some(function (w) { return w.info && w.info.rdns === "app.arcircle.wallet"; }) ? "" : '<a class="cw-w" href="/wallet"><span class="cw-wi arc" aria-hidden="true"></span><b>ARCIRCLE Wallet</b><small>' + esc(L("Email, Google, Apple or X", "이메일·구글·애플·X", "邮箱、Google、Apple 或 X")) + "</small></a>") +
         "</div>";
@@ -180,7 +226,15 @@
       ch.addEventListener("click", function (e) {
         if (e.target.closest("[data-x]")) { closeChooser(); resolve(""); return; }
         var b = e.target.closest("[data-i]");
-        if (b) use(list[Number(b.getAttribute("data-i"))]).then(resolve, function () { resolve(""); });
+        var why = function (e) {
+          var code = e && (e.code || (e.data && e.data.code)), m = (e && (e.shortMessage || e.message)) || "";
+          if (code === -32002 || /already pending|already processing/i.test(m)) return L("Your wallet already has a request open. Click the wallet's icon in the browser toolbar to finish it.", "지갑에 이미 열린 요청이 있어요. 브라우저 툴바의 지갑 아이콘을 눌러 마저 진행해 주세요.", "钱包里已有一个未完成的请求。请点击浏览器工具栏中的钱包图标完成它。");
+          if (code === 4001 || /reject|denied|cancel/i.test(m) || (e && e.closed)) return L("Cancelled in the wallet. Pick a wallet to try again.", "지갑에서 취소됐어요. 지갑을 골라 다시 시도해 주세요.", "已在钱包中取消。请选择钱包重试。");
+          return m || L("Couldn't connect. Try again.", "연결하지 못했어요. 다시 시도해 주세요.", "无法连接，请重试。");
+        };
+        var fail = function (e) { if (!ch) { resolve(""); return; } var p = ch.querySelector(".cw-err"); if (p) { p.textContent = why(e); p.hidden = false; } };
+        if (b) { use(list[Number(b.getAttribute("data-i"))]).then(resolve, fail); return; }
+        if (e.target.closest("[data-wc]")) { useWC().then(resolve, function (err) { if (err && err.closed) { resolve(""); return; } chooser(list).then(resolve); setTimeout(function () { fail(err); }, 0); }); }
       });
       D.addEventListener("keydown", function k(e) { if (e.key === "Escape") { D.removeEventListener("keydown", k); closeChooser(); resolve(""); } });
       var first = ch.querySelector(".cw-w, .cw-x");

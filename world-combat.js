@@ -14,7 +14,7 @@
 //   street items  ARCL coins, speed boots, a spring, XP stars, mana crystals, health potions, a shield, a magnet
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
-import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY } from "./world-rpg-data.js";
+import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT } from "./world-rpg-data.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
   { id: "ice", name: "Ice Ball", key: "Z", lv: 10, cd: 2.6, sp: 15, color: 0x8fe6ff, mult: 1.4 },
@@ -53,7 +53,7 @@ export function createCombat(ctx) {
   const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0 };
   const stats = () => rpg.stats();
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
-  let hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
+  let quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
   const buffs = {};
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3();
@@ -121,7 +121,8 @@ export function createCombat(ctx) {
       const g = cv.getContext("2d"); g.clearRect(0, 0, 160, 44); g.font = "800 15px Sora, sans-serif"; g.textAlign = "center";
       g.fillStyle = "rgba(6,10,16,.8)"; g.beginPath(); g.roundRect(2, 2, 156, 21, 10); g.fill();
       if (rank) { g.strokeStyle = rank === "boss" ? "#ff4d6d" : "#ffc861"; g.lineWidth = 2; g.stroke(); }
-      g.fillStyle = color; g.fillText(`Lv ${lv} ${name}`, 80, 18);
+      const t = `Lv ${lv} ${name}`; let fs = 15; while (fs > 9 && g.measureText(t).width > 148) { fs -= 1; g.font = `800 ${fs}px Sora, sans-serif`; } // a long boss name shrinks to fit
+      g.fillStyle = color; g.fillText(t, 80, 17 + (15 - fs) * 0.2);
       g.fillStyle = "rgba(6,10,16,.85)"; g.beginPath(); g.roundRect(16, 28, 128, 12, 6); g.fill();
       g.fillStyle = k > 0.5 ? "#39ff88" : k > 0.25 ? "#ffc861" : "#ff4d6d"; g.beginPath(); g.roundRect(18, 30, 124 * Math.max(0, k), 8, 4); g.fill(); tex.needsUpdate = true;
     };
@@ -144,6 +145,7 @@ export function createCombat(ctx) {
     }
     if (!p) return null;
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
+    if (o.raid) st.hp = o.max;
     const g = new THREE.Group(); g.position.copy(p);
     const sc = bs ? bs.scale : spec.scale * (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
     e.obj.scale.setScalar(sc); e.obj.position.y = bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1); g.add(e.obj);
@@ -154,23 +156,31 @@ export function createCombat(ctx) {
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: bs ? bs.y : spec.y };
+    if (o.raid) { m.raid = true; m.hp = Math.max(1, o.hp); }
     label(m); mobs.push(m);
     if (m.slow === 0) { const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.8, (bb.max.y - bb.min.y) * 0.6), 0), new THREE.MeshPhysicalMaterial({ color: 0xbfefff, transparent: true, opacity: 0.45, roughness: 0.05, flatShading: true })); shell.position.y = (bb.max.y + bb.min.y) / 2; shell.visible = false; g.add(shell); m.shell = shell; }
     puff(new V3(p.x, 0.6, p.z), rank === "boss" ? 0xff4d6d : 0xff7a9a, { n: rank === "boss" ? 40 : 14, speed: rank === "boss" ? 6 : 3, size: rank === "boss" ? 1.4 : 0.6, life: 0.8, grav: -1 });
-    if (bs) { bossBar(m); ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); ctx.shake(0.5); Snd.siren && Snd.siren(); }
+    if (bs && o.raid) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv); }
+    else if (bs) { bossBar(m); ctx.shake(0.5); Snd.siren && Snd.siren(); if (ctx.bossIntro) ctx.bossIntro(m.g.position, bs.name, o.zone.name, m.lv); else ctx.toast(T("{x} appeared in {z}!", { x: bs.name, z: o.zone.name })); }
     return m;
   }
   function hit(m, raw, from, kind, crit) {
     if (m.dead) return;
-    const dmg = hitDamage(raw, m.def) * (crit ? 1 : 1);
+    const dmg = hitDamage(raw, m.def);
     m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
-    const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
-    tryStep(m, tmp, kb);
-    if (kind === "ice") m.slow = 3; if (kind === "shock") m.stun = m.rank === "boss" ? 0.4 : 1.2; if (kind === "fire") { m.burn = 3; m.burnD = Math.max(1, Math.round(raw * 0.12)); }
+    const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
+    if (!m.raid) tryStep(m, tmp, kb);
+    if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); }
+    if (kind === "shock") m.stun = (m.rank === "boss" ? 0.4 : 1.2) * (brOf("shock") === "b" ? 2 : 1);
+    if (kind === "fire" || kind === "meteor") { const inf = kind === "fire" && brOf("fire") === "b"; m.burn = inf ? 5 : 3; m.burnD = Math.max(1, Math.round(raw * (inf ? 0.24 : 0.12))); }
     m.e.play("Hit", { once: true, fade: 0.05 });
-    ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit);
+    ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" || kind === "meteor" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit, dmg / m.max);
     if (crit || kind === "heavy") stopT = Math.max(stopT, crit ? 0.07 : 0.05);
+    if (crit && ctx.slowmo) ctx.slowmo(160);
+    if (kind === "heavy" && ctx.punch) ctx.punch();
+    // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
+    if (m.raid) { ctx.raidHit && ctx.raidHit(dmg); if (m.hp < 1) { m.hp = 1; label(m); bossBar(m); } return; }
     if (m.hp <= 0) kill(m);
   }
   function tryStep(m, dir, dist) {
@@ -183,7 +193,9 @@ export function createCombat(ctx) {
     const p = m.g.position.clone().setY(m.y + 0.4);
     shards(p, new THREE.Color(m.rank === "boss" ? 0xff4d6d : m.spec.color).getHex(), m.rank === "boss" ? 40 : 16, m.rank === "boss" ? 10 : 7); flash(p, 0xffffff, m.rank === "boss" ? 8 : 2.6, 0.25); puff(p, 0xffc861, { n: m.rank === "boss" ? 40 : 12, speed: 5, size: 0.3, life: 0.8, grav: 6 });
     ctx.shake(m.rank === "boss" ? 0.6 : 0.18);
-    ctx.gain(m.xp, T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
+    if (m.rank === "boss" && ctx.slowmo) { ctx.slowmo(700); ctx.punch && ctx.punch(); } // the boss goes down in slow motion
+    if (m.raid) { ctx.toast(T("The raid boss fell: {x}", { x: m.bossName })); ctx.onRaidDown && ctx.onRaidDown(m.g.position.clone()); hideBossBar(); return; } // its XP comes with the claim
+    ctx.gain(Math.round(m.xp * (ctx.xpBoost ? ctx.xpBoost(m.zone && m.zone.id) : 1)), T("Knocked out a {x}", { x: m.rank === "boss" ? m.bossName : T(m.spec.name) }));
     const zi = m.zone ? ZONES.indexOf(m.zone) : -1, tier = m.lv >= 15 ? 4 : m.lv >= 10 ? 3 : m.lv >= 5 ? 2 : 1;
     if (m.rank === "boss") { ctx.claim("boss", { zone: zi }, ctx.screenOf(p)); setBoss(m.zone.id, Date.now() + BOSS_EVERY); hideBossBar(); ctx.onBoss && ctx.onBoss(m.zone); }
     else if (zi >= 0 && tier >= 2) ctx.claim("hunt", { tier }, ctx.screenOf(p));
@@ -223,13 +235,13 @@ export function createCombat(ctx) {
       m.e.mixer.update(dt);
       if (m.dead) { m.dead += dt; m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) { root.remove(m.g); mobs.splice(i, 1); } continue; }
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
-      if (d > (m.rank === "boss" ? 90 : 48)) { root.remove(m.g); mobs.splice(i, 1); if (m.rank === "boss") hideBossBar(); continue; }
+      if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { root.remove(m.g); mobs.splice(i, 1); if (m.rank === "boss") hideBossBar(); continue; }
       m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
-      if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
+      if (m.burn > 0) { m.burn -= dt; m.burnT = (m.burnT || 0) - dt; if (m.burnT <= 0) { m.burnT = 0.5; m.hp -= m.burnD; label(m); puff(m.g.position.clone().setY(m.y + 0.3), 0xff7a2a, { n: 3, speed: 1, size: 0.5, life: 0.4, grav: -3 }); if (m.raid) { ctx.raidHit && ctx.raidHit(m.burnD); m.hp = Math.max(1, m.hp); } if (m.rank === "boss") bossBar(m); if (m.hp <= 0) { kill(m); continue; } } }
       if (m.shell) m.shell.visible = m.slow > 0;
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
-      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : 0.18; o.material.emissive.set(m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
+      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : 0.18; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) continue;
       const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1);
@@ -244,7 +256,13 @@ export function createCombat(ctx) {
         if (buffs.shield > 0 || guardT > 0) { flash(me.clone().setY(1.2), 0x4fa8ff, 3.2, 0.3); Snd.pop && Snd.pop(); if (guardT > 0) ctx.float(T("Dodged"), me.clone().setY(2.6), "#9fe6ff"); }
         else { tmp.copy(me).sub(m.g.position).setY(0).normalize(); ctx.knock(tmp, m.rank === "boss" ? 11 : 7); ctx.hurt(); damage(hitDamage(m.atk, st.def)); }
       }
-      if (m.rank === "boss") { m.slam = (m.slam || 6) - dt; if (m.slam <= 0 && d < 12) { m.slam = 7 + Math.random() * 3; slam(m); } }
+      if (m.rank === "boss") {
+        m.slam = (m.slam || 6) - dt;
+        // a red circle grows on the ground a second before the slam: step out of it
+        if (m.slam <= 1.1 && !m.warned && d < 14) { m.warned = true; const disc = new THREE.Mesh(new THREE.CircleGeometry(7, 48), additive(0xff2d4d, 0.3)); disc.rotation.x = -Math.PI / 2; disc.position.copy(m.g.position).setY(0.07); add(disc); fx.push({ o: disc, life: 1.1, t: 0, onTick: (k) => { disc.material.opacity = 0.12 + 0.28 * k + Math.sin(k * 30) * 0.06; disc.scale.setScalar(0.3 + 0.7 * Math.min(1, k * 1.6)); } }); }
+        if (m.slam <= 0 && d < 12) { m.slam = 7 + Math.random() * 3; m.warned = false; slam(m); }
+        else if (m.slam <= 0) { m.slam = 2; m.warned = false; }
+      }
     }
     hurtT = Math.max(0, hurtT - dt);
   }
@@ -255,7 +273,7 @@ export function createCombat(ctx) {
 
   // ---------------- the boss bar and the zone banner ----------------
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
-  function bossBar(m) { bossEl.hidden = false; bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${T("Boss")} · Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
+  function bossBar(m) { bossEl.hidden = false; bossEl.classList.toggle("raid", !!m.raid); bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${m.raid ? T("Weekly raid · everyone's HP") : T("Boss")} · Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
   function hideBossBar() { bossEl.hidden = true; }
   const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
@@ -266,11 +284,13 @@ export function createCombat(ctx) {
     const next = bossAt()[zone.id] || 0, alive = mobs.some((m) => m.rank === "boss" && !m.dead);
     const left = Math.max(0, next - Date.now());
     zoneEl.hidden = false; zoneEl.style.setProperty("--zc", "#" + new THREE.Color(zone.color).getHexString());
-    zoneEl.innerHTML = `<b>${ctx.esc(zone.name)}</b><small>${T("Level {a}–{b}", { a: zone.lv[0], b: zone.lv[1] })}</small><em>${alive ? T("Boss is here!") : left ? T("Boss in {t}", { t: `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, "0")}` }) : T("Boss soon")}</em>`;
+    zoneEl.innerHTML = `<b>${ctx.esc(zone.name)}</b><small style="color:${lvColor(zone.lv[0])}">${T("Level {a}–{b}", { a: zone.lv[0], b: zone.lv[1] })} · ${T("you're Lv {n}", { n: ctx.level() })}</small><em>${alive ? T("Boss is here!") : left ? T("Boss in {t}", { t: `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, "0")}` }) : T("Boss soon")}</em>`;
   }
   function enterZone(z) {
     bannerEl.hidden = false; bannerEl.style.setProperty("--zc", "#" + new THREE.Color(z.color).getHexString());
-    bannerEl.innerHTML = `<small>${T("Hunting ground")}</small><b>${ctx.esc(z.name)}</b><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })}${ctx.level() < z.lv[0] ? " · " + T("Too strong for you yet") : ""}</em>`;
+    const boost = ctx.xpBoost ? ctx.xpBoost(z.id) : 1;
+    bannerEl.innerHTML = `<small>${T("Hunting ground")}</small><b>${ctx.esc(z.name)}</b><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })}${ctx.level() < z.lv[0] ? " · " + T("Too strong for you yet") : ""}</em>${boost > 1 ? `<span class="wc-xpev">${T("XP ×{k} today", { k: boost })}</span>` : ""}`;
+    bannerEl.classList.toggle("danger", ctx.level() < z.lv[0]);
     bannerEl.classList.remove("on"); void bannerEl.offsetWidth; bannerEl.classList.add("on"); setTimeout(() => { bannerEl.hidden = true; }, 3200);
     const b = bossAt(); if (!b[z.id]) setBoss(z.id, Date.now() + BOSS_FIRST);
     if (ctx.level() < z.lv[0]) ctx.toast(T("{x} is for level {n} and up. Careful!", { x: z.name, n: z.lv[0] }));
@@ -315,6 +335,8 @@ export function createCombat(ctx) {
     return best;
   }
   const power = (s) => stats().atk * s.mult * (1 + 0.12 * (skillLevel(ctx.level(), s.lv) - 1));
+  // the way a skill grew (world-rpg-data.js BRANCHES): "a", "b" or "" before skill level 2 / before choosing
+  const brOf = (id) => { const s = SKILLS.find((x) => x.id === id); if (!s || skillLevel(ctx.level(), s.lv) < BRANCH_AT) return ""; const b = ((rpg.data() || {}).x || {}).br || {}; return b[id] === "a" || b[id] === "b" ? b[id] : ""; };
   function cast(id) {
     const s = SKILLS.find((x) => x.id === id); if (!s || !ctx.active()) return false;
     if (!unlocked(s)) { ctx.toast(T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv })); return false; }
@@ -333,25 +355,28 @@ export function createCombat(ctx) {
     const halo = new THREE.Sprite(spriteMat(s.color, 0.95)); halo.scale.setScalar(id === "fire" ? 3.0 : 2.3); core.add(halo);
     const shade = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, color: id === "fire" ? 0xff5a1a : 0x2f9be8, transparent: true, opacity: 0.55, depthWrite: false })); shade.scale.setScalar(id === "fire" ? 1.9 : 1.6); core.add(shade);
     const orbit = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.05, 6, 32), new THREE.MeshBasicMaterial({ color: id === "fire" ? 0xffd27a : 0xe6fbff })); core.add(orbit);
-    shots.push({ o: core, kind: id, v: fwd.clone().multiplyScalar(id === "ice" ? 14 : 12), life: 1.9, t: 0, trail: 0, dmg: power(s) });
+    shots.push({ o: core, kind: id, v: fwd.clone().multiplyScalar(id === "ice" ? 14 : 12), life: 1.9, t: 0, trail: 0, dmg: power(s) * (id === "ice" && brOf("ice") === "b" ? 1.3 : 1), wide: id === "fire" && brOf("fire") === "a" });
     flash(start, s.color, 2.4, 0.22); ring(me, s.color, { r0: 0.3, r1: 1.8, life: 0.3, y: 0.1 });
     Snd.cast && Snd.cast(id);
     return true;
   }
   // Meteor: a burning rock falls on the nearest scammer ahead (or a few steps ahead) and blows a crater
-  function meteor(s) {
+  function meteor(s, second) {
     const tgt = aim(fwd), at = tgt ? tgt.g.position.clone().setY(0) : me.clone().addScaledVector(fwd, 6).setY(0);
+    if (second) at.add(new V3((Math.random() - 0.5) * 5, 0, (Math.random() - 0.5) * 5));
+    const big = brOf("meteor") === "b" ? 1.5 : 1;
+    if (!second && brOf("meteor") === "a") setTimeout(() => { ctx.here(me); fwdOf(fwd); meteor(s, true); }, 380);
     const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ color: 0x5a2a18, emissive: 0xff4d1a, emissiveIntensity: 1.6, roughness: 0.6, flatShading: true }));
     const halo = new THREE.Sprite(spriteMat(s.color, 0.95)); halo.scale.setScalar(4.2); core.add(halo);
     core.position.copy(at).add(new V3(-3, 16, -3)); add(core);
     const v = at.clone().sub(core.position).multiplyScalar(1 / 0.7);
-    ring(at, 0xff4d2a, { r0: 4.4, r1: 4.6, life: 0.7, y: 0.08 }); flash(me.clone().setY(1.4), s.color, 2.4, 0.25);
-    shots.push({ o: core, kind: "meteor", v, life: 0.72, t: 0, trail: 0, dmg: power(s), at });
+    ring(at, 0xff4d2a, { r0: 4.4 * big, r1: 4.6 * big, life: 0.7, y: 0.08 }); if (!second) flash(me.clone().setY(1.4), s.color, 2.4, 0.25);
+    shots.push({ o: core, kind: "meteor", v, life: 0.72, t: 0, trail: 0, dmg: power(s) * (second ? 0.7 : 1), at, big });
     Snd.cast && Snd.cast("fire"); ctx.shake(0.1);
     return true;
   }
   function shock(hand, s) {
-    const chain = [], pool2 = mobs.filter((m) => !m.dead), lvl = skillLevel(ctx.level(), s.lv), hops = 2 + (lvl >= 3 ? 1 : 0) + (lvl >= 5 ? 1 : 0);
+    const chain = [], pool2 = mobs.filter((m) => !m.dead), lvl = skillLevel(ctx.level(), s.lv), hops = 2 + (lvl >= 3 ? 1 : 0) + (lvl >= 5 ? 1 : 0) + (brOf("shock") === "a" ? 2 : 0);
     for (let k = 0; k <= hops; k++) {
       let best = null, bd = k ? 5.5 : 10;
       for (const m of pool2) { if (chain.includes(m)) continue; const d = m.g.position.distanceTo(k ? chain[k - 1].g.position : me); if (d < bd) { bd = d; best = m; } }
@@ -363,7 +388,7 @@ export function createCombat(ctx) {
       for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; bolt(hand, hand.clone().add(new V3(Math.cos(a) * 2.6, -0.6 + Math.random(), Math.sin(a) * 2.6))); }
     } else {
       for (let i = 0; i < pts.length - 1; i++) { bolt(pts[i], pts[i + 1]); bolt(pts[i], pts[i + 1]); }
-      const dmg = power(s);
+      const dmg = power(s) * (brOf("shock") === "b" ? 1.2 : 1);
       chain.forEach((m, i) => { setTimeout(() => { const c = critRoll(); hit(m, dmg * (c ? 1.8 : 1), me, "shock", c); flash(m.g.position.clone().setY(m.y + 0.4), 0xd8c4ff, 2.2, 0.25); puff(m.g.position.clone().setY(m.y + 0.4), 0xb48cff, { n: 8, speed: 5, size: 0.22, life: 0.35 }); }, i * 70); });
       ctx.shake(0.12);
     }
@@ -389,8 +414,8 @@ export function createCombat(ctx) {
         if (s.trail <= 0.02) puff(s.o.position, 0xff7a2a, { n: 4, speed: 1, size: 1.4, life: 0.6, grav: -1 });
         if (s.t < s.life) continue;
         const p = s.at.clone();
-        for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "fire", c); }
-        flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5, life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
+        for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5) * (s.big || 1)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "meteor", c); }
+        flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
         shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45);
         root.remove(s.o); s.o.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); shots.splice(i, 1);
@@ -405,7 +430,8 @@ export function createCombat(ctx) {
           shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2);
         } else {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "fire", c);
-          for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < 3) hit(m, s.dmg * 0.6, p, "fire");
+          for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < (s.wide ? 4.5 : 3)) hit(m, s.dmg * (s.wide ? 0.8 : 0.6), p, "fire");
+          if (s.wide) ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 });
           flash(p, 0xffb060, 4.2, 0.3); puff(p, 0xff7a2a, { n: 18, speed: 6, size: 0.6, life: 0.6, grav: -1 }); puff(p, 0x55504a, { n: 8, speed: 1.5, size: 1.1, life: 1.1, grav: -1.5 }); ring(p, 0xff9a4a, { r0: 0.4, r1: 3.2, life: 0.45 });
           ctx.shake(0.14);
         }
@@ -454,12 +480,12 @@ export function createCombat(ctx) {
     paintBuffs();
   }
   function tickItems(dt, t) {
-    ctx.here(me); const petPull = !!(ctx.petOn && ctx.petOn());
+    ctx.here(me); const petPull = ctx.petPull ? ctx.petPull() : 0;
     for (let i = items.length - 1; i >= 0; i--) {
       const x = items[i]; x.g.rotation.y += dt * 1.8; x.g.position.y = 1.0 + Math.sin(t * 2.4 + x.k) * 0.15;
       const d = Math.hypot(x.g.position.x - me.x, x.g.position.z - me.z);
       if (d > 50) { root.remove(x.g); items.splice(i, 1); continue; }
-      if ((buffs.magnet > 0 && d < 9) || (petPull && d < 4.5)) { tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
+      if ((buffs.magnet > 0 && d < 9) || (petPull && d < petPull)) { tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
       if (d < 1.3 && ctx.hopY() < 2.6) pick(x);
     }
   }
@@ -572,6 +598,16 @@ export function createCombat(ctx) {
   const dead = document.createElement("div"); dead.className = "wc-dead"; dead.id = "wc-dead"; dead.hidden = true; dead.setAttribute("role", "alertdialog"); dead.setAttribute("aria-modal", "true"); dead.setAttribute("data-no-i18n", "");
   document.body.appendChild(dead);
   let waitT = 0, paying = false;
+  // what to try next time, from what just happened
+  function tipAfterKO() {
+    ctx.here(me); const pots = rpg.potions(), z = zoneAt(me.x, me.z) || zone, lv = ctx.level(), st = stats(), eqN = Object.values(rpg.data().eq || {}).filter(Boolean).length;
+    const tip = z && lv < z.lv[0] ? T("Tip: {x} is for level {n}+. Hunt in an easier ground first.", { x: z.name, n: z.lv[0] })
+      : !pots.hp ? T("Tip: carry health potions (4). The Forge sells five for 30 ARCL.")
+      : eqN < 4 ? T("Tip: you wear {n} of 7 gear pieces. Fill the empty slots (I) or buy some at the Forge.", { n: eqN })
+      : st.def < lv * 2 ? T("Tip: your Defense is low for your level. Enhance your armor and helmet with scrap.")
+      : T("Tip: watch the red ring before a boss slams, and step out of it.");
+    return ctx.esc(tip);
+  }
   function goDown() {
     if (down) return; down = true; ctx.down(true); document.body.classList.remove("wc-low");
     for (const m of mobs) if (!m.dead && m.rank !== "boss") { m.dead = 0.001; puff(m.g.position.clone().setY(0.6), 0xff4d6d, { n: 8, speed: 3, size: 0.5, life: 0.6, grav: -1 }); }
@@ -579,6 +615,7 @@ export function createCombat(ctx) {
     dead.innerHTML = `<div class="wc-dead-card"><h2>${T("You got scammed!")}</h2><p>${T("The street scammers knocked you out.")}</p>
       <button type="button" class="wc-revive" id="wc-revive"><img src="/images/arcircle-mark-sm.png" alt="" width="28" height="19"><span><b>${T("Revive here")}</b><small>${T("10,000 $ARCIRCLE · half is burned, half goes to the treasury")}</small></span></button>
       <button type="button" class="wc-respawn" id="wc-respawn" disabled><b>${T("Respawn on the plaza")}</b><small id="wc-wait"></small></button>
+      <p class="wc-dead-tip">${tipAfterKO()}</p>
       <p class="wc-dead-note" id="wc-dead-note">${T("Reviving sends $ARCIRCLE from your own wallet; you confirm it there.")}</p></div>`;
     setTimeout(() => { dead.hidden = false; }, 900);
   }
@@ -611,7 +648,7 @@ export function createCombat(ctx) {
       if ((spawnT -= dt) <= 0) { spawnT = 3 + Math.random() * 3; if (alive < 5) { const lv = z.lv[0] + Math.floor(Math.random() * (z.lv[1] - z.lv[0] + 1)); spawnMob({ type: z.mobs[Math.floor(Math.random() * z.mobs.length)], lv, rank: Math.random() < 0.12 ? "elite" : "", zone: z }); } }
       const next = bossAt()[z.id] || 0;
       if (next && Date.now() >= next && !mobs.some((m) => m.rank === "boss" && !m.dead)) { setBoss(z.id, Date.now() + BOSS_EVERY); spawnMob({ rank: "boss", lv: z.lv[1] + 2, zone: z, boss: z.boss, at: new V3(z.x, 0, z.z) }); }
-    } else if (Math.hypot(me.x, me.z) > 16) {
+    } else if (Math.hypot(me.x, me.z) > 16 && !(ctx.inRaid && ctx.inRaid())) {
       if ((spawnT -= dt) <= 0) { spawnT = 22 + Math.random() * 30; if (mobs.filter((m) => !m.dead && !m.zone).length < 3) spawnMob({ lv: 1 + Math.floor(Math.random() * 3) }); }
     }
   }
@@ -628,6 +665,10 @@ export function createCombat(ctx) {
     if (down) { const left = Math.max(0, (waitT - performance.now()) / 1000), b = dead.querySelector("#wc-respawn"), w = dead.querySelector("#wc-wait"); if (b && w) { b.disabled = left > 0; w.textContent = left > 0 ? T("free, in {n} s", { n: Math.ceil(left) }) : T("free"); } }
     else {
       guardT = Math.max(0, guardT - dt); calmT = Math.max(0, calmT - dt);
+      // out of a fight with full bars: the vitals panel shrinks to slim bars (phones get their screen back)
+      const quiet = calmT <= 0 && hp >= maxHp() - 0.5 && sp >= maxSp() - 0.5 && !mobs.some((m) => !m.dead && m.g.position.distanceTo(me) < 12);
+      if (!quiet) quietT = 0; else if (!quietT) quietT = performance.now();
+      vit.classList.toggle("calm", !!quietT && performance.now() - quietT > 3000);
       const mh = maxHp(), ms = maxSp(), h0 = hp, s0 = sp; if (calmT <= 0) hp = Math.min(mh, hp + mh * 0.025 * dt); sp = Math.min(ms, sp + ms * 0.06 * dt);
       if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }
@@ -664,6 +705,7 @@ export function createCombat(ctx) {
     if (s) { rpg.setSkill(s.id); paintSkills(); setTimeout(() => { ctx.skillCard ? ctx.skillCard(s) : ctx.toast(T("New skill: {x}! It's in your skill slot (Z).", { x: T(s.name) })); slotBtn.classList.add("learned"); setTimeout(() => slotBtn.classList.remove("learned"), 2600); ring(me, s.color, { r0: 0.4, r1: 4, life: 0.8, y: 0.2 }); }, 1400); }
   }
   return {
+    bosses: () => mobs.filter((m) => m.rank === "boss" && !m.dead && m.zone).map((m) => m.zone.id),
     tick, keyDown, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
@@ -671,13 +713,24 @@ export function createCombat(ctx) {
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd); const at = me.clone().addScaledVector(fwd, dist).setY(0); return !!spawnMob({ ...o, at, zone: o.zone ? ZONES.find((z) => z.id === o.zone) : zone, boss: o.rank === "boss" ? (ZONES.find((z) => z.id === o.zone) || ZONES[0]).boss : undefined }); },
     itemNear(id, dist = 0.5) { const it = ITEMS.find((x) => x.id === id); if (!it) return; ctx.here(me); const g = itemMesh(it); g.position.set(me.x + dist, 1, me.z); add(g); items.push({ g, it, k: 0 }); },
     // the companion drone: a small zap at the nearest scammer within reach (about a tenth of your attack, through armour)
-    petZap(from) {
+    petZap(from, k = 1) {
       if (down || !ctx.inHub()) return false;
       let best = null, bd = 8; for (const m of mobs) { if (m.dead) continue; const d = m.g.position.distanceTo(tmp.copy(from).setY(m.g.position.y)); if (d < bd) { bd = d; best = m; } }
       if (!best) return false;
       const to = best.g.position.clone().setY(best.y + 0.4); bolt(from.clone(), to); flash(to, 0x9fffd0, 1.4, 0.2);
-      hit(best, Math.max(2, rpg.stats().atk * 0.12) + best.def * 0.5, from, "pet", false); return true;
+      hit(best, Math.max(2, rpg.stats().atk * 0.12 * k) + best.def * 0.5, from, "pet", false); return true;
     },
+    // the wisp: mends a share of your HP (only when you're hurt and up)
+    heal(pct, from) {
+      if (down || !ctx.inHub() || hp >= maxHp() - 0.5) return false;
+      const h = Math.max(1, Math.round(maxHp() * pct)); hp = Math.min(maxHp(), hp + h); paintVit();
+      ctx.here(me); ctx.float("+" + h, me.clone().setY(2.5), "#9fffd0"); if (from) puff(from, 0x9fffd0, { n: 6, speed: 1.5, size: 0.3, life: 0.5, grav: -1 }); return true;
+    },
+    // the raid boss (world-raid.js): spawned from the server's HP, kept in step with it, brought down by it
+    raidMob: () => mobs.find((m) => m.raid && !m.dead) || null,
+    spawnRaid(o) { return spawnMob({ ...o, rank: "boss", raid: true }); },
+    raidSet(hpNow) { const m = mobs.find((x) => x.raid && !x.dead); if (!m) return; m.hp = Math.max(1, Math.min(m.max, hpNow)); label(m); bossBar(m); },
+    raidDown() { const m = mobs.find((x) => x.raid && !x.dead); if (m) { m.hp = 0; label(m); kill(m); } },
     dropNear(item) { ctx.here(me); dropChest(me.clone().add(new V3(2, 0, 0)), item); },
   };
 }

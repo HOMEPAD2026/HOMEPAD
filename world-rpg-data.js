@@ -45,7 +45,7 @@ export const STAT_NAME = { atk: "Attack", def: "Defense", hp: "Max HP", sp: "Max
 export const SET_BONUS = [[2, { atkPct: 5 }], [4, { defPct: 10, hpPct: 10 }], [7, { allPct: 15 }]];
 
 /// a character's stats: the level, then the gear, then the set bonuses
-export function statsOf(level, eq) {
+export function statsOf(level, eq, extra) {
   const s = { atk: 6 + level * 2, def: 2 + level, hp: 100 + (level - 1) * 12, sp: 100 + (level - 1) * 8, crit: 5, spd: 0 };
   const sets = {};
   for (const slot of SLOTS) {
@@ -57,10 +57,17 @@ export function statsOf(level, eq) {
   for (const [tier, n] of Object.entries(sets)) for (const [need, b] of SET_BONUS) if (n >= need) { atkPct += b.atkPct || 0; defPct += b.defPct || 0; hpPct += b.hpPct || 0; allPct += b.allPct || 0; active.push({ set: TIERS[tier].set, need }); }
   s.atk = Math.round(s.atk * (1 + (atkPct + allPct) / 100)); s.def = Math.round(s.def * (1 + (defPct + allPct) / 100));
   s.hp = Math.round(s.hp * (1 + (hpPct + allPct) / 100)); s.sp = Math.round(s.sp * (1 + allPct / 100));
+  // the title you wear adds a little (TITLE_BONUS)
+  if (extra) for (const k of ["atk", "def", "hp", "sp", "crit", "spd"]) if (extra[k]) s[k] += extra[k];
+  // small passives on the way to the first skill: level 3 tougher, 5 quicker, 7 sharper
+  if (level >= 3) s.hp = Math.round(s.hp * 1.05);
+  if (level >= 5) s.spd += 5;
+  if (level >= 7) s.crit += 3;
   s.crit = Math.min(60, Math.round(s.crit * 10) / 10); s.spd = Math.min(40, s.spd);
   s.sets = active;
   return s;
 }
+export const PASSIVES = [{ lv: 3, name: "Tough skin", line: "Max HP +5%" }, { lv: 5, name: "Quick feet", line: "Speed +5%" }, { lv: 7, name: "Sharp eye", line: "Critical +3%" }];
 export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1 + Math.floor((level - unlock) / 5)));
 
 // scammers by level
@@ -87,3 +94,50 @@ export const forgeId = (slot, tier) => `${slot}:${tier}`;
 // selling back to the Forge (the server keeps the same numbers: api/_world-shop.mjs SELL_PRICE, 150 a day)
 export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 150;
 export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, Math.floor(Number(it && it.r) || 0)))] * (1 + 0.05 * Math.max(0, Math.min(10, Math.floor(Number(it && it.p) || 0)))));
+
+// titles: each achievement's title adds a small bonus while you wear it (world-quests.js; "season" from the season log)
+export const TITLE_BONUS = {
+  k10: { atk: 2 }, k100: { atk: 5 }, k1000: { atk: 10 }, e25: { crit: 2 }, b1: { hp: 30 }, b10: { hp: 80 }, leg: { crit: 3 },
+  zones: { spd: 4 }, plus10: { def: 6 }, lv20: { atk: 4, def: 4 }, raid1: { def: 8 }, quiz: { sp: 30 }, season: { atk: 3, def: 3 },
+};
+export const bonusLine = (b) => Object.entries(b || {}).map(([k, v]) => `${STAT_NAME[k]} +${v}${k === "crit" || k === "spd" ? "%" : ""}`).join(", ");
+
+// the four skills (world-combat.js SKILLS has their numbers): when each is learned
+export const SKILL_INFO = [{ id: "ice", name: "Ice Ball", lv: 10 }, { id: "fire", name: "Fire Ball", lv: 20 }, { id: "shock", name: "Shock", lv: 40 }, { id: "meteor", name: "Meteor", lv: 80 }];
+// skill branches: at skill level 2 each skill picks one of two ways to grow (saved in P.rpg.x.br)
+export const BRANCH_AT = 2;
+export const BRANCHES = {
+  ice: [{ id: "a", name: "Deep Freeze", line: "Slows for 5 seconds and freezes for a moment" }, { id: "b", name: "Shatter", line: "30% more damage" }],
+  fire: [{ id: "a", name: "Wildfire", line: "A wider blast that hits the crowd harder" }, { id: "b", name: "Inferno", line: "Burns twice as hard, for longer" }],
+  shock: [{ id: "a", name: "Long Chain", line: "Jumps to two more scammers" }, { id: "b", name: "Overload", line: "Stuns twice as long, 20% more damage" }],
+  meteor: [{ id: "a", name: "Twin Star", line: "A second meteor follows the first" }, { id: "b", name: "Crater", line: "A crater half again as wide" }],
+};
+
+// gear fusion at the Forge: three pieces of one rarity (Common or Uncommon) make one of the next rarity
+export const FUSE_MAX_R = 1;
+/// the piece three make: one of their slots, the highest tier and level among them, one rarity up
+export function fuseResult(items, pickSlot = Math.random()) {
+  if (!Array.isArray(items) || items.length !== 3) return null;
+  const r = items[0].r || 0; if (r > FUSE_MAX_R || items.some((x) => (x.r || 0) !== r)) return null;
+  const ps = items.map((x) => parseBase(x.b)); if (ps.some((p) => !p)) return null;
+  const slot = ps[Math.min(2, Math.floor(pickSlot * 3))].slot, tier = Math.max(...ps.map((p) => p.tier)), lv = Math.max(...items.map((x) => x.lv || 1));
+  return { b: baseId(slot, tier), r: r + 1, lv, p: 0 };
+}
+
+// this week's XP events (Seoul time): one hunting ground a weekday, everywhere at the weekend — XP only
+export const WEEKDAY_ZONE = [null, "spam", "fields", "swamp", "canyon", "depths", null];
+export const XP_EVENT = 1.5;
+export function xpEvent(t = Date.now()) {
+  const d = new Date(t + 9 * 3600e3).getUTCDay();
+  return d === 0 || d === 6 ? { all: true, k: XP_EVENT, zone: null } : { all: false, k: XP_EVENT, zone: WEEKDAY_ZONE[d] };
+}
+export const xpBoost = (zoneId, t = Date.now()) => { const e = xpEvent(t); return e.all || (zoneId && zoneId === e.zone) ? e.k : 1; };
+
+// companions: one comes with each of three achievements; they grow with the scammers knocked out beside them
+export const PETS = [
+  { id: "drone", name: "Drone", need: "k10", line: "Zaps the nearest scammer every few seconds" },
+  { id: "cat", name: "Cat", need: "b1", line: "Pulls street items to you from farther away" },
+  { id: "wisp", name: "Arc Wisp", need: "zones", line: "Mends a little of your HP every few seconds" },
+];
+export const petLevel = (xp) => Math.min(10, 1 + Math.floor(Math.sqrt(Math.max(0, Number(xp) || 0) / 15)));
+export const petNext = (lv) => (lv >= 10 ? null : lv * lv * 15);

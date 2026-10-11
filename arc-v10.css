@@ -2270,3 +2270,266 @@ html.wp-pcphone body.wp .wp-prompt button{padding:26px 44px;font-size:44px;gap:2
 html.wp-pcphone body.wp .wp-prompt kbd{display:none}
 @media (pointer:coarse){html body.wp .wp-prompt kbd{display:none}}
 @media (prefers-reduced-motion:reduce){html body.wp .wp-prompt{transition:opacity .2s}html body.wp .wp-prompt.on button{animation:none}}
+
+/* ---------- v28: phones get their screen back ---------- */
+/* vitals: a compact card; out of a fight with full bars it shrinks to slim bars */
+html.wp-pcphone .wc-vit{width:310px;padding:10px 14px;gap:7px;border-radius:18px}
+html.wp-pcphone .wc-v{grid-template-columns:34px 1fr auto;gap:9px}
+html.wp-pcphone .wc-v span,html.wp-pcphone .wc-v em{font-size:16px}
+html.wp-pcphone .wc-v i{height:13px;border-radius:7px}
+html.wp-pcphone .wc-v em{min-width:78px}
+.wc-vit{transition:padding .3s ease,opacity .3s ease,width .3s ease}
+.wc-vit .wc-v em,.wc-vit .wc-v span{transition:opacity .25s ease}
+.wc-vit.calm{opacity:.82;padding-top:6px;padding-bottom:6px;gap:4px}
+.wc-vit.calm .wc-v em{opacity:0}
+.wc-vit.calm .wc-v i{height:7px}
+html.wp-pcphone .wc-vit.calm{width:230px}
+html.wp-pcphone .wc-vit.calm .wc-v i{height:9px}
+/* the locked skill slot is a small badge until level 10 */
+.wc-bar.coarse .wc-slot.locked{width:calc(40 * var(--u));height:calc(40 * var(--u));right:calc(196 * var(--u));bottom:calc(16 * var(--u));opacity:.85}
+.wc-bar.coarse .wc-slot.locked svg{width:calc(17 * var(--u));height:calc(17 * var(--u))}
+.wc-bar.coarse .wc-slot.locked .wc-lock{font-size:calc(9 * var(--u))}
+.wc-bar:not(.coarse) .wc-slot.locked{width:44px;height:44px;align-self:end}
+/* news on a phone: two lines at the left edge, mid-height, gone after a few seconds */
+@media (pointer:coarse){
+  html body.wp .wp-feed{top:47%;bottom:auto;left:max(10px,env(safe-area-inset-left));right:auto;align-items:flex-start;max-width:60vw}
+  html body.wp .wp-feed li:nth-child(n+3){display:none}
+}
+/* hit feel: number size follows the hit, a crit flashes the screen's edge, the XP bar shimmers as it fills */
+.wp-float-n{font-size:calc(22px * var(--fs,1))}
+.wp-float-n.crit{font-size:calc(34px * var(--fs,1))}
+html.wp-pcphone .wp-float-n{font-size:calc(40px * var(--fs,1))}
+html.wp-pcphone .wp-float-n.crit{font-size:calc(60px * var(--fs,1))}
+body.wc-crit::before{content:"";position:fixed;inset:0;z-index:14;pointer-events:none;box-shadow:inset 0 0 90px 18px rgba(255,236,160,.55);animation:wcCrit .35s ease-out forwards}
+@keyframes wcCrit{from{opacity:1}to{opacity:0}}
+.wc-v.xp i b{background-size:200% 100%;animation:wcXpShine 2.4s linear infinite}
+@keyframes wcXpShine{from{background-position:0 0}to{background-position:-200% 0}}
+.wc-v.xp i b{background-image:linear-gradient(90deg,#3f9bff,#35d8d0,#39ff88,#35d8d0,#3f9bff)}
+@media (prefers-reduced-motion:reduce){body.wc-crit::before,.wc-v.xp i b{animation:none}}
+.wc-bosscard{position:fixed;left:50%;top:22%;z-index:22;display:grid;justify-items:center;gap:2px;padding:14px 34px 16px;transform:translateX(-50%);pointer-events:none;text-align:center;background:linear-gradient(90deg,transparent,rgba(30,4,10,.82) 18%,rgba(30,4,10,.82) 82%,transparent);border-top:1px solid rgba(255,77,109,.6);border-bottom:1px solid rgba(255,77,109,.6);animation:wcBossCard 2.8s ease forwards}
+.wc-bosscard small{font:800 13px var(--f-ui);letter-spacing:.06em;color:#ff8fa0}
+.wc-bosscard b{font:900 34px/1.05 var(--f-ui);letter-spacing:-.02em;color:#fff;text-shadow:0 0 22px rgba(255,77,109,.7)}
+.wc-bosscard span{font:600 14px var(--f-ui);color:rgba(255,220,226,.85)}
+html.wp-pcphone .wc-bosscard{padding:24px 60px 26px}
+html.wp-pcphone .wc-bosscard small{font-size:24px}
+html.wp-pcphone .wc-bosscard b{font-size:60px}
+html.wp-pcphone .wc-bosscard span{font-size:26px}
+@keyframes wcBossCard{0%{opacity:0;transform:translateX(-50%) scaleX(.6)}12%{opacity:1;transform:translateX(-50%) scaleX(1.04)}20%{transform:translateX(-50%) scaleX(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+@media (prefers-reduced-motion:reduce){.wc-bosscard{animation:none;opacity:1}}
+/* phones: the boss bar sits below the top HUD (it used to slide under the vitals card) */
+html.wp-pcphone .wc-boss{top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 300px);width:min(640px,calc(100vw - 60px));padding:14px 20px}
+html.wp-pcphone .wc-boss b{font-size:28px}
+html.wp-pcphone .wc-boss small{font-size:18px}
+html.wp-pcphone .wc-bosscard{top:30%}
+/* the getting-started hint: step count first */
+.wp-hint small{margin-right:8px;padding:2px 8px;border-radius:999px;background:rgba(53,216,208,.18);color:#8fe9df;font:800 11.5px var(--f-ui)}
+html.wp-pcphone .wp-hint{font-size:24px;padding:14px 26px}
+html.wp-pcphone .wp-hint small{font-size:20px}
+.wc-banner.danger{--zc:#ff4d6d!important}
+.wc-banner.danger em{color:#ff8fa0}
+.wc-dead-tip{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,200,97,.1);border:1px solid rgba(255,200,97,.35);font-size:13px;line-height:1.45;color:#ffe2a8;text-align:left}
+html.wp-pcphone .wc-dead-tip{font-size:22px}
+.wr-sellcap{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;margin:12px 0 4px;padding:10px 14px;border-radius:12px;background:rgba(255,200,97,.08);border:1px solid rgba(255,200,97,.3)}
+.wr-sellcap span{font:700 13px var(--f-ui);color:rgba(255,226,168,.85)}
+.wr-sellcap b{font:800 14px var(--f-ui);color:#ffc861}
+.wr-sellcap i{grid-column:1/-1;display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.wr-sellcap u{display:block;height:100%;background:linear-gradient(90deg,#ff9a4a,#ffc861)}
+.wp-loadtip{max-width:min(420px,80vw);min-height:2.8em;margin-top:6px;font-size:13.5px;line-height:1.4;color:rgba(222,233,244,.72);text-align:center;opacity:0}
+.wp-loadtip.on{animation:wpTip 3.6s ease forwards}
+@keyframes wpTip{0%{opacity:0;transform:translateY(4px)}12%,85%{opacity:1;transform:none}100%{opacity:0}}
+html.wp-pcphone .wp-loadtip{font-size:26px;max-width:80vw}
+@media (prefers-reduced-motion:reduce){.wp-loadtip.on{animation:none;opacity:1}}
+/* phones: one menu button stands in for photo, help, map and settings */
+.wp-more-btn{display:none}
+.wp-hud-btns{position:relative}
+.wp-more{position:absolute;right:0;top:calc(100% + 8px);z-index:30;display:grid;gap:4px;min-width:190px;padding:8px;border-radius:16px;background:rgba(8,14,24,.95);border:1px solid rgba(120,196,255,.3);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.wp-more[hidden]{display:none}
+.wp-more button{appearance:none;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;border-radius:11px;background:none;color:#eef3f7;font:700 14px var(--f-ui);text-align:left;cursor:pointer}
+.wp-more button:hover,.wp-more button:focus-visible{background:rgba(120,196,255,.12)}
+.wp-more svg{width:20px;height:20px;fill:none;stroke:#9fe6ff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (pointer:coarse){
+  .wp-more-btn{display:inline-flex}
+  #wp-photo-btn,#wp-help-btn,#wp-map-btn,#wp-set-btn{display:none!important}
+  html.wp-pcphone .wp-more{min-width:360px;padding:14px;border-radius:24px}
+  html.wp-pcphone .wp-more button{font-size:28px;padding:18px 20px;gap:20px}
+  html.wp-pcphone .wp-more svg{width:36px;height:36px}
+}
+.wr-tip{position:fixed;z-index:60;width:240px;padding:12px 14px;border-radius:14px;background:rgba(7,12,20,.97);border:1px solid var(--rc,#8fa0b3);box-shadow:0 14px 34px rgba(0,0,0,.55);pointer-events:none;color:#eef3f7}
+.wr-tip[hidden]{display:none}
+.wr-tip>b{display:block;font:800 14.5px var(--f-ui);color:var(--rc,#fff)}
+.wr-tip>small{display:block;margin:2px 0 8px;font-size:11.5px;color:rgba(222,233,244,.6)}
+.wr-tip .wr-stats{margin:0}
+.wr-tip>em{display:block;margin-top:6px;font-size:11px;font-style:normal;color:rgba(222,233,244,.5)}
+html.wp-pcphone .wr-tip{width:420px;padding:20px 24px}
+html.wp-pcphone .wr-tip>b{font-size:26px}
+html.wp-pcphone .wr-tip>small,html.wp-pcphone .wr-tip>em{font-size:20px}
+/* one close button everywhere (map, island sheets match the shop, character and help windows) */
+.wp-btn.wp-x{width:44px;height:44px;padding:0;border-radius:50%;border:1px solid rgba(120,196,255,.32);background:rgba(255,255,255,.03);display:grid;place-items:center}
+.wp-btn.wp-x:hover{background:rgba(255,255,255,.08);border-color:rgba(160,214,255,.6)}
+/* ---- v29: season, quiz, companions, skill branches, fusion, the weekly raid, island social ---- */
+/* today's XP event, on top of the daily hunts */
+.wq-event{display:grid;gap:3px;margin:0 0 10px;padding:11px 14px;border-radius:14px;background:linear-gradient(90deg,rgba(57,255,136,.12),rgba(57,255,136,.02));border:1px solid rgba(57,255,136,.32)}
+.wq-event b{font:800 14px var(--f-ui);color:#9fffd0}
+.wq-event small{font-size:12px;color:rgba(222,233,244,.6)}
+.wc-xpev{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;background:rgba(57,255,136,.16);border:1px solid rgba(57,255,136,.45);font:800 12px var(--f-ui);color:#9fffd0}
+/* titles: the small bonus, the share button */
+.wq-list small .wq-bonus{display:inline;width:auto;font-style:normal;font-weight:700;color:#9fffd0}
+.wq-acts{display:flex;gap:6px;align-items:center}
+.wq-list .wq-share{width:34px;padding:0;display:grid;place-items:center;background:rgba(255,255,255,.06);color:#dfe7ef;border:1px solid rgba(255,255,255,.14)}
+.wq-list .wq-share:hover{background:rgba(255,255,255,.12)}
+.wr-title-b{margin:6px 0 0;font-size:12.5px;color:rgba(222,233,244,.7)}
+.wr-title-b b{color:#ffc861}.wr-title-b small{color:#9fffd0;font-weight:700}
+/* the season log */
+.wq-season{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px 14px;padding:16px 18px;border-radius:16px;background:radial-gradient(120% 140% at 0 0,rgba(255,200,97,.16),rgba(255,255,255,.03) 60%);border:1px solid rgba(255,200,97,.35)}
+.wq-season>div{display:grid;gap:2px}
+.wq-season>div b{font:900 19px var(--f-ui);color:#ffe0a8}
+.wq-season>div small{font-size:12px;color:rgba(222,233,244,.6)}
+.wq-season strong{font:900 26px var(--f-ui);color:#fff;font-variant-numeric:tabular-nums}
+.wq-season strong small{font-size:13px;color:rgba(222,233,244,.6);font-weight:700}
+.wq-season .wq-bar{grid-column:1/-1;height:8px}
+.wq-season .wq-bar b{background:linear-gradient(90deg,#ffc861,#ff9a4a)}
+.wq-season em{grid-column:1/-1;font:700 12px var(--f-ui);font-style:normal;color:rgba(255,224,168,.85)}
+.wq-tiers{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.wq-tiers li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.wq-tiers li>span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);font:800 13px var(--f-ui);color:rgba(222,233,244,.6)}
+.wq-tiers li.ready{border-color:rgba(255,200,97,.6);background:rgba(255,200,97,.08)}
+.wq-tiers li.ready>span{background:#ffc861;color:#2a1200}
+.wq-tiers li.done{opacity:.6}.wq-tiers li.done>span{background:rgba(95,224,138,.2);color:#5fe08a}
+.wq-tiers li.top{border-color:rgba(180,140,255,.45);background:rgba(180,140,255,.08)}
+.wq-tiers li div{display:grid;gap:2px;min-width:0}
+.wq-tiers b{font:700 14px var(--f-ui);color:#fff}
+.wq-tiers small{font-size:12px;color:rgba(222,233,244,.55);font-variant-numeric:tabular-nums}
+.wq-tiers button{appearance:none;height:34px;padding:0 14px;border-radius:10px;border:0;background:linear-gradient(180deg,#ffd08a,#ff9a4a);color:#2a1200;font:800 13px var(--f-ui);cursor:pointer}
+.wq-tiers button:disabled{background:rgba(255,255,255,.08);color:rgba(222,233,244,.4);cursor:default}
+.wq-tiers em{font-style:normal;display:grid;place-items:center;width:34px;color:#5fe08a}
+.wq-stitle{margin:12px 0 0;font-size:13px;color:rgba(222,233,244,.7)}
+.wq-stitle button{appearance:none;margin-left:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid rgba(180,140,255,.5);background:rgba(180,140,255,.14);color:#e0d0ff;font:700 12.5px var(--f-ui);cursor:pointer}
+.wq-stitle button[aria-pressed=true]{background:linear-gradient(180deg,#d0b8ff,#9a6cff);color:#12062a;border-color:transparent}
+/* the quiz */
+.wq-quiz{display:grid;gap:10px;margin:0 0 14px;padding:16px;border-radius:16px;background:rgba(63,155,255,.07);border:1px solid rgba(120,196,255,.3)}
+.wq-quiz-h{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px}
+.wq-quiz-h b{font:800 16px var(--f-ui);color:#cfe8ff}
+.wq-quiz-h small{grid-row:2;font-size:12px;color:rgba(222,233,244,.6)}
+.wq-dots{grid-row:1/3;grid-column:2;display:flex;gap:5px}
+.wq-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.12)}
+.wq-dots i.ok{background:#5fe08a}.wq-dots i.no{background:#ff5f73}.wq-dots i.now{background:#7fe0ff;box-shadow:0 0 0 3px rgba(127,224,255,.25)}
+.wq-q{margin:0;font:700 15px/1.45 var(--f-ui);color:#fff}
+.wq-opts{display:grid;gap:7px}
+.wq-opts button{appearance:none;text-align:left;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#eef3f7;font:600 13.5px/1.4 var(--f-ui);cursor:pointer}
+.wq-opts button:hover{border-color:rgba(127,224,255,.6);background:rgba(127,224,255,.08)}
+.wq-last{margin:0;font:700 12.5px var(--f-ui)}
+.wq-last.ok{color:#5fe08a}.wq-last.no{color:#ff9aa8}
+.wq-quiz.done p{margin:0;color:rgba(222,233,244,.75);font-size:13px}
+/* companions */
+.wq-pets{display:grid;gap:8px}
+.wq-pet{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(120,196,255,.14)}
+.wq-pet.on{border-color:rgba(57,255,136,.55);background:rgba(57,255,136,.07)}
+.wq-pet.locked{opacity:.55;border-style:dashed}
+.wq-pet>div{display:grid;gap:4px;min-width:0}
+.wq-pet b{font:800 14.5px var(--f-ui);color:#fff}.wq-pet b small{margin-left:6px;color:#9fffd0}
+.wq-pet small{font-size:12px;color:rgba(222,233,244,.62)}
+.wq-pet small.need{color:rgba(255,224,168,.8)}.wq-pet small.max{color:#9fffd0}
+.wq-pet-art{width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#eef3f7 0 22%,transparent 23%),radial-gradient(circle,rgba(47,134,255,.35),rgba(46,224,122,.2) 60%,transparent 62%);border:2px solid rgba(127,224,255,.4)}
+.wq-pet.p-cat .wq-pet-art{background:radial-gradient(circle at 50% 55%,#ffb35c 0 30%,transparent 31%),conic-gradient(from 330deg at 34% 28%,#ffb35c 0 60deg,transparent 0),conic-gradient(from 330deg at 66% 28%,#ffb35c 0 60deg,transparent 0),rgba(255,179,92,.12);border-color:rgba(255,179,92,.5)}
+.wq-pet.p-wisp .wq-pet-art{background:radial-gradient(circle,#c8ffe4 0 16%,rgba(57,255,136,.55) 30%,rgba(57,255,136,.08) 62%,transparent 64%);border-color:rgba(57,255,136,.5)}
+.wq-pet button{appearance:none;height:34px;padding:0 14px;border-radius:10px;border:1px solid rgba(120,196,255,.35);background:rgba(63,155,255,.16);color:#cfe8ff;font:800 13px var(--f-ui);cursor:pointer}
+.wq-pet button[aria-pressed=true]{background:linear-gradient(180deg,#9fffd0,#2ee07a);color:#04210f;border-color:transparent}
+.wq-petoff{margin:10px 0 0;text-align:right}
+.wq-petoff button{appearance:none;background:none;border:0;color:rgba(222,233,244,.55);font:600 12.5px var(--f-ui);text-decoration:underline;cursor:pointer}
+/* skills and their branches (character sheet) */
+.wr-skills{margin-top:12px}
+.wr-skills h3{margin:0 0 6px}
+.wr-skills ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.wr-skills li{display:grid;gap:6px;padding:9px 11px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06)}
+.wr-skills li.off{grid-template-columns:1fr auto;opacity:.5}
+.wr-skills li>b{font:800 13.5px var(--f-ui);color:#fff}
+.wr-skills li>b span{margin-left:6px;color:#ffc861;letter-spacing:1px}
+.wr-skills li>small{font-size:11.5px;color:rgba(222,233,244,.55)}
+.wr-br{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wr-br button{appearance:none;display:grid;gap:2px;text-align:left;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.2);color:#eef3f7;cursor:pointer}
+.wr-br button b{font:800 12.5px var(--f-ui)}.wr-br button small{font-size:11px;line-height:1.35;color:rgba(222,233,244,.6)}
+.wr-br button[aria-pressed=true]{border-color:#7fe0ff;background:rgba(127,224,255,.14);box-shadow:inset 0 0 0 1px rgba(127,224,255,.4)}
+.sk-ice .wr-br button[aria-pressed=true]{border-color:#8fe6ff}.sk-fire .wr-br button[aria-pressed=true]{border-color:#ff9a4a;background:rgba(255,122,42,.14)}
+.sk-shock .wr-br button[aria-pressed=true]{border-color:#b48cff;background:rgba(180,140,255,.14)}.sk-meteor .wr-br button[aria-pressed=true]{border-color:#ff4d2a;background:rgba(255,77,42,.14)}
+/* fusion at the Forge */
+.wr-fuse-slots{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 0 4px}
+.wr-fuse-slots>i{font:900 20px var(--f-ui);font-style:normal;color:rgba(222,233,244,.45)}
+.wr-fslot{width:62px;height:62px;border-radius:14px;display:grid;place-items:center;background:rgba(0,0,0,.28);border:1px dashed rgba(255,255,255,.18)}
+.wr-fslot>span{font:800 15px var(--f-ui);color:rgba(222,233,244,.35)}
+.wr-fslot .wr-tile{width:100%;height:100%}
+.wr-fslot.out{border-style:solid;border-color:rgba(255,255,255,.12)}
+.wr-fslot.out.ready{border-color:var(--rc);box-shadow:0 0 18px -4px var(--rc);background:radial-gradient(circle,color-mix(in srgb,var(--rc) 30%,transparent),rgba(0,0,0,.3))}
+.wr-fslot.out b{font:900 24px var(--f-ui);color:#fff}
+.wr-fslot.out.pop{animation:wrFusePop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes wrFusePop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.wr-fuse-out{margin:4px 0 8px;text-align:center;font:700 12.5px var(--f-ui);color:var(--rc,#cfe8ff)}
+.wr-fuse-out.dim{color:rgba(222,233,244,.55)}
+.wr-fuse-go{display:block;margin:0 auto 6px;appearance:none;height:40px;padding:0 26px;border-radius:12px;border:0;background:linear-gradient(180deg,#ffd08a,#ff9a4a);color:#2a1200;font:900 14px var(--f-ui);cursor:pointer}
+.wr-fuse-go:disabled{background:rgba(255,255,255,.08);color:rgba(222,233,244,.4);cursor:default}
+.wr-cell.on{outline:2px solid #ffc861;outline-offset:1px}
+.wr-cell.dim{opacity:.35}
+/* the weekly raid */
+.wc-boss.raid{border-color:rgba(57,255,136,.5)}
+.wc-boss.raid b{color:#9fffd0}
+.wc-boss.raid u{background:linear-gradient(90deg,#2ee07a,#9fffd0)}
+.wr-raid{position:fixed;z-index:13;right:16px;top:50%;transform:translateY(-50%);width:min(280px,calc(100vw - 32px));display:grid;gap:8px;padding:14px 16px;border-radius:18px;background:rgba(6,16,12,.86);border:1px solid rgba(57,255,136,.4);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#eef3f7}
+.wr-raid[hidden]{display:none}
+.wr-raid-h{display:grid;gap:1px}
+.wr-raid-h b{font:900 16px var(--f-ui);color:#9fffd0}
+.wr-raid-h small{font:600 11.5px var(--f-ui);color:rgba(222,233,244,.55)}
+.wr-raid-bar{display:block;height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
+.wr-raid-bar u{display:block;height:100%;background:linear-gradient(90deg,#2ee07a,#9fffd0);transition:width .4s ease}
+.wr-raid-n{margin:0;font:800 12.5px var(--f-ui);color:rgba(222,233,244,.85);font-variant-numeric:tabular-nums}
+.wr-raid-me{margin:0;font:700 13px var(--f-ui)}
+.wr-raid-me small{display:block;font-weight:600;font-size:11.5px;color:rgba(255,224,168,.85)}
+.wr-raid-me small.ok{color:#9fffd0}
+.wr-raid-top{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.wr-raid-top li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;font-size:12px;color:rgba(222,233,244,.8)}
+.wr-raid-top li span{color:#ffc861;font-weight:800}.wr-raid-top li b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wr-raid-top li em{font-style:normal;font-variant-numeric:tabular-nums}
+.wr-raid-claim{width:100%}
+.wr-raid-what,.wr-raid-done{margin:0;font-size:11.5px;color:rgba(222,233,244,.6)}
+html.wp-pcphone .wr-raid{top:auto;bottom:calc(var(--wp-pad,0px) + 560px);right:24px;width:520px;padding:24px 28px;gap:12px}
+html.wp-pcphone .wr-raid-h b{font-size:28px}html.wp-pcphone .wr-raid-h small,html.wp-pcphone .wr-raid-n,html.wp-pcphone .wr-raid-me{font-size:21px}
+html.wp-pcphone .wr-raid-me small,html.wp-pcphone .wr-raid-top li,html.wp-pcphone .wr-raid-what{font-size:19px}
+html.wp-pcphone .wr-raid-bar{height:16px}
+@media (max-width:640px){.wr-raid{top:auto;bottom:200px;right:10px;width:220px;padding:10px 12px}}
+/* islands: the link, the weekly contest, friends, notes, the guestbook */
+.wi-mine-row{display:flex;gap:8px;flex-wrap:wrap}
+.wi-mine-row .wi-mine{flex:1 1 auto}
+.wi-isle-list li.wk button{display:grid;grid-template-columns:30px 1fr;grid-template-areas:"r b" "r s";column-gap:10px;text-align:left}
+.wi-isle-list li.wk .wi-rank{grid-area:r;align-self:center;font:900 15px var(--f-ui);color:rgba(222,233,244,.5);text-align:center}
+.wi-isle-list li.wk b{grid-area:b}.wi-isle-list li.wk small{grid-area:s}
+.wi-isle-list li.p1 .wi-rank{color:#ffc861}.wi-isle-list li.p2 .wi-rank{color:#dfe7ef}.wi-isle-list li.p3 .wi-rank{color:#e09a5f}
+.wi-isle-list li.fr{display:flex;gap:6px;align-items:stretch}
+.wi-isle-list li.fr>button:first-child{flex:1}
+.wi-isle-list li.fr b em{font-style:normal;font-size:12px;color:#9fffd0;margin-left:6px}
+.wi-unfriend{appearance:none;width:40px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:none;color:rgba(222,233,244,.6);font:700 18px var(--f-ui);cursor:pointer}
+.wi-friend{appearance:none;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(127,224,255,.45);background:rgba(127,224,255,.08);color:#cfe8ff;font:700 13px var(--f-ui);cursor:pointer}
+.wi-friend[aria-pressed=true]{background:rgba(57,255,136,.14);border-color:rgba(57,255,136,.5);color:#9fffd0}
+.wi-note-in{flex:1 1 220px;min-width:0;height:32px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);color:#eef3f7;font:500 12.5px var(--f-ui)}
+.wi-note-in:focus{outline:none;border-color:var(--wi-g)}
+.wi-stamp-log{flex-wrap:wrap}
+.wi-stamp-log q{display:block;color:#eef3f7;font-style:italic;quotes:"\201C" "\201D"}
+.wi-book{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:min(60vh,520px);overflow:auto}
+.wi-book li{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04)}
+.wi-book li div{display:grid;gap:3px;min-width:0}
+.wi-book li b{font:700 13.5px var(--f-ui);color:var(--wi-g)}
+.wi-book li small{font-size:11.5px;color:rgba(222,233,244,.5)}
+.wi-book li q{font-size:13px;color:#eef3f7;font-style:italic}
+.wi-book li q.dim{color:rgba(222,233,244,.4)}
+.wi-book li.hid{opacity:.7}
+/* the photo frame toggle */
+.wp-shot-frame[aria-pressed=true]{border-color:rgba(57,255,136,.6);color:#9fffd0;background:rgba(57,255,136,.1)}
+/* on a phone the character sheet, Forge and Adventure log read at a phone's size (the page itself is 980 wide) */
+html.wp-pcphone .wr-card{zoom:1.38;width:min(1100px,calc((100vw - 20px) / 1.38));max-height:calc((100svh - 40px) / 1.38)}
+html.wp-pcphone .wr-raid{zoom:1}
+html.wp-pcphone .wr-grid{grid-template-columns:1fr}
+html.wp-pcphone .wr-forge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+html.wp-pcphone .wr-cells{grid-template-columns:repeat(6,1fr)}html.wp-pcphone .wr-cells.enh{grid-template-columns:repeat(6,1fr)}
+html.wp-pcphone .wr-head{flex-wrap:wrap}
+html.wp-pcphone .wr-switch{flex-wrap:wrap}
+html.wp-pcphone .wr-paper{max-width:440px;margin-left:auto;margin-right:auto}
+/* phone: the raid panel sits under the minimap; the boss bar keeps clear of the action buttons */
+html.wp-pcphone .wr-raid{top:250px;bottom:auto;transform:none;right:20px;width:440px}
+html.wp-pcphone .wc-boss{left:20px;transform:none;width:calc(100vw - var(--acts-w,540px) - 60px);min-width:340px}
+@media (pointer:coarse) and (max-width:720px){html:not(.wp-pcphone) body.wp .wp-prompt{top:41%}} /* a narrow phone (mobile layout): clear of the quests panel */

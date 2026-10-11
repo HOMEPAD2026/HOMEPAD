@@ -44,31 +44,32 @@
 <meta name="twitter:site" content="@ARCIRCLEonArc">
 <meta name="theme-color" content="#04060a">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791703727">
-<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791703727">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png?v=1791712383">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png?v=1791712383">
 <link rel="preload" href="/fonts/sora-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/fonts/fonts.css">
-<script src="arc-log.js?v=1791703727"></script>
-<script src="i18n-boot.js?v=1791703727"></script>
+<script src="arc-log.js?v=1791712383"></script>
+<script src="i18n-boot.js?v=1791712383"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-<script src="/world-lock.js?v=1791703727"></script>
-<link rel="stylesheet" href="/world.min.css?v=1791703727">
+<script src="/world-lock.js?v=1791712383"></script>
+<link rel="stylesheet" href="/world.min.css?v=1791712383">
 <link rel="modulepreload" href="/vendor/three/three-0.169.0.module.min.js">
 <!-- start the game's modules and the town's models while the page parses (world-play.js imports them side by side) -->
-<link rel="modulepreload" href="/world-kit.js?v=1791703727">
-<link rel="modulepreload" href="/world-island.js?v=1791703727">
-<link rel="modulepreload" href="/world-shop.js?v=1791703727">
-<link rel="modulepreload" href="/world-style.js?v=1791703727">
-<link rel="modulepreload" href="/world-support.js?v=1791703727">
-<link rel="modulepreload" href="/world-combat.js?v=1791703727">
-<link rel="modulepreload" href="/world-rpg.js?v=1791703727">
-<link rel="modulepreload" href="/world-zones.js?v=1791703727">
-<link rel="modulepreload" href="/world-quests.js?v=1791703727">
-<link rel="modulepreload" href="/world-rpg-data.js?v=1791703727">
-<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1791703727">
-<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1791703727">
-<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1791703727">
+<link rel="modulepreload" href="/world-kit.js?v=1791712383">
+<link rel="modulepreload" href="/world-island.js?v=1791712383">
+<link rel="modulepreload" href="/world-shop.js?v=1791712383">
+<link rel="modulepreload" href="/world-style.js?v=1791712383">
+<link rel="modulepreload" href="/world-support.js?v=1791712383">
+<link rel="modulepreload" href="/world-combat.js?v=1791712383">
+<link rel="modulepreload" href="/world-rpg.js?v=1791712383">
+<link rel="modulepreload" href="/world-zones.js?v=1791712383">
+<link rel="modulepreload" href="/world-quests.js?v=1791712383">
+<link rel="modulepreload" href="/world-social.js?v=1791712383">
+<link rel="modulepreload" href="/world-rpg-data.js?v=1791712383">
+<link rel="preload" as="fetch" crossorigin href="/models/world/scifi-props.glb?v=1791712383">
+<link rel="preload" as="fetch" crossorigin href="/models/world/kenney-city.glb?v=1791712383">
+<link rel="preload" as="image" crossorigin href="/models/world/planet-surface.jpg?v=1791712383">
 <script>(function () { try { var c = (JSON.parse(localStorage.getItem("arc.world") || "null") || {}).char, k = document.querySelector('link[href*="/world-kit.js"]'); if (k && /^(male|female)-[a-f]$/.test(c || "")) { var l = document.createElement("link"); l.rel = "preload"; l.as = "fetch"; l.crossOrigin = "anonymous"; l.href = "/models/world/chars/character-" + c + ".glb" + k.href.slice(k.href.indexOf("?")); document.head.appendChild(l); } } catch (e) { /* the game loads it anyway */ } })();</script>
 </head>
 <body class="wp">
@@ -76,7 +77,21 @@
 
 <div class="wp-veil" id="wp-veil" aria-hidden="true"></div>
 <button type="button" class="wp-intro-skip" id="wp-intro-skip" data-no-i18n data-w="Skip">Skip</button>
-<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span><i class="wp-loadbar"><b id="wp-loadbar"></b></i></div>
+<div class="wp-loading" id="wp-loading"><img src="/images/arcircle-mark-sm.png" alt="" width="68" height="40"><span>Building the planet…</span><i class="wp-loadbar"><b id="wp-loadbar"></b></i><small class="wp-loadtip" id="wp-loadtip" data-no-i18n></small></div>
+<script>
+// while the planet builds: a safety tip every few seconds (each scammer in the game is a real scam)
+(function () { try {
+  var l = (localStorage.getItem("arcircle.lang") || document.documentElement.lang || "en").slice(0, 2);
+  var TIPS = {
+    en: ["Real projects never DM you first.", "Nobody real will ever ask for your recovery phrase.", "A free airdrop that asks you to approve a contract is a drain.", "Scan a token before you buy it: locks, owner, holders.", "Can't sell a token you bought? That's a honeypot.", "Only mint from links the project posts itself.", "Press H in the game: ARCIA answers any time."],
+    ko: ["진짜 프로젝트는 먼저 DM하지 않아요.", "복구 문구를 묻는 사람은 모두 사기예요.", "컨트랙트 승인을 요구하는 무료 에어드랍은 지갑을 털어가요.", "사기 전에 토큰을 스캔하세요: 락, 소유권, 홀더.", "샀는데 팔 수 없나요? 허니팟이에요.", "민트는 프로젝트가 직접 올린 링크에서만.", "게임에서 H를 누르면 ARCIA가 언제든 답해요."],
+    zh: ["真正的项目不会先私信你。", "任何索要助记词的人都是骗子。", "要求批准合约的免费空投会清空你的钱包。", "买币前先扫描：锁仓、所有者、持有人。", "买了却卖不掉？那是蜜罐。", "只从项目自己发布的链接铸造。", "在游戏里按 H，ARCIA 随时为你解答。"],
+  }[l === "ko" || l === "zh" ? l : "en"];
+  var el = document.getElementById("wp-loadtip"), box = document.getElementById("wp-loading"), i = Math.floor(Math.random() * TIPS.length);
+  var show = function () { if (box.hidden) return clearInterval(t); el.classList.remove("on"); void el.offsetWidth; el.textContent = TIPS[i++ % TIPS.length]; el.classList.add("on"); };
+  var t = setInterval(show, 3600); show();
+} catch (e) { /* the bar is enough */ } })();
+</script>
 
 <header class="wp-hud">
   <div class="wp-hud-l">
@@ -96,6 +111,8 @@
       <button type="button" class="wp-btn wp-icon wp-help-btn" id="wp-help-btn" aria-haspopup="dialog" title="Help Center (H)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M20 19a4 4 0 0 1-4 3h-3"/></svg><span class="wp-sr">Help Center</span></button>
       <button type="button" class="wp-btn wp-icon" id="wp-map-btn" aria-haspopup="dialog" title="Map (M)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span class="wp-sr">Map</span></button>
       <button type="button" class="wp-btn wp-icon" id="wp-set-btn" aria-haspopup="dialog" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="wp-sr">Settings</span></button>
+      <button type="button" class="wp-btn wp-icon wp-more-btn" id="wp-more-btn" aria-haspopup="menu" aria-expanded="false" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="wp-sr" data-no-i18n data-w="Menu">Menu</span></button>
+      <div class="wp-more" id="wp-more" role="menu" hidden></div>
       <button type="button" class="wp-btn wp-wallet" id="wp-wallet"><span class="wp-dot"></span><span id="wp-wallet-t">Connect wallet</span></button>
     </div>
     <div class="wp-purse" id="wp-purse" hidden>
@@ -139,7 +156,7 @@
 <div class="wp-mapsheet" id="wp-shot" hidden role="dialog" aria-modal="true" aria-labelledby="wp-shot-h">
   <div class="wp-card"><div class="wp-sheet-head"><h2 id="wp-shot-h">Your photo</h2><button type="button" class="wp-btn wp-x" id="wp-shot-x" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <img class="wp-shot-img" id="wp-shot-img" alt="A photo taken in ARCIRCLE World">
-  <div class="wp-shot-act"><a class="wp-cta" id="wp-shot-dl" download="arcircle-world.png">Save image</a><button type="button" class="wp-btn" id="wp-shot-share">Share</button><a class="wp-btn" id="wp-shot-x-post" target="_blank" rel="noopener">Post on X</a></div></div>
+  <div class="wp-shot-act"><a class="wp-cta" id="wp-shot-dl" download="arcircle-world.png">Save image</a><button type="button" class="wp-btn wp-shot-frame" id="wp-shot-frame" aria-pressed="true" hidden>Frame on photo</button><button type="button" class="wp-btn" id="wp-shot-share">Share</button><a class="wp-btn" id="wp-shot-x-post" target="_blank" rel="noopener">Post on X</a></div></div>
 </div>
 
 <div class="wp-make" id="wp-make" hidden role="dialog" aria-modal="true" aria-labelledby="wp-make-h">
@@ -171,7 +188,7 @@
 <aside class="wp-mapsheet wp-setsheet" id="wp-setsheet" hidden role="dialog" aria-modal="true" aria-labelledby="wp-set-h">
   <div class="wp-card">
     <div class="wp-sheet-head"><h2 id="wp-set-h" data-no-i18n data-w="Settings">Settings</h2><button type="button" class="wp-btn wp-x" id="wp-set-x" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-    <fieldset class="wp-set-row"><legend data-no-i18n data-w="Graphics">Graphics</legend><div class="wp-seg" id="wp-set-q"><button type="button" data-q="auto" data-no-i18n data-w="Auto">Auto</button><button type="button" data-q="high" data-no-i18n data-w="High">High</button><button type="button" data-q="low" data-no-i18n data-w="Low">Low</button></div><small id="wp-set-q-note"></small></fieldset>
+    <fieldset class="wp-set-row"><legend data-no-i18n data-w="Graphics">Graphics</legend><div class="wp-seg" id="wp-set-q"><button type="button" data-q="auto" data-no-i18n data-w="Auto">Auto</button><button type="button" data-q="high" data-no-i18n data-w="High">High</button><button type="button" data-q="low" data-no-i18n data-w="Low">Low</button><button type="button" data-q="saver" data-no-i18n data-w="Battery saver">Battery saver</button></div><small id="wp-set-q-note"></small></fieldset>
     <div class="wp-set-row"><button type="button" class="wp-btn" id="wp-set-guide" data-no-i18n data-w="Controls">Controls</button><button type="button" class="wp-btn" id="wp-set-help">Help Center</button></div>
     <fieldset class="wp-set-row" id="wp-set-vp-row" hidden><legend data-no-i18n data-w="Layout">Layout</legend><div class="wp-seg" id="wp-set-vp"><button type="button" data-vp="pc" data-no-i18n data-w="Compact">Compact</button><button type="button" data-vp="phone" data-no-i18n data-w="Large">Large</button></div></fieldset>
     <fieldset class="wp-set-row"><legend data-no-i18n data-w="Language">Language</legend><div class="wp-seg" id="wp-set-lang"><button type="button" data-l="en" data-no-i18n>English</button><button type="button" data-l="ko" data-no-i18n>한국어</button><button type="button" data-l="zh" data-no-i18n>中文</button></div></fieldset>
@@ -198,9 +215,9 @@
 <div class="wp-toast" id="wp-toast" role="status" aria-live="polite"></div>
 
 <noscript><p class="wp-nojs">ARCIRCLE World needs JavaScript. <a href="/?skip">Go to the Platform World</a>.</p></noscript>
-<script src="config-arc.js?v=1791703727"></script>
-<script src="i18n.js?v=1791703727"></script>
-<script src="arc-connect.js?v=1791703727"></script>
-<script type="module" src="/world-play.js?v=1791703727"></script>
+<script src="config-arc.js?v=1791712383"></script>
+<script src="i18n.js?v=1791712383"></script>
+<script src="arc-connect.js?v=1791712383"></script>
+<script type="module" src="/world-play.js?v=1791712383"></script>
 </body>
 </html>

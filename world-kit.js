@@ -107,8 +107,9 @@ export function placeOn(obj, dir, r = R) {
 export function quality(force = "auto") {
   const coarse = matchMedia("(pointer: coarse)").matches;
   const cores = navigator.hardwareConcurrency || 4;
-  const low = force === "low" ? true : force === "high" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
-  return { coarse, low, dpr: Math.min(window.devicePixelRatio || 1, low ? 1.25 : 1.75), bloom: !low };
+  const low = force === "low" || force === "saver" ? true : force === "high" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
+  const saver = force === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
+  return { coarse, low, saver, dpr: Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : 1.75), bloom: !low };
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
@@ -130,7 +131,7 @@ export function makeStage(canvas, opts = {}) {
   const hemi = new THREE.HemisphereLight(0x9fd0ff, 0x0b1a14, 0.9); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(30, 60, 40); scene.add(sun); scene.add(sun.target);
   // soft shadows around the robot (it always stands at the top of the world, so one fixed shadow box covers it)
-  if (opts.shadows && !q.low) {
+  if (opts.shadows && !q.low && !q.saver) {
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     sun.castShadow = true; sun.shadow.mapSize.set(q.coarse ? 1024 : 2048, q.coarse ? 1024 : 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     const gy = opts.groundY ?? R;
@@ -155,7 +156,7 @@ export function makeStage(canvas, opts = {}) {
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const updates = new Set();
   const clock = new THREE.Clock();
-  let raf = 0, running = true, every = 1, nth = 0;
+  let raf = 0, running = true, every = 1, nth = 0, base = q.saver ? 2 : 1;
   function frame() {
     if (!running) return;
     raf = requestAnimationFrame(frame);
@@ -168,7 +169,7 @@ export function makeStage(canvas, opts = {}) {
   document.addEventListener("visibilitychange", () => { if (document.hidden) { running = false; cancelAnimationFrame(raf); } else if (!running) { running = true; clock.getDelta(); frame(); } });
   return {
     // a full-screen menu is open: the world behind it only needs a few frames a second (saves battery and heat)
-    idle(on) { const e = on ? 4 : 1; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
+    idle(on) { const e = on ? 4 : base; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
     // a first, gentle step for a slow frame rate: fewer pixels, everything else kept
     lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
@@ -188,8 +189,10 @@ const glossy = (color, o = {}) => new THREE.MeshPhysicalMaterial({ color, roughn
 export function label(text, { color = "#eef3f7", accent = "#39ff88", size = 1, sub = "" } = {}) {
   const cv = document.createElement("canvas"); cv.width = 1024; cv.height = sub ? 300 : 220;
   const g = cv.getContext("2d");
-  g.font = "700 92px Sora, system-ui, sans-serif";
-  const w = Math.min(980, g.measureText(text).width + 120);
+  // long text shrinks to fit the plate instead of running off its ends
+  let fs = 92; g.font = `700 ${fs}px Sora, system-ui, sans-serif`;
+  while (fs > 44 && g.measureText(text).width > 860) { fs -= 4; g.font = `700 ${fs}px Sora, system-ui, sans-serif`; }
+  const w = Math.min(1000, g.measureText(text).width + 120);
   const x0 = (1024 - w) / 2, h = 150, y0 = 20, r = 75;
   g.fillStyle = "rgba(6,10,16,.78)"; g.beginPath(); g.roundRect(x0, y0, w, h, r); g.fill();
   g.lineWidth = 6; g.strokeStyle = accent; g.stroke();
@@ -879,7 +882,13 @@ export function makeLamps() {
   const o = new THREE.Object3D();
   pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); poles.setMatrixAt(i, o.matrix); heads.setMatrixAt(i, o.matrix); });
   const g = new THREE.Group(); g.add(poles, heads);
-  g.userData.night = (k) => { lampMat.emissiveIntensity = 0.2 + k * 3.2; };
+  // at night each lamp throws a warm pool of light on the ground
+  const pool = new THREE.CircleGeometry(2.2, 28); pool.rotateX(-Math.PI / 2); pool.translate(0, 0.06, 0);
+  const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc977, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const pools = new THREE.InstancedMesh(pool, poolMat, pts.length);
+  pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); pools.setMatrixAt(i, o.matrix); });
+  pools.visible = false; g.add(pools);
+  g.userData.night = (k) => { lampMat.emissiveIntensity = 0.2 + k * 3.2; poolMat.opacity = 0.32 * k; pools.visible = k > 0.05; };
   return g;
 }
 // a column of smoke puffs (chimneys)
