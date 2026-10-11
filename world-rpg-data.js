@@ -61,7 +61,7 @@ export function statsOf(level, eq) {
   s.sets = active;
   return s;
 }
-export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1 + Math.floor((level - unlock) / 3)));
+export const skillLevel = (level, unlock) => (level < unlock ? 0 : Math.min(5, 1 + Math.floor((level - unlock) / 5)));
 
 // scammers by level
 export const mobStats = (lv, rank = "") => {
@@ -84,3 +84,6 @@ export const zoneAt = (x, z) => ZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z
 export const FORGE_PRICE = [40, 120, 300, 700];
 export const FORGE_SUPPLY = { "hp5": { name: "5 health potions", arcl: 30, kind: "hp", n: 5 }, "sp5": { name: "5 mana potions", arcl: 30, kind: "sp", n: 5 }, "recall3": { name: "3 recall scrolls", arcl: 20, kind: "recall", n: 3 } };
 export const forgeId = (slot, tier) => `${slot}:${tier}`;
+// selling back to the Forge (the server keeps the same numbers: api/_world-shop.mjs SELL_PRICE, 150 a day)
+export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 150;
+export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, Math.floor(Number(it && it.r) || 0)))] * (1 + 0.05 * Math.max(0, Math.min(10, Math.floor(Number(it && it.p) || 0)))));

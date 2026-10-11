@@ -224,7 +224,7 @@ export async function GET(req) {
     try { return json(200, await world().stats(), "public, max-age=10, s-maxage=15, stale-while-revalidate=30"); }
     catch (err) { console.error("world stats", err && err.message || err); return json(502, { error: "couldn't read the world" }); }
   }
-  if (["island", "islands", "lots", "shop", "arcl", "arcl-top", "plaza", "support-list", "support-item", "support-shot", "support-admin"].includes(url.searchParams.get("world"))) {
+  if (["island", "islands", "lots", "shop", "arcl", "arcl-top", "plaza", "hunt-top", "drops", "support-list", "support-item", "support-shot", "support-admin"].includes(url.searchParams.get("world"))) {
     try { return await world().read(url); }
     catch (err) { console.error("world read", err && err.message || err); return json(502, { error: "couldn't read the islands right now" }); }
   }
@@ -799,7 +799,7 @@ export async function POST(req) {
     }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
-    if (/^world-(ping|login|save|island-save|like|stamp|lot-save|arcl-claim|arcl-spend|arcl-notify|pay-quote|pay-confirm|support-new|support-vote|support-review|forge-buy)$/.test(String(b.action))) return await world().handle(b);
+    if (/^world-(ping|login|save|island-save|like|stamp|lot-save|arcl-claim|arcl-spend|arcl-notify|pay-quote|pay-confirm|support-new|support-vote|support-review|forge-buy|feed-drop|gate|sell)$/.test(String(b.action))) return await world().handle(b);
     if (b.action === "vote") return await vote(b);
     if (b.action === "logo") return await saveLogo(b, req);
     if (b.action === "pledge") return await circle.pledge(b, recoverSigner, json);

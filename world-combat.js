@@ -4,9 +4,9 @@
 //                 the better the drops. Weak ones (level 1–3) wander the streets now and then; the rest live in the
 //                 five hunting grounds (world-zones.js), with elites (gold ring) and a boss every 30 minutes.
 //   attack        J (or the Attack button): a three-hit combo, the third swing hits hardest
-//   dodge         K (or the Dodge button): a quick dash you can't be hit during
-//   skills        learned by level — Ice Ball (2, Z, slows), Fire Ball (3, X, splash and burn), Shock (4, C, chains
-//                 and stuns); they grow stronger every three levels and cost SP
+//   skills        one learned at levels 10, 20, 40 and 80 — Ice Ball (slows), Fire Ball (splash and burn), Shock (chains
+//                 and stuns), Meteor (a crater of fire); one is set in the skill slot (Z casts it, Q or a long press
+//                 changes it). They grow stronger every five levels and cost SP
 //   potions       4 and 5 (or the small buttons): health and mana, from drops or the Forge
 //   damage        your Attack against their Defense (world-rpg-data.js); critical hits from your Critical stat
 //   HP and SP     from your level and gear (world-rpg.js). At 0 HP: respawn on the plaza for free, or revive on the
@@ -17,9 +17,10 @@
 import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY } from "./world-rpg-data.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
-  { id: "ice", name: "Ice Ball", key: "Z", lv: 2, cd: 2.6, sp: 15, color: 0x8fe6ff, mult: 1.4 },
-  { id: "fire", name: "Fire Ball", key: "X", lv: 3, cd: 4.0, sp: 25, color: 0xff7a2a, mult: 1.9 },
-  { id: "shock", name: "Shock", key: "C", lv: 4, cd: 6.0, sp: 35, color: 0xb48cff, mult: 1.2 },
+  { id: "ice", name: "Ice Ball", key: "Z", lv: 10, cd: 2.6, sp: 15, color: 0x8fe6ff, mult: 1.4 },
+  { id: "fire", name: "Fire Ball", key: "Z", lv: 20, cd: 4.0, sp: 25, color: 0xff7a2a, mult: 1.9 },
+  { id: "shock", name: "Shock", key: "Z", lv: 40, cd: 6.0, sp: 35, color: 0xb48cff, mult: 1.2 },
+  { id: "meteor", name: "Meteor", key: "Z", lv: 80, cd: 12.0, sp: 60, color: 0xff4d2a, mult: 3.2 },
 ];
 const MOBS = {
   spam: { id: "spam", name: "Spam Bot", model: "EyeDrone", scale: 0.7, y: 1.2, speed: 2.4, color: "#ff4d6d" },
@@ -44,12 +45,12 @@ const BOSS_EVERY = 30 * 60e3, BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
 ///        blocked(v) → bool, rpg (world-rpg.js) }
 export function createCombat(ctx) {
   const { THREE, K, planet, Snd, rpg } = ctx;
-  const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" } }[ctx.lang] || {};
+  const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const V3 = THREE.Vector3;
   const root = new THREE.Group(); root.name = "combat"; planet.add(root);
   const mobs = [], items = [], shots = [], fx = [], drops = [];
-  const cd = { attack: 0, ice: 0, fire: 0, shock: 0, dodge: 0 };
+  const cd = { attack: 0, ice: 0, fire: 0, shock: 0, meteor: 0, dodge: 0 };
   const stats = () => rpg.stats();
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
   let hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
@@ -87,8 +88,11 @@ export function createCombat(ctx) {
     fx.push({ o: m, life, t: 0, grow: [r0, r1] });
   }
   function flash(pos, color, size = 3, life = 0.25) { const s = sprite(color); s.position.copy(pos); s.scale.setScalar(size); add(s); fx.push({ o: s, life, t: 0, grow: [size, size * 1.6] }); }
+  // a column of light that fades upward (a gradient, so it glows instead of washing the screen white)
+  let fadeTex = null;
+  const fadeUp = () => { if (fadeTex) return fadeTex; const c = document.createElement("canvas"); c.width = 4; c.height = 128; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.55, "rgba(255,255,255,.35)"); gr.addColorStop(1, "rgba(255,255,255,1)"); g.fillStyle = gr; g.fillRect(0, 0, 4, 128); fadeTex = new THREE.CanvasTexture(c); return fadeTex; };
   function pillar(pos, color, h = 14, life = 1.4, r = 1.2) {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.3, h, 24, 1, true), additive(color, 0.5)); m.material.side = THREE.DoubleSide; m.position.copy(pos).setY(h / 2); add(m);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.3, h, 24, 1, true), additive(color, 0.5)); m.material.side = THREE.FrontSide; m.material.map = fadeUp(); m.material.depthWrite = false; m.position.copy(pos).setY(h / 2); add(m);
     fx.push({ o: m, life, t: 0, op0: 0.5, onTick: (k) => { m.scale.x = m.scale.z = 1 - k * 0.6; } });
   }
   function tickFx(dt) {
@@ -253,7 +257,7 @@ export function createCombat(ctx) {
   const bossEl = document.createElement("div"); bossEl.className = "wc-boss"; bossEl.id = "wc-boss"; bossEl.hidden = true; bossEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bossEl);
   function bossBar(m) { bossEl.hidden = false; bossEl.innerHTML = `<b>${ctx.esc(m.bossName)}</b><small>${T("Boss")} · Lv ${m.lv}</small><i><u style="width:${Math.max(0, 100 * m.hp / m.max)}%"></u></i><em>${Math.max(0, Math.ceil(m.hp)).toLocaleString("en-US")} / ${m.max.toLocaleString("en-US")}</em>`; }
   function hideBossBar() { bossEl.hidden = true; }
-  const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); document.body.appendChild(zoneEl);
+  const zoneEl = document.createElement("div"); zoneEl.className = "wc-zone"; zoneEl.id = "wc-zone"; zoneEl.hidden = true; zoneEl.setAttribute("data-no-i18n", ""); (document.querySelector(".wp-hud-r") || document.body).appendChild(zoneEl); // under the minimap
   const bannerEl = document.createElement("div"); bannerEl.className = "wc-banner"; bannerEl.hidden = true; bannerEl.setAttribute("data-no-i18n", ""); document.body.appendChild(bannerEl);
   const bossAt = () => { try { return JSON.parse(localStorage.getItem(BKEY) || "{}"); } catch { return {}; } };
   const setBoss = (id, t) => { const b = bossAt(); b[id] = t; try { localStorage.setItem(BKEY, JSON.stringify(b)); } catch { /* private */ } };
@@ -316,11 +320,12 @@ export function createCombat(ctx) {
     if (!unlocked(s)) { ctx.toast(T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv })); return false; }
     if (cd[id] > 0) return false;
     if (sp < s.sp) { ctx.toast(T("Not enough SP")); vit.classList.remove("low"); void vit.offsetWidth; vit.classList.add("low"); return false; }
-    sp -= s.sp; cd[id] = s.cd * (1 - 0.05 * (skillLevel(ctx.level(), s.lv) - 1)); paintVit();
+    sp -= s.sp; cd[id] = s.cd * (1 - 0.05 * (skillLevel(ctx.level(), s.lv) - 1)); paintVit(); ctx.onCast && ctx.onCast(id);
     const av = ctx.avatar(); if (av) av.play("interact-right", { once: true, fade: 0.05, speed: 1.4 });
     ctx.here(me);
     const hand = me.clone().setY(1.25);
     if (id === "shock") return shock(hand, s);
+    if (id === "meteor") return meteor(s);
     aim(fwd);
     const start = hand.addScaledVector(fwd, 0.7);
     const core = new THREE.Mesh(id === "ice" ? new THREE.IcosahedronGeometry(0.42, 0) : new THREE.SphereGeometry(0.44, 18, 14), id === "ice" ? new THREE.MeshStandardMaterial({ color: 0xcff6ff, emissive: 0x5fd8ff, emissiveIntensity: 1.4, roughness: 0.1, flatShading: true }) : new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 1.3, 0.3) }));
@@ -331,6 +336,18 @@ export function createCombat(ctx) {
     shots.push({ o: core, kind: id, v: fwd.clone().multiplyScalar(id === "ice" ? 14 : 12), life: 1.9, t: 0, trail: 0, dmg: power(s) });
     flash(start, s.color, 2.4, 0.22); ring(me, s.color, { r0: 0.3, r1: 1.8, life: 0.3, y: 0.1 });
     Snd.cast && Snd.cast(id);
+    return true;
+  }
+  // Meteor: a burning rock falls on the nearest scammer ahead (or a few steps ahead) and blows a crater
+  function meteor(s) {
+    const tgt = aim(fwd), at = tgt ? tgt.g.position.clone().setY(0) : me.clone().addScaledVector(fwd, 6).setY(0);
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ color: 0x5a2a18, emissive: 0xff4d1a, emissiveIntensity: 1.6, roughness: 0.6, flatShading: true }));
+    const halo = new THREE.Sprite(spriteMat(s.color, 0.95)); halo.scale.setScalar(4.2); core.add(halo);
+    core.position.copy(at).add(new V3(-3, 16, -3)); add(core);
+    const v = at.clone().sub(core.position).multiplyScalar(1 / 0.7);
+    ring(at, 0xff4d2a, { r0: 4.4, r1: 4.6, life: 0.7, y: 0.08 }); flash(me.clone().setY(1.4), s.color, 2.4, 0.25);
+    shots.push({ o: core, kind: "meteor", v, life: 0.72, t: 0, trail: 0, dmg: power(s), at });
+    Snd.cast && Snd.cast("fire"); ctx.shake(0.1);
     return true;
   }
   function shock(hand, s) {
@@ -368,6 +385,17 @@ export function createCombat(ctx) {
       const s = shots[i]; s.t += dt; s.o.position.addScaledVector(s.v, dt); s.o.rotation.x += dt * 8; s.o.rotation.y += dt * 6;
       s.trail -= dt;
       if (s.trail <= 0 && !ctx.reduce) { s.trail = 0.025; puff(s.o.position, s.kind === "ice" ? 0x8fe6ff : 0xff7a2a, { n: s.kind === "fire" ? 3 : 2, speed: 0.8, size: s.kind === "fire" ? 0.95 : 0.5, life: s.kind === "fire" ? 0.5 : 0.45, grav: s.kind === "fire" ? -2 : 1, up: 0.3 }); if (s.kind === "fire") puff(s.o.position, 0xffe08a, { n: 1, speed: 0.4, size: 0.5, life: 0.25, grav: 0 }); }
+      if (s.kind === "meteor") {
+        if (s.trail <= 0.02) puff(s.o.position, 0xff7a2a, { n: 4, speed: 1, size: 1.4, life: 0.6, grav: -1 });
+        if (s.t < s.life) continue;
+        const p = s.at.clone();
+        for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "fire", c); }
+        flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5, life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
+        puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
+        shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45);
+        root.remove(s.o); s.o.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); shots.splice(i, 1);
+        continue;
+      }
       let target = null;
       for (const m of mobs) { const rad = m.rank === "boss" ? 2.6 : 1.0; if (!m.dead && m.g.position.distanceTo(tmp.copy(s.o.position).setY(m.g.position.y)) < rad && Math.abs(s.o.position.y - (m.y + 0.4)) < (m.rank === "boss" ? 4 : 1.6)) { target = m; break; } }
       if (target || s.t > s.life || s.o.position.y < 0.1) {
@@ -426,12 +454,12 @@ export function createCombat(ctx) {
     paintBuffs();
   }
   function tickItems(dt, t) {
-    ctx.here(me);
+    ctx.here(me); const petPull = !!(ctx.petOn && ctx.petOn());
     for (let i = items.length - 1; i >= 0; i--) {
       const x = items[i]; x.g.rotation.y += dt * 1.8; x.g.position.y = 1.0 + Math.sin(t * 2.4 + x.k) * 0.15;
       const d = Math.hypot(x.g.position.x - me.x, x.g.position.z - me.z);
       if (d > 50) { root.remove(x.g); items.splice(i, 1); continue; }
-      if (buffs.magnet > 0 && d < 9) { tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
+      if ((buffs.magnet > 0 && d < 9) || (petPull && d < 4.5)) { tmp.set(me.x - x.g.position.x, 0, me.z - x.g.position.z).normalize(); x.g.position.addScaledVector(tmp, dt * 9); }
       if (d < 1.3 && ctx.hopY() < 2.6) pick(x);
     }
   }
@@ -452,28 +480,64 @@ export function createCombat(ctx) {
     ice: '<svg viewBox="0 0 24 24"><path d="M12 2v20M4 6.5l16 11M20 6.5 4 17.5"/><path d="M9 3.5 12 6l3-2.5M9 20.5 12 18l3 2.5"/></svg>',
     fire: '<svg viewBox="0 0 24 24"><path d="M12 22c4.4 0 7-2.9 7-6.8 0-3.8-2.8-6.3-4.2-9.7-.4 2.4-1.6 3.6-2.8 4.3.2-3.5-1.6-6.4-4.4-7.8.4 3.3-2.6 6-2.6 10.8C5 19.1 7.6 22 12 22z"/></svg>',
     shock: '<svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
-    dodge: '<svg viewBox="0 0 24 24"><path d="M4 12h10M10 6l6 6-6 6"/><path d="M18 5v14"/></svg>',
+    meteor: '<svg viewBox="0 0 24 24"><circle cx="15" cy="15" r="5"/><path d="M11 11 4 4M13 9 9 3M9 13 3 9"/></svg>',
+    lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
     hp: '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v4L6 13a6 6 0 0 0 12 0l-4-6V3"/></svg>',
   };
   bar.innerHTML = `<div class="wc-buffs" id="wc-buffs"></div>
-    <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button><button type="button" class="wc-skill wc-dodge" data-skill="dodge" aria-label="${T("Dodge")}"><i>${ICON.dodge}</i><em class="wc-cd"></em><b class="wc-key">K</b></button></div>`
-    + SKILLS.map((s) => `<button type="button" class="wc-skill wc-${s.id}" data-skill="${s.id}" aria-label="${ctx.esc(T(s.name))}"><i>${ICON[s.id]}</i><em class="wc-cd"></em><b class="wc-key">${s.key}</b><small class="wc-lock"></small><small class="wc-slv"></small></button>`).join("")
-    + `<button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>`;
+    <div class="wc-pots"><button type="button" class="wc-pot hp" data-skill="pot-hp" aria-label="${T("Health potion")}">${ICON.hp}<b class="wc-key">4</b><em id="wc-pot-hp">0</em></button><button type="button" class="wc-pot sp" data-skill="pot-sp" aria-label="${T("Mana potion")}">${ICON.hp}<b class="wc-key">5</b><em id="wc-pot-sp">0</em></button></div>
+    <button type="button" class="wc-skill wc-slot" data-skill="slot"><i></i><em class="wc-cd"></em><b class="wc-key">Z</b><small class="wc-lock"></small><small class="wc-slv"></small><span class="wc-swap" data-swap hidden aria-label="${T("Change skill")}"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3"/></svg></span></button>
+    <button type="button" class="wc-attack" data-skill="attack" aria-label="${T("Attack")}"><i>${ICON.attack}</i><em class="wc-cd"></em><b class="wc-key">J</b><span class="wc-combo" id="wc-combo"></span></button>
+    <div class="wc-pick" id="wc-pick" hidden role="menu"></div>`;
   document.body.appendChild(bar);
+  // the one skill slot: the skill set there (or the newest learned), locked until level 10
+  const learned = () => SKILLS.filter((x) => unlocked(x));
+  const slotSkill = () => { const l = learned(); if (!l.length) return null; const want = (rpg.data() || {}).sk; return l.find((x) => x.id === want) || l[l.length - 1]; };
+  const slotBtn = bar.querySelector('[data-skill="slot"]'), picker = bar.querySelector("#wc-pick");
+  function setSlot(id) { const s = SKILLS.find((x) => x.id === id); if (!s || !unlocked(s)) return; rpg.setSkill(id); paintSkills(); paintCd(); ctx.toast(T("Skill slot: {x}", { x: T(s.name) })); }
+  function nextSkill() { const l = learned(); if (l.length < 2) return false; const cur = slotSkill(); setSlot(l[(l.indexOf(cur) + 1) % l.length].id); return true; }
+  function openPick() {
+    const cur = slotSkill();
+    picker.innerHTML = `<p>${T("Skill slot")}</p>` + SKILLS.map((x) => { const ok = unlocked(x); return `<button type="button" role="menuitemradio" class="wc-pi wc-${x.id}${ok ? "" : " off"}" data-pick="${x.id}" aria-checked="${cur && cur.id === x.id}" ${ok ? "" : "disabled"}><i>${ICON[x.id]}</i><span><b>${ctx.esc(T(x.name))}</b><small>${ok ? T("{n} SP", { n: x.sp }) : T("Level {n}", { n: x.lv })}</small></span></button>`; }).join("");
+    picker.hidden = false;
+  }
+  const closePick = () => { picker.hidden = true; };
+  let holdT = 0, held = false;
   bar.addEventListener("pointerdown", (e) => {
+    const pk = e.target.closest("[data-pick]"); if (pk) { e.preventDefault(); e.stopPropagation(); setSlot(pk.dataset.pick); closePick(); return; }
     const b = e.target.closest("[data-skill]"); if (!b) return; e.preventDefault(); e.stopPropagation();
     const id = b.dataset.skill;
-    if (id === "attack") attack(); else if (id === "dodge") dodge(); else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp"); else cast(id);
+    if (id === "slot") {
+      if (e.target.closest("[data-swap]") || !slotSkill()) { if (!slotSkill()) ctx.toast(T("Your first skill opens at level 10")); else (picker.hidden ? openPick() : closePick()); return; }
+      held = false; clearTimeout(holdT); holdT = setTimeout(() => { held = true; if (learned().length > 1) openPick(); }, 450);
+      return;
+    }
+    closePick();
+    if (id === "attack") attack(); else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); void b.offsetWidth; b.classList.add("press");
   });
+  slotBtn.addEventListener("pointerup", (e) => {
+    clearTimeout(holdT); if (held || !slotSkill() || e.target.closest("[data-swap]")) return;
+    closePick(); const s = slotSkill(); cast(s.id); slotBtn.classList.remove("press"); void slotBtn.offsetWidth; slotBtn.classList.add("press");
+  });
+  slotBtn.addEventListener("pointercancel", () => clearTimeout(holdT));
+  slotBtn.addEventListener("contextmenu", (e) => e.preventDefault());
   function paintSkills() {
-    for (const s of SKILLS) { const b = bar.querySelector(`[data-skill="${s.id}"]`); const ok = unlocked(s), sl = skillLevel(ctx.level(), s.lv); b.classList.toggle("locked", !ok); b.querySelector(".wc-lock").textContent = ok ? "" : T("Lv {n}", { n: s.lv }); b.querySelector(".wc-slv").textContent = ok ? "★".repeat(sl) : ""; b.title = ok ? `${T(s.name)} (${s.key}) · ${T("Skill level {n}", { n: sl })}` : T("{x} unlocks at level {n}", { x: T(s.name), n: s.lv }); }
+    const s = slotSkill(), n = learned().length;
+    slotBtn.className = "wc-skill wc-slot" + (s ? " wc-" + s.id : " locked");
+    slotBtn.querySelector("i").innerHTML = s ? ICON[s.id] : ICON.lock;
+    slotBtn.querySelector(".wc-lock").textContent = s ? "" : T("Lv {n}", { n: SKILLS[0].lv });
+    slotBtn.querySelector(".wc-slv").textContent = s ? "★".repeat(skillLevel(ctx.level(), s.lv)) : "";
+    slotBtn.querySelector("[data-swap]").hidden = n < 2;
+    slotBtn.setAttribute("aria-label", s ? `${T(s.name)} (Z)` : T("Your first skill opens at level 10"));
+    slotBtn.title = s ? `${T(s.name)} (Z) · ${T("Skill level {n}", { n: skillLevel(ctx.level(), s.lv) })}${n > 1 ? " · " + T("Q or a long press changes it") : ""}` : T("Your first skill opens at level 10");
   }
   function paintPots() { const p = rpg.potions(); bar.querySelector("#wc-pot-hp").textContent = p.hp; bar.querySelector("#wc-pot-sp").textContent = p.sp; bar.querySelector('[data-skill="pot-hp"]').classList.toggle("empty", !p.hp); bar.querySelector('[data-skill="pot-sp"]').classList.toggle("empty", !p.sp); }
   const CDT = { attack: 0.5, dodge: 1.1 };
   function paintCd() {
+    const sl = slotSkill();
     for (const [id, left] of Object.entries(cd)) {
-      const b = bar.querySelector(`[data-skill="${id}"]`); if (!b) continue;
+      const b = id === "attack" ? bar.querySelector('[data-skill="attack"]') : sl && sl.id === id ? slotBtn : null; if (!b) continue;
       const total = CDT[id] || SKILLS.find((s) => s.id === id).cd;
       b.style.setProperty("--cd", String(Math.max(0, Math.min(1, left / total))));
       b.classList.toggle("cooling", left > 0);
@@ -537,7 +601,7 @@ export function createCombat(ctx) {
 
   // ---------------- the loop ----------------
   let buffPaint = 0, placeT = 0, zoneT = 0;
-  function place() { const a = document.getElementById("wp-acts"); if (!ctx.coarse || !a || a.hidden) { bar.style.bottom = ""; return; } const r = a.getBoundingClientRect(); if (r.height) bar.style.bottom = Math.round(innerHeight - r.top + 8) + "px"; }
+  function place() { bar.style.bottom = ""; } // the buttons share one corner layout with the move buttons (arc-v10.css v25)
   function spawnTick(dt) {
     ctx.here(me);
     const z = zone;
@@ -584,26 +648,35 @@ export function createCombat(ctx) {
   }
   function keyDown(k) {
     if (k === "j") return attack();
-    if (k === "k") return dodge();
+    if (k === "q") return nextSkill() || true;
     if (k === "4") return drink("hp") || true;
     if (k === "5") return drink("sp") || true;
-    const s = SKILLS.find((x) => x.key.toLowerCase() === k); if (s) { cast(s.id); return true; }
+    if (k === "z") { const s = slotSkill(); if (s) cast(s.id); else ctx.toast(T("Your first skill opens at level 10")); return true; }
     return false;
   }
+  let lastLv = ctx.level();
   function onLevel(n, before) {
     paintSkills(); hp = maxHp(); sp = maxSp(); ghostHp = hp; paintVit(); paintPots();
-    ctx.here(me); pillar(me, 0xffe08a, 16, 1.6, 1.1); ring(me, 0xffc861, { r0: 0.4, r1: 5, life: 0.9, y: 0.15 }); puff(me.clone().setY(1.2), 0xffe08a, { n: 30, speed: 6, size: 0.4, life: 1.2, grav: -2 });
+    ctx.here(me); pillar(me, 0xffb347, 16, 1.6, 1.1); ring(me, 0xffc861, { r0: 0.4, r1: 5, life: 0.9, y: 0.15 }); puff(me.clone().setY(1.2), 0xffe08a, { n: 30, speed: 6, size: 0.4, life: 1.2, grav: -2 });
     if (before) { const now = stats(); [["atk", "Attack"], ["def", "Defense"], ["hp", "Max HP"], ["sp", "Max SP"]].forEach(([k, n], i) => { const d = now[k] - before[k]; if (d > 0) setTimeout(() => ctx.float(`${T(n)} +${d}`, me.clone().setY(2.8 + i * 0.1), "#ffe08a"), 500 + i * 260); }); }
-    const s = SKILLS.find((x) => x.lv === n);
-    if (s) setTimeout(() => { ctx.skillCard ? ctx.skillCard(s) : ctx.toast(T("New skill: {x}! Press {k} or tap its button.", { x: T(s.name), k: s.key })); const b = bar.querySelector(`[data-skill="${s.id}"]`); b.classList.add("learned"); setTimeout(() => b.classList.remove("learned"), 2600); ring(me, s.color, { r0: 0.4, r1: 4, life: 0.8, y: 0.2 }); }, 1400);
+    const s = SKILLS.filter((x) => x.lv > lastLv && x.lv <= n).pop(); lastLv = n;
+    if (s) { rpg.setSkill(s.id); paintSkills(); setTimeout(() => { ctx.skillCard ? ctx.skillCard(s) : ctx.toast(T("New skill: {x}! It's in your skill slot (Z).", { x: T(s.name) })); slotBtn.classList.add("learned"); setTimeout(() => slotBtn.classList.remove("learned"), 2600); ring(me, s.color, { r0: 0.4, r1: 4, life: 0.8, y: 0.2 }); }, 1400); }
   }
   return {
-    tick, keyDown, attack, dodge, cast, drink, onLevel, paintSkills, paintPots, onGear: () => { paintVit(); },
+    tick, keyDown, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
     spawnMob, spawnItem, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z })), items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd); const at = me.clone().addScaledVector(fwd, dist).setY(0); return !!spawnMob({ ...o, at, zone: o.zone ? ZONES.find((z) => z.id === o.zone) : zone, boss: o.rank === "boss" ? (ZONES.find((z) => z.id === o.zone) || ZONES[0]).boss : undefined }); },
     itemNear(id, dist = 0.5) { const it = ITEMS.find((x) => x.id === id); if (!it) return; ctx.here(me); const g = itemMesh(it); g.position.set(me.x + dist, 1, me.z); add(g); items.push({ g, it, k: 0 }); },
+    // the companion drone: a small zap at the nearest scammer within reach (about a tenth of your attack, through armour)
+    petZap(from) {
+      if (down || !ctx.inHub()) return false;
+      let best = null, bd = 8; for (const m of mobs) { if (m.dead) continue; const d = m.g.position.distanceTo(tmp.copy(from).setY(m.g.position.y)); if (d < bd) { bd = d; best = m; } }
+      if (!best) return false;
+      const to = best.g.position.clone().setY(best.y + 0.4); bolt(from.clone(), to); flash(to, 0x9fffd0, 1.4, 0.2);
+      hit(best, Math.max(2, rpg.stats().atk * 0.12) + best.def * 0.5, from, "pet", false); return true;
+    },
     dropNear(item) { ctx.here(me); dropChest(me.clone().add(new V3(2, 0, 0)), item); },
   };
 }

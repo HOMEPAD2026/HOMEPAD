@@ -13,7 +13,7 @@
 // Accounts: "Sign in with wallet" is a free personal_sign (api/_world.mjs). With it, progress is saved to the wallet
 // on the server; without it (guest), progress stays in this browser (localStorage "arc.world"). Settings live in
 // "arc.world.set". Who's online and how many have visited come from the same API (heartbeat every 50 s).
-// Game World is password-locked while it's being tested (world-lock.js); the Platform World stays open.
+// Game World's first beta is for wallets holding at least 1,000,000 $ARCIRCLE (world-lock.js); the Platform World stays open.
 if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
   document.getElementById("wp-loading").hidden = true;
   if (window.arcWorldLock) await window.arcWorldLock.ask({ cancelHref: "/?skip" });
@@ -29,6 +29,7 @@ const HELP = await import("./world-support.js" + VER);
 const FIGHT = await import("./world-combat.js" + VER);
 const RPG = await import("./world-rpg.js" + VER);
 const ZN = await import("./world-zones.js" + VER);
+const QST = await import("./world-quests.js" + VER);
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -68,7 +69,9 @@ let cloudT = 0;
 const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch { /* private window */ } clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 6000); };
 const saveSet = () => { try { localStorage.setItem(SETS, JSON.stringify(S)); } catch { /* private window */ } };
 const level = () => 1 + Math.floor(P.xp / 100);
+let xpHeld = false; // window.arcWorld.holdXp(true): screenshots and tests keep the level where it is
 function gain(n, why) {
+  if (xpHeld) return;
   const before = level(); P.xp += n; save(); paintHud();
   toast(T("+{n} XP · {why}", { n, why }));
   if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
@@ -242,7 +245,7 @@ function setNameTag() {
   if (nameTag) { player.remove(nameTag); nameTag.material.map.dispose(); }
   const title = BADGES.find((b) => b.id === P.badges[P.badges.length - 1]);
   const pl = PLATES[(P.style || {}).plate] || ["#35d8d0", "#eef3f7"];
-  nameTag = K.label(P.name || W("Player"), { accent: pl[0], color: pl[1], size: 0.42, sub: title ? T(title.title) : "" }); nameTag.position.y = 3.15; player.add(nameTag);
+  nameTag = K.label(P.name || W("Player"), { accent: pl[0], color: pl[1], size: 0.42, sub: (quests && quests.title()) || (title ? T(title.title) : "") }); nameTag.position.y = 3.15; player.add(nameTag);
 }
 // the hoverboard's light trail (a bought colour, or a faint default)
 const TRAILS = { "trail-cyan": 0x35d8d0, "trail-gold": 0xffc861, "trail-pink": 0xff7ad9, "trail-rainbow": 0xff4d6d }; // the rainbow one cycles (see the loop)
@@ -367,6 +370,7 @@ addEventListener("keydown", (e) => {
   if (k === "e" || k === "enter") { if (near) { e.preventDefault(); enter(near); } return; }
   if (k === "m") { openMap(); return; }
   if (k === "i" && rpg) { closeAll(); rpg.show("inv"); return; }
+  if (k === "l" && rpg && quests) { closeAll(); rpg.show("log"); return; }
   if (k === "h") { openHelp(); return; }
   if (combat && mode === "hub" && combat.keyDown(k)) { e.preventDefault(); return; }
   if (k === "f") { setBoard(!boarding); return; }
@@ -448,7 +452,7 @@ const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
-let combat = null, rpg = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
+let combat = null, rpg = null, quests = null, pet = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
 function inputs() {
   let x = 0, y = 0;
   if (keys.has("w") || keys.has("arrowup")) y += 1;
@@ -603,7 +607,7 @@ P.style = P.style || { plate: "", trail: "" };
 const arclShop = SHOP.createShop({
   T, lang: LANG, esc, toast, post, sess, Snd, P, coarse, reduce, AC, addr,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
-  openAuth: () => openAuth(),
+  openAuth: () => openAuth(), openForge: () => rpg && rpg.show("forge"),
   myCoins: () => myCoins, coins: () => (coinData || []).slice(0, 30),
   onOwn: (o) => applyOwn(o),
   using: (id) => P.style.plate === id || P.style.trail === id || P.isleTheme === id,
@@ -1226,6 +1230,7 @@ function burst(color) {
 }
 function levelUp(n, from) {
   if (rpg) { const was = RPG.statsOf(from || n - 1, rpg.data().eq); rpg.onLevel(); if (combat) combat.onLevel(n, was); } else if (combat) combat.onLevel(n);
+  if (quests) quests.on.level();
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
   el.hidden = false; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   setTimeout(() => { el.hidden = true; }, 1900);
@@ -1407,7 +1412,7 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
   const legend = `<ul class="wp-guide-legend">
     <h4>${esc(W("Moving"))}</h4>${li(["W", "A", "S", "D"], "Move (or the arrow keys)", M)}${li(["Shift"], "Run (hold)", M)}${li([W("Space")], "Jump", M)}
     <h4>${esc(T("Doing things"))}</h4>${li(["E"], "Enter a shop, talk", A)}${li(["F"], "Hoverboard on and off", A)}${li(["1", "2"], "Wave, shake your head", A)}${li(["T"], "Emote wheel: sit, point, faint…", A)}${li(["P"], "Photo mode", A)}
-    <h4>${esc(W("Fighting"))}</h4>${li(["J"], "Attack", M)}${li(["Z"], "Ice Ball (level 2)", M)}${li(["X"], "Fire Ball (level 3)", M)}${li(["C"], "Shock (level 4)", M)}
+    <h4>${esc(W("Fighting"))}</h4>${li(["J"], "Attack", M)}${li(["Z"], "Cast the skill in your slot (skills come at levels 10, 20, 40, 80)", M)}${li(["Q"], "Change the skill in the slot", M)}${li(["4", "5"], "Health and mana potions", M)}${li(["I"], "Character, gear and bag", M)}${li(["L"], "Adventure log", M)}
     <h4>${esc(W("Menus"))}</h4>${li(["M"], "Map and fast travel", U)}${li(["H"], "Help Center", U)}${li(["Esc"], "Close what's open", U)}
     <h4>${esc(T("Building on your island"))}</h4>${li(["B"], "Build mode on and off", B)}${li(["Tab"], "All bricks", B)}${li(["R"], "Rotate the brick", B)}${li(["X"], "Remove tool", B)}${li(["C"], "Paint tool", B)}${li(["V"], "Pick a brick and its colour", B)}${li(["G"], "Mirror", B)}${li(["L"], "Layer lock", B)}${li(["Ctrl", "Z"], "Undo", B)}
   </ul>`;
@@ -1415,7 +1420,7 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
     <ul class="wp-guide-legend">${li([W("Drag")], "Look around", U)}${li([W("Wheel")], "Zoom in and out", U)}${li([W("Click")], "Building: place a brick", A)}${li([T("Right-click")], "Building: remove a brick", B)}</ul></div>`;
   const touch = `<div class="wp-guide-touch"><svg viewBox="0 0 200 380" aria-hidden="true"><rect x="6" y="6" width="188" height="368" rx="30" fill="#141a24" stroke="#3b3f47" stroke-width="5"/><rect x="18" y="40" width="82" height="300" rx="12" fill="rgba(255,95,115,.18)" stroke="#ff5f73" stroke-dasharray="6 5"/><rect x="100" y="40" width="82" height="200" rx="12" fill="rgba(111,220,140,.15)" stroke="#6fdc8c" stroke-dasharray="6 5"/><circle cx="58" cy="270" r="30" fill="none" stroke="#ff5f73" stroke-width="4"/><circle cx="58" cy="270" r="12" fill="#ff5f73"/><circle cx="160" cy="320" r="17" fill="#52d4e3" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="296" r="11" fill="#ff5f73" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="266" r="11" fill="#ffd34d" stroke="#3b2416" stroke-width="3"/><circle cx="150" cy="266" r="11" fill="#7ea3ff" stroke="#3b2416" stroke-width="3"/><circle cx="176" cy="266" r="11" fill="#ffa86a" stroke="#3b2416" stroke-width="3"/><text x="58" y="225" fill="#ffb3bd" font-size="15" font-weight="700" text-anchor="middle">${esc(W("Move"))}</text><text x="141" y="140" fill="#b4f0c4" font-size="15" font-weight="700" text-anchor="middle">${esc(W("Look"))}</text></svg>
     <ul class="wp-guide-legend">${li(["◐"], "Left thumb: drag to walk (push far to run)", M)}${li(["◑"], "Right side: drag to look around", U)}${li(["⇲⇱"], "Two fingers: pinch to zoom", U)}
-      <h4>${esc(W("Buttons"))}</h4>${li(["↑"], "Jump", ["#52d4e3", "#06222a"])}${li(["▶"], "Run on and off", M)}${li(["✋"], "Emotes: wave, sit, point…", A)}${li(["⏏"], "Hoverboard", B)}${li(["◉"], "Photo mode", ["#ffa86a", "#3b2416"])}${li(["⚔"], "Attack, and the skills you learned (Ice Ball, Fire Ball, Shock)", ["#ff6b6b", "#3b0a12"])}
+      <h4>${esc(W("Buttons"))}</h4>${li(["↑"], "Jump", ["#52d4e3", "#06222a"])}${li(["▶"], "Run on and off", M)}${li(["✋"], "Emotes: wave, sit, point…", A)}${li(["⏏"], "Hoverboard", B)}${li(["◉"], "Photo mode", ["#ffa86a", "#3b2416"])}${li(["⚔"], "Attack, and the skill slot (hold it to change the skill)", ["#ff6b6b", "#3b0a12"])}
       <h4>${esc(T("Building on your island"))}</h4>${li([W("Tap")], "Place a brick with the tool you picked", B)}</ul></div>`;
   guide.innerHTML = `<div class="wp-guide-card"><h2 id="wp-guide-h">${esc(T("How to play"))}</h2><p>${esc(T("You can open this again any time from Settings."))}</p>
     <nav class="wp-guide-tabs"><button type="button" data-g="kb">${esc(T("Keyboard and mouse"))}</button><button type="button" data-g="touch">${esc(T("Touch screen"))}</button></nav>
@@ -1480,7 +1485,7 @@ const flt = (text, pos, color, big) => {
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd,
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
-  onStats: () => { if (combat) combat.onGear(); }, arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  onStats: () => { if (combat) combat.onGear(); }, onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 combat = FIGHT.createCombat({
@@ -1489,7 +1494,9 @@ combat = FIGHT.createCombat({
   blocked: (v) => blockedAt(v),
   moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
   dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
-  onZone: () => { nightK = -1; dayNight(); },
+  onZone: (z) => { nightK = -1; dayNight(); if (quests) quests.on.zone(z); },
+  onKill: (k) => quests && quests.on.kill(k), onCast: () => quests && quests.on.skill(), petOn: () => !!(pet && quests && quests.hasPet()),
+  onLoot: (it) => { if (quests) quests.on.loot(it); if (it.r >= 3) shareDrop(it); },
   legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
@@ -1507,6 +1514,38 @@ combat = FIGHT.createCombat({
     if (avatar) avatar.play("idle");
   },
 });
+// the Adventure log (daily hunts, achievements and titles, the codex, top hunters) and the companion drone
+quests = QST.createQuests({
+  T, lang: LANG, esc, toast, P, Snd, rpg, save: () => save(), level, gain: (n, why) => gain(n, why),
+  repaint: () => rpg.repaint(), onTitle: () => setNameTag(),
+  onAch: () => { setNameTag(); if (pet) pet.set(quests.hasPet()); paintBagDot(); },
+});
+rpg.setLog(quests);
+pet = QST.createPet({ THREE, planet, here: (v) => here(v), facing: () => facing, combat, reduce });
+pet.set(quests.hasPet()); setNameTag();
+function paintBagDot() { const b = $("wp-bag-btn"); if (b) b.dataset.dot = quests.pending() ? String(quests.pending()) : ""; }
+setInterval(paintBagDot, 4000);
+// a recall scroll: straight back to the plaza
+function recallHome() {
+  if (mode !== "hub" || flying || introOn) { toast(T("Recall scrolls work in the town")); return false; }
+  if (!rpg.useRecall()) { toast(T("No recall scrolls — the Forge sells them")); return false; }
+  if (boarding) setBoard(false);
+  planet.position.set(0, 0, 0); hop = 0; vy = 0; grounded = true; knockV.set(0, 0, 0);
+  Snd.dash && Snd.dash(); shake = Math.max(shake, 0.2); toast(T("Back on the plaza")); return true;
+}
+// Epic and Legendary finds go in everyone's feed (a line of text; the server rate-limits it)
+function shareDrop(it) { const s = sess(); if (s) post({ action: "world-feed-drop", ...s, b: it.b, r: it.r }).catch(() => {}); }
+let dropsSeen = Date.now() - 10 * 60e3;
+async function refreshDrops() {
+  if (mode !== "hub") return;
+  try {
+    const r = await fetch("/api/social?world=drops"); if (!r.ok) return;
+    const list = ((await r.json()).drops || []).filter((d) => d.at > dropsSeen).sort((a, b) => a.at - b.at);
+    for (const d of list.slice(-3)) { const rr = RPG.RARITY[d.r] || RPG.RARITY[3]; feed(T("{who} found {x}", { who: `<b>${esc(d.name || d.w)}</b>`, x: `<b style="color:${rr.color}">${esc(RPG.itemName({ b: d.b, p: 0 }))}</b>` }), rr.color); }
+    if (list.length) dropsSeen = list[list.length - 1].at;
+  } catch { /* the feed waits */ }
+}
+setInterval(refreshDrops, 60000); setTimeout(refreshDrops, 8000);
 // repeatable ARCL (street fights, coins): the server keeps the daily limit and the gap between claims
 function arclClaimRepeat(kind, extra, from) { arclShop.claim(kind, extra, from); }
 $("wp-help-btn").addEventListener("click", () => openHelp());
@@ -1663,6 +1702,7 @@ st.on((dt, t) => {
   clouds.userData.update(dt);
   island.tick(dt, t);
   if (combat) combat.tick(dt, t);
+  if (pet) pet.tick(dt, t, mode === "hub" && !introOn && !flying);
   if (knockV.lengthSq() > 0.01) { const v = knockV.length(); tmp2.copy(knockV).divideScalar(v); tryMove(tmp2, v * dt); knockV.multiplyScalar(Math.max(0, 1 - dt * 6)); }
   trail.update(boarding && !frozen, here(tmpTr), speedNow);
   if (P.style.trail === "trail-rainbow" && trail.mesh.visible) trail.mat.uniforms.c.value.setHSL((t * 0.25) % 1, 0.9, 0.6);
@@ -1742,6 +1782,8 @@ window.arcWorld = {
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
-  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
+  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, quests: () => quests, pet: () => pet, rpg: () => rpg, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
+  // for screenshots and tests: point the camera, ride the board
+  cam: (o = {}) => { if (o.yaw != null) camYaw = o.yaw; if (o.pitch != null) camPitch = o.pitch; if (o.dist != null) camDist = o.dist; if (o.facing != null) facing = o.facing; }, board: (on) => setBoard(!!on), gain: (n) => gain(n, ""), holdXp: (on) => { xpHeld = !!on; },
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
 };

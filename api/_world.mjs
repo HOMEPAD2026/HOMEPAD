@@ -28,6 +28,9 @@ import { makeSupport } from "./_world-support.mjs";
 const lc = (a) => String(a || "").toLowerCase();
 const isAddr = (a) => /^0x[0-9a-fA-F]{40}$/.test(String(a || ""));
 const WINDOW = 120e3;
+// Game World's beta: wallets holding at least this much $ARCIRCLE (on Arc) may enter (world-lock.js asks)
+export const GATE_MIN = 1000000n;
+const ARCIRCLE_TOKEN = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
 const CHARS = new Set(["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)]);
 
 export const loginMessage = (wallet, issued) =>
@@ -44,7 +47,7 @@ function cleanRpg(r) {
   const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
   const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, 24);
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, pet (world-quests.js)
-  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, ...(extra && JSON.stringify(extra).length < 6000 ? { x: extra } : {}) };
+  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 6000 ? { x: extra } : {}) };
 }
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
@@ -121,6 +124,15 @@ export function make(deps) {
     adminCache = { set, at: now() }; return set;
   }
   const support = makeSupport({ ...deps, json, now, signer, grant: (w, k, n) => shop.rewardArcl(w, k, n), admins });
+  // the beta gate: Game World is open to wallets holding at least GATE_MIN $ARCIRCLE on Arc. The signature proves the
+  // wallet is the visitor's (the same free sign-in message); nothing is stored, so it works with storage off too.
+  async function gate(b) {
+    const s = signer(b); if (s.err) return s.err;
+    if (!deps.tokenBalance) return json(503, { error: "the balance check isn't available" });
+    let bal; try { bal = BigInt(await deps.tokenBalance(ARCIRCLE_TOKEN, s.wallet)); } catch { return json(502, { error: "couldn't read the balance on Arc — try again in a moment" }); }
+    const whole = Number(bal / 10n ** 18n);
+    return json(200, { ok: bal >= GATE_MIN * 10n ** 18n, wallet: s.wallet, balance: whole, need: Number(GATE_MIN) });
+  }
   async function login(b) {
     const s = signer(b); if (s.err) return s.err;
     const first = await commit([{ create: `worldPlayers/${s.wallet}`, data: { at: now() } }]);
@@ -234,6 +246,7 @@ export function make(deps) {
       return json(400, { error: "unknown world view" });
     },
     async handle(b) {
+      if (b.action === "world-gate") return gate(b);
       if (!on()) return json(503, { error: "storage is off" });
       if (b.action === "world-ping") return ping(b);
       if (b.action === "world-login") return login(b);

@@ -14,6 +14,10 @@
 //   GET  ?world=arcl&wallet=      the wallet's ARCL: balance, today, streak, what's been earned, history
 //   GET  ?world=arcl-top          this week's top earners
 //   GET  ?world=plaza             the featured island and the coin on the plaza billboard right now
+//   GET  ?world=hunt-top          this week's top hunters (points from counted knock-outs)
+//   GET  ?world=drops             the last Epic and Legendary finds
+//   POST world-sell { …signature, item }                          sell a piece to the Forge (by rarity, 150 a day)
+//   POST world-feed-drop { …signature, b, r }                    put a find in the feed (1 a minute, 10 a day)
 //   POST world-arcl-claim { …signature, kind, answer?, coin? }    earn (each kind checked here)
 //   POST world-arcl-spend { …signature, item, target? }          buy with ARCL
 //   POST world-pay-quote  { …signature, item, target? }          a $ARCIRCLE price, good for 10 minutes
@@ -47,6 +51,7 @@ export const EARN = [
   { kind: "street", n: 5, label: "Knock out a street scammer", more: "up to 10 a day", repeat: { max: 10, gap: 12 } },
   { kind: "pickup", n: 2, label: "Pick up an ARCL coin in the street", more: "up to 10 a day", repeat: { max: 10, gap: 6 } },
   { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 10 a day", repeat: { max: 10, gap: 10 } },
+  { kind: "sell", n: 0, label: "Sell gear at the Forge", more: "6–260 by rarity, up to 150 a day" },
   { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 3 a day", repeat: { max: 3, gap: 240 } },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
@@ -105,6 +110,10 @@ const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
 // the Forge (world-rpg.js): gear for ARCL, tiers 0–3 (Legendary only drops from bosses), and supplies.
 // Mirrors world-rpg-data.js (SLOTS, TIERS, FORGE_PRICE, FORGE_SUPPLY).
 const FORGE_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"], FORGE_TIER_LV = [1, 5, 10, 15], FORGE_PRICE = [40, 120, 300, 700];
+// selling gear back to the Forge: by rarity, a little more per enhancement; the server can't see where a piece came
+// from (drops happen in the browser), so sales are capped per day and each piece sells once
+export const SELL_PRICE = [6, 18, 45, 110, 260], SELL_DAY_CAP = 150;
+export const sellPrice = (it) => Math.round(SELL_PRICE[Math.max(0, Math.min(4, Math.floor(Number(it && it.r) || 0)))] * (1 + 0.05 * Math.max(0, Math.min(10, Math.floor(Number(it && it.p) || 0)))));
 const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 } };
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
@@ -151,6 +160,42 @@ export function makeShop(deps) {
     } catch { /* the credit stands */ }
     return amt;
   }
+  async function sell(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, it = b.item || {}, id = String(it.id || "");
+    if (!/^[a-z0-9]{4,10}$/.test(id) || !/^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(it.b || ""))) return json(400, { error: "that isn't a piece of gear" });
+    const price = sellPrice(it), day = seoulDay(now()), dk = `worldSellDay/${w}_${day}`;
+    const sold = ((await one(dk)) || {}).n || 0, amt = Math.min(price, SELL_DAY_CAP - sold);
+    if (amt <= 0) return json(200, { ok: true, credited: 0, capped: true, price, ...(await balance(w)) });
+    if (!(await commit([{ create: `worldSold/${w}_${id}`, data: { at: now(), b: it.b } }])).ok) return json(409, { error: "that piece was already sold" });
+    await commit([{ inc: dk, fields: { n: amt } }]);
+    const got = await credit(w, "sell", amt);
+    return json(200, { ok: true, credited: got, price, capped: got < price, left: Math.max(0, SELL_DAY_CAP - sold - amt), ...(await balance(w)) });
+  }
+  // this week's hunters: points only for knock-outs the server counted (the daily caps above bound them)
+  async function huntPoint(w, pts) {
+    const wk = isoWeek(now()), mk = `worldHuntWeek/${wk}_${w}`;
+    await commit([{ inc: mk, fields: { n: pts } }]);
+    const mine = ((await one(mk)) || {}).n || pts, key = `worldStats/huntWeek_${wk}`, cur = (await one(key)) || { top: [] };
+    const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+    const top = [{ w: short(w), id: w, n: mine, name }, ...(cur.top || []).filter((x) => x.id !== w)].sort((a, b) => b.n - a.n).slice(0, 20);
+    await setDoc(key, { top });
+  }
+  // the drop feed: Epic and Legendary finds, shown to everyone in the game (the server can't see the drop itself, so
+  // it's rate-limited and only ever a line of text — it carries nothing)
+  async function feedDrop(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, r = Math.floor(Number(b.r)), m = /^([a-z]+)-([0-4])$/.exec(String(b.b || ""));
+    if (!m || !FORGE_SLOTS.includes(m[1]) || !(r === 3 || r === 4)) return json(400, { error: "only Epic and Legendary finds go in the feed" });
+    const day = seoulDay(now()), dk = `worldFeedDay/${w}_${day}`;
+    if (!(await commit([{ create: `worldFeedGap/${w}_${Math.floor(now() / 60e3)}`, data: { at: now() } }])).ok) return json(429, { error: "one a minute" });
+    if ((((await one(dk)) || {}).n || 0) >= 10) return json(200, { ok: true, capped: true });
+    await commit([{ inc: dk, fields: { n: 1 } }]);
+    const name = (((await one(`worldSave/${w}`)) || {}).name || "").slice(0, 16);
+    const cur = (await one("worldStats/drops")) || { list: [] };
+    await setDoc("worldStats/drops", { list: [{ w: short(w), name, b: m[0], r, at: now() }, ...(cur.list || [])].slice(0, 20) });
+    return json(200, { ok: true });
+  }
   // a reward the team approved (the support desk): outside the daily cap, logged like any other ARCL
   async function rewardArcl(w, kind, n) {
     const amt = Math.max(0, Math.floor(Number(n) || 0)); if (!amt) return 0;
@@ -166,6 +211,7 @@ export function makeShop(deps) {
     const w = s.wallet, kind = String(b.kind || ""), e = EARN_BY[kind];
     if (!e) return json(400, { error: "unknown kind" });
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
+    if (kind === "sell") return json(400, { error: "sell gear at the Forge" });
     let n = e.n;
     if (e.repeat) {
       // hunting grounds: the stronger the scammer, the more ARCL, but only for a character whose saved level could
@@ -183,6 +229,7 @@ export function makeShop(deps) {
       if (c >= e.repeat.max) return json(200, { ok: true, kind, credited: 0, capped: true, ...(await balance(w)) });
       await commit([{ inc: ck, fields: { n: 1 } }]);
       const got = await credit(w, kind, n);
+      if (kind === "street" || kind === "hunt" || kind === "boss") await huntPoint(w, kind === "street" ? 1 : kind === "boss" ? 10 : [0, 0, 2, 3, 4][Math.max(2, Math.min(4, Math.floor(Number(b.tier) || 2)))]).catch(() => {});
       return json(200, { ok: true, kind, credited: got, capped: got < n, left: e.repeat.max - c - 1, ...(await balance(w)) });
     }
     if (kind === "daily") {
@@ -350,12 +397,16 @@ export function makeShop(deps) {
       if (view === "arcl") return isAddr(w) ? json(200, { ...(await balance(w)), cap: DAILY_CAP, today: ((await one(`worldArclDay/${w}_${seoulDay(now())}`)) || {}).n || 0, earn: EARN, exchange: EXCHANGE, notify: !!(await one(`worldArclNotify/${w}`)) }) : json(400, { error: "wallet must be an address" });
       if (view === "arcl-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/arclWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n }) => ({ w: s, n })) }, "public, max-age=30");
       if (view === "plaza") return json(200, await plaza(), "public, max-age=30");
+      if (view === "hunt-top") return json(200, { week: isoWeek(now()), top: (((await one(`worldStats/huntWeek_${isoWeek(now())}`)) || {}).top || []).map(({ w: s, n, name }) => ({ w: s, n, name: name || "" })) }, "public, max-age=30");
+      if (view === "drops") return json(200, { drops: (((await one("worldStats/drops")) || {}).list || []).filter((x) => now() - x.at < 864e5) }, "public, max-age=20");
       return null;
     },
     async handle(b) {
       if (b.action === "world-arcl-claim") return claim(b);
       if (b.action === "world-arcl-spend") return spend(b);
       if (b.action === "world-forge-buy") return forgeBuy(b);
+      if (b.action === "world-feed-drop") return feedDrop(b);
+      if (b.action === "world-sell") return sell(b);
       if (b.action === "world-pay-quote") return quote(b);
       if (b.action === "world-pay-confirm") return confirm(b);
       if (b.action === "world-arcl-notify") { const s = signer(b); if (s.err) return s.err; await setDoc(`worldArclNotify/${s.wallet}`, { on: !!b.on, at: now() }); return json(200, { ok: true, notify: !!b.on }); }

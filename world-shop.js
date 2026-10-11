@@ -12,7 +12,7 @@ const lc = (a) => String(a || "").toLowerCase();
 const fmt = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
 const seoulDay = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 // the shop's tabs: [id, name, line under the name, icon]
-const CATS = [["island", "Island", "Choose a style for your island.", "icon-island"], ["bricks", "Bricks", "Build and decorate your island.", "icon-bricks"], ["style", "Style", "Stand out in the world.", "icon-style"], ["plaza", "Plaza", "Be seen in the hub.", "icon-plaza"]];
+const CATS = [["island", "Island", "Choose a style for your island.", "icon-island"], ["bricks", "Bricks", "Build and decorate your island.", "icon-bricks"], ["style", "Style", "Stand out in the world.", "icon-style"], ["plaza", "Plaza", "Be seen in the hub.", "icon-plaza"], ["items", "Items", "Gear and potions: buy and sell at the Forge.", "icon-style"]];
 // each item's picture (images/shop/)
 const artOf = (id) => "/images/shop/" + (id.startsWith("style-") ? "isle-" + id.slice(6) : id.startsWith("brick-") || id.startsWith("pack-") || id.startsWith("isle") ? id : id.startsWith("plate-") || id.startsWith("trail-") || id === "rename" ? "style-" + id : "plaza-" + id) + ".webp";
 const usableId = (id) => /^(plate|trail|style)-/.test(id);
@@ -37,7 +37,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
   <ol class="wa-ex-steps"><li class="done"><b>${esc(T("Now"))}</b>${esc(T("Earn ARCL by playing and spend it in the ARCL Shop."))}</li><li><b>${esc(T("Next"))}</b>${esc(T("The exchange rate and rules are announced."))}</li><li><b>${esc(T("Then"))}</b>${esc(T("The exchange opens here."))}</li></ol>
   ${signedIn ? `<label class="wa-ex-notify"><input type="checkbox" id="wa-notify" ${d && d.notify ? "checked" : ""}> ${esc(T("Tell me when the exchange opens"))}</label>` : ""}
   <h3>${esc(T("How to earn ARCL"))}</h3>
-  <ul class="wa-earn">${earn.map((e) => `<li class="${got.has(e.kind) ? "ok" : ""}"><i></i><span>${esc(T(e.label))}${e.more ? `<small>${esc(T(e.more))}</small>` : ""}</span><b>+${e.n}</b></li>`).join("") || `<li class="wa-empty">${esc(T("Sign in with your wallet to see your progress."))}</li>`}</ul>
+  <ul class="wa-earn">${earn.map((e) => `<li class="${got.has(e.kind) ? "ok" : ""}"><i></i><span>${esc(T(e.label))}${e.more ? `<small>${esc(T(e.more))}</small>` : ""}</span><b>${e.n ? "+" + e.n : ""}</b></li>`).join("") || `<li class="wa-empty">${esc(T("Sign in with your wallet to see your progress."))}</li>`}</ul>
   <div class="wa-ex-two">
     <section><h3>${esc(T("History"))}</h3>${log ? `<table class="wa-log"><tbody>${log}</tbody></table>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`}</section>
     <section><h3>${esc(T("This week's top"))}</h3>${top && top.top && top.top.length ? `<ol class="wa-top">${top.top.slice(0, 10).map((x) => `<li><span>${esc(x.w)}</span><b>${fmt(x.n)}</b></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`}</section>
@@ -47,7 +47,7 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
 export function createShop(ctx) {
   const { esc, toast, post, sess, Snd, P, coarse } = ctx;
   // single words stay out of the site-wide dictionary
-  const LW = { ko: { Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" } }[ctx.lang] || {};
+  const LW = { ko: { Items: "아이템",  Island: "섬", Style: "스타일", Plaza: "광장", Later: "나중에", Then: "그다음", Bricks: "브릭" }, zh: { Items: "道具",  Island: "岛屿", Style: "外观", Plaza: "广场", Later: "稍后", Then: "然后", Bricks: "积木" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const $ = (id) => document.getElementById(id);
   let arcl = null, cat = null, own = null, top = null, shown = 0;
@@ -207,6 +207,7 @@ export function createShop(ctx) {
   }
   sheet.addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || busy) return;
+    if (b.dataset.tab === "items" && ctx.openForge) { close(); ctx.openForge(); return; } // gear lives at the Forge (world-rpg.js)
     if (b.dataset.tab) { tab = b.dataset.tab; paintShop(); return; }
     if (b.hasAttribute("data-ex")) { openExchange(); return; }
     if (b.dataset.use) { ctx.use(b.dataset.use); paintShop(); return; }
