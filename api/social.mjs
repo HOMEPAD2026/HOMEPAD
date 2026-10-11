@@ -799,7 +799,7 @@ export async function POST(req) {
     }
     if (b.action === "profile") return await saveProfile(b);
     if (b.action === "x-verify") return await verifyX(b);
-    if (/^world-(ping|login|save|island-save|like|stamp|lot-save|arcl-claim|arcl-spend|arcl-notify|pay-quote|pay-confirm|support-new|support-vote|support-review)$/.test(String(b.action))) return await world().handle(b);
+    if (/^world-(ping|login|save|island-save|like|stamp|lot-save|arcl-claim|arcl-spend|arcl-notify|pay-quote|pay-confirm|support-new|support-vote|support-review|forge-buy)$/.test(String(b.action))) return await world().handle(b);
     if (b.action === "vote") return await vote(b);
     if (b.action === "logo") return await saveLogo(b, req);
     if (b.action === "pledge") return await circle.pledge(b, recoverSigner, json);

@@ -55,6 +55,9 @@ export const SHOPS = [
     line: "Island upgrades, brick packs and style. Pay with ARCL or $ARCIRCLE." },
   { id: "arcl-ex", name: "ARCL Exchange", url: "", color: 0x4fd6ff, shape: "arcl", theta: 34, phi: 90, district: "ARCL",
     line: "Your ARCL, how to earn it, and the exchange to $ARCIRCLE (not open yet)." },
+  // the Forge (world-rpg.js): gear and supplies for ARCL, and enhancing with scrap
+  { id: "forge", name: "Forge", url: "", color: 0xff9a4a, shape: "anvil", theta: 35, phi: 142, district: "ARCL",
+    line: "Weapons, armour and accessories for ARCL. Bring scrap to enhance your gear." },
 ];
 export const PORTAL = { id: "platform", name: "Platform World", theta: 14, phi: 265 };
 // districts: a sign over each, a colour on the minimap
@@ -509,6 +512,18 @@ export function makeShop(spec) {
       spin.push((dt, t) => { const boost = g.userData.boost || 0; flames.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i) * 0.25 + boost * 2.2; f.scale.x = f.scale.z = 1 + boost * 0.6; }); if (boost > 0) g.userData.boost = Math.max(0, boost - dt * 0.4); });
       break;
     }
+    case "anvil": {
+      const iron = solid(0x3a3f48, { metalness: 0.8, roughness: 0.35 });
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.7), iron); base.position.y = 0.25;
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.35, 0.8), iron); top.position.y = 0.68;
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.8, 10), iron); horn.rotation.z = Math.PI / 2; horn.position.set(1.2, 0.7, 0);
+      const s1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.9, 0.22), glow(col, 1.6)); s1.position.set(-0.3, 1.6, 0); s1.rotation.z = 0.6;
+      const s2 = s1.clone(); s2.position.x = 0.3; s2.rotation.z = -0.6;
+      const sparks = [0, 1, 2, 3, 4, 5].map((i) => { const sp = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), glow(0xffd27a, 3)); accent.add(sp); return sp; });
+      accent.add(base, top, horn, s1, s2);
+      spin.push((dt, t) => { sparks.forEach((sp, i) => { const k = (t * 1.3 + i / 6) % 1; sp.position.set(Math.cos(i * 1.7) * k * 1.2, 0.9 + Math.sin(k * Math.PI) * 1.1, Math.sin(i * 1.7) * k * 1.2); sp.visible = k < 0.9; }); });
+      break;
+    }
     case "stage": {
       const frame = new THREE.Mesh(new RoundedBoxGeometry(2.6, 1.5, 0.16, 3, 0.06), dark); frame.position.y = 1.0;
       const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.36, 1.28), glow(col, 0.9)); screen.position.set(0, 1.0, 0.09);
@@ -615,7 +630,7 @@ export function enemy(kit, name) {
   return { obj: o, mixer, play };
 }
 // what stands around each shop, in the shop's own frame (+Z faces the spawn point, the plinth is r = 3)
-const BUILDING = { "arcl-shop": "building-h", "arcl-ex": "building-s", reward: "chimney-large", launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
+const BUILDING = { "arcl-shop": "building-h", "arcl-ex": "building-s", forge: "building-k", reward: "chimney-large", launch: "building-e", quantum: "building-n", swap: "building-a", orders: "building-d", staking: "building-o", locker: "building-g", scanner: "building-f", predict: "building-m", arcia: "building-t" };
 const ACCENT_H = { arcl: 2.6, furnace: 2.4, rocket: 3.4, orb: 2.8, coin: 2.2, clock: 2.4, dome: 1.9, vault: 2.0, dish: 2.6, obelisk: 2.3, stage: 2.3 };
 const DECOR = {
   launch: [["shipping-container-a", { s: 2.2, x: 3.9, z: 0.4, ry: 0.15 }], ["detail-tank", { s: 1.8, x: -3.9, z: 0.2, ry: 1.2 }]],

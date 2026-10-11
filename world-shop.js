@@ -23,8 +23,8 @@ export function exchangeHTML(d, top, { T, esc, signedIn }) {
   const ex = (d && d.exchange) || {};
   const earn = (d && d.earn) || [];
   const got = new Set((d && d.got) || []);
-  const label = (k) => { const e = earn.find((x) => x.kind === k); return e ? T(e.label) : k; };
-  const log = ((d && d.log) || []).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString())}</td><td>${esc(x.t === "earn" ? label(x.k) : T("Bought: {x}", { x: x.k }))}</td><td class="${x.n >= 0 ? "up" : "down"}">${x.n >= 0 ? "+" : ""}${fmt(x.n)}</td></tr>`).join("");
+  const label = (k) => { const e = earn.find((x) => x.kind === k); return e ? T(e.label) : String(k).startsWith("support:") ? T("Support reward") : k; };
+  const log = ((d && d.log) || []).map((x) => `<tr><td>${esc(new Date(x.at).toLocaleDateString())}</td><td>${esc(x.t === "earn" ? label(x.k) : String(x.k).startsWith("forge:") ? T("Forge: {x}", { x: x.k.slice(6) }) : T("Bought: {x}", { x: x.k }))}</td><td class="${x.n >= 0 ? "up" : "down"}">${x.n >= 0 ? "+" : ""}${fmt(x.n)}</td></tr>`).join("");
   return `
   <div class="wa-ex-grid">
     <section class="wa-ex-bal"><img src="/images/arcl-128.png" alt="" width="64" height="64"><div><small>${esc(T("Your ARCL"))}</small><b>${d ? fmt(d.bal) : "—"}</b>

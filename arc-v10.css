@@ -1922,3 +1922,129 @@ html.wp-pcphone .wc-v em{min-width:100px}
 .wc-respawn{align-items:center;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.04);color:#eef3f7}
 .wc-respawn:disabled,.wc-revive:disabled{opacity:.55;cursor:default}
 .wc-dead-note{margin:0;font-size:12px;line-height:1.5;color:rgba(222,233,244,.55)}
+
+/* ---------- v23: your character (world-rpg.js) — gear, bag, the Forge — and the hunting grounds ---------- */
+.wr-sheet{position:fixed;inset:0;z-index:33;display:grid;place-items:center;padding:16px;background:rgba(2,4,8,.55)}
+.wr-sheet[hidden]{display:none}
+.wr-card{display:flex;flex-direction:column;width:min(1100px,calc(100vw - 32px));max-height:calc(100svh - 32px);padding:20px 22px 22px;border-radius:26px;background:radial-gradient(80% 50% at 0% 0%,rgba(255,154,74,.10),transparent 60%),radial-gradient(70% 40% at 100% 100%,rgba(63,155,255,.10),transparent 60%),rgba(7,13,24,.95);border:1px solid rgba(120,196,255,.28);box-shadow:0 30px 90px rgba(0,0,0,.65);color:#eef3f7}
+.wr-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.wr-ico{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:linear-gradient(180deg,#2a3a55,#141d2e);border:1px solid rgba(120,196,255,.3)}
+.wr-ico svg{width:30px;height:30px;fill:none;stroke:#ffb070;stroke-width:1.8;stroke-linejoin:round}
+.wr-ico svg[style]{stroke:var(--ic)}
+.wr-head>div{flex:1;min-width:0}
+.wr-head h2{margin:0;font:800 26px var(--f-ui);color:#fff}
+.wr-head p{margin:3px 0 0;font-size:13.5px;color:#8cc4ff}
+.wr-switch{display:flex;gap:6px}
+.wr-switch button{appearance:none;height:40px;padding:0 16px;border-radius:12px;border:1px solid rgba(120,196,255,.3);background:none;color:#eef3f7;font:700 14px var(--f-ui);cursor:pointer}
+.wr-switch button[aria-pressed=true]{background:linear-gradient(180deg,#ffd08a,#ff9a4a);border-color:transparent;color:#2a1200}
+.wr-body{flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
+.wr-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px}
+.wr-doll,.wr-bag{padding:14px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+.wr-doll h3,.wr-bag h3{margin:0 0 10px;font:800 15px var(--f-ui);color:#cfe3f5}
+.wr-bag h3 small{color:rgba(222,233,244,.5);font-weight:600}
+.wr-paper{position:relative;display:grid;grid-template-columns:repeat(3,1fr);grid-template-areas:"necklace helm ring" "weapon armor shield" ". boots .";gap:10px;padding:10px;border-radius:16px;background:radial-gradient(circle at 50% 45%,rgba(83,194,255,.14),transparent 65%)}
+.wr-slot{display:grid;place-items:center;aspect-ratio:1;border-radius:14px;background:rgba(0,0,0,.28);border:1px dashed rgba(255,255,255,.14)}
+.s-weapon{grid-area:weapon}.s-shield{grid-area:shield}.s-armor{grid-area:armor}.s-helm{grid-area:helm}.s-ring{grid-area:ring}.s-boots{grid-area:boots}.s-necklace{grid-area:necklace}
+.wr-empty-slot{display:flex;flex-direction:column;align-items:center;gap:2px}
+.wr-empty-slot svg{width:30px;height:30px;fill:none;stroke:rgba(222,233,244,.25);stroke-width:1.6}
+.wr-empty-slot small{font-size:10.5px;color:rgba(222,233,244,.35)}
+.wr-avatar{display:none}
+.wr-tile{position:relative;display:grid;place-items:center;width:100%;height:100%;min-height:48px;padding:0;border-radius:12px;border:2px solid var(--rc);background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--rc) 28%,transparent),rgba(6,10,16,.85) 70%);cursor:pointer;box-shadow:inset 0 0 12px color-mix(in srgb,var(--rc) 25%,transparent)}
+.wr-tile svg{width:60%;height:60%;fill:none;stroke:var(--ic);stroke-width:1.8;stroke-linejoin:round;filter:drop-shadow(0 0 6px var(--ic))}
+.wr-tile b{position:absolute;top:3px;right:5px;font:900 11px var(--f-ui);color:#ffe08a}
+.wr-tile small{position:absolute;bottom:2px;left:5px;font:700 10px var(--f-ui);color:rgba(222,233,244,.65)}
+.wr-tile.sel{outline:3px solid #fff;outline-offset:2px}
+.wr-tile.r4{animation:wrLegend 2.2s ease-in-out infinite}
+@keyframes wrLegend{50%{box-shadow:0 0 18px #ffc861,inset 0 0 18px rgba(255,200,97,.4)}}
+.wr-stats{margin:12px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
+.wr-stats li{display:flex;align-items:baseline;gap:6px;font-size:13px;color:rgba(222,233,244,.7)}
+.wr-stats li span{flex:1}
+.wr-stats li b{font:800 14px var(--f-ui);color:#fff}
+.wr-stats li i{font:700 11.5px var(--f-ui);font-style:normal}
+.wr-stats li i.up{color:#5fe08a}.wr-stats li i.down{color:#ff6b7f}
+.wr-stats.big li b{font-size:16px}
+.wr-sets{margin:10px 0 0;font-size:12.5px;color:#ffd27a}
+.wr-sets.dim{color:rgba(222,233,244,.45)}
+.wr-bag-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wr-res{font-size:12.5px;color:rgba(222,233,244,.7)}
+.wr-res b{color:#fff}
+.wr-cells{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin:8px 0}
+.wr-cells.enh{grid-template-columns:repeat(10,1fr)}
+.wr-cell{aspect-ratio:1;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06)}
+.wr-bag-f{display:flex;gap:8px;flex-wrap:wrap}
+.wr-bag-f button,.wr-acts button{appearance:none;height:38px;padding:0 14px;border-radius:11px;border:1px solid rgba(120,196,255,.3);background:rgba(120,196,255,.06);color:#eef3f7;font:700 13px var(--f-ui);cursor:pointer}
+.wr-bag-f button.gold{border:0;background:linear-gradient(180deg,#ffd08a,#ff9a4a);color:#2a1200}
+.wr-detail{margin-top:12px;padding:14px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid color-mix(in srgb,var(--rc,#556) 55%,transparent)}
+.wr-detail.empty p{margin:0;font-size:13px;color:rgba(222,233,244,.5)}
+.wr-detail.hit{animation:wrHammer .45s ease}
+@keyframes wrHammer{20%{transform:scale(.97) rotate(-.6deg);box-shadow:0 0 30px #ffc861}60%{transform:scale(1.02)}}
+.wr-d-h{display:flex;align-items:center;gap:12px}
+.wr-d-h svg{width:44px;height:44px;flex-shrink:0;fill:none;stroke:var(--ic);stroke-width:1.7;filter:drop-shadow(0 0 8px var(--ic))}
+.wr-d-h h3{margin:0;font:800 18px var(--f-ui);color:var(--rc)}
+.wr-d-h small{font-size:12px;color:rgba(222,233,244,.6)}
+.wr-set{margin:8px 0 0;font-size:12.5px;color:#ffd27a}
+.wr-set .need{color:#ff8f9f}
+.wr-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.wr-acts button small{opacity:.7;font-weight:600}
+.wr-acts button.go{border:0;background:linear-gradient(180deg,#5ff7cf,#2fe0b0);color:#03241a}
+.wr-acts button.warn{border-color:rgba(255,107,127,.45);color:#ffb3bf}
+.wr-acts button:disabled{opacity:.45;cursor:default}
+.wr-ftabs{align-items:center}
+.wr-forge-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wr-fcard{display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:16px;background:linear-gradient(180deg,rgba(24,38,62,.72),rgba(14,22,38,.82));border:1px solid color-mix(in srgb,var(--rc,#4fa8ff) 45%,transparent)}
+.wr-fcard.locked{opacity:.55}
+.wr-fart{display:grid;place-items:center;height:92px;border-radius:12px;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--rc,#ff9a4a) 30%,transparent),rgba(6,10,16,.6) 70%)}
+.wr-fart svg{width:58px;height:58px;fill:none;stroke:var(--ic,#ffb070);stroke-width:1.6;filter:drop-shadow(0 0 10px var(--ic,#ff9a4a))}
+.wr-fart.sup-hp svg{stroke:#ff6b7f}.wr-fart.sup-sp svg{stroke:#6fc4ff}.wr-fart.sup-recall svg{stroke:#ffd27a}
+.wr-fcard h4{margin:4px 0 0;font:800 15px var(--f-ui);color:#fff}
+.wr-fcard small{font-size:12px;color:var(--rc,#cfe3f5)}
+.wr-fcard p{margin:0;font-size:12px;line-height:1.45;color:rgba(222,233,244,.65)}
+.wr-buy{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;margin-top:auto;border-radius:999px;border:1px solid rgba(120,196,255,.3);background:rgba(6,12,24,.75);color:#fff;font:800 14px var(--f-ui);cursor:pointer}
+.wr-buy img{border-radius:50%}
+.wr-buy:disabled{font-size:12px;color:#ffc861;cursor:default}
+.wr-note{margin:12px 0;font-size:12.5px;line-height:1.5;color:rgba(222,233,244,.6)}
+@media (max-width:860px){.wr-grid{grid-template-columns:1fr}.wr-forge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wr-cells{grid-template-columns:repeat(6,1fr)}.wr-cells.enh{grid-template-columns:repeat(6,1fr)}.wr-head{flex-wrap:wrap}}
+/* hunting grounds: the chip under the minimap, the banner on the way in, the boss bar */
+.wc-zone{position:fixed;z-index:12;top:252px;right:max(16px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding:8px 12px;border-radius:14px;background:rgba(6,10,16,.72);border:1px solid var(--zc);box-shadow:0 0 18px color-mix(in srgb,var(--zc) 30%,transparent);pointer-events:none;text-align:right}
+.wc-zone[hidden]{display:none}
+.wc-zone b{font:800 14px var(--f-ui);color:var(--zc)}
+.wc-zone small{font-size:11.5px;color:rgba(222,233,244,.7)}
+.wc-zone em{font:700 12px var(--f-ui);font-style:normal;color:#ff8fa0}
+.wc-banner{position:fixed;z-index:14;left:50%;top:22%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;text-align:center}
+.wc-banner[hidden]{display:none}
+.wc-banner small{font:800 13px var(--f-ui);letter-spacing:.08em;color:rgba(255,255,255,.75)}
+.wc-banner b{font:900 46px var(--f-ui);letter-spacing:-.02em;color:#fff;text-shadow:0 0 30px var(--zc),0 4px 0 rgba(0,0,0,.4)}
+.wc-banner em{font:700 16px var(--f-ui);font-style:normal;color:var(--zc)}
+.wc-banner.on{animation:wcBanner 3.2s ease forwards}
+@keyframes wcBanner{0%{opacity:0;transform:translate(-50%,10px) scale(.96)}12%{opacity:1;transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0}}
+.wc-boss{position:fixed;z-index:14;left:50%;top:86px;transform:translateX(-50%);display:grid;grid-template-columns:auto 1fr;grid-template-areas:"n s" "b b" "e e";align-items:baseline;gap:2px 10px;width:min(560px,calc(100vw - 40px));padding:10px 14px;border-radius:16px;background:rgba(12,4,8,.82);border:1px solid rgba(255,77,109,.6);box-shadow:0 0 30px rgba(255,77,109,.3);pointer-events:none}
+.wc-boss[hidden]{display:none}
+.wc-boss b{grid-area:n;font:900 18px var(--f-ui);color:#ff8fa0}
+.wc-boss small{grid-area:s;justify-self:end;font:700 12px var(--f-ui);color:rgba(255,220,225,.7)}
+.wc-boss i{grid-area:b;display:block;height:14px;border-radius:7px;background:rgba(255,255,255,.1);overflow:hidden}
+.wc-boss u{display:block;height:100%;background:linear-gradient(90deg,#ff4d6d,#ff9a4a);transition:width .2s ease}
+.wc-boss em{grid-area:e;justify-self:end;font:700 11.5px var(--f-ui);font-style:normal;color:rgba(255,220,225,.75)}
+/* potions, dodge, combo, the XP bar, crits, low HP, a legendary drop */
+.wc-pots{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+.wc-pot{position:relative;appearance:none;display:grid;place-items:center;width:40px;height:40px;padding:0;border-radius:12px;border:2px solid rgba(255,255,255,.3);cursor:pointer;pointer-events:auto;touch-action:none}
+.wc-pot.hp{background:radial-gradient(circle at 35% 30%,#ffd6dc,#ff5f73 60%,#c81e3a)}
+.wc-pot.sp{background:radial-gradient(circle at 35% 30%,#dff4ff,#4fa8ff 60%,#1f5fc8)}
+.wc-pot svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2}
+.wc-pot em{position:absolute;left:-6px;top:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#0b1018;border:1px solid rgba(255,255,255,.3);font:800 10.5px/16px var(--f-ui);font-style:normal;color:#fff}
+.wc-pot.empty{filter:grayscale(1);opacity:.5}
+.wc-dodge{background:radial-gradient(circle at 35% 30%,#e8fff8,#5fe0c0 45%,#178a72);width:40px!important;height:40px!important;box-shadow:0 6px 18px rgba(23,138,114,.4)}
+.wc-dodge svg{width:20px!important;height:20px!important}
+.wc-slv{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:-1px;color:#ffe08a;text-shadow:0 1px 2px #000;white-space:nowrap}
+.wc-combo{position:absolute;top:-16px;left:-12px;font:900 18px var(--f-ui);color:#ffe08a;text-shadow:0 2px 0 #3b2416,0 0 10px rgba(255,200,97,.8)}
+.wc-v.xp span{color:#7ee0a0}
+.wc-v.xp i b{background:linear-gradient(90deg,#3f9bff,#35d8d0,#39ff88)}
+.wc-v.xp i{height:7px}
+.wc-v i u{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:rgba(255,230,230,.55);z-index:0}
+.wc-v i b{z-index:1}
+.wp-float-n.crit{font-size:34px;color:#ffe066!important;animation:wpFloatCrit 1s ease-out forwards}
+@keyframes wpFloatCrit{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{transform:translate(-50%,-14px) scale(1.4);opacity:1}100%{transform:translate(-50%,-70px) scale(1);opacity:0}}
+body.wc-low::after{content:"";position:fixed;inset:0;z-index:10;pointer-events:none;box-shadow:inset 0 0 140px 30px rgba(255,30,60,.45);animation:wcLow .85s ease-in-out infinite}
+@keyframes wcLow{50%{box-shadow:inset 0 0 90px 10px rgba(255,30,60,.25)}}
+body.wc-legend::before{content:"";position:fixed;inset:0;z-index:15;pointer-events:none;box-shadow:inset 0 0 160px 40px rgba(255,200,97,.75);animation:wpHurt 1.6s ease-out forwards}
+.wp-bag-btn svg{fill:none}
+@media (prefers-reduced-motion:reduce){body.wc-low::after,.wr-tile.r4{animation:none}.wc-banner.on{animation:none}}

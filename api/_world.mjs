@@ -35,12 +35,23 @@ export const loginMessage = (wallet, issued) =>
 
 const ids = (a, re, max) => (Array.isArray(a) ? [...new Set(a.map(String).filter((x) => re.test(x)))].slice(0, max) : []);
 /// what the game may store: anything else is dropped
+// the character's gear and supplies (world-rpg.js): items are { id, b (slot-tier), r (rarity 0–4), lv, p (+0–10) }
+const cleanItem = (x) => (x && typeof x === "object" && /^[a-z0-9]{4,10}$/.test(String(x.id)) && /^(weapon|shield|armor|helm|ring|boots|necklace)-[0-4]$/.test(String(x.b))
+  ? { id: String(x.id), b: String(x.b), r: Math.max(0, Math.min(4, Math.floor(Number(x.r) || 0))), lv: Math.max(1, Math.min(60, Math.floor(Number(x.lv) || 1))), p: Math.max(0, Math.min(10, Math.floor(Number(x.p) || 0))) } : null);
+const num = (v, max) => Math.max(0, Math.min(max, Math.floor(Number(v) || 0)));
+function cleanRpg(r) {
+  if (!r || typeof r !== "object") return undefined;
+  const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
+  const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, 24);
+  const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, pet (world-quests.js)
+  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, ...(extra && JSON.stringify(extra).length < 6000 ? { x: extra } : {}) };
+}
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
   const xp = Math.max(0, Math.min(1e6, Math.floor(Number(o.xp) || 0)));
   const name = String(o.name || "").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
   return {
-    xp, name, char: CHARS.has(o.char) ? o.char : "",
+    xp, name, char: CHARS.has(o.char) ? o.char : "", ...(o.rpg ? { rpg: cleanRpg(o.rpg) } : {}),
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,

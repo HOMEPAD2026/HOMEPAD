@@ -27,6 +27,8 @@ const SHOP = await import("./world-shop.js" + VER);
 const STYLE = await import("./world-style.js" + VER);
 const HELP = await import("./world-support.js" + VER);
 const FIGHT = await import("./world-combat.js" + VER);
+const RPG = await import("./world-rpg.js" + VER);
+const ZN = await import("./world-zones.js" + VER);
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -69,7 +71,7 @@ const level = () => 1 + Math.floor(P.xp / 100);
 function gain(n, why) {
   const before = level(); P.xp += n; save(); paintHud();
   toast(T("+{n} XP · {why}", { n, why }));
-  if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level()); } else Snd.pick();
+  if (level() > before) { Snd.level(); burst(0x39ff88); levelUp(level(), before); } else Snd.pick();
   badges();
 }
 let toastT = 0;
@@ -82,7 +84,7 @@ const vid = (() => { try { let v = localStorage.getItem(VID); if (!/^[a-z0-9]{20
 const sess = () => { try { const s = JSON.parse(localStorage.getItem(SESS) || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch { return null; } };
 const loginMessage = (wallet, issued) => `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;
 const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
-const PROGRESS = ["xp", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily"];
+const PROGRESS = ["xp", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg"];
 async function signIn() {
   if (!AC) throw new Error(T("Wallet connect isn't available here."));
   if (!AC.live || !AC.live()) await AC.connect();
@@ -164,7 +166,9 @@ const Snd = (() => {
     coin: () => [1046, 1318, 1568].forEach((f, i) => tone(f, 0.12, { type: "triangle", v: 0.09, at: i * 0.06 })),
     chest: () => { noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); },
     siren: () => [0, 0.32, 0.64].forEach((at) => tone(660, 0.28, { type: "sawtooth", to: 440, v: 0.05, at })),
-    swing: () => { noise(0.09, 0.1, 2600); tone(260, 0.08, { type: "triangle", to: 120, v: 0.06 }); },
+    swing: (heavy) => { noise(heavy ? 0.14 : 0.09, heavy ? 0.14 : 0.1, heavy ? 1800 : 2600); tone(heavy ? 180 : 260, heavy ? 0.14 : 0.08, { type: "triangle", to: heavy ? 70 : 120, v: 0.07 }); },
+    dash: () => noise(0.16, 0.08, 3200),
+    heart: () => { tone(70, 0.09, { v: 0.12 }); tone(62, 0.09, { v: 0.1, at: 0.16 }); },
     cast: (k) => k === "ice" ? (tone(1400, 0.18, { to: 700, v: 0.07 }), noise(0.12, 0.06, 5000)) : k === "fire" ? (noise(0.3, 0.14, 500), tone(180, 0.25, { type: "sawtooth", to: 90, v: 0.05 })) : (noise(0.18, 0.12, 3500), tone(90, 0.2, { type: "square", to: 60, v: 0.05 })),
     hurt: () => { tone(200, 0.16, { type: "square", to: 110, v: 0.07 }); noise(0.1, 0.1, 900); },
   };
@@ -230,6 +234,7 @@ async function setAvatar(id) {
   const a = await K.makeCharacter(id, VER).catch(() => K.makeCharacter("bot"));
   if (avatar) player.remove(avatar.obj);
   avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = boarding ? 0.45 : 0;
+  if (rpg) rpg.dress();
   setNameTag(); paintCrown();
 }
 const PLATES = { "plate-gold": ["#ffc861", "#ffe7a8"], "plate-pink": ["#ff7ad9", "#ffd1f1"], "plate-green": ["#39ff88", "#c9ffe0"], "plate-purple": ["#b48cff", "#e6d9ff"], "plate-flame": ["#ff7a2a", "#ffe0b8"] };
@@ -280,6 +285,8 @@ async function dressWorld(kit) {
   shops.forEach((g) => K.decorate(g, kit));
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
+  // the hunting grounds (world-zones.js)
+  const zs = ZN.makeZones({ THREE, K, planet, kit, T }); spins.push((dt, t) => zs.update(dt, t));
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
     if (!g) return; smokes.push(K.smoke(g, new THREE.Vector3(0.4, g.name ? 4.0 : 5.0, -0.3)));
@@ -359,6 +366,7 @@ addEventListener("keydown", (e) => {
   if (frozen) return;
   if (k === "e" || k === "enter") { if (near) { e.preventDefault(); enter(near); } return; }
   if (k === "m") { openMap(); return; }
+  if (k === "i" && rpg) { closeAll(); rpg.show("inv"); return; }
   if (k === "h") { openHelp(); return; }
   if (combat && mode === "hub" && combat.keyDown(k)) { e.preventDefault(); return; }
   if (k === "f") { setBoard(!boarding); return; }
@@ -440,7 +448,7 @@ const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
-let combat = null; const knockV = new THREE.Vector3(); // world-combat.js, set up further down
+let combat = null, rpg = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
 function inputs() {
   let x = 0, y = 0;
   if (keys.has("w") || keys.has("arrowup")) y += 1;
@@ -454,6 +462,18 @@ function inputs() {
 }
 const SOLIDS = () => [shops, [portal, isleGate], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
 const lp = new THREE.Vector3();
+// a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
+const wp0 = new THREE.Vector3();
+function blockedAt(v) {
+  wp0.set(v.x + planet.position.x, 0, v.z + planet.position.z);
+  for (const list of SOLIDS()) for (const g of list) {
+    g.getWorldPosition(tmp); if (Math.abs(tmp.x - wp0.x) > 12 || Math.abs(tmp.z - wp0.z) > 12) continue;
+    const bx = g.userData.box;
+    if (bx) { lp.copy(wp0); lp.y = tmp.y; g.worldToLocal(lp); if (lp.x > bx.x0 - 0.5 && lp.x < bx.x1 + 0.5 && lp.z > bx.z0 - 0.5 && lp.z < bx.z1 + 0.5) return true; continue; }
+    if (Math.hypot(tmp.x - wp0.x, tmp.z - wp0.z) < (g.userData.radius || 1) + 0.6) return true;
+  }
+  return false;
+}
 function blockedBy() {
   let hit = null, best = Infinity;
   for (const list of SOLIDS()) for (const g of list) {
@@ -721,6 +741,7 @@ function enter(n) {
     checkQuests(); return;
   }
   const s = n.spec;
+  if (s.id === "forge") { doorThen(n.g, () => { camZoom = 1; frozen = false; rpg.show("forge"); }); return; }
   if (s.id === "arcl-shop" || s.id === "arcl-ex") {
     doorThen(n.g, () => { camZoom = 1; frozen = false; if (s.id === "arcl-shop") arclShop.openShop(); else arclShop.openExchange(); });
     if (!P.visited.includes(s.id)) { P.visited.push(s.id); gain(10, T("found the {name}", { name: s.name })); }
@@ -988,7 +1009,8 @@ function openMap() {
   const coinsHtml = coinBuildings.length ? `<h3 style="--c:#eef3f7">${esc(T("Coin City"))}</h3><ul class="wp-maplist">` + coinBuildings.slice(0, 6).map((g, i) => `<li><button type="button" data-c="${i}"><i style="--c:${g.userData.mine ? "#39ff88" : "#4f9dff"}"></i><span><b>$${esc(g.userData.coin.symbol)}</b><small>${esc(g.userData.coin.name || "")}${g.userData.mine ? " · " + esc(W("yours")) : ""}</small></span></button></li>`).join("") + "</ul>" : "";
   const live = fighters.find((g) => g.userData.live);
   const darkHtml = live ? `<h3 style="--c:#ff4d6d">${esc(T("Dark Market"))}</h3><ul class="wp-maplist"><li><button type="button" data-f="1"><i style="--c:#ff4d6d"></i><span><b>${esc(live.userData.spec.name)}</b><small>${esc(T("Stage {n} · scammer", { n: live.userData.spec.stage }))}</small></span></button></li></ul>` : "";
-  $("wp-maplist").innerHTML = groups + arclHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3><ul class="wp-maplist">` + ZN.ZONES.map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}</b><small>${esc(T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Too strong for you yet")) : ""}</small></span></button></li>`).join("") + "</ul>";
+  $("wp-maplist").innerHTML = groups + arclHtml + zoneHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
 }
@@ -997,9 +1019,10 @@ $("wp-map-btn").addEventListener("click", openMap);
 $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles]"); if (!b) return;
+  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z]"); if (!b) return;
   closeMap();
   if (b.dataset.isle) { goIsland({}); return; }
+  if (b.dataset.z != null) { const z = ZN.ZONES[+b.dataset.z], a = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(a) * (z.r + 3), 0, z.z + Math.cos(a) * (z.r + 3)), userData: { radius: 0.5 } }); return; }
   if (b.dataset.isles) { island.openIsles(); return; }
   if (b.dataset.c != null) flyTo(coinBuildings[+b.dataset.c]);
   else if (b.dataset.f) { const g = fighters.find((x) => x.userData.live); if (g) flyTo(g); }
@@ -1201,8 +1224,8 @@ function burst(color) {
   m.rotation.x = -Math.PI / 2; m.position.set(0, hop + 0.1, 0); st.scene.add(m);
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 7); m.material.opacity = 0.9 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
-function levelUp(n) {
-  if (combat) combat.onLevel(n);
+function levelUp(n, from) {
+  if (rpg) { const was = RPG.statsOf(from || n - 1, rpg.data().eq); rpg.onLevel(); if (combat) combat.onLevel(n, was); } else if (combat) combat.onLevel(n);
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
   el.hidden = false; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   setTimeout(() => { el.hidden = true; }, 1900);
@@ -1440,7 +1463,7 @@ $("wp-photo-take").addEventListener("click", async () => {
 $("wp-shot-x").addEventListener("click", () => { $("wp-shot").hidden = true; });
 
 // ---------------- closing things ----------------
-function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -1449,14 +1472,25 @@ const help = HELP.createSupport({
 });
 function openHelp(t) { closeAll(); help.open(t); }
 // ---------------- fighting (world-combat.js): street scammers, the attack, skills learned by level, street items ----------------
-const flt = (text, pos, color) => {
+const flt = (text, pos, color, big) => {
   const v = pos.clone(); planet.localToWorld(v); v.project(st.camera); if (v.z > 1) return;
-  const el = document.createElement("div"); el.className = "wp-float-n"; el.textContent = text; el.style.color = color || "#fff";
+  const el = document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff";
   el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px"; document.body.appendChild(el); setTimeout(() => el.remove(), 950);
 };
+rpg = RPG.createRpg({
+  THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd,
+  freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
+  onStats: () => { if (combat) combat.onGear(); }, arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+});
+rpg.dress();
 combat = FIGHT.createCombat({
   THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
-  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop,
+  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop, rpg, xp: () => P.xp,
+  blocked: (v) => blockedAt(v),
+  moveDir: (out) => { const { x, y, m } = inputs(); if (m < 0.1) return false; const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw); out.set(rx * x + fx * y, 0, rz * x + fz * y).normalize(); return true; },
+  dash: (d, dist) => { knockV.copy(d).multiplyScalar(dist * 6); facing = Math.atan2(d.x, d.z); },
+  onZone: () => { nightK = -1; dayNight(); },
+  legend: () => { document.body.classList.remove("wc-legend"); void document.body.offsetWidth; document.body.classList.add("wc-legend"); setTimeout(() => document.body.classList.remove("wc-legend"), 1600); },
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
   knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; },
@@ -1477,6 +1511,7 @@ combat = FIGHT.createCombat({
 function arclClaimRepeat(kind, extra, from) { arclShop.claim(kind, extra, from); }
 $("wp-help-btn").addEventListener("click", () => openHelp());
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
+$("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
 
 // ---------------- the Back button (a phone's, or the browser's) ----------------
 // With a window open, Back closes it; on the plain game screen it asks before leaving the game.
@@ -1551,6 +1586,8 @@ function dayNight() {
     if (th.cloud != null) { clouds.userData.mat.color.set(th.cloud); clouds.userData.mat.emissiveIntensity = th.dark ? 0.05 : 0.25; }
   }
   aurora.visible = (th && th.aurora) || mood === "aurora";
+  // inside a hunting ground the air takes its colour
+  const zz = combat && combat.zone(); if (zz && st.scene.fog && mode === "hub") { st.scene.fog.color.lerp(new THREE.Color(zz.fog), 0.65); if (zz.id === "depths") { skyU.top.value.lerp(new THREE.Color(0x0a0618), 0.6); skyU.mid.value.lerp(new THREE.Color(0x1a1030), 0.6); } }
 }
 setInterval(dayNight, 60000);
 

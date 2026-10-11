@@ -46,6 +46,8 @@ export const EARN = [
   // the streets: the server can't watch a fight, so these are small, limited per day and spaced out
   { kind: "street", n: 5, label: "Knock out a street scammer", more: "up to 10 a day", repeat: { max: 10, gap: 12 } },
   { kind: "pickup", n: 2, label: "Pick up an ARCL coin in the street", more: "up to 10 a day", repeat: { max: 10, gap: 6 } },
+  { kind: "hunt", n: 8, label: "Knock out a scammer in a hunting ground", more: "5–12 by its level, up to 10 a day", repeat: { max: 10, gap: 10 } },
+  { kind: "boss", n: 30, label: "Beat a hunting-ground boss", more: "up to 3 a day", repeat: { max: 3, gap: 240 } },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
 // the scammer stages: the answer that beats each (the game's FIGHTS)
@@ -100,6 +102,10 @@ export const CATALOG = [
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
+// the Forge (world-rpg.js): gear for ARCL, tiers 0–3 (Legendary only drops from bosses), and supplies.
+// Mirrors world-rpg-data.js (SLOTS, TIERS, FORGE_PRICE, FORGE_SUPPLY).
+const FORGE_SLOTS = ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"], FORGE_TIER_LV = [1, 5, 10, 15], FORGE_PRICE = [40, 120, 300, 700];
+const FORGE_SUPPLY = { hp5: { arcl: 30, kind: "hp", n: 5 }, sp5: { arcl: 30, kind: "sp", n: 5 }, recall3: { arcl: 20, kind: "recall", n: 3 } };
 
 const seoulDay = (t) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 function isoWeek(t) {
@@ -162,6 +168,15 @@ export function makeShop(deps) {
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     let n = e.n;
     if (e.repeat) {
+      // hunting grounds: the stronger the scammer, the more ARCL, but only for a character whose saved level could
+      // be there (the server can't watch the fight; the level comes from the saved progress)
+      if (kind === "hunt" || kind === "boss") {
+        const tier = kind === "hunt" ? Math.max(2, Math.min(4, Math.floor(Number(b.tier) || 2))) : Math.max(0, Math.min(4, Math.floor(Number(b.zone) || 0)));
+        const need = kind === "hunt" ? [0, 0, 5, 10, 15][tier] : [1, 5, 10, 15, 20][tier];
+        const save = await one(`worldSave/${w}`), level = 1 + Math.floor(((save && save.xp) || 0) / 100);
+        if (level < need) return json(400, { error: `needs level ${need} (your saved level is ${level})` });
+        n = kind === "hunt" ? [0, 5, 8, 10, 12][tier] : 30;
+      }
       const day = seoulDay(now()), slot = Math.floor(now() / (e.repeat.gap * 1000));
       if (!(await commit([{ create: `worldArclGap/${w}_${kind}_${slot}`, data: { at: now() } }])).ok) return json(429, { error: "too fast — a moment between these" });
       const ck = `worldArclRep/${w}_${kind}_${day}`, c = ((await one(ck)) || {}).n || 0;
@@ -259,6 +274,28 @@ export function makeShop(deps) {
     return json(200, { ok: true, item: it.id, own: o, ...(await balance(w)) });
   }
 
+  // ---- the Forge: ARCL for gear and supplies ----
+  async function forgeBuy(b) {
+    const s = signer(b); if (s.err) return s.err;
+    const w = s.wallet, id = String(b.item || "");
+    const sup = FORGE_SUPPLY[id], m = /^([a-z]+):([0-3])$/.exec(id);
+    if (!sup && !(m && FORGE_SLOTS.includes(m[1]))) return json(400, { error: "the Forge doesn't sell that" });
+    const tier = m ? +m[2] : 0, price = sup ? sup.arcl : FORGE_PRICE[tier];
+    if (m) {
+      const save = await one(`worldSave/${w}`), level = 1 + Math.floor(((save && save.xp) || 0) / 100);
+      if (level < FORGE_TIER_LV[tier]) return json(400, { error: `needs level ${FORGE_TIER_LV[tier]} (your saved level is ${level})` });
+    }
+    const { bal } = await balance(w);
+    if (bal < price) return json(400, { error: "not enough ARCL" });
+    if (!(await commit([{ create: `worldArclSpend/${w}_${Math.floor(now() / 3000)}`, data: { at: now() } }])).ok) return json(429, { error: "one moment" });
+    await commit([{ inc: `worldArclBal/${w}`, fields: { bal: -price, spent: price } }]);
+    await note(w, "spend", sup ? "forge:" + id : "forge:" + m[1], -price).catch(() => {});
+    await commit([{ inc: "worldStats/forge", fields: { sold: 1, arcl: price } }]).catch(() => {});
+    if (sup) return json(200, { ok: true, supply: { kind: sup.kind, n: sup.n }, ...(await balance(w)) });
+    const item = { id: rid().slice(0, 6), b: `${m[1]}-${tier}`, r: tier, lv: FORGE_TIER_LV[tier], p: 0 };
+    return json(200, { ok: true, item, ...(await balance(w)) });
+  }
+
   // ---- $ARCIRCLE: quote, then the player's own transfer to FeeBurn, then the receipt ----
   async function quote(b) {
     const s = signer(b); if (s.err) return s.err;
@@ -318,6 +355,7 @@ export function makeShop(deps) {
     async handle(b) {
       if (b.action === "world-arcl-claim") return claim(b);
       if (b.action === "world-arcl-spend") return spend(b);
+      if (b.action === "world-forge-buy") return forgeBuy(b);
       if (b.action === "world-pay-quote") return quote(b);
       if (b.action === "world-pay-confirm") return confirm(b);
       if (b.action === "world-arcl-notify") { const s = signer(b); if (s.err) return s.err; await setDoc(`worldArclNotify/${s.wallet}`, { on: !!b.on, at: now() }); return json(200, { ok: true, notify: !!b.on }); }
