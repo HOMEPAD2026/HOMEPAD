@@ -1852,3 +1852,73 @@ body.wp-alert::after{content:"";position:fixed;inset:0;z-index:24;pointer-events
 .wp-leave-btns .wp-btn{height:44px;padding:0 20px;margin-top:6px}
 .pg-support .sp-hero{max-width:760px;margin-left:auto;margin-right:auto}
 .pg-support .hc-head{display:none}
+
+/* ---------- v22: fighting (world-combat.js) — the attack button, three skills, cooldowns and buffs ---------- */
+.wc-bar{position:fixed;z-index:12;right:max(18px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,52px) 76px;grid-template-rows:auto 76px;align-items:end;gap:10px;pointer-events:none}
+.wc-bar[hidden]{display:none}
+.wc-buffs{grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-height:0}
+.wc-buffs span{padding:4px 10px;border-radius:999px;background:rgba(6,10,16,.78);border:1px solid var(--c);font:700 11.5px var(--f-ui);color:#fff;box-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
+.wc-buffs b{color:var(--c)}
+.wc-skill,.wc-attack{position:relative;appearance:none;display:grid;place-items:center;padding:0;border-radius:50%;cursor:pointer;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform .12s,filter .2s}
+.wc-skill{width:52px;height:52px;align-self:center;border:2px solid rgba(255,255,255,.35)}
+.wc-attack{width:76px;height:76px;border:3px solid rgba(255,255,255,.55);background:radial-gradient(circle at 35% 30%,#ffe9e9,#ff6b6b 45%,#c81e3a);box-shadow:0 8px 24px rgba(200,30,58,.45),inset 0 -6px 12px rgba(0,0,0,.25),inset 0 4px 8px rgba(255,255,255,.5)}
+.wc-ice{background:radial-gradient(circle at 35% 30%,#f2fdff,#7fdcff 45%,#1f86c8);box-shadow:0 6px 18px rgba(31,134,200,.45),inset 0 -5px 10px rgba(0,0,0,.25)}
+.wc-fire{background:radial-gradient(circle at 35% 30%,#fff1d6,#ff9a3a 45%,#d2381a);box-shadow:0 6px 18px rgba(210,56,26,.45),inset 0 -5px 10px rgba(0,0,0,.25)}
+.wc-shock{background:radial-gradient(circle at 35% 30%,#f4ecff,#b48cff 45%,#5b2fc8);box-shadow:0 6px 18px rgba(91,47,200,.45),inset 0 -5px 10px rgba(0,0,0,.25)}
+.wc-skill i,.wc-attack i{display:grid;place-items:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.wc-skill svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.wc-attack svg{width:34px;height:34px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.wc-fire svg,.wc-shock svg{fill:#fff;stroke:none}
+.wc-cd{position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(rgba(4,8,14,.72) calc(var(--cd,0)*360deg),transparent 0);pointer-events:none}
+.wc-key{position:absolute;right:-4px;bottom:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:7px;background:rgba(6,10,16,.88);border:1px solid rgba(255,255,255,.25);font:800 11px/18px var(--f-ui);color:#fff}
+.wc-lock{position:absolute;inset:0;display:none;place-items:center;border-radius:50%;background:rgba(6,10,16,.7);font:800 11px var(--f-ui);color:#ffc861}
+.locked .wc-lock{display:grid}
+.locked{filter:grayscale(.85)}
+.wc-skill.press,.wc-attack.press{animation:wcPress .22s ease}
+@keyframes wcPress{0%{transform:scale(1)}40%{transform:scale(.86)}100%{transform:scale(1)}}
+.wc-skill.learned{animation:wcLearn 1.3s ease 2}
+@keyframes wcLearn{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.0)}50%{box-shadow:0 0 0 10px rgba(255,255,255,.35),0 0 30px rgba(255,255,255,.6)}}
+.wc-bar:not(.coarse){bottom:calc(58px + env(safe-area-inset-bottom))}
+.wp-float-n{position:fixed;z-index:13;pointer-events:none;font:900 22px var(--f-ui);text-shadow:0 2px 0 rgba(0,0,0,.45),0 0 12px rgba(0,0,0,.4);animation:wpFloatN .9s ease-out forwards}
+@keyframes wpFloatN{0%{transform:translate(-50%,0) scale(.6);opacity:0}20%{transform:translate(-50%,-10px) scale(1.15);opacity:1}100%{transform:translate(-50%,-56px) scale(1);opacity:0}}
+.wp-hurt{position:fixed;inset:0;z-index:11;pointer-events:none;box-shadow:inset 0 0 120px 30px rgba(255,40,70,.55);animation:wpHurt .5s ease-out forwards}
+@keyframes wpHurt{from{opacity:1}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){.wc-skill.learned,.wc-skill.press,.wc-attack.press{animation:none}}
+html.wp-pcphone .wc-bar.coarse{transform:scale(2.1);transform-origin:100% 100%}
+html:not(.wp-pcphone) .wc-bar.coarse{transform:scale(1.1);transform-origin:100% 100%}
+/* HP and SP, under the level chips */
+.wc-vit{display:flex;flex-direction:column;gap:5px;width:236px;margin:8px 0 2px;padding:8px 10px;border-radius:14px;background:rgba(6,10,16,.62);border:1px solid rgba(255,255,255,.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:none}
+.wc-vit[hidden]{display:none}
+.wc-v{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:7px}
+.wc-v span{font:900 11.5px var(--f-ui);letter-spacing:.02em}
+.wc-v.hp span{color:#ff6b7f}.wc-v.sp span{color:#6fc4ff}
+.wc-v i{position:relative;display:block;height:11px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.wc-v i b{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .25s ease}
+.wc-v.hp i b{background:linear-gradient(180deg,#ff8a98,#e5304a)}
+.wc-v.sp i b{background:linear-gradient(180deg,#8fd8ff,#2f86ff)}
+.wc-v em{min-width:56px;text-align:right;font:700 11.5px var(--f-ui);font-style:normal;color:#eef3f7}
+.wc-vit.danger .wc-v.hp i b{animation:wcDanger .8s ease-in-out infinite}
+@keyframes wcDanger{50%{filter:brightness(1.6)}}
+.wc-vit.hit{animation:wcHit .35s ease}
+@keyframes wcHit{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.wc-vit.low .wc-v.sp{animation:wcHit .35s ease}
+html.wp-pcphone .wc-vit{width:420px;padding:14px 18px;gap:10px;border-radius:22px}
+html.wp-pcphone .wc-v{grid-template-columns:44px 1fr auto;gap:12px}
+html.wp-pcphone .wc-v span,html.wp-pcphone .wc-v em{font-size:21px}
+html.wp-pcphone .wc-v i{height:20px;border-radius:10px}
+html.wp-pcphone .wc-v em{min-width:100px}
+/* knocked out */
+.wc-dead{position:fixed;inset:0;z-index:38;display:grid;place-items:center;padding:16px;background:radial-gradient(circle,rgba(60,0,10,.35),rgba(10,0,4,.82));animation:wcFade .5s ease}
+.wc-dead[hidden]{display:none}
+@keyframes wcFade{from{opacity:0}to{opacity:1}}
+.wc-dead-card{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(440px,calc(100vw - 32px));padding:26px 24px;border-radius:24px;background:rgba(12,8,14,.94);border:1px solid rgba(255,95,115,.4);box-shadow:0 30px 90px rgba(0,0,0,.7);text-align:center;color:#eef3f7}
+.wc-dead-card h2{margin:0;font:900 30px var(--f-ui);letter-spacing:-.02em;color:#ff6b7f}
+.wc-dead-card>p{margin:0 0 4px;font-size:14px;color:rgba(222,233,244,.7)}
+.wc-revive,.wc-respawn{appearance:none;display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px;padding:10px 18px;border-radius:16px;cursor:pointer;text-align:left}
+.wc-revive{border:0;background:linear-gradient(180deg,#5ff7cf,#2fe0b0);color:#03241a;box-shadow:0 8px 24px rgba(47,224,176,.3)}
+.wc-revive span,.wc-respawn{display:flex;flex-direction:column}
+.wc-revive b,.wc-respawn b{font:800 16px var(--f-ui)}
+.wc-revive small,.wc-respawn small{font-size:12px;opacity:.8}
+.wc-respawn{align-items:center;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.04);color:#eef3f7}
+.wc-respawn:disabled,.wc-revive:disabled{opacity:.55;cursor:default}
+.wc-dead-note{margin:0;font-size:12px;line-height:1.5;color:rgba(222,233,244,.55)}

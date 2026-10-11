@@ -225,12 +225,13 @@ export function createShop(ctx) {
       bought(id, card);
     } finally { busy = false; }
   }
-  async function payArc(id, target, card) {
+  async function payArc(id, target, card, onStatus) {
+    if (!card && !sess()) { toast(T("Sign in with your wallet first")); return false; }
     if (needSignIn()) return;
     const s = sess(), AC = ctx.AC;
     if (!AC) { toast(T("Wallet connect isn't available here.")); return; }
     busy = true;
-    const status = (t) => { let el = card.querySelector(".wa-status"); if (!el) { el = document.createElement("p"); el.className = "wa-status"; card.appendChild(el); } el.textContent = t; };
+    const status = (t) => { if (!card) { if (t) (onStatus || toast)(t); return; } let el = card.querySelector(".wa-status"); if (!el) { el = document.createElement("p"); el.className = "wa-status"; card.appendChild(el); } el.textContent = t; };
     try {
       if (!AC.live || !AC.live()) await AC.connect();
       if (lc(ctx.addr()) !== s.wallet) { toast(T("Switch your wallet to the one you signed in with ({w})", { w: s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4) })); return; }
@@ -248,7 +249,7 @@ export function createShop(ctx) {
         const r = await post({ action: "world-pay-confirm", ...s, quote: q.j.quote, tx });
         if (r.status === 202) continue;
         if (!r.ok) { status(r.j.error || T("Couldn't confirm the payment")); return; }
-        own = r.j.own; ctx.onOwn(own); status(""); payAnim(q.j.tokens); bought(id, card); return;
+        own = r.j.own; ctx.onOwn(own); status(""); payAnim(q.j.tokens); if (card) bought(id, card); return true;
       }
       status(T("Still waiting. It'll be added when it confirms: open the shop again in a minute."));
     } catch (err) {
@@ -273,6 +274,7 @@ export function createShop(ctx) {
 
   return {
     refresh, claim, flushQueue, maybeDaily, openShop, openExchange, owns, close: () => { close(); closeDaily(); },
+    pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
     arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden,
   };
 }

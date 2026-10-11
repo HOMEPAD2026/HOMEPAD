@@ -26,6 +26,7 @@ const IS = await import("./world-island.js" + VER);
 const SHOP = await import("./world-shop.js" + VER);
 const STYLE = await import("./world-style.js" + VER);
 const HELP = await import("./world-support.js" + VER);
+const FIGHT = await import("./world-combat.js" + VER);
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -43,9 +44,9 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
@@ -163,6 +164,9 @@ const Snd = (() => {
     coin: () => [1046, 1318, 1568].forEach((f, i) => tone(f, 0.12, { type: "triangle", v: 0.09, at: i * 0.06 })),
     chest: () => { noise(0.25, 0.1, 700); [523, 784, 1046].forEach((f, i) => tone(f, 0.2, { v: 0.1, at: 0.2 + i * 0.08 })); },
     siren: () => [0, 0.32, 0.64].forEach((at) => tone(660, 0.28, { type: "sawtooth", to: 440, v: 0.05, at })),
+    swing: () => { noise(0.09, 0.1, 2600); tone(260, 0.08, { type: "triangle", to: 120, v: 0.06 }); },
+    cast: (k) => k === "ice" ? (tone(1400, 0.18, { to: 700, v: 0.07 }), noise(0.12, 0.06, 5000)) : k === "fire" ? (noise(0.3, 0.14, 500), tone(180, 0.25, { type: "sawtooth", to: 90, v: 0.05 })) : (noise(0.18, 0.12, 3500), tone(90, 0.2, { type: "square", to: 60, v: 0.05 })),
+    hurt: () => { tone(200, 0.16, { type: "square", to: 110, v: 0.07 }); noise(0.1, 0.1, 900); },
   };
 })();
 addEventListener("pointerdown", () => Snd.init(), { once: true });
@@ -356,6 +360,7 @@ addEventListener("keydown", (e) => {
   if (k === "e" || k === "enter") { if (near) { e.preventDefault(); enter(near); } return; }
   if (k === "m") { openMap(); return; }
   if (k === "h") { openHelp(); return; }
+  if (combat && mode === "hub" && combat.keyDown(k)) { e.preventDefault(); return; }
   if (k === "f") { setBoard(!boarding); return; }
   if (k === "1") { emote("emote-yes"); return; }
   if (k === "2") { emote("emote-no"); return; }
@@ -435,6 +440,7 @@ const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
+let combat = null; const knockV = new THREE.Vector3(); // world-combat.js, set up further down
 function inputs() {
   let x = 0, y = 0;
   if (keys.has("w") || keys.has("arrowup")) y += 1;
@@ -489,7 +495,7 @@ const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * 
 let jumpBuf = 0;
 // a running jump carries you forward: the speed you had when you left the ground stays with you in the air
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
-function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = boarding ? 11 : 9; grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
+function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
 function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); }
 function setBoard(on) {
   if (frozen) return;
@@ -521,7 +527,7 @@ function step(dt) {
   if (m > 0.05) {
     const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
     dir.set(rx * x + fx * y, 0, rz * x + fz * y).normalize();
-    sp = (boarding ? (run ? 22 : 13) : run ? 12.5 : 6.5) * m;
+    sp = (boarding ? (run ? 22 : 13) : run ? 12.5 : 6.5) * m * (combat ? combat.speedMul() : 1);
     if (!grounded && airV.lengthSq() > 0.25) sp = Math.max(sp, airV.length() * 0.92); // no slowing down mid-jump
     lastDir.copy(dir);
     const hit = tryMove(dir, sp * dt);
@@ -1196,6 +1202,7 @@ function burst(color) {
   const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 7); m.material.opacity = 0.9 * (1 - k); if (k >= 1) { off(); st.scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function levelUp(n) {
+  if (combat) combat.onLevel(n);
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
   el.hidden = false; el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   setTimeout(() => { el.hidden = true; }, 1900);
@@ -1368,8 +1375,8 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
   const kb = [
     [K2("Esc", "u"), K2("1", "a"), K2("2", "a"), K2("3"), K2("4"), K2("5"), K2("6"), K2("7"), K2("8"), K2("9"), K2("0")],
     [K2("Tab", "b w15"), K2("Q"), K2("W", "m"), K2("E", "a"), K2("R", "b"), K2("T", "a"), K2("Y"), K2("U"), K2("I"), K2("O"), K2("P", "a")],
-    [K2("Caps", "w15"), K2("A", "m"), K2("S", "m"), K2("D", "m"), K2("F", "a"), K2("G", "b"), K2("H"), K2("J"), K2("K"), K2("L", "b"), K2("Enter", "a w15")],
-    [K2("Shift", "m w2"), K2("Z"), K2("X", "b"), K2("C", "b"), K2("V", "b"), K2("B", "b"), K2("N"), K2("M", "u"), K2(","), K2("Shift", "w2")],
+    [K2("Caps", "w15"), K2("A", "m"), K2("S", "m"), K2("D", "m"), K2("F", "a"), K2("G", "b"), K2("H", "u"), K2("J", "m"), K2("K"), K2("L", "b"), K2("Enter", "a w15")],
+    [K2("Shift", "m w2"), K2("Z", "m"), K2("X", "b"), K2("C", "b"), K2("V", "b"), K2("B", "b"), K2("N"), K2("M", "u"), K2(","), K2("Shift", "w2")],
     [K2("Ctrl", "b w15"), K2("Alt"), K2(W("Space"), "m w6"), K2("Alt"), K2("Ctrl", "w15")],
   ].map((r) => `<div class="wp-kb-row">${r.join("")}</div>`).join("");
   const li = (keys, what, c) => `<li><span>${keys.map((k) => `<kbd style="--k:${c[0]};--kc:${c[1]}">${esc(k)}</kbd>`).join(" ")}</span>${esc(what.includes(" ") ? T(what) : W(what))}</li>`;
@@ -1377,14 +1384,15 @@ guide.className = "wp-guide"; guide.id = "wp-guide"; guide.hidden = true; guide.
   const legend = `<ul class="wp-guide-legend">
     <h4>${esc(W("Moving"))}</h4>${li(["W", "A", "S", "D"], "Move (or the arrow keys)", M)}${li(["Shift"], "Run (hold)", M)}${li([W("Space")], "Jump", M)}
     <h4>${esc(T("Doing things"))}</h4>${li(["E"], "Enter a shop, talk", A)}${li(["F"], "Hoverboard on and off", A)}${li(["1", "2"], "Wave, shake your head", A)}${li(["T"], "Emote wheel: sit, point, faint…", A)}${li(["P"], "Photo mode", A)}
-    <h4>${esc(W("Menus"))}</h4>${li(["M"], "Map and fast travel", U)}${li(["Esc"], "Close what's open", U)}
+    <h4>${esc(W("Fighting"))}</h4>${li(["J"], "Attack", M)}${li(["Z"], "Ice Ball (level 2)", M)}${li(["X"], "Fire Ball (level 3)", M)}${li(["C"], "Shock (level 4)", M)}
+    <h4>${esc(W("Menus"))}</h4>${li(["M"], "Map and fast travel", U)}${li(["H"], "Help Center", U)}${li(["Esc"], "Close what's open", U)}
     <h4>${esc(T("Building on your island"))}</h4>${li(["B"], "Build mode on and off", B)}${li(["Tab"], "All bricks", B)}${li(["R"], "Rotate the brick", B)}${li(["X"], "Remove tool", B)}${li(["C"], "Paint tool", B)}${li(["V"], "Pick a brick and its colour", B)}${li(["G"], "Mirror", B)}${li(["L"], "Layer lock", B)}${li(["Ctrl", "Z"], "Undo", B)}
   </ul>`;
   const mouse = `<div class="wp-guide-mouse"><svg viewBox="0 0 100 150" aria-hidden="true"><rect x="8" y="6" width="84" height="138" rx="42" fill="#3b3f47" stroke="#22252b" stroke-width="3"/><path d="M50 6v52M8 58h84" stroke="#22252b" stroke-width="3"/><path d="M50 9a41 41 0 0 0-39 46h39z" fill="#ffd34d"/><path d="M50 9a41 41 0 0 1 39 46H50z" fill="#7ea3ff"/><rect x="44" y="20" width="12" height="26" rx="6" fill="#6fdc8c" stroke="#22252b" stroke-width="2.5"/></svg>
     <ul class="wp-guide-legend">${li([W("Drag")], "Look around", U)}${li([W("Wheel")], "Zoom in and out", U)}${li([W("Click")], "Building: place a brick", A)}${li([T("Right-click")], "Building: remove a brick", B)}</ul></div>`;
   const touch = `<div class="wp-guide-touch"><svg viewBox="0 0 200 380" aria-hidden="true"><rect x="6" y="6" width="188" height="368" rx="30" fill="#141a24" stroke="#3b3f47" stroke-width="5"/><rect x="18" y="40" width="82" height="300" rx="12" fill="rgba(255,95,115,.18)" stroke="#ff5f73" stroke-dasharray="6 5"/><rect x="100" y="40" width="82" height="200" rx="12" fill="rgba(111,220,140,.15)" stroke="#6fdc8c" stroke-dasharray="6 5"/><circle cx="58" cy="270" r="30" fill="none" stroke="#ff5f73" stroke-width="4"/><circle cx="58" cy="270" r="12" fill="#ff5f73"/><circle cx="160" cy="320" r="17" fill="#52d4e3" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="296" r="11" fill="#ff5f73" stroke="#3b2416" stroke-width="3"/><circle cx="124" cy="266" r="11" fill="#ffd34d" stroke="#3b2416" stroke-width="3"/><circle cx="150" cy="266" r="11" fill="#7ea3ff" stroke="#3b2416" stroke-width="3"/><circle cx="176" cy="266" r="11" fill="#ffa86a" stroke="#3b2416" stroke-width="3"/><text x="58" y="225" fill="#ffb3bd" font-size="15" font-weight="700" text-anchor="middle">${esc(W("Move"))}</text><text x="141" y="140" fill="#b4f0c4" font-size="15" font-weight="700" text-anchor="middle">${esc(W("Look"))}</text></svg>
     <ul class="wp-guide-legend">${li(["◐"], "Left thumb: drag to walk (push far to run)", M)}${li(["◑"], "Right side: drag to look around", U)}${li(["⇲⇱"], "Two fingers: pinch to zoom", U)}
-      <h4>${esc(W("Buttons"))}</h4>${li(["↑"], "Jump", ["#52d4e3", "#06222a"])}${li(["▶"], "Run on and off", M)}${li(["✋"], "Emotes: wave, sit, point…", A)}${li(["⏏"], "Hoverboard", B)}${li(["◉"], "Photo mode", ["#ffa86a", "#3b2416"])}
+      <h4>${esc(W("Buttons"))}</h4>${li(["↑"], "Jump", ["#52d4e3", "#06222a"])}${li(["▶"], "Run on and off", M)}${li(["✋"], "Emotes: wave, sit, point…", A)}${li(["⏏"], "Hoverboard", B)}${li(["◉"], "Photo mode", ["#ffa86a", "#3b2416"])}${li(["⚔"], "Attack, and the skills you learned (Ice Ball, Fire Ball, Shock)", ["#ff6b6b", "#3b0a12"])}
       <h4>${esc(T("Building on your island"))}</h4>${li([W("Tap")], "Place a brick with the tool you picked", B)}</ul></div>`;
   guide.innerHTML = `<div class="wp-guide-card"><h2 id="wp-guide-h">${esc(T("How to play"))}</h2><p>${esc(T("You can open this again any time from Settings."))}</p>
     <nav class="wp-guide-tabs"><button type="button" data-g="kb">${esc(T("Keyboard and mouse"))}</button><button type="button" data-g="touch">${esc(T("Touch screen"))}</button></nav>
@@ -1440,6 +1448,33 @@ const help = HELP.createSupport({
   capture: () => st.snap(), freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); },
 });
 function openHelp(t) { closeAll(); help.open(t); }
+// ---------------- fighting (world-combat.js): street scammers, the attack, skills learned by level, street items ----------------
+const flt = (text, pos, color) => {
+  const v = pos.clone(); planet.localToWorld(v); v.project(st.camera); if (v.z > 1) return;
+  const el = document.createElement("div"); el.className = "wp-float-n"; el.textContent = text; el.style.color = color || "#fff";
+  el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px"; document.body.appendChild(el); setTimeout(() => el.remove(), 950);
+};
+combat = FIGHT.createCombat({
+  THREE, K, planet, st, T, lang: LANG, esc, toast, Snd, reduce, coarse,
+  kit: () => kit, here: (v) => here(v), facing: () => facing, avatar: () => avatar, level, hopY: () => hop,
+  inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
+  gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
+  knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; },
+  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
+  screenOf: (p) => { const v = p.clone(); planet.localToWorld(v); v.project(st.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
+  float: flt, shake: (n) => { shake = Math.max(shake, n); },
+  pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
+  // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
+  down: (on, where) => {
+    if (on && boarding) setBoard(false);
+    frozen = on; keys.clear(); paintPrompt();
+    if (on) { if (avatar) avatar.play("die", { once: true }); return; }
+    if (where === "plaza") { planet.position.set(0, 0, 0); hop = 0; vy = 0; grounded = true; }
+    if (avatar) avatar.play("idle");
+  },
+});
+// repeatable ARCL (street fights, coins): the server keeps the daily limit and the gap between claims
+function arclClaimRepeat(kind, extra, from) { arclShop.claim(kind, extra, from); }
 $("wp-help-btn").addEventListener("click", () => openHelp());
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
 
@@ -1454,6 +1489,7 @@ const guard = () => { try { history.pushState({ wpGuard: 1 }, "", location.href)
 function closeLeave() { if (leaveEl.hidden) return false; leaveEl.hidden = true; frozen = false; keys.clear(); paintPrompt(); return true; }
 function backAction() {
   if (closeLeave()) return true;
+  if (combat && combat.vitals().down) return true; // knocked out: the choice on screen stays
   if (photo) { setPhoto(false); return true; }
   if (!wheel.hidden) { wheel.hidden = true; return true; }
   if (mode === "island" && island.keyDown({ key: "Escape", preventDefault() {} })) return true;
@@ -1576,7 +1612,8 @@ st.on((dt, t) => {
     else {
       avatar.update(dt, t);
       const want = boarding ? "idle" : !grounded ? (vy > 0 ? "jump" : "fall") : speedNow > 9 ? "sprint" : speedNow > 0.6 ? "walk" : "idle";
-      if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
+      if (combat && combat.vitals().down) { /* lying down until a revive or a respawn */ }
+      else if (!avatar.busy() || (grounded && want !== "idle" && !boarding)) { if (want !== "jump") avatar.play(want, { speed: want === "walk" ? Math.max(0.8, speedNow / 6.5) : 1 }); animState = want; }
     }
   }
   if (boarding) { board.userData.update(t); board.rotation.y = facing; }
@@ -1588,6 +1625,8 @@ st.on((dt, t) => {
   if (rain.visible) rain.userData.update(dt, at);
   clouds.userData.update(dt);
   island.tick(dt, t);
+  if (combat) combat.tick(dt, t);
+  if (knockV.lengthSq() > 0.01) { const v = knockV.length(); tmp2.copy(knockV).divideScalar(v); tryMove(tmp2, v * dt); knockV.multiplyScalar(Math.max(0, 1 - dt * 6)); }
   trail.update(boarding && !frozen, here(tmpTr), speedNow);
   if (P.style.trail === "trail-rainbow" && trail.mesh.visible) trail.mat.uniforms.c.value.setHSL((t * 0.25) % 1, 0.9, 0.6);
   // an arch right in front of the camera would fill the screen: it steps aside
@@ -1666,6 +1705,6 @@ window.arcWorld = {
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
   near: () => near && (near.spec ? near.spec.id : near.coin ? "coin:" + near.coin.symbol : near.kind),
-  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
+  coins: () => coinBuildings.length, rocket: launchRocket, burn: burnFire, whale: swimWhale, previewStyle: (id) => island.setTheme(id), combat: () => combat, state: () => ({ facing, camYaw, hop, grounded, anim: animState, boarding, camFit, camDist, frozen, mode, arcl: (arclShop.arcl() || {}).bal, owned: ((arclShop.own() || {}).items || []).slice() }),
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
 };

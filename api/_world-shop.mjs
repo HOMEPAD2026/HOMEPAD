@@ -43,6 +43,9 @@ export const EARN = [
   { kind: "res1", n: 30, label: "Island: first resident" }, { kind: "res5", n: 60, label: "Island: 5 residents" },
   { kind: "liked1", n: 10, label: "A like from another player" }, { kind: "liked10", n: 40, label: "10 likes" }, { kind: "liked50", n: 120, label: "50 likes" },
   { kind: "stamp", n: 5, label: "Leave a stamp on someone's island", more: "up to 3 a day" },
+  // the streets: the server can't watch a fight, so these are small, limited per day and spaced out
+  { kind: "street", n: 5, label: "Knock out a street scammer", more: "up to 10 a day", repeat: { max: 10, gap: 12 } },
+  { kind: "pickup", n: 2, label: "Pick up an ARCL coin in the street", more: "up to 10 a day", repeat: { max: 10, gap: 6 } },
 ];
 const EARN_BY = Object.fromEntries(EARN.map((e) => [e.kind, e]));
 // the scammer stages: the answer that beats each (the game's FIGHTS)
@@ -92,6 +95,8 @@ export const CATALOG = [
   // plaza: be seen in the hub
   { id: "feature-isle", cat: "plaza", name: "Island of the day", line: "Your island on the plaza screen for 24 hours, with a Visit button.", usd: 5, arcl: null, use: true, hours: 24 },
   { id: "billboard", cat: "plaza", name: "Plaza billboard", line: "An ArcPad coin on the plaza billboard for 6 hours.", usd: 3, arcl: null, use: true, hours: 6, target: "coin" },
+  // not on the shelves: bought from the game itself
+  { id: "revive", cat: "game", name: "Revive", line: "Get back up where you fell, with full HP and SP.", tokens: 10000, usd: null, arcl: null, use: true },
   { id: "lot13", cat: "plaza", name: "Premium coin lot", line: "Your coin's Coin City lot grows to 13×13, with a rooftop spotlight. For the coin's creator.", usd: 10, arcl: null, target: "mycoin" },
 ];
 const ITEM = Object.fromEntries(CATALOG.map((x) => [x.id, x]));
@@ -116,7 +121,7 @@ export function makeShop(deps) {
     // the ledger's history (the balance itself moves with atomic increments)
     const L = await ledger(w);
     const log = [...(L.log || []), { t, k, n, at: now() }].slice(-40);
-    const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
+    const got = t === "earn" && !k.startsWith("daily") && k !== "stamp" && !(EARN_BY[k] && EARN_BY[k].repeat) && !k.startsWith("support:") && !(L.got || []).includes(k) ? [...(L.got || []), k] : L.got || [];
     await setDoc(`worldArcl/${w}`, { ...L, log, got, bal: undefined, earned: undefined, spent: undefined });
   }
   async function balance(w) {
@@ -156,6 +161,15 @@ export function makeShop(deps) {
     if (!e) return json(400, { error: "unknown kind" });
     if (kind === "stamp") return json(400, { error: "stamps are credited when you leave one" });
     let n = e.n;
+    if (e.repeat) {
+      const day = seoulDay(now()), slot = Math.floor(now() / (e.repeat.gap * 1000));
+      if (!(await commit([{ create: `worldArclGap/${w}_${kind}_${slot}`, data: { at: now() } }])).ok) return json(429, { error: "too fast — a moment between these" });
+      const ck = `worldArclRep/${w}_${kind}_${day}`, c = ((await one(ck)) || {}).n || 0;
+      if (c >= e.repeat.max) return json(200, { ok: true, kind, credited: 0, capped: true, ...(await balance(w)) });
+      await commit([{ inc: ck, fields: { n: 1 } }]);
+      const got = await credit(w, kind, n);
+      return json(200, { ok: true, kind, credited: got, capped: got < n, left: e.repeat.max - c - 1, ...(await balance(w)) });
+    }
     if (kind === "daily") {
       const day = seoulDay(now()), y = seoulDay(now() - 864e5);
       if (!(await commit([{ create: `worldArclDaily/${w}_${day}`, data: { at: now() } }])).ok) return json(409, { error: "already checked in today" });
@@ -214,6 +228,7 @@ export function makeShop(deps) {
   async function grant(w, it, target, via) {
     const o = await own(w), at = now();
     if (it.id === "rename") o.renames = (o.renames || 0) + 1;
+    else if (it.id === "revive") o.revives = (o.revives || 0) + 1;
     else if (it.id === "lot13") o.lots = [...new Set([...(o.lots || []), lc(target)])];
     else if (it.id === "feature-isle" || it.id === "billboard") {
       const P = (await one("worldStats/plaza")) || { isle: [], coin: [] }, k = it.id === "billboard" ? "coin" : "isle";
@@ -250,9 +265,13 @@ export function makeShop(deps) {
     const w = s.wallet, it = ITEM[b.item];
     if (!it) return json(400, { error: "unknown item" });
     const why = await checkBuy(w, it, b.target); if (why) return json(400, { error: why });
-    const price = deps.arcPrice ? Number(await deps.arcPrice().catch(() => 0)) : 0;
-    if (!(price > 0)) return json(503, { error: "can't price $ARCIRCLE right now; try again in a minute" });
-    const tokens = it.usd / price, wei = BigInt(Math.ceil(tokens * 1e6)) * 10n ** 12n;
+    let price = 0, wei;
+    if (it.tokens) wei = BigInt(it.tokens) * 10n ** 18n; // a fixed $ARCIRCLE amount (revive)
+    else {
+      price = deps.arcPrice ? Number(await deps.arcPrice().catch(() => 0)) : 0;
+      if (!(price > 0)) return json(503, { error: "can't price $ARCIRCLE right now; try again in a minute" });
+      wei = BigInt(Math.ceil((it.usd / price) * 1e6)) * 10n ** 12n;
+    }
     const id = rid(), exp = now() + QUOTE_MS;
     await setDoc(`worldPayQuote/${id}`, { wallet: w, item: it.id, target: lc(b.target || ""), usd: it.usd, amount: wei.toString(), price, exp });
     return json(200, { ok: true, quote: id, item: it.id, usd: it.usd, amount: wei.toString(), tokens: Number(wei / 10n ** 12n) / 1e6, to: FEE_BURN, token: ARCIRCLE, exp });
