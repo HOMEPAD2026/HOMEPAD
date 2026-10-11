@@ -676,12 +676,13 @@ export function createCombat(ctx) {
     tickFx(dt);
     if (stopT > 0) { stopT -= dt; return; } // hit-stop: everything in the fight holds still for a beat
     tickShots(dt);
-    if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; return; }
+    if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
     root.visible = true;
     if ((zoneT -= dt) <= 0) {
       zoneT = 0.5; ctx.here(me); const z = zoneAt(me.x, me.z);
       if (z !== zone) { zone = z; if (z && z !== zoneShown) enterZone(z); zoneShown = z; ctx.onZone && ctx.onZone(z); spawnT = Math.min(spawnT, 2); }
       paintZone();
+      const bm = mobs.find((m) => m.rank === "boss" && !m.dead); if (bm && bossEl.hidden) bossBar(bm); else if (!bm && !bossEl.hidden) hideBossBar();
     }
     tickMobs(dt, t); tickItems(dt, t); tickDrops(dt, t);
     if (!on) return;

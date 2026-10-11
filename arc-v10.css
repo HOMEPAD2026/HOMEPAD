@@ -2494,8 +2494,9 @@ html.wp-pcphone .wr-raid-me small,html.wp-pcphone .wr-raid-top li,html.wp-pcphon
 html.wp-pcphone .wr-raid-bar{height:16px}
 @media (max-width:640px){.wr-raid{top:auto;bottom:200px;right:10px;width:220px;padding:10px 12px}}
 /* islands: the link, the weekly contest, friends, notes, the guestbook */
-.wi-mine-row{display:flex;gap:8px;flex-wrap:wrap}
-.wi-mine-row .wi-mine{flex:1 1 auto}
+.wi-mine-row{display:flex;gap:8px;align-items:stretch;margin:0 0 14px}
+.wi-mine-row .wi-mine{flex:1 1 auto;width:auto;margin:0}
+.wi-mine-row .wi-link{flex:none;white-space:nowrap}
 .wi-isle-list li.wk button{display:grid;grid-template-columns:30px 1fr;grid-template-areas:"r b" "r s";column-gap:10px;text-align:left}
 .wi-isle-list li.wk .wi-rank{grid-area:r;align-self:center;font:900 15px var(--f-ui);color:rgba(222,233,244,.5);text-align:center}
 .wi-isle-list li.wk b{grid-area:b}.wi-isle-list li.wk small{grid-area:s}

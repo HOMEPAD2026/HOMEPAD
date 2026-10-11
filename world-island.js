@@ -692,19 +692,19 @@ export function createIsland(ctx) {
     <div class="wi-hot" id="wi-hot" role="listbox" aria-label="${esc(T("Bricks"))}"></div>
     <button type="button" class="wi-more" id="wi-pal-btn">${esc(T("All bricks"))}<kbd>Tab</kbd></button>
   </div>
-  <div class="wi-sheet" id="wi-pal" hidden><div class="wi-card"><header><h2>${esc(T("Bricks"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+  <div class="wi-sheet" id="wi-pal" hidden><div class="wi-card"><header><h2>${esc(T("Bricks"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <nav class="wi-cats" id="wi-cats"></nav><div class="wi-grid" id="wi-grid"></div>
     <h3>${esc(T("Colour"))}</h3><div class="wi-colors" id="wi-colors"></div></div></div>
-  <div class="wi-sheet" id="wi-bp" hidden><div class="wi-card"><header><h2>${esc(T("Blueprints"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+  <div class="wi-sheet" id="wi-bp" hidden><div class="wi-card"><header><h2>${esc(T("Blueprints"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <p class="wi-note">${esc(T("Pick one, then tap a spot on your island. It rises layer by layer."))}</p><div class="wi-bplist" id="wi-bplist"></div>
     <h3>${esc(T("Share a build"))}</h3><div class="wi-code"><button type="button" class="wp-btn" id="wi-copy">${esc(T("Copy my island as a code"))}</button><input id="wi-code-in" placeholder="ARCBP1.…" spellcheck="false" autocomplete="off"><button type="button" class="wp-btn" id="wi-paste">${esc(T("Use code"))}</button></div></div></div>
-  <div class="wi-sheet" id="wi-isles" hidden><div class="wi-card"><header><h2>${esc(T("Islands"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+  <div class="wi-sheet" id="wi-isles" hidden><div class="wi-card"><header><h2>${esc(T("Islands"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <div class="wi-mine-row"><button type="button" class="wp-cta wi-mine" id="wi-go-mine">${esc(T("Go to my island"))}</button><button type="button" class="wp-btn wi-link" id="wi-link">${esc(T("Copy my island link"))}</button></div>
     <nav class="wi-cats" id="wi-isle-tabs"><button type="button" data-tab="top" aria-pressed="true">${esc(T("Popular"))}</button><button type="button" data-tab="week" aria-pressed="false">${esc(T("This week"))}</button><button type="button" data-tab="recent" aria-pressed="false">${esc(T("Recently built"))}</button><button type="button" data-tab="friends" aria-pressed="false">${esc(T("Friends"))}</button></nav>
     <p class="wi-note" id="wi-isle-note" hidden></p>
     <ul class="wi-isle-list" id="wi-isle-list"></ul>
     <form class="wi-code" id="wi-visit-form"><input id="wi-visit-in" placeholder="${esc(T("Visit a wallet: 0x…"))}" spellcheck="false" autocomplete="off"><button type="submit" class="wp-btn">${esc(T("Visit"))}</button></form></div></div>
-  <div class="wi-sheet" id="wi-book" hidden><div class="wi-card"><header><h2>${esc(T("Guestbook"))}</h2><button type="button" class="wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
+  <div class="wi-sheet" id="wi-book" hidden><div class="wi-card"><header><h2>${esc(T("Guestbook"))}</h2><button type="button" class="wp-btn wp-x" data-x aria-label="${esc(T("Close"))}">×</button></header>
     <p class="wi-note">${esc(T("Stamps and notes visitors left on your island. Hide a note and only the stamp stays."))}</p><ul class="wi-book" id="wi-book-list"></ul></div></div>
   <div class="wi-visitbar" id="wi-visitbar" hidden><div><b id="wi-v-name"></b><small id="wi-v-sub"></small></div><button type="button" class="wi-like" id="wi-like"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span id="wi-likes">0</span></button><button type="button" class="wi-friend" id="wi-friend" aria-pressed="false"></button>
     <div class="wi-stamps" id="wi-stamps"></div><input class="wi-note-in" id="wi-note" maxlength="60" placeholder="${esc(T("Add a note to your stamp (optional, no links)"))}" autocomplete="off" spellcheck="false"><ul class="wi-stamp-log" id="wi-stamp-log"></ul></div>`;
