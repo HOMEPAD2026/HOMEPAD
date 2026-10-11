@@ -34,7 +34,7 @@ const WINDOW = 120e3;
 // Game World's beta: wallets holding at least this much $ARCIRCLE (on Arc) may enter (world-lock.js asks)
 export const GATE_MIN = 1000000n;
 const ARCIRCLE_TOKEN = "0xe5718f298ac3b65faf7c711b56cbd72b3bb15ff7";
-const CHARS = new Set(["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)]);
+const CHARS = new Set(["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c), ..."arc|neo|luna|kai|zen|rex|pixi|orbit|shadow|spark|mint|cici|byte|skye|ruby|titan|echo|nix|blaze|aqua|terra|volt|nova|frost|circa".split("|").map((c) => "arc-" + c)]); // arc-…: the ARC Bots (world-arcbots.js)
 
 export const loginMessage = (wallet, issued) =>
   `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;

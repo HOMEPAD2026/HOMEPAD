@@ -18,6 +18,7 @@ import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js"
 import { GLTFLoader } from "./vendor/three/addons/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
+import { ARCBOT_IDS, arcbotOf, makeArcBot } from "./world-arcbots.js";
 
 export { THREE };
 export const R = 32; // big enough for districts; everything else is placed in degrees
@@ -732,9 +733,13 @@ export function makePaths() {
 }
 
 // ---------------- players: Kenney Mini Characters (CC0) or the ARC Bot ----------------
-export const CHARACTERS = ["bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
+// the ARC Bots (world-arcbots.js, ARCIRCLE World's own characters) first, then the hover bot and the Kenney characters
+export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
+export { ARCBOT_IDS };
 const charCache = new Map();
 export async function makeCharacter(id, ver = "") {
+  const ab = arcbotOf(id);
+  if (ab) { const b = makeArcBot(THREE, ab); shadowy(b.obj, true, false); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
   if (id === "bot" || !CHARACTERS.includes(id)) {
     const r = makeRobot(); r.scale.setScalar(0.8);
     const rings = r.userData.crown.children;

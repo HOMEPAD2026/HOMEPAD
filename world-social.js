@@ -243,7 +243,7 @@ export function createRaid(ctx) {
 export function createGhosts(ctx) {
   const { THREE, K, planet } = ctx;
   const root = new THREE.Group(); root.name = "ghosts"; planet.add(root);
-  const tints = { bot: 0x8fd6ff, male: 0x7fe0b0, female: 0xffa8d0 };
+  const tints = { bot: 0x8fd6ff, male: 0x7fe0b0, female: 0xffa8d0, arc: 0x9ff3ff };
   const list = new Map(); // tag → { g, x, z, at, home }
   function figure(c, lv) {
     const g = new THREE.Group(), tint = tints[String(c).split("-")[0]] || tints.bot;

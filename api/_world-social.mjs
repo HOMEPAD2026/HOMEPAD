@@ -26,7 +26,7 @@ export const NOTE_MAX = 60;
 export const raidMax = (players) => (players > 0 ? Math.max(200000, Math.min(2000000, Math.round((players * 25000) / 50000) * 50000)) : RAID_HP);
 /// the next Monday 00:00 in Seoul (when a new raid boss comes)
 export const nextWeekAt = (t) => { const k = t + 9 * 3600e3, d = new Date(k), dow = (d.getUTCDay() + 6) % 7, day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); return day0 + (7 - dow) * 864e5 - 9 * 3600e3; };
-const CHARS = /^(bot|male-[a-f]|female-[a-f])$/;
+const CHARS = /^(bot|male-[a-f]|female-[a-f]|arc-(arc|neo|luna|kai|zen|rex|pixi|orbit|shadow|spark|mint|cici|byte|skye|ruby|titan|echo|nix|blaze|aqua|terra|volt|nova|frost|circa))$/; // arc-…: the ARC Bots (world-arcbots.js)
 
 /// a guestbook note: "" when there's none, null when it can't be posted (a link, an address, a long number)
 export function cleanNote(s) {

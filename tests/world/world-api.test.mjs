@@ -83,5 +83,7 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
   g = await G.handle({ action: "world-gate", wallet: "0x" + "b".repeat(40), issued: iss, signature: sg });
   check(g.status === 403, "gate: someone else's signature doesn't count");
 }
+// characters: the ARC Bots are kept, anything else unknown is dropped
+check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({ char: "arc-nobody" }).char === "" && cleanSave({ char: "male-c" }).char === "male-c", "saves keep ARC Bot characters and drop unknown ones");
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

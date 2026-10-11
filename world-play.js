@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social"].map((m) => import(`./${m}.js${VER}`)));
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1335,6 +1335,7 @@ function burst(color) {
 function levelUp(n, from) {
   const pas = RPG.PASSIVES.find((x) => x.lv === n); if (pas) setTimeout(() => toast(T("New passive: {x} — {y}", { x: T(pas.name), y: T(pas.line) })), 1600);
   if (grounded && !boarding && mode === "hub") { vy = 7.5; grounded = false; } // a little jump for joy
+  if (avatar && avatar.arc && !boarding) avatar.play("celebrate", { once: true }); // an ARC Bot throws its arms up
   if (rpg) { const was = RPG.statsOf(from || n - 1, rpg.data().eq); rpg.onLevel(); if (combat) combat.onLevel(n, was); } else if (combat) combat.onLevel(n);
   if (quests) quests.on.level();
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
@@ -1445,9 +1446,11 @@ $("wp-set-acct").addEventListener("click", async (e) => {
   if (e.target.id === "wp-acct-in") { try { await signIn(); paintAcct(); paintHud(); } catch (err) { toast((err && err.message) || T("Sign-in failed.")); } }
 });
 const make = $("wp-make");
-let pickChar = P.char || "male-a";
+let pickChar = P.char || "arc-arc";
 function openMake() {
-  $("wp-make-grid").innerHTML = K.CHARACTERS.map((id) => `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${id === "bot" ? "ARC Bot" : id.replace("-", " ")}">${id === "bot" ? '<img src="/images/arcircle-mark-sm.png" alt="ARC Bot">' : `<img src="/models/world/chars/${id}.webp${VER}" alt="${id.replace("-", " ")}">`}</button>`).join("");
+  // the ARC Bots first (each with its name and role), then the classic characters
+  const cell = (id) => { const ab = ARCBOT.arcbotOf(id), nm = ab ? `${ab.name} · ${T(ab.role)}` : id === "bot" ? "ARC Hover Bot" : id.replace("-", " "); return `<button type="button" role="radio" aria-checked="${id === pickChar}" data-c="${id}" title="${esc(nm)}">${ab || id === "bot" ? `<img src="/images/arcircle-mark-sm.png" alt="${esc(nm)}">` : `<img src="/models/world/chars/${id}.webp${VER}" alt="${esc(nm)}">`}${ab ? `<small>${esc(ab.name)}</small>` : ""}</button>`; };
+  $("wp-make-grid").innerHTML = `<p class="wp-make-sec">${esc(T("ARC Bots"))}</p>` + K.CHARACTERS.filter((id) => id.startsWith("arc-")).map(cell).join("") + `<p class="wp-make-sec">${esc(T("Classic characters"))}</p>` + K.CHARACTERS.filter((id) => !id.startsWith("arc-")).map(cell).join("");
   $("wp-make-name").value = P.name || "";
   make.hidden = false; frozen = true; keys.clear(); paintPrompt();
   camYaw = facing;
@@ -1467,6 +1470,9 @@ async function renderThumbs() {
     for (const id of K.CHARACTERS) {
       if (id === "bot" || make.hidden) continue;
       const c = await K.makeCharacter(id, VER).catch(() => null); if (!c) continue;
+      // an ARC Bot's portrait is closer (its face is the point) and without the crown
+      const crown = c.arc ? c.obj.getObjectByName("crown") : null; if (crown) crown.visible = false;
+      if (c.arc) { cm.position.set(0.5, 1.5, 3.7); cm.lookAt(0, 1.2, 0); c.obj.rotation.y = 0.25; } else { cm.position.set(0, 1.5, 5.2); cm.lookAt(0, 1.15, 0); }
       sc.add(c.obj); c.mixer.update(0.5); r.render(sc, cm);
       const img = make.querySelector(`button[data-c="${id}"] img`); if (img) img.src = r.domElement.toDataURL("image/png");
       sc.remove(c.obj);
@@ -1630,6 +1636,7 @@ function maybeNew() {
 }
 function openNew() {
   const items = [
+    ["bots", T("25 ARC Bots"), T("ARCIRCLE World's own robot characters, each with its own look. Pick one now.")],
     ["raid", T("A twist on the raid every week"), T("Iron shell, swarm week, red rain and more. Its fall is filmed as a clip to keep.")],
     ["together", T("Play together"), T("Eight lines to say (T), and an invite link: near a friend you both get +10% XP.")],
     ["codex", T("The codex, all 15 pages"), T("The story's six scammers too, each with how to beat the scam.")],
@@ -1646,6 +1653,7 @@ function openNew() {
     if (k === "raid") { const z = SOC.RAID, a = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(a) * (z.r + 3), 0, z.z + Math.cos(a) * (z.r + 3)), userData: { radius: 0.5 } }); }
     else if (k === "season" || k === "pets" || k === "quiz" || k === "codex") { quests.setTab(k === "quiz" ? "codex" : k); rpg.show("log"); }
     else if (k === "together") openWheel();
+    else if (k === "bots") openMake();
     else if (k === "pad") openGuide();
     else if (k === "fuse") { rpg.forgeTab("fuse"); rpg.show("forge"); }
     else if (k === "isles") island.openIsles();
@@ -2058,7 +2066,7 @@ loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping();
 $("wp-loading").classList.add("done");
 setTimeout(() => $("wp-loading").remove(), 600);
-await setAvatar(P.char || "male-a");
+await setAvatar(P.char || "arc-arc");
 await dive();
 landed = true; feedQ.splice(0).slice(-4).forEach(([h, c], i) => setTimeout(() => feed(h, c), i * 250));
 if (!P.authSeen && !sess()) openAuth();
@@ -2080,5 +2088,8 @@ window.arcWorld = {
   // for screenshots and tests: point the camera, ride the board
   cam: (o = {}) => { if (o.yaw != null) camYaw = o.yaw; if (o.pitch != null) camPitch = o.pitch; if (o.dist != null) camDist = o.dist; if (o.facing != null) facing = o.facing; }, board: (on) => setBoard(!!on), gain: (n) => gain(n, ""), holdXp: (on) => { xpHeld = !!on; },
   fighters: () => fighters.map((g) => ({ id: g.userData.spec.id, live: !!g.userData.live })),
+  // for tests and the art audit: what the last frame drew (draw calls, triangles) and what's in GPU memory
+  perf: () => ({ calls: st.renderer.info.render.calls, triangles: st.renderer.info.render.triangles, geometries: st.renderer.info.memory.geometries, textures: st.renderer.info.memory.textures, pixelRatio: st.renderer.getPixelRatio(), avatar: P.char || "" }),
+  avatar: () => avatar,
   raid: () => raid, ghosts: () => ghosts, tp: (x, z) => { planet.position.set(-x, 0, -z); hop = 0; vy = 0; grounded = true; },
 };
