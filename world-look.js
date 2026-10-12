@@ -12,7 +12,9 @@ float lk_h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32);
 float lk_n(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(lk_h(i), lk_h(i + vec2(1.0, 0.0)), u.x), mix(lk_h(i + vec2(0.0, 1.0)), lk_h(i + vec2(1.0, 1.0)), u.x), u.y); }
 float lk_fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * lk_n(p); p *= 2.07; a *= 0.5; } return v; }`;
-export const time = { value: 0 };
+// one clock for every copy of this module: world-play.js loads it with ?v=…, world-decor.js and world-zones-far.js
+// without, and a second copy's own clock would never move
+export const time = (globalThis.__arcLookTime ??= { value: 0 });
 
 // ---------------- the grade: split toning (cool shadows / warm highlights or the reverse), saturation, contrast, vignette ----------------
 const GradeShader = {
@@ -84,7 +86,8 @@ export function waterLook(mat) {
 }
 
 // ---------------- wind: the top of a plant sways more than its foot; neighbours move a little out of step ----------------
-export function windLook(mat, { amp = 0.12, h = 1 } = {}) {
+// local: the phase also follows each vertex's own x/z, so many plants merged into one mesh still sway out of step
+export function windLook(mat, { amp = 0.12, h = 1, local = false } = {}) {
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
@@ -92,11 +95,11 @@ export function windLook(mat, { amp = 0.12, h = 1 } = {}) {
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float lkT;").replace("#include <begin_vertex>", `#include <begin_vertex>
       { vec4 wp0 = modelMatrix * ${"#ifdef USE_INSTANCING\n instanceMatrix * \n#endif\n"}vec4(0.0, 0.0, 0.0, 1.0);
         float up = clamp(position.y / ${h.toFixed(2)}, 0.0, 1.5); up *= up;
-        float ph = wp0.x * 0.37 + wp0.z * 0.29;
+        float ph = wp0.x * 0.37 + wp0.z * 0.29${local ? " + position.x * 0.9 + position.z * 0.7" : ""};
         float s = sin(lkT * 1.7 + ph) * 0.7 + sin(lkT * 3.1 + ph * 1.7) * 0.3;
         transformed.x += s * ${amp.toFixed(3)} * up; transformed.z += cos(lkT * 1.3 + ph) * ${(amp * 0.6).toFixed(3)} * up; }`);
   };
-  mat.customProgramCacheKey = () => "wind" + amp + h;
+  mat.customProgramCacheKey = () => "wind" + amp + h + (local ? "l" : "");
   mat.needsUpdate = true;
   return mat;
 }

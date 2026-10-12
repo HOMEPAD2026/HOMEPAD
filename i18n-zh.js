@@ -10369,6 +10369,10 @@
     "The Insolvent King": "破产之王",
     "The Bridge Breaker": "断桥者",
     "The Final Rug": "终极跑路",
+    "Hunting ground {n} of {m}": "狩猎场 {n} / {m}",
+    "New ground": "新狩猎场",
+    "Deadly for your level": "对你的等级极其危险",
+    "Boss": "首领",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

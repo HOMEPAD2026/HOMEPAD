@@ -10199,6 +10199,10 @@
     "The Insolvent King": "파산한 왕",
     "The Bridge Breaker": "브릿지 브레이커",
     "The Final Rug": "파이널 러그",
+    "Hunting ground {n} of {m}": "사냥터 {n} / {m}",
+    "New ground": "새 사냥터",
+    "Deadly for your level": "지금 레벨에는 매우 위험",
+    "Boss": "보스",
   };
 
 

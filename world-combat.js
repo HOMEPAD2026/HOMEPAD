@@ -75,7 +75,7 @@ export function createCombat(ctx) {
 
   // ---------------- particles (sprites come from a pool, so a fight doesn't allocate every frame) ----------------
   const pool = [];
-  const sprite = (c, o = 1) => { const s = pool.pop() || new THREE.Sprite(spriteMat(c, o)); s.material.color.set(c); s.material.opacity = o; s.visible = true; s.userData.pooled = true; return s; };
+  const sprite = (c, o = 1) => { const s = pool.pop() || new THREE.Sprite(spriteMat(c, o)); s.material.color.set(c); s.material.opacity = o; s.material.rotation = 0; s.visible = true; s.userData.pooled = true; return s; };
   function puff(pos, color, { n = 10, speed = 4, size = 0.35, life = 0.6, up = 1, grav = 4 } = {}) {
     if (ctx.reduce || (ctx.lite && ctx.lite())) n = Math.ceil(n / 3);
     for (let i = 0; i < n; i++) {
@@ -199,6 +199,12 @@ export function createCombat(ctx) {
     m.e.play("Hit", { once: true, fade: 0.05 });
     ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" || kind === "meteor" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit, dmg / m.max);
     if (crit || kind === "heavy") stopT = Math.max(stopT, crit ? 0.07 : 0.05);
+    else if (kind === "melee") stopT = Math.max(stopT, 0.03); // even a plain cut bites for a moment
+    m.punch = 1; // the body squashes and springs back (tickMobs)
+    if ((kind === "melee" || kind === "heavy") && !ctx.reduce) { // a bright slash mark across the body, at the angle of the swing
+      const big = kind === "heavy" ? 1.5 : 1, ang = combo === 2 ? 0.6 : combo === 3 ? -0.2 : -0.7;
+      for (const [w, c, o] of [[2.6, 0xffffff, 0.95], [3.4, crit ? 0xffd27a : 0x8fe6ff, 0.55]]) { const sl = sprite(c, o); sl.material.rotation = ang; sl.scale.set(w * big, 0.16 * big * (c === 0xffffff ? 1 : 2.2), 1); sl.position.copy(m.g.position).setY(m.y + 0.7); add(sl); fx.push({ o: sl, life: 0.16, t: 0, op0: o }); }
+    }
     if (crit && ctx.slowmo) ctx.slowmo(160);
     if (kind === "heavy" && ctx.punch) ctx.punch();
     // the raid boss's HP is everyone's: the hit is reported (world-raid.js) and it only falls when the server says so
@@ -266,6 +272,7 @@ export function createCombat(ctx) {
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
+      if (m.punch > 0) { if (!m.bs) m.bs = body.scale.clone(); m.punch = Math.max(0, m.punch - dt * 7); const q = ctx.reduce ? 0 : Math.sin(m.punch * Math.PI) * 0.16; body.scale.set(m.bs.x * (1 + q), m.bs.y * (1 - q), m.bs.z * (1 + q)); }
       body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive && !o.material.userData.glow) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.glow; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) continue;
@@ -337,14 +344,23 @@ export function createCombat(ctx) {
     zoneEl.hidden = false; zoneEl.style.setProperty("--zc", "#" + new THREE.Color(zone.color).getHexString());
     zoneEl.innerHTML = `<b>${ctx.esc(zone.name)}</b><small style="color:${lvColor(zone.lv[0])}">${T("Level {a}–{b}", { a: zone.lv[0], b: zone.lv[1] })} · ${T("you're Lv {n}", { n: ctx.level() })}</small><em>${alive ? T("Boss is here!") : left ? T("Boss in {t}", { t: `${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, "0")}` }) : T("Boss soon")}</em>`;
   }
+  // a ground you're under-levelled for: the screen's edge glows red as long as you stay in it
+  const edgeEl = document.createElement("div"); edgeEl.className = "wc-edge"; edgeEl.hidden = true; edgeEl.setAttribute("aria-hidden", "true"); document.body.appendChild(edgeEl);
+  const ZSEEN = "arc.world.zseen";
+  const seen = () => { try { return JSON.parse(localStorage.getItem(ZSEEN) || "[]"); } catch { return []; } };
   function enterZone(z) {
     bannerEl.hidden = false; bannerEl.style.setProperty("--zc", "#" + new THREE.Color(z.color).getHexString());
-    const boost = ctx.xpBoost ? ctx.xpBoost(z.id) : 1;
-    bannerEl.innerHTML = `<small>${T("Hunting ground")}</small><b>${ctx.esc(z.name)}</b><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })}${ctx.level() < z.lv[0] ? " · " + T("Too strong for you yet") : ""}</em>${boost > 1 ? `<span class="wc-xpev">${T("XP ×{k} today", { k: boost })}</span>` : ""}`;
-    bannerEl.classList.toggle("danger", ctx.level() < z.lv[0]);
-    bannerEl.classList.remove("on"); void bannerEl.offsetWidth; bannerEl.classList.add("on"); setTimeout(() => { bannerEl.hidden = true; }, 3200);
+    const boost = ctx.xpBoost ? ctx.xpBoost(z.id) : 1, lv = ctx.level(), under = lv < z.lv[0], deadly = lv < z.lv[0] - 10;
+    const s0 = seen(), first = !s0.includes(z.id); if (first) { s0.push(z.id); try { localStorage.setItem(ZSEEN, JSON.stringify(s0)); } catch { /* private */ } }
+    // the name comes in letter by letter (one span a letter, a little later each)
+    const letters = [...z.name].map((ch, i) => `<i style="--d:${i * 32}ms">${ch === " " ? "&nbsp;" : ctx.esc(ch)}</i>`).join("");
+    const tags = [first ? `<span class="wc-new">${T("New ground")}</span>` : "", boost > 1 ? `<span class="wc-xpev">${T("XP ×{k} today", { k: boost })}</span>` : "", under ? `<span class="wc-warn">${deadly ? T("Deadly for your level") : T("Too strong for you yet")}</span>` : ""].join("");
+    bannerEl.innerHTML = `<small>${T("Hunting ground {n} of {m}", { n: ZONES.indexOf(z) + 1, m: ZONES.length })}</small><b>${letters}</b><hr><em>${T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] })} · ${T("Boss")}: ${ctx.esc(z.boss.name)}</em>${tags ? `<p>${tags}</p>` : ""}`;
+    bannerEl.classList.toggle("danger", under);
+    bannerEl.classList.remove("on"); void bannerEl.offsetWidth; bannerEl.classList.add("on"); clearTimeout(bannerEl._t); bannerEl._t = setTimeout(() => { bannerEl.hidden = true; }, 3600);
     const b = bossAt(); if (!b[z.id]) setBoss(z.id, Date.now() + BOSS_FIRST);
-    if (ctx.level() < z.lv[0]) ctx.toast(T("{x} is for level {n} and up. Careful!", { x: z.name, n: z.lv[0] }));
+    if (under) ctx.toast(T("{x} is for level {n} and up. Careful!", { x: z.name, n: z.lv[0] }));
+    if (first && ctx.onNewZone) ctx.onNewZone(z);
   }
 
   // ---------------- attacking: a three-hit combo ----------------
@@ -806,12 +822,12 @@ export function createCombat(ctx) {
     tickFx(dt);
     if (stopT > 0) { stopT -= dt; return; } // hit-stop: everything in the fight holds still for a beat
     tickShots(dt);
-    if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
+    if (!ctx.inHub()) { root.visible = false; zoneEl.hidden = true; bossEl.hidden = true; edgeEl.hidden = true; return; } // an island or a sheet: the boss bar steps away too
     root.visible = true;
     if ((zoneT -= dt) <= 0) {
       zoneT = 0.5; ctx.here(me); const z = zoneAt(me.x, me.z);
       if (z !== zone) { zone = z; if (z && z !== zoneShown) enterZone(z); zoneShown = z; ctx.onZone && ctx.onZone(z); spawnT = Math.min(spawnT, 2); }
-      paintZone();
+      paintZone(); edgeEl.hidden = !(zone && ctx.level() < zone.lv[0]); edgeEl.classList.toggle("deadly", !!zone && ctx.level() < zone.lv[0] - 10);
       const bm = mobs.find((m) => m.rank === "boss" && !m.dead); if (bm && bossEl.hidden) bossBar(bm); else if (!bm && !bossEl.hidden) hideBossBar();
     }
     tickMobs(dt, t); tickItems(dt, t); tickDrops(dt, t);

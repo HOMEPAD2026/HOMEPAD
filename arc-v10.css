@@ -2964,3 +2964,25 @@ body.wc-fight .wp-quests:hover{opacity:1}
 html.wp-pcphone .wl-act{zoom:1.4}
 html.wp-pcphone .wl-fish{zoom:1.35}
 html.wp-pcphone .wl-card{zoom:1.3;width:min(460px,calc((100vw - 24px) / 1.3))}
+
+/* v40: entering a hunting ground — the name comes in letter by letter over a line in the ground's colour */
+.wc-banner{gap:6px;top:20%}
+.wc-banner small{letter-spacing:.04em}
+.wc-banner b{font-size:52px;white-space:nowrap}
+.wc-banner b i{display:inline-block;font-style:normal;animation:wcLetter .5s cubic-bezier(.2,.9,.3,1.1) both;animation-delay:var(--d)}
+.wc-banner hr{width:min(440px,72vw);height:2px;margin:2px 0;border:0;background:linear-gradient(90deg,transparent,var(--zc),transparent);box-shadow:0 0 14px var(--zc);animation:wcLine .8s .15s cubic-bezier(.2,.9,.3,1) both}
+.wc-banner p{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:4px 0 0}
+.wc-banner p .wc-xpev{margin:0}
+.wc-new,.wc-warn{display:inline-block;padding:3px 10px;border-radius:999px;font:800 12px var(--f-ui)}
+.wc-new{background:rgba(255,255,255,.08);border:1px solid var(--zc);color:#fff}
+.wc-warn{background:rgba(255,45,77,.18);border:1px solid rgba(255,77,109,.6);color:#ffb3c0}
+@keyframes wcLetter{from{opacity:0;transform:translateY(16px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes wcLine{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
+@media (max-width:640px){.wc-banner b{font-size:34px}.wc-banner hr{width:80vw}}
+/* standing in a ground above your level: the screen's edge stays red */
+.wc-edge{position:fixed;inset:0;z-index:10;pointer-events:none;box-shadow:inset 0 0 90px 10px rgba(255,45,77,.28);animation:wcEdge 2.4s ease-in-out infinite}
+.wc-edge[hidden]{display:none}
+.wc-edge.deadly{box-shadow:inset 0 0 130px 26px rgba(255,30,60,.42);animation-duration:1.3s}
+@keyframes wcEdge{0%,100%{opacity:.6}50%{opacity:1}}
+html.wp-less .wc-edge{animation:none;opacity:.7}
+@media (prefers-reduced-motion:reduce){.wc-banner b i,.wc-banner hr{animation:none}.wc-edge{animation:none;opacity:.8}}

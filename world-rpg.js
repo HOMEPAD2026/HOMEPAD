@@ -154,9 +154,38 @@ export function createRpg(ctx) {
   let worn = [], wHand = null;
   // the weapon in hand moves with the attack, its own way (the arm's animation is shared by all kinds):
   // swords slash across, the hammer lifts high and slams, the blaster kicks back, the bow draws, the staff rises
-  function swing(heavy) { if (wHand) { wHand.t = 0; wHand.heavy = !!heavy; } }
+  function swing(heavy) { if (wHand) { wHand.t = 0; wHand.heavy = !!heavy; if (trail) trail.n = 0; } }
+  // the blade leaves a ribbon of light behind it (swords and the hammer): the last 16 places of its tip and its
+  // middle, joined into a strip that fades from the newest end
+  let trail = null;
+  function makeTrail() {
+    const THREE = ctx.THREE, N = 16, geo = new THREE.BufferGeometry(), idx = [];
+    for (let i = 0; i < N - 1; i++) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+    geo.setIndex(idx); geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N * 6), 3)); geo.setAttribute("a", new THREE.BufferAttribute(new Float32Array(N * 2), 1));
+    const mat = new THREE.ShaderMaterial({ uniforms: { uC: { value: new THREE.Color() }, uO: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      vertexShader: "attribute float a; varying float vA; void main(){ vA = a; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "uniform vec3 uC; uniform float uO; varying float vA; void main(){ gl_FragColor = vec4(uC * (0.6 + vA), vA * vA * uO); }" });
+    const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.name = "blade-trail";
+    return { mesh, N, n: 0, tips: [], bases: [], fade: 0, a: new THREE.Vector3(), b: new THREE.Vector3() };
+  }
+  function tickTrail(dt, h) {
+    if (!trail || !ctx.scene) return;
+    const swinging = h && h.t < 1 && (h.kind === 0 || h.kind === 1) && h.tip && !ctx.reduce;
+    if (swinging) {
+      if (!trail.mesh.parent) ctx.scene().add(trail.mesh);
+      h.g.updateMatrixWorld(true);
+      trail.tips.unshift(h.g.localToWorld(trail.a.copy(h.tip)).clone()); trail.bases.unshift(h.g.localToWorld(trail.b.copy(h.base)).clone());
+      if (trail.tips.length > trail.N) { trail.tips.length = trail.N; trail.bases.length = trail.N; }
+      trail.fade = 1; trail.mesh.material.uniforms.uC.value.set(h.kind === 1 || h.heavy ? 0xffc861 : h.color || 0x8fe6ff).multiplyScalar(1.4);
+    } else trail.fade = Math.max(0, trail.fade - dt * 7);
+    trail.mesh.visible = trail.fade > 0 && trail.tips.length > 1;
+    if (!trail.mesh.visible) { if (trail.fade <= 0) { trail.tips.length = 0; trail.bases.length = 0; } return; }
+    const pos = trail.mesh.geometry.attributes.position, al = trail.mesh.geometry.attributes.a, L = trail.tips.length;
+    for (let i = 0; i < trail.N; i++) { const j = Math.min(i, L - 1), t = trail.tips[j], b = trail.bases[j], k = i < L ? 1 - i / (L - 1 || 1) : 0; pos.setXYZ(2 * i, t.x, t.y, t.z); pos.setXYZ(2 * i + 1, b.x, b.y, b.z); al.setX(2 * i, k); al.setX(2 * i + 1, k * 0.15); }
+    pos.needsUpdate = true; al.needsUpdate = true; trail.mesh.material.uniforms.uO.value = trail.fade * 0.85;
+  }
   function tickSwing(dt) {
-    const h = wHand; if (!h || h.t >= 1) return;
+    const h = wHand; tickTrail(dt, h); if (!h || h.t >= 1) return;
     const dur = h.kind === 1 ? 0.5 : h.kind === 3 ? 0.55 : 0.28; h.t = Math.min(1, h.t + dt / dur);
     const k = h.t, up = Math.sin(Math.min(1, k * 1.4) * Math.PI), e = k < 0.35 ? k / 0.35 : 1 - (k - 0.35) / 0.65;
     const g = h.g; g.rotation.copy(h.r0); g.position.copy(h.p0);
@@ -166,6 +195,14 @@ export function createRpg(ctx) {
     else if (h.kind === 3) { g.position.z -= Math.sin(k * Math.PI) * 0.18; g.rotation.y += Math.sin(k * Math.PI) * 0.25; }
     else { g.position.y += up * 0.25; g.rotation.x -= up * 0.6; }
     if (k >= 1) { g.rotation.copy(h.r0); g.position.copy(h.p0); }
+  }
+  // where the blade ends: the point of the weapon farthest from the hand (and one a quarter of the way along)
+  function bladeEnds(h) {
+    const THREE = ctx.THREE, v = new THREE.Vector3(), inv = new THREE.Matrix4(); h.g.updateMatrixWorld(true); inv.copy(h.g.matrixWorld).invert();
+    let best = 0, tip = null;
+    h.g.traverse((o) => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return; const p = o.geometry.attributes.position, step = Math.max(1, Math.floor(p.count / 400)); const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      for (let i = 0; i < p.count; i += step) { v.fromBufferAttribute(p, i).applyMatrix4(m); const d = v.lengthSq(); if (d > best) { best = d; tip = v.clone(); } } });
+    if (tip) { h.tip = tip; h.base = tip.clone().multiplyScalar(0.3); }
   }
   function dress() {
     const av = ctx.avatar(); worn.forEach((m) => m.parent && m.parent.remove(m)); worn = [];
@@ -182,7 +219,7 @@ export function createRpg(ctx) {
     const wm = wpb ? weapon3d(weaponKind(eq.weapon), wpb.tier, RARITY[eq.weapon.r || 0].color, glowOf(eq.weapon)) : null, sm = eq.shield && model("shield", eq.shield);
     // a little bigger than life: the characters are chibi, and a blaster or a bow at true size disappears in the hand
     const hold = (m) => { const hd = m.userData.hold; m.scale.multiplyScalar(m.name === "weapon:blaster" ? 1.6 : m.name === "weapon:bow" ? 1.45 : 1.2); if (hd === "down") { m.rotation.x = Math.PI; m.position.y = 0.06; } else if (hd === "up") m.position.y = 0.05; else { m.rotation.y = Math.PI; m.position.set(0, -0.05, -0.02); } return m; }; // the hand's +Z points behind you
-    if (wm) { const w = new THREE.Group(); w.add(hold(wm)); put(bone("arm-right"), w, at("weapon", 0.02, -0.72, 0.12), [0.25, 0, 0]); wHand = { g: w, kind: weaponKind(eq.weapon), r0: w.rotation.clone(), p0: w.position.clone(), t: 1 }; } else wHand = null;
+    if (wm) { const w = new THREE.Group(); w.add(hold(wm)); put(bone("arm-right"), w, at("weapon", 0.02, -0.72, 0.12), [0.25, 0, 0]); wHand = { g: w, kind: weaponKind(eq.weapon), r0: w.rotation.clone(), p0: w.position.clone(), t: 1, color: new THREE.Color(RARITY[eq.weapon.r || 0].color).getHex() }; bladeEnds(wHand); if (!trail) trail = makeTrail(); } else wHand = null;
     // dual swords and no shield: the second blade in the other hand
     if (wm && weaponKind(eq.weapon) === 0 && !eq.shield) { const w = new THREE.Group(); w.add(hold(offBlade(wpb.tier, RARITY[eq.weapon.r || 0].color, glowOf(eq.weapon)))); put(bone("arm-left"), w, at("shield", -0.02, -0.72, 0.12), [0.25, 0, 0]); }
     if (sm) { const w = new THREE.Group(); sm.rotation.y = -Math.PI / 2; sm.position.y = -0.35; w.add(sm); put(bone("arm-left"), w, at("shield", -0.16, -0.5, 0.05)); }
