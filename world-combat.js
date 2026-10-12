@@ -27,6 +27,12 @@ const MOBS = {
   drop: { id: "drop", name: "Fake Airdrop", model: "QuadShell", scale: 0.85, y: 0.45, speed: 2.0, color: "#ffc861" },
   rug: { id: "rug", name: "Rug Gremlin", model: "Trilobite", scale: 0.95, y: 0.55, speed: 2.7, color: "#b48cff" },
 };
+// the creatures some hunting grounds dress their scammers as (Quaternius monsters, models/world/packs/q-monsters.glb):
+// h is the height in metres, y lifts the fliers. Only the look changes; the scam (its name, stats, codex entry) stays.
+const SKIN = {
+  Bat: { h: 1.25, y: 0.9 }, Wasp: { h: 1.1, y: 0.9 }, Frog: { h: 0.75, y: 0 }, Snake: { h: 1.25, y: 0 }, Rat: { h: 0.7, y: 0 },
+  Spider: { h: 0.8, y: 0 }, Slime: { h: 0.85, y: 0 }, Skeleton: { h: 1.85, y: 0 }, Dragon: { h: 3.4, y: 1.1 },
+};
 const ITEMS = [
   { id: "coin", name: "ARCL coin", w: 30, color: 0xffc861 },
   { id: "boots", name: "Speed boots", w: 14, color: 0x35d8d0, secs: 20 },
@@ -134,7 +140,9 @@ export function createCombat(ctx) {
     const kit = ctx.kit(); if (!kit) return null;
     const spec = MOBS[o.type] || MOBS[["spam", "drop", "rug"][Math.floor(Math.random() * 3)]];
     const bs = o.rank === "boss" ? o.boss : null;
-    const e = K.enemy(kit, bs ? bs.model : spec.model); if (!e) return null;
+    // a creature's look in this ground, once its pack is in (the robot until then)
+    const skinId = bs ? bs.skin : o.zone && o.zone.skins ? o.zone.skins[spec.id] : null, skin = skinId && kit.enemies[skinId] ? SKIN[skinId] : null;
+    const e = K.enemy(kit, skin ? skinId : bs ? bs.model : spec.model); if (!e) return null;
     ctx.here(me);
     let p = o.at || null;
     for (let tries = 0; tries < 10 && !p; tries++) {
@@ -147,15 +155,17 @@ export function createCombat(ctx) {
     const lv = Math.max(1, o.lv || 1), rank = o.rank || "", st = mobStats(lv, rank);
     if (o.raid) st.hp = o.max;
     const g = new THREE.Group(); g.position.copy(p);
-    const sc = bs ? bs.scale : spec.scale * (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
-    e.obj.scale.setScalar(sc); e.obj.position.y = bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1); g.add(e.obj);
+    const grow = (rank === "elite" ? 1.3 : 1) * (1 + Math.min(0.4, lv * 0.012));
+    const sc = skin ? (bs ? bs.skinH || skin.h * 1.8 : skin.h * grow) : bs ? bs.scale : spec.scale * grow;
+    const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
+    e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(tint); x.material.emissiveIntensity = 0.18; } } });
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { x.material = x.material.clone(); if (x.material.emissive) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } });
     const bb = new THREE.Box3().setFromObject(e.obj); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
     const sh = new THREE.Mesh(new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
-    const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: bs ? bs.y : spec.y };
+    const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
       const crown = new THREE.Group(); crown.position.y = bb.max.y + 1.2; g.add(crown);
@@ -249,7 +259,7 @@ export function createCombat(ctx) {
       if (m.statue && m.stun <= 0) { m.statue = false; shards(m.g.position.clone().setY(m.y + 0.5), 0xcff6ff, 16, 6); Snd.pop && Snd.pop(); } // the ice statue shatters
       const body = m.e.obj;
       body.position.x = m.hitT > 0 ? Math.sin(t * 90) * 0.06 : 0;
-      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : 0.18; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
+      body.traverse((o) => { if (o.isMesh && o.material && o.material.emissive) { o.material.emissiveIntensity = m.hitT > 0.1 ? 2.2 : m.hitT > 0 ? 1.2 : m.burn > 0 ? 0.7 + Math.sin(t * 20) * 0.2 : m.slow > 0 ? 0.5 : m.stun > 0 ? 0.9 + Math.sin(t * 40) * 0.5 : m.glow; o.material.emissive.set(m.hitT > 0.1 ? 0xffffff : m.burn > 0 ? 0xff6a1a : m.slow > 0 ? 0x5fd8ff : m.stun > 0 ? 0xb48cff : m.rank === "boss" ? m.zone.boss.tint : m.spec.color); } });
       if (m.g.userData.ring) m.g.userData.ring.rotation.z += dt * 2;
       if (m.stun > 0) continue;
       const sp = m.spec.speed * (m.rank === "boss" ? 0.8 : 1) * (m.slow > 0 ? 0.35 : 1);

@@ -14,3 +14,18 @@ sky-planet*.webp are resized planet images; planet-surface.jpg is a seamless sph
 models/world/chars/*.glb, models/world/chars/*.webp
 From "Mini Characters" by Kenney — https://kenney.nl — CC0 1.0 Universal.
 Unused animations removed and meshopt-compressed with glTF-Transform; thumbnails from the pack's previews.
+
+models/world/packs/*.glb (set dressing, gear in hand, critters — world-decor.js)
+Repacked for the web with glTF-Transform: the models used merged into one file per pack (one root node per model),
+textures resized to WebP where large, meshopt-compressed. All CC0 1.0 Universal (public domain dedication):
+  kenney-nature, kenney-town, kenney-survival, kenney-space, kenney-food, kenney-furniture, kenney-pets
+    from Kenney's Nature Kit, Fantasy Town Kit 2.0, Survival Kit, Space Kit, Food Kit, Furniture Kit, Cube Pets 1.0 — https://kenney.nl
+  kk-nature, kk-city, kk-space, kk-resources, kk-tools, kk-weapons, kk-furniture
+    from KayKit Forest Nature Pack, City Builder Bits, Space Base Bits, Resource Bits, RPG Tools Bits,
+    Fantasy Weapons Bits, Furniture Bits (free versions) by Kay Lousberg — https://kaylousberg.com
+  q-nature, q-props
+    from Stylized Nature MegaKit and Fantasy Props MegaKit (standard free versions) by Quaternius — https://quaternius.com
+  q-monsters (the creatures some hunting grounds dress their scammers as — world-combat.js)
+    Bat, Dragon, Skeleton, Slime from "Lowpoly Animated Monsters" and Spider, Rat, Wasp, Frog, Snake from
+    "Animated Easy Enemies", both by Quaternius (CC0) — https://quaternius.itch.io — converted from FBX to glTF
+    with three.js, scaled to one unit tall, clips renamed to Run / Attack / Hit / Idle / Death.

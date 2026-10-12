@@ -91,10 +91,10 @@ export const hitDamage = (atk, def) => Math.max(1, Math.round(atk - def * 0.5));
 // the hunting grounds: where they are on the flat ground (x, z), how big, which levels, which scammers
 export const ZONES = [
   { id: "spam", name: "Spam Alley", lv: [1, 5], x: 0, z: 100, r: 24, color: 0x8fd6ff, ground: 0x2c4a3a, fog: 0x9fc8d8, mobs: ["spam", "drop"], boss: { name: "The Spam King", model: "EyeDrone", scale: 1.6, y: 2.2, tint: 0xff4d6d } },
-  { id: "fields", name: "Airdrop Fields", lv: [5, 10], x: 86, z: 50, r: 26, color: 0xffc861, ground: 0x4a5a2c, fog: 0xe8d8a8, mobs: ["drop", "spam"], boss: { name: "The Free Mint", model: "QuadShell", scale: 1.7, y: 0.9, tint: 0xffc861 } },
-  { id: "swamp", name: "Honeypot Swamp", lv: [10, 15], x: 86, z: -50, r: 26, color: 0x7fe05a, ground: 0x24382a, fog: 0x5a7a52, mobs: ["rug", "drop"], boss: { name: "The Honeypot Queen", model: "Trilobite", scale: 1.7, y: 1.0, tint: 0xffa63a } },
-  { id: "canyon", name: "Rug Canyon", lv: [15, 20], x: -48, z: -90, r: 26, color: 0xff7a3c, ground: 0x5a3426, fog: 0xc88a68, mobs: ["rug", "spam"], boss: { name: "The Rug Titan", model: "QuadShell", scale: 2.0, y: 1.0, tint: 0xff4d2a } },
-  { id: "depths", name: "Dark Market Depths", lv: [20, 30], x: -96, z: 62, r: 26, color: 0xb48cff, ground: 0x1a1428, fog: 0x2a1e40, mobs: ["rug", "drop", "spam"], boss: { name: "The Rug Dragon", model: "Trilobite", scale: 2.1, y: 1.2, tint: 0xb48cff } },
+  { id: "fields", name: "Airdrop Fields", lv: [5, 10], x: 86, z: 50, r: 26, color: 0xffc861, ground: 0x4a5a2c, fog: 0xe8d8a8, mobs: ["drop", "spam"], skins: { spam: "Wasp" }, boss: { name: "The Free Mint", model: "QuadShell", scale: 1.7, y: 0.9, tint: 0xffc861 } },
+  { id: "swamp", name: "Honeypot Swamp", lv: [10, 15], x: 86, z: -50, r: 26, color: 0x7fe05a, ground: 0x24382a, fog: 0x5a7a52, mobs: ["rug", "drop"], skins: { rug: "Frog", drop: "Snake" }, boss: { name: "The Honeypot Queen", model: "Trilobite", scale: 1.7, y: 1.0, tint: 0xffa63a, skin: "Wasp", skinH: 3.0 } },
+  { id: "canyon", name: "Rug Canyon", lv: [15, 20], x: -48, z: -90, r: 26, color: 0xff7a3c, ground: 0x5a3426, fog: 0xc88a68, mobs: ["rug", "spam"], skins: { rug: "Rat", spam: "Spider" }, boss: { name: "The Rug Titan", model: "QuadShell", scale: 2.0, y: 1.0, tint: 0xff4d2a, skin: "Skeleton", skinH: 4.6 } },
+  { id: "depths", name: "Dark Market Depths", lv: [20, 30], x: -96, z: 62, r: 26, color: 0xb48cff, ground: 0x1a1428, fog: 0x2a1e40, mobs: ["rug", "drop", "spam"], skins: { rug: "Bat", drop: "Slime", spam: "Skeleton" }, boss: { name: "The Rug Dragon", model: "Trilobite", scale: 2.1, y: 1.2, tint: 0xb48cff, skin: "Dragon", skinH: 4.2 } },
 ];
 export const zoneAt = (x, z) => ZONES.find((zn) => Math.hypot(x - zn.x, z - zn.z) < zn.r) || null;
 

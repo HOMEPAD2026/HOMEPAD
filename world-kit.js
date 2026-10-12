@@ -623,6 +623,11 @@ export function loadKit(ver = "") {
     };
     const kit = { props: { ...split(p, PROP_NAMES), ...split(c, CITY_NAMES) }, enemies: {} };
     kit.enemiesReady = one("/models/world/scifi-enemies.glb").then((e) => { Object.assign(kit.enemies, split(e, ENEMY_NAMES)); return kit; }).catch((err) => { console.warn("world robots:", err); return kit; });
+    // the creatures the far hunting grounds dress their scammers as (Quaternius, CC0); clips come named "Bat/Run" and so on
+    kit.monstersReady = kit.enemiesReady.then(() => loadPack("/models/world/packs/q-monsters.glb", ver)).then((p) => {
+      for (const [n, node] of p.models) kit.enemies[n] = { scene: node, clips: p.clips.filter((c) => c.name.startsWith(n + "/")).map((c) => { const x = c.clone(); x.name = c.name.slice(n.length + 1); return x; }) };
+      return kit;
+    }).catch((err) => { console.warn("world monsters:", err); return kit; });
     return kit;
   });
   return kitP;
@@ -644,14 +649,16 @@ export function enemy(kit, name) {
   const src = kit.enemies[name]; if (!src) return null;
   const o = shadowy(SkeletonUtils.clone(src.scene), true, false);
   const mixer = new THREE.AnimationMixer(o);
-  let cur = null;
+  let cur = null, loop = null;
   const play = (clip, { once = false, fade = 0.25 } = {}) => {
     const c = src.clips.find((x) => x.name === clip); if (!c) return null;
     const a = mixer.clipAction(c);
     a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once;
     if (cur && cur !== a) cur.crossFadeTo(a, fade, false);
-    a.play(); cur = a; return a;
+    a.play(); cur = a; if (!once) loop = clip; return a;
   };
+  // a one-off (a hit, a bite) goes back to what it was doing
+  mixer.addEventListener("finished", (ev) => { if (loop && ev.action === cur) play(loop, { fade: 0.15 }); });
   return { obj: o, mixer, play };
 }
 // what stands around each shop, in the shop's own frame (+Z faces the spawn point, the plinth is r = 3)

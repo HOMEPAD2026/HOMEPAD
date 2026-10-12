@@ -2881,6 +2881,7 @@ html.wp-pcphone .wr-head h2{font-size:24px;white-space:nowrap}
 html.wp-pcphone .wr-head p{display:none}
 html.wp-pcphone .wr-head .wr-switch{order:3;flex:1 1 100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:0;margin-top:0}
 html.wp-pcphone .wr-head .wr-switch button{padding:0 8px}
+html.wp-pcphone .wr-head .wr-switch .wr-dot{top:4px;right:6px}
 html.wp-pcphone .wr-ftabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
 html.wp-pcphone .wr-ftabs>button{min-width:0;padding:0 8px}
 /* the map: the minimap key */

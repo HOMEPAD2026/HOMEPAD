@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -553,7 +553,7 @@ const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
-let combat = null, rpg = null, quests = null, pet = null, raid = null, ghosts = null, race = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
+let combat = null, rpg = null, quests = null, pet = null, raid = null, ghosts = null, race = null, decor = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
 function inputs() {
   let x = 0, y = 0;
   if (keys.has("w") || keys.has("arrowup")) y += 1;
@@ -566,7 +566,7 @@ function inputs() {
   const run = keys.has("shift") || runToggle || (joy && Math.hypot(joy.dx, joy.dy) > 0.95) || (gpad.on && gpad.run);
   return { x, y, m, run };
 }
-const SOLIDS = () => [shops, [portal, isleGate, fountainCore], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live)];
+const SOLIDS = () => [shops, [portal, isleGate, fountainCore], lockedStages, town, coinBuildings, fighters.filter((g) => g.userData.live), decor ? decor.solids() : []];
 const lp = new THREE.Vector3();
 // a point on the ground (the world group's coordinates) inside a building? — the street scammers ask
 const wp0 = new THREE.Vector3();
@@ -1530,7 +1530,9 @@ function tutorialStep(done) {
   if (P.tut >= TUT.length) { h.hidden = true; return; }
   h.innerHTML = `<small>${esc(T("Getting started"))} ${P.tut + 1}/${TUT.length}</small> ${esc(T(TUT[P.tut]))}`; h.hidden = false; h.classList.remove("on"); void h.offsetWidth; h.classList.add("on");
   // the training fight: a weak scammer shows up a few steps away
-  if (P.tut === 3 && combat && mode === "hub") setTimeout(() => { if (P.tut === 3 && combat.state().mobs.length === 0) combat.spawnNear(6, { lv: 1, free: true }); }, 900);
+  // (tried again until the scammer robots have loaded: on a slow connection they come a little after the town)
+  const train = () => { if (P.tut !== 3 || mode !== "hub" || !combat || combat.state().mobs.length) return; if (!combat.spawnNear(6, { lv: 1, free: true })) setTimeout(train, 1500); };
+  if (P.tut === 3 && combat && mode === "hub") setTimeout(train, 900);
 }
 // ---------------- sign in, character maker, settings, photo mode ----------------
 const auth = $("wp-auth");
@@ -1823,7 +1825,7 @@ rpg = RPG.createRpg({
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
-  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), gearModel: (slot, tier, color, glow) => (decor ? decor.gear(slot, tier, color, glow) : null), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 combat = FIGHT.createCombat({
@@ -1924,6 +1926,13 @@ function goNear(x, z) {
 }
 const inbox = INBOX.createInbox({ T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
   openProfile: (w) => openProfile(w), inHub: () => mode === "hub", bookNew: () => island.bookNew(), save: () => save(), onPots: () => combat && combat.potsCheck() });
+// ---------------- set dressing from the free model packs (world-decor.js) ----------------
+decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shops, zones: RPG.ZONES, ver: VER, low: S.quality === "low" || S.quality === "saver", lite: S.quality === "medium" || matchMedia("(pointer: coarse)").matches, reduce, here: (v) => here(v), onWeapons: () => rpg && rpg.dress(), avoid: () => (race ? [[race.pad.position.x, race.pad.position.z, 3.2], ...race.points().map(([x, z]) => [x, z, 2.6])] : []) });
+st.on((dt) => decor.tick(dt));
+// ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
+// rendering, a frame a second) get it only with ?decor=1
+const decorOn = /[?&]decor=1\b/.test(location.search) || (!navigator.webdriver && !/[?&]decor=0\b/.test(location.search));
+if (decorOn) setTimeout(() => decor.start(), 1500);
 // ---------------- the ARC Bot wardrobe (world-wardrobe.js) ----------------
 const wardrobe = WARD.createWardrobe({ THREE, T: TW, esc, level, charId: () => P.char || "arc-arc", outfit: () => P.outfit || null, toast, Snd,
   save: (o) => { P.outfit = o; save(); setAvatar(P.char || "arc-arc"); delete thumbCache[P.char || "arc-arc"]; } });
@@ -2067,11 +2076,28 @@ const fireflies = (() => {
   pts.userData.update = (t) => { for (let i = 0; i < N; i++) { const b = base[i], s = b[3]; pos[i * 3] = b[0] + Math.sin(t * 0.3 + s) * 1.6; pos[i * 3 + 1] = b[1] + Math.sin(t * 0.7 + s * 2) * 0.4; pos[i * 3 + 2] = b[2] + Math.cos(t * 0.25 + s) * 1.6; } geo.attributes.position.needsUpdate = true; mat.size = 0.45 + Math.sin(t * 3) * 0.12; };
   return pts;
 })();
+// outdoor light on the shiny surfaces: the sky's own colours over a green ground as the environment map (it was a
+// studio room before), redone when the day has turned a little
+const skyEnv = (() => {
+  const pm = new THREE.PMREMGenerator(st.renderer), sc = new THREE.Scene(), geo = new THREE.SphereGeometry(10, 32, 16);
+  const col = new Float32Array(geo.attributes.position.count * 3); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  sc.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  let rt = null, lastK = -1; const c = new THREE.Color(), ground = new THREE.Color();
+  return (k) => {
+    if (rt && Math.abs(k - lastK) < 0.08) return; lastK = k;
+    const top = skyU.top.value, mid = skyU.mid.value, glow = skyU.glow.value, p = geo.attributes.position;
+    ground.set(0x4c8a52).lerp(new THREE.Color(0x0a1410), k);
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i) / 10; if (y > 0.25) c.copy(mid).lerp(top, (y - 0.25) / 0.75); else if (y > -0.05) c.copy(glow).lerp(mid, Math.max(0, y) / 0.25); else c.copy(ground); col[i * 3] = c.r * 1.6; col[i * 3 + 1] = c.g * 1.6; col[i * 3 + 2] = c.b * 1.6; }
+    geo.attributes.color.needsUpdate = true;
+    const old = rt; rt = pm.fromScene(sc, 0.03); st.scene.environment = rt.texture; if (old) old.dispose();
+  };
+})();
 function dayNight() {
   const d = new Date(Date.now() + 9 * 3600e3);
   const h = Number.isFinite(hourParam) && new URLSearchParams(location.search).has("hour") ? hourParam : d.getUTCHours() + d.getUTCMinutes() / 60;
   const k = h >= 20 || h < 5 ? 1 : h >= 17 ? (h - 17) / 3 : h < 7 ? 1 - (h - 5) / 2 : 0;
   if (Math.abs(k - nightK) < 0.01) return; nightK = k;
+  setTimeout(() => skyEnv(k), 0);
   const dusk = Math.max(0, 1 - Math.abs(k - 0.5) * 2.4);
   ["top", "mid"].forEach((n) => skyU[n].value.copy(DAY[n]).lerp(NIGHT[n], k));
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
@@ -2275,7 +2301,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
-  stage: () => st, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, openProfile: (w) => openProfile(w),
+  stage: () => st, kit: () => kit, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, decor: () => decor, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },
