@@ -13,7 +13,7 @@ import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
 export function grassMask({ planet, extent = 680, size = 512, zones = [], clear = [], skip = new Set(["ground", "zones", "combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid", "grass", "hills"]) }) {
   const cv = document.createElement("canvas"); cv.width = cv.height = size;
   const g = cv.getContext("2d"), px = size / extent, toPx = (v) => (v + extent / 2) * px;
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace; tex.flipY = false; /* row = z, as the shader reads it */ tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   const box = new THREE.Box3(), m4 = new THREE.Matrix4(), v = new THREE.Vector3(), inv = new THREE.Matrix4();
   function paint() {
     g.fillStyle = "#000"; g.fillRect(0, 0, size, size);
@@ -40,6 +40,8 @@ export function grassMask({ planet, extent = 680, size = 512, zones = [], clear 
         box.setFromObject(o); box.applyMatrix4(inv);
         const w = box.max.x - box.min.x, d = box.max.z - box.min.z;
         // something standing on the ground and not huge: clear a patch the size of its footprint
+        // flat things lying on the ground (district tints, contact shade, rings) leave the grass alone unless small
+        if (box.max.y - box.min.y < 0.25 && Math.max(w, d) > 3) return;
         if (box.min.y < 0.6 && w < 30 && d < 30 && w > 0.2) { g.beginPath(); g.ellipse(toPx((box.min.x + box.max.x) / 2), toPx((box.min.z + box.max.z) / 2), Math.max(1, (w / 2 + 0.3) * px), Math.max(1, (d / 2 + 0.3) * px), 0, 0, Math.PI * 2); g.fill(); }
         return;
       }
