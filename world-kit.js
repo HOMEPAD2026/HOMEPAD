@@ -116,7 +116,7 @@ export function quality(force = "auto") {
   const low = f === "low" || f === "saver" ? true : f === "medium" || f === "ultra" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
   const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
   const medium = f === "medium";
-  const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : 1.75);
+  const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : coarse ? 1.5 : 1.75); // phones on Auto: 1.5× (a 3× screen at full size costs four times the pixels for little gain)
   return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : 2048 };
 }
 export function webglOk() {
@@ -797,12 +797,55 @@ export function toonLook(m, { rim = null } = {}) {
   m.customProgramCacheKey = () => prevKey() + "|toon" + (own ? "o" : ""); m.needsUpdate = true;
   return m;
 }
+// a scammer's knock-out: it breaks up into glowing data cubes from the bottom up (dis.value 0 → 1)
+const dissolved = new WeakSet();
+export function dissolveLook(m, dis) {
+  if (!m || dissolved.has(m) || !(m.isMeshStandardMaterial || m.isMeshPhongMaterial || m.isMeshLambertMaterial)) return m;
+  dissolved.add(m);
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => "";
+  m.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uDis = dis;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vDisP;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvDisP = position;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vDisP; uniform float uDis;").replace("#include <dithering_fragment>", `#include <dithering_fragment>
+      if (uDis > 0.001) { vec3 c = floor(vDisP * 9.0); float h = fract(sin(dot(c, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+        float th = uDis * 1.25 - 0.1 + clamp(vDisP.y, -1.0, 2.0) * 0.08;
+        if (h < th) discard;
+        if (h < th + 0.12) gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.45, 1.6, 2.2), 0.85); }`);
+  };
+  m.customProgramCacheKey = () => prevKey() + "|dis"; m.needsUpdate = true;
+  return m;
+}
+// a dark rim round characters and scammers (an inverted shell: the back faces pushed out along the normals), so they
+// stand out from busy ground; skinned meshes get a skinned shell on the same skeleton. Glowing parts are left bare.
+const OUTLINE = new Map();
+function outlineMat(color, t) {
+  const k = color + ":" + t; if (OUTLINE.has(k)) return OUTLINE.get(k);
+  const m = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>\n  transformed += normalize(normal) * ${t.toFixed(4)} / max(1e-4, length(modelMatrix[0].xyz));`); };
+  m.customProgramCacheKey = () => "outline" + k; OUTLINE.set(k, m); return m;
+}
+export function outlineAll(obj, { color = 0x0b1220, t = 0.022 } = {}) {
+  const list = []; obj.updateMatrixWorld(true);
+  obj.traverse((o) => { if (!o.isMesh || o.isSprite || o.userData.outline || !o.geometry || !o.geometry.attributes.normal) return; const ms = Array.isArray(o.material) ? o.material : [o.material]; if (ms.some((m) => !m || m.transparent || (m.emissive && m.emissiveIntensity > 0.5 && m.emissive.getHex()) || m.isMeshBasicMaterial)) return; list.push(o); });
+  const out = [];
+  for (const o of list) {
+    const m = outlineMat(color, t), sh = o.isSkinnedMesh ? new THREE.SkinnedMesh(o.geometry, m) : new THREE.Mesh(o.geometry, m);
+    if (o.isSkinnedMesh) sh.bind(o.skeleton, o.bindMatrix);
+    sh.userData.outline = true; sh.castShadow = false; sh.receiveShadow = false; sh.frustumCulled = o.frustumCulled; sh.name = "outline";
+    sh.position.copy(o.position); sh.quaternion.copy(o.quaternion); sh.scale.copy(o.scale); o.parent.add(sh); out.push(sh);
+    if (!o.isSkinnedMesh) { o.add(sh); sh.position.set(0, 0, 0); sh.quaternion.identity(); sh.scale.set(1, 1, 1); } // rigid parts: ride along as a child
+  }
+  return out;
+}
+// a hook run on every character made (world-play.js sets it: the palette pull and the outline)
+let charHook = null; export const setCharHook = (f) => { charHook = f; };
 const toonAll = (obj, o) => { obj.traverse((x) => { if (x.isMesh && x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach((mm) => toonLook(mm, o)); }); return obj; };
 export { toonAll };
 const charCache = new Map();
 export async function makeCharacter(id, ver = "", outfit = null) {
   const ab = arcbotOf(id);
-  if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); toonAll(b.obj); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
+  if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); toonAll(b.obj); if (charHook) charHook(b.obj, true); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
   if (id === "bot" || !CHARACTERS.includes(id)) {
     const r = makeRobot(); r.scale.setScalar(0.8);
     const rings = r.userData.crown.children;
@@ -818,7 +861,7 @@ export async function makeCharacter(id, ver = "", outfit = null) {
   const inner = SkeletonUtils.clone(src.scene);
   const box = new THREE.Box3().setFromObject(inner), h = box.max.y - box.min.y || 1;
   const k = 2.1 / h; inner.scale.setScalar(k); inner.position.y = -box.min.y * k;
-  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner);
+  const obj = new THREE.Group(); obj.add(inner); shadowy(obj, true, false); toonAll(inner); if (charHook) charHook(inner, false);
   // the ARCIRCLE crown: the two rings of the mark over the head
   const crown = new THREE.Group(); crown.position.y = 2.45;
   const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.blue, 2.6)), r2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 10, 32), glow(C.green, 2.4));
@@ -952,12 +995,22 @@ export function makeLamps() {
   const al = ARC.makeArcLamps(ms), g = new THREE.Group(); g.add(al.group);
   lampMat.dispose(); const lampMat2 = al.lampMat;
   // at night each lamp throws a warm pool of light on the ground
-  const pool = new THREE.CircleGeometry(2.2, 28); pool.rotateX(-Math.PI / 2); pool.translate(0, 0.06, 0);
-  const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc977, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  // (a soft round falloff, not a flat disc) and a faint cone of light under the lantern
+  const pool = new THREE.PlaneGeometry(7, 7); pool.rotateX(-Math.PI / 2); pool.translate(0, 0.06, 0);
+  const pt = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d"), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(cv); return t; })();
+  const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc977, map: pt, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  const cone = new THREE.CylinderGeometry(0.22, 1.5, 2.5, 18, 1, true); cone.translate(0, 1.33, 0);
+  const coneMat = new THREE.ShaderMaterial({ uniforms: { uK: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: "varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "uniform float uK; varying float vY; void main(){ gl_FragColor = vec4(vec3(1.0, 0.82, 0.5) * uK * pow(vY, 1.6) * 0.16, 1.0); }" });
+  const cones = new THREE.InstancedMesh(cone, coneMat, pts.length); cones.visible = false; cones.userData.noBake = true;
+  pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); cones.setMatrixAt(i, o.matrix); }); g.add(cones);
   const pools = new THREE.InstancedMesh(pool, poolMat, pts.length);
   pts.forEach(([th, ph], i) => { placeOn(o, dirOf(th, ph), R - 0.02); o.updateMatrix(); pools.setMatrixAt(i, o.matrix); });
   pools.visible = false; g.add(pools);
-  g.userData.night = (k) => { lampMat2.emissiveIntensity = 0.35 + k * 3.2; poolMat.opacity = 0.32 * k; pools.visible = k > 0.05; };
+  pools.userData.noBake = true;
+  g.userData.spots = pts.map(([th, ph]) => { placeOn(o, dirOf(th, ph), R - 0.02); return [o.position.x, o.position.z]; }); // where they stand (the grass takes their light)
+  g.userData.night = (k) => { lampMat2.emissiveIntensity = 0.35 + k * 3.2; poolMat.opacity = 0.42 * k; pools.visible = k > 0.05; coneMat.uniforms.uK.value = k; cones.visible = k > 0.05; };
   return g;
 }
 // a column of smoke puffs (chimneys)

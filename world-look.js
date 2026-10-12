@@ -182,14 +182,15 @@ export function contactShadow(r = 3, strength = 0.42) {
 // The real shadow map covers ~26 m round you; past that the ground (and each hunting ground's floor) takes its shade
 // from this bake — halls, trees, the far grounds' props. Rebaked when new things are built (lazy grounds, decor).
 // Things under a metre (water, puddles, paths) don't cast; moving things (scammers, players, effects) are left out.
-export function groundShadow({ renderer, planet, sunDir, size = 2048, extent = 440, skip = new Set(["combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid"]) }) {
+export function groundShadow({ renderer, planet, sunDir, size = 2048, extent = 440, skip = new Set(["combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid"]), around = null }) {
   const rt = new THREE.WebGLRenderTarget(size, size);
   rt.depthTexture = new THREE.DepthTexture(size, size); rt.depthTexture.type = THREE.UnsignedIntType;
   const cam = new THREE.OrthographicCamera(-extent / 2, extent / 2, extent / 2, -extent / 2, 1, 900);
   const U = { gsTex: { value: rt.depthTexture }, gsM: { value: new THREE.Matrix4() }, gsPl: { value: new THREE.Vector3() }, gsOn: { value: 0 }, gsPx: { value: 1 / size }, gsK: { value: 0.4 }, gsNear: { value: 18 } };
   const depthMat = new THREE.MeshDepthMaterial(), holder = new THREE.Scene(); holder.overrideMaterial = depthMat;
   const patched = new Set();
-  function bake() {
+  function bake() { if (around) around(bake0); else bake0(); }
+  function bake0() {
     const parent = planet.parent, pos = planet.position.clone(), off = [];
     planet.traverse((o) => { if (o.visible && (skip.has(o.name) || o.isSprite || o.isPoints || o.isLine || o.userData.noBake || patched.has(o.material))) { o.visible = false; off.push(o); } });
     planet.position.set(0, 0, 0); holder.add(planet); planet.updateMatrixWorld(true);

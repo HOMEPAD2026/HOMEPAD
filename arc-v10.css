@@ -3119,10 +3119,64 @@ body.wp .wp-card:not([hidden]){animation:wpRise var(--hud-t) var(--hud-ease) bot
 .wpv-canvas:active{cursor:grabbing}
 .wr-avatar.has-3d{display:block;grid-column:1/-1;position:relative;height:200px;border-radius:12px;background:radial-gradient(circle at 50% 70%,rgba(47,134,255,.18),transparent 70%)}
 .wr-avatar.has-3d>span{position:absolute;left:10px;top:8px;z-index:1;font:700 12px var(--f-num);color:rgba(222,233,244,.7);pointer-events:none}
-.wr-3d{height:150px;margin:-4px -4px 10px;border-radius:12px;background:radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--rc,#556) 26%,transparent),transparent 70%)}
+.wr-w3d{height:150px;margin:-4px -4px 10px;border-radius:12px;background:radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--rc,#556) 26%,transparent),transparent 70%)}
 /* the loading screen's little planet (world-loading3d.js) takes the logo's place */
 .wp-loading .wp-load3d{width:200px;height:200px;margin-bottom:-18px}
 .wp-loading.has-3d>img{display:none}
 /* rankings: the value column (level, score, time) is one right-aligned column of the same width on every row */
 .wq-rank li>button em{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-width:76px;text-align:right;white-space:nowrap;line-height:1.25}
 .wq-rank li>button em small{margin-top:2px}
+/* damage numbers: an ink outline, a hard pop on a crit, a bump each time quick hits add up */
+.wp-float-n{font-family:var(--f-num,var(--f-ui));-webkit-text-stroke:4px rgba(8,12,20,.88);paint-order:stroke fill;letter-spacing:.01em}
+.wp-float-n.crit{-webkit-text-stroke:5px rgba(60,20,0,.9)}
+.wp-float-n.bump{animation:wpFloatBump .9s ease-out forwards}
+@keyframes wpFloatBump{0%{transform:translate(-50%,-10px) scale(1.35);opacity:1}18%{transform:translate(-50%,-14px) scale(1);opacity:1}100%{transform:translate(-50%,-56px) scale(1);opacity:0}}
+/* the menu (≡ or Esc): every window a tap away, grouped by what you're doing */
+.wp-more-btn{display:inline-flex!important}
+.wp-hub{position:fixed;inset:0;z-index:44;display:grid;place-items:center;padding:16px;background:rgba(4,8,14,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.wp-hub[hidden]{display:none}
+.wp-hub-card{width:min(760px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:22px 22px 18px;border-radius:var(--hud-r-l,22px);background:rgba(8,13,22,.96);border:1px solid var(--hud-line,rgba(255,255,255,.12));box-shadow:0 30px 80px rgba(0,0,0,.6);animation:wpRise .2s cubic-bezier(.2,.9,.3,1) both}
+.wp-hub-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.wp-hub-h h2{margin:0;font:800 22px var(--f-ui);color:#fff}
+.wp-hub-x{appearance:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--hud-line,rgba(255,255,255,.14));background:rgba(255,255,255,.04);color:#dfe8f2;cursor:pointer}
+.wp-hub section{margin-top:14px}
+.wp-hub h3{margin:0 0 8px;font:700 12px var(--f-ui);color:rgba(222,233,244,.55);letter-spacing:.02em}
+.wp-hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.wp-hub-grid button{appearance:none;position:relative;display:flex;align-items:center;gap:12px;min-height:58px;padding:12px 14px;border-radius:var(--hud-r-m,16px);border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);color:#eef3f7;font:700 14px var(--f-ui);text-align:left;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.wp-hub-grid button:hover{background:rgba(120,196,255,.1);border-color:rgba(120,196,255,.35)}
+.wp-hub-grid button:active{transform:scale(.97)}
+.wp-hub-grid button .wi-ic{color:#9fe6ff;width:26px;height:26px}
+.wp-hub-grid button span{flex:1;line-height:1.2}
+.wp-hub-grid kbd{font:700 11px var(--f-num,var(--f-ui));color:rgba(222,233,244,.6);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:2px 6px}
+.wp-hub-dot{position:absolute;top:9px;left:30px;width:9px;height:9px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 0 2px rgba(8,13,22,.96)}
+@media (max-width:520px){.wp-hub{padding:10px;align-items:end}.wp-hub-card{border-radius:22px 22px 16px 16px;padding:18px 14px 14px}.wp-hub-grid{grid-template-columns:repeat(3,1fr);gap:6px}.wp-hub-grid button{flex-direction:column;justify-content:center;gap:6px;min-height:84px;padding:10px 6px;text-align:center;font-size:12px}.wp-hub-dot{left:auto;right:10px}}
+html.wp-pcphone .wp-hub-card{width:min(1100px,100%)}
+html.wp-pcphone .wp-hub-grid{grid-template-columns:repeat(3,1fr)}
+html.wp-pcphone .wp-hub-grid button{min-height:120px;font-size:24px;flex-direction:column;justify-content:center}
+html.wp-pcphone .wp-hub-grid button .wi-ic{width:44px;height:44px}
+html.wp-pcphone .wp-hub-h h2{font-size:36px}
+@media (prefers-reduced-motion:reduce){.wp-hub-card{animation:none}}
+/* panels: a thin line of the brand's two colours along the top edge */
+.wr-card,.wp-hub-card{position:relative}
+.wr-card::before,.wp-hub-card::before{content:"";position:absolute;left:28px;right:28px;top:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#2f86ff 25%,#38e8ff 50%,#2ee07a 75%,transparent);opacity:.8;pointer-events:none}
+/* Epic and Legendary pieces: a light sweeps across the tile now and then */
+.wr-tile.r3,.wr-tile.r4{overflow:hidden}
+.wr-tile.r3::after,.wr-tile.r4::after{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.28) 50%,transparent 58%);transform:translateX(-70%);animation:wrSweep 3.6s ease-in-out infinite;pointer-events:none}
+.wr-tile.r4::after{background:linear-gradient(115deg,transparent 40%,rgba(255,236,170,.45) 50%,transparent 60%);animation-duration:2.6s}
+@keyframes wrSweep{0%,55%{transform:translateX(-70%)}100%{transform:translateX(70%)}}
+@media (prefers-reduced-motion:reduce){.wr-tile.r3::after,.wr-tile.r4::after{animation:none;display:none}}
+/* level up: a card across the middle, rays turning behind the number */
+.wp-lvup{position:fixed;left:50%;top:34%;z-index:42;display:grid;justify-items:center;gap:2px;pointer-events:none;transform:translate(-50%,-50%);animation:wpLvIn .45s cubic-bezier(.2,1.4,.4,1) both;transition:opacity .45s,transform .45s}
+.wp-lvup.out{opacity:0;transform:translate(-50%,-62%)}
+.wp-lvup small{position:relative;font:800 16px var(--f-ui);color:#ffe7a6;letter-spacing:.06em;-webkit-text-stroke:3px rgba(40,20,0,.85);paint-order:stroke fill}
+.wp-lvup b{position:relative;font:900 92px/1 var(--f-num,var(--f-ui));color:#ffd27a;-webkit-text-stroke:6px rgba(40,20,0,.9);paint-order:stroke fill;text-shadow:0 0 30px rgba(255,200,90,.55)}
+.wp-lvup span{position:relative;margin-top:4px;padding:5px 14px;border-radius:999px;background:rgba(10,14,22,.82);border:1px solid rgba(255,200,97,.5);font:700 13px var(--f-ui);color:#ffe7a6}
+.wp-lvup-rays{position:absolute;left:50%;top:50%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,210,122,.22) 0 8deg,transparent 8deg 22deg);-webkit-mask:radial-gradient(circle,#000 20%,transparent 70%);mask:radial-gradient(circle,#000 20%,transparent 70%);animation:wpRays 6s linear infinite}
+@keyframes wpLvIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes wpRays{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.wp-lvup,.wp-lvup-rays{animation:none}}
+/* entering a hunting ground: a band of its colour wipes across behind the name */
+.wc-banner::before{content:"";position:absolute;left:50%;top:50%;z-index:-1;width:min(900px,96vw);height:120px;transform:translate(-50%,-50%) scaleX(0);transform-origin:left center;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--zc) 34%,rgba(6,10,16,.7)) 18%,color-mix(in srgb,var(--zc) 34%,rgba(6,10,16,.7)) 82%,transparent);-webkit-mask:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent);mask:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent)}
+.wc-banner.on::before{animation:wcWipe 3.2s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes wcWipe{0%{transform:translate(-50%,-50%) scaleX(0);opacity:1}14%{transform:translate(-50%,-50%) scaleX(1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-50%) scaleX(1);opacity:0}}
+@media (prefers-reduced-motion:reduce){.wc-banner.on::before{animation:none;transform:translate(-50%,-50%) scaleX(1);opacity:.8}}

@@ -22,7 +22,20 @@ export const tint = (c) => mat("tint" + c, () => new THREE.MeshStandardMaterial(
 export const wood = () => mat("wood", () => new THREE.MeshStandardMaterial({ color: 0x7a5236, roughness: 0.8 }), { paint: 0x7a5236 });
 
 // ---------------- baking: many parts → one mesh per material ----------------
-const PAINT = () => mat("PAINT", () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.05 }));
+// the painted shell: ceramic panels (fine seams every 1.2 m across and 0.75 m up) and a little shade near the ground,
+// so a white wall reads as a built thing and not a flat box (a shader step on the one shared material)
+const PAINT = () => mat("PAINT", () => { const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.05 });
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPanel; varying vec3 vPanelN;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvPanel = position; vPanelN = normal;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPanel; varying vec3 vPanelN;").replace("#include <color_fragment>", `#include <color_fragment>
+      { vec3 an = abs(normalize(vPanelN)); float u = an.x > an.z ? vPanel.z : vPanel.x;
+        float side = step(an.y, 0.6); // walls only
+        float sx = abs(fract(u / 1.2 + 0.5) - 0.5) * 1.2, sy = abs(fract(vPanel.y / 0.75) - 0.5) * 0.75;
+        float seam = (1.0 - smoothstep(0.008, 0.022, min(sx, sy))) * side;
+        diffuseColor.rgb *= 1.0 - seam * 0.12;
+        diffuseColor.rgb *= mix(0.84, 1.0, smoothstep(0.0, 1.1, vPanel.y)); }`);
+  };
+  m.customProgramCacheKey = () => "panels"; return m; });
 const GLOW = () => mat("GLOW", () => new THREE.MeshBasicMaterial({ vertexColors: true }));
 /// parts: [[geometry, material, { x, y, z, rx, ry, rz, sx, sy, sz }]] → a Group of merged meshes
 const O = new THREE.Object3D();
@@ -76,7 +89,7 @@ export function makeArcBuilding(id, color) {
   P.push([tor(0.62, 0.04, 40, Math.PI), c, { y: 0.28 + 1.55, z: D / 2 + 0.24 }]);
   P.push([box(0.06, 1.3, 0.06, 0.02), c, { x: -0.62, y: 0.28 + 0.9, z: D / 2 + 0.24 }], [box(0.06, 1.3, 0.06, 0.02), c, { x: 0.62, y: 0.28 + 0.9, z: D / 2 + 0.24 }]);
   // windows: a row of rounded glass panes on the front and the sides
-  for (const x of [-1.5, 1.5]) P.push([box(0.86, 1.1, 0.1, 0.14), shell(), { x, y: 0.28 + 1.35, z: D / 2 + 0.03 }], [box(0.66, 0.9, 0.1, 0.1), glass(), { x, y: 0.28 + 1.35, z: D / 2 + 0.07 }], [box(0.04, 0.88, 0.04, 0.01), shell(), { x, y: 0.28 + 1.35, z: D / 2 + 0.12 }], [box(0.7, 0.05, 0.06, 0.02), c, { x, y: 0.28 + 0.78, z: D / 2 + 0.1 }]);
+  for (const x of [-1.5, 1.5]) P.push([box(0.86, 1.1, 0.1, 0.14), shell(), { x, y: 0.28 + 1.35, z: D / 2 + 0.03 }], [box(0.66, 0.9, 0.1, 0.1), glass(), { x, y: 0.28 + 1.35, z: D / 2 + 0.07 }], [box(0.04, 0.88, 0.04, 0.01), shell(), { x, y: 0.28 + 1.35, z: D / 2 + 0.12 }], [box(0.64, 0.04, 0.04, 0.01), shell(), { x, y: 0.28 + 1.42, z: D / 2 + 0.12 }], [box(0.92, 0.07, 0.16, 0.03), stone(), { x, y: 0.28 + 0.8, z: D / 2 + 0.1 }], [box(0.7, 0.05, 0.06, 0.02), c, { x, y: 0.28 + 0.76, z: D / 2 + 0.17 }]);
   for (const s of [-1, 1]) for (const z of [-0.8, 0.8]) P.push([box(0.08, 0.9, 0.7, 0.1), glass(), { x: s * (W / 2 + 0.02), y: 0.28 + 1.35, z }]);
   // the upper drum and the roof
   const top = 0.28 + H1 + 0.07;
@@ -101,6 +114,8 @@ export function makeArcBuilding(id, color) {
     P.push([box(W - 0.4, 0.4, D - 0.4, 0.15), shell(), { y: top + 0.2 }], [box(W - 0.5, 0.05, 0.05, 0.02), c, { y: top + 0.36, z: (D - 0.4) / 2 + 0.01 }]);
     h = top + 0.45;
   }
+  // a little roof clutter on the back: vents and a mast (the halls read as working buildings from the street)
+  P.push([box(0.5, 0.3, 0.4, 0.06), trim(), { x: 1.35, y: 0.28 + H1 + 0.32, z: -1.05 }], [box(0.36, 0.06, 0.3, 0.02), shell(), { x: 1.35, y: 0.28 + H1 + 0.5, z: -1.05 }], [cyl(0.03, 0.03, 0.8, 8), trim(), { x: -1.75, y: 0.28 + H1 + 0.55, z: -1.2 }], [sph(0.06, 10, 8), light(0xff4d6d), { x: -1.75, y: 0.28 + H1 + 0.98, z: -1.2 }]);
   // the extras that tell the shops apart
   if (k.wings) for (const s of [-1, 1]) { P.push([box(1.3, 1.6, 2.4, 0.3), shell(), { x: s * (W / 2 + 0.55), y: 0.28 + 0.8, z: -0.2 }], [sph(0.62, 24, 12, true), glass(), { x: s * (W / 2 + 0.55), y: 0.28 + 1.6, z: -0.2, sy: 0.7 }], [box(0.06, 0.06, 2.2, 0.02), c, { x: s * (W / 2 + 1.21), y: 0.28 + 1.2, z: -0.2 }]); }
   if (k.columns) for (const x of [-1.6, -0.95, 0.95, 1.6]) P.push([cyl(0.14, 0.16, 2.1, 16), shell(), { x, y: 0.28 + 1.05, z: D / 2 + 0.55 }], [cyl(0.2, 0.2, 0.12, 16), trim(), { x, y: 0.28 + 2.12, z: D / 2 + 0.55 }]);
@@ -291,11 +306,11 @@ function paneGlass() {
   if (paned) return; paned = true; const g = glass();
   g.onBeforeCompile = (sh) => {
     sh.uniforms.uNight = NIGHT; sh.uniforms.uClock = CLOCK; sh.uniforms.uOrg = ORG;
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; uniform vec3 uOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvPane = (modelMatrix * vec4(transformed, 1.0)).xyz - uOrg;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; uniform float uNight, uClock;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; varying float vPaneUp; uniform vec3 uOrg;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvPane = (modelMatrix * vec4(transformed, 1.0)).xyz - uOrg; vPaneUp = abs(normalize(mat3(modelMatrix) * objectNormal).y);");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vPane; varying float vPaneUp; uniform float uNight, uClock;").replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
       { vec3 cell = floor(vPane * vec3(1.15, 1.6, 1.15)); float hh = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
         float era = floor(uClock / 37.0 + hh * 9.0); float on = step(0.28, fract(sin(dot(cell + era, vec3(4.1, 7.7, 2.3))) * 9631.7));
-        float k = mix(0.08, 0.75 + hh * 0.6, on); totalEmissiveRadiance *= mix(1.0, k, uNight); }`);
+        float k = mix(0.08, 0.75 + hh * 0.6, on); totalEmissiveRadiance *= mix(1.0, k, uNight * (1.0 - smoothstep(0.3, 0.55, vPaneUp))); }`);
   };
   g.customProgramCacheKey = () => "panes"; g.needsUpdate = true;
 }

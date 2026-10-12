@@ -310,6 +310,35 @@ export function villainize(kit) {
 // ---------------- small pictures of a weapon for the bag (one shared offscreen renderer, each picture made once) ----------------
 let thumbR = null, thumbScene = null, thumbCam = null;
 const thumbs = new Map();
+// the rest of the gear in the bag: small 3D pictures built here (a helm, a chest plate, a shield, boots, a ring, a
+// necklace), in the piece's rarity colour, a little more ornate with each tier
+function gearModel3d(slot, tier, color) {
+  const g = new THREE.Group(), c = new THREE.Color(color);
+  const metal = new THREE.MeshStandardMaterial({ color: c, metalness: 0.75, roughness: 0.3, emissive: c, emissiveIntensity: 0.12 + tier * 0.05 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a3446, metalness: 0.5, roughness: 0.45 }), gem = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: c, emissiveIntensity: 1.1, roughness: 0.15, metalness: 0.1 });
+  const M = (geo, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); g.add(o); return o; };
+  if (slot === "helm") { const d = M(new THREE.SphereGeometry(0.5, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), metal); d.scale.set(1, 0.9, 1.05); M(new THREE.TorusGeometry(0.5, 0.05, 8, 32), dark).rotation.x = Math.PI / 2; M(new THREE.BoxGeometry(0.07, 0.22, 0.62), dark, 0, 0.45, 0); M(new THREE.BoxGeometry(0.36, 0.06, 0.06), dark, 0, 0.12, 0.5);
+    if (tier >= 2) for (const s of [-1, 1]) { const h = M(new THREE.ConeGeometry(0.07, 0.36, 10), metal, s * 0.42, 0.42, 0); h.rotation.z = s * -0.7; } }
+  else if (slot === "armor") { const b = M(new THREE.CylinderGeometry(0.42, 0.34, 0.75, 20, 1), metal); b.scale.z = 0.62; for (const s of [-1, 1]) M(new THREE.SphereGeometry(0.2, 16, 10), metal, s * 0.46, 0.3, 0); M(new THREE.BoxGeometry(0.5, 0.06, 0.28), dark, 0, -0.18, 0.04); if (tier >= 2) M(new THREE.OctahedronGeometry(0.09, 0), gem, 0, 0.12, 0.27); }
+  else if (slot === "shield") { const s = M(new THREE.CylinderGeometry(0.5, 0.5, 0.08, 6), metal); s.rotation.x = Math.PI / 2; M(new THREE.TorusGeometry(0.5, 0.04, 6, 6), dark).rotation.z = Math.PI / 6; M(new THREE.SphereGeometry(0.12, 14, 10), tier >= 2 ? gem : dark, 0, 0, 0.06); }
+  else if (slot === "boots") { for (const s of [-1, 1]) { M(new THREE.BoxGeometry(0.22, 0.42, 0.24), metal, s * 0.16, 0.12, 0); M(new THREE.BoxGeometry(0.24, 0.13, 0.42), dark, s * 0.16, -0.12, 0.1); } }
+  else if (slot === "ring") { M(new THREE.TorusGeometry(0.3, 0.07, 12, 36), metal).rotation.x = 0.4; M(new THREE.OctahedronGeometry(0.14 + tier * 0.02, 0), gem, 0, 0.36, 0.08); }
+  else { const ch = M(new THREE.TorusGeometry(0.38, 0.025, 6, 40), dark); ch.scale.y = 1.25; M(new THREE.OctahedronGeometry(0.13 + tier * 0.02, 0), gem, 0, -0.52, 0); M(new THREE.TorusGeometry(0.06, 0.02, 6, 14), metal, 0, -0.4, 0); }
+  return g;
+}
+export function gearThumb(slot, tier, color) {
+  const key = `g-${slot}-${tier}-${color}`; if (thumbs.has(key)) return thumbs.get(key);
+  try {
+    if (!thumbR) weaponThumb(0, 0, "#ffffff"); // sets up the little renderer
+    const w = gearModel3d(slot, tier, color); w.rotation.set(0.35, -0.5, 0);
+    const b = new THREE.Box3().setFromObject(w), c = b.getCenter(new THREE.Vector3()), r = b.getSize(new THREE.Vector3()).length() / 2;
+    w.position.sub(c); thumbScene.add(w);
+    thumbCam.position.set(0, 0, r / Math.tan((14 * Math.PI) / 180) * 1.0); thumbCam.lookAt(0, 0, 0);
+    thumbR.render(thumbScene, thumbCam);
+    const url = thumbR.domElement.toDataURL("image/png"); thumbScene.remove(w); w.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    thumbs.set(key, url); return url;
+  } catch { thumbs.set(key, null); return null; }
+}
 export function weaponThumb(kind, tier, color) {
   const key = `${kind}-${tier}-${color}`; if (thumbs.has(key)) return thumbs.get(key);
   try {

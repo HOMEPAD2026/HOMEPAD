@@ -179,7 +179,7 @@ export function makeArcBot(THREE, spec) {
   };
   let cur = "idle", curT = 0, curSp = 1, from = null, fadeT = 0, fadeLen = 0.18, oneShot = false, held = false, blinkT = 2, exprHappy = false, expr = "", exprT = 0;
   // reactions on top of the animation: a flinch with squinting eyes, the head turned toward someone, a squash on landing
-  let hurtT = 0, hurtF = -1, hurtS = 0, lookY = 0, lookWant = 0, landT = 0, landK = 0, idleFor = 0, fidgetAt = 7 + Math.random() * 6, exprKo = false;
+  let leanX = 0, leanZ = 0, hurtT = 0, hurtF = -1, hurtS = 0, lookY = 0, lookWant = 0, landT = 0, landK = 0, idleFor = 0, fidgetAt = 7 + Math.random() * 6, exprKo = false;
   const ring0 = M.ring.emissiveIntensity;
   const pose = P0(), last = P0();
   function apply(p) {
@@ -201,6 +201,8 @@ export function makeArcBot(THREE, spec) {
     obj, spec, height: 2.1, play, busy: () => oneShot && !held,
     face: (x, secs = 1.4) => { if (x === "happy" || x === "wow" || x === "star" || x === "ouch") { expr = x; exprT = secs; } else { expr = ""; exprT = 0; } },
     // fwd: +1 pushed forward (hit from behind) … -1 pushed back; side: +1 pushed to its right
+    // leaning into a run and into turns (added on top of the pose)
+    lean(x, z) { leanX += (x - leanX) * 0.15; leanZ += (z - leanZ) * 0.12; },
     hurt(fwd = -1, side = 0) { hurtT = 0.42; expr = "ouch"; exprT = 0.5; hurtF = Math.max(-1, Math.min(1, fwd)); hurtS = Math.max(-1, Math.min(1, side)); },
     look(yaw) { lookWant = Math.max(-0.85, Math.min(0.85, yaw || 0)); },
     land(k = 1) { landT = 0.28; landK = Math.max(0.3, Math.min(1, k)); },
@@ -216,6 +218,7 @@ export function makeArcBot(THREE, spec) {
       if (from && fadeT < fadeLen) { fadeT += dt; const w = sm(Math.min(1, fadeT / fadeLen)); for (const key in p) p[key] = from[key] + (p[key] - from[key]) * w; if (fadeT >= fadeLen) from = null; }
       // reactions (added after the fade, so they sit on top of whatever plays)
       if (hurtT > 0) { hurtT = Math.max(0, hurtT - dt); const e = Math.sin((hurtT / 0.42) * Math.PI); p.tx += 0.34 * e * hurtF; p.hx += 0.3 * e * hurtF; p.rz -= 0.3 * e * hurtS; p.hz -= 0.22 * e * hurtS; p.alz -= 0.5 * e; p.arz += 0.5 * e; p.rz += Math.sin(tt * 40) * 0.04 * e; }
+      p.rx += leanX; p.rz += leanZ;
       lookY += (lookWant - lookY) * Math.min(1, dt * 5); if (cur === "idle" || cur === "walk") p.hy += lookY;
       Object.assign(last, p); apply(p);
       if (landT > 0) { landT = Math.max(0, landT - dt); const e = Math.sin((landT / 0.28) * Math.PI) * landK; root.scale.set(1 + 0.12 * e, 1 - 0.2 * e, 1 + 0.12 * e); } else if (root.scale.y !== 1) root.scale.set(1, 1, 1);

@@ -5,11 +5,11 @@ import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
 
 let r = null, scene = null, cam = null, holder = null, raf = 0, spin = 0.5, last = 0, drag = null, auto = true, failed = false;
-const view = { y: 1, dist: 4 };
+const view = { y: 1, dist: 4 }, GAP = matchMedia("(pointer: coarse)").matches ? 40 : 31;
 function init() {
   if (r || failed) return !!r;
   try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" }); } catch { failed = true; return false; }
-  r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+  r.setPixelRatio(Math.min(GAP > 31 ? 1.5 : 2, devicePixelRatio || 1)); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
   r.domElement.className = "wpv-canvas"; r.domElement.setAttribute("aria-hidden", "true");
   scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xdff0ff, 0x1a2a3a, 1.5));
@@ -29,6 +29,7 @@ function loop(t) {
   const cv = r.domElement;
   if (!cv.isConnected || !holder.children.length) { raf = 0; return; } // the panel closed or repainted
   raf = requestAnimationFrame(loop);
+  if (t - last < GAP) return; /* a turning preview needs no more than 30 frames a second */
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
   const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
   if (cv.width !== Math.round(w * r.getPixelRatio()) || cv.height !== Math.round(h * r.getPixelRatio())) { r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }

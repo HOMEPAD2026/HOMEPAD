@@ -10,7 +10,7 @@ import * as THREE from "./vendor/three/three-0.169.0.module.min.js";
 
 /* ---------------- the grass mask: where blades may grow, painted from what stands on the ground ---------------- */
 /// planet: the world group; extent: the side of the square it covers (metres); size: texture pixels
-export function grassMask({ planet, extent = 680, size = 512, zones = [], clear = [], skip = new Set(["ground", "zones", "combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid", "grass", "hills"]) }) {
+export function grassMask({ planet, extent = 680, size = 512, zones = [], clear = [], skip = new Set(["ground", "zones", "combat", "life", "ghosts", "zone-air", "airship", "race", "island", "raid", "grass", "hills", "ambient", "puddles", "particles", "smoke"]) }) {
   const cv = document.createElement("canvas"); cv.width = cv.height = size;
   const g = cv.getContext("2d"), px = size / extent, toPx = (v) => (v + extent / 2) * px;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace; tex.flipY = false; /* row = z, as the shader reads it */ tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
@@ -62,7 +62,8 @@ const BLADE_VS = /* glsl */`
   uniform vec2 uCenter; uniform float uSize, uTime; uniform vec2 uWind; uniform vec3 uPush;
   uniform sampler2D uMask; uniform float uMaskExt;
   uniform sampler2D gsTex; uniform mat4 gsM; uniform float gsOn, gsK;
-  varying float vY, vShade, vTone;
+  uniform vec2 uLamps[20]; uniform float uLampK;
+  varying float vY, vShade, vTone, vFlower, vLamp;
   void main() {
     vec2 off = fract(aRnd.xy - uCenter / uSize + 0.5) - 0.5;
     vec2 p = uCenter + off * uSize;
@@ -70,7 +71,12 @@ const BLADE_VS = /* glsl */`
     float m = texture2D(uMask, p / uMaskExt + 0.5).r;
     float h = (0.28 + aRnd.w * 0.36) * smoothstep(0.35, 0.8, m) * edge;
     float rot = aRnd.z * 6.2831;
-    vec3 pos = position; pos.y *= h;
+    // one blade in sixteen is a flower: shorter, with a coloured head
+    float fl = step(0.94, fract(aRnd.x * 91.7 + aRnd.y * 37.3)); vFlower = fl > 0.5 ? 1.0 + floor(fract(aRnd.y * 53.1) * 4.0) : 0.0;
+    h *= mix(1.0, 0.72, fl);
+    // farther blades get a little wider, so they don't flicker in and out between pixels
+    vec4 mvBase = modelViewMatrix * vec4(p.x, 0.0, p.y, 1.0); float widen = 1.0 + max(0.0, -mvBase.z - 8.0) * 0.045;
+    vec3 pos = position; pos.x *= widen * mix(1.0, 1.8, fl * step(0.7, position.y)); pos.y *= h;
     float y = position.y;
     // the blade turned round its root
     float c = cos(rot), s = sin(rot);
@@ -86,6 +92,7 @@ const BLADE_VS = /* glsl */`
     pos.xz += bend * y * y * h + vec2(c, s) * (aRnd.w - 0.5) * 0.5 * y * h; // and a lean of its own
     vec3 wp = vec3(p.x, 0.0, p.y) + pos;
     vY = y; vTone = aRnd.w;
+    vLamp = 0.0; if (uLampK > 0.01) for (int i = 0; i < 20; i++) { float dl = length(p - uLamps[i]); vLamp += 1.0 - smoothstep(0.5, 3.6, dl); } // street lamps light the blades round them at night
     // the far shade (world-look.js groundShadow): halls and trees darken the blades in their shadow
     vShade = 1.0;
     if (gsOn > 0.5) { vec4 sc = gsM * vec4(p.x, 0.05, p.y, 1.0); vec3 sp = sc.xyz * 0.5 + 0.5;
@@ -97,13 +104,15 @@ const BLADE_VS = /* glsl */`
 const BLADE_FS = /* glsl */`
   #include <common>
   #include <fog_pars_fragment>
-  uniform vec3 uRoot, uTip, uDry, uSun; uniform float uLight;
-  varying float vY, vShade, vTone;
+  uniform vec3 uRoot, uTip, uDry, uSun; uniform float uLight, uLampK;
+  varying float vY, vShade, vTone, vFlower, vLamp;
   void main() {
     vec3 tip = mix(uTip, uDry, smoothstep(0.8, 1.0, vTone) * 0.35);
     vec3 col = mix(uRoot, tip, smoothstep(0.0, 1.0, vY));
+    if (vFlower > 0.5 && vY > 0.72) { vec3 fc = vFlower < 1.5 ? vec3(1.0, 0.55, 0.78) : vFlower < 2.5 ? vec3(1.0, 0.86, 0.3) : vFlower < 3.5 ? vec3(0.98, 0.98, 1.0) : vec3(0.55, 0.7, 1.0); col = fc * 0.9; }
     col *= mix(0.55, 1.0, vY) * uLight * vShade;
     col += uSun * pow(vY, 3.0) * 0.12 * uLight; // the tips catch the sun
+    col += vec3(1.0, 0.62, 0.26) * min(vLamp, 1.0) * uLampK * (0.14 + vY * 0.36);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -130,6 +139,7 @@ export function makeGrass({ count = 40000, size = 64, mask, gshadow = null }) {
     uMask: { value: mask.tex }, uMaskExt: { value: mask.extent },
     uRoot: { value: new THREE.Color(0x2c5a2a) }, uTip: { value: new THREE.Color(0x7cc65a) }, uDry: { value: new THREE.Color(0xc8c070) }, uSun: { value: new THREE.Color(0xfff2c0) }, uLight: { value: 1 },
     gsTex: gsU.gsTex, gsM: gsU.gsM, gsOn: gsU.gsOn, gsK: gsU.gsK,
+    uLamps: { value: Array.from({ length: 20 }, () => new THREE.Vector2(9999, 9999)) }, uLampK: { value: 0 },
   };
   const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {}]), vertexShader: BLADE_VS, fragmentShader: BLADE_FS, fog: true, side: THREE.DoubleSide, depthWrite: false });
   Object.assign(mat.uniforms, U); // shared objects, so the shadow uniforms stay live
@@ -141,6 +151,7 @@ export function makeGrass({ count = 40000, size = 64, mask, gshadow = null }) {
     tick(dt, px, pz) { U.uTime.value += dt; U.uCenter.value.set(px, pz); U.uPush.value.x = px; U.uPush.value.y = pz; },
     setLight(k, tint = null) { U.uLight.value = 0.42 + 0.58 * k; if (tint) { day.set(tint); U.uTip.value.copy(day).lerp(night, (1 - k) * 0.45); } },
     setWind(x, z) { U.uWind.value.set(x, z); },
+    setLamps(spots, k) { spots.slice(0, 20).forEach(([x, z], i) => U.uLamps.value[i].set(x, z)); U.uLampK.value = k; },
   };
 }
 
@@ -181,27 +192,31 @@ export function makeHills({ inner = 228, outer = 430, rings = 44, segs = 220 } =
 }
 
 /* ---------------- the sky: a gradient dome with two layers of drifting cloud and the sun's glow ---------------- */
-export function makeSkyDome() {
+export function makeSkyDome({ lite = false } = {}) {
   const m = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
+    side: THREE.BackSide, depthWrite: false, fog: false, defines: { OCT: lite ? 3 : 5 },
     uniforms: {
       top: { value: new THREE.Color(0x050a18) }, mid: { value: new THREE.Color(0x0a1a2e) }, glow: { value: new THREE.Color(0x0f3f4a) },
       uTime: { value: 0 }, uSun: { value: new THREE.Vector3(0.4, 0.6, -0.5) }, uSunCol: { value: new THREE.Color(0xfff0d0) },
-      uCloudLit: { value: new THREE.Color(0xffffff) }, uCloudShade: { value: new THREE.Color(0x9fb0c8) }, uCover: { value: 0.48 }, uCloudK: { value: 1 },
+      uCloudLit: { value: new THREE.Color(0xffffff) }, uCloudShade: { value: new THREE.Color(0x9fb0c8) }, uCover: { value: 0.48 }, uCloudK: { value: 1 }, uNight: { value: 0 }, uMoon: { value: new THREE.Vector3(-0.5, 0.42, 0.6).normalize() },
     },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
     fragmentShader: /* glsl */`
-      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun; uniform float uTime, uCover, uCloudK; varying vec3 vP;
+      uniform vec3 top, mid, glow, uSunCol, uCloudLit, uCloudShade; uniform vec3 uSun, uMoon; uniform float uTime, uCover, uCloudK, uNight; varying vec3 vP;
       float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
         return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
-      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * n2(p); p = p * 2.03 + 7.1; a *= 0.5; } return v; }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * n2(p); p = p * 2.03 + 7.1; a *= 0.5; } return v; }
       void main(){
         vec3 d = normalize(vP); float h = d.y;
         vec3 c = mix(mid, top, smoothstep(0.0, 0.7, h)); c = mix(c, glow, smoothstep(0.25, -0.25, h) * 0.85);
         // the sun's glow round where it stands
         vec3 sd = normalize(uSun); float sa = max(dot(d, sd), 0.0);
         c += uSunCol * (pow(sa, 8.0) * 0.18 + pow(sa, 200.0) * 0.9) * uCloudK;
+        // the moon at night: a pale disc with a few darker seas, and a soft halo
+        if (uNight > 0.01) { vec3 md = normalize(uMoon); float ma = max(dot(d, md), 0.0); float disc = smoothstep(0.99955, 0.99975, ma);
+          if (ma > 0.9995) { vec3 mp = d - md * ma; float sea = fbm(mp.xz * 260.0 + 3.0); vec3 moon = vec3(0.93, 0.95, 1.0) * (0.78 + 0.25 * smoothstep(0.35, 0.7, sea));
+          c = mix(c, moon, disc * uNight); } c += vec3(0.55, 0.65, 0.9) * pow(ma, 400.0) * 0.5 * uNight; }
         // clouds: projected onto a high flat layer, two drifts at different speeds; thin near the horizon
         if (h > 0.02) {
           vec2 uv = d.xz / (h + 0.12) * 1.6;
@@ -295,3 +310,95 @@ export function unifyPalette(root, pull = PULL) {
   if (root && root.isObject3D) each(root); else if (root) for (const k of Object.keys(root)) { const v = root[k]; if (v && v.scene) each(v.scene); else if (v && v.isObject3D) each(v); }
 }
 export const paletteStrength = PULL;
+
+/* ---------------- hunting-ground floors: each ground its own ground ---------------- */
+// One shader step on each ground's floor: patches of lighter and darker earth, and the ground's own pattern —
+// cracked rock, wind ripples in sand, moss, old paving, ice, glowing seams in the dark grounds — fading into the
+// meadow at the rim. Coordinates are the floor's own (it lies flat, so its x/y are metres across the ground).
+const FLOOR = {
+  spam: { kind: 1, k: 0.5 }, fields: { kind: 3, k: 0.55, c2: 0x6a7a34 }, swamp: { kind: 3, k: 0.7, c2: 0x1c4a2a },
+  canyon: { kind: 0, k: 0.75 }, depths: { kind: 4, k: 0.9, glow: 0xb48cff }, peaks: { kind: 5, k: 0.6 },
+  dunes: { kind: 2, k: 0.7 }, reef: { kind: 2, k: 0.5, c2: 0x15606a }, wastes: { kind: 0, k: 0.7, glow: 0x9aff3c, gk: 0.35 },
+  ruins: { kind: 1, k: 0.75 }, abyss: { kind: 4, k: 1, glow: 0xff5a1a }, void: { kind: 4, k: 0.9, glow: 0xff4dd2 },
+};
+export function zoneFloor(mat, zn, { lite = false } = {}) {
+  const f = FLOOR[zn.id] || { kind: 0, k: 0.5 };
+  const U = { uFk: { value: f.kind }, uFs: { value: f.k }, uFr: { value: zn.r }, uFc2: { value: new THREE.Color(f.c2 != null ? f.c2 : zn.ground).multiplyScalar(f.c2 != null ? 1 : 0.7) }, uFg: { value: new THREE.Color(f.glow || 0) }, uFgk: { value: f.glow ? (f.gk || 1) : 0 }, uFt: { value: 0 }, uFl: { value: lite ? 1 : 0 } };
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => "";
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 vFp;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvFp = position.xy;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+      varying vec2 vFp; uniform float uFk, uFs, uFr, uFgk, uFt, uFl; uniform vec3 uFc2, uFg;
+      float fh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float fn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(fh(i), fh(i + vec2(1, 0)), u.x), mix(fh(i + vec2(0, 1)), fh(i + vec2(1, 1)), u.x), u.y); }
+      float fbm2(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * fn(p); p = p * 2.07 + 3.1; a *= 0.5; } return v; }
+      // distance to the nearest cell edge (Voronoi): cracks and seams
+      float cellEdge(vec2 p){ if (uFl > 0.5) return 1.0; vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0;
+        for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)); vec2 o = vec2(fh(i + g), fh(i + g + 17.3)); float d = length(g + o - f); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+        return d2 - d1; }`).replace("#include <map_fragment>", `#include <map_fragment>
+      { vec2 p = vFp; float n = fbm2(p * 0.18), m = fbm2(p * 0.9 + 7.0);
+        vec3 base = diffuseColor.rgb;
+        vec3 c = mix(base * 0.78, base * 1.18, n);                      // patches of lighter and darker ground
+        c = mix(c, uFc2, smoothstep(0.55, 0.75, fbm2(p * 0.12 + 3.0)) * 0.45);
+        float glow = 0.0;
+        if (uFk < 0.5) { float e = cellEdge(p * 0.62 + fbm2(p * 0.3) * 0.8); c *= 0.9 + fh(floor(p * 0.62 + fbm2(p * 0.3) * 0.8)) * 0.18; c *= 1.0 - (1.0 - smoothstep(0.012, 0.05, e)) * 0.5 * uFs; glow = 1.0 - smoothstep(0.0, 0.035, e); }        // cracked rock
+        else if (uFk < 1.5) { vec2 t = abs(fract(p / vec2(1.6, 1.6)) - 0.5); float l = 1.0 - smoothstep(0.43, 0.48, max(t.x, t.y)); c *= 1.0 - l * 0.3 * uFs * smoothstep(0.25, 0.6, m); c *= 0.92 + fh(floor(p / 1.6)) * 0.16; } // old paving
+        else if (uFk < 2.5) { float w = sin(p.x * 1.5 + fbm2(p * 0.25) * 7.0 + p.y * 0.4); c *= 1.0 + (smoothstep(-0.3, 1.0, w) - 0.45) * 0.3 * uFs; c *= vec3(1.1, 1.04, 0.9); } // wind ripples in warm sand
+        else if (uFk < 3.5) { c = mix(c, uFc2 * 1.15, smoothstep(0.5, 0.7, m) * 0.6 * uFs); }                                                                        // moss and dry grass
+        else if (uFk < 4.5) { float e = cellEdge(p * 0.3); c *= 0.85 + n * 0.25; glow = 1.0 - smoothstep(0.0, 0.06, e); }                                              // dark ground, glowing seams
+        else { c = mix(c, vec3(0.92, 0.97, 1.0), smoothstep(0.45, 0.65, m) * 0.5); float e = cellEdge(p * 0.6); c *= 1.0 - (1.0 - smoothstep(0.01, 0.05, e)) * 0.25; } // ice and snow
+        // the rim melts into the meadow
+        float rim = smoothstep(uFr - 3.5, uFr, length(p));
+        diffuseColor.rgb = mix(c, base * 0.9, rim * 0.5);
+        vFloorGlow = glow * uFgk * (0.75 + 0.25 * sin(uFt * 2.0 + n * 9.0)) * (1.0 - rim); }`).replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += uFg * vFloorGlow * 1.6;").replace("void main() {", "float vFloorGlow = 0.0;\nvoid main() {");
+  };
+  mat.customProgramCacheKey = () => prevKey() + "|floor"; mat.needsUpdate = true;
+  return U;
+}
+
+/* ---------------- the fountain's pool on Ultra: a real reflection, rippled, with the same foam and caustics ---------------- */
+export const REFLECT_WATER = {
+  name: "ReflectWater",
+  uniforms: { color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null }, uTime: { value: 0 }, uR: { value: 4 }, uCol: { value: new THREE.Color(0x38c8ff) }, uDeep: { value: new THREE.Color(0x0a5a8a) }, uLight: { value: 1 } },
+  vertexShader: /* glsl */`
+    uniform mat4 textureMatrix; varying vec4 vUv; varying vec2 vL; varying vec3 vW;
+    #include <common>
+    void main(){ vUv = textureMatrix * vec4(position, 1.0); vL = position.xy; vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse; uniform float uTime, uR, uLight; uniform vec3 uCol, uDeep; varying vec4 vUv; varying vec2 vL; varying vec3 vW;
+    float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1, 0)), u.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), u.x), u.y); }
+    void main(){
+      float d = length(vL) / uR, t = uTime; vec2 q = vL * 1.6;
+      float w1 = n2(q + vec2(t * 0.6, t * 0.4)), w2 = n2(q * 1.7 - vec2(t * 0.5, -t * 0.3));
+      vec4 uv = vUv; uv.xy += vec2(w1 - 0.5, w2 - 0.5) * 0.05 * uv.w; // ripples bend the reflection
+      vec3 refl = texture2DProj(tDiffuse, uv).rgb;
+      float caus = pow(1.0 - abs(w1 - w2), 7.0);
+      vec3 body = mix(uCol, uDeep, smoothstep(0.1, 0.95, 1.0 - d) * 0.55) + vec3(0.55, 0.8, 0.85) * caus * 0.3;
+      vec3 V = normalize(cameraPosition - vW); float fr = pow(1.0 - max(V.y, 0.0), 2.0);
+      vec3 c = mix(body, refl, 0.3 + 0.5 * fr);
+      float band = smoothstep(0.80 + 0.05 * sin(t * 1.3 + w1 * 6.0), 0.97, d) * (0.55 + 0.45 * n2(vL * 5.0 + t * 0.8));
+      c = mix(c, vec3(0.92, 1.0, 1.0), clamp(band, 0.0, 1.0) * 0.9) * uLight + uCol * 0.18;
+      gl_FragColor = vec4(c, 0.9);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+};
+/// swap the fountain's big pool for a reflecting one; it redraws every other frame, without the grass and particles
+export function reflectPool(Reflector, pool, renderer, hide = [], frame = null) {
+  const r = pool.geometry.parameters.radius;
+  const m = new Reflector(new THREE.CircleGeometry(r, 72), { textureWidth: 512, textureHeight: 512, clipBias: 0.003, shader: REFLECT_WATER });
+  m.material.uniforms.uR.value = r; m.material.transparent = true; m.material.depthWrite = false;
+  m.position.copy(pool.position); m.rotation.copy(pool.rotation); m.userData.noBake = true; m.renderOrder = pool.renderOrder;
+  const base = m.onBeforeRender; let lastFrame = -1;
+  m.onBeforeRender = function (rr, scene, camera, ...rest) {
+    const f = frame ? frame() : rr.info.render.frame; if (f === lastFrame || f % 2 === 1 || camera.isOrthographicCamera) return; lastFrame = f; // once every other frame
+    const was = hide.map((o) => o && o.visible); hide.forEach((o) => { if (o) o.visible = false; });
+    base.call(this, rr, scene, camera, ...rest);
+    hide.forEach((o, i) => { if (o) o.visible = was[i]; });
+  };
+  pool.parent.add(m); pool.visible = false;
+  return m;
+}

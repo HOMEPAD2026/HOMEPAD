@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR, LOOK, LIFE, WX, MUS, POST, ENV, PART, ICONS, L3D, AMB] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d", "world-look", "world-life", "world-weather", "world-music", "world-post", "world-env", "world-particles", "world-icons", "world-loading3d", "world-ambient"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -284,11 +284,42 @@ st.on((dt) => { if (fxPost) fxPost.tick(dt, sunDir); });
 const groundG = K.makeGround(); planet.add(groundG);
 { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) LOOK.groundLook(gm.material, { low: S.quality === "low" || S.quality === "saver" }); }
 // far shadows (world-look.js): halls, trees and the grounds' props shade the ground past the real shadow's reach
-const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir }) : null;
+// far culling: whole groups (a hall, a hunting ground's props, a decor cell) more than ~150 m away (110 m on a phone)
+// are skipped — the fog has them mostly hidden anyway, and they were hundreds of draw calls. Anything that needs the
+// whole world (the far-shadow bake, the grass mask, the minimap picture) runs inside farCull.all().
+const farCull = (() => {
+  const SKIP = new Set(["grass", "ambient", "particles", "smoke", "combat", "ghosts", "island", "decor", "life", "zones", "ground", "puddles"]);
+  const CONT = ["decor", "life", "zones"], R = st.quality.coarse ? 110 : 150, box = new THREE.Box3(), sph = new THREE.Sphere();
+  let list = [], at = 0, scanAt = -1e9, hidden = new Set();
+  function scan() {
+    list = []; planet.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(planet.matrixWorld).invert();
+    const add = (o) => { if (!o.visible && !hidden.has(o)) return; box.setFromObject(o); if (box.isEmpty()) return; box.applyMatrix4(inv); box.getBoundingSphere(sph); if (sph.radius > 60) return; list.push({ o, c: sph.center.clone(), r: sph.radius }); };
+    for (const c of planet.children) { if (SKIP.has(c.name)) { if (CONT.includes(c.name)) c.children.forEach(add); continue; } add(c); }
+  }
+  function tick() {
+    const now = performance.now(); if (now - at < 400) return; at = now;
+    if (now - scanAt > 15000) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); hidden.clear(); scan(); scanAt = now; }
+    const px = -planet.position.x, pz = -planet.position.z, on = mode === "hub";
+    for (const it of list) { const far = on && Math.hypot(it.c.x - px, it.c.z - pz) - it.r > R;
+      if (far && it.o.visible) { it.o.visible = false; hidden.add(it.o); } else if (!far && hidden.has(it.o)) { it.o.visible = true; hidden.delete(it.o); } }
+  }
+  function all(fn) { const was = [...hidden]; was.forEach((o) => { o.visible = true; }); try { return fn(); } finally { was.forEach((o) => { if (hidden.has(o)) o.visible = false; }); } }
+  return { tick, all, rescan: () => { scanAt = -1e9; } };
+})();
+st.on(() => { try { farCull.tick(); } catch { /* still loading */ } });
+// the frame count, and the sun's shadow map redrawn every other frame below Ultra (the sun stands still; only the
+// things that move need it, and they barely move in a 30th of a second)
+let frameNo = 0; const shadowEvery = postLevel === "ultra" && !st.quality.coarse ? 1 : 2;
+if (st.renderer.shadowMap.enabled && shadowEvery > 1) st.renderer.shadowMap.autoUpdate = false;
+st.on(() => { frameNo++; if (shadowEvery > 1 && st.renderer.shadowMap.enabled) st.renderer.shadowMap.needsUpdate = frameNo % shadowEvery === 0; });
+const gshadow = st.renderer.shadowMap.enabled ? LOOK.groundShadow({ renderer: st.renderer, planet, sunDir, around: (f) => farCull.all(f) }) : null;
 if (gshadow) { const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map); if (gm) gshadow.receive(gm.material); st.on(() => gshadow.tick()); [3000, 20000].forEach((ms) => setTimeout(() => gshadow.bake(), ms)); }
 // the sky (world-env.js): the gradient dome with two layers of drifting cloud and the sun's glow (the plain dome on Low)
 const lowGfx = S.quality === "low" || S.quality === "saver" || (S.quality === "auto" && st.quality.low);
-const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome(); st.scene.add(sky);
+// every character made from here on: the asset packs' palette (not the ARC Bots, drawn in it already) and a dark rim
+if (!lowGfx && K.setCharHook) K.setCharHook((obj, arc) => { if (!arc) ENV.unifyPalette(obj); if (!st.quality.coarse) K.outlineAll(obj, { t: arc ? 0.02 : 0.016 }); });
+const sky = lowGfx ? K.makeSky() : ENV.makeSkyDome({ lite: st.quality.coarse }); st.scene.add(sky);
 if (sky.material.uniforms.uTime) { sky.material.uniforms.uSun.value.copy(sunDir); st.on((dt) => { sky.material.uniforms.uTime.value += dt; }); }
 // rolling hills round the edge of the world (world-env.js) in place of the old round blobs
 st.on((dt) => { if (K.arcTick) K.arcTick(dt, planet.position); }); // the halls' night windows (world-arcstyle.js)
@@ -297,8 +328,24 @@ const skyPlanets = K.makeSkyPlanets(VER); st.scene.add(skyPlanets);
 const stars = K.makeStars(); st.scene.add(stars);
 const halo = K.makeHalo(0.5); halo.position.set(0, 135, -360); halo.rotation.set(0.32, 0.2, 0); halo.traverse((o) => { if (o.material) o.material.fog = false; }); st.scene.add(halo);
 const clouds = K.makeClouds(); planet.add(clouds);
+// mountains on the horizon, birds, butterflies and fish (world-ambient.js; nothing but the mountains on Low)
+const amb = AMB.createAmbient({ THREE, planet, low: lowGfx }); let ambNight = 0; // ambNight: set by dayNight
+st.on((dt, t) => { let hub = true; try { hub = mode === "hub"; } catch { /* still loading */ } amb.root.visible = hub; if (hub) amb.tick(dt, t, -planet.position.x, -planet.position.z, ambNight, st.scene.fog && st.scene.fog.color, !!ZN.zoneAt(-planet.position.x, -planet.position.z)); });
 planet.add(K.makePaths()); planet.add(K.makeDistrictSigns()); planet.add(K.makeDistrictTints());
 const lamps = K.makeLamps(); planet.add(lamps);
+// rain wets the world: the ground darkens and turns glossy, puddles gather on the lawns, the halls' shells shine
+const puddles = (() => { const g = new THREE.Group(); g.name = "puddles"; g.visible = false; g.userData.noBake = true; let s = 11; const r = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x3a4a5a, roughness: 0.04, metalness: 0.65, transparent: true, opacity: 0.72, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 });
+  for (let i = 0; i < 46; i++) { const a = r() * Math.PI * 2, d = K.flatR(12) + r() * 70, m = new THREE.Mesh(new THREE.CircleGeometry(0.6 + r() * 1.6, 20), mat); m.rotation.x = -Math.PI / 2; m.scale.set(1, 0.55 + r() * 0.6, 1); m.rotation.z = r() * 6; m.position.set(Math.cos(a) * d, 0.045, Math.sin(a) * d); g.add(m); }
+  return g; })();
+planet.add(puddles);
+let wet = false;
+function setWet(on) {
+  if (on === wet) return; wet = on; puddles.visible = on;
+  const gm = groundG.children.find((m) => m.isMesh && m.material && m.material.map);
+  if (gm) { gm.material.roughness = on ? 0.5 : 0.95; gm.material.color.setScalar(on ? 0.8 : 1); }
+  setTimeout(() => { try { nightK = -1; dayNight(); } catch { /* not set up yet: dayNight runs at the start anyway */ } }, 0); // the grass darkens a touch
+}
 const spins = [];
 const shops = K.SHOPS.map((spec) => { const g = K.makeShop(spec); K.placeOn(g, K.dirOf(spec.theta, spec.phi)); planet.add(g); K.shadowy(g); spins.push(...g.userData.spin); return g; });
 shops.forEach((g) => { const cs = LOOK.contactShadow((g.userData.radius || 3) + 2.2, 0.38); cs.position.x = g.position.x; cs.position.z = g.position.z; planet.add(cs); });
@@ -405,6 +452,7 @@ const cards = [], mixers = [], town = [], lockedStages = [], coinBuildings = [],
 let coinData = null, lastSeen = 0, myCoins = [], labels = null, npc = null, board3 = null, arcStats = null;
 let facing = Math.PI, boarding = false, worldReady = false;
 const fighters = [];
+const floorU = []; st.on((dt) => { for (const u of floorU) u.uFt.value += dt; }); // the grounds' floors (their seams pulse)
 
 // ---- the kit models (Kenney + Quaternius, CC0) ----
 let kit = await Promise.race([kitP, new Promise((r) => setTimeout(() => r(null), 12000))]);
@@ -416,7 +464,9 @@ async function dressWorld(kit) {
   shops.forEach(boxOf);
   K.makeTown(kit).forEach((g) => { planet.add(g); town.push(g); spins.push(...g.userData.spin); });
   // the hunting grounds (world-zones.js)
-  const zs = ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver", onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); } });
+  const zs = ZN.makeZones({ THREE, K, planet, kit, T, low: S.quality === "low" || S.quality === "saver", onBuilt: () => { if (gshadow) gshadow.rebakeSoon(); farCull.rescan(); } });
+  // each ground's own floor (world-env.js): cracked rock, ripples, moss, paving, ice, glowing seams
+  if (!lowGfx) zs.root.children.forEach((g) => { const zn = g.userData && g.userData.zone, gm = g.children.find((c) => c.name === "zone-ground"); if (zn && gm) floorU.push(ENV.zoneFloor(gm.material, zn, { lite: st.quality.coarse })); });
   if (gshadow) zs.root.traverse((o) => { if (o.name === "zone-ground") gshadow.receive(o.material); }); spins.push((dt, t) => zs.update(dt, t)); arches.push(...(zs.gates || []));
   // chimneys smoke: the Launchpad's factory and the town's tall chimneys
   [shopG("launch"), ...town.filter((g) => /^town:chimney/.test(g.name))].forEach((g) => {
@@ -485,15 +535,18 @@ if (kit) await dressWorld(kit); else kitP.then((k) => { if (k) { kit = k; dressW
 
 // ---------------- input ----------------
 const keys = new Set();
+let hubEl = null; // the menu (built further down)
 let joy = null, look = null, camYaw = 0, camPitch = 0.05, frozen = false, flying = null, lastLook = 0, runToggle = false, photo = false;
 let camDist = coarse ? 1.12 : 1, camZoom = 1, shakeT = 0, lastSpeed = 0, lookInit = false; const camLookS = new THREE.Vector3(); // the camera's smoothed aim, its rattle clock
 const typing = (e) => /input|textarea|select/i.test(e.target.tagName);
+/* a window is on screen (the Forge, the wardrobe, a shop…): Esc closes it rather than swapping it for the menu */
+const dialogUp = () => [...document.querySelectorAll('[role="dialog"]')].some((d) => d !== hubEl && !d.hidden && d.getClientRects().length > 0 && getComputedStyle(d).visibility !== "hidden");
 const MOVE_KEYS = ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"];
 addEventListener("keydown", (e) => {
   if (typing(e)) return;
   if (mode === "island" && !photo && island.keyDown(e)) return;
   const k = e.key.toLowerCase();
-  if (k === "escape") { if (photo) setPhoto(false); else closeAll(); return; }
+  if (k === "escape") { if (photo) setPhoto(false); else if (hubEl && !hubEl.hidden) closeHub(); else if (hubEl && !frozen && worldReady && !dialogUp()) openHub(); else closeAll(); return; }
   if (k === "p" && (!frozen || photo)) { setPhoto(!photo); return; }
   if (frozen) return;
   if (k === "e" || k === "enter") { if (near) { e.preventDefault(); enter(near); } return; }
@@ -1172,7 +1225,7 @@ async function refreshArc() {
   if (!first && big && sig !== lastBig) { swimWhale(); feed(T("A whale {side} {v} of $ARCIRCLE", { side: big.side === "buy" ? W("bought") : W("sold"), v: usd(big.usdc) }), "#4f9dff"); }
   lastBig = sig || lastBig;
   const m = s.change24h == null ? "" : s.change24h >= 5 ? "aurora" : s.change24h <= -5 ? "rain" : "clear";
-  if (m !== mood) { mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain"; if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
+  if (m !== mood) { mood = m; aurora.visible = m === "aurora"; rain.visible = m === "rain"; setWet(m === "rain"); if (!first && m) feed(m === "aurora" ? T("$ARCIRCLE is up today: an aurora over the planet") : m === "rain" ? T("$ARCIRCLE is down today: rain over the planet") : T("Clear skies over the planet"), "#35d8d0"); }
 }
 function burnFire(tokens) {
   const f = shopG("reward"); if (!f) return;
@@ -1353,6 +1406,27 @@ mapEl.addEventListener("click", (e) => {
 const mini = $("wp-mini"), mg = mini.getContext("2d");
 mini.parentNode.addEventListener("click", () => { if (!frozen) openMap(); });
 let miniT = 0;
+// the minimap's ground: the world rendered once from straight above into a small picture (rows run +z downward)
+let miniMap = null; const MINI_E = 480;
+// on a phone, small things (pebbles, herbs, lamps' caps, little props) don't draw into the shadow map: dozens of
+// draw calls fewer each shadow update, and their shadows were a few pixels anyway
+function trimCasters() { const s = new THREE.Vector3(); planet.traverse((o) => { if (!o.isMesh || !o.castShadow || !o.geometry) return; if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.getWorldScale(s); if (o.geometry.boundingSphere.radius * Math.max(s.x, s.y, s.z) < 0.7) o.castShadow = false; }); }
+function bakeMiniMap() {
+  try {
+    const N = st.quality.coarse || lowGfx ? 256 : 512, r = st.renderer, rt = new THREE.WebGLRenderTarget(N, N), /* a phone gets a smaller picture (a shorter pause to read it back) */ cam2 = new THREE.OrthographicCamera(-MINI_E / 2, MINI_E / 2, MINI_E / 2, -MINI_E / 2, 1, 600);
+    cam2.position.set(0, 300, 0); cam2.up.set(0, 0, -1); cam2.lookAt(0, 0, 0);
+    const pos = planet.position.clone(), off = [];
+    planet.traverse((o) => { if (o.visible && (o.isSprite || o.isPoints || o.name === "grass" || o.name === "ambient" || o.name === "particles" || o.name === "smoke" || o.name === "combat" || o.name === "ghosts" || o.name === "clouds" || o.name === "airship")) { o.visible = false; off.push(o); } });
+    const skyWas = sky.visible, cloudsWas = clouds.visible; sky.visible = false; clouds.visible = false; const fog = st.scene.fog; st.scene.fog = null; const bg = st.scene.background; st.scene.background = new THREE.Color(0x0b1a14);
+    planet.position.set(0, 0, 0); planet.updateMatrixWorld(true);
+    const prev = r.getRenderTarget(); r.setRenderTarget(rt); r.clear(); r.render(st.scene, cam2); r.setRenderTarget(prev);
+    planet.position.copy(pos); planet.updateMatrixWorld(true); off.forEach((o) => { o.visible = true; }); sky.visible = skyWas; clouds.visible = cloudsWas; st.scene.fog = fog; st.scene.background = bg;
+    const px = new Uint8Array(N * N * 4); r.readRenderTargetPixels(rt, 0, 0, N, N, px); rt.dispose();
+    const cv = document.createElement("canvas"); cv.width = cv.height = N; const g = cv.getContext("2d"), img = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) img.data.set(px.subarray((N - 1 - y) * N * 4, (N - y) * N * 4), y * N * 4); // the picture comes bottom row first
+    g.putImageData(img, 0, 0); miniMap = cv;
+  } catch (e) { console.warn("minimap:", e); }
+}
 function drawMini() {
   const W = mini.width, c = W / 2, range = mode === "island" ? 26 : 40, sc = (c - 10) / range;
   mg.clearRect(0, 0, W, W);
@@ -1360,6 +1434,10 @@ function drawMini() {
   mg.fillStyle = "rgba(8,14,22,.82)"; mg.fillRect(0, 0, W, W);
   mg.strokeStyle = "rgba(53,216,208,.14)"; mg.lineWidth = 2; [0.33, 0.66].forEach((k) => { mg.beginPath(); mg.arc(c, c, (c - 2) * k, 0, 6.283); mg.stroke(); });
   const cs = Math.cos(camYaw), sn = Math.sin(camYaw);
+  // the ground itself under the marks: a picture of the world from above, turned with the camera (taken once it's built)
+  if (mode !== "island" && miniMap) { const E = MINI_E, k = E / miniMap.width, plx = -planet.position.x, plz = -planet.position.z, a = sc * cs * k, b = sc * sn * k;
+    mg.save(); mg.globalAlpha = 0.9; mg.setTransform(a, b, -b, a, c + sc * (cs * (-E / 2 - plx) - sn * (-E / 2 - plz)), c + sc * (sn * (-E / 2 - plx) + cs * (-E / 2 - plz))); mg.drawImage(miniMap, 0, 0); mg.restore();
+    mg.fillStyle = "rgba(8,14,22,.28)"; mg.fillRect(0, 0, W, W); }
   const put = (g, color, r, glyph) => {
     g.getWorldPosition(tmp);
     const rx = tmp.x * cs - tmp.z * sn, rz = tmp.x * sn + tmp.z * cs;
@@ -1513,11 +1591,14 @@ function fadeLabels(dt) {
   const big = [];
   for (const l of labels) {
     l.getWorldPosition(tmp); const d = tmp.distanceTo(cam.position); l.userData.d = d;
-    if (l.scale.x >= 3.6) big.push(l);
+    if (!l.userData.s0) l.userData.s0 = l.scale.clone();
+    if (l.userData.s0.x >= 3.6) big.push(l);
+    // far signs grow a little and near ones shrink, so a name stays a readable size on screen without crowding you
+    if (l.renderOrder === 10) { const sk = l.userData.s0.x >= 3.6 ? THREE.MathUtils.clamp(d / 30, 0.8, 1.7) : THREE.MathUtils.clamp(d / 14, 0.85, 1.35); l.scale.set(l.userData.s0.x * sk, l.userData.s0.y * sk, 1); } // K.label signs only
   }
   if ((labelT -= dt) <= 0) { labelT = 0.4; big.sort((a, b) => a.userData.d - b.userData.d); big.forEach((l, i) => { l.userData.rank = i; }); }
   for (const l of labels) {
-    const d = l.userData.d, isBig = l.scale.x >= 3.6, far = isBig ? (l.userData.rank < 5 ? 95 : 0) : 30;
+    const d = l.userData.d, isBig = l.userData.s0.x >= 3.6, far = isBig ? (l.userData.rank < 5 ? 95 : 0) : 30;
     const want = THREE.MathUtils.clamp((d - (isBig ? 10 : 7.5)) / 5, 0, 1) * THREE.MathUtils.clamp((far - d) / 8, 0, 1);
     l.material.opacity = THREE.MathUtils.lerp(l.material.opacity, want, 0.15); l.visible = l.material.opacity > 0.02;
   }
@@ -1562,6 +1643,11 @@ function burst(color) {
 }
 function levelUp(n, from) {
   if (avatar && avatar.face) avatar.face("star", 2.4); // star eyes
+  // a level-up card across the middle of the screen: the new level, rays behind it, what it opened
+  { const el = document.createElement("div"); el.className = "wp-lvup"; el.setAttribute("role", "status"); el.setAttribute("data-no-i18n", "");
+    const opens = []; if (n === 10) opens.push(T("The rover")); if (n === 30) opens.push(T("The jetpack")); const z = RPG.ZONES.find((x) => x.lv[0] === n); if (z) opens.push(z.name);
+    el.innerHTML = `<i class="wp-lvup-rays" aria-hidden="true"></i><small>${esc(T("Level up"))}</small><b>${n}</b>${opens.length ? `<span>${esc(opens.join(" · "))}</span>` : ""}`;
+    document.body.appendChild(el); setTimeout(() => el.classList.add("out"), reduce ? 1600 : 2200); setTimeout(() => el.remove(), reduce ? 1900 : 2700); }
   const pas = RPG.PASSIVES.find((x) => x.lv === n); if (pas) setTimeout(() => toast(T("New passive: {x} — {y}", { x: T(pas.name), y: T(pas.line) })), 1600);
   if (grounded && !boarding && mode === "hub") { vy = 7.5; grounded = false; } // a little jump for joy
   if (avatar && avatar.arc && !boarding) avatar.play("celebrate", { once: true }); // an ARC Bot throws its arms up
@@ -1794,7 +1880,7 @@ function openSet() {
   setEl.querySelectorAll("#wp-set-q button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === (S.quality === "high" ? "ultra" : S.quality))));
   $("wp-set-fps").setAttribute("aria-pressed", String(!!S.fps)); $("wp-set-fps").textContent = S.fps ? T("On") : T("Show");
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
-  $("wp-set-q-note").textContent = "";
+  $("wp-set-q-note").textContent = qNote(S.quality === "high" ? "ultra" : S.quality);
   $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false;
   const d = dailyState(), c = d.c, val = { shops: c.shops.length, jumps: c.jumps, walk: Math.round(c.walk) };
   $("wp-daily").innerHTML = DAILY.map((g) => `<li class="${d.done.includes(g.id) ? "ok" : ""}"><i></i><span>${esc(T(g.t))}</span><small data-no-i18n>${Math.min(val[g.id], g.n)}/${g.n}</small></li>`).join("") + `<li class="streak"><span>${esc(T("Streak: {n} days", { n: d.streak || 0 }))}</span></li>`;
@@ -1810,8 +1896,15 @@ $("wp-set-q").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-q]"); if (!b) return;
   S.quality = b.dataset.q; saveSet();
   setEl.querySelectorAll("#wp-set-q button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
+  $("wp-set-q-note").innerHTML = `${esc(qNote(b.dataset.q))} ${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
 });
+// what each quality level turns on (shown under the choice)
+function qNote(q) {
+  return T({ auto: "Picked for your device: phones get the Medium picture at 1.5× pixels, computers Ultra, and it eases off if frames drop.",
+    low: "The lightest: no grass, no picture effects, fewer particles.", medium: "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).",
+    ultra: "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.",
+    saver: "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery." }[q] || "");
+}
 // the frame rate in a corner (Settings → Frame rate): for checking a preset on your own phone
 $("wp-set-fps").addEventListener("click", () => { S.fps = !S.fps; saveSet(); $("wp-set-fps").setAttribute("aria-pressed", String(S.fps)); $("wp-set-fps").textContent = S.fps ? T("On") : T("Show"); $("wp-fps").hidden = !S.fps; });
 { let n = 0, t0 = performance.now(); $("wp-fps").hidden = !S.fps;
@@ -1978,7 +2071,7 @@ function openNew() {
   });
 }
 // ---------------- closing things ----------------
-function closeAll() { closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
+function closeAll() { closeHub(); closeSheet(); closeMap(); endFight(); closeSet(); closeGuide(); island.closeSheets(); arclShop.close(); try { help.close(); closeLeave(); rpg && rpg.hide(); } catch { /* not built yet */ } $("wp-shot").hidden = true; }
 // ---------------- the Help Center (world-support.js): ARCIA first, then a report on the public board ----------------
 const help = HELP.createSupport({
   T, lang: LANG, esc, toast, where: mode === "island" ? "island" : "game",
@@ -1987,12 +2080,20 @@ const help = HELP.createSupport({
 });
 function openHelp(t) { closeAll(); help.open(t); }
 // ---------------- fighting (world-combat.js): street scammers, the attack, skills learned by level, street items ----------------
+// floating numbers: a hit's damage rises from where it landed; quick hits in the same spot add up into one number
+// that bumps as it grows (a flurry reads as one total, not a pile of digits)
+const floats = [];
 const flt = (text, pos, color, big, weight = 0) => {
   const v = pos.clone(); planet.localToWorld(v); v.project(st.camera); if (v.z > 1) return;
+  const x = (v.x + 1) / 2 * innerWidth, y = (1 - v.y) / 2 * innerHeight, now = performance.now(), num = /^!?\d+$/.test(String(text)) ? Number(String(text).replace("!", "")) : null;
+  for (let i = floats.length - 1; i >= 0; i--) if (!floats[i].el.isConnected || now - floats[i].t > 900) floats.splice(i, 1);
+  if (num != null) { const f = floats.find((o) => now - o.t < 420 && Math.hypot(o.x - x, o.y - y) < 70 && o.color === color);
+    if (f) { f.n += num; f.t = now; f.el.textContent = (big || f.big ? "!" : "") + f.n; if (big && !f.big) { f.big = true; f.el.classList.add("crit"); } f.el.classList.remove("bump"); void f.el.offsetWidth; f.el.classList.add("bump"); clearTimeout(f.k); f.k = setTimeout(() => f.el.remove(), 950); return; } }
   const el = document.createElement("div"); el.className = "wp-float-n" + (big ? " crit" : ""); el.textContent = text; el.style.color = color || "#fff";
+  if (num != null) { const f = { el, n: num, t: now, x, y, color, big: !!big }; floats.push(f); f.k = setTimeout(() => el.remove(), 950); }
   el.style.left = ((v.x + 1) / 2 * innerWidth) + "px"; el.style.top = ((1 - v.y) / 2 * innerHeight) + "px";
   if (weight > 0) el.style.setProperty("--fs", (1 + Math.min(1, weight * 3) * 0.75).toFixed(2)); // a bigger share of the scammer's HP, a bigger number
-  document.body.appendChild(el); setTimeout(() => el.remove(), 950);
+  document.body.appendChild(el); if (num == null) setTimeout(() => el.remove(), 950);
 };
 rpg = RPG.createRpg({
   THREE, T, lang: LANG, esc, toast, P, save: () => save(), level, post, sess, Snd, reduce, scene: () => st.scene,
@@ -2036,7 +2137,7 @@ combat = FIGHT.createCombat({ vfx, parts, wave: (p, power = 1) => { if (!fxPost 
   onBossRun: (zone, ms) => { const s = sess(); if (s && ms >= 8000) post({ action: "world-bossrun", ...s, zone, ms }).catch(() => {}); },
   onBoss: () => music.victory(),
   buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
-  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
+  onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
   down: (on, where) => {
@@ -2115,28 +2216,31 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (avatar && avatar.face) avatar.face("wow", 1.6); if (quests) quests.on.fish(); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, onCatch: (f, cm) => { if (avatar && avatar.face) avatar.face("wow", 1.6); if (quests) quests.on.fish(); const s = sess(); if (!s || !f) return; const wk = Math.floor((Date.now() - Date.UTC(1970, 0, 5)) / 6048e5); let b = {}; try { b = JSON.parse(localStorage.getItem("arc.world.fishwk") || "{}"); } catch { /* private */ } if (b.wk === wk && b.cm >= cm) return; try { localStorage.setItem("arc.world.fishwk", JSON.stringify({ wk, cm })); } catch { /* private */ } post({ action: "world-fish", ...s, fish: f.id, cm }).catch(() => {}); }, /* this week's biggest catch goes to the board */ buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, hitstop: (ms) => hitstop(ms), kickCam: (d, k) => kickCam(d, k), shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
 // water (world-env.js): foam round the edge, caustics on the floor, the sky at a glance (the fountain and the far ponds)
-const waterMats = [];
+const waterMats = [], reflHide = [parts.glowMesh, parts.smokeMesh], reflU = [];
 if (!lowGfx) {
-  fountain.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type === "CircleGeometry" && o.material && o.material.transparent) { const m = ENV.waterMat({ r: o.geometry.parameters.radius, color: 0x38c8ff, deep: 0x0a5a8a, glow: 0.22, opacity: 0.86 }); o.material = m; waterMats.push(m); } });
+  const pools = []; fountain.traverse((o) => { if (o.isMesh && o.geometry && o.geometry.type === "CircleGeometry" && o.material && o.material.transparent) { const m = ENV.waterMat({ r: o.geometry.parameters.radius, color: 0x38c8ff, deep: 0x0a5a8a, glow: 0.22, opacity: 0.86 }); o.material = m; waterMats.push(m); pools.push(o); } });
+  // on Ultra the big pool reflects the plaza (redrawn every other frame, without the grass and the particles)
+  if (postLevel === "ultra" && !st.quality.coarse && pools.length) { const big = pools.reduce((a, b) => (a.geometry.parameters.radius > b.geometry.parameters.radius ? a : b));
+    import("./vendor/three/addons/Reflector.js").then(({ Reflector }) => { const rm = ENV.reflectPool(Reflector, big, st.renderer, reflHide, () => frameNo); reflU.push(rm.material.uniforms); }).catch(() => {}); }
   planet.getObjectByName("life").children.forEach((g) => { if (!/^pond:/.test(g.name)) return; const w = g.children[0]; if (!w || !w.isMesh || !w.material.color) return;
     const hot = g.name === "pond:abyss", c = w.material.color.getHex();
     const m = ENV.waterMat({ r: w.geometry.parameters.radius, color: c, deep: new THREE.Color(c).multiplyScalar(0.4).getHex(), foam: hot ? 0xffd080 : 0xeaffff, glow: hot ? 0.9 : 0.12, opacity: 0.92 });
     m.polygonOffset = true; m.polygonOffsetFactor = -4; w.material = m; waterMats.push(m); });
-  st.on((dt) => { for (const m of waterMats) m.uniforms.uTime.value += dt; });
+  st.on((dt) => { for (const m of waterMats) m.uniforms.uTime.value += dt; for (const u of reflU) u.uTime.value += dt; });
 }
 // the meadow (world-env.js): blades round you that sway and lie down where you walk (none on Low / Saver). Built once
 // the town is up (the mask is painted from what stands on the ground) and repainted once more when the coin city is in
 let grass = null, gmask = null;
 function makeMeadow() {
   if (lowGfx || grass) return;
-  gmask = ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }] });
+  gmask = farCull.all(() => ENV.grassMask({ planet, zones: RPG.ZONES, clear: [{ x: 0, z: 0, r: K.flatR(11) + 0.8 }] }));
   const big = S.quality === "ultra" || S.quality === "high" || (S.quality === "auto" && !st.quality.coarse);
   grass = ENV.makeGrass({ count: big ? 60000 : st.quality.coarse ? 16000 : 32000, size: big ? 50 : st.quality.coarse ? 36 : 44, mask: gmask, gshadow });
-  planet.add(grass.mesh);
+  planet.add(grass.mesh); reflHide.push(grass.mesh);
   st.on((dt) => { const on = mode === "hub"; grass.mesh.visible = on; if (on) grass.tick(dt, -planet.position.x, -planet.position.z); });
-  setTimeout(() => gmask.paint(), 20000);
+  setTimeout(() => farCull.all(() => gmask.paint()), 20000);
   nightK = -1; dayNight();
 }
 st.on((dt) => life.tick(dt));
@@ -2214,16 +2318,45 @@ setInterval(refreshDrops, 60000); setTimeout(refreshDrops, 8000);
 // repeatable ARCL (street fights, coins): the server keeps the daily limit and the gap between claims
 function arclClaimRepeat(kind, extra, from) { arclShop.claim(kind, extra, from); }
 $("wp-help-btn").addEventListener("click", () => openHelp());
-// phones: photo, help, map and settings fold into one menu next to the Shop
-(() => {
-  const btn = $("wp-more-btn"), box = $("wp-more");
-  const items = [["wp-map-btn", "Map", "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"], ["wp-help-btn", "Help Center", "M4 13a8 8 0 0 1 16 0M3 13h4v6H3zM17 13h4v6h-4z"], ["wp-photo-btn", "Photo mode", "M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"], ["wp-set-btn", "Settings", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-1-3-2 .3-1.4-1.4.3-2-3-1-1 2h-2l-1-2-3 1 .3 2L6.8 8.6 4.8 8.3l-1 3 2 1v1.4l-2 1 1 3 2-.3 1.4 1.4-.3 2 3 1 1-2h2l1 2 3-1-.3-2 1.4-1.4 2 .3 1-3-2-1z"]];
-  box.innerHTML = items.map(([id, label, d]) => `<button type="button" role="menuitem" data-for="${id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${esc(label.includes(" ") ? T(label) : W(label))}</span></button>`).join("");
-  const close = () => { box.hidden = true; btn.setAttribute("aria-expanded", "false"); };
-  btn.addEventListener("click", (e) => { e.stopPropagation(); box.hidden = !box.hidden; btn.setAttribute("aria-expanded", String(!box.hidden)); });
-  box.addEventListener("click", (e) => { const b = e.target.closest("[data-for]"); if (!b) return; close(); $(b.dataset.for).click(); });
-  document.addEventListener("pointerdown", (e) => { if (!box.hidden && !e.target.closest("#wp-more, #wp-more-btn")) close(); });
-})();
+// the menu: everything in one place, a tap away (the ≡ button on every screen, or Esc with nothing open).
+// Grouped by what you're doing; each tile names its key; a dot marks something waiting (rewards, mail).
+const HUB = [
+  ["You", [["inv", "bag", "Character and bag", "I"], ["wardrobe", "shirt", "Wardrobe", ""], ["make", "person", "Change character", ""]]],
+  ["Adventure", [["daily", "check", "Daily hunts", "L"], ["ach", "trophy", "Achievements", ""], ["season", "season", "Season", ""], ["codex", "codex", "Codex", ""], ["pets", "paw", "Pets", ""], ["rank", "chart", "Rankings", ""]]],
+  ["Town", [["shop", "shop", "ARCL Shop", ""], ["forge", "anvil", "Forge", ""], ["bench", "wrench", "Workbench", ""], ["map", "map", "Map", "M"], ["island", "island", "My Island", ""], ["inbox", "mail", "Inbox", ""]]],
+  ["More", [["photo", "photo", "Photo mode", "P"], ["emote", "wave", "Emotes", ""], ["guide", "keys", "Controls", ""], ["help", "help", "Help Center", "H"], ["set", "gear", "Settings", ""]]],
+];
+hubEl = document.createElement("div"); hubEl.className = "wp-hub"; hubEl.hidden = true; hubEl.setAttribute("role", "dialog"); hubEl.setAttribute("aria-modal", "true"); hubEl.setAttribute("data-no-i18n", "");
+document.body.appendChild(hubEl);
+function paintHub() {
+  const isArc = String(P.char || "arc-arc").startsWith("arc-"), dot = { daily: quests && quests.pending ? quests.pending() > 0 : false, inbox: !!document.querySelector('.wp-hud [data-dot]:not([data-dot=""])') };
+  hubEl.innerHTML = `<div class="wp-hub-card"><div class="wp-hub-h"><h2>${esc(T("Menu"))}</h2><button type="button" class="wp-hub-x" data-hub-x aria-label="${esc(T("Close"))}">${ICONS.icon("no", 20)}</button></div>` +
+    HUB.map(([g, items]) => `<section><h3>${esc(T(g))}</h3><div class="wp-hub-grid">${items.filter(([id]) => id !== "wardrobe" || isArc).filter(([id]) => id !== "island" || mode === "hub").map(([id, ic, label, key]) =>
+      `<button type="button" data-hub="${id}">${ICONS.icon(ic, 26)}<span>${esc(T(label))}</span>${key && !coarse ? `<kbd>${key}</kbd>` : ""}${dot[id] ? '<i class="wp-hub-dot" aria-label="new"></i>' : ""}</button>`).join("")}</div></section>`).join("") + `</div>`;
+}
+function openHub() { if (frozen && hubEl.hidden) return; closeAll(); paintHub(); hubEl.hidden = false; frozen = true; keys.clear(); paintPrompt(); const f = hubEl.querySelector("[data-hub]"); if (f && !coarse) f.focus(); }
+function closeHub() { if (!hubEl || hubEl.hidden) return; if (hubEl.contains(document.activeElement)) document.activeElement.blur(); /* a hidden tile keeps no focus (it would swallow the next Esc) */ hubEl.hidden = true; frozen = false; }
+hubEl.addEventListener("click", (e) => {
+  if (e.target === hubEl || e.target.closest("[data-hub-x]")) { closeHub(); return; }
+  const b = e.target.closest("[data-hub]"); if (!b) return; const id = b.dataset.hub; closeHub();
+  if (id === "inv") rpg && rpg.show("inv");
+  else if (id === "wardrobe") wardrobe.show();
+  else if (id === "make") openMake();
+  else if (["daily", "ach", "season", "codex", "pets", "rank"].includes(id)) { if (quests && rpg) { quests.setTab(id); rpg.show("log"); } }
+  else if (id === "shop") arclShop.openShop();
+  else if (id === "forge") rpg && rpg.show("forge");
+  else if (id === "bench") { if (life) life.showSheet("make"); }
+  else if (id === "map") openMap();
+  else if (id === "island") goIsland({});
+  else if (id === "inbox") inbox.show();
+  else if (id === "photo") setPhoto(true);
+  else if (id === "emote") openWheel();
+  else if (id === "guide") openGuide();
+  else if (id === "help") openHelp();
+  else if (id === "set") $("wp-set-btn").click();
+});
+hubEl.addEventListener("keydown", (e) => { if (e.key === "Escape" && !hubEl.hidden) { e.stopPropagation(); closeHub(); } });
+$("wp-more-btn").addEventListener("click", (e) => { e.stopPropagation(); if (hubEl.hidden) openHub(); else closeHub(); });
 $("wp-shop-btn").addEventListener("click", () => { closeAll(); arclShop.openShop(); });
 $("wp-bag-btn").addEventListener("click", () => { closeAll(); if (rpg) rpg.show("inv"); });
 
@@ -2339,10 +2472,13 @@ function dayNight() {
   }
   { const u = sky.material.uniforms; if (u.uCloudLit) { // the drifting cloud layer: white by day, peach at dusk, slate at night
     u.uCloudLit.value.setRGB(1, 1, 1).lerp(CLOUD.night, k).lerp(CLOUD.dusk, dusk * 0.8); u.uCloudShade.value.copy(CLOUD.shade).lerp(CLOUD.nshade, k).lerp(CLOUD.dshade, dusk * 0.6);
-    u.uSunCol.value.copy(st.sun.color); u.uCloudK.value = 1 - k * 0.7; u.uCover.value = mood === "rain" ? 0.3 : 0.48;
+    u.uSunCol.value.copy(st.sun.color); u.uCloudK.value = 1 - k * 0.7; u.uNight.value = th && th.dark ? 1 : k; u.uCover.value = mood === "rain" ? 0.3 : 0.48;
     if (th && th.cloud != null) { u.uCloudLit.value.set(th.cloud); u.uCloudShade.value.set(th.cloud).multiplyScalar(0.6); } } }
+  ambNight = th && th.dark ? 1 : k;
   if (K.TOON) { K.TOON.rimK.value = 0.5 - k * 0.15 + dusk * 0.2; K.TOON.rim.value.set(0x9fd8ff).lerp(new THREE.Color(0x7a8cff), k).lerp(new THREE.Color(0xffb37a), dusk * 0.7); } // the characters' rim light
-  if (grass) grass.setLight(th && th.dark ? 0.3 : 1 - k * 0.7, k > 0.5 ? 0x5a9a8a : 0x7cc65a);
+  if (grass && lamps.userData.spots) grass.setLamps(lamps.userData.spots, th && th.dark ? 1 : k);
+  if (grass) grass.setLight((th && th.dark ? 0.3 : 1 - k * 0.7) * (wet ? 0.82 : 1), k > 0.5 ? 0x5a9a8a : 0x7cc65a);
+  for (const u of reflU) u.uLight.value = 1 - k * 0.55;
   for (const m of waterMats) { m.uniforms.uLight.value = 1 - k * 0.6; m.uniforms.uSky.value.copy(skyU.mid.value).lerp(skyU.glow.value, 0.3); }
   aurora.visible = (th && th.aurora) || mood === "aurora";
   fireflies.visible = k > 0.4 && !th; fireflies.material.opacity = Math.min(1, (k - 0.4) * 2) * 0.9;
@@ -2419,10 +2555,13 @@ function greet(g) {
   const off = st.on(() => { const k = Math.min(1, (performance.now() - t0) / 520), e = Math.sin(k * Math.PI) * (1 - k * 0.5); g.scale.y = y0 * (1 + e * 0.06); g.scale.x = g.scale.z = x0 * (1 - e * 0.025); if (k >= 1) { g.scale.y = y0; g.scale.x = g.scale.z = x0; g.userData.greeting = false; off(); } });
 }
 // a critical hit slows the world for a beat; the third hit of a combo punches the camera in
-let slowUntil = 0, punch = 0;
+let slowUntil = 0, punch = 0, stopUntil = 0, prevSpeed = 0;
+// a hit stops the world for a few frames (heavier blows longer) and nudges the camera along the blow
+const hitstop = (ms = 45) => { if (reduce) return; stopUntil = Math.max(stopUntil, performance.now() + Math.min(120, ms)); };
+const camKick = new THREE.Vector3(); const kickCam = (dir, k = 0.08) => { if (reduce || !dir) return; camKick.x += dir.x * k; camKick.z += dir.z * k; if (camKick.length() > 0.35) camKick.setLength(0.35); };
 const slowmo = (ms = 170) => { if (reduce) return; slowUntil = Math.max(slowUntil, performance.now() + ms); document.body.classList.remove("wc-crit"); void document.body.offsetWidth; document.body.classList.add("wc-crit"); };
 st.on((dt0, t) => {
-  const dt = performance.now() < slowUntil ? dt0 * 0.3 : dt0;
+  const now0 = performance.now(), dt = now0 < stopUntil ? dt0 * 0.04 : now0 < slowUntil ? dt0 * 0.3 : dt0;
   punch = Math.max(0, punch - dt0 * 3.2);
   padTick(dt0);
   step(dt); lookAround(dt); ripples(dt);
@@ -2431,10 +2570,14 @@ st.on((dt0, t) => {
   moveScammers(t);
   planet.updateMatrixWorld(true);
   if (avatar) {
+    // pushing off from a standstill: a little squash and a puff of dust at the feet
+    if (grounded && !boarding && speedNow > 9 && prevSpeed < 3 && !reduce) { if (avatar.land) avatar.land(0.45); parts.emit({ at: new THREE.Vector3(-planet.position.x, 0.15, -planet.position.z), kind: "smoke", n: 6, speed: 1.6, up: 0.6, size: 0.7, life: 0.7, grav: -0.5, drag: 2, color: 0xb8b0a0, jitter: 0.4 }); }
+    prevSpeed = speedNow;
     // lean into a run and into turns
     const turn = angLerp(0, facing - (avatar.lastFacing ?? facing), 1) / Math.max(dt, 1e-3); avatar.lastFacing = facing;
     const inner = avatar.obj.children[0];
-    if (inner && !avatar.bot) { inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.x, grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, 0.15); inner.rotation.z = THREE.MathUtils.lerp(inner.rotation.z, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6), 0.12); }
+    if (avatar.lean) avatar.lean(grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6)); // the ARC Bot leans in its own pose
+    else if (inner && !avatar.bot) { inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.x, grounded && !boarding ? Math.min(1, speedNow / 12.5) * 0.16 : 0, 0.15); inner.rotation.z = THREE.MathUtils.lerp(inner.rotation.z, THREE.MathUtils.clamp(-turn * 0.04, -0.22, 0.22) * Math.min(1, speedNow / 6), 0.12); }
     if (speedNow > 1 && !wheel.hidden) wheel.hidden = true;
     speedLines.style.opacity = String(THREE.MathUtils.clamp((speedNow - 13) / 8, 0, 0.9));
     // standing still for a while: a look round, now and then
@@ -2489,6 +2632,7 @@ st.on((dt0, t) => {
   camPos.copy(base).add(at); camPos.y += (hop - at.y) * 0.6;
   if (!photo && (colT += dt) > 0.08) { colT = 0; camCollide(camPos); }
   camPos.sub(at).multiplyScalar(photo ? 1 : camFit).add(at);
+  if (camKick.lengthSq() > 1e-6) { camPos.add(camKick); camKick.multiplyScalar(Math.exp(-dt0 * 14)); }
   if (shake > 0 && reduce) shake = 0;
   // shake: a smooth rattle that dies away (not a new random jump every frame)
   if (shake > 0) { shake = Math.max(0, shake - dt); shakeT += dt; const a = shake * 0.6; camPos.x += (Math.sin(shakeT * 47) + Math.sin(shakeT * 83) * 0.5) * a; camPos.y += (Math.sin(shakeT * 61 + 1.3) + Math.sin(shakeT * 97) * 0.5) * a; }
@@ -2536,7 +2680,8 @@ async function dive() {
 }
 
 // ---------------- start ----------------
-dailyState(); makeMeadow(); dayNight(); worldReady = true; try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
+dailyState(); makeMeadow(); dayNight(); worldReady = true; if (st.quality.coarse) setTimeout(trimCasters, 9000); // phones: little things stop casting sun shadows
+setTimeout(() => { const go = () => { if (mode === "hub") farCull.all(bakeMiniMap); }; if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 }); else go(); }, 6000); /* the minimap's ground, once the town is up, when the page is idle */ try { st.renderer.compileAsync && st.renderer.compileAsync(st.scene, st.camera).catch(() => {}); } catch { /* older three */ } /* shaders ready before they're first needed */ setInterval(paintParty, 1500); // the party strip (after everything it reads is set up)
 loadbar(1);
 paintHud(); paintQuests(); paintAcct(); refreshPurse(true); refreshCoins(true); refreshArc(); refreshQuantum(); ping(); setTimeout(resumeSession, 2500);
 $("wp-loading").classList.add("done");

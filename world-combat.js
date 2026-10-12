@@ -93,6 +93,24 @@ export function createCombat(ctx) {
       const a = Math.random() * TAU; fx.push({ o: m, v: new V3(Math.cos(a) * speed * Math.random(), 2 + Math.random() * speed * 0.7, Math.sin(a) * speed * Math.random()), life: 0.7 + Math.random() * 0.3, t: 0, grav: 14, spin: new V3(Math.random() * 12, Math.random() * 12, 0) });
     }
   }
+  // a mark on the ground where something big landed: cracks and a scorch that fade after a few seconds (a pool of 8)
+  let crackTex = null; const marks = [];
+  function crackTexture() {
+    if (crackTex) return crackTex; const S = 256, cv = document.createElement("canvas"); cv.width = cv.height = S; const g = cv.getContext("2d"), c = S / 2;
+    const gr = g.createRadialGradient(c, c, 0, c, c, c); gr.addColorStop(0, "rgba(0,0,0,.75)"); gr.addColorStop(0.45, "rgba(0,0,0,.35)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, S, S);
+    g.strokeStyle = "rgba(0,0,0,.9)"; g.lineCap = "round";
+    for (let i = 0; i < 11; i++) { let a = (i / 11) * TAU + Math.random() * 0.4, r = 10, x = c, y = c; g.lineWidth = 5; g.beginPath(); g.moveTo(x, y);
+      while (r < c * 0.95) { r += 10 + Math.random() * 14; a += (Math.random() - 0.5) * 0.5; x = c + Math.cos(a) * r; y = c + Math.sin(a) * r; g.lineTo(x, y); g.lineWidth = Math.max(1, g.lineWidth - 0.5); } g.stroke(); }
+    crackTex = new THREE.CanvasTexture(cv); crackTex.colorSpace = THREE.SRGBColorSpace; return crackTex;
+  }
+  function scorch(pos, r = 3, color = 0x2a1a10) {
+    if (ctx.lite && ctx.lite()) return;
+    let mk = marks.find((x) => x.t >= x.life);
+    if (!mk) { if (marks.length >= 8) mk = marks.reduce((a, b) => (a.t > b.t ? a : b)); else { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: crackTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); m.rotation.x = -Math.PI / 2; m.renderOrder = 2; m.userData.noBake = true; mk = { m, t: 0, life: 5 }; marks.push(mk); add(m); } }
+    if (!mk.m.parent) add(mk.m);
+    mk.t = 0; mk.m.position.set(pos.x, 0.05, pos.z); mk.m.scale.set(r * 2, r * 2, 1); mk.m.rotation.z = Math.random() * TAU; mk.m.material.color.set(color); mk.m.material.opacity = 1; mk.m.visible = true;
+  }
+  function tickMarks(dt) { for (const mk of marks) { if (mk.t >= mk.life) continue; mk.t += dt; mk.m.material.opacity = Math.min(1, (mk.life - mk.t) / 1.5); if (mk.t >= mk.life) mk.m.visible = false; } }
   function ring(pos, color, { r0 = 0.3, r1 = 2.6, life = 0.35, y = 0.08 } = {}) {
     const m = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 48), additive(color, 0.9)); m.rotation.x = -Math.PI / 2; m.position.copy(pos); m.position.y = y; m.scale.setScalar(r0); add(m);
     fx.push({ o: m, life, t: 0, grow: [r0, r1] });
@@ -106,6 +124,7 @@ export function createCombat(ctx) {
     fx.push({ o: m, life, t: 0, op0: 0.5, onTick: (k) => { m.scale.x = m.scale.z = 1 - k * 0.6; } });
   }
   function tickFx(dt) {
+    tickMarks(dt);
     for (let i = fx.length - 1; i >= 0; i--) {
       const p = fx[i]; p.t += dt; const k = p.t / p.life;
       if (k >= 1) {
@@ -173,7 +192,7 @@ export function createCombat(ctx) {
     const baseY = skin ? skin.y * (bs ? 1.6 : 1) : bs ? bs.y : spec.y * (rank === "elite" ? 1.2 : 1);
     e.obj.scale.setScalar(sc); e.obj.position.y = baseY; g.add(e.obj);
     const tint = new THREE.Color(bs ? bs.tint : spec.color);
-    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); } if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); e.own = true; // its own materials, once
+    e.obj.traverse((x) => { if (x.isMesh && x.material) { if (!e.own) { x.material = x.material.clone(); if (K.toonLook) K.toonLook(x.material, { rim: 0xff9a8a }); if (K.dissolveLook) K.dissolveLook(x.material, e.dis || (e.dis = { value: 0 })); } if (x.material.emissive && !x.material.userData.glow) { x.material.emissive.copy(tint); x.material.emissiveIntensity = skin ? 0.05 : 0.18; } } }); if (!e.own && K.outlineAll && !ctx.coarse && !(ctx.lite && ctx.lite())) e.outlines = K.outlineAll(e.obj, { color: 0x1a0a14, t: 0.03 }); e.own = true; if (e.dis) e.dis.value = 0; (e.outlines || []).forEach((o) => { o.visible = true; }); // its own materials (and a dark rim), once
     const bb = new THREE.Box3().setFromObject(e.obj); const bar = hpBar(bs ? 3.2 : rank === "elite" ? 2.1 : 1.7); bar.position.y = bb.max.y + (bs ? 0.9 : 0.5); g.add(bar);
     const sh = new THREE.Mesh(geoOf("sh" + !!bs, () => new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24)), shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(geoOf("ring" + !!bs, () => new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48)), rank === "boss" ? ringBoss : ringElite); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
@@ -203,6 +222,7 @@ export function createCombat(ctx) {
     const dmg = Math.max(1, Math.round(hitDamage(raw, m.def) * (m.raid && m.shieldT > 0 ? 0.4 : 1)));
     m.hp -= dmg; m.hitT = 0.18; label(m); if (m.rank === "boss") bossBar(m);
     tmp.copy(m.g.position).sub(from).setY(0); if (tmp.lengthSq() > 1e-4) tmp.normalize();
+    if (kind !== "pet") { if (ctx.hitstop) ctx.hitstop(kind === "heavy" ? 85 : kind === "meteor" ? 70 : crit ? 70 : 38); if (ctx.kickCam) ctx.kickCam(tmp, kind === "heavy" ? 0.16 : crit ? 0.12 : 0.06); }
     if (ctx.parts) ctx.parts.sparks(tmp2.copy(m.g.position).setY(m.y + 0.6), kind === "ice" ? 0x8fe6ff : kind === "fire" || kind === "meteor" ? 0xff7a2a : kind === "shock" ? 0xb48cff : 0xffd27a, crit ? 18 : 9, tmp);
     m.leanT = kind === "heavy" ? 0.42 : 0.3; m.leanL = m.leanT; m.leanX = tmp.x; m.leanZ = tmp.z; // it rocks back away from the blow
     const kb = (m.rank === "boss" ? 0.15 : m.rank === "elite" ? 0.5 : 1) * (kind === "fire" || kind === "meteor" ? 1.4 : kind === "shock" ? 0.3 : kind === "heavy" ? 2.0 : 0.9);
@@ -285,7 +305,7 @@ export function createCombat(ctx) {
       const far = m.rank !== "boss" && !m.dead && Math.hypot(me.x - m.g.position.x, me.z - m.g.position.z) > 30;
       if (far) { m.acc = (m.acc || 0) + dt; if ((m.fc = (m.fc || 0) + 1) % 3 === 0) { m.e.mixer.update(m.acc); m.acc = 0; } } else { m.e.mixer.update(dt + (m.acc || 0)); m.acc = 0; }
       if (!m.raid) m.bar.visible = !far;
-      if (m.dead) { m.dead += dt; m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); continue; }
+      if (m.dead) { m.dead += dt; if (m.e && m.e.dis && !ctx.reduce) { m.e.dis.value = Math.min(1, m.dead / 0.45); if (m.e.outlines) m.e.outlines.forEach((o) => { o.visible = false; }); m.g.position.y += dt * 0.8; if (m.dead > 0.5) { m.e.dis.value = 0; retire(m, i); } } else { m.g.scale.setScalar(Math.max(0.01, 1 - m.dead * 4)); m.g.position.y += dt * 2; if (m.dead > 0.3) retire(m, i); } continue; } // breaks up into data cubes
       tmp.copy(me).sub(m.g.position).setY(0); const d = tmp.length();
       if (d > (m.raid ? 40 : m.rank === "boss" ? 90 : 48)) { retire(m, i); if (m.rank === "boss") hideBossBar(); continue; }
       m.slow = Math.max(0, m.slow - dt); m.stun = Math.max(0, m.stun - dt); m.hitT = Math.max(0, m.hitT - dt);
@@ -350,7 +370,7 @@ export function createCombat(ctx) {
     }
   }
   function slam(m) {
-    const p = m.g.position.clone(); ring(p, 0xff4d6d, { r0: 0.5, r1: 7, life: 0.7, y: 0.1 }); puff(p.clone().setY(0.5), 0xff8a6a, { n: 30, speed: 7, size: 0.6, life: 0.7, grav: 3 }); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.1); if (ctx.parts) ctx.parts.smoke(p.clone().setY(0.4), 0x9a8a7a, 14, 1.8);
+    const p = m.g.position.clone(); ring(p, 0xff4d6d, { r0: 0.5, r1: 7, life: 0.7, y: 0.1 }); puff(p.clone().setY(0.5), 0xff8a6a, { n: 30, speed: 7, size: 0.6, life: 0.7, grav: 3 }); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.1); if (ctx.parts) ctx.parts.smoke(p.clone().setY(0.4), 0x9a8a7a, 14, 1.8); scorch(p, 4.2);
     ctx.here(me); if (me.distanceTo(tmp.copy(p).setY(me.y)) < 7 && guardT <= 0 && !down && ctx.hopY() < 0.8) { tmp.copy(me).sub(p).setY(0).normalize(); ctx.knock(tmp, 13); ctx.hurt(); damage(hitDamage(Math.round(m.atk * 1.4), stats().def)); }
   }
 
@@ -494,7 +514,7 @@ export function createCombat(ctx) {
       for (let i = 0; i < 2; i++) { const blade = new THREE.Mesh(new THREE.RingGeometry(1.6, 3.6, 48, 1, 0, TAU * 0.8), additive(i ? col : 0xffffff, i ? 0.5 : 0.8)); blade.material.side = THREE.DoubleSide; blade.rotation.x = -Math.PI / 2; blade.position.copy(me).setY(0.9 + i * 0.25); add(blade); fx.push({ o: blade, life: 0.4, t: 0, op0: i ? 0.5 : 0.8, onTick: (k) => { blade.rotation.z = k * 9 * (i ? -1 : 1); blade.scale.setScalar(0.8 + k * 0.4); } }); }
       hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 3.8 + (m.rank === "boss" ? 2 : 0), 2.0);
     } else if (kind === 1) { // quake
-      ring(me, 0xffc861, { r0: 0.5, r1: 7, life: 0.6, y: 0.12 }); ring(me, 0xffffff, { r0: 0.3, r1: 5, life: 0.45, y: 0.14 }); if (VX) VX.impact(me.clone().setY(0.3), "meteor", { big: 1.2 }); shards(me.clone().setY(0.3), 0x8a6a4a, 24, 9); ctx.shake(0.55); if (ctx.wave) ctx.wave(me, 0.9); if (ctx.parts) ctx.parts.smoke(me.clone().setY(0.3), 0x9a8a7a, 10, 1.5);
+      ring(me, 0xffc861, { r0: 0.5, r1: 7, life: 0.6, y: 0.12 }); ring(me, 0xffffff, { r0: 0.3, r1: 5, life: 0.45, y: 0.14 }); if (VX) VX.impact(me.clone().setY(0.3), "meteor", { big: 1.2 }); shards(me.clone().setY(0.3), 0x8a6a4a, 24, 9); ctx.shake(0.55); if (ctx.wave) ctx.wave(me, 0.9); if (ctx.parts) ctx.parts.smoke(me.clone().setY(0.3), 0x9a8a7a, 10, 1.5); scorch(me, 3.4);
       hitAll((m) => m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5 + (m.rank === "boss" ? 2 : 0), 2.4);
       for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(me).setY(m.g.position.y)) < 6.5) m.stun = Math.max(m.stun, m.rank === "boss" ? 0.3 : 1.0);
     } else if (kind === 2 || kind === 3) { // beam / piercing arrow: everything on the line
@@ -737,7 +757,7 @@ export function createCombat(ctx) {
         if (VX) VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 });
         flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
-        shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.3 * (s.big || 1)); if (ctx.parts) ctx.parts.sparks(p.clone().setY(0.6), 0xff7a2a, 30);
+        shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45); if (ctx.wave) ctx.wave(p, 1.3 * (s.big || 1)); if (ctx.parts) ctx.parts.sparks(p.clone().setY(0.6), 0xff7a2a, 30); scorch(p, 3.6 * (s.big || 1), 0x1a0c06);
         root.remove(s.o); s.o.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); shots.splice(i, 1);
         continue;
       }

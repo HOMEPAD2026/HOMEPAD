@@ -4,7 +4,7 @@
 export function loadingScene(THREE, host, { reduce = false } = {}) {
   let r;
   try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" }); } catch { return null; }
-  const S = 200; r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); r.setSize(S, S); r.outputColorSpace = THREE.SRGBColorSpace;
+  const S = 200, coarse = matchMedia("(pointer: coarse)").matches; r.setPixelRatio(Math.min(coarse ? 1.5 : 2, devicePixelRatio || 1)); r.setSize(S, S); r.outputColorSpace = THREE.SRGBColorSpace;
   r.domElement.className = "wp-load3d"; r.domElement.setAttribute("aria-hidden", "true"); host.prepend(r.domElement);
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(32, 1, 0.1, 50); cam.position.set(0, 1.4, 7.8); cam.lookAt(0, 0, 0);
   scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x0a1430, 1.6)); const sun = new THREE.DirectionalLight(0xffffff, 2.4); sun.position.set(3, 3, 4); scene.add(sun);
@@ -26,8 +26,11 @@ export function loadingScene(THREE, host, { reduce = false } = {}) {
   const ra = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.035, 8, 96), glow(0x2f86ff)), rb = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.035, 8, 96), glow(0x2ee07a));
   ra.rotation.x = Math.PI / 2 + 0.3; rb.rotation.x = Math.PI / 2 - 0.25; rb.rotation.y = 0.4; scene.add(ra, rb);
   let want = 0, have = 0, raf = 0, last = performance.now(), live = true;
+  /* the world is loading on the same thread, so the little planet draws at 30 frames a second (20 on a phone) */
+  const gap = coarse ? 48 : 31;
   const tick = (t) => {
     if (!live) return; raf = requestAnimationFrame(tick);
+    if (t - last < gap) return;
     const dt = Math.min(0.05, (t - last) / 1000); last = t;
     have += (want - have) * Math.min(1, dt * 4);
     world.rotation.y += dt * (reduce ? 0.1 : 0.35); ra.rotation.z += dt * 0.5; rb.rotation.z -= dt * 0.4;
