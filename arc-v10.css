@@ -3066,3 +3066,18 @@ html.wp-less .wc-boss.rage{animation:none}
 @keyframes wpHalo{0%,100%{opacity:.45}50%{opacity:1}}
 .wp-fit{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(57,255,136,.14);border:1px solid rgba(57,255,136,.45);font:800 10px var(--f-ui);font-style:normal;color:#9fffd0;vertical-align:1px}
 @media (prefers-reduced-motion:reduce){.wp-ringmap .zn .halo{animation:none}}
+
+/* v44: a first-time hint — a bubble low in the middle with a pulsing tap mark */
+.wp-fh{position:fixed;left:50%;bottom:150px;z-index:30;display:flex;align-items:center;gap:12px;max-width:min(520px,calc(100vw - 32px));padding:12px 18px 12px 14px;border-radius:16px;transform:translateX(-50%);background:rgba(8,14,24,.9);border:1px solid rgba(56,232,255,.4);box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 24px rgba(56,232,255,.15);color:#eef6ff;font:700 14px/1.4 var(--f-ui);cursor:pointer}
+.wp-fh[hidden]{display:none}
+.wp-fh.on{animation:wpHintIn .4s cubic-bezier(.2,1.2,.4,1) both}
+.wp-fh i{position:relative;flex:none;width:26px;height:26px;border-radius:50%;background:rgba(56,232,255,.25)}
+.wp-fh i::before,.wp-fh i::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#38e8ff}
+.wp-fh i::after{inset:0;background:none;border:2px solid #38e8ff;animation:wpTap 1.2s ease-out infinite}
+@keyframes wpHintIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes wpTap{from{transform:scale(.6);opacity:1}to{transform:scale(1.5);opacity:0}}
+html.wp-pcphone .wp-fh{bottom:auto;top:96px;zoom:1.25}
+@media (prefers-reduced-motion:reduce){.wp-fh.on,.wp-fh i::after{animation:none}}
+.wp-loadpct{display:block;margin-top:6px;font:800 12px var(--f-num,var(--f-ui));font-style:normal;color:rgba(222,233,244,.6);font-variant-numeric:tabular-nums}
+/* v45: on a phone the action buttons keep clear of the screen's edges */
+@media (pointer:coarse){html.wp-pcphone .wp-acts,html.wp-pcphone .wc-bar.coarse{right:max(22px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}}

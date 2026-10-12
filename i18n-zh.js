@@ -10425,6 +10425,18 @@
     "Scrap": "碎料",
     "Right for you": "适合你的等级",
     "Town": "城镇",
+    "Press V to switch between the hoverboard and the explorer rover": "按 V 在滑板和探索车之间切换",
+    "Tap the ride button again with V to switch to the explorer rover": "用 V 按钮切换到探索车",
+    "Hold J to charge a stronger blow, let go when the ring is full": "按住 J 蓄力，圆环满时松开",
+    "Hold the attack button to charge a stronger blow": "按住攻击键蓄力，打出更强一击",
+    "Red on the ground means a strike is coming: step out, or dodge with K": "地面变红表示攻击将至：走出范围，或按 K 闪避",
+    "Red on the ground means a strike is coming: step out, or tap dodge": "地面变红表示攻击将至：走出范围，或点闪避",
+    "This ground has a pond with a fish of its own": "这片狩猎场有一个池塘，里面有独有的鱼",
+    "Press G to gather it: any attack works too": "按 G 采集：攻击也可以",
+    "Tap Gather to collect it: any attack works too": "点采集收集：攻击也可以",
+    "Press G to cast, then again when the mark is in the green": "按 G 抛竿，标记进入绿区时再按一次",
+    "Tap Fish to cast, then Reel in when the mark is in the green": "点钓鱼抛竿，标记进入绿区时点收线",
+    "Hold the ride button to switch to the explorer rover": "长按坐骑按钮切换到探索车",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

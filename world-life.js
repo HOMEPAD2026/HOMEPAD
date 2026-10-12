@@ -244,6 +244,7 @@ export function createLife(ctx) {
     actFor = near ? { node: near } : w ? { fish: w } : null;
     act.hidden = !actFor || !!fishing;
     if (actFor) act.innerHTML = `<b>G</b>${esc(actFor.fish ? T("Fish") : T("Gather {x}", { x: T(MATS[near.kind].name) }))}`;
+    if (actFor && ctx.hint) ctx.hint(actFor.fish ? "fish" : "gather");
   }
   paintMats();
   return { tick, swingAt, reel, showSheet, hideSheet, isOpen: () => !sheet.hidden || !!fishing, nodes: () => nodes.map((n) => ({ kind: n.kind, x: n.x, z: n.z, up: n.back <= 0 })), mats: () => { const d = X(); return d ? { ...d.x.mat } : null; }, fishLog: () => { const d = X(); return d ? { ...d.x.fish } : null; }, fishing: () => fishing && { ...fishing } };

@@ -10255,6 +10255,18 @@
     "Scrap": "스크랩",
     "Right for you": "지금 레벨에 딱",
     "Town": "마을",
+    "Press V to switch between the hoverboard and the explorer rover": "V 키로 호버보드와 탐사 로버를 바꿀 수 있어요",
+    "Tap the ride button again with V to switch to the explorer rover": "V 버튼으로 탐사 로버로 바꿀 수 있어요",
+    "Hold J to charge a stronger blow, let go when the ring is full": "J를 꾹 눌러 강공격을 모으고, 원이 차면 떼세요",
+    "Hold the attack button to charge a stronger blow": "공격 버튼을 꾹 눌러 강공격을 모으세요",
+    "Red on the ground means a strike is coming: step out, or dodge with K": "바닥이 빨개지면 공격이 옵니다: 피하거나 K로 회피하세요",
+    "Red on the ground means a strike is coming: step out, or tap dodge": "바닥이 빨개지면 공격이 옵니다: 피하거나 회피를 누르세요",
+    "This ground has a pond with a fish of its own": "이 사냥터에는 고유 물고기가 사는 연못이 있어요",
+    "Press G to gather it: any attack works too": "G를 눌러 채집하세요: 공격으로도 돼요",
+    "Tap Gather to collect it: any attack works too": "채집을 눌러 모으세요: 공격으로도 돼요",
+    "Press G to cast, then again when the mark is in the green": "G로 던지고, 표시가 초록에 들어오면 한 번 더",
+    "Tap Fish to cast, then Reel in when the mark is in the green": "낚시를 눌러 던지고, 표시가 초록에 들어오면 감기",
+    "Hold the ride button to switch to the explorer rover": "탈것 버튼을 꾹 누르면 탐사 로버로 바뀝니다",
   };
 
 

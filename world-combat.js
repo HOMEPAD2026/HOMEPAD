@@ -371,7 +371,7 @@ export function createCombat(ctx) {
     else if (kind === "cone") { const fan = new THREE.Mesh(new THREE.CircleGeometry(9.5, 32, -0.62, 1.24), additive(0xff2d4d, 0.3)); fan.rotation.x = -Math.PI / 2; fan.rotation.z = Math.atan2(dir.z, dir.x) * -1; fan.position.copy(m.g.position).setY(0.08); add(fan); fx.push({ o: fan, life: c.wind, t: 0, onTick: (k) => { fan.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
     else if (kind === "line") { const L = Math.min(16, d + 4), ln = new THREE.Mesh(new THREE.PlaneGeometry(2.6, L), additive(0xff2d4d, 0.3)); ln.rotation.x = -Math.PI / 2; ln.rotation.z = Math.atan2(dir.x, dir.z); const mid = m.g.position.clone().addScaledVector(dir, L / 2); ln.position.copy(mid).setY(0.08); add(ln); c.L = L; fx.push({ o: ln, life: c.wind, t: 0, onTick: (k) => { ln.material.opacity = 0.1 + 0.32 * k + Math.sin(k * 30) * 0.05; } }); }
     else if (kind === "rain") { c.spots = []; for (let i = 0; i < (m.rage ? 6 : 4); i++) { const at = i === 0 ? me.clone() : me.clone().add(new V3((Math.random() - 0.5) * 9, 0, (Math.random() - 0.5) * 9)); at.y = 0; c.spots.push(at); warnDisc(at, 2.3, c.wind); } }
-    m.cast = c; m.e.play("Attack", { once: true, fade: 0.1 }); Snd.warn && Snd.warn();
+    m.cast = c; m.e.play("Attack", { once: true, fade: 0.1 }); Snd.warn && Snd.warn(); if (ctx.hint) ctx.hint("dodge");
     return true;
   }
   function endCast(m) { m.cast = null; m.g.scale.copy(ONE); }
@@ -531,7 +531,7 @@ export function createCombat(ctx) {
     bannerEl.classList.remove("on"); void bannerEl.offsetWidth; bannerEl.classList.add("on"); clearTimeout(bannerEl._t); bannerEl._t = setTimeout(() => { bannerEl.hidden = true; }, 3600);
     const b = bossAt(); if (!b[z.id]) setBoss(z.id, Date.now() + BOSS_FIRST);
     if (under) ctx.toast(T("{x} is for level {n} and up. Careful!", { x: z.name, n: z.lv[0] }));
-    if (first && ctx.onNewZone) ctx.onNewZone(z);
+    if (first && ctx.onNewZone) ctx.onNewZone(z); if (z.lv[0] >= 30 && ctx.hint) setTimeout(() => ctx.hint("pond"), 4000);
   }
 
   // ---------------- attacking: a three-hit combo ----------------
@@ -994,7 +994,7 @@ export function createCombat(ctx) {
       vit.classList.toggle("calm", !!quietT && performance.now() - quietT > 3000);
       // a fight close by: the side panels step back (the quest list folds to its title) so the fight has the screen
       const fight = mobs.some((m) => !m.dead && m.g.position.distanceTo(me) < 14);
-      if (fight !== fightOn) { fightOn = fight; document.body.classList.toggle("wc-fight", fight); }
+      if (fight !== fightOn) { fightOn = fight; document.body.classList.toggle("wc-fight", fight); if (fight && ctx.hint) setTimeout(() => ctx.hint("charge"), 1500); }
       const mh = maxHp(), ms = maxSp(), h0 = hp, s0 = sp; if (calmT <= 0) hp = Math.min(mh, hp + mh * 0.025 * dt); sp = Math.min(ms, sp + ms * 0.06 * dt);
       if (Math.floor(h0) !== Math.floor(hp) || Math.floor(s0) !== Math.floor(sp)) paintVit();
       if (hp / mh < 0.3 && ctx.inHub()) { heartT -= dt; if (heartT <= 0) { heartT = 0.85; Snd.heart && Snd.heart(); } }

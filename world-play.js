@@ -33,7 +33,7 @@ const coarse = matchMedia("(pointer: coarse)").matches;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const lc = (a) => String(a || "").toLowerCase();
 const hex = (c) => "#" + c.toString(16).padStart(6, "0");
-const loadbar = (k) => { const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; };
+const loadbar = (k) => { const b = $("wp-loadbar"); if (b) b.style.width = Math.round(k * 100) + "%"; const n = $("wp-loadpct"); if (n) n.textContent = Math.round(k * 100) + "%"; };
 const usd = (v) => v == null ? "—" : v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(1) + "K" : "$" + Math.round(v).toLocaleString("en-US");
 
 // ---------------- language: the site's dictionaries (i18n.js); templates are translated, then filled ----------------
@@ -584,7 +584,12 @@ async function invite() {
 }
 $("wp-act-emote").addEventListener("click", openWheel);
 const speedLines = document.createElement("div"); speedLines.className = "wp-speed"; speedLines.setAttribute("aria-hidden", "true"); document.body.appendChild(speedLines);
-$("wp-act-board").addEventListener("click", () => setBoard(!boarding));
+// a long press on the ride button switches ride (the rover from level 10): phones have no V key
+{ const bb = $("wp-act-board"); let lpT = 0, lp = false;
+  bb.addEventListener("pointerdown", () => { lp = false; clearTimeout(lpT); lpT = setTimeout(() => { lp = true; switchRide(); }, 520); });
+  const stop = () => clearTimeout(lpT); bb.addEventListener("pointerup", stop); bb.addEventListener("pointerleave", stop); bb.addEventListener("pointercancel", stop);
+  bb.addEventListener("contextmenu", (e) => e.preventDefault());
+  bb.addEventListener("click", () => { if (lp) { lp = false; return; } setBoard(!boarding); }); }
 $("wp-act-photo").addEventListener("click", () => setPhoto(true));
 $("wp-photo-btn").addEventListener("click", () => { if (!frozen) setPhoto(true); });
 
@@ -690,8 +695,23 @@ function lookAround(dt) {
   let a = Math.atan2(best[0] - tmp2.x, best[1] - tmp2.z) - facing; a = Math.atan2(Math.sin(a), Math.cos(a));
   avatar.look(Math.abs(a) < 1.7 ? a : 0);
 }
+// first-time hints: a bubble with a pulsing tap mark, once per thing (gathering, fishing, the rover, charging,
+// stepping out of red), remembered in this browser
+const HINTS = "arc.world.hints";
+let hintEl = null, hintT = 0;
+function hint(id, text) {
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(HINTS) || "[]"); } catch { /* private */ }
+  if (seen.includes(id) || introOn || (hintEl && !hintEl.hidden)) return false;
+  seen.push(id); try { localStorage.setItem(HINTS, JSON.stringify(seen)); } catch { /* private */ }
+  if (!hintEl) { hintEl = document.createElement("div"); hintEl.className = "wp-fh"; hintEl.setAttribute("role", "status"); hintEl.setAttribute("data-no-i18n", ""); document.body.appendChild(hintEl); hintEl.addEventListener("click", () => { hintEl.hidden = true; }); }
+  hintEl.innerHTML = `<i aria-hidden="true"></i><span>${esc(text)}</span>`; hintEl.hidden = false; hintEl.classList.remove("on"); void hintEl.offsetWidth; hintEl.classList.add("on");
+  clearTimeout(hintT); hintT = setTimeout(() => { hintEl.hidden = true; }, 6500);
+  return true;
+}
+const tapOr = (key, tap) => (coarse ? tap : key);
 function setBoard(on) {
   if (frozen) return;
+  if (on && level() >= 10) setTimeout(() => hint("rover", tapOr(T("Press V to switch between the hoverboard and the explorer rover"), T("Hold the ride button to switch to the explorer rover"))), 1200);
   boarding = on; board.visible = on && ride === "board"; rover.visible = on && ride === "rover"; if (avatar) avatar.obj.position.y = on ? (ride === "rover" ? 0.84 : 0.45) : 0;
   $("wp-act-board").setAttribute("aria-pressed", String(on)); Snd.board();
   toast(on ? (ride === "rover" ? T("Rover on: hold Shift (or Run) to speed up · V switches ride") : T("Hoverboard on: hold Shift (or Run) to fly")) : T("Hoverboard off"));
@@ -1911,7 +1931,7 @@ combat = FIGHT.createCombat({ vfx,
     if (!reduce) document.body.appendChild(bars);
     document.body.appendChild(c); setTimeout(() => c.remove(), 3000); setTimeout(() => bars.remove(), 2600);
   },
-  buzz: (ms) => buzz(ms),
+  buzz: (ms) => buzz(ms), hint: (id) => hint(id, { charge: tapOr(T("Hold J to charge a stronger blow, let go when the ring is full"), T("Hold the attack button to charge a stronger blow")), dodge: tapOr(T("Red on the ground means a strike is coming: step out, or dodge with K"), T("Red on the ground means a strike is coming: step out, or tap dodge")), pond: T("This ground has a pond with a fish of its own") }[id] || id),
   onSwing: (p, f, heavy, hammer) => (life ? life.swingAt(p, f, heavy, hammer) : false), float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, lite: () => liteFx, slowmo: (ms) => slowmo(ms), punch: () => { if (!reduce) punch = 1; },
   pay: (id, onStatus) => arclShop.pay(id, "", onStatus),
   // knocked out: lie down and wait; back up on the spot (a revive) or on the plaza
@@ -1991,7 +2011,7 @@ decor = DECOR.createDecor({ THREE, K, planet, blocked: (v) => blockedAt(v), shop
 st.on((dt) => decor.tick(dt));
 st.on((dt) => { if (rpg && rpg.tickSwing) rpg.tickSwing(dt); });
 // gathering, the workbench and fishing (world-life.js)
-const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, buzz: (ms) => buzz(ms), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
+const life = LIFE.createLife({ THREE, planet, T: TW, esc, toast, Snd, buzz: (ms) => buzz(ms), hint: (id) => hint(id, id === "gather" ? tapOr(T("Press G to gather it: any attack works too"), T("Tap Gather to collect it: any attack works too")) : tapOr(T("Press G to cast, then again when the mark is in the green"), T("Tap Fish to cast, then Reel in when the mark is in the green"))), onStats: () => { if (combat) combat.onGear(); }, rpg: () => rpg, here: (v) => here(v), blocked: (v) => blockedAt(v), zones: RPG.ZONES, inHub: () => mode === "hub", save: () => save(), vfx, low: S.quality === "low" || S.quality === "saver", float: flt, shake: (n) => { if (!reduce) shake = Math.max(shake, n); }, onPots: () => { if (combat) combat.potsCheck(); } });
 st.on((dt) => life.tick(dt));
 // ?decor=0 leaves it out (to compare frame rates, or on a device that struggles); automated browsers (software
 // rendering, a frame a second) get it only with ?decor=1
