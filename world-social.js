@@ -177,13 +177,29 @@ export function createRaid(ctx) {
   // (the HP itself is the bar at the top of the screen and the gauge on the floor)
   const el = document.createElement("div"); el.className = "wr-raid"; el.id = "wr-raid"; el.hidden = true; el.setAttribute("data-no-i18n", ""); document.body.appendChild(el);
   let claimedNow = false;
+  // folded away (the close button): a small pill with your damage stays, a tap opens the panel again; remembered
+  let mini = (() => { try { return localStorage.getItem("arc.world.raidMin") === "1"; } catch { return false; } })();
+  const setMini = (on) => { mini = on; try { localStorage.setItem("arc.world.raidMin", on ? "1" : "0"); } catch { /* private */ } paint(); };
+  const X_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  // on a phone the panel sits under the minimap, wherever the minimap ends up
+  const place = () => {
+    const m = matchMedia("(pointer: coarse)").matches && document.querySelector(".wp-mini"), r = m && m.getBoundingClientRect();
+    const on = !!(r && r.height); el.style.top = on ? Math.round(r.bottom + 14) + "px" : ""; el.style.bottom = on ? "auto" : ""; el.style.transform = on ? "none" : "";
+  };
   function paint() {
     const show = !!st && ctx.inHub() && (inside() || (st.down && near()));
     el.hidden = !show; if (!show) return;
+    place();
     const mine = st.mine + (st.down ? 0 : pending);
+    el.classList.toggle("mini", mini);
+    if (mini) {
+      const i = (st.top || []).findIndex((r) => ctx.name && r.name === ctx.name());
+      el.innerHTML = `<button type="button" class="wr-raid-pill" data-raidopen aria-label="${esc(T("Open the raid panel"))}"><b>${esc(T("Raid"))}</b><span>${esc(Math.round(mine).toLocaleString("en-US"))}${i >= 0 ? " · #" + (i + 1) : ""}</span></button>`;
+      return;
+    }
     const top = (st.top || []).slice(0, 3).map((r, i) => `<li><span>${i + 1}</span><b>${esc(r.name || r.w)}</b><em>${Math.round(r.n).toLocaleString("en-US")}</em></li>`).join("");
     const p = st.down ? 5 : phaseOf(st.hp - pending, st.max);
-    el.innerHTML = `<div class="wr-raid-h"><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}${st.players ? " · " + esc(T("{n} raiders", { n: st.players })) : ""}</small></div>
+    el.innerHTML = `<div class="wr-raid-h"><div><b>${esc(RAID.boss.name)}</b><small>${esc(T("Weekly raid · {w}", { w: st.week }))}${st.players ? " · " + esc(T("{n} raiders", { n: st.players })) : ""}</small></div><button type="button" class="wr-raid-x" data-raidx aria-label="${esc(T("Close"))}">${X_SVG}</button></div>
       ${st.down ? "" : (() => { const md = raidModOf(st.week); return `<p class="wr-raid-mod"><b>${esc(T("This week: {x}", { x: T(md.name) }))}</b> ${esc(T(md.line))}</p>`; })()}
       ${st.down ? `<p class="wr-raid-phase down">${esc(T("Down for this week"))} · ${esc(T("next in {t}", { t: leftText((st.next || nextMonday()) - Date.now(), T) }))}</p>` : `<p class="wr-raid-phase p${p}">${esc(p > 1 ? T(PHASES[p]) : T("Phase 1"))}</p>`}
       <p class="wr-raid-me">${esc(T("Your damage: {n}", { n: Math.round(mine).toLocaleString("en-US") }))}${mine < st.need ? ` <small>${esc(T("{n} to share the reward", { n: Math.max(0, Math.ceil(st.need - mine)).toLocaleString("en-US") }))}</small>` : ` <small class="ok">${esc(T("You're in for the reward"))}</small>`}</p>
@@ -192,6 +208,8 @@ export function createRaid(ctx) {
       ${st.down ? (st.claimed ? `<p class="wr-raid-done">${esc(T("Reward claimed. A new raid boss comes on Monday."))}</p>${claimedNow || mine >= st.need ? `<button type="button" class="wp-btn wr-raid-share" data-raidshare>${esc(T("Share my raid card"))}</button>` : ""}` : `<button type="button" class="wp-cta wr-raid-claim" data-raidclaim ${ctx.sess() && st.mine >= st.need ? "" : "disabled"}>${esc(T("Claim the raid reward"))}</button><small class="wr-raid-what">${esc(T("An Epic piece of gear, 500 XP and {n} ARCL (once a week)", { n: st.arcl }))}</small>`) : ""}`;
   }
   el.addEventListener("click", async (e) => {
+    if (e.target.closest("[data-raidx]")) { setMini(true); return; }
+    if (e.target.closest("[data-raidopen]")) { setMini(false); return; }
     if (e.target.closest("[data-raidcal]")) { raidCalendar(T); return; }
     if (e.target.closest("[data-raidshare]")) {
       const i = (st.top || []).findIndex((r) => ctx.name && r.name === ctx.name());

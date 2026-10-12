@@ -2474,9 +2474,17 @@ html.wp-pcphone .wr-tip>small,html.wp-pcphone .wr-tip>em{font-size:20px}
 .wc-boss.raid u{background:linear-gradient(90deg,#2ee07a,#9fffd0)}
 .wr-raid{position:fixed;z-index:13;right:16px;top:50%;transform:translateY(-50%);width:min(280px,calc(100vw - 32px));display:grid;gap:8px;padding:14px 16px;border-radius:18px;background:rgba(6,16,12,.86);border:1px solid rgba(57,255,136,.4);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#eef3f7}
 .wr-raid[hidden]{display:none}
-.wr-raid-h{display:grid;gap:1px}
-.wr-raid-h b{font:900 16px var(--f-ui);color:#9fffd0}
+.wr-raid-h{display:grid;grid-template-columns:1fr auto;align-items:start;gap:10px}
+.wr-raid-h>div{display:grid;gap:1px;min-width:0}
+.wr-raid-h b{font:900 16px var(--f-ui);color:#9fffd0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wr-raid-h small{font:600 11.5px var(--f-ui);color:rgba(222,233,244,.55)}
+.wr-raid-x{appearance:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px 0 0;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#dfe8f2;cursor:pointer}
+.wr-raid-x:hover{background:rgba(255,255,255,.12)}
+.wr-raid-x:focus-visible,.wr-raid-pill:focus-visible{outline:2px solid #9fffd0;outline-offset:2px}
+/* folded: only a pill with your damage (and your place) */
+.wr-raid.mini{width:auto;padding:0;gap:0;border-radius:999px}
+.wr-raid-pill{appearance:none;display:flex;align-items:center;gap:8px;padding:8px 14px;border:0;background:none;color:#dfe8f2;font:700 13px var(--f-ui);cursor:pointer;font-variant-numeric:tabular-nums}
+.wr-raid-pill b{color:#9fffd0;font-weight:900}
 .wr-raid-bar{display:block;height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
 .wr-raid-bar u{display:block;height:100%;background:linear-gradient(90deg,#2ee07a,#9fffd0);transition:width .4s ease}
 .wr-raid-n{margin:0;font:800 12.5px var(--f-ui);color:rgba(222,233,244,.85);font-variant-numeric:tabular-nums}
@@ -2532,6 +2540,9 @@ html.wp-pcphone .wr-switch{flex-wrap:wrap}
 html.wp-pcphone .wr-paper{max-width:440px;margin-left:auto;margin-right:auto}
 /* phone: the raid panel sits under the minimap; the boss bar keeps clear of the action buttons */
 html.wp-pcphone .wr-raid{top:250px;bottom:auto;transform:none;right:20px;width:440px}
+html.wp-pcphone .wr-raid.mini{width:auto}
+html.wp-pcphone .wr-raid-x{width:52px;height:52px}html.wp-pcphone .wr-raid-x svg{width:26px;height:26px}
+html.wp-pcphone .wr-raid-pill{padding:14px 22px;font-size:22px;gap:12px}
 html.wp-pcphone .wc-boss{left:20px;transform:none;width:calc(100vw - var(--acts-w,540px) - 60px);min-width:340px}
 @media (pointer:coarse) and (max-width:720px){html:not(.wp-pcphone) body.wp .wp-prompt{top:41%}} /* a narrow phone (mobile layout): clear of the quests panel */
 /* ---- v30: the raid's phases, the others' share, the fall; rankings switch; season claim-all ---- */

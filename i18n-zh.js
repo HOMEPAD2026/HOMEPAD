@@ -10534,6 +10534,8 @@
     "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).": "平滑边缘、描边、雾与调色、草地（手机上较少）。",
     "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.": "全部效果：角落柔和阴影、光束、喷泉倒影、角色描边、最多的草。",
     "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery.": "帧数减半、1 倍像素、无泛光与阴影：适合用电池长时间游玩。",
+    "Open the raid panel": "打开团战面板",
+    "Raid": "团战",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

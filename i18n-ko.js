@@ -10364,6 +10364,8 @@
     "Smooth edges, ink outlines, fog and colour grading, grass (less on phones).": "부드러운 모서리, 외곽선, 안개와 색보정, 풀(폰에서는 적게)이 켜집니다.",
     "Everything: soft shade in corners, sun shafts, the fountain's reflection, outlines on characters, the most grass.": "모든 효과: 구석의 부드러운 그늘, 빛줄기, 분수 반사, 캐릭터 외곽선, 가장 많은 풀.",
     "Half the frames and 1× pixels, no bloom or shadows: for a long session on battery.": "프레임 절반, 1배 해상도, 빛번짐과 그림자 없음: 배터리로 오래 할 때.",
+    "Open the raid panel": "레이드 창 열기",
+    "Raid": "레이드",
   };
 
 
