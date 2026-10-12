@@ -10311,6 +10311,20 @@
     "Other players": "其他玩家",
     "Scammers": "骗子",
     "My Island gate": "我的岛之门",
+    "Dual Swords": "双剑",
+    "Plasma Hammer": "等离子锤",
+    "Energy Blaster": "能量爆能枪",
+    "Energy Bow": "能量弓",
+    "Magic Staff": "魔法法杖",
+    "Fast three-hit combo up close": "近身快速三连击",
+    "Slow, heavy swings; every third one slams all around you": "缓慢而沉重的挥击，每第三下砸向四周",
+    "Quick energy shots at range; every third is a burst of three": "远程快速能量弹，每第三下三连发",
+    "Long-range arrows that pierce; every third fans out three": "穿透的远程箭矢，每第三下扇形三发",
+    "Seeking orbs that splash; every third is a big one": "追踪并溅射的法球，每第三下是大法球",
+    "Weapon kind": "武器类型",
+    "Change kind: {n} scrap": "更换类型：{n} 废料",
+    "Now a {x}": "已变为{x}",
+    "Not enough scrap": "废料不足",
   };
 
   (window.__arcDict = window.__arcDict || {}).zh = { d: ZH, p: ZH_PATTERNS };

@@ -8,12 +8,14 @@
 // the ones only the hunting grounds use load when you get near one.
 //
 // ctx: { THREE, K, planet, blocked(v), shops[], zones[], ver, low, reduce, on(fn), here(v), onWeapons() }
+import { infinityStatue } from "./world-gear3d.js";
 export const PACKS = ["q-nature", "q-props", "kk-nature", "kenney-nature", "kenney-town", "kk-city", "kenney-food", "kk-furniture", "kenney-furniture", "kk-space", "kenney-space", "kk-resources", "kk-tools", "kk-weapons", "kenney-survival", "kenney-pets"];
 
 export function createDecor(ctx) {
   const { THREE, K, planet } = ctx;
   const root = new THREE.Group(); root.name = "decor"; planet.add(root);
   const packs = {}, loading = {}, solids = [], critters = [];
+  let landmark = null;
   let rnd = 1234567;
   const r = () => ((rnd = (rnd * 16807) % 2147483647) / 2147483647);
   const load = (n) => (loading[n] = loading[n] || K.loadPack(`/models/world/packs/${n}.glb`, ctx.ver).then((p) => (packs[n] = p)).catch((e) => { console.warn("pack", n, e && e.message); return null; }));
@@ -93,6 +95,9 @@ export function createDecor(ctx) {
     // a few big trees close to the plaza (the detailed ones), the rest of the woods further out (instanced, lighter)
     for (let i = 0; i < (ctx.low ? 3 : ctx.lite ? 4 : 7); i++) { const s = spotNear(0, 0, 19, 30, 2.6); if (s) g.add(at(piece("q-nature", ["CommonTree_3", "CommonTree_4", "Pine_1"][i % 3], { h: 7 + r() * 2 }), s[0], s[1])); }
     for (let i = 0; i < 8; i++) { const s = spotNear(0, 0, 18, 32, 1.2); if (s) g.add(at(piece("q-nature", ["Bush_Common_Flowers", "Bush_Common", "Flower_4_Group", "Fern_1"][i % 4], { h: i % 4 === 2 ? 0.6 : 1.1 }), s[0], s[1])); }
+    // the ∞ landmark (world-gear3d.js) at the plaza's edge, facing in
+    const lm = spotNear(0, 0, 19.5, 23, 3.6);
+    if (lm) { const st = solid(at(infinityStatue(0.9), lm[0], lm[1], Math.atan2(-lm[0], -lm[1])), 2.4); st.userData.keep = true; root.add(st); landmark = st; }
     // a market corner: two stalls with food on the counter
     const mk = spotNear(0, 0, 19, 24, 3.2);
     if (mk) {
@@ -202,6 +207,7 @@ export function createDecor(ctx) {
   }
   const tmp = new THREE.Vector3();
   function tickCritters(dt) {
+    if (landmark) landmark.userData.loop.rotation.y += dt * 0.25;
     if (!critters.length) return;
     ctx.here(tmp);
     for (const c of critters) {

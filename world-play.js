@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD, DECOR, VFX, GEAR] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe", "world-decor", "world-vfx", "world-gear3d"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -276,7 +276,9 @@ const player = new THREE.Group(); st.scene.add(player);
 const vfx = VFX.createVfx({ THREE, st, planet, player, low: S.quality === "low" || S.quality === "saver", reduce });
 st.on((dt) => vfx.tick(dt));
 spins.push(vfx.portal(portal), vfx.portal(isleGate, { colors: [[0x2ee07a, 0x9fffd0], [0x2f86ff, 0x38e8ff]] }));
-const board = K.makeHoverboard(); board.visible = false; player.add(board);
+// each gate gets its frame (world-gear3d.js): two white pillars and an arch, its name lifted above it
+for (const [g, c] of [[portal, 0x38e8ff], [isleGate, 0x2ee07a]]) { g.add(GEAR.gateFrame(c)); g.children.forEach((o) => { if (o.isSprite && o.position.y > 4) o.position.y = 7.6; }); }
+const board = GEAR.hoverboard(); board.visible = false; player.add(board); // world-gear3d.js
 let avatar = null, nameTag = null;
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
 function paintFace() { const img = $("wc-face-img"), id = P.char || "arc-arc"; if (!img) return; if (thumbCache[id]) { img.src = thumbCache[id]; return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) img.src = thumbCache[id]; }); }

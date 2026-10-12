@@ -15,6 +15,7 @@
 // ARCL goes through the server's claim: "street" (5), "hunt" (8–12 by tier, level-gated), "boss" (30), "pickup" (2),
 // each limited per day, because the server can't watch a fight.
 import { mobStats, hitDamage, ZONES, zoneAt, skillLevel, RARITY, BRANCH_AT } from "./world-rpg-data.js";
+import { weaponKind, potion as potion3d, token as token3d } from "./world-gear3d.js";
 const TAU = Math.PI * 2;
 export const SKILLS = [
   { id: "ice", name: "Ice Ball", key: "Z", lv: 10, cd: 2.6, sp: 15, color: 0x8fe6ff, mult: 1.4 },
@@ -345,11 +346,17 @@ export function createCombat(ctx) {
 
   // ---------------- attacking: a three-hit combo ----------------
   const critRoll = () => Math.random() * 100 < stats().crit;
+  // the weapon in hand decides how you attack (world-gear3d.js WEAPON_KINDS): 0 dual swords (this combo), 1 plasma hammer
+  // (slower, harder, the third swing slams all round), 2 blaster, 3 bow and 4 staff (shots, below)
+  const wKind = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return w ? weaponKind(w) : 0; };
+  const wColor = () => { const d = rpg.data && rpg.data(), w = d && d.eq && d.eq.weapon; return new THREE.Color(w ? RARITY[w.r || 0].color : "#38e8ff"); };
   function attack() {
     if (!ctx.active() || cd.attack > 0) return false;
     combo = comboT > 0 ? (combo % 3) + 1 : 1; comboT = 0.75;
-    const heavy = combo === 3;
-    cd.attack = heavy ? 0.5 : 0.3;
+    const heavy = combo === 3, kind = wKind(), ham = kind === 1;
+    if (kind >= 2) return shoot(kind, heavy);
+    if (ham) comboT = 1.1;
+    cd.attack = ham ? (heavy ? 0.85 : 0.55) : heavy ? 0.5 : 0.3;
     const av = ctx.avatar(); if (av) av.play(heavy ? "pick-up" : "interact-right", { once: true, fade: 0.04, speed: heavy ? 2.2 : 2.0 });
     Snd.swing && Snd.swing(heavy);
     ctx.here(me); fwdOf(fwd);
@@ -359,9 +366,10 @@ export function createCombat(ctx) {
     arc.rotation.y = ctx.facing(); arc.position.copy(me).setY(heavy ? 0.9 : 1.15).addScaledVector(fwd, 1.0); add(arc);
     fx.push({ o: arc, life: 0.24, t: 0, grow: [0.75, heavy ? 1.45 : 1.2], onTick: (k) => { blade.material.opacity = 0.95 * (1 - k); glowB.material.opacity = 0.6 * (1 - k); arc.rotation.z = (combo === 2 ? 1 : -1) * k * 1.2; } });
     if (heavy) { ring(me.clone().addScaledVector(fwd, 1.4), 0xffc861, { r0: 0.4, r1: 2.6, life: 0.3, y: 0.1 }); puff(me.clone().addScaledVector(fwd, 1.4).setY(0.3), 0xd8c8a8, { n: 10, speed: 3, size: 0.5, life: 0.5, grav: 2 }); }
-    const reach = heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1);
+    const reach = ham ? (heavy ? 3.9 : 3.0) : heavy ? 3.1 : 2.6, base = stats().atk * (heavy ? 1.7 : combo === 2 ? 1.15 : 1) * (ham ? 1.45 : 1);
+    if (ham) { arc.scale.multiplyScalar(1.25); if (heavy) { ring(me, 0xffc861, { r0: 0.5, r1: 4.2, life: 0.4, y: 0.1 }); if (VX) VX.impact(me.clone().setY(0.4), "hit", { big: 1.6 }); ctx.shake(0.25); } }
     let any = false;
-    for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && (d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? 1.8 : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
+    for (const m of mobs) { if (m.dead) continue; tmp.copy(m.g.position).sub(me).setY(0); const d = tmp.length() - (m.rank === "boss" ? 2 : 0); if (d < reach && ((ham && heavy) || d < 0.8 || tmp.normalize().dot(fwd) > 0.2)) { const c = critRoll(); hit(m, base * (c ? 1.8 : 1), me, heavy ? "heavy" : "melee", c); any = true; puff(m.g.position.clone().setY(m.y + 0.5), 0xffffff, { n: 6, speed: 4, size: 0.25, life: 0.3 }); } }
     if (any) ctx.shake(heavy ? 0.16 : 0.07);
     return true;
   }
@@ -458,7 +466,59 @@ export function createCombat(ctx) {
     fx.push({ o: line, life: 0.28, t: 0, onTick: () => { const p = geo.attributes.position; for (let i = 1; i < n; i++) p.setXYZ(i, pts[i].x + (Math.random() - 0.5) * 0.25, pts[i].y + (Math.random() - 0.5) * 0.25, pts[i].z + (Math.random() - 0.5) * 0.25); p.needsUpdate = true; } });
     fx.push({ o: tube, life: 0.22, t: 0 });
   }
+  const bolts = [];
+  function shoot(kind, heavy) {
+    cd.attack = kind === 2 ? (heavy ? 0.45 : 0.26) : kind === 3 ? (heavy ? 0.8 : 0.6) : heavy ? 0.7 : 0.45;
+    const av = ctx.avatar(); if (av) av.play("interact-right", { once: true, fade: 0.04, speed: 2.2 });
+    Snd.swing && Snd.swing(heavy);
+    const dir = new V3(), target = aim(dir), col = wColor();
+    const dmg = stats().atk * (kind === 2 ? 0.8 : kind === 3 ? 1.25 : 1.0) * (heavy && kind === 4 ? 1.4 : 1);
+    const fire = (turn, delay) => (delay ? (f) => setTimeout(f, delay) : (f) => f())(() => {
+      if (!ctx.active()) return;
+      ctx.here(me); const d = dir.clone().applyAxisAngle(UP, turn);
+      const g = new THREE.Group();
+      if (kind === 2) { const core = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 4, 8), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2.4) })); core.rotation.x = Math.PI / 2; g.add(core); const halo = new THREE.Sprite(spriteMat(col.getHex(), 0.7)); halo.scale.setScalar(0.9); g.add(halo); }
+      else if (kind === 3) { const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.9, 5), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2) })); shaft.rotation.x = Math.PI / 2; const head = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 4), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 2.4, 2.4) })); head.rotation.x = Math.PI / 2; head.position.z = 0.5; g.add(shaft, head); const tr = new THREE.Sprite(spriteMat(col.getHex(), 0.5)); tr.scale.set(0.5, 0.5, 1); tr.position.z = -0.3; g.add(tr); }
+      else { const orb = new THREE.Mesh(new THREE.SphereGeometry(heavy ? 0.3 : 0.2, 14, 10), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(2.2) })); const halo = new THREE.Sprite(spriteMat(col.getHex(), 0.75)); halo.scale.setScalar(heavy ? 1.8 : 1.2); g.add(orb, halo); }
+      g.position.copy(me).setY(1.15).addScaledVector(d, 0.9); add(g); g.lookAt(root.localToWorld(g.position.clone().add(d))); // lookAt wants world space
+      bolts.push({ g, v: d.multiplyScalar(kind === 2 ? 24 : kind === 3 ? 30 : 13), life: kind === 3 ? 0.7 : kind === 2 ? 0.6 : 1.3, t: 0, kind, dmg, col, pierce: kind === 3 ? 3 : 1, hit: new Set(), splash: kind === 4 ? (heavy ? 3.2 : 2.2) : 0, target: kind === 4 ? target : null });
+      if (kind === 2) flash(me.clone().setY(1.15).addScaledVector(d, 1.0), col.getHex(), 1.2, 0.12);
+    });
+    if (kind === 2 && heavy) [0, 90, 180].forEach((ms) => fire(0, ms));
+    else if (kind === 3 && heavy) [-0.2, 0, 0.2].forEach((a) => fire(a, 0));
+    else fire(0, 0);
+    return true;
+  }
+  function tickBolts(dt) {
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const b = bolts[i]; b.t += dt;
+      if (b.kind === 4) { // the orb turns toward its scammer (or the nearest one)
+        if (!b.target || b.target.dead) { let bd = 16; b.target = null; for (const m of mobs) { if (m.dead) continue; const d = m.g.position.distanceTo(b.g.position); if (d < bd) { bd = d; b.target = m; } } }
+        if (b.target) { const want = tmp.copy(b.target.g.position).setY(b.target.y + 0.5).sub(b.g.position).normalize().multiplyScalar(b.v.length()); b.v.lerp(want, Math.min(1, dt * 5)); }
+      }
+      const p0 = tmp2.copy(b.g.position); const ax = p0.x, az = p0.z; // where it was: hits are checked along the whole step, so a fast shot can't skip a scammer
+      b.g.position.addScaledVector(b.v, dt); b.g.lookAt(root.localToWorld(tmp2.copy(b.g.position).add(b.v)));
+      const bx = b.g.position.x - ax, bz = b.g.position.z - az, bl = bx * bx + bz * bz || 1;
+      let end = b.t > b.life;
+      for (const m of mobs) {
+        if (m.dead || b.hit.has(m)) continue;
+        const rad = m.rank === "boss" ? 2.6 : 1.0;
+        const u = Math.max(0, Math.min(1, ((m.g.position.x - ax) * bx + (m.g.position.z - az) * bz) / bl));
+        if (Math.hypot(m.g.position.x - ax - bx * u, m.g.position.z - az - bz * u) < rad && Math.abs(b.g.position.y - (m.y + 0.5)) < (m.rank === "boss" ? 4 : 1.8)) {
+          const c = critRoll(); hit(m, b.dmg * (c ? 1.8 : 1), me, "melee", c); b.hit.add(m);
+          puff(b.g.position, b.col.getHex(), { n: 6, speed: 3, size: 0.35, life: 0.35, grav: 1 });
+          if (b.hit.size >= b.pierce) { end = true; break; }
+        }
+      }
+      if (end) {
+        if (b.splash) { for (const m of mobs) if (!m.dead && !b.hit.has(m) && m.g.position.distanceTo(tmp.copy(b.g.position).setY(m.g.position.y)) < b.splash) hit(m, b.dmg * 0.5, b.g.position, "melee"); ring(b.g.position.clone().setY(0), b.col.getHex(), { r0: 0.3, r1: b.splash, life: 0.35, y: 0.1 }); if (VX) VX.impact(b.g.position.clone(), "shock", { big: b.splash / 2.6 }); }
+        else flash(b.g.position, b.col.getHex(), 1.4, 0.15);
+        root.remove(b.g); b.g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); bolts.splice(i, 1);
+      }
+    }
+  }
   function tickShots(dt) {
+    tickBolts(dt);
     for (let i = shots.length - 1; i >= 0; i--) {
       const s = shots[i]; s.t += dt; s.o.position.addScaledVector(s.v, dt); s.o.rotation.x += dt * 8; s.o.rotation.y += dt * 6;
       s.trail -= dt;
@@ -501,12 +561,12 @@ export function createCombat(ctx) {
   function itemMesh(it) {
     const g = new THREE.Group(), c = it.color;
     const glowM = (k = 1.2) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: 0.3, metalness: 0.3 });
-    if (it.id === "coin") { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 28), [new THREE.MeshStandardMaterial({ color: 0xffc861, metalness: 0.8, roughness: 0.25 }), new THREE.MeshStandardMaterial({ map: coinTex, emissive: 0x224466, emissiveIntensity: 0.4 }), new THREE.MeshStandardMaterial({ map: coinTex, emissive: 0x224466, emissiveIntensity: 0.4 })]); m.rotation.x = Math.PI / 2; g.add(m); }
+    if (it.id === "coin") g.add(token3d(0xffb83d, coinTex)); // world-gear3d.js
     else if (it.id === "boots") { const b = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.42, 0.5), glowM(0.6)); b.position.set(-0.2, 0, 0); const b2 = b.clone(); b2.position.x = 0.2; const w = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.36, 3), glowM(1.4)); w.rotation.z = Math.PI / 2; w.position.set(-0.45, 0.12, -0.1); const w2 = w.clone(); w2.position.x = 0.45; w2.rotation.z = -Math.PI / 2; g.add(b, b2, w, w2); }
     else if (it.id === "spring") { const s = new THREE.Mesh(new THREE.TorusKnotGeometry(0.22, 0.05, 64, 8, 1, 6), glowM(1)); s.scale.set(1, 1.8, 1); g.add(s); }
-    else if (it.id === "star") { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.2 : 0.46, a = (i / 10) * TAU + Math.PI / 2; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); } const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelSize: 0.04, bevelThickness: 0.04, bevelSegments: 1 }), glowM(1.3)); m.geometry.center(); g.add(m); }
-    else if (it.id === "potion") { const glass = new THREE.MeshPhysicalMaterial({ color: 0xffd6dc, roughness: 0.05, transparent: true, opacity: 0.45 }); const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 18, 14), glass); const liq = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 14, 0, TAU, Math.PI * 0.35, Math.PI * 0.65), glowM(1.1)); const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.24, 12), glass); neck.position.y = 0.34; const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.1, 10), new THREE.MeshStandardMaterial({ color: 0x8a5a36 })); cork.position.y = 0.5; g.add(body, liq, neck, cork); }
-    else if (it.id === "mana") { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 1, roughness: 0.05, flatShading: true, transparent: true, opacity: 0.85 })); m.scale.y = 1.6; g.add(m); }
+    else if (it.id === "star") g.add(token3d(0x38c8ff, null, true));
+    else if (it.id === "potion") g.add(potion3d(0xff4d6d, "heart")); // world-gear3d.js
+    else if (it.id === "mana") g.add(potion3d(0x6f8cff, "bolt"));
     else if (it.id === "shield") { const m = new THREE.Mesh(new THREE.SphereGeometry(0.4, 20, 14), new THREE.MeshPhysicalMaterial({ color: c, emissive: c, emissiveIntensity: 0.6, transparent: true, opacity: 0.55, roughness: 0.05 })); const r = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.04, 8, 32), glowM(1.5)); g.add(m, r); }
     else { const m = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 10, 24, Math.PI), glowM(0.9)); m.rotation.z = Math.PI; const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.2), new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 0.8, roughness: 0.2 })); t1.position.set(-0.3, 0.1, 0); const t2 = t1.clone(); t2.position.x = 0.3; g.add(m, t1, t2); }
     const halo = new THREE.Sprite(spriteMat(c, 0.55)); halo.scale.setScalar(1.6); g.add(halo);

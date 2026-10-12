@@ -2917,3 +2917,12 @@ html.wp-pcphone .wp-fps{font-size:16px;bottom:auto;top:calc(max(14px,env(safe-ar
 @media (max-width:760px){.wd-body{grid-template-columns:1fr}.wd-view{height:300px}}
 html.wp-pcphone .wd-card{zoom:1.3;width:min(860px,calc((100vw - 20px) / 1.3))}
 html.wp-pcphone .wd-body{grid-template-columns:1fr}
+/* v38: a weapon's kind in its card: the name, what it does, and the five kinds to switch between */
+.wr-kind{margin:10px 0 4px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(160,220,255,.14)}
+.wr-kind>b{display:block;font:800 14px var(--f-ui);color:var(--rc,#7fe6ff)}
+.wr-kind>span{display:block;margin-top:2px;font:500 12.5px/1.4 var(--f-ui);color:rgba(222,233,244,.75)}
+.wr-kinds{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.wr-kinds button{appearance:none;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(160,220,255,.28);background:rgba(4,10,24,.5);color:#dfe9f3;font:700 12px var(--f-ui);cursor:pointer}
+.wr-kinds button[aria-pressed=true]{border-color:transparent;background:var(--rc,#38e8ff);color:#06121f}
+.wr-kinds button:focus-visible{outline:2px solid #35d8d0;outline-offset:2px}
+.wr-kind>small{display:block;margin-top:6px;font:600 11.5px var(--f-ui);color:rgba(222,233,244,.55)}

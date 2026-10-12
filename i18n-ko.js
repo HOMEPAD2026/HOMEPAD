@@ -10141,6 +10141,20 @@
     "Other players": "다른 플레이어",
     "Scammers": "스캐머",
     "My Island gate": "내 섬 게이트",
+    "Dual Swords": "쌍검",
+    "Plasma Hammer": "플라즈마 해머",
+    "Energy Blaster": "에너지 블래스터",
+    "Energy Bow": "에너지 보우",
+    "Magic Staff": "매직 스태프",
+    "Fast three-hit combo up close": "가까이서 빠른 3연타",
+    "Slow, heavy swings; every third one slams all around you": "느리지만 묵직한 휘두르기, 세 번째는 주변 전체를 내려찍기",
+    "Quick energy shots at range; every third is a burst of three": "멀리서 빠르게 쏘는 에너지탄, 세 번째는 3연발",
+    "Long-range arrows that pierce; every third fans out three": "멀리까지 꿰뚫는 화살, 세 번째는 부채꼴 3발",
+    "Seeking orbs that splash; every third is a big one": "따라가서 터지는 마법 구슬, 세 번째는 큰 구슬",
+    "Weapon kind": "무기 종류",
+    "Change kind: {n} scrap": "종류 바꾸기: 고철 {n}",
+    "Now a {x}": "{x}(으)로 바꿨어요",
+    "Not enough scrap": "고철이 부족해요",
   };
 
 

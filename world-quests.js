@@ -2,6 +2,7 @@
 // each scam really is), this week's top hunters, and a companion drone that comes with the first achievement.
 // Everything here pays XP, scrap and potions — never ARCL — so nothing in it can be farmed into tokens.
 // Saved inside the character (P.rpg.x), so it travels with world-save.
+import { miniDrone } from "./world-gear3d.js";
 import { TITLE_BONUS, bonusLine, PETS, petLevel, petNext, xpEvent, ZONES, WEEKDAY_ZONE } from "./world-rpg-data.js";
 import { seasonOf, SEASON_PTS, SEASON_TIERS, tierOf, quizFor, QUIZ_XP } from "./world-season.js";
 const NEWK = "arc.world.newTabs";
@@ -277,11 +278,10 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, ...o });
   // the drone
   const drone = new THREE.Group();
-  { const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 14), std(0xeef3f7, { metalness: 0.6, roughness: 0.25 }));
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 2.4, 1.4) })); eye.position.z = 0.22;
-    const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.03, 8, 32), std(0x2f86ff, { emissive: 0x1d63d6, emissiveIntensity: 1.2 }));
-    const r2 = r1.clone(); r2.material = std(0x2ee07a, { emissive: 0x17a85a, emissiveIntensity: 1.2 }); r2.rotation.x = Math.PI / 2;
-    drone.add(body, eye, r1, r2); drone.userData = { r1, r2 }; }
+  { const body = miniDrone(); // world-gear3d.js: a round white head, a dark visor and two eyes of light, little ears
+    const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.02, 8, 40), std(0x2f86ff, { emissive: 0x1d63d6, emissiveIntensity: 1.4 }));
+    const r2 = r1.clone(); r2.material = std(0x2ee07a, { emissive: 0x17a85a, emissiveIntensity: 1.4 }); r2.rotation.x = Math.PI / 2;
+    drone.add(body, r1, r2); drone.userData = { r1, r2 }; }
   // the cat: a little low-poly cat, sitting up when you stop
   const cat = new THREE.Group();
   { const fur = std(0xffb35c, { flatShading: true }), dark = std(0x3a2a20, { flatShading: true }), white = std(0xfff4e6, { flatShading: true });
