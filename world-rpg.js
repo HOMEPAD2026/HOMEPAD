@@ -386,7 +386,7 @@ export function createRpg(ctx) {
     if (view === "log" && log && log.click(b)) { paint(); return; }
     if (b.hasAttribute("data-recall")) { if (ctx.recall && ctx.recall()) hide(); return; }
     if (d.ftab) { forgeTab = d.ftab; seeTab(forgeTab); sel = null; fuseSel = []; paint(); return; }
-    if (e.target.closest("[data-tempergo]")) { hide(); ctx.openCraft("temper"); return; }
+    if (e.target.closest("[data-tempergo]")) { const id = sel; hide(); ctx.openCraft("temper", id); return; }
     if (d.pane) { invPane = d.pane; paint(); return; }
     if (d.bagf) { bagF = d.bagf; paint(); return; }
     if (d.fuse) { fusePick(d.fuse); return; }

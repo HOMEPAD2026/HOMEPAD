@@ -455,10 +455,10 @@ export function createCombat(ctx) {
   function chargeTick(dt) {
     if (!chg.on) return;
     chg.t += dt; const k = Math.max(0, Math.min(1, (chg.t - CHG_START) / CHG_FULL));
-    if (chg.t >= CHG_START && !chg.ring) { const r = new THREE.Group(), a = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0x8fe6ff, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false })); a.rotation.x = Math.PI / 2; r.add(a); const f = new THREE.Mesh(new THREE.RingGeometry(0.2, 1.4, 48, 1, 0, 0.01), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false })); f.rotation.x = -Math.PI / 2; r.add(f); r.userData = { a, f }; add(r); chg.ring = r; }
+    if (chg.t >= CHG_START && !chg.ring) { const r = new THREE.Group(), a = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0x8fe6ff, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false })); a.rotation.x = Math.PI / 2; r.add(a); const f = new THREE.Mesh(new THREE.RingGeometry(0.2, 1.4, 48, 1, Math.PI / 2, TAU), new THREE.MeshBasicMaterial({ color: 0xffc861, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false })); f.rotation.x = -Math.PI / 2; f.geometry.setDrawRange(0, 0); r.add(f); r.userData = { a, f }; add(r); chg.ring = r; }
     if (!chg.ring) return;
     ctx.here(me); chg.ring.position.copy(me).setY(0.12);
-    const { a, f } = chg.ring.userData; f.geometry.dispose(); f.geometry = new THREE.RingGeometry(0.2, 1.4, 48, 1, Math.PI / 2, Math.max(0.01, k * TAU));
+    const { a, f } = chg.ring.userData; f.geometry.setDrawRange(0, Math.floor(k * 48) * 6); // the fill grows round the ring (one geometry, drawn in part)
     a.material.color.set(k >= 1 ? 0xffc861 : 0x8fe6ff); a.scale.setScalar(1 + (k >= 1 ? Math.sin(chg.t * 18) * 0.05 : 0));
     if ((chg.tick -= dt) <= 0 && k < 1) { chg.tick = 0.12; Snd.charge && Snd.charge(k); if (!ctx.reduce) puff(me.clone().add(new V3((Math.random() - 0.5) * 3, 0.4, (Math.random() - 0.5) * 3)), 0x8fe6ff, { n: 1, speed: 0.5, size: 0.25, life: 0.3, grav: -2 }); }
     if (k >= 1 && !chg.full) { chg.full = true; ring(me, 0xffc861, { r0: 0.5, r1: 2, life: 0.3, y: 0.1 }); Snd.pop && Snd.pop(); }
@@ -850,7 +850,7 @@ export function createCombat(ctx) {
       return;
     }
     closePick();
-    if (id === "attack") { attack(); chargeStart(); } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
+    if (id === "attack") { attack(); chargeStart(); try { b.setPointerCapture(e.pointerId); } catch { /* not capturable */ } } else if (id === "pot-hp") drink("hp"); else if (id === "pot-sp") drink("sp");
     b.classList.remove("press"); void b.offsetWidth; b.classList.add("press");
   });
   slotBtn.addEventListener("pointerup", (e) => {
@@ -1039,7 +1039,9 @@ export function createCombat(ctx) {
     potsCheck, tick, keyDown, keyUp, chargeStart, chargeEnd, charged, attack, dodge, cast, drink, onLevel, slot: () => (slotSkill() || {}).id || null, setSlot, nextSkill, paintSkills, paintPots, onGear: () => { paintVit(); },
     vitals: () => ({ hp, sp, max: maxHp(), maxSp: maxSp(), down }), hurtMe: (n) => damage(n), zone: () => zone,
     speedMul: () => (buffs.boots > 0 ? 1.4 : 1) * (1 + stats().spd / 100), jumpMul: () => (buffs.spring > 0 ? 1.35 : 1),
-    spawnMob, spawnItem, mobsRaw: () => mobs, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
+    spawnMob, spawnItem, mobsRaw: () => mobs,
+    /// a fight close by: a boss within r, or any scammer within 14 m (the jetpack comes down for it)
+    dangerNear: (r = 24) => { ctx.here(me); return mobs.some((m) => !m.dead && Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < (m.rank === "boss" ? r : 14)); }, state: () => ({ mobs: mobs.filter((m) => !m.dead).map((m) => ({ id: m.spec.id, lv: m.lv, rank: m.rank, hp: m.hp, max: m.max, x: m.g.position.x, z: m.g.position.z, cast: m.cast ? m.cast.kind : m.dash ? "dash" : m.rush ? "rush" : m.wind ? "wind" : "", rage: !!m.rage, rare: !!m.rare })), mshots: mshots.length, charging: chg.on, items: items.map((x) => x.it.id), drops: drops.length, dropAt: drops.map((d) => [d.g.position.x, d.g.position.z]), cd: { ...cd }, buffs: { ...buffs }, combo, zone: zone && zone.id }),
     spawnNear(dist = 3, o = {}) { const kit = ctx.kit(); if (!kit) return false; spawnT = 999; ctx.here(me); fwdOf(fwd);
       // in front of you; with free, turned aside when that spot is inside something (the fountain, a hall)
       let at = null; for (const turn of o.free ? [0, 0.7, -0.7, 1.4, -1.4, 2.2, -2.2, Math.PI] : []) { const d = fwd.clone().applyAxisAngle(UP, turn), c = me.clone().addScaledVector(d, dist).setY(0); if (!ctx.blocked(c)) { at = c; break; } }

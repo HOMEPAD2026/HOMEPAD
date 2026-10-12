@@ -54,7 +54,7 @@ function cleanRpg(r) {
   const eq = {}; for (const k of ["weapon", "shield", "armor", "helm", "ring", "boots", "necklace"]) { const it = cleanItem(r.eq && r.eq[k]); if (it && it.b.startsWith(k + "-")) eq[k] = it; }
   const bag = (Array.isArray(r.bag) ? r.bag : []).map(cleanItem).filter(Boolean).slice(0, 24);
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
-  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 10000 ? { x: extra } : {}) };
+  return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 16000 ? { x: extra } : {}) }; // quests, codex, fish, trophies…: room to grow
 }
 // the ARC Bot wardrobe: one part per place, and an accent colour (world-arcbots.js WARDROBE)
 const OUTFIT_SLOTS = ["head", "face", "neck", "back", "aura"];

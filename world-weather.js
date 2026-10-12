@@ -49,9 +49,9 @@ export function createWeather({ THREE, planet, zones, low = false, reduce = fals
         else { float a = t * 0.15 * (0.5 + seed.w) + ph; p.x += cos(a) * 3.0; p.z += sin(a) * 3.0; p.y += sin(uT * 0.5 + ph) * 0.6; }
         // wrap round the box centred on you
         vec3 w; w.x = uC.x + mod(p.x - uC.x, uB) - uB * 0.5; w.z = uC.y + mod(p.z - uC.y, uB) - uB * 0.5; w.y = mod(p.y, uH) + 0.1;
-        float edge = smoothstep(uZ.z + 2.0, uZ.z - 4.0, distance(w.xz, uZ.xy)); // only inside the ground
+        float edge = 1.0 - smoothstep(uZ.z - 4.0, uZ.z + 2.0, distance(w.xz, uZ.xy)); // only inside the ground
         float hf = smoothstep(0.0, 0.8, w.y) * (1.0 - smoothstep(uH - 1.5, uH, w.y));
-        float near = smoothstep(uB * 0.5, uB * 0.3, distance(w.xz, uC));
+        float near = 1.0 - smoothstep(uB * 0.3, uB * 0.5, distance(w.xz, uC));
         vTw = uMode > 3.5 && uMode < 4.5 ? 0.35 + 0.65 * (0.5 + 0.5 * sin(uT * (2.0 + seed.w * 3.0) + ph * 4.0)) : uMode > 4.5 && uMode < 5.5 ? 0.6 + 0.4 * sin(uT * 12.0 + ph * 9.0) : 1.0;
         vA = edge * hf * near;
         vec4 mv = modelViewMatrix * vec4(w, 1.0);

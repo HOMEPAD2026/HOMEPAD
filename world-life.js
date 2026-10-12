@@ -159,7 +159,9 @@ export function createLife(ctx) {
   let tab = "make";
   const need = (m, rc) => Object.entries(rc.need).every(([k, n]) => (m[k] || 0) >= n);
   const chips = (m, req) => Object.entries(req).filter(([k]) => MATS[k]).map(([k, n]) => `<span class="wl-chip${(m[k] || 0) >= n ? "" : " short"}" style="--c:${MATS[k].color}"><i></i>${(m[k] || 0) >= n ? n : `${m[k] || 0}/${n}`} ${esc(T(MATS[k].name))}</span>`).join("");
-  function weaponNow() { const d = ctx.rpg() && ctx.rpg().data(); return d && d.eq && d.eq.weapon ? d.eq.weapon : null; }
+  // the weapon to temper: the one picked in the bag (from its card), or the one in hand
+  let pickId = null;
+  function weaponNow() { const d = ctx.rpg() && ctx.rpg().data(); if (!d) return null; const all = [d.eq && d.eq.weapon, ...(d.bag || [])].filter(Boolean); const p = pickId && all.find((x) => x.id === pickId && /^weapon-/.test(x.b)); return p || (d.eq && d.eq.weapon) || null; }
   function paintSheet() {
     const d = X(); if (!d) return; const m = d.x.mat;
     let body = "";
@@ -169,7 +171,7 @@ export function createLife(ctx) {
         return `<li class="${ok ? "ok" : "no"}"><div><b>${esc(T(rc.name))}</b><p>${chips(m, rc.need)}</p></div><button type="button" class="${ok ? "wp-cta" : "wp-btn"}" data-wlmake="${rc.id}" ${ok ? "" : "disabled"}>${esc(T("Make"))}</button></li>`; }).join("")}</ul>`;
     } else if (tab === "temper") {
       const w = weaponNow();
-      if (!w) body = `<p class="wl-note">${esc(T("Equip a weapon to temper it."))}</p>`;
+      if (!w) body = `<p class="wl-note">${esc(T("Equip a weapon to temper it."))}</p>`; // (or pick one in the bag)
       else { const tm = temperOf(w), pb = parseBase(w.b), cost = tm < TEMPER_MAX ? temperCost(tm + 1) : null, okM = cost && Object.entries(cost).every(([k, n]) => k === "scrap" ? (d.scrap || 0) >= n : (m[k] || 0) >= n);
         const thumb = pb ? weaponThumb(weaponKind(w), pb.tier, RARITY[w.r || 0].color) : "";
         body = `<div class="wl-temper"><div class="wl-wpn" style="--rc:${RARITY[w.r || 0].color}">${thumb ? `<img src="${thumb}" alt="">` : ""}</div><div><b>${esc(ctx.rpg().itemName(w))}</b>
@@ -215,7 +217,7 @@ export function createLife(ctx) {
     if (ctx.vfx) { ctx.here(me); ctx.vfx.buff && ctx.vfx.buff(new THREE.Color(RARITY[w.r || 0].color).getHex()); }
   }
   addEventListener("keydown", (e) => { if (!sheet.hidden && e.key === "Escape") { e.stopImmediatePropagation(); hideSheet(); } }, true);
-  function showSheet(t) { if (t) tab = t; paintSheet(); sheet.hidden = false; }
+  function showSheet(t, id) { if (t) tab = t; pickId = id || null; paintSheet(); sheet.hidden = false; }
   function hideSheet() { sheet.hidden = true; }
   // a small line of what you carry, under the action button
   function paintMats() { const d = X(); if (!d) return; act.dataset.mats = `${d.x.mat.ore || 0} · ${d.x.mat.crystal || 0} · ${d.x.mat.wood || 0}`; }

@@ -7,8 +7,10 @@ export function createShowcase({ THREE, K, T, fishList, zones, fish3d }) {
   let swimmers = [], spinners = [];
   const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6, ...o });
   const at = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+  // what was built before goes: geometries, materials and the labels' canvas textures
+  function wipe() { g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); }); g.clear(); swimmers = []; spinners = []; }
   function build(data, W) {
-    g.clear(); swimmers = []; spinners = [];
+    wipe();
     g.position.set(-W / 2 + 12, 0.2, W / 2 + 7.5); // off the front edge, near where you arrive
     // the terrace and its rocky underside
     const base = new THREE.Mesh(new THREE.CylinderGeometry(7, 6.4, 0.8, 28), std(0xd8d4cc, { roughness: 0.8 })); base.position.y = -0.4; base.receiveShadow = true; g.add(base);
@@ -40,5 +42,5 @@ export function createShowcase({ THREE, K, T, fishList, zones, fish3d }) {
     for (const s of swimmers) { const a = t * s.sp + s.ph; s.m.position.set(Math.cos(a) * s.r * 1.1, s.y + Math.sin(t * 1.3 + s.ph) * 0.12, Math.sin(a) * 0.55); s.m.rotation.y = -a + Math.PI; }
     for (const s of spinners) { s.m.rotation.y = t * 1.2 + s.ph; s.m.position.y = 1.35 + Math.sin(t * 2 + s.ph) * 0.06; }
   }
-  return { group: g, build, tick, clear: () => { g.clear(); swimmers = []; spinners = []; } };
+  return { group: g, build, tick, clear: wipe };
 }

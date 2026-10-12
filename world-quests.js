@@ -296,7 +296,7 @@ export function createQuests(ctx) {
   const pet = () => { const id = activePet(); return id ? { id, lv: petLevel(X().petXp[id] || 0), name: petName(id) } : null; };
   const seasonPending = () => { const x = X(); return SEASON_TIERS.filter((t, i) => x.ss.pts >= t.pts && !x.ss.got.includes(i)).length; };
   const pending = () => { const x = X(); return todays().filter((q) => !x.d.done.includes(q.id) && (x.d.p[q.id] || 0) >= q.n).length + seasonPending(); };
-  return { on, html, click, title, titleBonus, titleOf, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
+  return { on, html, click, title, titleBonus, titleOf, hasPet, pet, pending, bump, setTab: (t) => { tab = t; }, setRank: (k) => { rk = k; top = null; race = null; recs = null; loadTop().then(() => ctx.repaint && ctx.repaint()); }, dir: () => dir, loadDir: async () => { rk = rk; const k = rk; rk = "players"; await loadTop(); rk = k; return dir; }, seasonNotice, petThumb: (id) => (ctx.petThumb ? ctx.petThumb(id) : "") };
 }
 
 /// the companions (world-rpg-data.js PETS): the drone floats by your shoulder and zaps the nearest scammer, the cat

@@ -93,7 +93,10 @@ export function windLook(mat, { amp = 0.12, h = 1, local = false } = {}) {
     if (prev) prev(sh, r);
     sh.uniforms.lkT = time;
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float lkT;").replace("#include <begin_vertex>", `#include <begin_vertex>
-      { vec4 wp0 = modelMatrix * ${"#ifdef USE_INSTANCING\n instanceMatrix * \n#endif\n"}vec4(0.0, 0.0, 0.0, 1.0);
+      { vec4 wp0 = modelMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+#ifdef USE_INSTANCING
+        wp0 = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+#endif
         float up = clamp(position.y / ${h.toFixed(2)}, 0.0, 1.5); up *= up;
         float ph = wp0.x * 0.37 + wp0.z * 0.29${local ? " + position.x * 0.9 + position.z * 0.7" : ""};
         float s = sin(lkT * 1.7 + ph) * 0.7 + sin(lkT * 3.1 + ph * 1.7) * 0.3;

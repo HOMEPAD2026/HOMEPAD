@@ -163,7 +163,7 @@ export function makeStage(canvas, opts = {}) {
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const updates = new Set();
   const clock = new THREE.Clock();
-  let raf = 0, running = true, every = 1, nth = 0, base = q.saver ? 2 : 1;
+  let raf = 0, running = true, every = 1, nth = 0, base = q.saver ? 2 : 1, cap = q.dpr; // cap: the most pixels dynamic resolution may use (lighter / degrade lower it)
   function frame() {
     if (!running) return;
     raf = requestAnimationFrame(frame);
@@ -178,11 +178,11 @@ export function makeStage(canvas, opts = {}) {
     // a full-screen menu is open: the world behind it only needs a few frames a second (saves battery and heat)
     idle(on) { const e = on ? 4 : base; if (e !== every) { every = e; nth = 0; clock.getDelta(); } },
     // a first, gentle step for a slow frame rate: fewer pixels, everything else kept
-    lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); if (composer) composer.setPixelRatio(renderer.getPixelRatio()); resize(); return true; },
+    lighter() { const r = renderer.getPixelRatio(); if (r <= 1) return false; renderer.setPixelRatio(Math.max(1, r - 0.5)); cap = renderer.getPixelRatio(); if (composer) composer.setPixelRatio(cap); resize(); return true; },
     // dynamic resolution: k of the preset's pixel ratio (0.6–1), changed quietly as the frame rate moves
-    scale(k) { const r = Math.max(0.5, q.dpr * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
+    scale(k) { const r = Math.max(0.5, cap * Math.max(0.6, Math.min(1, k))); if (Math.abs(r - renderer.getPixelRatio()) < 0.02) return false; renderer.setPixelRatio(r); if (composer) composer.setPixelRatio(r); resize(); return true; },
     // slower devices: no bloom, no shadows, fewer pixels
-    degrade() { renderer.setPixelRatio(1); if (composer) { composer.dispose?.(); composer = null; } renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); resize(); },
+    degrade() { renderer.setPixelRatio(1); cap = 1; if (composer) { composer.dispose?.(); composer = null; } renderer.shadowMap.enabled = false; sun.castShadow = false; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); }); resize(); },
     snap() { if (composer) composer.render(); else renderer.render(scene, camera); return new Promise((res) => canvas.toBlob(res, "image/png")); },
     THREE, scene, camera, renderer, sun, hemi, composer, quality: q, on: (fn) => (updates.add(fn), () => updates.delete(fn)),
     dispose() { running = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); }); },
