@@ -51,6 +51,7 @@ const BOSS_EVERY = 30 * 60e3, BOSS_FIRST = 2 * 60e3, BKEY = "arc.world.boss";
 ///        blocked(v) → bool, rpg (world-rpg.js) }
 export function createCombat(ctx) {
   const { THREE, K, planet, Snd, rpg } = ctx;
+  const VX = ctx.vfx || null; // world-vfx.js: the layered light effects on top of the puffs below
   const LW = { ko: { Spring: "스프링", Shield: "보호막", Magnet: "자석", Shock: "전기충격", Meteor: "메테오", Attack: "공격", Dodge: "회피", Dodged: "회피!", free: "무료", Elite: "엘리트", Boss: "보스" }, zh: { Spring: "弹簧", Shield: "护盾", Magnet: "磁铁", Shock: "电击", Meteor: "陨石", Attack: "攻击", Dodge: "闪避", Dodged: "闪避！", free: "免费", Elite: "精英", Boss: "首领" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const V3 = THREE.Vector3, UP = new THREE.Vector3(0, 1, 0);
@@ -60,7 +61,7 @@ export function createCombat(ctx) {
   const stats = () => rpg.stats();
   const maxHp = () => stats().hp, maxSp = () => stats().sp;
   let quietT = 0, hp = maxHp(), sp = maxSp(), calmT = 0, down = false, guardT = 0, stopT = 0, combo = 0, comboT = 0, heartT = 0;
-  const buffs = {};
+  const buffs = {}; let shieldShown = false;
   let spawnT = 14, itemT = 2, hurtT = 0, zone = null, zoneShown = null;
   const me = new V3(), tmp = new V3(), tmp2 = new V3(), fwd = new V3(), ONE = new V3(1, 1, 1);
   const add = (m) => { root.add(m); return m; };
@@ -165,6 +166,7 @@ export function createCombat(ctx) {
     const sh = new THREE.Mesh(new THREE.CircleGeometry(bs ? 2.6 : 0.7, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.04; g.add(sh);
     if (rank) { const rr = new THREE.Mesh(new THREE.TorusGeometry(bs ? 3 : 1.1, 0.07, 8, 48), new THREE.MeshBasicMaterial({ color: rank === "boss" ? 0xff4d6d : 0xffc861 })); rr.rotation.x = Math.PI / 2; rr.position.y = 0.08; g.add(rr); g.userData.ring = rr; }
     add(g); e.play("Run");
+    if (VX && rank && !o.raid) VX.summon(p, rank === "boss");
     const m = { g, e, spec, lv, rank, max: st.hp, hp: st.hp, atk: st.atk, def: st.def, xp: st.xp, slow: 0, stun: 0, burn: 0, burnD: 0, hitT: 0, bar, dead: 0, wander: Math.random() * TAU, zone: o.zone || null, bossName: bs ? bs.name : "", reach: bs ? 3.2 : 1.35 + (rank === "elite" ? 0.3 : 0), y: baseY, glow: skin ? 0.05 : 0.18 };
     if (o.raid) {
       m.raid = true; m.hp = Math.max(1, o.hp); bar.visible = false; // the raid's HP is the bar at the top and the gauge on the floor
@@ -189,6 +191,7 @@ export function createCombat(ctx) {
     if (!m.raid) tryStep(m, tmp, kb);
     if (kind === "ice") { const deep = brOf("ice") === "a"; m.slow = deep ? 5 : 3; if (deep) { m.stun = Math.max(m.stun, m.rank === "boss" ? 0.2 : 0.6); m.statue = true; } }
     if (kind === "shock") m.stun = (m.rank === "boss" ? 0.4 : 1.2) * (brOf("shock") === "b" ? 2 : 1);
+    if (kind === "shock" && VX) VX.impact(m.g.position.clone().setY(m.y + 0.6), "shock");
     if (kind === "fire" || kind === "meteor") { const inf = kind === "fire" && brOf("fire") === "b"; m.burn = inf ? 5 : 3; m.burnD = Math.max(1, Math.round(raw * (inf ? 0.24 : 0.12))); }
     m.e.play("Hit", { once: true, fade: 0.05 });
     ctx.float((crit ? "!" : "") + dmg, tmp2.copy(m.g.position).setY(m.bar.position.y + 0.4), crit ? "#ffe066" : kind === "ice" ? "#8fe6ff" : kind === "fire" || kind === "meteor" ? "#ffb070" : kind === "shock" ? "#d8c4ff" : "#ffffff", crit, dmg / m.max);
@@ -465,6 +468,7 @@ export function createCombat(ctx) {
         if (s.t < s.life) continue;
         const p = s.at.clone();
         for (const m of mobs) if (!m.dead && m.g.position.distanceTo(tmp.copy(p).setY(m.g.position.y)) < (m.rank === "boss" ? 6.5 : 4.5) * (s.big || 1)) { const c = critRoll(); hit(m, s.dmg * (c ? 1.8 : 1), p, "meteor", c); }
+        if (VX) VX.impact(p.clone().setY(0.8), "meteor", { big: s.big || 1 });
         flash(p.clone().setY(1), 0xffb060, 8, 0.45); ring(p, 0xff7a2a, { r0: 0.6, r1: 6.5 * (s.big || 1), life: 0.6, y: 0.15 }); ring(p, 0xffd27a, { r0: 0.3, r1: 4, life: 0.45, y: 0.3 });
         puff(p.clone().setY(0.8), 0xff7a2a, { n: 34, speed: 9, size: 0.9, life: 0.8, grav: -1 }); puff(p.clone().setY(0.6), 0x55504a, { n: 16, speed: 2.5, size: 1.6, life: 1.4, grav: -1.2 });
         shards(p.clone().setY(0.5), 0x8a4a32, 18, 9); ctx.shake(0.45);
@@ -477,11 +481,12 @@ export function createCombat(ctx) {
         const p = s.o.position.clone(), c = critRoll();
         if (s.kind === "ice") {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "ice", c);
-          shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2);
+          shards(p, 0xbff0ff, 14, 6); ring(p, 0x8fe6ff, { r0: 0.3, r1: 2.2, life: 0.4 }); flash(p, 0xcff6ff, 2.2, 0.2); if (VX) VX.impact(p, "ice");
         } else {
           if (target) hit(target, s.dmg * (c ? 1.8 : 1), me, "fire", c);
           for (const m of mobs) if (m !== target && !m.dead && m.g.position.distanceTo(p) < (s.wide ? 4.5 : 3)) hit(m, s.dmg * (s.wide ? 0.8 : 0.6), p, "fire");
           if (s.wide) { ring(p, 0xffd27a, { r0: 0.6, r1: 4.8, life: 0.5 }); groundFire(p); }
+          if (VX) VX.impact(p, "fire", { big: s.wide ? 1.5 : 1 });
           flash(p, 0xffb060, 4.2, 0.3); puff(p, 0xff7a2a, { n: 18, speed: 6, size: 0.6, life: 0.6, grav: -1 }); puff(p, 0x55504a, { n: 8, speed: 1.5, size: 1.1, life: 1.1, grav: -1.5 }); ring(p, 0xff9a4a, { r0: 0.4, r1: 3.2, life: 0.45 });
           ctx.shake(0.14);
         }
@@ -519,6 +524,7 @@ export function createCombat(ctx) {
     const p = x.g.position.clone(); root.remove(x.g); items.splice(items.indexOf(x), 1);
     if (x.pulled && ctx.onFetch) ctx.onFetch();
     puff(p, x.it.color, { n: 12, speed: 4, size: 0.35, life: 0.6, grav: 2 }); ring(p, x.it.color, { r0: 0.2, r1: 1.8, life: 0.35, y: 0.1 });
+    if (VX) { VX.collect(p, x.it.color); if (x.it.secs && x.it.id !== "shield") VX.buff(x.it.color); }
     Snd.coin && Snd.coin();
     const name = T(x.it.name);
     switch (x.it.id) {
@@ -715,6 +721,7 @@ export function createCombat(ctx) {
     comboT = Math.max(0, comboT - dt);
     paintCd();
     let changed = false; for (const k in buffs) { if (buffs[k] > 0) { buffs[k] = Math.max(0, buffs[k] - dt); if (!buffs[k]) changed = true; } }
+    if (VX && (buffs.shield > 0) !== shieldShown) { shieldShown = buffs.shield > 0; VX.shield(shieldShown); }
     if ((buffPaint -= dt) <= 0 || changed) { buffPaint = 0.5; paintBuffs(); potsCheck(); }
     if (ghostHp > hp) { ghostHp = Math.max(hp, ghostHp - dt * maxHp() * 0.5); paintVit(); }
     if (down) { const left = Math.max(0, (waitT - performance.now()) / 1000), b = dead.querySelector("#wc-respawn"), w = dead.querySelector("#wc-wait"); if (b && w) { b.disabled = left > 0; w.textContent = left > 0 ? T("free, in {n} s", { n: Math.ceil(left) }) : T("free"); } }
