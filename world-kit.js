@@ -18,7 +18,7 @@ import { RoundedBoxGeometry } from "./vendor/three/addons/RoundedBoxGeometry.js"
 import { GLTFLoader } from "./vendor/three/addons/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/three/addons/meshopt_decoder.module.js";
 import * as SkeletonUtils from "./vendor/three/addons/SkeletonUtils.js";
-import { ARCBOT_IDS, arcbotOf, makeArcBot } from "./world-arcbots.js";
+import { ARCBOT_IDS, arcbotOf, makeArcBot, withOutfit } from "./world-arcbots.js";
 import * as ARC from "./world-arcstyle.js"; // the ARCIRCLE look: buildings, town, trees, lamps, fountain, arches, plaza floor
 
 export { THREE };
@@ -106,12 +106,16 @@ export function placeOn(obj, dir, r = R) {
 }
 
 // ---------------- renderer + post ----------------
+/// the graphics presets (Settings → Graphics): auto, low, medium, ultra, saver ("high" from before is ultra)
 export function quality(force = "auto") {
   const coarse = matchMedia("(pointer: coarse)").matches;
   const cores = navigator.hardwareConcurrency || 4;
-  const low = force === "low" || force === "saver" ? true : force === "high" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
-  const saver = force === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
-  return { coarse, low, saver, dpr: Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : 1.75), bloom: !low };
+  const f = force === "high" ? "ultra" : force;
+  const low = f === "low" || f === "saver" ? true : f === "medium" || f === "ultra" ? false : (coarse && cores <= 6) || cores <= 2 || /Android [4-8]\b/.test(navigator.userAgent);
+  const saver = f === "saver"; // battery saver: half the frames, 1× pixels, no bloom or shadows
+  const medium = f === "medium";
+  const dpr = Math.min(window.devicePixelRatio || 1, saver ? 1 : low ? 1.25 : medium ? 1.5 : f === "ultra" ? 2 : 1.75);
+  return { coarse, low, saver, medium, ultra: f === "ultra", dpr, bloom: !low, shadowSize: medium || coarse ? 1024 : 2048 };
 }
 export function webglOk() {
   try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
@@ -135,7 +139,7 @@ export function makeStage(canvas, opts = {}) {
   // soft shadows around the robot (it always stands at the top of the world, so one fixed shadow box covers it)
   if (opts.shadows && !q.low && !q.saver) {
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    sun.castShadow = true; sun.shadow.mapSize.set(q.coarse ? 1024 : 2048, q.coarse ? 1024 : 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+    sun.castShadow = true; sun.shadow.mapSize.set(q.shadowSize, q.shadowSize); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     const gy = opts.groundY ?? R;
     sun.position.set(14, gy + 34, 18); sun.target.position.set(0, gy, -4);
     const sc = sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 5; sc.far = 90; sc.updateProjectionMatrix();
@@ -741,10 +745,12 @@ export function makePaths() {
 // the ARC Bots (world-arcbots.js, ARCIRCLE World's own characters) first, then the hover bot and the Kenney characters
 export const CHARACTERS = [...ARCBOT_IDS, "bot", ..."abcdef".split("").map((c) => "male-" + c), ..."abcdef".split("").map((c) => "female-" + c)];
 export { ARCBOT_IDS };
+export const arcNight = (k) => ARC.setNight(k);
+export const mergeStatic = (g) => ARC.mergeStatic(g);
 const charCache = new Map();
-export async function makeCharacter(id, ver = "") {
+export async function makeCharacter(id, ver = "", outfit = null) {
   const ab = arcbotOf(id);
-  if (ab) { const b = makeArcBot(THREE, ab); shadowy(b.obj, true, false); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
+  if (ab) { const b = makeArcBot(THREE, withOutfit(ab, outfit)); shadowy(b.obj, true, false); return { ...b, arc: true, mixer: { update: (dt) => b.update(dt, 0) } }; }
   if (id === "bot" || !CHARACTERS.includes(id)) {
     const r = makeRobot(); r.scale.setScalar(0.8);
     const rings = r.userData.crown.children;
@@ -954,3 +960,29 @@ export function makeHoverboard() {
 }
 // a speech bubble over an NPC
 export function bubble(text, accent = "#ff7ad9") { const sp = label(text, { accent, size: 0.55 }); sp.position.y = 3.3; return sp; }
+
+// ---------------- model packs (world-decor.js): one GLB per pack, one root node per model ----------------
+export function loadPack(url, ver = "") {
+  return new Promise((res, rej) => {
+    const L = new GLTFLoader(); L.setMeshoptDecoder(MeshoptDecoder);
+    L.load(url + ver, (g) => { const models = new Map(); for (const n of g.scene.children) models.set(n.name, n); g.scene.updateMatrixWorld(true); res({ models, clips: g.animations }); }, undefined, rej);
+  });
+}
+export function packClone(p, name) { const src = p && p.models.get(name); return src ? SkeletonUtils.clone(src) : null; }
+/// many copies of one model as instanced meshes (one draw per part): mats place each copy, h sets its height
+export function packInstanced(p, name, mats, { h } = {}) {
+  const src = p && p.models.get(name); if (!src || !mats.length) return null;
+  const box = new THREE.Box3().setFromObject(src), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const k = h ? h / Math.max(0.01, size.y) : 1;
+  const base = new THREE.Matrix4().makeScale(k, k, k).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
+  const g = new THREE.Group(), m4 = new THREE.Matrix4();
+  src.traverse((m) => {
+    if (!m.isMesh) return;
+    const local = new THREE.Matrix4().multiplyMatrices(base, m.matrixWorld);
+    const inst = new THREE.InstancedMesh(m.geometry, m.material, mats.length);
+    mats.forEach((M, i) => inst.setMatrixAt(i, m4.multiplyMatrices(M, local)));
+    inst.instanceMatrix.needsUpdate = true; inst.computeBoundingSphere(); inst.castShadow = true; inst.receiveShadow = true;
+    g.add(inst);
+  });
+  return g;
+}

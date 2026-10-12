@@ -279,3 +279,47 @@ export function makeArcFountain() {
   }] };
   return g;
 }
+
+/// night: hall windows light up warm (k 0 = day, 1 = night); the glass is one shared material, so this is one change
+export function setNight(k) {
+  const g = glass();
+  g.emissive.setHex(0x1f6fd6).lerp(new THREE.Color(0xffc27a), k * 0.85);
+  g.emissiveIntensity = 0.75 + k * 1.15;
+}
+
+/// fewer draw calls for a group of static props: every mesh under `group` (except sprites, those marked
+/// userData.keep and anything inside a subtree marked userData.keep) is merged with the others that look the same
+/// (same material type and settings) into one mesh. The props must not move afterwards.
+export function mergeStatic(group) {
+  group.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(group.matrixWorld).invert(), m4 = new THREE.Matrix4();
+  const keyOf = (m) => [m.type, m.color && m.color.getHex(), m.emissive && m.emissive.getHex(), m.emissiveIntensity, m.roughness, m.metalness, m.flatShading, m.transparent, m.opacity, m.side, m.map ? m.map.uuid : ""].join("|");
+  const groups = new Map(), drop = [];
+  const walk = (o) => {
+    for (const c of [...o.children]) {
+      if (c.userData && c.userData.keep) continue;
+      if (c.isMesh && !c.isInstancedMesh && !c.isSkinnedMesh && !Array.isArray(c.material) && c.geometry && !c.morphTargetInfluences) {
+        const k = keyOf(c.material); let e = groups.get(k); if (!e) { e = { mat: c.material, geos: [], shadow: false, recv: false }; groups.set(k, e); }
+        m4.multiplyMatrices(inv, c.matrixWorld);
+        let g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); g.applyMatrix4(m4);
+        for (const a of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(a)) g.deleteAttribute(a);
+        if (!g.attributes.uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array((g.attributes.position.count) * 2), 2));
+        if (!g.attributes.normal) g.computeVertexNormals();
+        e.geos.push(g); e.shadow = e.shadow || c.castShadow; e.recv = e.recv || c.receiveShadow; drop.push(c);
+      }
+      if (!c.isSprite) walk(c);
+    }
+  };
+  walk(group);
+  let made = 0;
+  for (const e of groups.values()) {
+    if (e.geos.length < 2) { e.geos.forEach((g) => g.dispose()); continue; }
+    const geo = mergeGeometries(e.geos, false); e.geos.forEach((g) => g.dispose()); if (!geo) continue;
+    const mesh = new THREE.Mesh(geo, e.mat); mesh.castShadow = e.shadow; mesh.receiveShadow = e.recv; mesh.name = "merged"; group.add(mesh); made++;
+    e.done = true;
+  }
+  // remove what was merged (only meshes whose group actually merged)
+  const doneKeys = new Set([...groups.entries()].filter(([, e]) => e.done).map(([k]) => k));
+  for (const c of drop) if (doneKeys.has(keyOf(c.material))) c.parent.remove(c); // geometries may be shared (model clones): left to the GC
+  return made;
+}

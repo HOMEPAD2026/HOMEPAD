@@ -56,11 +56,16 @@ export function createShop(ctx) {
   // ---------------- the HUD counter ----------------
   const chip = document.createElement("button");
   chip.type = "button"; chip.className = "wp-chip wa-chip"; chip.id = "wa-chip"; chip.title = "ARCL"; chip.setAttribute("data-no-i18n", "");
-  chip.innerHTML = `<img src="/images/arcl-64.png" alt="" width="18" height="18"><b id="wa-chip-n">0</b><small>ARCL</small>`;
+  chip.innerHTML = `<img src="/images/arcl-64.png" alt="" width="18" height="18"><b id="wa-chip-n">0</b><small>ARCL</small><u class="wa-chip-day" aria-hidden="true"><i id="wa-chip-day"></i></u>`;
   const chips = document.querySelector(".wp-chips"); if (chips) chips.insertBefore(chip, chips.children[1] || null);
   chip.addEventListener("click", () => openExchange());
   function paintChip(roll) {
     const n = arcl ? arcl.bal : 0;
+    // today's earnings against the daily limit, as a thin line under the number (full: gold, with a note on hover)
+    const cap = (arcl && arcl.cap) || 0, today = (arcl && arcl.today) || 0, day = $("wa-chip-day");
+    if (day) day.style.width = cap ? Math.min(100, (100 * today) / cap) + "%" : "0%";
+    chip.classList.toggle("full", !!cap && today >= cap);
+    chip.title = cap ? T("ARCL earned today: {n} / {cap}", { n: fmt(today), cap: fmt(cap) }) + (today >= cap ? " · " + T("Today's limit is reached. More tomorrow.") : "") : "ARCL";
     if (!roll || ctx.reduce) { shown = n; $("wa-chip-n").textContent = fmt(n); return; }
     const from = shown, t0 = performance.now();
     const step = () => { const k = Math.min(1, (performance.now() - t0) / 700); shown = from + (n - from) * (1 - Math.pow(1 - k, 3)); $("wa-chip-n").textContent = fmt(shown); if (k < 1) requestAnimationFrame(step); };
@@ -320,6 +325,6 @@ export function createShop(ctx) {
   return {
     refresh, claim, flushQueue, maybeDaily, openDaily: () => { if (arcl) openDaily(); else refresh().then(() => openDaily()); }, dailyDone: () => !!(arcl && arcl.lastDay === seoulDay()), openShop, openExchange, owns, close: () => { close(); closeDaily(); },
     pay: async (id, target = "", onStatus = null) => !!(await payArc(id, target, null, onStatus)), // the game's own purchases (a revive)
-    arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden,
+    arcl: () => arcl, own: () => own, open: () => !sheet.hidden || !daily.hidden, fly: (n, from) => flyCoins(n, from),
   };
 }

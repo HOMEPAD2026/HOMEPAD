@@ -176,7 +176,7 @@ export function createQuests(ctx) {
   }
 
   // ---------------- rankings: players (the directory and who's on now), levels, codex, hunters, raid, race ----------------
-  const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"]];
+  const RK = [["players", "Players"], ["level", "Levels"], ["codex", "Codex"], ["hunt", "Hunters"], ["raid", "Raid damage"], ["race", "Race"]];
   const titleOf = (t) => (t === "season" ? T("Season Star") : (ACH.find((a) => a.id === t) || {}).title ? T(ACH.find((a) => a.id === t).title) : "");
   const agoOf = (t) => { if (!t) return ""; const m = Math.floor((Date.now() - t) / 60000); return m < 15 ? T("just now") : m < 60 ? T("{n} min ago", { n: m }) : m < 1440 ? T("{n} h ago", { n: Math.floor(m / 60) }) : m < 2880 ? T("yesterday") : T("{n} days ago", { n: Math.floor(m / 1440) }); };
   const face = (c) => { const src = ctx.charThumb ? ctx.charThumb(c) : ""; return `<i class="wq-face">${src ? `<img src="${src}" alt="">` : ""}</i>`; };
@@ -198,7 +198,7 @@ export function createQuests(ctx) {
     }
     if (rk === "race") {
       const fmt = (ms) => (ms / 1000).toFixed(2) + " s";
-      return nav + `<p class="wr-note">${esc(T("This week's fastest hoverboard laps around the plaza. Start at the gold ring by the fountain."))}</p>` + (race ? (race.length ? `<ol class="wq-rank">${race.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${fmt(r.ms)}</em></li>`).join("")}</ol>` : none) : wait);
+      return nav + `<p class="wr-note">${esc(T("This week's fastest hoverboard laps around the plaza. Start at the race pad with the chequered flag."))}</p>` + (race ? (race.length ? `<ol class="wq-rank">${race.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${fmt(r.ms)}</em></li>`).join("")}</ol>` : none) : wait);
     }
     return nav + `<p class="wr-note">${esc(rk === "raid" ? T("This week's raid: damage on the Ponzi Leviathan the server counted.") : T("This week's top hunters. Points come from knock-outs the server counted: a street scammer 1, a hunting-ground scammer 2–4, a boss 10."))}</p>${top ? (top.length ? `<ol class="wq-rank">${top.map((r, i) => `<li class="${i < 3 ? "p" + (i + 1) : ""}"><span>${i + 1}</span><b>${esc(r.name || r.w)}${r.name ? `<small>${esc(r.w)}</small>` : ""}</b><em>${esc(rk === "raid" ? T("{n} damage", { n: Math.round(r.n).toLocaleString("en-US") }) : T("{n} points", { n: r.n }))}</em></li>`).join("")}</ol>` : `<p class="wa-empty">${esc(T("Nothing yet."))}</p>`) : `<p class="wa-empty">${esc(T("Loading…"))}</p>`}${rk === "raid" && past && past.length ? `<h4 class="wq-past-h">${esc(T("Past raids"))}</h4><ul class="wq-past">${past.map((w) => `<li><b>${esc(w.week)}</b><span>${esc(T("{n} raiders", { n: w.players }))} · ${esc(T("{n} HP", { n: w.max.toLocaleString("en-US") }))}</span><em class="${w.fell ? "ok" : ""}">${esc(w.fell ? T("fell after {h} h", { h: w.hours }) : T("stood"))}</em></li>`).join("")}</ul>` : ""}`;
   }
@@ -308,7 +308,7 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
   Object.values(looks).forEach((x) => { x.userData.skinMat = x.userData.skin.map((m) => m.material); });
   Object.values(looks).forEach((g) => { g.visible = false; root.add(g); });
   const me = new THREE.Vector3(), want = new THREE.Vector3(), last = new THREE.Vector3();
-  let cur = null, g = null, actT = 4, lv = 1, name = "", plate = null, emoteT = 0, idleT = 0;
+  let cur = null, g = null, actT = 4, lv = 1, name = "", plate = null, emoteT = 0, idleT = 0, stillT = 0; const meLast = new THREE.Vector3();
   function dress() {
     if (!g) return;
     g.userData.extra.visible = lv >= 5;
@@ -351,6 +351,8 @@ export function createPet({ THREE, K, planet, here, facing, combat, reduce }) {
     tick(dt, t, inHub) {
       if (!g || !g.visible) return;
       here(me); const f = facing();
+      // the name plate only while you stand still (walking, it sat on top of your own name)
+      if (plate) { const still = Math.hypot(me.x - meLast.x, me.z - meLast.z) < 0.02; stillT = still ? stillT + dt : 0; plate.visible = stillT > 1.2 || emoteT > 0; meLast.copy(me); }
       if (emoteT > 0) { emoteT = Math.max(0, emoteT - dt); const k = 1 - emoteT; if (cur === "cat") g.userData.hop = Math.sin(k * Math.PI * 2) * 0.35; else if (cur === "drone") g.rotation.x = k * Math.PI * 2; else g.scale.setScalar(1 + Math.sin(k * Math.PI) * 0.6); } else { g.userData.hop = 0; g.rotation.x = 0; if (cur === "wisp") g.scale.setScalar(1); }
       if (cur === "cat") {
         want.set(me.x - Math.sin(f) * 1.2 + Math.cos(f) * 0.6, me.y, me.z - Math.cos(f) * 1.2 - Math.sin(f) * 0.6);

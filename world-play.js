@@ -22,7 +22,7 @@ if (!window.arcWorldLock || !window.arcWorldLock.ok()) {
 }
 const VER = new URL(import.meta.url).search;
 // the game's modules load side by side (one after another cost a round trip each on a phone)
-const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
+const [K, IS, SHOP, STYLE, HELP, FIGHT, RPG, ZN, QST, SOC, ARCBOT, INBOX, RACE, WARD] = await Promise.all(["world-kit", "world-island", "world-shop", "world-style", "world-support", "world-combat", "world-rpg", "world-zones", "world-quests", "world-social", "world-arcbots", "world-inbox", "world-race", "world-wardrobe"].map((m) => import(m === "world-arcbots" ? "./world-arcbots.js" : `./${m}.js${VER}`))); // world-arcbots.js unversioned: world-kit.js imports it the same way, so it loads once
 const { THREE } = K;
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -42,12 +42,14 @@ if (LANG !== "en") for (let i = 0; i < 30 && !(window.__arcDict && window.__arcD
 const T = (s, v) => { let t = (LANG !== "en" && window.arcI18n && window.arcI18n.translate(s, LANG)) || s; if (v) for (const k in v) t = t.split("{" + k + "}").join(v[k]); return t; };
 // single words stay out of the site-wide dictionary (they'd change other pages): a small map just for the game
 const WORDS = {
-  ko: { Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
+  ko: { Inbox: "알림함", Gifts: "선물", Guestbook: "방명록", Race: "레이스", Finish: "완주", Wardrobe: "옷장", Head: "머리", Face: "얼굴", Neck: "목", Back: "등", Aura: "오라", Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", power: "전투력", Equip: "장착", Minimap: "미니맵", Show: "표시", On: "켜짐", Reply: "답장", Medium: "중간", Ultra: "최고", "Frame rate": "프레임", Level: "레벨", Friend: "친구", Say: "말하기", GG: "GG", Companions: "동료", "Hi!": "안녕!", Filter: "필터", Sticker: "스티커", Pose: "포즈", None: "없음", Warm: "따뜻하게", Cool: "시원하게", Noir: "흑백", Neon: "네온", Wave: "손 흔들기", Sit: "앉기", Point: "가리키기", Update: "업데이트", Title: "칭호", Hoverboard: "호버보드", Jump: "점프", Mirror: "대칭", Moving: "이동", Menus: "메뉴", Buttons: "버튼", Space: "스페이스", Click: "클릭", Drag: "드래그", Wheel: "휠", Tap: "탭", Move: "이동", Look: "시점", Wave: "인사", No: "아니요", Sit: "앉기", Point: "가리키기", Faint: "기절", Controls: "조작 방법", Shop: "상점", Fighting: "전투", Attack: "공격", Layout: "화면 배치", Compact: "PC형", Large: "크게", Skip: "건너뛰기", Quests: "퀘스트", Map: "지도", Menu: "메뉴", Settings: "설정", Graphics: "그래픽", Auto: "자동", High: "높음", Low: "낮음", Language: "언어", Account: "계정", Sound: "사운드", Today: "오늘", Badges: "배지", Name: "이름", "Level up": "레벨 업", online: "접속 중", Player: "플레이어", visited: "방문함", yours: "내 코인", ready: "준비됨", bought: "매수", sold: "매도",
     move: "이동", jump: "점프", run: "달리기", enter: "입장", board: "보드", emote: "감정표현", photo: "사진", map: "지도", help: "도움말", "drag to look": "드래그로 둘러보기" },
-  zh: { Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
+  zh: { Inbox: "收件箱", Gifts: "礼物", Guestbook: "留言簿", Race: "竞速", Finish: "完成", Wardrobe: "衣橱", Head: "头部", Face: "面部", Neck: "颈部", Back: "背部", Aura: "光环", Lock: "锁定", Unlock: "解锁", Locked: "已锁定", power: "战力", Equip: "装备", Minimap: "小地图", Show: "显示", On: "开", Reply: "回复", Medium: "中", Ultra: "极致", "Frame rate": "帧率", Level: "等级", Friend: "好友", Say: "说话", GG: "GG", Companions: "伙伴", "Hi!": "你好！", Filter: "滤镜", Sticker: "贴纸", Pose: "姿势", None: "无", Warm: "暖色", Cool: "冷色", Noir: "黑白", Neon: "霓虹", Wave: "挥手", Sit: "坐下", Point: "指向", Update: "更新", Title: "称号", Hoverboard: "滑板", Jump: "跳跃", Mirror: "镜像", Moving: "移动", Menus: "菜单", Buttons: "按钮", Space: "空格", Click: "点击", Drag: "拖动", Wheel: "滚轮", Tap: "点按", Move: "移动", Look: "视角", Wave: "挥手", No: "不", Sit: "坐下", Point: "指向", Faint: "晕倒", Controls: "操作说明", Shop: "商店", Fighting: "战斗", Attack: "攻击", Layout: "界面布局", Compact: "电脑版", Large: "大字", Skip: "跳过", Quests: "任务", Map: "地图", Menu: "菜单", Settings: "设置", Graphics: "画质", Auto: "自动", High: "高", Low: "低", Language: "语言", Account: "账户", Sound: "声音", Today: "今日", Badges: "徽章", Name: "名字", "Level up": "升级", online: "在线", Player: "玩家", visited: "已访问", yours: "我的币", ready: "就绪", bought: "买入", sold: "卖出",
     move: "移动", jump: "跳跃", run: "奔跑", enter: "进入", board: "滑板", emote: "表情", photo: "拍照", map: "地图", help: "帮助", "drag to look": "拖动查看" },
 };
 const W = (w) => (WORDS[LANG] && WORDS[LANG][w]) || w;
+// for the newer modules: a single word from WORDS, anything longer from the site dictionary
+const TW = (s, v) => (WORDS[LANG] && WORDS[LANG][s] != null ? WORDS[LANG][s] : T(s, v));
 document.querySelectorAll("[data-w]").forEach((el) => { el.textContent = W(el.dataset.w); });
 if (LANG !== "en") { const k = $("wp-keys"); if (k) k.innerHTML = `<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ${W("move")} <span>·</span> <kbd>Space</kbd> ${W("jump")} <span>·</span> <kbd>Shift</kbd> ${W("run")} <span>·</span> <kbd>E</kbd> ${W("enter")} <span>·</span> <kbd>F</kbd> ${W("board")} <span>·</span> <kbd>1</kbd><kbd>2</kbd> ${W("emote")} <span>·</span> <kbd>P</kbd> ${W("photo")} <span>·</span> <kbd>M</kbd> ${W("map")} <span>·</span> <kbd>H</kbd> ${W("help")} <span>·</span> ${W("drag to look")}`; }
 K.SHOPS.forEach((s) => { s.name = T(s.name); s.line = T(s.line); });
@@ -86,7 +88,7 @@ const vid = (() => { try { let v = localStorage.getItem(VID); if (!/^[a-z0-9]{20
 const sess = () => { try { const s = JSON.parse(localStorage.getItem(SESS) || "null"); return s && Date.now() - Date.parse(s.issued) < 23.5 * 3600e3 ? s : null; } catch { return null; } };
 const loginMessage = (wallet, issued) => `ARCIRCLE World — sign in\n\nWallet: ${lc(wallet)}\nIssued: ${issued}\n\nThis only proves the wallet is yours. It costs nothing and moves nothing.`;
 const post = (body) => fetch("/api/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }));
-const PROGRESS = ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg"];
+const PROGRESS = ["xp", "xpv", "visited", "beaten", "cards", "quests", "badges", "char", "name", "daily", "rpg", "outfit"];
 async function signIn() {
   if (!AC) throw new Error(T("Wallet connect isn't available here."));
   if (!AC.live || !AC.live()) await AC.connect();
@@ -122,7 +124,7 @@ function loggedIn(r, quiet) {
 async function cloudSave() {
   const s = sess(); if (!s) return;
   const data = {}; PROGRESS.forEach((k) => (data[k] = P[k]));
-  try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { localStorage.removeItem(SESS); paintAcct(); } } catch { /* next time */ }
+  try { const r = await post({ action: "world-save", ...s, data }); if (r.status === 400 && /expired/.test(r.j.error || "")) { try { localStorage.setItem(SESS, JSON.stringify({ ...s, issued: new Date(0).toISOString() })); } catch { /* private */ } paintAcct(); } } catch { /* next time */ }
 }
 let stats = null, visitSent = false;
 async function ping() {
@@ -275,7 +277,7 @@ let avatar = null, nameTag = null;
 // the portrait in the HP card (ART-SPEC interface: the main HUD shows your character's face)
 function paintFace() { const img = $("wc-face-img"), id = P.char || "arc-arc"; if (!img) return; if (thumbCache[id]) { img.src = thumbCache[id]; return; } renderThumbsFor([id]).then(() => { if (thumbCache[id]) img.src = thumbCache[id]; }); }
 async function setAvatar(id) {
-  const a = await K.makeCharacter(id, VER).catch(() => K.makeCharacter("bot"));
+  const a = await K.makeCharacter(id, VER, P.outfit || null).catch(() => K.makeCharacter("bot"));
   setTimeout(paintFace, 300);
   if (avatar) player.remove(avatar.obj);
   avatar = a; player.add(a.obj); a.obj.rotation.y = facing; a.obj.position.y = boarding ? 0.45 : 0;
@@ -551,7 +553,7 @@ const Y = new THREE.Vector3(0, 1, 0), prevP = new THREE.Vector3(), EDGE = 150;
 let mode = "hub"; // "hub" | "island" (world-island.js takes over the ground)
 const at = new THREE.Vector3(0, 0, 0), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), dir = new THREE.Vector3(), axis = new THREE.Vector3(), nrm = new THREE.Vector3();
 let speedNow = 0, hop = 0, vy = 0, grounded = true, near = null, stepT = 0, walked = 0, shake = 0;
-let combat = null, rpg = null, quests = null, pet = null, raid = null, ghosts = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
+let combat = null, rpg = null, quests = null, pet = null, raid = null, ghosts = null, race = null; const knockV = new THREE.Vector3(); // world-combat.js and world-rpg.js, set up further down
 function inputs() {
   let x = 0, y = 0;
   if (keys.has("w") || keys.has("arrowup")) y += 1;
@@ -626,6 +628,28 @@ let jumpBuf = 0;
 const airV = new THREE.Vector3(), lastDir = new THREE.Vector3(0, 0, 1);
 function jump() { if (!grounded && !frozen) { jumpBuf = performance.now(); return; } if (!grounded || frozen) return; vy = (boarding ? 11 : 9) * (combat ? combat.jumpMul() : 1); grounded = false; airV.copy(lastDir).multiplyScalar(speedNow > 1 ? speedNow * 1.08 : 0); Snd.jump(); if (avatar && !boarding) avatar.play("jump", { once: true, fade: 0.08 }); daily("jumps"); tutorialStep(1); }
 function emote(name) { if (!avatar || frozen || !grounded) return; avatar.play(name, { once: true }); if (pet) pet.emote(); }
+// landing from a jump: a ring of light where you touch down (the ARC Bots also squash a little)
+function landRing(y) {
+  if (reduce) return;
+  const r = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.46, 36), new THREE.MeshBasicMaterial({ color: 0x9fe6ff, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide }));
+  r.rotation.x = -Math.PI / 2; here(r.position).setY((y || 0) + 0.05); planet.add(r);
+  const t0 = performance.now(), off = st.on(() => { const k = (performance.now() - t0) / 380; r.scale.setScalar(1 + k * 2.4); r.material.opacity = 0.75 * (1 - k); if (k >= 1) { off(); planet.remove(r); r.geometry.dispose(); r.material.dispose(); } });
+}
+// the head turns toward someone close by: another player, ARCIA, a scammer
+let lookT = 0;
+function lookAround(dt) {
+  if (!avatar || !avatar.look) return;
+  lookT -= dt; if (lookT > 0) return; lookT = 0.2;
+  if (mode !== "hub" || frozen) { avatar.look(0); return; }
+  here(tmp2); let best = null, bd = 7;
+  const consider = (x, z) => { const d = Math.hypot(x - tmp2.x, z - tmp2.z); if (d < bd && d > 0.8) { bd = d; best = [x, z]; } };
+  if (ghosts) ghosts.named().forEach((w) => consider(w.x, w.z));
+  if (npc) { npc.getWorldPosition(tmp); consider(tmp.x - planet.position.x, tmp.z - planet.position.z); }
+  if (combat) for (const m of combat.state().mobs || []) if (!m.dead) consider(m.x, m.z);
+  if (!best) { avatar.look(0); return; }
+  let a = Math.atan2(best[0] - tmp2.x, best[1] - tmp2.z) - facing; a = Math.atan2(Math.sin(a), Math.cos(a));
+  avatar.look(Math.abs(a) < 1.7 ? a : 0);
+}
 function setBoard(on) {
   if (frozen) return;
   boarding = on; board.visible = on; if (avatar) avatar.obj.position.y = on ? 0.45 : 0;
@@ -635,7 +659,7 @@ function setBoard(on) {
 function step(dt) {
   // the floor: flat ground in the hub, the bricks under your feet on an island
   const floor = mode === "island" ? island.floorAt(here(tmp2)) : 0;
-  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { hop = floor; vy = 0; grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
+  if (!grounded) { vy -= 24 * dt; hop += vy * dt; if (hop <= floor) { const impact = -vy; hop = floor; vy = 0; if (avatar && avatar.land && impact > 4) { avatar.land(impact / 14); landRing(floor); } grounded = true; airV.set(0, 0, 0); Snd.land(); dust(6); shake = Math.max(shake, 0.12); if (performance.now() - jumpBuf < 160) { jumpBuf = 0; setTimeout(jump, 0); } } }
   else if (hop > floor + 0.05) { grounded = false; vy = 0; }
   else if (floor > hop) hop = floor;
   player.position.y = hop;
@@ -755,11 +779,11 @@ async function refreshPlaza() {
   const b = screen.userData.board, isle = plazaNow && plazaNow.isle, coin = plazaNow && plazaNow.coin;
   b.userData.draw((g, w, h) => {
     const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "#0b2340"); gr.addColorStop(1, "#0d3a2c"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#8fe9df"; g.font = "700 26px Sora, sans-serif"; g.fillText(isle ? (isle.contest ? T("Last week's top island") : T("Island of the day")) : coin ? T("On ArcPad") : T("The plaza screen"), 24, 44);
+    g.fillStyle = "#8fe9df"; g.font = "700 26px Sora, sans-serif"; g.fillText(isle ? (isle.contest ? T("Last week's top island") : T("Island of the day")) : coin ? T("On ArcPad") : T("This week's island contest"), 24, 44);
     g.fillStyle = "#ffffff"; g.font = "700 58px Sora, sans-serif";
-    g.fillText(isle ? isle.name.slice(0, 16) : coin ? "$" + String(coin.symbol || "").slice(0, 10) : T("Your island here"), 24, 130);
+    g.fillText(isle ? isle.name.slice(0, 16) : coin ? "$" + String(coin.symbol || "").slice(0, 10) : T("Build yours"), 24, 130);
     g.fillStyle = "#c9d6e2"; g.font = "600 24px Sora, sans-serif";
-    g.fillText(isle || coin ? T("Walk up and press E to visit") : T("Put your island or your coin up in the ARCL Shop"), 24, h - 28);
+    g.fillText(isle || coin ? T("Walk up and press E to visit") : T("The most-liked island this week goes up here next week"), 24, h - 28);
   });
 }
 setInterval(refreshPlaza, 60000);
@@ -799,6 +823,7 @@ function nearest() {
   coinBuildings.forEach((g) => consider(g, "coin", { coin: g.userData.coin }, 2.4));
   consider(portal, "portal", {}, 2.4);
   consider(pad, "pad", {}, 1.6);
+  if (race && !race.racing()) consider(race.pad, "race", {}, 1.8);
   if (npc) consider(npc, "npc", {}, 2.4);
   return best;
 }
@@ -810,7 +835,7 @@ function paintPrompt() {
   if (p.hidden) { p.hidden = false; void p.offsetWidth; }
   p.classList.add("on");
   const b = (s) => `<b>${esc(s)}</b>`;
-  $("wp-enter-t").innerHTML = near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
+  $("wp-enter-t").innerHTML = near.kind === "screen" ? (plazaNow && plazaNow.isle ? T("Visit {x}", { x: b(T("{name}'s island", { name: plazaNow.isle.name })) }) : T("Visit {x}", { x: b("$" + ((plazaNow && plazaNow.coin && plazaNow.coin.symbol) || "")) })) : near.kind === "isle" ? T("Go to {x}", { x: b(T("My Island")) }) : near.kind === "isle-exit" ? esc(T("Back to the world")) : near.kind === "resident" ? T("Talk to {x}", { x: b(near.res.name) }) : near.kind === "portal" ? T("Go to {x}", { x: b(T("Platform World")) }) : near.kind === "pad" ? esc(T("Fast travel")) : near.kind === "race" ? T("Start the {x}", { x: b(T("hoverboard race")) }) : near.kind === "npc" ? T("Talk to {x}", { x: b("ARCIA") }) : near.kind === "coin" ? T("Visit {x}", { x: b("$" + near.coin.symbol) }) : T("Enter {x}", { x: b(near.spec.name) });
 }
 $("wp-enter").addEventListener("click", () => near && enter(near));
 
@@ -849,7 +874,27 @@ function doorThen(g, fn) {
   if (reduce || !g) { fn(); return; }
   g.getWorldPosition(tmp); const yaw = Math.atan2(-tmp.x, -tmp.z) + Math.PI;
   const y0 = camYaw, t0 = performance.now(); frozen = true;
+  entryGlow(g);
   const off = st.on(() => { const k = Math.min(1, (performance.now() - t0) / 420); camYaw = angLerp(y0, yaw, k); camZoom = 1 - 0.35 * k; if (k >= 1) { off(); fn(); } });
+}
+// going in: a soft column of light at the hall's door
+function entryGlow(g) {
+  if (reduce || !g || !g.parent) return;
+  const p = g.position.clone(), d = p.clone().setY(0).normalize().multiplyScalar(-((g.userData.radius || 2) + 0.4));
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 3.4, 28, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x9fe6ff).multiplyScalar(1.6), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  col.position.copy(p).add(d).setY(1.7); planet.add(col);
+  const t0 = performance.now(), off = st.on(() => { const k = (performance.now() - t0) / 650; col.material.opacity = Math.sin(Math.min(1, k) * Math.PI) * 0.55; col.scale.set(1 - k * 0.3, 1 + k * 0.4, 1 - k * 0.3); if (k >= 1) { off(); planet.remove(col); col.geometry.dispose(); col.material.dispose(); } });
+}
+// wading through the fountain's pool: ripples behind you
+let rippleT = 0;
+function ripples(dt) {
+  if (reduce || mode !== "hub" || !grounded) return;
+  rippleT -= dt; if (rippleT > 0 || speedNow < 1) return;
+  here(tmp2); const r = Math.hypot(tmp2.x, tmp2.z); if (r > 4.05 || r < 2.6) return;
+  rippleT = speedNow > 9 ? 0.16 : 0.3;
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.34, 32), new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.set(tmp2.x, 0.36, tmp2.z); planet.add(m);
+  const t0 = performance.now(), off = st.on(() => { const k = (performance.now() - t0) / 900; m.scale.setScalar(1 + k * 3.2); m.material.opacity = 0.8 * (1 - k); if (k >= 1) { off(); planet.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function enter(n) {
   if (n.kind === "isle") { goIsland({}); return; }
@@ -858,6 +903,7 @@ function enter(n) {
   if (n.kind === "resident") { island.talk(n.res); return; }
   if (n.kind === "portal") { location.href = "/?skip"; return; }
   if (n.kind === "pad") { openMap(); return; }
+  if (n.kind === "race") { race.start(); return; }
   if (n.kind === "npc") { doorThen(n.g, () => openSheet("ARCIA", T("Arc's AI idol. Ask her anything about a coin, a wallet or this world."), "/arc#arcia")); return; }
   if (n.kind === "coin") {
     const c = n.coin;
@@ -1138,7 +1184,10 @@ function openMap() {
   const live = fighters.find((g) => g.userData.live);
   const darkHtml = live ? `<h3 style="--c:#ff4d6d">${esc(T("Dark Market"))}</h3><ul class="wp-maplist"><li><button type="button" data-f="1"><i style="--c:#ff4d6d"></i><span><b>${esc(live.userData.spec.name)}</b><small>${esc(T("Stage {n} · scammer", { n: live.userData.spec.stage }))}</small></span></button></li></ul>` : "";
   const zoneHtml = `<h3 style="--c:#ff9a4a">${esc(T("Hunting grounds"))}</h3><ul class="wp-maplist">` + [...ZN.ZONES, SOC.RAID].map((z, i) => `<li><button type="button" data-z="${i}"><i style="--c:#${new THREE.Color(z.color).getHexString()}"></i><span><b>${esc(z.name)}</b><small>${esc(z.id === "raid" ? T("Level {n}+", { n: z.lv[0] }) + (raid && raid.nextText() ? " · " + raid.nextText() : "") : T("Level {a}–{b}", { a: z.lv[0], b: z.lv[1] }))}${level() < z.lv[0] ? " · " + esc(T("Too strong for you yet")) : ""}</small></span></button></li>`).join("") + "</ul>";
-  $("wp-maplist").innerHTML = groups + arclHtml + zoneHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
+  const key = [["#ffc861", "Friends"], ["rgba(159,230,255,.75)", "Other players"], ["#ff4d6d", "Scammers"], ["#2f86ff", "Race pad"], ["#ffc861", "Fast travel"], ["#7ee0a0", "My Island gate"], ["#35d8d0", "Platform World"], ["#ff7ad9", "ARCIA"]];
+  const keyHtml = `<div class="wp-mapkey"><b>${esc(T("Minimap"))}</b>${key.map(([c, n]) => `<span><i style="--c:${c}"></i>${esc(T(n))}</span>`).join("")}<span><i class="ring"></i>${esc(T("Where to go next"))}</span><span><i class="sq">L</i>${esc(T("Halls, by their first letter"))}</span></div>`;
+  const raceHtml = race ? `<h3 style="--c:#2f86ff">${esc(T("Hoverboard race"))}</h3><ul class="wp-maplist"><li><button type="button" data-race="1"><i style="--c:#2f86ff"></i><span><b>${esc(T("Race pad"))}</b><small>${esc(T("Eight rings around the plaza, against the clock"))}</small></span></button></li></ul>` : "";
+  $("wp-maplist").innerHTML = keyHtml + groups + arclHtml + zoneHtml + raceHtml + coinsHtml + darkHtml + `<h3 style="--c:#35d8d0">${esc(T("Ways out"))}</h3><ul class="wp-maplist"><li><button type="button" data-isle="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("My Island"))}</b><small>${esc(T("Build your own island, brick by brick."))}</small></span></button></li><li><button type="button" data-isles="1"><i style="--c:#7ee0a0"></i><span><b>${esc(T("Islands"))}</b><small>${esc(T("Visit the islands other players built."))}</small></span></button></li><li><button type="button" data-i="portal"><i style="--c:#35d8d0"></i><span><b>${esc(T("Platform World"))}</b><small>${esc(T("Back to the site as it is."))}</small></span></button></li>${npc ? `<li><button type="button" data-n="1"><i style="--c:#ff7ad9"></i><span><b>ARCIA</b><small>${esc(T("Talk to ARCIA"))}</small></span></button></li>` : ""}</ul>`;
   mapEl.hidden = false; frozen = true; keys.clear(); paintPrompt();
   const first = mapEl.querySelector("button[data-i]"); if (first) first.focus({ preventScroll: true });
 }
@@ -1147,7 +1196,8 @@ $("wp-map-btn").addEventListener("click", openMap);
 $("wp-map-x").addEventListener("click", closeMap);
 mapEl.addEventListener("click", (e) => {
   if (e.target === mapEl) { closeMap(); return; }
-  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z]"); if (!b) return;
+  const b = e.target.closest("button[data-i],button[data-c],button[data-f],button[data-n],button[data-isle],button[data-isles],button[data-z],button[data-race]"); if (!b) return;
+  if (b.dataset.race && race) { closeMap(); flyTo(race.pad); return; }
   closeMap();
   if (b.dataset.isle) { goIsland({}); return; }
   if (b.dataset.z != null) { const z = [...ZN.ZONES, SOC.RAID][+b.dataset.z], a = Math.atan2(-z.x, -z.z); flyTo({ position: new THREE.Vector3(z.x + Math.sin(a) * (z.r + 3), 0, z.z + Math.cos(a) * (z.r + 3)), userData: { radius: 0.5 } }); return; }
@@ -1189,10 +1239,12 @@ function drawMini() {
       mg.globalAlpha = 0.12; mg.fillStyle = col; mg.fill(); mg.globalAlpha = 1;
       if (bossUp.includes(zn.id)) { const pr = 8 + Math.sin(performance.now() / 180) * 2; mg.fillStyle = "#ff4d6d"; mg.beginPath(); mg.arc(px, py, pr, 0, 6.283); mg.fill(); mg.fillStyle = "#fff"; mg.font = "900 12px Sora, sans-serif"; mg.textAlign = "center"; mg.textBaseline = "middle"; mg.fillText("!", px, py + 0.5); }
     }
-    if (ghosts) ghosts.each((g) => put(g, "rgba(159,230,255,.55)", 3));
+    // other players: friends in gold and a little bigger
+    if (ghosts) ghosts.each((g, w) => { const fr = !!(w && w.wallet && island.isFriend(w.wallet)); put(g, fr ? "#ffc861" : "rgba(159,230,255,.55)", fr ? 5 : 3); });
     coinBuildings.forEach((g) => put(g, g.userData.mine ? "#39ff88" : "rgba(238,243,247,.55)", 4));
     cards.forEach((g) => put(g, "#ffc861", 3.5));
     put(portal, "#35d8d0", 6); put(pad, "#ffc861", 5); put(isleGate, "#7ee0a0", 6); if (npc) put(npc, "#ff7ad9", 5);
+    if (race) { put(race.pad, "#2f86ff", 5); const rt = race.target(); if (rt) { const q = put(rt, "", 0); mg.strokeStyle = "#ffc861"; mg.lineWidth = 3; mg.beginPath(); mg.arc(q.px, q.py, 9, 0, 6.283); mg.stroke(); } }
     shops.forEach((g) => put(g, hex(g.userData.spec.color), 9, g.userData.spec.name[0]));
     fighters.forEach((g) => put(g, g.userData.live ? "#ff4d6d" : "rgba(255,77,109,.45)", g.userData.live ? 6 : 4));
   }
@@ -1371,6 +1423,8 @@ function levelUp(n, from) {
   const pas = RPG.PASSIVES.find((x) => x.lv === n); if (pas) setTimeout(() => toast(T("New passive: {x} — {y}", { x: T(pas.name), y: T(pas.line) })), 1600);
   if (grounded && !boarding && mode === "hub") { vy = 7.5; grounded = false; } // a little jump for joy
   if (avatar && avatar.arc && !boarding) avatar.play("celebrate", { once: true }); // an ARC Bot throws its arms up
+  // the new level rises from your head and fades
+  if (!reduce) { const lb = K.label(T("Lv {n}", { n }), { accent: "#ffc861", color: "#ffd27a", size: 0.8 }); lb.position.y = 3.4; player.add(lb); const t0 = performance.now(); const off = st.on(() => { const k = (performance.now() - t0) / 1700; lb.position.y = 3.4 + k * 1.6; lb.material.opacity = Math.min(1, (1 - k) * 2.5); if (k >= 1) { off(); player.remove(lb); lb.material.map && lb.material.map.dispose(); lb.material.dispose(); } }); }
   if (rpg) { const was = RPG.statsOf(from || n - 1, rpg.data().eq); rpg.onLevel(); if (combat) combat.onLevel(n, was); } else if (combat) combat.onLevel(n);
   if (quests) quests.on.level();
   const el = $("wp-levelup"); $("wp-levelup-n").textContent = String(n);
@@ -1417,6 +1471,7 @@ async function refreshPurse(force) {
   const f = (v) => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e4 ? (v / 1e3).toFixed(1) + "K" : v.toLocaleString("en-US", { maximumFractionDigits: 2 });
   const n = (h) => Number(BigInt(h) / 10n ** 14n) / 1e4;
   const tok = /^0x[0-9a-fA-F]{40}$/.test(CFG.ARCIRCLE_TOKEN || "") ? CFG.ARCIRCLE_TOKEN : "";
+  $("wp-purse").classList.toggle("loading", bal.arc == null);
   const [u, t] = await Promise.allSettled([
     rpcRead("eth_getBalance", [a, "latest"]),
     tok ? rpcRead("eth_call", [{ to: tok, data: "0x70a08231" + a.slice(2).toLowerCase().padStart(64, "0") }, "latest"])
@@ -1426,7 +1481,7 @@ async function refreshPurse(force) {
   ]);
   if (u.status === "fulfilled") { bal.usdc = n(u.value); $("wp-usdc").textContent = f(bal.usdc); }
   if (t.status === "fulfilled") { bal.arc = n(t.value); $("wp-arc").textContent = f(bal.arc); }
-  $("wp-purse").classList.toggle("stale", u.status !== "fulfilled" || t.status !== "fulfilled");
+  $("wp-purse").classList.toggle("stale", u.status !== "fulfilled" || t.status !== "fulfilled"); $("wp-purse").classList.remove("loading");
   if (u.status !== "fulfilled" || t.status !== "fulfilled") purseAt = Date.now() - 22000; // try again in a few seconds
   if (u.status === "fulfilled" || t.status === "fulfilled") { paintCrown(); arclChecks(); }
   checkQuests();
@@ -1443,6 +1498,8 @@ function paintCrown() {
 $("wp-wallet").addEventListener("click", () => { if (AC && !addr()) AC.connect().then(() => { refreshPurse(true); refreshCoins(); paintAcct(); }).catch(() => {}); else if (AC) refreshPurse(true); });
 if (AC && AC.on) AC.on(() => { refreshPurse(true); refreshCoins(); paintAcct(); });
 setInterval(() => refreshPurse(false), 30000);
+// back from a swap or a launch in another tab: read the purse again (at most every 5 seconds)
+let purseBack = 0; document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - purseBack > 5000) { purseBack = Date.now(); refreshPurse(true); } });
 
 // ---------------- HUD ----------------
 function paintHud() {
@@ -1490,7 +1547,21 @@ $("wp-auth-go").addEventListener("click", async (e) => {
   finally { b.disabled = false; b.textContent = T("Sign in with wallet"); }
 });
 $("wp-auth-guest").addEventListener("click", closeAuth);
+let resignOff = false;
+// a sign-in older than a day no longer saves: say so, with a button to sign again (signing is free and moves nothing)
+function paintResign() {
+  let raw = null; try { raw = JSON.parse(localStorage.getItem(SESS) || "null"); } catch { /* private */ }
+  const stale = !!(raw && raw.wallet && !sess()), el = $("wp-resign");
+  if (!el) return; el.hidden = !stale || resignOff;
+}
+setInterval(paintResign, 60000);
+$("wp-resign").addEventListener("click", async (e) => {
+  if (e.target.closest("[data-rx]")) { resignOff = true; paintResign(); return; }
+  if (!e.target.closest("[data-rgo]")) return;
+  try { await signIn(); paintAcct(); paintHud(); } catch (err) { toast((err && err.message) || T("Sign-in failed.")); }
+});
 function paintAcct() {
+  paintResign();
   const s = sess(), box = $("wp-set-acct");
   box.innerHTML = s ? `<span data-no-i18n>${esc(s.wallet.slice(0, 6) + "…" + s.wallet.slice(-4))}</span> <button type="button" class="wp-link" id="wp-acct-out">${esc(T("Sign out"))}</button>` : `<button type="button" class="wp-btn" id="wp-acct-in">${esc(T("Sign in with wallet"))}</button>`;
   $("wp-set-note").textContent = s ? T("Progress is saved to your wallet and this browser.") : T("Progress is saved in this browser.");
@@ -1561,7 +1632,8 @@ $("wp-make-go").addEventListener("click", () => {
 });
 const setEl = $("wp-setsheet");
 function openSet() {
-  setEl.querySelectorAll("#wp-set-q button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === S.quality)));
+  setEl.querySelectorAll("#wp-set-q button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.q === (S.quality === "high" ? "ultra" : S.quality))));
+  $("wp-set-fps").setAttribute("aria-pressed", String(!!S.fps)); $("wp-set-fps").textContent = S.fps ? T("On") : T("Show");
   setEl.querySelectorAll("#wp-set-lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.l === LANG)));
   $("wp-set-q-note").textContent = "";
   $("wp-set-snd").checked = !!S.sound; $("wp-set-sens").value = S.sens; $("wp-set-motion").checked = S.motion === "less"; $("wp-set-showname").checked = S.showName !== false;
@@ -1581,6 +1653,10 @@ $("wp-set-q").addEventListener("click", (e) => {
   setEl.querySelectorAll("#wp-set-q button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   $("wp-set-q-note").innerHTML = `${esc(T("Applies after a reload."))} <button type="button" class="wp-link" id="wp-set-reload">${esc(T("Reload now"))}</button>`;
 });
+// the frame rate in a corner (Settings → Frame rate): for checking a preset on your own phone
+$("wp-set-fps").addEventListener("click", () => { S.fps = !S.fps; saveSet(); $("wp-set-fps").setAttribute("aria-pressed", String(S.fps)); $("wp-set-fps").textContent = S.fps ? T("On") : T("Show"); $("wp-fps").hidden = !S.fps; });
+{ let n = 0, t0 = performance.now(); $("wp-fps").hidden = !S.fps;
+  st.on(() => { if (!S.fps) return; n++; const now = performance.now(); if (now - t0 >= 500) { const info = st.renderer.info.render; $("wp-fps").textContent = `${Math.round((n * 1000) / (now - t0))} fps · ${info.calls} draws`; n = 0; t0 = now; } }); }
 $("wp-set-lang").addEventListener("click", (e) => { const b = e.target.closest("button[data-l]"); if (!b || b.dataset.l === LANG) return; try { localStorage.setItem("arcircle.lang", b.dataset.l); } catch { /* private */ } if (window.arcI18n) window.arcI18n.set(b.dataset.l); location.reload(); });
 
 // ---------------- the controls guide: keyboard, mouse and touch, shown once and from Settings ----------------
@@ -1747,7 +1823,7 @@ rpg = RPG.createRpg({
   freeze: (on) => { frozen = on; keys.clear(); paintPrompt(); }, avatar: () => avatar,
   extraStats: () => (quests ? quests.titleBonus() : null),
   titleLine: () => { const b = quests && quests.titleBonus(), t = quests && quests.title(); return t ? `<p class="wr-title-b">${esc(W("Title"))}: <b>${esc(t)}</b>${b ? ` <small>${esc(RPG.bonusLine(b))}</small>` : ""}</p>` : ""; },
-  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
+  onStats: () => { if (combat) combat.onGear(); }, onPots: () => { if (combat) combat.potsCheck(); }, onView: (v) => tutorialStep(v === "log" ? 5 : v === "inv" ? 4 : -1), onEnhance: (n) => quests && quests.on.enhance(n), recall: () => recallHome(), openWardrobe: () => { rpg.hide(); wardrobe.show(); }, isArc: () => /^arc-/.test(P.char || "arc-arc"), arclFly: (n, from) => arclShop.fly && arclShop.fly(n, from), arclRefresh: () => arclShop.refresh(), arclBal: () => (arclShop.arcl() || {}).bal || 0,
 });
 rpg.dress();
 combat = FIGHT.createCombat({
@@ -1765,7 +1841,7 @@ combat = FIGHT.createCombat({
   inHub: () => mode === "hub" && !introOn, active: () => mode === "hub" && !frozen && !flying && !introOn && !photo,
   gain: (n, why) => gain(n, why), claim: (kind, extra, from) => arclClaimRepeat(kind, extra, from),
   knock: (d, p) => { knockV.copy(d).multiplyScalar(p); vy = Math.max(vy, 4); grounded = false; },
-  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
+  hurt: () => { Snd.hurt(); shake = Math.max(shake, 0.25); const h = document.createElement("div"); h.className = "wp-hurt"; document.body.appendChild(h); setTimeout(() => h.remove(), 520); if (avatar && avatar.hurt) avatar.hurt(); else if (avatar && !boarding) avatar.play("emote-no", { once: true }); },
   screenOf: (p) => { const v = p.clone(); planet.localToWorld(v); v.project(st.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
   // a boss arrives: the camera turns to it for a moment and its name card comes up
   bossIntro: (pos, name, zone, lv) => {
@@ -1837,6 +1913,24 @@ if (raid.gate) arches.push(raid.gate); // the arena's gate steps aside for the c
 ghosts = SOC.createGhosts({ THREE, K, planet, T: (s, v) => (s === "Hi!" || s === "Friend" ? W(s) : T(s, v)), here: (v) => here(v), inHub: () => mode === "hub" && !introOn, myTag,
   isPal: (x) => (P.pal && x.t === P.pal) || x.p === myTag, sayText: (i) => (SAY[i] ? (SAY[i].includes(" ") || SAY[i].length > 4 ? T(SAY[i]) : W(SAY[i])) : ""),
   onPal: (on) => { const c = $("wp-together"); if (c) c.hidden = !on; } });
+// ---------------- the inbox: gifts, new stamps, friends playing now ----------------
+// stand next to someone in town (a friend from the inbox, a player's card): a short hop, facing them
+function goNear(x, z) {
+  if (mode !== "hub" || frozen) { toast(T("You can go there from the town")); return; }
+  const a = Math.atan2(-x, -z) || 0, sx = x + Math.sin(a) * 1.8, sz = z + Math.cos(a) * 1.8;
+  const veil = $("wp-veil"); if (veil && !reduce) { veil.style.opacity = "1"; setTimeout(() => { veil.style.opacity = "0"; }, 380); }
+  planet.position.set(-sx, 0, -sz); hop = 0; vy = 0; grounded = true; facing = Math.atan2(x - sx, z - sz); camYaw = facing - Math.PI;
+  Snd.dash && Snd.dash();
+}
+const inbox = INBOX.createInbox({ T: TW, esc, post, sess, toast, Snd, rpg: () => rpg, island, ghosts: () => ghosts, goIsland: (o) => goIsland(o), goNear,
+  openProfile: (w) => openProfile(w), inHub: () => mode === "hub", bookNew: () => island.bookNew(), save: () => save(), onPots: () => combat && combat.potsCheck() });
+// ---------------- the ARC Bot wardrobe (world-wardrobe.js) ----------------
+const wardrobe = WARD.createWardrobe({ THREE, T: TW, esc, level, charId: () => P.char || "arc-arc", outfit: () => P.outfit || null, toast, Snd,
+  save: (o) => { P.outfit = o; save(); setAvatar(P.char || "arc-arc"); delete thumbCache[P.char || "arc-arc"]; } });
+// ---------------- the hoverboard race around the plaza (world-race.js) ----------------
+race = RACE.createRace({ THREE, K, planet, T: TW, esc, here: (v) => here(v), blocked: (v) => blockedAt(v), boarding: () => boarding, setBoard: (on) => setBoard(on),
+  inHub: () => mode === "hub" && !introOn && !flying, post, sess, toast, Snd, reduce, onTop: () => {} });
+st.on((dt) => { race.update(); race.spin(dt); });
 // ---------------- a player's card (Rankings → Players, or someone around you) ----------------
 async function openProfile(w) {
   if (!/^0x[0-9a-f]{40}$/.test(String(w || ""))) return;
@@ -1850,7 +1944,8 @@ async function openProfile(w) {
       <div class="wp-prof-face">${thumbCache[char] ? `<img src="${thumbCache[char]}" alt="">` : ""}<b>${lv}</b></div>
       <h2>${esc(name)}</h2>${quests.titleOf(row.t) ? `<p class="wp-prof-title">${esc(quests.titleOf(row.t))}</p>` : ""}
       <dl><div><dt>${esc(W("Level"))}</dt><dd>${lv}</dd></div><div><dt>${esc(T("Codex pages"))}</dt><dd>${row.cx || 0} / 15</dd></div><div><dt>${esc(T("Island"))}</dt><dd>${fr && fr.isle ? esc(T("{n} bricks", { n: fr.isle })) + " · ♥ " + (fr.likes || 0) : "—"}</dd></div><div><dt>${esc(T("Last seen"))}</dt><dd>${ago == null ? "—" : ago < 15 ? esc(T("just now")) : ago < 60 ? esc(T("{n} min ago", { n: ago })) : ago < 1440 ? esc(T("{n} h ago", { n: Math.floor(ago / 60) })) : ago < 2880 ? esc(T("yesterday")) : esc(T("{n} days ago", { n: Math.floor(ago / 1440) }))}</dd></div></dl>
-      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}</div></div>`;
+      <div class="wp-prof-acts">${fr && fr.isle ? `<button type="button" class="wp-cta" data-pvisit>${esc(T("Visit their island"))}</button>` : ""}${me ? "" : `<button type="button" class="wp-btn" data-pfriend aria-pressed="${isFr}">${esc(isFr ? W("Friend") : T("Add friend"))}</button>`}${!me && mode === "hub" && ghosts && ghosts.named().some((g) => g.wallet === w) ? `<button type="button" class="wp-btn" data-pgo>${esc(T("Go there"))}</button>` : ""}</div>
+      ${me || !sess() ? "" : `<div class="wp-prof-gift"><span>${esc(T("Send a gift"))}</span>${inbox.sendOptions().map((g) => `<button type="button" class="wp-btn" data-pgift="${g.kind}:${g.n}" ${g.can ? "" : "disabled"}>${esc(g.label)}</button>`).join("")}</div>`}</div>`;
     if (char && !thumbCache[char]) renderThumbsFor([char]).then(() => { if (el.isConnected) paint(fr); });
   };
   paint(null); document.body.appendChild(el); frozen = true; keys.clear();
@@ -1862,6 +1957,8 @@ async function openProfile(w) {
   el.addEventListener("click", (e) => {
     if (e.target === el || e.target.closest("[data-px]")) { close(); return; }
     if (e.target.closest("[data-pvisit]")) { close(); rpg.hide(); goIsland({ visit: w }); return; }
+    if (e.target.closest("[data-pgo]")) { const g = ghosts && ghosts.named().find((x) => x.wallet === w); if (g) { close(); rpg.hide(); goNear(g.x, g.z); } return; }
+    const gb = e.target.closest("[data-pgift]"); if (gb) { const [k, n] = gb.dataset.pgift.split(":"); gb.disabled = true; inbox.send(w, k, Number(n)).then(() => { if (el.isConnected) paint(fr); }); return; }
     if (e.target.closest("[data-pfriend]")) { island.toggleFriend(w, row.name || (fr && fr.name) || ""); paint(fr); }
   });
 }
@@ -1980,7 +2077,7 @@ function dayNight() {
   skyU.glow.value.copy(DAY.glow).lerp(NIGHT.glow, k).lerp(DUSK, dusk * 0.7);
   st.sun.intensity = 2.35 * (1 - k * 0.65); st.sun.color.setHSL(0.09, 0.35 * (1 - k) + dusk * 0.6, 0.97 - dusk * 0.12); // a warm afternoon sun
   st.hemi.intensity = 0.95 * (1 - k * 0.4); st.scene.environmentIntensity = 0.42 + k * 0.25; st.renderer.toneMappingExposure = 0.92 + k * 0.12;
-  if (st.scene.fog) st.scene.fog.density = 0.0032 + k * 0.0026; st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k);
+  if (st.scene.fog) st.scene.fog.density = 0.0032 + k * 0.0026; st.hemi.color.set(k > 0.5 ? 0x9fd0ff : 0xcfe8ff); lamps.userData.night(k); if (K.arcNight) K.arcNight(k);
   if (st.scene.fog) st.scene.fog.color.copy(FOG.day).lerp(FOG.night, k).lerp(FOG.dusk, dusk * 0.5);
   stars.material.opacity = 0.85 * k; stars.visible = k > 0.02;
   skyPlanets.children.forEach((p) => { p.material.opacity = 0.95 * k; }); skyPlanets.visible = k > 0.02;
@@ -2059,7 +2156,7 @@ st.on((dt0, t) => {
   const dt = performance.now() < slowUntil ? dt0 * 0.3 : dt0;
   punch = Math.max(0, punch - dt0 * 3.2);
   padTick(dt0);
-  step(dt);
+  step(dt); lookAround(dt); ripples(dt);
   spins.forEach((f) => f(dt, t));
   smokes.forEach((f) => f(dt));
   moveScammers(t);
@@ -2178,7 +2275,7 @@ setTimeout(() => quests.seasonNotice((h, c) => feed(esc(h), c)), 8000);
 { const w = (new URLSearchParams(location.search).get("isle") || "").toLowerCase(); if (/^0x[0-9a-f]{40}$/.test(w) && P.char) setTimeout(() => { if (mode === "hub" && !frozen) goIsland({ visit: w }); }, 900); }
 arclShop.refresh().then(() => { arclShop.flushQueue(); if (P.guideSeen && auth.hidden && make.hidden) setTimeout(() => arclShop.maybeDaily(), 900); });
 window.arcWorld = {
-  stage: () => st,
+  stage: () => st, race: () => race, inbox: () => inbox, wardrobe: () => wardrobe, openProfile: (w) => openProfile(w),
   level: () => level(), purse: (f) => refreshPurse(f),
   mode: () => mode, island: () => island.debug(), goIsland: (o = {}) => goIsland(o), leaveIsland, place: (...a) => island._place(...a), blueprint: (...a) => island._blueprint(...a), introDone: () => !introOn,
   P, planet, flyTo: (id) => { const g = id === "npc" ? npc : shops.find((s) => s.userData.spec.id === id); if (g) flyTo(g); },

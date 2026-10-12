@@ -95,5 +95,7 @@ r = await off.read(u); check(r.body.enabled === false, "storage off: islands say
 check(cleanSave({ xp: 2450 }).xpv === 2 && cleanSave({ xp: 2450 }).xp === 15004 + Math.floor(0.5 * 1396), "an old 2,450 XP save becomes level 25 on the new curve");
 // characters: the ARC Bots are kept, anything else unknown is dropped
 check(cleanSave({ char: "arc-luna", xp: 10 }).char === "arc-luna" && cleanSave({ char: "arc-nobody" }).char === "" && cleanSave({ char: "male-c" }).char === "male-c", "saves keep ARC Bot characters and drop unknown ones");
+{ const o = cleanSave({ xpv: 2, outfit: { wear: { head: "halo", back: "<b>", aura: "rings", hat: "x" }, accent: "FFC861" } }).outfit;
+  check(o && o.wear.head === "halo" && o.wear.aura === "rings" && !o.wear.back && !o.wear.hat && o.accent === "ffc861", "the wardrobe outfit is kept, cleaned " + JSON.stringify(o)); }
 console.log(ok, "pass", bad, "fail");
 if (bad) process.exit(1); process.exit(bad ? 1 : 0);

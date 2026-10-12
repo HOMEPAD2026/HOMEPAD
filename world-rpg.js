@@ -25,8 +25,8 @@ export const iconSvg = (slot, color) => `<svg viewBox="0 0 24 24" aria-hidden="t
 /// ctx: { T, lang, esc, toast, P, save(), level(), post(b), sess(), Snd, freeze(on), avatar(), onStats(s), arclRefresh(), arclBal() }
 export function createRpg(ctx) {
   const { esc, P } = ctx;
-  const LW = { ko: { Slot: "부위", Skills: "스킬", Fuse: "합성", Worn: "착용 중",  Sell: "판매",  Weapon: "무기", Shield: "방패", Armor: "갑옷", Helmet: "투구", Ring: "반지", Boots: "신발", Necklace: "목걸이", Attack: "공격력", Defense: "방어력", Critical: "치명타", Speed: "이동속도", Common: "일반", Uncommon: "고급", Rare: "희귀", Epic: "영웅", Legendary: "전설", Equip: "장착", Unequip: "해제", Enhance: "강화", Salvage: "분해", Sort: "정렬", Character: "캐릭터", Bag: "가방", Scrap: "고철", Forge: "대장간", Supplies: "보급품", Buy: "구매", Level: "레벨", Sets: "세트", Gear: "장비", Accessories: "장신구" },
-    zh: { Slot: "部位", Skills: "技能", Fuse: "合成", Worn: "已穿戴",  Sell: "出售",  Weapon: "武器", Shield: "盾牌", Armor: "铠甲", Helmet: "头盔", Ring: "戒指", Boots: "靴子", Necklace: "项链", Attack: "攻击", Defense: "防御", Critical: "暴击", Speed: "移速", Common: "普通", Uncommon: "优秀", Rare: "稀有", Epic: "史诗", Legendary: "传说", Equip: "装备", Unequip: "卸下", Enhance: "强化", Salvage: "分解", Sort: "整理", Character: "角色", Bag: "背包", Scrap: "废料", Forge: "铁匠铺", Supplies: "补给", Buy: "购买", Level: "等级", Sets: "套装", Gear: "装备", Accessories: "饰品" } }[ctx.lang] || {};
+  const LW = { ko: { Lock: "잠금", Unlock: "잠금 해제", Locked: "잠김", Cancel: "취소", power: "전투력", Wardrobe: "옷장", Slot: "부위", Skills: "스킬", Fuse: "합성", Worn: "착용 중",  Sell: "판매",  Weapon: "무기", Shield: "방패", Armor: "갑옷", Helmet: "투구", Ring: "반지", Boots: "신발", Necklace: "목걸이", Attack: "공격력", Defense: "방어력", Critical: "치명타", Speed: "이동속도", Common: "일반", Uncommon: "고급", Rare: "희귀", Epic: "영웅", Legendary: "전설", Equip: "장착", Unequip: "해제", Enhance: "강화", Salvage: "분해", Sort: "정렬", Character: "캐릭터", Bag: "가방", Scrap: "고철", Forge: "대장간", Supplies: "보급품", Buy: "구매", Level: "레벨", Sets: "세트", Gear: "장비", Accessories: "장신구" },
+    zh: { Lock: "锁定", Unlock: "解锁", Locked: "已锁定", Cancel: "取消", power: "战力", Wardrobe: "衣橱", Slot: "部位", Skills: "技能", Fuse: "合成", Worn: "已穿戴",  Sell: "出售",  Weapon: "武器", Shield: "盾牌", Armor: "铠甲", Helmet: "头盔", Ring: "戒指", Boots: "靴子", Necklace: "项链", Attack: "攻击", Defense: "防御", Critical: "暴击", Speed: "移速", Common: "普通", Uncommon: "优秀", Rare: "稀有", Epic: "史诗", Legendary: "传说", Equip: "装备", Unequip: "卸下", Enhance: "强化", Salvage: "分解", Sort: "整理", Character: "角色", Bag: "背包", Scrap: "废料", Forge: "铁匠铺", Supplies: "补给", Buy: "购买", Level: "等级", Sets: "套装", Gear: "装备", Accessories: "饰品" } }[ctx.lang] || {};
   const T = (s, v) => (LW[s] != null ? LW[s] : ctx.T(s, v));
   const R = () => {
     if (!P.rpg || typeof P.rpg !== "object") P.rpg = {};
@@ -42,7 +42,15 @@ export function createRpg(ctx) {
   // ---------------- items ----------------
   function addItem(it, quiet) {
     const r = R();
-    if (r.bag.length >= BAG) { const s = scrapOf(it); r.scrap += s; changed(); if (!quiet) ctx.toast(T("Bag full: {x} became {n} scrap", { x: itemName(it), n: s })); return false; }
+    if (r.bag.length >= BAG) {
+      // a full bag keeps the better piece: the weakest unlocked one goes to scrap instead, if the new one beats it
+      const val = (x) => (x.r || 0) * 100 + (x.lv || 1) * 2 + (x.p || 0) * 10, weak = r.bag.filter((x) => !x.lk).sort((a, b) => val(a) - val(b))[0];
+      if (weak && val(weak) < val(it)) {
+        const s = scrapOf(weak); r.scrap += s; r.bag.splice(r.bag.indexOf(weak), 1); r.bag.push(it); changed();
+        if (!quiet) ctx.toast(T("Bag full: kept {x}, {y} became {n} scrap", { x: itemName(it), y: itemName(weak), n: s })); return true;
+      }
+      const s = scrapOf(it); r.scrap += s; changed(); if (!quiet) ctx.toast(T("Bag full: {x} became {n} scrap", { x: itemName(it), n: s })); return false;
+    }
     r.bag.push(it); changed(); return true;
   }
   const scrapOf = (it) => Math.round((2 + (it.lv || 1)) * (1 + (it.r || 0) * 1.5) * (1 + (it.p || 0) * 0.5));
@@ -68,13 +76,15 @@ export function createRpg(ctx) {
   // one number for how strong a set of stats is (for "Equip best": attack and defence weigh most, then health)
   const powerOf = (s) => (s.atk || 0) * 2 + (s.def || 0) * 1.6 + (s.hp || 0) * 0.3 + (s.sp || 0) * 0.08 + (s.crit || 0) * 3 + (s.spd || 0) * 1.2;
   // Equip best: for every slot, wear the piece from the bag that makes the character strongest (set bonuses count),
-  // only pieces your level allows; a few passes so a set that only pays off together still wins
-  function equipBest() {
+  // only pieces your level allows and never in place of a locked piece; a few passes so a set that only pays off
+  // together still wins. planBest() works it out, the bag shows the plan, equipBest() puts it on.
+  function planBest() {
     const r = R(), lv = ctx.level(), ex = ctx.extraStats ? ctx.extraStats() : null, eq = { ...r.eq };
-    let cur = powerOf(statsOf(lv, eq, ex)); const before = cur, put = new Set();
+    const s0 = statsOf(lv, eq, ex); let cur = powerOf(s0); const before = cur, put = new Set();
     for (let pass = 0; pass < 3; pass++) {
       let moved = false;
       for (const slot of SLOTS) {
+        if (r.eq[slot] && r.eq[slot].lk) continue;
         let best = null, bp = cur;
         for (const it of r.bag) {
           const p = parseBase(it.b); if (!p || p.slot !== slot || TIERS[p.tier].lv > lv || put.has(it.id)) continue;
@@ -85,16 +95,38 @@ export function createRpg(ctx) {
       if (!moved) break;
     }
     const swaps = SLOTS.filter((sl) => eq[sl] && (!r.eq[sl] || r.eq[sl].id !== eq[sl].id));
-    if (!swaps.length) { ctx.toast(T("You're already wearing your best gear")); return; }
-    for (const sl of swaps) {
-      const it = eq[sl], i = r.bag.findIndex((x) => x.id === it.id); if (i < 0) continue;
+    return { eq, swaps, gain: Math.round(cur - before), s0, s1: statsOf(lv, eq, ex) };
+  }
+  let plan = null;
+  function equipBest(now) {
+    const pl = planBest();
+    if (!pl.swaps.length) { plan = null; ctx.toast(T("You're already wearing your best gear")); if (open) paint(); return; }
+    if (!now) { plan = pl; sel = null; if (open) paint(); return; } // first tap: show what changes
+    const r = R();
+    for (const sl of pl.swaps) {
+      const it = pl.eq[sl], i = r.bag.findIndex((x) => x.id === it.id); if (i < 0) continue;
       r.bag.splice(i, 1); if (r.eq[sl]) r.bag.splice(i, 0, r.eq[sl]); r.eq[sl] = it;
     }
-    sel = null; ctx.Snd.place && ctx.Snd.place();
-    changed(T("Equipped {n} better pieces · power +{p}", { n: swaps.length, p: Math.round(cur - before) }));
+    plan = null; sel = null; ctx.Snd.place && ctx.Snd.place(); flash(pl.swaps);
+    changed(T("Equipped {n} better pieces · power +{p}", { n: pl.swaps.length, p: pl.gain }));
   }
+  function planHTML() {
+    if (!plan) return "";
+    const r = R(), keys = ["atk", "def", "hp", "sp", "crit", "spd"].filter((k) => (plan.s1[k] || 0) !== (plan.s0[k] || 0));
+    return `<div class="wr-plan"><h4>${esc(T("Equip best"))} <b>+${plan.gain}</b> <small>${esc(T("power"))}</small></h4>
+      <ul>${plan.swaps.map((sl) => `<li><span>${esc(T(SLOT_NAME[sl]))}</span><s>${r.eq[sl] ? esc(itemName(r.eq[sl])) : "—"}</s><b style="color:${rc(plan.eq[sl])}">${esc(itemName(plan.eq[sl]))}</b></li>`).join("")}</ul>
+      <p>${keys.map((k) => { const d = Math.round(((plan.s1[k] || 0) - (plan.s0[k] || 0)) * 10) / 10; return `<em class="${d > 0 ? "up" : "down"}">${esc(T(STAT_NAME[k]))} ${d > 0 ? "+" : ""}${d}${k === "crit" || k === "spd" ? "%" : ""}</em>`; }).join("")}</p>
+      <div class="wr-plan-acts"><button type="button" class="go" data-bestgo>${esc(T("Equip"))}</button><button type="button" data-bestno>${esc(T("Cancel"))}</button></div></div>`;
+  }
+  // the slots that just changed glow for a moment
+  function flash(slots) {
+    if (ctx.reduce) return;
+    setTimeout(() => slots.forEach((sl) => { const c = el.querySelector(`[data-slot="${sl}"]`) || el.querySelector(`[data-unequip="${sl}"]`); if (c) { c.classList.remove("wr-flash"); void c.offsetWidth; c.classList.add("wr-flash"); } }), 30);
+  }
+  // a locked piece stays: no selling, salvaging or fusing it, and Equip best leaves it on
+  function lock(id) { const it = findItem(id); if (!it) return; it.lk = it.lk ? 0 : 1; if (!it.lk) delete it.lk; changed(it.lk ? T("Locked: {x}", { x: itemName(it) }) : T("Unlocked: {x}", { x: itemName(it) })); }
   function unequip(slot) { const r = R(); if (!r.eq[slot]) return; if (r.bag.length >= BAG) { ctx.toast(T("Your bag is full")); return; } r.bag.push(r.eq[slot]); delete r.eq[slot]; changed(); }
-  function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; const s = scrapOf(r.bag[i]); r.scrap += s; r.bag.splice(i, 1); sel = null; changed(T("+{n} scrap", { n: s })); }
+  function salvage(id) { const r = R(), i = r.bag.findIndex((x) => x.id === id); if (i < 0) return; if (r.bag[i].lk) { ctx.toast(T("Unlock it first")); return; } const s = scrapOf(r.bag[i]); r.scrap += s; r.bag.splice(i, 1); sel = null; changed(T("+{n} scrap", { n: s })); }
   function enhance(id) {
     const r = R(), it = r.bag.find((x) => x.id === id) || Object.values(r.eq).find((x) => x && x.id === id); if (!it) return;
     if ((it.p || 0) >= 10) { ctx.toast(T("Already +10")); return; }
@@ -102,7 +134,7 @@ export function createRpg(ctx) {
     r.scrap -= c; it.p = (it.p || 0) + 1; ctx.Snd.chest && ctx.Snd.chest(); hammer(); changed(T("{x} is now +{n}", { x: itemName({ ...it, p: 0 }), n: it.p })); ctx.onEnhance && ctx.onEnhance(it.p);
   }
   function sortBag() { const r = R(); r.bag.sort((a, b) => (b.r - a.r) || (b.lv - a.lv) || SLOTS.indexOf(parseBase(a.b).slot) - SLOTS.indexOf(parseBase(b.b).slot)); changed(); }
-  function salvageCommons() { const r = R(); let s = 0; r.bag = r.bag.filter((x) => { if ((x.r || 0) === 0 && !(x.p > 0)) { s += scrapOf(x); return false; } return true; }); r.scrap += s; changed(s ? T("+{n} scrap", { n: s }) : T("No common gear to salvage")); }
+  function salvageCommons() { const r = R(); let s = 0; r.bag = r.bag.filter((x) => { if ((x.r || 0) === 0 && !(x.p > 0) && !x.lk) { s += scrapOf(x); return false; } return true; }); r.scrap += s; changed(s ? T("+{n} scrap", { n: s }) : T("No common gear to salvage")); }
   function usePotion(kind) {
     const r = R(); if (!(r[kind] > 0)) { ctx.toast(kind === "hp" ? T("No health potions: the Forge sells them") : T("No mana potions: the Forge sells them")); return false; }
     r[kind]--; ctx.save(); if (open) paint(); return true;
@@ -133,7 +165,7 @@ export function createRpg(ctx) {
   document.body.appendChild(el);
   let open = false, sel = null, view = "inv", forgeTab = "gear", log = null, fuseSel = [], fuseSlot = "", invPane = "gear";
   const rc = (it) => RARITY[it.r || 0].color;
-  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${iconSvg(parseBase(it.b).slot, rc(it))}${it.p ? `<b>+${it.p}</b>` : ""}<small>${it.lv}</small></button>` : "";
+  const tile = (it, attrs = "") => it ? `<button type="button" class="wr-tile r${it.r || 0}${sel === it.id ? " sel" : ""}" ${attrs} style="--rc:${rc(it)}" title="${esc(itemName(it))}">${iconSvg(parseBase(it.b).slot, rc(it))}${it.p ? `<b>+${it.p}</b>` : ""}<small>${it.lv}</small>${it.lk ? `<i class="wr-lock" aria-label="${esc(T("Locked"))}"></i>` : ""}</button>` : "";
   const statLine = (k, v, d) => `<li><span>${esc(T(STAT_NAME[k]))}</span><b>${k === "crit" || k === "spd" ? v + "%" : v}</b>${d ? `<i class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(Math.round(d * 10) / 10)}</i>` : ""}</li>`;
   function detail(it) {
     if (!it) return `<div class="wr-detail empty"><p>${esc(T("Pick a piece of gear to see it here."))}</p></div>`;
@@ -145,20 +177,21 @@ export function createRpg(ctx) {
       <p class="wr-set">${esc(T("{x} set", { x: TIERS[p.tier].set }))}${need > ctx.level() ? ` · <span class="need">${esc(T("Needs level {n}", { n: need }))}</span>` : ""}</p>
       <div class="wr-acts">${on ? `<button type="button" data-unequip="${p.slot}">${esc(T("Unequip"))}</button>` : `<button type="button" class="go" data-equip="${it.id}" ${need > ctx.level() ? "disabled" : ""}>${esc(T("Equip"))}</button>`}
       <button type="button" data-enhance="${it.id}" ${(it.p || 0) >= 10 ? "disabled" : ""}>${esc(T("Enhance"))} <small>${(it.p || 0) >= 10 ? "MAX" : esc(T("{n} scrap", { n: enhanceCost(it) }))}</small></button>
-      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}"><img src="/images/arcl-64.png" alt="" width="16" height="16">${esc(T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}">${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
+      <button type="button" data-lock="${it.id}" aria-pressed="${!!it.lk}">${esc(it.lk ? T("Unlock") : T("Lock"))}</button>
+      ${on ? "" : `<button type="button" class="sell" data-sell="${it.id}" ${it.lk ? "disabled" : ""}><img src="/images/arcl-64.png" alt="" width="16" height="16">${esc(T("Sell"))} <small>+${sellPrice(it)}</small></button><button type="button" class="warn" data-salvage="${it.id}" ${it.lk ? "disabled" : ""}>${esc(T("Salvage"))} <small>+${scrapOf(it)}</small></button>`}</div></div>`;
   }
   const findItem = (id) => R().bag.find((x) => x.id === id) || Object.values(R().eq).find((x) => x && x.id === id) || null;
   function invHTML() {
     const r = R(), s = stats();
-    const slot = (k) => `<div class="wr-slot s-${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`;
+    const slot = (k) => `<div class="wr-slot s-${k}" data-slot="${k}">${r.eq[k] ? tile(r.eq[k], `data-pick="${r.eq[k].id}"`) : `<span class="wr-empty-slot">${iconSvg(k, "rgba(222,233,244,.25)")}<small>${esc(T(SLOT_NAME[k]))}</small></span>`}</div>`;
     return `<nav class="wr-panes"><button type="button" data-pane="gear" aria-pressed="${invPane === "gear"}">${esc(T("Gear"))}</button><button type="button" data-pane="bag" aria-pressed="${invPane === "bag"}">${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></button></nav><div class="wr-grid pane-${invPane}">
-      <section class="wr-doll"><h3>${esc(T("Gear"))}</h3><div class="wr-paper">${SLOTS.map(slot).join("")}<div class="wr-avatar"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div></div>
+      <section class="wr-doll"><h3>${esc(T("Gear"))}${ctx.isArc && ctx.isArc() ? `<button type="button" class="wr-wardrobe" data-wardrobe>${esc(T("Wardrobe"))}</button>` : ""}</h3><div class="wr-paper">${SLOTS.map(slot).join("")}<div class="wr-avatar"><span>${esc(T("Lv {n}", { n: ctx.level() }))}</span></div></div>
         <ul class="wr-stats big">${["atk", "def", "hp", "sp", "crit", "spd"].map((k) => statLine(k, s[k])).join("")}</ul>
         ${s.sets.length ? `<p class="wr-sets">${Object.entries(s.sets.reduce((m, x) => ((m[x.set] = Math.max(m[x.set] || 0, x.need)), m), {})).map(([set, need]) => esc(T("{x} set ({n})", { x: set, n: need }))).join(" · ")}</p>` : `<p class="wr-sets dim">${esc(T("Wear 2, 4 or 7 pieces of one set for a bonus."))}</p>`}${ctx.titleLine ? ctx.titleLine() : ""}${skillsHTML()}</section>
       <section class="wr-bag"><div class="wr-bag-h"><h3>${esc(T("Bag"))} <small>${r.bag.length}/${BAG}</small></h3><span class="wr-res"><b>${r.scrap}</b> ${esc(T("Scrap"))} · <b>${r.hp}</b> ${esc(T("health potions"))} · <b>${r.sp}</b> ${esc(T("mana potions"))}${r.recall > 0 ? ` · <button type="button" class="wr-recall" data-recall>${esc(T("Recall to the plaza ({n})", { n: r.recall }))}</button>` : ""}</span></div>
         <div class="wr-cells">${Array.from({ length: BAG }, (_, i) => `<div class="wr-cell">${r.bag[i] ? tile(r.bag[i], `data-pick="${r.bag[i].id}"`) : ""}</div>`).join("")}</div>
         <div class="wr-bag-f"><button type="button" class="go" data-best>${esc(T("Equip best"))}</button><button type="button" data-sort>${esc(T("Sort"))}</button><button type="button" data-junk>${esc(T("Salvage commons"))}</button><button type="button" class="gold" data-forge>${esc(T("Forge"))}</button></div>
-        ${detail(sel && findItem(sel))}</section></div>`;
+        ${plan ? planHTML() : detail(sel && findItem(sel))}</section></div>`;
   }
   // ---------------- skills and their branches ----------------
   function skillsHTML() {
@@ -184,7 +217,7 @@ export function createRpg(ctx) {
       <div class="wr-cells enh">${bag.map((it) => `<div class="wr-cell${fuseSel.includes(it.id) ? " on" : ""}${r0 >= 0 && (it.r || 0) !== r0 && !fuseSel.includes(it.id) ? " dim" : ""}">${tile(it, `data-fuse="${it.id}"`)}</div>`).join("") || `<p class="wa-empty">${esc(T("No Common or Uncommon pieces in your bag."))}</p>`}</div>`;
   }
   function fusePick(id) {
-    const it = R().bag.find((x) => x.id === id); if (!it) return;
+    const it = R().bag.find((x) => x.id === id); if (!it) return; if (it.lk && fuseSel.indexOf(id) < 0) { ctx.toast(T("Unlock it first")); return; }
     const at = fuseSel.indexOf(id); if (at >= 0) { fuseSel.splice(at, 1); paint(); return; }
     const first = fuseSel.length ? R().bag.find((x) => x.id === fuseSel[0]) : null;
     if (first && (first.r || 0) !== (it.r || 0)) { fuseSel = [id]; paint(); return; }
@@ -242,9 +275,10 @@ export function createRpg(ctx) {
   const sellLeft = () => { try { const v = JSON.parse(localStorage.getItem(sdKey) || "null"); return v && v.day === sday() ? v.left : SELL_DAY_CAP; } catch { return SELL_DAY_CAP; } };
   const setSellLeft = (n) => { try { localStorage.setItem(sdKey, JSON.stringify({ day: sday(), left: Math.max(0, n) })); } catch { /* private */ } };
   async function sellItem(id) {
-    if (selling) return; const r = R(), it = r.bag.find((x) => x.id === id); if (!it) return;
+    if (selling) return; const r = R(), it = r.bag.find((x) => x.id === id); if (!it) return; if (it.lk) { ctx.toast(T("Unlock it first")); return; }
     const s = ctx.sess(); if (!s) { ctx.toast(T("Sign in with your wallet first")); return; }
     selling = true;
+    const sb = el.querySelector(`[data-sell="${id}"]`), sr = sb && sb.getBoundingClientRect(), from = sr ? { x: sr.left + sr.width / 2, y: sr.top + sr.height / 2 } : null;
     const res = await ctx.post({ action: "world-sell", ...s, item: { id: it.id, b: it.b, r: it.r, lv: it.lv, p: it.p || 0 } }).catch(() => ({ ok: false, j: {} }));
     selling = false;
     if (res.status === 409) {
@@ -261,7 +295,7 @@ export function createRpg(ctx) {
       return;
     }
     const i = r.bag.findIndex((x) => x.id === id); if (i >= 0) r.bag.splice(i, 1); sel = null;
-    ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited }));
+    ctx.Snd.win && ctx.Snd.win(); changed(T("Sold: {x} · +{n} ARCL", { x: itemName(it), n: res.j.credited })); if (ctx.arclFly) ctx.arclFly(res.j.credited, from);
     ctx.arclRefresh().then(() => open && paint());
   }
   el.addEventListener("click", (e) => {
@@ -277,13 +311,17 @@ export function createRpg(ctx) {
     if (d.fslot != null) { fuseSlot = d.fslot; paint(); return; }
     if (b.hasAttribute("data-fusego")) { const sl = el.querySelector(".wr-fuse-slots"); if (fuseSlot && (R().scrap || 0) < FUSE_PICK_SCRAP) { fuse(); return; } if (sl && !sl.classList.contains("fusing")) { sl.classList.add("fusing"); ctx.Snd.chest && ctx.Snd.chest(); setTimeout(fuse, 700); } else if (!sl) fuse(); return; }
     if (d.br) { setBranch(d.br); return; }
-    if (d.pick) { sel = sel === d.pick ? null : d.pick; if (sel && view === "inv") invPane = "bag"; paint(); return; }
+    if (d.pick) { plan = null; sel = sel === d.pick ? null : d.pick; if (sel && view === "inv") invPane = "bag"; paint(); return; }
     if (d.equip) { equip(d.equip); return; }
     if (d.unequip) { unequip(d.unequip); return; }
     if (d.enhance) { enhance(d.enhance); return; }
     if (d.salvage) { salvage(d.salvage); return; }
     if (d.sell) { sellItem(d.sell); return; }
-    if (b.hasAttribute("data-best")) { equipBest(); return; }
+    if (b.hasAttribute("data-wardrobe")) { if (ctx.openWardrobe) ctx.openWardrobe(); return; }
+    if (b.hasAttribute("data-best")) { equipBest(false); return; }
+    if (b.hasAttribute("data-bestgo")) { equipBest(true); return; }
+    if (b.hasAttribute("data-bestno")) { plan = null; paint(); return; }
+    if (d.lock) { lock(d.lock); return; }
     if (b.hasAttribute("data-sort")) { sortBag(); return; }
     if (b.hasAttribute("data-junk")) { salvageCommons(); return; }
     if (b.hasAttribute("data-forge")) { view = "forge"; sel = null; show("forge"); return; }
@@ -311,7 +349,7 @@ export function createRpg(ctx) {
   el.addEventListener("keydown", (e) => { e.stopPropagation(); const k = e.key.toLowerCase(); if (e.key === "Escape" || (k === "i" && view !== "log") || (k === "l" && view === "log")) hide(); });
 
   return {
-    stats, addItem, equipBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
+    stats, addItem, equipBest: () => equipBest(true), planBest, rollDrop, usePotion, dress, show, hide, isOpen: () => open, itemName, iconSvg,
     potions: () => ({ hp: R().hp, sp: R().sp, recall: R().recall }), useRecall: () => { const r = R(); if (!(r.recall > 0)) return false; r.recall--; ctx.save(); return true; },
     onLevel: () => changed(), refresh: () => { cache = null; ctx.onStats(stats()); },
     data: () => R(),

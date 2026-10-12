@@ -289,7 +289,7 @@ export function createGhosts(ctx) {
     palNear: (r) => { const p = new THREE.Vector3(); ctx.here(p); for (const w of list.values()) if (w.pal && !w.gone && Math.hypot(p.x - w.g.position.x, p.z - w.g.position.z) < r) return true; return false; },
     each: (fn) => list.forEach((w) => fn(w.g, w)),
     /// the signed-in players around now: [{ name, lv, wallet }]
-    named: () => [...list.values()].filter((w) => w.name && !w.gone).map((w) => ({ name: w.name, lv: w.lv, wallet: w.wallet })),
+    named: () => [...list.values()].filter((w) => w.name && !w.gone).map((w) => ({ name: w.name, lv: w.lv, wallet: w.wallet, x: w.g.position.x, z: w.g.position.z })),
     tick(dt, t) {
       const on = ctx.inHub(); root.visible = on; if (!on) { if (palOn) { palOn = false; ctx.onPal && ctx.onPal(false); } return; }
       if ((palT -= dt) <= 0) { palT = 1; const n = this.palNear(20); if (n !== palOn) { palOn = n; ctx.onPal && ctx.onPal(n); } }

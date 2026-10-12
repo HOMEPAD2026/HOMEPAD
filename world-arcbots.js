@@ -84,6 +84,8 @@ export function makeArcBot(THREE, spec) {
   const eyeOpen = [-1, 1].map((s) => { const e = mesh(new THREE.CapsuleGeometry(0.085, 0.11, 4, 12), M.eye, s * 0.18, 0, 0); e.scale.set(1, 1, 0.35); e.castShadow = false; eyes.add(e); return e; });
   // happy eyes: two little arcs (wave, celebrate)
   const eyeHappy = [-1, 1].map((s) => { const e = mesh(new THREE.TorusGeometry(0.085, 0.026, 6, 16, Math.PI), M.eye, s * 0.18, -0.02, 0); e.castShadow = false; e.visible = false; eyes.add(e); return e; });
+  // knocked out: an X for each eye
+  const eyeX = [-1, 1].map((s) => { const g = new THREE.Group(); g.position.set(s * 0.18, 0, 0); [0.75, -0.75].forEach((r) => { const bar = mesh(new THREE.BoxGeometry(0.2, 0.045, 0.03), M.eye); bar.rotation.z = r; bar.castShadow = false; g.add(bar); }); g.visible = false; eyes.add(g); return g; });
   [-1, 1].forEach((s) => {
     const pod = mesh(new THREE.CylinderGeometry(0.15, 0.16, 0.14, 24), M.shell, s * 0.6, 0.45, 0); pod.rotation.z = Math.PI / 2; head.add(pod);
     const rim = mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 28), M.ring, s * 0.675, 0.45, 0); rim.rotation.y = Math.PI / 2; head.add(rim);
@@ -147,9 +149,14 @@ export function makeArcBot(THREE, spec) {
     "emote-yes": { len: 1.6, happy: true, f: (t, p, sp, k) => { const e = Math.sin(Math.min(1, k) * Math.PI); p.arz = 0.2 + 2.4 * Math.min(1, e * 2) + Math.sin(t * 14) * 0.3 * e; p.arx = -0.55 * e; p.hz = -0.15 * e; p.y = Math.abs(Math.sin(k * Math.PI * 2)) * 0.04; } },
     "emote-no": { len: 1.2, f: (t, p, sp, k) => { const e = Math.sin(Math.min(1, k) * Math.PI); p.hy = Math.sin(t * 16) * 0.45 * e; p.alz = -0.5 * e; p.arz = 0.5 * e; } },
     "interact-right": { len: 0.45, f: (t, p, sp, k) => { const a = k < 0.35 ? sm(k / 0.35) : 1 - sm((k - 0.35) / 0.65) * 0.6; const swing = k < 0.35 ? -2.4 * a : -2.4 + (k - 0.35) / 0.65 * 3.0; p.arx = swing; p.arz = 0.25; p.ty = -0.35 * Math.sin(k * Math.PI); p.tx = 0.08 * Math.sin(k * Math.PI); } },
+    // standing a while: stretch, then look around
+    fidget: { len: 2.2, f: (t, p, sp, k) => { const a = Math.sin(Math.min(1, k / 0.45) * Math.PI), b = k > 0.45 ? Math.sin(((k - 0.45) / 0.55) * Math.PI) : 0; p.alz = -0.2 - 2.6 * a; p.arz = 0.2 + 2.6 * a; p.alx = -0.3 * a; p.arx = -0.3 * a; p.y = 0.04 * a; p.hx = -0.2 * a; p.hy = Math.sin(k * Math.PI * 4) * 0.6 * b; } },
     celebrate: { len: 1.8, happy: true, f: (t, p, sp, k) => { const e = Math.sin(Math.min(1, k) * Math.PI); p.y = Math.abs(Math.sin(k * Math.PI * 3)) * 0.35 * e; p.alz = -2.5 * e + Math.sin(t * 14) * 0.25 * e; p.arz = 2.5 * e - Math.sin(t * 14) * 0.25 * e; p.ty = Math.sin(k * Math.PI * 2) * 0.4; } },
   };
   let cur = "idle", curT = 0, curSp = 1, from = null, fadeT = 0, fadeLen = 0.18, oneShot = false, held = false, blinkT = 2, exprHappy = false;
+  // reactions on top of the animation: a flinch with squinting eyes, the head turned toward someone, a squash on landing
+  let hurtT = 0, lookY = 0, lookWant = 0, landT = 0, landK = 0, idleFor = 0, fidgetAt = 7 + Math.random() * 6, exprKo = false;
+  const ring0 = M.ring.emissiveIntensity;
   const pose = P0(), last = P0();
   function apply(p) {
     root.position.y = p.y; root.rotation.x = p.rx; root.rotation.z = p.rz;
@@ -162,12 +169,16 @@ export function makeArcBot(THREE, spec) {
     if (!once && name === cur && !oneShot) { curSp = speed; return; }
     from = { ...last }; fadeT = 0; fadeLen = fade; cur = name; curT = 0; curSp = speed; oneShot = !!once || !ANIM[name].loop; held = false;
   };
-  function setHappy(on) { if (on === exprHappy) return; exprHappy = on; eyeOpen.forEach((e) => (e.visible = !on)); eyeHappy.forEach((e) => (e.visible = on)); }
+  function setHappy(on) { if (on === exprHappy) return; exprHappy = on; eyeOpen.forEach((e) => (e.visible = !on && !exprKo)); eyeHappy.forEach((e) => (e.visible = on && !exprKo)); }
+  function setKo(on) { if (on === exprKo) return; exprKo = on; eyeX.forEach((e) => (e.visible = on)); eyeOpen.forEach((e) => (e.visible = !on && !exprHappy)); eyeHappy.forEach((e) => (e.visible = !on && exprHappy)); }
   apply(pose);
   let tt = 0;
   return {
     obj, spec, height: 2.1, play, busy: () => oneShot && !held,
     face: (expr) => setHappy(expr === "happy"),
+    hurt() { hurtT = 0.42; },
+    look(yaw) { lookWant = Math.max(-0.85, Math.min(0.85, yaw || 0)); },
+    land(k = 1) { landT = 0.28; landK = Math.max(0.3, Math.min(1, k)); },
     // where the gear sits on this body (world-rpg.js dress): [x, y, z] in the joint's own space
     mount: { weapon: [0, -0.34, 0.08], shield: [-0.12, -0.24, 0.06], helm: [0, 0.52, 0], armor: [0, 0.3, 0], armorR: 0.36 * bulky, necklace: [0, 0.48, 0.24] },
     setCrown(a, b) { [[cr1, a], [cr2, b]].forEach(([m, c]) => { m.material.color.set(c); m.material.emissive.set(c); }); },
@@ -178,12 +189,48 @@ export function makeArcBot(THREE, spec) {
       if (!A.loop && k >= 1) { if (A.hold) held = true; else { oneShot = false; play("idle", { fade: 0.2 }); } }
       // fade from where the last animation left off
       if (from && fadeT < fadeLen) { fadeT += dt; const w = sm(Math.min(1, fadeT / fadeLen)); for (const key in p) p[key] = from[key] + (p[key] - from[key]) * w; if (fadeT >= fadeLen) from = null; }
+      // reactions (added after the fade, so they sit on top of whatever plays)
+      if (hurtT > 0) { hurtT = Math.max(0, hurtT - dt); const e = Math.sin((hurtT / 0.42) * Math.PI); p.tx -= 0.32 * e; p.hx -= 0.28 * e; p.rz += Math.sin(tt * 40) * 0.05 * e; }
+      lookY += (lookWant - lookY) * Math.min(1, dt * 5); if (cur === "idle" || cur === "walk") p.hy += lookY;
       Object.assign(last, p); apply(p);
+      if (landT > 0) { landT = Math.max(0, landT - dt); const e = Math.sin((landT / 0.28) * Math.PI) * landK; root.scale.set(1 + 0.12 * e, 1 - 0.2 * e, 1 + 0.12 * e); } else if (root.scale.y !== 1) root.scale.set(1, 1, 1);
+      // a while standing: a stretch now and then
+      if (cur === "idle" && !oneShot) { idleFor += dt; if (idleFor > fidgetAt) { idleFor = 0; fidgetAt = 9 + Math.random() * 8; play("fidget", { once: true, fade: 0.3 }); } } else if (cur !== "fidget") idleFor = 0;
+      // the ear rings breathe while idle
+      M.ring.emissiveIntensity = ring0 * (cur === "idle" || cur === "fidget" ? 0.85 + Math.sin(tt * 2.2) * 0.25 : 1);
+      setKo(cur === "die" && curT > 0.35);
       setHappy(!!A.happy && k < 1);
       // blink now and then
-      blinkT -= dt; const bl = blinkT < 0.1 ? Math.max(0.12, Math.abs(blinkT - 0.05) / 0.05) : 1; if (blinkT < 0) blinkT = 2.2 + Math.random() * 3.5; eyeOpen.forEach((e) => (e.scale.y = bl));
+      blinkT -= dt; const bl = blinkT < 0.1 ? Math.max(0.12, Math.abs(blinkT - 0.05) / 0.05) : 1; if (blinkT < 0) blinkT = 2.2 + Math.random() * 3.5; eyeOpen.forEach((e) => (e.scale.y = hurtT > 0 ? Math.min(bl, 0.3) : bl));
       const sp = cur === "sprint" ? 1 : cur === "walk" ? 0.5 : 0; spin.forEach((f) => f(dt, tt, sp));
       crown.rotation.y += dt * 1.4; crown.position.y = 2.42 + Math.sin(tt * 2) * 0.04;
     },
   };
+}
+
+// ---------------- the wardrobe (Phase 03): parts any ARC Bot can wear on the same joints ----------------
+// Each part sits in one place on the body; wearing one replaces whatever the look had there. Parts open with your
+// level (nothing to buy). The accent colours are the brand's.
+export const WARDROBE_SLOTS = ["head", "face", "neck", "back", "aura"];
+export const WARDROBE = [
+  { id: "antenna", slot: "head", name: "Antenna", lv: 1 }, { id: "cat", slot: "head", name: "Cat ears", lv: 5 }, { id: "beret", slot: "head", name: "Beret", lv: 5 },
+  { id: "hardhat", slot: "head", name: "Hard hat", lv: 10 }, { id: "halo", slot: "head", name: "Halo", lv: 20 }, { id: "flame", slot: "head", name: "Flame crest", lv: 50 },
+  { id: "goggles", slot: "face", name: "Goggles", lv: 1 }, { id: "visorband", slot: "face", name: "Visor band", lv: 10 },
+  { id: "scarf", slot: "neck", name: "Scarf", lv: 1 },
+  { id: "backpack", slot: "back", name: "Backpack", lv: 5 }, { id: "cape", slot: "back", name: "Cape", lv: 10 }, { id: "wings", slot: "back", name: "Wings", lv: 15 },
+  { id: "rings", slot: "aura", name: "Orbit rings", lv: 30 }, { id: "stars", slot: "aura", name: "Star orbit", lv: 40 },
+];
+export const WARDROBE_COLORS = [["", "The look's own"], ["2f86ff", "Arc Blue"], ["2ee07a", "Circle Mint"], ["38e8ff", "Cyan"], ["ffc861", "Gold"], ["a67bff", "Violet"], ["ff4d6d", "Coral"]];
+const SLOT_OF = Object.fromEntries(WARDROBE.map((w) => [w.id, w.slot]));
+// the parts of the 25 looks that sit in a wardrobe place (so a worn part replaces them)
+const BASE_SLOT = { antenna: "head", cat: "head", beret: "head", hardhat: "head", halo: "head", flame: "head", chef: "head", aviator: "head", hood: "head", bubble: "head", fins: "head", leaves: "head", crystals: "head",
+  goggles: "face", visorband: "face", scarf: "neck", backpack: "back", cape: "back", wings: "back", rings: "aura", stars: "aura" };
+/// a look with an outfit on: outfit = { wear: { head: "halo", back: "cape", … }, accent: "ffc861" }
+export function withOutfit(spec, outfit) {
+  if (!outfit || (!outfit.wear && !outfit.accent)) return spec;
+  const wear = Object.entries(outfit.wear || {}).filter(([sl, id]) => id && SLOT_OF[id] === sl);
+  const taken = new Set(wear.map(([sl]) => sl));
+  const acc = [...spec.acc.filter((k) => !taken.has(BASE_SLOT[k])), ...wear.map(([, id]) => id)];
+  const accent = /^[0-9a-f]{6}$/i.test(outfit.accent || "") ? parseInt(outfit.accent, 16) : spec.accent;
+  return { ...spec, acc, accent };
 }

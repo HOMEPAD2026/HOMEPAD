@@ -569,6 +569,8 @@ export function createIsland(ctx) {
 
   // ---------------- visiting: likes and stamps ----------------
   const STAMPS = ["Lovely build", "So cozy", "Wow", "Great view", "Neighbours?", "Built different"];
+  // the owner's answers to a stamp: a few fixed lines (no free text, so nothing to moderate)
+  const REPLIES = ["Thank you!", "Come again", "Glad you like it", "Let's build together", "See you on the plaza", "Neighbours!"];
   let visitInfo = null;
   async function loadVisit(wallet) {
     const r = await fetch("/api/social?world=island&wallet=" + wallet);
@@ -635,7 +637,12 @@ export function createIsland(ctx) {
   }
   function paintBook() {
     const list = (book || []).slice().reverse();
-    $("wi-book-list").innerHTML = list.length ? list.map((x) => `<li class="${x.h ? "hid" : ""}"><div><b>${esc(T(STAMPS[x.k] || ""))}</b><small>${esc(String(x.w || ""))} · ${esc(new Date(x.at).toLocaleDateString())}</small>${x.h ? `<q class="dim">${esc(T("Note hidden"))}</q>` : x.m ? `<q>${esc(x.m)}</q>` : ""}</div>${x.m || x.h ? `<button type="button" class="wp-btn" data-hide="${x.at}">${esc(x.h ? T("Show") : T("Hide"))}</button>` : ""}</li>`).join("") : `<li class="wi-empty">${esc(T("No stamps yet. Share your island link so friends can visit."))}</li>`;
+    $("wi-book-list").innerHTML = list.length ? list.map((x) => `<li class="${x.h ? "hid" : ""}"><div><b>${esc(T(STAMPS[x.k] || ""))}</b><small>${esc(String(x.w || ""))} · ${esc(new Date(x.at).toLocaleDateString())}</small>${x.h ? `<q class="dim">${esc(T("Note hidden"))}</q>` : x.m ? `<q>${esc(x.m)}</q>` : ""}</div>${x.m || x.h ? `<button type="button" class="wp-btn" data-hide="${x.at}">${esc(x.h ? T("Show") : T("Hide"))}</button>` : ""}<p class="wi-replies"><span>${esc(T("Reply"))}</span>${REPLIES.map((t, i) => `<button type="button" data-reply="${x.at}:${i}" aria-pressed="${x.r === i}">${esc(T(t))}</button>`).join("")}</p></li>`).join("") : `<li class="wi-empty">${esc(T("No stamps yet. Share your island link so friends can visit."))}</li>`;
+  }
+  async function replyNote(v) {
+    const [at, r] = String(v).split(":").map(Number), s = sess(); if (!s) { toast(T("Sign in with your wallet first")); return; }
+    const res = await post({ action: "world-stamp-reply", ...s, at, r });
+    if (res.ok) { book = res.j.stamps || book; paintBook(); Snd.pick(); toast(T("Reply sent: {x}", { x: T(REPLIES[r]) })); } else toast(res.j.error || T("Couldn't change that right now"));
   }
   async function hideNote(at) {
     const s = sess(); if (!s) return;
@@ -784,7 +791,7 @@ export function createIsland(ctx) {
     $("wi-v-sub").textContent = visitInfo.wallet.slice(0, 6) + "…" + visitInfo.wallet.slice(-4);
     $("wi-likes").textContent = String(visitInfo.likes || 0);
     $("wi-stamps").innerHTML = STAMPS.map((s, i) => `<button type="button" data-st="${i}">${esc(T(s))}</button>`).join("");
-    $("wi-stamp-log").innerHTML = (visitInfo.stamps || []).slice(-4).reverse().map((s) => `<li><b>${esc(T(STAMPS[s.k] || ""))}</b> <small>${esc(String(s.w || ""))}</small>${s.m && !s.h ? `<q>${esc(s.m)}</q>` : ""}</li>`).join("");
+    $("wi-stamp-log").innerHTML = (visitInfo.stamps || []).slice(-4).reverse().map((s) => `<li><b>${esc(T(STAMPS[s.k] || ""))}</b> <small>${esc(String(s.w || ""))}</small>${s.m && !s.h ? `<q>${esc(s.m)}</q>` : ""}${s.r != null && REPLIES[s.r] ? `<em class="wi-reply">${esc(T("{name} replied: {x}", { name: visitInfo.name, x: T(REPLIES[s.r]) }))}</em>` : ""}</li>`).join("");
     const fr = isFriend(visitInfo.wallet); $("wi-friend").setAttribute("aria-pressed", String(fr)); $("wi-friend").textContent = fr ? T("Friend") : T("Add friend");
   }
   function setBuild(on) {
@@ -875,6 +882,7 @@ export function createIsland(ctx) {
     if (b.id === "wi-friend") { if (visitInfo) toggleFriend(visitInfo.wallet, visitInfo.name); return; }
     if (b.id === "wi-book-btn") { openBook(); return; }
     if (b.dataset.hide) { hideNote(b.dataset.hide); return; }
+    if (b.dataset.reply) { replyNote(b.dataset.reply); return; }
     if (b.id === "wi-link") { const u = myLink(); if (!u) { toast(T("Sign in with your wallet to share your island")); return; } try { await navigator.clipboard.writeText(u); toast(T("Island link copied. Anyone who opens it lands on your island.")); } catch { $("wi-visit-in").value = u; toast(T("Here's your link: copy it from the box")); } return; }
     if (b.dataset.wal) { closeSheets(); ctx.goIsland({ visit: b.dataset.wal }); return; }
     if (b.id === "wi-like") { like(); return; }

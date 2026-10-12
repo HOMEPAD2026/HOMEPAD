@@ -16,12 +16,12 @@ export function makeZones({ THREE, K, planet, kit, T }) {
     const r = rnd(97 + zi * 13);
     // the ground and its border
     const ground = new THREE.Mesh(new THREE.CircleGeometry(zn.r, 64), new THREE.MeshStandardMaterial({ color: zn.ground, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; g.add(ground);
-    const border = new THREE.Mesh(new THREE.TorusGeometry(zn.r, 0.12, 8, 128), glowM(zn.color, 1.6)); border.rotation.x = Math.PI / 2; border.position.y = 0.08; g.add(border);
+    ground.rotation.x = -Math.PI / 2; ground.position.y = 0.03; ground.receiveShadow = true; ground.userData.keep = true; g.add(ground);
+    const border = new THREE.Mesh(new THREE.TorusGeometry(zn.r, 0.12, 8, 128), glowM(zn.color, 1.6)); border.rotation.x = Math.PI / 2; border.position.y = 0.08; border.userData.keep = true; g.add(border);
     for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 1.1, 6), std(0x2a3442, { metalness: 0.5 })); post.position.set(Math.cos(a) * zn.r, 0.55, Math.sin(a) * zn.r); const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), glowM(zn.color, 2.4)); cap.position.y = 0.62; post.add(cap); g.add(post); }
     // the gate on the side facing the plaza
     const toPlaza = Math.atan2(-zn.x, -zn.z);
-    const gate = K.makeArch(zn.color); gate.scale.setScalar(1.25); gate.position.set(Math.sin(toPlaza) * zn.r, 0, Math.cos(toPlaza) * zn.r); gate.rotation.y = toPlaza; g.add(gate); gates.push(gate);
+    const gate = K.makeArch(zn.color); gate.scale.setScalar(1.25); gate.position.set(Math.sin(toPlaza) * zn.r, 0, Math.cos(toPlaza) * zn.r); gate.rotation.y = toPlaza; gate.userData.keep = true; g.add(gate); gates.push(gate);
     const sign = K.label(zn.name, { accent: "#" + new THREE.Color(zn.color).getHexString(), size: 1.0, sub: T("Level {a}–{b}", { a: zn.lv[0], b: zn.lv[1] }) }); sign.position.set(gate.position.x, 7.6, gate.position.z); g.add(sign); signs.push({ sign, x: zn.x + gate.position.x, z: zn.z + gate.position.z });
     // props
     const prop = (mesh, x, z, ry = r() * 6) => { mesh.position.set(x, mesh.position.y, z); mesh.rotation.y = ry; mesh.castShadow = true; g.add(mesh); return mesh; };
@@ -44,6 +44,8 @@ export function makeZones({ THREE, K, planet, kit, T }) {
       for (let i = 0; i < 9; i++) { const [x, z] = spot(3); const h = 3 + r() * 3; const ob = new THREE.Mesh(new THREE.BoxGeometry(0.9, h, 0.9), std(0x1a1428, { metalness: 0.6, roughness: 0.3 })); ob.position.y = h / 2; const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), glowM(0xb48cff, 2.4)); cr.position.y = h / 2 + 0.7; ob.add(cr); spins.push((dt, t) => { cr.rotation.y = t * 1.4 + i; cr.position.y = h / 2 + 0.7 + Math.sin(t * 2 + i) * 0.15; }); prop(ob, x, z); }
       for (let i = 0; i < 14; i++) { const [x, z] = spot(2); const c = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.1, 5), glowM(0x8a5cff, 1.2)); c.position.y = 0.5; prop(c, x, z); }
     }
+    // the props never move: merge the ones that look alike into one mesh each (hundreds of draw calls fewer)
+    if (K.mergeStatic) K.mergeStatic(g);
     g.userData = { zone: zn, border };
     spins.push((dt, t) => { border.material.emissiveIntensity = 1.3 + Math.sin(t * 2 + zi) * 0.4; });
   });

@@ -52,6 +52,13 @@ function cleanRpg(r) {
   const extra = r.x && typeof r.x === "object" ? JSON.parse(JSON.stringify(r.x)) : undefined; // quests, achievements, codex, companions, season, friends, skill branches
   return { eq, bag, scrap: num(r.scrap, 1e7), hp: num(r.hp, 99), sp: num(r.sp, 99), recall: num(r.recall, 99), starter: r.starter ? 1 : 0, sk: /^(ice|fire|shock|meteor)$/.test(String(r.sk || "")) ? r.sk : "", ...(extra && JSON.stringify(extra).length < 10000 ? { x: extra } : {}) };
 }
+// the ARC Bot wardrobe: one part per place, and an accent colour (world-arcbots.js WARDROBE)
+const OUTFIT_SLOTS = ["head", "face", "neck", "back", "aura"];
+function cleanOutfit(o) {
+  const wear = {}; const w = o.wear && typeof o.wear === "object" ? o.wear : {};
+  for (const sl of OUTFIT_SLOTS) if (typeof w[sl] === "string" && /^[a-z]{2,12}$/.test(w[sl])) wear[sl] = w[sl];
+  return { wear, accent: /^[0-9a-f]{6}$/i.test(String(o.accent || "")) ? String(o.accent).toLowerCase() : "" };
+}
 export function cleanSave(d) {
   const o = d && typeof d === "object" ? d : {};
   // XP on the rising level curve (xpv 2); a save from an older game (100 XP a level) is converted so its level holds
@@ -62,6 +69,7 @@ export function cleanSave(d) {
     visited: ids(o.visited, /^[a-z0-9-]{1,24}$/, 40), beaten: ids(o.beaten, /^[a-z0-9-]{1,24}$/, 20),
     cards: ids(o.cards, /^c\d{1,2}$/, 40), quests: ids(o.quests, /^[a-z0-9-]{1,24}$/, 60), badges: ids(o.badges, /^[a-z0-9-]{1,24}$/, 40),
     daily: o.daily && typeof o.daily === "object" ? { day: String(o.daily.day || "").slice(0, 10), done: ids(o.daily.done, /^[a-z0-9-]{1,24}$/, 10), streak: Math.max(0, Math.min(3650, Math.floor(Number(o.daily.streak) || 0))) } : null,
+    ...(o.outfit && typeof o.outfit === "object" ? { outfit: cleanOutfit(o.outfit) } : {}),
   };
 }
 

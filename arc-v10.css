@@ -2802,3 +2802,117 @@ html.wp-pcphone .wc-face{width:76px;height:76px}
 /* the pending count on the Adventure log button sits inside the card's edge */
 .wr-switch{padding-top:8px;margin-top:-8px}
 .wr-dot{top:-7px;right:-5px;z-index:2}
+/* v37: the HP card at rest on a phone kept a 230px width from before the portrait, which left the bars no room */
+html.wp-pcphone .wc-vit.calm{width:330px}
+.wc-vit.calm .wc-v em{min-width:0;max-width:0;overflow:hidden}
+.wc-v em{max-width:120px;white-space:nowrap;transition:opacity .25s ease,max-width .3s ease}
+.wa-chip{position:relative}
+.wa-chip-day{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden;text-decoration:none}
+.wa-chip-day i{display:block;height:100%;width:0;border-radius:2px;background:#2ee07a;transition:width .5s ease}
+.wa-chip.full .wa-chip-day i{background:#ffc861}
+html.wp-pcphone .wa-chip-day{height:3px;bottom:4px}
+.wp-resign{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 52px);transform:translateX(-50%);z-index:44;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:8px 8px 8px 16px;border-radius:16px;background:var(--glass-bg,rgba(8,14,26,.9));border:1px solid rgba(255,200,97,.45);box-shadow:var(--glass-shadow,0 10px 30px rgba(0,0,0,.4));color:#ffe6b0;font:600 13px/1.35 var(--f-ui)}
+.wp-resign[hidden]{display:none}
+.wp-resign .wp-cta{white-space:nowrap;height:34px;padding:0 14px}
+.wp-resign .wp-x{width:30px;height:30px;flex:none}
+html.wp-pcphone .wp-resign{font-size:17px;top:calc(max(14px,env(safe-area-inset-top)) + 70px)}
+.wp-purse.loading b{animation:wpPurse 1s ease-in-out infinite}
+@keyframes wpPurse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.wp-purse.loading b{animation:none}}
+/* the inbox: the bell, its count, the sheet */
+.wp-inbox-btn{position:relative}
+.wp-inbox-btn[data-dot]:not([data-dot=""])::after{content:attr(data-dot);position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff4d6d;color:#fff;font:800 10px/16px var(--f-ui);text-align:center}
+.wp-inbox{position:fixed;inset:0;z-index:41;display:grid;place-items:center;padding:16px;background:rgba(2,6,14,.5)}
+.wp-inbox[hidden]{display:none}
+.wp-inbox-card{position:relative;width:min(420px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:22px;border-radius:24px;background:var(--glass-bg);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);color:#eef3f7;animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wp-inbox-card .wp-x{position:absolute;right:12px;top:12px}
+.wp-inbox-card h2{margin:0 0 6px;font:900 22px var(--f-ui)}
+.wp-inbox-card section{padding:12px 0;border-top:1px solid rgba(255,255,255,.08)}
+.wp-inbox-card section:first-of-type{border-top:0}
+.wp-inbox-card h3{margin:0 0 6px;font:800 13px var(--f-ui);color:#9fe6ff}
+.wp-inbox-card p{margin:0 0 10px;font-size:13.5px;line-height:1.45}
+.wp-inbox-empty{color:rgba(222,233,244,.6)}
+.wp-inbox-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.wp-inbox-card li{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:13.5px}
+.wp-inbox-who{appearance:none;flex:1;display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-radius:12px;border:1px solid rgba(255,200,97,.35);background:rgba(255,200,97,.08);color:#fff;font:700 14px var(--f-ui);text-align:left;cursor:pointer}
+.wp-inbox-who small{color:#ffc861;font-weight:700}
+.wp-inbox-gifts li{display:block;padding:8px 12px;border-radius:12px;background:rgba(46,224,122,.08);border:1px solid rgba(46,224,122,.3)}
+.wp-prof-gift{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.wp-prof-gift span{width:100%;font:700 12px var(--f-ui);color:rgba(222,233,244,.65)}
+.wp-prof-gift .wp-btn{height:34px;padding:0 12px;font-size:12.5px}
+html.wp-pcphone .wp-inbox-card{zoom:1.35;width:min(420px,calc((100vw - 20px) / 1.35))}
+/* guestbook replies */
+.wi-replies{display:flex;flex-wrap:wrap;gap:5px;align-items:center;width:100%;margin:6px 0 0}
+.wi-replies span{font:700 11px var(--f-ui);color:rgba(222,233,244,.55);margin-right:2px}
+.wi-replies button{appearance:none;height:26px;padding:0 10px;border-radius:999px;border:1px solid rgba(120,196,255,.3);background:none;color:#cfe8ff;font:600 11.5px var(--f-ui);cursor:pointer}
+.wi-replies button[aria-pressed=true]{background:rgba(46,224,122,.18);border-color:#2ee07a;color:#fff}
+.wi-reply{display:block;font-style:normal;font-size:12px;color:#7ff0c0;margin-top:2px}
+.wi-book li .wi-replies{grid-column:1/-1}
+/* the hoverboard race: time and rings at the top */
+.wp-race{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 96px);transform:translateX(-50%);z-index:30;display:flex;align-items:baseline;gap:12px;padding:8px 18px;border-radius:999px;background:var(--glass-bg,rgba(8,14,26,.9));border:1px solid rgba(47,134,255,.55);box-shadow:var(--glass-shadow,0 10px 30px rgba(0,0,0,.4));color:#eef3f7;pointer-events:none}
+.wp-race[hidden]{display:none}
+.wp-race span{font:700 12px var(--f-ui);color:#9fe6ff}
+.wp-race b{font:800 22px var(--f-num,var(--f-ui));font-variant-numeric:tabular-nums;color:#fff}
+.wp-race i{font:700 13px var(--f-ui);font-style:normal;color:#ffc861}
+.wp-race em{font:800 12px var(--f-ui);font-style:normal;color:#2ee07a}
+.wp-race.done{border-color:#2ee07a}
+html.wp-pcphone .wp-race{zoom:1.4;top:calc(max(14px,env(safe-area-inset-top)) + 70px)}
+/* gear: locked pieces, the Equip best plan, the slots that just changed */
+.wr-tile{position:relative}
+.wr-lock{position:absolute;left:5px;bottom:5px;width:12px;height:12px;border-radius:3px;background:#ffc861;box-shadow:0 0 0 2px rgba(7,13,24,.9)}
+.wr-lock::before{content:"";position:absolute;left:2.5px;top:-5px;width:5px;height:6px;border:2px solid #ffc861;border-bottom:0;border-radius:4px 4px 0 0}
+.wr-plan{margin-top:12px;padding:14px 16px;border-radius:16px;border:1px solid rgba(46,224,122,.45);background:linear-gradient(180deg,rgba(46,224,122,.10),rgba(46,224,122,.03))}
+.wr-plan h4{margin:0 0 8px;font:800 15px var(--f-ui);color:#fff}.wr-plan h4 b{color:#2ee07a}.wr-plan h4 small{color:rgba(222,233,244,.6);font-weight:600}
+.wr-plan ul{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:5px}
+.wr-plan li{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:baseline;font-size:13px}
+.wr-plan li span{color:rgba(222,233,244,.6);font-size:12px}.wr-plan li s{color:rgba(222,233,244,.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wr-plan li b{font-weight:800}
+.wr-plan p{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.wr-plan em{font:700 12px var(--f-ui);font-style:normal;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06)}
+.wr-plan em.up{color:#2ee07a}.wr-plan em.down{color:#ff6b7f}
+.wr-plan-acts{display:flex;gap:8px}
+.wr-plan-acts button{appearance:none;height:36px;padding:0 16px;border-radius:11px;border:1px solid rgba(120,196,255,.3);background:rgba(120,196,255,.06);color:#eef3f7;font:700 13px var(--f-ui);cursor:pointer}
+.wr-plan-acts button.go{border:0;background:linear-gradient(180deg,#5fe3a0,#2ee07a);color:#06210f}
+.wr-flash{animation:wrFlash .8s ease}
+@keyframes wrFlash{0%{box-shadow:0 0 0 0 rgba(46,224,122,.9);transform:scale(1.08)}60%{box-shadow:0 0 0 10px rgba(46,224,122,0)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.wr-flash{animation:none}}
+/* phones (PC layout): panel headers on one line, the switch underneath; tabs in two rows instead of a hidden scroll */
+html.wp-pcphone .wr-head{flex-wrap:wrap;row-gap:10px}
+html.wp-pcphone .wr-head h2{font-size:24px;white-space:nowrap}
+html.wp-pcphone .wr-head p{display:none}
+html.wp-pcphone .wr-head .wr-switch{order:3;flex:1 1 100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:0;margin-top:0}
+html.wp-pcphone .wr-head .wr-switch button{padding:0 8px}
+html.wp-pcphone .wr-ftabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
+html.wp-pcphone .wr-ftabs>button{min-width:0;padding:0 8px}
+/* the map: the minimap key */
+.wp-mapkey{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);font-size:12px;color:rgba(222,233,244,.8)}
+.wp-mapkey b{width:100%;font:800 12px var(--f-ui);color:#9fe6ff}
+.wp-mapkey span{display:inline-flex;align-items:center;gap:6px}
+.wp-mapkey i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.wp-mapkey i.ring{background:none;border:2px solid #ffc861;width:12px;height:12px}
+.wp-mapkey i.sq{width:16px;height:16px;border-radius:50%;background:#4fa8ff;color:#04121a;font:800 9px/16px var(--f-ui);font-style:normal;text-align:center}
+.wp-fps{position:fixed;left:10px;bottom:10px;z-index:46;padding:4px 9px;border-radius:8px;background:rgba(4,8,16,.75);color:#7ff0c0;font:600 11px var(--f-num,monospace);pointer-events:none}
+.wp-fps[hidden]{display:none}
+html.wp-pcphone .wp-fps{font-size:16px;bottom:auto;top:calc(max(14px,env(safe-area-inset-top)) + 150px)}
+/* the ARC Bot wardrobe */
+.wr-wardrobe{appearance:none;margin-left:10px;height:28px;padding:0 12px;border-radius:999px;border:1px solid rgba(166,123,255,.55);background:rgba(166,123,255,.12);color:#e6d9ff;font:700 12px var(--f-ui);cursor:pointer;vertical-align:middle}
+.wd-sheet{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:16px;background:rgba(2,6,14,.55)}
+.wd-sheet[hidden]{display:none}
+.wd-card{position:relative;width:min(860px,100%);max-height:calc(100svh - 32px);overflow:auto;padding:22px;border-radius:26px;background:var(--glass-bg);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);color:#eef3f7;animation:wpPanelIn .24s cubic-bezier(.2,.9,.3,1.15)}
+.wd-card .wp-x{position:absolute;right:14px;top:14px}
+.wd-card h2{margin:0;font:900 24px var(--f-ui)}.wd-name{color:#9fe6ff;font-weight:800;margin-left:6px}
+.wd-note{margin:4px 0 14px;font-size:13px;color:rgba(222,233,244,.65)}
+.wd-body{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+.wd-view{position:relative;height:360px;border-radius:20px;background:radial-gradient(70% 60% at 50% 60%,rgba(47,134,255,.28),rgba(7,13,24,0) 70%),rgba(255,255,255,.03);border:1px solid rgba(160,220,255,.18);overflow:hidden}
+.wd-view canvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.wd-parts section{margin:0 0 12px}
+.wd-parts h3{margin:0 0 6px;font:800 12px var(--f-ui);color:#9fe6ff}
+.wd-row{display:flex;flex-wrap:wrap;gap:6px}
+.wd-row button{appearance:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(120,196,255,.3);background:none;color:#eef3f7;font:700 12.5px var(--f-ui);cursor:pointer}
+.wd-row button[aria-pressed=true]{background:rgba(46,224,122,.16);border-color:#2ee07a}
+.wd-row button:disabled{opacity:.45;cursor:default}
+.wd-row button small{font-weight:700;color:#ffc861}
+.wd-colors button i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.wd-acts{display:flex;gap:8px;margin-top:14px}
+@media (max-width:760px){.wd-body{grid-template-columns:1fr}.wd-view{height:300px}}
+html.wp-pcphone .wd-card{zoom:1.3;width:min(860px,calc((100vw - 20px) / 1.3))}
+html.wp-pcphone .wd-body{grid-template-columns:1fr}
